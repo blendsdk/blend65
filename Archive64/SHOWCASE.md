@@ -113,7 +113,7 @@ What this demonstrates:
 
 For performance builds, Blend64 favors a canonical hot path where the compiler can apply aggressive heuristics.
 
-```blend
+```js
 module Game.Main
 
 import Hud_Draw from game:hud
