@@ -10,20 +10,12 @@
 
 ## What Is Blend65?
 
-**Blend65** is a **multi-target, ahead-of-time compiled language** designed specifically for **high-performance 6502
-family game development**.
-
-It compiles the same source code to different 6502-based machines:
-
--   **Commodore family**: C64, VIC-20, C128, Plus/4, CBM/PET
--   **Atari family**: 2600, 5200, 7800
--   **Modern 6502**: Commander X16, MEGA 65
--   **Future targets**: Apple II, NES, and other 6502 systems
+**Blend65** is an **ahead-of-time compiled language** designed specifically for **high-performance 6502 family game development**. The language is architecturally designed to support multiple 6502-based targets, with **Commodore 64** as the current primary focus.
 
 Blend65 exists for developers who want:
 
--   **Universal 6502 code** that works across machines
--   **Target-specific hardware APIs** for optimal performance
+-   **High-performance C64 game development** with modern language features
+-   **Direct hardware control** over VIC-II, SID, and sprites
 -   **Predictable memory usage** and deterministic performance
 -   **Maximum possible FPS** on real hardware
 -   **Zero implicit runtime** or standard library
@@ -35,9 +27,9 @@ Blend65 exists for developers who want:
 
 ## Core Design Goals
 
--   **Multi-target compilation** to different 6502 machines
--   **Target-specific hardware APIs** (sprites, sound, video)
--   **Universal 6502 core** (variables, functions, control flow)
+-   **6502 family architecture** with multi-platform design
+-   **C64-focused development** with direct hardware control
+-   **Modern language features** for retro development
 -   **Ahead-of-time compilation** to native machine code
 -   **No implicit runtime** or hidden overhead
 -   **Reachability-based dead-code elimination**
@@ -46,14 +38,15 @@ Blend65 exists for developers who want:
 
 ---
 
-## Target Architecture
+## Language Design
 
-### **Universal Core Language**
+### **Core 6502 Language**
 
 ```
-// This code works on ANY 6502 target
+// Modern syntax for 6502 development
 var lives: byte = 3
 var score: word = 0
+zp var frameCounter: byte = 0
 
 function addPoints(points: word): void
     score = score + points
@@ -61,33 +54,33 @@ end function
 
 while lives > 0
     // Game loop logic
+    frameCounter = frameCounter + 1
 end while
 ```
 
-### **Target-Specific Hardware**
+### **C64 Hardware Control**
 
 ```
-// Commodore 64
+// Direct access to C64 hardware
 import setSpritePosition, enableSprite from c64:sprites
-import setBackgroundColor from c64:vic
-import playNote from c64:sid
+import setBackgroundColor, setBorderColor from c64:vic
+import playNote, setVolume from c64:sid
 
-// Commander X16
-import setSprite, setPalette from x16:vera
-import playNote from x16:ym2151
+// Set up sprite
+enableSprite(0, true)
+setSpritePosition(0, 160, 100)
+setBackgroundColor(0)  // Black
+setBorderColor(0)      // Black
 
-// VIC-20 (no sprites)
-import setBackgroundColor from vic20:vic
-import setCharacterAt from vic20:screen
+// Play sound
+setVolume(15)
+playNote(0, 440)  // Channel 0, 440Hz
 ```
 
-### **Compile for Any Target**
+### **Compilation**
 
 ```bash
-blend65 --target=c64 game.blend     # → game.prg (Commodore 64)
-blend65 --target=x16 game.blend     # → game.prg (Commander X16)
-blend65 --target=vic20 game.blend   # → game.prg (VIC-20)
-blend65 --target=atari2600 game.blend # → game.bin (Atari 2600)
+blend65 game.blend  # → game.prg for Commodore 64
 ```
 
 ---
@@ -103,59 +96,57 @@ blend65 --target=atari2600 game.blend # → game.bin (Atari 2600)
 
 ---
 
-## Supported Targets
+## Current Focus: Commodore 64
 
-### **Tier 1 (Fully Supported)**
+**Blend65** is currently focused on delivering an exceptional development experience for the **Commodore 64**. The language architecture supports the 6502 family design principles, making it potentially adaptable to other 6502-based systems in the future.
 
--   **Commodore 64** - Complete VIC-II, SID, sprite support
--   **Commander X16** - Modern 6502 with VERA graphics/sound
+### **C64 Hardware Support**
 
-### **Tier 2 (Planned)**
-
--   **VIC-20** - Simple VIC chip, character-based graphics
--   **Atari 2600** - TIA graphics, extreme memory constraints
--   **Plus/4** - TED chip, enhanced C64-style machine
-
-### **Future Targets**
-
--   Atari 5200, 7800
--   MEGA 65
--   CBM/PET series
--   Apple II series
+-   **VIC-II Graphics** - Complete sprite, character, and bitmap support
+-   **SID Sound** - Full 3-voice synthesizer control
+-   **Memory Management** - Zero page, BASIC RAM, and custom memory layouts
+-   **I/O Control** - Joysticks, keyboard, and hardware registers
 
 ---
 
 ## Compiler Architecture
 
-Source → **Universal AST** → **Type Checking** → **Target Selection** → **Hardware API Resolution** → **Lowering &
-Validation Phase** → **Target-Specific IL** → **6502 Optimization** → **Target Codegen** → **Native Binary**
-(PRG/BIN/etc.)
+Source → **Lexing & Parsing** → **AST Generation** → **Type Checking** → **C64 Hardware API Resolution** → **Memory Layout** → **6502 Optimization** → **C64 Code Generation** → **PRG Binary**
 
 ### Key Phases
 
--   **Target Resolution**: Select hardware APIs based on `--target` flag
--   **Hardware Validation**: Ensure imported functions exist on target
--   **Memory Layout**: Apply target-specific memory maps
--   **Code Generation**: Emit optimized 6502 for specific machine
+-   **Parsing**: Convert Blend65 source to Abstract Syntax Tree
+-   **Type Checking**: Validate types and memory constraints
+-   **Hardware API Resolution**: Resolve C64 hardware function calls
+-   **Memory Layout**: Apply C64 memory map and zero page allocation
+-   **6502 Optimization**: Optimize for 6502 instruction set
+-   **Code Generation**: Emit optimized 6502 machine code for C64
 
 ---
 
-## Example: Cross-Target Game
+## Example: C64 Game
 
 ```
 module Game.Main
 
-// Universal 6502 code
+// Game variables in different memory regions
 var playerX: word = 160
 var playerY: byte = 100
+zp var joystick: byte = 0
 var gameRunning: boolean = true
 
-// Target-specific imports resolve at compile time
-import joystickLeft, joystickRight from target:input
-import setPlayerSprite from target:graphics
-import playSound from target:audio
+// C64 hardware imports
+import joystickRead from c64:input
+import setSpritePosition, enableSprite, setSpriteColor from c64:sprites
+import setBackgroundColor from c64:vic
+import playNote from c64:sid
 
 export function main(): void
+    // Initialize game
+    setBackgroundColor(0)  // Black background
+    enableSprite(0, true)
+    setSpriteColor(0, 1)   // White sprite
+
     while gameRunning
         handleInput()
         updatePlayer()
@@ -164,77 +155,73 @@ export function main(): void
 end function
 
 function handleInput(): void
-    if joystickLeft() then
+    joystick = joystickRead(1)  // Read joystick port 2
+
+    if (joystick & 4) == 0 then  // Left
         playerX = playerX - 2
     end if
-    if joystickRight() then
+    if (joystick & 8) == 0 then  // Right
         playerX = playerX + 2
+    end if
+    if (joystick & 16) == 0 then // Fire
+        playNote(0, 440)  // Beep sound
     end if
 end function
 
 function render(): void
-    setPlayerSprite(playerX, playerY)
+    setSpritePosition(0, playerX, playerY)
 end function
 ```
 
-**Compile for C64:**
+**Compile and Run:**
 
 ```bash
-blend65 --target=c64 game.blend
-# Resolves: c64:input, c64:sprites, c64:sid
-# Output: game.prg for C64
-```
-
-**Compile for Commander X16:**
-
-```bash
-blend65 --target=x16 game.blend
-# Resolves: x16:input, x16:vera, x16:ym2151
-# Output: game.prg for X16
+blend65 game.blend  # → game.prg for C64
+x64 game.prg        # Run in VICE emulator
 ```
 
 ---
 
 ## Project Status
 
-**Current Phase:** Architecture Design **Next Milestone:** C64 + Commander X16 working compilers
+**Current Phase:** Architecture Design **Next Milestone:** Working C64 compiler
 
 ### What's Implemented
 
 -   [x] Language specification design
--   [x] Multi-target architecture design
--   [x] Target system specification
+-   [x] C64 target architecture design
+-   [x] 6502 family design principles
 
 ### What's In Progress
 
 -   [ ] Core 6502 language implementation
--   [ ] Target definition system
--   [ ] C64 target implementation
--   [ ] Commander X16 target implementation
+-   [ ] C64 hardware API implementation
+-   [ ] C64 compiler implementation
+-   [ ] Memory management and optimization
 
 ### What's Planned
 
--   [ ] Additional target support (VIC-20, Atari 2600, Plus/4)
--   [ ] Advanced optimization passes
+-   [ ] Advanced 6502 optimization passes
 -   [ ] IDE integration and debugging support
+-   [ ] Enhanced C64 hardware features
 
 ---
 
 ## Getting Started
 
-1. **Choose your target machine** (C64 or Commander X16 recommended)
-2. **Write universal 6502 code** with target-specific hardware imports
-3. **Compile with target flag**: `blend65 --target=c64 game.blend`
-4. **Run on real hardware or emulator**
+1. **Set up your C64 development environment**
+2. **Write Blend65 code** with C64 hardware imports
+3. **Compile**: `blend65 game.blend`
+4. **Run on C64 hardware or emulator** (VICE recommended)
 
 ---
 
 ## Documentation
 
--   [Language Specification](research/blend65-spec.md) - Complete language reference
--   [Target System Design](research/target-system-design.md) - How multi-target works
--   [Implementation Plan](implementation-plan/MASTER_PLAN.md) - Development roadmap
--   [Adding New Targets](targets/template/README.md) - Target development guide
+-   [Language Specification](docs/research/blend65-spec.md) - Complete language reference
+-   [6502 Core Features](docs/research/6502-core-features.md) - 6502 architecture details
+-   [Implementation Plan](docs/implementation-plan/MASTER_PLAN.md) - Development roadmap
+-   [Target System Design](docs/research/target-system-design.md) - Architecture design
 
 ---
 
