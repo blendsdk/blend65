@@ -96,12 +96,31 @@ blend65 game.blend  # → game.prg for Commodore 64
 
 ---
 
-## Current Focus: Commodore 64
+## 6502 Family Roadmap
 
-**Blend65** is currently focused on delivering an exceptional development experience for the **Commodore 64**. The language architecture supports the 6502 family design principles, making it potentially adaptable to other 6502-based systems in the future.
+**Blend65** is architecturally designed to support the entire 6502 family of processors. Here's our roadmap ordered by development feasibility:
 
-### **C64 Hardware Support**
+### **Current Target**
+-   **Commodore 64** - Primary focus with VIC-II, SID, and sprite support
 
+### **High Priority (Excellent tooling & docs)**
+-   **VIC-20** - Simpler C64 cousin, character-based graphics
+-   **Commander X16** - Modern 6502 with VERA graphics/sound
+-   **Apple II series** - Classic 6502 platform, well-documented
+-   **Commodore 128** - Enhanced C64 successor
+
+### **Medium Priority (Good tooling & docs)**
+-   **NES/Famicom** - Popular gaming platform with complex PPU
+-   **Atari 8-bit computers** - 400/800/XL/XE series
+-   **Plus/4** - TED chip, unique Commodore platform
+-   **CBM/PET series** - Business computers
+
+### **Long-term Goals (Challenging but possible)**
+-   **Atari 2600** - Extremely constrained but iconic
+-   **BBC Micro** - Popular UK computer
+-   **Atari 5200/7800** - Advanced Atari systems
+
+### **C64 Hardware Support (Current Implementation)**
 -   **VIC-II Graphics** - Complete sprite, character, and bitmap support
 -   **SID Sound** - Full 3-voice synthesizer control
 -   **Memory Management** - Zero page, BASIC RAM, and custom memory layouts
