@@ -21,7 +21,7 @@ C64 game example: a joystick-controlled sprite ball with smooth movement and col
 
 ## Complete Program Code
 
-```FreeBASIC
+```js
 module Game.SpriteBall
 
 // Import C64 hardware access modules (function-based API)
