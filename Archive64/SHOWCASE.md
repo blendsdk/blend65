@@ -20,7 +20,7 @@ Blend64 is **assembler-plus**:
 Blend64 strings are fixed-capacity buffers: `string(N)`.
 Template strings exist, but are **restricted** and lower to static copies + formatting helpers **only if used**.
 
-```blend
+```Pascal
 module Game.Hud
 
 import poke, memcpy from c64:mem
