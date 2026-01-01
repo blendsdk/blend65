@@ -48,7 +48,7 @@ Ensure lexer correctly handles Blend64 storage class and placement syntax patter
 
 Create test cases to verify storage classes tokenize correctly:
 
-````bash
+```bash
 # Create test file
 cat > test-storage.blend64 << 'EOF'
 zp var frame: byte
@@ -202,4 +202,7 @@ Continue with: `phase-1-lexer/TASK_1.5_TEST_AND_VALIDATE.md`
 -   Problem: Storage keywords not recognized → Solution: Check Task 1.2 was completed correctly
 -   Problem: @ or $ not tokenizing → Solution: Check Task 1.3 operator additions
 -   Problem: Hex literals not parsing → Solution: Verify existing hex literal support in lexer
-````
+
+```
+
+```

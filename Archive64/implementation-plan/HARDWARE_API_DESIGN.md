@@ -20,7 +20,7 @@ balance of programmer ergonomics and code generation efficiency.
 
 Instead of raw register manipulation:
 
-````
+```
 // OLD: Assembly-like approach (rejected)
 io var VIC_SPRITE0_X: byte @ $D000
 io var VIC_SPRITE_X_MSB: byte @ $D010
@@ -308,4 +308,7 @@ The function-based hardware API strikes the perfect balance for Blend64:
 -   **Future-proofs the language** with extensible module system
 
 This design ensures Blend64 code is both **pleasant to write** and **optimal to execute** on C64 hardware.
-````
+
+```
+
+```

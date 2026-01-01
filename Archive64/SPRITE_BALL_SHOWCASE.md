@@ -21,7 +21,7 @@ C64 game example: a joystick-controlled sprite ball with smooth movement and col
 
 ## Complete Program Code
 
-````
+```
 module Game.SpriteBall
 
 // Import C64 hardware access modules (function-based API)
@@ -475,4 +475,7 @@ language features while maintaining the performance characteristics of hand-opti
 
 The result is C64 game code that is both **readable and maintainable** for developers, yet **executes at optimal speed**
 on the target hardware - bridging the 40-year gap between modern programming practices and classic computer constraints.
-````
+
+```
+
+```

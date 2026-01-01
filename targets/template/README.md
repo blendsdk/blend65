@@ -6,7 +6,7 @@ This directory contains template files for creating new Blend65 targets.
 
 ### Step 1: Copy Template Files
 
-````bash
+```bash
 cp -r targets/template targets/YOUR_MACHINE
 cd targets/YOUR_MACHINE
 ```
@@ -144,4 +144,7 @@ When contributing a new target:
 3. Document all hardware-specific behavior
 4. Include sample programs demonstrating capabilities
 5. Update main documentation to mention new target
-````
+
+```
+
+```

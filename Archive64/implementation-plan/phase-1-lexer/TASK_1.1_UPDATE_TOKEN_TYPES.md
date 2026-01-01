@@ -49,11 +49,12 @@ Modify the TokenType enum in the Blend lexer to support Blend64 syntax requireme
 
 ### Step 1: Copy the source file
 
-````bash
+```bash
 cp /Users/gevik/workdir/blend-lang/packages/lexer/src/types.ts packages/lexer/src/types.ts
 ```
 
 ### Step 2: Add new TokenType enum values
+
 Add these new tokens to the TokenType enum (in alphabetical order within logical groups):
 
 ```typescript
@@ -70,6 +71,7 @@ DOLLAR = 'DOLLAR',            // $ for hex addresses
 ```
 
 ### Step 3: Remove unused tokens
+
 Remove these TokenType enum values (Blend64 doesn't use them):
 
 ```typescript
@@ -80,6 +82,7 @@ NULL = 'NULL',             // null literal
 ```
 
 ### Step 4: Update comments
+
 Update the file header comment to reflect Blend64:
 
 ```typescript
@@ -100,70 +103,74 @@ Update the file header comment to reflect Blend64:
 ## Expected Output
 
 **Modified files:**
-- `packages/lexer/src/types.ts` - Updated TokenType enum with Blend64 tokens
+
+-   `packages/lexer/src/types.ts` - Updated TokenType enum with Blend64 tokens
 
 **Success criteria:**
-- [ ] 6 new tokens added: ZP, RAM, DATA, IO, HOTLOOP, AT, DOLLAR
-- [ ] 3 tokens removed: QMARKQMARK, DOTDOTDOT, NULL
-- [ ] All existing core tokens preserved
-- [ ] File compiles without TypeScript errors
-- [ ] Enum values follow consistent naming convention
+
+-   [ ] 6 new tokens added: ZP, RAM, DATA, IO, HOTLOOP, AT, DOLLAR
+-   [ ] 3 tokens removed: QMARKQMARK, DOTDOTDOT, NULL
+-   [ ] All existing core tokens preserved
+-   [ ] File compiles without TypeScript errors
+-   [ ] Enum values follow consistent naming convention
 
 ---
 
 ## Code Examples
 
 ### Before:
+
 ```typescript
 export enum TokenType {
-  // ... existing tokens ...
+    // ... existing tokens ...
 
-  // Special operators
-  ARROW = 'ARROW', // =>
-  QMARK = 'QMARK', // ?
-  QMARKQMARK = 'QMARKQMARK', // ??
-  DOTDOTDOT = 'DOTDOTDOT', // ... (spread/rest)
+    // Special operators
+    ARROW = "ARROW", // =>
+    QMARK = "QMARK", // ?
+    QMARKQMARK = "QMARKQMARK", // ??
+    DOTDOTDOT = "DOTDOTDOT", // ... (spread/rest)
 
-  // Literals
-  INTEGER = 'INTEGER',
-  FLOAT = 'FLOAT',
-  STRING = 'STRING',
-  TEMPLATE_STRING = 'TEMPLATE_STRING',
-  BOOLEAN = 'BOOLEAN', // true/false
-  NULL = 'NULL', // null
+    // Literals
+    INTEGER = "INTEGER",
+    FLOAT = "FLOAT",
+    STRING = "STRING",
+    TEMPLATE_STRING = "TEMPLATE_STRING",
+    BOOLEAN = "BOOLEAN", // true/false
+    NULL = "NULL" // null
 }
 ```
 
 ### After:
+
 ```typescript
 export enum TokenType {
-  // ... existing tokens ...
+    // ... existing tokens ...
 
-  // Storage classes (Blend64)
-  ZP = 'ZP',
-  RAM = 'RAM',
-  DATA = 'DATA',
-  IO = 'IO',
+    // Storage classes (Blend64)
+    ZP = "ZP",
+    RAM = "RAM",
+    DATA = "DATA",
+    IO = "IO",
 
-  // Control constructs (Blend64)
-  HOTLOOP = 'HOTLOOP',
+    // Control constructs (Blend64)
+    HOTLOOP = "HOTLOOP",
 
-  // Placement syntax (Blend64)
-  AT = 'AT',                    // @
-  DOLLAR = 'DOLLAR',            // $
+    // Placement syntax (Blend64)
+    AT = "AT", // @
+    DOLLAR = "DOLLAR", // $
 
-  // Special operators
-  ARROW = 'ARROW', // =>
-  QMARK = 'QMARK', // ?
-  // REMOVED: QMARKQMARK, DOTDOTDOT
+    // Special operators
+    ARROW = "ARROW", // =>
+    QMARK = "QMARK", // ?
+    // REMOVED: QMARKQMARK, DOTDOTDOT
 
-  // Literals
-  INTEGER = 'INTEGER',
-  FLOAT = 'FLOAT',
-  STRING = 'STRING',
-  TEMPLATE_STRING = 'TEMPLATE_STRING',
-  BOOLEAN = 'BOOLEAN', // true/false
-  // REMOVED: NULL
+    // Literals
+    INTEGER = "INTEGER",
+    FLOAT = "FLOAT",
+    STRING = "STRING",
+    TEMPLATE_STRING = "TEMPLATE_STRING",
+    BOOLEAN = "BOOLEAN" // true/false
+    // REMOVED: NULL
 }
 ```
 
@@ -172,6 +179,7 @@ export enum TokenType {
 ## Testing
 
 **Test cases to run:**
+
 ```bash
 # Navigate to packages/lexer
 cd packages/lexer
@@ -192,9 +200,10 @@ console.log('QMARKQMARK removed:', !TokenType.QMARKQMARK);
 ```
 
 **Expected results:**
-- TypeScript compiles without errors
-- All new tokens report `true`
-- Removed tokens report `true` (meaning they don't exist)
+
+-   TypeScript compiles without errors
+-   All new tokens report `true`
+-   Removed tokens report `true` (meaning they don't exist)
 
 ---
 
@@ -207,7 +216,11 @@ Continue with: `phase-1-lexer/TASK_1.2_UPDATE_KEYWORDS.md`
 ## Troubleshooting
 
 **Common issues:**
-- Problem: TypeScript compilation errors → Solution: Check enum syntax and trailing commas
-- Problem: Enum values not found → Solution: Verify export is working and values are spelled correctly
-- Problem: Old tokens still exist → Solution: Double-check removal of QMARKQMARK, DOTDOTDOT, NULL
-````
+
+-   Problem: TypeScript compilation errors → Solution: Check enum syntax and trailing commas
+-   Problem: Enum values not found → Solution: Verify export is working and values are spelled correctly
+-   Problem: Old tokens still exist → Solution: Double-check removal of QMARKQMARK, DOTDOTDOT, NULL
+
+```
+
+```

@@ -19,7 +19,7 @@ These features form the foundation for portable code that compiles to any suppor
 
 **Primitive Types (Universal):**
 
-````
+```
 var counter: byte = 0        // 8-bit unsigned (0-255)
 var address: word = $C000    // 16-bit unsigned (0-65535)
 var flag: boolean = true     // 8-bit boolean (0 or 1)
@@ -545,4 +545,7 @@ cycles += 4    // STA absolute (4 cycles)
 
 This universal 6502 core provides a solid foundation for cross-platform retro game development while maintaining the
 performance and determinism required for real-time 6502 programming.
-````
+
+```
+
+```

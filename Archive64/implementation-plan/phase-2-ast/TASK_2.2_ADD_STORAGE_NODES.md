@@ -51,13 +51,13 @@ Add new AST node types to support Blend64 storage classes and placement syntax.
 
 In `packages/ast/src/ast-types/core.ts`, add these new interfaces before the existing interfaces:
 
-````typescript
+```typescript
 /**
  * Storage class specification for Blend64 variables
  */
 export interface StorageClass extends BlendASTNode {
-  type: 'StorageClass';
-  class: 'zp' | 'ram' | 'data' | 'const' | 'io';
+    type: "StorageClass";
+    class: "zp" | "ram" | "data" | "const" | "io";
 }
 
 /**
@@ -65,8 +65,8 @@ export interface StorageClass extends BlendASTNode {
  * Example: @ $D020
  */
 export interface PlacementAnnotation extends BlendASTNode {
-  type: 'PlacementAnnotation';
-  address: number; // parsed numeric value
+    type: "PlacementAnnotation";
+    address: number; // parsed numeric value
 }
 
 /**
@@ -74,13 +74,14 @@ export interface PlacementAnnotation extends BlendASTNode {
  * Examples: @hot, @inline, @irq
  */
 export interface AttributeAnnotation extends BlendASTNode {
-  type: 'AttributeAnnotation';
-  name: 'hot' | 'inline' | 'noinline' | 'irq' | 'unroll';
-  args?: Expression[]; // for @unroll(4) etc.
+    type: "AttributeAnnotation";
+    name: "hot" | "inline" | "noinline" | "irq" | "unroll";
+    args?: Expression[]; // for @unroll(4) etc.
 }
 ```
 
 ### Step 2: Update VariableDeclaration
+
 Replace the existing VariableDeclaration interface with this enhanced version:
 
 ```typescript
@@ -92,26 +93,35 @@ Replace the existing VariableDeclaration interface with this enhanced version:
  * - io var VIC_BORDER: byte @ $D020
  */
 export interface VariableDeclaration extends BlendASTNode {
-  type: 'VariableDeclaration';
-  storageClass: StorageClass | null; // NEW: storage specification
-  kind: 'var' | 'const';
-  name: string;
-  varType: TypeAnnotation | null;
-  placement: PlacementAnnotation | null; // NEW: explicit placement
-  initializer: Expression | null;
+    type: "VariableDeclaration";
+    storageClass: StorageClass | null; // NEW: storage specification
+    kind: "var" | "const";
+    name: string;
+    varType: TypeAnnotation | null;
+    placement: PlacementAnnotation | null; // NEW: explicit placement
+    initializer: Expression | null;
 }
 ```
 
 ### Step 3: Add to union types
+
 Update the relevant union types to include the new nodes:
 
 ```typescript
 // Add to CoreNode export at the bottom
-export type CoreNode = Program | Expression | Statement | Declaration | Parameter
-  | StorageClass | PlacementAnnotation | AttributeAnnotation; // NEW
+export type CoreNode =
+    | Program
+    | Expression
+    | Statement
+    | Declaration
+    | Parameter
+    | StorageClass
+    | PlacementAnnotation
+    | AttributeAnnotation; // NEW
 ```
 
 ### Step 4: Update file documentation
+
 Update the header comment to reflect new capabilities:
 
 ```typescript
@@ -135,20 +145,23 @@ Update the header comment to reflect new capabilities:
 ## Expected Output
 
 **Modified files:**
-- `packages/ast/src/ast-types/core.ts` - New storage-related node types
+
+-   `packages/ast/src/ast-types/core.ts` - New storage-related node types
 
 **Success criteria:**
-- [ ] StorageClass, PlacementAnnotation, AttributeAnnotation interfaces defined
-- [ ] VariableDeclaration includes storageClass and placement fields
-- [ ] New types included in union exports
-- [ ] File compiles without TypeScript errors
-- [ ] All new node types follow consistent naming patterns
+
+-   [ ] StorageClass, PlacementAnnotation, AttributeAnnotation interfaces defined
+-   [ ] VariableDeclaration includes storageClass and placement fields
+-   [ ] New types included in union exports
+-   [ ] File compiles without TypeScript errors
+-   [ ] All new node types follow consistent naming patterns
 
 ---
 
 ## Code Examples
 
 ### New Node Usage:
+
 ```typescript
 // Storage class node
 {
@@ -181,6 +194,7 @@ Update the header comment to reflect new capabilities:
 ## Testing
 
 **Test cases to run:**
+
 ```bash
 # Navigate to packages/ast
 cd packages/ast
@@ -201,9 +215,10 @@ console.log('✓ New AST nodes integrated successfully');
 ```
 
 **Expected results:**
-- TypeScript compiles without errors
-- Module loads without runtime errors
-- New node types follow established patterns
+
+-   TypeScript compiles without errors
+-   Module loads without runtime errors
+-   New node types follow established patterns
 
 ---
 
@@ -216,7 +231,11 @@ Continue with: `phase-2-ast/TASK_2.3_ADD_PLACEMENT_ANNOTATIONS.md`
 ## Troubleshooting
 
 **Common issues:**
-- Problem: Union type syntax errors → Solution: Check comma placement and type names
-- Problem: Circular reference errors → Solution: Ensure proper import/export structure
-- Problem: TypeScript strict mode errors → Solution: Verify all fields have proper types
-````
+
+-   Problem: Union type syntax errors → Solution: Check comma placement and type names
+-   Problem: Circular reference errors → Solution: Ensure proper import/export structure
+-   Problem: TypeScript strict mode errors → Solution: Verify all fields have proper types
+
+```
+
+```

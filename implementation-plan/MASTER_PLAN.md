@@ -14,7 +14,7 @@ This implementation plan creates Blend65, a multi-target compiler that compiles 
 
 ## Project Structure
 
-````
+```
 blend65/
 ├── packages/
 │   ├── lexer/              # Universal token recognition
@@ -345,4 +345,7 @@ targets/vic20/modules/screen.blend65   // VIC-20 character mode
 ---
 
 Next: Start with `phase-1-core/TASK_1.1_UNIVERSAL_LEXER.md`
-````
+
+```
+
+```

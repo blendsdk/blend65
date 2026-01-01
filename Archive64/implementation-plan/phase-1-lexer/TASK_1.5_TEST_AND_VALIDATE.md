@@ -48,7 +48,7 @@ Comprehensive testing of the complete Blend64 lexer with real-world code example
 
 ### Step 1: Create comprehensive test program
 
-````bash
+```bash
 cat > test-complete.blend64 << 'EOF'
 module Game.Main
 
@@ -84,6 +84,7 @@ EOF
 ```
 
 ### Step 2: Run complete tokenization test
+
 ```bash
 cd packages/lexer
 
@@ -117,6 +118,7 @@ console.log(\`\\nTotal tokens: \${tokens.length}\`);
 ```
 
 ### Step 3: Performance test
+
 ```bash
 node -e "
 const { createBlendLexer } = require('./src/blend-lexer.js');
@@ -139,6 +141,7 @@ console.log(\`Rate: \${Math.round(tokens.length/time*1000)} tokens/second\`);
 ```
 
 ### Step 4: Error handling validation
+
 ```bash
 node -e "
 const { createBlendLexer } = require('./src/blend-lexer.js');
@@ -167,6 +170,7 @@ errorTests.forEach(test => {
 ```
 
 ### Step 5: Integration test with Node.js
+
 ```bash
 node -e "
 // Test that all modules export correctly
@@ -193,52 +197,60 @@ try {
 ## Expected Output
 
 **Test artifacts created:**
-- `test-complete.blend64` - Comprehensive test program
-- Console output showing successful tokenization
+
+-   `test-complete.blend64` - Comprehensive test program
+-   Console output showing successful tokenization
 
 **Success criteria:**
-- [ ] Complete Blend64 program tokenizes without errors
-- [ ] All Blend64-specific token types appear in output
-- [ ] Performance remains acceptable (>1000 tokens/second)
-- [ ] Error handling works for removed operators
-- [ ] All modules export and import correctly
-- [ ] No TypeScript compilation errors
+
+-   [ ] Complete Blend64 program tokenizes without errors
+-   [ ] All Blend64-specific token types appear in output
+-   [ ] Performance remains acceptable (>1000 tokens/second)
+-   [ ] Error handling works for removed operators
+-   [ ] All modules export and import correctly
+-   [ ] No TypeScript compilation errors
 
 ---
 
 ## Phase 1 Completion Checklist
 
 **Lexer modifications complete:**
-- [ ] TokenType enum updated (Task 1.1)
-- [ ] Keywords updated (Task 1.2)
-- [ ] Operators fixed (Task 1.3)
-- [ ] Storage syntax working (Task 1.4)
-- [ ] Full validation passed (Task 1.5)
+
+-   [ ] TokenType enum updated (Task 1.1)
+-   [ ] Keywords updated (Task 1.2)
+-   [ ] Operators fixed (Task 1.3)
+-   [ ] Storage syntax working (Task 1.4)
+-   [ ] Full validation passed (Task 1.5)
 
 **Ready for Phase 2:**
-- [ ] Lexer produces correct tokens for Blend64
-- [ ] No breaking changes to core functionality
-- [ ] Performance acceptable
-- [ ] Error handling robust
+
+-   [ ] Lexer produces correct tokens for Blend64
+-   [ ] No breaking changes to core functionality
+-   [ ] Performance acceptable
+-   [ ] Error handling robust
 
 ---
 
 ## Next Phase
 
-**Phase 2 ready to begin:**
-`phase-2-ast/TASK_2.1_REMOVE_OOP_NODES.md`
+**Phase 2 ready to begin:** `phase-2-ast/TASK_2.1_REMOVE_OOP_NODES.md`
 
 **Key handoff deliverables:**
-- Working Blend64 lexer in `packages/lexer/`
-- Validated token types and keywords
-- Performance benchmarks established
+
+-   Working Blend64 lexer in `packages/lexer/`
+-   Validated token types and keywords
+-   Performance benchmarks established
 
 ---
 
 ## Troubleshooting
 
 **Common issues:**
-- Problem: Performance too slow → Solution: Check for inefficient regex or loops
-- Problem: Integration failures → Solution: Verify all exports are updated correctly
-- Problem: Complex programs fail → Solution: Check operator precedence and keyword conflicts
-````
+
+-   Problem: Performance too slow → Solution: Check for inefficient regex or loops
+-   Problem: Integration failures → Solution: Verify all exports are updated correctly
+-   Problem: Complex programs fail → Solution: Check operator precedence and keyword conflicts
+
+```
+
+```

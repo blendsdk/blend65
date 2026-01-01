@@ -15,7 +15,7 @@ limited context windows.
 
 ## Project Structure
 
-````
+```
 blend64/
 ├── packages/
 │   ├── lexer/           # Token recognition and classification
@@ -33,40 +33,34 @@ blend64/
 ## Phase Breakdown
 
 ### Phase 1: Lexer Adaptation (1-2 weeks)
-**Goal:** Modify tokenization for Blend64 syntax
-**Input:** `/Users/gevik/workdir/blend-lang/packages/lexer`
-**Output:** Blend64-compatible lexer
-**Tasks:** 5 small tasks
+
+**Goal:** Modify tokenization for Blend64 syntax **Input:** `/Users/gevik/workdir/blend-lang/packages/lexer` **Output:**
+Blend64-compatible lexer **Tasks:** 5 small tasks
 
 ### Phase 2: AST Modifications (2-3 weeks)
-**Goal:** Remove OOP features, add Blend64 constructs
-**Input:** `/Users/gevik/workdir/blend-lang/packages/ast`
-**Output:** Blend64-compatible AST definitions
-**Tasks:** 6 small tasks
+
+**Goal:** Remove OOP features, add Blend64 constructs **Input:** `/Users/gevik/workdir/blend-lang/packages/ast`
+**Output:** Blend64-compatible AST definitions **Tasks:** 6 small tasks
 
 ### Phase 3: Parser Updates (3-4 weeks)
-**Goal:** Parse Blend64 grammar correctly
-**Input:** `/Users/gevik/workdir/blend-lang/packages/parser`
-**Output:** Working Blend64 parser
-**Tasks:** 8 small tasks
+
+**Goal:** Parse Blend64 grammar correctly **Input:** `/Users/gevik/workdir/blend-lang/packages/parser` **Output:**
+Working Blend64 parser **Tasks:** 8 small tasks
 
 ### Phase 4: Type System (2-3 weeks)
-**Goal:** Implement static-only type system
-**Input:** Modified AST
-**Output:** Type checker for Blend64
-**Tasks:** 4 small tasks
+
+**Goal:** Implement static-only type system **Input:** Modified AST **Output:** Type checker for Blend64 **Tasks:** 4
+small tasks
 
 ### Phase 5: Magic Phase (6-8 weeks)
-**Goal:** AST transformation and validation
-**Input:** Parsed Blend64 AST
-**Output:** Validated, lowered IR ready for codegen
-**Tasks:** 6 small tasks
+
+**Goal:** AST transformation and validation **Input:** Parsed Blend64 AST **Output:** Validated, lowered IR ready for
+codegen **Tasks:** 6 small tasks
 
 ### Phase 6: Code Generation (8-12 weeks)
-**Goal:** 6502 machine code generation
-**Input:** Magic phase output
-**Output:** Working C64 PRG files
-**Tasks:** 8 small tasks
+
+**Goal:** 6502 machine code generation **Input:** Magic phase output **Output:** Working C64 PRG files **Tasks:** 8
+small tasks
 
 ---
 
@@ -128,30 +122,35 @@ Phase 6 (Codegen)
 ## Success Criteria
 
 ### Phase 1-3: Frontend Complete
-- [ ] Can parse all Blend64 syntax from research/blend64-spec.md
-- [ ] Generates correct AST for test programs
-- [ ] Error messages are clear and helpful
+
+-   [ ] Can parse all Blend64 syntax from research/blend64-spec.md
+-   [ ] Generates correct AST for test programs
+-   [ ] Error messages are clear and helpful
 
 ### Phase 4: Type System
-- [ ] Enforces static memory model
-- [ ] Validates storage class usage
-- [ ] Computes accurate memory layouts
+
+-   [ ] Enforces static memory model
+-   [ ] Validates storage class usage
+-   [ ] Computes accurate memory layouts
 
 ### Phase 5: Magic Phase
-- [ ] Correctly transforms high-level constructs
-- [ ] Enforces all Blend64 constraints
-- [ ] Generates analyzable IL
+
+-   [ ] Correctly transforms high-level constructs
+-   [ ] Enforces all Blend64 constraints
+-   [ ] Generates analyzable IL
 
 ### Phase 6: Code Generation
-- [ ] Produces working C64 PRG files
-- [ ] Meets performance requirements
-- [ ] Generates required artifacts (.map, .lst, etc.)
+
+-   [ ] Produces working C64 PRG files
+-   [ ] Meets performance requirements
+-   [ ] Generates required artifacts (.map, .lst, etc.)
 
 ---
 
 ## Development Workflow
 
 ### For Each Task:
+
 1. **Read task specification** (single .md file)
 2. **Copy required input files** from existing Blend codebase
 3. **Apply specific modifications** as documented
@@ -159,17 +158,19 @@ Phase 6 (Codegen)
 5. **Verify success criteria** before proceeding
 
 ### Context Management:
-- Each task file is **self-contained**
-- Required input files are **explicitly listed**
-- Expected outputs are **precisely specified**
-- **No cross-task dependencies** within phases
-- **Clear handoff** between phases
+
+-   Each task file is **self-contained**
+-   Required input files are **explicitly listed**
+-   Expected outputs are **precisely specified**
+-   **No cross-task dependencies** within phases
+-   **Clear handoff** between phases
 
 ### Quality Assurance:
-- All tasks include **validation steps**
-- **Regression tests** prevent breaking existing functionality
-- **Integration checkpoints** at phase boundaries
-- **Incremental testing** throughout development
+
+-   All tasks include **validation steps**
+-   **Regression tests** prevent breaking existing functionality
+-   **Integration checkpoints** at phase boundaries
+-   **Incremental testing** throughout development
 
 ---
 
@@ -185,13 +186,16 @@ Phase 6 (Codegen)
 
 ## Notes for AI Implementation
 
-- **Read only one task file at a time** to manage context
-- **Focus on specified changes only** - avoid scope creep
-- **Test incrementally** - don't accumulate errors
-- **Document assumptions** when specifications are unclear
-- **Ask for clarification** if task requirements are ambiguous
+-   **Read only one task file at a time** to manage context
+-   **Focus on specified changes only** - avoid scope creep
+-   **Test incrementally** - don't accumulate errors
+-   **Document assumptions** when specifications are unclear
+-   **Ask for clarification** if task requirements are ambiguous
 
 ---
 
 Next: Start with `phase-1-lexer/TASK_1.1_UPDATE_TOKEN_TYPES.md`
-````
+
+```
+
+```

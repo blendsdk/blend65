@@ -20,7 +20,7 @@ Blend65 is a **multi-target assembler-plus** language for serious 6502 family ga
 
 ### 0.2 Target architecture
 
-````
+```
 blend65 --target=c64 game.blend     → game.prg (Commodore 64)
 blend65 --target=x16 game.blend     → game.prg (Commander X16)
 blend65 --target=vic20 game.blend   → game.prg (VIC-20)
@@ -29,49 +29,52 @@ blend65 --target=atari2600 game.blend → game.bin (Atari 2600)
 
 ### 0.3 Memory & storage model
 
-- **All variables have static storage** (global lifetime).
-- **No stack-allocated locals** exist in v0.1.
-- **Target-specific memory layouts** based on machine capabilities.
-- Storage classes exist (explicit or inferred):
-  - `zp` (zero page) - varies by target
-  - `ram` (RAM, uninitialized)
-  - `data` (RAM/ROM initialized bytes/words)
-  - `const` (read-only data / ROM-intent)
-  - `io` (memory-mapped I/O) - target-specific addresses
-- The compiler **may auto-promote** eligible variables to `zp` unless pinned elsewhere.
+-   **All variables have static storage** (global lifetime).
+-   **No stack-allocated locals** exist in v0.1.
+-   **Target-specific memory layouts** based on machine capabilities.
+-   Storage classes exist (explicit or inferred):
+    -   `zp` (zero page) - varies by target
+    -   `ram` (RAM, uninitialized)
+    -   `data` (RAM/ROM initialized bytes/words)
+    -   `const` (read-only data / ROM-intent)
+    -   `io` (memory-mapped I/O) - target-specific addresses
+-   The compiler **may auto-promote** eligible variables to `zp` unless pinned elsewhere.
 
 ### 0.4 Hardware abstraction
 
-- **Function-based hardware APIs** instead of raw register access.
-- **Target-specific modules** (e.g., `c64:sprites`, `x16:vera`, `vic20:screen`).
-- **Compile-time import resolution** based on selected target.
-- **Zero-overhead inlining** for hardware function calls.
+-   **Function-based hardware APIs** instead of raw register access.
+-   **Target-specific modules** (e.g., `c64:sprites`, `x16:vera`, `vic20:screen`).
+-   **Compile-time import resolution** based on selected target.
+-   **Zero-overhead inlining** for hardware function calls.
 
 ### 0.5 Forbidden in v0.1
 
-- Heap allocation (no dynamic arrays, maps, strings, objects)
-- Floating-point types
-- Local variables
-- Nested functions / closures / lambdas
-- Recursion (direct or indirect)
-- Exceptions / `Result` types
-- Returning structs/records/arrays
+-   Heap allocation (no dynamic arrays, maps, strings, objects)
+-   Floating-point types
+-   Local variables
+-   Nested functions / closures / lambdas
+-   Recursion (direct or indirect)
+-   Exceptions / `Result` types
+-   Returning structs/records/arrays
 
 ---
 
 ## 1. Lexical Structure
 
 ### 1.1 Source encoding
-- UTF-8 source files.
+
+-   UTF-8 source files.
 
 ### 1.2 Comments
-- `//` line comment
-- `/* ... */` block comment
+
+-   `//` line comment
+-   `/* ... */` block comment
 
 ### 1.3 Identifiers
-- `[A-Za-z_][A-Za-z0-9_]*`
-- Case-sensitive
-- Keywords are reserved.
+
+-   `[A-Za-z_][A-Za-z0-9_]*`
+-   Case-sensitive
+-   Keywords are reserved.
 
 ---
 
@@ -124,9 +127,10 @@ machine_id      ::= "c64" | "x16" | "vic20" | "atari2600" | ...
 ```
 
 **Resolution rules:**
-- `target:*` modules resolve to machine-specific implementations
-- Machine-specific imports (e.g., `c64:sprites`) work only on that target
-- Compilation fails if imported functions don't exist on selected target
+
+-   `target:*` modules resolve to machine-specific implementations
+-   Machine-specific imports (e.g., `c64:sprites`) work only on that target
+-   Compilation fails if imported functions don't exist on selected target
 
 ### 2.3 Exports
 
@@ -147,16 +151,17 @@ Blend65 types are **target-defined** and have fixed sizes. All 6502 targets shar
 
 ### 3.1 Primitive types
 
-| Type      | Size | Notes |
-|----------:|-----:|------|
-| `byte`    | 8-bit  | unsigned 0..255 |
-| `word`    | 16-bit | unsigned 0..65535 |
-| `boolean` | 8-bit  | 0 or 1 |
-| `void`    | —      | no value |
+|      Type |   Size | Notes             |
+| --------: | -----: | ----------------- |
+|    `byte` |  8-bit | unsigned 0..255   |
+|    `word` | 16-bit | unsigned 0..65535 |
+| `boolean` |  8-bit | 0 or 1            |
+|    `void` |      — | no value          |
 
 Optional (target-dependent):
-- `sbyte` (8-bit signed)
-- `sword` (16-bit signed)
+
+-   `sbyte` (8-bit signed)
+-   `sword` (16-bit signed)
 
 ### 3.2 Arrays (fixed-size only)
 
@@ -203,16 +208,19 @@ Valid targets depend on installed target definitions.
 ### 4.2 Target-specific imports
 
 **Universal pattern:**
+
 ```
 import functionName from target:module
 ```
 
 **Target-specific pattern:**
+
 ```
 import functionName from machine:module
 ```
 
 **Examples:**
+
 ```
 // Works on targets that have sprites
 import setSpritePosition from target:sprites
@@ -229,25 +237,29 @@ import setSprite from x16:vera
 Different targets provide different hardware modules:
 
 **Commodore 64:**
-- `c64:sprites` - 8 hardware sprites via VIC-II
-- `c64:sid` - Sound synthesis via SID chip
-- `c64:vic` - Screen colors, graphics modes
-- `c64:input` - Joystick/keyboard via CIA
+
+-   `c64:sprites` - 8 hardware sprites via VIC-II
+-   `c64:sid` - Sound synthesis via SID chip
+-   `c64:vic` - Screen colors, graphics modes
+-   `c64:input` - Joystick/keyboard via CIA
 
 **Commander X16:**
-- `x16:vera` - Modern graphics via VERA chip
-- `x16:ym2151` - FM synthesis via YM2151
-- `x16:input` - Modern input handling
+
+-   `x16:vera` - Modern graphics via VERA chip
+-   `x16:ym2151` - FM synthesis via YM2151
+-   `x16:input` - Modern input handling
 
 **VIC-20:**
-- `vic20:screen` - Character-based display
-- `vic20:vic` - Simple colors/modes (no sprites)
-- `vic20:input` - Basic input
+
+-   `vic20:screen` - Character-based display
+-   `vic20:vic` - Simple colors/modes (no sprites)
+-   `vic20:input` - Basic input
 
 **Atari 2600:**
-- `atari2600:tia` - Minimal graphics (2 sprites, playfield)
-- `atari2600:riot` - Sound and input
-- Extreme memory constraints (128 bytes RAM)
+
+-   `atari2600:tia` - Minimal graphics (2 sprites, playfield)
+-   `atari2600:riot` - Sound and input
+-   Extreme memory constraints (128 bytes RAM)
 
 ---
 
@@ -256,6 +268,7 @@ Different targets provide different hardware modules:
 ### 5.1 Function-based hardware access
 
 Instead of raw register manipulation:
+
 ```
 // OLD (not supported):
 io var VIC_SPRITE0_X: byte @ $D000
@@ -269,6 +282,7 @@ setSpritePosition(0, playerX, playerY)
 ### 5.2 Zero-overhead inlining
 
 Hardware functions compile to optimal register sequences:
+
 ```
 // Source:
 setSpritePosition(0, 160, 100)
@@ -301,9 +315,10 @@ io   var CUSTOM_REG: byte @ $D800  // Target-specific address
 ```
 
 **Target-specific considerations:**
-- **Zero page size** varies by target (C64: ~$02-$FF, Atari 2600: $80-$FF)
-- **Memory layout** differs significantly between machines
-- **I/O addresses** are completely target-dependent
+
+-   **Zero page size** varies by target (C64: ~$02-$FF, Atari 2600: $80-$FF)
+-   **Memory layout** differs significantly between machines
+-   **I/O addresses** are completely target-dependent
 
 ---
 
@@ -313,11 +328,8 @@ Universal 6502 expression system works on all targets.
 
 ### 7.1 Numeric operators
 
-Arithmetic: `+ - * / %`
-Comparisons: `== != < <= > >=`
-Boolean: `and or not`
-Bitwise: `& | ^ ~ << >>`
-Assignment: `= += -= *= /= %= &= |= ^= <<= >>=`
+Arithmetic: `+ - * / %` Comparisons: `== != < <= > >=` Boolean: `and or not` Bitwise: `& | ^ ~ << >>` Assignment:
+`= += -= *= /= %= &= |= ^= <<= >>=`
 
 ### 7.2 Operator precedence
 
@@ -330,6 +342,7 @@ Standard precedence hierarchy applies universally.
 Universal control flow constructs work on all 6502 targets.
 
 ### 8.1 If/While/For
+
 ```
 if condition then
     // ...
@@ -345,6 +358,7 @@ next
 ```
 
 ### 8.2 Match statement
+
 ```
 match joystickState
     case 1:  // Up
@@ -372,7 +386,8 @@ Universal function model works across all targets.
 
 ### 9.2 Target-specific calling conventions
 
-Each target may use different register assignments and stack usage for function calls, but this is transparent to the programmer.
+Each target may use different register assignments and stack usage for function calls, but this is transparent to the
+programmer.
 
 ---
 
@@ -381,6 +396,7 @@ Each target may use different register assignments and stack usage for function 
 ### 10.1 Module resolution
 
 When compiling with `--target=MACHINE`:
+
 1. `target:module` imports resolve to `MACHINE:module`
 2. Direct `MACHINE:module` imports work only on that target
 3. Compilation fails for unavailable target modules
@@ -388,17 +404,21 @@ When compiling with `--target=MACHINE`:
 ### 10.2 Standard target modules
 
 **Graphics:**
-- `target:sprites` → `c64:sprites`, `x16:vera`, etc.
-- `target:screen` → `c64:vic`, `vic20:screen`, etc.
+
+-   `target:sprites` → `c64:sprites`, `x16:vera`, etc.
+-   `target:screen` → `c64:vic`, `vic20:screen`, etc.
 
 **Input:**
-- `target:input` → `c64:input`, `x16:input`, etc.
+
+-   `target:input` → `c64:input`, `x16:input`, etc.
 
 **Sound:**
-- `target:sound` → `c64:sid`, `x16:ym2151`, etc.
+
+-   `target:sound` → `c64:sid`, `x16:ym2151`, etc.
 
 **Memory:**
-- `target:memory` → Universal `peek`/`poke` functions
+
+-   `target:memory` → Universal `peek`/`poke` functions
 
 ### 10.3 Function signatures
 
@@ -423,14 +443,16 @@ function joystickFire(port: byte): boolean
 ### 11.1 Target specification
 
 Each target provides:
-- **Memory layout** (zero page, program area, I/O ranges)
-- **Hardware modules** (available functions and their implementations)
-- **Code generation rules** (calling conventions, optimizations)
-- **Output format** (PRG, BIN, etc.)
+
+-   **Memory layout** (zero page, program area, I/O ranges)
+-   **Hardware modules** (available functions and their implementations)
+-   **Code generation rules** (calling conventions, optimizations)
+-   **Output format** (PRG, BIN, etc.)
 
 ### 11.2 Adding new targets
 
 New targets are added by creating target definition files:
+
 ```
 targets/MACHINE/
 ├── memory-layout.toml
@@ -448,6 +470,7 @@ targets/MACHINE/
 ### 12.1 Entry point
 
 A program must export exactly one entry:
+
 ```
 export function main(): void
 ```
@@ -455,10 +478,11 @@ export function main(): void
 ### 12.2 Target-specific output
 
 The compiler outputs target-appropriate binaries:
-- **C64/VIC-20/Plus4**: `.prg` format
-- **Commander X16**: `.prg` format
-- **Atari 2600**: `.bin` format
-- **Apple II**: Target-specific format
+
+-   **C64/VIC-20/Plus4**: `.prg` format
+-   **Commander X16**: `.prg` format
+-   **Atari 2600**: `.bin` format
+-   **Apple II**: Target-specific format
 
 ---
 
@@ -513,6 +537,7 @@ end function
 ```
 
 **Compilation:**
+
 ```bash
 # Commodore 64 version
 blend65 --target=c64 snake.blend
@@ -531,5 +556,9 @@ blend65 --target=vic20 snake.blend
 
 ## End
 
-This specification defines a **universal 6502 core language** with **modular target-specific hardware APIs**, enabling the same source code to compile to multiple 6502-based machines while maintaining optimal performance on each target.
-````
+This specification defines a **universal 6502 core language** with **modular target-specific hardware APIs**, enabling
+the same source code to compile to multiple 6502-based machines while maintaining optimal performance on each target.
+
+```
+
+```

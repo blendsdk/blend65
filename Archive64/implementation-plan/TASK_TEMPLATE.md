@@ -68,11 +68,12 @@ tasks] **Context Requirement:** [Token count estimate]
 
 ### Before:
 
-````typescript
+```typescript
 // Original Blend code
 ```
 
 ### After:
+
 ```typescript
 // Expected Blend64 code
 ```
@@ -82,12 +83,14 @@ tasks] **Context Requirement:** [Token count estimate]
 ## Testing
 
 **Test cases to run:**
+
 ```bash
 # Commands to validate
 ```
 
 **Expected results:**
-- [Specific output or behavior]
+
+-   [Specific output or behavior]
 
 ---
 
@@ -100,6 +103,10 @@ Continue with: `[next-task-file].md`
 ## Troubleshooting
 
 **Common issues:**
-- Problem: [description] → Solution: [fix]
-- Problem: [description] → Solution: [fix]
-````
+
+-   Problem: [description] → Solution: [fix]
+-   Problem: [description] → Solution: [fix]
+
+```
+
+```

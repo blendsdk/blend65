@@ -67,7 +67,7 @@ Blend64 is an **assembler-plus** language for serious C64 game code.
 
 A program is a set of modules. Each file declares exactly one module.
 
-````
+```
 module Game.Main
 
 import c64:vic
@@ -567,4 +567,7 @@ expr        ::= assignment
 ---
 
 ## End
-````
+
+```
+
+```

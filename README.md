@@ -50,7 +50,7 @@ Blend65 exists for developers who want:
 
 ### **Universal Core Language**
 
-````
+```
 // This code works on ANY 6502 target
 var lives: byte = 3
 var score: word = 0
@@ -65,6 +65,7 @@ end while
 ```
 
 ### **Target-Specific Hardware**
+
 ```
 // Commodore 64
 import setSpritePosition, enableSprite from c64:sprites
@@ -81,6 +82,7 @@ import setCharacterAt from vic20:screen
 ```
 
 ### **Compile for Any Target**
+
 ```bash
 blend65 --target=c64 game.blend     # → game.prg (Commodore 64)
 blend65 --target=x16 game.blend     # → game.prg (Commander X16)
@@ -92,53 +94,49 @@ blend65 --target=atari2600 game.blend # → game.bin (Atari 2600)
 
 ## What Blend65 Is NOT
 
-- Not a VM or bytecode language
-- Not an interpreter
-- Not a C replacement
-- Not a BASIC replacement
-- Not a scripting language
-- Not focused on modern platforms
+-   Not a VM or bytecode language
+-   Not an interpreter
+-   Not a C replacement
+-   Not a BASIC replacement
+-   Not a scripting language
+-   Not focused on modern platforms
 
 ---
 
 ## Supported Targets
 
 ### **Tier 1 (Fully Supported)**
-- **Commodore 64** - Complete VIC-II, SID, sprite support
-- **Commander X16** - Modern 6502 with VERA graphics/sound
+
+-   **Commodore 64** - Complete VIC-II, SID, sprite support
+-   **Commander X16** - Modern 6502 with VERA graphics/sound
 
 ### **Tier 2 (Planned)**
-- **VIC-20** - Simple VIC chip, character-based graphics
-- **Atari 2600** - TIA graphics, extreme memory constraints
-- **Plus/4** - TED chip, enhanced C64-style machine
+
+-   **VIC-20** - Simple VIC chip, character-based graphics
+-   **Atari 2600** - TIA graphics, extreme memory constraints
+-   **Plus/4** - TED chip, enhanced C64-style machine
 
 ### **Future Targets**
-- Atari 5200, 7800
-- MEGA 65
-- CBM/PET series
-- Apple II series
+
+-   Atari 5200, 7800
+-   MEGA 65
+-   CBM/PET series
+-   Apple II series
 
 ---
 
 ## Compiler Architecture
 
-Source
-→ **Universal AST**
-→ **Type Checking**
-→ **Target Selection**
-→ **Hardware API Resolution**
-→ **Lowering & Validation Phase**
-→ **Target-Specific IL**
-→ **6502 Optimization**
-→ **Target Codegen**
-→ **Native Binary** (PRG/BIN/etc.)
+Source → **Universal AST** → **Type Checking** → **Target Selection** → **Hardware API Resolution** → **Lowering &
+Validation Phase** → **Target-Specific IL** → **6502 Optimization** → **Target Codegen** → **Native Binary**
+(PRG/BIN/etc.)
 
 ### Key Phases
 
-- **Target Resolution**: Select hardware APIs based on `--target` flag
-- **Hardware Validation**: Ensure imported functions exist on target
-- **Memory Layout**: Apply target-specific memory maps
-- **Code Generation**: Emit optimized 6502 for specific machine
+-   **Target Resolution**: Select hardware APIs based on `--target` flag
+-   **Hardware Validation**: Ensure imported functions exist on target
+-   **Memory Layout**: Apply target-specific memory maps
+-   **Code Generation**: Emit optimized 6502 for specific machine
 
 ---
 
@@ -180,6 +178,7 @@ end function
 ```
 
 **Compile for C64:**
+
 ```bash
 blend65 --target=c64 game.blend
 # Resolves: c64:input, c64:sprites, c64:sid
@@ -187,6 +186,7 @@ blend65 --target=c64 game.blend
 ```
 
 **Compile for Commander X16:**
+
 ```bash
 blend65 --target=x16 game.blend
 # Resolves: x16:input, x16:vera, x16:ym2151
@@ -197,24 +197,26 @@ blend65 --target=x16 game.blend
 
 ## Project Status
 
-**Current Phase:** Architecture Design
-**Next Milestone:** C64 + Commander X16 working compilers
+**Current Phase:** Architecture Design **Next Milestone:** C64 + Commander X16 working compilers
 
 ### What's Implemented
-- [x] Language specification design
-- [x] Multi-target architecture design
-- [x] Target system specification
+
+-   [x] Language specification design
+-   [x] Multi-target architecture design
+-   [x] Target system specification
 
 ### What's In Progress
-- [ ] Core 6502 language implementation
-- [ ] Target definition system
-- [ ] C64 target implementation
-- [ ] Commander X16 target implementation
+
+-   [ ] Core 6502 language implementation
+-   [ ] Target definition system
+-   [ ] C64 target implementation
+-   [ ] Commander X16 target implementation
 
 ### What's Planned
-- [ ] Additional target support (VIC-20, Atari 2600, Plus/4)
-- [ ] Advanced optimization passes
-- [ ] IDE integration and debugging support
+
+-   [ ] Additional target support (VIC-20, Atari 2600, Plus/4)
+-   [ ] Advanced optimization passes
+-   [ ] IDE integration and debugging support
 
 ---
 
@@ -229,14 +231,17 @@ blend65 --target=x16 game.blend
 
 ## Documentation
 
-- [Language Specification](research/blend65-spec.md) - Complete language reference
-- [Target System Design](research/target-system-design.md) - How multi-target works
-- [Implementation Plan](implementation-plan/MASTER_PLAN.md) - Development roadmap
-- [Adding New Targets](targets/template/README.md) - Target development guide
+-   [Language Specification](research/blend65-spec.md) - Complete language reference
+-   [Target System Design](research/target-system-design.md) - How multi-target works
+-   [Implementation Plan](implementation-plan/MASTER_PLAN.md) - Development roadmap
+-   [Adding New Targets](targets/template/README.md) - Target development guide
 
 ---
 
 ## License
 
 TBD
-````
+
+```
+
+```

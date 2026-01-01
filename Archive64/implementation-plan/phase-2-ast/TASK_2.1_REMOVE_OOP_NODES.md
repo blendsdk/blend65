@@ -52,7 +52,7 @@ inheritance.
 
 ### Step 1: Copy source files
 
-````bash
+```bash
 mkdir -p packages/ast/src/ast-types
 cp /Users/gevik/workdir/blend-lang/packages/ast/src/ast-types/core.ts packages/ast/src/ast-types/
 cp /Users/gevik/workdir/blend-lang/packages/ast/src/ast-types/index.ts packages/ast/src/ast-types/
@@ -60,6 +60,7 @@ cp /Users/gevik/workdir/blend-lang/packages/ast/src/ast-types/index.ts packages/
 ```
 
 ### Step 2: Remove OOP expressions from core.ts
+
 In `packages/ast/src/ast-types/core.ts`, find the Expression union type and remove these types:
 
 ```typescript
@@ -69,22 +70,24 @@ In `packages/ast/src/ast-types/core.ts`, find the Expression union type and remo
 ```
 
 ### Step 3: Remove OOP expression interfaces
+
 In the same file, remove these interface definitions completely:
 
 ```typescript
 // REMOVE these entire interfaces:
 export interface NewExpr extends BlendASTNode {
-  type: 'NewExpr';
-  callee: Expression;
-  args: Expression[];
+    type: "NewExpr";
+    callee: Expression;
+    args: Expression[];
 }
 
 export interface ThisExpr extends BlendASTNode {
-  type: 'ThisExpr';
+    type: "ThisExpr";
 }
 ```
 
 ### Step 4: Update index.ts exports
+
 Modify `packages/ast/src/ast-types/index.ts` to remove OOP exports:
 
 ```typescript
@@ -92,12 +95,13 @@ Modify `packages/ast/src/ast-types/index.ts` to remove OOP exports:
 // export * from './oop.js';
 
 // Keep these:
-export * from './core.js';
-export * from './modules.js';
-export * from './types.js';
+export * from "./core.js";
+export * from "./modules.js";
+export * from "./types.js";
 ```
 
 ### Step 5: Update core.ts comments
+
 Add a comment explaining Blend64 differences:
 
 ```typescript
@@ -119,55 +123,54 @@ Add a comment explaining Blend64 differences:
 ## Expected Output
 
 **Modified files:**
-- `packages/ast/src/ast-types/core.ts` - OOP expressions removed
-- `packages/ast/src/ast-types/index.ts` - OOP exports removed
+
+-   `packages/ast/src/ast-types/core.ts` - OOP expressions removed
+-   `packages/ast/src/ast-types/index.ts` - OOP exports removed
 
 **Deleted files:**
-- `packages/ast/src/ast-types/oop.ts` - Not copied (effectively removed)
+
+-   `packages/ast/src/ast-types/oop.ts` - Not copied (effectively removed)
 
 **Success criteria:**
-- [ ] NewExpr and ThisExpr removed from Expression union
-- [ ] NewExpr and ThisExpr interfaces completely removed
-- [ ] No imports or references to oop.ts remain
-- [ ] File compiles without TypeScript errors
-- [ ] Expression union type still includes all other expressions
+
+-   [ ] NewExpr and ThisExpr removed from Expression union
+-   [ ] NewExpr and ThisExpr interfaces completely removed
+-   [ ] No imports or references to oop.ts remain
+-   [ ] File compiles without TypeScript errors
+-   [ ] Expression union type still includes all other expressions
 
 ---
 
 ## Code Examples
 
 ### Before (core.ts):
+
 ```typescript
 export type Expression =
-  | BinaryExpr
-  | UnaryExpr
-  | CallExpr
-  | MemberExpr
-  | NewExpr        // REMOVE
-  | ThisExpr       // REMOVE
-  | Identifier
-  | Literal;
+    | BinaryExpr
+    | UnaryExpr
+    | CallExpr
+    | MemberExpr
+    | NewExpr // REMOVE
+    | ThisExpr // REMOVE
+    | Identifier
+    | Literal;
 
 export interface NewExpr extends BlendASTNode {
-  type: 'NewExpr';
-  callee: Expression;
-  args: Expression[];
+    type: "NewExpr";
+    callee: Expression;
+    args: Expression[];
 }
 
 export interface ThisExpr extends BlendASTNode {
-  type: 'ThisExpr';
+    type: "ThisExpr";
 }
 ```
 
 ### After (core.ts):
+
 ```typescript
-export type Expression =
-  | BinaryExpr
-  | UnaryExpr
-  | CallExpr
-  | MemberExpr
-  | Identifier
-  | Literal;
+export type Expression = BinaryExpr | UnaryExpr | CallExpr | MemberExpr | Identifier | Literal;
 
 // NewExpr and ThisExpr interfaces completely removed
 ```
@@ -177,6 +180,7 @@ export type Expression =
 ## Testing
 
 **Test cases to run:**
+
 ```bash
 # Navigate to packages/ast
 cd packages/ast
@@ -203,10 +207,11 @@ if (ast.NewExpr || ast.ThisExpr) {
 ```
 
 **Expected results:**
-- TypeScript compiles without errors
-- No references to NewExpr or ThisExpr found
-- Exports don't include OOP types
-- Core expression types still available
+
+-   TypeScript compiles without errors
+-   No references to NewExpr or ThisExpr found
+-   Exports don't include OOP types
+-   Core expression types still available
 
 ---
 
@@ -219,7 +224,11 @@ Continue with: `phase-2-ast/TASK_2.2_ADD_STORAGE_NODES.md`
 ## Troubleshooting
 
 **Common issues:**
-- Problem: TypeScript errors about missing types → Solution: Check all references to NewExpr/ThisExpr are removed
-- Problem: Expression union syntax error → Solution: Verify correct comma placement after removing types
-- Problem: Import errors → Solution: Ensure oop.ts is not referenced anywhere
-````
+
+-   Problem: TypeScript errors about missing types → Solution: Check all references to NewExpr/ThisExpr are removed
+-   Problem: Expression union syntax error → Solution: Verify correct comma placement after removing types
+-   Problem: Import errors → Solution: Ensure oop.ts is not referenced anywhere
+
+```
+
+```

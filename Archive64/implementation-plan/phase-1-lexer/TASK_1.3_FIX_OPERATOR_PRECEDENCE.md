@@ -51,11 +51,12 @@ removing unsupported operators.
 
 ### Step 1: Copy the source file
 
-````bash
+```bash
 cp /Users/gevik/workdir/blend-lang/packages/lexer/src/lexer.ts packages/lexer/src/lexer.ts
 ```
 
 ### Step 2: Remove unsupported 3-char operators
+
 In the `lexSymbol()` method, remove these cases from the 3-char operators section:
 
 ```typescript
@@ -68,6 +69,7 @@ case '...':
 ```
 
 ### Step 3: Remove unsupported 2-char operators
+
 In the `lexSymbol()` method, remove these cases from the 2-char operators section:
 
 ```typescript
@@ -83,6 +85,7 @@ case '**':
 ```
 
 ### Step 4: Add new single-char operators
+
 In the 1-char operators section, add support for `@` and `$`:
 
 ```typescript
@@ -94,6 +97,7 @@ case '$':
 ```
 
 ### Step 5: Update operator comments
+
 Update the comment for the `^` operator to reflect its new meaning:
 
 ```typescript
@@ -109,6 +113,7 @@ case '~':
 ```
 
 ### Step 6: Update file header comment
+
 Add a comment explaining Blend64 operator changes:
 
 ```typescript
@@ -128,20 +133,23 @@ Add a comment explaining Blend64 operator changes:
 ## Expected Output
 
 **Modified files:**
-- `packages/lexer/src/lexer.ts` - Updated operator tokenization
+
+-   `packages/lexer/src/lexer.ts` - Updated operator tokenization
 
 **Success criteria:**
-- [ ] `@` and `$` characters tokenize as AT and DOLLAR tokens
-- [ ] `^` still tokenizes as CARET (but meaning is XOR, not exponent)
-- [ ] `**`, `??`, `...` operators no longer recognized (throw illegal character error)
-- [ ] All existing single-char operators still work
-- [ ] File compiles without TypeScript errors
+
+-   [ ] `@` and `$` characters tokenize as AT and DOLLAR tokens
+-   [ ] `^` still tokenizes as CARET (but meaning is XOR, not exponent)
+-   [ ] `**`, `??`, `...` operators no longer recognized (throw illegal character error)
+-   [ ] All existing single-char operators still work
+-   [ ] File compiles without TypeScript errors
 
 ---
 
 ## Code Examples
 
 ### Before:
+
 ```typescript
 // 3-char operators
 case '...':
@@ -160,6 +168,7 @@ case '^':
 ```
 
 ### After:
+
 ```typescript
 // 3-char operators
 // (... removed)
@@ -181,6 +190,7 @@ case '$':
 ## Testing
 
 **Test cases to run:**
+
 ```bash
 # Navigate to packages/lexer
 cd packages/lexer
@@ -217,11 +227,12 @@ try {
 ```
 
 **Expected results:**
-- `@` → AT token
-- `$` → DOLLAR token
-- `^` → CARET token
-- `**` and `??` cause lexer errors
-- No TypeScript compilation errors
+
+-   `@` → AT token
+-   `$` → DOLLAR token
+-   `^` → CARET token
+-   `**` and `??` cause lexer errors
+-   No TypeScript compilation errors
 
 ---
 
@@ -234,7 +245,11 @@ Continue with: `phase-1-lexer/TASK_1.4_ADD_STORAGE_SYNTAX.md`
 ## Troubleshooting
 
 **Common issues:**
-- Problem: New operators not recognized → Solution: Check case statements are in correct switch block
-- Problem: Old operators still work → Solution: Verify removal of cases and check for duplicates
-- Problem: Lexer crashes on removed operators → Solution: This is expected behavior; they should be illegal characters
-````
+
+-   Problem: New operators not recognized → Solution: Check case statements are in correct switch block
+-   Problem: Old operators still work → Solution: Verify removal of cases and check for duplicates
+-   Problem: Lexer crashes on removed operators → Solution: This is expected behavior; they should be illegal characters
+
+```
+
+```

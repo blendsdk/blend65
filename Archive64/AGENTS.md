@@ -129,7 +129,7 @@ This project uses a **spec-first, task-driven approach** with:
 
 ### Compilation Pipeline
 
-````
+```
 Source Code (.blend64)
     ↓
 Lexer (tokenization)
@@ -151,33 +151,33 @@ PRG File (Commodore 64 executable)
 
 ### Type System
 
-| Type | Size | Range | Notes |
-|------|------|-------|-------|
-| `byte` | 8-bit | 0-255 | Unsigned |
-| `word` | 16-bit | 0-65535 | Unsigned |
-| `boolean` | 8-bit | 0 or 1 | Simple flag |
+| Type        | Size    | Range          | Notes                 |
+| ----------- | ------- | -------------- | --------------------- |
+| `byte`      | 8-bit   | 0-255          | Unsigned              |
+| `word`      | 16-bit  | 0-65535        | Unsigned              |
+| `boolean`   | 8-bit   | 0 or 1         | Simple flag           |
 | `string(N)` | N bytes | Fixed capacity | No dynamic allocation |
 
 **Forbidden:** `integer`, floating-point, dynamic types
 
 ### Storage Classes
 
-| Storage | Location | Purpose | Example |
-|---------|----------|---------|---------|
-| `zp` | Zero Page ($00-$FF) | Fastest access | `zp var score: byte` |
-| `ram` | RAM (uninitialized) | Working variables | `ram var buffer: byte[256]` |
-| `data` | RAM/ROM (initialized) | Static data | `data var palette: byte[16] = [...]` |
-| `const` | ROM/Read-only | Constants | `const var title: string(20) = "GAME"` |
-| `io` | Memory-mapped I/O | Hardware registers | `io var VIC_BORDER: byte @ $D020` |
+| Storage | Location              | Purpose            | Example                                |
+| ------- | --------------------- | ------------------ | -------------------------------------- |
+| `zp`    | Zero Page ($00-$FF)   | Fastest access     | `zp var score: byte`                   |
+| `ram`   | RAM (uninitialized)   | Working variables  | `ram var buffer: byte[256]`            |
+| `data`  | RAM/ROM (initialized) | Static data        | `data var palette: byte[16] = [...]`   |
+| `const` | ROM/Read-only         | Constants          | `const var title: string(20) = "GAME"` |
+| `io`    | Memory-mapped I/O     | Hardware registers | `io var VIC_BORDER: byte @ $D020`      |
 
 ### Critical Constraints
 
-- **NO local variables** (all variables are static/global)
-- **NO heap allocation** (fixed-size arrays only)
-- **NO recursion** (direct or indirect)
-- **NO returning structs/arrays** (scalars only)
-- **NO implicit runtime** (every byte must be explicitly needed)
-- **NO dead code** (reachability-based elimination)
+-   **NO local variables** (all variables are static/global)
+-   **NO heap allocation** (fixed-size arrays only)
+-   **NO recursion** (direct or indirect)
+-   **NO returning structs/arrays** (scalars only)
+-   **NO implicit runtime** (every byte must be explicitly needed)
+-   **NO dead code** (reachability-based elimination)
 
 ---
 
@@ -206,11 +206,11 @@ The implementation transforms the existing **Blend language** codebase located a
 
 ### Reusability Assessment
 
-- **Lexer:** 85% reusable (minor token changes)
-- **Parser:** 75% reusable (grammar adaptations)
-- **AST:** 70% reusable (remove OOP, add storage classes)
-- **Type System:** 40% reusable (major simplifications)
-- **Codegen:** 10% reusable (complete rewrite for 6502)
+-   **Lexer:** 85% reusable (minor token changes)
+-   **Parser:** 75% reusable (grammar adaptations)
+-   **AST:** 70% reusable (remove OOP, add storage classes)
+-   **Type System:** 40% reusable (major simplifications)
+-   **Codegen:** 10% reusable (complete rewrite for 6502)
 
 ---
 
@@ -234,18 +234,18 @@ The implementation transforms the existing **Blend language** codebase located a
 
 ### Context Management Rules
 
-- **Each task is self-contained** (no cross-task dependencies within phases)
-- **Required input files are explicitly listed** in each task
-- **Expected outputs are precisely specified**
-- **Clear handoff points** between phases
-- **Validation steps prevent** accumulating errors
+-   **Each task is self-contained** (no cross-task dependencies within phases)
+-   **Required input files are explicitly listed** in each task
+-   **Expected outputs are precisely specified**
+-   **Clear handoff points** between phases
+-   **Validation steps prevent** accumulating errors
 
 ### Development Environment
 
-- **Node.js and TypeScript** for compiler development
-- **Access to existing Blend codebase** at `/Users/gevik/workdir/blend-lang`
-- **C64 emulator** for testing (VICE recommended)
-- **6502 assembler** for reference (ACME, ca65)
+-   **Node.js and TypeScript** for compiler development
+-   **Access to existing Blend codebase** at `/Users/gevik/workdir/blend-lang`
+-   **C64 emulator** for testing (VICE recommended)
+-   **6502 assembler** for reference (ACME, ca65)
 
 ---
 
@@ -296,24 +296,28 @@ The implementation transforms the existing **Blend language** codebase located a
 **Before working on ANY task, confirm you have read and understood:**
 
 ### Core Language Design
-- [ ] `README.md` - Project overview and goals
-- [ ] `research/blend64-spec.md` - Complete language specification
-- [ ] `research/BLEND64_RULES.md` - Rules and limitations
+
+-   [ ] `README.md` - Project overview and goals
+-   [ ] `research/blend64-spec.md` - Complete language specification
+-   [ ] `research/BLEND64_RULES.md` - Rules and limitations
 
 ### Implementation Planning
-- [ ] `implementation-plan/MASTER_PLAN.md` - Phase breakdown and dependencies
-- [ ] `implementation-plan/IMPLEMENTATION_PLAN_SUMMARY.md` - Current status
-- [ ] `implementation-plan/TASK_TEMPLATE.md` - Task structure
+
+-   [ ] `implementation-plan/MASTER_PLAN.md` - Phase breakdown and dependencies
+-   [ ] `implementation-plan/IMPLEMENTATION_PLAN_SUMMARY.md` - Current status
+-   [ ] `implementation-plan/TASK_TEMPLATE.md` - Task structure
 
 ### Technical Specifications
-- [ ] `research/BLEND64_IL_SPEC.md` - Intermediate representation
-- [ ] `research/BLEND64_PERFORMANCE_RULES.md` - Performance constraints
-- [ ] `research/blend64-diff-from-blend.md` - Key differences
+
+-   [ ] `research/BLEND64_IL_SPEC.md` - Intermediate representation
+-   [ ] `research/BLEND64_PERFORMANCE_RULES.md` - Performance constraints
+-   [ ] `research/blend64-diff-from-blend.md` - Key differences
 
 ### Current Task
-- [ ] The specific task file you're working on (e.g., `TASK_1.1_...`)
-- [ ] Any dependencies listed in the task file
-- [ ] Referenced validation examples
+
+-   [ ] The specific task file you're working on (e.g., `TASK_1.1_...`)
+-   [ ] Any dependencies listed in the task file
+-   [ ] Referenced validation examples
 
 **Do not proceed without completing this checklist.**
 
@@ -348,21 +352,21 @@ npm run test:phase1
 
 ### Phase Start Points
 
-- **Phase 1:** `implementation-plan/phase-1-lexer/TASK_1.1_UPDATE_TOKEN_TYPES.md`
-- **Phase 2:** `implementation-plan/phase-2-ast/TASK_2.1_REMOVE_OOP_NODES.md`
-- **Phase 3:** Wait for Phase 2 completion
-- **Phase 4:** Wait for Phase 3 completion
-- **Phase 5:** Wait for Phase 4 completion
-- **Phase 6:** Wait for Phase 5 completion
+-   **Phase 1:** `implementation-plan/phase-1-lexer/TASK_1.1_UPDATE_TOKEN_TYPES.md`
+-   **Phase 2:** `implementation-plan/phase-2-ast/TASK_2.1_REMOVE_OOP_NODES.md`
+-   **Phase 3:** Wait for Phase 2 completion
+-   **Phase 4:** Wait for Phase 3 completion
+-   **Phase 5:** Wait for Phase 4 completion
+-   **Phase 6:** Wait for Phase 5 completion
 
 ### Success Criteria by Phase
 
-- **Phase 1:** All Blend64 syntax tokenizes correctly
-- **Phase 2:** AST supports storage classes, removes OOP
-- **Phase 3:** Complete Blend64 programs parse successfully
-- **Phase 4:** Type system enforces static memory model
-- **Phase 5:** Magic phase generates valid IL
-- **Phase 6:** Working C64 PRG files produced
+-   **Phase 1:** All Blend64 syntax tokenizes correctly
+-   **Phase 2:** AST supports storage classes, removes OOP
+-   **Phase 3:** Complete Blend64 programs parse successfully
+-   **Phase 4:** Type system enforces static memory model
+-   **Phase 5:** Magic phase generates valid IL
+-   **Phase 6:** Working C64 PRG files produced
 
 ---
 
@@ -378,10 +382,10 @@ npm run test:phase1
 
 ### Common Issues
 
-- **Missing context:** Re-read this AGENTS.md file completely
-- **Unclear requirements:** Check both task file and referenced specs
-- **Failed validation:** Review success criteria and test expectations
-- **Scope creep:** Focus only on specified changes in current task
+-   **Missing context:** Re-read this AGENTS.md file completely
+-   **Unclear requirements:** Check both task file and referenced specs
+-   **Failed validation:** Review success criteria and test expectations
+-   **Scope creep:** Focus only on specified changes in current task
 
 ---
 
@@ -392,34 +396,41 @@ npm run test:phase1
 **Blend64 is what experienced C64 developers wish assembly looked like.**
 
 It provides:
-- **Predictable memory usage**
-- **Deterministic performance**
-- **Maximum possible FPS** on real hardware
-- **Zero implicit runtime**
-- **Full control** over memory layout without writing assembly
+
+-   **Predictable memory usage**
+-   **Deterministic performance**
+-   **Maximum possible FPS** on real hardware
+-   **Zero implicit runtime**
+-   **Full control** over memory layout without writing assembly
 
 ### Success Metrics
 
 This project succeeds when:
-- **Complete Blend64 programs** compile to working C64 PRG files
-- **Performance requirements** are met on real hardware
-- **Memory usage** is predictable and optimal
-- **Development experience** is significantly better than assembly
-- **Code quality** is maintainable and readable
+
+-   **Complete Blend64 programs** compile to working C64 PRG files
+-   **Performance requirements** are met on real hardware
+-   **Memory usage** is predictable and optimal
+-   **Development experience** is significantly better than assembly
+-   **Code quality** is maintainable and readable
 
 ### Your Role
 
 As an AI assistant working on this project:
-- **Read and understand** complete context before starting
-- **Follow task instructions** precisely
-- **Validate your work** at each step
-- **Document any deviations** or assumptions
-- **Focus on the current task** only (avoid scope creep)
-- **Test incrementally** to catch errors early
+
+-   **Read and understand** complete context before starting
+-   **Follow task instructions** precisely
+-   **Validate your work** at each step
+-   **Document any deviations** or assumptions
+-   **Focus on the current task** only (avoid scope creep)
+-   **Test incrementally** to catch errors early
 
 ---
 
-**Remember: This is a serious systems programming project targeting real hardware. Precision and attention to detail are essential.**
+**Remember: This is a serious systems programming project targeting real hardware. Precision and attention to detail are
+essential.**
 
 **Start with Phase 1, Task 1.1: `implementation-plan/phase-1-lexer/TASK_1.1_UPDATE_TOKEN_TYPES.md`**
-````
+
+```
+
+```

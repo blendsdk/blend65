@@ -54,46 +54,46 @@ Source → AST → Type Check → Magic Phase → **Blend64 IL** → Optimizatio
 
 ## 4. TypeScript Core Model
 
-````ts
+```ts
 interface ILProgram {
-  entryFunction: string
-  functions: ILFunction[]
-  dataSymbols: ILDataSymbol[]
+    entryFunction: string;
+    functions: ILFunction[];
+    dataSymbols: ILDataSymbol[];
 }
 
 interface ILDataSymbol {
-  name: string
-  storage: "zp" | "ram" | "data" | "const" | "io"
-  size: number
-  address?: number
+    name: string;
+    storage: "zp" | "ram" | "data" | "const" | "io";
+    size: number;
+    address?: number;
 }
 
 interface ILFunction {
-  name: string
-  blocks: ILBlock[]
-  attributes?: {
-    hot?: boolean
-    irq?: boolean
-    inline?: boolean
-    noinline?: boolean
-  }
+    name: string;
+    blocks: ILBlock[];
+    attributes?: {
+        hot?: boolean;
+        irq?: boolean;
+        inline?: boolean;
+        noinline?: boolean;
+    };
 }
 
 interface ILBlock {
-  label: string
-  instructions: ILInstruction[]
-  terminator: ILTerminator
+    label: string;
+    instructions: ILInstruction[];
+    terminator: ILTerminator;
 }
 
 interface ILMeta {
-  cyclesMin: number
-  cyclesMax: number
-  bytes: number
-  zpReads: number
-  zpWrites: number
-  absReads: number
-  absWrites: number
-  clobbers: ("A" | "X" | "Y" | "P")[]
+    cyclesMin: number;
+    cyclesMax: number;
+    bytes: number;
+    zpReads: number;
+    zpWrites: number;
+    absReads: number;
+    absWrites: number;
+    clobbers: ("A" | "X" | "Y" | "P")[];
 }
 ```
 
@@ -109,17 +109,17 @@ Addressing mode selection is final at IL level.
 
 ## 6. Instruction Set (Summary)
 
-- IL_LOAD
-- IL_STORE
-- IL_ADD8 / IL_ADD16
-- IL_SUB8
-- IL_AND / IL_OR / IL_XOR
-- IL_SHL / IL_SHR
-- IL_CMP8 / IL_CMP16
-- IL_BRANCH
-- IL_JMP
-- IL_CALL
-- IL_RETURN
+-   IL_LOAD
+-   IL_STORE
+-   IL_ADD8 / IL_ADD16
+-   IL_SUB8
+-   IL_AND / IL_OR / IL_XOR
+-   IL_SHL / IL_SHR
+-   IL_CMP8 / IL_CMP16
+-   IL_BRANCH
+-   IL_JMP
+-   IL_CALL
+-   IL_RETURN
 
 Each instruction includes mandatory static metadata.
 
@@ -127,10 +127,10 @@ Each instruction includes mandatory static metadata.
 
 ## 7. Reachability & Optimization
 
-- Dead-code elimination operates only on IL
-- Zero-page allocation is IL-driven
-- Inlining is IL-level only
-- Deterministic ordering is mandatory
+-   Dead-code elimination operates only on IL
+-   Zero-page allocation is IL-driven
+-   Inlining is IL-level only
+-   Deterministic ordering is mandatory
 
 ---
 
@@ -141,4 +141,7 @@ If a behavior is not explicitly represented in the IL, it is not allowed in Blen
 ---
 
 End of specification
-````
+
+```
+
+```

@@ -18,7 +18,7 @@ machine-specific hardware APIs and optimizations.
 
 Targets are selected via compiler flag:
 
-````bash
+```bash
 blend65 --target=MACHINE source.blend
 ```
 
@@ -408,4 +408,7 @@ optimal performance on each target machine.
 
 This design ensures Blend65 can grow to support the entire 6502 ecosystem while maintaining code quality and developer
 productivity.
-````
+
+```
+
+```
