@@ -1,0 +1,45 @@
+[target]
+name = "TARGET_NAME"
+id = "TARGET_ID"
+cpu = "6502"  # or "6510", "65c02", etc.
+status = "development"  # or "tier1", "tier2", "planned"
+description = "Brief description of the target machine"
+
+[capabilities]
+sprites = false          # Does this target support sprites?
+max_sprites = 0          # Maximum number of sprites (if supported)
+screen_width = 320       # Display width in pixels
+screen_height = 200      # Display height in pixels
+colors = 16              # Number of available colors
+zero_page_size = 256     # Available zero page locations
+
+# Add target-specific capabilities as needed
+# Examples:
+# sid_sound = true
+# vera_graphics = true
+# tia_graphics = true
+
+[modules]
+# Map generic modules to target-specific implementations
+sprites = "TARGET_ID:sprites"  # Only if sprites supported
+input = "TARGET_ID:input"
+sound = "TARGET_ID:sound"
+video = "TARGET_ID:video"
+memory = "TARGET_ID:memory"
+
+# Add target-specific modules as needed
+# Examples:
+# vic = "c64:vic"
+# vera = "x16:vera"
+# tia = "atari2600:tia"
+
+[output]
+format = "prg"           # Output format: "prg", "bin", "rom", etc.
+extension = ".prg"       # File extension
+load_address = 0x0801    # Default load address
+entry_point = "main"     # Entry function name
+
+[toolchain]
+assembler = "ca65"       # Assembler to use
+linker = "ld65"          # Linker to use
+emulator = "EMULATOR"    # Emulator for testing

@@ -1,0 +1,169 @@
+# Blend64 v0.1 — Rules and Limitations
+
+Blend64 is a specialized, ahead-of-time compiled language for Commodore 64 game development.
+
+It is based on Blend syntax but **intentionally constrained** to guarantee:
+
+-   predictable memory usage
+-   deterministic performance
+-   zero dead code
+-   no implicit runtime or standard library
+
+Blend64 is **not** a general-purpose language. It is an _assembler-plus_ game language.
+
+---
+
+## 1. Compilation Model
+
+1. Blend64 **MUST** compile ahead-of-time to a C64 **PRG** file.
+2. The compiler **MUST** perform reachability-based dead code elimination:
+    - Only code and data reachable from entry points may be emitted.
+3. No monolithic runtime or standard library may be linked by default.
+4. Only the following may appear in the final PRG:
+    - game code
+    - explicitly imported modules
+    - compiler-generated helper routines that are reachable
+
+---
+
+## 2. Memory and Storage Model
+
+5. All variables **MUST** have static (global) storage duration.
+    - Stack-allocated locals are forbidden.
+6. Scoping constructs (e.g. `module`) are **namespaces only**; storage remains global.
+7. The compiler **MUST** emit a memory map showing placement and size of all data.
+8. Storage classes **MUST** exist (explicit or inferred):
+    - `zp` (zero page)
+    - `ram`
+    - `data`
+    - `const`
+    - `io`
+9. The compiler **MAY** auto-promote variables to zero page if allowed.
+10. Explicitly pinned memory placements **MUST** be respected.
+
+---
+
+## 3. Types (Target-Defined)
+
+11. Blend64 **MUST** define exact type sizes:
+    -   `byte` → 8-bit unsigned
+    -   `word` → 16-bit unsigned
+    -   `boolean` → 8-bit (0 or 1)
+12. Signed variants (`sbyte`, `sword`) are optional in v0.1.
+13. `integer` **MUST NOT** be abstract:
+    -   It must be removed, or
+    -   Aliased explicitly to `word`.
+14. Floating-point types **MUST NOT** exist.
+    -   Fixed-point math must be provided via helpers or modules.
+
+---
+
+## 4. Strings (Fixed-Capacity Only)
+
+15. Strings **MUST** be fixed-capacity buffers: `string(N)`.
+16. Strings **MUST NOT** allocate dynamically.
+17. Strings **MUST NOT** resize at runtime.
+18. Template strings are allowed **only** when assigning to a `string(N)` buffer.
+19. Template strings **MUST** lower to:
+    -   constant byte copies, and
+    -   numeric formatting helpers (if required).
+20. Allowed template placeholders are restricted to predictable forms:
+    -   `${byteVar}`
+    -   `${wordVar}`
+    -   `${hex(byteVar)}`
+    -   `${hex(wordVar)}`
+    -   `${padN(wordVar)}`
+21. Function calls inside `${...}` are forbidden.
+22. String overflow behavior **MUST** be defined:
+    -   Recommended default: truncate (optionally set a debug flag).
+
+---
+
+## 5. Expressions and Operators
+
+23. Blend64 **MUST** support:
+    -   Arithmetic: `+ - * / %`
+    -   Comparisons
+24. Blend64 **MUST** support bitwise operators:
+    -   `& | ^ ~ << >>`
+25. Bitwise operators must work on `byte` and `word`.
+26. Expensive operations may lower to helper routines:
+    -   helpers must be emitted only if used
+    -   helpers must be deduplicated
+27. Operator precedence **MUST** be explicitly defined and stable.
+
+---
+
+## 6. Control Flow
+
+28. Supported constructs:
+    -   `if / else`
+    -   `for`
+    -   `while`
+    -   `match`
+29. Infinite loops **MUST** be allowed.
+30. Sandbox loop limits from Blend **MUST NOT** apply.
+31. `match` must lower to:
+    -   compare chains, or
+    -   jump tables (when safe).
+
+---
+
+## 7. Functions and Calls
+
+32. Functions **MUST NOT** have local variables.
+33. Functions may accept parameters and return:
+    -   `byte`, `word`, `boolean`, or `void`.
+34. Returning records or arrays is forbidden in v0.1.
+35. Nested functions and closures **MUST NOT** exist.
+36. Recursion (direct or indirect) **MUST** be a compile-time error.
+37. The compiler **MAY** inline functions.
+38. The compiler **MUST NOT** duplicate large helper routines unnecessarily.
+
+---
+
+## 8. Data Structures
+
+39. Records/structs **MUST** compile to flat memory layouts.
+40. Arrays **MUST** be fixed-size.
+41. Top-level array and record literals **MUST** compile to static data.
+42. Resizable containers (`push`, `pop`, heap-like behavior) **MUST NOT** exist in v0.1 unless explicitly provided by
+    imported modules.
+
+---
+
+## 9. Hardware Access and Libraries
+
+43. Direct memory-mapped I/O is allowed via an `io` storage class.
+44. Hardware access is **recommended** via imported modules.
+45. Imported modules are the only mechanism for including library code.
+46. Imported code is subject to reachability-based dead code elimination.
+47. Compiler-generated helpers are allowed if:
+    -   they are reachable,
+    -   they are deduplicated,
+    -   they are not implicitly included.
+
+---
+
+## 10. Mandatory “Magic Phase” (Compiler Stage)
+
+48. The compiler **MUST** implement a lowering/guardrail phase after type checking.
+49. This phase **MUST**:
+    -   desugar high-level constructs,
+    -   enforce fixed-memory rules,
+    -   prove string capacity bounds when possible,
+    -   select helper routines,
+    -   build a call graph for dead-code elimination,
+    -   reject unsupported constructs early.
+50. No feature may survive this phase if it would require:
+    -   heap allocation,
+    -   hidden runtime code,
+    -   unpredictable memory growth.
+
+---
+
+## Design Principle
+
+> **Nothing enters the PRG unless it is explicitly used or provably required.**
+
+Blend64 favors **clarity, predictability, and control** over abstraction and convenience.

@@ -1,0 +1,64 @@
+[zero_page]
+start = 0x02
+end = 0xFF
+reserved = [0x90, 0x91, 0x92, 0x93, 0x94, 0x95]  # KERNAL usage
+available = 248  # Usable zero page locations
+
+[program]
+start = 0x0801  # After BASIC header
+end = 0x9FFF    # Before BASIC ROM
+size = 0x97FF   # ~38KB program space
+
+[basic_header]
+start = 0x0801
+size = 10       # "10 SYS 2061" + terminator
+
+[screen]
+default = 0x0400
+size = 0x0400   # 1KB screen memory
+end = 0x07FF
+
+[color_ram]
+address = 0xD800
+size = 0x0400   # 1KB color RAM (nybbles)
+
+[sprites]
+default = 0x2000
+size = 0x0040   # 64 bytes per sprite
+max_address = 0x3FC0  # Last valid sprite location
+
+[character_set]
+default = 0xD000  # ROM characters
+custom = 0x3800   # Common custom location
+size = 0x0800     # 2KB character set
+
+[io]
+start = 0xD000
+end = 0xDFFF
+size = 0x1000
+
+[io.vic]
+start = 0xD000
+end = 0xD02E
+registers = 47
+
+[io.sid]
+start = 0xD400
+end = 0xD41C
+registers = 29
+
+[io.cia1]
+start = 0xDC00
+end = 0xDC0F
+registers = 16
+
+[io.cia2]
+start = 0xDD00
+end = 0xDD0F
+registers = 16
+
+[constraints]
+max_program_size = 0x97FF
+sprite_pointers_start = 0x07F8
+sprite_pointers_count = 8
+stack_page = 0x01

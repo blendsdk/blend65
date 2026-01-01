@@ -1,0 +1,8 @@
+# Blend65 Language Files
+*.blend linguist-language=Pascal linguist-detectable=true
+
+# Documentation
+*.md linguist-documentation=true
+
+# Configuration Files
+*.toml linguist-language=TOML

@@ -1,0 +1,33 @@
+[target]
+name = "Commander X16"
+id = "x16"
+cpu = "65c02"
+status = "tier1"
+description = "Commander X16 with VERA graphics and YM2151 sound"
+
+[capabilities]
+sprites = true
+vera_graphics = true
+max_sprites = 128
+screen_width = 640
+screen_height = 480
+colors = 256
+zero_page_size = 256  # $00-$FF fully available
+
+[modules]
+sprites = "x16:vera"
+input = "x16:input"
+sound = "x16:ym2151"
+video = "x16:vera"
+memory = "x16:memory"
+
+[output]
+format = "prg"
+extension = ".prg"
+load_address = 0x0801
+entry_point = "main"
+
+[toolchain]
+assembler = "ca65"
+linker = "ld65"
+emulator = "x16emu"

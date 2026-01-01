@@ -1,0 +1,33 @@
+[target]
+name = "Commodore 64"
+id = "c64"
+cpu = "6510"
+status = "tier1"
+description = "Commodore 64 with VIC-II graphics and SID sound"
+
+[capabilities]
+sprites = true
+sid_sound = true
+max_sprites = 8
+screen_width = 320
+screen_height = 200
+colors = 16
+zero_page_size = 254  # $02-$FF
+
+[modules]
+sprites = "c64:sprites"
+input = "c64:input"
+sound = "c64:sid"
+video = "c64:vic"
+memory = "c64:memory"
+
+[output]
+format = "prg"
+extension = ".prg"
+load_address = 0x0801
+entry_point = "main"
+
+[toolchain]
+assembler = "ca65"
+linker = "ld65"
+emulator = "x64sc"

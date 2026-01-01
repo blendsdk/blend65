@@ -22,11 +22,11 @@ This showcase presents a complete, working Blend64 program that demonstrates cor
 ```blend64
 module Game.SpriteBall
 
-// Import C64 hardware access modules
-import VIC_SPR_EN, VIC_SPR0_X, VIC_SPR0_Y, VIC_SPR0_COLOR from c64:vic
-import VIC_SPR_PTR, VIC_BORDER, VIC_BGCOLOR from c64:vic
-import CIA1_PRA from c64:cia
-import memset, poke from c64:mem
+// Import C64 hardware access modules (function-based API)
+import setSpritePosition, setSpriteColor, enableSprite from c64:sprites
+import setBackgroundColor, setBorderColor from c64:vic
+import readJoystick, joystickUp, joystickDown, joystickLeft, joystickRight from c64:input
+import memset from c64:memory
 
 // Sprite data - 21x24 pixel ball (63 bytes + 1 padding)
 const var ballSprite: byte[64] = [
@@ -62,8 +62,8 @@ zp var spriteX: word        // Zero-page for fastest access
 zp var spriteY: byte
 zp var joyState: byte       // Current joystick reading
 
-bss var oldJoyState: byte   // Previous joystick state
-bss var frameCount: byte    // Animation counter
+ram var oldJoyState: byte   // Previous joystick state
+ram var frameCount: byte    // Animation counter
 
 // Constants for game parameters
 const var SPRITE_MIN_X: word = 24
@@ -72,87 +72,63 @@ const var SPRITE_MIN_Y: byte = 50
 const var SPRITE_MAX_Y: byte = 229
 const var SPRITE_SPEED: byte = 2
 
-// Memory-mapped I/O registers with explicit placement
-io var VIC_SPRITE_ENABLE: byte @ $D015
-io var VIC_SPRITE0_X: byte @ $D000
-io var VIC_SPRITE0_Y: byte @ $D001
-io var VIC_SPRITE0_COLOR: byte @ $D027
-io var VIC_SPRITE_X_MSB: byte @ $D010
-io var VIC_BORDER_COLOR: byte @ $D020
-io var VIC_BG_COLOR: byte @ $D021
-io var CIA1_PORT_A: byte @ $DC00
-
-// Sprite pointer location in screen memory
-io var SPRITE_POINTER_0: byte @ $07F8
+// Color constants for readability
+const var BLACK: byte = 0
+const var WHITE: byte = 1
+const var BLUE: byte = 6
+const var YELLOW: byte = 7
+const var LIGHT_RED: byte = 10
+const var LIGHT_BLUE: byte = 14
 
 function initializeSprite(): void
   // Copy sprite data to memory location $2000 (sprite block 128)
   memset($2000, ballSprite, 64)
 
-  // Set sprite pointer (sprite data at $2000 = block 128)
-  SPRITE_POINTER_0 = 128
-
   // Initialize sprite position (center of screen)
   spriteX = 160
   spriteY = 100
 
-  // Enable sprite 0
-  VIC_SPRITE_ENABLE = VIC_SPRITE_ENABLE or 1
-
-  // Set sprite color (white)
-  VIC_SPRITE0_COLOR = 1
+  // Configure sprite using function-based API
+  setSpritePosition(0, spriteX, spriteY)
+  setSpriteColor(0, WHITE)
+  enableSprite(0)
 
   // Set background colors
-  VIC_BORDER_COLOR = 0   // Black border
-  VIC_BG_COLOR = 6       // Blue background
+  setBorderColor(BLACK)
+  setBackgroundColor(BLUE)
 end function
 
-function readJoystick(): byte
-  // Read CIA1 Port A (joystick port 2)
-  // Bits are inverted: 0 = pressed, 1 = not pressed
-  return not CIA1_PORT_A and $1F
-end function
+// Note: readJoystick() function now imported from c64:input module
 
 function updateSpritePosition(): void
-  joyState = readJoystick()
-
-  // Check for joystick movements
-  // Bit 0 = Up, Bit 1 = Down, Bit 2 = Left, Bit 3 = Right
-
-  if joyState and $01 then  // Up
+  // Check joystick directions using clean boolean functions
+  if joystickUp(1) then
     if spriteY > SPRITE_MIN_Y then
       spriteY = spriteY - SPRITE_SPEED
     end if
   end if
 
-  if joyState and $02 then  // Down
+  if joystickDown(1) then
     if spriteY < SPRITE_MAX_Y then
       spriteY = spriteY + SPRITE_SPEED
     end if
   end if
 
-  if joyState and $04 then  // Left
+  if joystickLeft(1) then
     if spriteX > SPRITE_MIN_X then
       spriteX = spriteX - SPRITE_SPEED
     end if
   end if
 
-  if joyState and $08 then  // Right
+  if joystickRight(1) then
     if spriteX < SPRITE_MAX_X then
       spriteX = spriteX + SPRITE_SPEED
     end if
   end if
 
-  // Update VIC registers
-  VIC_SPRITE0_Y = spriteY
-  VIC_SPRITE0_X = spriteX and $FF
-
-  // Handle X coordinate MSB (for X > 255)
-  if spriteX > 255 then
-    VIC_SPRITE_X_MSB = VIC_SPRITE_X_MSB or $01
-  else
-    VIC_SPRITE_X_MSB = VIC_SPRITE_X_MSB and $FE
-  end if
+  // Update sprite position with single function call
+  // (handles all register complexity including X MSB)
+  setSpritePosition(0, spriteX, spriteY)
 end function
 
 function animate(): void
@@ -161,13 +137,13 @@ function animate(): void
 
   match frameCount and $1F
     case 0:
-      VIC_SPRITE0_COLOR = 1   // White
+      setSpriteColor(0, WHITE)
     case 8:
-      VIC_SPRITE0_COLOR = 7   // Yellow
+      setSpriteColor(0, YELLOW)
     case 16:
-      VIC_SPRITE0_COLOR = 10  // Light Red
+      setSpriteColor(0, LIGHT_RED)
     case 24:
-      VIC_SPRITE0_COLOR = 14  // Light Blue
+      setSpriteColor(0, LIGHT_BLUE)
   end match
 end function
 
@@ -187,28 +163,31 @@ end function
 
 ## Feature Analysis
 
-### 1. **Module System & Imports**
+### 1. **Module System & Function-Based Hardware API**
 ```blend64
 module Game.SpriteBall
-import VIC_SPR_EN, VIC_SPR0_X, VIC_SPR0_Y from c64:vic
-import CIA1_PRA from c64:cia
-import memset, poke from c64:mem
+import setSpritePosition, setSpriteColor, enableSprite from c64:sprites
+import setBackgroundColor, setBorderColor from c64:vic
+import readJoystick, joystickUp, joystickDown from c64:input
+import memset from c64:memory
 ```
 
 **What this demonstrates:**
-- Clean module organization
-- Selective imports from C64 hardware modules
-- No monolithic standard library - import only what you need
+- Clean module organization with semantic function imports
+- Function-based hardware API instead of raw register access
+- Selective imports - only the functions you actually use
+- No monolithic standard library or complex abstractions
 
 **Implementation benefits:**
-- Tree-shaking eliminates unused C64 functions
-- Clear dependencies on hardware modules
-- Compilation units map to logical game systems
+- Tree-shaking eliminates unused C64 functions automatically
+- Clear dependencies on specific hardware capabilities
+- Functions inline to optimal register sequences
+- Type-safe hardware access with readable names
 
 ### 2. **Storage Class System**
 ```blend64
 zp var spriteX: word        // Zero-page for speed
-bss var frameCount: byte    // Uninitialized RAM
+ram var frameCount: byte    // Uninitialized RAM
 const var ballSprite: byte[64] = [...] // ROM data
 io var VIC_SPRITE0_X: byte @ $D000     // Memory-mapped I/O
 ```
@@ -238,20 +217,20 @@ const var ballSprite: byte[64] = [
 - **Compile-time size checking** (exactly 64 bytes)
 - **Efficient memory layout** (no dynamic allocation)
 
-### 4. **Direct Hardware Access**
+### 4. **Function-Based Hardware Integration**
 ```blend64
-io var VIC_SPRITE0_X: byte @ $D000
-io var CIA1_PORT_A: byte @ $DC00
-
-// Direct register manipulation
-VIC_SPRITE_ENABLE = VIC_SPRITE_ENABLE or 1
-joyState = not CIA1_PORT_A and $1F
+setSpritePosition(0, spriteX, spriteY)  // Clean, obvious intent
+setSpriteColor(0, WHITE)                // No magic numbers
+enableSprite(0)                         // Self-documenting
+if joystickUp(1) then                   // Clear boolean logic
 ```
 
-**Hardware integration:**
-- **Zero abstraction** - direct register access
-- **Type safety** - byte/word matching register sizes
-- **Named constants** - readable but efficient
+**Hardware integration advantages:**
+- **Zero overhead** - functions inline to direct register access
+- **Type safety** - function signatures prevent invalid parameters
+- **Readable intent** - function names clearly express what happens
+- **Hidden complexity** - MSB handling, bit manipulation abstracted away
+- **Consistent interface** - all hardware follows same patterns
 
 ### 5. **Bitwise Operations**
 ```blend64
@@ -269,9 +248,9 @@ VIC_SPRITE_X_MSB or= $01        // Bit setting
 ```blend64
 match frameCount and $1F
   case 0:
-    VIC_SPRITE0_COLOR = 1
+    setSpriteColor(0, WHITE)
   case 8:
-    VIC_SPRITE0_COLOR = 7
+    setSpriteColor(0, YELLOW)
   // ...
 end match
 ```
@@ -279,7 +258,8 @@ end match
 **Efficient lowering:**
 - **Dense cases** → jump table (2-3 cycles)
 - **Sparse cases** → compare chain (predictable timing)
-- **No function call overhead** for simple cases
+- **Function inlining** - setSpriteColor() becomes direct register store
+- **Constant propagation** - sprite number and colors compile-time resolved
 
 ### 7. **Hotloop Construct**
 ```blend64

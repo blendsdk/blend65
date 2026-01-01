@@ -1,0 +1,54 @@
+[zero_page]
+start = 0x00
+end = 0xFF
+reserved = []  # X16 allows full zero page access
+available = 256  # All zero page locations usable
+
+[program]
+start = 0x0801  # After BASIC header
+end = 0x9EFF    # Before KERNAL
+size = 0x96FF   # ~38KB program space
+
+[basic_header]
+start = 0x0801
+size = 10       # "10 SYS 2061" + terminator
+
+[banked_ram]
+# X16 has 2MB of banked RAM
+start = 0xA000
+end = 0xBFFF
+bank_size = 0x2000  # 8KB per bank
+max_banks = 256     # 2MB total
+
+[vera]
+# VERA has separate address space
+vram_size = 0x20000  # 128KB VRAM
+palette_address = 0x1FA00
+sprite_address = 0x1FC00
+
+[io]
+start = 0x9F00
+end = 0x9FFF
+size = 0x0100
+
+[io.vera]
+start = 0x9F20
+end = 0x9F3F
+registers = 32
+
+[io.ym2151]
+start = 0x9F40
+end = 0x9F41
+registers = 2
+
+[io.rtc]
+start = 0x9F50
+end = 0x9F5F
+registers = 16
+
+[constraints]
+max_program_size = 0x96FF
+banked_ram_available = true
+vera_vram_size = 0x20000
+palette_entries = 256
+max_sprite_size = 64

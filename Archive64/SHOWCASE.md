@@ -17,7 +17,7 @@ Blend64 is **assembler-plus**:
 
 ## 1) “Hello, HUD” — Fixed-capacity strings and screen output
 
-Blend64 strings are fixed-capacity buffers: `string(N)`.  
+Blend64 strings are fixed-capacity buffers: `string(N)`.
 Template strings exist, but are **restricted** and lower to static copies + formatting helpers **only if used**.
 
 ```blend
@@ -27,7 +27,7 @@ import poke, memcpy from c64:mem
 import Screen_PrintString from c64:screen
 
 // 40 columns on the C64
-bss  var hudLine: string(40)
+ram  var hudLine: string(40)
 zp   var score: word
 zp   var lives: byte
 
@@ -191,7 +191,7 @@ const var sin256: byte[256] = [
 ]
 
 // Runtime-updated sprite X positions
-bss var spriteX: byte[8]
+ram var spriteX: byte[8]
 
 export function MoveSprites(): void
     // For loop uses a static loop index (no locals)
@@ -222,7 +222,7 @@ type Player
     flags: byte
 end type
 
-bss var p1: Player
+ram var p1: Player
 
 export function Player_Reset(): void
     p1.x = 160
