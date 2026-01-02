@@ -46,9 +46,9 @@
 | c64.timing | getFrameCounter() | Missing | HIGH | [Astroblast] | LOW | Frame-accurate timing |
 | c64.timing | waitForNextFrame() | Missing | HIGH | [Astroblast] | LOW | 60 FPS synchronization |
 | c64.sprites | setSpriteExpansion() | Missing | MEDIUM | [Bubble Escape] | LOW | Simple register write |
-| c64.vic | readSpriteCollisions() | Missing | CRITICAL | [Bubble Escape, Astroblast, Into The Electric Castle] | MEDIUM | Hardware collision detection |
-| c64.vic | readBackgroundCollisions() | Missing | CRITICAL | [Bubble Escape, Astroblast, Into The Electric Castle] | MEDIUM | Hardware collision detection |
-| c64.vic | readSpriteCollisionRegister() | Missing | CRITICAL | [Astroblast] | MEDIUM | Direct VIC-II collision access |
+| c64.vic | readSpriteCollisions() | Missing | CRITICAL | [Bubble Escape, Astroblast, Into The Electric Castle, C64 Space Shooter] | MEDIUM | Hardware collision detection |
+| c64.vic | readBackgroundCollisions() | Missing | CRITICAL | [Bubble Escape, Astroblast, Into The Electric Castle, C64 Space Shooter] | MEDIUM | Hardware collision detection |
+| c64.vic | readSpriteCollisionRegister() | Missing | CRITICAL | [Astroblast, C64 Space Shooter] | MEDIUM | Direct VIC-II collision access |
 | c64.vic | waitForRaster() | Missing | CRITICAL | [Into The Electric Castle] | MEDIUM | Raster line synchronization |
 | c64.interrupts | setRasterInterrupt() | Missing | CRITICAL | [Bubble Escape, Iridis Alpha, Psychedelia, Into The Electric Castle] | HIGH | Complex interrupt handling |
 | c64.sprites | enableSprites() | Missing | CRITICAL | [Into The Electric Castle] | LOW | Sprite enable/disable control |
@@ -57,8 +57,16 @@
 | c64.sid | playFootstepSound() | Missing | MEDIUM | [Into The Electric Castle] | LOW | Game-specific sound effects |
 | c64.sid | playLaserSound() | Missing | MEDIUM | [Into The Electric Castle] | LOW | Weapon sound effects |
 | c64.sid | playExplosionSound() | Missing | MEDIUM | [Into The Electric Castle] | LOW | Impact sound effects |
-| c64.vic | setColorRam() | Missing | CRITICAL | [Psychedelia] | HIGH | Direct color RAM access |
-| c64.vic | clearColorRam() | Missing | CRITICAL | [Psychedelia] | MEDIUM | Color RAM initialization |
+| c64.vic | setColorRam() | Missing | CRITICAL | [Psychedelia, Dust Tutorial] | HIGH | Direct color RAM access |
+| c64.vic | clearColorRam() | Missing | CRITICAL | [Psychedelia, Dust Tutorial] | MEDIUM | Color RAM initialization |
+| c64.vic | setScreenLocation() | Missing | CRITICAL | [C64 Smooth Scrolling] | MEDIUM | VIC-II screen buffer control |
+| c64.vic | setXScroll() | Missing | CRITICAL | [C64 Smooth Scrolling] | LOW | Hardware scrolling register |
+| c64.vic | copyMemoryBlock() | Missing | HIGH | [C64 Smooth Scrolling] | MEDIUM | Efficient memory copying |
+| c64.sid | initSIDMusic() | Missing | HIGH | [Dust Tutorial] | MEDIUM | Music system initialization |
+| c64.sid | playSIDFrame() | Missing | HIGH | [Dust Tutorial] | LOW | Frame-based music playback |
+| c64.memory | setZeroPageOptimization() | Missing | HIGH | [C64 Space Shooter] | HIGH | Performance-critical variables |
+| c64.sprites | enableAllSprites() | Missing | HIGH | [C64 Space Shooter] | LOW | Multi-sprite management |
+| c64.sprites | setCustomSpriteData() | Missing | HIGH | [C64 Space Shooter] | MEDIUM | Dynamic sprite graphics |
 | c64.vic | setCharacterSet() | Missing | HIGH | [Psychedelia] | MEDIUM | VIC-II memory control |
 | c64.vic | configureMemoryLayout() | Missing | HIGH | [Psychedelia] | HIGH | Advanced VIC-II configuration |
 | c64.cia | readTimer() | Missing | HIGH | [Psychedelia] | LOW | Hardware timing access |
@@ -70,7 +78,7 @@
 | c64.sid | setSIDVolume() | Missing | HIGH | [Astroblast] | LOW | Master volume control |
 | c64.sid | setSIDSubtune() | Missing | HIGH | [Astroblast] | MEDIUM | Multi-subtune music system |
 | c64.assets | importBinaryData() | Missing | MEDIUM | [Astroblast] | MEDIUM | Sound and graphics data import |
-| c64.interrupts | setRasterInterrupt() | Missing | CRITICAL | [C64 Christmas Demo, Bubble Escape, Iridis Alpha, Psychedelia, Into The Electric Castle] | HIGH | Core interrupt system |
+| c64.interrupts | setRasterInterrupt() | Missing | CRITICAL | [C64 Christmas Demo, Bubble Escape, Iridis Alpha, Psychedelia, Into The Electric Castle, C64 Smooth Scrolling, Dust Tutorial, C64 Space Shooter] | HIGH | Core interrupt system |
 | c64.interrupts | clearInterrupt() | Missing | CRITICAL | [C64 Christmas Demo] | MEDIUM | Interrupt acknowledgment |
 | c64.interrupts | enableInterrupts() | Missing | HIGH | [C64 Christmas Demo] | LOW | Global interrupt control |
 | c64.vic | setVICBank() | Missing | CRITICAL | [C64 Christmas Demo] | MEDIUM | Memory bank switching |
