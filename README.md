@@ -1,6 +1,6 @@
 # Blend65
 
-> ## 🚨 **IMPORTANT: EXPERIMENTAL PROJECT** 🚨
+> ## 🚨 **IMPORTANT: EARLY DEVELOPMENT PROJECT** 🚨
 >
 > **This is NOT a working compiler yet!** Blend65 is currently in early development:
 >
