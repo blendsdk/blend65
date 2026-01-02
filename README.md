@@ -1,6 +1,19 @@
 # Blend65
 
-> **Warning: This is a work-in-progress hobby project!** The language and compiler are still being built. Don't expect anything to be stable yet.
+> ## 🚨 **IMPORTANT: EXPERIMENTAL PROJECT** 🚨
+>
+> **This is NOT a working compiler yet!** Blend65 is currently in early development:
+>
+> - ❌ **No code generation** - Cannot compile to actual 6502 assembly yet
+> - ❌ **No .prg output** - Cannot create runnable C64 programs yet
+> - ❌ **Frontend only** - Only lexer/parser work, backend doesn't exist
+> - ⚠️ **Everything will change** - Syntax, features, and APIs are unstable
+> - 🔬 **Experimental** - This is research/prototype code, not production-ready
+>
+> **What works:** Parsing Blend65 syntax into abstract syntax trees
+> **What doesn't:** Everything else (semantic analysis, optimization, code generation)
+>
+> **Don't use this for real projects yet!** Star/watch the repo if you're interested in following development.
 
 ## What Is Blend65?
 
