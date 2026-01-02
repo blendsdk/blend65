@@ -9,13 +9,18 @@
 
 | Feature | Status | Target Version | Priority | Requesting Games | Implementation Effort | Dependencies |
 |---------|--------|----------------|----------|------------------|---------------------|-------------|
-| Dynamic Arrays | Not Implemented | v0.2 | CRITICAL | [Mafia ASM] | MEDIUM | Memory Management |
-| String Type | Not Implemented | v0.3 | HIGH | [Mafia ASM] | LOW | Basic Types |
+| Dynamic Arrays | Not Implemented | v0.2 | CRITICAL | [Mafia ASM, Tetris C64] | MEDIUM | Memory Management |
+| String Type | Not Implemented | v0.3 | HIGH | [Mafia ASM, Tetris C64] | LOW | Basic Types |
 | Function Pointers | Not Implemented | v0.3 | MEDIUM | [None Yet - Future] | MEDIUM | Advanced Types |
-| Complex Record Types | Not Implemented | v0.4 | HIGH | [Mafia ASM] | MEDIUM | Advanced Type System |
+| Complex Record Types | Not Implemented | v0.4 | HIGH | [Mafia ASM, Tetris C64] | MEDIUM | Advanced Type System |
 | 32-bit Arithmetic | Not Implemented | v0.4 | CRITICAL | [Mafia ASM] | HIGH | Extended Math Library |
 | Heap Allocation | Not Implemented | v0.4 | CRITICAL | [Mafia ASM] | HIGH | Memory Pools |
-| Interrupt Handlers | Not Implemented | v0.5 | CRITICAL | [Bubble Escape, Iridis Alpha] | HIGH | Hardware Integration |
+| Interrupt Handlers | Not Implemented | v0.5 | CRITICAL | [Bubble Escape, Iridis Alpha, C64 Christmas Demo] | HIGH | Hardware Integration |
+| Multi-Dimensional Arrays | Not Implemented | v0.3 | HIGH | [Tetris C64] | MEDIUM | Advanced Array Support |
+| Local Variables | Not Implemented | v0.2 | HIGH | [Tetris C64] | MEDIUM | Function-scoped variables |
+| Match Statements | Not Implemented | v0.2 | MEDIUM | [Tetris C64] | LOW | Pattern matching syntax |
+| BCD Arithmetic | Not Implemented | v0.3 | MEDIUM | [Tetris C64] | MEDIUM | 6502 decimal math |
+| Inline Assembly | Not Implemented | v0.3 | MEDIUM | [C64 Christmas Demo] | MEDIUM | Hardware control |
 
 ## Hardware API Matrix by Platform
 
@@ -65,6 +70,27 @@
 | c64.sid | setSIDVolume() | Missing | HIGH | [Astroblast] | LOW | Master volume control |
 | c64.sid | setSIDSubtune() | Missing | HIGH | [Astroblast] | MEDIUM | Multi-subtune music system |
 | c64.assets | importBinaryData() | Missing | MEDIUM | [Astroblast] | MEDIUM | Sound and graphics data import |
+| c64.interrupts | setRasterInterrupt() | Missing | CRITICAL | [C64 Christmas Demo, Bubble Escape, Iridis Alpha, Psychedelia, Into The Electric Castle] | HIGH | Core interrupt system |
+| c64.interrupts | clearInterrupt() | Missing | CRITICAL | [C64 Christmas Demo] | MEDIUM | Interrupt acknowledgment |
+| c64.interrupts | enableInterrupts() | Missing | HIGH | [C64 Christmas Demo] | LOW | Global interrupt control |
+| c64.vic | setVICBank() | Missing | CRITICAL | [C64 Christmas Demo] | MEDIUM | Memory bank switching |
+| c64.vic | setScreenMode() | Missing | HIGH | [C64 Christmas Demo] | MEDIUM | Text/bitmap mode control |
+| c64.vic | getRasterLine() | Missing | HIGH | [C64 Christmas Demo] | LOW | Timing and randomization |
+| c64.vic | setMemoryPointers() | Missing | HIGH | [C64 Christmas Demo] | MEDIUM | VIC memory configuration |
+| c64.sprites | setSpriteImage() | Missing | CRITICAL | [C64 Christmas Demo] | MEDIUM | Advanced sprite control |
+| c64.sprites | setSpriteExpansion() | Missing | MEDIUM | [C64 Christmas Demo, Bubble Escape] | LOW | Sprite scaling |
+| c64.cia | readTimer() | Missing | HIGH | [C64 Christmas Demo, Psychedelia] | LOW | Hardware randomization |
+| c64.cia | setTimer() | Missing | MEDIUM | [C64 Christmas Demo, Bubble Escape] | MEDIUM | Timing control |
+| c64.kernal | loadFile() | Missing | HIGH | [Tetris C64] | MEDIUM | High score persistence |
+| c64.kernal | saveFile() | Missing | HIGH | [Tetris C64] | MEDIUM | Save game data |
+| c64.kernal | fileExists() | Missing | MEDIUM | [Tetris C64] | LOW | File system queries |
+| c64.sid | loadMusic() | Missing | HIGH | [Tetris C64] | MEDIUM | SID file integration |
+| c64.sid | playMusic() | Missing | HIGH | [Tetris C64] | LOW | Music playback control |
+| c64.sid | stopMusic() | Missing | MEDIUM | [Tetris C64] | LOW | Music control |
+| c64.sid | playSound() | Missing | HIGH | [Tetris C64] | LOW | Sound effects |
+| c64.input | readKeyboard() | Missing | HIGH | [Tetris C64] | MEDIUM | Full keyboard matrix |
+| c64.input | getKeyPressed() | Missing | HIGH | [Tetris C64] | LOW | Single key detection |
+| c64.input | waitForKeyRelease() | Missing | MEDIUM | [Tetris C64] | LOW | Input debouncing |
 
 ### VIC-20 Hardware APIs
 | Module | Function | Status | Priority | Requesting Games | Implementation Effort | Notes |
@@ -159,6 +185,11 @@ Based on analyzed games:
 |------|------------|-----------------|----------------|
 | **C64 Examples (15%)** | github.com/digitsensitive/c64.git | setSpriteData(), screen APIs, BCD math | v0.2 |
 
+### NEEDS VERSION 0.3 (Language Features)
+| Game | Repository | Primary Blocker | Target Version |
+|------|------------|-----------------|----------------|
+| **Tetris C64** | github.com/wiebow/tetris.c64.git | Dynamic arrays + multi-dimensional arrays + complex types + string processing + BCD math | v0.3 |
+
 ### NEEDS VERSION 0.2+ (Dynamic Arrays)
 | Game | Repository | Primary Blocker | Target Version |
 |------|------------|-----------------|----------------|
@@ -169,6 +200,7 @@ Based on analyzed games:
 ### NEEDS VERSION 0.5+ (Hardware-Intensive)
 | Game | Repository | Primary Blocker | Target Version |
 |------|------------|-----------------|----------------|
+| **C64 Christmas Demo** | github.com/celso/c64.git | Raster interrupts + hardware collision + advanced sprite control + SID integration | v0.5 |
 | **Astroblast** | github.com/nealvis/astroblast.git | Hardware collision + advanced sprites + SID integration | v0.5 |
 | **Into The Electric Castle** | github.com/dread-pirate-johnny-spaceboots/Into-The-Electric-Castle.git | Interrupt system + hardware collision + advanced sprite control + dual joystick | v0.5 |
 | **Bubble Escape** | codeberg.org/catseye/Bubble-Escape | Interrupt system | v0.5 |
