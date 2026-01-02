@@ -1,40 +1,26 @@
 # Blend65
 
-> ⚠️ **WORK IN PROGRESS — EARLY DEVELOPMENT** ⚠️
->
-> **Blend65 is in a very early design and prototyping stage.** The language specification, compiler architecture, target
-> system, and hardware APIs are **not finalized** and **will change**. Nothing in this repository should be considered
-> stable, complete, or production-ready.
-
----
+> **Warning: This is a work-in-progress hobby project!** The language and compiler are still being built. Don't expect anything to be stable yet.
 
 ## What Is Blend65?
 
-**Blend65** is an **ahead-of-time compiled language** designed specifically for **high-performance 6502 family game development**. The language is architecturally designed to support multiple 6502-based targets, with **Commodore 64** as the current primary focus.
+Blend65 is a modern programming language that compiles directly to 6502 machine code. It's designed for developers tired of writing assembly for C64 games, but also tired of high-level languages that hide what's actually happening on the hardware.
 
-Blend65 exists for developers who want:
+This language is designed for people who want to write C64 games (and eventually other 6502 systems) without giving up control over performance and hardware access. Think of it as "what if we could write assembly, but with better syntax and some modern conveniences?"
 
--   **High-performance C64 game development** with modern language features
--   **Direct hardware control** over VIC-II, SID, and sprites
--   **Predictable memory usage** and deterministic performance
--   **Maximum possible FPS** on real hardware
--   **Zero implicit runtime** or standard library
--   **Full control over memory layout** without writing assembly
+The main idea is simple: you write code that looks and feels modern, but it compiles down to efficient 6502 assembly that runs at full speed on real hardware. No runtime, no garbage collector, no surprises.
 
-> **Blend65 is what experienced retro developers wish assembly looked like.**
+## Design Goals
 
----
+Blend65 aims to be perfect for 6502 game development. That means:
 
-## Core Design Goals
+- Direct control over sprites, sound, and all the C64's hardware
+- Completely predictable memory usage - no hidden allocations
+- Fast code generation that runs well on real hardware
+- Complete transparency - never wondering what's happening under the hood
+- Natural game development - not fighting the language
 
--   **6502 family architecture** with multi-platform design
--   **C64-focused development** with direct hardware control
--   **Modern language features** for retro development
--   **Ahead-of-time compilation** to native machine code
--   **No implicit runtime** or hidden overhead
--   **Reachability-based dead-code elimination**
--   **Static memory only** - no heap allocation
--   **Deterministic output** and performance-first lowering
+Basically, the goal is the power of assembly with the convenience of a modern language.
 
 ---
 
@@ -60,7 +46,7 @@ end while
 
 ### **C64 Hardware Control**
 
-```blend65
+```js
 // Direct access to C64 hardware
 import setSpritePosition, enableSprite from c64.sprites
 import setBackgroundColor, setBorderColor from c64.vic
@@ -79,9 +65,9 @@ playNote(0, 440)  // Channel 0, 440Hz
 
 ### **v0.2 Language Features (Coming Soon)**
 
-```blend65
+```js
 // Enhanced control flow with break/continue
-for i = 0 to enemyCount - 1
+for i = 0 to enemyCount - 10
     if enemies[i].health <= 0 then
         continue  // Skip dead enemies
     end if
@@ -135,71 +121,69 @@ blend65 game.blend  # → game.prg for Commodore 64
 
 ---
 
-## 6502 Family Roadmap
+## Other 6502 Systems
 
-**Blend65** is architecturally designed to support the entire 6502 family of processors. Here's our roadmap ordered by development feasibility:
+Currently focusing on the C64 as the primary target, but Blend65 should eventually work on other 6502 systems too. Here's the roadmap:
 
-### **Current Target**
--   **Commodore 64** - Primary focus with VIC-II, SID, and sprite support
+**Current focus:**
+- **Commodore 64** - The main target. VIC-II graphics, SID sound, sprites, the whole deal.
 
-### **High Priority (Excellent tooling & docs)**
--   **VIC-20** - Simpler C64 cousin, character-based graphics
--   **Commander X16** - Modern 6502 with VERA graphics/sound
--   **Apple II series** - Classic 6502 platform, well-documented
--   **Commodore 128** - Enhanced C64 successor
+**Likely next targets:**
+- **VIC-20** - Simpler than the C64, so it should be easier to support
+- **Commander X16** - This is a modern 6502 computer that's actually being sold today
+- **Apple II** - Lots of documentation and a huge game library
 
-### **Medium Priority (Good tooling & docs)**
--   **NES/Famicom** - Popular gaming platform with complex PPU
--   **Atari 8-bit computers** - 400/800/XL/XE series
--   **Plus/4** - TED chip, unique Commodore platform
--   **CBM/PET series** - Business computers
+**Future possibilities:**
+- **NES** - Would be cool but the graphics system is pretty complex
+- **Atari 8-bit computers** - The 400/800 series had some great games
+- **Commodore 128** - Basically a souped-up C64
 
-### **Long-term Goals (Challenging but possible)**
--   **Atari 2600** - Extremely constrained but iconic
--   **BBC Micro** - Popular UK computer
--   **Atari 5200/7800** - Advanced Atari systems
+**Ambitious long-term goals:**
+- **Atari 2600** - This would be a nightmare due to the constraints, but imagine the bragging rights
+- **BBC Micro** - Popular in the UK, different from other systems
+- **Plus/4** - Commodore's weird TED chip system
 
-### **C64 Hardware Support (Current Implementation)**
--   **VIC-II Graphics** - Complete sprite, character, and bitmap support
--   **SID Sound** - Full 3-voice synthesizer control
--   **Memory Management** - Zero page, BASIC RAM, and custom memory layouts
--   **I/O Control** - Joysticks, keyboard, and hardware registers
+For the C64, the plan is to support all the important hardware:
+- Full VIC-II control (sprites, scrolling, raster interrupts)
+- SID sound chip (all 3 voices, filters, everything)
+- Proper memory management (zero page optimization, custom memory layouts)
+- Input handling (joysticks, keyboard, all the CIA stuff)
 
 ---
 
-## Compiler Architecture
+## How the Compiler Works
 
-Source → **Lexing** → **Parsing** → **AST Generation** → **Semantic Analysis** → **IL Generation** → **IL Optimization** → **Code Generation** → **PRG Binary**
+The compiler follows a pretty standard approach:
 
-### Key Phases
+**Source Code** → **Lexing** → **Parsing** → **AST** → **Semantic Analysis** → **Intermediate Code** → **Optimization** → **6502 Assembly** → **Binary**
 
--   **Lexing**: ✅ Convert Blend65 source to tokens with 6502-specific features
--   **Parsing**: ✅ Convert tokens to Abstract Syntax Tree with complete language support
--   **AST Generation**: ✅ Build typed AST with comprehensive node types
--   **Semantic Analysis**: 🔄 Symbol tables, type checking, module resolution
--   **IL Generation**: 🔄 Transform AST to intermediate language (TypeScript objects)
--   **IL Optimization**: 🔄 Dead code elimination, constant folding, function inlining
--   **Code Generation**: 🔄 Target-specific 6502 assembly generation with optimization
--   **Binary Output**: 🔄 PRG/BIN file generation for target hardware
+Here's the current implementation status:
 
-### Backend Architecture
+- ✅ **Lexer** - Breaks Blend65 source into tokens
+- ✅ **Parser** - Builds an abstract syntax tree from those tokens
+- ✅ **AST** - Complete representation of program structure
+- 🚧 **Semantic Analysis** - Type checking, symbol tables, making sure code makes sense
+- 🚧 **Intermediate Language** - Converting the AST into something easier to optimize
+- 🚧 **Optimization** - Dead code elimination, constant folding, making things faster
+- 🚧 **Code Generation** - The big one - turning everything into actual 6502 assembly
+- 🚧 **Binary Output** - Creating .prg files that can actually run
 
-The backend follows a traditional compiler design with modern optimization:
+The backend will work like most compilers, just targeted at 6502:
 
 ```
-Validated AST + Symbol Tables
+Blend65 Source Code
     ↓
-IL (Intermediate Language) Objects
+Parse into Abstract Syntax Tree
     ↓
-Optimization Passes (Dead Code, Constants, Inlining)
+Type check and build symbol tables
     ↓
-Optimized IL
+Convert to Intermediate Language
     ↓
-6502 Code Generation (Register Allocation, Memory Layout)
+Optimize (remove dead code, fold constants, inline functions)
     ↓
-Target Assembly (DASM/CA65 compatible)
+Generate 6502 assembly with register allocation
     ↓
-Binary Output (.prg for C64, .bin for others)
+Create .prg file for target system
 ```
 
 ---
@@ -432,52 +416,46 @@ play_beep_sound:
 
 ---
 
-## Project Status
+## What's Working Now
 
-**Current Phase:** Frontend Complete, **Immediate Next Milestone:** Blend65 v0.2 Language Features
+The front-end of the compiler is essentially complete! The parser can handle any Blend65 code and turn it into a clean abstract syntax tree. All the language features for v0.1 are working:
 
-### What's Implemented ✅
+**What's built and tested (159 tests passing):**
+- ✅ Lexer that understands all Blend65 syntax
+- ✅ Parser that builds a proper AST
+- ✅ Support for modules, functions, variables, control flow
+- ✅ Storage classes (zero page, RAM, etc.)
+- ✅ Import/export system
+- ✅ All the basic language constructs
 
--   [x] **Complete Frontend Pipeline** - Lexer → Parser → AST (159 tests passing)
--   [x] **Blend65 Lexer** - Full tokenization with 6502-specific features (49 tests)
--   [x] **Blend65 Parser** - Complete recursive descent parser (80 tests)
--   [x] **Abstract Syntax Tree** - Full AST representation with factory (30 tests)
--   [x] **Language Support** - All v0.1 Blend65 constructs: modules, functions, control flow, types
--   [x] **Storage Classes** - Zero page, RAM, data, const, I/O variable declarations
--   [x] **Module System** - Content-based resolution with dot notation imports
--   [x] **Comprehensive Testing** - Edge cases, error conditions, real-world patterns
--   [x] **v0.1 Validation** - Wild Boa Snake game analysis confirms 100% compatibility
+Even analyzed a real C64 Snake game written in assembly and confirmed that Blend65 v0.1 could handle porting it completely.
 
-### v0.2 Language Features (In Progress) 🔄
+## What's Next
 
-**Timeline:** 6-8 weeks | **Complexity:** 3-4/10 with AI assistance | **Status:** Ready to implement
+**v0.2 Language Features:**
+- Break/continue statements (really need these for game loops)
+- Complete match/case implementation
+- Enums for organizing constants
 
--   [ ] **Break/Continue Statements** - Essential for complex game loops (HIGH Priority)
--   [ ] **Complete Match Statement Implementation** - Clean pattern matching for game logic (MEDIUM Priority)
--   [ ] **Enum Declarations** - Code organization for game states, colors, directions (MEDIUM Priority)
+**The Big Challenge - The Backend:**
+This is where it gets interesting. Still need to build:
+- Semantic analysis (type checking, symbol tables)
+- Intermediate language representation
+- Optimization passes (dead code removal, constant folding)
+- 6502 code generation (the real magic)
+- Binary output (.prg files)
 
-### Compiler Backend (Parallel Development) 🔄
+The language part is fun, but the code generation is where this project will succeed or fail. Generating efficient 6502 assembly that actually runs well on real hardware is no joke.
 
-**Timeline:** 11-15 weeks | **Complexity:** 6-8/10 | **Status:** Architecture complete, ready to implement
+## Future Ideas
 
--   [ ] **Semantic Analysis** - Symbol tables, type checking, validation (Phase 1: 8 tasks)
--   [ ] **Intermediate Language** - IL definition and AST transformation (Phase 2: 6 tasks)
--   [ ] **IL Optimization** - Dead code elimination, constant folding, inlining (Phase 3: 5 tasks)
--   [ ] **Code Generation** - 6502 assembly generation and optimization (Phase 4: 7 tasks)
+Once the basic compiler works, there are some cool possibilities:
+- Support for other 6502 systems (VIC-20, Apple II, Commander X16)
+- Smart zero page allocation
+- Advanced optimizations
+- Maybe some kind of IDE integration
 
-### Implementation Strategy 📋
-
-**Parallel Development Tracks:**
-
-1. **Track 1 (v0.2):** Frontend language feature extensions - **IMMEDIATE FOCUS**
-2. **Track 2 (Backend):** Semantic Analysis → IL → Optimization → Code Generation - **PARALLEL DEVELOPMENT**
-
-### Future Roadmap 📝
-
--   [ ] **v0.3+:** Revolutionary local variable architecture with "Local Pool" concept
--   [ ] **Advanced Optimizations:** Zero page intelligence and IL-based optimization
--   [ ] **Multi-target Support:** Commander X16, VIC-20, Apple II
--   [ ] **IDE Integration:** Advanced debugging and development tools
+But first, getting a simple C64 game compiling and running is the priority!
 
 ---
 
