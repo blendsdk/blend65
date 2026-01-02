@@ -30,11 +30,15 @@ export enum TokenType {
   NEXT = 'NEXT',
   MATCH = 'MATCH',
   CASE = 'CASE',
+  BREAK = 'BREAK',
+  CONTINUE = 'CONTINUE',
+  DEFAULT = 'DEFAULT',
 
   // Type and variable declarations
   VAR = 'VAR',
   TYPE = 'TYPE',
   EXTENDS = 'EXTENDS',
+  ENUM = 'ENUM',
 
   // Storage class keywords
   ZP = 'ZP',        // Zero page storage
@@ -152,9 +156,13 @@ export const KEYWORDS = new Set([
   'next',
   'match',
   'case',
+  'break',
+  'continue',
+  'default',
   'var',
   'type',
   'extends',
+  'enum',
   'zp',
   'ram',
   'data',
@@ -201,5 +209,8 @@ export const CONTROL_FLOW_KEYWORDS = new Set([
   'next',
   'match',
   'case',
+  'break',
+  'continue',
+  'default',
   'end',
 ]);

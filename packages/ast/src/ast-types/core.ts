@@ -210,7 +210,9 @@ export type Statement =
   | WhileStatement
   | ForStatement
   | MatchStatement
-  | BlockStatement;
+  | BlockStatement
+  | BreakStatement
+  | ContinueStatement;
 
 /**
  * Expression statement: any expression followed by newline
@@ -286,6 +288,24 @@ export interface BlockStatement extends Blend65ASTNode {
   statements: Statement[];
 }
 
+/**
+ * Break statement: `break`
+ * Exits the containing loop
+ */
+export interface BreakStatement extends Blend65ASTNode {
+  type: 'BreakStatement';
+  // No additional properties needed
+}
+
+/**
+ * Continue statement: `continue`
+ * Skips to next iteration of containing loop
+ */
+export interface ContinueStatement extends Blend65ASTNode {
+  type: 'ContinueStatement';
+  // No additional properties needed
+}
+
 // ============================================================================
 // Declarations
 // ============================================================================
@@ -296,7 +316,8 @@ export interface BlockStatement extends Blend65ASTNode {
 export type Declaration =
   | FunctionDeclaration
   | VariableDeclaration
-  | TypeDeclaration;
+  | TypeDeclaration
+  | EnumDeclaration;
 
 /**
  * Parameter definition for functions
@@ -357,6 +378,25 @@ export interface TypeField extends Blend65ASTNode {
   type: 'TypeField';
   name: string;
   fieldType: TypeAnnotation;
+}
+
+/**
+ * Enum declaration: `enum Name value1 = 1, value2, value3 = 5 end enum`
+ */
+export interface EnumDeclaration extends Blend65ASTNode {
+  type: 'EnumDeclaration';
+  name: string;
+  members: EnumMember[];
+  exported: boolean;
+}
+
+/**
+ * Individual enum member
+ */
+export interface EnumMember extends Blend65ASTNode {
+  type: 'EnumMember';
+  name: string;
+  value: Expression | null; // null for auto-increment
 }
 
 // ============================================================================

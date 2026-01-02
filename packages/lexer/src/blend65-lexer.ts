@@ -301,9 +301,13 @@ export class Blend65Lexer {
       case 'next': return TokenType.NEXT;
       case 'match': return TokenType.MATCH;
       case 'case': return TokenType.CASE;
+      case 'break': return TokenType.BREAK;
+      case 'continue': return TokenType.CONTINUE;
+      case 'default': return TokenType.DEFAULT;
       case 'var': return TokenType.VAR;
       case 'type': return TokenType.TYPE;
       case 'extends': return TokenType.EXTENDS;
+      case 'enum': return TokenType.ENUM;
       case 'zp': return TokenType.ZP;
       case 'ram': return TokenType.RAM;
       case 'data': return TokenType.DATA;

@@ -30,8 +30,12 @@ import {
   MatchCase,
   ReturnStatement,
   ExpressionStatement,
+  BreakStatement,
+  ContinueStatement,
   FunctionDeclaration,
   VariableDeclaration,
+  EnumDeclaration,
+  EnumMember,
   Parameter,
   ImportDeclaration,
   ImportSpecifier,
@@ -306,6 +310,18 @@ export class ASTNodeFactory {
     }, metadata);
   }
 
+  createBreakStatement(metadata?: NodeMetadata): BreakStatement {
+    return this.addMetadata({
+      type: 'BreakStatement'
+    }, metadata);
+  }
+
+  createContinueStatement(metadata?: NodeMetadata): ContinueStatement {
+    return this.addMetadata({
+      type: 'ContinueStatement'
+    }, metadata);
+  }
+
   // ============================================================================
   // Declarations
   // ============================================================================
@@ -359,6 +375,32 @@ export class ASTNodeFactory {
       varType,
       initializer,
       exported
+    }, metadata);
+  }
+
+  createEnumDeclaration(
+    name: string,
+    members: EnumMember[],
+    exported: boolean = false,
+    metadata?: NodeMetadata
+  ): EnumDeclaration {
+    return this.addMetadata({
+      type: 'EnumDeclaration',
+      name,
+      members,
+      exported
+    }, metadata);
+  }
+
+  createEnumMember(
+    name: string,
+    value: Expression | null = null,
+    metadata?: NodeMetadata
+  ): EnumMember {
+    return this.addMetadata({
+      type: 'EnumMember',
+      name,
+      value
     }, metadata);
   }
 

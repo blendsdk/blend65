@@ -22,8 +22,14 @@ import {
   IfStatement,
   WhileStatement,
   ForStatement,
+  BreakStatement,
+  ContinueStatement,
+  MatchStatement,
+  MatchCase,
   FunctionDeclaration,
   VariableDeclaration,
+  EnumDeclaration,
+  EnumMember,
   Parameter,
   ImportDeclaration,
   ImportSpecifier,
@@ -41,6 +47,7 @@ import { ParserOptions } from '../core/base-parser.js';
  */
 export class Blend65Parser extends RecursiveDescentParser<Program> {
   private isInsideFunction: boolean = false;
+  private loopDepth: number = 0;
 
   constructor(tokens: Token[], options: ParserOptions = {}) {
     super(tokens, options);
@@ -202,6 +209,8 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
         return this.parseVariableDeclaration();
       case 'type':
         return this.parseTypeDeclaration();
+      case 'enum':
+        return this.parseEnumDeclaration();
       default:
         // Try parsing as statement if not a declaration
         const stmt = this.parseStatement();
@@ -335,6 +344,55 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
   }
 
   /**
+   * Parse enum declaration: enum Name value1 = 1, value2, value3 = 5 end enum
+   */
+  private parseEnumDeclaration(): EnumDeclaration {
+    const enumToken = this.consume(TokenType.ENUM, "Expected 'enum'");
+    const name = this.consume(TokenType.IDENTIFIER, "Expected enum name").value;
+    this.consumeStatementTerminator();
+
+    const members: EnumMember[] = [];
+    let autoValue = 0;
+
+    while (!this.isAtEnd() && !this.check(TokenType.END)) {
+      this.skipNewlines();
+
+      if (this.check(TokenType.END)) break;
+
+      const memberName = this.consume(TokenType.IDENTIFIER, "Expected enum member name").value;
+      let value: Expression | null = null;
+
+      if (this.match(TokenType.ASSIGN)) {
+        value = this.parseExpression();
+        // Update auto-increment if this is a numeric constant
+        if (value.type === 'Literal' && typeof (value as any).value === 'number') {
+          autoValue = (value as any).value + 1;
+        }
+      } else {
+        // Auto-increment value
+        value = this.factory.createLiteral(autoValue, autoValue.toString());
+        autoValue++;
+      }
+
+      members.push(this.factory.createEnumMember(memberName, value));
+
+      if (!this.match(TokenType.COMMA)) {
+        break;
+      }
+      this.skipNewlines();
+    }
+
+    this.consume(TokenType.END, "Expected 'end'");
+    this.consumeLexeme('enum', "Expected 'enum' after 'end'");
+    this.consumeStatementTerminator();
+
+    return this.factory.createEnumDeclaration(name, members, false, {
+      start: enumToken.start,
+      end: this.previous().end
+    });
+  }
+
+  /**
    * Parse type annotation
    */
   private parseTypeAnnotation(): TypeAnnotation {
@@ -405,6 +463,10 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
         return this.parseWhileStatement();
       case 'for':
         return this.parseForStatement();
+      case 'break':
+        return this.parseBreakStatement();
+      case 'continue':
+        return this.parseContinueStatement();
       case 'return':
         return this.parseReturnStatement();
       case 'var':
@@ -463,7 +525,10 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
     const condition = this.parseExpression();
     this.consumeStatementTerminator();
 
+    // Enter loop context for break/continue validation
+    this.loopDepth++;
     const body = this.parseStatementBlock('while');
+    this.loopDepth--;
 
     this.consume(TokenType.END, "Expected 'end'");
     this.consumeLexeme('while', "Expected 'while' after 'end'");
@@ -494,7 +559,10 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
 
     this.consumeStatementTerminator();
 
+    // Enter loop context for break/continue validation
+    this.loopDepth++;
     const body = this.parseStatementBlock('for');
+    this.loopDepth--;
 
     this.consume(TokenType.NEXT, "Expected 'next'");
     // Optional variable name after 'next'
@@ -524,6 +592,52 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
 
     return this.factory.createReturnStatement(value, {
       start: returnToken.start,
+      end: this.previous().end
+    });
+  }
+
+  /**
+   * Parse break statement: break
+   * Exits the containing loop
+   */
+  private parseBreakStatement(): BreakStatement {
+    const breakToken = this.consume(TokenType.BREAK, "Expected 'break'");
+
+    // Validate break is only used inside loops
+    if (this.loopDepth === 0) {
+      throw new Error(
+        `break statement must be inside a loop (for, while). ` +
+        `Location: line ${breakToken.start.line}, column ${breakToken.start.column}`
+      );
+    }
+
+    this.consumeStatementTerminator();
+
+    return this.factory.createBreakStatement({
+      start: breakToken.start,
+      end: this.previous().end
+    });
+  }
+
+  /**
+   * Parse continue statement: continue
+   * Skips to next iteration of containing loop
+   */
+  private parseContinueStatement(): ContinueStatement {
+    const continueToken = this.consume(TokenType.CONTINUE, "Expected 'continue'");
+
+    // Validate continue is only used inside loops
+    if (this.loopDepth === 0) {
+      throw new Error(
+        `continue statement must be inside a loop (for, while). ` +
+        `Location: line ${continueToken.start.line}, column ${continueToken.start.column}`
+      );
+    }
+
+    this.consumeStatementTerminator();
+
+    return this.factory.createContinueStatement({
+      start: continueToken.start,
       end: this.previous().end
     });
   }
