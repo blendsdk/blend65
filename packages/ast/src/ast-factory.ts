@@ -43,7 +43,6 @@ import {
   TypeAnnotation
 } from './ast-types/core.js';
 import {
-  TargetModule,
   ReexportDeclaration
 } from './ast-types/modules.js';
 
@@ -379,7 +378,7 @@ export class ASTNodeFactory {
 
   createImportDeclaration(
     specifiers: ImportSpecifier[],
-    source: QualifiedName | TargetModule,
+    source: QualifiedName,
     metadata?: NodeMetadata
   ): ImportDeclaration {
     return this.addMetadata({
@@ -401,17 +400,6 @@ export class ASTNodeFactory {
     }, metadata);
   }
 
-  createTargetModule(
-    target: string,
-    module: string,
-    metadata?: NodeMetadata
-  ): TargetModule {
-    return this.addMetadata({
-      type: 'TargetModule',
-      target,
-      module
-    }, metadata);
-  }
 
   createExportDeclaration(
     declaration: Declaration,
@@ -425,7 +413,7 @@ export class ASTNodeFactory {
 
   createReexportDeclaration(
     specifiers: ImportSpecifier[],
-    source: QualifiedName | TargetModule,
+    source: QualifiedName,
     metadata?: NodeMetadata
   ): ReexportDeclaration {
     return this.addMetadata({

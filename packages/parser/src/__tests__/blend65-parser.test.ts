@@ -53,7 +53,7 @@ import utils from core.helpers`;
 
     it('should parse target-specific import declaration', () => {
       const source = `module Main
-import setSpritePosition from target:sprites`;
+import setSpritePosition from c64.sprites`;
       const ast = parseSource(source);
 
       expect(ast.type).toBe('Program');
@@ -63,12 +63,15 @@ import setSpritePosition from target:sprites`;
       const importDecl = program.imports[0] as ImportDeclaration;
       expect(importDecl.type).toBe('ImportDeclaration');
       expect(importDecl.specifiers[0].imported).toBe('setSpritePosition');
-      expect(importDecl.source.type).toBe('TargetModule');
+      expect(importDecl.source.type).toBe('QualifiedName');
+      if (importDecl.source.type === 'QualifiedName') {
+        expect(importDecl.source.parts).toEqual(['c64', 'sprites']);
+      }
     });
 
     it('should parse specific target import declaration', () => {
       const source = `module Main
-import sprites from c64:graphics.sprites`;
+import sprites from c64.graphics.sprites`;
       const ast = parseSource(source);
 
       expect(ast.type).toBe('Program');
@@ -78,7 +81,10 @@ import sprites from c64:graphics.sprites`;
       const importDecl = program.imports[0] as ImportDeclaration;
       expect(importDecl.type).toBe('ImportDeclaration');
       expect(importDecl.specifiers[0].imported).toBe('sprites');
-      expect(importDecl.source.type).toBe('TargetModule');
+      expect(importDecl.source.type).toBe('QualifiedName');
+      if (importDecl.source.type === 'QualifiedName') {
+        expect(importDecl.source.parts).toEqual(['c64', 'graphics', 'sprites']);
+      }
     });
   });
 
@@ -411,7 +417,7 @@ end function`;
   describe('Complex Sample Code', () => {
     it('should parse complete Blend65 module with multiple constructs', () => {
       const source = `module Game.Main
-import setSpritePosition from target:sprites
+import setSpritePosition from c64.sprites
 import utils from core.helpers
 
 export function main(): void

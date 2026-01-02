@@ -320,13 +320,16 @@ describe('ASTNodeFactory', () => {
       expect(specifier.metadata).toEqual(mockMetadata);
     });
 
-    it('should create target modules', () => {
-      const targetModule = factory.createTargetModule('c64', 'graphics.sprites', mockMetadata);
+    it('should create complex qualified names', () => {
+      const simpleQualifiedName = factory.createQualifiedName(['c64', 'sprites'], mockMetadata);
+      const complexQualifiedName = factory.createQualifiedName(['c64', 'graphics', 'sprites']);
 
-      expect(targetModule.type).toBe('TargetModule');
-      expect(targetModule.target).toBe('c64');
-      expect(targetModule.module).toBe('graphics.sprites');
-      expect(targetModule.metadata).toEqual(mockMetadata);
+      expect(simpleQualifiedName.type).toBe('QualifiedName');
+      expect(simpleQualifiedName.parts).toEqual(['c64', 'sprites']);
+      expect(simpleQualifiedName.metadata).toEqual(mockMetadata);
+
+      expect(complexQualifiedName.type).toBe('QualifiedName');
+      expect(complexQualifiedName.parts).toEqual(['c64', 'graphics', 'sprites']);
     });
 
     it('should create export declarations', () => {

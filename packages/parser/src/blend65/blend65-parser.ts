@@ -34,7 +34,6 @@ import {
   MemoryPlacement,
   StorageClass
 } from '@blend65/ast';
-import { TargetModule } from '@blend65/ast';
 import { RecursiveDescentParser, Precedence } from '../strategies/recursive-descent.js';
 import { ParserOptions } from '../core/base-parser.js';
 
@@ -148,29 +147,8 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
 
     this.consume(TokenType.FROM, "Expected 'from'");
 
-    // Parse source (either qualified name or target module)
-    let source: QualifiedName | TargetModule;
-
-    // Check for target:module syntax (target : module as separate tokens)
-    const snapshot = this.snapshot();
-    const firstPart = this.consume(TokenType.IDENTIFIER, "Expected identifier").value;
-
-    if (this.match(TokenType.COLON)) {
-      // target:module syntax - handle dotted module names like graphics.sprites
-      const moduleParts: string[] = [];
-      moduleParts.push(this.consume(TokenType.IDENTIFIER, "Expected module name after ':'").value);
-
-      while (this.match(TokenType.DOT)) {
-        moduleParts.push(this.consume(TokenType.IDENTIFIER, "Expected identifier after '.'").value);
-      }
-
-      const moduleName = moduleParts.join('.');
-      source = this.factory.createTargetModule(firstPart, moduleName);
-    } else {
-      // Qualified name - restore and parse normally
-      this.restore(snapshot);
-      source = this.parseQualifiedName();
-    }
+    // Parse source - always a qualified name (e.g., c64.sprites, core.helpers)
+    const source = this.parseQualifiedName();
 
     this.consumeStatementTerminator();
 
