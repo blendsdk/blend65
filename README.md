@@ -169,7 +169,6 @@ export function main(): void
 
     while gameRunning
         handleInput()
-        updatePlayer()
         render()
     end while
 end function
