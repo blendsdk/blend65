@@ -9,6 +9,13 @@
 
 import { SourcePosition } from '@blend65/lexer';
 
+// Forward declaration for TargetModule from modules.ts
+export interface TargetModule extends Blend65ASTNode {
+  type: 'TargetModule';
+  target: string;
+  module: string;
+}
+
 // ============================================================================
 // Base Node Type
 // ============================================================================
@@ -377,7 +384,7 @@ export interface TypeField extends Blend65ASTNode {
 export interface ImportDeclaration extends Blend65ASTNode {
   type: 'ImportDeclaration';
   specifiers: ImportSpecifier[];
-  source: QualifiedName;
+  source: QualifiedName | TargetModule;
 }
 
 /**

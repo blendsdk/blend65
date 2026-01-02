@@ -1,13 +1,18 @@
-# Detailed Porting Implementation Plan: Blend-Lang to Blend65
+# Detailed Porting Implementation Plan: Blend-Lang to Blend65 - UPDATED STATUS
 
 ## Overview
-This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang` to `/Users/gevik/workdir/blend64`, refactoring them for the Blend65 language specification. Each task is designed for AI context limitations (<30K tokens) and builds incrementally.
+This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang` to `/Users/gevik/workdir/blend65`, refactoring them for the Blend65 language specification. Each task is designed for AI context limitations (<30K tokens) and builds incrementally.
+
+**CURRENT STATUS (Updated 2026-02-01):**
+- ✅ **LEXER**: Complete and working (all 7 tasks done)
+- ⚠️ **AST**: Partially ported (2/6 tasks done)
+- ❌ **PARSER**: Infrastructure only (2/8 tasks done)
 
 ---
 
-## PHASE 1: LEXER PORTING (7 tasks)
+## PHASE 1: LEXER PORTING (7 tasks) - ✅ COMPLETE
 
-### Task 1.1: Create Base Lexer Structure
+### Task 1.1: ✅ Create Base Lexer Structure
 **File:** `packages/lexer/src/types.ts`
 **Goal:** Update TokenType enum for Blend65 language
 **Changes:**
@@ -88,9 +93,9 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 
 ---
 
-## PHASE 2: AST PORTING (6 tasks)
+## PHASE 2: AST PORTING (6 tasks) - ⚠️ PARTIALLY COMPLETE (2/6 tasks)
 
-### Task 2.1: Remove OOP AST Nodes
+### Task 2.1: ✅ Remove OOP AST Nodes
 **File:** `packages/ast/src/ast-types/core.ts`
 **Goal:** Remove object-oriented language constructs
 **Changes:**
@@ -102,8 +107,8 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** AST builds without OOP references
 **Success:** Clean functional AST without OOP nodes
 
-### Task 2.2: Add Blend65 Type System Nodes
-**File:** `packages/ast/src/ast-types/types.ts`
+### Task 2.2: ❌ Add Blend65 Type System Nodes
+**File:** `packages/ast/src/ast-types/types.ts` (missing)
 **Goal:** Create Blend65-specific type annotations
 **Changes:**
 - Add `ByteType`, `WordType`, `BooleanType` nodes
@@ -114,7 +119,7 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Type nodes represent Blend65 type system
 **Success:** Complete Blend65 type system in AST
 
-### Task 2.3: Add Storage Declaration Nodes
+### Task 2.3: ⚠️ Add Storage Declaration Nodes (partially in core.ts)
 **File:** `packages/ast/src/ast-types/core.ts`
 **Goal:** Support variable declarations with storage classes
 **Changes:**
@@ -125,8 +130,8 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Storage declarations represented correctly
 **Success:** All storage syntax in AST
 
-### Task 2.4: Add Module System Nodes
-**File:** `packages/ast/src/ast-types/modules.ts`
+### Task 2.4: ❌ Add Module System Nodes
+**File:** `packages/ast/src/ast-types/modules.ts` (missing)
 **Goal:** Support Blend65 module and import system
 **Changes:**
 - Add `ModuleDeclaration` node
@@ -137,7 +142,7 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Module system nodes work correctly
 **Success:** Complete module system in AST
 
-### Task 2.5: Update Control Flow Nodes
+### Task 2.5: ⚠️ Update Control Flow Nodes (partially in core.ts)
 **File:** `packages/ast/src/ast-types/core.ts`
 **Goal:** Match Blend65 control flow syntax
 **Changes:**
@@ -149,7 +154,7 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Control flow nodes match specification
 **Success:** Blend65 control flow in AST
 
-### Task 2.6: AST Integration and Cleanup
+### Task 2.6: ⚠️ AST Integration and Cleanup (factory exists, missing utils/visitor)
 **File:** `packages/ast/src/index.ts`
 **Goal:** Complete, clean Blend65 AST
 **Changes:**
@@ -163,11 +168,37 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 
 ---
 
-## PHASE 3: PARSER PORTING (8 tasks)
+## PHASE 3: PARSER PORTING (8 tasks) - ❌ INFRASTRUCTURE ONLY (2/8 tasks)
 
-### Task 3.1: Create Base Blend65 Parser Structure
+### Task P1: ✅ Port Error Handling
+**File:** `packages/parser/src/core/error.ts`
+**Goal:** Comprehensive error handling with recovery
+**Status:** Complete - ported from blend-lang with Blend65 adaptations
+
+### Task P2: ✅ Port Token Stream Navigation
+**File:** `packages/parser/src/core/token-stream.ts`
+**Goal:** Token navigation, lookahead, and snapshot capabilities
+**Status:** Complete - ported from blend-lang
+
+### Task P3: ❌ Port Base Parser Infrastructure
+**File:** `packages/parser/src/core/base-parser.ts` (missing)
+**Goal:** Core parser base class with factory integration
+**Status:** Missing - needs to be ported from blend-lang
+
+### Task P4: ❌ Port Recursive Descent Strategy
+**File:** `packages/parser/src/strategies/recursive-descent.ts` (missing)
+**Goal:** Precedence climbing and expression parsing framework
+**Status:** Missing - critical component from blend-lang
+
+### Task P5: ❌ Create Main Export Index
+**File:** `packages/parser/src/index.ts` (missing)
+**Goal:** Export all parser functionality
+**Status:** Missing - parser currently has no public API
+
+### Task 3.1: ❌ Create Base Blend65 Parser Structure
 **File:** `packages/parser/src/blend65-parser.ts` (new file)
 **Goal:** Set up recursive descent parser for Blend65
+**Status:** Blocked - requires base parser components (P3-P5)
 **Changes:**
 - Extend `RecursiveDescentParser` with Blend65-specific methods
 - Set up operator precedence for Blend65 operators only
@@ -176,9 +207,10 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Basic parser structure compiles
 **Success:** Foundation for Blend65 parsing
 
-### Task 3.2: Implement Module and Import Parsing
+### Task 3.2: ❌ Implement Module and Import Parsing
 **File:** `packages/parser/src/blend65-parser.ts`
 **Goal:** Parse module declarations and imports
+**Status:** Blocked - requires Task 3.1
 **Changes:**
 - Add `parseModuleDeclaration()` method
 - Add `parseImportDeclaration()` with target resolution
@@ -188,9 +220,10 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Module syntax parses correctly
 **Success:** Complete module system parsing
 
-### Task 3.3: Implement Storage Declaration Parsing
+### Task 3.3: ❌ Implement Storage Declaration Parsing
 **File:** `packages/parser/src/blend65-parser.ts`
 **Goal:** Parse variable declarations with storage classes
+**Status:** Blocked - requires Task 3.1
 **Changes:**
 - Add `parseStorageDeclaration()` method
 - Support all storage prefixes: `zp`, `ram`, `data`, `const`, `io`
@@ -200,9 +233,10 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Storage declarations parse correctly
 **Success:** Complete storage syntax parsing
 
-### Task 3.4: Implement Function Declaration Parsing
+### Task 3.4: ❌ Implement Function Declaration Parsing
 **File:** `packages/parser/src/blend65-parser.ts`
 **Goal:** Parse Blend65 function syntax
+**Status:** Blocked - requires Task 3.1
 **Changes:**
 - Add `parseFunctionDeclaration()` method
 - Support `function name(params): returnType` syntax
@@ -212,9 +246,10 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Function declarations parse correctly
 **Success:** Complete function parsing
 
-### Task 3.5: Implement Control Flow Parsing
+### Task 3.5: ❌ Implement Control Flow Parsing
 **File:** `packages/parser/src/blend65-parser.ts`
 **Goal:** Parse Blend65 control flow statements
+**Status:** Blocked - requires Task 3.1
 **Changes:**
 - Add `parseIfStatement()` for `if...then...end if`
 - Add `parseWhileStatement()` for `while...end while`
@@ -224,9 +259,10 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** All control flow parses correctly
 **Success:** Complete control flow parsing
 
-### Task 3.6: Implement Type and Record Parsing
+### Task 3.6: ❌ Implement Type and Record Parsing
 **File:** `packages/parser/src/blend65-parser.ts`
 **Goal:** Parse Blend65 type system
+**Status:** Blocked - requires Task 3.1
 **Changes:**
 - Add `parseTypeDeclaration()` for record types
 - Support `type Name extends Other` syntax
@@ -236,9 +272,10 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Type declarations parse correctly
 **Success:** Complete type system parsing
 
-### Task 3.7: Implement Expression Parsing
+### Task 3.7: ❌ Implement Expression Parsing
 **File:** `packages/parser/src/blend65-parser.ts`
 **Goal:** Parse Blend65 expressions correctly
+**Status:** Blocked - requires Task 3.1
 **Changes:**
 - Override `parsePrimaryExpression()` for Blend65 literals
 - Remove unsupported expressions (new, this, template strings)
@@ -248,9 +285,10 @@ This plan ports the lexer, parser, and AST from `/Users/gevik/workdir/blend-lang
 **Test:** Expressions parse correctly
 **Success:** Complete expression parsing
 
-### Task 3.8: Parser Integration and Testing
+### Task 3.8: ❌ Parser Integration and Testing
 **File:** `packages/parser/src/index.ts`
 **Goal:** Complete, tested Blend65 parser
+**Status:** Blocked - requires all previous tasks
 **Changes:**
 - Export Blend65Parser class
 - Create parsing utility functions
@@ -307,12 +345,50 @@ The plan provides **21 total tasks** across **3 phases**, each designed to fit w
 
 ---
 
-## Getting Started
+## Current Status & Next Steps
 
-To begin implementation:
-1. Start with **Task 1.1** (Create Base Lexer Structure)
-2. Work through tasks sequentially within each phase
-3. Validate each task before proceeding to the next
-4. Run integration tests at phase boundaries
+### ✅ COMPLETED:
+- **LEXER**: Fully working (7/7 tasks complete)
+- **AST**: Core types implemented with factory (2/6 tasks complete)
+- **PARSER**: Basic infrastructure only (2/8 tasks complete)
+
+### 🚨 IMMEDIATE PRIORITIES:
+
+**NEXT 3 CRITICAL TASKS:**
+1. **Task P3**: Port base-parser.ts from blend-lang (required for all parsing)
+2. **Task P4**: Port recursive-descent.ts from blend-lang (core parsing logic)
+3. **Task P5**: Create parser index.ts (public API)
+
+**THEN COMPLETE AST:**
+4. **Task 2.4**: Add module system AST nodes (needed for imports/exports)
+5. **Task 2.2**: Add type system AST nodes (needed for Blend65 types)
+
+**FINALLY BUILD BLEND65 PARSER:**
+6. **Task 3.1**: Create Blend65-specific parser class
+7. Continue with remaining parsing tasks (3.2-3.8)
+
+### 📋 TASK DEPENDENCIES:
+```
+Parser Tasks P3-P5 (Infrastructure)
+    ↓
+AST Tasks 2.2, 2.4 (Missing pieces)
+    ↓
+Parser Task 3.1 (Blend65 parser class)
+    ↓
+Parser Tasks 3.2-3.8 (Language features)
+```
+
+### 🎯 RECOMMENDED START POINT:
+**Begin with Task P3** - Port base-parser.ts from `/Users/gevik/workdir/blend-lang/packages/parser/src/core/base-parser.ts`
+
+This is the foundation that everything else depends on. Without it, no actual parsing can occur.
+
+### 📝 VALIDATION CHECKLIST:
+- [ ] Parser infrastructure complete (P3-P5)
+- [ ] AST supports all Blend65 constructs (2.2, 2.4)
+- [ ] Blend65 parser class implemented (3.1)
+- [ ] All Blend65 syntax parsing (3.2-3.8)
+- [ ] Integration tests pass
+- [ ] Example Blend65 programs parse correctly
 
 Each task includes specific file paths, required changes, test criteria, and success metrics to ensure systematic progress toward a complete Blend65 compiler frontend.

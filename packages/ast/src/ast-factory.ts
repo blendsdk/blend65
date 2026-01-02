@@ -42,6 +42,10 @@ import {
   StorageClass,
   TypeAnnotation
 } from './ast-types/core.js';
+import {
+  TargetModule,
+  ReexportDeclaration
+} from './ast-types/modules.js';
 
 /**
  * Metadata for AST node creation
@@ -375,7 +379,7 @@ export class ASTNodeFactory {
 
   createImportDeclaration(
     specifiers: ImportSpecifier[],
-    source: QualifiedName,
+    source: QualifiedName | TargetModule,
     metadata?: NodeMetadata
   ): ImportDeclaration {
     return this.addMetadata({
@@ -397,6 +401,18 @@ export class ASTNodeFactory {
     }, metadata);
   }
 
+  createTargetModule(
+    target: string,
+    module: string,
+    metadata?: NodeMetadata
+  ): TargetModule {
+    return this.addMetadata({
+      type: 'TargetModule',
+      target,
+      module
+    }, metadata);
+  }
+
   createExportDeclaration(
     declaration: Declaration,
     metadata?: NodeMetadata
@@ -404,6 +420,18 @@ export class ASTNodeFactory {
     return this.addMetadata({
       type: 'ExportDeclaration',
       declaration
+    }, metadata);
+  }
+
+  createReexportDeclaration(
+    specifiers: ImportSpecifier[],
+    source: QualifiedName | TargetModule,
+    metadata?: NodeMetadata
+  ): ReexportDeclaration {
+    return this.addMetadata({
+      type: 'ReexportDeclaration',
+      specifiers,
+      source
     }, metadata);
   }
 

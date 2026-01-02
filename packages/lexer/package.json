@@ -1,6 +1,6 @@
 {
   "name": "@blend65/lexer",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Blend65 lexical analyzer for tokenizing source code",
   "type": "module",
   "main": "./dist/index.js",
