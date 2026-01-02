@@ -219,7 +219,7 @@ When in PLAN MODE, **always end responses with these 4 questions:**
 
 ```
 1. Do you understand?
-2. Do you have any questions?
+2. Do you have any questions, if so place your questions with numbers so I can answer then easily?
 3. Answer any questions in my answers to you first
 4. What are your thoughts and recommendations
 ```
