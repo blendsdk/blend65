@@ -1,6 +1,7 @@
 # Game Analysis Report: Iridis Alpha
 
 ## Executive Summary
+
 - **Repository:** https://github.com/mwenge/iridisalpha.git
 - **Analysis Date:** 02/01/2026
 - **Target Platform:** Commodore 64
@@ -19,6 +20,7 @@
 **Code Complexity:** ELITE-CLASS (state-of-the-art 1986 game programming)
 
 **Target Platform Details:**
+
 - **Platform:** Commodore 64 exclusive
 - **Memory Layout:** Complex multi-bank usage with compression
 - **Hardware Dependencies:** Deep VIC-II, SID, CIA integration
@@ -27,6 +29,7 @@
 ### Hardware Usage Patterns
 
 #### **Graphics Requirements (VIC-II Intensive):**
+
 - **Sprites:** 8 hardware sprites with complex positioning, collision, animation
 - **Raster Effects:** Multiple raster interrupt handlers for timing-critical effects
 - **Scrolling:** Multi-layer parallax scrolling with hardware synchronization
@@ -34,6 +37,7 @@
 - **Memory Management:** Dynamic character set swapping, sprite data compression
 
 **Critical Graphics Code Patterns:**
+
 ```assembly
 ; Raster interrupt timing for parallax effects
 LDA #$10
@@ -52,12 +56,14 @@ STA $D010    ;Sprites 0-7 MSB of X coordinate
 ```
 
 #### **Sound Requirements (SID Synthesis):**
+
 - **Music System:** Procedural 3-voice music generation
 - **Sound Effects:** Complex multi-stage sound effect sequences
 - **Hardware Control:** Direct SID register manipulation
 - **Timing:** Frame-synchronized audio updates
 
 **Critical Sound Code Patterns:**
+
 ```assembly
 ; Procedural music generation
 PlayNoteVoice1:
@@ -70,18 +76,21 @@ PlayNoteVoice1:
 ```
 
 #### **Input Handling (CIA Advanced):**
+
 - **Joystick:** Complex multi-directional input processing
 - **Keyboard:** Scan code handling with state tracking
 - **Timing:** Input debouncing and rate limiting
 - **Mode Switching:** Context-sensitive input interpretation
 
 #### **Memory Management Patterns:**
+
 - **Zero Page Optimization:** Extensive zero page usage for performance
 - **Static Allocation:** All memory statically allocated
 - **Bank Switching:** Memory swapping for title screen vs game data
 - **Compression:** Exomizer integration for data compression
 
 **Critical Memory Code Patterns:**
+
 ```assembly
 ; Zero page pointer manipulation
 planetPtrLo                             = $02
@@ -97,6 +106,7 @@ SwapTitleScreenDataAndSpriteLevelData:
 ```
 
 #### **Timing Requirements (Precision Critical):**
+
 - **Frame Synchronization:** 60Hz raster interrupt alignment
 - **Music Timing:** Sample-accurate sound generation
 - **Animation:** Precise sprite animation timing
@@ -105,18 +115,21 @@ SwapTitleScreenDataAndSpriteLevelData:
 ### Control Flow Analysis
 
 #### **Game State Management:**
+
 - **Multiple Game Modes:** Title screen, main game, bonus phase, pause mini-games
 - **Level Progression:** 5 planets × 20 levels with complex wave data
 - **Difficulty Scaling:** Dynamic enemy behavior modification
 - **Save State:** Progress tracking and high score management
 
 #### **Enemy AI System (Advanced):**
+
 - **Wave Language Interpreter:** 40-byte enemy behavior descriptors
 - **Complex Behaviors:** Stickiness, gravitation, energy sapping, movement patterns
 - **Multi-Stage Enemies:** Enemies with 2-4 transformation stages
 - **Collision Response:** Context-sensitive collision handling
 
 **Critical AI Code Patterns:**
+
 ```assembly
 ; Wave language interpreter - 40 byte enemy descriptors
 ; Byte 22: Stickiness factor
@@ -132,12 +145,14 @@ ProcessAttackWaveDataForActiveShip:
 ```
 
 #### **Procedural Generation:**
+
 - **Planet Surfaces:** Runtime planet generation algorithm
 - **Music:** Algorithmic music composition
 - **Randomization:** Sophisticated PRNG usage
 - **Level Variation:** Parameterized level difficulty
 
 **Critical Generation Code:**
+
 ```assembly
 GeneratePlanetSurface:
         ; Algorithm for runtime planet generation
@@ -152,6 +167,7 @@ GeneratePlanetSurface:
 ### Mathematical Requirements
 
 #### **Arithmetic Complexity:**
+
 - **Basic Math:** Extensive 8-bit arithmetic, bit manipulation
 - **Position Calculations:** 2D coordinate transformations
 - **Collision Detection:** Distance calculations, bounding box intersections
@@ -159,6 +175,7 @@ GeneratePlanetSurface:
 - **Performance Optimization:** Lookup tables, bit-shift optimizations
 
 #### **Data Types Used:**
+
 - **8-bit Primary:** All calculations in 8-bit space
 - **16-bit Coordinates:** For sprite positioning beyond 255 pixels
 - **Fixed Point:** Implied fixed-point for smooth movement
@@ -171,7 +188,8 @@ GeneratePlanetSurface:
 **COMPLETELY MISSING in v0.1:**
 
 1. **Interrupt System:**
-   ```blend65
+
+   ```js
    // NEEDED: Hardware interrupt support
    interrupt function rasterInterrupt(): void
        // Raster-synchronized graphics updates
@@ -181,14 +199,16 @@ GeneratePlanetSurface:
    ```
 
 2. **Hardware Collision Detection:**
-   ```blend65
+
+   ```js
    // NEEDED: Hardware collision APIs
    function checkSpriteCollisions(): byte
    function checkBackgroundCollisions(): byte
    ```
 
 3. **Advanced Sprite Control:**
-   ```blend65
+
+   ```js
    // NEEDED: Comprehensive sprite APIs
    function setSpritePosition(id: byte, x: word, y: byte): void
    function setSpriteImage(id: byte, imageData: byte[]): void
@@ -197,7 +217,8 @@ GeneratePlanetSurface:
    ```
 
 4. **Direct Hardware Register Access:**
-   ```blend65
+
+   ```js
    // NEEDED: Memory-mapped I/O access
    @hardware($D000) var vicRegisters: byte[64]
    @hardware($D400) var sidRegisters: byte[32]
@@ -205,7 +226,8 @@ GeneratePlanetSurface:
    ```
 
 5. **Procedural Music System:**
-   ```blend65
+
+   ```js
    // NEEDED: Advanced audio synthesis
    function playNote(voice: byte, frequency: word): void
    function setWaveform(voice: byte, waveType: byte): void
@@ -213,7 +235,7 @@ GeneratePlanetSurface:
    ```
 
 6. **Memory Bank Management:**
-   ```blend65
+   ```js
    // NEEDED: Memory banking control
    function switchMemoryBank(bank: byte): void
    function copyMemoryRegion(src: word, dst: word, size: word): void
@@ -286,7 +308,8 @@ GeneratePlanetSurface:
 ### **Missing Critical APIs:**
 
 #### **Graphics (VIC-II) APIs:**
-```blend65
+
+```js
 // Sprite management
 function setupSprite(id: byte, x: word, y: byte, image: byte, color: byte): void
 function setSpriteMulticolor(id: byte, enabled: boolean): void
@@ -305,7 +328,8 @@ function setScrollPosition(x: byte, y: byte): void
 ```
 
 #### **Audio (SID) APIs:**
-```blend65
+
+```js
 // Voice control
 function setVoiceFrequency(voice: byte, frequency: word): void
 function setVoiceWaveform(voice: byte, wave: byte): void
@@ -319,7 +343,8 @@ function setFilterFrequency(frequency: word): void
 ```
 
 #### **Input (CIA) APIs:**
-```blend65
+
+```js
 // Joystick
 function readJoystick(port: byte): byte
 function getJoystickState(port: byte): JoystickState
@@ -331,7 +356,8 @@ function setKeyboardMatrix(row: byte, column: byte): boolean
 ```
 
 #### **Memory Management APIs:**
-```blend65
+
+```js
 // Hardware memory access
 @memoryMapped($D000) var vicChip: VICRegisters
 @memoryMapped($D400) var sidChip: SIDRegisters
@@ -347,18 +373,21 @@ function copyMemoryBlock(source: word, dest: word, length: word): void
 ### **Priority Matrix Updates:**
 
 **CRITICAL PRIORITY (Required for ANY C64 game):**
+
 - Interrupt system implementation
 - Hardware collision detection
 - Basic sprite management
 - Memory-mapped I/O access
 
 **HIGH PRIORITY (Required for advanced games):**
+
 - Advanced sprite features (expansion, priority)
 - Multi-voice audio synthesis
 - Raster synchronization
 - Precision timing control
 
 **MEDIUM PRIORITY (Quality of life):**
+
 - Audio effect processing
 - Advanced memory management
 - Performance optimization tools
@@ -376,6 +405,7 @@ This analysis reveals that Iridis Alpha represents the **elite tier** of C64 pro
 ## Code Examples
 
 ### **Original Game Code (Complex Interrupt Handler):**
+
 ```assembly
 TitleScreenInterruptHandler:
         LDA $D019    ;VIC Interrupt Request Register (IRR)
@@ -390,7 +420,8 @@ TitleScreenInterruptHandler:
 ```
 
 ### **Required Blend65 Syntax (Future v0.5+):**
-```blend65
+
+```js
 // Interrupt-driven sprite animation system
 interrupt function titleScreenRasterHandler(): void
     if rasterLine = 16 then
@@ -424,7 +455,8 @@ end function
 ```
 
 ### **Hardware Collision Detection Requirements:**
-```blend65
+
+```js
 // Current game collision code (assembly):
 ; LDA $D01F    ;Sprite to Background Collision Detect
 ; STA spriteCollidedWithBackground
@@ -449,21 +481,23 @@ end function
 ### **Version 0.5 Requirements (CRITICAL):**
 
 1. **Interrupt System:**
-   ```blend65
+
+   ```js
    interrupt function handlerName(): void
    setRasterInterrupt(line: byte, handler: function)
    getCurrentRasterLine(): byte
    ```
 
 2. **Hardware Collision:**
-   ```blend65
+
+   ```js
    function readSpriteCollisions(): byte
    function readBackgroundCollisions(): byte
    function enableCollisionDetection(mask: byte): void
    ```
 
 3. **Sprite Management:**
-   ```blend65
+   ```js
    function setSpritePosition(id: byte, x: word, y: byte): void
    function setSpriteImage(id: byte, sprite: SpriteData): void
    function setSpriteEnabled(mask: byte): void
@@ -472,21 +506,23 @@ end function
 ### **Version 0.6 Requirements (HIGH PRIORITY):**
 
 1. **Memory-Mapped I/O:**
-   ```blend65
+
+   ```js
    @hardware($D000) var vicRegs: byte[64]
    @hardware($D400) var sidRegs: byte[32]
    @hardware($DC00) var ciaRegs: byte[16]
    ```
 
 2. **Advanced Audio:**
-   ```blend65
+
+   ```js
    function setVoiceFrequency(voice: byte, freq: word): void
    function setVoiceWaveform(voice: byte, wave: WaveType): void
    function setVoiceEnvelope(voice: byte, env: EnvelopeData): void
    ```
 
 3. **Timing Control:**
-   ```blend65
+   ```js
    function waitForFrame(): void
    function getCurrentFrame(): word
    function setFrameCallback(handler: function): void
@@ -495,13 +531,14 @@ end function
 ### **Version 1.0+ Requirements (FULL COMPATIBILITY):**
 
 1. **Self-Modifying Code:**
-   ```blend65
+
+   ```js
    function patchCode(address: word, newCode: byte[]): void
    function createJumpTable(handlers: function[]): word
    ```
 
 2. **Performance Optimization:**
-   ```blend65
+   ```js
    @optimize("zero_page") var fastVar: byte
    @optimize("inline") function fastFunction(): void
    @optimize("unroll") for i = 0 to 7
@@ -511,7 +548,7 @@ end function
 
 ### **VIC-II Graphics Chip Abstraction:**
 
-```blend65
+```js
 // Required comprehensive VIC-II API
 type VICChip
     // Sprite control
@@ -536,7 +573,7 @@ end type
 
 ### **SID Audio Chip Abstraction:**
 
-```blend65
+```js
 // Required comprehensive SID API
 type SIDChip
     // Voice control
@@ -558,7 +595,7 @@ end type
 
 ### **CIA I/O Chip Abstraction:**
 
-```blend65
+```js
 // Required comprehensive CIA API
 type CIAChip
     // Joystick input
@@ -581,6 +618,7 @@ end type
 ## Porting Strategy
 
 ### **Phase 1 (Proof of Concept - Basic Functionality):**
+
 1. Implement core interrupt system
 2. Basic sprite positioning
 3. Simple collision detection
@@ -588,6 +626,7 @@ end type
 5. Basic audio output
 
 ### **Phase 2 (Core Gameplay):**
+
 1. Advanced sprite management
 2. Hardware collision integration
 3. Multi-voice audio synthesis
@@ -595,6 +634,7 @@ end type
 5. Memory management optimization
 
 ### **Phase 3 (Full Feature Parity):**
+
 1. Complex interrupt handlers
 2. Procedural music generation
 3. Advanced sprite effects
@@ -628,6 +668,7 @@ end type
 ### **Alternative Approach:**
 
 Given the extreme complexity, consider **simplified ports** first:
+
 - Strip advanced raster effects
 - Simplify collision to bounding-box only
 - Replace procedural music with static sequences

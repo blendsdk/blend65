@@ -7,6 +7,7 @@
 **Project Size:** 27 assembly files, 13 tutorial categories, educational focus
 
 ## Executive Summary
+
 - **Portability Status:** PARTIALLY_PORTABLE - Version v0.3-v0.5 needed (varies by tutorial)
 - **Primary Blockers:** Raster interrupts, sprite multiplexing, VIC-II register access
 - **Recommended Blend65 Version:** v0.3-v0.5 (Educational progression support)
@@ -15,9 +16,11 @@
 ## Technical Analysis
 
 ### Repository Structure
+
 This is an educational collection teaching C64 programming concepts through progressive tutorials:
 
 **Tutorial Categories (13 topics):**
+
 - **Raster Effects:** Color bars, border effects, scanline manipulation
 - **Sprite Systems:** Multiplexing, animation, graphics manipulation
 - **Graphics Programming:** Custom charsets, multicolor bitmaps, smooth scrolling
@@ -25,6 +28,7 @@ This is an educational collection teaching C64 programming concepts through prog
 - **System Programming:** IRQ handling, circular buffers, music integration
 
 **Examples Collection (3 advanced topics):**
+
 - **IRQ Multiplexer:** Advanced interrupt management
 - **Circular Buffer:** Data structure implementation
 - **Music in BASIC:** SID integration with BASIC programs
@@ -32,6 +36,7 @@ This is an educational collection teaching C64 programming concepts through prog
 ### Programming Language Assessment
 
 **Assembly Language (ACME Assembler Style):**
+
 - Target: Commodore 64 educational focus
 - Assembly Style: ACME with clear macro usage and documentation
 - Code Organization: Tutorial progression from basic to advanced
@@ -40,11 +45,13 @@ This is an educational collection teaching C64 programming concepts through prog
 ### Tutorial Complexity Analysis
 
 **Beginner Tutorials (v0.1-v0.2 compatible):**
+
 - **Custom Charset:** Basic character set manipulation
 - **Simple Sprite Animation:** Static sprite positioning
 - **Basic Screen Manipulation:** Text and color changes
 
 **Intermediate Tutorials (v0.3 compatible):**
+
 ```assembly
 ; Smooth scrolling example requiring enhanced VIC control
 * = $c000
@@ -62,6 +69,7 @@ clear_screen:
 ```
 
 **Advanced Tutorials (v0.5 compatible):**
+
 ```assembly
 ; Sprite multiplexer requiring interrupt system
 SCINIT:
@@ -82,29 +90,34 @@ SCINIT:
 ### Educational Progression Analysis
 
 **Level 1: Basic Graphics (4 tutorials)**
+
 - Custom character sets
 - Simple sprite positioning
 - Basic color manipulation
 - Screen memory access
 
 **Level 2: Animation Systems (6 tutorials)**
+
 - Sprite animation sequences
 - Logo swing effects using sine tables
 - PETSCII character scrolling
 - Smooth hardware scrolling
 
 **Level 3: Raster Programming (5 tutorials)**
+
 - Color bar effects using raster interrupts
 - Border color changes at specific scanlines
 - Precise timing control
 - VIC-II register manipulation
 
 **Level 4: Advanced Systems (3 tutorials)**
+
 - Sprite multiplexing with IRQ coordination
 - Multicolor bitmap graphics
 - Complex demo effects
 
 **Level 5: System Integration (3 examples)**
+
 - IRQ management systems
 - Data structure implementation
 - Music integration with SID
@@ -112,21 +125,25 @@ SCINIT:
 ### Blend65 Compatibility Assessment
 
 **Current v0.1 Capabilities:**
+
 - **Custom Charset:** DIRECTLY_PORTABLE - Basic memory manipulation
 - **Simple Sprites:** DIRECTLY_PORTABLE - Static sprite positioning
 - **Basic Colors:** DIRECTLY_PORTABLE - Color register writes
 
 **Version 0.2 Requirements:**
+
 - **Sprite Animation:** Enhanced sprite API needed
 - **Screen Effects:** VIC register constants required
 - **Memory Management:** Better data organization
 
 **Version 0.3 Requirements:**
+
 - **Smooth Scrolling:** VIC scroll register control
 - **Logo Effects:** Sine table generation and usage
 - **Advanced Graphics:** Multicolor mode support
 
 **Version 0.5 Requirements:**
+
 - **Raster Effects:** Complete interrupt system
 - **Sprite Multiplexing:** IRQ coordination with hardware
 - **Advanced Demos:** Cycle-accurate timing
@@ -134,7 +151,8 @@ SCINIT:
 ## Missing Educational APIs Required
 
 ### Basic Graphics APIs (v0.2)
-```blend65
+
+```js
 // Educational graphics functions
 module c64.tutorial.graphics
     function clearScreen(character: byte): void
@@ -145,7 +163,8 @@ end module
 ```
 
 ### Sprite Tutorial APIs (v0.3)
-```blend65
+
+```js
 // Educational sprite management
 module c64.tutorial.sprites
     function setSpritePosition(sprite: byte, x: word, y: byte): void
@@ -156,7 +175,8 @@ end module
 ```
 
 ### Raster Tutorial APIs (v0.5)
-```blend65
+
+```js
 // Educational raster programming
 module c64.tutorial.raster
     interrupt function colorBarIRQ(): void
@@ -167,7 +187,8 @@ end module
 ```
 
 ### Demo Effect APIs (v0.5)
-```blend65
+
+```js
 // Educational demo effects
 module c64.tutorial.effects
     function generateSineTable(size: word): byte[]
@@ -179,15 +200,18 @@ end module
 ## Educational Value Analysis
 
 ### Learning Progression
+
 This collection provides an ideal learning path for C64 programming:
 
 **Tutorial Sequence:**
+
 1. **Basic Concepts** → Character manipulation, colors, simple graphics
 2. **Hardware Understanding** → Sprites, VIC-II registers, memory mapping
 3. **Timing Concepts** → Raster synchronization, interrupt basics
 4. **Advanced Techniques** → Multiplexing, demo effects, optimization
 
 **Code Quality:**
+
 - **Well Commented:** Clear explanations of hardware concepts
 - **Progressive Complexity:** Builds from simple to advanced concepts
 - **Practical Examples:** Real-world demo programming techniques
@@ -196,6 +220,7 @@ This collection provides an ideal learning path for C64 programming:
 ### Educational Framework Requirements
 
 **Tutorial Integration Features:**
+
 - **Step-by-step compilation** - Incremental learning support
 - **Interactive debugging** - Educational debugging features
 - **Hardware visualization** - Understanding memory and register usage
@@ -206,12 +231,14 @@ This collection provides an ideal learning path for C64 programming:
 ### Educational Platform Priority
 
 **CRITICAL for Educational Success:**
+
 - **Tutorial APIs** - Simplified educational functions
 - **Progressive Complexity** - Support for learning progression
 - **Clear Documentation** - Each API must teach concepts
 - **Interactive Learning** - Debugging and visualization tools
 
 **HIGH Priority for Tutorial Support:**
+
 - **VIC-II Educational APIs** - Simplified register access for learning
 - **Sprite Tutorial System** - Progressive sprite programming education
 - **Raster Learning Tools** - Interrupt education with safety
@@ -220,29 +247,34 @@ This collection provides an ideal learning path for C64 programming:
 ### Tutorial Categories by Blend65 Version
 
 **Version 0.1 Tutorials (3 tutorials):**
+
 - Custom character sets
 - Basic color changes
 - Simple memory manipulation
 
 **Version 0.2 Tutorials (6 tutorials):**
+
 - Basic sprite positioning
 - Simple animations
 - Screen scrolling basics
 - Logo effects without interrupts
 
 **Version 0.3 Tutorials (4 tutorials):**
+
 - Advanced sprite control
 - Multicolor graphics
 - Smooth scrolling
 - Basic timing effects
 
 **Version 0.5 Tutorials (8 tutorials):**
+
 - Raster interrupts
 - Sprite multiplexing
 - Color bar effects
 - Complete demo systems
 
 **Version 0.5+ Examples (3 advanced):**
+
 - IRQ multiplexer
 - Circular buffers
 - Music integration
@@ -250,6 +282,7 @@ This collection provides an ideal learning path for C64 programming:
 ## Code Examples
 
 ### Original Tutorial (Raster Effects):
+
 ```assembly
 !to "build/raster01.prg",cbm
 
@@ -269,7 +302,8 @@ scanline = $03
 ```
 
 ### Required Blend65 Tutorial Syntax:
-```blend65
+
+```js
 // Educational tutorial framework
 import clearScreen from c64.tutorial.graphics
 import setRasterInterrupt from c64.tutorial.raster
@@ -298,24 +332,28 @@ end function
 ### Educational Platform Development
 
 **Phase 1: Tutorial Foundation (v0.2)**
+
 - Implement basic educational APIs
 - Create tutorial documentation system
 - Support progressive complexity
 - Add educational error messages
 
 **Phase 2: Interactive Learning (v0.3)**
+
 - Add sprite tutorial framework
 - Implement graphics education tools
 - Create visualization features
 - Support step-by-step debugging
 
 **Phase 3: Advanced Education (v0.5)**
+
 - Complete raster interrupt tutorials
 - Advanced demo effect education
 - Performance optimization tutorials
 - Real-time hardware visualization
 
 **Phase 4: Educational Platform (v1.0)**
+
 - Complete tutorial ecosystem
 - Interactive learning environment
 - Educational IDE integration
@@ -333,16 +371,19 @@ This repository represents an excellent **educational pathway** for Blend65:
 ### Implementation Priority
 
 **IMMEDIATE (Educational Foundation):**
+
 - **Tutorial API framework** - Educational function libraries
 - **Progressive compilation** - Support learning progression
 - **Clear error messages** - Educational debugging support
 
 **MEDIUM-TERM (Interactive Learning):**
+
 - **Hardware visualization** - Understanding VIC-II/sprites visually
 - **Step-by-step execution** - Educational debugging features
 - **Tutorial integration** - Built-in learning system
 
 **LONG-TERM (Educational Platform):**
+
 - **Interactive tutorials** - Complete learning environment
 - **Community platform** - Educational content sharing
 - **Advanced visualization** - Real-time hardware state display

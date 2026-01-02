@@ -7,6 +7,7 @@
 **Project Type:** Educational tutorial - First intro/demo effects
 
 ## Executive Summary
+
 - **Portability Status:** PARTIALLY_PORTABLE - Needs Version 0.5
 - **Primary Blockers:** Interrupt system (CRITICAL), Color RAM access (CRITICAL), SID music integration (HIGH)
 - **Recommended Blend65 Version:** v0.5 (hardware-intensive features required)
@@ -15,6 +16,7 @@
 ## Technical Analysis
 
 ### Hardware Usage Patterns:
+
 - **Interrupts:** Custom raster interrupt handler for frame synchronization
 - **Color RAM:** Direct manipulation of $D800-$DBFF for color wash effects
 - **SID Integration:** Music playback using integrated SID routines
@@ -22,7 +24,9 @@
 - **VIC-II Control:** Raster interrupt setup and acknowledgment
 
 ### Educational Significance:
+
 This tutorial represents **fundamental C64 demo programming concepts**:
+
 1. **Interrupt-driven effects** - Color cycling during raster beam display
 2. **Color RAM manipulation** - Direct hardware color buffer access
 3. **SID music integration** - Background music with visual effects
@@ -31,7 +35,8 @@ This tutorial represents **fundamental C64 demo programming concepts**:
 ### Critical Missing Hardware APIs (v0.5 Features):
 
 **Interrupt System Framework:**
-```blend65
+
+```js
 // Custom raster interrupt handler
 interrupt function demoMainIRQ(): void
     acknowledgeRasterIRQ()
@@ -52,7 +57,8 @@ end function
 ```
 
 **Color RAM Access:**
-```blend65
+
+```js
 import setColorRAMByte, getColorRAMByte from c64.vic
 
 var colorTable1: byte[40] = [6,14,3,5,13,1,7,1,13,5,3,14,6,6,14,3,5,13,1,7,1,13,5,3,14,6,6,14,3,5,13,1,7,1,13,5,3,14,6,6]
@@ -80,7 +86,8 @@ end function
 ```
 
 **SID Music Integration:**
-```blend65
+
+```js
 import initSIDMusic, playSIDFrame from c64.sid
 
 function setupDemo(): void
@@ -102,7 +109,8 @@ end function
 ```
 
 **Text Display with Color Effects:**
-```blend65
+
+```js
 import setCharacterAt, clearScreen from c64.screen
 
 function displayStaticText(): void
@@ -126,6 +134,7 @@ end function
 ### Language Feature Requirements:
 
 **Version 0.5 Features Needed:**
+
 - **Interrupt Handler Declaration:** `interrupt function name(): void`
 - **Color RAM Access Functions:** Direct color buffer manipulation
 - **SID Music Integration:** Background music playback system
@@ -137,6 +146,7 @@ end function
 ### Implementation Priority Updates:
 
 **CRITICAL PRIORITY (Confirmed by Demo Tutorial):**
+
 1. **Interrupt System Implementation** - Essential for all demo programming
 2. **Color RAM Access** - Required for visual effects and color manipulation
 3. **SID Music Integration** - Standard expectation for C64 demos
@@ -145,6 +155,7 @@ end function
 ### Code Translation Examples:
 
 **Original Assembly (Color Wash Effect):**
+
 ```assembly
 colwash   ldx #$27        ; load x-register with #$27 to work through 0-39 iterations
           lda color+$27   ; init accumulator with the last color from first color table
@@ -160,7 +171,8 @@ cycle1    ldy color-1,x   ; remember the current color in color table in this it
 ```
 
 **Required Blend65 v0.5 Syntax:**
-```blend65
+
+```js
 function performColorWashLine1(): void
     var lastColor: byte = colorTable1[39]
 
@@ -175,6 +187,7 @@ end function
 ```
 
 **Original Assembly (Interrupt Setup):**
+
 ```assembly
            sei         ; set interrupt disable flag
            ldy #$7f    ; $7f = %01111111
@@ -193,7 +206,8 @@ end function
 ```
 
 **Blend65 v0.5 Equivalent:**
-```blend65
+
+```js
 function setupDemoInterrupts(): void
     disableInterrupts()
     disableCIATimers()
@@ -208,6 +222,7 @@ end function
 ### Educational Value Analysis:
 
 **Demo Programming Learning Path:**
+
 1. **Basic Text Display** - Static screen setup (v0.1 compatible)
 2. **Color Effects** - Color RAM manipulation (requires v0.5)
 3. **Music Integration** - SID playback (requires v0.5)
@@ -217,22 +232,21 @@ end function
 ### Hardware Requirements Summary:
 
 **Critical Blockers (Essential for demo programming):**
+
 1. **Interrupt System** - All effects run in IRQ handlers
 2. **Color RAM Access** - Visual effects require color manipulation
 3. **SID Integration** - Music is standard demo requirement
 
-**Important Features:**
-4. **Hardware Register Control** - Low-level timing and setup
-5. **Screen Text Functions** - Character display and positioning
+**Important Features:** 4. **Hardware Register Control** - Low-level timing and setup 5. **Screen Text Functions** - Character display and positioning
 
 **Demo Programming Priority:**
 
-| Priority | Feature | Demo Impact | Implementation Effort |
-|----------|---------|-------------|----------------------|
-| **1** | Interrupt System | CRITICAL | HIGH |
-| **2** | Color RAM Access | CRITICAL | MEDIUM |
-| **3** | SID Music Integration | HIGH | MEDIUM |
-| **4** | Text Display Functions | HIGH | LOW |
+| Priority | Feature                | Demo Impact | Implementation Effort |
+| -------- | ---------------------- | ----------- | --------------------- |
+| **1**    | Interrupt System       | CRITICAL    | HIGH                  |
+| **2**    | Color RAM Access       | CRITICAL    | MEDIUM                |
+| **3**    | SID Music Integration  | HIGH        | MEDIUM                |
+| **4**    | Text Display Functions | HIGH        | LOW                   |
 
 ### Educational Programming Significance:
 
@@ -271,6 +285,7 @@ Demo programming patterns that require v0.5 features:
 **Implementation Strategy for Educational Use:**
 
 The demo tutorial validates **optimal educational progression**:
+
 - **v0.1 tutorials** can cover basic programming concepts
 - **v0.5 tutorials** enable creative and visual programming
 - **Hardware integration** becomes natural learning progression
@@ -278,12 +293,12 @@ The demo tutorial validates **optimal educational progression**:
 
 ### Educational Roadmap Integration:
 
-| Tutorial Level | Blend65 Version | Concepts Covered | Example Projects |
-|----------------|-----------------|------------------|------------------|
-| **Beginner** | v0.1 | Basic syntax, simple games | Snake, Pong, Text games |
-| **Intermediate** | v0.5 | Hardware programming, effects | First intro, Color demos |
-| **Advanced** | v0.5+ | Complex demos, optimizations | Scrollers, 3D effects |
-| **Expert** | v1.0 | Complete system mastery | Elite-class applications |
+| Tutorial Level   | Blend65 Version | Concepts Covered              | Example Projects         |
+| ---------------- | --------------- | ----------------------------- | ------------------------ |
+| **Beginner**     | v0.1            | Basic syntax, simple games    | Snake, Pong, Text games  |
+| **Intermediate** | v0.5            | Hardware programming, effects | First intro, Color demos |
+| **Advanced**     | v0.5+           | Complex demos, optimizations  | Scrollers, 3D effects    |
+| **Expert**       | v1.0            | Complete system mastery       | Elite-class applications |
 
 ---
 
@@ -292,6 +307,7 @@ The demo tutorial validates **optimal educational progression**:
 The Dust Tutorial C64 First Intro **validates the educational importance** of Blend65 v0.5 hardware features. Demo programming represents a critical learning path for C64 development that bridges basic programming concepts with advanced hardware mastery.
 
 **Key Educational Validation Points:**
+
 1. **Hardware APIs Enable Creativity** - Visual and audio effects require low-level access
 2. **Interrupt Programming is Fundamental** - Essential for professional C64 development
 3. **Demo Programming Teaches System Understanding** - Hardware timing and coordination

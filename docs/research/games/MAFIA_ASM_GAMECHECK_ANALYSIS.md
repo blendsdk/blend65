@@ -28,24 +28,28 @@ Mafia ASM is a sophisticated multi-player business simulation game that models o
 ### Code Architecture Patterns
 
 **Memory Management:**
+
 - Complex static allocation with structured arrays for 8 players
 - 32-bit financial calculations requiring extended arithmetic
 - Zero-page optimization for critical variables
 - Structured data layout mimicking high-level language records
 
 **Control Flow:**
+
 - Complex state machines for game phases
 - Turn-based gameplay with sophisticated AI
 - Nested function call patterns
 - Multi-level menu systems
 
 **Hardware Abstraction:**
+
 - Custom macro system providing high-level operations
 - 8/16/32-bit arithmetic pseudocommands
 - Hardware collision detection for random generation
 - Interrupt-driven timing systems
 
 **Mathematical Complexity:**
+
 - 32-bit addition, subtraction, multiplication, division
 - Square root calculations
 - BCD conversion for display
@@ -55,6 +59,7 @@ Mafia ASM is a sophisticated multi-player business simulation game that models o
 ### Advanced Features Analysis
 
 **KickAssembler Macro System:**
+
 ```assembly
 .pseudocommand mov32 source : destination {
     :_mov bits_to_bytes(32) : source : destination
@@ -74,6 +79,7 @@ Mafia ASM is a sophisticated multi-player business simulation game that models o
 ```
 
 **Complex Data Structures:**
+
 ```assembly
 // Player data organized as structured arrays
 playerNames:     .fill playerNameLength,0  // 8 players × 16 chars
@@ -84,6 +90,7 @@ playerEstates:   .byte 00                 // 8 players × 1 byte
 ```
 
 **Advanced Game Logic:**
+
 ```assembly
 // Gang warfare with complex casualty calculations
 gameGangwarFight:
@@ -128,7 +135,8 @@ gameGangwarFight:
 ### Required Blend65 Language Extensions
 
 **Version 0.2 Requirements:**
-```blend65
+
+```js
 // Dynamic arrays for variable player counts
 var playerData: dynamic PlayerRecord[MAX_PLAYERS]
 
@@ -138,7 +146,8 @@ function getPlayerName(index: byte): string
 ```
 
 **Version 0.3 Requirements:**
-```blend65
+
+```js
 // 32-bit arithmetic support
 var money: dword
 var income: dword
@@ -148,7 +157,8 @@ function multiply32(a: dword, b: word): dword
 ```
 
 **Version 0.4 Requirements:**
-```blend65
+
+```js
 // Complex data structures
 type PlayerRecord
     name: string[16]
@@ -171,7 +181,8 @@ var gameState: heap GameState
 ```
 
 **Version 0.5 Requirements:**
-```blend65
+
+```js
 // Hardware integration for random number generation
 import readTimer from c64.cia
 import readOscillator from c64.sid
@@ -186,7 +197,7 @@ end function
 
 **Missing C64 Hardware Features:**
 
-```blend65
+```js
 // Required SID operations for random generation
 module c64.sid
     function readOscillator3(): byte
@@ -212,7 +223,8 @@ end module
 ## Built-in Library Requirements
 
 **Missing Mathematical Operations:**
-```blend65
+
+```js
 module math
     function divide32(dividend: dword, divisor: dword): dword
     function multiply32(a: dword, b: dword): dword
@@ -228,7 +240,8 @@ end module
 ```
 
 **Missing Random Number Generation:**
-```blend65
+
+```js
 module random
     function seed(seedValue: dword): void
     function range8(min: byte, max: byte): byte
@@ -243,6 +256,7 @@ end module
 ### 1. **Game State Management**
 
 **Original Assembly Pattern:**
+
 ```assembly
 // Complex player offset calculations
 calcPlayerOffsets:
@@ -256,7 +270,8 @@ calcPlayerOffsets:
 ```
 
 **Required Blend65 Pattern:**
-```blend65
+
+```js
 function calcPlayerOffsets(playerNum: byte): PlayerOffsets
     return PlayerOffsets {
         offset2: playerNum * 2,
@@ -270,6 +285,7 @@ end function
 ### 2. **Financial Calculations**
 
 **Original Assembly Pattern:**
+
 ```assembly
 // 32-bit money calculations with overflow handling
 sub32 playerMoney,x : gameGangwarAttackersBurial : playerMoney,x
@@ -277,7 +293,8 @@ add16To32 #$61a8 : gameGangwarAttackersBurial : gameGangwarAttackersBurial
 ```
 
 **Required Blend65 Pattern:**
-```blend65
+
+```js
 function processBurialCosts(player: byte, casualties: byte): void
     var cost: dword = casualties * 25000
     playerData[player].money = playerData[player].money - cost
@@ -290,6 +307,7 @@ end function
 ### 3. **Random Event System**
 
 **Original Assembly Pattern:**
+
 ```assembly
 // Complex disaster calculations with bestechungen (bribes)
 X = 75 - PW(CO) * X1 - UR(CO)*X2 - KO(CO)*Y - AN(CO) - SA(CO)*C - BM(CO)*2
@@ -297,7 +315,8 @@ IF ZU > X THEN RETURN  // Bribes prevent disasters
 ```
 
 **Required Blend65 Pattern:**
-```blend65
+
+```js
 function calculateDisasterChance(player: byte): byte
     var base: byte = 75
     var protection: byte =

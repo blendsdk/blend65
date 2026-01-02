@@ -70,7 +70,7 @@ This document captures critical architectural decisions for Blend65's evolution 
 
 **Syntax:**
 
-```blend65
+```js
 for i = 0 to 255
     if condition then
         break      // Exit loop entirely
@@ -99,7 +99,7 @@ next i
 
 **Syntax:**
 
-```blend65
+```js
 match gameState
     case MENU:
         showMenu()
@@ -130,7 +130,7 @@ end match
 
 **Syntax:**
 
-```blend65
+```js
 enum GameState
     MENU = 0,
     PLAYING = 1,
@@ -280,7 +280,7 @@ This delivers predictable memory planning without requiring advanced dataflow an
 
 #### The Problem:
 
-```blend65
+```js
 function createBuffer(): byte[16]
     var buffer: byte[16]           // Allocated in scratch/frame storage
     return buffer                  // PROBLEM: buffer lifetime ends on return
@@ -295,7 +295,7 @@ end function
 
 **1. Small Values: Return by Value (Copy)**
 
-```blend65
+```js
 function getScore(): word          // 2 bytes - efficient to copy
     var temp: word = calculateScore()
     return temp                    // Copied via CPU registers
@@ -304,7 +304,7 @@ end function
 
 **2. Medium Values: Static Return Buffers**
 
-```blend65
+```js
 function getCurrentSprite(): byte[24]  // 24 bytes - static buffer
     static var spriteBuffer: byte[24]  // Function-specific static storage
     // ... build sprite in static buffer
@@ -314,7 +314,7 @@ end function
 
 **3. Large Values: Caller-Allocated Storage**
 
-```blend65
+```js
 function loadLevel(levelData: byte[512]): void  // Caller provides storage
     // Initialize provided levelData array
     // No return value needed
@@ -355,7 +355,7 @@ $ZZZZ+: Regular program memory (implementation-defined)
 
 #### String Allocation Strategies:
 
-```blend65
+```js
 // v0.3: Fixed-size string locals
 var name: string[16] = "Player"    // Fixed allocation in string pool
 

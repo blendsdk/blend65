@@ -1,6 +1,7 @@
 # Game Analysis Report: Psychedelia/Colourspace
 
 ## Executive Summary
+
 - **Repository:** https://github.com/mwenge/psychedelia.git
 - **Analysis Date:** 2026-01-02
 - **Target Platform:** C64/VIC-20/Atari 800 (Multi-platform 6502)
@@ -15,6 +16,7 @@
 **Psychedelia** is Jeff Minter's pioneering "light synthesizer" from 1984-1987, designed to create real-time visual patterns synchronized to music. This is not a traditional game but rather an interactive audio-visual synthesizer that generates complex geometric patterns based on user input through joystick controls.
 
 ### Multi-Platform Architecture
+
 - **C64 Version**: 3,598 lines (primary implementation)
 - **VIC-20 Port**: Hardware-adapted version
 - **Atari 800 Port**: Platform-specific implementation (Colourspace)
@@ -60,6 +62,7 @@
 ### Core Program Architecture
 
 **Real-Time Graphics Engine:**
+
 ```assembly
 MainPaintLoop:
     INC currentIndexToPixelBuffers
@@ -70,12 +73,14 @@ MainPaintLoop:
 ```
 
 **Pattern Generation System:**
+
 - **8 Built-in Patterns**: Star, Twist, Llamita, Deltoid, etc.
 - **8 Custom Patterns**: User-definable geometric shapes
 - **Pattern Data Structure**: Relative coordinate arrays with $55 terminators
 - **Multi-level Rendering**: Each pattern has up to 7 color levels
 
 **Interrupt-Driven Input Processing:**
+
 ```assembly
 MainInterruptHandler:
     ; Runs at 60Hz
@@ -85,6 +90,7 @@ MainInterruptHandler:
 ```
 
 **Advanced Features:**
+
 - **Symmetry Modes**: None, X-axis, Y-axis, X-Y, and quadrant symmetry
 - **Line Mode**: Vertical line drawing with configurable width
 - **Sequencer System**: Programmable pattern sequences
@@ -96,11 +102,13 @@ MainInterruptHandler:
 ### Memory Layout and Data Structures
 
 **Zero Page Variables (Critical):**
+
 - `$02-$26`: Core graphics state (pixel positions, colors, pointers)
 - Intensive use of indirect addressing for performance
 - Complex pointer management for pattern data access
 
 **Pattern Data Organization:**
+
 ```assembly
 starOneXPosArray:  ; Relative X coordinates
     .BYTE $00,$01,$01,$01,$00,$FF,$FF,$FF,$55  ; Level 0
@@ -113,6 +121,7 @@ starOneYPosArray:  ; Corresponding Y coordinates
 ```
 
 **Color RAM Direct Manipulation:**
+
 - Direct access to `$D800-$DFFF` for immediate visual updates
 - Line-based pointer tables for efficient screen access
 - Real-time color cycling and pattern painting
@@ -124,24 +133,29 @@ starOneYPosArray:  ; Corresponding Y coordinates
 **COMPLETELY UNSUPPORTED in v0.1:**
 
 ❌ **Interrupt System**
+
 - No support for custom IRQ/NMI handlers
 - Required: `interrupt function rasterIrq(): void`
 - Critical for 60Hz pattern generation
 
 ❌ **Direct Hardware Access**
+
 - No memory-mapped I/O access (`$D800`, `$DC00`, `$D020`)
 - Required: Direct register access or hardware abstraction APIs
 
 ❌ **Real-Time Graphics**
+
 - No color RAM manipulation
 - No character mode graphics control
 - No dynamic screen updates
 
 ❌ **Advanced Pointer Operations**
+
 - Limited support for complex indirect addressing
 - No zero page optimization directives
 
 ❌ **Hardware-Specific Optimizations**
+
 - No 6502-specific timing control
 - No cycle-accurate operations
 
@@ -150,7 +164,8 @@ starOneYPosArray:  ; Corresponding Y coordinates
 **Version 0.5+ Requirements (Hardware-Intensive):**
 
 1. **Interrupt System**
-```blend65
+
+```js
 interrupt function mainUpdate(): void
     // 60Hz pattern generation
     updatePixelBuffers()
@@ -164,7 +179,8 @@ end function
 ```
 
 2. **Memory-Mapped I/O**
-```blend65
+
+```js
 // Direct hardware access
 var colorRam: ptr byte = $D800
 var joystick: ptr byte = $DC00
@@ -177,7 +193,8 @@ end function
 ```
 
 3. **Hardware Collision Detection**
-```blend65
+
+```js
 import readJoystick from c64.cia
 import setBorderColor from c64.vic
 import setColorRam from c64.vic
@@ -190,7 +207,8 @@ end function
 **Version 0.6+ Requirements (Beyond Current Roadmap):**
 
 4. **Real-Time Graphics APIs**
-```blend65
+
+```js
 import clearColorRam from c64.vic
 import setCharacterSet from c64.vic
 import configureMemoryLayout from c64.vic
@@ -204,7 +222,8 @@ end function
 ```
 
 5. **Precise Timing Control**
-```blend65
+
+```js
 import setTimer from c64.cia
 import readTimer from c64.cia
 
@@ -218,7 +237,8 @@ end function
 ```
 
 6. **Advanced Memory Management**
-```blend65
+
+```js
 zp var pixelX: byte at $02
 zp var pixelY: byte at $03
 zp var colorIndex: byte at $04
@@ -229,17 +249,17 @@ zp var colorIndex: byte at $04
 
 **Missing C64 Hardware APIs:**
 
-| Module | Function | Priority | Implementation Effort | Notes |
-|--------|----------|----------|---------------------|-------|
-| c64.vic | setColorRam() | CRITICAL | HIGH | Direct color RAM access |
-| c64.vic | setBorderColor() | HIGH | LOW | Simple register write |
-| c64.vic | setBackgroundColor() | HIGH | LOW | Simple register write |
-| c64.vic | setCharacterSet() | HIGH | MEDIUM | VIC-II memory control |
-| c64.cia | readJoystick() | CRITICAL | MEDIUM | CIA port reading |
-| c64.interrupts | setIRQHandler() | CRITICAL | HIGH | Custom interrupt vectors |
-| c64.interrupts | setNMIHandler() | HIGH | HIGH | NMI vector control |
-| c64.memory | setZeroPageVar() | HIGH | MEDIUM | Zero page optimization |
-| c64.system | disableKernal() | MEDIUM | HIGH | System control |
+| Module         | Function             | Priority | Implementation Effort | Notes                    |
+| -------------- | -------------------- | -------- | --------------------- | ------------------------ |
+| c64.vic        | setColorRam()        | CRITICAL | HIGH                  | Direct color RAM access  |
+| c64.vic        | setBorderColor()     | HIGH     | LOW                   | Simple register write    |
+| c64.vic        | setBackgroundColor() | HIGH     | LOW                   | Simple register write    |
+| c64.vic        | setCharacterSet()    | HIGH     | MEDIUM                | VIC-II memory control    |
+| c64.cia        | readJoystick()       | CRITICAL | MEDIUM                | CIA port reading         |
+| c64.interrupts | setIRQHandler()      | CRITICAL | HIGH                  | Custom interrupt vectors |
+| c64.interrupts | setNMIHandler()      | HIGH     | HIGH                  | NMI vector control       |
+| c64.memory     | setZeroPageVar()     | HIGH     | MEDIUM                | Zero page optimization   |
+| c64.system     | disableKernal()      | MEDIUM   | HIGH                  | System control           |
 
 ## Portability Assessment
 
@@ -258,12 +278,14 @@ zp var colorIndex: byte at $04
 ### Required Blend65 Evolution
 
 **Version 0.5 Minimal Requirements:**
+
 - Basic interrupt system
 - Memory-mapped I/O access
 - Hardware abstraction APIs
 - Real-time input handling
 
 **Version 0.6+ Full Compatibility:**
+
 - Advanced graphics control
 - Precise timing systems
 - Zero page optimization
@@ -273,7 +295,8 @@ zp var colorIndex: byte at $04
 ### Implementation Strategy
 
 **Phase 1: Hardware Abstraction Layer**
-```blend65
+
+```js
 // Create high-level graphics API
 module Graphics
     function paintPixel(x: byte, y: byte, color: byte): void
@@ -288,7 +311,8 @@ end module
 ```
 
 **Phase 2: Pattern Generation**
-```blend65
+
+```js
 // Implement pattern system
 type Pattern
     xCoords: byte[64]
@@ -302,7 +326,8 @@ end function
 ```
 
 **Phase 3: Real-Time Engine**
-```blend65
+
+```js
 // Main loop with interrupt support
 interrupt function frameUpdate(): void
     processInput()
@@ -328,12 +353,14 @@ end function
 Based on this analysis, the following features should be elevated in priority:
 
 **CRITICAL (Required for Hardware-Intensive Programs):**
+
 - Interrupt system implementation
 - Memory-mapped I/O support
 - Hardware abstraction layer
 - Real-time input handling
 
 **HIGH (Enables Advanced Graphics Programs):**
+
 - Direct hardware register access
 - Precise timing control
 - Zero page variable support
@@ -342,6 +369,7 @@ Based on this analysis, the following features should be elevated in priority:
 ### Implementation Effort Analysis
 
 **Language Core Extensions: EXTREME**
+
 - Interrupt system: 6-8 weeks of development
 - Hardware APIs: 8-10 weeks per platform
 - Memory-mapped I/O: 4-6 weeks
@@ -357,6 +385,7 @@ Programs like Psychedelia represent a new category of applications that Blend65 
 ## Code Examples
 
 ### Original Assembly Pattern
+
 ```assembly
 PaintPixelForCurrentSymmetry:
     LDA pixelXPosition
@@ -377,7 +406,8 @@ PaintPixelForCurrentSymmetry:
 ```
 
 ### Required Blend65 Implementation
-```blend65
+
+```js
 function paintPixelWithSymmetry(x: byte, y: byte, color: byte, symmetry: byte): void
     // Paint original pixel
     Graphics.paintPixel(x, y, color)

@@ -1,6 +1,7 @@
 # Game Analysis Report: Astroblast
 
 ## Executive Summary
+
 - **Repository:** https://github.com/nealvis/astroblast.git
 - **Analysis Date:** 02/01/2026
 - **Target Platform:** Commodore 64 (NTSC)
@@ -24,6 +25,7 @@
 ### Hardware Usage Patterns:
 
 #### Graphics (VIC-II):
+
 - **Sprites:** Extensive use of 8 sprites for ships, asteroids, bullets, black holes
 - **Sprite Animation:** Frame-based animation system with sprite data pointer tables
 - **Custom Character Set:** Uses custom charset (astro_charset.bin) loaded at $3000
@@ -31,22 +33,26 @@
 - **Collision Detection:** Hardware sprite collision registers ($D01E)
 
 #### Sound (SID):
+
 - **Music System:** GoatTracker v2.76 generated music with multiple subtunes
 - **Sound Effects:** Individual instrument-based sound effects
 - **Multi-channel:** Uses all 3 SID voices for music and effects
 - **Dynamic Control:** Master volume control, effect interruption
 
 #### Input (CIA):
+
 - **Dual Joystick:** Both joystick ports used simultaneously
 - **Keyboard:** Title screen configuration keys
 - **Real-time Input:** Frame-based input polling
 
 #### Memory Management:
+
 - **Static Layout:** Fixed memory regions ($0800 BASIC, $1000 main, $3000 charset, $8000 sound)
 - **Zero Page Usage:** Efficient use of zero page for sprite data and counters
 - **No Dynamic Allocation:** All memory statically allocated
 
 #### Timing and Control:
+
 - **Frame-based Loop:** 60 FPS main loop with frame counting
 - **Second Counters:** BCD-based time tracking for game duration
 - **Effect Timing:** Frame-based effect durations and animations
@@ -56,7 +62,8 @@
 #### Critical Missing APIs (v0.5 Features):
 
 **Advanced Sprite Control:**
-```blend65
+
+```js
 // Required sprite APIs not in v0.1:
 import setMultiSpriteAnimation from c64.sprites
 import setSpriteDataPointer from c64.sprites
@@ -64,7 +71,8 @@ import setSpriteAnimationFrame from c64.sprites
 ```
 
 **Hardware Collision Detection:**
-```blend65
+
+```js
 // Essential for arcade gameplay:
 import readSpriteCollisions from c64.vic
 import checkSpriteHit from c64.vic
@@ -72,7 +80,8 @@ function checkAllCollisions(): byte
 ```
 
 **Sound System Integration:**
-```blend65
+
+```js
 // SID integration needed:
 import playSIDMusic from c64.sid
 import playSoundEffect from c64.sid
@@ -81,7 +90,8 @@ import stopAllSounds from c64.sid
 ```
 
 **Precise Timing:**
-```blend65
+
+```js
 // Frame-accurate timing required:
 import getFrameCounter from c64.system
 import waitForNextFrame from c64.system
@@ -90,12 +100,14 @@ import waitForNextFrame from c64.system
 ### Current Blend65 v0.1 Gaps:
 
 **Language Features (Currently Unsupported):**
+
 1. **Complex Macro Systems:** Game relies heavily on Kick Assembler macros
 2. **Namespace Support:** Uses namespaces for sprite organization
 3. **Advanced Memory Layout:** Precise memory region control needed
 4. **Binary Data Import:** Custom character sets and sound data import
 
 **Hardware APIs (Missing in v0.1):**
+
 1. **Sprite Collision Detection:** Core gameplay mechanic
 2. **Multi-sprite Management:** 8+ sprites with individual control
 3. **SID Music/Sound:** Integrated music and sound effect system
@@ -105,12 +117,14 @@ import waitForNextFrame from c64.system
 ### Portability Assessment:
 
 **NOT PORTABLE with v0.1:**
+
 - Requires hardware collision detection for core gameplay
 - Needs advanced sprite animation system
 - Requires integrated SID sound system
 - Complex timing requirements
 
 **PARTIALLY PORTABLE with v0.5:**
+
 - Hardware collision detection implemented
 - Advanced sprite control available
 - Integrated sound system
@@ -119,7 +133,8 @@ import waitForNextFrame from c64.system
 ### Version 0.5 Requirements:
 
 **Hardware Collision System:**
-```blend65
+
+```js
 // Essential for Astroblast gameplay
 import readSpriteCollisionRegister from c64.vic
 import checkSpriteToSpriteCollision from c64.vic
@@ -134,7 +149,8 @@ end function
 ```
 
 **Advanced Sprite Animation:**
-```blend65
+
+```js
 // Multi-frame sprite animation system
 type SpriteAnimation
     frames: byte[]
@@ -156,7 +172,8 @@ end function
 ```
 
 **Integrated Sound System:**
-```blend65
+
+```js
 // SID integration for music and effects
 import playSIDFile from c64.sid
 import playSoundEffect from c64.sid
@@ -175,12 +192,14 @@ end function
 ### Implementation Priority Updates:
 
 **Critical Priority (Required for Astroblast):**
+
 1. **Hardware Collision Detection** - Core gameplay requirement
 2. **Advanced Sprite Control** - 8 sprites with individual animation
 3. **SID Music Integration** - Music and sound effects essential
 4. **Frame-accurate Timing** - 60 FPS game loop precision
 
 **High Priority (Significantly improves compatibility):**
+
 1. **Custom Character Set Support** - Enhanced graphics
 2. **Dual Joystick Input** - Two-player gameplay
 3. **BCD Arithmetic** - Score and timer management
@@ -191,6 +210,7 @@ end function
 ## Code Examples
 
 ### Original Game Code:
+
 ```asm
 // Main game loop (from astroblast.asm)
 MainLoop:
@@ -243,7 +263,8 @@ NoDeath:
 ```
 
 ### Required Blend65 Syntax (v0.5):
-```blend65
+
+```js
 // Main game loop in Blend65
 function mainGameLoop(): void
     frameCounter = frameCounter + 1
@@ -360,6 +381,7 @@ end function
 ## Evolution Impact
 
 ### Roadmap Classification:
+
 **Version 0.5 - CRITICAL - HIGH Implementation Effort**
 
 Astroblast represents a classic arcade-style C64 game that heavily depends on hardware-specific features. Supporting this type of game would significantly expand Blend65's capabilities for:
@@ -372,12 +394,14 @@ Astroblast represents a classic arcade-style C64 game that heavily depends on ha
 ### Missing Features Identified:
 
 **Hardware Integration (v0.5):**
+
 - Hardware sprite collision detection
 - SID music and sound effect integration
 - Precise frame timing and synchronization
 - Advanced VIC-II memory management
 
 **Development Tools (Future):**
+
 - Kick Assembler macro compatibility layer
 - Binary asset import system
 - Memory layout specification tools

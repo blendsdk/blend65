@@ -1,6 +1,7 @@
 # Game Analysis Report: Into The Electric Castle
 
 ## Executive Summary
+
 - **Repository:** https://github.com/dread-pirate-johnny-spaceboots/Into-The-Electric-Castle.git
 - **Analysis Date:** 02/01/2026
 - **Target Platform:** Commodore 64
@@ -15,7 +16,9 @@
 ## Technical Analysis
 
 ### Project Structure
+
 **Assembly Source Files:**
+
 - `Main.asm` (11,518 bytes) - Main game loop and program entry
 - `Subroutines.asm` (25,122 bytes) - Core gameplay functions and collision detection
 - `MemoryMap.asm` (2,806 bytes) - Hardware register definitions and memory layout
@@ -23,12 +26,14 @@
 - `Data.asm` (2,695 bytes) - Game constants and animation data
 
 **Binary Assets:**
+
 - 8 sprite data files (.bin, .spt) for player, bullets, doors, buttons, NPCs
 - 5 character set files for different screens (title, levels, game over)
 - 5 screen layout files for different game areas
 - 1 compiled game (.prg)
 
 ### Game Description
+
 "Into The Electric Castle" is a sophisticated C64 adventure/action game inspired by Ayreon's album. The player controls "FUTUREMAN" through various levels, using multiple actions (TALK, PSYCOPHASER/shoot, and a mystery third action) with a dual-joystick control scheme. The game features:
 
 - **Complex Control System:** Requires TWO joysticks - left for movement/action selection, right for action execution
@@ -42,6 +47,7 @@
 ### Hardware Usage Patterns
 
 #### VIC-II Graphics (Advanced Usage)
+
 - **Sprite System:** 8 hardware sprites used simultaneously (player, bullet, 2 doors, 2 buttons, 2 NPCs)
 - **Sprite Collision Detection:** Hardware collision registers `$D01E` (sprite-sprite) and `$D01F` (sprite-background)
 - **Sprite Overflow:** `$D010` register for horizontal sprite positioning beyond 255 pixels
@@ -51,16 +57,19 @@
 - **Coordinate System:** Precise sprite positioning with sub-pixel movement
 
 #### SID Sound (Moderate Usage)
+
 - **Voice 1 Only:** Uses single voice with frequency, waveform, ADSR control
 - **Sound Effects:** PlayFootstep(), PlayZap(), PlayLaser() functions with hardware parameters
 - **Register Access:** Direct SID register manipulation ($D400-$D406, $D418)
 
 #### CIA Input/Timing (Advanced Usage)
+
 - **Dual Joystick:** Both CIA1 ports ($DC00, $DC01) for complex input scheme
 - **Input Processing:** Custom joystick reading with bit masking and state tracking
 - **Timing Counters:** Game state counters for animations, door sequences, player death
 
 #### Memory Organization (Sophisticated)
+
 - **Sprite Data:** Organized at specific memory locations ($2000, $24C0, $2C00, etc.)
 - **Character Sets:** Multiple charset locations ($2800, $3000, $3800)
 - **Screen Layouts:** Pre-computed screen data at $5000+ range
@@ -70,6 +79,7 @@
 ### Control Flow Analysis
 
 #### Main Game Loop (Complex State Machine)
+
 ```assembly
 GameLoop:
     WaitForRaster #255
@@ -83,6 +93,7 @@ GameLoop:
 ```
 
 #### Advanced Features Used:
+
 - **State-driven Animation:** Door opening sequences with frame timing
 - **Physics System:** Bullet movement with 8-directional diagonal support
 - **Collision Response:** Different actions for different collision types
@@ -92,16 +103,19 @@ GameLoop:
 ### Mathematical and Algorithmic Complexity
 
 #### Collision Detection System
+
 - **Hardware Utilization:** Direct reads from VIC-II collision registers
 - **Multiple Collision Types:** Player-wall, player-door, bullet-button, bullet-NPC, etc.
 - **Complex Response Logic:** Different outcomes based on collision combinations
 
 #### Movement and Physics
+
 - **8-Directional Movement:** Including diagonal bullet trajectories
 - **Boundary Handling:** Screen edge wrapping with sprite overflow management
 - **Animation Timing:** Frame-based animation sequences with counters
 
 #### Game Logic Complexity
+
 - **Lives System:** Visual feedback with color-coded display
 - **Progress Tracking:** Level advancement, door states, button activation
 - **Save/Restore:** Player respawn with state preservation
@@ -113,7 +127,8 @@ GameLoop:
 ### Current v0.1 Capability Analysis
 
 #### ✅ **SUPPORTED in Blend65 v0.1:**
-```blend65
+
+```js
 // Basic game structure that could work
 module game.main
 
@@ -152,6 +167,7 @@ end function
 #### ❌ **NOT SUPPORTED in v0.1:**
 
 **Hardware Collision Detection:**
+
 ```assembly
 ; Current game code:
 lda SPRITE_COLLISIONS
@@ -162,12 +178,14 @@ beq DestroyBullet
 ```
 
 **Interrupt System:**
+
 ```assembly
 ; Needed for precise timing:
 WaitForRaster #255
 ```
 
 **Advanced Sprite Control:**
+
 ```assembly
 ; Complex sprite management:
 EnableSprites #%11111101
@@ -177,6 +195,7 @@ sta SPRITE_OVERFLOW
 ```
 
 **Memory-Mapped I/O:**
+
 ```assembly
 ; Direct hardware access:
 lda JOYSTICK_PORT2
@@ -187,16 +206,19 @@ beq @InputRight
 ### Required Blend65 Evolution
 
 #### Version 0.2 Requirements ❌
+
 - **Dynamic Arrays:** Not heavily needed in this static game
 - **Local Variables:** Could help with function organization
 - **Enums:** Would improve readability for game states
 
 #### Version 0.3 Requirements ❌
+
 - **String Processing:** Limited text in game, mostly flavor text
 - **Function Pointers:** Not required for this game's design
 - **Enhanced Math Library:** Basic arithmetic sufficient
 
 #### Version 0.4 Requirements ❌
+
 - **Dynamic Memory:** Game uses static allocation throughout
 - **Heap Management:** Not needed for this type of game
 - **Advanced Data Structures:** Static arrays and simple structs sufficient
@@ -204,7 +226,8 @@ beq @InputRight
 #### **Version 0.5 Requirements ⚠️ CRITICAL**
 
 **Interrupt System (CRITICAL):**
-```blend65
+
+```js
 // Required for raster timing
 interrupt function rasterSync(): void
     // Synchronize with specific raster line
@@ -215,7 +238,8 @@ setRasterInterrupt(255, rasterSync)
 ```
 
 **Hardware Collision Detection (CRITICAL):**
-```blend65
+
+```js
 import readSpriteCollisions from c64.vic
 import readBackgroundCollisions from c64.vic
 
@@ -234,7 +258,8 @@ end function
 ```
 
 **Advanced Sprite Control (CRITICAL):**
-```blend65
+
+```js
 import enableSprites from c64.sprites
 import setSpriteOverflow from c64.sprites
 import setSpritePosition from c64.sprites
@@ -250,7 +275,8 @@ end function
 ```
 
 **Precise Timing Control (CRITICAL):**
-```blend65
+
+```js
 import waitForRaster from c64.vic
 import readRasterLine from c64.vic
 
@@ -263,7 +289,8 @@ end function
 ```
 
 **Dual Joystick Support (HIGH):**
-```blend65
+
+```js
 import readJoystick from c64.input
 
 function readInput(): void
@@ -291,7 +318,8 @@ end function
 ### Critical C64 Hardware APIs Needed
 
 **c64.vic Module:**
-```blend65
+
+```js
 function readSpriteCollisions(): byte
     // Read $D01E register
 end function
@@ -318,7 +346,8 @@ end function
 ```
 
 **c64.sprites Module:**
-```blend65
+
+```js
 function enableSprites(mask: byte): void
     // Control $D015 register
 end function
@@ -349,7 +378,8 @@ end function
 ```
 
 **c64.interrupts Module:**
-```blend65
+
+```js
 function setRasterInterrupt(line: byte, handler: function): void
     // Set up raster interrupt
 end function
@@ -364,7 +394,8 @@ end function
 ```
 
 **c64.input Module:**
-```blend65
+
+```js
 function readJoystick(port: byte): byte
     // Read joystick state from CIA port
 end function
@@ -375,7 +406,8 @@ end function
 ```
 
 **c64.sid Module:**
-```blend65
+
+```js
 function playSound(voice: byte, freq: word, waveform: byte, adsr: word): void
     // Play sound on SID voice
 end function
@@ -396,17 +428,20 @@ end function
 ### Priority Updates Based on Analysis
 
 **CRITICAL Priority (Required for Hardware-Intensive Games):**
+
 1. **Hardware Collision Detection** - Essential for arcade-style games like ITEC
 2. **Interrupt System** - Required for proper C64 timing and smooth gameplay
 3. **Advanced Sprite Control** - Needed for complex multi-sprite games
 4. **Precise Timing** - Critical for maintaining proper game feel and synchronization
 
 **HIGH Priority (Significantly Improves Game Compatibility):**
+
 1. **Dual Input Support** - Many C64 games use multiple joysticks or keyboard+joystick
 2. **Memory-Mapped I/O** - Direct hardware register access for advanced control
 3. **Advanced Animation Systems** - Frame-based animation with timing control
 
 **MEDIUM Priority (Quality of Life Improvements):**
+
 1. **Macro System** - Assembly-style macros for common operations
 2. **Memory Layout Control** - Precise placement of sprites and character data
 3. **Sound Effect Library** - Higher-level sound functions for common game sounds
@@ -422,11 +457,13 @@ end function
 ### Version 0.5 Feature Implementation Effort
 
 **High Effort Features:**
+
 - **Interrupt System** - Complex 6502 interrupt handling and timing
 - **Hardware Collision Detection** - VIC-II register integration and bit manipulation
 - **Advanced Sprite Control** - Complete sprite system with overflow, positioning, enabling
 
 **Medium Effort Features:**
+
 - **Dual Input Support** - CIA register reading and input abstraction
 - **Precise Timing** - Raster synchronization and timing functions
 - **Sound System Integration** - SID register access and sound effect management
@@ -438,7 +475,8 @@ end function
 ### Recommended Blend65 Implementation
 
 **Phase 1: Core Game Structure (v0.1 Compatible)**
-```blend65
+
+```js
 module game.electric_castle
 
 // Game state variables
@@ -463,7 +501,8 @@ end function
 ```
 
 **Phase 2: Hardware Integration (v0.5 Required)**
-```blend65
+
+```js
 import setSpritePosition from c64.sprites
 import enableSprites from c64.sprites
 import readSpriteCollisions from c64.vic
@@ -496,7 +535,8 @@ end function
 ```
 
 **Phase 3: Advanced Features**
-```blend65
+
+```js
 function handleDualInput(): void
     var movementStick = readJoystick(2)  // Port 2 for movement
     var actionStick = readJoystick(1)    // Port 1 for actions
@@ -521,16 +561,19 @@ end function
 ### Alternative Implementation Approaches
 
 **Approach 1: Direct Hardware Emulation**
+
 - Implement exact C64 hardware register mapping in Blend65
 - Pros: Nearly identical code structure, easy porting
 - Cons: Less portable, hardware-dependent
 
 **Approach 2: Hardware Abstraction Layer**
+
 - Create high-level game APIs that map to hardware
 - Pros: More portable, cleaner code
 - Cons: May lose some performance and direct control
 
 **Approach 3: Hybrid Approach (Recommended)**
+
 - High-level APIs for common operations
 - Low-level access available for performance-critical sections
 - Provides both ease of use and flexibility

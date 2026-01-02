@@ -64,12 +64,13 @@ digit = "0".."9" ;
 ```
 
 **Examples:**
+
 ```js
-counter
-playerX
-VIC_REGISTER
-_tempVar
-sprite0Position
+counter;
+playerX;
+VIC_REGISTER;
+_tempVar;
+sprite0Position;
 ```
 
 ### Literals
@@ -86,11 +87,12 @@ binary_digit = "0" | "1" ;
 ```
 
 **Examples:**
+
 ```js
-255          // Decimal
-$FF          // Hexadecimal (6502 style)
-0xFF         // Hexadecimal (C style)
-0b11111111   // Binary
+255; // Decimal
+$FF; // Hexadecimal (6502 style)
+0xff; // Hexadecimal (C style)
+0b11111111; // Binary
 ```
 
 #### String Literals
@@ -102,11 +104,12 @@ escape_sequence = "\\" ( "n" | "t" | "r" | "\\" | '"' | "'" ) ;
 ```
 
 **Examples:**
+
 ```js
-"Hello, World!"
-'Single quoted string'
-"Line with\nnewline"
-"Quote: \"Hello\""
+'Hello, World!';
+'Single quoted string';
+'Line with\nnewline';
+"Quote: \"Hello\"";
 ```
 
 #### Boolean Literals
@@ -116,9 +119,10 @@ boolean_literal = "true" | "false" ;
 ```
 
 **Examples:**
+
 ```js
-true
-false
+true;
+false;
 ```
 
 ### Operators
@@ -305,6 +309,7 @@ program = module_declaration
 ```
 
 **Semantic Rules:**
+
 - Every file must start with exactly one module declaration
 - Import declarations must come before any other declarations
 - Export declarations and regular declarations can be intermixed
@@ -313,6 +318,7 @@ program = module_declaration
 **Examples:**
 
 ### Simple Program
+
 ```js
 module Game.Main
 
@@ -322,6 +328,7 @@ end function
 ```
 
 ### Complex Program
+
 ```js
 module Game.Player
 import setSpritePosition from c64.sprites
@@ -349,6 +356,7 @@ qualified_name = identifier { "." identifier } ;
 ```
 
 **Semantic Rules:**
+
 - Module names are hierarchical using dot notation
 - Module name should reflect the file's purpose and location
 - Convention: Use PascalCase for module parts (`Game.Main`, `Engine.Graphics`)
@@ -356,16 +364,19 @@ qualified_name = identifier { "." identifier } ;
 **Examples:**
 
 ### Single Level Module
+
 ```js
 module Main
 ```
 
 ### Hierarchical Module
+
 ```js
 module Game.Player.Movement
 ```
 
 ### Platform-Specific Module
+
 ```js
 module C64.Graphics.Sprites
 ```
@@ -384,6 +395,7 @@ named_type = identifier ;
 ```
 
 **Semantic Rules:**
+
 - All variables and function parameters must have explicit type annotations
 - Array sizes must be compile-time constants
 - `void` type only valid for function return types
@@ -391,16 +403,17 @@ named_type = identifier ;
 
 ### Primitive Types
 
-| Type | Size | Range | Usage |
-|------|------|-------|--------|
-| `byte` | 8-bit | 0-255 | Most common 6502 type |
-| `word` | 16-bit | 0-65535 | Addresses, larger values |
-| `boolean` | 8-bit | true/false | Logical operations |
-| `void` | - | - | Function return type only |
+| Type      | Size   | Range      | Usage                     |
+| --------- | ------ | ---------- | ------------------------- |
+| `byte`    | 8-bit  | 0-255      | Most common 6502 type     |
+| `word`    | 16-bit | 0-65535    | Addresses, larger values  |
+| `boolean` | 8-bit  | true/false | Logical operations        |
+| `void`    | -      | -          | Function return type only |
 
 **Examples:**
 
 ### Basic Types
+
 ```js
 var counter: byte = 0
 var address: word = $C000
@@ -408,6 +421,7 @@ var enabled: boolean = true
 ```
 
 ### Array Types
+
 ```js
 var buffer: byte[256]          // Fixed-size byte array
 var screenData: byte[1000]     // Large data array
@@ -415,6 +429,7 @@ var coordinates: word[100]     // Array of 16-bit values
 ```
 
 ### Function Return Types
+
 ```js
 function getByte(): byte       // Returns a byte
   return 42
@@ -439,30 +454,33 @@ variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
 
 ### Storage Class Semantics
 
-| Storage Class | Memory Location | Initialization | Access Speed | Usage |
-|---------------|----------------|----------------|--------------|--------|
-| `zp` | Zero Page ($00-$FF) | Runtime | Fastest | Hot variables, counters |
-| `ram` | General RAM | Runtime | Normal | General variables |
-| `data` | Initialized Data | Compile-time | Normal | Pre-initialized arrays |
-| `const` | ROM/Constant | Compile-time | Normal | Constants, lookup tables |
-| `io` | Memory-mapped I/O | None | Variable | Hardware registers |
-| _(default)_ | Automatic | Runtime | Normal | Local variables |
+| Storage Class | Memory Location     | Initialization | Access Speed | Usage                    |
+| ------------- | ------------------- | -------------- | ------------ | ------------------------ |
+| `zp`          | Zero Page ($00-$FF) | Runtime        | Fastest      | Hot variables, counters  |
+| `ram`         | General RAM         | Runtime        | Normal       | General variables        |
+| `data`        | Initialized Data    | Compile-time   | Normal       | Pre-initialized arrays   |
+| `const`       | ROM/Constant        | Compile-time   | Normal       | Constants, lookup tables |
+| `io`          | Memory-mapped I/O   | None           | Variable     | Hardware registers       |
+| _(default)_   | Automatic           | Runtime        | Normal       | Local variables          |
 
 **Examples:**
 
 ### Zero Page Variables (Fastest Access)
+
 ```js
 zp var counter: byte = 0           // Fast loop counter
 zp var tempPtr: word              // Fast pointer arithmetic
 ```
 
 ### RAM Variables (General Storage)
+
 ```js
 ram var gameState: byte           // General game data
 ram var buffer: byte[1000]        // Large working buffer
 ```
 
 ### Data Variables (Pre-initialized)
+
 ```js
 data var palette: byte[16] = [
   $00, $01, $02, $03, $04, $05, $06, $07,
@@ -471,12 +489,14 @@ data var palette: byte[16] = [
 ```
 
 ### Constant Variables (Read-only)
+
 ```js
 const var SCREEN_WIDTH: byte = 40
 const var SIN_TABLE: byte[256] = [/* sine values */]
 ```
 
 ### I/O Variables (Hardware Registers)
+
 ```js
 io var VIC_BACKGROUND: byte       // $D020 - Background color
 io var SID_VOLUME: byte           // $D418 - Sound volume
@@ -492,6 +512,7 @@ variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
 ```
 
 **Semantic Rules:**
+
 - All variables must have explicit type annotations
 - **Storage classes are only allowed at global scope (module level)**
 - Local variables inside functions use automatic storage only
@@ -499,12 +520,14 @@ variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
 - I/O variables typically map to specific hardware addresses
 
 **Scope Restrictions:**
+
 - `zp`, `ram`, `data`, `const`, `io` storage classes: **Global scope only**
 - Function parameters and local variables: **Automatic storage only**
 
 **Examples:**
 
 ### Global Variable Declarations (Module Level)
+
 ```js
 // Valid: Storage classes at global scope
 zp var hotCounter: byte              // Zero page for speed
@@ -516,6 +539,7 @@ var globalVar: byte = 0              // Default storage (automatic)
 ```
 
 ### Function Local Variables (Automatic Storage Only)
+
 ```js
 function calculateDistance(): word
   var deltaX: byte                   // Local variable (automatic storage only)
@@ -532,6 +556,7 @@ end function
 ```
 
 ### Storage Class Memory Allocation
+
 ```js
 module Game.Main
 
@@ -571,6 +596,7 @@ parameter = identifier ":" type_annotation [ "=" expression ] ;
 ```
 
 **Semantic Rules:**
+
 - Functions without explicit return type default to `void`
 - All parameters must have explicit type annotations
 - Function body consists of statements terminated by `end function`
@@ -579,28 +605,32 @@ parameter = identifier ":" type_annotation [ "=" expression ] ;
 **Examples:**
 
 ### Simple Function
-```blend65
+
+```js
 function greet(): void
   // Print greeting
 end function
 ```
 
 ### Function with Parameters
-```blend65
+
+```js
 function add(a: byte, b: byte): byte
   return a + b
 end function
 ```
 
 ### Function with Default Parameters
-```blend65
+
+```js
 function setSprite(id: byte, x: byte, y: byte, color: byte = 1): void
   // Set sprite properties
 end function
 ```
 
 ### Complex Function Example
-```blend65
+
+```js
 export function updatePlayer(deltaTime: byte): boolean
   var newX: byte
   var newY: byte
@@ -632,70 +662,77 @@ end function
 
 ### Expression Precedence (Highest to Lowest)
 
-| Precedence | Operators | Associativity | Description |
-|------------|-----------|---------------|-------------|
-| 1 | `()` `[]` `.` | Left-to-right | Grouping, indexing, member access |
-| 2 | `+` `-` `not` `~` | Right-to-left | Unary plus, minus, logical not, bitwise not |
-| 3 | `*` `/` `%` | Left-to-right | Multiplication, division, modulo |
-| 4 | `+` `-` | Left-to-right | Addition, subtraction |
-| 5 | `<<` `>>` | Left-to-right | Bit shifts |
-| 6 | `<` `<=` `>` `>=` | Left-to-right | Relational comparison |
-| 7 | `==` `!=` | Left-to-right | Equality comparison |
-| 8 | `&` | Left-to-right | Bitwise AND |
-| 9 | `^` | Left-to-right | Bitwise XOR |
-| 10 | `|` | Left-to-right | Bitwise OR |
-| 11 | `and` | Left-to-right | Logical AND |
-| 12 | `or` | Left-to-right | Logical OR |
-| 13 | `=` `+=` `-=` `*=` `/=` `%=` `&=` `|=` `^=` `<<=` `>>=` | Right-to-left | Assignment |
+| Precedence | Operators                           | Associativity       | Description                                 |
+| ---------- | ----------------------------------- | ------------------- | ------------------------------------------- | ---------- |
+| 1          | `()` `[]` `.`                       | Left-to-right       | Grouping, indexing, member access           |
+| 2          | `+` `-` `not` `~`                   | Right-to-left       | Unary plus, minus, logical not, bitwise not |
+| 3          | `*` `/` `%`                         | Left-to-right       | Multiplication, division, modulo            |
+| 4          | `+` `-`                             | Left-to-right       | Addition, subtraction                       |
+| 5          | `<<` `>>`                           | Left-to-right       | Bit shifts                                  |
+| 6          | `<` `<=` `>` `>=`                   | Left-to-right       | Relational comparison                       |
+| 7          | `==` `!=`                           | Left-to-right       | Equality comparison                         |
+| 8          | `&`                                 | Left-to-right       | Bitwise AND                                 |
+| 9          | `^`                                 | Left-to-right       | Bitwise XOR                                 |
+| 10         | `                                   | `                   | Left-to-right                               | Bitwise OR |
+| 11         | `and`                               | Left-to-right       | Logical AND                                 |
+| 12         | `or`                                | Left-to-right       | Logical OR                                  |
+| 13         | `=` `+=` `-=` `*=` `/=` `%=` `&=` ` | =` `^=` `<<=` `>>=` | Right-to-left                               | Assignment |
 
 **Examples:**
 
 ### Arithmetic Expressions
-```blend65
+
+```js
 var result: byte = a + b * c       // b * c first, then + a
 var scaled: byte = (a + b) * 2     // Parentheses override precedence
 var remainder: byte = value % 8    // Modulo operation
 ```
 
 ### Logical Expressions
-```blend65
+
+```js
 var canMove: boolean = not blocked and hasEnergy
 var inRange: boolean = x >= minX and x <= maxX
 var validColor: boolean = color == RED or color == BLUE
 ```
 
 ### Bitwise Expressions
-```blend65
+
+```js
 var masked: byte = value & $0F     // Keep lower 4 bits
 var shifted: byte = value << 2     // Multiply by 4 (shift left)
 var combined: byte = flagA | flagB // Combine flags
 ```
 
 ### Assignment Expressions
-```blend65
-counter += 1                       // Equivalent to: counter = counter + 1
-value <<= 2                        // Equivalent to: value = value << 2
-flags &= ~DISABLED_FLAG            // Clear specific flag
+
+```js
+counter += 1; // Equivalent to: counter = counter + 1
+value <<= 2; // Equivalent to: value = value << 2
+flags &= ~DISABLED_FLAG; // Clear specific flag
 ```
 
 ### Function Calls
-```blend65
+
+```js
 var distance: word = calculateDistance(x1, y1, x2, y2)
 setSpritePosition(0, playerX, playerY)
 ```
 
 ### Array Access
-```blend65
+
+```js
 var pixel: byte = screenData[y * 40 + x]
 buffer[index] = newValue
 palette[colorIndex] = $0E
 ```
 
 ### Member Access (Future Feature)
-```blend65
+
+```js
 // Not yet implemented in v0.1
-player.x = 100
-enemy.health -= damage
+player.x = 100;
+enemy.health -= damage;
 ```
 
 ---
@@ -711,10 +748,11 @@ expression_statement = expression statement_terminator ;
 Any expression followed by a statement terminator becomes a statement.
 
 **Examples:**
-```blend65
-counter += 1                       // Assignment expression as statement
-setSpritePosition(0, x, y)        // Function call as statement
-buffer[index] = value              // Array assignment as statement
+
+```js
+counter += 1; // Assignment expression as statement
+setSpritePosition(0, x, y); // Function call as statement
+buffer[index] = value; // Array assignment as statement
 ```
 
 ### Return Statement
@@ -724,10 +762,11 @@ return_statement = "return" [ expression ] statement_terminator ;
 ```
 
 **Examples:**
-```blend65
-return                             // Return void
-return 42                          // Return value
-return x + y                       // Return expression result
+
+```js
+return; // Return void
+return 42; // Return value
+return x + y; // Return expression result
 ```
 
 ---
@@ -744,6 +783,7 @@ if_statement = "if" expression "then" statement_terminator
 ```
 
 **Semantic Rules:**
+
 - Condition expression must evaluate to a boolean
 - `then` keyword is required
 - `else` clause is optional
@@ -752,14 +792,16 @@ if_statement = "if" expression "then" statement_terminator
 **Examples:**
 
 ### Simple If
-```blend65
+
+```js
 if health <= 0 then
   gameOver = true
 end if
 ```
 
 ### If-Else
-```blend65
+
+```js
 if score > highScore then
   highScore = score
   newRecord = true
@@ -769,7 +811,8 @@ end if
 ```
 
 ### Nested If Statements
-```blend65
+
+```js
 if playerAlive then
   if hasKey then
     if nearDoor then
@@ -782,7 +825,8 @@ end if
 ```
 
 ### If with Complex Conditions
-```blend65
+
+```js
 if (x >= 0 and x < SCREEN_WIDTH) and (y >= 0 and y < SCREEN_HEIGHT) then
   setPixel(x, y, color)
 end if
@@ -799,7 +843,8 @@ while_statement = "while" expression statement_terminator
 **Examples:**
 
 ### Simple While Loop
-```blend65
+
+```js
 while counter < 10
   buffer[counter] = 0
   counter += 1
@@ -807,7 +852,8 @@ end while
 ```
 
 ### While with Complex Condition
-```blend65
+
+```js
 while gameRunning and not quitPressed
   updateGame()
   renderFrame()
@@ -816,7 +862,8 @@ end while
 ```
 
 ### Infinite Loop (Common in 6502 Games)
-```blend65
+
+```js
 while true
   // Main game loop
   waitForVSync()
@@ -835,6 +882,7 @@ for_statement = "for" identifier "=" expression "to" expression
 ```
 
 **Semantic Rules:**
+
 - Loop variable is automatically declared with `byte` type
 - Start and end expressions evaluated once at loop entry
 - Step defaults to 1 if not specified
@@ -843,21 +891,24 @@ for_statement = "for" identifier "=" expression "to" expression
 **Examples:**
 
 ### Simple For Loop
-```blend65
+
+```js
 for i = 0 to 255
   buffer[i] = 0
 next i
 ```
 
 ### For Loop with Step
-```blend65
+
+```js
 for x = 0 to 320 step 8
   drawVerticalLine(x)
 next x
 ```
 
 ### Nested For Loops
-```blend65
+
+```js
 for y = 0 to 24
   for x = 0 to 39
     screenData[y * 40 + x] = SPACE_CHAR
@@ -866,7 +917,8 @@ next y
 ```
 
 ### Countdown Loop
-```blend65
+
+```js
 for countdown = 10 to 0 step -1
   displayNumber(countdown)
   waitOneSecond()
@@ -888,7 +940,8 @@ default_case = "case" ":" statement_terminator statement_block ;
 **Note:** Match statements are planned for future versions but not implemented in v0.1.
 
 **Examples (Future):**
-```blend65
+
+```js
 match gameState
 case MENU:
   handleMenuInput()
@@ -915,6 +968,7 @@ import_specifier = identifier [ "as" identifier ] ;
 ```
 
 **Semantic Rules:**
+
 - Imports must appear before any declarations in the file
 - Imported names become available in the current module's scope
 - Import source uses qualified name syntax (dot notation)
@@ -923,29 +977,34 @@ import_specifier = identifier [ "as" identifier ] ;
 **Examples:**
 
 ### Single Import
-```blend65
+
+```js
 import setSpritePosition from c64.sprites
 ```
 
 ### Multiple Imports
-```blend65
+
+```js
 import setSpritePosition, setSpriteColor, enableSprites from c64.sprites
 ```
 
 ### Import with Alias
-```blend65
+
+```js
 import setSpritePosition as setPos from c64.sprites
 ```
 
 ### Platform-Specific Imports
-```blend65
+
+```js
 import joystickLeft, joystickRight, joystickFire from c64.input
 import clearScreen, setTextColor from c64.screen
 import playNote, setVolume from c64.sound
 ```
 
 ### Core Library Imports
-```blend65
+
+```js
 import abs, min, max from core.math
 import copyMemory, fillMemory from core.memory
 import length, substring from core.string
@@ -958,6 +1017,7 @@ export_declaration = "export" declaration ;
 ```
 
 **Semantic Rules:**
+
 - Only functions and variables can be exported
 - Exported declarations become available to other modules
 - Exported names must be unique within the module
@@ -966,7 +1026,8 @@ export_declaration = "export" declaration ;
 **Examples:**
 
 ### Export Function
-```blend65
+
+```js
 export function initPlayer(): void
   playerX = 100
   playerY = 100
@@ -975,18 +1036,21 @@ end function
 ```
 
 ### Export Variable
-```blend65
+
+```js
 export var playerScore: word = 0
 ```
 
 ### Export with Storage Class
-```blend65
+
+```js
 export const var MAX_ENEMIES: byte = 10
 export zp var gameRunning: boolean = true
 ```
 
 ### Complete Module Example
-```blend65
+
+```js
 module Game.Player
 import setSpritePosition from c64.sprites
 import random from core.math
@@ -1034,7 +1098,8 @@ line_comment = "//" { any_char - newline } newline ;
 Line comments begin with `//` and continue to the end of the line.
 
 **Examples:**
-```blend65
+
+```js
 var counter: byte = 0              // Initialize counter
 // This is a full-line comment
 setSpritePosition(0, x, y)         // Set player sprite position
@@ -1049,7 +1114,8 @@ block_comment = "/*" { any_char } "*/" ;
 Block comments begin with `/*` and end with `*/`. They can span multiple lines.
 
 **Examples:**
-```blend65
+
+```js
 /*
  * This is a multi-line comment
  * describing the following function
@@ -1062,7 +1128,7 @@ end function
 
 ### Documentation Comments (Convention)
 
-```blend65
+```js
 /*
  * Calculate the distance between two points
  * @param x1 First point X coordinate
@@ -1083,7 +1149,7 @@ end function
 
 ### Hello World
 
-```blend65
+```js
 module HelloWorld
 import printString from c64.screen
 
@@ -1094,7 +1160,7 @@ end function
 
 ### Simple Game Loop
 
-```blend65
+```js
 module Game.Main
 import setSpritePosition from c64.sprites
 import joystickLeft, joystickRight from c64.input
@@ -1143,7 +1209,7 @@ end function
 
 ### Memory Management Example
 
-```blend65
+```js
 module Game.Memory
 import copyMemory from core.memory
 
@@ -1175,7 +1241,7 @@ end function
 
 ### Complex Expression Example
 
-```blend65
+```js
 module Game.Physics
 import sin, cos from core.math
 
@@ -1214,7 +1280,7 @@ end function
 
 ### Advanced C64 Example
 
-```blend65
+```js
 module Game.C64Demo
 import setSpritePosition, setSpriteColor, enableSprites from c64.sprites
 import setBackground, setBorder from c64.vic
@@ -1356,26 +1422,30 @@ end function
 Blend65 performs extensive compile-time checking to catch errors before code generation:
 
 #### Type Errors
-```blend65
+
+```js
 var counter: byte = "hello"            // ERROR: Type mismatch
 var result: word = add(x)              // ERROR: Wrong number of arguments
 ```
 
 #### Scope Errors
-```blend65
+
+```js
 function test(): void
   var x: byte = undefinedVar           // ERROR: Undefined variable
 end function
 ```
 
 #### Storage Class Errors
-```blend65
+
+```js
 const var table: byte[256]             // ERROR: const requires initialization
 io var normalVar: byte = 5             // ERROR: io variables cannot be initialized
 ```
 
 #### Array Bounds Errors
-```blend65
+
+```js
 var buffer: byte[256]
 var value: byte = buffer[300]          // ERROR: Array index out of bounds (if detectable)
 ```
@@ -1385,7 +1455,8 @@ var value: byte = buffer[300]          // ERROR: Array index out of bounds (if d
 Blend65 v0.1 has minimal runtime error handling due to 6502 constraints:
 
 #### Array Bounds (Optional Checking)
-```blend65
+
+```js
 // Bounds checking can be enabled for debug builds
 var buffer: byte[256]
 var index: byte = getUserInput()
@@ -1397,7 +1468,8 @@ end if
 ```
 
 #### Division by Zero
-```blend65
+
+```js
 function safeDivide(a: byte, b: byte): byte
   if b == 0 then
     return 0                           // Or handle error appropriately
@@ -1410,7 +1482,7 @@ end function
 
 The Blend65 parser attempts to recover from syntax errors:
 
-```blend65
+```js
 // Missing 'then' keyword
 if x == 5                              // ERROR: Expected 'then'
   y = 10
@@ -1434,7 +1506,8 @@ var result: byte = 5 + + 3             // ERROR: Unexpected operator
 Blend65 is designed with 6502 memory architecture in mind:
 
 #### Zero Page Optimization
-```blend65
+
+```js
 // Automatic zero page allocation for frequently used variables
 zp var fastCounter: byte               // Allocated to $00-$FF range
 zp var tempPointer: word               // Uses 2 consecutive zero page bytes
@@ -1444,7 +1517,8 @@ io var ZERO_PAGE_TEMP: byte            // Can be mapped to specific ZP address
 ```
 
 #### Bank Switching Support (Future)
-```blend65
+
+```js
 // Planned for future versions
 bank data var largeData: byte[8192]    // Data in switchable memory bank
 ```
@@ -1452,7 +1526,8 @@ bank data var largeData: byte[8192]    // Data in switchable memory bank
 ### 6502 Assembly Integration
 
 #### Inline Assembly (Future Feature)
-```blend65
+
+```js
 function optimizedCopy(source: word, dest: word, count: byte): void
   // Planned inline assembly syntax
   asm {
@@ -1467,7 +1542,8 @@ end function
 ```
 
 #### Hardware Register Access
-```blend65
+
+```js
 // Direct hardware register mapping
 io var VIC_SPRITE_ENABLE: byte         // $D015 - Sprite enable register
 io var VIC_BACKGROUND: byte            // $D020 - Background color
@@ -1483,7 +1559,8 @@ end function
 ### Performance Optimization Features
 
 #### Fast Multiplication and Division
-```blend65
+
+```js
 // Compiler recognizes power-of-2 operations
 var doubled: byte = value * 2          // Optimized to: ASL
 var halved: byte = value / 2           // Optimized to: LSR
@@ -1491,7 +1568,8 @@ var times8: byte = value * 8           // Optimized to: ASL ASL ASL
 ```
 
 #### Bit Manipulation Optimization
-```blend65
+
+```js
 // Efficient bit operations for flags and masks
 var flags: byte = 0
 flags |= $01                           // Set bit 0: ORA #$01
@@ -1500,7 +1578,8 @@ var bit5: boolean = (flags & $20) != 0 // Test bit 5: AND #$20
 ```
 
 #### Loop Optimization
-```blend65
+
+```js
 // Countdown loops are optimized for 6502
 for i = 255 to 0 step -1               // Optimized to DEC/BNE loop
   buffer[i] = 0
@@ -1516,7 +1595,8 @@ next fastLoop
 ### Target-Specific Code Generation
 
 #### C64 Optimizations
-```blend65
+
+```js
 // C64-specific optimizations applied automatically
 import clearScreen from c64.screen
 
@@ -1527,7 +1607,8 @@ end function
 ```
 
 #### Multi-Target Support
-```blend65
+
+```js
 // Same source code, different optimizations per target
 module Game.Universal
 
@@ -1543,7 +1624,8 @@ end function                           // VIC-20: Uses VIC-I optimizations
 ### Memory Map Awareness
 
 #### Automatic Memory Allocation
-```blend65
+
+```js
 // Compiler automatically places variables in appropriate memory regions
 var gameData: byte[1000]               // Placed in available RAM
 const var lookupTable: byte[256] = [/* data */]  // Placed in ROM area
@@ -1551,7 +1633,8 @@ io var hardware: byte                  // Mapped to hardware addresses
 ```
 
 #### Memory Conflict Detection
-```blend65
+
+```js
 // Compiler detects and prevents memory conflicts
 io var CUSTOM_REGISTER: byte           // If address conflicts with system,
                                        // compiler generates warning/error
@@ -1560,7 +1643,8 @@ io var CUSTOM_REGISTER: byte           // If address conflicts with system,
 ### Stack Management
 
 #### Automatic Stack Usage
-```blend65
+
+```js
 function recursiveFunction(depth: byte): byte
   // Compiler manages 6502 stack automatically
   var localVar: byte = depth           // Allocated on stack if needed
@@ -1574,7 +1658,8 @@ end function
 ```
 
 #### Stack Overflow Protection (Debug Mode)
-```blend65
+
+```js
 // Available in debug builds
 function deepRecursion(n: word): word
   // Compiler can insert stack overflow checks
@@ -1603,37 +1688,28 @@ and       or        not       true      false
 
 Complete operator precedence table with 6502 optimization notes:
 
-| Operator | Description | 6502 Optimization |
-|----------|-------------|-------------------|
-| `()` | Grouping | No optimization |
-| `[]` | Array access | Zero page indexing when possible |
-| `*` `/` `%` | Multiplication/Division | Shift optimization for powers of 2 |
-| `+` `-` | Addition/Subtraction | 8-bit and 16-bit optimizations |
-| `<<` `>>` | Bit shifts | Direct ASL/LSR/ROL/ROR usage |
-| `&` `|` `^` `~` | Bitwise operations | Direct AND/ORA/EOR usage |
-| `and` `or` `not` | Logical operations | Short-circuit evaluation |
+| Operator         | Description             | 6502 Optimization                  |
+| ---------------- | ----------------------- | ---------------------------------- | ------------------------ |
+| `()`             | Grouping                | No optimization                    |
+| `[]`             | Array access            | Zero page indexing when possible   |
+| `*` `/` `%`      | Multiplication/Division | Shift optimization for powers of 2 |
+| `+` `-`          | Addition/Subtraction    | 8-bit and 16-bit optimizations     |
+| `<<` `>>`        | Bit shifts              | Direct ASL/LSR/ROL/ROR usage       |
+| `&` `            | ` `^` `~`               | Bitwise operations                 | Direct AND/ORA/EOR usage |
+| `and` `or` `not` | Logical operations      | Short-circuit evaluation           |
 
 ### C. Storage Class Memory Map
 
-| Storage Class | Typical Address Range | C64 Example | Notes |
-|---------------|----------------------|-------------|--------|
-| `zp` | $00-$FF | $02-$8F (free area) | Fastest access |
-| `ram` | $0200-$9FFF | $0800-$9FFF | General RAM |
-| `data` | Varies | $A000-$BFFF | Initialized data |
-| `const` | ROM area | $C000-$FFFF | Read-only |
-| `io` | Hardware registers | $D000-$DFFF | Memory-mapped I/O |
-
-### D. Evolution Notes
-
-This specification describes Blend65 v0.1. Planned features for future versions:
-
-- **v0.2**: Dynamic arrays, local variables, enhanced type system
-- **v0.3**: String types, function pointers, inline assembly
-- **v0.4**: Heap allocation, advanced memory management
-- **v0.5**: Interrupt handlers, hardware collision detection
+| Storage Class | Typical Address Range | C64 Example         | Notes             |
+| ------------- | --------------------- | ------------------- | ----------------- |
+| `zp`          | $00-$FF               | $02-$8F (free area) | Fastest access    |
+| `ram`         | $0200-$9FFF           | $0800-$9FFF         | General RAM       |
+| `data`        | Varies                | $A000-$BFFF         | Initialized data  |
+| `const`       | ROM area              | $C000-$FFFF         | Read-only         |
+| `io`          | Hardware registers    | $D000-$DFFF         | Memory-mapped I/O |
 
 ---
 
 **End of Specification**
 
-*This document serves as the authoritative reference for the Blend65 language. The parser and lexer implementations should conform to the grammar and semantics described herein.*
+_This document serves as the authoritative reference for the Blend65 language. The parser and lexer implementations should conform to the grammar and semantics described herein._

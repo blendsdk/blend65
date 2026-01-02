@@ -141,14 +141,14 @@ LDA SLSP               ; Ship line heap pointer (moves dynamically)
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 var ships: Ship[10]    // Fixed-size arrays only
 zp var counter: byte   // Static storage classes only
 ```
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Dynamic memory management
 heap var ships: dynamic Ship[]
 var leader: &Ship
@@ -177,7 +177,7 @@ INWK:               ; Zero-page workspace for current ship
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 type Ship
     x: byte
     y: byte
@@ -186,7 +186,7 @@ end type
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Complex nested structures
 type Ship
     position: Vector3
@@ -220,13 +220,13 @@ JSR FMLTU              ; Fast multiply using log tables
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 var result: byte = a * b / c  // Basic arithmetic only
 ```
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Built-in math library
 import sin, cos, arctan from math
 import fastMultiply from c64.math
@@ -255,13 +255,13 @@ JSR MESS               ; Display in-flight message
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 const var message: byte[10] = "GAME OVER"  // Byte arrays only
 ```
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // String type and operations
 type string: dynamic byte[]
 
@@ -287,7 +287,7 @@ JSR TACTICS            ; AI decision making
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 // Basic control flow works fine
 if condition then
     // action
@@ -296,7 +296,7 @@ end if
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Function pointers
 type AIHandler: function(ship: &Ship): void
 
@@ -330,7 +330,7 @@ STA $FFFE              ; Hardware interrupt vectors
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 // Basic hardware APIs
 import setSpritePosition from c64.sprites
 setSpritePosition(0, x, y)
@@ -338,7 +338,7 @@ setSpritePosition(0, x, y)
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Interrupt handlers
 interrupt function rasterInterrupt(): void
     import setScreenMode from c64.vic
@@ -373,7 +373,7 @@ newcinv:
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 // NO interrupt system at all
 export function main(): void
     while true
@@ -386,7 +386,7 @@ end function
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Interrupt handler declaration
 interrupt function gameLoop(): void
     updateAllSprites()
@@ -425,7 +425,7 @@ check_sprite_collision:
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 // NO collision detection APIs
 // Must implement in software manually
 function checkCollision(x1: byte, y1: byte, x2: byte, y2: byte): boolean
@@ -436,7 +436,7 @@ end function
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Hardware collision detection
 import readSpriteCollisions, readBackgroundCollisions, clearCollisions from c64.vic
 
@@ -484,7 +484,7 @@ gen_random_room:
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 // Basic random number with no hardware timing
 import random from math
 var randomValue: byte = random(200)
@@ -492,7 +492,7 @@ var randomValue: byte = random(200)
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Hardware-based randomness and timing
 import enableNoise, readOscillator from c64.sid
 import setTimer, readTimer from c64.cia
@@ -535,7 +535,7 @@ end function
 
 **Blend65 v0.1 Has:**
 
-```blend65
+```js
 // Basic sprite positioning only
 import setSpritePosition from c64.sprites
 setSpritePosition(0, x, y)
@@ -543,7 +543,7 @@ setSpritePosition(0, x, y)
 
 **Future Blend65 Needs:**
 
-```blend65
+```js
 // Advanced sprite configuration
 import setSpriteImage, setSpriteExpansion, enableSprites from c64.sprites
 
@@ -606,7 +606,7 @@ end function
 
 **Example:**
 
-```blend65
+```js
 type Enemy
     x: byte
     y: byte
@@ -643,7 +643,7 @@ end function
 
 **Example:**
 
-```blend65
+```js
 type AIBehavior: function(ship: &Ship): void
 
 function createShip(behavior: AIBehavior): &Ship
@@ -676,7 +676,7 @@ var pirate: &Ship = createShip(pirateAI)
 
 **Example:**
 
-```blend65
+```js
 // Elite-style ship management
 var localBubble: dynamic Ship[]
 
@@ -713,7 +713,7 @@ end function
 
 **Critical Features for Bubble Escape Port:**
 
-```blend65
+```js
 // Interrupt system - ESSENTIAL
 interrupt function gameLoop(): void
     updateAllSprites()
@@ -780,7 +780,7 @@ end function
 
 ### Dynamic Arrays
 
-```blend65
+```js
 // Declaration
 var ships: dynamic Ship[]
 
@@ -797,7 +797,7 @@ ships.reserve(50)         // Pre-allocate space
 
 ### Pointers and References
 
-```blend65
+```js
 // Pointer declaration
 var leader: &Ship         // Pointer to Ship
 var targets: &Ship[]     // Pointer to array
@@ -814,7 +814,7 @@ var x: byte = ship.position.x
 
 ### Function Pointers
 
-```blend65
+```js
 // Function pointer types
 type EventHandler: function(event: Event): void
 type Comparator: function(a: &Ship, b: &Ship): boolean
@@ -833,7 +833,7 @@ end function
 
 ### Advanced Types
 
-```blend65
+```js
 // Complex nested structures
 type Galaxy
     systems: dynamic System[]
@@ -1150,7 +1150,7 @@ mainloop
 
 **Blend65 v0.1 Equivalent:**
 
-```blend65
+```js
 function gameLoop(): void
     while true
         checkLevelAdvancement()
@@ -1275,7 +1275,7 @@ PlayNoteVoice1:
 
 **Required Blend65 Syntax:**
 
-```blend65
+```js
 // Interrupt-driven animation system
 interrupt function titleScreenRasterHandler(): void
     if rasterLine = 16 then
@@ -1411,7 +1411,7 @@ input   jsr SCNKEY                      ; jump to scan keyboard
 
 **Blend65 v0.1 Implementation:**
 
-```blend65
+```js
 import keyPressed, KEY_W, KEY_A, KEY_S, KEY_D from c64.input
 import setSpritePosition, getSpritePosition from c64.sprites
 
@@ -1445,7 +1445,7 @@ cld                    ; clear decimal mode
 
 **Blend65 v0.2 Need:**
 
-```blend65
+```js
 import bcdAdd from math
 
 var score: bcd = 0
@@ -1502,7 +1502,7 @@ Psychedelia represents a **completely new application category** that pushes bey
 
 **Interrupt System Framework:**
 
-```blend65
+```js
 // 60Hz main loop in interrupt handler
 interrupt function mainUpdate(): void
     updatePixelBuffers()
@@ -1517,7 +1517,7 @@ end function
 
 **Memory-Mapped I/O Access:**
 
-```blend65
+```js
 // Direct hardware register access
 var colorRam: ptr byte = $D800
 var joystick: ptr byte = $DC00
@@ -1531,7 +1531,7 @@ end function
 
 **Real-Time Graphics APIs:**
 
-```blend65
+```js
 import clearColorRam, setCharacterSet, configureMemoryLayout from c64.vic
 
 function initializeGraphics(): void
@@ -1544,7 +1544,7 @@ end function
 
 **Precise Timing Control:**
 
-```blend65
+```js
 import setTimer, readTimer from c64.cia
 
 function waitForNextFrame(): void
@@ -1557,7 +1557,7 @@ end function
 
 **Zero Page Optimization:**
 
-```blend65
+```js
 // Performance-critical variables in zero page
 zp var pixelX: byte at $02
 zp var pixelY: byte at $03
@@ -1672,14 +1672,14 @@ Supporting Psychedelia-class applications would establish Blend65 as a **complet
 
 **Advanced Sprite Control:**
 
-```blend65
+```js
 import setMultiSpriteAnimation, setSpriteDataPointer from c64.sprites
 import readSpriteCollisions, readBackgroundCollisions from c64.vic
 ```
 
 **Hardware Collision Detection:**
 
-```blend65
+```js
 function checkHardwareCollisions(): byte
     var collisions: byte = readSpriteCollisionRegister()
     return collisions
@@ -1688,7 +1688,7 @@ end function
 
 **SID Integration:**
 
-```blend65
+```js
 import playSIDMusic, playSoundEffect, setSIDVolume from c64.sid
 ```
 
@@ -1719,7 +1719,7 @@ MainLoop:
 
 **Required Blend65 v0.5 Syntax:**
 
-```blend65
+```js
 function mainGameLoop(): void
     frameCounter = frameCounter + 1
 
@@ -1753,7 +1753,7 @@ HandleCollisionShip:
 
 **Blend65 v0.5 Equivalent:**
 
-```blend65
+```js
 function checkShipCollision(ship: Sprite): byte
     var collisionSprite: byte = checkSpriteToSpriteCollision(ship.spriteNum)
 
@@ -1845,7 +1845,7 @@ Astroblast confirms that **v0.5 is essential** for supporting the rich arcade ga
 
 **32-bit Arithmetic Operations:**
 
-```blend65
+```js
 // Essential for financial calculations
 var money: dword = 1000000
 var income: dword = calculateIncome()
@@ -1858,7 +1858,7 @@ function divide32(dividend: dword, divisor: word): dword
 
 **Dynamic Multi-Dimensional Arrays:**
 
-```blend65
+```js
 // Variable player counts and game state
 var players: dynamic PlayerRecord[MAX_PLAYERS]
 var currentPlayer: byte = 0
@@ -1873,7 +1873,7 @@ end type
 
 **Complex Structured Data:**
 
-```blend65
+```js
 // Sophisticated data organization
 type PropertyData
     slotMachines: byte
@@ -1912,7 +1912,7 @@ end type
 
 **Required Blend65 v0.4+ Equivalent:**
 
-```blend65
+```js
 // High-level language features replacing macro complexity
 function transferMoney(from: byte, to: byte, amount: dword): boolean
     if players[from].money < amount then
@@ -2044,7 +2044,7 @@ Both paths are essential for **complete C64 game development coverage**.
 
 **Interrupt System:**
 
-```blend65
+```js
 import waitForRaster from c64.vic
 import setRasterInterrupt from c64.interrupts
 
@@ -2062,7 +2062,7 @@ end function
 
 **Hardware Collision Detection:**
 
-```blend65
+```js
 import readSpriteCollisions, readBackgroundCollisions from c64.vic
 
 function checkCollisions(): void
@@ -2081,7 +2081,7 @@ end function
 
 **Advanced Sprite Control:**
 
-```blend65
+```js
 import enableSprites, setSpriteOverflow, setSpritePosition from c64.sprites
 
 function initSprites(): void
@@ -2096,7 +2096,7 @@ end function
 
 **Dual Joystick Support:**
 
-```blend65
+```js
 import readJoystick from c64.input
 
 function handleDualInput(): void
@@ -2230,7 +2230,7 @@ Pyout provides **exceptional validation** that Blend65 v0.1 is perfectly sized f
 
 **Version 0.1 Features (100% Coverage):**
 
-```blend65
+```js
 // All game mechanics implementable with current v0.1:
 
 type Sprite
@@ -2264,7 +2264,7 @@ end function
 
 **Fully Covered by v0.1:**
 
-```blend65
+```js
 import clearScreen from c64.screen
 import setSpritePosition from c64.sprites
 import readJoystick from c64.input
@@ -2290,7 +2290,7 @@ import readJoystick from c64.input
 
 **Direct Translation Approach:**
 
-```blend65
+```js
 // Level data conversion from Python lists
 const var levelMap001: byte[12][20] = [
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],

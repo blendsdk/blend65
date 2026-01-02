@@ -7,6 +7,7 @@
 **Project Size:** 45 assembly modules, 11,462 lines assembly, 80+ tool files
 
 ## Executive Summary
+
 - **Portability Status:** NOT_CURRENTLY_PORTABLE - Version v1.0+ needed
 - **Primary Blockers:** Advanced memory management, complex actor system, hardware integration
 - **Recommended Blend65 Version:** v1.0+ (Complete framework features)
@@ -15,7 +16,9 @@
 ## Technical Analysis
 
 ### Repository Structure
+
 This is a professional-grade game development framework providing:
+
 - **Core Systems:** Actor management, physics, memory allocation, file loading
 - **Hardware Integration:** Sprite system, sound integration, input handling, raster control
 - **Development Tools:** 80+ C tools for asset conversion, level editing, music integration
@@ -25,6 +28,7 @@ This is a professional-grade game development framework providing:
 ### Programming Language Assessment
 
 **Assembly Language (CA65 Professional Style):**
+
 - Target: Commodore 64 exclusively with advanced hardware usage
 - Assembly Style: Highly modular CA65 with sophisticated macros
 - Code Organization: Professional framework architecture with clear separation of concerns
@@ -33,6 +37,7 @@ This is a professional-grade game development framework providing:
 ### Framework Architecture Analysis
 
 **Actor System (1,200+ lines):**
+
 ```assembly
 ; Sophisticated actor management with inheritance-like patterns
 AD_FLAGS        = $00
@@ -48,6 +53,7 @@ GRP_NEUTRAL     = $02
 ```
 
 **Physics System (400+ lines):**
+
 ```assembly
 ; Complex physics with collision detection
 MB_HITWALL      = $01
@@ -60,6 +66,7 @@ COMMON_MAX_YSPEED = 8*8
 ```
 
 **Memory Management (300+ lines):**
+
 ```assembly
 ; Advanced zero page and memory allocation
 var loadBufferPos
@@ -78,24 +85,28 @@ var zpDestLo
 ### Advanced Features Analysis
 
 **Dynamic Loading System:**
+
 - File management with resource chunks
 - Compression support (Exomizer integration)
 - Memory overlay system for large games
 - Cartridge and disk loading variants
 
 **Sound Integration:**
+
 - SID music integration (686 lines dedicated)
 - Sound effect management
 - Music/SFX priority system
 - Multiple music format support
 
 **Level Management:**
+
 - Dynamic level loading/unloading
 - Actor persistence across levels
 - Script-driven level logic
 - Memory-efficient level storage
 
 **Hardware Optimization:**
+
 - Sprite multiplexing system
 - Raster interrupt management
 - Zero page allocation optimization
@@ -107,6 +118,7 @@ var zpDestLo
 This framework cannot be ported with v0.1 at all. It requires virtually every advanced feature in the Blend65 roadmap.
 
 **Version 1.0+ Requirements:**
+
 - **Dynamic Memory Allocation** - Framework uses complex memory pools
 - **Function Pointers** - Actor system relies heavily on function pointers
 - **Advanced Type System** - Complex data structures with inheritance-like patterns
@@ -118,7 +130,8 @@ This framework cannot be ported with v0.1 at all. It requires virtually every ad
 ## Missing Language Features Required
 
 ### Core Language Features (v0.4+)
-```blend65
+
+```js
 // Dynamic memory management
 type ActorPool
     actors: dynamic Actor[MAX_ACTORS]
@@ -138,7 +151,8 @@ zp var zpPointers: word[8]  // Zero page allocation control
 ```
 
 ### Hardware Integration (v0.5+)
-```blend65
+
+```js
 // Complete sprite management
 import multiplexSprites from c64.sprites
 import setSpriteData from c64.sprites
@@ -155,7 +169,8 @@ import loadCompressedData from c64.loader
 ```
 
 ### Framework Features (v1.0+)
-```blend65
+
+```js
 // Module system with complex dependencies
 module GameFramework.Actors
     export Actor, ActorPool, initActorSystem
@@ -171,25 +186,30 @@ end module
 ## Tool Ecosystem Analysis
 
 ### Asset Conversion Tools (40+ tools)
+
 **Graphics Tools:**
+
 - Sprite conversion and optimization
 - Character set generation
 - Level map conversion
 - Color palette optimization
 
 **Audio Tools:**
+
 - SID music integration
 - Sound effect processing
 - Music format conversion
 - Audio compression
 
 **Data Tools:**
+
 - Level editor integration
 - Script compilation
 - Resource packing
 - Memory layout optimization
 
 ### Development Environment Integration
+
 - Build system with dependency tracking
 - Asset pipeline automation
 - Cross-platform development tools
@@ -200,12 +220,14 @@ end module
 ### Priority Escalations
 
 **CRITICAL (Required for framework viability):**
+
 - **Dynamic Memory Allocation** - Framework core requirement
 - **Function Pointers** - Actor system architecture depends on this
 - **Advanced Type System** - Complex data structures essential
 - **Module System** - 45+ modules require sophisticated import/export
 
 **BLOCKING (Framework cannot function without):**
+
 - **Hardware Abstraction** - Complete VIC-II/SID/CIA APIs
 - **Build Tool Integration** - 80+ tools must integrate seamlessly
 - **Advanced Memory Control** - Zero page, bank switching, overlays
@@ -214,6 +236,7 @@ end module
 ### Roadmap Impact
 
 This framework represents the **end goal** of Blend65 evolution. Supporting it would require:
+
 - **Version 0.4:** Dynamic memory, function pointers, advanced types
 - **Version 0.5:** Complete hardware integration
 - **Version 1.0:** Framework support, tool ecosystem, advanced optimization
@@ -221,6 +244,7 @@ This framework represents the **end goal** of Blend65 evolution. Supporting it w
 ## Code Complexity Examples
 
 ### Original Framework (Actor System):
+
 ```assembly
 ; Complex actor update loop with function pointers
 UpdateActors:   ldx #MAX_ACTORS-1
@@ -250,7 +274,8 @@ UA_Next:        dex
 ```
 
 ### Required Blend65 Syntax:
-```blend65
+
+```js
 module GameFramework.Actors
 
 type Actor
@@ -288,42 +313,50 @@ end function
 ## Framework Categories
 
 ### Core Engine Systems
+
 **Complexity:** EXTREME - Requires complete Blend65 v1.0+ feature set
 **Key Requirements:** Dynamic memory, function pointers, modules, hardware APIs
 
 ### Asset Pipeline
+
 **Complexity:** VERY HIGH - Requires sophisticated build integration
 **Key Requirements:** Tool ecosystem, build system integration, asset management
 
 ### Game Logic Framework
+
 **Complexity:** HIGH - Requires advanced language features
 **Key Requirements:** AI scripting, level management, state machines
 
 ### Hardware Abstraction
+
 **Complexity:** EXTREME - Requires complete hardware API implementation
 **Key Requirements:** Full VIC-II/SID/CIA control, timing precision, memory management
 
 ## Implementation Strategy
 
 ### Phase 1: Foundation (v0.4)
+
 - Implement dynamic memory allocation
 - Add function pointer support
 - Create advanced type system
 - Build module system foundation
 
 ### Phase 2: Hardware (v0.5)
+
 - Complete VIC-II register access
 - Add SID integration
 - Implement CIA timer control
 - Create memory bank switching
 
 ### Phase 3: Framework (v1.0)
+
 - Tool ecosystem integration
 - Asset pipeline automation
 - Advanced optimization passes
 - Framework library support
 
 ### Phase 4: Professional (v1.0+)
+
 - Debugging integration
 - Profiling tools
 - IDE support
@@ -332,15 +365,18 @@ end function
 ## Recommendations
 
 ### Strategic Priority
+
 This framework should be considered the **north star** for Blend65 development. It represents what professional C64 game development looks like and what Blend65 should ultimately enable.
 
 ### Immediate Actions
+
 1. **Study framework patterns** - Use as reference for language design
 2. **Identify critical paths** - Determine minimum viable features for basic framework support
 3. **Tool ecosystem planning** - Design build system to support this complexity
 4. **Performance requirements** - Ensure Blend65 can generate efficient code for framework patterns
 
 ### Long-term Vision
+
 Supporting this framework would position Blend65 as a legitimate professional C64 development platform capable of producing commercial-quality games.
 
 This repository represents the **ultimate compatibility target** - once Blend65 can support this framework, it can support virtually any C64 development project.

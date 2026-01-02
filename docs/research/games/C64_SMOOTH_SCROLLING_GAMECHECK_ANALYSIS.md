@@ -7,6 +7,7 @@
 **Project Type:** Technical demonstration - Horizontal smooth scrolling implementation
 
 ## Executive Summary
+
 - **Portability Status:** PARTIALLY_PORTABLE - Needs Version 0.5
 - **Primary Blockers:** Interrupt system (CRITICAL), VIC-II register control (CRITICAL), double buffering (HIGH)
 - **Recommended Blend65 Version:** v0.5 (hardware-intensive features required)
@@ -15,6 +16,7 @@
 ## Technical Analysis
 
 ### Hardware Usage Patterns:
+
 - **Interrupts:** Custom IRQ handlers at specific raster lines (line 65, line 245)
 - **VIC-II Control:** Direct manipulation of scroll registers, screen memory location
 - **Memory Management:** Double buffering between $0400 and $0800 screen locations
@@ -24,7 +26,8 @@
 ### Critical Missing Hardware APIs (v0.5 Features):
 
 **Interrupt System Framework:**
-```blend65
+
+```js
 // Custom raster interrupt handlers
 interrupt function upperColorCopyIRQ(): void
     if xScroll = 0 then
@@ -53,7 +56,8 @@ end function
 ```
 
 **VIC-II Register Control:**
-```blend65
+
+```js
 import setScreenLocation, setXScroll, setScreenMode from c64.vic
 
 function initScrolling(): void
@@ -73,7 +77,8 @@ end function
 ```
 
 **Memory Buffer Management:**
-```blend65
+
+```js
 import copyMemoryBlock from c64.memory
 
 function copyUpperScreenToBackBuffer(): void
@@ -88,7 +93,8 @@ end function
 ```
 
 **Raster Synchronization:**
-```blend65
+
+```js
 import setRasterInterrupt from c64.interrupts
 
 function setupScrollingInterrupts(): void
@@ -100,6 +106,7 @@ end function
 ### Language Feature Requirements:
 
 **Version 0.5 Features Needed:**
+
 - **Interrupt Handler Declaration:** `interrupt function name(): void`
 - **Hardware Register Access:** Direct VIC-II control functions
 - **Memory Buffer Management:** Efficient memory copying and swapping
@@ -110,6 +117,7 @@ end function
 ### Implementation Priority Updates:
 
 **CRITICAL PRIORITY (Confirmed by Smooth Scrolling):**
+
 1. **Interrupt System Implementation** - Essential for any professional C64 graphics
 2. **VIC-II Register Control** - Required for scrolling, double buffering, screen effects
 3. **Memory Block Operations** - Needed for efficient buffer management
@@ -118,6 +126,7 @@ end function
 ### Code Translation Examples:
 
 **Original Assembly (Interrupt Setup):**
+
 ```assembly
 irq_setup           sei                                          ; disable interrupts
                     ldy #$7f                                     ; 01111111
@@ -131,7 +140,8 @@ irq_setup           sei                                          ; disable inter
 ```
 
 **Required Blend65 v0.5 Syntax:**
-```blend65
+
+```js
 import disableInterrupts, enableInterrupts from c64.interrupts
 import disableCIATimers, enableVICRasterIRQ from c64.vic
 
@@ -145,6 +155,7 @@ end function
 ```
 
 **Original Assembly (Screen Buffer Swapping):**
+
 ```assembly
 screen_swap         lda screen_buffer_nbr                        ; toggle screen_buffer_number between 0 and 1
                     eor #$01
@@ -158,7 +169,8 @@ screen_swap         lda screen_buffer_nbr                        ; toggle screen
 ```
 
 **Blend65 v0.5 Equivalent:**
-```blend65
+
+```js
 import setScreenMemory from c64.vic
 
 var currentScreenBuffer: byte = 0
@@ -181,22 +193,21 @@ end function
 ### Hardware Requirements Summary:
 
 **Critical Blockers (Cannot implement without):**
+
 1. **Interrupt System** - Core scrolling algorithm runs in IRQ
 2. **VIC-II Control** - Hardware scroll registers and screen location
 3. **Raster Timing** - Precise synchronization for smooth animation
 
-**Major Features Needed:**
-4. **Memory Block Copy** - Efficient buffer shifting operations
-5. **Color RAM Access** - Color buffer management
+**Major Features Needed:** 4. **Memory Block Copy** - Efficient buffer shifting operations 5. **Color RAM Access** - Color buffer management
 
 **Hardware Evolution Priority:**
 
-| Priority | Feature | Scrolling Impact | Implementation Effort |
-|----------|---------|-----------------|----------------------|
-| **1** | Interrupt System | CRITICAL | HIGH |
-| **2** | VIC-II Register Control | CRITICAL | MEDIUM |
-| **3** | Raster Synchronization | HIGH | MEDIUM |
-| **4** | Memory Block Operations | HIGH | LOW |
+| Priority | Feature                 | Scrolling Impact | Implementation Effort |
+| -------- | ----------------------- | ---------------- | --------------------- |
+| **1**    | Interrupt System        | CRITICAL         | HIGH                  |
+| **2**    | VIC-II Register Control | CRITICAL         | MEDIUM                |
+| **3**    | Raster Synchronization  | HIGH             | MEDIUM                |
+| **4**    | Memory Block Operations | HIGH             | LOW                   |
 
 ### Game Development Significance:
 
@@ -235,6 +246,7 @@ Smooth scrolling patterns appear in many C64 applications:
 **Implementation Strategy for v0.5:**
 
 The smooth scrolling technique demonstrates **optimal hardware API design**:
+
 - **High-level interrupt declarations** with hardware timing
 - **VIC-II register abstractions** maintaining full control
 - **Memory management functions** optimized for 6502 efficiency
@@ -249,6 +261,7 @@ This project **confirms v0.5 as essential** for any serious C64 game development
 C64 Smooth Scrolling validates that Blend65 v0.5 hardware APIs are not luxury features but **essential requirements** for professional C64 development. The interrupt-driven, hardware-synchronized approach represents the foundation upon which virtually all sophisticated C64 graphics techniques are built.
 
 **Key Validation Points:**
+
 1. **Interrupt System is Critical** - Not just for games, but for any professional graphics
 2. **VIC-II Integration is Essential** - High-level language must provide low-level hardware access
 3. **Raster Timing is Fundamental** - Precise hardware synchronization required for smooth effects

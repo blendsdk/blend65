@@ -33,6 +33,7 @@ src/
 ```
 
 ### File Analysis
+
 - **26 assembly files** totaling ~50KB of source code
 - **2 games**: `snake.asm` (basic), `snake2.asm` (enhanced)
 - **Educational focus**: Demonstrates C64 hardware programming concepts
@@ -53,6 +54,7 @@ src/
 ### Code Pattern Analysis
 
 #### Memory Management Patterns
+
 - **Static Allocation Only**: All variables use fixed memory locations
 - **Zero Page Usage**: Direct register access (`$d000-$d3ff` VIC-II)
 - **Memory Layout**: Fixed sprite data locations (`$0340`)
@@ -60,7 +62,7 @@ src/
 
 **Blend65 v0.1 Compatibility**: ✅ EXCELLENT - All patterns directly supported
 
-```blend65
+```js
 // BLEND65 EQUIVALENT PATTERNS:
 zp var spriteX: byte          // Zero page variables
 var spriteData: byte[64]      // Fixed-size arrays
@@ -68,6 +70,7 @@ const BLACK = 0               // Named constants
 ```
 
 #### Control Flow Analysis
+
 - **Simple Loops**: Basic `jmp loop` patterns
 - **Conditional Logic**: Simple keyboard input handling
 - **No Recursion**: Purely iterative algorithms
@@ -75,7 +78,7 @@ const BLACK = 0               // Named constants
 
 **Blend65 v0.1 Compatibility**: ✅ EXCELLENT
 
-```blend65
+```js
 // BLEND65 EQUIVALENT:
 while true
     handleInput()
@@ -93,16 +96,19 @@ end function
 #### Hardware Interaction Patterns
 
 **VIC-II Register Usage:**
+
 - Sprite positioning (`$d000-$d00f`)
 - Sprite enable register (`$d015`)
 - Color registers (`$d020-$d02e`)
 - Screen memory manipulation (`$0400-$07ff`)
 
 **Input Handling:**
+
 - Keyboard scanning via KERNAL routines
 - Simple key code comparison (`cmp #87` for 'W')
 
 **Sprite Programming:**
+
 - Fixed sprite data definition
 - Basic sprite positioning and movement
 - Single sprite operations
@@ -114,15 +120,18 @@ end function
 ## Game-Specific Analysis
 
 ### Snake Game (snake.asm)
+
 **Complexity**: Very Basic
 **Size**: 4.9KB
 **Features**:
+
 - Single sprite player-controlled movement
 - Basic keyboard input (WASD)
 - Simple sprite positioning
 
 **Blend65 Requirements**:
-```blend65
+
+```js
 import setSpritePosition from c64.sprites
 import setSpriteColor from c64.sprites
 import joystickLeft from c64.input
@@ -141,9 +150,11 @@ end function
 ```
 
 ### Enhanced Snake (snake2.asm)
+
 **Complexity**: Basic
 **Size**: 7.7KB
 **Features**:
+
 - Directional movement system
 - Score display using BCD arithmetic
 - Border drawing
@@ -158,13 +169,15 @@ end function
 ### ✅ FULLY SUPPORTED Features
 
 **Language Features**:
+
 - Fixed-size arrays: `byte[64]` sprite data
 - Simple control flow: loops, conditionals
 - Basic arithmetic: addition, subtraction
 - Constant definitions: color values, memory addresses
 
 **Hardware Features Available**:
-```blend65
+
+```js
 // C64 Hardware APIs already in v0.1:
 import setSpritePosition from c64.sprites
 import setSpriteColor from c64.sprites
@@ -177,6 +190,7 @@ import keyPressed from c64.input
 ### 🟡 PARTIALLY SUPPORTED Features
 
 **BCD Arithmetic**: Games use Binary Coded Decimal for scoring
+
 ```assembly
 ; Original assembly:
 sed                    ; set decimal mode
@@ -187,7 +201,8 @@ sta score
 ```
 
 **Blend65 Need**: BCD math library functions
-```blend65
+
+```js
 // Proposed Blend65 syntax:
 import bcdAdd from math
 var score: bcd = 0
@@ -199,14 +214,16 @@ score = bcdAdd(score, 1)
 ### ⚠️ MINOR GAPS
 
 **Direct Memory Access**: Examples use direct memory addresses
+
 ```assembly
 sta $0400,x    ; write to screen memory
 ```
 
 **Blend65 Alternative**: Use higher-level APIs
-```blend65
+
+```js
 // Instead of direct memory access:
-setCharacterAt(x, y, character)
+setCharacterAt(x, y, character);
 ```
 
 ---
@@ -214,20 +231,26 @@ setCharacterAt(x, y, character)
 ## Evolution Roadmap Impact
 
 ### Version 0.1 (Current) ✅
+
 **Enables**: 95% of examples directly portable
+
 - All basic sprite examples
 - Simple movement and input
 - Color setting and basic graphics
 - Mathematical algorithms
 
 ### Version 0.2 Requirements
+
 **Medium Priority Additions**:
+
 - **BCD Math Library**: For score calculation
 - **Memory Block Operations**: For efficient data copying
 - **Timing Functions**: For game speed control
 
 ### No Higher Version Requirements
+
 This educational collection doesn't require advanced features like:
+
 - Dynamic memory allocation
 - Complex data structures
 - Interrupt handling
@@ -240,6 +263,7 @@ This educational collection doesn't require advanced features like:
 ### Required Feature: BCD Arithmetic Support
 
 **Game Usage Pattern:**
+
 ```assembly
 sed                    ; set decimal mode
 clc
@@ -253,7 +277,8 @@ cld                    ; clear decimal mode
 No native BCD arithmetic support
 
 **Proposed Blend65 Solution:**
-```blend65
+
+```js
 import bcdAdd, bcdSubtract, bcdToString from math
 
 type bcd = byte  // BCD-formatted byte
@@ -275,6 +300,7 @@ Enables proper retro-style scoring systems common in C64 games
 ### Required Feature: Timing Control
 
 **Game Usage Pattern:**
+
 ```assembly
 lda #100
 delay   cmp $d012      ; compare with raster line
@@ -285,7 +311,8 @@ delay   cmp $d012      ; compare with raster line
 No frame timing or delay functions
 
 **Proposed Blend65 Solution:**
-```blend65
+
+```js
 import waitRasterLine, delay from c64.timing
 
 function gameLoop(): void
@@ -306,25 +333,27 @@ end function
 
 ### C64 Hardware APIs - Status Assessment
 
-| Module | Function | Status | Priority | Implementation Effort | Notes |
-|--------|----------|--------|----------|---------------------|--------|
-| c64.sprites | setSpriteData() | Missing | HIGH | MEDIUM | Load sprite bitmap data |
-| c64.sprites | enableSprite() | Implemented | - | - | Basic sprite control |
-| c64.vic | waitRasterLine() | Missing | MEDIUM | LOW | Timing control |
-| c64.vic | readRasterLine() | Missing | LOW | LOW | Raster position |
-| c64.screen | setCharacterAt() | Missing | HIGH | LOW | Character screen mode |
-| c64.screen | clearScreen() | Missing | HIGH | LOW | Screen initialization |
-| math | bcdAdd() | Missing | MEDIUM | LOW | BCD arithmetic |
-| math | bcdToString() | Missing | MEDIUM | LOW | BCD display |
+| Module      | Function         | Status      | Priority | Implementation Effort | Notes                   |
+| ----------- | ---------------- | ----------- | -------- | --------------------- | ----------------------- |
+| c64.sprites | setSpriteData()  | Missing     | HIGH     | MEDIUM                | Load sprite bitmap data |
+| c64.sprites | enableSprite()   | Implemented | -        | -                     | Basic sprite control    |
+| c64.vic     | waitRasterLine() | Missing     | MEDIUM   | LOW                   | Timing control          |
+| c64.vic     | readRasterLine() | Missing     | LOW      | LOW                   | Raster position         |
+| c64.screen  | setCharacterAt() | Missing     | HIGH     | LOW                   | Character screen mode   |
+| c64.screen  | clearScreen()    | Missing     | HIGH     | LOW                   | Screen initialization   |
+| math        | bcdAdd()         | Missing     | MEDIUM   | LOW                   | BCD arithmetic          |
+| math        | bcdToString()    | Missing     | MEDIUM   | LOW                   | BCD display             |
 
 ### Missing APIs - Implementation Priority
 
 **HIGH Priority (v0.2)**:
+
 1. **setSpriteData()** - Essential for sprite graphics
 2. **setCharacterAt()** - Needed for text display and borders
 3. **clearScreen()** - Basic screen management
 
 **MEDIUM Priority (v0.3)**:
+
 1. **BCD math functions** - Retro scoring systems
 2. **waitRasterLine()** - Smooth timing control
 
@@ -335,6 +364,7 @@ end function
 ### DIRECTLY PORTABLE (v0.1 compatible): 85%
 
 **Examples that port directly:**
+
 - `setBorderColor.asm` → Direct API mapping
 - `moveSprite.asm` → Basic sprite movement
 - `printString.asm` → String output functions
@@ -343,6 +373,7 @@ end function
 ### PARTIALLY PORTABLE (v0.2 needed): 15%
 
 **Examples needing minor enhancements:**
+
 - `snake2.asm` → Needs BCD math and timing
 - `createSprite.asm` → Needs setSpriteData() API
 - Border drawing examples → Need character screen APIs
@@ -356,6 +387,7 @@ All examples can be ported with appropriate Blend65 versions.
 ## Code Examples
 
 ### Original Assembly (snake.asm input handling):
+
 ```assembly
 input   jsr SCNKEY                      ; jump to scan keyboard
         jsr GETIN                       ; jump to get a character
@@ -377,7 +409,8 @@ up      ldy SP0Y
 ```
 
 ### Required Blend65 Implementation:
-```blend65
+
+```js
 import setSpritePosition, getSpritePosition from c64.sprites
 import keyPressed, KEY_W, KEY_A, KEY_S, KEY_D from c64.input
 
@@ -403,11 +436,13 @@ end function
 ## Evolution Impact Summary
 
 ### Current v0.1 Capabilities
+
 ✅ **85% compatibility** with educational examples
 ✅ **Direct support** for basic game mechanics
 ✅ **Excellent foundation** for simple C64 programming
 
 ### v0.2 Enhancements Needed
+
 - **BCD arithmetic library** (3 functions)
 - **Sprite data loading** (1 API function)
 - **Character screen operations** (2 API functions)
@@ -437,6 +472,7 @@ This repository provides excellent **real-world validation** that Blend65 v0.1 c
 ### For Game Development
 
 While these are simple examples, they establish patterns that scale to more complex games:
+
 - Sprite-based game objects
 - Input-driven state changes
 - Frame-based game loops

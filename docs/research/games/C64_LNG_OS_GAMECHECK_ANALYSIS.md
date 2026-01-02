@@ -7,6 +7,7 @@
 **Project Size:** 400+ files, complete OS infrastructure, networking, applications
 
 ## Executive Summary
+
 - **Portability Status:** NOT_CURRENTLY_PORTABLE - Version v2.0+ needed
 - **Primary Blockers:** Complete OS kernel, dynamic memory management, networking, multi-tasking
 - **Recommended Blend65 Version:** v2.0+ (Operating system features)
@@ -15,9 +16,11 @@
 ## Technical Analysis
 
 ### Repository Structure
+
 This is a complete Unix-like operating system for the Commodore 64/128:
 
 **Operating System Components:**
+
 - **Kernel:** Complete multi-tasking kernel with process management
 - **Memory Management:** Dynamic allocation, process isolation, stack management
 - **File System:** Unix-like file operations and stream management
@@ -26,6 +29,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 - **Multi-Platform:** Support for C64, C128, and expansion hardware
 
 **System Architecture:**
+
 - **Process Management:** Task switching, process isolation, scheduling
 - **Memory Virtualization:** Dynamic page allocation, zero page management
 - **I/O System:** Stream-based I/O with device abstraction
@@ -35,6 +39,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 ### Programming Language Assessment
 
 **Assembly Language (CA65/CC65 Professional System):**
+
 - Target: Multiple 6502-based systems (C64, C128, etc.)
 - Assembly Style: Professional OS development with advanced macros
 - Code Organization: Complete operating system architecture
@@ -43,6 +48,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 ### Operating System Kernel Analysis
 
 **Core Kernel Features:**
+
 ```assembly
 ;; adding tasks to the system
 ;; C128 native by Maciej 'YTM/Elysium' Witkowiak
@@ -60,6 +66,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 ```
 
 **Advanced Memory Management:**
+
 - **Dynamic Allocation:** Process memory allocated at runtime
 - **Process Isolation:** Separate memory spaces for each process
 - **Stack Management:** Individual stacks for each task
@@ -67,6 +74,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 - **Virtual Memory:** Advanced memory mapping for 64KB constraint
 
 **Multi-Tasking System:**
+
 - **Preemptive Scheduling:** True multi-tasking on 6502
 - **Process States:** Running, waiting, blocked process management
 - **Context Switching:** Complete CPU state preservation
@@ -76,6 +84,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 ### Network Stack Implementation
 
 **TCP/IP Features:**
+
 - **Complete Network Stack:** Full TCP/IP implementation for C64
 - **Socket Interface:** Berkeley socket-like API
 - **Protocol Support:** TCP, UDP, IP, ICMP protocols
@@ -83,6 +92,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 - **Hardware Support:** RS232, Ethernet cartridges, modems
 
 **Network Applications:**
+
 - **232echo.s** - Serial communication echo server
 - **232term.s** - Terminal emulator application
 - **TCP/IP utilities** - Network debugging and management tools
@@ -90,6 +100,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 ### System Applications Analysis
 
 **Unix-like Utilities (60+ applications):**
+
 - **File Management:** ls, cp, mv, rm, mkdir, rmdir equivalents
 - **Text Processing:** cat, grep, sed-like utilities
 - **System Tools:** ps, kill, top-like process management
@@ -97,6 +108,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 - **Development Tools:** assemblers, debuggers, text editors
 
 **Application Categories:**
+
 - **Shell and Commands:** Complete Unix-like command interface
 - **File Utilities:** Comprehensive file system operations
 - **Network Applications:** TCP/IP client and server programs
@@ -109,6 +121,7 @@ This is a complete Unix-like operating system for the Commodore 64/128:
 This operating system cannot be ported with any planned Blend65 version through v1.0. It requires operating system development features far beyond current roadmap.
 
 **Version 2.0+ Requirements (Hypothetical):**
+
 - **Operating System Framework** - Complete OS development environment
 - **Multi-Tasking Support** - Preemptive scheduling and process management
 - **Dynamic Memory Management** - Advanced virtual memory system
@@ -120,7 +133,8 @@ This operating system cannot be ported with any planned Blend65 version through 
 ## Missing Operating System Features Required
 
 ### Operating System Kernel (v2.0+)
-```blend65
+
+```js
 // Hypothetical OS development framework
 module blend65.os.kernel
     type ProcessDescriptor
@@ -144,7 +158,8 @@ end module
 ```
 
 ### Memory Management System (v2.0+)
-```blend65
+
+```js
 // Advanced memory management for OS
 module blend65.os.memory
     type MemoryPage
@@ -166,7 +181,8 @@ end module
 ```
 
 ### Network Stack Framework (v2.0+)
-```blend65
+
+```js
 // TCP/IP stack for retro systems
 module blend65.os.network
     type Socket
@@ -193,7 +209,8 @@ end module
 ```
 
 ### System Call Interface (v2.0+)
-```blend65
+
+```js
 // Unix-like system call interface
 module blend65.os.syscalls
     // File operations
@@ -227,6 +244,7 @@ end module
 
 **Operating System vs Game Development:**
 This project represents a completely different category of software development:
+
 - **System Programming** vs Application Programming
 - **Hardware Abstraction** vs Direct Hardware Access
 - **Multi-User Environment** vs Single-Purpose Applications
@@ -234,6 +252,7 @@ This project represents a completely different category of software development:
 - **Process Isolation** vs Global Memory Access
 
 **Complexity Scale:**
+
 - **Game Development:** Individual applications with specific purposes
 - **Operating System:** Complete computing environment infrastructure
 - **Scope Difference:** Orders of magnitude more complex than game development
@@ -245,12 +264,14 @@ This project represents a completely different category of software development:
 Should Blend65 evolve beyond game development to support operating system development?
 
 **Arguments For OS Support:**
+
 - **Complete Platform** - Support entire spectrum of 6502 development
 - **Educational Value** - Teach systems programming concepts
 - **Historical Preservation** - Preserve important OS projects like LNG
 - **Technical Achievement** - Demonstrate advanced compiler capabilities
 
 **Arguments Against OS Support:**
+
 - **Scope Creep** - Distracts from core game development mission
 - **Complexity Explosion** - OS features require enormous development effort
 - **Market Size** - Very few developers need OS development capabilities
@@ -259,6 +280,7 @@ Should Blend65 evolve beyond game development to support operating system develo
 ## Code Examples
 
 ### Original OS Code (Task Management):
+
 ```assembly
 ;; adding tasks to the system
 ;; C128 native by Maciej 'YTM/Elysium' Witkowiak
@@ -278,7 +300,8 @@ Should Blend65 evolve beyond game development to support operating system develo
 ```
 
 ### Hypothetical Blend65 OS Syntax:
-```blend65
+
+```js
 // Hypothetical operating system development
 import ProcessManager from blend65.os.kernel
 import MemoryManager from blend65.os.memory
@@ -326,18 +349,21 @@ end function
 **Core Question:** Should Blend65 target operating system development?
 
 **Option 1: Game-Focused Approach**
+
 - **Scope:** Focus exclusively on game and application development
 - **Benefits:** Clear mission, manageable scope, faster development
 - **Limitations:** Cannot support projects like LNG
 - **Timeline:** Achievable within reasonable timeframe
 
 **Option 2: Complete Platform Approach**
+
 - **Scope:** Support entire spectrum of 6502 development including OS
 - **Benefits:** Complete development platform, maximum flexibility
 - **Challenges:** Enormous scope, extended development timeline
 - **Timeline:** Multi-year commitment with uncertain completion
 
 **Option 3: Hybrid Approach**
+
 - **Phase 1:** Complete game development platform (v0.1-v1.0)
 - **Phase 2:** Evaluate OS development support based on success
 - **Benefits:** Staged approach, manageable risk, clear priorities
@@ -346,11 +372,13 @@ end function
 ### Immediate Recommendations
 
 **Current Priority:** Focus on game development pipeline
+
 - **Reason:** LNG represents extreme complexity beyond current roadmap
 - **Alternative:** Document OS requirements for future consideration
 - **Value:** Preserve analysis for potential future OS development support
 
 **Educational Value:**
+
 - **Study:** Analyze LNG architecture for advanced programming techniques
 - **Documentation:** Preserve OS development knowledge
 - **Inspiration:** Use advanced concepts to improve game development features
@@ -359,6 +387,7 @@ end function
 ### Long-term Considerations
 
 **If OS Support Considered (v2.0+):**
+
 1. **Complete v1.0 game development platform first**
 2. **Evaluate community demand for OS development features**
 3. **Partner with OS development experts**

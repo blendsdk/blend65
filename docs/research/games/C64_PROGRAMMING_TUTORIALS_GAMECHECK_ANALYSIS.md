@@ -7,6 +7,7 @@
 **Project Size:** 10 tutorial modules, DASM assembler focus
 
 ## Executive Summary
+
 - **Portability Status:** DIRECTLY_PORTABLE - Version v0.1-v0.2 needed
 - **Primary Blockers:** Cross-platform development workflow, educational progression
 - **Recommended Blend65 Version:** v0.1-v0.2 (Educational foundation)
@@ -15,9 +16,11 @@
 ## Technical Analysis
 
 ### Repository Structure
+
 Comprehensive educational tutorial series for Windows developers:
 
 **Educational Progression (10 modules):**
+
 1. **Quickstart** - Setup and first program
 2. **6502 Microprocessor Basics** - Core assembly concepts
 3. **6502 Arithmetics** - Mathematical operations
@@ -30,6 +33,7 @@ Comprehensive educational tutorial series for Windows developers:
 10. **MultipleInterrupts** - Advanced interrupt management
 
 **Cross-Platform Focus:**
+
 - **Windows Primary:** Tutorial designed for Windows 10+ development
 - **Mac OSX Support:** Alternative instructions for Mac development
 - **DASM Assembler:** Cross-platform assembler choice
@@ -38,6 +42,7 @@ Comprehensive educational tutorial series for Windows developers:
 ### Educational Philosophy
 
 **Windows Developer Onboarding:**
+
 ```
 "Welcome to Commodore 64 Programming on Windows tutorial!
 This tutorial will get you up and running with tools needed to build C64 programs on windows,
@@ -48,6 +53,7 @@ you might be able to learn why some things are the way they are."
 ```
 
 **Target Audience:**
+
 - **Modern Graphics Developers** - DirectX, OpenGL, Unity, Unreal experience
 - **Windows Developers** - Comfortable with Windows development environment
 - **Learning Perspective** - Understanding historical computing constraints
@@ -57,13 +63,15 @@ you might be able to learn why some things are the way they are."
 
 **Educational Bridge Value:**
 This repository represents an excellent model for Blend65 educational approach:
+
 - **Modern Developer Onboarding** - Bringing contemporary developers to retro computing
 - **Cross-Platform Accessibility** - Windows/Mac development support
 - **Progressive Complexity** - Clear learning path from basics to advanced
 - **Context Setting** - Explaining why retro constraints matter for modern developers
 
 **Blend65 Educational Framework (v0.1-v0.2):**
-```blend65
+
+```js
 // Educational tutorial progression
 @tutorialSeries("C64_PROGRAMMING_FUNDAMENTALS")
 @targetAudience("MODERN_DEVELOPERS")
@@ -105,12 +113,14 @@ end module
 ### Cross-Platform Educational Approach
 
 **Strengths:**
+
 - **Windows Focus** - Targets largest developer population
 - **Modern Context** - Relates retro concepts to contemporary development
 - **Progressive Learning** - Clear step-by-step advancement
 - **Cross-Platform Support** - Mac alternative instructions included
 
 **Educational Pattern for Blend65:**
+
 - **Tutorial Integration** - Built-in educational progression
 - **Modern Developer Bridge** - Easy transition from contemporary tools
 - **Cross-Platform Education** - Support developers on multiple platforms
@@ -121,12 +131,14 @@ end module
 ### Blend65 Educational Strategy
 
 **Immediate Educational Features (v0.1-v0.2):**
+
 - **Built-in Tutorial System** - Progressive learning modules
 - **Modern Developer Onboarding** - Familiar syntax bridging to retro concepts
 - **Cross-Platform Documentation** - Windows/Mac/Linux development support
 - **Educational Error Messages** - Learning-focused compiler feedback
 
 **Educational Platform Integration:**
+
 - **Tutorial Validation** - Built-in testing for educational examples
 - **Progress Tracking** - Learning progression management
 - **Interactive Learning** - Step-by-step compilation and execution

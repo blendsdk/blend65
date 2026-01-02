@@ -7,6 +7,7 @@
 **Project Type:** Complete space shooter game - Commercial-quality arcade game
 
 ## Executive Summary
+
 - **Portability Status:** PARTIALLY_PORTABLE - Needs Version 0.5
 - **Primary Blockers:** Interrupt system (CRITICAL), Hardware collision detection (CRITICAL), Zero page optimization (HIGH), Custom charset (HIGH)
 - **Recommended Blend65 Version:** v0.5 (hardware-intensive features required)
@@ -15,6 +16,7 @@
 ## Technical Analysis
 
 ### Game Features:
+
 - **Complete Space Shooter:** Player-controlled ship with joystick input
 - **Multi-Enemy System:** 6 enemy sprites with individual movement patterns
 - **Bullet System:** Player bullets with collision detection
@@ -24,6 +26,7 @@
 - **Scoring System:** Hit detection with visual feedback (color changes)
 
 ### Hardware Usage Patterns:
+
 - **Interrupts:** Complete game loop runs in raster interrupt handler
 - **Sprites:** Full utilization of all 8 hardware sprites (player, bullet, 6 enemies)
 - **Collision Detection:** Hardware sprite-sprite collision register ($D01E)
@@ -35,7 +38,8 @@
 ### Critical Missing Hardware APIs (v0.5 Features):
 
 **Interrupt System Framework:**
-```blend65
+
+```js
 // Main game loop in interrupt handler
 interrupt function gameMainLoop(): void
     updateEnemyPositions()
@@ -57,7 +61,8 @@ end function
 ```
 
 **Hardware Collision Detection:**
-```blend65
+
+```js
 import readSpriteCollisions from c64.vic
 
 function checkBulletHits(): void
@@ -82,7 +87,8 @@ end function
 ```
 
 **Advanced Sprite Management:**
-```blend65
+
+```js
 import setSpritePosition, setSpriteColor, enableSprites, setSpriteData from c64.sprites
 
 type EnemyData
@@ -116,7 +122,8 @@ end function
 ```
 
 **Zero Page Optimization:**
-```blend65
+
+```js
 // Performance-critical variables in zero page
 zp var tempVar: byte at $04
 zp var starPositionsFront: byte[28] at $06  // 14 stars * 2 bytes each
@@ -132,7 +139,8 @@ end function
 ```
 
 **Custom Character Set Integration:**
-```blend65
+
+```js
 import setCharacterSet, setCharacterData from c64.screen
 
 const var customCharset: byte[2048] = [
@@ -157,7 +165,8 @@ end function
 ```
 
 **3-Layer Parallax Star Field:**
-```blend65
+
+```js
 import setCharacterAt, getCharacterAt from c64.screen
 
 function scrollStarLayer(positions: &byte[], starChar: byte, speed: byte): void
@@ -186,6 +195,7 @@ end function
 ### Language Feature Requirements:
 
 **Version 0.5 Features Needed:**
+
 - **Interrupt Handler Declaration:** `interrupt function name(): void`
 - **Hardware Collision Detection:** Sprite collision register access
 - **Advanced Sprite Control:** Full 8-sprite management with collision
@@ -198,6 +208,7 @@ end function
 ### Implementation Priority Updates:
 
 **CRITICAL PRIORITY (Confirmed by Space Shooter):**
+
 1. **Interrupt System Implementation** - Entire game runs in IRQ handler
 2. **Hardware Collision Detection** - Core gameplay mechanic for shooting
 3. **Advanced Sprite Management** - 8-sprite games require full sprite API
@@ -206,6 +217,7 @@ end function
 ### Code Translation Examples:
 
 **Original Assembly (Collision Detection):**
+
 ```assembly
         lda spr_spr_collision   ; any enemies being hit by bullets?
         ldx #$ff                ; if so, reset to rightmost x-position
@@ -225,7 +237,8 @@ enemy_3_hit
 ```
 
 **Required Blend65 v0.5 Syntax:**
-```blend65
+
+```js
 function checkEnemyCollisions(): void
     var collisions: byte = readSpriteCollisionRegister()
 
@@ -243,6 +256,7 @@ end function
 ```
 
 **Original Assembly (Player Input):**
+
 ```assembly
         lda #2                  ; read joystick and update player position
         bit joystick_1
@@ -271,7 +285,8 @@ skip_respawn_bullets
 ```
 
 **Blend65 v0.5 Equivalent:**
-```blend65
+
+```js
 import readJoystick, JOYSTICK_DOWN, JOYSTICK_UP, JOYSTICK_FIRE from c64.input
 
 function handlePlayerInput(): void
@@ -302,6 +317,7 @@ end function
 ### Game Complexity Assessment:
 
 **Commercial-Quality Features:**
+
 1. **Complete Gameplay Loop** - Start screen, shooting, scoring, respawn mechanics
 2. **Multi-Layer Graphics** - Parallax star field with 3 depth layers
 3. **Advanced Collision System** - Hardware-based bullet-enemy collision detection
@@ -309,6 +325,7 @@ end function
 5. **Polish Features** - Color-change feedback, enemy respawn, smooth movement
 
 **Technical Sophistication:**
+
 - **Memory Management:** Sophisticated zero page data layout for performance
 - **Graphics Programming:** Custom character set with animated star field
 - **Real-Time Performance:** 50Hz game loop with multiple moving objects
@@ -317,25 +334,23 @@ end function
 ### Hardware Requirements Summary:
 
 **Critical Blockers (Cannot implement without):**
+
 1. **Interrupt System** - Entire game architecture depends on IRQ handler
 2. **Hardware Collision Detection** - Core shooting mechanic requires sprite collision
 3. **Advanced Sprite Control** - 8 sprites with individual positioning and colors
 4. **Zero Page Optimization** - Performance requirements for real-time gameplay
 
-**Major Features Needed:**
-5. **Custom Character Set** - Star field graphics require character data loading
-6. **Color RAM Access** - Multi-layer star field coloring
-7. **Hardware Register Control** - Direct VIC-II and CIA access for optimization
+**Major Features Needed:** 5. **Custom Character Set** - Star field graphics require character data loading 6. **Color RAM Access** - Multi-layer star field coloring 7. **Hardware Register Control** - Direct VIC-II and CIA access for optimization
 
 **Game Development Priority:**
 
-| Priority | Feature | Game Impact | Implementation Effort |
-|----------|---------|-------------|----------------------|
-| **1** | Interrupt System | CRITICAL | HIGH |
-| **2** | Hardware Collision | CRITICAL | MEDIUM |
-| **3** | Advanced Sprites | CRITICAL | MEDIUM |
-| **4** | Zero Page Optimization | HIGH | MEDIUM |
-| **5** | Custom Character Set | HIGH | LOW |
+| Priority | Feature                | Game Impact | Implementation Effort |
+| -------- | ---------------------- | ----------- | --------------------- |
+| **1**    | Interrupt System       | CRITICAL    | HIGH                  |
+| **2**    | Hardware Collision     | CRITICAL    | MEDIUM                |
+| **3**    | Advanced Sprites       | CRITICAL    | MEDIUM                |
+| **4**    | Zero Page Optimization | HIGH        | MEDIUM                |
+| **5**    | Custom Character Set   | HIGH        | LOW                   |
 
 ### Arcade Game Development Significance:
 
@@ -374,6 +389,7 @@ Space shooter patterns that require v0.5 features:
 **Implementation Strategy for Commercial Game Development:**
 
 The space shooter validates **essential commercial game requirements**:
+
 - **Hardware collision detection** enables sophisticated gameplay mechanics
 - **Interrupt-driven architecture** provides smooth, responsive gameplay
 - **Advanced sprite management** supports multiple independent game objects
@@ -388,6 +404,7 @@ This project **confirms v0.5 as the minimum** for commercial-quality C64 game de
 The C64 Space Shooter represents **commercial-quality arcade game development** that validates Blend65 v0.5 as essential for serious C64 game creation. The sophisticated hardware utilization, real-time performance requirements, and complete gameplay implementation demonstrate the level of capability that Blend65 must achieve.
 
 **Key Commercial Game Validation Points:**
+
 1. **Hardware APIs Enable Professional Games** - Low-level access required for performance and features
 2. **Interrupt Programming is Non-Negotiable** - Real-time games require IRQ-driven architecture
 3. **Collision Detection is Fundamental** - Hardware collision enables engaging gameplay mechanics

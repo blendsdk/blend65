@@ -30,18 +30,21 @@ This classic Snake game represents an **ideal target** for Blend65 v0.1, using o
 ### Systematic Code Pattern Analysis
 
 #### Memory Management Patterns
+
 - ✅ **Static Allocation Only**: All variables use fixed memory addresses
 - ✅ **Zero Page Usage**: Optimized variables at $0002-$000C
 - ✅ **Fixed Arrays**: Static level data, character sets, sprite data
 - ✅ **No Dynamic Memory**: No malloc/free equivalent operations
 
 #### Control Flow Analysis
+
 - ✅ **Simple Functions**: Basic JSR/RTS call patterns
 - ✅ **Linear Loops**: Standard for/while loop equivalents
 - ✅ **State Machine**: Title screen → gameplay → game over flow
 - ✅ **No Recursion**: All algorithms use iterative approaches
 
 #### Hardware Interaction Patterns
+
 - ✅ **Basic Graphics**: Character mode with custom charset
 - ✅ **Simple Sprites**: Title screen animation (5 sprites)
 - ✅ **Sound Effects**: Basic SID register manipulation
@@ -49,6 +52,7 @@ This classic Snake game represents an **ideal target** for Blend65 v0.1, using o
 - ✅ **Color Management**: Direct color register access
 
 #### Mathematical Requirements
+
 - ✅ **Basic Arithmetic**: Addition, subtraction for coordinates
 - ✅ **Score Calculation**: BCD arithmetic for scoring
 - ✅ **No Complex Math**: No trigonometry or advanced calculations
@@ -57,7 +61,7 @@ This classic Snake game represents an **ideal target** for Blend65 v0.1, using o
 
 **FULLY SUPPORTED Features:**
 
-```blend65
+```js
 // Static arrays for game data
 var levelData: byte[1000]          // Level layout storage
 var score: byte[3]                 // BCD score storage
@@ -107,6 +111,7 @@ import setBackgroundColor from c64.vic
 ### Current v0.1 Coverage: 100%
 
 **✅ Fully Covered:**
+
 - Static memory allocation
 - Fixed-size byte arrays
 - Basic integer arithmetic
@@ -117,6 +122,7 @@ import setBackgroundColor from c64.vic
 - Constants and enumerations
 
 **✅ Hardware APIs Available:**
+
 - `c64.vic.setBackgroundColor()`
 - `c64.vic.setBorderColor()`
 - `c64.sprites.setSpritePosition()`
@@ -136,21 +142,23 @@ This game uses only fundamental programming constructs that are fully supported 
 
 **✅ Available in Blend65 v0.1:**
 
-| Original Assembly | Blend65 v0.1 Equivalent | Notes |
-|------------------|-------------------------|-------|
-| `STA $D020` | `setBackgroundColor(color)` | Border color |
-| `STA $D021` | `setScreenColor(color)` | Screen color |
-| `LDA $DC00` | `readJoystick()` | CIA joystick input |
-| VIC-II sprite setup | `setSpritePosition()` | Sprite positioning |
-| SID register access | `playSoundEffect()` | Sound generation |
-| Custom charset | `loadCharacterSet()` | Character graphics |
+| Original Assembly   | Blend65 v0.1 Equivalent     | Notes              |
+| ------------------- | --------------------------- | ------------------ |
+| `STA $D020`         | `setBackgroundColor(color)` | Border color       |
+| `STA $D021`         | `setScreenColor(color)`     | Screen color       |
+| `LDA $DC00`         | `readJoystick()`            | CIA joystick input |
+| VIC-II sprite setup | `setSpritePosition()`       | Sprite positioning |
+| SID register access | `playSoundEffect()`         | Sound generation   |
+| Custom charset      | `loadCharacterSet()`        | Character graphics |
 
 **✅ Character Graphics Support:**
+
 - Custom character set loading
 - Screen memory manipulation
 - Color memory control
 
 **✅ Sprite System Support:**
+
 - Multi-color sprite support
 - Sprite positioning and scaling
 - Sprite animation (tongue flicking effect)
@@ -166,6 +174,7 @@ All hardware features used by Wild Boa Snake are covered by existing Blend65 v0.
 ### Game State Management
 
 **Original Assembly Pattern:**
+
 ```assembly
 mainloop
     jsr chklvlpts     ; Check level advancement
@@ -178,7 +187,8 @@ mainloop
 ```
 
 **Blend65 v0.1 Equivalent:**
-```blend65
+
+```js
 function gameLoop(): void
     while true
         checkLevelAdvancement()
@@ -200,6 +210,7 @@ end function
 ### Snake Movement Logic
 
 **Original Assembly Pattern:**
+
 ```assembly
 advsnake
     ; Calculate new head position based on direction
@@ -212,7 +223,8 @@ advsnake
 ```
 
 **Blend65 v0.1 Equivalent:**
-```blend65
+
+```js
 function advanceSnake(): void
     select curDir
         case DIR_UP
@@ -240,6 +252,7 @@ end function
 ### Level Data Structure
 
 **Original Assembly Pattern:**
+
 ```assembly
 level0 = $3000
     .byte 00,00,00,00,00,00,00,00,00,00
@@ -248,7 +261,8 @@ level0 = $3000
 ```
 
 **Blend65 v0.1 Equivalent:**
-```blend65
+
+```js
 const var level0Data: byte[1000] = [
     0,0,0,0,0,0,0,0,0,0,
     82,83,82,83,82,83,82,83,82,83,
@@ -278,6 +292,7 @@ Wild Boa Snake **perfectly validates** several key Blend65 v0.1 design choices:
 ### Demonstration of v0.1 Capabilities
 
 This game proves that Blend65 v0.1 can support:
+
 - ✅ **Complete Arcade Games** with multiple levels
 - ✅ **Graphics and Sound** through hardware APIs
 - ✅ **Input Handling** via joystick APIs
@@ -302,6 +317,7 @@ This analysis **confirms** that Blend65 v0.1 feature set is well-designed for cl
 ### Code Example Library
 
 Include the following patterns from Wild Boa Snake in Blend65 examples:
+
 - Static level data definition
 - Game loop structure
 - Hardware sprite animation
@@ -315,6 +331,7 @@ Include the following patterns from Wild Boa Snake in Blend65 examples:
 ### Title Screen Animation
 
 **Original Assembly:**
+
 ```assembly
 titleloop
     ; Animate snake tongue
@@ -329,7 +346,8 @@ sprend
 ```
 
 **Blend65 v0.1 Port:**
-```blend65
+
+```js
 function animateTitleScreen(): void
     if tongueFrame >= TONGUE_FRAME_MAX then
         tongueFrame = 0
@@ -344,6 +362,7 @@ end function
 ### Score Display
 
 **Original Assembly:**
+
 ```assembly
 drawscore
     clc
@@ -355,7 +374,8 @@ drawscore
 ```
 
 **Blend65 v0.1 Port:**
-```blend65
+
+```js
 function drawScore(): void
     var scoreText: byte[6]
 
@@ -380,6 +400,7 @@ Wild Boa Snake represents a **perfect match** for Blend65 v0.1 capabilities. The
 This analysis **strongly validates** the Blend65 v0.1 design and demonstrates that the current feature set is sufficient for creating complete, engaging C64 games. The game should be considered a **priority target** for early Blend65 porting efforts and demonstration purposes.
 
 **Next Steps:**
+
 1. **Immediate Port**: Create Blend65 version as v0.1 capability demonstration
 2. **Tutorial Development**: Use as teaching example for Blend65 programming
 3. **Test Integration**: Incorporate game logic patterns into compiler test suite
