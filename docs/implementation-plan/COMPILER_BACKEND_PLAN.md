@@ -37,6 +37,7 @@ packages/
 ├── semantic/           # Semantic analysis & symbol tables
 ├── il/                # IL definition, transformation, optimization
 ├── codegen/           # Target-specific 6502 code generation
+├── emulator-test/     # Automated emulator testing with VICE
 └── compiler/          # Main compiler driver & CLI
 ```
 
@@ -73,8 +74,8 @@ packages/
 ### **Phase 4: Code Generation Foundation (4-5 weeks)**
 **Goal:** Generate 6502 assembly from optimized IL
 **Input:** Optimized IL
-**Output:** Target-specific 6502 assembly
-**Tasks:** 7 tasks
+**Output:** Target-specific 6502 assembly and validated binaries
+**Tasks:** 8 tasks
 
 ---
 
@@ -416,7 +417,21 @@ packages/
 **Test:** Target-specific code generation
 **Success:** Target-aware code generation
 
-### Task 4.7: Codegen Integration and Testing
+### Task 4.7: Implement Automated Emulator Testing
+**File:** `packages/emulator-test/src/vice-integration.ts`
+**Goal:** Automated testing with VICE emulator
+**Changes:**
+- Create VICE command-line wrapper for automated testing
+- Implement memory state validation (check variable values at addresses)
+- Add hardware register testing (VIC-II, SID register verification)
+- Create execution flow testing with breakpoints
+- Implement screenshot comparison for graphics validation
+- Add performance testing (cycle counts, frame timing)
+- Support headless emulator execution for CI/CD
+**Test:** End-to-end emulator validation of compiled programs
+**Success:** Automated validation of generated 6502 code on real emulator
+
+### Task 4.8: Codegen Integration and Testing
 **File:** `packages/codegen/src/index.ts`
 **Goal:** Complete code generation system
 **Changes:**
@@ -426,8 +441,9 @@ packages/
 - Validate generated assembly correctness
 - Add performance benchmarking
 - Create codegen debugging utilities
-**Test:** End-to-end code generation
-**Success:** Production-ready code generator
+- Integrate emulator testing framework
+**Test:** End-to-end code generation with emulator validation
+**Success:** Production-ready code generator with real hardware validation
 
 ---
 
@@ -531,6 +547,18 @@ packages/
 │   │   ├── targets/
 │   │   │   └── target-codegen.ts    # Target-specific generation
 │   │   └── __tests__/               # Codegen tests
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── emulator-test/
+│   ├── src/
+│   │   ├── vice-integration.ts      # VICE emulator wrapper
+│   │   ├── emulator-runner.ts       # Test execution framework
+│   │   ├── memory-validator.ts      # Memory state validation
+│   │   ├── hardware-tester.ts       # VIC-II/SID register testing
+│   │   ├── screenshot-compare.ts    # Graphics validation
+│   │   ├── performance-profiler.ts  # Cycle counting and timing
+│   │   └── __tests__/               # Emulator integration tests
 │   ├── package.json
 │   └── tsconfig.json
 │
