@@ -532,7 +532,7 @@ console.log('AST:', ast);
 
 ## Documentation
 
--   [Language Specification](docs/research/blend65-spec.md) - Complete language reference
+-   **[Blend65 Language Specification](docs/BLEND65_LANGUAGE_SPECIFICATION.md)** - **Complete language reference** (authoritative specification)
 -   [6502 Core Features](docs/research/6502-core-features.md) - 6502 architecture details
 -   [Implementation Plan](docs/implementation-plan/MASTER_PLAN.md) - Development roadmap
 -   [Compiler Backend Plan](docs/implementation-plan/COMPILER_BACKEND_PLAN.md) - Detailed backend implementation (26 tasks)
