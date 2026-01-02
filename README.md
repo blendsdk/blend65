@@ -62,9 +62,9 @@ end while
 
 ```
 // Direct access to C64 hardware
-import setSpritePosition, enableSprite from c64:sprites
-import setBackgroundColor, setBorderColor from c64:vic
-import playNote, setVolume from c64:sid
+import setSpritePosition, enableSprite from c64.sprites
+import setBackgroundColor, setBorderColor from c64.vic
+import playNote, setVolume from c64.sid
 
 // Set up sprite
 enableSprite(0, true)
@@ -130,17 +130,38 @@ blend65 game.blend  # → game.prg for Commodore 64
 
 ## Compiler Architecture
 
-Source → **Lexing** → **Parsing** → **AST Generation** → **Type Checking** → **C64 Hardware API Resolution** → **Memory Layout** → **6502 Optimization** → **C64 Code Generation** → **PRG Binary**
+Source → **Lexing** → **Parsing** → **AST Generation** → **Semantic Analysis** → **IL Generation** → **IL Optimization** → **Code Generation** → **PRG Binary**
 
 ### Key Phases
 
 -   **Lexing**: ✅ Convert Blend65 source to tokens with 6502-specific features
--   **Parsing**: Convert tokens to Abstract Syntax Tree
--   **Type Checking**: Validate types and memory constraints
--   **Hardware API Resolution**: Resolve C64 hardware function calls
--   **Memory Layout**: Apply C64 memory map and zero page allocation
--   **6502 Optimization**: Optimize for 6502 instruction set
--   **Code Generation**: Emit optimized 6502 machine code for C64
+-   **Parsing**: ✅ Convert tokens to Abstract Syntax Tree with complete language support
+-   **AST Generation**: ✅ Build typed AST with comprehensive node types
+-   **Semantic Analysis**: 🔄 Symbol tables, type checking, module resolution
+-   **IL Generation**: 🔄 Transform AST to intermediate language (TypeScript objects)
+-   **IL Optimization**: 🔄 Dead code elimination, constant folding, function inlining
+-   **Code Generation**: 🔄 Target-specific 6502 assembly generation with optimization
+-   **Binary Output**: 🔄 PRG/BIN file generation for target hardware
+
+### Backend Architecture
+
+The backend follows a traditional compiler design with modern optimization:
+
+```
+Validated AST + Symbol Tables
+    ↓
+IL (Intermediate Language) Objects
+    ↓
+Optimization Passes (Dead Code, Constants, Inlining)
+    ↓
+Optimized IL
+    ↓
+6502 Code Generation (Register Allocation, Memory Layout)
+    ↓
+Target Assembly (DASM/CA65 compatible)
+    ↓
+Binary Output (.prg for C64, .bin for others)
+```
 
 ---
 
@@ -156,10 +177,10 @@ zp var joystick: byte = 0
 var gameRunning: boolean = true
 
 // C64 hardware imports
-import joystickRead from c64:input
-import setSpritePosition, enableSprite, setSpriteColor from c64:sprites
-import setBackgroundColor from c64:vic
-import playNote from c64:sid
+import joystickRead from c64.input
+import setSpritePosition, enableSprite, setSpriteColor from c64.sprites
+import setBackgroundColor from c64.vic
+import playNote from c64.sid
 
 export function main(): void
     // Initialize game
@@ -374,31 +395,41 @@ play_beep_sound:
 
 ## Project Status
 
-**Current Phase:** Architecture Design **Next Milestone:** Working C64 compiler
+**Current Phase:** Frontend Complete, Backend Implementation **Next Milestone:** Semantic Analysis & IL Generation
 
-### What's Implemented
+### What's Implemented ✅
 
--   [x] Language specification design
--   [x] C64 target architecture design
--   [x] 6502 family design principles
--   [x] **Blend65 Lexer** - Complete lexical analyzer with 6502-specific features
--   [x] **Token System** - Comprehensive token types including storage classes
--   [x] **Number Parsing** - Multiple formats: decimal, hex ($XX, 0x), binary (0b)
--   [x] **Package Structure** - Monorepo with TypeScript and testing framework
+-   [x] **Complete Frontend Pipeline** - Lexer → Parser → AST (159 tests passing)
+-   [x] **Blend65 Lexer** - Full tokenization with 6502-specific features (49 tests)
+-   [x] **Blend65 Parser** - Complete recursive descent parser (80 tests)
+-   [x] **Abstract Syntax Tree** - Full AST representation with factory (30 tests)
+-   [x] **Language Support** - All Blend65 constructs: modules, functions, control flow, types
+-   [x] **Storage Classes** - Zero page, RAM, data, const, I/O variable declarations
+-   [x] **Module System** - Content-based resolution with dot notation imports
+-   [x] **Comprehensive Testing** - Edge cases, error conditions, real-world patterns
 
-### What's In Progress
+### What's In Progress 🔄
 
--   [ ] Parser implementation for AST generation
--   [ ] Core 6502 language semantic analysis
--   [ ] C64 hardware API implementation
--   [ ] C64 compiler backend implementation
--   [ ] Memory management and optimization
+-   [ ] **Semantic Analysis** - Symbol tables, type checking, validation (Phase 1: 8 tasks)
+-   [ ] **Intermediate Language** - IL definition and AST transformation (Phase 2: 6 tasks)
+-   [ ] **IL Optimization** - Dead code elimination, constant folding, inlining (Phase 3: 5 tasks)
+-   [ ] **Code Generation** - 6502 assembly generation and optimization (Phase 4: 7 tasks)
 
-### What's Planned
+### Implementation Roadmap 📋
+
+**Total Backend Tasks:** 26 tasks across 4 phases (11-15 weeks estimated)
+
+1. **Phase 1:** Semantic Analysis - Symbol tables, type system, validation
+2. **Phase 2:** IL Definition - TypeScript-based intermediate language
+3. **Phase 3:** IL Optimization - Performance optimization passes
+4. **Phase 4:** Code Generation - Target-specific 6502 assembly output
+
+### What's Planned 📝
 
 -   [ ] Advanced 6502 optimization passes
 -   [ ] IDE integration and debugging support
 -   [ ] Enhanced C64 hardware features
+-   [ ] Multi-target support (Commander X16, VIC-20)
 
 ---
 
@@ -418,21 +449,37 @@ yarn build
 yarn test
 ```
 
-### Using the Lexer
+### Using the Frontend
 
 ```javascript
+// Using the Lexer
 import { Blend65Lexer } from '@blend65/lexer';
 
+// Using the Parser
+import { Blend65Parser } from '@blend65/parser';
+import { ASTFactory } from '@blend65/ast';
+
 const source = `
+module Game.Example
+
 zp var frameCounter: byte = 0
+
 function updatePlayer(): void
     frameCounter = frameCounter + 1
 end function
 `;
 
+// Tokenize
 const lexer = new Blend65Lexer(source);
 const tokens = lexer.tokenize();
-console.log(tokens);
+
+// Parse to AST
+const factory = new ASTFactory();
+const parser = new Blend65Parser(tokens, factory);
+const ast = parser.parse();
+
+console.log('Tokens:', tokens);
+console.log('AST:', ast);
 ```
 
 ### Full Compilation (Future)
@@ -449,6 +496,7 @@ console.log(tokens);
 -   [Language Specification](docs/research/blend65-spec.md) - Complete language reference
 -   [6502 Core Features](docs/research/6502-core-features.md) - 6502 architecture details
 -   [Implementation Plan](docs/implementation-plan/MASTER_PLAN.md) - Development roadmap
+-   [Compiler Backend Plan](docs/implementation-plan/COMPILER_BACKEND_PLAN.md) - Detailed backend implementation (26 tasks)
 -   [Target System Design](docs/research/target-system-design.md) - Architecture design
 
 ---
