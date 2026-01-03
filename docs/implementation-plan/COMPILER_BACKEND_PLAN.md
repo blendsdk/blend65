@@ -28,8 +28,8 @@ Intermediate Language (IL) Objects
     ↓ (IL optimizer)
 Optimized IL
     ↓ (target codegen)
-6502 Assembly
-    ↓ (assembler/linker)
+6502 Assembly (ACME format)
+    ↓ (ACME assembler)
 Binary Output (.prg/.bin)
 ```
 
@@ -401,16 +401,16 @@ packages/
 
 ### Task 4.5: Add Assembly Output Formatting
 **File:** `packages/codegen/src/assembly-formatter.ts`
-**Goal:** Format generated assembly for assemblers
+**Goal:** Format generated assembly for ACME assembler
 **Changes:**
-- Create assembly text output formatting
-- Add proper label and comment generation
-- Support different assembler syntaxes (DASM, CA65)
+- Create assembly text output formatting optimized for ACME
+- Add proper label and comment generation using ACME syntax
+- Generate ACME zone-based code organization
 - Generate symbol tables and memory maps
-- Add debugging symbol output
-- Format data declarations properly
-**Test:** Assembly output formatting
-**Success:** Clean, assemblable output
+- Add debugging symbol output with ACME comments
+- Format data declarations using ACME directives
+**Test:** ACME assembly output formatting
+**Success:** Clean, ACME-assemblable output
 
 ### Task 4.6: Create Target-Specific Code Generation
 **File:** `packages/codegen/src/targets/target-codegen.ts`
