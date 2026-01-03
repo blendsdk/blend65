@@ -52,7 +52,7 @@ keyword = "module" | "import" | "export" | "from" | "function" | "end" | "return
         | "zp" | "ram" | "data" | "const" | "io"
         | "byte" | "word" | "boolean" | "void"
         | "and" | "or" | "not"
-        | "true" | "false" ;
+        | "true" | "false" | "callback" ;
 ```
 
 ### Identifiers
@@ -176,7 +176,7 @@ export_declaration = "export" declaration ;
 (* Declarations *)
 declaration = function_declaration | variable_declaration | type_declaration ;
 
-function_declaration = "function" identifier "(" parameter_list ")" [ ":" type_annotation ]
+function_declaration = ["callback"] "function" identifier "(" parameter_list ")" [ ":" type_annotation ]
                       statement_terminator
                       statement_block
                       "end" "function" statement_terminator ;
@@ -195,7 +195,7 @@ type_declaration = "type" identifier [ "extends" type_annotation ]
 
 (* Type System *)
 type_annotation = primitive_type | array_type | named_type ;
-primitive_type = "byte" | "word" | "boolean" | "void" ;
+primitive_type = "byte" | "word" | "boolean" | "void" | "callback" ;
 array_type = type_annotation "[" expression "]" ;
 named_type = identifier ;
 
@@ -403,12 +403,13 @@ named_type = identifier ;
 
 ### Primitive Types
 
-| Type      | Size   | Range      | Usage                     |
-| --------- | ------ | ---------- | ------------------------- |
-| `byte`    | 8-bit  | 0-255      | Most common 6502 type     |
-| `word`    | 16-bit | 0-65535    | Addresses, larger values  |
-| `boolean` | 8-bit  | true/false | Logical operations        |
-| `void`    | -      | -          | Function return type only |
+| Type       | Size   | Range      | Usage                     |
+| ---------- | ------ | ---------- | ------------------------- |
+| `byte`     | 8-bit  | 0-255      | Most common 6502 type     |
+| `word`     | 16-bit | 0-65535    | Addresses, larger values  |
+| `boolean`  | 8-bit  | true/false | Logical operations        |
+| `void`     | -      | -          | Function return type only |
+| `callback` | 16-bit | Address    | Function pointer/reference|
 
 **Examples:**
 
@@ -601,6 +602,10 @@ parameter = identifier ":" type_annotation [ "=" expression ] ;
 - All parameters must have explicit type annotations
 - Function body consists of statements terminated by `end function`
 - Functions can be exported to make them available to other modules
+- `callback` functions can have any parameters and return types
+- `callback` functions can be exported and used as function pointers
+- `callback` modifier enables functions to be used in callback variables
+- Both `callback` and regular functions can be called directly
 
 **Examples:**
 
@@ -1680,7 +1685,7 @@ module    import    export    from      function  end       return
 if        then      else      while     for       to        next
 match     case      var       type      extends
 zp        ram       data      const     io
-byte      word      boolean   void
+byte      word      boolean   void      callback
 and       or        not       true      false
 ```
 
