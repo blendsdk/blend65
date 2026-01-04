@@ -110,6 +110,7 @@ updateSnake:
 ## ⚡ What Makes Blend65 Special
 
 ### 🎯 **Direct Hardware Control**
+
 ```js
 // Control every aspect of C64 hardware
 import setRasterInterrupt from c64.interrupts
@@ -123,6 +124,7 @@ setRasterInterrupt(100, rasterIRQ)     // Trigger at raster line 100
 ```
 
 ### 🧠 **Zero Page Optimization**
+
 ```js
 zp var playerSpeed: byte = 2    // Automatically allocated to zero page
 ram var enemyList: byte[50]     // Regular RAM allocation
@@ -130,6 +132,7 @@ const var maxEnemies: byte = 50 // Compile-time constant
 ```
 
 ### 🔥 **Callback-Driven Architecture**
+
 ```js
 // Type-safe interrupt handlers for advanced C64 programming
 callback rasterInterrupt: function(): void
@@ -157,8 +160,6 @@ This isn't a toy project. We're building real compiler infrastructure:
 2. **Pattern-Readiness Analytics** - Integration with massive optimization database
 3. **6502 Code Generation** - Turn IL into beautiful, fast assembly
 4. **Real Hardware Testing** - VICE emulator integration for validation
-
-**First compiled .prg file is just weeks away!**
 
 ## 🌟 Why This Matters
 
