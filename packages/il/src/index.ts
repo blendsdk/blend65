@@ -547,3 +547,141 @@ export {
   C64_6510Analyzer,
   X16_65C02Analyzer
 } from './analysis/6502-variants/index.js';
+
+// ============================================================================
+// TASK 2.4.3: IL QUALITY METRICS AND ANALYTICS FRAMEWORK
+// ============================================================================
+
+// IL quality metrics and analytics functionality
+export {
+  ILMetricsAnalyzer,
+  analyzeILQuality
+} from './analysis/il-metrics-analyzer.js';
+
+export type {
+  ILQualityAnalysisResult,
+  QualityAnalysisOptions,
+  QualityAnalysisMetrics,
+  ILComplexityMetrics,
+  PerformancePredictionModel,
+  OptimizationReadinessAnalysis,
+  QualityGateAnalysis,
+  QualityAnalysisSummary,
+  ImprovementRecommendation,
+  ComplexityLevel,
+  PerformanceLevel,
+  OptimizationPotential,
+  InstructionComplexityScore,
+  ControlFlowComplexityScore,
+  DataFlowComplexityScore,
+  CycleEstimate,
+  MemoryUsageEstimate,
+  RegisterPressureAnalysis,
+  PerformanceBottleneck as QualityPerformanceBottleneck,
+  PlatformSpecificFactors,
+  OptimizationCategory,
+  ReadinessScore,
+  PatternApplicabilityScore,
+  OptimizationImpactEstimate,
+  TransformationSafetyAnalysis,
+  QualityGate,
+  QualityGateStatus,
+  QualityThresholdSet,
+  QualityGateType,
+  QualityThreshold,
+  ThresholdDirection,
+  GateImportance,
+  RecommendationType,
+  RecommendationPriority,
+  ImplementationEffort,
+  ExpertiseLevel,
+  BottleneckLocation,
+  BottleneckSeverity,
+  MemorySegmentUsage,
+  RegisterPressureMetric,
+  PressureRegion,
+  MemoryTimingFactors,
+  ProcessorFeatureFactors,
+  PlatformConstraintFactors,
+  UncertaintyFactor,
+  OptimizationBlocker,
+  BlockerType,
+  BlockerSeverity,
+  OptimizationOpportunity as QualityOptimizationOpportunity,
+  OpportunityType,
+  SafetyLevel,
+  PatternPrerequisite,
+  PrerequisiteType,
+  ImpactMetric,
+  SemanticSafetyAnalysis,
+  PerformanceSafetyAnalysis,
+  PlatformSafetyAnalysis,
+  RiskFactor,
+  RiskType,
+  RiskSeverity,
+  OptimizationLevel,
+  AnalysisDepth
+} from './analysis/types/metrics-types.js';
+
+// ============================================================================
+// TASK 2.4.4: PATTERN-READINESS ANALYTICS INTEGRATION
+// ============================================================================
+
+// Pattern-readiness analytics functionality
+export {
+  PatternReadinessAnalyzer
+} from './analysis/pattern-readiness-analyzer.js';
+
+export type {
+  PatternReadinessAnalysisResult,
+  RankedPatternRecommendation,
+  PatternConflictPrediction,
+  OptimizationStrategy,
+  PatternSelectionMetrics,
+  PatternApplicationStep,
+  PatternSafetyAssessment,
+  PatternAnalysisMetadata,
+  PatternConfidenceLevel,
+  PatternPrerequisite as PatternAnalysisPrerequisite,
+  PatternBenefitEstimate,
+  BenefitConfidenceInterval,
+  PatternApplicationContext,
+  PatternRiskFactor,
+  PatternRiskType,
+  PatternConflictType,
+  ConflictSeverity,
+  ConflictImpactAssessment,
+  ConflictResolutionStrategy,
+  ResolutionComplexity,
+  ConflictResolutionOutcome,
+  OptimizationStrategyType,
+  StrategyBenefitEstimate,
+  StrategyRiskProfile,
+  StrategyResourceRequirements,
+  AlternativeStrategy,
+  StrategyTradeoffs,
+  SelectionPerformanceMetrics,
+  RollbackStrategy,
+  RollbackStrategyType,
+  RollbackComplexity,
+  SuccessCriterion,
+  CriterionPriority,
+  SafetyRecommendation,
+  SafetyImportance,
+  ValidationRequirement,
+  ValidationType,
+  PatternAnalysisOptions,
+  RiskTolerance,
+  OptimizationGoals,
+  PlatformConstraints,
+  MemoryConstraints,
+  TimingConstraints,
+  HardwareConstraints,
+  PerformanceContextInfo,
+  ExecutionFrequency,
+  SafetyContextInfo,
+  SafetyRequirement,
+  ValidationLevel,
+  ExpertiseRequirement,
+  RiskLevel
+} from './analysis/pattern-readiness-analyzer.js';
