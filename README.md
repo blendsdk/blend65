@@ -149,42 +149,7 @@ This isn't a toy project. We're building real compiler infrastructure:
 - **Intelligent Optimization** - 470+ optimization patterns targeting real 6502 constraints
 - **Multi-Platform Support** - C64, VIC-20, Commander X16 with platform-specific optimizations
 
-## 🎮 Real Games, Real Hardware
-
-Blend65 is designed by analyzing **actual C64 games** to ensure we support the patterns that matter:
-
-- ✅ **Iridis Alpha** - Complex sprite movement and collision detection
-- ✅ **Snake Game** - Simple gameplay with score tracking
-- ✅ **Tetris** - Block manipulation and line clearing logic
-- ✅ **Space Shooters** - Bullet patterns and enemy AI
-
-**Every language feature exists because real games need it.**
-
-## 🚀 Getting Started
-
-### Try the Parser (Works Right Now!)
-
-```bash
-# Clone and setup
-git clone https://github.com/blendsdk/blend65.git
-cd blend65
-yarn install
-yarn build
-
-# Test with real Blend65 code
-cd packages/parser
-yarn test  # See 128 tests parsing complex language features!
-```
-
-### Example Programs You Can Parse Today
-
-Check out the `examples/` directory for working Blend65 code:
-
-- `v02-complete-game-example.blend` - Full snake game with enums and callbacks
-- `v03-callback-functions.blend` - Interrupt-driven programming examples
-- `v02-enums.blend` - Game state management with clean syntax
-
-## 🔮 What's Coming Next
+## � What's Coming Next
 
 **The backend is where the magic happens.** We're building:
 
