@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Blend65Parser } from '../blend65/blend65-parser.js';
 import { tokenize } from '@blend65/lexer';
-import { Program, ModuleDeclaration, ImportDeclaration, VariableDeclaration, FunctionDeclaration } from '@blend65/ast';
+import { Program, ImportDeclaration, VariableDeclaration, FunctionDeclaration } from '@blend65/ast';
 
 function parseSource(source: string) {
   const tokens = tokenize(source);
@@ -990,7 +990,9 @@ function test(): void
   end match
 end function`;
 
-      expect(() => parseSource(continueOutsideLoop)).toThrow(/continue statement must be inside a loop/);
+      expect(() => parseSource(continueOutsideLoop)).toThrow(
+        /continue statement must be inside a loop/
+      );
 
       // Test multiple defaults in match
       const multipleDefaults = `module Test

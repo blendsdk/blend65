@@ -200,7 +200,7 @@ describe('CompilationUnit', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.errors.some((e) => e.type === 'LexError')).toBe(true);
+        expect(result.errors.some(e => e.type === 'LexError')).toBe(true);
       }
     });
   });

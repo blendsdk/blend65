@@ -22,7 +22,7 @@ import {
   createSourceFile,
   createCompilationError,
   isBlend65File,
-  normalizePath
+  normalizePath,
 } from './types.js';
 
 // ============================================================================
@@ -69,13 +69,15 @@ export class CompilationUnit {
       const normalizedPath = normalizePath(filePath);
 
       if (!isBlend65File(normalizedPath)) {
-        errors.push(createCompilationError(
-          'ProjectError',
-          `File '${normalizedPath}' is not a Blend65 source file (.blend or .bl65)`,
-          normalizedPath,
-          undefined,
-          ['Ensure file has .blend or .bl65 extension']
-        ));
+        errors.push(
+          createCompilationError(
+            'ProjectError',
+            `File '${normalizedPath}' is not a Blend65 source file (.blend or .bl65)`,
+            normalizedPath,
+            undefined,
+            ['Ensure file has .blend or .bl65 extension']
+          )
+        );
         continue;
       }
 
@@ -87,13 +89,13 @@ export class CompilationUnit {
     if (errors.length > 0) {
       return {
         success: false,
-        errors
+        errors,
       };
     }
 
     return {
       success: true,
-      data: unit
+      data: unit,
     };
   }
 
@@ -116,7 +118,7 @@ export class CompilationUnit {
 
     return {
       success: true,
-      data: unit
+      data: unit,
     };
   }
 
@@ -200,14 +202,14 @@ export class CompilationUnit {
       return {
         success: false,
         errors,
-        warnings: warnings.length > 0 ? warnings : undefined
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     }
 
     return {
       success: true,
       data: undefined,
-      warnings: warnings.length > 0 ? warnings : undefined
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   }
 
@@ -265,14 +267,14 @@ export class CompilationUnit {
       return {
         success: false,
         errors,
-        warnings: warnings.length > 0 ? warnings : undefined
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     }
 
     return {
       success: true,
       data: undefined,
-      warnings: warnings.length > 0 ? warnings : undefined
+      warnings: warnings.length > 0 ? warnings : undefined,
     };
   }
 
@@ -293,14 +295,14 @@ export class CompilationUnit {
       return {
         success: false,
         errors: parseResult.errors,
-        warnings: [...(lexResult.warnings || []), ...(parseResult.warnings || [])]
+        warnings: [...(lexResult.warnings || []), ...(parseResult.warnings || [])],
       };
     }
 
     return {
       success: true,
       data: undefined,
-      warnings: [...(lexResult.warnings || []), ...(parseResult.warnings || [])]
+      warnings: [...(lexResult.warnings || []), ...(parseResult.warnings || [])],
     };
   }
 
@@ -328,8 +330,10 @@ export class CompilationUnit {
    * Check if compilation unit has any errors.
    */
   hasErrors(): boolean {
-    return this.errors.length > 0 ||
-           Array.from(this.sourceFiles.values()).some(file => file.errors.length > 0);
+    return (
+      this.errors.length > 0 ||
+      Array.from(this.sourceFiles.values()).some(file => file.errors.length > 0)
+    );
   }
 
   /**
@@ -392,7 +396,7 @@ export class CompilationUnit {
       parsedFiles,
       errorCount: this.getErrors().length,
       warningCount: this.warnings.length,
-      compilationTime
+      compilationTime,
     };
   }
 

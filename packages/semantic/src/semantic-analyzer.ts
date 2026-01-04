@@ -27,21 +27,16 @@ import {
   Declaration,
   VariableDeclaration,
   FunctionDeclaration,
-  Statement,
-  Expression
+  Expression,
 } from '@blend65/ast';
 import {
   SemanticResult,
   SemanticError,
-  Scope,
   Symbol,
   VariableSymbol,
   FunctionSymbol,
   VariableOptimizationMetadata,
   FunctionOptimizationMetadata,
-  createScope,
-  isVariableSymbol,
-  isFunctionSymbol
 } from './types.js';
 import { SymbolTable, createSymbolTable } from './symbol-table.js';
 import { TypeChecker } from './type-system.js';
@@ -54,7 +49,6 @@ import {
   ExpressionAnalyzer,
   ExpressionAnalysisResult,
   createExpressionContext,
-  ExpressionContext
 } from './analyzers/expression-analyzer.js';
 
 /**
@@ -204,21 +198,20 @@ export class SemanticAnalyzer {
       return {
         success: true,
         data: comprehensiveResult,
-        warnings: this.warnings.length > 0 ? this.warnings : undefined
+        warnings: this.warnings.length > 0 ? this.warnings : undefined,
       };
-
     } catch (error) {
       const internalError: SemanticError = {
         errorType: 'InvalidOperation',
         message: `Comprehensive semantic analysis failed: ${error instanceof Error ? error.message : String(error)}`,
         location: { line: 0, column: 0, offset: 0 },
-        suggestions: ['This is an internal compiler error - please report this issue']
+        suggestions: ['This is an internal compiler error - please report this issue'],
       };
 
       return {
         success: false,
         errors: [...this.errors, internalError],
-        warnings: this.warnings.length > 0 ? this.warnings : undefined
+        warnings: this.warnings.length > 0 ? this.warnings : undefined,
       };
     }
   }
@@ -235,7 +228,7 @@ export class SemanticAnalyzer {
       return {
         success: false,
         errors: comprehensiveResult.errors,
-        warnings: comprehensiveResult.warnings
+        warnings: comprehensiveResult.warnings,
       };
     }
 
@@ -243,7 +236,7 @@ export class SemanticAnalyzer {
     return {
       success: true,
       data: comprehensiveResult.data.symbolTable,
-      warnings: comprehensiveResult.warnings
+      warnings: comprehensiveResult.warnings,
     };
   }
 
@@ -286,7 +279,7 @@ export class SemanticAnalyzer {
         this.errors.push(...moduleErrors);
         return {
           success: false,
-          errors: moduleErrors
+          errors: moduleErrors,
         };
       }
 
@@ -295,7 +288,7 @@ export class SemanticAnalyzer {
         crossFileImports: new Map<string, string[]>(),
         moduleExports: new Map<string, string[]>(),
         dependencyGraph: new Map<string, Set<string>>(),
-        circularDependencies: []
+        circularDependencies: [],
       };
 
       // Extract module information from programs
@@ -321,20 +314,19 @@ export class SemanticAnalyzer {
 
       return {
         success: true,
-        data: moduleAnalysisData
+        data: moduleAnalysisData,
       };
-
     } catch (error) {
       const moduleError: SemanticError = {
         errorType: 'InvalidOperation',
         message: `Module analysis integration failed: ${error instanceof Error ? error.message : String(error)}`,
         location: { line: 0, column: 0, offset: 0 },
-        suggestions: ['Check module declarations and import/export syntax']
+        suggestions: ['Check module declarations and import/export syntax'],
       };
 
       return {
         success: false,
-        errors: [moduleError]
+        errors: [moduleError],
       };
     }
   }
@@ -369,7 +361,10 @@ export class SemanticAnalyzer {
       // Collect optimization metadata after all declarations are processed
       const variableOptimizationMetadata = this.variableAnalyzer.buildVariableOptimizationMetadata(
         this.allVariables,
-        this.variableAnalyzer.collectVariableUsageMetadata(this.allVariables, this.allExpressionResults)
+        this.variableAnalyzer.collectVariableUsageMetadata(
+          this.allVariables,
+          this.allExpressionResults
+        )
       );
 
       // Collect function optimization metadata
@@ -377,7 +372,10 @@ export class SemanticAnalyzer {
       for (const func of this.allFunctions) {
         const metadata = this.functionAnalyzer.buildFunctionOptimizationMetadata(
           func,
-          this.functionAnalyzer.collectFunctionCallMetadata(this.allFunctions, this.allExpressionResults),
+          this.functionAnalyzer.collectFunctionCallMetadata(
+            this.allFunctions,
+            this.allExpressionResults
+          ),
           this.allExpressionResults
         );
         functionOptimizationMetadata.set(func.name, metadata);
@@ -389,25 +387,24 @@ export class SemanticAnalyzer {
         variables: this.allVariables,
         functions: this.allFunctions,
         variableOptimizationMetadata,
-        functionOptimizationMetadata
+        functionOptimizationMetadata,
       };
 
       return {
         success: true,
-        data: declarationAnalysisData
+        data: declarationAnalysisData,
       };
-
     } catch (error) {
       const declarationError: SemanticError = {
         errorType: 'InvalidOperation',
         message: `Declaration analysis integration failed: ${error instanceof Error ? error.message : String(error)}`,
         location: { line: 0, column: 0, offset: 0 },
-        suggestions: ['Check variable and function declarations']
+        suggestions: ['Check variable and function declarations'],
       };
 
       return {
         success: false,
-        errors: [declarationError]
+        errors: [declarationError],
       };
     }
   }
@@ -440,12 +437,14 @@ export class SemanticAnalyzer {
       default:
         return {
           success: false,
-          errors: [{
-            errorType: 'InvalidOperation',
-            message: `Unsupported declaration type: ${declaration.type}`,
-            location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 },
-            suggestions: ['Use supported declaration types: variable or function']
-          }]
+          errors: [
+            {
+              errorType: 'InvalidOperation',
+              message: `Unsupported declaration type: ${declaration.type}`,
+              location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 },
+              suggestions: ['Use supported declaration types: variable or function'],
+            },
+          ],
         };
     }
   }
@@ -469,7 +468,7 @@ export class SemanticAnalyzer {
 
         // Create expression context for this module
         const context = createExpressionContext({
-          optimizationLevel: 'balanced'
+          optimizationLevel: 'balanced',
         });
 
         // Process expressions in function bodies (when available)
@@ -504,7 +503,7 @@ export class SemanticAnalyzer {
                     optimizationOpportunities.push({
                       type: 'constant_folding',
                       expression: exprResult.expression,
-                      benefit: 'compile_time_evaluation'
+                      benefit: 'compile_time_evaluation',
                     });
                   }
 
@@ -512,7 +511,7 @@ export class SemanticAnalyzer {
                     optimizationOpportunities.push({
                       type: 'common_subexpression_elimination',
                       expression: exprResult.expression,
-                      benefit: 'reduced_computation'
+                      benefit: 'reduced_computation',
                     });
                   }
                 }
@@ -529,31 +528,39 @@ export class SemanticAnalyzer {
         variableReferences,
         optimizationOpportunities,
         performanceMetrics: {
-          totalCycles: this.allExpressionResults.reduce((sum, result) =>
-            sum + result.optimizationData.estimatedCycles, 0),
-          complexity: this.allExpressionResults.reduce((sum, result) =>
-            sum + result.optimizationData.complexityScore, 0) / Math.max(1, totalExpressions),
-          registerPressure: this.allExpressionResults.reduce((sum, result) =>
-            sum + result.optimizationData.registerPressure.estimatedRegistersNeeded, 0) / Math.max(1, totalExpressions)
-        }
+          totalCycles: this.allExpressionResults.reduce(
+            (sum, result) => sum + result.optimizationData.estimatedCycles,
+            0
+          ),
+          complexity:
+            this.allExpressionResults.reduce(
+              (sum, result) => sum + result.optimizationData.complexityScore,
+              0
+            ) / Math.max(1, totalExpressions),
+          registerPressure:
+            this.allExpressionResults.reduce(
+              (sum, result) =>
+                sum + result.optimizationData.registerPressure.estimatedRegistersNeeded,
+              0
+            ) / Math.max(1, totalExpressions),
+        },
       };
 
       return {
         success: true,
-        data: expressionAnalysisData
+        data: expressionAnalysisData,
       };
-
     } catch (error) {
       const expressionError: SemanticError = {
         errorType: 'InvalidOperation',
         message: `Expression analysis integration failed: ${error instanceof Error ? error.message : String(error)}`,
         location: { line: 0, column: 0, offset: 0 },
-        suggestions: ['Check expression syntax and usage']
+        suggestions: ['Check expression syntax and usage'],
       };
 
       return {
         success: false,
-        errors: [expressionError]
+        errors: [expressionError],
       };
     }
   }
@@ -575,10 +582,12 @@ export class SemanticAnalyzer {
 
           // Check for interference with other variables
           for (const otherVar of this.allVariables) {
-            if (otherVar.name !== variable.name &&
-                otherVar.optimizationMetadata?.registerCandidate.isCandidate &&
-                otherVar.optimizationMetadata.registerCandidate.preferredRegister ===
-                variable.optimizationMetadata.registerCandidate.preferredRegister) {
+            if (
+              otherVar.name !== variable.name &&
+              otherVar.optimizationMetadata?.registerCandidate.isCandidate &&
+              otherVar.optimizationMetadata.registerCandidate.preferredRegister ===
+                variable.optimizationMetadata.registerCandidate.preferredRegister
+            ) {
               interfering.push(otherVar.name);
             }
           }
@@ -586,10 +595,16 @@ export class SemanticAnalyzer {
           // Check for interference with function register usage
           for (const func of this.allFunctions) {
             if (func.optimizationMetadata?.sixtyTwoHints?.registerStrategy) {
-              const funcRegisters = func.optimizationMetadata.sixtyTwoHints.registerStrategy.registerAssignments
-                .map(assignment => assignment.register);
+              const funcRegisters =
+                func.optimizationMetadata.sixtyTwoHints.registerStrategy.registerAssignments.map(
+                  assignment => assignment.register
+                );
 
-              if (funcRegisters.includes(variable.optimizationMetadata.registerCandidate.preferredRegister)) {
+              if (
+                funcRegisters.includes(
+                  variable.optimizationMetadata.registerCandidate.preferredRegister
+                )
+              ) {
                 interfering.push(`function_${func.name}`);
               }
             }
@@ -610,7 +625,7 @@ export class SemanticAnalyzer {
               type: 'zero_page_register_conflict',
               variable: variable.name,
               conflict: 'Variable cannot be both in zero page and register allocated',
-              resolution: 'Prefer register allocation for higher performance'
+              resolution: 'Prefer register allocation for higher performance',
             });
           }
         }
@@ -624,7 +639,7 @@ export class SemanticAnalyzer {
             target: func.name,
             benefit: func.optimizationMetadata.inliningCandidate.estimatedBenefit,
             cost: func.optimizationMetadata.inliningCandidate.estimatedCost,
-            priority: func.optimizationMetadata.inliningCandidate.inliningScore
+            priority: func.optimizationMetadata.inliningCandidate.inliningScore,
           });
         }
       }
@@ -635,33 +650,35 @@ export class SemanticAnalyzer {
 
       if (totalOptimizations > 0) {
         // Score based on optimization coverage
-        const optimizedVariables = this.allVariables.filter(v =>
-          v.optimizationMetadata?.zeroPageCandidate.isCandidate ||
-          v.optimizationMetadata?.registerCandidate.isCandidate
+        const optimizedVariables = this.allVariables.filter(
+          v =>
+            v.optimizationMetadata?.zeroPageCandidate.isCandidate ||
+            v.optimizationMetadata?.registerCandidate.isCandidate
         ).length;
 
-        const optimizedFunctions = this.allFunctions.filter(f =>
-          f.optimizationMetadata?.inliningCandidate.isCandidate ||
-          f.optimizationMetadata?.callOptimization
+        const optimizedFunctions = this.allFunctions.filter(
+          f =>
+            f.optimizationMetadata?.inliningCandidate.isCandidate ||
+            f.optimizationMetadata?.callOptimization
         ).length;
 
-        globalOptimizationScore = ((optimizedVariables + optimizedFunctions) / totalOptimizations) * 100;
+        globalOptimizationScore =
+          ((optimizedVariables + optimizedFunctions) / totalOptimizations) * 100;
       }
 
       return {
         registerInterference,
         optimizationConflicts,
         coordinatedOptimizations,
-        globalOptimizationScore
+        globalOptimizationScore,
       };
-
     } catch (error) {
       // Return default optimization coordination results on error
       return {
         registerInterference: new Map<string, string[]>(),
         optimizationConflicts: [],
         coordinatedOptimizations: [],
-        globalOptimizationScore: 0
+        globalOptimizationScore: 0,
       };
     }
   }
@@ -676,26 +693,26 @@ export class SemanticAnalyzer {
     expressionAnalysis: any,
     optimizationCoordination: any
   ): ComprehensiveSemanticAnalysisResult {
-
     // Calculate analysis metrics
     const analysisTime = Date.now() - this.analysisStartTime;
     const totalSymbols = this.allVariables.length + this.allFunctions.length;
 
     // Calculate optimization coverage
-    const optimizedVariables = this.allVariables.filter(v =>
-      v.optimizationMetadata?.zeroPageCandidate.isCandidate ||
-      v.optimizationMetadata?.registerCandidate.isCandidate
+    const optimizedVariables = this.allVariables.filter(
+      v =>
+        v.optimizationMetadata?.zeroPageCandidate.isCandidate ||
+        v.optimizationMetadata?.registerCandidate.isCandidate
     ).length;
 
-    const optimizedFunctions = this.allFunctions.filter(f =>
-      f.optimizationMetadata?.inliningCandidate.isCandidate
+    const optimizedFunctions = this.allFunctions.filter(
+      f => f.optimizationMetadata?.inliningCandidate.isCandidate
     ).length;
 
-    const optimizationCoverage = totalSymbols > 0 ?
-      ((optimizedVariables + optimizedFunctions) / totalSymbols) * 100 : 0;
+    const optimizationCoverage =
+      totalSymbols > 0 ? ((optimizedVariables + optimizedFunctions) / totalSymbols) * 100 : 0;
 
     // Calculate quality score based on error count and optimization coverage
-    const qualityScore = Math.max(0, 100 - (this.errors.length * 10)) * (optimizationCoverage / 100);
+    const qualityScore = Math.max(0, 100 - this.errors.length * 10) * (optimizationCoverage / 100);
 
     return {
       symbolTable: this.symbolTable,
@@ -704,7 +721,7 @@ export class SemanticAnalyzer {
         crossFileImports: moduleAnalysis.crossFileImports,
         moduleExports: moduleAnalysis.moduleExports,
         dependencyGraph: moduleAnalysis.dependencyGraph,
-        circularDependencies: moduleAnalysis.circularDependencies
+        circularDependencies: moduleAnalysis.circularDependencies,
       },
 
       variableAnalysis: {
@@ -719,7 +736,7 @@ export class SemanticAnalyzer {
         usageStatistics: this.variableAnalyzer.collectVariableUsageMetadata(
           this.allVariables,
           this.allExpressionResults
-        )
+        ),
       },
 
       functionAnalysis: {
@@ -728,13 +745,11 @@ export class SemanticAnalyzer {
         inliningCandidates: this.allFunctions
           .filter(f => f.optimizationMetadata?.inliningCandidate.isCandidate)
           .map(f => f.name),
-        callbackFunctions: this.allFunctions
-          .filter(f => f.isCallback)
-          .map(f => f.name),
+        callbackFunctions: this.allFunctions.filter(f => f.isCallback).map(f => f.name),
         callStatistics: this.functionAnalyzer.collectFunctionCallMetadata(
           this.allFunctions,
           this.allExpressionResults
-        )
+        ),
       },
 
       expressionAnalysis: {
@@ -742,22 +757,22 @@ export class SemanticAnalyzer {
         constantExpressions: expressionAnalysis.constantExpressions,
         variableReferences: expressionAnalysis.variableReferences,
         optimizationOpportunities: expressionAnalysis.optimizationOpportunities,
-        performanceMetrics: expressionAnalysis.performanceMetrics
+        performanceMetrics: expressionAnalysis.performanceMetrics,
       },
 
       crossAnalyzerOptimization: {
         registerInterference: optimizationCoordination.registerInterference,
         optimizationConflicts: optimizationCoordination.optimizationConflicts,
         coordinatedOptimizations: optimizationCoordination.coordinatedOptimizations,
-        globalOptimizationScore: optimizationCoordination.globalOptimizationScore
+        globalOptimizationScore: optimizationCoordination.globalOptimizationScore,
       },
 
       analysisMetrics: {
         totalSymbols,
         analysisTime,
         optimizationCoverage,
-        qualityScore
-      }
+        qualityScore,
+      },
     };
   }
 
@@ -782,8 +797,8 @@ export class SemanticAnalyzer {
         location: { line: 1, column: 1, offset: 0 },
         suggestions: [
           'Add a module declaration at the top: module ModuleName',
-          'All Blend65 files must belong to a module'
-        ]
+          'All Blend65 files must belong to a module',
+        ],
       });
       return;
     }
@@ -818,8 +833,8 @@ export class SemanticAnalyzer {
         location: { line: 1, column: 1, offset: 0 },
         suggestions: [
           'Add a module declaration at the top: module ModuleName',
-          'All Blend65 files must belong to a module'
-        ]
+          'All Blend65 files must belong to a module',
+        ],
       });
       return;
     }
@@ -840,7 +855,7 @@ export class SemanticAnalyzer {
           this.addWarning({
             errorType: 'InvalidOperation',
             message: `Variable declaration processing not yet implemented for multi-program analysis`,
-            location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 }
+            location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 },
           });
           break;
 
@@ -849,7 +864,7 @@ export class SemanticAnalyzer {
           this.addWarning({
             errorType: 'InvalidOperation',
             message: `Function declaration processing not yet implemented for multi-program analysis`,
-            location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 }
+            location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 },
           });
           break;
 
@@ -857,7 +872,7 @@ export class SemanticAnalyzer {
           this.addWarning({
             errorType: 'InvalidOperation',
             message: `Declaration type '${declaration.type}' not yet implemented in semantic analysis`,
-            location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 }
+            location: declaration.metadata?.start || { line: 0, column: 0, offset: 0 },
           });
       }
     }
@@ -887,8 +902,8 @@ export class SemanticAnalyzer {
         location: importDecl.metadata?.start || { line: 0, column: 0, offset: 0 },
         suggestions: [
           'Use correct import syntax: import symbol from module',
-          'Check the import declaration format'
-        ]
+          'Check the import declaration format',
+        ],
       });
     }
   }
@@ -936,7 +951,9 @@ export class SemanticAnalyzer {
 /**
  * Task 1.10: Comprehensive single-file analysis with full optimization metadata.
  */
-export function analyzeComprehensiveProgram(program: Program): SemanticResult<ComprehensiveSemanticAnalysisResult> {
+export function analyzeComprehensiveProgram(
+  program: Program
+): SemanticResult<ComprehensiveSemanticAnalysisResult> {
   const analyzer = new SemanticAnalyzer();
   return analyzer.analyzeComprehensive([program]);
 }
@@ -944,7 +961,9 @@ export function analyzeComprehensiveProgram(program: Program): SemanticResult<Co
 /**
  * Task 1.10: Comprehensive multi-file analysis with full optimization metadata.
  */
-export function analyzeComprehensivePrograms(programs: Program[]): SemanticResult<ComprehensiveSemanticAnalysisResult> {
+export function analyzeComprehensivePrograms(
+  programs: Program[]
+): SemanticResult<ComprehensiveSemanticAnalysisResult> {
   const analyzer = new SemanticAnalyzer();
   return analyzer.analyzeComprehensive(programs);
 }

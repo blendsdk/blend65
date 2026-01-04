@@ -22,34 +22,53 @@ import {
   SixtyTwo6502Optimization,
   InstructionAnalysisContext,
   PlatformMemoryMap,
-  ValidationIssue
+  ValidationIssue,
 } from '../types/6502-analysis-types.js';
 
 /**
  * Pure 6502 instruction timing table - reference implementation
  * Based on official MOS 6502 documentation
  */
-const VIC20_6502_TIMING_TABLE: Record<ILInstructionType, {
-  baseCycles: number;
-  pageBoundaryCycles?: number;
-  notes?: string;
-}> = {
+const VIC20_6502_TIMING_TABLE: Record<
+  ILInstructionType,
+  {
+    baseCycles: number;
+    pageBoundaryCycles?: number;
+    notes?: string;
+  }
+> = {
   // Memory operations - pure 6502 timing
   [ILInstructionType.LOAD_IMMEDIATE]: { baseCycles: 2, notes: 'LDA #$XX - 2 cycles' },
-  [ILInstructionType.LOAD_MEMORY]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'LDA $XXXX - 3/4 cycles' },
+  [ILInstructionType.LOAD_MEMORY]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'LDA $XXXX - 3/4 cycles',
+  },
   [ILInstructionType.STORE_MEMORY]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles' },
   [ILInstructionType.COPY]: { baseCycles: 2, notes: 'Register transfer - 2 cycles' },
 
   // Arithmetic operations
-  [ILInstructionType.ADD]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'ADC $XXXX - 3/4 cycles' },
-  [ILInstructionType.SUB]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'SBC $XXXX - 3/4 cycles' },
+  [ILInstructionType.ADD]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'ADC $XXXX - 3/4 cycles',
+  },
+  [ILInstructionType.SUB]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'SBC $XXXX - 3/4 cycles',
+  },
   [ILInstructionType.MUL]: { baseCycles: 8, notes: 'Software multiplication' },
   [ILInstructionType.DIV]: { baseCycles: 12, notes: 'Software division' },
   [ILInstructionType.MOD]: { baseCycles: 14, notes: 'Software modulo' },
   [ILInstructionType.NEG]: { baseCycles: 5, notes: 'Software negation' },
 
   // Logical operations
-  [ILInstructionType.AND]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'AND $XXXX - 3/4 cycles' },
+  [ILInstructionType.AND]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'AND $XXXX - 3/4 cycles',
+  },
   [ILInstructionType.OR]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'ORA $XXXX - 3/4 cycles' },
   [ILInstructionType.NOT]: { baseCycles: 4, notes: 'Software NOT' },
 
@@ -71,10 +90,26 @@ const VIC20_6502_TIMING_TABLE: Record<ILInstructionType, {
 
   // Control flow operations
   [ILInstructionType.BRANCH]: { baseCycles: 3, notes: 'JMP $XXXX - 3 cycles' },
-  [ILInstructionType.BRANCH_IF_TRUE]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BNE - 2/3/4 cycles' },
-  [ILInstructionType.BRANCH_IF_FALSE]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BEQ - 2/3/4 cycles' },
-  [ILInstructionType.BRANCH_IF_ZERO]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BEQ - 2/3/4 cycles' },
-  [ILInstructionType.BRANCH_IF_NOT_ZERO]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BNE - 2/3/4 cycles' },
+  [ILInstructionType.BRANCH_IF_TRUE]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BNE - 2/3/4 cycles',
+  },
+  [ILInstructionType.BRANCH_IF_FALSE]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BEQ - 2/3/4 cycles',
+  },
+  [ILInstructionType.BRANCH_IF_ZERO]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BEQ - 2/3/4 cycles',
+  },
+  [ILInstructionType.BRANCH_IF_NOT_ZERO]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BNE - 2/3/4 cycles',
+  },
 
   // Function operations
   [ILInstructionType.CALL]: { baseCycles: 6, notes: 'JSR $XXXX - 6 cycles' },
@@ -82,11 +117,21 @@ const VIC20_6502_TIMING_TABLE: Record<ILInstructionType, {
 
   // Variable operations
   [ILInstructionType.DECLARE_LOCAL]: { baseCycles: 0, notes: 'No runtime cost' },
-  [ILInstructionType.LOAD_VARIABLE]: { baseCycles: 3, notes: 'LDA $XXXX - 3 cycles (zero page: 2)' },
-  [ILInstructionType.STORE_VARIABLE]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles (zero page: 2)' },
+  [ILInstructionType.LOAD_VARIABLE]: {
+    baseCycles: 3,
+    notes: 'LDA $XXXX - 3 cycles (zero page: 2)',
+  },
+  [ILInstructionType.STORE_VARIABLE]: {
+    baseCycles: 3,
+    notes: 'STA $XXXX - 3 cycles (zero page: 2)',
+  },
 
   // Array operations
-  [ILInstructionType.LOAD_ARRAY]: { baseCycles: 4, pageBoundaryCycles: 1, notes: 'LDA $XXXX,Y - 4/5 cycles' },
+  [ILInstructionType.LOAD_ARRAY]: {
+    baseCycles: 4,
+    pageBoundaryCycles: 1,
+    notes: 'LDA $XXXX,Y - 4/5 cycles',
+  },
   [ILInstructionType.STORE_ARRAY]: { baseCycles: 5, notes: 'STA $XXXX,Y - 5 cycles' },
   [ILInstructionType.ARRAY_ADDRESS]: { baseCycles: 6, notes: 'Address calculation' },
 
@@ -100,7 +145,7 @@ const VIC20_6502_TIMING_TABLE: Record<ILInstructionType, {
   [ILInstructionType.PEEK]: { baseCycles: 3, notes: 'LDA $XXXX - 3 cycles' },
   [ILInstructionType.POKE]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles' },
   [ILInstructionType.SET_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
-  [ILInstructionType.CLEAR_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' }
+  [ILInstructionType.CLEAR_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
 };
 
 /**
@@ -111,66 +156,68 @@ const VIC20_MEMORY_MAP: PlatformMemoryMap = {
   zeroPage: {
     name: 'Zero Page',
     startAddress: 0x0000,
-    endAddress: 0x00FF,
+    endAddress: 0x00ff,
     type: 'ram',
     readable: true,
     writable: true,
     bankable: false,
-    accessCycles: 2
+    accessCycles: 2,
   },
   stack: {
     name: 'Stack',
     startAddress: 0x0100,
-    endAddress: 0x01FF,
+    endAddress: 0x01ff,
     type: 'ram',
     readable: true,
     writable: true,
     bankable: false,
-    accessCycles: 3
+    accessCycles: 3,
   },
-  defaultRAM: [{
-    name: 'Main RAM',
-    startAddress: 0x0200,
-    endAddress: 0x1FFF,  // 5K RAM expansion
-    type: 'ram',
-    readable: true,
-    writable: true,
-    bankable: false,
-    accessCycles: 3
-  }],
+  defaultRAM: [
+    {
+      name: 'Main RAM',
+      startAddress: 0x0200,
+      endAddress: 0x1fff, // 5K RAM expansion
+      type: 'ram',
+      readable: true,
+      writable: true,
+      bankable: false,
+      accessCycles: 3,
+    },
+  ],
   ioRegions: [
     {
       name: 'VIC',
       startAddress: 0x9000,
-      endAddress: 0x900F,
+      endAddress: 0x900f,
       type: 'io',
       readable: true,
       writable: true,
       bankable: false,
-      accessCycles: 3
+      accessCycles: 3,
     },
     {
       name: 'VIA1',
       startAddress: 0x9110,
-      endAddress: 0x911F,
+      endAddress: 0x911f,
       type: 'io',
       readable: true,
       writable: true,
       bankable: false,
-      accessCycles: 3
+      accessCycles: 3,
     },
     {
       name: 'VIA2',
       startAddress: 0x9120,
-      endAddress: 0x912F,
+      endAddress: 0x912f,
       type: 'io',
       readable: true,
       writable: true,
       bankable: false,
-      accessCycles: 3
-    }
+      accessCycles: 3,
+    },
   ],
-  regions: [] // Will be populated
+  regions: [], // Will be populated
 };
 
 // Populate combined regions
@@ -181,21 +228,20 @@ VIC20_MEMORY_MAP.regions = [
   ...VIC20_MEMORY_MAP.ioRegions,
   {
     name: 'KERNAL ROM',
-    startAddress: 0xE000,
-    endAddress: 0xFFFF,
+    startAddress: 0xe000,
+    endAddress: 0xffff,
     type: 'rom',
     readable: true,
     writable: false,
     bankable: false,
-    accessCycles: 3
-  }
+    accessCycles: 3,
+  },
 ];
 
 /**
  * VIC-20 6502 specific analyzer implementation
  */
 export class VIC20_6502Analyzer extends Base6502Analyzer {
-
   /**
    * Get instruction timing with pure 6502 cycle counts
    */
@@ -240,7 +286,7 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
       totalCycles,
       timingNotes,
       addressingMode: this.getAddressingMode(instruction),
-      isCriticalPath: false // Simplified for VIC-20
+      isCriticalPath: false, // Simplified for VIC-20
     };
   }
 
@@ -253,7 +299,7 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
       viaTiming: true,
       bankSwitching: false,
       processorVariant: '6502',
-      clockSpeed: 1108405 // PAL VIC-20 clock speed in Hz
+      clockSpeed: 1108405, // PAL VIC-20 clock speed in Hz
     };
   }
 
@@ -277,7 +323,7 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
       validationIssues.push({
         type: 'memory_overflow',
         severity: 'error',
-        message: `Memory usage (${estimatedSize} bytes) exceeds VIC-20 5K RAM limit`
+        message: `Memory usage (${estimatedSize} bytes) exceeds VIC-20 5K RAM limit`,
       });
     }
 
@@ -285,7 +331,7 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
       isValid: validationIssues.filter(issue => issue.severity === 'error').length === 0,
       memoryUsage,
       memoryMap,
-      validationIssues
+      validationIssues,
     };
   }
 
@@ -308,12 +354,16 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
       stackUsageValid,
       timingConstraintsValid: true, // No complex timing constraints
       hardwareResourcesValid: true,
-      constraintViolations: stackUsageValid ? [] : [{
-        constraintType: 'stack_overflow',
-        severity: 'warning',
-        message: 'Stack usage may be high for VIC-20',
-        resolution: 'Reduce local variable usage'
-      }]
+      constraintViolations: stackUsageValid
+        ? []
+        : [
+            {
+              constraintType: 'stack_overflow',
+              severity: 'warning',
+              message: 'Stack usage may be high for VIC-20',
+              resolution: 'Reduce local variable usage',
+            },
+          ],
     };
   }
 
@@ -324,28 +374,27 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
     ilFunction: ILFunction,
     analysisResults: any
   ): SixtyTwo6502Optimization[] {
-    return [{
-      type: 'memory_layout',
-      priority: 75,
-      estimatedBenefit: {
-        cycleSavings: 8,
-        memorySavings: 0,
-        codeSizeChange: 0
+    return [
+      {
+        type: 'memory_layout',
+        priority: 75,
+        estimatedBenefit: {
+          cycleSavings: 8,
+          memorySavings: 0,
+          codeSizeChange: 0,
+        },
+        description: 'Use zero page for frequently accessed variables',
+        affectedInstructions: [],
+        difficulty: 'easy',
+        platformNotes: 'VIC-20 zero page access is faster than absolute addressing',
       },
-      description: 'Use zero page for frequently accessed variables',
-      affectedInstructions: [],
-      difficulty: 'easy',
-      platformNotes: 'VIC-20 zero page access is faster than absolute addressing'
-    }];
+    ];
   }
 
   /**
    * Generate VIC-20 platform compatibility report
    */
-  public generatePlatformCompatibilityReport(
-    ilFunction: ILFunction,
-    analysisResults: any
-  ): any {
+  public generatePlatformCompatibilityReport(ilFunction: ILFunction, analysisResults: any): any {
     return {
       score: 95, // VIC-20 is simpler, so higher baseline compatibility
       issues: [],
@@ -356,8 +405,8 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
       performanceEstimate: {
         totalCycles: analysisResults.timing.totalCycles,
         averageCyclesPerInstruction: analysisResults.timing.averageCyclesPerInstruction,
-        estimatedExecutionTimeMs: (analysisResults.timing.totalCycles / 1108405) * 1000
-      }
+        estimatedExecutionTimeMs: (analysisResults.timing.totalCycles / 1108405) * 1000,
+      },
     };
   }
 
@@ -371,9 +420,11 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
   }
 
   private usesZeroPageAddressing(instruction: ILInstruction): boolean {
-    return instruction.sixtyTwoHints?.preferredAddressingMode === 'zero_page' ||
-           instruction.type === ILInstructionType.LOAD_VARIABLE ||
-           instruction.type === ILInstructionType.STORE_VARIABLE;
+    return (
+      instruction.sixtyTwoHints?.preferredAddressingMode === 'zero_page' ||
+      instruction.type === ILInstructionType.LOAD_VARIABLE ||
+      instruction.type === ILInstructionType.STORE_VARIABLE
+    );
   }
 
   private getAddressingMode(instruction: ILInstruction): any {
@@ -383,7 +434,8 @@ export class VIC20_6502Analyzer extends Base6502Analyzer {
   private analyzeStackUsage(ilFunction: ILFunction): number {
     // Simple stack analysis for VIC-20
     const localVariables = ilFunction.localVariables.length * 2;
-    const callDepth = ilFunction.instructions.filter(i => i.type === ILInstructionType.CALL).length * 3;
+    const callDepth =
+      ilFunction.instructions.filter(i => i.type === ILInstructionType.CALL).length * 3;
     return localVariables + callDepth;
   }
 }

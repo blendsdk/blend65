@@ -93,7 +93,7 @@ export class SynchronizationRecovery implements ErrorRecoveryStrategy {
     TokenType.MATCH,
     TokenType.RETURN,
     TokenType.END,
-    TokenType.EOF
+    TokenType.EOF,
   ]);
 
   recover(error: ParseError, context: RecoveryContext): boolean {
@@ -226,7 +226,7 @@ export class ErrorReporter {
 export enum ErrorSeverity {
   ERROR = 'error',
   WARNING = 'warning',
-  INFO = 'info'
+  INFO = 'info',
 }
 
 /**

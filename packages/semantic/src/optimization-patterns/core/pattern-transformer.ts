@@ -1,54 +1,11 @@
-/**
- * Pattern Transformation Engine - AST Transformation System
- * Task 1.11: Core Optimization Pattern Infrastructure
- *
- * This file implements the pattern transformation engine that applies optimization
- * patterns to Blend65 AST nodes. It provides safe, semantic-preserving transformations
- * with comprehensive rollback capabilities and performance tracking.
- *
- * Educational Focus:
- * - Safe AST transformation with semantic preservation guarantees
- * - Professional-grade rollback and recovery systems
- * - Performance-oriented transformation algorithms
- * - Complex multi-step transformation orchestration
- *
- * Architecture Design:
- * - Transformation pipeline with validation checkpoints
- * - Complete rollback capability for failed transformations
- * - Performance impact measurement and prediction
- * - Safety verification at each transformation step
- * - Comprehensive audit trails for debugging
- */
-
-import type { ASTNode } from '@blend65/ast';
 import type {
-  OptimizationPattern,
   PatternTransformer,
   PatternMatch,
-  TransformationResult,
-  TransformationImpactEstimate,
-  TransformationImpact,
-  TransformationWarning,
-  TransformationWarningType,
-  RollbackResult,
-  RollbackInfo,
   ASTSnapshot,
-  ASTNodeChange,
-  ChangeType,
-  ImpactComponent,
-  EstimateReliability,
-  EstimateFactor,
-  FactorInfluence,
-  ImpactRange,
   WarningSeverity,
   TransformerCapabilities,
-  ResourceRequirements,
   OptimizationContext,
-  ValidationResult,
-  PatternComplexity,
-  PatternCategory
 } from './pattern-system';
-import type { Symbol, Blend65Type } from '../..';
 import { SourcePosition } from '@blend65/lexer';
 
 // ============================================================================
@@ -129,11 +86,11 @@ export interface TransformerConfiguration {
 export type ValidationLevel = 'None' | 'Basic' | 'Standard' | 'Comprehensive' | 'Paranoid';
 
 export type ErrorHandlingStrategy =
-  | 'FailFast'            // Stop on first error
-  | 'Accumulate'          // Collect all errors before failing
-  | 'BestEffort'          // Continue despite errors where possible
-  | 'Rollback'            // Rollback on any error
-  | 'Ignore';             // Ignore non-critical errors
+  | 'FailFast' // Stop on first error
+  | 'Accumulate' // Collect all errors before failing
+  | 'BestEffort' // Continue despite errors where possible
+  | 'Rollback' // Rollback on any error
+  | 'Ignore'; // Ignore non-critical errors
 
 /**
  * Diagnostic information for transformer.
@@ -246,16 +203,16 @@ export interface TransformationError {
 }
 
 export type TransformationErrorType =
-  | 'NodeAccessError'      // Error accessing AST node
-  | 'SemanticViolation'    // Transformation would violate semantics
-  | 'TypeSafetyViolation'  // Transformation would violate type safety
+  | 'NodeAccessError' // Error accessing AST node
+  | 'SemanticViolation' // Transformation would violate semantics
+  | 'TypeSafetyViolation' // Transformation would violate type safety
   | 'MemoryConstraintViolation' // Transformation would exceed memory limits
   | 'PerformanceRegression' // Transformation would hurt performance
   | 'PlatformIncompatibility' // Transformation incompatible with platform
-  | 'TimeoutError'         // Transformation timeout
-  | 'ValidationFailure'    // Post-transformation validation failed
-  | 'RollbackFailure'      // Rollback operation failed
-  | 'InternalError';       // Unexpected internal error
+  | 'TimeoutError' // Transformation timeout
+  | 'ValidationFailure' // Post-transformation validation failed
+  | 'RollbackFailure' // Rollback operation failed
+  | 'InternalError'; // Unexpected internal error
 
 export type ErrorSeverity = 'Info' | 'Warning' | 'Error' | 'Critical' | 'Fatal';
 
@@ -326,13 +283,13 @@ export interface TransformationBottleneck {
 }
 
 export type TransformationBottleneckType =
-  | 'SlowNodeCreation'     // Creating new nodes is slow
+  | 'SlowNodeCreation' // Creating new nodes is slow
   | 'SlowNodeModification' // Modifying nodes is slow
-  | 'SlowValidation'       // Validation is slow
-  | 'SlowRollback'         // Rollback operations are slow
-  | 'MemoryAllocation'     // Memory allocation overhead
-  | 'ContextLookup'        // Context lookup overhead
-  | 'TypeChecking';        // Type checking overhead
+  | 'SlowValidation' // Validation is slow
+  | 'SlowRollback' // Rollback operations are slow
+  | 'MemoryAllocation' // Memory allocation overhead
+  | 'ContextLookup' // Context lookup overhead
+  | 'TypeChecking'; // Type checking overhead
 
 /**
  * Entry in transformation history.
@@ -447,16 +404,16 @@ export interface TransformationStep {
 }
 
 export type TransformationStepType =
-  | 'Analysis'            // Analyze transformation requirements
-  | 'Preparation'         // Prepare for transformation
-  | 'NodeCreation'        // Create new AST nodes
-  | 'NodeModification'    // Modify existing AST nodes
-  | 'NodeDeletion'        // Delete AST nodes
-  | 'NodeReplacement'     // Replace AST nodes
-  | 'LinkageUpdate'       // Update node relationships
-  | 'MetadataUpdate'      // Update optimization metadata
-  | 'Validation'          // Validate transformation
-  | 'Cleanup';            // Cleanup transformation artifacts
+  | 'Analysis' // Analyze transformation requirements
+  | 'Preparation' // Prepare for transformation
+  | 'NodeCreation' // Create new AST nodes
+  | 'NodeModification' // Modify existing AST nodes
+  | 'NodeDeletion' // Delete AST nodes
+  | 'NodeReplacement' // Replace AST nodes
+  | 'LinkageUpdate' // Update node relationships
+  | 'MetadataUpdate' // Update optimization metadata
+  | 'Validation' // Validate transformation
+  | 'Cleanup'; // Cleanup transformation artifacts
 
 /**
  * Safety check for transformation step.
@@ -477,10 +434,10 @@ export interface SafetyCheck {
 
 export type SafetyCheckType =
   | 'SemanticPreservation' // Ensure semantics are preserved
-  | 'TypeSafety'          // Ensure type safety
-  | 'SymbolIntegrity'     // Ensure symbol table integrity
-  | 'ReferenceIntegrity'  // Ensure reference integrity
-  | 'MemoryConstraints'   // Check memory constraints
+  | 'TypeSafety' // Ensure type safety
+  | 'SymbolIntegrity' // Ensure symbol table integrity
+  | 'ReferenceIntegrity' // Ensure reference integrity
+  | 'MemoryConstraints' // Check memory constraints
   | 'PerformanceConstraints' // Check performance constraints
   | 'PlatformCompatibility'; // Check platform compatibility
 
@@ -533,13 +490,13 @@ export interface SafetyIssue {
 }
 
 export type SafetyIssueType =
-  | 'SemanticChange'      // Transformation changes semantics
-  | 'TypeViolation'       // Type system violation
-  | 'SymbolCorruption'    // Symbol table corruption
-  | 'ReferenceBreakage'   // Broken references
-  | 'MemoryOveruse'       // Excessive memory usage
-  | 'PerformanceLoss'     // Performance degradation
-  | 'PlatformBreach';     // Platform compatibility violation
+  | 'SemanticChange' // Transformation changes semantics
+  | 'TypeViolation' // Type system violation
+  | 'SymbolCorruption' // Symbol table corruption
+  | 'ReferenceBreakage' // Broken references
+  | 'MemoryOveruse' // Excessive memory usage
+  | 'PerformanceLoss' // Performance degradation
+  | 'PlatformBreach'; // Platform compatibility violation
 
 export type IssueSeverity = 'Minor' | 'Moderate' | 'Major' | 'Critical' | 'Blocking';
 export type CriticalLevel = 'Optional' | 'Important' | 'Critical' | 'Mandatory';
@@ -568,20 +525,20 @@ export interface StepRollbackStrategy {
 }
 
 export type StepRollbackStrategyType =
-  | 'Snapshot'            // Use snapshot-based rollback
-  | 'Incremental'         // Use incremental rollback
-  | 'Compensating'        // Use compensating actions
-  | 'Reconstruction'      // Reconstruct from metadata
-  | 'None';               // No rollback possible
+  | 'Snapshot' // Use snapshot-based rollback
+  | 'Incremental' // Use incremental rollback
+  | 'Compensating' // Use compensating actions
+  | 'Reconstruction' // Reconstruct from metadata
+  | 'None'; // No rollback possible
 
 export type RollbackComplexity = 'Trivial' | 'Simple' | 'Moderate' | 'Complex' | 'Impossible';
 
 export type DataPreservationMethod =
-  | 'FullSnapshot'        // Complete AST snapshot
-  | 'DeltaSnapshot'       // Delta changes only
-  | 'MetadataOnly'        // Metadata preservation
-  | 'CustomPreservation'  // Custom preservation strategy
-  | 'NoPreservation';     // No data preservation
+  | 'FullSnapshot' // Complete AST snapshot
+  | 'DeltaSnapshot' // Delta changes only
+  | 'MetadataOnly' // Metadata preservation
+  | 'CustomPreservation' // Custom preservation strategy
+  | 'NoPreservation'; // No data preservation
 
 /**
  * Resource allocation for transformation.
@@ -629,20 +586,20 @@ export interface MemoryAllocation {
 export type MemoryType = 'Heap' | 'Stack' | 'Pool' | 'Static' | 'Temporary';
 
 export type MemoryAllocationStrategy =
-  | 'Immediate'           // Allocate immediately
-  | 'Lazy'                // Allocate when needed
-  | 'Pooled'              // Use memory pool
-  | 'Preallocated'        // Use preallocated memory
-  | 'GarbageCollected';   // Use garbage collection
+  | 'Immediate' // Allocate immediately
+  | 'Lazy' // Allocate when needed
+  | 'Pooled' // Use memory pool
+  | 'Preallocated' // Use preallocated memory
+  | 'GarbageCollected'; // Use garbage collection
 
 export type AllocationLifetime = 'Transient' | 'Step' | 'Transformation' | 'Session' | 'Permanent';
 
 export type DeallocationStrategy =
-  | 'Immediate'           // Deallocate immediately after use
-  | 'Deferred'            // Deallocate at end of transformation
-  | 'PoolReturn'          // Return to memory pool
-  | 'GarbageCollection'   // Let garbage collector handle
-  | 'Manual';             // Manual deallocation required
+  | 'Immediate' // Deallocate immediately after use
+  | 'Deferred' // Deallocate at end of transformation
+  | 'PoolReturn' // Return to memory pool
+  | 'GarbageCollection' // Let garbage collector handle
+  | 'Manual'; // Manual deallocation required
 
 /**
  * CPU allocation for transformation.
@@ -730,11 +687,11 @@ export interface ResourceConflict {
 }
 
 export type ResourceConflictType =
-  | 'MemoryContention'    // Memory contention with other processes
-  | 'CPUContention'       // CPU contention
-  | 'CacheContention'     // Cache contention
-  | 'IOContention'        // I/O contention
-  | 'ExclusiveAccess';    // Exclusive access conflict
+  | 'MemoryContention' // Memory contention with other processes
+  | 'CPUContention' // CPU contention
+  | 'CacheContention' // Cache contention
+  | 'IOContention' // I/O contention
+  | 'ExclusiveAccess'; // Exclusive access conflict
 
 export type ConflictSeverity = 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -759,11 +716,11 @@ export interface ResourceConflictResolution {
 }
 
 export type ConflictResolutionType =
-  | 'Wait'                // Wait for resource to become available
-  | 'Reduce'              // Reduce resource usage
-  | 'Alternative'         // Use alternative resource
-  | 'Share'               // Share resource with others
-  | 'Preempt';            // Preempt other users
+  | 'Wait' // Wait for resource to become available
+  | 'Reduce' // Reduce resource usage
+  | 'Alternative' // Use alternative resource
+  | 'Share' // Share resource with others
+  | 'Preempt'; // Preempt other users
 
 /**
  * Side effect of conflict resolution.
@@ -783,10 +740,10 @@ export interface SideEffect {
 }
 
 export type SideEffectType =
-  | 'PerformanceImpact'   // Performance impact on other operations
-  | 'QualityReduction'    // Reduction in optimization quality
-  | 'ResourceStarvation'  // Resource starvation for others
-  | 'LatencyIncrease'     // Increased latency
+  | 'PerformanceImpact' // Performance impact on other operations
+  | 'QualityReduction' // Reduction in optimization quality
+  | 'ResourceStarvation' // Resource starvation for others
+  | 'LatencyIncrease' // Increased latency
   | 'ThroughputReduction'; // Reduced throughput
 
 export type EffectSeverity = 'Negligible' | 'Minor' | 'Moderate' | 'Major' | 'Severe';
@@ -837,13 +794,13 @@ export interface TransformationRisk {
 }
 
 export type TransformationRiskType =
-  | 'SemanticCorruption'  // Risk of semantic corruption
+  | 'SemanticCorruption' // Risk of semantic corruption
   | 'PerformanceRegression' // Risk of performance regression
-  | 'MemoryLeak'          // Risk of memory leaks
+  | 'MemoryLeak' // Risk of memory leaks
   | 'TypeSafetyViolation' // Risk of type safety violation
   | 'PlatformIncompatibility' // Risk of platform incompatibility
-  | 'RollbackFailure'     // Risk of rollback failure
-  | 'DataCorruption';     // Risk of data corruption
+  | 'RollbackFailure' // Risk of rollback failure
+  | 'DataCorruption'; // Risk of data corruption
 
 export type RiskImpact = 'Negligible' | 'Minor' | 'Moderate' | 'Major' | 'Catastrophic';
 
@@ -908,11 +865,11 @@ export interface RiskMitigationStrategy {
 }
 
 export type MitigationStrategyType =
-  | 'Prevention'          // Prevent risk from occurring
-  | 'Detection'           // Detect risk early
-  | 'Containment'         // Contain risk impact
-  | 'Recovery'            // Recover from risk occurrence
-  | 'Compensation';       // Compensate for risk impact
+  | 'Prevention' // Prevent risk from occurring
+  | 'Detection' // Detect risk early
+  | 'Containment' // Contain risk impact
+  | 'Recovery' // Recover from risk occurrence
+  | 'Compensation'; // Compensate for risk impact
 
 /**
  * Individual mitigation step.
@@ -955,9 +912,9 @@ export interface PerformancePrediction {
 }
 
 export type PredictionMetric =
-  | 'CycleReduction'      // CPU cycles saved
-  | 'CodeSizeChange'      // Code size change
-  | 'MemoryUsageChange'   // Memory usage change
+  | 'CycleReduction' // CPU cycles saved
+  | 'CodeSizeChange' // Code size change
+  | 'MemoryUsageChange' // Memory usage change
   | 'CacheHitImprovement' // Cache hit rate improvement
   | 'BranchPredictionImprovement' // Branch prediction improvement
   | 'RegisterPressureReduction'; // Register pressure reduction
@@ -1005,11 +962,11 @@ export interface PreparationWarning {
 }
 
 export type PreparationWarningType =
-  | 'HighRisk'            // High risk transformation
-  | 'ResourceConstraint'  // Resource constraints detected
-  | 'PerformanceRisk'     // Performance risk detected
-  | 'ComplexityWarning'   // High complexity warning
-  | 'PlatformWarning';    // Platform compatibility warning
+  | 'HighRisk' // High risk transformation
+  | 'ResourceConstraint' // Resource constraints detected
+  | 'PerformanceRisk' // Performance risk detected
+  | 'ComplexityWarning' // High complexity warning
+  | 'PlatformWarning'; // Platform compatibility warning
 
 export type PreparationImpact = 'None' | 'Minor' | 'Moderate' | 'Major' | 'Blocking';
 
@@ -1409,12 +1366,12 @@ export interface PerformanceMeasurement {
 }
 
 export type PerformanceMetricType =
-  | 'ExecutionTime'       // Total execution time
-  | 'CycleCount'          // CPU cycles used
-  | 'MemoryUsage'         // Memory consumption
-  | 'CachePerformance'    // Cache hit rate
-  | 'BranchAccuracy'      // Branch prediction accuracy
-  | 'ThroughputChange';   // Throughput improvement
+  | 'ExecutionTime' // Total execution time
+  | 'CycleCount' // CPU cycles used
+  | 'MemoryUsage' // Memory consumption
+  | 'CachePerformance' // Cache hit rate
+  | 'BranchAccuracy' // Branch prediction accuracy
+  | 'ThroughputChange'; // Throughput improvement
 
 export type MeasurementAccuracy = 'Estimated' | 'Measured' | 'Precise' | 'Verified';
 export type MeasurementMethod = 'Timer' | 'Counter' | 'Profiler' | 'Simulator' | 'Hardware';
@@ -1478,11 +1435,11 @@ export interface CleanupResult {
 }
 
 export type CleanupOperationType =
-  | 'MemoryDeallocation'  // Free allocated memory
-  | 'CacheInvalidation'   // Invalidate caches
-  | 'ResourceRelease'     // Release system resources
-  | 'MetadataCleanup'     // Clean up metadata
-  | 'StateReset';         // Reset internal state
+  | 'MemoryDeallocation' // Free allocated memory
+  | 'CacheInvalidation' // Invalidate caches
+  | 'ResourceRelease' // Release system resources
+  | 'MetadataCleanup' // Clean up metadata
+  | 'StateReset'; // Reset internal state
 
 /**
  * Resource freed during cleanup.
@@ -1521,11 +1478,11 @@ export interface CleanupWarning {
 }
 
 export type CleanupWarningType =
-  | 'IncompleteCleanup'   // Cleanup was incomplete
-  | 'ResourceLeak'        // Resource leak detected
-  | 'StateInconsistency'  // Inconsistent state after cleanup
-  | 'PerformanceImpact'   // Cleanup impacted performance
-  | 'DelayedCleanup';     // Cleanup was delayed
+  | 'IncompleteCleanup' // Cleanup was incomplete
+  | 'ResourceLeak' // Resource leak detected
+  | 'StateInconsistency' // Inconsistent state after cleanup
+  | 'PerformanceImpact' // Cleanup impacted performance
+  | 'DelayedCleanup'; // Cleanup was delayed
 
 export type SystemImpact = 'None' | 'Minor' | 'Moderate' | 'Major' | 'Critical';
 
@@ -1658,7 +1615,12 @@ export interface PerformanceRegression {
   mitigationAvailable: boolean;
 }
 
-export type OverallPerformanceImpact = 'Significantly_Better' | 'Better' | 'Neutral' | 'Worse' | 'Significantly_Worse';
+export type OverallPerformanceImpact =
+  | 'Significantly_Better'
+  | 'Better'
+  | 'Neutral'
+  | 'Worse'
+  | 'Significantly_Worse';
 
 /**
  * Verification of performance improvement.
@@ -1733,10 +1695,10 @@ export interface SafetyWarning {
 
 export type SafetyWarningType =
   | 'PotentialSemanticChange' // Potential semantic change
-  | 'TypeSafetyRisk'      // Type safety risk
-  | 'MemorySafetyRisk'    // Memory safety risk
-  | 'PlatformRisk'        // Platform compatibility risk
-  | 'PerformanceRisk';    // Performance impact risk
+  | 'TypeSafetyRisk' // Type safety risk
+  | 'MemorySafetyRisk' // Memory safety risk
+  | 'PlatformRisk' // Platform compatibility risk
+  | 'PerformanceRisk'; // Performance impact risk
 
 export type SafetyStatus = 'Safe' | 'SafeWithWarnings' | 'Risky' | 'Unsafe' | 'Critical';
 
@@ -1796,7 +1758,12 @@ export interface QualityImprovement {
   verification: QualityVerification;
 }
 
-export type QualityArea = 'Readability' | 'Maintainability' | 'Reliability' | 'Performance' | 'Safety';
+export type QualityArea =
+  | 'Readability'
+  | 'Maintainability'
+  | 'Reliability'
+  | 'Performance'
+  | 'Safety';
 
 /**
  * Quality regression detected.
@@ -1837,7 +1804,11 @@ export interface QualityVerification {
 }
 
 export type QualityVerificationApproach = 'Automated' | 'Manual' | 'Hybrid' | 'Peer_Review';
-export type QualityVerificationResult = 'Verified' | 'Partially_Verified' | 'Unverified' | 'Disputed';
+export type QualityVerificationResult =
+  | 'Verified'
+  | 'Partially_Verified'
+  | 'Unverified'
+  | 'Disputed';
 
 /**
  * Quality mitigation strategy.
@@ -1882,10 +1853,10 @@ export interface MetadataUpdate {
 
 export type MetadataUpdateType =
   | 'OptimizationMetadata' // Update optimization metadata
-  | 'PerformanceMetrics'  // Update performance metrics
-  | 'SymbolTable'         // Update symbol table
-  | 'TypeInformation'     // Update type information
-  | 'DependencyGraph';    // Update dependency graph
+  | 'PerformanceMetrics' // Update performance metrics
+  | 'SymbolTable' // Update symbol table
+  | 'TypeInformation' // Update type information
+  | 'DependencyGraph'; // Update dependency graph
 
 /**
  * Details of metadata update.
@@ -1948,11 +1919,11 @@ export interface MetadataIssue {
 }
 
 export type MetadataIssueType =
-  | 'Inconsistency'       // Metadata inconsistency
-  | 'Corruption'          // Metadata corruption
-  | 'MissingData'         // Missing required data
-  | 'InvalidFormat'       // Invalid data format
-  | 'VersionMismatch';    // Version compatibility issue
+  | 'Inconsistency' // Metadata inconsistency
+  | 'Corruption' // Metadata corruption
+  | 'MissingData' // Missing required data
+  | 'InvalidFormat' // Invalid data format
+  | 'VersionMismatch'; // Version compatibility issue
 
 /**
  * Warning during finalization.
@@ -1976,10 +1947,10 @@ export interface FinalizationWarning {
 
 export type FinalizationWarningType =
   | 'PerformanceDeviation' // Performance deviated from prediction
-  | 'ResourceLeak'        // Resource leak detected
+  | 'ResourceLeak' // Resource leak detected
   | 'MetadataInconsistency' // Metadata inconsistency
-  | 'ValidationIssue'     // Validation found issues
-  | 'CleanupFailure';     // Cleanup operation failed
+  | 'ValidationIssue' // Validation found issues
+  | 'CleanupFailure'; // Cleanup operation failed
 
 // ============================================================================
 // EXPORTS AND SUMMARY

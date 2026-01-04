@@ -24,5 +24,5 @@ export type {
   ProcessorVariant,
   PlatformTarget,
   InstructionTimingInfo,
-  SixtyTwo6502AnalysisOptions
+  SixtyTwo6502AnalysisOptions,
 } from '../types/6502-analysis-types.js';

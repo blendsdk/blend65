@@ -7,7 +7,6 @@
  */
 
 import type { SourcePosition } from '@blend65/lexer';
-import type { Blend65Type, StorageClass } from '@blend65/semantic';
 import {
   ILInstruction,
   ILInstructionType,
@@ -16,12 +15,10 @@ import {
   ILConstant,
   ILVariable,
   ILRegister,
-  ILTemporary,
   ILLabel,
   IL6502OptimizationHints,
   createILInstruction,
   isILConstant,
-  isILRegister
 } from './il-types.js';
 
 // ============================================================================
@@ -92,251 +89,575 @@ const globalInstructionContext = new InstructionCreationContext();
 // ============================================================================
 
 // Memory Operations
-export function createLoadImmediate(dest: ILValue, value: ILConstant, sourceLocation?: SourcePosition): ILInstruction {
+export function createLoadImmediate(
+  dest: ILValue,
+  value: ILConstant,
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const hints: IL6502OptimizationHints = {
     preferredRegister: dest.valueType === 'register' ? (dest as ILRegister).register : 'A',
     preferredAddressingMode: 'immediate',
-    estimatedCycles: 2
+    estimatedCycles: 2,
   };
 
-  return createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [dest, value], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: hints });
+  return createILInstruction(
+    ILInstructionType.LOAD_IMMEDIATE,
+    [dest, value],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: hints }
+  );
 }
 
-export function createLoadMemory(dest: ILValue, address: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.LOAD_MEMORY, [dest, address], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createLoadMemory(
+  dest: ILValue,
+  address: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.LOAD_MEMORY,
+    [dest, address],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
-export function createStoreMemory(address: ILValue, value: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.STORE_MEMORY, [address, value], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createStoreMemory(
+  address: ILValue,
+  value: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.STORE_MEMORY,
+    [address, value],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
-export function createCopy(dest: ILValue, source: ILValue, sourceLocation?: SourcePosition): ILInstruction {
+export function createCopy(
+  dest: ILValue,
+  source: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const hints: IL6502OptimizationHints = {
     estimatedCycles: 3,
-    canOptimizeAway: dest === source
+    canOptimizeAway: dest === source,
   };
 
-  return createILInstruction(ILInstructionType.COPY, [dest, source], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: hints });
+  return createILInstruction(
+    ILInstructionType.COPY,
+    [dest, source],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: hints }
+  );
 }
 
 // Arithmetic Operations
-export function createAdd(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
+export function createAdd(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const hints: IL6502OptimizationHints = {
     preferredRegister: 'A',
     estimatedCycles: 3,
-    canOptimizeAway: isILConstant(right) && right.value === 0
+    canOptimizeAway: isILConstant(right) && right.value === 0,
   };
 
-  return createILInstruction(ILInstructionType.ADD, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: hints });
+  return createILInstruction(
+    ILInstructionType.ADD,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: hints }
+  );
 }
 
-export function createSub(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
+export function createSub(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const hints: IL6502OptimizationHints = {
     preferredRegister: 'A',
     estimatedCycles: 3,
-    canOptimizeAway: isILConstant(right) && right.value === 0
+    canOptimizeAway: isILConstant(right) && right.value === 0,
   };
 
-  return createILInstruction(ILInstructionType.SUB, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: hints });
+  return createILInstruction(
+    ILInstructionType.SUB,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: hints }
+  );
 }
 
-export function createMul(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.MUL, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 20 } });
+export function createMul(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.MUL,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 20 } }
+  );
 }
 
-export function createDiv(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.DIV, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 30 } });
+export function createDiv(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.DIV,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 30 } }
+  );
 }
 
-export function createMod(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.MOD, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 30 } });
+export function createMod(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.MOD,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 30 } }
+  );
 }
 
-export function createNeg(dest: ILValue, source: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.NEG, [dest, source], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } });
+export function createNeg(
+  dest: ILValue,
+  source: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.NEG,
+    [dest, source],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } }
+  );
 }
 
 // Logical Operations
-export function createAnd(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.AND, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createAnd(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.AND,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
-export function createOr(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.OR, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createOr(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.OR,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
-export function createNot(dest: ILValue, source: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.NOT, [dest, source], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createNot(
+  dest: ILValue,
+  source: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.NOT,
+    [dest, source],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
 // Bitwise Operations
-export function createBitwiseAnd(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BITWISE_AND, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createBitwiseAnd(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BITWISE_AND,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
-export function createBitwiseOr(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BITWISE_OR, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createBitwiseOr(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BITWISE_OR,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
-export function createBitwiseXor(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BITWISE_XOR, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createBitwiseXor(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BITWISE_XOR,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
-export function createBitwiseNot(dest: ILValue, source: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BITWISE_NOT, [dest, source], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } });
+export function createBitwiseNot(
+  dest: ILValue,
+  source: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BITWISE_NOT,
+    [dest, source],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 3 } }
+  );
 }
 
 // Shift Operations
-export function createShiftLeft(dest: ILValue, source: ILValue, amount: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.SHIFT_LEFT, [dest, source, amount], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } });
+export function createShiftLeft(
+  dest: ILValue,
+  source: ILValue,
+  amount: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.SHIFT_LEFT,
+    [dest, source, amount],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } }
+  );
 }
 
-export function createShiftRight(dest: ILValue, source: ILValue, amount: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.SHIFT_RIGHT, [dest, source, amount], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } });
+export function createShiftRight(
+  dest: ILValue,
+  source: ILValue,
+  amount: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.SHIFT_RIGHT,
+    [dest, source, amount],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } }
+  );
 }
 
 // Comparison Operations
-export function createCompareEq(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.COMPARE_EQ, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } });
+export function createCompareEq(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.COMPARE_EQ,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } }
+  );
 }
 
-export function createCompareNe(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.COMPARE_NE, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } });
+export function createCompareNe(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.COMPARE_NE,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } }
+  );
 }
 
-export function createCompareLt(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.COMPARE_LT, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } });
+export function createCompareLt(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.COMPARE_LT,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } }
+  );
 }
 
-export function createCompareLe(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.COMPARE_LE, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } });
+export function createCompareLe(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.COMPARE_LE,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } }
+  );
 }
 
-export function createCompareGt(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.COMPARE_GT, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } });
+export function createCompareGt(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.COMPARE_GT,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } }
+  );
 }
 
-export function createCompareGe(dest: ILValue, left: ILValue, right: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.COMPARE_GE, [dest, left, right], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } });
+export function createCompareGe(
+  dest: ILValue,
+  left: ILValue,
+  right: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.COMPARE_GE,
+    [dest, left, right],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4 } }
+  );
 }
 
 // Control Flow Operations
 export function createBranch(target: ILLabel, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BRANCH, [target], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } });
+  return createILInstruction(
+    ILInstructionType.BRANCH,
+    [target],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } }
+  );
 }
 
-export function createBranchIfTrue(condition: ILValue, target: ILLabel, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BRANCH_IF_TRUE, [condition, target], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } });
+export function createBranchIfTrue(
+  condition: ILValue,
+  target: ILLabel,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BRANCH_IF_TRUE,
+    [condition, target],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } }
+  );
 }
 
-export function createBranchIfFalse(condition: ILValue, target: ILLabel, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BRANCH_IF_FALSE, [condition, target], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } });
+export function createBranchIfFalse(
+  condition: ILValue,
+  target: ILLabel,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BRANCH_IF_FALSE,
+    [condition, target],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } }
+  );
 }
 
-export function createBranchIfZero(value: ILValue, target: ILLabel, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BRANCH_IF_ZERO, [value, target], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } });
+export function createBranchIfZero(
+  value: ILValue,
+  target: ILLabel,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BRANCH_IF_ZERO,
+    [value, target],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } }
+  );
 }
 
-export function createBranchIfNotZero(value: ILValue, target: ILLabel, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.BRANCH_IF_NOT_ZERO, [value, target], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } });
+export function createBranchIfNotZero(
+  value: ILValue,
+  target: ILLabel,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.BRANCH_IF_NOT_ZERO,
+    [value, target],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 3 } }
+  );
 }
 
 // Function Operations
-export function createCall(functionRef: ILValue, args: ILValue[] = [], sourceLocation?: SourcePosition): ILInstruction {
+export function createCall(
+  functionRef: ILValue,
+  args: ILValue[] = [],
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const operands = [functionRef, ...args];
   validateOperandCountRange(ILInstructionType.CALL, operands, 1, 10);
-  return createILInstruction(ILInstructionType.CALL, operands, globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 12 } });
+  return createILInstruction(
+    ILInstructionType.CALL,
+    operands,
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 12 } }
+  );
 }
 
 export function createReturn(value?: ILValue, sourceLocation?: SourcePosition): ILInstruction {
   const operands = value ? [value] : [];
-  return createILInstruction(ILInstructionType.RETURN, operands, globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 6 } });
+  return createILInstruction(
+    ILInstructionType.RETURN,
+    operands,
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 6 } }
+  );
 }
 
 // Variable Operations
-export function createDeclareLocal(variable: ILVariable, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.DECLARE_LOCAL, [variable], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } });
+export function createDeclareLocal(
+  variable: ILVariable,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.DECLARE_LOCAL,
+    [variable],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } }
+  );
 }
 
-export function createLoadVariable(dest: ILValue, variable: ILVariable, sourceLocation?: SourcePosition): ILInstruction {
+export function createLoadVariable(
+  dest: ILValue,
+  variable: ILVariable,
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const hints: IL6502OptimizationHints = {
     preferredRegister: 'A',
     preferredAddressingMode: variable.storageClass === 'zp' ? 'zero_page' : 'absolute',
-    estimatedCycles: 3
+    estimatedCycles: 3,
   };
-  return createILInstruction(ILInstructionType.LOAD_VARIABLE, [dest, variable], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: hints });
+  return createILInstruction(
+    ILInstructionType.LOAD_VARIABLE,
+    [dest, variable],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: hints }
+  );
 }
 
-export function createStoreVariable(variable: ILVariable, value: ILValue, sourceLocation?: SourcePosition): ILInstruction {
+export function createStoreVariable(
+  variable: ILVariable,
+  value: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const hints: IL6502OptimizationHints = {
     preferredRegister: 'A',
     preferredAddressingMode: variable.storageClass === 'zp' ? 'zero_page' : 'absolute',
-    estimatedCycles: 3
+    estimatedCycles: 3,
   };
-  return createILInstruction(ILInstructionType.STORE_VARIABLE, [variable, value], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: hints });
+  return createILInstruction(
+    ILInstructionType.STORE_VARIABLE,
+    [variable, value],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: hints }
+  );
 }
 
 // Array Operations
-export function createLoadArray(dest: ILValue, array: ILValue, index: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.LOAD_ARRAY, [dest, array, index], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } });
+export function createLoadArray(
+  dest: ILValue,
+  array: ILValue,
+  index: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.LOAD_ARRAY,
+    [dest, array, index],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } }
+  );
 }
 
-export function createStoreArray(array: ILValue, index: ILValue, value: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.STORE_ARRAY, [array, index, value], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } });
+export function createStoreArray(
+  array: ILValue,
+  index: ILValue,
+  value: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.STORE_ARRAY,
+    [array, index, value],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 6 } }
+  );
 }
 
-export function createArrayAddress(dest: ILValue, array: ILValue, index: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.ARRAY_ADDRESS, [dest, array, index], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'X', estimatedCycles: 4 } });
+export function createArrayAddress(
+  dest: ILValue,
+  array: ILValue,
+  index: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.ARRAY_ADDRESS,
+    [dest, array, index],
+    globalInstructionContext.getNextInstructionId(),
+    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'X', estimatedCycles: 4 } }
+  );
 }
 
 // Utility Operations
 export function createLabel(name: string, sourceLocation?: SourcePosition): ILInstruction {
   const label: ILLabel = { valueType: 'label', name };
-  return createILInstruction(ILInstructionType.LABEL, [label], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } });
+  return createILInstruction(
+    ILInstructionType.LABEL,
+    [label],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } }
+  );
 }
 
 export function createNop(sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.NOP, [], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } });
+  return createILInstruction(
+    ILInstructionType.NOP,
+    [],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } }
+  );
 }
 
 export function createComment(text: string, sourceLocation?: SourcePosition): ILInstruction {
@@ -344,37 +665,85 @@ export function createComment(text: string, sourceLocation?: SourcePosition): IL
     valueType: 'constant',
     type: { kind: 'primitive', name: 'void' },
     value: text,
-    representation: 'string'
+    representation: 'string',
   };
-  return createILInstruction(ILInstructionType.COMMENT, [comment], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } });
+  return createILInstruction(
+    ILInstructionType.COMMENT,
+    [comment],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 0 } }
+  );
 }
 
 // 6502-Specific Operations
-export function createPeek(dest: ILValue, address: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.PEEK, [dest, address], globalInstructionContext.getNextInstructionId(),
-    { result: dest, sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4, isTimingCritical: true } });
+export function createPeek(
+  dest: ILValue,
+  address: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.PEEK,
+    [dest, address],
+    globalInstructionContext.getNextInstructionId(),
+    {
+      result: dest,
+      sourceLocation,
+      sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4, isTimingCritical: true },
+    }
+  );
 }
 
-export function createPoke(address: ILValue, value: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.POKE, [address, value], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4, isTimingCritical: true } });
+export function createPoke(
+  address: ILValue,
+  value: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.POKE,
+    [address, value],
+    globalInstructionContext.getNextInstructionId(),
+    {
+      sourceLocation,
+      sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 4, isTimingCritical: true },
+    }
+  );
 }
 
-export function createRegisterOp(register: ILRegister, operation: ILConstant, operand?: ILValue, sourceLocation?: SourcePosition): ILInstruction {
+export function createRegisterOp(
+  register: ILRegister,
+  operation: ILConstant,
+  operand?: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
   const operands = operand ? [register, operation, operand] : [register, operation];
-  return createILInstruction(ILInstructionType.REGISTER_OP, operands, globalInstructionContext.getNextInstructionId(),
-    { result: register, sourceLocation, sixtyTwoHints: { preferredRegister: register.register, estimatedCycles: 2 } });
+  return createILInstruction(
+    ILInstructionType.REGISTER_OP,
+    operands,
+    globalInstructionContext.getNextInstructionId(),
+    {
+      result: register,
+      sourceLocation,
+      sixtyTwoHints: { preferredRegister: register.register, estimatedCycles: 2 },
+    }
+  );
 }
 
 export function createSetFlags(flags: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.SET_FLAGS, [flags], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 2, isTimingCritical: true } });
+  return createILInstruction(
+    ILInstructionType.SET_FLAGS,
+    [flags],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 2, isTimingCritical: true } }
+  );
 }
 
 export function createClearFlags(flags: ILValue, sourceLocation?: SourcePosition): ILInstruction {
-  return createILInstruction(ILInstructionType.CLEAR_FLAGS, [flags], globalInstructionContext.getNextInstructionId(),
-    { sourceLocation, sixtyTwoHints: { estimatedCycles: 2, isTimingCritical: true } });
+  return createILInstruction(
+    ILInstructionType.CLEAR_FLAGS,
+    [flags],
+    globalInstructionContext.getNextInstructionId(),
+    { sourceLocation, sixtyTwoHints: { estimatedCycles: 2, isTimingCritical: true } }
+  );
 }
 
 // ============================================================================
@@ -450,7 +819,7 @@ export const ILInstructionFactory = {
   poke: createPoke,
   registerOp: createRegisterOp,
   setFlags: createSetFlags,
-  clearFlags: createClearFlags
+  clearFlags: createClearFlags,
 };
 
 export function createInstructionContext(): InstructionCreationContext {
@@ -496,12 +865,14 @@ export function validateILInstruction(instruction: ILInstruction): ILInstruction
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    errors.push(new ILInstructionError(
-      instruction.type,
-      `Validation error: ${errorMessage}`,
-      instruction.operands,
-      instruction.sourceLocation
-    ));
+    errors.push(
+      new ILInstructionError(
+        instruction.type,
+        `Validation error: ${errorMessage}`,
+        instruction.operands,
+        instruction.sourceLocation
+      )
+    );
   }
 
   return errors;

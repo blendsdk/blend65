@@ -1,22 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { ASTNodeFactory } from '../ast-factory.js';
-import {
-  Program,
-  ModuleDeclaration,
-  QualifiedName,
-  VariableDeclaration,
-  FunctionDeclaration,
-  ImportDeclaration,
-  BinaryExpr,
-  Literal,
-  Identifier
-} from '../ast-types/core.js';
 
 describe('ASTNodeFactory', () => {
   const factory = new ASTNodeFactory();
   const mockMetadata = {
     start: { line: 1, column: 1, offset: 0 },
-    end: { line: 1, column: 10, offset: 9 }
+    end: { line: 1, column: 10, offset: 9 },
   };
 
   describe('Program and Module Creation', () => {
@@ -88,10 +77,7 @@ describe('ASTNodeFactory', () => {
 
     it('should create call expressions', () => {
       const callee = factory.createIdentifier('add');
-      const args = [
-        factory.createLiteral(5, '5'),
-        factory.createLiteral(10, '10')
-      ];
+      const args = [factory.createLiteral(5, '5'), factory.createLiteral(10, '10')];
       const callExpr = factory.createCallExpr(callee, args, mockMetadata);
 
       expect(callExpr.type).toBe('CallExpr');
@@ -154,7 +140,7 @@ describe('ASTNodeFactory', () => {
       const elements = [
         factory.createLiteral(1, '1'),
         factory.createLiteral(2, '2'),
-        factory.createLiteral(3, '3')
+        factory.createLiteral(3, '3'),
       ];
       const arrayLiteral = factory.createArrayLiteral(elements, mockMetadata);
 
@@ -184,7 +170,8 @@ describe('ASTNodeFactory', () => {
     });
 
     it('should create if statements', () => {
-      const condition = factory.createBinaryExpr('==',
+      const condition = factory.createBinaryExpr(
+        '==',
         factory.createIdentifier('x'),
         factory.createLiteral(5, '5')
       );
@@ -201,7 +188,8 @@ describe('ASTNodeFactory', () => {
     });
 
     it('should create while statements', () => {
-      const condition = factory.createBinaryExpr('<',
+      const condition = factory.createBinaryExpr(
+        '<',
         factory.createIdentifier('i'),
         factory.createLiteral(10, '10')
       );
@@ -263,14 +251,12 @@ describe('ASTNodeFactory', () => {
 
     it('should create match statements with default cases', () => {
       const discriminant = factory.createIdentifier('gameState');
-      const menuCase = factory.createMatchCase(
-        factory.createIdentifier('MENU'),
-        [factory.createExpressionStatement(factory.createIdentifier('showMenu'))]
-      );
-      const playingCase = factory.createMatchCase(
-        factory.createIdentifier('PLAYING'),
-        [factory.createExpressionStatement(factory.createIdentifier('updateGame'))]
-      );
+      const menuCase = factory.createMatchCase(factory.createIdentifier('MENU'), [
+        factory.createExpressionStatement(factory.createIdentifier('showMenu')),
+      ]);
+      const playingCase = factory.createMatchCase(factory.createIdentifier('PLAYING'), [
+        factory.createExpressionStatement(factory.createIdentifier('updateGame')),
+      ]);
       const defaultCase = factory.createMatchCase(
         null, // null test for default case
         [factory.createExpressionStatement(factory.createIdentifier('handleError'))]
@@ -292,10 +278,9 @@ describe('ASTNodeFactory', () => {
 
     it('should create match statements without default case', () => {
       const discriminant = factory.createIdentifier('value');
-      const case1 = factory.createMatchCase(
-        factory.createLiteral(1, '1'),
-        [factory.createExpressionStatement(factory.createIdentifier('doOne'))]
-      );
+      const case1 = factory.createMatchCase(factory.createLiteral(1, '1'), [
+        factory.createExpressionStatement(factory.createIdentifier('doOne')),
+      ]);
 
       const matchStmt = factory.createMatchStatement(
         discriminant,
@@ -324,7 +309,9 @@ describe('ASTNodeFactory', () => {
     });
 
     it('should create match cases for default (null test)', () => {
-      const consequent = [factory.createExpressionStatement(factory.createIdentifier('handleDefault'))];
+      const consequent = [
+        factory.createExpressionStatement(factory.createIdentifier('handleDefault')),
+      ];
 
       const defaultMatchCase = factory.createMatchCase(null, consequent, mockMetadata);
 
@@ -347,8 +334,8 @@ describe('ASTNodeFactory', () => {
         params,
         returnType,
         body,
-        true,         // exported
-        false,        // callback
+        true, // exported
+        false, // callback
         mockMetadata
       );
 
@@ -372,8 +359,8 @@ describe('ASTNodeFactory', () => {
         params,
         returnType,
         body,
-        false,        // exported
-        true,         // callback
+        false, // exported
+        true, // callback
         mockMetadata
       );
 
@@ -383,7 +370,7 @@ describe('ASTNodeFactory', () => {
       expect(callbackFuncDecl.returnType).toBe(returnType);
       expect(callbackFuncDecl.body).toEqual(body);
       expect(callbackFuncDecl.exported).toBe(false);
-      expect(callbackFuncDecl.callback).toBe(true);  // NEW: Test callback flag
+      expect(callbackFuncDecl.callback).toBe(true); // NEW: Test callback flag
       expect(callbackFuncDecl.metadata).toEqual(mockMetadata);
     });
 
@@ -618,14 +605,13 @@ describe('ASTNodeFactory', () => {
       expect(callbackArrayType.size).toBe(size);
       expect(callbackArrayType.metadata).toEqual(mockMetadata);
     });
-
   });
 
   describe('Generic Node Creation', () => {
     it('should create generic nodes', () => {
       const node = factory.create('CustomNode', {
         customProperty: 'value',
-        metadata: mockMetadata
+        metadata: mockMetadata,
       });
 
       expect(node.type).toBe('CustomNode');

@@ -10,9 +10,7 @@
  * @fileoverview Core types for IL quality assessment system
  */
 
-import { ILFunction, ILInstruction, ILOperand } from '../../il-types.js';
-import { ControlFlowAnalysisResult } from './control-flow-types.js';
-import { SixtyTwo6502ValidationResult } from './6502-analysis-types.js';
+import { ILInstruction } from '../../il-types.js';
 
 // =============================================================================
 // IL Complexity Assessment
@@ -75,11 +73,11 @@ export interface DataFlowComplexityScore {
  * Complexity classification for optimization guidance
  */
 export type ComplexityLevel =
-  | 'trivial'    // 0-20: Very simple code
-  | 'simple'     // 21-40: Simple code with basic control flow
-  | 'moderate'   // 41-60: Moderate complexity
-  | 'complex'    // 61-80: Complex code requiring careful optimization
-  | 'expert';    // 81-100: Extremely complex, expert-level optimization needed
+  | 'trivial' // 0-20: Very simple code
+  | 'simple' // 21-40: Simple code with basic control flow
+  | 'moderate' // 41-60: Moderate complexity
+  | 'complex' // 61-80: Complex code requiring careful optimization
+  | 'expert'; // 81-100: Extremely complex, expert-level optimization needed
 
 // =============================================================================
 // Performance Prediction System
@@ -188,21 +186,21 @@ export interface BottleneckLocation {
 }
 
 export type BottleneckType =
-  | 'memory_access'       // Slow memory operations
-  | 'division_operation'  // Expensive division
-  | 'multiplication'      // Expensive multiplication
-  | 'loop_overhead'       // Loop control overhead
-  | 'function_call'       // Function call overhead
-  | 'register_spill'      // Register spilling
-  | 'cache_miss'          // Cache miss (for advanced targets)
+  | 'memory_access' // Slow memory operations
+  | 'division_operation' // Expensive division
+  | 'multiplication' // Expensive multiplication
+  | 'loop_overhead' // Loop control overhead
+  | 'function_call' // Function call overhead
+  | 'register_spill' // Register spilling
+  | 'cache_miss' // Cache miss (for advanced targets)
   | 'branch_misprediction' // Branch misprediction
-  | 'data_dependency'     // Data dependency stall
-  | 'resource_conflict';  // Resource usage conflict
+  | 'data_dependency' // Data dependency stall
+  | 'resource_conflict'; // Resource usage conflict
 
 export type BottleneckSeverity =
-  | 'minor'     // <10% performance impact
-  | 'moderate'  // 10-25% performance impact
-  | 'major'     // 25-50% performance impact
+  | 'minor' // <10% performance impact
+  | 'moderate' // 10-25% performance impact
+  | 'major' // 25-50% performance impact
   | 'critical'; // >50% performance impact
 
 /**
@@ -274,18 +272,18 @@ export interface OptimizationReadinessAnalysis {
  * Optimization category classification
  */
 export type OptimizationCategory =
-  | 'arithmetic'         // Arithmetic optimizations
-  | 'control_flow'       // Control flow optimizations
-  | 'memory'            // Memory layout optimizations
-  | 'register'          // Register allocation optimizations
-  | 'loop'              // Loop optimizations
-  | 'constant'          // Constant propagation/folding
-  | 'dead_code'         // Dead code elimination
+  | 'arithmetic' // Arithmetic optimizations
+  | 'control_flow' // Control flow optimizations
+  | 'memory' // Memory layout optimizations
+  | 'register' // Register allocation optimizations
+  | 'loop' // Loop optimizations
+  | 'constant' // Constant propagation/folding
+  | 'dead_code' // Dead code elimination
   | 'strength_reduction' // Strength reduction
-  | 'inlining'          // Function inlining
+  | 'inlining' // Function inlining
   | 'hardware_specific' // Hardware-specific optimizations
-  | 'peephole'          // Peephole optimizations
-  | 'scheduling';       // Instruction scheduling
+  | 'peephole' // Peephole optimizations
+  | 'scheduling'; // Instruction scheduling
 
 /**
  * Readiness score for optimization category
@@ -312,19 +310,19 @@ export interface OptimizationBlocker {
 }
 
 export type BlockerType =
-  | 'data_dependency'     // Data dependency prevents optimization
-  | 'control_dependency'  // Control dependency prevents optimization
-  | 'memory_aliasing'     // Memory aliasing prevents optimization
-  | 'side_effects'        // Side effects prevent optimization
-  | 'precision_loss'      // Optimization would lose precision
-  | 'semantic_change'     // Would change program semantics
+  | 'data_dependency' // Data dependency prevents optimization
+  | 'control_dependency' // Control dependency prevents optimization
+  | 'memory_aliasing' // Memory aliasing prevents optimization
+  | 'side_effects' // Side effects prevent optimization
+  | 'precision_loss' // Optimization would lose precision
+  | 'semantic_change' // Would change program semantics
   | 'platform_constraint' // Platform constraint prevents optimization
-  | 'resource_conflict';  // Resource usage conflict
+  | 'resource_conflict'; // Resource usage conflict
 
 export type BlockerSeverity =
-  | 'soft'      // Can be worked around
-  | 'moderate'  // Requires significant effort to resolve
-  | 'hard'      // Very difficult to resolve
+  | 'soft' // Can be worked around
+  | 'moderate' // Requires significant effort to resolve
+  | 'hard' // Very difficult to resolve
   | 'absolute'; // Cannot be resolved
 
 /**
@@ -341,33 +339,33 @@ export interface OptimizationOpportunity {
 }
 
 export type OpportunityType =
-  | 'constant_folding'      // Compile-time constant evaluation
-  | 'loop_unrolling'        // Loop unrolling
-  | 'common_subexpression'  // Common subexpression elimination
+  | 'constant_folding' // Compile-time constant evaluation
+  | 'loop_unrolling' // Loop unrolling
+  | 'common_subexpression' // Common subexpression elimination
   | 'dead_code_elimination' // Dead code removal
-  | 'strength_reduction'    // Replace expensive ops with cheaper ones
+  | 'strength_reduction' // Replace expensive ops with cheaper ones
   | 'loop_invariant_motion' // Move invariant code out of loops
-  | 'register_promotion'    // Promote memory to registers
-  | 'function_inlining'     // Inline function calls
-  | 'tail_recursion'        // Convert tail recursion to iteration
-  | 'vectorization'         // Vectorize operations (for advanced targets)
+  | 'register_promotion' // Promote memory to registers
+  | 'function_inlining' // Inline function calls
+  | 'tail_recursion' // Convert tail recursion to iteration
+  | 'vectorization' // Vectorize operations (for advanced targets)
   | 'pipeline_optimization' // Optimize for processor pipeline
-  | 'memory_layout'         // Improve memory layout
-  | 'branch_optimization';  // Optimize branch patterns
+  | 'memory_layout' // Improve memory layout
+  | 'branch_optimization'; // Optimize branch patterns
 
 export type OptimizationComplexity =
-  | 'trivial'   // Very easy to implement
-  | 'simple'    // Straightforward implementation
-  | 'moderate'  // Some implementation complexity
-  | 'complex'   // Significant implementation effort
-  | 'expert';   // Extremely complex, expert-level
+  | 'trivial' // Very easy to implement
+  | 'simple' // Straightforward implementation
+  | 'moderate' // Some implementation complexity
+  | 'complex' // Significant implementation effort
+  | 'expert'; // Extremely complex, expert-level
 
 export type SafetyLevel =
-  | 'safe'        // No risk of semantic change
+  | 'safe' // No risk of semantic change
   | 'mostly_safe' // Very low risk
-  | 'moderate'    // Some risk requiring validation
-  | 'risky'       // High risk requiring extensive testing
-  | 'dangerous';  // Very high risk
+  | 'moderate' // Some risk requiring validation
+  | 'risky' // High risk requiring extensive testing
+  | 'dangerous'; // Very high risk
 
 /**
  * Pattern applicability pre-analysis
@@ -395,12 +393,12 @@ export interface PatternPrerequisite {
 }
 
 export type PrerequisiteType =
-  | 'structural'    // Code structure requirement
-  | 'semantic'      // Semantic requirement
-  | 'performance'   // Performance requirement
-  | 'safety'        // Safety requirement
-  | 'platform'      // Platform capability requirement
-  | 'resource';     // Resource availability requirement
+  | 'structural' // Code structure requirement
+  | 'semantic' // Semantic requirement
+  | 'performance' // Performance requirement
+  | 'safety' // Safety requirement
+  | 'platform' // Platform capability requirement
+  | 'resource'; // Resource availability requirement
 
 /**
  * Optimization impact estimation
@@ -477,21 +475,21 @@ export interface RiskFactor {
 }
 
 export type RiskType =
-  | 'semantic_change'     // Unintended semantic change
+  | 'semantic_change' // Unintended semantic change
   | 'performance_regression' // Performance degradation
-  | 'memory_corruption'   // Memory corruption risk
-  | 'timing_violation'    // Timing constraint violation
-  | 'hardware_conflict'   // Hardware resource conflict
+  | 'memory_corruption' // Memory corruption risk
+  | 'timing_violation' // Timing constraint violation
+  | 'hardware_conflict' // Hardware resource conflict
   | 'interrupt_interference' // Interrupt handling interference
-  | 'precision_loss'      // Numerical precision loss
-  | 'overflow_risk';      // Arithmetic overflow risk
+  | 'precision_loss' // Numerical precision loss
+  | 'overflow_risk'; // Arithmetic overflow risk
 
 export type RiskSeverity =
-  | 'negligible'  // Virtually no impact
-  | 'minor'       // Minor impact
-  | 'moderate'    // Moderate impact
-  | 'major'       // Major impact
-  | 'critical';   // Critical impact
+  | 'negligible' // Virtually no impact
+  | 'minor' // Minor impact
+  | 'moderate' // Moderate impact
+  | 'major' // Major impact
+  | 'critical'; // Critical impact
 
 // =============================================================================
 // Quality Gates and Assessment
@@ -522,13 +520,13 @@ export interface QualityGate {
 }
 
 export type QualityGateType =
-  | 'complexity_limit'     // Complexity threshold
-  | 'performance_minimum'  // Performance minimum requirement
-  | 'memory_limit'         // Memory usage limit
-  | 'safety_minimum'       // Safety score minimum
+  | 'complexity_limit' // Complexity threshold
+  | 'performance_minimum' // Performance minimum requirement
+  | 'memory_limit' // Memory usage limit
+  | 'safety_minimum' // Safety score minimum
   | 'optimization_readiness' // Optimization readiness threshold
-  | 'maintainability'      // Maintainability score
-  | 'testability'         // Testability assessment
+  | 'maintainability' // Maintainability score
+  | 'testability' // Testability assessment
   | 'platform_compliance'; // Platform compliance
 
 /**
@@ -543,20 +541,20 @@ export interface QualityThreshold {
 }
 
 export type ThresholdDirection =
-  | 'higher_better'  // Higher values are better
-  | 'lower_better'   // Lower values are better
-  | 'target_value';  // Closer to target is better
+  | 'higher_better' // Higher values are better
+  | 'lower_better' // Lower values are better
+  | 'target_value'; // Closer to target is better
 
 export type QualityGateStatus =
-  | 'pass'           // Gate passed
-  | 'warning'        // Gate passed with warnings
-  | 'fail'           // Gate failed
+  | 'pass' // Gate passed
+  | 'warning' // Gate passed with warnings
+  | 'fail' // Gate failed
   | 'not_applicable'; // Gate not applicable
 
 export type GateImportance =
-  | 'mandatory'      // Must pass
-  | 'important'      // Should pass
-  | 'recommended'    // Good to pass
+  | 'mandatory' // Must pass
+  | 'important' // Should pass
+  | 'recommended' // Good to pass
   | 'informational'; // For information only
 
 /**
@@ -573,35 +571,35 @@ export interface ImprovementRecommendation {
 }
 
 export type RecommendationType =
-  | 'complexity_reduction'    // Reduce code complexity
+  | 'complexity_reduction' // Reduce code complexity
   | 'performance_improvement' // Improve performance
-  | 'memory_optimization'     // Optimize memory usage
-  | 'safety_enhancement'      // Enhance safety
-  | 'maintainability'        // Improve maintainability
+  | 'memory_optimization' // Optimize memory usage
+  | 'safety_enhancement' // Enhance safety
+  | 'maintainability' // Improve maintainability
   | 'optimization_readiness' // Improve optimization readiness
   | 'platform_optimization'; // Platform-specific optimization
 
 export type RecommendationPriority =
-  | 'critical'  // Must be addressed
-  | 'high'      // Should be addressed soon
-  | 'medium'    // Should be addressed
-  | 'low'       // Nice to address
+  | 'critical' // Must be addressed
+  | 'high' // Should be addressed soon
+  | 'medium' // Should be addressed
+  | 'low' // Nice to address
   | 'optional'; // Optional improvement
 
 export type ImplementationEffort =
-  | 'minimal'   // <1 hour
-  | 'low'       // 1-4 hours
-  | 'moderate'  // 0.5-2 days
-  | 'high'      // 2-5 days
+  | 'minimal' // <1 hour
+  | 'low' // 1-4 hours
+  | 'moderate' // 0.5-2 days
+  | 'high' // 2-5 days
   | 'extensive' // >1 week
-  | 'major';    // >1 month
+  | 'major'; // >1 month
 
 export type ExpertiseLevel =
-  | 'beginner'     // Basic programming knowledge
+  | 'beginner' // Basic programming knowledge
   | 'intermediate' // Some optimization experience
-  | 'advanced'     // Significant optimization expertise
-  | 'expert'       // Deep compiler/optimization expertise
-  | 'specialist';  // Domain-specific expert knowledge
+  | 'advanced' // Significant optimization expertise
+  | 'expert' // Deep compiler/optimization expertise
+  | 'specialist'; // Domain-specific expert knowledge
 
 // =============================================================================
 // Main Analysis Result Types
@@ -645,18 +643,18 @@ export interface QualityAnalysisSummary {
 }
 
 export type PerformanceLevel =
-  | 'excellent'  // 90-100: Excellent performance
-  | 'good'       // 70-89: Good performance
+  | 'excellent' // 90-100: Excellent performance
+  | 'good' // 70-89: Good performance
   | 'acceptable' // 50-69: Acceptable performance
-  | 'poor'       // 30-49: Poor performance
-  | 'critical';  // 0-29: Critical performance issues
+  | 'poor' // 30-49: Poor performance
+  | 'critical'; // 0-29: Critical performance issues
 
 export type OptimizationPotential =
-  | 'minimal'    // <10% potential improvement
-  | 'low'        // 10-25% potential improvement
-  | 'moderate'   // 25-50% potential improvement
-  | 'high'       // 50-100% potential improvement
-  | 'extreme';   // >100% potential improvement
+  | 'minimal' // <10% potential improvement
+  | 'low' // 10-25% potential improvement
+  | 'moderate' // 25-50% potential improvement
+  | 'high' // 50-100% potential improvement
+  | 'extreme'; // >100% potential improvement
 
 /**
  * Analysis configuration options
@@ -674,16 +672,16 @@ export interface QualityAnalysisOptions {
 }
 
 export type OptimizationLevel =
-  | 'none'        // No optimization
-  | 'basic'       // Basic optimizations only
-  | 'standard'    // Standard optimization level
-  | 'aggressive'  // Aggressive optimizations
-  | 'maximum';    // Maximum optimization
+  | 'none' // No optimization
+  | 'basic' // Basic optimizations only
+  | 'standard' // Standard optimization level
+  | 'aggressive' // Aggressive optimizations
+  | 'maximum'; // Maximum optimization
 
 export type AnalysisDepth =
-  | 'quick'       // Fast analysis with reduced accuracy
-  | 'standard'    // Standard analysis
-  | 'thorough'    // Thorough analysis
+  | 'quick' // Fast analysis with reduced accuracy
+  | 'standard' // Standard analysis
+  | 'thorough' // Thorough analysis
   | 'exhaustive'; // Exhaustive analysis
 
 /**

@@ -21,29 +21,14 @@ import type {
   BinaryExpr,
   Literal,
   Identifier,
-  CallExpr,
   IfStatement,
   WhileStatement,
   ForStatement,
-  ReturnStatement
+  ReturnStatement,
 } from '@blend65/ast';
-import type {
-  Symbol,
-  VariableSymbol,
-  FunctionSymbol,
-  Blend65Type
-} from '@blend65/semantic';
-import {
-  ASTToILTransformer,
-  createASTToILTransformer,
-  transformProgramToIL,
-  TransformationResult
-} from '../ast-to-il';
-import {
-  ILInstructionType,
-  createILConstant,
-  createILVariable
-} from '../il-types';
+import type { Symbol, VariableSymbol, FunctionSymbol } from '@blend65/semantic';
+import { ASTToILTransformer, createASTToILTransformer, transformProgramToIL } from '../ast-to-il';
+import { ILInstructionType } from '../il-types';
 
 // ============================================================================
 // TEST HELPER FUNCTIONS
@@ -56,12 +41,12 @@ function createMockProgram(): Program {
       type: 'ModuleDeclaration',
       name: {
         type: 'QualifiedName',
-        parts: ['Test', 'Module']
-      }
+        parts: ['Test', 'Module'],
+      },
     },
     imports: [],
     exports: [],
-    body: []
+    body: [],
   };
 }
 
@@ -77,13 +62,13 @@ function createMockSymbolTable(): Map<string, Symbol> {
       scopeType: 'Global',
       parent: null,
       symbols: new Map(),
-      children: []
+      children: [],
     },
     isExported: false,
     varType: { kind: 'primitive', name: 'byte' },
     storageClass: null,
     initialValue: null,
-    isLocal: false
+    isLocal: false,
   };
 
   symbolTable.set('testVar', variableSymbol);
@@ -97,12 +82,12 @@ function createMockSymbolTable(): Map<string, Symbol> {
       scopeType: 'Global',
       parent: null,
       symbols: new Map(),
-      children: []
+      children: [],
     },
     isExported: false,
     parameters: [],
     returnType: { kind: 'primitive', name: 'void' },
-    isCallback: false
+    isCallback: false,
   };
 
   symbolTable.set('testFunc', functionSymbol);
@@ -114,14 +99,14 @@ function createMockLiteral(value: number | boolean | string): Literal {
   return {
     type: 'Literal',
     value,
-    raw: String(value)
+    raw: String(value),
   };
 }
 
 function createMockIdentifier(name: string): Identifier {
   return {
     type: 'Identifier',
-    name
+    name,
   };
 }
 
@@ -130,7 +115,7 @@ function createMockBinaryExpr(operator: string, left: any, right: any): BinaryEx
     type: 'BinaryExpr',
     operator,
     left,
-    right
+    right,
   };
 }
 
@@ -150,7 +135,7 @@ describe('ASTToILTransformer Creation', () => {
     const symbolTable = createMockSymbolTable();
     const transformer = createASTToILTransformer(symbolTable, {
       useOptimizationMetadata: false,
-      targetPlatform: 'vic20'
+      targetPlatform: 'vic20',
     });
 
     expect(transformer).toBeInstanceOf(ASTToILTransformer);
@@ -194,7 +179,7 @@ describe('Program Transformation', () => {
     // Add invalid declaration
     program.body.push({
       type: 'InvalidDeclaration' as any,
-      name: 'invalid'
+      name: 'invalid',
     } as any);
 
     const result = transformer.transformProgram(program);
@@ -238,11 +223,11 @@ describe('Expression Transformation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: createMockLiteral(42)
-        }
+          expression: createMockLiteral(42),
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -260,11 +245,7 @@ describe('Expression Transformation', () => {
   it('should transform binary expressions', () => {
     const program = createMockProgram();
 
-    const binaryExpr = createMockBinaryExpr(
-      '+',
-      createMockLiteral(10),
-      createMockLiteral(20)
-    );
+    const binaryExpr = createMockBinaryExpr('+', createMockLiteral(10), createMockLiteral(20));
 
     const funcDecl: FunctionDeclaration = {
       type: 'FunctionDeclaration',
@@ -274,11 +255,11 @@ describe('Expression Transformation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: binaryExpr
-        }
+          expression: binaryExpr,
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -291,7 +272,9 @@ describe('Expression Transformation', () => {
     expect(ilFunction.instructions.length).toBeGreaterThan(0);
 
     // Should contain ADD instruction
-    const addInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.ADD);
+    const addInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.ADD
+    );
     expect(addInstruction).toBeDefined();
   });
 
@@ -306,11 +289,11 @@ describe('Expression Transformation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: createMockIdentifier('testVar')
-        }
+          expression: createMockIdentifier('testVar'),
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -322,7 +305,9 @@ describe('Expression Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain LOAD_VARIABLE instruction
-    const loadInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.LOAD_VARIABLE);
+    const loadInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.LOAD_VARIABLE
+    );
     expect(loadInstruction).toBeDefined();
   });
 
@@ -341,11 +326,11 @@ describe('Expression Transformation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: outerExpr
-        }
+          expression: outerExpr,
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -357,8 +342,12 @@ describe('Expression Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain both ADD and MUL instructions
-    const addInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.ADD);
-    const mulInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.MUL);
+    const addInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.ADD
+    );
+    const mulInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.MUL
+    );
 
     expect(addInstruction).toBeDefined();
     expect(mulInstruction).toBeDefined();
@@ -383,7 +372,7 @@ describe('Statement Transformation', () => {
 
     const returnStmt: ReturnStatement = {
       type: 'ReturnStatement',
-      value: createMockLiteral(42)
+      value: createMockLiteral(42),
     };
 
     const funcDecl: FunctionDeclaration = {
@@ -393,7 +382,7 @@ describe('Statement Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'byte' },
       body: [returnStmt],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -405,7 +394,9 @@ describe('Statement Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain RETURN instruction
-    const returnInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.RETURN);
+    const returnInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.RETURN
+    );
     expect(returnInstruction).toBeDefined();
     expect(returnInstruction!.operands).toHaveLength(1);
   });
@@ -419,15 +410,15 @@ describe('Statement Transformation', () => {
       thenBody: [
         {
           type: 'ExpressionStatement',
-          expression: createMockLiteral(100)
-        }
+          expression: createMockLiteral(100),
+        },
       ],
       elseBody: [
         {
           type: 'ExpressionStatement',
-          expression: createMockLiteral(200)
-        }
-      ]
+          expression: createMockLiteral(200),
+        },
+      ],
     };
 
     const funcDecl: FunctionDeclaration = {
@@ -437,7 +428,7 @@ describe('Statement Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [ifStmt],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -449,9 +440,15 @@ describe('Statement Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain comparison and branch instructions
-    const compareInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.COMPARE_EQ);
-    const branchInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.BRANCH_IF_FALSE);
-    const labelInstructions = ilFunction.instructions.filter(instr => instr.type === ILInstructionType.LABEL);
+    const compareInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.COMPARE_EQ
+    );
+    const branchInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.BRANCH_IF_FALSE
+    );
+    const labelInstructions = ilFunction.instructions.filter(
+      instr => instr.type === ILInstructionType.LABEL
+    );
 
     expect(compareInstruction).toBeDefined();
     expect(branchInstruction).toBeDefined();
@@ -467,9 +464,9 @@ describe('Statement Transformation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: createMockLiteral(1)
-        }
-      ]
+          expression: createMockLiteral(1),
+        },
+      ],
     };
 
     const funcDecl: FunctionDeclaration = {
@@ -479,7 +476,7 @@ describe('Statement Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [whileStmt],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -491,10 +488,12 @@ describe('Statement Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain loop structure with labels and branches
-    const labelInstructions = ilFunction.instructions.filter(instr => instr.type === ILInstructionType.LABEL);
-    const branchInstructions = ilFunction.instructions.filter(instr =>
-      instr.type === ILInstructionType.BRANCH ||
-      instr.type === ILInstructionType.BRANCH_IF_FALSE
+    const labelInstructions = ilFunction.instructions.filter(
+      instr => instr.type === ILInstructionType.LABEL
+    );
+    const branchInstructions = ilFunction.instructions.filter(
+      instr =>
+        instr.type === ILInstructionType.BRANCH || instr.type === ILInstructionType.BRANCH_IF_FALSE
     );
 
     expect(labelInstructions.length).toBeGreaterThanOrEqual(2); // loop and end labels
@@ -513,9 +512,9 @@ describe('Statement Transformation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: createMockLiteral(1)
-        }
-      ]
+          expression: createMockLiteral(1),
+        },
+      ],
     };
 
     const funcDecl: FunctionDeclaration = {
@@ -525,7 +524,7 @@ describe('Statement Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [forStmt],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -537,9 +536,15 @@ describe('Statement Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain initialization, comparison, increment, and loop structure
-    const storeInstructions = ilFunction.instructions.filter(instr => instr.type === ILInstructionType.STORE_VARIABLE);
-    const compareInstructions = ilFunction.instructions.filter(instr => instr.type === ILInstructionType.COMPARE_LE);
-    const addInstructions = ilFunction.instructions.filter(instr => instr.type === ILInstructionType.ADD);
+    const storeInstructions = ilFunction.instructions.filter(
+      instr => instr.type === ILInstructionType.STORE_VARIABLE
+    );
+    const compareInstructions = ilFunction.instructions.filter(
+      instr => instr.type === ILInstructionType.COMPARE_LE
+    );
+    const addInstructions = ilFunction.instructions.filter(
+      instr => instr.type === ILInstructionType.ADD
+    );
 
     expect(storeInstructions.length).toBeGreaterThanOrEqual(2); // Init and increment
     expect(compareInstructions.length).toBeGreaterThanOrEqual(1); // Loop condition
@@ -570,7 +575,7 @@ describe('Function Declaration Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -587,7 +592,9 @@ describe('Function Declaration Transformation', () => {
     expect(ilFunction.isExported).toBe(false);
 
     // Should have implicit return for void function
-    const returnInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.RETURN);
+    const returnInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.RETURN
+    );
     expect(returnInstruction).toBeDefined();
   });
 
@@ -603,15 +610,25 @@ describe('Function Declaration Transformation', () => {
         scopeType: 'Global',
         parent: null,
         symbols: new Map(),
-        children: []
+        children: [],
       },
       isExported: false,
       parameters: [
-        { name: 'a', type: { kind: 'primitive', name: 'byte' }, optional: false, defaultValue: null },
-        { name: 'b', type: { kind: 'primitive', name: 'byte' }, optional: false, defaultValue: null }
+        {
+          name: 'a',
+          type: { kind: 'primitive', name: 'byte' },
+          optional: false,
+          defaultValue: null,
+        },
+        {
+          name: 'b',
+          type: { kind: 'primitive', name: 'byte' },
+          optional: false,
+          defaultValue: null,
+        },
       ],
       returnType: { kind: 'primitive', name: 'byte' },
-      isCallback: false
+      isCallback: false,
     };
 
     symbolTable.set('funcWithParams', paramSymbol);
@@ -625,20 +642,20 @@ describe('Function Declaration Transformation', () => {
           name: 'a',
           paramType: { type: 'PrimitiveType', name: 'byte' },
           optional: false,
-          defaultValue: null
+          defaultValue: null,
         },
         {
           type: 'Parameter',
           name: 'b',
           paramType: { type: 'PrimitiveType', name: 'byte' },
           optional: false,
-          defaultValue: null
-        }
+          defaultValue: null,
+        },
       ],
       returnType: { type: 'PrimitiveType', name: 'byte' },
       body: [],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -667,12 +684,12 @@ describe('Function Declaration Transformation', () => {
         scopeType: 'Global',
         parent: null,
         symbols: new Map(),
-        children: []
+        children: [],
       },
       isExported: false,
       parameters: [],
       returnType: { kind: 'primitive', name: 'void' },
-      isCallback: true
+      isCallback: true,
     };
 
     symbolTable.set('onInterrupt', callbackSymbol);
@@ -684,7 +701,7 @@ describe('Function Declaration Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [],
       exported: false,
-      callback: true
+      callback: true,
     };
 
     program.body.push(funcDecl);
@@ -720,7 +737,7 @@ describe('Variable Declaration Transformation', () => {
       name: 'testVar',
       varType: { type: 'PrimitiveType', name: 'byte' },
       initializer: createMockLiteral(42),
-      exported: false
+      exported: false,
     };
 
     program.body.push(varDecl);
@@ -748,11 +765,11 @@ describe('Variable Declaration Transformation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: createMockIdentifier('testVar')
-        }
+          expression: createMockIdentifier('testVar'),
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -765,7 +782,9 @@ describe('Variable Declaration Transformation', () => {
     expect(ilFunction.instructions.length).toBeGreaterThan(0);
 
     // Should contain LOAD_VARIABLE instruction
-    const loadInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.LOAD_VARIABLE);
+    const loadInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.LOAD_VARIABLE
+    );
     expect(loadInstruction).toBeDefined();
   });
 });
@@ -796,13 +815,13 @@ describe('Control Flow Transformation', () => {
           thenBody: [
             {
               type: 'ExpressionStatement',
-              expression: createMockLiteral(1)
-            }
+              expression: createMockLiteral(1),
+            },
           ],
-          elseBody: null
-        }
+          elseBody: null,
+        },
       ],
-      elseBody: null
+      elseBody: null,
     };
 
     const funcDecl: FunctionDeclaration = {
@@ -812,7 +831,7 @@ describe('Control Flow Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [nestedIfStmt],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -824,7 +843,9 @@ describe('Control Flow Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should have multiple unique labels for nested control flow
-    const labelInstructions = ilFunction.instructions.filter(instr => instr.type === ILInstructionType.LABEL);
+    const labelInstructions = ilFunction.instructions.filter(
+      instr => instr.type === ILInstructionType.LABEL
+    );
     expect(labelInstructions.length).toBeGreaterThanOrEqual(4); // Two if statements = 4 labels
 
     // All labels should have unique names
@@ -841,12 +862,12 @@ describe('Control Flow Transformation', () => {
       condition: createMockLiteral(true),
       body: [
         {
-          type: 'BreakStatement'
+          type: 'BreakStatement',
         },
         {
-          type: 'ContinueStatement'
-        }
-      ]
+          type: 'ContinueStatement',
+        },
+      ],
     };
 
     const funcDecl: FunctionDeclaration = {
@@ -856,7 +877,7 @@ describe('Control Flow Transformation', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [whileWithBreak],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -868,7 +889,9 @@ describe('Control Flow Transformation', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain branch instructions for break and continue
-    const branchInstructions = ilFunction.instructions.filter(instr => instr.type === ILInstructionType.BRANCH);
+    const branchInstructions = ilFunction.instructions.filter(
+      instr => instr.type === ILInstructionType.BRANCH
+    );
     expect(branchInstructions.length).toBeGreaterThanOrEqual(3); // break, continue, back to loop
   });
 });
@@ -885,7 +908,7 @@ describe('Optimization Metadata Integration', () => {
     symbolTable = createMockSymbolTable();
     transformer = createASTToILTransformer(symbolTable, {
       useOptimizationMetadata: true,
-      targetPlatform: 'c64'
+      targetPlatform: 'c64',
     });
   });
 
@@ -901,7 +924,7 @@ describe('Optimization Metadata Integration', () => {
         scopeType: 'Global',
         parent: null,
         symbols: new Map(),
-        children: []
+        children: [],
       },
       isExported: false,
       varType: { kind: 'primitive', name: 'byte' },
@@ -917,7 +940,7 @@ describe('Optimization Metadata Integration', () => {
           loopUsage: [],
           hotPathUsage: 50,
           estimatedAccessFrequency: 'hot',
-          accessPattern: 'hot_path'
+          accessPattern: 'hot_path',
         },
         zeroPageCandidate: {
           isCandidate: true,
@@ -926,7 +949,7 @@ describe('Optimization Metadata Integration', () => {
           sizeRequirement: 1,
           promotionFactors: [],
           antiPromotionFactors: [],
-          recommendation: 'strongly_recommended'
+          recommendation: 'strongly_recommended',
         },
         registerCandidate: {
           isCandidate: true,
@@ -938,10 +961,10 @@ describe('Optimization Metadata Integration', () => {
             interferingVariables: [],
             registerPressure: [],
             requiresSpilling: false,
-            spillingCost: 0
+            spillingCost: 0,
           },
           usagePatterns: [],
-          recommendation: 'strongly_recommended'
+          recommendation: 'strongly_recommended',
         },
         lifetimeInfo: {
           definitionPoints: [],
@@ -950,7 +973,7 @@ describe('Optimization Metadata Integration', () => {
           spansFunctionCalls: false,
           spansLoops: true,
           estimatedDuration: 10,
-          interferingVariables: []
+          interferingVariables: [],
         },
         sixtyTwoHints: {
           addressingMode: 'zero_page',
@@ -959,17 +982,17 @@ describe('Optimization Metadata Integration', () => {
             requiredAlignment: 1,
             preferredAlignment: 1,
             preferPageBoundary: false,
-            reason: 'none'
+            reason: 'none',
           },
           hardwareInteraction: {
             isHardwareRegister: false,
             isMemoryMappedIO: false,
             isTimingCritical: false,
             usedInInterrupts: false,
-            hardwareComponents: []
+            hardwareComponents: [],
           },
           optimizationOpportunities: [],
-          performanceHints: []
+          performanceHints: [],
         },
         memoryLayout: {
           preferredRegion: 'zero_page_high_priority',
@@ -978,13 +1001,13 @@ describe('Optimization Metadata Integration', () => {
             requiredAlignment: 1,
             preferredAlignment: 1,
             preferPageBoundary: false,
-            reason: 'none'
+            reason: 'none',
           },
           groupingPreference: {
             shouldGroup: false,
             groupWith: [],
             groupingReason: 'cache_locality',
-            layoutPreference: 'sequential'
+            layoutPreference: 'sequential',
           },
           accessPatterns: [],
           localityInfo: {
@@ -992,10 +1015,10 @@ describe('Optimization Metadata Integration', () => {
             temporalLocality: 'high',
             coAccessedVariables: [],
             workingSetSize: 1,
-            isHotData: true
-          }
-        }
-      }
+            isHotData: true,
+          },
+        },
+      },
     };
 
     symbolTable.set('hotVar', optimizedVarSymbol);
@@ -1006,7 +1029,7 @@ describe('Optimization Metadata Integration', () => {
       name: 'hotVar',
       varType: { type: 'PrimitiveType', name: 'byte' },
       initializer: null,
-      exported: false
+      exported: false,
     };
 
     program.body.push(varDecl);
@@ -1023,7 +1046,7 @@ describe('Optimization Metadata Integration', () => {
 
   it('should handle transformation without optimization metadata', () => {
     const transformerNoOpt = createASTToILTransformer(symbolTable, {
-      useOptimizationMetadata: false
+      useOptimizationMetadata: false,
     });
 
     const program = createMockProgram();
@@ -1034,7 +1057,7 @@ describe('Optimization Metadata Integration', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1069,7 +1092,7 @@ describe('Error Handling', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1090,7 +1113,7 @@ describe('Error Handling', () => {
       name: 'unknownVar',
       varType: { type: 'PrimitiveType', name: 'byte' },
       initializer: null,
-      exported: false
+      exported: false,
     };
 
     program.body.push(varDecl);
@@ -1112,11 +1135,11 @@ describe('Error Handling', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [
         {
-          type: 'BreakStatement'
-        }
+          type: 'BreakStatement',
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1138,11 +1161,11 @@ describe('Error Handling', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: [
         {
-          type: 'ContinueStatement'
-        }
+          type: 'ContinueStatement',
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1176,7 +1199,7 @@ describe('IL Transformation Integration', () => {
       name: 'globalCounter',
       varType: { type: 'PrimitiveType', name: 'byte' },
       initializer: createMockLiteral(0),
-      exported: true
+      exported: true,
     };
 
     // Add global variable symbol
@@ -1188,13 +1211,13 @@ describe('IL Transformation Integration', () => {
         scopeType: 'Global',
         parent: null,
         symbols: new Map(),
-        children: []
+        children: [],
       },
       isExported: true,
       varType: { kind: 'primitive', name: 'byte' },
       storageClass: 'ram',
       initialValue: null,
-      isLocal: false
+      isLocal: false,
     };
 
     symbolTable.set('globalCounter', globalVarSymbol);
@@ -1208,11 +1231,11 @@ describe('IL Transformation Integration', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: createMockIdentifier('globalCounter')
-        }
+          expression: createMockIdentifier('globalCounter'),
+        },
       ],
       exported: true,
-      callback: false
+      callback: false,
     };
 
     // Add main function symbol
@@ -1224,12 +1247,12 @@ describe('IL Transformation Integration', () => {
         scopeType: 'Global',
         parent: null,
         symbols: new Map(),
-        children: []
+        children: [],
       },
       isExported: true,
       parameters: [],
       returnType: { kind: 'primitive', name: 'void' },
-      isCallback: false
+      isCallback: false,
     };
 
     symbolTable.set('main', mainFuncSymbol);
@@ -1265,11 +1288,11 @@ describe('IL Transformation Integration', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: complexExpr
-        }
+          expression: complexExpr,
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1281,9 +1304,15 @@ describe('IL Transformation Integration', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain MUL, DIV, and ADD instructions in proper dependency order
-    const mulInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.MUL);
-    const divInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.DIV);
-    const addInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.ADD);
+    const mulInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.MUL
+    );
+    const divInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.DIV
+    );
+    const addInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.ADD
+    );
 
     expect(mulInstruction).toBeDefined();
     expect(divInstruction).toBeDefined();
@@ -1323,11 +1352,11 @@ describe('Generated Instruction Validation', () => {
       body: [
         {
           type: 'ExpressionStatement',
-          expression: createMockBinaryExpr('+', createMockLiteral(1), createMockLiteral(2))
-        }
+          expression: createMockBinaryExpr('+', createMockLiteral(1), createMockLiteral(2)),
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1361,11 +1390,11 @@ describe('Generated Instruction Validation', () => {
             '*',
             createMockBinaryExpr('+', createMockLiteral(1), createMockLiteral(2)),
             createMockBinaryExpr('-', createMockLiteral(5), createMockLiteral(3))
-          )
-        }
+          ),
+        },
       ],
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1381,8 +1410,8 @@ describe('Generated Instruction Validation', () => {
     expect(instructionsWithResults.length).toBeGreaterThan(2);
 
     // Check for temporary variables
-    const temporaryResults = instructionsWithResults.filter(instr =>
-      instr.result?.valueType === 'temporary'
+    const temporaryResults = instructionsWithResults.filter(
+      instr => instr.result?.valueType === 'temporary'
     );
     expect(temporaryResults.length).toBeGreaterThan(0);
   });
@@ -1401,11 +1430,30 @@ describe('Comprehensive Language Feature Tests', () => {
 
   it('should handle all supported binary operators', () => {
     const program = createMockProgram();
-    const operators = ['+', '-', '*', '/', '%', '==', '!=', '<', '<=', '>', '>=', 'and', 'or', '&', '|', '^', '<<', '>>'];
+    const operators = [
+      '+',
+      '-',
+      '*',
+      '/',
+      '%',
+      '==',
+      '!=',
+      '<',
+      '<=',
+      '>',
+      '>=',
+      'and',
+      'or',
+      '&',
+      '|',
+      '^',
+      '<<',
+      '>>',
+    ];
 
     const statements = operators.map(op => ({
       type: 'ExpressionStatement' as const,
-      expression: createMockBinaryExpr(op, createMockLiteral(5), createMockLiteral(3))
+      expression: createMockBinaryExpr(op, createMockLiteral(5), createMockLiteral(3)),
     }));
 
     const funcDecl: FunctionDeclaration = {
@@ -1415,7 +1463,7 @@ describe('Comprehensive Language Feature Tests', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: statements,
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1443,8 +1491,8 @@ describe('Comprehensive Language Feature Tests', () => {
       expression: {
         type: 'UnaryExpr' as const,
         operator: op,
-        operand: createMockLiteral(5)
-      }
+        operand: createMockLiteral(5),
+      },
     }));
 
     const funcDecl: FunctionDeclaration = {
@@ -1454,7 +1502,7 @@ describe('Comprehensive Language Feature Tests', () => {
       returnType: { type: 'PrimitiveType', name: 'void' },
       body: statements,
       exported: false,
-      callback: false
+      callback: false,
     };
 
     program.body.push(funcDecl);
@@ -1466,9 +1514,15 @@ describe('Comprehensive Language Feature Tests', () => {
     const ilFunction = result.program.modules[0].functions[0];
 
     // Should contain NEG, NOT, and BITWISE_NOT instructions
-    const negInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.NEG);
-    const notInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.NOT);
-    const bitwiseNotInstruction = ilFunction.instructions.find(instr => instr.type === ILInstructionType.BITWISE_NOT);
+    const negInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.NEG
+    );
+    const notInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.NOT
+    );
+    const bitwiseNotInstruction = ilFunction.instructions.find(
+      instr => instr.type === ILInstructionType.BITWISE_NOT
+    );
 
     expect(negInstruction).toBeDefined();
     expect(notInstruction).toBeDefined();

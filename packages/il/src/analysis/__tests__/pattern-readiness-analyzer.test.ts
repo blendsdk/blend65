@@ -14,17 +14,13 @@ import type {
   ILQualityAnalysisResult,
   ILComplexityMetrics,
   PerformancePredictionModel,
-  OptimizationReadinessAnalysis
+  OptimizationReadinessAnalysis,
 } from '../types/metrics-types.js';
 import type { ControlFlowAnalysisResult } from '../types/control-flow-types.js';
 import type { SixtyTwo6502ValidationResult } from '../types/6502-analysis-types.js';
 import {
   PatternReadinessAnalyzer,
-  type PatternReadinessAnalysisResult,
-  type RankedPatternRecommendation,
-  type PatternConflictPrediction,
-  type OptimizationStrategy,
-  type PatternAnalysisOptions
+  type PatternAnalysisOptions,
 } from '../pattern-readiness-analyzer.js';
 
 // =============================================================================
@@ -53,8 +49,8 @@ function createMockOptimizationPattern(
       improvementPercentage,
       cyclesSaved: 100,
       bytesSaved: 50,
-      reliability: 'high' as const
-    }
+      reliability: 'high' as const,
+    },
   };
 }
 
@@ -65,26 +61,18 @@ function createMockPatternRegistry() {
   const patterns = {
     mathematics: [
       createMockOptimizationPattern('math_opt_1', 'mathematics', 3, 20),
-      createMockOptimizationPattern('math_opt_2', 'mathematics', 2, 15)
+      createMockOptimizationPattern('math_opt_2', 'mathematics', 2, 15),
     ],
-    hardware: [
-      createMockOptimizationPattern('hw_opt_1', 'hardware', 4, 30)
-    ],
-    control_flow: [
-      createMockOptimizationPattern('cf_opt_1', 'control_flow', 3, 25)
-    ],
-    memory: [
-      createMockOptimizationPattern('mem_opt_1', 'memory', 2, 10)
-    ],
-    basic: [
-      createMockOptimizationPattern('basic_opt_1', 'basic', 1, 5)
-    ]
+    hardware: [createMockOptimizationPattern('hw_opt_1', 'hardware', 4, 30)],
+    control_flow: [createMockOptimizationPattern('cf_opt_1', 'control_flow', 3, 25)],
+    memory: [createMockOptimizationPattern('mem_opt_1', 'memory', 2, 10)],
+    basic: [createMockOptimizationPattern('basic_opt_1', 'basic', 1, 5)],
   };
 
   return {
     getPatternsByCategory: vi.fn().mockImplementation((category: string) => {
       return patterns[category as keyof typeof patterns] || [];
-    })
+    }),
   };
 }
 
@@ -102,7 +90,7 @@ function createMockILProgram(): ILProgram {
     labels: new Map(),
     isCallback: false,
     isExported: false,
-    sourceLocation: { line: 1, column: 1, offset: 0 }
+    sourceLocation: { line: 1, column: 1, offset: 0 },
   };
 
   const mockModule: ILModule = {
@@ -110,7 +98,7 @@ function createMockILProgram(): ILProgram {
     functions: [mockFunction],
     moduleData: [],
     exports: [],
-    imports: []
+    imports: [],
   };
 
   return {
@@ -123,8 +111,8 @@ function createMockILProgram(): ILProgram {
       originalFiles: ['test.blend'],
       compilationTimestamp: new Date(),
       compilerVersion: '0.1.0',
-      targetPlatform: 'c64'
-    }
+      targetPlatform: 'c64',
+    },
   };
 }
 
@@ -142,7 +130,7 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
       functionCallDensity: 0.1,
       memoryOperationDensity: 0.25,
       arithmeticComplexity: 15,
-      score: 40
+      score: 40,
     },
     controlFlowComplexity: {
       basicBlockCount: 8,
@@ -153,7 +141,7 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
       functionCallCount: 3,
       returnStatementCount: 1,
       complexityRatio: 1.5,
-      score: 35
+      score: 35,
     },
     dataFlowComplexity: {
       variableCount: 15,
@@ -162,9 +150,9 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
       variableInterferenceCount: 12,
       memoryAliasComplexity: 5,
       dependencyDepth: 3,
-      score: 30
+      score: 30,
     },
-    overallComplexityScore: 38
+    overallComplexityScore: 38,
   };
 
   const performancePrediction: PerformancePredictionModel = {
@@ -174,7 +162,7 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
       worstCase: 1000,
       confidence: 0.85,
       assumptionsMade: ['No memory wait states', 'No interrupt interference'],
-      uncertaintyFactors: []
+      uncertaintyFactors: [],
     },
     memoryUsage: {
       zeroPageUsage: { staticUsage: 16, dynamicUsage: 8, peakUsage: 24, efficiency: 0.8 },
@@ -182,15 +170,35 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
       ramUsage: { staticUsage: 1024, dynamicUsage: 512, peakUsage: 1536, efficiency: 0.9 },
       dataUsage: { staticUsage: 256, dynamicUsage: 0, peakUsage: 256, efficiency: 1.0 },
       totalUsage: 1864,
-      utilizationScore: 75
+      utilizationScore: 75,
     },
     registerPressure: {
-      accumulatorPressure: { averagePressure: 0.6, peakPressure: 0.9, pressureDistribution: [], criticalRegions: [] },
-      indexXPressure: { averagePressure: 0.4, peakPressure: 0.7, pressureDistribution: [], criticalRegions: [] },
-      indexYPressure: { averagePressure: 0.3, peakPressure: 0.6, pressureDistribution: [], criticalRegions: [] },
-      combinedPressure: { averagePressure: 0.5, peakPressure: 0.8, pressureDistribution: [], criticalRegions: [] },
+      accumulatorPressure: {
+        averagePressure: 0.6,
+        peakPressure: 0.9,
+        pressureDistribution: [],
+        criticalRegions: [],
+      },
+      indexXPressure: {
+        averagePressure: 0.4,
+        peakPressure: 0.7,
+        pressureDistribution: [],
+        criticalRegions: [],
+      },
+      indexYPressure: {
+        averagePressure: 0.3,
+        peakPressure: 0.6,
+        pressureDistribution: [],
+        criticalRegions: [],
+      },
+      combinedPressure: {
+        averagePressure: 0.5,
+        peakPressure: 0.8,
+        pressureDistribution: [],
+        criticalRegions: [],
+      },
       spillProbability: 0.2,
-      allocationQuality: 80
+      allocationQuality: 80,
     },
     bottlenecks: [],
     performanceScore: 70,
@@ -200,37 +208,94 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
         ramCycles: 3,
         ioRegisterCycles: 4,
         pageBoundaryCycles: 4,
-        bankSwitchCycles: 10
+        bankSwitchCycles: 10,
       },
       processorFeatures: {
         hasDecimalMode: true,
         hasBCDInstructions: true,
         hasExtendedInstructions: false,
         pipelineDepth: 1,
-        branchPredictionAccuracy: 0.5
+        branchPredictionAccuracy: 0.5,
       },
       platformConstraints: {
         interruptLatency: 7,
         vicInterference: true,
         sidInterference: false,
-        ciaTimingConstraints: true
-      }
-    }
+        ciaTimingConstraints: true,
+      },
+    },
   };
 
   const optimizationReadiness: OptimizationReadinessAnalysis = {
     categoryReadiness: new Map([
-      ['arithmetic', { category: 'arithmetic', readinessScore: 80, confidence: 0.9, blockers: [], opportunities: [], recommendedPatterns: [], estimatedBenefit: 25 }],
-      ['control_flow', { category: 'control_flow', readinessScore: 70, confidence: 0.8, blockers: [], opportunities: [], recommendedPatterns: [], estimatedBenefit: 20 }],
-      ['memory', { category: 'memory', readinessScore: 60, confidence: 0.7, blockers: [], opportunities: [], recommendedPatterns: [], estimatedBenefit: 15 }]
+      [
+        'arithmetic',
+        {
+          category: 'arithmetic',
+          readinessScore: 80,
+          confidence: 0.9,
+          blockers: [],
+          opportunities: [],
+          recommendedPatterns: [],
+          estimatedBenefit: 25,
+        },
+      ],
+      [
+        'control_flow',
+        {
+          category: 'control_flow',
+          readinessScore: 70,
+          confidence: 0.8,
+          blockers: [],
+          opportunities: [],
+          recommendedPatterns: [],
+          estimatedBenefit: 20,
+        },
+      ],
+      [
+        'memory',
+        {
+          category: 'memory',
+          readinessScore: 60,
+          confidence: 0.7,
+          blockers: [],
+          opportunities: [],
+          recommendedPatterns: [],
+          estimatedBenefit: 15,
+        },
+      ],
     ]),
     patternApplicability: [],
     impactPotential: {
-      performanceImpact: { bestCase: 20, expectedCase: 15, worstCase: 10, confidence: 0.8, factors: [] },
-      memorySizeImpact: { bestCase: 15, expectedCase: 10, worstCase: 5, confidence: 0.7, factors: [] },
-      codeQualityImpact: { bestCase: 25, expectedCase: 20, worstCase: 15, confidence: 0.9, factors: [] },
-      maintainabilityImpact: { bestCase: 10, expectedCase: 5, worstCase: 0, confidence: 0.6, factors: [] },
-      overallImpact: 75
+      performanceImpact: {
+        bestCase: 20,
+        expectedCase: 15,
+        worstCase: 10,
+        confidence: 0.8,
+        factors: [],
+      },
+      memorySizeImpact: {
+        bestCase: 15,
+        expectedCase: 10,
+        worstCase: 5,
+        confidence: 0.7,
+        factors: [],
+      },
+      codeQualityImpact: {
+        bestCase: 25,
+        expectedCase: 20,
+        worstCase: 15,
+        confidence: 0.9,
+        factors: [],
+      },
+      maintainabilityImpact: {
+        bestCase: 10,
+        expectedCase: 5,
+        worstCase: 0,
+        confidence: 0.6,
+        factors: [],
+      },
+      overallImpact: 75,
     },
     transformationSafety: {
       semanticSafety: {
@@ -238,23 +303,23 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
         dataFlowSafety: 90,
         controlFlowSafety: 85,
         sideEffectSafety: 92,
-        riskFactors: []
+        riskFactors: [],
       },
       performanceSafety: {
         performanceGuarantee: 80,
         worstCaseImpact: 5,
         regressionRisk: 10,
-        testCoverage: 85
+        testCoverage: 85,
       },
       platformSafety: {
         hardwareCompatibility: 95,
         memoryConstraintSafety: 90,
         timingConstraintSafety: 85,
-        interruptSafety: 88
+        interruptSafety: 88,
       },
-      overallSafetyScore: 89
+      overallSafetyScore: 89,
     },
-    overallReadinessScore: 75
+    overallReadinessScore: 75,
   };
 
   return {
@@ -265,14 +330,14 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
       gates: [],
       overallStatus: 'pass',
       qualityScore: 80,
-      improvementRecommendations: []
+      improvementRecommendations: [],
     },
     analysisMetrics: {
       analysisTimeMs: 250,
       memoryUsageBytes: 1024000,
       predictionAccuracy: 0.85,
       analysisCompleteness: 0.95,
-      confidenceScore: 0.88
+      confidenceScore: 0.88,
     },
     recommendations: [],
     summary: {
@@ -280,10 +345,13 @@ function createMockQualityAnalysis(): ILQualityAnalysisResult {
       complexityLevel: 'moderate',
       performanceLevel: 'good',
       optimizationPotential: 'moderate',
-      recommendedNextSteps: ['Apply arithmetic optimizations', 'Consider control flow optimization'],
+      recommendedNextSteps: [
+        'Apply arithmetic optimizations',
+        'Consider control flow optimization',
+      ],
       keyFindings: ['Good optimization readiness', 'Moderate complexity level'],
-      criticalIssues: []
-    }
+      criticalIssues: [],
+    },
   };
 }
 
@@ -296,17 +364,35 @@ function createMockCFGAnalysis(): ControlFlowAnalysisResult {
       entryBlock: 0,
       exitBlocks: [3],
       blocks: [
-        { blockId: 0, startInstruction: 0, endInstruction: 5, predecessors: [], successors: [1, 2] },
+        {
+          blockId: 0,
+          startInstruction: 0,
+          endInstruction: 5,
+          predecessors: [],
+          successors: [1, 2],
+        },
         { blockId: 1, startInstruction: 6, endInstruction: 10, predecessors: [0], successors: [3] },
-        { blockId: 2, startInstruction: 11, endInstruction: 15, predecessors: [0], successors: [3] },
-        { blockId: 3, startInstruction: 16, endInstruction: 20, predecessors: [1, 2], successors: [] }
+        {
+          blockId: 2,
+          startInstruction: 11,
+          endInstruction: 15,
+          predecessors: [0],
+          successors: [3],
+        },
+        {
+          blockId: 3,
+          startInstruction: 16,
+          endInstruction: 20,
+          predecessors: [1, 2],
+          successors: [],
+        },
       ],
       edges: [
         { from: 0, to: 1, edgeType: 'branch_true', probability: 0.6 },
         { from: 0, to: 2, edgeType: 'branch_false', probability: 0.4 },
         { from: 1, to: 3, edgeType: 'fall_through', probability: 1.0 },
-        { from: 2, to: 3, edgeType: 'fall_through', probability: 1.0 }
-      ]
+        { from: 2, to: 3, edgeType: 'fall_through', probability: 1.0 },
+      ],
     },
     complexityMetrics: {
       cyclomaticComplexity: 2,
@@ -315,23 +401,23 @@ function createMockCFGAnalysis(): ControlFlowAnalysisResult {
       loopCount: 0,
       functionCallCount: 2,
       maxDepth: 1,
-      averageBranchingFactor: 1.5
+      averageBranchingFactor: 1.5,
     },
     dominanceAnalysis: {
       dominators: new Map(),
       postDominators: new Map(),
       dominanceFrontiers: new Map(),
-      dominanceTree: { rootId: 0, children: new Map() }
+      dominanceTree: { rootId: 0, children: new Map() },
     },
     loopAnalysis: {
       naturalLoops: [],
       loopNestingTree: { loopId: -1, nestedLoops: [] },
-      loopInvariantInfo: new Map()
+      loopInvariantInfo: new Map(),
     },
     reachabilityAnalysis: {
       reachableBlocks: new Set([0, 1, 2, 3]),
       unreachableBlocks: new Set(),
-      reachabilityMatrix: new Map()
+      reachabilityMatrix: new Map(),
     },
     analysisMetadata: {
       analysisTimeMs: 50,
@@ -340,9 +426,9 @@ function createMockCFGAnalysis(): ControlFlowAnalysisResult {
         structuralIntegrity: true,
         reachabilityConsistency: true,
         dominanceConsistency: true,
-        issuesFound: []
-      }
-    }
+        issuesFound: [],
+      },
+    },
   };
 }
 
@@ -356,48 +442,48 @@ function createMock6502Analysis(): SixtyTwo6502ValidationResult {
       hardwareSupport: 90,
       memoryConstraints: 85,
       timingValidation: 88,
-      instructionSupport: 98
+      instructionSupport: 98,
     },
     performanceAnalysis: {
       cycleEstimation: {
         totalCycles: 750,
         criticalPathCycles: 120,
         averageCyclesPerInstruction: 3.2,
-        worstCaseScenario: 1200
+        worstCaseScenario: 1200,
       },
       memoryEfficiency: {
         zeroPageUtilization: 75,
         memoryAccessEfficiency: 80,
         cacheEfficiency: 85,
-        memoryFragmentation: 10
+        memoryFragmentation: 10,
       },
       registerUtilization: {
         registerPressure: 60,
         spillFrequency: 0.15,
-        registerConflicts: 3
-      }
+        registerConflicts: 3,
+      },
     },
     optimizationOpportunities: [
       {
         opportunityType: 'use_zero_page',
         benefit: 15,
         confidence: 0.8,
-        description: 'Use zero page addressing for frequently accessed variables'
+        description: 'Use zero page addressing for frequently accessed variables',
       },
       {
         opportunityType: 'register_allocation',
         benefit: 20,
         confidence: 0.9,
-        description: 'Optimize register allocation to reduce memory access'
-      }
+        description: 'Optimize register allocation to reduce memory access',
+      },
     ],
     complianceIssues: [],
     analysisMetadata: {
       analysisVersion: '1.0.0',
       targetPlatform: 'c64',
       analysisTimeMs: 100,
-      validationCoverage: 95
-    }
+      validationCoverage: 95,
+    },
   };
 }
 
@@ -500,7 +586,13 @@ describe('PatternReadinessAnalyzer', () => {
         expect(pattern.overallRank).toBeGreaterThanOrEqual(0);
         expect(pattern.overallRank).toBeLessThanOrEqual(100);
 
-        expect(pattern.confidenceLevel).toBeOneOf(['very_low', 'low', 'medium', 'high', 'very_high']);
+        expect(pattern.confidenceLevel).toBeOneOf([
+          'very_low',
+          'low',
+          'medium',
+          'high',
+          'very_high',
+        ]);
         expect(Array.isArray(pattern.prerequisites)).toBe(true);
         expect(pattern.expectedBenefit).toBeDefined();
         expect(pattern.applicationContext).toBeDefined();
@@ -532,18 +624,22 @@ describe('PatternReadinessAnalyzer', () => {
           prioritizeMemory: false,
           prioritizeSafety: true,
           prioritizeMaintainability: false,
-          targetImprovement: 20
+          targetImprovement: 20,
         },
         platformConstraints: {
           memoryConstraints: { maxZeroPageUsage: 64, maxRamUsage: 32768, maxStackUsage: 256 },
-          timingConstraints: { maxCycleCount: 1000000, interruptLatencyMax: 100, realTimeRequirements: false },
+          timingConstraints: {
+            maxCycleCount: 1000000,
+            interruptLatencyMax: 100,
+            realTimeRequirements: false,
+          },
           hardwareConstraints: {
             platform: 'c64',
             availableRegisters: ['A', 'X', 'Y'],
             specialInstructions: [],
-            memoryBanking: false
-          }
-        }
+            memoryBanking: false,
+          },
+        },
       };
 
       const analyzerWithOptions = new PatternReadinessAnalyzer(mockPatternRegistry as any, options);
@@ -561,7 +657,7 @@ describe('PatternReadinessAnalyzer', () => {
       // Mock patterns with same category to force conflict
       const conflictingPatterns = [
         createMockOptimizationPattern('conflict_1', 'memory', 3, 20),
-        createMockOptimizationPattern('conflict_2', 'memory', 3, 25)
+        createMockOptimizationPattern('conflict_2', 'memory', 3, 25),
       ];
 
       mockPatternRegistry.getPatternsByCategory.mockImplementation((category: string) => {
@@ -583,7 +679,14 @@ describe('PatternReadinessAnalyzer', () => {
 
         expect(conflict.pattern1Id).toBeDefined();
         expect(conflict.pattern2Id).toBeDefined();
-        expect(conflict.conflictType).toBeOneOf(['direct_conflict', 'resource_conflict', 'ordering_dependency', 'semantic_conflict', 'performance_conflict', 'safety_conflict']);
+        expect(conflict.conflictType).toBeOneOf([
+          'direct_conflict',
+          'resource_conflict',
+          'ordering_dependency',
+          'semantic_conflict',
+          'performance_conflict',
+          'safety_conflict',
+        ]);
         expect(conflict.conflictSeverity).toBeOneOf(['minor', 'moderate', 'major', 'blocking']);
         expect(conflict.conflictProbability).toBeGreaterThanOrEqual(0);
         expect(conflict.conflictProbability).toBeLessThanOrEqual(1);
@@ -604,7 +707,13 @@ describe('PatternReadinessAnalyzer', () => {
 
       const strategy = result.optimizationStrategy;
 
-      expect(strategy.strategyType).toBeOneOf(['aggressive', 'balanced', 'conservative', 'incremental', 'experimental']);
+      expect(strategy.strategyType).toBeOneOf([
+        'aggressive',
+        'balanced',
+        'conservative',
+        'incremental',
+        'experimental',
+      ]);
       expect(strategy.phaseCount).toBeGreaterThan(0);
       expect(strategy.estimatedDuration).toBeGreaterThan(0);
       expect(strategy.expectedImprovement).toBeDefined();
@@ -623,21 +732,28 @@ describe('PatternReadinessAnalyzer', () => {
           prioritizeMemory: false,
           prioritizeSafety: true,
           prioritizeMaintainability: true,
-          targetImprovement: 20
+          targetImprovement: 20,
         },
         platformConstraints: {
           memoryConstraints: { maxZeroPageUsage: 64, maxRamUsage: 32768, maxStackUsage: 256 },
-          timingConstraints: { maxCycleCount: 1000000, interruptLatencyMax: 100, realTimeRequirements: false },
+          timingConstraints: {
+            maxCycleCount: 1000000,
+            interruptLatencyMax: 100,
+            realTimeRequirements: false,
+          },
           hardwareConstraints: {
             platform: 'c64',
             availableRegisters: ['A', 'X', 'Y'],
             specialInstructions: [],
-            memoryBanking: false
-          }
-        }
+            memoryBanking: false,
+          },
+        },
       };
 
-      const conservativeAnalyzer = new PatternReadinessAnalyzer(mockPatternRegistry as any, conservativeOptions);
+      const conservativeAnalyzer = new PatternReadinessAnalyzer(
+        mockPatternRegistry as any,
+        conservativeOptions
+      );
       const result = conservativeAnalyzer.analyzePatternReadiness(
         mockProgram,
         mockQualityAnalysis,
@@ -710,19 +826,22 @@ describe('PatternReadinessAnalyzer', () => {
       if (result.applicablePatterns.length > 5 && result.applicationOrder.length > 1) {
         // Get patterns from first and last phases
         const firstPhasePatterns = result.applicationOrder[0].patternsToApply;
-        const lastPhasePatterns = result.applicationOrder[result.applicationOrder.length - 1].patternsToApply;
+        const lastPhasePatterns =
+          result.applicationOrder[result.applicationOrder.length - 1].patternsToApply;
 
         // Find corresponding pattern recommendations
-        const firstPhaseRanks = firstPhasePatterns.map(id =>
-          result.applicablePatterns.find(p => p.pattern.id === id)?.overallRank || 0
+        const firstPhaseRanks = firstPhasePatterns.map(
+          id => result.applicablePatterns.find(p => p.pattern.id === id)?.overallRank || 0
         );
-        const lastPhaseRanks = lastPhasePatterns.map(id =>
-          result.applicablePatterns.find(p => p.pattern.id === id)?.overallRank || 0
+        const lastPhaseRanks = lastPhasePatterns.map(
+          id => result.applicablePatterns.find(p => p.pattern.id === id)?.overallRank || 0
         );
 
         // First phase should generally have higher ranked patterns
-        const avgFirstRank = firstPhaseRanks.reduce((sum, rank) => sum + rank, 0) / firstPhaseRanks.length;
-        const avgLastRank = lastPhaseRanks.reduce((sum, rank) => sum + rank, 0) / lastPhaseRanks.length;
+        const avgFirstRank =
+          firstPhaseRanks.reduce((sum, rank) => sum + rank, 0) / firstPhaseRanks.length;
+        const avgLastRank =
+          lastPhaseRanks.reduce((sum, rank) => sum + rank, 0) / lastPhaseRanks.length;
 
         expect(avgFirstRank).toBeGreaterThanOrEqual(avgLastRank);
       }
@@ -774,7 +893,12 @@ describe('PatternReadinessAnalyzer', () => {
         const recommendation = safety.safetyRecommendations[0];
         expect(recommendation.recommendationId).toBeDefined();
         expect(recommendation.description).toBeDefined();
-        expect(recommendation.importance).toBeOneOf(['critical', 'important', 'recommended', 'optional']);
+        expect(recommendation.importance).toBeOneOf([
+          'critical',
+          'important',
+          'recommended',
+          'optional',
+        ]);
         expect(recommendation.implementationGuidance).toBeDefined();
         expect(recommendation.validationMethod).toBeDefined();
       }
@@ -790,18 +914,22 @@ describe('PatternReadinessAnalyzer', () => {
           prioritizeMemory: false,
           prioritizeSafety: false,
           prioritizeMaintainability: false,
-          targetImprovement: 30
+          targetImprovement: 30,
         },
         platformConstraints: {
           memoryConstraints: { maxZeroPageUsage: 64, maxRamUsage: 32768, maxStackUsage: 256 },
-          timingConstraints: { maxCycleCount: 1000000, interruptLatencyMax: 100, realTimeRequirements: false },
+          timingConstraints: {
+            maxCycleCount: 1000000,
+            interruptLatencyMax: 100,
+            realTimeRequirements: false,
+          },
           hardwareConstraints: {
             platform: 'c64',
             availableRegisters: ['A', 'X', 'Y'],
             specialInstructions: [],
-            memoryBanking: false
-          }
-        }
+            memoryBanking: false,
+          },
+        },
       };
 
       const analyzerWithOptions = new PatternReadinessAnalyzer(mockPatternRegistry as any, options);
@@ -874,8 +1002,8 @@ describe('PatternReadinessAnalyzer', () => {
         ...mockQualityAnalysis,
         complexityMetrics: {
           ...mockQualityAnalysis.complexityMetrics,
-          overallComplexityScore: 85
-        }
+          overallComplexityScore: 85,
+        },
       };
 
       const result = analyzer.analyzePatternReadiness(
@@ -890,7 +1018,9 @@ describe('PatternReadinessAnalyzer', () => {
 
       if (result.applicablePatterns.length > 0) {
         // Complex code should influence safety scores (lower safety for complex code)
-        const avgSafety = result.applicablePatterns.reduce((sum, p) => sum + p.safetyScore, 0) / result.applicablePatterns.length;
+        const avgSafety =
+          result.applicablePatterns.reduce((sum, p) => sum + p.safetyScore, 0) /
+          result.applicablePatterns.length;
         expect(avgSafety).toBeLessThan(90); // Should be reduced due to complexity
       }
     });
@@ -901,8 +1031,8 @@ describe('PatternReadinessAnalyzer', () => {
         ...mockQualityAnalysis,
         performancePrediction: {
           ...mockQualityAnalysis.performancePrediction,
-          performanceScore: 30
-        }
+          performanceScore: 30,
+        },
       };
 
       const result = analyzer.analyzePatternReadiness(
@@ -914,7 +1044,9 @@ describe('PatternReadinessAnalyzer', () => {
 
       // Low performance should increase impact scores
       if (result.applicablePatterns.length > 0) {
-        const avgImpact = result.applicablePatterns.reduce((sum, p) => sum + p.impactScore, 0) / result.applicablePatterns.length;
+        const avgImpact =
+          result.applicablePatterns.reduce((sum, p) => sum + p.impactScore, 0) /
+          result.applicablePatterns.length;
         expect(avgImpact).toBeGreaterThan(15); // Should be boosted due to low performance
       }
     });
@@ -924,11 +1056,31 @@ describe('PatternReadinessAnalyzer', () => {
       const rich6502Analysis = {
         ...mock6502Analysis,
         optimizationOpportunities: [
-          { opportunityType: 'use_zero_page', benefit: 15, confidence: 0.8, description: 'Zero page optimization' },
-          { opportunityType: 'register_allocation', benefit: 20, confidence: 0.9, description: 'Register optimization' },
-          { opportunityType: 'loop_optimization', benefit: 25, confidence: 0.85, description: 'Loop optimization' },
-          { opportunityType: 'strength_reduction', benefit: 18, confidence: 0.75, description: 'Strength reduction' }
-        ]
+          {
+            opportunityType: 'use_zero_page',
+            benefit: 15,
+            confidence: 0.8,
+            description: 'Zero page optimization',
+          },
+          {
+            opportunityType: 'register_allocation',
+            benefit: 20,
+            confidence: 0.9,
+            description: 'Register optimization',
+          },
+          {
+            opportunityType: 'loop_optimization',
+            benefit: 25,
+            confidence: 0.85,
+            description: 'Loop optimization',
+          },
+          {
+            opportunityType: 'strength_reduction',
+            benefit: 18,
+            confidence: 0.75,
+            description: 'Strength reduction',
+          },
+        ],
       };
 
       const result = analyzer.analyzePatternReadiness(
@@ -940,7 +1092,9 @@ describe('PatternReadinessAnalyzer', () => {
 
       // More optimization opportunities should boost impact scores
       if (result.applicablePatterns.length > 0) {
-        const avgImpact = result.applicablePatterns.reduce((sum, p) => sum + p.impactScore, 0) / result.applicablePatterns.length;
+        const avgImpact =
+          result.applicablePatterns.reduce((sum, p) => sum + p.impactScore, 0) /
+          result.applicablePatterns.length;
         expect(avgImpact).toBeGreaterThan(10); // Should be boosted by opportunities
       }
     });
@@ -957,21 +1111,28 @@ describe('PatternReadinessAnalyzer', () => {
           prioritizeMemory: false,
           prioritizeSafety: false,
           prioritizeMaintainability: false,
-          targetImprovement: 40
+          targetImprovement: 40,
         },
         platformConstraints: {
           memoryConstraints: { maxZeroPageUsage: 64, maxRamUsage: 32768, maxStackUsage: 256 },
-          timingConstraints: { maxCycleCount: 1000000, interruptLatencyMax: 100, realTimeRequirements: false },
+          timingConstraints: {
+            maxCycleCount: 1000000,
+            interruptLatencyMax: 100,
+            realTimeRequirements: false,
+          },
           hardwareConstraints: {
             platform: 'c64',
             availableRegisters: ['A', 'X', 'Y'],
             specialInstructions: [],
-            memoryBanking: false
-          }
-        }
+            memoryBanking: false,
+          },
+        },
       };
 
-      const performanceAnalyzer = new PatternReadinessAnalyzer(mockPatternRegistry as any, performanceOptions);
+      const performanceAnalyzer = new PatternReadinessAnalyzer(
+        mockPatternRegistry as any,
+        performanceOptions
+      );
       const result = performanceAnalyzer.analyzePatternReadiness(
         mockProgram,
         mockQualityAnalysis,
@@ -986,8 +1147,11 @@ describe('PatternReadinessAnalyzer', () => {
         const lowImpactPatterns = result.applicablePatterns.filter(p => p.impactScore <= 20);
 
         if (highImpactPatterns.length > 0 && lowImpactPatterns.length > 0) {
-          const avgHighImpactRank = highImpactPatterns.reduce((sum, p) => sum + p.overallRank, 0) / highImpactPatterns.length;
-          const avgLowImpactRank = lowImpactPatterns.reduce((sum, p) => sum + p.overallRank, 0) / lowImpactPatterns.length;
+          const avgHighImpactRank =
+            highImpactPatterns.reduce((sum, p) => sum + p.overallRank, 0) /
+            highImpactPatterns.length;
+          const avgLowImpactRank =
+            lowImpactPatterns.reduce((sum, p) => sum + p.overallRank, 0) / lowImpactPatterns.length;
 
           expect(avgHighImpactRank).toBeGreaterThan(avgLowImpactRank);
         }
@@ -1004,21 +1168,28 @@ describe('PatternReadinessAnalyzer', () => {
           prioritizeMemory: false,
           prioritizeSafety: true,
           prioritizeMaintainability: false,
-          targetImprovement: 10
+          targetImprovement: 10,
         },
         platformConstraints: {
           memoryConstraints: { maxZeroPageUsage: 64, maxRamUsage: 32768, maxStackUsage: 256 },
-          timingConstraints: { maxCycleCount: 1000000, interruptLatencyMax: 100, realTimeRequirements: false },
+          timingConstraints: {
+            maxCycleCount: 1000000,
+            interruptLatencyMax: 100,
+            realTimeRequirements: false,
+          },
           hardwareConstraints: {
             platform: 'c64',
             availableRegisters: ['A', 'X', 'Y'],
             specialInstructions: [],
-            memoryBanking: false
-          }
-        }
+            memoryBanking: false,
+          },
+        },
       };
 
-      const safetyAnalyzer = new PatternReadinessAnalyzer(mockPatternRegistry as any, safetyOptions);
+      const safetyAnalyzer = new PatternReadinessAnalyzer(
+        mockPatternRegistry as any,
+        safetyOptions
+      );
       const result = safetyAnalyzer.analyzePatternReadiness(
         mockProgram,
         mockQualityAnalysis,
@@ -1034,7 +1205,7 @@ describe('PatternReadinessAnalyzer', () => {
   describe('Error Handling and Edge Cases', () => {
     it('should handle empty pattern registry gracefully', () => {
       const emptyRegistry = {
-        getPatternsByCategory: vi.fn().mockReturnValue([])
+        getPatternsByCategory: vi.fn().mockReturnValue([]),
       };
 
       const emptyAnalyzer = new PatternReadinessAnalyzer(emptyRegistry as any);
@@ -1062,8 +1233,8 @@ describe('PatternReadinessAnalyzer', () => {
           originalFiles: [],
           compilationTimestamp: new Date(),
           compilerVersion: '0.1.0',
-          targetPlatform: 'c64'
-        }
+          targetPlatform: 'c64',
+        },
       };
 
       const result = analyzer.analyzePatternReadiness(
@@ -1118,7 +1289,9 @@ describe('PatternReadinessAnalyzer', () => {
 
       // Analysis should complete quickly for test data
       expect(analysisTime).toBeLessThan(1000); // Less than 1 second
-      expect(result.patternSelectionMetrics.performanceMetrics.selectionTimeMs).toBeGreaterThanOrEqual(0);
+      expect(
+        result.patternSelectionMetrics.performanceMetrics.selectionTimeMs
+      ).toBeGreaterThanOrEqual(0);
     });
 
     it('should provide accurate resource estimates', () => {
@@ -1159,7 +1332,9 @@ describe('PatternReadinessAnalyzer', () => {
 
       // More patterns should result in higher resource estimates
       expect(result.optimizationStrategy.resourceRequirements.analysisTime).toBeGreaterThan(1000);
-      expect(result.optimizationStrategy.resourceRequirements.memoryRequirement).toBeGreaterThan(10000);
+      expect(result.optimizationStrategy.resourceRequirements.memoryRequirement).toBeGreaterThan(
+        10000
+      );
     });
   });
 
@@ -1167,20 +1342,64 @@ describe('PatternReadinessAnalyzer', () => {
     it('should handle complex optimization readiness data', () => {
       const complexReadiness: OptimizationReadinessAnalysis = {
         categoryReadiness: new Map([
-          ['arithmetic', { category: 'arithmetic', readinessScore: 95, confidence: 0.95, blockers: [], opportunities: [], recommendedPatterns: ['math_opt_1', 'math_opt_2'], estimatedBenefit: 35 }],
-          ['control_flow', { category: 'control_flow', readinessScore: 85, confidence: 0.9, blockers: [], opportunities: [], recommendedPatterns: ['cf_opt_1'], estimatedBenefit: 30 }],
-          ['memory', { category: 'memory', readinessScore: 45, confidence: 0.6, blockers: [], opportunities: [], recommendedPatterns: [], estimatedBenefit: 5 }],
-          ['hardware_specific', { category: 'hardware_specific', readinessScore: 75, confidence: 0.8, blockers: [], opportunities: [], recommendedPatterns: ['hw_opt_1'], estimatedBenefit: 25 }]
+          [
+            'arithmetic',
+            {
+              category: 'arithmetic',
+              readinessScore: 95,
+              confidence: 0.95,
+              blockers: [],
+              opportunities: [],
+              recommendedPatterns: ['math_opt_1', 'math_opt_2'],
+              estimatedBenefit: 35,
+            },
+          ],
+          [
+            'control_flow',
+            {
+              category: 'control_flow',
+              readinessScore: 85,
+              confidence: 0.9,
+              blockers: [],
+              opportunities: [],
+              recommendedPatterns: ['cf_opt_1'],
+              estimatedBenefit: 30,
+            },
+          ],
+          [
+            'memory',
+            {
+              category: 'memory',
+              readinessScore: 45,
+              confidence: 0.6,
+              blockers: [],
+              opportunities: [],
+              recommendedPatterns: [],
+              estimatedBenefit: 5,
+            },
+          ],
+          [
+            'hardware_specific',
+            {
+              category: 'hardware_specific',
+              readinessScore: 75,
+              confidence: 0.8,
+              blockers: [],
+              opportunities: [],
+              recommendedPatterns: ['hw_opt_1'],
+              estimatedBenefit: 25,
+            },
+          ],
         ]),
         patternApplicability: [],
         impactPotential: mockQualityAnalysis.optimizationReadiness.impactPotential,
         transformationSafety: mockQualityAnalysis.optimizationReadiness.transformationSafety,
-        overallReadinessScore: 82
+        overallReadinessScore: 82,
       };
 
       const complexAnalysis = {
         ...mockQualityAnalysis,
-        optimizationReadiness: complexReadiness
+        optimizationReadiness: complexReadiness,
       };
 
       const result = analyzer.analyzePatternReadiness(
@@ -1191,12 +1410,16 @@ describe('PatternReadinessAnalyzer', () => {
       );
 
       // High readiness scores should boost applicability
-      const mathPatterns = result.applicablePatterns.filter(p => p.pattern.category === 'mathematics');
+      const mathPatterns = result.applicablePatterns.filter(
+        p => p.pattern.category === 'mathematics'
+      );
       const memoryPatterns = result.applicablePatterns.filter(p => p.pattern.category === 'memory');
 
       if (mathPatterns.length > 0 && memoryPatterns.length > 0) {
-        const avgMathScore = mathPatterns.reduce((sum, p) => sum + p.applicabilityScore, 0) / mathPatterns.length;
-        const avgMemoryScore = memoryPatterns.reduce((sum, p) => sum + p.applicabilityScore, 0) / memoryPatterns.length;
+        const avgMathScore =
+          mathPatterns.reduce((sum, p) => sum + p.applicabilityScore, 0) / mathPatterns.length;
+        const avgMemoryScore =
+          memoryPatterns.reduce((sum, p) => sum + p.applicabilityScore, 0) / memoryPatterns.length;
 
         expect(avgMathScore).toBeGreaterThan(avgMemoryScore); // Math should score higher due to readiness
       }
@@ -1211,15 +1434,23 @@ describe('PatternReadinessAnalyzer', () => {
       );
 
       // Verify that all components work together
-      expect(result.applicablePatterns.length + result.patternConflicts.length).toBeGreaterThanOrEqual(0);
-      expect(result.optimizationStrategy.phaseCount).toBeGreaterThanOrEqual(result.applicationOrder.length);
+      expect(
+        result.applicablePatterns.length + result.patternConflicts.length
+      ).toBeGreaterThanOrEqual(0);
+      expect(result.optimizationStrategy.phaseCount).toBeGreaterThanOrEqual(
+        result.applicationOrder.length
+      );
 
       if (result.applicablePatterns.length > 0) {
-        expect(result.patternSelectionMetrics.applicablePatternsFound).toBe(result.applicablePatterns.length);
+        expect(result.patternSelectionMetrics.applicablePatternsFound).toBe(
+          result.applicablePatterns.length
+        );
       }
 
       if (result.patternConflicts.length > 0) {
-        expect(result.patternSelectionMetrics.conflictsDetected).toBe(result.patternConflicts.length);
+        expect(result.patternSelectionMetrics.conflictsDetected).toBe(
+          result.patternConflicts.length
+        );
       }
     });
   });

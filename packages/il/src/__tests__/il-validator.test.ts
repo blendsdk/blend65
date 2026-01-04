@@ -4,12 +4,6 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import type {
-  ILProgram,
-  ILModule,
-  ILFunction,
-  ILInstruction
-} from '../il-types';
 import {
   ILInstructionType,
   createILConstant,
@@ -19,16 +13,15 @@ import {
   createILInstruction,
   createILProgram,
   createILModule,
-  createILFunction
+  createILFunction,
 } from '../il-types';
 import {
   ILValidator,
   ILValidationErrorType,
-  ILValidationSeverity,
   createILValidator,
   validateILProgram,
   validateILModule,
-  validateILFunction
+  validateILFunction,
 } from '../il-validator';
 
 describe('ILValidator', () => {
@@ -66,12 +59,9 @@ describe('ILValidator', () => {
       const dest = createILTemporary(1, { kind: 'primitive', name: 'byte' });
       const value = createILConstant({ kind: 'primitive', name: 'byte' }, 42);
 
-      const instruction = createILInstruction(
-        ILInstructionType.LOAD_IMMEDIATE,
-        [dest, value],
-        1,
-        { result: dest }
-      );
+      const instruction = createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [dest, value], 1, {
+        result: dest,
+      });
 
       func.instructions.push(instruction);
 
@@ -144,12 +134,9 @@ describe('ILValidator', () => {
       const left = createILConstant({ kind: 'primitive', name: 'byte' }, 10);
       const right = createILConstant({ kind: 'primitive', name: 'byte' }, 20);
 
-      const instruction = createILInstruction(
-        ILInstructionType.ADD,
-        [dest, left, right],
-        1,
-        { result: dest }
-      );
+      const instruction = createILInstruction(ILInstructionType.ADD, [dest, left, right], 1, {
+        result: dest,
+      });
 
       func.instructions.push(instruction);
 
@@ -170,12 +157,9 @@ describe('ILValidator', () => {
       const left = createILConstant({ kind: 'primitive', name: 'byte' }, 10);
       const right = createILConstant({ kind: 'primitive', name: 'byte' }, 0);
 
-      const instruction = createILInstruction(
-        ILInstructionType.DIV,
-        [dest, left, right],
-        1,
-        { result: dest }
-      );
+      const instruction = createILInstruction(ILInstructionType.DIV, [dest, left, right], 1, {
+        result: dest,
+      });
 
       func.instructions.push(instruction);
 
@@ -199,18 +183,10 @@ describe('ILValidator', () => {
       const target = createILLabel('loop');
 
       // Label instruction
-      const labelInstruction = createILInstruction(
-        ILInstructionType.LABEL,
-        [target],
-        1
-      );
+      const labelInstruction = createILInstruction(ILInstructionType.LABEL, [target], 1);
 
       // Branch instruction
-      const branchInstruction = createILInstruction(
-        ILInstructionType.BRANCH,
-        [target],
-        2
-      );
+      const branchInstruction = createILInstruction(ILInstructionType.BRANCH, [target], 2);
 
       func.instructions.push(labelInstruction, branchInstruction);
       func.labels.set('loop', 0);
@@ -230,11 +206,7 @@ describe('ILValidator', () => {
 
       const target = createILLabel('undefined_label');
 
-      const branchInstruction = createILInstruction(
-        ILInstructionType.BRANCH,
-        [target],
-        1
-      );
+      const branchInstruction = createILInstruction(ILInstructionType.BRANCH, [target], 1);
 
       func.instructions.push(branchInstruction);
 
@@ -257,11 +229,7 @@ describe('ILValidator', () => {
       const target = createILLabel('then_block');
 
       // Label instruction
-      const labelInstruction = createILInstruction(
-        ILInstructionType.LABEL,
-        [target],
-        1
-      );
+      const labelInstruction = createILInstruction(ILInstructionType.LABEL, [target], 1);
 
       // Conditional branch instruction
       const branchInstruction = createILInstruction(
@@ -287,18 +255,10 @@ describe('ILValidator', () => {
       );
 
       // Return instruction
-      const returnInstruction = createILInstruction(
-        ILInstructionType.RETURN,
-        [],
-        1
-      );
+      const returnInstruction = createILInstruction(ILInstructionType.RETURN, [], 1);
 
       // Unreachable instruction after return
-      const unreachableInstruction = createILInstruction(
-        ILInstructionType.NOP,
-        [],
-        2
-      );
+      const unreachableInstruction = createILInstruction(ILInstructionType.NOP, [], 2);
 
       func.instructions.push(returnInstruction, unreachableInstruction);
 
@@ -425,11 +385,7 @@ describe('ILValidator', () => {
       const functionRef = createILVariable('printf', { kind: 'primitive', name: 'void' });
       const arg = createILConstant({ kind: 'primitive', name: 'byte' }, 42);
 
-      const callInstruction = createILInstruction(
-        ILInstructionType.CALL,
-        [functionRef, arg],
-        1
-      );
+      const callInstruction = createILInstruction(ILInstructionType.CALL, [functionRef, arg], 1);
 
       func.instructions.push(callInstruction);
 
@@ -448,11 +404,7 @@ describe('ILValidator', () => {
 
       const value = createILConstant({ kind: 'primitive', name: 'byte' }, 42);
 
-      const returnInstruction = createILInstruction(
-        ILInstructionType.RETURN,
-        [value],
-        1
-      );
+      const returnInstruction = createILInstruction(ILInstructionType.RETURN, [value], 1);
 
       func.instructions.push(returnInstruction);
 
@@ -471,11 +423,7 @@ describe('ILValidator', () => {
 
       const value = createILConstant({ kind: 'primitive', name: 'byte' }, 42);
 
-      const returnInstruction = createILInstruction(
-        ILInstructionType.RETURN,
-        [value],
-        1
-      );
+      const returnInstruction = createILInstruction(ILInstructionType.RETURN, [value], 1);
 
       func.instructions.push(returnInstruction);
 
@@ -496,7 +444,11 @@ describe('ILValidator', () => {
         { line: 1, column: 1, offset: 0 }
       );
 
-      const register = { valueType: 'register' as const, register: 'A' as const, type: { kind: 'primitive', name: 'byte' } as const };
+      const register = {
+        valueType: 'register' as const,
+        register: 'A' as const,
+        type: { kind: 'primitive', name: 'byte' } as const,
+      };
       const operation = createILConstant({ kind: 'primitive', name: 'byte' }, 1);
 
       const registerOpInstruction = createILInstruction(
@@ -522,14 +474,11 @@ describe('ILValidator', () => {
       );
 
       const dest = createILTemporary(1, { kind: 'primitive', name: 'byte' });
-      const address = createILConstant({ kind: 'primitive', name: 'word' }, 0xD020);
+      const address = createILConstant({ kind: 'primitive', name: 'word' }, 0xd020);
 
-      const peekInstruction = createILInstruction(
-        ILInstructionType.PEEK,
-        [dest, address],
-        1,
-        { result: dest }
-      );
+      const peekInstruction = createILInstruction(ILInstructionType.PEEK, [dest, address], 1, {
+        result: dest,
+      });
 
       func.instructions.push(peekInstruction);
 
@@ -549,18 +498,13 @@ describe('ILValidator', () => {
       const dest = createILTemporary(1, { kind: 'primitive', name: 'byte' });
       const value = createILConstant({ kind: 'primitive', name: 'byte' }, 42);
 
-      const instruction = createILInstruction(
-        ILInstructionType.LOAD_IMMEDIATE,
-        [dest, value],
-        1,
-        {
-          result: dest,
-          sixtyTwoHints: {
-            preferredRegister: 'Z' as any, // Invalid register
-            estimatedCycles: 2
-          }
-        }
-      );
+      const instruction = createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [dest, value], 1, {
+        result: dest,
+        sixtyTwoHints: {
+          preferredRegister: 'Z' as any, // Invalid register
+          estimatedCycles: 2,
+        },
+      });
 
       func.instructions.push(instruction);
 

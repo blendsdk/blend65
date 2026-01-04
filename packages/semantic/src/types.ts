@@ -17,7 +17,7 @@
  */
 
 import { SourcePosition } from '@blend65/lexer';
-import type { Expression, TypeAnnotation } from '@blend65/ast';
+import type { Expression } from '@blend65/ast';
 
 // ============================================================================
 // PHASE 1: CORE SYMBOL SYSTEM
@@ -195,11 +195,7 @@ export interface EnumSymbol extends Symbol {
  * - Type systems enable compile-time error detection
  * - Different type kinds require different validation rules
  */
-export type Blend65Type =
-  | PrimitiveType
-  | ArrayType
-  | NamedType
-  | CallbackType;
+export type Blend65Type = PrimitiveType | ArrayType | NamedType | CallbackType;
 
 /**
  * Primitive types built into Blend65.
@@ -359,20 +355,20 @@ export interface SemanticError {
  * - Error categories help with compiler debugging
  */
 export type SemanticErrorType =
-  | 'UndefinedSymbol'      // Using a symbol that doesn't exist
-  | 'DuplicateSymbol'      // Defining a symbol that already exists
-  | 'DuplicateIdentifier'  // Identifier conflicts with existing symbol
-  | 'TypeMismatch'         // Type incompatibility (e.g., assigning string to byte)
-  | 'InvalidStorageClass'  // Invalid storage class usage
-  | 'ImportNotFound'       // Imported symbol doesn't exist
-  | 'ExportNotFound'       // Exported symbol doesn't exist
-  | 'ModuleNotFound'       // Module doesn't exist
-  | 'InvalidScope'         // Symbol used in wrong scope
-  | 'ConstantRequired'     // Compile-time constant required
-  | 'CallbackMismatch'     // Callback function signature mismatch
-  | 'ArrayBounds'          // Array access out of bounds
-  | 'InvalidOperation'     // Invalid operation for type
-  | 'CircularDependency';  // Circular module dependencies
+  | 'UndefinedSymbol' // Using a symbol that doesn't exist
+  | 'DuplicateSymbol' // Defining a symbol that already exists
+  | 'DuplicateIdentifier' // Identifier conflicts with existing symbol
+  | 'TypeMismatch' // Type incompatibility (e.g., assigning string to byte)
+  | 'InvalidStorageClass' // Invalid storage class usage
+  | 'ImportNotFound' // Imported symbol doesn't exist
+  | 'ExportNotFound' // Exported symbol doesn't exist
+  | 'ModuleNotFound' // Module doesn't exist
+  | 'InvalidScope' // Symbol used in wrong scope
+  | 'ConstantRequired' // Compile-time constant required
+  | 'CallbackMismatch' // Callback function signature mismatch
+  | 'ArrayBounds' // Array access out of bounds
+  | 'InvalidOperation' // Invalid operation for type
+  | 'CircularDependency'; // Circular module dependencies
 
 /**
  * Result type for operations that can fail with semantic errors.
@@ -382,15 +378,17 @@ export type SemanticErrorType =
  * - Prevents accidentally ignoring errors
  * - Enables compiler phases to continue after non-fatal errors
  */
-export type SemanticResult<T> = {
-  success: true;
-  data: T;
-  warnings?: SemanticError[];
-} | {
-  success: false;
-  errors: SemanticError[];
-  warnings?: SemanticError[];
-};
+export type SemanticResult<T> =
+  | {
+      success: true;
+      data: T;
+      warnings?: SemanticError[];
+    }
+  | {
+      success: false;
+      errors: SemanticError[];
+      warnings?: SemanticError[];
+    };
 
 // ============================================================================
 // TASK 1.8: VARIABLE OPTIMIZATION METADATA
@@ -485,15 +483,15 @@ export type AccessFrequency = 'rare' | 'normal' | 'frequent' | 'very_frequent' |
  * Variable access pattern classification.
  */
 export type VariableAccessPattern =
-  | 'single_use'          // Used only once
-  | 'multiple_read'       // Read multiple times
-  | 'read_write'          // Both read and written
-  | 'loop_dependent'      // Access depends on loop variables
-  | 'sequential_array'    // Sequential array access pattern
-  | 'random_array'        // Random array access pattern
-  | 'hot_path'            // Frequently accessed in hot paths
-  | 'induction_variable'  // Loop induction variable
-  | 'accumulator';        // Accumulator pattern (frequent read-modify-write)
+  | 'single_use' // Used only once
+  | 'multiple_read' // Read multiple times
+  | 'read_write' // Both read and written
+  | 'loop_dependent' // Access depends on loop variables
+  | 'sequential_array' // Sequential array access pattern
+  | 'random_array' // Random array access pattern
+  | 'hot_path' // Frequently accessed in hot paths
+  | 'induction_variable' // Loop induction variable
+  | 'accumulator'; // Accumulator pattern (frequent read-modify-write)
 
 /**
  * Zero page promotion candidate information.
@@ -531,14 +529,14 @@ export interface ZeroPagePromotionFactor {
 }
 
 export type ZeroPagePromotionFactorType =
-  | 'high_access_frequency'    // Variable accessed very frequently
-  | 'loop_usage'              // Variable used inside loops
-  | 'hot_path_usage'          // Variable used in hot execution paths
-  | 'small_size'              // Variable fits easily in zero page
-  | 'arithmetic_operations'   // Variable used in arithmetic (A register operations)
-  | 'index_operations'        // Variable used for array indexing
-  | 'no_storage_class'        // Variable has no explicit storage class
-  | 'short_lifetime';         // Variable has short lifetime
+  | 'high_access_frequency' // Variable accessed very frequently
+  | 'loop_usage' // Variable used inside loops
+  | 'hot_path_usage' // Variable used in hot execution paths
+  | 'small_size' // Variable fits easily in zero page
+  | 'arithmetic_operations' // Variable used in arithmetic (A register operations)
+  | 'index_operations' // Variable used for array indexing
+  | 'no_storage_class' // Variable has no explicit storage class
+  | 'short_lifetime'; // Variable has short lifetime
 
 /**
  * Factors that discourage zero page promotion.
@@ -550,23 +548,23 @@ export interface ZeroPageAntiPromotionFactor {
 }
 
 export type ZeroPageAntiPromotionFactorType =
-  | 'already_zp'              // Variable already has 'zp' storage class
-  | 'large_size'              // Variable is too large for efficient zero page use
-  | 'io_access'               // Variable accesses I/O (should use 'io' storage class)
-  | 'const_data'              // Variable is constant data (should use 'data'/'const')
-  | 'low_frequency'           // Variable accessed infrequently
-  | 'single_use'              // Variable used only once
-  | 'zero_page_pressure';     // Too many other zero page candidates
+  | 'already_zp' // Variable already has 'zp' storage class
+  | 'large_size' // Variable is too large for efficient zero page use
+  | 'io_access' // Variable accesses I/O (should use 'io' storage class)
+  | 'const_data' // Variable is constant data (should use 'data'/'const')
+  | 'low_frequency' // Variable accessed infrequently
+  | 'single_use' // Variable used only once
+  | 'zero_page_pressure'; // Too many other zero page candidates
 
 /**
  * Zero page promotion recommendation.
  */
 export type ZeroPageRecommendation =
-  | 'strongly_recommended'    // High benefit, should definitely promote
-  | 'recommended'             // Good candidate for promotion
-  | 'neutral'                 // No strong preference
-  | 'not_recommended'         // Better left in normal memory
-  | 'strongly_discouraged';   // Should not be promoted
+  | 'strongly_recommended' // High benefit, should definitely promote
+  | 'recommended' // Good candidate for promotion
+  | 'neutral' // No strong preference
+  | 'not_recommended' // Better left in normal memory
+  | 'strongly_discouraged'; // Should not be promoted
 
 /**
  * Register allocation candidate information.
@@ -638,23 +636,23 @@ export interface RegisterUsagePattern {
 }
 
 export type RegisterUsagePatternType =
-  | 'arithmetic_accumulator'   // Used in arithmetic operations (A register)
-  | 'array_index'             // Used for array indexing (X/Y registers)
-  | 'loop_counter'            // Used as loop counter (X/Y registers)
-  | 'temporary_storage'       // Short-term temporary storage
-  | 'function_parameter'      // Function parameter passing
-  | 'function_return'         // Function return value
-  | 'address_calculation';    // Address calculation (X/Y registers)
+  | 'arithmetic_accumulator' // Used in arithmetic operations (A register)
+  | 'array_index' // Used for array indexing (X/Y registers)
+  | 'loop_counter' // Used as loop counter (X/Y registers)
+  | 'temporary_storage' // Short-term temporary storage
+  | 'function_parameter' // Function parameter passing
+  | 'function_return' // Function return value
+  | 'address_calculation'; // Address calculation (X/Y registers)
 
 /**
  * Register allocation recommendation.
  */
 export type RegisterAllocationRecommendation =
-  | 'strongly_recommended'    // High benefit, allocate to preferred register
-  | 'recommended'             // Good candidate, consider for allocation
-  | 'conditional'             // Allocate only if registers available
-  | 'not_recommended'         // Better left in memory
-  | 'impossible';             // Cannot be allocated due to constraints
+  | 'strongly_recommended' // High benefit, allocate to preferred register
+  | 'recommended' // Good candidate, consider for allocation
+  | 'conditional' // Allocate only if registers available
+  | 'not_recommended' // Better left in memory
+  | 'impossible'; // Cannot be allocated due to constraints
 
 /**
  * Variable lifetime information for interference analysis.
@@ -726,27 +724,27 @@ export interface Variable6502OptimizationHints {
  * Addressing mode hints for 6502.
  */
 export type AddressingModeHint =
-  | 'zero_page'               // $00-$FF (3 cycles)
-  | 'absolute'                // $0000-$FFFF (4 cycles)
-  | 'zero_page_x'             // $00,X (4 cycles)
-  | 'zero_page_y'             // $00,Y (4 cycles)
-  | 'absolute_x'              // $0000,X (4+ cycles)
-  | 'absolute_y'              // $0000,Y (4+ cycles)
-  | 'indirect'                // ($00) (5 cycles)
-  | 'indexed_indirect'        // ($00,X) (6 cycles)
-  | 'indirect_indexed';       // ($00),Y (5+ cycles)
+  | 'zero_page' // $00-$FF (3 cycles)
+  | 'absolute' // $0000-$FFFF (4 cycles)
+  | 'zero_page_x' // $00,X (4 cycles)
+  | 'zero_page_y' // $00,Y (4 cycles)
+  | 'absolute_x' // $0000,X (4+ cycles)
+  | 'absolute_y' // $0000,Y (4+ cycles)
+  | 'indirect' // ($00) (5 cycles)
+  | 'indexed_indirect' // ($00,X) (6 cycles)
+  | 'indirect_indexed'; // ($00),Y (5+ cycles)
 
 /**
  * Memory bank preferences for 6502.
  */
 export type MemoryBank =
-  | 'zero_page'               // $00-$FF
-  | 'stack'                   // $0100-$01FF
-  | 'low_ram'                 // $0200-$7FFF
-  | 'high_ram'                // $8000-$BFFF
-  | 'io_area'                 // $D000-$DFFF
-  | 'rom_area'                // $E000-$FFFF
-  | 'cartridge';              // External cartridge space
+  | 'zero_page' // $00-$FF
+  | 'stack' // $0100-$01FF
+  | 'low_ram' // $0200-$7FFF
+  | 'high_ram' // $8000-$BFFF
+  | 'io_area' // $D000-$DFFF
+  | 'rom_area' // $E000-$FFFF
+  | 'cartridge'; // External cartridge space
 
 /**
  * Variable alignment preferences.
@@ -766,12 +764,12 @@ export interface AlignmentPreference {
 }
 
 export type AlignmentReason =
-  | 'none'                    // No special alignment needed
-  | 'word_access'             // 16-bit access benefits from even alignment
-  | 'array_optimization'      // Array access optimization
-  | 'hardware_requirement'    // Hardware register requires specific alignment
-  | 'performance'             // General performance benefit
-  | 'cache_line';             // Cache line alignment (future 65816 support)
+  | 'none' // No special alignment needed
+  | 'word_access' // 16-bit access benefits from even alignment
+  | 'array_optimization' // Array access optimization
+  | 'hardware_requirement' // Hardware register requires specific alignment
+  | 'performance' // General performance benefit
+  | 'cache_line'; // Cache line alignment (future 65816 support)
 
 /**
  * Hardware interaction hints.
@@ -794,15 +792,15 @@ export interface HardwareInteractionHint {
 }
 
 export type HardwareComponent =
-  | 'vic_ii'                  // VIC-II graphics chip
-  | 'sid'                     // SID sound chip
-  | 'cia1'                    // CIA1 (keyboard, joystick)
-  | 'cia2'                    // CIA2 (serial, user port)
-  | 'color_ram'               // Color RAM
-  | 'sprite_data'             // Sprite data area
-  | 'character_rom'           // Character ROM
-  | 'kernel_rom'              // KERNAL ROM
-  | 'basic_rom';              // BASIC ROM
+  | 'vic_ii' // VIC-II graphics chip
+  | 'sid' // SID sound chip
+  | 'cia1' // CIA1 (keyboard, joystick)
+  | 'cia2' // CIA2 (serial, user port)
+  | 'color_ram' // Color RAM
+  | 'sprite_data' // Sprite data area
+  | 'character_rom' // Character ROM
+  | 'kernel_rom' // KERNAL ROM
+  | 'basic_rom'; // BASIC ROM
 
 /**
  * Variable optimization opportunities.
@@ -815,15 +813,15 @@ export interface VariableOptimizationOpportunity {
 }
 
 export type VariableOptimizationOpportunityType =
-  | 'constant_propagation'    // Variable has constant value
-  | 'dead_store_elimination'  // Stores that are never read
-  | 'common_subexpression'    // Variable involved in repeated calculations
-  | 'loop_invariant_motion'   // Variable calculation can be moved out of loop
-  | 'strength_reduction'      // Expensive operations can be reduced
-  | 'induction_variable'      // Loop induction variable optimization
-  | 'register_promotion'      // Variable should be kept in register
-  | 'memory_layout'           // Variable placement optimization
-  | 'addressing_mode';        // Better addressing mode available
+  | 'constant_propagation' // Variable has constant value
+  | 'dead_store_elimination' // Stores that are never read
+  | 'common_subexpression' // Variable involved in repeated calculations
+  | 'loop_invariant_motion' // Variable calculation can be moved out of loop
+  | 'strength_reduction' // Expensive operations can be reduced
+  | 'induction_variable' // Loop induction variable optimization
+  | 'register_promotion' // Variable should be kept in register
+  | 'memory_layout' // Variable placement optimization
+  | 'addressing_mode'; // Better addressing mode available
 
 export type OptimizationComplexity = 'simple' | 'moderate' | 'complex' | 'very_complex';
 
@@ -837,14 +835,14 @@ export interface VariablePerformanceHint {
 }
 
 export type VariablePerformanceHintType =
-  | 'hot_variable'            // Variable accessed very frequently
-  | 'cold_variable'           // Variable accessed infrequently
-  | 'cache_friendly'          // Variable access pattern is cache-friendly
-  | 'cache_unfriendly'        // Variable access pattern hurts cache
-  | 'memory_bandwidth'        // Variable access affects memory bandwidth
-  | 'critical_path'           // Variable is on performance critical path
-  | 'spill_candidate'         // Variable likely to be spilled from registers
-  | 'prefetch_candidate';     // Variable could benefit from prefetching
+  | 'hot_variable' // Variable accessed very frequently
+  | 'cold_variable' // Variable accessed infrequently
+  | 'cache_friendly' // Variable access pattern is cache-friendly
+  | 'cache_unfriendly' // Variable access pattern hurts cache
+  | 'memory_bandwidth' // Variable access affects memory bandwidth
+  | 'critical_path' // Variable is on performance critical path
+  | 'spill_candidate' // Variable likely to be spilled from registers
+  | 'prefetch_candidate'; // Variable could benefit from prefetching
 
 export type PerformanceImpact = 'low' | 'medium' | 'high' | 'critical';
 
@@ -942,11 +940,11 @@ export interface FunctionCallSite {
  * Type of function call.
  */
 export type FunctionCallType =
-  | 'direct'                  // Direct function call
-  | 'indirect'                // Call through callback variable
-  | 'recursive'               // Recursive call
-  | 'tail_call'               // Tail call (could be optimized)
-  | 'cross_module';           // Call to function in different module
+  | 'direct' // Direct function call
+  | 'indirect' // Call through callback variable
+  | 'recursive' // Recursive call
+  | 'tail_call' // Tail call (could be optimized)
+  | 'cross_module'; // Call to function in different module
 
 /**
  * Function call frequency classification.
@@ -1064,16 +1062,16 @@ export interface InliningFactor {
 }
 
 export type InliningFactorType =
-  | 'small_function'          // Function is small enough for inlining
-  | 'frequent_calls'          // Function called frequently
-  | 'hot_path_calls'          // Function called in hot execution paths
-  | 'simple_logic'            // Function has simple, linear logic
-  | 'no_recursion'            // Function is not recursive
-  | 'few_parameters'          // Function has few parameters (easier to inline)
-  | 'single_return'           // Function has single return point
-  | 'no_side_effects'         // Function has no global side effects
-  | 'constant_parameters'     // Some parameters are compile-time constants
-  | 'tail_call_elimination';  // Function only makes tail calls
+  | 'small_function' // Function is small enough for inlining
+  | 'frequent_calls' // Function called frequently
+  | 'hot_path_calls' // Function called in hot execution paths
+  | 'simple_logic' // Function has simple, linear logic
+  | 'no_recursion' // Function is not recursive
+  | 'few_parameters' // Function has few parameters (easier to inline)
+  | 'single_return' // Function has single return point
+  | 'no_side_effects' // Function has no global side effects
+  | 'constant_parameters' // Some parameters are compile-time constants
+  | 'tail_call_elimination'; // Function only makes tail calls
 
 /**
  * Factors that discourage function inlining.
@@ -1085,27 +1083,27 @@ export interface AntiInliningFactor {
 }
 
 export type AntiInliningFactorType =
-  | 'large_function'          // Function too large for efficient inlining
-  | 'rare_calls'              // Function called infrequently
-  | 'complex_logic'           // Function has complex control flow
-  | 'many_parameters'         // Function has many parameters
-  | 'recursive_function'      // Function is recursive
-  | 'multiple_returns'        // Function has multiple return points
-  | 'side_effects'            // Function has significant side effects
-  | 'code_bloat'              // Inlining would cause excessive code bloat
-  | 'callback_function'       // Function is used as callback (address needed)
-  | 'exported_function';      // Function is exported (external visibility)
+  | 'large_function' // Function too large for efficient inlining
+  | 'rare_calls' // Function called infrequently
+  | 'complex_logic' // Function has complex control flow
+  | 'many_parameters' // Function has many parameters
+  | 'recursive_function' // Function is recursive
+  | 'multiple_returns' // Function has multiple return points
+  | 'side_effects' // Function has significant side effects
+  | 'code_bloat' // Inlining would cause excessive code bloat
+  | 'callback_function' // Function is used as callback (address needed)
+  | 'exported_function'; // Function is exported (external visibility)
 
 /**
  * Function inlining recommendation.
  */
 export type InliningRecommendation =
-  | 'strongly_recommended'    // High benefit, should definitely inline
-  | 'recommended'             // Good candidate for inlining
-  | 'conditional'             // Inline only in specific hot call sites
-  | 'not_recommended'         // Better left as function call
-  | 'strongly_discouraged'    // Should never be inlined
-  | 'impossible';             // Cannot be inlined due to constraints
+  | 'strongly_recommended' // High benefit, should definitely inline
+  | 'recommended' // Good candidate for inlining
+  | 'conditional' // Inline only in specific hot call sites
+  | 'not_recommended' // Better left as function call
+  | 'strongly_discouraged' // Should never be inlined
+  | 'impossible'; // Cannot be inlined due to constraints
 
 /**
  * Function call optimization information.
@@ -1195,12 +1193,12 @@ export interface ParameterCostBreakdown {
 }
 
 export type ParameterPassingMethod =
-  | 'register_A'              // Pass in A register
-  | 'register_X'              // Pass in X register
-  | 'register_Y'              // Pass in Y register
-  | 'zero_page'               // Pass through zero page location
-  | 'stack'                   // Pass on stack
-  | 'global_variable';        // Pass through global variable
+  | 'register_A' // Pass in A register
+  | 'register_X' // Pass in X register
+  | 'register_Y' // Pass in Y register
+  | 'zero_page' // Pass through zero page location
+  | 'stack' // Pass on stack
+  | 'global_variable'; // Pass through global variable
 
 export type ParameterPassingEfficiency = 'optimal' | 'good' | 'acceptable' | 'poor';
 
@@ -1215,12 +1213,12 @@ export interface ParameterOptimizationOpportunity {
 }
 
 export type ParameterOptimizationOpportunityType =
-  | 'register_allocation'     // Parameter can be passed in register
-  | 'constant_parameter'      // Parameter is constant, can be inlined
-  | 'unused_parameter'        // Parameter is unused, can be eliminated
-  | 'parameter_combining'     // Multiple parameters can be combined
-  | 'zero_page_passing'       // Use zero page for parameter passing
-  | 'elimination';            // Parameter can be eliminated through optimization
+  | 'register_allocation' // Parameter can be passed in register
+  | 'constant_parameter' // Parameter is constant, can be inlined
+  | 'unused_parameter' // Parameter is unused, can be eliminated
+  | 'parameter_combining' // Multiple parameters can be combined
+  | 'zero_page_passing' // Use zero page for parameter passing
+  | 'elimination'; // Parameter can be eliminated through optimization
 
 /**
  * Return value optimization information.
@@ -1243,13 +1241,13 @@ export interface ReturnOptimizationInfo {
 }
 
 export type ReturnValueMethod =
-  | 'register_A'              // Return in A register
-  | 'register_AX'             // Return 16-bit value in A/X
-  | 'register_XY'             // Return 16-bit value in X/Y
-  | 'zero_page'               // Return through zero page
-  | 'global_variable'         // Return through global variable
-  | 'stack'                   // Return on stack
-  | 'void';                   // No return value
+  | 'register_A' // Return in A register
+  | 'register_AX' // Return 16-bit value in A/X
+  | 'register_XY' // Return 16-bit value in X/Y
+  | 'zero_page' // Return through zero page
+  | 'global_variable' // Return through global variable
+  | 'stack' // Return on stack
+  | 'void'; // No return value
 
 /**
  * Return value optimization opportunities.
@@ -1261,11 +1259,11 @@ export interface ReturnOptimizationOpportunity {
 }
 
 export type ReturnOptimizationOpportunityType =
-  | 'register_return'         // Return through register instead of memory
-  | 'void_return'             // Function doesn't need to return value
-  | 'constant_return'         // Function always returns same constant
-  | 'elimination'             // Return value can be eliminated
-  | 'direct_use';             // Return value used directly, no temporary needed
+  | 'register_return' // Return through register instead of memory
+  | 'void_return' // Function doesn't need to return value
+  | 'constant_return' // Function always returns same constant
+  | 'elimination' // Return value can be eliminated
+  | 'direct_use'; // Return value used directly, no temporary needed
 
 /**
  * Function register usage optimization information.
@@ -1295,11 +1293,11 @@ export interface RegisterConflictInfo {
 }
 
 export type RegisterConflictType =
-  | 'parameter_conflict'      // Parameter passing conflicts with internal use
-  | 'return_conflict'         // Return value conflicts with internal use
-  | 'caller_save'             // Caller must save register
-  | 'callee_save'             // Function must save/restore register
-  | 'cross_call_conflict';    // Register live across function calls
+  | 'parameter_conflict' // Parameter passing conflicts with internal use
+  | 'return_conflict' // Return value conflicts with internal use
+  | 'caller_save' // Caller must save register
+  | 'callee_save' // Function must save/restore register
+  | 'cross_call_conflict'; // Register live across function calls
 
 export type ConflictSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -1314,11 +1312,11 @@ export interface FunctionRegisterOptimizationOpportunity {
 }
 
 export type FunctionRegisterOptimizationOpportunityType =
-  | 'register_reuse'          // Reuse register for multiple purposes
-  | 'eliminate_save_restore'  // Eliminate unnecessary save/restore
-  | 'parameter_register'      // Use register for parameter passing
-  | 'return_register'         // Use register for return value
-  | 'local_allocation'        // Allocate local variable to register
+  | 'register_reuse' // Reuse register for multiple purposes
+  | 'eliminate_save_restore' // Eliminate unnecessary save/restore
+  | 'parameter_register' // Use register for parameter passing
+  | 'return_register' // Use register for return value
+  | 'local_allocation' // Allocate local variable to register
   | 'cross_function_allocation'; // Allocate across function boundaries
 
 /**
@@ -1349,11 +1347,11 @@ export interface StackUsageItem {
 }
 
 export type StackUsagePurpose =
-  | 'local_variables'         // Local variable storage
-  | 'parameter_passing'       // Parameter passing
-  | 'return_address'          // Return address storage
-  | 'register_save'           // Register save/restore
-  | 'temporary_storage';      // Temporary calculations
+  | 'local_variables' // Local variable storage
+  | 'parameter_passing' // Parameter passing
+  | 'return_address' // Return address storage
+  | 'register_save' // Register save/restore
+  | 'temporary_storage'; // Temporary calculations
 
 export type StackUsageFrequency = 'always' | 'conditional' | 'rare';
 
@@ -1367,13 +1365,13 @@ export interface StackOptimizationOpportunity {
 }
 
 export type StackOptimizationOpportunityType =
-  | 'eliminate_locals'        // Eliminate local variables
-  | 'register_locals'         // Move locals to registers
-  | 'reduce_parameters'       // Reduce parameter count
-  | 'eliminate_saves'         // Eliminate register saves
-  | 'stack_reuse'             // Reuse stack space
-  | 'tail_call'               // Use tail call optimization
-  | 'leaf_function';          // Function doesn't call others (no save needed)
+  | 'eliminate_locals' // Eliminate local variables
+  | 'register_locals' // Move locals to registers
+  | 'reduce_parameters' // Reduce parameter count
+  | 'eliminate_saves' // Eliminate register saves
+  | 'stack_reuse' // Reuse stack space
+  | 'tail_call' // Use tail call optimization
+  | 'leaf_function'; // Function doesn't call others (no save needed)
 
 /**
  * 6502-specific calling convention optimization.
@@ -1396,13 +1394,13 @@ export interface CallConventionOptimizationInfo {
  * Calling convention types.
  */
 export type CallingConvention =
-  | 'standard'                // Standard JSR/RTS with stack
-  | 'register_only'           // Parameters and return in registers only
-  | 'zero_page'               // Use zero page for parameter passing
-  | 'global_variables'        // Use global variables for parameters
-  | 'inline_expanded'         // Function should be inlined
-  | 'tail_call'               // Use tail call optimization
-  | 'custom_optimized';       // Custom optimized convention
+  | 'standard' // Standard JSR/RTS with stack
+  | 'register_only' // Parameters and return in registers only
+  | 'zero_page' // Use zero page for parameter passing
+  | 'global_variables' // Use global variables for parameters
+  | 'inline_expanded' // Function should be inlined
+  | 'tail_call' // Use tail call optimization
+  | 'custom_optimized'; // Custom optimized convention
 
 /**
  * Benefits of calling convention optimization.
@@ -1414,12 +1412,12 @@ export interface CallConventionBenefit {
 }
 
 export type CallConventionBenefitType =
-  | 'faster_calls'            // Reduced call overhead
-  | 'smaller_code'            // Reduced code size
-  | 'better_register_use'     // More efficient register usage
-  | 'eliminated_stack_ops'    // Eliminated stack operations
-  | 'parameter_optimization'  // Optimized parameter passing
-  | 'return_optimization';    // Optimized return handling
+  | 'faster_calls' // Reduced call overhead
+  | 'smaller_code' // Reduced code size
+  | 'better_register_use' // More efficient register usage
+  | 'eliminated_stack_ops' // Eliminated stack operations
+  | 'parameter_optimization' // Optimized parameter passing
+  | 'return_optimization'; // Optimized return handling
 
 /**
  * Constraints preventing calling convention optimization.
@@ -1431,13 +1429,13 @@ export interface CallConventionConstraint {
 }
 
 export type CallConventionConstraintType =
-  | 'exported_function'       // Function is exported (fixed interface)
-  | 'recursive_function'      // Function is recursive
-  | 'callback_function'       // Function used as callback
-  | 'variable_parameters'     // Function has variable parameters
-  | 'complex_return'          // Complex return type
-  | 'cross_module_calls'      // Called from multiple modules
-  | 'interrupt_handler';      // Function is interrupt handler
+  | 'exported_function' // Function is exported (fixed interface)
+  | 'recursive_function' // Function is recursive
+  | 'callback_function' // Function used as callback
+  | 'variable_parameters' // Function has variable parameters
+  | 'complex_return' // Complex return type
+  | 'cross_module_calls' // Called from multiple modules
+  | 'interrupt_handler'; // Function is interrupt handler
 
 /**
  * Callback function optimization information.
@@ -1469,14 +1467,14 @@ export interface CallbackUsagePattern {
 }
 
 export type CallbackUsagePatternType =
-  | 'single_assignment'       // Callback assigned to single variable
-  | 'multiple_assignment'     // Callback assigned to multiple variables
-  | 'array_dispatch'          // Callback used in dispatch array
-  | 'conditional_call'        // Callback called conditionally
-  | 'loop_call'               // Callback called in loop
-  | 'interrupt_handler'       // Used as interrupt handler
-  | 'event_handler'           // Used as event handler
-  | 'state_machine';          // Used in state machine
+  | 'single_assignment' // Callback assigned to single variable
+  | 'multiple_assignment' // Callback assigned to multiple variables
+  | 'array_dispatch' // Callback used in dispatch array
+  | 'conditional_call' // Callback called conditionally
+  | 'loop_call' // Callback called in loop
+  | 'interrupt_handler' // Used as interrupt handler
+  | 'event_handler' // Used as event handler
+  | 'state_machine'; // Used in state machine
 
 export type CallbackPerformanceImpact = 'low' | 'medium' | 'high' | 'critical';
 
@@ -1507,12 +1505,12 @@ export interface CallbackBottleneck {
 }
 
 export type CallbackBottleneckType =
-  | 'indirect_call_overhead'  // Overhead of indirect calls
-  | 'function_pointer_setup'  // Setting up function pointer
-  | 'parameter_passing'       // Parameter passing inefficiency
-  | 'register_conflicts'      // Register usage conflicts
-  | 'memory_access'           // Memory access for function pointer
-  | 'call_frequency';         // High frequency of callback calls
+  | 'indirect_call_overhead' // Overhead of indirect calls
+  | 'function_pointer_setup' // Setting up function pointer
+  | 'parameter_passing' // Parameter passing inefficiency
+  | 'register_conflicts' // Register usage conflicts
+  | 'memory_access' // Memory access for function pointer
+  | 'call_frequency'; // High frequency of callback calls
 
 /**
  * Callback optimization opportunities.
@@ -1525,11 +1523,11 @@ export interface CallbackOptimizationOpportunity {
 }
 
 export type CallbackOptimizationOpportunityType =
-  | 'direct_call_conversion'  // Convert indirect to direct calls
-  | 'inline_expansion'        // Inline callback at call site
-  | 'dispatch_optimization'   // Optimize dispatch table
-  | 'register_optimization'   // Optimize register usage
-  | 'call_site_optimization'  // Optimize specific call sites
+  | 'direct_call_conversion' // Convert indirect to direct calls
+  | 'inline_expansion' // Inline callback at call site
+  | 'dispatch_optimization' // Optimize dispatch table
+  | 'register_optimization' // Optimize register usage
+  | 'call_site_optimization' // Optimize specific call sites
   | 'function_pointer_caching'; // Cache function pointers
 
 export type OptimizationApplicability = 'always' | 'conditional' | 'specific_cases' | 'never';
@@ -1599,11 +1597,11 @@ export interface RealTimeRequirement {
 }
 
 export type RealTimeRequirementType =
-  | 'max_latency'             // Maximum interrupt latency
-  | 'max_execution_time'      // Maximum execution time
-  | 'min_frequency'           // Minimum interrupt frequency
-  | 'max_jitter'              // Maximum timing jitter
-  | 'real_time_deadline';     // Hard real-time deadline
+  | 'max_latency' // Maximum interrupt latency
+  | 'max_execution_time' // Maximum execution time
+  | 'min_frequency' // Minimum interrupt frequency
+  | 'max_jitter' // Maximum timing jitter
+  | 'real_time_deadline'; // Hard real-time deadline
 
 /**
  * Interrupt-specific optimizations.
@@ -1615,12 +1613,12 @@ export interface InterruptOptimization {
 }
 
 export type InterruptOptimizationType =
-  | 'minimal_preserve'        // Preserve only necessary registers
-  | 'fast_entry_exit'         // Optimize interrupt entry/exit
-  | 'inline_critical_path'    // Inline critical code sections
-  | 'reduce_complexity'       // Reduce interrupt handler complexity
-  | 'defer_processing'        // Defer non-critical processing
-  | 'optimize_nesting';       // Optimize interrupt nesting
+  | 'minimal_preserve' // Preserve only necessary registers
+  | 'fast_entry_exit' // Optimize interrupt entry/exit
+  | 'inline_critical_path' // Inline critical code sections
+  | 'reduce_complexity' // Reduce interrupt handler complexity
+  | 'defer_processing' // Defer non-critical processing
+  | 'optimize_nesting'; // Optimize interrupt nesting
 
 /**
  * 6502-specific function optimization hints.
@@ -1674,11 +1672,11 @@ export interface FunctionRegisterStrategy {
 }
 
 export type RegisterAllocationStrategy =
-  | 'minimal'                 // Use as few registers as possible
-  | 'aggressive'              // Use all available registers
-  | 'balanced'                // Balance between usage and spilling
-  | 'specialized'             // Specialized for specific patterns
-  | 'none';                   // No register allocation
+  | 'minimal' // Use as few registers as possible
+  | 'aggressive' // Use all available registers
+  | 'balanced' // Balance between usage and spilling
+  | 'specialized' // Specialized for specific patterns
+  | 'none'; // No register allocation
 
 /**
  * Function register assignments.
@@ -1691,12 +1689,12 @@ export interface FunctionRegisterAssignment {
 }
 
 export type RegisterAssignmentPurpose =
-  | 'parameter'               // Function parameter
-  | 'return_value'            // Function return value
-  | 'local_variable'          // Local variable
-  | 'loop_counter'            // Loop counter
-  | 'temporary'               // Temporary calculation
-  | 'address_calculation';    // Address calculation
+  | 'parameter' // Function parameter
+  | 'return_value' // Function return value
+  | 'local_variable' // Local variable
+  | 'loop_counter' // Loop counter
+  | 'temporary' // Temporary calculation
+  | 'address_calculation'; // Address calculation
 
 /**
  * Function register pressure analysis.
@@ -1740,12 +1738,12 @@ export interface FunctionMemoryLayout {
 }
 
 export type CodeSection =
-  | 'hot_code'                // Frequently executed code section
-  | 'warm_code'               // Occasionally executed code
-  | 'cold_code'               // Rarely executed code
-  | 'initialization'          // Initialization code
-  | 'interrupt_code'          // Interrupt handler code
-  | 'utility_code';           // Utility function code
+  | 'hot_code' // Frequently executed code section
+  | 'warm_code' // Occasionally executed code
+  | 'cold_code' // Rarely executed code
+  | 'initialization' // Initialization code
+  | 'interrupt_code' // Interrupt handler code
+  | 'utility_code'; // Utility function code
 
 /**
  * Local variable layout within function.
@@ -1762,11 +1760,11 @@ export interface FunctionLocalVariableLayout {
 }
 
 export type LocalVariableLayoutStrategy =
-  | 'stack_based'             // Use stack for local variables
-  | 'register_based'          // Use registers for local variables
-  | 'zero_page_based'         // Use zero page for local variables
-  | 'mixed'                   // Mixed approach
-  | 'minimal';                // Minimal local variable usage
+  | 'stack_based' // Use stack for local variables
+  | 'register_based' // Use registers for local variables
+  | 'zero_page_based' // Use zero page for local variables
+  | 'mixed' // Mixed approach
+  | 'minimal'; // Minimal local variable usage
 
 /**
  * Group of related local variables.
@@ -1778,11 +1776,11 @@ export interface LocalVariableGroup {
 }
 
 export type LocalVariableGroupType =
-  | 'frequently_accessed'     // Variables accessed together frequently
-  | 'same_type'               // Variables of same type
-  | 'loop_variables'          // Variables used in same loop
-  | 'temporary_calculations'  // Temporary calculation variables
-  | 'state_variables';        // Variables representing related state
+  | 'frequently_accessed' // Variables accessed together frequently
+  | 'same_type' // Variables of same type
+  | 'loop_variables' // Variables used in same loop
+  | 'temporary_calculations' // Temporary calculation variables
+  | 'state_variables'; // Variables representing related state
 
 /**
  * Stack frame optimization information.
@@ -1800,10 +1798,10 @@ export interface StackFrameOptimization {
 
 export type StackFrameOptimizationStrategy =
   | 'eliminate_frame_pointer' // Don't use frame pointer
-  | 'reuse_parameter_space'   // Reuse parameter space for locals
-  | 'minimize_alignment'      // Minimize alignment requirements
-  | 'combine_variables'       // Combine related variables
-  | 'register_spill_opt';     // Optimize register spill locations
+  | 'reuse_parameter_space' // Reuse parameter space for locals
+  | 'minimize_alignment' // Minimize alignment requirements
+  | 'combine_variables' // Combine related variables
+  | 'register_spill_opt'; // Optimize register spill locations
 
 /**
  * Function alignment preferences.
@@ -1823,11 +1821,11 @@ export interface FunctionAlignmentPreference {
 }
 
 export type FunctionAlignmentReason =
-  | 'none'                    // No special alignment needed
-  | 'performance'             // General performance benefit
-  | 'branch_target'           // Function is frequent branch target
-  | 'interrupt_vector'        // Function is interrupt vector
-  | 'page_boundary';          // Avoid page boundary crossings
+  | 'none' // No special alignment needed
+  | 'performance' // General performance benefit
+  | 'branch_target' // Function is frequent branch target
+  | 'interrupt_vector' // Function is interrupt vector
+  | 'page_boundary'; // Avoid page boundary crossings
 
 /**
  * Function performance characteristics.
@@ -1849,7 +1847,13 @@ export interface FunctionPerformanceCharacteristics {
   optimizationPotential: FunctionOptimizationPotential;
 }
 
-export type FunctionExecutionFrequency = 'never' | 'rare' | 'occasional' | 'frequent' | 'very_frequent' | 'hot';
+export type FunctionExecutionFrequency =
+  | 'never'
+  | 'rare'
+  | 'occasional'
+  | 'frequent'
+  | 'very_frequent'
+  | 'hot';
 
 /**
  * Performance hotspot within a function.
@@ -1869,12 +1873,12 @@ export interface FunctionHotspot {
 }
 
 export type FunctionHotspotType =
-  | 'loop'                    // Loop hotspot
-  | 'memory_access'           // Memory access hotspot
-  | 'arithmetic'              // Arithmetic operation hotspot
-  | 'function_call'           // Function call hotspot
-  | 'branch'                  // Branching hotspot
-  | 'register_pressure';      // Register pressure hotspot
+  | 'loop' // Loop hotspot
+  | 'memory_access' // Memory access hotspot
+  | 'arithmetic' // Arithmetic operation hotspot
+  | 'function_call' // Function call hotspot
+  | 'branch' // Branching hotspot
+  | 'register_pressure'; // Register pressure hotspot
 
 /**
  * Critical path information for function.
@@ -1901,12 +1905,12 @@ export interface CriticalOperation {
 }
 
 export type CriticalOperationType =
-  | 'memory_load'             // Memory load operation
-  | 'memory_store'            // Memory store operation
-  | 'arithmetic'              // Arithmetic operation
-  | 'branch'                  // Branch operation
-  | 'function_call'           // Function call
-  | 'register_transfer';      // Register transfer
+  | 'memory_load' // Memory load operation
+  | 'memory_store' // Memory store operation
+  | 'arithmetic' // Arithmetic operation
+  | 'branch' // Branch operation
+  | 'function_call' // Function call
+  | 'register_transfer'; // Register transfer
 
 /**
  * Performance bottleneck within function.
@@ -1919,12 +1923,12 @@ export interface FunctionBottleneck {
 }
 
 export type FunctionBottleneckType =
-  | 'memory_bandwidth'        // Memory bandwidth limitation
-  | 'register_pressure'       // Register pressure limitation
-  | 'branch_misprediction'    // Branch misprediction penalty
-  | 'data_dependency'         // Data dependency stall
-  | 'function_call_overhead'  // Function call overhead
-  | 'stack_operations';       // Stack operation overhead
+  | 'memory_bandwidth' // Memory bandwidth limitation
+  | 'register_pressure' // Register pressure limitation
+  | 'branch_misprediction' // Branch misprediction penalty
+  | 'data_dependency' // Data dependency stall
+  | 'function_call_overhead' // Function call overhead
+  | 'stack_operations'; // Stack operation overhead
 
 /**
  * Function optimization potential analysis.
@@ -1954,13 +1958,13 @@ export interface PotentialOptimization {
 }
 
 export type FunctionOptimizationType =
-  | 'inlining'                // Function inlining
-  | 'loop_unrolling'          // Loop unrolling
-  | 'register_allocation'     // Better register allocation
-  | 'dead_code_elimination'   // Remove dead code
-  | 'constant_propagation'    // Propagate constants
-  | 'strength_reduction'      // Reduce operation strength
-  | 'tail_call_optimization'  // Tail call optimization
+  | 'inlining' // Function inlining
+  | 'loop_unrolling' // Loop unrolling
+  | 'register_allocation' // Better register allocation
+  | 'dead_code_elimination' // Remove dead code
+  | 'constant_propagation' // Propagate constants
+  | 'strength_reduction' // Reduce operation strength
+  | 'tail_call_optimization' // Tail call optimization
   | 'parameter_optimization'; // Parameter passing optimization
 
 /**
@@ -1974,14 +1978,14 @@ export interface Function6502OptimizationOpportunity {
 }
 
 export type Function6502OptimizationOpportunityType =
-  | 'zero_page_usage'         // Use zero page for function data
-  | 'register_optimization'   // Optimize A/X/Y register usage
-  | 'addressing_mode'         // Use better addressing modes
-  | 'branch_optimization'     // Optimize branch instructions
-  | 'memory_layout'           // Optimize memory layout
-  | 'stack_optimization'      // Optimize stack usage
-  | 'interrupt_optimization'  // Optimize interrupt handling
-  | 'hardware_acceleration';  // Use hardware features
+  | 'zero_page_usage' // Use zero page for function data
+  | 'register_optimization' // Optimize A/X/Y register usage
+  | 'addressing_mode' // Use better addressing modes
+  | 'branch_optimization' // Optimize branch instructions
+  | 'memory_layout' // Optimize memory layout
+  | 'stack_optimization' // Optimize stack usage
+  | 'interrupt_optimization' // Optimize interrupt handling
+  | 'hardware_acceleration'; // Use hardware features
 
 /**
  * Function performance profile.
@@ -2047,11 +2051,11 @@ export interface VariabilityCause {
 }
 
 export type VariabilityCauseType =
-  | 'input_dependent'         // Performance depends on input
-  | 'branch_dependent'        // Performance depends on branches taken
-  | 'memory_dependent'        // Performance depends on memory access patterns
-  | 'register_pressure'       // Performance varies with register pressure
-  | 'call_context';           // Performance varies with calling context
+  | 'input_dependent' // Performance depends on input
+  | 'branch_dependent' // Performance depends on branches taken
+  | 'memory_dependent' // Performance depends on memory access patterns
+  | 'register_pressure' // Performance varies with register pressure
+  | 'call_context'; // Performance varies with calling context
 
 /**
  * Function resource usage.
@@ -2095,12 +2099,12 @@ export interface RegisterUsageDetail {
 }
 
 export type RegisterUsageType =
-  | 'parameter'               // Used for parameter
-  | 'return_value'            // Used for return value
-  | 'local_variable'          // Used for local variable
-  | 'temporary'               // Used for temporary storage
-  | 'address_calculation'     // Used for address calculation
-  | 'loop_counter';           // Used as loop counter
+  | 'parameter' // Used for parameter
+  | 'return_value' // Used for return value
+  | 'local_variable' // Used for local variable
+  | 'temporary' // Used for temporary storage
+  | 'address_calculation' // Used for address calculation
+  | 'loop_counter'; // Used as loop counter
 
 /**
  * Function memory usage details.
@@ -2126,16 +2130,16 @@ export interface MemoryUsageBreakdown {
 }
 
 export type MemoryUsagePurpose =
-  | 'code'                    // Function code
-  | 'local_variables'         // Local variables
-  | 'constants'               // Function constants
-  | 'temporary_storage';      // Temporary storage
+  | 'code' // Function code
+  | 'local_variables' // Local variables
+  | 'constants' // Function constants
+  | 'temporary_storage'; // Temporary storage
 
 export type MemoryLocation =
-  | 'zero_page'               // Zero page memory
-  | 'ram'                     // Regular RAM
-  | 'rom'                     // ROM area
-  | 'stack';                  // Stack area
+  | 'zero_page' // Zero page memory
+  | 'ram' // Regular RAM
+  | 'rom' // ROM area
+  | 'stack'; // Stack area
 
 /**
  * Function memory access pattern.
@@ -2190,10 +2194,10 @@ export interface ZeroPageAllocation {
 }
 
 export type ZeroPageUsagePurpose =
-  | 'parameter'               // Function parameter
-  | 'local_variable'          // Local variable
-  | 'temporary'               // Temporary storage
-  | 'address_pointer';        // Address pointer
+  | 'parameter' // Function parameter
+  | 'local_variable' // Local variable
+  | 'temporary' // Temporary storage
+  | 'address_pointer'; // Address pointer
 
 /**
  * Function performance metrics.
@@ -2229,14 +2233,14 @@ export interface FunctionOptimizationRecommendation {
 }
 
 export type FunctionOptimizationRecommendationType =
-  | 'inline_function'         // Inline this function
-  | 'optimize_registers'      // Optimize register usage
-  | 'reduce_parameters'       // Reduce parameter count
-  | 'eliminate_recursion'     // Eliminate recursion
-  | 'optimize_loops'          // Optimize internal loops
-  | 'improve_memory_layout'   // Improve memory layout
-  | 'use_zero_page'          // Use zero page more effectively
-  | 'optimize_branches';      // Optimize branch structure
+  | 'inline_function' // Inline this function
+  | 'optimize_registers' // Optimize register usage
+  | 'reduce_parameters' // Reduce parameter count
+  | 'eliminate_recursion' // Eliminate recursion
+  | 'optimize_loops' // Optimize internal loops
+  | 'improve_memory_layout' // Improve memory layout
+  | 'use_zero_page' // Use zero page more effectively
+  | 'optimize_branches'; // Optimize branch structure
 
 export type OptimizationPriority = 'low' | 'medium' | 'high' | 'critical';
 export type ImplementationEffort = 'trivial' | 'low' | 'medium' | 'high' | 'very_high';
@@ -2269,13 +2273,13 @@ export interface VariableMemoryLayoutInfo {
  */
 export type MemoryRegion =
   | 'zero_page_high_priority' // Most valuable zero page locations
-  | 'zero_page_normal'        // Standard zero page usage
-  | 'ram_fast'                // Fast RAM access areas
-  | 'ram_normal'              // Standard RAM
-  | 'ram_slow'                // Slower RAM areas
-  | 'data_section'            // Pre-initialized data area
-  | 'bss_section'             // Uninitialized data area
-  | 'io_region';              // Memory-mapped I/O area
+  | 'zero_page_normal' // Standard zero page usage
+  | 'ram_fast' // Fast RAM access areas
+  | 'ram_normal' // Standard RAM
+  | 'ram_slow' // Slower RAM areas
+  | 'data_section' // Pre-initialized data area
+  | 'bss_section' // Uninitialized data area
+  | 'io_region'; // Memory-mapped I/O area
 
 /**
  * Variable grouping preferences.
@@ -2295,19 +2299,19 @@ export interface VariableGroupingInfo {
 }
 
 export type VariableGroupingReason =
-  | 'cache_locality'          // Variables accessed together
-  | 'struct_members'          // Members of the same logical structure
-  | 'array_elements'          // Elements of the same array
-  | 'related_state'           // Variables representing related state
-  | 'hardware_registers'      // Hardware register group
-  | 'function_locals';        // Local variables in same function
+  | 'cache_locality' // Variables accessed together
+  | 'struct_members' // Members of the same logical structure
+  | 'array_elements' // Elements of the same array
+  | 'related_state' // Variables representing related state
+  | 'hardware_registers' // Hardware register group
+  | 'function_locals'; // Local variables in same function
 
 export type GroupLayoutPreference =
-  | 'sequential'              // Place variables sequentially
-  | 'interleaved'             // Interleave for better access patterns
-  | 'aligned'                 // Align group to specific boundary
-  | 'packed'                  // Pack tightly to save space
-  | 'scattered';              // Don't group (better distributed)
+  | 'sequential' // Place variables sequentially
+  | 'interleaved' // Interleave for better access patterns
+  | 'aligned' // Align group to specific boundary
+  | 'packed' // Pack tightly to save space
+  | 'scattered'; // Don't group (better distributed)
 
 /**
  * Memory access patterns for variables.
@@ -2320,12 +2324,12 @@ export interface MemoryAccessPattern {
 }
 
 export type MemoryAccessPatternType =
-  | 'sequential'              // Sequential access pattern
-  | 'random'                  // Random access pattern
-  | 'strided'                 // Fixed stride access pattern
-  | 'clustered'               // Clustered access pattern
-  | 'sparse'                  // Sparse access pattern
-  | 'single_shot';            // Single access then done
+  | 'sequential' // Sequential access pattern
+  | 'random' // Random access pattern
+  | 'strided' // Fixed stride access pattern
+  | 'clustered' // Clustered access pattern
+  | 'sparse' // Sparse access pattern
+  | 'single_shot'; // Single access then done
 
 export type SpatialLocality = 'none' | 'low' | 'medium' | 'high';
 export type TemporalLocality = 'none' | 'low' | 'medium' | 'high';
@@ -2466,7 +2470,10 @@ export function createNamedType(name: string): NamedType {
   return { kind: 'named', name };
 }
 
-export function createCallbackType(parameterTypes: Blend65Type[], returnType: Blend65Type): CallbackType {
+export function createCallbackType(
+  parameterTypes: Blend65Type[],
+  returnType: Blend65Type
+): CallbackType {
   return { kind: 'callback', parameterTypes, returnType };
 }
 
@@ -2504,8 +2511,9 @@ export function isAssignmentCompatible(target: Blend65Type, source: Blend65Type)
 
   // Array type compatibility
   if (isArrayType(target) && isArrayType(source)) {
-    return target.size === source.size &&
-           isAssignmentCompatible(target.elementType, source.elementType);
+    return (
+      target.size === source.size && isAssignmentCompatible(target.elementType, source.elementType)
+    );
   }
 
   // Callback type compatibility
@@ -2536,8 +2544,7 @@ export function areTypesEqual(type1: Blend65Type, type2: Blend65Type): boolean {
 
     case 'array':
       const array2 = type2 as ArrayType;
-      return type1.size === array2.size &&
-             areTypesEqual(type1.elementType, array2.elementType);
+      return type1.size === array2.size && areTypesEqual(type1.elementType, array2.elementType);
 
     case 'named':
       return type1.name === (type2 as NamedType).name;
@@ -2554,7 +2561,10 @@ export function areTypesEqual(type1: Blend65Type, type2: Blend65Type): boolean {
  * Check if two callback types are compatible.
  * Callback types are compatible if they have the same signature.
  */
-export function areCallbackTypesCompatible(callback1: CallbackType, callback2: CallbackType): boolean {
+export function areCallbackTypesCompatible(
+  callback1: CallbackType,
+  callback2: CallbackType
+): boolean {
   // Same return type
   if (!areTypesEqual(callback1.returnType, callback2.returnType)) {
     return false;
@@ -2592,8 +2602,10 @@ export function typeToString(type: Blend65Type): string {
 
     case 'callback':
       const params = type.parameterTypes.map(t => typeToString(t)).join(', ');
-      const returnStr = type.returnType.kind === 'primitive' && type.returnType.name === 'void'
-        ? '' : `: ${typeToString(type.returnType)}`;
+      const returnStr =
+        type.returnType.kind === 'primitive' && type.returnType.name === 'void'
+          ? ''
+          : `: ${typeToString(type.returnType)}`;
       return `callback(${params})${returnStr}`;
 
     default:
@@ -2610,20 +2622,21 @@ export function validateStorageClassUsage(
   scope: ScopeType,
   hasInitializer: boolean
 ): SemanticResult<void> {
-
   // Storage classes only allowed at global/module scope
   if (scope === 'Function' || scope === 'Block') {
     return {
       success: false,
-      errors: [{
-        errorType: 'InvalidStorageClass',
-        message: `Storage class '${storageClass}' not allowed in ${scope.toLowerCase()} scope. Storage classes are only valid for global variables.`,
-        location: { line: 0, column: 0, offset: 0 }, // Will be filled by caller
-        suggestions: [
-          'Remove the storage class to create a local variable',
-          'Move the variable declaration to module level to use storage classes'
-        ]
-      }]
+      errors: [
+        {
+          errorType: 'InvalidStorageClass',
+          message: `Storage class '${storageClass}' not allowed in ${scope.toLowerCase()} scope. Storage classes are only valid for global variables.`,
+          location: { line: 0, column: 0, offset: 0 }, // Will be filled by caller
+          suggestions: [
+            'Remove the storage class to create a local variable',
+            'Move the variable declaration to module level to use storage classes',
+          ],
+        },
+      ],
     };
   }
 
@@ -2631,15 +2644,17 @@ export function validateStorageClassUsage(
   if ((storageClass === 'const' || storageClass === 'data') && !hasInitializer) {
     return {
       success: false,
-      errors: [{
-        errorType: 'ConstantRequired',
-        message: `Variables with '${storageClass}' storage class must have an initializer.`,
-        location: { line: 0, column: 0, offset: 0 },
-        suggestions: [
-          `Add an initializer: var name: type = value`,
-          `Use 'ram' or 'zp' storage class for uninitialized variables`
-        ]
-      }]
+      errors: [
+        {
+          errorType: 'ConstantRequired',
+          message: `Variables with '${storageClass}' storage class must have an initializer.`,
+          location: { line: 0, column: 0, offset: 0 },
+          suggestions: [
+            `Add an initializer: var name: type = value`,
+            `Use 'ram' or 'zp' storage class for uninitialized variables`,
+          ],
+        },
+      ],
     };
   }
 
@@ -2647,15 +2662,17 @@ export function validateStorageClassUsage(
   if (storageClass === 'io' && hasInitializer) {
     return {
       success: false,
-      errors: [{
-        errorType: 'InvalidStorageClass',
-        message: `Variables with 'io' storage class cannot have initializers. They represent memory-mapped hardware registers.`,
-        location: { line: 0, column: 0, offset: 0 },
-        suggestions: [
-          'Remove the initializer for io variables',
-          'Use a different storage class if you need initialization'
-        ]
-      }]
+      errors: [
+        {
+          errorType: 'InvalidStorageClass',
+          message: `Variables with 'io' storage class cannot have initializers. They represent memory-mapped hardware registers.`,
+          location: { line: 0, column: 0, offset: 0 },
+          suggestions: [
+            'Remove the initializer for io variables',
+            'Use a different storage class if you need initialization',
+          ],
+        },
+      ],
     };
   }
 
@@ -2692,7 +2709,7 @@ export function createVariableSymbol(
     varType,
     storageClass: options.storageClass ?? null,
     initialValue: options.initialValue ?? null,
-    isLocal: options.isLocal ?? false
+    isLocal: options.isLocal ?? false,
   };
 }
 
@@ -2715,7 +2732,7 @@ export function createFunctionSymbol(
     isExported: options.isExported ?? false,
     parameters,
     returnType,
-    isCallback: options.isCallback ?? false
+    isCallback: options.isCallback ?? false,
   };
 }
 
@@ -2733,7 +2750,7 @@ export function createModuleSymbol(
     isExported: false, // Modules themselves are not exported
     qualifiedName,
     exports: new Map(),
-    imports: new Map()
+    imports: new Map(),
   };
 }
 
@@ -2747,7 +2764,7 @@ export function createScope(
     parent,
     symbols: new Map(),
     children: [],
-    name
+    name,
   };
 }
 

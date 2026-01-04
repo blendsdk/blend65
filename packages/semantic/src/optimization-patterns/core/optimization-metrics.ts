@@ -152,13 +152,14 @@ export class SimpleMetricsCollector implements OptimizationMetricsCollector {
 
     return {
       totalPatterns: new Set(this.metrics.map(m => m.patternId)).size,
-      averageExecutionTime: successfulMetrics.length > 0
-        ? successfulMetrics.reduce((sum, m) => sum + m.executionTime, 0) / successfulMetrics.length
-        : 0,
-      successRate: this.metrics.length > 0
-        ? (successfulMetrics.length / this.metrics.length) * 100
-        : 0,
-      totalImprovements: successfulMetrics.reduce((sum, m) => sum + m.improvementPercentage, 0)
+      averageExecutionTime:
+        successfulMetrics.length > 0
+          ? successfulMetrics.reduce((sum, m) => sum + m.executionTime, 0) /
+            successfulMetrics.length
+          : 0,
+      successRate:
+        this.metrics.length > 0 ? (successfulMetrics.length / this.metrics.length) * 100 : 0,
+      totalImprovements: successfulMetrics.reduce((sum, m) => sum + m.improvementPercentage, 0),
     };
   }
 }
@@ -166,11 +167,13 @@ export class SimpleMetricsCollector implements OptimizationMetricsCollector {
 /**
  * Create a default metrics collector.
  */
-export function createMetricsCollector(config?: Partial<MetricsConfiguration>): OptimizationMetricsCollector {
+export function createMetricsCollector(
+  config?: Partial<MetricsConfiguration>
+): OptimizationMetricsCollector {
   const defaultConfig: MetricsConfiguration = {
     enabled: true,
     collectionInterval: 100,
-    maxStoredMetrics: 1000
+    maxStoredMetrics: 1000,
   };
 
   return new SimpleMetricsCollector({ ...defaultConfig, ...config });

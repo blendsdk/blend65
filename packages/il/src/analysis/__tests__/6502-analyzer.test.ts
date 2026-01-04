@@ -7,7 +7,13 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createILFunction, createILInstruction, createILVariable, createILConstant, ILInstructionType } from '../../il-types.js';
+import {
+  createILFunction,
+  createILInstruction,
+  createILVariable,
+  createILConstant,
+  ILInstructionType,
+} from '../../il-types.js';
 import { SixtyTwo6502Analyzer, analyze6502 } from '../6502-analyzer.js';
 import { ControlFlowAnalyzer } from '../control-flow-analyzer.js';
 import { createPrimitiveType, createArrayType } from '@blend65/semantic';
@@ -31,7 +37,7 @@ describe('SixtyTwo6502Analyzer', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'vic20',
         processorVariant: '6502',
-        enableCyclePerfectTiming: false
+        enableCyclePerfectTiming: false,
       });
       expect(analyzer).toBeDefined();
     });
@@ -78,7 +84,7 @@ describe('SixtyTwo6502Analyzer', () => {
     it('should support C64 6510 variant', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'c64',
-        processorVariant: '6510'
+        processorVariant: '6510',
       });
       const cfgAnalyzer = new ControlFlowAnalyzer();
       const cfgResult = cfgAnalyzer.analyzeFunction(testFunction);
@@ -93,7 +99,7 @@ describe('SixtyTwo6502Analyzer', () => {
     it('should support VIC-20 6502 variant', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'vic20',
-        processorVariant: '6502'
+        processorVariant: '6502',
       });
       const cfgAnalyzer = new ControlFlowAnalyzer();
       const cfgResult = cfgAnalyzer.analyzeFunction(testFunction);
@@ -108,7 +114,7 @@ describe('SixtyTwo6502Analyzer', () => {
     it('should support X16 65C02 variant', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'x16',
-        processorVariant: '65C02'
+        processorVariant: '65C02',
       });
       const cfgAnalyzer = new ControlFlowAnalyzer();
       const cfgResult = cfgAnalyzer.analyzeFunction(testFunction);
@@ -130,7 +136,7 @@ describe('SixtyTwo6502Analyzer', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'c64',
         processorVariant: '6510',
-        enableCyclePerfectTiming: true
+        enableCyclePerfectTiming: true,
       });
 
       // Create function with various instruction types
@@ -142,10 +148,22 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-        createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 2)], 2),
-        createILInstruction(ILInstructionType.STORE_VARIABLE, [createILVariable('result', createPrimitiveType('byte'))], 3),
-        createILInstruction(ILInstructionType.RETURN, [], 4)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILConstant(createPrimitiveType('byte'), 2)],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.STORE_VARIABLE,
+          [createILVariable('result', createPrimitiveType('byte'))],
+          3
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 4),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -160,7 +178,7 @@ describe('SixtyTwo6502Analyzer', () => {
 
     it('should handle timing analysis disabling', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enableCyclePerfectTiming: false
+        enableCyclePerfectTiming: false,
       });
 
       const testFunction = createILFunction(
@@ -180,7 +198,7 @@ describe('SixtyTwo6502Analyzer', () => {
 
     it('should detect performance hotspots', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enablePerformanceHotspotDetection: true
+        enablePerformanceHotspotDetection: true,
       });
 
       // Create function with expensive operations
@@ -192,9 +210,27 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.MUL, [createILConstant(createPrimitiveType('byte'), 5), createILConstant(createPrimitiveType('byte'), 6)], 1),
-        createILInstruction(ILInstructionType.DIV, [createILConstant(createPrimitiveType('byte'), 20), createILConstant(createPrimitiveType('byte'), 4)], 2),
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 3)
+        createILInstruction(
+          ILInstructionType.MUL,
+          [
+            createILConstant(createPrimitiveType('byte'), 5),
+            createILConstant(createPrimitiveType('byte'), 6),
+          ],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.DIV,
+          [
+            createILConstant(createPrimitiveType('byte'), 20),
+            createILConstant(createPrimitiveType('byte'), 4),
+          ],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          3
+        ),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -215,7 +251,7 @@ describe('SixtyTwo6502Analyzer', () => {
     it('should validate C64 memory constraints', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'c64',
-        enableMemoryLayoutValidation: true
+        enableMemoryLayoutValidation: true,
       });
 
       const testFunction = createILFunction(
@@ -230,13 +266,13 @@ describe('SixtyTwo6502Analyzer', () => {
         {
           name: 'counter',
           type: createPrimitiveType('byte'),
-          allocationMethod: 'zero_page'
+          allocationMethod: 'zero_page',
         },
         {
           name: 'buffer',
           type: createArrayType(createPrimitiveType('byte'), 256),
-          allocationMethod: 'global'
-        }
+          allocationMethod: 'global',
+        },
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -251,7 +287,7 @@ describe('SixtyTwo6502Analyzer', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'vic20',
         processorVariant: '6502',
-        enableMemoryLayoutValidation: true
+        enableMemoryLayoutValidation: true,
       });
 
       const testFunction = createILFunction(
@@ -265,8 +301,8 @@ describe('SixtyTwo6502Analyzer', () => {
         {
           name: 'smallVar',
           type: createPrimitiveType('byte'),
-          allocationMethod: 'zero_page'
-        }
+          allocationMethod: 'zero_page',
+        },
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -281,7 +317,7 @@ describe('SixtyTwo6502Analyzer', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'x16',
         processorVariant: '65C02',
-        enableMemoryLayoutValidation: true
+        enableMemoryLayoutValidation: true,
       });
 
       const testFunction = createILFunction(
@@ -295,8 +331,8 @@ describe('SixtyTwo6502Analyzer', () => {
         {
           name: 'modernVar',
           type: createPrimitiveType('word'),
-          allocationMethod: 'register'
-        }
+          allocationMethod: 'register',
+        },
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -315,7 +351,7 @@ describe('SixtyTwo6502Analyzer', () => {
   describe('Register Allocation Analysis', () => {
     it('should analyze register pressure', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enableRegisterAllocationAnalysis: true
+        enableRegisterAllocationAnalysis: true,
       });
 
       const testFunction = createILFunction(
@@ -332,7 +368,7 @@ describe('SixtyTwo6502Analyzer', () => {
           [createILConstant(createPrimitiveType('byte'), 10)],
           1,
           {
-            sixtyTwoHints: { preferredRegister: 'A' }
+            sixtyTwoHints: { preferredRegister: 'A' },
           }
         ),
         createILInstruction(
@@ -340,7 +376,7 @@ describe('SixtyTwo6502Analyzer', () => {
           [createILConstant(createPrimitiveType('byte'), 5)],
           2,
           {
-            sixtyTwoHints: { preferredRegister: 'A' }
+            sixtyTwoHints: { preferredRegister: 'A' },
           }
         ),
         createILInstruction(
@@ -348,9 +384,9 @@ describe('SixtyTwo6502Analyzer', () => {
           [createILVariable('temp', createPrimitiveType('byte'))],
           3,
           {
-            sixtyTwoHints: { preferredRegister: 'X' }
+            sixtyTwoHints: { preferredRegister: 'X' },
           }
-        )
+        ),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -364,7 +400,7 @@ describe('SixtyTwo6502Analyzer', () => {
 
     it('should provide register allocation recommendations', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enableOptimizationRecommendations: true
+        enableOptimizationRecommendations: true,
       });
 
       const testFunction = createILFunction(
@@ -375,9 +411,21 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_VARIABLE, [createILVariable('counter', createPrimitiveType('byte'))], 1),
-        createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 1)], 2),
-        createILInstruction(ILInstructionType.STORE_VARIABLE, [createILVariable('counter', createPrimitiveType('byte'))], 3)
+        createILInstruction(
+          ILInstructionType.LOAD_VARIABLE,
+          [createILVariable('counter', createPrimitiveType('byte'))],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.STORE_VARIABLE,
+          [createILVariable('counter', createPrimitiveType('byte'))],
+          3
+        ),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -396,7 +444,7 @@ describe('SixtyTwo6502Analyzer', () => {
   describe('Hardware Constraint Validation', () => {
     it('should validate stack usage constraints', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enableHardwareConstraintValidation: true
+        enableHardwareConstraintValidation: true,
       });
 
       const testFunction = createILFunction(
@@ -408,10 +456,22 @@ describe('SixtyTwo6502Analyzer', () => {
 
       // Add multiple call instructions to test stack depth
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.CALL, [createILVariable('func1', createPrimitiveType('callback'))], 1),
-        createILInstruction(ILInstructionType.CALL, [createILVariable('func2', createPrimitiveType('callback'))], 2),
-        createILInstruction(ILInstructionType.CALL, [createILVariable('func3', createPrimitiveType('callback'))], 3),
-        createILInstruction(ILInstructionType.RETURN, [], 4)
+        createILInstruction(
+          ILInstructionType.CALL,
+          [createILVariable('func1', createPrimitiveType('callback'))],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.CALL,
+          [createILVariable('func2', createPrimitiveType('callback'))],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.CALL,
+          [createILVariable('func3', createPrimitiveType('callback'))],
+          3
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 4),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -425,7 +485,7 @@ describe('SixtyTwo6502Analyzer', () => {
 
     it('should detect constraint violations', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enableHardwareConstraintValidation: true
+        enableHardwareConstraintValidation: true,
       });
 
       const testFunction = createILFunction(
@@ -439,7 +499,7 @@ describe('SixtyTwo6502Analyzer', () => {
       testFunction.localVariables = Array.from({ length: 100 }, (_, i) => ({
         name: `var${i}`,
         type: createPrimitiveType('byte'),
-        allocationMethod: 'zero_page' as const
+        allocationMethod: 'zero_page' as const,
       }));
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -460,7 +520,7 @@ describe('SixtyTwo6502Analyzer', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'c64',
         processorVariant: '6510',
-        enableVICInterferenceModeling: true
+        enableVICInterferenceModeling: true,
       });
 
       const testFunction = createILFunction(
@@ -471,8 +531,16 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_MEMORY, [createILConstant(createPrimitiveType('word'), 0xD000)], 1),
-        createILInstruction(ILInstructionType.STORE_MEMORY, [createILConstant(createPrimitiveType('word'), 0xD400)], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_MEMORY,
+          [createILConstant(createPrimitiveType('word'), 0xd000)],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.STORE_MEMORY,
+          [createILConstant(createPrimitiveType('word'), 0xd400)],
+          2
+        ),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -486,7 +554,7 @@ describe('SixtyTwo6502Analyzer', () => {
     it('should handle VIC-20 simplicity', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'vic20',
-        processorVariant: '6502'
+        processorVariant: '6502',
       });
 
       const testFunction = createILFunction(
@@ -497,7 +565,11 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 255)], 1)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 255)],
+          1
+        ),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -510,7 +582,7 @@ describe('SixtyTwo6502Analyzer', () => {
     it('should recognize X16 65C02 enhancements', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         targetPlatform: 'x16',
-        processorVariant: '65C02'
+        processorVariant: '65C02',
       });
 
       const testFunction = createILFunction(
@@ -521,8 +593,16 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.STORE_MEMORY, [createILConstant(createPrimitiveType('byte'), 0)], 1),
-        createILInstruction(ILInstructionType.BRANCH, [createILVariable('target', createPrimitiveType('byte'))], 2)
+        createILInstruction(
+          ILInstructionType.STORE_MEMORY,
+          [createILConstant(createPrimitiveType('byte'), 0)],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH,
+          [createILVariable('target', createPrimitiveType('byte'))],
+          2
+        ),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -530,9 +610,14 @@ describe('SixtyTwo6502Analyzer', () => {
       const result = analyzer.analyzeFunction(testFunction, cfgResult);
 
       expect(result.platformCompatibility.score).toBeGreaterThan(95);
-      expect(result.optimizationRecommendations.some((opt: any) =>
-        opt.description.includes('65C02') || opt.description.includes('STZ') || opt.description.includes('BRA')
-      )).toBe(true);
+      expect(
+        result.optimizationRecommendations.some(
+          (opt: any) =>
+            opt.description.includes('65C02') ||
+            opt.description.includes('STZ') ||
+            opt.description.includes('BRA')
+        )
+      ).toBe(true);
     });
   });
 
@@ -543,7 +628,7 @@ describe('SixtyTwo6502Analyzer', () => {
   describe('Optimization Recommendations', () => {
     it('should provide meaningful optimization suggestions', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enableOptimizationRecommendations: true
+        enableOptimizationRecommendations: true,
       });
 
       const testFunction = createILFunction(
@@ -554,9 +639,21 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_VARIABLE, [createILVariable('a', createPrimitiveType('byte'))], 1),
-        createILInstruction(ILInstructionType.LOAD_VARIABLE, [createILVariable('a', createPrimitiveType('byte'))], 2), // Redundant load
-        createILInstruction(ILInstructionType.MUL, [createILConstant(createPrimitiveType('byte'), 4)], 3) // Power of 2
+        createILInstruction(
+          ILInstructionType.LOAD_VARIABLE,
+          [createILVariable('a', createPrimitiveType('byte'))],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.LOAD_VARIABLE,
+          [createILVariable('a', createPrimitiveType('byte'))],
+          2
+        ), // Redundant load
+        createILInstruction(
+          ILInstructionType.MUL,
+          [createILConstant(createPrimitiveType('byte'), 4)],
+          3
+        ), // Power of 2
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -577,7 +674,7 @@ describe('SixtyTwo6502Analyzer', () => {
 
     it('should prioritize optimizations correctly', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enableOptimizationRecommendations: true
+        enableOptimizationRecommendations: true,
       });
 
       const testFunction = createILFunction(
@@ -588,8 +685,16 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.MUL, [createILConstant(createPrimitiveType('byte'), 8)], 1), // Should suggest shift
-        createILInstruction(ILInstructionType.LOAD_VARIABLE, [createILVariable('freq', createPrimitiveType('byte'))], 2)
+        createILInstruction(
+          ILInstructionType.MUL,
+          [createILConstant(createPrimitiveType('byte'), 8)],
+          1
+        ), // Should suggest shift
+        createILInstruction(
+          ILInstructionType.LOAD_VARIABLE,
+          [createILVariable('freq', createPrimitiveType('byte'))],
+          2
+        ),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -621,8 +726,12 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 42)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 42)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -630,7 +739,7 @@ describe('SixtyTwo6502Analyzer', () => {
 
       const result = analyze6502(testFunction, cfgResult, {
         targetPlatform: 'c64',
-        processorVariant: '6510'
+        processorVariant: '6510',
       });
 
       expect(result.isValid).toBe(true);
@@ -646,24 +755,22 @@ describe('SixtyTwo6502Analyzer', () => {
         createSourcePos()
       );
 
-      testFunction.instructions = [
-        createILInstruction(ILInstructionType.NOP, [], 1)
-      ];
+      testFunction.instructions = [createILInstruction(ILInstructionType.NOP, [], 1)];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
       const cfgResult = cfgAnalyzer.analyzeFunction(testFunction);
 
       // Test all supported variants
-      const variants: Array<{platform: any, variant: any}> = [
+      const variants: Array<{ platform: any; variant: any }> = [
         { platform: 'c64', variant: '6510' },
         { platform: 'vic20', variant: '6502' },
-        { platform: 'x16', variant: '65C02' }
+        { platform: 'x16', variant: '65C02' },
       ];
 
       variants.forEach(({ platform, variant }) => {
         const result = analyze6502(testFunction, cfgResult, {
           targetPlatform: platform,
-          processorVariant: variant
+          processorVariant: variant,
         });
 
         expect(result.isValid).toBe(true);
@@ -680,7 +787,7 @@ describe('SixtyTwo6502Analyzer', () => {
   describe('Analysis Performance', () => {
     it('should complete analysis within reasonable time', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        maxAnalysisTimeMs: 5000
+        maxAnalysisTimeMs: 5000,
       });
 
       const testFunction = createILFunction(
@@ -713,7 +820,7 @@ describe('SixtyTwo6502Analyzer', () => {
 
     it('should provide accurate analysis metrics', () => {
       const analyzer = new SixtyTwo6502Analyzer({
-        enablePerformanceProfiling: true
+        enablePerformanceProfiling: true,
       });
 
       const testFunction = createILFunction(
@@ -724,9 +831,17 @@ describe('SixtyTwo6502Analyzer', () => {
       );
 
       testFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-        createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 2)], 2),
-        createILInstruction(ILInstructionType.RETURN, [], 3)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILConstant(createPrimitiveType('byte'), 2)],
+          2
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 3),
       ];
 
       const cfgAnalyzer = new ControlFlowAnalyzer();
@@ -749,7 +864,7 @@ describe('SixtyTwo6502Analyzer', () => {
     it('should handle analysis errors gracefully', () => {
       const analyzer = new SixtyTwo6502Analyzer({
         processorVariant: '6510',
-        targetPlatform: 'c64'
+        targetPlatform: 'c64',
       });
 
       const testFunction = createILFunction(

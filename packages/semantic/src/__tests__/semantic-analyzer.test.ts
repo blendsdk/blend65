@@ -16,7 +16,6 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SemanticAnalyzer, analyzeProgram, analyzePrograms } from '../semantic-analyzer.js';
-import { createSymbolTable } from '../symbol-table.js';
 import { Program } from '@blend65/ast';
 
 describe('SemanticAnalyzer - Task 1.10 Integration', () => {
@@ -57,12 +56,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['TestModule']
-          }
+            parts: ['TestModule'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result = analyzer.analyze([singleProgram]);
@@ -80,12 +79,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['Module1']
-          }
+            parts: ['Module1'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const program2: Program = {
@@ -94,12 +93,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['Module2']
-          }
+            parts: ['Module2'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result = analyzer.analyze([program1, program2]);
@@ -119,12 +118,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['Game', 'Main']
-          }
+            parts: ['Game', 'Main'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const program2: Program = {
@@ -133,12 +132,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['Game', 'Player']
-          }
+            parts: ['Game', 'Player'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result = analyzer.analyze([program1, program2]);
@@ -154,12 +153,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: []  // Empty module name
-          }
+            parts: [], // Empty module name
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result = analyzer.analyze([programWithoutModule]);
@@ -175,12 +174,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['Utils']
-          }
+            parts: ['Utils'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const program2: Program = {
@@ -189,12 +188,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['Main']
-          }
+            parts: ['Main'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result = analyzer.analyze([program1, program2]);
@@ -212,12 +211,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Module1']
-            }
+              parts: ['Module1'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         },
         {
           type: 'Program',
@@ -225,13 +224,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Module2']
-            }
+              parts: ['Module2'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
-        }
+          body: [],
+        },
       ];
 
       const result = analyzer.analyze(programs);
@@ -263,13 +262,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['ValidModule']
-            }
+              parts: ['ValidModule'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
-        }
+          body: [],
+        },
       ];
 
       const result = analyzer.analyze(programsWithIssues);
@@ -296,12 +295,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['SingleModule']
-          }
+            parts: ['SingleModule'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result = analyzeProgram(singleProgram);
@@ -320,12 +319,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Module1']
-            }
+              parts: ['Module1'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         },
         {
           type: 'Program',
@@ -333,13 +332,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Module2']
-            }
+              parts: ['Module2'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
-        }
+          body: [],
+        },
       ];
 
       const result = analyzePrograms(programs);
@@ -359,12 +358,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['FirstAnalysis']
-          }
+            parts: ['FirstAnalysis'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const program2: Program = {
@@ -373,12 +372,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['SecondAnalysis']
-          }
+            parts: ['SecondAnalysis'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result1 = analyzer.analyze([program1]);
@@ -401,13 +400,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Module1']
-            }
+              parts: ['Module1'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
-        }
+          body: [],
+        },
       ];
 
       analyzer.analyze(programs);
@@ -432,12 +431,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Main']
-            }
+              parts: ['Main'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         },
         {
           type: 'Program',
@@ -445,13 +444,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Utils']
-            }
+              parts: ['Utils'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
-        }
+          body: [],
+        },
       ];
 
       const result = analyzer.analyze(mockPrograms);
@@ -470,13 +469,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Game', 'Player']
-            }
+              parts: ['Game', 'Player'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
-        }
+          body: [],
+        },
       ];
 
       const result = analyzer.analyze(filePrograms);
@@ -496,12 +495,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['ExportingModule']
-            }
+              parts: ['ExportingModule'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         },
         {
           type: 'Program',
@@ -509,13 +508,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['ImportingModule']
-            }
+              parts: ['ImportingModule'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
-        }
+          body: [],
+        },
       ];
 
       const result = analyzer.analyze(programs);
@@ -535,12 +534,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
           type: 'ModuleDeclaration',
           name: {
             type: 'QualifiedName',
-            parts: ['DeclarationsModule']
-          }
+            parts: ['DeclarationsModule'],
+          },
         },
         imports: [],
         exports: [],
-        body: []
+        body: [],
       };
 
       const result = analyzer.analyze([programWithDeclarations]);
@@ -561,12 +560,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['TestModule']
-            }
+              parts: ['TestModule'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -591,12 +590,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['LegacyTest']
-            }
+              parts: ['LegacyTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const legacyResult = analyzer.analyze([program]);
@@ -622,12 +621,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Module1']
-            }
+              parts: ['Module1'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const program2: Program = {
@@ -636,12 +635,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Module2']
-            }
+              parts: ['Module2'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program1, program2]);
@@ -667,12 +666,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
               type: 'ModuleDeclaration',
               name: {
                 type: 'QualifiedName',
-                parts: ['CircularA']
-              }
+                parts: ['CircularA'],
+              },
             },
             imports: [],
             exports: [],
-            body: []
+            body: [],
           },
           {
             type: 'Program',
@@ -680,13 +679,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
               type: 'ModuleDeclaration',
               name: {
                 type: 'QualifiedName',
-                parts: ['CircularB']
-              }
+                parts: ['CircularB'],
+              },
             },
             imports: [],
             exports: [],
-            body: []
-          }
+            body: [],
+          },
         ];
 
         const result = analyzer.analyzeComprehensive(programs);
@@ -706,12 +705,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['DeclarationTest']
-            }
+              parts: ['DeclarationTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -739,12 +738,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['OptimizationTest']
-            }
+              parts: ['OptimizationTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -768,12 +767,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['ExpressionTest']
-            }
+              parts: ['ExpressionTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -800,12 +799,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['PerformanceTest']
-            }
+              parts: ['PerformanceTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -832,12 +831,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['CoordinationTest']
-            }
+              parts: ['CoordinationTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -864,12 +863,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['OptimizationScoreTest']
-            }
+              parts: ['OptimizationScoreTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -889,12 +888,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['RegisterConflictTest']
-            }
+              parts: ['RegisterConflictTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -915,12 +914,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['MetricsTest']
-            }
+              parts: ['MetricsTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -955,12 +954,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
               type: 'ModuleDeclaration',
               name: {
                 type: 'QualifiedName',
-                parts: ['Performance1']
-              }
+                parts: ['Performance1'],
+              },
             },
             imports: [],
             exports: [],
-            body: []
+            body: [],
           },
           {
             type: 'Program',
@@ -968,12 +967,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
               type: 'ModuleDeclaration',
               name: {
                 type: 'QualifiedName',
-                parts: ['Performance2']
-              }
+                parts: ['Performance2'],
+              },
             },
             imports: [],
             exports: [],
-            body: []
+            body: [],
           },
           {
             type: 'Program',
@@ -981,13 +980,13 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
               type: 'ModuleDeclaration',
               name: {
                 type: 'QualifiedName',
-                parts: ['Performance3']
-              }
+                parts: ['Performance3'],
+              },
             },
             imports: [],
             exports: [],
-            body: []
-          }
+            body: [],
+          },
         ];
 
         const result = analyzer.analyzeComprehensive(programs);
@@ -1008,12 +1007,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: [] // Invalid empty module name
-            }
+              parts: [], // Invalid empty module name
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([invalidProgram]);
@@ -1029,12 +1028,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['ErrorTest']
-            }
+              parts: ['ErrorTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);
@@ -1056,12 +1055,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['ExceptionTest']
-            }
+              parts: ['ExceptionTest'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         expect(() => {
@@ -1079,12 +1078,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Game', 'Main']
-            }
+              parts: ['Game', 'Main'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const utilsProgram: Program = {
@@ -1093,12 +1092,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['Game', 'Utils']
-            }
+              parts: ['Game', 'Utils'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([gameProgram, utilsProgram]);
@@ -1118,12 +1117,12 @@ describe('SemanticAnalyzer - Task 1.10 Integration', () => {
             type: 'ModuleDeclaration',
             name: {
               type: 'QualifiedName',
-              parts: ['OptimizationInsights']
-            }
+              parts: ['OptimizationInsights'],
+            },
           },
           imports: [],
           exports: [],
-          body: []
+          body: [],
         };
 
         const result = analyzer.analyzeComprehensive([program]);

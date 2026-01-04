@@ -24,7 +24,7 @@ export enum OptimizationLevel {
   /** Size optimization - prioritize code size over speed */
   Os = 'Os',
   /** Debug optimization - minimal optimization for debugging */
-  Og = 'Og'
+  Og = 'Og',
 }
 
 /**
@@ -54,7 +54,7 @@ export enum OptimizationCategory {
   /** Size optimization patterns */
   SIZE = 'size',
   /** Speed optimization patterns */
-  SPEED = 'speed'
+  SPEED = 'speed',
 }
 
 /**
@@ -70,7 +70,7 @@ export enum OptimizationPriority {
   /** Low priority optimizations with minimal impact */
   LOW = 'low',
   /** Optional optimizations that may or may not help */
-  OPTIONAL = 'optional'
+  OPTIONAL = 'optional',
 }
 
 /**
@@ -84,7 +84,7 @@ export enum OptimizationSafety {
   /** Potentially unsafe - careful analysis required */
   RISKY = 'risky',
   /** Unsafe - may break semantics */
-  UNSAFE = 'unsafe'
+  UNSAFE = 'unsafe',
 }
 
 /**
@@ -281,7 +281,7 @@ export enum OptimizationErrorType {
   /** Unknown pattern referenced */
   UNKNOWN_PATTERN = 'unknown_pattern',
   /** Circular pattern dependency */
-  CIRCULAR_DEPENDENCY = 'circular_dependency'
+  CIRCULAR_DEPENDENCY = 'circular_dependency',
 }
 
 /**
@@ -311,7 +311,7 @@ export enum OptimizationWarningType {
   /** Pattern may affect timing */
   TIMING_IMPACT = 'timing_impact',
   /** Pattern uses experimental features */
-  EXPERIMENTAL_FEATURE = 'experimental_feature'
+  EXPERIMENTAL_FEATURE = 'experimental_feature',
 }
 
 /**
@@ -539,7 +539,7 @@ export const DEFAULT_OPTIMIZATION_CONFIG: OptimizationConfig = {
     OptimizationCategory.MEMORY,
     OptimizationCategory.PEEPHOLE,
     OptimizationCategory.CONTROL_FLOW,
-    OptimizationCategory.ARITHMETIC
+    OptimizationCategory.ARITHMETIC,
   ]),
   disabledPatterns: new Set(),
   sizeSpeedTradeoff: 0.7, // Slightly favor speed
@@ -547,6 +547,6 @@ export const DEFAULT_OPTIMIZATION_CONFIG: OptimizationConfig = {
   debug: {
     logDecisions: false,
     generateReports: true,
-    validateCorrectness: true
-  }
+    validateCorrectness: true,
+  },
 };

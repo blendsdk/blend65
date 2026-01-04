@@ -25,17 +25,10 @@ import {
   createAssignment,
   createFunctionPrologue,
   createFunctionEpilogue,
-  type ILBuilderContext
+  type ILBuilderContext,
 } from '../il-builder.js';
 
-import {
-  createILConstant,
-  type ILProgram,
-  type ILModule,
-  type ILFunction,
-  type ILInstruction,
-  ILInstructionType
-} from '../il-types.js';
+import { createILConstant, ILInstructionType } from '../il-types.js';
 
 import type { Blend65Type } from '@blend65/semantic';
 
@@ -95,14 +88,14 @@ describe('IL Builder System Integration Tests', () => {
 
     it('should build a program with modules', () => {
       const program = programBuilder
-        .module('GameModule', (m) => {
-          m.function('main', (f) => {
+        .module('GameModule', m => {
+          m.function('main', f => {
             f.comment('Main function');
             f.return();
           });
         })
-        .module('UtilsModule', (m) => {
-          m.function('helper', (f) => {
+        .module('UtilsModule', m => {
+          m.function('helper', f => {
             f.comment('Helper function');
             f.return();
           });
@@ -140,11 +133,11 @@ describe('IL Builder System Integration Tests', () => {
 
     it('should build a module with functions', () => {
       const module = moduleBuilder
-        .function('func1', (f) => {
+        .function('func1', f => {
           f.comment('Function 1');
           f.return();
         })
-        .function('func2', (f) => {
+        .function('func2', f => {
           f.comment('Function 2');
           f.return();
         })
@@ -156,9 +149,7 @@ describe('IL Builder System Integration Tests', () => {
     });
 
     it('should include optimization metadata in module', () => {
-      const module = moduleBuilder
-        .function('testFunc', (f) => f.return())
-        .build();
+      const module = moduleBuilder.function('testFunc', f => f.return()).build();
 
       expect(module.optimizationMetadata).toBeDefined();
       expect(module.optimizationMetadata?.instructionCount).toBe(0);
@@ -254,9 +245,9 @@ describe('IL Builder System Integration Tests', () => {
 
   describe('Quick Builder Functions', () => {
     it('should create a quick program', () => {
-      const program = quickProgram('c64', (pb) => {
-        pb.module('QuickModule', (mb) => {
-          mb.function('quickFunc', (fb) => {
+      const program = quickProgram('c64', pb => {
+        pb.module('QuickModule', mb => {
+          mb.function('quickFunc', fb => {
             fb.comment('Quick function');
             fb.return();
           });
@@ -269,7 +260,7 @@ describe('IL Builder System Integration Tests', () => {
     });
 
     it('should create a quick function', () => {
-      const func = quickFunction('quickFunc', (fb) => {
+      const func = quickFunction('quickFunc', fb => {
         fb.comment('Quick function implementation');
         const result = fb.loadImmediate(100);
         fb.return(result);
@@ -305,11 +296,11 @@ describe('IL Builder System Integration Tests', () => {
       createIfThenElse(
         functionBuilder,
         condition,
-        (fb) => {
+        fb => {
           fb.comment('Then block');
           fb.loadImmediate(42);
         },
-        (fb) => {
+        fb => {
           fb.comment('Else block');
           fb.loadImmediate(0);
         }
@@ -325,7 +316,7 @@ describe('IL Builder System Integration Tests', () => {
     });
 
     it('should create assignment patterns', () => {
-      createAssignment(functionBuilder, 'result', (fb) => {
+      createAssignment(functionBuilder, 'result', fb => {
         const val = fb.loadImmediate(42);
         return fb.add(val, fb.loadImmediate(8));
       });
@@ -360,7 +351,7 @@ describe('IL Builder System Integration Tests', () => {
 
   describe('Complex Integration Patterns', () => {
     it('should build a complete game loop function', () => {
-      const gameLoop = quickFunction('gameLoop', (fb) => {
+      const gameLoop = quickFunction('gameLoop', fb => {
         createFunctionPrologue(fb, 3); // 3 local variables
 
         fb.comment('Game initialization');
@@ -396,7 +387,7 @@ describe('IL Builder System Integration Tests', () => {
     });
 
     it('should build a math utility function with multiple operations', () => {
-      const mathFunc = quickFunction('calculateScore', (fb) => {
+      const mathFunc = quickFunction('calculateScore', fb => {
         fb.comment('Calculate game score: (base * multiplier) + bonus');
 
         // Load parameters (simulated)
@@ -429,7 +420,7 @@ describe('IL Builder System Integration Tests', () => {
     it('should handle large function construction efficiently', () => {
       const startTime = performance.now();
 
-      const largeFunc = quickFunction('largeFunction', (fb) => {
+      const largeFunc = quickFunction('largeFunction', fb => {
         // Create a function with many instructions
         for (let i = 0; i < 1000; i++) {
           fb.comment(`Instruction ${i}`);
@@ -450,7 +441,7 @@ describe('IL Builder System Integration Tests', () => {
     });
 
     it('should maintain temporary ID consistency', () => {
-      const func = quickFunction('tempTest', (fb) => {
+      const func = quickFunction('tempTest', fb => {
         const temp1 = fb.createTemp();
         const temp2 = fb.createTemp();
         const temp3 = fb.createTemp();
@@ -471,9 +462,9 @@ describe('IL Builder System Integration Tests', () => {
       const targets: ('c64' | 'vic20' | 'x16')[] = ['c64', 'vic20', 'x16'];
 
       for (const target of targets) {
-        const program = quickProgram(target, (pb) => {
-          pb.module('TestModule', (mb) => {
-            mb.function('testFunc', (fb) => {
+        const program = quickProgram(target, pb => {
+          pb.module('TestModule', mb => {
+            mb.function('testFunc', fb => {
               fb.comment(`Function for ${target}`);
               fb.return();
             });
@@ -496,9 +487,9 @@ describe('IL Builder Performance Benchmarks', () => {
     const startTime = performance.now();
 
     for (let i = 0; i < iterations; i++) {
-      const program = quickProgram('c64', (pb) => {
-        pb.module('BenchModule', (mb) => {
-          mb.function('benchFunc', (fb) => {
+      const program = quickProgram('c64', pb => {
+        pb.module('BenchModule', mb => {
+          mb.function('benchFunc', fb => {
             fb.comment('Benchmark function');
             const val1 = fb.loadImmediate(i);
             const val2 = fb.loadImmediate(i * 2);
@@ -519,13 +510,15 @@ describe('IL Builder Performance Benchmarks', () => {
     // Average time per program should be reasonable (< 1ms)
     expect(avgTime).toBeLessThan(1);
 
-    console.log(`IL Builder Performance: ${iterations} programs built in ${totalTime.toFixed(2)}ms (avg: ${avgTime.toFixed(3)}ms per program)`);
+    console.log(
+      `IL Builder Performance: ${iterations} programs built in ${totalTime.toFixed(2)}ms (avg: ${avgTime.toFixed(3)}ms per program)`
+    );
   });
 
   it('should benchmark complex function construction', () => {
     const startTime = performance.now();
 
-    const complexFunc = quickFunction('complexFunction', (fb) => {
+    const complexFunc = quickFunction('complexFunction', fb => {
       // Simulate a complex function with many operations
       for (let i = 0; i < 100; i++) {
         const val1 = fb.loadImmediate(i);
@@ -536,10 +529,10 @@ describe('IL Builder Performance Benchmarks', () => {
         createIfThenElse(
           fb,
           product,
-          (builder) => {
+          builder => {
             builder.storeVariable(`result_${i}`, product);
           },
-          (builder) => {
+          builder => {
             builder.storeVariable(`result_${i}`, fb.loadImmediate(0));
           }
         );
@@ -557,6 +550,8 @@ describe('IL Builder Performance Benchmarks', () => {
     // Verify the function has expected number of instructions
     expect(complexFunc.instructions.length).toBeGreaterThan(500);
 
-    console.log(`Complex Function Build: ${complexFunc.instructions.length} instructions in ${buildTime.toFixed(2)}ms`);
+    console.log(
+      `Complex Function Build: ${complexFunc.instructions.length} instructions in ${buildTime.toFixed(2)}ms`
+    );
   });
 });

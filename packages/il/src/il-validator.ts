@@ -34,35 +34,17 @@ import type {
   ILOperand,
   ILConstant,
   ILVariable,
-  ILRegister,
   ILTemporary,
   ILLabel,
-  ILParameterReference,
-  ILReturnReference,
   Register6502,
   TemporaryScope,
   VariableScope,
   ControlFlowGraph,
-  ControlFlowBlock,
-  ControlFlowEdge
 } from './il-types';
 
-import {
-  ILInstructionType
-} from './il-types';
+import { ILInstructionType } from './il-types';
 
-import {
-  isILConstant,
-  isILVariable,
-  isILRegister,
-  isILTemporary,
-  isILMemoryLocation,
-  isILLabel,
-  isILParameterReference,
-  isILReturnReference,
-  ilValueToString,
-  ilInstructionToString
-} from './il-types';
+import { isILConstant, isILVariable, isILRegister, isILTemporary, isILLabel } from './il-types';
 
 // ============================================================================
 // VALIDATION ERROR TYPES
@@ -104,16 +86,16 @@ export enum ILValidationErrorType {
   // Type validation errors
   TYPE_MISMATCH = 'TYPE_MISMATCH',
   INVALID_TYPE_CONVERSION = 'INVALID_TYPE_CONVERSION',
-  STORAGE_CLASS_VIOLATION = 'STORAGE_CLASS_VIOLATION'
+  STORAGE_CLASS_VIOLATION = 'STORAGE_CLASS_VIOLATION',
 }
 
 /**
  * Severity levels for validation errors.
  */
 export enum ILValidationSeverity {
-  ERROR = 'ERROR',     // Critical error that prevents compilation
+  ERROR = 'ERROR', // Critical error that prevents compilation
   WARNING = 'WARNING', // Non-critical issue that should be addressed
-  INFO = 'INFO'        // Informational message
+  INFO = 'INFO', // Informational message
 }
 
 /**
@@ -460,7 +442,7 @@ export class ILValidator {
           instruction.id,
           {
             instruction,
-            suggestion: 'Check instruction operands and types'
+            suggestion: 'Check instruction operands and types',
           }
         );
       }
@@ -711,7 +693,7 @@ export class ILValidator {
           instruction.id,
           {
             expected: this.getValueTypeString(dest),
-            actual: this.getValueTypeString(source)
+            actual: this.getValueTypeString(source),
           }
         );
       }
@@ -869,7 +851,7 @@ export class ILValidator {
           instruction.id,
           {
             expected: this.getValueTypeString(left),
-            actual: this.getValueTypeString(right)
+            actual: this.getValueTypeString(right),
           }
         );
       }
@@ -915,8 +897,10 @@ export class ILValidator {
       const target = instruction.operands[1] as ILValue;
 
       // Validate condition operand
-      if (instruction.type === ILInstructionType.BRANCH_IF_TRUE ||
-          instruction.type === ILInstructionType.BRANCH_IF_FALSE) {
+      if (
+        instruction.type === ILInstructionType.BRANCH_IF_TRUE ||
+        instruction.type === ILInstructionType.BRANCH_IF_FALSE
+      ) {
         this.validateBooleanOperand(condition, instruction, 'condition');
       } else {
         // BRANCH_IF_ZERO and BRANCH_IF_NOT_ZERO accept any value
@@ -1265,7 +1249,7 @@ export class ILValidator {
     if (isILConstant(address)) {
       const constant = address as ILConstant;
       if (typeof constant.value === 'number') {
-        if (constant.value < 0 || constant.value > 0xFFFF) {
+        if (constant.value < 0 || constant.value > 0xffff) {
           this.addError(
             ILValidationErrorType.INVALID_OPERAND_TYPE,
             ILValidationSeverity.WARNING,
@@ -1278,7 +1262,11 @@ export class ILValidator {
     }
   }
 
-  private validateNumericOperand(operand: ILValue, instruction: ILInstruction, context: string): void {
+  private validateNumericOperand(
+    operand: ILValue,
+    instruction: ILInstruction,
+    context: string
+  ): void {
     this.validateValueOperand(operand, instruction);
 
     if (isILConstant(operand)) {
@@ -1295,7 +1283,11 @@ export class ILValidator {
     }
   }
 
-  private validateBooleanOperand(operand: ILValue, instruction: ILInstruction, context: string): void {
+  private validateBooleanOperand(
+    operand: ILValue,
+    instruction: ILInstruction,
+    context: string
+  ): void {
     this.validateValueOperand(operand, instruction);
 
     if (isILConstant(operand)) {
@@ -1312,7 +1304,11 @@ export class ILValidator {
     }
   }
 
-  private validateIntegerOperand(operand: ILValue, instruction: ILInstruction, context: string = 'operand'): void {
+  private validateIntegerOperand(
+    operand: ILValue,
+    instruction: ILInstruction,
+    context: string = 'operand'
+  ): void {
     this.validateValueOperand(operand, instruction);
 
     if (isILConstant(operand)) {
@@ -1406,8 +1402,10 @@ export class ILValidator {
         const rightPrim = right as PrimitiveType;
 
         // byte and word are compatible
-        if ((leftPrim.name === 'byte' && rightPrim.name === 'word') ||
-            (leftPrim.name === 'word' && rightPrim.name === 'byte')) {
+        if (
+          (leftPrim.name === 'byte' && rightPrim.name === 'word') ||
+          (leftPrim.name === 'word' && rightPrim.name === 'byte')
+        ) {
           return true;
         }
       }
@@ -1426,20 +1424,23 @@ export class ILValidator {
   private isBooleanType(value: ILValue): boolean {
     if (isILConstant(value)) {
       const constant = value as ILConstant;
-      return constant.type.kind === 'primitive' &&
-             (constant.type as PrimitiveType).name === 'boolean';
+      return (
+        constant.type.kind === 'primitive' && (constant.type as PrimitiveType).name === 'boolean'
+      );
     }
 
     if (isILVariable(value)) {
       const variable = value as ILVariable;
-      return variable.type.kind === 'primitive' &&
-             (variable.type as PrimitiveType).name === 'boolean';
+      return (
+        variable.type.kind === 'primitive' && (variable.type as PrimitiveType).name === 'boolean'
+      );
     }
 
     if (isILTemporary(value)) {
       const temporary = value as ILTemporary;
-      return temporary.type.kind === 'primitive' &&
-             (temporary.type as PrimitiveType).name === 'boolean';
+      return (
+        temporary.type.kind === 'primitive' && (temporary.type as PrimitiveType).name === 'boolean'
+      );
     }
 
     return false;
@@ -1472,20 +1473,28 @@ export class ILValidator {
   // VARIABLE LIFECYCLE METHODS
   // ============================================================================
 
-  private addVariableDefinition(variable: ILVariable, instructionId: number, isInitialized: boolean): void {
+  private addVariableDefinition(
+    variable: ILVariable,
+    instructionId: number,
+    isInitialized: boolean
+  ): void {
     const definition: VariableDefinition = {
       name: variable.name,
       type: variable.type,
       scope: variable.scope,
       definedAt: instructionId,
-      isInitialized
+      isInitialized,
     };
 
     this.context.definedVariables.set(variable.name, definition);
     this.context.statistics.variablesValidated++;
   }
 
-  private validateVariableAccess(variable: ILVariable, instructionId: number, isWrite: boolean): void {
+  private validateVariableAccess(
+    variable: ILVariable,
+    instructionId: number,
+    isWrite: boolean
+  ): void {
     const definition = this.context.definedVariables.get(variable.name);
 
     if (!definition) {
@@ -1532,7 +1541,7 @@ export class ILValidator {
         entryBlock: 0,
         exitBlocks: [],
         blocks: [],
-        edges: []
+        edges: [],
       },
       currentBlock: 0,
       reachableInstructions: new Set(),
@@ -1546,8 +1555,8 @@ export class ILValidator {
         instructionsByType: new Map(),
         variablesValidated: 0,
         temporariesValidated: 0,
-        controlFlowPaths: 0
-      }
+        controlFlowPaths: 0,
+      },
     };
   }
 
@@ -1622,7 +1631,7 @@ export class ILValidator {
         qualifiedName: [],
         type: param.type,
         storageClass: null,
-        scope: 'local'
+        scope: 'local',
       };
 
       this.addVariableDefinition(variable, 0, true); // Parameters are always initialized
@@ -1755,7 +1764,7 @@ export class ILValidator {
       instructionId,
       functionName: this.context.currentFunction?.name,
       moduleName: this.context.currentModule?.qualifiedName?.join('.'),
-      context
+      context,
     };
 
     if (severity === ILValidationSeverity.ERROR) {
@@ -1780,8 +1789,8 @@ export class ILValidator {
         instructionsByType: new Map(this.context.statistics.instructionsByType),
         variablesValidated: this.context.statistics.variablesValidated,
         temporariesValidated: this.context.statistics.temporariesValidated,
-        controlFlowPaths: this.context.statistics.controlFlowPaths
-      }
+        controlFlowPaths: this.context.statistics.controlFlowPaths,
+      },
     };
   }
 }

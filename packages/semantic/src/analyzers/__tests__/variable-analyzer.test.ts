@@ -26,22 +26,12 @@ import { TypeChecker } from '../../type-system.js';
 import {
   createPrimitiveType,
   createArrayType,
-  createScope,
   Symbol,
   VariableSymbol,
   createVariableSymbol,
-  VariableUsageStatistics,
-  ZeroPageCandidateInfo,
-  RegisterCandidateInfo,
-  VariableLifetimeInfo
 } from '../../types';
 import { VariableDeclaration, StorageClass } from '@blend65/ast';
-import {
-  ExpressionAnalysisResult,
-  VariableReference,
-  ExpressionContext,
-  createExpressionContext
-} from '../expression-analyzer.js';
+import { ExpressionAnalysisResult, createExpressionContext } from '../expression-analyzer.js';
 
 describe('VariableAnalyzer', () => {
   let symbolTable: SymbolTable;
@@ -65,12 +55,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -93,17 +83,17 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'word',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: {
           type: 'Literal',
           value: 1000,
           raw: '1000',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -124,20 +114,20 @@ describe('VariableAnalyzer', () => {
           elementType: {
             type: 'PrimitiveType',
             name: 'byte',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           size: {
             type: 'Literal',
             value: 256,
             raw: '256',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -157,12 +147,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: true,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -182,12 +172,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'zp',
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -205,12 +195,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'zp',
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Function');
@@ -229,12 +219,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'const',
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -253,17 +243,17 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'const',
         initializer: {
           type: 'Literal',
           value: 255,
           raw: '255',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -283,20 +273,20 @@ describe('VariableAnalyzer', () => {
           elementType: {
             type: 'PrimitiveType',
             name: 'byte',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           size: {
             type: 'Literal',
             value: 16,
             raw: '16',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'data',
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -316,28 +306,43 @@ describe('VariableAnalyzer', () => {
           elementType: {
             type: 'PrimitiveType',
             name: 'byte',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           size: {
             type: 'Literal',
             value: 3,
             raw: '3',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'data',
         initializer: {
           type: 'ArrayLiteral',
           elements: [
-            { type: 'Literal', value: 1, raw: '1', metadata: { start: mockLocation, end: mockLocation } },
-            { type: 'Literal', value: 2, raw: '2', metadata: { start: mockLocation, end: mockLocation } },
-            { type: 'Literal', value: 3, raw: '3', metadata: { start: mockLocation, end: mockLocation } }
+            {
+              type: 'Literal',
+              value: 1,
+              raw: '1',
+              metadata: { start: mockLocation, end: mockLocation },
+            },
+            {
+              type: 'Literal',
+              value: 2,
+              raw: '2',
+              metadata: { start: mockLocation, end: mockLocation },
+            },
+            {
+              type: 'Literal',
+              value: 3,
+              raw: '3',
+              metadata: { start: mockLocation, end: mockLocation },
+            },
           ],
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -355,12 +360,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'word',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'ram',
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const ioVar: VariableDeclaration = {
@@ -369,12 +374,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'io',
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const ramResult = variableAnalyzer.analyzeVariableDeclaration(ramVar, 'Global');
@@ -393,17 +398,17 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const secondVar: VariableDeclaration = {
         ...firstVar,
-        name: 'duplicate'
+        name: 'duplicate',
       };
 
       // First declaration should succeed
@@ -426,12 +431,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       // Declare in global scope
@@ -443,7 +448,7 @@ describe('VariableAnalyzer', () => {
 
       const localVar: VariableDeclaration = {
         ...globalVar,
-        storageClass: null // Local variables cannot have storage classes
+        storageClass: null, // Local variables cannot have storage classes
       };
 
       // Should succeed because it's in a different scope
@@ -462,17 +467,17 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: {
           type: 'Literal',
           value: 42,
           raw: '42',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -487,17 +492,17 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: {
           type: 'Literal',
           value: 70000, // Too large for byte
           raw: '70000',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -517,19 +522,19 @@ describe('VariableAnalyzer', () => {
           elementType: {
             type: 'PrimitiveType',
             name: 'byte',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           size: {
             type: 'Identifier', // Not a constant!
             name: 'variableSize',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -549,17 +554,17 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'const',
         initializer: {
           type: 'Literal',
           value: 42,
           raw: '42',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -576,27 +581,37 @@ describe('VariableAnalyzer', () => {
           elementType: {
             type: 'PrimitiveType',
             name: 'byte',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           size: {
             type: 'Literal',
             value: 2,
             raw: '2',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'data',
         initializer: {
           type: 'ArrayLiteral',
           elements: [
-            { type: 'Literal', value: 1, raw: '1', metadata: { start: mockLocation, end: mockLocation } },
-            { type: 'Literal', value: 2, raw: '2', metadata: { start: mockLocation, end: mockLocation } }
+            {
+              type: 'Literal',
+              value: 1,
+              raw: '1',
+              metadata: { start: mockLocation, end: mockLocation },
+            },
+            {
+              type: 'Literal',
+              value: 2,
+              raw: '2',
+              metadata: { start: mockLocation, end: mockLocation },
+            },
           ],
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -611,18 +626,28 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'const',
         initializer: {
           type: 'BinaryExpr',
           operator: '+',
-          left: { type: 'Literal', value: 10, raw: '10', metadata: { start: mockLocation, end: mockLocation } },
-          right: { type: 'Literal', value: 5, raw: '5', metadata: { start: mockLocation, end: mockLocation } },
-          metadata: { start: mockLocation, end: mockLocation }
+          left: {
+            type: 'Literal',
+            value: 10,
+            raw: '10',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
+          right: {
+            type: 'Literal',
+            value: 5,
+            raw: '5',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -637,17 +662,21 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'const',
         initializer: {
           type: 'CallExpr',
-          callee: { type: 'Identifier', name: 'getRandomValue', metadata: { start: mockLocation, end: mockLocation } },
+          callee: {
+            type: 'Identifier',
+            name: 'getRandomValue',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
           args: [],
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -670,20 +699,20 @@ describe('VariableAnalyzer', () => {
           elementType: {
             type: 'PrimitiveType',
             name: 'byte',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           size: {
             type: 'Literal',
             value: -1, // Invalid array size
             raw: '-1',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -702,12 +731,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: 'const', // Requires initializer
         initializer: null, // Missing initializer
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -727,7 +756,7 @@ describe('VariableAnalyzer', () => {
         { name: 'zpVar', storageClass: 'zp' as StorageClass },
         { name: 'ramVar', storageClass: 'ram' as StorageClass },
         { name: 'normalVar', storageClass: null },
-        { name: 'exportedVar', storageClass: null, exported: true }
+        { name: 'exportedVar', storageClass: null, exported: true },
       ];
 
       vars.forEach(v => {
@@ -737,12 +766,12 @@ describe('VariableAnalyzer', () => {
           varType: {
             type: 'PrimitiveType',
             name: 'byte',
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           storageClass: v.storageClass,
           initializer: null,
           exported: v.exported || false,
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         };
 
         variableAnalyzer.analyzeVariableDeclaration(varDecl, 'Global');
@@ -766,12 +795,12 @@ describe('VariableAnalyzer', () => {
         varType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: mockLocation, end: mockLocation }
+          metadata: { start: mockLocation, end: mockLocation },
         },
         storageClass: null,
         initializer: null,
         exported: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = analyzeVariableDeclaration(varDecl, symbolTable, typeChecker, 'Global');
@@ -794,17 +823,51 @@ describe('VariableAnalyzer', () => {
     beforeEach(() => {
       // Create test variables for optimization analysis
       testVariables = [
-        createVariableSymbol('counter', createPrimitiveType('byte'), symbolTable.getCurrentScope(), mockLocation, { storageClass: undefined }),
-        createVariableSymbol('playerX', createPrimitiveType('byte'), symbolTable.getCurrentScope(), mockLocation, { storageClass: 'zp' }),
-        createVariableSymbol('buffer', createArrayType(createPrimitiveType('byte'), 256), symbolTable.getCurrentScope(), mockLocation, { storageClass: 'ram' }),
-        createVariableSymbol('VIC_REG', createPrimitiveType('byte'), symbolTable.getCurrentScope(), mockLocation, { storageClass: 'io' }),
-        createVariableSymbol('gameScore', createPrimitiveType('word'), symbolTable.getCurrentScope(), mockLocation, { storageClass: undefined })
+        createVariableSymbol(
+          'counter',
+          createPrimitiveType('byte'),
+          symbolTable.getCurrentScope(),
+          mockLocation,
+          { storageClass: undefined }
+        ),
+        createVariableSymbol(
+          'playerX',
+          createPrimitiveType('byte'),
+          symbolTable.getCurrentScope(),
+          mockLocation,
+          { storageClass: 'zp' }
+        ),
+        createVariableSymbol(
+          'buffer',
+          createArrayType(createPrimitiveType('byte'), 256),
+          symbolTable.getCurrentScope(),
+          mockLocation,
+          { storageClass: 'ram' }
+        ),
+        createVariableSymbol(
+          'VIC_REG',
+          createPrimitiveType('byte'),
+          symbolTable.getCurrentScope(),
+          mockLocation,
+          { storageClass: 'io' }
+        ),
+        createVariableSymbol(
+          'gameScore',
+          createPrimitiveType('word'),
+          symbolTable.getCurrentScope(),
+          mockLocation,
+          { storageClass: undefined }
+        ),
       ];
 
       // Create mock expression analysis results with variable references
       mockExpressionResults = [
         {
-          expression: { type: 'Identifier', name: 'counter', metadata: { start: mockLocation, end: mockLocation } } as any,
+          expression: {
+            type: 'Identifier',
+            name: 'counter',
+            metadata: { start: mockLocation, end: mockLocation },
+          } as any,
           resolvedType: createPrimitiveType('byte'),
           optimizationData: {
             usedVariables: [
@@ -812,21 +875,25 @@ describe('VariableAnalyzer', () => {
                 symbol: testVariables[0], // counter
                 accessType: 'read',
                 location: mockLocation,
-                context: createExpressionContext({ loopDepth: 1, inHotPath: true })
+                context: createExpressionContext({ loopDepth: 1, inHotPath: true }),
               },
               {
                 symbol: testVariables[0], // counter (multiple accesses)
                 accessType: 'modify',
                 location: mockLocation,
-                context: createExpressionContext({ loopDepth: 1, inHotPath: true })
-              }
-            ]
+                context: createExpressionContext({ loopDepth: 1, inHotPath: true }),
+              },
+            ],
           } as any,
           errors: [],
-          warnings: []
+          warnings: [],
         },
         {
-          expression: { type: 'Identifier', name: 'playerX', metadata: { start: mockLocation, end: mockLocation } } as any,
+          expression: {
+            type: 'Identifier',
+            name: 'playerX',
+            metadata: { start: mockLocation, end: mockLocation },
+          } as any,
           resolvedType: createPrimitiveType('byte'),
           optimizationData: {
             usedVariables: [
@@ -834,19 +901,22 @@ describe('VariableAnalyzer', () => {
                 symbol: testVariables[1], // playerX
                 accessType: 'write',
                 location: mockLocation,
-                context: createExpressionContext({ loopDepth: 0, inHotPath: false })
-              }
-            ]
+                context: createExpressionContext({ loopDepth: 0, inHotPath: false }),
+              },
+            ],
           } as any,
           errors: [],
-          warnings: []
-        }
+          warnings: [],
+        },
       ];
     });
 
     describe('Variable Usage Metadata Collection', () => {
       it('should collect basic usage statistics', () => {
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, mockExpressionResults);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          mockExpressionResults
+        );
 
         expect(usageMap.size).toBe(testVariables.length);
         expect(usageMap.has('counter')).toBe(true);
@@ -861,7 +931,10 @@ describe('VariableAnalyzer', () => {
       });
 
       it('should determine access frequency correctly', () => {
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, mockExpressionResults);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          mockExpressionResults
+        );
 
         const counterStats = usageMap.get('counter')!;
         expect(counterStats.estimatedAccessFrequency).toBe('hot'); // Hot path usage
@@ -874,7 +947,10 @@ describe('VariableAnalyzer', () => {
       });
 
       it('should determine access patterns correctly', () => {
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, mockExpressionResults);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          mockExpressionResults
+        );
 
         const counterStats = usageMap.get('counter')!;
         expect(counterStats.accessPattern).toBe('hot_path'); // Hot path usage
@@ -894,24 +970,33 @@ describe('VariableAnalyzer', () => {
         expect(candidates).toHaveLength(testVariables.length);
 
         // Find counter candidate (should be good candidate)
-        const counterCandidate = candidates.find(c => c.sizeRequirement === 1 && !c.antiPromotionFactors.some(f => f.factor === 'already_zp'));
+        const counterCandidate = candidates.find(
+          c =>
+            c.sizeRequirement === 1 && !c.antiPromotionFactors.some(f => f.factor === 'already_zp')
+        );
         expect(counterCandidate).toBeDefined();
         expect(counterCandidate!.isCandidate).toBe(true);
         expect(counterCandidate!.promotionScore).toBeGreaterThan(40);
-        expect(counterCandidate!.recommendation).toBeOneOf(['neutral', 'recommended', 'strongly_recommended']);
+        expect(counterCandidate!.recommendation).toBeOneOf([
+          'neutral',
+          'recommended',
+          'strongly_recommended',
+        ]);
       });
 
       it('should reject variables already in zero page', () => {
         const candidates = variableAnalyzer.analyzeZeroPageCandidates(testVariables);
 
         // Find playerX candidate (already zp)
-        const playerXCandidate = candidates.find(c => c.antiPromotionFactors.some(f => f.factor === 'already_zp'));
+        const playerXCandidate = candidates.find(c =>
+          c.antiPromotionFactors.some(f => f.factor === 'already_zp')
+        );
         expect(playerXCandidate).toBeDefined();
         expect(playerXCandidate!.antiPromotionFactors).toContainEqual(
           expect.objectContaining({
             factor: 'already_zp',
             weight: 100,
-            description: 'Variable already has zp storage class'
+            description: 'Variable already has zp storage class',
           })
         );
       });
@@ -920,13 +1005,15 @@ describe('VariableAnalyzer', () => {
         const candidates = variableAnalyzer.analyzeZeroPageCandidates(testVariables);
 
         // Find VIC_REG candidate (I/O variable)
-        const ioCandidate = candidates.find(c => c.antiPromotionFactors.some(f => f.factor === 'io_access'));
+        const ioCandidate = candidates.find(c =>
+          c.antiPromotionFactors.some(f => f.factor === 'io_access')
+        );
         expect(ioCandidate).toBeDefined();
         expect(ioCandidate!.antiPromotionFactors).toContainEqual(
           expect.objectContaining({
             factor: 'io_access',
             weight: 100,
-            description: 'I/O variables should remain in I/O address space'
+            description: 'I/O variables should remain in I/O address space',
           })
         );
       });
@@ -942,7 +1029,9 @@ describe('VariableAnalyzer', () => {
         // Large array should get size penalty
         const arrayCandidate = candidates.find(c => c.sizeRequirement === 256);
         expect(arrayCandidate).toBeDefined();
-        expect(arrayCandidate!.antiPromotionFactors.some(f => f.factor === 'large_size')).toBe(true);
+        expect(arrayCandidate!.antiPromotionFactors.some(f => f.factor === 'large_size')).toBe(
+          true
+        );
       });
 
       it('should calculate promotion scores correctly', () => {
@@ -979,7 +1068,9 @@ describe('VariableAnalyzer', () => {
         expect(byteCandidate!.preferredRegister).toBeOneOf(['A', 'X', 'Y']);
 
         // Arrays should not be register candidates
-        const arrayCandidate = candidates.find(c => !c.isCandidate && c.recommendation === 'impossible');
+        const arrayCandidate = candidates.find(
+          c => !c.isCandidate && c.recommendation === 'impossible'
+        );
         expect(arrayCandidate).toBeDefined();
       });
 
@@ -1011,7 +1102,9 @@ describe('VariableAnalyzer', () => {
         // Variables with explicit storage classes should have lower scores
         const explicitStorageCandidates = candidates.filter(c => {
           // Find candidates for variables with explicit storage classes
-          const varName = testVariables.find(v => v.storageClass !== null && v.storageClass !== undefined)?.name;
+          const varName = testVariables.find(
+            v => v.storageClass !== null && v.storageClass !== undefined
+          )?.name;
           return varName && c.allocationScore >= 0; // This is a simplified check
         });
 
@@ -1036,7 +1129,13 @@ describe('VariableAnalyzer', () => {
 
       it('should estimate different lifetimes for local vs global variables', () => {
         // Create a local variable for testing
-        const localVar = createVariableSymbol('localVar', createPrimitiveType('byte'), symbolTable.getCurrentScope(), mockLocation, { isLocal: true });
+        const localVar = createVariableSymbol(
+          'localVar',
+          createPrimitiveType('byte'),
+          symbolTable.getCurrentScope(),
+          mockLocation,
+          { isLocal: true }
+        );
         const testVarsWithLocal = [...testVariables, localVar];
 
         const lifetimeInfos = variableAnalyzer.analyzeVariableLifetimes(testVarsWithLocal);
@@ -1044,14 +1143,22 @@ describe('VariableAnalyzer', () => {
         const localVarLifetime = lifetimeInfos[lifetimeInfos.length - 1]; // Last one added
         const globalVarLifetime = lifetimeInfos[0]; // First one (global)
 
-        expect(localVarLifetime.estimatedDuration).toBeLessThan(globalVarLifetime.estimatedDuration);
+        expect(localVarLifetime.estimatedDuration).toBeLessThan(
+          globalVarLifetime.estimatedDuration
+        );
       });
     });
 
     describe('Complete Optimization Metadata Building', () => {
       it('should build comprehensive metadata for all variables', () => {
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, mockExpressionResults);
-        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(testVariables, usageMap);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          mockExpressionResults
+        );
+        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(
+          testVariables,
+          usageMap
+        );
 
         expect(metadataMap.size).toBe(testVariables.length);
 
@@ -1070,8 +1177,14 @@ describe('VariableAnalyzer', () => {
       });
 
       it('should generate appropriate 6502 optimization hints', () => {
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, mockExpressionResults);
-        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(testVariables, usageMap);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          mockExpressionResults
+        );
+        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(
+          testVariables,
+          usageMap
+        );
 
         for (const [varName, metadata] of metadataMap) {
           const hints = metadata.sixtyTwoHints;
@@ -1092,15 +1205,27 @@ describe('VariableAnalyzer', () => {
       });
 
       it('should generate memory layout information', () => {
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, mockExpressionResults);
-        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(testVariables, usageMap);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          mockExpressionResults
+        );
+        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(
+          testVariables,
+          usageMap
+        );
 
         for (const [varName, metadata] of metadataMap) {
           const layout = metadata.memoryLayout;
 
           expect(layout.preferredRegion).toBeOneOf([
-            'zero_page_high_priority', 'zero_page_normal', 'ram_fast', 'ram_normal',
-            'ram_slow', 'data_section', 'bss_section', 'io_region'
+            'zero_page_high_priority',
+            'zero_page_normal',
+            'ram_fast',
+            'ram_normal',
+            'ram_slow',
+            'data_section',
+            'bss_section',
+            'io_region',
           ]);
 
           expect(layout.sizeInBytes).toBeGreaterThan(0);
@@ -1113,8 +1238,14 @@ describe('VariableAnalyzer', () => {
     describe('Variable Size Calculation', () => {
       it('should calculate correct sizes for different variable types', () => {
         // Test through the buildVariableOptimizationMetadata method which uses calculateVariableSizeInBytes
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, mockExpressionResults);
-        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(testVariables, usageMap);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          mockExpressionResults
+        );
+        const metadataMap = variableAnalyzer.buildVariableOptimizationMetadata(
+          testVariables,
+          usageMap
+        );
 
         // Check byte variable size
         const byteVarMetadata = metadataMap.get('counter');
@@ -1156,12 +1287,12 @@ describe('VariableAnalyzer', () => {
                   symbol: testVariables[0], // counter
                   accessType: 'read',
                   location: mockLocation,
-                  context: createExpressionContext({ loopDepth: 2, inHotPath: true })
-                }
-              ]
+                  context: createExpressionContext({ loopDepth: 2, inHotPath: true }),
+                },
+              ],
             } as any,
             errors: [],
-            warnings: []
+            warnings: [],
           },
           {
             expression: { type: 'Identifier', name: 'counter' } as any,
@@ -1172,16 +1303,19 @@ describe('VariableAnalyzer', () => {
                   symbol: testVariables[0], // counter (same variable)
                   accessType: 'write',
                   location: mockLocation,
-                  context: createExpressionContext({ loopDepth: 2, inHotPath: true })
-                }
-              ]
+                  context: createExpressionContext({ loopDepth: 2, inHotPath: true }),
+                },
+              ],
             } as any,
             errors: [],
-            warnings: []
-          }
+            warnings: [],
+          },
         ];
 
-        const usageMap = variableAnalyzer.collectVariableUsageMetadata(testVariables, multipleRefsResults);
+        const usageMap = variableAnalyzer.collectVariableUsageMetadata(
+          testVariables,
+          multipleRefsResults
+        );
         const counterStats = usageMap.get('counter')!;
 
         expect(counterStats.accessCount).toBe(2);
@@ -1218,13 +1352,13 @@ describe('VariableAnalyzer', () => {
                   symbol: { name: 'nonexistent' } as any, // Invalid symbol
                   accessType: 'read',
                   location: mockLocation,
-                  context: createExpressionContext()
-                }
-              ]
+                  context: createExpressionContext(),
+                },
+              ],
             } as any,
             errors: [],
-            warnings: []
-          }
+            warnings: [],
+          },
         ];
 
         // Should not throw errors, should gracefully handle unknown variables

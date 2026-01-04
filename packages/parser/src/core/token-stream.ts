@@ -66,7 +66,7 @@ export class TokenStream {
         type: TokenType.EOF,
         value: '',
         start: { line: 0, column: 0, offset: 0 },
-        end: { line: 0, column: 0, offset: 0 }
+        end: { line: 0, column: 0, offset: 0 },
       };
     }
     return this.tokens[pos];
@@ -181,7 +181,7 @@ export class TokenStream {
     while (!this.isAtEnd() && this.checkLexemes(...lexemes)) {
       this.advance();
     }
-    }
+  }
 
   /**
    * Skip whitespace tokens (newlines, comments, etc.)
@@ -288,7 +288,8 @@ export class TokenStream {
   restore(snapshotId: number): void {
     if (snapshotId >= 0 && snapshotId < this.snapshots.length) {
       const savedPosition = this.snapshots[snapshotId];
-      if (savedPosition !== undefined && savedPosition !== -1) { // Check if valid and not released
+      if (savedPosition !== undefined && savedPosition !== -1) {
+        // Check if valid and not released
         this.position = savedPosition;
       }
     }
@@ -365,10 +366,12 @@ export class TokenStream {
     const previous = this.position > 0 ? this.previous() : null;
     const next = !this.isAtEnd() ? this.peek(1) : null;
 
-    return `Position: ${this.position}/${this.tokens.length}, ` +
-           `Previous: ${previous?.value || 'N/A'}, ` +
-           `Current: ${current.value}, ` +
-           `Next: ${next?.value || 'N/A'}`;
+    return (
+      `Position: ${this.position}/${this.tokens.length}, ` +
+      `Previous: ${previous?.value || 'N/A'}, ` +
+      `Current: ${current.value}, ` +
+      `Next: ${next?.value || 'N/A'}`
+    );
   }
 
   /**

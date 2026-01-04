@@ -84,7 +84,13 @@ export interface VisualizationPreference {
   interactiveFeatures: InteractiveFeature[];
 }
 
-export type VisualizationType = 'LineChart' | 'BarChart' | 'ScatterPlot' | 'Heatmap' | 'Dashboard' | 'Table';
+export type VisualizationType =
+  | 'LineChart'
+  | 'BarChart'
+  | 'ScatterPlot'
+  | 'Heatmap'
+  | 'Dashboard'
+  | 'Table';
 
 /**
  * Data series for visualization.
@@ -246,7 +252,13 @@ export interface InteractiveFeature {
   priority: FeaturePriority;
 }
 
-export type InteractiveFeatureType = 'Zoom' | 'Pan' | 'Tooltip' | 'Drill Down' | 'Filter' | 'Export';
+export type InteractiveFeatureType =
+  | 'Zoom'
+  | 'Pan'
+  | 'Tooltip'
+  | 'Drill Down'
+  | 'Filter'
+  | 'Export';
 export type FeaturePriority = 'Low' | 'Medium' | 'High' | 'Essential';
 
 /**
@@ -338,7 +350,12 @@ export interface ReportCustomization {
   scope: CustomizationScope;
 }
 
-export type ReportCustomizationType = 'Branding' | 'Layout' | 'Content' | 'Styling' | 'Functionality';
+export type ReportCustomizationType =
+  | 'Branding'
+  | 'Layout'
+  | 'Content'
+  | 'Styling'
+  | 'Functionality';
 export type CustomizationPriority = 'Low' | 'Medium' | 'High' | 'Required';
 export type CustomizationScope = 'Global' | 'Report' | 'Section' | 'Component';
 
@@ -666,7 +683,12 @@ export interface CausalityAssessment {
   confoundingFactors: string[];
 }
 
-export type CausalityLikelihood = 'VeryLikely' | 'Likely' | 'Possible' | 'Unlikely' | 'VeryUnlikely';
+export type CausalityLikelihood =
+  | 'VeryLikely'
+  | 'Likely'
+  | 'Possible'
+  | 'Unlikely'
+  | 'VeryUnlikely';
 export type CausalDirection = 'Forward' | 'Reverse' | 'Bidirectional' | 'None';
 export type EvidenceStrength = 'Weak' | 'Moderate' | 'Strong' | 'VeryStrong';
 
@@ -766,7 +788,11 @@ export interface TrendDriver {
 
 export type DriverInfluence = 'Minor' | 'Moderate' | 'Major' | 'Dominant';
 export type DriverControllability = 'Uncontrollable' | 'Limited' | 'Moderate' | 'High';
-export type DriverPredictability = 'Unpredictable' | 'SomewhatPredictable' | 'Predictable' | 'HighlyPredictable';
+export type DriverPredictability =
+  | 'Unpredictable'
+  | 'SomewhatPredictable'
+  | 'Predictable'
+  | 'HighlyPredictable';
 
 /**
  * Trend risk.
@@ -1195,7 +1221,11 @@ export interface TechnicalDebtImpact {
   codeQualityImpact: CodeQualityImpactLevel;
 }
 
-export type CodeQualityImpactLevel = 'Improved' | 'Unchanged' | 'Degraded' | 'Significantly_Degraded';
+export type CodeQualityImpactLevel =
+  | 'Improved'
+  | 'Unchanged'
+  | 'Degraded'
+  | 'Significantly_Degraded';
 
 /**
  * Bottleneck resolution strategy.
@@ -1217,7 +1247,12 @@ export interface BottleneckResolutionStrategy {
   timeline: StrategyTimeline;
 }
 
-export type ResolutionApproach = 'Optimization' | 'Replacement' | 'Workaround' | 'Scaling' | 'Redesign';
+export type ResolutionApproach =
+  | 'Optimization'
+  | 'Replacement'
+  | 'Workaround'
+  | 'Scaling'
+  | 'Redesign';
 export type ResolutionComplexity = 'Simple' | 'Moderate' | 'Complex' | 'VeryComplex';
 export type StrategyTimeline = 'Immediate' | 'Short' | 'Medium' | 'Long';
 

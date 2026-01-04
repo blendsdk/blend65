@@ -22,15 +22,11 @@ import {
   Symbol,
   Scope,
   ScopeType,
-  VariableSymbol,
-  FunctionSymbol,
   ModuleSymbol,
-  TypeSymbol,
-  EnumSymbol,
   SemanticError,
   SemanticResult,
   ImportInfo,
-  createScope
+  createScope,
 } from './types.js';
 
 // ============================================================================
@@ -102,7 +98,7 @@ export class SymbolTable {
       this.addError({
         errorType: 'InvalidScope',
         message: 'Cannot exit global scope',
-        location: { line: 0, column: 0, offset: 0 }
+        location: { line: 0, column: 0, offset: 0 },
       });
     }
   }
@@ -143,19 +139,21 @@ export class SymbolTable {
         location: symbol.sourceLocation,
         suggestions: [
           `Use a different name for the ${symbol.symbolType.toLowerCase()}`,
-          `Check if you meant to reference the existing ${existing.symbolType.toLowerCase()}`
+          `Check if you meant to reference the existing ${existing.symbolType.toLowerCase()}`,
         ],
-        relatedErrors: [{
-          errorType: 'DuplicateSymbol',
-          message: `Previous declaration of '${symbol.name}' was here`,
-          location: existing.sourceLocation
-        }]
+        relatedErrors: [
+          {
+            errorType: 'DuplicateSymbol',
+            message: `Previous declaration of '${symbol.name}' was here`,
+            location: existing.sourceLocation,
+          },
+        ],
       };
 
       this.addError(error);
       return {
         success: false,
-        errors: [error]
+        errors: [error],
       };
     }
 
@@ -171,7 +169,7 @@ export class SymbolTable {
 
     return {
       success: true,
-      data: undefined
+      data: undefined,
     };
   }
 
@@ -298,7 +296,7 @@ export class SymbolTable {
 
     return {
       success: true,
-      data: undefined
+      data: undefined,
     };
   }
 
@@ -326,14 +324,14 @@ export class SymbolTable {
         location: symbol.sourceLocation,
         suggestions: [
           'Move export declaration inside a module',
-          'Remove export keyword for non-module symbols'
-        ]
+          'Remove export keyword for non-module symbols',
+        ],
       };
 
       this.addError(error);
       return {
         success: false,
-        errors: [error]
+        errors: [error],
       };
     }
 
@@ -342,13 +340,13 @@ export class SymbolTable {
       const error: SemanticError = {
         errorType: 'DuplicateSymbol',
         message: `Symbol '${symbol.name}' is already exported from module '${currentModule.qualifiedName.join('.')}'`,
-        location: symbol.sourceLocation
+        location: symbol.sourceLocation,
       };
 
       this.addError(error);
       return {
         success: false,
-        errors: [error]
+        errors: [error],
       };
     }
 
@@ -358,7 +356,7 @@ export class SymbolTable {
 
     return {
       success: true,
-      data: undefined
+      data: undefined,
     };
   }
 
@@ -379,14 +377,14 @@ export class SymbolTable {
         location,
         suggestions: [
           'Move import declaration inside a module',
-          'Use qualified names instead of imports'
-        ]
+          'Use qualified names instead of imports',
+        ],
       };
 
       this.addError(error);
       return {
         success: false,
-        errors: [error]
+        errors: [error],
       };
     }
 
@@ -401,14 +399,14 @@ export class SymbolTable {
         location,
         suggestions: [
           `Check if module '${sourceModuleName}' is declared`,
-          'Check module name spelling and case'
-        ]
+          'Check module name spelling and case',
+        ],
       };
 
       this.addError(error);
       return {
         success: false,
-        errors: [error]
+        errors: [error],
       };
     }
 
@@ -421,14 +419,14 @@ export class SymbolTable {
         suggestions: [
           `Check if '${importInfo.importedName}' is exported from module '${sourceModuleName}'`,
           'Check symbol name spelling and case',
-          `Available exports: ${Array.from(sourceModule.exports.keys()).join(', ')}`
-        ]
+          `Available exports: ${Array.from(sourceModule.exports.keys()).join(', ')}`,
+        ],
       };
 
       this.addError(error);
       return {
         success: false,
-        errors: [error]
+        errors: [error],
       };
     }
 
@@ -441,7 +439,7 @@ export class SymbolTable {
 
     return {
       success: true,
-      data: undefined
+      data: undefined,
     };
   }
 
@@ -499,19 +497,21 @@ export class SymbolTable {
           location,
           suggestions: [
             `Use a different name to avoid shadowing`,
-            `Consider if you meant to reference the outer symbol`
+            `Consider if you meant to reference the outer symbol`,
           ],
-          relatedErrors: [{
-            errorType: 'InvalidScope',
-            message: `Shadowed symbol '${symbolName}' declared here`,
-            location: shadowedSymbol.sourceLocation
-          }]
+          relatedErrors: [
+            {
+              errorType: 'InvalidScope',
+              message: `Shadowed symbol '${symbolName}' declared here`,
+              location: shadowedSymbol.sourceLocation,
+            },
+          ],
         };
 
         return {
           success: true,
           data: undefined,
-          warnings: [warning]
+          warnings: [warning],
         };
       }
       scope = scope.parent;
@@ -519,7 +519,7 @@ export class SymbolTable {
 
     return {
       success: true,
-      data: undefined
+      data: undefined,
     };
   }
 
@@ -638,7 +638,7 @@ export class SymbolTable {
       totalScopes: scopeCount,
       moduleCount: this.modules.size,
       errorCount: this.errors.length,
-      maxScopeDepth: this.getMaxScopeDepth(this.globalScope, 0)
+      maxScopeDepth: this.getMaxScopeDepth(this.globalScope, 0),
     };
   }
 
@@ -704,7 +704,7 @@ export function validateSymbolTable(symbolTable: SymbolTable): SemanticResult<vo
       errors.push({
         errorType: 'CircularDependency',
         message: 'Circular scope reference detected',
-        location: { line: 0, column: 0, offset: 0 }
+        location: { line: 0, column: 0, offset: 0 },
       });
       return;
     }
@@ -717,7 +717,7 @@ export function validateSymbolTable(symbolTable: SymbolTable): SemanticResult<vo
         errors.push({
           errorType: 'InvalidScope',
           message: 'Invalid parent-child scope relationship',
-          location: { line: 0, column: 0, offset: 0 }
+          location: { line: 0, column: 0, offset: 0 },
         });
       }
       validateScope(child);
@@ -731,13 +731,13 @@ export function validateSymbolTable(symbolTable: SymbolTable): SemanticResult<vo
   if (errors.length > 0) {
     return {
       success: false,
-      errors
+      errors,
     };
   }
 
   return {
     success: true,
-    data: undefined
+    data: undefined,
   };
 }
 

@@ -14,11 +14,7 @@
  */
 
 import { SourcePosition } from '@blend65/lexer';
-import type {
-  PatternCategory,
-  TargetPlatform,
-  TransformationImpact
-} from './pattern-system';
+import type { TargetPlatform, TransformationImpact } from './pattern-system';
 
 // ============================================================================
 // CORE COLLECTION TYPES
@@ -126,12 +122,12 @@ export interface VarianceCause {
 }
 
 export type VarianceCauseType =
-  | 'NodeComplexity'      // Node complexity varies
-  | 'CacheMiss'          // Cache miss causes variance
-  | 'MemoryPressure'     // Memory pressure affects performance
-  | 'ContextLookup'      // Context lookup times vary
-  | 'PatternComplexity'  // Pattern complexity affects time
-  | 'SystemLoad';        // System load causes variance
+  | 'NodeComplexity' // Node complexity varies
+  | 'CacheMiss' // Cache miss causes variance
+  | 'MemoryPressure' // Memory pressure affects performance
+  | 'ContextLookup' // Context lookup times vary
+  | 'PatternComplexity' // Pattern complexity affects time
+  | 'SystemLoad'; // System load causes variance
 
 /**
  * Performance bottleneck information.
@@ -157,10 +153,10 @@ export interface PerformanceBottleneck {
 }
 
 export type BottleneckType =
-  | 'CPUBound'           // CPU-intensive operation
-  | 'MemoryBound'        // Memory bandwidth limited
-  | 'CacheBound'         // Cache performance limited
-  | 'IOBound'            // I/O limited
+  | 'CPUBound' // CPU-intensive operation
+  | 'MemoryBound' // Memory bandwidth limited
+  | 'CacheBound' // Cache performance limited
+  | 'IOBound' // I/O limited
   | 'AlgorithmicComplexity' // Algorithm complexity issue
   | 'ContainerOverhead'; // Data structure overhead
 
@@ -419,11 +415,11 @@ export interface MetricsCollectionWarning {
 }
 
 export type MetricsWarningType =
-  | 'HighOverhead'       // Metrics collection overhead too high
-  | 'DataLoss'           // Some metrics data was lost
-  | 'InaccurateTimings'  // Timing measurements may be inaccurate
-  | 'MemoryPressure'     // Memory pressure affecting collection
-  | 'SamplingBias';      // Sampling may introduce bias
+  | 'HighOverhead' // Metrics collection overhead too high
+  | 'DataLoss' // Some metrics data was lost
+  | 'InaccurateTimings' // Timing measurements may be inaccurate
+  | 'MemoryPressure' // Memory pressure affecting collection
+  | 'SamplingBias'; // Sampling may introduce bias
 
 export type MetricsWarningSeverity = 'Info' | 'Warning' | 'Error' | 'Critical';
 export type DataQualityImpact = 'None' | 'Minor' | 'Moderate' | 'Major' | 'Severe';
@@ -561,7 +557,11 @@ export interface ThroughputTrend {
   confidence: number;
 }
 
-export type ThroughputMetric = 'NodesPerSecond' | 'PatternsPerSecond' | 'BytesPerSecond' | 'EfficiencyScore';
+export type ThroughputMetric =
+  | 'NodesPerSecond'
+  | 'PatternsPerSecond'
+  | 'BytesPerSecond'
+  | 'EfficiencyScore';
 export type ThroughputDirection = 'Increasing' | 'Stable' | 'Decreasing' | 'Volatile';
 
 /**
@@ -642,7 +642,12 @@ export interface EfficiencyFactor {
 }
 
 export type EfficiencyFactorImpact = 'Negligible' | 'Minor' | 'Moderate' | 'Major' | 'Critical';
-export type FactorControllability = 'Uncontrollable' | 'Difficult' | 'Moderate' | 'Easy' | 'FullControl';
+export type FactorControllability =
+  | 'Uncontrollable'
+  | 'Difficult'
+  | 'Moderate'
+  | 'Easy'
+  | 'FullControl';
 
 /**
  * Efficiency improvement recommendation.
@@ -708,12 +713,12 @@ export interface TransformationBottleneck {
 }
 
 export type TransformationBottleneckType =
-  | 'NodeCreation'       // Creating new AST nodes is slow
-  | 'NodeModification'   // Modifying AST nodes is slow
-  | 'SymbolLookup'       // Symbol table lookups are slow
-  | 'TypeChecking'       // Type checking is slow
+  | 'NodeCreation' // Creating new AST nodes is slow
+  | 'NodeModification' // Modifying AST nodes is slow
+  | 'SymbolLookup' // Symbol table lookups are slow
+  | 'TypeChecking' // Type checking is slow
   | 'ValidationOverhead' // Validation is taking too long
-  | 'MemoryAllocation';  // Memory allocation is slow
+  | 'MemoryAllocation'; // Memory allocation is slow
 
 export type BottleneckSeverity = 'Minor' | 'Moderate' | 'Major' | 'Critical' | 'Blocking';
 
@@ -776,7 +781,12 @@ export interface BottleneckOptimizationBenefit {
   timeline: BenefitRealizationTimeline;
 }
 
-export type BottleneckBenefitType = 'Performance' | 'Throughput' | 'Efficiency' | 'Scalability' | 'UserExperience';
+export type BottleneckBenefitType =
+  | 'Performance'
+  | 'Throughput'
+  | 'Efficiency'
+  | 'Scalability'
+  | 'UserExperience';
 export type BenefitRealizationTimeline = 'Immediate' | 'Short' | 'Medium' | 'Long';
 
 /**
@@ -850,8 +860,17 @@ export interface VarianceRootCause {
   mitigationStrategies: VarianceMitigationStrategy[];
 }
 
-export type VarianceCategory = 'InputData' | 'SystemLoad' | 'AlgorithmicComplexity' | 'ResourceContention' | 'ExternalFactors';
-export type CauseControllability = 'FullyControllable' | 'PartiallyControllable' | 'MinimallyControllable' | 'Uncontrollable';
+export type VarianceCategory =
+  | 'InputData'
+  | 'SystemLoad'
+  | 'AlgorithmicComplexity'
+  | 'ResourceContention'
+  | 'ExternalFactors';
+export type CauseControllability =
+  | 'FullyControllable'
+  | 'PartiallyControllable'
+  | 'MinimallyControllable'
+  | 'Uncontrollable';
 
 /**
  * Variance mitigation strategy.
@@ -982,11 +1001,11 @@ export interface PredictionErrorCause {
 }
 
 export type PredictionErrorCauseType =
-  | 'InsufficientData'    // Not enough historical data
-  | 'ChangedConditions'   // Conditions changed from training data
-  | 'ModelLimitations'    // Model has inherent limitations
-  | 'MeasurementError'    // Measurement accuracy issues
-  | 'ExternalFactors';    // External factors not considered
+  | 'InsufficientData' // Not enough historical data
+  | 'ChangedConditions' // Conditions changed from training data
+  | 'ModelLimitations' // Model has inherent limitations
+  | 'MeasurementError' // Measurement accuracy issues
+  | 'ExternalFactors'; // External factors not considered
 
 export type MitigationDifficulty = 'Easy' | 'Moderate' | 'Hard' | 'VeryHard' | 'Impossible';
 
@@ -1007,7 +1026,11 @@ export interface EffectivenessTrend {
   analysis: EffectivenessTrendAnalysis;
 }
 
-export type EffectivenessTrendMetric = 'SuccessRate' | 'ImprovementMagnitude' | 'ValidationRate' | 'RollbackRate';
+export type EffectivenessTrendMetric =
+  | 'SuccessRate'
+  | 'ImprovementMagnitude'
+  | 'ValidationRate'
+  | 'RollbackRate';
 export type EffectivenessTrendDirection = 'Improving' | 'Stable' | 'Declining' | 'Volatile';
 export type TrendStrength = 'Weak' | 'Moderate' | 'Strong' | 'VeryStrong';
 
@@ -1046,7 +1069,11 @@ export interface EffectivenessTrendDriver {
 }
 
 export type TrendDriverImpact = 'Negligible' | 'Minor' | 'Moderate' | 'Major' | 'Dominant';
-export type DriverPredictability = 'Predictable' | 'MostlyPredictable' | 'SomewhatPredictable' | 'Unpredictable';
+export type DriverPredictability =
+  | 'Predictable'
+  | 'MostlyPredictable'
+  | 'SomewhatPredictable'
+  | 'Unpredictable';
 export type DriverControlLevel = 'FullControl' | 'PartialControl' | 'LimitedControl' | 'NoControl';
 
 /**
@@ -1088,9 +1115,19 @@ export interface ProjectionAssumption {
   monitoringStrategy: AssumptionMonitoringStrategy;
 }
 
-export type AssumptionValidity = 'VeryLikely' | 'Likely' | 'Uncertain' | 'Unlikely' | 'VeryUnlikely';
+export type AssumptionValidity =
+  | 'VeryLikely'
+  | 'Likely'
+  | 'Uncertain'
+  | 'Unlikely'
+  | 'VeryUnlikely';
 export type AssumptionImpact = 'Negligible' | 'Minor' | 'Moderate' | 'Major' | 'Critical';
-export type AssumptionMonitoringStrategy = 'Continuous' | 'Periodic' | 'Triggered' | 'Manual' | 'None';
+export type AssumptionMonitoringStrategy =
+  | 'Continuous'
+  | 'Periodic'
+  | 'Triggered'
+  | 'Manual'
+  | 'None';
 
 /**
  * Risk factor for projections.
@@ -1151,10 +1188,10 @@ export interface EffectivenessIntervention {
 }
 
 export type InterventionType =
-  | 'ProcessImprovement'  // Improve development process
-  | 'ToolUpgrade'        // Upgrade tools or techniques
-  | 'TrainingProgram'    // Training for development team
-  | 'QualityGate'        // Add quality gates
+  | 'ProcessImprovement' // Improve development process
+  | 'ToolUpgrade' // Upgrade tools or techniques
+  | 'TrainingProgram' // Training for development team
+  | 'QualityGate' // Add quality gates
   | 'AutomationIncrease' // Increase automation level
   | 'ResourceReallocation'; // Reallocate resources
 
@@ -1236,7 +1273,12 @@ export interface CodeQualityTrend {
   projection: QualityTrendProjection;
 }
 
-export type CodeQualityTrendMetric = 'Complexity' | 'Maintainability' | 'Readability' | 'Testability' | 'Documentation';
+export type CodeQualityTrendMetric =
+  | 'Complexity'
+  | 'Maintainability'
+  | 'Readability'
+  | 'Testability'
+  | 'Documentation';
 export type QualityTrendDirection = 'Improving' | 'Stable' | 'Declining' | 'Volatile';
 
 /**
@@ -1552,7 +1594,13 @@ export interface LatencySpike {
   cause: LatencySpikeCause;
 }
 
-export type LatencySpikeCause = 'SystemLoad' | 'ResourceContention' | 'GarbageCollection' | 'NetworkDelay' | 'DiskIO' | 'Unknown';
+export type LatencySpikeCause =
+  | 'SystemLoad'
+  | 'ResourceContention'
+  | 'GarbageCollection'
+  | 'NetworkDelay'
+  | 'DiskIO'
+  | 'Unknown';
 
 /**
  * I/O efficiency metrics.

@@ -14,11 +14,10 @@ import {
   createILVariable,
   createILRegister,
   createILTemporary,
-  createILLabel
+  createILLabel,
 } from '../il-types.js';
 import {
   ILInstructionError,
-  InstructionCreationContext,
   createLoadImmediate,
   createLoadMemory,
   createStoreMemory,
@@ -68,7 +67,7 @@ import {
   ILInstructionFactory,
   validateILInstruction,
   createInstructionContext,
-  resetGlobalInstructionContext
+  resetGlobalInstructionContext,
 } from '../instructions.js';
 
 // ============================================================================
@@ -421,7 +420,13 @@ describe('Control Flow Instructions', () => {
 
 describe('Function Operation Instructions', () => {
   it('should create CALL instruction with no arguments', () => {
-    const funcRef = createILVariable('myFunction', { kind: 'primitive', name: 'callback' }, [], null, 'global');
+    const funcRef = createILVariable(
+      'myFunction',
+      { kind: 'primitive', name: 'callback' },
+      [],
+      null,
+      'global'
+    );
     const instruction = createCall(funcRef, [], testLocation);
 
     expect(instruction.type).toBe(ILInstructionType.CALL);
@@ -431,7 +436,13 @@ describe('Function Operation Instructions', () => {
   });
 
   it('should create CALL instruction with arguments', () => {
-    const funcRef = createILVariable('myFunction', { kind: 'primitive', name: 'callback' }, [], null, 'global');
+    const funcRef = createILVariable(
+      'myFunction',
+      { kind: 'primitive', name: 'callback' },
+      [],
+      null,
+      'global'
+    );
     const args = [testConstant, testRegister];
     const instruction = createCall(funcRef, args, testLocation);
 
@@ -505,7 +516,13 @@ describe('Variable Operation Instructions', () => {
 
 describe('Array Operation Instructions', () => {
   it('should create LOAD_ARRAY instruction', () => {
-    const arrayVar = createILVariable('myArray', { kind: 'array', elementType: byteType, size: 256 }, [], 'ram', 'global');
+    const arrayVar = createILVariable(
+      'myArray',
+      { kind: 'array', elementType: byteType, size: 256 },
+      [],
+      'ram',
+      'global'
+    );
     const index = createILConstant(byteType, 5, 'decimal');
     const instruction = createLoadArray(testTemporary, arrayVar, index, testLocation);
 
@@ -516,7 +533,13 @@ describe('Array Operation Instructions', () => {
   });
 
   it('should create STORE_ARRAY instruction', () => {
-    const arrayVar = createILVariable('myArray', { kind: 'array', elementType: byteType, size: 256 }, [], 'ram', 'global');
+    const arrayVar = createILVariable(
+      'myArray',
+      { kind: 'array', elementType: byteType, size: 256 },
+      [],
+      'ram',
+      'global'
+    );
     const index = createILConstant(byteType, 5, 'decimal');
     const instruction = createStoreArray(arrayVar, index, testConstant, testLocation);
 
@@ -528,7 +551,13 @@ describe('Array Operation Instructions', () => {
   });
 
   it('should create ARRAY_ADDRESS instruction', () => {
-    const arrayVar = createILVariable('myArray', { kind: 'array', elementType: byteType, size: 256 }, [], 'ram', 'global');
+    const arrayVar = createILVariable(
+      'myArray',
+      { kind: 'array', elementType: byteType, size: 256 },
+      [],
+      'ram',
+      'global'
+    );
     const index = createILConstant(byteType, 5, 'decimal');
     const instruction = createArrayAddress(testTemporary, arrayVar, index, testLocation);
 
@@ -583,7 +612,7 @@ describe('Utility Instructions', () => {
 
 describe('6502-Specific Instructions', () => {
   it('should create PEEK instruction', () => {
-    const address = createILConstant(wordType, 0xD000, 'hexadecimal');
+    const address = createILConstant(wordType, 0xd000, 'hexadecimal');
     const instruction = createPeek(testTemporary, address, testLocation);
 
     expect(instruction.type).toBe(ILInstructionType.PEEK);
@@ -594,7 +623,7 @@ describe('6502-Specific Instructions', () => {
   });
 
   it('should create POKE instruction', () => {
-    const address = createILConstant(wordType, 0xD000, 'hexadecimal');
+    const address = createILConstant(wordType, 0xd000, 'hexadecimal');
     const instruction = createPoke(address, testConstant, testLocation);
 
     expect(instruction.type).toBe(ILInstructionType.POKE);
@@ -681,7 +710,7 @@ describe('Instruction Validation', () => {
       const invalidInstruction = {
         type: ILInstructionType.ADD,
         operands: [testTemporary], // ADD needs 3 operands, only providing 1
-        id: 1
+        id: 1,
       };
       validateILInstruction(invalidInstruction as any);
     }).not.toThrow(); // Our simple validation doesn't catch all errors yet
@@ -795,7 +824,7 @@ describe('IL Instruction Integration', () => {
       createLoadImmediate(testRegister, testConstant),
       createAdd(testTemporary, testRegister, testConstant),
       createStoreVariable(testVariable, testTemporary),
-      createReturn()
+      createReturn(),
     ];
 
     // All instructions should validate successfully
@@ -806,7 +835,7 @@ describe('IL Instruction Integration', () => {
 
     // IDs should be sequential
     for (let i = 1; i < instructions.length; i++) {
-      expect(instructions[i-1].id).toBeLessThan(instructions[i].id);
+      expect(instructions[i - 1].id).toBeLessThan(instructions[i].id);
     }
   });
 });

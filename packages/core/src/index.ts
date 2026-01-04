@@ -20,7 +20,7 @@ export type {
   CompilationStatistics,
   CompilationErrorType,
   ProjectConfig,
-  FileStatus
+  FileStatus,
 } from './types.js';
 
 // Utility functions
@@ -32,7 +32,7 @@ export {
   matchesPatterns,
   getFileExtension,
   isBlend65File,
-  normalizePath
+  normalizePath,
 } from './types.js';
 
 /**

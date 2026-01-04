@@ -11,12 +11,7 @@ export { Blend65Lexer } from './blend65-lexer.js';
 export type { LexerOptions } from './blend65-lexer.js';
 export { TokenType } from './types.js';
 export type { Token, SourcePosition } from './types.js';
-export {
-  KEYWORDS,
-  STORAGE_CLASSES,
-  PRIMITIVE_TYPES,
-  CONTROL_FLOW_KEYWORDS
-} from './types.js';
+export { KEYWORDS, STORAGE_CLASSES, PRIMITIVE_TYPES, CONTROL_FLOW_KEYWORDS } from './types.js';
 
 /**
  * Convenience function to tokenize Blend65 source code

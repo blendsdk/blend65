@@ -11,20 +11,18 @@
  * @fileoverview Core utilities for god-level IL analytics system
  */
 
-import { ILInstruction, ILFunction, ILOperand, ILInstructionType, ILValue } from '../../il-types.js';
+import { ILInstruction, ILFunction, ILInstructionType, ILValue } from '../../il-types.js';
 import {
   BasicBlock,
   ControlFlowGraph,
   CFGEdge,
-  CFGEdgeType,
   DominanceTree,
   NaturalLoop,
   BackEdge,
   VariableDefinition,
   VariableUse,
   InstructionLocation,
-  MemoryLocation,
-  CFGAnalysisMetrics
+  CFGAnalysisMetrics,
 } from '../types/control-flow-types.js';
 
 // =============================================================================
@@ -59,7 +57,7 @@ export function buildBasicBlocks(ilFunction: ILFunction): BasicBlock[] {
       successors: new Set<number>(),
       dominatedBlocks: new Set<number>(),
       isLoopHeader: false,
-      isLoopExit: false
+      isLoopExit: false,
     };
 
     blocks.push(block);
@@ -81,9 +79,11 @@ function findBasicBlockLeaders(instructions: readonly ILInstruction[]): number[]
     const instruction = instructions[i];
 
     // Branch targets are leaders
-    if (instruction.type === ILInstructionType.BRANCH ||
-        instruction.type === ILInstructionType.BRANCH_IF_TRUE ||
-        instruction.type === ILInstructionType.BRANCH_IF_FALSE) {
+    if (
+      instruction.type === ILInstructionType.BRANCH ||
+      instruction.type === ILInstructionType.BRANCH_IF_TRUE ||
+      instruction.type === ILInstructionType.BRANCH_IF_FALSE
+    ) {
       const target = extractBranchTarget(instruction);
       if (target !== null && target < instructions.length) {
         leaders.add(target);
@@ -148,7 +148,7 @@ export function buildControlFlowEdges(blocks: BasicBlock[]): CFGEdge[] {
             edges.push({
               source: i,
               target: targetBlockId,
-              type: 'unconditional'
+              type: 'unconditional',
             });
           }
         }
@@ -165,7 +165,8 @@ export function buildControlFlowEdges(blocks: BasicBlock[]): CFGEdge[] {
               source: i,
               target: targetBlockId,
               type: 'conditional',
-              condition: lastInstruction.type === ILInstructionType.BRANCH_IF_TRUE ? 'true' : 'false'
+              condition:
+                lastInstruction.type === ILInstructionType.BRANCH_IF_TRUE ? 'true' : 'false',
             });
           }
         }
@@ -175,7 +176,7 @@ export function buildControlFlowEdges(blocks: BasicBlock[]): CFGEdge[] {
           edges.push({
             source: i,
             target: i + 1,
-            type: 'fall-through'
+            type: 'fall-through',
           });
         }
         break;
@@ -186,7 +187,7 @@ export function buildControlFlowEdges(blocks: BasicBlock[]): CFGEdge[] {
           edges.push({
             source: i,
             target: i + 1,
-            type: 'call'
+            type: 'call',
           });
         }
         break;
@@ -201,7 +202,7 @@ export function buildControlFlowEdges(blocks: BasicBlock[]): CFGEdge[] {
           edges.push({
             source: i,
             target: i + 1,
-            type: 'fall-through'
+            type: 'fall-through',
           });
         }
         break;
@@ -362,7 +363,8 @@ export function buildDominanceTree(
 
   // Build parent-child relationships
   for (const [block, idom] of immediateDominators) {
-    if (block !== idom) { // Not the entry block
+    if (block !== idom) {
+      // Not the entry block
       children.get(idom)!.add(block);
       parent.set(block, idom);
     }
@@ -385,7 +387,7 @@ export function buildDominanceTree(
     root: entryBlock,
     children,
     parent,
-    depth
+    depth,
   };
 }
 
@@ -414,7 +416,7 @@ export function findBackEdges(cfg: ControlFlowGraph): BackEdge[] {
         backEdges.push({
           latch: blockId,
           header: successor,
-          isExiting: false // Will be determined later
+          isExiting: false, // Will be determined later
         });
       } else if (!visited.has(successor)) {
         dfs(successor);
@@ -463,7 +465,7 @@ export function identifyNaturalLoops(
       exits,
       nestingDepth,
       isInnermost: true, // Will be updated later
-      characteristics: analyzeLoopCharacteristics(cfg, loopBody)
+      characteristics: analyzeLoopCharacteristics(cfg, loopBody),
     };
 
     naturalLoops.push(loop);
@@ -609,7 +611,7 @@ function analyzeLoopCharacteristics(cfg: ControlFlowGraph, loopBody: Set<number>
     hasNestedLoops,
     hasCallsInBody,
     accessesArrays,
-    modifiesGlobals
+    modifiesGlobals,
   };
 }
 
@@ -658,7 +660,7 @@ export function extractVariableDefinitions(
         instructionIndex,
         instruction,
         definitionType: classifyDefinitionType(instruction),
-        reachingDefinitions: new Set<VariableDefinition>() // Will be populated later
+        reachingDefinitions: new Set<VariableDefinition>(), // Will be populated later
       };
 
       definitions.push(definition);
@@ -691,7 +693,7 @@ export function extractVariableUses(
         instructionIndex,
         instruction,
         usageType: classifyUsageType(instruction, i),
-        operandIndex: i
+        operandIndex: i,
       };
 
       uses.push(use);
@@ -754,7 +756,7 @@ function isDefinitionInstruction(instruction: ILInstruction): boolean {
     ILInstructionType.DIV,
     ILInstructionType.CALL,
     ILInstructionType.LOAD_VARIABLE,
-    ILInstructionType.LOAD_ARRAY
+    ILInstructionType.LOAD_ARRAY,
   ];
   return definitionTypes.includes(instruction.type);
 }
@@ -780,16 +782,17 @@ export function measureAnalysisPerformance<T>(
 
   const metrics: Partial<CFGAnalysisMetrics> = {
     analysisTimeMs: endTime - startTime,
-    memoryUsageBytes: endMemory - startMemory
+    memoryUsageBytes: endMemory - startMemory,
   };
 
   // Debug logging with fallback
   try {
-    const globalConsole = typeof globalThis !== 'undefined' ?
-      (globalThis as any).console :
-      undefined;
+    const globalConsole =
+      typeof globalThis !== 'undefined' ? (globalThis as any).console : undefined;
     if (globalConsole && typeof globalConsole.debug === 'function') {
-      globalConsole.debug(`CFG Analysis ${description}: ${metrics.analysisTimeMs?.toFixed(2)}ms, ${metrics.memoryUsageBytes} bytes`);
+      globalConsole.debug(
+        `CFG Analysis ${description}: ${metrics.analysisTimeMs?.toFixed(2)}ms, ${metrics.memoryUsageBytes} bytes`
+      );
     }
   } catch {
     // Ignore logging errors
@@ -803,9 +806,8 @@ export function measureAnalysisPerformance<T>(
  */
 function getCurrentTime(): number {
   try {
-    const globalPerformance = typeof globalThis !== 'undefined' ?
-      (globalThis as any).performance :
-      undefined;
+    const globalPerformance =
+      typeof globalThis !== 'undefined' ? (globalThis as any).performance : undefined;
     if (globalPerformance && typeof globalPerformance.now === 'function') {
       return globalPerformance.now();
     }
@@ -820,9 +822,7 @@ function getCurrentTime(): number {
  */
 function getMemoryUsage(): number {
   // Type-safe check for Node.js process object
-  const globalProcess = typeof globalThis !== 'undefined' ?
-    (globalThis as any).process :
-    undefined;
+  const globalProcess = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
 
   if (globalProcess && typeof globalProcess.memoryUsage === 'function') {
     try {
@@ -892,6 +892,6 @@ export function createInstructionLocation(
   return {
     blockId,
     instructionIndex,
-    instruction
+    instruction,
   };
 }

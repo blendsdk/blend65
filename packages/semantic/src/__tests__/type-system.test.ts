@@ -12,18 +12,13 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { TypeChecker, ValidatedParameter, FunctionSignature } from '../type-system.js';
+import { TypeChecker, FunctionSignature } from '../type-system.js';
 import {
   createPrimitiveType,
   createArrayType,
-  createCallbackType,
-  createNamedType,
   Symbol,
-  VariableSymbol,
-  FunctionSymbol,
   createVariableSymbol,
-  createFunctionSymbol,
-  createScope
+  createScope,
 } from '../types.js';
 
 describe('TypeChecker', () => {
@@ -43,7 +38,7 @@ describe('TypeChecker', () => {
       const astType = {
         type: 'PrimitiveType' as const,
         name: 'byte' as const,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.convertASTTypeToBlend65Type(astType, mockLocation);
@@ -59,14 +54,19 @@ describe('TypeChecker', () => {
       const elementType = {
         type: 'PrimitiveType' as const,
         name: 'byte' as const,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const astType = {
         type: 'ArrayType' as const,
         elementType,
-        size: { type: 'Literal' as const, value: 10, raw: '10', metadata: { start: mockLocation, end: mockLocation } },
-        metadata: { start: mockLocation, end: mockLocation }
+        size: {
+          type: 'Literal' as const,
+          value: 10,
+          raw: '10',
+          metadata: { start: mockLocation, end: mockLocation },
+        },
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.convertASTTypeToBlend65Type(astType, mockLocation);
@@ -82,14 +82,19 @@ describe('TypeChecker', () => {
       const elementType = {
         type: 'PrimitiveType' as const,
         name: 'byte' as const,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const astType = {
         type: 'ArrayType' as const,
         elementType,
-        size: { type: 'Literal' as const, value: -1, raw: '-1', metadata: { start: mockLocation, end: mockLocation } },
-        metadata: { start: mockLocation, end: mockLocation }
+        size: {
+          type: 'Literal' as const,
+          value: -1,
+          raw: '-1',
+          metadata: { start: mockLocation, end: mockLocation },
+        },
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.convertASTTypeToBlend65Type(astType, mockLocation);
@@ -104,7 +109,7 @@ describe('TypeChecker', () => {
       const astType = {
         type: 'NamedType' as const,
         name: 'Player',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.convertASTTypeToBlend65Type(astType, mockLocation);
@@ -175,7 +180,12 @@ describe('TypeChecker', () => {
     it('should reject zp storage class for large types', () => {
       const largeArrayType = createArrayType(createPrimitiveType('byte'), 300);
 
-      const result = typeChecker.validateVariableStorageClass('zp', largeArrayType, false, mockLocation);
+      const result = typeChecker.validateVariableStorageClass(
+        'zp',
+        largeArrayType,
+        false,
+        mockLocation
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -200,7 +210,12 @@ describe('TypeChecker', () => {
       typeChecker.setCurrentScope('Global');
       const byteType = createPrimitiveType('byte');
 
-      const result = typeChecker.validateVariableStorageClass('const', byteType, false, mockLocation);
+      const result = typeChecker.validateVariableStorageClass(
+        'const',
+        byteType,
+        false,
+        mockLocation
+      );
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -218,25 +233,37 @@ describe('TypeChecker', () => {
           {
             type: 'Parameter' as const,
             name: 'a',
-            paramType: { type: 'PrimitiveType' as const, name: 'byte' as const, metadata: { start: mockLocation, end: mockLocation } },
+            paramType: {
+              type: 'PrimitiveType' as const,
+              name: 'byte' as const,
+              metadata: { start: mockLocation, end: mockLocation },
+            },
             optional: false,
             defaultValue: null,
-            metadata: { start: mockLocation, end: mockLocation }
+            metadata: { start: mockLocation, end: mockLocation },
           },
           {
             type: 'Parameter' as const,
             name: 'b',
-            paramType: { type: 'PrimitiveType' as const, name: 'byte' as const, metadata: { start: mockLocation, end: mockLocation } },
+            paramType: {
+              type: 'PrimitiveType' as const,
+              name: 'byte' as const,
+              metadata: { start: mockLocation, end: mockLocation },
+            },
             optional: false,
             defaultValue: null,
-            metadata: { start: mockLocation, end: mockLocation }
-          }
+            metadata: { start: mockLocation, end: mockLocation },
+          },
         ],
-        returnType: { type: 'PrimitiveType' as const, name: 'byte' as const, metadata: { start: mockLocation, end: mockLocation } },
+        returnType: {
+          type: 'PrimitiveType' as const,
+          name: 'byte' as const,
+          metadata: { start: mockLocation, end: mockLocation },
+        },
         body: [],
         exported: false,
         callback: false,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.validateFunctionSignature(funcDecl, mockLocation);
@@ -254,11 +281,15 @@ describe('TypeChecker', () => {
         type: 'FunctionDeclaration' as const,
         name: 'onInterrupt',
         params: [],
-        returnType: { type: 'PrimitiveType' as const, name: 'void' as const, metadata: { start: mockLocation, end: mockLocation } },
+        returnType: {
+          type: 'PrimitiveType' as const,
+          name: 'void' as const,
+          metadata: { start: mockLocation, end: mockLocation },
+        },
         body: [],
         exported: false,
         callback: true,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.validateFunctionSignature(funcDecl, mockLocation);
@@ -277,14 +308,23 @@ describe('TypeChecker', () => {
         params: [],
         returnType: {
           type: 'ArrayType' as const,
-          elementType: { type: 'PrimitiveType' as const, name: 'byte' as const, metadata: { start: mockLocation, end: mockLocation } },
-          size: { type: 'Literal' as const, value: 10, raw: '10', metadata: { start: mockLocation, end: mockLocation } },
-          metadata: { start: mockLocation, end: mockLocation }
+          elementType: {
+            type: 'PrimitiveType' as const,
+            name: 'byte' as const,
+            metadata: { start: mockLocation, end: mockLocation },
+          },
+          size: {
+            type: 'Literal' as const,
+            value: 10,
+            raw: '10',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
+          metadata: { start: mockLocation, end: mockLocation },
         },
         body: [],
         exported: false,
         callback: true,
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.validateFunctionSignature(funcDecl, mockLocation);
@@ -304,7 +344,7 @@ describe('TypeChecker', () => {
         type: 'Literal' as const,
         value: 42,
         raw: '42',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result1 = typeChecker.checkExpressionType(byteLiteral);
@@ -319,7 +359,7 @@ describe('TypeChecker', () => {
         type: 'Literal' as const,
         value: 1000,
         raw: '1000',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result2 = typeChecker.checkExpressionType(wordLiteral);
@@ -335,7 +375,7 @@ describe('TypeChecker', () => {
         type: 'Literal' as const,
         value: true,
         raw: 'true',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkExpressionType(boolLiteral);
@@ -352,7 +392,7 @@ describe('TypeChecker', () => {
         type: 'Literal' as const,
         value: 70000,
         raw: '70000',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkExpressionType(outOfRangeLiteral);
@@ -369,7 +409,7 @@ describe('TypeChecker', () => {
         type: 'Literal' as const,
         value: 'hello',
         raw: '"hello"',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkExpressionType(stringLiteral);
@@ -394,7 +434,7 @@ describe('TypeChecker', () => {
       const identifier = {
         type: 'Identifier' as const,
         name: 'counter',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkExpressionType(identifier);
@@ -410,7 +450,7 @@ describe('TypeChecker', () => {
       const identifier = {
         type: 'Identifier' as const,
         name: 'undefined_var',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkExpressionType(identifier);
@@ -429,7 +469,7 @@ describe('TypeChecker', () => {
         type: 'Literal' as const,
         value: 5,
         raw: '5',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkArrayAccess(arrayType, indexExpression, mockLocation);
@@ -447,7 +487,7 @@ describe('TypeChecker', () => {
         type: 'Literal' as const,
         value: 15,
         raw: '15',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkArrayAccess(arrayType, indexExpression, mockLocation);
@@ -463,11 +503,26 @@ describe('TypeChecker', () => {
       const arrayLiteral = {
         type: 'ArrayLiteral' as const,
         elements: [
-          { type: 'Literal' as const, value: 1, raw: '1', metadata: { start: mockLocation, end: mockLocation } },
-          { type: 'Literal' as const, value: 2, raw: '2', metadata: { start: mockLocation, end: mockLocation } },
-          { type: 'Literal' as const, value: 3, raw: '3', metadata: { start: mockLocation, end: mockLocation } }
+          {
+            type: 'Literal' as const,
+            value: 1,
+            raw: '1',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
+          {
+            type: 'Literal' as const,
+            value: 2,
+            raw: '2',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
+          {
+            type: 'Literal' as const,
+            value: 3,
+            raw: '3',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
         ],
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const expectedType = createArrayType(createPrimitiveType('byte'), 3);
@@ -481,10 +536,20 @@ describe('TypeChecker', () => {
       const arrayLiteral = {
         type: 'ArrayLiteral' as const,
         elements: [
-          { type: 'Literal' as const, value: 1, raw: '1', metadata: { start: mockLocation, end: mockLocation } },
-          { type: 'Literal' as const, value: 2, raw: '2', metadata: { start: mockLocation, end: mockLocation } }
+          {
+            type: 'Literal' as const,
+            value: 1,
+            raw: '1',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
+          {
+            type: 'Literal' as const,
+            value: 2,
+            raw: '2',
+            metadata: { start: mockLocation, end: mockLocation },
+          },
         ],
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const expectedType = createArrayType(createPrimitiveType('byte'), 3);
@@ -504,10 +569,10 @@ describe('TypeChecker', () => {
       const signature: FunctionSignature = {
         parameters: [
           { name: 'a', type: createPrimitiveType('byte'), hasDefaultValue: false },
-          { name: 'b', type: createPrimitiveType('byte'), hasDefaultValue: false }
+          { name: 'b', type: createPrimitiveType('byte'), hasDefaultValue: false },
         ],
         returnType: createPrimitiveType('word'),
-        isCallback: false
+        isCallback: false,
       };
 
       const argumentTypes = [createPrimitiveType('byte'), createPrimitiveType('byte')];
@@ -523,11 +588,9 @@ describe('TypeChecker', () => {
 
     it('should reject function calls with wrong argument count', () => {
       const signature: FunctionSignature = {
-        parameters: [
-          { name: 'a', type: createPrimitiveType('byte'), hasDefaultValue: false }
-        ],
+        parameters: [{ name: 'a', type: createPrimitiveType('byte'), hasDefaultValue: false }],
         returnType: createPrimitiveType('byte'),
-        isCallback: false
+        isCallback: false,
       };
 
       const argumentTypes = [createPrimitiveType('byte'), createPrimitiveType('byte')];
@@ -543,11 +606,9 @@ describe('TypeChecker', () => {
 
     it('should reject function calls with wrong argument types', () => {
       const signature: FunctionSignature = {
-        parameters: [
-          { name: 'a', type: createPrimitiveType('byte'), hasDefaultValue: false }
-        ],
+        parameters: [{ name: 'a', type: createPrimitiveType('byte'), hasDefaultValue: false }],
         returnType: createPrimitiveType('byte'),
-        isCallback: false
+        isCallback: false,
       };
 
       const argumentTypes = [createPrimitiveType('word')];
@@ -597,7 +658,7 @@ describe('TypeChecker', () => {
       const undefinedIdentifier = {
         type: 'Identifier' as const,
         name: 'undefined_var',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.checkExpressionType(undefinedIdentifier);
@@ -641,14 +702,14 @@ describe('TypeChecker', () => {
         scope: createScope('Global'),
         isExported: false,
         members: new Map(),
-        underlyingType: createPrimitiveType('byte')
+        underlyingType: createPrimitiveType('byte'),
       };
       symbols.set('Color', enumSymbol);
 
       const namedType = {
         type: 'NamedType' as const,
         name: 'Color',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.resolveNamedType(namedType, mockLocation);
@@ -664,7 +725,7 @@ describe('TypeChecker', () => {
       const namedType = {
         type: 'NamedType' as const,
         name: 'UndefinedType',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const result = typeChecker.resolveNamedType(namedType, mockLocation);
@@ -679,7 +740,7 @@ describe('TypeChecker', () => {
       const namedType = {
         type: 'NamedType' as const,
         name: 'SelfRef',
-        metadata: { start: mockLocation, end: mockLocation }
+        metadata: { start: mockLocation, end: mockLocation },
       };
 
       const visited = new Set(['SelfRef']);

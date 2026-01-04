@@ -17,13 +17,11 @@ import {
   createFunctionSymbol,
   createModuleSymbol,
   createPrimitiveType,
-  createArrayType,
   createCallbackType,
   VariableSymbol,
   FunctionSymbol,
   ModuleSymbol,
-  Scope,
-  ImportInfo
+  ImportInfo,
 } from '../types.js';
 
 describe('SymbolTable', () => {
@@ -115,7 +113,7 @@ describe('SymbolTable', () => {
         'add',
         [
           { name: 'a', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
-          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null }
+          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
         ],
         createPrimitiveType('byte'),
         symbolTable.getCurrentScope(),
@@ -251,7 +249,10 @@ describe('SymbolTable', () => {
       expect(foundLocal).toBe(localVar);
 
       // Look up in global scope (should not find local variable)
-      const notFoundInGlobal = symbolTable.lookupSymbolInScope('localVar', symbolTable.getGlobalScope());
+      const notFoundInGlobal = symbolTable.lookupSymbolInScope(
+        'localVar',
+        symbolTable.getGlobalScope()
+      );
       expect(notFoundInGlobal).toBeNull();
     });
 
@@ -287,12 +288,11 @@ describe('SymbolTable', () => {
         mockLocation
       );
 
-      utilsModule = createModuleSymbol(
-        'Utils',
-        ['Utils'],
-        symbolTable.getCurrentScope(),
-        { line: 2, column: 1, offset: 10 }
-      );
+      utilsModule = createModuleSymbol('Utils', ['Utils'], symbolTable.getCurrentScope(), {
+        line: 2,
+        column: 1,
+        offset: 10,
+      });
     });
 
     it('should enter and exit module scopes', () => {
@@ -396,7 +396,7 @@ describe('SymbolTable', () => {
         importedName: 'randomByte',
         localName: 'random',
         sourceModule: ['Utils'],
-        resolvedSymbol: undefined
+        resolvedSymbol: undefined,
       };
 
       const result = symbolTable.importSymbol(importInfo, mockLocation);
@@ -414,7 +414,7 @@ describe('SymbolTable', () => {
         importedName: 'nonexistentFunc',
         localName: 'nonexistentFunc',
         sourceModule: ['NonexistentModule'],
-        resolvedSymbol: undefined
+        resolvedSymbol: undefined,
       };
 
       const result = symbolTable.importSymbol(importInfo, mockLocation);
@@ -436,7 +436,7 @@ describe('SymbolTable', () => {
         importedName: 'nonexistentFunc',
         localName: 'nonexistentFunc',
         sourceModule: ['Utils'],
-        resolvedSymbol: undefined
+        resolvedSymbol: undefined,
       };
 
       const result = symbolTable.importSymbol(importInfo, mockLocation);
@@ -721,12 +721,11 @@ describe('SymbolTable', () => {
       symbolTable.exitModule();
 
       // Create Game module that imports from Utils
-      const gameModule = createModuleSymbol(
-        'Game',
-        ['Game'],
-        symbolTable.getCurrentScope(),
-        { line: 10, column: 1, offset: 100 }
-      );
+      const gameModule = createModuleSymbol('Game', ['Game'], symbolTable.getCurrentScope(), {
+        line: 10,
+        column: 1,
+        offset: 100,
+      });
 
       symbolTable.enterModule(gameModule);
 
@@ -734,10 +733,14 @@ describe('SymbolTable', () => {
         importedName: 'random',
         localName: 'getRandom',
         sourceModule: ['Utils'],
-        resolvedSymbol: undefined
+        resolvedSymbol: undefined,
       };
 
-      const importResult = symbolTable.importSymbol(importInfo, { line: 11, column: 1, offset: 110 });
+      const importResult = symbolTable.importSymbol(importInfo, {
+        line: 11,
+        column: 1,
+        offset: 110,
+      });
       expect(importResult.success).toBe(true);
 
       // Declare game-specific function

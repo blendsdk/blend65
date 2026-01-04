@@ -6,13 +6,17 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ILOptimizationFramework, optimizeIL, optimizeFunction } from '../optimization-framework.js';
+import {
+  ILOptimizationFramework,
+  optimizeIL,
+  optimizeFunction,
+} from '../optimization-framework.js';
 import { createDefaultPatternRegistry } from '../pattern-registry.js';
 import {
   OptimizationLevel,
   OptimizationCategory,
   OptimizationConfig,
-  DEFAULT_OPTIMIZATION_CONFIG
+  DEFAULT_OPTIMIZATION_CONFIG,
 } from '../types.js';
 import {
   createILProgram,
@@ -22,7 +26,7 @@ import {
   createILConstant,
   ILInstructionType,
   ILProgram,
-  ILFunction
+  ILFunction,
 } from '../../il-types.js';
 
 describe('ILOptimizationFramework', () => {
@@ -55,21 +59,9 @@ describe('ILOptimizationFramework', () => {
         [createILConstant({ kind: 'primitive', name: 'byte' }, 3)],
         2
       ),
-      createILInstruction(
-        ILInstructionType.ADD,
-        [],
-        3
-      ),
-      createILInstruction(
-        ILInstructionType.NOP,
-        [],
-        4
-      ),
-      createILInstruction(
-        ILInstructionType.RETURN,
-        [],
-        5
-      )
+      createILInstruction(ILInstructionType.ADD, [], 3),
+      createILInstruction(ILInstructionType.NOP, [], 4),
+      createILInstruction(ILInstructionType.RETURN, [], 5),
     ];
 
     // Create test program
@@ -89,7 +81,7 @@ describe('ILOptimizationFramework', () => {
       // Test O0 (no optimization)
       const configO0: OptimizationConfig = {
         ...DEFAULT_OPTIMIZATION_CONFIG,
-        level: OptimizationLevel.O0
+        level: OptimizationLevel.O0,
       };
       const resultO0 = await framework.optimizeProgram(testProgram, configO0);
       expect(resultO0.passResults.length).toBe(0);
@@ -97,7 +89,7 @@ describe('ILOptimizationFramework', () => {
       // Test O1 (basic optimization)
       const configO1: OptimizationConfig = {
         ...DEFAULT_OPTIMIZATION_CONFIG,
-        level: OptimizationLevel.O1
+        level: OptimizationLevel.O1,
       };
       const resultO1 = await framework.optimizeProgram(testProgram, configO1);
       expect(resultO1.passResults.length).toBeGreaterThan(0);
@@ -148,8 +140,8 @@ describe('ILOptimizationFramework', () => {
         debug: {
           logDecisions: true,
           generateReports: true,
-          validateCorrectness: true
-        }
+          validateCorrectness: true,
+        },
       };
 
       const result = await framework.optimizeProgram(testProgram, config);
@@ -208,12 +200,18 @@ describe('ILOptimizationFramework', () => {
         { line: 1, column: 1, offset: 0 }
       );
       simpleFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant({ kind: 'primitive', name: 'byte' }, 42)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant({ kind: 'primitive', name: 'byte' }, 42)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ];
 
       const simpleResult = await framework.optimizeFunction(simpleFunction);
-      expect(simpleResult.summary.originalComplexity).toBeLessThan(testFunction.instructions.length * 10);
+      expect(simpleResult.summary.originalComplexity).toBeLessThan(
+        testFunction.instructions.length * 10
+      );
 
       // Complex function with more instructions
       const complexFunction = createILFunction(
@@ -222,12 +220,14 @@ describe('ILOptimizationFramework', () => {
         { kind: 'primitive', name: 'byte' },
         { line: 1, column: 1, offset: 0 }
       );
-      complexFunction.instructions = Array(20).fill(null).map((_, i) =>
-        createILInstruction(ILInstructionType.NOP, [], i + 1)
-      );
+      complexFunction.instructions = Array(20)
+        .fill(null)
+        .map((_, i) => createILInstruction(ILInstructionType.NOP, [], i + 1));
 
       const complexResult = await framework.optimizeFunction(complexFunction);
-      expect(complexResult.summary.originalComplexity).toBeGreaterThan(simpleResult.summary.originalComplexity);
+      expect(complexResult.summary.originalComplexity).toBeGreaterThan(
+        simpleResult.summary.originalComplexity
+      );
     });
   });
 
@@ -237,7 +237,7 @@ describe('ILOptimizationFramework', () => {
         { ...DEFAULT_OPTIMIZATION_CONFIG, level: OptimizationLevel.O0 },
         { ...DEFAULT_OPTIMIZATION_CONFIG, level: OptimizationLevel.O1 },
         { ...DEFAULT_OPTIMIZATION_CONFIG, level: OptimizationLevel.O2 },
-        { ...DEFAULT_OPTIMIZATION_CONFIG, level: OptimizationLevel.O3 }
+        { ...DEFAULT_OPTIMIZATION_CONFIG, level: OptimizationLevel.O3 },
       ];
 
       const results = await Promise.all(
@@ -254,13 +254,13 @@ describe('ILOptimizationFramework', () => {
       const sizeConfig: OptimizationConfig = {
         ...DEFAULT_OPTIMIZATION_CONFIG,
         level: OptimizationLevel.Os,
-        sizeSpeedTradeoff: 0.0 // Fully favor size
+        sizeSpeedTradeoff: 0.0, // Fully favor size
       };
 
       const speedConfig: OptimizationConfig = {
         ...DEFAULT_OPTIMIZATION_CONFIG,
         level: OptimizationLevel.O3,
-        sizeSpeedTradeoff: 1.0 // Fully favor speed
+        sizeSpeedTradeoff: 1.0, // Fully favor speed
       };
 
       const sizeResult = await framework.optimizeProgram(testProgram, sizeConfig);
@@ -311,9 +311,7 @@ describe('ILOptimizationFramework', () => {
       );
 
       // Add potentially problematic instructions
-      problematicFunction.instructions = [
-        createILInstruction(ILInstructionType.RETURN, [], 1)
-      ];
+      problematicFunction.instructions = [createILInstruction(ILInstructionType.RETURN, [], 1)];
 
       problematicModule.functions = [problematicFunction];
       problematicProgram.modules = [problematicModule];
@@ -328,7 +326,7 @@ describe('ILOptimizationFramework', () => {
     it('should respect time limits', async () => {
       const timeoutConfig: OptimizationConfig = {
         ...DEFAULT_OPTIMIZATION_CONFIG,
-        timeLimit: 10 // Very short time limit
+        timeLimit: 10, // Very short time limit
       };
 
       const start = Date.now();
@@ -343,7 +341,7 @@ describe('ILOptimizationFramework', () => {
     it('should handle disabled patterns correctly', async () => {
       const configWithDisabledPatterns: OptimizationConfig = {
         ...DEFAULT_OPTIMIZATION_CONFIG,
-        disabledPatterns: new Set(['dead-code-elimination', 'constant-folding-basic'])
+        disabledPatterns: new Set(['dead-code-elimination', 'constant-folding-basic']),
       };
 
       const result = await framework.optimizeProgram(testProgram, configWithDisabledPatterns);
@@ -383,13 +381,15 @@ describe('ILOptimizationFramework', () => {
       );
 
       // Add many instructions
-      largeFunction.instructions = Array(100).fill(null).map((_, i) =>
-        createILInstruction(
-          i % 2 === 0 ? ILInstructionType.NOP : ILInstructionType.LOAD_IMMEDIATE,
-          i % 2 === 0 ? [] : [createILConstant({ kind: 'primitive', name: 'byte' }, i)],
-          i + 1
-        )
-      );
+      largeFunction.instructions = Array(100)
+        .fill(null)
+        .map((_, i) =>
+          createILInstruction(
+            i % 2 === 0 ? ILInstructionType.NOP : ILInstructionType.LOAD_IMMEDIATE,
+            i % 2 === 0 ? [] : [createILConstant({ kind: 'primitive', name: 'byte' }, i)],
+            i + 1
+          )
+        );
 
       const largeProgram = createILProgram('LargeProgram');
       const largeModule = createILModule(['Large']);
@@ -421,7 +421,7 @@ describe('ILOptimizationFramework', () => {
       func.instructions = [
         createILInstruction(ILInstructionType.NOP, [], 1),
         createILInstruction(ILInstructionType.NOP, [], 2),
-        createILInstruction(ILInstructionType.RETURN, [], 3)
+        createILInstruction(ILInstructionType.RETURN, [], 3),
       ];
 
       module.functions = [func];
@@ -514,8 +514,8 @@ describe('ILOptimizationFramework', () => {
         debug: {
           logDecisions: true,
           generateReports: true,
-          validateCorrectness: true
-        }
+          validateCorrectness: true,
+        },
       };
 
       const result = await framework.optimizeProgram(testProgram, debugConfig);
@@ -532,8 +532,8 @@ describe('ILOptimizationFramework', () => {
         debug: {
           logDecisions: false,
           generateReports: false,
-          validateCorrectness: false
-        }
+          validateCorrectness: false,
+        },
       };
 
       const result = await framework.optimizeProgram(testProgram, noDebugConfig);
@@ -578,7 +578,9 @@ describe('ILOptimizationFramework', () => {
       expect(result.summary.performanceImprovement).toBeLessThanOrEqual(100);
 
       // Size change should be reasonable
-      expect(Math.abs(result.summary.sizeChange)).toBeLessThan(testFunction.instructions.length * 10);
+      expect(Math.abs(result.summary.sizeChange)).toBeLessThan(
+        testFunction.instructions.length * 10
+      );
     });
   });
 
@@ -590,11 +592,27 @@ describe('ILOptimizationFramework', () => {
       const module1 = createILModule(['Module1']);
       const module2 = createILModule(['Module2']);
 
-      const func1 = createILFunction('func1', ['Module1'], { kind: 'primitive', name: 'void' }, { line: 1, column: 1, offset: 0 });
-      const func2 = createILFunction('func2', ['Module2'], { kind: 'primitive', name: 'void' }, { line: 1, column: 1, offset: 0 });
+      const func1 = createILFunction(
+        'func1',
+        ['Module1'],
+        { kind: 'primitive', name: 'void' },
+        { line: 1, column: 1, offset: 0 }
+      );
+      const func2 = createILFunction(
+        'func2',
+        ['Module2'],
+        { kind: 'primitive', name: 'void' },
+        { line: 1, column: 1, offset: 0 }
+      );
 
-      func1.instructions = [createILInstruction(ILInstructionType.NOP, [], 1), createILInstruction(ILInstructionType.RETURN, [], 2)];
-      func2.instructions = [createILInstruction(ILInstructionType.NOP, [], 1), createILInstruction(ILInstructionType.RETURN, [], 2)];
+      func1.instructions = [
+        createILInstruction(ILInstructionType.NOP, [], 1),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
+      ];
+      func2.instructions = [
+        createILInstruction(ILInstructionType.NOP, [], 1),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
+      ];
 
       module1.functions = [func1];
       module2.functions = [func2];
@@ -616,8 +634,12 @@ describe('ILOptimizationFramework', () => {
 
       callbackFunction.isCallback = true;
       callbackFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant({ kind: 'primitive', name: 'byte' }, 1)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ];
 
       const result = await framework.optimizeFunction(callbackFunction);

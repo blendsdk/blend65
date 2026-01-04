@@ -33,8 +33,8 @@ export interface ModuleDeclaration extends Blend65ASTNode {
  */
 export interface ImportSpecifier extends Blend65ASTNode {
   type: 'ImportSpecifier';
-  imported: string;           // Name being imported
-  local: string | null;       // Local name (null if same as imported)
+  imported: string; // Name being imported
+  local: string | null; // Local name (null if same as imported)
 }
 
 /**
@@ -56,8 +56,8 @@ export interface ImportDeclaration extends Blend65ASTNode {
  */
 export interface TargetModule extends Blend65ASTNode {
   type: 'TargetModule';
-  target: string;             // Target name (c64, x16, target)
-  module: string;             // Module name within target
+  target: string; // Target name (c64, x16, target)
+  module: string; // Module name within target
 }
 
 /**
@@ -66,7 +66,7 @@ export interface TargetModule extends Blend65ASTNode {
  */
 export interface ExportDeclaration extends Blend65ASTNode {
   type: 'ExportDeclaration';
-  declaration: Blend65ASTNode;       // The declaration being exported
+  declaration: Blend65ASTNode; // The declaration being exported
 }
 
 /**

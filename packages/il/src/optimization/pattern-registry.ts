@@ -14,8 +14,7 @@ import {
   OptimizationSafety,
   OptimizationContext,
   OptimizationResult,
-  OptimizationErrorType,
-  OptimizationMetricsChange
+  OptimizationMetricsChange,
 } from './types.js';
 import { ILInstruction, ILInstructionType, isILConstant } from '../il-types.js';
 
@@ -62,7 +61,9 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
    */
   getByCategory(category: OptimizationCategory): OptimizationPattern[] {
     const patternIds = this.categoryIndex.get(category) || new Set();
-    return Array.from(patternIds).map(id => this.patterns.get(id)!).filter(Boolean);
+    return Array.from(patternIds)
+      .map(id => this.patterns.get(id)!)
+      .filter(Boolean);
   }
 
   /**
@@ -78,7 +79,7 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
       OptimizationLevel.O1,
       OptimizationLevel.O2,
       OptimizationLevel.Os,
-      OptimizationLevel.O3
+      OptimizationLevel.O3,
     ];
 
     const maxLevelIndex = levelOrder.indexOf(level);
@@ -190,8 +191,8 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
         const metricsChange = this.createZeroMetricsChange();
 
         const filtered = instructions.filter(inst => {
-          const shouldRemove = inst.type === ILInstructionType.NOP &&
-                               !inst.metadata?.debugInfo?.comments;
+          const shouldRemove =
+            inst.type === ILInstructionType.NOP && !inst.metadata?.debugInfo?.comments;
           if (shouldRemove) {
             optimized = true;
             metricsChange.sizeDelta -= 2;
@@ -204,11 +205,13 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
           success: optimized,
           instructions: optimized ? filtered : undefined,
           metricsChange,
-          appliedPattern: optimized ? {
-            id: 'dead-code-nop-elimination',
-            name: 'NOP Instruction Elimination',
-            applications: instructions.length - filtered.length
-          } : undefined,
+          appliedPattern: optimized
+            ? {
+                id: 'dead-code-nop-elimination',
+                name: 'NOP Instruction Elimination',
+                applications: instructions.length - filtered.length,
+              }
+            : undefined,
           warnings: [],
           debug: {
             applicationAttempts: [],
@@ -217,18 +220,17 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         };
       },
       isApplicable: (instructions: ILInstruction[], context: OptimizationContext) => {
-        return instructions.some(inst =>
-          inst.type === ILInstructionType.NOP &&
-          !inst.metadata?.debugInfo?.comments
+        return instructions.some(
+          inst => inst.type === ILInstructionType.NOP && !inst.metadata?.debugInfo?.comments
         );
-      }
+      },
     });
   }
 
@@ -268,20 +270,22 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
             // Replace with single constant
             result.splice(i, 3, {
               type: ILInstructionType.LOAD_IMMEDIATE,
-              operands: [{
-                valueType: 'constant',
-                type: { kind: 'primitive', name: 'byte' },
-                value: sum,
-                representation: 'decimal'
-              }],
+              operands: [
+                {
+                  valueType: 'constant',
+                  type: { kind: 'primitive', name: 'byte' },
+                  value: sum,
+                  representation: 'decimal',
+                },
+              ],
               id: inst1.id,
               metadata: {
                 processedBy: ['constant-folding-arithmetic'],
                 synthetic: true,
                 debugInfo: {
-                  comments: [`Folded: ${const1.value} + ${const2.value} = ${sum}`]
-                }
-              }
+                  comments: [`Folded: ${const1.value} + ${const2.value} = ${sum}`],
+                },
+              },
             });
 
             optimized = true;
@@ -294,11 +298,13 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
           success: optimized,
           instructions: optimized ? result : undefined,
           metricsChange,
-          appliedPattern: optimized ? {
-            id: 'constant-folding-arithmetic',
-            name: 'Arithmetic Constant Folding',
-            applications: 1
-          } : undefined,
+          appliedPattern: optimized
+            ? {
+                id: 'constant-folding-arithmetic',
+                name: 'Arithmetic Constant Folding',
+                applications: 1,
+              }
+            : undefined,
           warnings: [],
           debug: {
             applicationAttempts: [],
@@ -307,26 +313,28 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         };
       },
       isApplicable: (instructions: ILInstruction[], context: OptimizationContext) => {
         // Check if there are constant arithmetic patterns
         for (let i = 0; i < instructions.length - 2; i++) {
-          if (this.isConstantArithmeticPattern(
-            instructions[i],
-            instructions[i + 1],
-            instructions[i + 2],
-            ILInstructionType.ADD
-          )) {
+          if (
+            this.isConstantArithmeticPattern(
+              instructions[i],
+              instructions[i + 1],
+              instructions[i + 2],
+              ILInstructionType.ADD
+            )
+          ) {
             return true;
           }
         }
         return false;
-      }
+      },
     });
   }
 
@@ -359,15 +367,15 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         };
       },
       isApplicable: (instructions: ILInstruction[], context: OptimizationContext) => {
         return false; // Placeholder
-      }
+      },
     });
   }
 
@@ -400,15 +408,15 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         };
       },
       isApplicable: (instructions: ILInstruction[], context: OptimizationContext) => {
         return false; // Placeholder
-      }
+      },
     });
   }
 
@@ -442,15 +450,15 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         };
       },
       isApplicable: (instructions: ILInstruction[], context: OptimizationContext) => {
         return false; // Placeholder
-      }
+      },
     });
   }
 
@@ -483,15 +491,15 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         };
       },
       isApplicable: (instructions: ILInstruction[], context: OptimizationContext) => {
         return false; // Placeholder
-      }
+      },
     });
   }
 
@@ -504,15 +512,17 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
     inst3: ILInstruction,
     operation: ILInstructionType
   ): boolean {
-    return inst1.type === ILInstructionType.LOAD_IMMEDIATE &&
-           inst2.type === ILInstructionType.LOAD_IMMEDIATE &&
-           inst3.type === operation &&
-           'valueType' in inst1.operands[0] &&
-           'valueType' in inst2.operands[0] &&
-           isILConstant(inst1.operands[0]) &&
-           isILConstant(inst2.operands[0]) &&
-           typeof inst1.operands[0].value === 'number' &&
-           typeof inst2.operands[0].value === 'number';
+    return (
+      inst1.type === ILInstructionType.LOAD_IMMEDIATE &&
+      inst2.type === ILInstructionType.LOAD_IMMEDIATE &&
+      inst3.type === operation &&
+      'valueType' in inst1.operands[0] &&
+      'valueType' in inst2.operands[0] &&
+      isILConstant(inst1.operands[0]) &&
+      isILConstant(inst2.operands[0]) &&
+      typeof inst1.operands[0].value === 'number' &&
+      typeof inst2.operands[0].value === 'number'
+    );
   }
 
   /**
@@ -524,7 +534,7 @@ export class OptimizationPatternRegistryImpl implements OptimizationPatternRegis
       sizeDelta: 0,
       memoryDelta: 0,
       registerPressureDelta: 0,
-      complexityDelta: 0
+      complexityDelta: 0,
     };
   }
 }
@@ -625,15 +635,17 @@ export class PatternBuilder {
     if (!this.pattern.priority) throw new Error('Pattern priority is required');
     if (!this.pattern.safety) throw new Error('Pattern safety is required');
     if (!this.pattern.minLevel) throw new Error('Pattern min level is required');
-    if (typeof this.pattern.apply !== 'function') throw new Error('Pattern apply function is required');
-    if (typeof this.pattern.isApplicable !== 'function') throw new Error('Pattern applicability test is required');
+    if (typeof this.pattern.apply !== 'function')
+      throw new Error('Pattern apply function is required');
+    if (typeof this.pattern.isApplicable !== 'function')
+      throw new Error('Pattern applicability test is required');
 
     return {
       ...this.pattern,
       estimatedCyclesSaved: this.pattern.estimatedCyclesSaved ?? 0,
       estimatedSizeImpact: this.pattern.estimatedSizeImpact ?? 0,
       dependencies: this.pattern.dependencies ?? [],
-      conflicts: this.pattern.conflicts ?? []
+      conflicts: this.pattern.conflicts ?? [],
     } as OptimizationPattern;
   }
 }

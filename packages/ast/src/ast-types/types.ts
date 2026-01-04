@@ -38,7 +38,7 @@ export interface PrimitiveType extends TypeAnnotation {
 export interface ArrayType extends TypeAnnotation {
   type: 'ArrayType';
   elementType: TypeAnnotation;
-  size: Expression;           // Must resolve to compile-time constant
+  size: Expression; // Must resolve to compile-time constant
 }
 
 /**
@@ -49,7 +49,7 @@ export interface RecordType extends TypeAnnotation {
   type: 'RecordType';
   name: string;
   fields: RecordField[];
-  extends: RecordType[];      // Support for inheritance
+  extends: RecordType[]; // Support for inheritance
 }
 
 /**
@@ -59,7 +59,7 @@ export interface RecordField extends Blend65ASTNode {
   type: 'RecordField';
   name: string;
   fieldType: TypeAnnotation;
-  offset?: number;            // Optional explicit memory offset
+  offset?: number; // Optional explicit memory offset
 }
 
 /**
@@ -113,7 +113,7 @@ export interface StorageQualifiedType extends TypeAnnotation {
  */
 export interface MemoryPlacement extends Blend65ASTNode {
   type: 'MemoryPlacement';
-  address: Expression;        // Must resolve to compile-time constant
+  address: Expression; // Must resolve to compile-time constant
 }
 
 /**
@@ -157,7 +157,6 @@ export type Blend65Type =
  * Type utilities for compile-time type checking
  */
 export namespace TypeUtils {
-
   /**
    * Check if a type is a primitive type
    */

@@ -167,9 +167,11 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
     }
 
     // Mark declaration as exported
-    if (declaration.type === 'FunctionDeclaration' ||
-        declaration.type === 'VariableDeclaration' ||
-        declaration.type === 'EnumDeclaration') {
+    if (
+      declaration.type === 'FunctionDeclaration' ||
+      declaration.type === 'VariableDeclaration' ||
+      declaration.type === 'EnumDeclaration'
+    ) {
       (declaration as any).exported = true;
     }
 
@@ -231,7 +233,10 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
   /**
    * Parse function declaration with callback support
    */
-  private parseFunctionDeclaration(exported: boolean = false, callback: boolean = false): FunctionDeclaration {
+  private parseFunctionDeclaration(
+    exported: boolean = false,
+    callback: boolean = false
+  ): FunctionDeclaration {
     const funcToken = this.consume(TokenType.FUNCTION, "Expected 'function'");
     const name = this.consume(TokenType.IDENTIFIER, 'Expected function name').value;
 
@@ -259,10 +264,18 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
     this.consumeLexeme('function', "Expected 'function' after 'end'");
     this.consumeStatementTerminator();
 
-    return this.factory.createFunctionDeclaration(name, params, returnType, body, exported, callback, {
-      start: funcToken.start,
-      end: this.previous().end,
-    });
+    return this.factory.createFunctionDeclaration(
+      name,
+      params,
+      returnType,
+      body,
+      exported,
+      callback,
+      {
+        start: funcToken.start,
+        end: this.previous().end,
+      }
+    );
   }
 
   /**
@@ -430,7 +443,7 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
         metadata: {
           start: token.start,
           end: token.end,
-        }
+        },
       }) as TypeAnnotation;
 
       // Check for array types: NamedType[size]
@@ -625,7 +638,7 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
         cases.push(this.parseMatchCase(false));
       } else if (this.checkLexeme('default')) {
         if (defaultCase !== null) {
-          throw new Error("Multiple default cases not allowed");
+          throw new Error('Multiple default cases not allowed');
         }
         defaultCase = this.parseMatchCase(true);
       } else {

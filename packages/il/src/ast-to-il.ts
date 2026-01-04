@@ -48,23 +48,19 @@ import type {
   ReturnStatement,
   BreakStatement,
   ContinueStatement,
-  StorageClass,
   TypeAnnotation,
   ImportDeclaration,
   ExportDeclaration,
-  Parameter
+  Parameter,
 } from '@blend65/ast';
 
 import type {
-  SemanticResult,
   Symbol,
   VariableSymbol,
   FunctionSymbol,
   EnumSymbol,
   Blend65Type,
-  VariableOptimizationMetadata,
-  FunctionOptimizationMetadata,
-  PrimitiveType
+  PrimitiveType,
 } from '@blend65/semantic';
 
 import {
@@ -76,18 +72,12 @@ import {
   ILValue,
   ILOperand,
   ILConstant,
-  ILVariable,
   ILTemporary,
-  ILLabel,
   ILParameter,
   ILLocalVariable,
-  ILGlobalData,
   ILModuleData,
   ILImport,
   ILExport,
-  Register6502,
-  TemporaryScope,
-  VariableScope,
   LocalVariableAllocation,
   ParameterPassingMethod,
   IL6502OptimizationHints,
@@ -98,13 +88,8 @@ import {
   createILInstruction,
   createILProgram,
   createILModule,
-  createILFunction
+  createILFunction,
 } from './il-types';
-
-import {
-  ILInstructionFactory,
-  ILInstructionError
-} from './instructions';
 
 // ============================================================================
 // TRANSFORMATION RESULT TYPES
@@ -126,7 +111,7 @@ export interface TransformationResult {
 export interface TransformationError {
   message: string;
   location?: any; // SourcePosition from AST
-  astNode?: any;  // Original AST node
+  astNode?: any; // Original AST node
 }
 
 /**
@@ -243,7 +228,7 @@ export class ASTToILTransformer {
       errors: [],
       warnings: [],
       useOptimizationMetadata: options.useOptimizationMetadata ?? true,
-      targetPlatform: options.targetPlatform ?? 'c64'
+      targetPlatform: options.targetPlatform ?? 'c64',
     };
   }
 
@@ -277,7 +262,7 @@ export class ASTToILTransformer {
       success: this.context.errors.length === 0,
       program: ilProgram,
       errors: this.context.errors,
-      warnings: this.context.warnings
+      warnings: this.context.warnings,
     };
   }
 
@@ -291,7 +276,7 @@ export class ASTToILTransformer {
         importedName: specifier.imported,
         localName: specifier.local || specifier.imported,
         sourceModule: importDecl.source.parts,
-        importType: 'function' // TODO: Determine actual type from semantic analysis
+        importType: 'function', // TODO: Determine actual type from semantic analysis
       };
       this.context.currentModule.imports.push(ilImport);
     }
@@ -315,7 +300,10 @@ export class ASTToILTransformer {
         exportType = 'variable';
         break;
       default:
-        this.addError(`Unsupported export declaration type: ${exportDecl.declaration.type}`, exportDecl);
+        this.addError(
+          `Unsupported export declaration type: ${exportDecl.declaration.type}`,
+          exportDecl
+        );
         return;
     }
 
@@ -323,7 +311,7 @@ export class ASTToILTransformer {
       exportedName: exportName,
       localName: exportName,
       exportType,
-      value: createILVariable(exportName, { kind: 'primitive', name: 'void' })
+      value: createILVariable(exportName, { kind: 'primitive', name: 'void' }),
     };
 
     this.context.currentModule.exports.push(ilExport);
@@ -384,7 +372,7 @@ export class ASTToILTransformer {
         type: this.transformType(param.paramType),
         index: i,
         passingMethod: this.determineParameterPassingMethod(param, i, functionSymbol),
-        optimizationHints: this.createParameterOptimizationHints(param, functionSymbol)
+        optimizationHints: this.createParameterOptimizationHints(param, functionSymbol),
       };
       ilFunction.parameters.push(ilParam);
     }
@@ -409,12 +397,15 @@ export class ASTToILTransformer {
     }
 
     // Add implicit return if function doesn't end with return
-    if (ilFunction.instructions.length === 0 ||
-        ilFunction.instructions[ilFunction.instructions.length - 1].type !== ILInstructionType.RETURN) {
-
+    if (
+      ilFunction.instructions.length === 0 ||
+      ilFunction.instructions[ilFunction.instructions.length - 1].type !== ILInstructionType.RETURN
+    ) {
       const returnInstruction = createILInstruction(
         ILInstructionType.RETURN,
-        this.isVoidType(ilFunction.returnType) ? [] : [this.createDefaultValue(ilFunction.returnType)],
+        this.isVoidType(ilFunction.returnType)
+          ? []
+          : [this.createDefaultValue(ilFunction.returnType)],
         this.context.nextInstructionId++
       );
 
@@ -460,7 +451,7 @@ export class ASTToILTransformer {
       type: this.transformType(varDecl.varType),
       allocationMethod: this.determineLocalVariableAllocation(variableSymbol),
       optimizationMetadata: variableSymbol.optimizationMetadata,
-      ilOptimizationHints: this.createLocalVariableOptimizationHints(variableSymbol)
+      ilOptimizationHints: this.createLocalVariableOptimizationHints(variableSymbol),
     };
 
     // Add to function
@@ -469,19 +460,11 @@ export class ASTToILTransformer {
     // Generate declaration instruction
     const declareInstruction = createILInstruction(
       ILInstructionType.DECLARE_LOCAL,
-      [
-        createILVariable(
-          varDecl.name,
-          ilLocalVar.type,
-          [],
-          varDecl.storageClass,
-          'local'
-        )
-      ],
+      [createILVariable(varDecl.name, ilLocalVar.type, [], varDecl.storageClass, 'local')],
       this.context.nextInstructionId++,
       {
         sourceLocation: varDecl.metadata?.start,
-        sixtyTwoHints: this.createVariableOptimizationHints(variableSymbol)
+        sixtyTwoHints: this.createVariableOptimizationHints(variableSymbol),
       }
     );
 
@@ -499,12 +482,12 @@ export class ASTToILTransformer {
         ILInstructionType.STORE_VARIABLE,
         [
           createILVariable(varDecl.name, ilLocalVar.type, [], varDecl.storageClass, 'local'),
-          initResult.value
+          initResult.value,
         ],
         this.context.nextInstructionId++,
         {
           sourceLocation: varDecl.metadata?.start,
-          sixtyTwoHints: this.createVariableOptimizationHints(variableSymbol)
+          sixtyTwoHints: this.createVariableOptimizationHints(variableSymbol),
         }
       );
 
@@ -521,9 +504,11 @@ export class ASTToILTransformer {
       name: varDecl.name,
       type: this.transformType(varDecl.varType),
       storageClass: varDecl.storageClass,
-      initialValue: varDecl.initializer ? this.evaluateConstantExpression(varDecl.initializer) : undefined,
+      initialValue: varDecl.initializer
+        ? this.evaluateConstantExpression(varDecl.initializer)
+        : undefined,
       isExported: varDecl.exported,
-      optimizationMetadata: variableSymbol.optimizationMetadata
+      optimizationMetadata: variableSymbol.optimizationMetadata,
     };
 
     this.context.currentModule.moduleData.push(ilModuleData);
@@ -549,12 +534,8 @@ export class ASTToILTransformer {
         name: `${enumDecl.name}_${memberName}`,
         type: enumSymbol.underlyingType,
         storageClass: 'const',
-        initialValue: createILConstant(
-          enumSymbol.underlyingType,
-          memberInfo.value,
-          'decimal'
-        ),
-        isExported: enumDecl.exported
+        initialValue: createILConstant(enumSymbol.underlyingType, memberInfo.value, 'decimal'),
+        isExported: enumDecl.exported,
       };
 
       this.context.currentModule.moduleData.push(ilConstant);
@@ -606,7 +587,7 @@ export class ASTToILTransformer {
     return {
       instructions: result.instructions,
       alwaysTransfersControl: false,
-      labels: new Map()
+      labels: new Map(),
     };
   }
 
@@ -625,7 +606,7 @@ export class ASTToILTransformer {
       operands,
       this.context.nextInstructionId++,
       {
-        sourceLocation: returnStmt.metadata?.start
+        sourceLocation: returnStmt.metadata?.start,
       }
     );
 
@@ -634,7 +615,7 @@ export class ASTToILTransformer {
     return {
       instructions,
       alwaysTransfersControl: true,
-      labels: new Map()
+      labels: new Map(),
     };
   }
 
@@ -727,7 +708,7 @@ export class ASTToILTransformer {
     return {
       instructions,
       alwaysTransfersControl: thenTransfersControl && elseTransfersControl,
-      labels
+      labels,
     };
   }
 
@@ -753,7 +734,10 @@ export class ASTToILTransformer {
         instructions.push(...testResult.instructions);
 
         // Compare discriminant with case test
-        const compareTemp = createILTemporary(this.context.nextTemporaryId++, { kind: 'primitive', name: 'boolean' });
+        const compareTemp = createILTemporary(this.context.nextTemporaryId++, {
+          kind: 'primitive',
+          name: 'boolean',
+        });
         const compareInstruction = createILInstruction(
           ILInstructionType.COMPARE_EQ,
           [discriminantResult.value, testResult.value],
@@ -831,7 +815,7 @@ export class ASTToILTransformer {
     return {
       instructions,
       alwaysTransfersControl: false,
-      labels
+      labels,
     };
   }
 
@@ -858,7 +842,7 @@ export class ASTToILTransformer {
     return {
       instructions,
       alwaysTransfersControl,
-      labels
+      labels,
     };
   }
 
@@ -877,7 +861,7 @@ export class ASTToILTransformer {
     return {
       instructions: [branchInstruction],
       alwaysTransfersControl: true,
-      labels: new Map()
+      labels: new Map(),
     };
   }
 
@@ -896,7 +880,7 @@ export class ASTToILTransformer {
     return {
       instructions: [branchInstruction],
       alwaysTransfersControl: true,
-      labels: new Map()
+      labels: new Map(),
     };
   }
 
@@ -938,7 +922,7 @@ export class ASTToILTransformer {
         return {
           value: createILConstant({ kind: 'primitive', name: 'void' }, 0),
           instructions: [],
-          temporaries: []
+          temporaries: [],
         };
     }
   }
@@ -956,7 +940,11 @@ export class ASTToILTransformer {
     temporaries.push(...leftResult.temporaries, ...rightResult.temporaries);
 
     // Create temporary for result
-    const resultType = this.inferBinaryExpressionType(binaryExpr.operator, leftResult.value, rightResult.value);
+    const resultType = this.inferBinaryExpressionType(
+      binaryExpr.operator,
+      leftResult.value,
+      rightResult.value
+    );
     const resultTemp = createILTemporary(this.context.nextTemporaryId++, resultType);
     temporaries.push(resultTemp);
 
@@ -1140,7 +1128,7 @@ export class ASTToILTransformer {
     return {
       value: resultTemp,
       instructions,
-      temporaries
+      temporaries,
     };
   }
 
@@ -1154,7 +1142,10 @@ export class ASTToILTransformer {
     temporaries.push(...operandResult.temporaries);
 
     // Create temporary for result
-    const resultTemp = createILTemporary(this.context.nextTemporaryId++, this.inferUnaryExpressionType(unaryExpr.operator, operandResult.value));
+    const resultTemp = createILTemporary(
+      this.context.nextTemporaryId++,
+      this.inferUnaryExpressionType(unaryExpr.operator, operandResult.value)
+    );
     temporaries.push(resultTemp);
 
     // Generate appropriate instruction based on operator
@@ -1203,7 +1194,7 @@ export class ASTToILTransformer {
     return {
       value: resultTemp,
       instructions,
-      temporaries
+      temporaries,
     };
   }
 
@@ -1219,7 +1210,12 @@ export class ASTToILTransformer {
     // Handle left-hand side assignment target
     if (assignExpr.left.type === 'Identifier') {
       const identifier = assignExpr.left as Identifier;
-      const variable = createILVariable(identifier.name, rightResult.value.valueType === 'constant' ? (rightResult.value as ILConstant).type : { kind: 'primitive', name: 'byte' });
+      const variable = createILVariable(
+        identifier.name,
+        rightResult.value.valueType === 'constant'
+          ? (rightResult.value as ILConstant).type
+          : { kind: 'primitive', name: 'byte' }
+      );
 
       const storeInstruction = createILInstruction(
         ILInstructionType.STORE_VARIABLE,
@@ -1232,7 +1228,7 @@ export class ASTToILTransformer {
       return {
         value: rightResult.value,
         instructions,
-        temporaries
+        temporaries,
       };
     }
 
@@ -1242,7 +1238,7 @@ export class ASTToILTransformer {
     return {
       value: rightResult.value,
       instructions,
-      temporaries
+      temporaries,
     };
   }
 
@@ -1274,22 +1270,31 @@ export class ASTToILTransformer {
     instructions.push(callInstruction);
 
     // Create temporary for return value
-    const returnTemp = createILTemporary(this.context.nextTemporaryId++, { kind: 'primitive', name: 'byte' });
+    const returnTemp = createILTemporary(this.context.nextTemporaryId++, {
+      kind: 'primitive',
+      name: 'byte',
+    });
     temporaries.push(returnTemp);
 
     return {
       value: returnTemp,
       instructions,
-      temporaries
+      temporaries,
     };
   }
 
   private transformMemberExpression(memberExpr: MemberExpr): ExpressionTransformResult {
     // For now, treat member expressions as identifier references
     // TODO: Implement proper member access for records/types
-    const identifier = createILVariable(`${memberExpr.object}.${memberExpr.property}`, { kind: 'primitive', name: 'byte' });
+    const identifier = createILVariable(`${memberExpr.object}.${memberExpr.property}`, {
+      kind: 'primitive',
+      name: 'byte',
+    });
 
-    const resultTemp = createILTemporary(this.context.nextTemporaryId++, { kind: 'primitive', name: 'byte' });
+    const resultTemp = createILTemporary(this.context.nextTemporaryId++, {
+      kind: 'primitive',
+      name: 'byte',
+    });
 
     const loadInstruction = createILInstruction(
       ILInstructionType.LOAD_VARIABLE,
@@ -1301,7 +1306,7 @@ export class ASTToILTransformer {
     return {
       value: resultTemp,
       instructions: [loadInstruction],
-      temporaries: [resultTemp]
+      temporaries: [resultTemp],
     };
   }
 
@@ -1318,7 +1323,10 @@ export class ASTToILTransformer {
     temporaries.push(...arrayResult.temporaries, ...indexResult.temporaries);
 
     // Create temporary for result
-    const resultTemp = createILTemporary(this.context.nextTemporaryId++, { kind: 'primitive', name: 'byte' });
+    const resultTemp = createILTemporary(this.context.nextTemporaryId++, {
+      kind: 'primitive',
+      name: 'byte',
+    });
     temporaries.push(resultTemp);
 
     // Generate load array instruction
@@ -1334,7 +1342,7 @@ export class ASTToILTransformer {
     return {
       value: resultTemp,
       instructions,
-      temporaries
+      temporaries,
     };
   }
 
@@ -1364,13 +1372,16 @@ export class ASTToILTransformer {
       return {
         value: resultTemp,
         instructions: [loadInstruction],
-        temporaries: [resultTemp]
+        temporaries: [resultTemp],
       };
     }
 
     // For now, treat unknown identifiers as variables
     const variable = createILVariable(identifier.name, { kind: 'primitive', name: 'byte' });
-    const resultTemp = createILTemporary(this.context.nextTemporaryId++, { kind: 'primitive', name: 'byte' });
+    const resultTemp = createILTemporary(this.context.nextTemporaryId++, {
+      kind: 'primitive',
+      name: 'byte',
+    });
 
     const loadInstruction = createILInstruction(
       ILInstructionType.LOAD_VARIABLE,
@@ -1382,18 +1393,22 @@ export class ASTToILTransformer {
     return {
       value: resultTemp,
       instructions: [loadInstruction],
-      temporaries: [resultTemp]
+      temporaries: [resultTemp],
     };
   }
 
   private transformLiteral(literal: Literal): ExpressionTransformResult {
     const type = this.inferLiteralType(literal);
-    const ilConstant = createILConstant(type, literal.value, this.getConstantRepresentation(literal));
+    const ilConstant = createILConstant(
+      type,
+      literal.value,
+      this.getConstantRepresentation(literal)
+    );
 
     return {
       value: ilConstant,
       instructions: [],
-      temporaries: []
+      temporaries: [],
     };
   }
 
@@ -1417,13 +1432,13 @@ export class ASTToILTransformer {
     const resultTemp = createILTemporary(this.context.nextTemporaryId++, {
       kind: 'array',
       elementType: { kind: 'primitive', name: 'byte' },
-      size: arrayLiteral.elements.length
+      size: arrayLiteral.elements.length,
     });
 
     return {
       value: resultTemp,
       instructions,
-      temporaries: [resultTemp, ...temporaries]
+      temporaries: [resultTemp, ...temporaries],
     };
   }
 
@@ -1435,7 +1450,7 @@ export class ASTToILTransformer {
     this.context.errors.push({
       message,
       location: astNode?.metadata?.start,
-      astNode
+      astNode,
     });
   }
 
@@ -1443,7 +1458,7 @@ export class ASTToILTransformer {
     this.context.warnings.push({
       message,
       location: astNode?.metadata?.start,
-      astNode
+      astNode,
     });
   }
 
@@ -1465,7 +1480,7 @@ export class ASTToILTransformer {
         return {
           kind: 'array',
           elementType: this.transformType(arrayType.elementType),
-          size: typeof arrayType.size === 'number' ? arrayType.size : 256 // Default size
+          size: typeof arrayType.size === 'number' ? arrayType.size : 256, // Default size
         };
 
       case 'NamedType':
@@ -1498,7 +1513,11 @@ export class ASTToILTransformer {
     }
   }
 
-  private determineParameterPassingMethod(param: Parameter, index: number, functionSymbol: FunctionSymbol): ParameterPassingMethod {
+  private determineParameterPassingMethod(
+    param: Parameter,
+    index: number,
+    functionSymbol: FunctionSymbol
+  ): ParameterPassingMethod {
     // Simple parameter passing strategy
     if (index === 0) return 'register_A';
     if (index === 1) return 'register_X';
@@ -1510,16 +1529,21 @@ export class ASTToILTransformer {
     return {
       isReadOnly: true,
       usedInHotPath: false,
-      preferredPassingMethod: 'register_A' as ParameterPassingMethod
+      preferredPassingMethod: 'register_A' as ParameterPassingMethod,
     };
   }
 
-  private determineLocalVariableAllocation(variableSymbol: VariableSymbol): LocalVariableAllocation {
+  private determineLocalVariableAllocation(
+    variableSymbol: VariableSymbol
+  ): LocalVariableAllocation {
     // Simple allocation strategy based on optimization metadata
     if (variableSymbol.optimizationMetadata?.registerCandidate?.isCandidate) {
       return 'register';
     }
-    if (variableSymbol.storageClass === 'zp' || variableSymbol.optimizationMetadata?.zeroPageCandidate?.isCandidate) {
+    if (
+      variableSymbol.storageClass === 'zp' ||
+      variableSymbol.optimizationMetadata?.zeroPageCandidate?.isCandidate
+    ) {
       return 'zero_page';
     }
     return 'stack';
@@ -1527,9 +1551,10 @@ export class ASTToILTransformer {
 
   private createLocalVariableOptimizationHints(variableSymbol: VariableSymbol): any {
     return {
-      canRegisterAllocate: variableSymbol.optimizationMetadata?.registerCandidate?.isCandidate ?? false,
+      canRegisterAllocate:
+        variableSymbol.optimizationMetadata?.registerCandidate?.isCandidate ?? false,
       preferredAllocation: this.determineLocalVariableAllocation(variableSymbol),
-      registerPriority: 'medium' as any
+      registerPriority: 'medium' as any,
     };
   }
 
@@ -1538,7 +1563,8 @@ export class ASTToILTransformer {
       preferredRegister: 'A',
       preferredAddressingMode: variableSymbol.storageClass === 'zp' ? 'zero_page' : 'absolute',
       estimatedCycles: 3,
-      isHotPath: variableSymbol.optimizationMetadata?.usageStatistics?.estimatedAccessFrequency === 'hot'
+      isHotPath:
+        variableSymbol.optimizationMetadata?.usageStatistics?.estimatedAccessFrequency === 'hot',
     };
   }
 
@@ -1587,14 +1613,14 @@ export class ASTToILTransformer {
       case 'boolean':
         return { kind: 'primitive', name: 'boolean' };
       case 'number':
-        return literal.value <= 255 && literal.value >= 0 ?
-          { kind: 'primitive', name: 'byte' } :
-          { kind: 'primitive', name: 'word' };
+        return literal.value <= 255 && literal.value >= 0
+          ? { kind: 'primitive', name: 'byte' }
+          : { kind: 'primitive', name: 'word' };
       case 'string':
         return {
           kind: 'array',
           elementType: { kind: 'primitive', name: 'byte' },
-          size: (literal.value as string).length
+          size: (literal.value as string).length,
         };
       default:
         return { kind: 'primitive', name: 'byte' };
@@ -1694,7 +1720,7 @@ export class ASTToILTransformer {
     return {
       instructions,
       alwaysTransfersControl: false,
-      labels
+      labels,
     };
   }
 
@@ -1753,7 +1779,10 @@ export class ASTToILTransformer {
     instructions.push(loadInstruction);
 
     // Compare loop variable with end value
-    const compareTemp = createILTemporary(this.context.nextTemporaryId++, { kind: 'primitive', name: 'boolean' });
+    const compareTemp = createILTemporary(this.context.nextTemporaryId++, {
+      kind: 'primitive',
+      name: 'boolean',
+    });
     const compareInstruction = createILInstruction(
       ILInstructionType.COMPARE_LE,
       [loadVar, endResult.value],
@@ -1842,7 +1871,7 @@ export class ASTToILTransformer {
     return {
       instructions,
       alwaysTransfersControl: false,
-      labels
+      labels,
     };
   }
 }

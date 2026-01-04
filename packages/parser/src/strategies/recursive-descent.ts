@@ -166,7 +166,7 @@ export abstract class RecursiveDescentParser<T extends ASTNode = ASTNode> extend
         metadata: {
           start: test.metadata?.start ?? q.start,
           end: alternate.metadata?.end ?? this.previous().end,
-        }
+        },
       }) as Expression;
     }
     return test;
@@ -363,7 +363,8 @@ export abstract class RecursiveDescentParser<T extends ASTNode = ASTNode> extend
    */
   protected isStatementTerminator(): boolean {
     return (
-      this.check(TokenType.SEMICOLON, TokenType.NEWLINE, TokenType.EOF) || this.check(TokenType.RIGHT_BRACE)
+      this.check(TokenType.SEMICOLON, TokenType.NEWLINE, TokenType.EOF) ||
+      this.check(TokenType.RIGHT_BRACE)
     );
   }
 

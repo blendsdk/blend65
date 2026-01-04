@@ -24,25 +24,13 @@ import type { ASTNode } from '@blend65/ast';
 import type {
   OptimizationPattern,
   PatternMatcher,
-  PatternMatchResult,
-  PatternMatchDetails,
-  PatternMatch,
-  MatchContextInfo,
-  MatchWarning,
-  MatchWarningType,
   WarningSeverity,
   MatcherPerformanceCharacteristics,
   OptimizationContext,
-  MemoryConstraints,
-  PlatformSpecificInfo,
-  AlignmentRequirement,
-  MemoryBankRestriction,
   PlatformConstraint,
   HardwareOptimization,
   PatternCategory,
-  PatternSubcategory,
   TargetPlatform,
-  ConfidenceLevel
 } from './pattern-system';
 import type { Symbol, Blend65Type } from '../..';
 import { SourcePosition } from '@blend65/lexer';
@@ -163,12 +151,12 @@ export interface PerformanceBottleneck {
 }
 
 export type BottleneckType =
-  | 'SlowNodeType'         // Specific node type is slow to match
-  | 'ComplexPattern'       // Pattern is overly complex
-  | 'CacheMiss'           // High cache miss rate
-  | 'MemoryPressure'      // Memory pressure affecting performance
-  | 'ContextLookup'       // Slow context information lookup
-  | 'TypeResolution';     // Slow type resolution
+  | 'SlowNodeType' // Specific node type is slow to match
+  | 'ComplexPattern' // Pattern is overly complex
+  | 'CacheMiss' // High cache miss rate
+  | 'MemoryPressure' // Memory pressure affecting performance
+  | 'ContextLookup' // Slow context information lookup
+  | 'TypeResolution'; // Slow type resolution
 
 /**
  * Statistics for pattern matching operations.
@@ -337,13 +325,13 @@ export interface MatchingError {
 }
 
 export type MatchingErrorType =
-  | 'NodeAccessError'      // Error accessing AST node
-  | 'TypeResolutionError'  // Error resolving types
-  | 'ContextLookupError'   // Error looking up context
-  | 'PatternLogicError'    // Error in pattern matching logic
-  | 'TimeoutError'         // Matching timeout exceeded
-  | 'MemoryError'          // Out of memory error
-  | 'InternalError';       // Unexpected internal error
+  | 'NodeAccessError' // Error accessing AST node
+  | 'TypeResolutionError' // Error resolving types
+  | 'ContextLookupError' // Error looking up context
+  | 'PatternLogicError' // Error in pattern matching logic
+  | 'TimeoutError' // Matching timeout exceeded
+  | 'MemoryError' // Out of memory error
+  | 'InternalError'; // Unexpected internal error
 
 /**
  * Context information for matching errors.
@@ -486,14 +474,14 @@ export interface AttributeConstraint {
 }
 
 export type ConstraintType =
-  | 'Equals'               // Attribute must equal value
-  | 'NotEquals'            // Attribute must not equal value
-  | 'Contains'             // Attribute must contain value
-  | 'Matches'              // Attribute must match regex
-  | 'GreaterThan'          // Attribute must be greater than value
-  | 'LessThan'             // Attribute must be less than value
-  | 'InRange'              // Attribute must be in range
-  | 'Custom';              // Custom validator function
+  | 'Equals' // Attribute must equal value
+  | 'NotEquals' // Attribute must not equal value
+  | 'Contains' // Attribute must contain value
+  | 'Matches' // Attribute must match regex
+  | 'GreaterThan' // Attribute must be greater than value
+  | 'LessThan' // Attribute must be less than value
+  | 'InRange' // Attribute must be in range
+  | 'Custom'; // Custom validator function
 
 /**
  * Result of structural pattern matching.
@@ -643,12 +631,12 @@ export interface PatternOptimization {
 }
 
 export type PatternOptimizationType =
-  | 'NodeTypeShortcut'     // Fast path for common node types
-  | 'ConstraintReorder'    // Reorder constraints for efficiency
-  | 'CacheOptimization'    // Optimize cache usage
-  | 'EarlyTermination'     // Add early termination conditions
-  | 'ParallelExecution'    // Enable parallel matching
-  | 'MemoryReduction';     // Reduce memory usage
+  | 'NodeTypeShortcut' // Fast path for common node types
+  | 'ConstraintReorder' // Reorder constraints for efficiency
+  | 'CacheOptimization' // Optimize cache usage
+  | 'EarlyTermination' // Add early termination conditions
+  | 'ParallelExecution' // Enable parallel matching
+  | 'MemoryReduction'; // Reduce memory usage
 
 /**
  * Cache effectiveness assessment.
@@ -705,11 +693,11 @@ export interface CompilationWarning {
 }
 
 export type CompilationWarningType =
-  | 'ComplexPattern'       // Pattern is complex and may be slow
-  | 'IneffectiveCache'     // Cache won't be effective
-  | 'RedundantConstraint'  // Constraint is redundant
-  | 'SuboptimalOrder'      // Constraint order is suboptimal
-  | 'MemoryIntensive';     // Pattern uses lots of memory
+  | 'ComplexPattern' // Pattern is complex and may be slow
+  | 'IneffectiveCache' // Cache won't be effective
+  | 'RedundantConstraint' // Constraint is redundant
+  | 'SuboptimalOrder' // Constraint order is suboptimal
+  | 'MemoryIntensive'; // Pattern uses lots of memory
 
 /**
  * Error during pattern compilation.
@@ -726,10 +714,10 @@ export interface CompilationError {
 }
 
 export type CompilationErrorType =
-  | 'InvalidPattern'       // Pattern is invalid
-  | 'UnsupportedFeature'   // Feature not supported
-  | 'CircularReference'    // Circular reference in pattern
-  | 'CompilationFailure';  // Unexpected compilation failure
+  | 'InvalidPattern' // Pattern is invalid
+  | 'UnsupportedFeature' // Feature not supported
+  | 'CircularReference' // Circular reference in pattern
+  | 'CompilationFailure'; // Unexpected compilation failure
 
 // ============================================================================
 // SEMANTIC PATTERN MATCHER
@@ -814,7 +802,13 @@ export interface SymbolUsageRequirement {
   accessPattern: AccessPatternRequirement;
 }
 
-export type UsageContext = 'Loop' | 'Function' | 'Condition' | 'Assignment' | 'Parameter' | 'Return';
+export type UsageContext =
+  | 'Loop'
+  | 'Function'
+  | 'Condition'
+  | 'Assignment'
+  | 'Parameter'
+  | 'Return';
 
 export type AccessPatternRequirement = 'ReadOnly' | 'WriteOnly' | 'ReadWrite' | 'Any';
 
@@ -972,12 +966,12 @@ export interface ContextCondition {
 }
 
 export type ContextConditionType =
-  | 'OptimizationLevel'    // Optimization level check
-  | 'TargetPlatform'      // Target platform check
-  | 'CompilerFlag'        // Compiler flag check
-  | 'MemoryConstraint'    // Memory constraint check
-  | 'PerformanceGoal'     // Performance goal check
-  | 'Custom';             // Custom condition
+  | 'OptimizationLevel' // Optimization level check
+  | 'TargetPlatform' // Target platform check
+  | 'CompilerFlag' // Compiler flag check
+  | 'MemoryConstraint' // Memory constraint check
+  | 'PerformanceGoal' // Performance goal check
+  | 'Custom'; // Custom condition
 
 /**
  * Semantic relationship between nodes.
@@ -997,13 +991,13 @@ export interface SemanticRelationship {
 }
 
 export type SemanticRelationshipType =
-  | 'Uses'                 // Source uses target
-  | 'Defines'              // Source defines target
-  | 'Calls'                // Source calls target
-  | 'Depends'              // Source depends on target
-  | 'Contains'             // Source contains target
-  | 'Modifies'             // Source modifies target
-  | 'Accesses';            // Source accesses target
+  | 'Uses' // Source uses target
+  | 'Defines' // Source defines target
+  | 'Calls' // Source calls target
+  | 'Depends' // Source depends on target
+  | 'Contains' // Source contains target
+  | 'Modifies' // Source modifies target
+  | 'Accesses'; // Source accesses target
 
 /**
  * Constraint on semantic relationship.
@@ -1020,11 +1014,11 @@ export interface RelationshipConstraint {
 }
 
 export type RelationshipConstraintType =
-  | 'Distance'             // Maximum distance between nodes
-  | 'Frequency'            // Minimum/maximum frequency
-  | 'Order'                // Required order of operations
-  | 'Exclusivity'          // Exclusive relationship
-  | 'Mutuality';           // Mutual relationship
+  | 'Distance' // Maximum distance between nodes
+  | 'Frequency' // Minimum/maximum frequency
+  | 'Order' // Required order of operations
+  | 'Exclusivity' // Exclusive relationship
+  | 'Mutuality'; // Mutual relationship
 
 /**
  * Result of semantic pattern matching.
@@ -1210,12 +1204,12 @@ export interface RelationshipEvidence {
 }
 
 export type RelationshipEvidenceType =
-  | 'DirectReference'      // Direct symbol reference
-  | 'ControlFlow'          // Control flow relationship
-  | 'DataFlow'            // Data flow relationship
-  | 'LexicalScoping'      // Lexical scope relationship
-  | 'TypeInference'       // Type inference relationship
-  | 'CallGraph';          // Function call relationship
+  | 'DirectReference' // Direct symbol reference
+  | 'ControlFlow' // Control flow relationship
+  | 'DataFlow' // Data flow relationship
+  | 'LexicalScoping' // Lexical scope relationship
+  | 'TypeInference' // Type inference relationship
+  | 'CallGraph'; // Function call relationship
 
 /**
  * Context for semantic relationship.
@@ -1325,12 +1319,12 @@ export interface PerformanceRequirement {
 }
 
 export type PerformanceMetric =
-  | 'CycleCount'          // CPU cycles consumed
-  | 'MemoryUsage'         // Memory usage in bytes
-  | 'CacheHits'           // Cache hit rate
-  | 'BranchPrediction'    // Branch prediction accuracy
-  | 'InstructionCount'    // Number of instructions
-  | 'RegisterPressure';   // Register usage pressure
+  | 'CycleCount' // CPU cycles consumed
+  | 'MemoryUsage' // Memory usage in bytes
+  | 'CacheHits' // Cache hit rate
+  | 'BranchPrediction' // Branch prediction accuracy
+  | 'InstructionCount' // Number of instructions
+  | 'RegisterPressure'; // Register usage pressure
 
 export type PerformancePrecision = 'Approximate' | 'Measured' | 'Profiled' | 'Exact';
 
@@ -1352,12 +1346,12 @@ export interface ResourceUsageRequirement {
 }
 
 export type ResourceType =
-  | 'Memory'              // Memory resources
-  | 'Registers'           // CPU registers
-  | 'Cache'               // Cache resources
-  | 'IO'                  // I/O resources
-  | 'Hardware'            // Specific hardware resources
-  | 'Time';               // Time/CPU resources
+  | 'Memory' // Memory resources
+  | 'Registers' // CPU registers
+  | 'Cache' // Cache resources
+  | 'IO' // I/O resources
+  | 'Hardware' // Specific hardware resources
+  | 'Time'; // Time/CPU resources
 
 /**
  * Pattern of resource usage.
@@ -1378,7 +1372,11 @@ export interface ResourceUsagePattern {
 
 export type UsageIntensity = 'Light' | 'Moderate' | 'Heavy' | 'Intensive';
 export type UsageDuration = 'Transient' | 'Short' | 'Medium' | 'Long' | 'Persistent';
-export type UsagePredictability = 'Predictable' | 'Mostly_Predictable' | 'Variable' | 'Unpredictable';
+export type UsagePredictability =
+  | 'Predictable'
+  | 'Mostly_Predictable'
+  | 'Variable'
+  | 'Unpredictable';
 export type UsageLocality = 'Local' | 'Clustered' | 'Distributed' | 'Random';
 
 /**
@@ -1399,11 +1397,11 @@ export interface ResourceConstraint {
 }
 
 export type ResourceConstraintType =
-  | 'MaxUsage'            // Maximum resource usage
-  | 'MinAvailable'        // Minimum available resources
-  | 'ShareLimit'          // Maximum sharing allowed
-  | 'ReservationLimit'    // Maximum reservation allowed
-  | 'BurstLimit';         // Maximum burst usage
+  | 'MaxUsage' // Maximum resource usage
+  | 'MinAvailable' // Minimum available resources
+  | 'ShareLimit' // Maximum sharing allowed
+  | 'ReservationLimit' // Maximum reservation allowed
+  | 'BurstLimit'; // Maximum burst usage
 
 export type ConstraintStrictness = 'Advisory' | 'Preferred' | 'Required' | 'Critical';
 
@@ -1583,11 +1581,11 @@ export interface ContextAnalysisResult {
 }
 
 export type ContextAnalysisType =
-  | 'FrequencyAnalysis'   // Execution frequency analysis
+  | 'FrequencyAnalysis' // Execution frequency analysis
   | 'PerformanceAnalysis' // Performance characteristics analysis
-  | 'ResourceAnalysis'    // Resource usage analysis
-  | 'HotPathAnalysis'     // Hot path detection and analysis
-  | 'PlatformAnalysis';   // Platform compatibility analysis
+  | 'ResourceAnalysis' // Resource usage analysis
+  | 'HotPathAnalysis' // Hot path detection and analysis
+  | 'PlatformAnalysis'; // Platform compatibility analysis
 
 export type AnalysisResultType = 'Satisfied' | 'Partially_Satisfied' | 'Not_Satisfied' | 'Unknown';
 
@@ -1609,11 +1607,11 @@ export interface ContextAnalysisWarning {
 }
 
 export type ContextWarningType =
-  | 'InsufficientData'    // Not enough profiling data
-  | 'PerformanceRisk'     // Potential performance risk
-  | 'ResourceContention'  // Resource contention detected
-  | 'PlatformLimitation'  // Platform limitation detected
-  | 'OptimizationRisk';   // Risk from optimization
+  | 'InsufficientData' // Not enough profiling data
+  | 'PerformanceRisk' // Potential performance risk
+  | 'ResourceContention' // Resource contention detected
+  | 'PlatformLimitation' // Platform limitation detected
+  | 'OptimizationRisk'; // Risk from optimization
 
 /**
  * Performance projection from contextual analysis.
@@ -1968,11 +1966,11 @@ export interface PlatformLimitation {
 }
 
 export type PlatformLimitationType =
-  | 'Memory'              // Memory limitations
-  | 'Performance'         // Performance limitations
-  | 'Hardware'            // Hardware limitations
-  | 'Software'            // Software limitations
-  | 'Compatibility';      // Compatibility limitations
+  | 'Memory' // Memory limitations
+  | 'Performance' // Performance limitations
+  | 'Hardware' // Hardware limitations
+  | 'Software' // Software limitations
+  | 'Compatibility'; // Compatibility limitations
 
 export type LimitationSeverity = 'Minor' | 'Moderate' | 'Significant' | 'Blocking';
 
@@ -1995,7 +1993,11 @@ export interface ExecutionContextUpdate {
   source: ContextUpdateSource;
 }
 
-export type ContextUpdateType = 'ProfilingData' | 'PerformanceMetrics' | 'ResourceUsage' | 'PlatformInfo';
+export type ContextUpdateType =
+  | 'ProfilingData'
+  | 'PerformanceMetrics'
+  | 'ResourceUsage'
+  | 'PlatformInfo';
 export type ContextUpdateSource = 'Profiler' | 'Monitor' | 'Analyzer' | 'Manual';
 
 // ============================================================================

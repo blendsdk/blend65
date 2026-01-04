@@ -46,7 +46,7 @@ export function createSourceFile(path: string, content: string): SourceFile {
     content,
     tokens: null,
     program: null,
-    errors: []
+    errors: [],
   };
 }
 
@@ -83,25 +83,27 @@ export interface CompilationError {
  * Categories of compilation errors.
  */
 export type CompilationErrorType =
-  | 'FileNotFound'      // File discovery errors
-  | 'FileReadError'     // File system access errors
-  | 'LexError'          // Lexical analysis errors
-  | 'ParseError'        // Syntax parsing errors
-  | 'ProjectError';     // Project configuration errors
+  | 'FileNotFound' // File discovery errors
+  | 'FileReadError' // File system access errors
+  | 'LexError' // Lexical analysis errors
+  | 'ParseError' // Syntax parsing errors
+  | 'ProjectError'; // Project configuration errors
 
 /**
  * Result type for operations that can fail with compilation errors.
  * Similar to SemanticResult but for earlier compilation phases.
  */
-export type CompilationResult<T> = {
-  success: true;
-  data: T;
-  warnings?: CompilationError[];
-} | {
-  success: false;
-  errors: CompilationError[];
-  warnings?: CompilationError[];
-};
+export type CompilationResult<T> =
+  | {
+      success: true;
+      data: T;
+      warnings?: CompilationError[];
+    }
+  | {
+      success: false;
+      errors: CompilationError[];
+      warnings?: CompilationError[];
+    };
 
 // ============================================================================
 // PROJECT CONFIGURATION
@@ -134,13 +136,16 @@ export interface ProjectConfig {
 /**
  * Default project configuration.
  */
-export function createDefaultProjectConfig(name: string, rootDirectory: string = '.'): ProjectConfig {
+export function createDefaultProjectConfig(
+  name: string,
+  rootDirectory: string = '.'
+): ProjectConfig {
   return {
     name,
     sourcePatterns: ['**/*.blend'],
     targetPlatform: 'c64',
     rootDirectory,
-    excludePatterns: ['node_modules/**', 'dist/**', '**/*.test.blend']
+    excludePatterns: ['node_modules/**', 'dist/**', '**/*.test.blend'],
   };
 }
 
@@ -201,7 +206,7 @@ export function createCompilationError(
     message,
     filePath,
     location,
-    suggestions
+    suggestions,
   };
 }
 
@@ -234,49 +239,49 @@ export function validateProjectConfig(config: ProjectConfig): CompilationResult<
   const errors: CompilationError[] = [];
 
   if (!config.name || config.name.trim() === '') {
-    errors.push(createCompilationError(
-      'ProjectError',
-      'Project name is required',
-      'project-config'
-    ));
+    errors.push(
+      createCompilationError('ProjectError', 'Project name is required', 'project-config')
+    );
   }
 
   if (!config.sourceFiles && !config.sourcePatterns) {
-    errors.push(createCompilationError(
-      'ProjectError',
-      'Either sourceFiles or sourcePatterns must be specified',
-      'project-config',
-      undefined,
-      ['Add sourceFiles: ["path/to/file.blend"]', 'Add sourcePatterns: ["src/**/*.blend"]']
-    ));
+    errors.push(
+      createCompilationError(
+        'ProjectError',
+        'Either sourceFiles or sourcePatterns must be specified',
+        'project-config',
+        undefined,
+        ['Add sourceFiles: ["path/to/file.blend"]', 'Add sourcePatterns: ["src/**/*.blend"]']
+      )
+    );
   }
 
   if (config.sourceFiles && config.sourceFiles.length === 0) {
-    errors.push(createCompilationError(
-      'ProjectError',
-      'sourceFiles array cannot be empty',
-      'project-config'
-    ));
+    errors.push(
+      createCompilationError('ProjectError', 'sourceFiles array cannot be empty', 'project-config')
+    );
   }
 
   if (config.sourcePatterns && config.sourcePatterns.length === 0) {
-    errors.push(createCompilationError(
-      'ProjectError',
-      'sourcePatterns array cannot be empty',
-      'project-config'
-    ));
+    errors.push(
+      createCompilationError(
+        'ProjectError',
+        'sourcePatterns array cannot be empty',
+        'project-config'
+      )
+    );
   }
 
   if (errors.length > 0) {
     return {
       success: false,
-      errors
+      errors,
     };
   }
 
   return {
     success: true,
-    data: undefined
+    data: undefined,
   };
 }
 

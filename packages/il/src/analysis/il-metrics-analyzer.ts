@@ -45,7 +45,7 @@ import {
   TransformationSafetyAnalysis,
   QualityGate,
   QualityGateStatus,
-  QualityThresholdSet
+  QualityThresholdSet,
 } from './types/metrics-types.js';
 import { measureAnalysisPerformance } from './utils/cfg-utils.js';
 
@@ -77,7 +77,7 @@ export class ILMetricsAnalyzer {
       optimizationLevel: 'standard',
       analysisDepth: 'standard',
       qualityThresholds: this.getDefaultQualityThresholds(),
-      ...options
+      ...options,
     };
   }
 
@@ -98,29 +98,43 @@ export class ILMetricsAnalyzer {
 
     try {
       // 1. Complexity Analysis
-      const { result: complexityMetrics, metrics: complexityAnalysisMetrics } = measureAnalysisPerformance(
-        () => this.performComplexityAnalysis(ilFunction, cfgAnalysis),
-        'IL Complexity Analysis'
-      );
+      const { result: complexityMetrics, metrics: complexityAnalysisMetrics } =
+        measureAnalysisPerformance(
+          () => this.performComplexityAnalysis(ilFunction, cfgAnalysis),
+          'IL Complexity Analysis'
+        );
       this.mergeMetrics(complexityAnalysisMetrics);
 
       // 2. Performance Prediction
-      const { result: performancePrediction, metrics: performanceMetrics } = measureAnalysisPerformance(
-        () => this.performPerformancePrediction(ilFunction, cfgAnalysis, sixtyTwo6502Analysis),
-        'IL Performance Prediction'
-      );
+      const { result: performancePrediction, metrics: performanceMetrics } =
+        measureAnalysisPerformance(
+          () => this.performPerformancePrediction(ilFunction, cfgAnalysis, sixtyTwo6502Analysis),
+          'IL Performance Prediction'
+        );
       this.mergeMetrics(performanceMetrics);
 
       // 3. Optimization Readiness Scoring
-      const { result: optimizationReadiness, metrics: optimizationMetrics } = measureAnalysisPerformance(
-        () => this.performOptimizationReadinessAnalysis(ilFunction, cfgAnalysis, complexityMetrics, performancePrediction),
-        'IL Optimization Readiness Analysis'
-      );
+      const { result: optimizationReadiness, metrics: optimizationMetrics } =
+        measureAnalysisPerformance(
+          () =>
+            this.performOptimizationReadinessAnalysis(
+              ilFunction,
+              cfgAnalysis,
+              complexityMetrics,
+              performancePrediction
+            ),
+          'IL Optimization Readiness Analysis'
+        );
       this.mergeMetrics(optimizationMetrics);
 
       // 4. Quality Gates Analysis
       const { result: qualityGates, metrics: gateMetrics } = measureAnalysisPerformance(
-        () => this.performQualityGateAnalysis(complexityMetrics, performancePrediction, optimizationReadiness),
+        () =>
+          this.performQualityGateAnalysis(
+            complexityMetrics,
+            performancePrediction,
+            optimizationReadiness
+          ),
         'IL Quality Gate Analysis'
       );
       this.mergeMetrics(gateMetrics);
@@ -151,7 +165,11 @@ export class ILMetricsAnalyzer {
         memoryUsageBytes: this.estimateMemoryUsage(),
         predictionAccuracy: this.estimatePredictionAccuracy(performancePrediction),
         analysisCompleteness: this.calculateAnalysisCompleteness(),
-        confidenceScore: this.calculateOverallConfidence(complexityMetrics, performancePrediction, optimizationReadiness)
+        confidenceScore: this.calculateOverallConfidence(
+          complexityMetrics,
+          performancePrediction,
+          optimizationReadiness
+        ),
       };
 
       return {
@@ -161,9 +179,8 @@ export class ILMetricsAnalyzer {
         qualityGates,
         analysisMetrics: finalAnalysisMetrics,
         recommendations,
-        summary
+        summary,
       };
-
     } catch (error) {
       // Handle analysis errors gracefully
       return this.createErrorResult(error, ilFunction);
@@ -206,7 +223,7 @@ export class ILMetricsAnalyzer {
       instructionComplexity,
       controlFlowComplexity,
       dataFlowComplexity,
-      overallComplexityScore
+      overallComplexityScore,
     };
   }
 
@@ -220,7 +237,7 @@ export class ILMetricsAnalyzer {
     const nodes = cfg.blocks.size;
     const connectedComponents = 1; // Single function
 
-    return Math.max(1, edges - nodes + (2 * connectedComponents));
+    return Math.max(1, edges - nodes + 2 * connectedComponents);
   }
 
   /**
@@ -238,7 +255,7 @@ export class ILMetricsAnalyzer {
         functionCallDensity: 0,
         memoryOperationDensity: 0,
         arithmeticComplexity: 0,
-        score: 0
+        score: 0,
       };
     }
 
@@ -294,14 +311,17 @@ export class ILMetricsAnalyzer {
     const arithmeticComplexity = arithmeticOperations / totalInstructions;
 
     // Calculate overall instruction complexity score (0-100, higher = more complex)
-    const score = Math.min(100, Math.round(
-      (complexInstructionRatio * 40) +
-      (temporaryVariableRatio * 20) +
-      (branchDensity * 20) +
-      (functionCallDensity * 10) +
-      (memoryOperationDensity * 5) +
-      (arithmeticComplexity * 5)
-    ) * 100);
+    const score = Math.min(
+      100,
+      Math.round(
+        complexInstructionRatio * 40 +
+          temporaryVariableRatio * 20 +
+          branchDensity * 20 +
+          functionCallDensity * 10 +
+          memoryOperationDensity * 5 +
+          arithmeticComplexity * 5
+      ) * 100
+    );
 
     return {
       totalInstructions,
@@ -311,14 +331,16 @@ export class ILMetricsAnalyzer {
       functionCallDensity,
       memoryOperationDensity,
       arithmeticComplexity,
-      score
+      score,
     };
   }
 
   /**
    * Analyze control flow complexity
    */
-  private analyzeControlFlowComplexity(cfgAnalysis: ControlFlowAnalysisResult): ControlFlowComplexityScore {
+  private analyzeControlFlowComplexity(
+    cfgAnalysis: ControlFlowAnalysisResult
+  ): ControlFlowComplexityScore {
     const cfg = cfgAnalysis.cfg;
     const basicBlockCount = cfg.blocks.size;
     const edgeCount = cfg.edges.length;
@@ -351,14 +373,17 @@ export class ILMetricsAnalyzer {
     const complexityRatio = basicBlockCount > 0 ? edgeCount / basicBlockCount : 0;
 
     // Calculate overall control flow complexity score (0-100, higher = more complex)
-    const score = Math.min(100, Math.round(
-      (loopNestingDepth * 15) +
-      (complexityRatio * 10) +
-      (conditionalBranchCount * 2) +
-      (unconditionalJumpCount * 1) +
-      (functionCallCount * 3) +
-      (returnStatementCount * 0.5)
-    ));
+    const score = Math.min(
+      100,
+      Math.round(
+        loopNestingDepth * 15 +
+          complexityRatio * 10 +
+          conditionalBranchCount * 2 +
+          unconditionalJumpCount * 1 +
+          functionCallCount * 3 +
+          returnStatementCount * 0.5
+      )
+    );
 
     return {
       basicBlockCount,
@@ -369,14 +394,16 @@ export class ILMetricsAnalyzer {
       functionCallCount,
       returnStatementCount,
       complexityRatio,
-      score
+      score,
     };
   }
 
   /**
    * Analyze data flow complexity
    */
-  private analyzeDataFlowComplexity(cfgAnalysis: ControlFlowAnalysisResult): DataFlowComplexityScore {
+  private analyzeDataFlowComplexity(
+    cfgAnalysis: ControlFlowAnalysisResult
+  ): DataFlowComplexityScore {
     const variableCount = cfgAnalysis.analysisMetrics.variableCount;
 
     // Calculate def-use chain lengths (simplified)
@@ -395,14 +422,17 @@ export class ILMetricsAnalyzer {
     const dependencyDepth = this.calculateDependencyDepth(cfgAnalysis.dataDepAnalysis);
 
     // Calculate overall data flow complexity score (0-100, higher = more complex)
-    const score = Math.min(100, Math.round(
-      (variableCount * 0.5) +
-      (defUseChainLength * 2) +
-      (maxLiveVariables * 3) +
-      (variableInterferenceCount * 0.1) +
-      (memoryAliasComplexity * 1.5) +
-      (dependencyDepth * 5)
-    ));
+    const score = Math.min(
+      100,
+      Math.round(
+        variableCount * 0.5 +
+          defUseChainLength * 2 +
+          maxLiveVariables * 3 +
+          variableInterferenceCount * 0.1 +
+          memoryAliasComplexity * 1.5 +
+          dependencyDepth * 5
+      )
+    );
 
     return {
       variableCount,
@@ -411,7 +441,7 @@ export class ILMetricsAnalyzer {
       variableInterferenceCount,
       memoryAliasComplexity,
       dependencyDepth,
-      score
+      score,
     };
   }
 
@@ -434,10 +464,10 @@ export class ILMetricsAnalyzer {
     const normalizedCyclomatic = Math.min(100, cyclomaticComplexity * 10);
 
     return Math.round(
-      (normalizedCyclomatic * cyclomaticWeight) +
-      (instructionScore * instructionWeight) +
-      (controlFlowScore * controlFlowWeight) +
-      (dataFlowScore * dataFlowWeight)
+      normalizedCyclomatic * cyclomaticWeight +
+        instructionScore * instructionWeight +
+        controlFlowScore * controlFlowWeight +
+        dataFlowScore * dataFlowWeight
     );
   }
 
@@ -463,10 +493,19 @@ export class ILMetricsAnalyzer {
     const registerPressure = this.analyzeRegisterPressure(cfgAnalysis, sixtyTwo6502Analysis);
 
     // Identify performance bottlenecks
-    const bottlenecks = this.identifyPerformanceBottlenecks(ilFunction, cfgAnalysis, sixtyTwo6502Analysis);
+    const bottlenecks = this.identifyPerformanceBottlenecks(
+      ilFunction,
+      cfgAnalysis,
+      sixtyTwo6502Analysis
+    );
 
     // Calculate overall performance score
-    const performanceScore = this.calculatePerformanceScore(estimatedCycles, memoryUsage, registerPressure, bottlenecks);
+    const performanceScore = this.calculatePerformanceScore(
+      estimatedCycles,
+      memoryUsage,
+      registerPressure,
+      bottlenecks
+    );
 
     // Get platform-specific factors
     const platformSpecificFactors = this.extractPlatformSpecificFactors(sixtyTwo6502Analysis);
@@ -477,7 +516,7 @@ export class ILMetricsAnalyzer {
       registerPressure,
       bottlenecks,
       performanceScore,
-      platformSpecificFactors
+      platformSpecificFactors,
     };
   }
 
@@ -495,13 +534,20 @@ export class ILMetricsAnalyzer {
     }
 
     // Analyze readiness for each optimization category
-    const categoryReadiness = this.analyzeCategoryReadiness(ilFunction, cfgAnalysis, complexityMetrics);
+    const categoryReadiness = this.analyzeCategoryReadiness(
+      ilFunction,
+      cfgAnalysis,
+      complexityMetrics
+    );
 
     // Analyze pattern applicability (simplified - would integrate with actual pattern system)
     const patternApplicability = this.analyzePatternApplicability(ilFunction, cfgAnalysis);
 
     // Estimate optimization impact potential
-    const impactPotential = this.estimateOptimizationImpact(complexityMetrics, performancePrediction);
+    const impactPotential = this.estimateOptimizationImpact(
+      complexityMetrics,
+      performancePrediction
+    );
 
     // Analyze transformation safety
     const transformationSafety = this.analyzeTransformationSafety(ilFunction, cfgAnalysis);
@@ -518,7 +564,7 @@ export class ILMetricsAnalyzer {
       patternApplicability,
       impactPotential,
       transformationSafety,
-      overallReadinessScore
+      overallReadinessScore,
     };
   }
 
@@ -535,7 +581,11 @@ export class ILMetricsAnalyzer {
     }
 
     // Define and evaluate quality gates
-    const gates = this.evaluateQualityGates(complexityMetrics, performancePrediction, optimizationReadiness);
+    const gates = this.evaluateQualityGates(
+      complexityMetrics,
+      performancePrediction,
+      optimizationReadiness
+    );
 
     // Determine overall status
     const overallStatus = this.determineOverallGateStatus(gates);
@@ -550,7 +600,7 @@ export class ILMetricsAnalyzer {
       gates,
       overallStatus,
       qualityScore,
-      improvementRecommendations
+      improvementRecommendations,
     };
   }
 
@@ -561,7 +611,7 @@ export class ILMetricsAnalyzer {
     return [
       ILInstructionType.DIV,
       ILInstructionType.MOD,
-      ILInstructionType.MUL // In some contexts
+      ILInstructionType.MUL, // In some contexts
     ].includes(type);
   }
 
@@ -571,7 +621,7 @@ export class ILMetricsAnalyzer {
       ILInstructionType.BRANCH_IF_TRUE,
       ILInstructionType.BRANCH_IF_FALSE,
       ILInstructionType.BRANCH_IF_ZERO,
-      ILInstructionType.BRANCH_IF_NOT_ZERO
+      ILInstructionType.BRANCH_IF_NOT_ZERO,
     ].includes(type);
   }
 
@@ -580,7 +630,7 @@ export class ILMetricsAnalyzer {
       ILInstructionType.LOAD_MEMORY,
       ILInstructionType.STORE_MEMORY,
       ILInstructionType.LOAD_VARIABLE,
-      ILInstructionType.STORE_VARIABLE
+      ILInstructionType.STORE_VARIABLE,
     ].includes(type);
   }
 
@@ -597,7 +647,7 @@ export class ILMetricsAnalyzer {
       ILInstructionType.BITWISE_OR,
       ILInstructionType.BITWISE_XOR,
       ILInstructionType.SHIFT_LEFT,
-      ILInstructionType.SHIFT_RIGHT
+      ILInstructionType.SHIFT_RIGHT,
     ].includes(type);
   }
 
@@ -627,56 +677,123 @@ export class ILMetricsAnalyzer {
       worstCase: Math.round(sixtyTwo6502Analysis.performanceAnalysis.totalCycles * 1.2),
       confidence: 0.9,
       assumptionsMade: ['No page boundary crossings', 'Optimistic branch prediction'],
-      uncertaintyFactors: []
+      uncertaintyFactors: [],
     };
   }
 
-  private estimateMemoryUsage6502(ilFunction: ILFunction, sixtyTwo6502Analysis: SixtyTwo6502ValidationResult): MemoryUsageEstimate {
+  private estimateMemoryUsage6502(
+    ilFunction: ILFunction,
+    sixtyTwo6502Analysis: SixtyTwo6502ValidationResult
+  ): MemoryUsageEstimate {
     return {
       zeroPageUsage: { staticUsage: 10, dynamicUsage: 5, peakUsage: 15, efficiency: 0.8 },
       stackUsage: { staticUsage: 20, dynamicUsage: 30, peakUsage: 50, efficiency: 0.7 },
       ramUsage: { staticUsage: 100, dynamicUsage: 50, peakUsage: 150, efficiency: 0.9 },
       dataUsage: { staticUsage: 50, dynamicUsage: 0, peakUsage: 50, efficiency: 1.0 },
       totalUsage: 265,
-      utilizationScore: 75
+      utilizationScore: 75,
     };
   }
 
-  private analyzeRegisterPressure(cfgAnalysis: ControlFlowAnalysisResult, sixtyTwo6502Analysis: SixtyTwo6502ValidationResult): RegisterPressureAnalysis {
+  private analyzeRegisterPressure(
+    cfgAnalysis: ControlFlowAnalysisResult,
+    sixtyTwo6502Analysis: SixtyTwo6502ValidationResult
+  ): RegisterPressureAnalysis {
     return {
-      accumulatorPressure: { averagePressure: 0.7, peakPressure: 1.0, pressureDistribution: [0.3, 0.7, 1.0], criticalRegions: [] },
-      indexXPressure: { averagePressure: 0.5, peakPressure: 0.8, pressureDistribution: [0.2, 0.5, 0.8], criticalRegions: [] },
-      indexYPressure: { averagePressure: 0.3, peakPressure: 0.6, pressureDistribution: [0.1, 0.3, 0.6], criticalRegions: [] },
-      combinedPressure: { averagePressure: 0.5, peakPressure: 0.8, pressureDistribution: [0.2, 0.5, 0.8], criticalRegions: [] },
+      accumulatorPressure: {
+        averagePressure: 0.7,
+        peakPressure: 1.0,
+        pressureDistribution: [0.3, 0.7, 1.0],
+        criticalRegions: [],
+      },
+      indexXPressure: {
+        averagePressure: 0.5,
+        peakPressure: 0.8,
+        pressureDistribution: [0.2, 0.5, 0.8],
+        criticalRegions: [],
+      },
+      indexYPressure: {
+        averagePressure: 0.3,
+        peakPressure: 0.6,
+        pressureDistribution: [0.1, 0.3, 0.6],
+        criticalRegions: [],
+      },
+      combinedPressure: {
+        averagePressure: 0.5,
+        peakPressure: 0.8,
+        pressureDistribution: [0.2, 0.5, 0.8],
+        criticalRegions: [],
+      },
       spillProbability: 0.2,
-      allocationQuality: 80
+      allocationQuality: 80,
     };
   }
 
-  private identifyPerformanceBottlenecks(ilFunction: ILFunction, cfgAnalysis: ControlFlowAnalysisResult, sixtyTwo6502Analysis: SixtyTwo6502ValidationResult): PerformanceBottleneck[] {
+  private identifyPerformanceBottlenecks(
+    ilFunction: ILFunction,
+    cfgAnalysis: ControlFlowAnalysisResult,
+    sixtyTwo6502Analysis: SixtyTwo6502ValidationResult
+  ): PerformanceBottleneck[] {
     return [];
   }
 
-  private calculatePerformanceScore(estimatedCycles: CycleEstimate, memoryUsage: MemoryUsageEstimate, registerPressure: RegisterPressureAnalysis, bottlenecks: PerformanceBottleneck[]): number {
+  private calculatePerformanceScore(
+    estimatedCycles: CycleEstimate,
+    memoryUsage: MemoryUsageEstimate,
+    registerPressure: RegisterPressureAnalysis,
+    bottlenecks: PerformanceBottleneck[]
+  ): number {
     return 75; // Simplified implementation
   }
 
-  private extractPlatformSpecificFactors(sixtyTwo6502Analysis: SixtyTwo6502ValidationResult): PlatformSpecificFactors {
+  private extractPlatformSpecificFactors(
+    sixtyTwo6502Analysis: SixtyTwo6502ValidationResult
+  ): PlatformSpecificFactors {
     return {
-      memoryTiming: { zeroPageCycles: 3, ramCycles: 4, ioRegisterCycles: 4, pageBoundaryCycles: 1, bankSwitchCycles: 0 },
-      processorFeatures: { hasDecimalMode: true, hasBCDInstructions: true, hasExtendedInstructions: false, pipelineDepth: 1, branchPredictionAccuracy: 0.5 },
-      platformConstraints: { interruptLatency: 7, vicInterference: true, sidInterference: false, ciaTimingConstraints: true }
+      memoryTiming: {
+        zeroPageCycles: 3,
+        ramCycles: 4,
+        ioRegisterCycles: 4,
+        pageBoundaryCycles: 1,
+        bankSwitchCycles: 0,
+      },
+      processorFeatures: {
+        hasDecimalMode: true,
+        hasBCDInstructions: true,
+        hasExtendedInstructions: false,
+        pipelineDepth: 1,
+        branchPredictionAccuracy: 0.5,
+      },
+      platformConstraints: {
+        interruptLatency: 7,
+        vicInterference: true,
+        sidInterference: false,
+        ciaTimingConstraints: true,
+      },
     };
   }
 
-  private analyzeCategoryReadiness(ilFunction: ILFunction, cfgAnalysis: ControlFlowAnalysisResult, complexityMetrics: ILComplexityMetrics): Map<OptimizationCategory, ReadinessScore> {
+  private analyzeCategoryReadiness(
+    ilFunction: ILFunction,
+    cfgAnalysis: ControlFlowAnalysisResult,
+    complexityMetrics: ILComplexityMetrics
+  ): Map<OptimizationCategory, ReadinessScore> {
     const categoryReadiness = new Map<OptimizationCategory, ReadinessScore>();
 
     // Simplified implementation - would be much more sophisticated in production
     const categories: OptimizationCategory[] = [
-      'arithmetic', 'control_flow', 'memory', 'register', 'loop',
-      'constant', 'dead_code', 'strength_reduction', 'inlining',
-      'hardware_specific', 'peephole', 'scheduling'
+      'arithmetic',
+      'control_flow',
+      'memory',
+      'register',
+      'loop',
+      'constant',
+      'dead_code',
+      'strength_reduction',
+      'inlining',
+      'hardware_specific',
+      'peephole',
+      'scheduling',
     ];
 
     categories.forEach(category => {
@@ -687,41 +804,98 @@ export class ILMetricsAnalyzer {
         blockers: [],
         opportunities: [],
         recommendedPatterns: [],
-        estimatedBenefit: 15
+        estimatedBenefit: 15,
       });
     });
 
     return categoryReadiness;
   }
 
-  private analyzePatternApplicability(ilFunction: ILFunction, cfgAnalysis: ControlFlowAnalysisResult): PatternApplicabilityScore[] {
+  private analyzePatternApplicability(
+    ilFunction: ILFunction,
+    cfgAnalysis: ControlFlowAnalysisResult
+  ): PatternApplicabilityScore[] {
     return []; // Simplified implementation
   }
 
-  private estimateOptimizationImpact(complexityMetrics: ILComplexityMetrics, performancePrediction: PerformancePredictionModel): OptimizationImpactEstimate {
+  private estimateOptimizationImpact(
+    complexityMetrics: ILComplexityMetrics,
+    performancePrediction: PerformancePredictionModel
+  ): OptimizationImpactEstimate {
     return {
-      performanceImpact: { bestCase: 50, expectedCase: 25, worstCase: 10, confidence: 0.7, factors: ['Complexity level', 'Pattern applicability'] },
-      memorySizeImpact: { bestCase: 30, expectedCase: 15, worstCase: 5, confidence: 0.8, factors: ['Dead code elimination', 'Constant folding'] },
-      codeQualityImpact: { bestCase: 40, expectedCase: 20, worstCase: 10, confidence: 0.9, factors: ['Structure improvements', 'Readability'] },
-      maintainabilityImpact: { bestCase: 35, expectedCase: 20, worstCase: 5, confidence: 0.7, factors: ['Code organization', 'Complexity reduction'] },
-      overallImpact: 20
+      performanceImpact: {
+        bestCase: 50,
+        expectedCase: 25,
+        worstCase: 10,
+        confidence: 0.7,
+        factors: ['Complexity level', 'Pattern applicability'],
+      },
+      memorySizeImpact: {
+        bestCase: 30,
+        expectedCase: 15,
+        worstCase: 5,
+        confidence: 0.8,
+        factors: ['Dead code elimination', 'Constant folding'],
+      },
+      codeQualityImpact: {
+        bestCase: 40,
+        expectedCase: 20,
+        worstCase: 10,
+        confidence: 0.9,
+        factors: ['Structure improvements', 'Readability'],
+      },
+      maintainabilityImpact: {
+        bestCase: 35,
+        expectedCase: 20,
+        worstCase: 5,
+        confidence: 0.7,
+        factors: ['Code organization', 'Complexity reduction'],
+      },
+      overallImpact: 20,
     };
   }
 
-  private analyzeTransformationSafety(ilFunction: ILFunction, cfgAnalysis: ControlFlowAnalysisResult): TransformationSafetyAnalysis {
+  private analyzeTransformationSafety(
+    ilFunction: ILFunction,
+    cfgAnalysis: ControlFlowAnalysisResult
+  ): TransformationSafetyAnalysis {
     return {
-      semanticSafety: { semanticPreservation: 95, dataFlowSafety: 90, controlFlowSafety: 85, sideEffectSafety: 80, riskFactors: [] },
-      performanceSafety: { performanceGuarantee: 85, worstCaseImpact: 10, regressionRisk: 15, testCoverage: 70 },
-      platformSafety: { hardwareCompatibility: 95, memoryConstraintSafety: 90, timingConstraintSafety: 85, interruptSafety: 80 },
-      overallSafetyScore: 87
+      semanticSafety: {
+        semanticPreservation: 95,
+        dataFlowSafety: 90,
+        controlFlowSafety: 85,
+        sideEffectSafety: 80,
+        riskFactors: [],
+      },
+      performanceSafety: {
+        performanceGuarantee: 85,
+        worstCaseImpact: 10,
+        regressionRisk: 15,
+        testCoverage: 70,
+      },
+      platformSafety: {
+        hardwareCompatibility: 95,
+        memoryConstraintSafety: 90,
+        timingConstraintSafety: 85,
+        interruptSafety: 80,
+      },
+      overallSafetyScore: 87,
     };
   }
 
-  private calculateOverallReadinessScore(categoryReadiness: Map<OptimizationCategory, ReadinessScore>, patternApplicability: PatternApplicabilityScore[], transformationSafety: TransformationSafetyAnalysis): number {
+  private calculateOverallReadinessScore(
+    categoryReadiness: Map<OptimizationCategory, ReadinessScore>,
+    patternApplicability: PatternApplicabilityScore[],
+    transformationSafety: TransformationSafetyAnalysis
+  ): number {
     return 75; // Simplified implementation
   }
 
-  private evaluateQualityGates(complexityMetrics: ILComplexityMetrics, performancePrediction: PerformancePredictionModel, optimizationReadiness: OptimizationReadinessAnalysis): QualityGate[] {
+  private evaluateQualityGates(
+    complexityMetrics: ILComplexityMetrics,
+    performancePrediction: PerformancePredictionModel,
+    optimizationReadiness: OptimizationReadinessAnalysis
+  ): QualityGate[] {
     const gates: QualityGate[] = [];
     const thresholds = this.options.qualityThresholds;
 
@@ -732,9 +906,10 @@ export class ILMetricsAnalyzer {
       gateType: 'complexity_limit',
       threshold: { maxValue: thresholds.maxComplexity, unit: 'score', direction: 'lower_better' },
       actualValue: complexityMetrics.overallComplexityScore,
-      status: complexityMetrics.overallComplexityScore <= thresholds.maxComplexity ? 'pass' : 'fail',
+      status:
+        complexityMetrics.overallComplexityScore <= thresholds.maxComplexity ? 'pass' : 'fail',
       importance: 'important',
-      description: 'Overall complexity must be below threshold for effective optimization'
+      description: 'Overall complexity must be below threshold for effective optimization',
     });
 
     // Performance gate
@@ -742,11 +917,16 @@ export class ILMetricsAnalyzer {
       gateId: 'performance_minimum',
       gateName: 'Performance Minimum',
       gateType: 'performance_minimum',
-      threshold: { minValue: thresholds.minPerformanceScore, unit: 'score', direction: 'higher_better' },
+      threshold: {
+        minValue: thresholds.minPerformanceScore,
+        unit: 'score',
+        direction: 'higher_better',
+      },
       actualValue: performancePrediction.performanceScore,
-      status: performancePrediction.performanceScore >= thresholds.minPerformanceScore ? 'pass' : 'fail',
+      status:
+        performancePrediction.performanceScore >= thresholds.minPerformanceScore ? 'pass' : 'fail',
       importance: 'important',
-      description: 'Performance score must meet minimum threshold'
+      description: 'Performance score must meet minimum threshold',
     });
 
     return gates;
@@ -764,23 +944,37 @@ export class ILMetricsAnalyzer {
   private calculateQualityScore(gates: QualityGate[]): number {
     const totalWeight = gates.reduce((sum, gate) => {
       switch (gate.importance) {
-        case 'mandatory': return sum + 4;
-        case 'important': return sum + 3;
-        case 'recommended': return sum + 2;
-        case 'informational': return sum + 1;
-        default: return sum + 1;
+        case 'mandatory':
+          return sum + 4;
+        case 'important':
+          return sum + 3;
+        case 'recommended':
+          return sum + 2;
+        case 'informational':
+          return sum + 1;
+        default:
+          return sum + 1;
       }
     }, 0);
 
     const achievedWeight = gates.reduce((sum, gate) => {
-      const weight = gate.importance === 'mandatory' ? 4 : gate.importance === 'important' ? 3 : gate.importance === 'recommended' ? 2 : 1;
+      const weight =
+        gate.importance === 'mandatory'
+          ? 4
+          : gate.importance === 'important'
+            ? 3
+            : gate.importance === 'recommended'
+              ? 2
+              : 1;
       return sum + (gate.status === 'pass' ? weight : gate.status === 'warning' ? weight * 0.5 : 0);
     }, 0);
 
     return totalWeight > 0 ? Math.round((achievedWeight / totalWeight) * 100) : 0;
   }
 
-  private generateGateImprovementRecommendations(gates: QualityGate[]): ImprovementRecommendation[] {
+  private generateGateImprovementRecommendations(
+    gates: QualityGate[]
+  ): ImprovementRecommendation[] {
     return gates
       .filter(gate => gate.status !== 'pass')
       .map(gate => ({
@@ -790,16 +984,20 @@ export class ILMetricsAnalyzer {
         benefit: 25,
         description: `Improve ${gate.gateName}: ${gate.description}`,
         actionItems: [`Address ${gate.gateName} to meet quality threshold`],
-        requiredExpertise: 'intermediate'
+        requiredExpertise: 'intermediate',
       }));
   }
 
   private getRecommendationType(gateType: any): any {
     switch (gateType) {
-      case 'complexity_limit': return 'complexity_reduction';
-      case 'performance_minimum': return 'performance_improvement';
-      case 'memory_limit': return 'memory_optimization';
-      default: return 'maintainability';
+      case 'complexity_limit':
+        return 'complexity_reduction';
+      case 'performance_minimum':
+        return 'performance_improvement';
+      case 'memory_limit':
+        return 'memory_optimization';
+      default:
+        return 'maintainability';
     }
   }
 
@@ -810,12 +1008,15 @@ export class ILMetricsAnalyzer {
       maxMemoryUsage: 1024,
       minSafetyScore: 80,
       minOptimizationReadiness: 60,
-      customThresholds: new Map()
+      customThresholds: new Map(),
     };
   }
 
-  private mergeMetrics(metrics: Partial<{ analysisTimeMs: number; memoryUsageBytes: number }>): void {
-    this.analysisMetrics.analysisTimeMs = (this.analysisMetrics.analysisTimeMs || 0) + (metrics.analysisTimeMs || 0);
+  private mergeMetrics(
+    metrics: Partial<{ analysisTimeMs: number; memoryUsageBytes: number }>
+  ): void {
+    this.analysisMetrics.analysisTimeMs =
+      (this.analysisMetrics.analysisTimeMs || 0) + (metrics.analysisTimeMs || 0);
     this.analysisMetrics.memoryUsageBytes = Math.max(
       this.analysisMetrics.memoryUsageBytes || 0,
       metrics.memoryUsageBytes || 0
@@ -859,8 +1060,12 @@ export class ILMetricsAnalyzer {
         effort: 'moderate',
         benefit: 30,
         description: 'Reduce overall code complexity for better optimization',
-        actionItems: ['Simplify control flow', 'Reduce instruction complexity', 'Optimize data flow'],
-        requiredExpertise: 'intermediate'
+        actionItems: [
+          'Simplify control flow',
+          'Reduce instruction complexity',
+          'Optimize data flow',
+        ],
+        requiredExpertise: 'intermediate',
       });
     }
 
@@ -873,7 +1078,7 @@ export class ILMetricsAnalyzer {
         benefit: 25,
         description: 'Improve performance score through optimization',
         actionItems: ['Optimize hot paths', 'Reduce cycle count', 'Improve register usage'],
-        requiredExpertise: 'advanced'
+        requiredExpertise: 'advanced',
       });
     }
 
@@ -890,25 +1095,45 @@ export class ILMetricsAnalyzer {
     qualityGates: QualityGateAnalysis,
     recommendations: ImprovementRecommendation[]
   ): QualityAnalysisSummary {
-    const overallQualityScore = Math.round((qualityGates.qualityScore + performancePrediction.performanceScore + (100 - complexityMetrics.overallComplexityScore)) / 3);
+    const overallQualityScore = Math.round(
+      (qualityGates.qualityScore +
+        performancePrediction.performanceScore +
+        (100 - complexityMetrics.overallComplexityScore)) /
+        3
+    );
 
     const complexityLevel: ComplexityLevel =
-      complexityMetrics.overallComplexityScore <= 20 ? 'trivial' :
-      complexityMetrics.overallComplexityScore <= 40 ? 'simple' :
-      complexityMetrics.overallComplexityScore <= 60 ? 'moderate' :
-      complexityMetrics.overallComplexityScore <= 80 ? 'complex' : 'expert';
+      complexityMetrics.overallComplexityScore <= 20
+        ? 'trivial'
+        : complexityMetrics.overallComplexityScore <= 40
+          ? 'simple'
+          : complexityMetrics.overallComplexityScore <= 60
+            ? 'moderate'
+            : complexityMetrics.overallComplexityScore <= 80
+              ? 'complex'
+              : 'expert';
 
     const performanceLevel: PerformanceLevel =
-      performancePrediction.performanceScore >= 90 ? 'excellent' :
-      performancePrediction.performanceScore >= 70 ? 'good' :
-      performancePrediction.performanceScore >= 50 ? 'acceptable' :
-      performancePrediction.performanceScore >= 30 ? 'poor' : 'critical';
+      performancePrediction.performanceScore >= 90
+        ? 'excellent'
+        : performancePrediction.performanceScore >= 70
+          ? 'good'
+          : performancePrediction.performanceScore >= 50
+            ? 'acceptable'
+            : performancePrediction.performanceScore >= 30
+              ? 'poor'
+              : 'critical';
 
     const optimizationPotential: OptimizationPotential =
-      optimizationReadiness.overallReadinessScore >= 80 ? 'extreme' :
-      optimizationReadiness.overallReadinessScore >= 60 ? 'high' :
-      optimizationReadiness.overallReadinessScore >= 40 ? 'moderate' :
-      optimizationReadiness.overallReadinessScore >= 20 ? 'low' : 'minimal';
+      optimizationReadiness.overallReadinessScore >= 80
+        ? 'extreme'
+        : optimizationReadiness.overallReadinessScore >= 60
+          ? 'high'
+          : optimizationReadiness.overallReadinessScore >= 40
+            ? 'moderate'
+            : optimizationReadiness.overallReadinessScore >= 20
+              ? 'low'
+              : 'minimal';
 
     const recommendedNextSteps = recommendations
       .filter(r => r.priority === 'critical' || r.priority === 'high')
@@ -919,7 +1144,7 @@ export class ILMetricsAnalyzer {
       `Overall quality score: ${overallQualityScore}/100`,
       `Complexity level: ${complexityLevel}`,
       `Performance level: ${performanceLevel}`,
-      `Optimization potential: ${optimizationPotential}`
+      `Optimization potential: ${optimizationPotential}`,
     ];
 
     const criticalIssues = recommendations
@@ -933,7 +1158,7 @@ export class ILMetricsAnalyzer {
       optimizationPotential,
       recommendedNextSteps,
       keyFindings,
-      criticalIssues
+      criticalIssues,
     };
   }
 
@@ -948,7 +1173,7 @@ export class ILMetricsAnalyzer {
         functionCallDensity: 0,
         memoryOperationDensity: 0,
         arithmeticComplexity: 0,
-        score: 0
+        score: 0,
       },
       controlFlowComplexity: {
         basicBlockCount: 0,
@@ -959,7 +1184,7 @@ export class ILMetricsAnalyzer {
         functionCallCount: 0,
         returnStatementCount: 0,
         complexityRatio: 0,
-        score: 0
+        score: 0,
       },
       dataFlowComplexity: {
         variableCount: 0,
@@ -968,9 +1193,9 @@ export class ILMetricsAnalyzer {
         variableInterferenceCount: 0,
         memoryAliasComplexity: 0,
         dependencyDepth: 0,
-        score: 0
+        score: 0,
       },
-      overallComplexityScore: 0
+      overallComplexityScore: 0,
     };
   }
 
@@ -982,7 +1207,7 @@ export class ILMetricsAnalyzer {
         worstCase: 0,
         confidence: 0,
         assumptionsMade: [],
-        uncertaintyFactors: []
+        uncertaintyFactors: [],
       },
       memoryUsage: {
         zeroPageUsage: { staticUsage: 0, dynamicUsage: 0, peakUsage: 0, efficiency: 1.0 },
@@ -990,23 +1215,60 @@ export class ILMetricsAnalyzer {
         ramUsage: { staticUsage: 0, dynamicUsage: 0, peakUsage: 0, efficiency: 1.0 },
         dataUsage: { staticUsage: 0, dynamicUsage: 0, peakUsage: 0, efficiency: 1.0 },
         totalUsage: 0,
-        utilizationScore: 0
+        utilizationScore: 0,
       },
       registerPressure: {
-        accumulatorPressure: { averagePressure: 0, peakPressure: 0, pressureDistribution: [], criticalRegions: [] },
-        indexXPressure: { averagePressure: 0, peakPressure: 0, pressureDistribution: [], criticalRegions: [] },
-        indexYPressure: { averagePressure: 0, peakPressure: 0, pressureDistribution: [], criticalRegions: [] },
-        combinedPressure: { averagePressure: 0, peakPressure: 0, pressureDistribution: [], criticalRegions: [] },
+        accumulatorPressure: {
+          averagePressure: 0,
+          peakPressure: 0,
+          pressureDistribution: [],
+          criticalRegions: [],
+        },
+        indexXPressure: {
+          averagePressure: 0,
+          peakPressure: 0,
+          pressureDistribution: [],
+          criticalRegions: [],
+        },
+        indexYPressure: {
+          averagePressure: 0,
+          peakPressure: 0,
+          pressureDistribution: [],
+          criticalRegions: [],
+        },
+        combinedPressure: {
+          averagePressure: 0,
+          peakPressure: 0,
+          pressureDistribution: [],
+          criticalRegions: [],
+        },
         spillProbability: 0,
-        allocationQuality: 100
+        allocationQuality: 100,
       },
       bottlenecks: [],
       performanceScore: 100,
       platformSpecificFactors: {
-        memoryTiming: { zeroPageCycles: 3, ramCycles: 4, ioRegisterCycles: 4, pageBoundaryCycles: 1, bankSwitchCycles: 0 },
-        processorFeatures: { hasDecimalMode: true, hasBCDInstructions: true, hasExtendedInstructions: false, pipelineDepth: 1, branchPredictionAccuracy: 0.5 },
-        platformConstraints: { interruptLatency: 7, vicInterference: false, sidInterference: false, ciaTimingConstraints: false }
-      }
+        memoryTiming: {
+          zeroPageCycles: 3,
+          ramCycles: 4,
+          ioRegisterCycles: 4,
+          pageBoundaryCycles: 1,
+          bankSwitchCycles: 0,
+        },
+        processorFeatures: {
+          hasDecimalMode: true,
+          hasBCDInstructions: true,
+          hasExtendedInstructions: false,
+          pipelineDepth: 1,
+          branchPredictionAccuracy: 0.5,
+        },
+        platformConstraints: {
+          interruptLatency: 7,
+          vicInterference: false,
+          sidInterference: false,
+          ciaTimingConstraints: false,
+        },
+      },
     };
   }
 
@@ -1015,19 +1277,59 @@ export class ILMetricsAnalyzer {
       categoryReadiness: new Map(),
       patternApplicability: [],
       impactPotential: {
-        performanceImpact: { bestCase: 0, expectedCase: 0, worstCase: 0, confidence: 1.0, factors: [] },
-        memorySizeImpact: { bestCase: 0, expectedCase: 0, worstCase: 0, confidence: 1.0, factors: [] },
-        codeQualityImpact: { bestCase: 0, expectedCase: 0, worstCase: 0, confidence: 1.0, factors: [] },
-        maintainabilityImpact: { bestCase: 0, expectedCase: 0, worstCase: 0, confidence: 1.0, factors: [] },
-        overallImpact: 0
+        performanceImpact: {
+          bestCase: 0,
+          expectedCase: 0,
+          worstCase: 0,
+          confidence: 1.0,
+          factors: [],
+        },
+        memorySizeImpact: {
+          bestCase: 0,
+          expectedCase: 0,
+          worstCase: 0,
+          confidence: 1.0,
+          factors: [],
+        },
+        codeQualityImpact: {
+          bestCase: 0,
+          expectedCase: 0,
+          worstCase: 0,
+          confidence: 1.0,
+          factors: [],
+        },
+        maintainabilityImpact: {
+          bestCase: 0,
+          expectedCase: 0,
+          worstCase: 0,
+          confidence: 1.0,
+          factors: [],
+        },
+        overallImpact: 0,
       },
       transformationSafety: {
-        semanticSafety: { semanticPreservation: 100, dataFlowSafety: 100, controlFlowSafety: 100, sideEffectSafety: 100, riskFactors: [] },
-        performanceSafety: { performanceGuarantee: 100, worstCaseImpact: 0, regressionRisk: 0, testCoverage: 100 },
-        platformSafety: { hardwareCompatibility: 100, memoryConstraintSafety: 100, timingConstraintSafety: 100, interruptSafety: 100 },
-        overallSafetyScore: 100
+        semanticSafety: {
+          semanticPreservation: 100,
+          dataFlowSafety: 100,
+          controlFlowSafety: 100,
+          sideEffectSafety: 100,
+          riskFactors: [],
+        },
+        performanceSafety: {
+          performanceGuarantee: 100,
+          worstCaseImpact: 0,
+          regressionRisk: 0,
+          testCoverage: 100,
+        },
+        platformSafety: {
+          hardwareCompatibility: 100,
+          memoryConstraintSafety: 100,
+          timingConstraintSafety: 100,
+          interruptSafety: 100,
+        },
+        overallSafetyScore: 100,
       },
-      overallReadinessScore: 100
+      overallReadinessScore: 100,
     };
   }
 
@@ -1036,7 +1338,7 @@ export class ILMetricsAnalyzer {
       gates: [],
       overallStatus: 'pass',
       qualityScore: 100,
-      improvementRecommendations: []
+      improvementRecommendations: [],
     };
   }
 
@@ -1051,17 +1353,19 @@ export class ILMetricsAnalyzer {
         memoryUsageBytes: 0,
         predictionAccuracy: 0,
         analysisCompleteness: 0,
-        confidenceScore: 0
+        confidenceScore: 0,
       },
-      recommendations: [{
-        recommendationType: 'maintainability',
-        priority: 'critical',
-        effort: 'minimal',
-        benefit: 0,
-        description: `Analysis failed: ${error.message}`,
-        actionItems: ['Fix analysis error'],
-        requiredExpertise: 'expert'
-      }],
+      recommendations: [
+        {
+          recommendationType: 'maintainability',
+          priority: 'critical',
+          effort: 'minimal',
+          benefit: 0,
+          description: `Analysis failed: ${error.message}`,
+          actionItems: ['Fix analysis error'],
+          requiredExpertise: 'expert',
+        },
+      ],
       summary: {
         overallQualityScore: 0,
         complexityLevel: 'expert',
@@ -1069,8 +1373,8 @@ export class ILMetricsAnalyzer {
         optimizationPotential: 'minimal',
         recommendedNextSteps: ['Fix analysis error'],
         keyFindings: [`Analysis error: ${error.message}`],
-        criticalIssues: [error.message]
-      }
+        criticalIssues: [error.message],
+      },
     };
   }
 }
@@ -1103,5 +1407,5 @@ export type {
   QualityAnalysisMetrics,
   ILComplexityMetrics,
   PerformancePredictionModel,
-  OptimizationReadinessAnalysis
+  OptimizationReadinessAnalysis,
 } from './types/metrics-types.js';

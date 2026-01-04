@@ -11,7 +11,7 @@
  * @fileoverview Core types for god-level IL analytics system
  */
 
-import { ILInstruction, ILOperand } from '../../il-types.js';
+import { ILInstruction } from '../../il-types.js';
 
 // =============================================================================
 // Basic Block and Control Flow Graph
@@ -56,13 +56,13 @@ export interface CFGEdge {
 }
 
 export type CFGEdgeType =
-  | 'fall-through'    // Sequential execution
-  | 'conditional'     // Conditional branch
-  | 'unconditional'   // Unconditional jump
-  | 'call'           // Function call
-  | 'return'         // Function return
-  | 'exception'      // Exception handling
-  | 'back-edge';     // Loop back edge
+  | 'fall-through' // Sequential execution
+  | 'conditional' // Conditional branch
+  | 'unconditional' // Unconditional jump
+  | 'call' // Function call
+  | 'return' // Function return
+  | 'exception' // Exception handling
+  | 'back-edge'; // Loop back edge
 
 // =============================================================================
 // Dominance Analysis
@@ -93,11 +93,11 @@ export interface DominanceTree {
  * Dominance relationship types
  */
 export type DominanceRelation =
-  | 'dominates'           // A dominates B
-  | 'strictly-dominates'  // A strictly dominates B
+  | 'dominates' // A dominates B
+  | 'strictly-dominates' // A strictly dominates B
   | 'immediately-dominates' // A immediately dominates B
-  | 'post-dominates'      // A post-dominates B
-  | 'none';              // No dominance relationship
+  | 'post-dominates' // A post-dominates B
+  | 'none'; // No dominance relationship
 
 // =============================================================================
 // Loop Analysis
@@ -154,12 +154,12 @@ export interface LoopNestingTree {
  * Loop type classification for optimization selection
  */
 export type LoopType =
-  | 'counting'      // Simple counting loop with induction variable
-  | 'while'         // While loop with condition
-  | 'do-while'      // Do-while loop
-  | 'infinite'      // Infinite loop
-  | 'complex'       // Complex loop with multiple exits
-  | 'irreducible';  // Irreducible loop (non-natural)
+  | 'counting' // Simple counting loop with induction variable
+  | 'while' // While loop with condition
+  | 'do-while' // Do-while loop
+  | 'infinite' // Infinite loop
+  | 'complex' // Complex loop with multiple exits
+  | 'irreducible'; // Irreducible loop (non-natural)
 
 /**
  * Loop characteristics for optimization guidance
@@ -187,11 +187,11 @@ export interface InductionVariableInfo {
 }
 
 export type InductionVariableUsage =
-  | 'loop-counter'   // Primary loop counter
-  | 'array-index'    // Array indexing
+  | 'loop-counter' // Primary loop counter
+  | 'array-index' // Array indexing
   | 'pointer-offset' // Pointer arithmetic
-  | 'computation'    // General computation
-  | 'derived';       // Derived from other induction variables
+  | 'computation' // General computation
+  | 'derived'; // Derived from other induction variables
 
 // =============================================================================
 // Data Dependency Analysis
@@ -233,19 +233,19 @@ export interface VariableUse {
 }
 
 export type DefinitionType =
-  | 'assignment'     // Direct assignment
-  | 'parameter'      // Function parameter
+  | 'assignment' // Direct assignment
+  | 'parameter' // Function parameter
   | 'initialization' // Variable initialization
-  | 'increment'      // Increment operation
-  | 'decrement'      // Decrement operation
-  | 'call-result'    // Result of function call
-  | 'phi';          // PHI node for SSA form
+  | 'increment' // Increment operation
+  | 'decrement' // Decrement operation
+  | 'call-result' // Result of function call
+  | 'phi'; // PHI node for SSA form
 
 export type UsageType =
-  | 'read'          // Variable read
-  | 'address'       // Address taken
-  | 'condition'     // Used in conditional
-  | 'index'         // Array index
+  | 'read' // Variable read
+  | 'address' // Address taken
+  | 'condition' // Used in conditional
+  | 'index' // Array index
   | 'call-argument' // Function call argument
   | 'return-value'; // Return statement
 
@@ -287,10 +287,10 @@ export interface MemoryDependency {
 }
 
 export type MemoryDependencyType =
-  | 'flow'        // True dependency (RAW)
-  | 'anti'        // Anti dependency (WAR)
-  | 'output'      // Output dependency (WAW)
-  | 'input';      // Input dependency (RAR)
+  | 'flow' // True dependency (RAW)
+  | 'anti' // Anti dependency (WAR)
+  | 'output' // Output dependency (WAW)
+  | 'input'; // Input dependency (RAR)
 
 /**
  * Memory location specification for dependency tracking
@@ -350,7 +350,7 @@ export interface VariableInterference {
 }
 
 export type InterferenceType =
-  | 'lifetime-overlap'  // Variables live at same time
+  | 'lifetime-overlap' // Variables live at same time
   | 'same-instruction' // Used in same instruction
   | 'assignment-conflict'; // Assignment target conflict
 
@@ -414,11 +414,11 @@ export interface PerformanceBottleneck {
 }
 
 export type BottleneckType =
-  | 'memory-access'     // Slow memory operation
-  | 'division'          // Expensive division
-  | 'multiplication'    // Expensive multiplication
-  | 'loop-overhead'     // Loop control overhead
-  | 'function-call'     // Function call overhead
+  | 'memory-access' // Slow memory operation
+  | 'division' // Expensive division
+  | 'multiplication' // Expensive multiplication
+  | 'loop-overhead' // Loop control overhead
+  | 'function-call' // Function call overhead
   | 'branch-misprediction'; // Likely branch misprediction
 
 /**
@@ -434,20 +434,20 @@ export interface OptimizationOpportunity {
 }
 
 export type OptimizationOpportunityType =
-  | 'constant-folding'      // Compile-time constant evaluation
-  | 'loop-unrolling'        // Loop unrolling opportunity
-  | 'common-subexpression'  // Common subexpression elimination
-  | 'dead-code'            // Dead code elimination
-  | 'strength-reduction'    // Strength reduction (mul -> shift)
-  | 'loop-invariant'       // Loop invariant code motion
-  | 'register-allocation'   // Better register allocation
-  | 'inlining';            // Function inlining opportunity
+  | 'constant-folding' // Compile-time constant evaluation
+  | 'loop-unrolling' // Loop unrolling opportunity
+  | 'common-subexpression' // Common subexpression elimination
+  | 'dead-code' // Dead code elimination
+  | 'strength-reduction' // Strength reduction (mul -> shift)
+  | 'loop-invariant' // Loop invariant code motion
+  | 'register-allocation' // Better register allocation
+  | 'inlining'; // Function inlining opportunity
 
 export type OptimizationComplexity =
-  | 'trivial'   // Easy to implement
-  | 'simple'    // Straightforward
-  | 'moderate'  // Some complexity
-  | 'complex'   // Significant effort
+  | 'trivial' // Easy to implement
+  | 'simple' // Straightforward
+  | 'moderate' // Some complexity
+  | 'complex' // Significant effort
   | 'difficult'; // Very challenging
 
 // =============================================================================

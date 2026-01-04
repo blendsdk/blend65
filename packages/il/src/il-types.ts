@@ -25,7 +25,7 @@ import type {
   Blend65Type,
   VariableOptimizationMetadata,
   FunctionOptimizationMetadata,
-  StorageClass
+  StorageClass,
 } from '@blend65/semantic';
 
 // ============================================================================
@@ -388,7 +388,7 @@ export enum ILInstructionType {
   SET_FLAGS = 'SET_FLAGS',
 
   /** Clear processor flags: CLEAR_FLAGS <flags> */
-  CLEAR_FLAGS = 'CLEAR_FLAGS'
+  CLEAR_FLAGS = 'CLEAR_FLAGS',
 }
 
 // ============================================================================
@@ -422,12 +422,12 @@ export interface ILConstant {
  * How constants are represented in source code.
  */
 export type ConstantRepresentation =
-  | 'decimal'      // 255
-  | 'hexadecimal'  // $FF or 0xFF
-  | 'binary'       // 0b11111111
-  | 'character'    // 'A'
-  | 'string'       // "Hello"
-  | 'boolean';     // true/false
+  | 'decimal' // 255
+  | 'hexadecimal' // $FF or 0xFF
+  | 'binary' // 0b11111111
+  | 'character' // 'A'
+  | 'string' // "Hello"
+  | 'boolean'; // true/false
 
 /**
  * Variable reference in IL.
@@ -447,9 +447,9 @@ export interface ILVariable {
  * Variable scope classification.
  */
 export type VariableScope =
-  | 'global'      // Module-level variable
-  | 'local'       // Function parameter or local variable
-  | 'temporary';  // Compiler-generated temporary
+  | 'global' // Module-level variable
+  | 'local' // Function parameter or local variable
+  | 'temporary'; // Compiler-generated temporary
 
 /**
  * 6502 register reference.
@@ -465,11 +465,11 @@ export interface ILRegister {
  * 6502 register types.
  */
 export type Register6502 =
-  | 'A'    // Accumulator
-  | 'X'    // X index register
-  | 'Y'    // Y index register
-  | 'AX'   // A:X register pair (16-bit)
-  | 'XY';  // X:Y register pair (16-bit)
+  | 'A' // Accumulator
+  | 'X' // X index register
+  | 'Y' // Y index register
+  | 'AX' // A:X register pair (16-bit)
+  | 'XY'; // X:Y register pair (16-bit)
 
 /**
  * Temporary value in IL.
@@ -487,10 +487,10 @@ export interface ILTemporary {
  * Temporary variable scope.
  */
 export type TemporaryScope =
-  | 'expression'  // Lives only within an expression
-  | 'statement'   // Lives within a statement
-  | 'block'       // Lives within a block
-  | 'function';   // Lives within entire function
+  | 'expression' // Lives only within an expression
+  | 'statement' // Lives within a statement
+  | 'block' // Lives within a block
+  | 'function'; // Lives within entire function
 
 /**
  * Temporary variable lifetime information.
@@ -525,27 +525,27 @@ export interface ILMemoryLocation {
  * 6502 addressing modes.
  */
 export type AddressingMode6502 =
-  | 'immediate'         // #$20
-  | 'zero_page'        // $20
-  | 'zero_page_x'      // $20,X
-  | 'zero_page_y'      // $20,Y
-  | 'absolute'         // $2000
-  | 'absolute_x'       // $2000,X
-  | 'absolute_y'       // $2000,Y
-  | 'indirect'         // ($2000)
+  | 'immediate' // #$20
+  | 'zero_page' // $20
+  | 'zero_page_x' // $20,X
+  | 'zero_page_y' // $20,Y
+  | 'absolute' // $2000
+  | 'absolute_x' // $2000,X
+  | 'absolute_y' // $2000,Y
+  | 'indirect' // ($2000)
   | 'indexed_indirect' // ($20,X)
-  | 'indirect_indexed';// ($20),Y
+  | 'indirect_indexed'; // ($20),Y
 
 /**
  * 6502 memory banks.
  */
 export type MemoryBank6502 =
-  | 'zero_page'   // $00-$FF
-  | 'stack'       // $0100-$01FF
-  | 'ram'         // $0200-$9FFF (C64)
-  | 'io'          // $D000-$DFFF (C64)
-  | 'rom'         // $E000-$FFFF (C64)
-  | 'cartridge';  // Cartridge space
+  | 'zero_page' // $00-$FF
+  | 'stack' // $0100-$01FF
+  | 'ram' // $0200-$9FFF (C64)
+  | 'io' // $D000-$DFFF (C64)
+  | 'rom' // $E000-$FFFF (C64)
+  | 'cartridge'; // Cartridge space
 
 /**
  * Label reference for branches and calls.
@@ -603,12 +603,12 @@ export interface ILParameter {
  * How parameters are passed to functions.
  */
 export type ParameterPassingMethod =
-  | 'register_A'    // Pass in A register
-  | 'register_X'    // Pass in X register
-  | 'register_Y'    // Pass in Y register
-  | 'zero_page'     // Pass via zero page location
-  | 'stack'         // Pass on stack
-  | 'global';       // Pass via global variable
+  | 'register_A' // Pass in A register
+  | 'register_X' // Pass in X register
+  | 'register_Y' // Pass in Y register
+  | 'zero_page' // Pass via zero page location
+  | 'stack' // Pass on stack
+  | 'global'; // Pass via global variable
 
 /**
  * Local variable in IL function.
@@ -625,10 +625,10 @@ export interface ILLocalVariable {
  * How local variables are allocated.
  */
 export type LocalVariableAllocation =
-  | 'register'      // Allocated to register
-  | 'zero_page'     // Allocated to zero page
-  | 'stack'         // Allocated on stack
-  | 'global';       // Allocated as global (for static locals)
+  | 'register' // Allocated to register
+  | 'zero_page' // Allocated to zero page
+  | 'stack' // Allocated on stack
+  | 'global'; // Allocated as global (for static locals)
 
 /**
  * Global data declarations.
@@ -725,14 +725,14 @@ export interface Instruction6502OptimizationOpportunity {
 }
 
 export type Instruction6502OptimizationOpportunityType =
-  | 'use_zero_page'        // Use zero page addressing
-  | 'use_register'         // Keep value in register
-  | 'combine_operations'   // Combine with next instruction
+  | 'use_zero_page' // Use zero page addressing
+  | 'use_register' // Keep value in register
+  | 'combine_operations' // Combine with next instruction
   | 'eliminate_load_store' // Eliminate unnecessary load/store
-  | 'use_immediate'        // Use immediate addressing
-  | 'strength_reduction'   // Reduce operation strength
-  | 'dead_code'           // Instruction can be removed
-  | 'loop_optimization';  // Optimize for loop usage
+  | 'use_immediate' // Use immediate addressing
+  | 'strength_reduction' // Reduce operation strength
+  | 'dead_code' // Instruction can be removed
+  | 'loop_optimization'; // Optimize for loop usage
 
 // ============================================================================
 // OPTIMIZATION METADATA
@@ -934,7 +934,7 @@ export interface LiveVariableInfo {
  */
 export interface LiveRange {
   start: number; // Instruction index
-  end: number;   // Instruction index
+  end: number; // Instruction index
 }
 
 /**
@@ -1132,7 +1132,7 @@ export function createILConstant(
     valueType: 'constant',
     type,
     value,
-    representation
+    representation,
   };
 }
 
@@ -1149,7 +1149,7 @@ export function createILVariable(
     qualifiedName,
     type,
     storageClass,
-    scope
+    scope,
   };
 }
 
@@ -1157,23 +1157,27 @@ export function createILRegister(register: Register6502, type: Blend65Type): ILR
   return {
     valueType: 'register',
     register,
-    type
+    type,
   };
 }
 
-export function createILTemporary(id: number, type: Blend65Type, scope: TemporaryScope = 'expression'): ILTemporary {
+export function createILTemporary(
+  id: number,
+  type: Blend65Type,
+  scope: TemporaryScope = 'expression'
+): ILTemporary {
   return {
     valueType: 'temporary',
     id,
     type,
-    scope
+    scope,
   };
 }
 
 export function createILLabel(name: string): ILLabel {
   return {
     valueType: 'label',
-    name
+    name,
   };
 }
 
@@ -1195,7 +1199,7 @@ export function createILInstruction(
     type,
     operands,
     id,
-    ...options
+    ...options,
   };
 }
 
@@ -1211,9 +1215,13 @@ export function ilValueToString(value: ILValue): string {
     case 'constant':
       switch (value.representation) {
         case 'hexadecimal':
-          return typeof value.value === 'number' ? `$${value.value.toString(16).toUpperCase()}` : String(value.value);
+          return typeof value.value === 'number'
+            ? `$${value.value.toString(16).toUpperCase()}`
+            : String(value.value);
         case 'binary':
-          return typeof value.value === 'number' ? `0b${value.value.toString(2)}` : String(value.value);
+          return typeof value.value === 'number'
+            ? `0b${value.value.toString(2)}`
+            : String(value.value);
         case 'character':
           return `'${value.value}'`;
         case 'string':
@@ -1250,18 +1258,20 @@ export function ilValueToString(value: ILValue): string {
  * Get a string representation of an IL instruction for debugging.
  */
 export function ilInstructionToString(instruction: ILInstruction): string {
-  const operandStrs = instruction.operands.map(op => {
-    if ('valueType' in op) {
-      return ilValueToString(op as ILValue);
-    } else if ('operandType' in op) {
-      const ref = op as ILParameterReference | ILReturnReference;
-      return ref.operandType === 'parameter'
-        ? `param_${(ref as ILParameterReference).parameterIndex}`
-        : 'return';
-    } else {
-      return String(op);
-    }
-  }).join(', ');
+  const operandStrs = instruction.operands
+    .map(op => {
+      if ('valueType' in op) {
+        return ilValueToString(op as ILValue);
+      } else if ('operandType' in op) {
+        const ref = op as ILParameterReference | ILReturnReference;
+        return ref.operandType === 'parameter'
+          ? `param_${(ref as ILParameterReference).parameterIndex}`
+          : 'return';
+      } else {
+        return String(op);
+      }
+    })
+    .join(', ');
 
   const resultStr = instruction.result ? ` -> ${ilValueToString(instruction.result)}` : '';
 
@@ -1282,8 +1292,8 @@ export function createILProgram(name: string): ILProgram {
       originalFiles: [],
       compilationTimestamp: new Date(),
       compilerVersion: '0.1.0',
-      targetPlatform: 'c64'
-    }
+      targetPlatform: 'c64',
+    },
   };
 }
 
@@ -1296,7 +1306,7 @@ export function createILModule(qualifiedName: string[]): ILModule {
     functions: [],
     moduleData: [],
     exports: [],
-    imports: []
+    imports: [],
   };
 }
 
@@ -1319,6 +1329,6 @@ export function createILFunction(
     labels: new Map(),
     isCallback: false,
     isExported: false,
-    sourceLocation
+    sourceLocation,
   };
 }

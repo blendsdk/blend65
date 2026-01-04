@@ -12,14 +12,11 @@
 import type {
   OptimizationPattern,
   PatternLoadResult,
-  PatternRegistryConfig
+  PatternRegistryConfig,
 } from './pattern-types';
 
 // Import enums as values (not types) since we need them at runtime
-import {
-  PatternCategory,
-  TargetPlatform
-} from './pattern-types';
+import { PatternCategory, TargetPlatform } from './pattern-types';
 
 // ============================================================================
 // PATTERN METADATA
@@ -78,8 +75,9 @@ export class SmartPatternRegistry {
       this.loadPatternCategory(category);
     }
 
-    return Array.from(this.activePatterns.values())
-      .filter(pattern => pattern.category === category);
+    return Array.from(this.activePatterns.values()).filter(
+      pattern => pattern.category === category
+    );
   }
 
   /**
@@ -118,13 +116,13 @@ export class SmartPatternRegistry {
 
       return {
         success: true,
-        patternsLoaded: loadedCount
+        patternsLoaded: loadedCount,
       };
     } catch (error) {
       return {
         success: false,
         patternsLoaded: 0,
-        errors: [`Failed to load category ${category}: ${error}`]
+        errors: [`Failed to load category ${category}: ${error}`],
       };
     }
   }
@@ -158,7 +156,7 @@ export class SmartPatternRegistry {
       activePatterns: this.activePatterns.size,
       loadedCategories: this.loadedCategories.size,
       memoryUsage: this.estimateMemoryUsage(),
-      categoriesLoaded: Array.from(this.loadedCategories)
+      categoriesLoaded: Array.from(this.loadedCategories),
     };
   }
 
@@ -179,7 +177,7 @@ export class SmartPatternRegistry {
         category: pattern.category,
         platforms: pattern.platforms,
         priority: pattern.priority,
-        lastAccessed: Date.now()
+        lastAccessed: Date.now(),
       });
     }
     this.loadedCategories.add(PatternCategory.BASIC);
@@ -240,7 +238,7 @@ export class SmartPatternRegistry {
       category: pattern.category,
       platforms: pattern.platforms,
       priority: pattern.priority,
-      lastAccessed: Date.now()
+      lastAccessed: Date.now(),
     });
   }
 
@@ -337,12 +335,14 @@ export class SmartPatternRegistry {
 /**
  * Create a default pattern registry.
  */
-export function createPatternRegistry(config?: Partial<PatternRegistryConfig>): SmartPatternRegistry {
+export function createPatternRegistry(
+  config?: Partial<PatternRegistryConfig>
+): SmartPatternRegistry {
   const defaultConfig: PatternRegistryConfig = {
     maxActivePatterns: 50,
     lazyLoading: true,
     cacheSize: 100,
-    enableMetrics: true
+    enableMetrics: true,
   };
 
   return new SmartPatternRegistry({ ...defaultConfig, ...config });

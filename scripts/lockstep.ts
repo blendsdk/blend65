@@ -667,7 +667,7 @@ function main(): void {
     console.log(`Commands:
   version --type patch|minor|major|auto [--ci] [--no-git-commit]
   publish --tag <dist-tag> [--access <access>] [--dry] [--git-push]
-  
+
 Examples:
   version --type patch                      # Bump patch version
   version --type minor --ci                 # Bump minor version with [skip ci] in commit message
@@ -680,7 +680,7 @@ Examples:
   publish --tag beta --dry                  # Dry run as 'v4-beta' (access=public)
   publish --tag latest --access restricted  # Publishes as 'latest' with restricted access
   publish --tag alpha --git-push            # Publishes as 'v4-alpha' and pushes git changes/tags
-  
+
 Notes:
   --access defaults to 'public'. Only specify --access if you need a different value.
   --ci adds '[skip ci]' to the commit message to prevent CI loops.

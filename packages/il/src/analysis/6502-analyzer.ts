@@ -15,26 +15,25 @@
  * @fileoverview Main coordinator for hardware-aware IL validation system
  */
 
-import { ILFunction, ILInstruction, ILValue, AddressingMode6502, Register6502, MemoryBank6502 } from '../il-types.js';
+import { ILFunction, ILInstruction } from '../il-types.js';
 import { ControlFlowAnalysisResult } from './types/control-flow-types.js';
 import {
   SixtyTwo6502ValidationResult,
   SixtyTwo6502AnalysisOptions,
   ProcessorVariant,
-  PlatformTarget,
   CycleTimingResult,
   MemoryLayoutValidationResult,
   RegisterAllocationAnalysis,
   PerformanceHotspotAnalysis,
   HardwareConstraintValidation,
   ValidationIssue,
-  SixtyTwo6502Optimization
+  SixtyTwo6502Optimization,
 } from './types/6502-analysis-types.js';
 import {
   C64_6510Analyzer,
   VIC20_6502Analyzer,
   X16_65C02Analyzer,
-  Base6502Analyzer
+  Base6502Analyzer,
 } from './6502-variants/index.js';
 import { measureAnalysisPerformance } from './utils/cfg-utils.js';
 
@@ -67,7 +66,7 @@ export class SixtyTwo6502Analyzer {
       enableCIATimingValidation: true,
       maxAnalysisTimeMs: 10000,
       enablePerformanceProfiling: true,
-      ...options
+      ...options,
     };
 
     // Initialize variant-specific analyzers
@@ -118,16 +117,23 @@ export class SixtyTwo6502Analyzer {
 
       // 4. Performance Hotspot Detection
       const { result: hotspotAnalysis, metrics: hotspotMetrics } = measureAnalysisPerformance(
-        () => this.performPerformanceHotspotDetection(ilFunction, timingAnalysis, cfgAnalysis, analyzer),
+        () =>
+          this.performPerformanceHotspotDetection(
+            ilFunction,
+            timingAnalysis,
+            cfgAnalysis,
+            analyzer
+          ),
         '6502 Performance Hotspot Detection'
       );
       this.mergeMetrics(hotspotMetrics);
 
       // 5. Hardware Constraint Validation
-      const { result: constraintValidation, metrics: constraintMetrics } = measureAnalysisPerformance(
-        () => this.performHardwareConstraintValidation(ilFunction, analyzer),
-        '6502 Hardware Constraint Validation'
-      );
+      const { result: constraintValidation, metrics: constraintMetrics } =
+        measureAnalysisPerformance(
+          () => this.performHardwareConstraintValidation(ilFunction, analyzer),
+          '6502 Hardware Constraint Validation'
+        );
       this.mergeMetrics(constraintMetrics);
 
       // 6. Generate Optimization Recommendations
@@ -170,14 +176,14 @@ export class SixtyTwo6502Analyzer {
           averageCyclesPerInstruction: timingAnalysis.averageCyclesPerInstruction,
           hotspotInstructions: hotspotAnalysis.hotspotInstructions,
           cycleBreakdown: timingAnalysis.cycleBreakdown,
-          performanceScore: hotspotAnalysis.performanceScore
+          performanceScore: hotspotAnalysis.performanceScore,
         },
         constraintValidation: {
           memoryLayoutValid: memoryValidation.isValid,
           registerUsageValid: registerAnalysis.isValid,
           stackUsageValid: constraintValidation.stackUsageValid,
           timingConstraintsValid: constraintValidation.timingConstraintsValid,
-          hardwareResourcesValid: constraintValidation.hardwareResourcesValid
+          hardwareResourcesValid: constraintValidation.hardwareResourcesValid,
         },
         optimizationRecommendations,
         validationIssues,
@@ -186,12 +192,11 @@ export class SixtyTwo6502Analyzer {
           memoryUsageBytes: this.estimateMemoryUsage(),
           instructionCount: ilFunction.instructions.length,
           basicBlockCount: cfgAnalysis.cfg.blocks.size,
-          accuracyScore: 0.99 // High confidence in cycle-perfect analysis
+          accuracyScore: 0.99, // High confidence in cycle-perfect analysis
         },
         targetPlatform: this.options.targetPlatform,
-        processorVariant: this.options.processorVariant
+        processorVariant: this.options.processorVariant,
       };
-
     } catch (error) {
       // Handle analysis errors gracefully
       return this.createErrorResult(error, ilFunction);
@@ -222,7 +227,11 @@ export class SixtyTwo6502Analyzer {
 
     let totalCycles = 0;
     let criticalPathCycles = 0;
-    const instructionTiming: Array<{ instruction: ILInstruction; cycles: number; details: string }> = [];
+    const instructionTiming: Array<{
+      instruction: ILInstruction;
+      cycles: number;
+      details: string;
+    }> = [];
     const cycleBreakdown: Record<string, number> = {};
 
     // Analyze each instruction for cycle-perfect timing
@@ -230,14 +239,14 @@ export class SixtyTwo6502Analyzer {
       const instruction = ilFunction.instructions[i];
       const timing = analyzer.getInstructionTiming(instruction, {
         instructionIndex: i,
-        function: ilFunction
+        function: ilFunction,
       });
 
       totalCycles += timing.totalCycles;
       instructionTiming.push({
         instruction,
         cycles: timing.totalCycles,
-        details: timing.timingNotes.join('; ')
+        details: timing.timingNotes.join('; '),
       });
 
       // Update cycle breakdown by instruction type
@@ -249,9 +258,8 @@ export class SixtyTwo6502Analyzer {
     // this would use CFG analysis to find longest execution path)
     criticalPathCycles = totalCycles; // Conservative estimate
 
-    const averageCyclesPerInstruction = ilFunction.instructions.length > 0
-      ? totalCycles / ilFunction.instructions.length
-      : 0;
+    const averageCyclesPerInstruction =
+      ilFunction.instructions.length > 0 ? totalCycles / ilFunction.instructions.length : 0;
 
     return {
       totalCycles,
@@ -260,7 +268,7 @@ export class SixtyTwo6502Analyzer {
       instructionTiming,
       cycleBreakdown,
       timingAccuracy: 'cycle_perfect',
-      platformSpecificFactors: analyzer.getPlatformTimingFactors()
+      platformSpecificFactors: analyzer.getPlatformTimingFactors(),
     };
   }
 
@@ -339,16 +347,13 @@ export class SixtyTwo6502Analyzer {
       return [];
     }
 
-    return analyzer.generateOptimizationRecommendations(
-      ilFunction,
-      {
-        timing: timingAnalysis,
-        memory: memoryValidation,
-        registers: registerAnalysis,
-        hotspots: hotspotAnalysis,
-        constraints: constraintValidation
-      }
-    );
+    return analyzer.generateOptimizationRecommendations(ilFunction, {
+      timing: timingAnalysis,
+      memory: memoryValidation,
+      registers: registerAnalysis,
+      hotspots: hotspotAnalysis,
+      constraints: constraintValidation,
+    });
   }
 
   /**
@@ -362,7 +367,7 @@ export class SixtyTwo6502Analyzer {
       instructionTiming: [],
       cycleBreakdown: {},
       timingAccuracy: 'disabled',
-      platformSpecificFactors: {}
+      platformSpecificFactors: {},
     };
   }
 
@@ -371,7 +376,7 @@ export class SixtyTwo6502Analyzer {
       isValid: true,
       memoryUsage: { zeroPage: 0, stack: 0, ram: 0, total: 0 },
       memoryMap: [],
-      validationIssues: []
+      validationIssues: [],
     };
   }
 
@@ -381,7 +386,7 @@ export class SixtyTwo6502Analyzer {
       registerPressure: { A: 0, X: 0, Y: 0, AX: 0, XY: 0 },
       allocationRecommendations: [],
       interferenceAnalysis: { conflicts: [], spillCosts: [] },
-      optimizationOpportunities: []
+      optimizationOpportunities: [],
     };
   }
 
@@ -390,7 +395,7 @@ export class SixtyTwo6502Analyzer {
       hotspotInstructions: [],
       performanceScore: 100,
       criticalPaths: [],
-      optimizationPotential: 0
+      optimizationPotential: 0,
     };
   }
 
@@ -399,7 +404,7 @@ export class SixtyTwo6502Analyzer {
       stackUsageValid: true,
       timingConstraintsValid: true,
       hardwareResourcesValid: true,
-      constraintViolations: []
+      constraintViolations: [],
     };
   }
 
@@ -433,7 +438,7 @@ export class SixtyTwo6502Analyzer {
       severity: violation.severity,
       message: violation.message,
       instruction: violation.instruction,
-      location: violation.location
+      location: violation.location,
     }));
     issues.push(...convertedViolations);
 
@@ -448,7 +453,7 @@ export class SixtyTwo6502Analyzer {
   ): any {
     return analyzer.generatePlatformCompatibilityReport(ilFunction, {
       timing: timingAnalysis,
-      memory: memoryValidation
+      memory: memoryValidation,
     });
   }
 
@@ -462,32 +467,34 @@ export class SixtyTwo6502Analyzer {
         averageCyclesPerInstruction: 0,
         hotspotInstructions: [],
         cycleBreakdown: {},
-        performanceScore: 0
+        performanceScore: 0,
       },
       constraintValidation: {
         memoryLayoutValid: false,
         registerUsageValid: false,
         stackUsageValid: false,
         timingConstraintsValid: false,
-        hardwareResourcesValid: false
+        hardwareResourcesValid: false,
       },
       optimizationRecommendations: [],
-      validationIssues: [{
-        type: 'analysis_error',
-        severity: 'error',
-        message: `6502 analysis failed: ${error.message}`,
-        instruction: undefined,
-        location: undefined
-      }],
+      validationIssues: [
+        {
+          type: 'analysis_error',
+          severity: 'error',
+          message: `6502 analysis failed: ${error.message}`,
+          instruction: undefined,
+          location: undefined,
+        },
+      ],
       analysisMetrics: {
         analysisTimeMs: 0,
         memoryUsageBytes: 0,
         instructionCount: ilFunction.instructions.length,
         basicBlockCount: 0,
-        accuracyScore: 0
+        accuracyScore: 0,
       },
       targetPlatform: this.options.targetPlatform,
-      processorVariant: this.options.processorVariant
+      processorVariant: this.options.processorVariant,
     };
   }
 }
@@ -517,5 +524,5 @@ export type {
   SixtyTwo6502AnalysisOptions,
   ProcessorVariant,
   PlatformTarget,
-  CycleTimingResult
+  CycleTimingResult,
 } from './types/6502-analysis-types.js';

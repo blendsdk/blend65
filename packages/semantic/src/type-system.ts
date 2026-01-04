@@ -418,13 +418,13 @@ export class TypeChecker {
       const astNamedType = {
         type: 'NamedType' as const,
         name: type.name,
-        metadata: { start: location, end: location }
+        metadata: { start: location, end: location },
       };
       return this.resolveNamedType(astNamedType, location);
     }
     return {
       success: true,
-      data: type
+      data: type,
     };
   }
 

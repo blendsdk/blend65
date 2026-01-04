@@ -9,7 +9,6 @@
 
 import { SourcePosition } from '@blend65/lexer';
 
-
 // ============================================================================
 // Base Node Type
 // ============================================================================
@@ -341,7 +340,7 @@ export interface FunctionDeclaration extends Blend65ASTNode {
   returnType: TypeAnnotation;
   body: Statement[];
   exported: boolean;
-  callback: boolean;              // NEW: Callback function flag
+  callback: boolean; // NEW: Callback function flag
 }
 
 /**
@@ -438,18 +437,14 @@ export interface ExportDeclaration extends Blend65ASTNode {
 /**
  * Union type for all type annotations
  */
-export type TypeAnnotation =
-  | PrimitiveType
-  | ArrayType
-  | RecordType
-  | NamedType;
+export type TypeAnnotation = PrimitiveType | ArrayType | RecordType | NamedType;
 
 /**
  * Primitive type annotation - add callback type
  */
 export interface PrimitiveType extends Blend65ASTNode {
   type: 'PrimitiveType';
-  name: 'byte' | 'word' | 'boolean' | 'void' | 'callback';  // Add 'callback'
+  name: 'byte' | 'word' | 'boolean' | 'void' | 'callback'; // Add 'callback'
 }
 
 /**

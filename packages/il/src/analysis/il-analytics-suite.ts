@@ -20,10 +20,7 @@ import { ILMetricsAnalyzer } from './il-metrics-analyzer.js';
 import { PatternReadinessAnalyzer } from './pattern-readiness-analyzer.js';
 import type { ControlFlowAnalysisResult } from './types/control-flow-types.js';
 import type { SixtyTwo6502ValidationResult } from './types/6502-analysis-types.js';
-import type {
-  ILComplexityMetrics,
-  PatternApplicabilityScore
-} from './types/metrics-types.js';
+import type { ILComplexityMetrics, PatternApplicabilityScore } from './types/metrics-types.js';
 
 /**
  * Comprehensive analytics result containing all analysis outputs
@@ -200,8 +197,8 @@ export class ILAnalyticsSuite {
     memoryUsageTargets: {
       simple: 1,
       moderate: 5,
-      complex: 10
-    }
+      complex: 10,
+    },
   };
 
   /** Accuracy standards */
@@ -209,7 +206,7 @@ export class ILAnalyticsSuite {
     performancePredictionAccuracy: 95,
     patternSelectionAccuracy: 90,
     qualityScoringAccuracy: 92,
-    controlFlowAnalysisAccuracy: 98
+    controlFlowAnalysisAccuracy: 98,
   };
 
   constructor() {
@@ -219,7 +216,7 @@ export class ILAnalyticsSuite {
 
     // Create a mock pattern registry for the analyzer
     const mockPatternRegistry = {
-      getPatternsByCategory: (category: string) => []
+      getPatternsByCategory: (category: string) => [],
     };
 
     this.patternReadinessAnalyzer = new PatternReadinessAnalyzer(mockPatternRegistry);
@@ -237,7 +234,7 @@ export class ILAnalyticsSuite {
       sixtyTwoZeroTwo: 0,
       qualityMetrics: 0,
       patternReadiness: 0,
-      integration: 0
+      integration: 0,
     };
 
     try {
@@ -259,18 +256,30 @@ export class ILAnalyticsSuite {
 
       // 6502-Specific Analysis
       const sixtyTwoZeroTwoStart = this.now();
-      const sixtyTwoZeroTwo = this.sixtyTwoZeroTwoAnalyzer.analyzeFunction(firstFunction, controlFlow);
+      const sixtyTwoZeroTwo = this.sixtyTwoZeroTwoAnalyzer.analyzeFunction(
+        firstFunction,
+        controlFlow
+      );
       componentTiming.sixtyTwoZeroTwo = this.now() - sixtyTwoZeroTwoStart;
 
       // Quality Metrics Analysis
       const metricsStart = this.now();
-      const qualityAnalysisResult = this.metricsAnalyzer.analyzeFunction(firstFunction, controlFlow, sixtyTwoZeroTwo);
+      const qualityAnalysisResult = this.metricsAnalyzer.analyzeFunction(
+        firstFunction,
+        controlFlow,
+        sixtyTwoZeroTwo
+      );
       const qualityMetrics = qualityAnalysisResult.complexityMetrics;
       componentTiming.qualityMetrics = this.now() - metricsStart;
 
       // Pattern Readiness Analysis
       const patternStart = this.now();
-      const patternReadinessResult = this.patternReadinessAnalyzer.analyzePatternReadiness(program, qualityAnalysisResult, controlFlow, sixtyTwoZeroTwo);
+      const patternReadinessResult = this.patternReadinessAnalyzer.analyzePatternReadiness(
+        program,
+        qualityAnalysisResult,
+        controlFlow,
+        sixtyTwoZeroTwo
+      );
       const patternReadiness = patternReadinessResult.applicablePatterns.map(p => ({
         patternId: p.pattern.id,
         patternName: p.pattern.name,
@@ -282,16 +291,26 @@ export class ILAnalyticsSuite {
           prerequisiteType: 'structural' as const,
           description: prereq.description,
           satisfied: prereq.satisfied,
-          confidence: prereq.satisfactionConfidence
+          confidence: prereq.satisfactionConfidence,
         })),
         conflicts: [],
-        safetyAssessment: p.safetyScore > 80 ? 'safe' as const : p.safetyScore > 50 ? 'mostly_safe' as const : 'risky' as const
+        safetyAssessment:
+          p.safetyScore > 80
+            ? ('safe' as const)
+            : p.safetyScore > 50
+              ? ('mostly_safe' as const)
+              : ('risky' as const),
       }));
       componentTiming.patternReadiness = this.now() - patternStart;
 
       // Integration and Summary Generation
       const integrationStart = this.now();
-      const summary = this.generateSummary(controlFlow, sixtyTwoZeroTwo, qualityMetrics, patternReadiness);
+      const summary = this.generateSummary(
+        controlFlow,
+        sixtyTwoZeroTwo,
+        qualityMetrics,
+        patternReadiness
+      );
       componentTiming.integration = this.now() - integrationStart;
 
       const totalAnalysisTime = this.now() - startTime;
@@ -311,11 +330,12 @@ export class ILAnalyticsSuite {
         qualityMetrics,
         patternReadiness,
         summary,
-        performanceMetrics
+        performanceMetrics,
       };
-
     } catch (error) {
-      throw new Error(`IL Analytics Suite analysis failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `IL Analytics Suite analysis failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -325,13 +345,15 @@ export class ILAnalyticsSuite {
   async analyzeFunction(ilFunction: ILFunction): Promise<ComprehensiveAnalyticsResult> {
     const program: ILProgram = {
       name: 'single-function-analysis',
-      modules: [{
-        qualifiedName: ['Analysis'],
-        functions: [ilFunction],
-        moduleData: [],
-        exports: [],
-        imports: []
-      }],
+      modules: [
+        {
+          qualifiedName: ['Analysis'],
+          functions: [ilFunction],
+          moduleData: [],
+          exports: [],
+          imports: [],
+        },
+      ],
       globalData: [],
       imports: [],
       exports: [],
@@ -339,8 +361,8 @@ export class ILAnalyticsSuite {
         originalFiles: ['single-function-analysis'],
         compilationTimestamp: new Date(),
         compilerVersion: '0.1.0',
-        targetPlatform: 'c64'
-      }
+        targetPlatform: 'c64',
+      },
     };
 
     return this.analyzeProgram(program);
@@ -365,26 +387,30 @@ export class ILAnalyticsSuite {
         actualTime: result.performanceMetrics.totalAnalysisTime,
         targetTime: benchmark,
         passed,
-        performanceMargin: ((benchmark - result.performanceMetrics.totalAnalysisTime) / benchmark) * 100,
-        memoryUsage: result.performanceMetrics.memoryUsage.peakMemoryMB
+        performanceMargin:
+          ((benchmark - result.performanceMetrics.totalAnalysisTime) / benchmark) * 100,
+        memoryUsage: result.performanceMetrics.memoryUsage.peakMemoryMB,
       });
     }
 
     const overallPassed = results.every(r => r.passed);
-    const averagePerformanceMargin = results.reduce((sum, r) => sum + r.performanceMargin, 0) / results.length;
+    const averagePerformanceMargin =
+      results.reduce((sum, r) => sum + r.performanceMargin, 0) / results.length;
 
     return {
       overallPassed,
       averagePerformanceMargin,
       results,
-      recommendation: this.generatePerformanceRecommendation(results)
+      recommendation: this.generatePerformanceRecommendation(results),
     };
   }
 
   /**
    * Validate analytics accuracy against known standards
    */
-  async validateAccuracy(referenceData: AccuracyReferenceData[]): Promise<AccuracyValidationResult> {
+  async validateAccuracy(
+    referenceData: AccuracyReferenceData[]
+  ): Promise<AccuracyValidationResult> {
     const accuracyMetrics: AccuracyMetric[] = [];
 
     for (const reference of referenceData) {
@@ -413,18 +439,20 @@ export class ILAnalyticsSuite {
         performanceAccuracy,
         patternAccuracy,
         qualityAccuracy,
-        overallAccuracy: (performanceAccuracy + patternAccuracy + qualityAccuracy) / 3
+        overallAccuracy: (performanceAccuracy + patternAccuracy + qualityAccuracy) / 3,
       });
     }
 
-    const overallAccuracy = accuracyMetrics.reduce((sum, m) => sum + m.overallAccuracy, 0) / accuracyMetrics.length;
-    const meetsStandards = overallAccuracy >= ILAnalyticsSuite.ACCURACY_STANDARDS.performancePredictionAccuracy;
+    const overallAccuracy =
+      accuracyMetrics.reduce((sum, m) => sum + m.overallAccuracy, 0) / accuracyMetrics.length;
+    const meetsStandards =
+      overallAccuracy >= ILAnalyticsSuite.ACCURACY_STANDARDS.performancePredictionAccuracy;
 
     return {
       overallAccuracy,
       meetsStandards,
       accuracyMetrics,
-      recommendation: this.generateAccuracyRecommendation(accuracyMetrics)
+      recommendation: this.generateAccuracyRecommendation(accuracyMetrics),
     };
   }
 
@@ -438,31 +466,32 @@ export class ILAnalyticsSuite {
     patternReadiness: PatternApplicabilityScore[]
   ): AnalyticsSummary {
     // Calculate average pattern applicability
-    const avgPatternApplicability = patternReadiness.length > 0
-      ? patternReadiness.reduce((sum, p) => sum + p.applicabilityScore, 0) / patternReadiness.length
-      : 0;
+    const avgPatternApplicability =
+      patternReadiness.length > 0
+        ? patternReadiness.reduce((sum, p) => sum + p.applicabilityScore, 0) /
+          patternReadiness.length
+        : 0;
 
     // Calculate overall quality score (weighted average)
-    const qualityScore = (
+    const qualityScore =
       qualityMetrics.overallComplexityScore * 0.3 +
-      (controlFlow.analysisMetrics.accuracyScore * 100) * 0.2 +
+      controlFlow.analysisMetrics.accuracyScore * 100 * 0.2 +
       sixtyTwoZeroTwo.performanceAnalysis.performanceScore * 0.3 +
-      avgPatternApplicability * 0.2
-    );
+      avgPatternApplicability * 0.2;
 
     // Calculate optimization readiness score
-    const optimizationReadinessScore = (
+    const optimizationReadinessScore =
       avgPatternApplicability * 0.4 +
       sixtyTwoZeroTwo.performanceAnalysis.performanceScore * 0.4 +
-      (100 - qualityMetrics.cyclomaticComplexity * 2) * 0.2 // Lower complexity = higher readiness
-    );
+      (100 - qualityMetrics.cyclomaticComplexity * 2) * 0.2; // Lower complexity = higher readiness
 
     // Calculate performance prediction confidence
-    const performancePredictionConfidence = Math.min(100, (
-      (sixtyTwoZeroTwo.analysisMetrics.accuracyScore * 100) * 0.5 +
-      (controlFlow.analysisMetrics.accuracyScore * 100) * 0.3 +
-      qualityMetrics.overallComplexityScore * 0.2
-    ));
+    const performancePredictionConfidence = Math.min(
+      100,
+      sixtyTwoZeroTwo.analysisMetrics.accuracyScore * 100 * 0.5 +
+        controlFlow.analysisMetrics.accuracyScore * 100 * 0.3 +
+        qualityMetrics.overallComplexityScore * 0.2
+    );
 
     // Generate recommendations
     const topRecommendations = this.generateRecommendations(
@@ -493,7 +522,7 @@ export class ILAnalyticsSuite {
       performancePredictionConfidence: Math.round(performancePredictionConfidence),
       topRecommendations,
       criticalIssues,
-      confidenceLevel
+      confidenceLevel,
     };
   }
 
@@ -516,7 +545,7 @@ export class ILAnalyticsSuite {
         description: 'Function complexity is high - consider breaking into smaller functions',
         expectedBenefit: 70,
         implementationDifficulty: 'MEDIUM',
-        recommendedPatterns: ['function-decomposition', 'complexity-reduction']
+        recommendedPatterns: ['function-decomposition', 'complexity-reduction'],
       });
     }
 
@@ -528,7 +557,7 @@ export class ILAnalyticsSuite {
         description: 'Significant 6502 optimization opportunities detected',
         expectedBenefit: sixtyTwoZeroTwo.performanceAnalysis.performanceScore,
         implementationDifficulty: 'MEDIUM',
-        recommendedPatterns: sixtyTwoZeroTwo.optimizationRecommendations.map(rec => rec.type) || []
+        recommendedPatterns: sixtyTwoZeroTwo.optimizationRecommendations.map(rec => rec.type) || [],
       });
     }
 
@@ -541,7 +570,7 @@ export class ILAnalyticsSuite {
           description: `Apply ${pattern.patternId} pattern for optimization`,
           expectedBenefit: pattern.expectedBenefit,
           implementationDifficulty: 'EASY',
-          recommendedPatterns: [pattern.patternId]
+          recommendedPatterns: [pattern.patternId],
         });
       }
     }
@@ -567,7 +596,7 @@ export class ILAnalyticsSuite {
         severity: 'ERROR',
         category: 'MAINTAINABILITY',
         description: `Extremely high cyclomatic complexity (${qualityMetrics.cyclomaticComplexity})`,
-        suggestedResolution: 'Break function into smaller, focused functions'
+        suggestedResolution: 'Break function into smaller, focused functions',
       });
     }
 
@@ -577,7 +606,7 @@ export class ILAnalyticsSuite {
         severity: 'WARNING',
         category: 'PERFORMANCE',
         description: 'Poor control flow graph quality detected',
-        suggestedResolution: 'Simplify control flow and reduce branching complexity'
+        suggestedResolution: 'Simplify control flow and reduce branching complexity',
       });
     }
 
@@ -587,7 +616,7 @@ export class ILAnalyticsSuite {
         severity: 'INFO',
         category: 'OPTIMIZATION',
         description: 'No optimization patterns applicable to this IL',
-        suggestedResolution: 'Review IL structure for optimization opportunities'
+        suggestedResolution: 'Review IL structure for optimization opportunities',
       });
     }
 
@@ -602,7 +631,8 @@ export class ILAnalyticsSuite {
     optimizationReadinessScore: number,
     performancePredictionConfidence: number
   ): 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH' {
-    const average = (qualityScore + optimizationReadinessScore + performancePredictionConfidence) / 3;
+    const average =
+      (qualityScore + optimizationReadinessScore + performancePredictionConfidence) / 3;
 
     if (average >= 90) return 'VERY_HIGH';
     if (average >= 75) return 'HIGH';
@@ -621,7 +651,8 @@ export class ILAnalyticsSuite {
     complexity: ProgramComplexity
   ): AnalyticsPerformanceMetrics {
     const memoryDelta = (endMemory?.heapUsed || 0) - (startMemory?.heapUsed || 0);
-    const peakMemoryMB = Math.max(endMemory?.heapUsed || 0, startMemory?.heapUsed || 0) / (1024 * 1024);
+    const peakMemoryMB =
+      Math.max(endMemory?.heapUsed || 0, startMemory?.heapUsed || 0) / (1024 * 1024);
 
     const target = this.getBenchmarkForComplexity(complexity);
     const performanceGrade = this.calculatePerformanceGrade(totalTime, target);
@@ -631,10 +662,10 @@ export class ILAnalyticsSuite {
       componentTiming,
       memoryUsage: {
         peakMemoryMB: Math.round(peakMemoryMB * 100) / 100,
-        averageMemoryMB: Math.round((peakMemoryMB * 0.8) * 100) / 100,
-        memoryEfficiencyScore: Math.max(0, 100 - (peakMemoryMB * 10))
+        averageMemoryMB: Math.round(peakMemoryMB * 0.8 * 100) / 100,
+        memoryEfficiencyScore: Math.max(0, 100 - peakMemoryMB * 10),
       },
-      performanceGrade
+      performanceGrade,
     };
   }
 
@@ -643,7 +674,9 @@ export class ILAnalyticsSuite {
    */
   private classifyProgramComplexity(program: ILProgram): ProgramComplexity {
     const totalInstructions = program.modules.reduce((sum: number, module) => {
-      return sum + module.functions.reduce((funcSum, func) => funcSum + func.instructions.length, 0);
+      return (
+        sum + module.functions.reduce((funcSum, func) => funcSum + func.instructions.length, 0)
+      );
     }, 0);
     const functionCount = program.modules.reduce((sum, module) => sum + module.functions.length, 0);
 
@@ -657,17 +690,24 @@ export class ILAnalyticsSuite {
    */
   private getBenchmarkForComplexity(complexity: ProgramComplexity): number {
     switch (complexity) {
-      case 'Simple': return ILAnalyticsSuite.BENCHMARKS.simpleFunctionTarget;
-      case 'Moderate': return ILAnalyticsSuite.BENCHMARKS.moderateComplexityTarget;
-      case 'Complex': return ILAnalyticsSuite.BENCHMARKS.complexFunctionTarget;
-      default: return ILAnalyticsSuite.BENCHMARKS.complexFunctionTarget;
+      case 'Simple':
+        return ILAnalyticsSuite.BENCHMARKS.simpleFunctionTarget;
+      case 'Moderate':
+        return ILAnalyticsSuite.BENCHMARKS.moderateComplexityTarget;
+      case 'Complex':
+        return ILAnalyticsSuite.BENCHMARKS.complexFunctionTarget;
+      default:
+        return ILAnalyticsSuite.BENCHMARKS.complexFunctionTarget;
     }
   }
 
   /**
    * Calculate performance grade
    */
-  private calculatePerformanceGrade(actualTime: number, targetTime: number): 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F' {
+  private calculatePerformanceGrade(
+    actualTime: number,
+    targetTime: number
+  ): 'A+' | 'A' | 'B+' | 'B' | 'C+' | 'C' | 'D' | 'F' {
     const ratio = actualTime / targetTime;
 
     if (ratio <= 0.5) return 'A+';
@@ -694,7 +734,11 @@ export class ILAnalyticsSuite {
   private now(): number {
     try {
       // Try performance API first (more accurate)
-      if (typeof globalThis !== 'undefined' && 'performance' in globalThis && (globalThis as any).performance?.now) {
+      if (
+        typeof globalThis !== 'undefined' &&
+        'performance' in globalThis &&
+        (globalThis as any).performance?.now
+      ) {
         return (globalThis as any).performance.now();
       }
     } catch {
@@ -723,7 +767,10 @@ export class ILAnalyticsSuite {
   /**
    * Calculate pattern selection accuracy
    */
-  private calculatePatternAccuracy(actualPatterns: PatternApplicabilityScore[], expectedPatterns: string[]): number {
+  private calculatePatternAccuracy(
+    actualPatterns: PatternApplicabilityScore[],
+    expectedPatterns: string[]
+  ): number {
     const actualPatternIds = actualPatterns.map(p => p.patternId);
     const intersection = expectedPatterns.filter(p => actualPatternIds.includes(p));
     const union = [...new Set([...actualPatternIds, ...expectedPatterns])];

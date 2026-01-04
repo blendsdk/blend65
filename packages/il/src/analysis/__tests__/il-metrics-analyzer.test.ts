@@ -15,16 +15,11 @@ import {
   ILInstructionType,
   createILConstant,
   createILVariable,
-  ILFunction
+  ILFunction,
 } from '../../il-types.js';
 import { ControlFlowAnalysisResult } from '../types/control-flow-types.js';
 import { SixtyTwo6502ValidationResult } from '../types/6502-analysis-types.js';
-import {
-  ComplexityLevel,
-  PerformanceLevel,
-  OptimizationPotential,
-  QualityAnalysisOptions
-} from '../types/metrics-types.js';
+import { QualityAnalysisOptions } from '../types/metrics-types.js';
 
 describe('ILMetricsAnalyzer', () => {
   let analyzer: ILMetricsAnalyzer;
@@ -45,10 +40,25 @@ describe('ILMetricsAnalyzer', () => {
 
     // Add sample instructions
     mockILFunction.instructions = [
-      createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant({ kind: 'primitive', name: 'byte' }, 42, 'decimal')], 1),
-      createILInstruction(ILInstructionType.ADD, [createILVariable('x', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1, 'decimal')], 2),
-      createILInstruction(ILInstructionType.STORE_VARIABLE, [createILVariable('result', { kind: 'primitive', name: 'byte' })], 3),
-      createILInstruction(ILInstructionType.RETURN, [], 4)
+      createILInstruction(
+        ILInstructionType.LOAD_IMMEDIATE,
+        [createILConstant({ kind: 'primitive', name: 'byte' }, 42, 'decimal')],
+        1
+      ),
+      createILInstruction(
+        ILInstructionType.ADD,
+        [
+          createILVariable('x', { kind: 'primitive', name: 'byte' }),
+          createILConstant({ kind: 'primitive', name: 'byte' }, 1, 'decimal'),
+        ],
+        2
+      ),
+      createILInstruction(
+        ILInstructionType.STORE_VARIABLE,
+        [createILVariable('result', { kind: 'primitive', name: 'byte' })],
+        3
+      ),
+      createILInstruction(ILInstructionType.RETURN, [], 4),
     ];
 
     // Create mock CFG analysis result
@@ -58,31 +68,35 @@ describe('ILMetricsAnalyzer', () => {
         entryBlock: 0,
         exitBlocks: new Set([1]),
         blocks: new Map([
-          [0, {
-            id: 0,
-            label: 'entry',
-            instructions: mockILFunction.instructions,
-            predecessors: new Set(),
-            successors: new Set([1]),
-            dominatedBlocks: new Set([1]),
-            isLoopHeader: false,
-            isLoopExit: false
-          }],
-          [1, {
-            id: 1,
-            label: 'exit',
-            instructions: [],
-            predecessors: new Set([0]),
-            successors: new Set(),
-            dominatedBlocks: new Set(),
-            isLoopHeader: false,
-            isLoopExit: false
-          }]
+          [
+            0,
+            {
+              id: 0,
+              label: 'entry',
+              instructions: mockILFunction.instructions,
+              predecessors: new Set(),
+              successors: new Set([1]),
+              dominatedBlocks: new Set([1]),
+              isLoopHeader: false,
+              isLoopExit: false,
+            },
+          ],
+          [
+            1,
+            {
+              id: 1,
+              label: 'exit',
+              instructions: [],
+              predecessors: new Set([0]),
+              successors: new Set(),
+              dominatedBlocks: new Set(),
+              isLoopHeader: false,
+              isLoopExit: false,
+            },
+          ],
         ]),
-        edges: [
-          { source: 0, target: 1, type: 'fall-through' }
-        ],
-        isReducible: true
+        edges: [{ source: 0, target: 1, type: 'fall-through' }],
+        isReducible: true,
       },
       dominanceAnalysis: {
         immediateDominators: new Map([[1, 0]]),
@@ -90,11 +104,14 @@ describe('ILMetricsAnalyzer', () => {
           root: 0,
           children: new Map([[0, new Set([1])]]),
           parent: new Map([[1, 0]]),
-          depth: new Map([[0, 0], [1, 1]])
+          depth: new Map([
+            [0, 0],
+            [1, 1],
+          ]),
         },
         dominanceFrontiers: new Map(),
         postDominators: new Map(),
-        strictlyDominates: new Map()
+        strictlyDominates: new Map(),
       },
       loopAnalysis: {
         naturalLoops: [],
@@ -103,12 +120,12 @@ describe('ILMetricsAnalyzer', () => {
           innerLoops: new Map(),
           parentLoop: new Map(),
           nestingDepth: new Map(),
-          maxNestingDepth: 0
+          maxNestingDepth: 0,
         },
         loopClassification: new Map(),
         inductionVariables: new Map(),
         loopInvariantInstructions: new Map(),
-        backEdges: []
+        backEdges: [],
       },
       dataDepAnalysis: {
         defUseChains: new Map(),
@@ -117,10 +134,10 @@ describe('ILMetricsAnalyzer', () => {
           variables: new Set(['x', 'result']),
           dependencies: new Map(),
           transitiveClosure: new Map(),
-          stronglyConnectedComponents: []
+          stronglyConnectedComponents: [],
         },
         dataFlowEquations: [],
-        memoryDependencies: []
+        memoryDependencies: [],
       },
       liveVarAnalysis: {
         liveIn: new Map(),
@@ -130,15 +147,15 @@ describe('ILMetricsAnalyzer', () => {
           variables: new Set(['x', 'result']),
           edges: new Set(),
           coloringHint: new Map(),
-          spillPriority: new Map()
+          spillPriority: new Map(),
         },
-        variableLifetimes: new Map()
+        variableLifetimes: new Map(),
       },
       criticalPathAnalysis: {
         criticalPaths: [],
         hotBlocks: [],
         performanceBottlenecks: [],
-        optimizationOpportunities: []
+        optimizationOpportunities: [],
       },
       analysisMetrics: {
         analysisTimeMs: 10,
@@ -147,8 +164,8 @@ describe('ILMetricsAnalyzer', () => {
         edgeCount: 1,
         loopCount: 0,
         variableCount: 2,
-        accuracyScore: 0.95
-      }
+        accuracyScore: 0.95,
+      },
     };
 
     // Create mock 6502 analysis result
@@ -161,19 +178,19 @@ describe('ILMetricsAnalyzer', () => {
         averageCyclesPerInstruction: 3.75,
         hotspotInstructions: [],
         cycleBreakdown: {
-          'LOAD_IMMEDIATE': 2,
-          'ADD': 3,
-          'STORE_VARIABLE': 4,
-          'RETURN': 6
+          LOAD_IMMEDIATE: 2,
+          ADD: 3,
+          STORE_VARIABLE: 4,
+          RETURN: 6,
         },
-        performanceScore: 85
+        performanceScore: 85,
       },
       constraintValidation: {
         memoryLayoutValid: true,
         registerUsageValid: true,
         stackUsageValid: true,
         timingConstraintsValid: true,
-        hardwareResourcesValid: true
+        hardwareResourcesValid: true,
       },
       optimizationRecommendations: [],
       validationIssues: [],
@@ -182,10 +199,10 @@ describe('ILMetricsAnalyzer', () => {
         memoryUsageBytes: 500,
         instructionCount: 4,
         basicBlockCount: 2,
-        accuracyScore: 0.99
+        accuracyScore: 0.99,
       },
       targetPlatform: 'c64',
-      processorVariant: '6510'
+      processorVariant: '6510',
     };
   });
 
@@ -200,7 +217,7 @@ describe('ILMetricsAnalyzer', () => {
         enableComplexityAnalysis: false,
         enablePerformancePrediction: true,
         optimizationLevel: 'aggressive',
-        targetPlatform: 'vic20'
+        targetPlatform: 'vic20',
       };
 
       const newAnalyzer = new ILMetricsAnalyzer(options);
@@ -219,14 +236,22 @@ describe('ILMetricsAnalyzer', () => {
 
   describe('Complexity Analysis', () => {
     it('should calculate McCabe cyclomatic complexity', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.complexityMetrics.cyclomaticComplexity).toBeGreaterThan(0);
       expect(result.complexityMetrics.cyclomaticComplexity).toBeLessThanOrEqual(10);
     });
 
     it('should analyze instruction complexity', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const instructionComplexity = result.complexityMetrics.instructionComplexity;
       expect(instructionComplexity.totalInstructions).toBe(4);
@@ -240,7 +265,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should analyze control flow complexity', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const controlFlowComplexity = result.complexityMetrics.controlFlowComplexity;
       expect(controlFlowComplexity.basicBlockCount).toBe(2);
@@ -252,7 +281,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should analyze data flow complexity', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const dataFlowComplexity = result.complexityMetrics.dataFlowComplexity;
       expect(dataFlowComplexity.variableCount).toBe(2);
@@ -263,7 +296,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should calculate overall complexity score', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.complexityMetrics.overallComplexityScore).toBeGreaterThanOrEqual(0);
       expect(result.complexityMetrics.overallComplexityScore).toBeLessThanOrEqual(100);
@@ -277,7 +314,11 @@ describe('ILMetricsAnalyzer', () => {
         { line: 1, column: 1, offset: 0 }
       );
 
-      const result = analyzer.analyzeFunction(emptyFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        emptyFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.complexityMetrics.instructionComplexity.totalInstructions).toBe(0);
       expect(result.complexityMetrics.instructionComplexity.score).toBe(0);
@@ -286,7 +327,11 @@ describe('ILMetricsAnalyzer', () => {
 
   describe('Performance Prediction', () => {
     it('should predict cycle estimates', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const cycles = result.performancePrediction.estimatedCycles;
       expect(cycles.averageCase).toBe(15); // From mock 6502 analysis
@@ -298,7 +343,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should estimate memory usage', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const memory = result.performancePrediction.memoryUsage;
       expect(memory.totalUsage).toBeGreaterThan(0);
@@ -309,7 +358,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should analyze register pressure', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const registerPressure = result.performancePrediction.registerPressure;
       expect(registerPressure.spillProbability).toBeGreaterThanOrEqual(0);
@@ -319,7 +372,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should calculate performance score', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.performancePrediction.performanceScore).toBeGreaterThanOrEqual(0);
       expect(result.performancePrediction.performanceScore).toBeLessThanOrEqual(100);
@@ -328,7 +385,11 @@ describe('ILMetricsAnalyzer', () => {
 
   describe('Optimization Readiness', () => {
     it('should analyze category readiness', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const categoryReadiness = result.optimizationReadiness.categoryReadiness;
       expect(categoryReadiness.size).toBeGreaterThan(0);
@@ -350,7 +411,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should estimate optimization impact', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const impact = result.optimizationReadiness.impactPotential;
       expect(impact.overallImpact).toBeGreaterThanOrEqual(0);
@@ -362,7 +427,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should analyze transformation safety', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const safety = result.optimizationReadiness.transformationSafety;
       expect(safety.overallSafetyScore).toBeGreaterThanOrEqual(0);
@@ -375,7 +444,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should calculate overall readiness score', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.optimizationReadiness.overallReadinessScore).toBeGreaterThanOrEqual(0);
       expect(result.optimizationReadiness.overallReadinessScore).toBeLessThanOrEqual(100);
@@ -384,7 +457,11 @@ describe('ILMetricsAnalyzer', () => {
 
   describe('Quality Gates', () => {
     it('should evaluate quality gates', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const gates = result.qualityGates.gates;
       expect(gates.length).toBeGreaterThan(0);
@@ -396,51 +473,87 @@ describe('ILMetricsAnalyzer', () => {
         expect(gate.threshold).toBeDefined();
         expect(gate.actualValue).toBeGreaterThanOrEqual(0);
         expect(['pass', 'warning', 'fail', 'not_applicable']).toContain(gate.status);
-        expect(['mandatory', 'important', 'recommended', 'informational']).toContain(gate.importance);
+        expect(['mandatory', 'important', 'recommended', 'informational']).toContain(
+          gate.importance
+        );
         expect(gate.description).toBeDefined();
       });
     });
 
     it('should determine overall gate status', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
-      expect(['pass', 'warning', 'fail', 'not_applicable']).toContain(result.qualityGates.overallStatus);
+      expect(['pass', 'warning', 'fail', 'not_applicable']).toContain(
+        result.qualityGates.overallStatus
+      );
     });
 
     it('should calculate quality score', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.qualityGates.qualityScore).toBeGreaterThanOrEqual(0);
       expect(result.qualityGates.qualityScore).toBeLessThanOrEqual(100);
     });
 
     it('should generate improvement recommendations', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       result.qualityGates.improvementRecommendations.forEach(rec => {
-        expect(['complexity_reduction', 'performance_improvement', 'memory_optimization', 'safety_enhancement', 'maintainability', 'optimization_readiness', 'platform_optimization']).toContain(rec.recommendationType);
+        expect([
+          'complexity_reduction',
+          'performance_improvement',
+          'memory_optimization',
+          'safety_enhancement',
+          'maintainability',
+          'optimization_readiness',
+          'platform_optimization',
+        ]).toContain(rec.recommendationType);
         expect(['critical', 'high', 'medium', 'low', 'optional']).toContain(rec.priority);
         expect(['minimal', 'low', 'moderate', 'high', 'extensive', 'major']).toContain(rec.effort);
         expect(rec.benefit).toBeGreaterThanOrEqual(0);
         expect(rec.benefit).toBeLessThanOrEqual(100);
         expect(rec.description).toBeDefined();
         expect(rec.actionItems).toBeInstanceOf(Array);
-        expect(['beginner', 'intermediate', 'advanced', 'expert', 'specialist']).toContain(rec.requiredExpertise);
+        expect(['beginner', 'intermediate', 'advanced', 'expert', 'specialist']).toContain(
+          rec.requiredExpertise
+        );
       });
     });
   });
 
   describe('Analysis Summary', () => {
     it('should build comprehensive summary', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const summary = result.summary;
       expect(summary.overallQualityScore).toBeGreaterThanOrEqual(0);
       expect(summary.overallQualityScore).toBeLessThanOrEqual(100);
 
-      expect(['trivial', 'simple', 'moderate', 'complex', 'expert']).toContain(summary.complexityLevel);
-      expect(['excellent', 'good', 'acceptable', 'poor', 'critical']).toContain(summary.performanceLevel);
-      expect(['minimal', 'low', 'moderate', 'high', 'extreme']).toContain(summary.optimizationPotential);
+      expect(['trivial', 'simple', 'moderate', 'complex', 'expert']).toContain(
+        summary.complexityLevel
+      );
+      expect(['excellent', 'good', 'acceptable', 'poor', 'critical']).toContain(
+        summary.performanceLevel
+      );
+      expect(['minimal', 'low', 'moderate', 'high', 'extreme']).toContain(
+        summary.optimizationPotential
+      );
 
       expect(summary.recommendedNextSteps).toBeInstanceOf(Array);
       expect(summary.keyFindings).toBeInstanceOf(Array);
@@ -448,7 +561,11 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should provide improvement recommendations', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.recommendations).toBeInstanceOf(Array);
       result.recommendations.forEach(rec => {
@@ -463,7 +580,11 @@ describe('ILMetricsAnalyzer', () => {
 
   describe('Analysis Metrics', () => {
     it('should provide analysis performance metrics', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       const metrics = result.analysisMetrics;
       expect(metrics.analysisTimeMs).toBeGreaterThanOrEqual(0);
@@ -481,10 +602,14 @@ describe('ILMetricsAnalyzer', () => {
     it('should handle analysis errors gracefully', () => {
       const invalidCFGAnalysis = {
         ...mockCFGAnalysis,
-        cfg: null as any
+        cfg: null as any,
       };
 
-      const result = analyzer.analyzeFunction(mockILFunction, invalidCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        invalidCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result).toBeDefined();
       expect(result.summary.criticalIssues.length).toBeGreaterThan(0);
@@ -495,10 +620,14 @@ describe('ILMetricsAnalyzer', () => {
   describe('Configuration Options', () => {
     it('should respect disabled complexity analysis', () => {
       const customAnalyzer = new ILMetricsAnalyzer({
-        enableComplexityAnalysis: false
+        enableComplexityAnalysis: false,
       });
 
-      const result = customAnalyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = customAnalyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.complexityMetrics.overallComplexityScore).toBe(0);
       expect(result.complexityMetrics.instructionComplexity.totalInstructions).toBe(0);
@@ -506,10 +635,14 @@ describe('ILMetricsAnalyzer', () => {
 
     it('should respect disabled performance prediction', () => {
       const customAnalyzer = new ILMetricsAnalyzer({
-        enablePerformancePrediction: false
+        enablePerformancePrediction: false,
       });
 
-      const result = customAnalyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = customAnalyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.performancePrediction.performanceScore).toBe(100);
       expect(result.performancePrediction.estimatedCycles.averageCase).toBe(0);
@@ -517,10 +650,14 @@ describe('ILMetricsAnalyzer', () => {
 
     it('should respect disabled optimization readiness', () => {
       const customAnalyzer = new ILMetricsAnalyzer({
-        enableOptimizationReadiness: false
+        enableOptimizationReadiness: false,
       });
 
-      const result = customAnalyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = customAnalyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.optimizationReadiness.overallReadinessScore).toBe(100);
       expect(result.optimizationReadiness.categoryReadiness.size).toBe(0);
@@ -528,10 +665,14 @@ describe('ILMetricsAnalyzer', () => {
 
     it('should respect disabled quality gates', () => {
       const customAnalyzer = new ILMetricsAnalyzer({
-        enableQualityGates: false
+        enableQualityGates: false,
       });
 
-      const result = customAnalyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = customAnalyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       expect(result.qualityGates.gates.length).toBe(0);
       expect(result.qualityGates.qualityScore).toBe(100);
@@ -546,11 +687,15 @@ describe('ILMetricsAnalyzer', () => {
           maxMemoryUsage: 512,
           minSafetyScore: 95,
           minOptimizationReadiness: 80,
-          customThresholds: new Map()
-        }
+          customThresholds: new Map(),
+        },
       });
 
-      const result = customAnalyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = customAnalyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       // Verify gates use custom thresholds
       const complexityGate = result.qualityGates.gates.find(g => g.gateId === 'complexity_limit');
@@ -560,7 +705,11 @@ describe('ILMetricsAnalyzer', () => {
 
   describe('Integration with Task 2.4.1 and 2.4.2', () => {
     it('should integrate CFG analysis results correctly', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       // Should use CFG data for complexity analysis
       expect(result.complexityMetrics.controlFlowComplexity.basicBlockCount).toBe(2);
@@ -569,18 +718,28 @@ describe('ILMetricsAnalyzer', () => {
     });
 
     it('should integrate 6502 analysis results correctly', () => {
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       // Should use 6502 data for performance prediction
       expect(result.performancePrediction.estimatedCycles.averageCase).toBe(15);
-      expect(result.performancePrediction.platformSpecificFactors.processorFeatures.hasDecimalMode).toBe(true);
+      expect(
+        result.performancePrediction.platformSpecificFactors.processorFeatures.hasDecimalMode
+      ).toBe(true);
     });
   });
 
   describe('Type Validation', () => {
     it('should export correct types', () => {
       // This test ensures the exported types are available
-      const result = analyzer.analyzeFunction(mockILFunction, mockCFGAnalysis, mockSixtyTwo6502Analysis);
+      const result = analyzer.analyzeFunction(
+        mockILFunction,
+        mockCFGAnalysis,
+        mockSixtyTwo6502Analysis
+      );
 
       // Verify the result conforms to expected interface
       expect(result).toHaveProperty('complexityMetrics');

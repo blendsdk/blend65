@@ -14,50 +14,15 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  // Symbol types
-  Symbol,
-  VariableSymbol,
-  FunctionSymbol,
-  ModuleSymbol,
-  TypeSymbol,
-  EnumSymbol,
-  SymbolType,
-
-  // Type system
-  Blend65Type,
-  PrimitiveType,
-  ArrayType,
-  NamedType,
-  CallbackType,
-  StorageClass,
-
-  // Scope system
-  Scope,
-  ScopeType,
-
-  // Error system
-  SemanticError,
-  SemanticErrorType,
-  SemanticResult,
-
   // Helper types
-  ParameterInfo,
-  TypeFieldInfo,
-  EnumMemberInfo,
-  ImportInfo,
-
-  // Type guards
+  ParameterInfo, // Type guards
   isVariableSymbol,
   isFunctionSymbol,
   isModuleSymbol,
-  isTypeSymbol,
-  isEnumSymbol,
   isPrimitiveType,
   isArrayType,
   isNamedType,
-  isCallbackType,
-
-  // Factory functions
+  isCallbackType, // Factory functions
   createPrimitiveType,
   createArrayType,
   createNamedType,
@@ -65,14 +30,12 @@ import {
   createVariableSymbol,
   createFunctionSymbol,
   createModuleSymbol,
-  createScope,
-
-  // Type compatibility functions
+  createScope, // Type compatibility functions
   isAssignmentCompatible,
   areTypesEqual,
   areCallbackTypesCompatible,
   typeToString,
-  validateStorageClassUsage
+  validateStorageClassUsage,
 } from '../types.js';
 import type { SourcePosition } from '@blend65/lexer';
 
@@ -111,7 +74,7 @@ describe('Type Factory Functions', () => {
       const byteType = createPrimitiveType('byte');
       expect(byteType).toEqual({
         kind: 'primitive',
-        name: 'byte'
+        name: 'byte',
       });
     });
 
@@ -119,7 +82,7 @@ describe('Type Factory Functions', () => {
       const wordType = createPrimitiveType('word');
       expect(wordType).toEqual({
         kind: 'primitive',
-        name: 'word'
+        name: 'word',
       });
     });
 
@@ -127,7 +90,7 @@ describe('Type Factory Functions', () => {
       const boolType = createPrimitiveType('boolean');
       expect(boolType).toEqual({
         kind: 'primitive',
-        name: 'boolean'
+        name: 'boolean',
       });
     });
 
@@ -135,7 +98,7 @@ describe('Type Factory Functions', () => {
       const voidType = createPrimitiveType('void');
       expect(voidType).toEqual({
         kind: 'primitive',
-        name: 'void'
+        name: 'void',
       });
     });
 
@@ -143,7 +106,7 @@ describe('Type Factory Functions', () => {
       const callbackType = createPrimitiveType('callback');
       expect(callbackType).toEqual({
         kind: 'primitive',
-        name: 'callback'
+        name: 'callback',
       });
     });
   });
@@ -156,7 +119,7 @@ describe('Type Factory Functions', () => {
       expect(arrayType).toEqual({
         kind: 'array',
         elementType: { kind: 'primitive', name: 'byte' },
-        size: 256
+        size: 256,
       });
     });
 
@@ -170,9 +133,9 @@ describe('Type Factory Functions', () => {
         elementType: {
           kind: 'array',
           elementType: { kind: 'primitive', name: 'byte' },
-          size: 10
+          size: 10,
         },
-        size: 5
+        size: 5,
       });
     });
   });
@@ -183,7 +146,7 @@ describe('Type Factory Functions', () => {
 
       expect(namedType).toEqual({
         kind: 'named',
-        name: 'Player'
+        name: 'Player',
       });
     });
   });
@@ -196,7 +159,7 @@ describe('Type Factory Functions', () => {
       expect(callbackType).toEqual({
         kind: 'callback',
         parameterTypes: [],
-        returnType: { kind: 'primitive', name: 'void' }
+        returnType: { kind: 'primitive', name: 'void' },
       });
     });
 
@@ -209,9 +172,9 @@ describe('Type Factory Functions', () => {
         kind: 'callback',
         parameterTypes: [
           { kind: 'primitive', name: 'byte' },
-          { kind: 'primitive', name: 'byte' }
+          { kind: 'primitive', name: 'byte' },
         ],
-        returnType: { kind: 'primitive', name: 'word' }
+        returnType: { kind: 'primitive', name: 'word' },
       });
     });
   });
@@ -294,7 +257,12 @@ describe('Type Guard Functions', () => {
     });
 
     it('should correctly identify module symbols', () => {
-      const moduleSymbol = createModuleSymbol('TestModule', ['Test', 'Module'], moduleScope, location);
+      const moduleSymbol = createModuleSymbol(
+        'TestModule',
+        ['Test', 'Module'],
+        moduleScope,
+        location
+      );
       const variableSymbol = createVariableSymbol('test', byteType, moduleScope, location);
 
       expect(isModuleSymbol(moduleSymbol)).toBe(true);
@@ -352,7 +320,10 @@ describe('Type Compatibility Functions', () => {
       const byteType = createPrimitiveType('byte');
       const wordType = createPrimitiveType('word');
       const callback1 = createCallbackType([byteType, byteType], wordType);
-      const callback2 = createCallbackType([createPrimitiveType('byte'), createPrimitiveType('byte')], createPrimitiveType('word'));
+      const callback2 = createCallbackType(
+        [createPrimitiveType('byte'), createPrimitiveType('byte')],
+        createPrimitiveType('word')
+      );
 
       expect(areTypesEqual(callback1, callback2)).toBe(true);
     });
@@ -405,7 +376,10 @@ describe('Type Compatibility Functions', () => {
       const byteType = createPrimitiveType('byte');
       const voidType = createPrimitiveType('void');
       const callback1 = createCallbackType([byteType], voidType);
-      const callback2 = createCallbackType([createPrimitiveType('byte')], createPrimitiveType('void'));
+      const callback2 = createCallbackType(
+        [createPrimitiveType('byte')],
+        createPrimitiveType('void')
+      );
 
       expect(isAssignmentCompatible(callback1, callback2)).toBe(true);
     });
@@ -426,7 +400,10 @@ describe('Type Compatibility Functions', () => {
       const byteType = createPrimitiveType('byte');
       const voidType = createPrimitiveType('void');
       const callback1 = createCallbackType([byteType, byteType], voidType);
-      const callback2 = createCallbackType([createPrimitiveType('byte'), createPrimitiveType('byte')], createPrimitiveType('void'));
+      const callback2 = createCallbackType(
+        [createPrimitiveType('byte'), createPrimitiveType('byte')],
+        createPrimitiveType('void')
+      );
 
       expect(areCallbackTypesCompatible(callback1, callback2)).toBe(true);
     });
@@ -620,7 +597,7 @@ describe('Symbol Creation Functions', () => {
         varType: byteType,
         storageClass: null,
         initialValue: null,
-        isLocal: false
+        isLocal: false,
       });
     });
 
@@ -629,7 +606,7 @@ describe('Symbol Creation Functions', () => {
       const symbol = createVariableSymbol('fastVar', byteType, moduleScope, location, {
         storageClass: 'zp',
         isExported: true,
-        isLocal: false
+        isLocal: false,
       });
 
       expect(symbol.storageClass).toBe('zp');
@@ -640,7 +617,7 @@ describe('Symbol Creation Functions', () => {
     it('should create a local variable symbol', () => {
       const byteType = createPrimitiveType('byte');
       const symbol = createVariableSymbol('localVar', byteType, functionScope, location, {
-        isLocal: true
+        isLocal: true,
       });
 
       expect(symbol.isLocal).toBe(true);
@@ -653,7 +630,7 @@ describe('Symbol Creation Functions', () => {
       const byteType = createPrimitiveType('byte');
       const voidType = createPrimitiveType('void');
       const parameters: ParameterInfo[] = [
-        { name: 'x', type: byteType, optional: false, defaultValue: null }
+        { name: 'x', type: byteType, optional: false, defaultValue: null },
       ];
 
       const symbol = createFunctionSymbol('testFunc', parameters, voidType, moduleScope, location);
@@ -666,7 +643,7 @@ describe('Symbol Creation Functions', () => {
         isExported: false,
         parameters,
         returnType: voidType,
-        isCallback: false
+        isCallback: false,
       });
     });
 
@@ -675,7 +652,7 @@ describe('Symbol Creation Functions', () => {
       const voidType = createPrimitiveType('void');
       const symbol = createFunctionSymbol('onInterrupt', [], voidType, moduleScope, location, {
         isCallback: true,
-        isExported: true
+        isExported: true,
       });
 
       expect(symbol.isCallback).toBe(true);
@@ -696,7 +673,7 @@ describe('Symbol Creation Functions', () => {
         isExported: false, // Modules are not exported
         qualifiedName,
         exports: new Map(),
-        imports: new Map()
+        imports: new Map(),
       });
     });
   });
@@ -710,7 +687,7 @@ describe('Symbol Creation Functions', () => {
         parent: null,
         symbols: new Map(),
         children: [],
-        name: 'global'
+        name: 'global',
       });
     });
 
@@ -753,29 +730,55 @@ describe('Integration Tests', () => {
       // Create symbols for a game program
       const playerXSymbol = createVariableSymbol('playerX', byteType, gameModuleScope, location, {
         storageClass: 'zp',
-        isExported: true
+        isExported: true,
       });
 
       const scoreSymbol = createVariableSymbol('score', wordType, gameModuleScope, location, {
         storageClass: 'ram',
-        isExported: true
+        isExported: true,
       });
 
-      const spriteDataSymbol = createVariableSymbol('spriteData', spriteArrayType, gameModuleScope, location, {
-        storageClass: 'data'
-      });
+      const spriteDataSymbol = createVariableSymbol(
+        'spriteData',
+        spriteArrayType,
+        gameModuleScope,
+        location,
+        {
+          storageClass: 'data',
+        }
+      );
 
-      const updateGameSymbol = createFunctionSymbol('updateGame', [], voidType, gameModuleScope, location, {
-        isExported: true
-      });
+      const updateGameSymbol = createFunctionSymbol(
+        'updateGame',
+        [],
+        voidType,
+        gameModuleScope,
+        location,
+        {
+          isExported: true,
+        }
+      );
 
-      const onRasterIrqSymbol = createFunctionSymbol('onRasterIrq', [], voidType, gameModuleScope, location, {
-        isCallback: true
-      });
+      const onRasterIrqSymbol = createFunctionSymbol(
+        'onRasterIrq',
+        [],
+        voidType,
+        gameModuleScope,
+        location,
+        {
+          isCallback: true,
+        }
+      );
 
-      const localCounterSymbol = createVariableSymbol('counter', byteType, updateFunctionScope, location, {
-        isLocal: true
-      });
+      const localCounterSymbol = createVariableSymbol(
+        'counter',
+        byteType,
+        updateFunctionScope,
+        location,
+        {
+          isLocal: true,
+        }
+      );
 
       // Add symbols to scopes
       gameModuleScope.symbols.set('playerX', playerXSymbol);
@@ -848,7 +851,9 @@ describe('Integration Tests', () => {
       const returnCallback = createCallbackType([byteType], wordType);
 
       // Test callback compatibility
-      expect(areCallbackTypesCompatible(simpleCallback, createCallbackType([], voidType))).toBe(true);
+      expect(areCallbackTypesCompatible(simpleCallback, createCallbackType([], voidType))).toBe(
+        true
+      );
       expect(areCallbackTypesCompatible(paramCallback, simpleCallback)).toBe(false);
       expect(areCallbackTypesCompatible(returnCallback, paramCallback)).toBe(false);
 
@@ -869,7 +874,9 @@ describe('Integration Tests', () => {
       const nestedWordArray = createArrayType(wordArray, 5);
 
       // Test nested array compatibility
-      expect(areTypesEqual(nestedByteArray, createArrayType(createArrayType(byteType, 10), 5))).toBe(true);
+      expect(
+        areTypesEqual(nestedByteArray, createArrayType(createArrayType(byteType, 10), 5))
+      ).toBe(true);
       expect(areTypesEqual(nestedByteArray, nestedWordArray)).toBe(false);
       expect(isAssignmentCompatible(nestedByteArray, nestedWordArray)).toBe(false);
 
@@ -894,7 +901,7 @@ describe('Educational Summary', () => {
     const byteType = createPrimitiveType('byte');
     const playerSymbol = createVariableSymbol('player', byteType, moduleScope, location, {
       storageClass: 'zp',
-      isExported: true
+      isExported: true,
     });
 
     expect(playerSymbol.symbolType).toBe('Variable');

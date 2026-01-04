@@ -13,7 +13,6 @@ import type {
   OptimizationPattern,
   PatternMatch,
   TransformationResult,
-  PerformanceImprovement
 } from '../../../core/pattern-types';
 import { PatternCategory, PatternPriority, TargetPlatform } from '../../../core/pattern-types';
 
@@ -28,10 +27,10 @@ import { PatternCategory, PatternPriority, TargetPlatform } from '../../../core/
  * Prevents audio dropouts and ensures critical sounds always play.
  */
 export const SID_VOICE_PRIORITY_SYSTEM: OptimizationPattern = {
-  id: "sid_voice_priority_system",
-  name: "SID Voice Priority Management",
+  id: 'sid_voice_priority_system',
+  name: 'SID Voice Priority Management',
   category: PatternCategory.HARDWARE,
-  description: "Professional voice allocation with priority-based voice stealing",
+  description: 'Professional voice allocation with priority-based voice stealing',
   priority: PatternPriority.CRITICAL,
   platforms: [TargetPlatform.C64, TargetPlatform.C128],
 
@@ -41,17 +40,17 @@ export const SID_VOICE_PRIORITY_SYSTEM: OptimizationPattern = {
       const audioCalls = extractAudioCalls(node);
       if (audioCalls.length >= 2) {
         return {
-          patternId: "sid_voice_priority_system",
+          patternId: 'sid_voice_priority_system',
           node: node,
           confidence: 0.9,
           captures: new Map<string, any>([
             ['audioCalls', audioCalls],
-            ['callCount', audioCalls.length]
+            ['callCount', audioCalls.length],
           ]),
           location: {
             line: node.metadata?.start?.line || 0,
-            column: node.metadata?.start?.column || 0
-          }
+            column: node.metadata?.start?.column || 0,
+          },
         };
       }
     }
@@ -76,9 +75,9 @@ export const SID_VOICE_PRIORITY_SYSTEM: OptimizationPattern = {
             elements: [
               { type: 'ObjectLiteral', properties: { active: false, priority: 0 } },
               { type: 'ObjectLiteral', properties: { active: false, priority: 0 } },
-              { type: 'ObjectLiteral', properties: { active: false, priority: 0 } }
-            ]
-          }
+              { type: 'ObjectLiteral', properties: { active: false, priority: 0 } },
+            ],
+          },
         },
         // Priority-based voice allocation function
         {
@@ -86,15 +85,15 @@ export const SID_VOICE_PRIORITY_SYSTEM: OptimizationPattern = {
           name: 'allocateVoice',
           parameters: [
             { name: 'priority', type: 'byte' },
-            { name: 'soundType', type: 'SoundType' }
+            { name: 'soundType', type: 'SoundType' },
           ],
           returnType: 'byte',
-          body: generateVoiceAllocationLogic()
+          body: generateVoiceAllocationLogic(),
         },
         // Replace original audio calls with managed calls
-        ...generateManagedAudioCalls(audioCalls)
+        ...generateManagedAudioCalls(audioCalls),
       ],
-      metadata: match.node.metadata
+      metadata: match.node.metadata,
     };
 
     return {
@@ -103,17 +102,17 @@ export const SID_VOICE_PRIORITY_SYSTEM: OptimizationPattern = {
       metrics: {
         transformationTime: 8,
         memoryUsed: 768,
-        success: true
-      }
+        success: true,
+      },
     };
   },
 
   expectedImprovement: {
-    cyclesSaved: 30,           // Efficient voice management vs collision
-    bytesSaved: 0,             // Infrastructure adds bytes but improves quality
+    cyclesSaved: 30, // Efficient voice management vs collision
+    bytesSaved: 0, // Infrastructure adds bytes but improves quality
     improvementPercentage: 95, // Eliminates audio dropouts
-    reliability: 'high'       // Professional audio technique
-  }
+    reliability: 'high', // Professional audio technique
+  },
 };
 
 /**
@@ -123,29 +122,28 @@ export const SID_VOICE_PRIORITY_SYSTEM: OptimizationPattern = {
  * Much faster than software PRNG and provides better randomness.
  */
 export const SID_HARDWARE_RANDOM: OptimizationPattern = {
-  id: "sid_hardware_random",
-  name: "SID Hardware Random Number Generation",
+  id: 'sid_hardware_random',
+  name: 'SID Hardware Random Number Generation',
   category: PatternCategory.HARDWARE,
-  description: "Use SID oscillator 3 for fast hardware random numbers",
+  description: 'Use SID oscillator 3 for fast hardware random numbers',
   priority: PatternPriority.HIGH,
   platforms: [TargetPlatform.C64, TargetPlatform.C128],
 
   matches: (node: ASTNode): PatternMatch | null => {
     // Match software random number generation calls
-    if (node.type === 'CallExpression' &&
-        isSoftwareRandomCall(node)) {
+    if (node.type === 'CallExpression' && isSoftwareRandomCall(node)) {
       return {
-        patternId: "sid_hardware_random",
+        patternId: 'sid_hardware_random',
         node: node,
         confidence: 0.95,
         captures: new Map<string, any>([
           ['randomCall', node],
-          ['randomRange', extractRandomRange(node)]
+          ['randomRange', extractRandomRange(node)],
         ]),
         location: {
           line: node.metadata?.start?.line || 0,
-          column: node.metadata?.start?.column || 0
-        }
+          column: node.metadata?.start?.column || 0,
+        },
       };
     }
     return null;
@@ -162,7 +160,7 @@ export const SID_HARDWARE_RANDOM: OptimizationPattern = {
         {
           type: 'CallExpression',
           callee: 'initSIDRandomGenerator',
-          arguments: []
+          arguments: [],
         },
         // Hardware random call
         {
@@ -170,11 +168,11 @@ export const SID_HARDWARE_RANDOM: OptimizationPattern = {
           callee: 'readSIDOscillator',
           arguments: [
             { type: 'Literal', value: 3 }, // Voice 3
-            { type: 'Literal', value: randomRange || 255 }
-          ]
-        }
+            { type: 'Literal', value: randomRange || 255 },
+          ],
+        },
       ],
-      metadata: match.node.metadata
+      metadata: match.node.metadata,
     };
 
     return {
@@ -183,17 +181,17 @@ export const SID_HARDWARE_RANDOM: OptimizationPattern = {
       metrics: {
         transformationTime: 3,
         memoryUsed: 256,
-        success: true
-      }
+        success: true,
+      },
     };
   },
 
   expectedImprovement: {
-    cyclesSaved: 45,           // Hardware read vs software PRNG
-    bytesSaved: 12,            // Eliminates PRNG routine
+    cyclesSaved: 45, // Hardware read vs software PRNG
+    bytesSaved: 12, // Eliminates PRNG routine
     improvementPercentage: 80, // Much faster random generation
-    reliability: 'guaranteed' // Hardware randomness is superior
-  }
+    reliability: 'guaranteed', // Hardware randomness is superior
+  },
 };
 
 /**
@@ -203,10 +201,10 @@ export const SID_HARDWARE_RANDOM: OptimizationPattern = {
  * Ensures smooth filter sweeps for professional audio effects.
  */
 export const SID_FILTER_SWEEP_OPTIMIZATION: OptimizationPattern = {
-  id: "sid_filter_sweep_optimization",
-  name: "SID Filter Sweep Optimization",
+  id: 'sid_filter_sweep_optimization',
+  name: 'SID Filter Sweep Optimization',
   category: PatternCategory.HARDWARE,
-  description: "Optimize filter parameter changes for smooth sweeps",
+  description: 'Optimize filter parameter changes for smooth sweeps',
   priority: PatternPriority.HIGH,
   platforms: [TargetPlatform.C64, TargetPlatform.C128],
 
@@ -216,17 +214,17 @@ export const SID_FILTER_SWEEP_OPTIMIZATION: OptimizationPattern = {
       const filterWrites = extractFilterWrites(node);
       if (filterWrites.length >= 2) {
         return {
-          patternId: "sid_filter_sweep_optimization",
+          patternId: 'sid_filter_sweep_optimization',
           node: node,
           confidence: 0.85,
           captures: new Map<string, any>([
             ['filterWrites', filterWrites],
-            ['writeCount', filterWrites.length]
+            ['writeCount', filterWrites.length],
           ]),
           location: {
             line: node.metadata?.start?.line || 0,
-            column: node.metadata?.start?.column || 0
-          }
+            column: node.metadata?.start?.column || 0,
+          },
         };
       }
     }
@@ -247,19 +245,19 @@ export const SID_FILTER_SWEEP_OPTIMIZATION: OptimizationPattern = {
           parameters: [
             { name: 'startFreq', type: 'word' },
             { name: 'endFreq', type: 'word' },
-            { name: 'steps', type: 'byte' }
+            { name: 'steps', type: 'byte' },
           ],
           returnType: 'void',
-          body: generateSmoothFilterSweep()
+          body: generateSmoothFilterSweep(),
         },
         // Apply optimized filter sweep
         {
           type: 'CallExpression',
           callee: 'smoothFilterSweep',
-          arguments: extractFilterSweepParameters(filterWrites)
-        }
+          arguments: extractFilterSweepParameters(filterWrites),
+        },
       ],
-      metadata: match.node.metadata
+      metadata: match.node.metadata,
     };
 
     return {
@@ -268,17 +266,17 @@ export const SID_FILTER_SWEEP_OPTIMIZATION: OptimizationPattern = {
       metrics: {
         transformationTime: 5,
         memoryUsed: 512,
-        success: true
-      }
+        success: true,
+      },
     };
   },
 
   expectedImprovement: {
-    cyclesSaved: 20,           // Batch updates vs individual writes
-    bytesSaved: 8,             // More efficient parameter handling
+    cyclesSaved: 20, // Batch updates vs individual writes
+    bytesSaved: 8, // More efficient parameter handling
     improvementPercentage: 25, // Smoother audio transitions
-    reliability: 'high'       // Eliminates filter artifacts
-  }
+    reliability: 'high', // Eliminates filter artifacts
+  },
 };
 
 /**
@@ -288,10 +286,10 @@ export const SID_FILTER_SWEEP_OPTIMIZATION: OptimizationPattern = {
  * Prevents voice conflicts and ensures professional music quality.
  */
 export const SID_MULTI_VOICE_COORDINATION: OptimizationPattern = {
-  id: "sid_multi_voice_coordination",
-  name: "SID Multi-Voice Coordination",
+  id: 'sid_multi_voice_coordination',
+  name: 'SID Multi-Voice Coordination',
   category: PatternCategory.HARDWARE,
-  description: "Coordinate multiple SID voices for complex music",
+  description: 'Coordinate multiple SID voices for complex music',
   priority: PatternPriority.HIGH,
   platforms: [TargetPlatform.C64, TargetPlatform.C128],
 
@@ -299,19 +297,20 @@ export const SID_MULTI_VOICE_COORDINATION: OptimizationPattern = {
     // Match simultaneous voice operations
     if (node.type === 'Block' && containsSimultaneousVoiceOps(node)) {
       const voiceOps = extractVoiceOperations(node);
-      if (voiceOps.length >= 3) { // All 3 SID voices
+      if (voiceOps.length >= 3) {
+        // All 3 SID voices
         return {
-          patternId: "sid_multi_voice_coordination",
+          patternId: 'sid_multi_voice_coordination',
           node: node,
           confidence: 0.9,
           captures: new Map<string, any>([
             ['voiceOperations', voiceOps],
-            ['voiceCount', voiceOps.length]
+            ['voiceCount', voiceOps.length],
           ]),
           location: {
             line: node.metadata?.start?.line || 0,
-            column: node.metadata?.start?.column || 0
-          }
+            column: node.metadata?.start?.column || 0,
+          },
         };
       }
     }
@@ -331,17 +330,17 @@ export const SID_MULTI_VOICE_COORDINATION: OptimizationPattern = {
           name: 'voiceCoordination',
           dataType: 'VoiceCoordination',
           storageClass: 'zp',
-          initialValue: generateVoiceCoordinationState()
+          initialValue: generateVoiceCoordinationState(),
         },
         // Coordinated voice update function
         {
           type: 'FunctionDeclaration',
           name: 'updateCoordinatedVoices',
           returnType: 'void',
-          body: generateCoordinatedVoiceUpdate(voiceOps)
-        }
+          body: generateCoordinatedVoiceUpdate(voiceOps),
+        },
       ],
-      metadata: match.node.metadata
+      metadata: match.node.metadata,
     };
 
     return {
@@ -350,17 +349,17 @@ export const SID_MULTI_VOICE_COORDINATION: OptimizationPattern = {
       metrics: {
         transformationTime: 6,
         memoryUsed: 640,
-        success: true
-      }
+        success: true,
+      },
     };
   },
 
   expectedImprovement: {
-    cyclesSaved: 25,           // Coordinated vs independent voice updates
-    bytesSaved: 5,             // More efficient voice management
+    cyclesSaved: 25, // Coordinated vs independent voice updates
+    bytesSaved: 5, // More efficient voice management
     improvementPercentage: 30, // Better musical synchronization
-    reliability: 'high'       // Professional music quality
-  }
+    reliability: 'high', // Professional music quality
+  },
 };
 
 // ============================================================================
@@ -381,7 +380,7 @@ function generateVoiceAllocationLogic(): any {
   // Implementation would generate voice priority allocation logic
   return {
     type: 'Block',
-    statements: []
+    statements: [],
   }; // Simplified for example
 }
 
@@ -414,7 +413,7 @@ function generateSmoothFilterSweep(): any {
   // Implementation would generate smooth filter transition logic
   return {
     type: 'Block',
-    statements: []
+    statements: [],
   }; // Simplified for example
 }
 
@@ -437,7 +436,7 @@ function generateVoiceCoordinationState(): any {
   // Implementation would generate voice coordination state structure
   return {
     type: 'ObjectLiteral',
-    properties: {}
+    properties: {},
   }; // Simplified for example
 }
 
@@ -445,7 +444,7 @@ function generateCoordinatedVoiceUpdate(voiceOps: Array<any>): any {
   // Implementation would generate synchronized voice update logic
   return {
     type: 'Block',
-    statements: []
+    statements: [],
   }; // Simplified for example
 }
 
@@ -479,16 +478,16 @@ export function getSIDVoicePatterns(): OptimizationPattern[] {
  */
 export const sidVoiceOptimizationInfo = {
   category: PatternCategory.HARDWARE,
-  subcategory: "c64_sid_voices",
+  subcategory: 'c64_sid_voices',
   patternCount: 12,
   platforms: [TargetPlatform.C64, TargetPlatform.C128],
   priority: PatternPriority.CRITICAL,
-  description: "Professional SID voice management for high-quality C64/C128 audio",
+  description: 'Professional SID voice management for high-quality C64/C128 audio',
   hardwareRequirements: ['SID_6581', 'SID_8580', 'DUAL_SID_C128'],
-  memoryFootprint: "~3KB",
+  memoryFootprint: '~3KB',
   expectedSavings: {
-    cyclesSaved: "20-45 per optimization",
-    bytesSaved: "5-12 per optimization",
-    functionalityEnabled: "Professional audio mixing, hardware RNG, smooth effects"
-  }
+    cyclesSaved: '20-45 per optimization',
+    bytesSaved: '5-12 per optimization',
+    functionalityEnabled: 'Professional audio mixing, hardware RNG, smooth effects',
+  },
 };

@@ -22,25 +22,13 @@
 
 import type { ASTNode } from '@blend65/ast';
 import type {
-  OptimizationPattern,
   PatternValidator,
   TransformationResult,
   OptimizationContext,
   ValidationResult,
-  SemanticValidationResult,
-  PerformanceValidationResult,
-  PlatformValidationResult,
-  ComprehensiveValidationResult,
-  QuickValidationResult,
   ValidatorCapabilities,
-  PatternComplexity,
-  ValidationError,
-  ValidationWarning,
-  ConfidenceLevel,
-  WarningSeverity
 } from './pattern-system';
 import type { TransformationPlan } from './pattern-transformer';
-import type { Symbol, Blend65Type } from '../..';
 import { SourcePosition } from '@blend65/lexer';
 
 // ============================================================================
@@ -127,7 +115,12 @@ export interface ValidatorConfiguration {
   customOptions: Map<string, any>;
 }
 
-export type ValidationThoroughnessLevel = 'Quick' | 'Standard' | 'Thorough' | 'Exhaustive' | 'Paranoid';
+export type ValidationThoroughnessLevel =
+  | 'Quick'
+  | 'Standard'
+  | 'Thorough'
+  | 'Exhaustive'
+  | 'Paranoid';
 export type ErrorToleranceLevel = 'None' | 'Low' | 'Medium' | 'High' | 'Complete';
 
 /**
@@ -294,13 +287,13 @@ export interface ValidationBottleneck {
 }
 
 export type ValidationBottleneckType =
-  | 'SlowSemanticCheck'   // Semantic validation is slow
-  | 'SlowTypeCheck'       // Type checking is slow
-  | 'SlowSymbolLookup'    // Symbol lookup is slow
+  | 'SlowSemanticCheck' // Semantic validation is slow
+  | 'SlowTypeCheck' // Type checking is slow
+  | 'SlowSymbolLookup' // Symbol lookup is slow
   | 'SlowPerformanceCheck' // Performance validation is slow
-  | 'CacheMiss'           // High cache miss rate
-  | 'MemoryPressure'      // Memory pressure affecting validation
-  | 'IOBottleneck';       // I/O bottleneck
+  | 'CacheMiss' // High cache miss rate
+  | 'MemoryPressure' // Memory pressure affecting validation
+  | 'IOBottleneck'; // I/O bottleneck
 
 /**
  * Entry in validation history.
@@ -461,13 +454,13 @@ export interface SemanticChange {
 }
 
 export type SemanticChangeType =
-  | 'ValueChange'         // Variable value semantics changed
-  | 'ControlFlowChange'   // Control flow semantics changed
-  | 'SideEffectChange'    // Side effects changed
-  | 'TimingChange'        // Timing semantics changed
-  | 'VisibilityChange'    // Symbol visibility changed
-  | 'TypeChange'          // Type semantics changed
-  | 'ScopeChange';        // Scope semantics changed
+  | 'ValueChange' // Variable value semantics changed
+  | 'ControlFlowChange' // Control flow semantics changed
+  | 'SideEffectChange' // Side effects changed
+  | 'TimingChange' // Timing semantics changed
+  | 'VisibilityChange' // Symbol visibility changed
+  | 'TypeChange' // Type semantics changed
+  | 'ScopeChange'; // Scope semantics changed
 
 export type ChangeSeverity = 'Trivial' | 'Minor' | 'Moderate' | 'Major' | 'Critical';
 export type BehaviorImpact = 'None' | 'Negligible' | 'Minor' | 'Significant' | 'Major';
@@ -475,10 +468,10 @@ export type ChangeAcceptability = 'Acceptable' | 'Questionable' | 'Unacceptable'
 
 export type SemanticValidationMethod =
   | 'StructuralComparison' // Compare AST structures
-  | 'SymbolicExecution'   // Symbolic execution comparison
-  | 'DataFlowAnalysis'    // Data flow analysis
+  | 'SymbolicExecution' // Symbolic execution comparison
+  | 'DataFlowAnalysis' // Data flow analysis
   | 'ControlFlowAnalysis' // Control flow analysis
-  | 'TypeInference'       // Type inference comparison
+  | 'TypeInference' // Type inference comparison
   | 'EquivalenceChecking'; // Mathematical equivalence checking
 
 /**
@@ -503,11 +496,11 @@ export interface SemanticEvidence {
 
 export type SemanticEvidenceType =
   | 'StructuralEquivalence' // AST structures are equivalent
-  | 'SymbolEquivalence'   // Symbol tables are equivalent
-  | 'TypeEquivalence'     // Type systems are equivalent
-  | 'FlowEquivalence'     // Control/data flow equivalent
+  | 'SymbolEquivalence' // Symbol tables are equivalent
+  | 'TypeEquivalence' // Type systems are equivalent
+  | 'FlowEquivalence' // Control/data flow equivalent
   | 'BehaviorEquivalence' // Observable behavior equivalent
-  | 'OutputEquivalence';  // Program outputs are equivalent
+  | 'OutputEquivalence'; // Program outputs are equivalent
 
 export type EvidenceSource = 'Structural' | 'Semantic' | 'Dynamic' | 'Formal' | 'Empirical';
 
@@ -551,8 +544,8 @@ export type VerificationIssueType =
   | 'IncompleteVerification' // Verification was incomplete
   | 'ConflictingEvidence' // Evidence conflicts found
   | 'InsufficientEvidence' // Not enough evidence
-  | 'UnreliableSource'    // Evidence source unreliable
-  | 'VerificationError';  // Error during verification
+  | 'UnreliableSource' // Evidence source unreliable
+  | 'VerificationError'; // Error during verification
 
 export type EvidenceImpact = 'None' | 'Low' | 'Medium' | 'High' | 'Complete';
 
@@ -663,11 +656,11 @@ export interface SymbolTableViolation {
 }
 
 export type SymbolTableViolationType =
-  | 'MissingSymbol'       // Symbol was removed inappropriately
-  | 'DuplicateSymbol'     // Duplicate symbol created
-  | 'InvalidSymbolType'   // Symbol type changed inappropriately
-  | 'BrokenReference'     // Symbol reference broken
-  | 'ScopeViolation'      // Symbol moved to wrong scope
+  | 'MissingSymbol' // Symbol was removed inappropriately
+  | 'DuplicateSymbol' // Duplicate symbol created
+  | 'InvalidSymbolType' // Symbol type changed inappropriately
+  | 'BrokenReference' // Symbol reference broken
+  | 'ScopeViolation' // Symbol moved to wrong scope
   | 'VisibilityViolation' // Symbol visibility changed inappropriately
   | 'MetadataCorruption'; // Symbol metadata corrupted
 
@@ -713,11 +706,11 @@ export interface ConsistencyIssue {
 }
 
 export type ConsistencyIssueType =
-  | 'OrphanedSymbol'      // Symbol has no valid references
-  | 'DanglingReference'   // Reference points to non-existent symbol
-  | 'CircularDependency'  // Circular dependency detected
-  | 'TypeMismatch'        // Type mismatch in references
-  | 'ScopeInconsistency'  // Scope relationships inconsistent
+  | 'OrphanedSymbol' // Symbol has no valid references
+  | 'DanglingReference' // Reference points to non-existent symbol
+  | 'CircularDependency' // Circular dependency detected
+  | 'TypeMismatch' // Type mismatch in references
+  | 'ScopeInconsistency' // Scope relationships inconsistent
   | 'MetadataInconsistency'; // Metadata is inconsistent
 
 export type IssueSeverity = 'Info' | 'Warning' | 'Error' | 'Critical';
@@ -763,11 +756,11 @@ export interface RepairSideEffect {
 }
 
 export type RepairSideEffectType =
-  | 'PerformanceImpact'   // Repair impacts performance
-  | 'FunctionalityLoss'   // Repair reduces functionality
-  | 'CompatibilityIssue'  // Repair creates compatibility issues
+  | 'PerformanceImpact' // Repair impacts performance
+  | 'FunctionalityLoss' // Repair reduces functionality
+  | 'CompatibilityIssue' // Repair creates compatibility issues
   | 'AdditionalComplexity' // Repair adds complexity
-  | 'MaintenanceBurden';  // Repair increases maintenance
+  | 'MaintenanceBurden'; // Repair increases maintenance
 
 export type EffectSeverity = 'Negligible' | 'Minor' | 'Moderate' | 'Major' | 'Severe';
 
@@ -814,7 +807,11 @@ export interface BrokenReference {
 }
 
 export type ReferenceType = 'Symbol' | 'Type' | 'Function' | 'Variable' | 'Module';
-export type BreakageType = 'MissingTarget' | 'TypeMismatch' | 'ScopeMismatch' | 'VisibilityViolation';
+export type BreakageType =
+  | 'MissingTarget'
+  | 'TypeMismatch'
+  | 'ScopeMismatch'
+  | 'VisibilityViolation';
 
 /**
  * Repair option for broken reference.
@@ -833,7 +830,11 @@ export interface ReferenceRepairOption {
   impact: RepairImpact;
 }
 
-export type ReferenceRepairType = 'CreateTarget' | 'UpdateReference' | 'RemoveReference' | 'ReplaceReference';
+export type ReferenceRepairType =
+  | 'CreateTarget'
+  | 'UpdateReference'
+  | 'RemoveReference'
+  | 'ReplaceReference';
 export type RepairFeasibility = 'Easy' | 'Moderate' | 'Difficult' | 'Impossible';
 export type RepairImpact = 'None' | 'Minor' | 'Moderate' | 'Major' | 'Breaking';
 
@@ -874,11 +875,11 @@ export interface ReferenceIssue {
 }
 
 export type ReferenceIssueType =
-  | 'InvalidTarget'       // Reference target is invalid
+  | 'InvalidTarget' // Reference target is invalid
   | 'TypeIncompatibility' // Reference type incompatible
-  | 'ScopeViolation'      // Reference violates scope rules
+  | 'ScopeViolation' // Reference violates scope rules
   | 'VisibilityViolation' // Reference violates visibility
-  | 'CircularReference';  // Circular reference detected
+  | 'CircularReference'; // Circular reference detected
 
 /**
  * Scope hierarchy integrity assessment.
@@ -918,13 +919,18 @@ export interface ScopeHierarchyViolation {
 }
 
 export type ScopeHierarchyViolationType =
-  | 'OrphanedScope'       // Scope has no parent
-  | 'CircularHierarchy'   // Circular scope hierarchy
-  | 'InvalidNesting'      // Invalid scope nesting
-  | 'BrokenParentLink'    // Parent link is broken
+  | 'OrphanedScope' // Scope has no parent
+  | 'CircularHierarchy' // Circular scope hierarchy
+  | 'InvalidNesting' // Invalid scope nesting
+  | 'BrokenParentLink' // Parent link is broken
   | 'InconsistentChildren'; // Child scopes inconsistent
 
-export type ScopeRepairComplexity = 'Simple' | 'Moderate' | 'Complex' | 'VeryComplex' | 'Impossible';
+export type ScopeRepairComplexity =
+  | 'Simple'
+  | 'Moderate'
+  | 'Complex'
+  | 'VeryComplex'
+  | 'Impossible';
 
 /**
  * Scope consistency issue.
@@ -947,11 +953,11 @@ export interface ScopeConsistencyIssue {
 }
 
 export type ScopeConsistencyIssueType =
-  | 'SymbolMismatch'      // Symbols don't match scope
-  | 'TypeMismatch'        // Types don't match scope
-  | 'VisibilityMismatch'  // Visibility rules violated
-  | 'AccessMismatch'      // Access rules violated
-  | 'LifetimeMismatch';   // Lifetime rules violated
+  | 'SymbolMismatch' // Symbols don't match scope
+  | 'TypeMismatch' // Types don't match scope
+  | 'VisibilityMismatch' // Visibility rules violated
+  | 'AccessMismatch' // Access rules violated
+  | 'LifetimeMismatch'; // Lifetime rules violated
 
 export type ConsistencyImpact = 'None' | 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -993,7 +999,12 @@ export interface ResolutionStep {
   dependencies: string[];
 }
 
-export type ResolutionStepType = 'Analysis' | 'Preparation' | 'Execution' | 'Verification' | 'Cleanup';
+export type ResolutionStepType =
+  | 'Analysis'
+  | 'Preparation'
+  | 'Execution'
+  | 'Verification'
+  | 'Cleanup';
 export type StepComplexity = 'Trivial' | 'Simple' | 'Moderate' | 'Complex';
 
 export type HierarchyHealth = 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Critical';
@@ -1039,10 +1050,10 @@ export interface ScopeConsistencyViolation {
 }
 
 export type ScopeViolationType =
-  | 'SymbolLeakage'       // Symbol leaked outside intended scope
-  | 'InvalidAccess'       // Invalid access to out-of-scope symbol
-  | 'ScopeCorruption'     // Scope structure corrupted
-  | 'LifetimeViolation'   // Symbol lifetime rules violated
+  | 'SymbolLeakage' // Symbol leaked outside intended scope
+  | 'InvalidAccess' // Invalid access to out-of-scope symbol
+  | 'ScopeCorruption' // Scope structure corrupted
+  | 'LifetimeViolation' // Symbol lifetime rules violated
   | 'VisibilityViolation'; // Visibility rules violated
 
 export type CompilationImpact = 'None' | 'Warning' | 'Error' | 'Fatal';
@@ -1090,11 +1101,11 @@ export interface ScopeIssue {
 }
 
 export type ScopeIssueType =
-  | 'SymbolConflict'      // Symbol conflicts within scope
-  | 'TypeInconsistency'   // Type inconsistency in scope
-  | 'VisibilityProblem'   // Visibility issues
-  | 'AccessViolation'     // Access rule violations
-  | 'LifetimeIssue'       // Lifetime management issues
+  | 'SymbolConflict' // Symbol conflicts within scope
+  | 'TypeInconsistency' // Type inconsistency in scope
+  | 'VisibilityProblem' // Visibility issues
+  | 'AccessViolation' // Access rule violations
+  | 'LifetimeIssue' // Lifetime management issues
   | 'MetadataCorruption'; // Scope metadata corrupted
 
 export type HealthImpact = 'None' | 'Minor' | 'Moderate' | 'Major' | 'Critical';
@@ -1163,12 +1174,12 @@ export interface SymbolTableRemediation {
 }
 
 export type SymbolTableRemediationType =
-  | 'RepairReferences'    // Repair broken references
-  | 'CleanupOrphans'      // Remove orphaned symbols
-  | 'ResolveConflicts'    // Resolve symbol conflicts
-  | 'UpdateMetadata'      // Update symbol metadata
-  | 'RebuildTable'        // Rebuild entire symbol table
-  | 'RestructureScopes';  // Restructure scope hierarchy
+  | 'RepairReferences' // Repair broken references
+  | 'CleanupOrphans' // Remove orphaned symbols
+  | 'ResolveConflicts' // Resolve symbol conflicts
+  | 'UpdateMetadata' // Update symbol metadata
+  | 'RebuildTable' // Rebuild entire symbol table
+  | 'RestructureScopes'; // Restructure scope hierarchy
 
 /**
  * Individual remediation step.
@@ -1190,7 +1201,12 @@ export interface RemediationStep {
   validation: StepValidation;
 }
 
-export type RemediationStepType = 'Analysis' | 'Preparation' | 'Execution' | 'Verification' | 'Cleanup';
+export type RemediationStepType =
+  | 'Analysis'
+  | 'Preparation'
+  | 'Execution'
+  | 'Verification'
+  | 'Cleanup';
 export type StepEffort = 'Minimal' | 'Low' | 'Medium' | 'High' | 'Maximum';
 
 /**
@@ -1213,7 +1229,12 @@ export interface StepValidation {
 export type StepValidationMethod = 'Automatic' | 'Manual' | 'Hybrid' | 'Deferred';
 export type StepFailureHandling = 'Abort' | 'Retry' | 'Skip' | 'Fallback';
 
-export type RemediationComplexity = 'Simple' | 'Moderate' | 'Complex' | 'VeryComplex' | 'Impossible';
+export type RemediationComplexity =
+  | 'Simple'
+  | 'Moderate'
+  | 'Complex'
+  | 'VeryComplex'
+  | 'Impossible';
 
 /**
  * Remediation strategy for scope issues.
@@ -1236,12 +1257,12 @@ export interface ScopeRemediation {
 }
 
 export type ScopeRemediationType =
-  | 'RepairHierarchy'     // Repair scope hierarchy
-  | 'ResolveConflicts'    // Resolve scope conflicts
-  | 'CleanupOrphans'      // Clean up orphaned scopes
-  | 'UpdateVisibility'    // Update visibility rules
-  | 'RestructureScopes'   // Restructure scope organization
-  | 'ValidateIntegrity';  // Validate and fix integrity
+  | 'RepairHierarchy' // Repair scope hierarchy
+  | 'ResolveConflicts' // Resolve scope conflicts
+  | 'CleanupOrphans' // Clean up orphaned scopes
+  | 'UpdateVisibility' // Update visibility rules
+  | 'RestructureScopes' // Restructure scope organization
+  | 'ValidateIntegrity'; // Validate and fix integrity
 
 /**
  * Action for scope remediation.
@@ -1264,11 +1285,11 @@ export interface ScopeRemediationAction {
 }
 
 export type ScopeActionType =
-  | 'CreateScope'         // Create new scope
-  | 'DeleteScope'         // Delete existing scope
-  | 'MoveSymbol'          // Move symbol between scopes
-  | 'UpdateVisibility'    // Update symbol visibility
-  | 'RepairHierarchy'     // Repair hierarchy links
+  | 'CreateScope' // Create new scope
+  | 'DeleteScope' // Delete existing scope
+  | 'MoveSymbol' // Move symbol between scopes
+  | 'UpdateVisibility' // Update symbol visibility
+  | 'RepairHierarchy' // Repair hierarchy links
   | 'ValidateConsistency'; // Validate scope consistency
 
 /**
@@ -1429,8 +1450,17 @@ export interface ExpectedImprovement {
   measurementMethod: ImprovementMeasurementMethod;
 }
 
-export type ImprovementArea = 'Performance' | 'Reliability' | 'Maintainability' | 'Safety' | 'Quality';
-export type ImprovementMeasurementMethod = 'Quantitative' | 'Qualitative' | 'Comparative' | 'Subjective';
+export type ImprovementArea =
+  | 'Performance'
+  | 'Reliability'
+  | 'Maintainability'
+  | 'Safety'
+  | 'Quality';
+export type ImprovementMeasurementMethod =
+  | 'Quantitative'
+  | 'Qualitative'
+  | 'Comparative'
+  | 'Subjective';
 
 /**
  * Risk from remediation.
@@ -1450,11 +1480,11 @@ export interface RemediationRisk {
 }
 
 export type RemediationRiskType =
-  | 'FunctionalityLoss'   // May lose functionality
+  | 'FunctionalityLoss' // May lose functionality
   | 'PerformanceRegression' // May hurt performance
   | 'CompatibilityBreakage' // May break compatibility
-  | 'StabilityIssue'      // May affect stability
-  | 'MaintenanceBurden';  // May increase maintenance
+  | 'StabilityIssue' // May affect stability
+  | 'MaintenanceBurden'; // May increase maintenance
 
 export type RemediationRiskImpact = 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -1542,7 +1572,12 @@ export interface StepChange {
   impact: ChangeImpact;
 }
 
-export type StepChangeType = 'NodeCreated' | 'NodeModified' | 'NodeDeleted' | 'NodeMoved' | 'NodeReplaced';
+export type StepChangeType =
+  | 'NodeCreated'
+  | 'NodeModified'
+  | 'NodeDeleted'
+  | 'NodeMoved'
+  | 'NodeReplaced';
 
 /**
  * Impact of step change.
@@ -1582,7 +1617,12 @@ export interface StepValidationRequirement {
   validationMethod: RequirementValidationMethod;
 }
 
-export type ValidationRequirementType = 'Semantic' | 'Performance' | 'Safety' | 'Quality' | 'Platform';
+export type ValidationRequirementType =
+  | 'Semantic'
+  | 'Performance'
+  | 'Safety'
+  | 'Quality'
+  | 'Platform';
 export type RequirementPriority = 'Low' | 'Medium' | 'High' | 'Critical' | 'Mandatory';
 export type RequirementValidationMethod = 'Automatic' | 'SemiAutomatic' | 'Manual' | 'Deferred';
 
@@ -1649,11 +1689,11 @@ export interface StepValidationIssue {
 }
 
 export type StepIssueType =
-  | 'SemanticViolation'   // Step violates semantics
-  | 'TypeSafetyIssue'     // Step affects type safety
-  | 'PerformanceIssue'    // Step has performance impact
-  | 'PlatformIssue'       // Step has platform compatibility issue
-  | 'QualityIssue';       // Step affects code quality
+  | 'SemanticViolation' // Step violates semantics
+  | 'TypeSafetyIssue' // Step affects type safety
+  | 'PerformanceIssue' // Step has performance impact
+  | 'PlatformIssue' // Step has platform compatibility issue
+  | 'QualityIssue'; // Step affects code quality
 
 export type TransformationImpactLevel = 'None' | 'Local' | 'Function' | 'Module' | 'Global';
 
@@ -1738,11 +1778,11 @@ export interface ContinuationRecommendation {
 }
 
 export type ContinuationRecommendationType =
-  | 'Continue'            // Safe to continue
+  | 'Continue' // Safe to continue
   | 'ContinueWithCaution' // Continue but monitor closely
-  | 'Pause'               // Pause and assess
-  | 'Rollback'            // Rollback and retry
-  | 'Abort';              // Abort transformation
+  | 'Pause' // Pause and assess
+  | 'Rollback' // Rollback and retry
+  | 'Abort'; // Abort transformation
 
 /**
  * Condition for continuation.
@@ -1802,7 +1842,12 @@ export interface ConditionIssue {
   resolutionComplexity: ConditionResolutionComplexity;
 }
 
-export type ConditionImportance = 'Optional' | 'Recommended' | 'Important' | 'Critical' | 'Mandatory';
+export type ConditionImportance =
+  | 'Optional'
+  | 'Recommended'
+  | 'Important'
+  | 'Critical'
+  | 'Mandatory';
 export type ConditionResolutionComplexity = 'Simple' | 'Moderate' | 'Complex' | 'Impossible';
 
 /**
@@ -1842,11 +1887,11 @@ export interface ContinuationRiskFactor {
 }
 
 export type ContinuationRiskFactorType =
-  | 'SemanticRisk'        // Risk to program semantics
-  | 'PerformanceRisk'     // Risk to performance
-  | 'QualityRisk'         // Risk to code quality
-  | 'StabilityRisk'       // Risk to system stability
-  | 'CompatibilityRisk';  // Risk to compatibility
+  | 'SemanticRisk' // Risk to program semantics
+  | 'PerformanceRisk' // Risk to performance
+  | 'QualityRisk' // Risk to code quality
+  | 'StabilityRisk' // Risk to system stability
+  | 'CompatibilityRisk'; // Risk to compatibility
 
 export type FactorTrend = 'Increasing' | 'Stable' | 'Decreasing';
 
@@ -1870,7 +1915,11 @@ export interface ContinuationMitigationOption {
   sideEffects: MitigationSideEffect[];
 }
 
-export type ContinuationMitigationType = 'Enhanced_Monitoring' | 'Additional_Validation' | 'Resource_Allocation' | 'Fallback_Strategy';
+export type ContinuationMitigationType =
+  | 'Enhanced_Monitoring'
+  | 'Additional_Validation'
+  | 'Resource_Allocation'
+  | 'Fallback_Strategy';
 
 /**
  * Side effect of mitigation.
@@ -2268,7 +2317,12 @@ export interface ResourceOptimizationOpportunity {
   feasibility: OpportunityFeasibility;
 }
 
-export type OpportunityType = 'MemoryOptimization' | 'CPUOptimization' | 'CacheOptimization' | 'IOOptimization' | 'TimeOptimization';
+export type OpportunityType =
+  | 'MemoryOptimization'
+  | 'CPUOptimization'
+  | 'CacheOptimization'
+  | 'IOOptimization'
+  | 'TimeOptimization';
 export type ImplementationEffort = 'Minimal' | 'Low' | 'Medium' | 'High' | 'VeryHigh';
 export type OpportunityFeasibility = 'Easy' | 'Moderate' | 'Difficult' | 'Complex' | 'Infeasible';
 
@@ -2293,12 +2347,12 @@ export interface PlannedRiskFactor {
 }
 
 export type PlannedRiskFactorType =
-  | 'ComplexityRisk'      // Risk due to transformation complexity
-  | 'ResourceRisk'        // Risk due to resource constraints
-  | 'TimeRisk'            // Risk due to time constraints
-  | 'QualityRisk'         // Risk to code quality
-  | 'CompatibilityRisk'   // Risk to platform compatibility
-  | 'PerformanceRisk';    // Risk to performance
+  | 'ComplexityRisk' // Risk due to transformation complexity
+  | 'ResourceRisk' // Risk due to resource constraints
+  | 'TimeRisk' // Risk due to time constraints
+  | 'QualityRisk' // Risk to code quality
+  | 'CompatibilityRisk' // Risk to platform compatibility
+  | 'PerformanceRisk'; // Risk to performance
 
 export type PlannedRiskImpact = 'Low' | 'Medium' | 'High' | 'Critical' | 'Catastrophic';
 
@@ -2347,9 +2401,19 @@ export interface TransformationSuccessCriterion {
   importance: CriterionImportance;
 }
 
-export type SuccessCriterionType = 'Performance' | 'Quality' | 'Safety' | 'Reliability' | 'Compatibility';
+export type SuccessCriterionType =
+  | 'Performance'
+  | 'Quality'
+  | 'Safety'
+  | 'Reliability'
+  | 'Compatibility';
 export type CriterionMeasurementMethod = 'Automated' | 'Benchmark' | 'Profiling' | 'Analysis';
-export type CriterionImportance = 'Optional' | 'Recommended' | 'Important' | 'Critical' | 'Essential';
+export type CriterionImportance =
+  | 'Optional'
+  | 'Recommended'
+  | 'Important'
+  | 'Critical'
+  | 'Essential';
 
 /**
  * Pre-validation result.
@@ -2450,7 +2514,12 @@ export interface ResourceAvailabilityAssessment {
   allocationRecommendations: AllocationRecommendation[];
 }
 
-export type AvailabilityStatus = 'Abundant' | 'Sufficient' | 'Limited' | 'Constrained' | 'Insufficient';
+export type AvailabilityStatus =
+  | 'Abundant'
+  | 'Sufficient'
+  | 'Limited'
+  | 'Constrained'
+  | 'Insufficient';
 
 /**
  * Status of individual resource.
@@ -2600,7 +2669,12 @@ export interface FeasibilityAssessment {
   constraints: FeasibilityConstraint[];
 }
 
-export type FeasibilityLevel = 'Highly_Feasible' | 'Feasible' | 'Challenging' | 'Difficult' | 'Infeasible';
+export type FeasibilityLevel =
+  | 'Highly_Feasible'
+  | 'Feasible'
+  | 'Challenging'
+  | 'Difficult'
+  | 'Infeasible';
 
 /**
  * Technical feasibility assessment.
@@ -2671,7 +2745,11 @@ export interface ComplexityMitigation {
   implementationCost: number;
 }
 
-export type ComplexityMitigationApproach = 'Simplification' | 'Decomposition' | 'Abstraction' | 'Automation';
+export type ComplexityMitigationApproach =
+  | 'Simplification'
+  | 'Decomposition'
+  | 'Abstraction'
+  | 'Automation';
 
 /**
  * Technical challenge.
@@ -2690,7 +2768,12 @@ export interface TechnicalChallenge {
   solutionOptions: ChallengeSolutionOption[];
 }
 
-export type ChallengeType = 'Algorithmic' | 'Architectural' | 'Performance' | 'Safety' | 'Integration';
+export type ChallengeType =
+  | 'Algorithmic'
+  | 'Architectural'
+  | 'Performance'
+  | 'Safety'
+  | 'Integration';
 export type ChallengeDifficulty = 'Easy' | 'Moderate' | 'Hard' | 'VeryHard' | 'Extreme';
 
 /**
@@ -2855,7 +2938,12 @@ export interface ImplementationRisk {
   timeline: RiskTimeline;
 }
 
-export type ImplementationRiskImpact = 'Schedule' | 'Quality' | 'Performance' | 'Safety' | 'Cancellation';
+export type ImplementationRiskImpact =
+  | 'Schedule'
+  | 'Quality'
+  | 'Performance'
+  | 'Safety'
+  | 'Cancellation';
 export type RiskTimeline = 'Immediate' | 'Short' | 'Medium' | 'Long';
 
 /**
@@ -2875,7 +2963,12 @@ export interface ResourceFeasibility {
   confidence: number;
 }
 
-export type ResourceSufficiency = 'Abundant' | 'Sufficient' | 'Adequate' | 'Constrained' | 'Insufficient';
+export type ResourceSufficiency =
+  | 'Abundant'
+  | 'Sufficient'
+  | 'Adequate'
+  | 'Constrained'
+  | 'Insufficient';
 
 /**
  * Assessment of resource conflict.
@@ -2952,7 +3045,12 @@ export interface OptimizationOpportunity {
 }
 
 export type OptimizationPotentialLevel = 'None' | 'Low' | 'Medium' | 'High' | 'VeryHigh';
-export type OptimizationImplementationEffort = 'Trivial' | 'Easy' | 'Moderate' | 'Hard' | 'VeryHard';
+export type OptimizationImplementationEffort =
+  | 'Trivial'
+  | 'Easy'
+  | 'Moderate'
+  | 'Hard'
+  | 'VeryHard';
 export type OptimizationRisk = 'None' | 'Low' | 'Medium' | 'High' | 'Critical';
 
 /**
@@ -3353,7 +3451,12 @@ export interface FeasibilityConstraint {
 
 export type FeasibilityConstraintType = 'Technical' | 'Resource' | 'Time' | 'Quality' | 'Safety';
 export type ConstraintImpact = 'Minor' | 'Moderate' | 'Major' | 'Critical' | 'Blocking';
-export type FeasibilityConstraintFlexibility = 'Rigid' | 'SemiRigid' | 'Moderate' | 'Flexible' | 'VeryFlexible';
+export type FeasibilityConstraintFlexibility =
+  | 'Rigid'
+  | 'SemiRigid'
+  | 'Moderate'
+  | 'Flexible'
+  | 'VeryFlexible';
 
 /**
  * Pre-validation recommendation.
@@ -3376,13 +3479,18 @@ export interface PreValidationRecommendation {
 }
 
 export type PreValidationRecommendationType =
-  | 'Proceed'             // Safe to proceed with transformation
-  | 'ProceedWithChanges'  // Proceed but make recommended changes
-  | 'Delay'               // Delay transformation until conditions improve
-  | 'Redesign'            // Redesign transformation approach
-  | 'Abandon';            // Abandon transformation
+  | 'Proceed' // Safe to proceed with transformation
+  | 'ProceedWithChanges' // Proceed but make recommended changes
+  | 'Delay' // Delay transformation until conditions improve
+  | 'Redesign' // Redesign transformation approach
+  | 'Abandon'; // Abandon transformation
 
-export type RecommendationPriority = 'Optional' | 'Suggested' | 'Recommended' | 'Important' | 'Critical';
+export type RecommendationPriority =
+  | 'Optional'
+  | 'Suggested'
+  | 'Recommended'
+  | 'Important'
+  | 'Critical';
 
 /**
  * Action for implementing recommendation.
@@ -3404,7 +3512,12 @@ export interface RecommendationAction {
   dependencies: string[];
 }
 
-export type RecommendationActionType = 'Preparation' | 'ResourceAllocation' | 'RiskMitigation' | 'Optimization' | 'Redesign';
+export type RecommendationActionType =
+  | 'Preparation'
+  | 'ResourceAllocation'
+  | 'RiskMitigation'
+  | 'Optimization'
+  | 'Redesign';
 export type ActionEffort = 'Minimal' | 'Low' | 'Medium' | 'High' | 'Extensive';
 export type ActionTimeline = 'Immediate' | 'Quick' | 'Short' | 'Medium' | 'Long';
 
@@ -3425,7 +3538,11 @@ export interface RecommendationBenefit {
   timeline: BenefitTimeline;
 }
 
-export type RecommendationBenefitType = 'RiskReduction' | 'PerformanceImprovement' | 'QualityImprovement' | 'SafetyImprovement';
+export type RecommendationBenefitType =
+  | 'RiskReduction'
+  | 'PerformanceImprovement'
+  | 'QualityImprovement'
+  | 'SafetyImprovement';
 
 /**
  * Post-validation result.
@@ -3470,7 +3587,12 @@ export interface PostValidationFinding {
   recommendedActions: string[];
 }
 
-export type PostValidationFindingType = 'SemanticPreservation' | 'PerformanceImpact' | 'QualityImprovement' | 'SafetyValidation' | 'PlatformCompatibility';
+export type PostValidationFindingType =
+  | 'SemanticPreservation'
+  | 'PerformanceImpact'
+  | 'QualityImprovement'
+  | 'SafetyValidation'
+  | 'PlatformCompatibility';
 export type FindingSignificance = 'Trivial' | 'Minor' | 'Moderate' | 'Major' | 'Critical';
 
 /**
@@ -3490,7 +3612,12 @@ export interface FindingEvidence {
   source: string;
 }
 
-export type FindingEvidenceType = 'Measurement' | 'Analysis' | 'Comparison' | 'Testing' | 'Inspection';
+export type FindingEvidenceType =
+  | 'Measurement'
+  | 'Analysis'
+  | 'Comparison'
+  | 'Testing'
+  | 'Inspection';
 export type EvidenceReliability = 'Low' | 'Medium' | 'High' | 'VeryHigh' | 'Absolute';
 
 /**
@@ -3648,7 +3775,12 @@ export interface PerformanceIssue {
   remediationOptions: PerformanceRemediationOption[];
 }
 
-export type PerformanceIssueType = 'Regression' | 'SuboptimalGain' | 'VariablePerformance' | 'ResourceExhaustion' | 'Bottleneck';
+export type PerformanceIssueType =
+  | 'Regression'
+  | 'SuboptimalGain'
+  | 'VariablePerformance'
+  | 'ResourceExhaustion'
+  | 'Bottleneck';
 export type PerformanceIssueSeverity = 'Minor' | 'Moderate' | 'Major' | 'Critical';
 export type PerformanceIssueImpact = 'Local' | 'Function' | 'Module' | 'Global' | 'System';
 
@@ -3734,8 +3866,18 @@ export interface QualityImprovement {
   verification: QualityImprovementVerification;
 }
 
-export type QualityImprovementArea = 'Readability' | 'Maintainability' | 'Performance' | 'Safety' | 'Reliability';
-export type QualityImprovementMagnitude = 'Small' | 'Moderate' | 'Large' | 'Significant' | 'Transformative';
+export type QualityImprovementArea =
+  | 'Readability'
+  | 'Maintainability'
+  | 'Performance'
+  | 'Safety'
+  | 'Reliability';
+export type QualityImprovementMagnitude =
+  | 'Small'
+  | 'Moderate'
+  | 'Large'
+  | 'Significant'
+  | 'Transformative';
 
 /**
  * Verification of quality improvement.
@@ -3774,7 +3916,12 @@ export interface QualityIssue {
   remediation: QualityIssueRemediation;
 }
 
-export type QualityIssueType = 'CodeSmell' | 'AntiPattern' | 'Complexity' | 'Maintainability' | 'Documentation';
+export type QualityIssueType =
+  | 'CodeSmell'
+  | 'AntiPattern'
+  | 'Complexity'
+  | 'Maintainability'
+  | 'Documentation';
 export type QualityIssueSeverity = 'Minor' | 'Moderate' | 'Major' | 'Critical';
 
 /**
@@ -3833,7 +3980,12 @@ export interface QualityImpactExpectation {
   timeline: QualityImpactTimeline;
 }
 
-export type QualityImpactArea = 'Readability' | 'Maintainability' | 'Testability' | 'Performance' | 'Reliability';
+export type QualityImpactArea =
+  | 'Readability'
+  | 'Maintainability'
+  | 'Testability'
+  | 'Performance'
+  | 'Reliability';
 export type QualityImpactMagnitude = 'Minimal' | 'Small' | 'Moderate' | 'Large' | 'Transformative';
 export type QualityImpactTimeline = 'Immediate' | 'Short' | 'Medium' | 'Long';
 
@@ -3854,7 +4006,12 @@ export interface FinalValidationRecommendation {
   followUpRequirements: FollowUpRequirement[];
 }
 
-export type FinalRecommendationType = 'Accept' | 'AcceptWithConditions' | 'Reject' | 'RequiresRevision' | 'NeedsMoreValidation';
+export type FinalRecommendationType =
+  | 'Accept'
+  | 'AcceptWithConditions'
+  | 'Reject'
+  | 'RequiresRevision'
+  | 'NeedsMoreValidation';
 
 /**
  * Final action item.
@@ -3874,8 +4031,18 @@ export interface FinalActionItem {
 }
 
 export type FinalActionPriority = 'Optional' | 'Recommended' | 'Required' | 'Critical' | 'Blocking';
-export type ActionDeadline = 'Immediate' | 'BeforeDeployment' | 'NextRelease' | 'Future' | 'NoDeadline';
-export type ActionOwner = 'Developer' | 'QualityAssurance' | 'Security' | 'Performance' | 'Management';
+export type ActionDeadline =
+  | 'Immediate'
+  | 'BeforeDeployment'
+  | 'NextRelease'
+  | 'Future'
+  | 'NoDeadline';
+export type ActionOwner =
+  | 'Developer'
+  | 'QualityAssurance'
+  | 'Security'
+  | 'Performance'
+  | 'Management';
 
 /**
  * Follow-up requirement.
@@ -3894,7 +4061,12 @@ export interface FollowUpRequirement {
   successCriteria: string[];
 }
 
-export type FollowUpRequirementType = 'Monitoring' | 'Testing' | 'Review' | 'Measurement' | 'Documentation';
+export type FollowUpRequirementType =
+  | 'Monitoring'
+  | 'Testing'
+  | 'Review'
+  | 'Measurement'
+  | 'Documentation';
 export type FollowUpTimeline = 'Ongoing' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Annual';
 
 /**
@@ -3937,7 +4109,12 @@ export interface ReferenceIntegrityViolation {
   autoRepairFeasibility: AutoRepairFeasibility;
 }
 
-export type ReferenceIntegrityViolationType = 'BrokenReference' | 'InvalidReference' | 'CircularReference' | 'TypeMismatch' | 'ScopeViolation';
+export type ReferenceIntegrityViolationType =
+  | 'BrokenReference'
+  | 'InvalidReference'
+  | 'CircularReference'
+  | 'TypeMismatch'
+  | 'ScopeViolation';
 export type ReferenceViolationImpact = 'None' | 'Minor' | 'Moderate' | 'Major' | 'Critical';
 export type AutoRepairFeasibility = 'Easy' | 'Possible' | 'Difficult' | 'Impossible';
 
@@ -3978,7 +4155,11 @@ export interface ReferencePattern {
   risk: PatternRisk;
 }
 
-export type ReferencePatternType = 'DirectReference' | 'IndirectReference' | 'QualifiedReference' | 'CrossModuleReference';
+export type ReferencePatternType =
+  | 'DirectReference'
+  | 'IndirectReference'
+  | 'QualifiedReference'
+  | 'CrossModuleReference';
 export type PatternValidity = 'Valid' | 'Questionable' | 'Invalid';
 export type PatternRisk = 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -3999,7 +4180,11 @@ export interface IntegrityTrend {
   prediction: IntegrityTrendPrediction;
 }
 
-export type IntegrityTrendMetric = 'ValidityRate' | 'ErrorRate' | 'ComplexityScore' | 'MaintenanceEffort';
+export type IntegrityTrendMetric =
+  | 'ValidityRate'
+  | 'ErrorRate'
+  | 'ComplexityScore'
+  | 'MaintenanceEffort';
 export type IntegrityTrendDirection = 'Improving' | 'Stable' | 'Degrading' | 'Volatile';
 export type TrendStrength = 'Weak' | 'Moderate' | 'Strong' | 'VeryStrong';
 
@@ -4020,7 +4205,11 @@ export interface IntegrityTrendPrediction {
   interventionRecommendations: string[];
 }
 
-export type PredictedOutcome = 'ContinuedImprovement' | 'Stability' | 'GradualDegradation' | 'RapidDegradation';
+export type PredictedOutcome =
+  | 'ContinuedImprovement'
+  | 'Stability'
+  | 'GradualDegradation'
+  | 'RapidDegradation';
 export type PredictionTimeline = 'Short' | 'Medium' | 'Long' | 'VeryLong';
 
 /**
@@ -4040,7 +4229,11 @@ export interface ReferenceIntegrityRemediation {
   expectedOutcome: ReferenceRemediationOutcome;
 }
 
-export type ReferenceRemediationStrategy = 'RepairReferences' | 'UpdateReferences' | 'RemoveReferences' | 'ReplaceReferences';
+export type ReferenceRemediationStrategy =
+  | 'RepairReferences'
+  | 'UpdateReferences'
+  | 'RemoveReferences'
+  | 'ReplaceReferences';
 
 /**
  * Step in reference remediation.

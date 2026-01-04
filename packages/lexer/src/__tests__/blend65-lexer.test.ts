@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Blend65Lexer, TokenType, tokenize } from '../index.js';
+import { TokenType, tokenize } from '../index.js';
 
 describe('Blend65Lexer', () => {
   describe('Keywords', () => {
@@ -113,7 +113,8 @@ describe('Blend65Lexer', () => {
     });
 
     it('should handle v0.2 keywords with different casing', () => {
-      const source = 'BREAK Break bReAk CONTINUE Continue cOnTiNuE DEFAULT Default dEfAuLt ENUM Enum eNuM';
+      const source =
+        'BREAK Break bReAk CONTINUE Continue cOnTiNuE DEFAULT Default dEfAuLt ENUM Enum eNuM';
       const tokens = tokenize(source);
 
       // All variations should be treated as identifiers (case-sensitive keywords)
@@ -268,7 +269,7 @@ describe('Blend65Lexer', () => {
     it('should reject unsupported memory placement operator', () => {
       const source = '@';
 
-      expect(() => tokenize(source)).toThrow('Unexpected character \'@\' at line 1, column 1');
+      expect(() => tokenize(source)).toThrow("Unexpected character '@' at line 1, column 1");
     });
 
     it('should parse punctuation', () => {
@@ -459,7 +460,7 @@ end match`;
       expect(tokens[0].value).toBe('match');
 
       const caseIndices = tokens
-        .map((token, index) => token.type === TokenType.CASE ? index : -1)
+        .map((token, index) => (token.type === TokenType.CASE ? index : -1))
         .filter(index => index !== -1);
 
       expect(caseIndices.length).toBe(2); // Two case statements

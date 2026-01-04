@@ -28,7 +28,7 @@ export type {
   ILModule,
   ILFunction,
   ProgramSourceInfo,
-  CompilationOptions
+  CompilationOptions,
 } from './il-types.js';
 
 // IL instruction system
@@ -36,12 +36,10 @@ export type {
   ILInstruction,
   ILInstructionMetadata,
   InstructionPerformanceInfo,
-  InstructionDebugInfo
+  InstructionDebugInfo,
 } from './il-types.js';
 
-export {
-  ILInstructionType
-} from './il-types.js';
+export { ILInstructionType } from './il-types.js';
 
 // Import types needed for utility functions
 import type { ILInstructionType, AddressingMode6502 } from './il-types.js';
@@ -57,7 +55,7 @@ export type {
   ILLabel,
   ILOperand,
   ILParameterReference,
-  ILReturnReference
+  ILReturnReference,
 } from './il-types.js';
 
 export type {
@@ -67,7 +65,7 @@ export type {
   TemporaryScope,
   TemporaryLifetimeInfo,
   AddressingMode6502,
-  MemoryBank6502
+  MemoryBank6502,
 } from './il-types.js';
 
 // ============================================================================
@@ -80,14 +78,14 @@ export type {
   ILGlobalData,
   ILModuleData,
   ILImport,
-  ILExport
+  ILExport,
 } from './il-types.js';
 
 export type {
   ParameterPassingMethod,
   LocalVariableAllocation,
   ImportType,
-  ExportType
+  ExportType,
 } from './il-types.js';
 
 // ============================================================================
@@ -97,7 +95,7 @@ export type {
 export type {
   IL6502OptimizationHints,
   Instruction6502OptimizationOpportunity,
-  Instruction6502OptimizationOpportunityType
+  Instruction6502OptimizationOpportunityType,
 } from './il-types.js';
 
 // ============================================================================
@@ -108,7 +106,7 @@ export type {
   ProgramOptimizationMetadata,
   ModuleOptimizationMetadata,
   ILFunctionOptimizationMetadata,
-  HotPathInfo
+  HotPathInfo,
 } from './il-types.js';
 
 export type {
@@ -119,14 +117,14 @@ export type {
   LoopInfo,
   DataFlowAnalysis,
   LiveVariableInfo,
-  LiveRange
+  LiveRange,
 } from './il-types.js';
 
 export type {
   RegisterUsageAnalysis,
   RegisterConflict,
   ReachingDefinitionInfo,
-  AvailableExpressionInfo
+  AvailableExpressionInfo,
 } from './il-types.js';
 
 // ============================================================================
@@ -140,7 +138,7 @@ export type {
   GlobalOptimizationOpportunity,
   ProgramResourceUsage,
   InterFunctionOptimization,
-  ModuleResourceUsage
+  ModuleResourceUsage,
 } from './il-types.js';
 
 // ============================================================================
@@ -155,7 +153,7 @@ export {
   isILMemoryLocation,
   isILLabel,
   isILParameterReference,
-  isILReturnReference
+  isILReturnReference,
 } from './il-types.js';
 
 // ============================================================================
@@ -171,17 +169,14 @@ export {
   createILInstruction,
   createILProgram,
   createILModule,
-  createILFunction
+  createILFunction,
 } from './il-types.js';
 
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 
-export {
-  ilValueToString,
-  ilInstructionToString
-} from './il-types.js';
+export { ilValueToString, ilInstructionToString } from './il-types.js';
 
 // ============================================================================
 // TASK 2.2: IL INSTRUCTION CREATION
@@ -240,7 +235,7 @@ export {
   InstructionCreationContext,
   createInstructionContext,
   resetGlobalInstructionContext,
-  validateILInstruction
+  validateILInstruction,
 } from './instructions.js';
 
 // ============================================================================
@@ -257,7 +252,7 @@ export const IL_VERSION = '0.1.0';
  */
 export const SUPPORTED_PLATFORMS = ['c64', 'vic20', 'x16'] as const;
 
-export type SupportedPlatform = typeof SUPPORTED_PLATFORMS[number];
+export type SupportedPlatform = (typeof SUPPORTED_PLATFORMS)[number];
 
 /**
  * IL instruction categories for optimization and analysis.
@@ -268,12 +263,18 @@ export const INSTRUCTION_CATEGORIES = {
   LOGICAL: ['AND', 'OR', 'NOT'],
   BITWISE: ['BITWISE_AND', 'BITWISE_OR', 'BITWISE_XOR', 'BITWISE_NOT', 'SHIFT_LEFT', 'SHIFT_RIGHT'],
   COMPARISON: ['COMPARE_EQ', 'COMPARE_NE', 'COMPARE_LT', 'COMPARE_LE', 'COMPARE_GT', 'COMPARE_GE'],
-  CONTROL_FLOW: ['BRANCH', 'BRANCH_IF_TRUE', 'BRANCH_IF_FALSE', 'BRANCH_IF_ZERO', 'BRANCH_IF_NOT_ZERO'],
+  CONTROL_FLOW: [
+    'BRANCH',
+    'BRANCH_IF_TRUE',
+    'BRANCH_IF_FALSE',
+    'BRANCH_IF_ZERO',
+    'BRANCH_IF_NOT_ZERO',
+  ],
   FUNCTION: ['CALL', 'RETURN'],
   VARIABLE: ['DECLARE_LOCAL', 'LOAD_VARIABLE', 'STORE_VARIABLE'],
   ARRAY: ['LOAD_ARRAY', 'STORE_ARRAY', 'ARRAY_ADDRESS'],
   UTILITY: ['LABEL', 'NOP', 'COMMENT'],
-  HARDWARE: ['REGISTER_OP', 'PEEK', 'POKE', 'SET_FLAGS', 'CLEAR_FLAGS']
+  HARDWARE: ['REGISTER_OP', 'PEEK', 'POKE', 'SET_FLAGS', 'CLEAR_FLAGS'],
 } as const;
 
 export type InstructionCategory = keyof typeof INSTRUCTION_CATEGORIES;
@@ -281,7 +282,9 @@ export type InstructionCategory = keyof typeof INSTRUCTION_CATEGORIES;
 /**
  * Get the category for a given IL instruction type.
  */
-export function getInstructionCategory(instructionType: ILInstructionType): InstructionCategory | null {
+export function getInstructionCategory(
+  instructionType: ILInstructionType
+): InstructionCategory | null {
   for (const [category, instructions] of Object.entries(INSTRUCTION_CATEGORIES)) {
     if ((instructions as readonly string[]).includes(instructionType)) {
       return category as InstructionCategory;
@@ -293,7 +296,10 @@ export function getInstructionCategory(instructionType: ILInstructionType): Inst
 /**
  * Check if an instruction type is in a specific category.
  */
-export function isInstructionInCategory(instructionType: ILInstructionType, category: InstructionCategory): boolean {
+export function isInstructionInCategory(
+  instructionType: ILInstructionType,
+  category: InstructionCategory
+): boolean {
   const categoryInstructions = INSTRUCTION_CATEGORIES[category] as readonly string[];
   return categoryInstructions.includes(instructionType);
 }
@@ -374,7 +380,7 @@ export function getEstimatedCycles(
     PEEK: 4,
     POKE: 4,
     SET_FLAGS: 2,
-    CLEAR_FLAGS: 2
+    CLEAR_FLAGS: 2,
   };
 
   return baseCycles[instructionType] || 4; // Default estimate
@@ -415,11 +421,7 @@ export function getEstimatedCycles(
 // ============================================================================
 
 // AST to IL transformation functionality
-export {
-  ASTToILTransformer,
-  createASTToILTransformer,
-  transformProgramToIL
-} from './ast-to-il.js';
+export { ASTToILTransformer, createASTToILTransformer, transformProgramToIL } from './ast-to-il.js';
 
 export type {
   TransformationResult,
@@ -427,7 +429,7 @@ export type {
   TransformationWarning,
   ExpressionTransformResult,
   StatementTransformResult,
-  TransformationContext
+  TransformationContext,
 } from './ast-to-il.js';
 
 // ============================================================================
@@ -442,7 +444,7 @@ export {
   validateILModule,
   validateILFunction,
   ILValidationErrorType,
-  ILValidationSeverity
+  ILValidationSeverity,
 } from './il-validator.js';
 
 export type {
@@ -450,7 +452,7 @@ export type {
   ILValidationError,
   ILValidationStatistics,
   ValidationErrorContext,
-  ControlFlowAnalysisResult
+  ControlFlowAnalysisResult,
 } from './il-validator.js';
 
 // ============================================================================
@@ -458,15 +460,12 @@ export type {
 // ============================================================================
 
 // CFG analytics functionality
-export {
-  ControlFlowAnalyzer,
-  analyzeCFG
-} from './analysis/control-flow-analyzer.js';
+export { ControlFlowAnalyzer, analyzeCFG } from './analysis/control-flow-analyzer.js';
 
 export type {
   ControlFlowAnalysisResult as AdvancedControlFlowAnalysisResult,
   CFGAnalysisOptions,
-  CFGAnalysisMetrics
+  CFGAnalysisMetrics,
 } from './analysis/control-flow-analyzer.js';
 
 // CFG analytics types
@@ -510,7 +509,7 @@ export type {
   OptimizationOpportunity,
   OptimizationOpportunityType,
   OptimizationComplexity,
-  InstructionLocation
+  InstructionLocation,
 } from './analysis/types/control-flow-types.js';
 
 // ============================================================================
@@ -518,10 +517,7 @@ export type {
 // ============================================================================
 
 // 6502-specific analysis functionality
-export {
-  SixtyTwo6502Analyzer,
-  analyze6502
-} from './analysis/6502-analyzer.js';
+export { SixtyTwo6502Analyzer, analyze6502 } from './analysis/6502-analyzer.js';
 
 export type {
   SixtyTwo6502ValidationResult,
@@ -537,7 +533,7 @@ export type {
   ValidationIssue,
   InstructionTimingInfo,
   TimingAccuracy,
-  MemoryModelAccuracy
+  MemoryModelAccuracy,
 } from './analysis/types/6502-analysis-types.js';
 
 // 6502 processor variant analyzers
@@ -545,7 +541,7 @@ export {
   Base6502Analyzer,
   VIC20_6502Analyzer,
   C64_6510Analyzer,
-  X16_65C02Analyzer
+  X16_65C02Analyzer,
 } from './analysis/6502-variants/index.js';
 
 // ============================================================================
@@ -553,10 +549,7 @@ export {
 // ============================================================================
 
 // IL quality metrics and analytics functionality
-export {
-  ILMetricsAnalyzer,
-  analyzeILQuality
-} from './analysis/il-metrics-analyzer.js';
+export { ILMetricsAnalyzer, analyzeILQuality } from './analysis/il-metrics-analyzer.js';
 
 export type {
   ILQualityAnalysisResult,
@@ -620,7 +613,7 @@ export type {
   RiskType,
   RiskSeverity,
   OptimizationLevel,
-  AnalysisDepth
+  AnalysisDepth,
 } from './analysis/types/metrics-types.js';
 
 // ============================================================================
@@ -628,9 +621,7 @@ export type {
 // ============================================================================
 
 // Pattern-readiness analytics functionality
-export {
-  PatternReadinessAnalyzer
-} from './analysis/pattern-readiness-analyzer.js';
+export { PatternReadinessAnalyzer } from './analysis/pattern-readiness-analyzer.js';
 
 // ============================================================================
 // TASK 2.5: IL OPTIMIZATION FRAMEWORK
@@ -640,7 +631,7 @@ export {
 export {
   ILOptimizationFramework,
   optimizeIL,
-  optimizeFunction
+  optimizeFunction,
 } from './optimization/optimization-framework.js';
 
 // Pattern registry functionality
@@ -648,7 +639,7 @@ export {
   OptimizationPatternRegistryImpl,
   createDefaultPatternRegistry,
   PatternBuilder,
-  createPattern
+  createPattern,
 } from './optimization/pattern-registry.js';
 
 // Optimization types (using aliases to avoid conflicts with metrics types)
@@ -661,7 +652,7 @@ export {
   OptimizationSafety,
   OptimizationErrorType,
   OptimizationWarningType,
-  DEFAULT_OPTIMIZATION_CONFIG
+  DEFAULT_OPTIMIZATION_CONFIG,
 } from './optimization/types.js';
 
 // ============================================================================
@@ -669,9 +660,7 @@ export {
 // ============================================================================
 
 // Complete IL analytics suite functionality
-export {
-  ILAnalyticsSuite
-} from './analysis/il-analytics-suite.js';
+export { ILAnalyticsSuite } from './analysis/il-analytics-suite.js';
 
 export type {
   ComprehensiveAnalyticsResult,
@@ -680,7 +669,7 @@ export type {
   AnalyticsIssue,
   AnalyticsPerformanceMetrics,
   AnalyticsPerformanceBenchmarks,
-  AnalyticsAccuracyStandards
+  AnalyticsAccuracyStandards,
 } from './analysis/il-analytics-suite.js';
 
 export type {
@@ -734,7 +723,7 @@ export type {
   SafetyRequirement,
   ValidationLevel,
   ExpertiseRequirement,
-  RiskLevel
+  RiskLevel,
 } from './analysis/pattern-readiness-analyzer.js';
 
 // ============================================================================
@@ -753,9 +742,7 @@ export {
   createIfThenElse,
   createAssignment,
   createFunctionPrologue,
-  createFunctionEpilogue
+  createFunctionEpilogue,
 } from './il-builder.js';
 
-export type {
-  ILBuilderContext
-} from './il-builder.js';
+export type { ILBuilderContext } from './il-builder.js';

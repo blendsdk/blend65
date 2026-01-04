@@ -10,7 +10,7 @@ import {
   OptimizationPatternRegistryImpl,
   createDefaultPatternRegistry,
   PatternBuilder,
-  createPattern
+  createPattern,
 } from '../pattern-registry.js';
 import {
   OptimizationPattern,
@@ -18,8 +18,6 @@ import {
   OptimizationLevel,
   OptimizationPriority,
   OptimizationSafety,
-  OptimizationResult,
-  OptimizationMetricsChange
 } from '../types.js';
 import { ILInstruction, ILInstructionType } from '../../il-types.js';
 
@@ -49,7 +47,7 @@ describe('OptimizationPatternRegistry', () => {
           sizeDelta: -2,
           memoryDelta: 0,
           registerPressureDelta: 0,
-          complexityDelta: 0
+          complexityDelta: 0,
         },
         warnings: [],
         debug: {
@@ -59,12 +57,12 @@ describe('OptimizationPatternRegistry', () => {
             complexity: false,
             performance: false,
             patternReadiness: false,
-            sixtytwofiveAnalysis: false
+            sixtytwofiveAnalysis: false,
           },
-          decisionLog: []
-        }
+          decisionLog: [],
+        },
       }),
-      isApplicable: (instructions: ILInstruction[], context: any) => true
+      isApplicable: (instructions: ILInstruction[], context: any) => true,
     };
   });
 
@@ -123,8 +121,16 @@ describe('OptimizationPatternRegistry', () => {
 
   describe('Category-Based Retrieval', () => {
     it('should retrieve patterns by category', () => {
-      const constantPattern = { ...testPattern, id: 'const1', category: OptimizationCategory.CONSTANTS };
-      const deadCodePattern = { ...testPattern, id: 'dead1', category: OptimizationCategory.DEAD_CODE };
+      const constantPattern = {
+        ...testPattern,
+        id: 'const1',
+        category: OptimizationCategory.CONSTANTS,
+      };
+      const deadCodePattern = {
+        ...testPattern,
+        id: 'dead1',
+        category: OptimizationCategory.DEAD_CODE,
+      };
 
       registry.register(constantPattern);
       registry.register(deadCodePattern);
@@ -279,8 +285,12 @@ describe('OptimizationPatternRegistry', () => {
       expect(defaultRegistry.getAll().length).toBeGreaterThan(0);
 
       // Should have patterns for basic categories
-      expect(defaultRegistry.getByCategory(OptimizationCategory.DEAD_CODE).length).toBeGreaterThan(0);
-      expect(defaultRegistry.getByCategory(OptimizationCategory.CONSTANTS).length).toBeGreaterThan(0);
+      expect(defaultRegistry.getByCategory(OptimizationCategory.DEAD_CODE).length).toBeGreaterThan(
+        0
+      );
+      expect(defaultRegistry.getByCategory(OptimizationCategory.CONSTANTS).length).toBeGreaterThan(
+        0
+      );
     });
   });
 });
@@ -313,7 +323,7 @@ describe('PatternBuilder', () => {
           sizeDelta: -2,
           memoryDelta: 0,
           registerPressureDelta: 0,
-          complexityDelta: 0
+          complexityDelta: 0,
         },
         warnings: [],
         debug: {
@@ -323,12 +333,12 @@ describe('PatternBuilder', () => {
             complexity: false,
             performance: false,
             patternReadiness: false,
-            sixtytwofiveAnalysis: false
+            sixtytwofiveAnalysis: false,
           },
-          decisionLog: []
-        }
+          decisionLog: [],
+        },
       }),
-      isApplicable: (instructions: ILInstruction[], context: any) => true
+      isApplicable: (instructions: ILInstruction[], context: any) => true,
     };
   });
 
@@ -354,7 +364,7 @@ describe('PatternBuilder', () => {
             sizeDelta: -3,
             memoryDelta: 0,
             registerPressureDelta: 0,
-            complexityDelta: 0
+            complexityDelta: 0,
           },
           warnings: [],
           debug: {
@@ -364,10 +374,10 @@ describe('PatternBuilder', () => {
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         }))
         .setApplicabilityTest((instructions, context) => true)
         .build();
@@ -404,7 +414,7 @@ describe('PatternBuilder', () => {
             sizeDelta: 0,
             memoryDelta: 0,
             registerPressureDelta: 0,
-            complexityDelta: 0
+            complexityDelta: 0,
           },
           warnings: [],
           debug: {
@@ -414,10 +424,10 @@ describe('PatternBuilder', () => {
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         }))
         .setApplicabilityTest((instructions, context) => false)
         .build();
@@ -439,7 +449,7 @@ describe('PatternBuilder', () => {
           .setPriority(OptimizationPriority.MEDIUM)
           .setSafety(OptimizationSafety.SAFE)
           .setMinLevel(OptimizationLevel.O1)
-          .setApplyFunction(() => ({} as any))
+          .setApplyFunction(() => ({}) as any)
           .setApplicabilityTest(() => true)
           .build();
       }).toThrow('Pattern ID is required');
@@ -500,7 +510,7 @@ describe('PatternBuilder', () => {
               sizeDelta: 0,
               memoryDelta: 0,
               registerPressureDelta: 0,
-              complexityDelta: 0
+              complexityDelta: 0,
             },
             warnings: [],
             debug: {
@@ -510,10 +520,10 @@ describe('PatternBuilder', () => {
                 complexity: false,
                 performance: false,
                 patternReadiness: false,
-                sixtytwofiveAnalysis: false
+                sixtytwofiveAnalysis: false,
               },
-              decisionLog: []
-            }
+              decisionLog: [],
+            },
           };
         })
         .setApplicabilityTest((instructions, context) => true)
@@ -543,7 +553,7 @@ describe('PatternBuilder', () => {
             sizeDelta: 0,
             memoryDelta: 0,
             registerPressureDelta: 0,
-            complexityDelta: 0
+            complexityDelta: 0,
           },
           warnings: [],
           debug: {
@@ -553,10 +563,10 @@ describe('PatternBuilder', () => {
               complexity: false,
               performance: false,
               patternReadiness: false,
-              sixtytwofiveAnalysis: false
+              sixtytwofiveAnalysis: false,
             },
-            decisionLog: []
-          }
+            decisionLog: [],
+          },
         }))
         .setApplicabilityTest((instructions, context) => {
           testCalled = true;
@@ -580,7 +590,7 @@ describe('PatternBuilder', () => {
       // Test applicability
       const instructionsWithNop = [
         { type: ILInstructionType.NOP, operands: [], id: 1 },
-        { type: ILInstructionType.RETURN, operands: [], id: 2 }
+        { type: ILInstructionType.RETURN, operands: [], id: 2 },
       ] as ILInstruction[];
 
       const isApplicable = nopPattern!.isApplicable(instructionsWithNop, {} as any);
@@ -594,7 +604,9 @@ describe('PatternBuilder', () => {
 
     it('should have functional constant folding pattern', () => {
       const constantPatterns = testRegistry.getByCategory(OptimizationCategory.CONSTANTS);
-      const arithmeticPattern = constantPatterns.find((p: OptimizationPattern) => p.id.includes('arithmetic'));
+      const arithmeticPattern = constantPatterns.find((p: OptimizationPattern) =>
+        p.id.includes('arithmetic')
+      );
 
       expect(arithmeticPattern).toBeDefined();
 
@@ -602,29 +614,33 @@ describe('PatternBuilder', () => {
       const instructionsWithConstants = [
         {
           type: ILInstructionType.LOAD_IMMEDIATE,
-          operands: [{
-            valueType: 'constant',
-            type: { kind: 'primitive', name: 'byte' },
-            value: 5,
-            representation: 'decimal'
-          }],
-          id: 1
+          operands: [
+            {
+              valueType: 'constant',
+              type: { kind: 'primitive', name: 'byte' },
+              value: 5,
+              representation: 'decimal',
+            },
+          ],
+          id: 1,
         },
         {
           type: ILInstructionType.LOAD_IMMEDIATE,
-          operands: [{
-            valueType: 'constant',
-            type: { kind: 'primitive', name: 'byte' },
-            value: 3,
-            representation: 'decimal'
-          }],
-          id: 2
+          operands: [
+            {
+              valueType: 'constant',
+              type: { kind: 'primitive', name: 'byte' },
+              value: 3,
+              representation: 'decimal',
+            },
+          ],
+          id: 2,
         },
         {
           type: ILInstructionType.ADD,
           operands: [],
-          id: 3
-        }
+          id: 3,
+        },
       ] as ILInstruction[];
 
       const isApplicable = arithmeticPattern!.isApplicable(instructionsWithConstants, {} as any);
@@ -641,7 +657,7 @@ describe('PatternBuilder', () => {
         const pattern = {
           ...builderTestPattern,
           id: `pattern-${i}`,
-          category: i % 2 === 0 ? OptimizationCategory.CONSTANTS : OptimizationCategory.DEAD_CODE
+          category: i % 2 === 0 ? OptimizationCategory.CONSTANTS : OptimizationCategory.DEAD_CODE,
         };
         testRegistry.register(pattern);
       }

@@ -26,7 +26,7 @@ import {
   CriticalPathAnalysis,
   ControlFlowAnalysisResult,
   CFGAnalysisOptions,
-  CFGAnalysisMetrics
+  CFGAnalysisMetrics,
 } from './types/control-flow-types.js';
 import {
   buildBasicBlocks,
@@ -40,7 +40,6 @@ import {
   extractVariableUses,
   measureAnalysisPerformance,
   validateCFGStructure,
-  createInstructionLocation
 } from './utils/cfg-utils.js';
 
 /**
@@ -64,7 +63,7 @@ export class ControlFlowAnalyzer {
       maxIterations: 100,
       convergenceThreshold: 0.001,
       enablePerformanceProfiling: true,
-      ...options
+      ...options,
     };
   }
 
@@ -94,9 +93,10 @@ export class ControlFlowAnalyzer {
       : this.createEmptyDominanceAnalysis();
 
     // Perform loop analysis
-    const loopAnalysis = this.options.enableLoopAnalysis && this.options.enableDominanceAnalysis
-      ? this.performLoopAnalysis(cfg, dominanceAnalysis)
-      : this.createEmptyLoopAnalysis();
+    const loopAnalysis =
+      this.options.enableLoopAnalysis && this.options.enableDominanceAnalysis
+        ? this.performLoopAnalysis(cfg, dominanceAnalysis)
+        : this.createEmptyLoopAnalysis();
 
     // Perform data dependency analysis
     const dataDepAnalysis = this.options.enableDataDependencyAnalysis
@@ -121,7 +121,7 @@ export class ControlFlowAnalyzer {
       edgeCount: cfg.edges.length,
       loopCount: loopAnalysis.naturalLoops.length,
       variableCount: this.countVariables(cfg),
-      accuracyScore: 0.95 // High confidence in analysis quality
+      accuracyScore: 0.95, // High confidence in analysis quality
     };
 
     return {
@@ -131,7 +131,7 @@ export class ControlFlowAnalyzer {
       dataDepAnalysis,
       liveVarAnalysis,
       criticalPathAnalysis,
-      analysisMetrics: finalMetrics
+      analysisMetrics: finalMetrics,
     };
   }
 
@@ -147,7 +147,7 @@ export class ControlFlowAnalyzer {
         exitBlocks: new Set<number>(),
         blocks: new Map<number, BasicBlock>(),
         edges: [],
-        isReducible: true
+        isReducible: true,
       };
     }
 
@@ -188,7 +188,7 @@ export class ControlFlowAnalyzer {
       exitBlocks,
       blocks: blocksMap,
       edges,
-      isReducible
+      isReducible,
     };
   }
 
@@ -196,33 +196,30 @@ export class ControlFlowAnalyzer {
    * Perform dominance analysis on control flow graph
    */
   private performDominanceAnalysis(cfg: ControlFlowGraph): DominanceAnalysis {
-    const { result, metrics } = measureAnalysisPerformance(
-      () => {
-        // Compute immediate dominators
-        const immediateDominators = computeImmediateDominators(cfg);
+    const { result, metrics } = measureAnalysisPerformance(() => {
+      // Compute immediate dominators
+      const immediateDominators = computeImmediateDominators(cfg);
 
-        // Build dominance tree
-        const dominanceTree = buildDominanceTree(immediateDominators, cfg.entryBlock);
+      // Build dominance tree
+      const dominanceTree = buildDominanceTree(immediateDominators, cfg.entryBlock);
 
-        // Compute dominance frontiers
-        const dominanceFrontiers = this.computeDominanceFrontiers(cfg, dominanceTree);
+      // Compute dominance frontiers
+      const dominanceFrontiers = this.computeDominanceFrontiers(cfg, dominanceTree);
 
-        // Compute post-dominators (simplified version)
-        const postDominators = this.computePostDominators(cfg);
+      // Compute post-dominators (simplified version)
+      const postDominators = this.computePostDominators(cfg);
 
-        // Build strictly dominates relation
-        const strictlyDominates = this.buildStrictlyDominatesRelation(dominanceTree);
+      // Build strictly dominates relation
+      const strictlyDominates = this.buildStrictlyDominatesRelation(dominanceTree);
 
-        return {
-          immediateDominators,
-          dominanceTree,
-          dominanceFrontiers,
-          postDominators,
-          strictlyDominates
-        };
-      },
-      'Dominance Analysis'
-    );
+      return {
+        immediateDominators,
+        dominanceTree,
+        dominanceFrontiers,
+        postDominators,
+        strictlyDominates,
+      };
+    }, 'Dominance Analysis');
 
     this.mergeMetrics(metrics);
     return result;
@@ -235,37 +232,34 @@ export class ControlFlowAnalyzer {
     cfg: ControlFlowGraph,
     dominanceAnalysis: DominanceAnalysis
   ): LoopAnalysis {
-    const { result, metrics } = measureAnalysisPerformance(
-      () => {
-        // Find back edges using DFS
-        const backEdges = findBackEdges(cfg);
+    const { result, metrics } = measureAnalysisPerformance(() => {
+      // Find back edges using DFS
+      const backEdges = findBackEdges(cfg);
 
-        // Identify natural loops
-        const naturalLoops = identifyNaturalLoops(cfg, backEdges, dominanceAnalysis.dominanceTree);
+      // Identify natural loops
+      const naturalLoops = identifyNaturalLoops(cfg, backEdges, dominanceAnalysis.dominanceTree);
 
-        // Build loop nesting tree
-        const loopNesting = this.buildLoopNestingTree(naturalLoops);
+      // Build loop nesting tree
+      const loopNesting = this.buildLoopNestingTree(naturalLoops);
 
-        // Classify loops by type
-        const loopClassification = this.classifyLoops(cfg, naturalLoops);
+      // Classify loops by type
+      const loopClassification = this.classifyLoops(cfg, naturalLoops);
 
-        // Analyze induction variables
-        const inductionVariables = this.analyzeInductionVariables(cfg, naturalLoops);
+      // Analyze induction variables
+      const inductionVariables = this.analyzeInductionVariables(cfg, naturalLoops);
 
-        // Identify loop invariant instructions
-        const loopInvariantInstructions = this.findLoopInvariantInstructions(cfg, naturalLoops);
+      // Identify loop invariant instructions
+      const loopInvariantInstructions = this.findLoopInvariantInstructions(cfg, naturalLoops);
 
-        return {
-          naturalLoops,
-          loopNesting,
-          loopClassification,
-          inductionVariables,
-          loopInvariantInstructions,
-          backEdges
-        };
-      },
-      'Loop Analysis'
-    );
+      return {
+        naturalLoops,
+        loopNesting,
+        loopClassification,
+        inductionVariables,
+        loopInvariantInstructions,
+        backEdges,
+      };
+    }, 'Loop Analysis');
 
     this.mergeMetrics(metrics);
     return result;
@@ -275,46 +269,43 @@ export class ControlFlowAnalyzer {
    * Perform data dependency analysis on control flow graph
    */
   private performDataDependencyAnalysis(cfg: ControlFlowGraph): DataDependencyAnalysis {
-    const { result, metrics } = measureAnalysisPerformance(
-      () => {
-        // Extract all variable definitions and uses
-        const allDefs: any[] = [];
-        const allUses: any[] = [];
+    const { result, metrics } = measureAnalysisPerformance(() => {
+      // Extract all variable definitions and uses
+      const allDefs: any[] = [];
+      const allUses: any[] = [];
 
-        cfg.blocks.forEach((block, blockId) => {
-          block.instructions.forEach((instruction, instructionIndex) => {
-            const defs = extractVariableDefinitions(instruction, blockId, instructionIndex);
-            const uses = extractVariableUses(instruction, blockId, instructionIndex);
-            allDefs.push(...defs);
-            allUses.push(...uses);
-          });
+      cfg.blocks.forEach((block, blockId) => {
+        block.instructions.forEach((instruction, instructionIndex) => {
+          const defs = extractVariableDefinitions(instruction, blockId, instructionIndex);
+          const uses = extractVariableUses(instruction, blockId, instructionIndex);
+          allDefs.push(...defs);
+          allUses.push(...uses);
         });
+      });
 
-        // Build def-use chains
-        const defUseChains = this.buildDefUseChains(allDefs, allUses);
+      // Build def-use chains
+      const defUseChains = this.buildDefUseChains(allDefs, allUses);
 
-        // Build use-def chains
-        const useDefChains = this.buildUseDefChains(allDefs, allUses);
+      // Build use-def chains
+      const useDefChains = this.buildUseDefChains(allDefs, allUses);
 
-        // Build variable dependency graph
-        const dependencyGraph = this.buildVariableDependencyGraph(allDefs, allUses);
+      // Build variable dependency graph
+      const dependencyGraph = this.buildVariableDependencyGraph(allDefs, allUses);
 
-        // Generate data flow equations
-        const dataFlowEquations = this.generateDataFlowEquations(cfg);
+      // Generate data flow equations
+      const dataFlowEquations = this.generateDataFlowEquations(cfg);
 
-        // Analyze memory dependencies
-        const memoryDependencies = this.analyzeMemoryDependencies(cfg);
+      // Analyze memory dependencies
+      const memoryDependencies = this.analyzeMemoryDependencies(cfg);
 
-        return {
-          defUseChains,
-          useDefChains,
-          dependencyGraph,
-          dataFlowEquations,
-          memoryDependencies
-        };
-      },
-      'Data Dependency Analysis'
-    );
+      return {
+        defUseChains,
+        useDefChains,
+        dependencyGraph,
+        dataFlowEquations,
+        memoryDependencies,
+      };
+    }, 'Data Dependency Analysis');
 
     this.mergeMetrics(metrics);
     return result;
@@ -329,18 +320,24 @@ export class ControlFlowAnalyzer {
       dominanceTree: { root: 0, children: new Map(), parent: new Map(), depth: new Map() },
       dominanceFrontiers: new Map(),
       postDominators: new Map(),
-      strictlyDominates: new Map()
+      strictlyDominates: new Map(),
     };
   }
 
   private createEmptyLoopAnalysis(): LoopAnalysis {
     return {
       naturalLoops: [],
-      loopNesting: { outerLoops: new Set(), innerLoops: new Map(), parentLoop: new Map(), nestingDepth: new Map(), maxNestingDepth: 0 },
+      loopNesting: {
+        outerLoops: new Set(),
+        innerLoops: new Map(),
+        parentLoop: new Map(),
+        nestingDepth: new Map(),
+        maxNestingDepth: 0,
+      },
       loopClassification: new Map(),
       inductionVariables: new Map(),
       loopInvariantInstructions: new Map(),
-      backEdges: []
+      backEdges: [],
     };
   }
 
@@ -348,9 +345,14 @@ export class ControlFlowAnalyzer {
     return {
       defUseChains: new Map(),
       useDefChains: new Map(),
-      dependencyGraph: { variables: new Set(), dependencies: new Map(), transitiveClosure: new Map(), stronglyConnectedComponents: [] },
+      dependencyGraph: {
+        variables: new Set(),
+        dependencies: new Map(),
+        transitiveClosure: new Map(),
+        stronglyConnectedComponents: [],
+      },
       dataFlowEquations: [],
-      memoryDependencies: []
+      memoryDependencies: [],
     };
   }
 
@@ -359,8 +361,13 @@ export class ControlFlowAnalyzer {
       liveIn: new Map(),
       liveOut: new Map(),
       liveRanges: new Map(),
-      interferenceGraph: { variables: new Set(), edges: new Set(), coloringHint: new Map(), spillPriority: new Map() },
-      variableLifetimes: new Map()
+      interferenceGraph: {
+        variables: new Set(),
+        edges: new Set(),
+        coloringHint: new Map(),
+        spillPriority: new Map(),
+      },
+      variableLifetimes: new Map(),
     };
   }
 
@@ -369,7 +376,7 @@ export class ControlFlowAnalyzer {
       criticalPaths: [],
       hotBlocks: [],
       performanceBottlenecks: [],
-      optimizationOpportunities: []
+      optimizationOpportunities: [],
     };
   }
 
@@ -383,7 +390,8 @@ export class ControlFlowAnalyzer {
   }
 
   private mergeMetrics(metrics: Partial<CFGAnalysisMetrics>): void {
-    this.analysisMetrics.analysisTimeMs = (this.analysisMetrics.analysisTimeMs || 0) + (metrics.analysisTimeMs || 0);
+    this.analysisMetrics.analysisTimeMs =
+      (this.analysisMetrics.analysisTimeMs || 0) + (metrics.analysisTimeMs || 0);
     this.analysisMetrics.memoryUsageBytes = Math.max(
       this.analysisMetrics.memoryUsageBytes || 0,
       metrics.memoryUsageBytes || 0
@@ -413,7 +421,10 @@ export class ControlFlowAnalyzer {
   // Placeholder implementations for complex analysis methods
   // These would be fully implemented in a production system
 
-  private computeDominanceFrontiers(cfg: ControlFlowGraph, dominanceTree: any): Map<number, Set<number>> {
+  private computeDominanceFrontiers(
+    cfg: ControlFlowGraph,
+    dominanceTree: any
+  ): Map<number, Set<number>> {
     return new Map(); // Simplified implementation
   }
 
@@ -426,18 +437,30 @@ export class ControlFlowAnalyzer {
   }
 
   private buildLoopNestingTree(naturalLoops: any[]): any {
-    return { outerLoops: new Set(), innerLoops: new Map(), parentLoop: new Map(), nestingDepth: new Map(), maxNestingDepth: 0 };
+    return {
+      outerLoops: new Set(),
+      innerLoops: new Map(),
+      parentLoop: new Map(),
+      nestingDepth: new Map(),
+      maxNestingDepth: 0,
+    };
   }
 
   private classifyLoops(cfg: ControlFlowGraph, naturalLoops: any[]): Map<number, any> {
     return new Map(); // Simplified implementation
   }
 
-  private analyzeInductionVariables(cfg: ControlFlowGraph, naturalLoops: any[]): Map<number, any[]> {
+  private analyzeInductionVariables(
+    cfg: ControlFlowGraph,
+    naturalLoops: any[]
+  ): Map<number, any[]> {
     return new Map(); // Simplified implementation
   }
 
-  private findLoopInvariantInstructions(cfg: ControlFlowGraph, naturalLoops: any[]): Map<number, Set<number>> {
+  private findLoopInvariantInstructions(
+    cfg: ControlFlowGraph,
+    naturalLoops: any[]
+  ): Map<number, Set<number>> {
     return new Map(); // Simplified implementation
   }
 
@@ -450,7 +473,12 @@ export class ControlFlowAnalyzer {
   }
 
   private buildVariableDependencyGraph(allDefs: any[], allUses: any[]): any {
-    return { variables: new Set(), dependencies: new Map(), transitiveClosure: new Map(), stronglyConnectedComponents: [] };
+    return {
+      variables: new Set(),
+      dependencies: new Map(),
+      transitiveClosure: new Map(),
+      stronglyConnectedComponents: [],
+    };
   }
 
   private generateDataFlowEquations(cfg: ControlFlowGraph): any[] {
@@ -465,7 +493,10 @@ export class ControlFlowAnalyzer {
     return this.createEmptyLiveVariableAnalysis(); // Simplified implementation
   }
 
-  private performCriticalPathAnalysis(cfg: ControlFlowGraph, loopAnalysis: LoopAnalysis): CriticalPathAnalysis {
+  private performCriticalPathAnalysis(
+    cfg: ControlFlowGraph,
+    loopAnalysis: LoopAnalysis
+  ): CriticalPathAnalysis {
     return this.createEmptyCriticalPathAnalysis(); // Simplified implementation
   }
 }
@@ -488,4 +519,8 @@ export function analyzeCFG(
 /**
  * Export types for external use
  */
-export type { ControlFlowAnalysisResult, CFGAnalysisOptions, CFGAnalysisMetrics } from './types/control-flow-types.js';
+export type {
+  ControlFlowAnalysisResult,
+  CFGAnalysisOptions,
+  CFGAnalysisMetrics,
+} from './types/control-flow-types.js';

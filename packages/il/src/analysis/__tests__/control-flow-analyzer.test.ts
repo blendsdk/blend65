@@ -16,7 +16,14 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ControlFlowAnalyzer, analyzeCFG } from '../control-flow-analyzer.js';
-import { createILFunction, createILInstruction, ILInstructionType, createILVariable, createILConstant, createILLabel } from '../../il-types.js';
+import {
+  createILFunction,
+  createILInstruction,
+  ILInstructionType,
+  createILVariable,
+  createILConstant,
+  createILLabel,
+} from '../../il-types.js';
 
 describe('ControlFlowAnalyzer', () => {
   let analyzer: ControlFlowAnalyzer;
@@ -27,23 +34,31 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Basic CFG Construction', () => {
     it('should create CFG for simple function with single basic block', () => {
-      const ilFunction = createILFunction('test', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'test',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
         createILInstruction(
           ILInstructionType.LOAD_IMMEDIATE,
-          [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 42)],
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 42),
+          ],
           0
         ),
         createILInstruction(
           ILInstructionType.RETURN,
           [createILVariable('result', { kind: 'primitive', name: 'byte' })],
           1
-        )
+        ),
       ];
 
       const result = analyzer.analyzeFunction(ilFunction);
@@ -56,43 +71,56 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should create CFG for function with conditional branches', () => {
-      const ilFunction = createILFunction('conditional', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'conditional',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
         createILInstruction(
           ILInstructionType.LOAD_VARIABLE,
-          [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILVariable('x', { kind: 'primitive', name: 'byte' })],
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILVariable('x', { kind: 'primitive', name: 'byte' }),
+          ],
           0
         ),
         createILInstruction(
           ILInstructionType.BRANCH_IF_TRUE,
-          [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILLabel('then_label')],
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILLabel('then_label'),
+          ],
           1
         ),
         createILInstruction(
           ILInstructionType.LOAD_IMMEDIATE,
-          [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 0)],
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 0),
+          ],
           2
         ),
-        createILInstruction(
-          ILInstructionType.BRANCH,
-          [createILLabel('end_label')],
-          3
-        ),
+        createILInstruction(ILInstructionType.BRANCH, [createILLabel('end_label')], 3),
         createILInstruction(
           ILInstructionType.LOAD_IMMEDIATE,
-          [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)],
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
           4
         ),
         createILInstruction(
           ILInstructionType.RETURN,
           [createILVariable('result', { kind: 'primitive', name: 'byte' })],
           5
-        )
+        ),
       ];
 
       ilFunction.labels.set('then_label', 4);
@@ -106,43 +134,58 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should create CFG for function with loops', () => {
-      const ilFunction = createILFunction('loop', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'loop',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
         createILInstruction(
           ILInstructionType.LOAD_IMMEDIATE,
-          [createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 0)],
+          [
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 0),
+          ],
           0
         ),
         createILInstruction(
           ILInstructionType.COMPARE_LT,
-          [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 10)],
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 10),
+          ],
           1
         ),
         createILInstruction(
           ILInstructionType.BRANCH_IF_FALSE,
-          [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILLabel('loop_end')],
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILLabel('loop_end'),
+          ],
           2
         ),
         createILInstruction(
           ILInstructionType.ADD,
-          [createILVariable('i', { kind: 'primitive', name: 'byte' }), createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)],
+          [
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
           3
         ),
-        createILInstruction(
-          ILInstructionType.BRANCH,
-          [createILLabel('loop_start')],
-          4
-        ),
+        createILInstruction(ILInstructionType.BRANCH, [createILLabel('loop_start')], 4),
         createILInstruction(
           ILInstructionType.RETURN,
           [createILVariable('i', { kind: 'primitive', name: 'byte' })],
           5
-        )
+        ),
       ];
 
       ilFunction.labels.set('loop_start', 1);
@@ -158,19 +201,53 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Dominance Analysis', () => {
     it('should compute immediate dominators correctly', () => {
-      const ilFunction = createILFunction('dominance', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'dominance',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('x', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 0),
-        createILInstruction(ILInstructionType.BRANCH_IF_TRUE, [createILVariable('x', { kind: 'primitive', name: 'byte' }), createILLabel('branch1')], 1),
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('y', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 2)], 2),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('x', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_TRUE,
+          [createILVariable('x', { kind: 'primitive', name: 'byte' }), createILLabel('branch1')],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('y', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 2),
+          ],
+          2
+        ),
         createILInstruction(ILInstructionType.BRANCH, [createILLabel('end')], 3),
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('y', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 3)], 4),
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('y', { kind: 'primitive', name: 'byte' })], 5)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('y', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 3),
+          ],
+          4
+        ),
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('y', { kind: 'primitive', name: 'byte' })],
+          5
+        ),
       ];
 
       ilFunction.labels.set('branch1', 4);
@@ -184,15 +261,31 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should build dominance tree correctly', () => {
-      const ilFunction = createILFunction('tree', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'tree',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('x', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 0),
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('x', { kind: 'primitive', name: 'byte' })], 1)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('x', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('x', { kind: 'primitive', name: 'byte' })],
+          1
+        ),
       ];
 
       const result = analyzer.analyzeFunction(ilFunction);
@@ -205,19 +298,58 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Loop Analysis', () => {
     it('should detect natural loops correctly', () => {
-      const ilFunction = createILFunction('natural_loop', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'natural_loop',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 0)], 0),
-        createILInstruction(ILInstructionType.COMPARE_LT, [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 10)], 1),
-        createILInstruction(ILInstructionType.BRANCH_IF_FALSE, [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILLabel('loop_end')], 2),
-        createILInstruction(ILInstructionType.ADD, [createILVariable('i', { kind: 'primitive', name: 'byte' }), createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 3),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 0),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.COMPARE_LT,
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 10),
+          ],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_FALSE,
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILLabel('loop_end'),
+          ],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          3
+        ),
         createILInstruction(ILInstructionType.BRANCH, [createILLabel('loop_start')], 4),
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('i', { kind: 'primitive', name: 'byte' })], 5)
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('i', { kind: 'primitive', name: 'byte' })],
+          5
+        ),
       ];
 
       ilFunction.labels.set('loop_start', 1);
@@ -234,21 +366,80 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should classify loop characteristics correctly', () => {
-      const ilFunction = createILFunction('loop_characteristics', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'loop_characteristics',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 0)], 0),
-        createILInstruction(ILInstructionType.COMPARE_LT, [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 10)], 1),
-        createILInstruction(ILInstructionType.BRANCH_IF_FALSE, [createILVariable('temp', { kind: 'primitive', name: 'byte' }), createILLabel('loop_end')], 2),
-        createILInstruction(ILInstructionType.LOAD_ARRAY, [createILVariable('value', { kind: 'primitive', name: 'byte' }), createILVariable('array', { kind: 'array', elementType: { kind: 'primitive', name: 'byte' }, size: 10 }), createILVariable('i', { kind: 'primitive', name: 'byte' })], 3),
-        createILInstruction(ILInstructionType.CALL, [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILLabel('processValue'), createILVariable('value', { kind: 'primitive', name: 'byte' })], 4),
-        createILInstruction(ILInstructionType.ADD, [createILVariable('i', { kind: 'primitive', name: 'byte' }), createILVariable('i', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 5),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 0),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.COMPARE_LT,
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 10),
+          ],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_FALSE,
+          [
+            createILVariable('temp', { kind: 'primitive', name: 'byte' }),
+            createILLabel('loop_end'),
+          ],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.LOAD_ARRAY,
+          [
+            createILVariable('value', { kind: 'primitive', name: 'byte' }),
+            createILVariable('array', {
+              kind: 'array',
+              elementType: { kind: 'primitive', name: 'byte' },
+              size: 10,
+            }),
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+          ],
+          3
+        ),
+        createILInstruction(
+          ILInstructionType.CALL,
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILLabel('processValue'),
+            createILVariable('value', { kind: 'primitive', name: 'byte' }),
+          ],
+          4
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILVariable('i', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          5
+        ),
         createILInstruction(ILInstructionType.BRANCH, [createILLabel('loop_start')], 6),
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('result', { kind: 'primitive', name: 'byte' })], 7)
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('result', { kind: 'primitive', name: 'byte' })],
+          7
+        ),
       ];
 
       ilFunction.labels.set('loop_start', 1);
@@ -267,17 +458,48 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Data Dependency Analysis', () => {
     it('should extract variable definitions correctly', () => {
-      const ilFunction = createILFunction('definitions', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'definitions',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('x', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 42)], 0),
-        createILInstruction(ILInstructionType.ADD, [createILVariable('y', { kind: 'primitive', name: 'byte' }), createILVariable('x', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 1),
-        createILInstruction(ILInstructionType.STORE_VARIABLE, [createILVariable('z', { kind: 'primitive', name: 'byte' }), createILVariable('y', { kind: 'primitive', name: 'byte' })], 2),
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('z', { kind: 'primitive', name: 'byte' })], 3)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('x', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 42),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [
+            createILVariable('y', { kind: 'primitive', name: 'byte' }),
+            createILVariable('x', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.STORE_VARIABLE,
+          [
+            createILVariable('z', { kind: 'primitive', name: 'byte' }),
+            createILVariable('y', { kind: 'primitive', name: 'byte' }),
+          ],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('z', { kind: 'primitive', name: 'byte' })],
+          3
+        ),
       ];
 
       const result = analyzer.analyzeFunction(ilFunction);
@@ -288,17 +510,49 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should build dependency graphs correctly', () => {
-      const ilFunction = createILFunction('dependencies', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'dependencies',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('a', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 0),
-        createILInstruction(ILInstructionType.ADD, [createILVariable('b', { kind: 'primitive', name: 'byte' }), createILVariable('a', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 2)], 1),
-        createILInstruction(ILInstructionType.MUL, [createILVariable('c', { kind: 'primitive', name: 'byte' }), createILVariable('b', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 3)], 2),
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('c', { kind: 'primitive', name: 'byte' })], 3)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('a', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [
+            createILVariable('b', { kind: 'primitive', name: 'byte' }),
+            createILVariable('a', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 2),
+          ],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.MUL,
+          [
+            createILVariable('c', { kind: 'primitive', name: 'byte' }),
+            createILVariable('b', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 3),
+          ],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('c', { kind: 'primitive', name: 'byte' })],
+          3
+        ),
       ];
 
       const result = analyzer.analyzeFunction(ilFunction);
@@ -310,11 +564,16 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Performance Validation', () => {
     it('should complete analysis within performance targets', () => {
-      const ilFunction = createILFunction('performance', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'performance',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       const instructions = [];
       for (let i = 0; i < 50; i++) {
@@ -324,7 +583,7 @@ describe('ControlFlowAnalyzer', () => {
             [
               createILVariable(`var${i}`, { kind: 'primitive', name: 'byte' }),
               createILVariable(`var${i}`, { kind: 'primitive', name: 'byte' }),
-              createILConstant({ kind: 'primitive', name: 'byte' }, 1)
+              createILConstant({ kind: 'primitive', name: 'byte' }, 1),
             ],
             i
           )
@@ -350,11 +609,16 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should handle memory usage efficiently', () => {
-      const ilFunction = createILFunction('memory', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'memory',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       const instructions = [];
       for (let i = 0; i < 100; i++) {
@@ -363,7 +627,7 @@ describe('ControlFlowAnalyzer', () => {
             ILInstructionType.LOAD_IMMEDIATE,
             [
               createILVariable(`var${i}`, { kind: 'primitive', name: 'byte' }),
-              createILConstant({ kind: 'primitive', name: 'byte' }, i)
+              createILConstant({ kind: 'primitive', name: 'byte' }, i),
             ],
             i
           )
@@ -388,11 +652,16 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Edge Cases and Error Handling', () => {
     it('should handle empty functions gracefully', () => {
-      const ilFunction = createILFunction('empty', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'empty',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [];
 
@@ -405,14 +674,23 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should handle functions with only return statement', () => {
-      const ilFunction = createILFunction('return_only', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'return_only',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.RETURN, [createILConstant({ kind: 'primitive', name: 'byte' }, 42)], 0)
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILConstant({ kind: 'primitive', name: 'byte' }, 42)],
+          0
+        ),
       ];
 
       const result = analyzer.analyzeFunction(ilFunction);
@@ -423,24 +701,85 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should handle complex control flow patterns', () => {
-      const ilFunction = createILFunction('complex', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'complex',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('mode', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 0),
-        createILInstruction(ILInstructionType.COMPARE_EQ, [createILVariable('temp1', { kind: 'primitive', name: 'byte' }), createILVariable('mode', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 1),
-        createILInstruction(ILInstructionType.BRANCH_IF_TRUE, [createILVariable('temp1', { kind: 'primitive', name: 'byte' }), createILLabel('mode1')], 2),
-        createILInstruction(ILInstructionType.COMPARE_EQ, [createILVariable('temp2', { kind: 'primitive', name: 'byte' }), createILVariable('mode', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 2)], 3),
-        createILInstruction(ILInstructionType.BRANCH_IF_TRUE, [createILVariable('temp2', { kind: 'primitive', name: 'byte' }), createILLabel('mode2')], 4),
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 0)], 5),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('mode', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.COMPARE_EQ,
+          [
+            createILVariable('temp1', { kind: 'primitive', name: 'byte' }),
+            createILVariable('mode', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_TRUE,
+          [createILVariable('temp1', { kind: 'primitive', name: 'byte' }), createILLabel('mode1')],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.COMPARE_EQ,
+          [
+            createILVariable('temp2', { kind: 'primitive', name: 'byte' }),
+            createILVariable('mode', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 2),
+          ],
+          3
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_TRUE,
+          [createILVariable('temp2', { kind: 'primitive', name: 'byte' }), createILLabel('mode2')],
+          4
+        ),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 0),
+          ],
+          5
+        ),
         createILInstruction(ILInstructionType.BRANCH, [createILLabel('end')], 6),
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 7),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          7
+        ),
         createILInstruction(ILInstructionType.BRANCH, [createILLabel('end')], 8),
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 2)], 9),
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('result', { kind: 'primitive', name: 'byte' })], 10)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 2),
+          ],
+          9
+        ),
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('result', { kind: 'primitive', name: 'byte' })],
+          10
+        ),
       ];
 
       ilFunction.labels.set('mode1', 7);
@@ -457,11 +796,16 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Convenience Functions', () => {
     it('should handle empty functions gracefully', () => {
-      const ilFunction = createILFunction('empty', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'empty',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [];
 
@@ -474,14 +818,23 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should handle functions with only return statement', () => {
-      const ilFunction = createILFunction('return_only', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'return_only',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.RETURN, [createILConstant({ kind: 'primitive', name: 'byte' }, 42)], 0)
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILConstant({ kind: 'primitive', name: 'byte' }, 42)],
+          0
+        ),
       ];
 
       const result = analyzer.analyzeFunction(ilFunction);
@@ -492,29 +845,90 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should handle complex control flow patterns', () => {
-      const ilFunction = createILFunction('complex', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'complex',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       // Complex control flow with multiple branches and loops
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('mode', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 0),
-        createILInstruction(ILInstructionType.COMPARE_EQ, [createILVariable('temp1', { kind: 'primitive', name: 'byte' }), createILVariable('mode', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 1),
-        createILInstruction(ILInstructionType.BRANCH_IF_TRUE, [createILVariable('temp1', { kind: 'primitive', name: 'byte' }), createILLabel('mode1')], 2),
-        createILInstruction(ILInstructionType.COMPARE_EQ, [createILVariable('temp2', { kind: 'primitive', name: 'byte' }), createILVariable('mode', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 2)], 3),
-        createILInstruction(ILInstructionType.BRANCH_IF_TRUE, [createILVariable('temp2', { kind: 'primitive', name: 'byte' }), createILLabel('mode2')], 4),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('mode', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          0
+        ),
+        createILInstruction(
+          ILInstructionType.COMPARE_EQ,
+          [
+            createILVariable('temp1', { kind: 'primitive', name: 'byte' }),
+            createILVariable('mode', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_TRUE,
+          [createILVariable('temp1', { kind: 'primitive', name: 'byte' }), createILLabel('mode1')],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.COMPARE_EQ,
+          [
+            createILVariable('temp2', { kind: 'primitive', name: 'byte' }),
+            createILVariable('mode', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 2),
+          ],
+          3
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_TRUE,
+          [createILVariable('temp2', { kind: 'primitive', name: 'byte' }), createILLabel('mode2')],
+          4
+        ),
         // Default case
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 0)], 5),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 0),
+          ],
+          5
+        ),
         createILInstruction(ILInstructionType.BRANCH, [createILLabel('end')], 6),
         // Mode1 handler
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 1)], 7),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 1),
+          ],
+          7
+        ),
         createILInstruction(ILInstructionType.BRANCH, [createILLabel('end')], 8),
         // Mode2 handler
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILVariable('result', { kind: 'primitive', name: 'byte' }), createILConstant({ kind: 'primitive', name: 'byte' }, 2)], 9),
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [
+            createILVariable('result', { kind: 'primitive', name: 'byte' }),
+            createILConstant({ kind: 'primitive', name: 'byte' }, 2),
+          ],
+          9
+        ),
         // End
-        createILInstruction(ILInstructionType.RETURN, [createILVariable('result', { kind: 'primitive', name: 'byte' })], 10)
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILVariable('result', { kind: 'primitive', name: 'byte' })],
+          10
+        ),
       ];
 
       ilFunction.labels.set('mode1', 7);
@@ -532,14 +946,23 @@ describe('ControlFlowAnalyzer', () => {
 
   describe('Convenience Functions', () => {
     it('should provide analyzeCFG convenience function', () => {
-      const ilFunction = createILFunction('convenience', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'convenience',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.RETURN, [createILConstant({ kind: 'primitive', name: 'byte' }, 42)], 0)
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILConstant({ kind: 'primitive', name: 'byte' }, 42)],
+          0
+        ),
       ];
 
       const result = analyzeCFG(ilFunction);
@@ -550,20 +973,29 @@ describe('ControlFlowAnalyzer', () => {
     });
 
     it('should support custom analysis options', () => {
-      const ilFunction = createILFunction('options', ['test'], { kind: 'primitive', name: 'byte' }, {
-        line: 1,
-        column: 1,
-        offset: 0
-      });
+      const ilFunction = createILFunction(
+        'options',
+        ['test'],
+        { kind: 'primitive', name: 'byte' },
+        {
+          line: 1,
+          column: 1,
+          offset: 0,
+        }
+      );
 
       ilFunction.instructions = [
-        createILInstruction(ILInstructionType.RETURN, [createILConstant({ kind: 'primitive', name: 'byte' }, 42)], 0)
+        createILInstruction(
+          ILInstructionType.RETURN,
+          [createILConstant({ kind: 'primitive', name: 'byte' }, 42)],
+          0
+        ),
       ];
 
       const result = analyzeCFG(ilFunction, {
         enableDominanceAnalysis: false,
         enableLoopAnalysis: false,
-        enablePerformanceProfiling: true
+        enablePerformanceProfiling: true,
       });
 
       expect(result.cfg.functionName).toBe('options');

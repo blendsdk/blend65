@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Blend65Parser } from '../blend65/blend65-parser.js';
 import { tokenize } from '@blend65/lexer';
-import { Program } from '@blend65/ast';
 
 function parseSource(source: string) {
   const tokens = tokenize(source);
@@ -71,7 +70,13 @@ import func from target.system.memory.management.advanced`;
 
       expect(ast.imports[0].source.type).toBe('QualifiedName');
       if (ast.imports[0].source.type === 'QualifiedName') {
-        expect(ast.imports[0].source.parts).toEqual(['target', 'system', 'memory', 'management', 'advanced']);
+        expect(ast.imports[0].source.parts).toEqual([
+          'target',
+          'system',
+          'memory',
+          'management',
+          'advanced',
+        ]);
       }
     });
 
@@ -451,7 +456,7 @@ var single: byte[1] = [42]`;
     });
 
     it('should handle large array literals', () => {
-      const elements = Array.from({length: 100}, (_, i) => i).join(', ');
+      const elements = Array.from({ length: 100 }, (_, i) => i).join(', ');
       const source = `module Main
 var large: byte[100] = [${elements}]`;
       const ast = parseSource(source);

@@ -8,11 +8,10 @@
 import {
   ILProgram,
   ILFunction,
-  ILInstruction,
   ILInstructionType,
   isILConstant,
   createILInstruction,
-  createILConstant
+  createILConstant,
 } from '../il-types.js';
 import { ILAnalyticsSuite } from '../analysis/il-analytics-suite.js';
 import {
@@ -20,21 +19,15 @@ import {
   OptimizationContext,
   OptimizationSessionResult,
   OptimizationPassResult,
-  OptimizationPattern,
   OptimizationPatternRegistry,
   OptimizationMetrics,
   OptimizationLevel,
   OptimizationCategory,
-  OptimizationPriority,
-  OptimizationError,
-  OptimizationWarning,
   OptimizationErrorType,
-  OptimizationWarningType,
   OptimizationMetricsChange,
   OptimizationSummary,
   DEFAULT_OPTIMIZATION_CONFIG,
   OptimizationPass,
-  OptimizationResult
 } from './types.js';
 
 /**
@@ -68,21 +61,13 @@ export class ILOptimizationFramework {
       const analytics = await this.analyticsEngine.analyzeProgram(program);
 
       // Phase 2: Create Optimization Context
-      const context = this.createOptimizationContext(
-        program,
-        analytics,
-        config
-      );
+      const context = this.createOptimizationContext(program, analytics, config);
 
       // Phase 3: Pattern Selection and Sequencing
       const selectedPasses = this.selectOptimizationPasses(context);
 
       // Phase 4: Iterative Optimization Application
-      const passResults = await this.executeOptimizationPasses(
-        program,
-        selectedPasses,
-        context
-      );
+      const passResults = await this.executeOptimizationPasses(program, selectedPasses, context);
 
       // Phase 5: Results Analysis and Summary
       const finalMetrics = this.calculateFinalMetrics(
@@ -109,13 +94,14 @@ export class ILOptimizationFramework {
         timing: {
           totalTime: Date.now() - sessionStartTime,
           timePerCategory: this.calculateTimePerCategory(passResults),
-          timePerPass: passResults.map(r => r.executionTime)
+          timePerPass: passResults.map(r => r.executionTime),
         },
-        debug: config.debug.generateReports ? this.generateDebugInfo(passResults) : undefined
+        debug: config.debug.generateReports ? this.generateDebugInfo(passResults) : undefined,
       };
-
     } catch (error) {
-      throw new Error(`Optimization failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Optimization failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -128,13 +114,15 @@ export class ILOptimizationFramework {
   ): Promise<OptimizationSessionResult> {
     const program: ILProgram = {
       name: 'single-function-optimization',
-      modules: [{
-        qualifiedName: ['Optimization'],
-        functions: [ilFunction],
-        moduleData: [],
-        exports: [],
-        imports: []
-      }],
+      modules: [
+        {
+          qualifiedName: ['Optimization'],
+          functions: [ilFunction],
+          moduleData: [],
+          exports: [],
+          imports: [],
+        },
+      ],
       globalData: [],
       imports: [],
       exports: [],
@@ -142,8 +130,8 @@ export class ILOptimizationFramework {
         originalFiles: ['single-function-optimization'],
         compilationTimestamp: new Date(),
         compilerVersion: '0.1.0',
-        targetPlatform: config.targetVariant
-      }
+        targetPlatform: config.targetVariant,
+      },
     };
 
     return this.optimizeProgram(program, config);
@@ -159,7 +147,7 @@ export class ILOptimizationFramework {
     // O1 - Basic optimizations
     this.optimizationPasses.set(OptimizationLevel.O1, [
       this.createDeadCodeEliminationPass(),
-      this.createBasicConstantFoldingPass()
+      this.createBasicConstantFoldingPass(),
     ]);
 
     // O2 - Standard optimizations
@@ -167,7 +155,7 @@ export class ILOptimizationFramework {
       this.createDeadCodeEliminationPass(),
       this.createConstantFoldingPass(),
       this.createBasicFunctionOptimizationPass(),
-      this.createRegisterOptimizationPass()
+      this.createRegisterOptimizationPass(),
     ]);
 
     // O3 - Aggressive optimizations
@@ -177,20 +165,18 @@ export class ILOptimizationFramework {
       this.createAggressiveFunctionOptimizationPass(),
       this.createAdvancedRegisterOptimizationPass(),
       this.createSixtyTwoZeroTwoOptimizationPass(),
-      this.createPeepholeOptimizationPass()
+      this.createPeepholeOptimizationPass(),
     ]);
 
     // Os - Size optimizations
     this.optimizationPasses.set(OptimizationLevel.Os, [
       this.createDeadCodeEliminationPass(),
       this.createSizeOptimizedConstantFoldingPass(),
-      this.createCodeSizeReductionPass()
+      this.createCodeSizeReductionPass(),
     ]);
 
     // Og - Debug optimizations
-    this.optimizationPasses.set(OptimizationLevel.Og, [
-      this.createDeadCodeEliminationPass()
-    ]);
+    this.optimizationPasses.set(OptimizationLevel.Og, [this.createDeadCodeEliminationPass()]);
   }
 
   /**
@@ -215,7 +201,7 @@ export class ILOptimizationFramework {
       targetVariant: config.targetVariant,
       config,
       appliedPatterns: new Set(),
-      performanceMetrics: this.createInitialMetrics()
+      performanceMetrics: this.createInitialMetrics(),
     };
   }
 
@@ -226,9 +212,7 @@ export class ILOptimizationFramework {
     const basePasses = this.optimizationPasses.get(context.optimizationLevel) || [];
 
     // Filter passes based on enabled categories
-    const filteredPasses = basePasses.filter(pass =>
-      this.isPassEnabled(pass, context.config)
-    );
+    const filteredPasses = basePasses.filter(pass => this.isPassEnabled(pass, context.config));
 
     // Add analytics-driven pattern-specific passes
     const patternPasses = this.createPatternSpecificPasses(context);
@@ -257,7 +241,8 @@ export class ILOptimizationFramework {
         try {
           // Update context with current program
           context.program = currentProgram;
-          context.currentFunction = currentProgram.modules[0]?.functions[0] || context.currentFunction;
+          context.currentFunction =
+            currentProgram.modules[0]?.functions[0] || context.currentFunction;
 
           const result = pass.execute(currentProgram, context);
 
@@ -282,7 +267,6 @@ export class ILOptimizationFramework {
           if (Date.now() - passStartTime > context.config.timeLimit) {
             break;
           }
-
         } catch (error) {
           results.push({
             success: false,
@@ -290,12 +274,14 @@ export class ILOptimizationFramework {
             appliedPatterns: [],
             executionTime: Date.now() - passStartTime,
             shouldRunAgain: false,
-            errors: [{
-              type: OptimizationErrorType.PATTERN_APPLICATION_FAILED,
-              message: `Pass ${pass.name} failed: ${error instanceof Error ? error.message : String(error)}`,
-              severity: 'error'
-            }],
-            warnings: []
+            errors: [
+              {
+                type: OptimizationErrorType.PATTERN_APPLICATION_FAILED,
+                message: `Pass ${pass.name} failed: ${error instanceof Error ? error.message : String(error)}`,
+                severity: 'error',
+              },
+            ],
+            warnings: [],
           });
         }
       }
@@ -323,12 +309,11 @@ export class ILOptimizationFramework {
     const successfulPasses = passResults.filter(r => r.success);
 
     const totalCyclesSaved = passResults.reduce(
-      (sum, r) => sum + Math.abs(r.metricsChange.cyclesDelta), 0
+      (sum, r) => sum + Math.abs(r.metricsChange.cyclesDelta),
+      0
     );
 
-    const totalSizeChange = passResults.reduce(
-      (sum, r) => sum + r.metricsChange.sizeDelta, 0
-    );
+    const totalSizeChange = passResults.reduce((sum, r) => sum + r.metricsChange.sizeDelta, 0);
 
     const effectiveness = this.calculateEffectiveness(
       originalProgram,
@@ -339,19 +324,17 @@ export class ILOptimizationFramework {
     return {
       totalCyclesSaved,
       totalSizeChange,
-      totalMemorySaved: Math.abs(passResults.reduce(
-        (sum, r) => sum + r.metricsChange.memoryDelta, 0
-      )),
-      patternsApplied: successfulPasses.reduce(
-        (sum, r) => sum + r.appliedPatterns.length, 0
+      totalMemorySaved: Math.abs(
+        passResults.reduce((sum, r) => sum + r.metricsChange.memoryDelta, 0)
       ),
+      patternsApplied: successfulPasses.reduce((sum, r) => sum + r.appliedPatterns.length, 0),
       passesCompleted: successfulPasses.length,
       optimizationTime: totalTime,
       performanceGrade: this.calculatePerformanceGrade({
         totalCyclesSaved,
-        effectiveness
+        effectiveness,
       } as OptimizationMetrics),
-      effectiveness
+      effectiveness,
     };
   }
 
@@ -376,12 +359,10 @@ export class ILOptimizationFramework {
       finalComplexity,
       performanceImprovement,
       sizeChange,
-      successfulPatterns: successfulResults.reduce(
-        (sum, r) => sum + r.appliedPatterns.length, 0
-      ),
+      successfulPatterns: successfulResults.reduce((sum, r) => sum + r.appliedPatterns.length, 0),
       attemptedPatterns: passResults.length,
       topPatterns: this.identifyTopPatterns(passResults),
-      recommendations: this.generateRecommendations(analytics, passResults)
+      recommendations: this.generateRecommendations(analytics, passResults),
     };
   }
 
@@ -406,14 +387,17 @@ export class ILOptimizationFramework {
             const originalInstructions = func.instructions.slice();
 
             // Remove NOP instructions (simple optimization)
-            func.instructions = func.instructions.filter(inst =>
-              inst.type !== ILInstructionType.NOP || inst.metadata?.debugInfo?.comments !== undefined
+            func.instructions = func.instructions.filter(
+              inst =>
+                inst.type !== ILInstructionType.NOP ||
+                inst.metadata?.debugInfo?.comments !== undefined
             );
 
             if (func.instructions.length < originalInstructions.length) {
               optimized = true;
-              metricsChange.sizeDelta -= (originalInstructions.length - func.instructions.length) * 2; // Assume 2 bytes per instruction
-              metricsChange.cyclesDelta -= (originalInstructions.length - func.instructions.length); // Assume 1 cycle per instruction
+              metricsChange.sizeDelta -=
+                (originalInstructions.length - func.instructions.length) * 2; // Assume 2 bytes per instruction
+              metricsChange.cyclesDelta -= originalInstructions.length - func.instructions.length; // Assume 1 cycle per instruction
             }
           }
         }
@@ -426,9 +410,9 @@ export class ILOptimizationFramework {
           executionTime: Date.now() - startTime,
           shouldRunAgain: false,
           errors: [],
-          warnings: []
+          warnings: [],
         };
-      }
+      },
     };
   }
 
@@ -457,35 +441,34 @@ export class ILOptimizationFramework {
               const inst3 = func.instructions[i + 2];
 
               // Pattern: load immediate, load immediate, add -> load immediate (sum)
-              if (inst1.type === ILInstructionType.LOAD_IMMEDIATE &&
-                  inst2.type === ILInstructionType.LOAD_IMMEDIATE &&
-                  inst3.type === ILInstructionType.ADD &&
-                  'valueType' in inst1.operands[0] &&
-                  'valueType' in inst2.operands[0] &&
-                  isILConstant(inst1.operands[0]) &&
-                  isILConstant(inst2.operands[0]) &&
-                  typeof inst1.operands[0].value === 'number' &&
-                  typeof inst2.operands[0].value === 'number') {
-
+              if (
+                inst1.type === ILInstructionType.LOAD_IMMEDIATE &&
+                inst2.type === ILInstructionType.LOAD_IMMEDIATE &&
+                inst3.type === ILInstructionType.ADD &&
+                'valueType' in inst1.operands[0] &&
+                'valueType' in inst2.operands[0] &&
+                isILConstant(inst1.operands[0]) &&
+                isILConstant(inst2.operands[0]) &&
+                typeof inst1.operands[0].value === 'number' &&
+                typeof inst2.operands[0].value === 'number'
+              ) {
                 const sum = inst1.operands[0].value + inst2.operands[0].value;
 
                 // Create optimized instruction
                 const optimizedInstruction = createILInstruction(
                   ILInstructionType.LOAD_IMMEDIATE,
-                  [createILConstant(
-                    { kind: 'primitive', name: 'byte' },
-                    sum,
-                    'decimal'
-                  )],
+                  [createILConstant({ kind: 'primitive', name: 'byte' }, sum, 'decimal')],
                   inst1.id,
                   {
                     metadata: {
                       processedBy: ['constant-folding'],
                       synthetic: true,
                       debugInfo: {
-                        comments: [`Constant folded: ${inst1.operands[0].value} + ${inst2.operands[0].value} = ${sum}`]
-                      }
-                    }
+                        comments: [
+                          `Constant folded: ${inst1.operands[0].value} + ${inst2.operands[0].value} = ${sum}`,
+                        ],
+                      },
+                    },
                   }
                 );
 
@@ -508,9 +491,9 @@ export class ILOptimizationFramework {
           executionTime: Date.now() - startTime,
           shouldRunAgain: optimized,
           errors: [],
-          warnings: []
+          warnings: [],
         };
-      }
+      },
     };
   }
 
@@ -533,8 +516,8 @@ export class ILOptimizationFramework {
         executionTime: 0,
         shouldRunAgain: false,
         errors: [],
-        warnings: []
-      })
+        warnings: [],
+      }),
     };
   }
 
@@ -551,8 +534,8 @@ export class ILOptimizationFramework {
         executionTime: 0,
         shouldRunAgain: false,
         errors: [],
-        warnings: []
-      })
+        warnings: [],
+      }),
     };
   }
 
@@ -581,8 +564,8 @@ export class ILOptimizationFramework {
         executionTime: 0,
         shouldRunAgain: false,
         errors: [],
-        warnings: []
-      })
+        warnings: [],
+      }),
     };
   }
 
@@ -599,8 +582,8 @@ export class ILOptimizationFramework {
         executionTime: 0,
         shouldRunAgain: false,
         errors: [],
-        warnings: []
-      })
+        warnings: [],
+      }),
     };
   }
 
@@ -621,8 +604,8 @@ export class ILOptimizationFramework {
         executionTime: 0,
         shouldRunAgain: false,
         errors: [],
-        warnings: []
-      })
+        warnings: [],
+      }),
     };
   }
 
@@ -635,7 +618,7 @@ export class ILOptimizationFramework {
       passesCompleted: 0,
       optimizationTime: 0,
       performanceGrade: 'C',
-      effectiveness: 0
+      effectiveness: 0,
     };
   }
 
@@ -645,7 +628,7 @@ export class ILOptimizationFramework {
       sizeDelta: 0,
       memoryDelta: 0,
       registerPressureDelta: 0,
-      complexityDelta: 0
+      complexityDelta: 0,
     };
   }
 
@@ -682,7 +665,9 @@ export class ILOptimizationFramework {
     return 'F';
   }
 
-  private calculateTimePerCategory(passResults: OptimizationPassResult[]): Record<OptimizationCategory, number> {
+  private calculateTimePerCategory(
+    passResults: OptimizationPassResult[]
+  ): Record<OptimizationCategory, number> {
     const timePerCategory: Record<OptimizationCategory, number> = {} as any;
 
     // Initialize all categories to 0
@@ -705,18 +690,18 @@ export class ILOptimizationFramework {
       analyticsAccuracy: {
         performancePredictionAccuracy: 85,
         patternApplicabilityAccuracy: 80,
-        analyticsEffectiveness: 82
+        analyticsEffectiveness: 82,
       },
       patternStatistics: {
         mostFrequentPatterns: ['dead-code-elimination', 'constant-folding-basic'],
         mostEffectivePatterns: ['constant-folding-basic'],
-        problematicPatterns: []
+        problematicPatterns: [],
       },
       bottlenecks: {
         slowestCategories: [OptimizationCategory.FUNCTIONS],
         slowestFunctions: ['main'],
-        slowestPatterns: ['function-optimization-basic']
-      }
+        slowestPatterns: ['function-optimization-basic'],
+      },
     };
   }
 
@@ -734,29 +719,34 @@ export class ILOptimizationFramework {
 
     if (originalInstructions === 0) return 100;
 
-    const instructionReduction = (originalInstructions - optimizedInstructions) / originalInstructions;
+    const instructionReduction =
+      (originalInstructions - optimizedInstructions) / originalInstructions;
     const cycleReduction = cyclesSaved / Math.max(originalInstructions, 1);
 
     return Math.min(100, (instructionReduction + cycleReduction) * 50);
   }
 
   private countInstructions(program: ILProgram): number {
-    return program.modules.reduce((total, module) =>
-      total + module.functions.reduce((funcTotal, func) =>
-        funcTotal + func.instructions.length, 0
-      ), 0
+    return program.modules.reduce(
+      (total, module) =>
+        total +
+        module.functions.reduce((funcTotal, func) => funcTotal + func.instructions.length, 0),
+      0
     );
   }
 
   private estimateProgramComplexity(program: ILProgram): number {
-    return this.countInstructions(program) +
-           program.modules.length * 10 +
-           program.modules.reduce((sum, m) => sum + m.functions.length, 0) * 5;
+    return (
+      this.countInstructions(program) +
+      program.modules.length * 10 +
+      program.modules.reduce((sum, m) => sum + m.functions.length, 0) * 5
+    );
   }
 
   private calculatePerformanceImprovement(passResults: OptimizationPassResult[]): number {
     const totalCyclesSaved = passResults.reduce(
-      (sum, r) => sum + Math.abs(r.metricsChange.cyclesDelta), 0
+      (sum, r) => sum + Math.abs(r.metricsChange.cyclesDelta),
+      0
     );
     return Math.min(100, totalCyclesSaved / 10); // Scale to percentage
   }
@@ -766,11 +756,18 @@ export class ILOptimizationFramework {
   }
 
   private identifyTopPatterns(passResults: OptimizationPassResult[]) {
-    const patternStats = new Map<string, { applications: number; cyclesSaved: number; name: string }>();
+    const patternStats = new Map<
+      string,
+      { applications: number; cyclesSaved: number; name: string }
+    >();
 
     for (const result of passResults) {
       for (const patternId of result.appliedPatterns) {
-        const existing = patternStats.get(patternId) || { applications: 0, cyclesSaved: 0, name: patternId };
+        const existing = patternStats.get(patternId) || {
+          applications: 0,
+          cyclesSaved: 0,
+          name: patternId,
+        };
         existing.applications++;
         existing.cyclesSaved += Math.abs(result.metricsChange.cyclesDelta);
         patternStats.set(patternId, existing);
@@ -782,7 +779,7 @@ export class ILOptimizationFramework {
         patternId,
         name: stats.name,
         applications: stats.applications,
-        cyclesSaved: stats.cyclesSaved
+        cyclesSaved: stats.cyclesSaved,
       }))
       .sort((a, b) => b.cyclesSaved - a.cyclesSaved)
       .slice(0, 5);

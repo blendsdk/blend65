@@ -8,13 +8,8 @@
  * @fileoverview Pattern-readiness analytics for intelligent optimization
  */
 
-import type { ILFunction, ILProgram } from '../il-types.js';
-import type {
-  ILQualityAnalysisResult,
-  OptimizationCategory,
-  PatternApplicabilityScore,
-  OptimizationReadinessAnalysis
-} from './types/metrics-types.js';
+import type { ILProgram } from '../il-types.js';
+import type { ILQualityAnalysisResult, OptimizationCategory } from './types/metrics-types.js';
 import type { ControlFlowAnalysisResult } from './types/control-flow-types.js';
 import type { SixtyTwo6502ValidationResult } from './types/6502-analysis-types.js';
 
@@ -48,14 +43,14 @@ const PatternCategoryEnum = {
   MATHEMATICS: 'mathematics' as const,
   HARDWARE: 'hardware' as const,
   CONTROL_FLOW: 'control_flow' as const,
-  MEMORY: 'memory' as const
+  MEMORY: 'memory' as const,
 };
 
 const PatternPriorityEnum = {
   LOW: 1 as const,
   MEDIUM: 2 as const,
   HIGH: 3 as const,
-  CRITICAL: 4 as const
+  CRITICAL: 4 as const,
 };
 
 // =============================================================================
@@ -174,11 +169,11 @@ export interface PatternAnalysisMetadata {
 // =============================================================================
 
 export type PatternConfidenceLevel =
-  | 'very_high'  // >90% confidence
-  | 'high'       // 75-90% confidence
-  | 'medium'     // 50-75% confidence
-  | 'low'        // 25-50% confidence
-  | 'very_low';  // <25% confidence
+  | 'very_high' // >90% confidence
+  | 'high' // 75-90% confidence
+  | 'medium' // 50-75% confidence
+  | 'low' // 25-50% confidence
+  | 'very_low'; // <25% confidence
 
 export interface PatternPrerequisite {
   readonly prerequisiteId: string;
@@ -229,12 +224,12 @@ export type PatternRiskType =
 export type RiskSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 export type PatternConflictType =
-  | 'direct_conflict'      // Patterns directly contradict each other
-  | 'resource_conflict'    // Compete for same resources
-  | 'ordering_dependency'  // Order-dependent application
-  | 'semantic_conflict'    // Semantic incompatibility
+  | 'direct_conflict' // Patterns directly contradict each other
+  | 'resource_conflict' // Compete for same resources
+  | 'ordering_dependency' // Order-dependent application
+  | 'semantic_conflict' // Semantic incompatibility
   | 'performance_conflict' // Performance trade-off conflict
-  | 'safety_conflict';     // Safety requirement conflict
+  | 'safety_conflict'; // Safety requirement conflict
 
 export type ConflictSeverity = 'minor' | 'moderate' | 'major' | 'blocking';
 
@@ -263,11 +258,11 @@ export interface ConflictResolutionOutcome {
 }
 
 export type OptimizationStrategyType =
-  | 'aggressive'     // Maximum optimization, accepts higher risk
-  | 'balanced'       // Balance between safety and performance
-  | 'conservative'   // Safety-first approach
-  | 'incremental'    // Step-by-step optimization
-  | 'experimental';  // Experimental optimizations
+  | 'aggressive' // Maximum optimization, accepts higher risk
+  | 'balanced' // Balance between safety and performance
+  | 'conservative' // Safety-first approach
+  | 'incremental' // Step-by-step optimization
+  | 'experimental'; // Experimental optimizations
 
 export interface StrategyBenefitEstimate {
   readonly performanceImprovement: number; // Percentage
@@ -490,7 +485,7 @@ export class PatternReadinessAnalyzer {
       patternSelectionMetrics,
       applicationOrder,
       safetyAssessment,
-      analysisMetadata: this.createAnalysisMetadata(analysisTime)
+      analysisMetadata: this.createAnalysisMetadata(analysisTime),
     };
   }
 
@@ -511,7 +506,7 @@ export class PatternReadinessAnalyzer {
       PatternCategoryEnum.HARDWARE,
       PatternCategoryEnum.CONTROL_FLOW,
       PatternCategoryEnum.MEMORY,
-      PatternCategoryEnum.BASIC
+      PatternCategoryEnum.BASIC,
     ];
 
     for (const category of availableCategories) {
@@ -531,7 +526,8 @@ export class PatternReadinessAnalyzer {
           sixtyTwoAnalysis
         );
 
-        if (recommendation.applicabilityScore > 20) { // Threshold for consideration
+        if (recommendation.applicabilityScore > 20) {
+          // Threshold for consideration
           recommendations.push(recommendation);
         }
       }
@@ -561,18 +557,10 @@ export class PatternReadinessAnalyzer {
     );
 
     // Calculate impact score based on potential benefit
-    const impactScore = this.calculatePatternImpact(
-      pattern,
-      qualityAnalysis,
-      sixtyTwoAnalysis
-    );
+    const impactScore = this.calculatePatternImpact(pattern, qualityAnalysis, sixtyTwoAnalysis);
 
     // Calculate safety score
-    const safetyScore = this.calculatePatternSafety(
-      pattern,
-      qualityAnalysis,
-      cfgAnalysis
-    );
+    const safetyScore = this.calculatePatternSafety(pattern, qualityAnalysis, cfgAnalysis);
 
     // Calculate complexity score
     const complexityScore = this.calculatePatternComplexity(pattern, qualityAnalysis);
@@ -596,7 +584,7 @@ export class PatternReadinessAnalyzer {
       prerequisites: this.analyzePatternPrerequisites(pattern, qualityAnalysis),
       expectedBenefit: this.estimatePatternBenefit(pattern, qualityAnalysis),
       applicationContext: this.createApplicationContext(pattern, program),
-      riskFactors: this.identifyPatternRisks(pattern, qualityAnalysis)
+      riskFactors: this.identifyPatternRisks(pattern, qualityAnalysis),
     };
   }
 
@@ -621,9 +609,11 @@ export class PatternReadinessAnalyzer {
 
     // Factor in optimization readiness
     const readiness = qualityAnalysis.optimizationReadiness;
-    const categoryReadiness = readiness.categoryReadiness.get(this.mapToOptimizationCategory(pattern.category));
+    const categoryReadiness = readiness.categoryReadiness.get(
+      this.mapToOptimizationCategory(pattern.category)
+    );
     if (categoryReadiness) {
-      score += (categoryReadiness.readinessScore - 50); // Add/subtract based on readiness
+      score += categoryReadiness.readinessScore - 50; // Add/subtract based on readiness
     }
 
     // Factor in CFG characteristics
@@ -769,10 +759,10 @@ export class PatternReadinessAnalyzer {
     const weights = this.getWeightsFromGoals();
 
     const weightedScore =
-      (applicabilityScore * weights.applicability) +
-      (impactScore * weights.impact) +
-      (safetyScore * weights.safety) +
-      ((100 - complexityScore) * weights.simplicity); // Lower complexity is better
+      applicabilityScore * weights.applicability +
+      impactScore * weights.impact +
+      safetyScore * weights.safety +
+      (100 - complexityScore) * weights.simplicity; // Lower complexity is better
 
     return Math.max(0, Math.min(100, weightedScore));
   }
@@ -780,7 +770,12 @@ export class PatternReadinessAnalyzer {
   /**
    * Get scoring weights based on optimization goals.
    */
-  private getWeightsFromGoals(): { applicability: number, impact: number, safety: number, simplicity: number } {
+  private getWeightsFromGoals(): {
+    applicability: number;
+    impact: number;
+    safety: number;
+    simplicity: number;
+  } {
     const goals = this.options.optimizationGoals;
 
     if (goals.prioritizePerformance) {
@@ -852,7 +847,7 @@ export class PatternReadinessAnalyzer {
       conflictProbability,
       impactAssessment: this.assessConflictImpact(pattern1, pattern2, conflictType),
       resolutionStrategies: this.generateResolutionStrategies(conflictType, pattern1, pattern2),
-      avoidanceRecommendations: this.generateAvoidanceRecommendations(conflictType)
+      avoidanceRecommendations: this.generateAvoidanceRecommendations(conflictType),
     };
   }
 
@@ -879,7 +874,7 @@ export class PatternReadinessAnalyzer {
       expectedImprovement,
       riskProfile,
       resourceRequirements,
-      alternativeStrategies: this.generateAlternativeStrategies(applicablePatterns, conflicts)
+      alternativeStrategies: this.generateAlternativeStrategies(applicablePatterns, conflicts),
     };
   }
 
@@ -896,26 +891,26 @@ export class PatternReadinessAnalyzer {
         prioritizeMemory: false,
         prioritizeSafety: true,
         prioritizeMaintainability: false,
-        targetImprovement: 20
+        targetImprovement: 20,
       },
       platformConstraints: {
         memoryConstraints: {
           maxZeroPageUsage: 64,
           maxRamUsage: 32768,
-          maxStackUsage: 256
+          maxStackUsage: 256,
         },
         timingConstraints: {
           maxCycleCount: 1000000,
           interruptLatencyMax: 100,
-          realTimeRequirements: false
+          realTimeRequirements: false,
         },
         hardwareConstraints: {
           platform: 'c64' as TargetPlatform,
           availableRegisters: ['A', 'X', 'Y'],
           specialInstructions: [],
-          memoryBanking: false
-        }
-      }
+          memoryBanking: false,
+        },
+      },
     };
   }
 
@@ -948,7 +943,7 @@ export class PatternReadinessAnalyzer {
           prerequisites: this.extractPrerequisites(phasePatterns),
           validationRequired: phasePatterns.some(p => p.safetyScore < 80),
           rollbackStrategy: this.createRollbackStrategy(),
-          successCriteria: this.createSuccessCriteria(phasePatterns)
+          successCriteria: this.createSuccessCriteria(phasePatterns),
         });
       }
     }
@@ -968,14 +963,15 @@ export class PatternReadinessAnalyzer {
     const unsafePatterns = patterns.filter(p => p.safetyScore < 50);
 
     return {
-      overallSafetyScore: patterns.length > 0
-        ? patterns.reduce((sum, p) => sum + p.safetyScore, 0) / patterns.length
-        : 100,
+      overallSafetyScore:
+        patterns.length > 0
+          ? patterns.reduce((sum, p) => sum + p.safetyScore, 0) / patterns.length
+          : 100,
       safePatternCount: safePatterns.length,
       riskyPatternCount: riskyPatterns.length,
       unsafePatternCount: unsafePatterns.length,
       safetyRecommendations: this.generateSafetyRecommendations(riskyPatterns, unsafePatterns),
-      requiredValidation: this.determineValidationRequirements(riskyPatterns, unsafePatterns)
+      requiredValidation: this.determineValidationRequirements(riskyPatterns, unsafePatterns),
     };
   }
 
@@ -989,7 +985,7 @@ export class PatternReadinessAnalyzer {
       riskyPatternCount: 0,
       unsafePatternCount: 0,
       safetyRecommendations: [],
-      requiredValidation: []
+      requiredValidation: [],
     };
   }
 
@@ -1012,8 +1008,8 @@ export class PatternReadinessAnalyzer {
         selectionTimeMs: analysisTime,
         memoryUsageBytes: patterns.length * 1024, // Rough estimate
         cacheHitRate: 0.8, // Assume good cache performance
-        predictionAccuracy: 0.85 // Estimate prediction accuracy
-      }
+        predictionAccuracy: 0.85, // Estimate prediction accuracy
+      },
     };
   }
 
@@ -1027,14 +1023,16 @@ export class PatternReadinessAnalyzer {
       inputQualityScore: 85, // Estimate based on comprehensive analysis
       patternLibraryVersion: '1.0.0',
       platformTarget: this.options.platformConstraints.hardwareConstraints.platform,
-      analysisOptions: this.options
+      analysisOptions: this.options,
     };
   }
 
   /**
    * Map pattern category to optimization category.
    */
-  private mapToOptimizationCategory(patternCategory: PatternCategory | string): OptimizationCategory {
+  private mapToOptimizationCategory(
+    patternCategory: PatternCategory | string
+  ): OptimizationCategory {
     switch (patternCategory) {
       case PatternCategoryEnum.MATHEMATICS:
         return 'arithmetic';
@@ -1053,7 +1051,10 @@ export class PatternReadinessAnalyzer {
   /**
    * Determine confidence level for pattern recommendation.
    */
-  private determineConfidenceLevel(applicabilityScore: number, safetyScore: number): PatternConfidenceLevel {
+  private determineConfidenceLevel(
+    applicabilityScore: number,
+    safetyScore: number
+  ): PatternConfidenceLevel {
     const combined = (applicabilityScore + safetyScore) / 2;
 
     if (combined >= 90) return 'very_high';
@@ -1079,7 +1080,7 @@ export class PatternReadinessAnalyzer {
         description: 'Control flow graph must be available',
         satisfied: true, // Assume CFG is available
         satisfactionConfidence: 0.95,
-        blockingFactor: 100
+        blockingFactor: 100,
       });
     }
 
@@ -1101,8 +1102,8 @@ export class PatternReadinessAnalyzer {
       confidenceInterval: {
         lowerBound: pattern.expectedImprovement.improvementPercentage * 0.7,
         upperBound: pattern.expectedImprovement.improvementPercentage * 1.3,
-        confidence: 0.8
-      }
+        confidence: 0.8,
+      },
     };
   }
 
@@ -1113,9 +1114,10 @@ export class PatternReadinessAnalyzer {
     pattern: OptimizationPattern,
     program: ILProgram
   ): PatternApplicationContext {
-    const firstFunction = program.modules.length > 0 && program.modules[0].functions.length > 0
-      ? program.modules[0].functions[0].name
-      : 'main';
+    const firstFunction =
+      program.modules.length > 0 && program.modules[0].functions.length > 0
+        ? program.modules[0].functions[0].name
+        : 'main';
 
     return {
       functionContext: firstFunction,
@@ -1124,13 +1126,13 @@ export class PatternReadinessAnalyzer {
       performanceContext: {
         criticalPath: false,
         executionFrequency: 'frequent',
-        performanceTarget: 1000
+        performanceTarget: 1000,
       },
       safetyContext: {
         safetyRequirement: 'standard',
         validationLevel: 'standard',
-        testCoverage: 0.8
-      }
+        testCoverage: 0.8,
+      },
     };
   }
 
@@ -1150,7 +1152,7 @@ export class PatternReadinessAnalyzer {
         severity: 'medium',
         probability: 0.3,
         mitigation: 'Extensive testing and validation required',
-        acceptanceRecommendation: 'Use only with comprehensive test coverage'
+        acceptanceRecommendation: 'Use only with comprehensive test coverage',
       });
     }
 
@@ -1161,10 +1163,14 @@ export class PatternReadinessAnalyzer {
 
   private determineStrategyType(): OptimizationStrategyType {
     switch (this.options.riskTolerance) {
-      case 'risk_averse': return 'conservative';
-      case 'experimental': return 'experimental';
-      case 'risk_accepting': return 'aggressive';
-      default: return 'balanced';
+      case 'risk_averse':
+        return 'conservative';
+      case 'experimental':
+        return 'experimental';
+      case 'risk_accepting':
+        return 'aggressive';
+      default:
+        return 'balanced';
     }
   }
 
@@ -1172,13 +1178,14 @@ export class PatternReadinessAnalyzer {
     patterns: ReadonlyArray<RankedPatternRecommendation>,
     qualityAnalysis: ILQualityAnalysisResult
   ): StrategyBenefitEstimate {
-    const avgBenefit = patterns.reduce((sum, p) => sum + p.expectedBenefit.performanceGain, 0) / patterns.length;
+    const avgBenefit =
+      patterns.reduce((sum, p) => sum + p.expectedBenefit.performanceGain, 0) / patterns.length;
 
     return {
       performanceImprovement: avgBenefit || 10,
       memorySaving: 1024,
       codeQualityGain: 15,
-      developmentTimeImpact: patterns.length * 0.5 // Hours per pattern
+      developmentTimeImpact: patterns.length * 0.5, // Hours per pattern
     };
   }
 
@@ -1194,7 +1201,7 @@ export class PatternReadinessAnalyzer {
       semanticRisk: riskLevel,
       performanceRisk: conflicts.length > 5 ? 'moderate' : 'low',
       maintenanceRisk: 'low',
-      mitigationStrategies: ['Comprehensive testing', 'Incremental deployment']
+      mitigationStrategies: ['Comprehensive testing', 'Incremental deployment'],
     };
   }
 
@@ -1205,7 +1212,7 @@ export class PatternReadinessAnalyzer {
       analysisTime: patterns.length * 100, // ms per pattern
       memoryRequirement: patterns.length * 2048, // bytes per pattern
       expertiseLevel: patterns.some(p => p.complexityScore > 80) ? 'advanced' : 'intermediate',
-      toolingRequirements: ['Pattern library', 'IL analyzer']
+      toolingRequirements: ['Pattern library', 'IL analyzer'],
     };
   }
 
@@ -1218,14 +1225,14 @@ export class PatternReadinessAnalyzer {
         strategyId: 'conservative',
         description: 'Conservative approach with only safe patterns',
         tradeoffs: { performanceVsSafety: -20, speedVsMemory: 0, simplicityVsOptimality: 10 },
-        suitability: 85
+        suitability: 85,
       },
       {
         strategyId: 'aggressive',
         description: 'Aggressive optimization with higher risk tolerance',
         tradeoffs: { performanceVsSafety: 30, speedVsMemory: 10, simplicityVsOptimality: -15 },
-        suitability: conflicts.length < 3 ? 75 : 45
-      }
+        suitability: conflicts.length < 3 ? 75 : 45,
+      },
     ];
   }
 
@@ -1237,7 +1244,9 @@ export class PatternReadinessAnalyzer {
     return 'extreme';
   }
 
-  private buildConflictMap(conflicts: ReadonlyArray<PatternConflictPrediction>): Map<string, string[]> {
+  private buildConflictMap(
+    conflicts: ReadonlyArray<PatternConflictPrediction>
+  ): Map<string, string[]> {
     const map = new Map<string, string[]>();
 
     for (const conflict of conflicts) {
@@ -1259,7 +1268,9 @@ export class PatternReadinessAnalyzer {
     return patterns.reduce((sum, p) => sum + p.complexityScore, 0) * 10; // ms
   }
 
-  private extractPrerequisites(patterns: ReadonlyArray<RankedPatternRecommendation>): ReadonlyArray<string> {
+  private extractPrerequisites(
+    patterns: ReadonlyArray<RankedPatternRecommendation>
+  ): ReadonlyArray<string> {
     const prerequisites: string[] = [];
     for (const pattern of patterns) {
       prerequisites.push(...pattern.prerequisites.map(p => p.prerequisiteId));
@@ -1272,20 +1283,23 @@ export class PatternReadinessAnalyzer {
       strategyType: 'checkpoint',
       rollbackComplexity: 'simple',
       dataToPreserve: ['original_il', 'symbol_table'],
-      rollbackTime: 100
+      rollbackTime: 100,
     };
   }
 
-  private createSuccessCriteria(patterns: ReadonlyArray<RankedPatternRecommendation>): ReadonlyArray<SuccessCriterion> {
+  private createSuccessCriteria(
+    patterns: ReadonlyArray<RankedPatternRecommendation>
+  ): ReadonlyArray<SuccessCriterion> {
     return [
       {
         criterionId: 'performance_improvement',
         description: 'Performance must improve by expected amount',
         metricName: 'cycle_count_reduction',
-        expectedValue: patterns.reduce((sum, p) => sum + p.expectedBenefit.performanceGain, 0) / patterns.length,
+        expectedValue:
+          patterns.reduce((sum, p) => sum + p.expectedBenefit.performanceGain, 0) / patterns.length,
         tolerance: 0.1,
-        priority: 'required'
-      }
+        priority: 'required',
+      },
     ];
   }
 
@@ -1301,7 +1315,7 @@ export class PatternReadinessAnalyzer {
         description: 'Consider excluding unsafe patterns from optimization',
         importance: 'critical',
         implementationGuidance: 'Review pattern safety scores before application',
-        validationMethod: 'Manual review and extensive testing'
+        validationMethod: 'Manual review and extensive testing',
       });
     }
 
@@ -1311,7 +1325,7 @@ export class PatternReadinessAnalyzer {
         description: 'Additional validation recommended for risky patterns',
         importance: 'important',
         implementationGuidance: 'Implement thorough testing and validation procedures',
-        validationMethod: 'Automated testing with manual verification'
+        validationMethod: 'Automated testing with manual verification',
       });
     }
 
@@ -1330,7 +1344,7 @@ export class PatternReadinessAnalyzer {
         description: 'Comprehensive safety validation required',
         automationPossible: true,
         estimatedEffort: (riskyPatterns.length + unsafePatterns.length) * 2,
-        requiredExpertise: 'advanced'
+        requiredExpertise: 'advanced',
       });
     }
 
@@ -1339,32 +1353,48 @@ export class PatternReadinessAnalyzer {
 
   private estimateAccuracy(patterns: ReadonlyArray<RankedPatternRecommendation>): number {
     // Base accuracy on confidence levels
-    const avgConfidence = patterns.reduce((sum, p) => {
-      switch (p.confidenceLevel) {
-        case 'very_high': return sum + 0.95;
-        case 'high': return sum + 0.85;
-        case 'medium': return sum + 0.7;
-        case 'low': return sum + 0.5;
-        case 'very_low': return sum + 0.3;
-        default: return sum + 0.7;
-      }
-    }, 0) / patterns.length;
+    const avgConfidence =
+      patterns.reduce((sum, p) => {
+        switch (p.confidenceLevel) {
+          case 'very_high':
+            return sum + 0.95;
+          case 'high':
+            return sum + 0.85;
+          case 'medium':
+            return sum + 0.7;
+          case 'low':
+            return sum + 0.5;
+          case 'very_low':
+            return sum + 0.3;
+          default:
+            return sum + 0.7;
+        }
+      }, 0) / patterns.length;
 
     return avgConfidence;
   }
 
-  private calculatePredictionConfidence(patterns: ReadonlyArray<RankedPatternRecommendation>): number {
+  private calculatePredictionConfidence(
+    patterns: ReadonlyArray<RankedPatternRecommendation>
+  ): number {
     return this.estimateAccuracy(patterns);
   }
 
   // Stub methods for conflict analysis
-  private determineConflictType(pattern1: OptimizationPattern, pattern2: OptimizationPattern): PatternConflictType | null {
+  private determineConflictType(
+    pattern1: OptimizationPattern,
+    pattern2: OptimizationPattern
+  ): PatternConflictType | null {
     // Simple conflict detection based on categories
     if (pattern1.category === pattern2.category) {
       return 'resource_conflict';
     }
-    if ((pattern1.category === PatternCategoryEnum.MEMORY && pattern2.category === PatternCategoryEnum.HARDWARE) ||
-        (pattern2.category === PatternCategoryEnum.MEMORY && pattern1.category === PatternCategoryEnum.HARDWARE)) {
+    if (
+      (pattern1.category === PatternCategoryEnum.MEMORY &&
+        pattern2.category === PatternCategoryEnum.HARDWARE) ||
+      (pattern2.category === PatternCategoryEnum.MEMORY &&
+        pattern1.category === PatternCategoryEnum.HARDWARE)
+    ) {
       return 'semantic_conflict';
     }
     return null;
@@ -1389,10 +1419,14 @@ export class PatternReadinessAnalyzer {
     conflictType: PatternConflictType
   ): ConflictSeverity {
     switch (conflictType) {
-      case 'direct_conflict': return 'blocking';
-      case 'semantic_conflict': return 'major';
-      case 'resource_conflict': return 'moderate';
-      default: return 'minor';
+      case 'direct_conflict':
+        return 'blocking';
+      case 'semantic_conflict':
+        return 'major';
+      case 'resource_conflict':
+        return 'moderate';
+      default:
+        return 'minor';
     }
   }
 
@@ -1403,9 +1437,9 @@ export class PatternReadinessAnalyzer {
   ): ConflictImpactAssessment {
     return {
       performanceImpact: 5, // Percentage degradation
-      safetyImpact: 10,    // Safety score reduction
+      safetyImpact: 10, // Safety score reduction
       complexityIncrease: 15, // Complexity increase
-      maintenanceImpact: 10   // Maintenance difficulty increase
+      maintenanceImpact: 10, // Maintenance difficulty increase
     };
   }
 
@@ -1424,13 +1458,15 @@ export class PatternReadinessAnalyzer {
           conflictResolved: true,
           performanceImpact: -5,
           safetyImpact: 0,
-          implementationEffort: 1
-        }
-      }
+          implementationEffort: 1,
+        },
+      },
     ];
   }
 
-  private generateAvoidanceRecommendations(conflictType: PatternConflictType): ReadonlyArray<string> {
+  private generateAvoidanceRecommendations(
+    conflictType: PatternConflictType
+  ): ReadonlyArray<string> {
     switch (conflictType) {
       case 'direct_conflict':
         return ['Choose only one of the conflicting patterns'];

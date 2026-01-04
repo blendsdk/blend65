@@ -9,19 +9,16 @@
  * - End-to-end analytics pipeline testing
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ILAnalyticsSuite } from '../il-analytics-suite.js';
 import {
   ILProgram,
   ILFunction,
   ILInstruction,
   ILInstructionType,
-  createILFunction,
   createILConstant,
-  createILProgram,
-  createILModule,
   createILInstruction,
-  createILVariable
+  createILVariable,
 } from '../../il-types.js';
 import { createPrimitiveType } from '@blend65/semantic';
 
@@ -56,8 +53,12 @@ describe('ILAnalyticsSuite', () => {
     it('should analyze simple IL function', async () => {
       // Create test function
       const testFunction = createTestFunction('simpleFunction', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 42)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 42)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -73,9 +74,17 @@ describe('ILAnalyticsSuite', () => {
 
     it('should provide meaningful analytics summary', async () => {
       const testFunction = createTestFunction('testFunction', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 10)], 1),
-        createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 5)], 2),
-        createILInstruction(ILInstructionType.RETURN, [], 3)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 10)],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILConstant(createPrimitiveType('byte'), 5)],
+          2
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 3),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -89,8 +98,12 @@ describe('ILAnalyticsSuite', () => {
 
     it('should measure performance metrics', async () => {
       const testFunction = createTestFunction('perfTest', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -108,13 +121,21 @@ describe('ILAnalyticsSuite', () => {
     it('should analyze IL program with multiple functions', async () => {
       const program = createTestProgram([
         createTestFunction('main', [
-          createILInstruction(ILInstructionType.CALL, [createILVariable('helper', createPrimitiveType('callback'))], 1),
-          createILInstruction(ILInstructionType.RETURN, [], 2)
+          createILInstruction(
+            ILInstructionType.CALL,
+            [createILVariable('helper', createPrimitiveType('callback'))],
+            1
+          ),
+          createILInstruction(ILInstructionType.RETURN, [], 2),
         ]),
         createTestFunction('helper', [
-          createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 100)], 1),
-          createILInstruction(ILInstructionType.RETURN, [], 2)
-        ])
+          createILInstruction(
+            ILInstructionType.LOAD_IMMEDIATE,
+            [createILConstant(createPrimitiveType('byte'), 100)],
+            1
+          ),
+          createILInstruction(ILInstructionType.RETURN, [], 2),
+        ]),
       ]);
 
       const result = await analyticsSuite.analyzeProgram(program);
@@ -134,9 +155,13 @@ describe('ILAnalyticsSuite', () => {
       // Simple program
       const simpleProgram = createTestProgram([
         createTestFunction('simple', [
-          createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-          createILInstruction(ILInstructionType.RETURN, [], 2)
-        ])
+          createILInstruction(
+            ILInstructionType.LOAD_IMMEDIATE,
+            [createILConstant(createPrimitiveType('byte'), 1)],
+            1
+          ),
+          createILInstruction(ILInstructionType.RETURN, [], 2),
+        ]),
       ]);
 
       const simpleResult = await analyticsSuite.analyzeProgram(simpleProgram);
@@ -146,12 +171,18 @@ describe('ILAnalyticsSuite', () => {
 
       // Moderate program
       const moderateInstructions = Array.from({ length: 100 }, (_, i) =>
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), i)], i + 1)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), i)],
+          i + 1
+        )
       );
-      moderateInstructions.push(createILInstruction(ILInstructionType.RETURN, [], moderateInstructions.length + 1));
+      moderateInstructions.push(
+        createILInstruction(ILInstructionType.RETURN, [], moderateInstructions.length + 1)
+      );
 
       const moderateProgram = createTestProgram([
-        createTestFunction('moderate', moderateInstructions)
+        createTestFunction('moderate', moderateInstructions),
       ]);
 
       const moderateResult = await analyticsSuite.analyzeProgram(moderateProgram);
@@ -166,10 +197,14 @@ describe('ILAnalyticsSuite', () => {
       const testPrograms = [
         createTestProgram([
           createTestFunction('simple', [
-            createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-            createILInstruction(ILInstructionType.RETURN, [], 2)
-          ])
-        ])
+            createILInstruction(
+              ILInstructionType.LOAD_IMMEDIATE,
+              [createILConstant(createPrimitiveType('byte'), 1)],
+              1
+            ),
+            createILInstruction(ILInstructionType.RETURN, [], 2),
+          ]),
+        ]),
       ];
 
       const validation = await analyticsSuite.validatePerformance(testPrograms);
@@ -185,10 +220,14 @@ describe('ILAnalyticsSuite', () => {
       const testPrograms = [
         createTestProgram([
           createTestFunction('simple', [
-            createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-            createILInstruction(ILInstructionType.RETURN, [], 2)
-          ])
-        ])
+            createILInstruction(
+              ILInstructionType.LOAD_IMMEDIATE,
+              [createILConstant(createPrimitiveType('byte'), 1)],
+              1
+            ),
+            createILInstruction(ILInstructionType.RETURN, [], 2),
+          ]),
+        ]),
       ];
 
       const validation = await analyticsSuite.validatePerformance(testPrograms);
@@ -212,14 +251,18 @@ describe('ILAnalyticsSuite', () => {
           testName: 'simple-function-test',
           program: createTestProgram([
             createTestFunction('test', [
-              createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 42)], 1),
-              createILInstruction(ILInstructionType.RETURN, [], 2)
-            ])
+              createILInstruction(
+                ILInstructionType.LOAD_IMMEDIATE,
+                [createILConstant(createPrimitiveType('byte'), 42)],
+                1
+              ),
+              createILInstruction(ILInstructionType.RETURN, [], 2),
+            ]),
           ]),
           expectedCycles: 10,
           expectedPatterns: ['load-immediate-optimization'],
-          expectedQualityScore: 85
-        }
+          expectedQualityScore: 85,
+        },
       ];
 
       const validation = await analyticsSuite.validateAccuracy(referenceData);
@@ -238,14 +281,21 @@ describe('ILAnalyticsSuite', () => {
           testName: 'accuracy-test',
           program: createTestProgram([
             createTestFunction('accuracy', [
-              createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 1), createILConstant(createPrimitiveType('byte'), 2)], 1),
-              createILInstruction(ILInstructionType.RETURN, [], 2)
-            ])
+              createILInstruction(
+                ILInstructionType.ADD,
+                [
+                  createILConstant(createPrimitiveType('byte'), 1),
+                  createILConstant(createPrimitiveType('byte'), 2),
+                ],
+                1
+              ),
+              createILInstruction(ILInstructionType.RETURN, [], 2),
+            ]),
           ]),
           expectedCycles: 15,
           expectedPatterns: ['arithmetic-optimization'],
-          expectedQualityScore: 75
-        }
+          expectedQualityScore: 75,
+        },
       ];
 
       const validation = await analyticsSuite.validateAccuracy(referenceData);
@@ -264,14 +314,42 @@ describe('ILAnalyticsSuite', () => {
   describe('Analytics Integration', () => {
     it('should integrate all analytics components seamlessly', async () => {
       const complexFunction = createTestFunction('complex', [
-        createILInstruction(ILInstructionType.LOAD_VARIABLE, [createILVariable('counter', createPrimitiveType('byte'))], 1),
-        createILInstruction(ILInstructionType.COMPARE_LT, [createILConstant(createPrimitiveType('byte'), 10)], 2),
-        createILInstruction(ILInstructionType.BRANCH_IF_FALSE, [createILConstant(createPrimitiveType('callback'), 'end')], 3),
-        createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 1)], 4),
-        createILInstruction(ILInstructionType.STORE_VARIABLE, [createILVariable('counter', createPrimitiveType('byte'))], 5),
-        createILInstruction(ILInstructionType.BRANCH, [createILConstant(createPrimitiveType('callback'), 'loop')], 6),
-        createILInstruction(ILInstructionType.LABEL, [createILConstant(createPrimitiveType('callback'), 'end')], 7),
-        createILInstruction(ILInstructionType.RETURN, [], 8)
+        createILInstruction(
+          ILInstructionType.LOAD_VARIABLE,
+          [createILVariable('counter', createPrimitiveType('byte'))],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.COMPARE_LT,
+          [createILConstant(createPrimitiveType('byte'), 10)],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH_IF_FALSE,
+          [createILConstant(createPrimitiveType('callback'), 'end')],
+          3
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          4
+        ),
+        createILInstruction(
+          ILInstructionType.STORE_VARIABLE,
+          [createILVariable('counter', createPrimitiveType('byte'))],
+          5
+        ),
+        createILInstruction(
+          ILInstructionType.BRANCH,
+          [createILConstant(createPrimitiveType('callback'), 'loop')],
+          6
+        ),
+        createILInstruction(
+          ILInstructionType.LABEL,
+          [createILConstant(createPrimitiveType('callback'), 'end')],
+          7
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 8),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(complexFunction);
@@ -290,10 +368,22 @@ describe('ILAnalyticsSuite', () => {
 
     it('should provide optimization recommendations', async () => {
       const testFunction = createTestFunction('optimizable', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 0)], 1),
-        createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 0)], 2), // Useless add
-        createILInstruction(ILInstructionType.MUL, [createILConstant(createPrimitiveType('byte'), 1)], 3), // Useless multiply
-        createILInstruction(ILInstructionType.RETURN, [], 4)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 0)],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILConstant(createPrimitiveType('byte'), 0)],
+          2
+        ), // Useless add
+        createILInstruction(
+          ILInstructionType.MUL,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          3
+        ), // Useless multiply
+        createILInstruction(ILInstructionType.RETURN, [], 4),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -315,11 +405,21 @@ describe('ILAnalyticsSuite', () => {
       // Create function with very high complexity
       const highComplexityInstructions = Array.from({ length: 200 }, (_, i) => {
         if (i % 10 === 0) {
-          return createILInstruction(ILInstructionType.BRANCH_IF_TRUE, [createILConstant(createPrimitiveType('callback'), `label_${i}`)], i + 1);
+          return createILInstruction(
+            ILInstructionType.BRANCH_IF_TRUE,
+            [createILConstant(createPrimitiveType('callback'), `label_${i}`)],
+            i + 1
+          );
         }
-        return createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), i % 256)], i + 1);
+        return createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), i % 256)],
+          i + 1
+        );
       });
-      highComplexityInstructions.push(createILInstruction(ILInstructionType.RETURN, [], highComplexityInstructions.length + 1));
+      highComplexityInstructions.push(
+        createILInstruction(ILInstructionType.RETURN, [], highComplexityInstructions.length + 1)
+      );
 
       const complexFunction = createTestFunction('highComplexity', highComplexityInstructions);
 
@@ -341,17 +441,29 @@ describe('ILAnalyticsSuite', () => {
       const simplePrograms = [
         createTestProgram([
           createTestFunction('simple1', [
-            createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-            createILInstruction(ILInstructionType.RETURN, [], 2)
-          ])
+            createILInstruction(
+              ILInstructionType.LOAD_IMMEDIATE,
+              [createILConstant(createPrimitiveType('byte'), 1)],
+              1
+            ),
+            createILInstruction(ILInstructionType.RETURN, [], 2),
+          ]),
         ]),
         createTestProgram([
           createTestFunction('simple2', [
-            createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 2)], 1),
-            createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 3)], 2),
-            createILInstruction(ILInstructionType.RETURN, [], 3)
-          ])
-        ])
+            createILInstruction(
+              ILInstructionType.LOAD_IMMEDIATE,
+              [createILConstant(createPrimitiveType('byte'), 2)],
+              1
+            ),
+            createILInstruction(
+              ILInstructionType.ADD,
+              [createILConstant(createPrimitiveType('byte'), 3)],
+              2
+            ),
+            createILInstruction(ILInstructionType.RETURN, [], 3),
+          ]),
+        ]),
       ];
 
       const validation = await analyticsSuite.validatePerformance(simplePrograms);
@@ -364,9 +476,13 @@ describe('ILAnalyticsSuite', () => {
     it('should provide performance breakdown by component', async () => {
       const testProgram = createTestProgram([
         createTestFunction('breakdown', [
-          createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 42)], 1),
-          createILInstruction(ILInstructionType.RETURN, [], 2)
-        ])
+          createILInstruction(
+            ILInstructionType.LOAD_IMMEDIATE,
+            [createILConstant(createPrimitiveType('byte'), 42)],
+            1
+          ),
+          createILInstruction(ILInstructionType.RETURN, [], 2),
+        ]),
       ]);
 
       const result = await analyticsSuite.analyzeProgram(testProgram);
@@ -379,17 +495,27 @@ describe('ILAnalyticsSuite', () => {
       expect(timing.integration).toBeGreaterThanOrEqual(0);
 
       // Total should be sum of components
-      const expectedTotal = timing.controlFlow + timing.sixtyTwoZeroTwo +
-                           timing.qualityMetrics + timing.patternReadiness + timing.integration;
-      expect(result.performanceMetrics.totalAnalysisTime).toBeGreaterThanOrEqual(expectedTotal * 0.8);
+      const expectedTotal =
+        timing.controlFlow +
+        timing.sixtyTwoZeroTwo +
+        timing.qualityMetrics +
+        timing.patternReadiness +
+        timing.integration;
+      expect(result.performanceMetrics.totalAnalysisTime).toBeGreaterThanOrEqual(
+        expectedTotal * 0.8
+      );
     });
   });
 
   describe('Memory Efficiency', () => {
     it('should track memory usage during analysis', async () => {
       const testFunction = createTestFunction('memoryTest', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -403,9 +529,13 @@ describe('ILAnalyticsSuite', () => {
     it('should meet memory efficiency targets', async () => {
       const testProgram = createTestProgram([
         createTestFunction('efficiency', [
-          createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-          createILInstruction(ILInstructionType.RETURN, [], 2)
-        ])
+          createILInstruction(
+            ILInstructionType.LOAD_IMMEDIATE,
+            [createILConstant(createPrimitiveType('byte'), 1)],
+            1
+          ),
+          createILInstruction(ILInstructionType.RETURN, [], 2),
+        ]),
       ]);
 
       const result = await analyticsSuite.analyzeProgram(testProgram);
@@ -420,10 +550,22 @@ describe('ILAnalyticsSuite', () => {
   describe('Analytics Coordination', () => {
     it('should coordinate all analytics phases properly', async () => {
       const testFunction = createTestFunction('coordination', [
-        createILInstruction(ILInstructionType.LOAD_VARIABLE, [createILVariable('x', createPrimitiveType('byte'))], 1),
-        createILInstruction(ILInstructionType.ADD, [createILVariable('y', createPrimitiveType('byte'))], 2),
-        createILInstruction(ILInstructionType.STORE_VARIABLE, [createILVariable('z', createPrimitiveType('byte'))], 3),
-        createILInstruction(ILInstructionType.RETURN, [], 4)
+        createILInstruction(
+          ILInstructionType.LOAD_VARIABLE,
+          [createILVariable('x', createPrimitiveType('byte'))],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILVariable('y', createPrimitiveType('byte'))],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.STORE_VARIABLE,
+          [createILVariable('z', createPrimitiveType('byte'))],
+          3
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 4),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -457,8 +599,12 @@ describe('ILAnalyticsSuite', () => {
   describe('Quality Assessment', () => {
     it('should assess overall quality correctly', async () => {
       const highQualityFunction = createTestFunction('highQuality', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 42)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 42)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(highQualityFunction);
@@ -471,8 +617,12 @@ describe('ILAnalyticsSuite', () => {
 
     it('should provide confidence levels', async () => {
       const testFunction = createTestFunction('confidence', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -482,8 +632,12 @@ describe('ILAnalyticsSuite', () => {
 
     it('should provide performance grades', async () => {
       const testFunction = createTestFunction('grading', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-        createILInstruction(ILInstructionType.RETURN, [], 2)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          1
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 2),
       ]);
 
       const result = await analyticsSuite.analyzeFunction(testFunction);
@@ -515,8 +669,8 @@ describe('ILAnalyticsSuite', () => {
           originalFiles: ['test'],
           compilationTimestamp: new Date(),
           compilerVersion: '0.1.0',
-          targetPlatform: 'c64'
-        }
+          targetPlatform: 'c64',
+        },
       };
 
       await expect(analyticsSuite.analyzeProgram(emptyModuleProgram)).rejects.toThrow('no modules');
@@ -525,13 +679,15 @@ describe('ILAnalyticsSuite', () => {
     it('should handle modules with no functions', async () => {
       const noFunctionsProgram: ILProgram = {
         name: 'no-functions-test',
-        modules: [{
-          qualifiedName: ['Test'],
-          functions: [],
-          moduleData: [],
-          exports: [],
-          imports: []
-        }],
+        modules: [
+          {
+            qualifiedName: ['Test'],
+            functions: [],
+            moduleData: [],
+            exports: [],
+            imports: [],
+          },
+        ],
         globalData: [],
         imports: [],
         exports: [],
@@ -539,21 +695,35 @@ describe('ILAnalyticsSuite', () => {
           originalFiles: ['test'],
           compilationTimestamp: new Date(),
           compilerVersion: '0.1.0',
-          targetPlatform: 'c64'
-        }
+          targetPlatform: 'c64',
+        },
       };
 
-      await expect(analyticsSuite.analyzeProgram(noFunctionsProgram)).rejects.toThrow('no functions');
+      await expect(analyticsSuite.analyzeProgram(noFunctionsProgram)).rejects.toThrow(
+        'no functions'
+      );
     });
   });
 
   describe('Integration Performance', () => {
     it('should complete analysis within time limits', async () => {
       const testFunction = createTestFunction('timeLimit', [
-        createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [createILConstant(createPrimitiveType('byte'), 1)], 1),
-        createILInstruction(ILInstructionType.ADD, [createILConstant(createPrimitiveType('byte'), 2)], 2),
-        createILInstruction(ILInstructionType.STORE_VARIABLE, [createILVariable('result', createPrimitiveType('byte'))], 3),
-        createILInstruction(ILInstructionType.RETURN, [], 4)
+        createILInstruction(
+          ILInstructionType.LOAD_IMMEDIATE,
+          [createILConstant(createPrimitiveType('byte'), 1)],
+          1
+        ),
+        createILInstruction(
+          ILInstructionType.ADD,
+          [createILConstant(createPrimitiveType('byte'), 2)],
+          2
+        ),
+        createILInstruction(
+          ILInstructionType.STORE_VARIABLE,
+          [createILVariable('result', createPrimitiveType('byte'))],
+          3
+        ),
+        createILInstruction(ILInstructionType.RETURN, [], 4),
       ]);
 
       const startTime = Date.now();
@@ -587,7 +757,7 @@ function createTestFunction(name: string, instructions: ILInstruction[]): ILFunc
     labels: new Map(),
     isCallback: false,
     isExported: false,
-    sourceLocation: { line: 1, column: 1, offset: 0 }
+    sourceLocation: { line: 1, column: 1, offset: 0 },
   };
 }
 
@@ -597,13 +767,15 @@ function createTestFunction(name: string, instructions: ILInstruction[]): ILFunc
 function createTestProgram(functions: ILFunction[]): ILProgram {
   return {
     name: 'test-program',
-    modules: [{
-      qualifiedName: ['Test'],
-      functions,
-      moduleData: [],
-      exports: [],
-      imports: []
-    }],
+    modules: [
+      {
+        qualifiedName: ['Test'],
+        functions,
+        moduleData: [],
+        exports: [],
+        imports: [],
+      },
+    ],
     globalData: [],
     imports: [],
     exports: [],
@@ -611,8 +783,8 @@ function createTestProgram(functions: ILFunction[]): ILProgram {
       originalFiles: ['test.blend'],
       compilationTimestamp: new Date(),
       compilerVersion: '0.1.0',
-      targetPlatform: 'c64'
-    }
+      targetPlatform: 'c64',
+    },
   };
 }
 

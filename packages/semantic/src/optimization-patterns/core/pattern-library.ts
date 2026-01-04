@@ -27,12 +27,10 @@ import type {
   PatternComplexity,
   TargetPlatform,
   OptimizationContext,
-  PatternMatch,
-  PatternMatchResult,
   PatternPerformanceStatistics,
   OptimizationSystemStatistics,
   MemoryUsageStatistics,
-  ValidationResult
+  ValidationResult,
 } from './pattern-system';
 import type { ASTNode } from '@blend65/ast';
 import { SourcePosition } from '@blend65/lexer';
@@ -384,12 +382,12 @@ export interface RegistrationWarning {
 }
 
 export type RegistrationWarningType =
-  | 'DuplicateId'           // Pattern ID already exists
-  | 'ConflictDetected'      // Pattern conflicts with existing patterns
-  | 'MissingDependency'     // Required dependency not found
-  | 'PerformanceImpact'     // Pattern may impact performance negatively
-  | 'ExperimentalPattern'   // Pattern is marked as experimental
-  | 'VersionMismatch';      // Pattern version incompatible with library
+  | 'DuplicateId' // Pattern ID already exists
+  | 'ConflictDetected' // Pattern conflicts with existing patterns
+  | 'MissingDependency' // Required dependency not found
+  | 'PerformanceImpact' // Pattern may impact performance negatively
+  | 'ExperimentalPattern' // Pattern is marked as experimental
+  | 'VersionMismatch'; // Pattern version incompatible with library
 
 /**
  * Conflict between patterns.
@@ -412,12 +410,12 @@ export interface PatternConflict {
 }
 
 export type ConflictType =
-  | 'Mutual'               // Patterns cannot be applied together
-  | 'Ordering'             // Patterns have ordering dependency
-  | 'Resource'             // Patterns compete for same resources
-  | 'Semantic'             // Patterns have semantic conflicts
-  | 'Performance'          // Patterns counteract each other's benefits
-  | 'Platform';            // Patterns incompatible on same platform
+  | 'Mutual' // Patterns cannot be applied together
+  | 'Ordering' // Patterns have ordering dependency
+  | 'Resource' // Patterns compete for same resources
+  | 'Semantic' // Patterns have semantic conflicts
+  | 'Performance' // Patterns counteract each other's benefits
+  | 'Platform'; // Patterns incompatible on same platform
 
 export type ConflictSeverity = 'Warning' | 'Error' | 'Critical';
 
@@ -439,12 +437,12 @@ export interface ConflictResolution {
 }
 
 export type ResolutionType =
-  | 'Disable'              // Disable one of the conflicting patterns
-  | 'Reorder'              // Change application order
-  | 'Condition'            // Add conditional application logic
-  | 'Merge'                // Merge patterns into single pattern
-  | 'Split'                // Split pattern into non-conflicting parts
-  | 'Configure';           // Configure patterns to avoid conflict
+  | 'Disable' // Disable one of the conflicting patterns
+  | 'Reorder' // Change application order
+  | 'Condition' // Add conditional application logic
+  | 'Merge' // Merge patterns into single pattern
+  | 'Split' // Split pattern into non-conflicting parts
+  | 'Configure'; // Configure patterns to avoid conflict
 
 /**
  * Action required for conflict resolution.
@@ -523,12 +521,12 @@ export interface PatternQuery {
  * Sorting criteria for pattern search results.
  */
 export type PatternSortCriteria =
-  | 'Priority'             // Sort by priority (high to low)
-  | 'Performance'          // Sort by performance impact
-  | 'Complexity'           // Sort by complexity (low to high)
-  | 'Alphabetical'         // Sort alphabetically by name
-  | 'Category'             // Sort by category then subcategory
-  | 'RecentlyUsed';        // Sort by recent usage statistics
+  | 'Priority' // Sort by priority (high to low)
+  | 'Performance' // Sort by performance impact
+  | 'Complexity' // Sort by complexity (low to high)
+  | 'Alphabetical' // Sort alphabetically by name
+  | 'Category' // Sort by category then subcategory
+  | 'RecentlyUsed'; // Sort by recent usage statistics
 
 /**
  * Result of pattern search operation.
@@ -628,12 +626,12 @@ export interface RecommendationRationale {
 }
 
 export type RecommendationReason =
-  | 'HighImpact'           // Pattern has historically high impact
+  | 'HighImpact' // Pattern has historically high impact
   | 'FrequentlyApplicable' // Pattern applies to many similar cases
-  | 'LowComplexity'        // Pattern is simple to apply safely
-  | 'ContextMatch'         // Pattern perfect for current context
+  | 'LowComplexity' // Pattern is simple to apply safely
+  | 'ContextMatch' // Pattern perfect for current context
   | 'ComplementaryPattern' // Pattern works well with others
-  | 'HotPath';             // Pattern optimizes hot execution path
+  | 'HotPath'; // Pattern optimizes hot execution path
 
 /**
  * Factor supporting pattern recommendation.
@@ -725,11 +723,11 @@ export interface PatternApplicationOptions {
 }
 
 export type ConflictResolutionStrategy =
-  | 'Skip'                 // Skip conflicting patterns
-  | 'HighestPriority'      // Apply highest priority pattern
-  | 'BestBenefit'          // Apply pattern with best expected benefit
-  | 'Manual'               // Require manual conflict resolution
-  | 'Automatic';           // Use automatic conflict resolution
+  | 'Skip' // Skip conflicting patterns
+  | 'HighestPriority' // Apply highest priority pattern
+  | 'BestBenefit' // Apply pattern with best expected benefit
+  | 'Manual' // Require manual conflict resolution
+  | 'Automatic'; // Use automatic conflict resolution
 
 /**
  * Options for batch pattern application.
@@ -841,13 +839,13 @@ export interface FailedPattern {
 }
 
 export type FailureReason =
-  | 'PrerequisiteNotMet'   // Required prerequisites not satisfied
-  | 'SafetyViolation'      // Pattern application would violate safety
-  | 'ConflictDetected'     // Pattern conflicts with already applied pattern
-  | 'ValidationFailed'     // Pattern validation failed
-  | 'TimeoutExceeded'      // Pattern application took too long
-  | 'ResourceExhausted'    // Insufficient resources for application
-  | 'InternalError';       // Unexpected internal error
+  | 'PrerequisiteNotMet' // Required prerequisites not satisfied
+  | 'SafetyViolation' // Pattern application would violate safety
+  | 'ConflictDetected' // Pattern conflicts with already applied pattern
+  | 'ValidationFailed' // Pattern validation failed
+  | 'TimeoutExceeded' // Pattern application took too long
+  | 'ResourceExhausted' // Insufficient resources for application
+  | 'InternalError'; // Unexpected internal error
 
 /**
  * Error during pattern application.
@@ -896,13 +894,13 @@ export interface PatternApplicationStep {
 }
 
 export type ApplicationStepType =
-  | 'PatternMatch'         // Pattern matching phase
-  | 'PrerequisiteCheck'    // Prerequisite validation
-  | 'SafetyCheck'          // Safety condition verification
-  | 'ConflictCheck'        // Conflict detection
-  | 'Transformation'       // AST transformation
-  | 'Validation'           // Post-transformation validation
-  | 'Rollback';            // Rollback due to failure
+  | 'PatternMatch' // Pattern matching phase
+  | 'PrerequisiteCheck' // Prerequisite validation
+  | 'SafetyCheck' // Safety condition verification
+  | 'ConflictCheck' // Conflict detection
+  | 'Transformation' // AST transformation
+  | 'Validation' // Post-transformation validation
+  | 'Rollback'; // Rollback due to failure
 
 export type ApplicationStepResult = 'Success' | 'Warning' | 'Failure' | 'Skipped';
 
@@ -959,10 +957,10 @@ export interface BatchIssue {
 }
 
 export type BatchIssueType =
-  | 'ResourceExhaustion'   // Ran out of memory or other resources
-  | 'TimeoutExceeded'      // Batch operation took too long
-  | 'ConflictSpread'       // Conflicts propagated across nodes
-  | 'ValidationFailure'    // Batch validation failed
+  | 'ResourceExhaustion' // Ran out of memory or other resources
+  | 'TimeoutExceeded' // Batch operation took too long
+  | 'ConflictSpread' // Conflicts propagated across nodes
+  | 'ValidationFailure' // Batch validation failed
   | 'PerformanceRegression'; // Batch caused overall performance regression
 
 /**
@@ -1107,10 +1105,10 @@ export interface SimulationRisk {
 
 export type SimulationRiskType =
   | 'PerformanceRegression' // Pattern might hurt performance
-  | 'SemanticChange'        // Risk of changing program semantics
-  | 'ResourceOveruse'       // Might exceed resource limits
-  | 'ConflictEscalation'    // Conflicts might cascade
-  | 'ValidationFailure';    // Post-application validation might fail
+  | 'SemanticChange' // Risk of changing program semantics
+  | 'ResourceOveruse' // Might exceed resource limits
+  | 'ConflictEscalation' // Conflicts might cascade
+  | 'ValidationFailure'; // Post-application validation might fail
 
 export type RiskImpact = 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -1191,13 +1189,13 @@ export interface PatternIssue {
 }
 
 export type PatternIssueType =
-  | 'LowSuccessRate'       // Pattern fails to apply successfully often
+  | 'LowSuccessRate' // Pattern fails to apply successfully often
   | 'PerformanceRegression' // Pattern causes performance regression
-  | 'HighComplexity'       // Pattern is overly complex
-  | 'FrequentConflicts'    // Pattern conflicts with many other patterns
-  | 'ResourceHog'          // Pattern uses excessive resources
-  | 'Outdated'             // Pattern is outdated or superseded
-  | 'Buggy';               // Pattern has implementation bugs
+  | 'HighComplexity' // Pattern is overly complex
+  | 'FrequentConflicts' // Pattern conflicts with many other patterns
+  | 'ResourceHog' // Pattern uses excessive resources
+  | 'Outdated' // Pattern is outdated or superseded
+  | 'Buggy'; // Pattern has implementation bugs
 
 /**
  * Evidence supporting a pattern issue.
@@ -1242,13 +1240,13 @@ export interface RecommendedAction {
 }
 
 export type RecommendedActionType =
-  | 'Disable'              // Disable the problematic pattern
-  | 'Update'               // Update pattern implementation
-  | 'Replace'              // Replace with better pattern
-  | 'Optimize'             // Optimize pattern performance
-  | 'Document'             // Add better documentation
-  | 'Test'                 // Add more comprehensive tests
-  | 'Monitor';             // Increase monitoring and alerts
+  | 'Disable' // Disable the problematic pattern
+  | 'Update' // Update pattern implementation
+  | 'Replace' // Replace with better pattern
+  | 'Optimize' // Optimize pattern performance
+  | 'Document' // Add better documentation
+  | 'Test' // Add more comprehensive tests
+  | 'Monitor'; // Increase monitoring and alerts
 
 export type EffortLevel = 'Trivial' | 'Low' | 'Medium' | 'High' | 'Very_High';
 export type BenefitLevel = 'None' | 'Low' | 'Medium' | 'High' | 'Very_High';
@@ -1512,12 +1510,12 @@ export interface ActiveIssue {
 }
 
 export type ActiveIssueType =
-  | 'ConflictCascade'      // Conflicts spreading between patterns
-  | 'PerformanceDrift'     // Overall performance degradation
-  | 'MemoryLeak'           // Memory usage growing over time
-  | 'IndexCorruption'      // Index corruption detected
+  | 'ConflictCascade' // Conflicts spreading between patterns
+  | 'PerformanceDrift' // Overall performance degradation
+  | 'MemoryLeak' // Memory usage growing over time
+  | 'IndexCorruption' // Index corruption detected
   | 'ConsistencyViolation' // Library consistency violation
-  | 'ResourceExhaustion';  // Running low on system resources
+  | 'ResourceExhaustion'; // Running low on system resources
 
 /**
  * System health indicator.
@@ -1673,12 +1671,12 @@ export interface ConsistencyIssue {
 }
 
 export type ConsistencyIssueType =
-  | 'OrphanedDependency'   // Pattern depends on non-existent pattern
-  | 'CircularDependency'   // Circular dependency detected
-  | 'ConflictLoop'         // Circular conflict detected
-  | 'IndexMismatch'        // Index out of sync with data
-  | 'DuplicateId'          // Duplicate pattern IDs found
-  | 'MissingMetadata';     // Required metadata missing
+  | 'OrphanedDependency' // Pattern depends on non-existent pattern
+  | 'CircularDependency' // Circular dependency detected
+  | 'ConflictLoop' // Circular conflict detected
+  | 'IndexMismatch' // Index out of sync with data
+  | 'DuplicateId' // Duplicate pattern IDs found
+  | 'MissingMetadata'; // Required metadata missing
 
 /**
  * Strategy for repairing consistency issues.
@@ -1701,11 +1699,11 @@ export interface RepairStrategy {
 }
 
 export type RepairStrategyType =
-  | 'Remove'               // Remove problematic entity
-  | 'Update'               // Update entity to fix issue
-  | 'Rebuild'              // Rebuild affected indexes
-  | 'Reset'                // Reset to known good state
-  | 'Manual';              // Requires manual intervention
+  | 'Remove' // Remove problematic entity
+  | 'Update' // Update entity to fix issue
+  | 'Rebuild' // Rebuild affected indexes
+  | 'Reset' // Reset to known good state
+  | 'Manual'; // Requires manual intervention
 
 export type RiskLevel = 'None' | 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -1730,11 +1728,11 @@ export interface ConsistencyAction {
 }
 
 export type ConsistencyActionType =
-  | 'RebuildIndexes'       // Rebuild all indexes
-  | 'RemoveOrphans'        // Remove orphaned dependencies
-  | 'ResolveConflicts'     // Resolve pattern conflicts
-  | 'ValidateMetadata'     // Validate and fix metadata
-  | 'ResetLibrary';        // Reset library to clean state
+  | 'RebuildIndexes' // Rebuild all indexes
+  | 'RemoveOrphans' // Remove orphaned dependencies
+  | 'ResolveConflicts' // Resolve pattern conflicts
+  | 'ValidateMetadata' // Validate and fix metadata
+  | 'ResetLibrary'; // Reset library to clean state
 
 export type ActionPriority = 'Low' | 'Medium' | 'High' | 'Immediate';
 
@@ -2000,11 +1998,11 @@ export interface UnregistrationError {
 }
 
 export type UnregistrationErrorType =
-  | 'DependencyViolation'  // Other patterns depend on this one
-  | 'ResourceLocked'       // Resources are locked and cannot be freed
-  | 'IndexUpdateFailed'    // Failed to update indexes
-  | 'CacheCorruption'      // Cache corruption detected
-  | 'InternalError';       // Unexpected internal error
+  | 'DependencyViolation' // Other patterns depend on this one
+  | 'ResourceLocked' // Resources are locked and cannot be freed
+  | 'IndexUpdateFailed' // Failed to update indexes
+  | 'CacheCorruption' // Cache corruption detected
+  | 'InternalError'; // Unexpected internal error
 
 /**
  * Change made to a pattern during update.
@@ -2027,10 +2025,10 @@ export interface PatternChange {
 }
 
 export type PatternChangeType =
-  | 'Added'                // New field added
-  | 'Modified'             // Existing field modified
-  | 'Removed'              // Field removed
-  | 'Renamed';             // Field renamed
+  | 'Added' // New field added
+  | 'Modified' // Existing field modified
+  | 'Removed' // Field removed
+  | 'Renamed'; // Field renamed
 
 /**
  * Impact of a pattern change.
@@ -2069,10 +2067,10 @@ export interface DependencyImpact {
 }
 
 export type DependencyImpactType =
-  | 'InterfaceChanged'     // Pattern interface changed
-  | 'BehaviorChanged'      // Pattern behavior changed
+  | 'InterfaceChanged' // Pattern interface changed
+  | 'BehaviorChanged' // Pattern behavior changed
   | 'PrerequisitesChanged' // Prerequisites changed
-  | 'ConflictsChanged';    // Conflict relationships changed
+  | 'ConflictsChanged'; // Conflict relationships changed
 
 export type ImpactSeverity = 'Low' | 'Medium' | 'High' | 'Critical';
 
@@ -2117,11 +2115,11 @@ export interface DependencyAction {
 }
 
 export type DependencyActionType =
-  | 'UpdateInterface'      // Update dependent pattern interface
-  | 'UpdateBehavior'       // Update dependent pattern behavior
-  | 'AddPrerequisite'      // Add new prerequisite
-  | 'RemovePrerequisite'   // Remove prerequisite
-  | 'ResolveConflict';     // Resolve new conflict
+  | 'UpdateInterface' // Update dependent pattern interface
+  | 'UpdateBehavior' // Update dependent pattern behavior
+  | 'AddPrerequisite' // Add new prerequisite
+  | 'RemovePrerequisite' // Remove prerequisite
+  | 'ResolveConflict'; // Resolve new conflict
 
 /**
  * Update impact assessment.
@@ -2217,13 +2215,13 @@ export interface LibraryValidationIssue {
 }
 
 export type LibraryValidationIssueType =
-  | 'ConflictDetected'     // Pattern conflicts found
-  | 'MissingDependency'    // Missing dependencies
-  | 'OrphanedPattern'      // Patterns with no references
+  | 'ConflictDetected' // Pattern conflicts found
+  | 'MissingDependency' // Missing dependencies
+  | 'OrphanedPattern' // Patterns with no references
   | 'InvalidConfiguration' // Invalid pattern configuration
-  | 'PerformanceIssue'     // Performance problems detected
-  | 'MemoryLeak'           // Memory leaks detected
-  | 'CorruptedData';       // Data corruption detected
+  | 'PerformanceIssue' // Performance problems detected
+  | 'MemoryLeak' // Memory leaks detected
+  | 'CorruptedData'; // Data corruption detected
 
 /**
  * Performance impact of validation.

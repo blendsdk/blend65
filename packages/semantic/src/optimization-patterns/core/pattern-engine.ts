@@ -9,12 +9,12 @@
  * - Provides simple, clean API
  */
 
-import type { ASTNode, Expression, Program } from '@blend65/ast';
+import type { ASTNode, Expression } from '@blend65/ast';
 import type {
   OptimizationPattern,
   PatternMatch,
   TransformationResult,
-  PatternApplicationContext
+  PatternApplicationContext,
 } from './pattern-types';
 import { PatternCategory, TargetPlatform } from './pattern-types';
 import { SmartPatternRegistry, createPatternRegistry } from './pattern-registry';
@@ -36,12 +36,12 @@ export class OptimizationPatternEngine {
     this.registry = createPatternRegistry({
       maxActivePatterns: 30, // Conservative memory usage
       lazyLoading: true,
-      enableMetrics: true
+      enableMetrics: true,
     });
 
     this.metrics = createMetricsCollector({
       enabled: true,
-      maxStoredMetrics: 500
+      maxStoredMetrics: 500,
     });
   }
 
@@ -55,7 +55,7 @@ export class OptimizationPatternEngine {
         optimizedNode: node,
         patternsApplied: [],
         totalOptimizationTime: 0,
-        success: true
+        success: true,
       };
     }
 
@@ -81,7 +81,7 @@ export class OptimizationPatternEngine {
               patternName: pattern.name,
               match,
               result: transformResult,
-              improvement: pattern.expectedImprovement
+              improvement: pattern.expectedImprovement,
             });
 
             // Record metrics
@@ -91,7 +91,7 @@ export class OptimizationPatternEngine {
               memoryUsage: transformResult.metrics.memoryUsed,
               success: true,
               improvementPercentage: pattern.expectedImprovement.improvementPercentage,
-              timestamp: new Date()
+              timestamp: new Date(),
             });
 
             // Update current node for next pattern
@@ -107,9 +107,8 @@ export class OptimizationPatternEngine {
         optimizedNode: currentNode,
         patternsApplied: appliedPatterns,
         totalOptimizationTime: totalTime,
-        success: true
+        success: true,
       };
-
     } catch (error) {
       return {
         originalNode: node,
@@ -117,7 +116,7 @@ export class OptimizationPatternEngine {
         patternsApplied: appliedPatterns,
         totalOptimizationTime: Date.now() - startTime,
         success: false,
-        error: `Pattern optimization failed: ${error}`
+        error: `Pattern optimization failed: ${error}`,
       };
     }
   }
@@ -129,7 +128,7 @@ export class OptimizationPatternEngine {
     return {
       patternMetrics: this.metrics.getPerformanceSummary(),
       registryStats: this.registry.getStats(),
-      engineEnabled: this.enabled
+      engineEnabled: this.enabled,
     };
   }
 
@@ -172,9 +171,10 @@ export class OptimizationPatternEngine {
     }
 
     // Filter by platform
-    const platformPatterns = patterns.filter(pattern =>
-      pattern.platforms.includes(context.platform) ||
-      pattern.platforms.includes(TargetPlatform.GENERIC_6502)
+    const platformPatterns = patterns.filter(
+      pattern =>
+        pattern.platforms.includes(context.platform) ||
+        pattern.platforms.includes(TargetPlatform.GENERIC_6502)
     );
 
     // Apply user filter if provided
@@ -235,6 +235,6 @@ export function optimizeExpression(
   return engine.optimizeNode(expression, {
     platform,
     optimizationLevel: 'standard',
-    enableUnsafe: false
+    enableUnsafe: false,
   });
 }

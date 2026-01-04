@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { OptimizationPatternEngine, createOptimizationEngine } from '../pattern-engine';
+import { createOptimizationEngine } from '../pattern-engine';
 import { TargetPlatform } from '../pattern-types';
-import type { BinaryExpr, Literal } from '@blend65/ast';
+import type { BinaryExpr } from '@blend65/ast';
 
 describe('OptimizationPatternEngine', () => {
   describe('Basic functionality', () => {
@@ -49,19 +49,19 @@ describe('OptimizationPatternEngine', () => {
         operator: '*',
         left: {
           type: 'Identifier',
-          name: 'x'
+          name: 'x',
         },
         right: {
           type: 'Literal',
           value: 4,
-          raw: '4'
-        }
+          raw: '4',
+        },
       };
 
       const result = engine.optimizeNode(testNode, {
         platform: TargetPlatform.C64,
         optimizationLevel: 'standard',
-        enableUnsafe: false
+        enableUnsafe: false,
       });
 
       expect(result.success).toBe(true);
@@ -80,19 +80,19 @@ describe('OptimizationPatternEngine', () => {
         operator: '*',
         left: {
           type: 'Identifier',
-          name: 'x'
+          name: 'x',
         },
         right: {
           type: 'Literal',
           value: 4,
-          raw: '4'
-        }
+          raw: '4',
+        },
       };
 
       const result = engine.optimizeNode(testNode, {
         platform: TargetPlatform.C64,
         optimizationLevel: 'standard',
-        enableUnsafe: false
+        enableUnsafe: false,
       });
 
       expect(result.success).toBe(true);

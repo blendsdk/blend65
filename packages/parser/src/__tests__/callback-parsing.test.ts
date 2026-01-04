@@ -260,17 +260,17 @@ describe('Callback Function Integration', () => {
     expect(ast.body.length + ast.exports.length).toBeGreaterThan(5);
 
     // Check callback functions
-    const gameLoopDecl = ast.body.find(decl =>
-      decl.type === 'FunctionDeclaration' &&
-      (decl as FunctionDeclaration).name === 'gameLoop'
+    const gameLoopDecl = ast.body.find(
+      decl =>
+        decl.type === 'FunctionDeclaration' && (decl as FunctionDeclaration).name === 'gameLoop'
     );
-    const enemyAIDecl = ast.body.find(decl =>
-      decl.type === 'FunctionDeclaration' &&
-      (decl as FunctionDeclaration).name === 'enemyAI'
+    const enemyAIDecl = ast.body.find(
+      decl =>
+        decl.type === 'FunctionDeclaration' && (decl as FunctionDeclaration).name === 'enemyAI'
     );
-    const startGameDecl = ast.body.find(decl =>
-      decl.type === 'FunctionDeclaration' &&
-      (decl as FunctionDeclaration).name === 'startGame'
+    const startGameDecl = ast.body.find(
+      decl =>
+        decl.type === 'FunctionDeclaration' && (decl as FunctionDeclaration).name === 'startGame'
     );
 
     expect((gameLoopDecl as FunctionDeclaration)?.callback).toBe(true);
@@ -278,9 +278,10 @@ describe('Callback Function Integration', () => {
     expect((startGameDecl as FunctionDeclaration)?.callback).toBe(true);
 
     // Check regular functions are not marked as callback
-    const mainDecl = ast.exports.find(exp =>
-      exp.declaration.type === 'FunctionDeclaration' &&
-      (exp.declaration as FunctionDeclaration).name === 'main'
+    const mainDecl = ast.exports.find(
+      exp =>
+        exp.declaration.type === 'FunctionDeclaration' &&
+        (exp.declaration as FunctionDeclaration).name === 'main'
     );
 
     expect((mainDecl?.declaration as FunctionDeclaration)?.callback).toBe(false);
@@ -303,17 +304,19 @@ describe('Callback Function Integration', () => {
     const ast = createParser(source).parse();
 
     // Find callback variable declarations
-    const currentHandlerDecl = ast.body.find(decl =>
-      decl.type === 'VariableDeclaration' &&
-      (decl as VariableDeclaration).name === 'currentHandler'
+    const currentHandlerDecl = ast.body.find(
+      decl =>
+        decl.type === 'VariableDeclaration' &&
+        (decl as VariableDeclaration).name === 'currentHandler'
     );
-    const handlersDecl = ast.body.find(decl =>
-      decl.type === 'VariableDeclaration' &&
-      (decl as VariableDeclaration).name === 'handlers'
+    const handlersDecl = ast.body.find(
+      decl =>
+        decl.type === 'VariableDeclaration' && (decl as VariableDeclaration).name === 'handlers'
     );
 
     // Check callback type
-    const currentHandlerType = (currentHandlerDecl as VariableDeclaration)?.varType as PrimitiveType;
+    const currentHandlerType = (currentHandlerDecl as VariableDeclaration)
+      ?.varType as PrimitiveType;
     expect(currentHandlerType.name).toBe('callback');
 
     // Check callback array type

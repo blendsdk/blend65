@@ -21,13 +21,12 @@
  */
 
 import { SourcePosition } from '@blend65/lexer';
-import type { ASTNode, Expression, Statement, Declaration, Program } from '@blend65/ast';
+import type { ASTNode } from '@blend65/ast';
 import type {
   Symbol,
   Blend65Type,
   VariableOptimizationMetadata,
   FunctionOptimizationMetadata,
-  SemanticError
 } from '../..';
 
 // ============================================================================
@@ -136,13 +135,13 @@ export interface OptimizationPattern {
  * - DataStructures: 20 patterns for arrays, structures, tables
  */
 export type PatternCategory =
-  | 'Mathematics'      // Arithmetic, bitwise, mathematical operations
-  | 'Hardware'         // Platform-specific hardware optimizations
-  | 'GameDevelopment'  // Game-specific optimization patterns
-  | 'DemoScene'        // Size and effect optimization for demos
-  | 'Memory'           // Memory layout and allocation optimization
-  | 'ControlFlow'      // Loop, branch, and function call optimization
-  | 'DataStructures';  // Array, structure, and table optimization
+  | 'Mathematics' // Arithmetic, bitwise, mathematical operations
+  | 'Hardware' // Platform-specific hardware optimizations
+  | 'GameDevelopment' // Game-specific optimization patterns
+  | 'DemoScene' // Size and effect optimization for demos
+  | 'Memory' // Memory layout and allocation optimization
+  | 'ControlFlow' // Loop, branch, and function call optimization
+  | 'DataStructures'; // Array, structure, and table optimization
 
 /**
  * Sub-categories for more granular pattern organization.
@@ -150,63 +149,63 @@ export type PatternCategory =
  */
 export type PatternSubcategory =
   // Mathematics subcategories (75 patterns)
-  | 'Arithmetic'          // Basic arithmetic optimization
-  | 'Multiplication'      // Fast multiplication techniques
-  | 'Division'            // Division optimization and avoidance
-  | 'BitwiseOperations'   // Bit manipulation optimization
-  | 'LookupTables'        // Mathematical lookup table optimization
-  | 'Trigonometry'        // Sin/cos/tan optimization
-  | 'FixedPoint'          // Fixed-point arithmetic optimization
-  | 'RandomNumbers'       // Random number generation optimization
+  | 'Arithmetic' // Basic arithmetic optimization
+  | 'Multiplication' // Fast multiplication techniques
+  | 'Division' // Division optimization and avoidance
+  | 'BitwiseOperations' // Bit manipulation optimization
+  | 'LookupTables' // Mathematical lookup table optimization
+  | 'Trigonometry' // Sin/cos/tan optimization
+  | 'FixedPoint' // Fixed-point arithmetic optimization
+  | 'RandomNumbers' // Random number generation optimization
 
   // Hardware subcategories (120 patterns)
-  | 'C64VIC'             // C64 VIC-II graphics optimization
-  | 'C64SID'             // C64 SID sound optimization
-  | 'C64CIA'             // C64 CIA timer/input optimization
-  | 'VIC20'              // VIC-20 specific optimizations
-  | 'AppleII'            // Apple II specific optimizations
-  | 'Atari2600'          // Atari 2600 specific optimizations
-  | 'Atari8bit'          // Atari 8-bit computer optimizations
-  | 'NES'                // NES/Famicom optimizations
-  | 'GenericHardware'    // Cross-platform hardware patterns
+  | 'C64VIC' // C64 VIC-II graphics optimization
+  | 'C64SID' // C64 SID sound optimization
+  | 'C64CIA' // C64 CIA timer/input optimization
+  | 'VIC20' // VIC-20 specific optimizations
+  | 'AppleII' // Apple II specific optimizations
+  | 'Atari2600' // Atari 2600 specific optimizations
+  | 'Atari8bit' // Atari 8-bit computer optimizations
+  | 'NES' // NES/Famicom optimizations
+  | 'GenericHardware' // Cross-platform hardware patterns
 
   // Game Development subcategories (125 patterns)
-  | 'Graphics'           // Graphics rendering optimization
-  | 'Sprites'            // Sprite management and animation
-  | 'Scrolling'          // Screen scrolling optimization
-  | 'Audio'              // Music and sound effect optimization
-  | 'Input'              // Input handling optimization
-  | 'Physics'            // Physics simulation optimization
-  | 'AI'                 // Game AI optimization
-  | 'GameLoops'          // Main game loop optimization
-  | 'StateManagement'    // Game state management optimization
-  | 'Collision'          // Collision detection optimization
+  | 'Graphics' // Graphics rendering optimization
+  | 'Sprites' // Sprite management and animation
+  | 'Scrolling' // Screen scrolling optimization
+  | 'Audio' // Music and sound effect optimization
+  | 'Input' // Input handling optimization
+  | 'Physics' // Physics simulation optimization
+  | 'AI' // Game AI optimization
+  | 'GameLoops' // Main game loop optimization
+  | 'StateManagement' // Game state management optimization
+  | 'Collision' // Collision detection optimization
 
   // Demo Scene subcategories (50 patterns)
-  | 'SizeOptimization'   // Code size reduction techniques
-  | 'SpeedOptimization'  // Maximum performance techniques
-  | 'Effects'            // Visual effect optimization
-  | 'Compression'        // Data compression techniques
-  | 'SelfModifying'      // Self-modifying code techniques
+  | 'SizeOptimization' // Code size reduction techniques
+  | 'SpeedOptimization' // Maximum performance techniques
+  | 'Effects' // Visual effect optimization
+  | 'Compression' // Data compression techniques
+  | 'SelfModifying' // Self-modifying code techniques
 
   // Memory subcategories (45 patterns)
-  | 'ZeroPage'           // Zero page usage optimization
+  | 'ZeroPage' // Zero page usage optimization
   | 'RegisterAllocation' // A/X/Y register allocation
-  | 'MemoryLayout'       // Memory layout optimization
-  | 'CacheFriendly'      // Cache-friendly access patterns
-  | 'StackOptimization'  // Stack usage optimization
+  | 'MemoryLayout' // Memory layout optimization
+  | 'CacheFriendly' // Cache-friendly access patterns
+  | 'StackOptimization' // Stack usage optimization
 
   // Control Flow subcategories (35 patterns)
-  | 'LoopOptimization'   // Loop structure optimization
+  | 'LoopOptimization' // Loop structure optimization
   | 'BranchOptimization' // Branch prediction and optimization
-  | 'FunctionCalls'      // Function call optimization
-  | 'TailCalls'          // Tail call optimization
-  | 'Inlining'           // Function inlining optimization
+  | 'FunctionCalls' // Function call optimization
+  | 'TailCalls' // Tail call optimization
+  | 'Inlining' // Function inlining optimization
 
   // Data Structures subcategories (20 patterns)
-  | 'ArrayOptimization'  // Array access optimization
-  | 'StructureLayout'    // Structure memory layout
-  | 'TableOptimization'  // Lookup table optimization
+  | 'ArrayOptimization' // Array access optimization
+  | 'StructureLayout' // Structure memory layout
+  | 'TableOptimization' // Lookup table optimization
   | 'PointerOptimization'; // Pointer arithmetic optimization
 
 /**
@@ -214,34 +213,34 @@ export type PatternSubcategory =
  * Higher priority patterns are applied first when multiple patterns are applicable.
  */
 export type PatternPriority =
-  | 'Critical'    // 90-100: Must apply for correctness or major performance
-  | 'High'        // 70-89: Significant performance benefit
-  | 'Medium'      // 40-69: Moderate performance benefit
-  | 'Low'         // 20-39: Minor performance benefit
-  | 'Optional';   // 0-19: Cosmetic or very minor benefit
+  | 'Critical' // 90-100: Must apply for correctness or major performance
+  | 'High' // 70-89: Significant performance benefit
+  | 'Medium' // 40-69: Moderate performance benefit
+  | 'Low' // 20-39: Minor performance benefit
+  | 'Optional'; // 0-19: Cosmetic or very minor benefit
 
 /**
  * Pattern complexity levels for implementation and debugging.
  */
 export type PatternComplexity =
-  | 'Trivial'     // Simple single-step transformation
-  | 'Simple'      // Straightforward multi-step transformation
-  | 'Moderate'    // Complex transformation with multiple considerations
-  | 'Complex'     // Advanced transformation requiring careful analysis
-  | 'Expert';     // Extremely complex, requires deep 6502 expertise
+  | 'Trivial' // Simple single-step transformation
+  | 'Simple' // Straightforward multi-step transformation
+  | 'Moderate' // Complex transformation with multiple considerations
+  | 'Complex' // Advanced transformation requiring careful analysis
+  | 'Expert'; // Extremely complex, requires deep 6502 expertise
 
 /**
  * Target 6502 platforms that patterns can optimize for.
  */
 export type TargetPlatform =
-  | 'Generic6502'   // Any 6502 processor
-  | 'C64'           // Commodore 64
-  | 'VIC20'         // VIC-20
-  | 'AppleII'       // Apple II series
-  | 'Atari2600'     // Atari 2600
-  | 'Atari8bit'     // Atari 8-bit computers
-  | 'NES'           // Nintendo Entertainment System
-  | 'PET'           // Commodore PET
+  | 'Generic6502' // Any 6502 processor
+  | 'C64' // Commodore 64
+  | 'VIC20' // VIC-20
+  | 'AppleII' // Apple II series
+  | 'Atari2600' // Atari 2600
+  | 'Atari8bit' // Atari 8-bit computers
+  | 'NES' // Nintendo Entertainment System
+  | 'PET' // Commodore PET
   | 'CommanderX16'; // Commander X16
 
 /**
@@ -259,20 +258,18 @@ export interface PatternPrerequisite {
 }
 
 export type PrerequisiteType =
-  | 'ASTStructure'      // Specific AST node structure required
-  | 'SymbolTable'       // Specific symbols must exist
-  | 'TypeSystem'        // Specific types must be compatible
-  | 'Platform'          // Specific platform features required
-  | 'CompilerFlag'      // Specific compiler flags must be set
+  | 'ASTStructure' // Specific AST node structure required
+  | 'SymbolTable' // Specific symbols must exist
+  | 'TypeSystem' // Specific types must be compatible
+  | 'Platform' // Specific platform features required
+  | 'CompilerFlag' // Specific compiler flags must be set
   | 'OptimizationLevel' // Specific optimization level required
   | 'DependentPattern'; // Another pattern must be applied first
 
 /**
  * Function type for checking prerequisites.
  */
-export type PrerequisiteChecker = (
-  context: OptimizationContext
-) => boolean;
+export type PrerequisiteChecker = (context: OptimizationContext) => boolean;
 
 /**
  * Safety conditions that must be verified before applying a pattern.
@@ -292,14 +289,14 @@ export interface SafetyCondition {
 }
 
 export type SafetyConditionType =
-  | 'SemanticPreservation'  // Pattern must preserve program semantics
-  | 'RegisterUsage'         // Pattern must not conflict with register usage
-  | 'MemoryAccess'          // Pattern must not create invalid memory accesses
-  | 'TimingConstraints'     // Pattern must meet timing requirements
-  | 'SideEffects'           // Pattern must not introduce side effects
-  | 'DataDependency'        // Pattern must respect data dependencies
-  | 'ControlFlow'           // Pattern must preserve control flow semantics
-  | 'TypeSafety';           // Pattern must maintain type safety
+  | 'SemanticPreservation' // Pattern must preserve program semantics
+  | 'RegisterUsage' // Pattern must not conflict with register usage
+  | 'MemoryAccess' // Pattern must not create invalid memory accesses
+  | 'TimingConstraints' // Pattern must meet timing requirements
+  | 'SideEffects' // Pattern must not introduce side effects
+  | 'DataDependency' // Pattern must respect data dependencies
+  | 'ControlFlow' // Pattern must preserve control flow semantics
+  | 'TypeSafety'; // Pattern must maintain type safety
 
 /**
  * Function type for verifying safety conditions.
@@ -375,22 +372,13 @@ export interface PatternMatcher {
   id: string;
 
   /** Check if this pattern matches a specific AST node */
-  matches(
-    node: ASTNode,
-    context: OptimizationContext
-  ): PatternMatchResult;
+  matches(node: ASTNode, context: OptimizationContext): PatternMatchResult;
 
   /** Find all matches within a subtree (for bulk processing) */
-  findMatches(
-    root: ASTNode,
-    context: OptimizationContext
-  ): PatternMatch[];
+  findMatches(root: ASTNode, context: OptimizationContext): PatternMatch[];
 
   /** Check if pattern can match in the current context without full analysis */
-  canMatch(
-    nodeType: string,
-    context: OptimizationContext
-  ): boolean;
+  canMatch(nodeType: string, context: OptimizationContext): boolean;
 
   /** Get performance characteristics of this matcher */
   getPerformanceCharacteristics(): MatcherPerformanceCharacteristics;
@@ -537,12 +525,12 @@ export interface MatchWarning {
 }
 
 export type MatchWarningType =
-  | 'LowConfidence'         // Match confidence is below threshold
-  | 'PerformanceRisk'       // Applying pattern might hurt performance
-  | 'SafetyRisk'           // Pattern application has safety concerns
-  | 'ConflictDetected'      // Pattern conflicts with others
-  | 'PrerequisiteMissing'   // Required prerequisites not satisfied
-  | 'ExperimentalPattern';  // Pattern is experimental
+  | 'LowConfidence' // Match confidence is below threshold
+  | 'PerformanceRisk' // Applying pattern might hurt performance
+  | 'SafetyRisk' // Pattern application has safety concerns
+  | 'ConflictDetected' // Pattern conflicts with others
+  | 'PrerequisiteMissing' // Required prerequisites not satisfied
+  | 'ExperimentalPattern'; // Pattern is experimental
 
 export type WarningSeverity = 'Info' | 'Warning' | 'Error';
 
@@ -588,16 +576,10 @@ export interface PatternTransformer {
   id: string;
 
   /** Apply the transformation to a matched pattern */
-  transform(
-    match: PatternMatch,
-    context: OptimizationContext
-  ): TransformationResult;
+  transform(match: PatternMatch, context: OptimizationContext): TransformationResult;
 
   /** Estimate the impact of applying this transformation */
-  estimateImpact(
-    match: PatternMatch,
-    context: OptimizationContext
-  ): TransformationImpactEstimate;
+  estimateImpact(match: PatternMatch, context: OptimizationContext): TransformationImpactEstimate;
 
   /** Validate that a transformation can be safely applied */
   validateTransformation(
@@ -607,10 +589,7 @@ export interface PatternTransformer {
   ): ValidationResult;
 
   /** Rollback a transformation if needed */
-  rollback(
-    transformationId: string,
-    context: OptimizationContext
-  ): RollbackResult;
+  rollback(transformationId: string, context: OptimizationContext): RollbackResult;
 
   /** Get information about this transformer's capabilities */
   getCapabilities(): TransformerCapabilities;
@@ -771,12 +750,12 @@ export interface TransformationWarning {
 }
 
 export type TransformationWarningType =
-  | 'PerformanceRegression'  // Transformation might hurt performance
-  | 'CodeSizeIncrease'       // Transformation increases code size significantly
-  | 'SemanticRisk'           // Risk of semantic changes
+  | 'PerformanceRegression' // Transformation might hurt performance
+  | 'CodeSizeIncrease' // Transformation increases code size significantly
+  | 'SemanticRisk' // Risk of semantic changes
   | 'PlatformIncompatibility' // May not work on all target platforms
-  | 'ExperimentalTransform'  // Transformation is experimental
-  | 'ResourceConstraint';    // Transformation exceeds resource limits
+  | 'ExperimentalTransform' // Transformation is experimental
+  | 'ResourceConstraint'; // Transformation exceeds resource limits
 
 /**
  * Information needed to rollback a transformation.
@@ -875,11 +854,11 @@ export interface RollbackError {
 }
 
 export type RollbackErrorType =
-  | 'StateCorruption'       // AST state was corrupted
-  | 'DependencyConflict'    // Other transformations depend on this one
-  | 'ResourceLocked'        // Resources needed for rollback are locked
-  | 'IntegrityFailure'      // Checksum verification failed
-  | 'PartialRollback';      // Only part of transformation could be rolled back
+  | 'StateCorruption' // AST state was corrupted
+  | 'DependencyConflict' // Other transformations depend on this one
+  | 'ResourceLocked' // Resources needed for rollback are locked
+  | 'IntegrityFailure' // Checksum verification failed
+  | 'PartialRollback'; // Only part of transformation could be rolled back
 
 /**
  * Warning during transformation rollback.
@@ -896,10 +875,10 @@ export interface RollbackWarning {
 }
 
 export type RollbackWarningType =
-  | 'PerformanceImpact'     // Rollback will hurt performance
-  | 'StateInconsistency'    // AST might be in inconsistent state
-  | 'MetadataLoss'          // Some optimization metadata will be lost
-  | 'DependentTransforms';  // Other transformations might be affected
+  | 'PerformanceImpact' // Rollback will hurt performance
+  | 'StateInconsistency' // AST might be in inconsistent state
+  | 'MetadataLoss' // Some optimization metadata will be lost
+  | 'DependentTransforms'; // Other transformations might be affected
 
 /**
  * Capabilities of a pattern transformer.
@@ -1617,11 +1596,11 @@ export interface PlatformIssue {
  * Validation recommendation.
  */
 export type ValidationRecommendation =
-  | 'Apply'           // Safe to apply transformation
+  | 'Apply' // Safe to apply transformation
   | 'ApplyWithCaution' // Apply but monitor for issues
-  | 'Reject'          // Do not apply transformation
-  | 'RequiresReview'  // Manual review required
-  | 'Conditional';    // Apply only under certain conditions
+  | 'Reject' // Do not apply transformation
+  | 'RequiresReview' // Manual review required
+  | 'Conditional'; // Apply only under certain conditions
 
 /**
  * Memory usage statistics.

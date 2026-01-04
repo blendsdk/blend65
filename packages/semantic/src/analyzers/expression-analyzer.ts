@@ -38,21 +38,16 @@ import {
   IfStatement,
   WhileStatement,
   ForStatement,
-  BreakStatement,
-  ContinueStatement,
   ReturnStatement,
   ExpressionStatement,
-  MatchStatement
+  MatchStatement,
 } from '@blend65/ast';
 
 import { SourcePosition } from '@blend65/lexer';
 
 import {
-  Symbol,
   Blend65Type,
   SemanticError,
-  SemanticResult,
-  Scope,
   VariableSymbol,
   FunctionSymbol,
   isVariableSymbol,
@@ -63,7 +58,7 @@ import {
   isPrimitiveType,
   isArrayType,
   isCallbackType,
-  createArrayType
+  createArrayType,
 } from '../types.js';
 
 import { SymbolTable } from '../symbol-table.js';
@@ -135,26 +130,26 @@ export interface VariableReference {
  * Types of variable access for optimization analysis.
  */
 export type VariableAccessType =
-  | 'read'           // Simple read access
-  | 'write'          // Simple write access
-  | 'modify'         // Read-modify-write (++, +=, etc.)
-  | 'address'        // Address taken (&var)
-  | 'array_read'     // Array element read
-  | 'array_write'    // Array element write
-  | 'member_read'    // Member access read
-  | 'member_write';  // Member access write
+  | 'read' // Simple read access
+  | 'write' // Simple write access
+  | 'modify' // Read-modify-write (++, +=, etc.)
+  | 'address' // Address taken (&var)
+  | 'array_read' // Array element read
+  | 'array_write' // Array element write
+  | 'member_read' // Member access read
+  | 'member_write'; // Member access write
 
 /**
  * Variable access pattern analysis.
  */
 export type VariableAccessPattern =
-  | 'single_use'     // Used only once
-  | 'multiple_read'  // Read multiple times
-  | 'read_write'     // Both read and written
+  | 'single_use' // Used only once
+  | 'multiple_read' // Read multiple times
+  | 'read_write' // Both read and written
   | 'loop_dependent' // Access depends on loop variable
-  | 'sequential'     // Sequential array access
-  | 'random'         // Random access pattern
-  | 'hot_path';      // Frequently accessed
+  | 'sequential' // Sequential array access
+  | 'random' // Random access pattern
+  | 'hot_path'; // Frequently accessed
 
 /**
  * Side effect information for optimization.
@@ -168,12 +163,12 @@ export interface SideEffectInfo {
 }
 
 export type SideEffectType =
-  | 'variable_write'     // Writes to variable
-  | 'array_write'        // Writes to array element
-  | 'function_call'      // Calls function with potential side effects
-  | 'hardware_access'    // Accesses hardware registers
-  | 'memory_access'      // Direct memory access
-  | 'volatile_access';   // Access to volatile location
+  | 'variable_write' // Writes to variable
+  | 'array_write' // Writes to array element
+  | 'function_call' // Calls function with potential side effects
+  | 'hardware_access' // Accesses hardware registers
+  | 'memory_access' // Direct memory access
+  | 'volatile_access'; // Access to volatile location
 
 /**
  * Register pressure analysis for 6502 optimization.
@@ -219,39 +214,39 @@ export interface SixtyTwoOptimizationHints {
 }
 
 export type AddressingModeHint =
-  | 'zero_page'      // $00-$FF
-  | 'absolute'       // $0000-$FFFF
-  | 'indexed_x'      // ,X
-  | 'indexed_y'      // ,Y
-  | 'indirect'       // ($xxxx)
-  | 'immediate';     // #$xx
+  | 'zero_page' // $00-$FF
+  | 'absolute' // $0000-$FFFF
+  | 'indexed_x' // ,X
+  | 'indexed_y' // ,Y
+  | 'indirect' // ($xxxx)
+  | 'immediate'; // #$xx
 
 export type IndexRegisterUsage =
-  | 'none'           // No index register needed
-  | 'prefer_x'       // X register preferred
-  | 'prefer_y'       // Y register preferred
-  | 'requires_x'     // Must use X register
-  | 'requires_y';    // Must use Y register
+  | 'none' // No index register needed
+  | 'prefer_x' // X register preferred
+  | 'prefer_y' // Y register preferred
+  | 'requires_x' // Must use X register
+  | 'requires_y'; // Must use Y register
 
 export type MemoryBank =
-  | 'zero_page'      // $00-$FF
-  | 'stack'          // $0100-$01FF
-  | 'ram'            // General RAM
-  | 'rom'            // Read-only memory
-  | 'io';            // I/O area
+  | 'zero_page' // $00-$FF
+  | 'stack' // $0100-$01FF
+  | 'ram' // General RAM
+  | 'rom' // Read-only memory
+  | 'io'; // I/O area
 
 export type BranchPrediction =
-  | 'likely_taken'   // Branch likely to be taken
-  | 'likely_not'     // Branch likely not taken
-  | 'unpredictable'  // Cannot predict
-  | 'always'         // Always taken
-  | 'never';         // Never taken
+  | 'likely_taken' // Branch likely to be taken
+  | 'likely_not' // Branch likely not taken
+  | 'unpredictable' // Cannot predict
+  | 'always' // Always taken
+  | 'never'; // Never taken
 
 export type LoopOptimizationHint =
-  | 'unroll_candidate'    // Good for loop unrolling
+  | 'unroll_candidate' // Good for loop unrolling
   | 'vectorize_candidate' // Could benefit from vectorization
-  | 'strength_reduce'     // Strength reduction opportunity
-  | 'invariant_motion'    // Loop invariant code motion
+  | 'strength_reduce' // Strength reduction opportunity
+  | 'invariant_motion' // Loop invariant code motion
   | 'induction_variable'; // Induction variable optimization
 
 /**
@@ -268,17 +263,17 @@ export interface ExpressionContext {
 }
 
 export type HardwareContext =
-  | 'interrupt_handler'  // In interrupt handler
-  | 'timing_critical'    // Timing-sensitive code
-  | 'hardware_access'    // Accessing hardware registers
-  | 'memory_mapped_io'   // Memory-mapped I/O access
-  | 'normal';            // Normal execution context
+  | 'interrupt_handler' // In interrupt handler
+  | 'timing_critical' // Timing-sensitive code
+  | 'hardware_access' // Accessing hardware registers
+  | 'memory_mapped_io' // Memory-mapped I/O access
+  | 'normal'; // Normal execution context
 
 export type OptimizationLevel =
-  | 'none'      // No optimization
-  | 'size'      // Optimize for size
-  | 'speed'     // Optimize for speed
-  | 'balanced'  // Balance size and speed
+  | 'none' // No optimization
+  | 'size' // Optimize for size
+  | 'speed' // Optimize for speed
+  | 'balanced' // Balance size and speed
   | 'aggressive'; // Maximum optimization
 
 /**
@@ -321,11 +316,11 @@ export interface StatementOptimizationData {
 }
 
 export type ExecutionFrequency =
-  | 'never'      // Never executed (dead code)
-  | 'rare'       // Rarely executed
-  | 'normal'     // Normal execution
-  | 'frequent'   // Frequently executed
-  | 'hot';       // Very frequently executed (hot path)
+  | 'never' // Never executed (dead code)
+  | 'rare' // Rarely executed
+  | 'normal' // Normal execution
+  | 'frequent' // Frequently executed
+  | 'hot'; // Very frequently executed (hot path)
 
 /**
  * Control flow information.
@@ -339,13 +334,13 @@ export interface ControlFlowInfo {
 }
 
 export type ControlFlowType =
-  | 'sequential'     // Normal sequential flow
-  | 'conditional'    // Conditional branch
-  | 'unconditional'  // Unconditional jump
-  | 'loop'           // Loop control
-  | 'return'         // Function return
-  | 'break'          // Break statement
-  | 'continue';      // Continue statement
+  | 'sequential' // Normal sequential flow
+  | 'conditional' // Conditional branch
+  | 'unconditional' // Unconditional jump
+  | 'loop' // Loop control
+  | 'return' // Function return
+  | 'break' // Break statement
+  | 'continue'; // Continue statement
 
 export interface BranchInfo {
   condition?: Expression;
@@ -462,7 +457,7 @@ export class ExpressionAnalyzer {
       resolvedType: createPrimitiveType('void'), // Will be determined
       optimizationData: this.createDefaultOptimizationData(),
       errors: [],
-      warnings: []
+      warnings: [],
     };
 
     // Clear any previous errors for this analysis
@@ -495,7 +490,7 @@ export class ExpressionAnalyzer {
       controlFlow: this.createDefaultControlFlow(),
       optimizationData: this.createDefaultStatementOptimizationData(),
       errors: [],
-      warnings: []
+      warnings: [],
     };
 
     // Track errors from this analysis
@@ -514,13 +509,12 @@ export class ExpressionAnalyzer {
 
       // Store in cache
       this.statementMetadata.set(stmt, result.optimizationData);
-
     } catch (error) {
       const semanticError: SemanticError = {
         errorType: 'InvalidOperation',
         message: `Statement analysis failed: ${error instanceof Error ? error.message : String(error)}`,
         location: stmt.metadata?.start || { line: 0, column: 0, offset: 0 },
-        suggestions: ['Check statement syntax and semantic correctness']
+        suggestions: ['Check statement syntax and semantic correctness'],
       };
       result.errors.push(semanticError);
       this.errors.push(semanticError);
@@ -541,7 +535,7 @@ export class ExpressionAnalyzer {
       statements: [],
       blockOptimizationData: this.createDefaultBlockOptimizationData(),
       errors: [],
-      warnings: []
+      warnings: [],
     };
 
     // Analyze each statement
@@ -598,7 +592,7 @@ export class ExpressionAnalyzer {
         this.addError({
           errorType: 'InvalidOperation',
           message: `Unknown expression type: ${expr.type}`,
-          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
         });
         return createPrimitiveType('void');
     }
@@ -623,10 +617,7 @@ export class ExpressionAnalyzer {
             errorType: 'TypeMismatch',
             message: `Cannot perform '${expr.operator}' on types '${typeToString(leftType)}' and '${typeToString(rightType)}'`,
             location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
-            suggestions: [
-              'Use explicit type conversion',
-              'Ensure both operands are numeric types'
-            ]
+            suggestions: ['Use explicit type conversion', 'Ensure both operands are numeric types'],
           });
         }
 
@@ -643,14 +634,16 @@ export class ExpressionAnalyzer {
     if (['==', '!=', '<', '<=', '>', '>='].includes(expr.operator)) {
       // Comparisons can work with mixed byte/word
       if (isPrimitiveType(leftType) && isPrimitiveType(rightType)) {
-        const leftIsComparable = leftType.name === 'byte' || leftType.name === 'word' || leftType.name === 'boolean';
-        const rightIsComparable = rightType.name === 'byte' || rightType.name === 'word' || rightType.name === 'boolean';
+        const leftIsComparable =
+          leftType.name === 'byte' || leftType.name === 'word' || leftType.name === 'boolean';
+        const rightIsComparable =
+          rightType.name === 'byte' || rightType.name === 'word' || rightType.name === 'boolean';
 
         if (!leftIsComparable || !rightIsComparable) {
           this.addError({
             errorType: 'TypeMismatch',
             message: `Cannot compare types '${typeToString(leftType)}' and '${typeToString(rightType)}'`,
-            location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+            location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
           });
         }
       }
@@ -666,7 +659,7 @@ export class ExpressionAnalyzer {
     this.addError({
       errorType: 'InvalidOperation',
       message: `Unknown binary operator: ${expr.operator}`,
-      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
     });
     return createPrimitiveType('void');
   }
@@ -691,14 +684,16 @@ export class ExpressionAnalyzer {
       case '++':
       case '--':
         // Increment/decrement preserves type but requires numeric type
-        if (isPrimitiveType(operandType) &&
-            (operandType.name === 'byte' || operandType.name === 'word')) {
+        if (
+          isPrimitiveType(operandType) &&
+          (operandType.name === 'byte' || operandType.name === 'word')
+        ) {
           return operandType;
         }
         this.addError({
           errorType: 'TypeMismatch',
           message: `Cannot apply '${expr.operator}' to type '${typeToString(operandType)}'`,
-          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
         });
         return operandType;
 
@@ -706,7 +701,7 @@ export class ExpressionAnalyzer {
         this.addError({
           errorType: 'InvalidOperation',
           message: `Unknown unary operator: ${expr.operator}`,
-          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
         });
         return createPrimitiveType('void');
     }
@@ -715,7 +710,10 @@ export class ExpressionAnalyzer {
   /**
    * Analyze assignment expression type.
    */
-  private analyzeAssignmentExpressionType(expr: AssignmentExpr, context: ExpressionContext): Blend65Type {
+  private analyzeAssignmentExpressionType(
+    expr: AssignmentExpr,
+    context: ExpressionContext
+  ): Blend65Type {
     const leftType = this.analyzeExpressionType(expr.left, context);
     const rightType = this.analyzeExpressionType(expr.right, context);
 
@@ -725,10 +723,7 @@ export class ExpressionAnalyzer {
         errorType: 'TypeMismatch',
         message: `Cannot assign '${typeToString(rightType)}' to '${typeToString(leftType)}'`,
         location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
-        suggestions: [
-          'Use explicit type conversion',
-          'Check variable declaration type'
-        ]
+        suggestions: ['Use explicit type conversion', 'Check variable declaration type'],
       });
     }
 
@@ -752,7 +747,7 @@ export class ExpressionAnalyzer {
           this.addError({
             errorType: 'TypeMismatch',
             message: `Function '${functionSymbol.name}' expects ${functionSymbol.parameters.length} arguments, got ${expr.args.length}`,
-            location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+            location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
           });
         }
 
@@ -765,7 +760,7 @@ export class ExpressionAnalyzer {
             this.addError({
               errorType: 'TypeMismatch',
               message: `Argument ${i + 1} to function '${functionSymbol.name}': expected '${typeToString(paramType)}', got '${typeToString(argType)}'`,
-              location: expr.args[i].metadata?.start || { line: 0, column: 0, offset: 0 }
+              location: expr.args[i].metadata?.start || { line: 0, column: 0, offset: 0 },
             });
           }
         }
@@ -781,7 +776,7 @@ export class ExpressionAnalyzer {
         this.addError({
           errorType: 'TypeMismatch',
           message: `Callback expects ${calleeType.parameterTypes.length} arguments, got ${expr.args.length}`,
-          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+          location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
         });
       }
 
@@ -791,7 +786,7 @@ export class ExpressionAnalyzer {
     this.addError({
       errorType: 'TypeMismatch',
       message: `Expression is not callable`,
-      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
     });
     return createPrimitiveType('void');
   }
@@ -807,7 +802,7 @@ export class ExpressionAnalyzer {
     this.addWarning({
       errorType: 'InvalidOperation',
       message: 'Member expression analysis not fully implemented',
-      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
     });
 
     return createPrimitiveType('byte');
@@ -821,12 +816,11 @@ export class ExpressionAnalyzer {
     const indexType = this.analyzeExpressionType(expr.index, context);
 
     // Index must be numeric
-    if (!isPrimitiveType(indexType) ||
-        (indexType.name !== 'byte' && indexType.name !== 'word')) {
+    if (!isPrimitiveType(indexType) || (indexType.name !== 'byte' && indexType.name !== 'word')) {
       this.addError({
         errorType: 'TypeMismatch',
         message: `Array index must be numeric, got '${typeToString(indexType)}'`,
-        location: expr.index.metadata?.start || { line: 0, column: 0, offset: 0 }
+        location: expr.index.metadata?.start || { line: 0, column: 0, offset: 0 },
       });
     }
 
@@ -838,7 +832,7 @@ export class ExpressionAnalyzer {
     this.addError({
       errorType: 'TypeMismatch',
       message: `Cannot index into non-array type '${typeToString(arrayType)}'`,
-      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
     });
     return createPrimitiveType('void');
   }
@@ -854,10 +848,7 @@ export class ExpressionAnalyzer {
         errorType: 'UndefinedSymbol',
         message: `Undefined symbol '${expr.name}'`,
         location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
-        suggestions: [
-          `Check if '${expr.name}' is declared`,
-          'Verify variable name spelling'
-        ]
+        suggestions: [`Check if '${expr.name}' is declared`, 'Verify variable name spelling'],
       });
       return createPrimitiveType('void');
     }
@@ -871,7 +862,7 @@ export class ExpressionAnalyzer {
       return {
         kind: 'callback',
         parameterTypes: symbol.parameters.map(p => p.type),
-        returnType: symbol.returnType
+        returnType: symbol.returnType,
       };
     }
 
@@ -879,7 +870,7 @@ export class ExpressionAnalyzer {
     this.addError({
       errorType: 'InvalidOperation',
       message: `Symbol '${expr.name}' cannot be used as an expression`,
-      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
     });
     return createPrimitiveType('void');
   }
@@ -895,7 +886,7 @@ export class ExpressionAnalyzer {
           errorType: 'TypeMismatch',
           message: `Number literal ${expr.value} is out of range for 6502 (0-65535)`,
           location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
-          suggestions: ['Use a number within the valid range']
+          suggestions: ['Use a number within the valid range'],
         });
         return createPrimitiveType('void');
       }
@@ -916,7 +907,7 @@ export class ExpressionAnalyzer {
     this.addError({
       errorType: 'InvalidOperation',
       message: `Unknown literal type: ${typeof expr.value}`,
-      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 }
+      location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
     });
     return createPrimitiveType('void');
   }
@@ -930,7 +921,7 @@ export class ExpressionAnalyzer {
         errorType: 'TypeMismatch',
         message: 'Empty array literals are not allowed',
         location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
-        suggestions: ['Provide at least one element to determine array type']
+        suggestions: ['Provide at least one element to determine array type'],
       });
       return createPrimitiveType('void');
     }
@@ -945,7 +936,7 @@ export class ExpressionAnalyzer {
         this.addError({
           errorType: 'TypeMismatch',
           message: `Array element ${i + 1} type '${typeToString(elementType)}' is not compatible with array type '${typeToString(firstElementType)}'`,
-          location: expr.elements[i].metadata?.start || { line: 0, column: 0, offset: 0 }
+          location: expr.elements[i].metadata?.start || { line: 0, column: 0, offset: 0 },
         });
       }
     }
@@ -960,7 +951,10 @@ export class ExpressionAnalyzer {
   /**
    * Collect comprehensive optimization metadata for an expression.
    */
-  private collectExpressionMetadata(expr: Expression, context: ExpressionContext): ExpressionOptimizationData {
+  private collectExpressionMetadata(
+    expr: Expression,
+    context: ExpressionContext
+  ): ExpressionOptimizationData {
     const metadata: ExpressionOptimizationData = this.createDefaultOptimizationData();
 
     // Basic properties
@@ -973,7 +967,10 @@ export class ExpressionAnalyzer {
     // Variable usage analysis
     metadata.usedVariables = this.collectVariableReferences(expr, context);
     metadata.hasVariableAccess = metadata.usedVariables.length > 0;
-    metadata.variableAccessPattern = this.analyzeVariableAccessPattern(metadata.usedVariables, context);
+    metadata.variableAccessPattern = this.analyzeVariableAccessPattern(
+      metadata.usedVariables,
+      context
+    );
 
     // Side effect analysis
     this.analyzeSideEffects(expr, metadata, context);
@@ -1000,9 +997,12 @@ export class ExpressionAnalyzer {
     switch (expr.type) {
       case 'BinaryExpr':
         const binaryExpr = expr as BinaryExpr;
-        return 1 + Math.max(
-          this.calculateExpressionDepth(binaryExpr.left),
-          this.calculateExpressionDepth(binaryExpr.right)
+        return (
+          1 +
+          Math.max(
+            this.calculateExpressionDepth(binaryExpr.left),
+            this.calculateExpressionDepth(binaryExpr.right)
+          )
         );
 
       case 'UnaryExpr':
@@ -1011,17 +1011,21 @@ export class ExpressionAnalyzer {
 
       case 'AssignmentExpr':
         const assignExpr = expr as AssignmentExpr;
-        return 1 + Math.max(
-          this.calculateExpressionDepth(assignExpr.left),
-          this.calculateExpressionDepth(assignExpr.right)
+        return (
+          1 +
+          Math.max(
+            this.calculateExpressionDepth(assignExpr.left),
+            this.calculateExpressionDepth(assignExpr.right)
+          )
         );
 
       case 'CallExpr':
         const callExpr = expr as CallExpr;
         const calleeDepth = this.calculateExpressionDepth(callExpr.callee);
-        const maxArgDepth = callExpr.args.length > 0
-          ? Math.max(...callExpr.args.map(arg => this.calculateExpressionDepth(arg)))
-          : 0;
+        const maxArgDepth =
+          callExpr.args.length > 0
+            ? Math.max(...callExpr.args.map(arg => this.calculateExpressionDepth(arg)))
+            : 0;
         return 1 + Math.max(calleeDepth, maxArgDepth);
 
       case 'MemberExpr':
@@ -1030,9 +1034,12 @@ export class ExpressionAnalyzer {
 
       case 'IndexExpr':
         const indexExpr = expr as IndexExpr;
-        return 1 + Math.max(
-          this.calculateExpressionDepth(indexExpr.object),
-          this.calculateExpressionDepth(indexExpr.index)
+        return (
+          1 +
+          Math.max(
+            this.calculateExpressionDepth(indexExpr.object),
+            this.calculateExpressionDepth(indexExpr.index)
+          )
         );
 
       case 'ArrayLiteral':
@@ -1053,7 +1060,11 @@ export class ExpressionAnalyzer {
     switch (expr.type) {
       case 'BinaryExpr':
         const binaryExpr = expr as BinaryExpr;
-        return 1 + this.countExpressionNodes(binaryExpr.left) + this.countExpressionNodes(binaryExpr.right);
+        return (
+          1 +
+          this.countExpressionNodes(binaryExpr.left) +
+          this.countExpressionNodes(binaryExpr.right)
+        );
 
       case 'UnaryExpr':
         const unaryExpr = expr as UnaryExpr;
@@ -1061,12 +1072,19 @@ export class ExpressionAnalyzer {
 
       case 'AssignmentExpr':
         const assignExpr = expr as AssignmentExpr;
-        return 1 + this.countExpressionNodes(assignExpr.left) + this.countExpressionNodes(assignExpr.right);
+        return (
+          1 +
+          this.countExpressionNodes(assignExpr.left) +
+          this.countExpressionNodes(assignExpr.right)
+        );
 
       case 'CallExpr':
         const callExpr = expr as CallExpr;
         const calleeNodes = this.countExpressionNodes(callExpr.callee);
-        const argNodes = callExpr.args.reduce((sum, arg) => sum + this.countExpressionNodes(arg), 0);
+        const argNodes = callExpr.args.reduce(
+          (sum, arg) => sum + this.countExpressionNodes(arg),
+          0
+        );
         return 1 + calleeNodes + argNodes;
 
       case 'MemberExpr':
@@ -1075,11 +1093,17 @@ export class ExpressionAnalyzer {
 
       case 'IndexExpr':
         const indexExpr = expr as IndexExpr;
-        return 1 + this.countExpressionNodes(indexExpr.object) + this.countExpressionNodes(indexExpr.index);
+        return (
+          1 +
+          this.countExpressionNodes(indexExpr.object) +
+          this.countExpressionNodes(indexExpr.index)
+        );
 
       case 'ArrayLiteral':
         const arrayLit = expr as ArrayLiteral;
-        return 1 + arrayLit.elements.reduce((sum, elem) => sum + this.countExpressionNodes(elem), 0);
+        return (
+          1 + arrayLit.elements.reduce((sum, elem) => sum + this.countExpressionNodes(elem), 0)
+        );
 
       default:
         return 1; // Leaf nodes
@@ -1089,7 +1113,10 @@ export class ExpressionAnalyzer {
   /**
    * Recursively collect variable references from an expression.
    */
-  private collectVariableReferences(expr: Expression, context: ExpressionContext): VariableReference[] {
+  private collectVariableReferences(
+    expr: Expression,
+    context: ExpressionContext
+  ): VariableReference[] {
     const references: VariableReference[] = [];
 
     switch (expr.type) {
@@ -1101,7 +1128,7 @@ export class ExpressionAnalyzer {
             symbol: symbol,
             accessType: context.inAssignment ? 'write' : 'read',
             location: identifier.metadata?.start || { line: 0, column: 0, offset: 0 },
-            context: context
+            context: context,
           });
         }
         break;
@@ -1163,7 +1190,10 @@ export class ExpressionAnalyzer {
   /**
    * Analyze variable access patterns for optimization.
    */
-  private analyzeVariableAccessPattern(references: VariableReference[], context: ExpressionContext): VariableAccessPattern {
+  private analyzeVariableAccessPattern(
+    references: VariableReference[],
+    context: ExpressionContext
+  ): VariableAccessPattern {
     if (references.length === 0) {
       return 'single_use';
     }
@@ -1174,7 +1204,9 @@ export class ExpressionAnalyzer {
 
     // Check for read-write pattern
     const hasRead = references.some(ref => ref.accessType === 'read');
-    const hasWrite = references.some(ref => ref.accessType === 'write' || ref.accessType === 'modify');
+    const hasWrite = references.some(
+      ref => ref.accessType === 'write' || ref.accessType === 'modify'
+    );
 
     if (hasRead && hasWrite) {
       return 'read_write';
@@ -1198,7 +1230,11 @@ export class ExpressionAnalyzer {
   /**
    * Analyze constant properties of an expression.
    */
-  private analyzeConstantProperties(expr: Expression, metadata: ExpressionOptimizationData, context: ExpressionContext): void {
+  private analyzeConstantProperties(
+    expr: Expression,
+    metadata: ExpressionOptimizationData,
+    context: ExpressionContext
+  ): void {
     switch (expr.type) {
       case 'Literal':
         const literal = expr as Literal;
@@ -1218,7 +1254,8 @@ export class ExpressionAnalyzer {
         // Binary expressions are NOT constant themselves, but they may be constant folding candidates
         metadata.isConstant = false;
         metadata.constantFoldingCandidate = leftMeta.isConstant && rightMeta.isConstant;
-        metadata.isCompileTimeConstant = leftMeta.isCompileTimeConstant && rightMeta.isCompileTimeConstant;
+        metadata.isCompileTimeConstant =
+          leftMeta.isCompileTimeConstant && rightMeta.isCompileTimeConstant;
         break;
 
       case 'UnaryExpr':
@@ -1243,7 +1280,11 @@ export class ExpressionAnalyzer {
   /**
    * Analyze side effects in an expression.
    */
-  private analyzeSideEffects(expr: Expression, metadata: ExpressionOptimizationData, context: ExpressionContext): void {
+  private analyzeSideEffects(
+    expr: Expression,
+    metadata: ExpressionOptimizationData,
+    context: ExpressionContext
+  ): void {
     switch (expr.type) {
       case 'AssignmentExpr':
         metadata.hasSideEffects = true;
@@ -1253,7 +1294,7 @@ export class ExpressionAnalyzer {
           target: 'variable',
           location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
           severity: 'medium',
-          description: 'Assignment modifies variable'
+          description: 'Assignment modifies variable',
         });
         break;
 
@@ -1266,7 +1307,7 @@ export class ExpressionAnalyzer {
           target: 'function',
           location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
           severity: 'medium',
-          description: 'Function call may have side effects'
+          description: 'Function call may have side effects',
         });
         break;
 
@@ -1280,7 +1321,7 @@ export class ExpressionAnalyzer {
             target: 'variable',
             location: expr.metadata?.start || { line: 0, column: 0, offset: 0 },
             severity: 'medium',
-            description: 'Increment/decrement modifies variable'
+            description: 'Increment/decrement modifies variable',
           });
         }
         break;
@@ -1303,7 +1344,11 @@ export class ExpressionAnalyzer {
   /**
    * Propagate side effects from sub-expressions.
    */
-  private propagateSideEffectsFromSubExpressions(expr: Expression, metadata: ExpressionOptimizationData, context: ExpressionContext): void {
+  private propagateSideEffectsFromSubExpressions(
+    expr: Expression,
+    metadata: ExpressionOptimizationData,
+    context: ExpressionContext
+  ): void {
     const subExpressions = this.getSubExpressions(expr);
 
     for (const subExpr of subExpressions) {
@@ -1367,7 +1412,11 @@ export class ExpressionAnalyzer {
   /**
    * Analyze performance characteristics of an expression.
    */
-  private analyzePerformanceCharacteristics(expr: Expression, metadata: ExpressionOptimizationData, context: ExpressionContext): void {
+  private analyzePerformanceCharacteristics(
+    expr: Expression,
+    metadata: ExpressionOptimizationData,
+    context: ExpressionContext
+  ): void {
     // Calculate complexity score based on operation types and nesting
     metadata.complexityScore = this.calculateComplexityScore(expr);
 
@@ -1401,17 +1450,28 @@ export class ExpressionAnalyzer {
 
       case 'AssignmentExpr':
         const assignExpr = expr as AssignmentExpr;
-        return 2 + this.calculateComplexityScore(assignExpr.left) + this.calculateComplexityScore(assignExpr.right);
+        return (
+          2 +
+          this.calculateComplexityScore(assignExpr.left) +
+          this.calculateComplexityScore(assignExpr.right)
+        );
 
       case 'CallExpr':
         const callExpr = expr as CallExpr;
         const calleeScore = this.calculateComplexityScore(callExpr.callee);
-        const argsScore = callExpr.args.reduce((sum, arg) => sum + this.calculateComplexityScore(arg), 0);
+        const argsScore = callExpr.args.reduce(
+          (sum, arg) => sum + this.calculateComplexityScore(arg),
+          0
+        );
         return 5 + calleeScore + argsScore; // Function calls are expensive
 
       case 'IndexExpr':
         const indexExpr = expr as IndexExpr;
-        return 3 + this.calculateComplexityScore(indexExpr.object) + this.calculateComplexityScore(indexExpr.index);
+        return (
+          3 +
+          this.calculateComplexityScore(indexExpr.object) +
+          this.calculateComplexityScore(indexExpr.index)
+        );
 
       default:
         return 2;
@@ -1452,8 +1512,11 @@ export class ExpressionAnalyzer {
 
       case 'IndexExpr':
         const indexExpr = expr as IndexExpr;
-        return this.estimateExecutionCycles(indexExpr.object) +
-               this.estimateExecutionCycles(indexExpr.index) + 4; // Indexed addressing
+        return (
+          this.estimateExecutionCycles(indexExpr.object) +
+          this.estimateExecutionCycles(indexExpr.index) +
+          4
+        ); // Indexed addressing
 
       default:
         return 5; // Conservative estimate
@@ -1463,7 +1526,10 @@ export class ExpressionAnalyzer {
   /**
    * Analyze register pressure for 6502.
    */
-  private analyzeRegisterPressure(expr: Expression, context: ExpressionContext): RegisterPressureInfo {
+  private analyzeRegisterPressure(
+    expr: Expression,
+    context: ExpressionContext
+  ): RegisterPressureInfo {
     const complexityScore = this.calculateComplexityScore(expr);
 
     return {
@@ -1471,7 +1537,7 @@ export class ExpressionAnalyzer {
       preferredRegister: this.determinePreferredRegister(expr),
       requiresSpillToMemory: complexityScore > 6,
       canUseZeroPage: true, // Most expressions can benefit from zero page
-      temporaryVariablesNeeded: Math.max(0, complexityScore - 3)
+      temporaryVariablesNeeded: Math.max(0, complexityScore - 3),
     };
   }
 
@@ -1497,7 +1563,11 @@ export class ExpressionAnalyzer {
   /**
    * Collect 6502-specific optimization hints.
    */
-  private collect6502OptimizationHints(expr: Expression, metadata: ExpressionOptimizationData, context: ExpressionContext): void {
+  private collect6502OptimizationHints(
+    expr: Expression,
+    metadata: ExpressionOptimizationData,
+    context: ExpressionContext
+  ): void {
     metadata.sixtyTwoHints = {
       addressingMode: this.determineAddressingMode(expr, context),
       zeroPageCandidate: this.isZeroPageCandidate(expr),
@@ -1513,14 +1583,17 @@ export class ExpressionAnalyzer {
       inlineCandidate: this.isInlineCandidate(expr),
       hardwareRegisterAccess: false, // Most expressions don't access hardware
       timingCritical: context.hardwareContext === 'timing_critical',
-      interruptSafe: context.hardwareContext !== 'interrupt_handler'
+      interruptSafe: context.hardwareContext !== 'interrupt_handler',
     };
   }
 
   /**
    * Determine addressing mode for an expression.
    */
-  private determineAddressingMode(expr: Expression, context: ExpressionContext): AddressingModeHint {
+  private determineAddressingMode(
+    expr: Expression,
+    context: ExpressionContext
+  ): AddressingModeHint {
     if (expr.type === 'Literal') {
       return 'immediate';
     }
@@ -1546,8 +1619,11 @@ export class ExpressionAnalyzer {
   private isZeroPageCandidate(expr: Expression): boolean {
     if (expr.type === 'Identifier') {
       const symbol = this.symbolTable.lookupSymbol((expr as Identifier).name);
-      return !!(symbol && isVariableSymbol(symbol) &&
-               (symbol.storageClass === 'zp' || symbol.storageClass === undefined));
+      return !!(
+        symbol &&
+        isVariableSymbol(symbol) &&
+        (symbol.storageClass === 'zp' || symbol.storageClass === undefined)
+      );
     }
     return false;
   }
@@ -1563,8 +1639,10 @@ export class ExpressionAnalyzer {
    * Check if expression is an accumulator operation.
    */
   private isAccumulatorOperation(expr: Expression): boolean {
-    return expr.type === 'BinaryExpr' &&
-           ['+', '-', '&', '|', '^'].includes((expr as BinaryExpr).operator);
+    return (
+      expr.type === 'BinaryExpr' &&
+      ['+', '-', '&', '|', '^'].includes((expr as BinaryExpr).operator)
+    );
   }
 
   /**
@@ -1612,7 +1690,10 @@ export class ExpressionAnalyzer {
   /**
    * Get loop optimization hint for an expression.
    */
-  private getLoopOptimizationHint(expr: Expression, context: ExpressionContext): LoopOptimizationHint {
+  private getLoopOptimizationHint(
+    expr: Expression,
+    context: ExpressionContext
+  ): LoopOptimizationHint {
     if (context.loopDepth === 0) {
       return 'invariant_motion'; // Default outside loops
     }
@@ -1639,7 +1720,11 @@ export class ExpressionAnalyzer {
   /**
    * Analyze loop context for an expression.
    */
-  private analyzeLoopContext(expr: Expression, metadata: ExpressionOptimizationData, context: ExpressionContext): void {
+  private analyzeLoopContext(
+    expr: Expression,
+    metadata: ExpressionOptimizationData,
+    context: ExpressionContext
+  ): void {
     metadata.loopInvariant = context.loopDepth === 0 || expr.type === 'Literal';
     metadata.loopDependent = context.loopDepth > 0 && !metadata.loopInvariant;
     metadata.hotPathCandidate = context.inHotPath || context.loopDepth > 0;
@@ -1648,9 +1733,14 @@ export class ExpressionAnalyzer {
   /**
    * Identify optimization opportunities.
    */
-  private identifyOptimizationOpportunities(expr: Expression, metadata: ExpressionOptimizationData, context: ExpressionContext): void {
+  private identifyOptimizationOpportunities(
+    expr: Expression,
+    metadata: ExpressionOptimizationData,
+    context: ExpressionContext
+  ): void {
     // Common subexpression elimination opportunity
-    metadata.commonSubexpressionCandidate = metadata.complexityScore > 2 && !metadata.hasSideEffects;
+    metadata.commonSubexpressionCandidate =
+      metadata.complexityScore > 2 && !metadata.hasSideEffects;
 
     // Dead code elimination
     metadata.deadCodeCandidate = false; // This would be determined at a higher level
@@ -1666,7 +1756,10 @@ export class ExpressionAnalyzer {
   /**
    * Extract and analyze all expressions from a statement.
    */
-  private extractAndAnalyzeExpressions(stmt: Statement, context: ExpressionContext): ExpressionAnalysisResult[] {
+  private extractAndAnalyzeExpressions(
+    stmt: Statement,
+    context: ExpressionContext
+  ): ExpressionAnalysisResult[] {
     const expressions: Expression[] = [];
     const results: ExpressionAnalysisResult[] = [];
 
@@ -1725,7 +1818,7 @@ export class ExpressionAnalyzer {
     const controlFlow: ControlFlowInfo = {
       hasControlFlow: false,
       flowType: 'sequential',
-      branches: []
+      branches: [],
     };
 
     switch (stmt.type) {
@@ -1736,7 +1829,7 @@ export class ExpressionAnalyzer {
         controlFlow.condition = ifStmt.condition;
         controlFlow.branches = [
           { condition: ifStmt.condition, target: 'then', probability: 0.5 },
-          { target: 'else', probability: 0.5 }
+          { target: 'else', probability: 0.5 },
         ];
         break;
 
@@ -1746,7 +1839,7 @@ export class ExpressionAnalyzer {
         controlFlow.flowType = 'loop';
         controlFlow.branches = [
           { target: 'loop_body', probability: 0.8 },
-          { target: 'loop_exit', probability: 0.2 }
+          { target: 'loop_exit', probability: 0.2 },
         ];
         break;
 
@@ -1783,7 +1876,10 @@ export class ExpressionAnalyzer {
   /**
    * Collect statement-level optimization metadata.
    */
-  private collectStatementMetadata(stmt: Statement, context: ExpressionContext): StatementOptimizationData {
+  private collectStatementMetadata(
+    stmt: Statement,
+    context: ExpressionContext
+  ): StatementOptimizationData {
     const metadata: StatementOptimizationData = {
       isTerminal: false,
       alwaysExecutes: true,
@@ -1798,7 +1894,7 @@ export class ExpressionAnalyzer {
       hotPath: context.inHotPath,
       branchInstruction: false,
       jumpInstruction: false,
-      hardwareInteraction: false
+      hardwareInteraction: false,
     };
 
     switch (stmt.type) {
@@ -1849,7 +1945,10 @@ export class ExpressionAnalyzer {
   /**
    * Collect block-level optimization metadata.
    */
-  private collectBlockMetadata(statements: StatementAnalysisResult[], context: ExpressionContext): BlockOptimizationData {
+  private collectBlockMetadata(
+    statements: StatementAnalysisResult[],
+    context: ExpressionContext
+  ): BlockOptimizationData {
     const metadata: BlockOptimizationData = {
       statementCount: statements.length,
       expressionCount: 0,
@@ -1861,14 +1960,15 @@ export class ExpressionAnalyzer {
       estimatedCycles: 0,
       codeSize: statements.length * 2, // Rough estimate
       hotPath: context.inHotPath,
-      criticalSection: false
+      criticalSection: false,
     };
 
     // Aggregate data from statements
     for (const stmtResult of statements) {
       metadata.expressionCount += stmtResult.expressions.length;
       metadata.estimatedCycles += stmtResult.expressions.reduce(
-        (sum, expr) => sum + expr.optimizationData.estimatedCycles, 0
+        (sum, expr) => sum + expr.optimizationData.estimatedCycles,
+        0
       );
 
       // Collect variable accesses
@@ -1881,7 +1981,7 @@ export class ExpressionAnalyzer {
         metadata.deadCodeElimination.push({
           statement: stmtResult.statement,
           reason: 'Unreachable code',
-          canEliminate: true
+          canEliminate: true,
         });
       }
     }
@@ -1930,7 +2030,7 @@ export class ExpressionAnalyzer {
         preferredRegister: 'A',
         requiresSpillToMemory: false,
         canUseZeroPage: true,
-        temporaryVariablesNeeded: 0
+        temporaryVariablesNeeded: 0,
       },
       sixtyTwoHints: {
         addressingMode: 'absolute',
@@ -1947,7 +2047,7 @@ export class ExpressionAnalyzer {
         inlineCandidate: true,
         hardwareRegisterAccess: false,
         timingCritical: false,
-        interruptSafe: true
+        interruptSafe: true,
       },
       loopInvariant: false,
       loopDependent: false,
@@ -1959,7 +2059,7 @@ export class ExpressionAnalyzer {
       constantFoldingCandidate: false,
       commonSubexpressionCandidate: false,
       deadCodeCandidate: false,
-      cacheCandidate: false
+      cacheCandidate: false,
     };
   }
 
@@ -1970,7 +2070,7 @@ export class ExpressionAnalyzer {
     return {
       hasControlFlow: false,
       flowType: 'sequential',
-      branches: []
+      branches: [],
     };
   }
 
@@ -1992,7 +2092,7 @@ export class ExpressionAnalyzer {
       hotPath: false,
       branchInstruction: false,
       jumpInstruction: false,
-      hardwareInteraction: false
+      hardwareInteraction: false,
     };
   }
 
@@ -2011,7 +2111,7 @@ export class ExpressionAnalyzer {
       estimatedCycles: 0,
       codeSize: 0,
       hotPath: false,
-      criticalSection: false
+      criticalSection: false,
     };
   }
 
@@ -2081,7 +2181,9 @@ export class ExpressionAnalyzer {
 /**
  * Create expression context with optional overrides.
  */
-export function createExpressionContext(options: Partial<ExpressionContext> = {}): ExpressionContext {
+export function createExpressionContext(
+  options: Partial<ExpressionContext> = {}
+): ExpressionContext {
   return {
     loopDepth: 0,
     inHotPath: false,
@@ -2089,6 +2191,6 @@ export function createExpressionContext(options: Partial<ExpressionContext> = {}
     inAssignment: false,
     hardwareContext: 'normal',
     optimizationLevel: 'balanced',
-    ...options
+    ...options,
   };
 }

@@ -15,40 +15,26 @@ import type {
   ILFunction,
   ILInstruction,
   ILValue,
-  ILConstant,
-  ILVariable,
   ILTemporary,
   ILLabel,
-  CompilationOptions,
   ProgramOptimizationMetadata,
   ILFunctionOptimizationMetadata,
-  Register6502,
-  AddressingMode6502,
-  MemoryBank6502,
-  TemporaryScope
 } from './il-types.js';
 
-import type {
-  Blend65Type
-} from '@blend65/semantic';
+import type { Blend65Type } from '@blend65/semantic';
 
 import {
   createILProgram,
   createILModule,
   createILFunction,
-  createILInstruction,
   createILConstant,
   createILVariable,
-  createILRegister,
   createILTemporary,
   createILLabel,
-  ILInstructionType
 } from './il-types.js';
 
 import {
   createLoadImmediate,
-  createLoadMemory,
-  createStoreMemory,
   createAdd,
   createSub,
   createMul,
@@ -62,8 +48,7 @@ import {
   createLoadVariable,
   createStoreVariable,
   createLabel,
-  createNop,
-  createComment
+  createComment,
 } from './instructions.js';
 
 /**
@@ -109,7 +94,7 @@ export function createILBuilderContext(
     nextLabelId: 1,
     target,
     optimizationLevel,
-    debug
+    debug,
   };
 }
 
@@ -165,8 +150,8 @@ export class ILProgramBuilder {
       globalOptimizations: [],
       resourceUsage: {
         memoryUsage: 0,
-        registerPressure: 0
-      }
+        registerPressure: 0,
+      },
     };
 
     program.optimizationMetadata = optimizationMetadata;
@@ -180,8 +165,8 @@ export class ILProgramBuilder {
         includeDebugInfo: this.debug,
         targetOptions: { platform: this.target },
         warningLevel: 'medium',
-        includeSourceMaps: this.debug
-      }
+        includeSourceMaps: this.debug,
+      },
     };
 
     return program;
@@ -196,10 +181,7 @@ export class ILModuleBuilder {
   private functions: ILFunction[] = [];
   private context: ILBuilderContext;
 
-  constructor(
-    name: string,
-    target: 'c64' | 'vic20' | 'x16' = 'c64'
-  ) {
+  constructor(name: string, target: 'c64' | 'vic20' | 'x16' = 'c64') {
     this.context = createILBuilderContext(name, target);
   }
 
@@ -214,10 +196,7 @@ export class ILModuleBuilder {
   /**
    * Create and add a function using a builder function
    */
-  function(
-    name: string,
-    builder: (functionBuilder: ILFunctionBuilder) => void
-  ): ILModuleBuilder {
+  function(name: string, builder: (functionBuilder: ILFunctionBuilder) => void): ILModuleBuilder {
     const functionBuilder = new ILFunctionBuilder(name, this.context);
     this.context.currentFunction = name;
     builder(functionBuilder);
@@ -241,8 +220,8 @@ export class ILModuleBuilder {
       interFunctionOptimizations: [],
       moduleResourceUsage: {
         instructionCount: this.functions.length,
-        memoryUsage: 0
-      }
+        memoryUsage: 0,
+      },
     };
 
     module.optimizationMetadata = optimizationMetadata;
@@ -280,7 +259,11 @@ export class ILFunctionBuilder {
    */
   createTemp(name?: string): ILTemporary {
     const tempId = this.context.nextTempId++;
-    return createILTemporary(tempId, { kind: 'primitive', name: 'byte' } as Blend65Type, 'function');
+    return createILTemporary(
+      tempId,
+      { kind: 'primitive', name: 'byte' } as Blend65Type,
+      'function'
+    );
   }
 
   /**
@@ -313,7 +296,11 @@ export class ILFunctionBuilder {
    */
   loadImmediate(value: number, target?: ILTemporary): ILTemporary {
     const temp = target || this.createTemp();
-    const constant = createILConstant({ kind: 'primitive', name: 'byte' } as Blend65Type, value, 'decimal');
+    const constant = createILConstant(
+      { kind: 'primitive', name: 'byte' } as Blend65Type,
+      value,
+      'decimal'
+    );
     this.addInstruction(createLoadImmediate(temp, constant));
     return temp;
   }
@@ -323,7 +310,10 @@ export class ILFunctionBuilder {
    */
   loadVariable(variableName: string, target?: ILTemporary): ILTemporary {
     const temp = target || this.createTemp();
-    const variable = createILVariable(variableName, { kind: 'primitive', name: 'byte' } as Blend65Type);
+    const variable = createILVariable(variableName, {
+      kind: 'primitive',
+      name: 'byte',
+    } as Blend65Type);
     this.addInstruction(createLoadVariable(temp, variable));
     return temp;
   }
@@ -332,7 +322,10 @@ export class ILFunctionBuilder {
    * Store value to variable
    */
   storeVariable(variableName: string, source: ILValue): ILFunctionBuilder {
-    const variable = createILVariable(variableName, { kind: 'primitive', name: 'byte' } as Blend65Type);
+    const variable = createILVariable(variableName, {
+      kind: 'primitive',
+      name: 'byte',
+    } as Blend65Type);
     this.addInstruction(createStoreVariable(variable, source));
     return this;
   }
@@ -402,11 +395,13 @@ export class ILFunctionBuilder {
    */
   call(functionName: string, args: ILValue[] = [], target?: ILTemporary): ILTemporary | null {
     const result = target || this.createTemp();
-    this.addInstruction(createCall(result, args, {
-      line: 1,
-      column: 1,
-      offset: 0
-    }));
+    this.addInstruction(
+      createCall(result, args, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      })
+    );
     return result;
   }
 
@@ -468,7 +463,7 @@ export class ILFunctionBuilder {
       {
         line: 1,
         column: 1,
-        offset: 0
+        offset: 0,
       }
     );
 
@@ -483,19 +478,19 @@ export class ILFunctionBuilder {
         entryBlock: 0,
         exitBlocks: [],
         blocks: [],
-        edges: []
+        edges: [],
       },
       basicBlocks: [],
       loops: [],
       dataFlowAnalysis: {
         liveVariables: [],
         reachingDefinitions: [],
-        availableExpressions: []
+        availableExpressions: [],
       },
       registerUsage: {
         registerPressure: new Map(),
-        conflicts: []
-      }
+        conflicts: [],
+      },
     };
 
     func.ilOptimizationMetadata = ilOptimizationMetadata;
@@ -577,7 +572,10 @@ export function createFunctionPrologue(
 
   // Declare local variables
   for (let i = 0; i < localVarCount; i++) {
-    const localVar = createILVariable(`local_${i}`, { kind: 'primitive', name: 'byte' } as Blend65Type);
+    const localVar = createILVariable(`local_${i}`, {
+      kind: 'primitive',
+      name: 'byte',
+    } as Blend65Type);
     builder.addInstruction(createDeclareLocal(localVar));
   }
 

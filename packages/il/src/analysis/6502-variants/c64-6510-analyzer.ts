@@ -13,7 +13,7 @@
  * - C64-specific memory layout ($0000-$FFFF with banking)
  */
 
-import { ILFunction, ILInstruction, ILInstructionType, ILValue } from '../../il-types.js';
+import { ILFunction, ILInstruction, ILInstructionType } from '../../il-types.js';
 import { Base6502Analyzer } from './base-6502-analyzer.js';
 import {
   InstructionTimingInfo,
@@ -24,46 +24,74 @@ import {
   PlatformMemoryMap,
   ValidationIssue,
   VICTimingFactors,
-  SIDTimingConstraints,
-  CIATimingConstraints,
-  MemoryRegion,
   CycleTimingResult,
   RegisterAllocationAnalysis,
-  PerformanceHotspotAnalysis
+  PerformanceHotspotAnalysis,
 } from '../types/6502-analysis-types.js';
 
 /**
  * 6510 instruction timing table for cycle-perfect analysis
  * Based on official MOS 6510 documentation and C64 hardware behavior
  */
-const C64_6510_TIMING_TABLE: Record<ILInstructionType, {
-  baseCycles: number;
-  pageBoundaryCycles?: number;
-  notes?: string;
-}> = {
+const C64_6510_TIMING_TABLE: Record<
+  ILInstructionType,
+  {
+    baseCycles: number;
+    pageBoundaryCycles?: number;
+    notes?: string;
+  }
+> = {
   // Memory operations
   [ILInstructionType.LOAD_IMMEDIATE]: { baseCycles: 2, notes: 'LDA #$XX - 2 cycles' },
-  [ILInstructionType.LOAD_MEMORY]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'LDA $XXXX - 3/4 cycles' },
+  [ILInstructionType.LOAD_MEMORY]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'LDA $XXXX - 3/4 cycles',
+  },
   [ILInstructionType.STORE_MEMORY]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles' },
   [ILInstructionType.COPY]: { baseCycles: 2, notes: 'Register transfer - 2 cycles' },
 
   // Arithmetic operations
-  [ILInstructionType.ADD]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'ADC $XXXX - 3/4 cycles' },
-  [ILInstructionType.SUB]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'SBC $XXXX - 3/4 cycles' },
+  [ILInstructionType.ADD]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'ADC $XXXX - 3/4 cycles',
+  },
+  [ILInstructionType.SUB]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'SBC $XXXX - 3/4 cycles',
+  },
   [ILInstructionType.MUL]: { baseCycles: 8, notes: 'Software multiplication - ~8 cycles' },
   [ILInstructionType.DIV]: { baseCycles: 12, notes: 'Software division - ~12 cycles' },
   [ILInstructionType.MOD]: { baseCycles: 14, notes: 'Software modulo - ~14 cycles' },
   [ILInstructionType.NEG]: { baseCycles: 5, notes: 'Software negation - ~5 cycles' },
 
   // Logical operations
-  [ILInstructionType.AND]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'AND $XXXX - 3/4 cycles' },
+  [ILInstructionType.AND]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'AND $XXXX - 3/4 cycles',
+  },
   [ILInstructionType.OR]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'ORA $XXXX - 3/4 cycles' },
   [ILInstructionType.NOT]: { baseCycles: 4, notes: 'Software NOT - ~4 cycles' },
 
   // Bitwise operations
-  [ILInstructionType.BITWISE_AND]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'AND $XXXX - 3/4 cycles' },
-  [ILInstructionType.BITWISE_OR]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'ORA $XXXX - 3/4 cycles' },
-  [ILInstructionType.BITWISE_XOR]: { baseCycles: 3, pageBoundaryCycles: 1, notes: 'EOR $XXXX - 3/4 cycles' },
+  [ILInstructionType.BITWISE_AND]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'AND $XXXX - 3/4 cycles',
+  },
+  [ILInstructionType.BITWISE_OR]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'ORA $XXXX - 3/4 cycles',
+  },
+  [ILInstructionType.BITWISE_XOR]: {
+    baseCycles: 3,
+    pageBoundaryCycles: 1,
+    notes: 'EOR $XXXX - 3/4 cycles',
+  },
   [ILInstructionType.BITWISE_NOT]: { baseCycles: 4, notes: 'Software bitwise NOT - ~4 cycles' },
   [ILInstructionType.SHIFT_LEFT]: { baseCycles: 6, notes: 'ASL $XXXX - 6 cycles' },
   [ILInstructionType.SHIFT_RIGHT]: { baseCycles: 6, notes: 'LSR $XXXX - 6 cycles' },
@@ -78,10 +106,26 @@ const C64_6510_TIMING_TABLE: Record<ILInstructionType, {
 
   // Control flow operations
   [ILInstructionType.BRANCH]: { baseCycles: 3, notes: 'JMP $XXXX - 3 cycles' },
-  [ILInstructionType.BRANCH_IF_TRUE]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BNE - 2/3/4 cycles' },
-  [ILInstructionType.BRANCH_IF_FALSE]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BEQ - 2/3/4 cycles' },
-  [ILInstructionType.BRANCH_IF_ZERO]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BEQ - 2/3/4 cycles' },
-  [ILInstructionType.BRANCH_IF_NOT_ZERO]: { baseCycles: 2, pageBoundaryCycles: 1, notes: 'BNE - 2/3/4 cycles' },
+  [ILInstructionType.BRANCH_IF_TRUE]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BNE - 2/3/4 cycles',
+  },
+  [ILInstructionType.BRANCH_IF_FALSE]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BEQ - 2/3/4 cycles',
+  },
+  [ILInstructionType.BRANCH_IF_ZERO]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BEQ - 2/3/4 cycles',
+  },
+  [ILInstructionType.BRANCH_IF_NOT_ZERO]: {
+    baseCycles: 2,
+    pageBoundaryCycles: 1,
+    notes: 'BNE - 2/3/4 cycles',
+  },
 
   // Function operations
   [ILInstructionType.CALL]: { baseCycles: 6, notes: 'JSR $XXXX - 6 cycles' },
@@ -89,11 +133,21 @@ const C64_6510_TIMING_TABLE: Record<ILInstructionType, {
 
   // Variable operations
   [ILInstructionType.DECLARE_LOCAL]: { baseCycles: 0, notes: 'No runtime cost' },
-  [ILInstructionType.LOAD_VARIABLE]: { baseCycles: 3, notes: 'LDA $XXXX - 3 cycles (zero page: 2)' },
-  [ILInstructionType.STORE_VARIABLE]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles (zero page: 2)' },
+  [ILInstructionType.LOAD_VARIABLE]: {
+    baseCycles: 3,
+    notes: 'LDA $XXXX - 3 cycles (zero page: 2)',
+  },
+  [ILInstructionType.STORE_VARIABLE]: {
+    baseCycles: 3,
+    notes: 'STA $XXXX - 3 cycles (zero page: 2)',
+  },
 
   // Array operations
-  [ILInstructionType.LOAD_ARRAY]: { baseCycles: 4, pageBoundaryCycles: 1, notes: 'LDA $XXXX,Y - 4/5 cycles' },
+  [ILInstructionType.LOAD_ARRAY]: {
+    baseCycles: 4,
+    pageBoundaryCycles: 1,
+    notes: 'LDA $XXXX,Y - 4/5 cycles',
+  },
   [ILInstructionType.STORE_ARRAY]: { baseCycles: 5, notes: 'STA $XXXX,Y - 5 cycles' },
   [ILInstructionType.ARRAY_ADDRESS]: { baseCycles: 6, notes: 'Address calculation - ~6 cycles' },
 
@@ -107,7 +161,7 @@ const C64_6510_TIMING_TABLE: Record<ILInstructionType, {
   [ILInstructionType.PEEK]: { baseCycles: 3, notes: 'LDA $XXXX - 3 cycles' },
   [ILInstructionType.POKE]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles' },
   [ILInstructionType.SET_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
-  [ILInstructionType.CLEAR_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' }
+  [ILInstructionType.CLEAR_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
 };
 
 /**
@@ -118,76 +172,78 @@ const C64_MEMORY_MAP: PlatformMemoryMap = {
   zeroPage: {
     name: 'Zero Page',
     startAddress: 0x0000,
-    endAddress: 0x00FF,
+    endAddress: 0x00ff,
     type: 'ram',
     readable: true,
     writable: true,
     bankable: false,
-    accessCycles: 2
+    accessCycles: 2,
   },
   stack: {
     name: 'Stack',
     startAddress: 0x0100,
-    endAddress: 0x01FF,
+    endAddress: 0x01ff,
     type: 'ram',
     readable: true,
     writable: true,
     bankable: false,
-    accessCycles: 3
+    accessCycles: 3,
   },
-  defaultRAM: [{
-    name: 'Main RAM',
-    startAddress: 0x0200,
-    endAddress: 0x9FFF,
-    type: 'ram',
-    readable: true,
-    writable: true,
-    bankable: false,
-    accessCycles: 3
-  }],
+  defaultRAM: [
+    {
+      name: 'Main RAM',
+      startAddress: 0x0200,
+      endAddress: 0x9fff,
+      type: 'ram',
+      readable: true,
+      writable: true,
+      bankable: false,
+      accessCycles: 3,
+    },
+  ],
   ioRegions: [
     {
       name: 'VIC-II',
-      startAddress: 0xD000,
-      endAddress: 0xD3FF,
+      startAddress: 0xd000,
+      endAddress: 0xd3ff,
       type: 'io',
       readable: true,
       writable: true,
       bankable: true,
-      accessCycles: 3
+      accessCycles: 3,
     },
     {
       name: 'SID',
-      startAddress: 0xD400,
-      endAddress: 0xD7FF,
+      startAddress: 0xd400,
+      endAddress: 0xd7ff,
       type: 'io',
       readable: true,
       writable: true,
       bankable: true,
-      accessCycles: 3
+      accessCycles: 3,
     },
     {
       name: 'CIA1',
-      startAddress: 0xDC00,
-      endAddress: 0xDCFF,
+      startAddress: 0xdc00,
+      endAddress: 0xdcff,
       type: 'io',
       readable: true,
       writable: true,
       bankable: true,
-      accessCycles: 3
+      accessCycles: 3,
     },
     {
       name: 'CIA2',
-      startAddress: 0xDD00,
-      endAddress: 0xDDFF,
+      startAddress: 0xdd00,
+      endAddress: 0xddff,
       type: 'io',
       readable: true,
       writable: true,
       bankable: true,
-      accessCycles: 3
-    }
+      accessCycles: 3,
+    },
   ],
-  regions: [] // Will be populated with all regions combined
+  regions: [], // Will be populated with all regions combined
 };
 
 // Populate combined regions
@@ -198,14 +254,14 @@ C64_MEMORY_MAP.regions = [
   ...C64_MEMORY_MAP.ioRegions,
   {
     name: 'KERNAL ROM',
-    startAddress: 0xE000,
-    endAddress: 0xFFFF,
+    startAddress: 0xe000,
+    endAddress: 0xffff,
     type: 'rom',
     readable: true,
     writable: false,
     bankable: true,
-    accessCycles: 3
-  }
+    accessCycles: 3,
+  },
 ];
 
 /**
@@ -268,7 +324,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
       totalCycles,
       timingNotes,
       addressingMode: this.getAddressingMode(instruction),
-      isCriticalPath: this.isOnCriticalPath(instruction, context)
+      isCriticalPath: this.isOnCriticalPath(instruction, context),
     };
   }
 
@@ -282,7 +338,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
       ciaTiming: this.options.enableCIATimingValidation,
       bankSwitching: true,
       processorVariant: '6510',
-      clockSpeed: 985248 // PAL C64 clock speed in Hz
+      clockSpeed: 985248, // PAL C64 clock speed in Hz
     };
   }
 
@@ -304,7 +360,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
         size: allocation.size,
         bank: allocation.region,
         isOptimal: allocation.isOptimal,
-        recommendations: allocation.recommendations
+        recommendations: allocation.recommendations,
       });
 
       // Update memory usage
@@ -326,7 +382,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
         validationIssues.push({
           type: 'memory_layout_suboptimal',
           severity: 'warning',
-          message: `Variable ${variable.name} could be better allocated: ${allocation.recommendations.join(', ')}`
+          message: `Variable ${variable.name} could be better allocated: ${allocation.recommendations.join(', ')}`,
         });
       }
     }
@@ -336,7 +392,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
       validationIssues.push({
         type: 'zero_page_overflow',
         severity: 'error',
-        message: `Zero page usage (${memoryUsage.zeroPage} bytes) exceeds 256 byte limit`
+        message: `Zero page usage (${memoryUsage.zeroPage} bytes) exceeds 256 byte limit`,
       });
     }
 
@@ -344,7 +400,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
       isValid: validationIssues.filter(issue => issue.severity === 'error').length === 0,
       memoryUsage,
       memoryMap,
-      validationIssues
+      validationIssues,
     };
   }
 
@@ -370,7 +426,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
         constraintType: 'stack_overflow',
         severity: 'error',
         message: `Stack usage (${stackUsage.maxDepth} bytes) may exceed safe limits`,
-        resolution: 'Reduce recursion depth or local variable usage'
+        resolution: 'Reduce recursion depth or local variable usage',
       });
     }
 
@@ -390,7 +446,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
       stackUsageValid,
       timingConstraintsValid: timingConstraintsValid.valid,
       hardwareResourcesValid: hardwareResourcesValid.valid,
-      constraintViolations
+      constraintViolations,
     };
   }
 
@@ -454,8 +510,8 @@ export class C64_6510Analyzer extends Base6502Analyzer {
       performanceEstimate: {
         totalCycles: analysisResults.timing.totalCycles,
         averageCyclesPerInstruction: analysisResults.timing.averageCyclesPerInstruction,
-        estimatedExecutionTimeMs: (analysisResults.timing.totalCycles / 985248) * 1000
-      }
+        estimatedExecutionTimeMs: (analysisResults.timing.totalCycles / 985248) * 1000,
+      },
     };
   }
 
@@ -463,7 +519,10 @@ export class C64_6510Analyzer extends Base6502Analyzer {
   // PRIVATE C64-SPECIFIC IMPLEMENTATION METHODS
   // ============================================================================
 
-  private hasPageBoundaryCrossing(instruction: ILInstruction, context: InstructionAnalysisContext): boolean {
+  private hasPageBoundaryCrossing(
+    instruction: ILInstruction,
+    context: InstructionAnalysisContext
+  ): boolean {
     // Simplified page boundary detection
     // In a real implementation, this would analyze actual memory addresses
     return Math.random() < 0.1; // 10% chance for demonstration
@@ -472,28 +531,33 @@ export class C64_6510Analyzer extends Base6502Analyzer {
   private calculateVICInterference(context: InstructionAnalysisContext): VICTimingFactors {
     // Simplified VIC interference calculation
     const rasterLine = context.rasterLine || this.currentRasterLine;
-    const isBadline = (rasterLine >= 51 && rasterLine <= 250) && ((rasterLine - 51) % 8 === 0);
+    const isBadline = rasterLine >= 51 && rasterLine <= 250 && (rasterLine - 51) % 8 === 0;
 
     return {
       isBadline,
       dmaCycles: isBadline ? 3 : 0,
       rasterLine,
-      cycleTiming: context.rasterCycle || this.currentCycle
+      cycleTiming: context.rasterCycle || this.currentCycle,
     };
   }
 
   private usesZeroPageAddressing(instruction: ILInstruction): boolean {
     // Check if instruction can use zero page addressing
-    return instruction.sixtyTwoHints?.preferredAddressingMode === 'zero_page' ||
-           instruction.type === ILInstructionType.LOAD_VARIABLE ||
-           instruction.type === ILInstructionType.STORE_VARIABLE;
+    return (
+      instruction.sixtyTwoHints?.preferredAddressingMode === 'zero_page' ||
+      instruction.type === ILInstructionType.LOAD_VARIABLE ||
+      instruction.type === ILInstructionType.STORE_VARIABLE
+    );
   }
 
   private getAddressingMode(instruction: ILInstruction): any {
     return instruction.sixtyTwoHints?.preferredAddressingMode || 'absolute';
   }
 
-  private isOnCriticalPath(instruction: ILInstruction, context: InstructionAnalysisContext): boolean {
+  private isOnCriticalPath(
+    instruction: ILInstruction,
+    context: InstructionAnalysisContext
+  ): boolean {
     // Simplified critical path detection
     return instruction.sixtyTwoHints?.isHotPath || false;
   }
@@ -508,7 +572,9 @@ export class C64_6510Analyzer extends Base6502Analyzer {
       size: 1,
       region: isFrequentlyUsed ? 'zero_page' : 'ram',
       isOptimal,
-      recommendations: isOptimal ? [] : ['Consider zero page allocation for frequently used variables']
+      recommendations: isOptimal
+        ? []
+        : ['Consider zero page allocation for frequently used variables'],
     };
   }
 
@@ -516,7 +582,7 @@ export class C64_6510Analyzer extends Base6502Analyzer {
     // Simplified stack usage analysis
     const localVariableSize = ilFunction.localVariables.length * 2;
     const callDepth = this.estimateCallDepth(ilFunction);
-    const maxDepth = localVariableSize + (callDepth * 3); // 3 bytes per call level
+    const maxDepth = localVariableSize + callDepth * 3; // 3 bytes per call level
 
     return { maxDepth, callDepth };
   }
@@ -534,54 +600,69 @@ export class C64_6510Analyzer extends Base6502Analyzer {
     return { valid: true, violations: [] };
   }
 
-  private findZeroPageOptimizations(ilFunction: ILFunction, memoryAnalysis: any): SixtyTwo6502Optimization[] {
-    return [{
-      type: 'memory_layout',
-      priority: 80,
-      estimatedBenefit: {
-        cycleSavings: 10,
-        memorySavings: 0,
-        codeSizeChange: 0
+  private findZeroPageOptimizations(
+    ilFunction: ILFunction,
+    memoryAnalysis: any
+  ): SixtyTwo6502Optimization[] {
+    return [
+      {
+        type: 'memory_layout',
+        priority: 80,
+        estimatedBenefit: {
+          cycleSavings: 10,
+          memorySavings: 0,
+          codeSizeChange: 0,
+        },
+        description: 'Move frequently accessed variables to zero page',
+        affectedInstructions: [],
+        difficulty: 'easy',
+        platformNotes: 'C64 zero page addressing is 1 cycle faster than absolute addressing',
       },
-      description: 'Move frequently accessed variables to zero page',
-      affectedInstructions: [],
-      difficulty: 'easy',
-      platformNotes: 'C64 zero page addressing is 1 cycle faster than absolute addressing'
-    }];
+    ];
   }
 
-  private findVICTimingOptimizations(ilFunction: ILFunction, timingAnalysis: any): SixtyTwo6502Optimization[] {
-    return [{
-      type: 'peephole',
-      priority: 60,
-      estimatedBenefit: {
-        cycleSavings: 5,
-        memorySavings: 0,
-        codeSizeChange: 0
+  private findVICTimingOptimizations(
+    ilFunction: ILFunction,
+    timingAnalysis: any
+  ): SixtyTwo6502Optimization[] {
+    return [
+      {
+        type: 'peephole',
+        priority: 60,
+        estimatedBenefit: {
+          cycleSavings: 5,
+          memorySavings: 0,
+          codeSizeChange: 0,
+        },
+        description: 'Avoid memory access during VIC-II badlines',
+        affectedInstructions: [],
+        difficulty: 'medium',
+        platformNotes: 'VIC-II steals 3 cycles during badlines on C64',
       },
-      description: 'Avoid memory access during VIC-II badlines',
-      affectedInstructions: [],
-      difficulty: 'medium',
-      platformNotes: 'VIC-II steals 3 cycles during badlines on C64'
-    }];
+    ];
   }
 
   private findC64RegisterOptimizations(registerAnalysis: any): SixtyTwo6502Optimization[] {
-    return [{
-      type: 'register_allocation',
-      priority: 70,
-      estimatedBenefit: {
-        cycleSavings: 8,
-        memorySavings: 0,
-        codeSizeChange: -2
+    return [
+      {
+        type: 'register_allocation',
+        priority: 70,
+        estimatedBenefit: {
+          cycleSavings: 8,
+          memorySavings: 0,
+          codeSizeChange: -2,
+        },
+        description: 'Optimize A register usage for frequent operations',
+        affectedInstructions: [],
+        difficulty: 'easy',
       },
-      description: 'Optimize A register usage for frequent operations',
-      affectedInstructions: [],
-      difficulty: 'easy'
-    }];
+    ];
   }
 
-  private findC64HardwareOptimizations(ilFunction: ILFunction, analysisResults: any): SixtyTwo6502Optimization[] {
+  private findC64HardwareOptimizations(
+    ilFunction: ILFunction,
+    analysisResults: any
+  ): SixtyTwo6502Optimization[] {
     return [];
   }
 
@@ -604,7 +685,8 @@ export class C64_6510Analyzer extends Base6502Analyzer {
   private identifyC64CompatibilityIssues(ilFunction: ILFunction, analysisResults: any): string[] {
     const issues: string[] = [];
 
-    if (analysisResults.memory.memoryUsage.total > 38911) { // C64 available RAM
+    if (analysisResults.memory.memoryUsage.total > 38911) {
+      // C64 available RAM
       issues.push('Memory usage exceeds C64 available RAM');
     }
 

@@ -6,7 +6,7 @@
  * Other specialized types are in separate focused files.
  */
 
-import type { ASTNode, Expression } from '@blend65/ast';
+import type { ASTNode } from '@blend65/ast';
 
 // ============================================================================
 // CORE PATTERN SYSTEM TYPES
@@ -20,7 +20,7 @@ export enum PatternCategory {
   HARDWARE = 'hardware',
   CONTROL_FLOW = 'control_flow',
   MEMORY = 'memory',
-  BASIC = 'basic'
+  BASIC = 'basic',
 }
 
 /**
@@ -31,7 +31,7 @@ export enum TargetPlatform {
   C128 = 'c128',
   VIC20 = 'vic20',
   APPLE_II = 'apple_ii',
-  GENERIC_6502 = 'generic_6502'
+  GENERIC_6502 = 'generic_6502',
 }
 
 /**
@@ -41,7 +41,7 @@ export enum PatternPriority {
   LOW = 1,
   MEDIUM = 2,
   HIGH = 3,
-  CRITICAL = 4
+  CRITICAL = 4,
 }
 
 /**

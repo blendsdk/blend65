@@ -71,7 +71,12 @@ export interface MetricsCollectorConfiguration {
   customOptions: Map<string, any>;
 }
 
-export type MetricsCollectionFrequency = 'RealTime' | 'HighFrequency' | 'Standard' | 'LowFrequency' | 'OnDemand';
+export type MetricsCollectionFrequency =
+  | 'RealTime'
+  | 'HighFrequency'
+  | 'Standard'
+  | 'LowFrequency'
+  | 'OnDemand';
 export type MetricsExportFormat = 'JSON' | 'CSV' | 'XML' | 'Parquet' | 'InfluxDB' | 'Prometheus';
 
 /**
@@ -190,7 +195,13 @@ export interface AuthenticationConfiguration {
   tokenConfiguration?: TokenConfiguration;
 }
 
-export type AuthenticationType = 'None' | 'ApiKey' | 'OAuth' | 'BasicAuth' | 'Token' | 'Certificate';
+export type AuthenticationType =
+  | 'None'
+  | 'ApiKey'
+  | 'OAuth'
+  | 'BasicAuth'
+  | 'Token'
+  | 'Certificate';
 
 /**
  * Token configuration.
@@ -394,7 +405,12 @@ export interface EscalationCondition {
   timeout: number;
 }
 
-export type EscalationConditionType = 'TimeElapsed' | 'SeverityIncrease' | 'NoResponse' | 'PatternMatch' | 'Custom';
+export type EscalationConditionType =
+  | 'TimeElapsed'
+  | 'SeverityIncrease'
+  | 'NoResponse'
+  | 'PatternMatch'
+  | 'Custom';
 
 /**
  * Escalation criteria.
@@ -446,7 +462,13 @@ export interface EscalationThreshold {
   duration: number;
 }
 
-export type ThresholdOperator = 'GreaterThan' | 'LessThan' | 'Equal' | 'NotEqual' | 'Between' | 'Outside';
+export type ThresholdOperator =
+  | 'GreaterThan'
+  | 'LessThan'
+  | 'Equal'
+  | 'NotEqual'
+  | 'Between'
+  | 'Outside';
 
 /**
  * Escalation logic configuration.
@@ -503,7 +525,11 @@ export interface DeEscalationCondition {
   weight: number;
 }
 
-export type DeEscalationConditionType = 'MetricImprovement' | 'TimeElapsed' | 'ManualResolution' | 'AutomaticResolution';
+export type DeEscalationConditionType =
+  | 'MetricImprovement'
+  | 'TimeElapsed'
+  | 'ManualResolution'
+  | 'AutomaticResolution';
 
 /**
  * De-escalation validation.
@@ -619,7 +645,12 @@ export interface PriorityCriterion {
   evaluator: PriorityEvaluator;
 }
 
-export type PriorityEvaluator = 'PatternComplexity' | 'TransformationImpact' | 'ValidationResult' | 'ResourceUsage' | 'Custom';
+export type PriorityEvaluator =
+  | 'PatternComplexity'
+  | 'TransformationImpact'
+  | 'ValidationResult'
+  | 'ResourceUsage'
+  | 'Custom';
 
 /**
  * Performance-based sampling configuration.
@@ -769,7 +800,12 @@ export interface AdaptationConstraint {
   enforcement: ConstraintEnforcement;
 }
 
-export type AdaptationConstraintType = 'MinSampleRate' | 'MaxSampleRate' | 'ResourceUsage' | 'Latency' | 'Accuracy';
+export type AdaptationConstraintType =
+  | 'MinSampleRate'
+  | 'MaxSampleRate'
+  | 'ResourceUsage'
+  | 'Latency'
+  | 'Accuracy';
 export type ConstraintEnforcement = 'Soft' | 'Hard' | 'Advisory';
 
 /**
@@ -869,7 +905,13 @@ export interface StorageBackend {
   reliabilitySettings: StorageReliabilitySettings;
 }
 
-export type StorageBackendType = 'InMemory' | 'LocalFile' | 'Database' | 'TimeSeriesDB' | 'CloudStorage' | 'Custom';
+export type StorageBackendType =
+  | 'InMemory'
+  | 'LocalFile'
+  | 'Database'
+  | 'TimeSeriesDB'
+  | 'CloudStorage'
+  | 'Custom';
 
 /**
  * Storage connection configuration.
@@ -956,7 +998,13 @@ export interface StorageAuthentication {
   securitySettings: StorageSecuritySettings;
 }
 
-export type StorageAuthenticationType = 'None' | 'UserPassword' | 'ApiKey' | 'Certificate' | 'OAuth' | 'IAM';
+export type StorageAuthenticationType =
+  | 'None'
+  | 'UserPassword'
+  | 'ApiKey'
+  | 'Certificate'
+  | 'OAuth'
+  | 'IAM';
 
 /**
  * Storage credentials.
@@ -1648,7 +1696,12 @@ export interface TrendAnalysisConfiguration {
   confidenceThreshold: number;
 }
 
-export type TrendAnalysisAlgorithm = 'Linear' | 'Polynomial' | 'Exponential' | 'ARIMA' | 'MachineLearning';
+export type TrendAnalysisAlgorithm =
+  | 'Linear'
+  | 'Polynomial'
+  | 'Exponential'
+  | 'ARIMA'
+  | 'MachineLearning';
 
 /**
  * Prediction model configuration.
@@ -1725,7 +1778,11 @@ export interface IntegrityIssue {
   autoFixAvailable: boolean;
 }
 
-export type IntegrityIssueType = 'MissingData' | 'CorruptedData' | 'InconsistentData' | 'DuplicateData';
+export type IntegrityIssueType =
+  | 'MissingData'
+  | 'CorruptedData'
+  | 'InconsistentData'
+  | 'DuplicateData';
 export type IntegrityIssueSeverity = 'Low' | 'Medium' | 'High' | 'Critical';
 
 // ============================================================================

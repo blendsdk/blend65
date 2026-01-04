@@ -43,11 +43,9 @@ import {
   PrimitiveType,
   ArrayType,
   StorageClass,
-  TypeAnnotation
+  TypeAnnotation,
 } from './ast-types/core.js';
-import {
-  ReexportDeclaration
-} from './ast-types/modules.js';
+import { ReexportDeclaration } from './ast-types/modules.js';
 
 /**
  * Metadata for AST node creation
@@ -61,7 +59,6 @@ export interface NodeMetadata {
  * Factory class for creating AST nodes
  */
 export class ASTNodeFactory {
-
   /**
    * Helper method to conditionally add metadata to nodes
    */
@@ -88,7 +85,7 @@ export class ASTNodeFactory {
       module,
       imports,
       exports,
-      body
+      body,
     };
     if (metadata) {
       node.metadata = metadata;
@@ -97,17 +94,23 @@ export class ASTNodeFactory {
   }
 
   createModuleDeclaration(name: QualifiedName, metadata?: NodeMetadata): ModuleDeclaration {
-    return this.addMetadata({
-      type: 'ModuleDeclaration',
-      name
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ModuleDeclaration',
+        name,
+      },
+      metadata
+    );
   }
 
   createQualifiedName(parts: string[], metadata?: NodeMetadata): QualifiedName {
-    return this.addMetadata({
-      type: 'QualifiedName',
-      parts
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'QualifiedName',
+        parts,
+      },
+      metadata
+    );
   }
 
   // ============================================================================
@@ -120,24 +123,26 @@ export class ASTNodeFactory {
     right: Expression,
     metadata?: NodeMetadata
   ): BinaryExpr {
-    return this.addMetadata({
-      type: 'BinaryExpr',
-      operator,
-      left,
-      right
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'BinaryExpr',
+        operator,
+        left,
+        right,
+      },
+      metadata
+    );
   }
 
-  createUnaryExpr(
-    operator: string,
-    operand: Expression,
-    metadata?: NodeMetadata
-  ): UnaryExpr {
-    return this.addMetadata({
-      type: 'UnaryExpr',
-      operator,
-      operand
-    }, metadata);
+  createUnaryExpr(operator: string, operand: Expression, metadata?: NodeMetadata): UnaryExpr {
+    return this.addMetadata(
+      {
+        type: 'UnaryExpr',
+        operator,
+        operand,
+      },
+      metadata
+    );
   }
 
   createAssignmentExpr(
@@ -146,98 +151,103 @@ export class ASTNodeFactory {
     right: Expression,
     metadata?: NodeMetadata
   ): AssignmentExpr {
-    return this.addMetadata({
-      type: 'AssignmentExpr',
-      operator,
-      left,
-      right
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'AssignmentExpr',
+        operator,
+        left,
+        right,
+      },
+      metadata
+    );
   }
 
-  createCallExpr(
-    callee: Expression,
-    args: Expression[],
-    metadata?: NodeMetadata
-  ): CallExpr {
-    return this.addMetadata({
-      type: 'CallExpr',
-      callee,
-      args
-    }, metadata);
+  createCallExpr(callee: Expression, args: Expression[], metadata?: NodeMetadata): CallExpr {
+    return this.addMetadata(
+      {
+        type: 'CallExpr',
+        callee,
+        args,
+      },
+      metadata
+    );
   }
 
-  createMemberExpr(
-    object: Expression,
-    property: string,
-    metadata?: NodeMetadata
-  ): MemberExpr {
-    return this.addMetadata({
-      type: 'MemberExpr',
-      object,
-      property
-    }, metadata);
+  createMemberExpr(object: Expression, property: string, metadata?: NodeMetadata): MemberExpr {
+    return this.addMetadata(
+      {
+        type: 'MemberExpr',
+        object,
+        property,
+      },
+      metadata
+    );
   }
 
-  createIndexExpr(
-    object: Expression,
-    index: Expression,
-    metadata?: NodeMetadata
-  ): IndexExpr {
-    return this.addMetadata({
-      type: 'IndexExpr',
-      object,
-      index
-    }, metadata);
+  createIndexExpr(object: Expression, index: Expression, metadata?: NodeMetadata): IndexExpr {
+    return this.addMetadata(
+      {
+        type: 'IndexExpr',
+        object,
+        index,
+      },
+      metadata
+    );
   }
 
   createIdentifier(name: string, metadata?: NodeMetadata): Identifier {
-    return this.addMetadata({
-      type: 'Identifier',
-      name
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'Identifier',
+        name,
+      },
+      metadata
+    );
   }
 
-  createLiteral(
-    value: string | number | boolean,
-    raw: string,
-    metadata?: NodeMetadata
-  ): Literal {
-    return this.addMetadata({
-      type: 'Literal',
-      value,
-      raw
-    }, metadata);
+  createLiteral(value: string | number | boolean, raw: string, metadata?: NodeMetadata): Literal {
+    return this.addMetadata(
+      {
+        type: 'Literal',
+        value,
+        raw,
+      },
+      metadata
+    );
   }
 
   createArrayLiteral(elements: Expression[], metadata?: NodeMetadata): ArrayLiteral {
-    return this.addMetadata({
-      type: 'ArrayLiteral',
-      elements
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ArrayLiteral',
+        elements,
+      },
+      metadata
+    );
   }
 
   // ============================================================================
   // Statements
   // ============================================================================
 
-  createExpressionStatement(
-    expression: Expression,
-    metadata?: NodeMetadata
-  ): ExpressionStatement {
-    return this.addMetadata({
-      type: 'ExpressionStatement',
-      expression
-    }, metadata);
+  createExpressionStatement(expression: Expression, metadata?: NodeMetadata): ExpressionStatement {
+    return this.addMetadata(
+      {
+        type: 'ExpressionStatement',
+        expression,
+      },
+      metadata
+    );
   }
 
-  createReturnStatement(
-    value: Expression | null,
-    metadata?: NodeMetadata
-  ): ReturnStatement {
-    return this.addMetadata({
-      type: 'ReturnStatement',
-      value
-    }, metadata);
+  createReturnStatement(value: Expression | null, metadata?: NodeMetadata): ReturnStatement {
+    return this.addMetadata(
+      {
+        type: 'ReturnStatement',
+        value,
+      },
+      metadata
+    );
   }
 
   createIfStatement(
@@ -246,12 +256,15 @@ export class ASTNodeFactory {
     elseBody: Statement[] | null = null,
     metadata?: NodeMetadata
   ): IfStatement {
-    return this.addMetadata({
-      type: 'IfStatement',
-      condition,
-      thenBody,
-      elseBody
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'IfStatement',
+        condition,
+        thenBody,
+        elseBody,
+      },
+      metadata
+    );
   }
 
   createWhileStatement(
@@ -259,11 +272,14 @@ export class ASTNodeFactory {
     body: Statement[],
     metadata?: NodeMetadata
   ): WhileStatement {
-    return this.addMetadata({
-      type: 'WhileStatement',
-      condition,
-      body
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'WhileStatement',
+        condition,
+        body,
+      },
+      metadata
+    );
   }
 
   createForStatement(
@@ -274,14 +290,17 @@ export class ASTNodeFactory {
     body: Statement[],
     metadata?: NodeMetadata
   ): ForStatement {
-    return this.addMetadata({
-      type: 'ForStatement',
-      variable,
-      start,
-      end,
-      step,
-      body
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ForStatement',
+        variable,
+        start,
+        end,
+        step,
+        body,
+      },
+      metadata
+    );
   }
 
   createMatchStatement(
@@ -290,12 +309,15 @@ export class ASTNodeFactory {
     defaultCase: MatchCase | null = null,
     metadata?: NodeMetadata
   ): MatchStatement {
-    return this.addMetadata({
-      type: 'MatchStatement',
-      discriminant,
-      cases,
-      defaultCase
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'MatchStatement',
+        discriminant,
+        cases,
+        defaultCase,
+      },
+      metadata
+    );
   }
 
   createMatchCase(
@@ -303,23 +325,32 @@ export class ASTNodeFactory {
     consequent: Statement[],
     metadata?: NodeMetadata
   ): MatchCase {
-    return this.addMetadata({
-      type: 'MatchCase',
-      test,
-      consequent
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'MatchCase',
+        test,
+        consequent,
+      },
+      metadata
+    );
   }
 
   createBreakStatement(metadata?: NodeMetadata): BreakStatement {
-    return this.addMetadata({
-      type: 'BreakStatement'
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'BreakStatement',
+      },
+      metadata
+    );
   }
 
   createContinueStatement(metadata?: NodeMetadata): ContinueStatement {
-    return this.addMetadata({
-      type: 'ContinueStatement'
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ContinueStatement',
+      },
+      metadata
+    );
   }
 
   // ============================================================================
@@ -332,18 +363,21 @@ export class ASTNodeFactory {
     returnType: TypeAnnotation,
     body: Statement[],
     exported: boolean = false,
-    callback: boolean = false,      // NEW: Callback flag parameter
+    callback: boolean = false, // NEW: Callback flag parameter
     metadata?: NodeMetadata
   ): FunctionDeclaration {
-    return this.addMetadata({
-      type: 'FunctionDeclaration',
-      name,
-      params,
-      returnType,
-      body,
-      exported,
-      callback                      // NEW: Include callback flag
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'FunctionDeclaration',
+        name,
+        params,
+        returnType,
+        body,
+        exported,
+        callback, // NEW: Include callback flag
+      },
+      metadata
+    );
   }
 
   createParameter(
@@ -353,13 +387,16 @@ export class ASTNodeFactory {
     defaultValue: Expression | null = null,
     metadata?: NodeMetadata
   ): Parameter {
-    return this.addMetadata({
-      type: 'Parameter',
-      name,
-      paramType,
-      optional,
-      defaultValue
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'Parameter',
+        name,
+        paramType,
+        optional,
+        defaultValue,
+      },
+      metadata
+    );
   }
 
   createVariableDeclaration(
@@ -370,14 +407,17 @@ export class ASTNodeFactory {
     exported: boolean = false,
     metadata?: NodeMetadata
   ): VariableDeclaration {
-    return this.addMetadata({
-      type: 'VariableDeclaration',
-      storageClass,
-      name,
-      varType,
-      initializer,
-      exported
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'VariableDeclaration',
+        storageClass,
+        name,
+        varType,
+        initializer,
+        exported,
+      },
+      metadata
+    );
   }
 
   createEnumDeclaration(
@@ -386,12 +426,15 @@ export class ASTNodeFactory {
     exported: boolean = false,
     metadata?: NodeMetadata
   ): EnumDeclaration {
-    return this.addMetadata({
-      type: 'EnumDeclaration',
-      name,
-      members,
-      exported
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'EnumDeclaration',
+        name,
+        members,
+        exported,
+      },
+      metadata
+    );
   }
 
   createEnumMember(
@@ -399,11 +442,14 @@ export class ASTNodeFactory {
     value: Expression | null = null,
     metadata?: NodeMetadata
   ): EnumMember {
-    return this.addMetadata({
-      type: 'EnumMember',
-      name,
-      value
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'EnumMember',
+        name,
+        value,
+      },
+      metadata
+    );
   }
 
   // ============================================================================
@@ -415,11 +461,14 @@ export class ASTNodeFactory {
     source: QualifiedName,
     metadata?: NodeMetadata
   ): ImportDeclaration {
-    return this.addMetadata({
-      type: 'ImportDeclaration',
-      specifiers,
-      source
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ImportDeclaration',
+        specifiers,
+        source,
+      },
+      metadata
+    );
   }
 
   createImportSpecifier(
@@ -427,22 +476,24 @@ export class ASTNodeFactory {
     local: string | null = null,
     metadata?: NodeMetadata
   ): ImportSpecifier {
-    return this.addMetadata({
-      type: 'ImportSpecifier',
-      imported,
-      local
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ImportSpecifier',
+        imported,
+        local,
+      },
+      metadata
+    );
   }
 
-
-  createExportDeclaration(
-    declaration: Declaration,
-    metadata?: NodeMetadata
-  ): ExportDeclaration {
-    return this.addMetadata({
-      type: 'ExportDeclaration',
-      declaration
-    }, metadata);
+  createExportDeclaration(declaration: Declaration, metadata?: NodeMetadata): ExportDeclaration {
+    return this.addMetadata(
+      {
+        type: 'ExportDeclaration',
+        declaration,
+      },
+      metadata
+    );
   }
 
   createReexportDeclaration(
@@ -450,11 +501,14 @@ export class ASTNodeFactory {
     source: QualifiedName,
     metadata?: NodeMetadata
   ): ReexportDeclaration {
-    return this.addMetadata({
-      type: 'ReexportDeclaration',
-      specifiers,
-      source
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ReexportDeclaration',
+        specifiers,
+        source,
+      },
+      metadata
+    );
   }
 
   // ============================================================================
@@ -462,13 +516,16 @@ export class ASTNodeFactory {
   // ============================================================================
 
   createPrimitiveType(
-    name: 'byte' | 'word' | 'boolean' | 'void' | 'callback',  // Add 'callback'
+    name: 'byte' | 'word' | 'boolean' | 'void' | 'callback', // Add 'callback'
     metadata?: NodeMetadata
   ): PrimitiveType {
-    return this.addMetadata({
-      type: 'PrimitiveType',
-      name
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'PrimitiveType',
+        name,
+      },
+      metadata
+    );
   }
 
   createArrayType(
@@ -476,11 +533,14 @@ export class ASTNodeFactory {
     size: Expression,
     metadata?: NodeMetadata
   ): ArrayType {
-    return this.addMetadata({
-      type: 'ArrayType',
-      elementType,
-      size
-    }, metadata);
+    return this.addMetadata(
+      {
+        type: 'ArrayType',
+        elementType,
+        size,
+      },
+      metadata
+    );
   }
 
   // ============================================================================
@@ -493,7 +553,7 @@ export class ASTNodeFactory {
   create(type: string, props: any = {}): ASTNode {
     return {
       type,
-      ...props
+      ...props,
     };
   }
 }

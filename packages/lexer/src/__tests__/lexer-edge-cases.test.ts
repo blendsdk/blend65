@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Blend65Lexer, TokenType, tokenize } from '../index.js';
+import { TokenType, tokenize } from '../index.js';
 
 describe('Blend65Lexer Edge Cases', () => {
   describe('Invalid Number Formats', () => {
@@ -176,12 +176,14 @@ describe('Blend65Lexer Edge Cases', () => {
 
   describe('Memory Address Edge Cases', () => {
     it('should reject memory placement operator', () => {
-      expect(() => tokenize('@ $0000')).toThrow('Unexpected character \'@\' at line 1, column 1');
-      expect(() => tokenize('@ $FFFF')).toThrow('Unexpected character \'@\' at line 1, column 1');
+      expect(() => tokenize('@ $0000')).toThrow("Unexpected character '@' at line 1, column 1");
+      expect(() => tokenize('@ $FFFF')).toThrow("Unexpected character '@' at line 1, column 1");
     });
 
     it('should reject memory addresses with expressions', () => {
-      expect(() => tokenize('@ $D000 + offset')).toThrow('Unexpected character \'@\' at line 1, column 1');
+      expect(() => tokenize('@ $D000 + offset')).toThrow(
+        "Unexpected character '@' at line 1, column 1"
+      );
     });
   });
 
@@ -237,7 +239,9 @@ io var VIC_REGISTER: byte`;
     });
 
     it('should handle unexpected characters', () => {
-      expect(() => tokenize('var x @ #invalid')).toThrow('Unexpected character \'@\' at line 1, column 7');
+      expect(() => tokenize('var x @ #invalid')).toThrow(
+        "Unexpected character '@' at line 1, column 7"
+      );
       expect(() => tokenize('var `backtick`')).toThrow();
     });
   });

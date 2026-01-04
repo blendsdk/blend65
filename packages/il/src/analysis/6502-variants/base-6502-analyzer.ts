@@ -9,7 +9,13 @@
  * 6502 family processors must implement.
  */
 
-import { ILFunction, ILInstruction, ILInstructionType, ILValue, AddressingMode6502, Register6502 } from '../../il-types.js';
+import {
+  ILFunction,
+  ILInstruction,
+  ILInstructionType,
+  ILValue,
+  Register6502,
+} from '../../il-types.js';
 import { ControlFlowAnalysisResult } from '../types/control-flow-types.js';
 import {
   SixtyTwo6502AnalysisOptions,
@@ -24,7 +30,6 @@ import {
   SixtyTwo6502Optimization,
   InstructionAnalysisContext,
   PlatformMemoryMap,
-  ValidationIssue
 } from '../types/6502-analysis-types.js';
 
 /**
@@ -146,14 +151,16 @@ export abstract class Base6502Analyzer {
     const optimizationOpportunities = this.findRegisterOptimizationOpportunities(ilFunction);
 
     // Check if register allocation is valid (no unresolvable conflicts)
-    const isValid = interferenceAnalysis.conflicts.every((conflict: any) => conflict.severity !== 'high');
+    const isValid = interferenceAnalysis.conflicts.every(
+      (conflict: any) => conflict.severity !== 'high'
+    );
 
     return {
       isValid,
       registerPressure,
       allocationRecommendations,
       interferenceAnalysis,
-      optimizationOpportunities
+      optimizationOpportunities,
     };
   }
 
@@ -173,13 +180,16 @@ export abstract class Base6502Analyzer {
     const hotspotInstructions = this.identifyHotspotInstructions(timingAnalysis, cfgAnalysis);
     const criticalPaths = this.findCriticalPaths(cfgAnalysis, timingAnalysis);
     const performanceScore = this.calculatePerformanceScore(timingAnalysis, cfgAnalysis);
-    const optimizationPotential = this.estimateOptimizationPotential(hotspotInstructions, criticalPaths);
+    const optimizationPotential = this.estimateOptimizationPotential(
+      hotspotInstructions,
+      criticalPaths
+    );
 
     return {
       hotspotInstructions,
       performanceScore,
       criticalPaths,
-      optimizationPotential
+      optimizationPotential,
     };
   }
 
@@ -229,7 +239,7 @@ export abstract class Base6502Analyzer {
       X: Math.min(100, (registerUsage.X / totalInstructions) * 100),
       Y: Math.min(100, (registerUsage.Y / totalInstructions) * 100),
       AX: Math.min(100, (registerUsage.AX / totalInstructions) * 100),
-      XY: Math.min(100, (registerUsage.XY / totalInstructions) * 100)
+      XY: Math.min(100, (registerUsage.XY / totalInstructions) * 100),
     };
   }
 
@@ -246,13 +256,14 @@ export abstract class Base6502Analyzer {
     const variableUsage = this.analyzeVariableUsagePatterns(ilFunction, cfgAnalysis);
 
     for (const [variable, usage] of variableUsage.entries()) {
-      if (usage.frequency > 3) { // High usage variables are good register candidates
+      if (usage.frequency > 3) {
+        // High usage variables are good register candidates
         recommendations.push({
           target: variable,
           recommendedRegister: this.selectOptimalRegister(variable, usage),
           benefit: this.calculateRegisterBenefit(usage),
           reason: `High usage variable (${usage.frequency} uses) - good register candidate`,
-          cycleSavings: Math.floor(usage.frequency * 1.5) // Estimated cycle savings
+          cycleSavings: Math.floor(usage.frequency * 1.5), // Estimated cycle savings
         });
       }
     }
@@ -269,7 +280,7 @@ export abstract class Base6502Analyzer {
   ): any {
     return {
       conflicts: [],
-      spillCosts: []
+      spillCosts: [],
     };
   }
 
@@ -285,12 +296,14 @@ export abstract class Base6502Analyzer {
       const next = ilFunction.instructions[i + 1];
 
       // Look for load followed by immediate use patterns
-      if (current.type === ILInstructionType.LOAD_VARIABLE &&
-          this.isVariableUse(next, this.getVariableName(current))) {
+      if (
+        current.type === ILInstructionType.LOAD_VARIABLE &&
+        this.isVariableUse(next, this.getVariableName(current))
+      ) {
         opportunities.push({
           type: 'register_allocation',
           description: 'Load-use pattern could benefit from register allocation',
-          benefit: 75
+          benefit: 75,
         });
       }
     }
@@ -317,7 +330,7 @@ export abstract class Base6502Analyzer {
           frequency: this.estimateInstructionFrequency(index, cfgAnalysis),
           cycles: timing.cycles,
           impact: timing.cycles * this.estimateInstructionFrequency(index, cfgAnalysis),
-          optimizations: this.suggestInstructionOptimizations(timing.instruction)
+          optimizations: this.suggestInstructionOptimizations(timing.instruction),
         });
       }
     });
@@ -337,12 +350,14 @@ export abstract class Base6502Analyzer {
   ): any[] {
     // Simplified critical path analysis - in a full implementation,
     // this would trace through the CFG to find the longest paths
-    return [{
-      pathId: 'main_path',
-      instructions: Array.from({ length: timingAnalysis.instructionTiming.length }, (_, i) => i),
-      totalCycles: timingAnalysis.totalCycles,
-      probability: 1.0
-    }];
+    return [
+      {
+        pathId: 'main_path',
+        instructions: Array.from({ length: timingAnalysis.instructionTiming.length }, (_, i) => i),
+        totalCycles: timingAnalysis.totalCycles,
+        probability: 1.0,
+      },
+    ];
   }
 
   /**
@@ -416,8 +431,8 @@ export abstract class Base6502Analyzer {
   }
 
   protected isVariableUse(instruction: ILInstruction, variableName: string): boolean {
-    return instruction.operands.some(op =>
-      this.isVariable(op) && this.getVariableName(op) === variableName
+    return instruction.operands.some(
+      op => this.isVariable(op) && this.getVariableName(op) === variableName
     );
   }
 
@@ -432,7 +447,10 @@ export abstract class Base6502Analyzer {
     return operand && 'valueType' in operand && operand.valueType === 'variable';
   }
 
-  protected estimateInstructionFrequency(index: number, cfgAnalysis: ControlFlowAnalysisResult): number {
+  protected estimateInstructionFrequency(
+    index: number,
+    cfgAnalysis: ControlFlowAnalysisResult
+  ): number {
     // Simplified frequency estimation - in a real implementation,
     // this would use CFG analysis to determine execution frequency
     return 1.0;

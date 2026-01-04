@@ -13,11 +13,7 @@
  * Uses Task 1.7 ExpressionAnalyzer variable reference tracking for optimization analysis.
  */
 
-import {
-  VariableDeclaration,
-  Expression,
-  StorageClass
-} from '@blend65/ast';
+import { VariableDeclaration, Expression, StorageClass } from '@blend65/ast';
 import {
   VariableSymbol,
   Blend65Type,
@@ -38,17 +34,10 @@ import {
   PreferredRegister,
   RegisterAllocationRecommendation,
   isPrimitiveType,
-  isArrayType,
-  AccessFrequency,
-  VariableAccessPattern
 } from '../types.js';
 import { SymbolTable } from '../symbol-table.js';
 import { TypeChecker } from '../type-system.js';
-import {
-  ExpressionAnalysisResult,
-  VariableReference,
-  ExpressionContext
-} from './expression-analyzer.js';
+import { ExpressionAnalysisResult } from './expression-analyzer.js';
 
 /**
  * Variable analyzer that validates variable declarations and creates variable symbols
@@ -131,18 +120,12 @@ export class VariableAnalyzer {
 
     // 6. Create and register variable symbol
     const scope = this.symbolTable.getCurrentScope();
-    const variableSymbol = createVariableSymbol(
-      varDecl.name,
-      variableType,
-      scope,
-      location,
-      {
-        storageClass: varDecl.storageClass || undefined,
-        initialValue: varDecl.initializer || undefined,
-        isExported: varDecl.exported,
-        isLocal: false
-      }
-    );
+    const variableSymbol = createVariableSymbol(varDecl.name, variableType, scope, location, {
+      storageClass: varDecl.storageClass || undefined,
+      initialValue: varDecl.initializer || undefined,
+      isExported: varDecl.exported,
+      isLocal: false,
+    });
 
     const addResult = this.symbolTable.declareSymbol(variableSymbol);
     if (!addResult.success) {
@@ -168,10 +151,14 @@ export class VariableAnalyzer {
     if (currentScope !== 'Global') {
       errors.push({
         errorType: 'InvalidStorageClass',
-        message: `Storage class '${storageClass}' is not allowed in function scope. ` +
-        `Only module-level variables can have storage classes.`,
+        message:
+          `Storage class '${storageClass}' is not allowed in function scope. ` +
+          `Only module-level variables can have storage classes.`,
         location,
-        suggestions: [`Remove the '${storageClass}' storage class`, 'Move variable to module level']
+        suggestions: [
+          `Remove the '${storageClass}' storage class`,
+          'Move variable to module level',
+        ],
       });
       return { success: false, errors };
     }
@@ -202,8 +189,8 @@ export class VariableAnalyzer {
         suggestions: [
           `Use a different variable name`,
           `Check for naming conflicts`,
-          `Remove duplicate declaration`
-        ]
+          `Remove duplicate declaration`,
+        ],
       };
       return { success: false, errors: [error] };
     }
@@ -237,10 +224,12 @@ export class VariableAnalyzer {
       location
     );
     if (!compatResult.success) {
-      errors.push(...compatResult.errors.map(error => ({
-        ...error,
-        message: `Variable initialization type mismatch: ${error.message}`
-      })));
+      errors.push(
+        ...compatResult.errors.map(error => ({
+          ...error,
+          message: `Variable initialization type mismatch: ${error.message}`,
+        }))
+      );
     }
 
     // Additional validation for data/const storage classes
@@ -274,8 +263,8 @@ export class VariableAnalyzer {
         suggestions: [
           `Add an initializer: var name: type = value`,
           `Use a different storage class (ram, zp)`,
-          `Provide a compile-time constant value`
-        ]
+          `Provide a compile-time constant value`,
+        ],
       };
       return { success: false, errors: [error] };
     }
@@ -300,8 +289,8 @@ export class VariableAnalyzer {
           'Use a literal value (number, boolean)',
           'Use a constant expression',
           'Use an array literal with constant elements',
-          'Avoid function calls or variable references'
-        ]
+          'Avoid function calls or variable references',
+        ],
       };
       return { success: false, errors: [error] };
     }
@@ -327,8 +316,10 @@ export class VariableAnalyzer {
 
       case 'BinaryExpr':
         // Binary expression is constant if both operands are constants
-        return this.isCompileTimeConstant(expression.left) &&
-               this.isCompileTimeConstant(expression.right);
+        return (
+          this.isCompileTimeConstant(expression.left) &&
+          this.isCompileTimeConstant(expression.right)
+        );
 
       case 'Identifier':
         // Could be a const variable, but for simplicity we're strict here
@@ -368,7 +359,7 @@ export class VariableAnalyzer {
         loopUsage: [],
         hotPathUsage: 0,
         estimatedAccessFrequency: 'rare',
-        accessPattern: 'single_use'
+        accessPattern: 'single_use',
       });
     }
 
@@ -406,7 +397,7 @@ export class VariableAnalyzer {
               accessesInLoop: 0,
               isLoopInvariant: false,
               isInductionVariable: false,
-              estimatedIterations: Math.pow(10, varRef.context.loopDepth) // Simple heuristic
+              estimatedIterations: Math.pow(10, varRef.context.loopDepth), // Simple heuristic
             };
             stats.loopUsage.push(loopUsage);
           }
@@ -496,7 +487,7 @@ export class VariableAnalyzer {
       antiPromotionFactors.push({
         factor: 'already_zp',
         weight: 100,
-        description: 'Variable already has zp storage class'
+        description: 'Variable already has zp storage class',
       });
     }
 
@@ -505,7 +496,7 @@ export class VariableAnalyzer {
       promotionFactors.push({
         factor: 'no_storage_class',
         weight: 20,
-        description: 'Variable has no explicit storage class, good candidate for promotion'
+        description: 'Variable has no explicit storage class, good candidate for promotion',
       });
     }
 
@@ -514,19 +505,19 @@ export class VariableAnalyzer {
       promotionFactors.push({
         factor: 'small_size',
         weight: 30,
-        description: 'Single byte variable fits efficiently in zero page'
+        description: 'Single byte variable fits efficiently in zero page',
       });
     } else if (sizeInBytes <= 4) {
       promotionFactors.push({
         factor: 'small_size',
         weight: 15,
-        description: 'Small multi-byte variable suitable for zero page'
+        description: 'Small multi-byte variable suitable for zero page',
       });
     } else if (sizeInBytes > 16) {
       antiPromotionFactors.push({
         factor: 'large_size',
         weight: 50,
-        description: `Large variable (${sizeInBytes} bytes) would consume too much zero page space`
+        description: `Large variable (${sizeInBytes} bytes) would consume too much zero page space`,
       });
     }
 
@@ -535,7 +526,7 @@ export class VariableAnalyzer {
       antiPromotionFactors.push({
         factor: 'io_access',
         weight: 100,
-        description: 'I/O variables should remain in I/O address space'
+        description: 'I/O variables should remain in I/O address space',
       });
     }
 
@@ -543,17 +534,19 @@ export class VariableAnalyzer {
       antiPromotionFactors.push({
         factor: 'const_data',
         weight: 60,
-        description: 'Constant data should remain in appropriate memory sections'
+        description: 'Constant data should remain in appropriate memory sections',
       });
     }
 
     // Type-based analysis
-    if (isPrimitiveType(variable.varType) &&
-        (variable.varType.name === 'byte' || variable.varType.name === 'word')) {
+    if (
+      isPrimitiveType(variable.varType) &&
+      (variable.varType.name === 'byte' || variable.varType.name === 'word')
+    ) {
       promotionFactors.push({
         factor: 'arithmetic_operations',
         weight: 25,
-        description: 'Numeric types benefit from zero page arithmetic operations'
+        description: 'Numeric types benefit from zero page arithmetic operations',
       });
     }
 
@@ -593,7 +586,7 @@ export class VariableAnalyzer {
       sizeRequirement: sizeInBytes,
       promotionFactors,
       antiPromotionFactors,
-      recommendation
+      recommendation,
     };
   }
 
@@ -627,8 +620,12 @@ export class VariableAnalyzer {
     const alternativeRegisters: PreferredRegister[] = [];
 
     // Only primitive byte/word types are suitable for register allocation
-    if (!isPrimitiveType(variable.varType) ||
-        (variable.varType.name !== 'byte' && variable.varType.name !== 'word' && variable.varType.name !== 'boolean')) {
+    if (
+      !isPrimitiveType(variable.varType) ||
+      (variable.varType.name !== 'byte' &&
+        variable.varType.name !== 'word' &&
+        variable.varType.name !== 'boolean')
+    ) {
       return {
         isCandidate: false,
         preferredRegister,
@@ -639,10 +636,10 @@ export class VariableAnalyzer {
           interferingVariables: [],
           registerPressure: [],
           requiresSpilling: false,
-          spillingCost: 0
+          spillingCost: 0,
         },
         usagePatterns: [],
-        recommendation: 'impossible'
+        recommendation: 'impossible',
       };
     }
 
@@ -697,10 +694,10 @@ export class VariableAnalyzer {
         interferingVariables: [], // Would be filled by lifetime analysis
         registerPressure: [],
         requiresSpilling: false,
-        spillingCost: 0
+        spillingCost: 0,
       },
       usagePatterns: [],
-      recommendation
+      recommendation,
     };
   }
 
@@ -720,16 +717,18 @@ export class VariableAnalyzer {
       const lifetimeInfo: VariableLifetimeInfo = {
         definitionPoints: [variable.sourceLocation],
         usePoints: [], // Would be filled from expression analysis
-        liveRanges: [{
-          start: variable.sourceLocation,
-          end: variable.sourceLocation, // Simplified - would extend to last use
-          spansLoop: false,
-          isHotPath: false
-        }],
+        liveRanges: [
+          {
+            start: variable.sourceLocation,
+            end: variable.sourceLocation, // Simplified - would extend to last use
+            spansLoop: false,
+            isHotPath: false,
+          },
+        ],
         spansFunctionCalls: false, // Conservative assumption
         spansLoops: false,
         estimatedDuration: variable.isLocal ? 10 : 100, // Basic blocks estimate
-        interferingVariables: [] // Would be computed from live ranges
+        interferingVariables: [], // Would be computed from live ranges
       };
 
       lifetimeInfos.push(lifetimeInfo);
@@ -773,7 +772,7 @@ export class VariableAnalyzer {
         registerCandidate: registerInfo,
         lifetimeInfo: lifetimeInfo,
         sixtyTwoHints: this.generate6502Hints(variable, usage, zeroPageInfo, registerInfo),
-        memoryLayout: this.generateMemoryLayoutInfo(variable, usage, zeroPageInfo)
+        memoryLayout: this.generateMemoryLayoutInfo(variable, usage, zeroPageInfo),
       };
 
       metadataMap.set(variable.name, metadata);
@@ -796,27 +795,34 @@ export class VariableAnalyzer {
   ): Variable6502OptimizationHints {
     return {
       addressingMode: zeroPageInfo.isCandidate ? 'zero_page' : 'absolute',
-      memoryBank: variable.storageClass === 'zp' ? 'zero_page' :
-                  variable.storageClass === 'io' ? 'io_area' : 'low_ram',
+      memoryBank:
+        variable.storageClass === 'zp'
+          ? 'zero_page'
+          : variable.storageClass === 'io'
+            ? 'io_area'
+            : 'low_ram',
       alignmentPreference: {
-        requiredAlignment: isPrimitiveType(variable.varType) && variable.varType.name === 'word' ? 2 : 1,
+        requiredAlignment:
+          isPrimitiveType(variable.varType) && variable.varType.name === 'word' ? 2 : 1,
         preferredAlignment: 1,
         preferPageBoundary: false,
-        reason: 'none'
+        reason: 'none',
       },
       hardwareInteraction: {
         isHardwareRegister: variable.storageClass === 'io',
         isMemoryMappedIO: variable.storageClass === 'io',
         isTimingCritical: usage.estimatedAccessFrequency === 'hot',
         usedInInterrupts: false, // Would need callback analysis
-        hardwareComponents: []
+        hardwareComponents: [],
       },
       optimizationOpportunities: [],
-      performanceHints: [{
-        hint: usage.estimatedAccessFrequency === 'hot' ? 'hot_variable' : 'cold_variable',
-        impact: usage.estimatedAccessFrequency === 'hot' ? 'high' : 'low',
-        description: `Variable accessed ${usage.accessCount} times`
-      }]
+      performanceHints: [
+        {
+          hint: usage.estimatedAccessFrequency === 'hot' ? 'hot_variable' : 'cold_variable',
+          impact: usage.estimatedAccessFrequency === 'hot' ? 'high' : 'low',
+          description: `Variable accessed ${usage.accessCount} times`,
+        },
+      ],
     };
   }
 
@@ -835,27 +841,29 @@ export class VariableAnalyzer {
         requiredAlignment: 1,
         preferredAlignment: 1,
         preferPageBoundary: false,
-        reason: 'none'
+        reason: 'none',
       },
       groupingPreference: {
         shouldGroup: false,
         groupWith: [],
         groupingReason: 'function_locals',
-        layoutPreference: 'sequential'
+        layoutPreference: 'sequential',
       },
-      accessPatterns: [{
-        pattern: 'sequential',
-        frequency: usage.accessCount,
-        spatialLocality: 'medium',
-        temporalLocality: usage.accessPattern === 'hot_path' ? 'high' : 'medium'
-      }],
+      accessPatterns: [
+        {
+          pattern: 'sequential',
+          frequency: usage.accessCount,
+          spatialLocality: 'medium',
+          temporalLocality: usage.accessPattern === 'hot_path' ? 'high' : 'medium',
+        },
+      ],
       localityInfo: {
         spatialLocality: 'medium',
         temporalLocality: usage.accessPattern === 'hot_path' ? 'high' : 'medium',
         coAccessedVariables: [],
         workingSetSize: 1,
-        isHotData: usage.estimatedAccessFrequency === 'hot'
-      }
+        isHotData: usage.estimatedAccessFrequency === 'hot',
+      },
     };
   }
 
@@ -917,7 +925,7 @@ export class VariableAnalyzer {
       data: 0,
       const: 0,
       io: 0,
-      none: 0
+      none: 0,
     };
 
     let exportedVariables = 0;
@@ -938,7 +946,7 @@ export class VariableAnalyzer {
       variablesAnalyzed: variables.length,
       storageClassUsage,
       exportedVariables,
-      errorsDetected: 0 // Updated during analysis
+      errorsDetected: 0, // Updated during analysis
     };
   }
 }

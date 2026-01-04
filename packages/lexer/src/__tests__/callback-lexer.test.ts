@@ -66,9 +66,9 @@ describe('Callback Keyword Lexing', () => {
 
     expect(tokens[0].type).toBe(TokenType.IDENTIFIER); // setRasterInterrupt
     expect(tokens[1].type).toBe(TokenType.LEFT_PAREN);
-    expect(tokens[2].type).toBe(TokenType.NUMBER);     // 250
+    expect(tokens[2].type).toBe(TokenType.NUMBER); // 250
     expect(tokens[3].type).toBe(TokenType.COMMA);
-    expect(tokens[4].type).toBe(TokenType.CALLBACK);   // callback as type or identifier
+    expect(tokens[4].type).toBe(TokenType.CALLBACK); // callback as type or identifier
     expect(tokens[5].type).toBe(TokenType.RIGHT_PAREN);
   });
 

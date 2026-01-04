@@ -192,7 +192,9 @@ end function`;
         expect.fail('Should have thrown an error');
       } catch (error) {
         expect(error).toBeDefined();
-        expect((error as Error).message).toContain('Storage class \'zp\' not allowed inside functions');
+        expect((error as Error).message).toContain(
+          "Storage class 'zp' not allowed inside functions"
+        );
         expect((error as Error).message).toContain('line 3');
       }
     });

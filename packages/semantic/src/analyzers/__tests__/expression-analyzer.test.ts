@@ -19,8 +19,6 @@ import {
   ExpressionAnalyzer,
   createExpressionContext,
   type ExpressionContext,
-  type ExpressionOptimizationData,
-  type StatementOptimizationData
 } from '../expression-analyzer.js';
 
 import { SymbolTable } from '../../symbol-table.js';
@@ -29,28 +27,11 @@ import {
   createVariableSymbol,
   createFunctionSymbol,
   createPrimitiveType,
-  createScope,
-  createArrayType
+  createArrayType,
 } from '../../types.js';
 
 import { ASTNodeFactory } from '@blend65/ast';
-import type {
-  Expression,
-  Statement,
-  BinaryExpr,
-  UnaryExpr,
-  AssignmentExpr,
-  CallExpr,
-  IndexExpr,
-  Identifier,
-  Literal,
-  ArrayLiteral,
-  IfStatement,
-  WhileStatement,
-  ForStatement,
-  ReturnStatement,
-  ExpressionStatement
-} from '@blend65/ast';
+import type { Statement, BinaryExpr, UnaryExpr } from '@blend65/ast';
 
 describe('ExpressionAnalyzer', () => {
   let analyzer: ExpressionAnalyzer;
@@ -70,7 +51,7 @@ describe('ExpressionAnalyzer', () => {
       inCondition: false,
       inAssignment: false,
       hardwareContext: 'normal',
-      optimizationLevel: 'balanced'
+      optimizationLevel: 'balanced',
     });
   });
 
@@ -112,12 +93,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'x',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('x', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -159,7 +139,7 @@ describe('ExpressionAnalyzer', () => {
         type: 'BinaryExpr',
         operator: '??', // Unknown operator
         left,
-        right
+        right,
       };
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -207,7 +187,7 @@ describe('ExpressionAnalyzer', () => {
       const expr: UnaryExpr = {
         type: 'UnaryExpr',
         operator: '@', // Unknown operator
-        operand
+        operand,
       };
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -226,12 +206,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'x',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('x', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -249,12 +228,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'x',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('x', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -278,7 +256,7 @@ describe('ExpressionAnalyzer', () => {
         'add',
         [
           { name: 'a', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
-          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null }
+          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
         ],
         createPrimitiveType('byte'),
         globalScope,
@@ -305,7 +283,7 @@ describe('ExpressionAnalyzer', () => {
         'add',
         [
           { name: 'a', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
-          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null }
+          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
         ],
         createPrimitiveType('byte'),
         globalScope,
@@ -332,7 +310,7 @@ describe('ExpressionAnalyzer', () => {
         'add',
         [
           { name: 'a', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
-          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null }
+          { name: 'b', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
         ],
         createPrimitiveType('byte'),
         globalScope,
@@ -356,14 +334,13 @@ describe('ExpressionAnalyzer', () => {
       const callbackType = {
         kind: 'callback' as const,
         parameterTypes: [],
-        returnType: createPrimitiveType('void')
+        returnType: createPrimitiveType('void'),
       };
-      const varSymbol = createVariableSymbol(
-        'callback',
-        callbackType,
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('callback', callbackType, globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -382,12 +359,11 @@ describe('ExpressionAnalyzer', () => {
       // Set up array variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
       const arrayType = createArrayType(createPrimitiveType('byte'), 10);
-      const varSymbol = createVariableSymbol(
-        'arr',
-        arrayType,
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('arr', arrayType, globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -405,12 +381,11 @@ describe('ExpressionAnalyzer', () => {
       // Set up array variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
       const arrayType = createArrayType(createPrimitiveType('byte'), 10);
-      const varSymbol = createVariableSymbol(
-        'arr',
-        arrayType,
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('arr', arrayType, globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -427,12 +402,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up non-array variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'notArray',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('notArray', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -449,12 +423,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'myVar',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('myVar', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -556,7 +529,7 @@ describe('ExpressionAnalyzer', () => {
       const elements = [
         factory.createLiteral(1, '1'),
         factory.createLiteral(2, '2'),
-        factory.createLiteral(3, '3')
+        factory.createLiteral(3, '3'),
       ];
       const expr = factory.createArrayLiteral(elements);
 
@@ -572,7 +545,7 @@ describe('ExpressionAnalyzer', () => {
       const elements = [
         factory.createLiteral(1, '1'),
         factory.createLiteral(true, 'true'), // boolean in byte array
-        factory.createLiteral(3, '3')
+        factory.createLiteral(3, '3'),
       ];
       const expr = factory.createArrayLiteral(elements);
 
@@ -624,12 +597,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'variable',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('variable', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -645,12 +617,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'testVar',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('testVar', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -666,12 +637,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'var1',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('var1', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -711,12 +681,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'var1',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('var1', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -767,7 +736,11 @@ describe('ExpressionAnalyzer', () => {
         factory.createLiteral(3, '3'),
         factory.createLiteral(4, '4')
       );
-      const middleNested = factory.createBinaryExpr('*', factory.createLiteral(2, '2'), innerNested);
+      const middleNested = factory.createBinaryExpr(
+        '*',
+        factory.createLiteral(2, '2'),
+        innerNested
+      );
       const expr = factory.createBinaryExpr('+', factory.createLiteral(1, '1'), middleNested);
 
       const result = analyzer.analyzeExpression(expr, context);
@@ -859,12 +832,11 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up variable in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol = createVariableSymbol(
-        'flag',
-        createPrimitiveType('boolean'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const varSymbol = createVariableSymbol('flag', createPrimitiveType('boolean'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(varSymbol);
 
       const result = analyzer.analyzeStatement(stmt, context);
@@ -904,7 +876,7 @@ describe('ExpressionAnalyzer', () => {
       const statements = [
         factory.createExpressionStatement(factory.createLiteral(1, '1')),
         factory.createExpressionStatement(factory.createLiteral(2, '2')),
-        factory.createExpressionStatement(factory.createLiteral(3, '3'))
+        factory.createExpressionStatement(factory.createLiteral(3, '3')),
       ];
 
       const result = analyzer.analyzeBlock(statements, context);
@@ -917,25 +889,23 @@ describe('ExpressionAnalyzer', () => {
     it('should aggregate variable accesses in blocks', () => {
       // Set up variables in symbol table
       const globalScope = symbolTable.getGlobalScope();
-      const varSymbol1 = createVariableSymbol(
-        'var1',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
-      const varSymbol2 = createVariableSymbol(
-        'var2',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 2, column: 1, offset: 10 }
-      );
+      const varSymbol1 = createVariableSymbol('var1', createPrimitiveType('byte'), globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
+      const varSymbol2 = createVariableSymbol('var2', createPrimitiveType('byte'), globalScope, {
+        line: 2,
+        column: 1,
+        offset: 10,
+      });
       symbolTable.declareSymbol(varSymbol1);
       symbolTable.declareSymbol(varSymbol2);
 
       const statements = [
         factory.createExpressionStatement(factory.createIdentifier('var1')),
         factory.createExpressionStatement(factory.createIdentifier('var2')),
-        factory.createExpressionStatement(factory.createIdentifier('var1')) // var1 used twice
+        factory.createExpressionStatement(factory.createIdentifier('var1')), // var1 used twice
       ];
 
       const result = analyzer.analyzeBlock(statements, context);
@@ -946,7 +916,7 @@ describe('ExpressionAnalyzer', () => {
     it('should calculate block performance metrics', () => {
       const statements = [
         factory.createExpressionStatement(factory.createLiteral(1, '1')),
-        factory.createExpressionStatement(factory.createLiteral(2, '2'))
+        factory.createExpressionStatement(factory.createLiteral(2, '2')),
       ];
 
       const result = analyzer.analyzeBlock(statements, context);
@@ -964,7 +934,7 @@ describe('ExpressionAnalyzer', () => {
     it('should identify loop invariant expressions in loop context', () => {
       const loopContext = createExpressionContext({
         loopDepth: 1,
-        inHotPath: true
+        inHotPath: true,
       });
 
       const expr = factory.createLiteral(42, '42');
@@ -978,7 +948,7 @@ describe('ExpressionAnalyzer', () => {
     it('should adjust execution frequency based on loop depth', () => {
       const loopContext = createExpressionContext({
         loopDepth: 2,
-        inHotPath: false
+        inHotPath: false,
       });
 
       const expr = factory.createLiteral(1, '1');
@@ -992,7 +962,7 @@ describe('ExpressionAnalyzer', () => {
     it('should identify hot path expressions', () => {
       const hotPathContext = createExpressionContext({
         loopDepth: 1,
-        inHotPath: true
+        inHotPath: true,
       });
 
       const expr = factory.createLiteral(1, '1');
@@ -1013,7 +983,7 @@ describe('ExpressionAnalyzer', () => {
     it('should handle unknown expression types gracefully', () => {
       const unknownExpr = {
         type: 'UnknownExpression',
-        metadata: { start: { line: 1, column: 1, offset: 0 } }
+        metadata: { start: { line: 1, column: 1, offset: 0 } },
       } as any;
 
       const result = analyzer.analyzeExpression(unknownExpr, context);
@@ -1101,7 +1071,7 @@ describe('ExpressionAnalyzer', () => {
         loopDepth: 3,
         inHotPath: true,
         hardwareContext: 'interrupt_handler',
-        optimizationLevel: 'aggressive'
+        optimizationLevel: 'aggressive',
       });
 
       expect(customContext.loopDepth).toBe(3);
@@ -1122,21 +1092,19 @@ describe('ExpressionAnalyzer', () => {
 
       // Set up array variable
       const arrayType = createArrayType(createPrimitiveType('byte'), 100);
-      const arrSymbol = createVariableSymbol(
-        'arr',
-        arrayType,
-        globalScope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const arrSymbol = createVariableSymbol('arr', arrayType, globalScope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
       symbolTable.declareSymbol(arrSymbol);
 
       // Set up index variable
-      const iSymbol = createVariableSymbol(
-        'i',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 2, column: 1, offset: 10 }
-      );
+      const iSymbol = createVariableSymbol('i', createPrimitiveType('byte'), globalScope, {
+        line: 2,
+        column: 1,
+        offset: 10,
+      });
       symbolTable.declareSymbol(iSymbol);
 
       // Set up function
@@ -1144,7 +1112,7 @@ describe('ExpressionAnalyzer', () => {
         'func',
         [
           { name: 'x', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
-          { name: 'y', type: createPrimitiveType('byte'), optional: false, defaultValue: null }
+          { name: 'y', type: createPrimitiveType('byte'), optional: false, defaultValue: null },
         ],
         createPrimitiveType('byte'),
         globalScope,
@@ -1153,18 +1121,16 @@ describe('ExpressionAnalyzer', () => {
       symbolTable.declareSymbol(funcSymbol);
 
       // Set up variables x and y
-      const xSymbol = createVariableSymbol(
-        'x',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 4, column: 1, offset: 30 }
-      );
-      const ySymbol = createVariableSymbol(
-        'y',
-        createPrimitiveType('byte'),
-        globalScope,
-        { line: 5, column: 1, offset: 40 }
-      );
+      const xSymbol = createVariableSymbol('x', createPrimitiveType('byte'), globalScope, {
+        line: 4,
+        column: 1,
+        offset: 30,
+      });
+      const ySymbol = createVariableSymbol('y', createPrimitiveType('byte'), globalScope, {
+        line: 5,
+        column: 1,
+        offset: 40,
+      });
       symbolTable.declareSymbol(xSymbol);
       symbolTable.declareSymbol(ySymbol);
 
@@ -1203,12 +1169,11 @@ describe('ExpressionAnalyzer', () => {
         globalScope,
         { line: 1, column: 1, offset: 0 }
       );
-      const flagSymbol = createVariableSymbol(
-        'flag',
-        createPrimitiveType('boolean'),
-        globalScope,
-        { line: 2, column: 1, offset: 10 }
-      );
+      const flagSymbol = createVariableSymbol('flag', createPrimitiveType('boolean'), globalScope, {
+        line: 2,
+        column: 1,
+        offset: 10,
+      });
       symbolTable.declareSymbol(counterSymbol);
       symbolTable.declareSymbol(flagSymbol);
 
@@ -1216,7 +1181,8 @@ describe('ExpressionAnalyzer', () => {
       const statements: Statement[] = [
         // Assignment: counter = 0
         factory.createExpressionStatement(
-          factory.createAssignmentExpr('=',
+          factory.createAssignmentExpr(
+            '=',
             factory.createIdentifier('counter'),
             factory.createLiteral(0, '0')
           )
@@ -1228,7 +1194,7 @@ describe('ExpressionAnalyzer', () => {
           [factory.createExpressionStatement(factory.createLiteral(2, '2'))]
         ),
         // Return statement
-        factory.createReturnStatement(factory.createIdentifier('counter'))
+        factory.createReturnStatement(factory.createIdentifier('counter')),
       ];
 
       const result = analyzer.analyzeBlock(statements, context);

@@ -129,7 +129,12 @@ export interface TrendAnomaly {
   cause: AnomalyCause;
 }
 
-export type AnomalyCause = 'DataSpike' | 'SystemAnomaly' | 'MeasurementError' | 'ExternalFactor' | 'Unknown';
+export type AnomalyCause =
+  | 'DataSpike'
+  | 'SystemAnomaly'
+  | 'MeasurementError'
+  | 'ExternalFactor'
+  | 'Unknown';
 
 /**
  * Effectiveness trend data.
@@ -346,7 +351,12 @@ export interface SystemRecommendation {
   impact: SystemRecommendationImpact;
 }
 
-export type SystemRecommendationType = 'Performance' | 'Scalability' | 'Reliability' | 'Efficiency' | 'Maintenance';
+export type SystemRecommendationType =
+  | 'Performance'
+  | 'Scalability'
+  | 'Reliability'
+  | 'Efficiency'
+  | 'Maintenance';
 export type SystemRecommendationPriority = 'Low' | 'Medium' | 'High' | 'Critical' | 'Emergency';
 export type SystemRecommendationImpact = 'Minor' | 'Moderate' | 'Major' | 'Transformative';
 
@@ -878,7 +888,12 @@ export interface AnalysisObjective {
   priority: ObjectivePriority;
 }
 
-export type AnalysisObjectiveType = 'Performance' | 'Quality' | 'Efficiency' | 'Insight' | 'Prediction';
+export type AnalysisObjectiveType =
+  | 'Performance'
+  | 'Quality'
+  | 'Efficiency'
+  | 'Insight'
+  | 'Prediction';
 export type ObjectivePriority = 'Low' | 'Medium' | 'High' | 'Critical';
 
 /**
@@ -951,7 +966,12 @@ export interface OptimizationRecommendation {
   priority: RecommendationPriority;
 }
 
-export type OptimizationRecommendationType = 'Pattern' | 'Configuration' | 'Infrastructure' | 'Process' | 'Tool';
+export type OptimizationRecommendationType =
+  | 'Pattern'
+  | 'Configuration'
+  | 'Infrastructure'
+  | 'Process'
+  | 'Tool';
 
 /**
  * Expected benefit.
@@ -970,7 +990,12 @@ export interface ExpectedBenefit {
   timeline: BenefitTimeline;
 }
 
-export type BenefitType = 'Performance' | 'Quality' | 'Efficiency' | 'Maintainability' | 'Scalability';
+export type BenefitType =
+  | 'Performance'
+  | 'Quality'
+  | 'Efficiency'
+  | 'Maintainability'
+  | 'Scalability';
 export type BenefitTimeline = 'Immediate' | 'Short' | 'Medium' | 'Long';
 
 /**
@@ -1164,7 +1189,12 @@ export interface TechnicalResourceRequirement {
   performanceRequirements: TechnicalPerformanceRequirement[];
 }
 
-export type TechnicalResourceType = 'Hardware' | 'Software' | 'Infrastructure' | 'Platform' | 'Service';
+export type TechnicalResourceType =
+  | 'Hardware'
+  | 'Software'
+  | 'Infrastructure'
+  | 'Platform'
+  | 'Service';
 export type ResourceUsagePattern = 'Continuous' | 'Intermittent' | 'Burst' | 'OnDemand';
 
 /**
@@ -1294,7 +1324,12 @@ export interface PaymentCondition {
   verificationMethod: VerificationMethod;
 }
 
-export type PaymentConditionType = 'Deliverable' | 'Milestone' | 'Quality' | 'Performance' | 'Approval';
+export type PaymentConditionType =
+  | 'Deliverable'
+  | 'Milestone'
+  | 'Quality'
+  | 'Performance'
+  | 'Approval';
 export type VerificationMethod = 'Automated' | 'Manual' | 'ThirdParty' | 'Audit';
 
 /**
@@ -1370,7 +1405,12 @@ export interface ImplementationDependency {
 }
 
 export type DependencyType = 'Technical' | 'Resource' | 'Approval' | 'External' | 'Sequential';
-export type DependencyCriticality = 'Optional' | 'Recommended' | 'Required' | 'Critical' | 'Blocking';
+export type DependencyCriticality =
+  | 'Optional'
+  | 'Recommended'
+  | 'Required'
+  | 'Critical'
+  | 'Blocking';
 
 /**
  * Dependency mitigation.

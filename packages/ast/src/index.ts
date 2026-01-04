@@ -24,7 +24,7 @@ export type {
   Expression,
   Statement,
   Declaration,
-  TypeAnnotation
+  TypeAnnotation,
 } from './ast-types/core.js';
 
 export { ASTNodeFactory, factory } from './ast-factory.js';

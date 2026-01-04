@@ -21,12 +21,7 @@
  * - Symbol table integration for function resolution
  */
 
-import {
-  FunctionDeclaration,
-  Expression,
-  CallExpr,
-  Parameter
-} from '@blend65/ast';
+import { FunctionDeclaration, Expression, Parameter } from '@blend65/ast';
 import {
   FunctionSymbol,
   VariableSymbol,
@@ -39,13 +34,11 @@ import {
   createCallbackType,
   isPrimitiveType,
   isCallbackType,
-  isVariableSymbol,
-  isFunctionSymbol,
   typeToString,
-  areCallbackTypesCompatible
+  areCallbackTypesCompatible,
 } from '../types.js';
 import { SymbolTable } from '../symbol-table.js';
-import { TypeChecker, FunctionSignature, ValidatedParameter } from '../type-system.js';
+import { TypeChecker, FunctionSignature } from '../type-system.js';
 
 /**
  * Function analyzer that validates function declarations and creates function symbols.
@@ -89,10 +82,7 @@ export class FunctionAnalyzer {
 
     // 3. Validate callback function restrictions (if applicable)
     if (funcDecl.callback) {
-      const callbackValidation = this.validateCallbackFunctionDeclaration(
-        signature,
-        location
-      );
+      const callbackValidation = this.validateCallbackFunctionDeclaration(signature, location);
       if (!callbackValidation.success) {
         errors.push(...callbackValidation.errors);
       }
@@ -126,7 +116,7 @@ export class FunctionAnalyzer {
       name: param.name,
       type: param.type,
       optional: param.hasDefaultValue,
-      defaultValue: null // We could store the AST node here if needed
+      defaultValue: null, // We could store the AST node here if needed
     }));
 
     const functionSymbol = createFunctionSymbol(
@@ -137,7 +127,7 @@ export class FunctionAnalyzer {
       location,
       {
         isCallback: funcDecl.callback,
-        isExported: funcDecl.exported
+        isExported: funcDecl.exported,
       }
     );
 
@@ -172,8 +162,8 @@ export class FunctionAnalyzer {
         location,
         suggestions: [
           'Use a callback variable to hold function references',
-          'Declare the target variable with callback type'
-        ]
+          'Declare the target variable with callback type',
+        ],
       });
       return { success: false, errors };
     }
@@ -187,8 +177,8 @@ export class FunctionAnalyzer {
         suggestions: [
           `Declare '${sourceFunction.name}' as a callback function`,
           'Use a regular function call instead of assignment',
-          'Check if you meant to call the function directly'
-        ]
+          'Check if you meant to call the function directly',
+        ],
       });
       return { success: false, errors };
     }
@@ -203,15 +193,16 @@ export class FunctionAnalyzer {
     if (!areCallbackTypesCompatible(targetType as any, functionCallbackType)) {
       errors.push({
         errorType: 'CallbackMismatch',
-        message: `Callback function '${sourceFunction.name}' signature does not match target callback type.\n` +
-                `Expected: ${typeToString(targetType)}\n` +
-                `Got: ${typeToString(functionCallbackType)}`,
+        message:
+          `Callback function '${sourceFunction.name}' signature does not match target callback type.\n` +
+          `Expected: ${typeToString(targetType)}\n` +
+          `Got: ${typeToString(functionCallbackType)}`,
         location,
         suggestions: [
           'Ensure callback function signature matches variable type',
           'Check parameter types and return type compatibility',
-          'Verify parameter count matches exactly'
-        ]
+          'Verify parameter count matches exactly',
+        ],
       });
       return { success: false, errors };
     }
@@ -243,9 +234,10 @@ export class FunctionAnalyzer {
     const totalParams = functionSymbol.parameters.length;
 
     if (args.length < requiredParams || args.length > totalParams) {
-      const expectedStr = requiredParams === totalParams
-        ? `${requiredParams}`
-        : `${requiredParams} to ${totalParams}`;
+      const expectedStr =
+        requiredParams === totalParams
+          ? `${requiredParams}`
+          : `${requiredParams} to ${totalParams}`;
 
       errors.push({
         errorType: 'TypeMismatch',
@@ -253,8 +245,8 @@ export class FunctionAnalyzer {
         location,
         suggestions: [
           `Provide ${expectedStr} arguments to match function signature`,
-          `Check '${functionSymbol.name}' function declaration for required parameters`
-        ]
+          `Check '${functionSymbol.name}' function declaration for required parameters`,
+        ],
       });
       return { success: false, errors };
     }
@@ -266,10 +258,12 @@ export class FunctionAnalyzer {
       // Get argument type
       const argTypeResult = this.typeChecker.checkExpressionType(args[i]);
       if (!argTypeResult.success) {
-        errors.push(...argTypeResult.errors.map(error => ({
-          ...error,
-          message: `Argument ${i + 1} error: ${error.message}`
-        })));
+        errors.push(
+          ...argTypeResult.errors.map(error => ({
+            ...error,
+            message: `Argument ${i + 1} error: ${error.message}`,
+          }))
+        );
         continue;
       }
 
@@ -290,8 +284,8 @@ export class FunctionAnalyzer {
           suggestions: [
             'Check argument type matches parameter type',
             'Use explicit type conversion if needed',
-            'Verify function signature and call arguments'
-          ]
+            'Verify function signature and call arguments',
+          ],
         });
       }
     }
@@ -323,8 +317,8 @@ export class FunctionAnalyzer {
         suggestions: [
           'Use a callback variable for indirect function calls',
           'Call the function directly by name',
-          'Check variable type declaration'
-        ]
+          'Check variable type declaration',
+        ],
       });
       return { success: false, errors };
     }
@@ -339,8 +333,8 @@ export class FunctionAnalyzer {
         location,
         suggestions: [
           `Provide exactly ${callbackType.parameterTypes.length} arguments`,
-          'Check callback type signature'
-        ]
+          'Check callback type signature',
+        ],
       });
       return { success: false, errors };
     }
@@ -370,8 +364,8 @@ export class FunctionAnalyzer {
           location,
           suggestions: [
             'Ensure callback argument types match signature',
-            'Check callback variable type declaration'
-          ]
+            'Check callback variable type declaration',
+          ],
         });
       }
     }
@@ -408,8 +402,8 @@ export class FunctionAnalyzer {
         suggestions: [
           `Use a different function name`,
           `Remove duplicate declaration`,
-          `Check for naming conflicts with variables or other functions`
-        ]
+          `Check for naming conflicts with variables or other functions`,
+        ],
       };
       return { success: false, errors: [error] };
     }
@@ -435,8 +429,8 @@ export class FunctionAnalyzer {
         suggestions: [
           'Reduce the number of parameters',
           'Use a regular function if many parameters are needed',
-          'Consider passing data through global variables'
-        ]
+          'Consider passing data through global variables',
+        ],
       });
     }
 
@@ -445,8 +439,10 @@ export class FunctionAnalyzer {
       const param = signature.parameters[i];
 
       // Complex types not ideal for callbacks
-      if (!isPrimitiveType(param.type) ||
-          (param.type.name !== 'byte' && param.type.name !== 'word' && param.type.name !== 'boolean')) {
+      if (
+        !isPrimitiveType(param.type) ||
+        (param.type.name !== 'byte' && param.type.name !== 'word' && param.type.name !== 'boolean')
+      ) {
         errors.push({
           errorType: 'CallbackMismatch',
           message: `Callback parameter '${param.name}' has type ${typeToString(param.type)}. Callback functions should use simple types (byte, word, boolean) for 6502 efficiency.`,
@@ -454,8 +450,8 @@ export class FunctionAnalyzer {
           suggestions: [
             'Use byte, word, or boolean types in callback functions',
             'Pass complex data through global variables',
-            'Consider using a regular function for complex signatures'
-          ]
+            'Consider using a regular function for complex signatures',
+          ],
         });
       }
     }
@@ -469,8 +465,8 @@ export class FunctionAnalyzer {
         suggestions: [
           'Use void, byte, word, or boolean return types',
           'Return complex data through global variables',
-          'Consider using a regular function for complex return types'
-        ]
+          'Consider using a regular function for complex return types',
+        ],
       });
     }
 
@@ -497,10 +493,7 @@ export class FunctionAnalyzer {
           errorType: 'DuplicateSymbol',
           message: `Parameter name '${param.name}' is used multiple times in function signature`,
           location,
-          suggestions: [
-            'Use unique parameter names',
-            'Check for typos in parameter names'
-          ]
+          suggestions: ['Use unique parameter names', 'Check for typos in parameter names'],
         });
       } else {
         parameterNames.add(param.name);
@@ -531,7 +524,7 @@ export class FunctionAnalyzer {
         errorType: 'InvalidOperation',
         message: 'Function name cannot be empty',
         location,
-        suggestions: ['Provide a valid function name']
+        suggestions: ['Provide a valid function name'],
       });
     }
 
@@ -543,8 +536,8 @@ export class FunctionAnalyzer {
         location,
         suggestions: [
           'Remove export modifier for nested functions',
-          'Move function to module level to export it'
-        ]
+          'Move function to module level to export it',
+        ],
       });
     }
 
@@ -591,7 +584,7 @@ export class FunctionAnalyzer {
         callFrequency: 'never' as const,
         hotPathCalls: 0,
         loopCalls: [],
-        callContexts: []
+        callContexts: [],
       };
 
       // TODO: Integrate with Task 1.7 ExpressionAnalyzer results when available
@@ -669,7 +662,7 @@ export class FunctionAnalyzer {
 
     return {
       optimizations: callOptimizations,
-      globalOptimizations: this.analyzeGlobalCallOptimizations(functions)
+      globalOptimizations: this.analyzeGlobalCallOptimizations(functions),
     };
   }
 
@@ -713,7 +706,7 @@ export class FunctionAnalyzer {
       callOptimization,
       callbackOptimization,
       sixtyTwoHints,
-      performanceProfile
+      performanceProfile,
     };
   }
 
@@ -738,7 +731,7 @@ export class FunctionAnalyzer {
       inliningFactors.push({
         factor: 'small_function',
         weight: 30,
-        description: `Function estimated at ${complexityMetrics.estimatedCodeSize} bytes (small enough for inlining)`
+        description: `Function estimated at ${complexityMetrics.estimatedCodeSize} bytes (small enough for inlining)`,
       });
     }
 
@@ -748,7 +741,7 @@ export class FunctionAnalyzer {
       inliningFactors.push({
         factor: 'simple_logic',
         weight: 20,
-        description: `Low cyclomatic complexity (${complexityMetrics.cyclomaticComplexity})`
+        description: `Low cyclomatic complexity (${complexityMetrics.cyclomaticComplexity})`,
       });
     }
 
@@ -758,7 +751,7 @@ export class FunctionAnalyzer {
       inliningFactors.push({
         factor: 'few_parameters',
         weight: 15,
-        description: `Few parameters (${func.parameters.length} ≤ 2)`
+        description: `Few parameters (${func.parameters.length} ≤ 2)`,
       });
     }
 
@@ -768,26 +761,28 @@ export class FunctionAnalyzer {
       inliningFactors.push({
         factor: 'single_return',
         weight: 10,
-        description: 'Function has single return point'
+        description: 'Function has single return point',
       });
     }
 
     // Penalties - Apply stronger penalties for blockers
-    if (complexityMetrics.estimatedCodeSize > 30) { // Lower threshold for large function
+    if (complexityMetrics.estimatedCodeSize > 30) {
+      // Lower threshold for large function
       score -= 60; // Stronger penalty
       antiInliningFactors.push({
         factor: 'large_function',
         weight: 60,
-        description: `Function too large (${complexityMetrics.estimatedCodeSize} > 30 bytes)`
+        description: `Function too large (${complexityMetrics.estimatedCodeSize} > 30 bytes)`,
       });
     }
 
-    if (func.parameters.length > 4) { // Penalty for too many parameters
+    if (func.parameters.length > 4) {
+      // Penalty for too many parameters
       score -= 50;
       antiInliningFactors.push({
         factor: 'many_parameters',
         weight: 50,
-        description: `Too many parameters (${func.parameters.length} > 4)`
+        description: `Too many parameters (${func.parameters.length} > 4)`,
       });
     }
 
@@ -796,7 +791,7 @@ export class FunctionAnalyzer {
       antiInliningFactors.push({
         factor: 'callback_function',
         weight: 100,
-        description: 'Callback function needs address (cannot be inlined)'
+        description: 'Callback function needs address (cannot be inlined)',
       });
     }
 
@@ -805,7 +800,7 @@ export class FunctionAnalyzer {
       antiInliningFactors.push({
         factor: 'exported_function',
         weight: 30,
-        description: 'Exported function has external visibility requirements'
+        description: 'Exported function has external visibility requirements',
       });
     }
 
@@ -832,7 +827,7 @@ export class FunctionAnalyzer {
       inliningFactors,
       antiInliningFactors,
       recommendation,
-      highValueCallSites: [] // Will be populated with actual call site analysis
+      highValueCallSites: [], // Will be populated with actual call site analysis
     };
   }
 
@@ -848,7 +843,7 @@ export class FunctionAnalyzer {
       usagePatterns.push({
         pattern: 'single_assignment',
         frequency: 1,
-        performance: 'medium' as const
+        performance: 'medium' as const,
       });
     }
 
@@ -858,7 +853,7 @@ export class FunctionAnalyzer {
         opportunity: 'register_optimization',
         benefit: 5,
         applicability: 'always' as const,
-        description: 'Simple callback can use registers for parameters and return'
+        description: 'Simple callback can use registers for parameters and return',
       });
     }
 
@@ -870,9 +865,9 @@ export class FunctionAnalyzer {
         {
           bottleneck: 'indirect_call_overhead' as const,
           impact: 'medium' as const,
-          description: 'Indirect calls have 8+ cycle overhead vs direct calls'
-        }
-      ]
+          description: 'Indirect calls have 8+ cycle overhead vs direct calls',
+        },
+      ],
     };
 
     return {
@@ -880,7 +875,7 @@ export class FunctionAnalyzer {
       callbackUsage: usagePatterns,
       performanceAnalysis,
       optimizationOpportunities,
-      interruptOptimization: this.analyzeInterruptOptimization(func)
+      interruptOptimization: this.analyzeInterruptOptimization(func),
     };
   }
 
@@ -899,7 +894,7 @@ export class FunctionAnalyzer {
       returnOptimization,
       registerOptimization,
       stackOptimization,
-      callConventionOptimization
+      callConventionOptimization,
     };
   }
 
@@ -912,7 +907,8 @@ export class FunctionAnalyzer {
 
     const baseSize = 10; // Base function overhead
     const parameterSize = func.parameters.length * 3; // Estimated parameter handling
-    const returnSize = func.returnType.kind !== 'primitive' || func.returnType.name !== 'void' ? 5 : 0;
+    const returnSize =
+      func.returnType.kind !== 'primitive' || func.returnType.name !== 'void' ? 5 : 0;
 
     return {
       astNodeCount: 10 + func.parameters.length * 2, // Estimate
@@ -923,7 +919,7 @@ export class FunctionAnalyzer {
       returnStatementCount: 1, // Default estimate
       hasLoops: false, // Would be determined from AST analysis
       hasComplexControlFlow: false, // Would be determined from AST analysis
-      cyclomaticComplexity: 1 // Basic complexity
+      cyclomaticComplexity: 1, // Basic complexity
     };
   }
 
@@ -940,7 +936,7 @@ export class FunctionAnalyzer {
       callFrequency: 'never' as const,
       hotPathCalls: 0,
       loopCalls: [],
-      callContexts: []
+      callContexts: [],
     };
   }
 
@@ -952,7 +948,7 @@ export class FunctionAnalyzer {
       benefitsFromZeroPage: func.parameters.length <= 2,
       zeroPageLocalVariables: [],
       zeroPageParameters: func.parameters.length <= 2 ? func.parameters.map(p => p.name) : [],
-      estimatedBenefit: func.parameters.length <= 2 ? 5 : 0
+      estimatedBenefit: func.parameters.length <= 2 ? 5 : 0,
     };
 
     const registerStrategy = {
@@ -962,8 +958,8 @@ export class FunctionAnalyzer {
         overallPressure: 'low' as const,
         pressurePoints: [],
         needsSpilling: false,
-        spillingCost: 0
-      }
+        spillingCost: 0,
+      },
     };
 
     const memoryLayout = {
@@ -974,15 +970,15 @@ export class FunctionAnalyzer {
         stackFrameOptimization: {
           canOptimize: true,
           sizeReduction: 4,
-          strategies: ['eliminate_frame_pointer' as const]
-        }
+          strategies: ['eliminate_frame_pointer' as const],
+        },
       },
       alignmentPreference: {
         requiredAlignment: 1,
         preferredAlignment: 1,
         preferPageAlignment: false,
-        reason: 'none' as const
-      }
+        reason: 'none' as const,
+      },
     };
 
     const performanceCharacteristics = {
@@ -991,15 +987,15 @@ export class FunctionAnalyzer {
       criticalPath: {
         isOnCriticalPath: false,
         criticalPathPercentage: 0,
-        criticalOperations: []
+        criticalOperations: [],
       },
       bottlenecks: [],
       optimizationPotential: {
         overallScore: 50,
         potentialOptimizations: [],
         estimatedTotalBenefit: 10,
-        implementationComplexity: 'moderate' as const
-      }
+        implementationComplexity: 'moderate' as const,
+      },
     };
 
     const optimizationOpportunities = [
@@ -1007,8 +1003,8 @@ export class FunctionAnalyzer {
         opportunity: 'register_optimization' as const,
         benefit: 5,
         complexity: 'simple' as const,
-        description: 'Optimize register usage for parameters and return values'
-      }
+        description: 'Optimize register usage for parameters and return values',
+      },
     ];
 
     return {
@@ -1016,7 +1012,7 @@ export class FunctionAnalyzer {
       registerStrategy,
       memoryLayout,
       performanceCharacteristics,
-      optimizationOpportunities
+      optimizationOpportunities,
     };
   }
 
@@ -1031,9 +1027,9 @@ export class FunctionAnalyzer {
         indirectCallOverhead: 0,
         setupCost: 0,
         benefitsFromOptimization: false,
-        bottlenecks: []
+        bottlenecks: [],
       },
-      optimizationOpportunities: []
+      optimizationOpportunities: [],
     };
   }
 
@@ -1056,12 +1052,12 @@ export class FunctionAnalyzer {
         minimum: Math.max(6, totalCycles - 4),
         maximum: totalCycles + 8,
         average: totalCycles,
-        standardDeviation: 3
+        standardDeviation: 3,
       },
       performanceVariability: {
         variability: 'low' as const,
-        causes: []
-      }
+        causes: [],
+      },
     };
 
     // Stack usage varies with parameter count
@@ -1070,24 +1066,24 @@ export class FunctionAnalyzer {
     const resourceUsage = {
       registerUsage: {
         registersUsed: [],
-        registerPressure: func.parameters.length > 2 ? 'medium' as const : 'low' as const,
-        registerConflicts: []
+        registerPressure: func.parameters.length > 2 ? ('medium' as const) : ('low' as const),
+        registerConflicts: [],
       },
       memoryUsage: {
         totalMemoryUsed: 20 + func.parameters.length * 4,
         memoryBreakdown: [],
-        accessPatterns: []
+        accessPatterns: [],
       },
       stackUsage: {
         maxStackDepth: stackDepth,
         stackBreakdown: [],
-        stackEfficiency: stackDepth < 10 ? 'good' as const : 'acceptable' as const
+        stackEfficiency: stackDepth < 10 ? ('good' as const) : ('acceptable' as const),
       },
       zeroPageUsage: {
         zeroPageBytesUsed: 0,
         zeroPageEfficiency: 'optimal' as const,
-        zeroPageAllocations: []
-      }
+        zeroPageAllocations: [],
+      },
     };
 
     const performanceMetrics = {
@@ -1095,24 +1091,24 @@ export class FunctionAnalyzer {
       instructionsPerCall: Math.max(6, totalCycles / 2),
       memoryAccessesPerCall: 3 + func.parameters.length,
       branchInstructionsPerCall: 1,
-      efficiencyRating: totalCycles < 15 ? 'good' as const : 'acceptable' as const
+      efficiencyRating: totalCycles < 15 ? ('good' as const) : ('acceptable' as const),
     };
 
     const optimizationRecommendations = [
       {
         recommendation: 'optimize_registers' as const,
-        priority: func.parameters.length > 2 ? 'high' as const : 'medium' as const,
+        priority: func.parameters.length > 2 ? ('high' as const) : ('medium' as const),
         estimatedBenefit: Math.max(2, func.parameters.length),
         implementationEffort: 'low' as const,
-        description: 'Optimize register allocation for parameters'
-      }
+        description: 'Optimize register allocation for parameters',
+      },
     ];
 
     return {
       executionStats,
       resourceUsage,
       performanceMetrics,
-      optimizationRecommendations
+      optimizationRecommendations,
     };
   }
 
@@ -1129,14 +1125,14 @@ export class FunctionAnalyzer {
           parameterName: param.name,
           parameterType: param.type,
           preferredRegister: i === 0 ? 'A' : 'X',
-          passingCost: 2
+          passingCost: 2,
         });
       } else {
         stackParameters.push({
           parameterName: param.name,
           parameterType: param.type,
           stackOffset: i * 2,
-          passingCost: 5
+          passingCost: 5,
         });
       }
     }
@@ -1151,9 +1147,9 @@ export class FunctionAnalyzer {
         totalCycles,
         costBreakdown: [],
         isEfficient: totalCycles < 10,
-        optimizationSuggestions: []
+        optimizationSuggestions: [],
       },
-      optimizationOpportunities: []
+      optimizationOpportunities: [],
     };
   }
 
@@ -1183,7 +1179,7 @@ export class FunctionAnalyzer {
       returnMethod,
       returnCost,
       canOptimize: returnCost > 0,
-      optimizationOpportunities: []
+      optimizationOpportunities: [],
     };
   }
 
@@ -1192,7 +1188,7 @@ export class FunctionAnalyzer {
       registersUsed: ['A'],
       registersToPreserve: [],
       registerConflicts: [],
-      optimizationOpportunities: []
+      optimizationOpportunities: [],
     };
   }
 
@@ -1203,7 +1199,7 @@ export class FunctionAnalyzer {
       stackSpaceRequired,
       stackUsageBreakdown: [],
       isStackUsageEfficient: stackSpaceRequired < 10,
-      optimizationOpportunities: []
+      optimizationOpportunities: [],
     };
   }
 
@@ -1212,7 +1208,7 @@ export class FunctionAnalyzer {
       followsStandardConvention: true,
       optimizedConvention: 'standard' as const,
       optimizationBenefits: [],
-      constraints: []
+      constraints: [],
     };
   }
 
@@ -1225,15 +1221,15 @@ export class FunctionAnalyzer {
       registerPreservation: {
         registersToPreserve: ['A', 'X', 'Y'],
         modifiableRegisters: [],
-        preservationCost: 12
+        preservationCost: 12,
       },
       timingConstraints: {
         maxExecutionTime: 100,
         isCriticalTiming: true,
         jitterTolerance: 5,
-        realTimeRequirements: []
+        realTimeRequirements: [],
       },
-      optimizations: []
+      optimizations: [],
     };
   }
 
@@ -1246,7 +1242,7 @@ export class FunctionAnalyzer {
         register: 'A',
         purpose: 'parameter' as const,
         variable: func.parameters[0].name,
-        benefit: 5
+        benefit: 5,
       });
     }
 
@@ -1257,7 +1253,7 @@ export class FunctionAnalyzer {
     return {
       crossFunctionOptimizations: [],
       globalRegisterAllocation: [],
-      callGraphOptimizations: []
+      callGraphOptimizations: [],
     };
   }
 
@@ -1326,7 +1322,7 @@ export class FunctionAnalyzer {
       functionsByReturnType,
       errorsDetected: 0, // Updated during analysis
       optimizationCandidates,
-      inliningCandidates
+      inliningCandidates,
     };
   }
 }

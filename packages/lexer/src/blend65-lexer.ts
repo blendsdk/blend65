@@ -93,20 +93,34 @@ export class Blend65Lexer {
     // Two-character operators
     const twoChar = char + this.peek();
     switch (twoChar) {
-      case '==': return this.createTwoCharToken(TokenType.EQUAL);
-      case '!=': return this.createTwoCharToken(TokenType.NOT_EQUAL);
-      case '<=': return this.createTwoCharToken(TokenType.LESS_EQUAL);
-      case '>=': return this.createTwoCharToken(TokenType.GREATER_EQUAL);
-      case '<<': return this.createTwoCharToken(TokenType.LEFT_SHIFT);
-      case '>>': return this.createTwoCharToken(TokenType.RIGHT_SHIFT);
-      case '+=': return this.createTwoCharToken(TokenType.PLUS_ASSIGN);
-      case '-=': return this.createTwoCharToken(TokenType.MINUS_ASSIGN);
-      case '*=': return this.createTwoCharToken(TokenType.MULTIPLY_ASSIGN);
-      case '/=': return this.createTwoCharToken(TokenType.DIVIDE_ASSIGN);
-      case '%=': return this.createTwoCharToken(TokenType.MODULO_ASSIGN);
-      case '&=': return this.createTwoCharToken(TokenType.BITWISE_AND_ASSIGN);
-      case '|=': return this.createTwoCharToken(TokenType.BITWISE_OR_ASSIGN);
-      case '^=': return this.createTwoCharToken(TokenType.BITWISE_XOR_ASSIGN);
+      case '==':
+        return this.createTwoCharToken(TokenType.EQUAL);
+      case '!=':
+        return this.createTwoCharToken(TokenType.NOT_EQUAL);
+      case '<=':
+        return this.createTwoCharToken(TokenType.LESS_EQUAL);
+      case '>=':
+        return this.createTwoCharToken(TokenType.GREATER_EQUAL);
+      case '<<':
+        return this.createTwoCharToken(TokenType.LEFT_SHIFT);
+      case '>>':
+        return this.createTwoCharToken(TokenType.RIGHT_SHIFT);
+      case '+=':
+        return this.createTwoCharToken(TokenType.PLUS_ASSIGN);
+      case '-=':
+        return this.createTwoCharToken(TokenType.MINUS_ASSIGN);
+      case '*=':
+        return this.createTwoCharToken(TokenType.MULTIPLY_ASSIGN);
+      case '/=':
+        return this.createTwoCharToken(TokenType.DIVIDE_ASSIGN);
+      case '%=':
+        return this.createTwoCharToken(TokenType.MODULO_ASSIGN);
+      case '&=':
+        return this.createTwoCharToken(TokenType.BITWISE_AND_ASSIGN);
+      case '|=':
+        return this.createTwoCharToken(TokenType.BITWISE_OR_ASSIGN);
+      case '^=':
+        return this.createTwoCharToken(TokenType.BITWISE_XOR_ASSIGN);
       case '<<=': {
         // Handle three-character operator
         const token = this.createToken(TokenType.LEFT_SHIFT_ASSIGN, '<<=' + this.peekAt(2), start);
@@ -123,28 +137,50 @@ export class Blend65Lexer {
 
     // Single-character tokens
     switch (char) {
-      case '+': return this.createSingleCharToken(TokenType.PLUS);
-      case '-': return this.createSingleCharToken(TokenType.MINUS);
-      case '*': return this.createSingleCharToken(TokenType.MULTIPLY);
-      case '/': return this.createSingleCharToken(TokenType.DIVIDE);
-      case '%': return this.createSingleCharToken(TokenType.MODULO);
-      case '=': return this.createSingleCharToken(TokenType.ASSIGN);
-      case '<': return this.createSingleCharToken(TokenType.LESS_THAN);
-      case '>': return this.createSingleCharToken(TokenType.GREATER_THAN);
-      case '&': return this.createSingleCharToken(TokenType.BITWISE_AND);
-      case '|': return this.createSingleCharToken(TokenType.BITWISE_OR);
-      case '^': return this.createSingleCharToken(TokenType.BITWISE_XOR);
-      case '~': return this.createSingleCharToken(TokenType.BITWISE_NOT);
-      case '(': return this.createSingleCharToken(TokenType.LEFT_PAREN);
-      case ')': return this.createSingleCharToken(TokenType.RIGHT_PAREN);
-      case '[': return this.createSingleCharToken(TokenType.LEFT_BRACKET);
-      case ']': return this.createSingleCharToken(TokenType.RIGHT_BRACKET);
-      case '{': return this.createSingleCharToken(TokenType.LEFT_BRACE);
-      case '}': return this.createSingleCharToken(TokenType.RIGHT_BRACE);
-      case ',': return this.createSingleCharToken(TokenType.COMMA);
-      case ';': return this.createSingleCharToken(TokenType.SEMICOLON);
-      case ':': return this.createSingleCharToken(TokenType.COLON);
-      case '.': return this.createSingleCharToken(TokenType.DOT);
+      case '+':
+        return this.createSingleCharToken(TokenType.PLUS);
+      case '-':
+        return this.createSingleCharToken(TokenType.MINUS);
+      case '*':
+        return this.createSingleCharToken(TokenType.MULTIPLY);
+      case '/':
+        return this.createSingleCharToken(TokenType.DIVIDE);
+      case '%':
+        return this.createSingleCharToken(TokenType.MODULO);
+      case '=':
+        return this.createSingleCharToken(TokenType.ASSIGN);
+      case '<':
+        return this.createSingleCharToken(TokenType.LESS_THAN);
+      case '>':
+        return this.createSingleCharToken(TokenType.GREATER_THAN);
+      case '&':
+        return this.createSingleCharToken(TokenType.BITWISE_AND);
+      case '|':
+        return this.createSingleCharToken(TokenType.BITWISE_OR);
+      case '^':
+        return this.createSingleCharToken(TokenType.BITWISE_XOR);
+      case '~':
+        return this.createSingleCharToken(TokenType.BITWISE_NOT);
+      case '(':
+        return this.createSingleCharToken(TokenType.LEFT_PAREN);
+      case ')':
+        return this.createSingleCharToken(TokenType.RIGHT_PAREN);
+      case '[':
+        return this.createSingleCharToken(TokenType.LEFT_BRACKET);
+      case ']':
+        return this.createSingleCharToken(TokenType.RIGHT_BRACKET);
+      case '{':
+        return this.createSingleCharToken(TokenType.LEFT_BRACE);
+      case '}':
+        return this.createSingleCharToken(TokenType.RIGHT_BRACE);
+      case ',':
+        return this.createSingleCharToken(TokenType.COMMA);
+      case ';':
+        return this.createSingleCharToken(TokenType.SEMICOLON);
+      case ':':
+        return this.createSingleCharToken(TokenType.COLON);
+      case '.':
+        return this.createSingleCharToken(TokenType.DOT);
     }
 
     // Unknown character
@@ -233,12 +269,24 @@ export class Blend65Lexer {
 
         const escaped = this.getCurrentChar();
         switch (escaped) {
-          case 'n': value += '\n'; break;
-          case 't': value += '\t'; break;
-          case 'r': value += '\r'; break;
-          case '\\': value += '\\'; break;
-          case '"': value += '"'; break;
-          case "'": value += "'"; break;
+          case 'n':
+            value += '\n';
+            break;
+          case 't':
+            value += '\t';
+            break;
+          case 'r':
+            value += '\r';
+            break;
+          case '\\':
+            value += '\\';
+            break;
+          case '"':
+            value += '"';
+            break;
+          case "'":
+            value += "'";
+            break;
           default:
             value += escaped;
             break;
@@ -285,42 +333,78 @@ export class Blend65Lexer {
 
   private getKeywordTokenType(keyword: string): TokenType {
     switch (keyword) {
-      case 'module': return TokenType.MODULE;
-      case 'import': return TokenType.IMPORT;
-      case 'export': return TokenType.EXPORT;
-      case 'from': return TokenType.FROM;
-      case 'function': return TokenType.FUNCTION;
-      case 'end': return TokenType.END;
-      case 'return': return TokenType.RETURN;
-      case 'if': return TokenType.IF;
-      case 'then': return TokenType.THEN;
-      case 'else': return TokenType.ELSE;
-      case 'while': return TokenType.WHILE;
-      case 'for': return TokenType.FOR;
-      case 'to': return TokenType.TO;
-      case 'next': return TokenType.NEXT;
-      case 'match': return TokenType.MATCH;
-      case 'case': return TokenType.CASE;
-      case 'break': return TokenType.BREAK;
-      case 'continue': return TokenType.CONTINUE;
-      case 'default': return TokenType.DEFAULT;
-      case 'var': return TokenType.VAR;
-      case 'type': return TokenType.TYPE;
-      case 'extends': return TokenType.EXTENDS;
-      case 'enum': return TokenType.ENUM;
-      case 'zp': return TokenType.ZP;
-      case 'ram': return TokenType.RAM;
-      case 'data': return TokenType.DATA;
-      case 'const': return TokenType.CONST;
-      case 'io': return TokenType.IO;
-      case 'byte': return TokenType.BYTE;
-      case 'word': return TokenType.WORD;
-      case 'void': return TokenType.VOID;
-      case 'callback': return TokenType.CALLBACK;  // NEW: Add callback keyword mapping
-      case 'and': return TokenType.AND;
-      case 'or': return TokenType.OR;
-      case 'not': return TokenType.NOT;
-      default: return TokenType.IDENTIFIER;
+      case 'module':
+        return TokenType.MODULE;
+      case 'import':
+        return TokenType.IMPORT;
+      case 'export':
+        return TokenType.EXPORT;
+      case 'from':
+        return TokenType.FROM;
+      case 'function':
+        return TokenType.FUNCTION;
+      case 'end':
+        return TokenType.END;
+      case 'return':
+        return TokenType.RETURN;
+      case 'if':
+        return TokenType.IF;
+      case 'then':
+        return TokenType.THEN;
+      case 'else':
+        return TokenType.ELSE;
+      case 'while':
+        return TokenType.WHILE;
+      case 'for':
+        return TokenType.FOR;
+      case 'to':
+        return TokenType.TO;
+      case 'next':
+        return TokenType.NEXT;
+      case 'match':
+        return TokenType.MATCH;
+      case 'case':
+        return TokenType.CASE;
+      case 'break':
+        return TokenType.BREAK;
+      case 'continue':
+        return TokenType.CONTINUE;
+      case 'default':
+        return TokenType.DEFAULT;
+      case 'var':
+        return TokenType.VAR;
+      case 'type':
+        return TokenType.TYPE;
+      case 'extends':
+        return TokenType.EXTENDS;
+      case 'enum':
+        return TokenType.ENUM;
+      case 'zp':
+        return TokenType.ZP;
+      case 'ram':
+        return TokenType.RAM;
+      case 'data':
+        return TokenType.DATA;
+      case 'const':
+        return TokenType.CONST;
+      case 'io':
+        return TokenType.IO;
+      case 'byte':
+        return TokenType.BYTE;
+      case 'word':
+        return TokenType.WORD;
+      case 'void':
+        return TokenType.VOID;
+      case 'callback':
+        return TokenType.CALLBACK; // NEW: Add callback keyword mapping
+      case 'and':
+        return TokenType.AND;
+      case 'or':
+        return TokenType.OR;
+      case 'not':
+        return TokenType.NOT;
+      default:
+        return TokenType.IDENTIFIER;
     }
   }
 
@@ -380,7 +464,11 @@ export class Blend65Lexer {
 
   // Helper methods
   private skipWhitespace(): void {
-    while (!this.isAtEnd() && this.isWhitespace(this.getCurrentChar()) && this.getCurrentChar() !== '\n') {
+    while (
+      !this.isAtEnd() &&
+      this.isWhitespace(this.getCurrentChar()) &&
+      this.getCurrentChar() !== '\n'
+    ) {
       this.advance();
     }
   }
@@ -445,7 +533,12 @@ export class Blend65Lexer {
     };
   }
 
-  private createToken(type: TokenType, value: string, start: SourcePosition, end?: SourcePosition): Token {
+  private createToken(
+    type: TokenType,
+    value: string,
+    start: SourcePosition,
+    end?: SourcePosition
+  ): Token {
     return {
       type,
       value,

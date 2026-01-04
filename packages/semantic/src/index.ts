@@ -52,7 +52,7 @@ export {
   isPrimitiveType,
   isArrayType,
   isNamedType,
-  isCallbackType
+  isCallbackType,
 } from './types.js';
 
 // Symbol table exports
@@ -60,38 +60,23 @@ export {
   SymbolTable,
   createSymbolTable,
   validateSymbolTable,
-  type SymbolTableStatistics
+  type SymbolTableStatistics,
 } from './symbol-table.js';
 
 // Type system exports
-export {
-  TypeChecker,
-  type ValidatedParameter,
-  type FunctionSignature
-} from './type-system.js';
+export { TypeChecker, type ValidatedParameter, type FunctionSignature } from './type-system.js';
 
 // Variable analyzer exports
-export {
-  VariableAnalyzer,
-  analyzeVariableDeclaration
-} from './analyzers/variable-analyzer.js';
+export { VariableAnalyzer, analyzeVariableDeclaration } from './analyzers/variable-analyzer.js';
 
 // Function analyzer exports
-export {
-  FunctionAnalyzer
-} from './analyzers/function-analyzer.js';
+export { FunctionAnalyzer } from './analyzers/function-analyzer.js';
 
 // Module analyzer exports
-export {
-  ModuleAnalyzer
-} from './analyzers/module-analyzer.js';
+export { ModuleAnalyzer } from './analyzers/module-analyzer.js';
 
 // Main semantic analyzer exports
-export {
-  SemanticAnalyzer,
-  analyzeProgram,
-  analyzePrograms
-} from './semantic-analyzer.js';
+export { SemanticAnalyzer, analyzeProgram, analyzePrograms } from './semantic-analyzer.js';
 
 /**
  * Package version and metadata
@@ -106,8 +91,8 @@ export const PACKAGE_INFO = {
     'Hierarchical scope management for lexical scoping',
     'Comprehensive error reporting with source locations',
     'Type compatibility checking for safe operations',
-    'Helper functions and factory methods for consistent usage'
-  ]
+    'Helper functions and factory methods for consistent usage',
+  ],
 };
 
 /**

@@ -5,9 +5,14 @@
  * hardware constraint validation, and multi-variant 6502 processor support.
  */
 
-import { ILFunction, ILInstruction, ILValue, Register6502, AddressingMode6502 } from '../../il-types.js';
+import {
+  ILFunction,
+  ILInstruction,
+  ILValue,
+  Register6502,
+  AddressingMode6502,
+} from '../../il-types.js';
 import { SourcePosition } from '@blend65/lexer';
-import { ControlFlowAnalysisResult } from './control-flow-types.js';
 
 // ============================================================================
 // PROCESSOR VARIANT AND PLATFORM DEFINITIONS
@@ -17,40 +22,40 @@ import { ControlFlowAnalysisResult } from './control-flow-types.js';
  * Supported 6502 processor variants
  */
 export type ProcessorVariant =
-  | '6502'    // Original NMOS 6502 (VIC-20)
-  | '6510'    // C64 variant with banking
-  | '65C02'   // Enhanced CMOS (Commander X16)
-  | '6507'    // Reduced pins (Atari 2600)
-  | '65816';  // 16-bit enhanced (future SNES support)
+  | '6502' // Original NMOS 6502 (VIC-20)
+  | '6510' // C64 variant with banking
+  | '65C02' // Enhanced CMOS (Commander X16)
+  | '6507' // Reduced pins (Atari 2600)
+  | '65816'; // 16-bit enhanced (future SNES support)
 
 /**
  * Target platform identification
  */
 export type PlatformTarget =
-  | 'c64'       // Commodore 64
-  | 'vic20'     // VIC-20
-  | 'x16'       // Commander X16
+  | 'c64' // Commodore 64
+  | 'vic20' // VIC-20
+  | 'x16' // Commander X16
   | 'atari2600' // Atari 2600
-  | 'nes'       // Nintendo Entertainment System
-  | 'snes'      // Super Nintendo (future)
-  | 'generic';  // Generic 6502 system
+  | 'nes' // Nintendo Entertainment System
+  | 'snes' // Super Nintendo (future)
+  | 'generic'; // Generic 6502 system
 
 /**
  * Timing accuracy modes
  */
 export type TimingAccuracy =
-  | 'cycle_perfect'   // Exact cycle counting
-  | 'approximate'     // Good estimates
-  | 'rough'          // Basic estimates
-  | 'disabled';      // No timing analysis
+  | 'cycle_perfect' // Exact cycle counting
+  | 'approximate' // Good estimates
+  | 'rough' // Basic estimates
+  | 'disabled'; // No timing analysis
 
 /**
  * Memory model accuracy modes
  */
 export type MemoryModelAccuracy =
-  | 'hardware_accurate'  // Exact hardware modeling
-  | 'simplified'         // Basic memory layout
-  | 'disabled';         // No memory validation
+  | 'hardware_accurate' // Exact hardware modeling
+  | 'simplified' // Basic memory layout
+  | 'disabled'; // No memory validation
 
 // ============================================================================
 // ANALYSIS CONFIGURATION
@@ -387,7 +392,12 @@ export interface PerformanceHotspotAnalysis {
  */
 export interface HardwareConstraintViolation {
   /** Type of constraint violated */
-  constraintType: 'stack_overflow' | 'register_conflict' | 'timing_violation' | 'memory_conflict' | 'hardware_limit';
+  constraintType:
+    | 'stack_overflow'
+    | 'register_conflict'
+    | 'timing_violation'
+    | 'memory_conflict'
+    | 'hardware_limit';
 
   /** Severity of violation */
   severity: 'error' | 'warning' | 'info';
@@ -431,7 +441,13 @@ export interface HardwareConstraintValidation {
  */
 export interface SixtyTwo6502Optimization {
   /** Type of optimization */
-  type: 'register_allocation' | 'memory_layout' | 'instruction_selection' | 'addressing_mode' | 'loop_optimization' | 'peephole';
+  type:
+    | 'register_allocation'
+    | 'memory_layout'
+    | 'instruction_selection'
+    | 'addressing_mode'
+    | 'loop_optimization'
+    | 'peephole';
 
   /** Priority of optimization (0-100) */
   priority: number;

@@ -22,21 +22,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { FunctionAnalyzer } from '../function-analyzer.js';
 import { SymbolTable } from '../../symbol-table.js';
 import { TypeChecker } from '../../type-system.js';
-import {
-  createPrimitiveType,
-  createArrayType,
-  createCallbackType,
-  createScope,
-  FunctionSymbol,
-  VariableSymbol,
-  createVariableSymbol
-} from '../../types.js';
-import type {
-  FunctionDeclaration,
-  Parameter,
-  TypeAnnotation,
-  Expression
-} from '@blend65/ast';
+import { createPrimitiveType, createCallbackType, createVariableSymbol } from '../../types.js';
+import type { FunctionDeclaration, Parameter, TypeAnnotation, Expression } from '@blend65/ast';
 
 describe('FunctionAnalyzer', () => {
   let symbolTable: SymbolTable;
@@ -64,33 +51,54 @@ describe('FunctionAnalyzer', () => {
       returnType: options.returnType || {
         type: 'PrimitiveType',
         name: 'void',
-        metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
+        metadata: {
+          start: { line: 1, column: 1, offset: 0 },
+          end: { line: 1, column: 4, offset: 3 },
+        },
       },
       body: [],
       callback: options.callback || false,
       exported: options.exported || false,
-      metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
+      metadata: {
+        start: { line: 1, column: 1, offset: 0 },
+        end: { line: 1, column: 1, offset: 0 },
+      },
     };
   }
 
   // Helper function to create test parameters
-  function createParam(name: string, type: 'byte' | 'word' | 'boolean' | 'callback', hasDefault = false): Parameter {
+  function createParam(
+    name: string,
+    type: 'byte' | 'word' | 'boolean' | 'callback',
+    hasDefault = false
+  ): Parameter {
     return {
       type: 'Parameter',
       name,
       paramType: {
         type: 'PrimitiveType',
         name: type,
-        metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
+        metadata: {
+          start: { line: 1, column: 1, offset: 0 },
+          end: { line: 1, column: 4, offset: 3 },
+        },
       },
       optional: hasDefault,
-      defaultValue: hasDefault ? {
-        type: 'Literal',
-        value: type === 'boolean' ? true : 0,
-        raw: type === 'boolean' ? 'true' : '0',
-        metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
-      } : null,
-      metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
+      defaultValue: hasDefault
+        ? {
+            type: 'Literal',
+            value: type === 'boolean' ? true : 0,
+            raw: type === 'boolean' ? 'true' : '0',
+            metadata: {
+              start: { line: 1, column: 1, offset: 0 },
+              end: { line: 1, column: 1, offset: 0 },
+            },
+          }
+        : null,
+      metadata: {
+        start: { line: 1, column: 1, offset: 0 },
+        end: { line: 1, column: 1, offset: 0 },
+      },
     };
   }
 
@@ -100,14 +108,17 @@ describe('FunctionAnalyzer', () => {
       type: 'Literal',
       value,
       raw: value.toString(),
-      metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
+      metadata: {
+        start: { line: 1, column: 1, offset: 0 },
+        end: { line: 1, column: 1, offset: 0 },
+      },
     };
   }
 
   describe('Basic Function Declaration Analysis', () => {
     it('should analyze simple function declaration', () => {
       const funcDecl = createFunctionDecl({
-        name: 'test'
+        name: 'test',
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -127,15 +138,15 @@ describe('FunctionAnalyzer', () => {
     it('should analyze function with parameters', () => {
       const funcDecl = createFunctionDecl({
         name: 'add',
-        params: [
-          createParam('a', 'byte'),
-          createParam('b', 'byte')
-        ],
+        params: [createParam('a', 'byte'), createParam('b', 'byte')],
         returnType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
-        }
+          metadata: {
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 4, offset: 3 },
+          },
+        },
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -154,7 +165,7 @@ describe('FunctionAnalyzer', () => {
     it('should analyze exported function', () => {
       const funcDecl = createFunctionDecl({
         name: 'publicFunction',
-        exported: true
+        exported: true,
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -187,8 +198,8 @@ describe('FunctionAnalyzer', () => {
         name: 'badParams',
         params: [
           createParam('x', 'byte'),
-          createParam('x', 'byte') // Duplicate parameter name
-        ]
+          createParam('x', 'byte'), // Duplicate parameter name
+        ],
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -209,8 +220,11 @@ describe('FunctionAnalyzer', () => {
         returnType: {
           type: 'PrimitiveType',
           name: 'void',
-          metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
-        }
+          metadata: {
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 4, offset: 3 },
+          },
+        },
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -226,15 +240,15 @@ describe('FunctionAnalyzer', () => {
       const funcDecl = createFunctionDecl({
         name: 'simpleCallback',
         callback: true,
-        params: [
-          createParam('x', 'byte'),
-          createParam('y', 'byte')
-        ],
+        params: [createParam('x', 'byte'), createParam('y', 'byte')],
         returnType: {
           type: 'PrimitiveType',
           name: 'boolean',
-          metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 7, offset: 6 } }
-        }
+          metadata: {
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 7, offset: 6 },
+          },
+        },
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -255,8 +269,8 @@ describe('FunctionAnalyzer', () => {
           createParam('b', 'byte'),
           createParam('c', 'byte'),
           createParam('d', 'byte'),
-          createParam('e', 'byte') // 5 parameters - too many for callback
-        ]
+          createParam('e', 'byte'), // 5 parameters - too many for callback
+        ],
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -282,21 +296,33 @@ describe('FunctionAnalyzer', () => {
               elementType: {
                 type: 'PrimitiveType',
                 name: 'byte',
-                metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
+                metadata: {
+                  start: { line: 1, column: 1, offset: 0 },
+                  end: { line: 1, column: 4, offset: 3 },
+                },
               },
               size: {
                 type: 'Literal',
                 value: 10,
                 raw: '10',
-                metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
+                metadata: {
+                  start: { line: 1, column: 1, offset: 0 },
+                  end: { line: 1, column: 1, offset: 0 },
+                },
               },
-              metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
+              metadata: {
+                start: { line: 1, column: 1, offset: 0 },
+                end: { line: 1, column: 1, offset: 0 },
+              },
             },
             optional: false,
             defaultValue: null,
-            metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
-          }
-        ]
+            metadata: {
+              start: { line: 1, column: 1, offset: 0 },
+              end: { line: 1, column: 1, offset: 0 },
+            },
+          },
+        ],
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -318,8 +344,11 @@ describe('FunctionAnalyzer', () => {
         returnType: {
           type: 'PrimitiveType',
           name: 'void',
-          metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
-        }
+          metadata: {
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 4, offset: 3 },
+          },
+        },
       });
 
       const funcResult = analyzer.analyzeFunctionDeclaration(callbackDecl, 'Global');
@@ -347,7 +376,7 @@ describe('FunctionAnalyzer', () => {
       const regularDecl = createFunctionDecl({
         name: 'regularFunc',
         callback: false,
-        params: [createParam('x', 'byte')]
+        params: [createParam('x', 'byte')],
       });
 
       const funcResult = analyzer.analyzeFunctionDeclaration(regularDecl, 'Global');
@@ -369,7 +398,9 @@ describe('FunctionAnalyzer', () => {
         expect(assignmentResult.success).toBe(false);
         if (!assignmentResult.success) {
           expect(assignmentResult.errors[0].errorType).toBe('CallbackMismatch');
-          expect(assignmentResult.errors[0].message).toContain('Only callback functions can be assigned');
+          expect(assignmentResult.errors[0].message).toContain(
+            'Only callback functions can be assigned'
+          );
         }
       }
     });
@@ -383,8 +414,11 @@ describe('FunctionAnalyzer', () => {
         returnType: {
           type: 'PrimitiveType',
           name: 'void',
-          metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
-        }
+          metadata: {
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 4, offset: 3 },
+          },
+        },
       });
 
       const funcResult = analyzer.analyzeFunctionDeclaration(callbackDecl, 'Global');
@@ -414,7 +448,7 @@ describe('FunctionAnalyzer', () => {
     it('should reject assignment to non-callback type', () => {
       const callbackDecl = createFunctionDecl({
         name: 'validCallback',
-        callback: true
+        callback: true,
       });
 
       const funcResult = analyzer.analyzeFunctionDeclaration(callbackDecl, 'Global');
@@ -444,15 +478,15 @@ describe('FunctionAnalyzer', () => {
       // Create function to call
       const funcDecl = createFunctionDecl({
         name: 'multiply',
-        params: [
-          createParam('a', 'byte'),
-          createParam('b', 'byte')
-        ],
+        params: [createParam('a', 'byte'), createParam('b', 'byte')],
         returnType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
-        }
+          metadata: {
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 4, offset: 3 },
+          },
+        },
       });
 
       const funcResult = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -462,16 +496,13 @@ describe('FunctionAnalyzer', () => {
         const functionSymbol = funcResult.data;
 
         // Create arguments
-        const args: Expression[] = [
-          createLiteral(5),
-          createLiteral(10)
-        ];
+        const args: Expression[] = [createLiteral(5), createLiteral(10)];
 
-        const callResult = analyzer.validateFunctionCall(
-          functionSymbol,
-          args,
-          { line: 1, column: 1, offset: 0 }
-        );
+        const callResult = analyzer.validateFunctionCall(functionSymbol, args, {
+          line: 1,
+          column: 1,
+          offset: 0,
+        });
 
         expect(callResult.success).toBe(true);
         if (callResult.success) {
@@ -484,10 +515,7 @@ describe('FunctionAnalyzer', () => {
     it('should reject function call with wrong argument count', () => {
       const funcDecl = createFunctionDecl({
         name: 'needsTwoArgs',
-        params: [
-          createParam('a', 'byte'),
-          createParam('b', 'byte')
-        ]
+        params: [createParam('a', 'byte'), createParam('b', 'byte')],
       });
 
       const funcResult = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -499,11 +527,11 @@ describe('FunctionAnalyzer', () => {
         // Only provide one argument
         const args: Expression[] = [createLiteral(5)];
 
-        const callResult = analyzer.validateFunctionCall(
-          functionSymbol,
-          args,
-          { line: 1, column: 1, offset: 0 }
-        );
+        const callResult = analyzer.validateFunctionCall(functionSymbol, args, {
+          line: 1,
+          column: 1,
+          offset: 0,
+        });
 
         expect(callResult.success).toBe(false);
         if (!callResult.success) {
@@ -518,8 +546,8 @@ describe('FunctionAnalyzer', () => {
         name: 'withDefault',
         params: [
           createParam('required', 'byte'),
-          createParam('optional', 'byte', true) // Has default value
-        ]
+          createParam('optional', 'byte', true), // Has default value
+        ],
       });
 
       const funcResult = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -531,11 +559,11 @@ describe('FunctionAnalyzer', () => {
         // Call with only required argument
         const args: Expression[] = [createLiteral(5)];
 
-        const callResult = analyzer.validateFunctionCall(
-          functionSymbol,
-          args,
-          { line: 1, column: 1, offset: 0 }
-        );
+        const callResult = analyzer.validateFunctionCall(functionSymbol, args, {
+          line: 1,
+          column: 1,
+          offset: 0,
+        });
 
         expect(callResult.success).toBe(true);
       }
@@ -551,12 +579,11 @@ describe('FunctionAnalyzer', () => {
         createPrimitiveType('word')
       );
 
-      const callbackVar = createVariableSymbol(
-        'handler',
-        callbackType,
-        scope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const callbackVar = createVariableSymbol('handler', callbackType, scope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
 
       const varResult = symbolTable.declareSymbol(callbackVar);
       expect(varResult.success).toBe(true);
@@ -564,11 +591,11 @@ describe('FunctionAnalyzer', () => {
       // Test callback call
       const args: Expression[] = [createLiteral(42)];
 
-      const callResult = analyzer.validateCallbackCall(
-        callbackVar,
-        args,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const callResult = analyzer.validateCallbackCall(callbackVar, args, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
 
       expect(callResult.success).toBe(true);
       if (callResult.success) {
@@ -580,23 +607,22 @@ describe('FunctionAnalyzer', () => {
     it('should reject callback call on non-callback variable', () => {
       // Create a regular variable
       const scope = symbolTable.getCurrentScope();
-      const regularVar = createVariableSymbol(
-        'notCallback',
-        createPrimitiveType('byte'),
-        scope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const regularVar = createVariableSymbol('notCallback', createPrimitiveType('byte'), scope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
 
       const varResult = symbolTable.declareSymbol(regularVar);
       expect(varResult.success).toBe(true);
 
       const args: Expression[] = [];
 
-      const callResult = analyzer.validateCallbackCall(
-        regularVar,
-        args,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const callResult = analyzer.validateCallbackCall(regularVar, args, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
 
       expect(callResult.success).toBe(false);
       if (!callResult.success) {
@@ -612,23 +638,22 @@ describe('FunctionAnalyzer', () => {
         createPrimitiveType('void')
       );
 
-      const callbackVar = createVariableSymbol(
-        'twoArgCallback',
-        callbackType,
-        scope,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const callbackVar = createVariableSymbol('twoArgCallback', callbackType, scope, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
 
       symbolTable.declareSymbol(callbackVar);
 
       // Provide only one argument
       const args: Expression[] = [createLiteral(42)];
 
-      const callResult = analyzer.validateCallbackCall(
-        callbackVar,
-        args,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const callResult = analyzer.validateCallbackCall(callbackVar, args, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
 
       expect(callResult.success).toBe(false);
       if (!callResult.success) {
@@ -642,7 +667,7 @@ describe('FunctionAnalyzer', () => {
     it('should allow function export at global scope', () => {
       const funcDecl = createFunctionDecl({
         name: 'exportedFunc',
-        exported: true
+        exported: true,
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -656,7 +681,7 @@ describe('FunctionAnalyzer', () => {
     it('should reject function export at non-global scope', () => {
       const funcDecl = createFunctionDecl({
         name: 'localExported',
-        exported: true
+        exported: true,
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Function'); // Not global
@@ -670,7 +695,7 @@ describe('FunctionAnalyzer', () => {
 
     it('should reject empty function names', () => {
       const funcDecl = createFunctionDecl({
-        name: '' // Empty name
+        name: '', // Empty name
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');
@@ -692,7 +717,7 @@ describe('FunctionAnalyzer', () => {
       // Create test functions for optimization analysis
       const smallFunc = createFunctionDecl({
         name: 'smallFunction',
-        params: [createParam('x', 'byte')]
+        params: [createParam('x', 'byte')],
       });
       const largeFunc = createFunctionDecl({
         name: 'largeFunction',
@@ -701,13 +726,13 @@ describe('FunctionAnalyzer', () => {
           createParam('b', 'byte'),
           createParam('c', 'byte'),
           createParam('d', 'byte'),
-          createParam('e', 'byte')
-        ]
+          createParam('e', 'byte'),
+        ],
       });
       const callbackFunc = createFunctionDecl({
         name: 'interruptHandler',
         callback: true,
-        params: [createParam('x', 'byte')]
+        params: [createParam('x', 'byte')],
       });
 
       analyzer.analyzeFunctionDeclaration(smallFunc, 'Global');
@@ -719,7 +744,7 @@ describe('FunctionAnalyzer', () => {
       it('should collect function call metadata', () => {
         const functions = [
           symbolTable.lookupSymbol('smallFunction'),
-          symbolTable.lookupSymbol('largeFunction')
+          symbolTable.lookupSymbol('largeFunction'),
         ].filter(Boolean) as any[];
 
         const callMetadata = analyzer.collectFunctionCallMetadata(functions);
@@ -764,7 +789,11 @@ describe('FunctionAnalyzer', () => {
 
         // Should have penalty for many parameters or large function
         const antiInliningFactors = inliningAnalysis.inliningCandidate.antiInliningFactors.filter(
-          (factor: any) => factor.factor === 'large_function' || factor.factor === 'many_parameters' || factor.description.includes('large') || factor.description.includes('parameters')
+          (factor: any) =>
+            factor.factor === 'large_function' ||
+            factor.factor === 'many_parameters' ||
+            factor.description.includes('large') ||
+            factor.description.includes('parameters')
         );
         expect(antiInliningFactors.length).toBeGreaterThan(0);
       });
@@ -931,12 +960,14 @@ describe('FunctionAnalyzer', () => {
         const largeOpt = analyzer.buildFunctionOptimizationMetadata(largeFunc);
 
         // Small function should be more efficient
-        expect(smallOpt.performanceProfile.performanceMetrics.cyclesPerCall)
-          .toBeLessThan(largeOpt.performanceProfile.performanceMetrics.cyclesPerCall);
+        expect(smallOpt.performanceProfile.performanceMetrics.cyclesPerCall).toBeLessThan(
+          largeOpt.performanceProfile.performanceMetrics.cyclesPerCall
+        );
 
         // Large function should use more stack space
-        expect(largeOpt.performanceProfile.resourceUsage.stackUsage.maxStackDepth)
-          .toBeGreaterThan(smallOpt.performanceProfile.resourceUsage.stackUsage.maxStackDepth);
+        expect(largeOpt.performanceProfile.resourceUsage.stackUsage.maxStackDepth).toBeGreaterThan(
+          smallOpt.performanceProfile.resourceUsage.stackUsage.maxStackDepth
+        );
       });
     });
 
@@ -957,7 +988,9 @@ describe('FunctionAnalyzer', () => {
         // Verify integration between components
         expect(optimization.inliningCandidate.isCandidate).toBe(true); // Small function
         expect(optimization.sixtyTwoHints.zeroPageOptimization.benefitsFromZeroPage).toBe(true);
-        expect(optimization.callOptimization.parameterOptimization.passingCost.isEfficient).toBe(true);
+        expect(optimization.callOptimization.parameterOptimization.passingCost.isEfficient).toBe(
+          true
+        );
       });
 
       it('should provide consistent optimization recommendations', () => {
@@ -973,13 +1006,17 @@ describe('FunctionAnalyzer', () => {
 
         // Callback function should not be inlining candidate
         expect(callbackOpt.inliningCandidate.isCandidate).toBe(false);
-        expect(callbackOpt.inliningCandidate.antiInliningFactors.some(
-          (f: any) => f.factor === 'callback_function'
-        )).toBe(true);
+        expect(
+          callbackOpt.inliningCandidate.antiInliningFactors.some(
+            (f: any) => f.factor === 'callback_function'
+          )
+        ).toBe(true);
 
         // But callback should have specific callback optimizations
         expect(callbackOpt.callbackOptimization.isCallbackFunction).toBe(true);
-        expect(callbackOpt.callbackOptimization.optimizationOpportunities.length).toBeGreaterThan(0);
+        expect(callbackOpt.callbackOptimization.optimizationOpportunities.length).toBeGreaterThan(
+          0
+        );
       });
     });
 
@@ -1008,7 +1045,7 @@ describe('FunctionAnalyzer', () => {
       const callbackFunc = createFunctionDecl({
         name: 'callback',
         callback: true,
-        params: [createParam('x', 'byte')]
+        params: [createParam('x', 'byte')],
       });
       const exportedFunc = createFunctionDecl({
         name: 'exported',
@@ -1016,8 +1053,11 @@ describe('FunctionAnalyzer', () => {
         returnType: {
           type: 'PrimitiveType',
           name: 'byte',
-          metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
-        }
+          metadata: {
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 4, offset: 3 },
+          },
+        },
       });
 
       analyzer.analyzeFunctionDeclaration(regularFunc, 'Global');
@@ -1029,7 +1069,7 @@ describe('FunctionAnalyzer', () => {
       expect(stats.functionsAnalyzed).toBe(3);
       expect(stats.callbackFunctions).toBe(1);
       expect(stats.exportedFunctions).toBe(1);
-      expect(stats.averageParameterCount).toBeCloseTo(1/3); // Only callback has parameter
+      expect(stats.averageParameterCount).toBeCloseTo(1 / 3); // Only callback has parameter
       expect(stats.functionsByReturnType['void']).toBe(2);
       expect(stats.functionsByReturnType['byte']).toBe(1);
 
@@ -1067,21 +1107,33 @@ describe('FunctionAnalyzer', () => {
               elementType: {
                 type: 'PrimitiveType',
                 name: 'byte',
-                metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 4, offset: 3 } }
+                metadata: {
+                  start: { line: 1, column: 1, offset: 0 },
+                  end: { line: 1, column: 4, offset: 3 },
+                },
               },
               size: {
                 type: 'Literal',
                 value: -1, // Invalid array size
                 raw: '-1',
-                metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
+                metadata: {
+                  start: { line: 1, column: 1, offset: 0 },
+                  end: { line: 1, column: 1, offset: 0 },
+                },
               },
-              metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
+              metadata: {
+                start: { line: 1, column: 1, offset: 0 },
+                end: { line: 1, column: 1, offset: 0 },
+              },
             },
             optional: false,
             defaultValue: null,
-            metadata: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } }
-          }
-        ]
+            metadata: {
+              start: { line: 1, column: 1, offset: 0 },
+              end: { line: 1, column: 1, offset: 0 },
+            },
+          },
+        ],
       });
 
       const result = analyzer.analyzeFunctionDeclaration(funcDecl, 'Global');

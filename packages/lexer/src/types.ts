@@ -41,17 +41,17 @@ export enum TokenType {
   ENUM = 'ENUM',
 
   // Storage class keywords
-  ZP = 'ZP',        // Zero page storage
-  RAM = 'RAM',      // RAM storage
-  DATA = 'DATA',    // Initialized data
-  CONST = 'CONST',  // Constant/ROM data
-  IO = 'IO',        // Memory-mapped I/O
+  ZP = 'ZP', // Zero page storage
+  RAM = 'RAM', // RAM storage
+  DATA = 'DATA', // Initialized data
+  CONST = 'CONST', // Constant/ROM data
+  IO = 'IO', // Memory-mapped I/O
 
   // Primitive type keywords
   BYTE = 'BYTE',
   WORD = 'WORD',
   VOID = 'VOID',
-  CALLBACK = 'CALLBACK',        // NEW: Callback keyword token
+  CALLBACK = 'CALLBACK', // NEW: Callback keyword token
 
   // Operators - Arithmetic
   PLUS = 'PLUS',
@@ -77,9 +77,9 @@ export enum TokenType {
   GREATER_EQUAL = 'GREATER_EQUAL',
 
   // Operators - Logical
-  AND = 'AND',      // Blend65 uses 'and' keyword
-  OR = 'OR',        // Blend65 uses 'or' keyword
-  NOT = 'NOT',      // Blend65 uses 'not' keyword
+  AND = 'AND', // Blend65 uses 'and' keyword
+  OR = 'OR', // Blend65 uses 'or' keyword
+  NOT = 'NOT', // Blend65 uses 'not' keyword
 
   // Operators - Bitwise
   BITWISE_AND = 'BITWISE_AND',
@@ -172,7 +172,7 @@ export const KEYWORDS = new Set([
   'byte',
   'word',
   'void',
-  'callback',                    // NEW: Add callback keyword
+  'callback', // NEW: Add callback keyword
   'and',
   'or',
   'not',
@@ -181,13 +181,7 @@ export const KEYWORDS = new Set([
 /**
  * Storage class keywords
  */
-export const STORAGE_CLASSES = new Set([
-  'zp',
-  'ram',
-  'data',
-  'const',
-  'io',
-]);
+export const STORAGE_CLASSES = new Set(['zp', 'ram', 'data', 'const', 'io']);
 
 /**
  * Primitive type keywords
@@ -196,7 +190,7 @@ export const PRIMITIVE_TYPES = new Set([
   'byte',
   'word',
   'void',
-  'callback',                    // NEW: Add callback primitive type
+  'callback', // NEW: Add callback primitive type
 ]);
 
 /**
@@ -216,5 +210,5 @@ export const CONTROL_FLOW_KEYWORDS = new Set([
   'continue',
   'default',
   'end',
-  'callback',                    // NEW: Add to control flow keywords
+  'callback', // NEW: Add to control flow keywords
 ]);

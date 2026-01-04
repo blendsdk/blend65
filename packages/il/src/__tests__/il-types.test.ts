@@ -10,9 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   // Core types
-  ILInstructionType,
-
-  // Factory functions
+  ILInstructionType, // Factory functions
   createILConstant,
   createILVariable,
   createILRegister,
@@ -21,37 +19,28 @@ import {
   createILInstruction,
   createILProgram,
   createILModule,
-  createILFunction,
-
-  // Type guards
+  createILFunction, // Type guards
   isILConstant,
   isILVariable,
   isILRegister,
   isILTemporary,
-  isILMemoryLocation,
   isILLabel,
   isILParameterReference,
-  isILReturnReference,
-
-  // Utility functions
+  isILReturnReference, // Utility functions
   ilValueToString,
   ilInstructionToString,
   getInstructionCategory,
   isInstructionInCategory,
-  getEstimatedCycles,
-
-  // Constants
+  getEstimatedCycles, // Constants
   IL_VERSION,
   SUPPORTED_PLATFORMS,
-  INSTRUCTION_CATEGORIES
+  INSTRUCTION_CATEGORIES,
 } from '../index.js';
 
 import { createPrimitiveType } from '@blend65/semantic';
 
 describe('IL Type System', () => {
-
   describe('Factory Functions', () => {
-
     describe('createILConstant', () => {
       it('should create byte constants', () => {
         const byteType = createPrimitiveType('byte');
@@ -103,13 +92,7 @@ describe('IL Type System', () => {
 
       it('should create global variables with qualified names', () => {
         const byteType = createPrimitiveType('byte');
-        const variable = createILVariable(
-          'playerX',
-          byteType,
-          ['Game', 'Player'],
-          'zp',
-          'global'
-        );
+        const variable = createILVariable('playerX', byteType, ['Game', 'Player'], 'zp', 'global');
 
         expect(variable.name).toBe('playerX');
         expect(variable.qualifiedName).toEqual(['Game', 'Player']);
@@ -165,12 +148,9 @@ describe('IL Type System', () => {
         const dest = createILRegister('A', byteType);
         const value = createILConstant(byteType, 42);
 
-        const instruction = createILInstruction(
-          ILInstructionType.LOAD_IMMEDIATE,
-          [value],
-          1,
-          { result: dest }
-        );
+        const instruction = createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [value], 1, {
+          result: dest,
+        });
 
         expect(instruction.type).toBe(ILInstructionType.LOAD_IMMEDIATE);
         expect(instruction.operands).toEqual([value]);
@@ -182,18 +162,13 @@ describe('IL Type System', () => {
         const byteType = createPrimitiveType('byte');
         const value = createILConstant(byteType, 42);
 
-        const instruction = createILInstruction(
-          ILInstructionType.LOAD_IMMEDIATE,
-          [value],
-          1,
-          {
-            sixtyTwoHints: {
-              preferredRegister: 'A',
-              isHotPath: true,
-              estimatedCycles: 2
-            }
-          }
-        );
+        const instruction = createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [value], 1, {
+          sixtyTwoHints: {
+            preferredRegister: 'A',
+            isHotPath: true,
+            estimatedCycles: 2,
+          },
+        });
 
         expect(instruction.sixtyTwoHints?.preferredRegister).toBe('A');
         expect(instruction.sixtyTwoHints?.isHotPath).toBe(true);
@@ -233,12 +208,7 @@ describe('IL Type System', () => {
         const voidType = createPrimitiveType('void');
         const sourceLocation = { line: 1, column: 1, offset: 0 };
 
-        const func = createILFunction(
-          'main',
-          ['Game', 'Main'],
-          voidType,
-          sourceLocation
-        );
+        const func = createILFunction('main', ['Game', 'Main'], voidType, sourceLocation);
 
         expect(func.name).toBe('main');
         expect(func.qualifiedName).toEqual(['Game', 'Main']);
@@ -298,7 +268,7 @@ describe('IL Type System', () => {
         operandType: 'parameter' as const,
         parameterIndex: 0,
         parameterName: 'arg1',
-        type: byteType
+        type: byteType,
       };
 
       expect(isILParameterReference(paramRef)).toBe(true);
@@ -308,7 +278,7 @@ describe('IL Type System', () => {
     it('should correctly identify return references', () => {
       const returnRef = {
         operandType: 'return' as const,
-        type: byteType
+        type: byteType,
       };
 
       expect(isILReturnReference(returnRef)).toBe(true);
@@ -317,7 +287,6 @@ describe('IL Type System', () => {
   });
 
   describe('Utility Functions', () => {
-
     describe('ilValueToString', () => {
       const byteType = createPrimitiveType('byte');
 
@@ -384,12 +353,9 @@ describe('IL Type System', () => {
         const value = createILConstant(byteType, 42);
         const dest = createILRegister('A', byteType);
 
-        const instruction = createILInstruction(
-          ILInstructionType.LOAD_IMMEDIATE,
-          [value],
-          1,
-          { result: dest }
-        );
+        const instruction = createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [value], 1, {
+          result: dest,
+        });
 
         const str = ilInstructionToString(instruction);
         expect(str).toBe('LOAD_IMMEDIATE(42) -> A');
@@ -401,12 +367,9 @@ describe('IL Type System', () => {
         const right = createILConstant(byteType, 5);
         const result = createILRegister('A', byteType);
 
-        const instruction = createILInstruction(
-          ILInstructionType.ADD,
-          [left, right],
-          2,
-          { result }
-        );
+        const instruction = createILInstruction(ILInstructionType.ADD, [left, right], 2, {
+          result,
+        });
 
         const str = ilInstructionToString(instruction);
         expect(str).toBe('ADD(A, 5) -> A');
@@ -416,11 +379,7 @@ describe('IL Type System', () => {
         const byteType = createPrimitiveType('byte');
         const value = createILConstant(byteType, 42);
 
-        const instruction = createILInstruction(
-          ILInstructionType.RETURN,
-          [value],
-          3
-        );
+        const instruction = createILInstruction(ILInstructionType.RETURN, [value], 3);
 
         const str = ilInstructionToString(instruction);
         expect(str).toBe('RETURN(42)');
@@ -485,7 +444,6 @@ describe('IL Type System', () => {
   });
 
   describe('Constants and Metadata', () => {
-
     it('should export correct version', () => {
       expect(IL_VERSION).toBe('0.1.0');
     });
@@ -512,18 +470,16 @@ describe('IL Type System', () => {
   });
 
   describe('Integration Tests', () => {
-
     it('should create a complete IL function with instructions', () => {
       const byteType = createPrimitiveType('byte');
       const voidType = createPrimitiveType('void');
 
       // Create function
-      const func = createILFunction(
-        'testFunction',
-        ['Test', 'Module'],
-        voidType,
-        { line: 1, column: 1, offset: 0 }
-      );
+      const func = createILFunction('testFunction', ['Test', 'Module'], voidType, {
+        line: 1,
+        column: 1,
+        offset: 0,
+      });
 
       // Create some variables
       const counter = createILVariable('counter', byteType, [], null, 'local');
@@ -531,25 +487,18 @@ describe('IL Type System', () => {
       const regA = createILRegister('A', byteType);
 
       // Create instructions
-      const loadInstr = createILInstruction(
-        ILInstructionType.LOAD_IMMEDIATE,
-        [value],
-        1,
-        { result: regA }
-      );
+      const loadInstr = createILInstruction(ILInstructionType.LOAD_IMMEDIATE, [value], 1, {
+        result: regA,
+      });
 
-      const storeInstr = createILInstruction(
-        ILInstructionType.STORE_VARIABLE,
-        [counter, regA],
-        2
-      );
+      const storeInstr = createILInstruction(ILInstructionType.STORE_VARIABLE, [counter, regA], 2);
 
       // Add to function
       func.instructions.push(loadInstr, storeInstr);
       func.localVariables.push({
         name: 'counter',
         type: byteType,
-        allocationMethod: 'register'
+        allocationMethod: 'register',
       });
 
       // Verify structure

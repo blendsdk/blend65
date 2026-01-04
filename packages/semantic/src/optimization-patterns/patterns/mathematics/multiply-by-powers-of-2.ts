@@ -11,7 +11,6 @@ import type {
   OptimizationPattern,
   PatternMatch,
   TransformationResult,
-  PerformanceImprovement
 } from '../../core/pattern-types';
 import { PatternCategory, PatternPriority, TargetPlatform } from '../../core/pattern-types';
 
@@ -60,8 +59,8 @@ export const multiplyByPowersOf2Pattern: OptimizationPattern = {
       captures,
       location: {
         line: binExpr.metadata?.start?.line || 0,
-        column: binExpr.metadata?.start?.column || 0
-      }
+        column: binExpr.metadata?.start?.column || 0,
+      },
     };
   },
 
@@ -81,9 +80,9 @@ export const multiplyByPowersOf2Pattern: OptimizationPattern = {
           type: 'Literal',
           value: shiftAmount,
           raw: shiftAmount.toString(),
-          metadata: match.node.metadata
+          metadata: match.node.metadata,
         },
-        metadata: match.node.metadata
+        metadata: match.node.metadata,
       };
 
       const transformTime = Date.now() - startTime;
@@ -94,8 +93,8 @@ export const multiplyByPowersOf2Pattern: OptimizationPattern = {
         metrics: {
           transformationTime: transformTime,
           memoryUsed: 256, // Estimated bytes
-          success: true
-        }
+          success: true,
+        },
       };
     } catch (error) {
       return {
@@ -104,18 +103,18 @@ export const multiplyByPowersOf2Pattern: OptimizationPattern = {
         metrics: {
           transformationTime: Date.now() - startTime,
           memoryUsed: 0,
-          success: false
-        }
+          success: false,
+        },
       };
     }
   },
 
   expectedImprovement: {
     cyclesSaved: 15, // 6502 shift vs multiply routine
-    bytesSaved: 8,   // Inline shift vs JSR to multiply
+    bytesSaved: 8, // Inline shift vs JSR to multiply
     improvementPercentage: 85,
-    reliability: 'guaranteed'
-  }
+    reliability: 'guaranteed',
+  },
 };
 
 // ============================================================================
@@ -145,5 +144,5 @@ export const patternInfo = {
   platforms: [TargetPlatform.C64, TargetPlatform.VIC20, TargetPlatform.GENERIC_6502],
   priority: PatternPriority.HIGH,
   fileSize: '~80 lines',
-  memoryFootprint: '~2KB'
+  memoryFootprint: '~2KB',
 };
