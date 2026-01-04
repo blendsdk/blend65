@@ -7,8 +7,8 @@ This plan implements the Blend65 compiler backend phases: semantic analysis, int
 - ✅ **FRONTEND**: Complete (lexer, parser, AST) - 263 tests passing
 - ✅ **v0.2 LANGUAGE FEATURES**: Complete (break/continue, enums, enhanced match) - Fully tested
 - ✅ **v0.3 CALLBACK FUNCTIONS**: Complete (callback functions, callback type, IRQ language support) - Fully tested
-- ✅ **PHASE 1 SEMANTIC ANALYSIS**: Complete (all tasks 1.1-1.10) - 338 tests passing
-- 🔄 **PHASE 2 IL SYSTEM**: Ready to implement (IL types → transformation → optimization)
+- ✅ **PHASE 1 SEMANTIC ANALYSIS**: Complete (all tasks 1.1-1.10) - 344 tests passing
+- 🔄 **PHASE 2 IL SYSTEM**: Task 2.1 Complete (IL types), continuing with instruction definitions
 
 **INPUT:** Working Blend65 v0.2 frontend (lexer/parser/AST with all v0.2 features)
 **OUTPUT:** Complete 6502 compiler with optimization and v0.2 feature support
@@ -238,31 +238,47 @@ packages/
 
 ## PHASE 2: IL DEFINITION & TRANSFORMATION (6 tasks)
 
-### Task 2.1: Define Core IL Types
+### ✅ Task 2.1: Define Core IL Types (COMPLETE)
 **File:** `packages/il/src/il-types.ts`
 **Goal:** Define intermediate language structure
-**Changes:**
-- Create `ILInstruction` base types and variants
-- Define `ILFunction`, `ILModule`, `ILProgram` structures
-- Add `ILValue` types (registers, constants, memory locations)
-- Create `ILOperand` types for instruction arguments
-- Define control flow instructions (branch, jump, call, return)
-- Add 6502-aware hints (zero page preference, register allocation)
-**Test:** IL type construction and serialization
-**Success:** Complete IL type system
+**Status:** ✅ COMPLETE with comprehensive 6502-aware IL type system
+**Implemented:**
+- ✅ Complete `ILInstruction` base types and 40+ instruction type variants
+- ✅ `ILFunction`, `ILModule`, `ILProgram` structures with optimization metadata
+- ✅ Rich `ILValue` types (registers, constants, memory locations, temporaries, labels)
+- ✅ `ILOperand` types for instruction arguments and parameter references
+- ✅ Control flow instructions (branch, jump, call, return) with conditional variants
+- ✅ 6502-aware hints (register preferences, addressing modes, cycle estimates)
+- ✅ Comprehensive optimization metadata integration from semantic analysis
+- ✅ Factory functions, type guards, and utility functions for IL manipulation
+- ✅ Multi-platform support (C64, VIC-20, X16) with memory bank awareness
+- ✅ Performance estimation utilities with cycle-accurate 6502 modeling
+**Test Results:** 51 tests passing covering all IL functionality
+**Achievement:** Production-ready IL type system with 6502 optimization integration
 
-### Task 2.2: Define IL Instructions for Blend65
+### ✅ Task 2.2: Define IL Instructions for Blend65 (COMPLETE)
 **File:** `packages/il/src/instructions.ts`
 **Goal:** Create instruction set for Blend65 operations
-**Changes:**
-- Define arithmetic instructions (add, sub, mul, div, mod)
-- Add logical operations (and, or, not, xor)
-- Create memory operations (load, store, move)
-- Add comparison instructions (eq, ne, lt, le, gt, ge)
-- Define control flow (branch, jump, call, return, nop)
-- Add 6502-specific operations (peek, poke, register ops)
-**Test:** Instruction creation and validation
-**Success:** Complete IL instruction set
+**Status:** ✅ COMPLETE with comprehensive instruction creation system
+**Implemented:**
+- ✅ Complete instruction creation functions for all 40+ IL instruction types
+- ✅ Arithmetic instructions (add, sub, mul, div, mod, neg) with 6502 cycle estimates
+- ✅ Logical operations (and, or, not) for boolean operations
+- ✅ Bitwise operations (and, or, xor, not, shift left/right) for integer manipulation
+- ✅ Memory operations (load immediate, load/store memory, copy) with addressing mode hints
+- ✅ Comparison instructions (eq, ne, lt, le, gt, ge) with result type handling
+- ✅ Control flow (branch, conditional branches, zero tests) for program flow
+- ✅ Function operations (call with variable arguments, return with optional value)
+- ✅ Variable operations (declare local, load/store variable) with storage class optimization
+- ✅ Array operations (load/store array elements, address calculation)
+- ✅ Utility operations (label, nop, comment) for debugging and control
+- ✅ 6502-specific operations (peek, poke, register ops, flag operations) for hardware access
+- ✅ Comprehensive 6502 optimization hints (register preferences, addressing modes, cycle estimates)
+- ✅ Instruction validation system with proper error handling
+- ✅ Instruction factory interface for convenient creation
+- ✅ Context management for unique instruction ID generation
+**Test Results:** 63 tests passing covering all instruction creation and validation
+**Achievement:** Production-ready IL instruction creation system with 6502 optimization integration
 
 ### Task 2.3: Create AST to IL Transformer
 **File:** `packages/il/src/ast-to-il.ts`
