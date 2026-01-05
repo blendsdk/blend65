@@ -145,11 +145,11 @@ yarn clean
 
 - [Language Specification](docs/BLEND65_LANGUAGE_SPECIFICATION.md) - Complete syntax and semantics reference
 - [Project Status](docs/PROJECT_STATUS.md) - Current development state and progress
-- [Implementation Plans](docs/implementation-plan/) - Detailed development roadmaps
+- [Examples](examples/) - Sample Blend65 programs and syntax demonstrations
 
 ## Contributing
 
-This project is in active development. See the implementation plans in the `docs/implementation-plan/` directory for current priorities and technical specifications.
+This project is in active development. Check the [Project Status](docs/PROJECT_STATUS.md) for current priorities and development roadmap.
 
 ## License
 
