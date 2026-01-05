@@ -1,0 +1,38 @@
+module Hello.World
+
+// C64 screen memory - use array for truly generic access
+io var SCREEN: byte[40]      // C64 screen line ($0400-$0427)
+
+// C64 color registers
+io var BORDER_COLOR: byte    // $D020 - Border color
+io var BG_COLOR: byte        // $D021 - Background color
+
+// Generic printLine function - writes any message to C64 screen
+function printLine(message: byte[40], length: word): void
+    var i: word = 0
+
+    // Write each character to screen memory using array indexing
+    while i < length and i < 40
+        SCREEN[i] = message[i]
+        i = i + 1
+    end while
+end function
+
+function main(): void
+    // Set beautiful colors for our triumph!
+    BORDER_COLOR = 6    // Blue border
+    BG_COLOR = 0        // Black background
+
+    // "HELLO BLEND65!" in PETSCII character codes
+    // H=72, E=69, L=76, L=76, O=79, space=32, B=66, L=76, E=69, N=78, D=68, 6=54, 5=53, !=33
+    var message: byte[40] = [72, 69, 76, 76, 79, 32, 66, 76, 69, 78, 68, 54, 53, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+    // Call our triumphant printLine function!
+    printLine(message, 14)
+
+    // Keep program running to display our message
+    while true
+        // BLEND65 COMPILER SUCCESS!
+        // "HELLO BLEND65!" is now displayed on the C64 screen!
+    end while
+end function
