@@ -83,58 +83,6 @@ var rasterCallbacks: interruptHandler[8]
 var enemyBehaviors: behaviorFunction[16]
 ```
 
-## Showcase: 1nvader - Space Invaders Clone
-
-**Complete game port demonstrating all Blend65 language features**
-
-We've ported [Darren Foulds' 1nvader C64 assembly game](https://github.com/darrenfoulds/1nvader-c64) to Blend65 as a comprehensive language showcase. This single-file implementation demonstrates every major language feature in a real-world game context.
-
-**View the complete port:** [`examples/1nvader-showcase.blend`](examples/1nvader-showcase.blend)
-
-### What the showcase demonstrates:
-
-**🎮 Complete Game Implementation:**
-- Full two-player Space Invaders gameplay with collision detection
-- Hardware collision detection using VIC-II sprite collision registers
-- Multi-voice SID sound programming (laser, explosion, music)
-- Level progression, scoring, lives, and game state management
-- Real-time UI with dynamic score display and mothership health
-
-**🛠 Language Features in Action:**
-```js
-// Strategic storage class usage for 6502 optimization
-zp var playerX: byte = 100              // Zero page for speed
-ram var mothershipSpeed: byte = 1       // General RAM storage
-data var spriteData: byte[64] = [...]   // Pre-initialized sprite data
-const var SCREEN_WIDTH: byte = 320      // Compile-time constants
-io var VIC_BACKGROUND: byte             // Hardware registers
-
-// Hardware abstraction with clean APIs
-import setSpritePosition, readSpriteCollisions from c64.vic
-import setWaveform, triggerNote from c64.sid
-
-// Game state management with match/case
-match gameState
-case 0: handleMenuInput()     // Menu state
-case 1: updateGameplay()      // Playing state
-case 2: handleGameOver()      // Game over state
-end match
-
-// Hardware collision detection
-var collisions: byte = readSpriteCollisions()
-if (collisions & $09) == $09 then  // Mothership hit by laser
-    handleMothershipHit()
-end if
-```
-
-**🎯 Transformation Results:**
-- **1400+ lines of assembly** → **~900 lines of readable Blend65**
-- **Raw register manipulation** → **Type-safe API calls**
-- **Complex memory management** → **Storage class optimization**
-- **Cryptic labels** → **Self-documenting functions**
-
-This port proves that Blend65 can elegantly express classic 8-bit game development patterns while maintaining the performance mindset essential for 6502 programming.
-
 ## Target Platforms
 
 - **Commodore 64** - Full VIC-II, SID, and CIA support
