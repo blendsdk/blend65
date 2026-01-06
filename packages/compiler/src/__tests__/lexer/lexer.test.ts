@@ -32,7 +32,7 @@ describe('Blend65Lexer', () => {
     });
 
     it('should recognize storage class keywords', () => {
-      const source = 'zp ram data const io';
+      const source = 'zp ram data const';
       const tokens = tokenize(source);
 
       expect(tokens[0].type).toBe(TokenType.ZP);
@@ -351,7 +351,7 @@ end function`;
     it('should tokenize storage declarations', () => {
       const source = `zp var counter: byte
 ram var buffer: byte[256]
-io var VIC_REG: byte`;
+data var initialized: word = 1000`;
 
       const tokens = tokenize(source);
 
@@ -377,15 +377,17 @@ io var VIC_REG: byte`;
       expect(tokens[13].type).toBe(TokenType.RIGHT_BRACKET);
       expect(tokens[14].type).toBe(TokenType.NEWLINE);
 
-      // Third line: io var VIC_REG: byte (no memory placement)
-      expect(tokens[15].type).toBe(TokenType.IDENTIFIER); // "io"
-      expect(tokens[15].value).toBe('io');
-      expect(tokens[16].type).toBe(TokenType.VAR); // "var"
-      expect(tokens[17].type).toBe(TokenType.IDENTIFIER); // "VIC_REG"
-      expect(tokens[17].value).toBe('VIC_REG');
+      // Third line: data var initialized: word = 1000
+      expect(tokens[15].type).toBe(TokenType.DATA);
+      expect(tokens[16].type).toBe(TokenType.VAR);
+      expect(tokens[17].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[17].value).toBe('initialized');
       expect(tokens[18].type).toBe(TokenType.COLON);
-      expect(tokens[19].type).toBe(TokenType.BYTE);
-      expect(tokens[20].type).toBe(TokenType.EOF);
+      expect(tokens[19].type).toBe(TokenType.WORD);
+      expect(tokens[20].type).toBe(TokenType.ASSIGN);
+      expect(tokens[21].type).toBe(TokenType.NUMBER);
+      expect(tokens[21].value).toBe('1000');
+      expect(tokens[22].type).toBe(TokenType.EOF);
     });
 
     // v0.2 Sample Code Tests

@@ -33,7 +33,7 @@ Blend65 is a statically-typed, multi-target programming language specifically de
 ### Key Features
 
 - **6502-Optimized**: Designed specifically for 6502 architecture constraints
-- **Storage Classes**: Zero page, RAM, ROM, and I/O memory management
+- **Storage Classes**: Zero page, RAM, and ROM memory management
 - **Multi-Target**: Single codebase targeting multiple 6502 platforms
 - **Static Typing**: Compile-time type checking with explicit type annotations
 - **Module System**: Organized code with qualified imports/exports
@@ -187,7 +187,7 @@ parameter = identifier ":" type_annotation [ "=" expression ] ;
 variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
                       [ "=" expression ] statement_terminator ;
 
-storage_class = "zp" | "ram" | "data" | "const" | "io" ;
+storage_class = "zp" | "ram" | "data" | "const" ;
 
 type_declaration = "type" identifier [ "extends" type_annotation ]
                   type_body
@@ -461,7 +461,6 @@ variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
 | `ram`         | General RAM         | Runtime        | Normal       | General variables        |
 | `data`        | Initialized Data    | Compile-time   | Normal       | Pre-initialized arrays   |
 | `const`       | ROM/Constant        | Compile-time   | Normal       | Constants, lookup tables |
-| `io`          | Memory-mapped I/O   | None           | Variable     | Hardware registers       |
 | _(default)_   | Automatic           | Runtime        | Normal       | Local variables          |
 
 **Examples:**
@@ -496,12 +495,6 @@ const var SCREEN_WIDTH: byte = 40
 const var SIN_TABLE: byte[256] = [/* sine values */]
 ```
 
-### I/O Variables (Hardware Registers)
-
-```js
-io var VIC_BACKGROUND: byte       // $D020 - Background color
-io var SID_VOLUME: byte           // $D418 - Sound volume
-```
 
 ---
 
@@ -1721,3 +1714,4 @@ Complete operator precedence table with 6502 optimization notes:
 **End of Specification**
 
 _This document serves as the authoritative reference for the Blend65 language. The parser and lexer implementations should conform to the grammar and semantics described herein._
+---

@@ -213,7 +213,7 @@ end function`;
     it('should handle storage class combinations', () => {
       const source = `zp const var ZERO_PAGE_CONST: byte = $FF
 ram data var INITIALIZED_RAM: word[100] = [1, 2, 3]
-io var VIC_REGISTER: byte`;
+const var MAX_SPEED: byte = 5`;
 
       const tokens = tokenize(source);
 
@@ -221,7 +221,7 @@ io var VIC_REGISTER: byte`;
       expect(tokens[1].type).toBe(TokenType.CONST);
       expect(tokens[2].type).toBe(TokenType.VAR);
 
-      // Should handle array initialization and storage classes without memory placement
+      // Should handle array initialization and storage classes
       expect(tokens.length).toBeGreaterThan(20);
       expect(tokens[tokens.length - 1].type).toBe(TokenType.EOF);
     });
