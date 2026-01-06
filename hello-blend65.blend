@@ -1,6 +1,0 @@
-module Hello.World
-
-function main(): void
-    var dummy: byte = 42      // Simple variable to ensure compilation works
-    return                    // Clean exit to BASIC
-end function
