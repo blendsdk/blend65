@@ -68,6 +68,37 @@ export const VIC20_SPEC: PlatformSpec = {
 };
 
 /**
+ * Commodore 128 platform specification (C64 mode)
+ */
+export const C128_SPEC: PlatformSpec = {
+  name: 'Commodore 128 (C64 mode)',
+  cpu: '8502',
+  processor: '8502',
+  basicStart: 0x0801,
+  mlStart: 0x0810,
+  memory: {
+    basicStart: 0x0801,
+    codeStart: 0x0810,
+    zeroPageStart: 0x02,
+    zeroPageEnd: 0x8F,
+    screenStart: 0x0400,
+    colorStart: 0xD800,
+    ioStart: 0xD000,
+    ioEnd: 0xDFFF
+  },
+  screen: {
+    width: 40,
+    height: 25,
+    chars: 1000
+  },
+  registers: {
+    border: 0xD020,
+    background: 0xD021,
+    sprite: [0xD015, 0xD000, 0xD002, 0xD004, 0xD006, 0xD008, 0xD00A, 0xD00C, 0xD00E]
+  }
+};
+
+/**
  * Commander X16 platform specification
  */
 export const X16_SPEC: PlatformSpec = {
@@ -104,6 +135,7 @@ export const X16_SPEC: PlatformSpec = {
 export const COMMODORE_PLATFORMS = {
   c64: C64_SPEC,
   vic20: VIC20_SPEC,
+  c128: C128_SPEC,
   x16: X16_SPEC
 } as const;
 
@@ -201,6 +233,12 @@ export const PLATFORM_OPTIMIZATIONS = {
     useZeroPage: true,
     fastMultiply: false,
     spriteHardware: false,
+    soundHardware: true
+  },
+  c128: {
+    useZeroPage: true,
+    fastMultiply: true,
+    spriteHardware: true,
     soundHardware: true
   },
   x16: {

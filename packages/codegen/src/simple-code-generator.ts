@@ -1,6 +1,6 @@
 /**
- * Simplified 6502 code generator for Blend65
- * Basic implementation to enable first compiled programs
+ * Enhanced 6502 code generator for Blend65
+ * Phase 8: Platform Integration with hardware address validation and optimization
  */
 
 import {
@@ -12,9 +12,20 @@ import {
   isILVariable,
   isILLabel,
 } from '@blend65/il';
+import {
+  CommodorePlatform,
+  type PlatformSpec
+} from './platform/commodore-platform.js';
+import {
+  getPlatformSpec,
+  validateMemoryLayout,
+  getOptimalAddressingMode,
+  isPlatformSupported,
+  type SupportedPlatform
+} from './platform/platform-specs.js';
 
 export interface SimpleCodeGenOptions {
-  /** Target platform (c64, vic20, c128, etc.) */
+  /** Target platform (c64, vic20, x16, etc.) */
   target: string;
 
   /** Include debug information */
@@ -22,6 +33,12 @@ export interface SimpleCodeGenOptions {
 
   /** Generate auto-run BASIC stub */
   autoRun: boolean;
+
+  /** Enable platform-specific optimizations */
+  optimize?: boolean;
+
+  /** Validate hardware addresses */
+  validateAddresses?: boolean;
 }
 
 export interface SimpleCodeGenResult {
@@ -33,50 +50,61 @@ export interface SimpleCodeGenResult {
     instructionCount: number;
     codeSize: number;
     compilationTime: number;
+    optimizations: number;
+    validationWarnings: ValidationWarning[];
+  };
+}
+
+export interface ValidationWarning {
+  /** Warning message */
+  message: string;
+  /** Memory address that triggered warning */
+  address: number;
+  /** Memory region */
+  region: string;
+  /** Platform name */
+  platform: string;
+  /** Source location if available */
+  sourceLocation?: {
+    line: number;
+    column: number;
   };
 }
 
 /**
- * Platform specifications for Commodore systems
- */
-const PLATFORM_SPECS = {
-  c64: {
-    name: 'c64',
-    displayName: 'Commodore 64',
-    basicStart: 0x0801,
-    mlStart: 0x0810,
-    processor: '6510',
-  },
-  vic20: {
-    name: 'vic20',
-    displayName: 'Commodore VIC-20',
-    basicStart: 0x1001,
-    mlStart: 0x1010,
-    processor: '6502',
-  },
-  c128: {
-    name: 'c128',
-    displayName: 'Commodore 128 (C64 mode)',
-    basicStart: 0x0801,
-    mlStart: 0x0810,
-    processor: '8502',
-  },
-};
-
-/**
- * Simple 6502 code generator
- * Generates basic ACME assembly from Blend65 IL
+ * Enhanced 6502 code generator with platform integration
+ * Generates optimized ACME assembly from Blend65 IL with hardware validation
  */
 export class SimpleCodeGenerator {
   private options: SimpleCodeGenOptions;
-  private platform: any;
+  private platformSpec: PlatformSpec;
+  private platform: CommodorePlatform;
+  private optimizations: number = 0;
+  private validationWarnings: ValidationWarning[] = [];
 
   constructor(options: SimpleCodeGenOptions) {
-    this.options = options;
-    this.platform = PLATFORM_SPECS[options.target as keyof typeof PLATFORM_SPECS];
-    if (!this.platform) {
-      throw new Error(`Unsupported platform: ${options.target}`);
+    // Set defaults for new Phase 8 options
+    this.options = {
+      ...options,
+      optimize: options.optimize ?? true,
+      validateAddresses: options.validateAddresses ?? true
+    };
+
+    // Reset tracking variables for each generation
+    this.optimizations = 0;
+    this.validationWarnings = [];
+
+    // Validate platform support
+    if (!isPlatformSupported(options.target)) {
+      throw new Error(`Unsupported platform: ${options.target}. Supported: c64, vic20, c128, x16`);
     }
+
+    // Initialize platform infrastructure
+    this.platformSpec = getPlatformSpec(options.target as SupportedPlatform);
+    this.platform = new CommodorePlatform(this.platformSpec, {
+      autoRun: this.options.autoRun,
+      lineNumber: 10
+    });
   }
 
   /**
@@ -145,6 +173,8 @@ export class SimpleCodeGenerator {
         instructionCount,
         codeSize: this.estimateCodeSize(assembly),
         compilationTime: Date.now() - startTime,
+        optimizations: this.optimizations,
+        validationWarnings: this.validationWarnings,
       },
     };
   }
@@ -153,8 +183,8 @@ export class SimpleCodeGenerator {
    * Generate BASIC stub for auto-run
    */
   private generateBasicStub(): string[] {
-    const entryPoint = this.platform.mlStart;
-    const basicStart = this.platform.basicStart;
+    const entryPoint = this.platformSpec.mlStart;
+    const basicStart = this.platformSpec.basicStart;
 
     // Calculate next line address (basic start + stub size)
     const nextLineAddr = basicStart + 12; // Approximate BASIC stub size
@@ -204,6 +234,89 @@ export class SimpleCodeGenerator {
    */
   private isILValue(operand: any): operand is { valueType: string } {
     return operand && typeof operand === 'object' && 'valueType' in operand;
+  }
+
+  /**
+   * Validate hardware address and generate warning if needed
+   */
+  private validateHardwareAddress(address: number, instruction: ILInstruction): void {
+    if (!this.options.validateAddresses) {
+      return;
+    }
+
+    const validation = validateMemoryLayout(this.options.target as SupportedPlatform, address);
+
+    if (!validation.valid || validation.region === 'invalid') {
+      this.validationWarnings.push({
+        message: `Invalid memory address $${address.toString(16).toUpperCase()} for ${validation.platformName}`,
+        address,
+        region: validation.region,
+        platform: validation.platformName,
+        sourceLocation: instruction.sourceLocation
+      });
+    } else if (validation.region === 'hardware_io' && this.options.debug) {
+      // Add informational comment for hardware I/O access
+      this.validationWarnings.push({
+        message: `Hardware I/O access at $${address.toString(16).toUpperCase()} (${validation.region})`,
+        address,
+        region: validation.region,
+        platform: validation.platformName,
+        sourceLocation: instruction.sourceLocation
+      });
+    }
+  }
+
+  /**
+   * Generate optimized addressing mode based on address and platform
+   */
+  private generateOptimizedAddressing(address: number, operation: 'load' | 'store'): string[] {
+    const lines: string[] = [];
+    const mode = getOptimalAddressingMode(this.options.target as SupportedPlatform, address);
+
+    if (mode === 'zeropage' && this.options.optimize) {
+      // Zero page addressing optimization
+      this.optimizations++;
+      const addrStr = address.toString(16).toUpperCase().padStart(2, '0');
+
+      if (operation === 'load') {
+        lines.push(`LDA $${addrStr}      ; PEEK from zero page (optimized) $${address.toString(16).toUpperCase()}`);
+      } else {
+        lines.push(`STA $${addrStr}      ; POKE to zero page (optimized) $${address.toString(16).toUpperCase()}`);
+      }
+    } else {
+      // Absolute addressing
+      const addrStr = address.toString(16).toUpperCase().padStart(4, '0');
+
+      if (operation === 'load') {
+        lines.push(`LDA $${addrStr}    ; PEEK from $${address.toString(16).toUpperCase()}`);
+      } else {
+        lines.push(`STA $${addrStr}    ; POKE to $${address.toString(16).toUpperCase()}`);
+      }
+    }
+
+    return lines;
+  }
+
+  /**
+   * Generate platform-aware comment for hardware address
+   */
+  private generateHardwareComment(address: number): string {
+    const validation = validateMemoryLayout(this.options.target as SupportedPlatform, address);
+
+    switch (validation.region) {
+      case 'zeropage':
+        return ` ; Zero page access`;
+      case 'screen':
+        return ` ; Screen memory access`;
+      case 'color':
+        return ` ; Color memory access`;
+      case 'hardware_io':
+        return ` ; Hardware I/O register`;
+      case 'ram':
+        return ` ; RAM access`;
+      default:
+        return ` ; Memory access`;
+    }
   }
 
   /**
@@ -422,15 +535,21 @@ export class SimpleCodeGenerator {
         if (address && this.isILValue(address)) {
           if (isILConstant(address)) {
             const addr = address.value as number;
-            if (addr <= 0xff) {
-              lines.push(
-                `LDA $${addr.toString(16).toUpperCase().padStart(2, '0')}      ; PEEK from zero page $${addr.toString(16).toUpperCase()}`
-              );
-            } else {
-              lines.push(
-                `LDA $${addr.toString(16).toUpperCase().padStart(4, '0')}    ; PEEK from $${addr.toString(16).toUpperCase()}`
-              );
+
+            // Phase 8: Hardware address validation
+            this.validateHardwareAddress(addr, instruction);
+
+            // Phase 8: Platform-optimized addressing with hardware-aware comments
+            const optimizedLines = this.generateOptimizedAddressing(addr, 'load');
+            const hardwareComment = this.generateHardwareComment(addr);
+
+            // Enhance the last line with platform-specific comment
+            if (optimizedLines.length > 0) {
+              const lastLine = optimizedLines[optimizedLines.length - 1];
+              optimizedLines[optimizedLines.length - 1] = lastLine + hardwareComment;
             }
+
+            lines.push(...optimizedLines);
           } else if (isILVariable(address)) {
             lines.push(`LDA ${address.name}     ; PEEK from address in ${address.name}`);
           }
@@ -451,19 +570,25 @@ export class SimpleCodeGenerator {
           }
         }
 
-        // Store to the address
+        // Store to the address with Phase 8 enhancements
         if (address && this.isILValue(address)) {
           if (isILConstant(address)) {
             const addr = address.value as number;
-            if (addr <= 0xff) {
-              lines.push(
-                `STA $${addr.toString(16).toUpperCase().padStart(2, '0')}      ; POKE to zero page $${addr.toString(16).toUpperCase()}`
-              );
-            } else {
-              lines.push(
-                `STA $${addr.toString(16).toUpperCase().padStart(4, '0')}    ; POKE to $${addr.toString(16).toUpperCase()}`
-              );
+
+            // Phase 8: Hardware address validation
+            this.validateHardwareAddress(addr, instruction);
+
+            // Phase 8: Platform-optimized addressing with hardware-aware comments
+            const optimizedLines = this.generateOptimizedAddressing(addr, 'store');
+            const hardwareComment = this.generateHardwareComment(addr);
+
+            // Enhance the last line with platform-specific comment
+            if (optimizedLines.length > 0) {
+              const lastLine = optimizedLines[optimizedLines.length - 1];
+              optimizedLines[optimizedLines.length - 1] = lastLine + hardwareComment;
             }
+
+            lines.push(...optimizedLines);
           } else if (isILVariable(address)) {
             lines.push(`STA ${address.name}     ; POKE to address in ${address.name}`);
           }
