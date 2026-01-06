@@ -89,7 +89,7 @@ import {
   createILProgram,
   createILModule,
   createILFunction,
-} from './il-types';
+} from './il-types.js';
 
 // ============================================================================
 // TRANSFORMATION RESULT TYPES

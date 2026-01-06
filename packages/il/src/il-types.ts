@@ -543,7 +543,7 @@ export type MemoryBank6502 =
   | 'zero_page' // $00-$FF
   | 'stack' // $0100-$01FF
   | 'ram' // $0200-$9FFF (C64)
-  | 'io' // $D000-$DFFF (C64)
+  | 'hardware_io' // $D000-$DFFF (C64) - accessed via peek/poke
   | 'rom' // $E000-$FFFF (C64)
   | 'cartridge'; // Cartridge space
 

@@ -339,21 +339,27 @@ var emptyArray: byte[0] = []`;
       expectParseError('module Main\nio var computed: byte @ $D000 + offset * 2');
     });
 
-    it('should handle all storage class combinations correctly', () => {
+    it('should handle all valid storage class combinations correctly', () => {
       const source = `module Main
 zp var zpVar: byte
 ram var ramVar: byte
 data var dataVar: byte = 42
-const var constVar: byte = 255
-io var ioVar: byte`;
+const var constVar: byte = 255`;
       const ast = parseSource(source);
 
-      expect(ast.body.length).toBe(5);
+      expect(ast.body.length).toBe(4);
       expect(ast.body[0].type).toBe('VariableDeclaration');
       expect(ast.body[1].type).toBe('VariableDeclaration');
       expect(ast.body[2].type).toBe('VariableDeclaration');
       expect(ast.body[3].type).toBe('VariableDeclaration');
-      expect(ast.body[4].type).toBe('VariableDeclaration');
+    });
+
+    it('should reject "io" storage class with helpful error message', () => {
+      const source = `module Main
+zp var zpVar: byte
+io var ioVar: byte`;
+
+      expect(() => parseSource(source)).toThrow(/'io' is no longer a storage class.*Use peek\(\) and poke\(\) functions instead/);
     });
   });
 
@@ -621,24 +627,24 @@ end function`;
   });
 
   describe('Edge Case Combinations', () => {
-    it('should handle all language features together', () => {
+    it('should handle all valid language features together', () => {
       const source = `module Complex.System
 import lowLevel from c64.memory.advanced
 import soundDriver from c64.audio.sid.advanced
+import CUSTOM_CHIP from c64.registers
 
-// Complex storage layout
+// Complex storage layout (no io storage class)
 zp var fastCounter: byte
 ram var workBuffer: byte[256]
 data var lookupTable: word[128] = [0, 1, 4, 9, 16, 25]
 const var SYSTEM_FLAGS: byte = $FF
-io var CUSTOM_CHIP: word
 
 export function complexOperation(input: byte): byte
   // Nested control flow with complex expressions
   for pass = 0 to 2
     while fastCounter < input
       if (workBuffer[fastCounter] & SYSTEM_FLAGS) == 0 then
-        CUSTOM_CHIP = lookupTable[fastCounter % 128]
+        poke(CUSTOM_CHIP, lookupTable[fastCounter % 128])
 
         if lowLevel(workBuffer[fastCounter]) then
           soundDriver(fastCounter * 2 + 1)
@@ -656,9 +662,17 @@ end function`;
 
       const ast = parseSource(source);
       expect(ast.type).toBe('Program');
-      expect(ast.imports.length).toBe(2);
-      expect(ast.body.length).toBe(5);
+      expect(ast.imports.length).toBe(3);
+      expect(ast.body.length).toBe(4); // 4 variables (no io storage class)
       expect(ast.exports.length).toBe(1);
+    });
+
+    it('should reject "io" storage class in complex scenarios', () => {
+      const source = `module Complex.System
+zp var fastCounter: byte
+io var CUSTOM_CHIP: word`;
+
+      expect(() => parseSource(source)).toThrow(/'io' is no longer a storage class.*Use peek\(\) and poke\(\) functions instead/);
     });
   });
 });

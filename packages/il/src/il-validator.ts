@@ -40,11 +40,11 @@ import type {
   TemporaryScope,
   VariableScope,
   ControlFlowGraph,
-} from './il-types';
+} from './il-types.js';
 
-import { ILInstructionType } from './il-types';
+import { ILInstructionType } from './il-types.js';
 
-import { isILConstant, isILVariable, isILRegister, isILTemporary, isILLabel } from './il-types';
+import { isILConstant, isILVariable, isILRegister, isILTemporary, isILLabel } from './il-types.js';
 
 // ============================================================================
 // VALIDATION ERROR TYPES

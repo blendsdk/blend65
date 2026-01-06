@@ -272,9 +272,9 @@ export interface CallbackType {
  * - ram: General RAM, normal access speed
  * - data: Pre-initialized data, compile-time constants
  * - const: Read-only constants, often in ROM
- * - io: Memory-mapped I/O, hardware registers
+ * Note: Hardware I/O is now accessed via peek()/poke() functions with imported constants
  */
-export type StorageClass = 'zp' | 'ram' | 'data' | 'const' | 'io';
+export type StorageClass = 'zp' | 'ram' | 'data' | 'const';
 
 // ============================================================================
 // PHASE 3: SCOPE HIERARCHY SYSTEM
@@ -550,7 +550,7 @@ export interface ZeroPageAntiPromotionFactor {
 export type ZeroPageAntiPromotionFactorType =
   | 'already_zp' // Variable already has 'zp' storage class
   | 'large_size' // Variable is too large for efficient zero page use
-  | 'io_access' // Variable accesses I/O (should use 'io' storage class)
+  | 'hardware_access' // Variable accesses hardware (should use peek/poke)
   | 'const_data' // Variable is constant data (should use 'data'/'const')
   | 'low_frequency' // Variable accessed infrequently
   | 'single_use' // Variable used only once
@@ -742,7 +742,7 @@ export type MemoryBank =
   | 'stack' // $0100-$01FF
   | 'low_ram' // $0200-$7FFF
   | 'high_ram' // $8000-$BFFF
-  | 'io_area' // $D000-$DFFF
+  | 'hardware_io' // $D000-$DFFF (accessed via peek/poke)
   | 'rom_area' // $E000-$FFFF
   | 'cartridge'; // External cartridge space
 
@@ -2279,7 +2279,7 @@ export type MemoryRegion =
   | 'ram_slow' // Slower RAM areas
   | 'data_section' // Pre-initialized data area
   | 'bss_section' // Uninitialized data area
-  | 'io_region'; // Memory-mapped I/O area
+  | 'hardware_region'; // Memory-mapped I/O area (accessed via peek/poke)
 
 /**
  * Variable grouping preferences.
@@ -2658,23 +2658,7 @@ export function validateStorageClassUsage(
     };
   }
 
-  // 'io' variables cannot have initializers
-  if (storageClass === 'io' && hasInitializer) {
-    return {
-      success: false,
-      errors: [
-        {
-          errorType: 'InvalidStorageClass',
-          message: `Variables with 'io' storage class cannot have initializers. They represent memory-mapped hardware registers.`,
-          location: { line: 0, column: 0, offset: 0 },
-          suggestions: [
-            'Remove the initializer for io variables',
-            'Use a different storage class if you need initialization',
-          ],
-        },
-      ],
-    };
-  }
+  // Hardware I/O is now handled through peek/poke functions instead of 'io' storage class
 
   return { success: true, data: undefined };
 }

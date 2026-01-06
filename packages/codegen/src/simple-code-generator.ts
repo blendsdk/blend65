@@ -232,6 +232,18 @@ export class SimpleCodeGenerator {
 
       case ILInstructionType.STORE_MEMORY: {
         const dest = instruction.operands[0];
+        const value = instruction.operands[1];
+
+        // Load the value first
+        if (value && this.isILValue(value)) {
+          if (isILConstant(value)) {
+            lines.push(`LDA #${value.value}    ; Load value to store`);
+          } else if (isILVariable(value)) {
+            lines.push(`LDA ${value.name}     ; Load variable to store`);
+          }
+        }
+
+        // Store to destination
         if (this.isILValue(dest)) {
           if (isILVariable(dest)) {
             lines.push(`STA ${dest.name}     ; Store to variable ${dest.name}`);
@@ -354,6 +366,8 @@ export class SimpleCodeGenerator {
             lines.push(`JSR ${target.name}      ; Call function`);
           } else if (isILVariable(target)) {
             lines.push(`JSR ${target.name}      ; Call function`);
+          } else if (isILConstant(target)) {
+            lines.push(`JSR $${(target.value as number).toString(16).toUpperCase()}      ; Call routine`);
           }
         }
         break;

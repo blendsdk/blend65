@@ -269,14 +269,14 @@ end function`;
       expect(funcDecl.body?.length).toBe(4);
     });
 
-    it('should maintain exact v0.1 syntax compatibility', () => {
+    it('should maintain exact v0.1 syntax compatibility (updated for io removal)', () => {
       const source = `module Game.Main
 import setSpritePosition from c64.sprites
 import utils from core.helpers
+import VIC_REG from c64.registers
 
 zp var globalCounter: byte = 0
 ram var globalBuffer: byte[256]
-io var VIC_REG: byte
 
 export function main(): void
   var counter: byte = 0
@@ -288,7 +288,7 @@ export function main(): void
   end while
 
   if counter == 10 then
-    VIC_REG = $FF
+    poke(VIC_REG, $FF)
   end if
 end function
 
@@ -296,15 +296,23 @@ function helper(x: byte, y: byte): byte
   return x + y
 end function`;
 
-      // This is the exact same test from v0.1 - should still work
+      // v0.1 syntax (without io storage class) should still work
       const ast = parseSource(source);
 
       expect(ast.type).toBe('Program');
       const program = ast as Program;
       expect(program.module.name.parts).toEqual(['Game', 'Main']);
-      expect(program.imports.length).toBe(2);
+      expect(program.imports.length).toBe(3);
       expect(program.exports.length).toBe(1);
-      expect(program.body.length).toBe(4); // 3 global vars + helper function
+      expect(program.body.length).toBe(3); // 2 global vars + helper function
+    });
+
+    it('should reject old "io" storage class syntax with helpful message', () => {
+      const source = `module Game.Main
+zp var globalCounter: byte = 0
+io var VIC_REG: byte`;
+
+      expect(() => parseSource(source)).toThrow(/'io' is no longer a storage class.*Use peek\(\) and poke\(\) functions instead/);
     });
   });
 });

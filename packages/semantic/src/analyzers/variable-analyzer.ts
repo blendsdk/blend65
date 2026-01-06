@@ -518,14 +518,7 @@ export class VariableAnalyzer {
       });
     }
 
-    // Storage class analysis
-    if (variable.storageClass === 'io') {
-      antiPromotionFactors.push({
-        factor: 'io_access',
-        weight: 100,
-        description: 'I/O variables should remain in I/O address space',
-      });
-    }
+    // Storage class analysis (io removed - now handled via peek/poke)
 
     if (variable.storageClass === 'const' || variable.storageClass === 'data') {
       antiPromotionFactors.push({
@@ -794,9 +787,7 @@ export class VariableAnalyzer {
       memoryBank:
         variable.storageClass === 'zp'
           ? 'zero_page'
-          : variable.storageClass === 'io'
-            ? 'io_area'
-            : 'low_ram',
+          : 'low_ram',
       alignmentPreference: {
         requiredAlignment:
           isPrimitiveType(variable.varType) && variable.varType.name === 'word' ? 2 : 1,
@@ -805,8 +796,8 @@ export class VariableAnalyzer {
         reason: 'none',
       },
       hardwareInteraction: {
-        isHardwareRegister: variable.storageClass === 'io',
-        isMemoryMappedIO: variable.storageClass === 'io',
+        isHardwareRegister: false, // Hardware registers now accessed via peek/poke
+        isMemoryMappedIO: false, // Memory-mapped I/O now handled via peek/poke
         isTimingCritical: usage.estimatedAccessFrequency === 'hot',
         usedInInterrupts: false, // Would need callback analysis
         hardwareComponents: [],
@@ -920,7 +911,6 @@ export class VariableAnalyzer {
       ram: 0,
       data: 0,
       const: 0,
-      io: 0,
       none: 0,
     };
 

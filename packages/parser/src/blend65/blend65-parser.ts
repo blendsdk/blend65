@@ -212,8 +212,16 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
       case 'ram':
       case 'data':
       case 'const':
-      case 'io':
         return this.parseVariableDeclaration();
+      case 'io':
+        // Special case: provide helpful error for deprecated 'io' storage class
+        const ioToken = this.peek();
+        throw new Error(
+          `'io' is no longer a storage class. Use peek() and poke() functions instead. ` +
+            `For example: var color = peek(VIC_BACKGROUND); poke(VIC_BACKGROUND, 6). ` +
+            `Import hardware constants from platform modules (e.g., 'import VIC_BACKGROUND from c64.registers'). ` +
+            `Location: line ${ioToken.start.line}, column ${ioToken.start.column}`
+        );
       case 'type':
         return this.parseTypeDeclaration();
       case 'enum':
@@ -314,7 +322,7 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
 
     // Parse storage class if present
     let storageClass: StorageClass | null = null;
-    if (this.checkLexemes('zp', 'ram', 'data', 'const', 'io')) {
+    if (this.checkLexemes('zp', 'ram', 'data', 'const')) {
       const storageClassToken = this.peek();
       storageClass = this.advance().value as StorageClass;
 
@@ -326,6 +334,17 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
             `Location: line ${storageClassToken.start.line}, column ${storageClassToken.start.column}`
         );
       }
+    }
+
+    // Provide helpful error message for 'io' usage
+    if (this.checkLexeme('io')) {
+      const ioToken = this.peek();
+      throw new Error(
+        `'io' is no longer a storage class. Use peek() and poke() functions instead. ` +
+          `For example: var color = peek(VIC_BACKGROUND); poke(VIC_BACKGROUND, 6). ` +
+          `Import hardware constants from platform modules (e.g., 'import VIC_BACKGROUND from c64.registers'). ` +
+          `Location: line ${ioToken.start.line}, column ${ioToken.start.column}`
+      );
     }
 
     this.consume(TokenType.VAR, "Expected 'var'");
@@ -520,10 +539,18 @@ export class Blend65Parser extends RecursiveDescentParser<Program> {
       case 'ram':
       case 'data':
       case 'const':
-      case 'io':
         // Storage classes in statements - let parseVariableDeclaration handle the error
         const storageVarDecl = this.parseVariableDeclaration();
         return this.factory.createExpressionStatement(storageVarDecl as any);
+      case 'io':
+        // Special case: provide helpful error for deprecated 'io' storage class in statements
+        const ioToken = this.peek();
+        throw new Error(
+          `'io' is no longer a storage class. Use peek() and poke() functions instead. ` +
+            `For example: var color = peek(VIC_BACKGROUND); poke(VIC_BACKGROUND, 6). ` +
+            `Import hardware constants from platform modules (e.g., 'import VIC_BACKGROUND from c64.registers'). ` +
+            `Location: line ${ioToken.start.line}, column ${ioToken.start.column}`
+        );
       default:
         // Parse as expression statement
         const expr = this.parseExpression();

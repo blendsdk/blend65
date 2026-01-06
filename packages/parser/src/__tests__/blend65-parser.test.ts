@@ -119,19 +119,11 @@ zp var counter: byte`;
       expect(varDecl.storageClass).toBe('zp');
     });
 
-    it('should parse variable declaration with I/O storage class', () => {
+    it('should reject "io" storage class with helpful error message', () => {
       const source = `module Main
 io var VIC_REG: byte`;
-      const ast = parseSource(source);
 
-      expect(ast.type).toBe('Program');
-      const program = ast as Program;
-      expect(program.body.length).toBe(1);
-
-      const varDecl = program.body[0] as VariableDeclaration;
-      expect(varDecl.type).toBe('VariableDeclaration');
-      expect(varDecl.name).toBe('VIC_REG');
-      expect(varDecl.storageClass).toBe('io');
+      expect(() => parseSource(source)).toThrow(/'io' is no longer a storage class.*Use peek\(\) and poke\(\) functions instead/);
     });
 
     it('should parse array variable declaration', () => {
@@ -248,13 +240,13 @@ end function`;
       expect(() => parseSource(source)).toThrow(/Storage class 'zp' not allowed inside functions/);
     });
 
-    it('should reject io variables inside functions', () => {
+    it('should reject "io" usage inside functions with helpful message', () => {
       const source = `module Main
 function test(): void
   io var VIC_REG: byte
 end function`;
 
-      expect(() => parseSource(source)).toThrow(/Storage class 'io' not allowed inside functions/);
+      expect(() => parseSource(source)).toThrow(/'io' is no longer a storage class.*Use peek\(\) and poke\(\) functions instead/);
     });
 
     it('should reject ram variables inside functions', () => {
@@ -1201,11 +1193,12 @@ end function`;
       const source = `module Game.Main
 import setSpritePosition from c64.sprites
 import utils from core.helpers
+import VIC_REG from c64.registers
 
-// Global variables with storage classes
+// Global variables with storage classes (no io)
 zp var globalCounter: byte = 0
 ram var globalBuffer: byte[256]
-io var VIC_REG: byte
+const var SCREEN_COLOR: byte = $0E
 
 export function main(): void
   var counter: byte = 0
@@ -1217,7 +1210,7 @@ export function main(): void
   end while
 
   if counter == 10 then
-    VIC_REG = $FF
+    poke(VIC_REG, $FF)
   end if
 end function
 
@@ -1230,21 +1223,22 @@ end function`;
       expect(ast.type).toBe('Program');
       const program = ast as Program;
       expect(program.module.name.parts).toEqual(['Game', 'Main']);
-      expect(program.imports.length).toBe(2);
+      expect(program.imports.length).toBe(3);
       expect(program.exports.length).toBe(1);
       expect(program.body.length).toBe(4); // 3 global vars + helper function
 
       // Check imports
       expect(program.imports[0].type).toBe('ImportDeclaration');
       expect(program.imports[1].type).toBe('ImportDeclaration');
+      expect(program.imports[2].type).toBe('ImportDeclaration');
 
-      // Check global variables
+      // Check global variables (no io storage class)
       expect(program.body[0].type).toBe('VariableDeclaration');
       expect((program.body[0] as VariableDeclaration).storageClass).toBe('zp');
       expect(program.body[1].type).toBe('VariableDeclaration');
       expect((program.body[1] as VariableDeclaration).storageClass).toBe('ram');
       expect(program.body[2].type).toBe('VariableDeclaration');
-      expect((program.body[2] as VariableDeclaration).storageClass).toBe('io');
+      expect((program.body[2] as VariableDeclaration).storageClass).toBe('const');
 
       // Check export
       expect(program.exports[0].type).toBe('ExportDeclaration');
@@ -1260,19 +1254,18 @@ end function`;
       expect(helperFunc.exported).toBe(false);
     });
 
-    it('should parse module with storage class combinations', () => {
+    it('should parse module with valid storage class combinations', () => {
       const source = `module Storage.Test
 zp var zpCounter: byte
 ram var ramBuffer: byte[100]
 data var dataTable: byte[256] = [1, 2, 3]
-const var SCREEN_COLOR: byte = $0E
-io var SID_VOICE1: byte`;
+const var SCREEN_COLOR: byte = $0E`;
 
       const ast = parseSource(source);
 
       expect(ast.type).toBe('Program');
       const program = ast as Program;
-      expect(program.body.length).toBe(5);
+      expect(program.body.length).toBe(4);
 
       const zpVar = program.body[0] as VariableDeclaration;
       expect(zpVar.storageClass).toBe('zp');
@@ -1287,9 +1280,15 @@ io var SID_VOICE1: byte`;
       const constVar = program.body[3] as VariableDeclaration;
       expect(constVar.storageClass).toBe('const');
       expect(constVar.initializer).toBeDefined();
+    });
 
-      const ioVar = program.body[4] as VariableDeclaration;
-      expect(ioVar.storageClass).toBe('io');
+    it('should reject "io" in storage class combinations with helpful message', () => {
+      const source = `module Storage.Test
+zp var zpCounter: byte
+ram var ramBuffer: byte[100]
+io var SID_VOICE1: byte`;
+
+      expect(() => parseSource(source)).toThrow(/'io' is no longer a storage class.*Use peek\(\) and poke\(\) functions instead/);
     });
   });
 

@@ -45,7 +45,6 @@ export enum TokenType {
   RAM = 'RAM', // RAM storage
   DATA = 'DATA', // Initialized data
   CONST = 'CONST', // Constant/ROM data
-  IO = 'IO', // Memory-mapped I/O
 
   // Primitive type keywords
   BYTE = 'BYTE',
@@ -168,7 +167,6 @@ export const KEYWORDS = new Set([
   'ram',
   'data',
   'const',
-  'io',
   'byte',
   'word',
   'void',
@@ -181,7 +179,7 @@ export const KEYWORDS = new Set([
 /**
  * Storage class keywords
  */
-export const STORAGE_CLASSES = new Set(['zp', 'ram', 'data', 'const', 'io']);
+export const STORAGE_CLASSES = new Set(['zp', 'ram', 'data', 'const']);
 
 /**
  * Primitive type keywords

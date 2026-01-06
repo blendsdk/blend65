@@ -49,7 +49,7 @@ Blend65 is a statically-typed, multi-target programming language specifically de
 keyword = "module" | "import" | "export" | "from" | "function" | "end" | "return"
         | "if" | "then" | "else" | "while" | "for" | "to" | "next" | "match" | "case"
         | "var" | "type" | "extends"
-        | "zp" | "ram" | "data" | "const" | "io"
+        | "zp" | "ram" | "data" | "const"
         | "byte" | "word" | "boolean" | "void"
         | "and" | "or" | "not"
         | "true" | "false" | "callback" ;
@@ -187,7 +187,8 @@ parameter = identifier ":" type_annotation [ "=" expression ] ;
 variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
                       [ "=" expression ] statement_terminator ;
 
-storage_class = "zp" | "ram" | "data" | "const" | "io" ;
+storage_class = "zp" | "ram" | "data" | "const" ;
+storage_class = "zp" | "ram" | "data" | "const" ;
 
 type_declaration = "type" identifier [ "extends" type_annotation ]
                   type_body
@@ -461,7 +462,6 @@ variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
 | `ram`         | General RAM         | Runtime        | Normal       | General variables        |
 | `data`        | Initialized Data    | Compile-time   | Normal       | Pre-initialized arrays   |
 | `const`       | ROM/Constant        | Compile-time   | Normal       | Constants, lookup tables |
-| `io`          | Memory-mapped I/O   | None           | Variable     | Hardware registers       |
 | _(default)_   | Automatic           | Runtime        | Normal       | Local variables          |
 
 **Examples:**
@@ -496,11 +496,19 @@ const var SCREEN_WIDTH: byte = 40
 const var SIN_TABLE: byte[256] = [/* sine values */]
 ```
 
-### I/O Variables (Hardware Registers)
+### Hardware Register Access
+
+**Note:** Hardware registers are now accessed using `peek`/`poke` built-in functions with platform-specific constants:
 
 ```js
-io var VIC_BACKGROUND: byte       // $D020 - Background color
-io var SID_VOLUME: byte           // $D418 - Sound volume
+import VIC_BACKGROUND, SID_VOLUME from c64.registers
+
+// Read from hardware register
+var backgroundColor: byte = peek(VIC_BACKGROUND)
+
+// Write to hardware register
+poke(VIC_BACKGROUND, 6)           // Set background to blue
+poke(SID_VOLUME, 15)              // Set volume to maximum
 ```
 
 ---
@@ -522,7 +530,7 @@ variable_declaration = [ storage_class ] "var" identifier ":" type_annotation
 
 **Scope Restrictions:**
 
-- `zp`, `ram`, `data`, `const`, `io` storage classes: **Global scope only**
+- `zp`, `ram`, `data`, `const` storage classes: **Global scope only**
 - Function parameters and local variables: **Automatic storage only**
 
 **Examples:**
@@ -535,7 +543,6 @@ zp var hotCounter: byte              // Zero page for speed
 ram var enemies: byte[50]            // RAM for dynamic data
 data var levelData: byte[256] = [/* data */]  // Pre-initialized
 const var MAX_LIVES: byte = 3        // Constant value
-io var VIC_BACKGROUND: byte          // Hardware register
 var globalVar: byte = 0              // Default storage (automatic)
 ```
 
@@ -549,7 +556,6 @@ function calculateDistance(): word
 
   // Storage classes NOT ALLOWED inside functions
   // zp var illegal: byte            // ERROR: Storage class not allowed
-  // io var invalid: byte            // ERROR: Storage class not allowed
 
   // Implementation
   return result
@@ -564,7 +570,6 @@ module Game.Main
 // All storage class variables declared at module level
 zp var playerX: byte                 // Allocated to zero page at compile time
 zp var playerY: byte                 // Allocated to zero page at compile time
-io var VIC_SPRITE_X: byte           // Mapped to hardware register
 ram var gameBuffer: byte[1000]       // Allocated to general RAM
 
 function updatePlayer(): void
@@ -577,7 +582,8 @@ function updatePlayer(): void
 
   if deltaX < 255 then
     playerX = deltaX
-    VIC_SPRITE_X = playerX           // Update hardware register
+    // Hardware register updates now use peek/poke
+    poke(VIC_SPRITE_X, playerX)      // Update hardware register
   end if
 end function
 ```
@@ -1549,15 +1555,16 @@ end function
 #### Hardware Register Access
 
 ```js
-// Direct hardware register mapping
-io var VIC_SPRITE_ENABLE: byte         // $D015 - Sprite enable register
-io var VIC_BACKGROUND: byte            // $D020 - Background color
-io var SID_FREQUENCY_LO: byte          // $D400 - SID frequency low byte
-io var SID_FREQUENCY_HI: byte          // $D401 - SID frequency high byte
+// Hardware register access using peek/poke with platform constants
+import VIC_SPRITE_ENABLE, VIC_BACKGROUND, SID_FREQUENCY_LO, SID_FREQUENCY_HI from c64.registers
 
 function setSIDFrequency(frequency: word): void
-  SID_FREQUENCY_LO = frequency & $FF
-  SID_FREQUENCY_HI = frequency >> 8
+  poke(SID_FREQUENCY_LO, frequency & $FF)
+  poke(SID_FREQUENCY_HI, frequency >> 8)
+end function
+
+function readJoystick(): byte
+  return peek(CIA1_PRB)              // Read joystick state
 end function
 ```
 
@@ -1634,15 +1641,15 @@ end function                           // VIC-20: Uses VIC-I optimizations
 // Compiler automatically places variables in appropriate memory regions
 var gameData: byte[1000]               // Placed in available RAM
 const var lookupTable: byte[256] = [/* data */]  // Placed in ROM area
-io var hardware: byte                  // Mapped to hardware addresses
+// Hardware access now uses peek/poke functions with imported constants
 ```
 
 #### Memory Conflict Detection
 
 ```js
-// Compiler detects and prevents memory conflicts
-io var CUSTOM_REGISTER: byte           // If address conflicts with system,
-                                       // compiler generates warning/error
+// Hardware register conflicts now handled by platform-specific import validation
+import CUSTOM_REGISTER from c64.registers  // Platform validates register availability
+poke(CUSTOM_REGISTER, value)               // Safe hardware access
 ```
 
 ### Stack Management
@@ -1684,7 +1691,7 @@ All Blend65 keywords are reserved and cannot be used as identifiers:
 module    import    export    from      function  end       return
 if        then      else      while     for       to        next
 match     case      var       type      extends
-zp        ram       data      const     io
+zp        ram       data      const
 byte      word      boolean   void      callback
 and       or        not       true      false
 ```
@@ -1711,7 +1718,8 @@ Complete operator precedence table with 6502 optimization notes:
 | `ram`         | $0200-$9FFF           | $0800-$9FFF         | General RAM       |
 | `data`        | Varies                | $A000-$BFFF         | Initialized data  |
 | `const`       | ROM area              | $C000-$FFFF         | Read-only         |
-| `io`          | Hardware registers    | $D000-$DFFF         | Memory-mapped I/O |
+
+**Hardware I/O**: Now accessed via `peek`/`poke` functions with platform-specific address constants imported from hardware modules (e.g., `c64.registers`, `vic20.registers`).
 
 ---
 

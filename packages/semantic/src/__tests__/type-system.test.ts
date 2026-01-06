@@ -194,16 +194,17 @@ describe('TypeChecker', () => {
       }
     });
 
-    it('should only allow byte/word types for io storage class', () => {
-      const arrayType = createArrayType(createPrimitiveType('byte'), 10);
+    it('should demonstrate hardware I/O migration to peek/poke pattern', () => {
+      // Note: 'io' storage class has been removed from Blend65
+      // Hardware I/O is now handled through peek/poke functions with imported constants
 
-      const result = typeChecker.validateVariableStorageClass('io', arrayType, false, mockLocation);
+      // Test that all current storage classes work properly
+      const byteType = createPrimitiveType('byte');
 
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.errors[0].errorType).toBe('InvalidStorageClass');
-        expect(result.errors[0].message).toContain('I/O storage class only supports byte and word');
-      }
+      expect(typeChecker.validateVariableStorageClass('zp', byteType, false, mockLocation).success).toBe(true);
+      expect(typeChecker.validateVariableStorageClass('ram', byteType, false, mockLocation).success).toBe(true);
+      expect(typeChecker.validateVariableStorageClass('data', byteType, true, mockLocation).success).toBe(true);
+      expect(typeChecker.validateVariableStorageClass('const', byteType, true, mockLocation).success).toBe(true);
     });
 
     it('should require initializers for const storage class', () => {

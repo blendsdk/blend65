@@ -184,7 +184,7 @@ RTS              ; Return to BASIC`;
   /**
    * Get memory region for address
    */
-  getMemoryRegion(address: number): 'zeropage' | 'screen' | 'color' | 'io' | 'ram' | 'invalid' {
+  getMemoryRegion(address: number): 'zeropage' | 'screen' | 'color' | 'hardware_io' | 'ram' | 'invalid' {
     if (address >= this.spec.memory.zeroPageStart && address <= this.spec.memory.zeroPageEnd) {
       return 'zeropage';
     }
@@ -195,7 +195,7 @@ RTS              ; Return to BASIC`;
       return 'color';
     }
     if (address >= this.spec.memory.ioStart && address <= this.spec.memory.ioEnd) {
-      return 'io';
+      return 'hardware_io';
     }
     if (this.isValidAddress(address)) {
       return 'ram';

@@ -95,7 +95,7 @@ export interface PointerType extends TypeAnnotation {
  * Storage class specification
  * Determines where variables are allocated in memory
  */
-export type StorageClass = 'zp' | 'ram' | 'data' | 'const' | 'io';
+export type StorageClass = 'zp' | 'ram' | 'data' | 'const';
 
 /**
  * Storage-qualified type

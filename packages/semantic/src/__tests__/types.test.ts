@@ -553,18 +553,19 @@ describe('validateStorageClassUsage', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject initializers for io variables', () => {
-    const result = validateStorageClassUsage('io', 'Module', true);
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.errors[0].errorType).toBe('InvalidStorageClass');
-      expect(result.errors[0].message).toContain('cannot have initializers');
-    }
-  });
+  it('should demonstrate hardware I/O migration from io storage class', () => {
+    // Note: 'io' storage class has been removed from Blend65
+    // Hardware I/O is now handled through peek/poke functions with imported constants
+    // This test demonstrates the new approach vs the old approach
 
-  it('should allow io variables without initializers', () => {
-    const result = validateStorageClassUsage('io', 'Module', false);
-    expect(result.success).toBe(true);
+    // OLD (no longer supported): io var VIC_BACKGROUND: byte
+    // NEW (current approach): import VIC_BACKGROUND from c64.registers; poke(VIC_BACKGROUND, value)
+
+    // All current storage classes should work normally
+    expect(validateStorageClassUsage('zp', 'Module', false).success).toBe(true);
+    expect(validateStorageClassUsage('ram', 'Module', false).success).toBe(true);
+    expect(validateStorageClassUsage('data', 'Module', true).success).toBe(true);
+    expect(validateStorageClassUsage('const', 'Module', true).success).toBe(true);
   });
 
   it('should allow zp and ram variables with or without initializers', () => {

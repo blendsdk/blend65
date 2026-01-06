@@ -233,7 +233,7 @@ export type MemoryBank =
   | 'stack' // $0100-$01FF
   | 'ram' // General RAM
   | 'rom' // Read-only memory
-  | 'io'; // I/O area
+  | 'hardware_io'; // Hardware I/O area (accessed via peek/poke)
 
 export type BranchPrediction =
   | 'likely_taken' // Branch likely to be taken
@@ -1684,8 +1684,6 @@ export class ExpressionAnalyzer {
         switch (symbol.storageClass) {
           case 'zp':
             return 'zero_page';
-          case 'io':
-            return 'io';
           default:
             return 'ram';
         }

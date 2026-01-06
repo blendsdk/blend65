@@ -26,7 +26,8 @@
         "@blend65/codegen": "*",
         "@blend65/il": "*",
         "@blend65/semantic": "*",
-        "@blend65/emulator-test": "*"
+        "@blend65/emulator-test": "*",
+        "dotenv": "^16.0.0"
     },
     "devDependencies": {
         "typescript": "^5.0.0",

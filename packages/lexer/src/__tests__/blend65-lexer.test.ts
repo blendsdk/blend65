@@ -31,14 +31,25 @@ describe('Blend65Lexer', () => {
     });
 
     it('should recognize storage class keywords', () => {
-      const source = 'zp ram data const io';
+      const source = 'zp ram data const';
       const tokens = tokenize(source);
 
       expect(tokens[0].type).toBe(TokenType.ZP);
       expect(tokens[1].type).toBe(TokenType.RAM);
       expect(tokens[2].type).toBe(TokenType.DATA);
       expect(tokens[3].type).toBe(TokenType.CONST);
-      expect(tokens[4].type).toBe(TokenType.IO);
+      expect(tokens[4].type).toBe(TokenType.EOF);
+    });
+
+    it('should treat "io" as an identifier (no longer a storage class)', () => {
+      const source = 'io var ioVariable: byte';
+      const tokens = tokenize(source);
+
+      expect(tokens[0].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[0].value).toBe('io');
+      expect(tokens[1].type).toBe(TokenType.VAR);
+      expect(tokens[2].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[2].value).toBe('ioVariable');
     });
 
     it('should recognize primitive type keywords', () => {
@@ -349,7 +360,7 @@ end function`;
     it('should tokenize storage declarations', () => {
       const source = `zp var counter: byte
 ram var buffer: byte[256]
-io var VIC_REG: byte`;
+data var constants: byte[16] = [1, 2, 3, 4]`;
 
       const tokens = tokenize(source);
 
@@ -375,14 +386,30 @@ io var VIC_REG: byte`;
       expect(tokens[13].type).toBe(TokenType.RIGHT_BRACKET);
       expect(tokens[14].type).toBe(TokenType.NEWLINE);
 
-      // Third line: io var VIC_REG: byte (no memory placement)
-      expect(tokens[15].type).toBe(TokenType.IO);
+      // Third line: data var constants: byte[16] = [1, 2, 3, 4]
+      expect(tokens[15].type).toBe(TokenType.DATA);
       expect(tokens[16].type).toBe(TokenType.VAR);
       expect(tokens[17].type).toBe(TokenType.IDENTIFIER);
-      expect(tokens[17].value).toBe('VIC_REG');
+      expect(tokens[17].value).toBe('constants');
       expect(tokens[18].type).toBe(TokenType.COLON);
       expect(tokens[19].type).toBe(TokenType.BYTE);
-      expect(tokens[20].type).toBe(TokenType.EOF);
+    });
+
+    it('should tokenize former "io" usage as identifiers', () => {
+      const source = `import VIC_BACKGROUND from c64.registers
+var color: byte = peek(VIC_BACKGROUND)
+poke(VIC_BACKGROUND, 6)`;
+
+      const tokens = tokenize(source);
+
+      // Should tokenize without any IO tokens
+      const ioTokens = tokens.filter(token => token.type === TokenType.IDENTIFIER && token.value === 'io');
+      expect(ioTokens.length).toBe(0);
+
+      // Should have proper function calls and imports
+      expect(tokens.some(token => token.type === TokenType.IMPORT)).toBe(true);
+      expect(tokens.some(token => token.type === TokenType.IDENTIFIER && token.value === 'peek')).toBe(true);
+      expect(tokens.some(token => token.type === TokenType.IDENTIFIER && token.value === 'poke')).toBe(true);
     });
 
     // v0.2 Sample Code Tests

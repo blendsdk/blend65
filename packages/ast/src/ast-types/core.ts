@@ -359,7 +359,7 @@ export interface VariableDeclaration extends Blend65ASTNode {
 /**
  * Storage class for variables
  */
-export type StorageClass = 'zp' | 'ram' | 'data' | 'const' | 'io';
+export type StorageClass = 'zp' | 'ram' | 'data' | 'const';
 
 /**
  * Type declaration: `type Player extends HasPos ... end type`

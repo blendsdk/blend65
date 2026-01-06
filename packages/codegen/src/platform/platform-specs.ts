@@ -166,7 +166,7 @@ function getMemoryRegion(spec: PlatformSpec, address: number): string {
     return 'color';
   }
   if (address >= spec.memory.ioStart && address <= spec.memory.ioEnd) {
-    return 'io';
+    return 'hardware_io';
   }
   if (address >= spec.memory.basicStart && address < spec.memory.codeStart + 0x8000) {
     return 'ram';

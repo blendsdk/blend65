@@ -387,8 +387,6 @@ export class Blend65Lexer {
         return TokenType.DATA;
       case 'const':
         return TokenType.CONST;
-      case 'io':
-        return TokenType.IO;
       case 'byte':
         return TokenType.BYTE;
       case 'word':

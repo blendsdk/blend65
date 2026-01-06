@@ -217,7 +217,7 @@ end function`;
     it('should handle storage class combinations', () => {
       const source = `zp const var ZERO_PAGE_CONST: byte = $FF
 ram data var INITIALIZED_RAM: word[100] = [1, 2, 3]
-io var VIC_REGISTER: byte`;
+const var ROM_DATA: byte = $42`;
 
       const tokens = tokenize(source);
 
@@ -225,9 +225,28 @@ io var VIC_REGISTER: byte`;
       expect(tokens[1].type).toBe(TokenType.CONST);
       expect(tokens[2].type).toBe(TokenType.VAR);
 
-      // Should handle array initialization and storage classes without memory placement
+      // Should handle array initialization and valid storage class combinations
       expect(tokens.length).toBeGreaterThan(20);
       expect(tokens[tokens.length - 1].type).toBe(TokenType.EOF);
+    });
+
+    it('should tokenize former "io" as identifier', () => {
+      const source = `var io: byte = 0
+io = peek($D020)`;
+
+      const tokens = tokenize(source);
+
+      // 'io' should now be treated as a regular identifier
+      expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[1].value).toBe('io');
+
+      // Find the second 'io' identifier (after the newline)
+      const secondIoIndex = tokens.findIndex((token, index) =>
+        index > 5 && token.type === TokenType.IDENTIFIER && token.value === 'io'
+      );
+      expect(secondIoIndex).toBeGreaterThan(-1);
+      expect(tokens[secondIoIndex].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[secondIoIndex].value).toBe('io');
     });
   });
 

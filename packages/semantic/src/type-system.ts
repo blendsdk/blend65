@@ -766,28 +766,8 @@ export class TypeChecker {
       }
     }
 
-    // I/O storage class has restrictions
-    if (storageClass === 'io') {
-      if (
-        !isPrimitiveType(concreteType) ||
-        (concreteType.name !== 'byte' && concreteType.name !== 'word')
-      ) {
-        return {
-          success: false,
-          errors: [
-            {
-              errorType: 'InvalidStorageClass',
-              message: `I/O storage class only supports byte and word types, not ${typeToString(concreteType)}`,
-              location,
-              suggestions: [
-                'Use byte or word type for I/O variables',
-                'Use different storage class for complex types',
-              ],
-            },
-          ],
-        };
-      }
-    }
+    // Note: 'io' storage class has been removed from Blend65
+    // Hardware I/O is now accessed via peek/poke functions with imported constants
 
     return {
       success: true,
