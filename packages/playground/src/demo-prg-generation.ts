@@ -13,7 +13,7 @@ import {
   createILInstruction,
   createILConstant
 } from '@blend65/il';
-import { SimpleCodeGenerator } from './src/simple-code-generator.js';
+import { SimpleCodeGenerator } from '@blend65/codegen';
 import { EmulatorTester } from '@blend65/emulator-test';
 
 async function demonstratePrgGeneration() {

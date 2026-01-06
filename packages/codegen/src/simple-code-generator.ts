@@ -62,7 +62,6 @@ const PLATFORM_SPECS = {
 export class SimpleCodeGenerator {
   private options: SimpleCodeGenOptions;
   private platform: any;
-  private labelCounter = 1;
 
   constructor(options: SimpleCodeGenOptions) {
     this.options = options;

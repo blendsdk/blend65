@@ -12,7 +12,7 @@ import {
   createILInstruction,
   createILConstant
 } from '@blend65/il';
-import { SimpleCodeGenerator } from './src/simple-code-generator.js';
+import { SimpleCodeGenerator } from '@blend65/codegen';
 
 async function demonstrateFirstCompilation() {
   console.log('🎉 HISTORIC MOMENT: First Blend65 Program Compilation');

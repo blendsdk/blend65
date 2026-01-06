@@ -3,10 +3,10 @@
  * Orchestrates the complete compilation from IL to 6502 assembly
  */
 
-import { ILProgram, ILFunction, ILInstruction } from '@blend65/il';
+import { ILProgram, ILFunction } from '@blend65/il';
 import { CommodorePlatform } from './platform/commodore-platform.js';
 import { PlatformFactory } from './platform/platform-factory.js';
-import { ILTo6502Mapper, CodeGenContext, MappingResult } from './instruction-mapping/il-to-6502-mapper.js';
+import { ILTo6502Mapper, CodeGenContext } from './instruction-mapping/il-to-6502-mapper.js';
 
 export interface CodeGenOptions {
   /** Target platform (c64, vic20, c128, etc.) */
@@ -139,7 +139,7 @@ export class CodeGenerator {
       platform: this.platform,
       registers: { a: true, x: true, y: true },
       stackDepth: 0,
-      labelCounter: 1
+      labelCounter: 1,
     };
 
     // Create IL to 6502 mapper
@@ -159,7 +159,7 @@ export class CodeGenerator {
         labels: new Map(),
         memoryLayout: this.createInitialMemoryLayout(),
         stats: this.createInitialStats(),
-        warnings: this.warnings
+        warnings: this.warnings,
       };
 
       // Generate assembly sections
@@ -178,9 +178,10 @@ export class CodeGenerator {
       }
 
       return result;
-
     } catch (error) {
-      throw new Error(`Code generation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Code generation failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -233,7 +234,9 @@ export class CodeGenerator {
     // Platform-specific settings
     lines.push(this.platform.generateComment('Platform Configuration'));
     lines.push(`; Processor: ${this.platform.specification.processor}`);
-    lines.push(`; BASIC Start: $${this.platform.specification.basicStart.toString(16).toUpperCase()}`);
+    lines.push(
+      `; BASIC Start: $${this.platform.specification.basicStart.toString(16).toUpperCase()}`
+    );
     lines.push(`; ML Start: $${this.platform.specification.mlStart.toString(16).toUpperCase()}`);
     lines.push('');
 
@@ -246,7 +249,7 @@ export class CodeGenerator {
       name: 'header',
       lines,
       labels: new Map(),
-      sourceLines: new Map()
+      sourceLines: new Map(),
     };
   }
 
@@ -259,14 +262,14 @@ export class CodeGenerator {
     const stub = this.platform.generateBasicStub({
       entryPoint,
       autoRun: this.options.autoRun,
-      preserveStub: true
+      preserveStub: true,
     });
 
     return {
       name: 'basic-stub',
       lines: stub.split('\n').filter(line => line.trim()),
       labels: new Map(),
-      sourceLines: new Map()
+      sourceLines: new Map(),
     };
   }
 
@@ -285,12 +288,14 @@ export class CodeGenerator {
 
       // Generate data declaration based on storage class
       if (data.storageClass) {
-        lines.push(`; ${data.name}: ${data.storageClass} ${data.type.name}`);
+        lines.push(`; ${data.name}: ${data.storageClass} ${data.type.kind || 'unknown'}`);
 
         if (data.initialValue) {
           switch (data.storageClass) {
             case 'zp':
-              lines.push(`${qualifiedName} = $${this.platform.allocateZeroPage(data.name).toString(16).toUpperCase()}`);
+              lines.push(
+                `${qualifiedName} = $${this.platform.allocateZeroPage(data.name).toString(16).toUpperCase()}`
+              );
               break;
             case 'data':
               lines.push(`${qualifiedName}: !byte ${data.initialValue.value}`);
@@ -313,7 +318,7 @@ export class CodeGenerator {
       name: 'global-data',
       lines,
       labels,
-      sourceLines: new Map()
+      sourceLines: new Map(),
     };
   }
 
@@ -348,7 +353,7 @@ export class CodeGenerator {
       name: `module-${module.qualifiedName.join('-')}`,
       lines,
       labels,
-      sourceLines
+      sourceLines,
     };
   }
 
@@ -364,7 +369,7 @@ export class CodeGenerator {
     lines.push(`; Function: ${func.name}`);
     lines.push(`; Qualified: ${func.qualifiedName.join('.')}`);
     lines.push(`; Parameters: ${func.parameters.length}`);
-    lines.push(`; Return Type: ${func.returnType.name}`);
+    lines.push(`; Return Type: ${func.returnType.kind || 'unknown'}`);
     lines.push('');
 
     // Function label
@@ -419,7 +424,7 @@ export class CodeGenerator {
       name: `function-${func.name}`,
       lines,
       labels,
-      sourceLines
+      sourceLines,
     };
   }
 
@@ -437,7 +442,7 @@ export class CodeGenerator {
       name: 'cleanup',
       lines: lines.filter(line => line.trim()),
       labels: new Map(),
-      sourceLines: new Map()
+      sourceLines: new Map(),
     };
   }
 
@@ -478,7 +483,7 @@ export class CodeGenerator {
     return {
       lineMapping,
       sources: [], // TODO: Extract from IL program
-      version: 1
+      version: 1,
     };
   }
 
@@ -491,7 +496,7 @@ export class CodeGenerator {
       programEnd: 0, // Will be calculated
       zeroPageUsage: new Map(),
       stackUsage: 0,
-      totalMemory: 0
+      totalMemory: 0,
     };
   }
 
@@ -504,7 +509,7 @@ export class CodeGenerator {
       estimatedCycles: 0,
       functionsCompiled: 0,
       compilationTime: 0,
-      codeSize: 0
+      codeSize: 0,
     };
   }
 
@@ -522,12 +527,6 @@ export class CodeGenerator {
     return lines.length * 2; // Rough estimate: 2 bytes per instruction
   }
 
-  /**
-   * Add warning to compilation warnings
-   */
-  private addWarning(warning: CodeGenWarning): void {
-    this.warnings.push(warning);
-  }
 }
 
 /**

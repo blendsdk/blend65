@@ -5,11 +5,9 @@
 
 import {
   ILInstruction,
-  ILOperand,
-  ILInstructionType,
-  ILInstructionMetadata
+  ILInstructionType
 } from '@blend65/il';
-import { CommodorePlatform } from '../platform/commodore-platform.js';
+import { CommodorePlatform } from '../platform/commodore-platform';
 
 export interface CodeGenContext {
   /** Current platform for code generation */
@@ -468,7 +466,6 @@ export class ILTo6502Mapper {
    * Map conditional branch instructions
    */
   private mapConditionalBranch(instruction: ILInstruction, result: MappingResult): MappingResult {
-    const condition = instruction.operands[0];
     const target = instruction.operands[1];
 
     if (!target || !('valueType' in target) || target.valueType !== 'label') {
@@ -561,24 +558,8 @@ export class ILTo6502Mapper {
   /**
    * Map NOP instruction: No operation
    */
-  private mapNop(instruction: ILInstruction, result: MappingResult): MappingResult {
+  private mapNop(_instruction: ILInstruction, result: MappingResult): MappingResult {
     result.assembly.push('NOP           ; No operation');
     return result;
-  }
-
-  /**
-   * Resolve variable address based on storage class
-   */
-  private resolveVariableAddress(variableName: string): number {
-    // This would typically consult the symbol table
-    // For now, assume zero page allocation
-    return this.context.platform.allocateZeroPage(variableName);
-  }
-
-  /**
-   * Generate unique label
-   */
-  private generateLabel(prefix: string = 'L'): string {
-    return `${prefix}${this.context.labelCounter++}`;
   }
 }
