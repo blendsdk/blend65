@@ -709,6 +709,54 @@ export function createPoke(
   );
 }
 
+export function createPeekw(
+  dest: ILValue,
+  address: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.PEEKW,
+    [dest, address],
+    globalInstructionContext.getNextInstructionId(),
+    {
+      result: dest,
+      sourceLocation,
+      sixtyTwoHints: { preferredRegister: 'AX', estimatedCycles: 8, isTimingCritical: true },
+    }
+  );
+}
+
+export function createPokew(
+  address: ILValue,
+  value: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.POKEW,
+    [address, value],
+    globalInstructionContext.getNextInstructionId(),
+    {
+      sourceLocation,
+      sixtyTwoHints: { preferredRegister: 'AX', estimatedCycles: 8, isTimingCritical: true },
+    }
+  );
+}
+
+export function createSys(
+  address: ILValue,
+  sourceLocation?: SourcePosition
+): ILInstruction {
+  return createILInstruction(
+    ILInstructionType.SYS,
+    [address],
+    globalInstructionContext.getNextInstructionId(),
+    {
+      sourceLocation,
+      sixtyTwoHints: { preferredRegister: 'A', estimatedCycles: 12, isTimingCritical: true },
+    }
+  );
+}
+
 export function createRegisterOp(
   register: ILRegister,
   operation: ILConstant,
@@ -817,6 +865,9 @@ export const ILInstructionFactory = {
   // 6502-specific operations
   peek: createPeek,
   poke: createPoke,
+  peekw: createPeekw,
+  pokew: createPokew,
+  sys: createSys,
   registerOp: createRegisterOp,
   setFlags: createSetFlags,
   clearFlags: createClearFlags,

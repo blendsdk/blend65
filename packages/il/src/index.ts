@@ -227,6 +227,9 @@ export {
   createComment,
   createPeek,
   createPoke,
+  createPeekw,
+  createPokew,
+  createSys,
   createRegisterOp,
   createSetFlags,
   createClearFlags,
@@ -274,7 +277,7 @@ export const INSTRUCTION_CATEGORIES = {
   VARIABLE: ['DECLARE_LOCAL', 'LOAD_VARIABLE', 'STORE_VARIABLE'],
   ARRAY: ['LOAD_ARRAY', 'STORE_ARRAY', 'ARRAY_ADDRESS'],
   UTILITY: ['LABEL', 'NOP', 'COMMENT'],
-  HARDWARE: ['REGISTER_OP', 'PEEK', 'POKE', 'SET_FLAGS', 'CLEAR_FLAGS'],
+  HARDWARE: ['REGISTER_OP', 'PEEK', 'POKE', 'PEEKW', 'POKEW', 'SYS', 'SET_FLAGS', 'CLEAR_FLAGS'],
 } as const;
 
 export type InstructionCategory = keyof typeof INSTRUCTION_CATEGORIES;
@@ -379,6 +382,9 @@ export function getEstimatedCycles(
     REGISTER_OP: 2,
     PEEK: 4,
     POKE: 4,
+    PEEKW: 8, // 16-bit peek (2 memory reads)
+    POKEW: 8, // 16-bit poke (2 memory writes)
+    SYS: 12, // System call (JSR + potential overhead)
     SET_FLAGS: 2,
     CLEAR_FLAGS: 2,
   };

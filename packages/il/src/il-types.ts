@@ -384,6 +384,15 @@ export enum ILInstructionType {
   /** Hardware poke: POKE <address> <value> */
   POKE = 'POKE',
 
+  /** Hardware peek word: PEEKW <dest> <address> */
+  PEEKW = 'PEEKW',
+
+  /** Hardware poke word: POKEW <address> <value> */
+  POKEW = 'POKEW',
+
+  /** System call: SYS <address> */
+  SYS = 'SYS',
+
   /** Set processor flags: SET_FLAGS <flags> */
   SET_FLAGS = 'SET_FLAGS',
 

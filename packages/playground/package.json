@@ -21,6 +21,7 @@
         "type-check": "tsc --noEmit"
     },
     "dependencies": {
+	"@blend65/parser": "*",
         "@blend65/lexer": "*",
         "@blend65/ast": "*",
         "@blend65/codegen": "*",

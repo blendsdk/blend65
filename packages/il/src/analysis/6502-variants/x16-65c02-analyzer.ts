@@ -163,6 +163,9 @@ const X16_65C02_TIMING_TABLE: Record<
   },
   [ILInstructionType.PEEK]: { baseCycles: 3, notes: 'LDA $XXXX - 3 cycles' },
   [ILInstructionType.POKE]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles (or STZ for zero)' },
+  [ILInstructionType.PEEKW]: { baseCycles: 5, notes: 'Enhanced 16-bit peek with (zp) - 5 cycles' },
+  [ILInstructionType.POKEW]: { baseCycles: 5, notes: 'Enhanced 16-bit poke with (zp) - 5 cycles' },
+  [ILInstructionType.SYS]: { baseCycles: 10, notes: 'JSR $XXXX optimized on 65C02 - ~10 cycles' },
   [ILInstructionType.SET_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
   [ILInstructionType.CLEAR_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
 };

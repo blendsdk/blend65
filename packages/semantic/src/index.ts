@@ -78,6 +78,29 @@ export { ModuleAnalyzer } from './analyzers/module-analyzer.js';
 // Main semantic analyzer exports
 export { SemanticAnalyzer, analyzeProgram, analyzePrograms } from './semantic-analyzer.js';
 
+// Expression analyzer with built-in functions system
+export {
+  ExpressionAnalyzer,
+  createExpressionContext,
+  // Built-in functions system
+  isBuiltInFunction,
+  getBuiltInFunction,
+  getAllBuiltInFunctionNames,
+} from './analyzers/expression-analyzer.js';
+export type {
+  ExpressionAnalysisResult,
+  StatementAnalysisResult,
+  BlockAnalysisResult,
+  ExpressionOptimizationData,
+  StatementOptimizationData,
+  BlockOptimizationData,
+  ExpressionContext,
+  // Built-in functions types
+  BuiltInFunctionDefinition,
+  BuiltInParameterInfo,
+  ValidationResult,
+} from './analyzers/expression-analyzer.js';
+
 /**
  * Package version and metadata
  */

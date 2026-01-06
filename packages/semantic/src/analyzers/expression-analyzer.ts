@@ -65,6 +65,399 @@ import { SymbolTable } from '../symbol-table.js';
 import { TypeChecker } from '../type-system.js';
 
 // ============================================================================
+// BUILT-IN FUNCTIONS SYSTEM
+// ============================================================================
+
+/**
+ * Built-in function definition for semantic analysis.
+ * Defines the signature and behavior of core Blend65 built-in functions.
+ */
+export interface BuiltInFunctionDefinition {
+  /** Function name */
+  name: string;
+  /** Parameter types in order */
+  parameters: BuiltInParameterInfo[];
+  /** Return type */
+  returnType: Blend65Type;
+  /** Whether the function has side effects */
+  hasSideEffects: boolean;
+  /** Whether the function accesses hardware/memory */
+  accessesHardware: boolean;
+  /** Function description for error messages */
+  description: string;
+  /** Platform validation requirements */
+  validation?: BuiltInFunctionValidation;
+}
+
+/**
+ * Built-in function parameter information.
+ */
+export interface BuiltInParameterInfo {
+  name: string;
+  type: Blend65Type;
+  description: string;
+}
+
+/**
+ * Validation requirements for built-in functions.
+ */
+export interface BuiltInFunctionValidation {
+  /** Whether address parameters need platform validation */
+  requiresAddressValidation?: boolean;
+  /** Whether value parameters need range validation */
+  requiresValueValidation?: boolean;
+  /** Custom validation function */
+  customValidation?: (args: Expression[], context: ExpressionContext) => ValidationResult;
+}
+
+/**
+ * Result of built-in function validation.
+ */
+export interface ValidationResult {
+  isValid: boolean;
+  errors: SemanticError[];
+  warnings: SemanticError[];
+}
+
+/**
+ * Registry of all built-in functions in Blend65 v0.1.
+ * These functions provide essential memory access capabilities to replace the broken 'io' storage class.
+ */
+const BUILTIN_FUNCTIONS: Map<string, BuiltInFunctionDefinition> = new Map([
+  [
+    'peek',
+    {
+      name: 'peek',
+      parameters: [
+        {
+          name: 'address',
+          type: createPrimitiveType('word'),
+          description: 'Memory address to read from (0x0000-0xFFFF)',
+        },
+      ],
+      returnType: createPrimitiveType('byte'),
+      hasSideEffects: false, // Reading memory is considered non-side-effecting for optimization
+      accessesHardware: true,
+      description: 'Read 8-bit value from memory address',
+      validation: {
+        requiresAddressValidation: true,
+      },
+    },
+  ],
+  [
+    'poke',
+    {
+      name: 'poke',
+      parameters: [
+        {
+          name: 'address',
+          type: createPrimitiveType('word'),
+          description: 'Memory address to write to (0x0000-0xFFFF)',
+        },
+        {
+          name: 'value',
+          type: createPrimitiveType('byte'),
+          description: 'Byte value to write (0-255)',
+        },
+      ],
+      returnType: createPrimitiveType('void'),
+      hasSideEffects: true, // Writing memory has side effects
+      accessesHardware: true,
+      description: 'Write 8-bit value to memory address',
+      validation: {
+        requiresAddressValidation: true,
+        requiresValueValidation: true,
+      },
+    },
+  ],
+  [
+    'peekw',
+    {
+      name: 'peekw',
+      parameters: [
+        {
+          name: 'address',
+          type: createPrimitiveType('word'),
+          description: 'Memory address to read from (0x0000-0xFFFF)',
+        },
+      ],
+      returnType: createPrimitiveType('word'),
+      hasSideEffects: false, // Reading memory is considered non-side-effecting for optimization
+      accessesHardware: true,
+      description: 'Read 16-bit value from memory address (little-endian)',
+      validation: {
+        requiresAddressValidation: true,
+      },
+    },
+  ],
+  [
+    'pokew',
+    {
+      name: 'pokew',
+      parameters: [
+        {
+          name: 'address',
+          type: createPrimitiveType('word'),
+          description: 'Memory address to write to (0x0000-0xFFFF)',
+        },
+        {
+          name: 'value',
+          type: createPrimitiveType('word'),
+          description: 'Word value to write (0-65535)',
+        },
+      ],
+      returnType: createPrimitiveType('void'),
+      hasSideEffects: true, // Writing memory has side effects
+      accessesHardware: true,
+      description: 'Write 16-bit value to memory address (little-endian)',
+      validation: {
+        requiresAddressValidation: true,
+        requiresValueValidation: true,
+      },
+    },
+  ],
+  [
+    'sys',
+    {
+      name: 'sys',
+      parameters: [
+        {
+          name: 'address',
+          type: createPrimitiveType('word'),
+          description: 'Machine language routine address to call',
+        },
+      ],
+      returnType: createPrimitiveType('void'),
+      hasSideEffects: true, // Calling machine language routines has side effects
+      accessesHardware: true, // May access hardware depending on the routine
+      description: 'Call machine language routine at specified address',
+      validation: {
+        requiresAddressValidation: true,
+      },
+    },
+  ],
+]);
+
+/**
+ * Check if a function name is a built-in function.
+ */
+export function isBuiltInFunction(name: string): boolean {
+  return BUILTIN_FUNCTIONS.has(name);
+}
+
+/**
+ * Get built-in function definition by name.
+ */
+export function getBuiltInFunction(name: string): BuiltInFunctionDefinition | undefined {
+  return BUILTIN_FUNCTIONS.get(name);
+}
+
+/**
+ * Get all built-in function names.
+ */
+export function getAllBuiltInFunctionNames(): string[] {
+  return Array.from(BUILTIN_FUNCTIONS.keys());
+}
+
+/**
+ * Validate a built-in function call.
+ */
+function validateBuiltInFunctionCall(
+  funcDef: BuiltInFunctionDefinition,
+  args: Expression[],
+  context: ExpressionContext,
+  analyzer: ExpressionAnalyzer
+): ValidationResult {
+  const result: ValidationResult = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  // Validate argument count
+  if (args.length !== funcDef.parameters.length) {
+    result.isValid = false;
+    result.errors.push({
+      errorType: 'TypeMismatch',
+      message: `Built-in function '${funcDef.name}' expects ${funcDef.parameters.length} arguments, got ${args.length}`,
+      location: { line: 0, column: 0, offset: 0 },
+      suggestions: [
+        `${funcDef.name}(${funcDef.parameters.map(p => `${p.name}: ${typeToString(p.type)}`).join(', ')})`,
+        funcDef.description,
+      ],
+    });
+    return result;
+  }
+
+  // Validate argument types
+  for (let i = 0; i < args.length; i++) {
+    const argResult = analyzer.analyzeExpression(args[i], context);
+    const argType = argResult.resolvedType;
+    const expectedType = funcDef.parameters[i].type;
+
+    if (!isAssignmentCompatible(expectedType, argType)) {
+      result.isValid = false;
+      result.errors.push({
+        errorType: 'TypeMismatch',
+        message: `Built-in function '${funcDef.name}' parameter '${funcDef.parameters[i].name}': expected '${typeToString(expectedType)}', got '${typeToString(argType)}'`,
+        location: args[i].metadata?.start || { line: 0, column: 0, offset: 0 },
+        suggestions: [
+          `Expected: ${funcDef.parameters[i].description}`,
+          `Use explicit type conversion if needed`,
+        ],
+      });
+    }
+
+    // Also collect any errors from argument analysis
+    result.errors.push(...argResult.errors);
+    result.warnings.push(...argResult.warnings);
+  }
+
+  // Platform-specific validation
+  if (funcDef.validation) {
+    if (funcDef.validation.requiresAddressValidation && args.length > 0) {
+      const addressValidation = validateMemoryAddress(args[0], funcDef.name, context);
+      if (!addressValidation.isValid) {
+        result.errors.push(...addressValidation.errors);
+        result.warnings.push(...addressValidation.warnings);
+        result.isValid = result.isValid && addressValidation.isValid;
+      }
+    }
+
+    if (funcDef.validation.requiresValueValidation && args.length > 1) {
+      const valueValidation = validateValueRange(args[1], funcDef.name, funcDef.parameters[1].type);
+      if (!valueValidation.isValid) {
+        result.errors.push(...valueValidation.errors);
+        result.warnings.push(...valueValidation.warnings);
+        result.isValid = result.isValid && valueValidation.isValid;
+      }
+    }
+
+    if (funcDef.validation.customValidation) {
+      const customValidation = funcDef.validation.customValidation(args, context);
+      result.errors.push(...customValidation.errors);
+      result.warnings.push(...customValidation.warnings);
+      result.isValid = result.isValid && customValidation.isValid;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Validate memory address for built-in memory access functions.
+ * This provides basic range checking and platform-aware warnings.
+ */
+function validateMemoryAddress(
+  addressExpr: Expression,
+  functionName: string,
+  _context: ExpressionContext
+): ValidationResult {
+  const result: ValidationResult = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  // Check for literal addresses that are obviously invalid
+  if (addressExpr.type === 'Literal') {
+    const literal = addressExpr as Literal;
+    if (typeof literal.value === 'number') {
+      // Basic range validation for 6502
+      if (literal.value < 0 || literal.value > 0xFFFF) {
+        result.isValid = false;
+        result.errors.push({
+          errorType: 'TypeMismatch',
+          message: `Invalid memory address ${literal.value} for ${functionName}(). Address must be 0x0000-0xFFFF for 6502.`,
+          location: addressExpr.metadata?.start || { line: 0, column: 0, offset: 0 },
+          suggestions: [
+            'Use a valid 6502 memory address (0x0000-0xFFFF)',
+            'Check platform memory map documentation',
+          ],
+        });
+        return result;
+      }
+
+      // Platform-specific warnings for common address ranges
+      if (literal.value >= 0xD000 && literal.value <= 0xDFFF) {
+        result.warnings.push({
+          errorType: 'InvalidOperation',
+          message: `Address 0x${literal.value.toString(16).toUpperCase()} is in hardware I/O area. Ensure this is intended for ${functionName}().`,
+          location: addressExpr.metadata?.start || { line: 0, column: 0, offset: 0 },
+          suggestions: [
+            'Hardware I/O addresses require careful handling',
+            'Consider using platform-specific constants for readability',
+          ],
+        });
+      }
+
+      if (literal.value >= 0xA000 && literal.value <= 0xBFFF) {
+        result.warnings.push({
+          errorType: 'InvalidOperation',
+          message: `Address 0x${literal.value.toString(16).toUpperCase()} may be in BASIC ROM area on C64. Check memory configuration.`,
+          location: addressExpr.metadata?.start || { line: 0, column: 0, offset: 0 },
+          suggestions: [
+            'BASIC ROM area may not be writable depending on memory configuration',
+            'Consider using RAM areas for writable data',
+          ],
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Validate value range for built-in functions.
+ */
+function validateValueRange(
+  valueExpr: Expression,
+  functionName: string,
+  expectedType: Blend65Type
+): ValidationResult {
+  const result: ValidationResult = {
+    isValid: true,
+    errors: [],
+    warnings: [],
+  };
+
+  // Check for literal values that are out of range
+  if (valueExpr.type === 'Literal') {
+    const literal = valueExpr as Literal;
+    if (typeof literal.value === 'number') {
+      if (isPrimitiveType(expectedType)) {
+        if (expectedType.name === 'byte' && (literal.value < 0 || literal.value > 255)) {
+          result.isValid = false;
+          result.errors.push({
+            errorType: 'TypeMismatch',
+            message: `Value ${literal.value} is out of range for byte (0-255) in ${functionName}().`,
+            location: valueExpr.metadata?.start || { line: 0, column: 0, offset: 0 },
+            suggestions: [
+              'Use a value in the range 0-255 for byte parameters',
+              'Use modulo operator (%) to wrap values if intended',
+            ],
+          });
+        } else if (expectedType.name === 'word' && (literal.value < 0 || literal.value > 65535)) {
+          result.isValid = false;
+          result.errors.push({
+            errorType: 'TypeMismatch',
+            message: `Value ${literal.value} is out of range for word (0-65535) in ${functionName}().`,
+            location: valueExpr.metadata?.start || { line: 0, column: 0, offset: 0 },
+            suggestions: [
+              'Use a value in the range 0-65535 for word parameters',
+              'Use modulo operator (%) to wrap values if intended',
+            ],
+          });
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+// ============================================================================
 // OPTIMIZATION METADATA INTERFACES
 // ============================================================================
 
@@ -742,12 +1135,34 @@ export class ExpressionAnalyzer {
    * Analyze call expression type.
    */
   private analyzeCallExpressionType(expr: CallExpr, context: ExpressionContext): Blend65Type {
-    // Analyze callee
-    const calleeType = this.analyzeExpressionType(expr.callee, context);
-
-    // If callee is a function identifier, get the function symbol
+    // If callee is a function identifier, check for built-in functions first
     if (expr.callee.type === 'Identifier') {
-      const functionSymbol = this.symbolTable.lookupSymbol((expr.callee as Identifier).name);
+      const functionName = (expr.callee as Identifier).name;
+
+      // Check for built-in functions first
+      if (isBuiltInFunction(functionName)) {
+        const builtInDef = getBuiltInFunction(functionName)!;
+
+        // Validate built-in function call
+        const validation = validateBuiltInFunctionCall(builtInDef, expr.args, context, this);
+
+        // Add validation errors and warnings
+        this.errors.push(...validation.errors);
+        this.warnings.push(...validation.warnings);
+
+        // Mark optimization metadata for built-in function calls
+        if (context.hardwareContext === undefined) {
+          // Built-in functions that access hardware should update context
+          if (builtInDef.accessesHardware) {
+            context = { ...context, hardwareContext: 'hardware_access' };
+          }
+        }
+
+        return builtInDef.returnType;
+      }
+
+      // Check for user-defined function symbols
+      const functionSymbol = this.symbolTable.lookupSymbol(functionName);
       if (functionSymbol && isFunctionSymbol(functionSymbol)) {
         // Validate argument count
         if (expr.args.length !== functionSymbol.parameters.length) {
@@ -774,7 +1189,23 @@ export class ExpressionAnalyzer {
 
         return functionSymbol.returnType;
       }
+
+      // If we reach here, the identifier is not a known function
+      this.addError({
+        errorType: 'UndefinedSymbol',
+        message: `Undefined function '${functionName}'`,
+        location: expr.callee.metadata?.start || { line: 0, column: 0, offset: 0 },
+        suggestions: [
+          `Check if '${functionName}' is declared`,
+          'Verify function name spelling',
+          `Available built-in functions: ${getAllBuiltInFunctionNames().join(', ')}`,
+        ],
+      });
+      return createPrimitiveType('void');
     }
+
+    // Analyze callee for non-identifier cases
+    const calleeType = this.analyzeExpressionType(expr.callee, context);
 
     // Callback function call
     if (isCallbackType(calleeType)) {

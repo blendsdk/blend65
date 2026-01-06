@@ -144,6 +144,9 @@ const VIC20_6502_TIMING_TABLE: Record<
   [ILInstructionType.REGISTER_OP]: { baseCycles: 2, notes: 'Register operation - 2 cycles' },
   [ILInstructionType.PEEK]: { baseCycles: 3, notes: 'LDA $XXXX - 3 cycles' },
   [ILInstructionType.POKE]: { baseCycles: 3, notes: 'STA $XXXX - 3 cycles' },
+  [ILInstructionType.PEEKW]: { baseCycles: 6, notes: 'LDA $XXXX; LDA $XXXX+1 - 6 cycles' },
+  [ILInstructionType.POKEW]: { baseCycles: 6, notes: 'STA $XXXX; STA $XXXX+1 - 6 cycles' },
+  [ILInstructionType.SYS]: { baseCycles: 12, notes: 'JSR $XXXX + overhead - ~12 cycles' },
   [ILInstructionType.SET_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
   [ILInstructionType.CLEAR_FLAGS]: { baseCycles: 2, notes: 'Flag operation - 2 cycles' },
 };

@@ -1,0 +1,22 @@
+module Demo.BuiltinFunctions
+
+function main(): void
+    // Demo: Read border color and modify it
+    var borderColor: byte = peek(0xD020)
+
+    // Demo: Set border to blue if it's currently black
+    if borderColor == 0 then
+        poke(0xD020, 6)  // Set to blue
+    end if
+
+    // Demo: Read and modify IRQ vector using 16-bit operations
+    var irqVector: word = peekw(0x0314)
+    pokew(0x0314, 0xEA31)  // Set to RTI instruction
+
+    // Demo: Call KERNAL CHROUT routine
+    poke(0xD020, 14)  // Set accumulator for CHROUT (light blue)
+    sys(0xFFD2)       // Call KERNAL CHROUT
+
+    // Demo: Restore original IRQ vector
+    pokew(0x0314, irqVector)
+end function
