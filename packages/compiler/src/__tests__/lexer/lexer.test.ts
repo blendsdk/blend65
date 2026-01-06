@@ -378,8 +378,8 @@ io var VIC_REG: byte`;
       expect(tokens[14].type).toBe(TokenType.NEWLINE);
 
       // Third line: io var VIC_REG: byte (no memory placement)
-      expect(tokens[16].type).toBe(TokenType.VAR);
-      expect(tokens[17].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[16].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[17].type).toBe(TokenType.VAR);
       expect(tokens[17].value).toBe('VIC_REG');
       expect(tokens[18].type).toBe(TokenType.COLON);
       expect(tokens[19].type).toBe(TokenType.BYTE);

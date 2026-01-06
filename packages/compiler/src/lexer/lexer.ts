@@ -320,7 +320,7 @@ export class Lexer {
 
     this.advance(); // Skip closing quote
 
-    return this.createToken(TokenType.STRING, value, start);
+    return this.createToken(TokenType.STRING_LITERAL, value, start);
   }
 
   private readIdentifierOrKeyword(): Token {
@@ -334,7 +334,7 @@ export class Lexer {
 
     // Check for boolean literals
     if (value === 'true' || value === 'false') {
-      return this.createToken(TokenType.BOOLEAN, value, start);
+      return this.createToken(TokenType.BOOLEAN_LITERAL, value, start);
     }
 
     // Check if it's a keyword
@@ -405,6 +405,10 @@ export class Lexer {
         return TokenType.VOID;
       case 'callback':
         return TokenType.CALLBACK;
+      case 'string':
+        return TokenType.STRING;
+      case 'boolean':
+        return TokenType.BOOLEAN;
       default:
         return TokenType.IDENTIFIER;
     }

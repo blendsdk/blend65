@@ -48,11 +48,11 @@ Blend65 is a statically-typed, multi-target programming language specifically de
 ```ebnf
 keyword = "module" | "import" | "export" | "from" | "function" | "end" | "return"
         | "if" | "then" | "else" | "while" | "for" | "to" | "next" | "match" | "case"
-        | "var" | "type" | "extends"
-        | "zp" | "ram" | "data" | "const" | "io"
-        | "byte" | "word" | "boolean" | "void"
-        | "and" | "or" | "not"
-        | "true" | "false" | "callback" ;
+        | "break" | "continue" | "default"
+        | "var" | "type" | "enum"
+        | "zp" | "ram" | "data" | "const"
+        | "byte" | "word" | "boolean" | "string" | "void" | "callback"
+        | "true" | "false" ;
 ```
 
 ### Identifiers
@@ -130,7 +130,7 @@ false;
 ```ebnf
 arithmetic_op = "+" | "-" | "*" | "/" | "%" ;
 comparison_op = "==" | "!=" | "<" | "<=" | ">" | ">=" ;
-logical_op = "and" | "or" | "not" ;
+logical_op = "&&" | "||" | "!" ;
 bitwise_op = "&" | "|" | "^" | "~" | "<<" | ">>" ;
 assignment_op = "=" | "+=" | "-=" | "*=" | "/=" | "%="
                | "&=" | "|=" | "^=" | "<<=" | ">>=" ;
@@ -246,10 +246,10 @@ assignment_expression = logical_or_expression
                        [ assignment_op assignment_expression ] ;
 
 logical_or_expression = logical_and_expression
-                       { "or" logical_and_expression } ;
+                       { "||" logical_and_expression } ;
 
 logical_and_expression = bitwise_or_expression
-                        { "and" bitwise_or_expression } ;
+                        { "&&" bitwise_or_expression } ;
 
 bitwise_or_expression = bitwise_xor_expression
                        { "|" bitwise_xor_expression } ;
@@ -275,7 +275,7 @@ additive_expression = multiplicative_expression
 multiplicative_expression = unary_expression
                            { ( "*" | "/" | "%" ) unary_expression } ;
 
-unary_expression = [ ( "+" | "-" | "not" | "~" ) ] postfix_expression ;
+unary_expression = [ ( "+" | "-" | "!" | "~" ) ] postfix_expression ;
 
 postfix_expression = primary_expression
                     { ( "[" expression "]" ) | ( "(" argument_list ")" ) | ( "." identifier ) } ;
@@ -645,11 +645,11 @@ export function updatePlayer(deltaTime: byte): boolean
   newY = playerY + playerVelocityY
 
   // Check bounds
-  if newX < SCREEN_LEFT or newX > SCREEN_RIGHT then
+  if newX < SCREEN_LEFT || newX > SCREEN_RIGHT then
     return false
   end if
 
-  if newY < SCREEN_TOP or newY > SCREEN_BOTTOM then
+  if newY < SCREEN_TOP || newY > SCREEN_BOTTOM then
     return false
   end if
 
@@ -670,7 +670,7 @@ end function
 | Precedence | Operators                           | Associativity       | Description                                 |
 | ---------- | ----------------------------------- | ------------------- | ------------------------------------------- | ---------- |
 | 1          | `()` `[]` `.`                       | Left-to-right       | Grouping, indexing, member access           |
-| 2          | `+` `-` `not` `~`                   | Right-to-left       | Unary plus, minus, logical not, bitwise not |
+| 2          | `+` `-` `!` `~`                     | Right-to-left       | Unary plus, minus, logical not, bitwise not |
 | 3          | `*` `/` `%`                         | Left-to-right       | Multiplication, division, modulo            |
 | 4          | `+` `-`                             | Left-to-right       | Addition, subtraction                       |
 | 5          | `<<` `>>`                           | Left-to-right       | Bit shifts                                  |
@@ -679,8 +679,8 @@ end function
 | 8          | `&`                                 | Left-to-right       | Bitwise AND                                 |
 | 9          | `^`                                 | Left-to-right       | Bitwise XOR                                 |
 | 10         | `                                   | `                   | Left-to-right                               | Bitwise OR |
-| 11         | `and`                               | Left-to-right       | Logical AND                                 |
-| 12         | `or`                                | Left-to-right       | Logical OR                                  |
+| 11         | `&&`                                | Left-to-right       | Logical AND                                 |
+| 12         | `                                   |                     | `                                           | Left-to-right       | Logical OR                                  |
 | 13         | `=` `+=` `-=` `*=` `/=` `%=` `&=` ` | =` `^=` `<<=` `>>=` | Right-to-left                               | Assignment |
 
 **Examples:**
@@ -696,9 +696,9 @@ var remainder: byte = value % 8    // Modulo operation
 ### Logical Expressions
 
 ```js
-var canMove: boolean = not blocked and hasEnergy
-var inRange: boolean = x >= minX and x <= maxX
-var validColor: boolean = color == RED or color == BLUE
+var canMove: boolean = !blocked && hasEnergy
+var inRange: boolean = x >= minX && x <= maxX
+var validColor: boolean = color == RED || color == BLUE
 ```
 
 ### Bitwise Expressions
@@ -832,7 +832,7 @@ end if
 ### If with Complex Conditions
 
 ```js
-if (x >= 0 and x < SCREEN_WIDTH) and (y >= 0 and y < SCREEN_HEIGHT) then
+if (x >= 0 && x < SCREEN_WIDTH) && (y >= 0 && y < SCREEN_HEIGHT) then
   setPixel(x, y, color)
 end if
 ```
@@ -859,7 +859,7 @@ end while
 ### While with Complex Condition
 
 ```js
-while gameRunning and not quitPressed
+while gameRunning && !quitPressed
   updateGame()
   renderFrame()
   checkInput()
@@ -1395,7 +1395,7 @@ function updateGameLogic(): void
 
   // Simple collision detection
   for i = 0 to 7
-    if abs(playerX - enemies[i]) < 16 and abs(playerY - 150) < 16 then
+    if abs(playerX - enemies[i]) < 16 && abs(playerY - 150) < 16 then
       // Collision detected
       playNote(110)                    // Lower collision sound
     end if
@@ -1683,25 +1683,28 @@ All Blend65 keywords are reserved and cannot be used as identifiers:
 ```
 module    import    export    from      function  end       return
 if        then      else      while     for       to        next
-match     case      var       type      extends
-zp        ram       data      const     io
-byte      word      boolean   void      callback
-and       or        not       true      false
+match     case      break     continue  default   
+var       type      enum
+zp        ram       data      const
+byte      word      boolean   string    void      callback
+true      false
 ```
+
+**Note:** `extends` and `io` are planned for future versions but not yet implemented.
 
 ### B. Operator Reference
 
 Complete operator precedence table with 6502 optimization notes:
 
 | Operator         | Description             | 6502 Optimization                  |
-| ---------------- | ----------------------- | ---------------------------------- | ------------------------ |
+| ---------------- | ----------------------- | ---------------------------------- |
 | `()`             | Grouping                | No optimization                    |
 | `[]`             | Array access            | Zero page indexing when possible   |
 | `*` `/` `%`      | Multiplication/Division | Shift optimization for powers of 2 |
 | `+` `-`          | Addition/Subtraction    | 8-bit and 16-bit optimizations     |
 | `<<` `>>`        | Bit shifts              | Direct ASL/LSR/ROL/ROR usage       |
-| `&` `            | ` `^` `~`               | Bitwise operations                 | Direct AND/ORA/EOR usage |
-| `and` `or` `not` | Logical operations      | Short-circuit evaluation           |
+| `&` `|` `^` `~`  | Bitwise operations      | Direct AND/ORA/EOR usage           |
+| `&&` `||` `!`    | Logical operations      | Short-circuit evaluation           |
 
 ### C. Storage Class Memory Map
 

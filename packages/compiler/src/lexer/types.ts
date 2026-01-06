@@ -9,6 +9,8 @@ export enum TokenType {
   STRING = 'STRING',
   BOOLEAN = 'BOOLEAN',
   IDENTIFIER = 'IDENTIFIER',
+  STRING_LITERAL = 'STRING_LITERAL',
+  BOOLEAN_LITERAL = 'BOOLEAN_LITERAL',
 
   // Keywords - Core language constructs
   MODULE = 'MODULE',
@@ -76,9 +78,9 @@ export enum TokenType {
   GREATER_EQUAL = 'GREATER_EQUAL',
 
   // Operators - Logical
-  AND = 'AND', // Blend65 uses 'and' keyword
-  OR = 'OR', // Blend65 uses 'or' keyword
-  NOT = 'NOT', // Blend65 uses 'not' keyword
+  AND = 'AND',
+  OR = 'OR',
+  NOT = 'NOT',
 
   // Operators - Bitwise
   BITWISE_AND = 'BITWISE_AND',
@@ -161,7 +163,6 @@ export const KEYWORDS = new Set([
   'default',
   'var',
   'type',
-  'extends',
   'enum',
   'zp',
   'ram',
@@ -171,10 +172,8 @@ export const KEYWORDS = new Set([
   'word',
   'void',
   'callback',
-  'and',
-  'or',
-  'not',
-  'string'
+  'boolean',
+  'string',
 ]);
 
 /**
@@ -185,19 +184,20 @@ export const eStorageClass = {
   RAM: 'ram',
   DATA: 'data',
   CONST: 'const',
-}
+};
 
 /**
  * Storage class keywords
  */
 export const STORAGE_CLASSES = new Set(Object.values(eStorageClass));
 
-
 export const ePrimitiveType = {
   BYTE: 'byte',
   WORD: 'word',
   VOID: 'void',
   CALLBACK: 'callback',
+  BOOLEAN: 'boolean',
+  STRING: 'string',
 };
 
 /**
@@ -226,4 +226,3 @@ export const eControlFlowKeyword = {
  * Control flow keywords
  */
 export const CONTROL_FLOW_KEYWORDS = new Set(Object.values(eControlFlowKeyword));
-    
