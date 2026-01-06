@@ -5,7 +5,7 @@
  * This file implements the core type checking functionality for the Blend65 compiler:
  * - Blend65 type representations and validation
  * - Type compatibility checking with 6502-specific rules
- * - Storage class validation (zp, ram, data, const, io)
+ * - Storage class validation (zp, ram, data, const)
  * - Array type checking with compile-time size validation
  * - Function signature type checking including callback functions
  * - Type promotion and conversion rules
@@ -688,7 +688,6 @@ export class TypeChecker {
    * - Storage classes determine memory layout in 6502 assembly
    * - 'zp' uses zero page for fastest access
    * - 'const' and 'data' require compile-time initialization
-   * - 'io' represents memory-mapped hardware registers
    */
   validateVariableStorageClass(
     storageClass: StorageClass | null,
@@ -766,8 +765,7 @@ export class TypeChecker {
       }
     }
 
-    // Note: 'io' storage class has been removed from Blend65
-    // Hardware I/O is now accessed via peek/poke functions with imported constants
+    // Hardware I/O is accessed via peek/poke functions with imported constants
 
     return {
       success: true,

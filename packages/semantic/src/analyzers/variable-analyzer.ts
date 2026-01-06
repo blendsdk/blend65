@@ -518,7 +518,7 @@ export class VariableAnalyzer {
       });
     }
 
-    // Storage class analysis (io removed - now handled via peek/poke)
+    // Storage class analysis (hardware I/O now handled via peek/poke)
 
     if (variable.storageClass === 'const' || variable.storageClass === 'data') {
       antiPromotionFactors.push({

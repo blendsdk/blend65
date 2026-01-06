@@ -74,7 +74,7 @@ export interface VariableSymbol extends Symbol {
   /** The type of the variable (byte, word, boolean, array, etc.) */
   varType: Blend65Type;
 
-  /** Storage class for memory allocation (zp, ram, data, const, io) */
+  /** Storage class for memory allocation (zp, ram, data, const) */
   storageClass: StorageClass | null;
 
   /** Initial value expression (if provided) */

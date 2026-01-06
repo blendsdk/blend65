@@ -99,7 +99,7 @@ export const PACKAGE_INFO = {
  * Educational summary of what this package provides:
  *
  * 1. SYMBOL SYSTEM
- *    - VariableSymbol: Tracks variables with storage classes (zp, ram, data, const, io)
+ *    - VariableSymbol: Tracks variables with storage classes (zp, ram, data, const)
  *    - FunctionSymbol: Tracks functions including callback functions
  *    - ModuleSymbol: Tracks modules with import/export information
  *    - TypeSymbol: Tracks user-defined types
@@ -110,7 +110,7 @@ export const PACKAGE_INFO = {
  *    - ArrayType: Fixed-size arrays with compile-time bounds
  *    - NamedType: References to user-defined types
  *    - CallbackType: Function pointer types with type-safe signatures
- *    - StorageClass: 6502-specific memory allocation (zp, ram, data, const, io)
+ *    - StorageClass: 6502-specific memory allocation (zp, ram, data, const)
  *
  * 3. SCOPE SYSTEM
  *    - Hierarchical scope management (Global → Module → Function → Block)
