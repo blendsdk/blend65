@@ -3,7 +3,15 @@
  * Basic implementation to enable first compiled programs
  */
 
-import { ILProgram, ILFunction, ILInstruction, ILInstructionType, isILConstant, isILVariable, isILLabel } from '@blend65/il';
+import {
+  ILProgram,
+  ILFunction,
+  ILInstruction,
+  ILInstructionType,
+  isILConstant,
+  isILVariable,
+  isILLabel,
+} from '@blend65/il';
 
 export interface SimpleCodeGenOptions {
   /** Target platform (c64, vic20, c128, etc.) */
@@ -37,22 +45,22 @@ const PLATFORM_SPECS = {
     displayName: 'Commodore 64',
     basicStart: 0x0801,
     mlStart: 0x0810,
-    processor: '6510'
+    processor: '6510',
   },
   vic20: {
     name: 'vic20',
     displayName: 'Commodore VIC-20',
     basicStart: 0x1001,
     mlStart: 0x1010,
-    processor: '6502'
+    processor: '6502',
   },
   c128: {
     name: 'c128',
     displayName: 'Commodore 128 (C64 mode)',
     basicStart: 0x0801,
     mlStart: 0x0810,
-    processor: '8502'
-  }
+    processor: '8502',
+  },
 };
 
 /**
@@ -136,8 +144,8 @@ export class SimpleCodeGenerator {
       stats: {
         instructionCount,
         codeSize: this.estimateCodeSize(assembly),
-        compilationTime: Date.now() - startTime
-      }
+        compilationTime: Date.now() - startTime,
+      },
     };
   }
 
@@ -162,7 +170,7 @@ export class SimpleCodeGenerator {
       '        !word $0000     ; End of program',
       '',
       '; Machine code starts here',
-      `* = $${entryPoint.toString(16).toUpperCase().padStart(4, '0')}`
+      `* = $${entryPoint.toString(16).toUpperCase().padStart(4, '0')}`,
     ];
   }
 
@@ -224,7 +232,9 @@ export class SimpleCodeGenerator {
           if (isILVariable(source)) {
             lines.push(`LDA ${source.name}     ; Load variable ${source.name}`);
           } else if (isILConstant(source)) {
-            lines.push(`LDA $${(source.value as number).toString(16).toUpperCase()}  ; Load from address`);
+            lines.push(
+              `LDA $${(source.value as number).toString(16).toUpperCase()}  ; Load from address`
+            );
           }
         }
         break;
@@ -248,7 +258,9 @@ export class SimpleCodeGenerator {
           if (isILVariable(dest)) {
             lines.push(`STA ${dest.name}     ; Store to variable ${dest.name}`);
           } else if (isILConstant(dest)) {
-            lines.push(`STA $${(dest.value as number).toString(16).toUpperCase()}  ; Store to address`);
+            lines.push(
+              `STA $${(dest.value as number).toString(16).toUpperCase()}  ; Store to address`
+            );
           }
         }
         break;
@@ -367,7 +379,9 @@ export class SimpleCodeGenerator {
           } else if (isILVariable(target)) {
             lines.push(`JSR ${target.name}      ; Call function`);
           } else if (isILConstant(target)) {
-            lines.push(`JSR $${(target.value as number).toString(16).toUpperCase()}      ; Call routine`);
+            lines.push(
+              `JSR $${(target.value as number).toString(16).toUpperCase()}      ; Call routine`
+            );
           }
         }
         break;
@@ -398,8 +412,204 @@ export class SimpleCodeGenerator {
         lines.push('NOP              ; No operation');
         break;
 
+      // ============================================================================
+      // 6502-SPECIFIC BUILTIN FUNCTION OPERATIONS
+      // ============================================================================
+
+      case ILInstructionType.PEEK: {
+        const address = instruction.operands[1]; // address is operands[1]
+
+        if (address && this.isILValue(address)) {
+          if (isILConstant(address)) {
+            const addr = address.value as number;
+            if (addr <= 0xff) {
+              lines.push(
+                `LDA $${addr.toString(16).toUpperCase().padStart(2, '0')}      ; PEEK from zero page $${addr.toString(16).toUpperCase()}`
+              );
+            } else {
+              lines.push(
+                `LDA $${addr.toString(16).toUpperCase().padStart(4, '0')}    ; PEEK from $${addr.toString(16).toUpperCase()}`
+              );
+            }
+          } else if (isILVariable(address)) {
+            lines.push(`LDA ${address.name}     ; PEEK from address in ${address.name}`);
+          }
+        }
+        break;
+      }
+
+      case ILInstructionType.POKE: {
+        const address = instruction.operands[0];
+        const value = instruction.operands[1];
+
+        // Load the value into accumulator first
+        if (value && this.isILValue(value)) {
+          if (isILConstant(value)) {
+            lines.push(`LDA #${value.value}    ; Load value to poke`);
+          } else if (isILVariable(value)) {
+            lines.push(`LDA ${value.name}     ; Load value to poke`);
+          }
+        }
+
+        // Store to the address
+        if (address && this.isILValue(address)) {
+          if (isILConstant(address)) {
+            const addr = address.value as number;
+            if (addr <= 0xff) {
+              lines.push(
+                `STA $${addr.toString(16).toUpperCase().padStart(2, '0')}      ; POKE to zero page $${addr.toString(16).toUpperCase()}`
+              );
+            } else {
+              lines.push(
+                `STA $${addr.toString(16).toUpperCase().padStart(4, '0')}    ; POKE to $${addr.toString(16).toUpperCase()}`
+              );
+            }
+          } else if (isILVariable(address)) {
+            lines.push(`STA ${address.name}     ; POKE to address in ${address.name}`);
+          }
+        }
+        break;
+      }
+
+      case ILInstructionType.PEEKW: {
+        const address = instruction.operands[1]; // address is operands[1]
+
+        if (address && this.isILValue(address)) {
+          if (isILConstant(address)) {
+            const addr = address.value as number;
+            if (addr <= 0xfe) {
+              // Zero page 16-bit read
+              lines.push(
+                `LDA $${addr.toString(16).toUpperCase().padStart(2, '0')}      ; PEEKW low byte from zero page $${addr.toString(16).toUpperCase()}`
+              );
+              lines.push(`TAX              ; Store low byte in X`);
+              lines.push(
+                `LDA $${(addr + 1).toString(16).toUpperCase().padStart(2, '0')}      ; PEEKW high byte from zero page $${(addr + 1).toString(16).toUpperCase()}`
+              );
+              lines.push(`TAY              ; Store high byte in Y`);
+              lines.push(`TXA              ; Restore low byte to A`);
+            } else {
+              // Absolute 16-bit read
+              lines.push(
+                `LDA $${addr.toString(16).toUpperCase().padStart(4, '0')}    ; PEEKW low byte from $${addr.toString(16).toUpperCase()}`
+              );
+              lines.push(`TAX              ; Store low byte in X`);
+              lines.push(
+                `LDA $${(addr + 1).toString(16).toUpperCase().padStart(4, '0')}    ; PEEKW high byte from $${(addr + 1).toString(16).toUpperCase()}`
+              );
+              lines.push(`TAY              ; Store high byte in Y`);
+              lines.push(`TXA              ; Restore low byte to A`);
+            }
+          } else if (isILVariable(address)) {
+            lines.push(`; PEEKW from address in ${address.name} (16-bit read)`);
+            lines.push(`LDX ${address.name}     ; Load address low`);
+            lines.push(`LDY ${address.name}+1   ; Load address high`);
+            lines.push(`STX $FB          ; Store pointer low`);
+            lines.push(`STY $FC          ; Store pointer high`);
+            lines.push(`LDY #0           ; Index 0`);
+            lines.push(`LDA ($FB),Y      ; Load low byte`);
+            lines.push(`TAX              ; Store low byte in X`);
+            lines.push(`INY              ; Index 1`);
+            lines.push(`LDA ($FB),Y      ; Load high byte`);
+            lines.push(`TAY              ; Store high byte in Y`);
+            lines.push(`TXA              ; Restore low byte to A`);
+          }
+        }
+        break;
+      }
+
+      case ILInstructionType.POKEW: {
+        const address = instruction.operands[0];
+        const value = instruction.operands[1];
+
+        // For 16-bit POKEW, we need to handle both low and high bytes
+        // Assuming value is a 16-bit word with low byte in A, high byte in X
+        if (value && this.isILValue(value)) {
+          if (isILConstant(value)) {
+            const val = value.value as number;
+            const lowByte = val & 0xff;
+            const highByte = (val >> 8) & 0xff;
+            lines.push(`LDA #${lowByte}      ; Load low byte of 16-bit value`);
+            lines.push(`LDX #${highByte}      ; Load high byte of 16-bit value`);
+          } else if (isILVariable(value)) {
+            lines.push(`LDA ${value.name}     ; Load low byte from ${value.name}`);
+            lines.push(`LDX ${value.name}+1   ; Load high byte from ${value.name}+1`);
+          }
+        }
+
+        // Store to the address
+        if (address && this.isILValue(address)) {
+          if (isILConstant(address)) {
+            const addr = address.value as number;
+            if (addr <= 0xfe) {
+              // Zero page 16-bit write
+              lines.push(
+                `STA $${addr.toString(16).toUpperCase().padStart(2, '0')}      ; POKEW low byte to zero page $${addr.toString(16).toUpperCase()}`
+              );
+              lines.push(`TXA              ; Move high byte to A`);
+              lines.push(
+                `STA $${(addr + 1).toString(16).toUpperCase().padStart(2, '0')}      ; POKEW high byte to zero page $${(addr + 1).toString(16).toUpperCase()}`
+              );
+            } else {
+              // Absolute 16-bit write
+              lines.push(
+                `STA $${addr.toString(16).toUpperCase().padStart(4, '0')}    ; POKEW low byte to $${addr.toString(16).toUpperCase()}`
+              );
+              lines.push(`TXA              ; Move high byte to A`);
+              lines.push(
+                `STA $${(addr + 1).toString(16).toUpperCase().padStart(4, '0')}    ; POKEW high byte to $${(addr + 1).toString(16).toUpperCase()}`
+              );
+            }
+          } else if (isILVariable(address)) {
+            lines.push(`; POKEW to address in ${address.name} (16-bit write)`);
+            lines.push(`PHA              ; Save low byte on stack`);
+            lines.push(`TXA              ; Move high byte to A`);
+            lines.push(`PHA              ; Save high byte on stack`);
+            lines.push(`LDX ${address.name}     ; Load address low`);
+            lines.push(`LDY ${address.name}+1   ; Load address high`);
+            lines.push(`STX $FB          ; Store pointer low`);
+            lines.push(`STY $FC          ; Store pointer high`);
+            lines.push(`PLA              ; Restore high byte`);
+            lines.push(`LDY #1           ; Index 1`);
+            lines.push(`STA ($FB),Y      ; Store high byte`);
+            lines.push(`PLA              ; Restore low byte`);
+            lines.push(`LDY #0           ; Index 0`);
+            lines.push(`STA ($FB),Y      ; Store low byte`);
+          }
+        }
+        break;
+      }
+
+      case ILInstructionType.SYS: {
+        const address = instruction.operands[0];
+
+        if (address && this.isILValue(address)) {
+          if (isILConstant(address)) {
+            const addr = address.value as number;
+            lines.push(
+              `JSR $${addr.toString(16).toUpperCase().padStart(4, '0')}    ; SYS call to $${addr.toString(16).toUpperCase()}`
+            );
+          } else if (isILVariable(address)) {
+            lines.push(`; SYS call to address in ${address.name}`);
+            lines.push(`LDX ${address.name}     ; Load address low`);
+            lines.push(`LDY ${address.name}+1   ; Load address high`);
+            lines.push(`STX $FB          ; Store call address low`);
+            lines.push(`STY $FC          ; Store call address high`);
+            lines.push(`JSR ($FB)        ; Indirect JSR (note: not available on basic 6502)`);
+            lines.push(`; Note: Above requires 65C02 or emulation`);
+          }
+        }
+        break;
+      }
+
       default:
-        lines.push(`; TODO: Implement ${instruction.type}`);
+        lines.push(`; TODO: Implement ${instruction.type} - DEBUG INFO:`);
+        lines.push(`; Type: ${instruction.type} (${typeof instruction.type})`);
+        lines.push(`; Operands: ${instruction.operands.length}`);
+        lines.push(`; ID: ${instruction.id}`);
+        if (instruction.operands.length > 0) {
+          lines.push(`; First operand: ${JSON.stringify(instruction.operands[0])}`);
+        }
         break;
     }
 
