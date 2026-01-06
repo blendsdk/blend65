@@ -51,7 +51,7 @@ describe('Blend65Lexer', () => {
     });
 
     it('should recognize logical operators as keywords', () => {
-      const source = 'and or not';
+      const source = '&& || !';
       const tokens = tokenize(source);
 
       expect(tokens[0].type).toBe(TokenType.AND);
@@ -250,7 +250,7 @@ describe('Blend65Lexer', () => {
     });
 
     it('should parse assignment operators', () => {
-      const source = '= += -= *= /= %= &= |= ^=';
+      const source = '= += -= *= /= %= &= |= ^= <<= >>=';
       const tokens = tokenize(source);
 
       expect(tokens[0].type).toBe(TokenType.ASSIGN);
@@ -262,6 +262,8 @@ describe('Blend65Lexer', () => {
       expect(tokens[6].type).toBe(TokenType.BITWISE_AND_ASSIGN);
       expect(tokens[7].type).toBe(TokenType.BITWISE_OR_ASSIGN);
       expect(tokens[8].type).toBe(TokenType.BITWISE_XOR_ASSIGN);
+      expect(tokens[9].type).toBe(TokenType.LEFT_SHIFT_ASSIGN);
+      expect(tokens[10].type).toBe(TokenType.RIGHT_SHIFT_ASSIGN);
     });
   });
 

@@ -92,6 +92,24 @@ export class Lexer {
 
     // Two-character operators
     const twoChar = char + this.peek();
+    // Three-character operators
+    const threeChar = char + this.peek() + this.peekAt(2);
+
+    switch (threeChar) {
+      case '<<=': {
+        // Handle three-character operator
+        const token = this.createToken(TokenType.LEFT_SHIFT_ASSIGN, '<<=' + this.peekAt(2), start);
+        this.advance(3);
+        return token;
+      }
+      case '>>=': {
+        // Handle three-character operator
+        const token = this.createToken(TokenType.RIGHT_SHIFT_ASSIGN, '>>=' + this.peekAt(2), start);
+        this.advance(3);
+        return token;
+      }
+    }
+
     switch (twoChar) {
       case '==':
         return this.createTwoCharToken(TokenType.EQUAL);
@@ -121,18 +139,10 @@ export class Lexer {
         return this.createTwoCharToken(TokenType.BITWISE_OR_ASSIGN);
       case '^=':
         return this.createTwoCharToken(TokenType.BITWISE_XOR_ASSIGN);
-      case '<<=': {
-        // Handle three-character operator
-        const token = this.createToken(TokenType.LEFT_SHIFT_ASSIGN, '<<=' + this.peekAt(2), start);
-        this.advance(3);
-        return token;
-      }
-      case '>>=': {
-        // Handle three-character operator
-        const token = this.createToken(TokenType.RIGHT_SHIFT_ASSIGN, '>>=' + this.peekAt(2), start);
-        this.advance(3);
-        return token;
-      }
+      case '&&':
+        return this.createTwoCharToken(TokenType.AND);
+      case '||':
+        return this.createTwoCharToken(TokenType.OR);
     }
 
     // Single-character tokens
@@ -181,6 +191,8 @@ export class Lexer {
         return this.createSingleCharToken(TokenType.COLON);
       case '.':
         return this.createSingleCharToken(TokenType.DOT);
+      case '!':
+        return this.createSingleCharToken(TokenType.NOT);
     }
 
     // Unknown character
@@ -393,12 +405,6 @@ export class Lexer {
         return TokenType.VOID;
       case 'callback':
         return TokenType.CALLBACK;
-      case 'and':
-        return TokenType.AND;
-      case 'or':
-        return TokenType.OR;
-      case 'not':
-        return TokenType.NOT;
       default:
         return TokenType.IDENTIFIER;
     }

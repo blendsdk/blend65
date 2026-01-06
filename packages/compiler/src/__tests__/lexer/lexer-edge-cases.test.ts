@@ -125,10 +125,6 @@ describe('Blend65Lexer Edge Cases', () => {
       const tokens1 = tokenize('===');
       expect(tokens1[0].type).toBe(TokenType.EQUAL);
       expect(tokens1[1].type).toBe(TokenType.ASSIGN);
-
-      const tokens2 = tokenize('<<=');
-      expect(tokens2[0].type).toBe(TokenType.LEFT_SHIFT);
-      expect(tokens2[1].type).toBe(TokenType.ASSIGN);
     });
 
     it('should properly distinguish similar operators', () => {
