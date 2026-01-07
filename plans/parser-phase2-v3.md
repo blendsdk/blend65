@@ -118,8 +118,8 @@ Final validation ensures the parser meets `.clinerules/testing.md`, documentatio
 | Task 1.3 | Phase 1 | Implement trivia-aware helpers (`peekEffectiveToken`, `skipNewlines`, etc.) and reuse in `parseProgram`. | Task 1.2 | DRY utilities with tests/doc comments. | [x] |
 | Task 2.1.1 | Phase 2.1 | Enumerate ordering/structure diagnostics and add codes/messages to `ParserDiagnosticCode`. | Task 1.3 | Updated enum + why-focused doc comments. | [x] |
 | Task 2.1.2 | Phase 2.1 | Add vitest coverage validating diagnostic messages/severity for new codes. | Task 2.1.1 | Snapshot or explicit string tests. | [x] |
-| Task 2.2.1 | Phase 2.2 | Implement helper emitters (`reportDuplicateModule`, `reportMissingFromClause`, etc.) with shared span logic + JSDoc. | Task 2.1.2 | Helper module ready. | [ ] |
-| Task 2.2.2 | Phase 2.2 | Wire helper emitters into parser scaffolding so diagnostics are reachable; add white-box tests. | Task 2.2.1 | Parser invoking helpers. | [ ] |
+| Task 2.2.1 | Phase 2.2 | Implement helper emitters (`reportDuplicateModule`, `reportMissingFromClause`, etc.) with shared span logic + JSDoc. | Task 2.1.2 | Helper module ready. | [x] |
+| Task 2.2.2 | Phase 2.2 | Wire helper emitters into parser scaffolding so diagnostics are reachable; add white-box tests. | Task 2.2.1 | Parser invoking helpers. | [x] |
 | Task 2.3.1 | Phase 2.3 | Define recovery token tables per declaration type with documentation on safe boundaries. | Task 2.2.2 | Recovery definitions module. | [ ] |
 | Task 2.3.2 | Phase 2.3 | Integrate recovery tables into parser sync paths; add tests proving panic mode exits. | Task 2.3.1 | Parser recovery updated. | [ ] |
 | Task 2.4.1 | Phase 2.4 | Update `plans/ordering.md` (or companion doc) with ordering rationale + junior-friendly explanations. | Task 2.3.2 | Documentation published. | [ ] |

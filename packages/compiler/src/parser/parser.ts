@@ -16,6 +16,12 @@ import {
   ParserDiagnosticSeverity,
   type ParserDiagnostic,
 } from './diagnostics.js';
+import {
+  reportDuplicateModule,
+  reportEmptyImportList,
+  reportImplicitMainExport,
+  reportMissingFromClause,
+} from './diagnostic-emitters.js';
 import { createProgram } from './factory.js';
 import { createSourceSpan, UNKNOWN_SOURCE_SPAN, type SourceSpan } from './source.js';
 
@@ -174,11 +180,56 @@ export class Parser {
   /**
    * Placeholder hook for declaration parsing. Phase 2 will replace the
    * scaffolding diagnostics with real grammar production rules.
+   *
+   * Minimal stub wiring for Task 2.2.2: Invokes diagnostic helper emitters so
+   * integration tests can verify helper reachability before full parsing arrives.
    */
   protected parseDeclaration(): DeclarationNode | StatementNode | null {
-    this.state.hasExplicitModule = true;
     const keyword = this.current();
+    const keywordSpan = createSourceSpan(keyword.start, keyword.end);
     this.advance();
+
+    // Stub logic for MODULE keyword: detect duplicate module declarations
+    if (keyword.type === TokenType.MODULE) {
+      if (this.state.hasExplicitModule) {
+        reportDuplicateModule(this.diagnostics, keywordSpan);
+      }
+      this.state.hasExplicitModule = true;
+    }
+
+    // Stub logic for IMPORT keyword: detect missing from clause and empty lists
+    if (keyword.type === TokenType.IMPORT) {
+      const nextToken = this.current();
+      
+      // If we see FROM immediately, the import list is empty
+      if (nextToken.type === TokenType.FROM) {
+        reportEmptyImportList(this.diagnostics, keywordSpan);
+      } else if (nextToken.type === TokenType.IDENTIFIER) {
+        // Consume identifier(s) and check for FROM clause
+        this.advance();
+        const followingToken = this.current();
+        
+        // If no FROM follows, it's missing
+        if (followingToken.type !== TokenType.FROM && !this.isAtEnd()) {
+          reportMissingFromClause(this.diagnostics, keywordSpan);
+        }
+      }
+      
+      // If at EOF without seeing FROM, also report missing
+      if (this.isAtEnd()) {
+        reportMissingFromClause(this.diagnostics, keywordSpan);
+        return null;
+      }
+    }
+
+    // Stub logic for FUNCTION keyword: detect implicit main export
+    if (keyword.type === TokenType.FUNCTION) {
+      const nextToken = this.current();
+      
+      if (nextToken.type === TokenType.IDENTIFIER && nextToken.value === 'main') {
+        reportImplicitMainExport(this.diagnostics, createSourceSpan(nextToken.start, nextToken.end));
+      }
+    }
 
     // TODO(#phase2): Parse module/function/import/export declarations fully.
     const declarationNameExpectation = `${keyword.value || keyword.type} name`;

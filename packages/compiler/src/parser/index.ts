@@ -6,6 +6,7 @@
  */
 export * from './ast.js';
 export * from './diagnostics.js';
+export * from './diagnostic-emitters.js';
 export * from './factory.js';
 export * from './source.js';
 export * from './parser.js';

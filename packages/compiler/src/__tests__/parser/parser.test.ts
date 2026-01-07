@@ -57,6 +57,63 @@ describe('Parser state bookkeeping', () => {
   });
 });
 
+describe('Parser declaration helper diagnostics', () => {
+  it('emits duplicate module diagnostics on subsequent declarations', () => {
+    const result = parseTokens([
+      createToken(TokenType.MODULE, 'module'),
+      createToken(TokenType.IDENTIFIER, 'first'),
+      createToken(TokenType.MODULE, 'module'),
+      createToken(TokenType.IDENTIFIER, 'second'),
+      createToken(TokenType.EOF),
+    ]);
+
+    const duplicate = result.diagnostics.find(
+      (diag) => diag.code === ParserDiagnosticCode.DuplicateModuleDeclaration
+    );
+
+    expect(duplicate).toBeDefined();
+    expect(duplicate?.severity).toBeDefined();
+  });
+
+  it('emits missing from clause diagnostics when import lacks source', () => {
+    const result = parseTokens([
+      createToken(TokenType.IMPORT, 'import'),
+      createToken(TokenType.IDENTIFIER, 'foo'),
+      createToken(TokenType.EOF),
+    ]);
+
+    expect(result.diagnostics.some((diag) => diag.code === ParserDiagnosticCode.MissingFromClause)).toBe(
+      true
+    );
+  });
+
+  it('emits empty import list diagnostics when from appears before bindings', () => {
+    const result = parseTokens([
+      createToken(TokenType.IMPORT, 'import'),
+      createToken(TokenType.FROM, 'from'),
+      createToken(TokenType.IDENTIFIER, 'source'),
+      createToken(TokenType.EOF),
+    ]);
+
+    expect(result.diagnostics.some((diag) => diag.code === ParserDiagnosticCode.EmptyImportList)).toBe(
+      true
+    );
+  });
+
+  it('emits implicit main export diagnostics when function main lacks export', () => {
+    const result = parseTokens([
+      createToken(TokenType.FUNCTION, 'function'),
+      createToken(TokenType.IDENTIFIER, 'main'),
+      createToken(TokenType.EOF),
+    ]);
+
+    expect(result.diagnostics.some((diag) => diag.code === ParserDiagnosticCode.ImplicitMainExport)).toBe(
+      true
+    );
+  });
+});
+
+
 describe('Parser scaffolding (token level)', () => {
   it('returns an empty program when only EOF is provided', () => {
     const result = parseTokens([createToken(TokenType.EOF)]);
