@@ -25,11 +25,11 @@ describe('Callback Keyword Lexing', () => {
   });
 
   it('should tokenize callback as type', () => {
-    const source = 'var handler: callback = myFunction';
+    const source = 'let handler: callback = myFunction';
     const lexer = new Lexer(source);
     const tokens = lexer.tokenize();
 
-    expect(tokens[0].type).toBe(TokenType.VAR);
+    expect(tokens[0].type).toBe(TokenType.LET);
     expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
     expect(tokens[1].value).toBe('handler');
     expect(tokens[2].type).toBe(TokenType.COLON);
@@ -38,7 +38,7 @@ describe('Callback Keyword Lexing', () => {
   });
 
   it('should handle callback as identifier when not a keyword', () => {
-    const source = 'var callbackCount: byte = 0';
+    const source = 'let callbackCount: byte = 0';
     const lexer = new Lexer(source);
     const tokens = lexer.tokenize();
 

@@ -1,8 +1,10 @@
 /**
  * Token types for the Blend65 lexer
  * Blend65 is a multi-target 6502 language without OOP features
+ * 
+ * This enum defines all possible token types that can be produced by the lexer,
+ * including literals, keywords, operators, and punctuation.
  */
-
 export enum TokenType {
   // Literals
   NUMBER = 'NUMBER',
@@ -37,16 +39,17 @@ export enum TokenType {
   DEFAULT = 'DEFAULT',
 
   // Type and variable declarations
-  VAR = 'VAR',
   TYPE = 'TYPE',
-  // TODO: implement later EXTENDS = 'EXTENDS',
   ENUM = 'ENUM',
+
+  // Mutability modifiers
+  LET = 'LET', // Mutable variable
+  CONST = 'CONST', // Immutable constant
 
   // Storage class keywords
   ZP = 'ZP', // Zero page storage
   RAM = 'RAM', // RAM storage
   DATA = 'DATA', // Initialized data
-  CONST = 'CONST', // Constant/ROM data
 
   // Primitive type keywords
   BYTE = 'BYTE',
@@ -121,90 +124,74 @@ export enum TokenType {
 
 /**
  * Source position information for tokens
+ * Tracks the exact location of tokens in the source code for error reporting
  */
 export interface SourcePosition {
+  /** Line number (1-indexed) */
   line: number;
+  /** Column number (1-indexed) */
   column: number;
+  /** Absolute character offset from the start of the source */
   offset: number;
 }
 
 /**
  * Token with type, value, and source location
+ * Represents a single lexical token produced by the lexer
  */
 export interface Token {
+  /** The type of token (keyword, operator, literal, etc.) */
   type: TokenType;
+  /** The actual string value from the source code */
   value: string;
+  /** Starting position of the token in the source */
   start: SourcePosition;
+  /** Ending position of the token in the source */
   end: SourcePosition;
 }
 
 /**
- * Keywords in Blend65 language
+ * Module and import/export keywords
+ * Used for module system declarations and dependency management
  */
-export const KEYWORDS = new Set([
-  'module',
-  'import',
-  'export',
-  'from',
-  'function',
-  'end',
-  'return',
-  'if',
-  'then',
-  'else',
-  'while',
-  'for',
-  'to',
-  'next',
-  'match',
-  'case',
-  'break',
-  'continue',
-  'default',
-  'var',
-  'type',
-  'enum',
-  'zp',
-  'ram',
-  'data',
-  'const',
-  'byte',
-  'word',
-  'void',
-  'callback',
-  'boolean',
-  'string',
-]);
+export const eModuleKeyword = {
+  MODULE: 'module',
+  IMPORT: 'import',
+  EXPORT: 'export',
+  FROM: 'from',
+};
 
 /**
- * Storage class enumeration
+ * Function keywords
+ * Used for function declarations and return statements
  */
-export const eStorageClass = {
-  ZP: 'zp',
-  RAM: 'ram',
-  DATA: 'data',
+export const eFunctionKeyword = {
+  FUNCTION: 'function',
+  RETURN: 'return',
+};
+
+/**
+ * Declaration keywords
+ * Used for type aliases and enum declarations
+ */
+export const eDeclarationKeyword = {
+  TYPE: 'type',
+  ENUM: 'enum',
+};
+
+/**
+ * Mutability modifiers
+ * Define whether a variable can be reassigned after initialization
+ */
+export const eMutabilityModifier = {
+  LET: 'let',
   CONST: 'const',
 };
 
 /**
- * Storage class keywords
+ * Control flow keywords
+ * Used for conditional statements, loops, and pattern matching
  */
-export const STORAGE_CLASSES = new Set(Object.values(eStorageClass));
-
-export const ePrimitiveType = {
-  BYTE: 'byte',
-  WORD: 'word',
-  VOID: 'void',
-  CALLBACK: 'callback',
-  BOOLEAN: 'boolean',
-  STRING: 'string',
-};
-
-/**
- * Primitive type keywords
- */
-export const PRIMITIVE_TYPES = new Set(Object.values(ePrimitiveType));
-
 export const eControlFlowKeyword = {
   IF: 'if',
   THEN: 'then',
@@ -219,10 +206,45 @@ export const eControlFlowKeyword = {
   CONTINUE: 'continue',
   DEFAULT: 'default',
   END: 'end',
-  CALLBACK: 'callback',
 };
 
 /**
- * Control flow keywords
+ * Storage class enumeration (memory location specifiers)
+ * Defines where variables are stored in 6502 memory architecture
+ * - ZP: Zero page (fast access, limited space)
+ * - RAM: Regular RAM storage
+ * - DATA: Initialized data section
  */
-export const CONTROL_FLOW_KEYWORDS = new Set(Object.values(eControlFlowKeyword));
+export const eStorageClass = {
+  ZP: 'zp',
+  RAM: 'ram',
+  DATA: 'data',
+};
+
+/**
+ * Primitive type keywords
+ * Built-in data types supported by Blend65
+ */
+export const ePrimitiveType = {
+  BYTE: 'byte',
+  WORD: 'word',
+  VOID: 'void',
+  CALLBACK: 'callback',
+  BOOLEAN: 'boolean',
+  STRING: 'string',
+};
+
+/**
+ * All keywords in Blend65 language
+ * Built from categorized keyword objects to avoid duplicates and ensure consistency.
+ * This set is used by the lexer to distinguish keywords from identifiers.
+ */
+export const KEYWORDS = new Set([
+  ...Object.values(eModuleKeyword),
+  ...Object.values(eFunctionKeyword),
+  ...Object.values(eDeclarationKeyword),
+  ...Object.values(eMutabilityModifier),
+  ...Object.values(eControlFlowKeyword),
+  ...Object.values(eStorageClass),
+  ...Object.values(ePrimitiveType),
+]);

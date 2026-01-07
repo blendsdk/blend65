@@ -293,28 +293,28 @@ describe('Blend65Lexer', () => {
 
   describe('Comments', () => {
     it('should skip line comments by default', () => {
-      const source = 'var x // This is a comment\nvar y';
+      const source = 'let x // This is a comment\nlet y';
       const tokens = tokenize(source);
 
-      // Should only have var, x, newline, var, y, EOF
+      // Should only have let, x, newline, let, y, EOF
       expect(tokens.length).toBe(6);
-      expect(tokens[0].type).toBe(TokenType.VAR);
+      expect(tokens[0].type).toBe(TokenType.LET);
       expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
       expect(tokens[2].type).toBe(TokenType.NEWLINE);
-      expect(tokens[3].type).toBe(TokenType.VAR);
+      expect(tokens[3].type).toBe(TokenType.LET);
       expect(tokens[4].type).toBe(TokenType.IDENTIFIER);
       expect(tokens[5].type).toBe(TokenType.EOF);
     });
 
     it('should skip block comments by default', () => {
-      const source = 'var x /* This is a block comment */ var y';
+      const source = 'let x /* This is a block comment */ let y';
       const tokens = tokenize(source);
 
-      // Should only have var, x, var, y, EOF
+      // Should only have let, x, let, y, EOF
       expect(tokens.length).toBe(5);
-      expect(tokens[0].type).toBe(TokenType.VAR);
+      expect(tokens[0].type).toBe(TokenType.LET);
       expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
-      expect(tokens[2].type).toBe(TokenType.VAR);
+      expect(tokens[2].type).toBe(TokenType.LET);
       expect(tokens[3].type).toBe(TokenType.IDENTIFIER);
       expect(tokens[4].type).toBe(TokenType.EOF);
     });
@@ -349,24 +349,24 @@ end function`;
     });
 
     it('should tokenize storage declarations', () => {
-      const source = `zp var counter: byte
-ram var buffer: byte[256]
-data var initialized: word = 1000`;
+      const source = `zp let counter: byte
+ram let buffer: byte[256]
+data const initialized: word = 1000`;
 
       const tokens = tokenize(source);
 
-      // First line: zp var counter: byte
+      // First line: zp let counter: byte
       expect(tokens[0].type).toBe(TokenType.ZP);
-      expect(tokens[1].type).toBe(TokenType.VAR);
+      expect(tokens[1].type).toBe(TokenType.LET);
       expect(tokens[2].type).toBe(TokenType.IDENTIFIER);
       expect(tokens[2].value).toBe('counter');
       expect(tokens[3].type).toBe(TokenType.COLON);
       expect(tokens[4].type).toBe(TokenType.BYTE);
       expect(tokens[5].type).toBe(TokenType.NEWLINE);
 
-      // Second line: ram var buffer: byte[256]
+      // Second line: ram let buffer: byte[256]
       expect(tokens[6].type).toBe(TokenType.RAM);
-      expect(tokens[7].type).toBe(TokenType.VAR);
+      expect(tokens[7].type).toBe(TokenType.LET);
       expect(tokens[8].type).toBe(TokenType.IDENTIFIER);
       expect(tokens[8].value).toBe('buffer');
       expect(tokens[9].type).toBe(TokenType.COLON);
@@ -377,9 +377,9 @@ data var initialized: word = 1000`;
       expect(tokens[13].type).toBe(TokenType.RIGHT_BRACKET);
       expect(tokens[14].type).toBe(TokenType.NEWLINE);
 
-      // Third line: data var initialized: word = 1000
+      // Third line: data const initialized: word = 1000
       expect(tokens[15].type).toBe(TokenType.DATA);
-      expect(tokens[16].type).toBe(TokenType.VAR);
+      expect(tokens[16].type).toBe(TokenType.CONST);
       expect(tokens[17].type).toBe(TokenType.IDENTIFIER);
       expect(tokens[17].value).toBe('initialized');
       expect(tokens[18].type).toBe(TokenType.COLON);

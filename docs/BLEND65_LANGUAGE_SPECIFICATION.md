@@ -49,8 +49,8 @@ Blend65 is a statically-typed, multi-target programming language specifically de
 keyword = "module" | "import" | "export" | "from" | "function" | "end" | "return"
         | "if" | "then" | "else" | "while" | "for" | "to" | "next" | "match" | "case"
         | "break" | "continue" | "default"
-        | "var" | "type" | "enum"
-        | "zp" | "ram" | "data" | "const"
+        | "let" | "const" | "type" | "enum"
+        | "zp" | "ram" | "data"
         | "byte" | "word" | "boolean" | "string" | "void" | "callback"
         | "true" | "false" ;
 ```

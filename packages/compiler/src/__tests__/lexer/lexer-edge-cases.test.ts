@@ -61,26 +61,26 @@ describe('Blend65Lexer Edge Cases', () => {
 
   describe('Comment Edge Cases', () => {
     it('should handle nested block comments', () => {
-      const source = 'var x /* outer /* inner */ still comment */ var y';
+      const source = 'let x /* outer /* inner */ still comment */ let y';
       const tokens = tokenize(source);
 
       // Lexer may not handle nested comments - adjust expectations
       expect(tokens.length).toBeGreaterThanOrEqual(5);
-      expect(tokens[0].type).toBe(TokenType.VAR);
+      expect(tokens[0].type).toBe(TokenType.LET);
       expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
-      // Find the next VAR token
-      const varIndex = tokens.findIndex((t, i) => i > 1 && t.type === TokenType.VAR);
-      expect(varIndex).toBeGreaterThan(1);
+      // Find the next LET token
+      const letIndex = tokens.findIndex((t, i) => i > 1 && t.type === TokenType.LET);
+      expect(letIndex).toBeGreaterThan(1);
     });
 
     it('should handle unterminated block comments', () => {
-      expect(() => tokenize('var x /* unterminated comment')).toThrow();
+      expect(() => tokenize('let x /* unterminated comment')).toThrow();
     });
 
     it('should handle line comments at end of file', () => {
-      const tokens = tokenize('var x // comment with no newline');
-      expect(tokens.length).toBe(3); // var, x, EOF
-      expect(tokens[0].type).toBe(TokenType.VAR);
+      const tokens = tokenize('let x // comment with no newline');
+      expect(tokens.length).toBe(3); // let, x, EOF
+      expect(tokens[0].type).toBe(TokenType.LET);
       expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
       expect(tokens[2].type).toBe(TokenType.EOF);
     });
@@ -149,22 +149,22 @@ describe('Blend65Lexer Edge Cases', () => {
 
   describe('Whitespace and Newline Edge Cases', () => {
     it('should handle various newline types', () => {
-      const tokens = tokenize('var\nx\r\ny\n\rz');
+      const tokens = tokenize('let\nx\r\ny\n\rz');
       const newlineCount = tokens.filter(t => t.type === TokenType.NEWLINE).length;
       expect(newlineCount).toBeGreaterThan(0);
     });
 
     it('should handle multiple consecutive newlines', () => {
-      const tokens = tokenize('var\n\n\n\nx');
-      expect(tokens[0].type).toBe(TokenType.VAR);
+      const tokens = tokenize('let\n\n\n\nx');
+      expect(tokens[0].type).toBe(TokenType.LET);
       expect(tokens[1].type).toBe(TokenType.NEWLINE);
       // Multiple newlines may be collapsed or preserved
       expect(tokens[tokens.length - 2].type).toBe(TokenType.IDENTIFIER);
     });
 
     it('should handle mixed whitespace', () => {
-      const tokens = tokenize('var   \t  \n  \t x');
-      expect(tokens[0].type).toBe(TokenType.VAR);
+      const tokens = tokenize('let   \t  \n  \t x');
+      expect(tokens[0].type).toBe(TokenType.LET);
       expect(tokens[1].type).toBe(TokenType.NEWLINE);
       expect(tokens[2].type).toBe(TokenType.IDENTIFIER);
     });
@@ -187,8 +187,8 @@ describe('Blend65Lexer Edge Cases', () => {
     it('should tokenize complex Blend65 code structure', () => {
       const source = `module Game.Snake
 // Initialize game state
-zp var snakeX: byte[32] = [120, 119, 118, 117]
-ram var gameState: byte = 0
+zp let snakeX: byte[32] = [120, 119, 118, 117]
+ram let gameState: byte = 0
 
 import clearScreen, setPixel from c64.graphics.screen
 import joystickUp, joystickDown from c64.input.joystick
@@ -211,15 +211,14 @@ end function`;
     });
 
     it('should handle storage class combinations', () => {
-      const source = `zp const var ZERO_PAGE_CONST: byte = $FF
-ram data var INITIALIZED_RAM: word[100] = [1, 2, 3]
-const var MAX_SPEED: byte = 5`;
+      const source = `zp const ZERO_PAGE_CONST: byte = $FF
+ram let INITIALIZED_RAM: word[100] = [1, 2, 3]
+const MAX_SPEED: byte = 5`;
 
       const tokens = tokenize(source);
 
       expect(tokens[0].type).toBe(TokenType.ZP);
       expect(tokens[1].type).toBe(TokenType.CONST);
-      expect(tokens[2].type).toBe(TokenType.VAR);
 
       // Should handle array initialization and storage classes
       expect(tokens.length).toBeGreaterThan(20);
@@ -229,16 +228,16 @@ const var MAX_SPEED: byte = 5`;
 
   describe('Error Recovery Edge Cases', () => {
     it('should handle incomplete tokens at end of file', () => {
-      expect(() => tokenize('var incomplete_')).not.toThrow();
+      expect(() => tokenize('let incomplete_')).not.toThrow();
       expect(() => tokenize('$')).toThrow();
       expect(() => tokenize('0x')).toThrow();
     });
 
     it('should handle unexpected characters', () => {
-      expect(() => tokenize('var x @ #invalid')).toThrow(
+      expect(() => tokenize('let x @ #invalid')).toThrow(
         "Unexpected character '@' at line 1, column 7"
       );
-      expect(() => tokenize('var `backtick`')).toThrow();
+      expect(() => tokenize('let `backtick`')).toThrow();
     });
   });
 });

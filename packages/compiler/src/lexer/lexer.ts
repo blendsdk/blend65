@@ -1,22 +1,59 @@
 /**
  * Blend65 Lexer Implementation
  * A lexical analyzer for the Blend65 multi-target 6502 language
+ * 
+ * The lexer converts source code into a stream of tokens that can be
+ * consumed by the parser. It handles all Blend65 syntax including
+ * keywords, operators, literals, and comments.
  */
 
-import { KEYWORDS, SourcePosition, Token, TokenType } from './types.js';
+import {
+  KEYWORDS,
+  SourcePosition,
+  Token,
+  TokenType,
+  eModuleKeyword,
+  eFunctionKeyword,
+  eControlFlowKeyword,
+  eDeclarationKeyword,
+  eMutabilityModifier,
+  eStorageClass,
+  ePrimitiveType,
+} from './types.js';
 
+/**
+ * Configuration options for the lexer
+ */
 export interface LexerOptions {
+  /** If true, comment tokens will be skipped and not included in output */
   skipComments?: boolean;
+  /** If true, whitespace will be skipped (except newlines which are significant) */
   skipWhitespace?: boolean;
 }
 
+/**
+ * Lexer class for tokenizing Blend65 source code
+ * 
+ * The lexer maintains internal state including position, line, and column
+ * numbers for accurate error reporting and source mapping.
+ */
 export class Lexer {
-  private source: string;
-  private position: number = 0;
-  private line: number = 1;
-  private column: number = 1;
-  private options: LexerOptions;
+  /** The source code being tokenized */
+  protected source: string;
+  /** Current position (character index) in the source */
+  protected position: number = 0;
+  /** Current line number (1-indexed) */
+  protected line: number = 1;
+  /** Current column number (1-indexed) */
+  protected column: number = 1;
+  /** Lexer configuration options */
+  protected options: LexerOptions;
 
+  /**
+   * Creates a new Lexer instance
+   * @param source - The source code to tokenize
+   * @param options - Configuration options for the lexer
+   */
   constructor(source: string, options: LexerOptions = {}) {
     this.source = source;
     this.options = {
@@ -96,18 +133,10 @@ export class Lexer {
     const threeChar = char + this.peek() + this.peekAt(2);
 
     switch (threeChar) {
-      case '<<=': {
-        // Handle three-character operator
-        const token = this.createToken(TokenType.LEFT_SHIFT_ASSIGN, '<<=' + this.peekAt(2), start);
-        this.advance(3);
-        return token;
-      }
-      case '>>=': {
-        // Handle three-character operator
-        const token = this.createToken(TokenType.RIGHT_SHIFT_ASSIGN, '>>=' + this.peekAt(2), start);
-        this.advance(3);
-        return token;
-      }
+      case '<<=':
+        return this.createThreeCharToken(TokenType.LEFT_SHIFT_ASSIGN);
+      case '>>=':
+        return this.createThreeCharToken(TokenType.RIGHT_SHIFT_ASSIGN);
     }
 
     switch (twoChar) {
@@ -200,7 +229,13 @@ export class Lexer {
     throw new Error(`Unexpected character '${char}' at line ${start.line}, column ${start.column}`);
   }
 
-  private readNumber(): Token {
+  /**
+   * Reads a numeric literal from the source
+   * Supports decimal, hexadecimal ($xx or 0x), and binary (0b) formats
+   * @returns Token containing the numeric value
+   * @throws Error if number format is invalid
+   */
+  protected readNumber(): Token {
     const start = this.getCurrentPosition();
     let value = '';
 
@@ -264,7 +299,15 @@ export class Lexer {
     return this.createToken(TokenType.NUMBER, value, start);
   }
 
-  private readString(quote: string): Token {
+  /**
+   * Reads a string literal from the source
+   * Handles escape sequences (\n, \t, \r, \\, \", \')
+   * Supports both single and double quoted strings
+   * @param quote - The quote character (' or ") that started the string
+   * @returns Token containing the string value
+   * @throws Error if string is unterminated
+   */
+  protected readString(quote: string): Token {
     const start = this.getCurrentPosition();
     let value = '';
 
@@ -323,7 +366,12 @@ export class Lexer {
     return this.createToken(TokenType.STRING_LITERAL, value, start);
   }
 
-  private readIdentifierOrKeyword(): Token {
+  /**
+   * Reads an identifier or keyword from the source
+   * Also handles boolean literals (true/false)
+   * @returns Token representing an identifier, keyword, or boolean literal
+   */
+  protected readIdentifierOrKeyword(): Token {
     const start = this.getCurrentPosition();
     let value = '';
 
@@ -343,78 +391,88 @@ export class Lexer {
     return this.createToken(type, value, start);
   }
 
-  private getKeywordTokenType(keyword: string): TokenType {
+  /**
+   * Maps a keyword string to its corresponding TokenType
+   * @param keyword - The keyword string to map
+   * @returns The TokenType for the given keyword, or IDENTIFIER if not found
+   */
+  protected getKeywordTokenType(keyword: string): TokenType {
     switch (keyword) {
-      case 'module':
+      case eModuleKeyword.MODULE:
         return TokenType.MODULE;
-      case 'import':
+      case eModuleKeyword.IMPORT:
         return TokenType.IMPORT;
-      case 'export':
+      case eModuleKeyword.EXPORT:
         return TokenType.EXPORT;
-      case 'from':
+      case eModuleKeyword.FROM:
         return TokenType.FROM;
-      case 'function':
+      case eFunctionKeyword.FUNCTION:
         return TokenType.FUNCTION;
-      case 'end':
+      case eControlFlowKeyword.END:
         return TokenType.END;
-      case 'return':
+      case eFunctionKeyword.RETURN:
         return TokenType.RETURN;
-      case 'if':
+      case eControlFlowKeyword.IF:
         return TokenType.IF;
-      case 'then':
+      case eControlFlowKeyword.THEN:
         return TokenType.THEN;
-      case 'else':
+      case eControlFlowKeyword.ELSE:
         return TokenType.ELSE;
-      case 'while':
+      case eControlFlowKeyword.WHILE:
         return TokenType.WHILE;
-      case 'for':
+      case eControlFlowKeyword.FOR:
         return TokenType.FOR;
-      case 'to':
+      case eControlFlowKeyword.TO:
         return TokenType.TO;
-      case 'next':
+      case eControlFlowKeyword.NEXT:
         return TokenType.NEXT;
-      case 'match':
+      case eControlFlowKeyword.MATCH:
         return TokenType.MATCH;
-      case 'case':
+      case eControlFlowKeyword.CASE:
         return TokenType.CASE;
-      case 'break':
+      case eControlFlowKeyword.BREAK:
         return TokenType.BREAK;
-      case 'continue':
+      case eControlFlowKeyword.CONTINUE:
         return TokenType.CONTINUE;
-      case 'default':
+      case eControlFlowKeyword.DEFAULT:
         return TokenType.DEFAULT;
-      case 'var':
-        return TokenType.VAR;
-      case 'type':
+      case eDeclarationKeyword.TYPE:
         return TokenType.TYPE;
-      case 'enum':
+      case eDeclarationKeyword.ENUM:
         return TokenType.ENUM;
-      case 'zp':
-        return TokenType.ZP;
-      case 'ram':
-        return TokenType.RAM;
-      case 'data':
-        return TokenType.DATA;
-      case 'const':
+      case eMutabilityModifier.LET:
+        return TokenType.LET;
+      case eMutabilityModifier.CONST:
         return TokenType.CONST;
-      case 'byte':
+      case eStorageClass.ZP:
+        return TokenType.ZP;
+      case eStorageClass.RAM:
+        return TokenType.RAM;
+      case eStorageClass.DATA:
+        return TokenType.DATA;
+      case ePrimitiveType.BYTE:
         return TokenType.BYTE;
-      case 'word':
+      case ePrimitiveType.WORD:
         return TokenType.WORD;
-      case 'void':
+      case ePrimitiveType.VOID:
         return TokenType.VOID;
-      case 'callback':
+      case ePrimitiveType.CALLBACK:
         return TokenType.CALLBACK;
-      case 'string':
+      case ePrimitiveType.STRING:
         return TokenType.STRING;
-      case 'boolean':
+      case ePrimitiveType.BOOLEAN:
         return TokenType.BOOLEAN;
       default:
         return TokenType.IDENTIFIER;
     }
   }
 
-  private readLineComment(): Token {
+  /**
+   * Reads a line comment from the source (// style)
+   * Comment continues until end of line
+   * @returns Token containing the comment, or the next token if skipComments is enabled
+   */
+  protected readLineComment(): Token {
     const start = this.getCurrentPosition();
     let value = '';
 
@@ -432,7 +490,13 @@ export class Lexer {
     return token;
   }
 
-  private readBlockComment(): Token {
+  /**
+   * Reads a block comment from the source (slash-star star-slash style)
+   * Tracks line numbers for proper error reporting
+   * @returns Token containing the comment, or the next token if skipComments is enabled
+   * @throws Error if block comment is unterminated
+   */
+  protected readBlockComment(): Token {
     const start = this.getCurrentPosition();
     let value = '';
 
@@ -468,8 +532,11 @@ export class Lexer {
     return token;
   }
 
-  // Helper methods
-  private skipWhitespace(): void {
+  /**
+   * Skips whitespace characters (space, tab, carriage return)
+   * Does not skip newlines as they are significant in Blend65 for statement separation
+   */
+  protected skipWhitespace(): void {
     while (
       !this.isAtEnd() &&
       this.isWhitespace(this.getCurrentChar()) &&
@@ -479,22 +546,40 @@ export class Lexer {
     }
   }
 
-  private getCurrentChar(): string {
+  /**
+   * Gets the current character without advancing position
+   * @returns Current character or '\0' if at end of source
+   */
+  protected getCurrentChar(): string {
     if (this.isAtEnd()) return '\0';
     return this.source[this.position] || '\0';
   }
 
-  private peek(): string {
+  /**
+   * Peeks at the next character without advancing position
+   * @returns Next character or '\0' if at end of source
+   */
+  protected peek(): string {
     return this.peekAt(1);
   }
 
-  private peekAt(offset: number): string {
+  /**
+   * Peeks at a character at a specific offset from current position
+   * @param offset - Number of characters ahead to peek
+   * @returns Character at offset or '\0' if beyond source length
+   */
+  protected peekAt(offset: number): string {
     const pos = this.position + offset;
     if (pos >= this.source.length) return '\0';
     return this.source[pos] || '\0';
   }
 
-  private advance(count: number = 1): void {
+  /**
+   * Advances the position by the specified number of characters
+   * Automatically updates line and column tracking (column only increments for non-newline chars)
+   * @param count - Number of characters to advance (default: 1)
+   */
+  protected advance(count: number = 1): void {
     for (let i = 0; i < count && !this.isAtEnd(); i++) {
       if (this.getCurrentChar() !== '\n') {
         this.column++;
@@ -503,35 +588,76 @@ export class Lexer {
     }
   }
 
-  private isAtEnd(): boolean {
+  /**
+   * Checks if the lexer has reached the end of the source
+   * @returns True if at or beyond the end of source
+   */
+  protected isAtEnd(): boolean {
     return this.position >= this.source.length;
   }
 
-  private isDigit(char: string): boolean {
+  /**
+   * Checks if a character is a decimal digit (0-9)
+   * @param char - Character to check
+   * @returns True if character is a decimal digit
+   */
+  protected isDigit(char: string): boolean {
     return char >= '0' && char <= '9';
   }
 
-  private isHexDigit(char: string): boolean {
+  /**
+   * Checks if a character is a hexadecimal digit (0-9, A-F, a-f)
+   * @param char - Character to check
+   * @returns True if character is a hexadecimal digit
+   */
+  protected isHexDigit(char: string): boolean {
     return this.isDigit(char) || (char >= 'A' && char <= 'F') || (char >= 'a' && char <= 'f');
   }
 
-  private isBinaryDigit(char: string): boolean {
+  /**
+   * Checks if a character is a binary digit (0 or 1)
+   * @param char - Character to check
+   * @returns True if character is a binary digit
+   */
+  protected isBinaryDigit(char: string): boolean {
     return char === '0' || char === '1';
   }
 
-  private isAlpha(char: string): boolean {
+  /**
+   * Checks if a character is alphabetic or underscore
+   * Valid for starting an identifier
+   * @param char - Character to check
+   * @returns True if character is alphabetic or underscore
+   */
+  protected isAlpha(char: string): boolean {
     return (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || char === '_';
   }
 
-  private isAlphaNumeric(char: string): boolean {
+  /**
+   * Checks if a character is alphanumeric or underscore
+   * Valid for identifier continuation
+   * @param char - Character to check
+   * @returns True if character is alphanumeric or underscore
+   */
+  protected isAlphaNumeric(char: string): boolean {
     return this.isAlpha(char) || this.isDigit(char);
   }
 
-  private isWhitespace(char: string): boolean {
+  /**
+   * Checks if a character is whitespace (space, tab, or carriage return)
+   * Does not include newline as newlines are significant tokens
+   * @param char - Character to check
+   * @returns True if character is whitespace
+   */
+  protected isWhitespace(char: string): boolean {
     return char === ' ' || char === '\r' || char === '\t';
   }
 
-  private getCurrentPosition(): SourcePosition {
+  /**
+   * Gets the current source position for token creation
+   * @returns SourcePosition object with line, column, and offset
+   */
+  protected getCurrentPosition(): SourcePosition {
     return {
       line: this.line,
       column: this.column,
@@ -539,7 +665,15 @@ export class Lexer {
     };
   }
 
-  private createToken(
+  /**
+   * Creates a token with the specified properties
+   * @param type - Token type
+   * @param value - Token value (the actual text)
+   * @param start - Starting source position
+   * @param end - Ending source position (defaults to current position if not provided)
+   * @returns Complete Token object
+   */
+  protected createToken(
     type: TokenType,
     value: string,
     start: SourcePosition,
@@ -553,17 +687,42 @@ export class Lexer {
     };
   }
 
-  private createSingleCharToken(type: TokenType): Token {
+  /**
+   * Creates a token for a single character operator or punctuation
+   * Advances position by 1
+   * @param type - Token type
+   * @returns Token for the single character
+   */
+  protected createSingleCharToken(type: TokenType): Token {
     const start = this.getCurrentPosition();
     const char = this.getCurrentChar();
     this.advance();
     return this.createToken(type, char, start);
   }
 
-  private createTwoCharToken(type: TokenType): Token {
+  /**
+   * Creates a token for a two-character operator
+   * Advances position by 2
+   * @param type - Token type
+   * @returns Token for the two-character operator
+   */
+  protected createTwoCharToken(type: TokenType): Token {
     const start = this.getCurrentPosition();
     const value = this.getCurrentChar() + this.peek();
     this.advance(2);
+    return this.createToken(type, value, start);
+  }
+
+  /**
+   * Creates a token for a three-character operator
+   * Advances position by 3
+   * @param type - Token type
+   * @returns Token for the three-character operator
+   */
+  protected createThreeCharToken(type: TokenType): Token {
+    const start = this.getCurrentPosition();
+    const value = this.getCurrentChar() + this.peek() + this.peekAt(2);
+    this.advance(3);
     return this.createToken(type, value, start);
   }
 }
