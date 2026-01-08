@@ -13,7 +13,6 @@
  */
 
 import {
-  BinaryExpression,
   Declaration,
   DiagnosticCode,
   Expression,
@@ -25,7 +24,6 @@ import {
 } from '../ast/index.js';
 import { TokenType } from '../lexer/types.js';
 import { Parser } from './base.js';
-import { OperatorPrecedence } from './precedence.js';
 
 /**
  * Simple parser example
@@ -34,6 +32,12 @@ import { OperatorPrecedence } from './precedence.js';
  * - Module declaration (or implicit global)
  * - Variable declarations with storage classes
  * - Simple expressions (literals, identifiers, binary ops)
+ *
+ * Architecture:
+ * - Extends Parser base class
+ * - Inherits parseExpression() (universal Pratt parser)
+ * - Implements parsePrimaryExpression() (grammar-specific atoms)
+ * - Uses base class utilities for token management and error handling
  *
  * Usage:
  * ```typescript
@@ -78,8 +82,8 @@ export class SimpleExampleParser extends Parser {
       // Validate module scope
       this.validateModuleScopeItem(this.getCurrentToken());
 
-      // Parse variable declaration
-      if (this.isStorageClass() || this.check(TokenType.LET, TokenType.CONST)) {
+      // Parse variable declaration (with optional export prefix)
+      if (this.isExportModifier() || this.isStorageClass() || this.isLetOrConst()) {
         declarations.push(this.parseVariableDecl());
       } else {
         // Unknown token - report error and synchronize
@@ -136,7 +140,7 @@ export class SimpleExampleParser extends Parser {
   /**
    * Parses a variable declaration
    *
-   * Grammar: [ StorageClass ] (let | const) Identifier : Type [ = Expression ]
+   * Grammar: [ export ] [ StorageClass ] (let | const) Identifier : Type [ = Expression ]
    *
    * Examples:
    * - @zp let counter: byte
@@ -147,6 +151,9 @@ export class SimpleExampleParser extends Parser {
    */
   protected parseVariableDecl(): VariableDecl {
     const startToken = this.getCurrentToken();
+
+    // Parse optional export modifier
+    const isExport = this.parseExportModifier();
 
     // Parse optional storage class (@zp, @ram, @data)
     const storageClass = this.parseStorageClass();
@@ -205,62 +212,25 @@ export class SimpleExampleParser extends Parser {
       location,
       storageClass,
       isConst,
-      false // Not exported in this simple example
+      isExport
     );
   }
 
   /**
-   * Parses an expression using Pratt parser
+   * Parses a primary expression (implementation of abstract method)
    *
-   * This demonstrates precedence-climbing for operator expressions.
+   * Implements the grammar-specific primary expressions for SimpleExampleParser.
+   * This defines the "atoms" that the universal parseExpression() method
+   * (inherited from Parser base class) will use to build complex expressions.
    *
-   * Grammar:
-   * Expression := Primary ( BinaryOp Expression )*
+   * Primary expressions supported:
+   * - Number literals: 42, $D000, 0xFF, 0b1010
+   * - String literals: "hello", 'world'
+   * - Boolean literals: true, false
+   * - Identifiers: counter, myVar
+   * - Parenthesized expressions: (2 + 3)
    *
-   * Examples:
-   * - 42
-   * - counter
-   * - 2 + 3
-   * - x * y + z  (parsed as (x * y) + z due to precedence)
-   *
-   * @param minPrecedence - Minimum precedence for operators (default: 0)
-   * @returns Expression AST node
-   */
-  protected parseExpression(minPrecedence: number = OperatorPrecedence.NONE): Expression {
-    // Parse left side (primary expression)
-    let left = this.parsePrimaryExpression();
-
-    // Parse binary operators with precedence climbing
-    while (this.isBinaryOp() && this.getCurrentPrecedence() > minPrecedence) {
-      const operator = this.getCurrentToken().type;
-      const precedence = this.getCurrentPrecedence();
-
-      this.advance(); // Consume operator
-
-      // For right-associative operators (like =), use same precedence
-      // For left-associative operators, use precedence + 1 to force tighter binding on right
-      const nextMinPrecedence = this.isRightAssoc(operator) ? precedence : precedence + 1;
-
-      const right = this.parseExpression(nextMinPrecedence);
-
-      // Merge locations from left and right operands
-      const location = this.mergeLocations(left.getLocation(), right.getLocation());
-
-      left = new BinaryExpression(left, operator, right, location);
-    }
-
-    return left;
-  }
-
-  /**
-   * Parses a primary expression (leaf expressions)
-   *
-   * Primary expressions:
-   * - Literals: 42, "hello", true, $D000
-   * - Identifiers: counter, myFunction
-   * - Parenthesized: (2 + 3)
-   *
-   * @returns Expression AST node
+   * @returns Expression AST node representing a primary expression
    */
   protected parsePrimaryExpression(): Expression {
     // Number literals

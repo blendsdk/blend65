@@ -11,7 +11,14 @@
  * This is the foundation that all concrete parsers build upon.
  */
 
-import { Diagnostic, DiagnosticCode, DiagnosticCollector, SourceLocation } from '../ast/index.js';
+import {
+  BinaryExpression,
+  Diagnostic,
+  DiagnosticCode,
+  DiagnosticCollector,
+  Expression,
+  SourceLocation,
+} from '../ast/index.js';
 import { Token, TokenType } from '../lexer/types.js';
 import {
   ParserConfig,
@@ -20,6 +27,7 @@ import {
   isBinaryOperator,
   isRightAssociative,
 } from './index.js';
+import { OperatorPrecedence } from './precedence.js';
 
 /**
  * Parser error class
@@ -429,6 +437,98 @@ export abstract class Parser {
   // ============================================
 
   /**
+   * Parses a primary expression (abstract method)
+   *
+   * Primary expressions are the "atoms" of the language - the simplest
+   * expressions that cannot be broken down further. These are the base
+   * case for recursive expression parsing.
+   *
+   * Subclasses MUST implement this to define what constitutes a
+   * "primary" expression in their specific grammar.
+   *
+   * Common primary expressions:
+   * - Literals: numbers, strings, booleans (42, "hello", true)
+   * - Identifiers: variable/function names (myVar, counter)
+   * - Parenthesized expressions: (2 + 3)
+   * - Array literals: [1, 2, 3] (in full parser)
+   * - Function calls: foo(x, y) (may be handled as postfix)
+   *
+   * @returns Expression AST node representing a primary expression
+   *
+   * @example
+   * ```typescript
+   * // In SimpleExampleParser:
+   * protected parsePrimaryExpression(): Expression {
+   *   if (this.check(TokenType.NUMBER)) {
+   *     return new LiteralExpression(parseNumberValue(...));
+   *   }
+   *   // ... handle other primary types
+   * }
+   * ```
+   */
+  protected abstract parsePrimaryExpression(): Expression;
+
+  /**
+   * Parses an expression using Pratt parser with precedence climbing
+   *
+   * This is a universal expression parsing algorithm that works for any grammar.
+   * It handles operator precedence and associativity by recursively parsing
+   * operands and building binary expression trees.
+   *
+   * The algorithm:
+   * 1. Parse left operand (primary expression)
+   * 2. While current token is a binary operator with sufficient precedence:
+   *    a. Save the operator and its precedence
+   *    b. Consume the operator
+   *    c. Calculate next minimum precedence (handles associativity)
+   *    d. Recursively parse right operand
+   *    e. Build binary expression node with merged locations
+   *    f. Continue with result as new left operand
+   * 3. Return final expression tree
+   *
+   * Examples of parsed expressions:
+   * - Simple: 42 → LiteralExpression(42)
+   * - Variable: counter → IdentifierExpression("counter")
+   * - Binary: 2 + 3 → BinaryExpression(2, PLUS, 3)
+   * - Precedence: x * y + z → BinaryExpression((x * y), PLUS, z)
+   * - Associativity: a = b = c → BinaryExpression(a, ASSIGN, (b = c))
+   *
+   * @param minPrecedence - Minimum precedence for operators (default: NONE)
+   *                        Used internally for precedence climbing
+   * @returns Expression AST node representing the parsed expression
+   *
+   * @remarks
+   * This method delegates to parsePrimaryExpression() for base cases,
+   * which must be implemented by subclasses to define grammar-specific
+   * primary expressions.
+   */
+  protected parseExpression(minPrecedence: number = OperatorPrecedence.NONE): Expression {
+    // Parse left side (primary expression)
+    let left = this.parsePrimaryExpression();
+
+    // Parse binary operators with precedence climbing
+    while (this.isBinaryOp() && this.getCurrentPrecedence() > minPrecedence) {
+      const operator = this.getCurrentToken().type;
+      const precedence = this.getCurrentPrecedence();
+
+      this.advance(); // Consume operator
+
+      // For right-associative operators (like =), use same precedence
+      // For left-associative operators, use precedence + 1 to force tighter binding on right
+      const nextMinPrecedence = this.isRightAssoc(operator) ? precedence : precedence + 1;
+
+      const right = this.parseExpression(nextMinPrecedence);
+
+      // Merge locations from left and right operands
+      const location = this.mergeLocations(left.getLocation(), right.getLocation());
+
+      left = new BinaryExpression(left, operator, right, location);
+    }
+
+    return left;
+  }
+
+  /**
    * Gets the precedence of the current token
    *
    * Used by Pratt parser to decide how to group operators.
@@ -556,7 +656,7 @@ export abstract class Parser {
    * Checks if current token is a storage class
    *
    * Storage classes: @zp, @ram, @data
-   * 
+   *
    * Note: This only checks for explicit storage class tokens.
    * Use parseStorageClass() to get the effective storage class (including default).
    *
@@ -564,6 +664,24 @@ export abstract class Parser {
    */
   protected isStorageClass(): boolean {
     return this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA);
+  }
+
+  /**
+   * Checks if current token is an export modifier
+   * @returns True if current token is 'export'
+   */
+  protected isExportModifier(): boolean {
+    return this.check(TokenType.EXPORT);
+  }
+
+  /**
+   * Checks if current token is 'let' or 'const'
+   *
+   * @protected
+   * @return {*}  {boolean}
+   */
+  protected isLetOrConst(): boolean {
+    return this.check(TokenType.LET, TokenType.CONST);
   }
 
   /**
@@ -590,6 +708,16 @@ export abstract class Parser {
     if (this.match(TokenType.RAM)) return TokenType.RAM;
     if (this.match(TokenType.DATA)) return TokenType.DATA;
     return TokenType.RAM; // Default storage class
+  }
+
+  /**
+   * Parses an optional export modifier
+   *
+   * Consumes 'export' token if present.
+   * @returns
+   */
+  protected parseExportModifier(): boolean {
+    return this.match(TokenType.EXPORT);
   }
 
   // ============================================
