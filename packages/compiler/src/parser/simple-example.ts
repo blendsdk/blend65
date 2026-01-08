@@ -15,11 +15,15 @@
 import {
   Declaration,
   DiagnosticCode,
+  ExplicitStructMapDecl,
   Expression,
   IdentifierExpression,
   LiteralExpression,
   ModuleDecl,
   Program,
+  RangeMapDecl,
+  SequentialStructMapDecl,
+  SimpleMapDecl,
   VariableDecl,
 } from '../ast/index.js';
 import { TokenType } from '../lexer/types.js';
@@ -82,8 +86,12 @@ export class SimpleExampleParser extends Parser {
       // Validate module scope
       this.validateModuleScopeItem(this.getCurrentToken());
 
+      // Parse @map declaration
+      if (this.check(TokenType.MAP)) {
+        declarations.push(this.parseMapDeclaration());
+      }
       // Parse variable declaration (with optional export prefix)
-      if (this.isExportModifier() || this.isStorageClass() || this.isLetOrConst()) {
+      else if (this.isExportModifier() || this.isStorageClass() || this.isLetOrConst()) {
         declarations.push(this.parseVariableDecl());
       } else {
         // Unknown token - report error and synchronize
@@ -310,5 +318,299 @@ export class SimpleExampleParser extends Parser {
 
     // Decimal
     return parseInt(value, 10);
+  }
+
+  // ============================================
+  // @MAP DECLARATION PARSING
+  // ============================================
+
+  /**
+   * Parses a @map declaration (dispatcher)
+   *
+   * Determines which form of @map declaration and delegates to appropriate method.
+   *
+   * Forms:
+   * 1. Simple: @map x at $D020: byte;
+   * 2. Range: @map x from $D000 to $D02E: byte;
+   * 3. Sequential struct: @map x at $D000 type ... end @map
+   * 4. Explicit struct: @map x at $D000 layout ... end @map
+   *
+   * @returns Declaration AST node
+   */
+  protected parseMapDeclaration(): Declaration {
+    const startToken = this.expect(TokenType.MAP, "Expected '@map'");
+
+    // Parse variable name
+    const nameToken = this.expect(TokenType.IDENTIFIER, 'Expected identifier after @map');
+    const name = nameToken.value;
+
+    // Lookahead to determine which form
+    if (this.check(TokenType.AT)) {
+      this.advance(); // Consume 'at'
+
+      // Parse address
+      const address = this.parsePrimaryExpression();
+
+      // Check what follows: colon (simple) or type/layout (struct)
+      if (this.check(TokenType.COLON)) {
+        // Simple form: @map x at $D020: byte;
+        return this.parseSimpleMapDecl(startToken, name, address);
+      } else if (this.check(TokenType.TYPE)) {
+        // Sequential struct: @map x at $D000 type ... end @map
+        return this.parseSequentialStructMapDecl(startToken, name, address);
+      } else if (this.check(TokenType.LAYOUT)) {
+        // Explicit struct: @map x at $D000 layout ... end @map
+        return this.parseExplicitStructMapDecl(startToken, name, address);
+      } else {
+        this.reportError(
+          DiagnosticCode.UNEXPECTED_TOKEN,
+          `Expected ':', 'type', or 'layout' after address in @map declaration`
+        );
+        return new VariableDecl('error', null, null, this.currentLocation(), null, false, false);
+      }
+    } else if (this.check(TokenType.FROM)) {
+      // Range form: @map x from $D000 to $D02E: byte;
+      return this.parseRangeMapDecl(startToken, name);
+    } else {
+      this.reportError(
+        DiagnosticCode.UNEXPECTED_TOKEN,
+        `Expected 'at' or 'from' after identifier in @map declaration`
+      );
+      return new VariableDecl('error', null, null, this.currentLocation(), null, false, false);
+    }
+  }
+
+  /**
+   * Parses simple @map declaration
+   *
+   * Grammar: @map identifier at address : type ;
+   * Example: @map vicBorderColor at $D020: byte;
+   *
+   * @param startToken - Starting @map token
+   * @param name - Variable name
+   * @param address - Address expression (already parsed)
+   * @returns SimpleMapDecl AST node
+   */
+  protected parseSimpleMapDecl(startToken: any, name: string, address: Expression): Declaration {
+    // Expect colon
+    this.expect(TokenType.COLON, "Expected ':' after address");
+
+    // Parse type annotation
+    if (
+      !this.check(
+        TokenType.BYTE,
+        TokenType.WORD,
+        TokenType.STRING,
+        TokenType.BOOLEAN,
+        TokenType.IDENTIFIER
+      )
+    ) {
+      this.reportError(DiagnosticCode.EXPECTED_TOKEN, 'Expected type annotation');
+    }
+    const typeToken = this.advance();
+    const typeAnnotation = typeToken.value;
+
+    // Expect semicolon
+    this.expectSemicolon('Expected semicolon after simple @map declaration');
+
+    const location = this.createLocation(startToken, this.getCurrentToken());
+
+    return new SimpleMapDecl(name, address, typeAnnotation, location);
+  }
+
+  /**
+   * Parses range @map declaration
+   *
+   * Grammar: @map identifier from address to address : type ;
+   * Example: @map spriteRegisters from $D000 to $D02E: byte;
+   *
+   * @param startToken - Starting @map token
+   * @param name - Variable name
+   * @returns RangeMapDecl AST node
+   */
+  protected parseRangeMapDecl(startToken: any, name: string): Declaration {
+    // Expect 'from'
+    this.expect(TokenType.FROM, "Expected 'from'");
+
+    // Parse start address
+    const startAddress = this.parsePrimaryExpression();
+
+    // Expect 'to'
+    this.expect(TokenType.TO, "Expected 'to'");
+
+    // Parse end address
+    const endAddress = this.parsePrimaryExpression();
+
+    // Expect colon
+    this.expect(TokenType.COLON, "Expected ':' after address range");
+
+    // Parse type annotation
+    const typeToken = this.advance();
+    const typeAnnotation = typeToken.value;
+
+    // Expect semicolon
+    this.expectSemicolon('Expected semicolon after range @map declaration');
+
+    const location = this.createLocation(startToken, this.getCurrentToken());
+
+    return new RangeMapDecl(name, startAddress, endAddress, typeAnnotation, location);
+  }
+
+  /**
+   * Parses sequential struct @map declaration
+   *
+   * Grammar: @map identifier at address type field : type [, ...] end @map
+   * Example: @map sid at $D400 type frequencyLo: byte, frequencyHi: byte end @map
+   *
+   * @param startToken - Starting @map token
+   * @param name - Variable name
+   * @param baseAddress - Base address expression (already parsed)
+   * @returns SequentialStructMapDecl AST node
+   */
+  protected parseSequentialStructMapDecl(
+    startToken: any,
+    name: string,
+    baseAddress: Expression
+  ): Declaration {
+    // Expect 'type'
+    this.expect(TokenType.TYPE, "Expected 'type'");
+
+    // Parse fields
+    const fields: any[] = [];
+
+    while (!this.check(TokenType.END) && !this.isAtEnd()) {
+      const fieldStart = this.getCurrentToken();
+
+      // Parse field name
+      const fieldNameToken = this.expect(TokenType.IDENTIFIER, 'Expected field name');
+      const fieldName = fieldNameToken.value;
+
+      // Expect colon
+      this.expect(TokenType.COLON, "Expected ':' after field name");
+
+      // Parse field type
+      const fieldTypeToken = this.advance();
+      const fieldBaseType = fieldTypeToken.value;
+
+      // Check for array syntax: byte[16]
+      let arraySize: number | null = null;
+      if (this.match(TokenType.LEFT_BRACKET)) {
+        const sizeToken = this.expect(TokenType.NUMBER, 'Expected array size');
+        arraySize = parseInt(sizeToken.value, 10);
+        this.expect(TokenType.RIGHT_BRACKET, "Expected ']' after array size");
+      }
+
+      const fieldLocation = this.createLocation(fieldStart, this.getCurrentToken());
+
+      fields.push({
+        name: fieldName,
+        baseType: fieldBaseType,
+        arraySize,
+        location: fieldLocation,
+      });
+
+      // Optional comma
+      this.match(TokenType.COMMA);
+    }
+
+    // Expect 'end @map'
+    this.expect(TokenType.END, "Expected 'end'");
+    this.expect(TokenType.MAP, "Expected '@map' after 'end'");
+
+    const location = this.createLocation(startToken, this.getCurrentToken());
+
+    return new SequentialStructMapDecl(name, baseAddress, fields, location);
+  }
+
+  /**
+   * Parses explicit struct @map declaration
+   *
+   * Grammar: @map identifier at address layout field : (at addr | from addr to addr) : type [, ...] end @map
+   * Example: @map vic at $D000 layout borderColor: at $D020: byte, sprites: from $D000 to $D00F: byte end @map
+   *
+   * @param startToken - Starting @map token
+   * @param name - Variable name
+   * @param baseAddress - Base address expression (already parsed)
+   * @returns ExplicitStructMapDecl AST node
+   */
+  protected parseExplicitStructMapDecl(
+    startToken: any,
+    name: string,
+    baseAddress: Expression
+  ): Declaration {
+    // Expect 'layout'
+    this.expect(TokenType.LAYOUT, "Expected 'layout'");
+
+    // Parse fields
+    const fields: any[] = [];
+
+    while (!this.check(TokenType.END) && !this.isAtEnd()) {
+      const fieldStart = this.getCurrentToken();
+
+      // Parse field name
+      const fieldNameToken = this.expect(TokenType.IDENTIFIER, 'Expected field name');
+      const fieldName = fieldNameToken.value;
+
+      // Expect colon
+      this.expect(TokenType.COLON, "Expected ':' after field name");
+
+      // Parse address specification (at addr OR from addr to addr)
+      let addressSpec: any;
+
+      if (this.match(TokenType.AT)) {
+        // Single address
+        const addr = this.parsePrimaryExpression();
+        addressSpec = {
+          kind: 'single',
+          address: addr,
+        };
+      } else if (this.match(TokenType.FROM)) {
+        // Address range
+        const start = this.parsePrimaryExpression();
+        this.expect(TokenType.TO, "Expected 'to' in address range");
+        const end = this.parsePrimaryExpression();
+        addressSpec = {
+          kind: 'range',
+          startAddress: start,
+          endAddress: end,
+        };
+      } else {
+        this.reportError(
+          DiagnosticCode.UNEXPECTED_TOKEN,
+          "Expected 'at' or 'from' for field address specification"
+        );
+        addressSpec = {
+          kind: 'single',
+          address: new LiteralExpression(0, this.currentLocation()),
+        };
+      }
+
+      // Expect colon
+      this.expect(TokenType.COLON, "Expected ':' after address specification");
+
+      // Parse field type
+      const fieldTypeToken = this.advance();
+      const fieldType = fieldTypeToken.value;
+
+      const fieldLocation = this.createLocation(fieldStart, this.getCurrentToken());
+
+      fields.push({
+        name: fieldName,
+        addressSpec,
+        typeAnnotation: fieldType,
+        location: fieldLocation,
+      });
+
+      // Optional comma
+      this.match(TokenType.COMMA);
+    }
+
+    // Expect 'end @map'
+    this.expect(TokenType.END, "Expected 'end'");
+    this.expect(TokenType.MAP, "Expected '@map' after 'end'");
+
+    const location = this.createLocation(startToken, this.getCurrentToken());
+
+    return new ExplicitStructMapDecl(name, baseAddress, fields, location);
   }
 }

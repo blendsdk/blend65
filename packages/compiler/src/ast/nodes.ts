@@ -950,3 +950,218 @@ export class BlockStatement extends Statement {
     return visitor.visitBlockStatement(this);
   }
 }
+
+// ============================================
+// MEMORY-MAPPED DECLARATIONS (@map)
+// ============================================
+
+/**
+ * Simple memory-mapped declaration node
+ *
+ * Represents: @map vicBorderColor at $D020: byte;
+ * Maps a single variable to a specific memory address.
+ */
+export class SimpleMapDecl extends Declaration {
+  /**
+   * Creates a Simple @map declaration
+   * @param name - Variable name
+   * @param address - Memory address expression
+   * @param typeAnnotation - Type annotation (byte, word, etc.)
+   * @param location - Source location
+   */
+  constructor(
+    protected readonly name: string,
+    protected readonly address: Expression,
+    protected readonly typeAnnotation: string,
+    location: SourceLocation,
+  ) {
+    super(ASTNodeType.SIMPLE_MAP_DECL, location);
+  }
+
+  public getName(): string {
+    return this.name;
+  }
+
+  public getAddress(): Expression {
+    return this.address;
+  }
+
+  public getTypeAnnotation(): string {
+    return this.typeAnnotation;
+  }
+
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitSimpleMapDecl(this);
+  }
+}
+
+/**
+ * Range memory-mapped declaration node
+ *
+ * Represents: @map spriteRegisters from $D000 to $D02E: byte;
+ * Maps a contiguous memory range to an array-like accessor.
+ */
+export class RangeMapDecl extends Declaration {
+  /**
+   * Creates a Range @map declaration
+   * @param name - Variable name
+   * @param startAddress - Start address expression
+   * @param endAddress - End address expression
+   * @param typeAnnotation - Type annotation (byte, word, etc.)
+   * @param location - Source location
+   */
+  constructor(
+    protected readonly name: string,
+    protected readonly startAddress: Expression,
+    protected readonly endAddress: Expression,
+    protected readonly typeAnnotation: string,
+    location: SourceLocation,
+  ) {
+    super(ASTNodeType.RANGE_MAP_DECL, location);
+  }
+
+  public getName(): string {
+    return this.name;
+  }
+
+  public getStartAddress(): Expression {
+    return this.startAddress;
+  }
+
+  public getEndAddress(): Expression {
+    return this.endAddress;
+  }
+
+  public getTypeAnnotation(): string {
+    return this.typeAnnotation;
+  }
+
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitRangeMapDecl(this);
+  }
+}
+
+/**
+ * Field in a sequential struct map declaration
+ */
+export interface MapField {
+  /** Field name */
+  name: string;
+  /** Base type (byte, word, etc.) */
+  baseType: string;
+  /** Array size (null for non-array) */
+  arraySize: number | null;
+  /** Source location */
+  location: SourceLocation;
+}
+
+/**
+ * Sequential struct memory-mapped declaration node
+ *
+ * Represents: @map sid at $D400 type ... end @map
+ * Fields are auto-laid-out sequentially from base address.
+ */
+export class SequentialStructMapDecl extends Declaration {
+  /**
+   * Creates a Sequential Struct @map declaration
+   * @param name - Variable name
+   * @param baseAddress - Base address expression
+   * @param fields - Field definitions
+   * @param location - Source location
+   */
+  constructor(
+    protected readonly name: string,
+    protected readonly baseAddress: Expression,
+    protected readonly fields: MapField[],
+    location: SourceLocation,
+  ) {
+    super(ASTNodeType.SEQUENTIAL_STRUCT_MAP_DECL, location);
+  }
+
+  public getName(): string {
+    return this.name;
+  }
+
+  public getBaseAddress(): Expression {
+    return this.baseAddress;
+  }
+
+  public getFields(): MapField[] {
+    return this.fields;
+  }
+
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitSequentialStructMapDecl(this);
+  }
+}
+
+/**
+ * Single address specification for explicit map field
+ */
+export interface SingleAddress {
+  kind: 'single';
+  address: Expression;
+}
+
+/**
+ * Address range specification for explicit map field
+ */
+export interface AddressRange {
+  kind: 'range';
+  startAddress: Expression;
+  endAddress: Expression;
+}
+
+/**
+ * Field in an explicit struct map declaration
+ */
+export interface ExplicitMapField {
+  /** Field name */
+  name: string;
+  /** Address specification (single address or range) */
+  addressSpec: SingleAddress | AddressRange;
+  /** Type annotation */
+  typeAnnotation: string;
+  /** Source location */
+  location: SourceLocation;
+}
+
+/**
+ * Explicit struct memory-mapped declaration node
+ *
+ * Represents: @map vic at $D000 layout ... end @map
+ * Fields have explicitly specified addresses (allows gaps).
+ */
+export class ExplicitStructMapDecl extends Declaration {
+  /**
+   * Creates an Explicit Struct @map declaration
+   * @param name - Variable name
+   * @param baseAddress - Base address expression
+   * @param fields - Field definitions with explicit addresses
+   * @param location - Source location
+   */
+  constructor(
+    protected readonly name: string,
+    protected readonly baseAddress: Expression,
+    protected readonly fields: ExplicitMapField[],
+    location: SourceLocation,
+  ) {
+    super(ASTNodeType.EXPLICIT_STRUCT_MAP_DECL, location);
+  }
+
+  public getName(): string {
+    return this.name;
+  }
+
+  public getBaseAddress(): Expression {
+    return this.baseAddress;
+  }
+
+  public getFields(): ExplicitMapField[] {
+    return this.fields;
+  }
+
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitExplicitStructMapDecl(this);
+  }
+}

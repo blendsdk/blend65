@@ -1,5 +1,9 @@
 ### Cline Commands
 
+**CRITICALLY IMPORTANT**
+
+1. IMPORTANT: Allways perform the `gitcmp` or the `gitcm` commands in a new "Task With Context"
+
 When the user provides these keywords, Cline should perform the following actions:
 
 #### `gitcm` - Git Commit with Message
@@ -23,7 +27,3 @@ When the user provides these keywords, Cline should perform the following action
 2. Pull and rebase if needed (`git pull --rebase`)
 3. If there are no conflicts, push to remote (`git push`)
 4. Report any conflicts for manual resolution
-
-**CRITICALLY IMPORTANT**
-
-Allways perform the `gitcmp` or the `gitcm` in a new "Task With Context"

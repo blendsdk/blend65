@@ -655,7 +655,7 @@ export abstract class Parser {
   /**
    * Checks if current token is a storage class
    *
-   * Storage classes: @zp, @ram, @data
+   * Storage classes: @zp, @ram, @data, @map
    *
    * Note: This only checks for explicit storage class tokens.
    * Use parseStorageClass() to get the effective storage class (including default).
@@ -663,7 +663,7 @@ export abstract class Parser {
    * @returns True if current token is an explicit storage class token
    */
   protected isStorageClass(): boolean {
-    return this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA);
+    return this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA, TokenType.MAP);
   }
 
   /**

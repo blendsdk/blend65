@@ -50,6 +50,11 @@ export enum TokenType {
   ZP = 'ZP', // Zero page storage
   RAM = 'RAM', // RAM storage
   DATA = 'DATA', // Initialized data
+  MAP = 'MAP', // Memory-mapped I/O
+
+  // Memory mapping keywords
+  AT = 'AT', // Address specifier for @map
+  LAYOUT = 'LAYOUT', // Explicit layout keyword for @map structs
 
   // Primitive type keywords
   BYTE = 'BYTE',
@@ -214,11 +219,22 @@ export const eControlFlowKeyword = {
  * - ZP: Zero page (fast access, limited space)
  * - RAM: Regular RAM storage
  * - DATA: Initialized data section
+ * - MAP: Memory-mapped I/O (hardware registers at fixed addresses)
  */
 export const eStorageClass = {
   ZP: '@zp',
   RAM: '@ram',
   DATA: '@data',
+  MAP: '@map',
+};
+
+/**
+ * Memory mapping keywords
+ * Used for @map declarations to specify address locations
+ */
+export const eMemoryMappingKeyword = {
+  AT: 'at',
+  LAYOUT: 'layout',
 };
 
 /**
@@ -246,5 +262,6 @@ export const KEYWORDS = new Set([
   ...Object.values(eMutabilityModifier),
   ...Object.values(eControlFlowKeyword),
   ...Object.values(eStorageClass),
+  ...Object.values(eMemoryMappingKeyword),
   ...Object.values(ePrimitiveType),
 ]);

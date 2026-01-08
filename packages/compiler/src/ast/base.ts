@@ -18,6 +18,7 @@ import type {
   CallExpression,
   ContinueStatement,
   EnumDecl,
+  ExplicitStructMapDecl,
   ExportDecl,
   ExpressionStatement,
   ForStatement,
@@ -31,7 +32,10 @@ import type {
   MemberExpression,
   ModuleDecl,
   Program,
+  RangeMapDecl,
   ReturnStatement,
+  SequentialStructMapDecl,
+  SimpleMapDecl,
   TypeDecl,
   UnaryExpression,
   VariableDecl,
@@ -135,6 +139,34 @@ export enum ASTNodeType {
    * e.g., "enum Direction { UP, DOWN, LEFT, RIGHT }"
    */
   ENUM_DECL = 'EnumDecl',
+
+  // ============================================
+  // MEMORY-MAPPED DECLARATIONS (@map)
+  // ============================================
+
+  /**
+   * Simple memory-mapped declaration
+   * e.g., "@map vicBorderColor at $D020: byte;"
+   */
+  SIMPLE_MAP_DECL = 'SimpleMapDecl',
+
+  /**
+   * Range memory-mapped declaration
+   * e.g., "@map spriteRegisters from $D000 to $D02E: byte;"
+   */
+  RANGE_MAP_DECL = 'RangeMapDecl',
+
+  /**
+   * Sequential struct memory-mapped declaration
+   * e.g., "@map sid at $D400 type ... end @map"
+   */
+  SEQUENTIAL_STRUCT_MAP_DECL = 'SequentialStructMapDecl',
+
+  /**
+   * Explicit struct memory-mapped declaration
+   * e.g., "@map vic at $D000 layout ... end @map"
+   */
+  EXPLICIT_STRUCT_MAP_DECL = 'ExplicitStructMapDecl',
 
   // ============================================
   // EXPRESSIONS
@@ -630,6 +662,38 @@ export interface ASTVisitor<R> {
    * @returns Result of visiting this node
    */
   visitEnumDecl(node: EnumDecl): R;
+
+  // ============================================
+  // MEMORY-MAPPED DECLARATIONS (@map)
+  // ============================================
+
+  /**
+   * Visit a Simple memory-mapped declaration
+   * @param node - The simple @map declaration to visit
+   * @returns Result of visiting this node
+   */
+  visitSimpleMapDecl(node: SimpleMapDecl): R;
+
+  /**
+   * Visit a Range memory-mapped declaration
+   * @param node - The range @map declaration to visit
+   * @returns Result of visiting this node
+   */
+  visitRangeMapDecl(node: RangeMapDecl): R;
+
+  /**
+   * Visit a Sequential struct memory-mapped declaration
+   * @param node - The sequential struct @map declaration to visit
+   * @returns Result of visiting this node
+   */
+  visitSequentialStructMapDecl(node: SequentialStructMapDecl): R;
+
+  /**
+   * Visit an Explicit struct memory-mapped declaration
+   * @param node - The explicit struct @map declaration to visit
+   * @returns Result of visiting this node
+   */
+  visitExplicitStructMapDecl(node: ExplicitStructMapDecl): R;
 
   // ============================================
   // EXPRESSIONS

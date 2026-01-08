@@ -18,6 +18,7 @@ import {
   eDeclarationKeyword,
   eMutabilityModifier,
   eStorageClass,
+  eMemoryMappingKeyword,
   ePrimitiveType,
 } from './types.js';
 
@@ -389,6 +390,8 @@ export class Lexer {
       return this.createToken(TokenType.RAM, value, start);
     } else if (value === '@data') {
       return this.createToken(TokenType.DATA, value, start);
+    } else if (value === '@map') {
+      return this.createToken(TokenType.MAP, value, start);
     }
 
     // Invalid storage class keyword
@@ -479,6 +482,10 @@ export class Lexer {
         return TokenType.RAM;
       case eStorageClass.DATA:
         return TokenType.DATA;
+      case eMemoryMappingKeyword.AT:
+        return TokenType.AT;
+      case eMemoryMappingKeyword.LAYOUT:
+        return TokenType.LAYOUT;
       case ePrimitiveType.BYTE:
         return TokenType.BYTE;
       case ePrimitiveType.WORD:
