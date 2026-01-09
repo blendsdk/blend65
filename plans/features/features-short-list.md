@@ -29,11 +29,11 @@
 
 | # | Feature | Criticality | Description |
 |---|---------|-------------|-------------|
-| 10 | **Interrupt/IRQ System** | ⭐⭐⭐⭐⭐ | Raster interrupts, music, smooth animation |
+| 10 | **Interrupt/IRQ System** ✅ Researched | ⭐⭐⭐⭐⭐ | Raster interrupts, music, smooth animation (see `interrupt-irq-system-research.md`) |
 | 11 | **Inline Assembly Blocks** ✅ Designed | ⭐⭐⭐⭐⭐ | Raw 6502 for performance-critical code (see `inline-assembly-design.md`) |
-| 12 | **Bit Manipulation Operators** | ⭐⭐⭐⭐⭐ | Bit test/set/clear, bitfields for hardware |
+| 12 | **Bit Manipulation Operators** ✅ Researched | ⭐⭐⭐⭐⭐ | Bit test/set/clear, bitfields for hardware (see `bit-manipulation-research.md`) |
 | 13 | **Joystick/Input System** | ⭐⭐⭐⭐⭐ | Player control, keyboard, mouse |
-| 14 | **Timing/Synchronization** | ⭐⭐⭐⭐⭐ | waitFrame(), delay(), frame counters |
+| 14 | **Timing/Synchronization** ✅ Researched | ⭐⭐⭐⭐⭐ | waitFrame(), delay(), frame counters (see `timing-synchronization-research.md`) |
 
 ### Math & Data
 

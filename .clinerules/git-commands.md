@@ -2,7 +2,13 @@
 
 **CRITICALLY IMPORTANT**
 
-1. IMPORTANT: Allways perform the `gitcmp` or the `gitcm` commands in a new "Task With Context"
+1. IMPORTANT: Always perform the `gitcmp` or `gitcm` commands in a new Cline task with context.
+   
+   **Why:** This creates a clean task boundary for git operations while maintaining 
+   previous context, enabling better error recovery and workflow continuity.
+   
+   **How:** Use Cline's "New Task With Context" feature to start a fresh task 
+   that has access to previous work but creates a clean checkpoint for git operations.
 
 When the user provides these keywords, Cline should perform the following actions:
 
