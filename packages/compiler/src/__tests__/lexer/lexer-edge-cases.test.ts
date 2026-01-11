@@ -153,7 +153,7 @@ describe('Blend65Lexer Edge Cases', () => {
       // Newlines are now treated as trivial whitespace (skipped)
       const newlineCount = tokens.filter(t => t.type === TokenType.NEWLINE).length;
       expect(newlineCount).toBe(0);
-      
+
       // Tokens should just be: let, x, y, z, EOF
       expect(tokens[0].type).toBe(TokenType.LET);
       expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
@@ -184,15 +184,30 @@ describe('Blend65Lexer Edge Cases', () => {
   });
 
   describe('Memory Address Edge Cases', () => {
-    it('should reject memory placement operator', () => {
-      expect(() => tokenize('@ $0000')).toThrow("Invalid storage class keyword '@' at line 1, column 1");
-      expect(() => tokenize('@ $FFFF')).toThrow("Invalid storage class keyword '@' at line 1, column 1");
+    it('should parse @ symbol as AT token', () => {
+      const tokens1 = tokenize('@ $0000');
+      expect(tokens1[0].type).toBe(TokenType.AT);
+      expect(tokens1[0].value).toBe('@');
+      expect(tokens1[1].type).toBe(TokenType.NUMBER);
+      expect(tokens1[1].value).toBe('$0000');
+
+      const tokens2 = tokenize('@ $FFFF');
+      expect(tokens2[0].type).toBe(TokenType.AT);
+      expect(tokens2[0].value).toBe('@');
+      expect(tokens2[1].type).toBe(TokenType.NUMBER);
+      expect(tokens2[1].value).toBe('$FFFF');
     });
 
-    it('should reject memory addresses with expressions', () => {
-      expect(() => tokenize('@ $D000 + offset')).toThrow(
-        "Invalid storage class keyword '@' at line 1, column 1"
-      );
+    it('should parse @ with expressions correctly', () => {
+      const tokens = tokenize('@ $D000 + offset');
+
+      expect(tokens[0].type).toBe(TokenType.AT);
+      expect(tokens[0].value).toBe('@');
+      expect(tokens[1].type).toBe(TokenType.NUMBER);
+      expect(tokens[1].value).toBe('$D000');
+      expect(tokens[2].type).toBe(TokenType.PLUS);
+      expect(tokens[3].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[3].value).toBe('offset');
     });
   });
 
@@ -248,7 +263,7 @@ const MAX_SPEED: byte = 5`;
 
     it('should handle unexpected characters', () => {
       expect(() => tokenize('let x @ #invalid')).toThrow(
-        "Invalid storage class keyword '@' at line 1, column 7"
+        "Unexpected character '#' at line 1, column 9"
       );
       expect(() => tokenize('let `backtick`')).toThrow();
     });

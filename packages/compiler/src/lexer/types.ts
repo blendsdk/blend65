@@ -1,7 +1,7 @@
 /**
  * Token types for the Blend65 lexer
  * Blend65 is a multi-target 6502 language without OOP features
- * 
+ *
  * This enum defines all possible token types that can be produced by the lexer,
  * including literals, keywords, operators, and punctuation.
  */
@@ -61,6 +61,7 @@ export enum TokenType {
   WORD = 'WORD',
   VOID = 'VOID',
   CALLBACK = 'CALLBACK',
+  ADDRESS = 'ADDRESS', // Address of a variable
 
   // Operators - Arithmetic
   PLUS = 'PLUS',
@@ -248,6 +249,7 @@ export const ePrimitiveType = {
   CALLBACK: 'callback',
   BOOLEAN: 'boolean',
   STRING: 'string',
+  ADDRESS: '@address',
 };
 
 /**

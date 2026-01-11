@@ -43,7 +43,7 @@ let score: byte
       expect(rightBracketCount).toBe(2);
       // Newlines are now skipped as trivial whitespace (semicolons separate statements)
       expect(newlineCount).toBe(0);
-      
+
       // Verify array elements are tokenized correctly
       const numberTokens = tokens.filter(token => token.type === TokenType.NUMBER);
       expect(numberTokens).toHaveLength(5); // 4 (array size) + 0,1,2,3 (4 elements) = but array size is separate
@@ -123,17 +123,29 @@ flags|=mask`;
     });
   });
 
-  describe('Invalid constructs', () => {
-    it('should reject unknown storage class annotations', () => {
-      expect(() => tokenize('@rom let sprite: byte')).toThrow(
-        "Invalid storage class keyword '@rom' at line 1, column 1"
-      );
+  describe('Unknown @ keyword handling', () => {
+    it('should parse unknown @ keywords as AT + IDENTIFIER', () => {
+      const tokens = tokenize('@rom let sprite: byte');
+
+      expect(tokens[0].type).toBe(TokenType.AT);
+      expect(tokens[0].value).toBe('@');
+      expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[1].value).toBe('rom');
+      expect(tokens[2].type).toBe(TokenType.LET);
+      expect(tokens[3].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[3].value).toBe('sprite');
     });
 
-    it('should reject stray storage class markers embedded in statements', () => {
-      expect(() => tokenize('let throttled = speed @rom boost')).toThrow(
-        "Invalid storage class keyword '@rom' at line 1, column 23"
-      );
+    it('should parse @ symbols embedded in statements as AT tokens', () => {
+      const tokens = tokenize('let throttled = speed @rom boost');
+
+      // Find the @ token and following identifier
+      const atIndex = tokens.findIndex(token => token.type === TokenType.AT);
+      expect(atIndex).toBeGreaterThan(-1);
+      expect(tokens[atIndex].type).toBe(TokenType.AT);
+      expect(tokens[atIndex].value).toBe('@');
+      expect(tokens[atIndex + 1].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[atIndex + 1].value).toBe('rom');
     });
   });
 });

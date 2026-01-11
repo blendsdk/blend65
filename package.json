@@ -37,15 +37,15 @@
   },
   "devDependencies": {
     "@manypkg/get-packages": "^3.1.0",
-    "@typescript-eslint/eslint-plugin": "^8.51.0",
-    "@typescript-eslint/parser": "^8.51.0",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "npm-check-updates": "^19.3.1",
     "prettier": "^3.7.4",
     "tsx": "^4.21.0",
-    "turbo": "^2.7.2",
+    "turbo": "^2.7.3",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16"
   },

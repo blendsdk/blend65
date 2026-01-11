@@ -1,7 +1,7 @@
 /**
  * Blend65 Lexer Implementation
  * A lexical analyzer for the Blend65 multi-target 6502 language
- * 
+ *
  * The lexer converts source code into a stream of tokens that can be
  * consumed by the parser. It handles all Blend65 syntax including
  * keywords, operators, literals, and comments.
@@ -34,7 +34,7 @@ export interface LexerOptions {
 
 /**
  * Lexer class for tokenizing Blend65 source code
- * 
+ *
  * The lexer maintains internal state including position, line, and column
  * numbers for accurate error reporting and source mapping.
  */
@@ -114,9 +114,9 @@ export class Lexer {
       return this.readString(char);
     }
 
-    // Storage class keywords with @ prefix
+    // Keywords with @ prefix (storage classes and @address type)
     if (char === '@') {
-      return this.readStorageClassKeyword();
+      return this.readAtKeyword();
     }
 
     // Identifiers and keywords
@@ -364,38 +364,47 @@ export class Lexer {
   }
 
   /**
-   * Reads a storage class keyword that starts with '@' prefix
-   * Handles @zp, @ram, and @data storage class keywords
-   * @returns Token representing a storage class keyword
-   * @throws Error if the '@' is not followed by a valid storage class keyword
+   * Reads keywords that start with '@' prefix
+   * Handles storage classes (@zp, @ram, @data, @map) and the @address type
+   * For unknown keywords like @buffer, returns just the @ token
+   * @returns Token representing an @ keyword or just AT token
    */
-  protected readStorageClassKeyword(): Token {
+  protected readAtKeyword(): Token {
     const start = this.getCurrentPosition();
-    let value = '';
 
-    // Read the '@' character
-    value += this.getCurrentChar();
+    // Always consume the '@' character first
     this.advance();
 
-    // Read the rest of the keyword
-    while (this.isAlphaNumeric(this.getCurrentChar())) {
-      value += this.getCurrentChar();
-      this.advance();
+    // Peek ahead to see what follows without consuming
+    let keyword = '';
+    let pos = this.position;
+    while (pos < this.source.length && this.isAlphaNumeric(this.source[pos])) {
+      keyword += this.source[pos];
+      pos++;
     }
 
-    // Check if it's a valid storage class keyword
-    if (value === '@zp') {
-      return this.createToken(TokenType.ZP, value, start);
-    } else if (value === '@ram') {
-      return this.createToken(TokenType.RAM, value, start);
-    } else if (value === '@data') {
-      return this.createToken(TokenType.DATA, value, start);
-    } else if (value === '@map') {
-      return this.createToken(TokenType.MAP, value, start);
+    // Check if it's a known @ keyword
+    if (keyword === 'zp') {
+      // Consume the keyword and return the full token
+      this.advance(keyword.length);
+      return this.createToken(TokenType.ZP, '@zp', start);
+    } else if (keyword === 'ram') {
+      this.advance(keyword.length);
+      return this.createToken(TokenType.RAM, '@ram', start);
+    } else if (keyword === 'data') {
+      this.advance(keyword.length);
+      return this.createToken(TokenType.DATA, '@data', start);
+    } else if (keyword === 'map') {
+      this.advance(keyword.length);
+      return this.createToken(TokenType.MAP, '@map', start);
+    } else if (keyword === 'address') {
+      this.advance(keyword.length);
+      return this.createToken(TokenType.ADDRESS, '@address', start);
     }
 
-    // Invalid storage class keyword
-    throw new Error(`Invalid storage class keyword '${value}' at line ${start.line}, column ${start.column}`);
+    // Unknown keyword after @, just return AT token
+    // Don't consume the following identifier - let it be parsed separately
+    return this.createToken(TokenType.AT, '@', start);
   }
 
   /**
@@ -498,6 +507,8 @@ export class Lexer {
         return TokenType.STRING;
       case ePrimitiveType.BOOLEAN:
         return TokenType.BOOLEAN;
+      case ePrimitiveType.ADDRESS:
+        return TokenType.ADDRESS;
       default:
         return TokenType.IDENTIFIER;
     }
