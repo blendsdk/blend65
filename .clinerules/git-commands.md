@@ -35,20 +35,25 @@ When the user provides these keywords, Cline should perform the following action
 # Stage changes
 clear && git add .
 
-# Create commit message file
-cat > /tmp/git_commit_msg.txt << 'EOF'
+# Create commit message file using VS Code
+code /tmp/git_commit_msg.txt
+
+# Commit using the file (after VS Code saves and closes)
+git commit -F /tmp/git_commit_msg.txt
+
+# Clean up
+rm /tmp/git_commit_msg.txt
+```
+
+**Commit Message Format:**
+When VS Code opens, write the commit message following this format:
+
+```
 feat(package): implement feature description
 
 - Specific change 1
 - Specific change 2
 - Tests added/updated
-EOF
-
-# Commit using file
-git commit -F /tmp/git_commit_msg.txt
-
-# Clean up
-rm /tmp/git_commit_msg.txt
 ```
 
 #### `gitcmp` - Git Commit, Rebase, and Push
@@ -64,16 +69,10 @@ rm /tmp/git_commit_msg.txt
 # Stage changes
 clear && git add .
 
-# Create commit message file
-cat > /tmp/git_commit_msg.txt << 'EOF'
-feat(package): implement feature description
+# Create commit message file using VS Code
+code /tmp/git_commit_msg.txt
 
-- Specific change 1
-- Specific change 2
-- Tests added/updated
-EOF
-
-# Commit using file
+# Commit using the file (after VS Code saves and closes)
 git commit -F /tmp/git_commit_msg.txt
 
 # Clean up
@@ -82,4 +81,15 @@ rm /tmp/git_commit_msg.txt
 # Rebase and push
 git pull --rebase
 git push
+```
+
+**Commit Message Format:**
+When VS Code opens, write the commit message following this format:
+
+```
+feat(package): implement feature description
+
+- Specific change 1
+- Specific change 2
+- Tests added/updated
 ```
