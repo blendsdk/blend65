@@ -11,6 +11,7 @@
  */
 
 import {
+  ArrayLiteralExpression,
   AssignmentExpression,
   BinaryExpression,
   CallExpression,
@@ -392,6 +393,7 @@ export abstract class ExpressionParser extends BaseParser {
    * - Literals: 42, "hello", true
    * - Identifiers: counter, myVar
    * - Parenthesized expressions: (2 + 3)
+   * - Array literals: [1, 2, 3], [[1, 2], [3, 4]]
    *
    * @returns Expression AST node representing an atomic expression
    */
@@ -424,6 +426,11 @@ export abstract class ExpressionParser extends BaseParser {
       const token = this.advance();
       const location = this.createLocation(token, token);
       return new IdentifierExpression(token.value, location);
+    }
+
+    // Array literals: [1, 2, 3]
+    if (this.check(TokenType.LEFT_BRACKET)) {
+      return this.parseArrayLiteral();
     }
 
     // Parenthesized expressions
@@ -699,5 +706,74 @@ export abstract class ExpressionParser extends BaseParser {
     const location = this.mergeLocations(array.getLocation(), this.currentLocation());
 
     return new IndexExpression(array, indexExpr, location);
+  }
+
+  // ============================================
+  // ARRAY LITERAL PARSING
+  // ============================================
+
+  /**
+   * Parses array literal expressions
+   *
+   * Array literals provide a concise syntax for initializing arrays inline.
+   * Supports empty arrays, single/multiple elements, nested arrays (multidimensional),
+   * and expressions as elements.
+   *
+   * Grammar:
+   * array_literal = "[" , [ expression_list ] , "]" ;
+   * expression_list = expression , { "," , expression } , [ "," ] ;
+   *
+   * Handles:
+   * - Empty arrays: []
+   * - Single element: [42]
+   * - Multiple elements: [1, 2, 3]
+   * - Nested arrays (multidimensional): [[1, 2], [3, 4]]
+   * - Trailing commas: [1, 2, 3,]
+   * - Expressions as elements: [x, y + 1, foo()]
+   *
+   * Note: Multidimensional arrays are syntactic sugar - they will compile to
+   * flat arrays with calculated offsets for 6502 efficiency in code generation phase.
+   *
+   * @returns ArrayLiteralExpression AST node
+   */
+  protected parseArrayLiteral(): Expression {
+    const startToken = this.getCurrentToken();
+
+    // Parse opening bracket
+    this.expect(TokenType.LEFT_BRACKET, "Expected '['");
+
+    const elements: Expression[] = [];
+
+    // Handle empty array: []
+    if (this.check(TokenType.RIGHT_BRACKET)) {
+      this.advance(); // consume ']'
+      const location = this.createLocation(startToken, this.getCurrentToken());
+      return new ArrayLiteralExpression(elements, location);
+    }
+
+    // Parse element list
+    do {
+      // Parse element expression (can be any expression, including nested arrays)
+      const element = this.parseExpression();
+      elements.push(element);
+
+      // Check for comma (required between elements, optional after last)
+      if (this.match(TokenType.COMMA)) {
+        // Check for trailing comma: [1, 2, 3,]
+        if (this.check(TokenType.RIGHT_BRACKET)) {
+          break; // Allow trailing comma
+        }
+        // Continue parsing next element
+      } else {
+        // No comma, must be end of list
+        break;
+      }
+    } while (!this.check(TokenType.RIGHT_BRACKET) && !this.isAtEnd());
+
+    // Parse closing bracket
+    this.expect(TokenType.RIGHT_BRACKET, "Expected ']' after array elements");
+
+    const location = this.createLocation(startToken, this.getCurrentToken());
+    return new ArrayLiteralExpression(elements, location);
   }
 }

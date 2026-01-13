@@ -663,6 +663,63 @@ export class AssignmentExpression extends Expression {
   }
 }
 
+/**
+ * Array literal expression node
+ *
+ * Represents: [1, 2, 3], [x, y], [[1, 2], [3, 4]]
+ *
+ * Array literals provide a concise syntax for initializing arrays inline.
+ * Supports:
+ * - Empty arrays: []
+ * - Single/multiple elements: [42], [1, 2, 3]
+ * - Nested arrays (multidimensional): [[1, 2], [3, 4]]
+ * - Expressions as elements: [x, y + 1, foo()]
+ *
+ * Note: Multidimensional arrays are syntactic sugar - they compile to
+ * flat arrays with calculated offsets for 6502 efficiency.
+ */
+export class ArrayLiteralExpression extends Expression {
+  /**
+   * Creates an Array Literal expression
+   * @param elements - Array element expressions (can be any expression including nested arrays)
+   * @param location - Source location
+   */
+  constructor(
+    protected readonly elements: Expression[],
+    location: SourceLocation
+  ) {
+    super(ASTNodeType.ARRAY_LITERAL_EXPR, location);
+  }
+
+  /**
+   * Gets the array elements
+   * @returns Array of element expressions
+   */
+  public getElements(): Expression[] {
+    return this.elements;
+  }
+
+  /**
+   * Gets the number of elements in the array
+   * @returns Element count
+   */
+  public getElementCount(): number {
+    return this.elements.length;
+  }
+
+  /**
+   * Checks if this is an empty array literal
+   * @returns True if array has no elements
+   */
+  public isEmpty(): boolean {
+    return this.elements.length === 0;
+  }
+
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitArrayLiteralExpression(this);
+  }
+}
+
 // ============================================
 // STATEMENTS
 // ============================================

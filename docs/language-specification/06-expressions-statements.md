@@ -25,7 +25,7 @@ let addr = $D000;
 let mask = 0b11110000;
 
 // String literals
-let msg = "Hello";
+let msg = 'Hello';
 
 // Boolean literals
 let flag = true;
@@ -41,8 +41,8 @@ let y = x;  // 'x' is an identifier expression
 #### Parenthesized Expressions
 
 ```js
-let result = (5 + 3) * 2;  // Parentheses control precedence
-let complex = ((a + b) * (c + d));
+let result = (5 + 3) * 2; // Parentheses control precedence
+let complex = (a + b) * (c + d);
 ```
 
 ### Call Expressions
@@ -55,6 +55,7 @@ argument_list = expression , { "," , expression } ;
 ```
 
 **Examples:**
+
 ```js
 clearScreen();
 setPixel(10, 20);
@@ -70,6 +71,7 @@ index_expr = primary_expr , "[" , expression , "]" ;
 ```
 
 **Examples:**
+
 ```js
 let value = buffer[0];
 buffer[i] = 255;
@@ -85,11 +87,125 @@ member_expr = primary_expr , "." , identifier ;
 ```
 
 **Examples:**
+
 ```js
 let state = GameState.MENU;
 vic.borderColor = 0;
 enemy[0].health = 100;
 ```
+
+### Array Literal Expressions
+
+Array literals provide a concise syntax for initializing arrays inline with values.
+
+```ebnf
+array_literal = "[" , [ expression_list ] , "]" ;
+expression_list = expression , { "," , expression } , [ "," ] ;
+```
+
+**Basic Examples:**
+
+```js
+// Empty array
+let empty: byte[0] = [];
+
+// Single element
+let single: byte[1] = [42];
+
+// Multiple elements
+let colors: byte[3] = [2, 5, 6];
+let values: word[5] = [100, 200, 300, 400, 500];
+```
+
+**With Expressions:**
+
+```js
+// Variables and expressions
+let positions: byte[3] = [x, y + 1, z * 2];
+
+// Function calls
+let results: byte[2] = [calculate(1), calculate(2)];
+
+// Member access
+let coords: byte[2] = [player.x, player.y];
+
+// Address-of operator
+let addresses: word[2] = [@buffer, @screen];
+```
+
+**Nested Arrays (Multidimensional):**
+
+```js
+// 2D arrays
+let matrix: byte[2][2] = [[1, 2], [3, 4]];
+
+// 3D arrays
+let cube: byte[2][2][2] = [
+  [[1, 2], [3, 4]],
+  [[5, 6], [7, 8]]
+];
+```
+
+**C64-Specific Examples:**
+
+```js
+// Sprite data (63 bytes per sprite)
+@data const spriteData: byte[63] = [
+  0xFF, 0x3C, 0x18, 0x18, 0x18, 0x3C, 0xFF, 0x00,
+  0x18, 0x24, 0x42, 0x81, 0x42, 0x24, 0x18, 0x00,
+  // ... more sprite data ...
+];
+
+// Color palette
+const palette: byte[16] = [
+  0,  // Black
+  1,  // White
+  2,  // Red
+  5,  // Green
+  6,  // Blue
+  // ... more colors ...
+];
+
+// Sine wave lookup table
+@data const sineTable: byte[256] = [/* precomputed values */];
+
+// C64 screen layout (25 rows × 40 columns)
+let tilemap: byte[25][40] = [
+  [1, 1, 1, 1, /* ... */],  // Row 0
+  [1, 0, 0, 0, /* ... */],  // Row 1
+  // ... more rows ...
+];
+```
+
+**Trailing Commas:**
+
+Trailing commas are allowed for easier multi-line editing:
+
+```js
+let values: byte[3] = [
+  1,
+  2,
+  3,  // Trailing comma allowed
+];
+```
+
+**Implementation Notes:**
+
+Array literals are syntactic sugar for array initialization. Multidimensional arrays like `byte[25][40]` are compiled to flat arrays with calculated offsets for 6502 efficiency:
+
+```js
+// Developer writes:
+let screen: byte[25][40];
+screen[row][col] = 160;
+
+// Compiler treats as:
+let screen: byte[1000];  // 25 * 40 = 1000
+screen[row * 40 + col] = 160;  // Offset calculation optimized
+```
+
+**Type Compatibility:**
+
+Array elements must be compatible with the declared array type (validated during semantic analysis phase).
 
 ## Operators
 
@@ -97,15 +213,16 @@ Blend65 provides a comprehensive set of operators for arithmetic, comparison, lo
 
 ### Arithmetic Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `+` | Addition | `a + b` |
-| `-` | Subtraction | `a - b` |
-| `*` | Multiplication | `a * b` |
-| `/` | Division | `a / b` |
-| `%` | Modulo | `a % b` |
+| Operator | Description    | Example |
+| -------- | -------------- | ------- |
+| `+`      | Addition       | `a + b` |
+| `-`      | Subtraction    | `a - b` |
+| `*`      | Multiplication | `a * b` |
+| `/`      | Division       | `a / b` |
+| `%`      | Modulo         | `a % b` |
 
 **Examples:**
+
 ```js
 let sum = a + b;
 let diff = x - 5;
@@ -116,16 +233,17 @@ let remainder = value % 10;
 
 ### Comparison Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `==` | Equal | `a == b` |
-| `!=` | Not equal | `a != b` |
-| `<` | Less than | `a < b` |
-| `<=` | Less or equal | `a <= b` |
-| `>` | Greater than | `a > b` |
-| `>=` | Greater or equal | `a >= b` |
+| Operator | Description      | Example  |
+| -------- | ---------------- | -------- |
+| `==`     | Equal            | `a == b` |
+| `!=`     | Not equal        | `a != b` |
+| `<`      | Less than        | `a < b`  |
+| `<=`     | Less or equal    | `a <= b` |
+| `>`      | Greater than     | `a > b`  |
+| `>=`     | Greater or equal | `a >= b` |
 
 **Examples:**
+
 ```js
 if x == 10 then
 if score != 0 then
@@ -135,13 +253,14 @@ if count >= 100 then
 
 ### Logical Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `&&` | Logical AND | `a && b` |
-| `\|\|` | Logical OR | `a \|\| b` |
-| `!` | Logical NOT | `!a` |
+| Operator | Description | Example    |
+| -------- | ----------- | ---------- |
+| `&&`     | Logical AND | `a && b`   |
+| `\|\|`   | Logical OR  | `a \|\| b` |
+| `!`      | Logical NOT | `!a`       |
 
 **Examples:**
+
 ```js
 if running && !paused then
 if x < 0 || x > 320 then
@@ -150,16 +269,17 @@ if !gameOver then
 
 ### Bitwise Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `&` | Bitwise AND | `a & b` |
-| `\|` | Bitwise OR | `a \| b` |
-| `^` | Bitwise XOR | `a ^ b` |
-| `~` | Bitwise NOT | `~a` |
-| `<<` | Left shift | `a << b` |
-| `>>` | Right shift | `a >> b` |
+| Operator | Description | Example  |
+| -------- | ----------- | -------- |
+| `&`      | Bitwise AND | `a & b`  |
+| `\|`     | Bitwise OR  | `a \| b` |
+| `^`      | Bitwise XOR | `a ^ b`  |
+| `~`      | Bitwise NOT | `~a`     |
+| `<<`     | Left shift  | `a << b` |
+| `>>`     | Right shift | `a >> b` |
 
 **Examples:**
+
 ```js
 let masked = value & 0b11110000;
 let combined = flags | 0b00000001;
@@ -173,11 +293,12 @@ let halved = value >> 1;
 
 The address-of operator (`@`) returns the memory address of a variable as a 16-bit word.
 
-| Operator | Description | Example | Returns |
-|----------|-------------|---------|---------|
-| `@` | Address-of | `@myVariable` | `@address` |
+| Operator | Description | Example       | Returns    |
+| -------- | ----------- | ------------- | ---------- |
+| `@`      | Address-of  | `@myVariable` | `@address` |
 
 **Syntax:**
+
 ```ebnf
 address_of_expr = "@" , identifier ;
 ```
@@ -185,6 +306,7 @@ address_of_expr = "@" , identifier ;
 **Type:** The address-of operator returns type `@address`, which is a built-in type alias for `word`.
 
 **Examples:**
+
 ```js
 // Get address of variables
 @ram let buffer: byte[256];
@@ -201,6 +323,7 @@ let addrValue: @address = 0xD020;          // ✅ Valid - can assign word to @ad
 ```
 
 **Usage with Generic Functions:**
+
 ```js
 // Generic memory manipulation using address-of
 function copyMemory(src: @address, dst: @address, len: byte): void
@@ -217,6 +340,7 @@ copyMemory(@spriteData, @activeSprite, 63);  // Pass addresses directly
 ```
 
 **Restrictions:**
+
 - Can only be applied to **variables** (local, global, memory-mapped)
 - Cannot be applied to **literals**: `@5` ❌ (compile error)
 - Cannot be applied to **expressions**: `@(x + y)` ❌ (compile error)
@@ -227,11 +351,13 @@ copyMemory(@spriteData, @activeSprite, 63);  // Pass addresses directly
 `@address` is a **built-in type alias** for `word`. It provides self-documenting code when working with memory addresses.
 
 **Type Equivalence:**
+
 ```js
 @address ≡ word  // These types are identical
 ```
 
 **Usage:**
+
 ```js
 // Function parameters - clearly indicates intent
 function fillMemory(addr: @address, len: word, value: byte): void
@@ -250,21 +376,22 @@ let nextAddr: @address = screenAddr + 40;  // Next screen line
 
 ### Assignment Operators
 
-| Operator | Description | Equivalent To |
-|----------|-------------|---------------|
-| `=` | Assignment | N/A |
-| `+=` | Add assign | `a = a + b` |
-| `-=` | Subtract assign | `a = a - b` |
-| `*=` | Multiply assign | `a = a * b` |
-| `/=` | Divide assign | `a = a / b` |
-| `%=` | Modulo assign | `a = a % b` |
-| `&=` | AND assign | `a = a & b` |
-| `\|=` | OR assign | `a = a \| b` |
-| `^=` | XOR assign | `a = a ^ b` |
-| `<<=` | Left shift assign | `a = a << b` |
-| `>>=` | Right shift assign | `a = a >> b` |
+| Operator | Description        | Equivalent To |
+| -------- | ------------------ | ------------- |
+| `=`      | Assignment         | N/A           |
+| `+=`     | Add assign         | `a = a + b`   |
+| `-=`     | Subtract assign    | `a = a - b`   |
+| `*=`     | Multiply assign    | `a = a * b`   |
+| `/=`     | Divide assign      | `a = a / b`   |
+| `%=`     | Modulo assign      | `a = a % b`   |
+| `&=`     | AND assign         | `a = a & b`   |
+| `\|=`    | OR assign          | `a = a \| b`  |
+| `^=`     | XOR assign         | `a = a ^ b`   |
+| `<<=`    | Left shift assign  | `a = a << b`  |
+| `>>=`    | Right shift assign | `a = a >> b`  |
 
 **Examples:**
+
 ```js
 x = 10;
 score += 100;
@@ -278,27 +405,28 @@ mask &= 0b11111110;
 
 From **highest to lowest** precedence:
 
-| Level | Operators | Associativity | Description |
-|-------|-----------|---------------|-------------|
-| 1 | `()` `[]` `.` | Left-to-right | Grouping, indexing, member access |
-| 2 | `!` `~` unary `+` unary `-` `@` | Right-to-left | Unary operators |
-| 3 | `*` `/` `%` | Left-to-right | Multiplicative |
-| 4 | `+` `-` | Left-to-right | Additive |
-| 5 | `<<` `>>` | Left-to-right | Shift |
-| 6 | `<` `<=` `>` `>=` | Left-to-right | Relational |
-| 7 | `==` `!=` | Left-to-right | Equality |
-| 8 | `&` | Left-to-right | Bitwise AND |
-| 9 | `^` | Left-to-right | Bitwise XOR |
-| 10 | `\|` | Left-to-right | Bitwise OR |
-| 11 | `&&` | Left-to-right | Logical AND |
-| 12 | `\|\|` | Left-to-right | Logical OR |
-| 13 | `=` `+=` `-=` etc. | Right-to-left | Assignment |
+| Level | Operators                       | Associativity | Description                       |
+| ----- | ------------------------------- | ------------- | --------------------------------- |
+| 1     | `()` `[]` `.`                   | Left-to-right | Grouping, indexing, member access |
+| 2     | `!` `~` unary `+` unary `-` `@` | Right-to-left | Unary operators                   |
+| 3     | `*` `/` `%`                     | Left-to-right | Multiplicative                    |
+| 4     | `+` `-`                         | Left-to-right | Additive                          |
+| 5     | `<<` `>>`                       | Left-to-right | Shift                             |
+| 6     | `<` `<=` `>` `>=`               | Left-to-right | Relational                        |
+| 7     | `==` `!=`                       | Left-to-right | Equality                          |
+| 8     | `&`                             | Left-to-right | Bitwise AND                       |
+| 9     | `^`                             | Left-to-right | Bitwise XOR                       |
+| 10    | `\|`                            | Left-to-right | Bitwise OR                        |
+| 11    | `&&`                            | Left-to-right | Logical AND                       |
+| 12    | `\|\|`                          | Left-to-right | Logical OR                        |
+| 13    | `=` `+=` `-=` etc.              | Right-to-left | Assignment                        |
 
 **Examples:**
+
 ```js
-let result = a + b * c;     // Multiplication first: a + (b * c)
-let mask = x & 0xFF == y;   // AND first: (x & 0xFF) == y
-let flag = !a || b;         // NOT first: (!a) || b
+let result = a + b * c; // Multiplication first: a + (b * c)
+let mask = x & (0xff == y); // AND first: (x & 0xFF) == y
+let flag = !a || b; // NOT first: (!a) || b
 ```
 
 ## Statements
@@ -314,6 +442,7 @@ variable_decl = [ storage_class ] , ( "let" | "const" ) , identifier
 ```
 
 **Examples:**
+
 ```js
 let x: byte = 10;
 let buffer: byte[256];
@@ -331,6 +460,7 @@ lvalue = identifier | index_expr | member_expr ;
 ```
 
 **Examples:**
+
 ```js
 x = 10;
 buffer[i] = 255;
@@ -347,10 +477,11 @@ expr_stmt = expression , ";" ;
 ```
 
 **Examples:**
+
 ```js
 clearScreen();
 updatePlayer();
-x + y;  // Valid but useless (result discarded)
+x + y; // Valid but useless (result discarded)
 ```
 
 ### Return Statement
@@ -360,10 +491,11 @@ return_stmt = "return" , [ expression ] , ";" ;
 ```
 
 **Examples:**
+
 ```js
-return;           // Return from void function
-return value;     // Return value
-return a + b;     // Return expression result
+return; // Return from void function
+return value; // Return value
+return a + b; // Return expression result
 ```
 
 ### Break and Continue
@@ -376,6 +508,7 @@ continue_stmt = "continue" , ";" ;
 ```
 
 **Examples:**
+
 ```js
 for i = 0 to 10
   if i == 5 then
@@ -403,6 +536,7 @@ if_stmt = "if" , expression , "then"
 ```
 
 **Basic if:**
+
 ```js
 if x > 10 then
   doSomething();
@@ -410,6 +544,7 @@ end if
 ```
 
 **If-else:**
+
 ```js
 if health <= 0 then
   gameOver();
@@ -419,6 +554,7 @@ end if
 ```
 
 **If-else chain:**
+
 ```js
 if score > 1000 then
   showGold();
@@ -442,6 +578,7 @@ while_stmt = "while" , expression
 ```
 
 **Examples:**
+
 ```js
 while running
   update();
@@ -454,6 +591,7 @@ end while
 ```
 
 **Infinite loop:**
+
 ```js
 while true
   gameLoop();
@@ -471,6 +609,7 @@ for_stmt = "for" , identifier , "=" , expression , "to" , expression
 ```
 
 **Examples:**
+
 ```js
 for i = 0 to 10
   buffer[i] = 0;
@@ -486,6 +625,7 @@ next count
 ```
 
 **Nested loops:**
+
 ```js
 for y = 0 to 24
   for x = 0 to 39
@@ -512,6 +652,7 @@ default_clause = "default" , ":"
 ```
 
 **Examples:**
+
 ```js
 match gameState
   case GameState.MENU:
@@ -526,6 +667,7 @@ end match
 ```
 
 **With multiple statements per case:**
+
 ```js
 match direction
   case Direction.UP:
@@ -650,6 +792,7 @@ next i
 ### Semicolons Required
 
 These statements **require semicolons**:
+
 - ✅ Variable declarations: `let x: byte = 5;`
 - ✅ Assignments: `x = 10;`
 - ✅ Expression statements: `clearScreen();`
@@ -660,6 +803,7 @@ These statements **require semicolons**:
 ### Semicolons Not Required
 
 These statements are **self-terminating**:
+
 - ❌ If statements: `if ... end if`
 - ❌ While loops: `while ... end while`
 - ❌ For loops: `for ... next`
@@ -687,7 +831,7 @@ let offset = baseAddr + x;
 screenRAM[offset] = char;
 
 // ❌ COMPLEX: Hard to read
-screenRAM[(y * 40) + x] = char;
+screenRAM[y * 40 + x] = char;
 ```
 
 ### 3. Use Meaningful Variable Names in Loops
@@ -721,6 +865,7 @@ end function
 ## Implementation Notes
 
 Expression and statement parsing is implemented in:
+
 - `packages/compiler/src/parser/` - Parser implementation
 - `packages/compiler/src/parser/precedence.ts` - Operator precedence
 - `packages/compiler/src/__tests__/parser/` - Parser tests

@@ -21,6 +21,7 @@
 import { ASTNode, Expression, Statement, Declaration } from './base.js';
 
 import {
+  ArrayLiteralExpression,
   Program,
   ModuleDecl,
   ImportDecl,
@@ -264,6 +265,18 @@ export function isAssignmentExpression(
   node: ASTNode | null | undefined
 ): node is AssignmentExpression {
   return node instanceof AssignmentExpression;
+}
+
+/**
+ * Type guard for ArrayLiteralExpression nodes
+ *
+ * @param node - AST node to check
+ * @returns True if node is an ArrayLiteralExpression
+ */
+export function isArrayLiteralExpression(
+  node: ASTNode | null | undefined
+): node is ArrayLiteralExpression {
+  return node instanceof ArrayLiteralExpression;
 }
 
 // ============================================

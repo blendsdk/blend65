@@ -91,25 +91,8 @@ export abstract class DeclarationParser extends ExpressionParser {
     // Parse type annotation
     let typeAnnotation: string | null = null;
     if (this.match(TokenType.COLON)) {
-      // Type can be a keyword (byte, word, void, etc.) or identifier (custom type)
-      if (
-        this.check(
-          TokenType.BYTE,
-          TokenType.WORD,
-          TokenType.VOID,
-          TokenType.STRING,
-          TokenType.BOOLEAN,
-          TokenType.CALLBACK,
-          TokenType.IDENTIFIER
-        )
-      ) {
-        typeAnnotation = this.advance().value;
-      } else {
-        this.reportError(
-          DiagnosticCode.EXPECTED_TOKEN,
-          DeclarationParserErrors.expectedTypeAfterColon()
-        );
-      }
+      // Parse full type expression (handles array types like byte[3])
+      typeAnnotation = this.parseTypeAnnotation();
     }
 
     // Parse optional initializer
@@ -428,6 +411,67 @@ export abstract class DeclarationParser extends ExpressionParser {
     const location = this.createLocation(startToken, this.getCurrentToken());
 
     return new ExplicitStructMapDecl(name, baseAddress, fields, location);
+  }
+
+  // ============================================
+  // TYPE ANNOTATION PARSING
+  // ============================================
+
+  /**
+   * Parses a type annotation (for variables, parameters, etc.)
+   *
+   * Handles:
+   * - Simple types: byte, word, void, boolean, string
+   * - Custom types: SpriteId, Color (identifiers)
+   * - Array types: byte[256], word[100]
+   * - Multidimensional arrays: byte[25][40], word[10][20][30]
+   *
+   * Grammar:
+   * type_annotation = type_name { "[" number "]" }
+   * type_name = keyword | identifier
+   *
+   * Examples:
+   * - byte
+   * - word
+   * - byte[256]
+   * - byte[25][40]
+   *
+   * @returns String representation of the type
+   */
+  protected parseTypeAnnotation(): string {
+    // Parse base type (keyword or identifier)
+    let baseType: string;
+
+    if (
+      this.check(
+        TokenType.BYTE,
+        TokenType.WORD,
+        TokenType.VOID,
+        TokenType.STRING,
+        TokenType.BOOLEAN,
+        TokenType.CALLBACK,
+        TokenType.IDENTIFIER
+      )
+    ) {
+      baseType = this.advance().value;
+    } else {
+      this.reportError(
+        DiagnosticCode.EXPECTED_TOKEN,
+        DeclarationParserErrors.expectedTypeAfterColon()
+      );
+      return 'unknown';
+    }
+
+    // Parse array dimensions: byte[256] or byte[25][40]
+    let fullType = baseType;
+    while (this.match(TokenType.LEFT_BRACKET)) {
+      const sizeToken = this.expect(TokenType.NUMBER, 'Expected array size');
+      this.expect(TokenType.RIGHT_BRACKET, "Expected ']' after array size");
+
+      fullType += `[${sizeToken.value}]`;
+    }
+
+    return fullType;
   }
 
   // ============================================

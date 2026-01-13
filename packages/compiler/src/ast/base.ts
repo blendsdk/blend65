@@ -11,6 +11,7 @@ import { SourcePosition } from '../lexer/types.js';
 // Note: This creates a circular dependency (base → nodes → base)
 // which is resolved at runtime because visitor interface only uses types
 import type {
+  ArrayLiteralExpression,
   AssignmentExpression,
   BinaryExpression,
   BlockStatement,
@@ -219,6 +220,12 @@ export enum ASTNodeType {
    * e.g., "x = 5", "counter += 1"
    */
   ASSIGNMENT_EXPR = 'AssignmentExpression',
+
+  /**
+   * Array literal expression
+   * e.g., "[1, 2, 3]", "[[1, 2], [3, 4]]"
+   */
+  ARRAY_LITERAL_EXPR = 'ArrayLiteralExpression',
 
   // ============================================
   // STATEMENTS
@@ -754,6 +761,13 @@ export interface ASTVisitor<R> {
    * @returns Result of visiting this node
    */
   visitAssignmentExpression(node: AssignmentExpression): R;
+
+  /**
+   * Visit an Array literal expression (e.g., [1, 2, 3], [[1, 2], [3, 4]])
+   * @param node - The array literal expression to visit
+   * @returns Result of visiting this node
+   */
+  visitArrayLiteralExpression(node: ArrayLiteralExpression): R;
 
   // ============================================
   // STATEMENTS
