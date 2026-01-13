@@ -34,7 +34,7 @@ export abstract class TypeCheckerExpressions extends TypeCheckerLiterals {
    * - Logical (&&, ||): boolean only, result = boolean
    * - Bitwise (&, |, ^, <<, >>): numeric types only, result = larger operand type
    */
-  public visitBinaryExpression(node: BinaryExpression): TypeInfo {
+  public visitBinaryExpression(node: BinaryExpression): void {
     const operator = node.getOperator();
     const leftType = this.typeCheckExpression(node.getLeft());
     const rightType = this.typeCheckExpression(node.getRight());
@@ -162,7 +162,6 @@ export abstract class TypeCheckerExpressions extends TypeCheckerLiterals {
 
     // Annotate node with result type
     (node as any).typeInfo = resultType;
-    return resultType;
   }
 
   /**
@@ -174,7 +173,7 @@ export abstract class TypeCheckerExpressions extends TypeCheckerLiterals {
    * - Bitwise NOT (~): numeric only, result = operand type
    * - Address-of (@): any lvalue, result = word (address)
    */
-  public visitUnaryExpression(node: UnaryExpression): TypeInfo {
+  public visitUnaryExpression(node: UnaryExpression): void {
     const operator = node.getOperator();
     const operandType = this.typeCheckExpression(node.getOperand());
 
@@ -252,6 +251,5 @@ export abstract class TypeCheckerExpressions extends TypeCheckerLiterals {
 
     // Annotate node with result type
     (node as any).typeInfo = resultType;
-    return resultType;
   }
 }

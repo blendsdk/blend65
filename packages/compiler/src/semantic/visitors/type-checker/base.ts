@@ -93,7 +93,7 @@ export abstract class TypeCheckerBase extends ContextWalker {
    * Type check an expression and return its type
    *
    * This helper method dispatches to the appropriate visitor method
-   * and returns the computed type.
+   * (which sets typeInfo on the node) and returns the computed type.
    *
    * @param expr - Expression to type check
    * @returns The type of the expression
@@ -102,36 +102,40 @@ export abstract class TypeCheckerBase extends ContextWalker {
     const nodeType = expr.getNodeType();
 
     // Dispatch to appropriate visitor method based on node type
+    // Each visitor sets node.typeInfo as a side effect
     if (nodeType === 'LiteralExpression') {
-      return this.visitLiteralExpression(expr as LiteralExpression);
+      this.visitLiteralExpression(expr as LiteralExpression);
     } else if (nodeType === 'ArrayLiteralExpression') {
-      return this.visitArrayLiteralExpression(expr as ArrayLiteralExpression);
+      this.visitArrayLiteralExpression(expr as ArrayLiteralExpression);
     } else if (nodeType === 'IdentifierExpression') {
-      return this.visitIdentifierExpression(expr as IdentifierExpression);
+      this.visitIdentifierExpression(expr as IdentifierExpression);
     } else if (nodeType === 'BinaryExpression') {
-      return this.visitBinaryExpression(expr as BinaryExpression);
+      this.visitBinaryExpression(expr as BinaryExpression);
     } else if (nodeType === 'UnaryExpression') {
-      return this.visitUnaryExpression(expr as UnaryExpression);
+      this.visitUnaryExpression(expr as UnaryExpression);
     } else if (nodeType === 'AssignmentExpression') {
-      return this.visitAssignmentExpression(expr as AssignmentExpression);
+      this.visitAssignmentExpression(expr as AssignmentExpression);
     } else if (nodeType === 'CallExpression') {
-      return this.visitCallExpression(expr as CallExpression);
+      this.visitCallExpression(expr as CallExpression);
     } else if (nodeType === 'IndexExpression') {
-      return this.visitIndexExpression(expr as IndexExpression);
+      this.visitIndexExpression(expr as IndexExpression);
     } else if (nodeType === 'MemberExpression') {
-      return this.visitMemberExpression(expr as MemberExpression);
+      this.visitMemberExpression(expr as MemberExpression);
+    } else {
+      // Unsupported expression type - set unknown type
+      const unknownType: TypeInfo = {
+        kind: TypeKind.Unknown,
+        name: 'unknown',
+        size: 0,
+        isSigned: false,
+        isAssignable: false,
+      };
+      (expr as any).typeInfo = unknownType;
+      return unknownType;
     }
 
-    // Default: return unknown type for unsupported expressions
-    const unknownType: TypeInfo = {
-      kind: TypeKind.Unknown,
-      name: 'unknown',
-      size: 0,
-      isSigned: false,
-      isAssignable: false,
-    };
-    (expr as any).typeInfo = unknownType;
-    return unknownType;
+    // Return the typeInfo that was set by the visitor
+    return (expr as any).typeInfo as TypeInfo;
   }
 
   /**
@@ -267,13 +271,13 @@ export abstract class TypeCheckerBase extends ContextWalker {
   // ============================================
   // These must be implemented by derived classes
 
-  public abstract visitLiteralExpression(node: LiteralExpression): TypeInfo;
-  public abstract visitArrayLiteralExpression(node: ArrayLiteralExpression): TypeInfo;
-  public abstract visitIdentifierExpression(node: IdentifierExpression): TypeInfo;
-  public abstract visitBinaryExpression(node: BinaryExpression): TypeInfo;
-  public abstract visitUnaryExpression(node: UnaryExpression): TypeInfo;
-  public abstract visitAssignmentExpression(node: AssignmentExpression): TypeInfo;
-  public abstract visitCallExpression(node: CallExpression): TypeInfo;
-  public abstract visitIndexExpression(node: IndexExpression): TypeInfo;
-  public abstract visitMemberExpression(node: MemberExpression): TypeInfo;
+  public abstract visitLiteralExpression(node: LiteralExpression): void;
+  public abstract visitArrayLiteralExpression(node: ArrayLiteralExpression): void;
+  public abstract visitIdentifierExpression(node: IdentifierExpression): void;
+  public abstract visitBinaryExpression(node: BinaryExpression): void;
+  public abstract visitUnaryExpression(node: UnaryExpression): void;
+  public abstract visitAssignmentExpression(node: AssignmentExpression): void;
+  public abstract visitCallExpression(node: CallExpression): void;
+  public abstract visitIndexExpression(node: IndexExpression): void;
+  public abstract visitMemberExpression(node: MemberExpression): void;
 }

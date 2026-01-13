@@ -27,4 +27,4 @@ export { TypeResolver } from './visitors/type-resolver.js';
 
 // Visitors
 export { SymbolTableBuilder } from './visitors/symbol-table-builder.js';
-export { TypeChecker } from './visitors/type-checker.js';
+export { TypeChecker } from './visitors/type-checker/index.js';

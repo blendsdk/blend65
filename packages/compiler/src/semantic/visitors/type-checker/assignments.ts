@@ -43,7 +43,7 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
    * - Right side type must be assignable to left side type
    * - Supports simple (=) and compound assignments (+=, -=, etc.)
    */
-  public visitAssignmentExpression(node: AssignmentExpression): TypeInfo {
+  public visitAssignmentExpression(node: AssignmentExpression): void {
     const operator = node.getOperator();
     const target = node.getTarget();
     const value = node.getValue();
@@ -159,7 +159,6 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
 
     // Assignment expression has the type of the target
     (node as any).typeInfo = targetType;
-    return targetType;
   }
 
   /**
@@ -171,7 +170,7 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
    * - Each argument type must be assignable to corresponding parameter type
    * - Result type is function's return type
    */
-  public visitCallExpression(node: CallExpression): TypeInfo {
+  public visitCallExpression(node: CallExpression): void {
     // Type check callee
     const calleeExpr = node.getCallee();
     const calleeType = this.typeCheckExpression(calleeExpr);
@@ -194,12 +193,12 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
-      return unknownType;
     }
 
     // Get function signature
     const signature = calleeType.signature;
     if (!signature) {
+      return;
       // Should not happen for Callback type
       this.reportDiagnostic({
         severity: DiagnosticSeverity.ERROR,
@@ -216,7 +215,6 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
-      return unknownType;
     }
 
     // Check argument count
@@ -253,7 +251,6 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
     // Call expression has the return type of the function
     const returnType = signature.returnType;
     (node as any).typeInfo = returnType;
-    return returnType;
   }
 
   /**
@@ -264,7 +261,7 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
    * - Index must be numeric (byte or word)
    * - Result type is the array's element type
    */
-  public visitIndexExpression(node: IndexExpression): TypeInfo {
+  public visitIndexExpression(node: IndexExpression): void {
     // Type check object being indexed
     const objectType = this.typeCheckExpression(node.getObject());
 
@@ -286,7 +283,6 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
-      return unknownType;
     }
 
     // Type check index
@@ -321,11 +317,9 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
-      return unknownType;
     }
 
     (node as any).typeInfo = elementType;
-    return elementType;
   }
 
   /**
@@ -339,7 +333,7 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
    * Note: Currently simplified as Blend65 doesn't have full struct support yet.
    * This is a placeholder for future struct implementation.
    */
-  public visitMemberExpression(node: MemberExpression): TypeInfo {
+  public visitMemberExpression(node: MemberExpression): void {
     // Type check object
     const objectType = this.typeCheckExpression(node.getObject());
 
@@ -363,6 +357,5 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
       isAssignable: false,
     };
     (node as any).typeInfo = unknownType;
-    return unknownType;
   }
 }

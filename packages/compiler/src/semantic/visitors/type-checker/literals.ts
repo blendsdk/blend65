@@ -40,7 +40,7 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
    * - 256-65535: word
    * - >65535: error (too large)
    */
-  public visitLiteralExpression(node: LiteralExpression): TypeInfo {
+  public visitLiteralExpression(node: LiteralExpression): void {
     const value = node.getValue();
 
     let type: TypeInfo;
@@ -97,7 +97,6 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
 
     // Annotate node with type
     (node as any).typeInfo = type;
-    return type;
   }
 
   /**
@@ -108,7 +107,7 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
    * - Single element: array of that element's type
    * - Multiple elements: check all match first element's type
    */
-  public visitArrayLiteralExpression(node: ArrayLiteralExpression): TypeInfo {
+  public visitArrayLiteralExpression(node: ArrayLiteralExpression): void {
     if (node.isEmpty()) {
       // Empty array - cannot infer type
       this.reportDiagnostic({
@@ -121,7 +120,7 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
       // Return byte array with size 0 as placeholder
       const type = this.typeSystem.createArrayType(this.typeSystem.getBuiltinType('byte')!, 0);
       (node as any).typeInfo = type;
-      return type;
+      return;
     }
 
     // Type check first element to determine array type
@@ -147,7 +146,6 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
     // Create array type with element type and size
     const type = this.typeSystem.createArrayType(firstElementType, elements.length);
     (node as any).typeInfo = type;
-    return type;
   }
 
   /**
@@ -156,7 +154,7 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
    * Looks up the identifier in the symbol table and uses its declared type.
    * Reports error if identifier is not found.
    */
-  public visitIdentifierExpression(node: IdentifierExpression): TypeInfo {
+  public visitIdentifierExpression(node: IdentifierExpression): void {
     const name = node.getName();
     const symbol = this.symbolTable.lookup(name);
 
@@ -178,7 +176,7 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
-      return unknownType;
+      return;
     }
 
     // Use symbol's resolved type from Phase 2
@@ -190,6 +188,5 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
       isAssignable: false,
     };
     (node as any).typeInfo = type;
-    return type;
   }
 }
