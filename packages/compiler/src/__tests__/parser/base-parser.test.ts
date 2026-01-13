@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Token, TokenType } from '../../lexer/types.js';
-import { BaseParser, ParseError } from '../../parser/base.js';
+import { BaseParser } from '../../parser/base.js';
 import { DiagnosticCode } from '../../ast/index.js';
 
 // Create a concrete test implementation of BaseParser

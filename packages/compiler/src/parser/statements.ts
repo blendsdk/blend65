@@ -25,6 +25,7 @@ import {
   ReturnStatement,
   SourceLocation,
   Statement,
+  VariableDecl,
   WhileStatement,
 } from '../ast/index.js';
 import { TokenType } from '../lexer/types.js';
@@ -581,9 +582,16 @@ export abstract class StatementParser extends ModuleParser {
    * - Invalid initializer: Reports error, continues without initializer
    * - Missing semicolon: Reports error, continues
    *
-   * @returns ExpressionStatement wrapping a variable declaration expression
+   * Implementation Note:
+   * Returns a real VariableDecl AST node (same as module-level variables).
+   * This allows the semantic analyzer to visit function-local variables properly
+   * using the standard visitor pattern.
+   *
+   * @returns VariableDecl AST node representing the variable declaration
    */
   protected parseLocalVariableDeclaration(): Statement {
+    const startToken = this.getCurrentToken();
+
     // Parse mutability (let or const)
     const isConst = this.match(TokenType.CONST);
     if (!isConst) {
@@ -612,7 +620,7 @@ export abstract class StatementParser extends ModuleParser {
       }
     }
 
-    // Parse optional initializer - no try-catch needed
+    // Parse optional initializer
     let initializer = null;
     if (this.match(TokenType.ASSIGN)) {
       initializer = this.parseExpression();
@@ -628,82 +636,20 @@ export abstract class StatementParser extends ModuleParser {
 
     this.expectSemicolon('Expected semicolon after variable declaration');
 
-    // Create a simple expression statement that represents the variable declaration
-    // For now, we'll represent it as an assignment expression or identifier
-    // TODO: In future, create proper VariableDeclarationStatement AST node
-    const location = this.createLocation(nameToken, this.getCurrentToken());
+    // Create location spanning entire variable declaration
+    const location = this.createLocation(startToken, this.getCurrentToken());
 
-    if (initializer) {
-      // Return assignment expression as statement
-      const assignExpr = this.createAssignmentExpression(
-        varName,
-        initializer,
-        location,
-        typeAnnotation
-      );
-      return new ExpressionStatement(assignExpr, location);
-    } else {
-      // Return identifier expression as statement (for uninitialized variables)
-      const identifierExpr = this.createIdentifierExpression(varName, location, typeAnnotation);
-      return new ExpressionStatement(identifierExpr, location);
-    }
-  }
-
-  /**
-   * Helper to create assignment expression for variable initialization
-   *
-   * Creates a pseudo-AST object for local variable initialization.
-   * This is used until proper LocalVariableDeclaration AST node is implemented.
-   *
-   * @param name Variable name
-   * @param value Initializer expression
-   * @param location Source location
-   * @param typeAnnotation Optional type annotation
-   * @returns Pseudo-assignment expression object
-   */
-  protected createAssignmentExpression(
-    name: string,
-    value: Expression,
-    location: SourceLocation,
-    typeAnnotation: string | null
-  ): Expression {
-    // Create a simple identifier expression for assignment
-    // TODO: Replace with proper LocalVariableDeclaration AST node in future phases
-    // Note: Using 'as unknown as Expression' because this is a temporary pseudo-object
-    return {
-      type: 'AssignmentExpression',
-      left: { type: 'Identifier', name, typeAnnotation },
-      right: value,
-      location,
-      getLocation: () => location,
-    } as unknown as Expression;
-  }
-
-  /**
-   * Helper to create identifier expression for uninitialized variables
-   *
-   * Creates a pseudo-AST object for local variable without initializer.
-   * This is used until proper LocalVariableDeclaration AST node is implemented.
-   *
-   * @param name Variable name
-   * @param location Source location
-   * @param typeAnnotation Optional type annotation
-   * @returns Pseudo-identifier expression object
-   */
-  protected createIdentifierExpression(
-    name: string,
-    location: SourceLocation,
-    typeAnnotation: string | null
-  ): Expression {
-    // TODO: Replace with proper LocalVariableDeclaration AST node in future phases
-    // Note: Using 'as unknown as Expression' because this is a temporary pseudo-object
-    return {
-      type: 'Identifier',
-      name,
+    // Return real VariableDecl AST node (same as module-level variables)
+    // This allows proper visitor pattern traversal in semantic analysis
+    return new VariableDecl(
+      varName,
       typeAnnotation,
+      initializer,
       location,
-      getLocation: () => location,
-    } as unknown as Expression;
+      null, // storageClass: not allowed inside functions
+      isConst, // isConstant: true for const, false for let
+      false // isExported: function-local variables cannot be exported
+    );
   }
 
   // ============================================

@@ -33,7 +33,7 @@
     "lockstep:publish:latest": "tsx scripts/lockstep.ts publish --tag latest --git-push",
     "lockstep:publish:next": "tsx scripts/lockstep.ts publish --tag next --git-push",
     "lockstep:publish:v5": "tsx scripts/lockstep.ts publish --tag next --git-push",
-    "ncu": "ncu -u && yarn workspaces run ncu && rm -fR node_modules yarn.lock && yarn install && yarn build && yarn test"
+    "ncu": "ncu -u && yarn workspaces run ncu -u && rm -fR node_modules yarn.lock && yarn install && yarn clean && yarn build && yarn test"
   },
   "devDependencies": {
     "@manypkg/get-packages": "^3.1.0",

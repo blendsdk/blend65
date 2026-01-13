@@ -398,7 +398,7 @@ describe('Function Declaration Parser', () => {
       expect(functionDecl.getBody()).toHaveLength(1); // Return statement still parsed
     });
 
-    test('parses duplicate local variable (no semantic validation in Phase 4)', () => {
+    test('detects duplicate local variable declarations', () => {
       const source = `
         function test(): void
           let x: byte = 1;
@@ -408,12 +408,13 @@ describe('Function Declaration Parser', () => {
 
       const { ast, errors } = parseBlendProgram(source);
 
-      // Phase 4: Parse structure correctly, semantic validation is future work
-      expect(errors).toHaveLength(0);
+      // Parser's ScopeManager correctly detects duplicate variable declarations
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain('already declared');
 
       const program = ast as Program;
       const functionDecl = program.getDeclarations()[0] as FunctionDecl;
-      expect(functionDecl.getBody()).toHaveLength(2); // Both variable declarations parsed
+      expect(functionDecl.getBody()).toHaveLength(2); // Both variable declarations parsed despite error
     });
 
     test('reports error for duplicate parameter names', () => {

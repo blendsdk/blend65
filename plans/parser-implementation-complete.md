@@ -170,6 +170,7 @@ _✅ Advanced expression parsing implemented with critical specification complia
 | 3.7  | ✅ Add comprehensive expression parsing tests with precedence          | advanced-expressions.test.ts | 4 hours   | 3.1-3.6      | [x]    |
 | 3.8  | ✅ Integration verification with specification-compliant examples      | phase3-integration.test.ts   | 2 hours   | 3.7          | [x]    |
 | 3.9  | ✅ **CRITICAL**: Fix specification compliance violations               | expressions.ts, test files   | 3 hours   | 3.8          | [x]    |
+| 3.10 | ✅ **NEW**: Implement array literal expressions                        | expressions.ts, nodes.ts     | 6 hours   | 3.9          | [x]    |
 
 **CRITICAL SPECIFICATION COMPLIANCE ISSUE RESOLVED:**
 
@@ -205,6 +206,54 @@ let value: byte = array[i].property; // Member access on expressions
 ```
 
 **Lesson Learned:** Always check specification compliance BEFORE implementing features. The specification is the single source of truth for language features.
+
+**Code Example for Task 3.10 - Array Literal Expressions:**
+
+```typescript
+protected parseArrayLiteral(): Expression {
+  const startToken = this.getCurrentToken();
+  this.expect(TokenType.LEFT_BRACKET, "Expected '['");
+
+  const elements: Expression[] = [];
+
+  // Handle empty array
+  if (this.check(TokenType.RIGHT_BRACKET)) {
+    this.advance();
+    const location = this.createLocation(startToken, this.getCurrentToken());
+    return new ArrayLiteralExpression(elements, location);
+  }
+
+  // Parse element list with trailing comma support
+  do {
+    const element = this.parseExpression();
+    elements.push(element);
+
+    if (this.match(TokenType.COMMA)) {
+      if (this.check(TokenType.RIGHT_BRACKET)) {
+        break; // Allow trailing comma
+      }
+    } else {
+      break;
+    }
+  } while (!this.check(TokenType.RIGHT_BRACKET) && !this.isAtEnd());
+
+  this.expect(TokenType.RIGHT_BRACKET, "Expected ']' after array elements");
+
+  const location = this.createLocation(startToken, this.getCurrentToken());
+  return new ArrayLiteralExpression(elements, location);
+}
+```
+
+**Implementation Details:**
+
+- ✅ Added `ArrayLiteralExpression` AST node class
+- ✅ Integrated into `parseAtomicExpression()` method
+- ✅ Supports empty arrays, single/multiple elements, nested arrays
+- ✅ Handles expressions in arrays, trailing commas
+- ✅ Fixed `parseTypeAnnotation()` to properly distinguish array types from array literals
+- ✅ 44 comprehensive tests covering all features (C64 examples, edge cases, error handling)
+- ✅ Updated language specification with array literal syntax and examples
+- ✅ Zero regressions: **All 650 tests passing (606 original + 44 new)**
 
 **Code Example for Task 3.1:**
 
@@ -453,7 +502,7 @@ _✅ Complete parse() method with full language support implemented and tested_
 - ✅ **Full @map integration**: All 4 @map forms (simple, range, sequential struct, explicit struct) working perfectly
 - ✅ **Complete expression parsing**: Specification-compliant Pratt parser with all operators and precedence
 - ✅ **Error recovery**: Comprehensive synchronization and diagnostic collection
-- ✅ **Test coverage**: 477 tests passing across 19 test files with 0 failures
+- ✅ **Test coverage**: 650 tests passing across 22 test files with 0 failures (includes array literals)
 
 **Code Example - Complete parse() Method:**
 
@@ -499,7 +548,7 @@ public parse(): Program {
 }
 ```
 
-**Test Results**: All 477 tests passing, including comprehensive end-to-end integration tests with real-world Blend65 programs.
+**Test Results**: All 650 tests passing (including 44 new array literal tests), comprehensive end-to-end integration tests with real-world Blend65 programs.
 
 ### **Phase 8: Comprehensive Testing & Documentation** ✅ **MOSTLY COMPLETED**
 
@@ -536,7 +585,7 @@ _✅ Comprehensive testing suite implemented, documentation could be enhanced_
   - Code examples in plan document
   - Could create separate parser usage guide if needed
 
-**Test Coverage**: 477 tests passing across 19 test files with 0 failures
+**Test Coverage**: 650 tests passing across 22 test files with 0 failures (includes 44 array literal tests)
 
 ## **Implementation Details**
 
@@ -723,7 +772,8 @@ The Blend65 parser is now **fully implemented and production-ready** with:
 - Variable declarations (all storage classes)
 - Memory-mapped declarations (all 4 @map forms)
 - Control flow statements (if/while/for/match)
-- Expression parsing (complete Pratt parser)
+- Expression parsing (complete Pratt parser with array literals)
+- Array literal expressions (empty arrays, nested arrays, trailing commas)
 
 ✅ **Sophisticated Error Handling**
 
@@ -741,11 +791,12 @@ The Blend65 parser is now **fully implemented and production-ready** with:
 
 ✅ **Excellent Test Coverage**
 
-- **477 tests passing** across **19 test files**
+- **650 tests passing** across **22 test files**
 - **0 failures**
 - Comprehensive end-to-end integration tests
 - Performance validated for large programs
 - Real-world Blend65 program examples
+- Array literal feature: 44 tests covering all edge cases
 
 ✅ **Production-Quality Architecture**
 

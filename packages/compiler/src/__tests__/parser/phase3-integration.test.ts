@@ -17,13 +17,10 @@ import { describe, test, expect } from 'vitest';
 import { Lexer } from '../../lexer/lexer.js';
 import { Parser } from '../../parser/parser.js';
 import {
-  AssignmentExpression,
   BinaryExpression,
   CallExpression,
-  ExpressionStatement,
   IndexExpression,
   MemberExpression,
-  Program,
   UnaryExpression,
   VariableDecl,
 } from '../../ast/index.js';

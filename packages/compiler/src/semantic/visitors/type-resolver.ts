@@ -1,0 +1,450 @@
+/**
+ * Type Resolver - Phase 2 Semantic Analysis Pass
+ *
+ * Resolves type annotations and annotates symbols with type information.
+ * This is the second pass of semantic analysis, building on the symbol
+ * table created in Phase 1.
+ *
+ * **Responsibilities:**
+ * - Parse type annotation strings
+ * - Resolve types for all declarations
+ * - Annotate symbols with resolved TypeInfo
+ * - Validate type names exist
+ * - Report type resolution errors
+ *
+ * **Processing Order:**
+ * 1. Variable declarations (@zp, @ram, @data)
+ * 2. Memory-mapped declarations (@map)
+ * 3. Function declarations (return type + parameters)
+ *
+ * **Type Annotation Format:**
+ * - Simple types: "byte", "word", "boolean", "void", "string"
+ * - Array types: "byte[]", "word[10]" (unsized or fixed-size)
+ * - Future: callback types will need special handling
+ */
+
+import { ContextWalker } from '../../ast/walker/context.js';
+import type { SourceLocation } from '../../ast/base.js';
+import type { Diagnostic } from '../../ast/diagnostics.js';
+import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
+import type {
+  VariableDecl,
+  FunctionDecl,
+  SimpleMapDecl,
+  RangeMapDecl,
+  SequentialStructMapDecl,
+  ExplicitStructMapDecl,
+} from '../../ast/nodes.js';
+import { TypeSystem } from '../type-system.js';
+import type { SymbolTable } from '../symbol-table.js';
+import type { TypeInfo, FunctionSignature } from '../types.js';
+import { TypeKind } from '../types.js';
+
+/**
+ * Type resolver visitor - resolves type annotations and annotates symbols
+ *
+ * This visitor walks the AST and resolves all type annotations, then
+ * annotates the corresponding symbols in the symbol table with their
+ * resolved TypeInfo.
+ *
+ * **Design:**
+ * - Extends ContextWalker for scope awareness
+ * - Uses TypeSystem for type creation and validation
+ * - Reads from SymbolTable (created in Phase 1)
+ * - Writes TypeInfo to Symbol.type field
+ * - Collects diagnostics for type resolution errors
+ *
+ * **Usage:**
+ * ```typescript
+ * const resolver = new TypeResolver(symbolTable);
+ * resolver.walk(programNode);
+ * const diagnostics = resolver.getDiagnostics();
+ * const typeSystem = resolver.getTypeSystem();
+ * ```
+ */
+export class TypeResolver extends ContextWalker {
+  /** Type system for type creation and validation */
+  protected typeSystem: TypeSystem;
+
+  /** Symbol table from Phase 1 */
+  protected symbolTable: SymbolTable;
+
+  /** Collected diagnostics (errors and warnings) */
+  protected diagnostics: Diagnostic[];
+
+  /**
+   * Creates a new type resolver
+   *
+   * @param symbolTable - Symbol table from Phase 1 (Symbol Table Builder)
+   */
+  constructor(symbolTable: SymbolTable) {
+    super();
+    this.typeSystem = new TypeSystem();
+    this.symbolTable = symbolTable;
+    this.diagnostics = [];
+  }
+
+  /**
+   * Get the type system instance
+   *
+   * Provides access to type system for subsequent analysis passes.
+   *
+   * @returns Type system with all built-in types and operations
+   */
+  public getTypeSystem(): TypeSystem {
+    return this.typeSystem;
+  }
+
+  /**
+   * Get collected diagnostics
+   *
+   * Returns all type resolution errors collected during traversal.
+   *
+   * @returns Array of diagnostic messages
+   */
+  public getDiagnostics(): Diagnostic[] {
+    return this.diagnostics;
+  }
+
+  /**
+   * Report a diagnostic error or warning
+   *
+   * Adds diagnostic to the collection for later reporting.
+   *
+   * @param diagnostic - Diagnostic to report
+   */
+  protected reportDiagnostic(diagnostic: Diagnostic): void {
+    this.diagnostics.push(diagnostic);
+  }
+
+  // ============================================
+  // VARIABLE DECLARATIONS
+  // ============================================
+
+  /**
+   * Visit variable declaration - resolve type annotation
+   *
+   * Resolves the type annotation and annotates the symbol with the
+   * resolved type. If no type annotation exists, the symbol is left
+   * without a type (will be inferred in Phase 3).
+   *
+   * @param node - Variable declaration node
+   */
+  public visitVariableDecl(node: VariableDecl): void {
+    if (this.shouldStop) return;
+
+    this.enterNode(node);
+
+    const typeAnnotation = node.getTypeAnnotation();
+
+    // Resolve type annotation if present
+    if (typeAnnotation) {
+      const type = this.resolveTypeAnnotation(typeAnnotation, node.getLocation());
+
+      // Annotate symbol with resolved type
+      const symbol = this.symbolTable.lookup(node.getName());
+      if (symbol) {
+        symbol.type = type;
+      }
+    }
+
+    // Visit initializer if present (will be type-checked in Phase 3)
+    const initializer = node.getInitializer();
+    if (initializer && !this.shouldSkip && !this.shouldStop) {
+      initializer.accept(this);
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  // ============================================
+  // MEMORY-MAPPED DECLARATIONS (@map)
+  // ============================================
+
+  /**
+   * Visit simple @map declaration - resolve type annotation
+   *
+   * Resolves type annotation for simple memory-mapped variable.
+   *
+   * @param node - Simple @map declaration node
+   */
+  public visitSimpleMapDecl(node: SimpleMapDecl): void {
+    if (this.shouldStop) return;
+
+    this.enterNode(node);
+
+    // Resolve type annotation
+    const type = this.resolveTypeAnnotation(node.getTypeAnnotation(), node.getLocation());
+
+    // Annotate symbol with resolved type
+    const symbol = this.symbolTable.lookup(node.getName());
+    if (symbol) {
+      symbol.type = type;
+    }
+
+    // Visit address expression
+    node.getAddress().accept(this);
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit range @map declaration - resolve type annotation
+   *
+   * Resolves type annotation for range memory-mapped variable.
+   * The type represents the element type, not the full array.
+   *
+   * @param node - Range @map declaration node
+   */
+  public visitRangeMapDecl(node: RangeMapDecl): void {
+    if (this.shouldStop) return;
+
+    this.enterNode(node);
+
+    // Resolve element type annotation
+    const elementType = this.resolveTypeAnnotation(node.getTypeAnnotation(), node.getLocation());
+
+    // Create array type (size unknown at compile time from addresses)
+    const arrayType = this.typeSystem.createArrayType(elementType);
+
+    // Annotate symbol with array type
+    const symbol = this.symbolTable.lookup(node.getName());
+    if (symbol) {
+      symbol.type = arrayType;
+    }
+
+    // Visit address expressions
+    node.getStartAddress().accept(this);
+    if (!this.shouldStop) {
+      node.getEndAddress().accept(this);
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit sequential struct @map declaration - resolve field types
+   *
+   * Resolves type annotations for all fields in the struct.
+   *
+   * @param node - Sequential struct @map declaration node
+   */
+  public visitSequentialStructMapDecl(node: SequentialStructMapDecl): void {
+    if (this.shouldStop) return;
+
+    this.enterNode(node);
+
+    // Visit base address expression
+    node.getBaseAddress().accept(this);
+
+    // Process fields (type resolution handled when accessing fields)
+    // Symbol for the struct itself doesn't need type annotation
+    // Fields will be accessed as members
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit explicit struct @map declaration - resolve field types
+   *
+   * Resolves type annotations for all fields in the struct.
+   *
+   * @param node - Explicit struct @map declaration node
+   */
+  public visitExplicitStructMapDecl(node: ExplicitStructMapDecl): void {
+    if (this.shouldStop) return;
+
+    this.enterNode(node);
+
+    // Visit base address expression
+    node.getBaseAddress().accept(this);
+
+    // Process fields (type resolution handled when accessing fields)
+    // Symbol for the struct itself doesn't need type annotation
+    // Fields will be accessed as members
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  // ============================================
+  // FUNCTION DECLARATIONS
+  // ============================================
+
+  /**
+   * Visit function declaration - resolve return type and parameters
+   *
+   * Resolves:
+   * - Return type annotation (defaults to void if not specified)
+   * - Parameter type annotations
+   * - Creates function signature
+   * - Creates callback type for function
+   * - Annotates function symbol and parameter symbols
+   *
+   * **Critical:** This method must enter the function's scope to annotate
+   * parameter symbols, which are declared in the function scope by Phase 1.
+   *
+   * @param node - Function declaration node
+   */
+  public visitFunctionDecl(node: FunctionDecl): void {
+    if (this.shouldStop) return;
+
+    // Resolve return type (default to void if not specified)
+    const returnTypeStr = node.getReturnType();
+    const returnType = returnTypeStr
+      ? this.resolveTypeAnnotation(returnTypeStr, node.getLocation())
+      : this.typeSystem.getBuiltinType('void')!;
+
+    // Resolve parameter types
+    const parameters = node.getParameters();
+    const parameterTypes: TypeInfo[] = [];
+    const parameterNames: string[] = [];
+
+    for (const param of parameters) {
+      const paramType = this.resolveTypeAnnotation(param.typeAnnotation, param.location);
+      parameterTypes.push(paramType);
+      parameterNames.push(param.name);
+    }
+
+    // Create function signature
+    const signature: FunctionSignature = {
+      parameters: parameterTypes,
+      returnType,
+      parameterNames,
+    };
+
+    // Create callback type for function
+    const functionType = this.typeSystem.createCallbackType(signature);
+
+    // Annotate function symbol with type (in current/module scope)
+    const symbol = this.symbolTable.lookup(node.getName());
+    if (symbol) {
+      symbol.type = functionType;
+    }
+
+    // Find the function's scope created in Phase 1
+    // Parameters are declared in this scope, so we must enter it to annotate them
+    const currentScope = this.symbolTable.getCurrentScope();
+    const childScopes = currentScope.children || [];
+    const functionScope = childScopes.find(scope => scope.node === node);
+
+    if (!functionScope) {
+      // This shouldn't happen if Phase 1 ran correctly
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: `Internal error: Function scope not found for '${node.getName()}'`,
+        location: node.getLocation(),
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
+
+      // Still call parent to maintain context
+      super.visitFunctionDecl(node);
+      return;
+    }
+
+    // Enter function scope to access parameters
+    this.symbolTable.enterScope(functionScope);
+
+    // Now annotate parameter symbols with their types
+    // Parameters are in the current (function) scope
+    for (let i = 0; i < parameters.length; i++) {
+      const param = parameters[i];
+      const paramType = parameterTypes[i];
+
+      const paramSymbol = this.symbolTable.lookup(param.name);
+      if (paramSymbol) {
+        paramSymbol.type = paramType;
+      }
+    }
+
+    // Visit function body with ContextWalker handling
+    // (ContextWalker will automatically manage function context)
+    super.visitFunctionDecl(node);
+
+    // Exit function scope
+    this.symbolTable.exitScope();
+  }
+
+  // ============================================
+  // TYPE ANNOTATION RESOLUTION
+  // ============================================
+
+  /**
+   * Resolve a type annotation string to TypeInfo
+   *
+   * Parses type annotation strings and resolves them to TypeInfo objects.
+   *
+   * **Supported formats:**
+   * - Simple types: "byte", "word", "boolean", "void", "string"
+   * - Unsized arrays: "byte[]", "word[]"
+   * - Sized arrays: "byte[10]", "word[256]"
+   *
+   * **Future:**
+   * - Callback types (when AST representation is available)
+   * - Custom type aliases
+   *
+   * @param annotation - Type annotation string
+   * @param location - Source location for error reporting
+   * @returns Resolved TypeInfo or unknown type if resolution fails
+   */
+  protected resolveTypeAnnotation(annotation: string, location: SourceLocation): TypeInfo {
+    // Trim whitespace
+    const trimmed = annotation.trim();
+
+    // Check for array type syntax: type[] or type[size]
+    const arrayMatch = trimmed.match(/^(\w+)\[(\d*)\]$/);
+    if (arrayMatch) {
+      const [, elementTypeName, sizeStr] = arrayMatch;
+
+      // Resolve element type
+      const elementType = this.typeSystem.getBuiltinType(elementTypeName);
+      if (!elementType) {
+        this.reportDiagnostic({
+          severity: DiagnosticSeverity.ERROR,
+          message: `Unknown element type '${elementTypeName}' in array type`,
+          location,
+          code: DiagnosticCode.TYPE_MISMATCH,
+        });
+
+        return {
+          kind: TypeKind.Unknown,
+          name: 'unknown',
+          size: 0,
+          isSigned: false,
+          isAssignable: false,
+        };
+      }
+
+      // Parse size if present
+      const size = sizeStr ? parseInt(sizeStr, 10) : undefined;
+
+      return this.typeSystem.createArrayType(elementType, size);
+    }
+
+    // Simple type (byte, word, boolean, void, string)
+    const builtinType = this.typeSystem.getBuiltinType(trimmed);
+    if (builtinType) {
+      return builtinType;
+    }
+
+    // Unknown type - report error
+    this.reportDiagnostic({
+      severity: DiagnosticSeverity.ERROR,
+      message: `Unknown type '${trimmed}'`,
+      location,
+      code: DiagnosticCode.TYPE_MISMATCH,
+    });
+
+    return {
+      kind: TypeKind.Unknown,
+      name: 'unknown',
+      size: 0,
+      isSigned: false,
+      isAssignable: false,
+    };
+  }
+}
