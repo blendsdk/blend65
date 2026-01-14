@@ -98,9 +98,8 @@ describe('Scope Management', () => {
       expect(functionScope.symbols.has('counter')).toBe(true);
     });
 
-    test.skip('variables declared in for-loop are visible after loop (for-loop variables not yet tracked)', () => {
-      // TODO: For-loop variables need to be added to symbol table
-      // Currently they are part of ForStatement AST node but not tracked as symbols
+    test('variables declared in for-loop are visible after loop', () => {
+      // For-loop variables ARE now tracked in symbol table
       const source = `
         function test(): void
           for i = 0 to 10
