@@ -189,24 +189,26 @@ export class ControlFlowAnalyzer extends ContextWalker {
     this.context.enterContext(0 as any, node);
     this.enterNode(node);
 
-    // Build CFG from function body
+    // Build CFG from function body (if present - stub functions have no body)
     if (!this.shouldSkip && !this.shouldStop) {
       const body = node.getBody();
-      for (const stmt of body) {
-        if (this.shouldStop) break;
+      if (body) {
+        for (const stmt of body) {
+          if (this.shouldStop) break;
 
-        // If currentNode is null, rest of body is unreachable
-        if (!this.currentNode) {
-          this.reportDiagnostic({
-            severity: DiagnosticSeverity.WARNING,
-            code: DiagnosticCode.UNREACHABLE_CODE,
-            message: 'Unreachable code detected',
-            location: stmt.getLocation(),
-          });
-          // Don't break - continue analyzing to find more issues
+          // If currentNode is null, rest of body is unreachable
+          if (!this.currentNode) {
+            this.reportDiagnostic({
+              severity: DiagnosticSeverity.WARNING,
+              code: DiagnosticCode.UNREACHABLE_CODE,
+              message: 'Unreachable code detected',
+              location: stmt.getLocation(),
+            });
+            // Don't break - continue analyzing to find more issues
+          }
+
+          stmt.accept(this);
         }
-
-        stmt.accept(this);
       }
 
       // Connect current node to exit if not already terminated

@@ -472,18 +472,25 @@ export abstract class ASTTransformer implements ASTVisitor<ASTNode> {
   /**
    * Transform Function declaration
    *
-   * Default: Recursively transforms function body
+   * Default: Recursively transforms function body (if present)
    * Override to transform function body or properties
+   * Handles stub functions (which have no body)
    *
    * @param node - Function node to transform
    * @returns Transformed function node
    */
   visitFunctionDecl(node: FunctionDecl): ASTNode {
+    // Handle stub functions (no body)
+    const originalBody = node.getBody();
+    if (!originalBody) {
+      return node; // Stub function - no transformation needed
+    }
+
     // Transform body statements
-    const body = node.getBody().map(stmt => stmt.accept(this));
+    const body = originalBody.map(stmt => stmt.accept(this));
 
     // Check if any statement changed
-    const bodyChanged = body.some((stmt, i) => stmt !== node.getBody()[i]);
+    const bodyChanged = body.some((stmt, i) => stmt !== originalBody[i]);
 
     // Return original if nothing changed
     if (!bodyChanged) {
@@ -498,7 +505,8 @@ export abstract class ASTTransformer implements ASTVisitor<ASTNode> {
       body as Statement[],
       node.getLocation(),
       node.isExportedFunction(),
-      node.isCallbackFunction()
+      node.isCallbackFunction(),
+      node.isStubFunction()
     );
   }
 

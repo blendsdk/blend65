@@ -353,9 +353,12 @@ export class SymbolTableBuilder extends ContextWalker {
       this.visitParameter(param);
     }
 
-    // Visit function body statements
-    for (const stmt of node.getBody()) {
-      stmt.accept(this);
+    // Visit function body statements (if present - stub functions have no body)
+    const body = node.getBody();
+    if (body) {
+      for (const stmt of body) {
+        stmt.accept(this);
+      }
     }
 
     // Exit function scope

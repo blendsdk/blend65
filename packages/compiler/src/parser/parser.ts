@@ -348,6 +348,27 @@ export class Parser extends StatementParser {
       }
     }
 
+    // Check for stub function (semicolon-terminated)
+    if (this.check(TokenType.SEMICOLON)) {
+      this.advance(); // Consume semicolon
+
+      // Create location spanning entire stub function declaration
+      const location = this.createLocation(startToken, this.getCurrentToken());
+
+      // Return stub function with no body
+      return new FunctionDecl(
+        functionName,
+        parameters,
+        returnType,
+        null, // No body for stub functions
+        location,
+        isExported || shouldAutoExport, // Explicit export or auto-export main function
+        isCallback,
+        true // isStub = true
+      );
+    }
+
+    // Regular function with body - enter function scope
     // Enter function scope with parameters and return type for validation (Subtask 4.3.4)
     // Pass function name for better error messages (Task 3.3)
     this.enterFunctionScopeWithParams(parameters, returnType, functionName);
@@ -371,7 +392,8 @@ export class Parser extends StatementParser {
         body,
         location,
         isExported || shouldAutoExport, // Explicit export or auto-export main function
-        isCallback
+        isCallback,
+        false // isStub = false (regular function)
       );
     } finally {
       // Always exit function scope, even if parsing fails (Subtask 4.3.4)

@@ -402,17 +402,20 @@ export abstract class ASTWalker implements ASTVisitor<void> {
    * Visit Function declaration
    *
    * Traverses:
-   * - Function body statements
+   * - Function body statements (if present - stub functions have no body)
    */
   visitFunctionDecl(node: FunctionDecl): void {
     if (this.shouldStop) return;
     this.enterNode(node);
 
-    // Visit function body
+    // Visit function body (if present - stub functions have null body)
     if (!this.shouldSkip && !this.shouldStop) {
-      for (const stmt of node.getBody()) {
-        if (this.shouldStop) break;
-        stmt.accept(this);
+      const body = node.getBody();
+      if (body) {
+        for (const stmt of body) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
       }
     }
 

@@ -533,6 +533,7 @@ export abstract class ContextWalker extends ASTWalker {
    * Visit Function with context
    *
    * Automatically creates FUNCTION context.
+   * Handles stub functions (which have no body).
    */
   visitFunctionDecl(node: FunctionDecl): void {
     if (this.shouldStop) return;
@@ -540,11 +541,14 @@ export abstract class ContextWalker extends ASTWalker {
     this.context.enterContext(ContextType.FUNCTION, node);
     this.enterNode(node);
 
-    // Visit children
+    // Visit children (if present - stub functions have null body)
     if (!this.shouldSkip && !this.shouldStop) {
-      for (const stmt of node.getBody()) {
-        if (this.shouldStop) break;
-        stmt.accept(this);
+      const body = node.getBody();
+      if (body) {
+        for (const stmt of body) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
       }
     }
 
