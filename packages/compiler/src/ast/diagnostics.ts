@@ -109,6 +109,12 @@ export enum DiagnosticCode {
   /** Export without declaration */
   EXPORT_REQUIRES_DECLARATION = 'P104',
 
+  /** Module not found (imported module doesn't exist) */
+  MODULE_NOT_FOUND = 'P105',
+
+  /** Circular import detected (A → B → A) */
+  CIRCULAR_IMPORT = 'P106',
+
   // ============================================
   // ORDERING ERRORS (P200-P299)
   // ============================================

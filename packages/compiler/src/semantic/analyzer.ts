@@ -19,11 +19,17 @@ import { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
 import { SymbolTable } from './symbol-table.js';
 import { TypeSystem } from './type-system.js';
 import { ControlFlowGraph } from './control-flow.js';
-import { Diagnostic } from '../ast/diagnostics.js';
-import type { Program } from '../ast/nodes.js';
+import { Diagnostic, DiagnosticSeverity, DiagnosticCode } from '../ast/diagnostics.js';
+import { ModuleRegistry } from './module-registry.js';
+import { DependencyGraph } from './dependency-graph.js';
+import { ImportResolver } from './import-resolver.js';
+import { GlobalSymbolTable } from './global-symbol-table.js';
+import type { Program, ImportDecl } from '../ast/nodes.js';
 
 /**
- * Result of semantic analysis
+ * Result of single-module semantic analysis
+ *
+ * @deprecated Use ModuleAnalysisResult for new code
  */
 export interface AnalysisResult {
   /** Symbol table with all symbols and scopes */
@@ -34,6 +40,58 @@ export interface AnalysisResult {
 
   /** True if analysis succeeded (no errors) */
   success: boolean;
+}
+
+/**
+ * Result of analyzing a single module
+ *
+ * Contains all analysis artifacts for one module including
+ * symbols, types, control flow graphs, and diagnostics.
+ */
+export interface ModuleAnalysisResult {
+  /** Name of the analyzed module */
+  moduleName: string;
+
+  /** Symbol table with all symbols and scopes */
+  symbolTable: SymbolTable;
+
+  /** Type system with resolved types */
+  typeSystem: TypeSystem;
+
+  /** Control flow graphs for all functions */
+  cfgs: Map<string, ControlFlowGraph>;
+
+  /** All diagnostics from this module */
+  diagnostics: Diagnostic[];
+
+  /** True if module analysis succeeded (no errors) */
+  success: boolean;
+}
+
+/**
+ * Result of multi-module semantic analysis
+ *
+ * Contains aggregated analysis results for all modules
+ * plus cross-module resolution and global resource allocation.
+ */
+export interface MultiModuleAnalysisResult {
+  /** Per-module analysis results (keyed by module name) */
+  modules: Map<string, ModuleAnalysisResult>;
+
+  /** All diagnostics from all modules */
+  diagnostics: Diagnostic[];
+
+  /** True if entire multi-module analysis succeeded */
+  success: boolean;
+
+  /** Global symbol table aggregating all exports (Phase 6.2.1) */
+  globalSymbolTable: GlobalSymbolTable;
+
+  /** Module dependency graph (Phase 6.1.3) */
+  dependencyGraph: DependencyGraph;
+
+  /** Global memory layout (Phase 6.3+, not yet implemented) */
+  memoryLayout?: unknown;
 }
 
 /**
@@ -62,12 +120,13 @@ export class SemanticAnalyzer {
   protected diagnostics: Diagnostic[] = [];
 
   /**
-   * Analyze an AST
+   * Analyze a single AST (backward compatibility)
    *
    * Runs all semantic analysis passes and returns results.
    *
    * @param ast - Program AST to analyze
    * @returns Analysis result with symbol table and diagnostics
+   * @deprecated Use analyzeMultiple() for multi-module support
    */
   public analyze(ast: Program): AnalysisResult {
     // Reset state for new analysis
@@ -76,6 +135,112 @@ export class SemanticAnalyzer {
     this.cfgs.clear();
     this.diagnostics = [];
 
+    // Run per-module analysis
+    this.analyzeModule(ast);
+
+    // Return legacy format
+    return {
+      symbolTable: this.symbolTable!,
+      diagnostics: [...this.diagnostics],
+      success: !this.hasErrors(),
+    };
+  }
+
+  /**
+   * Analyze multiple Program ASTs (multi-module support)
+   *
+   * **Multi-Pass Architecture (Phase 6.2.2):**
+   *
+   * **Phase A: Module Discovery & Validation**
+   * 1. Build module registry (all modules by name)
+   * 2. Build dependency graph from imports
+   * 3. Detect circular dependencies (fail-fast)
+   * 4. Validate imports (fail-fast on missing modules)
+   *
+   * **Phase B: Per-Module Analysis (in dependency order)**
+   * 5. Get topological sort (compilation order)
+   * 6. Analyze each module using existing Passes 1-5
+   * 7. Collect per-module results (symbols, types, CFGs, diagnostics)
+   *
+   * **Phase C: Cross-Module Integration**
+   * 8. Build global symbol table (aggregate all exports)
+   * 9. Cross-module validation (Phase 6.2.3, future)
+   * 10. Global resource allocation (Phase 6.3, future)
+   *
+   * @param programs - Array of Program ASTs to analyze
+   * @returns Multi-module analysis results
+   */
+  public analyzeMultiple(programs: Program[]): MultiModuleAnalysisResult {
+    // ============================================
+    // PHASE A: Module Discovery & Validation
+    // ============================================
+
+    // Pass 0: Build module registry
+    const registry = this.buildModuleRegistry(programs);
+
+    // Pass 1: Build dependency graph (extracts imports)
+    const depGraph = this.buildDependencyGraph(programs, registry);
+
+    // Check for circular imports (fail-fast)
+    const cycles = depGraph.detectCycles();
+    if (cycles.length > 0) {
+      return this.failWithCircularImports(cycles, depGraph);
+    }
+
+    // Pass 2: Validate imports (fail-fast on missing modules)
+    const importErrors = this.validateImports(programs, registry);
+    if (importErrors.length > 0) {
+      return this.failWithImportErrors(importErrors, depGraph);
+    }
+
+    // ============================================
+    // PHASE B: Per-Module Analysis (Dependency Order)
+    // ============================================
+
+    // Pass 3: Get compilation order (topological sort)
+    const compilationOrder = depGraph.getTopologicalOrder();
+
+    // Pass 4: Analyze each module in dependency order
+    const moduleResults = this.analyzeModulesInOrder(compilationOrder, registry);
+
+    // ============================================
+    // PHASE C: Cross-Module Integration
+    // ============================================
+
+    // Pass 5: Build global symbol table
+    const globalSymbols = this.buildGlobalSymbolTable(moduleResults);
+
+    // Collect all diagnostics
+    const allDiagnostics: Diagnostic[] = [];
+    for (const result of moduleResults.values()) {
+      allDiagnostics.push(...result.diagnostics);
+    }
+
+    // Return aggregated results
+    return {
+      modules: moduleResults,
+      diagnostics: allDiagnostics,
+      success: !allDiagnostics.some(d => d.severity === 'error'),
+      globalSymbolTable: globalSymbols,
+      dependencyGraph: depGraph,
+      memoryLayout: undefined, // Phase 6.3+
+    };
+  }
+
+  /**
+   * Analyze a single module (internal helper)
+   *
+   * This method contains the core per-module analysis logic
+   * that was previously in analyze(). It's now reused by both
+   * the legacy analyze() and the new analyzeMultiple().
+   *
+   * **Assumptions:**
+   * - this.symbolTable, this.typeSystem, this.cfgs are already reset
+   * - this.diagnostics is already cleared
+   *
+   * @param ast - Program AST to analyze
+   */
+  protected analyzeModule(ast: Program): void {
     // Pass 1: Build symbol table
     this.runPass1_SymbolTableBuilder(ast);
 
@@ -94,13 +259,350 @@ export class SemanticAnalyzer {
     if (!this.hasErrors()) {
       this.runPass5_ControlFlowAnalyzer(ast);
     }
+  }
 
-    // Return analysis results
+  /**
+   * Build module registry from programs
+   *
+   * Registers all modules by name, detecting duplicate module declarations.
+   *
+   * @param programs - Array of Program ASTs
+   * @returns Module registry
+   */
+  protected buildModuleRegistry(programs: Program[]): ModuleRegistry {
+    const registry = new ModuleRegistry();
+
+    for (const program of programs) {
+      const moduleName = this.getModuleName(program);
+
+      try {
+        registry.register(moduleName, program);
+      } catch (error) {
+        // Duplicate module error
+        this.diagnostics.push({
+          code: DiagnosticCode.DUPLICATE_MODULE,
+          severity: DiagnosticSeverity.ERROR,
+          message: error instanceof Error ? error.message : String(error),
+          location: program.getModule().getLocation(),
+        });
+      }
+    }
+
+    return registry;
+  }
+
+  /**
+   * Build dependency graph from imports
+   *
+   * Extracts all import declarations and builds the module dependency graph.
+   *
+   * @param programs - Array of Program ASTs
+   * @param registry - Module registry
+   * @returns Dependency graph
+   */
+  protected buildDependencyGraph(programs: Program[], registry: ModuleRegistry): DependencyGraph {
+    const graph = new DependencyGraph();
+
+    for (const program of programs) {
+      const moduleName = this.getModuleName(program);
+
+      // Register module in graph (ensures it's included even without imports)
+      graph.addNode(moduleName);
+
+      // Extract all import declarations
+      const imports = program
+        .getDeclarations()
+        .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+
+      for (const importDecl of imports) {
+        const targetModule = importDecl.getModuleName();
+        graph.addEdge(moduleName, targetModule, importDecl.getLocation());
+
+        // Also track in registry for dependency tracking
+        registry.addDependency(moduleName, targetModule);
+      }
+    }
+
+    return graph;
+  }
+
+  /**
+   * Validate imports across all modules
+   *
+   * Uses ImportResolver to check that all imported modules exist.
+   *
+   * @param programs - Array of Program ASTs
+   * @param registry - Module registry
+   * @returns Array of import validation errors
+   */
+  protected validateImports(programs: Program[], registry: ModuleRegistry): Diagnostic[] {
+    const resolver = new ImportResolver(registry);
+    return resolver.validateAllImports(programs);
+  }
+
+  /**
+   * Analyze modules in dependency order
+   *
+   * Analyzes each module using existing Passes 1-5, processing modules
+   * in topological order (dependencies first).
+   *
+   * **Cross-Module Symbol Resolution:**
+   * Makes imported symbols from previously-analyzed modules available
+   * during type checking. This enables basic cross-module type checking
+   * before the full validation pass (Task 6.2.3).
+   *
+   * @param compilationOrder - Module names in compilation order
+   * @param registry - Module registry
+   * @returns Map of module name → analysis result
+   */
+  protected analyzeModulesInOrder(
+    compilationOrder: string[],
+    registry: ModuleRegistry
+  ): Map<string, ModuleAnalysisResult> {
+    const moduleResults = new Map<string, ModuleAnalysisResult>();
+    const globalSymbols = new GlobalSymbolTable();
+
+    for (const moduleName of compilationOrder) {
+      const program = registry.getModule(moduleName);
+
+      // Module must exist (registry ensures this)
+      if (!program) {
+        throw new Error(`Module '${moduleName}' not found in registry (internal error)`);
+      }
+
+      // Reset state for this module
+      this.symbolTable = null;
+      this.typeSystem = null;
+      this.cfgs.clear();
+      this.diagnostics = [];
+
+      // Analyze this module using existing passes
+      // Note: Pass 1 (Symbol Table Builder) will use global symbols for imports
+      this.analyzeModuleWithContext(program, globalSymbols);
+
+      // Collect results for this module
+      const moduleResult: ModuleAnalysisResult = {
+        moduleName,
+        symbolTable: this.symbolTable!,
+        typeSystem: this.typeSystem!,
+        cfgs: new Map(this.cfgs),
+        diagnostics: [...this.diagnostics],
+        success: !this.hasErrors(),
+      };
+
+      moduleResults.set(moduleName, moduleResult);
+
+      // Register this module's symbols for next modules to use
+      globalSymbols.registerModule(moduleName, this.symbolTable!);
+    }
+
+    return moduleResults;
+  }
+
+  /**
+   * Analyze a single module with cross-module context
+   *
+   * Similar to analyzeModule(), but makes imported symbols from
+   * previously-analyzed modules available via the global symbol table.
+   *
+   * @param ast - Program AST to analyze
+   * @param globalSymbols - Global symbol table with previously-analyzed modules
+   */
+  protected analyzeModuleWithContext(ast: Program, globalSymbols: GlobalSymbolTable): void {
+    // Pass 1: Build symbol table
+    // TODO: Pass global symbols to symbol table builder for import resolution
+    this.runPass1_SymbolTableBuilder(ast);
+
+    // Import cross-module symbols into this module's symbol table
+    this.resolveImports(ast, globalSymbols);
+
+    // Pass 2: Type resolution (only if Pass 1 succeeded)
+    if (!this.hasErrors()) {
+      this.runPass2_TypeResolution(ast);
+    }
+
+    // Pass 3: Type checking (only if Pass 2 succeeded)
+    if (!this.hasErrors()) {
+      this.runPass3_TypeChecker(ast);
+    }
+
+    // Pass 5: Control flow analysis (only if Pass 1 succeeded)
+    if (!this.hasErrors()) {
+      this.runPass5_ControlFlowAnalyzer(ast);
+    }
+  }
+
+  /**
+   * Resolve imports by updating cross-module symbol types
+   *
+   * Extracts import declarations and looks up symbols from the global
+   * symbol table, updating the type information of imported symbols
+   * in the current module's symbol table.
+   *
+   * This enables full cross-module type checking with complete type
+   * information from analyzed dependency modules.
+   *
+   * **Implementation (Task 6.2.3):**
+   * - Looks up imported symbols that were created during Pass 1
+   * - Updates their type information from the analyzed source module
+   * - Validates that imported symbols exist and are exported (TODO)
+   * - Creates diagnostics for missing or non-exported symbols (TODO)
+   *
+   * @param ast - Program AST
+   * @param globalSymbols - Global symbol table with analyzed modules
+   */
+  protected resolveImports(ast: Program, globalSymbols: GlobalSymbolTable): void {
+    if (!this.symbolTable) {
+      return;
+    }
+
+    // Extract import declarations
+    const imports = ast
+      .getDeclarations()
+      .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+
+    for (const importDecl of imports) {
+      const targetModule = importDecl.getModuleName();
+      const identifiers = importDecl.getIdentifiers();
+
+      for (const identifier of identifiers) {
+        // Lookup the imported symbol that was created during Pass 1
+        // (SymbolTableBuilder creates ImportedSymbol with undefined type)
+        const localImportedSymbol = this.symbolTable.lookup(identifier);
+
+        if (!localImportedSymbol) {
+          // Symbol wasn't created during Pass 1 (shouldn't happen)
+          continue;
+        }
+
+        // Lookup the actual symbol definition in the source module
+        const globalSymbol = globalSymbols.lookupInModule(identifier, targetModule);
+
+        if (globalSymbol && globalSymbol.typeInfo) {
+          // Update the imported symbol's type with the actual type
+          // from the analyzed source module
+          localImportedSymbol.type = globalSymbol.typeInfo;
+
+          // TODO (Task 6.2.3): Validate export status
+          // if (!globalSymbol.isExported) {
+          //   this.diagnostics.push({
+          //     code: DiagnosticCode.IMPORT_NOT_EXPORTED,
+          //     severity: DiagnosticSeverity.ERROR,
+          //     message: `Symbol '${identifier}' is not exported from module '${targetModule}'`,
+          //     location: importDecl.getLocation(),
+          //   });
+          // }
+        } else {
+          // TODO (Task 6.2.3): Create diagnostic for missing symbol
+          // Symbol doesn't exist in target module or has no type info
+          // For now, leave type as undefined (will cause type checking errors)
+        }
+      }
+    }
+  }
+
+  /**
+   * Build global symbol table from module results
+   *
+   * Aggregates symbols from all module-level symbol tables into
+   * a global symbol table for cross-module lookup.
+   *
+   * @param moduleResults - Per-module analysis results
+   * @returns Global symbol table
+   */
+  protected buildGlobalSymbolTable(
+    moduleResults: Map<string, ModuleAnalysisResult>
+  ): GlobalSymbolTable {
+    const globalSymbols = new GlobalSymbolTable();
+
+    for (const [moduleName, result] of moduleResults) {
+      globalSymbols.registerModule(moduleName, result.symbolTable);
+    }
+
+    return globalSymbols;
+  }
+
+  /**
+   * Fail with circular import errors
+   *
+   * Creates a failure result when circular dependencies are detected.
+   *
+   * @param cycles - Detected circular dependency chains
+   * @param depGraph - Dependency graph
+   * @returns Failed multi-module analysis result
+   */
+  protected failWithCircularImports(
+    cycles: string[][],
+    depGraph: DependencyGraph
+  ): MultiModuleAnalysisResult {
+    const diagnostics: Diagnostic[] = [];
+
+    for (const cycle of cycles) {
+      const cycleString = cycle.join(' → ');
+      diagnostics.push({
+        code: DiagnosticCode.CIRCULAR_IMPORT,
+        severity: DiagnosticSeverity.ERROR,
+        message: `Circular import detected: ${cycleString}`,
+        location: {
+          source: '',
+          start: { line: 1, column: 1, offset: 0 },
+          end: { line: 1, column: 1, offset: 0 },
+        },
+      });
+    }
+
     return {
-      symbolTable: this.symbolTable!,
-      diagnostics: [...this.diagnostics],
-      success: !this.hasErrors(),
+      modules: new Map(),
+      diagnostics,
+      success: false,
+      globalSymbolTable: new GlobalSymbolTable(),
+      dependencyGraph: depGraph,
+      memoryLayout: undefined,
     };
+  }
+
+  /**
+   * Fail with import validation errors
+   *
+   * Creates a failure result when import validation fails (missing modules).
+   *
+   * @param importErrors - Import validation errors
+   * @param depGraph - Dependency graph
+   * @returns Failed multi-module analysis result
+   */
+  protected failWithImportErrors(
+    importErrors: Diagnostic[],
+    depGraph: DependencyGraph
+  ): MultiModuleAnalysisResult {
+    return {
+      modules: new Map(),
+      diagnostics: importErrors,
+      success: false,
+      globalSymbolTable: new GlobalSymbolTable(),
+      dependencyGraph: depGraph,
+      memoryLayout: undefined,
+    };
+  }
+
+  /**
+   * Get module name from Program AST
+   *
+   * Extracts the module name from the module declaration.
+   * Falls back to 'main' if module is implicit/unnamed.
+   *
+   * @param program - Program AST
+   * @returns Module name
+   */
+  protected getModuleName(program: Program): string {
+    const moduleDecl = program.getModule();
+    const fullName = moduleDecl.getFullName();
+
+    // If implicit module or empty name, use 'main'
+    if (moduleDecl.isImplicitModule() || !fullName || fullName === '') {
+      return 'main';
+    }
+
+    return fullName;
   }
 
   /**

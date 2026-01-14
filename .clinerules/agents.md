@@ -467,6 +467,41 @@ clear && scripts/agent.sh finished
 
 ---
 
+### **Rule 10: ES Module Syntax for Node Debug Commands**
+
+**CRITICAL:** When generating quick debug commands with `node -e` for this repository, ALWAYS use ES module syntax.
+
+**Context:** This monorepo is configured with `"type": "module"` in package.json, making all code ES modules by default. CommonJS (`require`) syntax causes compatibility issues and errors when debugging repository code.
+
+**ES Module Requirements:**
+
+1. **✅ Always use ES module imports in `node -e` commands**
+   - ✅ Use: `import { module1 } from './dist/file.js'`
+   - ❌ Never use: `const { module1 } = require('./dist/file.js')`
+
+2. **✅ Proper ES module command structure**
+   - Use `--input-type=module` flag if needed for Node.js compatibility
+   - Include `.js` extensions in import paths
+   - Wrap in async context when using top-level await
+
+**Examples:**
+
+❌ **Wrong (CommonJS - causes errors in ES module monorepo):**
+
+```bash
+node -e "const { Lexer } = require('./dist/file.js'); console.log(Lexer);"
+```
+
+✅ **Correct (ES Module - compatible with monorepo):**
+
+```bash
+node --input-type=module -e "import { Lexer } from './dist/file.js'; console.log(Lexer);"
+```
+
+**Purpose:** Ensures debugging commands work correctly with the ES module-configured monorepo and prevents CommonJS/ESM compatibility errors.
+
+---
+
 ## **Summary: Applying These Rules**
 
 **Every Single Time You Respond:**
@@ -480,6 +515,7 @@ clear && scripts/agent.sh finished
 7. 🚫 **NEVER overcomplicate** - Use existing infrastructure (Rule 7 - simplicity first)
 8. ⚙️ **Act Mode ONLY:** Execute agent.sh commands (Rule 8 - start/finish settings)
 9. 🗜️ **After task completion:** Run `/compact` to optimize context (Rule 9 - conversation compaction)
+10. 📦 **ES modules for debug:** Use import syntax in `node -e` commands (Rule 10 - ES module monorepo)
 
 **Remember:** These rules exist to ensure high-quality, complete implementations. Following them prevents errors, rework, and wasted effort.
 

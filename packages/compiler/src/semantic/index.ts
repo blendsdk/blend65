@@ -10,7 +10,11 @@
 
 // Main analyzer
 export { SemanticAnalyzer } from './analyzer.js';
-export type { AnalysisResult } from './analyzer.js';
+export type {
+  AnalysisResult,
+  ModuleAnalysisResult,
+  MultiModuleAnalysisResult,
+} from './analyzer.js';
 
 // Symbol table infrastructure
 export { SymbolTable } from './symbol-table.js';
@@ -33,3 +37,13 @@ export { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
 // Control flow infrastructure
 export { ControlFlowGraph, CFGNodeKind } from './control-flow.js';
 export type { CFGNode } from './control-flow.js';
+
+// Multi-module infrastructure (Phase 6)
+export { ModuleRegistry } from './module-registry.js';
+export type { ModuleInfo } from './module-registry.js';
+export { DependencyGraph } from './dependency-graph.js';
+export type { DependencyEdge } from './dependency-graph.js';
+export { ImportResolver } from './import-resolver.js';
+export type { ResolvedImport } from './import-resolver.js';
+export { GlobalSymbolTable } from './global-symbol-table.js';
+export type { GlobalSymbol } from './global-symbol-table.js';
