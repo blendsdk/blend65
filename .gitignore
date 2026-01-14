@@ -144,3 +144,4 @@ packages/playground/output.txt
 # temp files
 temp/
 *.out
+*/**/vitest-junit.xml

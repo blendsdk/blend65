@@ -7,11 +7,12 @@
  * - Expressions: Binary and unary operations
  * - Assignments: Assignment and complex expressions
  * - Declarations: Variable, function, and @map declarations
+ * - Statements: Control flow and statement validation
  *
  * This is the concrete class that should be instantiated for type checking.
  */
 
-import { TypeCheckerDeclarations } from './declarations.js';
+import { TypeCheckerStatements } from './statements.js';
 import type { SymbolTable } from '../../symbol-table.js';
 import type { TypeSystem } from '../../type-system.js';
 
@@ -22,10 +23,11 @@ import type { TypeSystem } from '../../type-system.js';
  * 1. Computes types for all expressions
  * 2. Validates type compatibility
  * 3. Annotates nodes with type information
- * 4. Collects comprehensive diagnostics
+ * 4. Validates statement-level semantics
+ * 5. Collects comprehensive diagnostics
  *
  * **Design:**
- * - Extends TypeCheckerDeclarations (which extends the full chain)
+ * - Extends TypeCheckerStatements (which extends the full chain)
  * - All visitor methods inherited from layers
  * - Provides public API for usage
  *
@@ -36,7 +38,7 @@ import type { TypeSystem } from '../../type-system.js';
  * const diagnostics = checker.getDiagnostics();
  * ```
  */
-export class TypeChecker extends TypeCheckerDeclarations {
+export class TypeChecker extends TypeCheckerStatements {
   /**
    * Creates a new TypeChecker
    *
@@ -52,5 +54,6 @@ export class TypeChecker extends TypeCheckerDeclarations {
   // - TypeCheckerLiterals: visitLiteralExpression, visitArrayLiteralExpression, visitIdentifierExpression
   // - TypeCheckerExpressions: visitBinaryExpression, visitUnaryExpression
   // - TypeCheckerAssignments: visitAssignmentExpression, visitCallExpression, visitIndexExpression, visitMemberExpression
-  // - TypeCheckerDeclarations: visitFunctionDecl, visitVariableDecl, visit*MapDecl, visitExpressionStatement
+  // - TypeCheckerDeclarations: visitFunctionDecl, visitVariableDecl, visit*MapDecl
+  // - TypeCheckerStatements: visitWhileStatement, visitForStatement, visitIfStatement, visitBreakStatement, visitContinueStatement, visitReturnStatement, visitExpressionStatement
 }

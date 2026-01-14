@@ -2,7 +2,7 @@ import { Lexer } from './packages/compiler/dist/lexer/lexer.js';
 import { Parser } from './packages/compiler/dist/parser/parser.js';
 import { SymbolTableBuilder } from './packages/compiler/dist/semantic/visitors/symbol-table-builder.js';
 import { TypeResolver } from './packages/compiler/dist/semantic/visitors/type-resolver.js';
-import { TypeChecker } from './packages/compiler/dist/semantic/visitors/type-checker.js';
+import { TypeChecker } from './packages/compiler/dist/semantic/visitors/type-checker/type-checker.js';
 
 const source = `let result = 10 + 20 * 3;`;
 

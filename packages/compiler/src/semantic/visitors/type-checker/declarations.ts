@@ -10,6 +10,7 @@
 
 import { TypeCheckerAssignments } from './assignments.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../../ast/diagnostics.js';
+import { ASTNodeType } from '../../../ast/base.js';
 
 /**
  * TypeCheckerDeclarations - Type checks declarations and statements
@@ -65,6 +66,18 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
       return;
     }
 
+    // Get the function's return type from the symbol (BEFORE entering scope)
+    // The function symbol is in the module scope, not the function's own scope
+    const symbol = this.symbolTable.lookup(node.getName());
+    const prevReturnType = this.currentFunctionReturnType;
+
+    // Extract return type from Callback type (stored in signature.returnType)
+    if (symbol?.type && (symbol.type as any).signature?.returnType) {
+      this.currentFunctionReturnType = (symbol.type as any).signature.returnType;
+    } else {
+      this.currentFunctionReturnType = null;
+    }
+
     // Enter function scope (parameters are already declared in this scope)
     this.symbolTable.enterScope(functionScope);
 
@@ -76,6 +89,9 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
     // - Call exitNode(node)
     // - Exit FUNCTION context
     super.visitFunctionDecl(node);
+
+    // Restore previous return type
+    this.currentFunctionReturnType = prevReturnType;
 
     // Exit function scope
     this.symbolTable.exitScope();
@@ -93,10 +109,29 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
    * - Type narrowing (word → byte) is rejected
    */
   public visitVariableDecl(node: any): void {
+    // Only process actual VariableDecl nodes
+    // Skip nodes without getName method or with wrong node type
+    if (!node.getName || typeof node.getName !== 'function') {
+      return;
+    }
+
+    // Additional safety: skip if node type is not VariableDecl
+    if (node.getNodeType && node.getNodeType() !== ASTNodeType.VARIABLE_DECL) {
+      return;
+    }
+
+    const varName = node.getName();
+
+    // Skip error recovery nodes (parser creates nodes with name "error")
+    if (!varName || varName === 'error') {
+      return;
+    }
+
     // Get symbol from symbol table (created in Phase 1, type resolved in Phase 2)
-    const symbol = this.symbolTable.lookup(node.getName());
-    if (!symbol || !symbol.type) {
-      // Error already reported in Phase 1 or 2
+    const symbol = this.symbolTable.lookup(varName);
+
+    if (!symbol) {
+      // Error already reported in Phase 1
       return;
     }
 
@@ -104,15 +139,35 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
     if (node.getInitializer && node.getInitializer()) {
       const initType = this.typeCheckExpression(node.getInitializer());
 
-      // Check type compatibility between initializer and variable type
-      if (!this.typeSystem.canAssign(initType, symbol.type)) {
-        this.reportDiagnostic({
-          severity: DiagnosticSeverity.ERROR,
-          message: `Type mismatch in variable initialization: cannot assign '${initType.name}' to '${symbol.type.name}'`,
-          location: node.getInitializer().getLocation(),
-          code: DiagnosticCode.TYPE_MISMATCH,
-        });
+      // Check if type checking succeeded
+      if (!initType || !initType.name) {
+        // Type checking failed - error already reported, skip further checks
+        return;
       }
+
+      // If symbol has explicit type (from Phase 2), check compatibility
+      if (symbol.type) {
+        // Check type compatibility between initializer and declared type
+        if (!this.typeSystem.canAssign(initType, symbol.type)) {
+          this.reportDiagnostic({
+            severity: DiagnosticSeverity.ERROR,
+            message: `Type mismatch in variable initialization: cannot assign '${initType.name}' to '${symbol.type.name}'`,
+            location: node.getInitializer().getLocation(),
+            code: DiagnosticCode.TYPE_MISMATCH,
+          });
+        }
+      } else {
+        // No explicit type annotation - infer type from initializer
+        symbol.type = initType;
+      }
+    } else if (!symbol.type) {
+      // No initializer and no type annotation - error
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: `Variable '${node.getName()}' must have either a type annotation or an initializer`,
+        location: node.getLocation(),
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
     }
   }
 

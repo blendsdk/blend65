@@ -193,13 +193,13 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
+      return;
     }
 
     // Get function signature
     const signature = calleeType.signature;
     if (!signature) {
-      return;
-      // Should not happen for Callback type
+      // Should not happen for Callback type, but handle gracefully
       this.reportDiagnostic({
         severity: DiagnosticSeverity.ERROR,
         message: `Function type missing signature information`,
@@ -215,6 +215,7 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
+      return;
     }
 
     // Check argument count
@@ -283,6 +284,7 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
+      return;
     }
 
     // Type check index

@@ -16,6 +16,7 @@ import type { TypeInfo } from '../../types.js';
 import { TypeKind } from '../../types.js';
 import type { Diagnostic } from '../../../ast/diagnostics.js';
 import type { Expression } from '../../../ast/base.js';
+import { ASTNodeType } from '../../../ast/base.js';
 import type {
   LiteralExpression,
   IdentifierExpression,
@@ -103,23 +104,23 @@ export abstract class TypeCheckerBase extends ContextWalker {
 
     // Dispatch to appropriate visitor method based on node type
     // Each visitor sets node.typeInfo as a side effect
-    if (nodeType === 'LiteralExpression') {
+    if (nodeType === ASTNodeType.LITERAL_EXPR) {
       this.visitLiteralExpression(expr as LiteralExpression);
-    } else if (nodeType === 'ArrayLiteralExpression') {
+    } else if (nodeType === ASTNodeType.ARRAY_LITERAL_EXPR) {
       this.visitArrayLiteralExpression(expr as ArrayLiteralExpression);
-    } else if (nodeType === 'IdentifierExpression') {
+    } else if (nodeType === ASTNodeType.IDENTIFIER_EXPR) {
       this.visitIdentifierExpression(expr as IdentifierExpression);
-    } else if (nodeType === 'BinaryExpression') {
+    } else if (nodeType === ASTNodeType.BINARY_EXPR) {
       this.visitBinaryExpression(expr as BinaryExpression);
-    } else if (nodeType === 'UnaryExpression') {
+    } else if (nodeType === ASTNodeType.UNARY_EXPR) {
       this.visitUnaryExpression(expr as UnaryExpression);
-    } else if (nodeType === 'AssignmentExpression') {
+    } else if (nodeType === ASTNodeType.ASSIGNMENT_EXPR) {
       this.visitAssignmentExpression(expr as AssignmentExpression);
-    } else if (nodeType === 'CallExpression') {
+    } else if (nodeType === ASTNodeType.CALL_EXPR) {
       this.visitCallExpression(expr as CallExpression);
-    } else if (nodeType === 'IndexExpression') {
+    } else if (nodeType === ASTNodeType.INDEX_EXPR) {
       this.visitIndexExpression(expr as IndexExpression);
-    } else if (nodeType === 'MemberExpression') {
+    } else if (nodeType === ASTNodeType.MEMBER_EXPR) {
       this.visitMemberExpression(expr as MemberExpression);
     } else {
       // Unsupported expression type - set unknown type
@@ -153,17 +154,17 @@ export abstract class TypeCheckerBase extends ContextWalker {
     const nodeType = expr.getNodeType();
 
     // Identifiers are lvalues
-    if (nodeType === 'IdentifierExpression') {
+    if (nodeType === ASTNodeType.IDENTIFIER_EXPR) {
       return true;
     }
 
     // Array access is lvalue (array[index])
-    if (nodeType === 'IndexExpression') {
+    if (nodeType === ASTNodeType.INDEX_EXPR) {
       return true;
     }
 
     // Member access is lvalue (obj.property)
-    if (nodeType === 'MemberExpression') {
+    if (nodeType === ASTNodeType.MEMBER_EXPR) {
       return true;
     }
 
@@ -179,7 +180,7 @@ export abstract class TypeCheckerBase extends ContextWalker {
    */
   protected isConst(expr: Expression): boolean {
     // Only identifiers can be const
-    if (expr.getNodeType() !== 'IdentifierExpression') {
+    if (expr.getNodeType() !== ASTNodeType.IDENTIFIER_EXPR) {
       return false;
     }
 

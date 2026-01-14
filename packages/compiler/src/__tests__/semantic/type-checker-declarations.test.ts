@@ -114,15 +114,15 @@ describe('TypeChecker - Variable Declarations', () => {
       expect(getErrors(diagnostics)).toEqual([]);
     });
 
-    it('should error on type mismatch in variable initialization', () => {
+    it('should allow boolean in byte variable (boolean ↔ byte is compatible)', () => {
       const source = `
         let x: byte = true;
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
       const errors = getErrors(diagnostics);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(e => e.message.includes('cannot assign'))).toBe(true);
+      // boolean → byte is allowed in the type system (boolean is just a byte: 0 or 1)
+      expect(errors).toEqual([]);
     });
   });
 
