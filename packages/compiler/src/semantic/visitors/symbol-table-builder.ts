@@ -470,7 +470,7 @@ export class SymbolTableBuilder extends ContextWalker {
 
   public visitForStatement(node: any): void {
     // Declare loop variable
-    const loopVar = node.getLoopVariable();
+    const loopVar = node.getVariable();
     if (loopVar) {
       try {
         const symbol: Symbol = {

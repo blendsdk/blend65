@@ -28,3 +28,8 @@ export { TypeResolver } from './visitors/type-resolver.js';
 // Visitors
 export { SymbolTableBuilder } from './visitors/symbol-table-builder.js';
 export { TypeChecker } from './visitors/type-checker/index.js';
+export { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
+
+// Control flow infrastructure
+export { ControlFlowGraph, CFGNodeKind } from './control-flow.js';
+export type { CFGNode } from './control-flow.js';
