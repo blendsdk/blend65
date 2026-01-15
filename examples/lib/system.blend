@@ -1,0 +1,255 @@
+// ============================================================================
+// System Built-In Functions (Compiler Intrinsics)
+// ============================================================================
+// This module defines the built-in functions provided by the Blend65 compiler.
+// These are compiler intrinsics - they have no implementation in Blend code.
+// The compiler generates optimized 6502 machine code directly for these functions.
+//
+// Module: system
+// Version: 1.0.0
+// Target: Commodore 64 / 6502 Architecture
+// ============================================================================
+
+module system
+
+// ============================================================================
+// Memory Access Functions
+// ============================================================================
+// These functions provide direct memory read/write operations, compiled to
+// efficient 6502 load/store instructions.
+//
+// IL Generation: These map to specialized IL nodes (PEEK, POKE, PEEKW, POKEW)
+// Code Generation: Compile to LDA/STA instructions with appropriate addressing
+// ============================================================================
+
+/**
+ * Read a byte from memory at the specified address.
+ *
+ * This is a compiler intrinsic that generates a single LDA instruction.
+ * It provides type-safe memory access without assembly code.
+ *
+ * @param address - 16-bit memory address to read from
+ * @returns Byte value at the specified address
+ *
+ * @intrinsic intrinsic_peek
+ * @codegen LDA (address) or LDA address depending on addressing mode
+ *
+ * @example
+ * // Read VIC-II border color
+ * let borderColor = peek(0xD020);
+ *
+ * @example
+ * // Read from variable address
+ * let value = peek(dataPointer);
+ */
+export function peek(address: word): byte;
+
+/**
+ * Write a byte to memory at the specified address.
+ *
+ * This is a compiler intrinsic that generates a single STA instruction.
+ * It provides type-safe memory access without assembly code.
+ *
+ * @param address - 16-bit memory address to write to
+ * @param value - Byte value to write
+ *
+ * @intrinsic intrinsic_poke
+ * @codegen STA address or STA (address) depending on addressing mode
+ *
+ * @example
+ * // Set VIC-II border color to light blue
+ * poke(0xD020, 14);
+ *
+ * @example
+ * // Write to variable address
+ * poke(screenPointer, 32); // Write space character
+ */
+export function poke(address: word, value: byte): void;
+
+/**
+ * Read a word (16-bit value) from memory at the specified address.
+ *
+ * This is a compiler intrinsic that generates optimized code to read
+ * a little-endian word (low byte first, then high byte).
+ *
+ * @param address - 16-bit memory address to read from
+ * @returns Word value at the specified address (little-endian)
+ *
+ * @intrinsic intrinsic_peekw
+ * @codegen LDA address / LDX address+1 (or optimized indexed addressing)
+ *
+ * @example
+ * // Read 16-bit timer value from CIA #1
+ * let timerValue = peekw(0xDC04);
+ *
+ * @example
+ * // Read pointer from zero page
+ * let pointer = peekw(0xFB);
+ */
+export function peekw(address: word): word;
+
+/**
+ * Write a word (16-bit value) to memory at the specified address.
+ *
+ * This is a compiler intrinsic that generates optimized code to write
+ * a little-endian word (low byte first, then high byte).
+ *
+ * @param address - 16-bit memory address to write to
+ * @param value - Word value to write (little-endian)
+ *
+ * @intrinsic intrinsic_pokew
+ * @codegen STA address / STX address+1 (or optimized indexed addressing)
+ *
+ * @example
+ * // Set 16-bit timer value in CIA #1
+ * pokew(0xDC04, 0x4000);
+ *
+ * @example
+ * // Write pointer to zero page
+ * pokew(0xFB, screenAddress);
+ */
+export function pokew(address: word, value: word): void;
+
+// ============================================================================
+// Array and String Utilities
+// ============================================================================
+// These functions provide runtime information about arrays and strings.
+//
+// IL Generation: Maps to LENGTH IL node with type-specific handling
+// Code Generation: For arrays, may be compile-time constant or runtime lookup
+// ============================================================================
+
+/**
+ * Get the length of an array or string.
+ *
+ * This is a compiler intrinsic that returns the number of elements in an array
+ * or the number of characters in a string. For arrays with known size at
+ * compile-time, this may be optimized to a constant. For dynamic arrays or
+ * strings, this generates code to read the length metadata.
+ *
+ * @param array - Array or string to get length of
+ * @returns Number of elements in the array or characters in the string
+ *
+ * @intrinsic intrinsic_length
+ * @codegen Compile-time constant OR LDA length_metadata
+ *
+ * @example
+ * let scores: byte[] = [10, 20, 30, 40, 50];
+ * let count = length(scores); // Returns 5
+ *
+ * @example
+ * let message: string = "Hello, C64!";
+ * let len = length(message); // Returns 11
+ *
+ * @example
+ * // Iterate over dynamic array
+ * for i = 0 to length(items) - 1
+ *   processItem(items[i]);
+ * next i
+ */
+export function length<T>(array: T[]): word;
+
+// ============================================================================
+// Type Introspection (Compile-Time)
+// ============================================================================
+// These functions provide compile-time information about types.
+// They are evaluated during compilation and do not generate runtime code.
+//
+// IL Generation: Maps to CONST IL node with computed value
+// Code Generation: No code generated - replaced with constant during compilation
+// ============================================================================
+
+/**
+ * Get the size in bytes of a type or variable.
+ *
+ * This is a compile-time intrinsic that returns the memory size of a type.
+ * It is evaluated during compilation and replaced with a constant value.
+ * No runtime code is generated for this function.
+ *
+ * @param type - Type to get size of (evaluated at compile-time)
+ * @returns Size in bytes of the specified type
+ *
+ * @intrinsic intrinsic_sizeof
+ * @codegen No code generated - replaced with compile-time constant
+ *
+ * @example
+ * // Basic types
+ * let byteSize = sizeof(byte);     // Returns 1
+ * let wordSize = sizeof(word);     // Returns 2
+ * let boolSize = sizeof(boolean);  // Returns 1
+ *
+ * @example
+ * // Array types
+ * let arraySize = sizeof(byte[10]); // Returns 10
+ *
+ * @example
+ * // Allocate buffer based on type size
+ * const BUFFER_SIZE: word = sizeof(word) * 100;
+ * @data buffer at 0x2000: byte[BUFFER_SIZE];
+ */
+export function sizeof(type: Type): byte;
+
+// ============================================================================
+// Implementation Notes
+// ============================================================================
+//
+// Stub Functions vs Intrinsics:
+// ------------------------------
+// These functions are declared without bodies (stub functions) because they
+// are implemented directly by the compiler. During semantic analysis:
+//
+// 1. Symbol Table Builder: Registers these as function symbols
+// 2. Type Checker: Validates call sites use correct parameter types
+// 3. IL Generator: Emits specialized IL nodes (PEEK, POKE, LENGTH, CONST)
+// 4. Code Generator: Generates optimized 6502 machine code
+//
+// Type Safety:
+// ------------
+// Even though these are intrinsics, they maintain full type safety:
+// - peek/poke enforce byte values
+// - peekw/pokew enforce word values
+// - length returns word type for maximum array size support
+// - sizeof is evaluated at compile-time with type checking
+//
+// Performance Characteristics:
+// ----------------------------
+// - peek/poke: 4-6 cycles (single LDA/STA instruction)
+// - peekw/pokew: 8-12 cycles (two load/store operations)
+// - length: 0 cycles (compile-time constant) or 4-6 cycles (runtime lookup)
+// - sizeof: 0 cycles (compile-time constant - no code generated)
+//
+// Memory Safety:
+// --------------
+// These functions provide low-level memory access and bypass normal memory
+// safety. Use with caution:
+// - No bounds checking on addresses
+// - No validation of memory regions
+// - Can corrupt program state if misused
+// - Essential for C64 hardware programming
+//
+// IL Generation Strategy:
+// -----------------------
+// See: plans/il-generator-requirements.md for detailed IL design
+//
+// The IL generator will:
+// 1. Detect calls to these functions during AST traversal
+// 2. Annotate call nodes with intrinsic metadata
+// 3. Emit specialized IL nodes instead of function call IL
+// 4. For sizeof, evaluate at compile-time and emit constant IL
+//
+// Future Enhancements:
+// --------------------
+// Additional intrinsics may be added in future versions:
+// - Memory block operations (copy, fill, compare)
+// - Bit manipulation (set, clear, test)
+// - Type conversion intrinsics
+// - Stack manipulation
+// - Interrupt handling primitives
+//
+// Naming Convention:
+// ------------------
+// Module name: system (lowercase, single word)
+// Function names: camelCase (peek, poke, peekw, pokew, length, sizeof)
+// Intrinsic IDs: intrinsic_<name> (for IL generation)
+//
+// ============================================================================
