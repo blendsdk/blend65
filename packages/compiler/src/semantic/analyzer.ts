@@ -449,6 +449,11 @@ export class SemanticAnalyzer {
     if (!this.hasErrors()) {
       this.runPass5_ControlFlowAnalyzer(ast);
     }
+
+    // Phase 7 (Task 7.2): Unused import detection (after type checking)
+    // This runs even if there are errors, as usage tracking is complete
+    const unusedImportHints = this.detectUnusedImports(ast, this.symbolTable!);
+    this.diagnostics.push(...unusedImportHints);
   }
 
   /**
@@ -661,6 +666,53 @@ export class SemanticAnalyzer {
     }
 
     return fullName;
+  }
+
+  /**
+   * Detect unused imports (Phase 7 - Task 7.2)
+   *
+   * Checks which imported symbols were never marked as used
+   * during type checking (Phase 3).
+   *
+   * Reports HINT-level diagnostics for unused imports to help
+   * developers keep import lists clean without being intrusive.
+   *
+   * **Why Hints (not Warnings):**
+   * - Unused imports don't affect correctness
+   * - They're style/cleanliness issues
+   * - Gentle feedback encourages cleanup
+   *
+   * @param ast - Program AST
+   * @param symbolTable - Module's symbol table
+   * @returns Array of hint diagnostics for unused imports
+   */
+  protected detectUnusedImports(ast: Program, symbolTable: SymbolTable): Diagnostic[] {
+    const diagnostics: Diagnostic[] = [];
+
+    // Extract all import declarations
+    const imports = ast
+      .getDeclarations()
+      .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+
+    for (const importDecl of imports) {
+      const identifiers = importDecl.getIdentifiers();
+
+      for (const identifier of identifiers) {
+        const symbol = symbolTable.lookup(identifier);
+
+        // Check if symbol is an imported symbol that was never used
+        if (symbol && symbol.kind === 'ImportedSymbol' && !symbol.metadata?.isUsed) {
+          diagnostics.push({
+            code: DiagnosticCode.UNUSED_IMPORT,
+            severity: DiagnosticSeverity.HINT,
+            message: `Unused import: '${identifier}' is imported but never used`,
+            location: importDecl.getLocation(),
+          });
+        }
+      }
+    }
+
+    return diagnostics;
   }
 
   /**

@@ -294,9 +294,9 @@ packages/compiler/src/
 | **7**       | Module Validation             | ⚠️ MOSTLY COMPLETE   | 40+      | ~90%       |
 | **8**       | Advanced Analysis             | ⚠️ INFRASTRUCTURE    | 20+      | ~20%       |
 | **9**       | Integration & Testing         | ✅ COMPLETE          | 50+      | 100%       |
-| **1.5**     | Built-In Functions (NEW)      | 🔜 PLANNED           | 40+      | 0%         |
+| **1.5**     | Built-In Functions (NEW)      | ✅ COMPLETE          | 29       | 100%       |
 | **-------** | **-------------------------** | **----------------** | **----** | **------** |
-| **Total**   | **Current Status**            | **~90% Complete**    | 1319     | 90%        |
+| **Total**   | **Current Status**            | **~90% Complete**    | 1365     | 90%        |
 
 **Note:** Phase 6 was significantly expanded beyond original plan to include full multi-module compilation support including dependency graphs, global symbol tables, cross-module validation, and global memory layout.
 
@@ -500,42 +500,56 @@ Semantic analyzer is complete when:
 - ❌ Pure function detection (not implemented)
 - ❌ Constant folding hints (not implemented)
 
-### **🆕 New Phase 1.5: Built-In Functions (Planned)**
+### **✅ Phase 1.5: Built-In Functions (COMPLETE)**
 
-**Critical built-in compiler intrinsics:**
+**Completed January 2026 - Tasks 4.1-4.3:**
 
-- `peek(address: word): byte` - Read byte from memory
-- `poke(address: word, value: byte): void` - Write byte to memory
-- `peekw(address: word): word` - Read word from memory
-- `pokew(address: word, value: word): void` - Write word to memory
-- `length(array: T[]): word` - Array length
-- `length(str: string): word` - String length
-- `sizeof(type: Type): byte` - Compile-time type size
+**Documentation:**
 
-**Implementation approach:**
+- ✅ `plans/il-generator-requirements.md` (1000+ lines) - Complete IL specifications
+- ✅ TODO markers in semantic analyzer for IL generation phase
 
-- Built-in function registry in TypeSystem
-- Special handling in type checking (visitCallExpression)
-- Mark as intrinsic for code generation
-- No IL needed - direct assembly emission
+**Reference Implementation:**
+
+- ✅ `examples/lib/system.blend` - Complete built-in function declarations
+- ✅ 6 intrinsics: peek, poke, peekw, pokew, length, sizeof
+
+**Semantic Integration:**
+
+- ✅ Stub functions (no body) handled correctly
+- ✅ Type checking validates built-in function calls
+- ✅ Control flow analysis skips stub functions
+- ✅ 29 integration tests for built-in functions
+
+**Status:** Ready for IL generator implementation
 
 ## **Next Steps**
 
-### **Immediate Tasks:**
+### **Status Update (January 15, 2026):**
 
-1. ✅ **Update plan documents** (this file and phase-specific docs)
-2. 🔜 **Implement Phase 1.5** - Built-in functions (2 days)
-3. 🔜 **Update language specification** - Section 14: Built-In Functions
-4. 🔜 **Complete Phase 8** - All advanced analysis features (4-5 days)
-5. 🔜 **Optional: Complete Phase 7** - Unused import/export detection (1 day)
+**See:** `docs/semantic-analyzer-implementation-status.md` for comprehensive current status
 
-### **Timeline:**
+### **Remaining Work:**
 
-- **Week 1:** Docs + Built-in functions + Lang spec (~3 days)
-- **Week 2:** Phase 8 implementation (~5 days)
-- **Week 3:** Polish, testing, Phase 7 completion (~2-3 days)
+1. **Phase 7 Completion** - Unused import/export detection (~1-2 days)
+   - Task 7.6: Unused import detection (4-6 hours)
+   - Task 7.7: Unused export warnings (4-6 hours)
 
-**Total remaining: ~10-12 days to 100% completion**
+2. **Phase 8 Completion** - Advanced analysis features (~4-5 days)
+   - Task 8.1: Definite assignment analysis (5-6 hours)
+   - Task 8.2: Unused variable detection (4 hours)
+   - Task 8.3: Unused function detection (3-4 hours)
+   - Task 8.4: Dead code warnings (3 hours)
+   - Task 8.5: Pure function detection (4-5 hours)
+   - Task 8.6: Constant folding hints (4 hours)
+
+**Total remaining: ~6-7 days to 100% completion**
+
+### **Options:**
+
+- **Option A:** Complete Phase 7 first (recommended - quick wins)
+- **Option B:** Skip to Phase 8 (more comprehensive work)
+- **Option C:** Begin IL Generator (semantic analyzer ~90% functional)
 
 ---
 

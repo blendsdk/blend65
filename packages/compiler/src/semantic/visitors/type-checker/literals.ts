@@ -153,6 +153,9 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
    *
    * Looks up the identifier in the symbol table and uses its declared type.
    * Reports error if identifier is not found.
+   *
+   * **Phase 7 (Task 7.1): Symbol Usage Tracking**
+   * Marks the symbol as used for unused import detection.
    */
   public visitIdentifierExpression(node: IdentifierExpression): void {
     const name = node.getName();
@@ -178,6 +181,12 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
       (node as any).typeInfo = unknownType;
       return;
     }
+
+    // Phase 7 (Task 7.1): Mark symbol as used for unused import detection
+    if (!symbol.metadata) {
+      symbol.metadata = {};
+    }
+    symbol.metadata.isUsed = true;
 
     // Use symbol's resolved type from Phase 2
     const type = symbol.type || {

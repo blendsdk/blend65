@@ -38,6 +38,7 @@ Blend65 provides structured programming, modularity, and a practical type system
 |----------|-------------|
 | [20-error-handling.md](20-error-handling.md) | Lexer-level errors and diagnostics |
 | [21-examples.md](21-examples.md) | Complete working code examples |
+| [30-compiler-design.md](30-compiler-design.md) | Compiler design decisions and rationale |
 
 ## Quick Start
 

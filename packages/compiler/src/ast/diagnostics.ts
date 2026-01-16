@@ -151,6 +151,13 @@ export enum DiagnosticCode {
   UNREACHABLE_CODE = 'W004',
 
   // ============================================
+  // HINTS (H001-H099)
+  // ============================================
+
+  /** Imported symbol is never used (Phase 7) */
+  UNUSED_IMPORT = 'H001',
+
+  // ============================================
   // SEMANTIC ERRORS (S001-S099)
   // ============================================
   // These will be used by semantic analyzer (future)
