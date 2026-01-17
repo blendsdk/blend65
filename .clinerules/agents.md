@@ -4,74 +4,18 @@
 
 **When implementing ANY compiler subcomponent, NEVER make assumptions - ALWAYS query the language specification FIRST.**
 
-### **MANDATORY Pre-Implementation Check:**
+**📖 See `specification-compliance.md` for the complete "Never Assume" protocol including:**
+- Pre-implementation checklist for all compiler phases
+- Specific items to verify (lexer, parser, type system, code generation, error handling)
+- Emergency stop protocol when assumptions are detected
+- Specification query protocol for each compiler phase
 
-**Before writing ANY code for compiler components:**
-
-1. ⚠️ **STOP** - Do not proceed with assumptions
-2. 📖 **READ** - Query `docs/language-specification/` sections
-3. ✅ **VERIFY** - Confirm exact behavior in specification
-4. 🔍 **CROSS-REFERENCE** - Check EBNF grammar and examples
-5. 💭 **QUESTION** - Challenge any "obvious" assumptions
-
-### **ALL Compiler Areas - NEVER ASSUME:**
-
-**🔤 Lexer/Tokenization:**
-
-- ❌ Token definitions, keywords, operators
-- ❌ Comment styles, string literal formats
-- ❌ Numeric literal parsing rules
-- ❌ Whitespace and newline handling
-- ❌ Character encoding or escape sequences
-
-**🌳 Parser/AST:**
-
-- ❌ Grammar rules, precedence, associativity
-- ❌ AST node structures and relationships
-- ❌ Statement vs expression classifications
-- ❌ Block structure and scoping rules
-- ❌ Control flow syntax patterns
-
-**📋 Type System:**
-
-- ❌ Type definitions, inference rules
-- ❌ Conversion and coercion behavior
-- ❌ Generic/template mechanisms
-- ❌ Constraint and validation logic
-- ❌ Memory layout assumptions
-
-**🔧 Code Generation:**
-
-- ❌ Instruction selection patterns
-- ❌ Register allocation strategies
-- ❌ Memory addressing modes
-- ❌ Optimization opportunities
-- ❌ Runtime calling conventions
-
-**⚠️ Error Handling:**
-
-- ❌ Error message formats
-- ❌ Recovery strategies
-- ❌ Diagnostic severity levels
-- ❌ Error propagation patterns
-- ❌ User-facing error presentation
-
-**✅ ALWAYS QUERY SPECIFICATION FOR:**
-
-- Exact syntax rules and grammar patterns
-- Semantic behavior and edge cases
-- Error conditions and handling requirements
-- Examples and documented usage patterns
-- Cross-references between language features
-
-### **Emergency Stop Protocol:**
-
-**If you catch yourself making ANY assumption about language behavior:**
-
-1. 🛑 **IMMEDIATE STOP** - Halt current implementation
-2. 📖 **SPECIFICATION QUERY** - Read relevant docs sections
-3. 🔍 **VERIFY UNDERSTANDING** - Confirm behavior is documented
-4. ✅ **PROCEED ONLY AFTER CONFIRMATION** - Implementation matches spec
+**Quick Reference - MUST verify before ANY compiler implementation:**
+1. 🛑 STOP - Do not proceed with assumptions
+2. 📖 READ - Query `docs/language-specification/` sections
+3. ✅ VERIFY - Confirm exact behavior in specification
+4. 🔍 CROSS-REFERENCE - Check EBNF grammar and examples
+5. 💭 QUESTION - Challenge any "obvious" assumptions
 
 **This rule supersedes ALL other considerations. When uncertain about ANY language feature, specification consultation is MANDATORY.**
 
@@ -272,14 +216,15 @@ Phase 5: Parser extends ModuleParser
 4. ⚡ **EXECUTE ONE AT A TIME** - Complete each step fully before moving on
 5. ✅ **VERIFY EACH STEP** - Test and validate before proceeding
 
-### **What "Slightly Large" Means:**
+### **Objective Task Size Criteria - A Task is "LARGE" When It Meets ANY:**
 
-- Task touches more than 3-5 files
-- Implementation exceeds 200 lines of code
-- Multiple logical concerns or features
-- Complex logic or algorithms involved
-- Integration across multiple components
-- Any uncertainty about completion time
+- **Files:** Touches 6 or more files
+- **Lines:** Adds/modifies 200+ lines of code
+- **Time:** Estimated to take more than 2 hours
+- **Concerns:** Involves 3 or more logical concerns/features
+- **Complexity:** Contains complex algorithms or intricate logic
+- **Integration:** Requires integration across multiple components
+- **Uncertainty:** Any significant uncertainty about scope or approach
 
 ### **How to Split in Act Mode:**
 

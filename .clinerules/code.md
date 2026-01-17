@@ -98,8 +98,8 @@ These rules are **mandatory** and must be applied **strictly and consistently** 
 
 ## 6. Inheritance Chain Architecture
 
-17. **SHOULD Use Inheritance Chains for Large Implementations**
-    - When any implementation would exceed **500 lines** OR has multiple logical concerns
+17. **MUST Use Inheritance Chains WHEN Implementation Exceeds 500 Lines**
+    - When any implementation WILL exceed **500 lines** OR has multiple logical concerns
     - Break into inheritance chain: `Base → Layer1 → Layer2 → ... → Concrete`
     - Each layer: **200-500 lines maximum**
     - Natural dependency flow (each layer builds on previous)
