@@ -77,6 +77,120 @@
 
 ---
 
+## **🚨 ULTRA-CRITICAL RULE: MANDATORY COMPLIANCE WITH LANGUAGE SPEC & CODE STANDARDS 🚨**
+
+**In BOTH Plan Mode and Act Mode, you MUST consult and comply with BOTH `.clinerules/code.md` and `docs/language-specification/` before ANY implementation or planning.**
+
+### **MANDATORY Pre-Task Protocol (BOTH MODES):**
+
+**Before ANY planning or implementation:**
+
+1. 🛑 **STOP** - Do not proceed without compliance check
+2. 📖 **READ CODE.MD** - Review relevant coding standards sections
+3. 📖 **READ LANGUAGE SPEC** - Review relevant specification sections
+4. ✅ **VERIFY COMPLIANCE** - Ensure approach follows both documents
+5. 💭 **DOCUMENT COMPLIANCE** - Explicitly state which rules/sections you're following
+
+### **What MUST Be Checked:**
+
+**📋 In code.md (.clinerules/code.md):**
+- Testing requirements (Rules 4-8): All tests must pass, maximum coverage, end-to-end tests
+- Code quality standards (Rules 1-3): DRY, clarity, single responsibility
+- Documentation requirements (Rules 9-11): Comments, JSDoc, junior-dev readability
+- Architecture standards (Rules 17-20): Inheritance chains for large implementations
+- OOP rules (Rules 12-13): No private members, use protected instead
+
+**📋 In Language Specification (docs/language-specification/):**
+- Exact syntax rules and grammar (EBNF)
+- Type system definitions and behavior
+- Operator precedence and associativity
+- Statement vs expression rules
+- Memory-mapped variable syntax (@map forms)
+- Function declaration syntax
+- Module system behavior
+- Error handling specifications
+
+### **Compliance in Plan Mode:**
+
+**When creating ANY plan:**
+
+1. ✅ **Reference code.md rules** - Cite specific rule numbers in your plan
+2. ✅ **Reference language spec sections** - Cite specific sections for language features
+3. ✅ **Explain testing strategy** - Based on code.md Rules 4-8
+4. ✅ **Explain architecture strategy** - Based on code.md Rules 17-20 if >500 lines
+5. ✅ **Verify syntax compliance** - All examples follow language specification
+
+**Example Plan Statement:**
+```
+Following code.md Rule 6 (maximum test coverage) and Rule 7 (end-to-end tests),
+this implementation will include:
+- Unit tests for each method
+- Integration tests for component interactions
+- End-to-end test for complete workflow
+
+Per language specification section 06-expressions-statements.md, all expression
+parsing will follow documented precedence rules and EBNF grammar.
+```
+
+### **Compliance in Act Mode:**
+
+**When implementing ANY code:**
+
+1. ✅ **Code.md Rule 4** - ALL tests must pass before completion
+2. ✅ **Code.md Rule 6** - Create maximum test coverage
+3. ✅ **Code.md Rule 9** - Add mandatory comments explaining WHY
+4. ✅ **Code.md Rule 11** - Add JSDoc to all public/protected members
+5. ✅ **Language spec** - Implement ONLY documented language features
+6. ✅ **Language spec** - Follow exact syntax/grammar rules
+
+**Example Implementation Check:**
+```
+Before implementing binary expression parsing:
+✓ Read language spec section 06-expressions-statements.md
+✓ Reviewed EBNF grammar for binary expressions
+✓ Confirmed precedence table in specification
+✓ Following code.md Rule 11 - adding JSDoc
+✓ Following code.md Rule 6 - creating comprehensive tests
+```
+
+### **Violation Detection:**
+
+**Signs you're violating this rule:**
+
+❌ Implementing language features not in specification
+❌ Writing code without JSDoc (violates code.md Rule 11)
+❌ Writing code without tests (violates code.md Rules 4-8)
+❌ Using "private" instead of "protected" (violates code.md Rule 12)
+❌ Making assumptions about syntax (violates specification)
+❌ Skipping comments for complex logic (violates code.md Rule 9)
+
+### **Emergency Stop Protocol:**
+
+**If you realize you've violated this rule:**
+
+1. 🛑 **IMMEDIATE STOP** - Halt current work
+2. 📖 **READ BOTH DOCUMENTS** - Review missed sections
+3. 🔄 **REVISE APPROACH** - Fix non-compliant work
+4. ✅ **VERIFY COMPLIANCE** - Check against both documents
+5. ⚡ **PROCEED ONLY AFTER FIX** - Don't continue with violations
+
+### **Enforcement:**
+
+**This rule is ABSOLUTELY MANDATORY in BOTH Plan Mode and Act Mode. It supersedes convenience, speed, and assumptions. No exceptions.**
+
+**Why This Rule Exists:**
+
+The language specification and code.md define the EXACT requirements for this project. Ignoring them leads to:
+- Code that doesn't match language spec (specification violations)
+- Missing tests (quality violations)
+- Missing documentation (maintainability violations)
+- Wrong architecture (scalability violations)
+- Rework and wasted effort
+
+**Following these documents is NOT optional - it is THE CORE REQUIREMENT.**
+
+---
+
 ## **CRITICAL RULE: Task Granularity & Architecture**
 
 **To prevent AI context window limitations, ALL tasks must be broken down into granular subtasks with proper architecture.**
@@ -141,6 +255,72 @@ Phase 5: Parser extends ModuleParser
 - Clean separation of concerns
 - Easy to test each layer independently
 - Future extensions just add to appropriate layer
+
+---
+
+## **🚨 ULTRA-CRITICAL RULE FOR ACT MODE: ALWAYS SPLIT TASKS INTO SMALL GRANULAR STEPS 🚨**
+
+**When in Act Mode, if a task is SLIGHTLY LARGE, you MUST split it into small, granular steps to prevent AI context window limitations.**
+
+### **MANDATORY Act Mode Task Splitting:**
+
+**Before executing ANY task in Act Mode:**
+
+1. ⚠️ **ASSESS COMPLEXITY** - Is this task slightly large or complex?
+2. 🔪 **SPLIT IMMEDIATELY** - Break into smallest possible subtasks
+3. 📋 **CREATE CHECKLIST** - List all granular steps with task_progress
+4. ⚡ **EXECUTE ONE AT A TIME** - Complete each step fully before moving on
+5. ✅ **VERIFY EACH STEP** - Test and validate before proceeding
+
+### **What "Slightly Large" Means:**
+
+- Task touches more than 3-5 files
+- Implementation exceeds 200 lines of code
+- Multiple logical concerns or features
+- Complex logic or algorithms involved
+- Integration across multiple components
+- Any uncertainty about completion time
+
+### **How to Split in Act Mode:**
+
+**❌ WRONG - Executing Large Task Directly:**
+```
+Task: "Implement semantic analyzer type checking"
+→ Proceed with entire implementation at once
+→ RISK: Context window overflow, incomplete implementation
+```
+
+**✅ CORRECT - Split into Granular Steps:**
+```
+Step 1: Read and analyze existing type system infrastructure
+Step 2: Create test file with 5 simple type checking test cases
+Step 3: Implement literal type checking only
+Step 4: Run tests and verify literal checking works
+Step 5: Implement binary expression type checking
+Step 6: Run tests and verify binary expressions work
+Step 7: Implement function call type checking
+... continue with small incremental steps
+```
+
+### **Act Mode Step Size Guidelines:**
+
+- Each step should take **10-20 minutes maximum**
+- Each step should touch **1-3 files**
+- Each step should add **50-150 lines** of code
+- Each step must be **immediately testable**
+- Each step must have **clear success criteria**
+
+### **Emergency Split Protocol:**
+
+**If you find yourself in Act Mode with a large task:**
+
+1. 🛑 **IMMEDIATE PAUSE** - Stop current implementation
+2. 🔪 **DECOMPOSE** - Break into smallest possible steps
+3. 📋 **DOCUMENT STEPS** - Update task_progress with granular checklist
+4. ⚡ **RESTART WITH STEP 1** - Begin with first small step only
+5. ✅ **COMPLETE EACH STEP** - Verify before moving to next
+
+**This rule is ABSOLUTELY CRITICAL for Act Mode success. Task splitting prevents context window overflow and ensures complete, high-quality implementations.**
 
 ---
 
@@ -506,6 +686,7 @@ node --input-type=module -e "import { Lexer } from './dist/file.js'; console.log
 
 **Every Single Time You Respond:**
 
+0. 📖 **MANDATORY FIRST:** Consult language spec + code.md (BOTH Plan AND Act Mode)
 1. 🔧 Follow shell command rules (Rule 1 - use `clear &&` and yarn only)
 2. 🧠 Perform internal self-check (Rule 2)
 3. 💡 Enhance requirements if unclear (Rule 3 - Plan Mode)
@@ -518,6 +699,8 @@ node --input-type=module -e "import { Lexer } from './dist/file.js'; console.log
 10. 📦 **ES modules for debug:** Use import syntax in `node -e` commands (Rule 10 - ES module monorepo)
 
 **Remember:** These rules exist to ensure high-quality, complete implementations. Following them prevents errors, rework, and wasted effort.
+
+**MOST IMPORTANT:** Always consult `.clinerules/code.md` and `docs/language-specification/` BEFORE any planning or implementation work. This is the #1 priority.
 
 ---
 

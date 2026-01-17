@@ -16,6 +16,7 @@ import { SymbolTableBuilder } from './visitors/symbol-table-builder.js';
 import { TypeResolver } from './visitors/type-resolver.js';
 import { TypeChecker } from './visitors/type-checker/type-checker.js';
 import { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
+import { AdvancedAnalyzer } from './analysis/advanced-analyzer.js';
 import { SymbolTable } from './symbol-table.js';
 import { TypeSystem } from './type-system.js';
 import { ControlFlowGraph } from './control-flow.js';
@@ -103,9 +104,9 @@ export interface MultiModuleAnalysisResult {
  * 2. Resolves types (Phase 2)
  * 3. Type checks expressions and statements (Phase 3 + 4)
  * 4. Builds control flow graphs (Phase 5)
- * 5. Advanced analysis (Phases 6-8, future)
+ * 5. Advanced optimization analysis (Phase 8)
  *
- * **Current Implementation:** Passes 1-5 complete and integrated.
+ * **Current Implementation:** Passes 1-5, 8 complete and integrated.
  */
 export class SemanticAnalyzer {
   /** Symbol table (built during Pass 1) */
@@ -277,6 +278,11 @@ export class SemanticAnalyzer {
     // Note: Can run independently of type checking
     if (!this.hasErrors()) {
       this.runPass5_ControlFlowAnalyzer(ast);
+    }
+
+    // Pass 8: Advanced analysis (only if all previous passes succeeded)
+    if (!this.hasErrors()) {
+      this.runPass8_AdvancedAnalysis(ast);
     }
   }
 
@@ -454,6 +460,11 @@ export class SemanticAnalyzer {
     // This runs even if there are errors, as usage tracking is complete
     const unusedImportHints = this.detectUnusedImports(ast, this.symbolTable!);
     this.diagnostics.push(...unusedImportHints);
+
+    // Pass 8: Advanced analysis (only if all previous passes succeeded)
+    if (!this.hasErrors()) {
+      this.runPass8_AdvancedAnalysis(ast);
+    }
   }
 
   /**
@@ -802,6 +813,35 @@ export class SemanticAnalyzer {
 
     // Extract results
     this.cfgs = analyzer.getAllCFGs();
+    this.diagnostics.push(...analyzer.getDiagnostics());
+  }
+
+  /**
+   * Pass 8: Advanced Analysis (Phase 8)
+   *
+   * Performs god-level optimization analysis and generates metadata
+   * for IL optimizer. Only runs if all previous passes succeeded.
+   *
+   * Analysis includes:
+   * - Tier 1: Definite assignment, usage analysis, dead code
+   * - Tier 2: Reaching definitions, liveness, constant propagation
+   * - Tier 3: Alias analysis, purity, loops, 6502 hints
+   *
+   * Results are stored in AST node metadata using OptimizationMetadataKey enum.
+   *
+   * @param ast - Program AST
+   */
+  protected runPass8_AdvancedAnalysis(ast: Program): void {
+    if (!this.symbolTable || !this.typeSystem) {
+      throw new Error('Pass 1 and Pass 2 must be run before Pass 8');
+    }
+
+    const analyzer = new AdvancedAnalyzer(this.symbolTable, this.cfgs, this.typeSystem);
+
+    // Run all analyses (Tiers 1-3)
+    analyzer.analyze(ast);
+
+    // Collect diagnostics (warnings about unused code, optimization hints)
     this.diagnostics.push(...analyzer.getDiagnostics());
   }
 

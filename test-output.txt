@@ -1,0 +1,76 @@
+yarn run v1.22.22
+$ turbo run test
+• turbo 2.7.4
+• Packages in scope: @blend65/compiler
+• Running test in 1 packages
+• Remote caching disabled
+@blend65/compiler:build: cache hit, replaying logs ab9cfb766b8cb58d
+@blend65/compiler:build: 
+@blend65/compiler:build: [2K[1G[1myarn run v1.22.22[22m
+@blend65/compiler:build: [2K[1G[33mwarning[39m package.json: No license field
+@blend65/compiler:build: [2K[1G[2m$ tsc[22m
+@blend65/compiler:build: [2K[1G✨  Done in 12.68s.
+@blend65/compiler:test: cache miss, executing b89d27964443ade4
+@blend65/compiler:test: yarn run v1.22.22
+@blend65/compiler:test: warning package.json: No license field
+@blend65/compiler:test: $ vitest run --sequence.concurrent=false --maxConcurrency=1
+@blend65/compiler:test: [33mTesting types with tsc and vue-tsc is an experimental feature.
+@blend65/compiler:test: Breaking changes might not follow SemVer, please pin Vitest's version when using it.[39m
+@blend65/compiler:test: FAILED:  - src/__tests__/semantic/analyzer-integration.test.ts
+@blend65/compiler:test: 
+@blend65/compiler:test: === VITEST RESULTS ===
+@blend65/compiler:test: 
+@blend65/compiler:test: FAILURES:
+@blend65/compiler:test: [1] src/__tests__/semantic/analyzer-integration.test.ts > Semantic Analyzer Integration > Full Pipeline Integration > simple program runs all passes successfully
+@blend65/compiler:test:     expected false to be true // Object.is equality
+@blend65/compiler:test: 
+@blend65/compiler:test: [2] src/__tests__/semantic/module-analysis-ordering.test.ts > Task 6.2.2: Module Analysis Ordering > Empty and Single Module > should analyze single module without imports
+@blend65/compiler:test:     expected false to be true // Object.is equality
+@blend65/compiler:test: 
+@blend65/compiler:test: [3] src/__tests__/semantic/analysis/definite-assignment.test.ts > DefiniteAssignmentAnalyzer > Conditional Initialization > should allow use when both branches initialize
+@blend65/compiler:test:     expected [ { code: 'S002', …(3) }, …(1) ] to have a length of +0 but got 2
+@blend65/compiler:test: 
+@blend65/compiler:test: [4] src/__tests__/semantic/analysis/definite-assignment.test.ts > DefiniteAssignmentAnalyzer > Conditional Initialization > should handle nested conditionals
+@blend65/compiler:test:     expected [ { code: 'S002', …(3) }, …(4) ] to have a length of +0 but got 5
+@blend65/compiler:test: 
+@blend65/compiler:test: [5] src/__tests__/semantic/analyzer-integration.test.ts > Semantic Analyzer Integration > Pass 3: Type Checking > validates binary operation types
+@blend65/compiler:test:     expected false to be true // Object.is equality
+@blend65/compiler:test: 
+@blend65/compiler:test: [6] src/__tests__/semantic/import-validation.test.ts > Import Validation - Regression Tests > should not break existing multi-module tests
+@blend65/compiler:test:     expected false to be true // Object.is equality
+@blend65/compiler:test: 
+@blend65/compiler:test: [7] src/__tests__/semantic/analysis/definite-assignment.test.ts > DefiniteAssignmentAnalyzer > Return Statements > should handle multiple return paths
+@blend65/compiler:test:     expected [ { code: 'S002', …(3) }, …(3) ] to have a length of +0 but got 4
+@blend65/compiler:test: 
+@blend65/compiler:test: [8] src/__tests__/semantic/analyzer-integration.test.ts > Semantic Analyzer Integration > Complex Integration Scenarios > complete C64 program with @map and functions
+@blend65/compiler:test:     expected false to be true // Object.is equality
+@blend65/compiler:test: 
+@blend65/compiler:test: [9] src/__tests__/semantic/analysis/definite-assignment.test.ts > DefiniteAssignmentAnalyzer > Complex Control Flow > should handle complex branching
+@blend65/compiler:test:     expected [ { code: 'S002', …(3) }, …(8) ] to have a length of +0 but got 9
+@blend65/compiler:test: 
+@blend65/compiler:test: [10] src/__tests__/semantic/analysis/definite-assignment.test.ts > DefiniteAssignmentAnalyzer > Assignment in Expressions > should track assignments in complex expressions
+@blend65/compiler:test:     expected [ { code: 'S002', …(3) }, …(1) ] to have a length of +0 but got 2
+@blend65/compiler:test: 
+@blend65/compiler:test: [11] src/__tests__/integration/stub-functions-integration.test.ts > Stub Functions - Full Pipeline Integration > Real-World Built-In Function Scenarios > C64 program using built-in stub functions
+@blend65/compiler:test:     expected false to be true // Object.is equality
+@blend65/compiler:test: 
+@blend65/compiler:test: SUMMARY:
+@blend65/compiler:test: ✓ Passed:  1414
+@blend65/compiler:test: ✗ Failed:  11
+@blend65/compiler:test: ⊘ Skipped: 0
+@blend65/compiler:test: ━━━━━━━━━━━━━━━━
+@blend65/compiler:test: Total: 1425 tests
+@blend65/compiler:test: 
+@blend65/compiler:test: error Command failed with exit code 1.
+@blend65/compiler:test: info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+@blend65/compiler:test: ERROR: command finished with error: command (/Users/gevik/workdir/blend65/packages/compiler) /var/folders/9k/5rrf4r0d7fnb8c_vmfmbkrvw0000gn/T/yarn--1768531964022-0.898125370258599/yarn run test exited (1)
+@blend65/compiler#test: command (/Users/gevik/workdir/blend65/packages/compiler) /var/folders/9k/5rrf4r0d7fnb8c_vmfmbkrvw0000gn/T/yarn--1768531964022-0.898125370258599/yarn run test exited (1)
+
+ Tasks:    1 successful, 2 total
+Cached:    1 cached, 2 total
+  Time:    30.807s 
+Failed:    @blend65/compiler#test
+
+ ERROR  run failed: command  exited (1)
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

@@ -383,12 +383,15 @@ export class MemoryLayoutBuilder {
         const map2 = entries[j];
 
         // Check if ranges overlap
-        if (this.rangesOverlap(map1.startAddress, map1.endAddress, map2.startAddress, map2.endAddress)) {
+        if (
+          this.rangesOverlap(map1.startAddress, map1.endAddress, map2.startAddress, map2.endAddress)
+        ) {
           conflicts.push({
             type: 'map_overlap',
             entry1: map1,
             entry2: map2,
-            message: `Memory-mapped region overlap: '${map1.moduleName}.${map1.name}' ` +
+            message:
+              `Memory-mapped region overlap: '${map1.moduleName}.${map1.name}' ` +
               `($${map1.startAddress.toString(16).toUpperCase()}-$${map1.endAddress.toString(16).toUpperCase()}) ` +
               `overlaps with '${map2.moduleName}.${map2.name}' ` +
               `($${map2.startAddress.toString(16).toUpperCase()}-$${map2.endAddress.toString(16).toUpperCase()})`,
@@ -425,7 +428,8 @@ export class MemoryLayoutBuilder {
             type: 'zp_map_overlap',
             entry1: zpEntry,
             entry2: mapEntry,
-            message: `Zero page variable '${zpEntry.moduleName}.${zpEntry.name}' ` +
+            message:
+              `Zero page variable '${zpEntry.moduleName}.${zpEntry.name}' ` +
               `($${zpStart.toString(16).toUpperCase()}-$${zpEnd.toString(16).toUpperCase()}) ` +
               `overlaps with @map '${mapEntry.moduleName}.${mapEntry.name}' ` +
               `($${mapEntry.startAddress.toString(16).toUpperCase()}-$${mapEntry.endAddress.toString(16).toUpperCase()})`,
@@ -506,8 +510,10 @@ export class MemoryLayoutBuilder {
   protected isZeroPageVariable(symbol: Symbol): boolean {
     // Check symbol metadata for storage class
     // TODO: This needs to be implemented based on how storage classes are tracked
-    return symbol.declaration.constructor.name === 'VariableDecl' &&
-      (symbol.declaration as any).storageClass === 'zp';
+    return (
+      symbol.declaration.constructor.name === 'VariableDecl' &&
+      (symbol.declaration as any).storageClass === 'zp'
+    );
   }
 
   /**
@@ -517,9 +523,11 @@ export class MemoryLayoutBuilder {
    * @returns True if variable has @ram storage class (or default)
    */
   protected isRamVariable(symbol: Symbol): boolean {
-    return symbol.declaration.constructor.name === 'VariableDecl' &&
+    return (
+      symbol.declaration.constructor.name === 'VariableDecl' &&
       ((symbol.declaration as any).storageClass === 'ram' ||
-       (symbol.declaration as any).storageClass === undefined);
+        (symbol.declaration as any).storageClass === undefined)
+    );
   }
 
   /**
@@ -529,8 +537,10 @@ export class MemoryLayoutBuilder {
    * @returns True if variable has @data storage class
    */
   protected isDataVariable(symbol: Symbol): boolean {
-    return symbol.declaration.constructor.name === 'VariableDecl' &&
-      (symbol.declaration as any).storageClass === 'data';
+    return (
+      symbol.declaration.constructor.name === 'VariableDecl' &&
+      (symbol.declaration as any).storageClass === 'data'
+    );
   }
 
   /**

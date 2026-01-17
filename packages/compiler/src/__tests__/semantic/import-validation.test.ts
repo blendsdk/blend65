@@ -359,7 +359,7 @@ describe('Import Validation - Combined Scenarios', () => {
         code: `
           module main
           import abs, PI, internal from lib
-          
+
           export function main(): void
             let result: byte = abs(PI);
           end function
@@ -441,7 +441,7 @@ describe('Import Validation - Real-World Scenarios', () => {
           module game.main
           import abs from lib.math
           import random from lib.random
-          
+
           export function main(): void
             let r: byte = random();
             let a: byte = abs(r);
@@ -527,7 +527,7 @@ describe('Import Validation - Regression Tests', () => {
         code: `
           module moduleB
           import foo, getFoo from moduleA
-          
+
           export function main(): void
             let x: byte = foo;
             let y: byte = getFoo();

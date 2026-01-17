@@ -7,13 +7,11 @@
 import { describe, it, expect } from 'vitest';
 import { MemoryLayoutBuilder } from '../../semantic/memory-layout.js';
 import { SymbolTable } from '../../semantic/symbol-table.js';
-import { ScopeKind } from '../../semantic/scope.js';
 import { Symbol, SymbolKind } from '../../semantic/symbol.js';
 import { TypeSystem } from '../../semantic/type-system.js';
 import { ControlFlowGraph } from '../../semantic/control-flow.js';
 import type { ModuleAnalysisResult } from '../../semantic/analyzer.js';
 import { SourceLocation } from '../../ast/base.js';
-import type { Scope } from '../../semantic/scope.js';
 
 /**
  * Helper: Create a dummy source location
@@ -195,9 +193,7 @@ describe('MemoryLayoutBuilder', () => {
       // Allocate 56 bytes (50% of 112 bytes)
       modules.set(
         'test',
-        createModuleResult('test', [
-          { name: 'data', storageClass: 'zp', size: 56 },
-        ])
+        createModuleResult('test', [{ name: 'data', storageClass: 'zp', size: 56 }])
       );
 
       const layout = builder.buildLayout(modules);
@@ -367,7 +363,10 @@ describe('MemoryLayoutBuilder', () => {
       const builder = new MemoryLayoutBuilder();
       const modules = new Map<string, ModuleAnalysisResult>();
 
-      modules.set('test', createModuleResult('test', [{ name: 'first', storageClass: 'zp', size: 1 }]));
+      modules.set(
+        'test',
+        createModuleResult('test', [{ name: 'first', storageClass: 'zp', size: 1 }])
+      );
 
       const layout = builder.buildLayout(modules);
 
@@ -390,8 +389,9 @@ describe('MemoryLayoutBuilder', () => {
 
       const layout = builder.buildLayout(modules);
 
-      const allocations = Array.from(layout.zeroPageAllocation.values())
-        .sort((a, b) => a.address - b.address);
+      const allocations = Array.from(layout.zeroPageAllocation.values()).sort(
+        (a, b) => a.address - b.address
+      );
 
       // Verify no gaps (addresses should be contiguous)
       expect(allocations.length).toBe(3);
@@ -426,9 +426,18 @@ describe('MemoryLayoutBuilder', () => {
       const builder = new MemoryLayoutBuilder();
       const modules = new Map<string, ModuleAnalysisResult>();
 
-      modules.set('game', createModuleResult('game', [{ name: 'gameCounter', storageClass: 'zp', size: 1 }]));
-      modules.set('player', createModuleResult('player', [{ name: 'playerX', storageClass: 'zp', size: 1 }]));
-      modules.set('enemy', createModuleResult('enemy', [{ name: 'enemyCount', storageClass: 'zp', size: 1 }]));
+      modules.set(
+        'game',
+        createModuleResult('game', [{ name: 'gameCounter', storageClass: 'zp', size: 1 }])
+      );
+      modules.set(
+        'player',
+        createModuleResult('player', [{ name: 'playerX', storageClass: 'zp', size: 1 }])
+      );
+      modules.set(
+        'enemy',
+        createModuleResult('enemy', [{ name: 'enemyCount', storageClass: 'zp', size: 1 }])
+      );
 
       const layout = builder.buildLayout(modules);
 

@@ -5,13 +5,12 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GlobalSymbolTable, type GlobalSymbol } from '../../semantic/global-symbol-table.js';
+import { GlobalSymbolTable } from '../../semantic/global-symbol-table.js';
 import { SymbolTable } from '../../semantic/symbol-table.js';
 import { SymbolKind, type Symbol } from '../../semantic/symbol.js';
-import { ScopeKind } from '../../semantic/scope.js';
 import { TypeKind, type TypeInfo } from '../../semantic/types.js';
 import { SourceLocation } from '../../ast/base.js';
-import { VariableDecl, ModuleDecl } from '../../ast/nodes.js';
+import { VariableDecl } from '../../ast/nodes.js';
 
 /**
  * Helper: Create a test source location
