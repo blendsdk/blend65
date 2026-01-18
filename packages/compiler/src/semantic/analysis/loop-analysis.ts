@@ -147,8 +147,8 @@ export class LoopAnalyzer {
   /** Detected loops per function */
   private loops: Map<string, LoopInfo[]> = new Map();
 
-  /** Dominators per function (node ID → dominator node ID) */
-  private dominators: Map<string, Map<string, string>> = new Map();
+  /** Dominators per function (node ID → Set of dominator IDs) */
+  private dominators: Map<string, Map<string, Set<string>>> = new Map();
 
   /**
    * Creates a Loop Analyzer
@@ -237,9 +237,9 @@ export class LoopAnalyzer {
    *    - dom(N) = {N} ∪ (∩ dom(P) for all predecessors P of N)
    *
    * @param cfg - Control flow graph
-   * @returns Map of node ID → immediate dominator ID
+   * @returns Map of node ID → Set of all dominator IDs
    */
-  protected computeDominators(cfg: ControlFlowGraph): Map<string, string> {
+  protected computeDominators(cfg: ControlFlowGraph): Map<string, Set<string>> {
     const nodes = cfg.getNodes();
     const dominators = new Map<string, Set<string>>();
 
@@ -298,19 +298,7 @@ export class LoopAnalyzer {
       }
     }
 
-    // Convert to immediate dominators (map each node to its single dominator)
-    const idom = new Map<string, string>();
-    for (const [nodeId, doms] of dominators) {
-      // Find immediate dominator (closest dominator that isn't self)
-      const otherDoms = [...doms].filter(id => id !== nodeId);
-      if (otherDoms.length > 0) {
-        // For now, pick the first one (proper idom requires more work)
-        // TODO: Compute true immediate dominator tree
-        idom.set(nodeId, otherDoms[0]);
-      }
-    }
-
-    return idom;
+    return dominators;
   }
 
   /**
@@ -325,12 +313,12 @@ export class LoopAnalyzer {
    * 3. Build loop tree structure
    *
    * @param cfg - Control flow graph
-   * @param dominators - Dominator map
+   * @param dominators - Dominator map (node ID → Set of all dominator IDs)
    * @returns Array of detected loops
    */
   protected findNaturalLoops(
     cfg: ControlFlowGraph,
-    dominators: Map<string, string>
+    dominators: Map<string, Set<string>>
   ): LoopInfo[] {
     const loops: LoopInfo[] = [];
     const nodes = cfg.getNodes();
@@ -667,12 +655,760 @@ export class LoopAnalyzer {
    * **Basic IV**: Variable with linear update (i = i + c)
    * **Derived IV**: Variable computed from basic IV (j = i * c)
    *
-   * @param _loop - Loop information
-   * @param _funcDecl - Function declaration
+   * This is a critical optimization for 6502 code generation.
+   * Basic induction variables enable:
+   * - Strength reduction (multiply → add)
+   * - Loop unrolling decisions
+   * - Array index optimization
+   *
+   * @param loop - Loop information
+   * @param funcDecl - Function declaration
    */
-  protected recognizeInductionVariables(_loop: LoopInfo, _funcDecl: FunctionDecl): void {
-    // TODO: Implement in Tasks 8.11.4 and 8.11.5
-    // For now, this is a placeholder
+  protected recognizeInductionVariables(loop: LoopInfo, funcDecl: FunctionDecl): void {
+    // Phase 1: Find basic induction variables
+    this.findBasicInductionVariables(loop, funcDecl);
+
+    // Phase 2: Find derived induction variables (Task 8.11.5)
+    this.findDerivedInductionVariables(loop, funcDecl);
+  }
+
+  /**
+   * Find basic induction variables in a loop
+   *
+   * A basic induction variable is a variable that is updated
+   * by a constant amount on each iteration:
+   * - i = i + c  (increment by constant)
+   * - i = i - c  (decrement by constant)
+   * - i = c + i  (commutative addition)
+   *
+   * **Algorithm:**
+   * 1. Scan all assignments in the loop body
+   * 2. Find patterns: var = var ± constant
+   * 3. Extract stride (constant change per iteration)
+   * 4. Find initial value from pre-loop assignments
+   *
+   * @param loop - Loop information
+   * @param funcDecl - Function declaration for initial value search
+   */
+  protected findBasicInductionVariables(loop: LoopInfo, funcDecl: FunctionDecl): void {
+    // Map to track potential IVs and their update patterns
+    const ivCandidates = new Map<string, { stride: number; updateCount: number }>();
+
+    // Scan all CFG nodes in loop body for assignments
+    for (const node of loop.body) {
+      if (!node.statement) continue;
+
+      // Check for assignment patterns in the statement
+      this.scanForIVAssignments(node.statement, ivCandidates);
+    }
+
+    // Filter to only variables with exactly one linear update
+    for (const [varName, info] of ivCandidates) {
+      if (info.updateCount === 1) {
+        // This is a basic induction variable
+        const initialValue = this.findInitialValue(varName, funcDecl, loop);
+
+        loop.basicInductionVars.set(varName, {
+          name: varName,
+          stride: info.stride,
+          initialValue,
+        });
+      }
+      // Variables with multiple updates or non-linear updates are not basic IVs
+    }
+  }
+
+  /**
+   * Scan a statement for induction variable assignment patterns
+   *
+   * Looks for patterns like:
+   * - i = i + 1
+   * - i = i - 2
+   * - i = 1 + i (commutative)
+   *
+   * @param statement - Statement to scan
+   * @param ivCandidates - Map to accumulate IV candidates
+   */
+  protected scanForIVAssignments(
+    statement: any,
+    ivCandidates: Map<string, { stride: number; updateCount: number }>
+  ): void {
+    // Handle ExpressionStatement wrapping an AssignmentExpression
+    if (statement.constructor.name === 'ExpressionStatement') {
+      const expr = statement.getExpression?.() || (statement as any).expression;
+      if (expr && expr.constructor.name === 'AssignmentExpression') {
+        this.checkAssignmentForIV(expr, ivCandidates);
+      }
+    }
+
+    // Handle direct AssignmentExpression
+    if (statement.constructor.name === 'AssignmentExpression') {
+      this.checkAssignmentForIV(statement, ivCandidates);
+    }
+
+    // Handle VariableDecl with initializer (for loop counters declared in body)
+    if (statement.constructor.name === 'VariableDecl') {
+      // Variable declarations don't update existing variables,
+      // so they're not IV updates (they might be initial values)
+    }
+
+    // Recursively check if/while bodies
+    if (statement.constructor.name === 'IfStatement') {
+      const thenBranch = statement.getThenBranch?.() || [];
+      const elseBranch = statement.getElseBranch?.() || [];
+      for (const stmt of thenBranch) {
+        this.scanForIVAssignments(stmt, ivCandidates);
+      }
+      for (const stmt of elseBranch) {
+        this.scanForIVAssignments(stmt, ivCandidates);
+      }
+    }
+  }
+
+  /**
+   * Check if an assignment expression is a basic IV update
+   *
+   * Pattern: target = target ± constant
+   *
+   * @param assignExpr - Assignment expression to check
+   * @param ivCandidates - Map to accumulate IV candidates
+   */
+  protected checkAssignmentForIV(
+    assignExpr: any,
+    ivCandidates: Map<string, { stride: number; updateCount: number }>
+  ): void {
+    // Get target of assignment
+    const target = assignExpr.getTarget?.() || assignExpr.target;
+    if (!target || target.constructor.name !== 'IdentifierExpression') {
+      return; // Only simple variable assignments can be IVs
+    }
+
+    const targetName = target.getName?.() || target.name;
+    if (!targetName) return;
+
+    // Get the value being assigned
+    const value = assignExpr.getValue?.() || assignExpr.value;
+    if (!value) return;
+
+    // Check for compound assignment operators (+=, -=)
+    const operator = assignExpr.getOperator?.() || assignExpr.operator;
+    if (this.isCompoundAssignment(operator)) {
+      const stride = this.getCompoundAssignmentStride(value, operator);
+      if (stride !== null) {
+        this.recordIVCandidate(ivCandidates, targetName, stride);
+      }
+      return;
+    }
+
+    // Check for simple assignment with binary expression: i = i + c
+    if (value.constructor.name === 'BinaryExpression') {
+      const stride = this.extractBasicIVStride(targetName, value);
+      if (stride !== null) {
+        this.recordIVCandidate(ivCandidates, targetName, stride);
+      }
+    }
+  }
+
+  /**
+   * Check if operator is a compound assignment (+=, -=)
+   *
+   * @param operator - Token type
+   * @returns True if compound assignment
+   */
+  protected isCompoundAssignment(operator: any): boolean {
+    // Check for common compound assignment operators
+    const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
+    return opName.includes('PLUS_ASSIGN') || opName.includes('MINUS_ASSIGN');
+  }
+
+  /**
+   * Get stride from compound assignment value
+   *
+   * For i += c, the value is just c
+   *
+   * @param value - The value expression
+   * @param operator - The compound operator
+   * @returns Stride value or null if not constant
+   */
+  protected getCompoundAssignmentStride(value: any, operator: any): number | null {
+    // Value should be a constant for basic IV
+    if (value.constructor.name === 'LiteralExpression') {
+      const litValue = value.getValue?.() || value.value;
+      if (typeof litValue === 'number') {
+        const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
+        if (opName.includes('MINUS_ASSIGN')) {
+          return -litValue;
+        }
+        return litValue;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Extract basic IV stride from binary expression
+   *
+   * Handles patterns:
+   * - i + c → stride = c
+   * - i - c → stride = -c
+   * - c + i → stride = c
+   *
+   * @param targetName - Name of the variable being assigned to
+   * @param binaryExpr - Binary expression to analyze
+   * @returns Stride value or null if not a valid IV pattern
+   */
+  protected extractBasicIVStride(targetName: string, binaryExpr: any): number | null {
+    const left = binaryExpr.getLeft?.() || binaryExpr.left;
+    const right = binaryExpr.getRight?.() || binaryExpr.right;
+    const operator = binaryExpr.getOperator?.() || binaryExpr.operator;
+
+    // Determine if this is + or - operation
+    const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
+    const isAddition = opName.includes('PLUS') && !opName.includes('ASSIGN');
+    const isSubtraction = opName.includes('MINUS') && !opName.includes('ASSIGN');
+
+    if (!isAddition && !isSubtraction) {
+      return null; // Only + and - create basic IVs
+    }
+
+    // Pattern 1: i = i + c or i = i - c
+    if (left.constructor.name === 'IdentifierExpression') {
+      const leftName = left.getName?.() || left.name;
+      if (leftName === targetName && right.constructor.name === 'LiteralExpression') {
+        const rightValue = right.getValue?.() || right.value;
+        if (typeof rightValue === 'number') {
+          return isSubtraction ? -rightValue : rightValue;
+        }
+      }
+    }
+
+    // Pattern 2: i = c + i (commutative for addition only)
+    if (isAddition && right.constructor.name === 'IdentifierExpression') {
+      const rightName = right.getName?.() || right.name;
+      if (rightName === targetName && left.constructor.name === 'LiteralExpression') {
+        const leftValue = left.getValue?.() || left.value;
+        if (typeof leftValue === 'number') {
+          return leftValue;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Record an IV candidate, tracking multiple updates
+   *
+   * @param ivCandidates - Map of candidates
+   * @param varName - Variable name
+   * @param stride - Stride value
+   */
+  protected recordIVCandidate(
+    ivCandidates: Map<string, { stride: number; updateCount: number }>,
+    varName: string,
+    stride: number
+  ): void {
+    const existing = ivCandidates.get(varName);
+    if (existing) {
+      // Multiple updates - check if consistent stride
+      if (existing.stride === stride) {
+        existing.updateCount++;
+      } else {
+        // Different strides - not a basic IV
+        existing.updateCount = 999; // Mark as invalid
+      }
+    } else {
+      ivCandidates.set(varName, { stride, updateCount: 1 });
+    }
+  }
+
+  /**
+   * Find initial value of a variable before the loop
+   *
+   * Searches for variable declaration or assignment before the loop.
+   *
+   * @param varName - Variable name
+   * @param funcDecl - Function declaration
+   * @param _loop - Loop being analyzed (reserved for future location matching)
+   * @returns Initial value or null if not determinable
+   */
+  protected findInitialValue(
+    varName: string,
+    funcDecl: FunctionDecl,
+    _loop: LoopInfo
+  ): number | null {
+    const body = funcDecl.getBody?.() || [];
+    if (!body) return null;
+
+    // Find the loop header's position in the CFG to determine "before loop"
+    // For simplicity, we scan function body statements sequentially
+
+    for (const stmt of body) {
+      // Stop when we reach the loop (simplified: check for while statements)
+      if (this.isLoopStatement(stmt)) {
+        break;
+      }
+
+      // Check variable declarations
+      if (stmt.constructor.name === 'VariableDecl') {
+        const stmtAny = stmt as any;
+        const declName = stmtAny.getName?.() || stmtAny.name;
+        if (declName === varName) {
+          const initializer = stmtAny.getInitializer?.() || stmtAny.initializer;
+          if (initializer && initializer.constructor.name === 'LiteralExpression') {
+            const value = initializer.getValue?.() || initializer.value;
+            if (typeof value === 'number') {
+              return value;
+            }
+          }
+        }
+      }
+
+      // Check assignments
+      if (stmt.constructor.name === 'ExpressionStatement') {
+        const stmtAny = stmt as any;
+        const expr = stmtAny.getExpression?.() || stmtAny.expression;
+        if (expr && expr.constructor.name === 'AssignmentExpression') {
+          const target = expr.getTarget?.() || expr.target;
+          if (target && target.constructor.name === 'IdentifierExpression') {
+            const assignName = target.getName?.() || target.name;
+            if (assignName === varName) {
+              const value = expr.getValue?.() || expr.value;
+              if (value && value.constructor.name === 'LiteralExpression') {
+                const litValue = value.getValue?.() || value.value;
+                if (typeof litValue === 'number') {
+                  return litValue;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Check if a statement is a loop statement
+   *
+   * @param stmt - Statement to check
+   * @returns True if statement is a loop
+   */
+  protected isLoopStatement(stmt: any): boolean {
+    // Check if this statement is a loop
+    return stmt.constructor.name === 'WhileStatement' || stmt.constructor.name === 'ForStatement';
+  }
+
+  /**
+   * Find derived induction variables in a loop (Task 8.11.5)
+   *
+   * A derived induction variable is a variable that is computed
+   * from a basic induction variable using a linear transformation:
+   * - j = i * c          (multiplication by constant)
+   * - j = i * c + k      (multiplication plus constant offset)
+   * - j = k + i * c      (commutative form)
+   * - j = i + k          (simple offset from basic IV)
+   *
+   * **Why Derived IVs Matter for 6502:**
+   * Recognizing derived IVs enables strength reduction optimization.
+   * Instead of computing i * 4 each iteration (expensive multiply),
+   * we can use j = j + 4 (cheap addition).
+   *
+   * **Algorithm:**
+   * 1. For each assignment in loop body (not self-referential)
+   * 2. Check if RHS uses a basic IV in a linear pattern
+   * 3. Extract: base IV, multiplier (stride), and offset
+   * 4. Verify the target is not the base IV itself
+   *
+   * @param loop - Loop information (with basicInductionVars populated)
+   * @param _funcDecl - Function declaration (reserved for future use)
+   */
+  protected findDerivedInductionVariables(loop: LoopInfo, _funcDecl: FunctionDecl): void {
+    // No basic IVs means no derived IVs possible
+    if (loop.basicInductionVars.size === 0) {
+      return;
+    }
+
+    // Scan all CFG nodes in loop body for assignments
+    for (const node of loop.body) {
+      if (!node.statement) continue;
+
+      // Check for derived IV patterns in the statement
+      this.scanForDerivedIVAssignments(node.statement, loop);
+    }
+  }
+
+  /**
+   * Scan a statement for derived induction variable patterns
+   *
+   * Looks for patterns like:
+   * - j = i * 4       (stride = 4, offset = 0)
+   * - j = i * 2 + 10  (stride = 2, offset = 10)
+   * - j = 10 + i * 2  (commutative)
+   * - j = i + 5       (stride = 1, offset = 5)
+   *
+   * @param statement - Statement to scan
+   * @param loop - Loop context with basic IVs
+   */
+  protected scanForDerivedIVAssignments(statement: any, loop: LoopInfo): void {
+    // Handle ExpressionStatement wrapping an AssignmentExpression
+    if (statement.constructor.name === 'ExpressionStatement') {
+      const expr = statement.getExpression?.() || (statement as any).expression;
+      if (expr && expr.constructor.name === 'AssignmentExpression') {
+        this.checkAssignmentForDerivedIV(expr, loop);
+      }
+    }
+
+    // Handle direct AssignmentExpression
+    if (statement.constructor.name === 'AssignmentExpression') {
+      this.checkAssignmentForDerivedIV(statement, loop);
+    }
+
+    // Handle VariableDecl with initializer (e.g., let j: byte = i * 4)
+    if (statement.constructor.name === 'VariableDecl') {
+      this.checkVariableDeclForDerivedIV(statement, loop);
+    }
+
+    // Recursively check if/while bodies
+    if (statement.constructor.name === 'IfStatement') {
+      const thenBranch = statement.getThenBranch?.() || [];
+      const elseBranch = statement.getElseBranch?.() || [];
+      for (const stmt of thenBranch) {
+        this.scanForDerivedIVAssignments(stmt, loop);
+      }
+      for (const stmt of elseBranch) {
+        this.scanForDerivedIVAssignments(stmt, loop);
+      }
+    }
+  }
+
+  /**
+   * Check if an assignment creates a derived induction variable
+   *
+   * @param assignExpr - Assignment expression to check
+   * @param loop - Loop context with basic IVs
+   */
+  protected checkAssignmentForDerivedIV(assignExpr: any, loop: LoopInfo): void {
+    // Get target of assignment
+    const target = assignExpr.getTarget?.() || assignExpr.target;
+    if (!target || target.constructor.name !== 'IdentifierExpression') {
+      return; // Only simple variable assignments
+    }
+
+    const targetName = target.getName?.() || target.name;
+    if (!targetName) return;
+
+    // Skip if target is itself a basic IV (that's a basic IV update, not derived)
+    if (loop.basicInductionVars.has(targetName)) {
+      return;
+    }
+
+    // Skip if already identified as derived IV
+    if (loop.derivedInductionVars.has(targetName)) {
+      return;
+    }
+
+    // Get the value being assigned
+    const value = assignExpr.getValue?.() || assignExpr.value;
+    if (!value) return;
+
+    // Try to extract derived IV pattern
+    const derivedInfo = this.extractDerivedIVPattern(targetName, value, loop);
+    if (derivedInfo) {
+      loop.derivedInductionVars.set(targetName, derivedInfo);
+    }
+  }
+
+  /**
+   * Check if a variable declaration creates a derived induction variable
+   *
+   * Handles: let j: byte = i * 4
+   *
+   * @param varDecl - Variable declaration to check
+   * @param loop - Loop context with basic IVs
+   */
+  protected checkVariableDeclForDerivedIV(varDecl: any, loop: LoopInfo): void {
+    const varName = varDecl.getName?.() || varDecl.name;
+    if (!varName) return;
+
+    // Skip if target is a basic IV
+    if (loop.basicInductionVars.has(varName)) {
+      return;
+    }
+
+    // Get initializer
+    const initializer = varDecl.getInitializer?.() || varDecl.initializer;
+    if (!initializer) return;
+
+    // Try to extract derived IV pattern
+    const derivedInfo = this.extractDerivedIVPattern(varName, initializer, loop);
+    if (derivedInfo) {
+      loop.derivedInductionVars.set(varName, derivedInfo);
+    }
+  }
+
+  /**
+   * Extract derived IV pattern from an expression
+   *
+   * Recognizes these patterns:
+   * 1. basicIV * constant           → stride=constant, offset=0
+   * 2. constant * basicIV           → stride=constant, offset=0
+   * 3. basicIV * constant + offset  → stride=constant, offset=offset
+   * 4. offset + basicIV * constant  → stride=constant, offset=offset
+   * 5. basicIV + offset             → stride=1, offset=offset
+   * 6. offset + basicIV             → stride=1, offset=offset
+   *
+   * @param targetName - Name of the variable being assigned
+   * @param expr - Expression to analyze
+   * @param loop - Loop context with basic IVs
+   * @returns Derived IV info or null if not a derived IV pattern
+   */
+  protected extractDerivedIVPattern(
+    targetName: string,
+    expr: any,
+    loop: LoopInfo
+  ): DerivedInductionVariableInfo | null {
+    // Case 1: Direct reference to basic IV (stride=1, offset=0)
+    // This is actually just copying the IV, which is a trivial derived IV
+    if (expr.constructor.name === 'IdentifierExpression') {
+      const varName = expr.getName?.() || expr.name;
+      if (varName && loop.basicInductionVars.has(varName)) {
+        return {
+          name: targetName,
+          baseVar: varName,
+          stride: 1,
+          offset: 0,
+        };
+      }
+      return null;
+    }
+
+    // Case 2: Binary expression - the main case
+    if (expr.constructor.name === 'BinaryExpression') {
+      return this.extractDerivedIVFromBinary(targetName, expr, loop);
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract derived IV from a binary expression
+   *
+   * @param targetName - Name of the variable being assigned
+   * @param binaryExpr - Binary expression to analyze
+   * @param loop - Loop context with basic IVs
+   * @returns Derived IV info or null
+   */
+  protected extractDerivedIVFromBinary(
+    targetName: string,
+    binaryExpr: any,
+    loop: LoopInfo
+  ): DerivedInductionVariableInfo | null {
+    const left = binaryExpr.getLeft?.() || binaryExpr.left;
+    const right = binaryExpr.getRight?.() || binaryExpr.right;
+    const operator = binaryExpr.getOperator?.() || binaryExpr.operator;
+
+    const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
+    const isMultiply = opName.includes('STAR') || opName.includes('MULTIPLY');
+    const isAddition = opName.includes('PLUS') && !opName.includes('ASSIGN');
+    const isSubtraction = opName.includes('MINUS') && !opName.includes('ASSIGN');
+
+    // Pattern: basicIV * constant or constant * basicIV
+    if (isMultiply) {
+      return this.extractMultiplyPattern(targetName, left, right, loop);
+    }
+
+    // Pattern: (something) + offset or offset + (something)
+    // where (something) might be basicIV or basicIV * constant
+    if (isAddition || isSubtraction) {
+      return this.extractAdditionPattern(targetName, left, right, isSubtraction, loop);
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract derived IV from multiplication pattern
+   *
+   * Handles: i * c or c * i
+   *
+   * @param targetName - Variable being assigned
+   * @param left - Left operand
+   * @param right - Right operand
+   * @param loop - Loop context
+   * @returns Derived IV info or null
+   */
+  protected extractMultiplyPattern(
+    targetName: string,
+    left: any,
+    right: any,
+    loop: LoopInfo
+  ): DerivedInductionVariableInfo | null {
+    // Pattern 1: basicIV * constant
+    if (left.constructor.name === 'IdentifierExpression') {
+      const leftName = left.getName?.() || left.name;
+      if (leftName && loop.basicInductionVars.has(leftName)) {
+        const constant = this.extractConstant(right);
+        if (constant !== null) {
+          return {
+            name: targetName,
+            baseVar: leftName,
+            stride: constant,
+            offset: 0,
+          };
+        }
+      }
+    }
+
+    // Pattern 2: constant * basicIV (commutative)
+    if (right.constructor.name === 'IdentifierExpression') {
+      const rightName = right.getName?.() || right.name;
+      if (rightName && loop.basicInductionVars.has(rightName)) {
+        const constant = this.extractConstant(left);
+        if (constant !== null) {
+          return {
+            name: targetName,
+            baseVar: rightName,
+            stride: constant,
+            offset: 0,
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract derived IV from addition/subtraction pattern
+   *
+   * Handles:
+   * - basicIV + offset
+   * - offset + basicIV
+   * - (basicIV * c) + offset
+   * - offset + (basicIV * c)
+   *
+   * @param targetName - Variable being assigned
+   * @param left - Left operand
+   * @param right - Right operand
+   * @param isSubtraction - True if this is subtraction
+   * @param loop - Loop context
+   * @returns Derived IV info or null
+   */
+  protected extractAdditionPattern(
+    targetName: string,
+    left: any,
+    right: any,
+    isSubtraction: boolean,
+    loop: LoopInfo
+  ): DerivedInductionVariableInfo | null {
+    // Try to match left as the IV-related part and right as offset
+    const leftResult = this.extractIVComponent(left, loop);
+    if (leftResult) {
+      const offset = this.extractConstant(right);
+      if (offset !== null) {
+        return {
+          name: targetName,
+          baseVar: leftResult.baseVar,
+          stride: leftResult.stride,
+          offset: isSubtraction ? -offset : offset,
+        };
+      }
+    }
+
+    // Try to match right as the IV-related part and left as offset (only for addition)
+    if (!isSubtraction) {
+      const rightResult = this.extractIVComponent(right, loop);
+      if (rightResult) {
+        const offset = this.extractConstant(left);
+        if (offset !== null) {
+          return {
+            name: targetName,
+            baseVar: rightResult.baseVar,
+            stride: rightResult.stride,
+            offset: offset,
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract the IV component from an expression
+   *
+   * This handles both direct IV references and IV * constant patterns.
+   *
+   * @param expr - Expression to analyze
+   * @param loop - Loop context
+   * @returns Object with baseVar and stride, or null
+   */
+  protected extractIVComponent(
+    expr: any,
+    loop: LoopInfo
+  ): { baseVar: string; stride: number } | null {
+    // Direct IV reference: stride = 1
+    if (expr.constructor.name === 'IdentifierExpression') {
+      const varName = expr.getName?.() || expr.name;
+      if (varName && loop.basicInductionVars.has(varName)) {
+        return { baseVar: varName, stride: 1 };
+      }
+      return null;
+    }
+
+    // IV * constant or constant * IV
+    if (expr.constructor.name === 'BinaryExpression') {
+      const left = expr.getLeft?.() || expr.left;
+      const right = expr.getRight?.() || expr.right;
+      const operator = expr.getOperator?.() || expr.operator;
+
+      const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
+      const isMultiply = opName.includes('STAR') || opName.includes('MULTIPLY');
+
+      if (isMultiply) {
+        // IV * constant
+        if (left.constructor.name === 'IdentifierExpression') {
+          const leftName = left.getName?.() || left.name;
+          if (leftName && loop.basicInductionVars.has(leftName)) {
+            const constant = this.extractConstant(right);
+            if (constant !== null) {
+              return { baseVar: leftName, stride: constant };
+            }
+          }
+        }
+
+        // constant * IV
+        if (right.constructor.name === 'IdentifierExpression') {
+          const rightName = right.getName?.() || right.name;
+          if (rightName && loop.basicInductionVars.has(rightName)) {
+            const constant = this.extractConstant(left);
+            if (constant !== null) {
+              return { baseVar: rightName, stride: constant };
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract a constant number from an expression
+   *
+   * @param expr - Expression to analyze
+   * @returns Number value or null if not a constant
+   */
+  protected extractConstant(expr: any): number | null {
+    if (expr.constructor.name === 'LiteralExpression') {
+      const value = expr.getValue?.() || expr.value;
+      if (typeof value === 'number') {
+        return value;
+      }
+    }
+    return null;
   }
 
   /**
@@ -694,22 +1430,24 @@ export class LoopAnalyzer {
   /**
    * Check if node A dominates node B
    *
-   * @param dominators - Dominator map
+   * @param dominators - Dominator map (node ID → Set of all dominator IDs)
    * @param domId - Potential dominator node ID
    * @param nodeId - Node being checked
    * @returns True if domId dominates nodeId
    */
-  protected dominates(dominators: Map<string, string>, domId: string, nodeId: string): boolean {
-    let current: string | undefined = nodeId;
-
-    while (current) {
-      if (current === domId) {
-        return true;
-      }
-      current = dominators.get(current);
+  protected dominates(
+    dominators: Map<string, Set<string>>,
+    domId: string,
+    nodeId: string
+  ): boolean {
+    // Get the set of all dominators for nodeId
+    const nodeDoms = dominators.get(nodeId);
+    if (!nodeDoms) {
+      return false;
     }
 
-    return false;
+    // Check if domId is in the dominator set
+    return nodeDoms.has(domId);
   }
 
   /**
@@ -741,4 +1479,28 @@ export class LoopAnalyzer {
   public getDiagnostics(): Diagnostic[] {
     return [...this.diagnostics];
   }
+
+  /**
+   * Get detected loops for a function
+   *
+   * Used for testing and debugging loop analysis results.
+   *
+   * @param funcName - Function name
+   * @returns Array of loop information or undefined if function not found
+   */
+  public getLoopsForFunction(funcName: string): LoopInfo[] | undefined {
+    return this.loops.get(funcName);
+  }
+
+  /**
+   * Get all detected loops across all functions
+   *
+   * @returns Map of function name to loops
+   */
+  public getAllLoops(): Map<string, LoopInfo[]> {
+    return new Map(this.loops);
+  }
 }
+
+// Export interfaces for testing
+export type { LoopInfo, InductionVariableInfo, DerivedInductionVariableInfo };
