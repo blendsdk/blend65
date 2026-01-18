@@ -5,12 +5,14 @@
 **When implementing ANY compiler subcomponent, NEVER make assumptions - ALWAYS query the language specification FIRST.**
 
 **📖 See `specification-compliance.md` for the complete "Never Assume" protocol including:**
+
 - Pre-implementation checklist for all compiler phases
 - Specific items to verify (lexer, parser, type system, code generation, error handling)
 - Emergency stop protocol when assumptions are detected
 - Specification query protocol for each compiler phase
 
 **Quick Reference - MUST verify before ANY compiler implementation:**
+
 1. 🛑 STOP - Do not proceed with assumptions
 2. 📖 READ - Query `docs/language-specification/` sections
 3. ✅ VERIFY - Confirm exact behavior in specification
@@ -38,6 +40,7 @@
 ### **What MUST Be Checked:**
 
 **📋 In code.md (.clinerules/code.md):**
+
 - Testing requirements (Rules 4-8): All tests must pass, maximum coverage, end-to-end tests
 - Code quality standards (Rules 1-3): DRY, clarity, single responsibility
 - Documentation requirements (Rules 9-11): Comments, JSDoc, junior-dev readability
@@ -45,6 +48,7 @@
 - OOP rules (Rules 12-13): No private members, use protected instead
 
 **📋 In Language Specification (docs/language-specification/):**
+
 - Exact syntax rules and grammar (EBNF)
 - Type system definitions and behavior
 - Operator precedence and associativity
@@ -65,6 +69,7 @@
 5. ✅ **Verify syntax compliance** - All examples follow language specification
 
 **Example Plan Statement:**
+
 ```
 Following code.md Rule 6 (maximum test coverage) and Rule 7 (end-to-end tests),
 this implementation will include:
@@ -88,6 +93,7 @@ parsing will follow documented precedence rules and EBNF grammar.
 6. ✅ **Language spec** - Follow exact syntax/grammar rules
 
 **Example Implementation Check:**
+
 ```
 Before implementing binary expression parsing:
 ✓ Read language spec section 06-expressions-statements.md
@@ -125,6 +131,7 @@ Before implementing binary expression parsing:
 **Why This Rule Exists:**
 
 The language specification and code.md define the EXACT requirements for this project. Ignoring them leads to:
+
 - Code that doesn't match language spec (specification violations)
 - Missing tests (quality violations)
 - Missing documentation (maintainability violations)
@@ -229,6 +236,7 @@ Phase 5: Parser extends ModuleParser
 ### **How to Split in Act Mode:**
 
 **❌ WRONG - Executing Large Task Directly:**
+
 ```
 Task: "Implement semantic analyzer type checking"
 → Proceed with entire implementation at once
@@ -236,6 +244,7 @@ Task: "Implement semantic analyzer type checking"
 ```
 
 **✅ CORRECT - Split into Granular Steps:**
+
 ```
 Step 1: Read and analyze existing type system infrastructure
 Step 2: Create test file with 5 simple type checking test cases
@@ -529,6 +538,10 @@ function parseExpr(source: string): Expression {
    - This MUST be the last command executed when completing any task in Act Mode
    - Switches VS Code to completion mode (settings.json.auto → settings.json)
    - Enables full linting, formatting, and code cleanup
+
+3. **✅ Review and analyze code.md to apply the rules described in code.md strictly for each task**
+
+4. **✅ Always review the language specs when you need to generate blend65 code**
 
 **Workflow Pattern:**
 

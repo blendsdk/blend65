@@ -154,6 +154,9 @@ export enum OptimizationMetadataKey {
   /** Memory region this access touches (MemoryRegion enum) */
   AliasMemoryRegion = 'AliasMemoryRegion',
 
+  /** Writes to code address range (self-modifying code) (boolean) */
+  SelfModifyingCode = 'SelfModifyingCode',
+
   // ==========================================
   // Purity Analysis (Task 8.9)
   // ==========================================
@@ -185,6 +188,15 @@ export enum OptimizationMetadataKey {
 
   /** Escape reason (EscapeReason enum) */
   EscapeReason = 'EscapeReason',
+
+  /** Cumulative stack depth in bytes (number) */
+  StackDepth = 'StackDepth',
+
+  /** Stack usage exceeds 6502 limit (boolean) */
+  StackOverflowRisk = 'StackOverflowRisk',
+
+  /** Variable never escapes local scope (boolean) */
+  EscapeLocalOnly = 'EscapeLocalOnly',
 
   // ==========================================
   // Loop Analysis (Task 8.11)

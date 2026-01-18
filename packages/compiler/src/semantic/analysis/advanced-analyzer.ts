@@ -18,6 +18,15 @@ import { DefiniteAssignmentAnalyzer } from './definite-assignment.js';
 import { VariableUsageAnalyzer } from './variable-usage.js';
 import { UnusedFunctionAnalyzer } from './unused-functions.js';
 import { DeadCodeAnalyzer } from './dead-code.js';
+import { ReachingDefinitionsAnalyzer } from './reaching-definitions.js';
+import { LivenessAnalyzer } from './liveness.js';
+import { ConstantPropagationAnalyzer } from './constant-propagation.js';
+import { AliasAnalyzer } from './alias-analysis.js';
+import { PurityAnalyzer } from './purity-analysis.js';
+import { EscapeAnalyzer } from './escape-analysis.js';
+import { LoopAnalyzer } from './loop-analysis.js';
+import { CallGraphAnalyzer } from './call-graph.js';
+import { M6502HintAnalyzer } from './m6502-hints.js';
 import { SourceLocation } from '../../ast/index.js';
 
 /**
@@ -149,16 +158,27 @@ export class AdvancedAnalyzer {
    *
    * @param ast - Program AST
    */
-  protected runTier2DataFlowAnalysis(_ast: Program): void {
-    // TODO: Task 8.5 - Reaching definitions
+  protected runTier2DataFlowAnalysis(ast: Program): void {
+    // Task 8.5: Reaching definitions analysis
     // Analyzes: which definitions reach which uses
     // Metadata: ReachingDefinitionsSet, DefUseChain, UseDefChain
-    // TODO: Task 8.6 - Liveness analysis
+    const reachingAnalyzer = new ReachingDefinitionsAnalyzer(this.symbolTable, this.cfgs);
+    reachingAnalyzer.analyze(ast);
+    this.diagnostics.push(...reachingAnalyzer.getDiagnostics());
+
+    // Task 8.6: Liveness analysis
     // Analyzes: variable live ranges, register allocation hints
     // Metadata: LivenessLiveIn, LivenessLiveOut, LivenessInterval
-    // TODO: Task 8.7 - Constant propagation
+    const livenessAnalyzer = new LivenessAnalyzer(this.symbolTable, this.cfgs);
+    livenessAnalyzer.analyze(ast);
+    this.diagnostics.push(...livenessAnalyzer.getDiagnostics());
+
+    // Task 8.7: Constant propagation
     // Analyzes: compile-time constant values, foldable expressions
     // Metadata: ConstantValue, ConstantFoldable, ConstantBranchCondition
+    const constAnalyzer = new ConstantPropagationAnalyzer(this.symbolTable, this.cfgs);
+    constAnalyzer.analyze(ast);
+    this.diagnostics.push(...constAnalyzer.getDiagnostics());
   }
 
   /**
@@ -176,25 +196,48 @@ export class AdvancedAnalyzer {
    *
    * @param ast - Program AST
    */
-  protected runTier3AdvancedAnalysis(_ast: Program): void {
-    // TODO: Task 8.8 - Alias analysis
-    // Analyzes: pointer aliasing, memory regions
+  protected runTier3AdvancedAnalysis(ast: Program): void {
+    // Task 8.8: Alias analysis
+    // Analyzes: pointer aliasing, memory regions, self-modifying code
     // Metadata: AliasPointsTo, AliasNonAliasSet, AliasMemoryRegion
-    // TODO: Task 8.9 - Purity analysis
+    const aliasAnalyzer = new AliasAnalyzer(this.symbolTable);
+    aliasAnalyzer.analyze(ast);
+    this.diagnostics.push(...aliasAnalyzer.getDiagnostics());
+
+    // Task 8.9: Purity analysis
     // Analyzes: function side effects, pure functions
-    // Metadata: PurityLevel, PurityHasSideEffects, PurityWrittenLocations
-    // TODO: Task 8.10 - Escape analysis
-    // Analyzes: variable escape, stack allocatability
-    // Metadata: EscapeEscapes, EscapeStackAllocatable, EscapeReason
-    // TODO: Task 8.11 - Loop analysis
-    // Analyzes: loop invariants, induction variables, hoisting
-    // Metadata: LoopInvariant, LoopHoistCandidate, LoopInductionVariable
-    // TODO: Task 8.12 - Call graph analysis
-    // Analyzes: inlining candidates, recursion, tail calls
-    // Metadata: CallGraphInlineCandidate, CallGraphRecursionDepth
-    // TODO: Task 8.13 - 6502-specific hints
-    // Analyzes: zero-page priority, register preferences, cycle counts
-    // Metadata: M6502ZeroPagePriority, M6502RegisterPreference, M6502CycleEstimate
+    // Metadata: PurityLevel, PurityHasSideEffects, PurityWrittenLocations, PurityIsPure
+    const purityAnalyzer = new PurityAnalyzer(this.symbolTable);
+    purityAnalyzer.analyze(ast);
+    this.diagnostics.push(...purityAnalyzer.getDiagnostics());
+
+    // Task 8.10: Escape analysis
+    // Analyzes: variable escape, stack allocatability, 6502 stack overflow detection
+    // Metadata: EscapeEscapes, EscapeStackAllocatable, EscapeReason, StackDepth, StackOverflowRisk
+    const escapeAnalyzer = new EscapeAnalyzer(this.symbolTable);
+    escapeAnalyzer.analyze(ast);
+    this.diagnostics.push(...escapeAnalyzer.getDiagnostics());
+
+    // Task 8.11: Loop analysis
+    // Analyzes: loop invariants, induction variables, hoisting, iteration counts
+    // Metadata: LoopInvariant, LoopHoistCandidate, LoopInductionVariable, LoopIterationCount, LoopUnrollable
+    const loopAnalyzer = new LoopAnalyzer(this.cfgs, this.symbolTable);
+    loopAnalyzer.analyze(ast);
+    this.diagnostics.push(...loopAnalyzer.getDiagnostics());
+
+    // Task 8.12: Call graph analysis
+    // Analyzes: inlining candidates, recursion, tail calls, dead functions
+    // Metadata: CallGraphInlineCandidate, CallGraphRecursionDepth, CallGraphCallCount, CallGraphUnused
+    const callGraphAnalyzer = new CallGraphAnalyzer();
+    callGraphAnalyzer.analyze(ast);
+    this.diagnostics.push(...callGraphAnalyzer.getDiagnostics());
+
+    // Task 8.13: 6502-specific hints
+    // Analyzes: zero-page priority, register preferences, cycle counts, reserved ZP validation
+    // Metadata: M6502ZeroPagePriority, M6502RegisterPreference, M6502CycleEstimate, M6502ZeroPageReserved
+    const m6502Analyzer = new M6502HintAnalyzer(this.symbolTable, this.cfgs);
+    m6502Analyzer.analyze(ast);
+    this.diagnostics.push(...m6502Analyzer.getDiagnostics());
   }
 
   /**

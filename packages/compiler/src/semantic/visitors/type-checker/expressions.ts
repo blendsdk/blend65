@@ -224,8 +224,8 @@ export abstract class TypeCheckerExpressions extends TypeCheckerLiterals {
       // Result type is same as operand type
       resultType = operandType;
     }
-    // Address-of: @ (represented as ADDRESS token)
-    else if (operator === TokenType.ADDRESS) {
+    // Address-of: @ (represented as AT token)
+    else if (operator === TokenType.AT) {
       // Operand must be an lvalue
       if (!this.isLValue(node.getOperand())) {
         this.reportDiagnostic({

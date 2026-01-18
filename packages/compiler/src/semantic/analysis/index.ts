@@ -34,10 +34,9 @@ export { DeadCodeAnalyzer } from './dead-code.js';
 export { ReachingDefinitionsAnalyzer } from './reaching-definitions.js';
 export { LivenessAnalyzer, type LivenessInfo, type LivenessInterval } from './liveness.js';
 export { ConstantPropagationAnalyzer, type ConstantPropagationInfo, type LatticeValue } from './constant-propagation.js';
-// TODO: Export remaining analysis passes as they are implemented
-// export { AliasAnalyzer } from './alias-analysis.js';
-// export { PurityAnalyzer } from './purity-analysis.js';
-// export { EscapeAnalyzer } from './escape-analysis.js';
-// export { LoopAnalyzer } from './loop-analysis.js';
-// export { CallGraphAnalyzer } from './call-graph.js';
-// export { M6502HintsAnalyzer } from './m6502-hints.js';
+export { AliasAnalyzer } from './alias-analysis.js';
+export { PurityAnalyzer } from './purity-analysis.js';
+export { EscapeAnalyzer } from './escape-analysis.js';
+export { LoopAnalyzer } from './loop-analysis.js';
+export { CallGraphAnalyzer } from './call-graph.js';
+export { M6502HintAnalyzer, M6502Register, MemoryAccessPattern } from './m6502-hints.js';
