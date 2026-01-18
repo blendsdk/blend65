@@ -81,13 +81,32 @@ Contains completed refactoring work:
 
 ---
 
+### Array Features (root archive directory)
+**Status**: ✅ Complete (100%)  
+**Archived**: January 19, 2026
+
+Contains completed array feature implementation plans:
+- `array-literals-implementation-plan.md` - Array literal expressions (`[1, 2, 3]`)
+- `array-size-inference-implementation-plan.md` - Array size inference (`byte[] = [1, 2, 3]`)
+
+**Features Completed**:
+1. ✅ ArrayLiteralExpression AST node
+2. ✅ Parser support for array literal syntax
+3. ✅ Empty arrays, nested arrays, trailing commas
+4. ✅ Array size inference from initializers
+5. ✅ Semantic analysis integration
+6. ✅ Type guards and visitor pattern
+7. ✅ Comprehensive test coverage (100+ tests)
+
+---
+
 ## Active Plans (in `plans/` root)
 
 These plans are **NOT archived** because they are still active or future work:
 
 - **`COMPILER-MASTER-PLAN.md`** - 📋 Master overview of entire compiler (what's done, what remains)
 - **`il-generator-requirements.md`** - 🔜 Next phase: IL Generator requirements
-- **`array-literals-implementation-plan.md`** - 🔜 Future feature
+- **`il-generator-multi-target-analysis.md`** - 🔜 Multi-target IL analysis
 - **`multi-target-architecture-abstraction-plan.md`** - ✅ Complete but reference document
 - **`notes.md`** - 📝 Working notes
 - **`features/`** - 📚 Feature research documents (keep for reference)
@@ -126,7 +145,8 @@ These plans are **NOT archived** because they are still active or future work:
 | Phase 8 Advanced Analysis | 15 files | 661+ | ✅ Complete |
 | Parser | 3 files | 400+ | ✅ Complete |
 | Refactoring | 3 files | N/A | ✅ Complete |
-| **TOTAL** | **33 files** | **2,426+** | **✅ Complete** |
+| Array Features | 2 files | 100+ | ✅ Complete |
+| **TOTAL** | **35 files** | **2,526+** | **✅ Complete** |
 
 ---
 
@@ -138,5 +158,5 @@ These plans are **NOT archived** because they are still active or future work:
 
 ---
 
-**Last Updated**: January 18, 2026  
+**Last Updated**: January 19, 2026  
 **Archive Purpose**: Preserve completed work for reference and documentation
