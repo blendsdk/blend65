@@ -16,6 +16,8 @@
 import type { SourceLocation } from '../ast/base.js';
 import type { ModuleAnalysisResult } from './analyzer.js';
 import type { Symbol } from './symbol.js';
+import { isVariableDecl, isMapDecl } from '../ast/type-guards.js';
+import { TokenType } from '../lexer/types.js';
 
 /**
  * Zero page memory allocation entry
@@ -508,12 +510,10 @@ export class MemoryLayoutBuilder {
    * @returns True if variable has @zp storage class
    */
   protected isZeroPageVariable(symbol: Symbol): boolean {
-    // Check symbol metadata for storage class
-    // TODO: This needs to be implemented based on how storage classes are tracked
-    return (
-      symbol.declaration.constructor.name === 'VariableDecl' &&
-      (symbol.declaration as any).storageClass === 'zp'
-    );
+    if (!isVariableDecl(symbol.declaration)) {
+      return false;
+    }
+    return symbol.declaration.getStorageClass() === TokenType.ZP;
   }
 
   /**
@@ -523,11 +523,11 @@ export class MemoryLayoutBuilder {
    * @returns True if variable has @ram storage class (or default)
    */
   protected isRamVariable(symbol: Symbol): boolean {
-    return (
-      symbol.declaration.constructor.name === 'VariableDecl' &&
-      ((symbol.declaration as any).storageClass === 'ram' ||
-        (symbol.declaration as any).storageClass === undefined)
-    );
+    if (!isVariableDecl(symbol.declaration)) {
+      return false;
+    }
+    // Parser defaults to RAM when no storage class is specified
+    return symbol.declaration.getStorageClass() === TokenType.RAM;
   }
 
   /**
@@ -537,10 +537,10 @@ export class MemoryLayoutBuilder {
    * @returns True if variable has @data storage class
    */
   protected isDataVariable(symbol: Symbol): boolean {
-    return (
-      symbol.declaration.constructor.name === 'VariableDecl' &&
-      (symbol.declaration as any).storageClass === 'data'
-    );
+    if (!isVariableDecl(symbol.declaration)) {
+      return false;
+    }
+    return symbol.declaration.getStorageClass() === TokenType.DATA;
   }
 
   /**
@@ -550,7 +550,7 @@ export class MemoryLayoutBuilder {
    * @returns True if symbol is @map declaration
    */
   protected isMemoryMappedVariable(symbol: Symbol): boolean {
-    return symbol.declaration.constructor.name === 'MapDecl';
+    return isMapDecl(symbol.declaration);
   }
 
   /**

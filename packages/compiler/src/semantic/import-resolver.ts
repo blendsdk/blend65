@@ -37,6 +37,7 @@ import type { ModuleRegistry } from './module-registry.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
 import { DiagnosticCode, DiagnosticSeverity } from '../ast/diagnostics.js';
 import type { SourceLocation } from '../ast/base.js';
+import { isImportDecl } from '../ast/type-guards.js';
 
 /**
  * Resolved import metadata
@@ -135,7 +136,7 @@ export class ImportResolver {
     // Extract all import declarations from the program
     const imports = program
       .getDeclarations()
-      .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+      .filter(isImportDecl);
 
     for (const importDecl of imports) {
       const targetModule = importDecl.getModuleName();
@@ -196,7 +197,7 @@ export class ImportResolver {
       // Extract all import declarations
       const imports = program
         .getDeclarations()
-        .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+        .filter(isImportDecl);
 
       for (const importDecl of imports) {
         const targetModule = importDecl.getModuleName();

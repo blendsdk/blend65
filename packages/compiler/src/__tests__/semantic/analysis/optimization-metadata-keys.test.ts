@@ -36,6 +36,15 @@ describe('OptimizationMetadataKey enum', () => {
     expect(OptimizationMetadataKey.LoopInvariant).toBeDefined();
     expect(OptimizationMetadataKey.CallGraphInlineCandidate).toBeDefined();
     expect(OptimizationMetadataKey.M6502ZeroPagePriority).toBeDefined();
+
+    // GVN keys (Task 8.14.1)
+    expect(OptimizationMetadataKey.GVNNumber).toBeDefined();
+    expect(OptimizationMetadataKey.GVNRedundant).toBeDefined();
+    expect(OptimizationMetadataKey.GVNReplacement).toBeDefined();
+
+    // CSE keys (Task 8.14.3)
+    expect(OptimizationMetadataKey.CSEAvailable).toBeDefined();
+    expect(OptimizationMetadataKey.CSECandidate).toBeDefined();
   });
 
   it('should have unique enum values', () => {
@@ -153,6 +162,67 @@ describe('AddressingMode enum', () => {
   it('should have 10 addressing modes', () => {
     const modes = Object.keys(AddressingMode);
     expect(modes.length).toBe(10);
+  });
+});
+
+describe('GVN Metadata Keys (Task 8.14.1)', () => {
+  it('should have GVNNumber key defined', () => {
+    expect(OptimizationMetadataKey.GVNNumber).toBeDefined();
+  });
+
+  it('should have GVNRedundant key defined', () => {
+    expect(OptimizationMetadataKey.GVNRedundant).toBeDefined();
+  });
+
+  it('should have GVNReplacement key defined', () => {
+    expect(OptimizationMetadataKey.GVNReplacement).toBeDefined();
+  });
+
+  it('should have correct string values for GVN keys', () => {
+    expect(OptimizationMetadataKey.GVNNumber).toBe('GVNNumber');
+    expect(OptimizationMetadataKey.GVNRedundant).toBe('GVNRedundant');
+    expect(OptimizationMetadataKey.GVNReplacement).toBe('GVNReplacement');
+  });
+
+  it('should have unique GVN key values', () => {
+    const gvnKeys = [
+      OptimizationMetadataKey.GVNNumber,
+      OptimizationMetadataKey.GVNRedundant,
+      OptimizationMetadataKey.GVNReplacement,
+    ];
+    const uniqueKeys = new Set(gvnKeys);
+    expect(uniqueKeys.size).toBe(gvnKeys.length);
+  });
+
+  it('should export GVN keys correctly', () => {
+    // Verify keys are accessible as enum members
+    expect(typeof OptimizationMetadataKey.GVNNumber).toBe('string');
+    expect(typeof OptimizationMetadataKey.GVNRedundant).toBe('string');
+    expect(typeof OptimizationMetadataKey.GVNReplacement).toBe('string');
+  });
+});
+
+describe('CSE Metadata Keys (Task 8.14.3)', () => {
+  it('should have CSEAvailable key defined', () => {
+    expect(OptimizationMetadataKey.CSEAvailable).toBeDefined();
+  });
+
+  it('should have CSECandidate key defined', () => {
+    expect(OptimizationMetadataKey.CSECandidate).toBeDefined();
+  });
+
+  it('should have correct string values for CSE keys', () => {
+    expect(OptimizationMetadataKey.CSEAvailable).toBe('CSEAvailable');
+    expect(OptimizationMetadataKey.CSECandidate).toBe('CSECandidate');
+  });
+
+  it('should have unique CSE key values', () => {
+    const cseKeys = [
+      OptimizationMetadataKey.CSEAvailable,
+      OptimizationMetadataKey.CSECandidate,
+    ];
+    const uniqueKeys = new Set(cseKeys);
+    expect(uniqueKeys.size).toBe(cseKeys.length);
   });
 });
 

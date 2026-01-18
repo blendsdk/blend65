@@ -523,8 +523,8 @@ export class Parser extends StatementParser {
    * Check if a statement is a variable declaration
    */
   protected isVariableDeclarationStatement(statement: Statement): boolean {
-    // Use AST node type checking - need to import VariableDecl type
-    return statement.constructor.name === 'VariableDecl';
+    // Use type guard for proper type checking
+    return isVariableDecl(statement);
   }
 
   /**
@@ -548,8 +548,7 @@ export class Parser extends StatementParser {
    * Check if a statement is break or continue
    */
   protected isBreakOrContinueStatement(statement: Statement): boolean {
-    const name = statement.constructor.name;
-    return name === 'BreakStatement' || name === 'ContinueStatement';
+    return isBreakStatement(statement) || isContinueStatement(statement);
   }
 
   /**

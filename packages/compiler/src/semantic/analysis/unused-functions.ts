@@ -30,6 +30,7 @@ import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import { SymbolKind } from '../symbol.js';
 import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
+import { isIdentifierExpression } from '../../ast/type-guards.js';
 
 /**
  * Function usage information
@@ -302,8 +303,8 @@ class FunctionCallTracker extends ASTWalker {
     const callee = node.getCallee();
 
     // Check if callee is an identifier (simple function call)
-    if (callee && callee.getNodeType() === 'IdentifierExpression') {
-      const functionName = (callee as any).getName();
+    if (callee && isIdentifierExpression(callee)) {
+      const functionName = callee.getName();
       const symbol = this.symbolTable.lookup(functionName);
 
       if (symbol && symbol.kind === SymbolKind.Function) {

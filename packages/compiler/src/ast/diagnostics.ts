@@ -189,6 +189,12 @@ export enum DiagnosticCode {
 
   /** Zero page allocation overlaps with @map declaration */
   ZERO_PAGE_MAP_OVERLAP = 'S102',
+
+  /** Reserved zero-page address used ($00-$01 or $90-$FF) */
+  RESERVED_ZERO_PAGE = 'S103',
+
+  /** Zero-page allocation extends into reserved area */
+  ZERO_PAGE_ALLOCATION_INTO_RESERVED = 'S104',
 }
 
 /**

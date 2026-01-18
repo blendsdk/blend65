@@ -20,10 +20,20 @@
  * ```
  */
 
-import type { Program, FunctionDecl, IdentifierExpression } from '../../ast/nodes.js';
+import type { Program, FunctionDecl } from '../../ast/nodes.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
 import { ASTWalker } from '../../ast/walker/base.js';
+import {
+  isFunctionDecl,
+  isExportDecl,
+  isIdentifierExpression,
+  isWhileStatement,
+  isForStatement,
+  isMatchStatement,
+  isIfStatement,
+  isBlockStatement,
+} from '../../ast/type-guards.js';
 
 /**
  * Call graph node representing a function
@@ -118,46 +128,43 @@ export class CallGraphAnalyzer extends ASTWalker {
     const declarations = ast.getDeclarations();
 
     for (const decl of declarations) {
-      if (decl.constructor.name === 'FunctionDecl') {
-        const funcDecl = decl as FunctionDecl;
-        const funcName = funcDecl.getName();
+      if (isFunctionDecl(decl)) {
+        const funcName = decl.getName();
 
         // Create call graph node
         this.nodes.set(funcName, {
           name: funcName,
-          declaration: funcDecl,
+          declaration: decl,
           callees: new Set(),
           callers: new Set(),
           callCount: 0,
           isRecursive: false,
           recursionDepth: 0,
-          size: this.calculateFunctionSize(funcDecl),
+          size: this.calculateFunctionSize(decl),
           inlineCandidate: false,
         });
 
         // Track exported functions using public getter
-        if (funcDecl.isExportedFunction()) {
+        if (decl.isExportedFunction()) {
           this.exportedFunctions.add(funcName);
         }
-      } else if (decl.constructor.name === 'ExportDecl') {
+      } else if (isExportDecl(decl)) {
         // Handle export declarations that wrap functions
-        const exportDecl = decl as any;
-        const innerDecl = exportDecl.getDeclaration();
+        const innerDecl = decl.getDeclaration();
 
-        if (innerDecl && innerDecl.constructor.name === 'FunctionDecl') {
-          const funcDecl = innerDecl as FunctionDecl;
-          const funcName = funcDecl.getName();
+        if (isFunctionDecl(innerDecl)) {
+          const funcName = innerDecl.getName();
 
           // Create call graph node
           this.nodes.set(funcName, {
             name: funcName,
-            declaration: funcDecl,
+            declaration: innerDecl,
             callees: new Set(),
             callers: new Set(),
             callCount: 0,
             isRecursive: false,
             recursionDepth: 0,
-            size: this.calculateFunctionSize(funcDecl),
+            size: this.calculateFunctionSize(innerDecl),
             inlineCandidate: false,
           });
 
@@ -176,7 +183,7 @@ export class CallGraphAnalyzer extends ASTWalker {
     const declarations = ast.getDeclarations();
 
     for (const decl of declarations) {
-      if (decl.constructor.name === 'FunctionDecl') {
+      if (isFunctionDecl(decl)) {
         this.visitFunctionDecl(decl);
       }
     }
@@ -208,14 +215,13 @@ export class CallGraphAnalyzer extends ASTWalker {
     }
 
     const callee = node.getCallee();
-    const calleeType = callee.constructor.name;
 
     // Extract callee name for direct calls
     let calleeName: string | null = null;
 
-    if (calleeType === 'IdentifierExpression') {
+    if (isIdentifierExpression(callee)) {
       // Direct call: foo()
-      calleeName = (callee as IdentifierExpression).getName();
+      calleeName = callee.getName();
     } else {
       // Indirect call: ptr(), obj.method(), array[i](), etc.
       // Mark current function as having indirect calls
@@ -379,20 +385,18 @@ export class CallGraphAnalyzer extends ASTWalker {
    */
   protected checkStatementsForComplexity(statements: any[]): boolean {
     for (const stmt of statements) {
-      const stmtType = stmt.constructor.name;
-
       // Loops are complex (prevent inlining)
-      if (stmtType === 'WhileStatement' || stmtType === 'ForStatement') {
+      if (isWhileStatement(stmt) || isForStatement(stmt)) {
         return false;
       }
 
       // Match statements are complex (many branches)
-      if (stmtType === 'MatchStatement') {
+      if (isMatchStatement(stmt)) {
         return false;
       }
 
       // Recursively check nested statements
-      if (stmtType === 'IfStatement') {
+      if (isIfStatement(stmt)) {
         const thenOk = this.checkStatementsForComplexity(stmt.getThenBranch());
         const elseBranch = stmt.getElseBranch();
         const elseOk = elseBranch ? this.checkStatementsForComplexity(elseBranch) : true;
@@ -402,7 +406,7 @@ export class CallGraphAnalyzer extends ASTWalker {
         }
       }
 
-      if (stmtType === 'BlockStatement') {
+      if (isBlockStatement(stmt)) {
         if (!this.checkStatementsForComplexity(stmt.getStatements())) {
           return false;
         }
@@ -508,54 +512,37 @@ export class CallGraphAnalyzer extends ASTWalker {
       // Count this statement
       count++;
 
-      // Get statement type from constructor name
-      const stmtType = stmt.constructor.name;
-
       // Recursively count nested statements
-      switch (stmtType) {
-        case 'IfStatement':
-          // Count then branch
-          count += this.countStatements(stmt.getThenBranch());
+      if (isIfStatement(stmt)) {
+        // Count then branch
+        count += this.countStatements(stmt.getThenBranch());
 
-          // Count else branch if present
-          const elseBranch = stmt.getElseBranch();
-          if (elseBranch) {
-            count += this.countStatements(elseBranch);
-          }
-          break;
+        // Count else branch if present
+        const elseBranch = stmt.getElseBranch();
+        if (elseBranch) {
+          count += this.countStatements(elseBranch);
+        }
+      } else if (isWhileStatement(stmt)) {
+        count += this.countStatements(stmt.getBody());
+      } else if (isForStatement(stmt)) {
+        count += this.countStatements(stmt.getBody());
+      } else if (isMatchStatement(stmt)) {
+        // Count all case bodies
+        const cases = stmt.getCases();
+        for (const caseClause of cases) {
+          count += this.countStatements(caseClause.body);
+        }
 
-        case 'WhileStatement':
-          count += this.countStatements(stmt.getBody());
-          break;
-
-        case 'ForStatement':
-          count += this.countStatements(stmt.getBody());
-          break;
-
-        case 'MatchStatement':
-          // Count all case bodies
-          const cases = stmt.getCases();
-          for (const caseClause of cases) {
-            count += this.countStatements(caseClause.body);
-          }
-
-          // Count default case if present
-          const defaultCase = stmt.getDefaultCase();
-          if (defaultCase) {
-            count += this.countStatements(defaultCase);
-          }
-          break;
-
-        case 'BlockStatement':
-          // Block statements contain nested statements
-          count += this.countStatements(stmt.getStatements());
-          break;
-
-        // Other statement types (return, break, continue, expression) have no nested statements
-        default:
-          // No nested statements to count
-          break;
+        // Count default case if present
+        const defaultCase = stmt.getDefaultCase();
+        if (defaultCase) {
+          count += this.countStatements(defaultCase);
+        }
+      } else if (isBlockStatement(stmt)) {
+        // Block statements contain nested statements
+        count += this.countStatements(stmt.getStatements());
       }
+      // Other statement types (return, break, continue, expression) have no nested statements
     }
 
     return count;

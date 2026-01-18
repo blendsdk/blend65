@@ -29,6 +29,7 @@ import type { Diagnostic } from '../../ast/diagnostics.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
 import { TokenType } from '../../lexer/types.js';
+import { isVariableDecl, isExpressionStatement, isAssignmentExpression, isIdentifierExpression } from '../../ast/type-guards.js';
 
 /**
  * Lattice values for constant propagation
@@ -231,9 +232,8 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
       if (!node.statement) continue;
 
       // Find variable declarations
-      if (node.statement.getNodeType() === 'VariableDecl') {
-        const varDecl = node.statement as any;
-        variables.add(varDecl.getName());
+      if (isVariableDecl(node.statement)) {
+        variables.add(node.statement.getName());
       }
     }
 
@@ -250,25 +250,21 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
     const defs: string[] = [];
 
     // Variable declarations with initializers
-    if (stmt.getNodeType() === 'VariableDecl') {
-      const varDecl = stmt as any;
-      if (varDecl.getInitializer()) {
-        defs.push(varDecl.getName());
+    if (isVariableDecl(stmt)) {
+      if (stmt.getInitializer()) {
+        defs.push(stmt.getName());
       }
     }
 
     // Assignments
-    if (stmt.getNodeType() === 'ExpressionStatement') {
-      const exprStmt = stmt as any;
-      const expr = exprStmt.getExpression();
+    if (isExpressionStatement(stmt)) {
+      const expr = stmt.getExpression();
 
-      if (expr && expr.getNodeType() === 'AssignmentExpression') {
-        const assignment = expr as any;
-        const target = assignment.getTarget();
+      if (expr && isAssignmentExpression(expr)) {
+        const target = expr.getTarget();
 
-        if (target.getNodeType() === 'IdentifierExpression') {
-          const ident = target as IdentifierExpression;
-          defs.push(ident.getName());
+        if (isIdentifierExpression(target)) {
+          defs.push(target.getName());
         }
       }
     }
@@ -290,10 +286,9 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
     let changed = false;
 
     // Handle variable declarations
-    if (stmt.getNodeType() === 'VariableDecl') {
-      const varDecl = stmt as any;
-      const varName = varDecl.getName();
-      const initializer = varDecl.getInitializer();
+    if (isVariableDecl(stmt)) {
+      const varName = stmt.getName();
+      const initializer = stmt.getInitializer();
 
       if (initializer) {
         const newValue = this.evaluateExpression(initializer, constantValues);
@@ -315,18 +310,15 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
     }
 
     // Handle assignments
-    if (stmt.getNodeType() === 'ExpressionStatement') {
-      const exprStmt = stmt as any;
-      const expr = exprStmt.getExpression();
+    if (isExpressionStatement(stmt)) {
+      const expr = stmt.getExpression();
 
-      if (expr && expr.getNodeType() === 'AssignmentExpression') {
-        const assignment = expr as any;
-        const target = assignment.getTarget();
-        const value = assignment.getValue();
+      if (expr && isAssignmentExpression(expr)) {
+        const target = expr.getTarget();
+        const value = expr.getValue();
 
-        if (target.getNodeType() === 'IdentifierExpression') {
-          const ident = target as IdentifierExpression;
-          const varName = ident.getName();
+        if (isIdentifierExpression(target)) {
+          const varName = target.getName();
 
           const newValue = this.evaluateExpression(value, constantValues);
           const oldValue = constantValues.get(varName) || { kind: 'TOP' };
@@ -753,15 +745,14 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
         for (const node of cfg.getNodes()) {
           if (!node.statement) continue;
 
-          if (node.statement.getNodeType() === 'VariableDecl') {
-            const varDecl = node.statement as any;
-            if (varDecl.getName() === varName) {
-              if (!varDecl.metadata) {
-                varDecl.metadata = new Map();
-              }
-              varDecl.metadata.set(OptimizationMetadataKey.ConstantValue, latticeValue.value);
+        if (isVariableDecl(node.statement)) {
+          if (node.statement.getName() === varName) {
+            if (!node.statement.metadata) {
+              node.statement.metadata = new Map();
             }
+            node.statement.metadata.set(OptimizationMetadataKey.ConstantValue, latticeValue.value);
           }
+        }
         }
       }
     }
@@ -781,13 +772,12 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
       for (const node of cfg.getNodes()) {
         if (!node.statement) continue;
 
-        if (node.statement.getNodeType() === 'VariableDecl') {
-          const varDecl = node.statement as any;
-          if (varDecl.getName() === varName) {
-            if (!varDecl.metadata) {
-              varDecl.metadata = new Map();
+        if (isVariableDecl(node.statement)) {
+          if (node.statement.getName() === varName) {
+            if (!node.statement.metadata) {
+              node.statement.metadata = new Map();
             }
-            varDecl.metadata.set(OptimizationMetadataKey.ConstantEffectivelyConst, true);
+            node.statement.metadata.set(OptimizationMetadataKey.ConstantEffectivelyConst, true);
           }
         }
       }

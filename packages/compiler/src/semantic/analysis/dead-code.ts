@@ -30,6 +30,7 @@ import type { Diagnostic } from '../../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import { OptimizationMetadataKey, DeadCodeKind } from './optimization-metadata-keys.js';
+import { isReturnStatement, isBreakStatement, isContinueStatement, isLiteralExpression } from '../../ast/type-guards.js';
 
 /**
  * Dead code information
@@ -167,14 +168,11 @@ export class DeadCodeAnalyzer {
 
             // Check if this statement makes subsequent code unreachable
             // Return statements always make subsequent code unreachable
-            if (stmt.getNodeType() === 'ReturnStatement') {
+            if (isReturnStatement(stmt)) {
               foundUnreachable = true;
             }
             // Break/continue also make subsequent code unreachable (in loop context)
-            else if (
-              stmt.getNodeType() === 'BreakStatement' ||
-              stmt.getNodeType() === 'ContinueStatement'
-            ) {
+            else if (isBreakStatement(stmt) || isContinueStatement(stmt)) {
               foundUnreachable = true;
             }
           }
@@ -360,8 +358,8 @@ class UnreachableBranchDetector extends ASTWalker {
     const condition = node.getCondition();
 
     // Handle literal boolean
-    if (condition.getNodeType() === 'LiteralExpression') {
-      const value = (condition as any).getValue();
+    if (isLiteralExpression(condition)) {
+      const value = condition.getValue();
 
       // Check if the value is a boolean
       if (typeof value === 'boolean' && value === false) {

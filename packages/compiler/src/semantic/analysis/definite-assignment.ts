@@ -34,6 +34,8 @@ import {
   isAssignmentExpression,
   isIdentifierExpression,
   isExpressionStatement,
+  isFunctionDecl,
+  isLiteralExpression,
 } from '../../ast/type-guards.js';
 
 /**
@@ -127,16 +129,15 @@ export class DefiniteAssignmentAnalyzer {
     const map = new Map<string, { params: string[]; node: any }>();
 
     for (const decl of ast.getDeclarations()) {
-      if (decl.getNodeType() === 'FunctionDecl') {
-        const funcDecl = decl as any;
+      if (isFunctionDecl(decl)) {
 
         // Skip stub functions - they have no body and no CFG to analyze
-        if (!funcDecl.getBody()) {
+        if (!decl.getBody()) {
           continue;
         }
 
-        const funcName = funcDecl.getName();
-        const parameters = funcDecl.getParameters();
+        const funcName = decl.getName();
+        const parameters = decl.getParameters();
 
         // Extract parameter names - parameters may be objects with 'name' property or have getName() method
         const params = parameters.map((p: any) => {
@@ -152,7 +153,7 @@ export class DefiniteAssignmentAnalyzer {
           }
         });
 
-        map.set(funcName, { params, node: funcDecl });
+        map.set(funcName, { params, node: decl });
       }
     }
 
@@ -726,7 +727,7 @@ class DefiniteAssignmentWalker extends ASTWalker {
    */
   protected isConstantExpression(node: Expression): boolean {
     // Simple constant detection (literals only for now)
-    return node.getNodeType() === 'LiteralExpression';
+    return isLiteralExpression(node);
   }
 
   /**
@@ -736,10 +737,8 @@ class DefiniteAssignmentWalker extends ASTWalker {
    * @returns Evaluated value
    */
   protected evaluateConstant(node: Expression): number | string | boolean | undefined {
-    const nodeType = node.getNodeType();
-
-    if (nodeType === 'LiteralExpression') {
-      return (node as any).getValue();
+    if (isLiteralExpression(node)) {
+      return node.getValue();
     }
 
     return undefined;

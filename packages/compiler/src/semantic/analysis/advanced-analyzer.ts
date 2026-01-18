@@ -27,6 +27,8 @@ import { EscapeAnalyzer } from './escape-analysis.js';
 import { LoopAnalyzer } from './loop-analysis.js';
 import { CallGraphAnalyzer } from './call-graph.js';
 import { M6502HintAnalyzer } from './m6502-hints.js';
+import { GlobalValueNumberingAnalyzer } from './global-value-numbering.js';
+import { CommonSubexpressionEliminationAnalyzer } from './common-subexpr-elimination.js';
 import { SourceLocation } from '../../ast/index.js';
 
 /**
@@ -191,6 +193,8 @@ export class AdvancedAnalyzer {
    * - Task 8.11: Loop analysis
    * - Task 8.12: Call graph analysis
    * - Task 8.13: 6502-specific hints
+   * - Task 8.14.2: Global Value Numbering (GVN)
+   * - Task 8.14.4: Common Subexpression Elimination (CSE)
    *
    * Requires Tiers 1+2 results (usage + data flow).
    *
@@ -238,6 +242,20 @@ export class AdvancedAnalyzer {
     const m6502Analyzer = new M6502HintAnalyzer(this.symbolTable, this.cfgs);
     m6502Analyzer.analyze(ast);
     this.diagnostics.push(...m6502Analyzer.getDiagnostics());
+
+    // Task 8.14.2: Global Value Numbering
+    // Analyzes: redundant computations, value equivalence across code paths
+    // Metadata: GVNNumber, GVNRedundant, GVNReplacement
+    const gvnAnalyzer = new GlobalValueNumberingAnalyzer(this.cfgs, this.symbolTable);
+    gvnAnalyzer.analyze(ast);
+    this.diagnostics.push(...gvnAnalyzer.getDiagnostics());
+
+    // Task 8.14.4: Common Subexpression Elimination
+    // Analyzes: local redundant subexpressions within basic blocks
+    // Metadata: CSEAvailable, CSECandidate
+    const cseAnalyzer = new CommonSubexpressionEliminationAnalyzer(this.cfgs, this.symbolTable);
+    cseAnalyzer.analyze(ast);
+    this.diagnostics.push(...cseAnalyzer.getDiagnostics());
   }
 
   /**

@@ -34,6 +34,7 @@ import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import { SymbolKind } from '../symbol.js';
 import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
+import { isIdentifierExpression } from '../../ast/type-guards.js';
 
 /**
  * Variable usage information
@@ -393,7 +394,7 @@ class WriteTracker extends ASTWalker {
     const target = node.getTarget();
 
     // Check if target is an identifier (simple variable assignment)
-    if (target && target.getNodeType() === 'IdentifierExpression') {
+    if (target && isIdentifierExpression(target)) {
       const symbol = this.symbolTable.lookup(target.getName());
 
       if (symbol && symbol.kind === SymbolKind.Variable) {

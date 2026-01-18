@@ -21,13 +21,14 @@
  * ```
  */
 
-import type { Program, IdentifierExpression, AssignmentExpression } from '../../ast/nodes.js';
+import type { Program } from '../../ast/nodes.js';
 import type { Statement } from '../../ast/base.js';
 import type { SymbolTable } from '../symbol-table.js';
 import type { ControlFlowGraph, CFGNode } from '../control-flow.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
+import { isVariableDecl, isExpressionStatement, isAssignmentExpression, isIdentifierExpression } from '../../ast/type-guards.js';
 
 /**
  * Represents a variable definition in the program
@@ -304,10 +305,9 @@ export class ReachingDefinitionsAnalyzer extends ASTWalker {
     const defs: Definition[] = [];
 
     // Handle variable declarations with initializers
-    if (stmt.getNodeType() === 'VariableDecl') {
-      const varDecl = stmt as any;
-      const name = varDecl.getName();
-      if (varDecl.getInitializer()) {
+    if (isVariableDecl(stmt)) {
+      const name = stmt.getName();
+      if (stmt.getInitializer()) {
         defs.push({
           variable: name,
           node,
@@ -318,18 +318,15 @@ export class ReachingDefinitionsAnalyzer extends ASTWalker {
     }
 
     // Handle assignments
-    if (stmt.getNodeType() === 'ExpressionStatement') {
-      const exprStmt = stmt as any;
-      const expr = exprStmt.getExpression();
+    if (isExpressionStatement(stmt)) {
+      const expr = stmt.getExpression();
 
-      if (expr && expr.getNodeType() === 'AssignmentExpression') {
-        const assignment = expr as AssignmentExpression;
-        const target = assignment.getTarget();
+      if (expr && isAssignmentExpression(expr)) {
+        const target = expr.getTarget();
 
-        if (target.getNodeType() === 'IdentifierExpression') {
-          const ident = target as IdentifierExpression;
+        if (isIdentifierExpression(target)) {
           defs.push({
-            variable: ident.getName(),
+            variable: target.getName(),
             node,
             statement: stmt,
             id: this.nextDefId++,
@@ -470,9 +467,8 @@ export class ReachingDefinitionsAnalyzer extends ASTWalker {
     const findIdentifiers = (node: any): void => {
       if (!node) return;
 
-      if (node.getNodeType && node.getNodeType() === 'IdentifierExpression') {
-        const ident = node as IdentifierExpression;
-        uses.set(ident.getName(), stmt);
+      if (node.getNodeType && isIdentifierExpression(node)) {
+        uses.set(node.getName(), stmt);
         return;
       }
 

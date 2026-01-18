@@ -127,9 +127,61 @@ These rules are **mandatory** and must be applied **strictly and consistently** 
     - ❌ Simple utilities or data structures
     - ❌ Classes with single, focused responsibilities
 
-## 7. Final Rule
+## 7. TypeScript Type Checking Best Practices
 
-21. **If in Doubt, Be Explicit**
+22. **No Inline Dynamic Imports for Types**
+    - Do **not** use inline import expressions for type references
+    - Always add proper import statements at the top of the file
+    
+    ❌ **Wrong:**
+    ```typescript
+    function example(expr: import('../ast/base.js').Expression): void
+    ```
+    
+    ✅ **Correct:**
+    ```typescript
+    import type { Expression } from '../ast/base.js';
+    function example(expr: Expression): void
+    ```
+
+23. **No constructor.name Comparisons**
+    - Do **not** use `constructor.name` for type checking
+    - Always use `instanceof` operator or type guard functions
+    
+    ❌ **Wrong:**
+    ```typescript
+    if (node.constructor.name === 'VariableDecl') { ... }
+    ```
+    
+    ✅ **Correct:**
+    ```typescript
+    import { isVariableDecl } from '../ast/type-guards.js';
+    if (isVariableDecl(node)) { ... }
+    // OR
+    if (node instanceof VariableDecl) { ... }
+    ```
+
+24. **No Hardcoded String Type Comparisons**
+    - Do **not** use hardcoded string literals for AST node type checks
+    - Always use `ASTNodeType` enum or type guard functions
+    
+    ❌ **Wrong:**
+    ```typescript
+    if (stmt.getNodeType() === 'VariableDecl') { ... }
+    ```
+    
+    ✅ **Correct:**
+    ```typescript
+    import { ASTNodeType } from '../ast/base.js';
+    if (stmt.getNodeType() === ASTNodeType.VARIABLE_DECL) { ... }
+    // OR (preferred - enables type narrowing)
+    import { isVariableDecl } from '../ast/type-guards.js';
+    if (isVariableDecl(stmt)) { ... }
+    ```
+
+## 8. Final Rule
+
+25. **If in Doubt, Be Explicit**
     - Prefer more readable code, more comments, and clearer structure over fewer lines of code.
 
 ---

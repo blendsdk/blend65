@@ -16,6 +16,19 @@ import type { ControlFlowGraph, CFGNode } from '../control-flow.js';
 import type { SymbolTable } from '../symbol-table.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import type { Expression } from '../../ast/base.js';
+import {
+  isFunctionDecl,
+  isLiteralExpression,
+  isIdentifierExpression,
+  isBinaryExpression,
+  isUnaryExpression,
+  isCallExpression,
+  isExpressionStatement,
+  isAssignmentExpression,
+  isVariableDecl,
+  isIfStatement,
+  isLoopStatement,
+} from '../../ast/type-guards.js';
 
 /**
  * Loop information structure
@@ -174,13 +187,12 @@ export class LoopAnalyzer {
 
     // Process each function
     for (const decl of declarations) {
-      if (decl.constructor.name === 'FunctionDecl') {
-        const funcDecl = decl as FunctionDecl;
-        const funcName = funcDecl.getName();
+      if (isFunctionDecl(decl)) {
+        const funcName = decl.getName();
         const cfg = this.cfgs.get(funcName);
 
         if (cfg) {
-          this.analyzeFunction(funcDecl, cfg);
+          this.analyzeFunction(decl, cfg);
         }
       }
     }
@@ -500,90 +512,35 @@ export class LoopAnalyzer {
    */
   protected isLoopInvariant(expr: Expression, loop: LoopInfo): boolean {
     // Case 1: Constant literals are always invariant
-    if (this.isConstantLiteral(expr)) {
+    if (isLiteralExpression(expr)) {
       return true;
     }
 
     // Case 2: Variable references - check if defined outside loop
-    if (this.isVariableReference(expr)) {
+    if (isIdentifierExpression(expr)) {
       return this.isDefinedOutsideLoop(expr, loop);
     }
 
     // Case 3: Binary expressions - check if all operands are invariant
-    if (this.isBinaryExpression(expr)) {
+    if (isBinaryExpression(expr)) {
       const leftInvariant = this.isLoopInvariant((expr as any).left, loop);
       const rightInvariant = this.isLoopInvariant((expr as any).right, loop);
       return leftInvariant && rightInvariant;
     }
 
     // Case 4: Unary expressions - check if operand is invariant
-    if (this.isUnaryExpression(expr)) {
+    if (isUnaryExpression(expr)) {
       return this.isLoopInvariant((expr as any).operand, loop);
     }
 
     // Case 5: Function calls are NOT invariant (may have side effects)
     // Unless we have purity analysis proving they're pure
-    if (this.isFunctionCall(expr)) {
+    if (isCallExpression(expr)) {
       return false;
     }
 
     // Default: Conservative - assume not invariant
     return false;
-  }
-
-  /**
-   * Check if expression is a constant literal
-   *
-   * @param expr - Expression to check
-   * @returns True if constant literal
-   */
-  protected isConstantLiteral(expr: Expression): boolean {
-    const className = expr.constructor.name;
-    return (
-      className === 'NumberLiteral' ||
-      className === 'BooleanLiteral' ||
-      className === 'StringLiteral'
-    );
-  }
-
-  /**
-   * Check if expression is a variable reference
-   *
-   * @param expr - Expression to check
-   * @returns True if variable reference
-   */
-  protected isVariableReference(expr: Expression): boolean {
-    return expr.constructor.name === 'IdentifierExpression';
-  }
-
-  /**
-   * Check if expression is a binary expression
-   *
-   * @param expr - Expression to check
-   * @returns True if binary expression
-   */
-  protected isBinaryExpression(expr: Expression): boolean {
-    return expr.constructor.name === 'BinaryExpression';
-  }
-
-  /**
-   * Check if expression is a unary expression
-   *
-   * @param expr - Expression to check
-   * @returns True if unary expression
-   */
-  protected isUnaryExpression(expr: Expression): boolean {
-    return expr.constructor.name === 'UnaryExpression';
-  }
-
-  /**
-   * Check if expression is a function call
-   *
-   * @param expr - Expression to check
-   * @returns True if function call
-   */
-  protected isFunctionCall(expr: Expression): boolean {
-    return expr.constructor.name === 'CallExpression';
   }
 
   /**
@@ -632,17 +589,33 @@ export class LoopAnalyzer {
   protected nodeModifiesVariable(node: CFGNode, variableName: string): boolean {
     // Simple check: look for assignments in the statement
     // This is conservative - may need refinement with full AST walking
-    if (node.statement) {
-      const stmtStr = node.statement.constructor.name;
-      
-      // Assignment statement
-      if (stmtStr === 'VariableDeclaration' || stmtStr === 'Assignment') {
-        // Check if this statement assigns to our variable
-        // This is a simplified check - proper implementation needs AST walking
-        const target = (node.statement as any).target || (node.statement as any).name;
-        if (target === variableName) {
-          return true;
-        }
+    if (!node.statement) {
+      return false;
+    }
+
+    // Check if this is a variable declaration
+    if (isVariableDecl(node.statement)) {
+      const declName = node.statement.getName();
+      return declName === variableName;
+    }
+
+    // Check if this is an assignment expression (either standalone or in expression statement)
+    let assignmentExpr: any = null;
+    
+    if (isAssignmentExpression(node.statement)) {
+      assignmentExpr = node.statement;
+    } else if (isExpressionStatement(node.statement)) {
+      const expr = node.statement.getExpression();
+      if (expr && isAssignmentExpression(expr)) {
+        assignmentExpr = expr;
+      }
+    }
+
+    if (assignmentExpr) {
+      const target = assignmentExpr.getTarget();
+      if (target && isIdentifierExpression(target)) {
+        const targetName = target.getName();
+        return targetName === variableName;
       }
     }
 
@@ -734,26 +707,26 @@ export class LoopAnalyzer {
     ivCandidates: Map<string, { stride: number; updateCount: number }>
   ): void {
     // Handle ExpressionStatement wrapping an AssignmentExpression
-    if (statement.constructor.name === 'ExpressionStatement') {
+    if (isExpressionStatement(statement)) {
       const expr = statement.getExpression?.() || (statement as any).expression;
-      if (expr && expr.constructor.name === 'AssignmentExpression') {
+      if (expr && isAssignmentExpression(expr)) {
         this.checkAssignmentForIV(expr, ivCandidates);
       }
     }
 
     // Handle direct AssignmentExpression
-    if (statement.constructor.name === 'AssignmentExpression') {
+    if (isAssignmentExpression(statement)) {
       this.checkAssignmentForIV(statement, ivCandidates);
     }
 
     // Handle VariableDecl with initializer (for loop counters declared in body)
-    if (statement.constructor.name === 'VariableDecl') {
+    if (isVariableDecl(statement)) {
       // Variable declarations don't update existing variables,
       // so they're not IV updates (they might be initial values)
     }
 
     // Recursively check if/while bodies
-    if (statement.constructor.name === 'IfStatement') {
+    if (isIfStatement(statement)) {
       const thenBranch = statement.getThenBranch?.() || [];
       const elseBranch = statement.getElseBranch?.() || [];
       for (const stmt of thenBranch) {
@@ -778,20 +751,20 @@ export class LoopAnalyzer {
     ivCandidates: Map<string, { stride: number; updateCount: number }>
   ): void {
     // Get target of assignment
-    const target = assignExpr.getTarget?.() || assignExpr.target;
-    if (!target || target.constructor.name !== 'IdentifierExpression') {
+    const target = assignExpr.getTarget();
+    if (!target || !isIdentifierExpression(target)) {
       return; // Only simple variable assignments can be IVs
     }
 
-    const targetName = target.getName?.() || target.name;
+    const targetName = target.getName();
     if (!targetName) return;
 
     // Get the value being assigned
-    const value = assignExpr.getValue?.() || assignExpr.value;
+    const value = assignExpr.getValue();
     if (!value) return;
 
     // Check for compound assignment operators (+=, -=)
-    const operator = assignExpr.getOperator?.() || assignExpr.operator;
+    const operator = assignExpr.getOperator();
     if (this.isCompoundAssignment(operator)) {
       const stride = this.getCompoundAssignmentStride(value, operator);
       if (stride !== null) {
@@ -801,7 +774,7 @@ export class LoopAnalyzer {
     }
 
     // Check for simple assignment with binary expression: i = i + c
-    if (value.constructor.name === 'BinaryExpression') {
+    if (isBinaryExpression(value)) {
       const stride = this.extractBasicIVStride(targetName, value);
       if (stride !== null) {
         this.recordIVCandidate(ivCandidates, targetName, stride);
@@ -832,8 +805,8 @@ export class LoopAnalyzer {
    */
   protected getCompoundAssignmentStride(value: any, operator: any): number | null {
     // Value should be a constant for basic IV
-    if (value.constructor.name === 'LiteralExpression') {
-      const litValue = value.getValue?.() || value.value;
+    if (isLiteralExpression(value)) {
+      const litValue = value.getValue();
       if (typeof litValue === 'number') {
         const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
         if (opName.includes('MINUS_ASSIGN')) {
@@ -858,9 +831,9 @@ export class LoopAnalyzer {
    * @returns Stride value or null if not a valid IV pattern
    */
   protected extractBasicIVStride(targetName: string, binaryExpr: any): number | null {
-    const left = binaryExpr.getLeft?.() || binaryExpr.left;
-    const right = binaryExpr.getRight?.() || binaryExpr.right;
-    const operator = binaryExpr.getOperator?.() || binaryExpr.operator;
+    const left = binaryExpr.getLeft();
+    const right = binaryExpr.getRight();
+    const operator = binaryExpr.getOperator();
 
     // Determine if this is + or - operation
     const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
@@ -872,10 +845,10 @@ export class LoopAnalyzer {
     }
 
     // Pattern 1: i = i + c or i = i - c
-    if (left.constructor.name === 'IdentifierExpression') {
-      const leftName = left.getName?.() || left.name;
-      if (leftName === targetName && right.constructor.name === 'LiteralExpression') {
-        const rightValue = right.getValue?.() || right.value;
+    if (isIdentifierExpression(left)) {
+      const leftName = left.getName();
+      if (leftName === targetName && isLiteralExpression(right)) {
+        const rightValue = right.getValue();
         if (typeof rightValue === 'number') {
           return isSubtraction ? -rightValue : rightValue;
         }
@@ -883,10 +856,10 @@ export class LoopAnalyzer {
     }
 
     // Pattern 2: i = c + i (commutative for addition only)
-    if (isAddition && right.constructor.name === 'IdentifierExpression') {
-      const rightName = right.getName?.() || right.name;
-      if (rightName === targetName && left.constructor.name === 'LiteralExpression') {
-        const leftValue = left.getValue?.() || left.value;
+    if (isAddition && isIdentifierExpression(right)) {
+      const rightName = right.getName();
+      if (rightName === targetName && isLiteralExpression(left)) {
+        const leftValue = left.getValue();
         if (typeof leftValue === 'number') {
           return leftValue;
         }
@@ -945,18 +918,17 @@ export class LoopAnalyzer {
 
     for (const stmt of body) {
       // Stop when we reach the loop (simplified: check for while statements)
-      if (this.isLoopStatement(stmt)) {
+      if (isLoopStatement(stmt)) {
         break;
       }
 
       // Check variable declarations
-      if (stmt.constructor.name === 'VariableDecl') {
-        const stmtAny = stmt as any;
-        const declName = stmtAny.getName?.() || stmtAny.name;
+      if (isVariableDecl(stmt)) {
+        const declName = stmt.getName?.() || (stmt as any).name;
         if (declName === varName) {
-          const initializer = stmtAny.getInitializer?.() || stmtAny.initializer;
-          if (initializer && initializer.constructor.name === 'LiteralExpression') {
-            const value = initializer.getValue?.() || initializer.value;
+          const initializer = stmt.getInitializer?.() || (stmt as any).initializer;
+          if (initializer && isLiteralExpression(initializer)) {
+            const value = initializer.getValue?.() || (initializer as any).value;
             if (typeof value === 'number') {
               return value;
             }
@@ -965,17 +937,16 @@ export class LoopAnalyzer {
       }
 
       // Check assignments
-      if (stmt.constructor.name === 'ExpressionStatement') {
-        const stmtAny = stmt as any;
-        const expr = stmtAny.getExpression?.() || stmtAny.expression;
-        if (expr && expr.constructor.name === 'AssignmentExpression') {
-          const target = expr.getTarget?.() || expr.target;
-          if (target && target.constructor.name === 'IdentifierExpression') {
-            const assignName = target.getName?.() || target.name;
+      if (isExpressionStatement(stmt)) {
+        const expr = stmt.getExpression?.() || (stmt as any).expression;
+        if (expr && isAssignmentExpression(expr)) {
+          const target = expr.getTarget?.() || (expr as any).target;
+          if (target && isIdentifierExpression(target)) {
+            const assignName = target.getName?.() || (target as any).name;
             if (assignName === varName) {
-              const value = expr.getValue?.() || expr.value;
-              if (value && value.constructor.name === 'LiteralExpression') {
-                const litValue = value.getValue?.() || value.value;
+              const value = expr.getValue?.() || (expr as any).value;
+              if (value && isLiteralExpression(value)) {
+                const litValue = value.getValue?.() || (value as any).value;
                 if (typeof litValue === 'number') {
                   return litValue;
                 }
@@ -997,7 +968,7 @@ export class LoopAnalyzer {
    */
   protected isLoopStatement(stmt: any): boolean {
     // Check if this statement is a loop
-    return stmt.constructor.name === 'WhileStatement' || stmt.constructor.name === 'ForStatement';
+    return isLoopStatement(stmt);
   }
 
   /**
@@ -1053,25 +1024,25 @@ export class LoopAnalyzer {
    */
   protected scanForDerivedIVAssignments(statement: any, loop: LoopInfo): void {
     // Handle ExpressionStatement wrapping an AssignmentExpression
-    if (statement.constructor.name === 'ExpressionStatement') {
+    if (isExpressionStatement(statement)) {
       const expr = statement.getExpression?.() || (statement as any).expression;
-      if (expr && expr.constructor.name === 'AssignmentExpression') {
+      if (expr && isAssignmentExpression(expr)) {
         this.checkAssignmentForDerivedIV(expr, loop);
       }
     }
 
     // Handle direct AssignmentExpression
-    if (statement.constructor.name === 'AssignmentExpression') {
+    if (isAssignmentExpression(statement)) {
       this.checkAssignmentForDerivedIV(statement, loop);
     }
 
     // Handle VariableDecl with initializer (e.g., let j: byte = i * 4)
-    if (statement.constructor.name === 'VariableDecl') {
+    if (isVariableDecl(statement)) {
       this.checkVariableDeclForDerivedIV(statement, loop);
     }
 
     // Recursively check if/while bodies
-    if (statement.constructor.name === 'IfStatement') {
+    if (isIfStatement(statement)) {
       const thenBranch = statement.getThenBranch?.() || [];
       const elseBranch = statement.getElseBranch?.() || [];
       for (const stmt of thenBranch) {
@@ -1091,12 +1062,12 @@ export class LoopAnalyzer {
    */
   protected checkAssignmentForDerivedIV(assignExpr: any, loop: LoopInfo): void {
     // Get target of assignment
-    const target = assignExpr.getTarget?.() || assignExpr.target;
-    if (!target || target.constructor.name !== 'IdentifierExpression') {
+    const target = assignExpr.getTarget();
+    if (!target || !isIdentifierExpression(target)) {
       return; // Only simple variable assignments
     }
 
-    const targetName = target.getName?.() || target.name;
+    const targetName = target.getName();
     if (!targetName) return;
 
     // Skip if target is itself a basic IV (that's a basic IV update, not derived)
@@ -1110,7 +1081,7 @@ export class LoopAnalyzer {
     }
 
     // Get the value being assigned
-    const value = assignExpr.getValue?.() || assignExpr.value;
+    const value = assignExpr.getValue();
     if (!value) return;
 
     // Try to extract derived IV pattern
@@ -1171,8 +1142,8 @@ export class LoopAnalyzer {
   ): DerivedInductionVariableInfo | null {
     // Case 1: Direct reference to basic IV (stride=1, offset=0)
     // This is actually just copying the IV, which is a trivial derived IV
-    if (expr.constructor.name === 'IdentifierExpression') {
-      const varName = expr.getName?.() || expr.name;
+    if (isIdentifierExpression(expr)) {
+      const varName = expr.getName();
       if (varName && loop.basicInductionVars.has(varName)) {
         return {
           name: targetName,
@@ -1185,7 +1156,7 @@ export class LoopAnalyzer {
     }
 
     // Case 2: Binary expression - the main case
-    if (expr.constructor.name === 'BinaryExpression') {
+    if (isBinaryExpression(expr)) {
       return this.extractDerivedIVFromBinary(targetName, expr, loop);
     }
 
@@ -1205,9 +1176,9 @@ export class LoopAnalyzer {
     binaryExpr: any,
     loop: LoopInfo
   ): DerivedInductionVariableInfo | null {
-    const left = binaryExpr.getLeft?.() || binaryExpr.left;
-    const right = binaryExpr.getRight?.() || binaryExpr.right;
-    const operator = binaryExpr.getOperator?.() || binaryExpr.operator;
+    const left = binaryExpr.getLeft();
+    const right = binaryExpr.getRight();
+    const operator = binaryExpr.getOperator();
 
     const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
     const isMultiply = opName.includes('STAR') || opName.includes('MULTIPLY');
@@ -1246,8 +1217,8 @@ export class LoopAnalyzer {
     loop: LoopInfo
   ): DerivedInductionVariableInfo | null {
     // Pattern 1: basicIV * constant
-    if (left.constructor.name === 'IdentifierExpression') {
-      const leftName = left.getName?.() || left.name;
+    if (isIdentifierExpression(left)) {
+      const leftName = left.getName();
       if (leftName && loop.basicInductionVars.has(leftName)) {
         const constant = this.extractConstant(right);
         if (constant !== null) {
@@ -1262,8 +1233,8 @@ export class LoopAnalyzer {
     }
 
     // Pattern 2: constant * basicIV (commutative)
-    if (right.constructor.name === 'IdentifierExpression') {
-      const rightName = right.getName?.() || right.name;
+    if (isIdentifierExpression(right)) {
+      const rightName = right.getName();
       if (rightName && loop.basicInductionVars.has(rightName)) {
         const constant = this.extractConstant(left);
         if (constant !== null) {
@@ -1350,8 +1321,8 @@ export class LoopAnalyzer {
     loop: LoopInfo
   ): { baseVar: string; stride: number } | null {
     // Direct IV reference: stride = 1
-    if (expr.constructor.name === 'IdentifierExpression') {
-      const varName = expr.getName?.() || expr.name;
+    if (isIdentifierExpression(expr)) {
+      const varName = expr.getName();
       if (varName && loop.basicInductionVars.has(varName)) {
         return { baseVar: varName, stride: 1 };
       }
@@ -1359,18 +1330,18 @@ export class LoopAnalyzer {
     }
 
     // IV * constant or constant * IV
-    if (expr.constructor.name === 'BinaryExpression') {
-      const left = expr.getLeft?.() || expr.left;
-      const right = expr.getRight?.() || expr.right;
-      const operator = expr.getOperator?.() || expr.operator;
+    if (isBinaryExpression(expr)) {
+      const left = expr.getLeft();
+      const right = expr.getRight();
+      const operator = expr.getOperator();
 
-      const opName = typeof operator === 'string' ? operator : operator?.toString?.() || '';
+      const opName = typeof operator === 'string' ? operator : (operator as any)?.toString?.() || '';
       const isMultiply = opName.includes('STAR') || opName.includes('MULTIPLY');
 
       if (isMultiply) {
         // IV * constant
-        if (left.constructor.name === 'IdentifierExpression') {
-          const leftName = left.getName?.() || left.name;
+        if (isIdentifierExpression(left)) {
+          const leftName = left.getName();
           if (leftName && loop.basicInductionVars.has(leftName)) {
             const constant = this.extractConstant(right);
             if (constant !== null) {
@@ -1380,8 +1351,8 @@ export class LoopAnalyzer {
         }
 
         // constant * IV
-        if (right.constructor.name === 'IdentifierExpression') {
-          const rightName = right.getName?.() || right.name;
+        if (isIdentifierExpression(right)) {
+          const rightName = right.getName();
           if (rightName && loop.basicInductionVars.has(rightName)) {
             const constant = this.extractConstant(left);
             if (constant !== null) {
@@ -1402,8 +1373,8 @@ export class LoopAnalyzer {
    * @returns Number value or null if not a constant
    */
   protected extractConstant(expr: any): number | null {
-    if (expr.constructor.name === 'LiteralExpression') {
-      const value = expr.getValue?.() || expr.value;
+    if (isLiteralExpression(expr)) {
+      const value = expr.getValue();
       if (typeof value === 'number') {
         return value;
       }

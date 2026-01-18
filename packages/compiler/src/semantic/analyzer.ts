@@ -26,7 +26,8 @@ import { DependencyGraph } from './dependency-graph.js';
 import { ImportResolver } from './import-resolver.js';
 import { GlobalSymbolTable } from './global-symbol-table.js';
 import { MemoryLayoutBuilder, type GlobalMemoryLayout } from './memory-layout.js';
-import type { Program, ImportDecl } from '../ast/nodes.js';
+import type { Program } from '../ast/nodes.js';
+import { isImportDecl } from '../ast/type-guards.js';
 
 /**
  * Result of single-module semantic analysis
@@ -337,7 +338,7 @@ export class SemanticAnalyzer {
       // Extract all import declarations
       const imports = program
         .getDeclarations()
-        .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+        .filter(isImportDecl);
 
       for (const importDecl of imports) {
         const targetModule = importDecl.getModuleName();
@@ -499,7 +500,7 @@ export class SemanticAnalyzer {
     // Extract import declarations
     const imports = ast
       .getDeclarations()
-      .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+      .filter(isImportDecl);
 
     for (const importDecl of imports) {
       const targetModule = importDecl.getModuleName();
@@ -703,7 +704,7 @@ export class SemanticAnalyzer {
     // Extract all import declarations
     const imports = ast
       .getDeclarations()
-      .filter((d): d is ImportDecl => d.constructor.name === 'ImportDecl');
+      .filter(isImportDecl);
 
     for (const importDecl of imports) {
       const identifiers = importDecl.getIdentifiers();

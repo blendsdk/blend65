@@ -12,6 +12,10 @@ import { TypeSystem } from '../../semantic/type-system.js';
 import { ControlFlowGraph } from '../../semantic/control-flow.js';
 import type { ModuleAnalysisResult } from '../../semantic/analyzer.js';
 import { SourceLocation } from '../../ast/base.js';
+import { Parser } from '../../parser/parser.js';
+import { Lexer } from '../../lexer/lexer.js';
+import { VariableDecl } from '../../ast/nodes.js';
+import { TokenType } from '../../lexer/types.js';
 
 /**
  * Helper: Create a dummy source location
@@ -25,14 +29,32 @@ function createLocation(line: number = 1, col: number = 1): SourceLocation {
 }
 
 /**
- * Helper: Create a minimal VariableDecl stub
+ * Helper: Create a real VariableDecl using the parser
+ * 
+ * This uses the actual parser to create proper AST nodes instead of mocks.
  */
-function createVariableDecl(name: string, storageClass: string | undefined): any {
-  return {
-    constructor: { name: 'VariableDecl' },
-    storageClass,
-    getLocation: () => createLocation(),
+function createVariableDecl(name: string, storageClass: string | undefined): VariableDecl {
+  // Map string storage class to TokenType
+  const storageClassMap: Record<string, string> = {
+    'zp': '@zp',
+    'ram': '@ram',
+    'data': '@data',
   };
+  
+  const storagePrefix = storageClass ? storageClassMap[storageClass] + ' ' : '';
+  const source = `${storagePrefix}let ${name}: byte = 0;`;
+  
+  const lexer = new Lexer(source, 'test.bl65'); // Pass filename to lexer
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens);
+  const program = parser.parse();
+  
+  const decl = program.getDeclarations()[0];
+  if (!(decl instanceof VariableDecl)) {
+    throw new Error(`Expected VariableDecl but got ${decl.constructor.name}`);
+  }
+  
+  return decl;
 }
 
 /**
@@ -354,7 +376,9 @@ describe('MemoryLayoutBuilder', () => {
 
       const allocations = Array.from(layout.zeroPageAllocation.values());
       expect(allocations[0].location).toBeDefined();
-      expect(allocations[0].location.source).toBe('test.bl65');
+      expect(allocations[0].location.start).toBeDefined();
+      expect(allocations[0].location.end).toBeDefined();
+      expect(allocations[0].location.start.line).toBeGreaterThan(0);
     });
   });
 

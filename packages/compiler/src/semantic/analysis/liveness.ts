@@ -21,13 +21,14 @@
  * ```
  */
 
-import type { Program, IdentifierExpression, AssignmentExpression } from '../../ast/nodes.js';
+import type { Program } from '../../ast/nodes.js';
 import type { Statement } from '../../ast/base.js';
 import type { SymbolTable } from '../symbol-table.js';
 import type { ControlFlowGraph, CFGNode } from '../control-flow.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
+import { isVariableDecl, isExpressionStatement, isAssignmentExpression, isIdentifierExpression, isReturnStatement, isIfStatement, isWhileStatement } from '../../ast/type-guards.js';
 
 /**
  * Liveness interval for a variable
@@ -273,12 +274,11 @@ export class LivenessAnalyzer extends ASTWalker {
     const defs = new Set<string>();
 
     // Handle variable declarations with initializers
-    if (stmt.getNodeType() === 'VariableDecl') {
-      const varDecl = stmt as any;
-      const name = varDecl.getName();
+    if (isVariableDecl(stmt)) {
+      const name = stmt.getName();
 
       // Initializer uses variables
-      const initializer = varDecl.getInitializer();
+      const initializer = stmt.getInitializer();
       if (initializer) {
         this.findUsesInExpression(initializer, uses);
       }
@@ -288,22 +288,19 @@ export class LivenessAnalyzer extends ASTWalker {
     }
 
     // Handle expression statements (assignments, calls, etc.)
-    if (stmt.getNodeType() === 'ExpressionStatement') {
-      const exprStmt = stmt as any;
-      const expr = exprStmt.getExpression();
+    if (isExpressionStatement(stmt)) {
+      const expr = stmt.getExpression();
 
-      if (expr && expr.getNodeType() === 'AssignmentExpression') {
-        const assignment = expr as AssignmentExpression;
-        const target = assignment.getTarget();
-        const value = assignment.getValue();
+      if (expr && isAssignmentExpression(expr)) {
+        const target = expr.getTarget();
+        const value = expr.getValue();
 
         // Right side uses variables (process first - uses before defs)
         this.findUsesInExpression(value, uses);
 
         // Left side defines variable
-        if (target.getNodeType() === 'IdentifierExpression') {
-          const ident = target as IdentifierExpression;
-          defs.add(ident.getName());
+        if (isIdentifierExpression(target)) {
+          defs.add(target.getName());
         }
       } else if (expr) {
         // Other expressions just use variables
@@ -312,27 +309,24 @@ export class LivenessAnalyzer extends ASTWalker {
     }
 
     // Handle return statements
-    if (stmt.getNodeType() === 'ReturnStatement') {
-      const returnStmt = stmt as any;
-      const returnValue = returnStmt.getValue();
+    if (isReturnStatement(stmt)) {
+      const returnValue = stmt.getValue();
       if (returnValue) {
         this.findUsesInExpression(returnValue, uses);
       }
     }
 
     // Handle if statements
-    if (stmt.getNodeType() === 'IfStatement') {
-      const ifStmt = stmt as any;
-      const condition = ifStmt.getCondition();
+    if (isIfStatement(stmt)) {
+      const condition = stmt.getCondition();
       if (condition) {
         this.findUsesInExpression(condition, uses);
       }
     }
 
     // Handle while statements
-    if (stmt.getNodeType() === 'WhileStatement') {
-      const whileStmt = stmt as any;
-      const condition = whileStmt.getCondition();
+    if (isWhileStatement(stmt)) {
+      const condition = stmt.getCondition();
       if (condition) {
         this.findUsesInExpression(condition, uses);
       }
@@ -350,9 +344,8 @@ export class LivenessAnalyzer extends ASTWalker {
   protected findUsesInExpression(expr: any, uses: Set<string>): void {
     if (!expr) return;
 
-    if (expr.getNodeType && expr.getNodeType() === 'IdentifierExpression') {
-      const ident = expr as IdentifierExpression;
-      uses.add(ident.getName());
+    if (expr.getNodeType && isIdentifierExpression(expr)) {
+      uses.add(expr.getName());
       return;
     }
 

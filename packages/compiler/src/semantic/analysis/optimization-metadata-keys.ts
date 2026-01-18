@@ -59,6 +59,9 @@ export enum OptimizationMetadataKey {
   /** Maximum loop nesting depth where variable is accessed (number) */
   UsageMaxLoopDepth = 'UsageMaxLoopDepth',
 
+  /** Variable has its address taken (@ operator) (boolean) */
+  UsageAddressOfTaken = 'UsageAddressOfTaken',
+
   // ==========================================
   // Dead Code Detection (Task 8.4)
   // ==========================================
@@ -232,6 +235,29 @@ export enum OptimizationMetadataKey {
 
   /** Is tail-recursive call (boolean) */
   CallGraphTailRecursive = 'CallGraphTailRecursive',
+
+  // ==========================================
+  // Global Value Numbering (Task 8.14.1)
+  // ==========================================
+
+  /** Value number assigned to expression (number) */
+  GVNNumber = 'GVNNumber',
+
+  /** This computation is redundant (boolean) */
+  GVNRedundant = 'GVNRedundant',
+
+  /** Variable that can replace this expression (string) */
+  GVNReplacement = 'GVNReplacement',
+
+  // ==========================================
+  // Common Subexpression Elimination (Task 8.14.3)
+  // ==========================================
+
+  /** Available expressions at this point (Set<string>) */
+  CSEAvailable = 'CSEAvailable',
+
+  /** This subexpression can be eliminated (boolean) */
+  CSECandidate = 'CSECandidate',
 
   // ==========================================
   // 6502-Specific Hints (Task 8.13)

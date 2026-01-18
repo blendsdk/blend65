@@ -40,3 +40,5 @@ export { EscapeAnalyzer } from './escape-analysis.js';
 export { LoopAnalyzer } from './loop-analysis.js';
 export { CallGraphAnalyzer } from './call-graph.js';
 export { M6502HintAnalyzer, M6502Register, MemoryAccessPattern } from './m6502-hints.js';
+export { GlobalValueNumberingAnalyzer } from './global-value-numbering.js';
+export { CommonSubexpressionEliminationAnalyzer } from './common-subexpr-elimination.js';
