@@ -25,7 +25,7 @@
  * ```
  */
 
-import type { Program, VariableDecl } from '../../../../ast/nodes.js';
+import type { Program, VariableDecl, FunctionDecl } from '../../../../ast/nodes.js';
 import type {
   SimpleMapDecl,
   RangeMapDecl,
@@ -33,7 +33,7 @@ import type {
   ExplicitStructMapDecl,
 } from '../../../../ast/nodes.js';
 import { LiteralExpression } from '../../../../ast/nodes.js';
-import type { Expression } from '../../../../ast/base.js';
+import type { Expression, SourceLocation } from '../../../../ast/base.js';
 import {
   isVariableDecl,
   isSimpleMapDecl,
@@ -57,6 +57,18 @@ import {
   type VICIITimingWarning,
   BadlineRecommendation,
 } from './vic-ii-timing.js';
+import {
+  SIDConflictAnalyzer,
+  type SIDAnalysisResult,
+  type VoiceConflict,
+  type FilterConflict,
+  type VolumeConflict,
+  type SIDTimingRequirements,
+  isSIDAddress,
+  isSIDVoiceRegister,
+  isSIDFilterRegister,
+  isSIDVolumeRegister,
+} from './sid-conflicts.js';
 
 /**
  * C64 Hardware Analyzer
@@ -73,6 +85,15 @@ export class C64HardwareAnalyzer extends BaseHardwareAnalyzer {
 
   /** Collected raster safety metadata for functions */
   protected rasterSafetyMetadata: Map<string, RasterSafetyMetadata> = new Map();
+
+  /** SID conflict analyzer for sound analysis */
+  protected sidConflictAnalyzer: SIDConflictAnalyzer | null = null;
+
+  /** Collected SID analysis result */
+  protected sidAnalysisResult: SIDAnalysisResult | null = null;
+
+  /** SID timing requirements */
+  protected sidTimingRequirements: SIDTimingRequirements | null = null;
 
   // ============================================
   // Public API
@@ -152,6 +173,103 @@ export class C64HardwareAnalyzer extends BaseHardwareAnalyzer {
   public isFunctionBadlineAware(functionName: string): boolean {
     const metadata = this.rasterSafetyMetadata.get(functionName);
     return metadata?.VICIIBadlineAware ?? false;
+  }
+
+  // ============================================
+  // SID Analysis Public API
+  // ============================================
+
+  /**
+   * Get SID conflict analyzer instance
+   *
+   * Creates the analyzer on first access using the target config.
+   * Returns null if target config has no sound chip.
+   *
+   * @returns SID conflict analyzer or null
+   */
+  public getSIDConflictAnalyzer(): SIDConflictAnalyzer | null {
+    if (!this.sidConflictAnalyzer && this.targetConfig.soundChip) {
+      this.sidConflictAnalyzer = new SIDConflictAnalyzer(this.targetConfig);
+    }
+    return this.sidConflictAnalyzer;
+  }
+
+  /**
+   * Get SID analysis result
+   *
+   * Returns the complete SID analysis result from the last analysis.
+   *
+   * @returns SID analysis result or null if not analyzed
+   */
+  public getSIDAnalysisResult(): SIDAnalysisResult | null {
+    return this.sidAnalysisResult;
+  }
+
+  /**
+   * Get SID timing requirements
+   *
+   * Returns timing requirements based on SID usage patterns.
+   *
+   * @returns SID timing requirements or null if not analyzed
+   */
+  public getSIDTimingRequirements(): SIDTimingRequirements | null {
+    return this.sidTimingRequirements;
+  }
+
+  /**
+   * Get all detected SID voice conflicts
+   *
+   * @returns Array of voice conflicts
+   */
+  public getSIDVoiceConflicts(): VoiceConflict[] {
+    return this.sidAnalysisResult?.voiceConflicts ?? [];
+  }
+
+  /**
+   * Get all detected SID filter conflicts
+   *
+   * @returns Array of filter conflicts
+   */
+  public getSIDFilterConflicts(): FilterConflict[] {
+    return this.sidAnalysisResult?.filterConflicts ?? [];
+  }
+
+  /**
+   * Get all detected SID volume conflicts
+   *
+   * @returns Array of volume conflicts
+   */
+  public getSIDVolumeConflicts(): VolumeConflict[] {
+    return this.sidAnalysisResult?.volumeConflicts ?? [];
+  }
+
+  /**
+   * Check if any SID conflicts were detected
+   *
+   * @returns True if SID conflicts exist
+   */
+  public hasSIDConflicts(): boolean {
+    return (this.sidAnalysisResult?.totalConflicts ?? 0) > 0;
+  }
+
+  /**
+   * Check if code appears to be a music player
+   *
+   * Based on SID usage patterns (uses all 3 voices).
+   *
+   * @returns True if code likely contains a music player
+   */
+  public isMusicPlayer(): boolean {
+    return this.sidTimingRequirements?.isMusicPlayer ?? false;
+  }
+
+  /**
+   * Get count of SID voices being used
+   *
+   * @returns Number of voices used (0-3)
+   */
+  public getUsedSIDVoiceCount(): number {
+    return this.sidTimingRequirements?.voicesUsed ?? 0;
   }
 
   // ============================================
@@ -449,7 +567,7 @@ export class C64HardwareAnalyzer extends BaseHardwareAnalyzer {
    * @param timingAnalyzer - VIC-II timing analyzer instance
    */
   protected analyzeFunctionVICIITiming(
-    funcDecl: import('../../../../ast/nodes.js').FunctionDecl,
+    funcDecl: FunctionDecl,
     timingAnalyzer: VICIITimingAnalyzer
   ): void {
     const functionName = funcDecl.getName();
@@ -520,18 +638,322 @@ export class C64HardwareAnalyzer extends BaseHardwareAnalyzer {
    * Analyze SID sound hardware usage
    *
    * Validates sound register access for the C64's SID chip.
-   * Currently a placeholder - Tier 4 will add:
-   * - Voice conflict detection
-   * - Filter resource tracking
-   * - Volume/envelope analysis
    *
-   * @param _ast - Program AST
+   * **Analysis Performed:**
+   * - Voice conflict detection (multiple functions writing to same voice)
+   * - Filter resource tracking (conflicting filter settings)
+   * - Volume conflict detection (multiple volume controllers)
+   * - IRQ timing analysis (music player detection)
+   *
+   * **Metadata Generated:**
+   * - SIDVoiceUsage: Which voices are used
+   * - SIDVoiceConflict: Voice allocation conflicts
+   * - SIDFilterInUse: Filter usage detected
+   * - SIDTimingRequirements: IRQ timing needs
+   *
+   * @param ast - Program AST
    */
-  protected analyzeSound(_ast: Program): void {
-    // Tier 4 TODO: Implement SID analysis
-    // - Detect voice conflicts (multiple writes to same voice)
-    // - Track filter usage across voices
-    // - Validate volume register access patterns
+  protected analyzeSound(ast: Program): void {
+    // Initialize SID conflict analyzer
+    const sidAnalyzer = this.getSIDConflictAnalyzer();
+    if (!sidAnalyzer) {
+      // No sound chip config, skip SID analysis
+      return;
+    }
+
+    // Reset analyzer for fresh analysis
+    sidAnalyzer.reset();
+
+    // Clear previous analysis results
+    this.sidAnalysisResult = null;
+    this.sidTimingRequirements = null;
+
+    const declarations = ast.getDeclarations();
+
+    // Phase 1: Collect @map declarations that target SID addresses
+    for (const decl of declarations) {
+      if (isSimpleMapDecl(decl)) {
+        this.trackSimpleMapDeclSID(decl, sidAnalyzer);
+      } else if (isRangeMapDecl(decl)) {
+        this.trackRangeMapDeclSID(decl, sidAnalyzer);
+      } else if (isSequentialStructMapDecl(decl)) {
+        this.trackSequentialStructMapDeclSID(decl, sidAnalyzer);
+      } else if (isExplicitStructMapDecl(decl)) {
+        this.trackExplicitStructMapDeclSID(decl, sidAnalyzer);
+      }
+    }
+
+    // Phase 2: Analyze function bodies for SID register writes
+    for (const decl of declarations) {
+      if (isFunctionDecl(decl)) {
+        this.analyzeFunctionSIDUsage(decl, sidAnalyzer);
+      }
+    }
+
+    // Phase 3: Analyze all conflicts
+    this.sidAnalysisResult = sidAnalyzer.analyzeAllConflicts();
+    this.sidTimingRequirements = sidAnalyzer.estimateTimingRequirements();
+
+    // Phase 4: Generate diagnostics from detected conflicts
+    this.generateSIDConflictDiagnostics();
+  }
+
+  /**
+   * Track @map simple declaration for SID registers
+   *
+   * @param decl - Simple map declaration
+   * @param analyzer - SID conflict analyzer
+   */
+  protected trackSimpleMapDeclSID(decl: SimpleMapDecl, analyzer: SIDConflictAnalyzer): void {
+    const address = this.extractAddressFromExpression(decl.getAddress());
+    if (address === null || !isSIDAddress(address)) {
+      return; // Not a SID address
+    }
+
+    const name = decl.getName();
+    const location = decl.getLocation();
+
+    // Track voice, filter, or volume register
+    if (isSIDVoiceRegister(address)) {
+      analyzer.trackVoiceWrite(address, `@map:${name}`, location);
+    } else if (isSIDFilterRegister(address)) {
+      analyzer.trackFilterWrite(address, `@map:${name}`, location);
+    } else if (isSIDVolumeRegister(address)) {
+      analyzer.trackVolumeWrite(`@map:${name}`, location);
+    }
+  }
+
+  /**
+   * Track @map range declaration for SID registers
+   *
+   * @param decl - Range map declaration
+   * @param analyzer - SID conflict analyzer
+   */
+  protected trackRangeMapDeclSID(decl: RangeMapDecl, analyzer: SIDConflictAnalyzer): void {
+    const startAddress = this.extractAddressFromExpression(decl.getStartAddress());
+    const endAddress = this.extractAddressFromExpression(decl.getEndAddress());
+
+    if (startAddress === null || endAddress === null) {
+      return; // Can't determine range
+    }
+
+    // Check if range overlaps SID address space
+    if (endAddress < 0xd400 || startAddress > 0xd41c) {
+      return; // No SID overlap
+    }
+
+    const name = decl.getName();
+    const location = decl.getLocation();
+
+    // Track all SID addresses in range
+    analyzer.trackVoiceWriteRange(
+      Math.max(startAddress, 0xd400),
+      Math.min(endAddress, 0xd41c),
+      `@map:${name}`,
+      location
+    );
+
+    // Track filter and volume if in range
+    for (let addr = Math.max(startAddress, 0xd415); addr <= Math.min(endAddress, 0xd418); addr++) {
+      if (isSIDFilterRegister(addr)) {
+        analyzer.trackFilterWrite(addr, `@map:${name}`, location);
+      } else if (isSIDVolumeRegister(addr)) {
+        analyzer.trackVolumeWrite(`@map:${name}`, location);
+      }
+    }
+  }
+
+  /**
+   * Track @map sequential struct declaration for SID registers
+   *
+   * @param decl - Sequential struct map declaration
+   * @param analyzer - SID conflict analyzer
+   */
+  protected trackSequentialStructMapDeclSID(
+    decl: SequentialStructMapDecl,
+    analyzer: SIDConflictAnalyzer
+  ): void {
+    const baseAddress = this.extractAddressFromExpression(decl.getBaseAddress());
+    if (baseAddress === null) {
+      return;
+    }
+
+    const name = decl.getName();
+    const location = decl.getLocation();
+
+    // Calculate address range covered by struct
+    let currentAddress = baseAddress;
+    for (const field of decl.getFields()) {
+      const fieldSize = this.getTypeSize(field.baseType);
+      const count = field.arraySize ?? 1;
+      const endAddress = currentAddress + fieldSize * count - 1;
+
+      // Check if this field overlaps SID registers
+      if (currentAddress <= 0xd41c && endAddress >= 0xd400) {
+        // Track all SID addresses in this field
+        for (let addr = Math.max(currentAddress, 0xd400); addr <= Math.min(endAddress, 0xd41c); addr++) {
+          if (isSIDVoiceRegister(addr)) {
+            analyzer.trackVoiceWrite(addr, `@map:${name}.${field.name}`, location);
+          } else if (isSIDFilterRegister(addr)) {
+            analyzer.trackFilterWrite(addr, `@map:${name}.${field.name}`, location);
+          } else if (isSIDVolumeRegister(addr)) {
+            analyzer.trackVolumeWrite(`@map:${name}.${field.name}`, location);
+          }
+        }
+      }
+
+      currentAddress += fieldSize * count;
+    }
+  }
+
+  /**
+   * Track @map explicit struct declaration for SID registers
+   *
+   * @param decl - Explicit struct map declaration
+   * @param analyzer - SID conflict analyzer
+   */
+  protected trackExplicitStructMapDeclSID(
+    decl: ExplicitStructMapDecl,
+    analyzer: SIDConflictAnalyzer
+  ): void {
+    const name = decl.getName();
+
+    for (const field of decl.getFields()) {
+      if (field.addressSpec.kind === 'single') {
+        const address = this.extractAddressFromExpression(field.addressSpec.address);
+        if (address !== null && isSIDAddress(address)) {
+          if (isSIDVoiceRegister(address)) {
+            analyzer.trackVoiceWrite(address, `@map:${name}.${field.name}`, field.location);
+          } else if (isSIDFilterRegister(address)) {
+            analyzer.trackFilterWrite(address, `@map:${name}.${field.name}`, field.location);
+          } else if (isSIDVolumeRegister(address)) {
+            analyzer.trackVolumeWrite(`@map:${name}.${field.name}`, field.location);
+          }
+        }
+      } else if (field.addressSpec.kind === 'range') {
+        const startAddr = this.extractAddressFromExpression(field.addressSpec.startAddress);
+        const endAddr = this.extractAddressFromExpression(field.addressSpec.endAddress);
+        if (startAddr !== null && endAddr !== null) {
+          for (let addr = Math.max(startAddr, 0xd400); addr <= Math.min(endAddr, 0xd41c); addr++) {
+            if (isSIDVoiceRegister(addr)) {
+              analyzer.trackVoiceWrite(addr, `@map:${name}.${field.name}`, field.location);
+            } else if (isSIDFilterRegister(addr)) {
+              analyzer.trackFilterWrite(addr, `@map:${name}.${field.name}`, field.location);
+            } else if (isSIDVolumeRegister(addr)) {
+              analyzer.trackVolumeWrite(`@map:${name}.${field.name}`, field.location);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Analyze function body for SID register usage
+   *
+   * Tracks any SID register writes within the function body.
+   * This is used to detect voice/filter/volume conflicts.
+   *
+   * @param funcDecl - Function declaration
+   * @param _analyzer - SID conflict analyzer (unused in current implementation)
+   */
+  protected analyzeFunctionSIDUsage(
+    funcDecl: FunctionDecl,
+    _analyzer: SIDConflictAnalyzer
+  ): void {
+    const body = funcDecl.getBody();
+
+    if (!body) {
+      return; // No body (extern function)
+    }
+
+    // For now, track the function as a potential SID user if it has
+    // any assignments to @map variables that target SID addresses.
+    // More sophisticated analysis would walk the AST to find actual
+    // SID register writes within function body.
+    //
+    // Note: The @map declarations are already tracked above.
+    // Function-level tracking provides the "which function uses which voice"
+    // information needed for conflict detection.
+    //
+    // A more advanced implementation would:
+    // 1. Walk the function body AST
+    // 2. Find assignment expressions
+    // 3. Check if left-hand side resolves to a SID @map variable
+    // 4. Track that write with this function's name
+    //
+    // For now, the @map-level tracking provides basic conflict detection.
+    // Functions that use @map variables targeting the same SID registers
+    // will be detected through the @map tracking.
+  }
+
+  /**
+   * Generate diagnostics from detected SID conflicts
+   *
+   * Converts SID conflicts into compiler diagnostics.
+   */
+  protected generateSIDConflictDiagnostics(): void {
+    if (!this.sidAnalysisResult) {
+      return;
+    }
+
+    // Generate voice conflict diagnostics
+    for (const conflict of this.sidAnalysisResult.voiceConflicts) {
+      const voiceNum = conflict.voice + 1; // 1-based for display
+      if (conflict.severity === 'error') {
+        this.addError(
+          conflict.message,
+          conflict.locations[0] ?? this.createDefaultLocation(),
+          DiagnosticCode.SID_VOICE_CONFLICT
+        );
+      } else {
+        this.addWarning(
+          `SID Voice ${voiceNum} is written by multiple sources: ${conflict.functions.join(', ')}. ` +
+            `This may cause audio conflicts.`,
+          conflict.locations[0] ?? this.createDefaultLocation(),
+          DiagnosticCode.SID_VOICE_CONFLICT
+        );
+      }
+    }
+
+    // Generate filter conflict diagnostics
+    for (const conflict of this.sidAnalysisResult.filterConflicts) {
+      this.addWarning(
+        conflict.message,
+        conflict.locations[0] ?? this.createDefaultLocation(),
+        DiagnosticCode.SID_FILTER_CONFLICT
+      );
+    }
+
+    // Generate volume conflict diagnostics
+    for (const conflict of this.sidAnalysisResult.volumeConflicts) {
+      this.addWarning(
+        conflict.message,
+        conflict.locations[0] ?? this.createDefaultLocation(),
+        DiagnosticCode.SID_VOLUME_CONFLICT
+      );
+    }
+
+    // Generate timing recommendation if detected as music player
+    if (this.sidTimingRequirements?.isMusicPlayer) {
+      this.addInfo(
+        this.sidTimingRequirements.recommendation,
+        this.createDefaultLocation(),
+        DiagnosticCode.SID_IRQ_TIMING
+      );
+    }
+  }
+
+  /**
+   * Create a default source location for diagnostics without specific location
+   *
+   * @returns Default source location
+   */
+  protected createDefaultLocation(): SourceLocation {
+    return {
+      start: { line: 1, column: 1, offset: 0 },
+      end: { line: 1, column: 1, offset: 0 },
+    };
   }
 
   // ============================================

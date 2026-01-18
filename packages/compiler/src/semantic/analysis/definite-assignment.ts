@@ -36,6 +36,10 @@ import {
   isExpressionStatement,
   isFunctionDecl,
   isLiteralExpression,
+  isIfStatement,
+  isWhileStatement,
+  isForStatement,
+  isReturnStatement,
 } from '../../ast/type-guards.js';
 
 /**
@@ -466,8 +470,6 @@ export class DefiniteAssignmentAnalyzer {
    * @param assignedVars - Variables definitely assigned at this point
    */
   protected checkStatement(statement: Statement, assignedVars: AssignmentSet): void {
-    const stmtType = statement.getNodeType();
-
     // For variable declarations, only check the initializer
     if (isVariableDecl(statement)) {
       const varDecl = statement as VariableDecl;
@@ -503,9 +505,8 @@ export class DefiniteAssignmentAnalyzer {
 
     // For control flow statements, only check the condition, NOT the body
     // The body statements are represented as separate nodes in the CFG
-    if (stmtType === 'IfStatement') {
-      const ifStmt = statement as any;
-      const condition = ifStmt.getCondition();
+    if (isIfStatement(statement)) {
+      const condition = statement.getCondition();
       if (condition) {
         const checker = new UninitializedUseChecker(
           this.symbolTable,
@@ -517,9 +518,8 @@ export class DefiniteAssignmentAnalyzer {
       return;
     }
 
-    if (stmtType === 'WhileStatement') {
-      const whileStmt = statement as any;
-      const condition = whileStmt.getCondition();
+    if (isWhileStatement(statement)) {
+      const condition = statement.getCondition();
       if (condition) {
         const checker = new UninitializedUseChecker(
           this.symbolTable,
@@ -531,12 +531,11 @@ export class DefiniteAssignmentAnalyzer {
       return;
     }
 
-    if (stmtType === 'ForStatement') {
-      const forStmt = statement as any;
+    if (isForStatement(statement)) {
       // For loops have a variable, start, and end expression
       // Check start and end, but not the body
-      const start = forStmt.getStart();
-      const end = forStmt.getEnd();
+      const start = statement.getStart();
+      const end = statement.getEnd();
       const checker = new UninitializedUseChecker(this.symbolTable, assignedVars, this.diagnostics);
       if (start) checker.walk(start);
       if (end) checker.walk(end);
@@ -544,9 +543,8 @@ export class DefiniteAssignmentAnalyzer {
     }
 
     // For return statements, check the return value
-    if (stmtType === 'ReturnStatement') {
-      const returnStmt = statement as any;
-      const value = returnStmt.getValue();
+    if (isReturnStatement(statement)) {
+      const value = statement.getValue();
       if (value) {
         const checker = new UninitializedUseChecker(
           this.symbolTable,

@@ -24,6 +24,178 @@ This document specifies how the IL Generator should handle **stub functions** (b
 
 ---
 
+## **Multi-Target Architecture Considerations**
+
+### **Target-Agnostic IL Design Philosophy**
+
+The IL (Intermediate Language) represents **abstract, platform-independent operations**. Target-specific concerns (C64/C128/X16 hardware differences) are handled by:
+- **Semantic Analyzer**: Target-aware analysis (already implemented with TargetConfig)
+- **Code Generator**: Target-specific 6502 code generation (future phase)
+
+**The IL Generator sits in the middle and must remain mostly target-agnostic while passing through target-specific metadata.**
+
+### **Compiler Pipeline with Target Awareness**
+
+```
+Source Code → Lexer → Parser → AST → Semantic Analyzer → IL Generator → Code Generator → Assembly
+                                           ↓                    ↓               ↓
+                                    [Target-Aware]      [Target-Agnostic]  [Target-Specific]
+                                    VIC-II/SID hints    Generic operations  Actual 6502 code
+                                    Phase 8 analysis    Hardware access     C64/C128/X16 diffs
+```
+
+### **What IL Generator Needs from Target System**
+
+The IL generator requires **minimal target awareness**:
+
+1. **TargetConfig Parameter**
+   - Used only for intrinsic resolution context
+   - Does NOT dictate IL generation strategy
+   - Passed through to maintain compilation context
+
+2. **Generic Hardware Access**
+   - Abstract "hardware register read/write" operations
+   - NOT specific addresses (those come from semantic phase)
+   - Code generator maps to actual hardware
+
+3. **Metadata Passthrough**
+   - Preserve semantic analysis results (VIC-II timing, SID conflicts)
+   - Don't interpret target-specific metadata
+   - Pass unchanged to code generator
+
+### **Multi-Target Examples**
+
+#### **Example 1: Hardware Register Access**
+
+**C64 Code:**
+```js
+// Read VIC-II border color (C64: $D020)
+let color = peek($D020);
+```
+
+**X16 Code:**
+```js
+// Read VERA composer control (X16: $9F29)
+let control = peek($9F29);
+```
+
+**IL Generated (Both Cases):**
+```
+HardwareRead {
+  addressExpr: Const(0xD020)  // or 0x9F29
+  size: byte
+  metadata: { ... timing hints from semantic phase ... }
+}
+```
+
+**Code Generator Handles Differences:**
+- C64: Maps to VIC-II address space, applies badline constraints
+- X16: Maps to VERA address space, different timing model
+
+#### **Example 2: Sound Chip Access**
+
+**C64 Code (SID):**
+```js
+// Write to SID voice 1 frequency (C64: $D400)
+poke($D400, freqLow);
+poke($D401, freqHigh);
+```
+
+**X16 Code (YM2151):**
+```js
+// Write to YM2151 register (X16: $9F40)
+poke($9F40, register);
+poke($9F41, value);
+```
+
+**IL Generated (Both Cases):**
+```
+HardwareWrite {
+  addressExpr: Const(0xD400)  // or 0x9F40
+  valueExpr: Variable(freqLow)
+  size: byte
+  metadata: { sidVoiceConflict: true }  // Only for C64
+}
+```
+
+**Semantic Analyzer Already Did Target Analysis:**
+- C64: SID conflict detection (Phase 8)
+- X16: YM2151 resource tracking (future)
+
+**IL Just Passes Through - Code Generator Interprets:**
+- C64: Apply SID voice timing constraints
+- X16: Apply YM2151 register access patterns
+
+### **What IL Generator Does NOT Do**
+
+❌ **Does NOT create target-specific IL dialects**
+   - No "C64-IL" vs "X16-IL" vs "C128-IL"
+   - Single unified IL representation
+
+❌ **Does NOT hardcode hardware addresses**
+   - Addresses come from source code or semantic analysis
+   - IL treats them as abstract memory locations
+
+❌ **Does NOT interpret hardware-specific constraints**
+   - Constraints already analyzed in semantic phase
+   - IL preserves metadata for code generator
+
+❌ **Does NOT make target-specific optimization decisions**
+   - Optimizations based on generic 6502 characteristics
+   - Target-specific opts happen in code generator
+
+### **Target Config Integration**
+
+```typescript
+/**
+ * IL Generator constructor with target config
+ */
+class ILGenerator {
+  constructor(
+    ast: Program,
+    symbolTable: GlobalSymbolTable,
+    typeSystem: TypeSystem,
+    targetConfig: TargetConfig  // NEW: minimal target awareness
+  ) {
+    this.ast = ast;
+    this.symbolTable = symbolTable;
+    this.typeSystem = typeSystem;
+    this.targetConfig = targetConfig;  // Used for intrinsic resolution only
+  }
+  
+  /**
+   * Intrinsic resolution may need target context
+   * Example: sizeof() might vary by target in future
+   */
+  protected resolveIntrinsic(name: string): IntrinsicInfo {
+    const intrinsic = this.intrinsics.get(name);
+    
+    // Most intrinsics are target-agnostic
+    // Future: Some might need target-specific behavior
+    if (intrinsic && intrinsic.targetDependent) {
+      return this.resolveTargetSpecificIntrinsic(name);
+    }
+    
+    return intrinsic;
+  }
+}
+```
+
+### **Supported Target Platforms**
+
+The IL generator supports multiple 6502-family targets through abstraction:
+
+| Target | CPU | Graphics | Sound | IL Support |
+|--------|-----|----------|-------|------------|
+| **C64** | 6510 | VIC-II ($D000) | SID ($D400) | ✅ Full |
+| **C128** | 8502 | VIC-II / VDC | SID x2 | ✅ Full |
+| **X16** | 65C02 | VERA ($9F20) | YM2151 / PSG | ✅ Full |
+| **Generic** | 6502 | None | None | ✅ Full |
+
+**All targets use the same IL representation.**
+
+---
+
 ## **Stub Function Architecture**
 
 ### **What Are Stub Functions?**

@@ -23,6 +23,14 @@ import type {
   ReturnStatement,
   ExpressionStatement,
 } from '../../../ast/nodes.js';
+import {
+  isLiteralExpression,
+  isArrayLiteralExpression,
+  isIdentifierExpression,
+  isBinaryExpression,
+  isUnaryExpression,
+} from '../../../ast/type-guards.js';
+import { TokenType } from '../../../lexer/types.js';
 
 /**
  * TypeCheckerStatements - Validates statement-level semantics
@@ -329,32 +337,28 @@ export abstract class TypeCheckerStatements extends TypeCheckerDeclarations {
    * @returns True if expression has NO side effects
    */
   protected hasNoSideEffects(expr: any): boolean {
-    const nodeType = expr.getNodeType();
-
     // Literals have no side effects
-    if (nodeType === 'LiteralExpression' || nodeType === 'ArrayLiteralExpression') {
+    if (isLiteralExpression(expr) || isArrayLiteralExpression(expr)) {
       return true;
     }
 
     // Identifiers have no side effects (just reading)
-    if (nodeType === 'IdentifierExpression') {
+    if (isIdentifierExpression(expr)) {
       return true;
     }
 
     // Binary expressions (unless they're assignments)
-    if (nodeType === 'BinaryExpression') {
-      const binary = expr as any;
-      return this.hasNoSideEffects(binary.getLeft()) && this.hasNoSideEffects(binary.getRight());
+    if (isBinaryExpression(expr)) {
+      return this.hasNoSideEffects(expr.getLeft()) && this.hasNoSideEffects(expr.getRight());
     }
 
     // Unary expressions (except address-of which might be used)
-    if (nodeType === 'UnaryExpression') {
-      const unary = expr as any;
+    if (isUnaryExpression(expr)) {
       // Address-of operator might be used for side effects
-      if (unary.getOperator().type === 'ADDRESS') {
+      if (expr.getOperator() === TokenType.ADDRESS) {
         return false;
       }
-      return this.hasNoSideEffects(unary.getOperand());
+      return this.hasNoSideEffects(expr.getOperand());
     }
 
     // Everything else has side effects

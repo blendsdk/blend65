@@ -424,17 +424,21 @@ export abstract class DeclarationParser extends ExpressionParser {
    * - Simple types: byte, word, void, boolean, string
    * - Custom types: SpriteId, Color (identifiers)
    * - Array types: byte[256], word[100]
+   * - Array types with inference: byte[], word[]
    * - Multidimensional arrays: byte[25][40], word[10][20][30]
+   * - Multidimensional with inference: byte[][], byte[][][]
    *
    * Grammar:
-   * type_annotation = type_name { "[" number "]" }
+   * type_annotation = type_name { "[" [ number ] "]" }
    * type_name = keyword | identifier
    *
    * Examples:
    * - byte
    * - word
-   * - byte[256]
-   * - byte[25][40]
+   * - byte[256]      // Explicit size
+   * - byte[]         // Size inferred from initializer
+   * - byte[25][40]   // Explicit multidimensional
+   * - byte[][]       // Inferred multidimensional
    *
    * @returns String representation of the type
    */
@@ -462,13 +466,31 @@ export abstract class DeclarationParser extends ExpressionParser {
       return 'unknown';
     }
 
-    // Parse array dimensions: byte[256] or byte[25][40]
+    // Parse array dimensions: byte[256] or byte[] or byte[25][40] or byte[][]
     let fullType = baseType;
     while (this.match(TokenType.LEFT_BRACKET)) {
-      const sizeToken = this.expect(TokenType.NUMBER, 'Expected array size');
-      this.expect(TokenType.RIGHT_BRACKET, "Expected ']' after array size");
-
-      fullType += `[${sizeToken.value}]`;
+      // Check for array size (optional - can be inferred)
+      if (this.check(TokenType.NUMBER)) {
+        // Explicit size: byte[256]
+        const sizeToken = this.advance();
+        this.expect(TokenType.RIGHT_BRACKET, "Expected ']' after array size");
+        fullType += `[${sizeToken.value}]`;
+      } else if (this.check(TokenType.RIGHT_BRACKET)) {
+        // Empty brackets - size will be inferred: byte[]
+        this.advance(); // consume ']'
+        fullType += `[]`;
+      } else {
+        // Error: neither size nor closing bracket
+        this.reportError(
+          DiagnosticCode.EXPECTED_TOKEN,
+          'Expected array size or "]" for size inference'
+        );
+        // Try to recover by assuming empty brackets
+        if (this.check(TokenType.RIGHT_BRACKET)) {
+          this.advance();
+        }
+        fullType += `[]`;
+      }
     }
 
     return fullType;

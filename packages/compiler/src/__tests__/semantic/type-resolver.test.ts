@@ -74,7 +74,7 @@ describe('TypeResolver - Variable Declarations', () => {
     expect(symbol!.type!.name).toBe('boolean');
   });
 
-  it('should resolve unsized array type annotation', () => {
+  it('should resolve unsized array type annotation with size inference', () => {
     const source = 'let buffer: byte[] = [1, 2, 3];';
     const { symbolTable } = parseAndResolveTypes(source);
 
@@ -84,7 +84,8 @@ describe('TypeResolver - Variable Declarations', () => {
     expect(symbol!.type!.kind).toBe(TypeKind.Array);
     expect(symbol!.type!.elementType).toBeDefined();
     expect(symbol!.type!.elementType!.kind).toBe(TypeKind.Byte);
-    expect(symbol!.type!.arraySize).toBeUndefined();
+    // Size should be inferred from initializer [1, 2, 3]
+    expect(symbol!.type!.arraySize).toBe(3);
   });
 
   it('should resolve sized array type annotation', () => {
@@ -265,7 +266,7 @@ describe('TypeResolver - Type Annotation Parsing', () => {
     expect(symbolTable.lookup('c')!.type!.kind).toBe(TypeKind.Boolean);
   });
 
-  it('should parse unsized array types', () => {
+  it('should parse unsized array types with size inference', () => {
     const source = `
       let bytes: byte[] = [1, 2, 3];
       let words: word[] = [100, 200];
@@ -275,11 +276,14 @@ describe('TypeResolver - Type Annotation Parsing', () => {
     const bytes = symbolTable.lookup('bytes')!.type!;
     expect(bytes.kind).toBe(TypeKind.Array);
     expect(bytes.elementType!.kind).toBe(TypeKind.Byte);
-    expect(bytes.arraySize).toBeUndefined();
+    // Size should be inferred from initializer [1, 2, 3]
+    expect(bytes.arraySize).toBe(3);
 
     const words = symbolTable.lookup('words')!.type!;
     expect(words.kind).toBe(TypeKind.Array);
     expect(words.elementType!.kind).toBe(TypeKind.Word);
+    // Size should be inferred from initializer [100, 200]
+    expect(words.arraySize).toBe(2);
   });
 
   it('should parse sized array types', () => {

@@ -15,6 +15,7 @@ import { describe, test, expect } from 'vitest';
 import { Lexer } from '../../lexer/lexer.js';
 import { Parser } from '../../parser/parser.js';
 import { IfStatement } from '../../ast/nodes.js';
+import { isIfStatement } from '../../ast/type-guards.js';
 
 describe('elseif statement parsing', () => {
   /**
@@ -169,7 +170,7 @@ describe('elseif statement parsing', () => {
 
     while (currentStmt && currentStmt.getElseBranch()) {
       const elseBranch = currentStmt.getElseBranch();
-      if (elseBranch && elseBranch[0].getNodeType() === 'IfStatement') {
+      if (elseBranch && isIfStatement(elseBranch[0])) {
         currentStmt = elseBranch[0] as IfStatement;
         depth++;
       } else {
@@ -482,7 +483,7 @@ describe('elseif statement parsing', () => {
     while (currentStmt && currentStmt.getElseBranch()) {
       branchCount++;
       const elseBranch = currentStmt.getElseBranch();
-      if (elseBranch && elseBranch[0].getNodeType() === 'IfStatement') {
+      if (elseBranch && isIfStatement(elseBranch[0])) {
         currentStmt = elseBranch[0] as IfStatement;
       } else {
         break;
@@ -519,7 +520,7 @@ describe('elseif statement parsing', () => {
 
     while (currentStmt && currentStmt.getElseBranch()) {
       const elseBranch = currentStmt.getElseBranch()!;
-      if (elseBranch[0].getNodeType() === 'IfStatement') {
+      if (isIfStatement(elseBranch[0])) {
         currentStmt = elseBranch[0] as IfStatement;
         expect(currentStmt.getThenBranch()[0].getNodeType()).toBe('ReturnStatement');
         returnCount++;

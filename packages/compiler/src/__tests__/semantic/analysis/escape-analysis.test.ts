@@ -19,6 +19,7 @@ import {
   EscapeReason,
 } from '../../../semantic/analysis/optimization-metadata-keys.js';
 import { DiagnosticSeverity } from '../../../ast/diagnostics.js';
+import { isFunctionDecl } from '../../../ast/type-guards.js';
 
 /**
  * Helper to parse and analyze code
@@ -57,7 +58,7 @@ describe('EscapeAnalyzer', () => {
 
       // Find local variable declarations
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
         if (body && body.length > 0) {
           const xDecl = body[0];
@@ -87,7 +88,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
 
         // Variables 'a' and 'b' should not escape (only used locally in initializer)
@@ -124,7 +125,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
 
         // Variable 'sum' SHOULD escape (returned from function)
@@ -179,7 +180,7 @@ describe('EscapeAnalyzer', () => {
 
       // Find 'test' function
       const testFunc = ast.getDeclarations()[1];
-      if (testFunc.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(testFunc)) {
         const body = (testFunc as any).getBody();
         if (body && body.length > 0) {
           const xDecl = body[0];
@@ -212,7 +213,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const testFunc = ast.getDeclarations()[1];
-      if (testFunc.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(testFunc)) {
         const body = (testFunc as any).getBody();
 
         // Both 'x' and 'y' should escape
@@ -238,7 +239,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
         if (body && body.length > 0) {
           const xDecl = body[0];
@@ -269,7 +270,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
 
         // Both 'x' and 'y' should escape (both returned)
@@ -294,7 +295,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
 
         // Both variables used in return expression should escape
@@ -323,7 +324,7 @@ describe('EscapeAnalyzer', () => {
 
       // Find 'test' function
       const testFunc = ast.getDeclarations()[1];
-      if (testFunc.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(testFunc)) {
         const body = (testFunc as any).getBody();
         if (body && body.length > 0) {
           const xDecl = body[0];
@@ -354,7 +355,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const testFunc = ast.getDeclarations()[2];
-      if (testFunc.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(testFunc)) {
         const body = (testFunc as any).getBody();
 
         // Both variables should escape
@@ -380,7 +381,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
         if (body && body.length > 0) {
           const xDecl = body[0];
@@ -406,7 +407,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
 
         // 'x' should escape (address taken)
@@ -705,7 +706,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[1];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
 
         // local1 and local2 should not escape (only used locally)
@@ -740,7 +741,7 @@ describe('EscapeAnalyzer', () => {
       expect(errors).toHaveLength(0);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
 
         // 'outer' should escape (returned from function)
@@ -762,7 +763,7 @@ describe('EscapeAnalyzer', () => {
       const { ast } = analyzeCode(source);
 
       const funcDecl = ast.getDeclarations()[0];
-      if (funcDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(funcDecl)) {
         const body = (funcDecl as any).getBody();
         const varDecl = body[0];
 

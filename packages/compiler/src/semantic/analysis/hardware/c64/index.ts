@@ -55,3 +55,37 @@ export {
   calculateCyclesPerFrame,
   fitsInRasterLine,
 } from './vic-ii-timing.js';
+
+// SID conflict analysis (Tier 4)
+export {
+  // Main analyzer class
+  SIDConflictAnalyzer,
+  // Types
+  type SIDVoiceNumber,
+  type SIDRegisterInfo,
+  type VoiceUsage,
+  type VoiceConflict,
+  type FilterUsage,
+  type FilterConflict,
+  type VolumeConflict,
+  type SIDAnalysisResult,
+  type SIDTimingRequirements,
+  // Enums
+  SIDRegisterType,
+  SIDFilterMode,
+  // Constants
+  SID_BASE,
+  SID_VOICE_OFFSET,
+  SID_REGISTERS,
+  SID_ADDRESS_RANGE,
+  // Utility functions
+  getVoiceForAddress,
+  isSIDAddress,
+  isSIDVoiceRegister,
+  isSIDFilterRegister,
+  isSIDVolumeRegister,
+  getSIDRegisterInfo,
+  getFilteredVoices,
+  getFilterMode,
+  getVolume,
+} from './sid-conflicts.js';

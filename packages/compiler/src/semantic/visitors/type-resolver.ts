@@ -22,9 +22,8 @@
  * - Array types: "byte[]", "word[10]" (unsized or fixed-size)
  * - Future: callback types will need special handling
  */
-
 import { ContextWalker } from '../../ast/walker/context.js';
-import type { SourceLocation } from '../../ast/base.js';
+import type { SourceLocation, Expression } from '../../ast/base.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
 import type {
@@ -35,6 +34,7 @@ import type {
   SequentialStructMapDecl,
   ExplicitStructMapDecl,
 } from '../../ast/nodes.js';
+import { isArrayLiteralExpression } from '../../ast/type-guards.js';
 import { TypeSystem } from '../type-system.js';
 import type { SymbolTable } from '../symbol-table.js';
 import type { TypeInfo, FunctionSignature } from '../types.js';
@@ -128,6 +128,10 @@ export class TypeResolver extends ContextWalker {
    * resolved type. If no type annotation exists, the symbol is left
    * without a type (will be inferred in Phase 3).
    *
+   * **Array Size Inference:**
+   * If type annotation contains empty brackets (e.g., `byte[]`), the size
+   * is inferred from the array literal initializer.
+   *
    * @param node - Variable declaration node
    */
   public visitVariableDecl(node: VariableDecl): void {
@@ -136,12 +140,35 @@ export class TypeResolver extends ContextWalker {
     this.enterNode(node);
 
     const typeAnnotation = node.getTypeAnnotation();
+    const initializer = node.getInitializer();
 
     // Resolve type annotation if present
     if (typeAnnotation) {
-      const type = this.resolveTypeAnnotation(typeAnnotation, node.getLocation());
+      let type = this.resolveTypeAnnotation(typeAnnotation, node.getLocation());
 
-      // Annotate symbol with resolved type
+      // Check if array size needs to be inferred (type has undefined size)
+      if (type.kind === TypeKind.Array && type.arraySize === undefined) {
+        // Array size inference required
+        if (!initializer) {
+          // Error: empty brackets without initializer
+          this.reportDiagnostic({
+            severity: DiagnosticSeverity.ERROR,
+            message: `Cannot infer array size for '${node.getName()}': no initializer provided. Use explicit size (e.g., byte[10]) or provide an initializer.`,
+            location: node.getLocation(),
+            code: DiagnosticCode.TYPE_MISMATCH,
+          });
+        } else {
+          // Infer size from initializer
+          const inferredSize = this.inferArraySize(initializer, node.getLocation());
+          if (inferredSize !== null) {
+            // Create new array type with inferred size
+            type = this.typeSystem.createArrayType(type.elementType!, inferredSize);
+          }
+          // If inference failed, type remains with undefined size (error already reported)
+        }
+      }
+
+      // Annotate symbol with resolved type (with inferred size if applicable)
       const symbol = this.symbolTable.lookup(node.getName());
       if (symbol) {
         symbol.type = type;
@@ -149,7 +176,6 @@ export class TypeResolver extends ContextWalker {
     }
 
     // Visit initializer if present (will be type-checked in Phase 3)
-    const initializer = node.getInitializer();
     if (initializer && !this.shouldSkip && !this.shouldStop) {
       initializer.accept(this);
     }
@@ -446,5 +472,59 @@ export class TypeResolver extends ContextWalker {
       isSigned: false,
       isAssignable: false,
     };
+  }
+
+  // ============================================
+  // ARRAY SIZE INFERENCE
+  // ============================================
+
+  /**
+   * Infer array size from initializer expression
+   *
+   * Analyzes the initializer to determine the array size. Only array
+   * literal expressions can be used for size inference.
+   *
+   * **Inference Rules:**
+   * 1. Must be an array literal expression: `[1, 2, 3]`
+   * 2. Size is the number of elements in the literal
+   * 3. Nested arrays are supported (recursive inference)
+   * 4. Non-literal expressions cannot be used for inference
+   *
+   * **Examples:**
+   * - `[1, 2, 3]` ’ size 3
+   * - `[[1, 2], [3, 4]]` ’ size 2 (outer dimension)
+   * - `variable` ’ cannot infer (error)
+   *
+   * @param initializer - Initializer expression to analyze
+   * @param location - Source location for error reporting
+   * @returns Inferred size, or null if inference failed
+   */
+  protected inferArraySize(initializer: Expression, location: SourceLocation): number | null {
+    // Only array literals can be used for size inference
+    if (!isArrayLiteralExpression(initializer)) {
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: 'Cannot infer array size from non-literal initializer. Array size inference requires an array literal (e.g., [1, 2, 3]).',
+        location,
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
+      return null;
+    }
+
+    // Get element count from array literal
+    const size = initializer.getElementCount();
+
+    // Validate size is reasonable (at least 1)
+    if (size === 0) {
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: 'Cannot infer size from empty array literal. Specify explicit size (e.g., byte[0]) or add elements.',
+        location,
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
+      return null;
+    }
+
+    return size;
   }
 }

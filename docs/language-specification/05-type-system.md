@@ -301,23 +301,34 @@ Arrays represent **fixed-size sequences** of elements.
 
 ```ebnf
 type_expr = type_name
-          | type_name , "[" , integer , "]" ;
+          | type_name , "[" , [ integer ] , "]" ;
 ```
+
+**Note**: The array size is optional if an initializer is provided (size will be inferred).
 
 ### Examples
 
+**Explicit size:**
 ```js
 let buffer: byte[256];          // 256-byte array
 let screenRAM: byte[1000];      // 1000-byte array
 let positions: word[10];        // 10-word array (20 bytes total)
 ```
 
+**Inferred size from initializer:**
+```js
+let colors: byte[] = [2, 5, 6];             // Size 3 inferred
+let values: word[] = [100, 200, 300];       // Size 3 inferred
+let matrix: byte[][] = [[1, 2], [3, 4]];    // Size [2][2] inferred
+```
+
 ### Array Properties
 
-- **Fixed size** - Size must be a compile-time constant
+- **Fixed size** - Size must be a compile-time constant (explicit or inferred)
 - **Zero-indexed** - First element is index 0
 - **Bounds checking** - Compile-time checking for constant indices
 - **Contiguous** - Elements stored sequentially in memory
+- **Size inference** - Size can be inferred from array literal initializers
 
 ### Array Indexing
 
@@ -333,6 +344,57 @@ for i = 0 to 9
   buffer[i] = 0;
 next i
 ```
+
+### Array Size Inference
+
+When an array is initialized with an array literal, the size can be omitted and will be **inferred from the initializer**:
+
+```js
+// Basic inference
+let colors: byte[] = [2, 5, 6];              // Size 3 inferred
+let empty: byte[] = [];                      // Size 0 inferred
+let single: byte[] = [42];                   // Size 1 inferred
+
+// Multi-dimensional inference
+let matrix: byte[][] = [[1, 2], [3, 4]];     // Size [2][2] inferred
+let cube: byte[][][] = [
+  [[1, 2], [3, 4]],
+  [[5, 6], [7, 8]]
+];                                            // Size [2][2][2] inferred
+
+// With storage classes
+@zp let fast: byte[] = [0, 0, 0];            // Size 3 inferred, zero-page
+@data const lookup: byte[] = [1, 2, 4, 8];   // Size 4 inferred, data section
+
+// With expressions
+let positions: byte[] = [x, y + 1, z * 2];   // Size 3 inferred
+```
+
+**Rules for size inference:**
+
+1. ✅ **Requires array literal initializer** - Cannot infer without `[...]`
+   ```js
+   let arr: byte[] = [1, 2, 3];  // ✅ OK - size 3 inferred
+   let buf: byte[];              // ❌ ERROR - cannot infer size without initializer
+   ```
+
+2. ✅ **Nested arrays must have consistent dimensions**
+   ```js
+   let good: byte[][] = [[1, 2], [3, 4]];     // ✅ OK - all rows have 2 elements
+   let bad: byte[][] = [[1, 2], [3, 4, 5]];   // ❌ ERROR - inconsistent sizes
+   ```
+
+3. ✅ **Inferred size is compile-time constant**
+   ```js
+   let arr: byte[] = [1, 2, 3];
+   // Compiler treats this as: let arr: byte[3] = [1, 2, 3];
+   ```
+
+4. ❌ **Cannot infer from non-literal expressions**
+   ```js
+   let other: byte[3];
+   let arr: byte[] = other;  // ❌ ERROR - cannot infer from variable
+   ```
 
 ## callback Type
 

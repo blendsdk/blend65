@@ -179,9 +179,40 @@ These rules are **mandatory** and must be applied **strictly and consistently** 
     if (isVariableDecl(stmt)) { ... }
     ```
 
-## 8. Final Rule
+## 8. Testing Integrity Rules
 
-25. **If in Doubt, Be Explicit**
+25. **MUST NOT Mock Real Objects That Exist**
+    - Do **not** mock objects in tests when the real object exists and has been developed
+    - Use real implementations instead of fake mock objects
+    - Helper functions that create simple data structures (e.g., `createMockLocation()` for `SourceLocation`) are acceptable
+    
+    ❌ **Wrong (mocking a real class):**
+    ```typescript
+    // GlobalSymbolTable exists as a real class!
+    const mockSymbolTable = { lookup: () => undefined } as any;
+    const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
+    ```
+    
+    ✅ **Correct (use real class):**
+    ```typescript
+    import { GlobalSymbolTable } from '../semantic/global-symbol-table.js';
+    const symbolTable = new GlobalSymbolTable();
+    const analyzer = new M6502HintAnalyzer(symbolTable, new Map());
+    ```
+    
+    **Acceptable patterns:**
+    - Helper functions for simple data structures: `createTestLocation()`, `createTestParameter()`
+    - Test fixtures that create valid instances of simple types
+    - Stub implementations only when the real implementation doesn't exist yet
+
+26. **MUST Avoid `as any` Type Bypassing in Production Code**
+    - Do **not** use `as any` to bypass TypeScript type checking
+    - Use proper type guards, assertions, or fix the underlying type issue
+    - Test files may use `as any` sparingly for test setup, but prefer proper typing
+
+## 9. Final Rule
+
+27. **If in Doubt, Be Explicit**
     - Prefer more readable code, more comments, and clearer structure over fewer lines of code.
 
 ---

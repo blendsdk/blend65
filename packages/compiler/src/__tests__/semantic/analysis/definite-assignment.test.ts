@@ -15,6 +15,7 @@ import { Parser } from '../../../parser/parser.js';
 import { SemanticAnalyzer } from '../../../semantic/analyzer.js';
 import { OptimizationMetadataKey } from '../../../semantic/analysis/optimization-metadata-keys.js';
 import { DiagnosticSeverity } from '../../../ast/diagnostics.js';
+import { isFunctionDecl } from '../../../ast/type-guards.js';
 
 /**
  * Helper to parse and analyze code
@@ -255,7 +256,7 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
       // Find variable declaration for x
       const functionDecl = ast.getDeclarations()[0];
-      if (functionDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(functionDecl)) {
         const body = (functionDecl as any).getBody();
         if (body && body.length > 0) {
           const varDecl = body[0];
@@ -282,7 +283,7 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
       // Find variable declaration for x
       const functionDecl = ast.getDeclarations()[0];
-      if (functionDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(functionDecl)) {
         const body = (functionDecl as any).getBody();
         if (body && body.length > 0) {
           const varDecl = body[0];
@@ -310,7 +311,7 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
       // Find identifier node in the use
       const functionDecl = ast.getDeclarations()[0];
-      if (functionDecl.getNodeType() === 'FunctionDecl') {
+      if (isFunctionDecl(functionDecl)) {
         const body = (functionDecl as any).getBody();
         if (body && body.length > 1) {
           const varDecl2 = body[1];

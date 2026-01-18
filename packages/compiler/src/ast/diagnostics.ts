@@ -208,6 +208,22 @@ export enum DiagnosticCode {
 
   /** VIC-II badline warning - code exceeds badline budget */
   VIC_II_BADLINE_WARNING = 'H102',
+
+  // ============================================
+  // SID CONFLICT DIAGNOSTICS (H200-H299)
+  // ============================================
+
+  /** SID voice conflict - multiple functions write to same voice */
+  SID_VOICE_CONFLICT = 'H200',
+
+  /** SID filter conflict - conflicting filter settings */
+  SID_FILTER_CONFLICT = 'H201',
+
+  /** SID volume conflict - multiple functions modify global volume */
+  SID_VOLUME_CONFLICT = 'H202',
+
+  /** SID IRQ timing - timing requirements for music/SFX */
+  SID_IRQ_TIMING = 'H203',
 }
 
 /**

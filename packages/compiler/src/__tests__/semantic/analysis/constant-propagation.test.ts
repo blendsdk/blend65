@@ -11,6 +11,7 @@ import { Lexer } from '../../../lexer/lexer.js';
 import { SemanticAnalyzer } from '../../../semantic/analyzer.js';
 import { ConstantPropagationAnalyzer } from '../../../semantic/analysis/constant-propagation.js';
 import { OptimizationMetadataKey } from '../../../semantic/analysis/optimization-metadata-keys.js';
+import { isVariableDecl } from '../../../ast/type-guards.js';
 
 /**
  * Helper to parse and analyze source code
@@ -760,7 +761,7 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const checkNode = (node: any): void => {
         if (!node) return;
         
-        if (node.getNodeType && node.getNodeType() === 'VariableDecl') {
+        if (isVariableDecl(node)) {
           if (node.metadata) {
             const constValue = node.metadata.get(OptimizationMetadataKey.ConstantValue);
             if (constValue === 42) {
@@ -805,7 +806,7 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const checkNode = (node: any): void => {
         if (!node) return;
         
-        if (node.getNodeType && node.getNodeType() === 'VariableDecl') {
+        if (isVariableDecl(node)) {
           if (node.metadata) {
             const effectivelyConst = node.metadata.get(
               OptimizationMetadataKey.ConstantEffectivelyConst

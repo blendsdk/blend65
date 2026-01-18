@@ -52,6 +52,58 @@ const MAX: byte = 100;  // ✅ OK
 const MIN: byte;        // ❌ Error: MissingConstInitializer
 ```
 
+### let vs const for Arrays
+
+For arrays, `let` and `const` control **element mutability**, not the array itself.
+
+**Key concept**: Arrays in Blend65 are **fixed-size memory regions** allocated at compile time. Once declared, an array's size and location cannot change.
+
+**What `let` arrays allow:**
+```js
+let values: byte[3] = [1, 2, 3];
+
+// ✅ Element mutation allowed
+values[0] = 10;
+values[1] = 20;
+values[2] = 30;
+
+// ❌ Array reassignment NOT allowed (arrays are fixed memory)
+values = [4, 5, 6];     // ERROR - cannot reassign array
+values = otherArray;    // ERROR - cannot reassign array
+```
+
+**What `const` arrays allow:**
+```js
+const palette: byte[3] = [2, 5, 6];
+
+// ❌ Element modification NOT allowed
+palette[0] = 10;        // ERROR - cannot modify const array element
+
+// ❌ Array reassignment NOT allowed (same as let)
+palette = [1, 2, 3];    // ERROR - cannot reassign array
+```
+
+**Summary of array mutation rules:**
+
+|          | Element Mutation | Array Reassignment |
+|----------|------------------|-------------------|
+| `let`    | ✅ Allowed       | ❌ Never Allowed  |
+| `const`  | ❌ Not Allowed   | ❌ Never Allowed  |
+
+**Rationale**: Arrays are fixed-size memory regions in 6502 systems. There is no dynamic memory allocation, no resizing, and no garbage collection. An array variable represents a **memory location**, not a **pointer** that can be reassigned.
+
+**To "copy" an array**, use element-by-element assignment:
+
+```js
+let source: byte[3] = [1, 2, 3];
+let dest: byte[3];
+
+// Copy elements individually
+for i = 0 to 2
+  dest[i] = source[i];
+next i
+```
+
 ## Storage Classes
 
 Storage classes control **where in memory** a variable is allocated. This is a crucial 6502-specific feature.
@@ -186,14 +238,44 @@ let buffer: byte[256];  // Uninitialized array
 
 ### Array Initialization
 
-Future feature (not yet implemented):
+Arrays can be initialized with **array literals**:
 
 ```js
-// Future syntax for array initialization
+// Explicit size with initializer
 let values: byte[4] = [1, 2, 3, 4];
+let colors: byte[3] = [2, 5, 6];
+
+// Inferred size from initializer
+let values: byte[] = [1, 2, 3, 4];     // Size 4 inferred
+let colors: byte[] = [2, 5, 6];        // Size 3 inferred
 ```
 
-Currently, arrays must be initialized element-by-element:
+Arrays can also be declared without an initializer (uninitialized):
+
+```js
+let buffer: byte[256];  // Uninitialized - must specify size
+let data: byte[4];      // Uninitialized array
+```
+
+**Array size inference** - When using array literals, the size can be omitted and will be inferred:
+
+```js
+// Basic inference
+let values: byte[] = [10, 20, 30];              // Size 3 inferred
+let empty: byte[] = [];                          // Size 0 inferred
+
+// Nested arrays (multidimensional)
+let matrix: byte[][] = [[1, 2], [3, 4]];        // Size [2][2] inferred
+
+// With storage classes
+@zp let fast: byte[] = [0, 0, 0];                // Size 3 inferred
+@data const lookup: byte[] = [1, 2, 4, 8, 16];   // Size 5 inferred
+
+// Error: Cannot infer without initializer
+let buffer: byte[];  // ❌ ERROR - size cannot be inferred without initializer
+```
+
+**Element-by-element initialization** (alternative approach):
 
 ```js
 let buffer: byte[4];

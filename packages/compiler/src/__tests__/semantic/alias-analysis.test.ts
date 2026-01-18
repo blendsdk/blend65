@@ -19,6 +19,7 @@ import {
   MemoryRegion,
 } from '../../semantic/analysis/optimization-metadata-keys.js';
 import { DiagnosticSeverity } from '../../ast/diagnostics.js';
+import { isIdentifierExpression, isFunctionDecl } from '../../ast/type-guards.js';
 
 /**
  * Helper: Parse and analyze source code
@@ -51,7 +52,7 @@ function findIdentifier(ast: any, name: string): any {
     if (!node || typeof node !== 'object') return;
 
     // Check if this is an IdentifierExpression with matching name
-    if (node.getNodeType && node.getNodeType() === 'IdentifierExpression') {
+    if (isIdentifierExpression(node)) {
       if (node.getName && node.getName() === name) {
         identifiers.push(node);
       }
@@ -353,7 +354,7 @@ describe('AliasAnalyzer', () => {
       const { ast } = analyzeSource(source);
 
       // Find function declaration using AST API
-      const funcDecl = ast.declarations.find((d: any) => d.getNodeType() === 'FunctionDecl');
+      const funcDecl = ast.declarations.find((d: any) => isFunctionDecl(d));
       const body = funcDecl.getBody();
       const assignment = body[0]; // First statement
 

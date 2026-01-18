@@ -21,7 +21,7 @@
  * ```
  */
 
-import type { Program, IdentifierExpression, BinaryExpression, UnaryExpression, LiteralExpression } from '../../ast/nodes.js';
+import type { Program } from '../../ast/nodes.js';
 import type { Statement } from '../../ast/base.js';
 import type { SymbolTable } from '../symbol-table.js';
 import type { ControlFlowGraph, CFGNode } from '../control-flow.js';
@@ -29,7 +29,17 @@ import type { Diagnostic } from '../../ast/diagnostics.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
 import { TokenType } from '../../lexer/types.js';
-import { isVariableDecl, isExpressionStatement, isAssignmentExpression, isIdentifierExpression } from '../../ast/type-guards.js';
+import {
+  isVariableDecl,
+  isExpressionStatement,
+  isAssignmentExpression,
+  isIdentifierExpression,
+  isLiteralExpression,
+  isBinaryExpression,
+  isUnaryExpression,
+  isIfStatement,
+  isWhileStatement,
+} from '../../ast/type-guards.js';
 
 /**
  * Lattice values for constant propagation
@@ -348,12 +358,9 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
   ): LatticeValue {
     if (!expr) return { kind: 'BOTTOM' };
 
-    const nodeType = expr.getNodeType();
-
     // Literals are always constant
-    if (nodeType === 'LiteralExpression') {
-      const literal = expr as LiteralExpression;
-      const value = literal.getValue();
+    if (isLiteralExpression(expr)) {
+      const value = expr.getValue();
       
       if (typeof value === 'number' || typeof value === 'boolean') {
         return { kind: 'CONSTANT', value };
@@ -364,22 +371,20 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
     }
 
     // Identifier: look up current value
-    if (nodeType === 'IdentifierExpression') {
-      const ident = expr as IdentifierExpression;
-      const varName = ident.getName();
+    if (isIdentifierExpression(expr)) {
+      const varName = expr.getName();
       return constantValues.get(varName) || { kind: 'BOTTOM' };
     }
 
     // Binary expressions: evaluate if both operands are constant
-    if (nodeType === 'BinaryExpression') {
-      const binExpr = expr as BinaryExpression;
-      const left = this.evaluateExpression(binExpr.getLeft(), constantValues);
-      const right = this.evaluateExpression(binExpr.getRight(), constantValues);
+    if (isBinaryExpression(expr)) {
+      const left = this.evaluateExpression(expr.getLeft(), constantValues);
+      const right = this.evaluateExpression(expr.getRight(), constantValues);
 
       // Can only fold if both are constants
       if (left.kind === 'CONSTANT' && right.kind === 'CONSTANT') {
         const result = this.evaluateBinaryOp(
-          binExpr.getOperator(),
+          expr.getOperator(),
           left.value,
           right.value
         );
@@ -399,12 +404,11 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
     }
 
     // Unary expressions: evaluate if operand is constant
-    if (nodeType === 'UnaryExpression') {
-      const unaryExpr = expr as UnaryExpression;
-      const operand = this.evaluateExpression(unaryExpr.getOperand(), constantValues);
+    if (isUnaryExpression(expr)) {
+      const operand = this.evaluateExpression(expr.getOperand(), constantValues);
 
       if (operand.kind === 'CONSTANT') {
-        const result = this.evaluateUnaryOp(unaryExpr.getOperator(), operand.value);
+        const result = this.evaluateUnaryOp(expr.getOperator(), operand.value);
         
         if (result !== null) {
           return { kind: 'CONSTANT', value: result };
@@ -617,9 +621,8 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
     const checkNode = (node: any): void => {
       if (!node || typeof node !== 'object') return;
 
-      const nodeType = node.getNodeType?.();
-
-      if (nodeType === 'BinaryExpression' || nodeType === 'UnaryExpression') {
+      // Check if this is a binary or unary expression using type guards
+      if (isBinaryExpression(node) || isUnaryExpression(node)) {
         const value = this.evaluateExpression(node, constantValues);
         
         if (value.kind === 'CONSTANT') {
@@ -701,12 +704,9 @@ export class ConstantPropagationAnalyzer extends ASTWalker {
     for (const node of cfg.getNodes()) {
       if (!node.statement) continue;
 
-      // Check if this is a conditional statement
-      const nodeType = node.statement.getNodeType();
-      
-      if (nodeType === 'IfStatement' || nodeType === 'WhileStatement') {
-        const condStmt = node.statement as any;
-        const condition = condStmt.getCondition?.();
+      // Check if this is a conditional statement using type guards
+      if (isIfStatement(node.statement) || isWhileStatement(node.statement)) {
+        const condition = node.statement.getCondition();
 
         if (condition) {
           const value = this.evaluateExpression(condition, constantValues);
