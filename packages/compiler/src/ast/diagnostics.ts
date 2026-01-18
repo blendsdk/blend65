@@ -195,6 +195,19 @@ export enum DiagnosticCode {
 
   /** Zero-page allocation extends into reserved area */
   ZERO_PAGE_ALLOCATION_INTO_RESERVED = 'S104',
+
+  // ============================================
+  // VIC-II TIMING DIAGNOSTICS (H100-H199)
+  // ============================================
+
+  /** VIC-II timing error - code exceeds raster line budget */
+  VIC_II_TIMING_ERROR = 'H100',
+
+  /** VIC-II timing warning - potential timing issues */
+  VIC_II_TIMING_WARNING = 'H101',
+
+  /** VIC-II badline warning - code exceeds badline budget */
+  VIC_II_BADLINE_WARNING = 'H102',
 }
 
 /**

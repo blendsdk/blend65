@@ -2,10 +2,32 @@
  * Advanced Analyzer Orchestrator (Phase 8)
  *
  * Main orchestrator for all Phase 8 optimization analyses.
- * Coordinates Tier 1-3 analyses in proper dependency order.
+ * Coordinates Tier 1-4 analyses in proper dependency order.
+ *
+ * **Analysis Tiers:**
+ * - Tier 1: Basic analysis (definite assignment, usage, dead code)
+ * - Tier 2: Data flow analysis (reaching defs, liveness, constants)
+ * - Tier 3: Advanced analysis (alias, purity, escape, loops, 6502 hints)
+ * - Tier 4: Target-specific hardware analysis (VIC-II, SID, etc.)
+ *
+ * **Target Configuration**: The analyzer now accepts an optional TargetConfig
+ * parameter to support different 6502-based targets. Hardware-specific
+ * analysis runs based on the selected target.
  *
  * **Analysis Only**: This class performs analysis and marks opportunities.
  * It does NOT perform transformations - that's the IL optimizer's job.
+ *
+ * @example
+ * ```typescript
+ * // With target config (recommended)
+ * const config = getTargetConfig(TargetArchitecture.C64);
+ * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, config);
+ * analyzer.analyze(ast);
+ *
+ * // Backward compatible (defaults to C64)
+ * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem);
+ * analyzer.analyze(ast);
+ * ```
  */
 
 import type { Program } from '../../ast/nodes.js';
@@ -14,6 +36,9 @@ import type { TypeSystem } from '../type-system.js';
 import type { ControlFlowGraph } from '../control-flow.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
+import type { TargetConfig } from '../../target/config.js';
+import { getDefaultTargetConfig } from '../../target/registry.js';
+import { isHardwareAnalyzerAvailable, createHardwareAnalyzer } from './hardware/target-analyzer-registry.js';
 import { DefiniteAssignmentAnalyzer } from './definite-assignment.js';
 import { VariableUsageAnalyzer } from './variable-usage.js';
 import { UnusedFunctionAnalyzer } from './unused-functions.js';
@@ -37,23 +62,36 @@ import { SourceLocation } from '../../ast/index.js';
  * Coordinates all optimization analysis passes and generates
  * metadata for IL optimizer consumption.
  *
- * Analysis is performed in three tiers:
+ * Analysis is performed in four tiers:
  * - Tier 1: Basic analysis (definite assignment, usage, dead code)
  * - Tier 2: Data flow analysis (reaching defs, liveness, constants)
  * - Tier 3: Advanced analysis (alias, purity, loops, 6502 hints)
+ * - Tier 4: Target-specific hardware analysis (VIC-II timing, SID conflicts, etc.)
  *
  * Each tier builds on results from previous tiers.
  *
+ * **Target Configuration**: The analyzer accepts an optional TargetConfig
+ * parameter. Zero-page and hardware-specific analysis uses this config.
+ * Defaults to C64 for backward compatibility.
+ *
  * @example
  * ```typescript
+ * // With target config (recommended)
+ * const config = getTargetConfig(TargetArchitecture.C64);
+ * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, config);
+ * analyzer.analyze(ast);
+ *
+ * // Backward compatible (defaults to C64)
  * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem);
  * analyzer.analyze(ast);
- * const diagnostics = analyzer.getDiagnostics();
  * ```
  */
 export class AdvancedAnalyzer {
   /** Diagnostics collected during analysis */
   protected diagnostics: Diagnostic[] = [];
+
+  /** Target configuration for hardware-specific analysis */
+  protected readonly targetConfig: TargetConfig;
 
   /**
    * Creates an advanced analyzer
@@ -61,12 +99,17 @@ export class AdvancedAnalyzer {
    * @param symbolTable - Symbol table from Pass 1
    * @param cfgs - Control flow graphs from Pass 5
    * @param typeSystem - Type system from Pass 2
+   * @param targetConfig - Optional target configuration (defaults to C64)
    */
   constructor(
     protected readonly symbolTable: SymbolTable,
     protected readonly cfgs: Map<string, ControlFlowGraph>,
-    protected readonly typeSystem: TypeSystem
-  ) {}
+    protected readonly typeSystem: TypeSystem,
+    targetConfig?: TargetConfig
+  ) {
+    // Default to C64 config for backward compatibility
+    this.targetConfig = targetConfig ?? getDefaultTargetConfig();
+  }
 
   /**
    * Run all Phase 8 analyses
@@ -236,10 +279,11 @@ export class AdvancedAnalyzer {
     callGraphAnalyzer.analyze(ast);
     this.diagnostics.push(...callGraphAnalyzer.getDiagnostics());
 
-    // Task 8.13: 6502-specific hints
+    // Task 8.13: 6502-specific hints (uses target configuration)
     // Analyzes: zero-page priority, register preferences, cycle counts, reserved ZP validation
     // Metadata: M6502ZeroPagePriority, M6502RegisterPreference, M6502CycleEstimate, M6502ZeroPageReserved
-    const m6502Analyzer = new M6502HintAnalyzer(this.symbolTable, this.cfgs);
+    // NOTE: Passes targetConfig for target-aware zero-page validation
+    const m6502Analyzer = new M6502HintAnalyzer(this.symbolTable, this.cfgs, this.targetConfig);
     m6502Analyzer.analyze(ast);
     this.diagnostics.push(...m6502Analyzer.getDiagnostics());
 
@@ -343,5 +387,105 @@ export class AdvancedAnalyzer {
       message,
       location,
     });
+  }
+
+  /**
+   * Get the target configuration used by this analyzer
+   *
+   * @returns Target configuration
+   */
+  public getTargetConfig(): TargetConfig {
+    return this.targetConfig;
+  }
+
+  /**
+   * Tier 4: Target-Specific Hardware Analysis
+   *
+   * Performs hardware-specific analysis for the configured target:
+   * - C64: VIC-II raster timing, SID resource conflicts, I/O register validation
+   * - C128: VDC timing (not yet implemented)
+   * - X16: VERA timing (not yet implemented)
+   *
+   * **IMPORTANT**: This tier is optional and should only be run when
+   * hardware-specific analysis is needed (e.g., for raster effects).
+   * It is NOT called automatically by analyze() to maintain backward compatibility.
+   *
+   * Requires Tiers 1-3 results (usage + data flow + advanced analysis).
+   *
+   * @param ast - Program AST to analyze
+   * @returns True if analysis was performed, false if no analyzer available
+   *
+   * @example
+   * ```typescript
+   * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, c64Config);
+   * analyzer.analyze(ast);
+   *
+   * // Optionally run hardware-specific analysis for raster effects
+   * if (analyzer.runTier4HardwareAnalysis(ast)) {
+   *   console.log('Hardware analysis complete');
+   * }
+   * ```
+   */
+  public runTier4HardwareAnalysis(ast: Program): boolean {
+    // Check if hardware analyzer is available for this target
+    if (!isHardwareAnalyzerAvailable(this.targetConfig.architecture)) {
+      this.addWarning(
+        `No hardware analyzer available for target '${this.targetConfig.architecture}'. ` +
+          `Hardware-specific analysis skipped.`,
+        ast.getLocation()
+      );
+      return false;
+    }
+
+    try {
+      // Create and run the target-specific hardware analyzer
+      const hardwareAnalyzer = createHardwareAnalyzer(
+        this.targetConfig.architecture,
+        this.symbolTable,
+        this.cfgs
+      );
+
+      const result = hardwareAnalyzer.analyze(ast);
+
+      // Collect diagnostics from hardware analysis
+      this.diagnostics.push(...result.diagnostics);
+
+      return result.success;
+    } catch (error) {
+      // Handle analyzer creation/execution errors gracefully
+      this.addError(
+        `Error during hardware analysis: ${error instanceof Error ? error.message : String(error)}`,
+        ast.getLocation()
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Run full analysis including Tier 4 hardware analysis
+   *
+   * Convenience method that runs all tiers including hardware-specific analysis.
+   * Equivalent to calling analyze() followed by runTier4HardwareAnalysis().
+   *
+   * @param ast - Program AST to analyze
+   * @returns True if all analyses succeeded (including Tier 4)
+   *
+   * @example
+   * ```typescript
+   * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, c64Config);
+   * const success = analyzer.analyzeWithHardware(ast);
+   * ```
+   */
+  public analyzeWithHardware(ast: Program): boolean {
+    // Run Tiers 1-3
+    this.analyze(ast);
+
+    // Check if Tier 1-3 had errors
+    if (this.hasErrors()) {
+      return false;
+    }
+
+    // Run Tier 4 hardware analysis
+    return this.runTier4HardwareAnalysis(ast);
   }
 }

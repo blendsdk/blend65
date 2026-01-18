@@ -5,16 +5,27 @@
  * - Zero-page allocation priority scoring
  * - Register preference hints (A, X, Y)
  * - Addressing mode recommendations
- * - Reserved zero-page location blacklist
+ * - Reserved zero-page location blacklist (target-configurable)
  * - Cycle count estimation
  *
- * **CRITICAL**: Not all zero-page is usable! $00-$01 and $90-$FF are reserved.
- * Safe range: $02-$8F (only 142 bytes, not 256!)
+ * **CRITICAL**: Not all zero-page is usable! Reserved ranges depend on target.
+ * - C64: $00-$01 (CPU I/O) and $90-$FF (KERNAL) reserved, safe: $02-$8F (142 bytes)
+ * - C128: Different KERNAL workspace
+ * - X16: Only $00-$15 (22 bytes) safe
+ *
+ * **Target Configuration**: Zero-page reserved ranges now come from TargetConfig,
+ * enabling support for different 6502-based systems (C64, C128, X16).
  *
  * **Analysis Only**: Marks opportunities; code generator uses hints.
  *
  * @example
  * ```typescript
+ * // With target config (recommended)
+ * const config = getTargetConfig(TargetArchitecture.C64);
+ * const analyzer = new M6502HintAnalyzer(symbolTable, cfgs, config);
+ * analyzer.analyze(ast);
+ *
+ * // Backward compatible (defaults to C64)
  * const analyzer = new M6502HintAnalyzer(symbolTable, cfgs);
  * analyzer.analyze(ast);
  *
@@ -47,6 +58,8 @@ import {
 import { TokenType } from '../../lexer/types.js';
 import { OptimizationMetadataKey, type InductionVariable } from './optimization-metadata-keys.js';
 import { ASTWalker } from '../../ast/walker/base.js';
+import type { TargetConfig, ReservedZeroPageRange } from '../../target/config.js';
+import { getDefaultTargetConfig } from '../../target/registry.js';
 
 /**
  * 6502 Register preference
@@ -231,7 +244,21 @@ interface VariableHints {
  * - Calculate zero-page allocation priorities
  * - Recommend register usage
  * - Detect memory access patterns
- * - Enforce reserved zero-page blacklist
+ * - Enforce reserved zero-page blacklist (target-configurable)
+ *
+ * **Target Configuration**: The analyzer now accepts an optional TargetConfig
+ * parameter to support different 6502-based targets. Zero-page reserved ranges
+ * are obtained from the target config rather than hardcoded values.
+ *
+ * @example
+ * ```typescript
+ * // With explicit target config
+ * const config = getTargetConfig(TargetArchitecture.C64);
+ * const analyzer = new M6502HintAnalyzer(symbolTable, cfgs, config);
+ *
+ * // With default (C64) config
+ * const analyzer = new M6502HintAnalyzer(symbolTable, cfgs);
+ * ```
  */
 export class M6502HintAnalyzer extends ASTWalker {
   /** Diagnostics collected during analysis */
@@ -240,17 +267,24 @@ export class M6502HintAnalyzer extends ASTWalker {
   /** Variable hints map */
   protected variableHints = new Map<string, VariableHints>();
 
+  /** Target configuration for zero-page and hardware settings */
+  protected readonly targetConfig: TargetConfig;
+
   /**
    * Creates a 6502 hint analyzer
    *
    * @param symbolTable - Symbol table from Pass 1
    * @param cfgs - Control flow graphs from Pass 5
+   * @param targetConfig - Optional target configuration (defaults to C64)
    */
   constructor(
     protected readonly symbolTable: SymbolTable,
-    _cfgs: Map<string, ControlFlowGraph>
+    _cfgs: Map<string, ControlFlowGraph>,
+    targetConfig?: TargetConfig
   ) {
     super();
+    // Default to C64 config for backward compatibility
+    this.targetConfig = targetConfig ?? getDefaultTargetConfig();
   }
 
   /**
@@ -863,17 +897,188 @@ export class M6502HintAnalyzer extends ASTWalker {
   }
 
   /**
-   * Check if address is in safe zero-page range
+   * Get the target configuration used by this analyzer
+   *
+   * @returns Target configuration
+   */
+  public getTargetConfig(): TargetConfig {
+    return this.targetConfig;
+  }
+
+  // ============================================
+  // Target-Aware Zero-Page Methods (Instance)
+  // ============================================
+
+  /**
+   * Check if address is in safe zero-page range for the target
+   *
+   * Uses the target configuration to determine the safe range.
    *
    * @param address - Address to check
-   * @returns True if safe
+   * @returns True if safe for the configured target
+   *
+   * @example
+   * ```typescript
+   * // C64: Safe range is $02-$8F
+   * const c64Analyzer = new M6502HintAnalyzer(st, cfgs, c64Config);
+   * c64Analyzer.isAddressSafeForTarget(0x50); // true
+   * c64Analyzer.isAddressSafeForTarget(0x00); // false (CPU I/O)
+   *
+   * // X16: Safe range is $00-$15
+   * const x16Analyzer = new M6502HintAnalyzer(st, cfgs, x16Config);
+   * x16Analyzer.isAddressSafeForTarget(0x10); // true
+   * x16Analyzer.isAddressSafeForTarget(0x50); // false (reserved)
+   * ```
+   */
+  public isAddressSafeForTarget(address: number): boolean {
+    const zp = this.targetConfig.zeroPage;
+    return address >= zp.safeRange.start && address <= zp.safeRange.end;
+  }
+
+  /**
+   * Check if address is reserved for the target
+   *
+   * Uses the target configuration's reserved ranges.
+   *
+   * @param address - Address to check
+   * @returns True if address is reserved and cannot be used
+   */
+  public isAddressReservedForTarget(address: number): boolean {
+    for (const range of this.targetConfig.zeroPage.reservedRanges) {
+      if (address >= range.start && address <= range.end) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Get the reason why an address is reserved for the target
+   *
+   * @param address - Address to check
+   * @returns Reason string, or undefined if not reserved
+   */
+  public getReservationReasonForTarget(address: number): string | undefined {
+    for (const range of this.targetConfig.zeroPage.reservedRanges) {
+      if (address >= range.start && address <= range.end) {
+        return range.reason;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Get the safe zero-page range for the target
+   *
+   * @returns Safe range with start, end, and size
+   */
+  public getSafeZeroPageRangeForTarget(): { start: number; end: number; size: number } {
+    const zp = this.targetConfig.zeroPage;
+    return {
+      start: zp.safeRange.start,
+      end: zp.safeRange.end,
+      size: zp.usableBytes,
+    };
+  }
+
+  /**
+   * Get all reserved zero-page ranges for the target
+   *
+   * @returns Array of reserved ranges
+   */
+  public getReservedRangesForTarget(): ReadonlyArray<ReservedZeroPageRange> {
+    return this.targetConfig.zeroPage.reservedRanges;
+  }
+
+  /**
+   * Validate a zero-page allocation for the target
+   *
+   * Uses the target configuration to validate the allocation.
+   *
+   * @param address - Starting address
+   * @param size - Size in bytes
+   * @param location - Source location for diagnostic
+   * @returns Diagnostic if invalid, null if valid
+   */
+  public validateZeroPageAllocationForTarget(
+    address: number,
+    size: number,
+    location: SourceLocation
+  ): Diagnostic | null {
+    const endAddress = address + size - 1;
+    const safeRange = this.targetConfig.zeroPage.safeRange;
+
+    // Check if allocation is within safe range
+    if (address < safeRange.start || endAddress > safeRange.end) {
+      // Check if it's in a reserved range
+      for (const range of this.targetConfig.zeroPage.reservedRanges) {
+        if (address >= range.start && address <= range.end) {
+          return {
+            code: DiagnosticCode.RESERVED_ZERO_PAGE,
+            severity: DiagnosticSeverity.ERROR,
+            message: `Zero-page address $${address.toString(16).toUpperCase().padStart(2, '0')} is reserved: ${range.reason}. Safe range for ${this.targetConfig.architecture} is $${safeRange.start.toString(16).toUpperCase().padStart(2, '0')}-$${safeRange.end.toString(16).toUpperCase().padStart(2, '0')}.`,
+            location,
+          };
+        }
+      }
+
+      // Check if end address extends into reserved range
+      for (const range of this.targetConfig.zeroPage.reservedRanges) {
+        if (endAddress >= range.start && endAddress <= range.end) {
+          return {
+            code: DiagnosticCode.ZERO_PAGE_ALLOCATION_INTO_RESERVED,
+            severity: DiagnosticSeverity.ERROR,
+            message: `Zero-page allocation at $${address.toString(16).toUpperCase().padStart(2, '0')} with size ${size} extends into reserved area at $${endAddress.toString(16).toUpperCase().padStart(2, '0')}: ${range.reason}. Safe range for ${this.targetConfig.architecture} is $${safeRange.start.toString(16).toUpperCase().padStart(2, '0')}-$${safeRange.end.toString(16).toUpperCase().padStart(2, '0')}.`,
+            location,
+          };
+        }
+      }
+    }
+
+    // Check each address in the allocation
+    for (let addr = address; addr <= endAddress; addr++) {
+      for (const range of this.targetConfig.zeroPage.reservedRanges) {
+        if (addr >= range.start && addr <= range.end) {
+          return {
+            code: DiagnosticCode.ZERO_PAGE_ALLOCATION_INTO_RESERVED,
+            severity: DiagnosticSeverity.ERROR,
+            message: `Zero-page allocation at $${address.toString(16).toUpperCase().padStart(2, '0')} with size ${size} includes reserved address $${addr.toString(16).toUpperCase().padStart(2, '0')}: ${range.reason}. Safe range for ${this.targetConfig.architecture} is $${safeRange.start.toString(16).toUpperCase().padStart(2, '0')}-$${safeRange.end.toString(16).toUpperCase().padStart(2, '0')}.`,
+            location,
+          };
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // ============================================
+  // Static Methods (C64 Default - Backward Compatibility)
+  // ============================================
+
+  /**
+   * Check if address is in safe zero-page range (C64 default)
+   *
+   * **Note:** This static method uses C64 default values for backward
+   * compatibility. For target-aware checking, use the instance method
+   * `isAddressSafeForTarget()`.
+   *
+   * @param address - Address to check
+   * @returns True if safe (C64 safe range: $02-$8F)
+   * @deprecated Use isAddressSafeForTarget() for target-aware checking
    */
   public static isZeroPageSafe(address: number): boolean {
     return address >= SAFE_ZERO_PAGE.start && address <= SAFE_ZERO_PAGE.end;
   }
 
   /**
-   * Get safe zero-page range
+   * Get safe zero-page range (C64 default)
+   *
+   * **Note:** This static method returns C64 default values for backward
+   * compatibility. For target-aware range, use the instance method
+   * `getSafeZeroPageRangeForTarget()`.
+   *
+   * @deprecated Use getSafeZeroPageRangeForTarget() for target-aware range
    */
   public static getSafeZeroPageRange(): { start: number; end: number; size: number } {
     return { ...SAFE_ZERO_PAGE };
