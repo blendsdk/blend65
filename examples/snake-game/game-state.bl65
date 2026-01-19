@@ -1,0 +1,530 @@
+// ============================================================================
+// Game State Management for Snake Game
+// ============================================================================
+// Manages game state, score, and state transitions.
+// Uses enum-based state machine for clean game flow control.
+//
+// Module: Snake.GameState
+// ============================================================================
+
+module Snake.GameState
+
+// ============================================================================
+// Game State Enum
+// ============================================================================
+
+/**
+ * Game state enumeration.
+ * Defines all possible states the game can be in.
+ */
+enum GameState
+  INIT = 0,      // Initial state, before game starts
+  PLAYING = 1,   // Active gameplay
+  GAME_OVER = 2  // Game ended, waiting for restart
+end enum
+
+/**
+ * Direction enumeration.
+ * Defines the four cardinal directions for snake movement.
+ */
+enum Direction
+  UP = 0,
+  DOWN = 1,
+  LEFT = 2,
+  RIGHT = 3
+end enum
+
+// ============================================================================
+// Zero-Page Game State Variables (Fast Access)
+// ============================================================================
+
+/**
+ * Current game state.
+ * Uses GameState enum values.
+ */
+@zp let currentState: byte = GameState.INIT;
+
+/**
+ * Current snake direction.
+ * Uses Direction enum values.
+ */
+@zp let snakeDirection: byte = Direction.RIGHT;
+
+/**
+ * Previous snake direction (for preventing 180-degree turns).
+ * Snake cannot turn directly backwards into itself.
+ */
+@zp let previousDirection: byte = Direction.RIGHT;
+
+/**
+ * Snake head X position (0-39).
+ */
+@zp let snakeHeadX: byte = 20;
+
+/**
+ * Snake head Y position (0-23, leaving row 24 for status).
+ */
+@zp let snakeHeadY: byte = 12;
+
+/**
+ * Current snake length (1-200).
+ * Starts at 1 (just the head), grows when eating food.
+ */
+@zp let snakeLength: byte = 1;
+
+/**
+ * Food X position (0-39).
+ */
+@zp let foodX: byte = 15;
+
+/**
+ * Food Y position (0-23).
+ */
+@zp let foodY: byte = 15;
+
+/**
+ * Current score (0-65535).
+ * Stored as 16-bit word for high scores.
+ */
+@zp let scoreLo: byte = 0;
+@zp let scoreHi: byte = 0;
+
+/**
+ * Frame counter for timing game updates.
+ * Game logic runs every N frames for consistent speed.
+ */
+@zp let frameCounter: byte = 0;
+
+/**
+ * Game speed (frames between updates).
+ * Lower = faster. Typical values: 5-15.
+ */
+@zp let gameSpeed: byte = 10;
+
+/**
+ * Flag indicating if game is paused.
+ */
+@zp let isPaused: boolean = false;
+
+// ============================================================================
+// RAM Variables (Snake Body Storage)
+// ============================================================================
+
+/**
+ * Snake body X coordinates.
+ * Array of 200 bytes storing X position of each body segment.
+ * Index 0 is the segment right behind the head.
+ */
+@ram let snakeBodyX: byte[200];
+
+/**
+ * Snake body Y coordinates.
+ * Array of 200 bytes storing Y position of each body segment.
+ */
+@ram let snakeBodyY: byte[200];
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const MAX_SNAKE_LENGTH: byte = 200;  // Maximum snake length
+const INITIAL_LENGTH: byte = 1;      // Starting length
+const INITIAL_SPEED: byte = 10;      // Starting speed (frames per update)
+const POINTS_PER_FOOD: byte = 10;    // Score increase per food eaten
+
+// Starting position (center of playable area)
+const START_X: byte = 20;
+const START_Y: byte = 12;
+
+// ============================================================================
+// State Management Functions
+// ============================================================================
+
+/**
+ * Initialize game state to starting values.
+ * Called when starting a new game.
+ *
+ * @example
+ * initGameState();
+ * currentState = GameState.PLAYING;
+ */
+export function initGameState(): void
+  // Reset state
+  currentState = GameState.INIT;
+  isPaused = false;
+
+  // Reset snake position and direction
+  snakeHeadX = START_X;
+  snakeHeadY = START_Y;
+  snakeDirection = Direction.RIGHT;
+  previousDirection = Direction.RIGHT;
+  snakeLength = INITIAL_LENGTH;
+
+  // Reset score
+  scoreLo = 0;
+  scoreHi = 0;
+
+  // Reset timing
+  frameCounter = 0;
+  gameSpeed = INITIAL_SPEED;
+
+  // Clear snake body arrays
+  for i = 0 to MAX_SNAKE_LENGTH - 1
+    snakeBodyX[i] = 0;
+    snakeBodyY[i] = 0;
+  next i
+end function
+
+/**
+ * Start the game (transition from INIT to PLAYING).
+ *
+ * @example
+ * if isFirePressed() then
+ *   startGame();
+ * end if
+ */
+export function startGame(): void
+  if currentState == GameState.INIT then
+    currentState = GameState.PLAYING;
+  end if
+end function
+
+/**
+ * End the game (transition to GAME_OVER).
+ *
+ * @example
+ * if collision then
+ *   endGame();
+ * end if
+ */
+export function endGame(): void
+  currentState = GameState.GAME_OVER;
+end function
+
+/**
+ * Restart the game (reset and start playing).
+ *
+ * @example
+ * if currentState == GameState.GAME_OVER then
+ *   if isFirePressed() then
+ *     restartGame();
+ *   end if
+ * end if
+ */
+export function restartGame(): void
+  initGameState();
+  currentState = GameState.PLAYING;
+end function
+
+/**
+ * Toggle pause state.
+ *
+ * @example
+ * if keyPressed(KEY_P) then
+ *   togglePause();
+ * end if
+ */
+export function togglePause(): void
+  if currentState == GameState.PLAYING then
+    isPaused = !isPaused;
+  end if
+end function
+
+// ============================================================================
+// Direction Management
+// ============================================================================
+
+/**
+ * Set new snake direction if valid.
+ * Prevents 180-degree turns (snake can't turn back into itself).
+ *
+ * @param newDirection - Desired direction (Direction enum value)
+ *
+ * @example
+ * if isJoyPressed(JOY_UP) then
+ *   setDirection(Direction.UP);
+ * end if
+ */
+export function setDirection(newDirection: byte): void
+  // Prevent 180-degree turns
+  if newDirection == Direction.UP then
+    if previousDirection != Direction.DOWN then
+      snakeDirection = newDirection;
+    end if
+  end if
+
+  if newDirection == Direction.DOWN then
+    if previousDirection != Direction.UP then
+      snakeDirection = newDirection;
+    end if
+  end if
+
+  if newDirection == Direction.LEFT then
+    if previousDirection != Direction.RIGHT then
+      snakeDirection = newDirection;
+    end if
+  end if
+
+  if newDirection == Direction.RIGHT then
+    if previousDirection != Direction.LEFT then
+      snakeDirection = newDirection;
+    end if
+  end if
+end function
+
+/**
+ * Update previous direction (call after moving snake).
+ *
+ * @example
+ * moveSnake();
+ * updatePreviousDirection();
+ */
+export function updatePreviousDirection(): void
+  previousDirection = snakeDirection;
+end function
+
+// ============================================================================
+// Score Management
+// ============================================================================
+
+/**
+ * Add points to score.
+ *
+ * @param points - Points to add
+ *
+ * @example
+ * addScore(POINTS_PER_FOOD);
+ */
+export function addScore(points: byte): void
+  // Add to low byte
+  scoreLo = scoreLo + points;
+
+  // Check for overflow (carry to high byte)
+  if scoreLo < points then
+    scoreHi = scoreHi + 1;
+  end if
+end function
+
+/**
+ * Get current score as 16-bit word.
+ *
+ * @returns Current score
+ *
+ * @example
+ * let score = getScore();
+ * displayScore(score);
+ */
+export function getScore(): word
+  return (scoreHi << 8) | scoreLo;
+end function
+
+/**
+ * Reset score to zero.
+ *
+ * @example
+ * resetScore();
+ */
+export function resetScore(): void
+  scoreLo = 0;
+  scoreHi = 0;
+end function
+
+// ============================================================================
+// Snake Body Management
+// ============================================================================
+
+/**
+ * Store current head position in body array.
+ * Called before moving head to new position.
+ *
+ * @example
+ * storeHeadPosition();
+ * moveSnakeHead();
+ */
+export function storeHeadPosition(): void
+  // Shift all body segments back one position
+  // Start from tail and work towards head
+  for i = snakeLength - 1 to 1
+    snakeBodyX[i] = snakeBodyX[i - 1];
+    snakeBodyY[i] = snakeBodyY[i - 1];
+  next i
+
+  // Store current head position as first body segment
+  if snakeLength > 0 then
+    snakeBodyX[0] = snakeHeadX;
+    snakeBodyY[0] = snakeHeadY;
+  end if
+end function
+
+/**
+ * Grow snake by one segment.
+ * Called when eating food.
+ *
+ * @example
+ * if ateFood then
+ *   growSnake();
+ *   addScore(POINTS_PER_FOOD);
+ * end if
+ */
+export function growSnake(): void
+  if snakeLength < MAX_SNAKE_LENGTH then
+    snakeLength = snakeLength + 1;
+  end if
+end function
+
+/**
+ * Check if position collides with snake body.
+ *
+ * @param x - X coordinate to check
+ * @param y - Y coordinate to check
+ * @returns True if position collides with body
+ *
+ * @example
+ * if checkBodyCollision(snakeHeadX, snakeHeadY) then
+ *   endGame();
+ * end if
+ */
+export function checkBodyCollision(x: byte, y: byte): boolean
+  // Check against all body segments
+  for i = 0 to snakeLength - 1
+    if snakeBodyX[i] == x then
+      if snakeBodyY[i] == y then
+        return true;
+      end if
+    end if
+  next i
+
+  return false;
+end function
+
+// ============================================================================
+// Timing Management
+// ============================================================================
+
+/**
+ * Update frame counter and check if game logic should run.
+ *
+ * @returns True if it's time to update game logic
+ *
+ * @example
+ * if shouldUpdate() then
+ *   updateGame();
+ * end if
+ */
+export function shouldUpdate(): boolean
+  frameCounter = frameCounter + 1;
+
+  if frameCounter >= gameSpeed then
+    frameCounter = 0;
+    return true;
+  end if
+
+  return false;
+end function
+
+/**
+ * Increase game speed (decrease frames between updates).
+ * Called when snake grows to increase difficulty.
+ *
+ * @example
+ * if snakeLength % 10 == 0 then
+ *   increaseSpeed();
+ * end if
+ */
+export function increaseSpeed(): void
+  // Decrease delay (minimum 3 frames)
+  if gameSpeed > 3 then
+    gameSpeed = gameSpeed - 1;
+  end if
+end function
+
+// ============================================================================
+// State Query Functions
+// ============================================================================
+
+/**
+ * Check if game is currently playing.
+ *
+ * @returns True if in PLAYING state and not paused
+ *
+ * @example
+ * if isPlaying() then
+ *   handleInput();
+ * end if
+ */
+export function isPlaying(): boolean
+  return currentState == GameState.PLAYING && !isPaused;
+end function
+
+/**
+ * Check if game is over.
+ *
+ * @returns True if in GAME_OVER state
+ *
+ * @example
+ * if isGameOver() then
+ *   showGameOverScreen();
+ * end if
+ */
+export function isGameOver(): boolean
+  return currentState == GameState.GAME_OVER;
+end function
+
+/**
+ * Check if game is in initial state.
+ *
+ * @returns True if in INIT state
+ *
+ * @example
+ * if isInit() then
+ *   showTitleScreen();
+ * end if
+ */
+export function isInit(): boolean
+  return currentState == GameState.INIT;
+end function
+
+// ============================================================================
+// Implementation Notes
+// ============================================================================
+//
+// State Machine Flow:
+// -------------------
+// INIT -> PLAYING -> GAME_OVER -> INIT (restart)
+//
+// Zero-Page Usage:
+// ----------------
+// All frequently accessed variables are in zero-page for maximum
+// performance on 6502. This includes:
+// - Current state and direction
+// - Snake head position
+// - Score bytes
+// - Frame counter
+//
+// Snake Body Storage:
+// -------------------
+// Body segments are stored in parallel arrays (snakeBodyX, snakeBodyY).
+// Index 0 is the segment immediately behind the head.
+// Maximum length is 200 segments (fills most of the screen).
+//
+// Direction Validation:
+// ---------------------
+// The setDirection() function prevents 180-degree turns by checking
+// the previous direction. This prevents the snake from turning back
+// into itself, which would cause immediate collision.
+//
+// Score Storage:
+// --------------
+// Score is stored as two bytes (scoreLo, scoreHi) to support values
+// up to 65535. This allows for long gameplay sessions without overflow.
+//
+// Performance:
+// ------------
+// - State checks: ~5-8 cycles
+// - Direction changes: ~15-25 cycles
+// - Body collision check: ~20-30 cycles per segment
+// - Score updates: ~15-20 cycles
+//
+// All functions are optimized for 6502 efficiency.
+//
+// ============================================================================

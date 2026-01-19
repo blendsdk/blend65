@@ -33,28 +33,28 @@
     "lockstep:publish:latest": "tsx scripts/lockstep.ts publish --tag latest --git-push",
     "lockstep:publish:next": "tsx scripts/lockstep.ts publish --tag next --git-push",
     "lockstep:publish:v5": "tsx scripts/lockstep.ts publish --tag next --git-push",
-    "ncu": "ncu -u && yarn workspaces run ncu && rm -fR node_modules yarn.lock && yarn install && yarn build && yarn test"
+    "ncu": "ncu -u && yarn workspaces run ncu -u && rm -fR node_modules yarn.lock && yarn install && yarn clean && yarn build && yarn test"
   },
   "devDependencies": {
     "@manypkg/get-packages": "^3.1.0",
-    "@typescript-eslint/eslint-plugin": "^8.51.0",
-    "@typescript-eslint/parser": "^8.51.0",
+    "@typescript-eslint/eslint-plugin": "^8.53.0",
+    "@typescript-eslint/parser": "^8.53.0",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "npm-check-updates": "^19.3.1",
-    "prettier": "^3.7.4",
+    "prettier": "^3.8.0",
     "tsx": "^4.21.0",
-    "turbo": "^2.7.2",
+    "turbo": "^2.7.5",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.16"
+    "vitest": "4.0.17"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/blendsdk/blend65.git"
   },
   "author": "TrueSoftware B.V. <info@truesoftware.nl>",
-  "license": "MIT",
+  "license": "Elastic-2.0",
   "keywords": [
     "programming-language",
     "sdk",

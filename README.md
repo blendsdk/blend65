@@ -1,16 +1,16 @@
 # Blend65
 
-> **⚠️ DEVELOPMENT STATUS: COMPILER NOT FUNCTIONAL**
+> **⚠️ DEVELOPMENT STATUS: 60-70% COMPLETE**
 >
-> This compiler is currently under active development and does not produce working code.
-> The project is in the implementation phase - while the frontend (lexer, parser, AST) is complete,
-> the backend code generation is not yet implemented. No executable programs can be compiled at this time.
+> The compiler frontend is fully functional with production-quality lexer, parser, and semantic analyzer.
+> The backend (IL generation and 6502 code generation) is in development. While the compiler can parse
+> and validate Blend65 programs, it cannot yet generate executable code for the Commodore 64.
 >
-> Follow development progress in the [Project Status](docs/PROJECT_STATUS.md) documentation.
+> **Current milestone**: 2,428 tests passing | Next phase: IL Generator
 
 ## Overview
 
-Blend65 is a modern programming language compiler targeting 6502-based systems including the Commodore 64, VIC-20, and Commander X16. The language aims to provide modern programming constructs while generating efficient assembly code for vintage hardware.
+Blend65 is a modern programming language compiler targeting 6502-based systems including the Commodore 64, VIC-20, and Commander X16. The language provides modern programming constructs while generating efficient assembly code for vintage hardware.
 
 ## Language Features
 
@@ -23,7 +23,7 @@ import setSpritePosition, enableSprite from c64.sprites
 import joystickLeft, joystickRight from c64.input
 import playNote from c64.sid
 
-zp var snakeX: byte = 160      // Zero-page variable allocation
+@zp var snakeX: byte = 160     // Zero-page variable allocation
 var score: word = 0            // 16-bit integer
 var gameState: GameState = PLAYING
 
@@ -49,26 +49,32 @@ end function
 
 Variables can be declared with specific memory allocation strategies:
 
-- `zp var` - Zero page allocation for fastest access
-- `ram var` - Standard RAM allocation
-- `data var` - Initialized data section
-- `const var` - Compile-time constants
-- `io var` - Memory-mapped I/O registers
+- `@zp var` - Zero page allocation for fastest access
+- `@ram var` - Standard RAM allocation
+- `@data var` - Initialized data section
+- `var` - Same as `@ram var`
 
-### Hardware Integration
+### Memory-Mapped Hardware
 
-The language provides direct access to platform-specific hardware through module imports:
+The `@map` system provides type-safe access to hardware registers (unique to Blend65):
 
 ```js
-import setRasterInterrupt from c64.interrupts
-import setSpriteCollision from c64.vic
-import setVoiceWaveform from c64.sid
+// Simple register mapping
+@map borderColor at $D020: byte
 
-callback function rasterIRQ(): void
-    setBackgroundColor(BLUE)
-end function
+// Structured layout mapping
+@map vic at $D000 layout
+    spriteX: at $00: byte[8]
+    borderColor: at $20: byte
+    backgroundColor: at $21: byte
+end @map
 
-setRasterInterrupt(100, rasterIRQ)
+// Type-based mapping
+@map sid at $D400 type SIDRegisters
+
+// Usage - clean, self-documenting hardware access
+vic.borderColor = LIGHT_BLUE
+sid.voice1.frequency = 440
 ```
 
 ### Callback Functions
@@ -92,36 +98,45 @@ var enemyBehaviors: behaviorFunction[16]
 
 ## Implementation Status
 
-**Completed Components:**
-- Lexical analysis (tokenization)
-- Syntax parsing (AST generation)
-- Semantic analysis (type checking, symbol resolution)
-- Intermediate language representation
-- Optimization framework and pattern analysis
+**Compiler Pipeline:**
 
-**In Development:**
-- 6502 code generation
-- Platform-specific hardware APIs
-- Assembly output and linking
+```
+Source → Lexer ✅ → Parser ✅ → AST ✅ → Semantic ✅ → IL 🔜 → CodeGen 🔜 → Assembly 🔜
+```
 
-**Planned:**
-- Emulator integration testing
+### Completed (60-70%)
+
+| Component | Tests | Status |
+|-----------|-------|--------|
+| **Lexer** | 150+ | ✅ Production-ready |
+| **Parser** | 400+ | ✅ Production-ready |
+| **AST System** | 100+ | ✅ Production-ready |
+| **Semantic Analyzer** | 1,365+ | ✅ Production-ready |
+| **Advanced Analysis (Phase 8)** | 500+ | ✅ Complete |
+| **Hardware Analyzers (C64/C128/X16)** | 200+ | ✅ Complete |
+| **Integration Tests** | 313+ | ✅ Passing |
+
+**Semantic Analysis Highlights:**
+
+- Complete type checking with multi-module support
+- Control flow analysis with CFG construction
+- Definite assignment and variable usage tracking
+- Dead code and unused function detection
+- Data flow analysis (reaching definitions, liveness, constant propagation)
+- Escape analysis and purity analysis for optimization hints
+- C64-specific hardware analysis (VIC-II timing, SID conflict detection)
+
+### In Development
+
+- **IL Generator** - Intermediate language for optimization and portability
+- **Code Generator** - 6502 instruction selection and register allocation
+- **Assembler Integration** - PRG file generation
+
+### Planned
+
+- Standard library (VIC-II, SID, CIA wrappers)
+- Additional examples and documentation
 - Performance optimization passes
-- Debugging information generation
-
-## Project Structure
-
-```
-├── docs/                          # Documentation
-├── examples/                      # Sample programs
-├── packages/
-│   ├── lexer/                     # Tokenization
-│   ├── parser/                    # Syntax analysis
-│   ├── ast/                       # Abstract syntax tree
-│   ├── semantic/                  # Type checking and analysis
-│   ├── il/                        # Intermediate language
-│   └── core/                      # Shared utilities
-```
 
 ## Development
 
@@ -139,18 +154,58 @@ yarn test
 
 # Clean build artifacts
 yarn clean
+
+# Build, clean, and test (full validation)
+yarn clean && yarn build && yarn test
+```
+
+**Requirements:**
+
+- Node.js >= 22.0.0
+- Yarn 1.x (< 2.0.0)
+
+## Project Structure
+
+```
+blend65/
+├── packages/
+│   └── compiler/          # Main compiler package
+│       └── src/
+│           ├── lexer/     # Tokenization
+│           ├── parser/    # Syntax parsing
+│           ├── ast/       # AST nodes and utilities
+│           ├── semantic/  # Type checking and analysis
+│           └── target/    # Code generation (WIP)
+├── docs/
+│   └── language-specification/  # Complete language spec
+├── examples/              # Example Blend65 programs
+└── plans/                 # Development roadmap
 ```
 
 ## Documentation
 
-- [Language Specification](docs/BLEND65_LANGUAGE_SPECIFICATION.md) - Complete syntax and semantics reference
-- [Project Status](docs/PROJECT_STATUS.md) - Current development state and progress
-- [Examples](examples/) - Sample Blend65 programs and syntax demonstrations
-
-## Contributing
-
-This project is in active development. Check the [Project Status](docs/PROJECT_STATUS.md) for current priorities and development roadmap.
+- [Language Specification](docs/language-specification/README.md) - Complete syntax and semantics reference
+- [Compiler Master Plan](plans/COMPILER-MASTER-PLAN.md) - Implementation roadmap and status
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+> **📜 Elastic License 2.0 (ELv2)**
+>
+> This software is licensed under the Elastic License 2.0. You are free to use it to create
+> games and software, but you cannot sell the compiler itself or offer it as a service.
+> See [LICENSE](LICENSE) for full details.
+
+| Use Case | Allowed |
+|----------|---------|
+| Create open-source games/software | ✅ Yes |
+| Create commercial games/software | ✅ Yes |
+| Modify Blend65 for your own use | ✅ Yes |
+| Contribute improvements back | ✅ Yes |
+| Sell Blend65 as a product | ❌ No |
+| Include Blend65 in a commercial tool | ❌ No |
+| Offer Blend65 as a hosted service | ❌ No |
+| Fork to create competing compiler | ❌ No |
+
+## Contributing
+
+The project is under active development. See the [master plan](plans/COMPILER-MASTER-PLAN.md) for current priorities and the implementation roadmap.

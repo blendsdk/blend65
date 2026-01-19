@@ -1,0 +1,419 @@
+// ============================================================================
+// C64 KERNAL Routines Library (Imagined External Library)
+// ============================================================================
+// Type-safe wrappers around Commodore 64 KERNAL ROM routines.
+// Provides high-level access to system functions without direct JSR calls.
+//
+// Module: Blend.C64.Kernal
+// Version: 1.0.0
+// Target: Commodore 64
+// KERNAL Version: All versions
+// ============================================================================
+
+module Blend.C64.Kernal
+
+// ============================================================================
+// Hardware Register Definitions
+// ============================================================================
+
+// CIA #1 - Complex Interface Adapter #1
+@map cia1DataPortA at $DC00: byte;  // Joystick 2, keyboard columns
+@map cia1DataPortB at $DC01: byte;  // Joystick 1, keyboard rows
+@map cia1DataDirA at $DC02: byte;   // Data direction for port A
+@map cia1DataDirB at $DC03: byte;   // Data direction for port B
+
+// VIC-II registers for timing
+@map vicRasterLine at $D012: byte;  // Current raster line
+
+// ============================================================================
+// Keyboard Input
+// ============================================================================
+
+/**
+ * Read a character from the keyboard buffer (non-blocking).
+ *
+ * This is a wrapper around KERNAL routine GETIN ($FFE4).
+ * Returns 0 if no key is pressed.
+ *
+ * @returns ASCII code of pressed key, or 0 if no key
+ *
+ * @example
+ * let key = getin();
+ * if key == 32 then  // Space bar
+ *   fireWeapon();
+ * end if
+ *
+ * // Common key codes:
+ * // 32 = Space
+ * // 13 = Return
+ * // 87 = W (up)
+ * // 83 = S (down)
+ * // 65 = A (left)
+ * // 68 = D (right)
+ */
+export function getin(): byte
+  // In real implementation, this would JSR to $FFE4
+  // For now, we simulate by reading CIA directly
+
+  // This is a simplified version - real KERNAL routine is more complex
+  // Real implementation would handle keyboard matrix scanning
+
+  // Placeholder: return 0 (no key)
+  // Actual implementation would call KERNAL routine
+  return 0;
+end function
+
+/**
+ * Check if a specific key is currently pressed (real-time).
+ *
+ * Unlike getin(), this checks the current keyboard state directly
+ * without using the keyboard buffer.
+ *
+ * @param keyCode - Key code to check (0-63)
+ * @returns True if key is currently pressed
+ *
+ * @example
+ * const KEY_SPACE: byte = 60;
+ * if isKeyPressed(KEY_SPACE) then
+ *   jump();
+ * end if
+ */
+export function isKeyPressed(keyCode: byte): boolean
+  // Real implementation would scan keyboard matrix
+  // This is a placeholder
+  return false;
+end function
+
+// ============================================================================
+// Joystick Input
+// ============================================================================
+
+// Joystick direction bit masks
+const JOY_UP: byte = 0b00000001;
+const JOY_DOWN: byte = 0b00000010;
+const JOY_LEFT: byte = 0b00000100;
+const JOY_RIGHT: byte = 0b00001000;
+const JOY_FIRE: byte = 0b00010000;
+
+/**
+ * Read joystick state from specified port.
+ *
+ * Returns a byte with bits set for each direction/button:
+ * - Bit 0: Up
+ * - Bit 1: Down
+ * - Bit 2: Left
+ * - Bit 3: Right
+ * - Bit 4: Fire button
+ *
+ * Note: Bits are 0 when pressed, 1 when not pressed (inverted logic).
+ *
+ * @param port - Joystick port (1 or 2)
+ * @returns Joystick state byte
+ *
+ * @example
+ * let joy = readJoystick(2);
+ * if (joy & JOY_UP) == 0 then  // Up pressed (bit is 0)
+ *   moveUp();
+ * end if
+ */
+export function readJoystick(port: byte): byte
+  if port == 1 then
+    // Joystick 1 is on CIA1 Port B
+    return cia1DataPortB & 0x1F;  // Mask lower 5 bits
+  end if
+
+  if port == 2 then
+    // Joystick 2 is on CIA1 Port A
+    return cia1DataPortA & 0x1F;  // Mask lower 5 bits
+  end if
+
+  // Invalid port
+  return 0xFF;  // All bits set (nothing pressed)
+end function
+
+/**
+ * Check if joystick is pressed in specific direction.
+ *
+ * @param port - Joystick port (1 or 2)
+ * @param direction - Direction mask (JOY_UP, JOY_DOWN, etc.)
+ * @returns True if direction is pressed
+ *
+ * @example
+ * if isJoystickPressed(2, JOY_UP) then
+ *   playerY -= 1;
+ * end if
+ */
+export function isJoystickPressed(port: byte, direction: byte): boolean
+  let state: byte = readJoystick(port);
+  // Bit is 0 when pressed (inverted logic)
+  return (state & direction) == 0;
+end function
+
+/**
+ * Check if fire button is pressed on specified joystick.
+ *
+ * @param port - Joystick port (1 or 2)
+ * @returns True if fire button is pressed
+ *
+ * @example
+ * if isFirePressed(2) then
+ *   shoot();
+ * end if
+ */
+export function isFirePressed(port: byte): boolean
+  return isJoystickPressed(port, JOY_FIRE);
+end function
+
+// ============================================================================
+// Timing and Synchronization
+// ============================================================================
+
+/**
+ * Wait for vertical blank (start of new frame).
+ *
+ * Synchronizes with the screen refresh to prevent tearing.
+ * On PAL C64, this happens 50 times per second.
+ * On NTSC C64, this happens 60 times per second.
+ *
+ * @example
+ * while gameRunning
+ *   updateGame();
+ *   renderGame();
+ *   waitFrame();  // Wait for next frame
+ * end while
+ */
+export function waitFrame(): void
+  // Wait for raster line to reach bottom of screen
+  // PAL: line 300 (out of visible area)
+  // NTSC: line 263
+
+  // Wait until raster line is at top (line 0)
+  while vicRasterLine != 0
+    // Busy wait
+  end while
+
+  // Wait until raster line moves past top
+  while vicRasterLine == 0
+    // Busy wait
+  end while
+end function
+
+/**
+ * Wait for a specific raster line.
+ *
+ * Useful for raster effects and precise timing.
+ *
+ * @param line - Raster line to wait for (0-312 PAL, 0-262 NTSC)
+ *
+ * @example
+ * waitRasterLine(100);  // Wait until raster reaches line 100
+ * changeBorderColor();  // Change color at specific scanline
+ */
+export function waitRasterLine(line: byte): void
+  // Wait until raster reaches specified line
+  while vicRasterLine != line
+    // Busy wait
+  end while
+end function
+
+/**
+ * Simple delay loop (approximate timing).
+ *
+ * Delays for approximately the specified number of frames.
+ * Not precise due to varying instruction timing.
+ *
+ * @param frames - Number of frames to delay
+ *
+ * @example
+ * showMessage();
+ * delay(50);  // Wait ~1 second (50 frames PAL)
+ * clearMessage();
+ */
+export function delay(frames: byte): void
+  for i = 0 to frames - 1
+    waitFrame();
+  next i
+end function
+
+// ============================================================================
+// Screen and Cursor Control
+// ============================================================================
+
+/**
+ * Clear the screen and home the cursor.
+ *
+ * Wrapper around KERNAL routine CLRSCR.
+ * Fills screen with spaces and moves cursor to top-left.
+ *
+ * @example
+ * clearScreen();
+ * print("New screen content");
+ */
+export function clearScreen(): void
+  // In real implementation, this would JSR to KERNAL routine
+  // For now, we provide a direct implementation
+
+  @map screenRAM from $0400 to $07E7: byte;
+
+  // Fill screen with spaces (character code 32)
+  for i = 0 to 999
+    screenRAM[i] = 32;
+  next i
+end function
+
+/**
+ * Set cursor position on screen.
+ *
+ * @param x - Column (0-39)
+ * @param y - Row (0-24)
+ *
+ * @example
+ * setCursor(0, 0);   // Top-left corner
+ * setCursor(20, 12); // Center of screen
+ */
+export function setCursor(x: byte, y: byte): void
+  // In real implementation, this would use KERNAL PLOT routine
+  // This is a placeholder
+
+  // Clamp to valid screen coordinates
+  if x > 39 then
+    x = 39;
+  end if
+
+  if y > 24 then
+    y = 24;
+  end if
+
+  // Real implementation would set cursor position
+end function
+
+// ============================================================================
+// Memory Operations
+// ============================================================================
+
+/**
+ * Fill a memory region with a specific byte value.
+ *
+ * @param address - Start address
+ * @param length - Number of bytes to fill
+ * @param value - Byte value to fill with
+ *
+ * @example
+ * // Clear screen RAM
+ * fillMemory(0x0400, 1000, 32);
+ *
+ * // Clear color RAM
+ * fillMemory(0xD800, 1000, 14);
+ */
+export function fillMemory(address: word, length: word, value: byte): void
+  // In real implementation, this would use optimized 6502 code
+  // This is a high-level representation
+
+  for i = 0 to length - 1
+    // Would use indexed addressing: STA address,X
+    // This is conceptual - actual implementation would be assembly
+  next i
+end function
+
+/**
+ * Copy memory from source to destination.
+ *
+ * @param source - Source address
+ * @param dest - Destination address
+ * @param length - Number of bytes to copy
+ *
+ * @example
+ * // Copy sprite data to sprite pointer area
+ * copyMemory(@spriteData, 0x2000, 63);
+ */
+export function copyMemory(source: word, dest: word, length: word): void
+  // In real implementation, this would use optimized 6502 code
+  // This is a high-level representation
+
+  for i = 0 to length - 1
+    // Would use: LDA source,X / STA dest,X
+    // This is conceptual - actual implementation would be assembly
+  next i
+end function
+
+// ============================================================================
+// System Information
+// ============================================================================
+
+/**
+ * Detect PAL or NTSC system.
+ *
+ * @returns True if PAL system, false if NTSC
+ *
+ * @example
+ * if isPAL() then
+ *   frameRate = 50;  // PAL: 50 Hz
+ * else
+ *   frameRate = 60;  // NTSC: 60 Hz
+ * end if
+ */
+export function isPAL(): boolean
+  // Check raster line count
+  // PAL systems have 312 raster lines
+  // NTSC systems have 263 raster lines
+
+  // Wait for raster to reach high value
+  while vicRasterLine < 250
+    // Wait
+  end while
+
+  // Check if raster goes above 263 (PAL only)
+  let maxRaster: byte = 0;
+  for i = 0 to 100
+    if vicRasterLine > maxRaster then
+      maxRaster = vicRasterLine;
+    end if
+  next i
+
+  // If max raster > 263, it's PAL
+  return maxRaster > 263;
+end function
+
+// ============================================================================
+// Implementation Notes
+// ============================================================================
+//
+// KERNAL Routine Addresses (for reference):
+// ------------------------------------------
+// $FFE4 - GETIN:  Get character from keyboard buffer
+// $FFD2 - CHROUT: Output character to screen
+// $E544 - CLRSCR: Clear screen
+// $FFF0 - PLOT:   Set/get cursor position
+// $FFCF - CHRIN:  Input character from keyboard (blocking)
+// $FFE1 - STOP:   Check STOP key
+//
+// CIA #1 Register Map:
+// --------------------
+// $DC00 - Data Port A (Joystick 2, Keyboard columns)
+// $DC01 - Data Port B (Joystick 1, Keyboard rows)
+// $DC02 - Data Direction A
+// $DC03 - Data Direction B
+// $DC04 - Timer A Low
+// $DC05 - Timer A High
+//
+// Joystick Bit Layout:
+// --------------------
+// Bit 0: Up    (0 = pressed)
+// Bit 1: Down  (0 = pressed)
+// Bit 2: Left  (0 = pressed)
+// Bit 3: Right (0 = pressed)
+// Bit 4: Fire  (0 = pressed)
+//
+// Note: Joystick uses inverted logic (0 = pressed, 1 = not pressed)
+//
+// Performance Considerations:
+// ---------------------------
+// - Direct hardware access is faster than KERNAL routines
+// - KERNAL routines provide compatibility across C64 models
+// - For maximum performance, use direct hardware access
+// - For maximum compatibility, use KERNAL routines
+//
+// This library provides a balance: direct hardware access where
+// appropriate, with KERNAL-style interfaces for ease of use.
+//
+// ============================================================================

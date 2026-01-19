@@ -1,4 +1,8 @@
 import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
+import { resolve, dirname } from 'node:path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   test: {
@@ -22,6 +26,7 @@ export default defineConfig({
     typecheck: {
       enabled: true,
     },
+    reporters: [resolve(__dirname, 'scripts/vitest.reporter.cline.ts')],
   },
   resolve: {
     alias: {

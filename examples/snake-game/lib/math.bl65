@@ -1,0 +1,206 @@
+// ============================================================================
+// Math Utilities Library (Imagined External Library)
+// ============================================================================
+// Provides common mathematical operations optimized for 6502 architecture.
+// This is an imagined standard library that would be part of Blend65.
+//
+// Module: Blend.Std.Math
+// Version: 1.0.0
+// Target: 6502 (C64, VIC-20, Commander X16)
+// ============================================================================
+
+module Blend.Std.Math
+
+// ============================================================================
+// Absolute Value
+// ============================================================================
+
+/**
+ * Returns the absolute value of a signed byte.
+ *
+ * For 6502, bytes are typically unsigned (0-255), but when treating
+ * values as signed (-128 to 127), this converts negative values to positive.
+ *
+ * @param x - The value to get absolute value of
+ * @returns The absolute value (0-127)
+ *
+ * @example
+ * let result = abs(250);  // Treats 250 as -6, returns 6
+ * let result2 = abs(10);  // Returns 10
+ */
+export function abs(x: byte): byte
+  // In signed byte representation:
+  // 0-127 are positive (0 to 127)
+  // 128-255 are negative (-128 to -1)
+
+  if x > 127 then
+    // Negative value: convert to positive
+    // For example: 250 (-6) becomes 256 - 250 = 6
+    return 256 - x;
+  end if
+
+  return x;
+end function
+
+// ============================================================================
+// Minimum and Maximum
+// ============================================================================
+
+/**
+ * Returns the smaller of two byte values.
+ *
+ * @param a - First value
+ * @param b - Second value
+ * @returns The minimum value
+ *
+ * @example
+ * let result = min(10, 20);  // Returns 10
+ * let result2 = min(100, 50); // Returns 50
+ */
+export function min(a: byte, b: byte): byte
+  if a < b then
+    return a;
+  end if
+  return b;
+end function
+
+/**
+ * Returns the larger of two byte values.
+ *
+ * @param a - First value
+ * @param b - Second value
+ * @returns The maximum value
+ *
+ * @example
+ * let result = max(10, 20);  // Returns 20
+ * let result2 = max(100, 50); // Returns 100
+ */
+export function max(a: byte, b: byte): byte
+  if a > b then
+    return a;
+  end if
+  return b;
+end function
+
+// ============================================================================
+// Clamping
+// ============================================================================
+
+/**
+ * Clamps a value between a minimum and maximum range.
+ *
+ * If value < minVal, returns minVal.
+ * If value > maxVal, returns maxVal.
+ * Otherwise, returns value unchanged.
+ *
+ * @param value - The value to clamp
+ * @param minVal - The minimum allowed value
+ * @param maxVal - The maximum allowed value
+ * @returns The clamped value
+ *
+ * @example
+ * let result = clamp(5, 10, 20);   // Returns 10 (below min)
+ * let result2 = clamp(15, 10, 20); // Returns 15 (in range)
+ * let result3 = clamp(25, 10, 20); // Returns 20 (above max)
+ */
+export function clamp(value: byte, minVal: byte, maxVal: byte): byte
+  if value < minVal then
+    return minVal;
+  end if
+
+  if value > maxVal then
+    return maxVal;
+  end if
+
+  return value;
+end function
+
+// ============================================================================
+// Word (16-bit) Versions
+// ============================================================================
+
+/**
+ * Returns the smaller of two word values.
+ *
+ * @param a - First value (16-bit)
+ * @param b - Second value (16-bit)
+ * @returns The minimum value
+ *
+ * @example
+ * let result = minWord(1000, 2000);  // Returns 1000
+ */
+export function minWord(a: word, b: word): word
+  if a < b then
+    return a;
+  end if
+  return b;
+end function
+
+/**
+ * Returns the larger of two word values.
+ *
+ * @param a - First value (16-bit)
+ * @param b - Second value (16-bit)
+ * @returns The maximum value
+ *
+ * @example
+ * let result = maxWord(1000, 2000);  // Returns 2000
+ */
+export function maxWord(a: word, b: word): word
+  if a > b then
+    return a;
+  end if
+  return b;
+end function
+
+/**
+ * Clamps a word value between a minimum and maximum range.
+ *
+ * @param value - The value to clamp (16-bit)
+ * @param minVal - The minimum allowed value
+ * @param maxVal - The maximum allowed value
+ * @returns The clamped value
+ *
+ * @example
+ * let result = clampWord(500, 1000, 2000);   // Returns 1000
+ * let result2 = clampWord(1500, 1000, 2000); // Returns 1500
+ * let result3 = clampWord(2500, 1000, 2000); // Returns 2000
+ */
+export function clampWord(value: word, minVal: word, maxVal: word): word
+  if value < minVal then
+    return minVal;
+  end if
+
+  if value > maxVal then
+    return maxVal;
+  end if
+
+  return value;
+end function
+
+// ============================================================================
+// Implementation Notes
+// ============================================================================
+//
+// These functions are designed to compile to efficient 6502 assembly:
+//
+// 1. abs(x):
+//    - Single comparison and subtraction
+//    - ~10-15 cycles
+//
+// 2. min/max:
+//    - Single comparison and conditional return
+//    - ~8-12 cycles
+//
+// 3. clamp:
+//    - Two comparisons, early exit optimization
+//    - ~15-25 cycles depending on path
+//
+// 4. Word versions:
+//    - 16-bit comparisons require multi-byte operations
+//    - ~20-40 cycles depending on operation
+//
+// All functions are pure (no side effects) and can be safely inlined
+// by the optimizer for maximum performance.
+//
+// ============================================================================
