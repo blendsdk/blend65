@@ -210,9 +210,73 @@ These rules are **mandatory** and must be applied **strictly and consistently** 
     - Use proper type guards, assertions, or fix the underlying type issue
     - Test files may use `as any` sparingly for test setup, but prefer proper typing
 
+27. **🚨 NON-NEGOTIABLE: MUST Use Complete Interface Compliance When Creating Objects**
+    - When creating ANY object that implements an interface or type, you MUST provide ALL required fields with proper types
+    - This applies to BOTH production code AND test code
+    
+    **1. Use proper enums - NEVER hardcoded strings:**
+    
+    ❌ **Wrong:**
+    ```typescript
+    kind: 'variable' as const,
+    kind: 'byte',
+    ```
+    
+    ✅ **Correct:**
+    ```typescript
+    kind: SymbolKind.Variable,
+    kind: TypeKind.Byte,
+    ```
+    
+    **2. Provide ALL required interface fields - NO shortcuts:**
+    
+    ❌ **Wrong (missing fields!):**
+    ```typescript
+    type: { name: 'byte', size: 1 }
+    ```
+    
+    ✅ **Correct (all fields provided):**
+    ```typescript
+    type: { kind: TypeKind.Byte, name: 'byte', size: 1, isSigned: false, isAssignable: true }
+    ```
+    
+    **3. Use proper type guards - NEVER optional chaining hacks:**
+    
+    ❌ **Wrong (hoping method exists):**
+    ```typescript
+    const name = decl.getName?.();
+    if (name) { ... }
+    ```
+    
+    ✅ **Correct (type narrowed properly):**
+    ```typescript
+    if (isVariableDecl(decl)) {
+      const name = decl.getName(); // TypeScript knows this exists
+    }
+    ```
+    
+    **4. Use proper references - NEVER hardcoded string placeholders:**
+    
+    ❌ **Wrong:**
+    ```typescript
+    scope: 'global',
+    ```
+    
+    ✅ **Correct:**
+    ```typescript
+    scope: symbolTable.getCurrentScope(),
+    ```
+    
+    **Why This Rule Exists:**
+    - Incomplete objects cause runtime failures that TypeScript should prevent
+    - String literals break silently when enums are refactored
+    - Optional chaining hides real type errors
+    - TypeScript's type system is designed to catch these problems - USE IT!
+    - Test code with shortcuts creates false confidence (tests pass but production breaks)
+
 ## 9. Final Rule
 
-27. **If in Doubt, Be Explicit**
+28. **If in Doubt, Be Explicit**
     - Prefer more readable code, more comments, and clearer structure over fewer lines of code.
 
 ---
