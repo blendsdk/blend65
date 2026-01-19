@@ -283,11 +283,81 @@ export enum OptimizationMetadataKey {
 
   /** Sprite DMA interference possible (boolean) */
   M6502SpriteDMA = 'M6502SpriteDMA',
+
+  // ==========================================
+  // Type Coercion Analysis (IL Readiness)
+  // ==========================================
+
+  /** Type coercion required at this node (TypeCoercionKind enum) */
+  TypeCoercionRequired = 'TypeCoercionRequired',
+
+  /** Source type before coercion (TypeInfo) */
+  TypeCoercionSourceType = 'TypeCoercionSourceType',
+
+  /** Target type after coercion (TypeInfo) */
+  TypeCoercionTargetType = 'TypeCoercionTargetType',
+
+  /** Is this an implicit coercion? (boolean) */
+  TypeCoercionImplicit = 'TypeCoercionImplicit',
+
+  /** Estimated cost of coercion in cycles (number) */
+  TypeCoercionCost = 'TypeCoercionCost',
+
+  // ==========================================
+  // Expression Complexity Analysis (IL Readiness)
+  // ==========================================
+
+  /** Expression complexity score (number 1-100) */
+  ExprComplexityScore = 'ExprComplexityScore',
+
+  /** Register pressure - max registers needed (number 1-3) */
+  ExprRegisterPressure = 'ExprRegisterPressure',
+
+  /** Expression depth in AST (number) */
+  ExprTreeDepth = 'ExprTreeDepth',
+
+  /** Number of operations in expression (number) */
+  ExprOperationCount = 'ExprOperationCount',
+
+  /** Contains function call (boolean) */
+  ExprContainsCall = 'ExprContainsCall',
+
+  /** Contains memory access (boolean) */
+  ExprContainsMemoryAccess = 'ExprContainsMemoryAccess',
 }
 
 // ============================================
 // SUPPORTING ENUMS
 // ============================================
+
+/**
+ * Type coercion kinds for IL generation.
+ *
+ * These indicate what type conversion operation is needed
+ * at a specific AST node for correct IL code generation.
+ */
+export enum TypeCoercionKind {
+  /** No coercion needed - types are identical */
+  None = 'None',
+
+  /** byte ’ word (zero extension: add high byte of 0x00) */
+  ZeroExtend = 'ZeroExtend',
+
+  /** word ’ byte (truncation: take only low byte) */
+  Truncate = 'Truncate',
+
+  /** boolean ’ byte (false=0, true=1) */
+  BoolToByte = 'BoolToByte',
+
+  /** byte ’ boolean (0=false, non-zero=true) */
+  ByteToBool = 'ByteToBool',
+
+  /** boolean ’ word (false=0x0000, true=0x0001) */
+  BoolToWord = 'BoolToWord',
+
+  /** word ’ boolean (0x0000=false, non-zero=true) */
+  WordToBool = 'WordToBool',
+}
 
 /**
  * Dead code classification

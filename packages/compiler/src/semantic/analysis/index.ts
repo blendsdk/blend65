@@ -13,6 +13,7 @@
 // Core infrastructure
 export {
   OptimizationMetadataKey,
+  TypeCoercionKind,
   DeadCodeKind,
   PurityLevel,
   EscapeReason,
@@ -42,3 +43,7 @@ export { CallGraphAnalyzer } from './call-graph.js';
 export { M6502HintAnalyzer, M6502Register, MemoryAccessPattern } from './m6502-hints.js';
 export { GlobalValueNumberingAnalyzer } from './global-value-numbering.js';
 export { CommonSubexpressionEliminationAnalyzer } from './common-subexpr-elimination.js';
+
+// IL Readiness analyzers
+export { TypeCoercionAnalyzer, type CoercionInfo } from './type-coercion.js';
+export { ExpressionComplexityAnalyzer, type ComplexityInfo } from './expression-complexity.js';

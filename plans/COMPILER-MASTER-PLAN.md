@@ -1,9 +1,9 @@
 # Blend65 Compiler - Master Implementation Plan
 
 > **Status**: 60-70% Complete | **Next Phase**: IL Generator  
-> **Last Updated**: January 18, 2026  
+> **Last Updated**: January 19, 2026  
 > **Version**: 0.1.0  
-> **Total Tests**: 2,428 passing
+> **Total Tests**: 2,603 passing
 
 ---
 
@@ -616,10 +616,25 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 | Semantic Analyzer (Core) | 765+ | ✅ Passing |
 | Phase 8 Analysis | 500+ | ✅ Passing |
 | Hardware Analyzers | 200+ | ✅ Passing |
+| IL-Readiness Analysis | 105+ | ✅ Passing |
 | Integration | 313+ | ✅ Passing |
-| **TOTAL** | **2,428** | **✅ Passing** |
+| **TOTAL** | **2,603** | **✅ Passing** |
 
 **Target for v1.0**: 3,000+ tests
+
+### **IL-Readiness Enhancement (January 19, 2026)**
+
+Added 105 new tests for IL-readiness preparation:
+- ✅ **Type Coercion Analysis** (40 tests): Marks AST nodes where type conversions needed
+- ✅ **Addressing Mode Hints** (26 tests): Determines optimal 6502 addressing modes  
+- ✅ **Expression Complexity Scoring** (39 tests): Calculates complexity for register allocation
+
+**New Files Created**:
+- `semantic/analysis/type-coercion.ts` - TypeCoercionAnalyzer
+- `semantic/analysis/expression-complexity.ts` - ExpressionComplexityAnalyzer
+- `__tests__/semantic/type-coercion.test.ts` - Type coercion tests
+- `__tests__/semantic/addressing-modes.test.ts` - Addressing mode tests
+- `__tests__/semantic/expression-complexity.test.ts` - Complexity tests
 
 ---
 
@@ -736,6 +751,6 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 
 ---
 
-**Last Updated**: January 18, 2026  
+**Last Updated**: January 19, 2026  
 **Maintained By**: Blend65 Development Team  
 **Status**: Active Development

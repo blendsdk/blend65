@@ -10,6 +10,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  AccessPatternInfo,
   M6502HintAnalyzer,
   M6502Register,
   MemoryAccessPattern,
@@ -205,28 +206,19 @@ describe('M6502HintAnalyzer', () => {
 
     describe('validateZeroPageAllocation()', () => {
       it('should return null for valid allocation at $02', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         const result = analyzer.validateZeroPageAllocation(0x02, 1, mockLocation());
         expect(result).toBeNull();
       });
 
       it('should return null for valid allocation at $8F size 1', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         const result = analyzer.validateZeroPageAllocation(0x8f, 1, mockLocation());
         expect(result).toBeNull();
       });
 
       it('should return error for allocation at $00', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         const result = analyzer.validateZeroPageAllocation(0x00, 1, mockLocation());
         expect(result).not.toBeNull();
         expect(result?.code).toBe(DiagnosticCode.RESERVED_ZERO_PAGE);
@@ -235,10 +227,7 @@ describe('M6502HintAnalyzer', () => {
       });
 
       it('should return error for allocation at $90', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         const result = analyzer.validateZeroPageAllocation(0x90, 1, mockLocation());
         expect(result).not.toBeNull();
         expect(result?.code).toBe(DiagnosticCode.RESERVED_ZERO_PAGE);
@@ -246,20 +235,14 @@ describe('M6502HintAnalyzer', () => {
       });
 
       it('should return error for allocation at $8E with size 2 (extends to $8F)', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         // $8E with size 2 ends at $8F - still safe
         const result = analyzer.validateZeroPageAllocation(0x8e, 2, mockLocation());
         expect(result).toBeNull();
       });
 
       it('should return error for allocation at $8F with size 2 (extends to $90)', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         // $8F with size 2 ends at $90 - reserved!
         const result = analyzer.validateZeroPageAllocation(0x8f, 2, mockLocation());
         expect(result).not.toBeNull();
@@ -268,10 +251,7 @@ describe('M6502HintAnalyzer', () => {
       });
 
       it('should return error for word allocation at $01 (spans $01-$02)', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         // $01 is reserved, so starting there is invalid
         const result = analyzer.validateZeroPageAllocation(0x01, 2, mockLocation());
         expect(result).not.toBeNull();
@@ -279,10 +259,7 @@ describe('M6502HintAnalyzer', () => {
       });
 
       it('should handle large allocations that span into reserved area', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         // Allocation from $80 with 20 bytes would end at $93 (reserved)
         const result = analyzer.validateZeroPageAllocation(0x80, 20, mockLocation());
         expect(result).not.toBeNull();
@@ -290,10 +267,7 @@ describe('M6502HintAnalyzer', () => {
       });
 
       it('should return null for allocation entirely within safe range', () => {
-        const analyzer = new M6502HintAnalyzer(
-          { lookup: () => undefined } as any,
-          new Map()
-        );
+        const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
         // $10 with 32 bytes ends at $2F - all safe
         const result = analyzer.validateZeroPageAllocation(0x10, 32, mockLocation());
         expect(result).toBeNull();
@@ -311,15 +285,12 @@ describe('M6502HintAnalyzer', () => {
           let x: byte = 10;
         end function
       `;
-      
+
       expect(() => analyzeCode(source)).not.toThrow();
     });
 
     it('should create analyzer without errors', () => {
-      const analyzer = new M6502HintAnalyzer(
-        { lookup: () => undefined } as any,
-        new Map()
-      );
+      const analyzer = new M6502HintAnalyzer({ lookup: () => undefined } as any, new Map());
       expect(analyzer).toBeDefined();
     });
 
@@ -329,12 +300,13 @@ describe('M6502HintAnalyzer', () => {
           let x: byte = 10;
         end function
       `;
-      
+
       const { errors } = analyzeCode(source);
       // Should have no ZP-related errors
-      const zpErrors = errors.filter(e => 
-        e.code === DiagnosticCode.RESERVED_ZERO_PAGE ||
-        e.code === DiagnosticCode.ZERO_PAGE_ALLOCATION_INTO_RESERVED
+      const zpErrors = errors.filter(
+        e =>
+          e.code === DiagnosticCode.RESERVED_ZERO_PAGE ||
+          e.code === DiagnosticCode.ZERO_PAGE_ALLOCATION_INTO_RESERVED
       );
       expect(zpErrors).toHaveLength(0);
     });
@@ -348,11 +320,11 @@ describe('M6502HintAnalyzer', () => {
       it('should accept @map at safe zero-page address $02', () => {
         const source = `
           @map testVar at $02: byte;
-          
+
           function test(): void
           end function
         `;
-        
+
         // Parse should succeed
         expect(() => parseCode(source)).not.toThrow();
       });
@@ -360,11 +332,11 @@ describe('M6502HintAnalyzer', () => {
       it('should accept @map at address above zero-page', () => {
         const source = `
           @map borderColor at $D020: byte;
-          
+
           function test(): void
           end function
         `;
-        
+
         // $D020 is not in zero-page, so it's always valid
         expect(() => parseCode(source)).not.toThrow();
       });
@@ -402,7 +374,7 @@ describe('M6502HintAnalyzer', () => {
       it('should return null for symbol without metadata', () => {
         const mockSymbolTable = { lookup: () => undefined } as any;
         const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
-        
+
         // Create a mock symbol without metadata
         const mockSymbol = {
           name: 'testVar',
@@ -416,7 +388,7 @@ describe('M6502HintAnalyzer', () => {
       it('should return null for symbol with empty metadata', () => {
         const mockSymbolTable = { lookup: () => undefined } as any;
         const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
-        
+
         const mockSymbol = {
           name: 'testVar',
           declaration: {
@@ -433,7 +405,7 @@ describe('M6502HintAnalyzer', () => {
       it('should return false for symbol without stride', () => {
         const mockSymbolTable = { lookup: () => undefined } as any;
         const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
-        
+
         const mockSymbol = {
           name: 'testVar',
           declaration: undefined,
@@ -447,7 +419,7 @@ describe('M6502HintAnalyzer', () => {
       it('should return null for unknown variable', () => {
         const mockSymbolTable = { lookup: () => undefined } as any;
         const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
-        
+
         const details = analyzer.getAccessPatternDetails('nonExistentVar');
         expect(details).toBeNull();
       });
@@ -457,7 +429,7 @@ describe('M6502HintAnalyzer', () => {
       it('should return empty map when no variables', () => {
         const mockSymbolTable = { lookup: () => undefined } as any;
         const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
-        
+
         const patterns = analyzer.detectAccessPatternsWithStride();
         expect(patterns.size).toBe(0);
       });
@@ -466,7 +438,7 @@ describe('M6502HintAnalyzer', () => {
     describe('AccessPatternInfo interface', () => {
       it('should have all required fields', () => {
         // Create a mock AccessPatternInfo to verify interface structure
-        const info: import('../../../semantic/analysis/m6502-hints.js').AccessPatternInfo = {
+        const info: AccessPatternInfo = {
           pattern: MemoryAccessPattern.Sequential,
           stride: 1,
           loopDepth: 2,
@@ -484,7 +456,7 @@ describe('M6502HintAnalyzer', () => {
       });
 
       it('should allow null stride for non-strided patterns', () => {
-        const info: import('../../../semantic/analysis/m6502-hints.js').AccessPatternInfo = {
+        const info: AccessPatternInfo = {
           pattern: MemoryAccessPattern.Random,
           stride: null,
           loopDepth: 0,
@@ -867,7 +839,9 @@ describe('M6502HintAnalyzer', () => {
         const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
 
         const preference = analyzer.getRegisterPreference('testVar');
-        expect([M6502Register.A, M6502Register.X, M6502Register.Y, M6502Register.Any]).toContain(preference);
+        expect([M6502Register.A, M6502Register.X, M6502Register.Y, M6502Register.Any]).toContain(
+          preference
+        );
       });
     });
 
@@ -919,7 +893,9 @@ describe('M6502HintAnalyzer', () => {
 
         // The preference logic is internal, but we can verify it returns valid values
         const preference = analyzer.getRegisterPreference('loopCounter');
-        expect([M6502Register.A, M6502Register.X, M6502Register.Y, M6502Register.Any]).toContain(preference);
+        expect([M6502Register.A, M6502Register.X, M6502Register.Y, M6502Register.Any]).toContain(
+          preference
+        );
       });
 
       it('should handle nested loops with X/Y allocation', () => {
@@ -940,31 +916,31 @@ describe('M6502HintAnalyzer', () => {
         const analyzer = new M6502HintAnalyzer(mockSymbolTable, new Map());
 
         // Create expected reason patterns
-        const indirectReason = 'Indirect pointer ’ Y (required for (zp),Y addressing)';
+        const indirectReason = 'Indirect pointer ï¿½ Y (required for (zp),Y addressing)';
         expect(indirectReason).toContain('Y');
         expect(indirectReason).toContain('(zp),Y');
       });
 
       it('should mention X for array indexing', () => {
-        const arrayIndexReason = 'Array index ’ X (optimal for zp,X and abs,X modes)';
+        const arrayIndexReason = 'Array index ï¿½ X (optimal for zp,X and abs,X modes)';
         expect(arrayIndexReason).toContain('X');
         expect(arrayIndexReason).toContain('zp,X');
       });
 
       it('should mention X for loop counters', () => {
-        const loopCounterReason = 'Loop counter ’ X (optimal for loop operations)';
+        const loopCounterReason = 'Loop counter ï¿½ X (optimal for loop operations)';
         expect(loopCounterReason).toContain('X');
         expect(loopCounterReason).toContain('Loop counter');
       });
 
       it('should mention A for arithmetic-heavy variables', () => {
-        const arithmeticReason = 'Arithmetic-heavy ’ A (intensity 8/10)';
+        const arithmeticReason = 'Arithmetic-heavy ï¿½ A (intensity 8/10)';
         expect(arithmeticReason).toContain('A');
         expect(arithmeticReason).toContain('Arithmetic');
       });
 
       it('should mention Any for general variables', () => {
-        const generalReason = 'General variable ’ Any (no specific register benefit)';
+        const generalReason = 'General variable ï¿½ Any (no specific register benefit)';
         expect(generalReason).toContain('Any');
         expect(generalReason).toContain('no specific');
       });

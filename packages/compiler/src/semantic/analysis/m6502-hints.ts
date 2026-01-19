@@ -56,7 +56,7 @@ import {
   isExplicitStructMapDecl,
 } from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
-import { OptimizationMetadataKey, type InductionVariable } from './optimization-metadata-keys.js';
+import { OptimizationMetadataKey, AddressingMode, type InductionVariable } from './optimization-metadata-keys.js';
 import { ASTWalker } from '../../ast/walker/base.js';
 import type { TargetConfig, ReservedZeroPageRange } from '../../target/config.js';
 import { getDefaultTargetConfig } from '../../target/registry.js';
@@ -232,6 +232,12 @@ interface VariableHints {
 
   /** Memory access pattern */
   accessPattern: MemoryAccessPattern;
+
+  /** Addressing mode hint for IL generator */
+  addressingMode: AddressingMode;
+
+  /** Explicit address (from @map or @zp with address) */
+  explicitAddress: number | null;
 }
 
 /**
@@ -305,10 +311,13 @@ export class M6502HintAnalyzer extends ASTWalker {
     // Phase 4: Detect memory access patterns
     this.detectAccessPatterns();
 
-    // Phase 5: Check for reserved zero-page violations
+    // Phase 5: Determine addressing modes (IL Readiness)
+    this.determineAddressingModes();
+
+    // Phase 6: Check for reserved zero-page violations
     this.checkReservedZeroPage(ast);
 
-    // Phase 6: Set metadata on AST nodes
+    // Phase 7: Set metadata on AST nodes
     this.setM6502Metadata();
   }
 
@@ -333,6 +342,15 @@ export class M6502HintAnalyzer extends ASTWalker {
           const maxLoopDepth =
             varDecl.metadata?.get(OptimizationMetadataKey.UsageMaxLoopDepth) || 0;
 
+          // Determine explicit address from metadata
+          let explicitAddress: number | null = null;
+          
+          // Check for explicit address in metadata (set by memory layout or @map analysis)
+          const metaAddress = varDecl.metadata?.get('address') as number | undefined;
+          if (metaAddress !== undefined) {
+            explicitAddress = metaAddress;
+          }
+
           this.variableHints.set(varName, {
             symbol,
             readCount: typeof readCount === 'number' ? readCount : 0,
@@ -343,6 +361,8 @@ export class M6502HintAnalyzer extends ASTWalker {
             zpPriority: 0,
             registerPreference: M6502Register.Any,
             accessPattern: MemoryAccessPattern.Single,
+            addressingMode: AddressingMode.Absolute, // Default, will be determined
+            explicitAddress,
           });
         }
       }
@@ -568,6 +588,261 @@ export class M6502HintAnalyzer extends ASTWalker {
       // Multiple accesses with no detected pattern - default to random
       hints.accessPattern = MemoryAccessPattern.Random;
     }
+  }
+
+  /**
+   * Determine optimal 6502 addressing modes for each variable
+   *
+   * This is critical for IL generation - the IL generator needs to know
+   * which addressing mode to use for each variable access.
+   *
+   * Addressing mode decision tree:
+   * 1. Explicit zero-page address ($00-$FF) → ZeroPage
+   * 2. Zero-page with index variable preference X → ZeroPageX
+   * 3. Zero-page with index variable preference Y → ZeroPageY
+   * 4. Absolute address (> $FF) with index X → AbsoluteX
+   * 5. Absolute address (> $FF) with index Y → AbsoluteY
+   * 6. Pointer/indirect with Y preference → IndirectIndexed
+   * 7. Pointer/indirect with X preference → IndexedIndirect
+   * 8. Regular absolute address → Absolute
+   * 9. Immediate value → Immediate (for constants)
+   *
+   * @see getAddressingMode() for querying the determined mode
+   * @see getAddressingModeReason() for human-readable explanations
+   */
+  protected determineAddressingModes(): void {
+    for (const [_varName, hints] of this.variableHints) {
+      // Get storage class from the variable declaration
+      const decl = hints.symbol.declaration as VariableDecl;
+      const storageClass = decl?.getStorageClass();
+
+      // Decision 1: Check for explicit zero-page address
+      if (hints.explicitAddress !== null && hints.explicitAddress <= 0xff) {
+        // Zero-page address - now determine indexed vs non-indexed
+        if (this.detectArrayIndexUsage(hints.symbol)) {
+          // Array index variable - determine X or Y indexed mode
+          if (hints.registerPreference === M6502Register.Y) {
+            hints.addressingMode = AddressingMode.ZeroPageY;
+          } else {
+            // Default to X for indexed access
+            hints.addressingMode = AddressingMode.ZeroPageX;
+          }
+        } else if (this.detectIndirectAddressing(hints.symbol)) {
+          // Indirect addressing - (zp),Y is most common
+          hints.addressingMode = AddressingMode.IndirectIndexed;
+        } else {
+          // Simple zero-page access
+          hints.addressingMode = AddressingMode.ZeroPage;
+        }
+        continue;
+      }
+
+      // Decision 2: Check for @zp storage class (even without explicit address)
+      if (storageClass === TokenType.ZP) {
+        // @zp variable - will be in zero-page, determine indexed mode
+        if (this.detectArrayIndexUsage(hints.symbol)) {
+          if (hints.registerPreference === M6502Register.Y) {
+            hints.addressingMode = AddressingMode.ZeroPageY;
+          } else {
+            hints.addressingMode = AddressingMode.ZeroPageX;
+          }
+        } else if (this.detectIndirectAddressing(hints.symbol)) {
+          hints.addressingMode = AddressingMode.IndirectIndexed;
+        } else {
+          hints.addressingMode = AddressingMode.ZeroPage;
+        }
+        continue;
+      }
+
+      // Decision 3: Check for pointer/indirect pattern
+      if (this.detectIndirectAddressing(hints.symbol)) {
+        // Pointer variable - usually uses (zp),Y indirect indexed mode
+        // This requires the pointer to be in zero-page for optimal performance
+        if (hints.registerPreference === M6502Register.X) {
+          // (zp,X) indexed indirect - less common but used for jump tables
+          hints.addressingMode = AddressingMode.IndexedIndirect;
+        } else {
+          // (zp),Y indirect indexed - most flexible for pointer+offset
+          hints.addressingMode = AddressingMode.IndirectIndexed;
+        }
+        continue;
+      }
+
+      // Decision 4: Check for indexed absolute addressing
+      if (this.detectArrayIndexUsage(hints.symbol) || hints.isLoopCounter) {
+        // Variable used as array index - determine X or Y
+        if (hints.registerPreference === M6502Register.Y) {
+          hints.addressingMode = AddressingMode.AbsoluteY;
+        } else {
+          hints.addressingMode = AddressingMode.AbsoluteX;
+        }
+        continue;
+      }
+
+      // Decision 5: High ZP priority suggests it should be in zero-page
+      // Even if not explicitly @zp, the compiler might allocate it there
+      if (hints.zpPriority >= 50) {
+        // High priority for ZP allocation - hint for ZeroPage mode
+        hints.addressingMode = AddressingMode.ZeroPage;
+        continue;
+      }
+
+      // Decision 6: Default to absolute addressing
+      hints.addressingMode = AddressingMode.Absolute;
+    }
+  }
+
+  /**
+   * Get the determined addressing mode for a variable
+   *
+   * @param varName - Name of variable to check
+   * @returns Addressing mode, or Absolute if variable not found
+   *
+   * @example
+   * ```typescript
+   * const mode = analyzer.getAddressingMode('loopCounter');
+   * // AddressingMode.ZeroPageX
+   * ```
+   */
+  public getAddressingMode(varName: string): AddressingMode {
+    const hints = this.variableHints.get(varName);
+    return hints?.addressingMode ?? AddressingMode.Absolute;
+  }
+
+  /**
+   * Get human-readable reason for addressing mode selection
+   *
+   * Returns an explanation of why a particular addressing mode was
+   * chosen for a variable. Useful for:
+   * - Debugging addressing mode decisions
+   * - User-facing optimization reports
+   * - IDE tooltips and hints
+   *
+   * @param varName - Name of variable to get reason for
+   * @returns Human-readable explanation string
+   *
+   * @example
+   * ```typescript
+   * const reason = analyzer.getAddressingModeReason('counter');
+   * // "@zp variable → ZeroPage (3 cycles vs 4 for absolute)"
+   * ```
+   */
+  public getAddressingModeReason(varName: string): string {
+    const hints = this.variableHints.get(varName);
+    if (!hints) {
+      return 'Unknown variable → Absolute (no analysis data)';
+    }
+
+    const decl = hints.symbol.declaration as VariableDecl;
+    const storageClass = decl?.getStorageClass();
+    const mode = hints.addressingMode;
+
+    switch (mode) {
+      case AddressingMode.Immediate:
+        return 'Constant value → Immediate (#value, 2 cycles)';
+
+      case AddressingMode.ZeroPage:
+        if (hints.explicitAddress !== null) {
+          return `Explicit ZP address $${hints.explicitAddress.toString(16).toUpperCase().padStart(2, '0')} → ZeroPage (3 cycles)`;
+        }
+        if (storageClass === TokenType.ZP) {
+          return '@zp storage → ZeroPage (3 cycles)';
+        }
+        if (hints.zpPriority >= 50) {
+          return `High ZP priority (${hints.zpPriority}/100) → ZeroPage (likely allocation)`;
+        }
+        return 'ZeroPage addressing (3 cycles)';
+
+      case AddressingMode.ZeroPageX:
+        if (storageClass === TokenType.ZP) {
+          return '@zp with X index → ZeroPageX (zp,X - 4 cycles)';
+        }
+        return 'Array index with X → ZeroPageX (zp,X - 4 cycles)';
+
+      case AddressingMode.ZeroPageY:
+        if (storageClass === TokenType.ZP) {
+          return '@zp with Y index → ZeroPageY (zp,Y - 4 cycles)';
+        }
+        return 'Array index with Y → ZeroPageY (zp,Y - 4 cycles)';
+
+      case AddressingMode.Absolute:
+        return 'Standard RAM variable → Absolute (addr - 4 cycles)';
+
+      case AddressingMode.AbsoluteX:
+        return 'Array access with X → AbsoluteX (addr,X - 4-5 cycles)';
+
+      case AddressingMode.AbsoluteY:
+        return 'Array access with Y → AbsoluteY (addr,Y - 4-5 cycles)';
+
+      case AddressingMode.Indirect:
+        return 'Jump target → Indirect ((addr) - JMP only)';
+
+      case AddressingMode.IndexedIndirect:
+        return 'Pointer with X → IndexedIndirect ((zp,X) - 6 cycles)';
+
+      case AddressingMode.IndirectIndexed:
+        return 'Pointer with Y → IndirectIndexed ((zp),Y - 5-6 cycles)';
+
+      default:
+        return `${mode} addressing mode`;
+    }
+  }
+
+  /**
+   * Get all variables with a specific addressing mode
+   *
+   * Useful for IL generation and optimization reports.
+   *
+   * @param mode - Addressing mode to filter by
+   * @returns Array of variable names that use this addressing mode
+   *
+   * @example
+   * ```typescript
+   * const zpVars = analyzer.getVariablesWithAddressingMode(AddressingMode.ZeroPage);
+   * // ['counter', 'tempByte', 'flags']
+   * ```
+   */
+  public getVariablesWithAddressingMode(mode: AddressingMode): string[] {
+    const variables: string[] = [];
+
+    for (const [varName, hints] of this.variableHints) {
+      if (hints.addressingMode === mode) {
+        variables.push(varName);
+      }
+    }
+
+    return variables;
+  }
+
+  /**
+   * Get addressing mode summary for all variables
+   *
+   * Returns a breakdown of how many variables use each addressing mode.
+   * Useful for optimization reports and memory layout planning.
+   *
+   * @returns Map of addressing mode to count
+   *
+   * @example
+   * ```typescript
+   * const summary = analyzer.getAddressingModeSummary();
+   * // Map {
+   * //   ZeroPage: 5,
+   * //   ZeroPageX: 3,
+   * //   Absolute: 10,
+   * //   AbsoluteX: 2,
+   * //   IndirectIndexed: 1
+   * // }
+   * ```
+   */
+  public getAddressingModeSummary(): Map<AddressingMode, number> {
+    const summary = new Map<AddressingMode, number>();
+
+    for (const [_varName, hints] of this.variableHints) {
+      const count = summary.get(hints.addressingMode) ?? 0;
+      summary.set(hints.addressingMode, count + 1);
+    }
+
+    return summary;
   }
 
   /**
@@ -844,6 +1119,12 @@ export class M6502HintAnalyzer extends ASTWalker {
 
   /**
    * Set 6502 metadata on AST nodes
+   *
+   * Sets the following metadata on variable declarations:
+   * - M6502ZeroPagePriority: Zero-page allocation priority score (0-100)
+   * - M6502RegisterPreference: Recommended 6502 register (A, X, Y, Any)
+   * - M6502AddressingMode: Optimal addressing mode for IL generation
+   * - M6502CycleEstimate: Estimated cycles per access
    */
   protected setM6502Metadata(): void {
     for (const [_varName, hints] of this.variableHints) {
@@ -851,14 +1132,19 @@ export class M6502HintAnalyzer extends ASTWalker {
       const decl = symbol.declaration as VariableDecl;
 
       if (decl && decl.metadata) {
-        // Set metadata
+        // Set zero-page priority
         decl.metadata.set(OptimizationMetadataKey.M6502ZeroPagePriority, hints.zpPriority);
+        
+        // Set register preference
         decl.metadata.set(
           OptimizationMetadataKey.M6502RegisterPreference,
           hints.registerPreference
         );
 
-        // Estimate cycle count (simple heuristic)
+        // Set addressing mode (critical for IL generation)
+        decl.metadata.set(OptimizationMetadataKey.M6502AddressingMode, hints.addressingMode);
+
+        // Estimate cycle count based on addressing mode
         const cycleEstimate = this.estimateCycles(hints);
         decl.metadata.set(OptimizationMetadataKey.M6502CycleEstimate, cycleEstimate);
       }

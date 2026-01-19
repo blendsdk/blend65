@@ -54,6 +54,7 @@ import { CallGraphAnalyzer } from './call-graph.js';
 import { M6502HintAnalyzer } from './m6502-hints.js';
 import { GlobalValueNumberingAnalyzer } from './global-value-numbering.js';
 import { CommonSubexpressionEliminationAnalyzer } from './common-subexpr-elimination.js';
+import { TypeCoercionAnalyzer } from './type-coercion.js';
 import { SourceLocation } from '../../ast/index.js';
 
 /**
@@ -300,6 +301,18 @@ export class AdvancedAnalyzer {
     const cseAnalyzer = new CommonSubexpressionEliminationAnalyzer(this.cfgs, this.symbolTable);
     cseAnalyzer.analyze(ast);
     this.diagnostics.push(...cseAnalyzer.getDiagnostics());
+
+    // ==========================================
+    // IL Readiness Analysis
+    // ==========================================
+
+    // Type Coercion Analysis
+    // Analyzes: where type conversions are needed for IL generation
+    // Metadata: TypeCoercionRequired, TypeCoercionSourceType, TypeCoercionTargetType, TypeCoercionImplicit, TypeCoercionCost
+    // NOTE: Must run after type checking has set typeInfo on nodes
+    const typeCoercionAnalyzer = new TypeCoercionAnalyzer(this.symbolTable, this.typeSystem);
+    typeCoercionAnalyzer.analyze(ast);
+    this.diagnostics.push(...typeCoercionAnalyzer.getDiagnostics());
   }
 
   /**
