@@ -55,6 +55,7 @@ import { M6502HintAnalyzer } from './m6502-hints.js';
 import { GlobalValueNumberingAnalyzer } from './global-value-numbering.js';
 import { CommonSubexpressionEliminationAnalyzer } from './common-subexpr-elimination.js';
 import { TypeCoercionAnalyzer } from './type-coercion.js';
+import { ExpressionComplexityAnalyzer } from './expression-complexity.js';
 import { SourceLocation } from '../../ast/index.js';
 
 /**
@@ -313,6 +314,14 @@ export class AdvancedAnalyzer {
     const typeCoercionAnalyzer = new TypeCoercionAnalyzer(this.symbolTable, this.typeSystem);
     typeCoercionAnalyzer.analyze(ast);
     this.diagnostics.push(...typeCoercionAnalyzer.getDiagnostics());
+
+    // Expression Complexity Analysis
+    // Analyzes: complexity scores for optimal register allocation decisions on 6502
+    // Metadata: ExprComplexityScore, ExprRegisterPressure, ExprTreeDepth, ExprOperationCount, ExprContainsCall, ExprContainsMemoryAccess
+    // NOTE: Critical for IL generator to make spill/register allocation decisions
+    const exprComplexityAnalyzer = new ExpressionComplexityAnalyzer();
+    exprComplexityAnalyzer.analyze(ast);
+    this.diagnostics.push(...exprComplexityAnalyzer.getDiagnostics());
   }
 
   /**

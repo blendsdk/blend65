@@ -257,4 +257,161 @@ end function
       expect(yInit!.metadata!.get(OptimizationMetadataKey.GVNRedundant)).toBe(true);
     });
   });
+
+  describe('Expression Complexity Integration (IL Readiness)', () => {
+    it('should call ExpressionComplexityAnalyzer and attach complexity metadata', () => {
+      const source = `
+let a: byte = 10;
+let b: byte = 20;
+let x: byte = a + b;
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const declarations = ast.getDeclarations();
+      const xDecl = declarations[2] as VariableDecl;
+      expect(xDecl).toBeDefined();
+
+      // The initializer should have expression complexity metadata
+      const init = xDecl.getInitializer();
+      expect(init).toBeDefined();
+      expect(init!.metadata).toBeDefined();
+      expect(init!.metadata!.has(OptimizationMetadataKey.ExprComplexityScore)).toBe(true);
+      expect(init!.metadata!.has(OptimizationMetadataKey.ExprRegisterPressure)).toBe(true);
+    });
+
+    it('should set ExprComplexityScore on binary expressions', () => {
+      const source = `
+let a: byte = 10;
+let b: byte = 20;
+let result: byte = a + b;
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const declarations = ast.getDeclarations();
+      const resultDecl = declarations[2] as VariableDecl;
+      const init = resultDecl.getInitializer();
+
+      // Score should be set and > 0
+      const score = init!.metadata!.get(OptimizationMetadataKey.ExprComplexityScore);
+      expect(score).toBeDefined();
+      expect(typeof score).toBe('number');
+      expect(score).toBeGreaterThan(0);
+    });
+
+    it('should set ExprRegisterPressure to indicate register needs', () => {
+      const source = `
+let a: byte = 10;
+let b: byte = 20;
+let c: byte = 30;
+let result: byte = (a + b) * c;
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const declarations = ast.getDeclarations();
+      const resultDecl = declarations[3] as VariableDecl;
+      const init = resultDecl.getInitializer();
+
+      // Register pressure should be 1-3 for 6502
+      const pressure = init!.metadata!.get(OptimizationMetadataKey.ExprRegisterPressure);
+      expect(pressure).toBeDefined();
+      expect(typeof pressure).toBe('number');
+      expect(pressure).toBeGreaterThanOrEqual(1);
+      expect(pressure).toBeLessThanOrEqual(3);
+    });
+
+    it('should set ExprTreeDepth metadata', () => {
+      const source = `
+let a: byte = 10;
+let b: byte = 20;
+let x: byte = a + b;
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const declarations = ast.getDeclarations();
+      const xDecl = declarations[2] as VariableDecl;
+      const init = xDecl.getInitializer();
+
+      // Tree depth should be set
+      const depth = init!.metadata!.get(OptimizationMetadataKey.ExprTreeDepth);
+      expect(depth).toBeDefined();
+      expect(typeof depth).toBe('number');
+      expect(depth).toBeGreaterThan(0);
+    });
+
+    it('should set ExprContainsMemoryAccess on array index expressions', () => {
+      const source = `
+let arr: [byte; 10] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+let i: byte = 5;
+let value: byte = arr[i];
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const declarations = ast.getDeclarations();
+      const valueDecl = declarations[2] as VariableDecl;
+      const init = valueDecl.getInitializer();
+
+      // Should mark as containing memory access
+      expect(init!.metadata).toBeDefined();
+      expect(init!.metadata!.has(OptimizationMetadataKey.ExprContainsMemoryAccess)).toBe(true);
+      expect(init!.metadata!.get(OptimizationMetadataKey.ExprContainsMemoryAccess)).toBe(true);
+    });
+
+    it('should track complexity in function bodies', () => {
+      const source = `
+function compute(x: byte, y: byte): byte
+  let result: byte = x + y;
+  return result;
+end function
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const func = ast.getDeclarations().find(d => d instanceof FunctionDecl) as FunctionDecl;
+      expect(func).toBeDefined();
+
+      const body = func.getBody()!;
+      const resultDecl = body.find(s => s instanceof VariableDecl) as VariableDecl;
+      const init = resultDecl.getInitializer();
+
+      // Should have complexity metadata
+      expect(init!.metadata!.has(OptimizationMetadataKey.ExprComplexityScore)).toBe(true);
+    });
+
+    it('should assign higher complexity to nested expressions', () => {
+      const source = `
+let a: byte = 10;
+let b: byte = 20;
+let simple: byte = a + b;
+let nested: byte = (a + b) * (a + b);
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const declarations = ast.getDeclarations();
+      const simpleDecl = declarations[2] as VariableDecl;
+      const nestedDecl = declarations[3] as VariableDecl;
+      
+      const simpleInit = simpleDecl.getInitializer();
+      const nestedInit = nestedDecl.getInitializer();
+
+      const simpleScore = simpleInit!.metadata!.get(OptimizationMetadataKey.ExprComplexityScore) as number;
+      const nestedScore = nestedInit!.metadata!.get(OptimizationMetadataKey.ExprComplexityScore) as number;
+
+      // Nested expressions should have higher complexity
+      expect(nestedScore).toBeGreaterThan(simpleScore);
+    });
+
+    it('should mark literal expressions with low complexity', () => {
+      const source = `
+let x: byte = 42;
+`;
+      const { ast } = runAdvancedAnalysis(source);
+
+      const declarations = ast.getDeclarations();
+      const xDecl = declarations[0] as VariableDecl;
+      const init = xDecl.getInitializer();
+
+      // Literals should have complexity score of 1
+      const score = init!.metadata!.get(OptimizationMetadataKey.ExprComplexityScore);
+      expect(score).toBe(1);
+    });
+  });
 });

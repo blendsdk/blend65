@@ -18,6 +18,9 @@ import { SymbolTable } from '../../semantic/symbol-table.js';
 import type { ControlFlowGraph } from '../../semantic/control-flow.js';
 import { Lexer } from '../../lexer/lexer.js';
 import { Parser } from '../../parser/parser.js';
+import { SymbolKind } from '../../semantic/symbol.js';
+import { isVariableDecl } from '../../ast/type-guards.js';
+import { TypeKind } from '../../semantic/types.js';
 
 // ============================================
 // Test Helpers
@@ -39,16 +42,18 @@ function createAnalyzerFromSource(source: string): {
   const symbolTable = new SymbolTable();
   const cfgs = new Map<string, ControlFlowGraph>();
 
-  // Register variables in symbol table
+  // Register variables in symbol table (only VariableDecl has getName)
   for (const decl of ast.getDeclarations()) {
-    const name = decl.getName?.();
-    if (name) {
+    if (isVariableDecl(decl)) {
       symbolTable.declare({
-        name,
-        kind: 'variable' as const,
-        type: { name: 'byte', size: 1 },
+        name: decl.getName(),
+        kind: SymbolKind.Variable,
+        type: { kind: TypeKind.Byte, name: 'byte', size: 1, isSigned: false, isAssignable: true },
         declaration: decl,
-        scope: 'global',
+        scope: symbolTable.getCurrentScope(),
+        isExported: false,
+        isConst: false,
+        location: decl.getLocation(),
       });
     }
   }
