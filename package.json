@@ -54,7 +54,7 @@
     "url": "https://github.com/blendsdk/blend65.git"
   },
   "author": "TrueSoftware B.V. <info@truesoftware.nl>",
-  "license": "MIT",
+  "license": "Elastic-2.0",
   "keywords": [
     "programming-language",
     "sdk",
