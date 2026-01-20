@@ -1,10 +1,26 @@
 # IL Generator Implementation Plan - Master Index
 
-> **Status**: Implementation Plan (v2.1 - God-Level)  
-> **Date**: January 19, 2026  
+> **Status**: Implementation Plan (v2.2 - God-Level with Extreme Testing)  
+> **Date**: January 20, 2026  
 > **Priority**: CRITICAL - Next Phase  
-> **Estimated Time**: ~115 hours (~7.5 weeks)  
+> **Estimated Time**: ~145 hours (~9.5 weeks)  
 > **Prerequisites**: Semantic Analyzer IL-Readiness (COMPLETE ✅)
+
+---
+
+## 🚨 MANDATORY: Unified Test Plan
+
+**BEFORE implementing any phase, read:**
+- [IL-GENERATOR-UNIFIED-TEST-PLAN.md](IL-GENERATOR-UNIFIED-TEST-PLAN.md) - **SINGLE SOURCE OF TRUTH for ALL testing**
+
+This unified document:
+- Merges all test requirements from both previous test plans
+- Maps tests to specific phases and test files
+- Includes ~3,140 tests (Regular + Extreme)
+- Contains code.md compliance requirements
+- Provides clear phase → test file mapping
+
+**Previous test plans have been deleted and merged into this unified document.**
 
 ---
 
@@ -469,6 +485,8 @@ packages/compiler/src/il/
 
 ## Summary
 
+### Original Test Counts (v2.1)
+
 | Phase | Description | Time | Tests |
 |-------|-------------|------|-------|
 | Phase 1 | IL Type System | ~10.5 hr | 100 |
@@ -481,6 +499,30 @@ packages/compiler/src/il/
 | Phase 8 | Testing & Integration | ~12.5 hr | 135 |
 | **TOTAL** | | **~115 hr** | **~1,220** |
 
+### With Extreme Testing (v2.2 - CURRENT)
+
+| Phase | Description | Time | Tests (Extreme) | Increase |
+|-------|-------------|------|-----------------|----------|
+| Phase 1 | IL Type System | ~13 hr | 250 | +150% |
+| Phase 2 | Basic Blocks & CFG | ~13 hr | 300 | +140% |
+| Phase 3a-c | IL Generator Core | ~22 hr | 400 | +142% |
+| Phase 4 | Expression Translation | ~19 hr | 400 | +135% |
+| Phase 5 | Intrinsics & Special (+ 5a) | ~28 hr | 450 | +143% |
+| Phase 6 | SSA Construction | ~15 hr | 280 | +155% |
+| Phase 7 | IL Optimization | ~28 hr | 500 | +163% |
+| Phase 8 | Testing & Integration | ~16 hr | 350 | +159% |
+| **TOTAL** | | **~154 hr** | **~2,930** | **+148%** |
+
 ---
 
-**Next Action**: Start with [01-type-system.md](01-type-system.md)
+## Implementation Priority Order
+
+1. ✅ Read [IL-GENERATOR-UNIFIED-TEST-PLAN.md](IL-GENERATOR-UNIFIED-TEST-PLAN.md) FIRST - This is the single source of truth for all testing
+2. Then proceed with [01-type-system.md](01-type-system.md)
+3. Follow phase order sequentially
+
+---
+
+**Next Action**: 
+1. Read [IL-GENERATOR-UNIFIED-TEST-PLAN.md](IL-GENERATOR-UNIFIED-TEST-PLAN.md) - Unified test plan with ~3,140 tests
+2. Then start with [01-type-system.md](01-type-system.md)
