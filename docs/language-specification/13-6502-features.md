@@ -439,11 +439,200 @@ end function
 | Code size | Smallest | Standard | Standard |
 | Use case | Hot variables | General purpose | Constants |
 
+## Compiler Intrinsics
+
+Blend65 provides built-in compiler intrinsics that map directly to 6502 instructions or perform compile-time operations. These intrinsics are implemented directly by the compiler and generate optimized machine code.
+
+### Memory Access Intrinsics
+
+These intrinsics provide direct memory read/write operations:
+
+| Intrinsic | Parameters | Returns | Description | Cycles |
+|-----------|------------|---------|-------------|--------|
+| `peek` | `(address: word)` | `byte` | Read byte from memory | 4-6 |
+| `poke` | `(address: word, value: byte)` | `void` | Write byte to memory | 4-6 |
+| `peekw` | `(address: word)` | `word` | Read word (16-bit) from memory | 8-12 |
+| `pokew` | `(address: word, value: word)` | `void` | Write word (16-bit) to memory | 8-12 |
+
+```js
+// Read VIC-II border color
+let color = peek($D020);
+
+// Write to hardware register
+poke($D020, 14);
+
+// Read 16-bit timer value
+let timer = peekw($DC04);
+
+// Write 16-bit value
+pokew($FB, screenAddress);
+```
+
+### Compile-Time Intrinsics
+
+These intrinsics are **always** evaluated at compile time and generate no runtime code:
+
+| Intrinsic | Parameters | Returns | Description |
+|-----------|------------|---------|-------------|
+| `sizeof` | `(type)` | `byte` | Size of type in bytes |
+| `length` | `(array)` | `word` | Number of elements in array |
+
+```js
+// Type sizes (compile-time constants)
+let byteSize = sizeof(byte);     // 1
+let wordSize = sizeof(word);     // 2
+let arraySize = sizeof(byte[10]); // 10
+
+// Array length (compile-time constant)
+let scores: byte[] = [10, 20, 30];
+let count = length(scores);       // 3
+```
+
+**Note:** Since Blend65 has no dynamic arrays (all array sizes are fixed at compile time), `length` is always evaluated at compile time.
+
+### Byte Extraction Intrinsics
+
+These intrinsics extract bytes from 16-bit words. They are evaluated at compile time when the argument is a constant, otherwise they generate minimal runtime code:
+
+| Intrinsic | Parameters | Returns | Description | Cycles |
+|-----------|------------|---------|-------------|--------|
+| `lo` | `(value: word)` | `byte` | Extract low byte of word | 0 |
+| `hi` | `(value: word)` | `byte` | Extract high byte of word | 0-4 |
+
+```js
+// Compile-time constant extraction (0 cycles)
+let addr: word = $1234;
+let lowByte = lo(addr);           // $34 (compile-time constant)
+let highByte = hi(addr);          // $12 (compile-time constant)
+
+// Runtime extraction
+let value: word = readSensor();
+let low = lo(value);              // 0 cycles (low byte naturally available)
+let high = hi(value);             // 3-4 cycles (LDA from value+1)
+
+// Common pattern: setting up indirect addressing
+poke($FB, lo(screenAddress));     // Store low byte
+poke($FC, hi(screenAddress));     // Store high byte
+```
+
+**Note:** `lo` extracts the low byte (bits 0-7) and `hi` extracts the high byte (bits 8-15) of a 16-bit word. For compile-time constants, these are evaluated during compilation. For runtime values, `lo` has no extra cost (the low byte is naturally available in little-endian format), while `hi` requires loading from the high byte memory location.
+
+### CPU Control Intrinsics
+
+These intrinsics map directly to 6502 CPU instructions:
+
+| Intrinsic | 6502 Instruction | Description | Cycles |
+|-----------|------------------|-------------|--------|
+| `sei()` | `SEI` | Set interrupt disable flag | 2 |
+| `cli()` | `CLI` | Clear interrupt disable flag | 2 |
+| `nop()` | `NOP` | No operation (timing) | 2 |
+| `brk()` | `BRK` | Software interrupt | 7 |
+
+```js
+// Disable interrupts during critical section
+sei();
+// ... critical code ...
+cli();
+
+// Timing delay (each NOP is 2 cycles)
+nop();
+nop();
+nop();
+```
+
+### Stack Intrinsics
+
+These intrinsics provide direct 6502 stack operations:
+
+| Intrinsic | 6502 Instruction | Description | Cycles |
+|-----------|------------------|-------------|--------|
+| `pha()` | `PHA` | Push accumulator to stack | 3 |
+| `pla()` | `PLA` | Pull accumulator from stack | 4 |
+| `php()` | `PHP` | Push processor status to stack | 3 |
+| `plp()` | `PLP` | Pull processor status from stack | 4 |
+
+```js
+// Save and restore accumulator
+pha();
+// ... use accumulator for other work ...
+pla();
+
+// Save and restore processor flags
+php();
+// ... operations that modify flags ...
+plp();
+```
+
+**Warning:** Stack operations must be balanced. Every `pha()` must have a corresponding `pla()`, and every `php()` must have a corresponding `plp()`.
+
+### Optimization Control Intrinsics
+
+These intrinsics control compiler optimization behavior:
+
+| Intrinsic | Parameters | Description |
+|-----------|------------|-------------|
+| `barrier()` | none | Optimization barrier - prevents instruction reordering |
+| `volatile_read` | `(address: word)` | Read that cannot be optimized away |
+| `volatile_write` | `(address: word, value: byte)` | Write that cannot be optimized away |
+
+```js
+// Prevent optimizer from reordering across this point
+barrier();
+
+// Read hardware register (cannot be cached/optimized)
+let status = volatile_read($DC0D);
+
+// Write hardware register (cannot be eliminated)
+volatile_write($D020, 0);
+```
+
+### When to Use Intrinsics
+
+**Use `peek`/`poke` when:**
+- You need dynamic address calculation
+- Reading/writing to addresses computed at runtime
+- General memory manipulation
+
+**Use `@map` declarations when:**
+- Accessing fixed hardware registers (preferred)
+- Type-safe hardware access
+- Better code readability
+
+```js
+// ✅ PREFERRED for hardware: @map declaration
+@map vicBorderColor at $D020: byte;
+vicBorderColor = 14;
+
+// ✅ USE for dynamic addresses: peek/poke
+let offset: byte = 5;
+poke($D020 + offset, 14);
+```
+
+**Use CPU intrinsics when:**
+- Implementing interrupt handlers
+- Precise timing control
+- Low-level system programming
+
+**Use optimization control when:**
+- Accessing memory-mapped I/O
+- Implementing timing-critical code
+- Preventing unwanted compiler optimizations
+
+### Intrinsic Implementation Notes
+
+All intrinsics are:
+- **Type-safe**: Parameter and return types are enforced
+- **Zero-overhead**: Map directly to machine code
+- **Inlined**: No function call overhead
+
+The compiler detects intrinsic calls during semantic analysis and generates specialized IL nodes instead of function call IL.
+
 ## Implementation Notes
 
 6502-specific features are implemented in:
 - `packages/compiler/src/lexer/` - Storage class tokens
 - `packages/compiler/src/parser/` - Storage class parsing
+- `packages/compiler/src/il/intrinsics/` - Intrinsic definitions and handlers
 - `packages/compiler/src/codegen/` - 6502 code generation
 
 See [Variables](10-variables.md), [Memory-Mapped](12-memory-mapped.md), and [Functions](11-functions.md) for detailed feature documentation.

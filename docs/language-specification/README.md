@@ -30,7 +30,7 @@ Blend65 provides structured programming, modularity, and a practical type system
 | [10-variables.md](10-variables.md) | Variable declarations, storage classes, mutability |
 | [11-functions.md](11-functions.md) | Function declarations, parameters, return statements, callbacks |
 | [12-memory-mapped.md](12-memory-mapped.md) | Memory-mapped variables (`@map`) - all 4 forms |
-| [13-6502-features.md](13-6502-features.md) | 6502-specific features and guidelines |
+| [13-6502-features.md](13-6502-features.md) | 6502-specific features, compiler intrinsics, and guidelines |
 
 ### Reference
 

@@ -37,6 +37,19 @@ import {
   ILHardwareReadInstruction,
   ILHardwareWriteInstruction,
   ILOptBarrierInstruction,
+  // Phase 5 additions
+  ILPeekwInstruction,
+  ILPokewInstruction,
+  ILLengthInstruction,
+  ILLoInstruction,
+  ILHiInstruction,
+  ILVolatileReadInstruction,
+  ILVolatileWriteInstruction,
+  ILCpuInstruction,
+  ILMapLoadFieldInstruction,
+  ILMapStoreFieldInstruction,
+  ILMapLoadRangeInstruction,
+  ILMapStoreRangeInstruction,
 } from './instructions.js';
 
 /**
@@ -1014,5 +1027,293 @@ export class ILBuilder {
    */
   emitOptBarrier(metadata: ILMetadata = {}): void {
     this.emit(new ILOptBarrierInstruction(this.nextId(), metadata));
+  }
+
+  // ===========================================================================
+  // Phase 5: Additional Intrinsic Instructions
+  // ===========================================================================
+
+  /**
+   * Emits a peekw instruction (read 16-bit word from address).
+   *
+   * @param address - Register containing the address
+   * @param metadata - Optional metadata
+   * @returns The result register containing the word read
+   */
+  emitPeekw(address: VirtualRegister, metadata: ILMetadata = {}): VirtualRegister {
+    const result = this.createRegister(IL_WORD);
+    this.emit(new ILPeekwInstruction(this.nextId(), address, result, metadata));
+    return result;
+  }
+
+  /**
+   * Emits a pokew instruction (write 16-bit word to address).
+   *
+   * @param address - Register containing the address
+   * @param value - Register containing the word value to write
+   * @param metadata - Optional metadata
+   */
+  emitPokew(
+    address: VirtualRegister,
+    value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ): void {
+    this.emit(new ILPokewInstruction(this.nextId(), address, value, metadata));
+  }
+
+  /**
+   * Emits a length instruction (get array/string length).
+   *
+   * @param arrayName - Name of the array
+   * @param metadata - Optional metadata
+   * @returns The result register containing the length
+   */
+  emitLength(arrayName: string, metadata: ILMetadata = {}): VirtualRegister {
+    const result = this.createRegister(IL_WORD);
+    this.emit(new ILLengthInstruction(this.nextId(), arrayName, result, metadata));
+    return result;
+  }
+
+  /**
+   * Emits a lo instruction (extract low byte of word).
+   *
+   * @param source - Register containing the word
+   * @param metadata - Optional metadata
+   * @returns The result register containing the low byte
+   */
+  emitLo(source: VirtualRegister, metadata: ILMetadata = {}): VirtualRegister {
+    const result = this.createRegister(IL_BYTE);
+    this.emit(new ILLoInstruction(this.nextId(), source, result, metadata));
+    return result;
+  }
+
+  /**
+   * Emits a hi instruction (extract high byte of word).
+   *
+   * @param source - Register containing the word
+   * @param metadata - Optional metadata
+   * @returns The result register containing the high byte
+   */
+  emitHi(source: VirtualRegister, metadata: ILMetadata = {}): VirtualRegister {
+    const result = this.createRegister(IL_BYTE);
+    this.emit(new ILHiInstruction(this.nextId(), source, result, metadata));
+    return result;
+  }
+
+  /**
+   * Emits a volatile read instruction.
+   *
+   * @param address - Register containing the address
+   * @param metadata - Optional metadata
+   * @returns The result register containing the byte read
+   */
+  emitVolatileRead(address: VirtualRegister, metadata: ILMetadata = {}): VirtualRegister {
+    const result = this.createRegister(IL_BYTE);
+    this.emit(new ILVolatileReadInstruction(this.nextId(), address, result, metadata));
+    return result;
+  }
+
+  /**
+   * Emits a volatile write instruction.
+   *
+   * @param address - Register containing the address
+   * @param value - Register containing the value
+   * @param metadata - Optional metadata
+   */
+  emitVolatileWrite(
+    address: VirtualRegister,
+    value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ): void {
+    this.emit(new ILVolatileWriteInstruction(this.nextId(), address, value, metadata));
+  }
+
+  // ===========================================================================
+  // Phase 5: CPU Instruction Intrinsics
+  // ===========================================================================
+
+  /**
+   * Emits a SEI instruction (set interrupt disable).
+   *
+   * @param metadata - Optional metadata
+   */
+  emitSei(metadata: ILMetadata = {}): void {
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_SEI, null, metadata));
+  }
+
+  /**
+   * Emits a CLI instruction (clear interrupt disable).
+   *
+   * @param metadata - Optional metadata
+   */
+  emitCli(metadata: ILMetadata = {}): void {
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_CLI, null, metadata));
+  }
+
+  /**
+   * Emits a NOP instruction (no operation).
+   *
+   * @param metadata - Optional metadata
+   */
+  emitNop(metadata: ILMetadata = {}): void {
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_NOP, null, metadata));
+  }
+
+  /**
+   * Emits a BRK instruction (software interrupt).
+   *
+   * @param metadata - Optional metadata
+   */
+  emitBrk(metadata: ILMetadata = {}): void {
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_BRK, null, metadata));
+  }
+
+  /**
+   * Emits a PHA instruction (push accumulator to stack).
+   *
+   * @param metadata - Optional metadata
+   */
+  emitPha(metadata: ILMetadata = {}): void {
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_PHA, null, metadata));
+  }
+
+  /**
+   * Emits a PLA instruction (pull accumulator from stack).
+   *
+   * @param metadata - Optional metadata
+   * @returns The result register containing the byte pulled
+   */
+  emitPla(metadata: ILMetadata = {}): VirtualRegister {
+    const result = this.createRegister(IL_BYTE);
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_PLA, result, metadata));
+    return result;
+  }
+
+  /**
+   * Emits a PHP instruction (push processor status to stack).
+   *
+   * @param metadata - Optional metadata
+   */
+  emitPhp(metadata: ILMetadata = {}): void {
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_PHP, null, metadata));
+  }
+
+  /**
+   * Emits a PLP instruction (pull processor status from stack).
+   *
+   * @param metadata - Optional metadata
+   */
+  emitPlp(metadata: ILMetadata = {}): void {
+    this.emit(new ILCpuInstruction(this.nextId(), ILOpcode.CPU_PLP, null, metadata));
+  }
+
+  // ===========================================================================
+  // Phase 5: @map Struct Access Instructions
+  // ===========================================================================
+
+  /**
+   * Emits a map load field instruction.
+   *
+   * @param structName - Name of the @map struct
+   * @param fieldName - Name of the field to load
+   * @param address - Hardware address of the field
+   * @param metadata - Optional metadata
+   * @returns The result register
+   */
+  emitMapLoadField(
+    structName: string,
+    fieldName: string,
+    address: number,
+    metadata: ILMetadata = {},
+  ): VirtualRegister {
+    const result = this.createRegister(IL_BYTE);
+    this.emit(
+      new ILMapLoadFieldInstruction(this.nextId(), structName, fieldName, address, result, metadata),
+    );
+    return result;
+  }
+
+  /**
+   * Emits a map store field instruction.
+   *
+   * @param structName - Name of the @map struct
+   * @param fieldName - Name of the field to store to
+   * @param address - Hardware address of the field
+   * @param value - Register containing the value to store
+   * @param metadata - Optional metadata
+   */
+  emitMapStoreField(
+    structName: string,
+    fieldName: string,
+    address: number,
+    value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ): void {
+    this.emit(
+      new ILMapStoreFieldInstruction(this.nextId(), structName, fieldName, address, value, metadata),
+    );
+  }
+
+  /**
+   * Emits a map load range instruction.
+   *
+   * @param rangeName - Name of the @map range
+   * @param baseAddress - Base hardware address
+   * @param endAddress - End hardware address
+   * @param index - Register containing the index
+   * @param metadata - Optional metadata
+   * @returns The result register
+   */
+  emitMapLoadRange(
+    rangeName: string,
+    baseAddress: number,
+    endAddress: number,
+    index: VirtualRegister,
+    metadata: ILMetadata = {},
+  ): VirtualRegister {
+    const result = this.createRegister(IL_BYTE);
+    this.emit(
+      new ILMapLoadRangeInstruction(
+        this.nextId(),
+        rangeName,
+        baseAddress,
+        endAddress,
+        index,
+        result,
+        metadata,
+      ),
+    );
+    return result;
+  }
+
+  /**
+   * Emits a map store range instruction.
+   *
+   * @param rangeName - Name of the @map range
+   * @param baseAddress - Base hardware address
+   * @param endAddress - End hardware address
+   * @param index - Register containing the index
+   * @param value - Register containing the value to store
+   * @param metadata - Optional metadata
+   */
+  emitMapStoreRange(
+    rangeName: string,
+    baseAddress: number,
+    endAddress: number,
+    index: VirtualRegister,
+    value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ): void {
+    this.emit(
+      new ILMapStoreRangeInstruction(
+        this.nextId(),
+        rangeName,
+        baseAddress,
+        endAddress,
+        index,
+        value,
+        metadata,
+      ),
+    );
   }
 }

@@ -1,5 +1,6 @@
 # Blend65 Language Files
-*.blend linguist-language=js linguist-detectable=true
+*.blend linguist-language=JavaScript linguist-detectable=true
+*.bl65 linguist-language=JavaScript linguist-detectable=true
 
 # Documentation
 *.md linguist-documentation=true linguist-detectable=true

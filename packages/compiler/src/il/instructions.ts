@@ -393,6 +393,10 @@ const SIDE_EFFECT_OPCODES = new Set<ILOpcode>([
   ILOpcode.CPU_BRK,
   ILOpcode.CPU_PHA,
   ILOpcode.CPU_PHP,
+  // v2.0.1: Added missing side-effect opcodes to prevent incorrect DCE
+  ILOpcode.CPU_NOP, // Used for timing - must not be eliminated
+  ILOpcode.CPU_PLA, // Modifies stack pointer - must stay paired with PHA
+  ILOpcode.CPU_PLP, // Modifies processor flags and stack - must stay paired with PHP
 ]);
 
 /**
@@ -1533,5 +1537,642 @@ export class ILOptBarrierInstruction extends ILInstruction {
   /** @inheritdoc */
   toString(): string {
     return 'OPT_BARRIER';
+  }
+}
+
+// =============================================================================
+// Additional Intrinsic Instructions (Phase 5)
+// =============================================================================
+
+/**
+ * Intrinsic peekw instruction - reads a 16-bit word from a memory address.
+ *
+ * Format: result = INTRINSIC_PEEKW address
+ *
+ * Reads two bytes from memory in little-endian order.
+ *
+ * @example
+ * ```typescript
+ * // v1 = INTRINSIC_PEEKW v0 (read word from address in v0)
+ * const peekw = new ILPeekwInstruction(0, v0, v1);
+ * ```
+ */
+export class ILPeekwInstruction extends ILInstruction {
+  /**
+   * Creates a peekw instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param address - Register containing the address to read from
+   * @param result - Result register for the word read
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly address: VirtualRegister,
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.INTRINSIC_PEEKW, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.address];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.address];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = INTRINSIC_PEEKW ${this.address}`;
+  }
+}
+
+/**
+ * Intrinsic pokew instruction - writes a 16-bit word to a memory address.
+ *
+ * Format: INTRINSIC_POKEW address, value
+ *
+ * Writes two bytes to memory in little-endian order.
+ *
+ * @example
+ * ```typescript
+ * // INTRINSIC_POKEW v0, v1 (write word v1 to address in v0)
+ * const pokew = new ILPokewInstruction(0, v0, v1);
+ * ```
+ */
+export class ILPokewInstruction extends ILInstruction {
+  /**
+   * Creates a pokew instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param address - Register containing the address to write to
+   * @param value - Register containing the word value to write
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly address: VirtualRegister,
+    public readonly value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.INTRINSIC_POKEW, null, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.address, this.value];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.address, this.value];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `INTRINSIC_POKEW ${this.address}, ${this.value}`;
+  }
+}
+
+/**
+ * Intrinsic length instruction - gets the length of an array or string.
+ *
+ * Format: result = INTRINSIC_LENGTH arrayName
+ *
+ * @example
+ * ```typescript
+ * // v0 = INTRINSIC_LENGTH buffer
+ * const len = new ILLengthInstruction(0, 'buffer', v0);
+ * ```
+ */
+export class ILLengthInstruction extends ILInstruction {
+  /**
+   * Creates a length instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param arrayName - Name of the array to get length of
+   * @param result - Result register for the length
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly arrayName: string,
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.INTRINSIC_LENGTH, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = INTRINSIC_LENGTH ${this.arrayName}`;
+  }
+}
+
+/**
+ * Intrinsic lo instruction - extracts the low byte of a word.
+ *
+ * Format: result = INTRINSIC_LO source
+ *
+ * @example
+ * ```typescript
+ * // v1 = INTRINSIC_LO v0 (low byte of word in v0)
+ * const lo = new ILLoInstruction(0, v0, v1);
+ * ```
+ */
+export class ILLoInstruction extends ILInstruction {
+  /**
+   * Creates a lo instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param source - Register containing the word
+   * @param result - Result register for the low byte
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly source: VirtualRegister,
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.INTRINSIC_LO, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.source];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.source];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = INTRINSIC_LO ${this.source}`;
+  }
+}
+
+/**
+ * Intrinsic hi instruction - extracts the high byte of a word.
+ *
+ * Format: result = INTRINSIC_HI source
+ *
+ * @example
+ * ```typescript
+ * // v1 = INTRINSIC_HI v0 (high byte of word in v0)
+ * const hi = new ILHiInstruction(0, v0, v1);
+ * ```
+ */
+export class ILHiInstruction extends ILInstruction {
+  /**
+   * Creates a hi instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param source - Register containing the word
+   * @param result - Result register for the high byte
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly source: VirtualRegister,
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.INTRINSIC_HI, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.source];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.source];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = INTRINSIC_HI ${this.source}`;
+  }
+}
+
+/**
+ * Volatile read instruction - reads from memory with volatile semantics.
+ *
+ * Cannot be eliminated or reordered by the optimizer.
+ * Used for hardware registers and timing-critical code.
+ *
+ * Format: result = VOLATILE_READ address
+ *
+ * @example
+ * ```typescript
+ * // v1 = VOLATILE_READ v0
+ * const vread = new ILVolatileReadInstruction(0, v0, v1);
+ * ```
+ */
+export class ILVolatileReadInstruction extends ILInstruction {
+  /**
+   * Creates a volatile read instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param address - Register containing the address to read from
+   * @param result - Result register for the byte read
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly address: VirtualRegister,
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.VOLATILE_READ, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.address];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.address];
+  }
+
+  /**
+   * Volatile reads have side effects to prevent elimination.
+   */
+  override hasSideEffects(): boolean {
+    return true;
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = VOLATILE_READ ${this.address}`;
+  }
+}
+
+/**
+ * Volatile write instruction - writes to memory with volatile semantics.
+ *
+ * Cannot be eliminated or reordered by the optimizer.
+ * Used for hardware registers and timing-critical code.
+ *
+ * Format: VOLATILE_WRITE address, value
+ *
+ * @example
+ * ```typescript
+ * // VOLATILE_WRITE v0, v1
+ * const vwrite = new ILVolatileWriteInstruction(0, v0, v1);
+ * ```
+ */
+export class ILVolatileWriteInstruction extends ILInstruction {
+  /**
+   * Creates a volatile write instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param address - Register containing the address to write to
+   * @param value - Register containing the value to write
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly address: VirtualRegister,
+    public readonly value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.VOLATILE_WRITE, null, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.address, this.value];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.address, this.value];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `VOLATILE_WRITE ${this.address}, ${this.value}`;
+  }
+}
+
+// =============================================================================
+// CPU Instruction Intrinsics (Phase 5)
+// =============================================================================
+
+/**
+ * CPU instruction - maps directly to a 6502 instruction.
+ *
+ * These instructions cannot be eliminated or reordered.
+ * Used for interrupt control, timing, and stack operations.
+ *
+ * Supported opcodes:
+ * - CPU_SEI: Set interrupt disable (2 cycles)
+ * - CPU_CLI: Clear interrupt disable (2 cycles)
+ * - CPU_NOP: No operation (2 cycles)
+ * - CPU_BRK: Software interrupt (7 cycles)
+ * - CPU_PHA: Push accumulator (3 cycles)
+ * - CPU_PLA: Pull accumulator (4 cycles)
+ * - CPU_PHP: Push processor status (3 cycles)
+ * - CPU_PLP: Pull processor status (4 cycles)
+ *
+ * @example
+ * ```typescript
+ * // CPU_SEI (disable interrupts)
+ * const sei = new ILCpuInstruction(0, ILOpcode.CPU_SEI);
+ *
+ * // CPU_PLA (pull accumulator from stack)
+ * const pla = new ILCpuInstruction(1, ILOpcode.CPU_PLA, v0);
+ * ```
+ */
+export class ILCpuInstruction extends ILInstruction {
+  /**
+   * Cycle counts for each CPU instruction.
+   */
+  protected static readonly CYCLE_COUNTS: Record<string, number> = {
+    [ILOpcode.CPU_SEI]: 2,
+    [ILOpcode.CPU_CLI]: 2,
+    [ILOpcode.CPU_NOP]: 2,
+    [ILOpcode.CPU_BRK]: 7,
+    [ILOpcode.CPU_PHA]: 3,
+    [ILOpcode.CPU_PLA]: 4,
+    [ILOpcode.CPU_PHP]: 3,
+    [ILOpcode.CPU_PLP]: 4,
+  };
+
+  /**
+   * Creates a CPU instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param opcode - CPU instruction opcode
+   * @param result - Result register (only for PLA)
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    opcode: ILOpcode,
+    result: VirtualRegister | null = null,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, opcode, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [];
+  }
+
+  /**
+   * Gets the cycle count for this CPU instruction.
+   *
+   * @returns Number of 6502 cycles
+   */
+  getCycleCount(): number {
+    return ILCpuInstruction.CYCLE_COUNTS[this.opcode] ?? 2;
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    if (this.result) {
+      return `${this.result} = ${this.opcode}`;
+    }
+    return this.opcode;
+  }
+}
+
+// =============================================================================
+// @map Struct Access Instructions (Phase 5)
+// =============================================================================
+
+/**
+ * Load from @map struct field instruction.
+ *
+ * Format: result = MAP_LOAD_FIELD structName.fieldName
+ *
+ * Used for accessing fields of memory-mapped hardware structs.
+ *
+ * @example
+ * ```typescript
+ * // v0 = MAP_LOAD_FIELD vic.borderColor
+ * const load = new ILMapLoadFieldInstruction(0, 'vic', 'borderColor', 0xD020, v0);
+ * ```
+ */
+export class ILMapLoadFieldInstruction extends ILInstruction {
+  /**
+   * Creates a map load field instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param structName - Name of the @map struct
+   * @param fieldName - Name of the field to load
+   * @param address - Absolute hardware address of the field
+   * @param result - Result register
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly structName: string,
+    public readonly fieldName: string,
+    public readonly address: number,
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.MAP_LOAD_FIELD, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = MAP_LOAD_FIELD ${this.structName}.${this.fieldName} ($${this.address.toString(16).toUpperCase()})`;
+  }
+}
+
+/**
+ * Store to @map struct field instruction.
+ *
+ * Format: MAP_STORE_FIELD structName.fieldName, value
+ *
+ * Used for writing to fields of memory-mapped hardware structs.
+ *
+ * @example
+ * ```typescript
+ * // MAP_STORE_FIELD vic.borderColor, v0
+ * const store = new ILMapStoreFieldInstruction(0, 'vic', 'borderColor', 0xD020, v0);
+ * ```
+ */
+export class ILMapStoreFieldInstruction extends ILInstruction {
+  /**
+   * Creates a map store field instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param structName - Name of the @map struct
+   * @param fieldName - Name of the field to store to
+   * @param address - Absolute hardware address of the field
+   * @param value - Register containing the value to store
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly structName: string,
+    public readonly fieldName: string,
+    public readonly address: number,
+    public readonly value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.MAP_STORE_FIELD, null, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.value];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.value];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `MAP_STORE_FIELD ${this.structName}.${this.fieldName} ($${this.address.toString(16).toUpperCase()}), ${this.value}`;
+  }
+}
+
+/**
+ * Load from @map range instruction.
+ *
+ * Format: result = MAP_LOAD_RANGE structName[index]
+ *
+ * Used for indexed access to memory-mapped ranges (e.g., sprite positions).
+ *
+ * @example
+ * ```typescript
+ * // v1 = MAP_LOAD_RANGE spriteX, v0
+ * const load = new ILMapLoadRangeInstruction(0, 'spriteX', 0xD000, 0xD007, v0, v1);
+ * ```
+ */
+export class ILMapLoadRangeInstruction extends ILInstruction {
+  /**
+   * Creates a map load range instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param rangeName - Name of the @map range
+   * @param baseAddress - Base hardware address of the range
+   * @param endAddress - End hardware address of the range
+   * @param index - Register containing the index
+   * @param result - Result register
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly rangeName: string,
+    public readonly baseAddress: number,
+    public readonly endAddress: number,
+    public readonly index: VirtualRegister,
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.MAP_LOAD_RANGE, result, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.index];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.index];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = MAP_LOAD_RANGE ${this.rangeName}[${this.index}] ($${this.baseAddress.toString(16).toUpperCase()}-$${this.endAddress.toString(16).toUpperCase()})`;
+  }
+}
+
+/**
+ * Store to @map range instruction.
+ *
+ * Format: MAP_STORE_RANGE structName[index], value
+ *
+ * Used for indexed writes to memory-mapped ranges (e.g., sprite positions).
+ *
+ * @example
+ * ```typescript
+ * // MAP_STORE_RANGE spriteX, v0, v1
+ * const store = new ILMapStoreRangeInstruction(0, 'spriteX', 0xD000, 0xD007, v0, v1);
+ * ```
+ */
+export class ILMapStoreRangeInstruction extends ILInstruction {
+  /**
+   * Creates a map store range instruction.
+   *
+   * @param id - Unique instruction ID
+   * @param rangeName - Name of the @map range
+   * @param baseAddress - Base hardware address of the range
+   * @param endAddress - End hardware address of the range
+   * @param index - Register containing the index
+   * @param value - Register containing the value to store
+   * @param metadata - Optional metadata
+   */
+  constructor(
+    id: number,
+    public readonly rangeName: string,
+    public readonly baseAddress: number,
+    public readonly endAddress: number,
+    public readonly index: VirtualRegister,
+    public readonly value: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.MAP_STORE_RANGE, null, metadata);
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    return [this.index, this.value];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    return [this.index, this.value];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `MAP_STORE_RANGE ${this.rangeName}[${this.index}] ($${this.baseAddress.toString(16).toUpperCase()}-$${this.endAddress.toString(16).toUpperCase()}), ${this.value}`;
   }
 }
