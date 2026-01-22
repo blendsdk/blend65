@@ -164,7 +164,10 @@ export function sizeof(type: Type): byte;
  * at compile time and replaced with a constant value. No runtime code is
  * generated for this function.
  *
- * @param array - Array or string to get length of
+ * The compiler performs special type checking for this intrinsic - it accepts
+ * any array type (byte[], word[], etc.) or string type.
+ *
+ * @param value - Array or string to get length of
  * @returns Number of elements in the array or characters in the string
  *
  * @intrinsic intrinsic_length
@@ -176,6 +179,10 @@ export function sizeof(type: Type): byte;
  * let count = length(scores); // Returns 5 (compile-time constant)
  *
  * @example
+ * let positions: word[] = [100, 200, 300];
+ * let count = length(positions); // Returns 3 (compile-time constant)
+ *
+ * @example
  * let message: string = "Hello, C64!";
  * let len = length(message); // Returns 11 (compile-time constant)
  *
@@ -185,7 +192,7 @@ export function sizeof(type: Type): byte;
  *   processItem(items[i]);
  * next i
  */
-export function length<T>(array: T[]): word;
+export function length(value: Array): word;
 
 // ============================================================================
 // Byte Extraction Utilities

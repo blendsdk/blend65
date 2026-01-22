@@ -35,7 +35,7 @@ import {
   MatchStatement,
 } from '../../ast/nodes.js';
 import { ILStorageClass } from '../function.js';
-import { IL_VOID } from '../types.js';
+import { IL_BYTE, IL_VOID, IL_WORD } from '../types.js';
 import { ILModuleGenerator } from './modules.js';
 
 // =============================================================================
@@ -165,11 +165,109 @@ export class ILDeclarationGenerator extends ILModuleGenerator {
   /**
    * Gets information about an intrinsic function.
    *
+   * Checks both registered intrinsics (from stub functions) and built-in
+   * intrinsics like peek, poke, peekw, pokew, sizeof, length, lo, hi, etc.
+   *
    * @param name - Function name
    * @returns Intrinsic info, or undefined if not an intrinsic
    */
   public getIntrinsicInfo(name: string): IntrinsicInfo | undefined {
-    return this.intrinsics.get(name);
+    // Check registered intrinsics first (from stub functions)
+    const registered = this.intrinsics.get(name);
+    if (registered) {
+      return registered;
+    }
+
+    // Check built-in intrinsics
+    return this.getBuiltinIntrinsicInfo(name);
+  }
+
+  /**
+   * Gets information about a built-in intrinsic function.
+   *
+   * Built-in intrinsics are recognized automatically without
+   * requiring stub function declarations.
+   *
+   * @param name - Function name
+   * @returns Intrinsic info, or undefined if not a built-in intrinsic
+   */
+  protected getBuiltinIntrinsicInfo(name: string): IntrinsicInfo | undefined {
+    // Built-in intrinsics recognized by the generator
+    // These don't require stub function declarations
+    switch (name) {
+      // Memory intrinsics
+      case 'peek':
+        return {
+          name: 'peek',
+          parameterTypes: [IL_WORD], // address
+          returnType: IL_BYTE,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'poke':
+        return {
+          name: 'poke',
+          parameterTypes: [IL_WORD, IL_BYTE], // address, value
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'peekw':
+        return {
+          name: 'peekw',
+          parameterTypes: [IL_WORD], // address
+          returnType: IL_WORD,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'pokew':
+        return {
+          name: 'pokew',
+          parameterTypes: [IL_WORD, IL_WORD], // address, value
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+
+      // Compile-time intrinsics
+      case 'sizeof':
+        return {
+          name: 'sizeof',
+          parameterTypes: [], // Takes a type, not a value
+          returnType: IL_WORD,
+          isCompileTime: true,
+          location: this.dummyLocation(),
+        };
+      case 'length':
+        return {
+          name: 'length',
+          parameterTypes: [], // Takes an array
+          returnType: IL_WORD,
+          isCompileTime: true,
+          location: this.dummyLocation(),
+        };
+
+      // Byte extraction intrinsics
+      case 'lo':
+        return {
+          name: 'lo',
+          parameterTypes: [IL_WORD], // word value
+          returnType: IL_BYTE,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'hi':
+        return {
+          name: 'hi',
+          parameterTypes: [IL_WORD], // word value
+          returnType: IL_BYTE,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+
+      default:
+        return undefined;
+    }
   }
 
   /**

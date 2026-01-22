@@ -291,7 +291,7 @@ end function`;
 // NOTE: These tests are skipped until intrinsics are registered in the generator
 // =============================================================================
 
-describe.skip('ILExpressionGenerator - Call Expressions: Intrinsics', () => {
+describe('ILExpressionGenerator - Call Expressions: Intrinsics', () => {
   let generator: ILExpressionGenerator;
 
   beforeEach(() => {
@@ -490,7 +490,7 @@ describe('ILExpressionGenerator - Call Expressions: C64 Patterns', () => {
     generator = createGenerator();
   });
 
-  describe.skip('C64 hardware access patterns', () => {
+  describe('C64 hardware access patterns', () => {
     it('should generate peek for reading VIC-II register', () => {
       const source = `module test
 function readRasterLine(): byte
@@ -563,15 +563,29 @@ end function`;
       expect(findInstructions(result.module.getFunction('gameLoop')!, ILOpcode.CALL_VOID).length).toBe(3);
     });
 
-    it.skip('should generate call for waitForRaster pattern', () => {
+    // Test for intrinsic in while loop condition
+    // This test verifies that peek() in a while condition generates INTRINSIC_PEEK
+    // Note: Blend65 while loops do NOT use 'do' keyword - syntax is: while expr ... end while
+    it('should generate call for waitForRaster pattern', () => {
       const source = `module test
 function waitForRaster(line: byte)
-  while peek($D012) != line do
+  while peek($D012) != line
   end while
 end function`;
+
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
-      expect(hasInstruction(result.module.getFunction('waitForRaster')!, ILOpcode.INTRINSIC_PEEK)).toBe(true);
+
+      // Verify the function exists and has the expected instructions
+      const func = result.module.getFunction('waitForRaster');
+      expect(func).toBeDefined();
+
+      // The key test: INTRINSIC_PEEK should be generated for peek() in the while condition
+      expect(hasInstruction(func!, ILOpcode.INTRINSIC_PEEK)).toBe(true);
+
+      // Also verify the comparison and branch are generated correctly
+      expect(hasInstruction(func!, ILOpcode.CMP_NE)).toBe(true);
+      expect(hasInstruction(func!, ILOpcode.BRANCH)).toBe(true);
     });
   });
 });

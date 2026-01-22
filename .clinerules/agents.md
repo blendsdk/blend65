@@ -153,6 +153,7 @@ The language specification and code.md define the EXACT requirements for this pr
 - Create explicit dependencies between subtasks
 - Document clear completion criteria for each subtask
 - Apply this rule in **BOTH Plan Mode AND Act Mode**
+- **CRITICALLY IMPORTANT** Break down tasks in tiny, small, incremental, and manageable steps to prevent a.i. context limitations.
 
 ### How to Split Tasks:
 
@@ -275,6 +276,161 @@ Step 7: Implement function call type checking
 5. ✅ **COMPLETE EACH STEP** - Verify before moving to next
 
 **This rule is ABSOLUTELY CRITICAL for Act Mode success. Task splitting prevents context window overflow and ensures complete, high-quality implementations.**
+
+---
+
+## **🚨 ULTRA-CRITICAL RULE: MULTI-SESSION TASK EXECUTION 🚨**
+
+**Medium to large tasks MUST be executed across MULTIPLE SESSIONS. This is ABSOLUTELY NON-NEGOTIABLE.**
+
+### **Why Multi-Session Execution is MANDATORY:**
+
+1. **AI Context Limitations** - Large tasks exceed context window capacity
+2. **Quality Assurance** - Smaller sessions produce higher quality output
+3. **Error Prevention** - Prevents incomplete or broken implementations
+4. **Progress Tracking** - Clear milestones between sessions
+5. **Recovery** - Easier to recover from mistakes in smaller increments
+
+### **Session Execution Rules:**
+
+**🔴 CRITICAL: One Session = One Small Deliverable**
+
+1. **✅ Each session MUST complete a SINGLE, focused deliverable**
+   - One test file section (15-30 tests max)
+   - One feature implementation
+   - One component or module
+   - One refactoring task
+
+2. **✅ Each session MUST end with `attempt_completion`**
+   - Present what was accomplished
+   - List what remains for future sessions
+   - Verify tests pass for completed work
+
+3. **✅ User MUST start new session for next deliverable**
+   - Fresh context window
+   - Clean conversation history
+   - New task_progress checklist
+
+### **When to Split Into Multiple Sessions:**
+
+**A task REQUIRES multiple sessions when ANY of these apply:**
+
+| Criteria | Threshold | Sessions Needed |
+|----------|-----------|-----------------|
+| Test count | >30 tests | 1 session per 15-30 tests |
+| Files | >3 files | 1 session per 2-3 files |
+| Lines of code | >200 lines | 1 session per 100-200 lines |
+| Complexity | High | Split by logical concern |
+| Time estimate | >30 minutes | 1 session per 20-30 min |
+
+### **Multi-Session Workflow:**
+
+**Session N:**
+```
+1. Start with: clear && scripts/agent.sh start
+2. Review task_progress from previous session (if applicable)
+3. Execute ONLY the current session's deliverable
+4. Run tests: clear && yarn clean && yarn build && yarn test
+5. End with: clear && scripts/agent.sh finished
+6. Call attempt_completion with session results
+7. List remaining work for future sessions
+8. User runs /compact
+```
+
+**User Action Between Sessions:**
+```
+1. Review completed work
+2. Start new conversation/task
+3. Reference this plan for next session
+```
+
+### **Example: 100 Test Implementation Task**
+
+**❌ WRONG - Attempting All in One Session:**
+```
+Session 1: "Implement all 100 tests"
+→ WILL FAIL: Context overflow, incomplete tests, quality issues
+```
+
+**✅ CORRECT - Multi-Session Approach:**
+```
+Session 1: Implement tests 1-25 (Registry tests)
+→ attempt_completion, /compact
+
+Session 2: Implement tests 26-50 (Memory intrinsics)
+→ attempt_completion, /compact
+
+Session 3: Implement tests 51-75 (CPU intrinsics)
+→ attempt_completion, /compact
+
+Session 4: Implement tests 76-100 (Integration tests)
+→ attempt_completion, /compact
+```
+
+### **Session Deliverable Guidelines:**
+
+| Task Type | Max Per Session | Session Deliverable |
+|-----------|-----------------|---------------------|
+| Unit Tests | 15-30 tests | One describe() block |
+| Implementation | 100-200 lines | One method/function |
+| Refactoring | 2-3 files | One concern |
+| Documentation | 1-2 sections | One topic |
+| Bug Fixes | 1-2 bugs | One fix with tests |
+
+### **Multi-Session Progress Tracking:**
+
+**At the START of each session, include:**
+```markdown
+## Multi-Session Progress
+
+**Overall Task:** [Task name]
+**Total Sessions Planned:** [N]
+**Current Session:** [X of N]
+**Previous Sessions Completed:**
+- Session 1: ✅ [Deliverable 1]
+- Session 2: ✅ [Deliverable 2]
+- Session 3: ⏳ [Current deliverable]
+
+**This Session's Goal:** [Specific deliverable]
+```
+
+**At the END of each session, include:**
+```markdown
+## Session Complete
+
+**Completed:** [What was done]
+**Tests Added:** [Count]
+**Tests Passing:** [Status]
+**Remaining Sessions:**
+- Session 4: [Deliverable 4]
+- Session 5: [Deliverable 5]
+
+**User Action:** Start new task for Session 4
+```
+
+### **Enforcement:**
+
+**This rule is ABSOLUTELY MANDATORY and NON-NEGOTIABLE.**
+
+**If you find yourself:**
+- ❌ Writing more than 30 tests in one session → STOP, split
+- ❌ Touching more than 3 files → STOP, split
+- ❌ Writing more than 200 lines → STOP, split
+- ❌ Working for what feels like a long time → STOP, split
+
+**Immediate Action:**
+1. 🛑 STOP current work
+2. 📋 Document what's complete
+3. ✅ Verify completed work passes tests
+4. 🏁 Call attempt_completion with partial results
+5. 📝 List remaining work for next session
+
+**This ensures:**
+- ✅ High-quality, complete implementations
+- ✅ No context window overflow
+- ✅ Clear progress tracking
+- ✅ Easy error recovery
+- ✅ Maintainable conversation history
 
 ---
 
@@ -572,9 +728,9 @@ clear && scripts/agent.sh finished
 
 **CRITICAL:** After successfully completing any task in Act Mode, compact the conversation to optimize context management:
 
-**Post-Completion Requirement:**
+**CRITICAL: Post-Completion Requirement:**
 
-1. **MUST run `/compact` after `attempt_completion` is successful**
+1. **CRITICAL: MUST run `/compact` after `attempt_completion` is successful**
    - This MUST be done after the task is fully verified and completed
    - Compacts the conversation history to optimize AI context
    - Ensures efficient context management for future tasks

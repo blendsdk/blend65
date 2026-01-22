@@ -9,14 +9,23 @@
  * - ILModuleGenerator: Module-level generation (imports, globals, functions)
  * - ILDeclarationGenerator: Function body setup, parameter mapping, intrinsics
  * - ILStatementGenerator: Statement generation (if/while/for/return/break/continue)
- * - Future: ILExpressionGenerator and final ILGenerator class
+ * - ILExpressionGenerator: Expression generation (literals, binary, unary, calls)
+ * - ILGenerator: Final generator with SSA construction integration
  *
- * Current usage (until expression generator is implemented):
+ * Usage:
  * ```typescript
- * import { ILStatementGenerator } from '@blend65/compiler/il/generator';
- * 
- * const generator = new ILStatementGenerator(symbolTable, targetConfig);
+ * import { ILGenerator } from '@blend65/compiler/il/generator';
+ *
+ * const generator = new ILGenerator(symbolTable, targetConfig, {
+ *   enableSSA: true,      // Convert IL to SSA form (default: true)
+ *   verifySSA: true,      // Verify SSA invariants (default: true)
+ * });
+ *
  * const result = generator.generateModule(program);
+ *
+ * if (result.success && result.ssaEnabled) {
+ *   console.log(`SSA: ${result.ssaSuccessCount} functions converted`);
+ * }
  * ```
  *
  * @module il/generator
@@ -76,6 +85,19 @@ export {
 // =============================================================================
 
 export {
-  // Expression generator class - the most complete generator in the chain
+  // Expression generator class
   ILExpressionGenerator,
 } from './expressions.js';
+
+// =============================================================================
+// Final Generator with SSA Integration
+// =============================================================================
+
+export {
+  // Final generator class with SSA construction
+  ILGenerator,
+  // Options type
+  type ILGeneratorOptions,
+  // Result type with SSA info
+  type ILGenerationResult,
+} from './generator.js';

@@ -150,7 +150,7 @@ export {
 } from './validator.js';
 
 // =============================================================================
-// Generator (Phase 3)
+// Generator (Phase 3) - COMPLETE with SSA Integration
 // =============================================================================
 
 export {
@@ -163,4 +163,68 @@ export {
   // Module generator
   ILModuleGenerator,
   type ModuleGenerationResult,
+  // Final generator with SSA integration
+  ILGenerator,
+  type ILGeneratorOptions,
+  type ILGenerationResult,
 } from './generator/index.js';
+
+// =============================================================================
+// SSA Construction (Phase 6) - COMPLETE
+// =============================================================================
+
+// Dominator Tree (Sessions 2-4)
+export {
+  type DominatorInfo,
+  DominatorTree,
+  computeDominators,
+  computeIntersection,
+} from './ssa/index.js';
+
+// Dominance Frontiers (Sessions 5-6)
+export { DominanceFrontier, computeFrontiers } from './ssa/index.js';
+
+// Phi Placement (Sessions 7-9)
+export {
+  type VariableDefInfo,
+  type PhiPlacementInfo,
+  type PhiPlacementResult,
+  type PhiPlacementStats,
+  PhiPlacer,
+} from './ssa/index.js';
+
+// Variable Renaming (Session 10)
+export {
+  type SSAName,
+  type RenamedInstruction,
+  type SSAPhiOperand,
+  type RenamedPhi,
+  type SSARenamingResult,
+  type SSARenamingStats,
+  VersionStackManager,
+  SSARenamer,
+  formatSSAName,
+  parseSSAName,
+  renameVariables,
+} from './ssa/index.js';
+
+// SSA Verification (Session 11)
+export {
+  SSAVerificationErrorCode,
+  type SSAVerificationError,
+  type SSAVerificationResult,
+  type SSAVerificationStats,
+  SSAVerifier,
+  verifySSA,
+} from './ssa/index.js';
+
+// SSA Constructor (Session 12)
+export {
+  SSAConstructionPhase,
+  type SSAConstructionError,
+  type SSAConstructionStats,
+  type SSAConstructionResult,
+  type SSAConstructionOptions,
+  SSAConstructor,
+  constructSSA,
+} from './ssa/index.js';
