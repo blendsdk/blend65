@@ -450,6 +450,33 @@ packages/compiler/src/optimizer/
 
 ---
 
+## Target Architecture Decision
+
+> **Decision Date**: January 22, 2026  
+> **Status**: CONFIRMED ✅
+
+**Two-Target Architecture**: All heavy optimization happens at the IL level. Target emitters are simple translators.
+
+```
+Blend65 Source → Lexer → Parser → AST → IL Generator
+                                          ↓
+                            🔥 IL OPTIMIZATION PIPELINE 🔥
+                                          ↓
+                    ┌─────────────────────┴─────────────────────┐
+                    ↓                                           ↓
+          ACME Target (.asm)                       Native Target (.prg)
+          ~500 LOC                                 ~1500 LOC
+          For: libraries, integration             For: production builds
+```
+
+**Why Two Targets:**
+- **ACME**: Text assembly output for library distribution, integration with existing projects, debugging
+- **Native**: Direct binary output with address-aware optimizations, branch relaxation, page boundary placement
+
+**Why Not KickAssembler**: Removed from consideration - ACME covers integration use cases sufficiently.
+
+---
+
 ## Dependencies
 
 ```
@@ -459,7 +486,7 @@ Optimizer (THIS PLAN)
     ↓
 Code Generator (FUTURE)
     ↓
-Output (PRG/ACME/KickAssembler)
+Output (ACME .asm OR Native .prg)
 ```
 
 ---
