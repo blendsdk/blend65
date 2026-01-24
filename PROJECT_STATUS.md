@@ -8,9 +8,15 @@
 
 ## What is Blend65?
 
-Blend65 is a modern programming language and compiler designed specifically for creating software for the **Commodore 64** (and related 8-bit computers). It allows developers to write programs using a familiar, TypeScript-like syntax while targeting the classic 6502 processor.
+Blend65 is a modern programming language and compiler designed specifically for creating software for the **Commodore 64** (and related 8-bit computers using the 6502 processor).
 
-**Think of it as:** A way to write retro games and demos using modern programming tools.
+**Design Philosophy:**
+- **Explicit over Implicit** - Memory placement, types, and control flow are always explicit
+- **Zero Cost Abstractions** - High-level constructs compile to efficient 6502 code
+- **Hardware First** - Language features map directly to 6502 capabilities
+- **Readable Assembly Alternative** - More maintainable than raw assembly, as efficient as hand-written code
+
+**Think of it as:** A structured, type-safe alternative to 6502 assembly that gives you direct hardware control.
 
 ---
 
@@ -54,13 +60,15 @@ Blend65 is a modern programming language and compiler designed specifically for 
 
 ```js
 // A simple Blend65 program
+module Main
+
 @map borderColor at $D020: byte;
 @map backgroundColor at $D021: byte;
 
-function main(): void {
-    borderColor = 0;   // Black border
-    backgroundColor = 6; // Blue background
-}
+export function main(): void
+    borderColor = 0;      // Black border
+    backgroundColor = 6;  // Blue background
+end function
 ```
 
 ---
