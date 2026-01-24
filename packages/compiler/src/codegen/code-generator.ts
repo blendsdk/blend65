@@ -31,6 +31,7 @@
  */
 
 import type { ILModule } from '../il/module.js';
+import type { AsmModule } from '../asm-il/types.js';
 import type { CodegenOptions, CodegenResult } from './types.js';
 import { C64_BASIC_START, C64_CODE_START } from './types.js';
 import { generateBasicStub } from './basic-stub.js';
@@ -79,6 +80,10 @@ export class CodeGenerator extends InstructionGenerator {
    * Main entry point for code generation. Transforms IL into
    * assembly and optionally binary output.
    *
+   * **Phase 3e:**
+   * When `useAsmIL` is enabled in options, the generator also produces
+   * a structured AsmModule that can be optimized before emission.
+   *
    * @param module - IL module to generate code from
    * @param options - Code generation options
    * @returns Complete code generation result
@@ -107,6 +112,12 @@ export class CodeGenerator extends InstructionGenerator {
     // Reset state for new generation
     this.resetState();
 
+    // Phase 3e: Start ASM-IL generation if enabled
+    const loadAddress = options.loadAddress ?? C64_BASIC_START;
+    if (this.useAsmIL) {
+      this.startAsmILGeneration(module.name, loadAddress);
+    }
+
     // === GENERATION PIPELINE ===
 
     // 1. Generate file header
@@ -134,6 +145,12 @@ export class CodeGenerator extends InstructionGenerator {
 
     // === BUILD RESULT ===
 
+    // Phase 3e: Finish ASM-IL generation
+    let asmModule: AsmModule | undefined;
+    if (this.useAsmIL) {
+      asmModule = this.finishAsmILGeneration();
+    }
+
     // Get assembly text
     const assembly = this.assemblyWriter.toString();
 
@@ -154,8 +171,9 @@ export class CodeGenerator extends InstructionGenerator {
       viceLabels = this.generateViceLabels();
     }
 
-    // Build and return result
+    // Build and return result (includes AsmModule when useAsmIL is enabled)
     return {
+      module: asmModule,
       assembly,
       binary,
       sourceMap: options.sourceMap ? this.getSourceMapEntries() : undefined,
@@ -163,6 +181,40 @@ export class CodeGenerator extends InstructionGenerator {
       warnings: this.getWarnings(),
       stats: this.getStats(),
     };
+  }
+
+  /**
+   * Generate code with ASM-IL enabled
+   *
+   * Convenience method that enables ASM-IL generation and returns
+   * a result with the structured AsmModule.
+   *
+   * @param module - IL module to generate code from
+   * @param options - Code generation options
+   * @returns Complete code generation result with AsmModule
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   *
+   * @example
+   * ```typescript
+   * const result = codegen.generateWithAsmIL(ilModule, options);
+   * if (result.module) {
+   *   // Work with structured AsmModule
+   *   console.log(result.module.items.length);
+   * }
+   * ```
+   */
+  public generateWithAsmIL(module: ILModule, options: CodegenOptions): CodegenResult {
+    // Enable ASM-IL for this generation
+    const savedUseAsmIL = this.useAsmIL;
+    this.useAsmIL = true;
+
+    try {
+      return this.generate(module, options);
+    } finally {
+      // Restore previous setting
+      this.useAsmIL = savedUseAsmIL;
+    }
   }
 
   // ============================================

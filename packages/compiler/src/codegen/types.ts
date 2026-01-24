@@ -11,11 +11,17 @@
  * - {@link SourceMapEntry} - Source location mapping for debugging
  * - {@link CodegenStats} - Statistics about generated code
  *
+ * **ASM-IL Integration (Phase 3e):**
+ * The CodeGenerator now produces an AsmModule which is then
+ * emitted to text via AcmeEmitter. The assembly string in
+ * CodegenResult is still provided for backward compatibility.
+ *
  * @module codegen/types
  */
 
 import type { TargetConfig } from '../target/config.js';
 import type { SourceLocation } from '../ast/base.js';
+import type { AsmModule } from '../asm-il/types.js';
 
 /**
  * Output format for code generation
@@ -238,10 +244,29 @@ export interface CodegenStats {
  */
 export interface CodegenResult {
   /**
+   * ASM-IL module (primary structured output)
+   *
+   * The code generator now produces an AsmModule as its primary
+   * structured output. This module can be:
+   * - Optimized via AsmOptimizer
+   * - Emitted to text via AcmeEmitter
+   *
+   * The `assembly` string is derived from this module for
+   * backward compatibility.
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   */
+  module?: AsmModule;
+
+  /**
    * Generated assembly text
    *
    * ACME-compatible 6502 assembly source code.
    * Always generated regardless of format option.
+   *
+   * **Note:** This is now derived from the `module` via AcmeEmitter
+   * for backward compatibility. Prefer using `module` directly
+   * for programmatic access to the assembly structure.
    */
   assembly: string;
 

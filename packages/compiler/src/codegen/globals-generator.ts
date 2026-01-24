@@ -44,36 +44,19 @@ interface RamAllocation {
 }
 
 // ============================================
-// COMPILER RESERVED ZERO PAGE ADDRESSES
+// ZERO PAGE CONFIGURATION
 // ============================================
 
 /**
- * Reserved zero-page addresses for compiler temporaries.
+ * Zero-page configuration for code generation.
  *
- * These addresses are used by the code generator for internal operations
- * like indirect addressing for peek/poke with variable addresses.
- *
- * Layout (8 bytes reserved at start of safe ZP range):
- * - $02-$03: PTR0 - Primary pointer for indirect addressing
- * - $04-$05: PTR1 - Secondary pointer (for word operations)
- * - $06-$07: TMP0 - Temporary storage
- * - $08-$09: TMP1 - Additional temporary storage
- *
- * User ZP variables start at $0A after the reserved area.
+ * C64 safe zero-page range: $02-$8F (142 bytes).
+ * User variables start at $0A to leave room for potential
+ * future compiler temporaries if needed.
  */
 export const ZP_RESERVED = {
-  /** Primary pointer for indirect addressing (2 bytes: $02-$03) */
-  PTR0: 0x02,
-  /** Secondary pointer for word operations (2 bytes: $04-$05) */
-  PTR1: 0x04,
-  /** Temporary storage (2 bytes: $06-$07) */
-  TMP0: 0x06,
-  /** Additional temporary (2 bytes: $08-$09) */
-  TMP1: 0x08,
   /** First address available for user ZP variables */
   USER_START: 0x0a,
-  /** Total bytes reserved for compiler use */
-  RESERVED_SIZE: 8,
 } as const;
 
 /**
@@ -294,6 +277,8 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
   /**
    * Emits an initial value for a variable
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param global - Variable with initial value
    */
   protected emitInitialValue(global: ILGlobalVariable): void {
@@ -306,17 +291,34 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
     if (Array.isArray(value)) {
       // Array of bytes
       this.assemblyWriter.emitBytes(value, global.name);
+
+      // Phase 3e: AsmBuilder (when enabled)
+      if (this.useAsmIL) {
+        this.asmBuilder.byte(value, global.name);
+      }
     } else if (global.type.kind === 'word' || global.type.kind === 'pointer') {
       // Word value (16-bit)
       this.assemblyWriter.emitWords([value], global.name);
+
+      // Phase 3e: AsmBuilder (when enabled)
+      if (this.useAsmIL) {
+        this.asmBuilder.word([value], global.name);
+      }
     } else {
       // Byte value
       this.assemblyWriter.emitBytes([value], global.name);
+
+      // Phase 3e: AsmBuilder (when enabled)
+      if (this.useAsmIL) {
+        this.asmBuilder.byte([value], global.name);
+      }
     }
   }
 
   /**
    * Emits zero-fill for uninitialized variables
+   *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
    *
    * @param size - Number of bytes to fill
    * @param name - Variable name for comment
@@ -324,10 +326,25 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
   protected emitZeroFill(size: number, name: string): void {
     if (size === 1) {
       this.assemblyWriter.emitBytes([0], name);
+
+      // Phase 3e: AsmBuilder (when enabled)
+      if (this.useAsmIL) {
+        this.asmBuilder.byte([0], name);
+      }
     } else if (size === 2) {
       this.assemblyWriter.emitWords([0], name);
+
+      // Phase 3e: AsmBuilder (when enabled)
+      if (this.useAsmIL) {
+        this.asmBuilder.word([0], name);
+      }
     } else {
       this.assemblyWriter.emitFill(size, 0, name);
+
+      // Phase 3e: AsmBuilder (when enabled)
+      if (this.useAsmIL) {
+        this.asmBuilder.fill(size, 0, name);
+      }
     }
   }
 

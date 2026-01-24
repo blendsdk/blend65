@@ -2,10 +2,16 @@
  * Base Code Generator Class for Blend65 Compiler
  *
  * Provides fundamental code generation infrastructure:
- * - Helper class instances (AssemblyWriter, LabelGenerator, SourceMapper)
+ * - AsmModuleBuilder for structured ASM-IL output (Phase 3e)
+ * - Helper class instances (LabelGenerator, SourceMapper)
  * - Code generation options and warnings management
  * - Statistics tracking
  * - Utility methods for common patterns
+ *
+ * **Phase 3e Changes:**
+ * The code generator now uses AsmModuleBuilder to produce structured
+ * AsmModule output instead of raw assembly text. The AssemblyWriter
+ * is retained for backward compatibility during the transition.
  *
  * This is the foundation that all code generator layers build upon.
  *
@@ -18,6 +24,9 @@
 import type { ILModule } from '../il/module.js';
 import type { SourceLocation } from '../ast/base.js';
 import type { CodegenOptions, CodegenStats, SourceMapEntry } from './types.js';
+import type { AsmModule } from '../asm-il/types.js';
+import { AsmModuleBuilder } from '../asm-il/builder/index.js';
+import { createAcmeEmitter } from '../asm-il/emitters/index.js';
 import { AssemblyWriter } from './assembly-writer.js';
 import { LabelGenerator } from './label-generator.js';
 import { SourceMapper } from './source-mapper.js';
@@ -27,23 +36,57 @@ import { C64_CODE_START } from './types.js';
  * Abstract base class for code generation
  *
  * Provides core infrastructure used by all code generation phases:
- * - Assembly output via AssemblyWriter
+ * - AsmModuleBuilder for structured ASM-IL output (Phase 3e)
+ * - AssemblyWriter for legacy text output (backward compatibility)
  * - Label management via LabelGenerator
  * - Source mapping for debugging via SourceMapper
  * - Warning collection and statistics tracking
+ *
+ * **Phase 3e Architecture:**
+ * The generator produces an AsmModule via the builder, which is then
+ * emitted to text via AcmeEmitter. The AssemblyWriter is retained
+ * during the transition period but will be deprecated.
  *
  * This class cannot be instantiated directly - use the concrete CodeGenerator class.
  */
 export abstract class BaseCodeGenerator {
   // ============================================
-  // HELPER CLASS INSTANCES
+  // ASM-IL BUILDER (Phase 3e)
   // ============================================
 
   /**
-   * Assembly text generator
+   * ASM-IL module builder
+   *
+   * Primary output mechanism for code generation (Phase 3e).
+   * Produces structured AsmModule that can be optimized and emitted.
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   */
+  protected asmBuilder: AsmModuleBuilder;
+
+  /**
+   * Whether to use ASM-IL builder (Phase 3e) or legacy AssemblyWriter
+   *
+   * During transition, this allows gradual migration.
+   * Default: false (use legacy AssemblyWriter)
+   *
+   * Set to true to enable ASM-IL output.
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   */
+  protected useAsmIL: boolean = false;
+
+  // ============================================
+  // LEGACY HELPER CLASS INSTANCES
+  // ============================================
+
+  /**
+   * Assembly text generator (legacy)
    *
    * Used to emit ACME-compatible 6502 assembly code.
    * Handles formatting, indentation, and directives.
+   *
+   * @deprecated Use asmBuilder instead (Phase 3e transition)
    */
   protected assemblyWriter: AssemblyWriter;
 
@@ -112,9 +155,10 @@ export abstract class BaseCodeGenerator {
   /**
    * Creates a new base code generator
    *
-   * Initializes helper class instances.
+   * Initializes helper class instances including the ASM-IL builder.
    */
   constructor() {
+    this.asmBuilder = new AsmModuleBuilder('unnamed');
     this.assemblyWriter = new AssemblyWriter();
     this.labelGenerator = new LabelGenerator();
     this.sourceMapper = new SourceMapper();
@@ -130,6 +174,10 @@ export abstract class BaseCodeGenerator {
    * Called at the start of generate() to ensure clean state.
    */
   protected resetState(): void {
+    // Reset ASM-IL builder (Phase 3e)
+    this.asmBuilder.reset();
+
+    // Reset legacy systems
     this.assemblyWriter.reset();
     this.labelGenerator.reset();
     this.sourceMapper.reset();
@@ -143,6 +191,67 @@ export abstract class BaseCodeGenerator {
       totalSize: 0,
     };
     this.currentAddress = this.options.loadAddress ?? C64_CODE_START;
+  }
+
+  // ============================================
+  // ASM-IL GENERATION HELPERS (Phase 3e)
+  // ============================================
+
+  /**
+   * Starts a new ASM-IL generation session
+   *
+   * Configures the builder with module name and origin address.
+   * Call this at the beginning of code generation.
+   *
+   * @param moduleName - Name of the module being generated
+   * @param origin - Load address (origin) for the module
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   */
+  protected startAsmILGeneration(moduleName: string, origin: number): void {
+    this.asmBuilder = new AsmModuleBuilder(moduleName, origin);
+  }
+
+  /**
+   * Finishes ASM-IL generation and returns the module
+   *
+   * Adds footer and builds the final AsmModule.
+   *
+   * @returns The completed AsmModule
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   */
+  protected finishAsmILGeneration(): AsmModule {
+    return this.asmBuilder.build();
+  }
+
+  /**
+   * Emits the AsmModule to ACME assembly text
+   *
+   * Uses the AcmeEmitter to convert the AsmModule to text format.
+   *
+   * @param module - The AsmModule to emit
+   * @returns The ACME assembly text
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   */
+  protected emitAsmModuleToText(module: AsmModule): string {
+    const emitter = createAcmeEmitter();
+    const result = emitter.emit(module);
+    return result.text;
+  }
+
+  /**
+   * Gets the current AsmModule being built
+   *
+   * Useful for testing and inspection.
+   *
+   * @returns The AsmModule (calls build() on the builder)
+   *
+   * @since Phase 3e (CodeGenerator Rewire)
+   */
+  protected getCurrentAsmModule(): AsmModule {
+    return this.asmBuilder.build();
   }
 
   // ============================================
@@ -332,20 +441,37 @@ export abstract class BaseCodeGenerator {
   /**
    * Emits a section separator comment
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param title - Section title
    */
   protected emitSectionComment(title: string): void {
+    // Legacy: AssemblyWriter
     this.assemblyWriter.emitBlankLine();
     this.assemblyWriter.emitSectionHeader(title);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.blank();
+      this.asmBuilder.section(title);
+    }
   }
 
   /**
    * Emits a simple comment line
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param text - Comment text
    */
   protected emitComment(text: string): void {
+    // Legacy: AssemblyWriter
     this.assemblyWriter.emitComment(text);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.comment(text);
+    }
   }
 
   // ============================================
@@ -354,6 +480,9 @@ export abstract class BaseCodeGenerator {
 
   /**
    * Emits a single instruction
+   *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   * This is a low-level method used by specific instruction helpers.
    *
    * @param mnemonic - Instruction mnemonic (e.g., 'LDA')
    * @param operand - Optional operand
@@ -366,161 +495,174 @@ export abstract class BaseCodeGenerator {
     comment?: string,
     bytes: number = 0
   ): void {
+    // Legacy: AssemblyWriter
     this.assemblyWriter.emitInstruction(mnemonic, operand, comment);
     if (bytes > 0) {
       this.addCodeBytes(bytes);
     }
+
+    // Note: AsmBuilder instruction emission is handled by specific helpers
+    // (emitLdaImmediate, emitStaAbsolute, etc.) since they have typed methods
   }
 
   /**
    * Emits LDA immediate instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param value - Byte value to load
    * @param comment - Optional comment
    */
   protected emitLdaImmediate(value: number, comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('LDA', this.formatImmediate(value), comment, 2);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.ldaImm(value, comment);
+    }
   }
 
   /**
    * Emits LDA absolute instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param address - Memory address to load from
    * @param comment - Optional comment
    */
   protected emitLdaAbsolute(address: number, comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('LDA', this.formatAbsolute(address), comment, 3);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.ldaAbs(address, comment);
+    }
   }
 
   /**
    * Emits LDA zero-page instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param address - Zero-page address to load from
    * @param comment - Optional comment
    */
   protected emitLdaZeroPage(address: number, comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('LDA', this.formatZeroPage(address), comment, 2);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.ldaZp(address, comment);
+    }
   }
 
   /**
    * Emits STA absolute instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param address - Memory address to store to
    * @param comment - Optional comment
    */
   protected emitStaAbsolute(address: number, comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('STA', this.formatAbsolute(address), comment, 3);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.staAbs(address, comment);
+    }
   }
 
   /**
    * Emits STA zero-page instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param address - Zero-page address to store to
    * @param comment - Optional comment
    */
   protected emitStaZeroPage(address: number, comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('STA', this.formatZeroPage(address), comment, 2);
-  }
 
-  // ============================================
-  // INDIRECT ADDRESSING HELPERS
-  // ============================================
-
-  /**
-   * Emits LDA indirect Y-indexed instruction: LDA ($zp),Y
-   *
-   * Loads a byte from the address stored at the zero-page location,
-   * plus the Y register offset. Commonly used with Y=0 for variable
-   * address memory access.
-   *
-   * @param zpAddress - Zero-page address containing the 16-bit pointer
-   * @param comment - Optional comment
-   */
-  protected emitLdaIndirectY(zpAddress: number, comment?: string): void {
-    const operand = `(${this.formatZeroPage(zpAddress)}),Y`;
-    this.emitInstruction('LDA', operand, comment, 2);
-  }
-
-  /**
-   * Emits STA indirect Y-indexed instruction: STA ($zp),Y
-   *
-   * Stores the accumulator to the address stored at the zero-page location,
-   * plus the Y register offset. Commonly used with Y=0 for variable
-   * address memory access.
-   *
-   * @param zpAddress - Zero-page address containing the 16-bit pointer
-   * @param comment - Optional comment
-   */
-  protected emitStaIndirectY(zpAddress: number, comment?: string): void {
-    const operand = `(${this.formatZeroPage(zpAddress)}),Y`;
-    this.emitInstruction('STA', operand, comment, 2);
-  }
-
-  /**
-   * Emits LDY immediate instruction
-   *
-   * @param value - Byte value to load into Y
-   * @param comment - Optional comment
-   */
-  protected emitLdyImmediate(value: number, comment?: string): void {
-    this.emitInstruction('LDY', this.formatImmediate(value), comment, 2);
-  }
-
-  /**
-   * Emits LDX immediate instruction
-   *
-   * @param value - Byte value to load into X
-   * @param comment - Optional comment
-   */
-  protected emitLdxImmediate(value: number, comment?: string): void {
-    this.emitInstruction('LDX', this.formatImmediate(value), comment, 2);
-  }
-
-  /**
-   * Emits INY instruction (increment Y)
-   *
-   * @param comment - Optional comment
-   */
-  protected emitIny(comment?: string): void {
-    this.emitInstruction('INY', undefined, comment, 1);
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.staZp(address, comment);
+    }
   }
 
   /**
    * Emits JMP instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param label - Label to jump to
    * @param comment - Optional comment
    */
   protected emitJmp(label: string, comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('JMP', label, comment, 3);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.jmp(label, comment);
+    }
   }
 
   /**
    * Emits JSR instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param label - Label to call
    * @param comment - Optional comment
    */
   protected emitJsr(label: string, comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('JSR', label, comment, 3);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.jsr(label, comment);
+    }
   }
 
   /**
    * Emits RTS instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param comment - Optional comment
    */
   protected emitRts(comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('RTS', undefined, comment, 1);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.rts(comment);
+    }
   }
 
   /**
    * Emits NOP instruction
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param comment - Optional comment
    */
   protected emitNop(comment?: string): void {
+    // Legacy: AssemblyWriter
     this.emitInstruction('NOP', undefined, comment, 1);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      this.asmBuilder.nop(comment);
+    }
   }
 
   // ============================================
@@ -530,10 +672,37 @@ export abstract class BaseCodeGenerator {
   /**
    * Emits a label definition
    *
+   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
+   *
    * @param name - Label name
+   * @param labelType - Optional label type for AsmBuilder (default: 'block')
+   * @param comment - Optional comment for the label
    */
-  protected emitLabel(name: string): void {
+  protected emitLabel(name: string, labelType?: 'function' | 'global' | 'block' | 'data' | 'temp', comment?: string): void {
+    // Legacy: AssemblyWriter
     this.assemblyWriter.emitLabel(name);
+
+    // Phase 3e: AsmBuilder (when enabled)
+    if (this.useAsmIL) {
+      switch (labelType) {
+        case 'function':
+          this.asmBuilder.functionLabel(name, comment);
+          break;
+        case 'global':
+          this.asmBuilder.globalLabel(name, comment);
+          break;
+        case 'data':
+          this.asmBuilder.dataLabel(name, comment);
+          break;
+        case 'temp':
+          this.asmBuilder.tempLabel(name, comment);
+          break;
+        case 'block':
+        default:
+          this.asmBuilder.blockLabel(name, comment);
+          break;
+      }
+    }
   }
 
   /**

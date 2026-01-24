@@ -40,8 +40,7 @@ import {
   ILPeekwInstruction,
   ILPokewInstruction,
 } from '../il/instructions.js';
-import { GlobalsGenerator, ZP_RESERVED } from './globals-generator.js';
-import type { VirtualRegister } from '../il/values.js';
+import { GlobalsGenerator } from './globals-generator.js';
 
 /**
  * Instruction code generator - extends globals generator
@@ -71,49 +70,6 @@ import type { VirtualRegister } from '../il/values.js';
  */
 export abstract class InstructionGenerator extends GlobalsGenerator {
   // ============================================
-  // CONSTANT VALUE TRACKING
-  // ============================================
-
-  /**
-   * Map of virtual register names to their known constant values.
-   *
-   * When a CONST instruction is processed, the constant value is recorded
-   * here keyed by the result register's string representation. This allows
-   * subsequent instructions (like PEEK/POKE) to look up constant addresses
-   * for optimal code generation using absolute addressing.
-   *
-   * This map is reset for each function to avoid cross-function contamination.
-   */
-  protected constantMap: Map<string, number> = new Map();
-
-  /**
-   * Looks up a known constant value for a virtual register.
-   *
-   * @param reg - The virtual register to look up
-   * @returns The constant value if known, or undefined if not a constant
-   */
-  protected lookupConstant(reg: VirtualRegister): number | undefined {
-    return this.constantMap.get(reg.toString());
-  }
-
-  /**
-   * Records a constant value for a virtual register.
-   *
-   * @param reg - The virtual register that holds the constant
-   * @param value - The constant value
-   */
-  protected recordConstant(reg: VirtualRegister, value: number): void {
-    this.constantMap.set(reg.toString(), value);
-  }
-
-  /**
-   * Clears the constant map. Called at the start of each function.
-   */
-  protected clearConstantMap(): void {
-    this.constantMap.clear();
-  }
-
-  // ============================================
   // FUNCTION CODE GENERATION
   // ============================================
 
@@ -140,10 +96,6 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
    * @param func - IL function to generate
    */
   protected generateFunction(func: ILFunction): void {
-    // Clear constant map at the start of each function
-    // This ensures no cross-function contamination of tracked constants
-    this.clearConstantMap();
-
     const label = this.getFunctionLabel(func.name);
 
     // Track source location if available
@@ -325,20 +277,11 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   /**
    * Generates code for CONST instruction
    *
-   * Records the constant value for subsequent instructions to reference.
-   * For byte values, loads into accumulator. For address values (used by
-   * peek/poke), only records for later lookup without emitting LDA.
+   * Loads a constant value into the accumulator.
    *
    * @param instr - Const instruction
    */
   protected generateConst(instr: ILConstInstruction): void {
-    // Record this constant so subsequent instructions (like PEEK/POKE)
-    // can look up the actual value instead of using placeholder addresses
-    // Only record if there's a result register (which there always should be for CONST)
-    if (instr.result) {
-      this.recordConstant(instr.result, instr.value);
-    }
-
     // Emit LDA for the value - it will be in A for subsequent use
     this.emitLdaImmediate(instr.value, `${instr.result} = ${instr.value}`);
   }
@@ -586,174 +529,65 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   }
 
   // ============================================
-  // MEMORY INTRINSIC INSTRUCTIONS
+  // MEMORY INTRINSIC INSTRUCTIONS (TIER 3 - PLACEHOLDER)
   // ============================================
 
   /**
-   * Generates code for INTRINSIC_PEEK instruction.
+   * Generates placeholder for INTRINSIC_PEEK instruction.
    *
-   * Reads a byte from the memory address specified by the address register.
-   * For constant addresses, uses absolute addressing (LDA $ADDR).
-   * For variable addresses, uses indirect Y-indexed addressing through
-   * the compiler's reserved zero-page pointer (PTR0).
+   * STUB: The optimizer should transform PEEK with constant address
+   * to HARDWARE_READ before it reaches codegen.
    *
-   * 6502 implementation:
-   * - If address is constant: LDA $ADDR (4 cycles)
-   * - If address is variable: Use indirect addressing LDA ($PTR0),Y
-   *
-   * @param instr - Peek instruction containing address register
+   * @param instr - Peek instruction
    */
   protected generatePeek(instr: ILPeekInstruction): void {
-    this.emitComment(`peek(${instr.address}) -> ${instr.result}`);
-
-    // Look up the address register to see if it holds a known constant
-    const address = this.lookupConstant(instr.address);
-
-    if (address !== undefined) {
-      // Address is a known constant - use absolute addressing
-      this.emitLdaAbsolute(address, `peek: Load byte from ${this.formatHex(address)}`);
-    } else {
-      // Address is variable - use indirect addressing via PTR0
-      // The 16-bit address should be set up in PTR0 ($02-$03) by prior code
-      // In a full implementation, register allocation would track where
-      // the address value is and generate code to move it to PTR0
-      this.emitComment(`Variable address from ${instr.address} - using indirect via PTR0`);
-      this.emitComment('NOTE: Address must be loaded to PTR0/PTR0+1 before this');
-      this.emitLdyImmediate(0, 'Y offset = 0');
-      this.emitLdaIndirectY(ZP_RESERVED.PTR0, `peek: Load byte via (${this.formatZeroPage(ZP_RESERVED.PTR0)}),Y`);
-    }
+    this.emitComment(`STUB: ${instr.toString()}`);
+    this.emitComment('NOTE: Optimizer should transform PEEK to HARDWARE_READ');
+    this.emitNop('Placeholder for PEEK');
+    this.addWarning(`PEEK intrinsic not yet implemented - waiting for optimizer`);
   }
 
   /**
-   * Generates code for INTRINSIC_POKE instruction.
+   * Generates placeholder for INTRINSIC_POKE instruction.
    *
-   * Writes a byte to the memory address specified by the address register.
-   * For constant addresses, uses absolute addressing (STA $ADDR).
-   * For variable addresses, uses indirect Y-indexed addressing through
-   * the compiler's reserved zero-page pointer (PTR0).
+   * STUB: The optimizer should transform POKE with constant address
+   * to HARDWARE_WRITE before it reaches codegen.
    *
-   * 6502 implementation:
-   * - If address is constant: STA $ADDR (4 cycles)
-   * - If address is variable: Use indirect addressing STA ($PTR0),Y
-   *
-   * Note: Assumes the value to write is already in the accumulator from
-   * a preceding instruction. Full implementation would need proper
-   * register allocation to load the value first if needed.
-   *
-   * @param instr - Poke instruction containing address and value registers
+   * @param instr - Poke instruction
    */
   protected generatePoke(instr: ILPokeInstruction): void {
-    this.emitComment(`poke(${instr.address}, ${instr.value})`);
-
-    // Look up the address register to see if it holds a known constant
-    const address = this.lookupConstant(instr.address);
-
-    if (address !== undefined) {
-      // Address is a known constant - use absolute addressing
-      // Note: Value is assumed to already be in A from preceding CONST
-      this.emitStaAbsolute(address, `poke: Store byte to ${this.formatHex(address)}`);
-    } else {
-      // Address is variable - use indirect addressing via PTR0
-      // The 16-bit address should be set up in PTR0 ($02-$03) by prior code
-      // In a full implementation, register allocation would track where
-      // the address value is and generate code to move it to PTR0
-      this.emitComment(`Variable address from ${instr.address} - using indirect via PTR0`);
-      this.emitComment('NOTE: Address must be loaded to PTR0/PTR0+1 before this');
-      this.emitComment('NOTE: Value to store must be in A');
-      this.emitLdyImmediate(0, 'Y offset = 0');
-      this.emitStaIndirectY(ZP_RESERVED.PTR0, `poke: Store byte via (${this.formatZeroPage(ZP_RESERVED.PTR0)}),Y`);
-    }
+    this.emitComment(`STUB: ${instr.toString()}`);
+    this.emitComment('NOTE: Optimizer should transform POKE to HARDWARE_WRITE');
+    this.emitNop('Placeholder for POKE');
+    this.addWarning(`POKE intrinsic not yet implemented - waiting for optimizer`);
   }
 
   /**
-   * Generates code for INTRINSIC_PEEKW instruction.
+   * Generates placeholder for INTRINSIC_PEEKW instruction.
    *
-   * Reads a 16-bit word from memory in little-endian order.
-   * Reads low byte from address, high byte from address+1.
+   * STUB: Waiting for optimizer to handle constant propagation.
    *
-   * 6502 implementation (8+ cycles):
-   * - LDA addr   ; Load low byte (4 cycles)
-   * - STA temp   ; Store low byte temporarily
-   * - LDA addr+1 ; Load high byte (4 cycles)
-   * - (result in temp:A or stored appropriately)
-   *
-   * Note: 16-bit values on 6502 require storing one byte while loading the other.
-   * Full implementation would use zero page temporaries to hold the word.
-   *
-   * @param instr - Peekw instruction containing address register
+   * @param instr - Peekw instruction
    */
   protected generatePeekw(instr: ILPeekwInstruction): void {
-    this.emitComment(`peekw(${instr.address}) -> ${instr.result}`);
-
-    // Look up the address register to see if it holds a known constant
-    const address = this.lookupConstant(instr.address);
-
-    if (address !== undefined) {
-      // Address is a known constant - use absolute addressing for both bytes
-      // Read low byte, store to temp, then read high byte
-      this.emitLdaAbsolute(address, `peekw: Load low byte from ${this.formatHex(address)}`);
-      this.emitStaZeroPage(ZP_RESERVED.TMP0, 'Store low byte to temp');
-      this.emitLdaAbsolute(address + 1, `peekw: Load high byte from ${this.formatHex(address + 1)}`);
-      this.emitStaZeroPage(ZP_RESERVED.TMP0 + 1, 'Store high byte to temp');
-      this.emitComment(`Result word in TMP0:TMP0+1 (${this.formatZeroPage(ZP_RESERVED.TMP0)}:${this.formatZeroPage(ZP_RESERVED.TMP0 + 1)})`);
-    } else {
-      // Address is variable - use indirect addressing via PTR0
-      // Read low byte with Y=0, then high byte with Y=1
-      this.emitComment(`Variable address from ${instr.address} - using indirect via PTR0`);
-      this.emitComment('NOTE: Address must be loaded to PTR0/PTR0+1 before this');
-      this.emitLdyImmediate(0, 'Y offset = 0 for low byte');
-      this.emitLdaIndirectY(ZP_RESERVED.PTR0, `peekw: Load low byte via (${this.formatZeroPage(ZP_RESERVED.PTR0)}),Y`);
-      this.emitStaZeroPage(ZP_RESERVED.TMP0, 'Store low byte to temp');
-      this.emitIny('Y = 1 for high byte');
-      this.emitLdaIndirectY(ZP_RESERVED.PTR0, `peekw: Load high byte via (${this.formatZeroPage(ZP_RESERVED.PTR0)}),Y`);
-      this.emitStaZeroPage(ZP_RESERVED.TMP0 + 1, 'Store high byte to temp');
-    }
+    this.emitComment(`STUB: ${instr.toString()}`);
+    this.emitComment('NOTE: 16-bit PEEKW waiting for optimizer support');
+    this.emitNop('Placeholder for PEEKW');
+    this.addWarning(`PEEKW intrinsic not yet implemented - waiting for optimizer`);
   }
 
   /**
-   * Generates code for INTRINSIC_POKEW instruction.
+   * Generates placeholder for INTRINSIC_POKEW instruction.
    *
-   * Writes a 16-bit word to memory in little-endian order.
-   * Writes low byte to address, high byte to address+1.
+   * STUB: Waiting for optimizer to handle constant propagation.
    *
-   * 6502 implementation (8+ cycles):
-   * - LDA value_lo ; Get low byte
-   * - STA addr     ; Store low byte (4 cycles)
-   * - LDA value_hi ; Get high byte
-   * - STA addr+1   ; Store high byte (4 cycles)
-   *
-   * Note: 16-bit values require managing both bytes. Full implementation
-   * would handle the value register to extract low/high bytes properly.
-   *
-   * @param instr - Pokew instruction containing address and value registers
+   * @param instr - Pokew instruction
    */
   protected generatePokew(instr: ILPokewInstruction): void {
-    this.emitComment(`pokew(${instr.address}, ${instr.value})`);
-
-    // Look up the address register to see if it holds a known constant
-    const address = this.lookupConstant(instr.address);
-
-    if (address !== undefined) {
-      // Address is a known constant - use absolute addressing for both bytes
-      // Assume value is in TMP0:TMP0+1 (prepared by prior code)
-      this.emitComment('NOTE: Value word should be in TMP0:TMP0+1');
-      this.emitLdaZeroPage(ZP_RESERVED.TMP0, 'Load low byte from temp');
-      this.emitStaAbsolute(address, `pokew: Store low byte to ${this.formatHex(address)}`);
-      this.emitLdaZeroPage(ZP_RESERVED.TMP0 + 1, 'Load high byte from temp');
-      this.emitStaAbsolute(address + 1, `pokew: Store high byte to ${this.formatHex(address + 1)}`);
-    } else {
-      // Address is variable - use indirect addressing via PTR0
-      // Store low byte with Y=0, then high byte with Y=1
-      this.emitComment(`Variable address from ${instr.address} - using indirect via PTR0`);
-      this.emitComment('NOTE: Address must be loaded to PTR0/PTR0+1 before this');
-      this.emitComment('NOTE: Value word should be in TMP0:TMP0+1');
-      this.emitLdyImmediate(0, 'Y offset = 0 for low byte');
-      this.emitLdaZeroPage(ZP_RESERVED.TMP0, 'Load low byte from temp');
-      this.emitStaIndirectY(ZP_RESERVED.PTR0, `pokew: Store low byte via (${this.formatZeroPage(ZP_RESERVED.PTR0)}),Y`);
-      this.emitIny('Y = 1 for high byte');
-      this.emitLdaZeroPage(ZP_RESERVED.TMP0 + 1, 'Load high byte from temp');
-      this.emitStaIndirectY(ZP_RESERVED.PTR0, `pokew: Store high byte via (${this.formatZeroPage(ZP_RESERVED.PTR0)}),Y`);
-    }
+    this.emitComment(`STUB: ${instr.toString()}`);
+    this.emitComment('NOTE: 16-bit POKEW waiting for optimizer support');
+    this.emitNop('Placeholder for POKEW');
+    this.addWarning(`POKEW intrinsic not yet implemented - waiting for optimizer`);
   }
 
   // ============================================

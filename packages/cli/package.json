@@ -1,0 +1,56 @@
+{
+  "name": "@blend65/cli",
+  "version": "0.2.0",
+  "description": "Command-line interface for the Blend65 compiler",
+  "type": "module",
+  "bin": {
+    "blend65": "./bin/blend65.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "bin/**/*",
+    "templates/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@blend65/compiler": "*",
+    "chalk": "^5.4.1",
+    "chokidar": "^4.0.3",
+    "glob": "^11.0.0",
+    "ora": "^8.2.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "@types/yargs": "^17.0.33",
+    "typescript": "^5.9.3",
+    "vitest": "4.0.17"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "cli",
+    "compiler",
+    "c64",
+    "6502",
+    "blend65"
+  ]
+}
