@@ -23,7 +23,7 @@
 
 import type { ILModule } from '../il/module.js';
 import type { SourceLocation } from '../ast/base.js';
-import type { CodegenOptions, CodegenStats, SourceMapEntry } from './types.js';
+import type { CodegenOptions, CodegenStats, SourceMapEntry, CodegenWarning } from './types.js';
 import type { AsmModule } from '../asm-il/types.js';
 import { AsmModuleBuilder } from '../asm-il/builder/index.js';
 import { createAcmeEmitter } from '../asm-il/emitters/index.js';
@@ -126,8 +126,9 @@ export abstract class BaseCodeGenerator {
    * Warnings collected during generation
    *
    * Non-fatal issues are collected here for reporting.
+   * Each warning contains a message and optional source location.
    */
-  protected warnings: string[] = [];
+  protected warnings: CodegenWarning[] = [];
 
   /**
    * Statistics about generated code
@@ -259,22 +260,37 @@ export abstract class BaseCodeGenerator {
   // ============================================
 
   /**
-   * Adds a warning message
+   * Adds a warning message with optional source location
    *
    * Warnings are collected and returned in the result.
+   * When a source location is provided, rich diagnostic output
+   * with source snippets can be generated.
    *
    * @param message - Warning message
+   * @param location - Optional source location for rich diagnostics
    */
-  protected addWarning(message: string): void {
-    this.warnings.push(message);
+  protected addWarning(message: string, location?: SourceLocation): void {
+    this.warnings.push({ message, location });
   }
 
   /**
-   * Gets all collected warnings
+   * Gets all collected warnings as strings (for backward compatibility)
    *
-   * @returns Array of warning messages
+   * @returns Array of warning message strings
    */
   protected getWarnings(): string[] {
+    return this.warnings.map((w) => w.message);
+  }
+
+  /**
+   * Gets all collected warnings with full location information
+   *
+   * Use this method for rich diagnostic output that includes
+   * source code snippets and caret markers.
+   *
+   * @returns Array of CodegenWarning objects
+   */
+  protected getWarningsWithLocations(): CodegenWarning[] {
     return [...this.warnings];
   }
 

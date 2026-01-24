@@ -501,7 +501,13 @@ export class ILExpressionGenerator extends ILStatementGenerator {
    * Generates IL for an intrinsic function call.
    *
    * Intrinsic functions are handled specially and may emit
-   * different instructions than regular calls.
+   * different instructions than regular calls. This includes:
+   * - Memory intrinsics: peek, poke, peekw, pokew
+   * - Byte extraction: lo, hi
+   * - CPU control: sei, cli, nop, brk
+   * - Stack operations: pha, pla, php, plp
+   * - Optimization: barrier, volatile_read, volatile_write
+   * - Compile-time: sizeof, length
    *
    * @param name - Intrinsic function name
    * @param args - Argument registers
@@ -517,6 +523,9 @@ export class ILExpressionGenerator extends ILStatementGenerator {
   ): VirtualRegister | null {
     // Handle known intrinsics
     switch (name) {
+      // =========================================================================
+      // Memory Intrinsics - Byte Access
+      // =========================================================================
       case 'peek':
         // peek(address) - read byte from memory
         if (args.length !== 1) {
@@ -534,6 +543,164 @@ export class ILExpressionGenerator extends ILStatementGenerator {
         this.builder?.emitPoke(args[0], args[1]);
         return null;
 
+      // =========================================================================
+      // Memory Intrinsics - Word Access
+      // =========================================================================
+      case 'peekw':
+        // peekw(address) - read word (16-bit) from memory
+        if (args.length !== 1) {
+          this.addError('peekw() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        return this.builder?.emitPeekw(args[0]) ?? null;
+
+      case 'pokew':
+        // pokew(address, value) - write word (16-bit) to memory
+        if (args.length !== 2) {
+          this.addError('pokew() requires exactly 2 arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitPokew(args[0], args[1]);
+        return null;
+
+      // =========================================================================
+      // Byte Extraction Intrinsics
+      // =========================================================================
+      case 'lo':
+        // lo(value) - extract low byte from word
+        if (args.length !== 1) {
+          this.addError('lo() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        return this.builder?.emitLo(args[0]) ?? null;
+
+      case 'hi':
+        // hi(value) - extract high byte from word
+        if (args.length !== 1) {
+          this.addError('hi() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        return this.builder?.emitHi(args[0]) ?? null;
+
+      // =========================================================================
+      // CPU Control Intrinsics
+      // =========================================================================
+      case 'sei':
+        // sei() - set interrupt disable flag
+        if (args.length !== 0) {
+          this.addError('sei() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitSei();
+        return null;
+
+      case 'cli':
+        // cli() - clear interrupt disable flag
+        if (args.length !== 0) {
+          this.addError('cli() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitCli();
+        return null;
+
+      case 'nop':
+        // nop() - no operation (timing/padding)
+        if (args.length !== 0) {
+          this.addError('nop() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitNop();
+        return null;
+
+      case 'brk':
+        // brk() - break (software interrupt)
+        if (args.length !== 0) {
+          this.addError('brk() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitBrk();
+        return null;
+
+      // =========================================================================
+      // Stack Operation Intrinsics
+      // =========================================================================
+      case 'pha':
+        // pha() - push accumulator to stack
+        if (args.length !== 0) {
+          this.addError('pha() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitPha();
+        return null;
+
+      case 'pla':
+        // pla() - pull accumulator from stack (returns byte)
+        if (args.length !== 0) {
+          this.addError('pla() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        return this.builder?.emitPla() ?? null;
+
+      case 'php':
+        // php() - push processor status to stack
+        if (args.length !== 0) {
+          this.addError('php() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitPhp();
+        return null;
+
+      case 'plp':
+        // plp() - pull processor status from stack
+        if (args.length !== 0) {
+          this.addError('plp() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitPlp();
+        return null;
+
+      // =========================================================================
+      // Optimization Control Intrinsics
+      // =========================================================================
+      case 'barrier':
+        // barrier() - optimization barrier, prevents reordering
+        if (args.length !== 0) {
+          this.addError('barrier() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitOptBarrier();
+        return null;
+
+      case 'volatile_read':
+        // volatile_read(address) - read that cannot be optimized away
+        if (args.length !== 1) {
+          this.addError('volatile_read() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        return this.builder?.emitVolatileRead(args[0]) ?? null;
+
+      case 'volatile_write':
+        // volatile_write(address, value) - write that cannot be optimized away
+        if (args.length !== 2) {
+          this.addError('volatile_write() requires exactly 2 arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
+          return null;
+        }
+        this.builder?.emitVolatileWrite(args[0], args[1]);
+        return null;
+
+      // =========================================================================
+      // Compile-Time Intrinsics
+      // =========================================================================
+      case 'sizeof':
+        // sizeof(type) - returns size of type at compile time
+        // Note: This requires special handling as the argument is a type, not a value
+        // For now, emit placeholder - full implementation needs type expression support
+        return this.generateSizeofIntrinsic(expr);
+
+      case 'length':
+        // length(array) - returns array length at compile time
+        return this.generateLengthIntrinsic(expr);
+
       default:
         // Unknown intrinsic - emit regular call
         this.addWarning(
@@ -543,6 +710,146 @@ export class ILExpressionGenerator extends ILStatementGenerator {
         );
         return this.builder?.emitCall(name, args, info.returnType) ?? null;
     }
+  }
+
+  /**
+   * Generates IL for the sizeof() compile-time intrinsic.
+   *
+   * sizeof() returns the size of a type at compile time. This requires
+   * special handling because the argument is a type expression, not a value.
+   *
+   * @param expr - Call expression for sizeof()
+   * @returns Virtual register containing the constant size value
+   */
+  protected generateSizeofIntrinsic(expr: CallExpression): VirtualRegister | null {
+    const args = expr.getArguments();
+
+    if (args.length !== 1) {
+      this.addError('sizeof() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
+      return null;
+    }
+
+    // Get the argument - should be a type identifier
+    const arg = args[0];
+
+    if (arg.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
+      const typeName = (arg as IdentifierExpression).getName();
+
+      // Look up the type size
+      const size = this.getTypeSizeByName(typeName);
+      if (size !== null) {
+        return this.builder?.emitConstWord(size) ?? null;
+      }
+
+      // Check if it's a variable and get its type size
+      const symbol = this.symbolTable.lookup(typeName);
+      if (symbol && symbol.type) {
+        const varSize = symbol.type.size ?? 1;
+        return this.builder?.emitConstWord(varSize) ?? null;
+      }
+
+      this.addError(
+        `Cannot determine size of '${typeName}'`,
+        expr.getLocation(),
+        'E_SIZEOF_UNKNOWN_TYPE',
+      );
+      return null;
+    }
+
+    // Argument is not a simple identifier
+    this.addError(
+      'sizeof() requires a type or variable name',
+      expr.getLocation(),
+      'E_SIZEOF_INVALID_ARG',
+    );
+    return null;
+  }
+
+  /**
+   * Gets the size of a type by its name.
+   *
+   * @param typeName - Type name (e.g., 'byte', 'word', 'bool')
+   * @returns Size in bytes, or null if unknown
+   */
+  protected getTypeSizeByName(typeName: string): number | null {
+    switch (typeName.toLowerCase()) {
+      case 'byte':
+      case 'u8':
+      case 'i8':
+      case 'bool':
+        return 1;
+      case 'word':
+      case 'u16':
+      case 'i16':
+        return 2;
+      case 'void':
+        return 0;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Generates IL for the length() compile-time intrinsic.
+   *
+   * length() returns the length of an array or string at compile time.
+   * The argument must be a variable with a known compile-time size.
+   *
+   * @param expr - Call expression for length()
+   * @returns Virtual register containing the constant length value
+   */
+  protected generateLengthIntrinsic(expr: CallExpression): VirtualRegister | null {
+    const args = expr.getArguments();
+
+    if (args.length !== 1) {
+      this.addError('length() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
+      return null;
+    }
+
+    const arg = args[0];
+
+    // Check if argument is an identifier (array/string variable name)
+    if (arg.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
+      const varName = (arg as IdentifierExpression).getName();
+
+      // Look up the variable in symbol table
+      const symbol = this.symbolTable.lookup(varName);
+      if (symbol && symbol.type) {
+        // Check for array type with known size
+        if (symbol.type.arraySize !== undefined && symbol.type.arraySize !== null) {
+          return this.builder?.emitConstWord(symbol.type.arraySize) ?? null;
+        }
+
+        // Check for string type with known length
+        if (symbol.type.kind === 'string' && symbol.type.size !== undefined) {
+          // String size includes null terminator, length does not
+          const stringLength = Math.max(0, symbol.type.size - 1);
+          return this.builder?.emitConstWord(stringLength) ?? null;
+        }
+
+        // Check for array type element count
+        if (symbol.type.elementType !== undefined && symbol.type.size !== undefined) {
+          const elementSize = symbol.type.elementType.size ?? 1;
+          const arrayLength = Math.floor(symbol.type.size / elementSize);
+          return this.builder?.emitConstWord(arrayLength) ?? null;
+        }
+      }
+
+      this.addError(
+        `Cannot determine length of '${varName}' - must be an array or string with known size`,
+        expr.getLocation(),
+        'E_LENGTH_UNKNOWN_SIZE',
+      );
+      return null;
+    }
+
+    // Argument is not a variable reference
+    this.addError(
+      'length() requires an array or string variable',
+      expr.getLocation(),
+      'E_LENGTH_INVALID_ARG',
+    );
+    return null;
   }
 
   // ===========================================================================

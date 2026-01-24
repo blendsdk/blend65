@@ -99,14 +99,17 @@ export interface CodegenResult {
   assembly: string;
 
   /**
-   * Compiled binary data (PRG format)
+   * Compiled binary data (PRG format) - optional
    *
    * Ready-to-load binary including:
    * - 2-byte load address header
    * - BASIC stub (if applicable)
    * - Machine code
+   *
+   * Only present when ACME assembler is available and assembly succeeds.
+   * If undefined, only the .asm file should be written.
    */
-  binary: Uint8Array;
+  binary?: Uint8Array;
 
   /**
    * Source map for debugging (optional)

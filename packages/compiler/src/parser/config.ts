@@ -16,6 +16,16 @@
  */
 export interface ParserConfig {
   /**
+   * Source file path or name
+   *
+   * Used for error reporting to show which file contains the error.
+   * Example: "main.blend" or "./examples/game.blend"
+   *
+   * Default: undefined (shows "undefined" in error locations)
+   */
+  filePath?: string;
+
+  /**
    * Continue parsing after errors
    *
    * If true, parser will attempt to recover from errors and continue

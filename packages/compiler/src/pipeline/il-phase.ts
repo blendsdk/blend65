@@ -158,12 +158,23 @@ export class ILPhase {
   /**
    * Get module name from a Program AST
    *
+   * Uses the same logic as SemanticAnalyzer.getModuleName() to ensure
+   * consistency between semantic analysis and IL generation phases.
+   *
    * @param program - Program AST
    * @returns Module name
    */
   protected getModuleName(program: Program): string {
     const moduleDecl = program.getModule();
-    return moduleDecl.getFullName() || 'global';
+    const fullName = moduleDecl.getFullName();
+
+    // If implicit module or empty name, use 'main'
+    // This matches SemanticAnalyzer.getModuleName() exactly
+    if (moduleDecl.isImplicitModule() || !fullName || fullName === '') {
+      return 'main';
+    }
+
+    return fullName;
   }
 
   /**

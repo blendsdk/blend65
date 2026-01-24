@@ -35,7 +35,7 @@ import type { AsmModule } from '../asm-il/types.js';
 import type { CodegenOptions, CodegenResult } from './types.js';
 import { C64_BASIC_START, C64_CODE_START } from './types.js';
 import { generateBasicStub } from './basic-stub.js';
-import { isAcmeAvailable, AcmeNotFoundError } from './acme-invoker.js';
+import { isAcmeAvailable, invokeAcmeSync, AcmeNotFoundError, AcmeError } from './acme-invoker.js';
 import { InstructionGenerator } from './instruction-generator.js';
 
 /**
@@ -178,7 +178,7 @@ export class CodeGenerator extends InstructionGenerator {
       binary,
       sourceMap: options.sourceMap ? this.getSourceMapEntries() : undefined,
       viceLabels,
-      warnings: this.getWarnings(),
+      warnings: this.getWarningsWithLocations(),
       stats: this.getStats(),
     };
   }
@@ -331,10 +331,13 @@ export class CodeGenerator extends InstructionGenerator {
   /**
    * Assembles the generated assembly using ACME
    *
-   * @param _assembly - Assembly source text (unused in stub, will be used in full impl)
-   * @returns Binary .prg data, or undefined if ACME not available
+   * Invokes ACME synchronously to assemble the generated assembly
+   * into a PRG binary file.
+   *
+   * @param assembly - Assembly source text
+   * @returns Binary .prg data, or undefined if ACME not available or assembly failed
    */
-  protected assembleWithAcme(_assembly: string): Uint8Array | undefined {
+  protected assembleWithAcme(assembly: string): Uint8Array | undefined {
     // Check if ACME is available
     if (!isAcmeAvailable(this.options.acmePath)) {
       this.addWarning(
@@ -345,16 +348,19 @@ export class CodeGenerator extends InstructionGenerator {
     }
 
     try {
-      // Use synchronous pattern for stub (async will be added in full impl)
-      // For now, return undefined and let caller use the async invokeAcme directly
-      this.addWarning(
-        'Binary generation requires async ACME invocation. ' +
-          'Use invokeAcme() directly for .prg output.'
-      );
-      return undefined;
+      // Invoke ACME synchronously to assemble the source
+      const result = invokeAcmeSync(assembly, {
+        format: 'prg',
+        labels: false,
+        acmePath: this.options.acmePath,
+      });
+
+      return result.binary;
     } catch (error) {
       if (error instanceof AcmeNotFoundError) {
         this.addWarning(`ACME not found: ${error.message}`);
+      } else if (error instanceof AcmeError) {
+        this.addWarning(`ACME assembly failed: ${error.stderr || error.message}`);
       } else {
         this.addWarning(`ACME assembly failed: ${error}`);
       }

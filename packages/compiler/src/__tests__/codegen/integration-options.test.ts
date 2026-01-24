@@ -168,7 +168,7 @@ describe('Integration - Code Generation Options', () => {
       const result = codegen.generate(module, options);
 
       // No ACME warnings since we're not trying to assemble
-      const acmeWarnings = result.warnings.filter(w => w.includes('ACME'));
+      const acmeWarnings = result.warnings.filter(w => w.message.includes('ACME'));
       // May or may not have ACME warnings depending on if it checks availability
       expect(Array.isArray(result.warnings)).toBe(true);
     });
@@ -183,9 +183,15 @@ describe('Integration - Code Generation Options', () => {
 
       // Should always have assembly
       expect(result.assembly).toBeDefined();
-      // Binary may be undefined if ACME not installed
-      // Should have warning about ACME if not available
-      expect(result.warnings.length).toBeGreaterThan(0);
+      // If ACME is installed, binary should be generated
+      // If not, should have a warning about ACME
+      if (result.binary) {
+        expect(result.binary).toBeInstanceOf(Uint8Array);
+        expect(result.binary.length).toBeGreaterThan(0);
+      } else {
+        // ACME not available - should have warning
+        expect(result.warnings.length).toBeGreaterThan(0);
+      }
     });
   });
 
@@ -208,7 +214,7 @@ describe('Integration - Code Generation Options', () => {
 
       const result = codegen.generate(module, options);
 
-      expect(result.warnings.some(w => w.includes('CRT'))).toBe(true);
+      expect(result.warnings.some(w => w.message.includes('CRT'))).toBe(true);
     });
 
     it('should still generate assembly for CRT format', () => {

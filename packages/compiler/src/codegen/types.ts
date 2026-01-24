@@ -24,6 +24,37 @@ import type { SourceLocation } from '../ast/base.js';
 import type { AsmModule } from '../asm-il/types.js';
 
 /**
+ * Code generation warning with optional source location
+ *
+ * Enables rich diagnostic output by associating warnings with
+ * their source locations for accurate error reporting.
+ *
+ * @example
+ * ```typescript
+ * const warning: CodegenWarning = {
+ *   message: 'PEEK intrinsic not yet implemented - waiting for optimizer',
+ *   location: { start: { line: 5, column: 10 }, end: { line: 5, column: 20 }, file: 'main.blend' }
+ * };
+ * ```
+ */
+export interface CodegenWarning {
+  /**
+   * Warning message text
+   *
+   * Human-readable description of the warning.
+   */
+  message: string;
+
+  /**
+   * Optional source location
+   *
+   * When provided, enables rich diagnostic output with source
+   * code snippets and caret markers pointing to the issue.
+   */
+  location?: SourceLocation;
+}
+
+/**
  * Output format for code generation
  *
  * - 'asm': Assembly source only
@@ -303,11 +334,14 @@ export interface CodegenResult {
    * Warnings during generation
    *
    * Non-fatal issues encountered during code generation.
+   * Each warning can include an optional source location for
+   * rich diagnostic output with code snippets.
+   *
    * Examples:
    * - ACME not found (assembly generated but not binary)
    * - Unsupported IL instruction (placeholder generated)
    */
-  warnings: string[];
+  warnings: CodegenWarning[];
 
   /**
    * Statistics about generated code

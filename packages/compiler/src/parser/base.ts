@@ -566,6 +566,7 @@ export abstract class BaseParser {
     const location: SourceLocation = {
       start: start.start,
       end: end.end,
+      file: this.config.filePath,
     };
 
     // Optionally include source text
@@ -639,6 +640,7 @@ export abstract class BaseParser {
     return {
       start: start.start,
       end: end.end,
+      file: start.file ?? end.file ?? this.config.filePath,
     };
   }
 

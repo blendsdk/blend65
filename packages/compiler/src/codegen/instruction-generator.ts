@@ -544,7 +544,10 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     this.emitComment(`STUB: ${instr.toString()}`);
     this.emitComment('NOTE: Optimizer should transform PEEK to HARDWARE_READ');
     this.emitNop('Placeholder for PEEK');
-    this.addWarning(`PEEK intrinsic not yet implemented - waiting for optimizer`);
+    this.addWarning(
+      `PEEK intrinsic not yet implemented - waiting for optimizer`,
+      instr.metadata.location
+    );
   }
 
   /**
@@ -559,7 +562,10 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     this.emitComment(`STUB: ${instr.toString()}`);
     this.emitComment('NOTE: Optimizer should transform POKE to HARDWARE_WRITE');
     this.emitNop('Placeholder for POKE');
-    this.addWarning(`POKE intrinsic not yet implemented - waiting for optimizer`);
+    this.addWarning(
+      `POKE intrinsic not yet implemented - waiting for optimizer`,
+      instr.metadata.location
+    );
   }
 
   /**
@@ -573,7 +579,10 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     this.emitComment(`STUB: ${instr.toString()}`);
     this.emitComment('NOTE: 16-bit PEEKW waiting for optimizer support');
     this.emitNop('Placeholder for PEEKW');
-    this.addWarning(`PEEKW intrinsic not yet implemented - waiting for optimizer`);
+    this.addWarning(
+      `PEEKW intrinsic not yet implemented - waiting for optimizer`,
+      instr.metadata.location
+    );
   }
 
   /**
@@ -587,7 +596,10 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     this.emitComment(`STUB: ${instr.toString()}`);
     this.emitComment('NOTE: 16-bit POKEW waiting for optimizer support');
     this.emitNop('Placeholder for POKEW');
-    this.addWarning(`POKEW intrinsic not yet implemented - waiting for optimizer`);
+    this.addWarning(
+      `POKEW intrinsic not yet implemented - waiting for optimizer`,
+      instr.metadata.location
+    );
   }
 
   // ============================================

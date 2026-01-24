@@ -457,9 +457,15 @@ describe('CodeGenerator - Main API', () => {
       const result = codegen.generate(module, options);
       
       expect(result.assembly).toBeDefined();
-      // Binary may be undefined if ACME not installed
-      // Should have warning about ACME
-      expect(result.warnings.length).toBeGreaterThan(0);
+      // Binary is available if ACME is installed
+      // If ACME is not installed, there will be a warning
+      if (result.binary) {
+        expect(result.binary).toBeInstanceOf(Uint8Array);
+        expect(result.binary.length).toBeGreaterThan(0);
+      } else {
+        // ACME not installed - should have warning
+        expect(result.warnings.length).toBeGreaterThan(0);
+      }
     });
 
     it('should attempt PRG generation for format "both"', () => {
@@ -478,7 +484,7 @@ describe('CodeGenerator - Main API', () => {
       
       const result = codegen.generate(module, options);
       
-      expect(result.warnings.some(w => w.includes('CRT'))).toBe(true);
+      expect(result.warnings.some(w => w.message.includes('CRT'))).toBe(true);
     });
   });
 
@@ -806,17 +812,25 @@ describe('CodeGenerator - Warnings', () => {
   });
 
   describe('warning generation', () => {
-    it('should warn when ACME is requested but unavailable', () => {
+    it('should handle PRG generation with or without ACME', () => {
       const module = createMainModule();
       const options = createTestOptions({ format: 'prg' });
       
       const result = codegen.generate(module, options);
       
-      // Should have warning about ACME
-      const hasAcmeWarning = result.warnings.some(
-        w => w.includes('ACME') || w.includes('assembler')
-      );
-      expect(hasAcmeWarning).toBe(true);
+      // If ACME is available, binary should be generated
+      // If ACME is not available, should have warning
+      if (result.binary) {
+        // ACME worked - binary was generated
+        expect(result.binary).toBeInstanceOf(Uint8Array);
+        expect(result.binary.length).toBeGreaterThan(0);
+      } else {
+        // ACME not available - should have warning
+        const hasAcmeWarning = result.warnings.some(
+          w => w.message.includes('ACME') || w.includes('assembler')
+        );
+        expect(hasAcmeWarning).toBe(true);
+      }
     });
 
     it('should include warnings in result array', () => {
@@ -826,7 +840,7 @@ describe('CodeGenerator - Warnings', () => {
       const result = codegen.generate(module, options);
       
       expect(result.warnings.length).toBeGreaterThan(0);
-      expect(result.warnings.some(w => w.includes('CRT'))).toBe(true);
+      expect(result.warnings.some(w => w.message.includes('CRT'))).toBe(true);
     });
   });
 });

@@ -64,6 +64,13 @@ export interface SourceLocation {
   end: SourcePosition;
 
   /**
+   * Optional: source file path or name
+   * Used for error messages to show which file the error occurred in
+   * Example: "Error in main.blend at line 5, column 12"
+   */
+  file?: string;
+
+  /**
    * Optional: actual source text for this node
    * Useful for error messages showing exact code
    * Example: "You wrote 'functino' - did you mean 'function'?"

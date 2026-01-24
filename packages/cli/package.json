@@ -2,6 +2,7 @@
   "name": "@blend65/cli",
   "version": "0.2.0",
   "description": "Command-line interface for the Blend65 compiler",
+  "license": "Elastic-2.0",
   "type": "module",
   "bin": {
     "blend65": "./bin/blend65.js"

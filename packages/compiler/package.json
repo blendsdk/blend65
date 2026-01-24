@@ -2,6 +2,7 @@
   "name": "@blend65/compiler",
   "version": "0.2.0",
   "description": "Blend65 - A programming for high-performance 6502 family game development",
+  "license": "Elastic-2.0",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

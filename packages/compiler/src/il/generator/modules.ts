@@ -303,6 +303,14 @@ export class ILModuleGenerator extends ILGeneratorBase {
         initialValue = value;
       } else if (typeof value === 'boolean') {
         initialValue = value ? 1 : 0;
+      } else if (typeof value === 'string') {
+        // Convert string to array of character codes (ASCII/PETSCII)
+        // No null terminator - Blend65 has static sizes, users can add \0 explicitly
+        const bytes: number[] = [];
+        for (let i = 0; i < value.length; i++) {
+          bytes.push(value.charCodeAt(i) & 0xff);
+        }
+        initialValue = bytes;
       }
     }
 

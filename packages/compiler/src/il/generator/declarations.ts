@@ -265,6 +265,100 @@ export class ILDeclarationGenerator extends ILModuleGenerator {
           location: this.dummyLocation(),
         };
 
+      // CPU control intrinsics
+      case 'sei':
+        return {
+          name: 'sei',
+          parameterTypes: [], // no arguments
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'cli':
+        return {
+          name: 'cli',
+          parameterTypes: [], // no arguments
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'nop':
+        return {
+          name: 'nop',
+          parameterTypes: [], // no arguments
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'brk':
+        return {
+          name: 'brk',
+          parameterTypes: [], // no arguments
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+
+      // Stack operation intrinsics
+      case 'pha':
+        return {
+          name: 'pha',
+          parameterTypes: [], // no arguments - pushes accumulator
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'pla':
+        return {
+          name: 'pla',
+          parameterTypes: [], // no arguments
+          returnType: IL_BYTE, // returns popped value
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'php':
+        return {
+          name: 'php',
+          parameterTypes: [], // no arguments - pushes processor status
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'plp':
+        return {
+          name: 'plp',
+          parameterTypes: [], // no arguments
+          returnType: IL_VOID, // restores processor status from stack
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+
+      // Optimization control intrinsics
+      case 'barrier':
+        return {
+          name: 'barrier',
+          parameterTypes: [], // no arguments
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'volatile_read':
+        return {
+          name: 'volatile_read',
+          parameterTypes: [IL_WORD], // address
+          returnType: IL_BYTE, // returns value at address
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+      case 'volatile_write':
+        return {
+          name: 'volatile_write',
+          parameterTypes: [IL_WORD, IL_BYTE], // address, value
+          returnType: IL_VOID,
+          isCompileTime: false,
+          location: this.dummyLocation(),
+        };
+
       default:
         return undefined;
     }
@@ -305,12 +399,18 @@ export class ILDeclarationGenerator extends ILModuleGenerator {
   /**
    * Checks if an intrinsic is evaluated at compile time.
    *
+   * Compile-time intrinsics are evaluated during IL generation and emit
+   * constant values rather than runtime operations.
+   *
    * @param name - Intrinsic name
    * @returns true if compile-time intrinsic
    */
   protected isCompileTimeIntrinsic(name: string): boolean {
     // Known compile-time intrinsics
-    const compileTimeIntrinsics = new Set(['sizeof', 'offsetof', 'alignof']);
+    // sizeof - returns size of a type
+    // offsetof, alignof - reserved for future struct support
+    // length - returns compile-time known array/string length
+    const compileTimeIntrinsics = new Set(['sizeof', 'offsetof', 'alignof', 'length']);
     return compileTimeIntrinsics.has(name);
   }
 

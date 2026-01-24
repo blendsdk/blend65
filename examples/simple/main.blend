@@ -1,0 +1,15 @@
+module TestIntrinsics
+
+import
+        peek,
+        poke,
+        sei,
+        cli
+from
+    system;
+
+export function main(a:byte): void
+    sei();
+    poke(0xD020, peek(0xD021));
+    cli();
+end function

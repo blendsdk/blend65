@@ -34,9 +34,16 @@
  * @module codegen/acme-invoker
  */
 
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { writeFile, readFile, unlink, mkdtemp, rmdir } from 'fs/promises';
-import { existsSync } from 'fs';
+import {
+  existsSync,
+  writeFileSync,
+  readFileSync,
+  unlinkSync,
+  mkdtempSync,
+  rmdirSync,
+} from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -308,9 +315,15 @@ function getAdditionalSearchDirs(): string[] {
  * ```
  */
 export function isAcmeAvailable(acmePath?: string): boolean {
-  if (acmePath) {
+  // If a specific path is provided (including empty string), check only that path
+  if (acmePath !== undefined) {
+    // Empty string is considered "no valid path"
+    if (acmePath === '') {
+      return false;
+    }
     return existsSync(acmePath);
   }
+  // No path provided - search for ACME in PATH
   return findAcme() !== null;
 }
 
@@ -660,4 +673,135 @@ export async function getAcmeVersion(acmePath?: string): Promise<string | null> 
       resolve(null);
     }, 5000);
   });
+}
+
+/**
+ * Invoke ACME assembler synchronously
+ *
+ * Synchronous version of invokeAcme() for use in synchronous code paths.
+ * Uses Node.js execSync and synchronous file operations.
+ *
+ * **WARNING:** This blocks the event loop. Use the async version when possible.
+ *
+ * @param source - Assembly source code (ACME-compatible)
+ * @param options - Assembly options
+ * @returns Assembled binary and labels
+ * @throws {AcmeNotFoundError} If ACME is not installed
+ * @throws {AcmeError} If assembly fails
+ *
+ * @example
+ * ```typescript
+ * const result = invokeAcmeSync(source, { format: 'prg' });
+ * console.log('Binary size:', result.binary.length);
+ * ```
+ */
+export function invokeAcmeSync(source: string, options: AcmeOptions): AcmeResult {
+  // Find ACME executable
+  const acmePath = options.acmePath || findAcme();
+  const searchedPaths = options.acmePath ? [options.acmePath] : getSearchedPaths();
+
+  if (!acmePath || !existsSync(acmePath)) {
+    throw new AcmeNotFoundError(searchedPaths);
+  }
+
+  // Create temp directory for assembly
+  const tempDir = mkdtempSync(join(tmpdir(), 'blend65-acme-'));
+
+  const sourceFile = join(tempDir, 'source.asm');
+  const outputFile = join(tempDir, 'output.prg');
+  const labelFile = join(tempDir, 'output.labels');
+
+  try {
+    // Write source to temp file
+    writeFileSync(sourceFile, source, 'utf-8');
+
+    // Build ACME arguments
+    const args = buildAcmeArgs(sourceFile, outputFile, labelFile, options);
+
+    // Build command string
+    const command = `"${acmePath}" ${args.map(arg => `"${arg}"`).join(' ')}`;
+
+    // Invoke ACME synchronously
+    let stdout = '';
+    let stderr = '';
+    let exitCode = 0;
+
+    try {
+      stdout = execSync(command, {
+        cwd: tempDir,
+        encoding: 'utf-8',
+        timeout: options.timeout ?? 30000,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+    } catch (err: unknown) {
+      // execSync throws on non-zero exit code
+      const execErr = err as { status?: number; stdout?: string; stderr?: string };
+      exitCode = execErr.status ?? 1;
+      stdout = execErr.stdout ?? '';
+      stderr = execErr.stderr ?? '';
+    }
+
+    // Check for errors
+    if (exitCode !== 0) {
+      throw new AcmeError(
+        `ACME assembly failed with exit code ${exitCode}:\n${stderr}`,
+        exitCode,
+        stdout,
+        stderr,
+        source,
+      );
+    }
+
+    // Read output files
+    const binary = readFileSync(outputFile);
+    const labels = options.labels ? readFileSyncSafe(labelFile) : undefined;
+
+    return {
+      binary: new Uint8Array(binary),
+      labels,
+      stdout,
+      stderr,
+    };
+  } finally {
+    // Clean up temp files
+    cleanupTempDirSync(tempDir, [sourceFile, outputFile, labelFile]);
+  }
+}
+
+/**
+ * Read a file synchronously, returning undefined if it doesn't exist
+ *
+ * @param filePath - Path to file
+ * @returns File content or undefined
+ */
+function readFileSyncSafe(filePath: string): string | undefined {
+  try {
+    return readFileSync(filePath, 'utf-8');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Clean up temp directory and files synchronously
+ *
+ * @param tempDir - Temp directory path
+ * @param files - Files to delete
+ */
+function cleanupTempDirSync(tempDir: string, files: string[]): void {
+  // Delete files (ignore errors)
+  for (const file of files) {
+    try {
+      unlinkSync(file);
+    } catch {
+      // Ignore - file may not exist
+    }
+  }
+
+  // Delete directory (ignore errors)
+  try {
+    rmdirSync(tempDir);
+  } catch {
+    // Ignore - directory may not be empty or already deleted
+  }
 }

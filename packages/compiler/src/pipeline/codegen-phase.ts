@@ -1,44 +1,38 @@
 /**
- * Code Generation Phase (Stub)
+ * Code Generation Phase
  *
  * Generates target code from optimized IL.
- * This is a **stub implementation** for Phase 1 - real code
- * generation will be implemented in Phase 2.
  *
  * **Phase Responsibilities:**
- * - Generate 6502 assembly from IL
- * - Produce binary .prg files
+ * - Generate 6502 assembly from IL via CodeGenerator
+ * - Produce binary .prg files via ACME
  * - Generate source maps
  * - Create VICE label files
- *
- * **Stub Implementation:**
- * The current implementation generates minimal placeholder output:
- * - Minimal assembly with BASIC stub
- * - Minimal PRG binary
- * - No source maps (future Phase 3)
  *
  * @module pipeline/codegen-phase
  */
 
 import type { ILModule } from '../il/module.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
+import { DiagnosticCode, DiagnosticSeverity } from '../ast/diagnostics.js';
 import type { PhaseResult, CodegenResult, CodegenOptions } from './types.js';
+import { CodeGenerator } from '../codegen/code-generator.js';
+import type {
+  CodegenOptions as InternalCodegenOptions,
+  OutputFormat,
+  DebugMode,
+} from '../codegen/types.js';
 
 /**
  * Code Generation Phase - generates target code from IL
  *
- * **STUB IMPLEMENTATION**
- *
- * This phase converts IL to target machine code.
- * Currently generates minimal placeholder output.
- * Real implementation will be done in Phase 2.
- *
- * **Future Implementation Will Include:**
+ * This phase converts IL to target machine code using the
+ * CodeGenerator class which provides:
  * - Full 6502 instruction selection
- * - Register allocation
- * - Memory layout
+ * - Global variable allocation (ZP, RAM, DATA, MAP)
  * - BASIC stub generation
  * - Debug info generation
+ * - VICE label file generation
  *
  * @example
  * ```typescript
@@ -56,9 +50,27 @@ import type { PhaseResult, CodegenResult, CodegenOptions } from './types.js';
  */
 export class CodegenPhase {
   /**
+   * The code generator instance
+   */
+  protected codeGenerator: CodeGenerator;
+
+  /**
+   * Default load address for C64 BASIC programs
+   */
+  protected readonly DEFAULT_LOAD_ADDRESS = 0x0801;
+
+  /**
+   * Creates a new CodegenPhase
+   */
+  constructor() {
+    this.codeGenerator = new CodeGenerator();
+  }
+
+  /**
    * Generate target code from IL module
    *
-   * **STUB:** Currently generates placeholder output.
+   * Uses the CodeGenerator to translate IL instructions to 6502 assembly
+   * and optionally assemble to PRG binary.
    *
    * @param ilModule - Optimized IL module
    * @param options - Code generation options
@@ -68,18 +80,62 @@ export class CodegenPhase {
     const startTime = performance.now();
     const diagnostics: Diagnostic[] = [];
 
-    // STUB: Generate minimal output
-    const assembly = this.generateStubAssembly(ilModule, options);
-    const binary = this.generateStubBinary(options);
+    // Map pipeline format string to internal OutputFormat type
+    const formatMap: Record<string, OutputFormat> = {
+      'asm': 'asm',
+      'prg': 'prg',
+      'both': 'both',
+      'crt': 'crt',
+    };
+    const format: OutputFormat = formatMap[options.format] ?? 'both';
 
-    // Generate VICE labels if debug mode includes 'vice'
-    const viceLabels = this.shouldGenerateViceLabels(options) ? this.generateStubViceLabels(ilModule) : undefined;
+    // Map pipeline debug string to internal DebugMode type
+    const debugMap: Record<string, DebugMode> = {
+      'none': 'none',
+      'inline': 'inline',
+      'vice': 'vice',
+      'both': 'both',
+    };
+    const debug: DebugMode = debugMap[options.debug ?? 'none'] ?? 'none';
 
+    // Convert pipeline options to internal codegen options
+    const internalOptions: InternalCodegenOptions = {
+      target: options.target,
+      format,
+      debug,
+      sourceMap: options.sourceMap ?? false,
+      basicStub: true,
+      loadAddress: this.DEFAULT_LOAD_ADDRESS,
+    };
+
+    // Use the real CodeGenerator
+    const codegenResult = this.codeGenerator.generate(ilModule, internalOptions);
+
+    // Convert warnings to diagnostics
+    // CodeGenerator returns CodegenWarning[] with message and optional location
+    for (const warning of codegenResult.warnings ?? []) {
+      diagnostics.push({
+        code: DiagnosticCode.TYPE_MISMATCH, // Generic code for codegen warnings
+        severity: DiagnosticSeverity.WARNING,
+        message: warning.message,
+        location: warning.location ?? {
+          // Fallback to module location if no specific location provided
+          file: ilModule.name,
+          start: { line: 1, column: 1, offset: 0 },
+          end: { line: 1, column: 1, offset: 0 },
+        },
+      });
+    }
+
+    // Only include binary if CodeGenerator actually produced one (ACME assembled successfully)
+    // If ACME is not available, binary will be undefined and no .prg file should be written
     const result: CodegenResult = {
-      assembly,
-      binary,
-      sourceMap: undefined, // Phase 3 implementation
-      viceLabels,
+      assembly: codegenResult.assembly,
+      binary: codegenResult.binary,
+      // Note: sourceMap format differs - pipeline uses SourceMap, codegen uses SourceMapEntry[]
+      // For now, we omit sourceMap until proper conversion is implemented
+      sourceMap: undefined,
+      viceLabels: codegenResult.viceLabels,
     };
 
     return {
@@ -90,180 +146,4 @@ export class CodegenPhase {
     };
   }
 
-  /**
-   * Default load address for C64 BASIC programs
-   */
-  protected readonly DEFAULT_LOAD_ADDRESS = 0x0801;
-
-  /**
-   * Generate stub assembly output
-   *
-   * Creates a minimal assembly file with:
-   * - Header comments
-   * - BASIC stub for auto-run
-   * - Placeholder main routine
-   *
-   * @param ilModule - IL module (for metadata)
-   * @param options - Code generation options
-   * @returns Assembly source string
-   */
-  protected generateStubAssembly(ilModule: ILModule, options: CodegenOptions): string {
-    const loadAddress = this.DEFAULT_LOAD_ADDRESS;
-    const timestamp = new Date().toISOString();
-    const moduleName = ilModule.name;
-
-    // Get entry point if available
-    const entryPoint = ilModule.getEntryPointName() ?? 'main';
-
-    return `; Blend65 Compiler Output (STUB)
-; Module: ${moduleName}
-; Generated: ${timestamp}
-; Target: ${options.target.architecture}
-;
-; NOTE: This is a stub implementation.
-; Real code generation will be implemented in Phase 2.
-;
-; Load Address: $${loadAddress.toString(16).toUpperCase().padStart(4, '0')}
-
-* = $${loadAddress.toString(16).toUpperCase().padStart(4, '0')}
-
-; ============================================
-; BASIC Stub: 10 SYS ${loadAddress + 15}
-; ============================================
-!byte $0b, $08              ; Next line pointer (low, high)
-!byte $0a, $00              ; Line number 10
-!byte $9e                   ; SYS token
-!text "${loadAddress + 15}" ; Address as ASCII
-!byte $00                   ; End of line
-!byte $00, $00              ; End of program
-
-; ============================================
-; Main Program Entry
-; ============================================
-* = $${(loadAddress + 15).toString(16).toUpperCase().padStart(4, '0')}
-
-${entryPoint}:
-    ; Stub: Set border and background color to black
-    lda #$00
-    sta $d020           ; Border color
-    sta $d021           ; Background color
-
-    ; Stub: Infinite loop
-.loop:
-    jmp .loop
-
-; ============================================
-; End of Program
-; ============================================
-`;
-  }
-
-  /**
-   * Generate stub binary output (PRG format)
-   *
-   * Creates a minimal PRG file with:
-   * - 2-byte load address header
-   * - BASIC stub
-   * - Minimal machine code
-   *
-   * @param options - Code generation options
-   * @returns PRG binary data
-   */
-  protected generateStubBinary(_options: CodegenOptions): Uint8Array {
-    const loadAddress = this.DEFAULT_LOAD_ADDRESS;
-
-    // PRG format: 2-byte load address + program data
-    // BASIC stub: 10 SYS 2064 ($0810)
-    // Machine code at $0810: LDA #$00, STA $D020, STA $D021, JMP $0810
-
-    const programStart = loadAddress + 15; // After BASIC stub
-
-    // Build BASIC stub
-    const basicStub = [
-      // Next line pointer (points to $080B)
-      0x0b,
-      0x08,
-      // Line number 10
-      0x0a,
-      0x00,
-      // SYS token
-      0x9e,
-      // "2064" in ASCII (address of machine code)
-      0x32,
-      0x30,
-      0x36,
-      0x34,
-      // End of line
-      0x00,
-      // End of program
-      0x00,
-      0x00,
-    ];
-
-    // Machine code: LDA #$00, STA $D020, STA $D021, JMP .loop
-    const machineCode = [
-      0xa9,
-      0x00, // LDA #$00
-      0x8d,
-      0x20,
-      0xd0, // STA $D020
-      0x8d,
-      0x21,
-      0xd0, // STA $D021
-      0x4c,
-      programStart & 0xff,
-      (programStart >> 8) & 0xff, // JMP programStart
-    ];
-
-    // Combine: load address + BASIC stub + machine code
-    const prg = new Uint8Array(2 + basicStub.length + machineCode.length);
-
-    // Load address (little-endian)
-    prg[0] = loadAddress & 0xff;
-    prg[1] = (loadAddress >> 8) & 0xff;
-
-    // BASIC stub
-    for (let i = 0; i < basicStub.length; i++) {
-      prg[2 + i] = basicStub[i];
-    }
-
-    // Machine code
-    for (let i = 0; i < machineCode.length; i++) {
-      prg[2 + basicStub.length + i] = machineCode[i];
-    }
-
-    return prg;
-  }
-
-  /**
-   * Generate stub VICE label file
-   *
-   * Creates a minimal label file for VICE debugger.
-   *
-   * @param ilModule - IL module (for function names)
-   * @returns VICE label file content
-   */
-  protected generateStubViceLabels(ilModule: ILModule): string {
-    const lines: string[] = ['# VICE labels generated by Blend65 compiler (STUB)', '#'];
-
-    // Add entry point label
-    const entryPoint = ilModule.getEntryPointName() ?? 'main';
-    lines.push(`al C:0810 .${entryPoint}`);
-
-    // Add loop label
-    lines.push('al C:0810 .loop');
-
-    return lines.join('\n');
-  }
-
-  /**
-   * Check if VICE labels should be generated
-   *
-   * @param options - Code generation options
-   * @returns True if debug includes 'vice' or 'both'
-   */
-  protected shouldGenerateViceLabels(options: CodegenOptions): boolean {
-    const debug = options.debug ?? 'none';
-    return debug === 'vice' || debug === 'both';
-  }
 }

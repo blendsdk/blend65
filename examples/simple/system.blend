@@ -153,7 +153,7 @@ export function pokew(address: word, value: word): void;
  * const BUFFER_SIZE: word = sizeof(word) * 100;
  * @data buffer at 0x2000: byte[BUFFER_SIZE];
  */
-export function sizeof(type: Type): byte;
+export function sizeof(t: byte): byte;
 
 /**
  * Get the length of an array or string.
@@ -192,7 +192,8 @@ export function sizeof(type: Type): byte;
  *   processItem(items[i]);
  * next i
  */
-export function length(value: Array): word;
+// NOTE: length() intrinsic removed - array parameter types not yet supported in stub functions
+// export function length(value: byte[]): word;
 
 // ============================================================================
 // Byte Extraction Utilities

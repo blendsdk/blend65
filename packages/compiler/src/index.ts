@@ -52,4 +52,5 @@ export type {
   OptimizationLevelId,
   DebugMode,
   OutputFormat,
-} from './config/types.js';
+} from './config/types.js';// Utility classes for diagnostic formatting
+export { SourceRegistry } from './utils/index.js';

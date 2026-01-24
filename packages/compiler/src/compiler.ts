@@ -488,7 +488,7 @@ export class Compiler {
       severity: DiagnosticSeverity.ERROR,
       message: `Internal compiler error: ${message}`,
       location: {
-        source: '<internal>',
+        file: '<internal>',
         start: { line: 1, column: 1, offset: 0 },
         end: { line: 1, column: 1, offset: 0 },
       },

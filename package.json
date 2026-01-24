@@ -2,6 +2,7 @@
   "name": "@blend65/monorepo",
   "version": "0.0.1",
   "description": "Blend65 - A multi-target, ahead-of-time compiled language for high-performance 6502 family game development",
+  "license": "Elastic-2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -54,7 +55,6 @@
     "url": "https://github.com/blendsdk/blend65.git"
   },
   "author": "TrueSoftware B.V. <info@truesoftware.nl>",
-  "license": "Elastic-2.0",
   "keywords": [
     "programming-language",
     "sdk",
