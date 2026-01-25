@@ -7,6 +7,9 @@
 
 import { SourcePosition } from '../lexer/types.js';
 
+// Import TypeInfo for expression type annotation
+import type { TypeInfo } from '../semantic/types.js';
+
 // Import concrete node types for visitor interface
 // Note: This creates a circular dependency (base → nodes → base)
 // which is resolved at runtime because visitor interface only uses types
@@ -486,12 +489,12 @@ export abstract class Expression extends ASTNode {
    * Optional: Type information for this expression
    *
    * Set during semantic analysis phase.
-   * Examples: TypeInfo { kind: 'byte' }, TypeInfo { kind: 'word' }
+   * Examples: TypeInfo { kind: TypeKind.Byte }, TypeInfo { kind: TypeKind.Word }
    *
    * Design note: Mutable metadata (not part of tree structure).
    * The parser doesn't set this - the semantic analyzer does.
    */
-  protected typeInfo?: unknown; // Will be replaced with proper TypeInfo later
+  public typeInfo?: TypeInfo;
 
   /**
    * Gets the type of this expression (if analyzed)
@@ -501,8 +504,19 @@ export abstract class Expression extends ASTNode {
    *
    * @returns Type information or undefined
    */
-  public getTypeInfo(): unknown | undefined {
+  public getTypeInfo(): TypeInfo | undefined {
     return this.typeInfo;
+  }
+
+  /**
+   * Sets the type of this expression
+   *
+   * Called during semantic analysis to annotate the expression with its resolved type.
+   *
+   * @param type - The resolved type information
+   */
+  public setTypeInfo(type: TypeInfo): void {
+    this.typeInfo = type;
   }
 }
 

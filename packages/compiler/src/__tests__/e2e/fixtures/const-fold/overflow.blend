@@ -1,0 +1,16 @@
+// Test fixture for constant folding - 6502 overflow handling
+// Expected: O1 should correctly handle byte overflow (wrap at 256)
+// Metrics: O1 instruction count < O0 instruction count
+
+function main(): void {
+  // Test byte overflow - should wrap correctly
+  let wrap1: byte = 255 + 1;         // Should become 0 (byte overflow)
+  let wrap2: byte = 200 + 100;       // Should become 44 (300 & 0xFF = 44)
+  let wrap3: byte = 0 - 1;           // Should become 255 (underflow)
+  
+  // Test word overflow
+  let wordWrap: word = $FFFF + 1;    // Should become 0 (word overflow)
+  
+  @map borderColor at $D020: byte;
+  borderColor = wrap1 + wrap2 + wrap3;
+}

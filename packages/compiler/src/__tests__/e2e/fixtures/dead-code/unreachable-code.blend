@@ -1,0 +1,17 @@
+// Test fixture for DCE - unreachable code after return
+// Expected: O1 should eliminate code after return statement
+// Metrics: O1 instruction count < O0 instruction count
+
+function testFunction(): byte {
+  return 42;
+  
+  // Everything below is unreachable and should be eliminated
+  let x: byte = 10;
+  let y: byte = 20;
+  return x + y;
+}
+
+function main(): void {
+  @map borderColor at $D020: byte;
+  borderColor = testFunction();
+}

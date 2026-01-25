@@ -44,6 +44,9 @@ export class SymbolTableBuilder extends ContextWalker {
   /** Diagnostics collected during symbol table building */
   protected diagnostics: Diagnostic[];
 
+  /** Current function being processed (for parameter declarations) */
+  protected currentFunctionNode: FunctionDecl | null = null;
+
   /**
    * Creates a new symbol table builder
    */
@@ -348,43 +351,59 @@ export class SymbolTableBuilder extends ContextWalker {
     // Enter function scope
     this.symbolTable.enterScope(functionScope);
 
-    // Declare parameters in function scope
-    for (const param of node.getParameters()) {
-      this.visitParameter(param);
-    }
+    // Track current function for parameter declarations
+    this.currentFunctionNode = node;
 
-    // Visit function body statements (if present - stub functions have no body)
-    // TODO(IL-GEN): Stub functions are currently handled passively.
-    // Future enhancement: Add metadata to symbol for faster intrinsic detection.
-    // See: plans/il-generator-requirements.md - AST Annotation Strategy
-    const body = node.getBody();
-    if (body) {
-      for (const stmt of body) {
-        stmt.accept(this);
+    try {
+      // Declare parameters in function scope
+      for (const param of node.getParameters()) {
+        this.visitParameter(param);
       }
-    }
 
-    // Exit function scope
-    this.symbolTable.exitScope();
+      // Visit function body statements (if present - stub functions have no body)
+      // TODO(IL-GEN): Stub functions are currently handled passively.
+      // Future enhancement: Add metadata to symbol for faster intrinsic detection.
+      // See: plans/il-generator-requirements.md - AST Annotation Strategy
+      const body = node.getBody();
+      if (body) {
+        for (const stmt of body) {
+          stmt.accept(this);
+        }
+      }
+    } finally {
+      // Clear current function reference
+      this.currentFunctionNode = null;
+      // Exit function scope
+      this.symbolTable.exitScope();
+    }
   }
 
   /**
    * Visit function parameter
    *
    * Creates a symbol for the parameter in the function scope.
+   * Uses the containing function declaration as the parameter's declaration
+   * since Parameter itself is not a full ASTNode.
    *
    * @param param - Function parameter
    */
   protected visitParameter(param: Parameter): void {
     try {
+      // Use the containing function as the declaration node
+      // Parameter metadata (name, type) can be retrieved from function's parameter list
       const symbol: Symbol = {
         name: param.name,
         kind: SymbolKind.Parameter,
-        declaration: param as any, // Parameter is not an ASTNode but has location
+        declaration: this.currentFunctionNode!,
         isExported: false,
         isConst: false,
         scope: this.symbolTable.getCurrentScope(),
         location: param.location,
+        metadata: {
+          // Store parameter index for retrieval from function declaration
+          parameterName: param.name,
+          parameterTypeAnnotation: param.typeAnnotation,
+        },
       };
 
       this.symbolTable.declare(symbol);

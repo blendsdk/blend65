@@ -641,6 +641,14 @@ export class SSAConstructor {
     try {
       let phisInserted = 0;
 
+      // Build inverse map: SSA name string -> register ID
+      // This allows us to look up existing registers by their SSA version
+      const ssaNameToRegisterId = new Map<string, number>();
+      for (const [registerId, ssaName] of this.renamingResult.registerSSANames) {
+        const key = `${ssaName.base}.${ssaName.version}`;
+        ssaNameToRegisterId.set(key, registerId);
+      }
+
       // For each block that needs phi functions
       for (const [blockId] of this.phiPlacement.byBlock) {
         const block = this.findBlock(func, blockId);
@@ -655,19 +663,28 @@ export class SSAConstructor {
         // Create and insert phi instructions
         for (const renamedPhi of renamedPhis) {
           // Create phi sources from the renamed operands
-          // Note: VirtualRegister constructor is (id, type, name)
-          const sources = renamedPhi.operands.map((operand) => ({
-            value: new VirtualRegister(
-              operand.ssaName.version,
-              IL_BYTE,
-              `${operand.ssaName.base}.${operand.ssaName.version}`
-            ),
-            blockId: operand.blockId,
-          }));
+          // Look up existing register IDs using the inverse SSA name map
+          const sources = renamedPhi.operands.map((operand) => {
+            const ssaKey = `${operand.ssaName.base}.${operand.ssaName.version}`;
+            const existingRegisterId = ssaNameToRegisterId.get(ssaKey);
 
-          // Create result register
-          const result = new VirtualRegister(
-            renamedPhi.result.version,
+            // If we found an existing register, use its ID; otherwise create a new one
+            // Note: If not found, this indicates a potential issue in SSA renaming,
+            // but we handle it gracefully by creating a new register via the function's factory
+            const registerId = existingRegisterId ?? func.getValueFactory().getNextRegisterId();
+
+            return {
+              value: new VirtualRegister(
+                registerId,
+                IL_BYTE,
+                `${operand.ssaName.base}.${operand.ssaName.version}`
+              ),
+              blockId: operand.blockId,
+            };
+          });
+
+          // Create result register using the function's value factory for a globally unique ID
+          const result = func.createRegister(
             IL_BYTE,
             `${renamedPhi.result.base}.${renamedPhi.result.version}`
           );

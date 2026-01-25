@@ -327,6 +327,7 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
         isAssignable: false,
       };
       (node as any).typeInfo = unknownType;
+      return;
     }
 
     (node as any).typeInfo = elementType;

@@ -10,7 +10,7 @@
 
 import { TypeCheckerAssignments } from './assignments.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../../ast/diagnostics.js';
-import { ASTNodeType } from '../../../ast/base.js';
+import { isVariableDecl } from '../../../ast/type-guards.js';
 
 /**
  * TypeCheckerDeclarations - Type checks declarations and statements
@@ -25,6 +25,41 @@ import { ASTNodeType } from '../../../ast/base.js';
  * - visitExpressionStatement (statement-level expressions)
  */
 export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
+  // ============================================
+  // HELPER METHODS - Scope Lookup
+  // ============================================
+
+  /**
+   * Find function scope recursively
+   *
+   * Searches the scope tree for a scope with the given function as its node.
+   * Supports both top-level functions (direct children) and nested functions
+   * (deeper in the scope tree).
+   *
+   * @param parentScope - Scope to start searching from
+   * @param node - Function declaration node to find scope for
+   * @returns Function scope if found, undefined otherwise
+   */
+  protected findFunctionScope(parentScope: any, node: any): any {
+    // Check direct children first
+    const children = parentScope.children || [];
+    for (const child of children) {
+      if (child.node === node) {
+        return child;
+      }
+    }
+
+    // Recursively search child scopes (for nested functions)
+    for (const child of children) {
+      const found = this.findFunctionScope(child, node);
+      if (found) {
+        return found;
+      }
+    }
+
+    return undefined;
+  }
+
   // ============================================
   // DECLARATIONS - Function & Variable
   // ============================================
@@ -46,11 +81,9 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
 
     // Find the function's scope created in Phase 1
     // The scope should have this function's node as its owner
+    // Use recursive search to support nested functions
     const currentScope = this.symbolTable.getCurrentScope();
-    const childScopes = currentScope.children || [];
-
-    // Find child scope with this function as its node
-    const functionScope = childScopes.find(scope => scope.node === node);
+    const functionScope = this.findFunctionScope(currentScope, node);
 
     if (!functionScope) {
       // This shouldn't happen if Phase 1 ran correctly, but handle gracefully
@@ -103,20 +136,17 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
    * Type checks the initializer expression if present and validates
    * that its type is assignable to the variable's declared type.
    *
+   * Uses type guard for proper TypeScript type checking.
+   *
    * Validates:
    * - Initializer type matches declared type
    * - Type widening (byte → word) is allowed
    * - Type narrowing (word → byte) is rejected
    */
   public visitVariableDecl(node: any): void {
-    // Only process actual VariableDecl nodes
-    // Skip nodes without getName method or with wrong node type
-    if (!node.getName || typeof node.getName !== 'function') {
-      return;
-    }
-
-    // Additional safety: skip if node type is not VariableDecl
-    if (node.getNodeType && node.getNodeType() !== ASTNodeType.VARIABLE_DECL) {
+    // Only process actual VariableDecl nodes using type guard
+    // This ensures proper type narrowing and safety
+    if (!isVariableDecl(node)) {
       return;
     }
 
@@ -136,8 +166,9 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
     }
 
     // Type check initializer if present
-    if (node.getInitializer && node.getInitializer()) {
-      const initType = this.typeCheckExpression(node.getInitializer());
+    const initializer = node.getInitializer();
+    if (initializer) {
+      const initType = this.typeCheckExpression(initializer);
 
       // Check if type checking succeeded
       if (!initType || !initType.name) {
@@ -152,7 +183,7 @@ export abstract class TypeCheckerDeclarations extends TypeCheckerAssignments {
           this.reportDiagnostic({
             severity: DiagnosticSeverity.ERROR,
             message: `Type mismatch in variable initialization: cannot assign '${initType.name}' to '${symbol.type.name}'`,
-            location: node.getInitializer().getLocation(),
+            location: initializer.getLocation(),
             code: DiagnosticCode.TYPE_MISMATCH,
           });
         }

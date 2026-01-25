@@ -18,7 +18,7 @@
  * Uses a "current node" pointer to build CFG incrementally during traversal.
  */
 
-import { ContextWalker } from '../../ast/walker/context.js';
+import { ContextWalker, ContextType } from '../../ast/walker/context.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
 import type { SymbolTable } from '../symbol-table.js';
@@ -197,7 +197,7 @@ export class ControlFlowAnalyzer extends ContextWalker {
     this.currentNode = this.currentCFG.entry;
 
     // Enter function context (ContextWalker handles this)
-    this.context.enterContext(0 as any, node);
+    this.context.enterContext(ContextType.FUNCTION, node);
     this.enterNode(node);
 
     // Build CFG from function body

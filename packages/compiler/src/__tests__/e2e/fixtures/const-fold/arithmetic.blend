@@ -1,0 +1,14 @@
+// Test fixture for constant folding - arithmetic operations
+// Expected: O1 should fold constant arithmetic at compile time
+// Metrics: O1 instruction count < O0 instruction count
+
+function main(): void {
+  // These should all be folded to constants at compile time
+  let sum: byte = 10 + 20;           // Should become 30
+  let diff: byte = 100 - 45;         // Should become 55
+  let product: byte = 5 * 8;         // Should become 40
+  let quotient: byte = 80 / 4;       // Should become 20
+  
+  @map borderColor at $D020: byte;
+  borderColor = sum + diff + product + quotient;
+}

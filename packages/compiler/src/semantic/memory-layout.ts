@@ -13,10 +13,18 @@
  * @module semantic/memory-layout
  */
 
-import type { SourceLocation } from '../ast/base.js';
+import type { SourceLocation, Expression } from '../ast/base.js';
 import type { ModuleAnalysisResult } from './analyzer.js';
 import type { Symbol } from './symbol.js';
-import { isVariableDecl, isMapDecl } from '../ast/type-guards.js';
+import {
+  isVariableDecl,
+  isMapDecl,
+  isSimpleMapDecl,
+  isRangeMapDecl,
+  isSequentialStructMapDecl,
+  isExplicitStructMapDecl,
+  isLiteralExpression,
+} from '../ast/type-guards.js';
 import { TokenType } from '../lexer/types.js';
 
 /**
@@ -556,6 +564,9 @@ export class MemoryLayoutBuilder {
   /**
    * Extract map information from symbol
    *
+   * Analyzes the AST node to extract address and size information
+   * for all four @map declaration forms.
+   *
    * @param symbol - Memory-mapped symbol
    * @returns Map metadata (address, size, form)
    */
@@ -565,16 +576,106 @@ export class MemoryLayoutBuilder {
     size: number;
     form: 'simple' | 'range' | 'sequential' | 'explicit';
   } {
-    // TODO: Extract actual map information from AST node
-    // This is a placeholder implementation
-    const mapDecl = symbol.declaration as any;
+    const decl = symbol.declaration;
 
+    // Simple @map: @map var at $D020: byte
+    if (isSimpleMapDecl(decl)) {
+      const address = this.evaluateAddressExpression(decl.getAddress());
+      const size = this.getSymbolSize(symbol);
+      return {
+        startAddress: address,
+        endAddress: address + size - 1,
+        size,
+        form: 'simple',
+      };
+    }
+
+    // Range @map: @map buffer from $0400 to $07E7: byte
+    if (isRangeMapDecl(decl)) {
+      const startAddress = this.evaluateAddressExpression(decl.getStartAddress());
+      const endAddress = this.evaluateAddressExpression(decl.getEndAddress());
+      const size = endAddress - startAddress + 1;
+      return {
+        startAddress,
+        endAddress,
+        size,
+        form: 'range',
+      };
+    }
+
+    // Sequential struct @map: @map sprite at $D000 { ... }
+    if (isSequentialStructMapDecl(decl)) {
+      const baseAddress = this.evaluateAddressExpression(decl.getBaseAddress());
+      // Calculate total size from fields
+      const fields = decl.getFields();
+      let totalSize = 0;
+      for (const field of fields) {
+        // MapField uses baseType, arraySize for type info
+        const fieldSize = this.getTypeSize(field.baseType);
+        const multiplier = field.arraySize ?? 1;
+        totalSize += fieldSize * multiplier;
+      }
+      return {
+        startAddress: baseAddress,
+        endAddress: baseAddress + totalSize - 1,
+        size: totalSize,
+        form: 'sequential',
+      };
+    }
+
+    // Explicit struct @map: @map sprite at $D000 { field at $D001: byte }
+    if (isExplicitStructMapDecl(decl)) {
+      const baseAddress = this.evaluateAddressExpression(decl.getBaseAddress());
+      // Find the max address from all fields
+      const fields = decl.getFields();
+      let maxAddress = baseAddress;
+      for (const field of fields) {
+        if (field.addressSpec.kind === 'single') {
+          const fieldAddr = this.evaluateAddressExpression(field.addressSpec.address);
+          const fieldSize = this.getTypeSize(field.typeAnnotation);
+          maxAddress = Math.max(maxAddress, fieldAddr + fieldSize - 1);
+        } else {
+          const fieldEnd = this.evaluateAddressExpression(field.addressSpec.endAddress);
+          maxAddress = Math.max(maxAddress, fieldEnd);
+        }
+      }
+      return {
+        startAddress: baseAddress,
+        endAddress: maxAddress,
+        size: maxAddress - baseAddress + 1,
+        form: 'explicit',
+      };
+    }
+
+    // Fallback - should not reach here
     return {
-      startAddress: mapDecl.address || 0,
-      endAddress: (mapDecl.address || 0) + (mapDecl.size || 1) - 1,
-      size: mapDecl.size || 1,
-      form: mapDecl.form || 'simple',
+      startAddress: 0,
+      endAddress: 0,
+      size: 1,
+      form: 'simple',
     };
+  }
+
+  /**
+   * Evaluate an address expression to get its numeric value
+   *
+   * Currently only handles numeric literals. More complex expressions
+   * (identifiers, arithmetic) would need constant folding.
+   *
+   * @param expr - Address expression to evaluate
+   * @returns Numeric address value, or 0 if cannot evaluate
+   */
+  protected evaluateAddressExpression(expr: Expression): number {
+    // LiteralExpression has getValue() that returns number | string | boolean
+    if (isLiteralExpression(expr)) {
+      const value = expr.getValue();
+      if (typeof value === 'number') {
+        return value;
+      }
+    }
+    // For now, return 0 for complex expressions
+    // Future: implement constant folding
+    return 0;
   }
 
   /**

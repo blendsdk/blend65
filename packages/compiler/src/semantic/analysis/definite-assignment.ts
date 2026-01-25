@@ -335,6 +335,15 @@ export class DefiniteAssignmentAnalyzer {
     // Check for variable assignments
     const statement = node.statement;
 
+    // For statement - loop variable is definitely assigned
+    if (isForStatement(statement)) {
+      const varName = statement.getVariable();
+      const symbol = this.symbolTable.lookup(varName);
+      if (symbol && symbol.kind === SymbolKind.Variable) {
+        outputSet.add(symbol.name);
+      }
+    }
+
     // Variable declaration with initializer
     if (isVariableDecl(statement)) {
       const varDecl = statement as VariableDecl;

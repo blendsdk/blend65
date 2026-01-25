@@ -1,0 +1,11 @@
+// Test fixture for DCE - unused variable
+// Expected: O1 should eliminate the unused variable
+// Metrics: O1 instruction count < O0 instruction count
+
+function main(): void {
+  let used: byte = 10;
+  let unused: byte = 20;  // This should be eliminated by DCE
+  
+  @map borderColor at $D020: byte;
+  borderColor = used;
+}

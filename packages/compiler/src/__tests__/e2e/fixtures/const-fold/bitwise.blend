@@ -1,0 +1,28 @@
+// Test fixture for constant folding - bitwise operations
+// Expected: O1 should fold constant bitwise operations at compile time
+// Metrics: O1 instruction count < O0 instruction count
+
+function main(): void {
+  // Bitwise AND
+  let and1: byte = $F0 & $0F;        // Should become 0
+  let and2: byte = $FF & $55;        // Should become $55
+  
+  // Bitwise OR
+  let or1: byte = $F0 | $0F;         // Should become $FF
+  let or2: byte = $10 | $01;         // Should become $11
+  
+  // Bitwise XOR
+  let xor1: byte = $FF ^ $FF;        // Should become 0
+  let xor2: byte = $AA ^ $55;        // Should become $FF
+  
+  // Bitwise NOT
+  let not1: byte = ~$00;             // Should become $FF
+  let not2: byte = ~$FF;             // Should become $00
+  
+  // Shift operations
+  let shl: byte = 4 << 2;            // Should become 16
+  let shr: byte = 64 >> 3;           // Should become 8
+  
+  @map borderColor at $D020: byte;
+  borderColor = and1 + or1 + xor1;
+}

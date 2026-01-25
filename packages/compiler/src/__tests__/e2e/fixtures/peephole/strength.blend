@@ -1,0 +1,15 @@
+// Test fixture for strength reduction - multiply to shift
+// Expected: O2 should convert power-of-2 multiplies to shifts
+// Metrics: Should use ASL instead of JSR _multiply
+
+function main(): void {
+  let value: byte = 5;
+  
+  // These should be converted to shifts at O2
+  let times2: byte = value * 2;      // Should become ASL (shift left 1)
+  let times4: byte = value * 4;      // Should become ASL ASL (shift left 2)
+  let times8: byte = value * 8;      // Should become ASL ASL ASL (shift left 3)
+  
+  @map borderColor at $D020: byte;
+  borderColor = times2 + times4 + times8;
+}

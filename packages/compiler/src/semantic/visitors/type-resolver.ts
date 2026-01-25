@@ -33,6 +33,7 @@ import type {
   RangeMapDecl,
   SequentialStructMapDecl,
   ExplicitStructMapDecl,
+  ForStatement,
 } from '../../ast/nodes.js';
 import { isArrayLiteralExpression } from '../../ast/type-guards.js';
 import { TypeSystem } from '../type-system.js';
@@ -298,6 +299,52 @@ export class TypeResolver extends ContextWalker {
   }
 
   // ============================================
+  // FOR STATEMENT - LOOP VARIABLE TYPE RESOLUTION
+  // ============================================
+
+  /** Visit for statement - resolve loop variable type */
+  public visitForStatement(node: ForStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+    const varName = node.getVariable();
+    const startType = this.resolveExpressionType(node.getStart());
+    const endType = this.resolveExpressionType(node.getEnd());
+    let varType: TypeInfo;
+    if (startType.kind === TypeKind.Word || endType.kind === TypeKind.Word) {
+      varType = this.typeSystem.getBuiltinType('word')!;
+    } else {
+      varType = this.typeSystem.getBuiltinType('byte')!;
+    }
+    const symbol = this.symbolTable.lookup(varName);
+    if (symbol) symbol.type = varType;
+    if (!this.shouldSkip && !this.shouldStop) node.getStart().accept(this);
+    if (!this.shouldSkip && !this.shouldStop) node.getEnd().accept(this);
+    if (!this.shouldSkip && !this.shouldStop) {
+      for (const stmt of node.getBody()) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+    }
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /** Resolve type of expression for loop variable inference */
+  protected resolveExpressionType(expr: Expression): TypeInfo {
+    const anyExpr = expr as any;
+    if (typeof anyExpr.getValue === 'function') {
+      const value = anyExpr.getValue();
+      if (typeof value === 'number' && (value > 255 || value < 0)) return this.typeSystem.getBuiltinType('word')!;
+      if (typeof value === 'number') return this.typeSystem.getBuiltinType('byte')!;
+    }
+    if (typeof anyExpr.getName === 'function') {
+      const symbol = this.symbolTable.lookup(anyExpr.getName());
+      if (symbol?.type) return symbol.type;
+    }
+    return this.typeSystem.getBuiltinType('byte')!;
+  }
+
+  // ============================================
   // FUNCTION DECLARATIONS
   // ============================================
 
@@ -373,26 +420,32 @@ export class TypeResolver extends ContextWalker {
     }
 
     // Enter function scope to access parameters
+    // NOTE: SymbolTable scope and WalkerContext are separate concepts:
+    // - SymbolTable.enterScope: Gives access to symbols declared in this scope
+    // - WalkerContext.enterContext: Tracks what kind of construct we're in (function, loop, etc.)
+    // We manage symbolTable scope manually here; super.visitFunctionDecl manages context.
     this.symbolTable.enterScope(functionScope);
 
-    // Now annotate parameter symbols with their types
-    // Parameters are in the current (function) scope
-    for (let i = 0; i < parameters.length; i++) {
-      const param = parameters[i];
-      const paramType = parameterTypes[i];
+    try {
+      // Now annotate parameter symbols with their types
+      // Parameters are in the current (function) scope
+      for (let i = 0; i < parameters.length; i++) {
+        const param = parameters[i];
+        const paramType = parameterTypes[i];
 
-      const paramSymbol = this.symbolTable.lookup(param.name);
-      if (paramSymbol) {
-        paramSymbol.type = paramType;
+        const paramSymbol = this.symbolTable.lookup(param.name);
+        if (paramSymbol) {
+          paramSymbol.type = paramType;
+        }
       }
+
+      // Visit function body with ContextWalker handling
+      // (ContextWalker will automatically manage function context)
+      super.visitFunctionDecl(node);
+    } finally {
+      // Exit function scope - guaranteed even if visiting throws
+      this.symbolTable.exitScope();
     }
-
-    // Visit function body with ContextWalker handling
-    // (ContextWalker will automatically manage function context)
-    super.visitFunctionDecl(node);
-
-    // Exit function scope
-    this.symbolTable.exitScope();
   }
 
   // ============================================
@@ -491,9 +544,9 @@ export class TypeResolver extends ContextWalker {
    * 4. Non-literal expressions cannot be used for inference
    *
    * **Examples:**
-   * - `[1, 2, 3]` ’ size 3
-   * - `[[1, 2], [3, 4]]` ’ size 2 (outer dimension)
-   * - `variable` ’ cannot infer (error)
+   * - `[1, 2, 3]` ï¿½ size 3
+   * - `[[1, 2], [3, 4]]` ï¿½ size 2 (outer dimension)
+   * - `variable` ï¿½ cannot infer (error)
    *
    * @param initializer - Initializer expression to analyze
    * @param location - Source location for error reporting
@@ -504,7 +557,8 @@ export class TypeResolver extends ContextWalker {
     if (!isArrayLiteralExpression(initializer)) {
       this.reportDiagnostic({
         severity: DiagnosticSeverity.ERROR,
-        message: 'Cannot infer array size from non-literal initializer. Array size inference requires an array literal (e.g., [1, 2, 3]).',
+        message:
+          'Cannot infer array size from non-literal initializer. Array size inference requires an array literal (e.g., [1, 2, 3]).',
         location,
         code: DiagnosticCode.TYPE_MISMATCH,
       });
@@ -518,7 +572,8 @@ export class TypeResolver extends ContextWalker {
     if (size === 0) {
       this.reportDiagnostic({
         severity: DiagnosticSeverity.ERROR,
-        message: 'Cannot infer size from empty array literal. Specify explicit size (e.g., byte[0]) or add elements.',
+        message:
+          'Cannot infer size from empty array literal. Specify explicit size (e.g., byte[0]) or add elements.',
         location,
         code: DiagnosticCode.TYPE_MISMATCH,
       });

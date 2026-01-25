@@ -16,7 +16,6 @@ import type { TypeInfo } from '../../types.js';
 import { TypeKind } from '../../types.js';
 import type { Diagnostic } from '../../../ast/diagnostics.js';
 import type { Expression } from '../../../ast/base.js';
-import { ASTNodeType } from '../../../ast/base.js';
 import type {
   LiteralExpression,
   IdentifierExpression,
@@ -28,6 +27,17 @@ import type {
   IndexExpression,
   MemberExpression,
 } from '../../../ast/nodes.js';
+import {
+  isLiteralExpression,
+  isArrayLiteralExpression,
+  isIdentifierExpression,
+  isBinaryExpression,
+  isUnaryExpression,
+  isAssignmentExpression,
+  isCallExpression,
+  isIndexExpression,
+  isMemberExpression,
+} from '../../../ast/type-guards.js';
 import { TokenType } from '../../../lexer/types.js';
 
 /**
@@ -95,33 +105,32 @@ export abstract class TypeCheckerBase extends ContextWalker {
    *
    * This helper method dispatches to the appropriate visitor method
    * (which sets typeInfo on the node) and returns the computed type.
+   * Uses type guards for proper TypeScript type narrowing.
    *
    * @param expr - Expression to type check
    * @returns The type of the expression
    */
   protected typeCheckExpression(expr: Expression): TypeInfo {
-    const nodeType = expr.getNodeType();
-
-    // Dispatch to appropriate visitor method based on node type
+    // Dispatch to appropriate visitor method using type guards
     // Each visitor sets node.typeInfo as a side effect
-    if (nodeType === ASTNodeType.LITERAL_EXPR) {
-      this.visitLiteralExpression(expr as LiteralExpression);
-    } else if (nodeType === ASTNodeType.ARRAY_LITERAL_EXPR) {
-      this.visitArrayLiteralExpression(expr as ArrayLiteralExpression);
-    } else if (nodeType === ASTNodeType.IDENTIFIER_EXPR) {
-      this.visitIdentifierExpression(expr as IdentifierExpression);
-    } else if (nodeType === ASTNodeType.BINARY_EXPR) {
-      this.visitBinaryExpression(expr as BinaryExpression);
-    } else if (nodeType === ASTNodeType.UNARY_EXPR) {
-      this.visitUnaryExpression(expr as UnaryExpression);
-    } else if (nodeType === ASTNodeType.ASSIGNMENT_EXPR) {
-      this.visitAssignmentExpression(expr as AssignmentExpression);
-    } else if (nodeType === ASTNodeType.CALL_EXPR) {
-      this.visitCallExpression(expr as CallExpression);
-    } else if (nodeType === ASTNodeType.INDEX_EXPR) {
-      this.visitIndexExpression(expr as IndexExpression);
-    } else if (nodeType === ASTNodeType.MEMBER_EXPR) {
-      this.visitMemberExpression(expr as MemberExpression);
+    if (isLiteralExpression(expr)) {
+      this.visitLiteralExpression(expr);
+    } else if (isArrayLiteralExpression(expr)) {
+      this.visitArrayLiteralExpression(expr);
+    } else if (isIdentifierExpression(expr)) {
+      this.visitIdentifierExpression(expr);
+    } else if (isBinaryExpression(expr)) {
+      this.visitBinaryExpression(expr);
+    } else if (isUnaryExpression(expr)) {
+      this.visitUnaryExpression(expr);
+    } else if (isAssignmentExpression(expr)) {
+      this.visitAssignmentExpression(expr);
+    } else if (isCallExpression(expr)) {
+      this.visitCallExpression(expr);
+    } else if (isIndexExpression(expr)) {
+      this.visitIndexExpression(expr);
+    } else if (isMemberExpression(expr)) {
+      this.visitMemberExpression(expr);
     } else {
       // Unsupported expression type - set unknown type
       const unknownType: TypeInfo = {
@@ -131,12 +140,12 @@ export abstract class TypeCheckerBase extends ContextWalker {
         isSigned: false,
         isAssignable: false,
       };
-      (expr as any).typeInfo = unknownType;
+      expr.setTypeInfo(unknownType);
       return unknownType;
     }
 
     // Return the typeInfo that was set by the visitor
-    return (expr as any).typeInfo as TypeInfo;
+    return expr.getTypeInfo() as TypeInfo;
   }
 
   /**
@@ -147,24 +156,24 @@ export abstract class TypeCheckerBase extends ContextWalker {
    * - Array access (array[index])
    * - Member access (obj.property)
    *
+   * Uses type guards for proper TypeScript type narrowing.
+   *
    * @param expr - Expression to check
    * @returns True if expression can be assigned to
    */
   protected isLValue(expr: Expression): boolean {
-    const nodeType = expr.getNodeType();
-
     // Identifiers are lvalues
-    if (nodeType === ASTNodeType.IDENTIFIER_EXPR) {
+    if (isIdentifierExpression(expr)) {
       return true;
     }
 
     // Array access is lvalue (array[index])
-    if (nodeType === ASTNodeType.INDEX_EXPR) {
+    if (isIndexExpression(expr)) {
       return true;
     }
 
     // Member access is lvalue (obj.property)
-    if (nodeType === ASTNodeType.MEMBER_EXPR) {
+    if (isMemberExpression(expr)) {
       return true;
     }
 
@@ -175,17 +184,19 @@ export abstract class TypeCheckerBase extends ContextWalker {
   /**
    * Check if an expression refers to a const variable
    *
+   * Uses type guard for proper TypeScript type narrowing.
+   *
    * @param expr - Expression to check
    * @returns True if expression is a const variable
    */
   protected isConst(expr: Expression): boolean {
-    // Only identifiers can be const
-    if (expr.getNodeType() !== ASTNodeType.IDENTIFIER_EXPR) {
+    // Only identifiers can be const - use type guard for proper narrowing
+    if (!isIdentifierExpression(expr)) {
       return false;
     }
 
-    const identifier = expr as IdentifierExpression;
-    const symbol = this.symbolTable.lookup(identifier.getName());
+    // TypeScript knows expr is IdentifierExpression here, no cast needed
+    const symbol = this.symbolTable.lookup(expr.getName());
 
     return symbol?.isConst || false;
   }
@@ -201,6 +212,27 @@ export abstract class TypeCheckerBase extends ContextWalker {
   }
 
   /**
+   * Get a required builtin type with defensive null check
+   *
+   * This helper ensures builtin types exist and throws a clear error if not.
+   * Use this instead of `getBuiltinType(name)!` to get better error messages.
+   *
+   * @param name - Name of the builtin type (e.g., 'byte', 'word', 'void')
+   * @returns The builtin type info
+   * @throws Error if the builtin type is not registered
+   */
+  protected getRequiredBuiltinType(name: string): TypeInfo {
+    const type = this.typeSystem.getBuiltinType(name);
+    if (!type) {
+      throw new Error(
+        `Internal compiler error: builtin type '${name}' not found in type system. ` +
+          `This indicates a bug in type system initialization.`
+      );
+    }
+    return type;
+  }
+
+  /**
    * Get the larger of two numeric types
    *
    * When mixing byte and word, result is word.
@@ -213,11 +245,11 @@ export abstract class TypeCheckerBase extends ContextWalker {
   protected getLargerNumericType(left: TypeInfo, right: TypeInfo): TypeInfo {
     // If either is word, result is word
     if (left.kind === TypeKind.Word || right.kind === TypeKind.Word) {
-      return this.typeSystem.getBuiltinType('word')!;
+      return this.getRequiredBuiltinType('word');
     }
 
     // Both are byte (or unknown)
-    return this.typeSystem.getBuiltinType('byte')!;
+    return this.getRequiredBuiltinType('byte');
   }
 
   /**

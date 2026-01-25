@@ -30,13 +30,60 @@ export class TypeSystem {
   /** Built-in types (byte, word, boolean, void, string) */
   protected builtinTypes: Map<string, TypeInfo>;
 
-  /** Type compatibility cache for performance */
-  protected compatibilityCache: Map<string, TypeCompatibility>;
+  /**
+   * Type compatibility cache for performance
+   * Uses numeric keys for faster lookup than string concatenation
+   */
+  protected compatibilityCache: Map<number, TypeCompatibility>;
+
+  /**
+   * Maps TypeInfo objects to unique numeric IDs for cache key generation
+   * Uses type name as a stable identifier since TypeInfo instances may vary
+   */
+  protected typeNameIds: Map<string, number>;
+
+  /** Next available type ID */
+  protected nextTypeId: number;
 
   constructor() {
     this.builtinTypes = new Map();
     this.compatibilityCache = new Map();
+    this.typeNameIds = new Map();
+    this.nextTypeId = 0;
     this.initializeBuiltinTypes();
+  }
+
+  /**
+   * Get a unique numeric ID for a type name
+   *
+   * This enables efficient cache key generation using bit-packed integers
+   * instead of string concatenation, which is faster for lookups.
+   *
+   * @param typeName - Name of the type
+   * @returns Unique numeric ID for the type
+   */
+  protected getTypeNameId(typeName: string): number {
+    let id = this.typeNameIds.get(typeName);
+    if (id === undefined) {
+      id = this.nextTypeId++;
+      this.typeNameIds.set(typeName, id);
+    }
+    return id;
+  }
+
+  /**
+   * Generate a cache key from two type IDs
+   *
+   * Uses bit packing: (fromId << 16) | toId
+   * This allows up to 65,535 unique types before overflow.
+   * Given Blend65's type system, this is more than sufficient.
+   *
+   * @param fromId - Source type ID
+   * @param toId - Target type ID
+   * @returns Numeric cache key
+   */
+  protected getCacheKey(fromId: number, toId: number): number {
+    return (fromId << 16) | toId;
   }
 
   /**
@@ -192,15 +239,19 @@ export class TypeSystem {
    * - Array types must have compatible elements and sizes
    * - Callback types must have compatible signatures
    *
+   * Uses numeric cache keys for performance (faster than string concatenation).
+   *
    * @param from - Source type
    * @param to - Target type
    * @returns Compatibility result
    */
   public checkCompatibility(from: TypeInfo, to: TypeInfo): TypeCompatibility {
-    // Check cache first for performance
-    const cacheKey = `${from.name}->${to.name}`;
+    // Check cache first for performance using numeric key
+    const fromId = this.getTypeNameId(from.name);
+    const toId = this.getTypeNameId(to.name);
+    const cacheKey = this.getCacheKey(fromId, toId);
     const cached = this.compatibilityCache.get(cacheKey);
-    if (cached) {
+    if (cached !== undefined) {
       return cached;
     }
 
@@ -418,8 +469,12 @@ export class TypeSystem {
 
   /**
    * Clear compatibility cache (useful for testing)
+   *
+   * Also clears the type name ID mappings to ensure a fresh state.
    */
   public clearCache(): void {
     this.compatibilityCache.clear();
+    this.typeNameIds.clear();
+    this.nextTypeId = 0;
   }
 }

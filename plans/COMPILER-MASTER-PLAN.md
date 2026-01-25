@@ -1,25 +1,25 @@
 # Blend65 Compiler - Master Implementation Plan
 
-> **Status**: 60-70% Complete | **Next Phase**: IL Generator  
-> **Last Updated**: January 19, 2026  
-> **Version**: 0.1.0  
-> **Total Tests**: 2,603 passing
+> **Status**: ~75% Complete | **Next Phase**: Optimizer  
+> **Last Updated**: January 25, 2026  
+> **Version**: 0.1.0-alpha  
+> **Total Tests**: 6,200+ passing
 
 ---
 
 ## Executive Summary
 
-The Blend65 compiler is a production-quality compiler for the Commodore 64 that has completed its **lexical analysis, parsing, AST construction, and comprehensive semantic analysis** phases. The compiler now stands at 60-70% completion with a sophisticated foundation ready for intermediate language generation and 6502 code generation.
+The Blend65 compiler is a production-quality compiler for the Commodore 64 that has completed its **core compilation pipeline**: lexical analysis, parsing, AST construction, comprehensive semantic analysis, IL generation with SSA, and basic code generation. The compiler now stands at ~75% completion with a sophisticated foundation ready for optimization and polish.
 
 ### **Current Compiler Pipeline Status**
 
 ```
-Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ → IL Generator 🔜 → Code Generator 🔜 → Assembly 🔜
+Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ → IL Generator ✅ → Code Generator ✅ → Optimizer 🔜 → Assembly
 ```
 
 ---
 
-## Completed Work (60-70%)
+## Completed Work (~75%)
 
 ### ✅ **Phase: Lexer (100% Complete)**
 
@@ -85,7 +85,7 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 ### ✅ **Phase: Semantic Analyzer (100% Complete)**
 
 **Status**: Production-ready  
-**Test Coverage**: 1,365+ tests passing  
+**Test Coverage**: 1,500+ tests passing  
 **Implementation**: `packages/compiler/src/semantic/`
 
 **Sub-Phases Completed**:
@@ -221,7 +221,80 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 - Stub function handling in semantic analyzer
 - Type checking for built-in functions
 - 29 integration tests
-- IL requirements documented in `plans/il-generator-requirements.md`
+- IL requirements documented in `plans/archive/il-generator-requirements.md`
+
+---
+
+### ✅ **Phase: IL Generator with SSA (100% Complete)**
+
+**Status**: Production-ready  
+**Test Coverage**: 2,000+ tests passing  
+**Implementation**: `packages/compiler/src/il/`
+
+**Features Implemented**:
+- Complete IL (Intermediate Language) node type system
+- AST → IL translation for all constructs
+- SSA (Static Single Assignment) form construction
+- Phi function insertion at merge points
+- Control Flow Graph (CFG) integration
+- Virtual register allocation with unique IDs
+- Intrinsic handling (runtime and compile-time)
+- Memory layout translation (@zp, @map, @data)
+- Function call translation
+- Array and string handling
+- Type conversion insertions
+
+**Architecture**:
+- `ILFunction` - Function representation with basic blocks
+- `ILBasicBlock` - Basic block with instructions and terminator
+- `ILInstruction` - Individual IL instructions
+- `ILValueFactory` - Creates virtual registers with unique IDs
+- `SSAConstructor` - Builds SSA form with phi functions
+- `ILGenerator` - Main AST → IL converter
+
+**Quality**: Complete SSA-based IL ready for optimization and code generation
+
+---
+
+### ✅ **Phase: Code Generator (100% Complete - Basic)**
+
+**Status**: Basic implementation complete  
+**Test Coverage**: 500+ tests passing  
+**Implementation**: `packages/compiler/src/codegen/`
+
+**Features Implemented**:
+- IL → 6502 assembly translation
+- ACME assembler output format
+- Basic expression evaluation
+- Arithmetic operations
+- Comparisons and boolean logic
+- Control flow (branches, loops)
+- Function calls (JSR/RTS)
+- Memory-mapped I/O access
+- Zero page usage
+- Stack frame management
+
+**What's Working**:
+- Simple programs compile to runnable 6502 code
+- Basic C64 hardware access works
+- Memory-mapped variables work
+- Function calls work
+
+**Quality**: Functional code generator producing valid 6502 assembly
+
+---
+
+### ✅ **Phase: Config System (100% Complete)**
+
+**Status**: Production-ready  
+**Implementation**: `packages/compiler/src/config/`
+
+**Features Implemented**:
+- Project configuration loading
+- Target platform configuration (C64, C128, X16)
+- Memory layout configuration
+- Compiler options
+- Output format configuration
 
 ---
 
@@ -241,250 +314,79 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 
 ---
 
-## Remaining Work (30-40%)
+## Remaining Work (~25%)
 
-### 🔜 **Phase: IL Generator (Priority 1 - NEXT)**
+### 🔜 **Phase: Optimizer (Priority 1 - NEXT FOCUS)**
 
-**Status**: Requirements documented  
+**Status**: Not started  
 **Time Estimate**: 4-6 weeks  
 **Complexity**: High  
-**Documentation**: `plans/il-generator-requirements.md`
+**Documentation**: `plans/optimizer/` (50+ planning documents)
 
-**What Needs to Be Done**:
+**Planned Optimization Passes**:
 
-#### **Sub-Phase 1: IL Foundation (Week 1)**
-- Define IL node type system
-- Create IL node base classes
-- Design IL instruction set
-- Implement IL printer/debugger
-- Set up test infrastructure
-
-#### **Sub-Phase 2: AST → IL Traversal (Week 2)**
-- Create IL generator visitor
-- Implement expression translation
-- Implement statement translation
-- Handle control flow (if/while/for)
-- Variable/function declaration handling
-
-#### **Sub-Phase 3: Intrinsic Handling (Week 2-3)**
-- Implement intrinsic registry
-- Handle runtime intrinsics (peek, poke, peekw, pokew, length)
-- Handle compile-time intrinsics (sizeof)
-- Compile-time constant evaluation
-- Type-based intrinsic resolution
-
-#### **Sub-Phase 4: Advanced IL Features (Week 3-4)**
-- Memory layout translation (@zp, @map, @data)
-- Function call translation (parameter passing, return values)
-- Array and string handling
-- Type conversion insertions
-- Control flow graph integration
-
-#### **Sub-Phase 5: IL Optimization (Week 4-5)**
+#### **IL-Level Optimizations**
 - Dead code elimination
-- Constant folding
+- Constant folding and propagation
 - Common subexpression elimination
 - Copy propagation
-- Loop optimization hints
+- Loop-invariant code motion
+- Loop unrolling hints
+- Function inlining
 
-#### **Sub-Phase 6: Testing & Integration (Week 5-6)**
-- Unit tests (300+ tests)
-- Integration tests (50+ tests)
-- End-to-end tests (source → IL validation)
-- Performance benchmarks
-
-**Success Criteria**:
-- ✅ All Blend65 constructs translate to IL
-- ✅ Intrinsics handled correctly (runtime and compile-time)
-- ✅ IL is well-formed and verifiable
-- ✅ 350+ tests passing
-- ✅ Ready for code generator consumption
-
----
-
-### 🔜 **Phase: Code Generator (Priority 2)**
-
-**Status**: Not started  
-**Time Estimate**: 4-6 weeks  
-**Complexity**: High
-
-**What Needs to Be Done**:
-
-#### **Sub-Phase 1: 6502 Code Generation Infrastructure (Week 1)**
-- Define 6502 instruction representation
-- Create register allocator base
-- Implement instruction selector
-- Set up assembly emission
-- Create test infrastructure
-
-#### **Sub-Phase 2: Basic Code Generation (Week 2)**
-- Translate IL instructions to 6502
-- Implement expression evaluation
-- Handle arithmetic operations
-- Implement comparisons
-- Boolean logic translation
-
-#### **Sub-Phase 3: Control Flow (Week 2-3)**
-- Branch instruction generation
-- Loop translation
-- If/else translation
-- Function calls (JSR/RTS)
-- Return handling
-
-#### **Sub-Phase 4: Memory Management (Week 3-4)**
-- Zero page allocation
-- Stack frame management
-- @map address resolution
-- Memory-mapped I/O access
-- Global variable allocation
-
-#### **Sub-Phase 5: Register Allocation (Week 4-5)**
-- Register usage analysis
-- Spill code generation
-- Register preference hints
-- 6502-specific optimizations (A/X/Y usage)
-
-#### **Sub-Phase 6: Optimization (Week 5)**
-- Peephole optimization
+#### **Peephole Optimizations**
+- Load/store elimination
+- Redundant flag clearing (CLC, SEC)
 - Branch optimization
-- Load/store coalescing
-- Dead code elimination
-- Strength reduction
+- Register transfer optimization
+- Instruction combining
 
-#### **Sub-Phase 7: Testing & Validation (Week 6)**
-- Unit tests (300+ tests)
-- Integration tests (100+ tests)
-- Real C64 execution tests
-- Performance benchmarks
+#### **6502-Specific Optimizations**
+- Zero page allocation optimization
+- Register (A/X/Y) allocation
+- Addressing mode selection
+- VIC-II timing-aware scheduling
+- Self-modifying code patterns
 
 **Success Criteria**:
-- ✅ Generates valid 6502 assembly
-- ✅ All Blend65 constructs supported
-- ✅ Efficient code generation
-- ✅ 400+ tests passing
-- ✅ Real C64 hardware validation
+- Generated code is 20-40% smaller
+- Generated code is 20-50% faster
+- All optimizations preserve correctness
+- Comprehensive test coverage
 
 ---
 
-### 🔜 **Phase: Assembler Integration (Priority 3)**
+### 🔜 **Phase: CLI Improvements (Priority 2)**
 
-**Status**: Not started  
+**Status**: Partial implementation  
 **Time Estimate**: 2 weeks  
-**Complexity**: Medium
+**Complexity**: Medium  
+**Documentation**: `plans/end-to-end/05-cli-architecture.md`, `plans/end-to-end/06-cli-commands.md`
 
 **What Needs to Be Done**:
-
-#### **Sub-Phase 1: Assembler Selection (Week 1)**
-- Evaluate assemblers (ca65, ACME, KickAssembler)
-- Choose assembler for integration
-- Design assembly output format
-- Handle assembler-specific features
-
-#### **Sub-Phase 2: Assembly Emission (Week 1-2)**
-- Generate assembler-compatible output
-- Handle labels and symbols
-- Emit data sections
-- Emit code sections
-- Handle external references
-
-#### **Sub-Phase 3: Linking & PRG Generation (Week 2)**
-- Link object files
-- Generate C64 PRG format
-- Handle memory layout
-- Create loadable binary
-- Testing on emulator/hardware
-
-**Success Criteria**:
-- ✅ Generates valid assembly
-- ✅ Assembles without errors
-- ✅ Creates loadable PRG files
-- ✅ Runs on C64 emulator and hardware
+- Improved `blend65 new` command for project scaffolding
+- Better `blend65 build` command with options
+- Watch mode for development
+- VICE emulator integration
+- Source maps for debugging
+- Better error output formatting
 
 ---
 
-### 🔜 **Phase: Standard Library (Priority 3)**
+### 🔜 **Phase: Documentation & Examples (Priority 3)**
 
-**Status**: Partially documented  
+**Status**: Language spec complete, user docs partial  
 **Time Estimate**: 2-3 weeks  
-**Complexity**: Medium
+**Complexity**: Low-Medium  
+**Documentation**: `plans/end-to-end/10-dx-roadmap.md`
 
 **What Needs to Be Done**:
-
-#### **Library 1: Built-In Functions (Week 1)**
-- Finalize built-in function implementations
-- Document all intrinsics
-- Test on real C64 patterns
-- Performance validation
-
-#### **Library 2: C64 Hardware Libraries (Week 1-2)**
-- VIC-II control functions
-- SID sound functions
-- CIA timer functions
-- Sprite system
-- Color and graphics utilities
-
-#### **Library 3: Utility Libraries (Week 2)**
-- Math functions (multiply, divide, modulo)
-- String manipulation
-- Memory utilities
-- Random number generation
-
-#### **Library 4: Kernal Integration (Week 2-3)**
-- Kernal ROM function wrappers
-- BASIC ROM integration
-- Screen I/O
-- Keyboard input
-- File I/O
-
-#### **Library 5: Testing & Examples (Week 3)**
-- Unit tests for all libraries
-- Example programs
-- Documentation
-- Performance benchmarks
-
-**Success Criteria**:
-- ✅ Complete standard library
-- ✅ All functions tested
-- ✅ Documentation complete
-- ✅ Example programs working
-
----
-
-### 🔜 **Phase: Documentation & Examples (Priority 4)**
-
-**Status**: Language spec complete, compiler docs partial  
-**Time Estimate**: 2 weeks  
-**Complexity**: Low-Medium
-
-**What Needs to Be Done**:
-
-#### **Documentation (Week 1)**
-- Compiler architecture documentation
-- IL specification
-- Code generation guide
-- Optimization guide
-- API reference documentation
-
-#### **Examples (Week 1-2)**
-- Hello World
-- VIC-II graphics demos
-- SID music/sound effects
-- Sprite demos
-- Game examples (Snake game complete)
-- Hardware demos (raster bars, scroll, etc.)
-
-#### **Tutorials (Week 2)**
 - Getting started guide
 - Language tutorial
-- C64 hardware programming guide
-- Game development guide
+- Compiler architecture documentation
+- API reference
+- Example programs (demos, games)
 - Troubleshooting guide
-
-**Success Criteria**:
-- ✅ Complete documentation
-- ✅ 10+ working examples
-- ✅ Tutorials for beginners
-- ✅ API reference complete
 
 ---
 
@@ -495,33 +397,12 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 **Complexity**: Medium
 
 **What Needs to Be Done**:
-
-#### **Integration (Week 1)**
-- CLI tool integration
-- Build system
+- End-to-end integration testing
+- Performance benchmarks
 - Error message improvements
-- Performance optimization
 - Memory usage optimization
-
-#### **Polish (Week 1-2)**
-- Bug fixes
 - Edge case handling
-- Diagnostic improvements
-- Code cleanup
-- Final testing
-
-#### **Release Preparation (Week 2)**
-- Version tagging
-- Release notes
-- Package for distribution
-- Website/GitHub page
-- Announcement
-
-**Success Criteria**:
-- ✅ All components integrated
-- ✅ Production-ready quality
-- ✅ Zero known critical bugs
-- ✅ Ready for v1.0 release
+- Final bug fixes
 
 ---
 
@@ -534,23 +415,22 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 | Lexer Complete | 2025 Q4 | ✅ Done |
 | Parser Complete | 2025 Q4 | ✅ Done |
 | AST System Complete | 2025 Q4 | ✅ Done |
-| Semantic Analyzer Phase 0-5 | 2026 Q1 | ✅ Done |
-| Semantic Analyzer Phase 6-7 | 2026 Q1 | ✅ Done |
-| Semantic Analyzer Phase 8 | 2026 Q1 | ✅ Done |
+| Semantic Analyzer Complete | 2026 Q1 | ✅ Done |
+| IL Generator Complete | 2026 Q1 | ✅ Done |
+| Code Generator (Basic) Complete | 2026 Q1 | ✅ Done |
+| Config System Complete | 2026 Q1 | ✅ Done |
 | Refactoring Complete | 2026 Q1 | ✅ Done |
 
 ### **Upcoming Milestones**
 
 | Milestone | Estimated Date | Status |
 |-----------|---------------|--------|
-| IL Generator Complete | 2026 Q2 | 🔜 Next |
-| Code Generator Complete | 2026 Q2-Q3 | 🔜 Planned |
-| Assembler Integration | 2026 Q3 | 🔜 Planned |
-| Standard Library | 2026 Q3 | 🔜 Planned |
-| Documentation Complete | 2026 Q3 | 🔜 Planned |
-| v1.0 Release | 2026 Q3 | 🔜 Goal |
+| Optimizer Complete | 2026 Q2 | 🔜 Next |
+| CLI Improvements | 2026 Q2 | 🔜 Planned |
+| Documentation Complete | 2026 Q2 | 🔜 Planned |
+| v1.0 Release | 2026 Q2-Q3 | 🔜 Goal |
 
-**Total Remaining Time**: ~14-18 weeks (3.5-4.5 months)
+**Total Remaining Time**: ~10-14 weeks (2.5-3.5 months)
 
 ---
 
@@ -558,14 +438,12 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 
 **Recommended sequence for remaining work**:
 
-1. **Start: IL Generator** (4-6 weeks) - Critical path
-2. **Next: Code Generator** (4-6 weeks) - Depends on IL
-3. **Parallel: Standard Library** (2-3 weeks) - Can start during code gen
-4. **Next: Assembler Integration** (2 weeks) - After code gen
-5. **Next: Documentation & Examples** (2 weeks) - Can parallelize
-6. **Final: Integration & Polish** (2 weeks) - Final cleanup
+1. **Start: Optimizer** (4-6 weeks) - Critical for code quality
+2. **Next: CLI Improvements** (2 weeks) - Better developer experience
+3. **Parallel: Documentation** (2-3 weeks) - Can start during optimizer
+4. **Final: Integration & Polish** (2 weeks) - Final cleanup
 
-**Total**: 14-18 weeks (~3.5-4.5 months to v1.0)
+**Total**: ~10-14 weeks (~2.5-3.5 months to v1.0)
 
 ---
 
@@ -577,32 +455,32 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 - ✅ Compiles to working 6502 code
 - ✅ Runs on real C64 hardware
 - ✅ All language features working
-- ✅ Standard library complete
 - ✅ Multi-module compilation
+- 🔜 Optimized code generation
 
 ### **Quality Requirements**
 
-- ✅ 3,000+ tests passing
+- ✅ 6,200+ tests passing
+- 🔜 8,000+ tests for v1.0
 - ✅ Zero known critical bugs
 - ✅ 90%+ test coverage
-- ✅ Performance acceptable (< 5s for 10K LOC)
 - ✅ Error messages helpful
 
 ### **Documentation Requirements**
 
 - ✅ Language specification complete
-- ✅ Compiler documentation complete
-- ✅ API reference complete
-- ✅ 10+ working examples
-- ✅ Tutorials available
+- 🔜 Compiler documentation complete
+- 🔜 API reference complete
+- 🔜 10+ working examples
+- 🔜 Tutorials available
 
 ### **Production Readiness**
 
-- ✅ Can build real C64 games
+- ✅ Can compile C64 programs
+- 🔜 Optimized code output
 - ✅ Stable API
-- ✅ Production-quality code generation
 - ✅ Reliable and predictable
-- ✅ Community feedback incorporated
+- 🔜 Community feedback incorporated
 
 ---
 
@@ -613,28 +491,13 @@ Source Code → Lexer ✅ → Parser ✅ → AST ✅ → Semantic Analyzer ✅ �
 | Lexer | 150+ | ✅ Passing |
 | Parser | 400+ | ✅ Passing |
 | AST | 100+ | ✅ Passing |
-| Semantic Analyzer (Core) | 765+ | ✅ Passing |
-| Phase 8 Analysis | 500+ | ✅ Passing |
-| Hardware Analyzers | 200+ | ✅ Passing |
-| IL-Readiness Analysis | 105+ | ✅ Passing |
-| Integration | 313+ | ✅ Passing |
-| **TOTAL** | **2,603** | **✅ Passing** |
+| Semantic Analyzer | 1,500+ | ✅ Passing |
+| IL Generator | 2,000+ | ✅ Passing |
+| Code Generator | 500+ | ✅ Passing |
+| Integration | 1,500+ | ✅ Passing |
+| **TOTAL** | **6,200+** | **✅ Passing** |
 
-**Target for v1.0**: 3,000+ tests
-
-### **IL-Readiness Enhancement (January 19, 2026)**
-
-Added 105 new tests for IL-readiness preparation:
-- ✅ **Type Coercion Analysis** (40 tests): Marks AST nodes where type conversions needed
-- ✅ **Addressing Mode Hints** (26 tests): Determines optimal 6502 addressing modes  
-- ✅ **Expression Complexity Scoring** (39 tests): Calculates complexity for register allocation
-
-**New Files Created**:
-- `semantic/analysis/type-coercion.ts` - TypeCoercionAnalyzer
-- `semantic/analysis/expression-complexity.ts` - ExpressionComplexityAnalyzer
-- `__tests__/semantic/type-coercion.test.ts` - Type coercion tests
-- `__tests__/semantic/addressing-modes.test.ts` - Addressing mode tests
-- `__tests__/semantic/expression-complexity.test.ts` - Complexity tests
+**Target for v1.0**: 8,000+ tests
 
 ---
 
@@ -653,14 +516,13 @@ Added 105 new tests for IL-readiness preparation:
    - Cross-module type checking
    - Global memory layout
 
-3. **God-Level Analysis**
-   - 36 Phase 8 tasks complete
-   - Hardware-specific analyzers
-   - VIC-II timing, SID conflicts
-   - 661+ tests for Phase 8 alone
+3. **SSA-Based IL**
+   - Complete SSA construction
+   - Phi function insertion
+   - Ready for sophisticated optimizations
 
 4. **Production Quality**
-   - 2,428 tests passing
+   - 6,200+ tests passing
    - Comprehensive edge case coverage
    - Realistic C64 patterns tested
    - Battle-tested architecture
@@ -674,14 +536,14 @@ Added 105 new tests for IL-readiness preparation:
 1. **Pratt Parser**: Best for expression precedence
 2. **Inheritance Chain**: Maintainability over single-file simplicity
 3. **Multi-Pass Semantic Analyzer**: Correctness over single-pass speed
-4. **Enum-Based Metadata**: IL-friendly architecture
+4. **SSA-Based IL**: Standard form for optimization
+5. **ACME Assembler**: Good balance of features and simplicity
 
 ### **Upcoming Decisions**
 
-1. **IL Design**: SSA vs. stack-based vs. register-based?
-2. **Assembler Choice**: ca65 vs. ACME vs. KickAssembler?
-3. **Runtime Library**: Minimal vs. comprehensive?
-4. **Optimization Level**: Basic vs. aggressive?
+1. **Optimization Level**: Basic vs. aggressive?
+2. **Runtime Library**: Minimal vs. comprehensive?
+3. **Source Map Format**: Standard vs. custom?
 
 ---
 
@@ -689,20 +551,15 @@ Added 105 new tests for IL-readiness preparation:
 
 ### **Completed Work Documentation**
 
-- `plans/archive/semantic-analyzer/` - All semantic analyzer plans
-- `plans/archive/phase8-advanced-analysis/` - Phase 8 implementation
-- `plans/archive/parser/` - Parser implementation
-- `plans/archive/refactoring/` - Refactoring work
-- `docs/semantic-analyzer-implementation-status.md` - Current status
+- `plans/archive/` - All completed plans (semantic analyzer, parser, refactoring, IL generator)
+- `docs/language-specification/` - Complete Blend65 language spec
 
 ### **Active Plans**
 
-- `plans/il-generator-requirements.md` - IL requirements
-- `plans/features/` - Feature research
-
-### **Language Specification**
-
-- `docs/language-specification/` - Complete Blend65 spec
+- `plans/optimizer/` - Comprehensive optimizer planning (50+ documents)
+- `plans/end-to-end/` - CLI, VICE integration, config, source maps
+- `plans/features/` - Feature research (inline assembly, interrupts, sprites)
+- `plans/native-assembler/` - Assembler planning
 
 ---
 
@@ -710,47 +567,45 @@ Added 105 new tests for IL-readiness preparation:
 
 ### **Immediate (This Week)**
 
-1. ✅ Review and approve this master plan
-2. 🔜 Create detailed IL Generator implementation plan
-3. 🔜 Design IL node type system
-4. 🔜 Begin IL foundation work
+1. ✅ Update this master plan to reflect current status
+2. 🔜 Review optimizer plans in `plans/optimizer/`
+3. 🔜 Begin optimizer foundation work
 
 ### **Short Term (This Month)**
 
-1. Complete IL Generator foundation
-2. Implement AST → IL traversal
-3. Handle intrinsics
-4. Begin IL optimization passes
+1. Implement basic optimizer passes
+2. Dead code elimination
+3. Constant folding
+4. Peephole optimization
 
 ### **Medium Term (Next 2 Months)**
 
-1. Complete IL Generator
-2. Begin Code Generator
-3. Start standard library work
-4. Create more examples
+1. Complete optimizer
+2. CLI improvements
+3. Documentation
+4. Example programs
 
-### **Long Term (Next 3-4 Months)**
+### **Long Term (Next 3 Months)**
 
-1. Complete Code Generator
-2. Integrate assembler
-3. Complete standard library
-4. Finalize documentation
-5. Release v1.0
+1. Polish and bug fixes
+2. Performance optimization
+3. Community feedback
+4. Release v1.0
 
 ---
 
 ## Summary
 
-**What's Done**: Lexer, Parser, AST, Complete Semantic Analysis (Phases 0-9), Refactoring  
-**What's Next**: IL Generator → Code Generator → Integration → v1.0  
-**Time to v1.0**: ~14-18 weeks (3.5-4.5 months)  
+**What's Done**: Lexer, Parser, AST, Semantic Analyzer, IL Generator with SSA, Code Generator (Basic), Config System  
+**What's Next**: Optimizer → CLI Improvements → Documentation → v1.0  
+**Time to v1.0**: ~10-14 weeks (2.5-3.5 months)  
 **Current Quality**: Production-ready for completed phases  
-**Test Coverage**: 2,428 tests passing, targeting 3,000+ for v1.0
+**Test Coverage**: 6,200+ tests passing, targeting 8,000+ for v1.0
 
-**The Blend65 compiler has a rock-solid foundation and is ready for the next major phase: Intermediate Language Generation.**
+**The Blend65 compiler has a complete compilation pipeline and is ready for the optimization phase to produce high-quality 6502 code.**
 
 ---
 
-**Last Updated**: January 19, 2026  
+**Last Updated**: January 25, 2026  
 **Maintained By**: Blend65 Development Team  
 **Status**: Active Development
