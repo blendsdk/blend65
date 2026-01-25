@@ -75,8 +75,8 @@ describe('ILDeclarationGenerator', () => {
     it('should create function type for void function', () => {
       const source = `
         module test
-        function noReturn()
-        end function
+        function noReturn() {
+        }
       `;
       const program = parseSource(source);
 
@@ -90,9 +90,9 @@ describe('ILDeclarationGenerator', () => {
     it('should create function type for byte return', () => {
       const source = `
         module test
-        function getByteValue(): byte
-          return 0
-        end function
+        function getByteValue(): byte {
+          return 0;
+        }
       `;
       const program = parseSource(source);
 
@@ -106,9 +106,9 @@ describe('ILDeclarationGenerator', () => {
     it('should create function type for word return', () => {
       const source = `
         module test
-        function getWordValue(): word
-          return 0
-        end function
+        function getWordValue(): word {
+          return 0;
+        }
       `;
       const program = parseSource(source);
 
@@ -134,9 +134,9 @@ describe('ILDeclarationGenerator', () => {
     it('should create parameter registers', () => {
       const source = `
         module test
-        function add(a: byte, b: byte): byte
-          return a + b
-        end function
+        function add(a: byte, b: byte): byte {
+          return a + b;
+        }
       `;
       const program = parseSource(source);
 
@@ -155,9 +155,9 @@ describe('ILDeclarationGenerator', () => {
     it('should map parameters with correct types', () => {
       const source = `
         module test
-        function process(value: byte, offset: word): word
-          return offset
-        end function
+        function process(value: byte, offset: word): word {
+          return offset;
+        }
       `;
       const program = parseSource(source);
 
@@ -174,9 +174,9 @@ describe('ILDeclarationGenerator', () => {
     it('should access parameter by name', () => {
       const source = `
         module test
-        function getValue(input: byte): byte
-          return input
-        end function
+        function getValue(input: byte): byte {
+          return input;
+        }
       `;
       const program = parseSource(source);
 
@@ -193,9 +193,9 @@ describe('ILDeclarationGenerator', () => {
     it('should handle function with no parameters', () => {
       const source = `
         module test
-        function noParams(): byte
-          return 0
-        end function
+        function noParams(): byte {
+          return 0;
+        }
       `;
       const program = parseSource(source);
 
@@ -209,9 +209,9 @@ describe('ILDeclarationGenerator', () => {
     it('should handle function with many parameters', () => {
       const source = `
         module test
-        function manyParams(a: byte, b: byte, c: byte, d: byte): byte
-          return a
-        end function
+        function manyParams(a: byte, b: byte, c: byte, d: byte): byte {
+          return a;
+        }
       `;
       const program = parseSource(source);
 
@@ -290,9 +290,9 @@ describe('ILDeclarationGenerator', () => {
     it('should not mark regular function as intrinsic', () => {
       const source = `
         module test
-        function regularFunc(): byte
-          return 0
-        end function
+        function regularFunc(): byte {
+          return 0;
+        }
       `;
       const program = parseSource(source);
 
@@ -307,9 +307,9 @@ describe('ILDeclarationGenerator', () => {
         module test
         function intrinsic1(): byte;
         function intrinsic2(x: byte): byte;
-        function regular(): byte
-          return 0
-        end function
+        function regular(): byte {
+          return 0;
+        }
       `;
       const program = parseSource(source);
 
@@ -356,13 +356,13 @@ describe('ILDeclarationGenerator', () => {
     it('should generate multiple functions in same module', () => {
       const source = `
         module test
-        function first()
-        end function
-        function second(): byte
-          return 0
-        end function
-        function third(x: byte)
-        end function
+        function first() {
+        }
+        function second(): byte {
+          return 0;
+        }
+        function third(x: byte) {
+        }
       `;
       const program = parseSource(source);
 
@@ -380,8 +380,8 @@ describe('ILDeclarationGenerator', () => {
       const source = `
         module test
         function peek(addr: word): byte;
-        function process()
-        end function
+        function process() {
+        }
         function poke(addr: word, val: byte);
       `;
       const program = parseSource(source);

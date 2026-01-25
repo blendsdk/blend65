@@ -44,10 +44,10 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -61,11 +61,11 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-          let z: byte = x + y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+          let z: byte = x + y;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -79,11 +79,11 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          x = 20
-          x = 30
-        end function
+        function test(): void {
+          let x: byte = 10;
+          x = 20;
+          x = 30;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -98,11 +98,11 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          let z: byte = y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          let z: byte = y;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -118,11 +118,11 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          x = 20
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          x = 20;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -137,13 +137,13 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 1
-          x = 2
-          x = 3
-          x = 4
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 1;
+          x = 2;
+          x = 3;
+          x = 4;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -157,11 +157,11 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 10
-          let z: byte = x + y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 10;
+          let z: byte = x + y;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -177,15 +177,15 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte
-          if flag then
-            x = 10
-          else
-            x = 20
-          end if
-          let y: byte = x
-        end function
+        function test(flag: boolean): void {
+          let x: byte;
+          if (flag) {
+            x = 10;
+          } else {
+            x = 20;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -200,13 +200,13 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte
-          if flag then
-            x = 10
-          end if
-          let y: byte = x
-        end function
+        function test(flag: boolean): void {
+          let x: byte;
+          if (flag) {
+            x = 10;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -220,19 +220,19 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(a: boolean, b: boolean): void
-          let x: byte
-          if a then
-            if b then
-              x = 10
-            else
-              x = 20
-            end if
-          else
-            x = 30
-          end if
-          let y: byte = x
-        end function
+        function test(a: boolean, b: boolean): void {
+          let x: byte;
+          if (a) {
+            if (b) {
+              x = 10;
+            } else {
+              x = 20;
+            }
+          } else {
+            x = 30;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -247,14 +247,14 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte = 10
-          if flag then
-            let y: byte = x
-          else
-            let z: byte = x
-          end if
-        end function
+        function test(flag: boolean): void {
+          let x: byte = 10;
+          if (flag) {
+            let y: byte = x;
+          } else {
+            let z: byte = x;
+          }
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -271,12 +271,12 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          while x > 0
-            x = x - 1
-          end while
-        end function
+        function test(): void {
+          let x: byte = 10;
+          while (x > 0) {
+            x = x - 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -290,13 +290,13 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte
-          while true
-            x = 10
-            let y: byte = x
-          end while
-        end function
+        function test(): void {
+          let x: byte;
+          while (true) {
+            x = 10;
+            let y: byte = x;
+          }
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -310,13 +310,13 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let i: byte = 0
-          while i < 10
-            let x: byte = i
-            i = i + 1
-          end while
-        end function
+        function test(): void {
+          let i: byte = 0;
+          while (i < 10) {
+            let x: byte = i;
+            i = i + 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -331,16 +331,16 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 0
-          while x < 10
-            let y: byte = 0
-            while y < 10
-              y = y + 1
-            end while
-            x = x + 1
-          end while
-        end function
+        function test(): void {
+          let x: byte = 0;
+          while (x < 10) {
+            let y: byte = 0;
+            while (y < 10) {
+              y = y + 1;
+            }
+            x = x + 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -356,10 +356,10 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -384,12 +384,12 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          let z: byte = x
-          let w: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          let z: byte = x;
+          let w: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -403,10 +403,10 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -423,10 +423,10 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -440,15 +440,15 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte
-          if flag then
-            x = 10
-          else
-            x = 20
-          end if
-          let y: byte = x
-        end function
+        function test(flag: boolean): void {
+          let x: byte;
+          if (flag) {
+            x = 10;
+          } else {
+            x = 20;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -463,11 +463,11 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 10
-          let b: byte = 20
-          let c: byte = a + b
-        end function
+        function test(): void {
+          let a: byte = 10;
+          let b: byte = 20;
+          let c: byte = a + b;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -483,17 +483,17 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte = 0
-          if flag then
-            while x < 10
-              x = x + 1
-            end while
-          else
-            x = 100
-          end if
-          let y: byte = x
-        end function
+        function test(flag: boolean): void {
+          let x: byte = 0;
+          if (flag) {
+            while (x < 10) {
+              x = x + 1;
+            }
+          } else {
+            x = 100;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -507,15 +507,15 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(a: boolean, b: boolean): void
-          let x: byte
-          if a then
-            x = 10
-          end if
-          if b then
-            let y: byte = x
-          end if
-        end function
+        function test(a: boolean, b: boolean): void {
+          let x: byte;
+          if (a) {
+            x = 10;
+          }
+          if (b) {
+            let y: byte = x;
+          }
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -529,14 +529,14 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): byte
-          let x: byte = 10
-          if flag then
-            return x
-          end if
-          x = 20
-          return x
-        end function
+        function test(flag: boolean): byte {
+          let x: byte = 10;
+          if (flag) {
+            return x;
+          }
+          x = 20;
+          return x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -552,8 +552,8 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-        end function
+        function test(): void {
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -567,10 +567,10 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte
-          let y: byte
-        end function
+        function test(): void {
+          let x: byte;
+          let y: byte;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -585,9 +585,9 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(x: byte): void
-          let y: byte = x
-        end function
+        function test(x: byte): void {
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -604,12 +604,12 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 0
-          while x < 10
-            x = x + 1
-          end while
-        end function
+        function test(): void {
+          let x: byte = 0;
+          while (x < 10) {
+            x = x + 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);
@@ -623,14 +623,14 @@ describe('ReachingDefinitionsAnalyzer (Task 8.5)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x1: byte = 1
-          let x2: byte = 2
-          let x3: byte = 3
-          let x4: byte = 4
-          let x5: byte = 5
-          let y: byte = x1 + x2 + x3 + x4 + x5
-        end function
+        function test(): void {
+          let x1: byte = 1;
+          let x2: byte = 2;
+          let x3: byte = 3;
+          let x4: byte = 4;
+          let x5: byte = 5;
+          let y: byte = x1 + x2 + x3 + x4 + x5;
+        }
       `;
 
       const { analyzer } = analyzeReachingDefinitions(source);

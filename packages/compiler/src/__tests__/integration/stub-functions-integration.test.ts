@@ -223,9 +223,9 @@ describe('Stub Functions - Full Pipeline Integration', () => {
       const source = `
         function peek(address: word): byte;
 
-        function main(): void
+        function main(): void {
           let value: byte = peek(0xD020);
-        end function
+        }
       `;
 
       const { result } = compileSource(source);
@@ -239,9 +239,9 @@ describe('Stub Functions - Full Pipeline Integration', () => {
       const source = `
         function peek(address: word): byte;
 
-        function test(): void
+        function test(): void {
           let value: byte = peek("invalid");
-        end function
+        }
       `;
 
       const { result } = compileSource(source);
@@ -255,9 +255,9 @@ describe('Stub Functions - Full Pipeline Integration', () => {
       const source = `
         function getValue(): byte;
 
-        function main(): void
+        function main(): void {
           let wrong: boolean = getValue();
-        end function
+        }
       `;
 
       const { result } = compileSource(source);
@@ -276,14 +276,14 @@ describe('Stub Functions - Full Pipeline Integration', () => {
         function peek(addr: word): byte;
         function poke(addr: word, val: byte): void;
 
-        function initialize(): void
+        function initialize(): void {
           poke(0xD020, 0);
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           let border: byte = peek(0xD020);
           initialize();
-        end function
+        }
       `;
 
       const { result, analyzer } = compileSource(source);
@@ -311,9 +311,9 @@ describe('Stub Functions - Full Pipeline Integration', () => {
       const source = `
         function builtinAdd(a: byte, b: byte): byte;
 
-        function main(): byte
+        function main(): byte {
           return builtinAdd(10, 20);
-        end function
+        }
       `;
 
       const { result } = compileSource(source);
@@ -327,10 +327,10 @@ describe('Stub Functions - Full Pipeline Integration', () => {
       const source = `
         function stub1(): void;
 
-        function main(): void
+        function main(): void {
           stub1();
           stub2();
-        end function
+        }
 
         function stub2(): void;
       `;
@@ -373,16 +373,16 @@ describe('Stub Functions - Full Pipeline Integration', () => {
       const source = `
         function nop(): void;
 
-        function initialize(): void
+        function initialize(): void {
           nop();
-        end function
+        }
 
         function peek(addr: word): byte;
 
-        function main(): void
+        function main(): void {
           initialize();
           let x: byte = peek(0xD020);
-        end function
+        }
       `;
 
       const { result, analyzer } = compileSource(source);
@@ -403,13 +403,13 @@ describe('Stub Functions - Full Pipeline Integration', () => {
   describe('Real-World Built-In Function Scenarios', () => {
     test('complete built-in functions module', () => {
       const source = `
-        module BuiltIns
+        module BuiltIns {
           function nop(): void;
           function peek(address: word): byte;
           function poke(address: word, value: byte): void;
           function peekw(address: word): word;
           function pokew(address: word, value: word): void;
-        end module
+        }
       `;
 
       const { result, ast, analyzer } = compileSource(source);
@@ -447,24 +447,24 @@ describe('Stub Functions - Full Pipeline Integration', () => {
 
         let frameCount: byte = 0;
 
-        function initialize(): void
+        function initialize(): void {
           borderColor = 0;
           bgColor = 0;
           frameCount = 0;
-        end function
+        }
 
-        function updateScreen(): void
+        function updateScreen(): void {
           frameCount = frameCount + 1;
           poke(0xD020, frameCount);
           let currentBorder: byte = peek(0xD020);
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           initialize();
-          while true
+          while (true) {
             updateScreen();
-          end while
-        end function
+          }
+        }
       `;
 
       const { result, analyzer } = compileSource(source);
@@ -536,8 +536,8 @@ describe('Stub Functions - Full Pipeline Integration', () => {
       const source = `
         function test(): void;
 
-        function test(): void
-        end function
+        function test(): void {
+        }
       `;
 
       const { result } = compileSource(source);
@@ -549,9 +549,9 @@ describe('Stub Functions - Full Pipeline Integration', () => {
 
     test('calling undefined stub function detected', () => {
       const source = `
-        function main(): void
+        function main(): void {
           undefinedStub();
-        end function
+        }
       `;
 
       const { result } = compileSource(source);
@@ -568,19 +568,19 @@ describe('Stub Functions - Full Pipeline Integration', () => {
         function allocate(size: byte): word;
         function free(ptr: word): void;
 
-        function createBuffer(size: byte): word
+        function createBuffer(size: byte): word {
           let buffer: word = allocate(size);
           return buffer;
-        end function
+        }
 
-        function destroyBuffer(buffer: word): void
+        function destroyBuffer(buffer: word): void {
           free(buffer);
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           let buf: word = createBuffer(100);
           destroyBuffer(buf);
-        end function
+        }
       `;
 
       const { result, analyzer } = compileSource(source);
@@ -607,17 +607,17 @@ describe('Stub Functions - Full Pipeline Integration', () => {
 
     test('stub functions in module with imports', () => {
       const source = `
-        module System
+        module System {
 
         function nop(): void;
         function halt(): void;
 
-        export function initialize(): void
+        export function initialize(): void {
           nop();
           halt();
-        end function
+        }
 
-        end module
+        }
       `;
 
       const { result, ast } = compileSource(source);
@@ -636,7 +636,7 @@ describe('Stub Functions - Full Pipeline Integration', () => {
     });
 
     test('large program with many stub functions', () => {
-      const lines = ['module Test'];
+      const lines = ['module Test {'];
 
       // Add 50 stub functions
       for (let i = 0; i < 50; i++) {
@@ -645,14 +645,14 @@ describe('Stub Functions - Full Pipeline Integration', () => {
 
       // Add some regular functions that call stubs
       lines.push(`
-        function main(): void
+        function main(): void {
           stub0();
           stub25();
           stub49();
-        end function
+        }
       `);
 
-      lines.push('end module');
+      lines.push('}');
 
       const source = lines.join('\n');
       const { result, analyzer } = compileSource(source);
@@ -708,10 +708,10 @@ describe('Stub Functions - Full Pipeline Integration', () => {
 
     test('empty module with only stub functions', () => {
       const source = `
-        module Empty
+        module Empty {
           function stub1(): void;
           function stub2(): void;
-        end module
+        }
       `;
 
       const { result, analyzer } = compileSource(source);
@@ -726,9 +726,9 @@ describe('Stub Functions - Full Pipeline Integration', () => {
     test('stub function immediately followed by regular function', () => {
       const source = `
         function stub(): void;
-        function main(): void
+        function main(): void {
           stub();
-        end function
+        }
       `;
 
       const { result } = compileSource(source);

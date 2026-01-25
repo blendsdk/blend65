@@ -5,7 +5,7 @@
  * - If statements (simple, if-else, nested)
  * - While statements (simple, nested, with break/continue)
  * - For statements (simple, nested, with break/continue)
- * - Match statements (simple, with default, nested)
+ * - Switch statements (simple, with default, nested)
  * - Return, break, continue statements
  * - Deep nesting scenarios
  * - Error recovery and edge cases
@@ -18,7 +18,7 @@ import {
   IfStatement,
   WhileStatement,
   ForStatement,
-  MatchStatement,
+  SwitchStatement,
   ReturnStatement,
   BreakStatement,
   LiteralExpression,
@@ -49,8 +49,8 @@ class TestControlFlowParser extends StatementParser {
     return this.parseForStatement();
   }
 
-  public testParseMatchStatement() {
-    return this.parseMatchStatement();
+  public testParseSwitchStatement() {
+    return this.parseSwitchStatement();
   }
 
   public testParseReturnStatement() {
@@ -102,7 +102,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
 
   describe('If Statements', () => {
     it('parses simple if statement', () => {
-      const source = `if x > 0 then result; end if`;
+      const source = `if (x > 0) { result; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseIfStatement');
 
@@ -115,7 +115,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('parses if-else statement', () => {
-      const source = `if flag then x; else y; end if`;
+      const source = `if (flag) { x; } else { y; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseIfStatement');
 
@@ -127,7 +127,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('parses nested if statements', () => {
-      const source = `if a then if b then result; end if end if`;
+      const source = `if (a) { if (b) { result; } }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseIfStatement');
 
@@ -138,14 +138,14 @@ describe('Control Flow Statement Parser - Phase 2', () => {
       expect(outerIf.getThenBranch()[0]).toBeInstanceOf(IfStatement);
     });
 
-    it('handles missing then keyword with error recovery', () => {
-      const source = `if x > 0 result; end if`;
+    it('handles missing opening brace with error recovery', () => {
+      const source = `if (x > 0) result; }`;
 
       const { stmt, hasErrors, diagnostics } = parseControlFlow(source, 'testParseIfStatement');
 
       expect(hasErrors).toBe(true);
       expect(stmt).toBeInstanceOf(IfStatement);
-      expect(diagnostics.some((d: any) => d.message.includes('then'))).toBe(true);
+      expect(diagnostics.some((d: any) => d.message.includes('{'))).toBe(true);
     });
   });
 
@@ -155,7 +155,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
 
   describe('While Statements', () => {
     it('parses simple while statement', () => {
-      const source = `while running x; y; end while`;
+      const source = `while (running) { x; y; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseWhileStatement');
 
@@ -167,7 +167,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('parses nested while loops', () => {
-      const source = `while outer while inner nested; end while outer; end while`;
+      const source = `while (outer) { while (inner) { nested; } outer; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseWhileStatement');
 
@@ -179,7 +179,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('parses while with break and continue', () => {
-      const source = `while true if done then break; end if if skip then continue; end if result; end while`;
+      const source = `while (true) { if (done) { break; } if (skip) { continue; } result; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseWhileStatement');
 
@@ -199,7 +199,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
 
   describe('For Statements', () => {
     it('parses simple for statement', () => {
-      const source = `for i = 1 to 10 i; next i`;
+      const source = `for (i = 1 to 10) { i; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseForStatement');
 
@@ -213,7 +213,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('parses countdown for loop', () => {
-      const source = `for count = 10 to 0 count; next count`;
+      const source = `for (count = 10 to 0) { count; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseForStatement');
 
@@ -226,7 +226,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('parses nested for loops', () => {
-      const source = `for x = 0 to 5 for y = 0 to 3 result; next y next x`;
+      const source = `for (x = 0 to 5) { for (y = 0 to 3) { result; } }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseForStatement');
 
@@ -237,60 +237,51 @@ describe('Control Flow Statement Parser - Phase 2', () => {
       expect(outerFor.getBody()).toHaveLength(1);
       expect(outerFor.getBody()[0]).toBeInstanceOf(ForStatement);
     });
-
-    it('validates variable name matching', () => {
-      const source = `for counter = 1 to 10 counter; next wrongName`;
-
-      const { hasErrors, diagnostics } = parseControlFlow(source, 'testParseForStatement');
-
-      expect(hasErrors).toBe(true);
-      expect(diagnostics.some((d: any) => d.message.includes('Expected loop variable'))).toBe(true);
-    });
   });
 
   // ============================================
-  // MATCH STATEMENT TESTS
+  // SWITCH STATEMENT TESTS
   // ============================================
 
-  describe('Match Statements', () => {
-    it('parses simple match statement', () => {
-      const source = `match value case 1: one; case 2: two; end match`;
+  describe('Switch Statements', () => {
+    it('parses simple switch statement', () => {
+      const source = `switch (value) { case 1: one; case 2: two; }`;
 
-      const { stmt, hasErrors } = parseControlFlow(source, 'testParseMatchStatement');
+      const { stmt, hasErrors } = parseControlFlow(source, 'testParseSwitchStatement');
 
       expect(hasErrors).toBe(false);
-      expect(stmt).toBeInstanceOf(MatchStatement);
-      const matchStmt = stmt as MatchStatement;
-      expect(matchStmt.getValue()).toBeInstanceOf(IdentifierExpression);
-      expect(matchStmt.getCases()).toHaveLength(2);
-      expect(matchStmt.getDefaultCase()).toBeNull();
+      expect(stmt).toBeInstanceOf(SwitchStatement);
+      const switchStmt = stmt as SwitchStatement;
+      expect(switchStmt.getValue()).toBeInstanceOf(IdentifierExpression);
+      expect(switchStmt.getCases()).toHaveLength(2);
+      expect(switchStmt.getDefaultCase()).toBeNull();
     });
 
-    it('parses match with default case', () => {
-      const source = `match gameState case 1: menu; case 2: game; default: error; end match`;
+    it('parses switch with default case', () => {
+      const source = `switch (gameState) { case 1: menu; case 2: game; default: error; }`;
 
-      const { stmt, hasErrors } = parseControlFlow(source, 'testParseMatchStatement');
+      const { stmt, hasErrors } = parseControlFlow(source, 'testParseSwitchStatement');
 
       expect(hasErrors).toBe(false);
-      expect(stmt).toBeInstanceOf(MatchStatement);
-      const matchStmt = stmt as MatchStatement;
-      expect(matchStmt.getCases()).toHaveLength(2);
-      expect(matchStmt.getDefaultCase()).toHaveLength(1);
+      expect(stmt).toBeInstanceOf(SwitchStatement);
+      const switchStmt = stmt as SwitchStatement;
+      expect(switchStmt.getCases()).toHaveLength(2);
+      expect(switchStmt.getDefaultCase()).toHaveLength(1);
     });
 
-    it('parses nested match statements', () => {
-      const source = `match primary case 1: match sub case 1: nested; end match case 2: other; end match`;
+    it('parses nested switch statements', () => {
+      const source = `switch (primary) { case 1: switch (sub) { case 1: nested; } case 2: other; }`;
 
-      const { stmt, hasErrors } = parseControlFlow(source, 'testParseMatchStatement');
+      const { stmt, hasErrors } = parseControlFlow(source, 'testParseSwitchStatement');
 
       expect(hasErrors).toBe(false);
-      expect(stmt).toBeInstanceOf(MatchStatement);
-      const outerMatch = stmt as MatchStatement;
-      expect(outerMatch.getCases()).toHaveLength(2);
+      expect(stmt).toBeInstanceOf(SwitchStatement);
+      const outerSwitch = stmt as SwitchStatement;
+      expect(outerSwitch.getCases()).toHaveLength(2);
 
-      const firstCase = outerMatch.getCases()[0];
+      const firstCase = outerSwitch.getCases()[0];
       expect(firstCase.body).toHaveLength(1);
-      expect(firstCase.body[0]).toBeInstanceOf(MatchStatement);
+      expect(firstCase.body[0]).toBeInstanceOf(SwitchStatement);
     });
   });
 
@@ -363,7 +354,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
 
   describe('Complex Nesting Scenarios', () => {
     it('parses deeply nested control flow', () => {
-      const source = `if gameActive then while playerAlive for enemy = 1 to 3 match enemyType case 1: basic; case 2: advanced; end match next enemy end while end if`;
+      const source = `if (gameActive) { while (playerAlive) { for (enemy = 1 to 3) { switch (enemyType) { case 1: basic; case 2: advanced; } } } }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseIfStatement');
 
@@ -377,8 +368,8 @@ describe('Control Flow Statement Parser - Phase 2', () => {
       const forInWhile = whileInIf.getBody()[0] as ForStatement;
       expect(forInWhile).toBeInstanceOf(ForStatement);
 
-      const matchInFor = forInWhile.getBody()[0] as MatchStatement;
-      expect(matchInFor).toBeInstanceOf(MatchStatement);
+      const switchInFor = forInWhile.getBody()[0] as SwitchStatement;
+      expect(switchInFor).toBeInstanceOf(SwitchStatement);
     });
   });
 
@@ -387,8 +378,8 @@ describe('Control Flow Statement Parser - Phase 2', () => {
   // ============================================
 
   describe('Error Recovery', () => {
-    it('recovers from missing keywords', () => {
-      const source = `if x > 0 result; end if`;
+    it('recovers from missing braces', () => {
+      const source = `if (x > 0) result; }`;
 
       const { stmt, hasErrors, diagnostics } = parseControlFlow(source, 'testParseIfStatement');
 
@@ -398,7 +389,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('recovers from invalid expressions', () => {
-      const source = `if + then result; end if`;
+      const source = `if (+) { result; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseIfStatement');
 
@@ -415,7 +406,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
 
   describe('Edge Cases', () => {
     it('parses empty control flow bodies', () => {
-      const source = `if true then end if`;
+      const source = `if (true) { }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseIfStatement');
 
@@ -426,7 +417,7 @@ describe('Control Flow Statement Parser - Phase 2', () => {
     });
 
     it('handles complex expressions in conditions', () => {
-      const source = `if (x + y) * z > threshold then action; end if`;
+      const source = `if ((x + y) * z > threshold) { action; }`;
 
       const { stmt, hasErrors } = parseControlFlow(source, 'testParseIfStatement');
 

@@ -194,9 +194,9 @@ describe('Array Size Inference - Expressions in Arrays', () => {
 
   it('should infer size from array with function call expressions', () => {
     const source = `
-      function getValue(): byte
+      function getValue(): byte {
         return 42;
-      end function
+      }
 
       let values: byte[] = [getValue(), getValue(), getValue()];
     `;
@@ -227,7 +227,7 @@ describe('Array Size Inference - Error Cases', () => {
 
     expect(diagnostics.length).toBeGreaterThan(0);
     const error = diagnostics.find(
-      (d) => d.severity === DiagnosticSeverity.ERROR && d.message.includes('Cannot infer array size')
+      d => d.severity === DiagnosticSeverity.ERROR && d.message.includes('Cannot infer array size')
     );
     expect(error).toBeDefined();
     expect(error!.message).toContain('no initializer provided');
@@ -241,8 +241,8 @@ describe('Array Size Inference - Error Cases', () => {
     const { diagnostics } = parseAndResolveTypes(source);
 
     expect(diagnostics.length).toBeGreaterThan(0);
-    const error = diagnostics.find(
-      (d) => d.message.includes('Cannot infer array size from non-literal initializer')
+    const error = diagnostics.find(d =>
+      d.message.includes('Cannot infer array size from non-literal initializer')
     );
     expect(error).toBeDefined();
   });
@@ -252,22 +252,24 @@ describe('Array Size Inference - Error Cases', () => {
     const { diagnostics } = parseAndResolveTypes(source);
 
     expect(diagnostics.length).toBeGreaterThan(0);
-    const error = diagnostics.find((d) => d.message.includes('Cannot infer size from empty array literal'));
+    const error = diagnostics.find(d =>
+      d.message.includes('Cannot infer size from empty array literal')
+    );
     expect(error).toBeDefined();
   });
 
   it('should error when trying to infer from function call initializer', () => {
     const source = `
-      function getArray(): byte[3]
+      function getArray(): byte[3] {
         return [1, 2, 3];
-      end function
+      }
 
       let result: byte[] = getArray();
     `;
     const { diagnostics } = parseAndResolveTypes(source);
 
     expect(diagnostics.length).toBeGreaterThan(0);
-    const error = diagnostics.find((d) => d.message.includes('non-literal initializer'));
+    const error = diagnostics.find(d => d.message.includes('non-literal initializer'));
     expect(error).toBeDefined();
   });
 });
@@ -434,9 +436,9 @@ describe('Array Size Inference - Edge Cases', () => {
 describe('Array Size Inference - Integration with Scopes', () => {
   it('should infer size in function scope', () => {
     const source = `
-      function initialize()
+      function initialize() {
         let localBuffer: byte[] = [10, 20, 30, 40];
-      end function
+      }
     `;
     const { diagnostics } = parseAndResolveTypes(source);
 
@@ -448,9 +450,9 @@ describe('Array Size Inference - Integration with Scopes', () => {
     const source = `
       let moduleBuffer: byte[] = [1, 2, 3, 4, 5];
 
-      function useBuffer()
+      function useBuffer() {
         let value: byte = moduleBuffer[0];
-      end function
+      }
     `;
     const { symbolTable, diagnostics } = parseAndResolveTypes(source);
 
@@ -461,13 +463,13 @@ describe('Array Size Inference - Integration with Scopes', () => {
 
   it('should infer size in multiple separate function scopes', () => {
     const source = `
-      function first()
+      function first() {
         let firstArray: byte[] = [1, 2];
-      end function
+      }
       
-      function second()
+      function second() {
         let secondArray: byte[] = [10, 20, 30];
-      end function
+      }
     `;
     const { diagnostics } = parseAndResolveTypes(source);
 

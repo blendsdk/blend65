@@ -265,11 +265,11 @@ describe('ILModuleGenerator', () => {
       it('should generate sequential struct @map declaration', () => {
         const source = `
           module test
-          @map sid at $D400 type
+          @map sid at $D400 type {
             frequency: word
             pulseWidth: word
             control: byte
-          end @map
+          }
         `;
         const program = parseSource(source);
 
@@ -284,10 +284,10 @@ describe('ILModuleGenerator', () => {
       it('should generate sequential struct fields with correct addresses', () => {
         const source = `
           module test
-          @map voice1 at $D400 type
+          @map voice1 at $D400 type {
             frequency: word
             pulseWidth: word
-          end @map
+          }
         `;
         const program = parseSource(source);
 
@@ -305,11 +305,11 @@ describe('ILModuleGenerator', () => {
       it('should generate explicit struct @map declaration', () => {
         const source = `
           module test
-          @map vic at $D000 layout
+          @map vic at $D000 layout {
             sprite0x at $00: byte
             sprite0y at $01: byte
             sprite1x at $02: byte
-          end @map
+          }
         `;
         const program = parseSource(source);
 
@@ -323,10 +323,10 @@ describe('ILModuleGenerator', () => {
       it('should generate explicit struct fields with correct addresses', () => {
         const source = `
           module test
-          @map vic at $D000 layout
+          @map vic at $D000 layout {
             spriteEnable at $15: byte
             borderColor at $20: byte
-          end @map
+          }
         `;
         const program = parseSource(source);
 
@@ -349,12 +349,12 @@ describe('ILModuleGenerator', () => {
     it('should generate enum declaration', () => {
       const source = `
         module test
-        enum Direction
-          Up
-          Down
-          Left
+        enum Direction {
+          Up,
+          Down,
+          Left,
           Right
-        end enum
+        }
       `;
       const program = parseSource(source);
 
@@ -369,11 +369,11 @@ describe('ILModuleGenerator', () => {
     it('should generate enum members with auto-incrementing values', () => {
       const source = `
         module test
-        enum Color
-          Black
-          White
+        enum Color {
+          Black,
+          White,
           Red
-        end enum
+        }
       `;
       const program = parseSource(source);
 
@@ -391,12 +391,12 @@ describe('ILModuleGenerator', () => {
     it('should generate enum members with explicit values', () => {
       const source = `
         module test
-        enum Color
-          Black = 0
-          White = 1
-          Red = 2
+        enum Color {
+          Black = 0,
+          White = 1,
+          Red = 2,
           Green = 5
-        end enum
+        }
       `;
       const program = parseSource(source);
 
@@ -409,10 +409,10 @@ describe('ILModuleGenerator', () => {
     it('should mark enum members as constants', () => {
       const source = `
         module test
-        enum State
-          Idle
+        enum State {
+          Idle,
           Running
-        end enum
+        }
       `;
       const program = parseSource(source);
 
@@ -431,8 +431,8 @@ describe('ILModuleGenerator', () => {
     it('should generate function stub for void function', () => {
       const source = `
         module test
-        function init()
-        end function
+        function init() {
+        }
       `;
       const program = parseSource(source);
 
@@ -447,9 +447,9 @@ describe('ILModuleGenerator', () => {
     it('should generate function stub with parameters', () => {
       const source = `
         module test
-        function add(a: byte, b: byte): byte
-          return a + b
-        end function
+        function add(a: byte, b: byte): byte {
+          return a + b;
+        }
       `;
       const program = parseSource(source);
 
@@ -464,9 +464,9 @@ describe('ILModuleGenerator', () => {
     it('should generate function stub with return type', () => {
       const source = `
         module test
-        function getValue(): word
-          return 42
-        end function
+        function getValue(): word {
+          return 42;
+        }
       `;
       const program = parseSource(source);
 
@@ -480,12 +480,12 @@ describe('ILModuleGenerator', () => {
     it('should generate multiple function stubs', () => {
       const source = `
         module test
-        function foo()
-        end function
-        function bar()
-        end function
-        function baz()
-        end function
+        function foo() {
+        }
+        function bar() {
+        }
+        function baz() {
+        }
       `;
       const program = parseSource(source);
 
@@ -553,8 +553,8 @@ describe('ILModuleGenerator', () => {
     it('should process exported function', () => {
       const source = `
         module test
-        export function publicFunc()
-        end function
+        export function publicFunc() {
+        }
       `;
       const program = parseSource(source);
 
@@ -584,8 +584,8 @@ describe('ILModuleGenerator', () => {
     it('should mark exported function as exported in IL', () => {
       const source = `
         module test
-        export function api()
-        end function
+        export function api() {
+        }
       `;
       const program = parseSource(source);
 
@@ -604,8 +604,8 @@ describe('ILModuleGenerator', () => {
     it('should detect main function as entry point', () => {
       const source = `
         module test
-        function main()
-        end function
+        function main() {
+        }
       `;
       const program = parseSource(source);
 
@@ -618,8 +618,8 @@ describe('ILModuleGenerator', () => {
     it('should not detect entry point when no main function', () => {
       const source = `
         module test
-        function other()
-        end function
+        function other() {
+        }
       `;
       const program = parseSource(source);
 

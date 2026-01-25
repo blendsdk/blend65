@@ -38,6 +38,8 @@ import {
   IfStatement,
   WhileStatement,
   ForStatement,
+  DoWhileStatement,
+  SwitchStatement,
   MatchStatement,
   BreakStatement,
   ContinueStatement,
@@ -586,6 +588,32 @@ export abstract class ASTTransformer implements ASTVisitor<ASTNode> {
    * @returns Transformed statement
    */
   visitForStatement(node: ForStatement): ASTNode {
+    return node;
+  }
+
+  /**
+   * Transform Do-While statement
+   *
+   * Default: Identity transformation
+   * Override to transform body or condition
+   *
+   * @param node - Do-While statement to transform
+   * @returns Transformed statement
+   */
+  visitDoWhileStatement(node: DoWhileStatement): ASTNode {
+    return node;
+  }
+
+  /**
+   * Transform Switch statement
+   *
+   * Default: Identity transformation
+   * Override to transform value or cases
+   *
+   * @param node - Switch statement to transform
+   * @returns Transformed statement
+   */
+  visitSwitchStatement(node: SwitchStatement): ASTNode {
     return node;
   }
 

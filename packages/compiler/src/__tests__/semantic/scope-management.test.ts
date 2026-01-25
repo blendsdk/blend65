@@ -37,12 +37,12 @@ describe('Scope Management', () => {
   describe('Function-Scoped Variables', () => {
     test('variables declared in if-block are visible after if', () => {
       const source = `
-        function test(): void
-          if true then
+        function test(): void {
+          if (true) {
             let x: byte = 0;
-          end if
+          }
           x = 10;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -58,15 +58,15 @@ describe('Scope Management', () => {
 
     test('variables declared in else-block are visible after if-else', () => {
       const source = `
-        function test(): void
-          if false then
+        function test(): void {
+          if (false) {
             let a: byte = 1;
-          else
+          } else {
             let b: byte = 2;
-          end if
+          }
           a = 10;
           b = 20;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -81,12 +81,12 @@ describe('Scope Management', () => {
 
     test('variables declared in while-loop are visible after loop', () => {
       const source = `
-        function test(): void
-          while true
+        function test(): void {
+          while (true) {
             let counter: byte = 0;
-          end while
+          }
           counter = 5;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -101,12 +101,12 @@ describe('Scope Management', () => {
     test('variables declared in for-loop are visible after loop', () => {
       // For-loop variables ARE now tracked in symbol table
       const source = `
-        function test(): void
-          for i = 0 to 10
+        function test(): void {
+          for (i = 0 to 10) {
             let temp: byte = i;
-          next i
+          }
           temp = 100;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -121,16 +121,16 @@ describe('Scope Management', () => {
 
     test('variables declared in nested if-blocks are all in function scope', () => {
       const source = `
-        function test(): void
-          if true then
+        function test(): void {
+          if (true) {
             let a: byte = 1;
-            if false then
+            if (false) {
               let b: byte = 2;
-            end if
-          end if
+            }
+          }
           a = 10;
           b = 20;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -162,9 +162,9 @@ describe('Scope Management', () => {
 
     test('function parameters are in function scope', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -180,10 +180,10 @@ describe('Scope Management', () => {
 
     test('function-local variables are in function scope', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let local: byte = 0;
           const LOCAL_CONST: byte = 100;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -201,9 +201,9 @@ describe('Scope Management', () => {
       const source = `
         let global: byte = 0;
 
-        function increment(): void
+        function increment(): void {
           global = global + 1;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -223,9 +223,9 @@ describe('Scope Management', () => {
       const source = `
         let x: byte = 10;
 
-        function test(): void
+        function test(): void {
           let x: byte = 20;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -250,9 +250,9 @@ describe('Scope Management', () => {
       const source = `
         let value: byte = 10;
 
-        function test(): void
+        function test(): void {
           let value: byte = 20;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -272,9 +272,9 @@ describe('Scope Management', () => {
       const source = `
         let global: byte = 10;
 
-        function test(): void
+        function test(): void {
           let local: byte = global;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -294,9 +294,9 @@ describe('Scope Management', () => {
       const source = `
         let global: byte = 10;
 
-        function test(): void
+        function test(): void {
           let local: byte = 20;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -319,13 +319,13 @@ describe('Scope Management', () => {
   describe('Nested Functions', () => {
     test('multiple functions create separate scopes', () => {
       const source = `
-        function foo(): void
+        function foo(): void {
           let a: byte = 1;
-        end function
+        }
 
-        function bar(): void
+        function bar(): void {
           let b: byte = 2;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -345,13 +345,13 @@ describe('Scope Management', () => {
 
     test('functions can have same parameter names in different scopes', () => {
       const source = `
-        function first(x: byte): byte
+        function first(x: byte): byte {
           return x;
-        end function
+        }
 
-        function second(x: byte): byte
+        function second(x: byte): byte {
           return x;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -385,8 +385,8 @@ describe('Scope Management', () => {
 
     test('function scope has module scope as parent', () => {
       const source = `
-        function test(): void
-        end function
+        function test(): void {
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -398,14 +398,14 @@ describe('Scope Management', () => {
 
     test('all function scopes have same parent (module scope)', () => {
       const source = `
-        function foo(): void
-        end function
+        function foo(): void {
+        }
 
-        function bar(): void
-        end function
+        function bar(): void {
+        }
 
-        function baz(): void
-        end function
+        function baz(): void {
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -423,15 +423,15 @@ describe('Scope Management', () => {
   describe('Complex Scoping Scenarios', () => {
     test('variables in control flow with same name in function scope', () => {
       const source = `
-        function test(): void
-          if true then
+        function test(): void {
+          if (true) {
             let x: byte = 1;
-          end if
+          }
 
-          if false then
+          if (false) {
             let x: byte = 2;
-          end if
-        end function
+          }
+        }
       `;
       const { diagnostics, hasErrors } = buildSymbolTable(source);
 
@@ -451,21 +451,21 @@ describe('Scope Management', () => {
         let score: word = 0;
         const MAX_SCORE: word = 9999;
 
-        function initialize(): void
+        function initialize(): void {
           let initialized: byte = 0;
           score = 0;
           initialized = 1;
-        end function
+        }
 
-        function update(delta: byte): void
+        function update(delta: byte): void {
           let temp: word = 0;
           temp = score + delta;
           score = temp;
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           initialize();
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -499,9 +499,9 @@ describe('Scope Management', () => {
       const source = `
         let global: byte = 10;
 
-        function test(param: byte): void
+        function test(param: byte): void {
           let local: byte = 20;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 

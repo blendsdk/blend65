@@ -29,7 +29,7 @@ describe('ModuleRegistry', () => {
 
   describe('Basic Registration', () => {
     it('should register a single module', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
 
       registry.register('Main', program);
 
@@ -38,11 +38,9 @@ describe('ModuleRegistry', () => {
     });
 
     it('should register multiple modules', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
-      const sprites = parseModule('module c64.sprites\nexport function init(): void\nend function');
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
+      const sprites = parseModule('module c64.sprites\nexport function init(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -55,7 +53,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should register module with file path', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
 
       registry.register('Main', program, 'src/main.b65');
 
@@ -64,7 +62,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should register module without file path', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
 
       registry.register('Main', program);
 
@@ -75,7 +73,7 @@ describe('ModuleRegistry', () => {
 
   describe('Duplicate Detection', () => {
     it('should detect duplicate module names', () => {
-      const program1 = parseModule('module Main\nexport function main(): void\nend function');
+      const program1 = parseModule('module Main\nexport function main(): void { }');
       const program2 = parseModule('module Main\nlet x: byte = 0;');
 
       registry.register('Main', program1, 'src/main.b65');
@@ -86,7 +84,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should report file paths in duplicate error', () => {
-      const program1 = parseModule('module Main\nexport function main(): void\nend function');
+      const program1 = parseModule('module Main\nexport function main(): void { }');
       const program2 = parseModule('module Main\nlet x: byte = 0;');
 
       registry.register('Main', program1, 'src/main.b65');
@@ -100,7 +98,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should handle duplicate without file paths', () => {
-      const program1 = parseModule('module Main\nexport function main(): void\nend function');
+      const program1 = parseModule('module Main\nexport function main(): void { }');
       const program2 = parseModule('module Main\nlet x: byte = 0;');
 
       registry.register('Main', program1);
@@ -116,7 +114,7 @@ describe('ModuleRegistry', () => {
 
   describe('Module Lookup', () => {
     it('should lookup existing module', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
       registry.register('Main', program);
 
       const retrieved = registry.getModule('Main');
@@ -131,7 +129,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should check if module exists', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
       registry.register('Main', program);
 
       expect(registry.hasModule('Main')).toBe(true);
@@ -139,7 +137,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should be case-sensitive', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
       registry.register('Main', program);
 
       expect(registry.hasModule('Main')).toBe(true);
@@ -150,7 +148,7 @@ describe('ModuleRegistry', () => {
 
   describe('Module Information', () => {
     it('should retrieve module info', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
       registry.register('Main', program, 'src/main.b65');
 
       const info = registry.getModuleInfo('Main');
@@ -168,7 +166,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should return defensive copy of module info', () => {
-      const program = parseModule('module Main\nexport function main(): void\nend function');
+      const program = parseModule('module Main\nexport function main(): void { }');
       registry.register('Main', program);
 
       const info1 = registry.getModuleInfo('Main');
@@ -181,11 +179,9 @@ describe('ModuleRegistry', () => {
 
   describe('Bulk Operations', () => {
     it('should get all module names', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
-      const sprites = parseModule('module c64.sprites\nexport function init(): void\nend function');
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
+      const sprites = parseModule('module c64.sprites\nexport function init(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -200,10 +196,8 @@ describe('ModuleRegistry', () => {
     });
 
     it('should get all modules', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -230,10 +224,8 @@ describe('ModuleRegistry', () => {
 
   describe('Dependency Tracking', () => {
     it('should add dependency', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -245,11 +237,9 @@ describe('ModuleRegistry', () => {
     });
 
     it('should add multiple dependencies', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
-      const sprites = parseModule('module c64.sprites\nexport function init(): void\nend function');
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
+      const sprites = parseModule('module c64.sprites\nexport function init(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -265,10 +255,8 @@ describe('ModuleRegistry', () => {
     });
 
     it('should prevent duplicate dependencies', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -281,7 +269,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should return empty array for module with no dependencies', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
+      const main = parseModule('module Main\nexport function main(): void { }');
       registry.register('Main', main);
 
       const deps = registry.getDependencies('Main');
@@ -296,10 +284,8 @@ describe('ModuleRegistry', () => {
     });
 
     it('should include dependencies in module info', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -313,10 +299,8 @@ describe('ModuleRegistry', () => {
 
   describe('Clear Operation', () => {
     it('should clear all modules', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
-      const graphics = parseModule(
-        'module c64.graphics\nexport function clear(): void\nend function'
-      );
+      const main = parseModule('module Main\nexport function main(): void { }');
+      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
 
       registry.register('Main', main);
       registry.register('c64.graphics', graphics);
@@ -331,7 +315,7 @@ describe('ModuleRegistry', () => {
     });
 
     it('should allow re-registration after clear', () => {
-      const main = parseModule('module Main\nexport function main(): void\nend function');
+      const main = parseModule('module Main\nexport function main(): void { }');
 
       registry.register('Main', main);
       registry.clear();
@@ -344,7 +328,7 @@ describe('ModuleRegistry', () => {
   describe('Hierarchical Module Names', () => {
     it('should handle deeply nested module names', () => {
       const program = parseModule(
-        'module c64.graphics.screen.utils\nexport function test(): void\nend function'
+        'module c64.graphics.screen.utils\nexport function test(): void { }'
       );
 
       registry.register('c64.graphics.screen.utils', program);
@@ -353,10 +337,8 @@ describe('ModuleRegistry', () => {
     });
 
     it('should treat different nesting levels as separate modules', () => {
-      const screen = parseModule('module c64.screen\nexport function test(): void\nend function');
-      const graphics = parseModule(
-        'module c64.screen.graphics\nexport function test(): void\nend function'
-      );
+      const screen = parseModule('module c64.screen\nexport function test(): void { }');
+      const graphics = parseModule('module c64.screen.graphics\nexport function test(): void { }');
 
       registry.register('c64.screen', screen);
       registry.register('c64.screen.graphics', graphics);

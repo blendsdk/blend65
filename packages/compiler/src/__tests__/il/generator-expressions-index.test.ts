@@ -98,10 +98,10 @@ describe('ILExpressionGenerator - Index Expressions: Basic Access', () => {
   describe('array read with literal index', () => {
     it('should generate LOAD_ARRAY for byte array with literal index', () => {
       const source = `module test
-function readAt(): byte
-  let buffer: byte[10]
-  return buffer[5]
-end function`;
+function readAt(): byte {
+  let buffer: byte[10];
+  return buffer[5];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readAt')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -109,10 +109,10 @@ end function`;
 
     it('should generate LOAD_ARRAY for first element (index 0)', () => {
       const source = `module test
-function readFirst(): byte
-  let data: byte[5]
-  return data[0]
-end function`;
+function readFirst(): byte {
+  let data: byte[5];
+  return data[0];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readFirst')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -120,10 +120,10 @@ end function`;
 
     it('should generate LOAD_ARRAY for last element', () => {
       const source = `module test
-function readLast(): byte
-  let data: byte[5]
-  return data[4]
-end function`;
+function readLast(): byte {
+  let data: byte[5];
+  return data[4];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readLast')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -133,10 +133,10 @@ end function`;
   describe('array read with variable index', () => {
     it('should generate LOAD_ARRAY with variable index', () => {
       const source = `module test
-function readAtIndex(idx: byte): byte
-  let data: byte[10]
-  return data[idx]
-end function`;
+function readAtIndex(idx: byte): byte {
+  let data: byte[10];
+  return data[idx];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readAtIndex')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -144,11 +144,11 @@ end function`;
 
     it('should generate LOAD_VAR and LOAD_ARRAY for local index variable', () => {
       const source = `module test
-function readDynamic(): byte
-  let data: byte[5]
-  let i: byte = 2
-  return data[i]
-end function`;
+function readDynamic(): byte {
+  let data: byte[5];
+  let i: byte = 2;
+  return data[i];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readDynamic')!, ILOpcode.LOAD_VAR)).toBe(true);
@@ -159,11 +159,11 @@ end function`;
   describe('array read with expression index', () => {
     it('should generate ADD and LOAD_ARRAY for computed index', () => {
       const source = `module test
-function readComputed(): byte
-  let data: byte[10]
-  let base: byte = 2
-  return data[base + 3]
-end function`;
+function readComputed(): byte {
+  let data: byte[10];
+  let base: byte = 2;
+  return data[base + 3];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readComputed')!, ILOpcode.ADD)).toBe(true);
@@ -172,11 +172,11 @@ end function`;
 
     it('should generate MUL and LOAD_ARRAY for multiplied index', () => {
       const source = `module test
-function readStrided(): byte
-  let data: byte[20]
-  let row: byte = 2
-  return data[row * 5]
-end function`;
+function readStrided(): byte {
+  let data: byte[20];
+  let row: byte = 2;
+  return data[row * 5];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readStrided')!, ILOpcode.MUL)).toBe(true);
@@ -185,12 +185,12 @@ end function`;
 
     it('should generate complex expression for 2D-like access', () => {
       const source = `module test
-function read2D(): byte
-  let data: byte[25]
-  let row: byte = 2
-  let col: byte = 3
-  return data[row * 5 + col]
-end function`;
+function read2D(): byte {
+  let data: byte[25];
+  let row: byte = 2;
+  let col: byte = 3;
+  return data[row * 5 + col];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('read2D')!, ILOpcode.MUL)).toBe(true);
@@ -214,10 +214,10 @@ describe('ILExpressionGenerator - Index Expressions: Word Arrays', () => {
   describe('word array access', () => {
     it('should generate LOAD_ARRAY for word array', () => {
       const source = `module test
-function readWord(): word
-  let addresses: word[4]
-  return addresses[2]
-end function`;
+function readWord(): word {
+  let addresses: word[4];
+  return addresses[2];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readWord')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -225,10 +225,10 @@ end function`;
 
     it('should generate LOAD_ARRAY for word array with variable index', () => {
       const source = `module test
-function readWordAtIndex(idx: byte): word
-  let ptrs: word[3]
-  return ptrs[idx]
-end function`;
+function readWordAtIndex(idx: byte): word {
+  let ptrs: word[3];
+  return ptrs[idx];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readWordAtIndex')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -250,10 +250,10 @@ describe('ILExpressionGenerator - Index Expressions: In Expressions', () => {
   describe('array access in arithmetic', () => {
     it('should generate LOAD_ARRAY and ADD for array element in addition', () => {
       const source = `module test
-function addArrayElement(): byte
-  let values: byte[5]
-  return values[2] + 5
-end function`;
+function addArrayElement(): byte {
+  let values: byte[5];
+  return values[2] + 5;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('addArrayElement')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -262,10 +262,10 @@ end function`;
 
     it('should generate two LOAD_ARRAY for adding array elements', () => {
       const source = `module test
-function addTwoElements(): byte
-  let data: byte[5]
-  return data[0] + data[4]
-end function`;
+function addTwoElements(): byte {
+  let data: byte[5];
+  return data[0] + data[4];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('addTwoElements')!, ILOpcode.LOAD_ARRAY).length).toBe(2);
@@ -276,10 +276,10 @@ end function`;
   describe('array access in comparisons', () => {
     it('should generate LOAD_ARRAY and CMP for array comparison', () => {
       const source = `module test
-function checkElement(): bool
-  let data: byte[5]
-  return data[2] == 30
-end function`;
+function checkElement(): bool {
+  let data: byte[5];
+  return data[2] == 30;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('checkElement')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -288,10 +288,10 @@ end function`;
 
     it('should generate LOAD_ARRAY in inequality check', () => {
       const source = `module test
-function checkNotZero(): bool
-  let data: byte[3]
-  return data[1] != 0
-end function`;
+function checkNotZero(): bool {
+  let data: byte[3];
+  return data[1] != 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('checkNotZero')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -302,13 +302,13 @@ end function`;
   describe('array access in control flow', () => {
     it('should generate LOAD_ARRAY in if condition', () => {
       const source = `module test
-function checkArray(): byte
-  let flags: byte[4]
-  if flags[1] == 1 then
-    return 1
-  end if
-  return 0
-end function`;
+function checkArray(): byte {
+  let flags: byte[4];
+  if (flags[1] == 1) {
+    return 1;
+  }
+  return 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('checkArray')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -330,13 +330,13 @@ describe('ILExpressionGenerator - Index Expressions: Loop Access', () => {
   describe('array access patterns (simplified)', () => {
     it('should generate LOAD_ARRAY with variable index', () => {
       const source = `module test
-function sumElement(): byte
-  let data: byte[5]
-  let sum: byte = 0
-  let i: byte = 2
-  sum = sum + data[i]
-  return sum
-end function`;
+function sumElement(): byte {
+  let data: byte[5];
+  let sum: byte = 0;
+  let i: byte = 2;
+  sum = sum + data[i];
+  return sum;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('sumElement')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -344,13 +344,13 @@ end function`;
 
     it('should generate LOAD_ARRAY with computed index', () => {
       const source = `module test
-function readEvenElement(): byte
-  let data: byte[10]
-  let result: byte = 0
-  let i: byte = 2
-  result = result + data[i * 2]
-  return result
-end function`;
+function readEvenElement(): byte {
+  let data: byte[10];
+  let result: byte = 0;
+  let i: byte = 2;
+  result = result + data[i * 2];
+  return result;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('readEvenElement')!, ILOpcode.MUL)).toBe(true);
@@ -373,11 +373,11 @@ describe('ILExpressionGenerator - Index Expressions: C64 Patterns', () => {
   describe('C64 screen memory patterns', () => {
     it('should generate LOAD_ARRAY for character lookup', () => {
       const source = `module test
-function getCharacter(): byte
-  let charset: byte[8]
-  let row: byte = 3
-  return charset[row]
-end function`;
+function getCharacter(): byte {
+  let charset: byte[8];
+  let row: byte = 3;
+  return charset[row];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('getCharacter')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -385,11 +385,11 @@ end function`;
 
     it('should generate LOAD_ARRAY for sprite data lookup', () => {
       const source = `module test
-function getSpriteRow(): byte
-  let spriteData: byte[21]
-  let row: byte = 4
-  return spriteData[row * 3]
-end function`;
+function getSpriteRow(): byte {
+  let spriteData: byte[21];
+  let row: byte = 4;
+  return spriteData[row * 3];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('getSpriteRow')!, ILOpcode.MUL)).toBe(true);
@@ -398,11 +398,11 @@ end function`;
 
     it('should generate LOAD_ARRAY for color table lookup', () => {
       const source = `module test
-function getColor(): byte
-  let colorTable: byte[16]
-  let colorIndex: byte = 5
-  return colorTable[colorIndex]
-end function`;
+function getColor(): byte {
+  let colorTable: byte[16];
+  let colorIndex: byte = 5;
+  return colorTable[colorIndex];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('getColor')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -412,11 +412,11 @@ end function`;
   describe('sine table pattern', () => {
     it('should generate LOAD_ARRAY for sine table lookup', () => {
       const source = `module test
-function getSine(): byte
-  let sineTable: byte[8]
-  let angle: byte = 3
-  return sineTable[angle]
-end function`;
+function getSine(): byte {
+  let sineTable: byte[8];
+  let angle: byte = 3;
+  return sineTable[angle];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('getSine')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -438,11 +438,11 @@ describe('ILExpressionGenerator - Index Expressions: Edge Cases', () => {
   describe('chained array access', () => {
     it('should handle array element used as index', () => {
       const source = `module test
-function indirectLookup(): byte
-  let indices: byte[4]
-  let values: byte[4]
-  return values[indices[0]]
-end function`;
+function indirectLookup(): byte {
+  let indices: byte[4];
+  let values: byte[4];
+  return values[indices[0]];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('indirectLookup')!, ILOpcode.LOAD_ARRAY).length).toBe(2);
@@ -452,11 +452,11 @@ end function`;
   describe('array access with bitwise index', () => {
     it('should generate AND and LOAD_ARRAY for masked index', () => {
       const source = `module test
-function maskedAccess(): byte
-  let data: byte[8]
-  let i: byte = 15
-  return data[i & $07]
-end function`;
+function maskedAccess(): byte {
+  let data: byte[8];
+  let i: byte = 15;
+  return data[i & $07];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('maskedAccess')!, ILOpcode.AND)).toBe(true);

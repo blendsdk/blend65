@@ -209,9 +209,9 @@ describe('ASTTransformer - Identity Transformation', () => {
 
   it('should return same nodes for functions', () => {
     const program = parse(`
-      function test(): byte
+      function test(): byte {
         return 42;
-      end function
+      }
     `);
     const transformer = new IdentityTransformer();
 
@@ -248,9 +248,9 @@ describe('ASTTransformer - Node Visitation', () => {
 
   it('should visit all nodes in function', () => {
     const program = parse(`
-      function test(): byte
+      function test(): byte {
         return 42;
-      end function
+      }
     `);
     const transformer = new CountingTransformer();
 
@@ -435,9 +435,9 @@ describe('ASTTransformer - Complex Scenarios', () => {
 
   it('should handle expressions in function returns', () => {
     const program = parse(`
-      function test(): byte
+      function test(): byte {
         return 2 + 3;
-      end function
+      }
     `);
     const transformer = new ConstantFoldingTransformer();
 
@@ -476,8 +476,8 @@ describe('ASTTransformer - Complex Scenarios', () => {
 describe('ASTTransformer - Edge Cases', () => {
   it('should handle empty function bodies', () => {
     const program = parse(`
-      function test(): void
-      end function
+      function test(): void {
+      }
     `);
     const transformer = new IdentityTransformer();
 

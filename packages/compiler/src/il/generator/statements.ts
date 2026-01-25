@@ -33,6 +33,7 @@ import {
   WhileStatement,
   ForStatement,
   MatchStatement,
+  SwitchStatement,
   BreakStatement,
   ContinueStatement,
   ExpressionStatement,
@@ -170,6 +171,10 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
 
       case ASTNodeType.MATCH_STMT:
         this.generateMatchStatement(stmt as MatchStatement, ilFunc);
+        break;
+
+      case ASTNodeType.SWITCH_STMT:
+        this.generateSwitchStatement(stmt as SwitchStatement, ilFunc);
         break;
 
       case ASTNodeType.BREAK_STMT:
@@ -623,6 +628,113 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
     for (let i = 0; i < cases.length; i++) {
       caseBlocks.push(ilFunc.createBlock(`match_case_${labelId}_${i}`));
       caseBodyBlocks.push(ilFunc.createBlock(`match_body_${labelId}_${i}`));
+    }
+
+    // Create default block if needed
+    const defaultBlock = defaultCase ? ilFunc.createBlock(defaultLabel) : mergeBlock;
+
+    // Generate case comparisons as a chain
+    for (let i = 0; i < cases.length; i++) {
+      const caseClause = cases[i];
+      const caseBlock = caseBlocks[i];
+      const bodyBlock = caseBodyBlocks[i];
+      const nextCaseBlock = i + 1 < cases.length ? caseBlocks[i + 1] : defaultBlock;
+
+      // Switch to case comparison block
+      if (i === 0) {
+        this.builder?.emitJump(caseBlock);
+      }
+
+      this.context!.currentBlock = caseBlock;
+      this.builder?.setCurrentBlock(caseBlock);
+
+      // Generate case value
+      const caseValueReg = this.generateExpression(caseClause.value, ilFunc);
+
+      if (caseValueReg) {
+        // Compare: value == caseValue
+        const condReg = this.builder?.emitCmpEq(valueReg, caseValueReg);
+        if (condReg) {
+          this.builder?.emitBranch(condReg, bodyBlock, nextCaseBlock);
+        } else {
+          this.builder?.emitJump(nextCaseBlock);
+        }
+      } else {
+        this.builder?.emitJump(nextCaseBlock);
+      }
+
+      // Generate case body
+      this.context!.currentBlock = bodyBlock;
+      this.builder?.setCurrentBlock(bodyBlock);
+      this.generateStatements(caseClause.body, ilFunc);
+
+      // Jump to merge if body doesn't terminate
+      if (!bodyBlock.hasTerminator()) {
+        this.builder?.emitJump(mergeBlock);
+      }
+    }
+
+    // Generate default case if present
+    if (defaultCase) {
+      this.context!.currentBlock = defaultBlock;
+      this.builder?.setCurrentBlock(defaultBlock);
+      this.generateStatements(defaultCase, ilFunc);
+
+      // Jump to merge if default doesn't terminate
+      if (!defaultBlock.hasTerminator()) {
+        this.builder?.emitJump(mergeBlock);
+      }
+    }
+
+    // Continue at merge block
+    this.context!.currentBlock = mergeBlock;
+    this.builder?.setCurrentBlock(mergeBlock);
+  }
+
+  // ===========================================================================
+  // Switch Statement Generation (C-style)
+  // ===========================================================================
+
+  /**
+   * Generates IL for a switch statement (C-style syntax).
+   *
+   * Lowered to a series of if-else comparisons, similar to match statements.
+   *
+   * @param stmt - Switch statement
+   * @param ilFunc - Current IL function
+   */
+  protected generateSwitchStatement(stmt: SwitchStatement, ilFunc: ILFunction): void {
+    const value = stmt.getValue();
+    const cases = stmt.getCases();
+    const defaultCase = stmt.getDefaultCase();
+
+    // Generate unique labels
+    const labelId = this.nextBlockLabel();
+    const mergeLabel = `switch_merge_${labelId}`;
+    const defaultLabel = `switch_default_${labelId}`;
+
+    // Create merge block
+    const mergeBlock = ilFunc.createBlock(mergeLabel);
+
+    // Generate the value being switched on once
+    const valueReg = this.generateExpression(value, ilFunc);
+
+    if (!valueReg) {
+      this.addError(
+        'Failed to generate switch value',
+        value.getLocation(),
+        'E_SWITCH_VALUE',
+      );
+      return;
+    }
+
+    // Create blocks for each case
+    const caseBlocks: BasicBlock[] = [];
+    const caseBodyBlocks: BasicBlock[] = [];
+
+    for (let i = 0; i < cases.length; i++) {
+      caseBlocks.push(ilFunc.createBlock(`switch_case_${labelId}_${i}`));
+      caseBodyBlocks.push(ilFunc.createBlock(`switch_body_${labelId}_${i}`));
     }
 
     // Create default block if needed

@@ -46,11 +46,11 @@ describe('EscapeAnalyzer', () => {
   describe('Local-Only Variables (No Escape)', () => {
     it('should mark simple local variable as non-escaping', () => {
       const source = `
-        function test(): byte
+        function test(): byte {
           let x: byte = 10;
           let y: byte = x + 5;
           return y;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -76,12 +76,12 @@ describe('EscapeAnalyzer', () => {
 
     it('should mark multiple local-only variables', () => {
       const source = `
-        function compute(): byte
+        function compute(): byte {
           let a: byte = 1;
           let b: byte = 2;
           let c: byte = a + b;
           return c;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -110,15 +110,15 @@ describe('EscapeAnalyzer', () => {
 
     it('should handle local variables in loops', () => {
       const source = `
-        function loop(): byte
+        function loop(): byte {
           let sum: byte = 0;
           let i: byte = 0;
-          while i < 10
+          while (i < 10) {
             sum = sum + i;
             i = i + 1;
-          end while
+          }
           return sum;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -144,17 +144,17 @@ describe('EscapeAnalyzer', () => {
 
     it('should handle local variables in conditionals', () => {
       const source = `
-        function conditional(flag: boolean): byte
+        function conditional(flag: boolean): byte {
           let result: byte = 0;
-          if flag then
+          if (flag) {
             let tempTrue: byte = 10;
             result = tempTrue;
-          else
+          } else {
             let tempFalse: byte = 20;
             result = tempFalse;
-          end if
+          }
           return result;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -165,14 +165,14 @@ describe('EscapeAnalyzer', () => {
   describe('Variables Passed to Functions (Escape)', () => {
     it('should mark variable passed as argument as escaping', () => {
       const source = `
-        function helper(value: byte): byte
+        function helper(value: byte): byte {
           return value + 1;
-        end function
+        }
 
-        function test(): byte
+        function test(): byte {
           let x: byte = 10;
           return helper(x);
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -198,15 +198,15 @@ describe('EscapeAnalyzer', () => {
 
     it('should mark multiple arguments as escaping', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
 
-        function test(): byte
+        function test(): byte {
           let x: byte = 5;
           let y: byte = 10;
           return add(x, y);
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -229,10 +229,10 @@ describe('EscapeAnalyzer', () => {
   describe('Variables Returned from Functions (Escape)', () => {
     it('should mark returned variable as escaping', () => {
       const source = `
-        function test(): byte
+        function test(): byte {
           let x: byte = 42;
           return x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -255,15 +255,15 @@ describe('EscapeAnalyzer', () => {
 
     it('should handle multiple return paths', () => {
       const source = `
-        function test(flag: boolean): byte
+        function test(flag: boolean): byte {
           let x: byte = 10;
           let y: byte = 20;
-          if flag then
+          if (flag) {
             return x;
-          else
+          } else {
             return y;
-          end if
-        end function
+          }
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -284,11 +284,11 @@ describe('EscapeAnalyzer', () => {
 
     it('should handle expression in return', () => {
       const source = `
-        function test(): byte
+        function test(): byte {
           let x: byte = 5;
           let y: byte = 10;
           return x + y;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -313,10 +313,10 @@ describe('EscapeAnalyzer', () => {
       const source = `
         let globalVar: byte = 0;
 
-        function test(): void
+        function test(): void {
           let x: byte = 42;
           globalVar = x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -343,12 +343,12 @@ describe('EscapeAnalyzer', () => {
         let global1: byte = 0;
         let global2: byte = 0;
 
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = 20;
           global1 = x;
           global2 = y;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -371,10 +371,10 @@ describe('EscapeAnalyzer', () => {
   describe('Address-Of Operator (Escape)', () => {
     it('should mark variable with address taken as escaping', () => {
       const source = `
-        function test(): word
+        function test(): word {
           let x: byte = 42;
           return @x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -397,10 +397,10 @@ describe('EscapeAnalyzer', () => {
 
     it('should handle address-of in assignment', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let ptr: word = @x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -430,9 +430,9 @@ describe('EscapeAnalyzer', () => {
         let globalCounter: byte = 0;
         let globalFlag: boolean = false;
 
-        function test(): void
+        function test(): void {
           globalCounter = 1;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -457,10 +457,10 @@ describe('EscapeAnalyzer', () => {
   describe('Stack Depth Tracking', () => {
     it('should calculate basic stack depth', () => {
       const source = `
-        function simple(): byte
+        function simple(): byte {
           let x: byte = 10;
           return x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -476,10 +476,10 @@ describe('EscapeAnalyzer', () => {
 
     it('should include parameters in stack depth', () => {
       const source = `
-        function withParams(a: byte, b: byte): byte
+        function withParams(a: byte, b: byte): byte {
           let x: byte = a + b;
           return x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -495,10 +495,10 @@ describe('EscapeAnalyzer', () => {
 
     it('should include word-sized variables', () => {
       const source = `
-        function withWord(): word
+        function withWord(): word {
           let x: word = 1000;
           return x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -514,20 +514,20 @@ describe('EscapeAnalyzer', () => {
 
     it('should propagate stack depth through call chain', () => {
       const source = `
-        function leaf(): byte
+        function leaf(): byte {
           let x: byte = 10;
           return x;
-        end function
+        }
 
-        function middle(): byte
+        function middle(): byte {
           let y: byte = leaf();
           return y;
-        end function
+        }
 
-        function root(): byte
+        function root(): byte {
           let z: byte = middle();
           return z;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -555,24 +555,24 @@ describe('EscapeAnalyzer', () => {
       // Realistic C64 game loop: 3-5 function call depth, 5-10 locals each
       // Total should be under 100 bytes - safe, no warnings
       const source = `
-        function updateSprite(id: byte): void
+        function updateSprite(id: byte): void {
           let x: byte = 10;
           let y: byte = 20;
-        end function
+        }
 
-        function updateGame(): void
+        function updateGame(): void {
           let i: byte = 0;
           let maxSprites: byte = 8;
-          while i < maxSprites
+          while (i < maxSprites) {
             updateSprite(i);
             i = i + 1;
-          end while
-        end function
+          }
+        }
 
-        function gameLoop(): void
+        function gameLoop(): void {
           let running: boolean = true;
           updateGame();
-        end function
+        }
       `;
 
       const { errors, warnings } = analyzeCode(source);
@@ -587,65 +587,65 @@ describe('EscapeAnalyzer', () => {
       // Depth: 10 functions, each with ~10 bytes = ~120 bytes total
       // Should be under 200 byte warning threshold but getting close
       const source = `
-        function renderPixel(x: byte, y: byte, color: byte): void
+        function renderPixel(x: byte, y: byte, color: byte): void {
           let offset: word = 1024;
-        end function
+        }
 
-        function renderLine(x1: byte, y1: byte, x2: byte, y2: byte): void
+        function renderLine(x1: byte, y1: byte, x2: byte, y2: byte): void {
           let dx: byte = 1;
           let dy: byte = 1;
           let steps: byte = 10;
           let i: byte = 0;
           renderPixel(x1, y1, 1);
-        end function
+        }
 
-        function renderRect(x: byte, y: byte, w: byte, h: byte): void
+        function renderRect(x: byte, y: byte, w: byte, h: byte): void {
           let x2: byte = x;
           let y2: byte = y;
           renderLine(x, y, x2, y2);
-        end function
+        }
 
-        function renderSprite(id: byte): void
+        function renderSprite(id: byte): void {
           let x: byte = 10;
           let y: byte = 20;
           let width: byte = 24;
           let height: byte = 21;
           renderRect(x, y, width, height);
-        end function
+        }
 
-        function renderLayer(layer: byte): void
+        function renderLayer(layer: byte): void {
           let count: byte = 8;
           let i: byte = 0;
           renderSprite(i);
-        end function
+        }
 
-        function renderScreen(): void
+        function renderScreen(): void {
           let bgLayer: byte = 0;
           let fgLayer: byte = 1;
           let uiLayer: byte = 2;
           renderLayer(bgLayer);
           renderLayer(fgLayer);
           renderLayer(uiLayer);
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
 
       // Deep call chain but still under limit - should not error
       // renderScreen -> renderLayer -> renderSprite -> renderRect -> renderLine -> renderPixel
-      // 6 levels � ~15 bytes each = ~90 bytes (safe)
+      // 6 levels × ~15 bytes each = ~90 bytes (safe)
       expect(errors.some(e => e.message.includes('Stack overflow'))).toBe(false);
     });
 
     it('should correctly calculate stack depth with word variables', () => {
       // Verify word variables count as 2 bytes in stack calculation
       const source = `
-        function withWords(addr1: word, addr2: word): word
+        function withWords(addr1: word, addr2: word): word {
           let pointer: word = 49152;
           let offset: word = 1024;
           let temp: byte = 0;
           return pointer;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -661,21 +661,21 @@ describe('EscapeAnalyzer', () => {
 
     it('should not overflow with shallow call chain', () => {
       const source = `
-        function helper1(): byte
+        function helper1(): byte {
           let x: byte = 1;
           return x;
-        end function
+        }
 
-        function helper2(): byte
+        function helper2(): byte {
           let y: byte = 2;
           return y;
-        end function
+        }
 
-        function main(): byte
+        function main(): byte {
           let a: byte = helper1();
           let b: byte = helper2();
           return a + b;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -690,7 +690,7 @@ describe('EscapeAnalyzer', () => {
       const source = `
         let globalValue: byte = 0;
 
-        function mixed(): byte
+        function mixed(): byte {
           let local1: byte = 10;
           let local2: byte = 20;
           let escape1: byte = 30;
@@ -699,7 +699,7 @@ describe('EscapeAnalyzer', () => {
           globalValue = escape1;
           let temp: byte = local1 + local2;
           return escape2 + temp;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -727,14 +727,14 @@ describe('EscapeAnalyzer', () => {
 
     it('should handle escape in nested blocks', () => {
       const source = `
-        function nested(flag: boolean): byte
+        function nested(flag: boolean): byte {
           let outer: byte = 10;
-          if flag then
+          if (flag) {
             let inner: byte = 20;
             outer = inner;
-          end if
+          }
           return outer;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -754,10 +754,10 @@ describe('EscapeAnalyzer', () => {
   describe('Metadata Validation', () => {
     it('should set all escape metadata fields', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -777,10 +777,10 @@ describe('EscapeAnalyzer', () => {
 
     it('should set stack metadata on functions', () => {
       const source = `
-        function test(): byte
+        function test(): byte {
           let x: byte = 10;
           return x;
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);

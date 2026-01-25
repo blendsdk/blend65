@@ -57,27 +57,28 @@ let score: byte
     });
   });
 
-  describe('Nested match blocks', () => {
-    it('should tokenize match statements contained inside other matches', () => {
-      const source = `match systemState
+  describe('Nested switch blocks', () => {
+    it('should tokenize switch statements contained inside other switches', () => {
+      // C-style syntax: switch uses { } instead of end switch
+      const source = `switch (systemState) {
   case 0:
-    match currentScene
+    switch (currentScene) {
       case 1:
-        handleGameplay()
+        handleGameplay();
       default:
-        resetScene()
-    end match
+        resetScene();
+    }
   default:
-    handleIdle()
-end match`;
+    handleIdle();
+}`;
 
       const tokens = tokenize(source);
 
-      const matchCount = tokens.filter(token => token.type === TokenType.MATCH).length;
+      const switchCount = tokens.filter(token => token.type === TokenType.SWITCH).length;
       const defaultCount = tokens.filter(token => token.type === TokenType.DEFAULT).length;
 
-      // Each match block contributes an opening `match` and a closing `end match`
-      expect(matchCount).toBe(4);
+      // Two switch keywords (one for each switch statement)
+      expect(switchCount).toBe(2);
       // Both default clauses should be detected independently
       expect(defaultCount).toBe(2);
     });
@@ -85,8 +86,8 @@ end match`;
 
   describe('Callback keyword ambiguity', () => {
     it('should distinguish callback as both decorator and type', () => {
-      const source = `callback function rasterIRQ(): void
-end function
+      // C-style syntax: function uses { } instead of end function
+      const source = `callback function rasterIRQ(): void { }
 let callbackFn: callback = rasterIRQ`;
 
       const tokens = tokenize(source);

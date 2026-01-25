@@ -17,6 +17,8 @@ import type {
   FunctionDecl,
   WhileStatement,
   ForStatement,
+  DoWhileStatement,
+  SwitchStatement,
   MatchStatement,
   BlockStatement,
   Program,
@@ -610,6 +612,94 @@ export abstract class ContextWalker extends ASTWalker {
     }
 
     this.context.exitContext();
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Do-While statement with context
+   *
+   * Automatically creates LOOP context.
+   * Body is visited first (always executes at least once), then condition.
+   */
+  visitDoWhileStatement(node: DoWhileStatement): void {
+    if (this.shouldStop) return;
+
+    this.enterNode(node);
+
+    // Enter loop context for body
+    this.context.enterContext(ContextType.LOOP, node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      // Visit body first (do-while executes body before checking condition)
+      for (const stmt of node.getBody()) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+    }
+
+    this.context.exitContext();
+
+    // Visit condition after body (outside loop context)
+    if (!this.shouldStop) {
+      node.getCondition().accept(this);
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Switch statement with context
+   *
+   * Automatically creates LOOP context (switch can be exited with break).
+   */
+  visitSwitchStatement(node: SwitchStatement): void {
+    if (this.shouldStop) return;
+
+    // Visit switch value before entering switch context
+    this.enterNode(node);
+    node.getValue().accept(this);
+
+    // Enter loop context (switch acts like loop for break)
+    this.context.enterContext(ContextType.LOOP, node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      // Visit cases
+      for (const caseClause of node.getCases()) {
+        if (this.shouldStop) break;
+
+        // Enter case context
+        this.context.enterContext(ContextType.MATCH_CASE, node);
+
+        caseClause.value.accept(this);
+        if (!this.shouldStop) {
+          for (const stmt of caseClause.body) {
+            if (this.shouldStop) break;
+            stmt.accept(this);
+          }
+        }
+
+        this.context.exitContext(); // Exit case context
+      }
+
+      // Visit default case
+      if (!this.shouldStop) {
+        const defaultCase = node.getDefaultCase();
+        if (defaultCase) {
+          this.context.enterContext(ContextType.MATCH_CASE, node);
+
+          for (const stmt of defaultCase) {
+            if (this.shouldStop) break;
+            stmt.accept(this);
+          }
+
+          this.context.exitContext(); // Exit case context
+        }
+      }
+    }
+
+    this.context.exitContext(); // Exit switch context
     this.shouldSkip = false;
     this.exitNode(node);
   }

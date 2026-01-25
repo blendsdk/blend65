@@ -43,18 +43,18 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect unused import with HINT severity', () => {
       const libSource = `
         module utils
-        export function helper(): void
+        export function helper(): void {
           // helper implementation
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import helper from utils
 
-        export function main(): void
+        export function main(): void {
           // Never use helper
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -72,18 +72,18 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should not report hint when import is used', () => {
       const libSource = `
         module utils
-        export function helper(): void
+        export function helper(): void {
           // helper implementation
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import helper from utils
 
-        export function main(): void
+        export function main(): void {
           helper();
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -98,28 +98,28 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect only unused imports when some are used', () => {
       const libSource = `
         module graphics
-        export function clearScreen(): void
+        export function clearScreen(): void {
           // clear implementation
-        end function
+        }
 
-        export function setPixel(x: byte, y: byte): void
+        export function setPixel(x: byte, y: byte): void {
           // setPixel implementation
-        end function
+        }
 
-        export function drawLine(x1: byte, y1: byte, x2: byte, y2: byte): void
+        export function drawLine(x1: byte, y1: byte, x2: byte, y2: byte): void {
           // drawLine implementation
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import clearScreen, setPixel, drawLine from graphics
 
-        export function main(): void
+        export function main(): void {
           clearScreen();
           setPixel(10, 10);
           // drawLine never used
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -132,24 +132,24 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect multiple unused imports', () => {
       const libSource = `
         module utils
-        export function foo(): void
-        end function
+        export function foo(): void {
+        }
 
-        export function bar(): void
-        end function
+        export function bar(): void {
+        }
 
-        export function baz(): void
-        end function
+        export function baz(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import foo, bar, baz from utils
 
-        export function main(): void
+        export function main(): void {
           foo();
           // bar and baz never used
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -170,21 +170,21 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect usage in nested function scope', () => {
       const libSource = `
         module utils
-        export function helper(): void
-        end function
+        export function helper(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import helper from utils
 
-        function nested(): void
+        function nested(): void {
           helper();
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           nested();
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -196,20 +196,20 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect usage in if statement', () => {
       const libSource = `
         module utils
-        export function check(): byte
+        export function check(): byte {
           return 1;
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import check from utils
 
-        export function main(): void
-          if check() > 0 then
+        export function main(): void {
+          if (check() > 0) {
             // use check in condition
-          end if
-        end function
+          }
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -221,20 +221,20 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect usage in while loop', () => {
       const libSource = `
         module utils
-        export function running(): byte
+        export function running(): byte {
           return 1;
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import running from utils
 
-        export function main(): void
-          while running() > 0
+        export function main(): void {
+          while (running() > 0) {
             // use running in condition
-          end while
-        end function
+          }
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -255,9 +255,9 @@ describe('Phase 7: Unused Import Detection', () => {
         module main
         import MAX_SIZE from constants
 
-        export function main(): void
+        export function main(): void {
           // MAX_SIZE never used
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -277,9 +277,9 @@ describe('Phase 7: Unused Import Detection', () => {
         module main
         import MAX_SIZE from constants
 
-        export function main(): void
+        export function main(): void {
           let size: byte = MAX_SIZE;
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -293,18 +293,18 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect usage in binary expression', () => {
       const libSource = `
         module math
-        export function square(x: byte): byte
+        export function square(x: byte): byte {
           return x * x;
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import square from math
 
-        export function main(): void
+        export function main(): void {
           let result: byte = square(5) + 10;
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -316,18 +316,18 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect usage in assignment', () => {
       const libSource = `
         module utils
-        export function getValue(): byte
+        export function getValue(): byte {
           return 42;
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import getValue from utils
 
-        export function main(): void
+        export function main(): void {
           let x: byte = getValue();
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -339,21 +339,21 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect usage as function argument', () => {
       const libSource = `
         module utils
-        export function getData(): byte
+        export function getData(): byte {
           return 1;
-        end function
+        }
       `;
 
       const mainSource = `
         module main
         import getData from utils
 
-        function process(value: byte): void
-        end function
+        function process(value: byte): void {
+        }
 
-        export function main(): void
+        export function main(): void {
           process(getData());
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -368,9 +368,9 @@ describe('Phase 7: Unused Import Detection', () => {
       const source = `
         module main
 
-        export function main(): void
+        export function main(): void {
           // No imports
-        end function
+        }
       `;
 
       const result = analyzeSource(source);
@@ -382,8 +382,8 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should handle empty module with imports', () => {
       const libSource = `
         module utils
-        export function helper(): void
-        end function
+        export function helper(): void {
+        }
       `;
 
       const mainSource = `
@@ -402,21 +402,21 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should handle import from same-named symbol', () => {
       const libSource = `
         module utils
-        export function test(): void
-        end function
+        export function test(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import test from utils
 
-        function test(): void
+        function test(): void {
           // Local function also named test
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           test();
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -433,29 +433,29 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should detect unused imports across multiple importing modules', () => {
       const libSource = `
         module lib
-        export function foo(): void
-        end function
+        export function foo(): void {
+        }
 
-        export function bar(): void
-        end function
+        export function bar(): void {
+        }
       `;
 
       const module1Source = `
         module module1
         import foo from lib
 
-        export function use1(): void
+        export function use1(): void {
           foo();
-        end function
+        }
       `;
 
       const module2Source = `
         module module2
         import bar from lib
 
-        export function use2(): void
+        export function use2(): void {
           // bar never used
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, module1Source, module2Source]);
@@ -470,16 +470,16 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should have correct diagnostic code', () => {
       const libSource = `
         module utils
-        export function unused(): void
-        end function
+        export function unused(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import unused from utils
 
-        export function main(): void
-        end function
+        export function main(): void {
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -491,16 +491,16 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should have correct severity', () => {
       const libSource = `
         module utils
-        export function unused(): void
-        end function
+        export function unused(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import unused from utils
 
-        export function main(): void
-        end function
+        export function main(): void {
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -512,16 +512,16 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should have informative message', () => {
       const libSource = `
         module utils
-        export function myFunction(): void
-        end function
+        export function myFunction(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import myFunction from utils
 
-        export function main(): void
-        end function
+        export function main(): void {
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -537,16 +537,16 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should not affect compilation success (hints do not fail compilation)', () => {
       const libSource = `
         module utils
-        export function unused(): void
-        end function
+        export function unused(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import unused from utils
 
-        export function main(): void
-        end function
+        export function main(): void {
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);
@@ -562,17 +562,17 @@ describe('Phase 7: Unused Import Detection', () => {
     it('should coexist with errors', () => {
       const libSource = `
         module utils
-        export function unused(): void
-        end function
+        export function unused(): void {
+        }
       `;
 
       const mainSource = `
         module main
         import unused from utils
 
-        export function main(): void
+        export function main(): void {
           let x: byte = "string";  // Type error
-        end function
+        }
       `;
 
       const result = analyzeMultipleModules([libSource, mainSource]);

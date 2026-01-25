@@ -217,8 +217,8 @@ describe('SymbolTableBuilder', () => {
   describe('Function Declaration Collection', () => {
     test('collects simple function declaration', () => {
       const source = `
-        function greet(): void
-        end function
+        function greet(): void {
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -232,8 +232,8 @@ describe('SymbolTableBuilder', () => {
 
     test('collects exported function declaration', () => {
       const source = `
-        export function main(): void
-        end function
+        export function main(): void {
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -244,9 +244,9 @@ describe('SymbolTableBuilder', () => {
 
     test('collects function with parameters', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -274,9 +274,9 @@ describe('SymbolTableBuilder', () => {
 
     test('collects function with no parameters', () => {
       const source = `
-        function initialize(): void
+        function initialize(): void {
           let temp: byte = 0;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -292,8 +292,8 @@ describe('SymbolTableBuilder', () => {
 
     test('collects callback function declaration', () => {
       const source = `
-        callback function onIRQ(): void
-        end function
+        callback function onIRQ(): void {
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -304,12 +304,12 @@ describe('SymbolTableBuilder', () => {
 
     test('collects multiple function declarations', () => {
       const source = `
-        function foo(): void
-        end function
+        function foo(): void {
+        }
 
-        function bar(): byte
+        function bar(): byte {
           return 0;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -320,12 +320,12 @@ describe('SymbolTableBuilder', () => {
 
     test('detects duplicate function declarations', () => {
       const source = `
-        function test(): void
-        end function
+        function test(): void {
+        }
 
-        function test(): byte
+        function test(): byte {
           return 0;
-        end function
+        }
       `;
       const { diagnostics, hasErrors } = buildSymbolTable(source);
 
@@ -337,9 +337,9 @@ describe('SymbolTableBuilder', () => {
 
     test('detects duplicate parameter names', () => {
       const source = `
-        function calc(a: byte, a: byte): byte
+        function calc(a: byte, a: byte): byte {
           return a;
-        end function
+        }
       `;
       const { diagnostics, hasErrors } = buildSymbolTable(source);
 
@@ -416,11 +416,11 @@ describe('SymbolTableBuilder', () => {
 
     test('creates function scope for each function', () => {
       const source = `
-        function foo(): void
-        end function
+        function foo(): void {
+        }
 
-        function bar(): void
-        end function
+        function bar(): void {
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -433,8 +433,8 @@ describe('SymbolTableBuilder', () => {
 
     test('function scope has module scope as parent', () => {
       const source = `
-        function test(): void
-        end function
+        function test(): void {
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -446,10 +446,10 @@ describe('SymbolTableBuilder', () => {
 
     test('variables in function are in function scope', () => {
       const source = `
-        function calculate(): byte
+        function calculate(): byte {
           let result: byte = 0;
           return result;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -465,9 +465,9 @@ describe('SymbolTableBuilder', () => {
       const source = `
         let global: byte = 0;
 
-        function test(): void
+        function test(): void {
           let local: byte = 1;
-        end function
+        }
       `;
       const { symbolTable } = buildSymbolTable(source);
 
@@ -489,15 +489,15 @@ describe('SymbolTableBuilder', () => {
         @zp let counter: byte = 0;
         export let score: word = 0;
 
-        function initialize(): void
+        function initialize(): void {
           counter = 0;
           score = 0;
           borderColor = 0;
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           initialize();
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -529,7 +529,7 @@ describe('SymbolTableBuilder', () => {
 
     test('handles complex nested function with parameters and local variables', () => {
       const source = `
-        function process(input: byte, flags: byte): word
+        function process(input: byte, flags: byte): word {
           let temp: byte = 0;
           let result: word = 0;
 
@@ -537,7 +537,7 @@ describe('SymbolTableBuilder', () => {
           result = temp * flags;
 
           return result;
-        end function
+        }
       `;
       const { symbolTable, diagnostics } = buildSymbolTable(source);
 
@@ -565,8 +565,8 @@ describe('SymbolTableBuilder', () => {
     test('detects mixed duplicate declarations', () => {
       const source = `
         let name: byte = 0;
-        function name(): void
-        end function
+        function name(): void {
+        }
       `;
       const { diagnostics, hasErrors } = buildSymbolTable(source);
 

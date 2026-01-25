@@ -217,6 +217,8 @@ export class Lexer {
         return this.createSingleCharToken(TokenType.COLON);
       case '.':
         return this.createSingleCharToken(TokenType.DOT);
+      case '?':
+        return this.createSingleCharToken(TokenType.QUESTION);
       case '!':
         return this.createSingleCharToken(TokenType.NOT);
     }
@@ -434,11 +436,14 @@ export class Lexer {
 
   /**
    * Maps a keyword string to its corresponding TokenType
+   * C-style syntax: no END, THEN, NEXT, ELSEIF, MATCH keywords
+   * New keywords: DOWNTO, STEP, DO, SWITCH
    * @param keyword - The keyword string to map
    * @returns The TokenType for the given keyword, or IDENTIFIER if not found
    */
   protected getKeywordTokenType(keyword: string): TokenType {
     switch (keyword) {
+      // Module keywords
       case eModuleKeyword.MODULE:
         return TokenType.MODULE;
       case eModuleKeyword.IMPORT:
@@ -447,30 +452,30 @@ export class Lexer {
         return TokenType.EXPORT;
       case eModuleKeyword.FROM:
         return TokenType.FROM;
+      // Function keywords
       case eFunctionKeyword.FUNCTION:
         return TokenType.FUNCTION;
-      case eControlFlowKeyword.END:
-        return TokenType.END;
       case eFunctionKeyword.RETURN:
         return TokenType.RETURN;
+      // Control flow keywords (C-style with curly braces)
       case eControlFlowKeyword.IF:
         return TokenType.IF;
-      case eControlFlowKeyword.THEN:
-        return TokenType.THEN;
       case eControlFlowKeyword.ELSE:
         return TokenType.ELSE;
-      case eControlFlowKeyword.ELSEIF:
-        return TokenType.ELSEIF;
       case eControlFlowKeyword.WHILE:
         return TokenType.WHILE;
       case eControlFlowKeyword.FOR:
         return TokenType.FOR;
       case eControlFlowKeyword.TO:
         return TokenType.TO;
-      case eControlFlowKeyword.NEXT:
-        return TokenType.NEXT;
-      case eControlFlowKeyword.MATCH:
-        return TokenType.MATCH;
+      case eControlFlowKeyword.DOWNTO:
+        return TokenType.DOWNTO;
+      case eControlFlowKeyword.STEP:
+        return TokenType.STEP;
+      case eControlFlowKeyword.DO:
+        return TokenType.DO;
+      case eControlFlowKeyword.SWITCH:
+        return TokenType.SWITCH;
       case eControlFlowKeyword.CASE:
         return TokenType.CASE;
       case eControlFlowKeyword.BREAK:
@@ -479,24 +484,29 @@ export class Lexer {
         return TokenType.CONTINUE;
       case eControlFlowKeyword.DEFAULT:
         return TokenType.DEFAULT;
+      // Declaration keywords
       case eDeclarationKeyword.TYPE:
         return TokenType.TYPE;
       case eDeclarationKeyword.ENUM:
         return TokenType.ENUM;
+      // Mutability modifiers
       case eMutabilityModifier.LET:
         return TokenType.LET;
       case eMutabilityModifier.CONST:
         return TokenType.CONST;
+      // Storage class keywords
       case eStorageClass.ZP:
         return TokenType.ZP;
       case eStorageClass.RAM:
         return TokenType.RAM;
       case eStorageClass.DATA:
         return TokenType.DATA;
+      // Memory mapping keywords
       case eMemoryMappingKeyword.AT:
         return TokenType.AT;
       case eMemoryMappingKeyword.LAYOUT:
         return TokenType.LAYOUT;
+      // Primitive type keywords
       case ePrimitiveType.BYTE:
         return TokenType.BYTE;
       case ePrimitiveType.WORD:

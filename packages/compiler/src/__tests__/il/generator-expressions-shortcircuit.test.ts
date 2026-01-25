@@ -98,11 +98,11 @@ describe('ILExpressionGenerator - Short-Circuit: Basic AND', () => {
   describe('simple AND expressions', () => {
     it('should generate AND for bool && bool', () => {
       const source = `module test
-function testAnd(): bool
-  let a: bool = true
-  let b: bool = true
-  return a && b
-end function`;
+function testAnd(): bool {
+  let a: bool = true;
+  let b: bool = true;
+  return a && b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       // AND generates bitwise AND for now (or BRANCH for short-circuit)
@@ -114,11 +114,11 @@ end function`;
 
     it('should generate AND with comparison results', () => {
       const source = `module test
-function testAnd(): bool
-  let a: byte = 5
-  let b: byte = 10
-  return (a < 10) && (b > 5)
-end function`;
+function testAnd(): bool {
+  let a: byte = 5;
+  let b: byte = 10;
+  return (a < 10) && (b > 5);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('testAnd')!, ILOpcode.CMP_LT)).toBe(true);
@@ -127,9 +127,9 @@ end function`;
 
     it('should generate AND with literal true values', () => {
       const source = `module test
-function testAnd(): bool
-  return true && true
-end function`;
+function testAnd(): bool {
+  return true && true;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('testAnd')).toBeDefined();
@@ -137,9 +137,9 @@ end function`;
 
     it('should generate AND with literal false value', () => {
       const source = `module test
-function testAnd(): bool
-  return true && false
-end function`;
+function testAnd(): bool {
+  return true && false;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('testAnd')).toBeDefined();
@@ -149,14 +149,14 @@ end function`;
   describe('AND in control flow', () => {
     it('should generate AND in if condition', () => {
       const source = `module test
-function checkBoth(): byte
-  let a: byte = 5
-  let b: byte = 10
-  if (a < 10) && (b < 20) then
-    return 1
-  end if
-  return 0
-end function`;
+function checkBoth(): byte {
+  let a: byte = 5;
+  let b: byte = 10;
+  if ((a < 10) && (b < 20)) {
+    return 1;
+  }
+  return 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('checkBoth')).toBeDefined();
@@ -164,14 +164,14 @@ end function`;
 
     it('should generate AND in condition', () => {
       const source = `module test
-function conditionAnd(): byte
-  let i: byte = 5
-  let running: bool = true
-  if i < 10 && running then
-    return 1
-  end if
-  return 0
-end function`;
+function conditionAnd(): byte {
+  let i: byte = 5;
+  let running: bool = true;
+  if (i < 10 && running) {
+    return 1;
+  }
+  return 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('conditionAnd')!, ILOpcode.AND)).toBe(true);
@@ -193,11 +193,11 @@ describe('ILExpressionGenerator - Short-Circuit: Basic OR', () => {
   describe('simple OR expressions', () => {
     it('should generate OR for bool || bool', () => {
       const source = `module test
-function testOr(): bool
-  let a: bool = true
-  let b: bool = false
-  return a || b
-end function`;
+function testOr(): bool {
+  let a: bool = true;
+  let b: bool = false;
+  return a || b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       // OR generates bitwise OR for now (or BRANCH for short-circuit)
@@ -209,11 +209,11 @@ end function`;
 
     it('should generate OR with comparison results', () => {
       const source = `module test
-function testOr(): bool
-  let a: byte = 5
-  let b: byte = 10
-  return (a > 10) || (b > 5)
-end function`;
+function testOr(): bool {
+  let a: byte = 5;
+  let b: byte = 10;
+  return (a > 10) || (b > 5);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('testOr')!, ILOpcode.CMP_GT)).toBe(true);
@@ -221,9 +221,9 @@ end function`;
 
     it('should generate OR with literal false values', () => {
       const source = `module test
-function testOr(): bool
-  return false || false
-end function`;
+function testOr(): bool {
+  return false || false;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('testOr')).toBeDefined();
@@ -231,9 +231,9 @@ end function`;
 
     it('should generate OR with literal true value', () => {
       const source = `module test
-function testOr(): bool
-  return false || true
-end function`;
+function testOr(): bool {
+  return false || true;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('testOr')).toBeDefined();
@@ -243,14 +243,14 @@ end function`;
   describe('OR in control flow', () => {
     it('should generate OR in if condition', () => {
       const source = `module test
-function checkEither(): byte
-  let a: byte = 15
-  let b: byte = 10
-  if (a > 10) || (b > 20) then
-    return 1
-  end if
-  return 0
-end function`;
+function checkEither(): byte {
+  let a: byte = 15;
+  let b: byte = 10;
+  if ((a > 10) || (b > 20)) {
+    return 1;
+  }
+  return 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('checkEither')).toBeDefined();
@@ -258,14 +258,14 @@ end function`;
 
     it('should generate OR in condition', () => {
       const source = `module test
-function conditionOr(): byte
-  let i: byte = 5
-  let forceStop: bool = false
-  if (i > 10) || forceStop then
-    return 1
-  end if
-  return 0
-end function`;
+function conditionOr(): byte {
+  let i: byte = 5;
+  let forceStop: bool = false;
+  if ((i > 10) || forceStop) {
+    return 1;
+  }
+  return 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('conditionOr')!, ILOpcode.OR)).toBe(true);
@@ -287,12 +287,12 @@ describe('ILExpressionGenerator - Short-Circuit: Mixed AND/OR', () => {
   describe('nested AND and OR', () => {
     it('should generate mixed AND and OR', () => {
       const source = `module test
-function mixed(): bool
-  let a: bool = true
-  let b: bool = false
-  let c: bool = true
-  return a && b || c
-end function`;
+function mixed(): bool {
+  let a: bool = true;
+  let b: bool = false;
+  let c: bool = true;
+  return a && b || c;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('mixed')).toBeDefined();
@@ -300,12 +300,12 @@ end function`;
 
     it('should generate OR with nested AND', () => {
       const source = `module test
-function orWithAnd(): bool
-  let a: bool = true
-  let b: bool = true
-  let c: bool = false
-  return (a && b) || c
-end function`;
+function orWithAnd(): bool {
+  let a: bool = true;
+  let b: bool = true;
+  let c: bool = false;
+  return (a && b) || c;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('orWithAnd')).toBeDefined();
@@ -313,12 +313,12 @@ end function`;
 
     it('should generate AND with nested OR', () => {
       const source = `module test
-function andWithOr(): bool
-  let a: bool = true
-  let b: bool = false
-  let c: bool = true
-  return a && (b || c)
-end function`;
+function andWithOr(): bool {
+  let a: bool = true;
+  let b: bool = false;
+  let c: bool = true;
+  return a && (b || c);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('andWithOr')).toBeDefined();
@@ -328,12 +328,12 @@ end function`;
   describe('complex logical expressions', () => {
     it('should generate complex three-way AND', () => {
       const source = `module test
-function threeAnd(): bool
-  let a: bool = true
-  let b: bool = true
-  let c: bool = true
-  return a && b && c
-end function`;
+function threeAnd(): bool {
+  let a: bool = true;
+  let b: bool = true;
+  let c: bool = true;
+  return a && b && c;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('threeAnd')).toBeDefined();
@@ -341,12 +341,12 @@ end function`;
 
     it('should generate complex three-way OR', () => {
       const source = `module test
-function threeOr(): bool
-  let a: bool = false
-  let b: bool = false
-  let c: bool = true
-  return a || b || c
-end function`;
+function threeOr(): bool {
+  let a: bool = false;
+  let b: bool = false;
+  let c: bool = true;
+  return a || b || c;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('threeOr')).toBeDefined();
@@ -354,12 +354,12 @@ end function`;
 
     it('should generate complex mixed comparisons', () => {
       const source = `module test
-function complexCondition(): bool
-  let x: byte = 5
-  let y: byte = 10
-  let z: byte = 15
-  return (x < y) && (y < z) || (x == 0)
-end function`;
+function complexCondition(): bool {
+  let x: byte = 5;
+  let y: byte = 10;
+  let z: byte = 15;
+  return (x < y) && (y < z) || (x == 0);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('complexCondition')).toBeDefined();
@@ -381,11 +381,11 @@ describe('ILExpressionGenerator - Short-Circuit: With NOT', () => {
   describe('NOT with AND/OR', () => {
     it('should generate NOT and AND', () => {
       const source = `module test
-function notAnd(): bool
-  let a: bool = true
-  let b: bool = false
-  return !a && b
-end function`;
+function notAnd(): bool {
+  let a: bool = true;
+  let b: bool = false;
+  return !a && b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('notAnd')!, ILOpcode.LOGICAL_NOT)).toBe(true);
@@ -393,11 +393,11 @@ end function`;
 
     it('should generate NOT and OR', () => {
       const source = `module test
-function notOr(): bool
-  let a: bool = false
-  let b: bool = true
-  return !a || b
-end function`;
+function notOr(): bool {
+  let a: bool = false;
+  let b: bool = true;
+  return !a || b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('notOr')!, ILOpcode.LOGICAL_NOT)).toBe(true);
@@ -405,11 +405,11 @@ end function`;
 
     it('should generate De Morgan transformation pattern', () => {
       const source = `module test
-function deMorgan(): bool
-  let a: bool = true
-  let b: bool = true
-  return !(!a || !b)
-end function`;
+function deMorgan(): bool {
+  let a: bool = true;
+  let b: bool = true;
+  return !(!a || !b);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(
@@ -433,11 +433,11 @@ describe('ILExpressionGenerator - Short-Circuit: C64 Patterns', () => {
   describe('game state checks', () => {
     it('should generate AND for game state validation', () => {
       const source = `module test
-function isValidState(): bool
-  let gameRunning: bool = true
-  let playerAlive: bool = true
-  return gameRunning && playerAlive
-end function`;
+function isValidState(): bool {
+  let gameRunning: bool = true;
+  let playerAlive: bool = true;
+  return gameRunning && playerAlive;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('isValidState')).toBeDefined();
@@ -445,11 +445,11 @@ end function`;
 
     it('should generate OR for termination check', () => {
       const source = `module test
-function shouldExit(): bool
-  let gameOver: bool = false
-  let quitPressed: bool = false
-  return gameOver || quitPressed
-end function`;
+function shouldExit(): bool {
+  let gameOver: bool = false;
+  let quitPressed: bool = false;
+  return gameOver || quitPressed;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('shouldExit')).toBeDefined();
@@ -457,15 +457,15 @@ end function`;
 
     it('should generate collision detection pattern', () => {
       const source = `module test
-function checkCollision(): bool
-  let x1: byte = 100
-  let y1: byte = 100
-  let x2: byte = 110
-  let y2: byte = 110
-  let width: byte = 24
-  let height: byte = 21
-  return (x1 < x2 + width) && (x1 + width > x2) && (y1 < y2 + height) && (y1 + height > y2)
-end function`;
+function checkCollision(): bool {
+  let x1: byte = 100;
+  let y1: byte = 100;
+  let x2: byte = 110;
+  let y2: byte = 110;
+  let width: byte = 24;
+  let height: byte = 21;
+  return (x1 < x2 + width) && (x1 + width > x2) && (y1 < y2 + height) && (y1 + height > y2);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('checkCollision')).toBeDefined();
@@ -475,12 +475,12 @@ end function`;
   describe('bounds checking patterns', () => {
     it('should generate AND for range check', () => {
       const source = `module test
-function inRange(): bool
-  let x: byte = 100
-  let minX: byte = 24
-  let maxX: byte = 255
-  return (x >= minX) && (x <= maxX)
-end function`;
+function inRange(): bool {
+  let x: byte = 100;
+  let minX: byte = 24;
+  let maxX: byte = 255;
+  return (x >= minX) && (x <= maxX);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('inRange')!, ILOpcode.CMP_GE)).toBe(true);
@@ -489,12 +489,12 @@ end function`;
 
     it('should generate OR for out-of-bounds check', () => {
       const source = `module test
-function outOfBounds(): bool
-  let x: byte = 250
-  let minX: byte = 24
-  let maxX: byte = 200
-  return (x < minX) || (x > maxX)
-end function`;
+function outOfBounds(): bool {
+  let x: byte = 250;
+  let minX: byte = 24;
+  let maxX: byte = 200;
+  return (x < minX) || (x > maxX);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('outOfBounds')!, ILOpcode.CMP_LT)).toBe(true);
@@ -505,13 +505,13 @@ end function`;
   describe('input handling patterns', () => {
     it('should generate OR for multiple key check', () => {
       const source = `module test
-function anyKeyPressed(): bool
-  let keyUp: bool = false
-  let keyDown: bool = true
-  let keyLeft: bool = false
-  let keyRight: bool = false
-  return keyUp || keyDown || keyLeft || keyRight
-end function`;
+function anyKeyPressed(): bool {
+  let keyUp: bool = false;
+  let keyDown: bool = true;
+  let keyLeft: bool = false;
+  let keyRight: bool = false;
+  return keyUp || keyDown || keyLeft || keyRight;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('anyKeyPressed')).toBeDefined();
@@ -519,11 +519,11 @@ end function`;
 
     it('should generate AND for simultaneous key check', () => {
       const source = `module test
-function bothKeysPressed(): bool
-  let fire: bool = true
-  let up: bool = true
-  return fire && up
-end function`;
+function bothKeysPressed(): bool {
+  let fire: bool = true;
+  let up: bool = true;
+  return fire && up;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('bothKeysPressed')).toBeDefined();
@@ -545,13 +545,13 @@ describe('ILExpressionGenerator - Short-Circuit: Edge Cases', () => {
   describe('deeply nested expressions', () => {
     it('should handle deeply nested AND', () => {
       const source = `module test
-function deepAnd(): bool
-  let a: bool = true
-  let b: bool = true
-  let c: bool = true
-  let d: bool = true
-  return ((a && b) && (c && d))
-end function`;
+function deepAnd(): bool {
+  let a: bool = true;
+  let b: bool = true;
+  let c: bool = true;
+  let d: bool = true;
+  return ((a && b) && (c && d));
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('deepAnd')).toBeDefined();
@@ -559,13 +559,13 @@ end function`;
 
     it('should handle deeply nested OR', () => {
       const source = `module test
-function deepOr(): bool
-  let a: bool = false
-  let b: bool = false
-  let c: bool = false
-  let d: bool = true
-  return ((a || b) || (c || d))
-end function`;
+function deepOr(): bool {
+  let a: bool = false;
+  let b: bool = false;
+  let c: bool = false;
+  let d: bool = true;
+  return ((a || b) || (c || d));
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('deepOr')).toBeDefined();
@@ -575,11 +575,11 @@ end function`;
   describe('mixed with arithmetic', () => {
     it('should handle AND with arithmetic comparison', () => {
       const source = `module test
-function arithmeticAnd(): bool
-  let x: byte = 10
-  let y: byte = 5
-  return (x + y > 10) && (x - y < 10)
-end function`;
+function arithmeticAnd(): bool {
+  let x: byte = 10;
+  let y: byte = 5;
+  return (x + y > 10) && (x - y < 10);
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('arithmeticAnd')!, ILOpcode.ADD)).toBe(true);

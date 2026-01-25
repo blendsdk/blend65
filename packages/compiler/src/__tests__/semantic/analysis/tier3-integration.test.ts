@@ -82,15 +82,15 @@ describe('Tier 3 Integration Tests', () => {
       const source = `
 module Test
 
-function compute(x: byte, y: byte): byte
-  let result: byte = x + y
-  return result
-end function
+function compute(x: byte, y: byte): byte {
+  let result: byte = x + y;
+  return result;
+}
 
-function main(): void
-  let a: byte = compute(10, 20)
-  let b: byte = a * 2
-end function
+function main(): void {
+  let a: byte = compute(10, 20);
+  let b: byte = a * 2;
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -103,12 +103,12 @@ end function
       const source = `
 module Test
 
-function test(): void
-  let a: byte = 10
-  let b: byte = 20
-  let x: byte = a + b
-  let y: byte = a + b
-end function
+function test(): void {
+  let a: byte = 10;
+  let b: byte = 20;
+  let x: byte = a + b;
+  let y: byte = a + b;
+}
 `;
       const { ast } = runFullAnalysis(source);
 
@@ -133,10 +133,10 @@ module Hardware
 @map borderColor at $D020: byte;
 @map backgroundColor at $D021: byte;
 
-function setColors(fg: byte, bg: byte): void
-  borderColor = fg
-  backgroundColor = bg
-end function
+function setColors(fg: byte, bg: byte): void {
+  borderColor = fg;
+  backgroundColor = bg;
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -148,12 +148,12 @@ end function
       const source = `
 module Math
 
-function calculate(a: byte, b: byte, c: byte): byte
-  let temp1: byte = a + b
-  let temp2: byte = a + b
-  let temp3: byte = temp1 * c
-  return temp3
-end function
+function calculate(a: byte, b: byte, c: byte): byte {
+  let temp1: byte = a + b;
+  let temp2: byte = a + b;
+  let temp3: byte = temp1 * c;
+  return temp3;
+}
 `;
       const { ast } = runFullAnalysis(source);
 
@@ -173,16 +173,16 @@ end function
       const source = `
 module LoopTest
 
-function processLoop(): void
-  let base: byte = 10
-  let multiplier: byte = 2
-  let i: byte = 0
-  while i < 100
-    let invariant: byte = base * multiplier
-    let result: byte = i + invariant
-    i = i + 1
-  end while
-end function
+function processLoop(): void {
+  let base: byte = 10;
+  let multiplier: byte = 2;
+  let i: byte = 0;
+  while (i < 100) {
+    let invariant: byte = base * multiplier;
+    let result: byte = i + invariant;
+    i = i + 1;
+  }
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -194,15 +194,15 @@ end function
       const source = `
 module PurityTest
 
-function pureFunction(x: byte, y: byte): byte
-  let result: byte = x + y
-  return result
-end function
+function pureFunction(x: byte, y: byte): byte {
+  let result: byte = x + y;
+  return result;
+}
 
-function main(): void
-  let a: byte = pureFunction(1, 2)
-  let b: byte = pureFunction(1, 2)
-end function
+function main(): void {
+  let a: byte = pureFunction(1, 2);
+  let b: byte = pureFunction(1, 2);
+}
 `;
       const { ast, hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -217,10 +217,10 @@ end function
       const source = `
 module EscapeTest
 
-function localOnly(): void
-  let local: byte = 42
-  let doubled: byte = local * 2
-end function
+function localOnly(): void {
+  let local: byte = 42;
+  let doubled: byte = local * 2;
+}
 `;
       const { ast, hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -235,17 +235,17 @@ end function
       const source = `
 module CallGraph
 
-function leaf(): byte
-  return 42
-end function
+function leaf(): byte {
+  return 42;
+}
 
-function middle(): byte
-  return leaf()
-end function
+function middle(): byte {
+  return leaf();
+}
 
-function top(): byte
-  return middle()
-end function
+function top(): byte {
+  return middle();
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -257,13 +257,13 @@ end function
       const source = `
 module HotPath
 
-function hotLoop(): void
-  let counter: byte = 0
-  while counter < 255
-    let temp: byte = counter + 1
-    counter = temp
-  end while
-end function
+function hotLoop(): void {
+  let counter: byte = 0;
+  while (counter < 255) {
+    let temp: byte = counter + 1;
+    counter = temp;
+  }
+}
 `;
       const { ast, hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -278,19 +278,19 @@ end function
       const source = `
 module MultiFunc
 
-function helper(n: byte): byte
-  return n * 2
-end function
+function helper(n: byte): byte {
+  return n * 2;
+}
 
-function process(a: byte, b: byte): byte
-  let x: byte = helper(a)
-  let y: byte = helper(b)
-  return x + y
-end function
+function process(a: byte, b: byte): byte {
+  let x: byte = helper(a);
+  let y: byte = helper(b);
+  return x + y;
+}
 
-function main(): void
-  let result: byte = process(10, 20)
-end function
+function main(): void {
+  let result: byte = process(10, 20);
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -308,13 +308,13 @@ end function
       const source = `
 module LoopZP
 
-function loopWithCounter(): void
-  let i: byte = 0
-  while i < 100
-    let inner: byte = i * 2
-    i = i + 1
-  end while
-end function
+function loopWithCounter(): void {
+  let i: byte = 0;
+  while (i < 100) {
+    let inner: byte = i * 2;
+    i = i + 1;
+  }
+}
 `;
       const { ast, hasErrors } = runFullAnalysis(source);
 
@@ -332,11 +332,11 @@ end function
       const source = `
 module UsageLiveness
 
-function test(): void
-  let used: byte = 10
-  let unused: byte = 20
-  let result: byte = used * 2
-end function
+function test(): void {
+  let used: byte = 10;
+  let unused: byte = 20;
+  let result: byte = used * 2;
+}
 `;
       const { ast, hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -354,13 +354,13 @@ end function
       const source = `
 module ConstDead
 
-function test(): void
-  let constVal: byte = 10
-  let derived: byte = constVal + 5
-  if false then
-    let dead: byte = 42
-  end if
-end function
+function test(): void {
+  let constVal: byte = 10;
+  let derived: byte = constVal + 5;
+  if (false) {
+    let dead: byte = 42;
+  }
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -371,12 +371,12 @@ end function
       const source = `
 module ReachGVN
 
-function test(): void
-  let a: byte = 10
-  let b: byte = 20
-  let x: byte = a + b
-  let y: byte = a + b
-end function
+function test(): void {
+  let a: byte = 10;
+  let b: byte = 20;
+  let x: byte = a + b;
+  let y: byte = a + b;
+}
 `;
       const { ast, hasErrors } = runFullAnalysis(source);
 
@@ -395,14 +395,14 @@ end function
       const source = `
 module PurityOpt
 
-function pure(x: byte): byte
-  return x * 2
-end function
+function pure(x: byte): byte {
+  return x * 2;
+}
 
-function caller(): void
-  let a: byte = pure(10)
-  let b: byte = pure(10)
-end function
+function caller(): void {
+  let a: byte = pure(10);
+  let b: byte = pure(10);
+}
 `;
       const { ast, hasErrors } = runFullAnalysis(source);
 
@@ -416,11 +416,11 @@ end function
       const source = `
 module EscapeStack
 
-function noEscape(): void
-  let local1: byte = 10
-  let local2: byte = 20
-  let sum: byte = local1 + local2
-end function
+function noEscape(): void {
+  let local1: byte = 10;
+  let local2: byte = 20;
+  let sum: byte = local1 + local2;
+}
 `;
       const { ast, hasErrors } = runFullAnalysis(source);
 
@@ -434,12 +434,12 @@ end function
       const source = `
 module AliasCSE
 
-function test(): void
-  let a: byte = 10
-  let b: byte = 20
-  let x: byte = a + b
-  let y: byte = a + b
-end function
+function test(): void {
+  let a: byte = 10;
+  let b: byte = 20;
+  let x: byte = a + b;
+  let y: byte = a + b;
+}
 `;
       const { ast, hasErrors } = runFullAnalysis(source);
 
@@ -454,17 +454,17 @@ end function
       const source = `
 module CallPurity
 
-function leaf(): byte
-  return 42
-end function
+function leaf(): byte {
+  return 42;
+}
 
-function middle(): byte
-  return leaf()
-end function
+function middle(): byte {
+  return leaf();
+}
 
-function top(): byte
-  return middle()
-end function
+function top(): byte {
+  return middle();
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -486,11 +486,11 @@ module VIC
 @map backgroundColor at $D021: byte;
 @map spriteEnable at $D015: byte;
 
-function initVIC(): void
-  borderColor = 0
-  backgroundColor = 0
-  spriteEnable = 0
-end function
+function initVIC(): void {
+  borderColor = 0;
+  backgroundColor = 0;
+  spriteEnable = 0;
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -507,12 +507,12 @@ module SID
 @map sidVoice1Control at $D404: byte;
 @map sidVolume at $D418: byte;
 
-function playNote(freq: byte): void
-  sidVoice1FreqLo = freq
-  sidVoice1FreqHi = 0
-  sidVoice1Control = $11
-  sidVolume = $0F
-end function
+function playNote(freq: byte): void {
+  sidVoice1FreqLo = freq;
+  sidVoice1FreqHi = 0;
+  sidVoice1Control = $11;
+  sidVolume = $0F;
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -524,13 +524,13 @@ end function
       const source = `
 module Screen
 
-function clearPartialScreen(): void
-  let i: byte = 0
-  while i < 250
-    let offset: byte = i
-    i = i + 1
-  end while
-end function
+function clearPartialScreen(): void {
+  let i: byte = 0;
+  while (i < 250) {
+    let offset: byte = i;
+    i = i + 1;
+  }
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -542,13 +542,13 @@ end function
       const source = `
 module ColorRAM
 
-function setColors(colorValue: byte): void
-  let i: byte = 0
-  while i < 250
-    let pos: byte = i
-    i = i + 1
-  end while
-end function
+function setColors(colorValue: byte): void {
+  let i: byte = 0;
+  while (i < 250) {
+    let pos: byte = i;
+    i = i + 1;
+  }
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -562,12 +562,12 @@ module Raster
 
 @map rasterLine at $D012: byte;
 
-function waitForRaster(line: byte): void
-  let current: byte = rasterLine
-  while current != line
-    current = rasterLine
-  end while
-end function
+function waitForRaster(line: byte): void {
+  let current: byte = rasterLine;
+  while (current != line) {
+    current = rasterLine;
+  }
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -583,10 +583,10 @@ module Sprites
 @map sprite0Y at $D001: byte;
 @map spriteXMSB at $D010: byte;
 
-function moveSprite(x: byte, y: byte): void
-  sprite0X = x
-  sprite0Y = y
-end function
+function moveSprite(x: byte, y: byte): void {
+  sprite0X = x;
+  sprite0Y = y;
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -598,16 +598,16 @@ end function
       const source = `
 module ZeroPage
 
-function zpRoutine(): void
-  let zpTemp1: byte = 0
-  let zpTemp2: byte = 0
-  let zpCounter: byte = 0
-  while zpCounter < 100
-    zpTemp1 = zpTemp1 + 1
-    zpTemp2 = zpTemp2 + 2
-    zpCounter = zpCounter + 1
-  end while
-end function
+function zpRoutine(): void {
+  let zpTemp1: byte = 0;
+  let zpTemp2: byte = 0;
+  let zpCounter: byte = 0;
+  while (zpCounter < 100) {
+    zpTemp1 = zpTemp1 + 1;
+    zpTemp2 = zpTemp2 + 2;
+    zpCounter = zpCounter + 1;
+  }
+}
 `;
       const { hasErrors, diagnostics } = runFullAnalysis(source);
 
@@ -625,13 +625,13 @@ end function
       // Generate ~100 lines of code
       let source = `module Perf100\n\n`;
       for (let i = 0; i < 10; i++) {
-        source += `function func${i}(x: byte): byte\n`;
-        source += `  let a: byte = x + 1\n`;
-        source += `  let b: byte = a + 2\n`;
-        source += `  let c: byte = b + 3\n`;
-        source += `  let d: byte = c + 4\n`;
-        source += `  return d\n`;
-        source += `end function\n\n`;
+        source += `function func${i}(x: byte): byte {\n`;
+        source += `  let a: byte = x + 1;\n`;
+        source += `  let b: byte = a + 2;\n`;
+        source += `  let c: byte = b + 3;\n`;
+        source += `  let d: byte = c + 4;\n`;
+        source += `  return d;\n`;
+        source += `}\n\n`;
       }
 
       const startTime = Date.now();
@@ -646,14 +646,14 @@ end function
       // Generate ~500 lines of code
       let source = `module Perf500\n\n`;
       for (let i = 0; i < 50; i++) {
-        source += `function func${i}(x: byte): byte\n`;
-        source += `  let a: byte = x + 1\n`;
-        source += `  let b: byte = a + 2\n`;
-        source += `  let c: byte = b + 3\n`;
-        source += `  let d: byte = c + 4\n`;
-        source += `  let e: byte = d + 5\n`;
-        source += `  return e\n`;
-        source += `end function\n\n`;
+        source += `function func${i}(x: byte): byte {\n`;
+        source += `  let a: byte = x + 1;\n`;
+        source += `  let b: byte = a + 2;\n`;
+        source += `  let c: byte = b + 3;\n`;
+        source += `  let d: byte = c + 4;\n`;
+        source += `  let e: byte = d + 5;\n`;
+        source += `  return e;\n`;
+        source += `}\n\n`;
       }
 
       const startTime = Date.now();
@@ -669,14 +669,14 @@ end function
       // Generate ~1000 lines of code
       let source = `module Perf1000\n\n`;
       for (let i = 0; i < 100; i++) {
-        source += `function func${i}(x: byte): byte\n`;
-        source += `  let a: byte = x + 1\n`;
-        source += `  let b: byte = a + 2\n`;
-        source += `  let c: byte = b + 3\n`;
-        source += `  let d: byte = c + 4\n`;
-        source += `  let e: byte = d + 5\n`;
-        source += `  return e\n`;
-        source += `end function\n\n`;
+        source += `function func${i}(x: byte): byte {\n`;
+        source += `  let a: byte = x + 1;\n`;
+        source += `  let b: byte = a + 2;\n`;
+        source += `  let c: byte = b + 3;\n`;
+        source += `  let d: byte = c + 4;\n`;
+        source += `  let e: byte = d + 5;\n`;
+        source += `  return e;\n`;
+        source += `}\n\n`;
       }
 
       const startTime = Date.now();
@@ -692,21 +692,21 @@ end function
       const source = `
 module PerfNested
 
-function nestedLoops(): void
-  let i: byte = 0
-  while i < 10
-    let j: byte = 0
-    while j < 10
-      let k: byte = 0
-      while k < 10
-        let x: byte = i + j + k
-        k = k + 1
-      end while
-      j = j + 1
-    end while
-    i = i + 1
-  end while
-end function
+function nestedLoops(): void {
+  let i: byte = 0;
+  while (i < 10) {
+    let j: byte = 0;
+    while (j < 10) {
+      let k: byte = 0;
+      while (k < 10) {
+        let x: byte = i + j + k;
+        k = k + 1;
+      }
+      j = j + 1;
+    }
+    i = i + 1;
+  }
+}
 `;
 
       const startTime = Date.now();
@@ -719,19 +719,19 @@ end function
 
     it('D5: Complex expressions complete efficiently', () => {
       let source = `module PerfExpr\n\n`;
-      source += `function complexExpressions(): void\n`;
+      source += `function complexExpressions(): void {\n`;
 
       // Generate many complex expressions
       for (let i = 0; i < 50; i++) {
-        source += `  let v${i}: byte = ${i} + ${i + 1} * 2\n`;
+        source += `  let v${i}: byte = ${i} + ${i + 1} * 2;\n`;
       }
 
       // Add some redundant expressions for GVN/CSE
       for (let i = 0; i < 20; i++) {
-        source += `  let r${i}: byte = v0 + v1\n`;
+        source += `  let r${i}: byte = v0 + v1;\n`;
       }
 
-      source += `end function\n`;
+      source += `}\n`;
 
       const startTime = Date.now();
       const { hasErrors } = runFullAnalysis(source);

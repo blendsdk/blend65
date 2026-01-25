@@ -10,9 +10,9 @@
 // Algorithm: LCG with parameters from Numerical Recipes
 // ============================================================================
 
-module Blend.Std.Random
+module Blend.Std.Random;
 
-import clamp from Blend.Std.Math
+import { clamp } from Blend.Std.Math;
 
 // ============================================================================
 // Internal State
@@ -60,11 +60,11 @@ const INCREMENT_HI: byte = 0xF3;
  * let seed: word = (raster << 8) | timerLo;
  * setSeed(seed);
  */
-export function setSeed(seed: word): void
+export function setSeed(seed: word): void {
   // Split 16-bit seed into two bytes
   seedLo = seed & 0xFF;
   seedHi = (seed >> 8) & 0xFF;
-end function
+}
 
 /**
  * Initialize RNG with a seed derived from hardware registers.
@@ -78,7 +78,7 @@ end function
  * @example
  * initRandom();  // Seed from hardware
  */
-export function initRandom(): void
+export function initRandom(): void {
   // Hardware registers for seeding
   @map raster at $D012: byte;
   @map timerLo at $DC04: byte;
@@ -89,7 +89,7 @@ export function initRandom(): void
   // Timer low byte in low byte
   seedHi = raster;
   seedLo = timerLo ^ timerHi;  // XOR for more entropy
-end function
+}
 
 // ============================================================================
 // Random Number Generation
@@ -110,7 +110,7 @@ end function
  * let dice = random() % 6 + 1;  // Random 1-6
  * let color = random() & 0x0F;  // Random 0-15
  */
-export function random(): byte
+export function random(): byte {
   // Temporary variables for 16-bit arithmetic
   let resultLo: byte;
   let resultHi: byte;
@@ -126,9 +126,9 @@ export function random(): byte
 
   // Step 2: Add increment
   resultLo = resultLo + INCREMENT_LO;
-  if resultLo < INCREMENT_LO then
+  if (resultLo < INCREMENT_LO) {
     carry = 1;
-  end if
+  }
 
   // Step 3: Update high byte
   resultHi = seedHi * MULTIPLIER_LO;
@@ -141,7 +141,7 @@ export function random(): byte
 
   // Return high byte for better distribution
   return seedHi;
-end function
+}
 
 /**
  * Generate a random byte within a specific range [min, max] inclusive.
@@ -159,13 +159,13 @@ end function
  * let y = randomRange(0, 24);   // Random screen Y position
  * let color = randomRange(1, 15); // Random color (not black)
  */
-export function randomRange(min: byte, max: byte): byte
+export function randomRange(min: byte, max: byte): byte {
   // Ensure min <= max
-  if min > max then
+  if (min > max) {
     let temp: byte = min;
     min = max;
     max = temp;
-  end if
+  }
 
   // Calculate range size
   let range: byte = max - min + 1;
@@ -175,7 +175,7 @@ export function randomRange(min: byte, max: byte): byte
 
   // Add minimum offset
   return min + value;
-end function
+}
 
 /**
  * Generate a random boolean value (true/false).
@@ -185,14 +185,14 @@ end function
  * @returns Random boolean value
  *
  * @example
- * if randomBool() then
+ * if (randomBool()) {
  *   spawnEnemy();
- * end if
+ * }
  */
-export function randomBool(): boolean
+export function randomBool(): boolean {
   // Check if random byte is >= 128
   return random() >= 128;
-end function
+}
 
 /**
  * Generate a random value with a specific probability.
@@ -203,17 +203,17 @@ end function
  * @returns True if random value is less than chance
  *
  * @example
- * if randomChance(64) then  // 25% chance (64/256)
+ * if (randomChance(64)) {  // 25% chance (64/256)
  *   spawnPowerup();
- * end if
+ * }
  *
- * if randomChance(128) then  // 50% chance
+ * if (randomChance(128)) {  // 50% chance
  *   flipCoin();
- * end if
+ * }
  */
-export function randomChance(chance: byte): boolean
+export function randomChance(chance: byte): boolean {
   return random() < chance;
-end function
+}
 
 // ============================================================================
 // Utility Functions
@@ -230,11 +230,11 @@ end function
  * setSeed(12345);
  * shuffle(10);  // Advance RNG state by 10 steps
  */
-export function shuffle(count: byte): void
-  for i = 0 to count - 1
+export function shuffle(count: byte): void {
+  for (i = 0 to count - 1) {
     random();  // Generate and discard
-  next i
-end function
+  }
+}
 
 /**
  * Get current seed value (for save/restore).
@@ -248,9 +248,9 @@ end function
  * // ... do random stuff ...
  * setSeed(savedSeed);  // Restore to same state
  */
-export function getSeed(): word
+export function getSeed(): word {
   return (seedHi << 8) | seedLo;
-end function
+}
 
 // ============================================================================
 // Implementation Notes

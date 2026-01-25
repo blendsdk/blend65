@@ -42,7 +42,9 @@ import {
   IfStatement,
   WhileStatement,
   ForStatement,
+  DoWhileStatement,
   MatchStatement,
+  SwitchStatement,
   BreakStatement,
   ContinueStatement,
   ExpressionStatement,
@@ -324,13 +326,34 @@ export function isForStatement(node: ASTNode | null | undefined): node is ForSta
 }
 
 /**
- * Type guard for MatchStatement nodes
+ * Type guard for MatchStatement nodes (deprecated - use isSwitchStatement)
  *
  * @param node - AST node to check
  * @returns True if node is a MatchStatement
+ * @deprecated Use isSwitchStatement instead
  */
 export function isMatchStatement(node: ASTNode | null | undefined): node is MatchStatement {
   return node instanceof MatchStatement;
+}
+
+/**
+ * Type guard for SwitchStatement nodes (C-style switch/case)
+ *
+ * @param node - AST node to check
+ * @returns True if node is a SwitchStatement
+ */
+export function isSwitchStatement(node: ASTNode | null | undefined): node is SwitchStatement {
+  return node instanceof SwitchStatement;
+}
+
+/**
+ * Type guard for DoWhileStatement nodes (C-style do { } while)
+ *
+ * @param node - AST node to check
+ * @returns True if node is a DoWhileStatement
+ */
+export function isDoWhileStatement(node: ASTNode | null | undefined): node is DoWhileStatement {
+  return node instanceof DoWhileStatement;
 }
 
 /**
@@ -447,7 +470,7 @@ export function isMapDecl(
 }
 
 /**
- * Type guard for loop statements (for/while)
+ * Type guard for loop statements (for/while/do-while)
  *
  * Convenience function to check if a node is any loop statement type.
  *
@@ -456,6 +479,6 @@ export function isMapDecl(
  */
 export function isLoopStatement(
   node: ASTNode | null | undefined
-): node is WhileStatement | ForStatement {
-  return isWhileStatement(node) || isForStatement(node);
+): node is WhileStatement | ForStatement | DoWhileStatement {
+  return isWhileStatement(node) || isForStatement(node) || isDoWhileStatement(node);
 }

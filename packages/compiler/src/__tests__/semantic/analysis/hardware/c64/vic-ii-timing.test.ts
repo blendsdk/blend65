@@ -669,7 +669,8 @@ describe('VIC-II Timing Analyzer', () => {
       it('should estimate cycles for for loop setup', () => {
         const start = new LiteralExpression(0, createMockLocation());
         const end = new LiteralExpression(10, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
         const estimate = analyzer.estimateStatementCycles(stmt);
         // ASSIGNMENT (5) + start (2) + end (2) + BRANCH (3) = 12
         expect(estimate.minCycles).toBe(12);
@@ -680,7 +681,8 @@ describe('VIC-II Timing Analyzer', () => {
       it('should estimate cycles for for loop with variable bounds', () => {
         const start = new IdentifierExpression('startIdx', createMockLocation());
         const end = new IdentifierExpression('endIdx', createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
         const estimate = analyzer.estimateStatementCycles(stmt);
         // ASSIGNMENT (5) + start (3) + end (3) + BRANCH (3) = 14
         expect(estimate.minCycles).toBe(14);
@@ -763,7 +765,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in 0 to 10 { }
         const start = new LiteralExpression(0, createMockLocation());
         const end = new LiteralExpression(10, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -775,7 +778,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in 0 to 5 { } - 5 iterations
         const start = new LiteralExpression(0, createMockLocation());
         const end = new LiteralExpression(5, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -800,7 +804,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in 5 to 15 { } - 10 iterations
         const start = new LiteralExpression(5, createMockLocation());
         const end = new LiteralExpression(15, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -812,7 +817,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in 10 to 5 { } - 0 iterations (end < start)
         const start = new LiteralExpression(10, createMockLocation());
         const end = new LiteralExpression(5, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -828,7 +834,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in startIdx to 10 { }
         const start = new IdentifierExpression('startIdx', createMockLocation());
         const end = new LiteralExpression(10, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -840,7 +847,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in 0 to endIdx { }
         const start = new LiteralExpression(0, createMockLocation());
         const end = new IdentifierExpression('endIdx', createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -852,7 +860,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in startIdx to endIdx { }
         const start = new IdentifierExpression('startIdx', createMockLocation());
         const end = new IdentifierExpression('endIdx', createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -864,7 +873,8 @@ describe('VIC-II Timing Analyzer', () => {
         // for i in startIdx to endIdx { }
         const start = new IdentifierExpression('startIdx', createMockLocation());
         const end = new IdentifierExpression('endIdx', createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -935,7 +945,8 @@ describe('VIC-II Timing Analyzer', () => {
         const end = new LiteralExpression(3, createMockLocation());
         const initExpr = new LiteralExpression(42, createMockLocation());
         const bodyStmt = new VariableDecl('x', 'byte', initExpr, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [bodyStmt], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [bodyStmt], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -979,7 +990,8 @@ describe('VIC-II Timing Analyzer', () => {
         const end = new LiteralExpression(5, createMockLocation());
         const initExpr = new LiteralExpression(42, createMockLocation());
         const bodyStmt = new VariableDecl('x', 'byte', initExpr, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [bodyStmt], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [bodyStmt], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -993,7 +1005,8 @@ describe('VIC-II Timing Analyzer', () => {
       it('should return all required properties', () => {
         const start = new LiteralExpression(0, createMockLocation());
         const end = new LiteralExpression(5, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -1013,7 +1026,8 @@ describe('VIC-II Timing Analyzer', () => {
         const end = new LiteralExpression(8, createMockLocation());
         const initExpr = new LiteralExpression(1, createMockLocation());
         const bodyStmt = new VariableDecl('x', 'byte', initExpr, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [bodyStmt], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [bodyStmt], createMockLocation());
 
         const estimate = analyzer.estimateLoopCycles(stmt);
 
@@ -1096,7 +1110,8 @@ describe('VIC-II Timing Analyzer', () => {
       it('should detect RMW in for loop (implicit increment)', () => {
         const start = new LiteralExpression(0, createMockLocation());
         const end = new LiteralExpression(10, createMockLocation());
-        const stmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const stmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const rmwCount = analyzer.detectStatementRMWOperations(stmt);
 
@@ -1149,7 +1164,8 @@ describe('VIC-II Timing Analyzer', () => {
       it('should include RMW penalty for for loops', () => {
         const start = new LiteralExpression(0, createMockLocation());
         const end = new LiteralExpression(10, createMockLocation());
-        const forStmt = new ForStatement('i', start, end, [], createMockLocation());
+        // ForStatement(variable, variableType, start, end, direction, step, body, location)
+        const forStmt = new ForStatement('i', null, start, end, 'to', null, [], createMockLocation());
 
         const penalties = analyzer.calculateHardwarePenalties([forStmt], 0);
 

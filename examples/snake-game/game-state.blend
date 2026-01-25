@@ -7,7 +7,7 @@
 // Module: Snake.GameState
 // ============================================================================
 
-module Snake.GameState
+module Snake.GameState;
 
 // ============================================================================
 // Game State Enum
@@ -17,22 +17,22 @@ module Snake.GameState
  * Game state enumeration.
  * Defines all possible states the game can be in.
  */
-enum GameState
+enum GameState {
   INIT = 0,      // Initial state, before game starts
   PLAYING = 1,   // Active gameplay
   GAME_OVER = 2  // Game ended, waiting for restart
-end enum
+}
 
 /**
  * Direction enumeration.
  * Defines the four cardinal directions for snake movement.
  */
-enum Direction
+enum Direction {
   UP = 0,
   DOWN = 1,
   LEFT = 2,
   RIGHT = 3
-end enum
+}
 
 // ============================================================================
 // Zero-Page Game State Variables (Fast Access)
@@ -148,7 +148,7 @@ const START_Y: byte = 12;
  * initGameState();
  * currentState = GameState.PLAYING;
  */
-export function initGameState(): void
+export function initGameState(): void {
   // Reset state
   currentState = GameState.INIT;
   isPaused = false;
@@ -169,66 +169,66 @@ export function initGameState(): void
   gameSpeed = INITIAL_SPEED;
 
   // Clear snake body arrays
-  for i = 0 to MAX_SNAKE_LENGTH - 1
+  for (i = 0 to MAX_SNAKE_LENGTH - 1) {
     snakeBodyX[i] = 0;
     snakeBodyY[i] = 0;
-  next i
-end function
+  }
+}
 
 /**
  * Start the game (transition from INIT to PLAYING).
  *
  * @example
- * if isFirePressed() then
+ * if (isFirePressed()) {
  *   startGame();
- * end if
+ * }
  */
-export function startGame(): void
-  if currentState == GameState.INIT then
+export function startGame(): void {
+  if (currentState == GameState.INIT) {
     currentState = GameState.PLAYING;
-  end if
-end function
+  }
+}
 
 /**
  * End the game (transition to GAME_OVER).
  *
  * @example
- * if collision then
+ * if (collision) {
  *   endGame();
- * end if
+ * }
  */
-export function endGame(): void
+export function endGame(): void {
   currentState = GameState.GAME_OVER;
-end function
+}
 
 /**
  * Restart the game (reset and start playing).
  *
  * @example
- * if currentState == GameState.GAME_OVER then
- *   if isFirePressed() then
+ * if (currentState == GameState.GAME_OVER) {
+ *   if (isFirePressed()) {
  *     restartGame();
- *   end if
- * end if
+ *   }
+ * }
  */
-export function restartGame(): void
+export function restartGame(): void {
   initGameState();
   currentState = GameState.PLAYING;
-end function
+}
 
 /**
  * Toggle pause state.
  *
  * @example
- * if keyPressed(KEY_P) then
+ * if (keyPressed(KEY_P)) {
  *   togglePause();
- * end if
+ * }
  */
-export function togglePause(): void
-  if currentState == GameState.PLAYING then
+export function togglePause(): void {
+  if (currentState == GameState.PLAYING) {
     isPaused = !isPaused;
-  end if
-end function
+  }
+}
 
 // ============================================================================
 // Direction Management
@@ -241,36 +241,36 @@ end function
  * @param newDirection - Desired direction (Direction enum value)
  *
  * @example
- * if isJoyPressed(JOY_UP) then
+ * if (isJoyPressed(JOY_UP)) {
  *   setDirection(Direction.UP);
- * end if
+ * }
  */
-export function setDirection(newDirection: byte): void
+export function setDirection(newDirection: byte): void {
   // Prevent 180-degree turns
-  if newDirection == Direction.UP then
-    if previousDirection != Direction.DOWN then
+  if (newDirection == Direction.UP) {
+    if (previousDirection != Direction.DOWN) {
       snakeDirection = newDirection;
-    end if
-  end if
+    }
+  }
 
-  if newDirection == Direction.DOWN then
-    if previousDirection != Direction.UP then
+  if (newDirection == Direction.DOWN) {
+    if (previousDirection != Direction.UP) {
       snakeDirection = newDirection;
-    end if
-  end if
+    }
+  }
 
-  if newDirection == Direction.LEFT then
-    if previousDirection != Direction.RIGHT then
+  if (newDirection == Direction.LEFT) {
+    if (previousDirection != Direction.RIGHT) {
       snakeDirection = newDirection;
-    end if
-  end if
+    }
+  }
 
-  if newDirection == Direction.RIGHT then
-    if previousDirection != Direction.LEFT then
+  if (newDirection == Direction.RIGHT) {
+    if (previousDirection != Direction.LEFT) {
       snakeDirection = newDirection;
-    end if
-  end if
-end function
+    }
+  }
+}
 
 /**
  * Update previous direction (call after moving snake).
@@ -279,9 +279,9 @@ end function
  * moveSnake();
  * updatePreviousDirection();
  */
-export function updatePreviousDirection(): void
+export function updatePreviousDirection(): void {
   previousDirection = snakeDirection;
-end function
+}
 
 // ============================================================================
 // Score Management
@@ -295,15 +295,15 @@ end function
  * @example
  * addScore(POINTS_PER_FOOD);
  */
-export function addScore(points: byte): void
+export function addScore(points: byte): void {
   // Add to low byte
   scoreLo = scoreLo + points;
 
   // Check for overflow (carry to high byte)
-  if scoreLo < points then
+  if (scoreLo < points) {
     scoreHi = scoreHi + 1;
-  end if
-end function
+  }
+}
 
 /**
  * Get current score as 16-bit word.
@@ -314,9 +314,9 @@ end function
  * let score = getScore();
  * displayScore(score);
  */
-export function getScore(): word
+export function getScore(): word {
   return (scoreHi << 8) | scoreLo;
-end function
+}
 
 /**
  * Reset score to zero.
@@ -324,10 +324,10 @@ end function
  * @example
  * resetScore();
  */
-export function resetScore(): void
+export function resetScore(): void {
   scoreLo = 0;
   scoreHi = 0;
-end function
+}
 
 // ============================================================================
 // Snake Body Management
@@ -341,36 +341,36 @@ end function
  * storeHeadPosition();
  * moveSnakeHead();
  */
-export function storeHeadPosition(): void
+export function storeHeadPosition(): void {
   // Shift all body segments back one position
   // Start from tail and work towards head
-  for i = snakeLength - 1 to 1
+  for (i = snakeLength - 1 downto 1) {
     snakeBodyX[i] = snakeBodyX[i - 1];
     snakeBodyY[i] = snakeBodyY[i - 1];
-  next i
+  }
 
   // Store current head position as first body segment
-  if snakeLength > 0 then
+  if (snakeLength > 0) {
     snakeBodyX[0] = snakeHeadX;
     snakeBodyY[0] = snakeHeadY;
-  end if
-end function
+  }
+}
 
 /**
  * Grow snake by one segment.
  * Called when eating food.
  *
  * @example
- * if ateFood then
+ * if (ateFood) {
  *   growSnake();
  *   addScore(POINTS_PER_FOOD);
- * end if
+ * }
  */
-export function growSnake(): void
-  if snakeLength < MAX_SNAKE_LENGTH then
+export function growSnake(): void {
+  if (snakeLength < MAX_SNAKE_LENGTH) {
     snakeLength = snakeLength + 1;
-  end if
-end function
+  }
+}
 
 /**
  * Check if position collides with snake body.
@@ -380,22 +380,22 @@ end function
  * @returns True if position collides with body
  *
  * @example
- * if checkBodyCollision(snakeHeadX, snakeHeadY) then
+ * if (checkBodyCollision(snakeHeadX, snakeHeadY)) {
  *   endGame();
- * end if
+ * }
  */
-export function checkBodyCollision(x: byte, y: byte): boolean
+export function checkBodyCollision(x: byte, y: byte): boolean {
   // Check against all body segments
-  for i = 0 to snakeLength - 1
-    if snakeBodyX[i] == x then
-      if snakeBodyY[i] == y then
+  for (i = 0 to snakeLength - 1) {
+    if (snakeBodyX[i] == x) {
+      if (snakeBodyY[i] == y) {
         return true;
-      end if
-    end if
-  next i
+      }
+    }
+  }
 
   return false;
-end function
+}
 
 // ============================================================================
 // Timing Management
@@ -407,36 +407,36 @@ end function
  * @returns True if it's time to update game logic
  *
  * @example
- * if shouldUpdate() then
+ * if (shouldUpdate()) {
  *   updateGame();
- * end if
+ * }
  */
-export function shouldUpdate(): boolean
+export function shouldUpdate(): boolean {
   frameCounter = frameCounter + 1;
 
-  if frameCounter >= gameSpeed then
+  if (frameCounter >= gameSpeed) {
     frameCounter = 0;
     return true;
-  end if
+  }
 
   return false;
-end function
+}
 
 /**
  * Increase game speed (decrease frames between updates).
  * Called when snake grows to increase difficulty.
  *
  * @example
- * if snakeLength % 10 == 0 then
+ * if (snakeLength % 10 == 0) {
  *   increaseSpeed();
- * end if
+ * }
  */
-export function increaseSpeed(): void
+export function increaseSpeed(): void {
   // Decrease delay (minimum 3 frames)
-  if gameSpeed > 3 then
+  if (gameSpeed > 3) {
     gameSpeed = gameSpeed - 1;
-  end if
-end function
+  }
+}
 
 // ============================================================================
 // State Query Functions
@@ -448,13 +448,13 @@ end function
  * @returns True if in PLAYING state and not paused
  *
  * @example
- * if isPlaying() then
+ * if (isPlaying()) {
  *   handleInput();
- * end if
+ * }
  */
-export function isPlaying(): boolean
+export function isPlaying(): boolean {
   return currentState == GameState.PLAYING && !isPaused;
-end function
+}
 
 /**
  * Check if game is over.
@@ -462,13 +462,13 @@ end function
  * @returns True if in GAME_OVER state
  *
  * @example
- * if isGameOver() then
+ * if (isGameOver()) {
  *   showGameOverScreen();
- * end if
+ * }
  */
-export function isGameOver(): boolean
+export function isGameOver(): boolean {
   return currentState == GameState.GAME_OVER;
-end function
+}
 
 /**
  * Check if game is in initial state.
@@ -476,13 +476,13 @@ end function
  * @returns True if in INIT state
  *
  * @example
- * if isInit() then
+ * if (isInit()) {
  *   showTitleScreen();
- * end if
+ * }
  */
-export function isInit(): boolean
+export function isInit(): boolean {
   return currentState == GameState.INIT;
-end function
+}
 
 // ============================================================================
 // Implementation Notes

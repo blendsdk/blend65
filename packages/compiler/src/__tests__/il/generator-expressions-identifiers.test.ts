@@ -103,10 +103,10 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should generate LOAD_VAR for local byte variable', () => {
       const source = `
         module test
-        function useLocal(): byte
-          let x: byte = 10
-          return x
-        end function
+        function useLocal(): byte {
+          let x: byte = 10;
+          return x;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -122,10 +122,10 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should generate LOAD_VAR for local word variable', () => {
       const source = `
         module test
-        function useLocal(): word
-          let counter: word = 1000
-          return counter
-        end function
+        function useLocal(): word {
+          let counter: word = 1000;
+          return counter;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -140,12 +140,12 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should generate multiple LOAD_VAR for multiple local variables', () => {
       const source = `
         module test
-        function useMultiple(): byte
-          let a: byte = 1
-          let b: byte = 2
-          let c: byte = a
-          return b
-        end function
+        function useMultiple(): byte {
+          let a: byte = 1;
+          let b: byte = 2;
+          let c: byte = a;
+          return b;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -162,11 +162,11 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle local variable in expression', () => {
       const source = `
         module test
-        function compute(): byte
-          let value: byte = 5
-          let result: byte = value + 1
-          return result
-        end function
+        function compute(): byte {
+          let value: byte = 5;
+          let result: byte = value + 1;
+          return result;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -181,13 +181,13 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle local variable in conditional', () => {
       const source = `
         module test
-        function conditional(): byte
-          let flag: byte = 1
-          if flag then
-            return 10
-          end if
-          return 0
-        end function
+        function conditional(): byte {
+          let flag: byte = 1;
+          if (flag) {
+            return 10;
+          }
+          return 0;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -206,9 +206,9 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle single byte parameter', () => {
       const source = `
         module test
-        function identity(x: byte): byte
-          return x
-        end function
+        function identity(x: byte): byte {
+          return x;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -224,9 +224,9 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle single word parameter', () => {
       const source = `
         module test
-        function identity(addr: word): word
-          return addr
-        end function
+        function identity(addr: word): word {
+          return addr;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -239,9 +239,9 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle multiple parameters', () => {
       const source = `
         module test
-        function add(a: byte, b: byte): byte
-          return a
-        end function
+        function add(a: byte, b: byte): byte {
+          return a;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -254,9 +254,9 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle mixed type parameters', () => {
       const source = `
         module test
-        function mixed(value: byte, address: word): byte
-          return value
-        end function
+        function mixed(value: byte, address: word): byte {
+          return value;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -269,9 +269,9 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle parameter in expression', () => {
       const source = `
         module test
-        function increment(x: byte): byte
-          return x + 1
-        end function
+        function increment(x: byte): byte {
+          return x + 1;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -284,10 +284,10 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle multiple parameters in expression', () => {
       const source = `
         module test
-        function sum(a: byte, b: byte, c: byte): byte
-          let result: byte = a + b
-          return result
-        end function
+        function sum(a: byte, b: byte, c: byte): byte {
+          let result: byte = a + b;
+          return result;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -306,14 +306,14 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle variable in inner block', () => {
       const source = `
         module test
-        function scopeTest(): byte
-          let outer: byte = 10
-          if true then
-            let inner: byte = 20
-            return inner
-          end if
-          return outer
-        end function
+        function scopeTest(): byte {
+          let outer: byte = 10;
+          if (true) {
+            let inner: byte = 20;
+            return inner;
+          }
+          return outer;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -326,13 +326,13 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle variable in loop body', () => {
       const source = `
         module test
-        function loopScope(): byte
-          let sum: byte = 0
-          for i = 0 to 5
-            let temp: byte = 1
-          next i
-          return sum
-        end function
+        function loopScope(): byte {
+          let sum: byte = 0;
+          for (i = 0 to 5) {
+            let temp: byte = 1;
+          }
+          return sum;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -345,10 +345,10 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle variable shadowing (outer variable)', () => {
       const source = `
         module test
-        function shadow(): byte
-          let x: byte = 10
-          return x
-        end function
+        function shadow(): byte {
+          let x: byte = 10;
+          return x;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -369,9 +369,9 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle identifier in binary expression', () => {
       const source = `
         module test
-        function compute(a: byte, b: byte): byte
-          return a + b
-        end function
+        function compute(a: byte, b: byte): byte {
+          return a + b;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -384,9 +384,9 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle identifier in comparison', () => {
       const source = `
         module test
-        function compare(x: byte): bool
-          return x > 10
-        end function
+        function compare(x: byte): bool {
+          return x > 10;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -399,11 +399,11 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle identifier as array index', () => {
       const source = `
         module test
-        function indexTest(): byte
-          let i: byte = 0
-          let arr: byte[10]
-          return arr[i]
-        end function
+        function indexTest(): byte {
+          let i: byte = 0;
+          let arr: byte[10];
+          return arr[i];
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -416,11 +416,11 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle identifier in assignment target', () => {
       const source = `
         module test
-        function assign(): byte
-          let x: byte = 0
-          x = 10
-          return x
-        end function
+        function assign(): byte {
+          let x: byte = 0;
+          x = 10;
+          return x;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -433,11 +433,11 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle identifier in compound assignment', () => {
       const source = `
         module test
-        function compound(): byte
-          let x: byte = 5
-          x += 3
-          return x
-        end function
+        function compound(): byte {
+          let x: byte = 5;
+          x += 3;
+          return x;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -456,11 +456,11 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle single-letter variable names', () => {
       const source = `
         module test
-        function singleLetter(): byte
-          let a: byte = 1
-          let b: byte = 2
-          return a
-        end function
+        function singleLetter(): byte {
+          let a: byte = 1;
+          let b: byte = 2;
+          return a;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -473,10 +473,10 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle long variable names', () => {
       const source = `
         module test
-        function longNames(): byte
-          let myVeryLongVariableName: byte = 100
-          return myVeryLongVariableName
-        end function
+        function longNames(): byte {
+          let myVeryLongVariableName: byte = 100;
+          return myVeryLongVariableName;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -491,10 +491,10 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle variable names with underscores', () => {
       const source = `
         module test
-        function underscores(): byte
-          let my_var: byte = 42
-          return my_var
-        end function
+        function underscores(): byte {
+          let my_var: byte = 42;
+          return my_var;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -509,11 +509,11 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle variable names with numbers', () => {
       const source = `
         module test
-        function withNumbers(): byte
-          let var1: byte = 1
-          let var2: byte = 2
-          return var1
-        end function
+        function withNumbers(): byte {
+          let var1: byte = 1;
+          let var2: byte = 2;
+          return var1;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -528,12 +528,12 @@ describe('ILExpressionGenerator - Identifier Expressions', () => {
     it('should handle multiple uses of same variable', () => {
       const source = `
         module test
-        function multiUse(): byte
-          let x: byte = 10
-          let a: byte = x
-          let b: byte = x
-          return x
-        end function
+        function multiUse(): byte {
+          let x: byte = 10;
+          let a: byte = x;
+          let b: byte = x;
+          return x;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);

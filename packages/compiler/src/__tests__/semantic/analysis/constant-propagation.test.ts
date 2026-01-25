@@ -46,9 +46,9 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-        end function
+        function test(): void {
+          let x: byte = 10;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -65,10 +65,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 42
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 42;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -89,9 +89,9 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let flag: boolean = true
-        end function
+        function test(): void {
+          let flag: boolean = true;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -108,9 +108,9 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 0
-        end function
+        function test(): void {
+          let x: byte = 0;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -129,11 +129,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-          let z: byte = x + y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+          let z: byte = x + y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -151,11 +151,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 100
-          let y: byte = 30
-          let z: byte = x - y
-        end function
+        function test(): void {
+          let x: byte = 100;
+          let y: byte = 30;
+          let z: byte = x - y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -172,11 +172,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 5
-          let y: byte = 6
-          let z: byte = x * y
-        end function
+        function test(): void {
+          let x: byte = 5;
+          let y: byte = 6;
+          let z: byte = x * y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -193,11 +193,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 20
-          let y: byte = 4
-          let z: byte = x / y
-        end function
+        function test(): void {
+          let x: byte = 20;
+          let y: byte = 4;
+          let z: byte = x / y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -214,12 +214,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 2
-          let b: byte = 3
-          let c: byte = 4
-          let result: byte = a + b * c
-        end function
+        function test(): void {
+          let a: byte = 2;
+          let b: byte = 3;
+          let c: byte = 4;
+          let result: byte = a + b * c;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -239,11 +239,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 15
-          let y: byte = 7
-          let z: byte = x & y
-        end function
+        function test(): void {
+          let x: byte = 15;
+          let y: byte = 7;
+          let z: byte = x & y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -260,11 +260,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 8
-          let y: byte = 4
-          let z: byte = x | y
-        end function
+        function test(): void {
+          let x: byte = 8;
+          let y: byte = 4;
+          let z: byte = x | y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -281,11 +281,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 15
-          let y: byte = 10
-          let z: byte = x ^ y
-        end function
+        function test(): void {
+          let x: byte = 15;
+          let y: byte = 10;
+          let z: byte = x ^ y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -302,10 +302,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 3
-          let y: byte = x << 2
-        end function
+        function test(): void {
+          let x: byte = 3;
+          let y: byte = x << 2;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -322,10 +322,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 16
-          let y: byte = x >> 2
-        end function
+        function test(): void {
+          let x: byte = 16;
+          let y: byte = x >> 2;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -344,11 +344,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 10
-          let result: boolean = x == y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 10;
+          let result: boolean = x == y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -365,11 +365,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 5
-          let y: byte = 10
-          let result: boolean = x < y
-        end function
+        function test(): void {
+          let x: byte = 5;
+          let y: byte = 10;
+          let result: boolean = x < y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -386,11 +386,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 20
-          let y: byte = 10
-          let result: boolean = x > y
-        end function
+        function test(): void {
+          let x: byte = 20;
+          let y: byte = 10;
+          let result: boolean = x > y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -409,10 +409,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = -x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = -x;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -429,10 +429,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = ~x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = ~x;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -449,10 +449,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: boolean = true
-          let y: boolean = !x
-        end function
+        function test(): void {
+          let x: boolean = true;
+          let y: boolean = !x;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -471,12 +471,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          if x > 5 then
-            let y: byte = 1
-          end if
-        end function
+        function test(): void {
+          let x: byte = 10;
+          if (x > 5) {
+            let y: byte = 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -494,12 +494,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 3
-          if x > 10 then
-            let y: byte = 1
-          end if
-        end function
+        function test(): void {
+          let x: byte = 3;
+          if (x > 10) {
+            let y: byte = 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -517,12 +517,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let flag: boolean = false
-          while flag
-            let x: byte = 1
-          end while
-        end function
+        function test(): void {
+          let flag: boolean = false;
+          while (flag) {
+            let x: byte = 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -538,11 +538,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 100
-          let y: byte = x
-          let z: byte = x
-        end function
+        function test(): void {
+          let x: byte = 100;
+          let y: byte = x;
+          let z: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -556,10 +556,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          x = 20
-        end function
+        function test(): void {
+          let x: byte = 10;
+          x = 20;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -573,12 +573,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 10
-          let b: byte = 20
-          let c: byte = 30
-          let sum: byte = a + b + c
-        end function
+        function test(): void {
+          let a: byte = 10;
+          let b: byte = 20;
+          let c: byte = 30;
+          let sum: byte = a + b + c;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -596,10 +596,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -614,9 +614,9 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(param: byte): void
-          let x: byte = param
-        end function
+        function test(param: byte): void {
+          let x: byte = param;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -631,14 +631,14 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte
-          if flag then
-            x = 10
-          else
-            x = 20
-          end if
-        end function
+        function test(flag: boolean): void {
+          let x: byte;
+          if (flag) {
+            x = 10;
+          } else {
+            x = 20;
+          }
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -655,12 +655,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 5
-          let b: byte = a
-          let c: byte = b
-          let d: byte = c
-        end function
+        function test(): void {
+          let a: byte = 5;
+          let b: byte = a;
+          let c: byte = b;
+          let d: byte = c;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -677,11 +677,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 2
-          let b: byte = a * 3
-          let c: byte = b + 4
-        end function
+        function test(): void {
+          let a: byte = 2;
+          let b: byte = a * 3;
+          let c: byte = b + 4;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -699,11 +699,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-          let z: byte = x + y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+          let z: byte = x + y;
+        }
       `;
 
       const { ast, analyzer } = analyzeConstantPropagation(source);
@@ -749,9 +749,9 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 42
-        end function
+        function test(): void {
+          let x: byte = 42;
+        }
       `;
 
       const { ast } = analyzeConstantPropagation(source);
@@ -793,10 +793,10 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 100
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 100;
+          let y: byte = x;
+        }
       `;
 
       const { ast } = analyzeConstantPropagation(source);
@@ -842,8 +842,8 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-        end function
+        function test(): void {
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -857,11 +857,11 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 0
-          let z: byte = x / y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 0;
+          let z: byte = x / y;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -877,12 +877,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 2
-          let b: byte = 3
-          let c: byte = 4
-          let result: byte = (a + b) * (c - 1)
-        end function
+        function test(): void {
+          let a: byte = 2;
+          let b: byte = 3;
+          let c: byte = 4;
+          let result: byte = (a + b) * (c - 1);
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -902,12 +902,12 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 0
-          while x < 10
-            x = x + 1
-          end while
-        end function
+        function test(): void {
+          let x: byte = 0;
+          while (x < 10) {
+            x = x + 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -921,14 +921,14 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let c1: byte = 1
-          let c2: byte = 2
-          let c3: byte = 3
-          let c4: byte = 4
-          let c5: byte = 5
-          let sum: byte = c1 + c2 + c3 + c4 + c5
-        end function
+        function test(): void {
+          let c1: byte = 1;
+          let c2: byte = 2;
+          let c3: byte = 3;
+          let c4: byte = 4;
+          let c5: byte = 5;
+          let sum: byte = c1 + c2 + c3 + c4 + c5;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);
@@ -945,13 +945,13 @@ describe('ConstantPropagationAnalyzer (Task 8.7)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 1
-          let b: byte = a + 1
-          let c: byte = b + 1
-          let d: byte = c + 1
-          let e: byte = d + 1
-        end function
+        function test(): void {
+          let a: byte = 1;
+          let b: byte = a + 1;
+          let c: byte = b + 1;
+          let d: byte = c + 1;
+          let e: byte = d + 1;
+        }
       `;
 
       const { analyzer } = analyzeConstantPropagation(source);

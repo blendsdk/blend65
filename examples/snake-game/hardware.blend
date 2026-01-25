@@ -8,7 +8,7 @@
 // Target: Commodore 64
 // ============================================================================
 
-module Snake.Hardware
+module Snake.Hardware;
 
 // ============================================================================
 // Screen Memory
@@ -36,7 +36,7 @@ module Snake.Hardware
  * VIC-II chip - Complete register map with explicit layout
  * Base address: $D000
  */
-@map vic at $D000 layout
+@map vic at $D000 layout {
   // Sprite positions (16 bytes: X/Y for 8 sprites)
   sprites: from $D000 to $D00F: byte,
 
@@ -44,12 +44,6 @@ module Snake.Hardware
   spriteXMSB: at $D010: byte,
 
   // Control register 1
-  // Bit 7: Raster compare bit 8
-  // Bit 6: Extended color mode
-  // Bit 5: Bitmap mode
-  // Bit 4: Display enable (0=blank screen)
-  // Bit 3: 25/24 row select
-  // Bits 2-0: Vertical scroll
   control1: at $D011: byte,
 
   // Raster line register (read current, write compare)
@@ -65,27 +59,15 @@ module Snake.Hardware
   spriteEnable: at $D015: byte,
 
   // Control register 2
-  // Bit 5: Reset (0=normal)
-  // Bit 4: Multi-color mode
-  // Bit 3: 40/38 column select
-  // Bits 2-0: Horizontal scroll
   control2: at $D016: byte,
 
   // Sprite Y expansion (double height)
   spriteYExpand: at $D017: byte,
 
   // Memory pointers
-  // Bits 7-4: Video matrix base address / 1024
-  // Bits 3-1: Character generator base / 2048
-  // Bit 0: Unused
   memorySetup: at $D018: byte,
 
   // Interrupt status register
-  // Bit 7: IRQ flag (any enabled interrupt)
-  // Bit 3: Light pen triggered
-  // Bit 2: Sprite-sprite collision
-  // Bit 1: Sprite-background collision
-  // Bit 0: Raster compare
   interruptStatus: at $D019: byte,
 
   // Interrupt enable register (same bits as status)
@@ -129,7 +111,7 @@ module Snake.Hardware
 
   // Sprite colors (8 bytes for 8 sprites)
   spriteColors: from $D027 to $D02E: byte
-end @map
+}
 
 // ============================================================================
 // CIA #1 Registers (Complex Interface Adapter)
@@ -139,7 +121,7 @@ end @map
  * CIA #1 - Keyboard and joystick interface
  * Base address: $DC00
  */
-@map cia1 at $DC00 layout
+@map cia1 at $DC00 layout {
   // Data Port A (Joystick 2, Keyboard columns)
   dataPortA: at $DC00: byte,
 
@@ -187,7 +169,7 @@ end @map
 
   // Control Register B
   controlB: at $DC0F: byte
-end @map
+}
 
 // ============================================================================
 // Color Constants
@@ -266,9 +248,9 @@ const JOY_PORT_2: byte = 2;
  * let offset = screenOffset(10, 5);
  * screenRAM[offset] = CHAR_CIRCLE;
  */
-export function screenOffset(x: byte, y: byte): word
+export function screenOffset(x: byte, y: byte): word {
   return y * SCREEN_WIDTH + x;
-end function
+}
 
 /**
  * Set character and color at screen position.
@@ -281,11 +263,11 @@ end function
  * @example
  * setChar(10, 5, CHAR_CIRCLE, COLOR_GREEN);
  */
-export function setChar(x: byte, y: byte, char: byte, color: byte): void
+export function setChar(x: byte, y: byte, char: byte, color: byte): void {
   let offset: word = screenOffset(x, y);
   screenRAM[offset] = char;
   colorRAM[offset] = color;
-end function
+}
 
 /**
  * Get character at screen position.
@@ -296,14 +278,14 @@ end function
  *
  * @example
  * let char = getChar(10, 5);
- * if char == CHAR_CIRCLE then
+ * if (char == CHAR_CIRCLE) {
  *   collision();
- * end if
+ * }
  */
-export function getChar(x: byte, y: byte): byte
+export function getChar(x: byte, y: byte): byte {
   let offset: word = screenOffset(x, y);
   return screenRAM[offset];
-end function
+}
 
 /**
  * Clear entire screen with specific character and color.
@@ -314,12 +296,12 @@ end function
  * @example
  * clearScreenWith(CHAR_SPACE, COLOR_BLACK);
  */
-export function clearScreenWith(char: byte, color: byte): void
-  for i = 0 to SCREEN_SIZE - 1
+export function clearScreenWith(char: byte, color: byte): void {
+  for (i = 0 to SCREEN_SIZE - 1) {
     screenRAM[i] = char;
     colorRAM[i] = color;
-  next i
-end function
+  }
+}
 
 /**
  * Clear screen to black background with spaces.
@@ -327,9 +309,9 @@ end function
  * @example
  * clearScreen();
  */
-export function clearScreen(): void
+export function clearScreen(): void {
   clearScreenWith(CHAR_SPACE, COLOR_BLACK);
-end function
+}
 
 /**
  * Initialize VIC-II for game display.
@@ -342,7 +324,7 @@ end function
  * @example
  * initDisplay();
  */
-export function initDisplay(): void
+export function initDisplay(): void {
   // Set colors
   vic.borderColor = COLOR_BLACK;
   vic.backgroundColor0 = COLOR_BLACK;
@@ -359,7 +341,7 @@ export function initDisplay(): void
 
   // Clear screen
   clearScreen();
-end function
+}
 
 /**
  * Read joystick state from port 2 (most common).
@@ -368,14 +350,14 @@ end function
  *
  * @example
  * let joy = readJoystick();
- * if (joy & JOY_UP) == 0 then
+ * if ((joy & JOY_UP) == 0) {
  *   moveUp();
- * end if
+ * }
  */
-export function readJoystick(): byte
+export function readJoystick(): byte {
   // Joystick 2 is on CIA1 Port A
   return cia1.dataPortA & 0x1F;  // Mask lower 5 bits
-end function
+}
 
 /**
  * Check if specific joystick direction is pressed.
@@ -384,15 +366,15 @@ end function
  * @returns True if direction is pressed
  *
  * @example
- * if isJoyPressed(JOY_FIRE) then
+ * if (isJoyPressed(JOY_FIRE)) {
  *   startGame();
- * end if
+ * }
  */
-export function isJoyPressed(direction: byte): boolean
+export function isJoyPressed(direction: byte): boolean {
   let state: byte = readJoystick();
   // Inverted logic: bit is 0 when pressed
   return (state & direction) == 0;
-end function
+}
 
 // ============================================================================
 // Implementation Notes

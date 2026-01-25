@@ -42,12 +42,12 @@ function runCSEAnalysis(source: string) {
 describe('CommonSubexpressionEliminationAnalyzer - Basic CSE Detection', () => {
   it('should detect simple repeated subexpression in block', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
         let y: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -65,13 +65,13 @@ describe('CommonSubexpressionEliminationAnalyzer - Basic CSE Detection', () => {
 
   it('should detect multiple occurrences', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a * b;
         let y: byte = a * b;
         let z: byte = a * b;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -93,11 +93,11 @@ describe('CommonSubexpressionEliminationAnalyzer - Basic CSE Detection', () => {
 
   it('should not mark first occurrence as CSE candidate', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -115,13 +115,13 @@ describe('CommonSubexpressionEliminationAnalyzer - Basic CSE Detection', () => {
 describe('CommonSubexpressionEliminationAnalyzer - Assignment Invalidation', () => {
   it('should invalidate expression by assignment', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
         a = 10;
         let y: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -137,13 +137,13 @@ describe('CommonSubexpressionEliminationAnalyzer - Assignment Invalidation', () 
 
   it('should invalidate when holding variable is reassigned', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
         x = 100;
         let y: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -161,14 +161,14 @@ describe('CommonSubexpressionEliminationAnalyzer - Assignment Invalidation', () 
 describe('CommonSubexpressionEliminationAnalyzer - No CSE Across Blocks', () => {
   it('should not detect CSE across if-else branches', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
-        if a > 0 then
+        if (a > 0) {
           let y: byte = a + b;
-        end if
-      end function
+        }
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -186,15 +186,15 @@ describe('CommonSubexpressionEliminationAnalyzer - No CSE Across Blocks', () => 
 
   it('should not preserve CSE across loop boundaries', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
-        while a > 0 do
+        while (a > 0) {
           let y: byte = a + b;
           a = a - 1;
-        end while
-      end function
+        }
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -214,11 +214,11 @@ describe('CommonSubexpressionEliminationAnalyzer - Array and Member Access', () 
     const source = `
       @map screen at $0400: [byte; 1000];
       
-      function test(): void
+      function test(): void {
         let i: byte = 5;
         let x: byte = screen[i];
         let y: byte = screen[i];
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -234,15 +234,15 @@ describe('CommonSubexpressionEliminationAnalyzer - Array and Member Access', () 
 
   it('should detect CSE in member access', () => {
     const source = `
-      @map vic at $D000 type
+      @map vic at $D000 {
         borderColor: byte;
         backgroundColor: byte;
-      end @map
+      }
       
-      function test(): void
+      function test(): void {
         let x: byte = vic.borderColor;
         let y: byte = vic.borderColor;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -260,13 +260,13 @@ describe('CommonSubexpressionEliminationAnalyzer - Array and Member Access', () 
 describe('CommonSubexpressionEliminationAnalyzer - Nested Subexpressions', () => {
   it('should detect nested subexpression CSE', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 1;
         let b: byte = 2;
         let c: byte = 3;
         let x: byte = (a + b) * c;
         let y: byte = (a + b) * c;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -283,12 +283,12 @@ describe('CommonSubexpressionEliminationAnalyzer - Nested Subexpressions', () =>
 
   it('should detect inner subexpression CSE separately', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 1;
         let b: byte = 2;
         let inner: byte = a + b;
         let outer: byte = (a + b) * 3;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -318,12 +318,12 @@ describe('CommonSubexpressionEliminationAnalyzer - Nested Subexpressions', () =>
 describe('CommonSubexpressionEliminationAnalyzer - Commutative Matching', () => {
   it('should match commutative expressions (a+b = b+a)', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
         let y: byte = b + a;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -339,12 +339,12 @@ describe('CommonSubexpressionEliminationAnalyzer - Commutative Matching', () => 
 
   it('should not match non-commutative expressions (a-b != b-a)', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a - b;
         let y: byte = b - a;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -362,14 +362,14 @@ describe('CommonSubexpressionEliminationAnalyzer - Commutative Matching', () => 
 describe('CommonSubexpressionEliminationAnalyzer - Side Effect Expressions', () => {
   it('should not track function calls as CSE candidates', () => {
     const source = `
-      function getValue(): byte
+      function getValue(): byte {
         return 42;
-      end function
+      }
       
-      function test(): void
+      function test(): void {
         let x: byte = getValue();
         let y: byte = getValue();
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -387,12 +387,12 @@ describe('CommonSubexpressionEliminationAnalyzer - Side Effect Expressions', () 
 describe('CommonSubexpressionEliminationAnalyzer - Metadata Correctness', () => {
   it('should set CSE metadata correctly', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
         let y: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -409,11 +409,11 @@ describe('CommonSubexpressionEliminationAnalyzer - Metadata Correctness', () => 
 
   it('should set available expressions metadata', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -435,7 +435,7 @@ describe('CommonSubexpressionEliminationAnalyzer - Complex Real-World Pattern', 
     const source = `
       @map screen at $0400: [byte; 1000];
       
-      function updateScreen(): void
+      function updateScreen(): void {
         let offset: byte = 40;
         let char: byte = 32;
         
@@ -446,7 +446,7 @@ describe('CommonSubexpressionEliminationAnalyzer - Complex Real-World Pattern', 
         // After assignment, expression is invalidated
         offset = 80;
         let temp3: byte = offset + char;
-      end function
+      }
     `;
     
     const { ast } = runCSEAnalysis(source);
@@ -479,8 +479,8 @@ describe('CommonSubexpressionEliminationAnalyzer - Error Handling', () => {
 
   it('should handle programs with only functions', () => {
     const source = `
-      function nop(): void
-      end function
+      function nop(): void {
+      }
     `;
     
     const { cseAnalyzer } = runCSEAnalysis(source);

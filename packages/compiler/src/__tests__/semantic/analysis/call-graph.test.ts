@@ -52,13 +52,13 @@ describe('CallGraphAnalyzer - Basic Call Graph Construction', () => {
     const source = `
       module Test
 
-      function caller(): void
-        callee()
-      end function
+      function caller(): void {
+        callee();
+      }
 
-      function callee(): void
-        let x: byte = 5
-      end function
+      function callee(): void {
+        let x: byte = 5;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -74,14 +74,14 @@ describe('CallGraphAnalyzer - Basic Call Graph Construction', () => {
     const source = `
       module Test
 
-      function main(): void
-        helper()
-        helper()
-        helper()
-      end function
+      function main(): void {
+        helper();
+        helper();
+        helper();
+      }
 
-      function helper(): void
-      end function
+      function helper(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -95,16 +95,16 @@ describe('CallGraphAnalyzer - Basic Call Graph Construction', () => {
     const source = `
       module Test
 
-      function a(): void
-        b()
-      end function
+      function a(): void {
+        b();
+      }
 
-      function b(): void
-        c()
-      end function
+      function b(): void {
+        c();
+      }
 
-      function c(): void
-      end function
+      function c(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -123,15 +123,15 @@ describe('CallGraphAnalyzer - Basic Call Graph Construction', () => {
     const source = `
       module Test
 
-      function main(): void
-        used()
-      end function
+      function main(): void {
+        used();
+      }
 
-      function used(): void
-      end function
+      function used(): void {
+      }
 
-      function unused(): void
-      end function
+      function unused(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -149,12 +149,12 @@ describe('CallGraphAnalyzer - Recursion Detection', () => {
     const source = `
       module Test
 
-      function factorial(n: byte): byte
-        if n <= 1 then
-          return 1
-        end if
-        return n * factorial(n - 1)
-      end function
+      function factorial(n: byte): byte {
+        if (n <= 1) {
+          return 1;
+        }
+        return n * factorial(n - 1);
+      }
     `;
 
     const { ast, analyzer } = analyzeCallGraph(source);
@@ -169,19 +169,19 @@ describe('CallGraphAnalyzer - Recursion Detection', () => {
     const source = `
       module Test
 
-      function isEven(n: byte): boolean
-        if n == 0 then
-          return true
-        end if
-        return isOdd(n - 1)
-      end function
+      function isEven(n: byte): boolean {
+        if (n == 0) {
+          return true;
+        }
+        return isOdd(n - 1);
+      }
 
-      function isOdd(n: byte): boolean
-        if n == 0 then
-          return false
-        end if
-        return isEven(n - 1)
-      end function
+      function isOdd(n: byte): boolean {
+        if (n == 0) {
+          return false;
+        }
+        return isEven(n - 1);
+      }
     `;
 
     const { analyzer } = analyzeCallGraph(source);
@@ -199,17 +199,17 @@ describe('CallGraphAnalyzer - Recursion Detection', () => {
     const source = `
       module Test
 
-      function a(): void
-        b()
-      end function
+      function a(): void {
+        b();
+      }
 
-      function b(): void
-        c()
-      end function
+      function b(): void {
+        c();
+      }
 
-      function c(): void
-        a()
-      end function
+      function c(): void {
+        a();
+      }
     `;
 
     const { analyzer } = analyzeCallGraph(source);
@@ -225,13 +225,13 @@ describe('CallGraphAnalyzer - Recursion Detection', () => {
     const source = `
       module Test
 
-      function simpleAdd(a: byte, b: byte): byte
-        return a + b
-      end function
+      function simpleAdd(a: byte, b: byte): byte {
+        return a + b;
+      }
 
-      function caller(): void
-        let result: byte = simpleAdd(1, 2)
-      end function
+      function caller(): void {
+        let result: byte = simpleAdd(1, 2);
+      }
     `;
 
     const { analyzer } = analyzeCallGraph(source);
@@ -247,13 +247,13 @@ describe('CallGraphAnalyzer - Inlining Candidates', () => {
     const source = `
       module Test
 
-      function caller(): void
-        small()
-      end function
+      function caller(): void {
+        small();
+      }
 
-      function small(): byte
-        return 42
-      end function
+      function small(): byte {
+        return 42;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -267,23 +267,23 @@ describe('CallGraphAnalyzer - Inlining Candidates', () => {
     const source = `
       module Test
 
-      function caller(): void
-        large()
-      end function
+      function caller(): void {
+        large();
+      }
 
-      function large(): void
-        let a: byte = 1
-        let b: byte = 2
-        let c: byte = 3
-        let d: byte = 4
-        let e: byte = 5
-        let f: byte = 6
-        let g: byte = 7
-        let h: byte = 8
-        let i: byte = 9
-        let j: byte = 10
-        let k: byte = 11
-      end function
+      function large(): void {
+        let a: byte = 1;
+        let b: byte = 2;
+        let c: byte = 3;
+        let d: byte = 4;
+        let e: byte = 5;
+        let f: byte = 6;
+        let g: byte = 7;
+        let h: byte = 8;
+        let i: byte = 9;
+        let j: byte = 10;
+        let k: byte = 11;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -297,12 +297,12 @@ describe('CallGraphAnalyzer - Inlining Candidates', () => {
     const source = `
       module Test
 
-      function fibonacci(n: byte): byte
-        if n <= 1 then
-          return n
-        end if
-        return fibonacci(n - 1) + fibonacci(n - 2)
-      end function
+      function fibonacci(n: byte): byte {
+        if (n <= 1) {
+          return n;
+        }
+        return fibonacci(n - 1) + fibonacci(n - 2);
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -316,9 +316,9 @@ describe('CallGraphAnalyzer - Inlining Candidates', () => {
     const source = `
       module Test
 
-      export function publicAPI(): void
-        let x: byte = 5
-      end function
+      export function publicAPI(): void {
+        let x: byte = 5;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -332,15 +332,17 @@ describe('CallGraphAnalyzer - Inlining Candidates', () => {
     const source = `
       module Test
 
-      function caller(): void
-        hasLoop()
-      end function
+      function caller(): void {
+        hasLoop();
+      }
 
-      function hasLoop(): void
-        for i = 0 to 10
-          let x: byte = i
-        next i
-      end function
+      function hasLoop(): void {
+        let i: byte = 0;
+        while (i <= 10) {
+          let x: byte = i;
+          i = i + 1;
+        }
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -354,16 +356,16 @@ describe('CallGraphAnalyzer - Inlining Candidates', () => {
     const source = `
       module Test
 
-      function caller(): void
-        simpleIf()
-      end function
+      function caller(): void {
+        simpleIf();
+      }
 
-      function simpleIf(): byte
-        if true then
-          return 1
-        end if
-        return 0
-      end function
+      function simpleIf(): byte {
+        if (true) {
+          return 1;
+        }
+        return 0;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -377,18 +379,18 @@ describe('CallGraphAnalyzer - Inlining Candidates', () => {
     const source = `
       module Test
 
-      function main(): void
-        helper()
-        helper()
-        helper()
-        helper()
-        helper()
-        helper()
-      end function
+      function main(): void {
+        helper();
+        helper();
+        helper();
+        helper();
+        helper();
+        helper();
+      }
 
-      function helper(): byte
-        return 42
-      end function
+      function helper(): byte {
+        return 42;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -404,17 +406,17 @@ describe('CallGraphAnalyzer - Indirect Calls', () => {
     const source = `
       module Test
 
-      function main(): void
-        let ptr: word = @target
-        callIndirect(ptr)
-      end function
+      function main(): void {
+        let ptr: word = @target;
+        callIndirect(ptr);
+      }
 
-      function callIndirect(funcPtr: word): void
-        let x: byte = 5
-      end function
+      function callIndirect(funcPtr: word): void {
+        let x: byte = 5;
+      }
 
-      function target(): void
-      end function
+      function target(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -432,15 +434,15 @@ describe('CallGraphAnalyzer - Entry Points', () => {
     const source = `
       module Test
 
-      function main(): void
-        helper()
-      end function
+      function main(): void {
+        helper();
+      }
 
-      function helper(): void
-      end function
+      function helper(): void {
+      }
 
-      function unused(): void
-      end function
+      function unused(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -464,21 +466,21 @@ describe('CallGraphAnalyzer - Complex Scenarios', () => {
     const source = `
       module Test
 
-      function top(): void
-        left()
-        right()
-      end function
+      function top(): void {
+        left();
+        right();
+      }
 
-      function left(): void
-        bottom()
-      end function
+      function left(): void {
+        bottom();
+      }
 
-      function right(): void
-        bottom()
-      end function
+      function right(): void {
+        bottom();
+      }
 
-      function bottom(): void
-      end function
+      function bottom(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -492,17 +494,17 @@ describe('CallGraphAnalyzer - Complex Scenarios', () => {
     const source = `
       module Test
 
-      function outer(): void
-        let result: byte = middle(inner())
-      end function
+      function outer(): void {
+        let result: byte = middle(inner());
+      }
 
-      function middle(x: byte): byte
-        return x + 1
-      end function
+      function middle(x: byte): byte {
+        return x + 1;
+      }
 
-      function inner(): byte
-        return 42
-      end function
+      function inner(): byte {
+        return 42;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -518,19 +520,19 @@ describe('CallGraphAnalyzer - Complex Scenarios', () => {
     const source = `
       module Test
 
-      function main(): void
-        if true then
-          thenFunc()
-        else
-          elseFunc()
-        end if
-      end function
+      function main(): void {
+        if (true) {
+          thenFunc();
+        } else {
+          elseFunc();
+        }
+      }
 
-      function thenFunc(): void
-      end function
+      function thenFunc(): void {
+      }
 
-      function elseFunc(): void
-      end function
+      function elseFunc(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -547,15 +549,17 @@ describe('CallGraphAnalyzer - Complex Scenarios', () => {
     const source = `
       module Test
 
-      function main(): void
-        for i = 0 to 10
-          loopBody(i)
-        next i
-      end function
+      function main(): void {
+        let i: byte = 0;
+        while (i <= 10) {
+          loopBody(i);
+          i = i + 1;
+        }
+      }
 
-      function loopBody(x: byte): void
-        let y: byte = x * 2
-      end function
+      function loopBody(x: byte): void {
+        let y: byte = x * 2;
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -569,31 +573,31 @@ describe('CallGraphAnalyzer - Complex Scenarios', () => {
     const source = `
       module Test
 
-      function small(): void
-        let x: byte = 1
-      end function
+      function small(): void {
+        let x: byte = 1;
+      }
 
-      function medium(): void
-        let a: byte = 1
-        let b: byte = 2
-        let c: byte = 3
-        let d: byte = 4
-        let e: byte = 5
-      end function
+      function medium(): void {
+        let a: byte = 1;
+        let b: byte = 2;
+        let c: byte = 3;
+        let d: byte = 4;
+        let e: byte = 5;
+      }
 
-      function large(): void
-        let a: byte = 1
-        let b: byte = 2
-        let c: byte = 3
-        let d: byte = 4
-        let e: byte = 5
-        let f: byte = 6
-        let g: byte = 7
-        let h: byte = 8
-        let i: byte = 9
-        let j: byte = 10
-        let k: byte = 11
-      end function
+      function large(): void {
+        let a: byte = 1;
+        let b: byte = 2;
+        let c: byte = 3;
+        let d: byte = 4;
+        let e: byte = 5;
+        let f: byte = 6;
+        let g: byte = 7;
+        let h: byte = 8;
+        let i: byte = 9;
+        let j: byte = 10;
+        let k: byte = 11;
+      }
     `;
 
     const { analyzer } = analyzeCallGraph(source);
@@ -612,12 +616,12 @@ describe('CallGraphAnalyzer - Complex Scenarios', () => {
     const source = `
       module Test
 
-      function caller(): void
-        hardware()
-      end function
+      function caller(): void {
+        hardware();
+      }
 
-      function hardware(): void
-      end function
+      function hardware(): void {
+      }
     `;
 
     const { ast, analyzer } = analyzeCallGraph(source);
@@ -639,24 +643,24 @@ describe('CallGraphAnalyzer - Real C64 Patterns', () => {
     const source = `
       module C64Init
 
-      export function initSystem(): void
-        disableInterrupts()
-        setupMemory()
-        initVideo()
-        enableInterrupts()
-      end function
+      export function initSystem(): void {
+        disableInterrupts();
+        setupMemory();
+        initVideo();
+        enableInterrupts();
+      }
 
-      function disableInterrupts(): void
-      end function
+      function disableInterrupts(): void {
+      }
 
-      function setupMemory(): void
-      end function
+      function setupMemory(): void {
+      }
 
-      function initVideo(): void
-      end function
+      function initVideo(): void {
+      }
 
-      function enableInterrupts(): void
-      end function
+      function enableInterrupts(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);
@@ -675,22 +679,22 @@ describe('CallGraphAnalyzer - Real C64 Patterns', () => {
     const source = `
       module GameLoop
 
-      function main(): void
-        while true
-          update()
-          render()
-          waitForVSync()
-        end while
-      end function
+      function main(): void {
+        while (true) {
+          update();
+          render();
+          waitForVSync();
+        }
+      }
 
-      function update(): void
-      end function
+      function update(): void {
+      }
 
-      function render(): void
-      end function
+      function render(): void {
+      }
 
-      function waitForVSync(): void
-      end function
+      function waitForVSync(): void {
+      }
     `;
 
     const { ast } = analyzeCallGraph(source);

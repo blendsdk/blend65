@@ -1,7 +1,7 @@
 # Expressions and Statements
 
 > **Status**: Lexer-Derived Specification
-> **Last Updated**: January 8, 2026
+> **Last Updated**: January 25, 2026
 > **Related Documents**: [Type System](05-type-system.md), [Variables](10-variables.md), [Functions](11-functions.md), [Grammar](02-grammar.md)
 
 ## Overview
@@ -94,6 +94,38 @@ vic.borderColor = 0;
 enemy[0].health = 100;
 ```
 
+### Ternary Conditional Expression
+
+The ternary operator provides inline conditional evaluation:
+
+```ebnf
+conditional_expr = logical_or_expr , [ "?" , expression , ":" , conditional_expr ] ;
+```
+
+**Examples:**
+
+```js
+// Simple ternary
+let max = (a > b) ? a : b;
+
+// Ternary with expressions
+let status = (health > 0) ? "alive" : "dead";
+
+// Nested ternary (use sparingly for readability)
+let grade = (score > 90) ? "A" : (score > 80) ? "B" : (score > 70) ? "C" : "F";
+
+// Ternary in expressions
+let offset = (isLarge) ? 100 : 50;
+let position = baseX + ((direction > 0) ? speed : -speed);
+```
+
+**Semantics:**
+- The condition is evaluated first
+- If true, the "then" expression (after `?`) is evaluated and returned
+- If false, the "else" expression (after `:`) is evaluated and returned
+- Both branches must have compatible types
+- The ternary operator is right-associative
+
 ### Array Literal Expressions
 
 Array literals provide a concise syntax for initializing arrays inline with values.
@@ -141,8 +173,8 @@ let matrix: byte[2][2] = [[1, 2], [3, 4]];
 
 // 3D arrays
 let cube: byte[2][2][2] = [
-  [[1, 2], [3, 4]],
-  [[5, 6], [7, 8]]
+    [[1, 2], [3, 4]],
+    [[5, 6], [7, 8]]
 ];
 ```
 
@@ -151,19 +183,19 @@ let cube: byte[2][2][2] = [
 ```js
 // Sprite data (63 bytes per sprite)
 @data const spriteData: byte[63] = [
-  0xFF, 0x3C, 0x18, 0x18, 0x18, 0x3C, 0xFF, 0x00,
-  0x18, 0x24, 0x42, 0x81, 0x42, 0x24, 0x18, 0x00,
-  // ... more sprite data ...
+    0xFF, 0x3C, 0x18, 0x18, 0x18, 0x3C, 0xFF, 0x00,
+    0x18, 0x24, 0x42, 0x81, 0x42, 0x24, 0x18, 0x00,
+    // ... more sprite data ...
 ];
 
 // Color palette
 const palette: byte[16] = [
-  0,  // Black
-  1,  // White
-  2,  // Red
-  5,  // Green
-  6,  // Blue
-  // ... more colors ...
+    0,  // Black
+    1,  // White
+    2,  // Red
+    5,  // Green
+    6,  // Blue
+    // ... more colors ...
 ];
 
 // Sine wave lookup table
@@ -171,9 +203,9 @@ const palette: byte[16] = [
 
 // C64 screen layout (25 rows × 40 columns)
 let tilemap: byte[25][40] = [
-  [1, 1, 1, 1, /* ... */],  // Row 0
-  [1, 0, 0, 0, /* ... */],  // Row 1
-  // ... more rows ...
+    [1, 1, 1, 1, /* ... */],  // Row 0
+    [1, 0, 0, 0, /* ... */],  // Row 1
+    // ... more rows ...
 ];
 ```
 
@@ -183,9 +215,9 @@ Trailing commas are allowed for easier multi-line editing:
 
 ```js
 let values: byte[3] = [
-  1,
-  2,
-  3,  // Trailing comma allowed
+    1,
+    2,
+    3,  // Trailing comma allowed
 ];
 ```
 
@@ -245,10 +277,18 @@ let remainder = value % 10;
 **Examples:**
 
 ```js
-if x == 10 then
-if score != 0 then
-if health < 50 then
-if count >= 100 then
+if (x == 10) {
+    doSomething();
+}
+if (score != 0) {
+    updateScore();
+}
+if (health < 50) {
+    showWarning();
+}
+if (count >= 100) {
+    finish();
+}
 ```
 
 ### Logical Operators
@@ -262,9 +302,15 @@ if count >= 100 then
 **Examples:**
 
 ```js
-if running && !paused then
-if x < 0 || x > 320 then
-if !gameOver then
+if (running && !paused) {
+    update();
+}
+if (x < 0 || x > 320) {
+    handleOutOfBounds();
+}
+if (!gameOver) {
+    continueGame();
+}
 ```
 
 ### Bitwise Operators
@@ -326,11 +372,11 @@ let addrValue: @address = 0xD020;          // ✅ Valid - can assign word to @ad
 
 ```js
 // Generic memory manipulation using address-of
-function copyMemory(src: @address, dst: @address, len: byte): void
-  for i = 0 to len - 1
-    poke(dst + i, peek(src + i));
-  next i
-end function
+function copyMemory(src: @address, dst: @address, len: byte): void {
+    for (i = 0 to len - 1) {
+        poke(dst + i, peek(src + i));
+    }
+}
 
 // Usage
 @data const spriteData: byte[63] = [...];
@@ -360,11 +406,11 @@ copyMemory(@spriteData, @activeSprite, 63);  // Pass addresses directly
 
 ```js
 // Function parameters - clearly indicates intent
-function fillMemory(addr: @address, len: word, value: byte): void
-  for i = 0 to len - 1
-    poke(addr + i, value);
-  next i
-end function
+function fillMemory(addr: @address, len: word, value: byte): void {
+    for (i = 0 to len - 1) {
+        poke(addr + i, value);
+    }
+}
 
 // Variables
 let screenAddr: @address = 0x0400;         // Screen RAM base address
@@ -419,14 +465,16 @@ From **highest to lowest** precedence:
 | 10    | `\|`                            | Left-to-right | Bitwise OR                        |
 | 11    | `&&`                            | Left-to-right | Logical AND                       |
 | 12    | `\|\|`                          | Left-to-right | Logical OR                        |
-| 13    | `=` `+=` `-=` etc.              | Right-to-left | Assignment                        |
+| 13    | `?:`                            | Right-to-left | Ternary conditional               |
+| 14    | `=` `+=` `-=` etc.              | Right-to-left | Assignment                        |
 
 **Examples:**
 
 ```js
-let result = a + b * c; // Multiplication first: a + (b * c)
-let mask = x & (0xff == y); // AND first: (x & 0xFF) == y
-let flag = !a || b; // NOT first: (!a) || b
+let result = a + b * c;         // Multiplication first: a + (b * c)
+let mask = x & 0xFF == y;       // AND first: (x & 0xFF) == y
+let flag = !a || b;             // NOT first: (!a) || b
+let max = (a > b) ? a : b;      // Ternary: condition evaluated, then branch
 ```
 
 ## Statements
@@ -481,7 +529,7 @@ expr_stmt = expression , ";" ;
 ```js
 clearScreen();
 updatePlayer();
-x + y; // Valid but useless (result discarded)
+x + y;   // Valid but useless (result discarded)
 ```
 
 ### Return Statement
@@ -493,9 +541,9 @@ return_stmt = "return" , [ expression ] , ";" ;
 **Examples:**
 
 ```js
-return; // Return from void function
-return value; // Return value
-return a + b; // Return expression result
+return;           // Return from void function
+return value;     // Return value
+return a + b;     // Return expression result
 ```
 
 ### Break and Continue
@@ -510,172 +558,241 @@ continue_stmt = "continue" , ";" ;
 **Examples:**
 
 ```js
-for i = 0 to 10
-  if i == 5 then
-    break;  // Exit loop
-  end if
-  if i == 3 then
-    continue;  // Skip to next iteration
-  end if
-next i
+for (i = 0 to 10) {
+    if (i == 5) {
+        break;      // Exit loop
+    }
+    if (i == 3) {
+        continue;   // Skip to next iteration
+    }
+}
 ```
 
 ## Control Flow
 
-Control flow statements alter the execution order of the program.
+Control flow statements alter the execution order of the program. Blend65 uses C-style syntax with curly braces `{ }` for blocks.
 
 ### If Statement
 
 Conditional execution based on a boolean expression.
 
 ```ebnf
-if_stmt = "if" , expression , "then"
+if_stmt = "if" , "(" , expression , ")" , "{"
         , { statement }
-        , { "elseif" , expression , "then" , { statement } }
-        , [ "else" , { statement } ]
-        , "end" , "if" ;
+        , "}"
+        , [ else_clause ] ;
+
+else_clause = "else" , ( if_stmt | "{" , { statement } , "}" ) ;
 ```
 
 **Basic if:**
 
 ```js
-if x > 10 then
-  doSomething();
-end if
+if (x > 10) {
+    doSomething();
+}
 ```
 
 **If-else:**
 
 ```js
-if health <= 0 then
-  gameOver();
-else
-  continueGame();
-end if
+if (health <= 0) {
+    gameOver();
+} else {
+    continueGame();
+}
 ```
 
-**If-elseif-else:**
+**If-else if-else:**
 
 ```js
-if score > 1000 then
-  showGold();
-elseif score > 500 then
-  showSilver();
-elseif score > 100 then
-  showBronze();
-else
-  showNothing();
-end if
-```
-
-**Multiple elseif branches:**
-
-```js
-if gameState == 0 then
-  showMenu();
-elseif gameState == 1 then
-  playGame();
-elseif gameState == 2 then
-  showPause();
-else
-  reset();
-end if
-```
-
-**Traditional nested if-else (also valid):**
-
-```js
-if score > 1000 then
-  showGold();
-else
-  if score > 500 then
+if (score > 1000) {
+    showGold();
+} else if (score > 500) {
     showSilver();
-  else
+} else if (score > 100) {
     showBronze();
-  end if
-end if
+} else {
+    showNothing();
+}
 ```
 
-**Implementation Note:**
+**Multiple else if branches:**
 
-The `elseif` keyword is syntactic sugar that desugars to nested if-else during parsing. This means the AST structure is identical whether you use `elseif` or nested `if-else` statements, and all compiler phases (semantic analysis, type checking, code generation) work without modification.
+```js
+if (gameState == 0) {
+    showMenu();
+} else if (gameState == 1) {
+    playGame();
+} else if (gameState == 2) {
+    showPause();
+} else {
+    reset();
+}
+```
+
+**Nested if-else (also valid):**
+
+```js
+if (score > 1000) {
+    showGold();
+} else {
+    if (score > 500) {
+        showSilver();
+    } else {
+        showBronze();
+    }
+}
+```
 
 ### While Loop
 
 Repeat while condition is true.
 
 ```ebnf
-while_stmt = "while" , expression
+while_stmt = "while" , "(" , expression , ")" , "{"
            , { statement }
-           , "end" , "while" ;
+           , "}" ;
 ```
 
 **Examples:**
 
 ```js
-while running
-  update();
-  render();
-end while
+while (running) {
+    update();
+    render();
+}
 
-while x < 100
-  x += 1;
-end while
+while (x < 100) {
+    x += 1;
+}
 ```
 
 **Infinite loop:**
 
 ```js
-while true
-  gameLoop();
-end while
+while (true) {
+    gameLoop();
+}
 ```
 
-### For Loop
+### Do-While Loop
 
-Counted loop with explicit counter.
+Execute body at least once, then repeat while condition is true.
 
 ```ebnf
-for_stmt = "for" , identifier , "=" , expression , "to" , expression
-         , { statement }
-         , "next" , identifier ;
+do_while_stmt = "do" , "{"
+              , { statement }
+              , "}" , "while" , "(" , expression , ")" , ";" ;
 ```
+
+**Note:** The do-while statement requires a semicolon after the closing parenthesis.
 
 **Examples:**
 
 ```js
-for i = 0 to 10
-  buffer[i] = 0;
-next i
+// Process at least once
+do {
+    processInput();
+    x += 1;
+} while (x < 10);
 
-for x = 1 to 100
-  process(x);
-next x
+// Wait for input (executes at least once)
+do {
+    key = readKeyboard();
+} while (key == 0);
 
-for count = 10 to 0  // Counts down if start > end
-  countdown(count);
-next count
+// Menu loop (always shows at least once)
+do {
+    showMenu();
+    choice = getChoice();
+} while (choice != EXIT);
+```
+
+**When to use do-while vs while:**
+- Use `while` when the condition might be false initially (0 or more iterations)
+- Use `do-while` when you need at least one iteration (1 or more iterations)
+
+### For Loop
+
+Counted loop with explicit counter, supporting `to`, `downto`, and `step`.
+
+```ebnf
+for_stmt = "for" , "(" , identifier , "=" , expression
+         , ( "to" | "downto" ) , expression
+         , [ "step" , expression ]
+         , ")" , "{"
+         , { statement }
+         , "}" ;
+```
+
+**Basic for loop (counting up):**
+
+```js
+for (i = 0 to 10) {
+    buffer[i] = 0;
+}
+
+for (x = 1 to 100) {
+    process(x);
+}
+```
+
+**For loop counting down:**
+
+```js
+for (count = 10 downto 0) {
+    countdown(count);
+}
+
+for (i = 255 downto 0) {
+    fadeOut(i);
+}
+```
+
+**For loop with step:**
+
+```js
+// Count by 2
+for (i = 0 to 100 step 2) {
+    processEven(i);
+}
+
+// Count by 5
+for (x = 0 to 50 step 5) {
+    drawMark(x);
+}
+
+// Count down by 10
+for (y = 100 downto 0 step 10) {
+    drawLine(y);
+}
 ```
 
 **Nested loops:**
 
 ```js
-for y = 0 to 24
-  for x = 0 to 39
-    screenRAM[y * 40 + x] = 32;
-  next x
-next y
+for (y = 0 to 24) {
+    for (x = 0 to 39) {
+        screenRAM[y * 40 + x] = 32;
+    }
+}
 ```
 
-### Match Statement
+**Loop behavior:**
+- `to`: Counts from start up to end (inclusive)
+- `downto`: Counts from start down to end (inclusive)
+- `step`: Specifies the increment/decrement amount (default is 1)
 
-Pattern matching (similar to switch/case).
+### Switch Statement
+
+Pattern matching (similar to C switch/case).
 
 ```ebnf
-match_stmt = "match" , expression
-           , { case_clause }
-           , [ default_clause ]
-           , "end" , "match" ;
+switch_stmt = "switch" , "(" , expression , ")" , "{"
+            , { case_clause }
+            , [ default_clause ]
+            , "}" ;
 
 case_clause = "case" , expression , ":"
             , { statement } ;
@@ -687,48 +804,65 @@ default_clause = "default" , ":"
 **Examples:**
 
 ```js
-match gameState
-  case GameState.MENU:
-    showMenu();
-  case GameState.PLAYING:
-    updateGame();
-  case GameState.PAUSED:
-    showPause();
-  default:
-    handleError();
-end match
+switch (gameState) {
+    case GameState.MENU:
+        showMenu();
+    case GameState.PLAYING:
+        updateGame();
+    case GameState.PAUSED:
+        showPause();
+    default:
+        handleError();
+}
 ```
 
 **With multiple statements per case:**
 
 ```js
-match direction
-  case Direction.UP:
-    playerY -= 1;
-    checkBounds();
-  case Direction.DOWN:
-    playerY += 1;
-    checkBounds();
-  case Direction.LEFT:
-    playerX -= 1;
-    checkBounds();
-  case Direction.RIGHT:
-    playerX += 1;
-    checkBounds();
-end match
+switch (direction) {
+    case Direction.UP:
+        playerY -= 1;
+        checkBounds();
+    case Direction.DOWN:
+        playerY += 1;
+        checkBounds();
+    case Direction.LEFT:
+        playerX -= 1;
+        checkBounds();
+    case Direction.RIGHT:
+        playerX += 1;
+        checkBounds();
+}
+```
+
+**Using break for explicit fall-through control:**
+
+```js
+switch (key) {
+    case KEY_W:
+    case KEY_UP:
+        moveUp();
+        break;
+    case KEY_S:
+    case KEY_DOWN:
+        moveDown();
+        break;
+    default:
+        // Unknown key
+}
 ```
 
 ## Statement Blocks
 
-Statements can be grouped in blocks within control flow structures:
+Statements are grouped in blocks using curly braces `{ }`:
 
 ```js
-if condition then
-  // Block of statements
-  statement1();
-  statement2();
-  statement3();
-end if
+if (condition) {
+    // Block of statements
+    statement1();
+    statement2();
+    statement3();
+}
 ```
 
 ## Complete Examples
@@ -740,84 +874,120 @@ end if
 let screenOffset: word = (y * 40) + x;
 let colorValue: byte = (red << 4) | (green & 0x0F);
 let inBounds: boolean = (x >= 0) && (x < 320) && (y >= 0) && (y < 200);
+
+// Ternary expressions
+let max: byte = (a > b) ? a : b;
+let sign: byte = (value >= 0) ? 1 : -1;
 ```
 
 ### Control Flow Example
 
 ```js
-module Game.Example
+module Game.Example;
 
 @zp let playerX: byte = 10;
 @zp let playerY: byte = 10;
 @zp let health: byte = 100;
 @zp let score: word = 0;
 
-function updatePlayer(): void
-  // Check health
-  if health <= 0 then
-    gameOver();
-    return;
-  end if
+function updatePlayer(): void {
+    // Check health
+    if (health <= 0) {
+        gameOver();
+        return;
+    }
 
-  // Update position
-  playerX += 1;
-  if playerX > 40 then
-    playerX = 0;
-  end if
+    // Update position
+    playerX += 1;
+    if (playerX > 40) {
+        playerX = 0;
+    }
 
-  // Update score
-  score += 10;
-end function
+    // Update score
+    score += 10;
+}
 
-function gameLoop(): void
-  while true
-    updatePlayer();
+function gameLoop(): void {
+    while (true) {
+        updatePlayer();
 
-    // Check for collisions
-    for i = 0 to 9
-      if checkCollision(i) then
-        health -= 10;
-        break;
-      end if
-    next i
+        // Check for collisions
+        for (i = 0 to 9) {
+            if (checkCollision(i)) {
+                health -= 10;
+                break;
+            }
+        }
 
-    // Handle state
-    match gameState
-      case GameState.PLAYING:
-        continueGame();
-      case GameState.PAUSED:
-        showPauseMenu();
-      default:
-        reset();
-    end match
-  end while
-end function
+        // Handle state using switch
+        switch (gameState) {
+            case GameState.PLAYING:
+                continueGame();
+            case GameState.PAUSED:
+                showPauseMenu();
+            default:
+                reset();
+        }
+    }
+}
 ```
 
 ### Loop Examples
 
 ```js
 // Initialize array
-for i = 0 to 255
-  buffer[i] = 0;
-next i
+for (i = 0 to 255) {
+    buffer[i] = 0;
+}
 
 // Search for value
 let found: boolean = false;
-for i = 0 to 99
-  if data[i] == target then
-    found = true;
-    break;
-  end if
-next i
+for (i = 0 to 99) {
+    if (data[i] == target) {
+        found = true;
+        break;
+    }
+}
 
 // Skip even numbers
-for i = 0 to 10
-  if i % 2 == 0 then
-    continue;
-  end if
-  processOdd(i);
-next i
+for (i = 0 to 10) {
+    if (i % 2 == 0) {
+        continue;
+    }
+    processOdd(i);
+}
+
+// Count down with step
+for (brightness = 255 downto 0 step 5) {
+    setBrightness(brightness);
+    delay(10);
+}
+
+// Process input at least once
+do {
+    input = readInput();
+    processInput(input);
+} while (input != QUIT);
+```
+
+### Ternary Expression Examples
+
+```js
+// Simple max/min
+let max: byte = (a > b) ? a : b;
+let min: byte = (a < b) ? a : b;
+
+// Absolute value
+let abs: byte = (value >= 0) ? value : -value;
+
+// Clamp value
+let clamped: byte = (value > MAX) ? MAX : (value < MIN) ? MIN : value;
+
+// Direction multiplier
+let dx: byte = (direction == RIGHT) ? 1 : (direction == LEFT) ? -1 : 0;
+
+// Inline in expression
+let newX: byte = x + ((movingRight) ? speed : -speed);
 ```
 
 ## Statement Termination Rules
@@ -832,16 +1002,17 @@ These statements **require semicolons**:
 - ✅ Return: `return value;`
 - ✅ Break: `break;`
 - ✅ Continue: `continue;`
+- ✅ Do-while: `do { } while (cond);`
 
 ### Semicolons Not Required
 
-These statements are **self-terminating**:
+These statements are **self-terminating** with curly braces:
 
-- ❌ If statements: `if ... end if`
-- ❌ While loops: `while ... end while`
-- ❌ For loops: `for ... next`
-- ❌ Match statements: `match ... end match`
-- ❌ Function declarations: `function ... end function`
+- ❌ If statements: `if (x) { }`
+- ❌ While loops: `while (x) { }`
+- ❌ For loops: `for (i = 0 to 10) { }`
+- ❌ Switch statements: `switch (x) { }`
+- ❌ Function declarations: `function f() { }`
 
 ## Best Practices
 
@@ -855,7 +1026,28 @@ let result = (a + b) * (c + d);
 let result = a + b * c + d;
 ```
 
-### 2. Avoid Complex Expressions
+### 2. Use Ternary Sparingly
+
+```js
+// ✅ GOOD: Simple ternary
+let max = (a > b) ? a : b;
+
+// ❌ COMPLEX: Hard to read nested ternary
+let result = (a > b) ? (c > d) ? (e > f) ? x : y : z : w;
+
+// ✅ BETTER: Use if-else for complex conditions
+if (a > b) {
+    if (c > d) {
+        result = (e > f) ? x : y;
+    } else {
+        result = z;
+    }
+} else {
+    result = w;
+}
+```
+
+### 3. Avoid Complex Expressions
 
 ```js
 // ✅ GOOD: Break into steps
@@ -867,32 +1059,41 @@ screenRAM[offset] = char;
 screenRAM[y * 40 + x] = char;
 ```
 
-### 3. Use Meaningful Variable Names in Loops
+### 4. Use Meaningful Variable Names in Loops
 
 ```js
 // ✅ GOOD: Clear purpose
-for spriteIndex = 0 to 7
-  updateSprite(spriteIndex);
-next spriteIndex
+for (spriteIndex = 0 to 7) {
+    updateSprite(spriteIndex);
+}
 
 // ❌ UNCLEAR: Generic name
-for i = 0 to 7
-  updateSprite(i);
-next i
+for (i = 0 to 7) {
+    updateSprite(i);
+}
 ```
 
-### 4. Early Return for Error Conditions
+### 5. Early Return for Error Conditions
 
 ```js
 // ✅ GOOD: Early return
-function process(value: byte): byte
-  if value == 0 then
-    return 0;
-  end if
+function process(value: byte): byte {
+    if (value == 0) {
+        return 0;
+    }
 
-  // Main logic here
-  return compute(value);
-end function
+    // Main logic here
+    return compute(value);
+}
+```
+
+### 6. Use do-while for Input Validation
+
+```js
+// ✅ GOOD: Ensure at least one read
+do {
+    input = readInput();
+} while (!isValid(input));
 ```
 
 ## Implementation Notes

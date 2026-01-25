@@ -105,9 +105,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for byte literal 0', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 0
-        end function
+        function getValue(): byte {
+          return 0;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -123,9 +123,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for byte literal 1', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 1
-        end function
+        function getValue(): byte {
+          return 1;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -140,9 +140,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for byte literal 127 (max signed)', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 127
-        end function
+        function getValue(): byte {
+          return 127;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -157,9 +157,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for byte literal 128', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 128
-        end function
+        function getValue(): byte {
+          return 128;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -174,9 +174,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for byte literal 255 (max unsigned)', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 255
-        end function
+        function getValue(): byte {
+          return 255;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -191,9 +191,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for word literal 256', () => {
       const source = `
         module test
-        function getValue(): word
-          return 256
-        end function
+        function getValue(): word {
+          return 256;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -208,9 +208,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for word literal 1000', () => {
       const source = `
         module test
-        function getValue(): word
-          return 1000
-        end function
+        function getValue(): word {
+          return 1000;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -225,9 +225,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for word literal 32767 (max signed 16-bit)', () => {
       const source = `
         module test
-        function getValue(): word
-          return 32767
-        end function
+        function getValue(): word {
+          return 32767;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -242,9 +242,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for word literal 32768', () => {
       const source = `
         module test
-        function getValue(): word
-          return 32768
-        end function
+        function getValue(): word {
+          return 32768;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -259,9 +259,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for word literal 65535 (max unsigned 16-bit)', () => {
       const source = `
         module test
-        function getValue(): word
-          return 65535
-        end function
+        function getValue(): word {
+          return 65535;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -282,9 +282,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for hex literal $00', () => {
       const source = `
         module test
-        function getValue(): byte
-          return $00
-        end function
+        function getValue(): byte {
+          return $00;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -299,9 +299,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for hex literal $FF', () => {
       const source = `
         module test
-        function getValue(): byte
-          return $FF
-        end function
+        function getValue(): byte {
+          return $FF;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -316,9 +316,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for hex literal $0100 (word)', () => {
       const source = `
         module test
-        function getValue(): word
-          return $0100
-        end function
+        function getValue(): word {
+          return $0100;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -333,9 +333,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for hex literal $D020 (VIC border color)', () => {
       const source = `
         module test
-        function getValue(): word
-          return $D020
-        end function
+        function getValue(): word {
+          return $D020;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -350,9 +350,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for hex literal $FFFF (max word)', () => {
       const source = `
         module test
-        function getValue(): word
-          return $FFFF
-        end function
+        function getValue(): word {
+          return $FFFF;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -367,9 +367,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for lowercase hex literal $ff', () => {
       const source = `
         module test
-        function getValue(): byte
-          return $ff
-        end function
+        function getValue(): byte {
+          return $ff;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -384,9 +384,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for mixed case hex literal $aB', () => {
       const source = `
         module test
-        function getValue(): byte
-          return $aB
-        end function
+        function getValue(): byte {
+          return $aB;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -407,9 +407,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for binary literal 0b00000000', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 0b00000000
-        end function
+        function getValue(): byte {
+          return 0b00000000;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -424,9 +424,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for binary literal 0b11111111', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 0b11111111
-        end function
+        function getValue(): byte {
+          return 0b11111111;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -441,9 +441,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for binary literal 0b10101010', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 0b10101010
-        end function
+        function getValue(): byte {
+          return 0b10101010;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -458,9 +458,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for binary literal 0b01010101', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 0b01010101
-        end function
+        function getValue(): byte {
+          return 0b01010101;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -475,9 +475,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for binary literal 0b00000001', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 0b00000001
-        end function
+        function getValue(): byte {
+          return 0b00000001;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -492,9 +492,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST for binary literal 0b10000000', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 0b10000000
-        end function
+        function getValue(): byte {
+          return 0b10000000;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -515,9 +515,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST 1 for true literal', () => {
       const source = `
         module test
-        function getValue(): bool
-          return true
-        end function
+        function getValue(): bool {
+          return true;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -533,9 +533,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate CONST 0 for false literal', () => {
       const source = `
         module test
-        function getValue(): bool
-          return false
-        end function
+        function getValue(): bool {
+          return false;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -551,11 +551,11 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should handle true in if condition', () => {
       const source = `
         module test
-        function test()
-          if true then
-            let x: byte = 1
-          end if
-        end function
+        function test() {
+          if (true) {
+            let x: byte = 1;
+          }
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -568,11 +568,11 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should handle false in if condition', () => {
       const source = `
         module test
-        function test()
-          if false then
-            let x: byte = 1
-          end if
-        end function
+        function test() {
+          if (false) {
+            let x: byte = 1;
+          }
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -585,11 +585,11 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should handle boolean in while condition', () => {
       const source = `
         module test
-        function test()
-          while false do
-            let x: byte = 1
-          end while
-        end function
+        function test() {
+          while (false) {
+            let x: byte = 1;
+          }
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -610,9 +610,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should infer byte type for value 0-255', () => {
       const source = `
         module test
-        function getValue(): byte
-          return 100
-        end function
+        function getValue(): byte {
+          return 100;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -630,9 +630,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should infer word type for value > 255', () => {
       const source = `
         module test
-        function getValue(): word
-          return 1000
-        end function
+        function getValue(): word {
+          return 1000;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -650,9 +650,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should use byte type for hex value $FF', () => {
       const source = `
         module test
-        function getValue(): byte
-          return $FF
-        end function
+        function getValue(): byte {
+          return $FF;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -669,9 +669,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should use word type for hex value $0100', () => {
       const source = `
         module test
-        function getValue(): word
-          return $0100
-        end function
+        function getValue(): word {
+          return $0100;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -694,12 +694,12 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate multiple CONST instructions for different literals', () => {
       const source = `
         module test
-        function multiLiterals(): byte
-          let a: byte = 10
-          let b: byte = 20
-          let c: byte = 30
-          return a
-        end function
+        function multiLiterals(): byte {
+          let a: byte = 10;
+          let b: byte = 20;
+          let c: byte = 30;
+          return a;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -717,11 +717,11 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate same CONST instruction for repeated literals', () => {
       const source = `
         module test
-        function repeatedLiterals(): byte
-          let a: byte = 42
-          let b: byte = 42
-          return a
-        end function
+        function repeatedLiterals(): byte {
+          let a: byte = 42;
+          let b: byte = 42;
+          return a;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -738,11 +738,11 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should generate mixed byte and word literals', () => {
       const source = `
         module test
-        function mixedLiterals(): word
-          let a: byte = 100
-          let b: word = 1000
-          return b
-        end function
+        function mixedLiterals(): word {
+          let a: byte = 100;
+          let b: word = 1000;
+          return b;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -764,12 +764,12 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should handle zero in different formats', () => {
       const source = `
         module test
-        function zeros(): byte
-          let a: byte = 0
-          let b: byte = $00
-          let c: byte = 0b00000000
-          return a
-        end function
+        function zeros(): byte {
+          let a: byte = 0;
+          let b: byte = $00;
+          let c: byte = 0b00000000;
+          return a;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -786,9 +786,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should handle byte boundary value 255', () => {
       const source = `
         module test
-        function byteMax(): byte
-          return 255
-        end function
+        function byteMax(): byte {
+          return 255;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -805,9 +805,9 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should handle word boundary value 65535', () => {
       const source = `
         module test
-        function wordMax(): word
-          return 65535
-        end function
+        function wordMax(): word {
+          return 65535;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);
@@ -824,12 +824,12 @@ describe('ILExpressionGenerator - Literal Expressions', () => {
     it('should handle common C64 addresses as literals', () => {
       const source = `
         module test
-        function c64Addresses(): word
-          let borderColor: word = $D020
-          let screenMem: word = $0400
-          let colorMem: word = $D800
-          return borderColor
-        end function
+        function c64Addresses(): word {
+          let borderColor: word = $D020;
+          let screenMem: word = $0400;
+          let colorMem: word = $D800;
+          return borderColor;
+        }
       `;
       const program = parseSource(source);
       const result = generator.generateModule(program);

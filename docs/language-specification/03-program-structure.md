@@ -1,7 +1,7 @@
 # Program Structure
 
-> **Status**: Lexer-Derived Specification  
-> **Last Updated**: January 8, 2026  
+> **Status**: C-Style Syntax Specification  
+> **Last Updated**: January 25, 2026  
 > **Related Documents**: [Module System](04-module-system.md), [Variables](10-variables.md), [Functions](11-functions.md)
 
 ## Overview
@@ -10,7 +10,7 @@ At a high level, Blend65 source is a sequence of top-level declarations. This do
 
 ## Top-Level Structure
 
-**Statements require semicolons** for termination. **Declarations are self-terminating** (no semicolon needed).
+**Statements require semicolons** for termination. **Block constructs** (functions, control flow, enums) use **curly braces** for block delimiters.
 
 EBNF:
 
@@ -34,42 +34,40 @@ top_level_item = module_decl
 
 Blend65 source files follow **deterministic top-level ordering semantics** so that downstream passes can assume a predictable module layout. The parser enforces these rules even though the lexer would accept more permissive token streams.
 
-These rules supersede the historical `plans/ordering.md` document.
-
 ### 1. Single Module Per File
 
 - **The first non-trivia token** in a file must be `module`
 - Comments and blank lines may precede it, but any other construct before the module header is rejected
-- When the token stream lacks an explicit module, the parser synthesizes `module global` so the AST always has a module root
+- When the token stream lacks an explicit module, the parser synthesizes `module global;` so the AST always has a module root
 - After an implicit module has been inserted, encountering a real `module` declaration raises `DuplicateModuleDeclaration`
 
 **Example (valid):**
 
 ```js
 // Comments are allowed before module
-module Game.Main
+module Game.Main;
 
-import clearScreen from c64.graphics
+import { clearScreen } from c64.graphics;
 
-export function main(): void
-end function
+export function main(): void {
+}
 ```
 
 **Example (invalid - no explicit module):**
 
 ```js
 // Missing module declaration
-import clearScreen from c64.graphics  // Error before implicit module
+import { clearScreen } from c64.graphics;  // Error before implicit module
 
-export function main(): void
-end function
+export function main(): void {
+}
 ```
 
 **Example (invalid - duplicate module):**
 
 ```js
-module Game.Main
-module Game.Other  // Error: DuplicateModuleDeclaration
+module Game.Main;
+module Game.Other;  // Error: DuplicateModuleDeclaration
 ```
 
 ### 2. Globals-Only Body
@@ -88,27 +86,27 @@ After the module header, only **global declarations** are allowed:
 **Example (valid):**
 
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let score: word = 0;
 @ram let buffer: byte[256];
 
-function update(): void
+function update(): void {
   score += 1;
-end function
+}
 ```
 
 **Example (invalid - executable statement at module scope):**
 
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let score: word = 0;
 score = 100;  // Error: UnexpectedTopLevelToken
 
-function update(): void
+function update(): void {
   score += 1;
-end function
+}
 ```
 
 ### 3. Exports and Entry Point
@@ -121,33 +119,33 @@ end function
 **Example (valid - explicit export):**
 
 ```js
-module Game.Main
+module Game.Main;
 
-export function main(): void
+export function main(): void {
   // Entry point
-end function
+}
 ```
 
 **Example (valid - implicit export warning):**
 
 ```js
-module Game.Main
+module Game.Main;
 
-function main(): void  // Warning: ImplicitMainExport
+function main(): void {  // Warning: ImplicitMainExport
   // Entry point
-end function
+}
 ```
 
 **Example (invalid - duplicate main):**
 
 ```js
-module Game.Main
+module Game.Main;
 
-export function main(): void
-end function
+export function main(): void {
+}
 
-export function main(): void  // Error: DuplicateExportedMain
-end function
+export function main(): void {  // Error: DuplicateExportedMain
+}
 ```
 
 ### 4. Constant Initialization
@@ -177,25 +175,25 @@ const MAX_SPRITES: byte;  // Error: MissingConstInitializer
 **Example (valid):**
 
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let initialized: boolean = false;
 
-function init(): void
+function init(): void {
   initialized = true;
-end function
+}
 ```
 
 **Example (invalid):**
 
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let initialized: boolean = false;
 initialized = true;  // Error: No executable statements at module scope
 
-function init(): void
-end function
+function init(): void {
+}
 ```
 
 ## Module Scope vs Function Scope
@@ -218,7 +216,7 @@ At module scope, you can declare:
 Inside functions, you can:
 - ✅ Declare local variables
 - ✅ Execute statements
-- ✅ Use control flow (if, while, for, match)
+- ✅ Use control flow (if, while, for, switch)
 - ✅ Call functions
 - ✅ Return values
 - ❌ Declare functions (no nested functions)
@@ -234,20 +232,20 @@ let y: byte = 10;
 x = x + 1;
 ```
 
-**Block-structured constructs** do not require semicolons:
+**Block-structured constructs** use curly braces and do not require semicolons after the closing brace:
 
 ```js
-if x > 5 then
+if (x > 5) {
   doSomething();
-end if
+}
 
-while running
+while (running) {
   update();
-end while
+}
 
-function main(): void
+function main(): void {
   // ...
-end function
+}
 ```
 
 ## Example Program Structure
@@ -259,11 +257,11 @@ Here's a complete, well-structured Blend65 program:
 // This is a comment
 
 // 1. Module declaration (required, must be first)
-module Game.Snake
+module Game.Snake;
 
 // 2. Imports
-import clearScreen, setPixel from c64.graphics
-import setSpritePosition from c64.sprites
+import { clearScreen, setPixel } from c64.graphics;
+import { setSpritePosition } from c64.sprites;
 
 // 3. Memory-mapped hardware registers
 @map vicBorderColor at $D020: byte;
@@ -279,35 +277,35 @@ import setSpritePosition from c64.sprites
 type Position = word;
 
 // 6. Enum declarations
-enum Direction
+enum Direction {
   UP = 0,
   DOWN = 1,
   LEFT = 2,
   RIGHT = 3
-end enum
+}
 
 // 7. Functions
-function init(): void
+function init(): void {
   vicBorderColor = 0;
   vicBackgroundColor = 6;
   snakeX = 10;
   snakeY = 10;
-end function
+}
 
-function update(): void
+function update(): void {
   snakeX += 1;
-  if snakeX > 40 then
+  if (snakeX > 40) {
     snakeX = 0;
-  end if
-end function
+  }
+}
 
 // 8. Exported entry point
-export function main(): void
+export function main(): void {
   init();
-  while true
+  while (true) {
     update();
-  end while
-end function
+  }
+}
 ```
 
 ## Ordering Best Practices
@@ -332,32 +330,32 @@ For maintainable code, follow this ordering:
 
 ```js
 // Error: No module declaration
-import foo from bar  // UnexpectedTopLevelToken
+import { foo } from bar;  // UnexpectedTopLevelToken
 ```
 
 **Fix:**
 ```js
-module Game.Main
-import foo from bar
+module Game.Main;
+import { foo } from bar;
 ```
 
 ### Error: Module Declaration After Code
 
 ```js
-import foo from bar
-module Game.Main  // Error: Module must be first
+import { foo } from bar;
+module Game.Main;  // Error: Module must be first
 ```
 
 **Fix:**
 ```js
-module Game.Main
-import foo from bar
+module Game.Main;
+import { foo } from bar;
 ```
 
 ### Error: Executable Code at Module Scope
 
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let x: byte = 0;
 x = 5;  // Error: No executable statements at module scope
@@ -365,13 +363,13 @@ x = 5;  // Error: No executable statements at module scope
 
 **Fix:**
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let x: byte = 0;
 
-function init(): void
+function init(): void {
   x = 5;  // Move to function
-end function
+}
 ```
 
 ## Implementation Notes

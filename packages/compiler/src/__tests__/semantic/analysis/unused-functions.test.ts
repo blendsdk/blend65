@@ -63,12 +63,12 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Smoke Test', () => {
     it('should analyze simple code without crashing', () => {
       const source = `
-        function helper(): void
-        end function
+        function helper(): void {
+        }
 
-        function main(): void
+        function main(): void {
           helper();
-        end function
+        }
       `;
 
       const { ast, analyzer } = analyzeCode(source);
@@ -80,8 +80,8 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Function Collection', () => {
     it('should collect single function', () => {
       const source = `
-        function test(): void
-        end function
+        function test(): void {
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -90,14 +90,14 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should collect multiple functions', () => {
       const source = `
-        function first(): void
-        end function
+        function first(): void {
+        }
 
-        function second(): void
-        end function
+        function second(): void {
+        }
 
-        function third(): void
-        end function
+        function third(): void {
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -106,9 +106,9 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle functions with parameters', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -117,9 +117,9 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle functions with return types', () => {
       const source = `
-        function getValue(): byte
+        function getValue(): byte {
           return 42;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -130,12 +130,12 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Call Tracking', () => {
     it('should track simple function call', () => {
       const source = `
-        function helper(): void
-        end function
+        function helper(): void {
+        }
 
-        function main(): void
+        function main(): void {
           helper();
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -151,14 +151,14 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should track multiple calls to same function', () => {
       const source = `
-        function helper(): void
-        end function
+        function helper(): void {
+        }
 
-        function main(): void
+        function main(): void {
           helper();
           helper();
           helper();
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -171,21 +171,21 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should track calls from multiple functions', () => {
       const source = `
-        function utility(): void
-        end function
+        function utility(): void {
+        }
 
-        function first(): void
+        function first(): void {
           utility();
-        end function
+        }
 
-        function second(): void
+        function second(): void {
           utility();
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           first();
           second();
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -198,20 +198,20 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle nested function calls', () => {
       const source = `
-        function inner(): void
-        end function
+        function inner(): void {
+        }
 
-        function middle(): void
+        function middle(): void {
           inner();
-        end function
+        }
 
-        function outer(): void
+        function outer(): void {
           middle();
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           outer();
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -231,8 +231,8 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Entry Point Handling', () => {
     it('should not warn about unused main function', () => {
       const source = `
-        function main(): void
-        end function
+        function main(): void {
+        }
       `;
 
       const { warnings } = analyzeCode(source);
@@ -244,8 +244,8 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should mark main as not unused', () => {
       const source = `
-        function main(): void
-        end function
+        function main(): void {
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -257,12 +257,12 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should allow main to call other functions', () => {
       const source = `
-        function initialize(): void
-        end function
+        function initialize(): void {
+        }
 
-        function main(): void
+        function main(): void {
           initialize();
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -276,8 +276,8 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Exported Function Handling', () => {
     it('should not warn about unused exported function', () => {
       const source = `
-        export function publicAPI(): void
-        end function
+        export function publicAPI(): void {
+        }
       `;
 
       const { warnings } = analyzeCode(source);
@@ -289,8 +289,8 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should mark exported function as not unused', () => {
       const source = `
-        export function publicAPI(): void
-        end function
+        export function publicAPI(): void {
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -302,12 +302,12 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle mix of exported and private functions', () => {
       const source = `
-        function privateHelper(): void
-        end function
+        function privateHelper(): void {
+        }
 
-        export function publicAPI(): void
+        export function publicAPI(): void {
           privateHelper();
-        end function
+        }
       `;
 
       const { warnings } = analyzeCode(source);
@@ -322,11 +322,11 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Unused Function Detection', () => {
     it('should warn about single unused function', () => {
       const source = `
-        function unused(): void
-        end function
+        function unused(): void {
+        }
 
-        function main(): void
-        end function
+        function main(): void {
+        }
       `;
 
       const { warnings } = analyzeCode(source);
@@ -339,17 +339,17 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should warn about multiple unused functions', () => {
       const source = `
-        function unused1(): void
-        end function
+        function unused1(): void {
+        }
 
-        function unused2(): void
-        end function
+        function unused2(): void {
+        }
 
-        function unused3(): void
-        end function
+        function unused3(): void {
+        }
 
-        function main(): void
-        end function
+        function main(): void {
+        }
       `;
 
       const { warnings } = analyzeCode(source);
@@ -362,12 +362,12 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should not warn about used functions', () => {
       const source = `
-        function helper(): void
-        end function
+        function helper(): void {
+        }
 
-        function main(): void
+        function main(): void {
           helper();
-        end function
+        }
       `;
 
       const { warnings } = analyzeCode(source);
@@ -381,15 +381,15 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should set unused flag correctly', () => {
       const source = `
-        function used(): void
-        end function
+        function used(): void {
+        }
 
-        function unused(): void
-        end function
+        function unused(): void {
+        }
 
-        function main(): void
+        function main(): void {
           used();
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -407,17 +407,17 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Recursive Functions', () => {
     it('should handle directly recursive function', () => {
       const source = `
-        function recursive(n: byte): byte
-          if n = 0 then
+        function recursive(n: byte): byte {
+          if (n = 0) {
             return 1;
-          else
+          } else {
             return n * recursive(n - 1);
-          end if
-        end function
+          }
+        }
 
-        function main(): void
+        function main(): void {
           let result: byte = recursive(5);
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -429,25 +429,25 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle mutually recursive functions', () => {
       const source = `
-        function even(n: byte): boolean
-          if n = 0 then
+        function even(n: byte): boolean {
+          if (n = 0) {
             return true;
-          else
+          } else {
             return odd(n - 1);
-          end if
-        end function
+          }
+        }
 
-        function odd(n: byte): boolean
-          if n = 0 then
+        function odd(n: byte): boolean {
+          if (n = 0) {
             return false;
-          else
+          } else {
             return even(n - 1);
-          end if
-        end function
+          }
+        }
 
-        function main(): void
+        function main(): void {
           let isEven: boolean = even(4);
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -460,12 +460,12 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Metadata Generation', () => {
     it('should set call count metadata', () => {
       const source = `
-        function helper(): void
-        end function
+        function helper(): void {
+        }
 
-        function main(): void
+        function main(): void {
           helper();
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -478,11 +478,11 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should set unused flag metadata', () => {
       const source = `
-        function unused(): void
-        end function
+        function unused(): void {
+        }
 
-        function main(): void
-        end function
+        function main(): void {
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -495,16 +495,16 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should set metadata for all functions', () => {
       const source = `
-        function first(): void
-        end function
+        function first(): void {
+        }
 
-        function second(): void
+        function second(): void {
           first();
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           second();
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -527,15 +527,15 @@ describe('UnusedFunctionAnalyzer', () => {
   describe('Complex Scenarios', () => {
     it('should handle functions with control flow', () => {
       const source = `
-        function conditional(flag: boolean): void
-        end function
+        function conditional(flag: boolean): void {
+        }
 
-        function main(): void
+        function main(): void {
           let x: boolean = true;
-          if x then
+          if (x) {
             conditional(x);
-          end if
-        end function
+          }
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -549,9 +549,9 @@ describe('UnusedFunctionAnalyzer', () => {
       const source = `
         function external(): void;
 
-        function main(): void
+        function main(): void {
           external();
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -561,13 +561,13 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle functions with expressions as arguments', () => {
       const source = `
-        function compute(a: byte, b: byte): byte
+        function compute(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           let result: byte = compute(10 + 5, 20 * 2);
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -588,8 +588,8 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle program with only main', () => {
       const source = `
-        function main(): void
-        end function
+        function main(): void {
+        }
       `;
 
       const { warnings } = analyzeCode(source);
@@ -599,13 +599,13 @@ describe('UnusedFunctionAnalyzer', () => {
 
     it('should handle functions in different scopes', () => {
       const source = `
-        function helper(): void
-        end function
+        function helper(): void {
+        }
 
-        function main(): void
+        function main(): void {
           let x: byte = 42;
           helper();
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);

@@ -35,6 +35,8 @@ import type {
   IfStatement,
   WhileStatement,
   ForStatement,
+  DoWhileStatement,
+  SwitchStatement,
   MatchStatement,
   BreakStatement,
   ContinueStatement,
@@ -845,6 +847,88 @@ export abstract class ASTWalker implements ASTVisitor<void> {
         for (const stmt of node.getBody()) {
           if (this.shouldStop) break;
           stmt.accept(this);
+        }
+      }
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Do-While statement
+   *
+   * Example: do { ... } while (condition);
+   *
+   * Traverses:
+   * - Body statements (executed at least once)
+   * - Condition expression
+   */
+  visitDoWhileStatement(node: DoWhileStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      // Visit body
+      for (const stmt of node.getBody()) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+
+      // Visit condition
+      if (!this.shouldStop) {
+        node.getCondition().accept(this);
+      }
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Switch statement
+   *
+   * Example: switch (value) { case 1: ... break; default: ... }
+   *
+   * Traverses:
+   * - Value expression
+   * - All case clauses (value + body)
+   * - Default case (if present)
+   */
+  visitSwitchStatement(node: SwitchStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      // Visit switch value
+      node.getValue().accept(this);
+
+      // Visit cases
+      if (!this.shouldStop) {
+        for (const caseClause of node.getCases()) {
+          if (this.shouldStop) break;
+
+          // Visit case value
+          caseClause.value.accept(this);
+
+          // Visit case body
+          if (!this.shouldStop) {
+            for (const stmt of caseClause.body) {
+              if (this.shouldStop) break;
+              stmt.accept(this);
+            }
+          }
+        }
+      }
+
+      // Visit default case if present
+      if (!this.shouldStop) {
+        const defaultCase = node.getDefaultCase();
+        if (defaultCase) {
+          for (const stmt of defaultCase) {
+            if (this.shouldStop) break;
+            stmt.accept(this);
+          }
         }
       }
     }

@@ -1,7 +1,7 @@
 # Variables
 
-> **Status**: Lexer-Derived Specification  
-> **Last Updated**: January 8, 2026  
+> **Status**: C-Style Syntax Specification  
+> **Last Updated**: January 25, 2026  
 > **Related Documents**: [Type System](05-type-system.md), [6502 Features](13-6502-features.md), [Program Structure](03-program-structure.md)
 
 ## Overview
@@ -99,9 +99,9 @@ let source: byte[3] = [1, 2, 3];
 let dest: byte[3];
 
 // Copy elements individually
-for i = 0 to 2
+for (i = 0 to 2) {
   dest[i] = source[i];
-next i
+}
 ```
 
 ## Storage Classes
@@ -292,14 +292,14 @@ buffer[3] = 4;
 Variables declared at module scope are **global** to that module:
 
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let score: word = 0;        // Module-level global
 @ram let buffer: byte[256];     // Module-level global
 
-function updateScore(): void
+function updateScore(): void {
   score += 10;  // Access module-level variable
-end function
+}
 ```
 
 ### Function-Level Variables
@@ -307,10 +307,10 @@ end function
 Variables declared inside functions are **local** to that function:
 
 ```js
-function calculate(): byte
+function calculate(): byte {
   let temp: byte = 10;  // Local to calculate()
   return temp * 2;
-end function
+}
 
 // temp is not accessible here
 ```
@@ -320,14 +320,14 @@ end function
 Variables are **function-scoped**, not block-scoped:
 
 ```js
-function test(): void
-  if true then
+function test(): void {
+  if (true) {
     let x: byte = 10;
-  end if
+  }
   
   // x is still accessible here (function scope, not block scope)
   let y = x;
-end function
+}
 ```
 
 ## Storage Class Selection Guidelines
@@ -381,7 +381,7 @@ let tempData: byte;                // Temporary storage
 ### Basic Variable Declarations
 
 ```js
-module Game.Main
+module Game.Main;
 
 // Constants
 const MAX_ENEMIES: byte = 10;
@@ -404,27 +404,27 @@ let score: word = 0;
 ### Variable Usage
 
 ```js
-function updateGame(): void
+function updateGame(): void {
   // Modify mutable variables
   playerX += 1;
   score += 10;
   frameCounter += 1;
   
   // Use constants
-  if enemyHealth[0] > MAX_ENEMIES then
+  if (enemyHealth[0] > MAX_ENEMIES) {
     enemyHealth[0] = MAX_ENEMIES;
-  end if
+  }
   
   // Array access
   buffer[0] = playerX;
   buffer[1] = playerY;
-end function
+}
 ```
 
 ### Storage Class Comparison
 
 ```js
-module Performance.Test
+module Performance.Test;
 
 // Fast access - zero page
 @zp let zpCounter: byte = 0;
@@ -435,7 +435,7 @@ let ramCounter: byte = 0;
 // Read-only - data section
 @data const dataValue: byte = 100;
 
-function benchmark(): void
+function benchmark(): void {
   // Zero page access (fastest)
   zpCounter += 1;     // 5 cycles
   
@@ -444,7 +444,7 @@ function benchmark(): void
   
   // Data read (standard)
   let x = dataValue;  // 4 cycles (read-only)
-end function
+}
 ```
 
 ## Variable Naming Conventions
@@ -462,9 +462,9 @@ const MAX_SPRITES: byte = 8;
 const SCREEN_BASE: word = $0400;
 
 // ✅ GOOD: Short names for loop counters
-for i = 0 to 10
+for (i = 0 to 10) {
   buffer[i] = 0;
-next i
+}
 ```
 
 ### Avoid
@@ -518,7 +518,7 @@ let c: byte = 0;
 ### 4. Group Related Variables
 
 ```js
-module Game.Player
+module Game.Player;
 
 // Player state
 @zp let playerX: byte;
@@ -549,20 +549,20 @@ let enemyHealth: byte[10];
 ```js
 @zp let i: byte;
 
-for i = 0 to 255
+for (i = 0 to 255) {
   buffer[i] = 0;
-next i
+}
 ```
 
 ### Temporary Storage
 
 ```js
-function calculate(): byte
+function calculate(): byte {
   let temp: byte;
   temp = a + b;
   temp = temp * 2;
   return temp;
-end function
+}
 ```
 
 ### Large Data Structures
