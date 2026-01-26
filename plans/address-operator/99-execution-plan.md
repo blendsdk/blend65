@@ -210,45 +210,45 @@ This document defines the execution phases and AI chat sessions for implementing
 ## Task Checklist (All Phases)
 
 ### Phase 1: IL Infrastructure
-- [ ] 1.1.1 Add LOAD_ADDRESS to ILOpcode enum
-- [ ] 1.1.2 Create LoadAddressInstruction class
-- [ ] 1.1.3 Add isLoadAddressInstruction type guard
-- [ ] 1.1.4 Export new types from index
-- [ ] 1.1.5 Write unit tests
+- [x] 1.1.1 Add LOAD_ADDRESS to ILOpcode enum
+- [x] 1.1.2 Create LoadAddressInstruction class
+- [x] 1.1.3 Add isLoadAddressInstruction type guard
+- [x] 1.1.4 Export new types from index
+- [ ] 1.1.5 Write unit tests (deferred to Phase 7)
 
 ### Phase 2: IL Builder
-- [ ] 2.1.1 Add emitLoadAddress method
-- [ ] 2.1.2 Import LoadAddressInstruction
-- [ ] 2.1.3 Write unit tests
+- [x] 2.1.1 Add emitLoadAddress method
+- [x] 2.1.2 Import LoadAddressInstruction
+- [ ] 2.1.3 Write unit tests (deferred to Phase 7)
 
 ### Phase 3: IL Generator - Address-of
-- [ ] 3.1.1 Add lookupFunction helper
-- [ ] 3.1.2 Add lookupVariable helper
-- [ ] 3.1.3 Replace ADDRESS case
-- [ ] 3.1.4 Handle variable address
-- [ ] 3.1.5 Handle function address
-- [ ] 3.1.6 Add error handling
-- [ ] 3.1.7 Write @variable tests
-- [ ] 3.1.8 Write @function tests
-- [ ] 3.1.9 Write error case tests
+- [x] 3.1.1 Add lookupFunction helper
+- [x] 3.1.2 Add lookupVariable helper
+- [x] 3.1.3 Replace ADDRESS case
+- [x] 3.1.4 Handle variable address
+- [x] 3.1.5 Handle function address
+- [x] 3.1.6 Add error handling
+- [ ] 3.1.7 Write @variable tests (deferred to Phase 7)
+- [ ] 3.1.8 Write @function tests (deferred to Phase 7)
+- [ ] 3.1.9 Write error case tests (deferred to Phase 7)
 
 ### Phase 4: IL Generator - Callbacks
-- [ ] 4.1.1 Add function lookup to generateIdentifierExpression
-- [ ] 4.1.2 Emit LOAD_ADDRESS for functions
-- [ ] 4.1.3 Write callback tests
+- [x] 4.1.1 Add function lookup to generateIdentifierExpression
+- [x] 4.1.2 Emit LOAD_ADDRESS for functions
+- [ ] 4.1.3 Write callback tests (deferred to Phase 7)
 
-### Phase 5: ASM-IL Layer
-- [ ] 5.1.1 Add LOAD_ADDRESS case
-- [ ] 5.1.2 Implement emitLoadAddress
-- [ ] 5.1.3 Add resolveSymbolLabel
-- [ ] 5.1.4 Add new ASM-IL types (if needed)
-- [ ] 5.1.5 Write ASM-IL tests
+### Phase 5: ASM-IL Layer (merged with Phase 6)
+- [x] 5.1.1 Add LOAD_ADDRESS case
+- [x] 5.1.2 Implement emitLoadAddress
+- [x] 5.1.3 Add resolveSymbolLabel
+- [x] 5.1.4 Add new ASM-IL types (if needed) - N/A
+- [ ] 5.1.5 Write ASM-IL tests (deferred to Phase 7)
 
-### Phase 6: CodeGen Layer
-- [ ] 6.1.1 Handle address low byte
-- [ ] 6.1.2 Handle address high byte
-- [ ] 6.1.3 Generate label references
-- [ ] 6.1.4 Write CodeGen tests
+### Phase 6: CodeGen Layer (merged into Phase 5)
+- [x] 6.1.1 Handle address low byte
+- [x] 6.1.2 Handle address high byte
+- [x] 6.1.3 Generate label references
+- [ ] 6.1.4 Write CodeGen tests (deferred to Phase 7)
 
 ### Phase 7: End-to-End Testing
 - [ ] 7.1.1 E2E test for @variable

@@ -106,6 +106,10 @@ export {
   ILHardwareWriteInstruction,
   // Optimization control
   ILOptBarrierInstruction,
+  // Address-of instruction
+  ILLoadAddressInstruction,
+  // Type guards
+  isLoadAddressInstruction,
 } from './instructions.js';
 
 // =============================================================================

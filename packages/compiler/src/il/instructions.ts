@@ -279,6 +279,22 @@ export enum ILOpcode {
 
   /** Pull processor status from stack */
   CPU_PLP = 'CPU_PLP',
+
+  // =========================================================================
+  // Address Operations
+  // =========================================================================
+
+  /**
+   * Load the address of a symbol (variable or function).
+   * Result is a 16-bit word containing the memory address.
+   *
+   * Operands:
+   * - symbolName: string - Name of the symbol
+   * - symbolKind: 'variable' | 'function' - Type of symbol
+   *
+   * Result: word (16-bit address)
+   */
+  LOAD_ADDRESS = 'LOAD_ADDRESS',
 }
 
 // =============================================================================
@@ -2175,4 +2191,127 @@ export class ILMapStoreRangeInstruction extends ILInstruction {
   toString(): string {
     return `MAP_STORE_RANGE ${this.rangeName}[${this.index}] ($${this.baseAddress.toString(16).toUpperCase()}-$${this.endAddress.toString(16).toUpperCase()}), ${this.value}`;
   }
+}
+
+// =============================================================================
+// Address-of Operator Instructions
+// =============================================================================
+
+/**
+ * Load address instruction - loads the memory address of a symbol.
+ *
+ * This instruction is used to implement the address-of operator (`@`) in Blend.
+ * It loads the 16-bit memory address of a variable or function into a register.
+ *
+ * Format: result = LOAD_ADDRESS "symbolName" (symbolKind)
+ *
+ * The result is always a 16-bit word containing the memory address.
+ *
+ * @example
+ * ```typescript
+ * // For: let addr = @myVar
+ * // v0 = LOAD_ADDRESS "myVar" (variable)
+ * const loadAddr = new ILLoadAddressInstruction(0, 'myVar', 'variable', v0);
+ *
+ * // For: let funcAddr = @myFunc
+ * // v1 = LOAD_ADDRESS "myFunc" (function)
+ * const loadFuncAddr = new ILLoadAddressInstruction(1, 'myFunc', 'function', v1);
+ * ```
+ */
+export class ILLoadAddressInstruction extends ILInstruction {
+  /**
+   * Creates a LOAD_ADDRESS instruction.
+   *
+   * @param id - Unique instruction ID within the function
+   * @param symbolName - The name of the symbol whose address to load
+   * @param symbolKind - Whether this is a 'variable' or 'function'
+   * @param result - The register to store the 16-bit address
+   * @param metadata - Optional metadata for diagnostics and optimization
+   */
+  constructor(
+    id: number,
+    protected readonly symbolName: string,
+    protected readonly symbolKind: 'variable' | 'function',
+    result: VirtualRegister,
+    metadata: ILMetadata = {},
+  ) {
+    super(id, ILOpcode.LOAD_ADDRESS, result, metadata);
+  }
+
+  /**
+   * Gets the symbol name whose address is being loaded.
+   *
+   * @returns The name of the variable or function
+   */
+  getSymbolName(): string {
+    return this.symbolName;
+  }
+
+  /**
+   * Gets the kind of symbol (variable or function).
+   *
+   * @returns 'variable' or 'function'
+   */
+  getSymbolKind(): 'variable' | 'function' {
+    return this.symbolKind;
+  }
+
+  /** @inheritdoc */
+  getOperands(): ILValue[] {
+    // No register operands - symbol name is a compile-time constant
+    return [];
+  }
+
+  /** @inheritdoc */
+  getUsedRegisters(): VirtualRegister[] {
+    // No registers are read by this instruction
+    return [];
+  }
+
+  /** @inheritdoc */
+  toString(): string {
+    return `${this.result} = LOAD_ADDRESS "${this.symbolName}" (${this.symbolKind})`;
+  }
+
+  /**
+   * Creates a copy of this instruction with a new result register.
+   *
+   * Used during SSA construction and register allocation.
+   *
+   * @param result - The new result register
+   * @returns A new ILLoadAddressInstruction with the same operands but new result
+   */
+  withResult(result: VirtualRegister): ILLoadAddressInstruction {
+    return new ILLoadAddressInstruction(
+      this.id,
+      this.symbolName,
+      this.symbolKind,
+      result,
+      this.metadata,
+    );
+  }
+}
+
+// =============================================================================
+// Type Guards
+// =============================================================================
+
+/**
+ * Type guard to check if an instruction is a LoadAddressInstruction.
+ *
+ * @param instr - The instruction to check
+ * @returns true if the instruction is an ILLoadAddressInstruction
+ *
+ * @example
+ * ```typescript
+ * if (isLoadAddressInstruction(instr)) {
+ *   const symbolName = instr.getSymbolName();
+ *   const kind = instr.getSymbolKind();
+ * }
+ * ```
+ */
+export function isLoadAddressInstruction(
+  instr: ILInstruction,
+): instr is ILLoadAddressInstruction {
+  return instr.opcode === ILOpcode.LOAD_ADDRESS;
 }

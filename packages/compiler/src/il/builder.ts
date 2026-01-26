@@ -50,6 +50,8 @@ import {
   ILMapStoreFieldInstruction,
   ILMapLoadRangeInstruction,
   ILMapStoreRangeInstruction,
+  // Address-of instruction
+  ILLoadAddressInstruction,
 } from './instructions.js';
 
 /**
@@ -1315,5 +1317,43 @@ export class ILBuilder {
         metadata,
       ),
     );
+  }
+
+  // ===========================================================================
+  // Address-of Operator Instructions
+  // ===========================================================================
+
+  /**
+   * Emits a LOAD_ADDRESS instruction to get the address of a symbol.
+   *
+   * This is used to implement the address-of operator (`@`) in Blend.
+   * The result is always a 16-bit word containing the memory address of
+   * the specified symbol (variable or function).
+   *
+   * @param symbolName - Name of the variable or function
+   * @param symbolKind - Whether it's a 'variable' or 'function'
+   * @param metadata - Optional metadata for diagnostics and optimization
+   * @returns The register containing the 16-bit address
+   *
+   * @example
+   * ```typescript
+   * // For: @myVariable
+   * const addrReg = builder.emitLoadAddress('myVariable', 'variable', loc);
+   *
+   * // For: @myFunction
+   * const funcAddrReg = builder.emitLoadAddress('myFunction', 'function', loc);
+   * ```
+   */
+  emitLoadAddress(
+    symbolName: string,
+    symbolKind: 'variable' | 'function',
+    metadata: ILMetadata = {},
+  ): VirtualRegister {
+    // Addresses are always 16-bit words on 6502
+    const result = this.createRegister(IL_WORD);
+    this.emit(
+      new ILLoadAddressInstruction(this.nextId(), symbolName, symbolKind, result, metadata),
+    );
+    return result;
   }
 }

@@ -9,6 +9,7 @@ When the user types "make_plan", execute this comprehensive workflow to create a
 ## **Overview**
 
 This prompt guides the AI through a structured process to:
+
 1. **Gather requirements** through clarifying questions
 2. **Analyze current state** of the codebase
 3. **Create detailed technical specifications** for each component/layer
@@ -66,14 +67,17 @@ Present findings and confirm:
 **Feature:** [Name]
 
 **What's IN scope:**
+
 - Item 1
 - Item 2
 
 **What's OUT of scope:**
+
 - Item 1
 - Item 2
 
 **Key Decisions Needed:**
+
 - Decision 1: [Options A, B, C]
 - Decision 2: [Options X, Y]
 
@@ -120,15 +124,15 @@ plans/
 
 ## Document Index
 
-| # | Document | Description |
-|---|----------|-------------|
-| 00 | [Index](00-index.md) | This document - overview and navigation |
-| 01 | [Requirements](01-requirements.md) | Feature requirements and scope |
-| 02 | [Current State](02-current-state.md) | Analysis of current implementation |
-| 03 | [Component Name](03-component.md) | Technical specification |
-| ... | ... | ... |
-| 07 | [Testing Strategy](07-testing-strategy.md) | Test cases and verification |
-| 99 | [Execution Plan](99-execution-plan.md) | Phases, sessions, and task checklist |
+| #   | Document                                   | Description                             |
+| --- | ------------------------------------------ | --------------------------------------- |
+| 00  | [Index](00-index.md)                       | This document - overview and navigation |
+| 01  | [Requirements](01-requirements.md)         | Feature requirements and scope          |
+| 02  | [Current State](02-current-state.md)       | Analysis of current implementation      |
+| 03  | [Component Name](03-component.md)          | Technical specification                 |
+| ... | ...                                        | ...                                     |
+| 07  | [Testing Strategy](07-testing-strategy.md) | Test cases and verification             |
+| 99  | [Execution Plan](99-execution-plan.md)     | Phases, sessions, and task checklist    |
 
 ## Quick Reference
 
@@ -138,8 +142,8 @@ plans/
 
 ### Key Decisions
 
-| Decision | Outcome |
-|----------|---------|
+| Decision     | Outcome   |
+| ------------ | --------- |
 | [Decision 1] | [Outcome] |
 | [Decision 2] | [Outcome] |
 
@@ -165,32 +169,38 @@ plans/
 ## Functional Requirements
 
 ### Must Have
+
 - [ ] Requirement 1
 - [ ] Requirement 2
 
 ### Should Have
+
 - [ ] Requirement 1
 
 ### Won't Have (Out of Scope)
+
 - Exclusion 1
 - Exclusion 2
 
 ## Technical Requirements
 
 ### Performance
+
 - [Performance requirements]
 
 ### Compatibility
+
 - [Compatibility requirements]
 
 ### Security
+
 - [Security requirements]
 
 ## Scope Decisions
 
-| Decision | Options Considered | Chosen | Rationale |
-|----------|-------------------|--------|-----------|
-| [Decision] | A, B, C | B | [Why] |
+| Decision   | Options Considered | Chosen | Rationale |
+| ---------- | ------------------ | ------ | --------- |
+| [Decision] | A, B, C            | B      | [Why]     |
 
 ## Acceptance Criteria
 
@@ -218,9 +228,9 @@ plans/
 
 ### Relevant Files
 
-| File | Purpose | Changes Needed |
-|------|---------|----------------|
-| `path/to/file.ts` | [Purpose] | [Changes] |
+| File              | Purpose   | Changes Needed |
+| ----------------- | --------- | -------------- |
+| `path/to/file.ts` | [Purpose] | [Changes]      |
 
 ### Code Analysis
 
@@ -241,15 +251,17 @@ plans/
 ## Dependencies
 
 ### Internal Dependencies
+
 - [List internal dependencies]
 
 ### External Dependencies
+
 - [List external dependencies]
 
 ## Risks and Concerns
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
+| Risk   | Likelihood   | Impact       | Mitigation |
+| ------ | ------------ | ------------ | ---------- |
 | [Risk] | High/Med/Low | High/Med/Low | [Strategy] |
 ```
 
@@ -257,7 +269,7 @@ plans/
 
 #### **03-XX-[component].md** - Component Technical Specification
 
-```markdown
+````markdown
 # [Component Name]: [Feature Name]
 
 > **Document**: 03-[component].md
@@ -284,6 +296,7 @@ plans/
 ```typescript
 // Type definitions
 ```
+````
 
 ### New Functions/Methods
 
@@ -312,14 +325,15 @@ plans/
 ## Error Handling
 
 | Error Case | Handling Strategy |
-|------------|-------------------|
-| [Error] | [Strategy] |
+| ---------- | ----------------- |
+| [Error]    | [Strategy]        |
 
 ## Testing Requirements
 
 - Unit tests for [specific functionality]
 - Integration tests for [interactions]
-```
+
+````
 
 ---
 
@@ -375,13 +389,13 @@ plans/
 - [ ] All E2E tests pass
 - [ ] No regressions in existing tests
 - [ ] Test coverage meets goals
-```
+````
 
 ---
 
 #### **99-execution-plan.md** - Execution Plan
 
-```markdown
+````markdown
 # Execution Plan: [Feature Name]
 
 > **Document**: 99-execution-plan.md
@@ -393,11 +407,11 @@ This document defines the execution phases and AI chat sessions for implementati
 
 ## Implementation Phases
 
-| Phase | Title | Sessions | Est. Time |
-|-------|-------|----------|-----------|
-| 1 | [Phase 1 Name] | 1 | XX min |
-| 2 | [Phase 2 Name] | 1-2 | XX min |
-| ... | ... | ... | ... |
+| Phase | Title          | Sessions | Est. Time |
+| ----- | -------------- | -------- | --------- |
+| 1     | [Phase 1 Name] | 1        | XX min    |
+| 2     | [Phase 2 Name] | 1-2      | XX min    |
+| ...   | ...            | ...      | ...       |
 
 **Total: X sessions, ~X-X hours**
 
@@ -418,6 +432,7 @@ This document defines the execution phases and AI chat sessions for implementati
 | 1.1.2 | [Task description] | `path/to/file.ts` |
 
 **Deliverables**:
+
 - [ ] Deliverable 1
 - [ ] Deliverable 2
 - [ ] All tests passing
@@ -437,10 +452,12 @@ This document defines the execution phases and AI chat sessions for implementati
 ## Task Checklist (All Phases)
 
 ### Phase 1: [Phase Name]
+
 - [ ] 1.1.1 [Task]
 - [ ] 1.1.2 [Task]
 
 ### Phase 2: [Phase Name]
+
 - [ ] 2.1.1 [Task]
 - [ ] 2.1.2 [Task]
 
@@ -459,6 +476,7 @@ clear && scripts/agent.sh start
 # 2. Reference this plan
 # "Implement Phase X, Session X.X per plans/[feature-name]/99-execution-plan.md"
 ```
+````
 
 ### Ending a Session
 
@@ -505,7 +523,8 @@ Phase 3
 3. ✅ No warnings/errors
 4. ✅ Documentation updated
 5. ✅ Code reviewed (if applicable)
-```
+
+````
 
 ---
 
@@ -584,7 +603,7 @@ After creating the plan, present:
 1. Review 99-execution-plan.md
 2. Start new chat session
 3. Reference: "Implement Phase 1, Session 1.1 per plans/[feature-name]/99-execution-plan.md"
-```
+````
 
 ---
 
@@ -592,17 +611,20 @@ After creating the plan, present:
 
 The AI should adapt document structure based on project type:
 
-| Project Type | Typical Components |
-|--------------|-------------------|
-| **Web App** | Frontend, Backend, API, Database, Auth |
-| **API** | Endpoints, Services, Data Models, Validation |
-| **Library** | Core, Utils, Types, Public API |
-| **CLI Tool** | Commands, Arguments, Output, Config |
-| **Mobile App** | UI, State, Services, Navigation |
-| **Compiler** | Lexer, Parser, Analyzer, Generator |
-| **Microservices** | Services, Events, Data, Integration |
+| Project Type      | Typical Components                           |
+| ----------------- | -------------------------------------------- |
+| **Web App**       | Frontend, Backend, API, Database, Auth       |
+| **API**           | Endpoints, Services, Data Models, Validation |
+| **Library**       | Core, Utils, Types, Public API               |
+| **CLI Tool**      | Commands, Arguments, Output, Config          |
+| **Mobile App**    | UI, State, Services, Navigation              |
+| **Compiler**      | Lexer, Parser, Analyzer, Generator           |
+| **Microservices** | Services, Events, Data, Integration          |
 
-Create one `03-XX-[component].md` document for each major component affected.
+Based on an educated guess regarding the size of each major component do one of the following:
+
+- Option 1: Create one `03-XX-[component].md` document for each major component affected.
+- Option 2: Create multiple 03-XX-[component]-[sub-component].md document for each sub component affected
 
 ---
 
@@ -614,6 +636,7 @@ When executing "make_plan":
 - Follow **agents.md** rules for multi-session execution
 - Follow **code.md** rules for testing requirements
 - If project-specific rules exist, incorporate them
+- **CRITICAL**: Update the execution plan up on each completed phase or session
 
 ---
 
@@ -629,3 +652,165 @@ The `make_plan` trigger ensures:
 ✅ **Comprehensive testing strategy** from the start
 
 **This prompt is project-agnostic and works for any software development task.**
+
+---
+
+## **TRIGGER KEYWORD: `exec_plan [feature-name]`**
+
+When the user types "exec_plan [feature-name]", execute the implementation plan for the specified feature.
+
+**Example:** `exec_plan authentication` → executes `plans/authentication/99-execution-plan.md`
+
+---
+
+## **Overview**
+
+This trigger allows the AI to:
+
+1. **Load and understand** an existing execution plan
+2. **Implement multiple phases** in a single session
+3. **Track progress** by updating checkboxes in the execution plan
+4. **Manage context window** by stopping at ~80% capacity
+5. **Enable continuation** in subsequent sessions
+
+---
+
+## **Execution Protocol**
+
+### **Phase 1: Load and Understand the Plan**
+
+**When triggered, IMMEDIATELY:**
+
+1. **✅ Read the execution plan**: `plans/[feature-name]/99-execution-plan.md`
+2. **✅ Identify current progress**: Find incomplete tasks (unchecked `[ ]` items)
+3. **✅ Read supporting documents**: Review relevant technical specs in `plans/[feature-name]/`
+4. **✅ Determine starting point**: First incomplete phase/session/task
+
+**If the execution plan doesn't exist:**
+- ❌ STOP and inform the user
+- Suggest running `make_plan [feature-name]` first
+
+---
+
+### **Phase 2: Execute Tasks**
+
+**For each task in order:**
+
+1. **Implement the task** following the technical specifications
+2. **Run verification** (tests, builds) as specified in the plan
+3. **Update the execution plan** - mark task complete with `[x]`
+4. **Continue to next task** until:
+   - All tasks complete, OR
+   - Context window reaches ~80% capacity
+
+**Task Completion Format:**
+After completing each task, update `99-execution-plan.md`:
+
+```markdown
+### Phase 1: [Phase Name]
+- [x] 1.1.1 Task description ✅
+- [x] 1.1.2 Task description ✅
+- [ ] 1.1.3 Next task (pending)
+```
+
+---
+
+### **Phase 3: Session Wrap-Up**
+
+**When stopping (either completion or context limit):**
+
+1. **✅ Ensure clean stopping point** - Complete current task before stopping
+2. **✅ Update execution plan** - All completed tasks marked with `[x]`
+3. **✅ Run final verification** - Execute project's test command(s)
+4. **✅ Report session summary** - What was completed, what remains
+
+**Session Summary Format:**
+
+```markdown
+## Session Complete
+
+**Feature:** [feature-name]
+**Execution Plan:** `plans/[feature-name]/99-execution-plan.md`
+
+**Completed This Session:**
+- [x] Phase X, Task X.X.X: [description]
+- [x] Phase X, Task X.X.X: [description]
+
+**Remaining Work:**
+- [ ] Phase X, Task X.X.X: [description]
+- [ ] Phase Y: [phase description]
+
+**Tests:** [Status]
+**Context Used:** ~XX%
+
+**To Continue:**
+Run `exec_plan [feature-name]` in a new session after `/compact`
+```
+
+---
+
+## **Context Window Management**
+
+### **80% Threshold Protocol**
+
+**Monitor context usage and stop when approaching 80%:**
+
+1. **At ~70%** - Finish current task, assess if next task can fit
+2. **At ~80%** - Complete current task and wrap up session
+3. **Never exceed ~85%** - Risk of context overflow and lost work
+
+**Signs you're approaching the limit:**
+- Long conversations with many tool calls
+- Large files being read/written
+- Complex multi-file changes
+- Feeling like the conversation has been going on for a while
+
+**When stopping:**
+- ✅ Always complete the current task
+- ✅ Never stop mid-implementation
+- ✅ Update execution plan before ending
+- ✅ Provide clear continuation instructions
+
+---
+
+## **Error Handling**
+
+### **If Tests Fail:**
+1. Fix the failing tests
+2. Verify all tests pass
+3. Only then mark task complete
+
+### **If Implementation Deviates from Plan:**
+1. Note the deviation in the execution plan
+2. Update task descriptions if needed
+3. Continue with corrected approach
+
+### **If Context Limit Reached Mid-Task:**
+1. ⚠️ Save progress so far
+2. Add clear notes about partial completion
+3. Mark task as `[~]` (partial) with explanation
+
+---
+
+## **Integration with Project Rules**
+
+**When executing plans:**
+
+- ✅ Follow any `.clinerules/` files in the project
+- ✅ Use project-specific test/build commands
+- ✅ Respect project coding standards
+- ✅ Update execution plan on EVERY completed task
+
+---
+
+## **Quick Reference**
+
+| Command | Action |
+|---------|--------|
+| `exec_plan [feature]` | Execute `plans/[feature]/99-execution-plan.md` |
+| `/compact` | Compact context after session ends |
+
+**Session Flow:**
+```
+exec_plan [feature] → implement tasks → update plan → wrap up → /compact → exec_plan [feature]
+```

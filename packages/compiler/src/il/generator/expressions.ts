@@ -14,13 +14,16 @@
 
 import type { Expression } from '../../ast/base.js';
 import type { SymbolTable } from '../../semantic/symbol-table.js';
+import type { Symbol } from '../../semantic/symbol.js';
 import type { TargetConfig } from '../../target/config.js';
 import type { ILFunction } from '../function.js';
 import type { VirtualRegister } from '../values.js';
 
 import { ASTNodeType } from '../../ast/base.js';
 import { LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression, TernaryExpression, CallExpression, IndexExpression, AssignmentExpression } from '../../ast/nodes.js';
+import { isIdentifierExpression } from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
+import { SymbolKind } from '../../semantic/symbol.js';
 import { IL_BYTE } from '../types.js';
 import { ILStatementGenerator } from './statements.js';
 
@@ -207,6 +210,10 @@ export class ILExpressionGenerator extends ILStatementGenerator {
    * Looks up the variable in the local or global scope and emits
    * a LOAD_VAR instruction to read its value.
    *
+   * Also handles function names used as values (for callback parameters):
+   * when a function name is used without `@`, it still gets the function's
+   * address, enabling patterns like `setInterrupt(100, myHandler)`.
+   *
    * @param expr - Identifier expression
    * @param ilFunc - Current IL function
    * @returns Virtual register containing the variable's value
@@ -239,6 +246,15 @@ export class ILExpressionGenerator extends ILStatementGenerator {
         ? this.convertType(mapping.symbol.type)
         : IL_BYTE;
       return this.builder?.emitLoadVar(name, globalType) ?? null;
+    }
+
+    // Check if it's a function name (for callback parameters)
+    // When a function name is used as a value (e.g., passed to callback parameter),
+    // we emit LOAD_ADDRESS to get the function's memory address.
+    const funcSymbol = this.lookupFunction(name);
+    if (funcSymbol) {
+      // Function used as value = get its address (for callbacks)
+      return this.builder?.emitLoadAddress(name, 'function') ?? null;
     }
 
     // Variable not found - error
@@ -376,7 +392,13 @@ export class ILExpressionGenerator extends ILStatementGenerator {
     const operator = expr.getOperator();
     const operand = expr.getOperand();
 
-    // Generate operand
+    // Handle address-of operator specially - don't generate operand as value
+    // The '@' symbol is tokenized as TokenType.AT in the lexer
+    if (operator === TokenType.AT) {
+      return this.generateAddressOf(operand, expr);
+    }
+
+    // Generate operand for other unary operators
     const operandReg = this.generateExpression(operand, ilFunc);
     if (!operandReg) {
       return null;
@@ -396,16 +418,6 @@ export class ILExpressionGenerator extends ILStatementGenerator {
         // Bitwise NOT
         return this.builder?.emitNot(operandReg) ?? null;
 
-      case TokenType.ADDRESS:
-        // Address-of operator (@)
-        // For now, this is a placeholder - full implementation depends on backend
-        this.addWarning(
-          'Address-of operator not fully implemented',
-          expr.getLocation(),
-          'W_ADDRESS_NOT_IMPLEMENTED',
-        );
-        return operandReg;
-
       default:
         this.addError(
           `Unsupported unary operator: ${operator}`,
@@ -414,6 +426,112 @@ export class ILExpressionGenerator extends ILStatementGenerator {
         );
         return null;
     }
+  }
+
+  // ===========================================================================
+  // Address-of Operator Implementation
+  // ===========================================================================
+
+  /**
+   * Generates IL for the address-of operator (@).
+   *
+   * The address-of operator returns the memory address of a variable or function.
+   * This emits a LOAD_ADDRESS instruction that will be resolved during code generation.
+   *
+   * Usage:
+   * - `@variable` - get address of variable
+   * - `@function` - get address of function (for callbacks)
+   *
+   * @param operand - The expression to get the address of (must be an identifier)
+   * @param expr - The unary expression for error location
+   * @returns Virtual register containing the 16-bit address
+   */
+  protected generateAddressOf(
+    operand: Expression,
+    expr: UnaryExpression,
+  ): VirtualRegister | null {
+    // Address-of operator requires an identifier (variable or function name)
+    if (!isIdentifierExpression(operand)) {
+      this.addError(
+        'Address-of operator requires an identifier',
+        expr.getLocation(),
+        'E_ADDRESS_REQUIRES_IDENTIFIER',
+      );
+      // Return a placeholder constant for error recovery
+      return this.builder?.emitConstWord(0) ?? null;
+    }
+
+    const name = (operand as IdentifierExpression).getName();
+
+    // Check if it's a function
+    const funcSymbol = this.lookupFunction(name);
+    if (funcSymbol) {
+      // Emit LOAD_ADDRESS for function - returns 16-bit address
+      return this.builder?.emitLoadAddress(name, 'function') ?? null;
+    }
+
+    // Check if it's a variable (local, parameter, or global)
+    const varSymbol = this.lookupVariable(name);
+    if (varSymbol) {
+      // Emit LOAD_ADDRESS for variable - returns 16-bit address
+      return this.builder?.emitLoadAddress(name, 'variable') ?? null;
+    }
+
+    // Unknown symbol
+    this.addError(
+      `Unknown symbol '${name}'`,
+      operand.getLocation(),
+      'E_UNKNOWN_SYMBOL',
+    );
+    // Return a placeholder constant for error recovery
+    return this.builder?.emitConstWord(0) ?? null;
+  }
+
+  /**
+   * Looks up a function by name in the symbol table.
+   *
+   * @param name - The function name to look up
+   * @returns The function symbol if found, undefined otherwise
+   */
+  protected lookupFunction(name: string): Symbol | undefined {
+    const symbol = this.symbolTable.lookup(name);
+    if (symbol && symbol.kind === SymbolKind.Function) {
+      return symbol;
+    }
+    return undefined;
+  }
+
+  /**
+   * Looks up a variable by name (local, parameter, or global).
+   *
+   * @param name - The variable name to look up
+   * @returns The variable symbol if found, undefined otherwise
+   */
+  protected lookupVariable(name: string): Symbol | undefined {
+    // Check if it's a local variable in the current function
+    if (this.currentLocals.has(name)) {
+      // Local variables don't have a Symbol in the symbol table with the same lookup
+      // but we can create a synthetic return or check the mapping
+      const mapping = this.getVariableMapping(name);
+      if (mapping) {
+        return mapping.symbol;
+      }
+    }
+
+    // Check symbol table for variables (includes parameters and globals)
+    const symbol = this.symbolTable.lookup(name);
+    if (symbol) {
+      // Accept Variable, Parameter, and MapVariable kinds
+      if (
+        symbol.kind === SymbolKind.Variable ||
+        symbol.kind === SymbolKind.Parameter ||
+        symbol.kind === SymbolKind.MapVariable
+      ) {
+        return symbol;
+      }
+    }
+
+    return undefined;
   }
 
   // ===========================================================================
