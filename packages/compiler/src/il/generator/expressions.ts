@@ -19,7 +19,7 @@ import type { ILFunction } from '../function.js';
 import type { VirtualRegister } from '../values.js';
 
 import { ASTNodeType } from '../../ast/base.js';
-import { LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression, CallExpression, IndexExpression, AssignmentExpression } from '../../ast/nodes.js';
+import { LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression, TernaryExpression, CallExpression, IndexExpression, AssignmentExpression } from '../../ast/nodes.js';
 import { TokenType } from '../../lexer/types.js';
 import { IL_BYTE } from '../types.js';
 import { ILStatementGenerator } from './statements.js';
@@ -82,6 +82,9 @@ export class ILExpressionGenerator extends ILStatementGenerator {
 
       case ASTNodeType.UNARY_EXPR:
         return this.generateUnaryExpression(expr as UnaryExpression, ilFunc);
+
+      case ASTNodeType.TERNARY_EXPR:
+        return this.generateTernaryExpression(expr as TernaryExpression, ilFunc);
 
       case ASTNodeType.CALL_EXPR:
         return this.generateCallExpression(expr as CallExpression, ilFunc);
@@ -411,6 +414,105 @@ export class ILExpressionGenerator extends ILStatementGenerator {
         );
         return null;
     }
+  }
+
+  // ===========================================================================
+  // Ternary Expression Generation
+  // ===========================================================================
+
+  /**
+   * Generates IL for a ternary (conditional) expression.
+   *
+   * The ternary expression `condition ? thenBranch : elseBranch` is compiled to:
+   *   1. Generate condition
+   *   2. Branch based on condition to then/else blocks
+   *   3. Generate then value in then block, jump to merge
+   *   4. Generate else value in else block, jump to merge
+   *   5. In merge block, use PHI to select the result
+   *
+   * This generates proper SSA form with PHI nodes for control flow merging.
+   *
+   * @param expr - Ternary expression to generate
+   * @param ilFunc - Current IL function
+   * @returns Virtual register containing the result value
+   */
+  protected generateTernaryExpression(
+    expr: TernaryExpression,
+    ilFunc: ILFunction,
+  ): VirtualRegister | null {
+    // Generate the condition expression
+    const condReg = this.generateExpression(expr.getCondition(), ilFunc);
+    if (!condReg) {
+      return null;
+    }
+
+    // Get current block for later reference
+    const conditionBlock = this.builder?.getCurrentBlock();
+    if (!conditionBlock) {
+      this.addError(
+        'No current block for ternary expression',
+        expr.getLocation(),
+        'E_NO_BLOCK',
+      );
+      return null;
+    }
+
+    // Create blocks for then, else, and merge
+    const thenBlock = this.builder?.createBlock('ternary.then');
+    const elseBlock = this.builder?.createBlock('ternary.else');
+    const mergeBlock = this.builder?.createBlock('ternary.merge');
+
+    if (!thenBlock || !elseBlock || !mergeBlock) {
+      this.addError(
+        'Failed to create basic blocks for ternary expression',
+        expr.getLocation(),
+        'E_BLOCK_CREATE',
+      );
+      return null;
+    }
+
+    // Emit branch based on condition
+    this.builder?.emitBranch(condReg, thenBlock, elseBlock);
+
+    // Generate then branch
+    this.builder?.setCurrentBlock(thenBlock);
+    const thenReg = this.generateExpression(expr.getThenBranch(), ilFunc);
+    if (!thenReg) {
+      return null;
+    }
+    // Get the block after generating then (may have changed due to nested ternaries)
+    const thenEndBlock = this.builder?.getCurrentBlock();
+    // Jump to merge block
+    this.builder?.emitJump(mergeBlock);
+
+    // Generate else branch
+    this.builder?.setCurrentBlock(elseBlock);
+    const elseReg = this.generateExpression(expr.getElseBranch(), ilFunc);
+    if (!elseReg) {
+      return null;
+    }
+    // Get the block after generating else (may have changed due to nested ternaries)
+    const elseEndBlock = this.builder?.getCurrentBlock();
+    // Jump to merge block
+    this.builder?.emitJump(mergeBlock);
+
+    // Set merge block as current
+    this.builder?.setCurrentBlock(mergeBlock);
+
+    // Emit PHI instruction to select the result based on which path was taken
+    // The PHI sources are: [value from then path, value from else path]
+    const thenBlockId = thenEndBlock?.id ?? thenBlock.id;
+    const elseBlockId = elseEndBlock?.id ?? elseBlock.id;
+
+    const resultReg = this.builder?.emitPhi(
+      [
+        { value: thenReg, blockId: thenBlockId },
+        { value: elseReg, blockId: elseBlockId },
+      ],
+      thenReg.type, // Use then branch type (type checker ensures compatibility)
+    );
+
+    return resultReg ?? null;
   }
 
   // ===========================================================================

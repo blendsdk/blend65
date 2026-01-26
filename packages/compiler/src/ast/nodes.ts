@@ -475,6 +475,76 @@ export class UnaryExpression extends Expression {
 }
 
 /**
+ * Ternary conditional expression node
+ *
+ * Represents: condition ? thenBranch : elseBranch
+ *
+ * Examples:
+ * - (a > b) ? a : b
+ * - isValid ? process() : error()
+ * - (x > 0) ? x : -x
+ *
+ * The ternary operator is right-associative:
+ * a ? b : c ? d : e ’ a ? b : (c ? d : e)
+ *
+ * Both branches must have compatible types (validated in semantic analysis).
+ *
+ * On 6502, this compiles to the same branch code as if-else (no performance difference).
+ */
+export class TernaryExpression extends Expression {
+  /**
+   * Creates a ternary conditional expression
+   *
+   * @param condition - The condition expression (evaluated first)
+   * @param thenBranch - Expression returned if condition is true
+   * @param elseBranch - Expression returned if condition is false
+   * @param location - Source location spanning the entire expression
+   */
+  constructor(
+    protected readonly condition: Expression,
+    protected readonly thenBranch: Expression,
+    protected readonly elseBranch: Expression,
+    location: SourceLocation
+  ) {
+    super(ASTNodeType.TERNARY_EXPR, location);
+  }
+
+  /**
+   * Gets the condition expression
+   * @returns The condition to evaluate
+   */
+  public getCondition(): Expression {
+    return this.condition;
+  }
+
+  /**
+   * Gets the 'then' branch expression (returned if condition is true)
+   * @returns The then branch expression
+   */
+  public getThenBranch(): Expression {
+    return this.thenBranch;
+  }
+
+  /**
+   * Gets the 'else' branch expression (returned if condition is false)
+   * @returns The else branch expression
+   */
+  public getElseBranch(): Expression {
+    return this.elseBranch;
+  }
+
+  /**
+   * Accepts a visitor for the visitor pattern
+   *
+   * @param visitor - The visitor to accept
+   * @returns Result from the visitor
+   */
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitTernaryExpression(this);
+  }
+}
+
+/**
  * Literal value type
  */
 export type LiteralValue = number | string | boolean;

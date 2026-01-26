@@ -24,6 +24,7 @@ import type {
   ExplicitStructMapDecl,
   BinaryExpression,
   UnaryExpression,
+  TernaryExpression,
   LiteralExpression,
   IdentifierExpression,
   CallExpression,
@@ -565,6 +566,39 @@ export abstract class ASTWalker implements ASTVisitor<void> {
 
     if (!this.shouldSkip && !this.shouldStop) {
       node.getOperand().accept(this);
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Ternary conditional expression
+   *
+   * Example: condition ? thenExpr : elseExpr
+   *
+   * Traverses:
+   * - Condition expression
+   * - Then branch expression
+   * - Else branch expression
+   */
+  visitTernaryExpression(node: TernaryExpression): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      // Visit condition
+      node.getCondition().accept(this);
+
+      // Visit then branch
+      if (!this.shouldStop) {
+        node.getThenBranch().accept(this);
+      }
+
+      // Visit else branch
+      if (!this.shouldStop) {
+        node.getElseBranch().accept(this);
+      }
     }
 
     this.shouldSkip = false;

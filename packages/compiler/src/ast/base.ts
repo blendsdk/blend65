@@ -42,6 +42,7 @@ import type {
   SequentialStructMapDecl,
   SimpleMapDecl,
   SwitchStatement,
+  TernaryExpression,
   TypeDecl,
   UnaryExpression,
   VariableDecl,
@@ -196,6 +197,14 @@ export enum ASTNodeType {
    * e.g., "-x", "!flag", "~mask"
    */
   UNARY_EXPR = 'UnaryExpression',
+
+  /**
+   * Ternary conditional expression
+   * e.g., "condition ? thenExpr : elseExpr"
+   *
+   * Right-associative: a ? b : c ? d : e → a ? b : (c ? d : e)
+   */
+  TERNARY_EXPR = 'TernaryExpression',
 
   /**
    * Literal expression (constant value)
@@ -759,6 +768,13 @@ export interface ASTVisitor<R> {
    * @returns Result of visiting this node
    */
   visitUnaryExpression(node: UnaryExpression): R;
+
+  /**
+   * Visit a Ternary conditional expression (e.g., condition ? a : b)
+   * @param node - The ternary expression to visit
+   * @returns Result of visiting this node
+   */
+  visitTernaryExpression(node: TernaryExpression): R;
 
   /**
    * Visit a Literal expression (e.g., 42, "hello", true)

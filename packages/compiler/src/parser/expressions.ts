@@ -20,6 +20,7 @@ import {
   IndexExpression,
   LiteralExpression,
   MemberExpression,
+  TernaryExpression,
   UnaryExpression,
   DiagnosticCode,
 } from '../ast/index.js';
@@ -211,6 +212,13 @@ export abstract class ExpressionParser extends BaseParser {
       const operator = this.getCurrentToken().type;
       const precedence = this.getCurrentPrecedence();
 
+      // Special handling for ternary conditional operator
+      // Ternary has unique syntax: condition ? thenExpr : elseExpr
+      if (operator === TokenType.QUESTION) {
+        left = this.parseTernaryExpression(left);
+        continue;
+      }
+
       this.advance(); // Consume operator
 
       // For right-associative operators (like =), use same precedence
@@ -240,6 +248,53 @@ export abstract class ExpressionParser extends BaseParser {
     }
 
     return left;
+  }
+
+  // ============================================
+  // TERNARY EXPRESSION PARSING
+  // ============================================
+
+  /**
+   * Parses a ternary conditional expression
+   *
+   * Ternary expressions have the form: condition ? thenBranch : elseBranch
+   * They are right-associative: a ? b : c ? d : e → a ? b : (c ? d : e)
+   *
+   * Grammar: conditional_expr = logical_or_expr , [ "?" , expression , ":" , conditional_expr ] ;
+   *
+   * Examples:
+   * - (a > b) ? a : b          // Simple comparison
+   * - isValid ? compute() : defaultValue  // With function calls
+   * - (score > 90) ? "A" : (score > 80) ? "B" : "C"  // Nested (right-associative)
+   *
+   * Note: On 6502, this compiles to the same branch code as if-else (no performance difference).
+   *
+   * @param condition - The already-parsed condition expression
+   * @returns TernaryExpression AST node
+   */
+  protected parseTernaryExpression(condition: Expression): TernaryExpression {
+    // Consume '?'
+    this.expect(TokenType.QUESTION, "Expected '?' in ternary expression");
+
+    // Parse 'then' branch expression
+    // Use TERNARY + 1 precedence to prevent ternary in then branch binding
+    // This allows: a ? b : c ? d : e to parse as a ? b : (c ? d : e)
+    const thenBranch = this.parseExpression(OperatorPrecedence.TERNARY + 1);
+
+    // Expect ':'
+    if (!this.match(TokenType.COLON)) {
+      this.reportError(DiagnosticCode.EXPECTED_TOKEN, "Expected ':' in ternary expression");
+    }
+
+    // Parse 'else' branch expression
+    // Use TERNARY precedence to allow chained ternaries (right-associative)
+    // This makes: a ? b : c ? d : e parse as a ? b : (c ? d : e)
+    const elseBranch = this.parseExpression(OperatorPrecedence.TERNARY);
+
+    // Create location spanning from condition to else branch
+    const location = this.mergeLocations(condition.getLocation(), elseBranch.getLocation());
+
+    return new TernaryExpression(condition, thenBranch, elseBranch, location);
   }
 
   /**

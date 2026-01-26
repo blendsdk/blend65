@@ -1,4 +1,4 @@
-module HelloWorld;
+module HelloWorld
 
 // C64 Hardware registers
 @map screenRAM from $0400 to $07E7: byte;

@@ -32,6 +32,7 @@ import {
   EnumDecl,
   BinaryExpression,
   UnaryExpression,
+  TernaryExpression,
   LiteralExpression,
   IdentifierExpression,
   CallExpression,
@@ -203,6 +204,16 @@ export function isBinaryExpression(node: ASTNode | null | undefined): node is Bi
  */
 export function isUnaryExpression(node: ASTNode | null | undefined): node is UnaryExpression {
   return node instanceof UnaryExpression;
+}
+
+/**
+ * Type guard for TernaryExpression nodes (condition ? then : else)
+ *
+ * @param node - AST node to check
+ * @returns True if node is a TernaryExpression
+ */
+export function isTernaryExpression(node: ASTNode | null | undefined): node is TernaryExpression {
+  return node instanceof TernaryExpression;
 }
 
 /**

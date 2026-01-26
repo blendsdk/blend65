@@ -27,6 +27,7 @@ import {
   ExplicitStructMapDecl,
   BinaryExpression,
   UnaryExpression,
+  TernaryExpression,
   LiteralExpression,
   IdentifierExpression,
   CallExpression,
@@ -378,6 +379,46 @@ export abstract class ASTTransformer implements ASTVisitor<ASTNode> {
    */
   visitUnaryExpression(node: UnaryExpression): ASTNode {
     return node;
+  }
+
+  /**
+   * Transform Ternary conditional expression
+   *
+   * Default: Recursively transforms condition, then, and else branches
+   * Override to transform branches or perform optimizations
+   *
+   * Example transformation (constant condition folding):
+   * ```typescript
+   * visitTernaryExpression(node: TernaryExpression): ASTNode {
+   *   const condition = node.getCondition().accept(this) as Expression;
+   *   // If condition is a constant true/false, return the appropriate branch
+   *   if (isLiteralBoolean(condition)) {
+   *     return condition.getValue() ? node.getThenBranch() : node.getElseBranch();
+   *   }
+   *   return node;
+   * }
+   * ```
+   *
+   * @param node - Ternary expression to transform
+   * @returns Transformed expression
+   */
+  visitTernaryExpression(node: TernaryExpression): ASTNode {
+    // Transform condition and branches
+    const condition = node.getCondition().accept(this) as Expression;
+    const thenBranch = node.getThenBranch().accept(this) as Expression;
+    const elseBranch = node.getElseBranch().accept(this) as Expression;
+
+    // Return original if nothing changed
+    if (
+      condition === node.getCondition() &&
+      thenBranch === node.getThenBranch() &&
+      elseBranch === node.getElseBranch()
+    ) {
+      return node;
+    }
+
+    // Create new TernaryExpression with transformed parts
+    return new TernaryExpression(condition, thenBranch, elseBranch, node.getLocation());
   }
 
   /**

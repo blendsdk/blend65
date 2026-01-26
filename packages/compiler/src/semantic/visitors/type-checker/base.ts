@@ -22,6 +22,7 @@ import type {
   ArrayLiteralExpression,
   BinaryExpression,
   UnaryExpression,
+  TernaryExpression,
   AssignmentExpression,
   CallExpression,
   IndexExpression,
@@ -33,6 +34,7 @@ import {
   isIdentifierExpression,
   isBinaryExpression,
   isUnaryExpression,
+  isTernaryExpression,
   isAssignmentExpression,
   isCallExpression,
   isIndexExpression,
@@ -123,6 +125,8 @@ export abstract class TypeCheckerBase extends ContextWalker {
       this.visitBinaryExpression(expr);
     } else if (isUnaryExpression(expr)) {
       this.visitUnaryExpression(expr);
+    } else if (isTernaryExpression(expr)) {
+      this.visitTernaryExpression(expr);
     } else if (isAssignmentExpression(expr)) {
       this.visitAssignmentExpression(expr);
     } else if (isCallExpression(expr)) {
@@ -309,6 +313,7 @@ export abstract class TypeCheckerBase extends ContextWalker {
   public abstract visitIdentifierExpression(node: IdentifierExpression): void;
   public abstract visitBinaryExpression(node: BinaryExpression): void;
   public abstract visitUnaryExpression(node: UnaryExpression): void;
+  public abstract visitTernaryExpression(node: TernaryExpression): void;
   public abstract visitAssignmentExpression(node: AssignmentExpression): void;
   public abstract visitCallExpression(node: CallExpression): void;
   public abstract visitIndexExpression(node: IndexExpression): void;

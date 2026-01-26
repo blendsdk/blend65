@@ -58,23 +58,23 @@ This plan covers the comprehensive refactor of Blend65's syntax from VB/Pascal-s
 
 ## Quick Reference: Syntax Changes
 
-| Element | Current (VB-style) | New (C-style) |
-|---------|-------------------|---------------|
-| Module | `module A.B` | `module A.B;` |
-| Import | `import A from B` | `import { A } from B;` |
-| Function | `function f() ... end function` | `function f() { ... }` |
-| If | `if x then ... end if` | `if (x) { ... }` |
-| Else if | `elseif x then` | `else if (x) {` |
-| While | `while x ... end while` | `while (x) { ... }` |
-| For | `for i = 0 to 10 ... next i` | `for (i = 0 to 10) { ... }` |
-| For (new) | — | `for (i = 0 to 10 step 2) { ... }` |
-| For (new) | — | `for (i = 10 downto 0) { ... }` |
-| Do-While | — (NEW) | `do { ... } while (cond);` |
-| Match | `match x ... end match` | `switch (x) { ... }` |
-| Enum | `enum E ... end enum` | `enum E { ... }` |
-| @map type | `@map x type ... end @map` | `@map x type { ... }` |
-| @map layout | `@map x layout ... end @map` | `@map x layout { ... }` |
-| Ternary | — (NEW) | `cond ? a : b` |
+| Element | Current (VB-style) | New (C-style) | Status |
+|---------|-------------------|---------------|--------|
+| Module | `module A.B` | `module A.B;` | ✅ |
+| Import | `import A from B` | `import { A } from B;` | ✅ |
+| Function | `function f() ... end function` | `function f() { ... }` | ✅ |
+| If | `if x then ... end if` | `if (x) { ... }` | ✅ |
+| Else if | `elseif x then` | `else if (x) {` | ✅ |
+| While | `while x ... end while` | `while (x) { ... }` | ✅ |
+| For | `for i = 0 to 10 ... next i` | `for (i = 0 to 10) { ... }` | ✅ |
+| For (new) | — | `for (i = 0 to 10 step 2) { ... }` | ✅ |
+| For (new) | — | `for (i = 10 downto 0) { ... }` | ✅ |
+| Do-While | — (NEW) | `do { ... } while (cond);` | ✅ |
+| Match | `match x ... end match` | `switch (x) { ... }` | ✅ |
+| Enum | `enum E ... end enum` | `enum E { ... }` | ✅ |
+| @map type | `@map x type ... end @map` | `@map x type { ... }` | ✅ |
+| @map layout | `@map x layout ... end @map` | `@map x layout { ... }` | ✅ |
+| Ternary | — (NEW) | `cond ? a : b` | ✅ |
 
 ## Implementation Order
 
