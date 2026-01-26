@@ -1,7 +1,7 @@
 # Module System
 
-> **Status**: Lexer-Derived Specification  
-> **Last Updated**: January 8, 2026  
+> **Status**: C-Style Syntax Specification  
+> **Last Updated**: January 25, 2026  
 > **Related Documents**: [Program Structure](03-program-structure.md), [Functions](11-functions.md)
 
 ## Overview
@@ -10,12 +10,12 @@ Blend65 uses a module system to organize code into logical units and manage depe
 
 ## Module Declaration
 
-Every Blend65 source file must begin with a module declaration (or the parser will synthesize `module global` implicitly).
+Every Blend65 source file must begin with a module declaration (or the parser will synthesize `module global;` implicitly).
 
 ### Syntax
 
 ```ebnf
-module_decl = "module" , name ;
+module_decl = "module" , name , ";" ;
 name = identifier , { "." , identifier } ;
 ```
 
@@ -23,14 +23,14 @@ name = identifier , { "." , identifier } ;
 
 **Simple module:**
 ```js
-module Main
+module Main;
 ```
 
 **Hierarchical module:**
 ```js
-module Game.Snake
-module c64.graphics.screen
-module Utils.Math
+module Game.Snake;
+module c64.graphics.screen;
+module Utils.Math;
 ```
 
 ### Module Names
@@ -45,13 +45,14 @@ Module names are **dot-separated** identifiers forming a hierarchical namespace:
 - Module names are case-sensitive
 - Each component must be a valid identifier
 - No limit on nesting depth
+- Must end with a semicolon
 
 ### Implicit Module
 
 If no explicit `module` declaration is present, the parser synthesizes:
 
 ```js
-module global
+module global;
 ```
 
 However, declaring an explicit `module` after the implicit one results in `DuplicateModuleDeclaration` error. It's **strongly recommended** to always declare modules explicitly.
@@ -61,12 +62,12 @@ However, declaring an explicit `module` after the implicit one results in `Dupli
 Blend65 uses **dot notation** for qualified names when referring to members from other modules:
 
 ```js
-import setSpritePosition from c64.sprites
-import clearScreen from c64.graphics.screen
+import { setSpritePosition } from c64.sprites;
+import { clearScreen } from c64.graphics.screen;
 
 // Usage
-c64.sprites.setSpritePosition(0, 100, 50)
-c64.graphics.screen.clearScreen()
+c64.sprites.setSpritePosition(0, 100, 50);
+c64.graphics.screen.clearScreen();
 ```
 
 ### Member Access
@@ -76,13 +77,13 @@ Within a module, members can be accessed:
 - **Via qualified names** (from other modules, if imported)
 
 ```js
-module Game.Main
+module Game.Main;
 
 @zp let score: word = 0;
 
-function updateScore(): void
+function updateScore(): void {
   score += 10;  // Direct access within same module
-end function
+}
 ```
 
 ## Import System
@@ -92,22 +93,22 @@ The `import` statement brings names from other modules into the current scope.
 ### Syntax
 
 ```ebnf
-import_decl = "import" , import_list , "from" , name ;
+import_decl = "import" , "{" , import_list , "}" , "from" , name , ";" ;
 import_list = identifier , { "," , identifier } ;
 ```
 
 ### Importing Single Items
 
 ```js
-import clearScreen from c64.graphics
-import setSpritePosition from c64.sprites
+import { clearScreen } from c64.graphics;
+import { setSpritePosition } from c64.sprites;
 ```
 
 ### Importing Multiple Items
 
 ```js
-import clearScreen, setPixel, drawLine from c64.graphics.screen
-import initSID, playNote, stopSound from c64.audio
+import { clearScreen, setPixel, drawLine } from c64.graphics.screen;
+import { initSID, playNote, stopSound } from c64.audio;
 ```
 
 ### Import Behavior
@@ -120,30 +121,30 @@ Imports are:
 **Example:**
 
 ```js
-module Game.Main
+module Game.Main;
 
 // Import only what you need
-import clearScreen, setPixel from c64.graphics
-import setSpritePosition from c64.sprites
+import { clearScreen, setPixel } from c64.graphics;
+import { setSpritePosition } from c64.sprites;
 
-export function main(): void
+export function main(): void {
   clearScreen();
   setPixel(10, 10);
   setSpritePosition(0, 100, 50);
-end function
+}
 ```
 
 ### Import Errors
 
 **Importing non-existent names:**
 ```js
-import nonExistent from c64.graphics  // Error: 'nonExistent' not found
+import { nonExistent } from c64.graphics;  // Error: 'nonExistent' not found
 ```
 
 **Duplicate imports:**
 ```js
-import clearScreen from c64.graphics
-import clearScreen from c64.other  // Error: Name conflict
+import { clearScreen } from c64.graphics;
+import { clearScreen } from c64.other;  // Error: Name conflict
 ```
 
 ## Export System
@@ -160,14 +161,14 @@ export_decl = "export" , ( function_decl | variable_decl | type_decl | enum_decl
 
 ```js
 // Export function declaration
-export function clearScreen(): void
+export function clearScreen(): void {
   // ...
-end function
+}
 
 // Export callback function
-export callback function rasterIRQ(): void
+export callback function rasterIRQ(): void {
   // ...
-end function
+}
 ```
 
 ### Exporting Variables
@@ -187,9 +188,11 @@ export @zp let frameCounter: byte = 0;
 export type SpriteId = byte;
 
 // Export enum
-export enum GameState
-  MENU, PLAYING, PAUSED
-end enum
+export enum GameState {
+  MENU,
+  PLAYING,
+  PAUSED
+}
 ```
 
 ### Entry Point: main Function
@@ -197,9 +200,9 @@ end enum
 The **entry point** of a Blend65 program is the `main` function. It must be exported:
 
 ```js
-export function main(): void
+export function main(): void {
   // Entry point - program starts here
-end function
+}
 ```
 
 If `main` is declared without `export`, the parser automatically marks it as exported and emits an `ImplicitMainExport` warning.
@@ -211,17 +214,17 @@ If `main` is declared without `export`, the parser automatically marks it as exp
 Re-exporting previously imported names is **not currently supported**:
 
 ```js
-import foo from some.lib
-export foo  // ❌ Error: ReExportNotSupported
+import { foo } from some.lib;
+export foo;  // ❌ Error: ReExportNotSupported
 ```
 
 **Workaround:**
 ```js
-import foo from some.lib
+import { foo } from some.lib;
 
-export function myFoo(): void
+export function myFoo(): void {
   foo();  // Wrap the imported function
-end function
+}
 ```
 
 ## Module Resolution
@@ -235,21 +238,21 @@ Blend65 uses a **file-based module system**:
 **Example file structure:**
 ```
 src/
-  main.b65          → module Main
+  main.b65          → module Main;
   game/
-    snake.b65       → module game.snake
+    snake.b65       → module game.snake;
   c64/
-    graphics.b65    → module c64.graphics
-    sprites.b65     → module c64.sprites
+    graphics.b65    → module c64.graphics;
+    sprites.b65     → module c64.sprites;
 ```
 
 **Imports:**
 ```js
 // In main.b65
-module Main
+module Main;
 
-import update from game.snake
-import clearScreen from c64.graphics
+import { update } from game.snake;
+import { clearScreen } from c64.graphics;
 ```
 
 ## Visibility Rules
@@ -259,11 +262,11 @@ import clearScreen from c64.graphics
 Members marked with `export` are visible to other modules:
 
 ```js
-module Utils.Math
+module Utils.Math;
 
-export function abs(x: byte): byte
+export function abs(x: byte): byte {
   // ...
-end function
+}
 
 export const PI: byte = 3;  // Approximation for 8-bit
 ```
@@ -273,24 +276,24 @@ export const PI: byte = 3;  // Approximation for 8-bit
 Members without `export` are private to the module:
 
 ```js
-module Utils.Math
+module Utils.Math;
 
 // Private helper function
-function internalHelper(x: byte): byte
+function internalHelper(x: byte): byte {
   // Only accessible within Utils.Math
-end function
+}
 
 // Public function
-export function publicAPI(x: byte): byte
+export function publicAPI(x: byte): byte {
   return internalHelper(x);
-end function
+}
 ```
 
 ## Complete Example
 
 **File: c64/graphics.b65**
 ```js
-module c64.graphics
+module c64.graphics;
 
 // Memory-mapped screen and color RAM
 @map screenRAM from $0400 to $07E7: byte;
@@ -300,39 +303,39 @@ module c64.graphics
 const SCREEN_WIDTH: byte = 40;
 
 // Exported functions
-export function clearScreen(): void
-  for i = 0 to 999
+export function clearScreen(): void {
+  for (i = 0 to 999) {
     screenRAM[i] = 32;  // Space character
     colorRAM[i] = 14;   // Light blue
-  next i
-end function
+  }
+}
 
-export function setPixel(x: byte, y: byte): void
+export function setPixel(x: byte, y: byte): void {
   let offset: word = y * SCREEN_WIDTH + x;
   screenRAM[offset] = 160;  // Filled block character
-end function
+}
 ```
 
 **File: game.b65**
 ```js
-module Game.Main
+module Game.Main;
 
 // Import from c64.graphics
-import clearScreen, setPixel from c64.graphics
+import { clearScreen, setPixel } from c64.graphics;
 
 // Game variables
 @zp let playerX: byte = 10;
 @zp let playerY: byte = 10;
 
-function init(): void
+function init(): void {
   clearScreen();
   setPixel(playerX, playerY);
-end function
+}
 
-export function main(): void
+export function main(): void {
   init();
   // Game loop...
-end function
+}
 ```
 
 ## Module System Best Practices
@@ -342,11 +345,11 @@ end function
 Organize related modules under common prefixes:
 
 ```js
-module c64.graphics.screen
-module c64.graphics.sprites
-module c64.audio.sid
-module game.snake.logic
-module game.snake.rendering
+module c64.graphics.screen;
+module c64.graphics.sprites;
+module c64.audio.sid;
+module game.snake.logic;
+module game.snake.rendering;
 ```
 
 ### 2. Import Only What You Need
@@ -355,10 +358,10 @@ Don't import unnecessary names:
 
 ```js
 // ✅ GOOD: Import only what you use
-import clearScreen from c64.graphics
+import { clearScreen } from c64.graphics;
 
 // ❌ AVOID: Importing unused names
-import clearScreen, setPixel, drawLine, fillRect from c64.graphics
+import { clearScreen, setPixel, drawLine, fillRect } from c64.graphics;
 // (when you only use clearScreen)
 ```
 
@@ -367,17 +370,17 @@ import clearScreen, setPixel, drawLine, fillRect from c64.graphics
 Only export the public API:
 
 ```js
-module Utils.Math
+module Utils.Math;
 
 // Private helpers (not exported)
-function square(x: byte): byte
+function square(x: byte): byte {
   return x * x;
-end function
+}
 
 // Public API (exported)
-export function distance(x1: byte, y1: byte, x2: byte, y2: byte): byte
+export function distance(x1: byte, y1: byte, x2: byte, y2: byte): byte {
   // Implementation uses private helpers
-end function
+}
 ```
 
 ### 4. One Entry Point Per Program
@@ -386,23 +389,23 @@ Have exactly one `main` function across all modules:
 
 ```js
 // In your main game file
-export function main(): void
+export function main(): void {
   // Entry point
-end function
+}
 ```
 
 ### 5. Group Related Imports
 
 ```js
 // ✅ GOOD: Grouped by module
-import clearScreen, setPixel from c64.graphics
-import setSpritePosition, setSpriteColor from c64.sprites
-import playNote, stopSound from c64.audio
+import { clearScreen, setPixel } from c64.graphics;
+import { setSpritePosition, setSpriteColor } from c64.sprites;
+import { playNote, stopSound } from c64.audio;
 
 // ❌ AVOID: Scattered imports
-import clearScreen from c64.graphics
-import setSpritePosition from c64.sprites
-import setPixel from c64.graphics
+import { clearScreen } from c64.graphics;
+import { setSpritePosition } from c64.sprites;
+import { setPixel } from c64.graphics;
 ```
 
 ## Module System Limitations

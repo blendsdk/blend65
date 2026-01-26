@@ -42,10 +42,10 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Basic Initialization Detection', () => {
     it('should allow using initialized variable', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -54,10 +54,10 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should detect use before initialization', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -67,11 +67,11 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should allow use after assignment', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte;
           x = 10;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -80,13 +80,13 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should handle multiple variables independently', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let a: byte = 1;
           let b: byte;
           let c: byte = a;
           b = 2;
           let d: byte = b;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -97,13 +97,13 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Conditional Initialization', () => {
     it('should detect uninitialized use when only one branch initializes', () => {
       const source = `
-        function test(condition: boolean): void
+        function test(condition: boolean): void {
           let x: byte;
-          if condition then
+          if (condition) {
             x = 10;
-          end if
+          }
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -113,15 +113,15 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should allow use when both branches initialize', () => {
       const source = `
-        function test(condition: boolean): void
+        function test(condition: boolean): void {
           let x: byte;
-          if condition then
+          if (condition) {
             x = 10;
-          else
+          } else {
             x = 20;
-          end if
+          }
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -130,19 +130,19 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should handle nested conditionals', () => {
       const source = `
-        function test(a: boolean, b: boolean): void
+        function test(a: boolean, b: boolean): void {
           let x: byte;
-          if a then
-            if b then
+          if (a) {
+            if (b) {
               x = 10;
-            else
+            } else {
               x = 20;
-            end if
-          else
+            }
+          } else {
             x = 30;
-          end if
+          }
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -153,12 +153,12 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Loop Initialization', () => {
     it('should detect uninitialized use before loop', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte;
-          while x < 10
+          while (x < 10) {
             x = x + 1;
-          end while
-        end function
+          }
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -167,12 +167,12 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should allow use when initialized before loop', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 0;
-          while x < 10
+          while (x < 10) {
             x = x + 1;
-          end while
-        end function
+          }
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -181,13 +181,13 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should detect uninitialized use after loop when not initialized on all paths', () => {
       const source = `
-        function test(condition: boolean): void
+        function test(condition: boolean): void {
           let x: byte;
-          while condition
+          while (condition) {
             x = 10;
-          end while
+          }
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -199,13 +199,13 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Return Statements', () => {
     it('should allow early return with initialized variable', () => {
       const source = `
-        function test(condition: boolean): byte
+        function test(condition: boolean): byte {
           let x: byte = 10;
-          if condition then
+          if (condition) {
             return x;
-          end if
+          }
           return 0;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -214,10 +214,10 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should detect uninitialized use in return', () => {
       const source = `
-        function test(): byte
+        function test(): byte {
           let x: byte;
           return x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -226,16 +226,16 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should handle multiple return paths', () => {
       const source = `
-        function test(condition: boolean): byte
+        function test(condition: boolean): byte {
           let x: byte;
-          if condition then
+          if (condition) {
             x = 10;
             return x;
-          else
+          } else {
             x = 20;
             return x;
-          end if
-        end function
+          }
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -246,10 +246,10 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Metadata Generation', () => {
     it('should mark always-initialized variables', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -273,10 +273,10 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should store constant initialization values', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 42;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -298,10 +298,10 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should mark uninitialized use nodes', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -332,25 +332,25 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Complex Control Flow', () => {
     it('should handle complex branching', () => {
       const source = `
-        function test(a: boolean, b: boolean, c: boolean): void
+        function test(a: boolean, b: boolean, c: boolean): void {
           let x: byte;
 
-          if a then
-            if b then
+          if (a) {
+            if (b) {
               x = 1;
-            else
-              if c then
+            } else {
+              if (c) {
                 x = 2;
-              else
+              } else {
                 x = 3;
-              end if
-            end if
-          else
+              }
+            }
+          } else {
             x = 4;
-          end if
+          }
 
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -359,19 +359,19 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should detect missing initialization in complex branches', () => {
       const source = `
-        function test(a: boolean, b: boolean): void
+        function test(a: boolean, b: boolean): void {
           let x: byte;
 
-          if a then
-            if b then
+          if (a) {
+            if (b) {
               x = 1;
-            end if
-          else
+            }
+          } else {
             x = 2;
-          end if
+          }
 
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -381,18 +381,18 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should handle loops with breaks', () => {
       const source = `
-        function test(condition: boolean): void
+        function test(condition: boolean): void {
           let x: byte = 0;
 
-          while x < 10
-            if condition then
+          while (x < 10) {
+            if (condition) {
               break;
-            end if
+            }
             x = x + 1;
-          end while
+          }
 
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -403,9 +403,9 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Parameter Initialization', () => {
     it('should treat parameters as initialized', () => {
       const source = `
-        function test(x: byte): byte
+        function test(x: byte): byte {
           return x + 1;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -414,11 +414,11 @@ describe('DefiniteAssignmentAnalyzer', () => {
 
     it('should handle both parameters and local variables', () => {
       const source = `
-        function test(x: byte): byte
+        function test(x: byte): byte {
           let y: byte;
           y = x + 1;
           return y;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -429,12 +429,12 @@ describe('DefiniteAssignmentAnalyzer', () => {
   describe('Assignment in Expressions', () => {
     it('should track assignments in complex expressions', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte;
           let y: byte;
           y = (x = 10);
           let z: byte = x + y;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);

@@ -1,14 +1,13 @@
 /**
- * Tests for elseif statement parsing
+ * Tests for else if statement parsing
  *
- * The elseif keyword is syntactic sugar that desugars to nested if-else
- * during parsing. This test suite verifies:
- * - Basic elseif functionality
- * - Multiple elseif chains
- * - Elseif without else
- * - Nested if statements with elseif
- * - Error handling (elseif after else)
- * - Complex expressions in elseif conditions
+ * This test suite verifies:
+ * - Basic else if functionality
+ * - Multiple else if chains
+ * - Else if without else
+ * - Nested if statements with else if
+ * - Error handling (else if after else)
+ * - Complex expressions in else if conditions
  */
 
 import { describe, test, expect } from 'vitest';
@@ -17,7 +16,7 @@ import { Parser } from '../../parser/parser.js';
 import { IfStatement } from '../../ast/nodes.js';
 import { isIfStatement } from '../../ast/type-guards.js';
 
-describe('elseif statement parsing', () => {
+describe('else if statement parsing', () => {
   /**
    * Helper function to parse source code and return the first statement
    */
@@ -31,20 +30,20 @@ describe('elseif statement parsing', () => {
   }
 
   // ============================================
-  // BASIC ELSEIF TESTS
+  // BASIC ELSE IF TESTS
   // ============================================
 
-  test('parses simple if-elseif-else', () => {
+  test('parses simple if-else if-else', () => {
     const source = `
-      function test(): void
-        if x > 10 then
+      function test(): void {
+        if (x > 10) {
           a();
-        elseif x > 5 then
+        } else if (x > 5) {
           b();
-        else
+        } else {
           c();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -53,28 +52,28 @@ describe('elseif statement parsing', () => {
     expect(ifStmt.getNodeType()).toBe('IfStatement');
     expect(ifStmt.getThenBranch().length).toBe(1);
 
-    // Else branch contains nested if (desugared elseif)
+    // Else branch contains nested if (else if)
     const elseBranch = ifStmt.getElseBranch();
     expect(elseBranch).not.toBeNull();
     expect(elseBranch!.length).toBe(1);
     expect(elseBranch![0].getNodeType()).toBe('IfStatement');
 
-    // Nested if (the elseif)
+    // Nested if (the else if)
     const nestedIf = elseBranch![0] as IfStatement;
     expect(nestedIf.getThenBranch().length).toBe(1);
     expect(nestedIf.getElseBranch()).not.toBeNull();
     expect(nestedIf.getElseBranch()!.length).toBe(1);
   });
 
-  test('parses if-elseif without else', () => {
+  test('parses if-else if without else', () => {
     const source = `
-      function test(): void
-        if x > 10 then
+      function test(): void {
+        if (x > 10) {
           big();
-        elseif x > 5 then
+        } else if (x > 5) {
           medium();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -82,7 +81,7 @@ describe('elseif statement parsing', () => {
     expect(ifStmt.getNodeType()).toBe('IfStatement');
     expect(ifStmt.getThenBranch().length).toBe(1);
 
-    // Else branch contains nested if (desugared elseif)
+    // Else branch contains nested if (else if)
     const elseBranch = ifStmt.getElseBranch();
     expect(elseBranch).not.toBeNull();
     expect(elseBranch!.length).toBe(1);
@@ -94,24 +93,24 @@ describe('elseif statement parsing', () => {
   });
 
   // ============================================
-  // MULTIPLE ELSEIF CHAINS
+  // MULTIPLE ELSE IF CHAINS
   // ============================================
 
-  test('parses multiple elseif branches', () => {
+  test('parses multiple else if branches', () => {
     const source = `
-      function test(): void
-        if x == 1 then
+      function test(): void {
+        if (x == 1) {
           one();
-        elseif x == 2 then
+        } else if (x == 2) {
           two();
-        elseif x == 3 then
+        } else if (x == 3) {
           three();
-        elseif x == 4 then
+        } else if (x == 4) {
           four();
-        else
+        } else {
           other();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -119,18 +118,18 @@ describe('elseif statement parsing', () => {
     // Main if
     expect(ifStmt.getNodeType()).toBe('IfStatement');
 
-    // First elseif (nested in else branch)
+    // First else if (nested in else branch)
     let currentElse = ifStmt.getElseBranch();
     expect(currentElse).not.toBeNull();
     expect(currentElse![0].getNodeType()).toBe('IfStatement');
 
-    // Second elseif
+    // Second else if
     let nestedIf = currentElse![0] as IfStatement;
     currentElse = nestedIf.getElseBranch();
     expect(currentElse).not.toBeNull();
     expect(currentElse![0].getNodeType()).toBe('IfStatement');
 
-    // Third elseif
+    // Third else if
     nestedIf = currentElse![0] as IfStatement;
     currentElse = nestedIf.getElseBranch();
     expect(currentElse).not.toBeNull();
@@ -143,23 +142,23 @@ describe('elseif statement parsing', () => {
     expect(currentElse![0].getNodeType()).toBe('ExpressionStatement');
   });
 
-  test('parses long elseif chain (5+ branches)', () => {
+  test('parses long else if chain (5+ branches)', () => {
     const source = `
-      function test(): void
-        if x == 1 then
+      function test(): void {
+        if (x == 1) {
           one();
-        elseif x == 2 then
+        } else if (x == 2) {
           two();
-        elseif x == 3 then
+        } else if (x == 3) {
           three();
-        elseif x == 4 then
+        } else if (x == 4) {
           four();
-        elseif x == 5 then
+        } else if (x == 5) {
           five();
-        elseif x == 6 then
+        } else if (x == 6) {
           six();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -182,22 +181,22 @@ describe('elseif statement parsing', () => {
   });
 
   // ============================================
-  // NESTED IF STATEMENTS WITH ELSEIF
+  // NESTED IF STATEMENTS WITH ELSE IF
   // ============================================
 
-  test('parses nested if statements with elseif', () => {
+  test('parses nested if statements with else if', () => {
     const source = `
-      function test(): void
-        if outer then
-          if inner then
+      function test(): void {
+        if (outer) {
+          if (inner) {
             a();
-          elseif innerElse then
+          } else if (innerElse) {
             b();
-          end if
-        elseif outerElse then
+          }
+        } else if (outerElse) {
           c();
-        end if
-      end function
+        }
+      }
     `;
 
     const outerIf = parseFirstStatement(source);
@@ -210,32 +209,32 @@ describe('elseif statement parsing', () => {
     expect(outerThen.length).toBe(1);
     expect(outerThen[0].getNodeType()).toBe('IfStatement');
 
-    // Inner if has elseif (nested structure)
+    // Inner if has else if (nested structure)
     const innerIf = outerThen[0] as IfStatement;
     expect(innerIf.getElseBranch()).not.toBeNull();
     expect(innerIf.getElseBranch()![0].getNodeType()).toBe('IfStatement');
 
-    // Outer elseif
+    // Outer else if
     const outerElse = outerIf.getElseBranch();
     expect(outerElse).not.toBeNull();
     expect(outerElse![0].getNodeType()).toBe('IfStatement');
   });
 
   // ============================================
-  // COMPLEX EXPRESSIONS IN ELSEIF
+  // COMPLEX EXPRESSIONS IN ELSE IF
   // ============================================
 
-  test('parses complex conditions in elseif', () => {
+  test('parses complex conditions in else if', () => {
     const source = `
-      function test(): void
-        if x > 10 && y < 5 then
+      function test(): void {
+        if (x > 10 && y < 5) {
           a();
-        elseif (x + y) == 15 then
+        } else if ((x + y) == 15) {
           b();
-        elseif x * 2 > y then
+        } else if (x * 2 > y) {
           c();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -249,17 +248,17 @@ describe('elseif statement parsing', () => {
     expect(firstElseif.getCondition().getNodeType()).toBe('BinaryExpression');
   });
 
-  test('parses elseif with function calls in condition', () => {
+  test('parses else if with function calls in condition', () => {
     const source = `
-      function test(): void
-        if isValid() then
+      function test(): void {
+        if (isValid()) {
           valid();
-        elseif isError() then
+        } else if (isError()) {
           error();
-        elseif isWarning() then
+        } else if (isWarning()) {
           warning();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -274,22 +273,22 @@ describe('elseif statement parsing', () => {
   // MULTIPLE STATEMENTS IN BRANCHES
   // ============================================
 
-  test('parses elseif with multiple statements in branches', () => {
+  test('parses else if with multiple statements in branches', () => {
     const source = `
-      function test(): void
-        if x > 10 then
+      function test(): void {
+        if (x > 10) {
           a();
           b();
           c();
-        elseif x > 5 then
+        } else if (x > 5) {
           d();
           e();
-        else
+        } else {
           f();
           g();
           h();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -297,7 +296,7 @@ describe('elseif statement parsing', () => {
     // Then branch has 3 statements
     expect(ifStmt.getThenBranch().length).toBe(3);
 
-    // Elseif then branch has 2 statements
+    // Else if then branch has 2 statements
     const elseifStmt = ifStmt.getElseBranch()![0] as IfStatement;
     expect(elseifStmt.getThenBranch().length).toBe(2);
 
@@ -306,18 +305,18 @@ describe('elseif statement parsing', () => {
   });
 
   // ============================================
-  // ELSEIF WITH VARIOUS STATEMENT TYPES
+  // ELSE IF WITH VARIOUS STATEMENT TYPES
   // ============================================
 
-  test('parses elseif with variable declarations', () => {
+  test('parses else if with variable declarations', () => {
     const source = `
-      function test(): void
-        if x > 10 then
+      function test(): void {
+        if (x > 10) {
           let temp: byte = 10;
-        elseif x > 5 then
+        } else if (x > 5) {
           let result: word = 100;
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -328,17 +327,17 @@ describe('elseif statement parsing', () => {
     expect(elseifStmt.getThenBranch()[0].getNodeType()).toBe('VariableDecl');
   });
 
-  test('parses elseif with return statements', () => {
+  test('parses else if with return statements', () => {
     const source = `
-      function test(): byte
-        if x > 10 then
+      function test(): byte {
+        if (x > 10) {
           return 10;
-        elseif x > 5 then
+        } else if (x > 5) {
           return 5;
-        else
+        } else {
           return 0;
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -354,24 +353,24 @@ describe('elseif statement parsing', () => {
   // BACKWARD COMPATIBILITY
   // ============================================
 
-  test('parses traditional nested if-else (no elseif) unchanged', () => {
+  test('parses traditional nested if-else (no else if) unchanged', () => {
     const source = `
-      function test(): void
-        if x > 10 then
+      function test(): void {
+        if (x > 10) {
           big();
-        else
-          if x > 5 then
+        } else {
+          if (x > 5) {
             medium();
-          else
+          } else {
             small();
-          end if
-        end if
-      end function
+          }
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
 
-    // Structure should be identical to elseif version
+    // Structure should be identical to else if version
     expect(ifStmt.getNodeType()).toBe('IfStatement');
     expect(ifStmt.getElseBranch()).not.toBeNull();
     expect(ifStmt.getElseBranch()![0].getNodeType()).toBe('IfStatement');
@@ -381,14 +380,14 @@ describe('elseif statement parsing', () => {
   // EMPTY BRANCHES
   // ============================================
 
-  test('parses elseif with empty then branch', () => {
+  test('parses else if with empty then branch', () => {
     const source = `
-      function test(): void
-        if x > 10 then
-        elseif x > 5 then
+      function test(): void {
+        if (x > 10) {
+        } else if (x > 5) {
           doSomething();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -396,7 +395,7 @@ describe('elseif statement parsing', () => {
     // Empty then branch
     expect(ifStmt.getThenBranch().length).toBe(0);
 
-    // Elseif has statements
+    // Else if has statements
     const elseifStmt = ifStmt.getElseBranch()![0] as IfStatement;
     expect(elseifStmt.getThenBranch().length).toBe(1);
   });
@@ -405,19 +404,19 @@ describe('elseif statement parsing', () => {
   // INTEGRATION WITH OTHER CONTROL FLOW
   // ============================================
 
-  test('parses elseif with while loop inside', () => {
+  test('parses else if with while loop inside', () => {
     const source = `
-      function test(): void
-        if x > 10 then
-          while running
+      function test(): void {
+        if (x > 10) {
+          while (running) {
             process();
-          end while
-        elseif x > 5 then
-          while active
+          }
+        } else if (x > 5) {
+          while (active) {
             update();
-          end while
-        end if
-      end function
+          }
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -428,19 +427,19 @@ describe('elseif statement parsing', () => {
     expect(elseifStmt.getThenBranch()[0].getNodeType()).toBe('WhileStatement');
   });
 
-  test('parses elseif with for loop inside', () => {
+  test('parses else if with for loop inside', () => {
     const source = `
-      function test(): void
-        if mode == 1 then
-          for i = 0 to 10
+      function test(): void {
+        if (mode == 1) {
+          for (i = 0 to 10) {
             process(i);
-          next i
-        elseif mode == 2 then
-          for j = 0 to 5
+          }
+        } else if (mode == 2) {
+          for (j = 0 to 5) {
             update(j);
-          next j
-        end if
-      end function
+          }
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
@@ -455,28 +454,28 @@ describe('elseif statement parsing', () => {
   // REAL-WORLD PATTERNS
   // ============================================
 
-  test('parses game state machine with elseif', () => {
+  test('parses game state machine with else if', () => {
     const source = `
-      function updateGame(): void
-        if gameState == 0 then
+      function updateGame(): void {
+        if (gameState == 0) {
           showMenu();
-        elseif gameState == 1 then
+        } else if (gameState == 1) {
           playGame();
-        elseif gameState == 2 then
+        } else if (gameState == 2) {
           showPause();
-        elseif gameState == 3 then
+        } else if (gameState == 3) {
           showGameOver();
-        else
+        } else {
           reset();
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);
 
     expect(ifStmt.getNodeType()).toBe('IfStatement');
 
-    // Verify 5 total branches (1 if + 3 elseif + 1 else)
+    // Verify 5 total branches (1 if + 3 else if + 1 else)
     let branchCount = 1;
     let currentStmt: IfStatement | null = ifStmt;
 
@@ -493,21 +492,21 @@ describe('elseif statement parsing', () => {
     expect(branchCount).toBe(5);
   });
 
-  test('parses score evaluation with elseif', () => {
+  test('parses score evaluation with else if', () => {
     const source = `
-      function getRank(): byte
-        if score > 10000 then
+      function getRank(): byte {
+        if (score > 10000) {
           return 4;
-        elseif score > 5000 then
+        } else if (score > 5000) {
           return 3;
-        elseif score > 1000 then
+        } else if (score > 1000) {
           return 2;
-        elseif score > 0 then
+        } else if (score > 0) {
           return 1;
-        else
+        } else {
           return 0;
-        end if
-      end function
+        }
+      }
     `;
 
     const ifStmt = parseFirstStatement(source);

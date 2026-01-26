@@ -10,7 +10,7 @@ import { TypeCheckerLiterals } from './literals.js';
 import type { TypeInfo } from '../../types.js';
 import { TypeKind } from '../../types.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../../ast/diagnostics.js';
-import type { BinaryExpression, UnaryExpression } from '../../../ast/nodes.js';
+import type { BinaryExpression, UnaryExpression, TernaryExpression } from '../../../ast/nodes.js';
 import { TokenType } from '../../../lexer/types.js';
 
 /**
@@ -247,6 +247,81 @@ export abstract class TypeCheckerExpressions extends TypeCheckerLiterals {
         code: DiagnosticCode.TYPE_MISMATCH,
       });
       resultType = this.typeSystem.getBuiltinType('byte')!;
+    }
+
+    // Annotate node with result type
+    (node as any).typeInfo = resultType;
+  }
+
+  /**
+   * Visit TernaryExpression - type check condition and branches, determine result type
+   *
+   * Type rules for ternary operator (condition ? then : else):
+   * - Condition must be boolean (or boolean-compatible)
+   * - Then and else branches must have compatible types
+   * - Result type is the common type of both branches (larger numeric type if both numeric)
+   *
+   * The ternary operator is right-associative: a ? b : c ? d : e parses as a ? b : (c ? d : e)
+   */
+  public visitTernaryExpression(node: TernaryExpression): void {
+    // Type check the condition
+    const conditionType = this.typeCheckExpression(node.getCondition());
+
+    // Condition must be boolean
+    if (conditionType.kind !== TypeKind.Boolean) {
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: `Ternary condition must be boolean, got '${conditionType.name}'`,
+        location: node.getCondition().getLocation(),
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
+    }
+
+    // Type check both branches
+    const thenType = this.typeCheckExpression(node.getThenBranch());
+    const elseType = this.typeCheckExpression(node.getElseBranch());
+
+    // Determine result type - branches must be compatible
+    let resultType: TypeInfo;
+
+    // If branches are the same type, use that type
+    if (thenType.kind === elseType.kind) {
+      resultType = thenType;
+    }
+    // If both branches are numeric, result is the larger numeric type
+    else if (this.isNumericType(thenType) && this.isNumericType(elseType)) {
+      resultType = this.getLargerNumericType(thenType, elseType);
+    }
+    // Boolean cannot be mixed with numeric types - they are fundamentally incompatible
+    else if (
+      (thenType.kind === TypeKind.Boolean && this.isNumericType(elseType)) ||
+      (elseType.kind === TypeKind.Boolean && this.isNumericType(thenType))
+    ) {
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: `Ternary branches have incompatible types: '${thenType.name}' and '${elseType.name}'`,
+        location: node.getLocation(),
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
+      // Default to then branch type for error recovery
+      resultType = thenType;
+    }
+    // If one can be assigned to the other, use the target type
+    else if (this.typeSystem.canAssign(thenType, elseType)) {
+      resultType = thenType;
+    } else if (this.typeSystem.canAssign(elseType, thenType)) {
+      resultType = elseType;
+    }
+    // Otherwise, types are incompatible
+    else {
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: `Ternary branches have incompatible types: '${thenType.name}' and '${elseType.name}'`,
+        location: node.getLocation(),
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
+      // Default to then branch type for error recovery
+      resultType = thenType;
     }
 
     // Annotate node with result type

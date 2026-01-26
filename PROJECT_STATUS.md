@@ -1,6 +1,6 @@
 # Blend65 Project Status
 
-> **Last Updated:** January 25, 2026  
+> **Last Updated:** January 26, 2026  
 > **Version:** 0.1.0-alpha  
 > **Overall Progress:** ~75% Complete
 
@@ -46,6 +46,7 @@ Blend65 is a modern programming language and compiler designed specifically for 
    - Type annotations (`byte`, `word`, `bool`)
    - Hardware access (`@map` for memory-mapped I/O)
    - Modules and imports
+   - **Ternary expressions** (`condition ? then : else`)
 
 2. **Compile to Assembly**
    - The compiler generates ACME assembler output
@@ -60,15 +61,20 @@ Blend65 is a modern programming language and compiler designed specifically for 
 
 ```js
 // A simple Blend65 program
-module Main
+module Main;
 
 @map borderColor at $D020: byte;
 @map backgroundColor at $D021: byte;
 
-export function main(): void
+export function main(): void {
     borderColor = 0;      // Black border
     backgroundColor = 6;  // Blue background
-end function
+    
+    // Ternary operator for conditional values
+    let a: byte = 10;
+    let b: byte = 5;
+    let max: byte = (a > b) ? a : b;
+}
 ```
 
 ---
@@ -108,13 +114,38 @@ The optimizer will make your programs:
 | Semantic Analysis | 1,500+ | ✅ All Passing |
 | IL Generator | 2,000+ | ✅ All Passing |
 | Code Generator | 500+ | ✅ All Passing |
-| **Total** | **6,200+** | **✅ All Passing** |
+| E2E & Integration | 1,500+ | ✅ All Passing |
+| **Total** | **6,500+** | **✅ All Passing** |
 
 ### Code Quality
 - ✅ TypeScript for type safety
 - ✅ Comprehensive test suite
 - ✅ Modular architecture
 - ✅ Well-documented code
+
+---
+
+## Recently Completed
+
+### ✅ C-Style Syntax Refactor (January 2026)
+- Changed from VB/Pascal-style (`end if`, `end function`) to C/TypeScript-style (`{ }`)
+- All language constructs now use curly braces
+- Updated language specification and examples
+
+### ✅ Ternary Operator (January 2026)
+- Full support for `condition ? thenExpr : elseExpr`
+- Parser, semantic analyzer, IL generator all support ternary
+- 80+ dedicated tests
+
+### ✅ Configuration System (January 2026)
+- `blend65.json` project configuration file support
+- CLI override merging
+- Glob pattern resolution for source files
+
+### ✅ Semantic Analyzer Improvements (January 2026)
+- Fixed for-loop variable typing
+- Fixed memory layout extraction
+- Improved type checking and validation
 
 ---
 
@@ -128,6 +159,9 @@ The optimizer will make your programs:
 - [x] Semantic analyzer (error checking)
 - [x] IL generator (intermediate language)
 - [x] Code generator (assembly output)
+- [x] C-style syntax refactor
+- [x] Ternary operator support
+- [x] Configuration system
 
 ### Phase 2: Optimization 🔄 (CURRENT FOCUS)
 - [ ] IL optimization passes

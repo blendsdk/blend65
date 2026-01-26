@@ -161,9 +161,9 @@ describe('TypeResolver - Memory-Mapped Declarations', () => {
 describe('TypeResolver - Function Declarations', () => {
   it('should resolve function with byte return type', () => {
     const source = `
-      function getByte(): byte
+      function getByte(): byte {
         return 42;
-      end function
+      }
     `;
     const { symbolTable } = parseAndResolveTypes(source);
 
@@ -178,9 +178,9 @@ describe('TypeResolver - Function Declarations', () => {
 
   it('should resolve function with word return type', () => {
     const source = `
-      function getAddress(): word
+      function getAddress(): word {
         return $D000;
-      end function
+      }
     `;
     const { symbolTable } = parseAndResolveTypes(source);
 
@@ -191,9 +191,9 @@ describe('TypeResolver - Function Declarations', () => {
 
   it('should default to void return type when not specified', () => {
     const source = `
-      function doSomething()
+      function doSomething() {
         let x: byte = 0;
-      end function
+      }
     `;
     const { symbolTable } = parseAndResolveTypes(source);
 
@@ -204,9 +204,9 @@ describe('TypeResolver - Function Declarations', () => {
 
   it('should resolve function parameter types', () => {
     const source = `
-      function add(a: byte, b: byte): byte
+      function add(a: byte, b: byte): byte {
         return a + b;
-      end function
+      }
     `;
     const { symbolTable } = parseAndResolveTypes(source);
 
@@ -220,9 +220,9 @@ describe('TypeResolver - Function Declarations', () => {
 
   it('should annotate parameter symbols with types', () => {
     const source = `
-      function add(a: byte, b: word): word
+      function add(a: byte, b: word): word {
         return a + b;
-      end function
+      }
     `;
     const { symbolTable } = parseAndResolveTypes(source);
 
@@ -238,9 +238,9 @@ describe('TypeResolver - Function Declarations', () => {
 
   it('should handle multiple parameters with different types', () => {
     const source = `
-      function complex(x: byte, y: word, flags: boolean): byte
+      function complex(x: byte, y: word, flags: boolean): byte {
         return x;
-      end function
+      }
     `;
     const { symbolTable } = parseAndResolveTypes(source);
 
@@ -358,14 +358,14 @@ describe('TypeResolver - Integration Tests', () => {
       @zp let counter: byte = 0;
       let buffer: byte[256] = [];
 
-      function increment(value: byte): byte
+      function increment(value: byte): byte {
         return value + 1;
-      end function
+      }
 
-      function main()
+      function main() {
         counter = increment(counter);
         borderColor = counter;
-      end function
+      }
     `;
     const { symbolTable, diagnostics } = parseAndResolveTypes(source);
 
@@ -392,10 +392,10 @@ describe('TypeResolver - Integration Tests', () => {
 
   it('should handle nested function scopes', () => {
     const source = `
-      function outer(a: byte): byte
+      function outer(a: byte): byte {
         let temp: word = 100;
         return a;
-      end function
+      }
     `;
     const { symbolTable, diagnostics } = parseAndResolveTypes(source);
 

@@ -1,7 +1,7 @@
 # Type System
 
-> **Status**: Lexer-Derived Specification
-> **Last Updated**: January 8, 2026
+> **Status**: C-Style Syntax Specification
+> **Last Updated**: January 25, 2026
 > **Related Documents**: [Variables](10-variables.md), [Functions](11-functions.md), [Lexical Structure](01-lexical-structure.md)
 
 ## Overview
@@ -65,9 +65,9 @@ type_keyword = "void" ;
 
 **Example:**
 ```js
-function clearScreen(): void
+function clearScreen(): void {
   // No return value
-end function
+}
 ```
 
 ### boolean
@@ -115,7 +115,7 @@ Type aliases create **new names for existing types**.
 ### Syntax
 
 ```ebnf
-type_decl = "type" , identifier , "=" , type_expr ;
+type_decl = "type" , identifier , "=" , type_expr , ";" ;
 ```
 
 ### Examples
@@ -143,9 +143,9 @@ type SpriteId = byte;
 let sprite0: SpriteId = 0;
 let sprite1: SpriteId = 1;
 
-function setSpritePosition(id: SpriteId, x: byte, y: byte): void
+function setSpritePosition(id: SpriteId, x: byte, y: byte): void {
   // ...
-end function
+}
 ```
 
 ### Built-in Type Aliases
@@ -164,11 +164,11 @@ Blend65 provides several **built-in type aliases** that are automatically availa
 **Usage:**
 ```js
 // Function parameters - clearly indicates memory addresses
-function copyMemory(src: @address, dst: @address, len: byte): void
-  for i = 0 to len - 1
+function copyMemory(src: @address, dst: @address, len: byte): void {
+  for (i = 0 to len - 1) {
     poke(dst + i, peek(src + i));
-  next i
-end function
+  }
+}
 
 // Variables
 let screenAddr: @address = 0x0400;         // Screen RAM base address
@@ -212,9 +212,7 @@ Enums define **named constant sets**.
 ### Syntax
 
 ```ebnf
-enum_decl = "enum" , identifier , { NEWLINE }
-          , { enum_member , [ "," ] , { NEWLINE } }
-          , "end" , "enum" ;
+enum_decl = "enum" , identifier , "{" , { enum_member , [ "," ] } , "}" ;
 
 enum_member = identifier , [ "=" , integer ] ;
 ```
@@ -222,12 +220,12 @@ enum_member = identifier , [ "=" , integer ] ;
 ### Basic Enums
 
 ```js
-enum Direction
+enum Direction {
   UP,
   DOWN,
   LEFT,
   RIGHT
-end enum
+}
 ```
 
 **Auto-numbering:**
@@ -239,18 +237,18 @@ end enum
 ### Explicit Values
 
 ```js
-enum GameState
+enum GameState {
   MENU = 0,
   PLAYING = 1,
   PAUSED = 2,
   GAME_OVER = 3
-end enum
+}
 ```
 
 ### Mixed Explicit and Implicit
 
 ```js
-enum Color
+enum Color {
   BLACK = 0,
   WHITE = 1,
   RED = 2,
@@ -259,22 +257,22 @@ enum Color
   GREEN = 5,
   BLUE,        // 6
   YELLOW       // 7
-end enum
+}
 ```
 
 ### Using Enums
 
 ```js
-enum Direction
+enum Direction {
   UP = 0,
   DOWN = 1,
   LEFT = 2,
   RIGHT = 3
-end enum
+}
 
 let currentDirection: byte = Direction.UP;
 
-match currentDirection
+switch (currentDirection) {
   case Direction.UP:
     moveUp();
   case Direction.DOWN:
@@ -283,7 +281,7 @@ match currentDirection
     moveLeft();
   case Direction.RIGHT:
     moveRight();
-end match
+}
 ```
 
 ### Enum Properties
@@ -340,9 +338,9 @@ buffer[9] = 255;             // Set last element
 let x = buffer[3];           // Read element
 
 // With variables (dynamic indexing)
-for i = 0 to 9
+for (i = 0 to 9) {
   buffer[i] = 0;
-next i
+}
 ```
 
 ### Array Size Inference
@@ -409,9 +407,9 @@ type_keyword = "callback" ;
 ### As Function Modifier
 
 ```js
-callback function rasterIRQ(): void
+callback function rasterIRQ(): void {
   // Interrupt handler
-end function
+}
 ```
 
 ### As Type Annotation
@@ -444,21 +442,21 @@ let running: boolean = true;
 ### Function Parameter Type Annotations
 
 ```js
-function add(a: byte, b: byte): byte
+function add(a: byte, b: byte): byte {
   return a + b;
-end function
+}
 ```
 
 ### Function Return Type Annotations
 
 ```js
-function calculateScore(): word
+function calculateScore(): word {
   return 1000;
-end function
+}
 
-function update(): void
+function update(): void {
   // No return value
-end function
+}
 ```
 
 ## Type Inference (Limited)
@@ -504,8 +502,8 @@ let b3: byte = byte(w); // Cast (not yet implemented)
 ### Function Parameter Compatibility
 
 ```js
-function takeByte(x: byte): void
-end function
+function takeByte(x: byte): void {
+}
 
 let w: word = 1000;
 takeByte(w);  // ❌ Error: Cannot pass word where byte expected
@@ -535,9 +533,9 @@ let w: word = b + 1000;  // May overflow byte
 
 **Wrong number of arguments:**
 ```js
-function add(a: byte, b: byte): byte
+function add(a: byte, b: byte): byte {
   return a + b;
-end function
+}
 
 add(5);  // Error: Expected 2 arguments, got 1
 ```
@@ -559,7 +557,7 @@ add(5);  // Error: Expected 2 arguments, got 1
 ## Complete Example
 
 ```js
-module Game.Types
+module Game.Types;
 
 // Type aliases for clarity
 export type SpriteId = byte;
@@ -567,15 +565,15 @@ export type Position = word;
 export type Color = byte;
 
 // Enum for game states
-export enum GameState
+export enum GameState {
   MENU = 0,
   PLAYING = 1,
   PAUSED = 2,
   GAME_OVER = 3
-end enum
+}
 
 // Enum for colors
-export enum C64Color
+export enum C64Color {
   BLACK = 0,
   WHITE = 1,
   RED = 2,
@@ -584,7 +582,7 @@ export enum C64Color
   GREEN = 5,
   BLUE = 6,
   YELLOW = 7
-end enum
+}
 
 // Variables with explicit types
 @zp let currentState: byte = GameState.MENU;
@@ -593,13 +591,13 @@ end enum
 @ram let buffer: byte[256];
 
 // Function with type annotations
-export function setColor(color: Color): void
+export function setColor(color: Color): void {
   // Implementation
-end function
+}
 
-export function getPosition(): Position
+export function getPosition(): Position {
   return playerX + playerY * 40;
-end function
+}
 ```
 
 ## Type System Design Principles

@@ -374,11 +374,11 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
   describe('Sequential Struct @map', () => {
     it('should type check sequential struct @map', () => {
       const source = `
-        @map sid at $D400 type
+        @map sid at $D400 type {
           voice1Freq: word;
           voice1Pulse: word;
           voice1Control: byte;
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -387,10 +387,10 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
 
     it('should type check sequential struct @map with arrays', () => {
       const source = `
-        @map vic at $D000 type
+        @map vic at $D000 type {
           sprites: byte[8];
           colors: byte[4];
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -399,9 +399,9 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
 
     it('should error on sequential struct @map with non-numeric base address', () => {
       const source = `
-        @map data at "invalid" type
+        @map data at "invalid" type {
           field: byte;
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -416,11 +416,11 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
   describe('Explicit Struct @map', () => {
     it('should type check explicit struct @map', () => {
       const source = `
-        @map vic at $D000 layout
+        @map vic at $D000 layout {
           borderColor at 0: byte;
           bgColor at 1: byte;
           sprites at 16: byte[8];
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -429,10 +429,10 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
 
     it('should type check explicit struct @map with calculated offsets', () => {
       const source = `
-        @map hardware at $D000 layout
+        @map hardware at $D000 layout {
           field1 at 0 + 0: byte;
           field2 at 0 + 1: byte;
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -441,9 +441,9 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
 
     it('should type check explicit struct @map with field ranges', () => {
       const source = `
-        @map chip at $D000 layout
+        @map chip at $D000 layout {
           registers from 0 to 15: byte;
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -452,9 +452,9 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
 
     it('should error on explicit struct @map with non-numeric base address', () => {
       const source = `
-        @map data at true layout
+        @map data at true layout {
           field at 0: byte;
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -467,9 +467,9 @@ describe('TypeChecker - Memory-Mapped Declarations (@map)', () => {
 
     it('should error on explicit struct @map with non-numeric field offset', () => {
       const source = `
-        @map data at $D000 layout
+        @map data at $D000 layout {
           field at false: byte;
-        end @map
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -521,10 +521,10 @@ describe('TypeChecker - Declaration Integration', () => {
   describe('Declarations in Functions', () => {
     it('should type check local variable declarations', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 42;
           let y: word = 1000;
-        end function
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);
@@ -533,9 +533,9 @@ describe('TypeChecker - Declaration Integration', () => {
 
     it('should error on local variable type mismatch', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 1000;
-        end function
+        }
       `;
 
       const { diagnostics } = parseAndTypeCheck(source);

@@ -213,14 +213,12 @@ describe('Type Alias Parsing - Exported Types', () => {
 
 describe('Enum Parsing - Basic Enums', () => {
   it('parses simple enum with auto-numbering', () => {
-    const source = `
-      enum Direction
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT
-      end enum
-    `;
+    const source = `enum Direction {
+      UP,
+      DOWN,
+      LEFT,
+      RIGHT
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -241,11 +239,9 @@ describe('Enum Parsing - Basic Enums', () => {
   });
 
   it('parses enum with single member', () => {
-    const source = `
-      enum Single
-        ONLY
-      end enum
-    `;
+    const source = `enum Single {
+      ONLY
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -258,13 +254,11 @@ describe('Enum Parsing - Basic Enums', () => {
   });
 
   it('parses enum without trailing commas', () => {
-    const source = `
-      enum NoCommas
-        A
-        B
-        C
-      end enum
-    `;
+    const source = `enum NoCommas {
+      A,
+      B,
+      C
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -278,18 +272,16 @@ describe('Enum Parsing - Basic Enums', () => {
   });
 
   it('parses enum with many members', () => {
-    const source = `
-      enum C64Color
-        BLACK,
-        WHITE,
-        RED,
-        CYAN,
-        PURPLE,
-        GREEN,
-        BLUE,
-        YELLOW
-      end enum
-    `;
+    const source = `enum C64Color {
+      BLACK,
+      WHITE,
+      RED,
+      CYAN,
+      PURPLE,
+      GREEN,
+      BLUE,
+      YELLOW
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -308,14 +300,12 @@ describe('Enum Parsing - Basic Enums', () => {
 
 describe('Enum Parsing - Explicit Values', () => {
   it('parses enum with all explicit values', () => {
-    const source = `
-      enum GameState
-        MENU = 0,
-        PLAYING = 1,
-        PAUSED = 2,
-        GAME_OVER = 3
-      end enum
-    `;
+    const source = `enum GameState {
+      MENU = 0,
+      PLAYING = 1,
+      PAUSED = 2,
+      GAME_OVER = 3
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -334,13 +324,11 @@ describe('Enum Parsing - Explicit Values', () => {
   });
 
   it('parses enum with non-sequential explicit values', () => {
-    const source = `
-      enum Priority
-        LOW = 10,
-        MEDIUM = 50,
-        HIGH = 100
-      end enum
-    `;
+    const source = `enum Priority {
+      LOW = 10,
+      MEDIUM = 50,
+      HIGH = 100
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -353,13 +341,11 @@ describe('Enum Parsing - Explicit Values', () => {
   });
 
   it('parses enum with large explicit values', () => {
-    const source = `
-      enum Addresses
-        SCREEN = 1024,
-        COLOR = 55296,
-        BORDER = 53280
-      end enum
-    `;
+    const source = `enum Addresses {
+      SCREEN = 1024,
+      COLOR = 55296,
+      BORDER = 53280
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -372,12 +358,10 @@ describe('Enum Parsing - Explicit Values', () => {
   });
 
   it('parses enum with zero explicit value', () => {
-    const source = `
-      enum ZeroBased
-        FIRST = 0,
-        SECOND = 1
-      end enum
-    `;
+    const source = `enum ZeroBased {
+      FIRST = 0,
+      SECOND = 1
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     const members = decl.getMembers();
@@ -392,18 +376,16 @@ describe('Enum Parsing - Explicit Values', () => {
 
 describe('Enum Parsing - Mixed Explicit and Auto Values', () => {
   it('parses enum with mixed explicit and auto values', () => {
-    const source = `
-      enum Color
-        BLACK = 0,
-        WHITE = 1,
-        RED = 2,
-        CYAN,
-        PURPLE,
-        GREEN = 5,
-        BLUE,
-        YELLOW
-      end enum
-    `;
+    const source = `enum Color {
+      BLACK = 0,
+      WHITE = 1,
+      RED = 2,
+      CYAN,
+      PURPLE,
+      GREEN = 5,
+      BLUE,
+      YELLOW
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -429,14 +411,12 @@ describe('Enum Parsing - Mixed Explicit and Auto Values', () => {
   });
 
   it('parses enum starting with auto then explicit', () => {
-    const source = `
-      enum Mixed
-        A,
-        B,
-        C = 10,
-        D
-      end enum
-    `;
+    const source = `enum Mixed {
+      A,
+      B,
+      C = 10,
+      D
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     const members = decl.getMembers();
@@ -448,13 +428,11 @@ describe('Enum Parsing - Mixed Explicit and Auto Values', () => {
   });
 
   it('parses enum with gap in values', () => {
-    const source = `
-      enum Sparse
-        FIRST = 0,
-        SECOND = 100,
-        THIRD
-      end enum
-    `;
+    const source = `enum Sparse {
+      FIRST = 0,
+      SECOND = 100,
+      THIRD
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     const members = decl.getMembers();
@@ -471,14 +449,12 @@ describe('Enum Parsing - Mixed Explicit and Auto Values', () => {
 
 describe('Enum Parsing - Exported Enums', () => {
   it('parses exported enum', () => {
-    const source = `
-      export enum Direction
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT
-      end enum
-    `;
+    const source = `export enum Direction {
+      UP,
+      DOWN,
+      LEFT,
+      RIGHT
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -490,13 +466,11 @@ describe('Enum Parsing - Exported Enums', () => {
   });
 
   it('parses exported enum with explicit values', () => {
-    const source = `
-      export enum GameState
-        MENU = 0,
-        PLAYING = 1,
-        PAUSED = 2
-      end enum
-    `;
+    const source = `export enum GameState {
+      MENU = 0,
+      PLAYING = 1,
+      PAUSED = 2
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -511,13 +485,11 @@ describe('Enum Parsing - Exported Enums', () => {
   });
 
   it('parses exported enum with mixed values', () => {
-    const source = `
-      export enum Priority
-        LOW,
-        MEDIUM = 5,
-        HIGH
-      end enum
-    `;
+    const source = `export enum Priority {
+      LOW,
+      MEDIUM = 5,
+      HIGH
+    }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     expect(decl).toBeInstanceOf(EnumDecl);
@@ -552,17 +524,8 @@ describe('Type System - Multiple Declarations', () => {
   });
 
   it('parses multiple enums', () => {
-    const source = `
-      enum Direction
-        UP,
-        DOWN
-      end enum
-
-      enum Color
-        BLACK,
-        WHITE
-      end enum
-    `;
+    const source = `enum Direction { UP, DOWN }
+enum Color { BLACK, WHITE }`;
     const program = parseSource(source);
     const declarations = program.getDeclarations();
 
@@ -572,16 +535,9 @@ describe('Type System - Multiple Declarations', () => {
   });
 
   it('parses mixed type aliases and enums', () => {
-    const source = `
-      type SpriteId = byte
-
-      enum Direction
-        UP,
-        DOWN
-      end enum
-
-      type Address = word
-    `;
+    const source = `type SpriteId = byte
+enum Direction { UP, DOWN }
+type Address = word`;
     const program = parseSource(source);
     const declarations = program.getDeclarations();
 
@@ -622,27 +578,16 @@ describe('Type System - Error Handling', () => {
   });
 
   it('reports error for missing enum name', () => {
-    const source = `
-      enum
-        UP
-      end enum
-    `;
+    const source = `enum { UP }`;
     const { hasErrors, diagnostics } = parseWithErrors(source);
 
-    // Note: This test currently passes without error because the parser
-    // treats 'UP' as the enum name when no explicit name is provided.
-    // This is acceptable behavior - the parser recovers gracefully.
-    // We'll adjust the test to expect successful parsing instead.
-    expect(hasErrors).toBe(false);
-    expect(diagnostics.length).toBe(0);
+    // Parser expects identifier after 'enum' keyword
+    expect(hasErrors).toBe(true);
+    expect(diagnostics.length).toBeGreaterThan(0);
   });
 
-  it('reports error for missing end enum', () => {
-    const source = `
-      enum Direction
-        UP,
-        DOWN
-    `;
+  it('reports error for missing closing brace', () => {
+    const source = `enum Direction { UP, DOWN`;
     const { hasErrors, diagnostics } = parseWithErrors(source);
 
     expect(hasErrors).toBe(true);
@@ -682,9 +627,7 @@ describe('Type System - Location Tracking', () => {
   });
 
   it('tracks location for enum', () => {
-    const source = `enum Direction
-      UP
-    end enum`;
+    const source = `enum Direction { UP }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     const location = decl.getLocation();
@@ -694,10 +637,7 @@ describe('Type System - Location Tracking', () => {
   });
 
   it('tracks location for enum members', () => {
-    const source = `enum Direction
-      UP,
-      DOWN
-    end enum`;
+    const source = `enum Direction { UP, DOWN }`;
     const decl = parseFirstDeclaration(source) as EnumDecl;
 
     const members = decl.getMembers();
@@ -724,13 +664,8 @@ describe('Type System - Module Integration', () => {
   });
 
   it('parses enum in module', () => {
-    const source = `
-      module Game.Types
-      enum Direction
-        UP,
-        DOWN
-      end enum
-    `;
+    const source = `module Game.Types
+enum Direction { UP, DOWN }`;
     const program = parseSource(source);
 
     expect(program.getModule().getFullName()).toBe('Game.Types');
@@ -739,14 +674,9 @@ describe('Type System - Module Integration', () => {
   });
 
   it('parses exported types in module', () => {
-    const source = `
-      module Game.Types
-      export type SpriteId = byte
-      export enum Direction
-        UP,
-        DOWN
-      end enum
-    `;
+    const source = `module Game.Types
+export type SpriteId = byte
+export enum Direction { UP, DOWN }`;
     const program = parseSource(source);
 
     expect(program.getDeclarations()).toHaveLength(2);

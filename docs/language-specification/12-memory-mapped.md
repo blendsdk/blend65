@@ -1,7 +1,7 @@
 # Memory-Mapped Variables
 
-> **Status**: Lexer-Derived Specification  
-> **Last Updated**: January 8, 2026  
+> **Status**: C-Style Syntax Specification  
+> **Last Updated**: January 25, 2026  
 > **Related Documents**: [Variables](10-variables.md), [6502 Features](13-6502-features.md), [Type System](05-type-system.md)
 
 ## Overview
@@ -120,9 +120,9 @@ spriteRegisters[1] = 50;      // Sprite 0 Y position ($D001)
 spriteRegisters[2] = 200;     // Sprite 1 X position ($D002)
 
 // Dynamic index (uses indexed addressing mode)
-for i = 0 to 39
+for (i = 0 to 39) {
   colorRAM[i] = 14;           // Light blue
-next i
+}
 
 // Read access
 let sprite0X = spriteRegisters[0];
@@ -151,11 +151,9 @@ Maps fields sequentially from a base address, like a C struct. Fields are automa
 
 ```ebnf
 sequential_struct_map_decl = "@map" , identifier , "at" , address , "type"
-                           , { NEWLINE }
-                           , field_list
-                           , "end" , "@map" ;
+                           , "{" , field_list , "}" ;
 
-field_list = field_decl , { [ "," ] , { NEWLINE } , field_decl } ;
+field_list = field_decl , { "," , field_decl } ;
 field_decl = identifier , ":" , type_expr ;
 type_expr  = type_name | type_name , "[" , integer , "]" ;
 ```
@@ -164,7 +162,7 @@ type_expr  = type_name | type_name , "[" , integer , "]" ;
 
 ```js
 // SID voice 1 registers (tightly packed)
-@map sidVoice1 at $D400 type
+@map sidVoice1 at $D400 type {
   frequencyLo: byte,      // $D400 (computed)
   frequencyHi: byte,      // $D401 (computed)
   pulseLo: byte,          // $D402 (computed)
@@ -172,7 +170,7 @@ type_expr  = type_name | type_name , "[" , integer , "]" ;
   waveform: byte,         // $D404 (computed)
   attackDecay: byte,      // $D405 (computed)
   sustainRelease: byte    // $D406 (computed)
-end @map
+}
 ```
 
 ### Usage
@@ -210,11 +208,9 @@ Maps fields with explicitly specified addresses. Allows gaps and non-sequential 
 
 ```ebnf
 explicit_struct_map_decl = "@map" , identifier , "at" , address , "layout"
-                         , { NEWLINE }
-                         , explicit_field_list
-                         , "end" , "@map" ;
+                         , "{" , explicit_field_list , "}" ;
 
-explicit_field_list = explicit_field , { [ "," ] , { NEWLINE } , explicit_field } ;
+explicit_field_list = explicit_field , { "," , explicit_field } ;
 explicit_field = identifier , ":" , field_address_spec , ":" , type_name ;
 
 field_address_spec = "at" , address                      (* single address *)
@@ -225,7 +221,7 @@ field_address_spec = "at" , address                      (* single address *)
 
 ```js
 // VIC-II registers (many gaps and reserved registers)
-@map vic at $D000 layout
+@map vic at $D000 layout {
   sprites: from $D000 to $D00F: byte,
   spriteXMSB: at $D010: byte,
   control1: at $D011: byte,
@@ -240,7 +236,7 @@ field_address_spec = "at" , address                      (* single address *)
   backgroundColor2: at $D023: byte,
   backgroundColor3: at $D024: byte,
   spriteColors: from $D027 to $D02E: byte
-end @map
+}
 ```
 
 ### Usage
@@ -295,20 +291,16 @@ range_map_decl = "@map" , identifier , "from" , address , "to" , address , ":" ,
 
 (* 3. Sequential struct: fields auto-laid-out sequentially *)
 sequential_struct_map_decl = "@map" , identifier , "at" , address , "type"
-                           , { NEWLINE }
-                           , field_list
-                           , "end" , "@map" ;
+                           , "{" , field_list , "}" ;
 
-field_list = field_decl , { [ "," ] , { NEWLINE } , field_decl } ;
+field_list = field_decl , { "," , field_decl } ;
 field_decl = identifier , ":" , type_expr ;
 
 (* 4. Explicit struct: fields with explicit addresses *)
 explicit_struct_map_decl = "@map" , identifier , "at" , address , "layout"
-                         , { NEWLINE }
-                         , explicit_field_list
-                         , "end" , "@map" ;
+                         , "{" , explicit_field_list , "}" ;
 
-explicit_field_list = explicit_field , { [ "," ] , { NEWLINE } , explicit_field } ;
+explicit_field_list = explicit_field , { "," , explicit_field } ;
 explicit_field = identifier , ":" , field_address_spec , ":" , type_name ;
 
 field_address_spec = "at" , address                      (* single address *)
@@ -328,22 +320,22 @@ address    = hex_literal | decimal_literal ;
 
 ```js
 // ✅ ALLOWED: Module scope
-module Hardware.VIC
+module Hardware.VIC;
 
 @map vicBorderColor at $D020: byte;
 
-@map vic at $D000 type
+@map vic at $D000 type {
   borderColor: byte
-end @map
+}
 
-function main(): void
+function main(): void {
   vic.borderColor = 5;    // USE the mapped memory
-end function
+}
 
 // ❌ FORBIDDEN: Inside function
-function foo(): void
+function foo(): void {
   @map illegal at $D020: byte;    // Compile error!
-end function
+}
 ```
 
 **Error:**
@@ -368,8 +360,8 @@ Following Blend65's semicolon rules:
 |------|--------|-------------------|
 | Simple | `@map x at $D020: byte` | **YES** (single-line) |
 | Range | `@map x from $D000 to $D02E: byte` | **YES** (single-line) |
-| Sequential struct | `@map x at $D type ... end @map` | **NO** (block construct) |
-| Explicit struct | `@map x at $D layout ... end @map` | **NO** (block construct) |
+| Sequential struct | `@map x at $D type { ... }` | **NO** (block construct) |
+| Explicit struct | `@map x at $D layout { ... }` | **NO** (block construct) |
 
 **Examples:**
 
@@ -379,13 +371,13 @@ Following Blend65's semicolon rules:
 @map sprites from $D000 to $D02E: byte;
 
 // Struct forms are self-terminating (no semicolon)
-@map vic at $D000 type
+@map vic at $D000 type {
   field: byte
-end @map
+}
 
-@map vic at $D000 layout
+@map vic at $D000 layout {
   field: at $D020: byte
-end @map
+}
 ```
 
 ---
@@ -418,16 +410,16 @@ spritePositions[1] = 50;   // Y position
 @map colorRAM from $D800 to $DBE7: byte;
 
 // Clear screen
-for i = 0 to 999
+for (i = 0 to 999) {
   screenRAM[i] = 32;   // Space character
   colorRAM[i] = 14;    // Light blue
-next i
+}
 ```
 
 ### Complete VIC-II Mapping
 
 ```js
-@map vic at $D000 layout
+@map vic at $D000 layout {
   sprites: from $D000 to $D00F: byte,
   spriteXMSB: at $D010: byte,
   control1: at $D011: byte,
@@ -437,7 +429,7 @@ next i
   interruptEnable: at $D01A: byte,
   borderColor: at $D020: byte,
   backgroundColor: at $D021: byte
-end @map
+}
 
 // Usage: Clean, type-safe hardware access
 vic.borderColor = 0;
@@ -463,9 +455,9 @@ let currentRaster = vic.raster;
 @map region2 from $D080 to $D100: byte;  // Overlaps with region1!
 
 // ❌ Error: Invalid field access
-@map vic at $D000 layout
+@map vic at $D000 layout {
   borderColor: at $D020: byte
-end @map
+}
 
 vic.invalidField = 5;  // Error: Field 'invalidField' does not exist
 
@@ -483,10 +475,10 @@ Memory-mapped variables compile to **direct memory access** with zero runtime ov
 **Source:**
 
 ```js
-@map vic at $D000 layout
+@map vic at $D000 layout {
   borderColor: at $D020: byte,
   sprites: from $D000 to $D00F: byte
-end @map
+}
 
 vic.borderColor = 0;
 vic.sprites[0] = 100;
@@ -534,21 +526,21 @@ STA ZP_X
 **Use Sequential Struct** for tightly-packed hardware (no gaps):
 
 ```js
-@map sidVoice1 at $D400 type
+@map sidVoice1 at $D400 type {
   frequencyLo: byte,
   frequencyHi: byte,
   pulseLo: byte,
   pulseHi: byte
-end @map
+}
 ```
 
 **Use Explicit Struct** for sparse hardware with gaps:
 
 ```js
-@map vic at $D000 layout
+@map vic at $D000 layout {
   raster: at $D012: byte,
   borderColor: at $D020: byte  // Gap from $D013-$D01F
-end @map
+}
 ```
 
 ### Naming Conventions
@@ -567,7 +559,7 @@ end @map
 
 ```js
 // Document register purpose and bit meanings
-@map vic at $D000 layout
+@map vic at $D000 layout {
   // Bits: 7=RST8, 6=ECM, 5=BMM, 4=DEN, 3=RSEL, 2-0=YSCROLL
   control1: at $D011: byte,
   
@@ -576,7 +568,7 @@ end @map
   
   // Bits 7-0: sprites 7-0 enable
   spriteEnable: at $D015: byte
-end @map
+}
 ```
 
 ---
@@ -617,7 +609,7 @@ vicBorderColor = 5;
 ## Complete Example
 
 ```js
-module C64.Hardware
+module C64.Hardware;
 
 // Individual registers
 @map vicBorderColor at $D020: byte;
@@ -627,7 +619,7 @@ module C64.Hardware
 @map colorRAM from $D800 to $DBE7: byte;
 
 // Sequential struct for SID voice
-@map sidVoice1 at $D400 type
+@map sidVoice1 at $D400 type {
   frequencyLo: byte,
   frequencyHi: byte,
   pulseLo: byte,
@@ -635,10 +627,10 @@ module C64.Hardware
   waveform: byte,
   attackDecay: byte,
   sustainRelease: byte
-end @map
+}
 
 // Explicit struct for VIC-II (with gaps)
-@map vic at $D000 layout
+@map vic at $D000 layout {
   sprites: from $D000 to $D00F: byte,
   spriteXMSB: at $D010: byte,
   control1: at $D011: byte,
@@ -646,9 +638,9 @@ end @map
   spriteEnable: at $D015: byte,
   borderColor: at $D020: byte,
   backgroundColor0: at $D021: byte
-end @map
+}
 
-export function initGraphics(): void
+export function initGraphics(): void {
   // Use simple mappings
   vicBorderColor = 0;
   vicBackgroundColor = 0;
@@ -657,13 +649,13 @@ export function initGraphics(): void
   vic.spriteEnable = 0xFF;
   
   // Use range mapping
-  for i = 0 to 999
+  for (i = 0 to 999) {
     colorRAM[i] = 14;
-  next i
+  }
   
   // Use sequential struct
   sidVoice1.waveform = 0x11;
-end function
+}
 ```
 
 ---

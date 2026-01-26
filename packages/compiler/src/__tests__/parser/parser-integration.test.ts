@@ -393,6 +393,7 @@ describe('Parser Integration', () => {
         createToken(TokenType.AT, 'at'),
         createToken(TokenType.NUMBER, '$D400'),
         createToken(TokenType.TYPE, 'type'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'voice1Freq'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.WORD, 'word'),
@@ -404,8 +405,7 @@ describe('Parser Integration', () => {
         createToken(TokenType.IDENTIFIER, 'voice1Control'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
-        createToken(TokenType.END, 'end'),
-        createToken(TokenType.MAP, '@map'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new Parser(tokens);

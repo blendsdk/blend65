@@ -256,10 +256,10 @@ export abstract class DeclarationParser extends ExpressionParser {
   }
 
   /**
-   * Parses sequential struct @map declaration
+   * Parses sequential struct @map declaration - C-style syntax
    *
-   * Grammar: @map identifier at address type field : type [, ...] end @map
-   * Example: @map sid at $D400 type frequencyLo: byte, frequencyHi: byte end @map
+   * Grammar: @map identifier at address type { field : type [, ...] }
+   * Example: @map sid at $D400 type { frequencyLo: byte, frequencyHi: byte }
    *
    * @param startToken - Starting @map token
    * @param name - Variable name
@@ -274,10 +274,13 @@ export abstract class DeclarationParser extends ExpressionParser {
     // Expect 'type'
     this.expect(TokenType.TYPE, "Expected 'type'");
 
+    // Expect opening brace for C-style syntax
+    this.expect(TokenType.LEFT_BRACE, "Expected '{' after 'type'");
+
     // Parse fields
     const fields: MapField[] = [];
 
-    while (!this.check(TokenType.END) && !this.isAtEnd()) {
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
       const fieldStart = this.getCurrentToken();
 
       // Parse field name
@@ -308,13 +311,12 @@ export abstract class DeclarationParser extends ExpressionParser {
         location: fieldLocation,
       });
 
-      // Optional comma
+      // Optional comma (allows trailing comma)
       this.match(TokenType.COMMA);
     }
 
-    // Expect 'end @map'
-    this.expect(TokenType.END, "Expected 'end'");
-    this.expect(TokenType.MAP, "Expected '@map' after 'end'");
+    // Expect closing brace
+    this.expect(TokenType.RIGHT_BRACE, "Expected '}' after struct fields");
 
     const location = this.createLocation(startToken, this.getCurrentToken());
 
@@ -322,10 +324,10 @@ export abstract class DeclarationParser extends ExpressionParser {
   }
 
   /**
-   * Parses explicit struct @map declaration
+   * Parses explicit struct @map declaration - C-style syntax
    *
-   * Grammar: @map identifier at address layout field : (at addr | from addr to addr) : type [, ...] end @map
-   * Example: @map vic at $D000 layout borderColor: at $D020: byte, sprites: from $D000 to $D00F: byte end @map
+   * Grammar: @map identifier at address layout { field : (at addr | from addr to addr) : type [, ...] }
+   * Example: @map vic at $D000 layout { borderColor: at $D020: byte, sprites: from $D000 to $D00F: byte }
    *
    * @param startToken - Starting @map token
    * @param name - Variable name
@@ -340,10 +342,13 @@ export abstract class DeclarationParser extends ExpressionParser {
     // Expect 'layout'
     this.expect(TokenType.LAYOUT, "Expected 'layout'");
 
+    // Expect opening brace for C-style syntax
+    this.expect(TokenType.LEFT_BRACE, "Expected '{' after 'layout'");
+
     // Parse fields
     const fields: ExplicitMapField[] = [];
 
-    while (!this.check(TokenType.END) && !this.isAtEnd()) {
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
       const fieldStart = this.getCurrentToken();
 
       // Parse field name
@@ -400,13 +405,12 @@ export abstract class DeclarationParser extends ExpressionParser {
         location: fieldLocation,
       });
 
-      // Optional comma
+      // Optional comma (allows trailing comma)
       this.match(TokenType.COMMA);
     }
 
-    // Expect 'end @map'
-    this.expect(TokenType.END, "Expected 'end'");
-    this.expect(TokenType.MAP, "Expected '@map' after 'end'");
+    // Expect closing brace
+    this.expect(TokenType.RIGHT_BRACE, "Expected '}' after layout fields");
 
     const location = this.createLocation(startToken, this.getCurrentToken());
 

@@ -379,13 +379,14 @@ export class JumpThreadingPass extends TransformPass {
 
 ---
 
-## Task 4.6: Conditional Move Conversion
+## Task 4.6: Conditional Move Conversion (Diamond → SELECT)
 
 **Time**: 1.5 hours  
 **Tests**: 30 tests
 
 **Key Concepts**:
 - Convert simple if-then-else to conditional assignment
+- **Primary use case: Ternary operator diamond patterns**
 - Reduces branches (good for 6502)
 - Limited by 6502's lack of CMOV instruction
 
@@ -441,6 +442,59 @@ export class IfConvertPass extends TransformPass {
 - Not profitable (complex then/else)
 - Nested diamonds
 - Side effects prevent conversion
+
+### Ternary Operator Diamond Pattern
+
+The ternary operator (`?:`) generates a characteristic diamond CFG pattern:
+
+```
+┌─────────────────────┐
+│   BRANCH cond       │
+│     /         \     │
+│    ▼           ▼    │
+│ true_block  false_block │
+│  (value1)    (value2)   │
+│    \           /    │
+│     ▼         ▼     │
+│   merge_block       │
+│   PHI(v1,v2)        │
+└─────────────────────┘
+```
+
+**Example IL from ternary:**
+```
+let x: byte = cond ? 10 : 20;
+```
+
+```
+block_0:
+  %cond = LOAD cond
+  BRANCH %cond, block_true, block_false
+
+block_true:
+  %1 = CONST 10
+  JUMP block_merge
+
+block_false:
+  %2 = CONST 20
+  JUMP block_merge
+
+block_merge:
+  %3 = PHI [%1, block_true], [%2, block_false]
+  STORE x, %3
+```
+
+**Optimization Goal:** Convert to SELECT instruction:
+```
+block_0:
+  %cond = LOAD cond
+  %1 = CONST 10
+  %2 = CONST 20
+  %3 = SELECT %cond, %1, %2
+  STORE x, %3
+```
+
+**See also:** [08-13-ternary-patterns.md](08-13-ternary-patterns.md) for comprehensive ternary optimization patterns.
 
 ---
 

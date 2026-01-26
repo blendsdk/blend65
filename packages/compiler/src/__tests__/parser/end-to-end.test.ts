@@ -66,19 +66,19 @@ describe('End-to-End Parser Tests', () => {
         module Hardware.C64
 
         // VIC-II registers
-        @map vic at $D000 layout
+        @map vic at $D000 layout {
           borderColor: at $D020: byte,
           backgroundColor: at $D021: byte,
           sprites: from $D000 to $D02E: byte
-        end @map
+        }
 
         // SID sound chip
-        @map sid at $D400 type
+        @map sid at $D400 type {
           voice1Freq: word,
           voice1Pulse: word,
           voice1Control: byte,
           voice1Attack: byte
-        end @map
+        }
 
         // Screen memory
         @map screen from $0400 to $07E7: byte;
@@ -129,7 +129,7 @@ describe('End-to-End Parser Tests', () => {
         @map spriteData from $2000 to $3FFF: byte;
 
         // Sprite registers
-        @map spriteRegs at $D000 type
+        @map spriteRegs at $D000 type {
           x: byte[8],
           y: byte[8],
           msb: byte,
@@ -139,7 +139,7 @@ describe('End-to-End Parser Tests', () => {
           priority: byte,
           multicolor: byte,
           colors: byte[8]
-        end @map
+        }
 
         // Sprite configuration
         export const MAX_SPRITES: byte = 8;
@@ -272,18 +272,18 @@ describe('End-to-End Parser Tests', () => {
         @map colorRam from $D800 to $DBE7: byte;
 
         // Sequential struct
-        @map player at $8000 type
+        @map player at $8000 type {
           x: byte,
           y: byte,
           sprite: byte,
           health: byte
-        end @map
+        }
 
         // Explicit struct
-        @map vic at $D000 layout
+        @map vic at $D000 layout {
           border: at $D020: byte,
           background: at $D021: byte
-        end @map
+        }
 
         // More variables
         export @zp let fastCounter: byte = 0;
@@ -323,13 +323,13 @@ describe('End-to-End Parser Tests', () => {
         const PLAYER_SPEED: byte = 2;
 
         // VIC-II memory mapping
-        @map vic at $D000 layout
+        @map vic at $D000 layout {
           sprites: from $D000 to $D00F: byte,
           spriteX: from $D000 to $D00F: byte,
           spriteY: from $D001 to $D00F: byte,
           borderColor: at $D020: byte,
           backgroundColor: at $D021: byte
-        end @map
+        }
 
         // Sprite pointers
         @map spritePointers from $07F8 to $07FF: byte;
@@ -359,12 +359,12 @@ describe('End-to-End Parser Tests', () => {
         @data const CYCLE_LENGTH: byte = 16;
 
         // VIC registers for effects
-        @map vicEffect at $D000 layout
+        @map vicEffect at $D000 layout {
           rasterInterrupt: at $D012: byte,
           interruptEnable: at $D01A: byte,
           borderColor: at $D020: byte,
           backgroundColor: at $D021: byte
-        end @map
+        }
 
         // Timing calculations
         let nextRaster: byte = rasterLine + 1;
@@ -407,13 +407,13 @@ describe('End-to-End Parser Tests', () => {
       const source = `
         module Very.Deeply.Nested.Module.Name
 
-        @map deep at $1000 layout
+        @map deep at $1000 layout {
           field1: at $1000: byte,
           field2: at $1001: byte,
           field3: at $1002: byte,
           field4: at $1003: byte,
           field5: at $1004: byte
-        end @map
+        }
 
         let deepExpr: word = ((((1 + 2) * 3) - 4) + 5) * 6;
       `;
@@ -540,13 +540,13 @@ describe('End-to-End Parser Tests', () => {
         module C64Game.Init
 
         // Memory layout
-        @map vic at $D000 layout
+        @map vic at $D000 layout {
           spriteEnable: at $D015: byte,
           spriteExpandX: at $D01D: byte,
           spriteExpandY: at $D017: byte,
           borderColor: at $D020: byte,
           backgroundColor: at $D021: byte
-        end @map
+        }
 
         @map colorRam from $D800 to $DBE7: byte;
         @map screen from $0400 to $07E7: byte;

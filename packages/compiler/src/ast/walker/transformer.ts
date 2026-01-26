@@ -27,6 +27,7 @@ import {
   ExplicitStructMapDecl,
   BinaryExpression,
   UnaryExpression,
+  TernaryExpression,
   LiteralExpression,
   IdentifierExpression,
   CallExpression,
@@ -38,6 +39,8 @@ import {
   IfStatement,
   WhileStatement,
   ForStatement,
+  DoWhileStatement,
+  SwitchStatement,
   MatchStatement,
   BreakStatement,
   ContinueStatement,
@@ -379,6 +382,46 @@ export abstract class ASTTransformer implements ASTVisitor<ASTNode> {
   }
 
   /**
+   * Transform Ternary conditional expression
+   *
+   * Default: Recursively transforms condition, then, and else branches
+   * Override to transform branches or perform optimizations
+   *
+   * Example transformation (constant condition folding):
+   * ```typescript
+   * visitTernaryExpression(node: TernaryExpression): ASTNode {
+   *   const condition = node.getCondition().accept(this) as Expression;
+   *   // If condition is a constant true/false, return the appropriate branch
+   *   if (isLiteralBoolean(condition)) {
+   *     return condition.getValue() ? node.getThenBranch() : node.getElseBranch();
+   *   }
+   *   return node;
+   * }
+   * ```
+   *
+   * @param node - Ternary expression to transform
+   * @returns Transformed expression
+   */
+  visitTernaryExpression(node: TernaryExpression): ASTNode {
+    // Transform condition and branches
+    const condition = node.getCondition().accept(this) as Expression;
+    const thenBranch = node.getThenBranch().accept(this) as Expression;
+    const elseBranch = node.getElseBranch().accept(this) as Expression;
+
+    // Return original if nothing changed
+    if (
+      condition === node.getCondition() &&
+      thenBranch === node.getThenBranch() &&
+      elseBranch === node.getElseBranch()
+    ) {
+      return node;
+    }
+
+    // Create new TernaryExpression with transformed parts
+    return new TernaryExpression(condition, thenBranch, elseBranch, node.getLocation());
+  }
+
+  /**
    * Transform Literal expression
    *
    * Default: Identity transformation
@@ -586,6 +629,32 @@ export abstract class ASTTransformer implements ASTVisitor<ASTNode> {
    * @returns Transformed statement
    */
   visitForStatement(node: ForStatement): ASTNode {
+    return node;
+  }
+
+  /**
+   * Transform Do-While statement
+   *
+   * Default: Identity transformation
+   * Override to transform body or condition
+   *
+   * @param node - Do-While statement to transform
+   * @returns Transformed statement
+   */
+  visitDoWhileStatement(node: DoWhileStatement): ASTNode {
+    return node;
+  }
+
+  /**
+   * Transform Switch statement
+   *
+   * Default: Identity transformation
+   * Override to transform value or cases
+   *
+   * @param node - Switch statement to transform
+   * @returns Transformed statement
+   */
+  visitSwitchStatement(node: SwitchStatement): ASTNode {
     return node;
   }
 

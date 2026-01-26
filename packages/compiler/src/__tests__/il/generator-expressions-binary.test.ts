@@ -71,21 +71,21 @@ describe('ILExpressionGenerator - Binary Expressions: Arithmetic', () => {
 
   describe('addition', () => {
     it('should generate ADD for byte + byte', () => {
-      const source = `module test\nfunction add(): byte\nlet a: byte = 5\nlet b: byte = 10\nreturn a + b\nend function`;
+      const source = `module test\nfunction add(): byte { let a: byte = 5; let b: byte = 10; return a + b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('add')!, ILOpcode.ADD)).toBe(true);
     });
 
     it('should generate ADD for word + word', () => {
-      const source = `module test\nfunction add(): word\nlet a: word = 1000\nlet b: word = 2000\nreturn a + b\nend function`;
+      const source = `module test\nfunction add(): word { let a: word = 1000; let b: word = 2000; return a + b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('add')!, ILOpcode.ADD)).toBe(true);
     });
 
     it('should generate ADD for literal + literal', () => {
-      const source = `module test\nfunction add(): byte\nreturn 5 + 10\nend function`;
+      const source = `module test\nfunction add(): byte { return 5 + 10; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('add')!, ILOpcode.ADD)).toBe(true);
@@ -94,14 +94,14 @@ describe('ILExpressionGenerator - Binary Expressions: Arithmetic', () => {
 
   describe('subtraction', () => {
     it('should generate SUB for byte - byte', () => {
-      const source = `module test\nfunction sub(): byte\nlet a: byte = 20\nlet b: byte = 5\nreturn a - b\nend function`;
+      const source = `module test\nfunction sub(): byte { let a: byte = 20; let b: byte = 5; return a - b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('sub')!, ILOpcode.SUB)).toBe(true);
     });
 
     it('should generate SUB for word - word', () => {
-      const source = `module test\nfunction sub(): word\nlet a: word = 5000\nlet b: word = 2000\nreturn a - b\nend function`;
+      const source = `module test\nfunction sub(): word { let a: word = 5000; let b: word = 2000; return a - b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('sub')!, ILOpcode.SUB)).toBe(true);
@@ -110,14 +110,14 @@ describe('ILExpressionGenerator - Binary Expressions: Arithmetic', () => {
 
   describe('multiplication', () => {
     it('should generate MUL for byte * byte', () => {
-      const source = `module test\nfunction mul(): byte\nlet a: byte = 5\nlet b: byte = 10\nreturn a * b\nend function`;
+      const source = `module test\nfunction mul(): byte { let a: byte = 5; let b: byte = 10; return a * b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mul')!, ILOpcode.MUL)).toBe(true);
     });
 
     it('should generate MUL for word * word', () => {
-      const source = `module test\nfunction mul(): word\nlet a: word = 100\nlet b: word = 200\nreturn a * b\nend function`;
+      const source = `module test\nfunction mul(): word { let a: word = 100; let b: word = 200; return a * b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mul')!, ILOpcode.MUL)).toBe(true);
@@ -126,14 +126,14 @@ describe('ILExpressionGenerator - Binary Expressions: Arithmetic', () => {
 
   describe('division', () => {
     it('should generate DIV for byte / byte', () => {
-      const source = `module test\nfunction div(): byte\nlet a: byte = 100\nlet b: byte = 10\nreturn a / b\nend function`;
+      const source = `module test\nfunction div(): byte { let a: byte = 100; let b: byte = 10; return a / b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('div')!, ILOpcode.DIV)).toBe(true);
     });
 
     it('should generate DIV for word / word', () => {
-      const source = `module test\nfunction div(): word\nlet a: word = 1000\nlet b: word = 100\nreturn a / b\nend function`;
+      const source = `module test\nfunction div(): word { let a: word = 1000; let b: word = 100; return a / b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('div')!, ILOpcode.DIV)).toBe(true);
@@ -142,14 +142,14 @@ describe('ILExpressionGenerator - Binary Expressions: Arithmetic', () => {
 
   describe('modulo', () => {
     it('should generate MOD for byte % byte', () => {
-      const source = `module test\nfunction mod(): byte\nlet a: byte = 17\nlet b: byte = 5\nreturn a % b\nend function`;
+      const source = `module test\nfunction mod(): byte { let a: byte = 17; let b: byte = 5; return a % b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mod')!, ILOpcode.MOD)).toBe(true);
     });
 
     it('should generate MOD for word % word', () => {
-      const source = `module test\nfunction mod(): word\nlet a: word = 1000\nlet b: word = 300\nreturn a % b\nend function`;
+      const source = `module test\nfunction mod(): word { let a: word = 1000; let b: word = 300; return a % b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mod')!, ILOpcode.MOD)).toBe(true);
@@ -158,14 +158,14 @@ describe('ILExpressionGenerator - Binary Expressions: Arithmetic', () => {
 
   describe('chained arithmetic', () => {
     it('should generate multiple ADD for a + b + c', () => {
-      const source = `module test\nfunction chain(): byte\nlet a: byte = 1\nlet b: byte = 2\nlet c: byte = 3\nreturn a + b + c\nend function`;
+      const source = `module test\nfunction chain(): byte { let a: byte = 1; let b: byte = 2; let c: byte = 3; return a + b + c; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('chain')!, ILOpcode.ADD).length).toBeGreaterThanOrEqual(2);
     });
 
     it('should generate MUL and ADD for a + b * c', () => {
-      const source = `module test\nfunction mixed(): byte\nlet a: byte = 10\nlet b: byte = 2\nlet c: byte = 3\nreturn a + b * c\nend function`;
+      const source = `module test\nfunction mixed(): byte { let a: byte = 10; let b: byte = 2; let c: byte = 3; return a + b * c; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mixed')!, ILOpcode.MUL)).toBe(true);
@@ -187,14 +187,14 @@ describe('ILExpressionGenerator - Binary Expressions: Comparison', () => {
 
   describe('equal', () => {
     it('should generate CMP_EQ for byte == byte', () => {
-      const source = `module test\nfunction eq(): bool\nlet a: byte = 5\nlet b: byte = 5\nreturn a == b\nend function`;
+      const source = `module test\nfunction eq(): bool { let a: byte = 5; let b: byte = 5; return a == b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('eq')!, ILOpcode.CMP_EQ)).toBe(true);
     });
 
     it('should generate CMP_EQ for word == word', () => {
-      const source = `module test\nfunction eq(): bool\nlet a: word = 1000\nlet b: word = 1000\nreturn a == b\nend function`;
+      const source = `module test\nfunction eq(): bool { let a: word = 1000; let b: word = 1000; return a == b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('eq')!, ILOpcode.CMP_EQ)).toBe(true);
@@ -203,7 +203,7 @@ describe('ILExpressionGenerator - Binary Expressions: Comparison', () => {
 
   describe('not equal', () => {
     it('should generate CMP_NE for byte != byte', () => {
-      const source = `module test\nfunction ne(): bool\nlet a: byte = 5\nlet b: byte = 10\nreturn a != b\nend function`;
+      const source = `module test\nfunction ne(): bool { let a: byte = 5; let b: byte = 10; return a != b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('ne')!, ILOpcode.CMP_NE)).toBe(true);
@@ -212,7 +212,7 @@ describe('ILExpressionGenerator - Binary Expressions: Comparison', () => {
 
   describe('less than', () => {
     it('should generate CMP_LT for byte < byte', () => {
-      const source = `module test\nfunction lt(): bool\nlet a: byte = 5\nlet b: byte = 10\nreturn a < b\nend function`;
+      const source = `module test\nfunction lt(): bool { let a: byte = 5; let b: byte = 10; return a < b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('lt')!, ILOpcode.CMP_LT)).toBe(true);
@@ -221,7 +221,7 @@ describe('ILExpressionGenerator - Binary Expressions: Comparison', () => {
 
   describe('less than or equal', () => {
     it('should generate CMP_LE for byte <= byte', () => {
-      const source = `module test\nfunction le(): bool\nlet a: byte = 5\nlet b: byte = 10\nreturn a <= b\nend function`;
+      const source = `module test\nfunction le(): bool { let a: byte = 5; let b: byte = 10; return a <= b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('le')!, ILOpcode.CMP_LE)).toBe(true);
@@ -230,7 +230,7 @@ describe('ILExpressionGenerator - Binary Expressions: Comparison', () => {
 
   describe('greater than', () => {
     it('should generate CMP_GT for byte > byte', () => {
-      const source = `module test\nfunction gt(): bool\nlet a: byte = 10\nlet b: byte = 5\nreturn a > b\nend function`;
+      const source = `module test\nfunction gt(): bool { let a: byte = 10; let b: byte = 5; return a > b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('gt')!, ILOpcode.CMP_GT)).toBe(true);
@@ -239,7 +239,7 @@ describe('ILExpressionGenerator - Binary Expressions: Comparison', () => {
 
   describe('greater than or equal', () => {
     it('should generate CMP_GE for byte >= byte', () => {
-      const source = `module test\nfunction ge(): bool\nlet a: byte = 10\nlet b: byte = 10\nreturn a >= b\nend function`;
+      const source = `module test\nfunction ge(): bool { let a: byte = 10; let b: byte = 10; return a >= b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('ge')!, ILOpcode.CMP_GE)).toBe(true);
@@ -248,7 +248,7 @@ describe('ILExpressionGenerator - Binary Expressions: Comparison', () => {
 
   describe('comparison in control flow', () => {
     it('should generate comparison for if condition', () => {
-      const source = `module test\nfunction test(): byte\nlet x: byte = 5\nif x < 10 then\nreturn 1\nend if\nreturn 0\nend function`;
+      const source = `module test\nfunction test(): byte { let x: byte = 5; if (x < 10) { return 1; } return 0; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('test')!, ILOpcode.CMP_LT)).toBe(true);
@@ -269,14 +269,14 @@ describe('ILExpressionGenerator - Binary Expressions: Bitwise', () => {
 
   describe('bitwise AND', () => {
     it('should generate AND for byte & byte', () => {
-      const source = `module test\nfunction bitAnd(): byte\nlet a: byte = $FF\nlet b: byte = $0F\nreturn a & b\nend function`;
+      const source = `module test\nfunction bitAnd(): byte { let a: byte = $FF; let b: byte = $0F; return a & b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitAnd')!, ILOpcode.AND)).toBe(true);
     });
 
     it('should generate AND for word & word', () => {
-      const source = `module test\nfunction bitAnd(): word\nlet a: word = $FFFF\nlet b: word = $00FF\nreturn a & b\nend function`;
+      const source = `module test\nfunction bitAnd(): word { let a: word = $FFFF; let b: word = $00FF; return a & b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitAnd')!, ILOpcode.AND)).toBe(true);
@@ -285,14 +285,14 @@ describe('ILExpressionGenerator - Binary Expressions: Bitwise', () => {
 
   describe('bitwise OR', () => {
     it('should generate OR for byte | byte', () => {
-      const source = `module test\nfunction bitOr(): byte\nlet a: byte = $F0\nlet b: byte = $0F\nreturn a | b\nend function`;
+      const source = `module test\nfunction bitOr(): byte { let a: byte = $F0; let b: byte = $0F; return a | b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitOr')!, ILOpcode.OR)).toBe(true);
     });
 
     it('should generate OR for word | word', () => {
-      const source = `module test\nfunction bitOr(): word\nlet a: word = $FF00\nlet b: word = $00FF\nreturn a | b\nend function`;
+      const source = `module test\nfunction bitOr(): word { let a: word = $FF00; let b: word = $00FF; return a | b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitOr')!, ILOpcode.OR)).toBe(true);
@@ -301,7 +301,7 @@ describe('ILExpressionGenerator - Binary Expressions: Bitwise', () => {
 
   describe('bitwise XOR', () => {
     it('should generate XOR for byte ^ byte', () => {
-      const source = `module test\nfunction bitXor(): byte\nlet a: byte = $AA\nlet b: byte = $55\nreturn a ^ b\nend function`;
+      const source = `module test\nfunction bitXor(): byte { let a: byte = $AA; let b: byte = $55; return a ^ b; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitXor')!, ILOpcode.XOR)).toBe(true);
@@ -310,14 +310,14 @@ describe('ILExpressionGenerator - Binary Expressions: Bitwise', () => {
 
   describe('left shift', () => {
     it('should generate SHL for byte << literal', () => {
-      const source = `module test\nfunction shl(): byte\nlet x: byte = 1\nreturn x << 4\nend function`;
+      const source = `module test\nfunction shl(): byte { let x: byte = 1; return x << 4; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('shl')!, ILOpcode.SHL)).toBe(true);
     });
 
     it('should generate SHL for word << literal', () => {
-      const source = `module test\nfunction shl(): word\nlet x: word = 1\nreturn x << 8\nend function`;
+      const source = `module test\nfunction shl(): word { let x: word = 1; return x << 8; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('shl')!, ILOpcode.SHL)).toBe(true);
@@ -326,14 +326,14 @@ describe('ILExpressionGenerator - Binary Expressions: Bitwise', () => {
 
   describe('right shift', () => {
     it('should generate SHR for byte >> literal', () => {
-      const source = `module test\nfunction shr(): byte\nlet x: byte = $80\nreturn x >> 4\nend function`;
+      const source = `module test\nfunction shr(): byte { let x: byte = $80; return x >> 4; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('shr')!, ILOpcode.SHR)).toBe(true);
     });
 
     it('should generate SHR for word >> literal', () => {
-      const source = `module test\nfunction shr(): word\nlet x: word = $FF00\nreturn x >> 8\nend function`;
+      const source = `module test\nfunction shr(): word { let x: word = $FF00; return x >> 8; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('shr')!, ILOpcode.SHR)).toBe(true);
@@ -342,7 +342,7 @@ describe('ILExpressionGenerator - Binary Expressions: Bitwise', () => {
 
   describe('chained bitwise', () => {
     it('should generate chained AND and OR', () => {
-      const source = `module test\nfunction chain(): byte\nlet a: byte = $FF\nlet b: byte = $0F\nlet c: byte = $F0\nreturn a & b | c\nend function`;
+      const source = `module test\nfunction chain(): byte { let a: byte = $FF; let b: byte = $0F; let c: byte = $F0; return a & b | c; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('chain')!, ILOpcode.AND)).toBe(true);
@@ -364,7 +364,7 @@ describe('ILExpressionGenerator - Binary Expressions: Complex', () => {
 
   describe('mixed arithmetic and comparison', () => {
     it('should generate ADD and CMP_GT', () => {
-      const source = `module test\nfunction mixed(): bool\nlet a: byte = 5\nlet b: byte = 10\nreturn a + b > 10\nend function`;
+      const source = `module test\nfunction mixed(): bool { let a: byte = 5; let b: byte = 10; return a + b > 10; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mixed')!, ILOpcode.ADD)).toBe(true);
@@ -372,7 +372,7 @@ describe('ILExpressionGenerator - Binary Expressions: Complex', () => {
     });
 
     it('should generate complex arithmetic', () => {
-      const source = `module test\nfunction complex(): byte\nlet a: byte = 10\nlet b: byte = 2\nlet c: byte = 3\nlet d: byte = 4\nreturn a * b + c * d\nend function`;
+      const source = `module test\nfunction complex(): byte { let a: byte = 10; let b: byte = 2; let c: byte = 3; let d: byte = 4; return a * b + c * d; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('complex')!, ILOpcode.MUL).length).toBeGreaterThanOrEqual(2);
@@ -382,7 +382,7 @@ describe('ILExpressionGenerator - Binary Expressions: Complex', () => {
 
   describe('parenthesized expressions', () => {
     it('should respect parentheses in arithmetic', () => {
-      const source = `module test\nfunction paren(): byte\nlet a: byte = 2\nlet b: byte = 3\nlet c: byte = 4\nreturn a * (b + c)\nend function`;
+      const source = `module test\nfunction paren(): byte { let a: byte = 2; let b: byte = 3; let c: byte = 4; return a * (b + c); }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('paren')!, ILOpcode.ADD)).toBe(true);
@@ -390,7 +390,7 @@ describe('ILExpressionGenerator - Binary Expressions: Complex', () => {
     });
 
     it('should respect parentheses in comparison', () => {
-      const source = `module test\nfunction paren(): bool\nlet a: byte = 5\nlet b: byte = 10\nlet c: byte = 15\nreturn (a + b) == c\nend function`;
+      const source = `module test\nfunction paren(): bool { let a: byte = 5; let b: byte = 10; let c: byte = 15; return (a + b) == c; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('paren')!, ILOpcode.ADD)).toBe(true);
@@ -400,7 +400,7 @@ describe('ILExpressionGenerator - Binary Expressions: Complex', () => {
 
   describe('C64-specific patterns', () => {
     it('should generate sprite position calculation', () => {
-      const source = `module test\nfunction spritePos(): word\nlet baseX: byte = 100\nlet spriteNum: byte = 2\nreturn baseX + spriteNum * 24\nend function`;
+      const source = `module test\nfunction spritePos(): word { let baseX: byte = 100; let spriteNum: byte = 2; return baseX + spriteNum * 24; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('spritePos')!, ILOpcode.MUL)).toBe(true);
@@ -408,7 +408,7 @@ describe('ILExpressionGenerator - Binary Expressions: Complex', () => {
     });
 
     it('should generate screen address calculation', () => {
-      const source = `module test\nfunction screenAddr(): word\nlet row: byte = 10\nlet col: byte = 20\nreturn $0400 + row * 40 + col\nend function`;
+      const source = `module test\nfunction screenAddr(): word { let row: byte = 10; let col: byte = 20; return $0400 + row * 40 + col; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('screenAddr')!, ILOpcode.MUL)).toBe(true);
@@ -416,7 +416,7 @@ describe('ILExpressionGenerator - Binary Expressions: Complex', () => {
     });
 
     it('should generate color masking operation', () => {
-      const source = `module test\nfunction colorMask(): byte\nlet color: byte = $1F\nreturn color & $0F\nend function`;
+      const source = `module test\nfunction colorMask(): byte { let color: byte = $1F; return color & $0F; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('colorMask')!, ILOpcode.AND)).toBe(true);

@@ -1,7 +1,7 @@
 # Overview
 
-> **Status**: Lexer-Derived Specification  
-> **Last Updated**: January 8, 2026  
+> **Status**: C-Style Syntax Specification  
+> **Last Updated**: January 25, 2026  
 > **Related Documents**: [Lexical Structure](01-lexical-structure.md), [Program Structure](03-program-structure.md)
 
 ## Introduction
@@ -19,7 +19,7 @@ The language aims to provide **structured programming**, **modularity**, and a *
 ### 1. Modern Syntax with Low-Level Control
 
 Blend65 combines modern programming language features with direct hardware access:
-- Structured control flow (if/while/for/match)
+- Structured control flow (if/while/for/switch)
 - Type safety (byte/word/boolean/string types)
 - Module system (import/export)
 - Direct memory access (memory-mapped variables)
@@ -37,7 +37,7 @@ The language is designed specifically for 6502 systems and includes:
 
 Unlike traditional 6502 assembly or BASIC:
 - Clear variable and function names
-- Block-structured syntax
+- Block-structured syntax with curly braces
 - Type annotations for clarity
 - Comments for documentation
 
@@ -51,11 +51,12 @@ The language is designed for **predictable code generation**:
 
 ## Specification Status
 
-This specification is **lexer-derived**, meaning:
+This specification is **C-style syntax**, meaning:
 
-- ✅ If a construct is tokenizable and parseable by the current frontend, it is specified here
-- ❌ If a construct cannot be tokenized, it is not part of the language specification
-- 🔄 Some higher-level semantics (type checking rules, code generation) may evolve as the compiler backend develops
+- ✅ Uses curly braces `{ }` for block delimiters
+- ✅ Uses parentheses `( )` for control flow conditions
+- ✅ Uses semicolons for statement termination and module/import declarations
+- ✅ Familiar syntax for developers from C, JavaScript, TypeScript backgrounds
 
 ### Implementation References
 
@@ -76,21 +77,21 @@ All keywords are **case-sensitive**:
 
 ### Semicolon-Terminated Statements
 
-Blend65 uses **semicolons** (`;`) to separate statements, not newlines:
+Blend65 uses **semicolons** (`;`) to separate statements:
 ```js
 let x: byte = 5;
 let y: byte = 10;
 ```
 
-### Block-Structured with Explicit Terminators
+### C-Style Block Structure
 
-Control flow and declarations use block structure with `end` terminators:
+Control flow and declarations use **curly braces** for blocks:
 ```js
-function main(): void
-  if x > 5 then
+function main(): void {
+  if (x > 5) {
     doSomething();
-  end if
-end function
+  }
+}
 ```
 
 ### Explicit Memory Control
@@ -100,6 +101,57 @@ Variables can be explicitly placed in different memory regions:
 @zp let counter: byte = 0;        // Zero page (fast)
 @ram let buffer: byte[1000];      // General RAM (default)
 @data const table: byte[256];     // Initialized data section
+```
+
+## Quick Syntax Examples
+
+### Module Declaration
+```js
+module Game.Main;
+```
+
+### Import Statement
+```js
+import { clearScreen, setPixel } from c64.graphics;
+```
+
+### Function Declaration
+```js
+export function add(a: byte, b: byte): byte {
+  return a + b;
+}
+```
+
+### Control Flow
+```js
+if (score > 100) {
+  showBonus();
+} else {
+  continueGame();
+}
+
+while (running) {
+  updateGame();
+}
+
+for (i = 0 to 10) {
+  buffer[i] = 0;
+}
+
+switch (state) {
+  case GameState.MENU:
+    showMenu();
+  case GameState.PLAYING:
+    updateGame();
+  default:
+    reset();
+}
+```
+
+### Memory-Mapped Variables
+```js
+@map vicBorderColor at $D020: byte;
+@map screenRAM from $0400 to $07E7: byte;
 ```
 
 ## Language Philosophy

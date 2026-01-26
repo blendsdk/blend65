@@ -1,7 +1,7 @@
 # Grammar Overview
 
 > **Status**: Lexer-Derived Specification
-> **Last Updated**: January 8, 2026
+> **Last Updated**: January 25, 2026
 > **Related Documents**: [Lexical Structure](01-lexical-structure.md), [Program Structure](03-program-structure.md)
 
 ## Introduction
@@ -31,9 +31,9 @@ Blend65 specification uses standard EBNF meta-notation:
 ### Terminals
 
 Terminals are literal tokens produced by the lexer, shown as:
-- **Keywords**: `"module"`, `"function"`, `"if"`, `"let"`
-- **Operators**: `"+"`, `"=="`, `"&&"`
-- **Punctuation**: `"("`, `")"`, `";"`, `":"`
+- **Keywords**: `"module"`, `"function"`, `"if"`, `"let"`, `"switch"`, `"do"`
+- **Operators**: `"+"`, `"=="`, `"&&"`, `"?"`
+- **Punctuation**: `"("`, `")"`, `"{"`, `"}"`, `";"`, `":"`
 
 ### Non-Terminals
 
@@ -96,8 +96,8 @@ top_level_item = module_decl
                | type_decl
                | enum_decl
                | map_decl
-               | variable_decl , ";"
-               | statement , ";" ;
+               | variable_decl
+               | statement ;
 ```
 
 See [Program Structure](03-program-structure.md) for ordering rules and semantics.
@@ -109,8 +109,12 @@ Expressions are the core of computation. The grammar follows standard precedence
 ```ebnf
 expression = assignment_expr ;
 
-assignment_expr = logical_or_expr
+assignment_expr = conditional_expr
                 , [ assignment_op , assignment_expr ] ;
+
+(* Ternary conditional expression *)
+conditional_expr = logical_or_expr
+                 , [ "?" , expression , ":" , conditional_expr ] ;
 
 logical_or_expr  = logical_and_expr , { "||" , logical_and_expr } ;
 logical_and_expr = bitwise_or_expr  , { "&&" , bitwise_or_expr  } ;
@@ -143,9 +147,13 @@ member_suffix = "." , identifier ;
 
 primary_expr = literal
              | identifier
+             | array_literal
              | "(" , expression , ")" ;
 
 argument_list = expression , { "," , expression } ;
+
+array_literal = "[" , [ expression_list ] , "]" ;
+expression_list = expression , { "," , expression } , [ "," ] ;
 ```
 
 See [Expressions & Statements](06-expressions-statements.md) for detailed semantics.
@@ -155,19 +163,20 @@ See [Expressions & Statements](06-expressions-statements.md) for detailed semant
 Statements are the building blocks of functions and control flow:
 
 ```ebnf
-statement = variable_decl , ";"
-          | assignment_stmt , ";"
-          | return_stmt , ";"
+statement = variable_decl
+          | assignment_stmt
+          | return_stmt
           | if_stmt
           | while_stmt
+          | do_while_stmt
           | for_stmt
-          | match_stmt
-          | break_stmt , ";"
-          | continue_stmt , ";"
-          | expr_stmt , ";" ;
+          | switch_stmt
+          | break_stmt
+          | continue_stmt
+          | expr_stmt ;
 ```
 
-**Key Rule**: Statements that are not self-terminating (single-line statements) require semicolons. Block-structured statements (if, while, for, match, function) use `end` terminators and do not require semicolons.
+**Key Rule**: All single-line statements require semicolons. Block-structured statements (if, while, for, switch, function) use curly braces `{ }` and do not require trailing semicolons.
 
 ## Declarations
 
@@ -177,7 +186,7 @@ Declarations introduce new names into the program:
 (* Variables *)
 variable_decl = [ storage_class ] , ( "let" | "const" ) , identifier
               , [ ":" , type_expr ]
-              , [ "=" , expression ] ;
+              , [ "=" , expression ] , ";" ;
 
 storage_class = "@zp" | "@ram" | "@data" ;
 
@@ -186,21 +195,22 @@ function_decl = [ "export" ] , [ "callback" ]
               , "function" , identifier
               , "(" , [ parameter_list ] , ")"
               , [ ":" , type_name ]
-              , { NEWLINE }
-              , { statement , { NEWLINE } }
-              , "end" , "function" ;
+              , ( function_body | ";" ) ;
+
+function_body = "{" , { statement } , "}" ;
 
 parameter_list = parameter , { "," , parameter } ;
 parameter      = identifier , ":" , type_expr ;
 
 (* Types *)
-type_decl = "type" , identifier , "=" , type_expr ;
+type_decl = "type" , identifier , "=" , type_expr , ";" ;
 
 (* Enums *)
-enum_decl = "enum" , identifier , { NEWLINE }
-          , { enum_member , [ "," ] , { NEWLINE } }
-          , "end" , "enum" ;
+enum_decl = "enum" , identifier , "{"
+          , [ enum_member_list ]
+          , "}" ;
 
+enum_member_list = enum_member , { "," , enum_member } , [ "," ] ;
 enum_member = identifier , [ "=" , integer ] ;
 ```
 
@@ -210,13 +220,13 @@ See [Variables](10-variables.md), [Functions](11-functions.md), and [Type System
 
 ```ebnf
 (* Module declaration *)
-module_decl = "module" , name ;
+module_decl = "module" , name , ";" ;
 
 (* Import declaration *)
-import_decl = "import" , import_list , "from" , name ;
+import_decl = "import" , "{" , import_list , "}" , "from" , name , ";" ;
 import_list = identifier , { "," , identifier } ;
 
-(* Export declaration *)
+(* Export declaration - inline with declarations *)
 export_decl = "export" , ( function_decl | variable_decl | type_decl | enum_decl ) ;
 ```
 
@@ -225,27 +235,38 @@ See [Module System](04-module-system.md) for semantics.
 ## Control Flow
 
 ```ebnf
-(* If statement *)
-if_stmt = "if" , expression , "then"
+(* If statement - C-style with curly braces *)
+if_stmt = "if" , "(" , expression , ")" , "{"
         , { statement }
-        , [ "else" , { statement } ]
-        , "end" , "if" ;
+        , "}"
+        , [ else_clause ] ;
 
-(* While loop *)
-while_stmt = "while" , expression
+else_clause = "else" , ( if_stmt | "{" , { statement } , "}" ) ;
+
+(* While loop - C-style *)
+while_stmt = "while" , "(" , expression , ")" , "{"
            , { statement }
-           , "end" , "while" ;
+           , "}" ;
 
-(* For loop *)
-for_stmt = "for" , identifier , "=" , expression , "to" , expression
+(* Do-while loop - C-style (body executes at least once) *)
+do_while_stmt = "do" , "{"
+              , { statement }
+              , "}" , "while" , "(" , expression , ")" , ";" ;
+
+(* For loop - with to/downto and optional step *)
+for_stmt = "for" , "(" , [ "let" , identifier , [ ":" , type_expr ] , "=" ]
+         , identifier , "=" , expression
+         , ( "to" | "downto" ) , expression
+         , [ "step" , expression ]
+         , ")" , "{"
          , { statement }
-         , "next" , identifier ;
+         , "}" ;
 
-(* Match statement *)
-match_stmt = "match" , expression
-           , { case_clause }
-           , [ default_clause ]
-           , "end" , "match" ;
+(* Switch statement - C-style pattern matching *)
+switch_stmt = "switch" , "(" , expression , ")" , "{"
+            , { case_clause }
+            , [ default_clause ]
+            , "}" ;
 
 case_clause = "case" , expression , ":"
             , { statement } ;
@@ -254,11 +275,11 @@ default_clause = "default" , ":"
                , { statement } ;
 
 (* Break/Continue *)
-break_stmt    = "break" ;
-continue_stmt = "continue" ;
+break_stmt    = "break" , ";" ;
+continue_stmt = "continue" , ";" ;
 
 (* Return *)
-return_stmt = "return" , [ expression ] ;
+return_stmt = "return" , [ expression ] , ";" ;
 ```
 
 See [Expressions & Statements](06-expressions-statements.md) for control flow semantics.
@@ -268,24 +289,30 @@ See [Expressions & Statements](06-expressions-statements.md) for control flow se
 ```ebnf
 map_decl = simple_map_decl
          | range_map_decl
-         | sequential_struct_map_decl
-         | explicit_struct_map_decl ;
+         | type_map_decl
+         | layout_map_decl ;
 
+(* Form 1: Simple single-address mapping *)
 simple_map_decl = "@map" , identifier , "at" , address , ":" , type_name , ";" ;
 
+(* Form 2: Range mapping for arrays *)
 range_map_decl = "@map" , identifier , "from" , address , "to" , address , ":" , type_name , ";" ;
 
-sequential_struct_map_decl = "@map" , identifier , "at" , address , "type"
-                           , { NEWLINE }
-                           , field_list
-                           , "end" , "@map" ;
+(* Form 3: Type-based struct mapping *)
+type_map_decl = "@map" , identifier , "at" , address , "type" , identifier , "{"
+              , { field_decl }
+              , "}" ;
 
-explicit_struct_map_decl = "@map" , identifier , "at" , address , "layout"
-                         , { NEWLINE }
-                         , explicit_field_list
-                         , "end" , "@map" ;
+(* Form 4: Explicit layout struct mapping *)
+layout_map_decl = "@map" , identifier , "at" , address , "layout" , "{"
+                , { explicit_field_decl }
+                , "}" ;
+
+field_decl = identifier , ":" , type_expr , ";" ;
+explicit_field_decl = identifier , ":" , "at" , offset , ":" , type_expr , ";" ;
 
 address = hex_literal | decimal_literal ;
+offset = hex_literal | decimal_literal ;
 ```
 
 See [Memory-Mapped](12-memory-mapped.md) for complete details on all four forms.
@@ -294,21 +321,22 @@ See [Memory-Mapped](12-memory-mapped.md) for complete details on all four forms.
 
 From highest to lowest precedence:
 
-| Level | Operators | Associativity |
-|-------|-----------|---------------|
-| 1 | `()` `[]` `.` | Left-to-right |
-| 2 | `!` `~` unary `+` unary `-` | Right-to-left |
-| 3 | `*` `/` `%` | Left-to-right |
-| 4 | `+` `-` | Left-to-right |
-| 5 | `<<` `>>` | Left-to-right |
-| 6 | `<` `<=` `>` `>=` | Left-to-right |
-| 7 | `==` `!=` | Left-to-right |
-| 8 | `&` | Left-to-right |
-| 9 | `^` | Left-to-right |
-| 10 | `\|` | Left-to-right |
-| 11 | `&&` | Left-to-right |
-| 12 | `\|\|` | Left-to-right |
-| 13 | `=` `+=` `-=` `*=` `/=` `%=` `&=` `\|=` `^=` `<<=` `>>=` | Right-to-left |
+| Level | Operators | Associativity | Description |
+|-------|-----------|---------------|-------------|
+| 1 | `()` `[]` `.` | Left-to-right | Grouping, indexing, member access |
+| 2 | `!` `~` unary `+` unary `-` `@` | Right-to-left | Unary operators |
+| 3 | `*` `/` `%` | Left-to-right | Multiplicative |
+| 4 | `+` `-` | Left-to-right | Additive |
+| 5 | `<<` `>>` | Left-to-right | Shift |
+| 6 | `<` `<=` `>` `>=` | Left-to-right | Relational |
+| 7 | `==` `!=` | Left-to-right | Equality |
+| 8 | `&` | Left-to-right | Bitwise AND |
+| 9 | `^` | Left-to-right | Bitwise XOR |
+| 10 | `\|` | Left-to-right | Bitwise OR |
+| 11 | `&&` | Left-to-right | Logical AND |
+| 12 | `\|\|` | Left-to-right | Logical OR |
+| 13 | `?:` | Right-to-left | Ternary conditional |
+| 14 | `=` `+=` `-=` `*=` `/=` `%=` `&=` `\|=` `^=` `<<=` `>>=` | Right-to-left | Assignment |
 
 ## Grammar Conventions
 
@@ -318,22 +346,129 @@ The grammar does not explicitly show whitespace. All whitespace between tokens i
 
 ### Newlines
 
-The lexer treats newlines as whitespace. The grammar shows `{ NEWLINE }` in places where newlines are commonly used for readability, but they are optional.
+The lexer treats newlines as whitespace. They are optional between tokens.
 
 ### Semicolons
 
-Semicolons are **required** for statement termination, except for:
-- Block-structured statements (if, while, for, match)
-- Declarations (module, function, type, enum)
+Semicolons are **required** for:
+- Variable declarations: `let x: byte = 5;`
+- Assignments: `x = 10;`
+- Expression statements: `clearScreen();`
+- Return: `return value;`
+- Break/Continue: `break;` / `continue;`
+- Module declaration: `module MyGame;`
+- Import declaration: `import { A } from B;`
+- Do-while termination: `do { } while (cond);`
+
+Semicolons are **not required** after:
+- If statements: `if (x) { }`
+- While loops: `while (x) { }`
+- For loops: `for (i = 0 to 10) { }`
+- Switch statements: `switch (x) { }`
+- Function declarations: `function foo() { }`
+- Enum declarations: `enum State { }`
 
 ## Ambiguity Resolution
 
 The grammar is designed to be unambiguous:
 
 1. **Operator precedence** resolves expression ambiguity
-2. **Explicit end markers** (`end if`, `end function`) resolve block nesting
+2. **Curly braces** `{ }` clearly delimit blocks
 3. **Semicolons** resolve statement boundaries
 4. **Type annotations** (`:`) distinguish declarations from assignments
+5. **Ternary operator** uses `?` and `:` which don't conflict with other uses
+
+## Quick Syntax Reference
+
+### Control Flow Comparison (C-style)
+
+```js
+// If statement
+if (condition) {
+    doSomething();
+} else if (otherCondition) {
+    doOther();
+} else {
+    doDefault();
+}
+
+// While loop
+while (running) {
+    update();
+}
+
+// Do-while loop (body executes at least once)
+do {
+    process();
+} while (hasMore);
+
+// For loop (counting up)
+for (i = 0 to 10) {
+    buffer[i] = 0;
+}
+
+// For loop (counting down)
+for (i = 10 downto 0) {
+    countdown(i);
+}
+
+// For loop (with step)
+for (i = 0 to 100 step 5) {
+    processEveryFifth(i);
+}
+
+// Switch statement
+switch (state) {
+    case State.MENU:
+        showMenu();
+    case State.PLAYING:
+        playGame();
+    default:
+        reset();
+}
+```
+
+### Declarations (C-style)
+
+```js
+// Module
+module MyGame.Engine;
+
+// Import
+import { Player, Enemy } from Game.Entities;
+
+// Function
+function updateGame(): void {
+    // function body
+}
+
+// Stub function (declaration only)
+function externalCall(): void;
+
+// Enum
+enum GameState {
+    MENU,
+    PLAYING,
+    PAUSED,
+    GAME_OVER
+}
+
+// Memory-mapped with layout
+@map vic at $D000 layout {
+    spriteX: at $00: byte[8];
+    borderColor: at $20: byte;
+}
+```
+
+### Expressions (with ternary)
+
+```js
+// Ternary conditional
+let max = (a > b) ? a : b;
+
+// Nested ternary
+let grade = (score > 90) ? "A" : (score > 80) ? "B" : "C";
+```
 
 ## Implementation Notes
 

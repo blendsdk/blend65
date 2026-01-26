@@ -18,18 +18,19 @@ import { TokenType } from '../lexer/types.js';
  *
  * Precedence ladder (from lowest to highest):
  * 1. Assignment (=, +=, -=, etc.)
- * 2. Logical OR (||)
- * 3. Logical AND (&&)
- * 4. Bitwise OR (|)
- * 5. Bitwise XOR (^)
- * 6. Bitwise AND (&)
- * 7. Equality (==, !=)
- * 8. Relational (<, <=, >, >=)
- * 9. Shift (<<, >>)
- * 10. Additive (+, -)
- * 11. Multiplicative (*, /, %)
- * 12. Unary (!, ~, unary -, unary +)
- * 13. Postfix ([], ., ())
+ * 2. Ternary conditional (? :)
+ * 3. Logical OR (||)
+ * 4. Logical AND (&&)
+ * 5. Bitwise OR (|)
+ * 6. Bitwise XOR (^)
+ * 7. Bitwise AND (&)
+ * 8. Equality (==, !=)
+ * 9. Relational (<, <=, >, >=)
+ * 10. Shift (<<, >>)
+ * 11. Additive (+, -)
+ * 12. Multiplicative (*, /, %)
+ * 13. Unary (!, ~, unary -, unary +)
+ * 14. Postfix ([], ., ())
  *
  * Based on C operator precedence with adjustments for Blend65.
  */
@@ -40,41 +41,44 @@ export enum OperatorPrecedence {
   /** Assignment operators: =, +=, -=, *=, /=, %=, &=, |=, ^=, <<=, >>= */
   ASSIGNMENT = 1,
 
+  /** Ternary conditional: condition ? then : else (right-associative) */
+  TERNARY = 2,
+
   /** Logical OR: || */
-  LOGICAL_OR = 2,
+  LOGICAL_OR = 3,
 
   /** Logical AND: && */
-  LOGICAL_AND = 3,
+  LOGICAL_AND = 4,
 
   /** Bitwise OR: | */
-  BITWISE_OR = 4,
+  BITWISE_OR = 5,
 
   /** Bitwise XOR: ^ */
-  BITWISE_XOR = 5,
+  BITWISE_XOR = 6,
 
   /** Bitwise AND: & */
-  BITWISE_AND = 6,
+  BITWISE_AND = 7,
 
   /** Equality: ==, != */
-  EQUALITY = 7,
+  EQUALITY = 8,
 
   /** Relational: <, <=, >, >= */
-  RELATIONAL = 8,
+  RELATIONAL = 9,
 
   /** Shift: <<, >> */
-  SHIFT = 9,
+  SHIFT = 10,
 
   /** Additive: +, - */
-  ADDITIVE = 10,
+  ADDITIVE = 11,
 
   /** Multiplicative: *, /, % */
-  MULTIPLICATIVE = 11,
+  MULTIPLICATIVE = 12,
 
   /** Unary: !, ~, unary -, unary + */
-  UNARY = 12,
+  UNARY = 13,
 
   /** Postfix: [], ., () */
-  POSTFIX = 13,
+  POSTFIX = 14,
 }
 
 /**
@@ -109,38 +113,47 @@ export const PRECEDENCE_TABLE = new Map<TokenType, OperatorPrecedence>([
   [TokenType.RIGHT_SHIFT_ASSIGN, OperatorPrecedence.ASSIGNMENT],
 
   // ============================================
-  // LOGICAL OR (Precedence 2)
+  // TERNARY (Precedence 2) - Handled specially in parser
+  // ============================================
+  // Note: QUESTION token is not added here because ternary
+  // parsing requires special handling (? and : are not
+  // a simple binary operator). The parser checks for
+  // QUESTION after parsing a condition expression.
+  [TokenType.QUESTION, OperatorPrecedence.TERNARY],
+
+  // ============================================
+  // LOGICAL OR (Precedence 3)
   // ============================================
   [TokenType.OR, OperatorPrecedence.LOGICAL_OR],
 
   // ============================================
-  // LOGICAL AND (Precedence 3)
+  // LOGICAL AND (Precedence 4)
   // ============================================
   [TokenType.AND, OperatorPrecedence.LOGICAL_AND],
 
   // ============================================
-  // BITWISE OR (Precedence 4)
+  // BITWISE OR (Precedence 5)
   // ============================================
   [TokenType.BITWISE_OR, OperatorPrecedence.BITWISE_OR],
 
   // ============================================
-  // BITWISE XOR (Precedence 5)
+  // BITWISE XOR (Precedence 6)
   // ============================================
   [TokenType.BITWISE_XOR, OperatorPrecedence.BITWISE_XOR],
 
   // ============================================
-  // BITWISE AND (Precedence 6)
+  // BITWISE AND (Precedence 7)
   // ============================================
   [TokenType.BITWISE_AND, OperatorPrecedence.BITWISE_AND],
 
   // ============================================
-  // EQUALITY (Precedence 7)
+  // EQUALITY (Precedence 8)
   // ============================================
   [TokenType.EQUAL, OperatorPrecedence.EQUALITY],
   [TokenType.NOT_EQUAL, OperatorPrecedence.EQUALITY],
 
   // ============================================
-  // RELATIONAL (Precedence 8)
+  // RELATIONAL (Precedence 9)
   // ============================================
   [TokenType.LESS_THAN, OperatorPrecedence.RELATIONAL],
   [TokenType.LESS_EQUAL, OperatorPrecedence.RELATIONAL],
@@ -148,29 +161,29 @@ export const PRECEDENCE_TABLE = new Map<TokenType, OperatorPrecedence>([
   [TokenType.GREATER_EQUAL, OperatorPrecedence.RELATIONAL],
 
   // ============================================
-  // SHIFT (Precedence 9)
+  // SHIFT (Precedence 10)
   // ============================================
   [TokenType.LEFT_SHIFT, OperatorPrecedence.SHIFT],
   [TokenType.RIGHT_SHIFT, OperatorPrecedence.SHIFT],
 
   // ============================================
-  // ADDITIVE (Precedence 10)
+  // ADDITIVE (Precedence 11)
   // ============================================
   [TokenType.PLUS, OperatorPrecedence.ADDITIVE],
   [TokenType.MINUS, OperatorPrecedence.ADDITIVE],
 
   // ============================================
-  // MULTIPLICATIVE (Precedence 11)
+  // MULTIPLICATIVE (Precedence 12)
   // ============================================
   [TokenType.MULTIPLY, OperatorPrecedence.MULTIPLICATIVE],
   [TokenType.DIVIDE, OperatorPrecedence.MULTIPLICATIVE],
   [TokenType.MODULO, OperatorPrecedence.MULTIPLICATIVE],
 
-  // Note: Unary operators (precedence 12) are handled specially in the parser
+  // Note: Unary operators (precedence 13) are handled specially in the parser
   // They don't appear in the infix table because they're prefix operators
 
   // ============================================
-  // POSTFIX (Precedence 13)
+  // POSTFIX (Precedence 14)
   // ============================================
   // These are handled specially as they have unique parsing logic
   [TokenType.LEFT_BRACKET, OperatorPrecedence.POSTFIX], // Array indexing: array[index]
@@ -216,20 +229,24 @@ export function isBinaryOperator(tokenType: TokenType): boolean {
  * Checks if an operator is right-associative
  *
  * Most operators are left-associative (a + b + c = (a + b) + c)
- * Assignment operators are right-associative (a = b = c = (a = (b = c)))
+ * Assignment and ternary operators are right-associative:
+ * - Assignment: a = b = c = (a = (b = c))
+ * - Ternary: a ? b : c ? d : e = a ? b : (c ? d : e)
  *
  * @param tokenType - The token type to check
  * @returns True if right-associative
  *
  * @example
  * ```typescript
- * isRightAssociative(TokenType.ASSIGN);  // true
- * isRightAssociative(TokenType.PLUS);    // false
+ * isRightAssociative(TokenType.ASSIGN);    // true
+ * isRightAssociative(TokenType.QUESTION);  // true
+ * isRightAssociative(TokenType.PLUS);      // false
  * ```
  */
 export function isRightAssociative(tokenType: TokenType): boolean {
-  // Only assignment operators are right-associative in Blend65
-  return getPrecedence(tokenType) === OperatorPrecedence.ASSIGNMENT;
+  const prec = getPrecedence(tokenType);
+  // Assignment and ternary operators are right-associative in Blend65
+  return prec === OperatorPrecedence.ASSIGNMENT || prec === OperatorPrecedence.TERNARY;
 }
 
 /**

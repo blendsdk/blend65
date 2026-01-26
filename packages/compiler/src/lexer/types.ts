@@ -21,19 +21,18 @@ export enum TokenType {
   FROM = 'FROM',
   TARGET = 'TARGET',
   FUNCTION = 'FUNCTION',
-  END = 'END',
   RETURN = 'RETURN',
 
   // Control flow keywords
   IF = 'IF',
-  THEN = 'THEN',
   ELSE = 'ELSE',
-  ELSEIF = 'ELSEIF',
   WHILE = 'WHILE',
   FOR = 'FOR',
   TO = 'TO',
-  NEXT = 'NEXT',
-  MATCH = 'MATCH',
+  DOWNTO = 'DOWNTO',
+  STEP = 'STEP',
+  DO = 'DO',
+  SWITCH = 'SWITCH',
   CASE = 'CASE',
   BREAK = 'BREAK',
   CONTINUE = 'CONTINUE',
@@ -119,6 +118,7 @@ export enum TokenType {
   SEMICOLON = 'SEMICOLON',
   COLON = 'COLON',
   DOT = 'DOT',
+  QUESTION = 'QUESTION', // For ternary operator ?:
 
   // Special
   NEWLINE = 'NEWLINE',
@@ -197,23 +197,23 @@ export const eMutabilityModifier = {
 
 /**
  * Control flow keywords
- * Used for conditional statements, loops, and pattern matching
+ * Used for conditional statements, loops, and switch statements
+ * C-style syntax with curly braces
  */
 export const eControlFlowKeyword = {
   IF: 'if',
-  THEN: 'then',
   ELSE: 'else',
-  ELSEIF: 'elseif',
   WHILE: 'while',
   FOR: 'for',
   TO: 'to',
-  NEXT: 'next',
-  MATCH: 'match',
+  DOWNTO: 'downto',
+  STEP: 'step',
+  DO: 'do',
+  SWITCH: 'switch',
   CASE: 'case',
   BREAK: 'break',
   CONTINUE: 'continue',
   DEFAULT: 'default',
-  END: 'end',
 };
 
 /**

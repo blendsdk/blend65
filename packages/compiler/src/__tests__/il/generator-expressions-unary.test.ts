@@ -27,9 +27,6 @@ import { ILOpcode } from '../../il/instructions.js';
 
 /**
  * Parses Blend65 source code into an AST Program.
- *
- * @param source - Blend65 source code
- * @returns Parsed AST Program
  */
 function parseSource(source: string): Program {
   const lexer = new Lexer(source);
@@ -40,8 +37,6 @@ function parseSource(source: string): Program {
 
 /**
  * Creates a fresh ILExpressionGenerator for testing.
- *
- * @returns New generator instance with fresh symbol table
  */
 function createGenerator(): ILExpressionGenerator {
   const symbolTable = new GlobalSymbolTable();
@@ -50,10 +45,6 @@ function createGenerator(): ILExpressionGenerator {
 
 /**
  * Finds all instructions with a specific opcode in a function.
- *
- * @param ilFunc - IL function to search
- * @param opcode - Opcode to find
- * @returns Array of matching instructions
  */
 function findInstructions(
   ilFunc: { getBlocks(): readonly { getInstructions(): readonly { opcode: ILOpcode }[] }[] },
@@ -72,10 +63,6 @@ function findInstructions(
 
 /**
  * Checks if a function contains at least one instruction with a specific opcode.
- *
- * @param ilFunc - IL function to search
- * @param opcode - Opcode to find
- * @returns true if opcode is present
  */
 function hasInstruction(
   ilFunc: { getBlocks(): readonly { getInstructions(): readonly { opcode: ILOpcode }[] }[] },
@@ -97,21 +84,21 @@ describe('ILExpressionGenerator - Unary Expressions: Arithmetic Negation', () =>
 
   describe('basic negation', () => {
     it('should generate NEG for byte negation', () => {
-      const source = `module test\nfunction neg(): byte\nlet x: byte = 10\nreturn -x\nend function`;
+      const source = `module test\nfunction neg(): byte { let x: byte = 10; return -x; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('neg')!, ILOpcode.NEG)).toBe(true);
     });
 
     it('should generate NEG for word negation', () => {
-      const source = `module test\nfunction neg(): word\nlet x: word = 1000\nreturn -x\nend function`;
+      const source = `module test\nfunction neg(): word { let x: word = 1000; return -x; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('neg')!, ILOpcode.NEG)).toBe(true);
     });
 
     it('should generate NEG for literal negation', () => {
-      const source = `module test\nfunction neg(): byte\nreturn -10\nend function`;
+      const source = `module test\nfunction neg(): byte { return -10; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       // Note: Could be constant-folded, but the generator should still handle it
@@ -119,7 +106,7 @@ describe('ILExpressionGenerator - Unary Expressions: Arithmetic Negation', () =>
     });
 
     it('should handle negation of expression result', () => {
-      const source = `module test\nfunction neg(): byte\nlet a: byte = 5\nlet b: byte = 3\nreturn -(a + b)\nend function`;
+      const source = `module test\nfunction neg(): byte { let a: byte = 5; let b: byte = 3; return -(a + b); }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('neg')!, ILOpcode.ADD)).toBe(true);
@@ -129,7 +116,7 @@ describe('ILExpressionGenerator - Unary Expressions: Arithmetic Negation', () =>
 
   describe('double negation', () => {
     it('should generate two NEG for double negation', () => {
-      const source = `module test\nfunction neg(): byte\nlet x: byte = 10\nreturn --x\nend function`;
+      const source = `module test\nfunction neg(): byte { let x: byte = 10; return --x; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('neg')!, ILOpcode.NEG).length).toBeGreaterThanOrEqual(2);
@@ -150,14 +137,14 @@ describe('ILExpressionGenerator - Unary Expressions: Logical NOT', () => {
 
   describe('basic logical NOT', () => {
     it('should generate LOGICAL_NOT for bool NOT', () => {
-      const source = `module test\nfunction notOp(): bool\nlet flag: bool = true\nreturn !flag\nend function`;
+      const source = `module test\nfunction notOp(): bool { let flag: bool = true; return !flag; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('notOp')!, ILOpcode.LOGICAL_NOT)).toBe(true);
     });
 
     it('should generate LOGICAL_NOT for comparison result', () => {
-      const source = `module test\nfunction notOp(): bool\nlet a: byte = 5\nlet b: byte = 10\nreturn !(a < b)\nend function`;
+      const source = `module test\nfunction notOp(): bool { let a: byte = 5; let b: byte = 10; return !(a < b); }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('notOp')!, ILOpcode.CMP_LT)).toBe(true);
@@ -165,14 +152,14 @@ describe('ILExpressionGenerator - Unary Expressions: Logical NOT', () => {
     });
 
     it('should generate LOGICAL_NOT for false literal', () => {
-      const source = `module test\nfunction notOp(): bool\nreturn !false\nend function`;
+      const source = `module test\nfunction notOp(): bool { return !false; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('notOp')).toBeDefined();
     });
 
     it('should generate LOGICAL_NOT for true literal', () => {
-      const source = `module test\nfunction notOp(): bool\nreturn !true\nend function`;
+      const source = `module test\nfunction notOp(): bool { return !true; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('notOp')).toBeDefined();
@@ -181,7 +168,7 @@ describe('ILExpressionGenerator - Unary Expressions: Logical NOT', () => {
 
   describe('double logical NOT', () => {
     it('should generate two LOGICAL_NOT for double NOT', () => {
-      const source = `module test\nfunction notOp(): bool\nlet flag: bool = true\nreturn !!flag\nend function`;
+      const source = `module test\nfunction notOp(): bool { let flag: bool = true; return !!flag; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('notOp')!, ILOpcode.LOGICAL_NOT).length).toBeGreaterThanOrEqual(2);
@@ -190,14 +177,14 @@ describe('ILExpressionGenerator - Unary Expressions: Logical NOT', () => {
 
   describe('logical NOT in conditions', () => {
     it('should generate LOGICAL_NOT in if condition', () => {
-      const source = `module test\nfunction test(): byte\nlet done: bool = false\nif !done then\nreturn 1\nend if\nreturn 0\nend function`;
+      const source = `module test\nfunction test(): byte { let done: bool = false; if (!done) { return 1; } return 0; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('test')!, ILOpcode.LOGICAL_NOT)).toBe(true);
     });
 
     it('should generate LOGICAL_NOT with equality check', () => {
-      const source = `module test\nfunction test(): bool\nlet a: byte = 5\nlet b: byte = 5\nreturn !(a == b)\nend function`;
+      const source = `module test\nfunction test(): bool { let a: byte = 5; let b: byte = 5; return !(a == b); }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('test')!, ILOpcode.CMP_EQ)).toBe(true);
@@ -219,28 +206,28 @@ describe('ILExpressionGenerator - Unary Expressions: Bitwise NOT', () => {
 
   describe('basic bitwise NOT', () => {
     it('should generate NOT for byte bitwise complement', () => {
-      const source = `module test\nfunction bitNot(): byte\nlet x: byte = $FF\nreturn ~x\nend function`;
+      const source = `module test\nfunction bitNot(): byte { let x: byte = $FF; return ~x; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitNot')!, ILOpcode.NOT)).toBe(true);
     });
 
     it('should generate NOT for word bitwise complement', () => {
-      const source = `module test\nfunction bitNot(): word\nlet x: word = $FFFF\nreturn ~x\nend function`;
+      const source = `module test\nfunction bitNot(): word { let x: word = $FFFF; return ~x; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitNot')!, ILOpcode.NOT)).toBe(true);
     });
 
     it('should generate NOT for hex literal complement', () => {
-      const source = `module test\nfunction bitNot(): byte\nreturn ~$0F\nend function`;
+      const source = `module test\nfunction bitNot(): byte { return ~$0F; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('bitNot')).toBeDefined();
     });
 
     it('should generate NOT for zero', () => {
-      const source = `module test\nfunction bitNot(): byte\nlet x: byte = 0\nreturn ~x\nend function`;
+      const source = `module test\nfunction bitNot(): byte { let x: byte = 0; return ~x; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('bitNot')!, ILOpcode.NOT)).toBe(true);
@@ -249,7 +236,7 @@ describe('ILExpressionGenerator - Unary Expressions: Bitwise NOT', () => {
 
   describe('double bitwise NOT', () => {
     it('should generate two NOT for double complement', () => {
-      const source = `module test\nfunction bitNot(): byte\nlet x: byte = $AA\nreturn ~~x\nend function`;
+      const source = `module test\nfunction bitNot(): byte { let x: byte = $AA; return ~~x; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('bitNot')!, ILOpcode.NOT).length).toBeGreaterThanOrEqual(2);
@@ -258,7 +245,7 @@ describe('ILExpressionGenerator - Unary Expressions: Bitwise NOT', () => {
 
   describe('bitwise NOT in expressions', () => {
     it('should generate NOT with AND', () => {
-      const source = `module test\nfunction mask(): byte\nlet value: byte = $FF\nlet mask: byte = $0F\nreturn value & ~mask\nend function`;
+      const source = `module test\nfunction mask(): byte { let value: byte = $FF; let mask: byte = $0F; return value & ~mask; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mask')!, ILOpcode.NOT)).toBe(true);
@@ -266,7 +253,7 @@ describe('ILExpressionGenerator - Unary Expressions: Bitwise NOT', () => {
     });
 
     it('should generate NOT for clearing bits', () => {
-      const source = `module test\nfunction clearBits(): byte\nlet x: byte = $FF\nlet clearMask: byte = $F0\nreturn x & ~clearMask\nend function`;
+      const source = `module test\nfunction clearBits(): byte { let x: byte = $FF; let clearMask: byte = $F0; return x & ~clearMask; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('clearBits')!, ILOpcode.NOT)).toBe(true);
@@ -288,7 +275,7 @@ describe('ILExpressionGenerator - Unary Expressions: Mixed Operators', () => {
 
   describe('combining different unary operators', () => {
     it('should handle negation and bitwise NOT', () => {
-      const source = `module test\nfunction mixed(): byte\nlet x: byte = 10\nreturn ~(-x)\nend function`;
+      const source = `module test\nfunction mixed(): byte { let x: byte = 10; return ~(-x); }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mixed')!, ILOpcode.NEG)).toBe(true);
@@ -310,14 +297,14 @@ describe('ILExpressionGenerator - Unary Expressions: C64 Patterns', () => {
 
   describe('C64 hardware patterns', () => {
     it('should generate NOT for sprite mask inversion', () => {
-      const source = `module test\nfunction invertSpriteMask(): byte\nlet spriteMask: byte = $07\nreturn ~spriteMask\nend function`;
+      const source = `module test\nfunction invertSpriteMask(): byte { let spriteMask: byte = $07; return ~spriteMask; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('invertSpriteMask')!, ILOpcode.NOT)).toBe(true);
     });
 
     it('should generate NOT for bit clearing pattern', () => {
-      const source = `module test\nfunction clearBit(): byte\nlet value: byte = $FF\nlet bit: byte = $04\nreturn value & ~bit\nend function`;
+      const source = `module test\nfunction clearBit(): byte { let value: byte = $FF; let bit: byte = $04; return value & ~bit; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('clearBit')!, ILOpcode.NOT)).toBe(true);
@@ -325,7 +312,7 @@ describe('ILExpressionGenerator - Unary Expressions: C64 Patterns', () => {
     });
 
     it('should generate LOGICAL_NOT for game state check', () => {
-      const source = `module test\nfunction checkGameOver(): bool\nlet gameRunning: bool = true\nreturn !gameRunning\nend function`;
+      const source = `module test\nfunction checkGameOver(): bool { let gameRunning: bool = true; return !gameRunning; }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('checkGameOver')!, ILOpcode.LOGICAL_NOT)).toBe(true);

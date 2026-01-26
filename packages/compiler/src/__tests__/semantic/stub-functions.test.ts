@@ -40,8 +40,6 @@ describe('Stub Functions - Semantic Analysis', () => {
         module test
 
         function nop(): void;
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -68,8 +66,6 @@ describe('Stub Functions - Semantic Analysis', () => {
         module test
 
         function peek(address: word): byte;
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -97,8 +93,6 @@ describe('Stub Functions - Semantic Analysis', () => {
         function poke(address: word, value: byte): void;
         function peekw(address: word): word;
         function pokew(address: word, value: word): void;
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -118,8 +112,6 @@ describe('Stub Functions - Semantic Analysis', () => {
         module test
 
         export function helper(): void;
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -137,8 +129,6 @@ describe('Stub Functions - Semantic Analysis', () => {
         module test
 
         callback onInterrupt(): void;
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -159,11 +149,9 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function peek(address: word): byte;
 
-        function main(): void
+        function main(): void {
           let value: byte = peek($D020);
-        end function
-
-        end module
+        }
       `;
 
       const result = analyzeSource(source);
@@ -178,11 +166,9 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function poke(address: word, value: byte): void;
 
-        function main(): void
+        function main(): void {
           poke($D020, 0);  // Correct usage
-        end function
-
-        end module
+        }
       `;
 
       const result = analyzeSource(source);
@@ -197,11 +183,9 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function peek(address: word): byte;
 
-        function main(): void
+        function main(): void {
           let value: word = peek($D020);  // Type mismatch: byte -> word
-        end function
-
-        end module
+        }
       `;
 
       const result = analyzeSource(source);
@@ -216,11 +200,9 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function poke(address: word, value: byte): void;
 
-        function main(): void
+        function main(): void {
           poke($D020);  // Missing argument
-        end function
-
-        end module
+        }
       `;
 
       const result = analyzeSource(source);
@@ -237,8 +219,6 @@ describe('Stub Functions - Semantic Analysis', () => {
         module test
 
         function peek(address: word): byte;
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -269,13 +249,11 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function peek(address: word): byte;  // Stub
 
-        function main(): void                // Regular
+        function main(): void {               // Regular
           let x: byte = peek($D020);
-        end function
+        }
 
         function poke(address: word, value: byte): void;  // Stub
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -309,20 +287,18 @@ describe('Stub Functions - Semantic Analysis', () => {
         function peek(address: word): byte;
         function poke(address: word, value: byte): void;
 
-        function setBorder(color: byte): void
+        function setBorder(color: byte): void {
           poke($D020, color);
-        end function
+        }
 
-        function getBorder(): byte
+        function getBorder(): byte {
           return peek($D020);
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           setBorder(5);
           let border: byte = getBorder();
-        end function
-
-        end module
+        }
       `;
 
       const result = analyzeSource(source);
@@ -339,8 +315,6 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function peek(address: word): byte;
         function peek(address: word): byte;  // Duplicate
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -356,8 +330,6 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         let peek: byte = 0;
         function peek(address: word): byte;  // Name conflict
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -373,11 +345,9 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function helper(): void;  // Stub
 
-        function helper(): void   // Regular - same name
+        function helper(): void {  // Regular - same name
           // Do something
-        end function
-
-        end module
+        }
       `;
 
       const result = analyzeSource(source);
@@ -397,8 +367,6 @@ describe('Stub Functions - Semantic Analysis', () => {
         export function poke(address: word, value: byte): void;
         export function peekw(address: word): word;
         export function pokew(address: word, value: word): void;
-
-        end module
       `;
 
       const result = analyzeSource(source);
@@ -422,11 +390,9 @@ describe('Stub Functions - Semantic Analysis', () => {
 
         function peek(address: word): byte;
 
-        function main(): void
+        function main(): void {
           let border: byte = peek($D020);
-        end function
-
-        end module
+        }
       `;
 
       const result = analyzeSource(source);

@@ -1,11 +1,11 @@
 /**
  * Lexer tests for @map memory-mapped variable declarations
  *
- * Tests tokenization of all four @map forms:
+ * Tests tokenization of all four @map forms (C-style syntax with curly braces):
  * 1. Simple: @map x at $D020: byte;
  * 2. Range: @map x from $D000 to $D02E: byte;
- * 3. Sequential struct: @map x at $D000 type ... end @map
- * 4. Explicit struct: @map x at $D000 layout ... end @map
+ * 3. Sequential struct: @map x at $D000 type { ... }
+ * 4. Explicit struct: @map x at $D000 layout { ... }
  */
 
 import { describe, it, expect } from 'vitest';
@@ -136,9 +136,10 @@ describe('Lexer - @map Memory-Mapped Declarations', () => {
 
   describe('Form 3: Sequential Struct @map Declaration', () => {
     it('should tokenize sequential struct @map with single field', () => {
-      const source = `@map sid at $D400 type
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map sid at $D400 type {
   frequency: byte
-end @map`;
+}`;
       const tokens = tokenize(source);
 
       expect(tokens[0]).toMatchObject({ type: TokenType.MAP, value: '@map' });
@@ -146,56 +147,56 @@ end @map`;
       expect(tokens[2]).toMatchObject({ type: TokenType.AT, value: 'at' });
       expect(tokens[3]).toMatchObject({ type: TokenType.NUMBER, value: '$D400' });
       expect(tokens[4]).toMatchObject({ type: TokenType.TYPE, value: 'type' });
-      expect(tokens[5]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'frequency' });
-      expect(tokens[6]).toMatchObject({ type: TokenType.COLON, value: ':' });
-      expect(tokens[7]).toMatchObject({ type: TokenType.BYTE, value: 'byte' });
-      expect(tokens[8]).toMatchObject({ type: TokenType.END, value: 'end' });
-      expect(tokens[9]).toMatchObject({ type: TokenType.MAP, value: '@map' });
+      expect(tokens[5]).toMatchObject({ type: TokenType.LEFT_BRACE, value: '{' });
+      expect(tokens[6]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'frequency' });
+      expect(tokens[7]).toMatchObject({ type: TokenType.COLON, value: ':' });
+      expect(tokens[8]).toMatchObject({ type: TokenType.BYTE, value: 'byte' });
+      expect(tokens[9]).toMatchObject({ type: TokenType.RIGHT_BRACE, value: '}' });
     });
 
     it('should tokenize sequential struct @map with multiple fields', () => {
-      const source = `@map vic at $D000 type
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map vic at $D000 type {
   sprites: byte[16],
   spriteXMSB: byte,
   control1: byte,
   raster: byte
-end @map`;
+}`;
       const tokens = tokenize(source);
 
-      // Verify key tokens (skip newlines for clarity)
-      const keyTokens = tokens.filter(
-        t => t.type !== TokenType.NEWLINE && t.type !== TokenType.COMMA
-      );
+      // Verify key tokens (skip commas for clarity)
+      const keyTokens = tokens.filter(t => t.type !== TokenType.COMMA);
 
       expect(keyTokens[0]).toMatchObject({ type: TokenType.MAP });
       expect(keyTokens[1]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'vic' });
       expect(keyTokens[2]).toMatchObject({ type: TokenType.AT });
       expect(keyTokens[3]).toMatchObject({ type: TokenType.NUMBER, value: '$D000' });
       expect(keyTokens[4]).toMatchObject({ type: TokenType.TYPE });
+      expect(keyTokens[5]).toMatchObject({ type: TokenType.LEFT_BRACE });
 
       // Field: sprites: byte[16]
-      expect(keyTokens[5]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'sprites' });
-      expect(keyTokens[6]).toMatchObject({ type: TokenType.COLON });
-      expect(keyTokens[7]).toMatchObject({ type: TokenType.BYTE });
-      expect(keyTokens[8]).toMatchObject({ type: TokenType.LEFT_BRACKET });
-      expect(keyTokens[9]).toMatchObject({ type: TokenType.NUMBER, value: '16' });
-      expect(keyTokens[10]).toMatchObject({ type: TokenType.RIGHT_BRACKET });
+      expect(keyTokens[6]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'sprites' });
+      expect(keyTokens[7]).toMatchObject({ type: TokenType.COLON });
+      expect(keyTokens[8]).toMatchObject({ type: TokenType.BYTE });
+      expect(keyTokens[9]).toMatchObject({ type: TokenType.LEFT_BRACKET });
+      expect(keyTokens[10]).toMatchObject({ type: TokenType.NUMBER, value: '16' });
+      expect(keyTokens[11]).toMatchObject({ type: TokenType.RIGHT_BRACKET });
 
       // Field: spriteXMSB: byte
-      expect(keyTokens[11]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'spriteXMSB' });
-      expect(keyTokens[12]).toMatchObject({ type: TokenType.COLON });
-      expect(keyTokens[13]).toMatchObject({ type: TokenType.BYTE });
+      expect(keyTokens[12]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'spriteXMSB' });
+      expect(keyTokens[13]).toMatchObject({ type: TokenType.COLON });
+      expect(keyTokens[14]).toMatchObject({ type: TokenType.BYTE });
 
-      // Closing
-      expect(keyTokens[keyTokens.length - 2]).toMatchObject({ type: TokenType.END });
-      expect(keyTokens[keyTokens.length - 1]).toMatchObject({ type: TokenType.MAP });
+      // Closing brace
+      expect(keyTokens[keyTokens.length - 1]).toMatchObject({ type: TokenType.RIGHT_BRACE });
     });
 
     it('should tokenize sequential struct @map with array fields', () => {
-      const source = `@map colors at $D021 type
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map colors at $D021 type {
   background: byte[4],
   sprite: byte[8]
-end @map`;
+}`;
       const tokens = tokenize(source);
 
       // Find tokens related to field names and array syntax only (exclude the $D021 address)
@@ -225,9 +226,10 @@ end @map`;
 
   describe('Form 4: Explicit Struct @map Declaration', () => {
     it('should tokenize explicit struct @map with single field', () => {
-      const source = `@map vic at $D000 layout
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map vic at $D000 layout {
   borderColor: at $D020: byte
-end @map`;
+}`;
       const tokens = tokenize(source);
 
       expect(tokens[0]).toMatchObject({ type: TokenType.MAP });
@@ -235,29 +237,28 @@ end @map`;
       expect(tokens[2]).toMatchObject({ type: TokenType.AT });
       expect(tokens[3]).toMatchObject({ type: TokenType.NUMBER, value: '$D000' });
       expect(tokens[4]).toMatchObject({ type: TokenType.LAYOUT, value: 'layout' });
+      expect(tokens[5]).toMatchObject({ type: TokenType.LEFT_BRACE });
 
       // Field: borderColor: at $D020: byte
-      expect(tokens[5]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'borderColor' });
-      expect(tokens[6]).toMatchObject({ type: TokenType.COLON });
-      expect(tokens[7]).toMatchObject({ type: TokenType.AT });
-      expect(tokens[8]).toMatchObject({ type: TokenType.NUMBER, value: '$D020' });
-      expect(tokens[9]).toMatchObject({ type: TokenType.COLON });
-      expect(tokens[10]).toMatchObject({ type: TokenType.BYTE });
+      expect(tokens[6]).toMatchObject({ type: TokenType.IDENTIFIER, value: 'borderColor' });
+      expect(tokens[7]).toMatchObject({ type: TokenType.COLON });
+      expect(tokens[8]).toMatchObject({ type: TokenType.AT });
+      expect(tokens[9]).toMatchObject({ type: TokenType.NUMBER, value: '$D020' });
+      expect(tokens[10]).toMatchObject({ type: TokenType.COLON });
+      expect(tokens[11]).toMatchObject({ type: TokenType.BYTE });
 
-      expect(tokens[11]).toMatchObject({ type: TokenType.END });
-      expect(tokens[12]).toMatchObject({ type: TokenType.MAP });
+      expect(tokens[12]).toMatchObject({ type: TokenType.RIGHT_BRACE });
     });
 
     it('should tokenize explicit struct @map with range fields', () => {
-      const source = `@map vic at $D000 layout
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map vic at $D000 layout {
   sprites: from $D000 to $D00F: byte,
   raster: at $D012: byte
-end @map`;
+}`;
       const tokens = tokenize(source);
 
-      const keyTokens = tokens.filter(
-        t => t.type !== TokenType.NEWLINE && t.type !== TokenType.COMMA
-      );
+      const keyTokens = tokens.filter(t => t.type !== TokenType.COMMA);
 
       // Field: sprites: from $D000 to $D00F: byte
       const spritesIndex = keyTokens.findIndex(t => t.value === 'sprites');
@@ -284,14 +285,15 @@ end @map`;
     });
 
     it('should tokenize explicit struct @map with mixed fields', () => {
-      const source = `@map hardware at $D000 layout
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map hardware at $D000 layout {
   spriteXY: from $D000 to $D00F: byte,
   spriteXMSB: at $D010: byte,
   control1: at $D011: byte,
   raster: at $D012: byte,
   borderColor: at $D020: byte,
   spriteColors: from $D027 to $D02E: byte
-end @map`;
+}`;
       const tokens = tokenize(source);
 
       const layoutIndex = tokens.findIndex(t => t.type === TokenType.LAYOUT);
@@ -310,7 +312,8 @@ end @map`;
 
   describe('Real-World Examples', () => {
     it('should tokenize complete VIC-II register mapping', () => {
-      const source = `@map vic at $D000 layout
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map vic at $D000 layout {
   sprites: from $D000 to $D00F: byte,
   spriteXMSB: at $D010: byte,
   control1: at $D011: byte,
@@ -325,15 +328,15 @@ end @map`;
   backgroundColor2: at $D023: byte,
   backgroundColor3: at $D024: byte,
   spriteColors: from $D027 to $D02E: byte
-end @map`;
+}`;
 
       const tokens = tokenize(source);
 
-      // Should have MAP, LAYOUT, multiple field declarations, and END MAP
+      // Should have MAP, LAYOUT, LEFT_BRACE, multiple field declarations, and RIGHT_BRACE
       expect(tokens[0].type).toBe(TokenType.MAP);
       expect(tokens.find(t => t.type === TokenType.LAYOUT)).toBeDefined();
-      expect(tokens[tokens.length - 2].type).toBe(TokenType.END);
-      expect(tokens[tokens.length - 1].type).toBe(TokenType.MAP);
+      expect(tokens.find(t => t.type === TokenType.LEFT_BRACE)).toBeDefined();
+      expect(tokens[tokens.length - 1].type).toBe(TokenType.RIGHT_BRACE);
 
       // Count identifiers (should have field names)
       const identifiers = tokens.filter(t => t.type === TokenType.IDENTIFIER);
@@ -341,7 +344,8 @@ end @map`;
     });
 
     it('should tokenize SID chip register mapping', () => {
-      const source = `@map sid at $D400 type
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map sid at $D400 type {
   voice1: byte[7],
   voice2: byte[7],
   voice3: byte[7],
@@ -350,7 +354,7 @@ end @map`;
   filterResonance: byte,
   filterMode: byte,
   volume: byte
-end @map`;
+}`;
 
       const tokens = tokenize(source);
 
@@ -395,14 +399,16 @@ end @map`;
   });
 
   describe('Edge Cases and Error Scenarios', () => {
-    it('should tokenize @map without semicolon for struct forms', () => {
-      const source = `@map vic at $D000 type
+    it('should tokenize @map struct forms with braces (no trailing semicolon)', () => {
+      // C-style syntax: uses { } instead of end @map
+      const source = `@map vic at $D000 type {
   field: byte
-end @map`;
+}`;
 
       const tokens = tokenize(source);
       const semicolons = tokens.filter(t => t.type === TokenType.SEMICOLON);
-      expect(semicolons).toHaveLength(0); // No semicolon after end @map
+      expect(semicolons).toHaveLength(0); // No semicolon after closing brace
+      expect(tokens[tokens.length - 1].type).toBe(TokenType.RIGHT_BRACE);
     });
 
     it('should handle @map with comments', () => {

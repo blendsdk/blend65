@@ -46,9 +46,9 @@ describe('VariableUsageAnalyzer', () => {
   describe('Smoke Test', () => {
     it('should analyze simple code without crashing', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
-        end function
+        }
       `;
 
       const { ast, analyzer } = analyzeCode(source);
@@ -60,9 +60,9 @@ describe('VariableUsageAnalyzer', () => {
   describe('Variable Collection', () => {
     it('should collect single variable', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -72,11 +72,11 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should collect multiple variables', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = 20;
           let z: byte = 30;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -85,12 +85,12 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should collect variables in nested scopes', () => {
       const source = `
-        function test(condition: boolean): void
+        function test(condition: boolean): void {
           let x: byte = 10;
-          if condition then
+          if (condition) {
             let y: byte = 20;
-          end if
-        end function
+          }
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -101,9 +101,9 @@ describe('VariableUsageAnalyzer', () => {
       const source = `
         let globalVar: byte = 42;
 
-        function test(): void
+        function test(): void {
           let localVar: byte = 10;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -114,10 +114,10 @@ describe('VariableUsageAnalyzer', () => {
   describe('Read Tracking', () => {
     it('should not crash when tracking reads', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -126,10 +126,10 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should handle multiple reads of same variable', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = x + x + x;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -138,11 +138,11 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should track reads in expressions', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let a: byte = 10;
           let b: byte = 20;
           let c: byte = a + b;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -151,10 +151,10 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should not count assignment target as read', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           x = 20;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -165,9 +165,9 @@ describe('VariableUsageAnalyzer', () => {
   describe('Write Tracking', () => {
     it('should track variable initialization as write', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -176,10 +176,10 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should track assignment as write', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte;
           x = 10;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -189,11 +189,11 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should track multiple writes', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           x = 20;
           x = 30;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -202,11 +202,11 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should handle both initialization and assignment', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = x;
           y = 20;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -217,10 +217,10 @@ describe('VariableUsageAnalyzer', () => {
   describe('Metadata Generation', () => {
     it('should set read/write counts', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
           let y: byte = x;
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);
@@ -230,11 +230,11 @@ describe('VariableUsageAnalyzer', () => {
 
     it('should set usage flags', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let used: byte = 10;
           let unused: byte;
           let y: byte = used;
-        end function
+        }
       `;
 
       const { ast } = analyzeCode(source);

@@ -10,7 +10,7 @@
 // Target: Commodore 64 / 6502 Architecture
 // ============================================================================
 
-module system
+module system;
 
 // ============================================================================
 // Memory Access Functions
@@ -188,9 +188,9 @@ export function sizeof(t: byte): byte;
  *
  * @example
  * // Iterate over array with known size
- * for i = 0 to length(items) - 1
+ * for (i = 0 to length(items) - 1) {
  *   processItem(items[i]);
- * next i
+ * }
  */
 // NOTE: length() intrinsic removed - array parameter types not yet supported in stub functions
 // export function length(value: byte[]): word;
@@ -503,13 +503,13 @@ export function plp(): void;
  *
  * @example
  * // Prevent loop hoisting of hardware reads
- * while true
+ * while (true) {
  *   barrier();
  *   let status = peek($DC0D);
- *   if status & 1
+ *   if (status & 1) {
  *     break;
- *   end if
- * end while
+ *   }
+ * }
  */
 export function barrier(): void;
 
@@ -537,9 +537,9 @@ export function barrier(): void;
  *
  * @example
  * // Polling a hardware status register
- * while (volatile_read($D012) & $80) == 0
+ * while ((volatile_read($D012) & $80) == 0) {
  *   // Wait for raster line
- * end while
+ * }
  */
 export function volatile_read(address: word): byte;
 

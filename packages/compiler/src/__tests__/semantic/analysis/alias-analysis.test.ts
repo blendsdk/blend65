@@ -92,9 +92,9 @@ describe('AliasAnalyzer - Points-To Analysis', () => {
       let x: byte = 0;
       let y: byte = 0;
       
-      function test(): void
+      function test(): void {
         y = x;
-      end function
+      }
     `;
     
     const { ast } = analyzeSource(source);
@@ -188,8 +188,8 @@ describe('AliasAnalyzer - Error Handling', () => {
 
   it('should handle programs with only functions', () => {
     const source = `
-      function nop(): void
-      end function
+      function nop(): void {
+      }
     `;
     
     const { analyzer } = analyzeSource(source);

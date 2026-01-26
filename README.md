@@ -14,35 +14,37 @@ Blend65 is a modern programming language compiler targeting 6502-based systems i
 
 ## Language Features
 
-The language syntax combines familiar programming concepts with direct hardware access:
+The language uses C-style syntax with direct hardware access capabilities:
 
 ```js
-module C64Game.Snake
+module C64Game.Snake;
 
-import setSpritePosition, enableSprite from c64.sprites
-import joystickLeft, joystickRight from c64.input
-import playNote from c64.sid
+import { setSpritePosition, enableSprite } from c64.sprites;
+import { joystickLeft, joystickRight } from c64.input;
+import { playNote } from c64.sid;
 
-@zp var snakeX: byte = 160     // Zero-page variable allocation
-var score: word = 0            // 16-bit integer
-var gameState: GameState = PLAYING
+@zp var snakeX: byte = 160;     // Zero-page variable allocation
+var score: word = 0;            // 16-bit integer
+var gameState: GameState = PLAYING;
 
-enum GameState
-    MENU, PLAYING, GAME_OVER
-end enum
+enum GameState {
+    MENU,
+    PLAYING,
+    GAME_OVER
+}
 
-function updateSnake(): void
-    if joystickLeft() then
-        snakeX = snakeX - 2
-    end if
+function updateSnake(): void {
+    if (joystickLeft()) {
+        snakeX = snakeX - 2;
+    }
 
-    setSpritePosition(0, snakeX, 100)
+    setSpritePosition(0, snakeX, 100);
 
-    if snakeX == appleX then
-        score = score + 10
-        playNote(0, 440)
-    end if
-end function
+    if (snakeX == appleX) {
+        score = score + 10;
+        playNote(0, 440);
+    }
+}
 ```
 
 ### Storage Classes
@@ -60,21 +62,21 @@ The `@map` system provides type-safe access to hardware registers (unique to Ble
 
 ```js
 // Simple register mapping
-@map borderColor at $D020: byte
+@map borderColor at $D020: byte;
 
 // Structured layout mapping
-@map vic at $D000 layout
-    spriteX: at $00: byte[8]
-    borderColor: at $20: byte
+@map vic at $D000 layout {
+    spriteX: at $00: byte[8],
+    borderColor: at $20: byte,
     backgroundColor: at $21: byte
-end @map
+}
 
 // Type-based mapping
-@map sid at $D400 type SIDRegisters
+@map sid at $D400 type SIDRegisters;
 
 // Usage - clean, self-documenting hardware access
-vic.borderColor = LIGHT_BLUE
-sid.voice1.frequency = 440
+vic.borderColor = LIGHT_BLUE;
+sid.voice1.frequency = 440;
 ```
 
 ### Callback Functions
@@ -82,11 +84,60 @@ sid.voice1.frequency = 440
 Type-safe function pointers enable interrupt-driven programming and behavioral dispatch:
 
 ```js
-callback interruptHandler: function(): void
-callback behaviorFunction: function(entity: Entity): void
+callback interruptHandler: function(): void;
+callback behaviorFunction: function(entity: Entity): void;
 
-var rasterCallbacks: interruptHandler[8]
-var enemyBehaviors: behaviorFunction[16]
+var rasterCallbacks: interruptHandler[8];
+var enemyBehaviors: behaviorFunction[16];
+```
+
+### Control Flow
+
+Blend65 supports familiar C-style control flow constructs:
+
+```js
+// If-else statements
+if (score > highScore) {
+    highScore = score;
+} else {
+    displayMessage("Try again!");
+}
+
+// While loops
+while (gameRunning) {
+    updateGame();
+    renderFrame();
+}
+
+// For loops with range syntax
+for (i = 0 to 7) {
+    sprites[i].update();
+}
+
+// For loops with step and downto
+for (i = 0 to 100 step 2) {
+    evenNumbers[i / 2] = i;
+}
+
+for (i = 10 downto 0) {
+    countdown[10 - i] = i;
+}
+
+// Do-while loops
+do {
+    waitForVBlank();
+} while (!frameReady);
+
+// Switch statements
+switch (direction) {
+    case UP: moveUp();
+    case DOWN: moveDown();
+    case LEFT: moveLeft();
+    case RIGHT: moveRight();
+}
+
+// Ternary expressions
+let color: byte = isHit ? RED : GREEN;
 ```
 
 ## Target Platforms

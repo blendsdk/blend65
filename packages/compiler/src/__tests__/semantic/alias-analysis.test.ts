@@ -274,9 +274,9 @@ describe('AliasAnalyzer', () => {
     it('should warn about writing to code address range (BASIC area)', () => {
       const source = `
         @map codeLocation at $0801: byte;
-        function test(): void
+        function test(): void {
           codeLocation = 0x60;
-        end function
+        }
       `;
 
       const { diagnostics } = analyzeSource(source);
@@ -314,9 +314,9 @@ describe('AliasAnalyzer', () => {
     it('should NOT warn about I/O region writes', () => {
       const source = `
         @map vicBorder at $D020: byte;
-        function test(): void
+        function test(): void {
           vicBorder = 0;
-        end function
+        }
       `;
 
       const { diagnostics } = analyzeSource(source);
@@ -331,9 +331,9 @@ describe('AliasAnalyzer', () => {
     it('should NOT warn about zero-page writes', () => {
       const source = `
         @map temp at $02: byte;
-        function test(): void
+        function test(): void {
           temp = 42;
-        end function
+        }
       `;
 
       const { diagnostics } = analyzeSource(source);
@@ -346,9 +346,9 @@ describe('AliasAnalyzer', () => {
     it('should mark self-modifying code in metadata', () => {
       const source = `
         @map codeAddr at $1000: byte;
-        function test(): void
+        function test(): void {
           codeAddr = 0xFF;
-        end function
+        }
       `;
 
       const { ast } = analyzeSource(source);
@@ -365,9 +365,9 @@ describe('AliasAnalyzer', () => {
   describe('Function Parameters', () => {
     it('should track function parameters as memory locations', () => {
       const source = `
-        function process(value: byte): void
+        function process(value: byte): void {
           let temp: byte = value;
-        end function
+        }
       `;
 
       const { ast } = analyzeSource(source);
@@ -384,9 +384,9 @@ describe('AliasAnalyzer', () => {
 
     it('should detect parameter aliasing', () => {
       const source = `
-        function swap(a: byte, b: byte): void
+        function swap(a: byte, b: byte): void {
           let temp: byte = a;
-        end function
+        }
       `;
 
       const { ast } = analyzeSource(source);
@@ -468,10 +468,10 @@ describe('AliasAnalyzer', () => {
 
     it('should handle binary expression aliasing', () => {
       const source = `
-      function addFive(): void
+      function addFive(): void {
         let x: byte = 10;
         let y: byte = x + 5;
-      end function
+      }
       `;
 
       const { ast } = analyzeSource(source);

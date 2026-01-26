@@ -166,7 +166,7 @@ describe('ASTWalker - Basic Functionality', () => {
   });
 
   it('should walk program with function', () => {
-    // AST: function foo(): void return end function
+    // AST: function foo(): void { return; }
     const returnStmt = new ReturnStatement(null, loc());
     const funcDecl = new FunctionDecl('foo', [], 'void', [returnStmt], loc());
     const module = new ModuleDecl(['global'], loc(), true);
@@ -365,11 +365,12 @@ describe('ASTWalker - Statement Traversal', () => {
   });
 
   it('should walk for statement', () => {
-    // AST: for i = 0 to 10 ... next i
+    // AST: for (i = 0 to 10) { ... }
     const start = new LiteralExpression(0, loc());
     const end = new LiteralExpression(10, loc());
     const bodyStmt = new ExpressionStatement(new LiteralExpression(1, loc()), loc());
-    const forStmt = new ForStatement('i', start, end, [bodyStmt], loc());
+    // ForStatement(variable, variableType, start, end, direction, step, body, location)
+    const forStmt = new ForStatement('i', null, start, end, 'to', null, [bodyStmt], loc());
 
     const walker = new CollectorWalker();
     walker.walk(forStmt);

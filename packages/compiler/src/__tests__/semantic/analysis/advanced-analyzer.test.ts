@@ -100,12 +100,12 @@ let y: byte = a + b;
       const source = `
 module Test
 
-function test(): void
-  let i: byte = 0
-  while i < 10
-    i = i + 1
-  end while
-end function
+function test(): void {
+  let i: byte = 0;
+  while (i < 10) {
+    i = i + 1;
+  }
+}
 `;
       const { hasErrors, diagnostics } = runAdvancedAnalysis(source);
 
@@ -153,9 +153,9 @@ let x: byte = a + b;
 @map screenMem at $0400: [byte; 1000];
 @zp temp at $FB: byte;
 
-function setBackground(color: byte): void
+function setBackground(color: byte): void {
   borderColor = color;
-end function
+}
 `;
       const { ast, hasErrors, diagnostics } = runAdvancedAnalysis(source);
       
@@ -170,18 +170,18 @@ end function
 
     it('should complete analysis in reasonable time for small programs', () => {
       const source = `
-function compute(x: byte, y: byte): byte
+function compute(x: byte, y: byte): byte {
   let result: byte = x + y;
   result = result * 2;
   result = result - 1;
   return result;
-end function
+}
 
-function main(): void
+function main(): void {
   let a: byte = compute(10, 20);
   let b: byte = compute(30, 40);
   let c: byte = a + b;
-end function
+}
 `;
       
       const startTime = Date.now();
@@ -225,12 +225,12 @@ let y: byte = a + b;
 
     it('should process functions with both GVN and CSE', () => {
       const source = `
-function test(): void
-  let a: byte = 10
-  let b: byte = 20
-  let x: byte = a + b
-  let y: byte = a + b
-end function
+function test(): void {
+  let a: byte = 10;
+  let b: byte = 20;
+  let x: byte = a + b;
+  let y: byte = a + b;
+}
 `;
       const { ast } = runAdvancedAnalysis(source);
 
@@ -358,10 +358,10 @@ let value: byte = arr[i];
 
     it('should track complexity in function bodies', () => {
       const source = `
-function compute(x: byte, y: byte): byte
+function compute(x: byte, y: byte): byte {
   let result: byte = x + y;
   return result;
-end function
+}
 `;
       const { ast } = runAdvancedAnalysis(source);
 

@@ -117,10 +117,10 @@ describe('Array Size Inference - Complete C64 Programs', () => {
         0b00000011
       ];
 
-      function initSprites()
+      function initSprites() {
         let i: byte = 0;
         spriteEnabled = 0xFF;
-      end function
+      }
     `;
 
     const result = compileSource(source);
@@ -156,9 +156,9 @@ describe('Array Size Inference - Complete C64 Programs', () => {
         15   // Light Gray
       ];
 
-      function setPalette(index: byte)
+      function setPalette(index: byte) {
         backgroundColor = defaultPalette[index];
-      end function
+      }
     `;
 
     const result = compileSource(source);
@@ -188,9 +188,9 @@ describe('Array Size Inference - Complete C64 Programs', () => {
         0x023B   // B
       ];
 
-      function playNote(note: byte)
+      function playNote(note: byte) {
         sidVoice1Freq = noteFrequencies[note];
-      end function
+      }
     `;
 
     const result = compileSource(source);
@@ -212,14 +212,14 @@ describe('Array Size Inference - Complete C64 Programs', () => {
       
       const scoreMultipliers: byte[] = [1, 2, 4, 8, 16];
       
-      function updateEnemies()
+      function updateEnemies() {
         let i: byte = 0;
         let count: byte = 4;
-      end function
+      }
 
-      function calculateScore(combo: byte): word
+      function calculateScore(combo: byte): word {
         return scoreMultipliers[combo];
-      end function
+      }
     `;
 
     const result = compileSource(source);
@@ -360,9 +360,9 @@ describe('Array Size Inference - Function Scope Integration', () => {
       let globalBuffer: byte[] = [10, 20, 30, 40, 50];
       let tempValues: word[] = [1000, 2000];
       
-      function processData()
+      function processData() {
         let value: byte = globalBuffer[0];
-      end function
+      }
     `;
 
     const result = compileSource(source);
@@ -377,13 +377,13 @@ describe('Array Size Inference - Function Scope Integration', () => {
       let firstArray: byte[] = [1, 2, 3];
       let secondArray: byte[] = [10, 20, 30, 40];
       
-      function outer()
+      function outer() {
         let x: byte = firstArray[0];
-      end function
+      }
       
-      function inner()
+      function inner() {
         let y: byte = secondArray[0];
-      end function
+      }
     `;
 
     const result = compileSource(source);
@@ -397,9 +397,9 @@ describe('Array Size Inference - Function Scope Integration', () => {
     const source = `
       const multipliers: byte[] = [1, 2, 4, 8];
       
-      function calculate(input: byte): byte
+      function calculate(input: byte): byte {
         return multipliers[input];
-      end function
+      }
     `;
 
     const result = compileSource(source);
@@ -465,15 +465,15 @@ describe('Array Size Inference - Complex Integration Scenarios', () => {
         $07C0
       ];
 
-      function initializeGraphics()
+      function initializeGraphics() {
         borderColor = 0;
         backgroundColor = 0;
         spriteEnabled = 0xFF;
-      end function
+      }
 
-      function positionSprite(index: byte, x: byte, y: byte)
+      function positionSprite(index: byte, x: byte, y: byte) {
         // Position sprite logic
-      end function
+      }
     `;
 
     const result = compileSource(source);

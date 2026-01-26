@@ -42,9 +42,9 @@ describe('PurityAnalyzer', () => {
   describe('Pure Functions', () => {
     it('should mark simple math function as pure', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -58,11 +58,11 @@ describe('PurityAnalyzer', () => {
 
     it('should mark function with only local variables as pure', () => {
       const source = `
-        function calculate(x: byte): byte
+        function calculate(x: byte): byte {
           let temp: byte = x * 2;
           let result: byte = temp + 10;
           return result;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -74,13 +74,13 @@ describe('PurityAnalyzer', () => {
 
     it('should mark function with conditionals as pure if no side effects', () => {
       const source = `
-        function max(a: byte, b: byte): byte
-          if a > b then
+        function max(a: byte, b: byte): byte {
+          if (a > b) {
             return a;
-          else
+          } else {
             return b;
-          end if
-        end function
+          }
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -92,15 +92,15 @@ describe('PurityAnalyzer', () => {
 
     it('should mark function with loops as pure if no side effects', () => {
       const source = `
-        function sum(n: byte): byte
+        function sum(n: byte): byte {
           let result: byte = 0;
           let i: byte = 0;
-          while i < n
+          while (i < n) {
             result = result + i;
             i = i + 1;
-          end while
+          }
           return result;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -118,9 +118,9 @@ describe('PurityAnalyzer', () => {
       const source = `
         let globalCounter: byte = 0;
 
-        function getCounter(): byte
+        function getCounter(): byte {
           return globalCounter;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -135,9 +135,9 @@ describe('PurityAnalyzer', () => {
       const source = `
         @map border at $D020: byte;
 
-        function getBorder(): byte
+        function getBorder(): byte {
           return border;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -152,9 +152,9 @@ describe('PurityAnalyzer', () => {
         let x: byte = 10;
         let y: byte = 20;
 
-        function sum(): byte
+        function sum(): byte {
           return x + y;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -168,11 +168,11 @@ describe('PurityAnalyzer', () => {
   describe('Local Effects Functions', () => {
     it('should mark function modifying local variable as local effects', () => {
       const source = `
-        function process(x: byte): byte
+        function process(x: byte): byte {
           let temp: byte = 0;
           temp = x + 1;
           return temp;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -190,9 +190,9 @@ describe('PurityAnalyzer', () => {
       const source = `
         let counter: byte = 0;
 
-        function increment(): void
+        function increment(): void {
           counter = counter + 1;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -207,9 +207,9 @@ describe('PurityAnalyzer', () => {
       const source = `
         @map border at $D020: byte;
 
-        function setBorder(color: byte): void
+        function setBorder(color: byte): void {
           border = color;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -225,10 +225,10 @@ describe('PurityAnalyzer', () => {
         let x: byte = 0;
         let y: byte = 0;
 
-        function reset(): void
+        function reset(): void {
           x = 0;
           y = 0;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -242,10 +242,10 @@ describe('PurityAnalyzer', () => {
       const source = `
         let counter: byte = 0;
 
-        function incrementAndGet(): byte
+        function incrementAndGet(): byte {
           counter = counter + 1;
           return counter;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -259,13 +259,13 @@ describe('PurityAnalyzer', () => {
   describe('Call Graph Propagation', () => {
     it('should propagate purity through function calls', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
 
-        function double(x: byte): byte
+        function double(x: byte): byte {
           return add(x, x);
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -283,13 +283,13 @@ describe('PurityAnalyzer', () => {
       const source = `
         let state: byte = 0;
 
-        function mutate(): void
+        function mutate(): void {
           state = state + 1;
-        end function
+        }
 
-        function wrapper(): void
+        function wrapper(): void {
           mutate();
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -307,13 +307,13 @@ describe('PurityAnalyzer', () => {
       const source = `
         let config: byte = 10;
 
-        function getConfig(): byte
+        function getConfig(): byte {
           return config;
-        end function
+        }
 
-        function calculateFromConfig(): byte
+        function calculateFromConfig(): byte {
           return getConfig() * 2;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -331,17 +331,17 @@ describe('PurityAnalyzer', () => {
       const source = `
         let counter: byte = 0;
 
-        function leaf(): void
+        function leaf(): void {
           counter = counter + 1;
-        end function
+        }
 
-        function middle(): void
+        function middle(): void {
           leaf();
-        end function
+        }
 
-        function top(): void
+        function top(): void {
           middle();
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -364,10 +364,10 @@ describe('PurityAnalyzer', () => {
         let x: byte = 0;
         let y: byte = 0;
 
-        function update(): void
+        function update(): void {
           x = 1;
           y = 2;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -385,13 +385,13 @@ describe('PurityAnalyzer', () => {
 
     it('should store called functions', () => {
       const source = `
-        function helper(x: byte): byte
+        function helper(x: byte): byte {
           return x + 1;
-        end function
+        }
 
-        function caller(y: byte): byte
+        function caller(y: byte): byte {
           return helper(y);
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -408,9 +408,9 @@ describe('PurityAnalyzer', () => {
 
     it('should set pure flag for pure functions', () => {
       const source = `
-        function pure(x: byte): byte
+        function pure(x: byte): byte {
           return x * 2;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -425,9 +425,9 @@ describe('PurityAnalyzer', () => {
       const source = `
         let global: byte = 0;
 
-        function impure(): void
+        function impure(): void {
           global = 1;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -444,11 +444,11 @@ describe('PurityAnalyzer', () => {
       const source = `
         let state: byte = 0;
 
-        function complex(x: byte): byte
+        function complex(x: byte): byte {
           let local: byte = x + 1;
           state = state + 1;
           return local + state;
-        end function
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -463,11 +463,11 @@ describe('PurityAnalyzer', () => {
       const source = `
         let flag: byte = 0;
 
-        function conditionalWrite(condition: boolean): void
-          if condition then
+        function conditionalWrite(condition: boolean): void {
+          if (condition) {
             flag = 1;
-          end if
-        end function
+          }
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -481,13 +481,13 @@ describe('PurityAnalyzer', () => {
       const source = `
         let accumulator: byte = 0;
 
-        function accumulate(n: byte): void
+        function accumulate(n: byte): void {
           let i: byte = 0;
-          while i < n
+          while (i < n) {
             accumulator = accumulator + 1;
             i = i + 1;
-          end while
-        end function
+          }
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);
@@ -502,9 +502,10 @@ describe('PurityAnalyzer', () => {
         @map input at $D800: byte;
         @map output at $D801: byte;
 
-        function copyIO(): void
+        function copyIO(): void {
           output = input;
-        end function
+          let x: byte = 10;
+        }
       `;
 
       const { ast, errors } = analyzeCode(source);

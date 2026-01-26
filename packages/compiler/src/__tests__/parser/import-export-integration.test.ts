@@ -194,9 +194,9 @@ describe('Import/Export Integration Tests', () => {
       const source = `
         module c64.graphics
 
-        export function clearScreen(): void
+        export function clearScreen(): void {
           // Implementation
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -220,9 +220,9 @@ describe('Import/Export Integration Tests', () => {
       const source = `
         module c64.graphics
 
-        export function setPixel(x: byte, y: byte): void
+        export function setPixel(x: byte, y: byte): void {
           // Implementation
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -244,9 +244,9 @@ describe('Import/Export Integration Tests', () => {
       const source = `
         module Game.Main
 
-        export callback function rasterIRQ(): void
+        export callback function rasterIRQ(): void {
           // IRQ handler
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -266,9 +266,9 @@ describe('Import/Export Integration Tests', () => {
       const source = `
         module Utils.Math
 
-        export function abs(x: byte): byte
+        export function abs(x: byte): byte {
           return x;
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -288,14 +288,14 @@ describe('Import/Export Integration Tests', () => {
       const source = `
         module c64.graphics
 
-        export function clearScreen(): void
-        end function
+        export function clearScreen(): void {
+        }
 
-        export function setPixel(x: byte, y: byte): void
-        end function
+        export function setPixel(x: byte, y: byte): void {
+        }
 
-        export function drawLine(x1: byte, y1: byte, x2: byte, y2: byte): void
-        end function
+        export function drawLine(x1: byte, y1: byte, x2: byte, y2: byte): void {
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -395,14 +395,14 @@ describe('Import/Export Integration Tests', () => {
         export @zp let score: word = 0;
         export const MAX_SCORE: word = 9999;
 
-        export function init(): void
+        export function init(): void {
           clearScreen();
           initSID();
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           init();
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -445,17 +445,19 @@ describe('Import/Export Integration Tests', () => {
 
         const SCREEN_WIDTH: byte = 40;
 
-        export function clearScreen(): void
-          for i = 0 to 999
+        export function clearScreen(): void {
+          let i: word = 0;
+          while (i < 1000) {
             screenRAM[i] = 32;
             colorRAM[i] = 14;
-          next i
-        end function
+            i = i + 1;
+          }
+        }
 
-        export function setPixel(x: byte, y: byte): void
+        export function setPixel(x: byte, y: byte): void {
           let offset: word = y * SCREEN_WIDTH + x;
           screenRAM[offset] = 160;
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -489,20 +491,20 @@ describe('Import/Export Integration Tests', () => {
         @zp let playerY: byte = 10;
         export @zp let score: word = 0;
 
-        function updatePosition(): void
+        function updatePosition(): void {
           playerX = playerX + 1;
           playerY = playerY + 1;
-        end function
+        }
 
-        export function update(): void
+        export function update(): void {
           updatePosition();
           setPixel(playerX, playerY);
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           clearScreen();
           update();
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -538,9 +540,9 @@ describe('Import/Export Integration Tests', () => {
 
         export @zp let score: word = 0;
 
-        export function main(): void
+        export function main(): void {
           clearScreen();
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -569,13 +571,13 @@ describe('Import/Export Integration Tests', () => {
         export const VOICE_2: byte = 1;
         export const VOICE_3: byte = 2;
 
-        export function playNote(voice: byte, note: byte): void
+        export function playNote(voice: byte, note: byte): void {
           setFrequency(voice, note);
-        end function
+        }
 
-        export function stopSound(voice: byte): void
+        export function stopSound(voice: byte): void {
           // Stop sound implementation
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -606,13 +608,13 @@ describe('Import/Export Integration Tests', () => {
         @map borderColor at $D020: byte;
         @map backgroundColor at $D021: byte;
 
-        export function setBorderColor(color: byte): void
+        export function setBorderColor(color: byte): void {
           borderColor = color;
-        end function
+        }
 
-        export function setBackgroundColor(color: byte): void
+        export function setBackgroundColor(color: byte): void {
           backgroundColor = color;
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -640,18 +642,18 @@ describe('Import/Export Integration Tests', () => {
         export @zp let level: byte = 1;
         export @ram let hiScore: word = 5000;
 
-        export function resetGame(): void
+        export function resetGame(): void {
           score = 0;
           lives = 3;
           level = 1;
-        end function
+        }
 
-        export function addScore(points: word): void
+        export function addScore(points: word): void {
           score = score + points;
-          if score > hiScore then
+          if (score > hiScore) {
             hiScore = score;
-          end if
-        end function
+          }
+        }
       `;
 
       const lexer = new Lexer(source);
@@ -677,26 +679,26 @@ describe('Import/Export Integration Tests', () => {
       const source = `
         module Utils.Math
 
-        export function abs(x: byte): byte
-          if x < 0 then
+        export function abs(x: byte): byte {
+          if (x < 0) {
             return -x;
-          end if
+          }
           return x;
-        end function
+        }
 
-        export function min(a: byte, b: byte): byte
-          if a < b then
+        export function min(a: byte, b: byte): byte {
+          if (a < b) {
             return a;
-          end if
+          }
           return b;
-        end function
+        }
 
-        export function max(a: byte, b: byte): byte
-          if a > b then
+        export function max(a: byte, b: byte): byte {
+          if (a > b) {
             return a;
-          end if
+          }
           return b;
-        end function
+        }
       `;
 
       const lexer = new Lexer(source);

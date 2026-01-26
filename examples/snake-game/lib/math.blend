@@ -9,7 +9,7 @@
 // Target: 6502 (C64, VIC-20, Commander X16)
 // ============================================================================
 
-module Blend.Std.Math
+module Blend.Std.Math;
 
 // ============================================================================
 // Absolute Value
@@ -28,19 +28,19 @@ module Blend.Std.Math
  * let result = abs(250);  // Treats 250 as -6, returns 6
  * let result2 = abs(10);  // Returns 10
  */
-export function abs(x: byte): byte
+export function abs(x: byte): byte {
   // In signed byte representation:
   // 0-127 are positive (0 to 127)
   // 128-255 are negative (-128 to -1)
 
-  if x > 127 then
+  if (x > 127) {
     // Negative value: convert to positive
     // For example: 250 (-6) becomes 256 - 250 = 6
     return 256 - x;
-  end if
+  }
 
   return x;
-end function
+}
 
 // ============================================================================
 // Minimum and Maximum
@@ -57,12 +57,12 @@ end function
  * let result = min(10, 20);  // Returns 10
  * let result2 = min(100, 50); // Returns 50
  */
-export function min(a: byte, b: byte): byte
-  if a < b then
+export function min(a: byte, b: byte): byte {
+  if (a < b) {
     return a;
-  end if
+  }
   return b;
-end function
+}
 
 /**
  * Returns the larger of two byte values.
@@ -75,12 +75,12 @@ end function
  * let result = max(10, 20);  // Returns 20
  * let result2 = max(100, 50); // Returns 100
  */
-export function max(a: byte, b: byte): byte
-  if a > b then
+export function max(a: byte, b: byte): byte {
+  if (a > b) {
     return a;
-  end if
+  }
   return b;
-end function
+}
 
 // ============================================================================
 // Clamping
@@ -103,17 +103,17 @@ end function
  * let result2 = clamp(15, 10, 20); // Returns 15 (in range)
  * let result3 = clamp(25, 10, 20); // Returns 20 (above max)
  */
-export function clamp(value: byte, minVal: byte, maxVal: byte): byte
-  if value < minVal then
+export function clamp(value: byte, minVal: byte, maxVal: byte): byte {
+  if (value < minVal) {
     return minVal;
-  end if
+  }
 
-  if value > maxVal then
+  if (value > maxVal) {
     return maxVal;
-  end if
+  }
 
   return value;
-end function
+}
 
 // ============================================================================
 // Word (16-bit) Versions
@@ -129,12 +129,12 @@ end function
  * @example
  * let result = minWord(1000, 2000);  // Returns 1000
  */
-export function minWord(a: word, b: word): word
-  if a < b then
+export function minWord(a: word, b: word): word {
+  if (a < b) {
     return a;
-  end if
+  }
   return b;
-end function
+}
 
 /**
  * Returns the larger of two word values.
@@ -146,12 +146,12 @@ end function
  * @example
  * let result = maxWord(1000, 2000);  // Returns 2000
  */
-export function maxWord(a: word, b: word): word
-  if a > b then
+export function maxWord(a: word, b: word): word {
+  if (a > b) {
     return a;
-  end if
+  }
   return b;
-end function
+}
 
 /**
  * Clamps a word value between a minimum and maximum range.
@@ -166,17 +166,17 @@ end function
  * let result2 = clampWord(1500, 1000, 2000); // Returns 1500
  * let result3 = clampWord(2500, 1000, 2000); // Returns 2000
  */
-export function clampWord(value: word, minVal: word, maxVal: word): word
-  if value < minVal then
+export function clampWord(value: word, minVal: word, maxVal: word): word {
+  if (value < minVal) {
     return minVal;
-  end if
+  }
 
-  if value > maxVal then
+  if (value > maxVal) {
     return maxVal;
-  end if
+  }
 
   return value;
-end function
+}
 
 // ============================================================================
 // Implementation Notes

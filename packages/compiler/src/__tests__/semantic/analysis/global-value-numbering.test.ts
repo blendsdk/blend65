@@ -275,13 +275,13 @@ describe('GlobalValueNumberingAnalyzer - Variable References', () => {
 describe('GlobalValueNumberingAnalyzer - Reassignment Invalidation', () => {
   it('should invalidate after reassignment (no redundancy)', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
         a = 10;
         let y: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runGVNAnalysis(source);
@@ -299,13 +299,13 @@ describe('GlobalValueNumberingAnalyzer - Reassignment Invalidation', () => {
 
   it('should invalidate expressions using reassigned variable', () => {
     const source = `
-      function test(): void
+      function test(): void {
         let a: byte = 5;
         let b: byte = 3;
         let x: byte = a + b;
         a = 7;
         let y: byte = a + b;
-      end function
+      }
     `;
     
     const { ast } = runGVNAnalysis(source);
@@ -328,11 +328,11 @@ describe('GlobalValueNumberingAnalyzer - Array and Member Access', () => {
     const source = `
       @map screen at $0400: [byte; 1000];
       
-      function test(): void
+      function test(): void {
         let i: byte = 0;
         let x: byte = screen[i];
         let y: byte = screen[i];
-      end function
+      }
     `;
     
     const { ast } = runGVNAnalysis(source);
@@ -352,15 +352,15 @@ describe('GlobalValueNumberingAnalyzer - Array and Member Access', () => {
 
   it('should handle member access GVN', () => {
     const source = `
-      @map vic at $D000 type
+      @map vic at $D000 layout {
         borderColor: byte;
         backgroundColor: byte;
-      end @map
+      }
       
-      function test(): void
+      function test(): void {
         let x: byte = vic.borderColor;
         let y: byte = vic.borderColor;
-      end function
+      }
     `;
     
     const { ast } = runGVNAnalysis(source);
@@ -418,13 +418,13 @@ describe('GlobalValueNumberingAnalyzer - Metadata Correctness', () => {
 describe('GlobalValueNumberingAnalyzer - Complex Patterns', () => {
   it('should handle complex real-world expression', () => {
     const source = `
-      function calculate(x: byte, y: byte): byte
+      function calculate(x: byte, y: byte): byte {
         let temp1: byte = x * 2 + y;
         let temp2: byte = x * 2 + y;
         let temp3: byte = x * 2;
         let temp4: byte = x * 2;
         return temp1 + temp2;
-      end function
+      }
     `;
     
     const { ast } = runGVNAnalysis(source);
@@ -453,11 +453,11 @@ describe('GlobalValueNumberingAnalyzer - Complex Patterns', () => {
 
   it('should handle function parameters correctly', () => {
     const source = `
-      function add(a: byte, b: byte): byte
+      function add(a: byte, b: byte): byte {
         let x: byte = a + b;
         let y: byte = a + b;
         return x;
-      end function
+      }
     `;
     
     const { ast } = runGVNAnalysis(source);
@@ -493,8 +493,8 @@ describe('GlobalValueNumberingAnalyzer - Error Handling', () => {
 
   it('should handle programs with only functions', () => {
     const source = `
-      function nop(): void
-      end function
+      function nop(): void {
+      }
     `;
     
     const { gvnAnalyzer } = runGVNAnalysis(source);

@@ -1,13 +1,39 @@
 # Blend65 Language Specification
 
-> **Status**: Lexer-Derived Specification  
-> **Last Updated**: January 8, 2026
+> **Status**: C-Style Syntax Specification  
+> **Last Updated**: January 25, 2026
 
 Welcome to the Blend65 language specification. This documentation describes the complete syntax, semantics, and features of the Blend65 programming language—a modern language designed to compile to 6502-family systems (C64, VIC-20, Commander X16, and more).
 
 ## What is Blend65?
 
-Blend65 provides structured programming, modularity, and a practical type system while still enabling fine-grained memory placement and low-level control for 6502 systems. This specification is **lexer-derived**, meaning it strictly describes what the language frontend can tokenize and parse today.
+Blend65 provides structured programming, modularity, and a practical type system while still enabling fine-grained memory placement and low-level control for 6502 systems. The language uses **C-style syntax** with curly braces for block delimiters, making it familiar to developers from C, JavaScript, and TypeScript backgrounds.
+
+## Syntax Highlights
+
+```js
+module Game.Main;
+
+import { clearScreen } from c64.graphics;
+
+@map vicBorderColor at $D020: byte;
+@zp let score: word = 0;
+
+enum GameState {
+  MENU,
+  PLAYING,
+  GAME_OVER
+}
+
+export function main(): void {
+  clearScreen();
+  while (true) {
+    if (score > 100) {
+      showBonus();
+    }
+  }
+}
+```
 
 ## Document Index
 
@@ -52,7 +78,24 @@ Blend65 provides structured programming, modularity, and a practical type system
 - Variables and memory placement → [Variables](10-variables.md)
 - Hardware register access → [Memory-Mapped](12-memory-mapped.md)
 - Functions and callbacks → [Functions](11-functions.md)
-- Control flow (if/while/for) → [Expressions & Statements](06-expressions-statements.md)
+- Control flow (if/while/for/switch) → [Expressions & Statements](06-expressions-statements.md)
+
+## Key Syntax Features
+
+| Feature | Syntax |
+|---------|--------|
+| Module declaration | `module Game.Main;` |
+| Import | `import { foo, bar } from module.name;` |
+| Function | `function name(): void { }` |
+| If statement | `if (condition) { } else { }` |
+| While loop | `while (condition) { }` |
+| Do-while loop | `do { } while (condition);` |
+| For loop | `for (i = 0 to 10) { }` |
+| For loop with step | `for (i = 0 to 100 step 2) { }` |
+| For loop downto | `for (i = 10 downto 0) { }` |
+| Switch statement | `switch (value) { case X: ... }` |
+| Ternary | `condition ? a : b` |
+| Enum | `enum Name { A, B, C }` |
 
 ## Specification Status
 

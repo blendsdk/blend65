@@ -379,11 +379,12 @@ export abstract class BaseParser {
           TokenType.IF,
           TokenType.WHILE,
           TokenType.FOR,
+          TokenType.DO,
           TokenType.RETURN,
           TokenType.MODULE,
           TokenType.IMPORT,
           TokenType.EXPORT,
-          TokenType.MATCH,
+          TokenType.SWITCH,
           TokenType.TYPE,
           TokenType.ENUM
         )

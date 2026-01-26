@@ -21,6 +21,7 @@ import type {
   BreakStatement,
   CallExpression,
   ContinueStatement,
+  DoWhileStatement,
   EnumDecl,
   ExplicitStructMapDecl,
   ExportDecl,
@@ -40,6 +41,8 @@ import type {
   ReturnStatement,
   SequentialStructMapDecl,
   SimpleMapDecl,
+  SwitchStatement,
+  TernaryExpression,
   TypeDecl,
   UnaryExpression,
   VariableDecl,
@@ -196,6 +199,14 @@ export enum ASTNodeType {
   UNARY_EXPR = 'UnaryExpression',
 
   /**
+   * Ternary conditional expression
+   * e.g., "condition ? thenExpr : elseExpr"
+   *
+   * Right-associative: a ? b : c ? d : e → a ? b : (c ? d : e)
+   */
+  TERNARY_EXPR = 'TernaryExpression',
+
+  /**
    * Literal expression (constant value)
    * e.g., 42, "hello", true, $D000
    */
@@ -270,6 +281,8 @@ export enum ASTNodeType {
    * e.g., "match value case 1: ... end match"
    */
   MATCH_STMT = 'MatchStatement',
+  SWITCH_STMT = 'SwitchStatement',
+  DO_WHILE_STMT = 'DoWhileStatement',
 
   /**
    * Break statement (exit loop)
@@ -757,6 +770,13 @@ export interface ASTVisitor<R> {
   visitUnaryExpression(node: UnaryExpression): R;
 
   /**
+   * Visit a Ternary conditional expression (e.g., condition ? a : b)
+   * @param node - The ternary expression to visit
+   * @returns Result of visiting this node
+   */
+  visitTernaryExpression(node: TernaryExpression): R;
+
+  /**
    * Visit a Literal expression (e.g., 42, "hello", true)
    * @param node - The literal expression to visit
    * @returns Result of visiting this node
@@ -838,11 +858,26 @@ export interface ASTVisitor<R> {
   visitForStatement(node: ForStatement): R;
 
   /**
-   * Visit a Match statement
+   * Visit a Match statement (deprecated - use visitSwitchStatement)
    * @param node - The match statement to visit
    * @returns Result of visiting this node
+   * @deprecated Use visitSwitchStatement instead
    */
   visitMatchStatement(node: MatchStatement): R;
+
+  /**
+   * Visit a Switch statement (C-style switch/case)
+   * @param node - The switch statement to visit
+   * @returns Result of visiting this node
+   */
+  visitSwitchStatement(node: SwitchStatement): R;
+
+  /**
+   * Visit a Do-While statement (C-style do { } while)
+   * @param node - The do-while statement to visit
+   * @returns Result of visiting this node
+   */
+  visitDoWhileStatement(node: DoWhileStatement): R;
 
   /**
    * Visit a Break statement

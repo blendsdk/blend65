@@ -99,12 +99,12 @@ describe('ILExpressionGenerator - Type Coercion: Byte to Word', () => {
   describe('explicit byte to word conversion', () => {
     it('should handle byte in word context', () => {
       const source = `module test
-function byteToWord(): word
-  let b: byte = 100
-  let w: word = 0
-  w = b
-  return w
-end function`;
+function byteToWord(): word {
+  let b: byte = 100;
+  let w: word = 0;
+  w = b;
+  return w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('byteToWord')).toBeDefined();
@@ -112,10 +112,10 @@ end function`;
 
     it('should handle byte literal in word variable', () => {
       const source = `module test
-function literalToWord(): word
-  let w: word = 255
-  return w
-end function`;
+function literalToWord(): word {
+  let w: word = 255;
+  return w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('literalToWord')).toBeDefined();
@@ -123,10 +123,10 @@ end function`;
 
     it('should handle byte return in word function', () => {
       const source = `module test
-function returnByteAsWord(): word
-  let b: byte = 42
-  return b
-end function`;
+function returnByteAsWord(): word {
+  let b: byte = 42;
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('returnByteAsWord')).toBeDefined();
@@ -136,11 +136,11 @@ end function`;
   describe('byte to word in arithmetic', () => {
     it('should handle byte + word operation', () => {
       const source = `module test
-function byteAddWord(): word
-  let b: byte = 100
-  let w: word = 1000
-  return b + w
-end function`;
+function byteAddWord(): word {
+  let b: byte = 100;
+  let w: word = 1000;
+  return b + w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('byteAddWord')!, ILOpcode.ADD)).toBe(true);
@@ -148,11 +148,11 @@ end function`;
 
     it('should handle byte * word operation', () => {
       const source = `module test
-function byteMulWord(): word
-  let b: byte = 10
-  let w: word = 500
-  return b * w
-end function`;
+function byteMulWord(): word {
+  let b: byte = 10;
+  let w: word = 500;
+  return b * w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('byteMulWord')!, ILOpcode.MUL)).toBe(true);
@@ -174,11 +174,11 @@ describe('ILExpressionGenerator - Type Coercion: Word to Byte', () => {
   describe('word to byte truncation', () => {
     it('should handle word in byte context', () => {
       const source = `module test
-function wordToByte(): byte
-  let w: word = 256
-  let b: byte = 0
-  return b
-end function`;
+function wordToByte(): byte {
+  let w: word = 256;
+  let b: byte = 0;
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('wordToByte')).toBeDefined();
@@ -186,10 +186,10 @@ end function`;
 
     it('should handle word literal in small range', () => {
       const source = `module test
-function smallWord(): byte
-  let b: byte = 100
-  return b
-end function`;
+function smallWord(): byte {
+  let b: byte = 100;
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('smallWord')).toBeDefined();
@@ -199,11 +199,11 @@ end function`;
   describe('low byte extraction pattern', () => {
     it('should handle AND mask for low byte', () => {
       const source = `module test
-function getLowByte(): byte
-  let w: word = $1234
-  let b: byte = w & $FF
-  return b
-end function`;
+function getLowByte(): byte {
+  let w: word = $1234;
+  let b: byte = w & $FF;
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('getLowByte')!, ILOpcode.AND)).toBe(true);
@@ -211,11 +211,11 @@ end function`;
 
     it('should handle shift for high byte extraction', () => {
       const source = `module test
-function getHighByte(): byte
-  let w: word = $1234
-  let b: byte = w >> 8
-  return b
-end function`;
+function getHighByte(): byte {
+  let w: word = $1234;
+  let b: byte = w >> 8;
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('getHighByte')!, ILOpcode.SHR)).toBe(true);
@@ -237,14 +237,14 @@ describe('ILExpressionGenerator - Type Coercion: Bool Conversions', () => {
   describe('bool to byte conversion', () => {
     it('should handle bool in byte context', () => {
       const source = `module test
-function boolToByte(): byte
-  let flag: bool = true
-  let b: byte = 0
-  if flag then
-    b = 1
-  end if
-  return b
-end function`;
+function boolToByte(): byte {
+  let flag: bool = true;
+  let b: byte = 0;
+  if (flag) {
+    b = 1;
+  }
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('boolToByte')).toBeDefined();
@@ -252,14 +252,14 @@ end function`;
 
     it('should handle true literal as 1', () => {
       const source = `module test
-function trueAsByte(): byte
-  let b: byte = 0
-  let flag: bool = true
-  if flag then
-    b = 1
-  end if
-  return b
-end function`;
+function trueAsByte(): byte {
+  let b: byte = 0;
+  let flag: bool = true;
+  if (flag) {
+    b = 1;
+  }
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('trueAsByte')).toBeDefined();
@@ -267,14 +267,14 @@ end function`;
 
     it('should handle false literal as 0', () => {
       const source = `module test
-function falseAsByte(): byte
-  let b: byte = 1
-  let flag: bool = false
-  if !flag then
-    b = 0
-  end if
-  return b
-end function`;
+function falseAsByte(): byte {
+  let b: byte = 1;
+  let flag: bool = false;
+  if (!flag) {
+    b = 0;
+  }
+  return b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('falseAsByte')).toBeDefined();
@@ -284,13 +284,13 @@ end function`;
   describe('byte to bool conversion', () => {
     it('should handle byte in bool context (if condition)', () => {
       const source = `module test
-function byteAsBool(): byte
-  let value: byte = 1
-  if value != 0 then
-    return 1
-  end if
-  return 0
-end function`;
+function byteAsBool(): byte {
+  let value: byte = 1;
+  if (value != 0) {
+    return 1;
+  }
+  return 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('byteAsBool')!, ILOpcode.CMP_NE)).toBe(true);
@@ -298,10 +298,10 @@ end function`;
 
     it('should handle zero as false', () => {
       const source = `module test
-function zeroIsFalse(): bool
-  let value: byte = 0
-  return value != 0
-end function`;
+function zeroIsFalse(): bool {
+  let value: byte = 0;
+  return value != 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('zeroIsFalse')).toBeDefined();
@@ -309,10 +309,10 @@ end function`;
 
     it('should handle non-zero as true', () => {
       const source = `module test
-function nonZeroIsTrue(): bool
-  let value: byte = 42
-  return value != 0
-end function`;
+function nonZeroIsTrue(): bool {
+  let value: byte = 42;
+  return value != 0;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('nonZeroIsTrue')).toBeDefined();
@@ -334,11 +334,11 @@ describe('ILExpressionGenerator - Type Coercion: In Operations', () => {
   describe('coercion in arithmetic', () => {
     it('should handle mixed byte/word addition', () => {
       const source = `module test
-function mixedAdd(): word
-  let b: byte = 200
-  let w: word = 1000
-  return b + w
-end function`;
+function mixedAdd(): word {
+  let b: byte = 200;
+  let w: word = 1000;
+  return b + w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mixedAdd')!, ILOpcode.ADD)).toBe(true);
@@ -346,11 +346,11 @@ end function`;
 
     it('should handle mixed byte/word subtraction', () => {
       const source = `module test
-function mixedSub(): word
-  let w: word = 1000
-  let b: byte = 100
-  return w - b
-end function`;
+function mixedSub(): word {
+  let w: word = 1000;
+  let b: byte = 100;
+  return w - b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mixedSub')!, ILOpcode.SUB)).toBe(true);
@@ -358,11 +358,11 @@ end function`;
 
     it('should handle byte multiplication with promotion', () => {
       const source = `module test
-function byteMul(): word
-  let a: byte = 200
-  let b: byte = 100
-  return a * b
-end function`;
+function byteMul(): word {
+  let a: byte = 200;
+  let b: byte = 100;
+  return a * b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('byteMul')!, ILOpcode.MUL)).toBe(true);
@@ -372,11 +372,11 @@ end function`;
   describe('coercion in comparisons', () => {
     it('should handle byte/word comparison', () => {
       const source = `module test
-function byteWordCmp(): bool
-  let b: byte = 100
-  let w: word = 1000
-  return b < w
-end function`;
+function byteWordCmp(): bool {
+  let b: byte = 100;
+  let w: word = 1000;
+  return b < w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('byteWordCmp')!, ILOpcode.CMP_LT)).toBe(true);
@@ -384,11 +384,11 @@ end function`;
 
     it('should handle word/byte equality', () => {
       const source = `module test
-function wordByteEq(): bool
-  let w: word = 100
-  let b: byte = 100
-  return w == b
-end function`;
+function wordByteEq(): bool {
+  let w: word = 100;
+  let b: byte = 100;
+  return w == b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('wordByteEq')!, ILOpcode.CMP_EQ)).toBe(true);
@@ -398,11 +398,11 @@ end function`;
   describe('coercion in bitwise operations', () => {
     it('should handle byte/word AND', () => {
       const source = `module test
-function mixedAnd(): word
-  let w: word = $FFFF
-  let b: byte = $0F
-  return w & b
-end function`;
+function mixedAnd(): word {
+  let w: word = $FFFF;
+  let b: byte = $0F;
+  return w & b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mixedAnd')!, ILOpcode.AND)).toBe(true);
@@ -410,11 +410,11 @@ end function`;
 
     it('should handle byte/word OR', () => {
       const source = `module test
-function mixedOr(): word
-  let w: word = $FF00
-  let b: byte = $0F
-  return w | b
-end function`;
+function mixedOr(): word {
+  let w: word = $FF00;
+  let b: byte = $0F;
+  return w | b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('mixedOr')!, ILOpcode.OR)).toBe(true);
@@ -436,11 +436,11 @@ describe('ILExpressionGenerator - Type Coercion: In Assignments', () => {
   describe('assignment coercion', () => {
     it('should handle byte to word assignment', () => {
       const source = `module test
-function assignByteToWord()
-  let b: byte = 200
-  let w: word = 0
-  w = b
-end function`;
+function assignByteToWord() {
+  let b: byte = 200;
+  let w: word = 0;
+  w = b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('assignByteToWord')!, ILOpcode.STORE_VAR)).toBe(true);
@@ -448,11 +448,11 @@ end function`;
 
     it('should handle compound assignment with coercion', () => {
       const source = `module test
-function compoundCoercion()
-  let w: word = 1000
-  let b: byte = 100
-  w += b
-end function`;
+function compoundCoercion() {
+  let w: word = 1000;
+  let b: byte = 100;
+  w += b;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('compoundCoercion')!, ILOpcode.ADD)).toBe(true);
@@ -463,11 +463,11 @@ end function`;
   describe('array element coercion', () => {
     it('should handle byte array with word index calculation', () => {
       const source = `module test
-function arrayCoercion(): byte
-  let data: byte[10]
-  let i: byte = 5
-  return data[i]
-end function`;
+function arrayCoercion(): byte {
+  let data: byte[10];
+  let i: byte = 5;
+  return data[i];
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('arrayCoercion')!, ILOpcode.LOAD_ARRAY)).toBe(true);
@@ -489,12 +489,12 @@ describe('ILExpressionGenerator - Type Coercion: C64 Patterns', () => {
   describe('address calculations', () => {
     it('should handle byte offset in word address', () => {
       const source = `module test
-function calcAddress(): word
-  let base: word = $0400
-  let row: byte = 10
-  let col: byte = 20
-  return base + row * 40 + col
-end function`;
+function calcAddress(): word {
+  let base: word = $0400;
+  let row: byte = 10;
+  let col: byte = 20;
+  return base + row * 40 + col;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('calcAddress')!, ILOpcode.MUL)).toBe(true);
@@ -503,12 +503,12 @@ end function`;
 
     it('should handle sprite coordinate calculation', () => {
       const source = `module test
-function spriteCoord(): word
-  let x: byte = 100
-  let msb: byte = 0
-  let coord: word = x + msb * 256
-  return coord
-end function`;
+function spriteCoord(): word {
+  let x: byte = 100;
+  let msb: byte = 0;
+  let coord: word = x + msb * 256;
+  return coord;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('spriteCoord')).toBeDefined();
@@ -518,12 +518,12 @@ end function`;
   describe('color and value packing', () => {
     it('should handle byte to word for color pair', () => {
       const source = `module test
-function packColors(): word
-  let fg: byte = 1
-  let bg: byte = 6
-  let packed: word = bg * 16 + fg
-  return packed
-end function`;
+function packColors(): word {
+  let fg: byte = 1;
+  let bg: byte = 6;
+  let packed: word = bg * 16 + fg;
+  return packed;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('packColors')!, ILOpcode.MUL)).toBe(true);
@@ -532,12 +532,12 @@ end function`;
 
     it('should handle value extraction with shift', () => {
       const source = `module test
-function extractNibble(): byte
-  let value: byte = $AB
-  let high: byte = value >> 4
-  let low: byte = value & $0F
-  return high + low
-end function`;
+function extractNibble(): byte {
+  let value: byte = $AB;
+  let high: byte = value >> 4;
+  let low: byte = value & $0F;
+  return high + low;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('extractNibble')!, ILOpcode.SHR)).toBe(true);
@@ -548,11 +548,11 @@ end function`;
   describe('hardware register patterns', () => {
     it('should handle byte mask with word register', () => {
       const source = `module test
-function maskRegister(): byte
-  let reg: byte = $FF
-  let mask: byte = $0F
-  return reg & mask
-end function`;
+function maskRegister(): byte {
+  let reg: byte = $FF;
+  let mask: byte = $0F;
+  return reg & mask;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('maskRegister')!, ILOpcode.AND)).toBe(true);
@@ -574,11 +574,11 @@ describe('ILExpressionGenerator - Type Coercion: Edge Cases', () => {
   describe('boundary values', () => {
     it('should handle max byte to word', () => {
       const source = `module test
-function maxByte(): word
-  let b: byte = 255
-  let w: word = b
-  return w
-end function`;
+function maxByte(): word {
+  let b: byte = 255;
+  let w: word = b;
+  return w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('maxByte')).toBeDefined();
@@ -586,11 +586,11 @@ end function`;
 
     it('should handle zero byte to word', () => {
       const source = `module test
-function zeroByte(): word
-  let b: byte = 0
-  let w: word = b
-  return w
-end function`;
+function zeroByte(): word {
+  let b: byte = 0;
+  let w: word = b;
+  return w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('zeroByte')).toBeDefined();
@@ -598,10 +598,10 @@ end function`;
 
     it('should handle word max value', () => {
       const source = `module test
-function maxWord(): word
-  let w: word = $FFFF
-  return w
-end function`;
+function maxWord(): word {
+  let w: word = $FFFF;
+  return w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(result.module.getFunction('maxWord')).toBeDefined();
@@ -611,12 +611,12 @@ end function`;
   describe('chained coercions', () => {
     it('should handle multiple type conversions in expression', () => {
       const source = `module test
-function chainedTypes(): word
-  let a: byte = 10
-  let b: byte = 20
-  let w: word = 1000
-  return a + b + w
-end function`;
+function chainedTypes(): word {
+  let a: byte = 10;
+  let b: byte = 20;
+  let w: word = 1000;
+  return a + b + w;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(findInstructions(result.module.getFunction('chainedTypes')!, ILOpcode.ADD).length).toBeGreaterThanOrEqual(2);
@@ -624,12 +624,12 @@ end function`;
 
     it('should handle nested operations with different types', () => {
       const source = `module test
-function nestedMixed(): word
-  let a: byte = 5
-  let b: word = 1000
-  let c: byte = 3
-  return (a + b) * c
-end function`;
+function nestedMixed(): word {
+  let a: byte = 5;
+  let b: word = 1000;
+  let c: byte = 3;
+  return (a + b) * c;
+}`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);
       expect(hasInstruction(result.module.getFunction('nestedMixed')!, ILOpcode.ADD)).toBe(true);

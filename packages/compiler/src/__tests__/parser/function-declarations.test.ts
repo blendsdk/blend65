@@ -32,8 +32,8 @@ describe('Function Declaration Parser', () => {
   describe('Basic Function Declarations', () => {
     test('parses simple function with no parameters', () => {
       const source = `
-        function init(): void
-        end function
+        function init(): void {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -55,8 +55,8 @@ describe('Function Declaration Parser', () => {
 
     test('parses function with parameters', () => {
       const source = `
-        function add(a: byte, b: byte): byte
-        end function
+        function add(a: byte, b: byte): byte {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -80,8 +80,8 @@ describe('Function Declaration Parser', () => {
 
     test('parses function with multiple parameter types', () => {
       const source = `
-        function complexCalc(count: byte, offset: word, flag: boolean): word
-        end function
+        function complexCalc(count: byte, offset: word, flag: boolean): word {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -101,8 +101,8 @@ describe('Function Declaration Parser', () => {
 
     test('parses function without return type', () => {
       const source = `
-        function doSomething()
-        end function
+        function doSomething() {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -119,8 +119,8 @@ describe('Function Declaration Parser', () => {
   describe('Export Modifier', () => {
     test('parses exported function', () => {
       const source = `
-        export function clearScreen(): void
-        end function
+        export function clearScreen(): void {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -136,8 +136,8 @@ describe('Function Declaration Parser', () => {
 
     test('handles main function auto-export with warning', () => {
       const source = `
-        function main(): void
-        end function
+        function main(): void {
+        }
       `;
 
       const { ast, warnings, errors } = parseBlendProgram(source);
@@ -155,8 +155,8 @@ describe('Function Declaration Parser', () => {
 
     test('explicitly exported main function should not warn', () => {
       const source = `
-        export function main(): void
-        end function
+        export function main(): void {
+        }
       `;
 
       const { warnings } = parseBlendProgram(source);
@@ -168,8 +168,8 @@ describe('Function Declaration Parser', () => {
   describe('Callback Functions', () => {
     test('parses callback function', () => {
       const source = `
-        callback function rasterIRQ(): void
-        end function
+        callback function rasterIRQ(): void {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -186,8 +186,8 @@ describe('Function Declaration Parser', () => {
 
     test('parses exported callback function', () => {
       const source = `
-        export callback function vblankIRQ(): void
-        end function
+        export callback function vblankIRQ(): void {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -206,8 +206,8 @@ describe('Function Declaration Parser', () => {
   describe('Function Body Parsing', () => {
     test('parses empty function body', () => {
       const source = `
-        function noop(): void
-        end function
+        function noop(): void {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -222,11 +222,11 @@ describe('Function Declaration Parser', () => {
 
     test('parses function with variable declarations', () => {
       const source = `
-        function calculate(): word
+        function calculate(): word {
           let result: word = 0;
           let multiplier: byte = 2;
           return result;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -242,10 +242,10 @@ describe('Function Declaration Parser', () => {
 
     test('parses function with assignment statements', () => {
       const source = `
-        function updatePlayer(x: byte, y: byte): void
+        function updatePlayer(x: byte, y: byte): void {
           playerX = x;
           playerY = y;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -261,11 +261,11 @@ describe('Function Declaration Parser', () => {
 
     test('parses function with expression statements', () => {
       const source = `
-        function initialize(): void
+        function initialize(): void {
           clearScreen();
           initSound();
           setupSprites();
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -281,15 +281,15 @@ describe('Function Declaration Parser', () => {
 
     test('parses function with control flow statements', () => {
       const source = `
-        function processInput(key: byte): void
-          if (key == 32) then
+        function processInput(key: byte): void {
+          if (key == 32) {
             fireWeapon();
-          end if
+          }
 
-          while (enemyCount > 0)
+          while (enemyCount > 0) {
             updateEnemies();
-          end while
-        end function
+          }
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -305,9 +305,9 @@ describe('Function Declaration Parser', () => {
 
     test('parses function with return statements', () => {
       const source = `
-        function getValue(): byte
+        function getValue(): byte {
           return 42;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -323,31 +323,31 @@ describe('Function Declaration Parser', () => {
 
     test('parses complex function with mixed statements', () => {
       const source = `
-        function gameUpdate(deltaTime: word): boolean
+        function gameUpdate(deltaTime: word): boolean {
           let playerMoved: boolean = false;
           let inputKey: byte = getInput();
 
-          if (inputKey != 0) then
+          if (inputKey != 0) {
             let newX: byte = playerX;
             let newY: byte = playerY;
 
-            if (inputKey == KEY_LEFT) then
+            if (inputKey == KEY_LEFT) {
               newX = newX - 1;
-            end if
+            }
 
-            if (inputKey == KEY_RIGHT) then
+            if (inputKey == KEY_RIGHT) {
               newX = newX + 1;
-            end if
+            }
 
-            if (newX != playerX) then
+            if (newX != playerX) {
               playerX = newX;
               playerMoved = true;
-            end if
-          end if
+            }
+          }
 
           updateAnimations(deltaTime);
           return playerMoved;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -365,9 +365,9 @@ describe('Function Declaration Parser', () => {
   describe('Function Body Error Handling', () => {
     test('parses void function with return value (no semantic validation in Phase 4)', () => {
       const source = `
-        function doSomething(): void
+        function doSomething(): void {
           return 42;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -382,9 +382,9 @@ describe('Function Declaration Parser', () => {
 
     test('parses typed function with empty return (validates return statement in Task 3.3)', () => {
       const source = `
-        function getValue(): byte
+        function getValue(): byte {
           return;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -400,10 +400,10 @@ describe('Function Declaration Parser', () => {
 
     test('detects duplicate local variable declarations', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 1;
           let x: byte = 2;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -419,8 +419,8 @@ describe('Function Declaration Parser', () => {
 
     test('reports error for duplicate parameter names', () => {
       const source = `
-        function test(x: byte, x: word): void
-        end function
+        function test(x: byte, x: word): void {
+        }
       `;
 
       const { errors } = parseBlendProgram(source);
@@ -432,10 +432,10 @@ describe('Function Declaration Parser', () => {
 
     test('handles syntax errors gracefully with recovery', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = ;
           let y: byte = 42;
-        end function
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -453,10 +453,10 @@ describe('Function Declaration Parser', () => {
   describe('Function Scope Validation', () => {
     test('parameters are available in function scope', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           let result: byte = a + b;
           return result;
-        end function
+        }
       `;
 
       const { errors } = parseBlendProgram(source);
@@ -467,12 +467,12 @@ describe('Function Declaration Parser', () => {
 
     test('local variables are properly scoped', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 1;
-          if (x > 0) then
+          if (x > 0) {
             let y: byte = x + 1;
-          end if
-        end function
+          }
+        }
       `;
 
       const { errors } = parseBlendProgram(source);
@@ -482,13 +482,13 @@ describe('Function Declaration Parser', () => {
 
     test('function calls work in function bodies', () => {
       const source = `
-        function helper(): byte
+        function helper(): byte {
           return 42;
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           let value: byte = helper();
-        end function
+        }
       `;
 
       const { errors } = parseBlendProgram(source);
@@ -500,14 +500,14 @@ describe('Function Declaration Parser', () => {
   describe('Multiple Function Declarations', () => {
     test('parses multiple functions in same module', () => {
       const source = `
-        function init(): void
-        end function
+        function init(): void {
+        }
 
-        export function main(): void
-        end function
+        export function main(): void {
+        }
 
-        callback function timerIRQ(): void
-        end function
+        callback function timerIRQ(): void {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -534,8 +534,8 @@ describe('Function Declaration Parser', () => {
   describe('Error Handling', () => {
     test('reports error for missing function name', () => {
       const source = `
-        function (): void
-        end function
+        function (): void {
+        }
       `;
 
       const { errors } = parseBlendProgram(source);
@@ -546,8 +546,8 @@ describe('Function Declaration Parser', () => {
 
     test('reports error for missing parameter type', () => {
       const source = `
-        function test(x): void
-        end function
+        function test(x): void {
+        }
       `;
 
       const { errors } = parseBlendProgram(source);
@@ -558,24 +558,24 @@ describe('Function Declaration Parser', () => {
       expect(colonError).toBeDefined();
     });
 
-    test('reports error for missing end function', () => {
+    test('reports error for missing closing brace', () => {
       const source = `
-        function test(): void
+        function test(): void {
           return;
       `;
 
       const { errors } = parseBlendProgram(source);
 
       expect(errors.length).toBeGreaterThan(0);
-      // Check that at least one error mentions the missing 'end' keyword
-      const endError = errors.find(e => e.message.includes("Expected 'end' after function body"));
-      expect(endError).toBeDefined();
+      // Check that at least one error mentions the missing closing brace
+      const braceError = errors.find(e => e.message.includes("Expected '}'"));
+      expect(braceError).toBeDefined();
     });
 
     test('handles parameter parsing errors gracefully', () => {
       const source = `
-        function test(a: byte, , c: word): void
-        end function
+        function test(a: byte, , c: word): void {
+        }
       `;
 
       const { errors } = parseBlendProgram(source);
@@ -588,8 +588,8 @@ describe('Function Declaration Parser', () => {
   describe('Specification Compliance', () => {
     test('follows exact grammar from language specification', () => {
       const source = `
-        export callback function irqHandler(): void
-        end function
+        export callback function irqHandler(): void {
+        }
       `;
 
       const { ast, errors } = parseBlendProgram(source);
@@ -610,8 +610,8 @@ describe('Function Declaration Parser', () => {
 
     test('rejects invalid syntax not in specification', () => {
       const source = `
-        function* generator(): void
-        end function
+        function* generator(): void {
+        }
       `;
 
       const { errors } = parseBlendProgram(source);

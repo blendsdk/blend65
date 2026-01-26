@@ -368,6 +368,9 @@ export class Parser extends StatementParser {
       );
     }
 
+    // Expect opening brace for C-style function body
+    this.expect(TokenType.LEFT_BRACE, "Expected '{' after function declaration");
+
     // Regular function with body - enter function scope
     // Enter function scope with parameters and return type for validation (Subtask 4.3.4)
     // Pass function name for better error messages (Task 3.3)
@@ -377,9 +380,8 @@ export class Parser extends StatementParser {
       // Parse function body statements with scope management
       const body = this.parseFunctionBody();
 
-      // Parse 'end function'
-      this.expect(TokenType.END, "Expected 'end' after function body");
-      this.expect(TokenType.FUNCTION, "Expected 'function' after 'end'");
+      // Expect closing brace
+      this.expect(TokenType.RIGHT_BRACE, "Expected '}' after function body");
 
       // Create location spanning entire function declaration
       const location = this.createLocation(startToken, this.getCurrentToken());
@@ -459,7 +461,7 @@ export class Parser extends StatementParser {
   }
 
   /**
-   * Parse function body statements
+   * Parse function body statements - C-style syntax
    *
    * Clean mainstream approach: Use complete statement parser for everything.
    * StatementParser now handles all statement types including variable declarations.
@@ -469,8 +471,8 @@ export class Parser extends StatementParser {
   protected parseFunctionBody(): Statement[] {
     const statements: Statement[] = [];
 
-    // Parse statements until we hit 'end' keyword - clean and simple
-    while (!this.check(TokenType.END) && !this.isAtEnd()) {
+    // Parse statements until we hit closing brace - C-style syntax
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
       try {
         // Parse statement using complete statement parsing infrastructure
         const statement = this.parseStatement();
@@ -503,10 +505,12 @@ export class Parser extends StatementParser {
   protected synchronizeToStatement(): void {
     while (
       !this.isAtEnd() &&
-      !this.check(TokenType.END) &&
+      !this.check(TokenType.RIGHT_BRACE) &&
       !this.check(TokenType.IF) &&
       !this.check(TokenType.WHILE) &&
       !this.check(TokenType.FOR) &&
+      !this.check(TokenType.DO) &&
+      !this.check(TokenType.SWITCH) &&
       !this.check(TokenType.RETURN) &&
       !this.check(TokenType.LET) &&
       !this.check(TokenType.CONST)
@@ -669,27 +673,15 @@ export class Parser extends StatementParser {
   }
 
   /**
-   * Parse enum declaration with member parsing
+   * Parse enum declaration with member parsing - C-style syntax
    *
    * Grammar:
-   * EnumDecl := [export] "enum" identifier NEWLINE
-   *             { enum_member [","] NEWLINE }
-   *             "end" "enum"
+   * EnumDecl := [export] "enum" identifier "{" { enum_member [","] } "}"
    * enum_member := identifier ["=" integer]
    *
    * Examples:
-   * - enum Direction
-   *     UP,
-   *     DOWN,
-   *     LEFT,
-   *     RIGHT
-   *   end enum
-   *
-   * - enum Color
-   *     BLACK = 0,
-   *     WHITE = 1,
-   *     RED = 2
-   *   end enum
+   * - enum Direction { UP, DOWN, LEFT, RIGHT }
+   * - enum Color { BLACK = 0, WHITE = 1, RED = 2 }
    *
    * @returns EnumDecl AST node
    */
@@ -706,12 +698,15 @@ export class Parser extends StatementParser {
     // Parse enum name
     const nameToken = this.expect(TokenType.IDENTIFIER, 'Expected enum name');
 
+    // Expect opening brace for C-style syntax
+    this.expect(TokenType.LEFT_BRACE, "Expected '{' after enum name");
+
     // Parse enum members
     const members: EnumMember[] = [];
     let nextValue = 0;
 
-    // Parse members until we hit 'end' keyword
-    while (!this.check(TokenType.END) && !this.isAtEnd()) {
+    // Parse members until we hit closing brace - C-style syntax
+    while (!this.check(TokenType.RIGHT_BRACE) && !this.isAtEnd()) {
       const member = this.parseEnumMember(nextValue);
       members.push(member);
 
@@ -720,13 +715,12 @@ export class Parser extends StatementParser {
       // If member has no explicit value (null), it used nextValue, so increment
       nextValue = (member.value !== null ? member.value : nextValue) + 1;
 
-      // Optional comma between members
+      // Optional comma between members (allows trailing comma)
       this.match(TokenType.COMMA);
     }
 
-    // Parse 'end enum'
-    this.expect(TokenType.END, "Expected 'end' after enum members");
-    this.expect(TokenType.ENUM, "Expected 'enum' after 'end'");
+    // Expect closing brace
+    this.expect(TokenType.RIGHT_BRACE, "Expected '}' after enum members");
 
     // Create location spanning entire enum declaration
     const location = this.createLocation(startToken, this.getCurrentToken());

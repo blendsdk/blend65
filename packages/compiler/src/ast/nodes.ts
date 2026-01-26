@@ -475,6 +475,76 @@ export class UnaryExpression extends Expression {
 }
 
 /**
+ * Ternary conditional expression node
+ *
+ * Represents: condition ? thenBranch : elseBranch
+ *
+ * Examples:
+ * - (a > b) ? a : b
+ * - isValid ? process() : error()
+ * - (x > 0) ? x : -x
+ *
+ * The ternary operator is right-associative:
+ * a ? b : c ? d : e ’ a ? b : (c ? d : e)
+ *
+ * Both branches must have compatible types (validated in semantic analysis).
+ *
+ * On 6502, this compiles to the same branch code as if-else (no performance difference).
+ */
+export class TernaryExpression extends Expression {
+  /**
+   * Creates a ternary conditional expression
+   *
+   * @param condition - The condition expression (evaluated first)
+   * @param thenBranch - Expression returned if condition is true
+   * @param elseBranch - Expression returned if condition is false
+   * @param location - Source location spanning the entire expression
+   */
+  constructor(
+    protected readonly condition: Expression,
+    protected readonly thenBranch: Expression,
+    protected readonly elseBranch: Expression,
+    location: SourceLocation
+  ) {
+    super(ASTNodeType.TERNARY_EXPR, location);
+  }
+
+  /**
+   * Gets the condition expression
+   * @returns The condition to evaluate
+   */
+  public getCondition(): Expression {
+    return this.condition;
+  }
+
+  /**
+   * Gets the 'then' branch expression (returned if condition is true)
+   * @returns The then branch expression
+   */
+  public getThenBranch(): Expression {
+    return this.thenBranch;
+  }
+
+  /**
+   * Gets the 'else' branch expression (returned if condition is false)
+   * @returns The else branch expression
+   */
+  public getElseBranch(): Expression {
+    return this.elseBranch;
+  }
+
+  /**
+   * Accepts a visitor for the visitor pattern
+   *
+   * @param visitor - The visitor to accept
+   * @returns Result from the visitor
+   */
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitTernaryExpression(this);
+  }
+}
+
+/**
  * Literal value type
  */
 export type LiteralValue = number | string | boolean;
@@ -832,23 +902,45 @@ export class WhileStatement extends Statement {
 }
 
 /**
- * For statement node
+ * For statement node - C-style syntax with extended features
  *
- * Represents: for i = 0 to 10 ... next i
+ * Represents:
+ * - for (i = 0 to 10) { ... }
+ * - for (i = 10 downto 0) { ... }
+ * - for (i = 0 to 100 step 5) { ... }
+ * - for (let i: word = 0 to 5000) { ... }
+ *
+ * Features:
+ * - Direction: 'to' (count up) or 'downto' (count down)
+ * - Step: optional increment/decrement value
+ * - Variable type: explicit type for 16-bit counters
+ * - Inferred counter type: set by semantic analyzer based on range
  */
 export class ForStatement extends Statement {
   /**
+   * Counter type inferred by semantic analyzer
+   * 'byte' for range 0-255, 'word' for larger ranges
+   */
+  protected inferredCounterType: 'byte' | 'word' = 'byte';
+
+  /**
    * Creates a For statement
    * @param variable - Loop variable name
+   * @param variableType - Explicit type annotation (null = infer from range)
    * @param start - Start value expression
    * @param end - End value expression
+   * @param direction - Loop direction: 'to' or 'downto'
+   * @param step - Step value expression (null = 1)
    * @param body - Loop body statements
    * @param location - Source location
    */
   constructor(
     protected readonly variable: string,
+    protected readonly variableType: string | null,
     protected readonly start: Expression,
     protected readonly end: Expression,
+    protected readonly direction: 'to' | 'downto',
+    protected readonly step: Expression | null,
     protected readonly body: Statement[],
     location: SourceLocation
   ) {
@@ -859,6 +951,10 @@ export class ForStatement extends Statement {
     return this.variable;
   }
 
+  public getVariableType(): string | null {
+    return this.variableType;
+  }
+
   public getStart(): Expression {
     return this.start;
   }
@@ -867,12 +963,70 @@ export class ForStatement extends Statement {
     return this.end;
   }
 
+  public getDirection(): 'to' | 'downto' {
+    return this.direction;
+  }
+
+  public getStep(): Expression | null {
+    return this.step;
+  }
+
   public getBody(): Statement[] {
     return this.body;
   }
 
+  /**
+   * Gets the inferred counter type (set by semantic analyzer)
+   */
+  public getInferredCounterType(): 'byte' | 'word' {
+    return this.inferredCounterType;
+  }
+
+  /**
+   * Sets the inferred counter type (called by semantic analyzer)
+   */
+  public setInferredCounterType(type: 'byte' | 'word'): void {
+    this.inferredCounterType = type;
+  }
+
   public accept<R>(visitor: ASTVisitor<R>): R {
     return visitor.visitForStatement(this);
+  }
+}
+
+/**
+ * Do-while statement node - C-style syntax
+ *
+ * Represents: do { body } while (condition);
+ *
+ * The body executes at least once before the condition is checked.
+ * This is a common pattern in 6502 programming for efficient loops.
+ */
+export class DoWhileStatement extends Statement {
+  /**
+   * Creates a Do-While statement
+   * @param body - Loop body statements (executed at least once)
+   * @param condition - Loop condition (checked after body)
+   * @param location - Source location
+   */
+  constructor(
+    protected readonly body: Statement[],
+    protected readonly condition: Expression,
+    location: SourceLocation
+  ) {
+    super(ASTNodeType.DO_WHILE_STMT, location);
+  }
+
+  public getBody(): Statement[] {
+    return this.body;
+  }
+
+  public getCondition(): Expression {
+    return this.condition;
+  }
+
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitDoWhileStatement(this);
   }
 }
 
@@ -886,18 +1040,54 @@ export interface CaseClause {
 }
 
 /**
- * Match statement node
+ * Switch statement node - C-style syntax
  *
- * Represents: match value case 1: ... case 2: ... default: ... end match
+ * Represents: switch (value) { case 1: ... break; case 2: ... default: ... }
+ *
+ * Note: Fall-through is explicit (no automatic break).
+ * Use 'break' to exit a case.
  */
-export class MatchStatement extends Statement {
+export class SwitchStatement extends Statement {
   /**
-   * Creates a Match statement
-   * @param value - Value being matched
+   * Creates a Switch statement
+   * @param value - Value being switched on
    * @param cases - Case clauses
    * @param defaultCase - Default case body (optional)
    * @param location - Source location
    */
+  constructor(
+    protected readonly value: Expression,
+    protected readonly cases: CaseClause[],
+    protected readonly defaultCase: Statement[] | null,
+    location: SourceLocation
+  ) {
+    super(ASTNodeType.SWITCH_STMT, location);
+  }
+
+  public getValue(): Expression {
+    return this.value;
+  }
+
+  public getCases(): CaseClause[] {
+    return this.cases;
+  }
+
+  public getDefaultCase(): Statement[] | null {
+    return this.defaultCase;
+  }
+
+  public accept<R>(visitor: ASTVisitor<R>): R {
+    return visitor.visitSwitchStatement(this);
+  }
+}
+
+/**
+ * Match statement node - DEPRECATED, use SwitchStatement
+ * Kept for backward compatibility during transition.
+ *
+ * @deprecated Use SwitchStatement instead
+ */
+export class MatchStatement extends Statement {
   constructor(
     protected readonly value: Expression,
     protected readonly cases: CaseClause[],

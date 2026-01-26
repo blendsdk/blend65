@@ -36,16 +36,16 @@ describe('Semantic Analyzer Integration', () => {
         let counter: byte = 0;
         const MAX: byte = 100;
 
-        function increment(): void
+        function increment(): void {
           counter = counter + 1;
-        end function
+        }
 
-        function main(): void
+        function main(): void {
           increment();
-          if counter < MAX then
+          if (counter < MAX) {
             increment();
-          end if
-        end function
+          }
+        }
       `;
 
       const { result, analyzer } = analyzeProgram(source);
@@ -64,9 +64,9 @@ describe('Semantic Analyzer Integration', () => {
       const source = `
         let value: byte = 0;
 
-        function test(): void
+        function test(): void {
           value = "string"; // Type error: cannot assign string to byte
-        end function
+        }
       `;
 
       const { result, analyzer } = analyzeProgram(source);
@@ -103,12 +103,12 @@ describe('Semantic Analyzer Integration', () => {
       const source = `
         let global: byte = 0;
 
-        function test(): word
+        function test(): word {
           global = "error"; // Type error from Pass 3
-          if true then
+          if (true) {
             let unused: byte = 0; // Warning from potential future passes
-          end if
-        end function
+          }
+        }
       `;
 
       const { result } = analyzeProgram(source);
@@ -128,11 +128,11 @@ describe('Semantic Analyzer Integration', () => {
         let score: word = 0;
         const MAX_SCORE: word = 9999;
 
-        function initialize(): void
-        end function
+        function initialize(): void {
+        }
 
-        export function main(): void
-        end function
+        export function main(): void {
+        }
       `;
 
       const { analyzer } = analyzeProgram(source);
@@ -152,9 +152,9 @@ describe('Semantic Analyzer Integration', () => {
 
     test('creates function scopes with parameters', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
       `;
 
       const { analyzer } = analyzeProgram(source);
@@ -214,9 +214,9 @@ describe('Semantic Analyzer Integration', () => {
 
     test('resolves function signatures', () => {
       const source = `
-        function add(a: byte, b: byte): byte
+        function add(a: byte, b: byte): byte {
           return a + b;
-        end function
+        }
       `;
 
       const { analyzer } = analyzeProgram(source);
@@ -235,9 +235,9 @@ describe('Semantic Analyzer Integration', () => {
         let a: byte = 10;
         let b: byte = 20;
 
-        function main(): void
+        function main(): void {
           let result: byte = a + b;
-        end function
+        }
       `;
 
       const { result } = analyzeProgram(source);
@@ -251,9 +251,9 @@ describe('Semantic Analyzer Integration', () => {
       const source = `
         let counter: byte = 0;
 
-        function test(): void
+        function test(): void {
           counter = "not a number";
-        end function
+        }
       `;
 
       const { result } = analyzeProgram(source);
@@ -270,9 +270,9 @@ describe('Semantic Analyzer Integration', () => {
 
     test('validates function return types', () => {
       const source = `
-        function getValue(): byte
+        function getValue(): byte {
           return "string"; // Wrong return type
-        end function
+        }
       `;
 
       const { result } = analyzeProgram(source);
@@ -284,9 +284,9 @@ describe('Semantic Analyzer Integration', () => {
 
     test('validates break/continue in loops only', () => {
       const source = `
-        function test(): void
+        function test(): void {
           break; // Error: not in loop
-        end function
+        }
       `;
 
       const { result } = analyzeProgram(source);
@@ -298,15 +298,15 @@ describe('Semantic Analyzer Integration', () => {
 
     test('allows break/continue inside loops', () => {
       const source = `
-        function main(): void
-          while true
+        function main(): void {
+          while (true) {
             break;
-          end while
+          }
 
-          for i = 0 to 10
+          for (i = 0 to 10) {
             continue;
-          next i
-        end function
+          }
+        }
       `;
 
       const { result } = analyzeProgram(source);
@@ -320,14 +320,14 @@ describe('Semantic Analyzer Integration', () => {
   describe('Pass 5: Control Flow Analysis', () => {
     test('builds CFG for each function', () => {
       const source = `
-        function foo(): void
-        end function
+        function foo(): void {
+        }
 
-        function bar(): void
-        end function
+        function bar(): void {
+        }
 
-        function baz(): void
-        end function
+        function baz(): void {
+        }
       `;
 
       const { analyzer } = analyzeProgram(source);
@@ -343,9 +343,9 @@ describe('Semantic Analyzer Integration', () => {
 
     test('CFG has entry and exit nodes', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 0;
-        end function
+        }
       `;
 
       const { analyzer } = analyzeProgram(source);
@@ -358,10 +358,10 @@ describe('Semantic Analyzer Integration', () => {
 
     test('detects unreachable code', () => {
       const source = `
-        function test(): void
+        function test(): void {
           return;
           let unreachable: byte = 0;
-        end function
+        }
       `;
 
       const { result } = analyzeProgram(source);
@@ -379,23 +379,23 @@ describe('Semantic Analyzer Integration', () => {
 
         let frameCount: byte = 0;
 
-        function initialize(): void
+        function initialize(): void {
           borderColor = 0;
           bgColor = 0;
           frameCount = 0;
-        end function
+        }
 
-        function updateColors(): void
+        function updateColors(): void {
           frameCount = frameCount + 1;
           borderColor = frameCount;
-        end function
+        }
 
-        export function main(): void
+        export function main(): void {
           initialize();
-          while true
+          while (true) {
             updateColors();
-          end while
-        end function
+          }
+        }
       `;
 
       const { result, analyzer } = analyzeProgram(source);
@@ -419,17 +419,17 @@ describe('Semantic Analyzer Integration', () => {
 
     test('program with nested control flow', () => {
       const source = `
-        function process(value: byte): byte
-          if value > 100 then
+        function process(value: byte): byte {
+          if (value > 100) {
             return 100;
-          else
-            if value < 0 then
+          } else {
+            if (value < 0) {
               return 0;
-            else
+            } else {
               return value;
-            end if
-          end if
-        end function
+            }
+          }
+        }
       `;
 
       const { result, analyzer } = analyzeProgram(source);
@@ -448,13 +448,13 @@ describe('Semantic Analyzer Integration', () => {
 
     test('program with for-loop variables', () => {
       const source = `
-        function sum(): word
+        function sum(): word {
           let total: word = 0;
-          for i = 0 to 10
+          for (i = 0 to 10) {
             total = total + i;
-          next i
+          }
           return total;
-        end function
+        }
       `;
 
       const { result, analyzer } = analyzeProgram(source);
@@ -479,10 +479,10 @@ describe('Semantic Analyzer Integration', () => {
   describe('Error Recovery and Diagnostics', () => {
     test('continues analysis after non-fatal warnings', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let unused: byte = 0; // Potential warning
           let x: byte = 1;
-        end function
+        }
       `;
 
       const { result, analyzer } = analyzeProgram(source);

@@ -35,9 +35,9 @@ describe('Import Validation - Export Status', () => {
           module moduleA
           export let counter: byte = 0;
           
-          export function incrementCounter(): void
+          export function incrementCounter(): void {
             counter = counter + 1;
-          end function
+          }
         `,
       },
       {
@@ -46,9 +46,9 @@ describe('Import Validation - Export Status', () => {
           module moduleB
           import counter from moduleA
           
-          export function useCounter(): byte
+          export function useCounter(): byte {
             return counter;
-          end function
+          }
         `,
       },
     ]);
@@ -92,9 +92,9 @@ describe('Import Validation - Export Status', () => {
         name: 'moduleA',
         code: `
           module moduleA
-          function helper(): byte
+          function helper(): byte {
             return 42;
-          end function
+          }
         `,
       },
       {
@@ -122,9 +122,9 @@ describe('Import Validation - Export Status', () => {
         name: 'moduleA',
         code: `
           module moduleA
-          export function helper(): byte
+          export function helper(): byte {
             return 42;
-          end function
+          }
         `,
       },
       {
@@ -133,9 +133,9 @@ describe('Import Validation - Export Status', () => {
           module moduleB
           import helper from moduleA
           
-          export function useHelper(): byte
+          export function useHelper(): byte {
             return helper();
-          end function
+          }
         `,
       },
     ]);
@@ -152,12 +152,12 @@ describe('Import Validation - Export Status', () => {
           module moduleA
           export let publicVar: byte = 1;
           let privateVar: byte = 2;
-          export function publicFunc(): byte
+          export function publicFunc(): byte {
             return 3;
-          end function
-          function privateFunc(): byte
+          }
+          function privateFunc(): byte {
             return 4;
-          end function
+          }
         `,
       },
       {
@@ -256,11 +256,11 @@ describe('Import Validation - Missing Symbols', () => {
           export let bar: byte = 2;
           export let baz: byte = 3;
           
-          export function initialize(): void
+          export function initialize(): void {
             foo = foo + 10;
             bar = bar + 20;
             baz = baz + 30;
-          end function
+          }
         `,
       },
       {
@@ -269,9 +269,9 @@ describe('Import Validation - Missing Symbols', () => {
           module moduleB
           import foo, bar, baz from moduleA
           
-          export function getSum(): byte
+          export function getSum(): byte {
             return foo + bar + baz;
-          end function
+          }
         `,
       },
     ]);
@@ -364,13 +364,13 @@ describe('Import Validation - Combined Scenarios', () => {
         name: 'lib',
         code: `
           module lib
-          export function abs(x: byte): byte
+          export function abs(x: byte): byte {
             return x;
-          end function
+          }
           export let PI: byte = 3;
-          function internal(): byte
+          function internal(): byte {
             return 0;
-          end function
+          }
         `,
       },
       {
@@ -379,9 +379,9 @@ describe('Import Validation - Combined Scenarios', () => {
           module main
           import abs, PI, internal from lib
 
-          export function main(): void
+          export function main(): void {
             let result: byte = abs(PI);
-          end function
+          }
         `,
       },
     ]);
@@ -407,13 +407,13 @@ describe('Import Validation - Real-World Scenarios', () => {
         name: 'c64.kernal',
         code: `
           module c64.kernal
-          export function CHROUT(char: byte): void
-          end function
-          export function GETIN(): byte
+          export function CHROUT(char: byte): void {
+          }
+          export function GETIN(): byte {
             return 0;
-          end function
-          function internalHelper(): void
-          end function
+          }
+          function internalHelper(): void {
+          }
         `,
       },
       {
@@ -440,18 +440,18 @@ describe('Import Validation - Real-World Scenarios', () => {
         name: 'lib.math',
         code: `
           module lib.math
-          export function abs(x: byte): byte
+          export function abs(x: byte): byte {
             return x;
-          end function
+          }
         `,
       },
       {
         name: 'lib.random',
         code: `
           module lib.random
-          export function random(): byte
+          export function random(): byte {
             return 42;
-          end function
+          }
         `,
       },
       {
@@ -461,10 +461,10 @@ describe('Import Validation - Real-World Scenarios', () => {
           import abs from lib.math
           import random from lib.random
 
-          export function main(): void
+          export function main(): void {
             let r: byte = random();
             let a: byte = abs(r);
-          end function
+          }
         `,
       },
     ]);
@@ -479,8 +479,8 @@ describe('Import Validation - Real-World Scenarios', () => {
         name: 'utils',
         code: `
           module utils
-          export function clearScreen(): void
-          end function
+          export function clearScreen(): void {
+          }
         `,
       },
       {
@@ -510,9 +510,9 @@ describe('Import Validation - Regression Tests', () => {
         name: 'moduleA',
         code: `
           module moduleA
-          export function helper(): byte
+          export function helper(): byte {
             return 42;
-          end function
+          }
         `,
       },
       {
@@ -521,9 +521,9 @@ describe('Import Validation - Regression Tests', () => {
           module moduleB
           import helper from moduleA
           
-          export function useHelper(): byte
+          export function useHelper(): byte {
             return helper();
-          end function
+          }
         `,
       },
     ]);
@@ -539,9 +539,9 @@ describe('Import Validation - Regression Tests', () => {
         code: `
           module moduleA
           export let foo: byte = 10;
-          export function getFoo(): byte
+          export function getFoo(): byte {
             return foo;
-          end function
+          }
         `,
       },
       {
@@ -550,10 +550,10 @@ describe('Import Validation - Regression Tests', () => {
           module moduleB
           import foo, getFoo from moduleA
 
-          export function main(): void
+          export function main(): void {
             let x: byte = foo;
             let y: byte = getFoo();
-          end function
+          }
         `,
       },
     ]);

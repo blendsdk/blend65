@@ -8,22 +8,22 @@ module HelloWorld
 // H=8, E=5, L=12, O=15, space=32, W=23, R=18, D=4, !=33
 @data const message: byte[12] = [8, 5, 12, 12, 15, 32, 23, 15, 18, 12, 4, 33];
 
-function clearScreen(): void
-    for i = 0 to 999
+function clearScreen(): void {
+    for (i = 0 to 999) {
         screenRAM[i] = 32;   // Space character
         colorRAM[i] = 14;    // Light blue
-    next i
-end function
+    }
+}
 
-export function main(): void
+export function main(): void {
     clearScreen();
 
     // Position: row 12 (center), column 14 (center-ish for 12 chars)
     let offset: word = 12 * 40 + 14;
 
     // Write message to screen
-    for i = 0 to 11
+    for (i = 0 to 11) {
         screenRAM[offset + i] = message[i];
         colorRAM[offset + i] = 1;  // White text
-    next i
-end function
+    }
+}

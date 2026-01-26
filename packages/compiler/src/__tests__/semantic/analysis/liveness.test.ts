@@ -44,10 +44,10 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -62,10 +62,10 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -80,11 +80,11 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          let z: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          let z: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -99,11 +99,11 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 1
-          let b: byte = a + 2
-          let c: byte = b + 3
-        end function
+        function test(): void {
+          let a: byte = 1;
+          let b: byte = a + 2;
+          let c: byte = b + 3;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -117,11 +117,11 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          let z: byte = 20
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          let z: byte = 20;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -138,14 +138,14 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte = 10
-          if flag then
-            let y: byte = x
-          else
-            let z: byte = x
-          end if
-        end function
+        function test(flag: boolean): void {
+          let x: byte = 10;
+          if (flag) {
+            let y: byte = x;
+          } else {
+            let z: byte = x;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -160,12 +160,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte = 10
-          if flag then
-            let y: byte = x
-          end if
-        end function
+        function test(flag: boolean): void {
+          let x: byte = 10;
+          if (flag) {
+            let y: byte = x;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -180,15 +180,15 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte = 10
-          let y: byte = 20
-          if flag then
-            let a: byte = x
-          else
-            let b: byte = y
-          end if
-        end function
+        function test(flag: boolean): void {
+          let x: byte = 10;
+          let y: byte = 20;
+          if (flag) {
+            let a: byte = x;
+          } else {
+            let b: byte = y;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -203,14 +203,14 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(a: boolean, b: boolean): void
-          let x: byte = 10
-          if a then
-            if b then
-              let y: byte = x
-            end if
-          end if
-        end function
+        function test(a: boolean, b: boolean): void {
+          let x: byte = 10;
+          if (a) {
+            if (b) {
+              let y: byte = x;
+            }
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -224,15 +224,15 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte
-          if flag then
-            x = 10
-          else
-            x = 20
-          end if
-          let y: byte = x
-        end function
+        function test(flag: boolean): void {
+          let x: byte;
+          if (flag) {
+            x = 10;
+          } else {
+            x = 20;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -249,12 +249,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let i: byte = 0
-          while i < 10
-            i = i + 1
-          end while
-        end function
+        function test(): void {
+          let i: byte = 0;
+          while (i < 10) {
+            i = i + 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -269,12 +269,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          while x > 0
-            x = x - 1
-          end while
-        end function
+        function test(): void {
+          let x: byte = 10;
+          while (x > 0) {
+            x = x - 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -289,12 +289,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          while true
-            let x: byte = 10
-            let y: byte = x
-          end while
-        end function
+        function test(): void {
+          while (true) {
+            let x: byte = 10;
+            let y: byte = x;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -308,16 +308,16 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let i: byte = 0
-          while i < 10
-            let j: byte = 0
-            while j < 10
-              j = j + 1
-            end while
-            i = i + 1
-          end while
-        end function
+        function test(): void {
+          let i: byte = 0;
+          while (i < 10) {
+            let j: byte = 0;
+            while (j < 10) {
+              j = j + 1;
+            }
+            i = i + 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -332,13 +332,13 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 0
-          while x < 10
-            x = x + 1
-          end while
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 0;
+          while (x < 10) {
+            x = x + 1;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -355,10 +355,10 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x + 5
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x + 5;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -372,11 +372,11 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-          let z: byte = x + y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+          let z: byte = x + y;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -390,9 +390,9 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-        end function
+        function test(): void {
+          let x: byte = 10;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -407,12 +407,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 1
-          let b: byte = 2
-          let c: byte = 3
-          let result: byte = a + b + c
-        end function
+        function test(): void {
+          let a: byte = 1;
+          let b: byte = 2;
+          let c: byte = 3;
+          let result: byte = a + b + c;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -429,10 +429,10 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -451,11 +451,11 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          let z: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          let z: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -473,12 +473,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          let z: byte = 20
-          let w: byte = z
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          let z: byte = 20;
+          let w: byte = z;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -498,11 +498,11 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-          let z: byte = x + y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+          let z: byte = x + y;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -524,12 +524,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let a: byte = 1
-          let b: byte = 2
-          let y: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let a: byte = 1;
+          let b: byte = 2;
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -548,12 +548,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          let z: byte = 20
-          let w: byte = z
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          let z: byte = 20;
+          let w: byte = z;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -574,11 +574,11 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = 20
-          let z: byte = x + y
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = 20;
+          let z: byte = x + y;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -599,12 +599,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 1
-          let b: byte = 2
-          let c: byte = 3
-          let result: byte = a + b + c
-        end function
+        function test(): void {
+          let a: byte = 1;
+          let b: byte = 2;
+          let c: byte = 3;
+          let result: byte = a + b + c;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -630,17 +630,17 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): void
-          let x: byte = 0
-          if flag then
-            while x < 10
-              x = x + 1
-            end while
-          else
-            x = 100
-          end if
-          let y: byte = x
-        end function
+        function test(flag: boolean): void {
+          let x: byte = 0;
+          if (flag) {
+            while (x < 10) {
+              x = x + 1;
+            }
+          } else {
+            x = 100;
+          }
+          let y: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -655,14 +655,14 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(flag: boolean): byte
-          let x: byte = 10
-          if flag then
-            return x
-          end if
-          x = 20
-          return x
-        end function
+        function test(flag: boolean): byte {
+          let x: byte = 10;
+          if (flag) {
+            return x;
+          }
+          x = 20;
+          return x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -677,16 +677,16 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(a: boolean, b: boolean): byte
-          let x: byte = 10
-          if a then
-            return x
-          end if
-          if b then
-            return x
-          end if
-          return x
-        end function
+        function test(a: boolean, b: boolean): byte {
+          let x: byte = 10;
+          if (a) {
+            return x;
+          }
+          if (b) {
+            return x;
+          }
+          return x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -702,8 +702,8 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-        end function
+        function test(): void {
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -717,10 +717,10 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte
-          let y: byte
-        end function
+        function test(): void {
+          let x: byte;
+          let y: byte;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -735,9 +735,9 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(x: byte): byte
-          return x
-        end function
+        function test(x: byte): byte {
+          return x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -752,12 +752,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 10
-          let y: byte = x
-          x = 20
-          let z: byte = x
-        end function
+        function test(): void {
+          let x: byte = 10;
+          let y: byte = x;
+          x = 20;
+          let z: byte = x;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -774,12 +774,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 0
-          while x < 10
-            x = x + 1
-          end while
-        end function
+        function test(): void {
+          let x: byte = 0;
+          while (x < 10) {
+            x = x + 1;
+          }
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -793,14 +793,14 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x1: byte = 1
-          let x2: byte = 2
-          let x3: byte = 3
-          let x4: byte = 4
-          let x5: byte = 5
-          let y: byte = x1 + x2 + x3 + x4 + x5
-        end function
+        function test(): void {
+          let x1: byte = 1;
+          let x2: byte = 2;
+          let x3: byte = 3;
+          let x4: byte = 4;
+          let x5: byte = 5;
+          let y: byte = x1 + x2 + x3 + x4 + x5;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);
@@ -815,12 +815,12 @@ describe('LivenessAnalyzer (Task 8.6)', () => {
       const source = `
         module Test
 
-        function test(): void
-          let a: byte = 1
-          let b: byte = 2
-          let c: byte = a
-          let d: byte = b
-        end function
+        function test(): void {
+          let a: byte = 1;
+          let b: byte = 2;
+          let c: byte = a;
+          let d: byte = b;
+        }
       `;
 
       const { analyzer } = analyzeLiveness(source);

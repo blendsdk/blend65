@@ -241,6 +241,7 @@ describe('DeclarationParser', () => {
         createToken(TokenType.AT, 'at'),
         createToken(TokenType.NUMBER, '$D400'),
         createToken(TokenType.TYPE, 'type'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'frequency'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
@@ -248,8 +249,7 @@ describe('DeclarationParser', () => {
         createToken(TokenType.IDENTIFIER, 'volume'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
-        createToken(TokenType.END, 'end'),
-        createToken(TokenType.MAP, '@map'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new TestDeclarationParser(tokens);
@@ -276,14 +276,14 @@ describe('DeclarationParser', () => {
         createToken(TokenType.AT, 'at'),
         createToken(TokenType.NUMBER, '$8000'),
         createToken(TokenType.TYPE, 'type'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'data'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
         createToken(TokenType.LEFT_BRACKET, '['),
         createToken(TokenType.NUMBER, '256'),
         createToken(TokenType.RIGHT_BRACKET, ']'),
-        createToken(TokenType.END, 'end'),
-        createToken(TokenType.MAP, '@map'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new TestDeclarationParser(tokens);
@@ -308,14 +308,14 @@ describe('DeclarationParser', () => {
         createToken(TokenType.AT, 'at'),
         createToken(TokenType.NUMBER, '$D000'),
         createToken(TokenType.LAYOUT, 'layout'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'borderColor'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.AT, 'at'),
         createToken(TokenType.NUMBER, '$D020'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
-        createToken(TokenType.END, 'end'),
-        createToken(TokenType.MAP, '@map'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new TestDeclarationParser(tokens);
@@ -344,6 +344,7 @@ describe('DeclarationParser', () => {
         createToken(TokenType.AT, 'at'),
         createToken(TokenType.NUMBER, '$0000'),
         createToken(TokenType.LAYOUT, 'layout'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'screen'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.FROM, 'from'),
@@ -352,8 +353,7 @@ describe('DeclarationParser', () => {
         createToken(TokenType.NUMBER, '$07E7'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
-        createToken(TokenType.END, 'end'),
-        createToken(TokenType.MAP, '@map'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new TestDeclarationParser(tokens);
@@ -504,6 +504,7 @@ describe('DeclarationParser', () => {
         createToken(TokenType.AT, 'at'),
         createToken(TokenType.NUMBER, '$D400'),
         createToken(TokenType.TYPE, 'type'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'freq'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.WORD, 'word'),
@@ -515,8 +516,7 @@ describe('DeclarationParser', () => {
         createToken(TokenType.IDENTIFIER, 'control'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
-        createToken(TokenType.END, 'end'),
-        createToken(TokenType.MAP, '@map'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new TestDeclarationParser(tokens);

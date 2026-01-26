@@ -375,6 +375,7 @@ packages/compiler/src/optimizer/
 | **8** | 8.10 | Custom pattern DSL | [ ] |
 | **8** | 8.11 | Pattern cost model | [ ] |
 | **8** | 8.12 | Peephole ordering optimization | [ ] |
+| **8** | 8.13 | Ternary operator patterns | [ ] |
 | **9** | 9.1 | C64 VIC-II timing hints | [ ] |
 | **9** | 9.2 | C64 SID timing hints | [ ] |
 | **9** | 9.3 | C64 raster-critical code | [ ] |

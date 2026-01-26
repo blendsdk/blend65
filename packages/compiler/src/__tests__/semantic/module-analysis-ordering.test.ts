@@ -46,9 +46,9 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
       const source = `
         module Test
         export let counter: byte = 0;
-        export function increment(): void
+        export function increment(): void {
           counter = counter + 1;
-        end function
+        }
       `;
 
       const program = parseModule(source);
@@ -102,9 +102,9 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
 
       const moduleB = parseModule(`
         module B
-        export function helper(): byte
+        export function helper(): byte {
           return 42;
-        end function
+        }
       `);
 
       const analyzer = new SemanticAnalyzer();
@@ -126,15 +126,15 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
       const moduleA = parseModule(`
         module A
         import foo from B
-        export function bar(): void
-        end function
+        export function bar(): void {
+        }
       `);
 
       const moduleB = parseModule(`
         module B
         import bar from A
-        export function foo(): void
-        end function
+        export function foo(): void {
+        }
       `);
 
       const analyzer = new SemanticAnalyzer();
@@ -173,16 +173,16 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
       const moduleB = parseModule(`
         module B
         import funcC from C
-        export function funcB(): byte
+        export function funcB(): byte {
           return funcC();
-        end function
+        }
       `);
 
       const moduleC = parseModule(`
         module C
-        export function funcC(): byte
+        export function funcC(): byte {
           return 99;
-        end function
+        }
       `);
 
       const analyzer = new SemanticAnalyzer();
@@ -212,24 +212,24 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
       const moduleB = parseModule(`
         module B
         import d from D
-        export function b(): byte
+        export function b(): byte {
           return d();
-        end function
+        }
       `);
 
       const moduleC = parseModule(`
         module C
         import d from D
-        export function c(): byte
+        export function c(): byte {
           return d();
-        end function
+        }
       `);
 
       const moduleD = parseModule(`
         module D
-        export function d(): byte
+        export function d(): byte {
           return 10;
-        end function
+        }
       `);
 
       const analyzer = new SemanticAnalyzer();
@@ -261,17 +261,17 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
       const moduleB = parseModule(`
         module B
         import c from C
-        export function b(): byte
+        export function b(): byte {
           return c();
-        end function
+        }
       `);
 
       const moduleC = parseModule(`
         module C
         import b from B
-        export function c(): byte
+        export function c(): byte {
           return b();
-        end function
+        }
       `);
 
       const analyzer = new SemanticAnalyzer();
@@ -287,15 +287,15 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
       const moduleA = parseModule(`
         module A
         export let varA: byte = 1;
-        export function funcA(): void
-        end function
+        export function funcA(): void {
+        }
       `);
 
       const moduleB = parseModule(`
         module B
         export let varB: byte = 2;
-        export function funcB(): void
-        end function
+        export function funcB(): void {
+        }
       `);
 
       const analyzer = new SemanticAnalyzer();
@@ -324,9 +324,9 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
 
       const moduleY = parseModule(`
         module Y
-        export function utility(): byte
+        export function utility(): byte {
           return 0;
-        end function
+        }
       `);
 
       const analyzer = new SemanticAnalyzer();
@@ -422,10 +422,10 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
     it('should collect diagnostics per module', () => {
       const goodModule = parseModule(`
         module Good
-        export function use(): void
+        export function use(): void {
           let valid: byte = 42;
           let result: byte = valid + 1;
-        end function
+        }
       `);
 
       const badModule = parseModule(`
@@ -455,9 +455,9 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
     it('should maintain single-module analyze() method', () => {
       const source = `
         module Legacy
-        export function getData(): byte
+        export function getData(): byte {
           return 123;
-        end function
+        }
       `;
 
       const program = parseModule(source);
@@ -474,9 +474,9 @@ describe('Task 6.2.2: Module Analysis Ordering', () => {
     it('should produce same results for single module via both APIs', () => {
       const source = `
         module Compare
-        export function test(): byte
+        export function test(): byte {
           return 42;
-        end function
+        }
       `;
 
       const program1 = parseModule(source);

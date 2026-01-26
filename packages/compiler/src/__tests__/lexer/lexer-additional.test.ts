@@ -77,7 +77,8 @@ describe('Blend65Lexer Additional Coverage', () => {
 
   describe('Whitespace-free operator adjacency', () => {
     it('should tokenize tightly packed control-flow and operators', () => {
-      const source = 'if(x==1)then\nnext i';
+      // C-style syntax: no 'then' keyword, uses curly braces instead
+      const source = 'if(x==1){return;}';
       const tokens = tokenize(source);
 
       expect(tokens[0].type).toBe(TokenType.IF);
@@ -88,7 +89,10 @@ describe('Blend65Lexer Additional Coverage', () => {
       expect(tokens[4].type).toBe(TokenType.NUMBER);
       expect(tokens[4].value).toBe('1');
       expect(tokens[5].type).toBe(TokenType.RIGHT_PAREN);
-      expect(tokens[6].type).toBe(TokenType.THEN);
+      expect(tokens[6].type).toBe(TokenType.LEFT_BRACE);
+      expect(tokens[7].type).toBe(TokenType.RETURN);
+      expect(tokens[8].type).toBe(TokenType.SEMICOLON);
+      expect(tokens[9].type).toBe(TokenType.RIGHT_BRACE);
     });
   });
 

@@ -281,9 +281,9 @@ describe('M6502HintAnalyzer', () => {
   describe('Smoke Tests', () => {
     it('should not crash when analyzing simple code', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
-        end function
+        }
       `;
 
       expect(() => analyzeCode(source)).not.toThrow();
@@ -296,9 +296,9 @@ describe('M6502HintAnalyzer', () => {
 
     it('should return empty diagnostics for safe code', () => {
       const source = `
-        function test(): void
+        function test(): void {
           let x: byte = 10;
-        end function
+        }
       `;
 
       const { errors } = analyzeCode(source);
@@ -321,8 +321,8 @@ describe('M6502HintAnalyzer', () => {
         const source = `
           @map testVar at $02: byte;
 
-          function test(): void
-          end function
+          function test(): void {
+          }
         `;
 
         // Parse should succeed
@@ -333,8 +333,8 @@ describe('M6502HintAnalyzer', () => {
         const source = `
           @map borderColor at $D020: byte;
 
-          function test(): void
-          end function
+          function test(): void {
+          }
         `;
 
         // $D020 is not in zero-page, so it's always valid

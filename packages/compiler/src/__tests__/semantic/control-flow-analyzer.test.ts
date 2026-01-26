@@ -49,11 +49,11 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function test(): void
-          let x: byte = 1
-          let y: byte = 2
-          let z: byte = 3
-        end function
+        function test(): void {
+          let x: byte = 1;
+          let y: byte = 2;
+          let z: byte = 3;
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -72,8 +72,8 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function empty(): void
-        end function
+        function empty(): void {
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -94,9 +94,9 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function earlyReturn(): byte
-          return 42
-        end function
+        function earlyReturn(): byte {
+          return 42;
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -115,10 +115,10 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function deadCode(): byte
-          return 1
-          let x: byte = 2
-        end function
+        function deadCode(): byte {
+          return 1;
+          let x: byte = 2;
+        }
       `;
 
       const { diagnostics } = analyzeControlFlow(source);
@@ -132,13 +132,13 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function multipleReturns(flag: byte): byte
-          if flag then
-            return 1
-          else
-            return 2
-          end if
-        end function
+        function multipleReturns(flag: byte): byte {
+          if (flag) {
+            return 1;
+          } else {
+            return 2;
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -160,11 +160,11 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function ifOnly(x: byte): void
-          if x then
-            let y: byte = 1
-          end if
-        end function
+        function ifOnly(x: byte): void {
+          if (x) {
+            let y: byte = 1;
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -183,13 +183,13 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function ifElse(x: byte): void
-          if x then
-            let a: byte = 1
-          else
-            let b: byte = 2
-          end if
-        end function
+        function ifElse(x: byte): void {
+          if (x) {
+            let a: byte = 1;
+          } else {
+            let b: byte = 2;
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -208,13 +208,13 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function nested(x: byte, y: byte): void
-          if x then
-            if y then
-              let a: byte = 1
-            end if
-          end if
-        end function
+        function nested(x: byte, y: byte): void {
+          if (x) {
+            if (y) {
+              let a: byte = 1;
+            }
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -232,15 +232,15 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function bothReturn(x: byte): byte
-          if x then
-            return 1
-          else
-            return 2
-          end if
-          let dead: byte = 3
-          return dead
-        end function
+        function bothReturn(x: byte): byte {
+          if (x) {
+            return 1;
+          } else {
+            return 2;
+          }
+          let dead: byte = 3;
+          return dead;
+        }
       `;
 
       const { diagnostics } = analyzeControlFlow(source);
@@ -256,11 +256,11 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function whileLoop(count: byte): void
-          while count
-            count = count - 1
-          end while
-        end function
+        function whileLoop(count: byte): void {
+          while (count) {
+            count = count - 1;
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -282,14 +282,14 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function withBreak(count: byte): void
-          while count
-            if count == 5 then
-              break
-            end if
-            count = count - 1
-          end while
-        end function
+        function withBreak(count: byte): void {
+          while (count) {
+            if (count == 5) {
+              break;
+            }
+            count = count - 1;
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -306,14 +306,14 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function withContinue(count: byte): void
-          while count
-            if count == 5 then
-              continue
-            end if
-            count = count - 1
-          end while
-        end function
+        function withContinue(count: byte): void {
+          while (count) {
+            if (count == 5) {
+              continue;
+            }
+            count = count - 1;
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -332,11 +332,11 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function forLoop(): void
-          for i = 0 to 10
-            let x: byte = i
-          next i
-        end function
+        function forLoop(): void {
+          for (i = 0 to 10) {
+            let x: byte = i;
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -354,13 +354,13 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function forWithBreak(): void
-          for i = 0 to 10
-            if i == 5 then
-              break
-            end if
-          next i
-        end function
+        function forWithBreak(): void {
+          for (i = 0 to 10) {
+            if (i == 5) {
+              break;
+            }
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -379,13 +379,13 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function nested(): void
-          for i = 0 to 10
-            while i
-              let x: byte = i
-            end while
-          next i
-        end function
+        function nested(): void {
+          for (i = 0 to 10) {
+            while (i) {
+              let x: byte = i;
+            }
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -403,15 +403,15 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function loopWithIf(count: byte): void
-          while count
-            if count > 5 then
-              count = count - 2
-            else
-              count = count - 1
-            end if
-          end while
-        end function
+        function loopWithIf(count: byte): void {
+          while (count) {
+            if (count > 5) {
+              count = count - 2;
+            } else {
+              count = count - 1;
+            }
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -425,16 +425,16 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function first(): void
-          let x: byte = 1
-        end function
+        function first(): void {
+          let x: byte = 1;
+        }
 
-        function second(): byte
-          return 42
-        end function
+        function second(): byte {
+          return 42;
+        }
 
-        function third(): void
-        end function
+        function third(): void {
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -449,24 +449,24 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function process(value: byte, max: byte): byte
-          let result: byte = 0
+        function process(value: byte, max: byte): byte {
+          let result: byte = 0;
 
-          if value > max then
-            return max
-          end if
+          if (value > max) {
+            return max;
+          }
 
-          while value > 0
-            result = result + 1
-            value = value - 1
+          while (value > 0) {
+            result = result + 1;
+            value = value - 1;
 
-            if result > 100 then
-              break
-            end if
-          end while
+            if (result > 100) {
+              break;
+            }
+          }
 
-          return result
-        end function
+          return result;
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -497,11 +497,11 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function dead(): byte
-          return 1
-          let x: byte = 2
-          return x
-        end function
+        function dead(): byte {
+          return 1;
+          let x: byte = 2;
+          return x;
+        }
       `;
 
       const { diagnostics } = analyzeControlFlow(source);
@@ -515,14 +515,14 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function dead(x: byte): byte
-          if x then
-            return 1
-          else
-            return 2
-          end if
-          return 3
-        end function
+        function dead(x: byte): byte {
+          if (x) {
+            return 1;
+          } else {
+            return 2;
+          }
+          return 3;
+        }
       `;
 
       const { diagnostics } = analyzeControlFlow(source);
@@ -536,12 +536,12 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function reachable(x: byte): byte
-          if x then
-            return 1
-          end if
-          return 2
-        end function
+        function reachable(x: byte): byte {
+          if (x) {
+            return 1;
+          }
+          return 2;
+        }
       `;
 
       const { diagnostics } = analyzeControlFlow(source);
@@ -557,9 +557,9 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function justReturn(): byte
-          return 42
-        end function
+        function justReturn(): byte {
+          return 42;
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -574,19 +574,19 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function deep(): void
-          if 1 then
-            if 2 then
-              if 3 then
-                while 4
-                  if 5 then
-                    break
-                  end if
-                end while
-              end if
-            end if
-          end if
-        end function
+        function deep(): void {
+          if (1) {
+            if (2) {
+              if (3) {
+                while (4) {
+                  if (5) {
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);
@@ -600,11 +600,11 @@ describe('Control Flow Analyzer', () => {
       const source = `
         module Test
 
-        function emptyBranches(x: byte): void
-          if x then
-          else
-          end if
-        end function
+        function emptyBranches(x: byte): void {
+          if (x) {
+          } else {
+          }
+        }
       `;
 
       const { analyzer, diagnostics } = analyzeControlFlow(source);

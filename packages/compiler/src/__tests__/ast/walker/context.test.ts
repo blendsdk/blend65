@@ -514,10 +514,14 @@ describe('ContextWalker', () => {
         [new BreakStatement(loc())],
         loc()
       );
+      // ForStatement(variable, variableType, start, end, direction, step, body, location)
       const outerLoop = new ForStatement(
         'i',
+        null,
         new LiteralExpression(0, loc()),
         new LiteralExpression(10, loc()),
+        'to',
+        null,
         [innerLoop],
         loc()
       );
