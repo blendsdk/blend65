@@ -47,6 +47,8 @@ Blend65 is a modern programming language and compiler designed specifically for 
    - Hardware access (`@map` for memory-mapped I/O)
    - Modules and imports
    - **Ternary expressions** (`condition ? then : else`)
+   - **Address-of operator** (`@variable` to get memory address)
+   - **Callback parameters** (pass function addresses)
 
 2. **Compile to Assembly**
    - The compiler generates ACME assembler output
@@ -66,6 +68,16 @@ module Main;
 @map borderColor at $D020: byte;
 @map backgroundColor at $D021: byte;
 
+// Function that can be called via callback
+function flashBorder(): void {
+    borderColor = borderColor + 1;
+}
+
+// Function accepting a callback parameter
+function callHandler(handler: callback): void {
+    handler();  // Invoke the callback
+}
+
 export function main(): void {
     borderColor = 0;      // Black border
     backgroundColor = 6;  // Blue background
@@ -74,6 +86,12 @@ export function main(): void {
     let a: byte = 10;
     let b: byte = 5;
     let max: byte = (a > b) ? a : b;
+    
+    // Address-of operator - get function address
+    let handlerAddr: @address = @flashBorder;
+    
+    // Pass function as callback
+    callHandler(@flashBorder);
 }
 ```
 
@@ -147,6 +165,24 @@ The optimizer will make your programs:
 - Fixed memory layout extraction
 - Improved type checking and validation
 
+### ✅ Address-of Operator (January 2026)
+- Get memory addresses of variables and functions with `@variable`
+- `@address` type alias for 16-bit pointer values
+- Callback parameters for passing function addresses
+- Full IL and code generation support
+- 450+ dedicated integration tests
+
+### ✅ Library Loading System (January 2026)
+- Standard library infrastructure
+- C64 hardware definitions (`@blend65/c64/hardware`)
+- Import resolution for library modules
+- Extensible library path configuration
+
+### ✅ Module/Export System Fix (January 2026)
+- Parser improvements for module declarations
+- Semantic analysis for export modifiers
+- Proper handling of exported vs internal symbols
+
 ---
 
 ## Roadmap
@@ -162,6 +198,9 @@ The optimizer will make your programs:
 - [x] C-style syntax refactor
 - [x] Ternary operator support
 - [x] Configuration system
+- [x] Address-of operator (`@`)
+- [x] Library loading system
+- [x] Module/export system
 
 ### Phase 2: Optimization 🔄 (CURRENT FOCUS)
 - [ ] IL optimization passes

@@ -1,16 +1,98 @@
 # Blend65
 
-> **⚠️ DEVELOPMENT STATUS: 60-70% COMPLETE**
+> **⚠️ DEVELOPMENT STATUS: ~75% COMPLETE**
 >
-> The compiler frontend is fully functional with production-quality lexer, parser, and semantic analyzer.
-> The backend (IL generation and 6502 code generation) is in development. While the compiler can parse
-> and validate Blend65 programs, it cannot yet generate executable code for the Commodore 64.
+> The compiler frontend is fully functional with production-quality lexer, parser, semantic analyzer,
+> IL generator, and basic code generator. The compiler can parse, validate, and generate 6502 assembly
+> for Blend65 programs.
 >
-> **Current milestone**: 2,428 tests passing | Next phase: IL Generator
+> **Current milestone**: 6,500+ tests passing | Next phase: Optimizer
 
 ## Overview
 
 Blend65 is a modern programming language compiler targeting 6502-based systems including the Commodore 64, VIC-20, and Commander X16. The language provides modern programming constructs while generating efficient assembly code for vintage hardware.
+
+## Quick Examples
+
+### Hello World - Change Border Color
+
+```js
+module Main;
+
+@map borderColor at $D020: byte;
+
+export function main(): void {
+    borderColor = 1;  // White border
+}
+```
+
+### Variables and Types
+
+```js
+// Integer types
+let counter: byte = 0;          // 8-bit unsigned (0-255)
+let health: word = 1000;        // 16-bit unsigned (0-65535)
+let flag: bool = true;          // Boolean
+
+// Arrays
+let buffer: byte[256];          // 256-byte array
+let positions: word[8];         // 8 words
+
+// Zero-page for speed-critical variables
+@zp let fastCounter: byte = 0;
+```
+
+### Expressions
+
+```js
+// Arithmetic
+let result: byte = (a + b) * 2;
+let shifted: byte = value << 2;     // Shift left
+let masked: byte = value & $0F;     // Bitwise AND
+
+// Comparisons
+let isEqual: bool = a == b;
+let isGreater: bool = score > highScore;
+
+// Ternary operator
+let max: byte = (a > b) ? a : b;
+let sign: byte = (value < 0) ? 1 : 0;
+```
+
+### Functions
+
+```js
+// Simple function
+function clearScreen(): void {
+    for (let i: word = 0 to 999) {
+        screenRAM[i] = 32;  // Space character
+    }
+}
+
+// Function with parameters and return
+function add(a: byte, b: byte): byte {
+    return a + b;
+}
+
+// Exported function (visible to other modules)
+export function main(): void {
+    clearScreen();
+}
+```
+
+### Hardware Access
+
+```js
+// Memory-mapped hardware registers
+@map borderColor at $D020: byte;
+@map backgroundColor at $D021: byte;
+@map spriteEnable at $D015: byte;
+
+// Direct hardware manipulation
+borderColor = 0;           // Black border
+backgroundColor = 6;       // Blue background
+spriteEnable = $FF;        // Enable all sprites
+```
 
 ## Language Features
 
@@ -79,16 +161,45 @@ vic.borderColor = LIGHT_BLUE;
 sid.voice1.frequency = 440;
 ```
 
+### Address-of Operator
+
+Get memory addresses of variables and functions for low-level programming:
+
+```js
+// Get the address of a variable
+let buffer: byte[256];
+let bufferAddr: @address = @buffer;
+
+// Get the address of a function for callbacks
+function myHandler(): void {
+    borderColor = borderColor + 1;
+}
+let handlerAddr: @address = @myHandler;
+
+// Pass function addresses as callbacks
+function installIRQ(handler: callback): void {
+    // Set up interrupt vector
+}
+installIRQ(@myHandler);
+```
+
 ### Callback Functions
 
 Type-safe function pointers enable interrupt-driven programming and behavioral dispatch:
 
 ```js
-callback interruptHandler: function(): void;
-callback behaviorFunction: function(entity: Entity): void;
+// Define callback-compatible functions
+function onRasterLine(): void {
+    vic.borderColor = vic.borderColor + 1;
+}
 
-var rasterCallbacks: interruptHandler[8];
-var enemyBehaviors: behaviorFunction[16];
+// Accept callbacks as parameters
+function setRasterHandler(handler: callback): void {
+    handler();  // Invoke the callback
+}
+
+// Use address-of operator to pass function
+setRasterHandler(@onRasterLine);
 ```
 
 ### Control Flow
@@ -152,42 +263,43 @@ let color: byte = isHit ? RED : GREEN;
 **Compiler Pipeline:**
 
 ```
-Source → Lexer ✅ → Parser ✅ → AST ✅ → Semantic ✅ → IL 🔜 → CodeGen 🔜 → Assembly 🔜
+Source → Lexer ✅ → Parser ✅ → AST ✅ → Semantic ✅ → IL ✅ → CodeGen ✅ → Assembly ✅
+                                                              ↓
+                                                         Optimizer 🔜
 ```
 
-### Completed (60-70%)
+### Completed (~75%)
 
 | Component | Tests | Status |
 |-----------|-------|--------|
 | **Lexer** | 150+ | ✅ Production-ready |
 | **Parser** | 400+ | ✅ Production-ready |
 | **AST System** | 100+ | ✅ Production-ready |
-| **Semantic Analyzer** | 1,365+ | ✅ Production-ready |
-| **Advanced Analysis (Phase 8)** | 500+ | ✅ Complete |
-| **Hardware Analyzers (C64/C128/X16)** | 200+ | ✅ Complete |
-| **Integration Tests** | 313+ | ✅ Passing |
+| **Semantic Analyzer** | 1,500+ | ✅ Production-ready |
+| **IL Generator** | 2,000+ | ✅ Production-ready |
+| **Code Generator** | 500+ | ✅ Basic Complete |
+| **E2E & Integration** | 1,500+ | ✅ All Passing |
+| **Total** | **6,500+** | **✅ All Passing** |
 
-**Semantic Analysis Highlights:**
+**Key Features:**
 
 - Complete type checking with multi-module support
 - Control flow analysis with CFG construction
 - Definite assignment and variable usage tracking
 - Dead code and unused function detection
-- Data flow analysis (reaching definitions, liveness, constant propagation)
-- Escape analysis and purity analysis for optimization hints
-- C64-specific hardware analysis (VIC-II timing, SID conflict detection)
+- Address-of operator for function pointers and callbacks
+- Standard library loading system
+- ACME assembler output generation
 
 ### In Development
 
-- **IL Generator** - Intermediate language for optimization and portability
-- **Code Generator** - 6502 instruction selection and register allocation
-- **Assembler Integration** - PRG file generation
+- **Optimizer** - Peephole optimization, dead code elimination, constant folding
 
 ### Planned
 
-- Standard library (VIC-II, SID, CIA wrappers)
+- Advanced optimization passes
+- VICE emulator integration
 - Additional examples and documentation
-- Performance optimization passes
 
 ## Development
 
