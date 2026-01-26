@@ -251,11 +251,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [ ] 6.1.4 Write CodeGen tests (deferred to Phase 7)
 
 ### Phase 7: End-to-End Testing
-- [ ] 7.1.1 E2E test for @variable
-- [ ] 7.1.2 E2E test for @function
-- [ ] 7.1.3 E2E test for callbacks
-- [ ] 7.1.4 Verify all examples
-- [ ] 7.1.5 Archive old design doc
+- [x] 7.1.1 E2E test for @variable ✅ (in address-operator-integration.test.ts)
+- [x] 7.1.2 E2E test for @function ✅ (in address-operator-integration.test.ts)
+- [x] 7.1.3 E2E test for callbacks ✅ (in address-operator-integration.test.ts)
+- [x] 7.1.4 Verify all examples ✅ (C64 patterns: IRQ, buffers, tables)
+- [x] 7.1.5 Archive old design doc ✅ (moved to plans/archive/features/)
 
 ---
 
