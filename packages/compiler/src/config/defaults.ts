@@ -123,6 +123,7 @@ export function getDefaultCompilerOptions(): Required<CompilerOptions> {
     verbose: false,
     strict: false,
     loadAddress: DEFAULT_LOAD_ADDRESS,
+    libraries: [], // Empty array - libraries are opt-in via config or CLI
   };
 }
 

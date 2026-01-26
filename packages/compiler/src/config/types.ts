@@ -220,6 +220,34 @@ export interface CompilerOptions {
    * @default 2049 (0x0801)
    */
   loadAddress?: number;
+
+  /**
+   * Optional libraries to load
+   *
+   * List of optional library names to include in compilation.
+   * These libraries are loaded from the compiler's built-in library directory.
+   *
+   * **Library Loading:**
+   * - `common/` and `{target}/common/` are always auto-loaded
+   * - Optional libraries are loaded only when specified here or via CLI
+   *
+   * **Library Types:**
+   * - Single-file: `sid` → loads `{target}/sid.blend`
+   * - Folder: `sprites` → loads all `.blend` files from `{target}/sprites/`
+   *
+   * **Example:**
+   * ```json
+   * {
+   *   "compilerOptions": {
+   *     "target": "c64",
+   *     "libraries": ["sid", "sprites"]
+   *   }
+   * }
+   * ```
+   *
+   * @example ["sid", "sprites", "math"]
+   */
+  libraries?: string[];
 }
 
 /**
@@ -544,4 +572,18 @@ export interface ConfigLoadOptions {
    * Explicit files from CLI that override include/exclude/files.
    */
   cliFiles?: string[];
+
+  /**
+   * Libraries specified on command line
+   *
+   * Library names from CLI `--libraries` flag that are merged with
+   * config file libraries. CLI libraries are added to config libraries,
+   * not replace them.
+   *
+   * **Format:** Comma-separated library names on CLI
+   * **Example:** `--libraries=sid,sprites`
+   *
+   * @example ["sid", "sprites"]
+   */
+  cliLibraries?: string[];
 }

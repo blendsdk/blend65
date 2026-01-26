@@ -27,8 +27,8 @@ describe('Import/Export Integration Tests', () => {
   describe('Import Declaration Edge Cases', () => {
     test('parses import with single identifier', () => {
       const source = `
-        module Game.Main
-        import clearScreen from c64.graphics;
+        module Game.Main;
+        import { clearScreen } from c64.graphics;
       `;
 
       const lexer = new Lexer(source);
@@ -51,8 +51,8 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses import with multiple identifiers', () => {
       const source = `
-        module Game.Main
-        import clearScreen, setPixel, drawLine from c64.graphics.screen;
+        module Game.Main;
+        import { clearScreen, setPixel, drawLine } from c64.graphics.screen;
       `;
 
       const lexer = new Lexer(source);
@@ -72,8 +72,8 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses import from deeply nested module', () => {
       const source = `
-        module Game.Main
-        import initSID, playNote, stopSound from c64.audio.sid.player;
+        module Game.Main;
+        import { initSID, playNote, stopSound } from c64.audio.sid.player;
       `;
 
       const lexer = new Lexer(source);
@@ -91,10 +91,10 @@ describe('Import/Export Integration Tests', () => {
 
     test('handles multiple import declarations', () => {
       const source = `
-        module Game.Main
-        import clearScreen from c64.graphics;
-        import initSID from c64.audio;
-        import random from utils.math;
+        module Game.Main;
+        import { clearScreen } from c64.graphics;
+        import { initSID } from c64.audio;
+        import { random } from utils.math;
       `;
 
       const lexer = new Lexer(source);
@@ -119,9 +119,9 @@ describe('Import/Export Integration Tests', () => {
 
     test('handles import with automatic semicolon insertion', () => {
       const source = `
-        module Game.Main
-        import clearScreen from c64.graphics;
-        import initSID from c64.audio;
+        module Game.Main;
+        import { clearScreen } from c64.graphics;
+        import { initSID } from c64.audio;
       `;
 
       const lexer = new Lexer(source);
@@ -138,7 +138,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('reports error for empty import list', () => {
       const source = `
-        module Game.Main
+        module Game.Main;
         import from c64.graphics;
       `;
 
@@ -154,7 +154,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('reports error for missing from keyword', () => {
       const source = `
-        module Game.Main
+        module Game.Main;
         import clearScreen c64.graphics;
       `;
 
@@ -170,7 +170,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('reports error for missing module path', () => {
       const source = `
-        module Game.Main
+        module Game.Main;
         import clearScreen from;
       `;
 
@@ -192,7 +192,7 @@ describe('Import/Export Integration Tests', () => {
   describe('Export Function Declarations', () => {
     test('parses exported function with full Parser', () => {
       const source = `
-        module c64.graphics
+        module c64.graphics;
 
         export function clearScreen(): void {
           // Implementation
@@ -218,7 +218,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses exported function with parameters', () => {
       const source = `
-        module c64.graphics
+        module c64.graphics;
 
         export function setPixel(x: byte, y: byte): void {
           // Implementation
@@ -242,7 +242,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses exported callback function', () => {
       const source = `
-        module Game.Main
+        module Game.Main;
 
         export callback function rasterIRQ(): void {
           // IRQ handler
@@ -264,7 +264,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses exported function with return type', () => {
       const source = `
-        module Utils.Math
+        module Utils.Math;
 
         export function abs(x: byte): byte {
           return x;
@@ -286,7 +286,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses multiple exported functions', () => {
       const source = `
-        module c64.graphics
+        module c64.graphics;
 
         export function clearScreen(): void {
         }
@@ -319,7 +319,7 @@ describe('Import/Export Integration Tests', () => {
   describe('Export Variable Declarations', () => {
     test('parses exported constant', () => {
       const source = `
-        module c64.constants
+        module c64.constants;
 
         export const MAX_SPRITES: byte = 8;
       `;
@@ -339,7 +339,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses exported variable with storage class', () => {
       const source = `
-        module Game.State
+        module Game.State;
 
         export @zp let frameCounter: byte = 0;
       `;
@@ -359,7 +359,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses multiple exported variables', () => {
       const source = `
-        module Game.State
+        module Game.State;
 
         export @zp let score: word = 0;
         export @zp let lives: byte = 3;
@@ -387,10 +387,10 @@ describe('Import/Export Integration Tests', () => {
   describe('End-to-End Module System Integration', () => {
     test('parses complete module with imports and exports', () => {
       const source = `
-        module Game.Main
+        module Game.Main;
 
-        import clearScreen, setPixel from c64.graphics;
-        import initSID from c64.audio;
+        import { clearScreen, setPixel } from c64.graphics;
+        import { initSID } from c64.audio;
 
         export @zp let score: word = 0;
         export const MAX_SCORE: word = 9999;
@@ -438,7 +438,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses graphics module example', () => {
       const source = `
-        module c64.graphics
+        module c64.graphics;
 
         @map screenRAM from $0400 to $07E7: byte;
         @map colorRAM from $D800 to $DBE7: byte;
@@ -482,10 +482,10 @@ describe('Import/Export Integration Tests', () => {
 
     test('parses game module with imports and state', () => {
       const source = `
-        module Game.Snake
+        module Game.Snake;
 
-        import clearScreen, setPixel from c64.graphics;
-        import random from utils.math;
+        import { clearScreen, setPixel } from c64.graphics;
+        import { random } from utils.math;
 
         @zp let playerX: byte = 10;
         @zp let playerY: byte = 10;
@@ -534,9 +534,9 @@ describe('Import/Export Integration Tests', () => {
 
     test('validates import/export ordering', () => {
       const source = `
-        module Game.Main
+        module Game.Main;
 
-        import clearScreen from c64.graphics;
+        import { clearScreen } from c64.graphics;
 
         export @zp let score: word = 0;
 
@@ -562,10 +562,10 @@ describe('Import/Export Integration Tests', () => {
 
     test('handles complex nested module structure', () => {
       const source = `
-        module c64.audio.sid.player
+        module c64.audio.sid.player;
 
-        import initSID from c64.audio.sid.init;
-        import setFrequency from c64.audio.sid.voice;
+        import { initSID } from c64.audio.sid.init;
+        import { setFrequency } from c64.audio.sid.voice;
 
         export const VOICE_1: byte = 0;
         export const VOICE_2: byte = 1;
@@ -603,7 +603,7 @@ describe('Import/Export Integration Tests', () => {
   describe('Real-World Usage Patterns', () => {
     test('C64 hardware abstraction module', () => {
       const source = `
-        module c64.hardware
+        module c64.hardware;
 
         @map borderColor at $D020: byte;
         @map backgroundColor at $D021: byte;
@@ -635,7 +635,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('Game state management module', () => {
       const source = `
-        module Game.State
+        module Game.State;
 
         export @zp let score: word = 0;
         export @zp let lives: byte = 3;
@@ -677,7 +677,7 @@ describe('Import/Export Integration Tests', () => {
 
     test('Utility library module', () => {
       const source = `
-        module Utils.Math
+        module Utils.Math;
 
         export function abs(x: byte): byte {
           if (x < 0) {

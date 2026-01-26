@@ -1,0 +1,231 @@
+// ============================================================================
+// C64 Hardware Constants
+// ============================================================================
+// Common hardware addresses and constants for Commodore 64 development.
+// These are automatically loaded for all C64 compilations when libraries
+// are enabled.
+//
+// Module: hardware
+// Target: Commodore 64
+// ============================================================================
+
+module hardware;
+
+// ============================================================================
+// VIC-II Video Controller (0xD000 - 0xD02E)
+// ============================================================================
+
+/** VIC-II sprite 0 X position (low byte) */
+export const SPRITE0_X: word = 0xD000;
+
+/** VIC-II sprite 0 Y position */
+export const SPRITE0_Y: word = 0xD001;
+
+/** VIC-II sprite X position MSB (bit 8 of each sprite's X) */
+export const SPRITE_MSB_X: word = 0xD010;
+
+/** VIC-II control register 1 (vertical scroll, screen height, etc.) */
+export const VIC_CTRL1: word = 0xD011;
+
+/** VIC-II raster line register */
+export const RASTER: word = 0xD012;
+
+/** VIC-II control register 2 (horizontal scroll, screen width, etc.) */
+export const VIC_CTRL2: word = 0xD016;
+
+/** VIC-II memory control (screen and character memory location) */
+export const VIC_MEMORY: word = 0xD018;
+
+/** VIC-II interrupt control register */
+export const VIC_IRQ: word = 0xD019;
+
+/** VIC-II interrupt enable register */
+export const VIC_IRQ_ENABLE: word = 0xD01A;
+
+/** Border color register */
+export const BORDER_COLOR: word = 0xD020;
+
+/** Background color 0 register */
+export const BG_COLOR: word = 0xD021;
+
+/** Sprite enable register (bit per sprite) */
+export const SPRITE_ENABLE: word = 0xD015;
+
+/** Sprite priority register (0 = sprite in front) */
+export const SPRITE_PRIORITY: word = 0xD01B;
+
+/** Sprite multicolor mode register */
+export const SPRITE_MULTICOLOR: word = 0xD01C;
+
+/** Sprite X expansion register */
+export const SPRITE_EXPAND_X: word = 0xD01D;
+
+/** Sprite Y expansion register */
+export const SPRITE_EXPAND_Y: word = 0xD017;
+
+/** Sprite-sprite collision register */
+export const SPRITE_COLLISION: word = 0xD01E;
+
+/** Sprite-background collision register */
+export const SPRITE_BG_COLLISION: word = 0xD01F;
+
+// ============================================================================
+// CIA #1 - Keyboard, Joystick, Timer A/B (0xDC00 - 0xDC0F)
+// ============================================================================
+
+/** CIA #1 Data Port A (keyboard column, joystick port 2) */
+export const CIA1_PRA: word = 0xDC00;
+
+/** CIA #1 Data Port B (keyboard row, joystick port 1) */
+export const CIA1_PRB: word = 0xDC01;
+
+/** CIA #1 Data Direction Register A */
+export const CIA1_DDRA: word = 0xDC02;
+
+/** CIA #1 Data Direction Register B */
+export const CIA1_DDRB: word = 0xDC03;
+
+/** CIA #1 Timer A Low Byte */
+export const CIA1_TALO: word = 0xDC04;
+
+/** CIA #1 Timer A High Byte */
+export const CIA1_TAHI: word = 0xDC05;
+
+/** CIA #1 Timer B Low Byte */
+export const CIA1_TBLO: word = 0xDC06;
+
+/** CIA #1 Timer B High Byte */
+export const CIA1_TBHI: word = 0xDC07;
+
+/** CIA #1 Interrupt Control Register */
+export const CIA1_ICR: word = 0xDC0D;
+
+/** CIA #1 Control Register A */
+export const CIA1_CRA: word = 0xDC0E;
+
+/** CIA #1 Control Register B */
+export const CIA1_CRB: word = 0xDC0F;
+
+// ============================================================================
+// CIA #2 - Serial, User Port, VIC Bank (0xDD00 - 0xDD0F)
+// ============================================================================
+
+/** CIA #2 Data Port A (VIC bank, serial bus) */
+export const CIA2_PRA: word = 0xDD00;
+
+/** CIA #2 Data Port B (user port) */
+export const CIA2_PRB: word = 0xDD01;
+
+/** CIA #2 Data Direction Register A */
+export const CIA2_DDRA: word = 0xDD02;
+
+/** CIA #2 Data Direction Register B */
+export const CIA2_DDRB: word = 0xDD03;
+
+/** CIA #2 Interrupt Control Register */
+export const CIA2_ICR: word = 0xDD0D;
+
+// ============================================================================
+// SID Sound Chip (0xD400 - 0xD418)
+// ============================================================================
+
+/** SID Voice 1 Frequency Low */
+export const SID_V1_FREQ_LO: word = 0xD400;
+
+/** SID Voice 1 Frequency High */
+export const SID_V1_FREQ_HI: word = 0xD401;
+
+/** SID Voice 1 Pulse Width Low */
+export const SID_V1_PW_LO: word = 0xD402;
+
+/** SID Voice 1 Pulse Width High */
+export const SID_V1_PW_HI: word = 0xD403;
+
+/** SID Voice 1 Control Register */
+export const SID_V1_CTRL: word = 0xD404;
+
+/** SID Voice 1 Attack/Decay */
+export const SID_V1_AD: word = 0xD405;
+
+/** SID Voice 1 Sustain/Release */
+export const SID_V1_SR: word = 0xD406;
+
+/** SID Filter Cutoff Low */
+export const SID_FILTER_LO: word = 0xD415;
+
+/** SID Filter Cutoff High */
+export const SID_FILTER_HI: word = 0xD416;
+
+/** SID Filter Control */
+export const SID_FILTER_CTRL: word = 0xD417;
+
+/** SID Volume and Filter Mode */
+export const SID_VOLUME: word = 0xD418;
+
+// ============================================================================
+// Memory Layout
+// ============================================================================
+
+/** Default screen memory address */
+export const SCREEN_MEM: word = 0x0400;
+
+/** Color RAM address */
+export const COLOR_RAM: word = 0xD800;
+
+/** Default sprite data area (after BASIC) */
+export const SPRITE_DATA: word = 0x2000;
+
+/** Zero page temporary storage (safe locations) */
+export const ZP_TEMP: word = 0xFB;
+
+// ============================================================================
+// Color Constants
+// ============================================================================
+
+/** Black */
+export const COLOR_BLACK: byte = 0;
+
+/** White */
+export const COLOR_WHITE: byte = 1;
+
+/** Red */
+export const COLOR_RED: byte = 2;
+
+/** Cyan */
+export const COLOR_CYAN: byte = 3;
+
+/** Purple */
+export const COLOR_PURPLE: byte = 4;
+
+/** Green */
+export const COLOR_GREEN: byte = 5;
+
+/** Blue */
+export const COLOR_BLUE: byte = 6;
+
+/** Yellow */
+export const COLOR_YELLOW: byte = 7;
+
+/** Orange */
+export const COLOR_ORANGE: byte = 8;
+
+/** Brown */
+export const COLOR_BROWN: byte = 9;
+
+/** Light Red */
+export const COLOR_LIGHT_RED: byte = 10;
+
+/** Dark Grey */
+export const COLOR_DARK_GREY: byte = 11;
+
+/** Grey */
+export const COLOR_GREY: byte = 12;
+
+/** Light Green */
+export const COLOR_LIGHT_GREEN: byte = 13;
+
+/** Light Blue */
+export const COLOR_LIGHT_BLUE: byte = 14;
+
+/** Light Grey */
+export const COLOR_LIGHT_GREY: byte = 15;

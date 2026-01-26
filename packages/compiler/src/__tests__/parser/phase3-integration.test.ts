@@ -49,7 +49,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('function calls work in variable declarations', () => {
     const source = `
-      module Test
+      module Test;
 
       let result: word = calculateScore(level, bonus);
       let position: byte = getPlayerX();
@@ -78,7 +78,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('member access works only for @map declarations - specification compliant', () => {
     const source = `
-      module Test
+      module Test;
 
       let borderColor: byte = vic.borderColor;
       let backgroundColor: byte = vic.backgroundColor;
@@ -107,7 +107,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('index expressions work in variable declarations', () => {
     const source = `
-      module Test
+      module Test;
 
       let firstByte: byte = buffer[0];
       let pixel: byte = screen[y * 40 + x];
@@ -136,7 +136,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('unary expressions work in variable declarations', () => {
     const source = `
-      module Test
+      module Test;
 
       let inverted: boolean = !gameOver;
       let negated: word = -speed;
@@ -169,7 +169,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('non-compliant complex expressions produce errors with recovery', () => {
     const source = `
-      module Test
+      module Test;
 
       let invalid1: word = player.inventory.items[slot].getValue();
       let invalid2: byte = enemies[i].isAlive();
@@ -189,7 +189,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('assignment expressions work in expression statements', () => {
     const source = `
-      module Test
+      module Test;
 
       // This is an implicit global module with expression statements
       let temp: byte = 5;
@@ -210,7 +210,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('specification-compliant expressions integrate with binary expressions', () => {
     const source = `
-      module Test
+      module Test;
 
       let comparison: boolean = vic.borderColor > getMaxHealth() / 2;
       let calculation: word = getValue() + array[index] * factor;
@@ -239,7 +239,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('precedence works correctly with specification-compliant expressions', () => {
     const source = `
-      module Test
+      module Test;
 
       let test1: word = func() + value;
       let test2: boolean = !flag || getValue() > 0;
@@ -265,7 +265,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('error recovery works with advanced expressions', () => {
     const source = `
-      module Test
+      module Test;
 
       let valid1: byte = func(arg);
 
@@ -289,7 +289,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('real-world C64 game expressions - specification compliant', () => {
     const source = `
-      module C64Game
+      module C64Game;
 
       // Sprite collision detection - using standalone functions and arrays
       let collision: boolean = !sprites[0] || getDistance(playerX, playerY, enemyX, enemyY) < 16;
@@ -331,7 +331,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
   // ============================================
 
   test('performance with many specification-compliant expressions', () => {
-    let source = 'module Performance\n';
+    let source = 'module Performance;\n';
 
     // Generate many specification-compliant expressions
     for (let i = 0; i < 50; i++) {
@@ -356,7 +356,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
   test('comprehensive Phase 3 integration test - specification compliant', () => {
     const source = `
-      module ComprehensiveTest
+      module ComprehensiveTest;
 
       // All specification-compliant expression types
       let functionCall: word = calculateScore(level, multiplier);

@@ -57,6 +57,7 @@ describe('Parser Integration', () => {
       const tokens = [
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'Game'),
+        createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.LET, 'let'),
         createToken(TokenType.IDENTIFIER, 'score'),
         createToken(TokenType.COLON, ':'),
@@ -77,6 +78,7 @@ describe('Parser Integration', () => {
       const tokens = [
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'Test'),
+        createToken(TokenType.SEMICOLON, ';'),
         // Variable declaration
         createToken(TokenType.LET, 'let'),
         createToken(TokenType.IDENTIFIER, 'counter'),
@@ -321,6 +323,7 @@ describe('Parser Integration', () => {
         createToken(TokenType.IDENTIFIER, 'TestModule'),
         createToken(TokenType.DOT, '.'),
         createToken(TokenType.IDENTIFIER, 'SubModule'),
+        createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new Parser(tokens);
@@ -340,6 +343,7 @@ describe('Parser Integration', () => {
         // Module declaration
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'Game'),
+        createToken(TokenType.SEMICOLON, ';'),
         // Score variable
         createToken(TokenType.EXPORT, 'export'),
         createToken(TokenType.RAM, '@ram'),
@@ -387,6 +391,7 @@ describe('Parser Integration', () => {
       const tokens = [
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'Sound'),
+        createToken(TokenType.SEMICOLON, ';'),
         // SID register struct
         createToken(TokenType.MAP, '@map'),
         createToken(TokenType.IDENTIFIER, 'sid'),
@@ -476,6 +481,7 @@ describe('Parser Integration', () => {
       const tokens = [
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'EmptyModule'),
+        createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new Parser(tokens);

@@ -99,7 +99,10 @@ export abstract class ModuleParser extends DeclarationParser {
       namePath.push(this.expect(TokenType.IDENTIFIER, 'Expected identifier after dot').value);
     }
 
-    // Module declarations are self-terminating (no semicolon needed)
+    // Module declarations must end with semicolon per language specification
+    // Grammar: module_decl = "module" , name , ";" ;
+    this.expectSemicolon('Expected semicolon after module declaration');
+
     const location = this.createLocation(startToken, this.getCurrentToken());
 
     return new ModuleDecl(namePath, location, false);
@@ -125,19 +128,22 @@ export abstract class ModuleParser extends DeclarationParser {
   /**
    * Parses an import declaration
    *
-   * Grammar (per specification): import identifier [, identifier]* from module.path
+   * Grammar (per specification): import "{" identifier [, identifier]* "}" from module.path ";"
    *
    * Examples:
-   * - import clearScreen from c64.graphics
-   * - import clearScreen, setPixel from c64.graphics.screen
-   * - import initSID, playNote, stopSound from c64.audio
+   * - import { clearScreen } from c64.graphics;
+   * - import { clearScreen, setPixel } from c64.graphics.screen;
+   * - import { initSID, playNote, stopSound } from c64.audio;
    *
    * @returns ImportDecl AST node
    */
   protected parseImportDecl(): Declaration {
     const startToken = this.expect(TokenType.IMPORT, "Expected 'import'");
 
-    // Parse identifier list (NO braces per specification)
+    // Expect opening brace per specification: import_decl = "import" , "{" , import_list , "}" , "from" , name , ";" ;
+    this.expect(TokenType.LEFT_BRACE, "Expected '{' after 'import'");
+
+    // Parse identifier list
     const identifiers: string[] = [];
 
     // Parse first identifier
@@ -147,6 +153,9 @@ export abstract class ModuleParser extends DeclarationParser {
     while (this.match(TokenType.COMMA)) {
       identifiers.push(this.expect(TokenType.IDENTIFIER, 'Expected identifier after comma').value);
     }
+
+    // Expect closing brace per specification
+    this.expect(TokenType.RIGHT_BRACE, "Expected '}' after import list");
 
     // Expect 'from' keyword
     this.expect(TokenType.FROM, "Expected 'from' after import list");
@@ -159,7 +168,7 @@ export abstract class ModuleParser extends DeclarationParser {
       modulePath.push(this.expect(TokenType.IDENTIFIER, 'Expected identifier after dot').value);
     }
 
-    // Import statements are terminated by semicolon or newline (auto-inserted)
+    // Import statements are terminated by semicolon per specification
     this.expectSemicolon('Expected semicolon after import declaration');
 
     const location = this.createLocation(startToken, this.getCurrentToken());

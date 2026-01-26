@@ -137,9 +137,11 @@ export class VariableUsageAnalyzer {
     for (const [_name, info] of this.usageMap) {
       const decl = info.declaration;
 
-      // Skip exported variables (they may be used by other modules)
-      // Note: isExported is protected, so we skip this check for now
-      // Exported variables will be handled in future enhancement
+      // Skip exported variables - they are intentionally exposed for external use
+      // by other modules and may be used outside this compilation unit
+      if (decl.isExportedVariable()) {
+        continue;
+      }
 
       // Detect completely unused variables
       if (info.readCount === 0 && info.writeCount === 0) {
