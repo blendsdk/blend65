@@ -1,38 +1,57 @@
-module HelloWorld;
+// ============================================================================
+// Hello World Example for Commodore 64
+// ============================================================================
+// A simple demonstration using only fully-implemented compiler features:
+// - Memory-mapped variables (@map) for hardware registers
+// - Direct poke() calls for screen memory
+// ============================================================================
 
-import { SCREEN_MEM } from hardware;
+module Hello.World;
 
-// C64 Hardware registers
-@map screenRAM from $0400 to $07E7: byte;
-@map colorRAM from $D800 to $DBE7: byte;
+import { poke,length } from system;
 
-// Screen codes for "HELLO WORLD!" (C64 PETSCII)
-// H=8, E=5, L=12, O=15, space=32, W=23, R=18, D=4, !=33
-@data const message: byte[12] = [8, 5, 12, 12, 15, 32, 23, 15, 18, 12, 4, 33];
+// === Hardware Registers ===
+// VIC-II color registers
+@map borderColor at $D020: byte;
+@map bgColor at $D021: byte;
 
-callback function clearScreen(): void {
-    for (i = 0 to 999) {
-        screenRAM[i] = 32;   // Space character
-        colorRAM[i] = 14;    // Light blue
-    }
-}
-
-function doSomething(fn: word):void {
-
-}
-
+// === Main Program ===
 export function main(): void {
+    // Set border and background colors
+    borderColor = 6;    // Blue border
+    bgColor = 14;       // Light blue background
 
-    doSomething(@clearScreen);
+    // Display "HELLO WORLD" at screen position (14, 12)
+    // Row 12, starting at column 14 = offset 12 * 40 + 14 = 494
+    // Screen RAM starts at $0400, so position = $0400 + 494 = $05EE
+    // Color RAM starts at $D800, so color position = $D800 + 494 = $D9EE
 
-    clearScreen();
+    // C64 PETSCII screen codes: H=8, E=5, L=12, O=15, space=32, W=23, R=18, D=4
 
-    // Position: row 12 (center), column 14 (center-ish for 12 chars)
-    let offset: word = 12 * 40 + 14;
+    // Write "HELLO WORLD" to screen (11 characters)
+    poke($05EE, 8);     // H
+    poke($05EF, 5);     // E
+    poke($05F0, 12);    // L
+    poke($05F1, 12);    // L
+    poke($05F2, 15);    // O
+    poke($05F3, 32);    // (space)
+    poke($05F4, 23);    // W
+    poke($05F5, 15);    // O
+    poke($05F6, 18);    // R
+    poke($05F7, 12);    // L
+    poke($05F8, 4);     // D
+    poke($05F9, length("Hello"));     // D
 
-    // Write message to screen
-    for (i = 0 to 11) {
-        screenRAM[offset + i] = message[i];
-        colorRAM[offset + i] = 1;  // White text
-    }
+    // Set text color to yellow (7) for all 11 characters
+    poke($D9EE, 7);     // H color
+    poke($D9EF, 7);     // E color
+    poke($D9F0, 7);     // L color
+    poke($D9F1, 7);     // L color
+    poke($D9F2, 7);     // O color
+    poke($D9F3, 7);     // (space) color
+    poke($D9F4, 7);     // W color
+    poke($D9F5, 7);     // O color
+    poke($D9F6, 7);     // R color
+    poke($D9F7, 7);     // L color
+    poke($D9F8, 7);     // D color
 }

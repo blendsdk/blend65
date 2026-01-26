@@ -1,10 +1,15 @@
 /**
  * Optimizer - Main optimization pipeline for IL modules
  *
- * This is a stub implementation that provides a pass-through at O0 level.
- * The full optimizer implementation with various optimization passes will
- * be added later. For now, this allows the compiler chain to be completed
- * end-to-end with unoptimized code generation.
+ * This module provides the optimization pipeline for transforming IL modules.
+ * At all optimization levels, required lowering passes are run to transform
+ * high-level intrinsics into code-generator-compatible instructions.
+ *
+ * Required passes (run at ALL levels including O0):
+ * - IntrinsicLoweringPass: Transforms peek/poke to hardware read/write
+ *
+ * Optional optimization passes (O1+):
+ * - (Future: DCE, constant folding, etc.)
  *
  * @module optimizer/optimizer
  */
@@ -16,6 +21,7 @@ import {
   createDefaultOptions,
   isLevelImplemented,
 } from './options.js';
+import { IntrinsicLoweringPass } from './intrinsic-lowering-pass.js';
 
 /**
  * Result of an optimization run.
@@ -148,8 +154,10 @@ export class Optimizer {
   /**
    * Optimizes an IL module.
    *
-   * At O0 level, this is a pass-through that returns the module unchanged.
-   * Higher optimization levels will apply various transformation passes.
+   * At ALL levels (including O0), required lowering passes are run:
+   * - IntrinsicLoweringPass: Transforms peek/poke to hardware read/write
+   *
+   * At O1+, additional optimization passes will be applied.
    *
    * @param module - The IL module to optimize
    * @returns The optimization result containing the (possibly modified) module
@@ -159,14 +167,15 @@ export class Optimizer {
    * const optimizer = new Optimizer();
    * const result = optimizer.optimize(ilModule);
    *
-   * // At O0, module is unchanged
-   * console.log(result.modified); // false
-   * console.log(result.passesRun); // []
+   * // Intrinsic lowering is always run
+   * console.log(result.passesRun); // ['IntrinsicLoweringPass']
    * ```
    */
   optimize(module: ILModule): OptimizationResult {
     const startTime = performance.now();
     const warnings: string[] = [];
+    const passesRun: string[] = [];
+    let modified = false;
 
     if (this.options.verbose) {
       console.log(
@@ -174,34 +183,58 @@ export class Optimizer {
       );
     }
 
-    // At O0 or unimplemented levels, return the module unchanged
+    // =========================================================================
+    // Required Lowering Passes (run at ALL levels including O0)
+    // =========================================================================
+
+    // Run intrinsic lowering pass - transforms peek/poke to hardware read/write
+    // This is REQUIRED for code generation to work correctly
+    const intrinsicLoweringPass = new IntrinsicLoweringPass(this.options.verbose);
+    const loweringResult = intrinsicLoweringPass.run(module);
+
+    passesRun.push('IntrinsicLoweringPass');
+    warnings.push(...loweringResult.warnings);
+
+    if (loweringResult.modified) {
+      modified = true;
+      if (this.options.verbose) {
+        console.log('[Optimizer] IntrinsicLoweringPass modified the module');
+        console.log('[Optimizer] Stats:', loweringResult.stats);
+      }
+    }
+
+    // =========================================================================
+    // Optional Optimization Passes (O1+)
+    // =========================================================================
+
+    // At O0 or unimplemented levels, skip optional optimizations
     if (this.options.level === OptimizationLevel.O0 || !isLevelImplemented(this.options.level)) {
       if (this.options.verbose) {
-        console.log('[Optimizer] O0 level: pass-through (no optimization)');
+        console.log('[Optimizer] O0 level: skipping optional optimizations');
       }
 
       const endTime = performance.now();
 
       return {
         module,
-        modified: false,
+        modified,
         level: this.options.level,
-        passesRun: [],
+        passesRun,
         timeMs: endTime - startTime,
         warnings,
       };
     }
 
-    // Future: Run optimization passes based on level
+    // Future: Run optional optimization passes based on level
     // This will be implemented later according to the optimizer architecture
 
     const endTime = performance.now();
 
     return {
       module,
-      modified: false,
+      modified,
       level: this.options.level,
-      passesRun: [],
+      passesRun,
       timeMs: endTime - startTime,
       warnings,
     };

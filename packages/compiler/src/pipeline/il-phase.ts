@@ -142,8 +142,9 @@ export class ILPhase {
   /**
    * Get the primary module name from programs
    *
-   * Currently returns the first module's name.
-   * In the future, this will look for the entry point module.
+   * Finds the entry point module by looking for a module with an
+   * exported main() function. If no main is found, uses the last module
+   * (which is typically the user's entry module when libraries are loaded first).
    *
    * @param programs - Array of Program ASTs
    * @returns Primary module name
@@ -152,7 +153,25 @@ export class ILPhase {
     if (programs.length === 0) {
       return 'main';
     }
-    return this.getModuleName(programs[0]);
+
+    // Look for a module with an exported main function
+    for (const program of programs) {
+      const declarations = program.getDeclarations();
+      for (const decl of declarations) {
+        // Check for exported main function
+        if (decl.getNodeType() === 'FunctionDecl') {
+          const funcDecl = decl as import('../ast/nodes.js').FunctionDecl;
+          const funcName = funcDecl.getName();
+          const isExported = funcDecl.isExportedFunction();
+          if (funcName === 'main' && isExported) {
+            return this.getModuleName(program);
+          }
+        }
+      }
+    }
+
+    // No exported main found - use the last module (user module after libraries)
+    return this.getModuleName(programs[programs.length - 1]);
   }
 
   /**

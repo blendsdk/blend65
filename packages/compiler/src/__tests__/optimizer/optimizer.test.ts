@@ -288,13 +288,16 @@ describe('Optimizer.optimize()', () => {
       expect(result.level).toBe(OptimizationLevel.O0);
     });
 
-    it('should report empty passes run', () => {
+    it('should report IntrinsicLoweringPass as the only pass run', () => {
       const module = createTestModule();
       const optimizer = new Optimizer({ level: OptimizationLevel.O0 });
 
       const result = optimizer.optimize(module);
 
-      expect(result.passesRun).toHaveLength(0);
+      // IntrinsicLoweringPass is REQUIRED at all levels (including O0)
+      // to transform peek/poke intrinsics to hardware read/write
+      expect(result.passesRun).toHaveLength(1);
+      expect(result.passesRun).toContain('IntrinsicLoweringPass');
     });
 
     it('should report time taken', () => {
