@@ -59,6 +59,7 @@ describe('ModuleParser', () => {
       const tokens = [
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'Game'),
+        createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
       parser = new TestModuleParser(tokens);
@@ -128,8 +129,10 @@ describe('ModuleParser', () => {
 
       parser.testParseModuleDecl();
       const diagnostics = parser.getDiagnostics();
-      expect(diagnostics.length).toBe(1);
+      // Expect 2 errors: missing module name AND missing semicolon
+      expect(diagnostics.length).toBe(2);
       expect(diagnostics[0].code).toBe(DiagnosticCode.EXPECTED_TOKEN);
+      expect(diagnostics[1].code).toBe(DiagnosticCode.EXPECTED_TOKEN);
     });
 
     it('handles missing identifier after dot', () => {
@@ -143,14 +146,17 @@ describe('ModuleParser', () => {
 
       parser.testParseModuleDecl();
       const diagnostics = parser.getDiagnostics();
-      expect(diagnostics.length).toBe(1);
+      // Expect 2 errors: missing identifier AND missing semicolon
+      expect(diagnostics.length).toBe(2);
       expect(diagnostics[0].code).toBe(DiagnosticCode.EXPECTED_TOKEN);
+      expect(diagnostics[1].code).toBe(DiagnosticCode.EXPECTED_TOKEN);
     });
 
     it('prevents duplicate module declarations', () => {
       const tokens = [
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'First'),
+        createToken(TokenType.SEMICOLON, ';'), // Include semicolon
         createToken(TokenType.EOF, ''),
       ];
       parser = new TestModuleParser(tokens);
@@ -275,9 +281,12 @@ describe('ModuleParser', () => {
 
   describe('Import Declaration Parsing (Phase 5.1)', () => {
     it('parses single import from simple module', () => {
+      // Grammar: import "{" identifier [, identifier]* "}" from module.path ";"
       const tokens = [
         createToken(TokenType.IMPORT, 'import'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'clearScreen'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.FROM, 'from'),
         createToken(TokenType.IDENTIFIER, 'c64'),
         createToken(TokenType.DOT, '.'),
@@ -296,13 +305,16 @@ describe('ModuleParser', () => {
     });
 
     it('parses multiple imports from module', () => {
+      // Grammar: import "{" identifier [, identifier]* "}" from module.path ";"
       const tokens = [
         createToken(TokenType.IMPORT, 'import'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'clearScreen'),
         createToken(TokenType.COMMA, ','),
         createToken(TokenType.IDENTIFIER, 'setPixel'),
         createToken(TokenType.COMMA, ','),
         createToken(TokenType.IDENTIFIER, 'drawLine'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.FROM, 'from'),
         createToken(TokenType.IDENTIFIER, 'c64'),
         createToken(TokenType.DOT, '.'),
@@ -323,11 +335,14 @@ describe('ModuleParser', () => {
     });
 
     it('parses imports from deeply nested modules', () => {
+      // Grammar: import "{" identifier [, identifier]* "}" from module.path ";"
       const tokens = [
         createToken(TokenType.IMPORT, 'import'),
+        createToken(TokenType.LEFT_BRACE, '{'),
         createToken(TokenType.IDENTIFIER, 'initSID'),
         createToken(TokenType.COMMA, ','),
         createToken(TokenType.IDENTIFIER, 'playNote'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.FROM, 'from'),
         createToken(TokenType.IDENTIFIER, 'c64'),
         createToken(TokenType.DOT, '.'),
@@ -348,10 +363,13 @@ describe('ModuleParser', () => {
       expect(importDecl.getModuleName()).toBe('c64.audio.sid.player');
     });
 
-    it('handles import declaration error recovery - missing identifier', () => {
+    it('handles import declaration error recovery - missing opening brace', () => {
+      // Grammar requires '{' after 'import'
       const tokens = [
         createToken(TokenType.IMPORT, 'import'),
-        createToken(TokenType.FROM, 'from'), // Missing identifier
+        createToken(TokenType.IDENTIFIER, 'func'), // Missing '{' before identifier
+        createToken(TokenType.RIGHT_BRACE, '}'),
+        createToken(TokenType.FROM, 'from'),
         createToken(TokenType.IDENTIFIER, 'module'),
         createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
@@ -364,11 +382,14 @@ describe('ModuleParser', () => {
       expect(diagnostics[0].code).toBe(DiagnosticCode.EXPECTED_TOKEN);
     });
 
-    it('handles import declaration error recovery - missing from', () => {
+    it('handles import declaration error recovery - missing closing brace', () => {
+      // Grammar requires '}' after identifiers
       const tokens = [
         createToken(TokenType.IMPORT, 'import'),
-        createToken(TokenType.IDENTIFIER, 'function'),
-        createToken(TokenType.IDENTIFIER, 'module'), // Missing 'from' keyword
+        createToken(TokenType.LEFT_BRACE, '{'),
+        createToken(TokenType.IDENTIFIER, 'func'),
+        createToken(TokenType.FROM, 'from'), // Missing '}' before 'from'
+        createToken(TokenType.IDENTIFIER, 'module'),
         createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
@@ -383,7 +404,9 @@ describe('ModuleParser', () => {
     it('handles import declaration error recovery - missing module name', () => {
       const tokens = [
         createToken(TokenType.IMPORT, 'import'),
-        createToken(TokenType.IDENTIFIER, 'function'),
+        createToken(TokenType.LEFT_BRACE, '{'),
+        createToken(TokenType.IDENTIFIER, 'func'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.FROM, 'from'),
         createToken(TokenType.SEMICOLON, ';'), // Missing module name
         createToken(TokenType.EOF, ''),
@@ -399,7 +422,9 @@ describe('ModuleParser', () => {
     it('handles import declaration error recovery - missing semicolon', () => {
       const tokens = [
         createToken(TokenType.IMPORT, 'import'),
-        createToken(TokenType.IDENTIFIER, 'function'),
+        createToken(TokenType.LEFT_BRACE, '{'),
+        createToken(TokenType.IDENTIFIER, 'func'),
+        createToken(TokenType.RIGHT_BRACE, '}'),
         createToken(TokenType.FROM, 'from'),
         createToken(TokenType.IDENTIFIER, 'module'),
         createToken(TokenType.EOF, ''), // Missing semicolon - should auto-insert
@@ -408,7 +433,7 @@ describe('ModuleParser', () => {
 
       const importDecl = parser.testParseImportDecl() as ImportDecl;
       expect(importDecl).toBeInstanceOf(ImportDecl);
-      expect(importDecl.getIdentifiers()).toEqual(['function']);
+      expect(importDecl.getIdentifiers()).toEqual(['func']);
       expect(importDecl.getModulePath()).toEqual(['module']);
       // Should handle missing semicolon gracefully with auto-insertion
     });
@@ -591,13 +616,16 @@ describe('ModuleParser', () => {
 
   describe('Import/Export Location Tracking', () => {
     it('tracks import declaration source location', () => {
+      // Grammar: import "{" identifier "}" from module.path ";"
       const tokens = [
         createToken(TokenType.IMPORT, 'import', 1, 1),
-        createToken(TokenType.IDENTIFIER, 'func', 1, 8),
-        createToken(TokenType.FROM, 'from', 1, 13),
-        createToken(TokenType.IDENTIFIER, 'module', 1, 18),
-        createToken(TokenType.SEMICOLON, ';', 1, 24),
-        createToken(TokenType.EOF, '', 1, 25),
+        createToken(TokenType.LEFT_BRACE, '{', 1, 8),
+        createToken(TokenType.IDENTIFIER, 'func', 1, 10),
+        createToken(TokenType.RIGHT_BRACE, '}', 1, 14),
+        createToken(TokenType.FROM, 'from', 1, 16),
+        createToken(TokenType.IDENTIFIER, 'module', 1, 21),
+        createToken(TokenType.SEMICOLON, ';', 1, 27),
+        createToken(TokenType.EOF, '', 1, 28),
       ];
       parser = new TestModuleParser(tokens);
 
@@ -606,7 +634,7 @@ describe('ModuleParser', () => {
       expect(location.start.line).toBe(1);
       expect(location.start.column).toBe(1);
       expect(location.end.line).toBe(1);
-      expect(location.end.column).toBe(25);
+      expect(location.end.column).toBe(28);
     });
 
     it('tracks export declaration source location', () => {

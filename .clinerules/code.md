@@ -21,6 +21,8 @@ These rules are **mandatory** and must be applied **strictly and consistently** 
 
 ## 2. Testing Requirements
 
+**📖 See `testing.md` for test script commands and AI testing workflow.**
+
 4. **All Tests Must Pass**
    - No code may be merged or delivered if **any test fails**.
    - If existing behavior changes, tests must be updated accordingly.
@@ -285,6 +287,7 @@ These rules are **mandatory** and must be applied **strictly and consistently** 
 
 - See **plans.md** for task-level testing breakdowns and implementation planning
 - See **agents.md** for verification procedures and task completion criteria
+- See **testing.md** for test script usage and AI testing workflow
 - See **plans.md Rule 10** for inheritance chain planning guidelines
 - Note: Testing rules in this file (Rules 4-8) are the single source of truth for all testing standards
 - Note: Inheritance chain rules in this file (Rules 17-20) are the single source of truth for architectural standards

@@ -42,6 +42,7 @@ import type { TargetConfig } from './target/config.js';
 import { getTargetConfig, getDefaultTargetConfig } from './target/registry.js';
 import { parseTargetArchitecture, isTargetImplemented } from './target/architecture.js';
 import { OptimizationLevel } from './optimizer/options.js';
+import { LibraryLoader } from './library/index.js';
 
 /**
  * Main Blend65 Compiler Class
@@ -109,6 +110,9 @@ export class Compiler {
 
   /** Code generation phase handler */
   protected codegenPhase = new CodegenPhase();
+
+  /** Library loader for standard library */
+  protected libraryLoader = new LibraryLoader();
 
   /**
    * Compile source files to target output
@@ -252,12 +256,87 @@ export class Compiler {
   }
 
   /**
+   * Load standard library sources
+   *
+   * Loads common libraries (auto-loaded) and any optional libraries
+   * specified in the configuration. Libraries are loaded before user
+   * sources in the pipeline.
+   *
+   * **NOTE:** Library loading is currently opt-in only. Libraries are only
+   * loaded if explicitly specified in the `libraries` configuration option.
+   * Auto-loading of common/ directories is disabled until stub function
+   * support is fully implemented in the semantic analyzer and IL generator.
+   *
+   * @param config - Compilation configuration
+   * @param result - Result object to add diagnostics to
+   * @returns Load result with sources map and success flag
+   */
+  protected loadLibrarySources(
+    config: Blend65Config,
+    result: CompilationResult
+  ): { success: boolean; sources: Map<string, string> } {
+    const libraries = config.compilerOptions.libraries || [];
+
+    // Only load libraries if explicitly specified
+    // Auto-loading of common/ is disabled until stub functions are fully supported
+    if (libraries.length === 0) {
+      return {
+        success: true,
+        sources: new Map(),
+      };
+    }
+
+    const target = config.compilerOptions.target || 'c64';
+
+    // Load libraries using the LibraryLoader
+    const libraryResult = this.libraryLoader.loadLibraries(target, libraries);
+
+    // Add any diagnostics from library loading
+    result.diagnostics.push(...libraryResult.diagnostics);
+
+    return {
+      success: libraryResult.success,
+      sources: libraryResult.sources,
+    };
+  }
+
+  /**
+   * Merge library sources with user sources
+   *
+   * Prepends library sources to user sources so library modules
+   * are available for import by user code.
+   *
+   * @param librarySources - Library source files
+   * @param userSources - User source files
+   * @returns Combined sources map (libraries first)
+   */
+  protected mergeSources(
+    librarySources: Map<string, string>,
+    userSources: Map<string, string>
+  ): Map<string, string> {
+    // Create new map with library sources first
+    const merged = new Map<string, string>();
+
+    // Add library sources (processed first)
+    for (const [file, content] of librarySources) {
+      merged.set(file, content);
+    }
+
+    // Add user sources
+    for (const [file, content] of userSources) {
+      merged.set(file, content);
+    }
+
+    return merged;
+  }
+
+  /**
    * Run the compilation pipeline
    *
    * Executes all phases in order, stopping if a phase fails
    * or if stopAfterPhase is specified.
    *
-   * @param sources - Map of filename → source code
+   * @param sources - Map of filename → source code (user sources only)
    * @param config - Compilation configuration
    * @param result - Result object to populate
    * @param stopAfterPhase - Optional phase to stop after
@@ -271,8 +350,18 @@ export class Compiler {
     stopAfterPhase: string | undefined,
     startTime: number
   ): CompilationResult {
+    // Load library sources
+    const libraryLoad = this.loadLibrarySources(config, result);
+    if (!libraryLoad.success) {
+      result.success = false;
+      return this.finalize(result, startTime);
+    }
+
+    // Merge library sources with user sources
+    const allSources = this.mergeSources(libraryLoad.sources, sources);
+
     // Phase 1: Parse
-    const parseResult = this.parsePhase.execute(sources);
+    const parseResult = this.parsePhase.execute(allSources);
     result.phases.parse = parseResult;
     result.diagnostics.push(...parseResult.diagnostics);
 

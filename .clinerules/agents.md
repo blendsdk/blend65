@@ -458,9 +458,13 @@ These rules are **mandatory** and must be applied **strictly and consistently**.
    - ✅ Always use: `yarn create react-app`
 
 3. **✅ Standard test command from project root**
-   - For building and testing: `clear && yarn clean && yarn build && yarn test`
-   - This runs all packages and ensures complete build/test cycle
+   - **See `testing.md` for complete testing rules and commands**
+   - Use `./compiler-test` for targeted or full test runs
    - Always run from project root (`/Users/gevik/workdir/blend65`)
+
+**Quick Reference:**
+- Targeted tests: `./compiler-test <component>` (e.g., `./compiler-test parser`)
+- All tests: `./compiler-test`
 
 **Examples:**
 
@@ -475,9 +479,9 @@ yarn test
 ✅ **Correct:**
 
 ```bash
-clear && yarn test
-clear && yarn clean && yarn build && yarn test
-clear && yarn install
+./compiler-test parser
+./compiler-test lexer il
+./compiler-test
 ```
 
 **Purpose:** These rules ensure consistent environment, clean terminal output, and proper package management across the entire project.
@@ -825,4 +829,5 @@ node --input-type=module -e "import { Lexer } from './dist/file.js'; console.log
 - See **specification-compliance.md** for detailed compiler implementation compliance rules and "Never Assume" protocols
 - See **plans.md** for detailed guidance on creating implementation plans with proper task breakdown
 - See **code.md** for coding standards, testing requirements, and quality guidelines
+- See **testing.md** for test commands and workflow
 - See **git-commands.md** for git workflow instructions

@@ -41,7 +41,7 @@ describe('End-to-End Parser Tests', () => {
   describe('Complete Blend65 Programs', () => {
     it('parses simple variable program', () => {
       const source = `
-        module Game
+        module Game;
 
         let score: word = 0;
         const MAX_LIVES: byte = 3;
@@ -63,7 +63,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('parses C64 memory mapping program', () => {
       const source = `
-        module Hardware.C64
+        module Hardware.C64;
 
         // VIC-II registers
         @map vic at $D000 layout {
@@ -93,7 +93,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('parses game logic with expressions', () => {
       const source = `
-        module Game.Logic
+        module Game.Logic;
 
         export let playerX: byte = 100;
         export let playerY: byte = 50;
@@ -122,7 +122,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('parses sprite system module', () => {
       const source = `
-        module Graphics.Sprites
+        module Graphics.Sprites;
 
         // Sprite data structures
         @map spritePointers from $07F8 to $07FF: byte;
@@ -216,7 +216,7 @@ describe('End-to-End Parser Tests', () => {
 
   describe('Performance and Scale Tests', () => {
     it('handles programs with many variables', () => {
-      let source = 'module Performance\n';
+      let source = 'module Performance;\n';
 
       // Generate 50 variable declarations
       for (let i = 0; i < 50; i++) {
@@ -231,7 +231,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('handles programs with complex expressions', () => {
       const source = `
-        module ComplexMath
+        module ComplexMath;
 
         let a: word = 1;
         let b: word = 2;
@@ -258,7 +258,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('handles programs with mixed declaration types', () => {
       const source = `
-        module Mixed
+        module Mixed;
 
         // Variables
         let gameState: byte = 0;
@@ -310,7 +310,7 @@ describe('End-to-End Parser Tests', () => {
   describe('Realistic Game Examples', () => {
     it('parses space invaders style game setup', () => {
       const source = `
-        module SpaceInvaders
+        module SpaceInvaders;
 
         // Game state
         export let score: word = 0;
@@ -348,7 +348,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('parses C64 demo effect setup', () => {
       const source = `
-        module Demo.Effects
+        module Demo.Effects;
 
         // Raster interrupt data
         @zp let rasterLine: byte = 50;
@@ -405,7 +405,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('handles program with maximum nesting', () => {
       const source = `
-        module Very.Deeply.Nested.Module.Name
+        module Very.Deeply.Nested.Module.Name;
 
         @map deep at $1000 layout {
           field1: at $1000: byte,
@@ -429,7 +429,7 @@ describe('End-to-End Parser Tests', () => {
   describe('Lexer-Parser Integration', () => {
     it('handles all number formats correctly', () => {
       const source = `
-        module Numbers
+        module Numbers;
 
         let decimal: word = 1024;
         let hexDollar: word = $D020;
@@ -464,7 +464,7 @@ describe('End-to-End Parser Tests', () => {
 
     it('handles string and boolean literals', () => {
       const source = `
-        module Literals
+        module Literals;
 
         let message: string = "Hello, Blend65!";
         let debug: boolean = true;
@@ -537,7 +537,7 @@ describe('End-to-End Parser Tests', () => {
   describe('Complex Real-World Scenarios', () => {
     it('parses complete C64 game initialization', () => {
       const source = `
-        module C64Game.Init
+        module C64Game.Init;
 
         // Memory layout
         @map vic at $D000 layout {
@@ -577,7 +577,7 @@ describe('End-to-End Parser Tests', () => {
 
   describe('Performance Benchmarks', () => {
     it('parses large programs efficiently', () => {
-      let source = 'module LargeProgram\n';
+      let source = 'module LargeProgram;\n';
 
       // Generate a large program with many declarations
       for (let i = 0; i < 200; i++) {

@@ -529,9 +529,11 @@ export abstract class BaseParser {
   }
 
   /**
-   * Expects a semicolon token
+   * Expects a semicolon token (or newline as implicit semicolon)
    *
-   * Used for statement separation (semicolons are now required).
+   * Used for statement separation. Accepts either:
+   * - Explicit semicolon (`;`)
+   * - Implicit semicolon via newline (ASI - Automatic Semicolon Insertion)
    *
    * @param message - Error message if no semicolon found (optional)
    *
@@ -542,8 +544,9 @@ export abstract class BaseParser {
    * ```
    */
   protected expectSemicolon(message: string = 'Expected semicolon'): void {
-    if (!this.match(TokenType.SEMICOLON)) {
-      // Report error even at EOF - semicolons are strictly required
+    // Accept either explicit semicolon or newline as implicit semicolon (ASI)
+    if (!this.match(TokenType.SEMICOLON, TokenType.NEWLINE)) {
+      // Report error if neither semicolon nor newline found
       this.reportError(DiagnosticCode.EXPECTED_TOKEN, message);
     }
   }

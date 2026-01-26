@@ -45,6 +45,9 @@ export interface BuildOptions extends GlobalOptions {
 
   /** Output filename */
   outFile?: string;
+
+  /** Optional libraries to load (comma-separated) */
+  libraries?: string;
 }
 
 /**
@@ -92,10 +95,16 @@ export const buildCommand: CommandModule<GlobalOptions, BuildOptions> = {
         type: 'string',
         description: 'Output filename (without extension)',
       })
+      .option('libraries', {
+        alias: 'l',
+        type: 'string',
+        description: 'Optional libraries to load (comma-separated)',
+      })
       .example('$0 build src/main.blend', 'Build single file')
       .example('$0 build src/**/*.blend', 'Build multiple files')
       .example('$0 build -t c64 -O2', 'Build with optimization')
-      .example('$0 build -o dist/', 'Build to custom directory');
+      .example('$0 build -o dist/', 'Build to custom directory')
+      .example('$0 build --libraries=sid,sprites', 'Build with optional libraries');
   },
 
   handler: async (args: ArgumentsCamelCase<BuildOptions>): Promise<void> => {
@@ -232,6 +241,28 @@ async function expandGlobs(patterns: string[], exclude: string[]): Promise<strin
 }
 
 /**
+ * Parse libraries string into array
+ *
+ * Splits comma-separated library names into an array.
+ * Trims whitespace and filters empty strings.
+ *
+ * @param librariesArg - Comma-separated library names
+ * @returns Array of library names
+ *
+ * @example
+ * parseLibraries('sid,sprites') // ['sid', 'sprites']
+ * parseLibraries('sid, sprites') // ['sid', 'sprites']
+ * parseLibraries(undefined) // []
+ */
+function parseLibraries(librariesArg: string | undefined): string[] {
+  if (!librariesArg) return [];
+  return librariesArg
+    .split(',')
+    .map((lib) => lib.trim())
+    .filter((lib) => lib.length > 0);
+}
+
+/**
  * Build configuration from CLI options
  *
  * @param args - CLI arguments
@@ -248,6 +279,7 @@ function buildConfig(args: ArgumentsCamelCase<BuildOptions>): Blend65Config {
       outputFormat: 'both',
       verbose: args.verbose || false,
       strict: false,
+      libraries: parseLibraries(args.libraries),
     },
   };
 }
