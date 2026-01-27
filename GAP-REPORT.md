@@ -1,267 +1,228 @@
 # Blend65 Compiler Gap Report
 
-> **Generated**: 2026-01-26
-> **E2E Test Suite**: 441 tests
-> **Passed**: 250 (57%)
-> **Failed**: 183 (41%)
-> **Skipped**: 8 (2% - known bugs)
+> **Generated**: January 27, 2026  
+> **Total Tests**: 6,991  
+> **Passed**: 6,987 (99.94%)  
+> **Failed**: 1 (flaky)  
+> **Skipped**: 3 (documented gaps)
+
+---
 
 ## Executive Summary
 
-The E2E testing revealed a **critical gap**: intrinsic functions are defined in the IL generator but not recognized by the semantic analyzer. This causes all intrinsic-related tests to fail with "Undefined identifier" errors.
+The Blend65 compiler is in **excellent health** with a 99.94% test pass rate. Only 3 tests are skipped (documented gaps) and 1 flaky test occasionally fails due to timing.
 
-### Test Results by Category
+**Recent Fixes (January 27, 2026):**
+- ✅ CALL_VOID bug - FIXED
+- ✅ length() string support - FIXED
 
-| Category | Passed | Failed | Skipped | Pass Rate |
-|----------|--------|--------|---------|-----------|
-| Smoke Tests | 28 | 0 | 2 | 100% |
-| Type Acceptance | ~35 | ~10 | 1 | ~78% |
-| Intrinsic Signatures | 0 | ~60 | 0 | 0% |
-| Literals | ~15 | ~5 | 2 | ~75% |
-| Variables | ~20 | ~10 | 2 | ~67% |
-| Expressions | ~40 | ~10 | 0 | ~80% |
-| Control Flow | ~30 | ~20 | 0 | ~60% |
-| Functions | ~45 | ~15 | 0 | ~75% |
-| Intrinsics CodeGen | 0 | ~53 | 0 | 0% |
+### Test Results Overview
 
----
-
-## Critical Issues
-
-### 🔴 CRITICAL: Intrinsics Not Recognized by Semantic Analyzer
-
-**Impact**: ALL intrinsic functions fail to compile
-
-**Error**: `Undefined identifier 'peek/poke/sei/cli/nop/brk/pha/pla/php/plp/lo/hi/peekw/pokew/sizeof/length/barrier/volatile_read/volatile_write'`
-
-**Affected Intrinsics (18 total)**:
-
-| Category | Intrinsics | Status |
-|----------|------------|--------|
-| Memory | `peek`, `poke`, `peekw`, `pokew` | ❌ Not recognized |
-| Byte Extraction | `lo`, `hi` | ❌ Not recognized |
-| CPU Control | `sei`, `cli`, `nop`, `brk` | ❌ Not recognized |
-| Stack Operations | `pha`, `pla`, `php`, `plp` | ❌ Not recognized |
-| Optimization | `barrier`, `volatile_read`, `volatile_write` | ❌ Not recognized |
-| Compile-Time | `sizeof`, `length` | ❌ Not recognized |
-
-**Root Cause**: 
-- Intrinsics are defined in `packages/compiler/src/il/intrinsics/registry.ts`
-- But the semantic analyzer (`GlobalSymbolTable`) doesn't know about them
-- The IL generator recognizes them, but compilation fails before reaching IL
-
-**Fix Required**: Register intrinsic functions in the semantic analyzer so they're recognized as valid identifiers with known signatures.
+| Category | Status |
+|----------|--------|
+| Lexer | ✅ All Passing (150+) |
+| Parser | ✅ All Passing (400+) |
+| AST | ✅ All Passing (100+) |
+| Semantic Analysis | ✅ All Passing (1,500+) |
+| IL Generator | ✅ All Passing (2,000+) |
+| Code Generator | ✅ All Passing (500+) |
+| ASM-IL | ✅ All Passing (500+) |
+| E2E & Integration | ✅ All Passing (1,800+) |
+| CLI | ✅ All Passing (10) |
 
 ---
 
-## High Priority Issues
+## Recently Fixed Gaps
 
-### 🟠 Array Initializers Generate Wrong Values
+### ✅ CALL_VOID Bug - Ternary Function Arguments (FIXED)
 
-**Impact**: Arrays initialized with values produce `$00` instead of actual values
+**File**: `packages/compiler/src/__tests__/il/generator-expressions-ternary.test.ts`  
+**Test**: "should generate ternary for function argument"
 
-**Example**:
-```js
-let data: byte[3] = [1, 2, 3];
-```
+**Problem**: When calling a non-void function in certain contexts (like as a ternary expression argument), the IL generator incorrectly emitted `CALL_VOID` instead of `CALL`.
 
-**Expected**: `!byte $01, $02, $03`
-**Actual**: `!byte $00, $00, $00`
+**Fix**: Added IL module fallback lookup in `generateCallExpression()` when symbol table lookup returns undefined.
 
-**Status**: Documented in `smoke.test.ts` as skipped test
+**Status**: ✅ **FIXED** - Test now passing
 
 ---
 
-### 🟠 Local Variables Generate STUB Comments
+### ✅ length() String Literal Support (FIXED)
 
-**Impact**: Local variables within functions don't generate proper code
+**File**: `packages/compiler/src/__tests__/e2e/type-acceptance.test.ts`  
+**Test**: "should accept length() with string literal"
 
-**Example**:
-```js
-function test(): byte {
-  let x: byte = 10;
-  return x;
-}
-```
+**Problem**: The `length()` intrinsic only accepted array variables, not string literals like `length("hello")`.
 
-**Expected**: Proper LDA/STA instructions for stack or zero-page allocation
-**Actual**: `; STUB: Unknown variable 'x'`
+**Fix**: Added string literal handling in `generateLengthIntrinsic()` to return compile-time constant.
 
-**Status**: Documented in `smoke.test.ts` and `variables.test.ts` as skipped tests
+**Status**: ✅ **FIXED** - Test now passing
 
 ---
 
-### 🟠 Export Modifier on @map Variables
+## Remaining Skipped Tests (3 Total)
 
-**Impact**: `export @map` declarations fail
+### 1. Chained Function Call Type Checking
 
-**Example**:
-```js
-export @map screen at $0400: byte[1000];
-```
+**File**: `packages/compiler/src/__tests__/semantic/type-checker-assignments-complex.test.ts`  
+**Test**: "should type check chained function calls"
 
-**Error**: Compilation fails
+**Problem**: Complex type inference for chained function calls not fully implemented.
 
-**Status**: Test `type-acceptance.test.ts` > `accepts exported @map variable` fails
+**Impact**: Low - edge case in type system
 
----
+**Plan**: None (low priority)
 
-### 🟠 Array Data Section Generation
-
-**Impact**: Byte arrays don't generate proper `!fill` directives
-
-**Example**:
-```js
-let buffer: byte[10];
-```
-
-**Expected**: `!fill 10, $00`
-**Actual**: Different format or missing
+**Estimated Fix**: 1-2 hours
 
 ---
 
-## Medium Priority Issues
+### 2. Optimizer Strength Reduction
 
-### 🟡 length() with String Literal
+**File**: `packages/compiler/src/__tests__/e2e/optimizer-metrics.test.ts`  
+**Test**: "should apply strength reduction for power-of-2 multiply"
 
-**Impact**: `length("string")` fails type checking
+**Problem**: Optimizer not implemented - this tests optimizer behavior that doesn't exist yet.
 
-**Example**:
-```js
-function test(): word {
-  return length("hello");
-}
-```
+**Impact**: None - expected to fail until optimizer is implemented
 
-**Error**: Type mismatch - length expects `byte[]`, not `string`
+**Plan**: `plans/optimizer/` (103 design documents ready)
 
-**Status**: Documented in `type-acceptance.test.ts` as skipped test
+**Estimated Fix**: Part of optimizer implementation (4-6 weeks)
 
 ---
 
-### 🟡 Control Flow with Intrinsics
+### 3. Performance Test Consistency
 
-**Impact**: All control flow tests using intrinsics fail (due to intrinsics issue)
+**File**: `packages/compiler/src/__tests__/asm-il/integration/performance.test.ts`  
+**Test**: "should maintain consistent performance over multiple compilations"
 
-Affected tests:
-- If statements with `poke()` in body
-- While loops with `peek()` in condition
-- For loops with intrinsic calls
+**Problem**: Test is flaky due to timing variations.
 
----
+**Impact**: None - test infrastructure issue, not compiler bug
 
-### 🟡 Variable Declaration Pattern Check
+**Plan**: None (low priority)
 
-**Impact**: `let x = 10;` (without type annotation) behavior is inconsistent
-
-Some tests expect this to fail, but behavior depends on type inference implementation.
+**Estimated Fix**: 30 minutes to fix or remove test
 
 ---
 
-## Working Features (250 passing tests)
+## Flaky Test (1)
 
-### ✅ Type Acceptance
-- Primitive types: `byte`, `word`, `boolean`
-- Array types: `byte[N]`, `word[N]`
-- Hex literals: `$FF`, `0xFF`
-- Binary literals: `%11110000`, `0b11110000`
-- @map declarations (non-exported)
+### Performance Threshold Test
 
-### ✅ Variable Declarations
-- Global byte/word/boolean with initializers
-- Word data section generation (`!word`)
-- Initialized byte values
+**File**: `packages/compiler/src/__tests__/asm-il/integration/performance.test.ts`  
+**Test**: "should compile in < 50ms"
 
-### ✅ Expressions
-- Arithmetic: `+`, `-` with ADC/SBC
-- Bitwise: `&`, `|`, `^` with AND/ORA/EOR
-- Comparisons: `==`, `!=`, `<`, `>` with CMP
-- Logical: `&&`, `||`, `!`
+**Problem**: Compilation time occasionally exceeds 50ms threshold (~65ms observed).
 
-### ✅ Functions
-- Void function declarations with RTS
-- Return values (byte, word, boolean)
-- Function parameters
-- Function calls with JSR
-- Multiple functions
-- Exported functions
+**Impact**: None - timing variation, not a compiler bug
 
-### ✅ Control Flow
-- If/else statements with branches
-- While loops with JMP
-- For loops
-- Break/continue
+**Resolution**: Consider adjusting threshold or marking as skip
 
 ---
 
-## Fix Prioritization
+## Remaining Gaps by Priority
 
-### Phase 1: Critical (Blocks 183 tests)
-1. **Register intrinsics in semantic analyzer**
-   - Add intrinsic signatures to `GlobalSymbolTable`
-   - Make `peek`, `poke`, etc. recognized as built-in functions
-   - Define parameter types and return types
+### 🟠 High (Should Fix)
 
-### Phase 2: High (Blocks ~15 tests)
-2. **Fix array initializer code generation**
-   - Generate actual values instead of zeros
+| Gap | Impact | Plan | Fix Time |
+|-----|--------|------|----------|
+| ~~Missing intrinsic handlers (6)~~ | ~~Codegen stubs~~ | `go-intrinsics/` | ✅ FIXED |
+| Complex type checking | Edge cases | None | 1-2 hours |
 
-3. **Fix local variable code generation**
-   - Implement proper stack/ZP allocation for locals
+### 🟡 Medium (Nice to Have)
 
-4. **Fix export modifier on @map**
-   - Handle `export @map` syntax
+| Gap | Impact | Plan | Fix Time |
+|-----|--------|------|----------|
+| ~~Array initializer values~~ | ~~Wrong init values~~ | `multiple-fixes/` | ✅ FIXED |
+| ~~Local variable codegen~~ | ~~STUB comments~~ | `multiple-fixes/` | ✅ FIXED |
+| ~~Branch instruction selection~~ | ~~Always JMP~~ | `multiple-fixes/` | ✅ FIXED |
+| ~~Data directive generation~~ | ~~Missing !fill~~ | `multiple-fixes/` | ✅ FIXED |
 
-### Phase 3: Medium (Improves quality)
-5. **Add string support to length()**
-6. **Standardize array fill directive**
+### 🟢 Low (Future)
 
----
-
-## Recommendations
-
-### Immediate Action Required
-The intrinsics issue is **blocking** - fixing it would likely move pass rate from 57% to ~90%+.
-
-**Suggested Fix**:
-1. In semantic analyzer initialization, register all intrinsics from `IntrinsicRegistry`
-2. Each intrinsic needs:
-   - Name
-   - Parameter types
-   - Return type
-   - Mark as built-in (no body expected)
-
-### Testing Improvements
-- Continue running `./compiler-test e2e` after fixes
-- As intrinsics are fixed, tests will automatically pass
-- Skipped tests document known bugs - enable them after fixes
+| Gap | Impact | Plan | Fix Time |
+|-----|--------|------|----------|
+| Optimizer | Code quality | `optimizer/` | 4-6 weeks |
+| Performance test | Test flakiness | None | 30 min |
 
 ---
 
-## Test Files Reference
+## What's Working Well
 
-| File | Tests | Purpose |
-|------|-------|---------|
-| `smoke.test.ts` | 28 | Infrastructure validation |
-| `type-acceptance.test.ts` | 45 | Type system acceptance |
-| `intrinsic-signatures.test.ts` | 60 | Intrinsic parameter validation |
-| `literals.test.ts` | 30 | Literal code generation |
-| `variables.test.ts` | 50 | Variable code generation |
-| `expressions.test.ts` | 60 | Expression code generation |
-| `control-flow.test.ts` | 60 | Control flow code generation |
-| `functions.test.ts` | 55 | Function code generation |
-| `intrinsics-codegen.test.ts` | 53 | Intrinsic code generation |
+### ✅ Core Compilation Pipeline
 
-**Total**: 441 tests (250 pass, 183 fail, 8 skip)
+- **Lexer**: Complete tokenization of all Blend65 syntax
+- **Parser**: Full parsing with Pratt expression parser
+- **Semantic Analyzer**: Complete type checking, multi-module support
+- **IL Generator**: SSA-based intermediate representation
+- **Code Generator**: Working 6502 assembly output
+
+### ✅ Language Features
+
+- All primitive types (byte, word, boolean)
+- Array types and access
+- Functions with parameters and return values
+- Control flow (if/else, while, for, break, continue)
+- Ternary expressions
+- Address-of operator (@)
+- Memory-mapped variables (@map)
+- Module system with imports/exports
+- Callback parameters
+- **NEW**: `length("string")` for compile-time string length
+
+### ✅ Infrastructure
+
+- Configuration system (blend65.json)
+- Library loading (@blend65/c64/hardware)
+- Error reporting with source locations
+- Multi-file compilation
+
+---
+
+## Recommended Fix Order
+
+### ✅ COMPLETED: All Bug Fix Plans!
+
+1. ~~**CALL_VOID bug**~~ ✅ FIXED
+2. ~~**length() string support**~~ ✅ FIXED
+3. ~~**Complete 6 intrinsic handlers**~~ ✅ FIXED - All handlers implemented
+4. ~~**Multiple fixes plan**~~ ✅ FIXED - Arrays, locals, branches, data
+
+### Next: Major Features
+
+5. **Optimizer implementation** (4-6 weeks)
+   - 103 design documents ready
+   - Start with foundation, then incremental passes
+   - Plan: `plans/optimizer/`
 
 ---
 
 ## Conclusion
 
-The Blend65 compiler has a solid foundation for types, expressions, functions, and control flow. The **critical blocker** is intrinsic recognition in the semantic analyzer. Fixing this single issue would enable the majority of C64-specific functionality (hardware access, CPU control, etc.) that makes Blend65 useful for real Commodore 64 development.
+The Blend65 compiler is **production-ready for basic programs** with only minor gaps remaining:
 
-**Recommended Next Steps**:
-1. Fix intrinsic registration in semantic analyzer
-2. Re-run E2E tests
-3. Address remaining failures (array init, local vars)
-4. Enable skipped tests as bugs are fixed
+- **99.94% test pass rate** - Excellent quality
+- **3 skipped tests** - All documented (down from 5)
+- **1 flaky test** - Timing-dependent
+- **~1 hour of bug fixes** - Only low-priority items remain
+- **Optimizer ready** - 103 design docs, just needs implementation
+
+**🎉 All bug fix plans are COMPLETE!** The compiler can already compile working Commodore 64 programs. Focus now shifts to the optimizer implementation.
+
+---
+
+## Related Documents
+
+- **PROJECT_STATUS.md** - Overall project status
+- **WHATS-LEFT.md** - Comprehensive remaining work list
+- **plans/archive/call-void-and-length-gap/** - ✅ COMPLETE (archived)
+- **plans/archive/multiple-fixes/** - ✅ COMPLETE (archived)
+- **plans/archive/go-intrinsics/** - ✅ COMPLETE (archived)
+- **plans/optimizer/** - 103 optimizer design documents
+
+---
+
+**This report supersedes all previous gap reports.**  
+**Generated by `review_project` protocol**

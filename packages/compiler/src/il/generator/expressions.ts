@@ -682,25 +682,44 @@ export class ILExpressionGenerator extends ILStatementGenerator {
 
     // Look up the function to determine return type
     const funcSymbol = this.symbolTable.lookup(funcName);
-    if (!funcSymbol || !funcSymbol.type || !funcSymbol.type.signature) {
-      // Unknown function - emit void call and warn
-      this.addWarning(
-        `Unknown function '${funcName}', assuming void return`,
-        expr.getLocation(),
-        'W_UNKNOWN_FUNCTION',
-      );
-      this.builder?.emitCallVoid(funcName, argRegs);
-      return null;
+
+    // First check if we have function info in the symbol table
+    if (funcSymbol?.type?.signature) {
+      // Emit call based on return type from symbol table
+      const returnType = this.convertType(funcSymbol.type.signature.returnType);
+      if (returnType.kind === 'void') {
+        this.builder?.emitCallVoid(funcName, argRegs);
+        return null;
+      } else {
+        return this.builder?.emitCall(funcName, argRegs, returnType) ?? null;
+      }
     }
 
-    // Emit call based on return type
-    const returnType = this.convertType(funcSymbol.type.signature.returnType);
-    if (returnType.kind === 'void') {
-      this.builder?.emitCallVoid(funcName, argRegs);
-      return null;
-    } else {
-      return this.builder?.emitCall(funcName, argRegs, returnType) ?? null;
+    // Fallback: Try to find the function in the current module's IL functions
+    // This handles cases where the symbol table doesn't have the function signature
+    // (e.g., when the IL generator creates its own symbol tracking)
+    if (this.context?.module) {
+      const calledFunc = this.context.module.getFunction(funcName);
+      if (calledFunc) {
+        const ilReturnType = calledFunc.returnType;
+        if (ilReturnType.kind === 'void') {
+          this.builder?.emitCallVoid(funcName, argRegs);
+          return null;
+        } else {
+          // Function exists and returns a value - use CALL
+          return this.builder?.emitCall(funcName, argRegs, ilReturnType) ?? null;
+        }
+      }
     }
+
+    // Unknown function - emit void call and warn
+    this.addWarning(
+      `Unknown function '${funcName}', assuming void return`,
+      expr.getLocation(),
+      'W_UNKNOWN_FUNCTION',
+    );
+    this.builder?.emitCallVoid(funcName, argRegs);
+    return null;
   }
 
   /**
@@ -1041,7 +1060,9 @@ export class ILExpressionGenerator extends ILStatementGenerator {
    * Generates IL for the length() compile-time intrinsic.
    *
    * length() returns the length of an array or string at compile time.
-   * The argument must be a variable with a known compile-time size.
+   * The argument can be:
+   * - A string literal (e.g., length("hello") -> 5)
+   * - A variable with a known compile-time size
    *
    * @param expr - Call expression for length()
    * @returns Virtual register containing the constant length value
@@ -1055,6 +1076,25 @@ export class ILExpressionGenerator extends ILStatementGenerator {
     }
 
     const arg = args[0];
+
+    // Handle string literals: length("hello") -> 5
+    if (arg.getNodeType() === ASTNodeType.LITERAL_EXPR) {
+      const literal = arg as LiteralExpression;
+      const value = literal.getValue();
+
+      if (typeof value === 'string') {
+        // Return the length of the string literal as a compile-time constant
+        return this.builder?.emitConstWord(value.length) ?? null;
+      }
+
+      // Other literal types (numbers, booleans) are not valid for length()
+      this.addError(
+        'length() requires a string literal or array variable',
+        expr.getLocation(),
+        'E_LENGTH_INVALID_ARG',
+      );
+      return null;
+    }
 
     // Check if argument is an identifier (array/string variable name)
     if (arg.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
@@ -1091,9 +1131,9 @@ export class ILExpressionGenerator extends ILStatementGenerator {
       return null;
     }
 
-    // Argument is not a variable reference
+    // Argument is not a valid type for length()
     this.addError(
-      'length() requires an array or string variable',
+      'length() requires a string literal or array variable',
       expr.getLocation(),
       'E_LENGTH_INVALID_ARG',
     );

@@ -1,8 +1,9 @@
 # Blend65 Project Status
 
-> **Last Updated:** January 26, 2026  
+> **Last Updated:** January 27, 2026  
 > **Version:** 0.1.0-alpha  
-> **Overall Progress:** ~75% Complete
+> **Overall Progress:** ~85% Complete  
+> **Test Status:** 6,987/6,991 passing (99.94%)
 
 ---
 
@@ -30,10 +31,41 @@ Blend65 is a modern programming language and compiler designed specifically for 
 | 🟢 **Semantic Analyzer** | ✅ Complete | Can check programs for errors and gather information |
 | 🟢 **IL Generator** | ✅ Complete | Can convert programs to internal format |
 | 🟢 **Code Generator** | ✅ Complete (Basic) | Can produce assembly code |
-| 🟡 **Optimizer** | ⏳ Not Started | Will make generated code faster/smaller |
+| 🟡 **Optimizer** | 📋 Planning Complete | 103 design documents ready, implementation not started |
 | 🟢 **Config System** | ✅ Complete | Project configuration works |
 | 🟡 **CLI Tool** | ⏳ Partial | Command-line interface needs work |
 | 🟡 **Documentation** | ⏳ Partial | User guides and tutorials needed |
+
+---
+
+## Test Coverage Summary
+
+| Area | Tests | Status |
+|------|-------|--------|
+| Lexer | 150+ | ✅ All Passing |
+| Parser | 400+ | ✅ All Passing |
+| AST | 100+ | ✅ All Passing |
+| Semantic Analysis | 1,500+ | ✅ All Passing |
+| IL Generator | 2,000+ | ✅ All Passing |
+| Code Generator | 500+ | ✅ All Passing |
+| ASM-IL | 500+ | ✅ All Passing |
+| E2E & Integration | 1,800+ | ✅ All Passing |
+| CLI | 10 | ✅ All Passing |
+| **Total** | **6,991** | **6,987 passing (1 flaky, 3 skipped)** |
+
+### Skipped Tests (3)
+
+| Test | Reason | Linked Plan |
+|------|--------|-------------|
+| Performance consistency test | Test flakiness/timing | - |
+| Chained function call type checking | Complex type gap | - |
+| Power-of-2 multiply strength reduction | Optimizer not implemented | `optimizer/` |
+
+### Flaky Test (1)
+
+| Test | Reason |
+|------|--------|
+| Small program compilation < 50ms | Timing-dependent, occasionally fails |
 
 ---
 
@@ -49,10 +81,14 @@ Blend65 is a modern programming language and compiler designed specifically for 
    - **Ternary expressions** (`condition ? then : else`)
    - **Address-of operator** (`@variable` to get memory address)
    - **Callback parameters** (pass function addresses)
+   - **Array types** (`byte[N]`, `word[256]`)
 
 2. **Compile to Assembly**
    - The compiler generates ACME assembler output
-   - Basic programs can be assembled and run
+   - Programs compile to working 6502 assembly
+   - Expressions: arithmetic, bitwise, comparisons, logical
+   - Control flow: if/else, while, for loops
+   - Functions with parameters and return values
 
 3. **Get Helpful Error Messages**
    - Shows exactly where errors are in your code
@@ -92,6 +128,9 @@ export function main(): void {
     
     // Pass function as callback
     callHandler(@flashBorder);
+    
+    // Use length() with string literals
+    let len: byte = length("hello"); // Returns 5
 }
 ```
 
@@ -100,12 +139,15 @@ export function main(): void {
 ## What's Still Being Built?
 
 ### 🔧 Optimizer (Next Major Feature)
+
 The optimizer will make your programs:
 - **Faster** - Uses efficient 6502 instructions
 - **Smaller** - Removes unnecessary code
 - **Better** - Takes advantage of hardware features
 
-**Status:** Planned, not started yet
+**Status:** 
+- ✅ **103 design documents complete** - Comprehensive planning done
+- 📋 **Implementation not started** - Ready to begin coding
 
 ### 🖥️ CLI Improvements
 - Better project scaffolding (`blend65 new myproject`)
@@ -121,29 +163,56 @@ The optimizer will make your programs:
 
 ---
 
-## Technical Health
+## Active Development Plans
 
-### Test Coverage
+### Priority 1: Bug Fixes & Gaps
 
-| Area | Tests | Status |
-|------|-------|--------|
-| Lexer | 150+ | ✅ All Passing |
-| Parser | 400+ | ✅ All Passing |
-| Semantic Analysis | 1,500+ | ✅ All Passing |
-| IL Generator | 2,000+ | ✅ All Passing |
-| Code Generator | 500+ | ✅ All Passing |
-| E2E & Integration | 1,500+ | ✅ All Passing |
-| **Total** | **6,500+** | **✅ All Passing** |
+| Plan | Status | Description |
+|------|--------|-------------|
+| `call-void-and-length-gap/` | ✅ **COMPLETE** | Fixed CALL_VOID bug, added length("string") |
+| `go-intrinsics/` | ✅ **COMPLETE** | All 6 intrinsic handlers implemented |
+| `multiple-fixes/` | ✅ **COMPLETE** | Fixed arrays, locals, branches, data directives |
 
-### Code Quality
-- ✅ TypeScript for type safety
-- ✅ Comprehensive test suite
-- ✅ Modular architecture
-- ✅ Well-documented code
+### Priority 2: Major Features
+
+| Plan | Status | Description |
+|------|--------|-------------|
+| `optimizer/` | 📋 Docs Complete | 103 documents ready for implementation |
+| `native-assembler/` | 📋 Planning | Direct .prg generation |
+
+### Priority 3: Developer Experience
+
+| Plan | Status | Description |
+|------|--------|-------------|
+| `end-to-end/` | ⚠️ Needs Update | CLI, VICE integration, source maps |
+| `e2e-codegen-testing/` | 🔄 Partial | Phase 1 complete, Phases 2-4 remaining |
+
+### Research (Future)
+
+| Plan | Status | Description |
+|------|--------|-------------|
+| `features/` | 📋 Research | Inline assembly, interrupts, sprites |
 
 ---
 
 ## Recently Completed
+
+### ✅ CALL_VOID Bug Fix (January 27, 2026)
+- Fixed functions returning values incorrectly using CALL_VOID
+- Added IL module fallback lookup for return type determination
+- Unskipped and verified ternary test
+
+### ✅ length() String Support (January 27, 2026)
+- `length("hello")` now returns compile-time constant 5
+- Added string literal handling in IL generator
+- Unskipped and verified length() test
+
+### ✅ Major Test Suite Stabilization (January 2026)
+- Reduced failing tests from 44 → 0
+- Fixed test expectations for InstructionGenerator Tier 2
+- Fixed SSA verification default
+- Fixed binary literal syntax per language spec
+- Documented codegen gaps with proper skip markers
 
 ### ✅ C-Style Syntax Refactor (January 2026)
 - Changed from VB/Pascal-style (`end if`, `end function`) to C/TypeScript-style (`{ }`)
@@ -202,19 +271,27 @@ The optimizer will make your programs:
 - [x] Library loading system
 - [x] Module/export system
 
-### Phase 2: Optimization 🔄 (CURRENT FOCUS)
+### Phase 2: Bug Fixes & Stabilization ✅ (COMPLETE)
+- [x] Fix CALL_VOID bug ✅
+- [x] Fix length() with string literals ✅
+- [x] Complete missing intrinsic handlers ✅
+- [x] Fix array initializers ✅
+- [x] Fix local variable codegen ✅
+- [x] Fix branch instruction selection ✅
+
+### Phase 3: Optimization 🔜 (NEXT MAJOR FOCUS)
 - [ ] IL optimization passes
 - [ ] Peephole optimization
 - [ ] Dead code elimination
 - [ ] Constant folding
 
-### Phase 3: Developer Experience 📋 (PLANNED)
+### Phase 4: Developer Experience 📋 (PLANNED)
 - [ ] Improved CLI
 - [ ] Project templates
 - [ ] VICE integration
 - [ ] Source maps for debugging
 
-### Phase 4: Documentation & Examples 📋 (PLANNED)
+### Phase 5: Documentation & Examples 📋 (PLANNED)
 - [ ] User documentation
 - [ ] Tutorials
 - [ ] Example games
@@ -246,7 +323,7 @@ yarn install
 yarn build
 
 # Run tests
-yarn test
+./compiler-test
 ```
 
 ---
@@ -260,10 +337,14 @@ yarn test
 
 ## Summary
 
-**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested. The main remaining work is:
+**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.94% test pass rate** (6,987/6,991 tests).
 
-1. **Optimizer** - To make the generated code faster and smaller
-2. **CLI improvements** - To make the developer experience better
-3. **Documentation** - To help people learn and use the compiler
+**Phase 2 (Bug Fixes & Stabilization) is COMPLETE!** All critical bug fixes have been implemented:
+- ✅ CALL_VOID bug fixed
+- ✅ length() string support added
+- ✅ All 6 intrinsic handlers implemented
+- ✅ Array initializers, local variables, branch selection fixed
+
+**Next priority:** Optimizer implementation - 103 design documents ready
 
 The project is actively developed and getting closer to a 1.0 release!

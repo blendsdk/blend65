@@ -478,9 +478,7 @@ describe('ILExpressionGenerator - Ternary Expressions: Edge Cases', () => {
   });
 
   describe('ternary inside function call argument', () => {
-    // TODO: Ternary inside function call argument needs deeper investigation
-    // The ternary is evaluated before the call, so BRANCH may be in different block structure
-    it.skip('should generate ternary for function argument', () => {
+    it('should generate ternary for function argument', () => {
       const source = `module test\nfunction identity(x: byte): byte { return x; }\nfunction test(): byte { let flag: boolean = true; return identity(flag ? 10 : 20); }`;
       const result = generator.generateModule(parseSource(source));
       expect(result.success).toBe(true);

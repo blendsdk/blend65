@@ -51,12 +51,12 @@ This document defines the execution phases and AI chat sessions for implementati
 
 ### Phase 1: Investigation and Fix
 
-- [ ] 1.1.1 Investigate CALL_VOID root cause (add debug logging)
-- [ ] 1.1.2 Fix CALL/CALL_VOID selection logic in generateCallExpression
-- [ ] 1.1.3 Add string literal support to generateLengthIntrinsic
-- [ ] 1.1.4 Unskip ternary test in generator-expressions-ternary.test.ts
-- [ ] 1.1.5 Unskip length() test in type-acceptance.test.ts
-- [ ] 1.1.6 Run full test suite and verify no regressions
+- [x] 1.1.1 Investigate CALL_VOID root cause (add debug logging) ✅
+- [x] 1.1.2 Fix CALL/CALL_VOID selection logic in generateCallExpression ✅
+- [x] 1.1.3 Add string literal support to generateLengthIntrinsic ✅
+- [x] 1.1.4 Unskip ternary test in generator-expressions-ternary.test.ts ✅
+- [x] 1.1.5 Unskip length() test in type-acceptance.test.ts ✅
+- [x] 1.1.6 Run full test suite and verify no regressions ✅
 
 ---
 

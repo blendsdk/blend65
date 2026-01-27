@@ -327,10 +327,8 @@ describe('E2E Type Acceptance - length() Intrinsic', () => {
     });
   });
 
-  describe('length with string - KNOWN ISSUE', () => {
-    // This test documents a known issue where length() doesn't work with strings
-    it.skip('should accept length() with string literal', () => {
-      // Currently fails with type error - length expects byte[], not string
+  describe('length with string literal', () => {
+    it('should accept length() with string literal', () => {
       const result = compile(`
         function test(): word {
           return length("hello");
