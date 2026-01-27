@@ -4,7 +4,7 @@
 > **Test Status**: 6,987/6,991 passing (99.94%)  
 > **Failed Tests**: 1 (flaky)  
 > **Skipped Tests**: 3  
-> **Active Plans**: 10 folders
+> **Active Plans**: 6 folders (4 archived this session)
 
 ---
 
@@ -106,10 +106,10 @@ The Blend65 compiler core is **functionally complete** with an excellent 99.94% 
 | `call-void-and-length-gap/` | ✅ **COMPLETE** | Archived |
 | `multiple-fixes/` | ✅ **COMPLETE** | Archived |
 | `go-intrinsics/` | ✅ **COMPLETE** | Archived |
+| `il-generator/` | ✅ **COMPLETE** | Archived (core + phases 1-8) |
 | `array-return-types/` | ⚠️ Inconsistent | Deliverables [x], tasks [ ] - verify |
 | `e2e-codegen-testing/` | 🔄 In Progress | Phase 1 complete |
 | `end-to-end/` | ⏳ Planning | Design docs, not started |
-| `il-generator/` | 📖 Legacy | Core complete, docs remain |
 | `optimizer/` | 📋 Docs Complete | 103 docs, 0 implementation |
 | `features/` | 📖 Research | Future features |
 | `native-assembler/` | ⏳ Planning | After optimizer |
