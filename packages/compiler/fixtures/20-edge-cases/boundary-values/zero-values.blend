@@ -1,0 +1,84 @@
+// @name: Zero Value Edge Cases
+// @description: Tests handling of zero values in various contexts
+// @category: edge-cases/boundary-values
+// @expect: success
+// @features: arithmetic, comparisons, arrays
+
+@map screen at $0400: byte[1000];
+
+// Test zero in arithmetic
+let zeroVal: byte = 0;
+let oneVal: byte = 1;
+let maxVal: byte = 255;
+
+// Division involving zero dividend
+function testZeroDividend(): byte {
+    let result: byte = zeroVal / oneVal;
+    return result;
+}
+
+// Multiplication by zero
+function testMultiplyByZero(): byte {
+    let result: byte = maxVal * zeroVal;
+    return result;
+}
+
+// Addition with zero
+function testAddZero(): byte {
+    let result: byte = maxVal + zeroVal;
+    return result;
+}
+
+// Subtraction to zero
+function testSubtractToZero(): byte {
+    let result: byte = oneVal - oneVal;
+    return result;
+}
+
+// Zero comparison
+function testZeroComparison(): byte {
+    if (zeroVal == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+// Zero in array index
+function testZeroArrayIndex(): void {
+    let arr: byte[10];
+    arr[0] = 42;
+    screen[0] = arr[0];
+}
+
+// Zero loop iterations (degenerate case)
+function testZeroIterations(): byte {
+    let count: byte = 0;
+    for (i = 0 to 0) {
+        count = count + 1;
+    }
+    return count;
+}
+
+// Zero in bitwise operations
+function testZeroBitwise(): byte {
+    let result1: byte = zeroVal | maxVal;
+    let result2: byte = zeroVal & maxVal;
+    let result3: byte = zeroVal ^ zeroVal;
+    return result1;
+}
+
+// Test all zero cases
+function main(): void {
+    let r1: byte = testZeroDividend();
+    let r2: byte = testMultiplyByZero();
+    let r3: byte = testAddZero();
+    let r4: byte = testSubtractToZero();
+    let r5: byte = testZeroComparison();
+    testZeroArrayIndex();
+    let r6: byte = testZeroIterations();
+    let r7: byte = testZeroBitwise();
+    
+    screen[1] = r1 + 48;
+    screen[2] = r2 + 48;
+    screen[3] = r5 + 48;
+}

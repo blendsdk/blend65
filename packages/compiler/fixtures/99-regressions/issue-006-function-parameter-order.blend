@@ -1,0 +1,129 @@
+// @name: Regression - Function Parameter Order
+// @description: Tests correct parameter ordering in function calls
+// @category: regressions
+// @expect: success
+// @features: functions, parameters
+
+@map screen at $0400: byte[1000];
+
+// Track parameter evaluation order
+let evalOrder: byte = 0;
+let orderRecord: byte[10];
+let recordIndex: byte = 0;
+
+// Record evaluation order
+function record(val: byte): byte {
+    orderRecord[recordIndex] = val;
+    recordIndex = recordIndex + 1;
+    return val;
+}
+
+// Simple two-param function
+function sub(a: byte, b: byte): byte {
+    return a - b;
+}
+
+// Three-param function
+function compute(a: byte, b: byte, c: byte): byte {
+    return (a * b) + c;
+}
+
+// Four-param function 
+function quad(a: byte, b: byte, c: byte, d: byte): byte {
+    return a - b - c - d;
+}
+
+// Test basic parameter order
+function testBasicOrder(): byte {
+    return sub(10, 3);  // Should be 10 - 3 = 7
+}
+
+// Test three params
+function testThreeParams(): byte {
+    return compute(2, 3, 4);  // Should be (2*3)+4 = 10
+}
+
+// Test four params
+function testFourParams(): byte {
+    return quad(20, 5, 3, 2);  // Should be 20-5-3-2 = 10
+}
+
+// Test with variables
+function testWithVariables(): byte {
+    let x: byte = 15;
+    let y: byte = 5;
+    return sub(x, y);  // Should be 15 - 5 = 10
+}
+
+// Test with expressions
+function testWithExpressions(): byte {
+    return sub(5 + 5, 2 + 1);  // Should be 10 - 3 = 7
+}
+
+// Test parameter not confused
+function testParamNotConfused(): byte {
+    let a: byte = 100;
+    let b: byte = 50;
+    // Local a,b should not interfere with function params
+    return sub(a, b);  // Should be 100 - 50 = 50
+}
+
+// Test nested with different param counts
+function testNestedDifferentCounts(): byte {
+    return sub(compute(1, 2, 3), 1);  // ((1*2)+3) - 1 = 4
+}
+
+// Test all positions with distinct values
+function testDistinctValues(): byte {
+    return quad(40, 10, 5, 1);  // 40-10-5-1 = 24
+}
+
+// Test reverse values
+function testReverseValues(): byte {
+    let result1: byte = sub(10, 2);  // 10 - 2 = 8
+    let result2: byte = sub(2, 10);  // 2 - 10 = 248 (underflow)
+    if (result1 != result2) {
+        return 1;  // Parameters are ordered correctly
+    }
+    return 0;
+}
+
+// Test same value for all params
+function testSameValues(): byte {
+    return quad(5, 5, 5, 5);  // 5-5-5-5 = -10 = 246 (wrap)
+}
+
+// Void function with ordered params
+function storeOrdered(p1: byte, p2: byte, p3: byte): void {
+    screen[20] = p1;
+    screen[21] = p2;
+    screen[22] = p3;
+}
+
+function testVoidParamOrder(): void {
+    storeOrdered(65, 66, 67);  // A, B, C
+}
+
+// Main test
+function main(): void {
+    let r1: byte = testBasicOrder();
+    let r2: byte = testThreeParams();
+    let r3: byte = testFourParams();
+    let r4: byte = testWithVariables();
+    let r5: byte = testWithExpressions();
+    let r6: byte = testParamNotConfused();
+    let r7: byte = testNestedDifferentCounts();
+    let r8: byte = testDistinctValues();
+    let r9: byte = testReverseValues();
+    testVoidParamOrder();
+    
+    screen[0] = r1 + 48;
+    screen[1] = r2 + 38;
+    screen[2] = r3 + 38;
+    screen[3] = r4 + 38;
+    screen[4] = r5 + 48;
+    screen[5] = r6;
+    screen[6] = r7 + 48;
+    screen[7] = r8 + 24;
+    screen[8] = r9 + 48;
+}

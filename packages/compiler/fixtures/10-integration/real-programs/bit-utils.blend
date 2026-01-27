@@ -1,0 +1,124 @@
+// @name: Bit Manipulation Utilities
+// @description: Comprehensive bit manipulation utility library
+// @category: integration/real-programs
+// @expect: success
+// @features: functions, bitwise-operators, arrays
+
+// VIC-II register for visual feedback
+@map screen at $0400: byte[1000];
+@map border at $D020: byte;
+
+// Bit manipulation constants
+let BIT_0: byte = 1;
+let BIT_1: byte = 2;
+let BIT_2: byte = 4;
+let BIT_3: byte = 8;
+let BIT_4: byte = 16;
+let BIT_5: byte = 32;
+let BIT_6: byte = 64;
+let BIT_7: byte = 128;
+
+// Bit pattern storage
+let bitPatterns: byte[8];
+let testValue: byte = 0;
+
+// Set a specific bit in a value
+function setBit(value: byte, bit: byte): byte {
+    return value | bit;
+}
+
+// Clear a specific bit in a value
+function clearBit(value: byte, bit: byte): byte {
+    return value & (~bit);
+}
+
+// Toggle a specific bit in a value
+function toggleBit(value: byte, bit: byte): byte {
+    return value ^ bit;
+}
+
+// Check if a specific bit is set
+function isBitSet(value: byte, bit: byte): byte {
+    if ((value & bit) != 0) {
+        return 1;
+    }
+    return 0;
+}
+
+// Count number of set bits in a byte
+function countBits(value: byte): byte {
+    let count: byte = 0;
+    let temp: byte = value;
+    
+    while (temp != 0) {
+        if ((temp & 1) != 0) {
+            count = count + 1;
+        }
+        temp = temp >> 1;
+    }
+    
+    return count;
+}
+
+// Rotate left
+function rotateLeft(value: byte): byte {
+    let highBit: byte = value >> 7;
+    return (value << 1) | highBit;
+}
+
+// Rotate right
+function rotateRight(value: byte): byte {
+    let lowBit: byte = value & 1;
+    return (value >> 1) | (lowBit << 7);
+}
+
+// Initialize bit patterns
+function initBitPatterns(): void {
+    bitPatterns[0] = BIT_0;
+    bitPatterns[1] = BIT_1;
+    bitPatterns[2] = BIT_2;
+    bitPatterns[3] = BIT_3;
+    bitPatterns[4] = BIT_4;
+    bitPatterns[5] = BIT_5;
+    bitPatterns[6] = BIT_6;
+    bitPatterns[7] = BIT_7;
+}
+
+// Test all bit operations
+function testBitOperations(): void {
+    initBitPatterns();
+    
+    // Test setBit
+    testValue = setBit(0, BIT_3);
+    screen[0] = testValue + 48;
+    
+    // Test clearBit
+    testValue = clearBit($FF, BIT_0);
+    screen[1] = countBits(testValue) + 48;
+    
+    // Test toggleBit
+    testValue = toggleBit($AA, $55);
+    screen[2] = testValue;
+    
+    // Test isBitSet
+    testValue = isBitSet($80, BIT_7);
+    screen[3] = testValue + 48;
+    
+    // Test countBits
+    testValue = countBits($FF);
+    screen[4] = testValue + 48;
+    
+    // Test rotations
+    testValue = rotateLeft($80);
+    screen[5] = testValue + 48;
+    
+    testValue = rotateRight(1);
+    screen[6] = testValue;
+    
+    border = 5;
+}
+
+// Entry point
+function main(): void {
+    testBitOperations();
+}

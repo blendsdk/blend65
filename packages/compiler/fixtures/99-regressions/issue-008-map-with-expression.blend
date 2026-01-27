@@ -1,0 +1,152 @@
+// @name: Regression - Memory Mapped Variables with Expressions
+// @description: Tests @map variables used in various expressions
+// @category: regressions
+// @expect: success
+// @features: map, expressions, hardware
+
+// VIC-II registers
+@map border at $D020: byte;
+@map background at $D021: byte;
+@map spriteEnable at $D015: byte;
+@map rasterLine at $D012: byte;
+
+// Screen memory
+@map screen at $0400: byte[1000];
+@map colorMem at $D800: byte[1000];
+
+// SID registers
+@map sidVolume at $D418: byte;
+
+// Zero page custom locations
+@map zpTemp at $02: byte;
+@map zpCounter at $03: byte;
+
+// Test simple map read/write
+function testSimpleMapRW(): byte {
+    border = 5;
+    let result: byte = border;
+    return result;
+}
+
+// Test map in arithmetic
+function testMapArithmetic(): byte {
+    border = 10;
+    let result: byte = border + 5;
+    return result;
+}
+
+// Test map as function argument
+function doubleValue(val: byte): byte {
+    return val * 2;
+}
+
+function testMapAsArgument(): byte {
+    border = 25;
+    return doubleValue(border);
+}
+
+// Test map in condition
+function testMapCondition(): byte {
+    border = 5;
+    if (border < 10) {
+        return 1;
+    }
+    return 0;
+}
+
+// Test map array access
+function testMapArrayWrite(): void {
+    screen[0] = 65;
+    screen[1] = 66;
+    screen[2] = 67;
+    colorMem[0] = 1;
+    colorMem[1] = 2;
+    colorMem[2] = 3;
+}
+
+// Test map array in loop
+function testMapArrayLoop(): void {
+    for (i = 0 to 9) {
+        screen[i + 10] = i + 48;
+    }
+}
+
+// Test map in expression with variables
+function testMapWithVariable(): byte {
+    let offset: byte = 3;
+    border = offset + 2;
+    return border;
+}
+
+// Test multiple maps in one expression
+function testMultipleMaps(): void {
+    border = 0;
+    background = border + 1;
+    zpTemp = background + 1;
+}
+
+// Test map read for comparison
+function testMapComparison(): byte {
+    border = 7;
+    background = 7;
+    if (border == background) {
+        return 1;
+    }
+    return 0;
+}
+
+// Test map assignment from map
+function testMapToMap(): void {
+    border = 14;
+    background = border;
+}
+
+// Test map in compound expression
+function testMapCompound(): byte {
+    border = 2;
+    background = 3;
+    let result: byte = (border * 4) + (background * 2);
+    return result;  // (2*4) + (3*2) = 14
+}
+
+// Test map array with computed index
+function testMapComputedIndex(): byte {
+    let base: byte = 5;
+    screen[base] = 77;
+    screen[base + 1] = 78;
+    return screen[base];
+}
+
+// Test ZP map operations
+function testZPMap(): byte {
+    zpTemp = 100;
+    zpCounter = zpTemp - 50;
+    return zpCounter;  // 50
+}
+
+// Main test
+function main(): void {
+    let r1: byte = testSimpleMapRW();
+    let r2: byte = testMapArithmetic();
+    let r3: byte = testMapAsArgument();
+    let r4: byte = testMapCondition();
+    testMapArrayWrite();
+    testMapArrayLoop();
+    let r5: byte = testMapWithVariable();
+    testMultipleMaps();
+    let r6: byte = testMapComparison();
+    testMapToMap();
+    let r7: byte = testMapCompound();
+    let r8: byte = testMapComputedIndex();
+    let r9: byte = testZPMap();
+    
+    screen[25] = r1 + 48;
+    screen[26] = r2 + 38;
+    screen[27] = r3;
+    screen[28] = r4 + 48;
+    screen[29] = r5 + 48;
+    screen[30] = r6 + 48;
+    screen[31] = r7 + 34;
+    screen[32] = r8;
+    screen[33] = r9;
+}

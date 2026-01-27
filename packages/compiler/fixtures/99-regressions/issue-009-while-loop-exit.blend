@@ -1,0 +1,169 @@
+// @name: Regression - While Loop Exit Conditions
+// @description: Tests various while loop exit conditions and patterns
+// @category: regressions
+// @expect: success
+// @features: while-loop, control-flow, conditions
+
+@map screen at $0400: byte[1000];
+
+// Simple counter exit
+function testCounterExit(): byte {
+    let count: byte = 0;
+    while (count < 10) {
+        count = count + 1;
+    }
+    return count;  // Should be 10
+}
+
+// Countdown to zero
+function testCountdown(): byte {
+    let val: byte = 20;
+    let iterations: byte = 0;
+    while (val > 0) {
+        val = val - 1;
+        iterations = iterations + 1;
+    }
+    return iterations;  // Should be 20
+}
+
+// Exit on equality
+function testExitOnEqual(): byte {
+    let x: byte = 0;
+    while (x != 5) {
+        x = x + 1;
+    }
+    return x;  // Should be 5
+}
+
+// Exit on inequality change
+function testExitOnInequality(): byte {
+    let a: byte = 10;
+    let b: byte = 0;
+    while (a > b) {
+        a = a - 1;
+        b = b + 1;
+    }
+    return a;  // Should be 5 (when a=5, b=5)
+}
+
+// While with compound condition
+function testCompoundCondition(): byte {
+    let x: byte = 0;
+    let y: byte = 0;
+    while ((x < 10) && (y < 5)) {
+        x = x + 1;
+        y = y + 1;
+    }
+    return x;  // Should be 5 (y hits limit first)
+}
+
+// While with OR condition
+function testOrCondition(): byte {
+    let x: byte = 0;
+    // Continues while either is true
+    while ((x < 3) || (x < 7)) {
+        x = x + 1;
+    }
+    return x;  // Should be 7
+}
+
+// Nested while loops
+function testNestedWhile(): byte {
+    let outer: byte = 0;
+    let total: byte = 0;
+    while (outer < 3) {
+        let inner: byte = 0;
+        while (inner < 4) {
+            total = total + 1;
+            inner = inner + 1;
+        }
+        outer = outer + 1;
+    }
+    return total;  // Should be 12 (3*4)
+}
+
+// While with array modification
+function testWhileWithArray(): byte {
+    let arr: byte[5];
+    let idx: byte = 0;
+    while (idx < 5) {
+        arr[idx] = idx * 2;
+        idx = idx + 1;
+    }
+    return arr[4];  // Should be 8
+}
+
+// While never executes (false initially)
+function testWhileNeverExecutes(): byte {
+    let count: byte = 0;
+    while (0 > 1) {
+        count = count + 1;
+    }
+    return count;  // Should be 0
+}
+
+// While executes once
+function testWhileOnce(): byte {
+    let flag: byte = 1;
+    let count: byte = 0;
+    while (flag != 0) {
+        count = count + 1;
+        flag = 0;
+    }
+    return count;  // Should be 1
+}
+
+// While with function call in condition
+function isLessThan(a: byte, b: byte): byte {
+    if (a < b) {
+        return 1;
+    }
+    return 0;
+}
+
+function testWhileWithCall(): byte {
+    let x: byte = 0;
+    while (isLessThan(x, 5) != 0) {
+        x = x + 1;
+    }
+    return x;  // Should be 5
+}
+
+// While with variable condition
+function testVariableCondition(): byte {
+    let limit: byte = 7;
+    let count: byte = 0;
+    while (count < limit) {
+        count = count + 1;
+    }
+    return count;  // Should be 7
+}
+
+// Main test
+function main(): void {
+    let r1: byte = testCounterExit();
+    let r2: byte = testCountdown();
+    let r3: byte = testExitOnEqual();
+    let r4: byte = testExitOnInequality();
+    let r5: byte = testCompoundCondition();
+    let r6: byte = testOrCondition();
+    let r7: byte = testNestedWhile();
+    let r8: byte = testWhileWithArray();
+    let r9: byte = testWhileNeverExecutes();
+    let r10: byte = testWhileOnce();
+    let r11: byte = testWhileWithCall();
+    let r12: byte = testVariableCondition();
+    
+    screen[0] = r1 + 38;
+    screen[1] = r2 + 28;
+    screen[2] = r3 + 48;
+    screen[3] = r4 + 48;
+    screen[4] = r5 + 48;
+    screen[5] = r6 + 48;
+    screen[6] = r7 + 36;
+    screen[7] = r8 + 48;
+    screen[8] = r9 + 48;
+    screen[9] = r10 + 48;
+    screen[10] = r11 + 48;
+    screen[11] = r12 + 48;
+}

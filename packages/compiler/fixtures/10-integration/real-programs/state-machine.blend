@@ -1,0 +1,227 @@
+// @name: State Machine Implementation
+// @description: Generic state machine pattern for game logic
+// @category: integration/real-programs
+// @expect: success
+// @features: functions, arrays, control-flow, constants
+
+// Screen for visual feedback
+@map screen at $0400: byte[1000];
+@map border at $D020: byte;
+@map background at $D021: byte;
+
+// State constants
+let STATE_IDLE: byte = 0;
+let STATE_RUNNING: byte = 1;
+let STATE_PAUSED: byte = 2;
+let STATE_GAMEOVER: byte = 3;
+let STATE_MENU: byte = 4;
+let STATE_LOADING: byte = 5;
+
+// Event constants
+let EVENT_START: byte = 0;
+let EVENT_PAUSE: byte = 1;
+let EVENT_RESUME: byte = 2;
+let EVENT_QUIT: byte = 3;
+let EVENT_RESET: byte = 4;
+let EVENT_TICK: byte = 5;
+
+// State machine data
+let currentState: byte = 0;
+let previousState: byte = 0;
+let stateTimer: byte = 0;
+let transitionCount: byte = 0;
+
+// State history for debugging
+let stateHistory: byte[16];
+let historyIndex: byte = 0;
+
+// Get border color for state
+function getStateColor(state: byte): byte {
+    if (state == STATE_IDLE) {
+        return 0;
+    }
+    if (state == STATE_RUNNING) {
+        return 5;
+    }
+    if (state == STATE_PAUSED) {
+        return 7;
+    }
+    if (state == STATE_GAMEOVER) {
+        return 2;
+    }
+    if (state == STATE_MENU) {
+        return 14;
+    }
+    if (state == STATE_LOADING) {
+        return 1;
+    }
+    return 0;
+}
+
+// Record state in history
+function recordState(state: byte): void {
+    stateHistory[historyIndex] = state;
+    historyIndex = historyIndex + 1;
+    if (historyIndex >= 16) {
+        historyIndex = 0;
+    }
+}
+
+// Transition to new state
+function transitionTo(newState: byte): void {
+    if (newState != currentState) {
+        previousState = currentState;
+        currentState = newState;
+        stateTimer = 0;
+        transitionCount = transitionCount + 1;
+        recordState(newState);
+        
+        // Update visual feedback
+        border = getStateColor(currentState);
+    }
+}
+
+// Handle event in IDLE state
+function handleIdleEvent(event: byte): void {
+    if (event == EVENT_START) {
+        transitionTo(STATE_LOADING);
+    }
+}
+
+// Handle event in LOADING state
+function handleLoadingEvent(event: byte): void {
+    if (event == EVENT_TICK) {
+        stateTimer = stateTimer + 1;
+        if (stateTimer >= 10) {
+            transitionTo(STATE_MENU);
+        }
+    }
+}
+
+// Handle event in MENU state
+function handleMenuEvent(event: byte): void {
+    if (event == EVENT_START) {
+        transitionTo(STATE_RUNNING);
+    }
+    if (event == EVENT_QUIT) {
+        transitionTo(STATE_IDLE);
+    }
+}
+
+// Handle event in RUNNING state
+function handleRunningEvent(event: byte): void {
+    if (event == EVENT_PAUSE) {
+        transitionTo(STATE_PAUSED);
+    }
+    if (event == EVENT_QUIT) {
+        transitionTo(STATE_GAMEOVER);
+    }
+    if (event == EVENT_TICK) {
+        stateTimer = stateTimer + 1;
+    }
+}
+
+// Handle event in PAUSED state
+function handlePausedEvent(event: byte): void {
+    if (event == EVENT_RESUME) {
+        transitionTo(STATE_RUNNING);
+    }
+    if (event == EVENT_QUIT) {
+        transitionTo(STATE_MENU);
+    }
+}
+
+// Handle event in GAMEOVER state
+function handleGameoverEvent(event: byte): void {
+    if (event == EVENT_RESET) {
+        transitionTo(STATE_MENU);
+    }
+    if (event == EVENT_QUIT) {
+        transitionTo(STATE_IDLE);
+    }
+}
+
+// Main event dispatcher
+function processEvent(event: byte): void {
+    if (currentState == STATE_IDLE) {
+        handleIdleEvent(event);
+    }
+    if (currentState == STATE_LOADING) {
+        handleLoadingEvent(event);
+    }
+    if (currentState == STATE_MENU) {
+        handleMenuEvent(event);
+    }
+    if (currentState == STATE_RUNNING) {
+        handleRunningEvent(event);
+    }
+    if (currentState == STATE_PAUSED) {
+        handlePausedEvent(event);
+    }
+    if (currentState == STATE_GAMEOVER) {
+        handleGameoverEvent(event);
+    }
+}
+
+// Initialize state machine
+function initStateMachine(): void {
+    currentState = STATE_IDLE;
+    previousState = STATE_IDLE;
+    stateTimer = 0;
+    transitionCount = 0;
+    historyIndex = 0;
+    
+    for (i = 0 to 15) {
+        stateHistory[i] = 255;
+    }
+    
+    recordState(STATE_IDLE);
+    border = getStateColor(currentState);
+}
+
+// Display state info
+function displayStateInfo(): void {
+    // Show current state
+    screen[0] = 83;  // S
+    screen[1] = 58;  // :
+    screen[2] = currentState + 48;
+    
+    // Show timer
+    screen[5] = 84;  // T
+    screen[6] = 58;  // :
+    screen[7] = stateTimer + 48;
+    
+    // Show transitions
+    screen[10] = 78; // N
+    screen[11] = 58; // :
+    screen[12] = transitionCount + 48;
+}
+
+// Test state machine
+function testStateMachine(): void {
+    initStateMachine();
+    
+    // Simulate game flow
+    processEvent(EVENT_START);     // IDLE -> LOADING
+    
+    // Simulate loading ticks
+    for (i = 0 to 11) {
+        processEvent(EVENT_TICK);
+    }
+    
+    processEvent(EVENT_START);     // MENU -> RUNNING
+    processEvent(EVENT_TICK);
+    processEvent(EVENT_TICK);
+    processEvent(EVENT_PAUSE);     // RUNNING -> PAUSED
+    processEvent(EVENT_RESUME);    // PAUSED -> RUNNING
+    processEvent(EVENT_QUIT);      // RUNNING -> GAMEOVER
+    processEvent(EVENT_RESET);     // GAMEOVER -> MENU
+    
+    displayStateInfo();
+    background = 6;
+}
+
+// Entry point
+function main(): void {
+    testStateMachine();
+}

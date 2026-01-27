@@ -1,0 +1,83 @@
+// @name: Overflow Wrap Edge Cases
+// @description: Tests byte overflow wrapping behavior
+// @category: edge-cases/boundary-values
+// @expect: success
+// @features: arithmetic, overflow
+
+@map screen at $0400: byte[1000];
+
+let maxByte: byte = 255;
+let minByte: byte = 0;
+
+// Byte overflow wraps to 0
+function testByteOverflow(): byte {
+    let result: byte = maxByte + 1;
+    return result;
+}
+
+// Byte underflow wraps to 255
+function testByteUnderflow(): byte {
+    let result: byte = minByte - 1;
+    return result;
+}
+
+// Multiple overflow
+function testMultipleOverflow(): byte {
+    let result: byte = 250;
+    result = result + 10;  // 260 wraps to 4
+    return result;
+}
+
+// Overflow in multiplication
+function testMultiplyOverflow(): byte {
+    let result: byte = 128 * 3;  // 384 wraps to 128
+    return result;
+}
+
+// Addition causing overflow
+function testAdditionOverflow(): byte {
+    let a: byte = 200;
+    let b: byte = 100;
+    let result: byte = a + b;  // 300 wraps to 44
+    return result;
+}
+
+// Increment past max
+function testIncrementPastMax(): byte {
+    let val: byte = 255;
+    val = val + 1;
+    val = val + 1;
+    val = val + 1;
+    return val;  // Should be 3
+}
+
+// Decrement past zero
+function testDecrementPastZero(): byte {
+    let val: byte = 2;
+    val = val - 1;
+    val = val - 1;
+    val = val - 1;
+    return val;  // Should wrap to 255
+}
+
+// Word overflow
+function testWordOverflow(): word {
+    let maxWord: word = 65535;
+    let result: word = maxWord + 1;
+    return result;  // Should wrap to 0
+}
+
+// Main test
+function main(): void {
+    let r1: byte = testByteOverflow();
+    let r2: byte = testByteUnderflow();
+    let r3: byte = testMultipleOverflow();
+    let r4: byte = testAdditionOverflow();
+    let r5: byte = testIncrementPastMax();
+    let r6: byte = testDecrementPastZero();
+    
+    screen[0] = r1 + 48;
+    screen[1] = r2;
+    screen[2] = r3 + 48;
+    screen[3] = r5 + 48;
+}

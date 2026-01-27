@@ -1,0 +1,148 @@
+// @name: Regression - Word and Byte Type Mixing
+// @description: Tests proper handling of word/byte type interactions
+// @category: regressions
+// @expect: success
+// @features: types, word, byte, arithmetic
+
+@map screen at $0400: byte[1000];
+
+// Global test values
+let byteVal: byte = 200;
+let wordVal: word = 1000;
+
+// Byte + byte = word (when result > 255)
+function testByteAddToWord(): word {
+    let a: byte = 200;
+    let b: byte = 100;
+    let result: word = a + b;  // 300
+    return result;
+}
+
+// Word + byte = word
+function testWordPlusByte(): word {
+    let w: word = 500;
+    let b: byte = 50;
+    let result: word = w + b;
+    return result;  // 550
+}
+
+// Word - byte = word
+function testWordMinusByte(): word {
+    let w: word = 500;
+    let b: byte = 50;
+    let result: word = w - b;
+    return result;  // 450
+}
+
+// Byte * byte = word (when result > 255)
+function testByteMultiplyToWord(): word {
+    let a: byte = 20;
+    let b: byte = 15;
+    let result: word = a * b;
+    return result;  // 300
+}
+
+// Word / byte = word
+function testWordDivByte(): word {
+    let w: word = 1000;
+    let b: byte = 10;
+    let result: word = w / b;
+    return result;  // 100
+}
+
+// Large word values
+function testLargeWord(): word {
+    let w: word = 60000;
+    let result: word = w + 1000;
+    return result;  // 61000
+}
+
+// Word comparison with byte
+function testWordByteComparison(): byte {
+    let w: word = 500;
+    let b: byte = 200;
+    if (w > b) {
+        return 1;
+    }
+    return 0;
+}
+
+// Byte fits in word
+function testByteFitsWord(): word {
+    let b: byte = 255;
+    let w: word = b;  // Implicit promotion
+    return w;
+}
+
+// Word in loop counter (for counting high)
+function testWordCounter(): word {
+    let count: word = 0;
+    for (i = 0 to 99) {
+        count = count + 10;  // Goes to 1000
+    }
+    return count;
+}
+
+// Word array indexing with byte
+function testWordArrayByte(): word {
+    let arr: word[5];
+    let idx: byte = 2;
+    arr[idx] = 12345;
+    return arr[idx];
+}
+
+// Mixed arithmetic chain
+function testMixedChain(): word {
+    let b1: byte = 100;
+    let b2: byte = 50;
+    let w: word = 1000;
+    let result: word = w + b1 - b2;
+    return result;  // 1050
+}
+
+// Word bit operations
+function testWordBitwise(): word {
+    let w: word = $FF00;
+    let result: word = w | $00FF;
+    return result;  // $FFFF
+}
+
+// Word shift operations
+function testWordShift(): word {
+    let w: word = 1;
+    let result: word = w << 8;
+    return result;  // 256
+}
+
+// Function returning word from byte calculation
+function calcWord(a: byte, b: byte): word {
+    let result: word = a * b;
+    return result;
+}
+
+function testFunctionReturn(): word {
+    return calcWord(50, 10);  // 500
+}
+
+// Main test
+function main(): void {
+    let r1: word = testByteAddToWord();
+    let r2: word = testWordPlusByte();
+    let r3: word = testWordMinusByte();
+    let r4: word = testByteMultiplyToWord();
+    let r5: word = testWordDivByte();
+    let r6: byte = testWordByteComparison();
+    let r7: word = testByteFitsWord();
+    let r8: word = testWordCounter();
+    let r9: word = testMixedChain();
+    let r10: word = testFunctionReturn();
+    
+    // Display low bytes for visual verification
+    screen[0] = r1 & $FF;  // 44 (300 & 0xFF)
+    screen[1] = r2 & $FF;  // 38 (550 & 0xFF)
+    screen[2] = r3 & $FF;  // 194 (450 & 0xFF)
+    screen[3] = r4 & $FF;  // 44 (300 & 0xFF)
+    screen[4] = r5 & $FF;  // 100
+    screen[5] = r6 + 48;   // '1'
+    screen[6] = r7 & $FF;  // 255
+}

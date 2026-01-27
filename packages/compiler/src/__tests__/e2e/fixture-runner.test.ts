@@ -238,65 +238,73 @@ describe('E2E Fixture Tests', () => {
 
     for (const category of categories) {
       describe(`Category: ${category}`, () => {
-        it(`should pass all ${category} fixtures`, () => {
-          // Skip if no fixtures
-          if (allFixtures.length === 0) {
-            console.log('No fixtures loaded');
-            return;
-          }
-
-          // Filter fixtures for this category
-          const categoryFixtures = allFixtures.filter(f => f.metadata.category === category);
-
-          // Skip if no fixtures in this category
-          if (categoryFixtures.length === 0) {
-            console.log(`No fixtures in category: ${category}`);
-            return;
-          }
-
-          // Run fixtures
-          const summary = runFixtures(categoryFixtures, executor);
-
-          // Report results if there are failures
-          if (summary.failed > 0) {
-            for (const failure of summary.failures) {
-              console.log(formatFailure(failure));
+        it(
+          `should pass all ${category} fixtures`,
+          () => {
+            // Skip if no fixtures
+            if (allFixtures.length === 0) {
+              console.log('No fixtures loaded');
+              return;
             }
-          }
 
-          // All should pass
-          expect(summary.failed).toBe(0);
-        });
+            // Filter fixtures for this category
+            const categoryFixtures = allFixtures.filter(f => f.metadata.category === category);
+
+            // Skip if no fixtures in this category
+            if (categoryFixtures.length === 0) {
+              console.log(`No fixtures in category: ${category}`);
+              return;
+            }
+
+            // Run fixtures
+            const summary = runFixtures(categoryFixtures, executor);
+
+            // Report results if there are failures
+            if (summary.failed > 0) {
+              for (const failure of summary.failures) {
+                console.log(formatFailure(failure));
+              }
+            }
+
+            // All should pass
+            expect(summary.failed).toBe(0);
+          },
+          60_000 // 60 second timeout for category aggregation tests
+        );
       });
     }
   });
 
   // Full suite summary test
   describe('Full Suite', () => {
-    it('should pass all fixtures', () => {
-      // Skip if no fixtures
-      if (allFixtures.length === 0) {
-        console.log('No fixtures loaded');
-        return;
-      }
-
-      // Run all fixtures
-      const summary = runFixtures(allFixtures, executor);
-
-      // Always print summary
-      console.log(generateSummaryReport(summary));
-
-      // Print failures if any
-      if (summary.failed > 0) {
-        console.log('\n=== FAILURES ===\n');
-        for (const failure of summary.failures) {
-          console.log(formatFailure(failure));
+    it(
+      'should pass all fixtures',
+      () => {
+        // Skip if no fixtures
+        if (allFixtures.length === 0) {
+          console.log('No fixtures loaded');
+          return;
         }
-      }
 
-      // All should pass
-      expect(summary.failed).toBe(0);
-    });
+        // Run all fixtures
+        const summary = runFixtures(allFixtures, executor);
+
+        // Always print summary
+        console.log(generateSummaryReport(summary));
+
+        // Print failures if any
+        if (summary.failed > 0) {
+          console.log('\n=== FAILURES ===\n');
+          for (const failure of summary.failures) {
+            console.log(formatFailure(failure));
+          }
+        }
+
+        // All should pass
+        expect(summary.failed).toBe(0);
+      },
+      120_000 // 120 second timeout for full suite aggregation test
+    );
   });
 });
 

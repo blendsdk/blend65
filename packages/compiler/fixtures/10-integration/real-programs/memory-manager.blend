@@ -1,0 +1,169 @@
+// @name: Simple Memory Manager
+// @description: Basic memory pool management for C64
+// @category: integration/real-programs
+// @expect: success
+// @features: functions, arrays, control-flow
+
+// Screen for visual feedback
+@map screen at $0400: byte[1000];
+@map border at $D020: byte;
+
+// Memory pool configuration
+let POOL_SIZE: byte = 32;
+let SLOT_FREE: byte = 0;
+let SLOT_USED: byte = 1;
+
+// Memory pool allocation table
+let poolStatus: byte[32];
+let poolData: byte[32];
+
+// Statistics
+let allocCount: byte = 0;
+let freeCount: byte = 0;
+let peakUsage: byte = 0;
+
+// Initialize memory pool
+function initPool(): void {
+    for (i = 0 to 31) {
+        poolStatus[i] = SLOT_FREE;
+        poolData[i] = 0;
+    }
+    allocCount = 0;
+    freeCount = 0;
+    peakUsage = 0;
+}
+
+// Find first free slot
+function findFreeSlot(): byte {
+    for (i = 0 to 31) {
+        if (poolStatus[i] == SLOT_FREE) {
+            return i;
+        }
+    }
+    return 255;
+}
+
+// Allocate a slot and store a value
+function allocSlot(value: byte): byte {
+    let slot: byte = findFreeSlot();
+    
+    if (slot != 255) {
+        poolStatus[slot] = SLOT_USED;
+        poolData[slot] = value;
+        allocCount = allocCount + 1;
+        
+        let currentUsage: byte = countUsed();
+        if (currentUsage > peakUsage) {
+            peakUsage = currentUsage;
+        }
+    }
+    
+    return slot;
+}
+
+// Free a slot
+function freeSlot(slot: byte): void {
+    if (slot < POOL_SIZE) {
+        if (poolStatus[slot] == SLOT_USED) {
+            poolStatus[slot] = SLOT_FREE;
+            poolData[slot] = 0;
+            freeCount = freeCount + 1;
+        }
+    }
+}
+
+// Read value from slot
+function readSlot(slot: byte): byte {
+    if (slot < POOL_SIZE) {
+        if (poolStatus[slot] == SLOT_USED) {
+            return poolData[slot];
+        }
+    }
+    return 0;
+}
+
+// Write value to slot
+function writeSlot(slot: byte, value: byte): void {
+    if (slot < POOL_SIZE) {
+        if (poolStatus[slot] == SLOT_USED) {
+            poolData[slot] = value;
+        }
+    }
+}
+
+// Count used slots
+function countUsed(): byte {
+    let count: byte = 0;
+    for (i = 0 to 31) {
+        if (poolStatus[i] == SLOT_USED) {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+// Count free slots
+function countFree(): byte {
+    let count: byte = 0;
+    for (i = 0 to 31) {
+        if (poolStatus[i] == SLOT_FREE) {
+            count = count + 1;
+        }
+    }
+    return count;
+}
+
+// Display pool statistics
+function displayStats(): void {
+    screen[0] = 65;  // A
+    screen[1] = 58;  // :
+    screen[2] = allocCount + 48;
+    
+    screen[5] = 70;  // F
+    screen[6] = 58;  // :
+    screen[7] = freeCount + 48;
+    
+    screen[10] = 80; // P
+    screen[11] = 58; // :
+    screen[12] = peakUsage + 48;
+    
+    screen[15] = 85; // U
+    screen[16] = 58; // :
+    screen[17] = countUsed() + 48;
+}
+
+// Test memory operations
+function testMemory(): void {
+    initPool();
+    
+    // Allocate several slots
+    let slot1: byte = allocSlot(10);
+    let slot2: byte = allocSlot(20);
+    let slot3: byte = allocSlot(30);
+    let slot4: byte = allocSlot(40);
+    let slot5: byte = allocSlot(50);
+    
+    // Read and verify
+    let val1: byte = readSlot(slot1);
+    let val2: byte = readSlot(slot2);
+    
+    // Update a value
+    writeSlot(slot2, 25);
+    
+    // Free some slots
+    freeSlot(slot1);
+    freeSlot(slot3);
+    
+    // Reallocate
+    let slot6: byte = allocSlot(60);
+    
+    // Display results
+    displayStats();
+    
+    border = 5;
+}
+
+// Entry point
+function main(): void {
+    testMemory();
+}

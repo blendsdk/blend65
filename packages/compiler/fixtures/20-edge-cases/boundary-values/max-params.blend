@@ -1,0 +1,106 @@
+// @name: Maximum Parameters Edge Cases
+// @description: Tests functions with many parameters
+// @category: edge-cases/boundary-values
+// @expect: success
+// @features: functions, parameters
+
+@map screen at $0400: byte[1000];
+
+// Function with 4 parameters
+function fourParams(a: byte, b: byte, c: byte, d: byte): byte {
+    return a + b + c + d;
+}
+
+// Function with 5 parameters
+function fiveParams(a: byte, b: byte, c: byte, d: byte, e: byte): byte {
+    return a + b + c + d + e;
+}
+
+// Function with 6 parameters
+function sixParams(a: byte, b: byte, c: byte, d: byte, e: byte, f: byte): byte {
+    return a + b + c + d + e + f;
+}
+
+// Function with 8 parameters (stress test)
+function eightParams(p1: byte, p2: byte, p3: byte, p4: byte, 
+                     p5: byte, p6: byte, p7: byte, p8: byte): byte {
+    let sum: byte = p1 + p2;
+    sum = sum + p3 + p4;
+    sum = sum + p5 + p6;
+    sum = sum + p7 + p8;
+    return sum;
+}
+
+// Function with mixed byte and word parameters
+function mixedTypes(a: byte, w1: word, b: byte, w2: word): word {
+    let result: word = a + w1 + b + w2;
+    return result;
+}
+
+// Void function with many parameters
+function voidManyParams(a: byte, b: byte, c: byte, d: byte, e: byte): void {
+    screen[0] = a;
+    screen[1] = b;
+    screen[2] = c;
+    screen[3] = d;
+    screen[4] = e;
+}
+
+// Function using all parameters in expression
+function allInExpression(a: byte, b: byte, c: byte, d: byte): byte {
+    return ((a + b) * c) - d;
+}
+
+// Function passing params to another function
+function passThroughParams(x: byte, y: byte, z: byte, w: byte): byte {
+    return fourParams(x, y, z, w);
+}
+
+// Function with parameters used in loop
+function paramsInLoop(start: byte, limit: byte, step: byte): byte {
+    let sum: byte = 0;
+    let i: byte = start;
+    while (i < limit) {
+        sum = sum + i;
+        i = i + step;
+    }
+    return sum;
+}
+
+// Function with parameters in conditional
+function paramsInConditional(a: byte, b: byte, c: byte): byte {
+    if (a > b) {
+        return c;
+    }
+    if (b > a) {
+        return a + b;
+    }
+    return c + c;
+}
+
+// Nested calls with many params
+function nestedCallsParams(a: byte, b: byte, c: byte, d: byte): byte {
+    let inner: byte = fourParams(a, b, c, d);
+    return fourParams(inner, a, b, c);
+}
+
+// Main test
+function main(): void {
+    let r1: byte = fourParams(1, 2, 3, 4);
+    let r2: byte = fiveParams(1, 2, 3, 4, 5);
+    let r3: byte = sixParams(1, 2, 3, 4, 5, 6);
+    let r4: byte = eightParams(1, 2, 3, 4, 5, 6, 7, 8);
+    let r5: word = mixedTypes(10, 100, 20, 200);
+    voidManyParams(65, 66, 67, 68, 69);
+    let r6: byte = allInExpression(2, 3, 4, 5);
+    let r7: byte = passThroughParams(1, 1, 1, 1);
+    let r8: byte = paramsInConditional(5, 3, 10);
+    
+    screen[10] = r1 + 48;
+    screen[11] = r2 + 38;
+    screen[12] = r3 + 27;
+    screen[13] = r4;
+    screen[14] = r6 + 48;
+    screen[15] = r7 + 48;
+    screen[16] = r8 + 48;
+}

@@ -1,0 +1,151 @@
+// @name: Regression - Compound Conditions
+// @description: Tests complex compound conditions with && and ||
+// @category: regressions
+// @expect: success
+// @features: logical-operators, conditions
+
+@map screen at $0400: byte[1000];
+
+let a: byte = 5;
+let b: byte = 10;
+let c: byte = 15;
+
+// Simple AND condition
+function testSimpleAnd(): byte {
+    if ((a < b) && (b < c)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Simple OR condition
+function testSimpleOr(): byte {
+    if ((a > 100) || (b > 5)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Triple AND
+function testTripleAnd(): byte {
+    if ((a > 0) && (b > 0) && (c > 0)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Triple OR
+function testTripleOr(): byte {
+    if ((a > 100) || (b > 100) || (c > 10)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Mixed AND/OR (AND has higher precedence)
+function testMixedAndOr(): byte {
+    // (a > 100) || ((b < 15) && (c > 10))
+    if ((a > 100) || (b < 15) && (c > 10)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Nested parentheses
+function testNestedParens(): byte {
+    if (((a > 0) && (b > 0)) || (c > 100)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Negation with compound
+function testNegationCompound(): byte {
+    if (!((a > 100) || (b > 100))) {
+        return 1;
+    }
+    return 0;
+}
+
+// Short-circuit AND (second shouldn't matter if first false)
+function testShortCircuitAnd(): byte {
+    if ((a > 100) && (b / 0 > 0)) {
+        return 0;
+    }
+    return 1;  // Should reach here due to short-circuit
+}
+
+// Short-circuit OR (second shouldn't matter if first true)
+function testShortCircuitOr(): byte {
+    if ((a < 10) || (b / 0 > 0)) {
+        return 1;  // Should reach here due to short-circuit
+    }
+    return 0;
+}
+
+// Comparison with variables
+function testVariableComparison(): byte {
+    let x: byte = 20;
+    let y: byte = 30;
+    if ((x < y) && (y < 40)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Multiple equal comparisons
+function testEqualityChain(): byte {
+    let val: byte = 5;
+    if ((val != 0) && (val != 10) && (val != 20)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Range check pattern
+function testRangeCheck(): byte {
+    let val: byte = 50;
+    if ((val >= 10) && (val <= 100)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Complex boolean expression
+function testComplex(): byte {
+    let x: byte = 5;
+    let y: byte = 10;
+    let z: byte = 15;
+    
+    if (((x > 0) && (y > 0)) && ((z > 0) || (x > 100))) {
+        return 1;
+    }
+    return 0;
+}
+
+// Main test
+function main(): void {
+    let r1: byte = testSimpleAnd();
+    let r2: byte = testSimpleOr();
+    let r3: byte = testTripleAnd();
+    let r4: byte = testTripleOr();
+    let r5: byte = testMixedAndOr();
+    let r6: byte = testNestedParens();
+    let r7: byte = testNegationCompound();
+    let r8: byte = testVariableComparison();
+    let r9: byte = testEqualityChain();
+    let r10: byte = testRangeCheck();
+    let r11: byte = testComplex();
+    
+    screen[0] = r1 + 48;
+    screen[1] = r2 + 48;
+    screen[2] = r3 + 48;
+    screen[3] = r4 + 48;
+    screen[4] = r5 + 48;
+    screen[5] = r6 + 48;
+    screen[6] = r7 + 48;
+    screen[7] = r8 + 48;
+    screen[8] = r9 + 48;
+    screen[9] = r10 + 48;
+    screen[10] = r11 + 48;
+}

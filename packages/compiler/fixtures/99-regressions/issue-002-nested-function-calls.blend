@@ -1,0 +1,102 @@
+// @name: Regression - Nested Function Calls
+// @description: Tests nested function call evaluation order
+// @category: regressions
+// @expect: success
+// @features: functions, nested-calls
+
+@map screen at $0400: byte[1000];
+
+// Simple functions for nesting
+function add(a: byte, b: byte): byte {
+    return a + b;
+}
+
+function mul(a: byte, b: byte): byte {
+    return a * b;
+}
+
+function sub(a: byte, b: byte): byte {
+    return a - b;
+}
+
+// Identity function
+function identity(x: byte): byte {
+    return x;
+}
+
+// Nested call: f(g(x))
+function testSimpleNested(): byte {
+    return add(1, identity(2));
+}
+
+// Double nested: f(g(h(x)))
+function testDoubleNested(): byte {
+    return add(1, add(2, identity(3)));
+}
+
+// Multiple nested args: f(g(x), h(y))
+function testMultipleNestedArgs(): byte {
+    return add(identity(5), identity(10));
+}
+
+// Nested in both positions
+function testBothPositions(): byte {
+    return add(add(1, 2), add(3, 4));
+}
+
+// Mixed operations nested
+function testMixedNested(): byte {
+    return mul(add(2, 3), sub(10, 5));
+}
+
+// Deep nesting
+function testDeepNesting(): byte {
+    return add(add(add(add(1, 2), 3), 4), 5);
+}
+
+// Nested with constants and variables
+function testNestedWithVars(): byte {
+    let x: byte = 10;
+    let y: byte = 20;
+    return add(x, mul(2, y));
+}
+
+// Verify call order with side effects
+let callOrder: byte = 0;
+
+function first(): byte {
+    callOrder = callOrder + 1;
+    return 1;
+}
+
+function second(): byte {
+    callOrder = callOrder + 10;
+    return 2;
+}
+
+function testCallOrder(): byte {
+    callOrder = 0;
+    let result: byte = add(first(), second());
+    return callOrder;  // Should be 11
+}
+
+// Main test
+function main(): void {
+    let r1: byte = testSimpleNested();
+    let r2: byte = testDoubleNested();
+    let r3: byte = testMultipleNestedArgs();
+    let r4: byte = testBothPositions();
+    let r5: byte = testMixedNested();
+    let r6: byte = testDeepNesting();
+    let r7: byte = testNestedWithVars();
+    let r8: byte = testCallOrder();
+    
+    screen[0] = r1 + 48;
+    screen[1] = r2 + 48;
+    screen[2] = r3 + 38;
+    screen[3] = r4 + 38;
+    screen[4] = r5 + 23;
+    screen[5] = r6 + 38;
+    screen[6] = r7;
+    screen[7] = r8 + 38;
+}

@@ -1,0 +1,93 @@
+// @name: Empty Function Edge Cases
+// @description: Tests handling of minimal/empty functions
+// @category: edge-cases/boundary-values
+// @expect: success
+// @features: functions, void
+
+@map screen at $0400: byte[1000];
+
+// Completely empty void function
+function emptyVoid(): void {
+}
+
+// Void function with only variable declaration
+function voidWithDecl(): void {
+    let unused: byte = 0;
+}
+
+// Function that immediately returns
+function immediateReturn(): byte {
+    return 42;
+}
+
+// Void function that calls empty function
+function callsEmpty(): void {
+    emptyVoid();
+}
+
+// Function with parameter but no use
+function unusedParam(x: byte): void {
+    let y: byte = 0;
+}
+
+// Chain of empty calls
+function emptyChain1(): void {
+}
+
+function emptyChain2(): void {
+    emptyChain1();
+}
+
+function emptyChain3(): void {
+    emptyChain2();
+}
+
+// Function returning constant only
+function returnConstantOnly(): byte {
+    return 0;
+}
+
+// Function with multiple unused params
+function multipleUnusedParams(a: byte, b: byte, c: byte): void {
+}
+
+// Void function with single assignment
+function singleAssignment(): void {
+    let x: byte = 1;
+}
+
+// Function that returns parameter directly
+function returnParam(val: byte): byte {
+    return val;
+}
+
+// Multiple empty void functions in sequence
+function emptyA(): void {
+}
+
+function emptyB(): void {
+}
+
+function emptyC(): void {
+}
+
+// Main test - call all functions
+function main(): void {
+    emptyVoid();
+    voidWithDecl();
+    let r1: byte = immediateReturn();
+    callsEmpty();
+    unusedParam(10);
+    emptyChain3();
+    let r2: byte = returnConstantOnly();
+    multipleUnusedParams(1, 2, 3);
+    singleAssignment();
+    let r3: byte = returnParam(99);
+    emptyA();
+    emptyB();
+    emptyC();
+    
+    screen[0] = r1;
+    screen[1] = r2 + 48;
+    screen[2] = r3;
+}

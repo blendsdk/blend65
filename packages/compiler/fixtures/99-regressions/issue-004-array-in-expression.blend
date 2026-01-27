@@ -1,0 +1,136 @@
+// @name: Regression - Array Access in Expressions
+// @description: Tests array access within complex expressions
+// @category: regressions
+// @expect: success
+// @features: arrays, expressions
+
+@map screen at $0400: byte[1000];
+
+let data: byte[10];
+let results: byte[10];
+
+// Initialize test data
+function initData(): void {
+    for (i = 0 to 9) {
+        data[i] = i + 1;  // 1-10
+    }
+}
+
+// Array access in arithmetic
+function testArrayArithmetic(): byte {
+    return data[0] + data[1] + data[2];  // 1+2+3 = 6
+}
+
+// Array access with computed index
+function testComputedIndex(): byte {
+    let idx: byte = 2;
+    return data[idx + 1];  // data[3] = 4
+}
+
+// Array access in comparison
+function testArrayComparison(): byte {
+    if (data[5] > data[2]) {
+        return 1;
+    }
+    return 0;
+}
+
+// Array as both sides of comparison
+function testBothSidesArray(): byte {
+    if (data[0] < data[9]) {
+        return 1;
+    }
+    return 0;
+}
+
+// Array in function call
+function double(val: byte): byte {
+    return val * 2;
+}
+
+function testArrayInCall(): byte {
+    return double(data[4]);  // double(5) = 10
+}
+
+// Array assignment to array
+function testArrayToArray(): void {
+    results[0] = data[0];
+    results[1] = data[5];
+    results[2] = data[9];
+}
+
+// Array in loop expression
+function testArrayInLoop(): byte {
+    let sum: byte = 0;
+    for (i = 0 to 4) {
+        sum = sum + data[i];
+    }
+    return sum;  // 1+2+3+4+5 = 15
+}
+
+// Nested array access
+function testNestedArray(): byte {
+    let indices: byte[3];
+    indices[0] = 1;
+    indices[1] = 3;
+    indices[2] = 5;
+    
+    let idx: byte = indices[0];  // idx = 1
+    return data[idx];  // data[1] = 2
+}
+
+// Array in ternary-like pattern
+function testArrayConditional(): byte {
+    let selector: byte = 1;
+    if (selector != 0) {
+        return data[7];
+    }
+    return data[0];
+}
+
+// Multiple array accesses in one expression
+function testMultipleAccess(): byte {
+    return data[0] * data[1] + data[2] * data[3];  // 1*2 + 3*4 = 14
+}
+
+// Array access with subtraction index
+function testSubtractionIndex(): byte {
+    let idx: byte = 9;
+    return data[idx - 5];  // data[4] = 5
+}
+
+// Array modification in expression
+function testModifyAndUse(): byte {
+    data[0] = 100;
+    let result: byte = data[0] + 1;  // 101
+    data[0] = 1;  // Restore
+    return result;
+}
+
+// Main test
+function main(): void {
+    initData();
+    
+    let r1: byte = testArrayArithmetic();
+    let r2: byte = testComputedIndex();
+    let r3: byte = testArrayComparison();
+    let r4: byte = testBothSidesArray();
+    let r5: byte = testArrayInCall();
+    testArrayToArray();
+    let r6: byte = testArrayInLoop();
+    let r7: byte = testNestedArray();
+    let r8: byte = testMultipleAccess();
+    let r9: byte = testSubtractionIndex();
+    let r10: byte = testModifyAndUse();
+    
+    screen[0] = r1 + 48;
+    screen[1] = r2 + 48;
+    screen[2] = r3 + 48;
+    screen[3] = r4 + 48;
+    screen[4] = r5 + 38;
+    screen[5] = r6 + 33;
+    screen[6] = r7 + 48;
+    screen[7] = r8 + 34;
+    screen[8] = r9 + 48;
+    screen[9] = r10;
+}

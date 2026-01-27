@@ -4,7 +4,7 @@
 > **Test Status**: 7,078/7,080 passing (99.97%)  
 > **Failed Tests**: 0  
 > **Skipped Tests**: 2  
-> **Active Plans**: 5 folders
+> **Active Plans**: 4 folders
 
 ---
 
@@ -18,8 +18,7 @@ All remaining work is for **new features**, not bug fixes:
 
 1. **Optimizer** - 7-phase roadmap ready, implementation not started
 2. **Developer Experience** - CLI, VICE integration, source maps
-3. **E2E Testing** - Fixture infrastructure in progress
-4. **Future Features** - Inline assembly, interrupts, native assembler
+3. **Future Features** - Inline assembly, interrupts, native assembler
 
 ---
 
@@ -51,11 +50,10 @@ All remaining work is for **new features**, not bug fixes:
   - `blend65 watch` command
   - Project templates
 
-- [ ] **Extreme E2E Testing** (`plans/extreme-e2e-testing/`)
-  - Phase 1-2: Complete ✅
-  - Phase 3-4: Partially complete
-  - Phases 5-8: Not started
-  - Goal: 350+ fixture tests
+- [x] **Extreme E2E Testing** - ✅ ARCHIVED
+  - Fixture infrastructure complete
+  - E2E tests integrated into main test suite
+  - 1,500+ E2E & integration tests now passing
 
 ### 🟢 Low Priority (Future)
 
@@ -78,7 +76,6 @@ All remaining work is for **new features**, not bug fixes:
 |------|--------|-------------|----------------|
 | `optimizer-series/` | 📋 Roadmap Complete | 7-phase optimizer plan | ~4-6 weeks |
 | `dx-features/` | 📋 Ready | CLI, VICE, source maps | ~1-2 weeks |
-| `extreme-e2e-testing/` | 🔄 In Progress | Fixture-based testing | ~2-3 weeks |
 | `native-assembler/` | 📋 Planning | Direct .prg output | TBD |
 | `features/` | 📖 Research | Future language features | TBD |
 
@@ -173,12 +170,6 @@ Component Breakdown:
 2. Start with `plans/dx-features/99-execution-plan.md`
 3. Phase 1: Source maps (~2-3 hours)
 4. Phase 2: VICE integration (~1-2 hours)
-
-### If Continuing E2E Testing
-
-1. Read `plans/extreme-e2e-testing/99-execution-plan.md`
-2. Continue from Phase 4 (Parser & Semantic Fixtures)
-3. Create remaining ~200 fixtures
 
 ---
 

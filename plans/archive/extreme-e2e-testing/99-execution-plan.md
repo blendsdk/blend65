@@ -245,7 +245,27 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 5.2.x Create 8 constant folding fixtures ✅ (comparison-fold, logical-fold, shift-fold, nested-fold, mixed-fold, division-fold, unary-fold, complex-fold)
 - [x] 5.3.x Create 8 codegen pattern fixtures ✅ (branch-instructions, jump-instructions, stack-operations, loop-codegen, function-call-codegen, memory-copy, increment-decrement, comparison-branch)
 
-### Phase 6-8: To be detailed during execution
+### Phase 6: Error Cases (~53 fixtures)
+- [x] 6.1.x Create parse error fixtures ✅
+- [x] 6.2.x Create semantic error fixtures ✅
+
+### Phase 7: Real-World Programs (~20 fixtures)
+- [x] 7.1.x Game patterns (sprite-movement, sprite-manager, game-loop, collision, score-system, snake-game, breakout-paddle) ✅
+- [x] 7.2.x Hardware patterns (border-color, color-cycle, raster-bars, sid-player, screen-draw, input-handler) ✅
+- [x] 7.3.x Utility patterns (math-utils, string-utils, timer-countdown, platformer-physics, bit-utils, memory-manager, state-machine) ✅
+
+### Phase 8: Edge Cases & Regressions
+- [x] 8.1.x Boundary value fixtures (15 total) ✅
+  - byte-max, word-max, array-max-index, function-call-depth, nested-loop-depth
+  - zero-values, overflow-wrap, single-iteration-loop, empty-function, max-params, array-boundary
+- [x] 8.2.x Regression fixtures (10 total) ✅
+  - issue-001-dominator-warning, issue-002-nested-function-calls, issue-003-loop-variable-scope
+  - issue-004-array-in-expression, issue-005-compound-condition, issue-006-function-parameter-order
+  - issue-007-early-return-path, issue-008-map-with-expression, issue-009-while-loop-exit
+  - issue-010-word-byte-mixing
+- [x] 8.3.x Complex CFG fixtures (multiple-paths) ✅
+- [x] 8.4.x Deeply nested fixtures (deep-loops, deep-if) ✅
+- [x] 8.5.x Large files fixtures (many-variables) ✅
 
 ---
 

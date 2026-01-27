@@ -1,0 +1,155 @@
+// @name: Regression - Early Return Paths
+// @description: Tests early return from functions in various contexts
+// @category: regressions
+// @expect: success
+// @features: functions, return, control-flow
+
+@map screen at $0400: byte[1000];
+
+// Early return on first condition
+function testEarlyReturn(val: byte): byte {
+    if (val < 10) {
+        return 1;
+    }
+    if (val < 20) {
+        return 2;
+    }
+    return 3;
+}
+
+// Return from nested if
+function testNestedReturn(a: byte, b: byte): byte {
+    if (a > 0) {
+        if (b > 0) {
+            return a + b;
+        }
+        return a;
+    }
+    return b;
+}
+
+// Return from loop
+function testReturnFromLoop(limit: byte): byte {
+    for (i = 0 to 99) {
+        if (i >= limit) {
+            return i;
+        }
+    }
+    return 100;
+}
+
+// Return from while loop
+function testReturnFromWhile(): byte {
+    let count: byte = 0;
+    while (count < 100) {
+        if (count == 42) {
+            return count;
+        }
+        count = count + 1;
+    }
+    return 0;
+}
+
+// Multiple return points
+function testMultipleReturns(selector: byte): byte {
+    if (selector == 0) {
+        return 10;
+    }
+    if (selector == 1) {
+        return 20;
+    }
+    if (selector == 2) {
+        return 30;
+    }
+    if (selector == 3) {
+        return 40;
+    }
+    if (selector == 4) {
+        return 50;
+    }
+    return 0;
+}
+
+// Return from else branch
+function testReturnFromElse(cond: byte): byte {
+    if (cond != 0) {
+        let x: byte = cond + 10;
+        return x;
+    } else {
+        return 0;
+    }
+}
+
+// Return after operations
+function testReturnAfterOps(): byte {
+    let x: byte = 10;
+    let y: byte = 20;
+    let z: byte = x + y;
+    return z;
+}
+
+// Return in deeply nested context
+function testDeepReturn(a: byte, b: byte, c: byte): byte {
+    if (a > 0) {
+        for (i = 0 to 4) {
+            if (b > i) {
+                if (c > a) {
+                    return a + b + c;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+// Return with array access
+function testReturnWithArray(): byte {
+    let arr: byte[5];
+    arr[0] = 10;
+    arr[1] = 20;
+    arr[2] = 30;
+    
+    for (i = 0 to 4) {
+        if (arr[i] >= 25) {
+            return arr[i];
+        }
+    }
+    return 0;
+}
+
+// Return boolean-like result
+function testReturnBool(val: byte): byte {
+    if (val > 50) {
+        return 1;
+    }
+    return 0;
+}
+
+// Main test
+function main(): void {
+    let r1: byte = testEarlyReturn(5);
+    let r2: byte = testEarlyReturn(15);
+    let r3: byte = testEarlyReturn(25);
+    let r4: byte = testNestedReturn(5, 10);
+    let r5: byte = testReturnFromLoop(7);
+    let r6: byte = testReturnFromWhile();
+    let r7: byte = testMultipleReturns(2);
+    let r8: byte = testReturnFromElse(5);
+    let r9: byte = testReturnAfterOps();
+    let r10: byte = testDeepReturn(2, 3, 4);
+    let r11: byte = testReturnWithArray();
+    let r12: byte = testReturnBool(75);
+    
+    screen[0] = r1 + 48;
+    screen[1] = r2 + 48;
+    screen[2] = r3 + 48;
+    screen[3] = r4 + 38;
+    screen[4] = r5 + 48;
+    screen[5] = r6;
+    screen[6] = r7;
+    screen[7] = r8 + 38;
+    screen[8] = r9;
+    screen[9] = r10 + 48;
+    screen[10] = r11;
+    screen[11] = r12 + 48;
+}
