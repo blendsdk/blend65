@@ -1,0 +1,45 @@
+// @fixture: semantic/type-checking/byte-operations
+// @category: semantic
+// @description: Tests type checking for byte type operations
+// @expect: success
+// @output-contains: LDA
+// @tags: semantic, type-checking, byte
+
+module ByteOperations;
+
+let result: byte = 0;
+
+function main(): void {
+    // Byte literals
+    let a: byte = 10;
+    let b: byte = 20;
+    let hex: byte = $FF;
+    let bin: byte = $AA;
+    
+    // Byte arithmetic (results in byte for + and -)
+    result = a + b;
+    result = a - b;
+    
+    // Byte comparisons (results in bool)
+    let eq: boolean = a == b;
+    let neq: boolean = a != b;
+    let lt: boolean = a < b;
+    let gt: boolean = a > b;
+    let lte: boolean = a <= b;
+    let gte: boolean = a >= b;
+    
+    // Byte bitwise operations (results in byte)
+    let andResult: byte = a & b;
+    let orResult: byte = a | b;
+    let xorResult: byte = a ^ b;
+    let notResult: byte = ~a;
+    
+    // Byte shift operations (results in byte)
+    let shiftLeft: byte = a << 2;
+    let shiftRight: byte = a >> 2;
+    
+    // Use results to prevent optimization
+    poke($0400, result);
+    poke($0401, andResult);
+    poke($0402, orResult);
+}

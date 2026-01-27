@@ -1,0 +1,43 @@
+// @fixture: parser/declarations/arrays/initialized-arrays
+// @category: parser
+// @description: Tests parsing of array declarations with initializers
+// @expect: success
+// @output-contains: LDA
+// @tags: declarations, arrays, initializers
+
+module InitializedArrays;
+
+// Arrays with literal initializers
+let digits: byte[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+let hexValues: byte[] = [$00, $11, $22, $33, $44, $55];
+let binaryFlags: byte[] = [$01, $02, $04, $08];
+
+// Word arrays with initializers
+let screenLines: word[] = [$0400, $0428, $0450, $0478];
+let colorLines: word[] = [$D800, $D828, $D850, $D878];
+
+// Small initialized arrays
+let directions: byte[] = [0, 1, 2, 3];
+let deltas: byte[] = [255, 1, 216, 40];
+
+// Sprite pointers (C64 specific)
+let spritePointers: byte[] = [192, 193, 194, 195, 196, 197, 198, 199];
+
+function main(): void {
+    // Read from initialized arrays
+    let digit: byte = digits[5];
+    let hexVal: byte = hexValues[2];
+    let flag: byte = binaryFlags[0];
+    
+    // Use word array
+    let screenAddr: word = screenLines[0];
+    let colorAddr: word = colorLines[0];
+    
+    // Use direction array
+    let currentDir: byte = directions[1];
+    let delta: byte = deltas[currentDir];
+    
+    // Store results
+    poke(screenAddr, digit);
+    poke(colorAddr, 1);
+}

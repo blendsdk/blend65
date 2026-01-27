@@ -1,0 +1,106 @@
+// @fixture: integration/real-programs/timer-countdown
+// @category: integration
+// @description: Game timer countdown with display update
+// @expect: success
+// @output-contains: RTS
+// @tags: game, timer, countdown, real-world
+
+module TimerCountdown;
+
+// Timer state
+let minutes: byte = 3;
+let seconds: byte = 0;
+let timerActive: byte = 0;
+let timerExpired: byte = 0;
+
+// Display positions
+let TIMER_ROW: byte = 0;
+let TIMER_COL: byte = 17;
+
+// Convert digit to screen code
+function digitToScreen(digit: byte): byte {
+    return $30 + digit;  // '0' = $30
+}
+
+// Display timer on screen
+function displayTimer(): void {
+    let baseAddr: word = $0400 + (TIMER_ROW * 40) + TIMER_COL;
+    
+    // Minutes (single digit for simplicity)
+    poke(baseAddr, digitToScreen(minutes));
+    
+    // Colon
+    poke(baseAddr + 1, $3A);  // ':'
+    
+    // Seconds tens digit
+    let secTens: byte = seconds / 10;
+    poke(baseAddr + 2, digitToScreen(secTens));
+    
+    // Seconds ones digit
+    let secOnes: byte = seconds - (secTens * 10);
+    poke(baseAddr + 3, digitToScreen(secOnes));
+}
+
+// Decrement timer by one second
+function tickTimer(): void {
+    if (timerActive != 0) {
+        if (seconds > 0) {
+            seconds = seconds - 1;
+        } else {
+            if (minutes > 0) {
+                minutes = minutes - 1;
+                seconds = 59;
+            } else {
+                // Timer expired
+                timerExpired = 1;
+                timerActive = 0;
+            }
+        }
+        
+        displayTimer();
+    }
+}
+
+// Start the timer
+function startTimer(mins: byte, secs: byte): void {
+    minutes = mins;
+    seconds = secs;
+    timerActive = 1;
+    timerExpired = 0;
+    displayTimer();
+}
+
+// Stop the timer
+function stopTimer(): void {
+    timerActive = 0;
+}
+
+// Reset timer to initial value
+function resetTimer(): void {
+    minutes = 3;
+    seconds = 0;
+    timerExpired = 0;
+    timerActive = 0;
+    displayTimer();
+}
+
+// Check if timer is expired
+function isExpired(): byte {
+    return timerExpired;
+}
+
+export function main(): void {
+    // Initialize and start 3:00 countdown
+    startTimer(3, 0);
+    
+    // Simulate timer ticks
+    while (timerActive) {
+        // Wait for frame timing (simplified)
+        tickTimer();
+    }
+    
+    // Timer expired - game over logic would go here
+    if (isExpired()) {
+        poke($0400, $47);  // 'G' for Game Over
+    }
+}

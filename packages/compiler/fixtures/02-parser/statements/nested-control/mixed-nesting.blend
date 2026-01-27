@@ -1,0 +1,103 @@
+// @fixture: parser/statements/nested-control/mixed-nesting
+// @category: parser
+// @description: Tests parsing of mixed nested control structures (if, for, while)
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, if, for, while, nested, control-flow
+
+module MixedNesting;
+
+@zp let evenCount: byte = 0;
+@zp let conditionMet: byte = 0;
+
+function main(): void {
+    // For with if inside
+    for (i = 0 to 10) {
+        if (i > 5) {
+            conditionMet = conditionMet + 1;
+        }
+    }
+    
+    poke($0400, conditionMet);  // 5 (6,7,8,9,10)
+    
+    // While with if inside
+    let counter: byte = 0;
+    let matches: byte = 0;
+    
+    while (counter < 20) {
+        if (counter > 10) {
+            matches = matches + 1;
+        }
+        counter = counter + 1;
+    }
+    
+    poke($0401, matches);  // 9 (11 through 19)
+    
+    // If with for inside
+    let processLarge: byte = 0;
+    let value: byte = 100;
+    
+    if (value > 50) {
+        for (j = 0 to 5) {
+            processLarge = processLarge + j;
+        }
+    }
+    
+    poke($0402, processLarge);  // 0+1+2+3+4+5 = 15
+    
+    // Complex: for -> if -> while
+    let complexCount: byte = 0;
+    
+    for (a = 0 to 2) {
+        if (a > 0) {
+            let w: byte = 0;
+            while (w < 3) {
+                complexCount = complexCount + 1;
+                w = w + 1;
+            }
+        }
+    }
+    
+    poke($0403, complexCount);  // 2 iterations (a=1,2) * 3 while = 6
+    
+    // Complex: while -> for -> if with break
+    let searchResult: byte = 0;
+    let searchDone: byte = 0;
+    let searchLimit: byte = 3;
+    
+    while (searchDone == 0) {
+        for (idx = 0 to 5) {
+            if (idx == 3) {
+                searchResult = idx;
+                searchDone = 1;
+                break;
+            }
+        }
+        if (searchDone == 0) {
+            searchLimit = searchLimit - 1;
+            if (searchLimit == 0) {
+                searchDone = 1;
+            }
+        }
+    }
+    
+    poke($0404, searchResult);  // Should be 3
+    
+    // Deeply mixed: if -> for -> while -> if
+    let deepResult: byte = 0;
+    let threshold: byte = 50;
+    
+    if (threshold > 25) {
+        for (x = 0 to 2) {
+            let y: byte = 0;
+            while (y < 2) {
+                if (x == y) {
+                    deepResult = deepResult + 1;
+                }
+                y = y + 1;
+            }
+        }
+    }
+    
+    poke($0405, deepResult);  // When x=0,y=0 match; x=1,y=1 match = 2
+}

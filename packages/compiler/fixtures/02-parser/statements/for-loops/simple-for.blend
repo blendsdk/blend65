@@ -1,0 +1,55 @@
+// @fixture: parser/statements/for-loops/simple-for
+// @category: parser
+// @description: Tests parsing of simple for loops with 'to' keyword
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, for, loops, control-flow
+
+module SimpleFor;
+
+@zp let sum: byte = 0;
+@zp let count: byte = 0;
+
+function main(): void {
+    // Basic for loop counting up
+    for (i = 0 to 10) {
+        sum = sum + 1;
+    }
+    
+    poke($0400, sum);  // Should be 11 (0 to 10 inclusive)
+    
+    // For loop with accumulation
+    let total: byte = 0;
+    for (j = 1 to 5) {
+        total = total + j;
+    }
+    
+    poke($0401, total);  // 1+2+3+4+5 = 15
+    
+    // For loop starting from non-zero
+    let partial: byte = 0;
+    for (k = 5 to 10) {
+        partial = partial + 1;
+    }
+    
+    poke($0402, partial);  // Should be 6 (5,6,7,8,9,10)
+    
+    // For loop with variable bounds
+    let start: byte = 2;
+    let finish: byte = 8;
+    let rangeSum: byte = 0;
+    
+    for (m = start to finish) {
+        rangeSum = rangeSum + m;
+    }
+    
+    poke($0403, rangeSum);  // 2+3+4+5+6+7+8 = 35
+    
+    // For loop with single iteration
+    let single: byte = 0;
+    for (n = 5 to 5) {
+        single = 99;
+    }
+    
+    poke($0404, single);  // Should be 99
+}

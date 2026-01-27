@@ -1,0 +1,43 @@
+// @fixture: integration/multi-module/simple-import
+// @category: integration
+// @description: Tests simple import from system module
+// @expect: success
+// @output-contains: STA $D020
+// @output-contains: LDA
+// @tags: import, module, system
+
+module SimpleImport;
+
+// Import peek and poke from system module
+import { peek, poke } from system;
+
+// VIC-II border color address
+const BORDER_COLOR: word = $D020;
+const BACKGROUND_COLOR: word = $D021;
+
+// Use imported system functions
+function setBorderBlue(): void {
+    poke(BORDER_COLOR, 6);
+}
+
+function setBackgroundBlack(): void {
+    poke(BACKGROUND_COLOR, 0);
+}
+
+function readBorderColor(): byte {
+    return peek(BORDER_COLOR);
+}
+
+export function main(): void {
+    // Set colors using imported poke
+    setBorderBlue();
+    setBackgroundBlack();
+
+    // Read color using imported peek
+    let currentBorder: byte = readBorderColor();
+
+    // Use the value to prevent optimization
+    if (currentBorder == 6) {
+        poke(BORDER_COLOR, 14);
+    }
+}

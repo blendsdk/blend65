@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/invalid-array-size
+// @category: error-cases
+// @description: Tests that parser correctly reports invalid array size
+// @expect: error
+// @error-contains: size
+// @tags: parser, error, array
+
+module InvalidArraySize;
+
+function main(): void {
+    let arr: byte[-5];
+}

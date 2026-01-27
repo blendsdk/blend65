@@ -1,0 +1,14 @@
+// @fixture: error-cases/semantic-errors/undefined-variable
+// @category: error-cases
+// @description: Tests semantic error for undefined variable reference
+// @expect: error
+// @error-contains: undefined
+// @tags: error, semantic, undefined
+
+module UndefinedVariable;
+
+function main(): void {
+    // Using a variable that was never declared
+    let result: byte = undeclaredVar + 10;
+    poke($0400, result);
+}

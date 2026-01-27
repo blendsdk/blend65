@@ -1,0 +1,14 @@
+// @fixture: error-cases/parser-errors/missing-semicolon
+// @category: error-cases
+// @description: Tests that parser correctly reports missing semicolon error
+// @expect: error
+// @error-code: P002
+// @error-message: Expected semicolon
+// @tags: parser, error, semicolon
+
+module MissingSemicolon;
+
+function main(): void {
+    let x: byte = 10
+    let y: byte = 20;
+}

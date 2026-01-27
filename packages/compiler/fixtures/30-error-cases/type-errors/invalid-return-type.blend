@@ -1,0 +1,18 @@
+// @fixture: error-cases/type-errors/invalid-return-type
+// @category: error-cases
+// @description: Tests type error for incorrect function return type
+// @expect: error
+// @error-contains: return
+// @tags: error, type, return
+
+module InvalidReturnType;
+
+function getValue(): byte {
+    let wide: word = 1000;
+    return wide;  // Returning word when byte expected
+}
+
+function main(): void {
+    let result: byte = getValue();
+    poke($0400, result);
+}

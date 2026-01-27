@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-opening-brace
+// @category: error-cases
+// @description: Tests that parser correctly reports missing opening brace
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, brace
+
+module MissingOpeningBrace;
+
+function main(): void
+    let x: byte = 10;
+}

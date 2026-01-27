@@ -1,0 +1,65 @@
+// @fixture: parser/expressions/deeply-nested/deeply-nested-expr
+// @category: parser
+// @description: Tests deeply nested parenthesized expressions
+// @expect: success
+// @output-contains: LDA
+// @tags: expressions, deeply-nested, parentheses, stress
+
+module DeeplyNestedExpr;
+
+// Module-level array for nested tests
+let buffer: byte[8];
+
+function main(): void {
+    let a: byte = 2;
+    let b: byte = 3;
+    let c: byte = 4;
+    let d: byte = 5;
+    
+    // Level 1: Simple parentheses
+    let n1: byte = (a + b);
+    
+    // Level 2: Nested parentheses
+    let n2: byte = ((a + b) * c);
+    
+    // Level 3: Triple nested
+    let n3: byte = (((a + b) * c) - d);
+    
+    // Level 4: Deep nesting
+    let n4: byte = ((((a + b) * c) - d) / a);
+    
+    // Level 5: Very deep
+    let n5: byte = (((((a + b) * c) - d) / a) + b);
+    
+    // Level 6: Extremely deep
+    let n6: byte = ((((((a + b) * c) - d) / a) + b) * c);
+    
+    // Multiple nested groups
+    let multi: byte = ((a + b) * (c + d));
+    
+    // Parallel nesting
+    let parallel: byte = (((a + b)) + ((c + d)));
+    
+    // Mixed operators in nesting
+    let mixed: byte = ((a & b) | (c ^ d));
+    
+    // Nested comparisons
+    let cmpNested: byte = (((a < b) && (c > d)) || (a == b)) ? 1 : 0;
+    
+    // Complex real expression
+    let complex: byte = ((((a + b) * 2) - ((c - d) / 2)) & $FF);
+    
+    // Nested with unary
+    let unaryNested: byte = (-(-(a + b)));
+    
+    // Nested with array access
+    buffer[0] = 10;
+    buffer[1] = 20;
+    let funcNested: byte = ((buffer[0] + buffer[1]) * 2);
+    
+    // Store results
+    poke($0400, n1);
+    poke($0401, n3);
+    poke($0402, n6);
+    poke($0403, complex);
+}

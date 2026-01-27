@@ -1,0 +1,41 @@
+// @fixture: parser/expressions/unary/unary-not
+// @category: parser
+// @description: Tests parsing of NOT operators (logical and bitwise)
+// @expect: success
+// @output-contains: EOR
+// @tags: expressions, unary, not, logical, bitwise
+
+module UnaryNot;
+
+function main(): void {
+    // Bitwise NOT (complement) - works on numeric types
+    let mask: byte = $0F;
+    let complement: byte = ~mask;
+    
+    // Bitwise NOT on different values
+    let allOnes: byte = ~0;
+    let allZeros: byte = ~$FF;
+    
+    // Double bitwise NOT
+    let doubleNot: byte = ~~mask;
+    
+    // Logical NOT requires boolean - use comparison
+    let a: byte = 5;
+    let b: byte = 3;
+    let notResult: byte = !(a > b) ? 1 : 0;
+    
+    // Bitwise NOT in expression
+    let masked: byte = a & ~mask;
+    
+    // Bitwise NOT with shift
+    let shifted: byte = ~(mask << 4);
+    
+    // Complement for bit clearing
+    let flags: byte = $FF;
+    let cleared: byte = flags & ~$03;
+    
+    // Store results
+    poke($0400, complement);
+    poke($0401, allOnes);
+    poke($0402, masked);
+}

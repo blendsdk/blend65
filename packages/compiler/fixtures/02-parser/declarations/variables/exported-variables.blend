@@ -1,0 +1,44 @@
+// @fixture: parser/declarations/variables/exported-variables
+// @category: parser
+// @description: Tests parsing of exported variable declarations
+// @expect: success
+// @output-contains: LDA
+// @tags: declarations, variables, export
+
+module ExportedVariables;
+
+// Exported module-level variables
+export let publicByte: byte = 0;
+export let publicWord: word = 0;
+export let publicBool: boolean = false;
+
+// Non-exported (private) variables
+let privateByte: byte = 10;
+let privateWord: word = 1000;
+
+// Mixed exports with initializers
+export let sharedCounter: byte = 0;
+export let sharedScore: word = 0;
+export let gameRunning: boolean = true;
+
+// Exported hardware addresses
+export let screenBase: word = $0400;
+export let colorBase: word = $D800;
+
+function main(): void {
+    // Initialize exported variables
+    publicByte = 42;
+    publicWord = 1234;
+    publicBool = true;
+    
+    // Use private variables
+    privateByte = privateByte + 1;
+    privateWord = privateWord + 100;
+    
+    // Update shared state
+    sharedCounter = sharedCounter + 1;
+    sharedScore = sharedScore + 100;
+    
+    // Store to screen
+    poke(screenBase, publicByte);
+}

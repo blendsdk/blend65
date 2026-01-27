@@ -1,0 +1,14 @@
+// @fixture: error-cases/semantic-errors/duplicate-declaration
+// @category: error-cases
+// @description: Tests semantic error for duplicate variable declaration
+// @expect: error
+// @error-contains: already
+// @tags: error, semantic, duplicate
+
+module DuplicateDeclaration;
+
+function main(): void {
+    let x: byte = 10;
+    let x: byte = 20;  // Duplicate declaration should cause error
+    poke($0400, x);
+}

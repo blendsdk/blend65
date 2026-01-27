@@ -1,0 +1,49 @@
+// @fixture: parser/statements/while-loops/simple-while
+// @category: parser
+// @description: Tests parsing of simple while loops
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, while, loops, control-flow
+
+module SimpleWhile;
+
+@zp let counter: byte = 0;
+@zp let running: byte = 1;
+
+function main(): void {
+    // Basic while with counter
+    while (counter < 10) {
+        counter = counter + 1;
+    }
+    
+    poke($0400, counter);
+    
+    // While with comparison
+    let x: byte = 100;
+    while (x > 50) {
+        x = x - 1;
+    }
+    
+    poke($0401, x);
+    
+    // While with flag variable
+    let done: byte = 0;
+    let iterations: byte = 0;
+    
+    while (done == 0) {
+        iterations = iterations + 1;
+        if (iterations >= 5) {
+            done = 1;
+        }
+    }
+    
+    poke($0402, iterations);
+    
+    // While with inequality
+    let value: byte = 10;
+    while (value != 0) {
+        value = value - 1;
+    }
+    
+    poke($0403, value);
+}

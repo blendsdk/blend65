@@ -1,0 +1,30 @@
+// @fixture: codegen/register-usage/accumulator-ops
+// @category: codegen
+// @description: Tests code generation for accumulator-based operations
+// @expect: success
+// @output-contains: LDA
+// @tags: codegen, registers, accumulator
+
+module AccumulatorOps;
+
+function main(): void {
+    // Accumulator is primary register for data operations
+    let a: byte = 10;
+    let b: byte = 20;
+    
+    // Arithmetic uses accumulator
+    let sum: byte = a + b;    // LDA a, CLC, ADC b
+    let diff: byte = a - b;   // LDA a, SEC, SBC b
+    
+    // Bitwise uses accumulator
+    let anded: byte = a & $0F;  // LDA a, AND #$0F
+    let ored: byte = a | $F0;   // LDA a, ORA #$F0
+    let xored: byte = a ^ b;    // LDA a, EOR b
+    
+    // Store results
+    poke($0400, sum);
+    poke($0401, diff);
+    poke($0402, anded);
+    poke($0403, ored);
+    poke($0404, xored);
+}

@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-return-type
+// @category: error-cases
+// @description: Tests that parser correctly reports missing function return type
+// @expect: error
+// @error-contains: type
+// @tags: parser, error, function
+
+module MissingReturnType;
+
+function main(): {
+    let x: byte = 10;
+}

@@ -3,7 +3,7 @@
 > **Last Updated:** January 27, 2026  
 > **Version:** 0.1.0-alpha  
 > **Overall Progress:** ~85% Complete  
-> **Test Status:** 6,996/6,998 passing (99.97%)
+> **Test Status:** 7,078/7,080 passing (99.97%)
 
 ---
 
@@ -31,7 +31,8 @@ Blend65 is a modern programming language and compiler designed specifically for 
 | 🟢 **Semantic Analyzer** | ✅ Complete | Can check programs for errors and gather information |
 | 🟢 **IL Generator** | ✅ Complete | Can convert programs to internal format |
 | 🟢 **Code Generator** | ✅ Complete (Basic) | Can produce assembly code |
-| 🟡 **Optimizer** | 📋 Planning Complete | 103+ design documents ready, implementation not started |
+| 🟢 **ASM-IL Layer** | ✅ Complete | Assembly intermediate representation |
+| 🟡 **Optimizer** | 📋 Planning Complete | 7-phase roadmap ready, implementation not started |
 | 🟢 **Config System** | ✅ Complete | Project configuration works |
 | 🟡 **CLI Tool** | ⏳ Partial | Basic build/check commands work, more features planned |
 | 🟡 **Documentation** | ⏳ Partial | User guides and tutorials needed |
@@ -45,13 +46,14 @@ Blend65 is a modern programming language and compiler designed specifically for 
 | Lexer | 150+ | ✅ All Passing |
 | Parser | 400+ | ✅ All Passing |
 | AST | 100+ | ✅ All Passing |
-| Semantic Analysis | 1,500+ | ✅ All Passing |
-| IL Generator | 2,000+ | ✅ All Passing |
-| Code Generator | 500+ | ✅ All Passing |
+| Semantic Analysis | 1,600+ | ✅ All Passing |
+| IL Generator | 2,200+ | ✅ All Passing |
 | ASM-IL | 500+ | ✅ All Passing |
-| E2E & Integration | 1,800+ | ✅ All Passing |
+| Code Generator | 550+ | ✅ All Passing |
+| E2E & Integration | 1,500+ | ✅ All Passing |
+| Pipeline | 50+ | ✅ All Passing |
 | CLI | 10 | ✅ All Passing |
-| **Total** | **6,998** | **6,996 passing (2 skipped)** |
+| **Total** | **7,080** | **7,078 passing (2 skipped)** |
 
 ### Skipped Tests (2)
 
@@ -139,7 +141,7 @@ The optimizer will make your programs:
 - **Better** - Takes advantage of hardware features
 
 **Status:** 
-- ✅ **103+ design documents complete** - Comprehensive planning done
+- ✅ **7-phase optimizer roadmap complete** - Comprehensive planning done
 - 📋 **Implementation not started** - Ready to begin coding
 
 ### 🖥️ CLI Improvements (dx-features plan)
@@ -162,8 +164,9 @@ The optimizer will make your programs:
 
 | Plan | Status | Description |
 |------|--------|-------------|
-| `optimizer/` | 📋 Docs Complete | 103+ documents ready for implementation |
+| `optimizer-series/` | 📋 Docs Complete | 7-phase roadmap, ~40 documents ready |
 | `dx-features/` | 📋 Ready | CLI, VICE integration, source maps |
+| `extreme-e2e-testing/` | 🔄 In Progress | Phase 1-4 partial, fixture infrastructure |
 | `native-assembler/` | 📋 Planning | Direct .prg generation (future) |
 
 ### Research (Future)
@@ -282,10 +285,10 @@ yarn build
 
 ## Summary
 
-**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.97% test pass rate** (6,996/6,998 tests).
+**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.97% test pass rate** (7,078/7,080 tests).
 
 **Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
 
-**Next priority:** Optimizer implementation - 103+ design documents ready
+**Next priority:** Optimizer implementation - 7-phase roadmap ready
 
 The project is actively developed and getting closer to a 1.0 release!

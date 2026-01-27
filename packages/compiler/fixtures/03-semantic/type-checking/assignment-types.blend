@@ -1,0 +1,85 @@
+// @fixture: semantic/type-checking/assignment-types
+// @category: semantic
+// @description: Tests type checking for assignment operations
+// @expect: success
+// @output-contains: STA
+// @tags: semantic, type-checking, assignment
+
+module AssignmentTypes;
+
+// Module level for assignment testing
+let globalByte: byte = 0;
+let globalWord: word = 0;
+let globalBool: boolean = false;
+let globalArray: byte[10];
+
+function main(): void {
+    // Simple assignment of same type
+    let a: byte = 10;
+    let b: byte = 20;
+    a = b;
+    
+    // Assignment from literal
+    a = 42;
+    globalByte = 100;
+    globalWord = $0400;
+    globalBool = true;
+    
+    // Assignment from expression
+    a = b + 10;
+    globalWord = $0400 + 40;
+    
+    // Assignment from function result
+    globalByte = getByte();
+    globalWord = getWord();
+    globalBool = getBool();
+    
+    // Compound assignment (if supported) or equivalent
+    let counter: byte = 0;
+    counter = counter + 1;
+    counter = counter - 1;
+    
+    // Assignment to array element
+    globalArray[0] = 65;
+    globalArray[1] = a;
+    globalArray[2] = getByte();
+    
+    // Assignment from array element
+    a = globalArray[0];
+    globalByte = globalArray[1];
+    
+    // Word to word assignment
+    let addr1: word = $0400;
+    let addr2: word = 0;
+    addr2 = addr1;
+    addr2 = addr1 + 40;
+    
+    // Bool to bool assignment
+    let flag1: boolean = true;
+    let flag2: boolean = false;
+    flag2 = flag1;
+    flag2 = a > b;
+    
+    // Assignment in conditional scope
+    if (a > 0) {
+        globalByte = 1;
+    } else {
+        globalByte = 0;
+    }
+    
+    // Store final values
+    poke($0400, globalByte);
+    poke(globalWord, 66);
+}
+
+function getByte(): byte {
+    return 42;
+}
+
+function getWord(): word {
+    return $0500;
+}
+
+function getBool(): boolean {
+    return true;
+}

@@ -1,0 +1,17 @@
+// @fixture: integration/multi-module/import-error
+// @category: integration
+// @description: Tests that importing from non-existent module produces error
+// @expect: error
+// @error-message: not found
+// @tags: import, module, error, semantic
+
+module ImportError;
+
+// Try to import from a module that does not exist
+// This should produce a semantic error about the module not being found
+import { nonExistentFunction } from nonexistent.lib;
+
+// If the import somehow succeeds (it shouldn't), this would fail
+export function main(): void {
+    nonExistentFunction();
+}

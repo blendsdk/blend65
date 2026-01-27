@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-expression
+// @category: error-cases
+// @description: Tests that parser correctly reports missing expression
+// @expect: error
+// @error-contains: expression
+// @tags: parser, error, expression
+
+module MissingExpression;
+
+function main(): void {
+    let x: byte = ;
+}

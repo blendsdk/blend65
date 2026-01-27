@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-module-name
+// @category: error-cases
+// @description: Tests that parser correctly reports missing module name
+// @expect: error
+// @error-contains: identifier
+// @tags: parser, error, module
+
+module ;
+
+function main(): void {
+    let x: byte = 10;
+}

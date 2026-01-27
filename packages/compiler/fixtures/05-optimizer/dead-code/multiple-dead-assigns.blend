@@ -1,0 +1,29 @@
+// @fixture: optimizer/dead-code/multiple-dead-assigns
+// @category: optimizer
+// @description: Tests elimination of multiple dead assignments to the same variable
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, multiple-assigns
+
+module MultipleDeadAssigns;
+
+function calculateFinal(): byte {
+    let counter: byte = 0;
+    
+    // Multiple dead assignments
+    counter = 1;
+    counter = 2;
+    counter = 3;
+    counter = 4;
+    counter = 5;
+    
+    // Only this assignment survives
+    counter = 42;
+    
+    return counter;
+}
+
+function main(): void {
+    let result: byte = calculateFinal();
+    poke($0400, result);
+}

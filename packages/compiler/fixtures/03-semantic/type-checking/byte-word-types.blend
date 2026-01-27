@@ -1,0 +1,46 @@
+// @fixture: semantic/type-checking/byte-word-types
+// @category: semantic
+// @description: Tests type checking for byte and word types
+// @expect: success
+// @tags: types, byte, word, type-checking
+
+module ByteWordTypes;
+
+// Global variables with explicit types
+let globalByte: byte = 42;
+let globalWord: word = 1000;
+
+// Function with byte parameter and return
+function addBytes(a: byte, b: byte): byte {
+    return a + b;
+}
+
+// Function with word parameter and return
+function addWords(a: word, b: word): word {
+    return a + b;
+}
+
+// Function demonstrating byte to word promotion
+function byteToWord(b: byte): word {
+    // Byte is implicitly promoted to word
+    let w: word = b;
+    return w + 256;
+}
+
+function main(): void {
+    // Local variables with type inference
+    let localByte: byte = 100;
+    let localWord: word = 5000;
+    
+    // Function calls with correct types
+    let sumBytes: byte = addBytes(10, 20);
+    let sumWords: word = addWords(1000, 2000);
+    
+    // Type promotion
+    let promoted: word = byteToWord(localByte);
+    
+    // Use results
+    poke($0400, sumBytes);
+    poke($0401, lo(sumWords));
+    poke($0402, hi(sumWords));
+}

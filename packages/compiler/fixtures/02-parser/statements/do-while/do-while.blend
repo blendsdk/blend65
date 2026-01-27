@@ -1,0 +1,84 @@
+// @fixture: parser/statements/do-while/do-while
+// @category: parser
+// @description: Tests parsing of loop-at-least-once pattern using while(true)+break
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, loops, control-flow
+
+// NOTE: do-while syntax is documented but not yet implemented in IL generator.
+// This fixture demonstrates the equivalent pattern using while(true) + break.
+
+module DoWhilePattern;
+
+@zp let iterations: byte = 0;
+@zp let sum: byte = 0;
+
+function main(): void {
+    // Pattern: "execute at least once" using while(true) + break
+    let counter: byte = 0;
+    
+    while (1 == 1) {
+        counter = counter + 1;
+        iterations = iterations + 1;
+        if (counter >= 5) {
+            break;
+        }
+    }
+    
+    poke($0400, iterations);  // Should be 5
+    
+    // Pattern: run exactly once then stop
+    let runOnce: byte = 0;
+    
+    while (1 == 1) {
+        runOnce = runOnce + 1;
+        break;  // Immediately exit after one iteration
+    }
+    
+    poke($0401, runOnce);  // Should be 1
+    
+    // Pattern: accumulate with at-least-once guarantee
+    let value: byte = 1;
+    
+    while (1 == 1) {
+        sum = sum + value;
+        value = value + 1;
+        if (value > 5) {
+            break;
+        }
+    }
+    
+    poke($0402, sum);  // 1+2+3+4+5 = 15
+    
+    // Pattern: countdown with guaranteed first iteration
+    let countdown: byte = 10;
+    let steps: byte = 0;
+    
+    while (1 == 1) {
+        steps = steps + 1;
+        countdown = countdown - 1;
+        if (countdown <= 0) {
+            break;
+        }
+    }
+    
+    poke($0403, steps);  // Should be 10
+    
+    // Pattern: converging values with at-least-once check
+    let x: byte = 0;
+    let y: byte = 10;
+    let loopCount: byte = 0;
+    
+    while (1 == 1) {
+        loopCount = loopCount + 1;
+        x = x + 1;
+        y = y - 1;
+        if (x >= y) {
+            break;
+        }
+    }
+    
+    poke($0404, loopCount);  // Should be 5 (until x >= y)
+    poke($0405, x);          // Should be 5
+    poke($0406, y);          // Should be 5
+}

@@ -1,0 +1,56 @@
+// @fixture: parser/declarations/map-declarations/basic-map
+// @category: parser
+// @description: Tests parsing of basic @map memory-mapped declarations
+// @expect: success
+// @output-contains: STA
+// @tags: declarations, map, memory-mapped
+
+module BasicMap;
+
+// Basic memory-mapped single byte variables
+@map borderColor at $D020: byte;
+@map backgroundColor at $D021: byte;
+
+// Memory-mapped word variables (using safe zero-page range $02-$8F)
+@map screenPtr at $0080: word;
+@map colorPtr at $0082: word;
+
+// C64 VIC-II registers
+@map spriteEnable at $D015: byte;
+@map spriteXMSB at $D010: byte;
+@map spriteYPos at $D001: byte;
+
+// C64 SID registers
+@map sidVolume at $D418: byte;
+@map sidFreqLo at $D400: byte;
+@map sidFreqHi at $D401: byte;
+
+// CIA registers
+@map cia1DataA at $DC00: byte;
+@map cia1DataB at $DC01: byte;
+
+// Zero page for fast access (using safe range)
+@map zpTemp1 at $02: byte;
+@map zpTemp2 at $03: byte;
+@map zpPtr at $04: word;
+
+function main(): void {
+    // Use memory-mapped variables directly
+    borderColor = 0;
+    backgroundColor = 0;
+    
+    // Read from memory-mapped
+    let currentBorder: byte = borderColor;
+    let currentBg: byte = backgroundColor;
+    
+    // Use VIC registers
+    spriteEnable = $01;
+    spriteYPos = 100;
+    
+    // Use SID
+    sidVolume = 15;
+    
+    // Use zero page
+    zpTemp1 = 42;
+    zpTemp2 = zpTemp1 + 1;
+}

@@ -1,0 +1,32 @@
+// @fixture: il-generator/memory-operations/map-variable-il
+// @category: il-generator
+// @description: Tests IL generation for memory-mapped variables
+// @expect: success
+// @output-contains: STA
+// @tags: il, memory, map
+
+module MapVariableIL;
+
+// Memory-mapped hardware registers
+@map borderColor at $D020: byte;
+@map backgroundColor at $D021: byte;
+@map joystick1 at $DC00: byte;
+@map joystick2 at $DC01: byte;
+
+function main(): void {
+    // Write to mapped variables
+    borderColor = 0;
+    backgroundColor = 6;
+    
+    // Read from mapped variables
+    let joy: byte = joystick1;
+    let joy2: byte = joystick2;
+    
+    // Use in expressions
+    if (joy != $FF) {
+        borderColor = 1;
+    }
+    
+    // Compound operations
+    borderColor = joy & $0F;
+}

@@ -1,0 +1,44 @@
+// @fixture: codegen/instruction-selection/stack-operations
+// @category: codegen
+// @description: Tests code generation for stack operations (PHA, PLA, etc.)
+// @expect: success
+// @output-contains: RTS
+// @tags: codegen, stack, push, pull
+
+module StackOperations;
+
+function preserveAccumulator(value: byte): byte {
+    // Operations that may need to preserve registers
+    let saved: byte = value;
+    let temp: byte = 0;
+    
+    // Do some work that might clobber A
+    temp = saved * 2;
+    temp = temp + 5;
+    
+    return temp;
+}
+
+function multipleLocals(): byte {
+    // Multiple local variables require stack frame management
+    let a: byte = 10;
+    let b: byte = 20;
+    let c: byte = 30;
+    let d: byte = 40;
+    let e: byte = 50;
+    
+    return a + b + c + d + e;
+}
+
+function nestedCalls(): byte {
+    let result: byte = preserveAccumulator(10);
+    result = result + preserveAccumulator(20);
+    return result;
+}
+
+function main(): void {
+    let val1: byte = multipleLocals();
+    let val2: byte = nestedCalls();
+    poke($0400, val1);
+    poke($0401, val2);
+}

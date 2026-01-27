@@ -1,0 +1,24 @@
+// @fixture: lexer/numbers/decimal-literals
+// @category: lexer
+// @description: Tests parsing of decimal number literals
+// @expect: success
+// @tags: numbers, decimal, literals
+
+module DecimalLiterals;
+
+// Test various decimal literal formats
+let zero: byte = 0;
+let one: byte = 1;
+let maxByte: byte = 255;
+let ten: byte = 10;
+let hundred: byte = 100;
+
+// Word-sized decimal literals
+let wordValue: word = 1000;
+let maxWord: word = 65535;
+
+function main(): void {
+    // Use the values to prevent dead code warnings
+    let sum: word = zero + one + maxByte + ten + hundred;
+    poke($0400, lo(sum));
+}

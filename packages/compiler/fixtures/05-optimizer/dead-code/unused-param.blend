@@ -1,0 +1,26 @@
+// @fixture: optimizer/dead-code/unused-param
+// @category: optimizer
+// @description: Tests dead code optimization for unused function parameters
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, unused-param
+
+module UnusedParam;
+
+// The 'unused' parameter is never read in the function body
+function addWithUnused(a: byte, unused: byte, b: byte): byte {
+    return a + b;
+}
+
+// Multiple unused parameters
+function onlyFirst(first: byte, second: byte, third: byte): byte {
+    return first;
+}
+
+function main(): void {
+    let result1: byte = addWithUnused(10, 99, 20);
+    let result2: byte = onlyFirst(42, 100, 200);
+    
+    poke($0400, result1);
+    poke($0401, result2);
+}

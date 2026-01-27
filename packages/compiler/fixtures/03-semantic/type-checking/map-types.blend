@@ -1,0 +1,77 @@
+// @fixture: semantic/type-checking/map-types
+// @category: semantic
+// @description: Tests type checking for @map memory-mapped declarations
+// @expect: success
+// @output-contains: STA
+// @tags: semantic, type-checking, map, memory-mapped
+
+module MapTypes;
+
+// Memory-mapped byte variables
+@map borderColor at $D020: byte;
+@map backgroundColor at $D021: byte;
+@map spriteEnable at $D015: byte;
+
+// Memory-mapped word variables (using safe zero-page range $02-$8F)
+@map screenPtr at $0080: word;
+@map zpTemp at $0082: word;
+
+// Memory-mapped arrays
+@map screenBuffer at $0400: byte[1000];
+@map colorRam at $D800: byte[1000];
+
+function main(): void {
+    // Assignment to mapped byte (must be byte value)
+    borderColor = 0;
+    backgroundColor = 6;
+    spriteEnable = $01;
+    
+    // Assignment from expression
+    let color: byte = 1;
+    borderColor = color;
+    borderColor = color + 1;
+    
+    // Read from mapped byte (returns byte)
+    let currentBorder: byte = borderColor;
+    let currentBg: byte = backgroundColor;
+    
+    // Use in expressions
+    let nextColor: byte = currentBorder + 1;
+    borderColor = nextColor;
+    
+    // Assignment to mapped word (must be word value)
+    screenPtr = $0400;
+    zpTemp = $D800;
+    
+    // Assignment from word expression
+    let addr: word = $0400;
+    screenPtr = addr;
+    screenPtr = addr + 40;
+    
+    // Read from mapped word (returns word)
+    let ptr: word = screenPtr;
+    
+    // Use mapped word as address
+    poke(screenPtr, 65);
+    let val: byte = peek(screenPtr);
+    
+    // Assignment to mapped array element (must be correct element type)
+    screenBuffer[0] = 65;
+    screenBuffer[1] = currentBorder;
+    colorRam[0] = 1;
+    colorRam[1] = color;
+    
+    // Read from mapped array element (returns element type)
+    let char0: byte = screenBuffer[0];
+    let color0: byte = colorRam[0];
+    
+    // Indexed access with variable
+    let idx: byte = 5;
+    screenBuffer[idx] = 66;
+    let charN: byte = screenBuffer[idx];
+    
+    // Store results
+    poke($0500, char0);
+    poke($0501, color0);
+    poke($0502, charN);
+}

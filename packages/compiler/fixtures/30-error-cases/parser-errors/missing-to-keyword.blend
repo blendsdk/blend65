@@ -1,0 +1,14 @@
+// @fixture: error-cases/parser-errors/missing-to-keyword
+// @category: error-cases
+// @description: Tests that parser correctly reports missing 'to' keyword in for loop
+// @expect: error
+// @error-contains: to
+// @tags: parser, error, for-loop
+
+module MissingToKeyword;
+
+function main(): void {
+    for (i = 0 10) {
+        poke($0400, i);
+    }
+}

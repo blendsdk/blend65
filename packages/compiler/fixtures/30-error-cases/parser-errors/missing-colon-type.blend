@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-colon-type
+// @category: error-cases
+// @description: Tests that parser correctly reports missing colon before type
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, type
+
+module MissingColonType;
+
+function main(): void {
+    let x byte = 10;
+}

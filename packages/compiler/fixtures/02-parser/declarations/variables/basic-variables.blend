@@ -1,0 +1,37 @@
+// @fixture: parser/declarations/variables/basic-variables
+// @category: parser
+// @description: Tests parsing of basic variable declarations with different types
+// @expect: success
+// @output-contains: LDA
+// @tags: declarations, variables, types
+
+module BasicVariables;
+
+// Module-level variable declarations with different types
+let byteVar: byte = 0;
+let wordVar: word = 0;
+let boolVar: boolean = false;
+
+// Multiple declarations
+let counter: byte = 0;
+let score: word = 0;
+let running: boolean = true;
+
+function main(): void {
+    // Local variable declarations
+    let localByte: byte = 10;
+    let localWord: word = 1000;
+    let localBool: boolean = true;
+    
+    // Use the variables
+    byteVar = localByte;
+    wordVar = localWord;
+    boolVar = localBool;
+    
+    // Arithmetic with different types
+    counter = counter + 1;
+    score = score + 100;
+    
+    // Store results
+    poke($0400, byteVar);
+}

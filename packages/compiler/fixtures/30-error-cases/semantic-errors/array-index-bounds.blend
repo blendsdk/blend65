@@ -1,0 +1,15 @@
+// @fixture: error-cases/semantic-errors/array-index-bounds
+// @category: error-cases
+// @description: Tests semantic error for array index type mismatch
+// @expect: error
+// @error-contains: type
+// @tags: error, semantic, array, index
+
+module ArrayIndexBounds;
+
+function main(): void {
+    let arr: byte[10];
+    let idx: bool = true;
+    // Using bool as array index (type mismatch)
+    arr[idx] = 5;
+}

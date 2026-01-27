@@ -262,10 +262,10 @@ export class Compiler {
    * specified in the configuration. Libraries are loaded before user
    * sources in the pipeline.
    *
-   * **NOTE:** Library loading is currently opt-in only. Libraries are only
-   * loaded if explicitly specified in the `libraries` configuration option.
-   * Auto-loading of common/ directories is disabled until stub function
-   * support is fully implemented in the semantic analyzer and IL generator.
+   * **Auto-Loading Behavior:**
+   * - `common/` directory is ALWAYS loaded (contains system.blend with core intrinsics)
+   * - `{target}/common/` is always loaded for the target platform
+   * - Additional libraries can be specified via `libraries` config option
    *
    * @param config - Compilation configuration
    * @param result - Result object to add diagnostics to
@@ -276,19 +276,10 @@ export class Compiler {
     result: CompilationResult
   ): { success: boolean; sources: Map<string, string> } {
     const libraries = config.compilerOptions.libraries || [];
-
-    // Only load libraries if explicitly specified
-    // Auto-loading of common/ is disabled until stub functions are fully supported
-    if (libraries.length === 0) {
-      return {
-        success: true,
-        sources: new Map(),
-      };
-    }
-
     const target = config.compilerOptions.target || 'c64';
 
     // Load libraries using the LibraryLoader
+    // This automatically loads common/ and {target}/common/, plus any optional libraries
     const libraryResult = this.libraryLoader.loadLibraries(target, libraries);
 
     // Add any diagnostics from library loading

@@ -1,0 +1,47 @@
+// @fixture: optimizer/constant-folding/logical-fold
+// @category: optimizer
+// @description: Tests constant folding for logical operations with boolean expressions
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, logical
+
+module LogicalFold;
+
+function testLogical(): byte {
+    let result: byte = 0;
+    
+    // Logical AND folding (using comparisons to create booleans)
+    if ((1 == 1) && (2 == 2)) {
+        result = result + 1;    // Should execute (true && true = true)
+    }
+    
+    if ((1 == 1) && (1 == 0)) {
+        result = result + 2;    // Should NOT execute (true && false = false)
+    }
+    
+    // Logical OR folding
+    if ((1 == 0) || (1 == 1)) {
+        result = result + 4;    // Should execute (false || true = true)
+    }
+    
+    if ((1 == 0) || (2 == 0)) {
+        result = result + 8;    // Should NOT execute (false || false = false)
+    }
+    
+    // Logical NOT folding (using comparison)
+    if (!(1 == 0)) {
+        result = result + 16;   // Should execute (!false = true)
+    }
+    
+    if (!(1 == 1)) {
+        result = result + 32;   // Should NOT execute (!true = false)
+    }
+    
+    // result should be 21 (1+4+16)
+    return result;
+}
+
+function main(): void {
+    let value: byte = testLogical();
+    poke($0400, value);
+}

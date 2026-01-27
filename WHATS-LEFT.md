@@ -1,10 +1,10 @@
 # What's Left - Blend65 Compiler
 
 > **Generated**: January 27, 2026  
-> **Test Status**: 6,996/6,998 passing (99.97%)  
+> **Test Status**: 7,078/7,080 passing (99.97%)  
 > **Failed Tests**: 0  
 > **Skipped Tests**: 2  
-> **Active Plans**: 4 folders
+> **Active Plans**: 5 folders
 
 ---
 
@@ -16,9 +16,10 @@ The Blend65 compiler core is **functionally complete** with an excellent 99.97% 
 
 All remaining work is for **new features**, not bug fixes:
 
-1. **Optimizer** - 103+ design docs ready, implementation not started
+1. **Optimizer** - 7-phase roadmap ready, implementation not started
 2. **Developer Experience** - CLI, VICE integration, source maps
-3. **Future Features** - Inline assembly, interrupts, native assembler
+3. **E2E Testing** - Fixture infrastructure in progress
+4. **Future Features** - Inline assembly, interrupts, native assembler
 
 ---
 
@@ -30,12 +31,15 @@ All remaining work is for **new features**, not bug fixes:
 
 ### 🟠 High Priority (Should Complete)
 
-- [ ] **Optimizer Implementation** (~200 hours)
-  - 103+ design documents in `plans/optimizer/`
-  - Dead code elimination
-  - Constant folding/propagation
-  - Peephole optimization
-  - 6502-specific optimizations
+- [ ] **Optimizer Implementation** (~4-6 weeks)
+  - 7-phase roadmap in `plans/optimizer-series/`
+  - Phase 1: Foundation (PassManager)
+  - Phase 2: Analysis (use-def, liveness)
+  - Phase 3: O1 Transforms (DCE, const fold)
+  - Phase 4: IL Peephole
+  - Phase 5: ASM Peephole
+  - Phase 6: 6502-Specific
+  - Phase 7: Advanced (-O3)
 
 ### 🟡 Medium Priority (Important for DX)
 
@@ -46,6 +50,12 @@ All remaining work is for **new features**, not bug fixes:
   - `blend65 run` command  
   - `blend65 watch` command
   - Project templates
+
+- [ ] **Extreme E2E Testing** (`plans/extreme-e2e-testing/`)
+  - Phase 1-2: Complete ✅
+  - Phase 3-4: Partially complete
+  - Phases 5-8: Not started
+  - Goal: 350+ fixture tests
 
 ### 🟢 Low Priority (Future)
 
@@ -58,6 +68,7 @@ All remaining work is for **new features**, not bug fixes:
   - Interrupt handlers
   - Sprite system
   - Bit manipulation
+  - Timing synchronization
 
 ---
 
@@ -65,8 +76,9 @@ All remaining work is for **new features**, not bug fixes:
 
 | Plan | Status | Description | Estimated Time |
 |------|--------|-------------|----------------|
-| `optimizer/` | 📋 Docs Complete | 103+ design documents | ~200 hours (4-6 weeks) |
-| `dx-features/` | 📋 Ready | CLI, VICE, source maps | ~6-10 hours |
+| `optimizer-series/` | 📋 Roadmap Complete | 7-phase optimizer plan | ~4-6 weeks |
+| `dx-features/` | 📋 Ready | CLI, VICE, source maps | ~1-2 weeks |
+| `extreme-e2e-testing/` | 🔄 In Progress | Fixture-based testing | ~2-3 weeks |
 | `native-assembler/` | 📋 Planning | Direct .prg output | TBD |
 | `features/` | 📖 Research | Future language features | TBD |
 
@@ -85,7 +97,11 @@ All bug fix plans have been completed and moved to `plans/archive/`:
 | `e2e-codegen-testing/` | E2E testing infrastructure |
 | `end-to-end/` | Core pipeline completion |
 | `il-generator/` | IL generator with SSA |
-| `ssa-id-collision-tests-plan.md` | SSA ID collision fix |
+| `semantic-analyzer/` | Complete semantic analysis |
+| `parser/` | Parser implementation |
+| `refactoring/` | Code quality improvements |
+| `library-loading/` | Library resolution system |
+| `module-and-export-fix/` | Module/export system |
 
 ---
 
@@ -103,22 +119,36 @@ Both are documented and expected to be skipped until relevant features are imple
 ## Test Suite Health
 
 ```
-Total Tests:     6,998
-Passing:         6,996 (99.97%)
+Total Tests:     7,080
+Passing:         7,078 (99.97%)
 Failed:          0
 Skipped:         2 (documented)
 
 Component Breakdown:
-├── Lexer:           150+  ✅
-├── Parser:          400+  ✅
-├── AST:             100+  ✅
-├── Semantic:      1,500+  ✅
-├── IL Generator:  2,000+  ✅
-├── Code Generator:  500+  ✅
-├── ASM-IL:          500+  ✅
-├── E2E/Integration: 1,800+ ✅
-└── CLI:              10   ✅
+├── Lexer:           150+   ✅
+├── Parser:          400+   ✅
+├── AST:             100+   ✅
+├── Semantic:      1,600+   ✅
+├── IL Generator:  2,200+   ✅
+├── ASM-IL:          500+   ✅
+├── Code Generator:  550+   ✅
+├── E2E/Integration: 1,500+ ✅
+├── Pipeline:         50+   ✅
+└── CLI:              10    ✅
 ```
+
+---
+
+## Code TODOs (Future Enhancements)
+
+10+ TODOs exist in source code - all LOW priority future enhancements:
+
+- Optimizer-related analysis improvements
+- Edge case handling enhancements
+- Module visibility rules
+- SSA phi edge cases
+
+**None are blocking current functionality.**
 
 ---
 
@@ -132,9 +162,9 @@ Component Breakdown:
 
 ### If Starting Optimizer
 
-1. Read `plans/optimizer/00-index.md`
-2. Start with `plans/optimizer/01-architecture.md`
-3. Implement foundation: PassManager, Pass base class
+1. Read `plans/optimizer-series/OPTIMIZER-ROADMAP.md`
+2. Start with `plans/optimizer-series/phase-1-foundation/`
+3. Implement PassManager infrastructure
 4. Proceed through phases sequentially
 
 ### If Starting DX Features
@@ -143,6 +173,12 @@ Component Breakdown:
 2. Start with `plans/dx-features/99-execution-plan.md`
 3. Phase 1: Source maps (~2-3 hours)
 4. Phase 2: VICE integration (~1-2 hours)
+
+### If Continuing E2E Testing
+
+1. Read `plans/extreme-e2e-testing/99-execution-plan.md`
+2. Continue from Phase 4 (Parser & Semantic Fixtures)
+3. Create remaining ~200 fixtures
 
 ---
 
@@ -196,7 +232,7 @@ Component Breakdown:
 
 **The Blend65 compiler is feature-complete and stable.**
 
-- ✅ All 6,996 tests passing
+- ✅ All 7,078 tests passing
 - ✅ All bug fixes complete
 - ✅ Core compilation pipeline working
 - ✅ Can compile real C64 programs

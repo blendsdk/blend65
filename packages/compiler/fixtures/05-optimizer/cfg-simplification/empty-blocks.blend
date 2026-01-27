@@ -1,0 +1,21 @@
+// @fixture: optimizer/cfg-simplification/empty-blocks
+// @category: optimizer
+// @description: Tests CFG simplification by removing empty blocks
+// @expect: success
+// @output-contains: LDA
+// @tags: optimizer, cfg, simplification
+
+module EmptyBlocks;
+
+function main(): void {
+    let x: byte = 10;
+    
+    // Empty if body creates empty block that should be removed
+    if (x == 10) {
+        // Empty block - optimizer should simplify
+    }
+    
+    // Actual work
+    let y: byte = x + 5;
+    poke($0400, y);
+}

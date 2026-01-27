@@ -1,0 +1,74 @@
+// @fixture: semantic/type-checking/conditional-types
+// @category: semantic
+// @description: Tests type checking in conditional expressions and statements
+// @expect: success
+// @output-contains: CMP
+// @tags: semantic, type-checking, conditionals
+
+module ConditionalTypes;
+
+function main(): void {
+    // If condition must be bool
+    let flag: boolean = true;
+    if (flag) {
+        poke($0400, 1);
+    }
+    
+    // Comparison produces bool for if
+    let a: byte = 10;
+    let b: byte = 20;
+    if (a < b) {
+        poke($0401, 1);
+    }
+    
+    // Negated bool
+    if (!flag) {
+        poke($0402, 1);
+    }
+    
+    // Complex condition (chained comparisons via ternary)
+    // Note: && requires bool operands, using ternary pattern
+    let bothTrue: boolean = (a < b) ? ((b < 30) ? true : false) : false;
+    if (bothTrue) {
+        poke($0403, 1);
+    }
+    
+    // While condition must be bool
+    let counter: byte = 0;
+    while (counter < 10) {
+        counter = counter + 1;
+    }
+    
+    // While with bool variable
+    let running: boolean = true;
+    let loops: byte = 0;
+    while (running) {
+        loops = loops + 1;
+        if (loops >= 5) {
+            running = false;
+        }
+    }
+    
+    // Ternary condition must be bool
+    let ternResult: byte = flag ? 100 : 0;
+    let cmpResult: byte = (a < b) ? a : b;
+    
+    // Nested conditionals
+    if (a < b) {
+        if (b < 30) {
+            poke($0404, 1);
+        }
+    }
+    
+    // If-else with bool
+    if (flag) {
+        poke($0405, 1);
+    } else {
+        poke($0405, 0);
+    }
+    
+    // Store loop results
+    poke($0406, counter);
+    poke($0407, loops);
+    poke($0408, ternResult);
+}

@@ -1,0 +1,117 @@
+// @fixture: parser/statements/break-continue/break-continue
+// @category: parser
+// @description: Tests parsing of break and continue statements in loops
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, break, continue, loops, control-flow
+
+module BreakContinue;
+
+@zp let breakResult: byte = 0;
+@zp let continueResult: byte = 0;
+
+// Module-level array for search test
+let searchData: byte[10];
+
+function main(): void {
+    // Initialize test data
+    searchData[0] = 5;
+    searchData[1] = 10;
+    searchData[2] = 15;
+    searchData[3] = 20;
+    searchData[4] = 25;
+    searchData[5] = 30;
+    searchData[6] = 35;
+    searchData[7] = 40;
+    searchData[8] = 45;
+    searchData[9] = 50;
+    
+    // Break in for loop (search pattern)
+    let foundIndex: byte = 255;  // Not found marker
+    for (i = 0 to 9) {
+        if (searchData[i] == 25) {
+            foundIndex = i;
+            break;
+        }
+    }
+    
+    poke($0400, foundIndex);  // Should be 4
+    
+    // Continue in for loop (skip even iterations)
+    let oddSum: byte = 0;
+    for (j = 1 to 10) {
+        // Skip even numbers using continue
+        let isEven: byte = j - (j / 2) * 2;
+        if (isEven == 0) {
+            continue;
+        }
+        oddSum = oddSum + j;
+    }
+    
+    poke($0401, oddSum);  // 1+3+5+7+9 = 25
+    
+    // Break in while loop
+    let whileBreakCount: byte = 0;
+    let limit: byte = 100;
+    
+    while (limit > 0) {
+        whileBreakCount = whileBreakCount + 1;
+        if (whileBreakCount >= 10) {
+            break;
+        }
+        limit = limit - 1;
+    }
+    
+    poke($0402, whileBreakCount);  // Should be 10
+    
+    // Continue in while loop
+    let whileContinueSum: byte = 0;
+    let idx: byte = 0;
+    
+    while (idx < 10) {
+        idx = idx + 1;
+        // Skip multiples of 3
+        let mod3: byte = idx - (idx / 3) * 3;
+        if (mod3 == 0) {
+            continue;
+        }
+        whileContinueSum = whileContinueSum + idx;
+    }
+    
+    poke($0403, whileContinueSum);  // 1+2+4+5+7+8+10 = 37 (skip 3,6,9)
+    
+    // Multiple breaks/continues in nested structure
+    let processedCount: byte = 0;
+    
+    for (outer = 0 to 4) {
+        for (inner = 0 to 4) {
+            // Skip when outer equals inner
+            if (outer == inner) {
+                continue;
+            }
+            // Break inner loop when product exceeds 8
+            if (outer * inner > 8) {
+                break;
+            }
+            processedCount = processedCount + 1;
+        }
+    }
+    
+    poke($0404, processedCount);
+    
+    // Break from infinite while(true) pattern (equivalent to do-while break)
+    let infiniteBreak: byte = 0;
+    
+    while (1 == 1) {
+        infiniteBreak = infiniteBreak + 1;
+        if (infiniteBreak >= 7) {
+            break;
+        }
+    }
+    
+    poke($0405, infiniteBreak);  // Should be 7
+    
+    // Store markers to use the result variables
+    breakResult = foundIndex;
+    continueResult = oddSum;
+}

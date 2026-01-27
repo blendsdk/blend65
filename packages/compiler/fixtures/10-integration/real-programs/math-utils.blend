@@ -1,0 +1,127 @@
+// @fixture: integration/real-programs/math-utils
+// @category: integration
+// @description: Math utility functions for common calculations
+// @expect: success
+// @output-contains: RTS
+// @tags: utility, math, calculation, real-world
+
+module MathUtils;
+
+// Absolute value of signed byte (treating as signed)
+function abs(value: byte): byte {
+    if (value >= 128) {  // Negative in two's complement
+        return 0 - value;
+    }
+    return value;
+}
+
+// Minimum of two bytes
+function min(a: byte, b: byte): byte {
+    if (a < b) {
+        return a;
+    }
+    return b;
+}
+
+// Maximum of two bytes
+function max(a: byte, b: byte): byte {
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
+// Clamp value between min and max
+function clamp(value: byte, minVal: byte, maxVal: byte): byte {
+    if (value < minVal) {
+        return minVal;
+    }
+    if (value > maxVal) {
+        return maxVal;
+    }
+    return value;
+}
+
+// Linear interpolation (fixed point, 0-255 = 0.0-1.0)
+// Returns word to avoid narrowing conversion issues
+function lerp(a: byte, b: byte, t: byte): word {
+    // Simple approximation: a + (b-a) * t / 256
+    let diff: byte = b - a;
+    let scaled: word = diff * t;
+    let fraction: word = scaled / 256;
+    return a + fraction;
+}
+
+// Distance squared (for collision detection)
+function distSq(x1: byte, y1: byte, x2: byte, y2: byte): word {
+    let dx: byte = abs(x2 - x1);
+    let dy: byte = abs(y2 - y1);
+    let dxSq: word = dx * dx;
+    let dySq: word = dy * dy;
+    return dxSq + dySq;
+}
+
+// Integer square root (approximate)
+// Returns word to avoid narrowing conversion issues
+function sqrt(n: word): word {
+    let result: word = 0;
+    let bit: word = $4000;  // Start with highest power of 4
+    
+    while (bit > n) {
+        bit = bit >> 2;
+    }
+    
+    while (bit != 0) {
+        let test: word = result + bit;
+        if (n >= test) {
+            n = n - test;
+            result = (result >> 1) + bit;
+        } else {
+            result = result >> 1;
+        }
+        bit = bit >> 2;
+    }
+    
+    return result;
+}
+
+// Power of 2 check
+function isPow2(value: byte): byte {
+    if (value == 0) {
+        return false;
+    }
+    return (value & (value - 1)) == 0;
+}
+
+// Fast multiply by 10
+function mul10(value: byte): word {
+    // x*10 = x*8 + x*2 = (x<<3) + (x<<1)
+    let x8: word = value << 3;
+    let x2: word = value << 1;
+    return x8 + x2;
+}
+
+// Fast divide by 10 (approximate)
+// Returns word to avoid narrowing conversion issues
+function div10(value: byte): word {
+    // Approximate: (x * 205) >> 11, but simplified
+    // Using: (x * 26) >> 8 gives reasonable approximation
+    let scaled: word = value * 26;
+    let result: word = scaled >> 8;
+    return result;
+}
+
+export function main(): void {
+    // Test math functions
+    let a: byte = 10;
+    let b: byte = 25;
+    
+    let minVal: byte = min(a, b);
+    let maxVal: byte = max(a, b);
+    let clamped: byte = clamp(50, 0, 100);
+    
+    // Display results
+    poke($0400, minVal);
+    poke($0401, maxVal);
+    poke($0402, clamped);
+}

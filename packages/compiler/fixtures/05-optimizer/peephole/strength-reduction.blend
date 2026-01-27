@@ -1,0 +1,34 @@
+// @fixture: optimizer/peephole/strength-reduction
+// @category: optimizer
+// @description: Tests strength reduction optimizations
+// @expect: success
+// @skip: MUL/DIV instructions not yet implemented
+// @tags: optimizer, peephole, strength
+
+module StrengthReduction;
+
+function main(): void {
+    let x: byte = 5;
+    
+    // Multiply by 2 should use ASL (shift left)
+    let double: byte = x * 2;
+    
+    // Multiply by 4 should use two ASLs
+    let quad: byte = x * 4;
+    
+    // Multiply by 8 should use three ASLs
+    let oct: byte = x * 8;
+    
+    // Division by 2 should use LSR (shift right)
+    let half: byte = x / 2;
+    
+    // Division by 4 should use two LSRs
+    let quarter: byte = x / 4;
+    
+    // Store results
+    poke($0400, double);
+    poke($0401, quad);
+    poke($0402, oct);
+    poke($0403, half);
+    poke($0404, quarter);
+}

@@ -1,0 +1,55 @@
+// @fixture: parser/expressions/combinations/member-access-expr
+// @category: parser
+// @description: Tests member access in expressions using lo/hi intrinsics
+// @expect: success
+// @output-contains: LDA
+// @tags: expressions, combinations, member-access, lo, hi
+
+module MemberAccessExpr;
+
+// Module-level array for address tests
+let buffer: byte[16];
+
+function main(): void {
+    // Word value for byte access via lo/hi
+    let addr: word = $1234;
+    
+    // Low byte extraction
+    let lowByte: byte = lo(addr);
+    
+    // High byte extraction
+    let highByte: byte = hi(addr);
+    
+    // Using lo/hi in expressions
+    let sum: byte = lo(addr) + hi(addr);
+    
+    // Storing bytes separately
+    poke($0400, lo(addr));
+    poke($0401, hi(addr));
+    
+    // Reconstructing word from bytes
+    let reconstructed: word = lo(addr) + hi(addr) * 256;
+    
+    // Address in expression
+    let bufAddr: word = @buffer;
+    let bufLo: byte = lo(bufAddr);
+    let bufHi: byte = hi(bufAddr);
+    
+    // Lo/hi with arithmetic
+    let offset: word = addr + 100;
+    let offsetLo: byte = lo(offset);
+    let offsetHi: byte = hi(offset);
+    
+    // Complex expression with lo/hi
+    let combined: byte = (lo(addr) & $0F) | (hi(addr) << 4);
+    
+    // Multiple word values
+    let ptr1: word = $2000;
+    let ptr2: word = $3000;
+    let diffLo: byte = lo(ptr1) - lo(ptr2);
+    let diffHi: byte = hi(ptr1) - hi(ptr2);
+    
+    // Store results
+    pokew($0402, reconstructed);
+    poke($0404, combined);
+}

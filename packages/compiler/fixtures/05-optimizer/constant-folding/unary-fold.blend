@@ -1,0 +1,48 @@
+// @fixture: optimizer/constant-folding/unary-fold
+// @category: optimizer
+// @description: Tests constant folding for unary operations
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, unary
+
+module UnaryFold;
+
+function testUnaryFolding(): byte {
+    let result: byte = 0;
+    
+    // Unary minus (negation)
+    // In 8-bit unsigned, -10 wraps to 246
+    let a: byte = -10 + 20;  // Should fold to 10
+    result = result + a;
+    
+    // Bitwise NOT
+    // ~0 = 255
+    let b: byte = ~0;
+    
+    // ~255 = 0
+    let c: byte = ~255;
+    
+    // ~$F0 = $0F = 15
+    let d: byte = ~$F0;
+    result = result + d;
+    
+    // Double negation
+    // -(-5) = 5
+    let e: byte = 0 - (0 - 5);
+    result = result + e;
+    
+    // Logical NOT on constant (use boolean expression)
+    let f: byte = 0;
+    if (!(1 == 0)) {
+        f = 20;
+    }
+    result = result + f;
+    
+    // Total: 10 + 15 + 5 + 20 = 50
+    return result;
+}
+
+function main(): void {
+    let value: byte = testUnaryFolding();
+    poke($0400, value);
+}

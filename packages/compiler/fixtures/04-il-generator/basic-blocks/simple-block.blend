@@ -1,0 +1,17 @@
+// @fixture: il-generator/basic-blocks/simple-block
+// @category: il-generator
+// @description: Tests IL generation for a simple basic block with sequential instructions
+// @expect: success
+// @output-contains: LDA
+// @tags: il, basic-blocks, sequential
+
+module SimpleBlock;
+
+function main(): void {
+    // Simple sequential code forms a single basic block
+    let x: byte = 10;
+    let y: byte = 20;
+    let z: byte = x + y;
+    
+    poke($0400, z);
+}

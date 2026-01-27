@@ -1,0 +1,95 @@
+// @fixture: integration/real-programs/platformer-physics
+// @category: integration
+// @description: Simple platformer physics with gravity and jumping
+// @expect: success
+// @output-contains: RTS
+// @tags: game, platformer, physics, real-world
+
+module PlatformerPhysics;
+
+// Player state
+let playerX: byte = 20;
+let playerY: byte = 20;
+let velocityY: byte = 0;
+let onGround: byte = 0;
+let isJumping: byte = 0;
+
+// Physics constants
+let GRAVITY: byte = 1;
+let JUMP_FORCE: byte = 5;
+let MAX_FALL_SPEED: byte = 8;
+let GROUND_Y: byte = 22;
+
+// Apply gravity to player
+function applyGravity(): void {
+    if (onGround == 0) {
+        if (velocityY < MAX_FALL_SPEED) {
+            velocityY = velocityY + GRAVITY;
+        }
+    }
+}
+
+// Update player position based on velocity
+function updatePosition(): void {
+    // Apply vertical velocity
+    playerY = playerY + velocityY;
+    
+    // Check ground collision
+    if (playerY >= GROUND_Y) {
+        playerY = GROUND_Y;
+        velocityY = 0;
+        onGround = 1;
+        isJumping = 0;
+    } else {
+        onGround = 0;
+    }
+}
+
+// Make player jump
+function jump(): void {
+    if (onGround) {
+        velocityY = 0 - JUMP_FORCE;  // Negative = up
+        onGround = 0;
+        isJumping = 1;
+    }
+}
+
+// Move player horizontally
+function moveLeft(): void {
+    if (playerX > 0) {
+        playerX = playerX - 1;
+    }
+}
+
+function moveRight(): void {
+    if (playerX < 39) {
+        playerX = playerX + 1;
+    }
+}
+
+// Draw player at current position
+function drawPlayer(): void {
+    let screenAddr: word = $0400 + (playerY * 40) + playerX;
+    poke(screenAddr, $51);  // Player character
+}
+
+// Game update function
+function update(): void {
+    applyGravity();
+    updatePosition();
+    drawPlayer();
+}
+
+export function main(): void {
+    // Initialize player
+    playerX = 20;
+    playerY = GROUND_Y;
+    velocityY = 0;
+    onGround = 1;
+    
+    // Game loop
+    let running: byte = 1;
+    while (running) {
+        update();
+    }
+}

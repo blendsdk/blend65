@@ -1,0 +1,62 @@
+// @fixture: integration/real-programs/sprite-movement
+// @category: integration
+// @description: Tests sprite movement with VIC-II hardware access using @map
+// @expect: success
+// @output-contains: STA $D000
+// @output-contains: STA $D001
+// @tags: hardware, sprite, vic-ii, real-world, c64
+
+module SpriteMovement;
+
+// VIC-II sprite 0 position registers
+@map sprite0X at $D000: byte;
+@map sprite0Y at $D001: byte;
+
+// Sprite enable register
+@map spriteEnable at $D015: byte;
+
+// Initial sprite position
+let spriteX: byte = 100;
+let spriteY: byte = 150;
+
+// Move sprite to position
+function moveSpriteTo(x: byte, y: byte): void {
+    sprite0X = x;
+    sprite0Y = y;
+}
+
+// Move sprite by delta values
+function moveSpriteBy(dx: byte, dy: byte): void {
+    spriteX = spriteX + dx;
+    spriteY = spriteY + dy;
+    sprite0X = spriteX;
+    sprite0Y = spriteY;
+}
+
+// Enable sprite 0
+function enableSprite(): void {
+    spriteEnable = 1;
+}
+
+// Disable sprite 0
+function disableSprite(): void {
+    spriteEnable = 0;
+}
+
+// Main entry point - demonstrates sprite movement
+export function main(): void {
+    // Enable sprite 0
+    enableSprite();
+    
+    // Move sprite to initial position
+    moveSpriteTo(100, 150);
+    
+    // Move sprite right by 10 pixels
+    moveSpriteBy(10, 0);
+    
+    // Move sprite down by 5 pixels
+    moveSpriteBy(0, 5);
+    
+    // Move to absolute position
+    moveSpriteTo(200, 100);
+}

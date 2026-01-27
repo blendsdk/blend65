@@ -1,0 +1,13 @@
+// @fixture: error-cases/semantic-errors/return-void-with-value
+// @category: error-cases
+// @description: Tests semantic error for returning value in void function
+// @expect: error
+// @error-contains: return
+// @tags: error, semantic, return, void
+
+module ReturnVoidWithValue;
+
+function main(): void {
+    // Cannot return a value in void function
+    return 10;
+}

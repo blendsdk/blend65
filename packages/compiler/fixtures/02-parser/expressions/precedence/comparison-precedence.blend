@@ -1,0 +1,49 @@
+// @fixture: parser/expressions/precedence/comparison-precedence
+// @category: parser
+// @description: Tests comparison operators with logical operators
+// @expect: success
+// @output-contains: CMP
+// @tags: expressions, precedence, comparison, logical
+
+module ComparisonPrecedence;
+
+function main(): void {
+    let a: byte = 5;
+    let b: byte = 10;
+    let c: byte = 3;
+    
+    // Comparison in logical expression
+    // (a < b) && (b > c)
+    let result1: byte = a < b && b > c;
+    
+    // Multiple comparisons with OR
+    // (a == 5) || (b == 5)
+    let result2: byte = a == 5 || b == 5;
+    
+    // Comparison binds tighter than logical
+    // a < b || b < c evaluates as (a < b) || (b < c)
+    let result3: byte = a < b || b < c;
+    
+    // Complex comparison chain
+    let result4: byte = a <= b && b >= c && c < a;
+    
+    // Arithmetic in comparison
+    // (a + 5) > b evaluates arithmetic first
+    let result5: byte = a + 5 > b;
+    
+    // Multiple arithmetic in comparison
+    let result6: byte = a * 2 == b;
+    
+    // Comparison with shifts (shift has higher precedence)
+    // a << 1 < b evaluates as (a << 1) < b
+    let result7: byte = a << 1 < b;
+    
+    // Comparison with bitwise (bitwise has higher precedence)
+    let result8: byte = (a & $0F) == 5;
+    
+    // Store results
+    poke($0400, result1);
+    poke($0401, result2);
+    poke($0402, result5);
+    poke($0403, result6);
+}

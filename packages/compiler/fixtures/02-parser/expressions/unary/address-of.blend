@@ -1,0 +1,31 @@
+// @fixture: parser/expressions/unary/address-of
+// @category: parser
+// @description: Tests parsing of address-of operator (@)
+// @expect: success
+// @output-contains: LDA
+// @tags: expressions, unary, address-of, pointers
+
+module AddressOf;
+
+// Module-level declarations for address-of tests
+let buffer: byte[16];
+let value: byte = 42;
+
+function main(): void {
+    // Address-of module-level variable
+    let addr: word = @value;
+    
+    // Address-of array
+    let bufAddr: word = @buffer;
+    
+    // Store address in memory
+    pokew($0400, addr);
+    pokew($0402, bufAddr);
+    
+    // Address arithmetic
+    let offset: word = @buffer + 4;
+    pokew($0404, offset);
+    
+    // Store the value itself
+    poke($0406, value);
+}

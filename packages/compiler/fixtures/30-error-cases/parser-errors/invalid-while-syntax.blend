@@ -1,0 +1,14 @@
+// @fixture: error-cases/parser-errors/invalid-while-syntax
+// @category: error-cases
+// @description: Tests that parser correctly reports invalid while loop syntax
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, while
+
+module InvalidWhileSyntax;
+
+function main(): void {
+    while {
+        poke($0400, 1);
+    }
+}

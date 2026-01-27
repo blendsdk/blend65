@@ -1,0 +1,45 @@
+// @fixture: parser/declarations/variables/initialized-variables
+// @category: parser
+// @description: Tests parsing of variable declarations with various initializers
+// @expect: success
+// @output-contains: LDA
+// @tags: declarations, variables, initializers
+
+module InitializedVariables;
+
+// Numeric initializers
+let zeroByte: byte = 0;
+let maxByte: byte = 255;
+let hexByte: byte = $FF;
+let binaryByte: byte = $AA;
+
+// Word initializers
+let zeroWord: word = 0;
+let maxWord: word = 65535;
+let hexWord: word = $FFFF;
+let addressWord: word = $0400;
+
+// Boolean initializers
+let trueVal: boolean = true;
+let falseVal: boolean = false;
+
+// Expression initializers
+let calculated: byte = 10 + 5;
+let shifted: byte = 1 << 4;
+let combined: byte = $F0 | $0F;
+
+function main(): void {
+    // Local initialized variables
+    let localInit: byte = maxByte - 10;
+    let localCalc: word = addressWord + 100;
+    
+    // Use all variables to ensure they're not optimized away
+    poke($0400, zeroByte);
+    poke($0401, maxByte);
+    poke($0402, hexByte);
+    poke($0403, binaryByte);
+    poke($0404, calculated);
+    poke($0405, shifted);
+    poke($0406, combined);
+    poke($0407, localInit);
+}

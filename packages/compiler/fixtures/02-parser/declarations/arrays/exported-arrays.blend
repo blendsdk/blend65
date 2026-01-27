@@ -1,0 +1,47 @@
+// @fixture: parser/declarations/arrays/exported-arrays
+// @category: parser
+// @description: Tests parsing of exported array declarations
+// @expect: success
+// @output-contains: LDA
+// @tags: declarations, arrays, export
+
+module ExportedArrays;
+
+// Exported arrays for use by other modules
+export let sharedBuffer: byte[32];
+export let messageBuffer: byte[40];
+
+// Exported initialized arrays
+export let spriteColors: byte[] = [1, 2, 3, 4, 5, 6, 7, 8];
+export let defaultScores: word[5];
+
+// Private (non-exported) arrays
+let privateBuffer: byte[16];
+let internalState: byte[8];
+
+// Mixed visibility
+export let publicTable: word[4];
+let privateTable: word[4];
+
+// Exported lookup tables
+export let sinTable: byte[] = [128, 152, 176, 198, 217, 233, 245, 252, 255];
+export let cosTable: byte[] = [255, 252, 245, 233, 217, 198, 176, 152, 128];
+
+function main(): void {
+    // Initialize exported arrays
+    sharedBuffer[0] = 65;
+    sharedBuffer[1] = 66;
+    sharedBuffer[2] = 67;
+    
+    // Use private arrays
+    privateBuffer[0] = 10;
+    internalState[0] = 1;
+    
+    // Access exported tables
+    let sinVal: byte = sinTable[4];
+    let cosVal: byte = cosTable[4];
+    
+    // Store to screen
+    poke($0400, sinVal);
+    poke($0401, cosVal);
+}

@@ -1,0 +1,47 @@
+// @fixture: parser/expressions/precedence/logical-precedence
+// @category: parser
+// @description: Tests logical operator precedence (AND before OR)
+// @expect: success
+// @output-contains: LDA
+// @tags: expressions, precedence, logical
+
+module LogicalPrecedence;
+
+function main(): void {
+    let a: byte = 5;
+    let b: byte = 10;
+    let c: byte = 3;
+    
+    // AND has higher precedence than OR
+    // false || true && true = false || (true && true) = true
+    let result1: byte = (a > b) || (a < b) && (c < b) ? 1 : 0;
+    
+    // false || false && true = false || (false && true) = false
+    let result2: byte = (a > b) || (a > b) && (c < b) ? 1 : 0;
+    
+    // true && false || true = (true && false) || true = true
+    let result3: byte = (a < b) && (a > b) || (c < b) ? 1 : 0;
+    
+    // Override with parentheses
+    // (false || true) && false = true && false = false
+    let result4: byte = ((a > b) || (a < b)) && (a > b) ? 1 : 0;
+    
+    // Multiple AND operations
+    let result5: byte = (a < b) && (b > c) && (c > 0) ? 1 : 0;
+    
+    // Multiple OR operations
+    let result6: byte = (a > b) || (b < c) || (c < a) ? 1 : 0;
+    
+    // Complex chain
+    let result7: byte = (a < b) && (a > b) || (a > b) && (c < b) || (c < b) ? 1 : 0;
+    
+    // NOT has highest precedence
+    // !(false) && true = true && true = true
+    let result8: byte = !(a > b) && (c < b) ? 1 : 0;
+    
+    // Store results
+    poke($0400, result1);
+    poke($0401, result2);
+    poke($0402, result4);
+    poke($0403, result8);
+}

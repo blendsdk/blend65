@@ -1,0 +1,16 @@
+// @fixture: error-cases/type-errors/type-mismatch
+// @category: error-cases
+// @description: Tests type error for incompatible type assignment
+// @expect: error
+// @error-contains: type
+// @tags: error, type, mismatch
+
+module TypeMismatch;
+
+function main(): void {
+    // Assigning word to byte should cause type error (potential truncation)
+    let wide: word = 1000;
+    let narrow: byte = wide;  // Type mismatch error
+    
+    poke($0400, narrow);
+}

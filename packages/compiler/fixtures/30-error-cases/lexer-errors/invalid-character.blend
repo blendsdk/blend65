@@ -1,0 +1,13 @@
+// @fixture: error-cases/lexer-errors/invalid-character
+// @category: error-cases
+// @description: Tests lexer error detection for invalid characters
+// @expect: error
+// @error-contains: unexpected
+// @tags: error, lexer, invalid-character
+
+module InvalidCharacter;
+
+function main(): void {
+    // This should produce a lexer error for invalid character
+    let x: byte = 10`;
+}

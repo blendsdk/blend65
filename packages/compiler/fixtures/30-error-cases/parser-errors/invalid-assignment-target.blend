@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/invalid-assignment-target
+// @category: error-cases
+// @description: Tests that parser correctly reports invalid assignment target
+// @expect: error
+// @error-contains: assign
+// @tags: parser, error, assignment
+
+module InvalidAssignmentTarget;
+
+function main(): void {
+    5 = 10;
+}

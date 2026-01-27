@@ -1,0 +1,88 @@
+// @fixture: semantic/type-checking/function-return-types
+// @category: semantic
+// @description: Tests type checking for function return types
+// @expect: success
+// @output-contains: JSR
+// @tags: semantic, type-checking, functions, return
+
+module FunctionReturnTypes;
+
+// Function returning byte
+function getByte(): byte {
+    return 42;
+}
+
+// Function returning word
+function getWord(): word {
+    return $0400;
+}
+
+// Function returning bool
+function getBool(): boolean {
+    return true;
+}
+
+// Function returning computed byte
+function addBytes(a: byte, b: byte): byte {
+    let sum: byte = a + b;
+    return sum;
+}
+
+// Function returning computed word
+function calcAddress(base: word, offset: byte): word {
+    return base + offset;
+}
+
+// Function returning comparison result
+function isGreater(a: byte, b: byte): boolean {
+    return a > b;
+}
+
+// Void function (no return value)
+function doWork(): void {
+    poke($0400, 65);
+}
+
+// Function with early return
+function earlyReturn(value: byte): byte {
+    if (value > 100) {
+        return 100;
+    }
+    return value;
+}
+
+// Function with conditional return
+function maxValue(a: byte, b: byte): byte {
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
+function main(): void {
+    // Use return values with correct types
+    let b: byte = getByte();
+    let w: word = getWord();
+    let flag: boolean = getBool();
+    
+    // Use computed return values
+    let sum: byte = addBytes(10, 20);
+    let addr: word = calcAddress($0400, 40);
+    let compare: boolean = isGreater(50, 30);
+    
+    // Use void function
+    doWork();
+    
+    // Use functions with conditional returns
+    let clamped: byte = earlyReturn(150);
+    let bigger: byte = maxValue(30, 50);
+    
+    // Chain function calls in expressions
+    let chained: byte = addBytes(getByte(), 10);
+    
+    // Store results
+    poke($0401, b);
+    poke($0402, sum);
+    poke($0403, clamped);
+    poke($0404, bigger);
+}

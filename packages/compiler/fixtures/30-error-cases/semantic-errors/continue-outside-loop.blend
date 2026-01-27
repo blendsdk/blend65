@@ -1,0 +1,15 @@
+// @fixture: error-cases/semantic-errors/continue-outside-loop
+// @category: error-cases
+// @description: Tests semantic error for continue statement outside of loop
+// @expect: error
+// @error-contains: continue
+// @tags: error, semantic, continue, loop
+
+module ContinueOutsideLoop;
+
+function main(): void {
+    let x: byte = 10;
+    // continue is not inside a loop
+    continue;
+    poke($0400, x);
+}

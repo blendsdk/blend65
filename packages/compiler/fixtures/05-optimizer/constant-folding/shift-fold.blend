@@ -1,0 +1,38 @@
+// @fixture: optimizer/constant-folding/shift-fold
+// @category: optimizer
+// @description: Tests constant folding for shift operations
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, shift
+
+module ShiftFold;
+
+function testShifts(): byte {
+    let result: byte = 0;
+    
+    // Left shift folding
+    // 1 << 4 = 16
+    let shifted1: byte = 1 << 4;
+    result = result + shifted1;
+    
+    // 2 << 3 = 16
+    let shifted2: byte = 2 << 3;
+    result = result + shifted2;
+    
+    // Right shift folding
+    // 128 >> 4 = 8
+    let shifted3: byte = 128 >> 4;
+    result = result + shifted3;
+    
+    // 64 >> 2 = 16
+    let shifted4: byte = 64 >> 2;
+    result = result + shifted4;
+    
+    // Combined: 16 + 16 + 8 + 16 = 56
+    return result;
+}
+
+function main(): void {
+    let value: byte = testShifts();
+    poke($0400, value);
+}

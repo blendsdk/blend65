@@ -1,0 +1,26 @@
+// @fixture: edge-cases/boundary-values/array-max-index
+// @category: edge-cases
+// @description: Tests array access at maximum valid index
+// @expect: success
+// @output-contains: RTS
+// @tags: edge-case, array, boundary
+
+module ArrayMaxIndex;
+
+let data: byte[256];
+
+function fillArray(): void {
+    for (i = 0 to 255) {
+        data[i] = i;
+    }
+}
+
+function readLastElement(): byte {
+    return data[255];
+}
+
+export function main(): void {
+    fillArray();
+    let last: byte = readLastElement();
+    poke($0400, last);  // Should be 255
+}

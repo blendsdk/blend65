@@ -1,0 +1,15 @@
+// @fixture: error-cases/parser-errors/missing-closing-brace
+// @category: error-cases
+// @description: Tests parser error for missing closing brace
+// @expect: error
+// @error-contains: expected
+// @tags: error, parser, brace
+
+module MissingClosingBrace;
+
+function main(): void {
+    let x: byte = 10;
+    if (x > 5) {
+        poke($0400, x);
+    // Missing closing brace for if block
+}

@@ -1,0 +1,30 @@
+// @fixture: codegen/addressing-modes/zero-page
+// @category: codegen
+// @description: Tests code generation for zero-page addressing mode
+// @expect: success
+// @output-contains: LDA $
+// @tags: codegen, addressing, zero-page
+
+module ZeroPageAddressing;
+
+// Zero page variables should use shorter zero-page addressing
+@zp let counter: byte;
+@zp let flags: byte;
+@zp let ptr: word;
+
+function main(): void {
+    // Zero-page writes (should generate STA $xx, not STA $00xx)
+    counter = 0;
+    flags = $FF;
+    
+    // Zero-page reads
+    let c: byte = counter;
+    let f: byte = flags;
+    
+    // Zero-page operations
+    counter = counter + 1;
+    
+    // Store to screen for verification
+    poke($0400, c);
+    poke($0401, f);
+}

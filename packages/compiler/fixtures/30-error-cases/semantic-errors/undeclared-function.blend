@@ -1,0 +1,13 @@
+// @fixture: error-cases/semantic-errors/undeclared-function
+// @category: error-cases
+// @description: Tests semantic error for calling undeclared function
+// @expect: error
+// @error-contains: undefined
+// @tags: error, semantic, function
+
+module UndeclaredFunction;
+
+function main(): void {
+    // Calling a function that was never declared
+    undefinedFunc(10, 20);
+}

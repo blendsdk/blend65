@@ -1,0 +1,38 @@
+// @fixture: codegen/instruction-selection/comparison-instructions
+// @category: codegen
+// @description: Tests instruction selection for comparison operations
+// @expect: success
+// @output-contains: CMP
+// @tags: codegen, instructions, comparison
+
+module ComparisonInstructions;
+
+function main(): void {
+    let a: byte = 10;
+    let b: byte = 5;
+    
+    // Equality comparison should use CMP + BEQ/BNE
+    if (a == b) {
+        poke($0400, 1);
+    }
+    
+    // Not equal should use CMP + BNE
+    if (a != b) {
+        poke($0401, 1);
+    }
+    
+    // Less than should use CMP + BCC
+    if (a < 20) {
+        poke($0402, 1);
+    }
+    
+    // Greater than or equal should use CMP + BCS
+    if (a >= 5) {
+        poke($0403, 1);
+    }
+    
+    // Compare with zero - can use BEQ directly
+    if (a == 0) {
+        poke($0404, 1);
+    }
+}

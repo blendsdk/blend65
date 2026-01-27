@@ -1,0 +1,20 @@
+// @fixture: optimizer/dead-code/dead-assignment
+// @category: optimizer
+// @description: Tests dead code elimination for assignments that are never read
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, dead-assignment
+
+module DeadAssignment;
+
+function compute(): byte {
+    let x: byte = 10;     // dead assignment - x is immediately overwritten
+    x = 20;               // dead assignment - x is immediately overwritten
+    x = 30;               // this value is actually used
+    return x;
+}
+
+function main(): void {
+    let result: byte = compute();
+    poke($0400, result);
+}

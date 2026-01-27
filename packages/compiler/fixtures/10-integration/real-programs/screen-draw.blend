@@ -1,0 +1,131 @@
+// @fixture: integration/real-programs/screen-draw
+// @category: integration
+// @description: Tests screen RAM writing using simple @map and direct memory access
+// @expect: success
+// @output-contains: STA $D020
+// @output-contains: STA $D021
+// @tags: hardware, screen, vic-ii, real-world, c64, character
+
+module ScreenDraw;
+
+// VIC-II colors for background/border
+@map borderColor at $D020: byte;
+@map backgroundColor at $D021: byte;
+
+// Screen RAM at fixed positions (avoiding array access)
+// Top-left corner of screen
+@map screenPos0 at $0400: byte;
+@map screenPos1 at $0401: byte;
+@map screenPos2 at $0402: byte;
+@map screenPos3 at $0403: byte;
+@map screenPos4 at $0404: byte;
+
+// Color RAM at same positions
+@map colorPos0 at $D800: byte;
+@map colorPos1 at $D801: byte;
+@map colorPos2 at $D802: byte;
+@map colorPos3 at $D803: byte;
+@map colorPos4 at $D804: byte;
+
+// Character codes
+let CHAR_SPACE: byte = 32;
+let CHAR_BLOCK: byte = 160;
+let CHAR_STAR: byte = 42;
+
+// C64 colors
+let COLOR_WHITE: byte = 1;
+let COLOR_RED: byte = 2;
+let COLOR_CYAN: byte = 3;
+let COLOR_GREEN: byte = 5;
+let COLOR_BLUE: byte = 6;
+let COLOR_YELLOW: byte = 7;
+let COLOR_LIGHT_BLUE: byte = 14;
+
+// Write a character to first position
+function writeChar0(char: byte, color: byte): void {
+    screenPos0 = char;
+    colorPos0 = color;
+}
+
+// Write a character to second position
+function writeChar1(char: byte, color: byte): void {
+    screenPos1 = char;
+    colorPos1 = color;
+}
+
+// Write text "HELLO" at top of screen
+function writeHello(): void {
+    // H = screen code 8
+    screenPos0 = 8;
+    colorPos0 = COLOR_YELLOW;
+    
+    // E = screen code 5
+    screenPos1 = 5;
+    colorPos1 = COLOR_YELLOW;
+    
+    // L = screen code 12
+    screenPos2 = 12;
+    colorPos2 = COLOR_YELLOW;
+    
+    // L = screen code 12
+    screenPos3 = 12;
+    colorPos3 = COLOR_YELLOW;
+    
+    // O = screen code 15
+    screenPos4 = 15;
+    colorPos4 = COLOR_YELLOW;
+}
+
+// Clear first 5 characters
+function clearTop(): void {
+    screenPos0 = CHAR_SPACE;
+    screenPos1 = CHAR_SPACE;
+    screenPos2 = CHAR_SPACE;
+    screenPos3 = CHAR_SPACE;
+    screenPos4 = CHAR_SPACE;
+    
+    colorPos0 = COLOR_LIGHT_BLUE;
+    colorPos1 = COLOR_LIGHT_BLUE;
+    colorPos2 = COLOR_LIGHT_BLUE;
+    colorPos3 = COLOR_LIGHT_BLUE;
+    colorPos4 = COLOR_LIGHT_BLUE;
+}
+
+// Draw a simple pattern
+function drawPattern(): void {
+    // Draw colored blocks
+    screenPos0 = CHAR_BLOCK;
+    colorPos0 = COLOR_RED;
+    
+    screenPos1 = CHAR_BLOCK;
+    colorPos1 = COLOR_WHITE;
+    
+    screenPos2 = CHAR_BLOCK;
+    colorPos2 = COLOR_GREEN;
+    
+    screenPos3 = CHAR_STAR;
+    colorPos3 = COLOR_YELLOW;
+    
+    screenPos4 = CHAR_STAR;
+    colorPos4 = COLOR_CYAN;
+}
+
+// Main entry point - demonstrate screen drawing
+export function main(): void {
+    // Set border and background colors
+    borderColor = COLOR_BLUE;
+    backgroundColor = COLOR_BLUE;
+    
+    // Clear top of screen
+    clearTop();
+    
+    // Write "HELLO"
+    writeHello();
+    
+    // Draw a pattern
+    drawPattern();
+    
+    // Final colors
+    borderColor = COLOR_LIGHT_BLUE;
+    backgroundColor = COLOR_BLUE;
+}

@@ -1,0 +1,27 @@
+// @fixture: optimizer/dead-code/return-in-both-branches
+// @category: optimizer
+// @description: Tests dead code when both if and else branches return
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, conditional, return
+
+module ReturnInBothBranches;
+
+function getSign(value: byte): byte {
+    if (value > 128) {
+        return 255;     // Negative (in signed interpretation)
+    } else {
+        return 1;       // Positive
+    }
+    
+    // All code below is unreachable
+    let x: byte = 0;
+    x = x + 1;
+    poke($D020, x);
+    return 0;
+}
+
+function main(): void {
+    let sign: byte = getSign(200);
+    poke($0400, sign);
+}

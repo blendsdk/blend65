@@ -1,0 +1,35 @@
+// @fixture: optimizer/constant-folding/nested-fold
+// @category: optimizer
+// @description: Tests constant folding for nested/parenthesized expressions
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, nested
+
+module NestedFold;
+
+function testNestedFolding(): byte {
+    // Nested arithmetic that should all fold to constants
+    
+    // (2 + 3) * 4 = 20
+    let a: byte = (2 + 3) * 4;
+    
+    // 10 - (3 + 2) = 5
+    let b: byte = 10 - (3 + 2);
+    
+    // (8 / 2) + (6 / 3) = 4 + 2 = 6
+    let c: byte = (8 / 2) + (6 / 3);
+    
+    // ((2 + 2) * (3 + 1)) = 4 * 4 = 16
+    let d: byte = (2 + 2) * (3 + 1);
+    
+    // (((1 + 1) + 1) + 1) = 4
+    let e: byte = ((1 + 1) + 1) + 1;
+    
+    // Total: 20 + 5 + 6 + 16 + 4 = 51
+    return a + b + c + d + e;
+}
+
+function main(): void {
+    let result: byte = testNestedFolding();
+    poke($0400, result);
+}

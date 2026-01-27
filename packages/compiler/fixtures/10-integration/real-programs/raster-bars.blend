@@ -1,0 +1,76 @@
+// @fixture: integration/real-programs/raster-bars
+// @category: integration
+// @description: Classic C64 raster bar effect using VIC-II
+// @expect: success
+// @output-contains: RTS
+// @tags: hardware, vic-ii, raster, demo, real-world
+
+module RasterBars;
+
+// VIC-II registers
+@map rasterLine at $D012: byte;
+@map borderColor at $D020: byte;
+@map bgColor at $D021: byte;
+
+// Color table for raster bars
+let barColors: byte[16] = [0, 6, 14, 3, 1, 3, 14, 6, 0, 2, 10, 15, 1, 15, 10, 2];
+let barCount: byte = 16;
+
+// Wait for specific raster line
+function waitRaster(line: byte): void {
+    while (rasterLine != line) {
+        // Busy wait
+    }
+}
+
+// Display raster bars
+function drawRasterBars(startLine: byte): void {
+    for (i = 0 to barCount - 1) {
+        // Wait for this bar's raster line
+        let line: byte = startLine + (i * 4);
+        waitRaster(line);
+        
+        // Set border and background to bar color
+        let color: byte = barColors[i];
+        borderColor = color;
+        bgColor = color;
+    }
+    
+    // Reset to black after bars
+    waitRaster(startLine + 64);
+    borderColor = 0;
+    bgColor = 0;
+}
+
+// Scroll the bar colors for animation
+function animateBars(): void {
+    // Rotate colors array
+    let firstColor: byte = barColors[0];
+    
+    for (i = 0 to barCount - 2) {
+        barColors[i] = barColors[i + 1];
+    }
+    
+    barColors[barCount - 1] = firstColor;
+}
+
+export function main(): void {
+    // Initialize colors
+    borderColor = 0;
+    bgColor = 0;
+    
+    // Main demo loop
+    let running: byte = 1;
+    let startLine: byte = 80;
+    
+    while (running) {
+        // Wait for top of screen
+        waitRaster(50);
+        
+        // Draw the raster bars
+        drawRasterBars(startLine);
+        
+        // Animate for next frame
+        animateBars();
+    }
+}

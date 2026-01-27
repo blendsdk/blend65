@@ -1,0 +1,21 @@
+// @fixture: il-generator/control-flow/while-loop-il
+// @category: il-generator
+// @description: Tests IL generation for while loops
+// @expect: success
+// @output-contains: JMP
+// @tags: il, control-flow, while
+
+module WhileLoopIL;
+
+function main(): void {
+    let counter: byte = 0;
+    
+    // Simple while loop
+    while (counter < 10) {
+        poke($0400 + counter, counter);
+        counter = counter + 1;
+    }
+    
+    // Signal done
+    poke($D020, counter);
+}

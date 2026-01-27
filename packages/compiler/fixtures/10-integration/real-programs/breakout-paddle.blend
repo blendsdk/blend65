@@ -1,0 +1,81 @@
+// @fixture: integration/real-programs/breakout-paddle
+// @category: integration
+// @description: Breakout game paddle control demonstrating input handling
+// @expect: success
+// @output-contains: RTS
+// @tags: game, breakout, paddle, input, real-world
+
+module BreakoutPaddle;
+
+// Screen dimensions
+let SCREEN_WIDTH: byte = 40;
+let PADDLE_Y: byte = 23;
+let PADDLE_WIDTH: byte = 4;
+
+// Paddle state
+let paddleX: byte = 18;
+
+// Input constants
+let KEY_LEFT: byte = $9D;
+let KEY_RIGHT: byte = $1D;
+
+// Move paddle left
+function movePaddleLeft(): void {
+    if (paddleX > 0) {
+        paddleX = paddleX - 1;
+    }
+}
+
+// Move paddle right
+function movePaddleRight(): void {
+    if (paddleX < SCREEN_WIDTH - PADDLE_WIDTH) {
+        paddleX = paddleX + 1;
+    }
+}
+
+// Draw paddle at current position
+function drawPaddle(): void {
+    let baseAddr: word = $0400 + (PADDLE_Y * 40) + paddleX;
+    
+    for (i = 0 to PADDLE_WIDTH - 1) {
+        poke(baseAddr + i, $A0);  // Solid block character
+    }
+}
+
+// Clear paddle from old position
+function clearPaddle(): void {
+    let baseAddr: word = $0400 + (PADDLE_Y * 40) + paddleX;
+    
+    for (i = 0 to PADDLE_WIDTH - 1) {
+        poke(baseAddr + i, $20);  // Space character
+    }
+}
+
+// Process keyboard input
+function handleInput(): void {
+    let key: byte = peek($C5);  // Current key pressed
+    
+    if (key == KEY_LEFT) {
+        clearPaddle();
+        movePaddleLeft();
+        drawPaddle();
+    }
+    
+    if (key == KEY_RIGHT) {
+        clearPaddle();
+        movePaddleRight();
+        drawPaddle();
+    }
+}
+
+export function main(): void {
+    // Initialize paddle position
+    paddleX = 18;
+    drawPaddle();
+    
+    // Game loop
+    let running: byte = 1;
+    while (running) {
+        handleInput();
+    }
+}

@@ -1,0 +1,128 @@
+// @fixture: integration/real-programs/string-utils
+// @category: integration
+// @description: String utility functions for text handling
+// @expect: success
+// @output-contains: RTS
+// @tags: utility, string, text, real-world
+
+module StringUtils;
+
+// String buffer
+let buffer: byte[80];
+let bufferLen: byte = 0;
+
+// Screen codes for petscii conversion
+let PETSCII_SPACE: byte = $20;
+let PETSCII_A: byte = $41;
+
+// Get string length (null terminated)
+function strlen(addr: word): byte {
+    let len: byte = 0;
+    let ch: byte = peek(addr);
+    
+    while (ch != 0) {
+        len = len + 1;
+        ch = peek(addr + len);
+    }
+    
+    return len;
+}
+
+// Copy string from source to destination
+function strcpy(dest: word, src: word): void {
+    let i: byte = 0;
+    let ch: byte = peek(src);
+    
+    while (ch != 0) {
+        poke(dest + i, ch);
+        i = i + 1;
+        ch = peek(src + i);
+    }
+    
+    // Null terminate
+    poke(dest + i, 0);
+}
+
+// Compare two strings (returns 0 if equal)
+function strcmp(s1: word, s2: word): byte {
+    let i: byte = 0;
+    let c1: byte = peek(s1);
+    let c2: byte = peek(s2);
+    
+    while (c1 != 0) {
+        if (c1 != c2) {
+            if (c1 < c2) {
+                return 255;  // s1 < s2
+            } else {
+                return 1;    // s1 > s2
+            }
+        }
+        
+        i = i + 1;
+        c1 = peek(s1 + i);
+        c2 = peek(s2 + i);
+    }
+    
+    // Check if s2 is longer
+    if (c2 != 0) {
+        return 255;  // s1 < s2
+    }
+    
+    return 0;  // Equal
+}
+
+// Convert byte to uppercase
+function toUpper(ch: byte): byte {
+    if (ch >= $61) {  // 'a'
+        if (ch <= $7A) {  // 'z'
+            return ch - $20;
+        }
+    }
+    return ch;
+}
+
+// Convert byte to lowercase
+function toLower(ch: byte): byte {
+    if (ch >= $41) {  // 'A'
+        if (ch <= $5A) {  // 'Z'
+            return ch + $20;
+        }
+    }
+    return ch;
+}
+
+// Check if character is a digit
+function isDigit(ch: byte): byte {
+    if (ch >= $30) {  // '0'
+        if (ch <= $39) {  // '9'
+            return true;
+        }
+    }
+    return false;
+}
+
+// Print string to screen at position
+function printAt(x: byte, y: byte, addr: word): void {
+    let screenAddr: word = $0400 + (y * 40) + x;
+    let i: byte = 0;
+    let ch: byte = peek(addr);
+    
+    while (ch != 0) {
+        poke(screenAddr + i, ch);
+        i = i + 1;
+        ch = peek(addr + i);
+    }
+}
+
+export function main(): void {
+    // Test string utilities
+    buffer[0] = $48;  // H
+    buffer[1] = $45;  // E
+    buffer[2] = $4C;  // L
+    buffer[3] = $4C;  // L
+    buffer[4] = $4F;  // O
+    buffer[5] = 0;    // null
+    
+    let len: byte = strlen(@buffer);
+    poke($0400, $30 + len);  // Display length as digit
+}

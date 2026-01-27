@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-module-keyword
+// @category: error-cases
+// @description: Tests that parser correctly reports missing module keyword
+// @expect: error
+// @error-contains: module
+// @tags: parser, error, module
+
+MissingModuleKeyword;
+
+function main(): void {
+    let x: byte = 10;
+}

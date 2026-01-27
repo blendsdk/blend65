@@ -1,0 +1,298 @@
+// @fixture: integration/real-programs/collision
+// @category: integration
+// @description: Tests collision detection with sprite and hardware collision registers
+// @expect: success
+// @output-contains: LDA $D01E
+// @output-contains: CMP
+// @tags: game, collision, sprite, hardware, real-world, c64
+
+module CollisionDetection;
+
+// VIC-II sprite-to-sprite collision register
+@map spriteCollision at $D01E: byte;
+// VIC-II sprite-to-background collision register
+@map backgroundCollision at $D01F: byte;
+
+// Sprite positions for collision checks (sprite 0 and 1)
+@map sprite0X at $D000: byte;
+@map sprite0Y at $D001: byte;
+@map sprite1X at $D002: byte;
+@map sprite1Y at $D003: byte;
+
+// MSB for X positions (for sprites > 255 X position)
+@map spriteXMSB at $D010: byte;
+
+// Border color for visual feedback
+@map borderColor at $D020: byte;
+
+// Game object positions (player)
+let playerX: byte = 100;
+let playerY: byte = 150;
+let playerWidth: byte = 24;
+let playerHeight: byte = 21;
+
+// Game object positions (enemy)
+let enemyX: byte = 200;
+let enemyY: byte = 150;
+let enemyWidth: byte = 24;
+let enemyHeight: byte = 21;
+
+// Bullet position
+let bulletX: byte = 0;
+let bulletY: byte = 0;
+let bulletActive: byte = 0;
+let bulletWidth: byte = 4;
+let bulletHeight: byte = 4;
+
+// Collision result flags
+let playerHit: byte = 0;
+let enemyHit: byte = 0;
+let collisionType: byte = 0;
+
+// Collision type constants
+let NO_COLLISION: byte = 0;
+let SPRITE_COLLISION: byte = 1;
+let BACKGROUND_COLLISION: byte = 2;
+let BOUNDARY_COLLISION: byte = 3;
+
+// Check VIC-II hardware sprite collision
+function checkHardwareCollision(): byte {
+    let collision: byte = spriteCollision;
+    // Reading clears the register, so store result
+    if (collision != 0) {
+        return SPRITE_COLLISION;
+    }
+    return NO_COLLISION;
+}
+
+// Check background collision from VIC-II
+function checkBackgroundCollision(): byte {
+    let collision: byte = backgroundCollision;
+    if (collision != 0) {
+        return BACKGROUND_COLLISION;
+    }
+    return NO_COLLISION;
+}
+
+// Simple AABB (Axis-Aligned Bounding Box) collision detection
+// Returns 1 if boxes overlap, 0 otherwise
+function checkBoxCollision(
+    x1: byte, y1: byte, w1: byte, h1: byte,
+    x2: byte, y2: byte, w2: byte, h2: byte
+): byte {
+    let right1: byte = x1 + w1;
+    let bottom1: byte = y1 + h1;
+    let right2: byte = x2 + w2;
+    let bottom2: byte = y2 + h2;
+    
+    // Check for non-overlapping conditions
+    // If any of these are true, boxes don't overlap
+    if (right1 < x2) {
+        return 0;
+    }
+    if (right2 < x1) {
+        return 0;
+    }
+    if (bottom1 < y2) {
+        return 0;
+    }
+    if (bottom2 < y1) {
+        return 0;
+    }
+    
+    // All conditions failed, so boxes overlap
+    return 1;
+}
+
+// Check if player collides with enemy (software collision)
+function checkPlayerEnemyCollision(): byte {
+    return checkBoxCollision(
+        playerX, playerY, playerWidth, playerHeight,
+        enemyX, enemyY, enemyWidth, enemyHeight
+    );
+}
+
+// Check if bullet hits enemy
+function checkBulletEnemyCollision(): byte {
+    if (bulletActive == 0) {
+        return 0;
+    }
+    return checkBoxCollision(
+        bulletX, bulletY, bulletWidth, bulletHeight,
+        enemyX, enemyY, enemyWidth, enemyHeight
+    );
+}
+
+// Check screen boundaries for player
+function checkPlayerBounds(): byte {
+    // Left boundary (sprite visible area)
+    if (playerX < 24) {
+        return BOUNDARY_COLLISION;
+    }
+    // Right boundary
+    if (playerX > 255) {
+        return BOUNDARY_COLLISION;
+    }
+    // Top boundary
+    if (playerY < 50) {
+        return BOUNDARY_COLLISION;
+    }
+    // Bottom boundary
+    if (playerY > 229) {
+        return BOUNDARY_COLLISION;
+    }
+    return NO_COLLISION;
+}
+
+// Process collision response for player
+function handlePlayerHit(): void {
+    playerHit = 1;
+    // Flash border red to indicate hit
+    borderColor = 2;
+}
+
+// Process collision response for enemy
+function handleEnemyHit(): void {
+    enemyHit = 1;
+    // Flash border green to indicate enemy destroyed
+    borderColor = 5;
+}
+
+// Reset collision flags
+function resetCollisionFlags(): void {
+    playerHit = 0;
+    enemyHit = 0;
+    collisionType = NO_COLLISION;
+}
+
+// Main collision check - combines all methods
+// Note: Restructured to avoid early returns in void function
+function checkAllCollisions(): void {
+    let done: byte = 0;
+    resetCollisionFlags();
+    
+    // Check hardware sprite collision first (fastest)
+    collisionType = checkHardwareCollision();
+    if (collisionType == SPRITE_COLLISION) {
+        // Hardware detected collision, determine which sprites
+        // For this example, assume player (sprite 0) and enemy (sprite 1)
+        handlePlayerHit();
+        done = 1;
+    }
+    
+    // Check software box collision (more precise)
+    if (done == 0) {
+        if (checkPlayerEnemyCollision() == 1) {
+            handlePlayerHit();
+            collisionType = SPRITE_COLLISION;
+            done = 1;
+        }
+    }
+    
+    // Check bullet collision
+    if (done == 0) {
+        if (checkBulletEnemyCollision() == 1) {
+            handleEnemyHit();
+            bulletActive = 0;
+            collisionType = SPRITE_COLLISION;
+            done = 1;
+        }
+    }
+    
+    // Only check boundaries and background if no other collision
+    if (done == 0) {
+        // Check player boundaries
+        collisionType = checkPlayerBounds();
+        if (collisionType == BOUNDARY_COLLISION) {
+            // Player at boundary - could trigger push back
+            borderColor = 7;  // Yellow warning
+        }
+        
+        // Check background collision
+        let bgCollision: byte = checkBackgroundCollision();
+        if (bgCollision == BACKGROUND_COLLISION) {
+            collisionType = bgCollision;
+        }
+    }
+}
+
+// Update sprite positions in hardware
+function updateSpritePositions(): void {
+    sprite0X = playerX;
+    sprite0Y = playerY;
+    sprite1X = enemyX;
+    sprite1Y = enemyY;
+}
+
+// Fire bullet from player position
+function fireBullet(): void {
+    if (bulletActive == 0) {
+        bulletX = playerX + 12;  // Center of player
+        bulletY = playerY - 4;   // Above player
+        bulletActive = 1;
+    }
+}
+
+// Update bullet position
+function updateBullet(): void {
+    if (bulletActive == 1) {
+        // Move bullet up
+        if (bulletY > 4) {
+            bulletY = bulletY - 4;
+        } else {
+            // Bullet reached top of screen
+            bulletActive = 0;
+        }
+    }
+}
+
+// Main entry - demonstrates collision detection
+export function main(): void {
+    // Initialize positions
+    playerX = 100;
+    playerY = 150;
+    enemyX = 200;
+    enemyY = 150;
+    
+    // Update sprite hardware
+    updateSpritePositions();
+    
+    // Reset collision state
+    resetCollisionFlags();
+    
+    // Check collisions (no collision expected - sprites far apart)
+    checkAllCollisions();
+    
+    // Move player closer to enemy
+    playerX = 180;
+    updateSpritePositions();
+    
+    // Check collisions again (should detect overlap)
+    checkAllCollisions();
+    
+    // Fire a bullet
+    fireBullet();
+    
+    // Move bullet up several times
+    updateBullet();
+    updateBullet();
+    updateBullet();
+    updateBullet();
+    updateBullet();
+    
+    // Position enemy in bullet path
+    enemyX = bulletX;
+    enemyY = bulletY + 10;
+    updateSpritePositions();
+    
+    // Check for bullet hit
+    checkAllCollisions();
+    
+    // Test boundary collision
+    playerX = 20;  // Near left boundary
+    checkAllCollisions();
+    
+    // Check hardware collision register directly
+    let hwCollision: byte = checkHardwareCollision();
+    let bgCollision: byte = checkBackgroundCollision();
+}

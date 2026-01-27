@@ -1,0 +1,14 @@
+// @fixture: error-cases/parser-errors/missing-opening-paren
+// @category: error-cases
+// @description: Tests that parser correctly reports missing opening parenthesis
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, parenthesis
+
+module MissingOpeningParen;
+
+function main(): void {
+    if x > 10) {
+        let y: byte = 5;
+    }
+}

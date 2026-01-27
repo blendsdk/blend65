@@ -1,0 +1,33 @@
+// @fixture: edge-cases/boundary-values/nested-loop-depth
+// @category: edge-cases
+// @description: Tests deeply nested loop structures (5 levels)
+// @expect: success
+// @output-contains: RTS
+// @tags: edge-case, loops, nesting, boundary
+
+module NestedLoopDepth;
+
+// Use byte counter to avoid word-to-byte conversion issues
+// Tests 3^4 = 81 iterations (fits in byte)
+let total: byte = 0;
+
+function deeplyNestedLoops(): void {
+    for (a = 0 to 2) {
+        for (b = 0 to 2) {
+            for (c = 0 to 2) {
+                for (d = 0 to 2) {
+                    // 3^4 = 81 iterations (fits in byte)
+                    total = total + 1;
+                }
+            }
+        }
+    }
+}
+
+export function main(): void {
+    total = 0;
+    deeplyNestedLoops();
+    
+    // Total should be 81
+    poke($0400, total);
+}

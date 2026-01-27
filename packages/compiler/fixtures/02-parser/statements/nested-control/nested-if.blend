@@ -1,0 +1,89 @@
+// @fixture: parser/statements/nested-control/nested-if
+// @category: parser
+// @description: Tests parsing of deeply nested if statements
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, if, nested, control-flow
+
+module NestedIf;
+
+@zp let value: byte = 50;
+@zp let result: byte = 0;
+
+function main(): void {
+    // Two levels of nesting
+    if (value > 0) {
+        if (value < 100) {
+            result = 1;  // Value in range 1-99
+        }
+    }
+    
+    poke($0400, result);
+    
+    // Three levels of nesting
+    let x: byte = 25;
+    let y: byte = 75;
+    let category: byte = 0;
+    
+    if (x > 0) {
+        if (y > 0) {
+            if (x < y) {
+                category = 1;  // x is positive and less than y
+            } else {
+                category = 2;  // x is positive and >= y
+            }
+        } else {
+            category = 3;  // x positive, y non-positive
+        }
+    } else {
+        category = 4;  // x non-positive
+    }
+    
+    poke($0401, category);
+    
+    // Nested if inside else
+    let score: byte = 85;
+    let grade: byte = 0;
+    
+    if (score >= 90) {
+        grade = 65;  // A
+    } else {
+        if (score >= 80) {
+            grade = 66;  // B
+        } else {
+            if (score >= 70) {
+                grade = 67;  // C
+            } else {
+                grade = 70;  // F
+            }
+        }
+    }
+    
+    poke($0402, grade);
+    
+    // Complex nested conditions
+    let a: byte = 10;
+    let b: byte = 20;
+    let c: byte = 30;
+    let order: byte = 0;
+    
+    if (a < b) {
+        if (b < c) {
+            order = 1;  // a < b < c
+        } else {
+            if (a < c) {
+                order = 2;  // a < c <= b
+            } else {
+                order = 3;  // c <= a < b
+            }
+        }
+    } else {
+        if (a < c) {
+            order = 4;  // b <= a < c
+        } else {
+            order = 5;  // b <= a and c <= a
+        }
+    }
+    
+    poke($0403, order);
+}

@@ -1,0 +1,124 @@
+// @fixture: integration/real-programs/input-handler
+// @category: integration
+// @description: Tests keyboard input handling with CIA chip access
+// @expect: success
+// @output-contains: LDA $DC01
+// @output-contains: STA $DC00
+// @tags: hardware, input, keyboard, cia, real-world, c64
+
+module InputHandler;
+
+// CIA #1 Port registers for keyboard scanning
+// Port A - keyboard column select (active low)
+@map keyboardColumn at $DC00: byte;
+// Port B - keyboard row read (active low)
+@map keyboardRow at $DC01: byte;
+
+// Note: Joystick port 2 uses same CIA register as keyboard column
+// In real hardware, you temporarily switch the data direction register
+// We'll use keyboardColumn for both keyboard and joystick
+
+// Store for current key state
+let lastKeyPressed: byte = 0;
+let keyDown: byte = 0;
+
+// Direction states for game movement
+let moveUp: byte = 0;
+let moveDown: byte = 0;
+let moveLeft: byte = 0;
+let moveRight: byte = 0;
+let firePressed: byte = 0;
+
+// Scan keyboard for specific key
+// Returns non-zero if key is pressed
+function scanKeyColumn(column: byte): byte {
+    keyboardColumn = column;
+    return keyboardRow;
+}
+
+// Check if a specific key in a column is pressed
+function isKeyPressed(columnMask: byte, rowMask: byte): byte {
+    let rowValue: byte = 0;
+    keyboardColumn = columnMask;
+    rowValue = keyboardRow;
+    // If bit is low, key is pressed
+    if ((rowValue & rowMask) == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+// Scan WASD keys for movement
+function scanWASDKeys(): void {
+    // Reset movement flags
+    moveUp = 0;
+    moveDown = 0;
+    moveLeft = 0;
+    moveRight = 0;
+    
+    // Scan W key (row 1, column 1)
+    moveUp = isKeyPressed($FD, $02);
+    
+    // Scan A key (row 1, column 2)
+    moveLeft = isKeyPressed($FB, $02);
+    
+    // Scan S key (row 1, column 5)
+    moveDown = isKeyPressed($DF, $02);
+    
+    // Scan D key (row 2, column 2)
+    moveRight = isKeyPressed($FB, $04);
+}
+
+// Read joystick port 2 for movement
+function scanJoystick(): void {
+    let joyValue: byte = 0;
+    
+    // Read joystick (directly mapped to keyboard scan hardware)
+    joyValue = keyboardRow;
+    
+    // Check direction bits (active low)
+    if ((joyValue & $01) == 0) {
+        moveUp = 1;
+    }
+    if ((joyValue & $02) == 0) {
+        moveDown = 1;
+    }
+    if ((joyValue & $04) == 0) {
+        moveLeft = 1;
+    }
+    if ((joyValue & $08) == 0) {
+        moveRight = 1;
+    }
+    if ((joyValue & $10) == 0) {
+        firePressed = 1;
+    }
+}
+
+// Clear all input states
+function clearInputState(): void {
+    moveUp = 0;
+    moveDown = 0;
+    moveLeft = 0;
+    moveRight = 0;
+    firePressed = 0;
+    lastKeyPressed = 0;
+    keyDown = 0;
+}
+
+// Main entry - demonstrates input handling
+export function main(): void {
+    // Initialize
+    clearInputState();
+    
+    // Scan keyboard
+    scanWASDKeys();
+    
+    // Scan joystick
+    scanJoystick();
+    
+    // Check for specific key
+    let spacePressed: byte = isKeyPressed($7F, $10);
+    
+    // Scan column directly
+    let rowState: byte = scanKeyColumn($FF);
+}

@@ -1,0 +1,17 @@
+// @fixture: error-cases/type-errors/void-in-expression
+// @category: error-cases
+// @description: Tests type error for using void function result in expression
+// @expect: error
+// @error-contains: void
+// @tags: error, type, void, expression
+
+module VoidInExpression;
+
+function doSomething(): void {
+    poke($0400, 1);
+}
+
+function main(): void {
+    // Cannot use void function result in expression
+    let result: byte = doSomething();
+}

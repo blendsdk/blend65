@@ -1,0 +1,17 @@
+// @fixture: error-cases/parser-errors/missing-type
+// @category: error-cases
+// @description: Tests parser error for missing type annotation on function parameter
+// @expect: error
+// @error-contains: type
+// @tags: error, parser, type
+
+module MissingType;
+
+// Function parameter without type annotation should cause parser error
+function badFunc(param): void {
+    poke($0400, param);
+}
+
+function main(): void {
+    badFunc(10);
+}

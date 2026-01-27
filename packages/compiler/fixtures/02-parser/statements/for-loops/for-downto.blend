@@ -1,0 +1,62 @@
+// @fixture: parser/statements/for-loops/for-downto
+// @category: parser
+// @description: Tests parsing of for loops with 'downto' keyword
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, for, downto, loops, control-flow
+
+module ForDownto;
+
+@zp let count: byte = 0;
+@zp let lastValue: byte = 0;
+
+function main(): void {
+    // Basic countdown
+    for (i = 10 downto 0) {
+        count = count + 1;
+    }
+    
+    poke($0400, count);  // Should be 11 (10,9,8,7,6,5,4,3,2,1,0)
+    
+    // Countdown capturing last value
+    for (j = 5 downto 1) {
+        lastValue = j;
+    }
+    
+    poke($0401, lastValue);  // Should be 1 (last iteration)
+    
+    // Countdown accumulation
+    let sum: byte = 0;
+    for (k = 10 downto 1) {
+        sum = sum + k;
+    }
+    
+    poke($0402, sum);  // 10+9+8+7+6+5+4+3+2+1 = 55
+    
+    // Countdown with variable bounds
+    let high: byte = 20;
+    let low: byte = 15;
+    let rangeCount: byte = 0;
+    
+    for (m = high downto low) {
+        rangeCount = rangeCount + 1;
+    }
+    
+    poke($0403, rangeCount);  // Should be 6 (20,19,18,17,16,15)
+    
+    // Countdown to store values
+    let value: byte = 0;
+    for (n = 3 downto 0) {
+        value = value * 10 + n;  // Building number backwards
+    }
+    
+    poke($0404, value);
+    
+    // Single iteration downto
+    let once: byte = 0;
+    for (p = 5 downto 5) {
+        once = 42;
+    }
+    
+    poke($0405, once);  // Should be 42
+}

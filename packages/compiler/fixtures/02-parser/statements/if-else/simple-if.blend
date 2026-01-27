@@ -1,0 +1,48 @@
+// @fixture: parser/statements/if-else/simple-if
+// @category: parser
+// @description: Tests parsing of simple if statement without else
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, if, control-flow
+
+module SimpleIf;
+
+@zp let value: byte = 10;
+@zp let result: byte = 0;
+
+function main(): void {
+    // Simple if with single condition
+    if (value > 5) {
+        result = 1;
+    }
+    
+    // If with equality check
+    if (value == 10) {
+        result = 2;
+    }
+    
+    // If with inequality check
+    if (value != 0) {
+        result = 3;
+    }
+    
+    // If with less than
+    if (value < 20) {
+        result = 4;
+    }
+    
+    // If with multiple statements in block
+    if (value >= 10) {
+        result = 5;
+        poke($0400, result);
+    }
+    
+    // If with expression condition
+    let threshold: byte = 8;
+    if (value > threshold) {
+        result = 6;
+    }
+    
+    // Store final result
+    poke($0401, result);
+}

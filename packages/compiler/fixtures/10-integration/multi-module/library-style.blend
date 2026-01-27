@@ -1,0 +1,136 @@
+// @fixture: integration/multi-module/library-style
+// @category: integration
+// @description: Tests library-style module with multiple exports
+// @expect: success
+// @output-contains: STA $D020
+// @output-contains: STA $D021
+// @output-contains: JSR
+// @tags: export, module, library, functions
+
+module Utils.Colors;
+
+// Import low-level functions
+import { poke, peek } from system;
+
+// ============================================================================
+// Exported Constants - C64 Color Values
+// ============================================================================
+
+export const COLOR_BLACK: byte = 0;
+export const COLOR_WHITE: byte = 1;
+export const COLOR_RED: byte = 2;
+export const COLOR_CYAN: byte = 3;
+export const COLOR_PURPLE: byte = 4;
+export const COLOR_GREEN: byte = 5;
+export const COLOR_BLUE: byte = 6;
+export const COLOR_YELLOW: byte = 7;
+export const COLOR_ORANGE: byte = 8;
+export const COLOR_BROWN: byte = 9;
+export const COLOR_LIGHT_RED: byte = 10;
+export const COLOR_DARK_GREY: byte = 11;
+export const COLOR_GREY: byte = 12;
+export const COLOR_LIGHT_GREEN: byte = 13;
+export const COLOR_LIGHT_BLUE: byte = 14;
+export const COLOR_LIGHT_GREY: byte = 15;
+
+// ============================================================================
+// Exported Variables - Hardware Addresses
+// ============================================================================
+
+// VIC-II registers
+const VIC_BORDER: word = $D020;
+const VIC_BACKGROUND: word = $D021;
+
+// ============================================================================
+// Exported Functions - Color Utilities
+// ============================================================================
+
+/**
+ * Set the border color
+ */
+export function setBorderColor(color: byte): void {
+    poke(VIC_BORDER, color);
+}
+
+/**
+ * Set the background color
+ */
+export function setBackgroundColor(color: byte): void {
+    poke(VIC_BACKGROUND, color);
+}
+
+/**
+ * Set both border and background to the same color
+ */
+export function setScreenColors(borderColor: byte, bgColor: byte): void {
+    setBorderColor(borderColor);
+    setBackgroundColor(bgColor);
+}
+
+/**
+ * Get the current border color
+ */
+export function getBorderColor(): byte {
+    return peek(VIC_BORDER);
+}
+
+/**
+ * Get the current background color
+ */
+export function getBackgroundColor(): byte {
+    return peek(VIC_BACKGROUND);
+}
+
+/**
+ * Flash the border between two colors
+ */
+export function flashBorder(color1: byte, color2: byte, times: byte): void {
+    let i: byte = 0;
+    while (i < times) {
+        setBorderColor(color1);
+        setBorderColor(color2);
+        i = i + 1;
+    }
+}
+
+/**
+ * Reset colors to default C64 colors (light blue border, blue background)
+ */
+export function resetColors(): void {
+    setBorderColor(COLOR_LIGHT_BLUE);
+    setBackgroundColor(COLOR_BLUE);
+}
+
+// ============================================================================
+// Internal (non-exported) helpers
+// ============================================================================
+
+// Private function - not exported, only used internally
+function validateColor(color: byte): byte {
+    // C64 only has 16 colors (0-15)
+    return color & $0F;
+}
+
+// ============================================================================
+// Main Entry Point - Demonstrates library usage
+// ============================================================================
+
+export function main(): void {
+    // Reset to default colors
+    resetColors();
+
+    // Set custom colors
+    setScreenColors(COLOR_BLACK, COLOR_BLACK);
+
+    // Read current colors
+    let currentBorder: byte = getBorderColor();
+    let currentBg: byte = getBackgroundColor();
+
+    // Flash border a few times
+    flashBorder(COLOR_WHITE, COLOR_BLACK, 5);
+
+    // Final color scheme
+    if (currentBorder == COLOR_BLACK) {
+        setScreenColors(COLOR_LIGHT_BLUE, COLOR_BLUE);
+    }
+}

@@ -1,0 +1,61 @@
+// @fixture: parser/statements/for-loops/for-with-step
+// @category: parser
+// @description: Tests parsing of for loops with 'step' keyword
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, for, step, loops, control-flow
+
+module ForWithStep;
+
+@zp let count: byte = 0;
+@zp let total: byte = 0;
+
+function main(): void {
+    // Step by 2 (even numbers)
+    for (i = 0 to 10 step 2) {
+        count = count + 1;
+    }
+    
+    poke($0400, count);  // 0,2,4,6,8,10 = 6 iterations
+    
+    // Step by 5
+    let fiveCount: byte = 0;
+    for (j = 0 to 50 step 5) {
+        fiveCount = fiveCount + 1;
+    }
+    
+    poke($0401, fiveCount);  // 0,5,10,15,20,25,30,35,40,45,50 = 11 iterations
+    
+    // Accumulate with step
+    let sum: byte = 0;
+    for (k = 0 to 20 step 2) {
+        sum = sum + k;
+    }
+    
+    poke($0402, sum);  // 0+2+4+6+8+10+12+14+16+18+20 = 110
+    
+    // Downto with step
+    let downCount: byte = 0;
+    for (m = 100 downto 0 step 10) {
+        downCount = downCount + 1;
+    }
+    
+    poke($0403, downCount);  // 100,90,80,70,60,50,40,30,20,10,0 = 11 iterations
+    
+    // Variable step
+    let stepSize: byte = 3;
+    let varStepCount: byte = 0;
+    for (n = 0 to 15 step stepSize) {
+        varStepCount = varStepCount + 1;
+    }
+    
+    poke($0404, varStepCount);  // 0,3,6,9,12,15 = 6 iterations
+    
+    // Step larger than range (single iteration)
+    let bigStep: byte = 0;
+    for (p = 0 to 5 step 10) {
+        bigStep = bigStep + 1;
+    }
+    
+    poke($0405, bigStep);  // Just 0 = 1 iteration
+}

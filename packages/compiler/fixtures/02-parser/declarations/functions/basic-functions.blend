@@ -1,0 +1,58 @@
+// @fixture: parser/declarations/functions/basic-functions
+// @category: parser
+// @description: Tests parsing of basic function declarations
+// @expect: success
+// @output-contains: JSR
+// @tags: declarations, functions, basic
+
+module BasicFunctions;
+
+// Simple void function
+function doNothing(): void {
+    // Empty function body
+}
+
+// Function returning byte
+function getByte(): byte {
+    return 42;
+}
+
+// Function returning word
+function getWord(): word {
+    return $0400;
+}
+
+// Function returning boolean
+function getTrue(): boolean {
+    return true;
+}
+
+// Function with local variables
+function calculate(): byte {
+    let a: byte = 10;
+    let b: byte = 20;
+    let result: byte = a + b;
+    return result;
+}
+
+// Function that calls other functions
+function nested(): byte {
+    let value: byte = getByte();
+    return value + 1;
+}
+
+function main(): void {
+    // Call all functions
+    doNothing();
+    
+    let b: byte = getByte();
+    let w: word = getWord();
+    let t: boolean = getTrue();
+    let c: byte = calculate();
+    let n: byte = nested();
+    
+    // Use results
+    poke($0400, b);
+    poke($0401, c);
+    poke($0402, n);
+}

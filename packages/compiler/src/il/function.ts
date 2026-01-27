@@ -425,7 +425,9 @@ export class ILFunction {
 
     // Iterate until fixed point
     let changed = true;
-    const maxMainIterations = blocks.length * blocks.length; // Safety limit
+    // Safety limit: n² iterations should be more than enough for any valid CFG
+    // Use Math.max to ensure at least 2 iterations are allowed (needed for convergence check)
+    const maxMainIterations = Math.max(blocks.length * blocks.length, 2);
     let mainIterations = 0;
 
     while (changed && mainIterations < maxMainIterations) {

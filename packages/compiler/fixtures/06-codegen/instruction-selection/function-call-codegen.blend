@@ -1,0 +1,60 @@
+// @fixture: codegen/instruction-selection/function-call-codegen
+// @category: codegen
+// @description: Tests code generation for function calls with various parameter patterns
+// @expect: success
+// @output-contains: JSR
+// @output-contains: RTS
+// @tags: codegen, functions, calls, parameters
+
+module FunctionCallCodegen;
+
+function noParams(): byte {
+    return 42;
+}
+
+function oneParam(a: byte): byte {
+    return a * 2;
+}
+
+function twoParams(a: byte, b: byte): byte {
+    return a + b;
+}
+
+function threeParams(a: byte, b: byte, c: byte): byte {
+    return a + b + c;
+}
+
+function voidFunction(): void {
+    poke($D020, 0);
+}
+
+function callChain(x: byte): byte {
+    // Chain of function calls
+    let result: byte = oneParam(x);
+    result = twoParams(result, 10);
+    result = threeParams(result, 5, 3);
+    return result;
+}
+
+function expressionArg(): byte {
+    // Arguments are expressions
+    return twoParams(5 + 3, 10 * 2);
+}
+
+function main(): void {
+    let r1: byte = noParams();
+    let r2: byte = oneParam(10);
+    let r3: byte = twoParams(5, 7);
+    let r4: byte = threeParams(1, 2, 3);
+    let r5: byte = callChain(5);
+    let r6: byte = expressionArg();
+    
+    voidFunction();
+    
+    poke($0400, r1);
+    poke($0401, r2);
+    poke($0402, r3);
+    poke($0403, r4);
+    poke($0404, r5);
+    poke($0405, r6);
+}

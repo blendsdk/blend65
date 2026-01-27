@@ -1,0 +1,98 @@
+// @fixture: semantic/type-checking/function-param-types
+// @category: semantic
+// @description: Tests type checking for function parameter types
+// @expect: success
+// @output-contains: JSR
+// @tags: semantic, type-checking, functions, parameters
+
+module FunctionParamTypes;
+
+// Single byte parameter
+function useByte(value: byte): void {
+    poke($0400, value);
+}
+
+// Single word parameter
+function useWord(addr: word): void {
+    poke(addr, 65);
+}
+
+// Single boolean parameter
+function useBool(flag: boolean): void {
+    if (flag) {
+        poke($0401, 1);
+    }
+}
+
+// Multiple byte parameters
+function addThree(a: byte, b: byte, c: byte): byte {
+    return a + b + c;
+}
+
+// Mixed type parameters
+function pokeAt(addr: word, value: byte): void {
+    poke(addr, value);
+}
+
+// Parameter used in calculation
+function scale(value: byte, factor: byte): byte {
+    let result: byte = value * factor;
+    return result;
+}
+
+// Parameter in comparison
+function clampByte(value: byte, limit: byte): byte {
+    if (value > limit) {
+        return limit;
+    }
+    return value;
+}
+
+// Multiple word parameters
+function copyWord(src: word, dst: word): void {
+    let low: byte = peek(src);
+    let high: byte = peek(src + 1);
+    poke(dst, low);
+    poke(dst + 1, high);
+}
+
+// Boolean and byte mixed
+function conditionalPoke(addr: word, value: byte, doIt: boolean): void {
+    if (doIt) {
+        poke(addr, value);
+    }
+}
+
+function main(): void {
+    // Call with literal values
+    useByte(42);
+    useWord($0400);
+    useBool(true);
+    
+    // Call with variables of matching types
+    let b: byte = 10;
+    let w: word = $0500;
+    let f: boolean = true;
+    useByte(b);
+    useWord(w);
+    useBool(f);
+    
+    // Call with expressions of correct type
+    useByte(b + 5);
+    useWord(w + 40);
+    useBool(b > 5);
+    
+    // Call multi-parameter functions
+    let sum: byte = addThree(10, 20, 30);
+    pokeAt($0402, sum);
+    
+    let scaled: byte = scale(10, 5);
+    let clamped: byte = clampByte(200, 100);
+    
+    copyWord($FB, $FD);
+    conditionalPoke($0403, 99, true);
+    
+    // Store results
+    poke($0404, scaled);
+    poke($0405, clamped);
+}

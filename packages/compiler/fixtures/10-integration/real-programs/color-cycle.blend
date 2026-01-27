@@ -1,0 +1,194 @@
+// @fixture: integration/real-programs/color-cycle
+// @category: integration
+// @description: Tests color cycling animation with VIC-II border and background
+// @expect: success
+// @output-contains: STA $D020
+// @output-contains: STA $D021
+// @tags: hardware, color, vic-ii, real-world, c64, animation
+
+module ColorCycle;
+
+// VIC-II color registers
+@map borderColor at $D020: byte;
+@map backgroundColor at $D021: byte;
+
+// Additional background colors for multicolor mode
+@map backgroundColor1 at $D022: byte;
+@map backgroundColor2 at $D023: byte;
+@map backgroundColor3 at $D024: byte;
+
+// Sprite multicolor registers
+@map spriteMulticolor0 at $D025: byte;
+@map spriteMulticolor1 at $D026: byte;
+
+// C64 color palette constants
+let COLOR_BLACK: byte = 0;
+let COLOR_WHITE: byte = 1;
+let COLOR_RED: byte = 2;
+let COLOR_CYAN: byte = 3;
+let COLOR_PURPLE: byte = 4;
+let COLOR_GREEN: byte = 5;
+let COLOR_BLUE: byte = 6;
+let COLOR_YELLOW: byte = 7;
+let COLOR_ORANGE: byte = 8;
+let COLOR_BROWN: byte = 9;
+let COLOR_LIGHT_RED: byte = 10;
+let COLOR_DARK_GRAY: byte = 11;
+let COLOR_MEDIUM_GRAY: byte = 12;
+let COLOR_LIGHT_GREEN: byte = 13;
+let COLOR_LIGHT_BLUE: byte = 14;
+let COLOR_LIGHT_GRAY: byte = 15;
+
+// Current color state
+let currentColor: byte = 0;
+let frameCount: byte = 0;
+
+// Color tables for cycling effect
+let cycleColors: byte[16];
+
+// Initialize color table
+function initColorTable(): void {
+    cycleColors[0] = COLOR_BLACK;
+    cycleColors[1] = COLOR_DARK_GRAY;
+    cycleColors[2] = COLOR_MEDIUM_GRAY;
+    cycleColors[3] = COLOR_LIGHT_GRAY;
+    cycleColors[4] = COLOR_WHITE;
+    cycleColors[5] = COLOR_LIGHT_GRAY;
+    cycleColors[6] = COLOR_MEDIUM_GRAY;
+    cycleColors[7] = COLOR_DARK_GRAY;
+    cycleColors[8] = COLOR_BLUE;
+    cycleColors[9] = COLOR_LIGHT_BLUE;
+    cycleColors[10] = COLOR_CYAN;
+    cycleColors[11] = COLOR_LIGHT_BLUE;
+    cycleColors[12] = COLOR_BLUE;
+    cycleColors[13] = COLOR_PURPLE;
+    cycleColors[14] = COLOR_RED;
+    cycleColors[15] = COLOR_ORANGE;
+}
+
+// Simple delay by counting
+function delay(count: byte): void {
+    let i: byte = 0;
+    let j: byte = 0;
+    
+    while (i < count) {
+        j = 0;
+        while (j < 255) {
+            j = j + 1;
+        }
+        i = i + 1;
+    }
+}
+
+// Cycle to next color
+function cycleNext(): void {
+    currentColor = currentColor + 1;
+    if (currentColor >= 16) {
+        currentColor = 0;
+    }
+}
+
+// Get color from cycle table
+function getCycleColor(): byte {
+    return cycleColors[currentColor];
+}
+
+// Set border color with fade effect
+function setBorderWithFade(targetColor: byte): void {
+    // Simple transition through grays
+    borderColor = COLOR_DARK_GRAY;
+    delay(2);
+    borderColor = COLOR_MEDIUM_GRAY;
+    delay(2);
+    borderColor = targetColor;
+}
+
+// Rainbow cycle effect on border
+function rainbowCycle(): void {
+    borderColor = COLOR_RED;
+    delay(5);
+    borderColor = COLOR_ORANGE;
+    delay(5);
+    borderColor = COLOR_YELLOW;
+    delay(5);
+    borderColor = COLOR_GREEN;
+    delay(5);
+    borderColor = COLOR_CYAN;
+    delay(5);
+    borderColor = COLOR_BLUE;
+    delay(5);
+    borderColor = COLOR_PURPLE;
+    delay(5);
+}
+
+// Pulse effect between two colors
+function pulseColors(color1: byte, color2: byte, cycles: byte): void {
+    let i: byte = 0;
+    
+    while (i < cycles) {
+        borderColor = color1;
+        delay(3);
+        borderColor = color2;
+        delay(3);
+        i = i + 1;
+    }
+}
+
+// Set multicolor mode colors
+function setMulticolorPalette(): void {
+    backgroundColor = COLOR_BLUE;
+    backgroundColor1 = COLOR_LIGHT_BLUE;
+    backgroundColor2 = COLOR_WHITE;
+    backgroundColor3 = COLOR_BLACK;
+    
+    // Sprite multicolors
+    spriteMulticolor0 = COLOR_YELLOW;
+    spriteMulticolor1 = COLOR_ORANGE;
+}
+
+// Cycle background through color table
+function cycleBackground(steps: byte): void {
+    let i: byte = 0;
+    
+    while (i < steps) {
+        backgroundColor = getCycleColor();
+        cycleNext();
+        delay(10);
+        i = i + 1;
+    }
+}
+
+// Color wash effect - border and background sync
+function colorWash(color: byte): void {
+    borderColor = color;
+    backgroundColor = color;
+}
+
+// Main entry point - demonstrate color cycling
+export function main(): void {
+    // Initialize color table
+    initColorTable();
+    
+    // Set initial colors
+    borderColor = COLOR_BLUE;
+    backgroundColor = COLOR_BLUE;
+    
+    // Run rainbow cycle on border
+    rainbowCycle();
+    
+    // Pulse effect
+    pulseColors(COLOR_BLUE, COLOR_LIGHT_BLUE, 5);
+    
+    // Cycle through color table
+    cycleBackground(8);
+    
+    // Set multicolor palette
+    setMulticolorPalette();
+    
+    // Color wash effect
+    colorWash(COLOR_BLACK);
+    
+    // Final state - classic C64 blue
+    borderColor = COLOR_LIGHT_BLUE;
+    backgroundColor = COLOR_BLUE;
+}

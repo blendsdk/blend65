@@ -1,0 +1,304 @@
+// @fixture: integration/real-programs/score-system
+// @category: integration
+// @description: Tests score tracking and display with screen memory
+// @expect: success
+// @output-contains: STA $0400
+// @output-contains: ADC
+// @tags: game, score, screen, memory, real-world, c64
+
+module ScoreSystem;
+
+// Screen memory positions for score display (top left)
+@map scorePos0 at $0400: byte;  // Hundred thousands
+@map scorePos1 at $0401: byte;  // Ten thousands
+@map scorePos2 at $0402: byte;  // Thousands
+@map scorePos3 at $0403: byte;  // Hundreds
+@map scorePos4 at $0404: byte;  // Tens
+@map scorePos5 at $0405: byte;  // Ones
+
+// High score display positions
+@map hiScorePos0 at $0414: byte;
+@map hiScorePos1 at $0415: byte;
+@map hiScorePos2 at $0416: byte;
+@map hiScorePos3 at $0417: byte;
+@map hiScorePos4 at $0418: byte;
+@map hiScorePos5 at $0419: byte;
+
+// Lives display
+@map livesDisplay at $0427: byte;
+
+// Color RAM for score digits
+@map scoreColor0 at $D800: byte;
+@map scoreColor1 at $D801: byte;
+@map scoreColor2 at $D802: byte;
+@map scoreColor3 at $D803: byte;
+@map scoreColor4 at $D804: byte;
+@map scoreColor5 at $D805: byte;
+
+// Score stored as BCD digits (each byte = one digit)
+let scoreDigit0: byte = 0;  // Ones
+let scoreDigit1: byte = 0;  // Tens
+let scoreDigit2: byte = 0;  // Hundreds
+let scoreDigit3: byte = 0;  // Thousands
+let scoreDigit4: byte = 0;  // Ten thousands
+let scoreDigit5: byte = 0;  // Hundred thousands
+
+// High score BCD digits
+let hiScoreDigit0: byte = 0;
+let hiScoreDigit1: byte = 0;
+let hiScoreDigit2: byte = 0;
+let hiScoreDigit3: byte = 0;
+let hiScoreDigit4: byte = 0;
+let hiScoreDigit5: byte = 0;
+
+// Current lives
+let lives: byte = 3;
+
+// Points to add for various actions
+let POINTS_ENEMY: byte = 10;
+let POINTS_BONUS: byte = 50;
+let POINTS_LEVEL: byte = 100;
+
+// Screen code for digit '0' (C64)
+let DIGIT_BASE: byte = 48;
+
+// Initialize score system
+function initScore(): void {
+    // Reset all score digits
+    scoreDigit0 = 0;
+    scoreDigit1 = 0;
+    scoreDigit2 = 0;
+    scoreDigit3 = 0;
+    scoreDigit4 = 0;
+    scoreDigit5 = 0;
+    
+    // Set lives
+    lives = 3;
+    
+    // Display initial score
+    displayScore();
+    displayLives();
+    
+    // Set score colors to white
+    scoreColor0 = 1;
+    scoreColor1 = 1;
+    scoreColor2 = 1;
+    scoreColor3 = 1;
+    scoreColor4 = 1;
+    scoreColor5 = 1;
+}
+
+// Add points to score (simple single digit add with carry)
+function addPoints(points: byte): void {
+    let carry: byte = 0;
+    let sum: byte = 0;
+    
+    // Add to ones digit
+    sum = scoreDigit0 + points;
+    if (sum > 9) {
+        scoreDigit0 = sum - 10;
+        carry = 1;
+    } else {
+        scoreDigit0 = sum;
+        carry = 0;
+    }
+    
+    // Propagate carry through digits
+    if (carry == 1) {
+        sum = scoreDigit1 + 1;
+        if (sum > 9) {
+            scoreDigit1 = 0;
+            carry = 1;
+        } else {
+            scoreDigit1 = sum;
+            carry = 0;
+        }
+    }
+    
+    if (carry == 1) {
+        sum = scoreDigit2 + 1;
+        if (sum > 9) {
+            scoreDigit2 = 0;
+            carry = 1;
+        } else {
+            scoreDigit2 = sum;
+            carry = 0;
+        }
+    }
+    
+    if (carry == 1) {
+        sum = scoreDigit3 + 1;
+        if (sum > 9) {
+            scoreDigit3 = 0;
+            carry = 1;
+        } else {
+            scoreDigit3 = sum;
+            carry = 0;
+        }
+    }
+    
+    if (carry == 1) {
+        sum = scoreDigit4 + 1;
+        if (sum > 9) {
+            scoreDigit4 = 0;
+            carry = 1;
+        } else {
+            scoreDigit4 = sum;
+            carry = 0;
+        }
+    }
+    
+    if (carry == 1) {
+        sum = scoreDigit5 + 1;
+        if (sum > 9) {
+            scoreDigit5 = 9;  // Max out at 999999
+        } else {
+            scoreDigit5 = sum;
+        }
+    }
+    
+    // Update display
+    displayScore();
+}
+
+// Display score to screen
+function displayScore(): void {
+    // Convert BCD digits to screen codes and display
+    // Screen code for '0' on C64 is 48
+    scorePos5 = DIGIT_BASE + scoreDigit5;  // Leftmost (hundred thousands)
+    scorePos4 = DIGIT_BASE + scoreDigit4;
+    scorePos3 = DIGIT_BASE + scoreDigit3;
+    scorePos2 = DIGIT_BASE + scoreDigit2;
+    scorePos1 = DIGIT_BASE + scoreDigit1;
+    scorePos0 = DIGIT_BASE + scoreDigit0;  // Rightmost (ones)
+}
+
+// Display lives
+function displayLives(): void {
+    livesDisplay = DIGIT_BASE + lives;
+}
+
+// Check and update high score
+function updateHighScore(): void {
+    let isHigher: byte = 0;
+    
+    // Compare from most significant digit
+    if (scoreDigit5 > hiScoreDigit5) {
+        isHigher = 1;
+    }
+    if (scoreDigit5 == hiScoreDigit5) {
+        if (scoreDigit4 > hiScoreDigit4) {
+            isHigher = 1;
+        }
+        if (scoreDigit4 == hiScoreDigit4) {
+            if (scoreDigit3 > hiScoreDigit3) {
+                isHigher = 1;
+            }
+            if (scoreDigit3 == hiScoreDigit3) {
+                if (scoreDigit2 > hiScoreDigit2) {
+                    isHigher = 1;
+                }
+                if (scoreDigit2 == hiScoreDigit2) {
+                    if (scoreDigit1 > hiScoreDigit1) {
+                        isHigher = 1;
+                    }
+                    if (scoreDigit1 == hiScoreDigit1) {
+                        if (scoreDigit0 > hiScoreDigit0) {
+                            isHigher = 1;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // If new high score, copy digits
+    if (isHigher == 1) {
+        hiScoreDigit0 = scoreDigit0;
+        hiScoreDigit1 = scoreDigit1;
+        hiScoreDigit2 = scoreDigit2;
+        hiScoreDigit3 = scoreDigit3;
+        hiScoreDigit4 = scoreDigit4;
+        hiScoreDigit5 = scoreDigit5;
+        displayHighScore();
+    }
+}
+
+// Display high score
+function displayHighScore(): void {
+    hiScorePos5 = DIGIT_BASE + hiScoreDigit5;
+    hiScorePos4 = DIGIT_BASE + hiScoreDigit4;
+    hiScorePos3 = DIGIT_BASE + hiScoreDigit3;
+    hiScorePos2 = DIGIT_BASE + hiScoreDigit2;
+    hiScorePos1 = DIGIT_BASE + hiScoreDigit1;
+    hiScorePos0 = DIGIT_BASE + hiScoreDigit0;
+}
+
+// Award points for destroying enemy
+function scoreEnemy(): void {
+    addPoints(POINTS_ENEMY);
+}
+
+// Award bonus points
+function scoreBonus(): void {
+    addPoints(POINTS_BONUS);
+}
+
+// Award level complete points
+function scoreLevel(): void {
+    addPoints(POINTS_LEVEL);
+}
+
+// Lose a life
+function loseLife(): void {
+    if (lives > 0) {
+        lives = lives - 1;
+        displayLives();
+    }
+}
+
+// Gain an extra life
+function extraLife(): void {
+    if (lives < 9) {
+        lives = lives + 1;
+        displayLives();
+    }
+}
+
+// Main entry - demonstrates score system
+export function main(): void {
+    // Initialize score
+    initScore();
+    
+    // Score some enemies
+    scoreEnemy();
+    scoreEnemy();
+    scoreEnemy();
+    
+    // Get a bonus
+    scoreBonus();
+    
+    // Complete a level
+    scoreLevel();
+    
+    // More enemies
+    scoreEnemy();
+    scoreEnemy();
+    
+    // Update high score check
+    updateHighScore();
+    
+    // Lose a life
+    loseLife();
+    
+    // Score more to test carry propagation
+    scoreLevel();
+    scoreLevel();
+    scoreLevel();
+    
+    // Get extra life
+    extraLife();
+    
+    // Final high score update
+    updateHighScore();
+}

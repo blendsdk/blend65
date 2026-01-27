@@ -1,0 +1,35 @@
+// @fixture: optimizer/dead-code/dead-after-loop-exit
+// @category: optimizer
+// @description: Tests dead code elimination after early loop exits
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, loop-exit
+
+module DeadAfterLoopExit;
+
+function searchValue(): byte {
+    let found: byte = 0;
+    
+    for (i = 0 to 20) {
+        if (i == 10) {
+            found = i;
+            break;
+        }
+        
+        if (i == 15) {
+            // This entire block is dead if we break at 10
+            found = 15;
+            break;
+            // This is definitely dead after the break
+            found = 255;
+            poke($D020, found);
+        }
+    }
+    
+    return found;
+}
+
+function main(): void {
+    let result: byte = searchValue();
+    poke($0400, result);
+}

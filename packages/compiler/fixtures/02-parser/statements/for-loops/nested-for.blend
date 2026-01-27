@@ -1,0 +1,69 @@
+// @fixture: parser/statements/for-loops/nested-for
+// @category: parser
+// @description: Tests parsing of nested for loops
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, for, nested, loops, control-flow
+
+module NestedFor;
+
+@zp let totalIterations: byte = 0;
+@zp let outerCount: byte = 0;
+@zp let innerCount: byte = 0;
+
+function main(): void {
+    // Basic nested loops
+    for (i = 0 to 2) {
+        outerCount = outerCount + 1;
+        for (j = 0 to 3) {
+            innerCount = innerCount + 1;
+            totalIterations = totalIterations + 1;
+        }
+    }
+    
+    poke($0400, outerCount);      // 3 (0,1,2)
+    poke($0401, innerCount);      // 12 (3 outer * 4 inner)
+    poke($0402, totalIterations); // 12
+    
+    // Triple nested
+    let tripleCount: byte = 0;
+    for (a = 0 to 1) {
+        for (b = 0 to 1) {
+            for (c = 0 to 1) {
+                tripleCount = tripleCount + 1;
+            }
+        }
+    }
+    
+    poke($0403, tripleCount);  // 2*2*2 = 8
+    
+    // Nested with different directions
+    let mixedCount: byte = 0;
+    for (x = 0 to 2) {
+        for (y = 3 downto 1) {
+            mixedCount = mixedCount + 1;
+        }
+    }
+    
+    poke($0404, mixedCount);  // 3 * 3 = 9
+    
+    // Nested with step
+    let stepCount: byte = 0;
+    for (m = 0 to 4 step 2) {
+        for (n = 0 to 6 step 3) {
+            stepCount = stepCount + 1;
+        }
+    }
+    
+    poke($0405, stepCount);  // 3 (0,2,4) * 3 (0,3,6) = 9
+    
+    // Accessing outer variable in inner loop
+    let accumulator: byte = 0;
+    for (row = 1 to 3) {
+        for (col = 1 to 2) {
+            accumulator = accumulator + row * col;
+        }
+    }
+    
+    poke($0406, accumulator);  // (1*1+1*2) + (2*1+2*2) + (3*1+3*2) = 3+6+9 = 18
+}

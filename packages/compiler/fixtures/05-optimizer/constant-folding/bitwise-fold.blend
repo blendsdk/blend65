@@ -1,0 +1,38 @@
+// @fixture: optimizer/constant-folding/bitwise-fold
+// @category: optimizer
+// @description: Tests constant folding of bitwise expressions
+// @expect: success
+// @output-contains: LDA
+// @tags: optimizer, constant-folding, bitwise
+
+module BitwiseFold;
+
+function main(): void {
+    // Bitwise AND - should fold
+    let andResult: byte = $FF & $0F;      // Should fold to $0F
+    
+    // Bitwise OR - should fold
+    let orResult: byte = $F0 | $0F;       // Should fold to $FF
+    
+    // Bitwise XOR - should fold
+    let xorResult: byte = $AA ^ $55;      // Should fold to $FF
+    
+    // Bitwise NOT - should fold
+    let notResult: byte = ~$00;           // Should fold to $FF
+    
+    // Shift operations - should fold
+    let leftShift: byte = 1 << 4;         // Should fold to $10
+    let rightShift: byte = $80 >> 4;      // Should fold to $08
+    
+    // Combined operations
+    let combined: byte = ($F0 & $FF) | $0F;  // Should fold to $FF
+    
+    // Store results
+    poke($0400, andResult);
+    poke($0401, orResult);
+    poke($0402, xorResult);
+    poke($0403, notResult);
+    poke($0404, leftShift);
+    poke($0405, rightShift);
+    poke($0406, combined);
+}

@@ -1,0 +1,45 @@
+// @fixture: optimizer/constant-folding/comparison-fold
+// @category: optimizer
+// @description: Tests constant folding for comparison operations
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, comparison
+
+module ComparisonFold;
+
+function testComparisons(): byte {
+    let result: byte = 0;
+    
+    // These comparisons should be folded to constants
+    if (10 > 5) {
+        result = result + 1;    // Should always execute
+    }
+    
+    if (5 < 10) {
+        result = result + 2;    // Should always execute
+    }
+    
+    if (10 >= 10) {
+        result = result + 4;    // Should always execute
+    }
+    
+    if (5 <= 10) {
+        result = result + 8;    // Should always execute
+    }
+    
+    if (10 == 10) {
+        result = result + 16;   // Should always execute
+    }
+    
+    if (10 != 5) {
+        result = result + 32;   // Should always execute
+    }
+    
+    // result should be 63 (1+2+4+8+16+32)
+    return result;
+}
+
+function main(): void {
+    let value: byte = testComparisons();
+    poke($0400, value);
+}

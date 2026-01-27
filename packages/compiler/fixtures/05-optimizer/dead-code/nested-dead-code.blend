@@ -1,0 +1,36 @@
+// @fixture: optimizer/dead-code/nested-dead-code
+// @category: optimizer
+// @description: Tests dead code elimination in deeply nested structures
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, nested
+
+module NestedDeadCode;
+
+function nestedProcess(input: byte): byte {
+    let result: byte = 0;
+    
+    if (input > 10) {
+        if (input > 50) {
+            if (input > 100) {
+                return 3;
+                // Dead code in innermost block
+                result = 255;
+                poke($D020, result);
+            }
+            return 2;
+            // Dead code after inner return
+            result = 200;
+        }
+        return 1;
+        // Dead code after return
+        result = 150;
+    }
+    
+    return 0;
+}
+
+function main(): void {
+    let value: byte = nestedProcess(75);
+    poke($0400, value);
+}

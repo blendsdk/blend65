@@ -1,0 +1,111 @@
+// @fixture: integration/real-programs/snake-game
+// @category: integration
+// @description: Simple snake game logic demonstrating game state management
+// @expect: success
+// @output-contains: RTS
+// @tags: game, snake, integration, real-world
+
+module SnakeGame;
+
+// Game constants
+let GRID_WIDTH: byte = 40;
+let GRID_HEIGHT: byte = 25;
+let MAX_LENGTH: byte = 100;
+
+// Direction constants
+let DIR_UP: byte = 0;
+let DIR_DOWN: byte = 1;
+let DIR_LEFT: byte = 2;
+let DIR_RIGHT: byte = 3;
+
+// Snake state
+let snakeX: byte[100];
+let snakeY: byte[100];
+let snakeLength: byte = 3;
+let direction: byte = DIR_RIGHT;
+let gameOver: byte = 0;
+
+// Food position
+let foodX: byte = 20;
+let foodY: byte = 12;
+
+// Initialize snake in center
+function initSnake(): void {
+    snakeX[0] = 20;
+    snakeY[0] = 12;
+    snakeX[1] = 19;
+    snakeY[1] = 12;
+    snakeX[2] = 18;
+    snakeY[2] = 12;
+    snakeLength = 3;
+    direction = DIR_RIGHT;
+    gameOver = 0;
+}
+
+// Move snake based on direction
+function moveSnake(): void {
+    // Move body segments
+    for (i = snakeLength - 1 downto 1) {
+        snakeX[i] = snakeX[i - 1];
+        snakeY[i] = snakeY[i - 1];
+    }
+    
+    // Move head based on direction
+    if (direction == DIR_UP) {
+        snakeY[0] = snakeY[0] - 1;
+    }
+    if (direction == DIR_DOWN) {
+        snakeY[0] = snakeY[0] + 1;
+    }
+    if (direction == DIR_LEFT) {
+        snakeX[0] = snakeX[0] - 1;
+    }
+    if (direction == DIR_RIGHT) {
+        snakeX[0] = snakeX[0] + 1;
+    }
+}
+
+// Check collision with walls
+function checkWallCollision(): byte {
+    if (snakeX[0] >= GRID_WIDTH) {
+        return true;
+    }
+    if (snakeY[0] >= GRID_HEIGHT) {
+        return true;
+    }
+    return false;
+}
+
+// Check if snake ate food
+function checkFood(): byte {
+    if (snakeX[0] == foodX) {
+        if (snakeY[0] == foodY) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Grow snake
+function growSnake(): void {
+    if (snakeLength < MAX_LENGTH) {
+        snakeLength = snakeLength + 1;
+    }
+}
+
+export function main(): void {
+    initSnake();
+    
+    while (gameOver == 0) {
+        moveSnake();
+        
+        if (checkWallCollision()) {
+            gameOver = 1;
+        }
+        
+        if (checkFood()) {
+            growSnake();
+            // Would randomize food position here
+        }
+    }
+}

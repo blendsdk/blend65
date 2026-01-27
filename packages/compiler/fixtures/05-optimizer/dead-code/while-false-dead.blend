@@ -1,0 +1,33 @@
+// @fixture: optimizer/dead-code/while-false-dead
+// @category: optimizer
+// @description: Tests dead code elimination for while loops with false conditions
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, while-loop, constant-condition
+
+module WhileFalseDead;
+
+function processData(): byte {
+    let result: byte = 50;
+    let counter: byte = 0;
+    
+    // This entire loop is dead - condition is always false
+    while (0 == 1) {
+        result = 0;
+        counter = counter + 1;
+        poke($D020, counter);
+    }
+    
+    // Normal while loop that will execute
+    while (counter < 5) {
+        result = result + 1;
+        counter = counter + 1;
+    }
+    
+    return result;
+}
+
+function main(): void {
+    let value: byte = processData();
+    poke($0400, value);
+}

@@ -1,0 +1,57 @@
+// @fixture: parser/expressions/precedence/mixed-precedence
+// @category: parser
+// @description: Tests all operators mixed together with correct precedence
+// @expect: success
+// @output-contains: LDA
+// @tags: expressions, precedence, mixed, comprehensive
+
+module MixedPrecedence;
+
+function main(): void {
+    let a: byte = 5;
+    let b: byte = 10;
+    let c: byte = 2;
+    let d: byte = 1;
+    
+    // Unary > Multiplicative > Additive
+    // -a + b * c = (-5) + (10 * 2) = -5 + 20 = 15
+    let r1: byte = -a + b * c;
+    
+    // Shift > Additive
+    // a + b >> c = a + (b >> c) = 5 + (10 >> 2) = 5 + 2 = 7
+    let r2: byte = a + (b >> c);
+    
+    // Bitwise AND > Bitwise OR
+    // a & b | c = (a & b) | c
+    let r3: byte = a & b | c;
+    
+    // Comparison > Logical AND > Logical OR (use comparisons for boolean)
+    // d > 0 || a < b && c < b
+    let r4: byte = (d > 0) || (a < b) && (c < b) ? 1 : 0;
+    
+    // Bitwise complement
+    let temp1: byte = ~d;
+    let temp2: byte = a * c;
+    let temp3: byte = temp1 + temp2 - b;
+    let temp4: byte = temp3 >> 1;
+    let r5: byte = temp4 < 5 ? 1 : 0;
+    
+    // Complex real-world expression
+    let x: byte = 100;
+    let y: byte = 50;
+    let mask: byte = $0F;
+    let threshold: byte = 10;
+    
+    // Check if masked value exceeds threshold or equals special value
+    let check: byte = ((x & mask) > threshold) || ((y & mask) == 5) ? 1 : 0;
+    
+    // Compute shifted and masked value
+    let computed: byte = ((x >> 2) + (y >> 1)) & $3F;
+    
+    // Store results
+    poke($0400, r1);
+    poke($0401, r2);
+    poke($0402, r3);
+    poke($0403, r4);
+    poke($0404, computed);
+}

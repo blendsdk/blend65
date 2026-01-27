@@ -1,0 +1,48 @@
+// @fixture: semantic/type-checking/word-operations
+// @category: semantic
+// @description: Tests type checking for word type operations
+// @expect: success
+// @output-contains: LDA
+// @tags: semantic, type-checking, word
+
+module WordOperations;
+
+let result: word = 0;
+
+function main(): void {
+    // Word literals
+    let a: word = 1000;
+    let b: word = 500;
+    let hexAddr: word = $0400;
+    let maxWord: word = 65535;
+    
+    // Word arithmetic
+    result = a + b;
+    result = a - b;
+    
+    // Word comparisons (results in bool)
+    let eq: boolean = a == b;
+    let neq: boolean = a != b;
+    let lt: boolean = a < b;
+    let gt: boolean = a > b;
+    let lte: boolean = a <= b;
+    let gte: boolean = a >= b;
+    
+    // Word bitwise operations
+    let andResult: word = a & b;
+    let orResult: word = a | b;
+    let xorResult: word = a ^ b;
+    
+    // Address calculations (common use case)
+    let screenBase: word = $0400;
+    let offset: byte = 40;
+    let lineAddr: word = screenBase + offset;
+    
+    // Pointer arithmetic
+    let ptr: word = $FB;
+    let nextPtr: word = ptr + 2;
+    
+    // Use word for poke address
+    poke(hexAddr, 65);
+    poke(lineAddr, 66);
+}

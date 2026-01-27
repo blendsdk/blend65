@@ -1,0 +1,39 @@
+// @fixture: codegen/instruction-selection/branch-instructions
+// @category: codegen
+// @description: Tests code generation for conditional branch instructions
+// @expect: success
+// @output-contains: BEQ
+// @output-contains: BNE
+// @tags: codegen, branches, conditional
+
+module BranchInstructions;
+
+function testBranches(a: byte, b: byte): byte {
+    let result: byte = 0;
+    
+    // BEQ pattern - branch if equal
+    if (a == b) {
+        result = result + 1;
+    }
+    
+    // BNE pattern - branch if not equal
+    if (a != b) {
+        result = result + 2;
+    }
+    
+    // BCC/BCS pattern - branch on carry (for comparisons)
+    if (a < b) {
+        result = result + 4;
+    }
+    
+    if (a >= b) {
+        result = result + 8;
+    }
+    
+    return result;
+}
+
+function main(): void {
+    let value: byte = testBranches(5, 10);
+    poke($0400, value);
+}

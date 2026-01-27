@@ -1,0 +1,81 @@
+// @fixture: codegen/instruction-selection/increment-decrement
+// @category: codegen
+// @description: Tests code generation for increment and decrement patterns
+// @expect: success
+// @output-contains: RTS
+// @tags: codegen, increment, decrement, optimization
+
+module IncrementDecrement;
+
+let counter: byte = 0;
+
+function testIncrement(): byte {
+    let x: byte = 0;
+    
+    // Simple increment patterns
+    x = x + 1;
+    x = x + 1;
+    x = x + 1;
+    
+    return x;
+}
+
+function testDecrement(): byte {
+    let x: byte = 10;
+    
+    // Simple decrement patterns
+    x = x - 1;
+    x = x - 1;
+    x = x - 1;
+    
+    return x;
+}
+
+function testIncrementBy(amount: byte): byte {
+    let x: byte = 0;
+    
+    // Increment by variable amount
+    x = x + amount;
+    x = x + amount;
+    
+    return x;
+}
+
+function memoryIncrement(): void {
+    // Increment memory location
+    counter = counter + 1;
+}
+
+function memoryDecrement(): void {
+    // Decrement memory location
+    counter = counter - 1;
+}
+
+function loopWithIncrement(): byte {
+    let sum: byte = 0;
+    let i: byte = 0;
+    
+    while (i < 10) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    
+    return sum;
+}
+
+function main(): void {
+    let r1: byte = testIncrement();
+    let r2: byte = testDecrement();
+    let r3: byte = testIncrementBy(5);
+    let r4: byte = loopWithIncrement();
+    
+    memoryIncrement();
+    memoryIncrement();
+    memoryDecrement();
+    
+    poke($0400, r1);
+    poke($0401, r2);
+    poke($0402, r3);
+    poke($0403, r4);
+    poke($0404, counter);
+}

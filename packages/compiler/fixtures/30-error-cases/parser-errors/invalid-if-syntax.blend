@@ -1,0 +1,14 @@
+// @fixture: error-cases/parser-errors/invalid-if-syntax
+// @category: error-cases
+// @description: Tests that parser correctly reports invalid if statement syntax
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, if
+
+module InvalidIfSyntax;
+
+function main(): void {
+    if {
+        poke($0400, 1);
+    }
+}

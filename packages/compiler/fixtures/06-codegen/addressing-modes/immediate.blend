@@ -1,0 +1,20 @@
+// @fixture: codegen/addressing-modes/immediate
+// @category: codegen
+// @description: Tests code generation for immediate addressing mode
+// @expect: success
+// @output-contains: LDA #
+// @tags: codegen, addressing, immediate
+
+module ImmediateAddressing;
+
+function main(): void {
+    // Immediate values should use # prefix in assembly
+    let a: byte = 10;        // LDA #10
+    let b: byte = $FF;       // LDA #$FF
+    let c: byte = 0;         // LDA #0
+    
+    // Store using absolute addressing
+    poke($0400, a);
+    poke($0401, b);
+    poke($0402, c);
+}

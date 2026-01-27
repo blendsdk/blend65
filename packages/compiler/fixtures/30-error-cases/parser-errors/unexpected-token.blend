@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/unexpected-token
+// @category: error-cases
+// @description: Tests that parser correctly reports unexpected token
+// @expect: error
+// @error-contains: Unexpected
+// @tags: parser, error, token
+
+module UnexpectedToken;
+
+function main(): void {
+    let x: byte = 10 + + 20;
+}

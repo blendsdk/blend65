@@ -1,0 +1,15 @@
+// @fixture: error-cases/type-errors/bool-arithmetic
+// @category: error-cases
+// @description: Tests type error for arithmetic on booleans
+// @expect: error
+// @error-contains: type
+// @tags: error, type, bool, arithmetic
+
+module BoolArithmetic;
+
+function main(): void {
+    let a: bool = true;
+    let b: bool = false;
+    // Cannot do arithmetic on booleans
+    let result: byte = a + b;
+}

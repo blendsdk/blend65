@@ -1,0 +1,18 @@
+// @fixture: error-cases/semantic-errors/nested-scope-escape
+// @category: error-cases
+// @description: Tests semantic error for variable from deeply nested scope
+// @expect: error
+// @error-contains: undefined
+// @tags: error, semantic, scope, nested
+
+module NestedScopeEscape;
+
+function main(): void {
+    if (1 == 1) {
+        if (2 == 2) {
+            let deepVar: byte = 10;
+        }
+        // deepVar is out of scope even in parent block
+        poke($0400, deepVar);
+    }
+}

@@ -1,0 +1,18 @@
+// @fixture: error-cases/type-errors/param-type-mismatch
+// @category: error-cases
+// @description: Tests type error for wrong parameter type
+// @expect: error
+// @error-contains: type
+// @tags: error, type, parameter, function
+
+module ParamTypeMismatch;
+
+function process(value: byte): void {
+    poke($0400, value);
+}
+
+function main(): void {
+    let flag: bool = true;
+    // Cannot pass bool where byte expected
+    process(flag);
+}

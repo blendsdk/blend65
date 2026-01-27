@@ -1,0 +1,35 @@
+// @fixture: optimizer/constant-folding/complex-fold
+// @category: optimizer
+// @description: Tests constant folding for complex expression trees
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, complex
+
+module ComplexFold;
+
+function testComplexFolding(): byte {
+    // Complex expression tree that should fold entirely to a constant
+    
+    // Multi-level arithmetic: ((5 + 3) * (4 - 2)) / 4 = (8 * 2) / 4 = 16 / 4 = 4
+    let a: byte = ((5 + 3) * (4 - 2)) / 4;
+    
+    // Mixed operations with precedence:
+    // 2 + 3 * 4 - 10 / 2 = 2 + 12 - 5 = 9
+    let b: byte = 2 + 3 * 4 - 10 / 2;
+    
+    // Bitwise and arithmetic chain:
+    // ((128 | 64) >> 4) + ((15 & 7) << 1) = (192 >> 4) + (7 << 1) = 12 + 14 = 26
+    let c: byte = ((128 | 64) >> 4) + ((15 & 7) << 1);
+    
+    // Deeply nested with multiple operation types:
+    // (((10 * 2) - 5) + ((20 / 4) * 3)) = ((20 - 5) + (5 * 3)) = 15 + 15 = 30
+    let d: byte = ((10 * 2) - 5) + ((20 / 4) * 3);
+    
+    // Total: 4 + 9 + 26 + 30 = 69
+    return a + b + c + d;
+}
+
+function main(): void {
+    let result: byte = testComplexFolding();
+    poke($0400, result);
+}

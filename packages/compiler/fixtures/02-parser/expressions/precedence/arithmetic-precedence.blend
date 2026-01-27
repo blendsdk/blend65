@@ -1,0 +1,43 @@
+// @fixture: parser/expressions/precedence/arithmetic-precedence
+// @category: parser
+// @description: Tests arithmetic operator precedence (* / before + -)
+// @expect: success
+// @output-contains: ADC
+// @tags: expressions, precedence, arithmetic
+
+module ArithmeticPrecedence;
+
+function main(): void {
+    // Multiplication before addition
+    // 2 + 3 * 4 = 2 + 12 = 14, not (2+3)*4 = 20
+    let result1: byte = 2 + 3 * 4;
+    
+    // Multiplication before subtraction
+    // 20 - 3 * 4 = 20 - 12 = 8
+    let result2: byte = 20 - 3 * 4;
+    
+    // Division before addition
+    // Note: integer division
+    let result3: byte = 2 + 8 / 4;
+    
+    // Mixed multiplication and division (left to right)
+    // 24 / 4 * 2 = 6 * 2 = 12
+    let result4: byte = 24 / 4 * 2;
+    
+    // Override with parentheses
+    // (2 + 3) * 4 = 5 * 4 = 20
+    let result5: byte = (2 + 3) * 4;
+    
+    // Multiple terms
+    // 1 + 2 * 3 + 4 * 5 = 1 + 6 + 20 = 27
+    let result6: byte = 1 + 2 * 3 + 4 * 5;
+    
+    // Nested parentheses
+    let result7: byte = ((2 + 3) * (4 + 1));
+    
+    // Store results for verification
+    poke($0400, result1);
+    poke($0401, result2);
+    poke($0402, result5);
+    poke($0403, result6);
+}

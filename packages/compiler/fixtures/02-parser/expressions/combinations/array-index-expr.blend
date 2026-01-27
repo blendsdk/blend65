@@ -1,0 +1,53 @@
+// @fixture: parser/expressions/combinations/array-index-expr
+// @category: parser
+// @description: Tests array indexing in expressions
+// @expect: success
+// @output-contains: LDA
+// @tags: expressions, combinations, array, index
+
+module ArrayIndexExpr;
+
+// Module-level array declarations
+let buffer: byte[16];
+let data: word[8];
+
+function main(): void {
+    // Simple array access
+    buffer[0] = 42;
+    let first: byte = buffer[0];
+    
+    // Variable index
+    let index: byte = 5;
+    buffer[index] = 100;
+    let value: byte = buffer[index];
+    
+    // Expression as index
+    buffer[index + 2] = 200;
+    let expr: byte = buffer[index - 1];
+    
+    // Array in expression
+    let sum: byte = buffer[0] + buffer[1];
+    
+    // Multiple array accesses
+    let combined: byte = buffer[0] + buffer[1] + buffer[2];
+    
+    // Array in comparison
+    let isEqual: byte = buffer[0] == buffer[1] ? 1 : 0;
+    
+    // Array with computed index
+    let i: byte = 2;
+    let j: byte = 3;
+    buffer[i * 2 + j] = 50;
+    
+    // Word array access
+    data[0] = $1234;
+    let wordVal: word = data[0];
+    
+    // Array access in assignment target
+    buffer[0] += 10;
+    
+    // Store results
+    poke($0400, first);
+    poke($0401, value);
+    poke($0402, sum);
+}

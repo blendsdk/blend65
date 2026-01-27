@@ -1,0 +1,14 @@
+// @fixture: error-cases/lexer-errors/unterminated-string
+// @category: error-cases
+// @description: Tests lexer error detection for unterminated string literals
+// @expect: error
+// @error-contains: unterminated
+// @tags: error, lexer, string
+
+module UnterminatedString;
+
+@data message: byte[] = "Hello World;
+
+function main(): void {
+    poke($0400, message[0]);
+}

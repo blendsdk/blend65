@@ -1,0 +1,17 @@
+// @fixture: error-cases/semantic-errors/recursive-main
+// @category: error-cases
+// @description: Tests behavior when main calls itself
+// @expect: success
+// @output-contains: RTS
+// @tags: semantic, recursion, main
+
+module RecursiveMain;
+
+// Recursive functions are allowed, including main
+function main(): void {
+    let counter: byte = 0;
+    if (counter < 5) {
+        counter = counter + 1;
+        main();
+    }
+}

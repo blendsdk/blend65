@@ -1,0 +1,73 @@
+// @fixture: parser/declarations/functions/exported-functions
+// @category: parser
+// @description: Tests parsing of exported function declarations
+// @expect: success
+// @output-contains: JSR
+// @tags: declarations, functions, export
+
+module ExportedFunctions;
+
+// Exported utility functions
+export function clearScreen(): void {
+    for (i = 0 to 255) {
+        poke($0400 + i, 32);
+    }
+}
+
+export function setChar(x: byte, y: byte, ch: byte): void {
+    let offset: word = y * 40 + x;
+    poke($0400 + offset, ch);
+}
+
+export function getColor(x: byte, y: byte): byte {
+    let offset: word = y * 40 + x;
+    return peek($D800 + offset);
+}
+
+// Exported math functions
+export function minByte(a: byte, b: byte): byte {
+    if (a < b) {
+        return a;
+    }
+    return b;
+}
+
+export function maxByte(a: byte, b: byte): byte {
+    if (a > b) {
+        return a;
+    }
+    return b;
+}
+
+export function absByte(value: byte): byte {
+    if (value > 127) {
+        return 0 - value;
+    }
+    return value;
+}
+
+// Private helper function (not exported)
+function internalHelper(): byte {
+    return 42;
+}
+
+// Exported function using private helper
+export function publicWrapper(): byte {
+    return internalHelper();
+}
+
+function main(): void {
+    // Use exported functions
+    clearScreen();
+    setChar(10, 10, 65);
+    
+    let color: byte = getColor(10, 10);
+    let smaller: byte = minByte(50, 100);
+    let larger: byte = maxByte(50, 100);
+    let absolute: byte = absByte(200);
+    let wrapped: byte = publicWrapper();
+    
+    poke($0400, smaller);
+    poke($0401, larger);
+    poke($0402, absolute);
+}

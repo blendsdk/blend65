@@ -1,0 +1,25 @@
+// @fixture: codegen/addressing-modes/absolute
+// @category: codegen
+// @description: Tests code generation for absolute addressing mode
+// @expect: success
+// @output-contains: STA $
+// @tags: codegen, addressing, absolute
+
+module AbsoluteAddressing;
+
+@map borderColor at $D020: byte;
+@map backgroundColor at $D021: byte;
+
+function main(): void {
+    // Absolute addressing for hardware registers
+    borderColor = 0;         // STA $D020
+    backgroundColor = 6;     // STA $D021
+    
+    // Absolute addressing for screen memory
+    poke($0400, 1);          // STA $0400
+    poke($0401, 2);          // STA $0401
+    
+    // Read using absolute addressing
+    let color: byte = borderColor;  // LDA $D020
+    poke($0402, color);
+}

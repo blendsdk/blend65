@@ -1,0 +1,53 @@
+// @fixture: codegen/instruction-selection/memory-copy
+// @category: codegen
+// @description: Tests code generation for memory copy and block operations
+// @expect: success
+// @output-contains: STA
+// @output-contains: LDA
+// @tags: codegen, memory, copy, arrays
+
+module MemoryCopy;
+
+let source: byte[8];
+let dest: byte[8];
+
+function initSource(): void {
+    for (i = 0 to 7) {
+        source[i] = i * 10;
+    }
+}
+
+function copyArray(): void {
+    for (i = 0 to 7) {
+        dest[i] = source[i];
+    }
+}
+
+function copyWithOffset(): void {
+    for (i = 0 to 3) {
+        dest[i + 4] = source[i];
+    }
+}
+
+function swapElements(): void {
+    let temp: byte = source[0];
+    source[0] = source[7];
+    source[7] = temp;
+}
+
+function fillArray(value: byte): void {
+    for (i = 0 to 7) {
+        dest[i] = value;
+    }
+}
+
+function main(): void {
+    initSource();
+    copyArray();
+    copyWithOffset();
+    swapElements();
+    fillArray(42);
+    
+    poke($0400, dest[0]);
+    poke($0401, dest[7]);
+}

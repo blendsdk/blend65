@@ -1,0 +1,71 @@
+// @fixture: parser/declarations/functions/function-params
+// @category: parser
+// @description: Tests parsing of function declarations with parameters
+// @expect: success
+// @output-contains: JSR
+// @tags: declarations, functions, parameters
+
+module FunctionParams;
+
+// Single byte parameter
+function setByte(value: byte): void {
+    poke($0400, value);
+}
+
+// Single word parameter
+function setAddress(addr: word): void {
+    poke(addr, 65);
+}
+
+// Multiple parameters
+function addBytes(a: byte, b: byte): byte {
+    return a + b;
+}
+
+// Mixed type parameters
+function pokeValue(addr: word, value: byte): void {
+    poke(addr, value);
+}
+
+// Three parameters
+function clamp(value: byte, minVal: byte, maxVal: byte): byte {
+    if (value < minVal) {
+        return minVal;
+    }
+    if (value > maxVal) {
+        return maxVal;
+    }
+    return value;
+}
+
+// Four parameters (typical for rectangle operations)
+function inRect(x: byte, y: byte, width: byte, height: byte): boolean {
+    if (x < width) {
+        if (y < height) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Function with word return and word param
+function offsetAddress(base: word, offset: byte): word {
+    return base + offset;
+}
+
+function main(): void {
+    // Call functions with various parameters
+    setByte(65);
+    setAddress($0401);
+    
+    let sum: byte = addBytes(10, 20);
+    pokeValue($0402, sum);
+    
+    let clamped: byte = clamp(150, 0, 100);
+    poke($0403, clamped);
+    
+    let inside: boolean = inRect(5, 5, 10, 10);
+    
+    let addr: word = offsetAddress($0400, 10);
+    poke(addr, 88);
+}

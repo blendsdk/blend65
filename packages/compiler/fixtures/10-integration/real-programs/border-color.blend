@@ -1,0 +1,33 @@
+// @fixture: integration/real-programs/border-color
+// @category: integration
+// @description: Tests a real-world C64 program that sets border colors
+// @expect: success
+// @output-contains: STA $D020
+// @tags: hardware, vic-ii, c64, real-world
+
+module BorderColor;
+
+// VIC-II border color register
+@map borderColor at $D020: byte;
+
+// C64 color constants
+let BLACK: byte = 0;
+let WHITE: byte = 1;
+let BLUE: byte = 6;
+
+// Set the border to a specific color
+function setBorderColor(color: byte): void {
+    borderColor = color;
+}
+
+// Main entry point - sets border colors
+export function main(): void {
+    // Start with black border
+    setBorderColor(BLACK);
+
+    // Set to a nice blue
+    setBorderColor(BLUE);
+
+    // End with white
+    setBorderColor(WHITE);
+}

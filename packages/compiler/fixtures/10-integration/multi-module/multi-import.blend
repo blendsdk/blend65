@@ -1,0 +1,83 @@
+// @fixture: integration/multi-module/multi-import
+// @category: integration
+// @description: Tests multiple imports from system module
+// @expect: success
+// @output-contains: SEI
+// @output-contains: CLI
+// @output-contains: LDA
+// @output-contains: STA
+// @tags: import, module, system, intrinsics
+
+module MultiImport;
+
+// Import multiple functions from system module
+import { peek, poke, peekw, pokew, sei, cli, nop, lo, hi } from system;
+
+// Hardware addresses
+const CIA1_TIMER_A: word = $DC04;
+const VIC_BORDER: word = $D020;
+const VIC_BACKGROUND: word = $D021;
+const SCREEN_BASE: word = $0400;
+
+// Test memory read/write intrinsics
+function testMemoryAccess(): void {
+    // Write single byte
+    poke(VIC_BORDER, 14);
+
+    // Read single byte
+    let borderColor: byte = peek(VIC_BORDER);
+
+    // Write word (16-bit value)
+    pokew(CIA1_TIMER_A, $4000);
+
+    // Read word (16-bit value)
+    let timerValue: word = peekw(CIA1_TIMER_A);
+
+    // Use the values
+    if (borderColor != 0) {
+        poke(VIC_BACKGROUND, borderColor);
+    }
+}
+
+// Test byte extraction intrinsics
+function testByteExtraction(): void {
+    let address: word = $1234;
+
+    // Extract low byte ($34)
+    let lowByte: byte = lo(address);
+
+    // Extract high byte ($12)
+    let highByte: byte = hi(address);
+
+    // Store to screen RAM
+    poke(SCREEN_BASE, lowByte);
+    poke(SCREEN_BASE + 1, highByte);
+}
+
+// Test CPU control intrinsics
+function testCpuControl(): void {
+    // Disable interrupts
+    sei();
+
+    // Some critical operation
+    poke(VIC_BORDER, 0);
+
+    // Small delay with nop
+    nop();
+    nop();
+    nop();
+
+    // Re-enable interrupts
+    cli();
+}
+
+export function main(): void {
+    // Test memory access functions
+    testMemoryAccess();
+
+    // Test byte extraction
+    testByteExtraction();
+
+    // Test CPU control
+    testCpuControl();
+}

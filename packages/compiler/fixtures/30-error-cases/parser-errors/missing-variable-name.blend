@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-variable-name
+// @category: error-cases
+// @description: Tests that parser correctly reports missing variable name
+// @expect: error
+// @error-contains: identifier
+// @tags: parser, error, variable
+
+module MissingVariableName;
+
+function main(): void {
+    let : byte = 10;
+}

@@ -1,0 +1,43 @@
+// @fixture: optimizer/constant-folding/division-fold
+// @category: optimizer
+// @description: Tests constant folding for division and modulo operations
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, division, modulo
+
+module DivisionFold;
+
+function testDivisionFolding(): byte {
+    let result: byte = 0;
+    
+    // Simple division
+    // 100 / 10 = 10
+    let a: byte = 100 / 10;
+    result = result + a;
+    
+    // 48 / 6 = 8
+    let b: byte = 48 / 6;
+    result = result + b;
+    
+    // Modulo operations
+    // 17 % 5 = 2
+    let c: byte = 17 % 5;
+    result = result + c;
+    
+    // 100 % 30 = 10
+    let d: byte = 100 % 30;
+    result = result + d;
+    
+    // Division with truncation
+    // 7 / 2 = 3 (integer division)
+    let e: byte = 7 / 2;
+    result = result + e;
+    
+    // Combined: 10 + 8 + 2 + 10 + 3 = 33
+    return result;
+}
+
+function main(): void {
+    let value: byte = testDivisionFolding();
+    poke($0400, value);
+}

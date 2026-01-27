@@ -1,0 +1,18 @@
+// @fixture: error-cases/semantic-errors/missing-return-value
+// @category: error-cases
+// @description: Tests semantic error for missing return value in non-void function
+// @expect: error
+// @error-contains: return
+// @tags: error, semantic, return, value
+
+module MissingReturnValue;
+
+function getNumber(): byte {
+    // Non-void function missing return value
+    return;
+}
+
+function main(): void {
+    let x: byte = getNumber();
+    poke($0400, x);
+}

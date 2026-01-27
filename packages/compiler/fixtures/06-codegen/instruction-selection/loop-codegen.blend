@@ -1,0 +1,66 @@
+// @fixture: codegen/instruction-selection/loop-codegen
+// @category: codegen
+// @description: Tests code generation for various loop constructs
+// @expect: success
+// @output-contains: RTS
+// @tags: codegen, loops, for, while
+
+module LoopCodegen;
+
+function forLoopCodegen(): byte {
+    let sum: byte = 0;
+    
+    // Basic for loop - should generate efficient counter code
+    for (i = 0 to 10) {
+        sum = sum + i;
+    }
+    
+    return sum;
+}
+
+function forDowntoCodegen(): byte {
+    let sum: byte = 0;
+    
+    // Downto loop - different codegen pattern
+    for (i = 10 downto 0) {
+        sum = sum + i;
+    }
+    
+    return sum;
+}
+
+function whileLoopCodegen(): byte {
+    let counter: byte = 0;
+    let sum: byte = 0;
+    
+    while (counter < 5) {
+        sum = sum + counter;
+        counter = counter + 1;
+    }
+    
+    return sum;
+}
+
+function nestedLoopCodegen(): byte {
+    let result: byte = 0;
+    
+    for (i = 0 to 3) {
+        for (j = 0 to 3) {
+            result = result + 1;
+        }
+    }
+    
+    return result;
+}
+
+function main(): void {
+    let r1: byte = forLoopCodegen();
+    let r2: byte = forDowntoCodegen();
+    let r3: byte = whileLoopCodegen();
+    let r4: byte = nestedLoopCodegen();
+    
+    poke($0400, r1);
+    poke($0401, r2);
+    poke($0402, r3);
+    poke($0403, r4);
+}

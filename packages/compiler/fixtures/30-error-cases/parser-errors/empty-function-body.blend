@@ -1,0 +1,10 @@
+// @fixture: error-cases/parser-errors/empty-function-body
+// @category: error-cases
+// @description: Tests that parser handles function with missing body
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, function
+
+module EmptyFunctionBody;
+
+function main(): void

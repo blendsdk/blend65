@@ -1,0 +1,14 @@
+// @fixture: error-cases/semantic-errors/use-before-declare
+// @category: error-cases
+// @description: Tests semantic error for using variable before declaration
+// @expect: error
+// @error-contains: undefined
+// @tags: error, semantic, variable, scope
+
+module UseBeforeDeclare;
+
+function main(): void {
+    // Using variable before it's declared
+    poke($0400, x);
+    let x: byte = 10;
+}

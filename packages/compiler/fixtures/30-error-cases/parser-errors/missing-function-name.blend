@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-function-name
+// @category: error-cases
+// @description: Tests that parser correctly reports missing function name
+// @expect: error
+// @error-contains: identifier
+// @tags: parser, error, function
+
+module MissingFunctionName;
+
+function (): void {
+    let x: byte = 10;
+}

@@ -1,0 +1,97 @@
+// @fixture: integration/real-programs/sid-player
+// @category: integration
+// @description: SID chip music player with note sequencing
+// @expect: success
+// @output-contains: RTS
+// @tags: hardware, sid, music, audio, real-world
+
+module SidPlayer;
+
+// SID chip registers (memory mapped)
+@map sidFreqLo1 at $D400: byte;
+@map sidFreqHi1 at $D401: byte;
+@map sidPulseWidth1 at $D402: word;
+@map sidCtrl1 at $D404: byte;
+@map sidAttackDecay1 at $D405: byte;
+@map sidSustainRelease1 at $D406: byte;
+@map sidVolume at $D418: byte;
+
+// Note frequencies (simplified, C4 to B4)
+let noteFreqLo: byte[12] = [25, 28, 31, 33, 37, 41, 44, 49, 52, 55, 58, 62];
+let noteFreqHi: byte[12] = [17, 18, 19, 20, 21, 23, 24, 25, 27, 28, 30, 31];
+
+// Song data (note indices, 255 = rest)
+let song: byte[16] = [0, 2, 4, 5, 7, 5, 4, 2, 0, 4, 7, 4, 0, 255, 0, 255];
+let songLength: byte = 16;
+let currentNote: byte = 0;
+
+// Initialize SID for playback
+function initSid(): void {
+    // Set master volume to max
+    sidVolume = $0F;
+    
+    // Set attack=0, decay=9
+    sidAttackDecay1 = $09;
+    
+    // Set sustain=9, release=0
+    sidSustainRelease1 = $90;
+    
+    // Set pulse width
+    sidPulseWidth1 = $0800;
+}
+
+// Play a note (0-11 for C-B, 255 for rest)
+function playNote(note: byte): void {
+    if (note == 255) {
+        // Rest - gate off
+        sidCtrl1 = $00;
+    } else {
+        // Set frequency
+        sidFreqLo1 = noteFreqLo[note];
+        sidFreqHi1 = noteFreqHi[note];
+        
+        // Gate on with pulse waveform
+        sidCtrl1 = $41;  // Gate + Pulse
+    }
+}
+
+// Stop current note
+function stopNote(): void {
+    // Gate off, keep waveform
+    sidCtrl1 = $40;
+}
+
+// Advance to next note in sequence
+function nextNote(): void {
+    currentNote = currentNote + 1;
+    if (currentNote >= songLength) {
+        currentNote = 0;  // Loop
+    }
+}
+
+// Play one tick of the song
+function playSongTick(): void {
+    let note: byte = song[currentNote];
+    playNote(note);
+}
+
+// Simple delay loop
+function delay(ticks: word): void {
+    for (i = 0 to 255) {
+        // Busy wait
+        let dummy: byte = peek($D012);
+    }
+}
+
+export function main(): void {
+    initSid();
+    
+    let playing: byte = 1;
+    while (playing) {
+        playSongTick();
+        delay(2000);
+        stopNote();
+        delay(500);
+        nextNote();
+    }
+}

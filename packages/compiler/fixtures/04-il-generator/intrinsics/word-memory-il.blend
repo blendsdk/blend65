@@ -1,0 +1,24 @@
+// @fixture: il-generator/intrinsics/word-memory-il
+// @category: il-generator
+// @description: Tests IL generation for word memory operations
+// @expect: success
+// @output-contains: STA
+// @tags: il, intrinsics, word, memory
+
+module WordMemoryIL;
+
+function main(): void {
+    // Word poke (16-bit write)
+    pokew($80, $0801);  // Store address in zero page
+    
+    // Word peek (16-bit read)
+    let addr: word = peekw($80);
+    
+    // Modify and write back
+    addr = addr + 40;
+    pokew($82, addr);
+    
+    // Use in calculations
+    let offset: word = 1000;
+    pokew($0400, offset);
+}

@@ -1,0 +1,62 @@
+// @fixture: parser/statements/if-else/if-elseif-else
+// @category: parser
+// @description: Tests parsing of if-else if-else chain statements
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, if, else, elseif, control-flow
+
+module IfElseIfElse;
+
+@zp let score: byte = 75;
+@zp let grade: byte = 0;
+
+function main(): void {
+    // Simple if-else if-else chain
+    if (score >= 90) {
+        grade = 65;  // ASCII 'A'
+    } else if (score >= 80) {
+        grade = 66;  // ASCII 'B'
+    } else if (score >= 70) {
+        grade = 67;  // ASCII 'C'
+    } else if (score >= 60) {
+        grade = 68;  // ASCII 'D'
+    } else {
+        grade = 70;  // ASCII 'F'
+    }
+    
+    poke($0400, grade);
+    
+    // Another chain with different conditions
+    let level: byte = 5;
+    let difficulty: byte = 0;
+    
+    if (level < 3) {
+        difficulty = 1;  // Easy
+    } else if (level < 6) {
+        difficulty = 2;  // Medium
+    } else if (level < 9) {
+        difficulty = 3;  // Hard
+    } else {
+        difficulty = 4;  // Expert
+    }
+    
+    poke($0401, difficulty);
+    
+    // Chain with equality checks
+    let state: byte = 2;
+    let action: byte = 0;
+    
+    if (state == 0) {
+        action = 10;  // Init
+    } else if (state == 1) {
+        action = 20;  // Running
+    } else if (state == 2) {
+        action = 30;  // Paused
+    } else if (state == 3) {
+        action = 40;  // Stopped
+    } else {
+        action = 0;   // Unknown
+    }
+    
+    poke($0402, action);
+}

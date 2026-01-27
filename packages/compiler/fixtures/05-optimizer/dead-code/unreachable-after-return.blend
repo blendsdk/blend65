@@ -1,0 +1,22 @@
+// @fixture: optimizer/dead-code/unreachable-after-return
+// @category: optimizer
+// @description: Tests dead code elimination for code after return statements
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, unreachable
+
+module UnreachableAfterReturn;
+
+function getValue(): byte {
+    return 42;
+    
+    // This code is unreachable and should be eliminated
+    poke($D020, 0);
+    let x: byte = 10;
+    return x;
+}
+
+function main(): void {
+    let result: byte = getValue();
+    poke($0400, result);
+}

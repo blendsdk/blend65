@@ -1,0 +1,52 @@
+// @fixture: parser/statements/while-loops/while-counter
+// @category: parser
+// @description: Tests parsing of while loops with counter patterns
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, while, loops, counter, control-flow
+
+module WhileCounter;
+
+@zp let sum: byte = 0;
+@zp let count: byte = 0;
+
+function main(): void {
+    // Count up pattern
+    let i: byte = 0;
+    while (i < 5) {
+        sum = sum + i;
+        i = i + 1;
+    }
+    
+    poke($0400, sum);  // Sum of 0+1+2+3+4 = 10
+    
+    // Count down pattern
+    let j: byte = 10;
+    while (j > 0) {
+        count = count + 1;
+        j = j - 1;
+    }
+    
+    poke($0401, count);  // Should be 10
+    
+    // Step by 2
+    let k: byte = 0;
+    let evenSum: byte = 0;
+    while (k < 10) {
+        evenSum = evenSum + k;
+        k = k + 2;
+    }
+    
+    poke($0402, evenSum);  // 0+2+4+6+8 = 20
+    
+    // Double counter
+    let a: byte = 0;
+    let b: byte = 100;
+    while (a < b) {
+        a = a + 1;
+        b = b - 1;
+    }
+    
+    poke($0403, a);  // Should be 50
+    poke($0404, b);  // Should be 50
+}

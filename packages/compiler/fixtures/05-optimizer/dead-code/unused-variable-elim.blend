@@ -1,0 +1,23 @@
+// @fixture: optimizer/dead-code/unused-variable-elim
+// @category: optimizer
+// @description: Tests dead code elimination for unused variables
+// @expect: success
+// @output-contains: STA
+// @tags: optimizer, dead-code, unused
+
+module UnusedVariableElim;
+
+function main(): void {
+    // This variable is unused and should be eliminated
+    let unused: byte = 42;
+    
+    // These variables are used
+    let used: byte = 10;
+    let result: byte = used + 5;
+    
+    // Another unused variable
+    let alsoUnused: word = 1000;
+    
+    // Store the used result
+    poke($0400, result);
+}

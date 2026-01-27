@@ -1,0 +1,26 @@
+// @fixture: il-generator/intrinsics/peek-poke-il
+// @category: il-generator
+// @description: Tests IL generation for peek/poke intrinsics
+// @expect: success
+// @output-contains: STA
+// @tags: il, intrinsics, memory
+
+module PeekPokeIL;
+
+function main(): void {
+    // Basic poke (byte write)
+    poke($D020, 0);
+    poke($D021, 1);
+    
+    // Basic peek (byte read)
+    let color: byte = peek($D020);
+    let bg: byte = peek($D021);
+    
+    // Peek then modify then poke
+    let value: byte = peek($DC00);
+    value = value + 1;
+    poke($0400, value);
+    
+    // Chain peek/poke operations
+    poke($0401, peek($DC01));
+}

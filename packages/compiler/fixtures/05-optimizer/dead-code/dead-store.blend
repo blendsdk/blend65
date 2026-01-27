@@ -1,0 +1,24 @@
+// @fixture: optimizer/dead-code/dead-store
+// @category: optimizer
+// @description: Tests dead store elimination where a variable is written but never read
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, dead-store
+
+module DeadStore;
+
+function processData(): byte {
+    let result: byte = 42;
+    let temp: byte = 0;      // dead store - temp is never read
+    let unused: byte = 99;   // dead store - unused is never read
+    
+    temp = 100;              // dead store - still never read
+    unused = unused + 1;     // dead store - result never used
+    
+    return result;
+}
+
+function main(): void {
+    let value: byte = processData();
+    poke($0400, value);
+}

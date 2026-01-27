@@ -1,0 +1,58 @@
+// @fixture: semantic/type-checking/mixed-type-ops
+// @category: semantic
+// @description: Tests type checking for operations involving mixed types
+// @expect: success
+// @output-contains: LDA
+// @tags: semantic, type-checking, mixed-types
+
+module MixedTypeOps;
+
+function main(): void {
+    // Byte and word mixed operations
+    let byteVal: byte = 40;
+    let wordVal: word = $0400;
+    
+    // Adding byte to word (byte promoted to word)
+    let result1: word = wordVal + byteVal;
+    
+    // Multiplication produces word result
+    let a: byte = 100;
+    let b: byte = 3;
+    let product: word = a * b;
+    
+    // Comparisons with mixed types
+    let small: byte = 10;
+    let large: word = 1000;
+    // Compare byte with literal
+    let cmp1: boolean = small < 100;
+    // Compare word with literal
+    let cmp2: boolean = large > 500;
+    
+    // Byte fits in word assignment
+    let wordFromByte: word = byteVal;
+    
+    // Address calculations (common pattern)
+    let screenBase: word = $0400;
+    let row: byte = 5;
+    let col: byte = 10;
+    let rowOffset: word = row * 40;
+    let screenAddr: word = screenBase + rowOffset + col;
+    
+    // Ternary with mixed types
+    let flag: boolean = small < 20;
+    let ternaryByte: byte = flag ? 1 : 0;
+    
+    // Poke uses word address and byte value
+    poke(screenAddr, 65);
+    poke(result1, byteVal);
+    
+    // Peek returns byte
+    let peekVal: byte = peek(screenBase);
+    
+    // Combined operations
+    let combined: word = (screenBase + row * 40) + col;
+    poke(combined, 66);
+    
+    // Store results
+    poke($0401, peekVal);
+}

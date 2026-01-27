@@ -1,0 +1,15 @@
+// @fixture: error-cases/semantic-errors/break-outside-loop
+// @category: error-cases
+// @description: Tests semantic error for break statement outside of loop
+// @expect: error
+// @error-contains: break
+// @tags: error, semantic, break, loop
+
+module BreakOutsideLoop;
+
+function main(): void {
+    let x: byte = 10;
+    // break is not inside a loop
+    break;
+    poke($0400, x);
+}

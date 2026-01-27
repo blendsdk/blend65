@@ -1,0 +1,22 @@
+// @fixture: il-generator/basic-blocks/multiple-blocks
+// @category: il-generator
+// @description: Tests IL generation with multiple basic blocks from branching
+// @expect: success
+// @output-contains: BNE
+// @tags: il, basic-blocks, branching
+
+module MultipleBlocks;
+
+function main(): void {
+    let x: byte = peek($DC00);
+    
+    // This creates multiple basic blocks due to branching
+    if (x == 0) {
+        poke($D020, 0);  // Block A
+    } else {
+        poke($D020, 1);  // Block B
+    }
+    
+    // Merge block
+    poke($D021, x);
+}

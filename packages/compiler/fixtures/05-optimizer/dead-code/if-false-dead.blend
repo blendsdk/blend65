@@ -1,0 +1,31 @@
+// @fixture: optimizer/dead-code/if-false-dead
+// @category: optimizer
+// @description: Tests dead code elimination for if(false) branches that can never execute
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, constant-condition
+
+module IfFalseDead;
+
+function processWithDebug(): byte {
+    let result: byte = 100;
+    
+    // This entire block is dead - condition is always false
+    if (0 == 1) {
+        result = 0;
+        poke($D020, 1);
+        poke($D021, 2);
+    }
+    
+    // This block will execute
+    if (1 == 1) {
+        result = result + 5;
+    }
+    
+    return result;
+}
+
+function main(): void {
+    let value: byte = processWithDebug();
+    poke($0400, value);
+}

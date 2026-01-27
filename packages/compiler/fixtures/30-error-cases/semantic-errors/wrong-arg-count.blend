@@ -1,0 +1,18 @@
+// @fixture: error-cases/semantic-errors/wrong-arg-count
+// @category: error-cases
+// @description: Tests semantic error for wrong number of function arguments
+// @expect: error
+// @error-contains: argument
+// @tags: error, semantic, function, arguments
+
+module WrongArgCount;
+
+function add(a: byte, b: byte): byte {
+    return a + b;
+}
+
+function main(): void {
+    // Calling with too few arguments
+    let result: byte = add(10);
+    poke($0400, result);
+}

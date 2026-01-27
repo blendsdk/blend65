@@ -1,0 +1,20 @@
+// @fixture: il-generator/control-flow/for-loop-il
+// @category: il-generator
+// @description: Tests IL generation for for loops
+// @expect: success
+// @output-contains: JMP
+// @tags: il, control-flow, for
+
+module ForLoopIL;
+
+function main(): void {
+    let result: byte = 0;
+    
+    // Simple for loop
+    for (i = 0 to 9) {
+        result = result + 1;
+    }
+    
+    // Store result
+    poke($0400, result);
+}

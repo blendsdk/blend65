@@ -1,0 +1,16 @@
+// @fixture: error-cases/semantic-errors/scope-escape
+// @category: error-cases
+// @description: Tests semantic error for variable out of scope
+// @expect: error
+// @error-contains: undefined
+// @tags: error, semantic, scope
+
+module ScopeEscape;
+
+function main(): void {
+    if (1 == 1) {
+        let inner: byte = 10;
+    }
+    // inner is out of scope here
+    poke($0400, inner);
+}

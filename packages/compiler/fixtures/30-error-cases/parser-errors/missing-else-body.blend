@@ -1,0 +1,15 @@
+// @fixture: error-cases/parser-errors/missing-else-body
+// @category: error-cases
+// @description: Tests that parser correctly reports missing else body
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, if-else
+
+module MissingElseBody;
+
+function main(): void {
+    let x: byte = 10;
+    if (x > 5) {
+        poke($0400, 1);
+    } else
+}

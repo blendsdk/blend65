@@ -1,0 +1,53 @@
+// @fixture: semantic/type-checking/array-types
+// @category: semantic
+// @description: Tests type checking for array element access and assignment
+// @expect: success
+// @output-contains: LDA
+// @tags: semantic, type-checking, arrays
+
+module ArrayTypes;
+
+// Byte arrays
+let byteArray: byte[] = [1, 2, 3, 4, 5];
+let byteBuffer: byte[10];
+
+// Word arrays
+let wordArray: word[] = [$0400, $0428, $0450];
+let addressTable: word[5];
+
+function main(): void {
+    // Array element access returns correct type
+    let b: byte = byteArray[0];
+    let w: word = wordArray[0];
+    
+    // Array assignment with correct types
+    byteBuffer[0] = 10;
+    byteBuffer[1] = b + 1;
+    addressTable[0] = $0400;
+    addressTable[1] = w + 40;
+    
+    // Computed index access
+    let idx: byte = 2;
+    let fromIdx: byte = byteArray[idx];
+    let addrFromIdx: word = wordArray[idx];
+    
+    // Array in expressions
+    let sum: byte = byteArray[0] + byteArray[1];
+    let addrSum: word = wordArray[0] + 100;
+    
+    // Array element in comparison
+    if (byteArray[0] < byteArray[1]) {
+        byteBuffer[2] = 1;
+    }
+    
+    // Array element as poke argument
+    poke($0400, byteArray[0]);
+    poke(wordArray[0], 65);
+    
+    // Nested array access
+    let arrIdx: byte = byteArray[0];
+    let nested: byte = byteArray[arrIdx];
+    
+    // Store result
+    poke($0401, sum);
+}

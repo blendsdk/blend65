@@ -1,0 +1,18 @@
+// @fixture: error-cases/semantic-errors/too-many-args
+// @category: error-cases
+// @description: Tests semantic error for too many function arguments
+// @expect: error
+// @error-contains: argument
+// @tags: error, semantic, function, arguments
+
+module TooManyArgs;
+
+function add(a: byte, b: byte): byte {
+    return a + b;
+}
+
+function main(): void {
+    // Calling with too many arguments
+    let result: byte = add(10, 20, 30);
+    poke($0400, result);
+}

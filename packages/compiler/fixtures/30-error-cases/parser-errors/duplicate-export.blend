@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/duplicate-export
+// @category: error-cases
+// @description: Tests that parser correctly reports duplicate export keyword
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, export
+
+module DuplicateExport;
+
+export export function main(): void {
+    let x: byte = 10;
+}

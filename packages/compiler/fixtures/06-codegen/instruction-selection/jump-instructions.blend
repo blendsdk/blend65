@@ -1,0 +1,42 @@
+// @fixture: codegen/instruction-selection/jump-instructions
+// @category: codegen
+// @description: Tests code generation for jump instructions (JMP, JSR, RTS)
+// @expect: success
+// @output-contains: JSR
+// @output-contains: RTS
+// @tags: codegen, jumps, subroutines
+
+module JumpInstructions;
+
+function helper1(): byte {
+    return 10;
+}
+
+function helper2(): byte {
+    return 20;
+}
+
+function helper3(): byte {
+    return 30;
+}
+
+function testJumps(): byte {
+    let result: byte = 0;
+    
+    // Each function call generates JSR
+    result = result + helper1();
+    result = result + helper2();
+    result = result + helper3();
+    
+    // Nested calls
+    let nested: byte = helper1() + helper2();
+    result = result + nested;
+    
+    // Total: 10 + 20 + 30 + 30 = 90
+    return result;
+}
+
+function main(): void {
+    let value: byte = testJumps();
+    poke($0400, value);
+}

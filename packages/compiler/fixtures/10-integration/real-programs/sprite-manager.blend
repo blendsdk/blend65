@@ -1,0 +1,167 @@
+// @fixture: integration/real-programs/sprite-manager
+// @category: integration
+// @description: Tests multi-sprite management with VIC-II using simple @map
+// @expect: success
+// @output-contains: STA $D015
+// @output-contains: STA $D000
+// @tags: hardware, sprite, vic-ii, real-world, c64, multi-sprite
+
+module SpriteManager;
+
+// VIC-II sprite position registers using simple @map
+// Sprite 0
+@map sprite0X at $D000: byte;
+@map sprite0Y at $D001: byte;
+// Sprite 1
+@map sprite1X at $D002: byte;
+@map sprite1Y at $D003: byte;
+// Sprite 2
+@map sprite2X at $D004: byte;
+@map sprite2Y at $D005: byte;
+// Sprite 3
+@map sprite3X at $D006: byte;
+@map sprite3Y at $D007: byte;
+
+// Sprite enable register (bit per sprite)
+@map spriteEnable at $D015: byte;
+
+// Sprite X position MSB (high bit for X > 255)
+@map spriteXMSB at $D010: byte;
+
+// Sprite colors using simple @map
+@map sprite0Color at $D027: byte;
+@map sprite1Color at $D028: byte;
+@map sprite2Color at $D029: byte;
+@map sprite3Color at $D02A: byte;
+
+// C64 color constants
+let COLOR_WHITE: byte = 1;
+let COLOR_RED: byte = 2;
+let COLOR_CYAN: byte = 3;
+let COLOR_PURPLE: byte = 4;
+let COLOR_GREEN: byte = 5;
+let COLOR_BLUE: byte = 6;
+let COLOR_YELLOW: byte = 7;
+
+// Current enable state
+let enableMask: byte = 0;
+
+// Set position for sprite 0
+function setSprite0Position(x: byte, y: byte): void {
+    sprite0X = x;
+    sprite0Y = y;
+}
+
+// Set position for sprite 1
+function setSprite1Position(x: byte, y: byte): void {
+    sprite1X = x;
+    sprite1Y = y;
+}
+
+// Set position for sprite 2
+function setSprite2Position(x: byte, y: byte): void {
+    sprite2X = x;
+    sprite2Y = y;
+}
+
+// Set position for sprite 3
+function setSprite3Position(x: byte, y: byte): void {
+    sprite3X = x;
+    sprite3Y = y;
+}
+
+// Enable sprite 0
+function enableSprite0(): void {
+    enableMask = enableMask | 1;
+    spriteEnable = enableMask;
+}
+
+// Enable sprite 1
+function enableSprite1(): void {
+    enableMask = enableMask | 2;
+    spriteEnable = enableMask;
+}
+
+// Enable sprite 2
+function enableSprite2(): void {
+    enableMask = enableMask | 4;
+    spriteEnable = enableMask;
+}
+
+// Enable sprite 3
+function enableSprite3(): void {
+    enableMask = enableMask | 8;
+    spriteEnable = enableMask;
+}
+
+// Disable sprite 0
+function disableSprite0(): void {
+    enableMask = enableMask & 254;
+    spriteEnable = enableMask;
+}
+
+// Disable sprite 2
+function disableSprite2(): void {
+    enableMask = enableMask & 251;
+    spriteEnable = enableMask;
+}
+
+// Enable all sprites at once
+function enableAllSprites(): void {
+    enableMask = 255;
+    spriteEnable = 255;
+}
+
+// Disable all sprites at once
+function disableAllSprites(): void {
+    enableMask = 0;
+    spriteEnable = 0;
+}
+
+// Initialize sprite 0
+function initSprite0(): void {
+    setSprite0Position(24, 50);
+    sprite0Color = COLOR_WHITE;
+}
+
+// Initialize sprite 1
+function initSprite1(): void {
+    setSprite1Position(100, 100);
+    sprite1Color = COLOR_RED;
+}
+
+// Initialize sprite 2
+function initSprite2(): void {
+    setSprite2Position(80, 200);
+    sprite2Color = COLOR_GREEN;
+}
+
+// Initialize sprite 3
+function initSprite3(): void {
+    setSprite3Position(200, 120);
+    sprite3Color = COLOR_BLUE;
+}
+
+// Main entry point
+export function main(): void {
+    // Clear all sprites first
+    disableAllSprites();
+    
+    // Initialize sprite positions and colors
+    initSprite0();
+    initSprite1();
+    initSprite2();
+    initSprite3();
+    
+    // Enable sprites 0-3
+    enableSprite0();
+    enableSprite1();
+    enableSprite2();
+    enableSprite3();
+    
+    // Move sprite 0 to new position
+    setSprite0Position(150, 100);
+    
+    // Disable sprite 2
+    disableSprite2();
+}

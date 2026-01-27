@@ -1,0 +1,14 @@
+// @fixture: error-cases/parser-errors/missing-closing-paren
+// @category: error-cases
+// @description: Tests that parser correctly reports missing closing parenthesis
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, parenthesis
+
+module MissingClosingParen;
+
+function main(): void {
+    if (x > 10 {
+        let y: byte = 5;
+    }
+}

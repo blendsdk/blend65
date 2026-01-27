@@ -1,0 +1,31 @@
+// @fixture: codegen/instruction-selection/arithmetic-instructions
+// @category: codegen
+// @description: Tests instruction selection for arithmetic operations
+// @expect: success
+// @output-contains: ADC
+// @tags: codegen, instructions, arithmetic
+
+module ArithmeticInstructions;
+
+function main(): void {
+    let a: byte = 10;
+    let b: byte = 5;
+    
+    // Addition should use ADC
+    let sum: byte = a + b;
+    
+    // Subtraction should use SBC
+    let diff: byte = a - b;
+    
+    // Increment should use INC or INX/INY
+    a = a + 1;
+    
+    // Decrement should use DEC or DEX/DEY
+    b = b - 1;
+    
+    // Store results
+    poke($0400, sum);
+    poke($0401, diff);
+    poke($0402, a);
+    poke($0403, b);
+}

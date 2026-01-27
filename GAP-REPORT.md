@@ -1,8 +1,8 @@
 # Blend65 Compiler Gap Report
 
 > **Generated**: January 27, 2026  
-> **Total Tests**: 6,998  
-> **Passed**: 6,996 (99.97%)  
+> **Total Tests**: 7,080  
+> **Passed**: 7,078 (99.97%)  
 > **Failed**: 0  
 > **Skipped**: 2 (documented)
 
@@ -22,17 +22,18 @@ The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. On
 
 ### Test Results Overview
 
-| Category | Status |
-|----------|--------|
-| Lexer | ✅ All Passing (150+) |
-| Parser | ✅ All Passing (400+) |
-| AST | ✅ All Passing (100+) |
-| Semantic Analysis | ✅ All Passing (1,500+) |
-| IL Generator | ✅ All Passing (2,000+) |
-| Code Generator | ✅ All Passing (500+) |
-| ASM-IL | ✅ All Passing (500+) |
-| E2E & Integration | ✅ All Passing (1,800+) |
-| CLI | ✅ All Passing (10) |
+| Category | Tests | Status |
+|----------|-------|--------|
+| Lexer | 150+ | ✅ All Passing |
+| Parser | 400+ | ✅ All Passing |
+| AST | 100+ | ✅ All Passing |
+| Semantic Analysis | 1,600+ | ✅ All Passing |
+| IL Generator | 2,200+ | ✅ All Passing |
+| ASM-IL | 500+ | ✅ All Passing |
+| Code Generator | 550+ | ✅ All Passing |
+| E2E & Integration | 1,500+ | ✅ All Passing |
+| Pipeline | 50+ | ✅ All Passing |
+| CLI | 10 | ✅ All Passing |
 
 ---
 
@@ -47,7 +48,7 @@ The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. On
 
 **Impact**: None - expected to fail until optimizer is implemented
 
-**Plan**: `plans/optimizer/` (103+ design documents ready)
+**Plan**: `plans/optimizer-series/` (7-phase roadmap ready)
 
 **Status**: Will be enabled when optimizer is implemented
 
@@ -65,6 +66,27 @@ The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. On
 **Plan**: None (test quality issue, not a gap)
 
 **Status**: Skipped indefinitely - timing tests are inherently unreliable
+
+---
+
+## Code TODOs (Future Enhancements)
+
+The following TODOs exist in the source code - all are **low priority** future enhancements, not bugs:
+
+| Location | Category | Description |
+|----------|----------|-------------|
+| `codegen/instruction-generator.ts` | LOW | Binary op not implemented comment |
+| `semantic/analysis/m6502-hints.ts` | LOW | Cycle estimation improvement |
+| `semantic/analysis/dead-code.ts` | LOW | Dead store detection (optimizer) |
+| `semantic/analysis/call-graph.ts` | LOW | Dead function detection (optimizer) |
+| `semantic/analysis/alias-analysis.ts` | LOW | Load/store constraints, array handling |
+| `semantic/analysis/loop-analysis.ts` | LOW | Full AST walking enhancement |
+| `semantic/global-symbol-table.ts` | LOW | Module visibility rules |
+| `semantic/analyzer.ts` | LOW | Global symbols enhancement |
+| `il/generator/statements.ts` | LOW | SSA phi edge case |
+| `il/generator/expressions.ts` | LOW | String literal/member expression |
+
+**Note**: All these TODOs are related to future optimizer features or edge case enhancements. None are blocking current functionality.
 
 ---
 
@@ -107,7 +129,7 @@ The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. On
 
 | Plan | Status | Description |
 |------|--------|-------------|
-| `optimizer/` | 📋 Docs Complete | 103+ documents ready, ~200 hours estimated |
+| `optimizer-series/` | 📋 Roadmap Complete | 7-phase plan, ~40 documents |
 
 ### Priority 2: Developer Experience
 
@@ -115,7 +137,13 @@ The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. On
 |------|--------|-------------|
 | `dx-features/` | 📋 Ready | Source maps, VICE integration, CLI commands |
 
-### Priority 3: Future
+### Priority 3: Testing
+
+| Plan | Status | Description |
+|------|--------|-------------|
+| `extreme-e2e-testing/` | 🔄 In Progress | Phase 1-4 partially complete |
+
+### Priority 4: Future
 
 | Plan | Status | Description |
 |------|--------|-------------|
@@ -126,37 +154,45 @@ The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. On
 
 ## Archived Plans (Completed)
 
-All bug fix and stabilization plans have been completed and archived:
+All bug fix and stabilization plans have been completed and archived in `plans/archive/`:
 
-| Plan | Archived Date |
-|------|---------------|
-| `call-void-and-length-gap/` | January 27, 2026 |
-| `multiple-fixes/` | January 27, 2026 |
-| `go-intrinsics/` | January 27, 2026 |
-| `array-return-types/` | January 27, 2026 |
-| `il-generator/` | January 2026 |
-| `e2e-codegen-testing/` | January 27, 2026 |
-| `end-to-end/` | January 27, 2026 |
-| `ssa-id-collision-tests-plan.md` | January 27, 2026 |
+| Category | Plans Archived |
+|----------|----------------|
+| Bug Fixes | call-void-and-length-gap, multiple-fixes, go-intrinsics |
+| Features | array-return-types, il-generator, e2e-codegen-testing, end-to-end |
+| Infrastructure | library-loading, module-and-export-fix, clean-exit |
+| Parser | parser, c-style |
+| Semantic | semantic-analyzer, phase8-advanced-analysis |
+| Refactoring | refactoring |
 
 ---
 
-## Remaining Work
+## Remaining Work by Priority
 
-### Next Major Feature: Optimizer
+### 🔴 Critical (None)
 
-The optimizer is the next major focus with:
-- **103+ design documents** ready in `plans/optimizer/`
-- **Estimated time**: 4-6 weeks
-- **Covers**: Dead code elimination, constant folding, peephole optimization, 6502-specific optimizations
+No critical gaps or blocking issues.
 
-### Developer Experience: dx-features
+### 🟠 High Priority
 
-After optimizer, the dx-features plan covers:
-- Source maps for debugging
-- VICE emulator integration
-- CLI commands (init, run, watch)
-- Project templates
+| Item | Plan | Est. Time |
+|------|------|-----------|
+| Optimizer Implementation | `optimizer-series/` | 4-6 weeks |
+
+### 🟡 Medium Priority
+
+| Item | Plan | Est. Time |
+|------|------|-----------|
+| DX Features (CLI, VICE) | `dx-features/` | 1-2 weeks |
+| Extreme E2E Testing | `extreme-e2e-testing/` | 2-3 weeks |
+
+### 🟢 Low Priority (Future)
+
+| Item | Plan | Est. Time |
+|------|------|-----------|
+| Native Assembler | `native-assembler/` | TBD |
+| Language Features | `features/` | TBD |
+| Documentation | N/A | 2-3 weeks |
 
 ---
 
@@ -179,7 +215,7 @@ The compiler can compile working Commodore 64 programs. Focus now shifts to the 
 
 - **PROJECT_STATUS.md** - Overall project status
 - **WHATS-LEFT.md** - Comprehensive remaining work list
-- **plans/optimizer/** - 103+ optimizer design documents
+- **plans/optimizer-series/** - 7-phase optimizer roadmap
 - **plans/dx-features/** - Developer experience plan
 - **plans/archive/** - All completed/archived plans
 

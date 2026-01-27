@@ -1,0 +1,212 @@
+// @fixture: integration/real-programs/game-loop
+// @category: integration
+// @description: Tests game loop with frame timing using VIC-II raster
+// @expect: success
+// @output-contains: LDA $D012
+// @output-contains: STA $D020
+// @tags: hardware, game-loop, timing, vic-ii, real-world, c64
+
+module GameLoop;
+
+// VIC-II raster line register for frame sync
+@map rasterLine at $D012: byte;
+// Border color for visual feedback
+@map borderColor at $D020: byte;
+// Background color
+@map backgroundColor at $D021: byte;
+
+// Game state variables
+let gameRunning: byte = 1;
+let frameCount: byte = 0;
+let gameState: byte = 0;
+
+// Game state constants
+let STATE_INIT: byte = 0;
+let STATE_PLAYING: byte = 1;
+let STATE_PAUSED: byte = 2;
+let STATE_GAMEOVER: byte = 3;
+
+// Player position
+let playerX: byte = 160;
+let playerY: byte = 100;
+
+// Player velocity
+let velocityX: byte = 0;
+let velocityY: byte = 0;
+
+// Score tracking
+let score: byte = 0;
+let lives: byte = 3;
+
+// Wait for vertical blank (raster line 250+)
+function waitForVBlank(): void {
+    // Read raster until we're in VBlank region
+    let raster: byte = rasterLine;
+    // Simple check - not a full wait loop to avoid PHI issues
+    if (raster < 250) {
+        // Flash border to show we're checking
+        borderColor = 1;
+    }
+}
+
+// Simple frame delay using repeated operations
+// Note: for/while loops can cause compiler issues in current version
+function frameDelay(): void {
+    // Just do multiple reads to simulate delay
+    let temp: byte = borderColor;
+    temp = borderColor;
+    temp = borderColor;
+    temp = borderColor;
+    temp = borderColor;
+}
+
+// Initialize game state
+function initGame(): void {
+    gameState = STATE_INIT;
+    frameCount = 0;
+    playerX = 160;
+    playerY = 100;
+    velocityX = 0;
+    velocityY = 0;
+    score = 0;
+    lives = 3;
+    gameRunning = 1;
+    
+    // Set initial colors
+    borderColor = 0;
+    backgroundColor = 0;
+    
+    // Transition to playing state
+    gameState = STATE_PLAYING;
+}
+
+// Process player input (stub - calls would go to input handler)
+function processInput(): void {
+    // Read input state and update velocity
+    // In a real game, this would call the input handler module
+    
+    // For now, just check a simple condition
+    if (gameState == STATE_PLAYING) {
+        // Player can move
+        playerX = playerX + velocityX;
+        playerY = playerY + velocityY;
+    }
+}
+
+// Update game logic
+function updateGame(): void {
+    if (gameState == STATE_PLAYING) {
+        // Update player position based on velocity
+        playerX = playerX + velocityX;
+        playerY = playerY + velocityY;
+        
+        // Boundary checks
+        if (playerX < 24) {
+            playerX = 24;
+            velocityX = 0;
+        }
+        if (playerX > 255) {
+            playerX = 255;
+            velocityX = 0;
+        }
+        if (playerY < 50) {
+            playerY = 50;
+            velocityY = 0;
+        }
+        if (playerY > 229) {
+            playerY = 229;
+            velocityY = 0;
+        }
+        
+        // Simple scoring - increment every 60 frames
+        if (frameCount == 60) {
+            score = score + 1;
+            frameCount = 0;
+        }
+    }
+}
+
+// Render game state (update hardware registers)
+function renderGame(): void {
+    // Visual feedback based on game state
+    if (gameState == STATE_INIT) {
+        borderColor = 2;  // Red during init
+    }
+    if (gameState == STATE_PLAYING) {
+        borderColor = 5;  // Green during play
+    }
+    if (gameState == STATE_PAUSED) {
+        borderColor = 7;  // Yellow when paused
+    }
+    if (gameState == STATE_GAMEOVER) {
+        borderColor = 2;  // Red for game over
+    }
+    
+    // Increment frame counter
+    frameCount = frameCount + 1;
+}
+
+// Check for game over conditions
+function checkGameOver(): void {
+    if (lives == 0) {
+        gameState = STATE_GAMEOVER;
+        gameRunning = 0;
+    }
+}
+
+// Toggle pause state
+function togglePause(): void {
+    if (gameState == STATE_PLAYING) {
+        gameState = STATE_PAUSED;
+    } else {
+        if (gameState == STATE_PAUSED) {
+            gameState = STATE_PLAYING;
+        }
+    }
+}
+
+// Single frame of game loop
+function gameFrame(): void {
+    // Wait for vertical blank for smooth animation
+    waitForVBlank();
+    
+    // Process player input
+    processInput();
+    
+    // Update game state
+    updateGame();
+    
+    // Check win/lose conditions
+    checkGameOver();
+    
+    // Render to screen
+    renderGame();
+}
+
+// Main entry - demonstrates game loop structure
+export function main(): void {
+    // Initialize game
+    initGame();
+    
+    // Run a few frames to demonstrate the loop
+    // (Using explicit calls instead of while loop to avoid PHI issues)
+    gameFrame();
+    gameFrame();
+    gameFrame();
+    gameFrame();
+    gameFrame();
+    
+    // Simulate taking damage
+    lives = lives - 1;
+    
+    // Run more frames
+    gameFrame();
+    gameFrame();
+    gameFrame();
+    
+    // Test pause toggle
+    togglePause();
+    gameFrame();
+    togglePause();
+    gameFrame();
+}

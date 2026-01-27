@@ -1,0 +1,19 @@
+// @fixture: error-cases/type-errors/while-condition-type
+// @category: error-cases
+// @description: Tests that void function call cannot be used as while condition
+// @expect: error
+// @error-contains: void
+// @tags: error, type, condition, while
+
+module WhileConditionType;
+
+function doWork(): void {
+    poke($0400, 1);
+}
+
+function main(): void {
+    // Cannot use void function result as while condition
+    while (doWork()) {
+        poke($0400, 2);
+    }
+}

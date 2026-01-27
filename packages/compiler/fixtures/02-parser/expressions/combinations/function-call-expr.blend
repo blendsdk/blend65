@@ -1,0 +1,65 @@
+// @fixture: parser/expressions/combinations/function-call-expr
+// @category: parser
+// @description: Tests function calls as expressions
+// @expect: success
+// @output-contains: JSR
+// @tags: expressions, combinations, function, call
+
+module FunctionCallExpr;
+
+// Module-level array for function index test
+let buffer: byte[16];
+
+// Helper functions
+function getValue(): byte {
+    return 42;
+}
+
+function add(a: byte, b: byte): byte {
+    return a + b;
+}
+
+function multiply(a: byte, b: byte): byte {
+    return a * b;
+}
+
+function getIndex(): byte {
+    return 3;
+}
+
+function main(): void {
+    // Simple function call as expression
+    let result: byte = getValue();
+    
+    // Function call with arguments
+    let sum: byte = add(5, 10);
+    
+    // Function call with expressions as arguments
+    let a: byte = 3;
+    let b: byte = 4;
+    let computed: byte = add(a + 1, b * 2);
+    
+    // Function call in expression
+    let combined: byte = getValue() + 10;
+    
+    // Function calls combined
+    let multi: byte = add(getValue(), getValue());
+    
+    // Nested function calls
+    let nested: byte = add(add(1, 2), add(3, 4));
+    
+    // Function call in comparison
+    let isLarge: byte = getValue() > 40 ? 1 : 0;
+    
+    // Function call as array index
+    buffer[getIndex()] = 100;
+    let indexed: byte = buffer[getIndex()];
+    
+    // Function call with function result as argument
+    let complex: byte = multiply(add(2, 3), getValue());
+    
+    // Store results
+    poke($0400, result);
+    poke($0401, sum);
+    poke($0402, nested);
+}

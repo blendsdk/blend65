@@ -1,0 +1,12 @@
+// @fixture: error-cases/parser-errors/missing-array-bracket
+// @category: error-cases
+// @description: Tests that parser correctly reports missing array bracket
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, array
+
+module MissingArrayBracket;
+
+function main(): void {
+    let arr: byte[10;
+}

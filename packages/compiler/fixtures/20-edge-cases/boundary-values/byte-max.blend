@@ -1,0 +1,28 @@
+// @fixture: edge-cases/boundary-values/byte-max
+// @category: edge-cases
+// @description: Tests handling of byte boundary values (0 and 255)
+// @expect: success
+// @output-contains: LDA
+// @tags: edge-cases, boundary, byte
+
+module ByteMax;
+
+function main(): void {
+    // Byte minimum value
+    let min: byte = 0;
+    
+    // Byte maximum value
+    let max: byte = 255;
+    let maxHex: byte = $FF;
+    
+    // Boundary operations
+    let overflow: byte = max + 1;  // Wraps to 0
+    let underflow: byte = min - 1; // Wraps to 255
+    
+    // Store for verification
+    poke($0400, min);
+    poke($0401, max);
+    poke($0402, maxHex);
+    poke($0403, overflow);
+    poke($0404, underflow);
+}

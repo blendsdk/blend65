@@ -1,0 +1,49 @@
+// @fixture: edge-cases/boundary-values/function-call-depth
+// @category: edge-cases
+// @description: Tests recursive function call depth
+// @expect: success
+// @output-contains: RTS
+// @tags: edge-case, recursion, function, boundary
+
+module FunctionCallDepth;
+
+let result: byte = 0;
+
+// Recursive countdown
+function countdown(n: byte): byte {
+    if (n == 0) {
+        return 0;
+    }
+    return 1 + countdown(n - 1);
+}
+
+// Chain of function calls
+function levelA(): byte {
+    return levelB() + 1;
+}
+
+function levelB(): byte {
+    return levelC() + 1;
+}
+
+function levelC(): byte {
+    return levelD() + 1;
+}
+
+function levelD(): byte {
+    return levelE() + 1;
+}
+
+function levelE(): byte {
+    return 1;
+}
+
+export function main(): void {
+    // Test recursive depth
+    let recurseResult: byte = countdown(10);
+    poke($0400, recurseResult);  // Should be 10
+    
+    // Test call chain depth
+    let chainResult: byte = levelA();
+    poke($0401, chainResult);  // Should be 5
+}

@@ -1,0 +1,35 @@
+// @fixture: optimizer/constant-folding/mixed-fold
+// @category: optimizer
+// @description: Tests constant folding for mixed arithmetic and bitwise operations
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, constant-folding, mixed
+
+module MixedFold;
+
+function testMixedFolding(): byte {
+    // Mix of arithmetic and bitwise operations
+    
+    // Arithmetic + bitwise AND: (10 + 5) & $0F = 15 & 15 = 15
+    let a: byte = (10 + 5) & $0F;
+    
+    // Arithmetic + bitwise OR: (4 | 8) + 2 = 12 + 2 = 14
+    let b: byte = (4 | 8) + 2;
+    
+    // Shift + arithmetic: (1 << 3) + (1 << 2) = 8 + 4 = 12
+    let c: byte = (1 << 3) + (1 << 2);
+    
+    // XOR + arithmetic: (255 ^ 240) - 5 = 15 - 5 = 10
+    let d: byte = (255 ^ 240) - 5;
+    
+    // Complex mix: ((8 * 2) & $F0) | 5 = (16 & 240) | 5 = 16 | 5 = 21
+    let e: byte = ((8 * 2) & $F0) | 5;
+    
+    // Total: 15 + 14 + 12 + 10 + 21 = 72
+    return a + b + c + d + e;
+}
+
+function main(): void {
+    let result: byte = testMixedFolding();
+    poke($0400, result);
+}

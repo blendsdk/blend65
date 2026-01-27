@@ -1,0 +1,44 @@
+// @fixture: parser/expressions/binary/comparison-operators
+// @category: parser
+// @description: Tests parsing of comparison/relational operators
+// @expect: success
+// @output-contains: CMP
+// @tags: expressions, binary, comparison, relational
+
+module ComparisonOperators;
+
+function main(): void {
+    let a: byte = 10;
+    let b: byte = 5;
+    let c: byte = 10;
+    
+    // Equal - store 1 if true, 0 if false
+    let isEqual: byte = a == c ? 1 : 0;
+    
+    // Not equal
+    let notEqual: byte = a != b ? 1 : 0;
+    
+    // Less than
+    let lessThan: byte = b < a ? 1 : 0;
+    
+    // Less than or equal
+    let lessOrEqual: byte = a <= c ? 1 : 0;
+    
+    // Greater than
+    let greaterThan: byte = a > b ? 1 : 0;
+    
+    // Greater than or equal
+    let greaterOrEqual: byte = a >= c ? 1 : 0;
+    
+    // Chained comparisons with logical AND
+    let combined: byte = (a > b) && (b < c) ? 1 : 0;
+    
+    // Comparison with literals
+    let gtZero: byte = a > 0 ? 1 : 0;
+    let ltMax: byte = a < 255 ? 1 : 0;
+    
+    // Store results
+    poke($0400, isEqual);
+    poke($0401, notEqual);
+    poke($0402, lessThan);
+}

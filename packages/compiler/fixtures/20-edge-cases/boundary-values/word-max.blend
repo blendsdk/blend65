@@ -1,0 +1,28 @@
+// @fixture: edge-cases/boundary-values/word-max
+// @category: edge-cases
+// @description: Tests handling of word boundary values (0 and 65535)
+// @expect: success
+// @output-contains: LDA
+// @tags: edge-cases, boundary, word
+
+module WordMax;
+
+function main(): void {
+    // Word minimum value
+    let min: word = 0;
+    
+    // Word maximum value
+    let max: word = 65535;
+    let maxHex: word = $FFFF;
+    
+    // Boundary values
+    let low: word = 256;    // Just above byte range
+    let mid: word = 32768;  // Midpoint
+    
+    // Store results using pokew
+    pokew($0400, min);
+    pokew($0402, max);
+    pokew($0404, maxHex);
+    pokew($0406, low);
+    pokew($0408, mid);
+}

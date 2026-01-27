@@ -1,0 +1,29 @@
+// @fixture: optimizer/dead-code/dead-else-branch
+// @category: optimizer
+// @description: Tests dead code elimination when if branch always returns
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, conditional, else-branch
+
+module DeadElseBranch;
+
+function classify(value: byte): byte {
+    if (value > 100) {
+        return 2;
+    } else {
+        if (value > 50) {
+            return 1;
+        } else {
+            return 0;
+        }
+        // This code is unreachable - all branches return
+        poke($D020, 5);
+    }
+    // This is also unreachable
+    return 255;
+}
+
+function main(): void {
+    let result: byte = classify(75);
+    poke($0400, result);
+}

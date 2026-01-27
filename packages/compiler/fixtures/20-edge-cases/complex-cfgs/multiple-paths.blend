@@ -1,0 +1,35 @@
+// @fixture: edge-cases/complex-cfgs/multiple-paths
+// @category: edge-cases
+// @description: Tests compiler handling of complex control flow with multiple paths
+// @expect: success
+// @output-contains: BCS
+// @tags: edge-cases, cfg, control-flow
+
+module MultiplePaths;
+
+function main(): void {
+    let input: byte = peek($DC00);
+    let result: byte = 0;
+    
+    // Multiple branching paths
+    if (input < 50) {
+        if (input < 25) {
+            result = 1;
+        } else {
+            result = 2;
+        }
+    } else {
+        if (input < 75) {
+            result = 3;
+        } else {
+            if (input < 100) {
+                result = 4;
+            } else {
+                result = 5;
+            }
+        }
+    }
+    
+    // Use result
+    poke($D020, result);
+}

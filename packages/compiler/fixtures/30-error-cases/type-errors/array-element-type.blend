@@ -1,0 +1,15 @@
+// @fixture: error-cases/type-errors/array-element-type
+// @category: error-cases
+// @description: Tests type error for wrong array element type
+// @expect: error
+// @error-contains: type
+// @tags: error, type, array
+
+module ArrayElementType;
+
+function main(): void {
+    let arr: byte[10];
+    let flag: bool = true;
+    // Cannot assign bool to byte array element
+    arr[0] = flag;
+}

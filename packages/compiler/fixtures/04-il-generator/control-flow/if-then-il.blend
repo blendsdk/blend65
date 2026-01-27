@@ -1,0 +1,26 @@
+// @fixture: il-generator/control-flow/if-then-il
+// @category: il-generator
+// @description: Tests IL generation for if-then statements
+// @expect: success
+// @output-contains: BEQ
+// @tags: il, control-flow, if
+
+module IfThenIL;
+
+function main(): void {
+    let value: byte = peek($DC00);
+    
+    // Simple if-then (no else)
+    if (value > 10) {
+        poke($D020, 1);
+    }
+    
+    // Multiple conditions
+    if (value == 0) {
+        poke($D021, 0);
+    }
+    
+    if (value < 5) {
+        poke($D022, 2);
+    }
+}

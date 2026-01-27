@@ -1,0 +1,16 @@
+// @fixture: error-cases/parser-errors/invalid-parameter
+// @category: error-cases
+// @description: Tests that parser correctly reports invalid function parameter
+// @expect: error
+// @error-contains: Expected
+// @tags: parser, error, parameter
+
+module InvalidParameter;
+
+function test(: byte): void {
+    poke($0400, 0);
+}
+
+function main(): void {
+    test(10);
+}

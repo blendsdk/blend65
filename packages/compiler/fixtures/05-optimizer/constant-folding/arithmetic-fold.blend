@@ -1,0 +1,26 @@
+// @fixture: optimizer/constant-folding/arithmetic-fold
+// @category: optimizer
+// @description: Tests constant folding of arithmetic expressions
+// @expect: success
+// @output-contains: LDA
+// @tags: optimizer, constant-folding, arithmetic
+
+module ArithmeticFold;
+
+function main(): void {
+    // These should all be folded at compile time
+    let sum: byte = 10 + 5;           // Should fold to 15
+    let diff: byte = 20 - 7;          // Should fold to 13
+    let product: word = 6 * 7;        // Should fold to 42
+    
+    // Nested expressions should also fold
+    let nested: byte = (10 + 5) - 3;  // Should fold to 12
+    let complex: byte = 2 + 3 * 4;    // Should fold to 14
+    
+    // Use results to prevent dead code elimination
+    poke($0400, sum);
+    poke($0401, diff);
+    pokew($0402, product);
+    poke($0404, nested);
+    poke($0405, complex);
+}

@@ -1,0 +1,43 @@
+// @fixture: parser/declarations/arrays/basic-arrays
+// @category: parser
+// @description: Tests parsing of basic array declarations
+// @expect: success
+// @output-contains: LDA
+// @tags: declarations, arrays, basic
+
+module BasicArrays;
+
+// Module-level array declarations with explicit sizes
+let byteArray: byte[10];
+let wordArray: word[5];
+
+// Arrays with different sizes
+let smallArray: byte[4];
+let mediumArray: byte[16];
+let largeArray: byte[256];
+
+// Word arrays
+let addressTable: word[8];
+let pointerArray: word[4];
+
+function main(): void {
+    // Initialize array elements
+    byteArray[0] = 10;
+    byteArray[1] = 20;
+    byteArray[2] = 30;
+    
+    // Access array elements
+    let first: byte = byteArray[0];
+    let second: byte = byteArray[1];
+    
+    // Word array access
+    addressTable[0] = $0400;
+    addressTable[1] = $0428;
+    addressTable[2] = $0450;
+    
+    let screenLine: word = addressTable[0];
+    
+    // Use indexed access
+    poke($0400, first);
+    poke($0401, second);
+}

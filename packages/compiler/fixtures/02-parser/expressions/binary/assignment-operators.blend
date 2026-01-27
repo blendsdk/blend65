@@ -1,0 +1,52 @@
+// @fixture: parser/expressions/binary/assignment-operators
+// @category: parser
+// @description: Tests parsing of compound assignment operators
+// @expect: success
+// @output-contains: STA
+// @tags: expressions, binary, assignment, compound
+
+module AssignmentOperators;
+
+function main(): void {
+    let value: byte = 10;
+    
+    // Add-assign
+    value += 5;
+    
+    // Subtract-assign
+    value -= 3;
+    
+    // Bitwise AND-assign
+    let mask: byte = $FF;
+    mask &= $0F;
+    
+    // Bitwise OR-assign
+    let flags: byte = $00;
+    flags |= $01;
+    flags |= $02;
+    
+    // Bitwise XOR-assign
+    let toggle: byte = $FF;
+    toggle ^= $0F;
+    
+    // Left shift-assign
+    let shifted: byte = 1;
+    shifted <<= 4;
+    
+    // Right shift-assign
+    let rshifted: byte = $80;
+    rshifted >>= 2;
+    
+    // Multiple assignments
+    let a: byte = 0;
+    let b: byte = 0;
+    a += 1;
+    b += 2;
+    a += b;
+    
+    // Store results
+    poke($0400, value);
+    poke($0401, mask);
+    poke($0402, flags);
+    poke($0403, shifted);
+}

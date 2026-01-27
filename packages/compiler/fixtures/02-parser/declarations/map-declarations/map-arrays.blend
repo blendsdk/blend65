@@ -1,0 +1,62 @@
+// @fixture: parser/declarations/map-declarations/map-arrays
+// @category: parser
+// @description: Tests parsing of @map declarations for arrays at fixed addresses
+// @expect: success
+// @output-contains: STA
+// @tags: declarations, map, arrays, memory-mapped
+
+module MapArrays;
+
+// Memory-mapped screen buffer (C64 default screen at $0400)
+@map screenBuffer at $0400: byte[1000];
+
+// Color RAM
+@map colorRam at $D800: byte[1000];
+
+// Sprite positions (8 sprites x 2 bytes each)
+@map spritePositions at $D000: byte[16];
+
+// Sprite colors
+@map spriteColors at $D027: byte[8];
+
+// SID voice registers (3 voices, 7 regs each)
+@map sidRegs at $D400: byte[25];
+
+// Safe zero page location ($02-$8F is safe)
+@map zpTemp at $02: byte[4];
+
+function main(): void {
+    // Write to screen buffer using array syntax
+    screenBuffer[0] = 65;
+    screenBuffer[1] = 66;
+    screenBuffer[40] = 67;
+    
+    // Set colors
+    colorRam[0] = 1;
+    colorRam[1] = 2;
+    colorRam[40] = 3;
+    
+    // Set sprite positions using array indexing
+    // Even indices are X, odd indices are Y
+    spritePositions[0] = 100;
+    spritePositions[1] = 100;
+    
+    // Set sprite colors
+    spriteColors[0] = 1;
+    spriteColors[1] = 2;
+    spriteColors[2] = 3;
+    
+    // Use zero page temp
+    zpTemp[0] = 42;
+    zpTemp[1] = zpTemp[0] + 1;
+    
+    // Read from memory-mapped arrays
+    let char0: byte = screenBuffer[0];
+    let color0: byte = colorRam[0];
+    let sx: byte = spritePositions[0];
+    
+    // Use values
+    poke($0500, char0);
+    poke($0501, color0);
+    poke($0502, sx);
+}

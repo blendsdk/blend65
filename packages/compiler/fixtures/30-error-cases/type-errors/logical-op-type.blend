@@ -1,0 +1,15 @@
+// @fixture: error-cases/type-errors/logical-op-type
+// @category: error-cases
+// @description: Tests type error for logical operators with non-boolean operands
+// @expect: error
+// @error-contains: type
+// @tags: error, type, logical, operator
+
+module LogicalOpType;
+
+function main(): void {
+    let x: byte = 10;
+    let y: byte = 20;
+    // Logical AND requires boolean operands
+    let result: bool = x && y;
+}

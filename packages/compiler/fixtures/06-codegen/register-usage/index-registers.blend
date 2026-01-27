@@ -1,0 +1,23 @@
+// @fixture: codegen/register-usage/index-registers
+// @category: codegen
+// @description: Tests code generation for X and Y index register usage
+// @expect: success
+// @skip: Array access (LOAD_ARRAY/STORE_ARRAY/PHI) not yet fully implemented
+// @tags: codegen, registers, index
+
+module IndexRegisters;
+
+@zp let buffer: byte[10];
+
+function main(): void {
+    // For loops typically use X or Y register as counter
+    for (i = 0 to 9) {
+        buffer[i] = i;  // Uses X or Y for indexed addressing
+    }
+    
+    // Array access with variable index uses index registers
+    let idx: byte = 5;
+    let val: byte = buffer[idx];  // LDA buffer,X or LDA buffer,Y
+    
+    poke($0500, val);
+}

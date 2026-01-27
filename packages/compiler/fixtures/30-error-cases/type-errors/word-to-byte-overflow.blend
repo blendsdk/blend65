@@ -1,0 +1,14 @@
+// @fixture: error-cases/type-errors/word-to-byte-overflow
+// @category: error-cases
+// @description: Tests type error for assigning word to byte
+// @expect: error
+// @error-contains: type
+// @tags: error, type, word, byte
+
+module WordToByteOverflow;
+
+function main(): void {
+    let big: word = $1234;
+    // Cannot assign word to byte without cast
+    let small: byte = big;
+}

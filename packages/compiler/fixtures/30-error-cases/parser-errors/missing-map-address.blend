@@ -1,0 +1,14 @@
+// @fixture: error-cases/parser-errors/missing-map-address
+// @category: error-cases
+// @description: Tests that parser correctly reports missing address in @map declaration
+// @expect: error
+// @error-contains: address
+// @tags: parser, error, map
+
+module MissingMapAddress;
+
+@map borderColor at : byte;
+
+function main(): void {
+    borderColor = 1;
+}

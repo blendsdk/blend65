@@ -1,0 +1,30 @@
+// @fixture: il-generator/memory-operations/array-access-il
+// @category: il-generator
+// @description: Tests IL generation for array access operations
+// @expect: success
+// @output-contains: LDA
+// @tags: il, memory, arrays
+
+module ArrayAccessIL;
+
+@zp let buffer: byte[10];
+
+function main(): void {
+    // Array write with constant index
+    buffer[0] = 10;
+    buffer[1] = 20;
+    buffer[9] = 90;
+    
+    // Array read with constant index
+    let first: byte = buffer[0];
+    let last: byte = buffer[9];
+    
+    // Array access with variable index
+    let idx: byte = 5;
+    buffer[idx] = 50;
+    let value: byte = buffer[idx];
+    
+    // Store result
+    poke($0400, first);
+    poke($0401, value);
+}

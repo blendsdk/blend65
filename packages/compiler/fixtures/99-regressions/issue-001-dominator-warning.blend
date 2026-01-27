@@ -1,0 +1,36 @@
+// @fixture: regressions/issue-001-dominator-warning
+// @category: regressions
+// @description: Regression test for dominator algorithm spurious warnings on simple CFGs.
+//               Fixed bug where single-block functions would emit "Dominator computation
+//               may not have converged" warning due to maxIterations being 1 when n²=1.
+// @expect: success
+// @tags: dominator, cfg, regression
+
+module DominatorWarningRegression;
+
+// Simple function with single basic block - should NOT produce dominator warning
+function simpleFunction(): byte {
+    return 42;
+}
+
+// Another simple function
+function add(a: byte, b: byte): byte {
+    return a + b;
+}
+
+// Function with minimal control flow
+function minimalCF(x: byte): byte {
+    if (x > 10) {
+        return x;
+    }
+    return 0;
+}
+
+function main(): void {
+    let result: byte = simpleFunction();
+    let sum: byte = add(10, 20);
+    let cf: byte = minimalCF(15);
+    poke($0400, result);
+    poke($0401, sum);
+    poke($0402, cf);
+}

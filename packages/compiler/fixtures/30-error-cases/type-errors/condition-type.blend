@@ -1,0 +1,19 @@
+// @fixture: error-cases/type-errors/condition-type
+// @category: error-cases
+// @description: Tests that void function call cannot be used as condition
+// @expect: error
+// @error-contains: void
+// @tags: error, type, condition, if
+
+module ConditionType;
+
+function doSomething(): void {
+    poke($0400, 1);
+}
+
+function main(): void {
+    // Cannot use void function result as condition
+    if (doSomething()) {
+        poke($0400, 2);
+    }
+}

@@ -1,0 +1,84 @@
+// @fixture: parser/statements/nested-control/nested-loops
+// @category: parser
+// @description: Tests parsing of nested loop combinations
+// @expect: success
+// @output-contains: LDA
+// @tags: statements, while, for, nested, loops, control-flow
+
+module NestedLoops;
+
+@zp let totalCount: byte = 0;
+@zp let outerIterations: byte = 0;
+
+function main(): void {
+    // For inside while
+    let limit: byte = 3;
+    let forWhileCount: byte = 0;
+    
+    while (limit > 0) {
+        for (i = 0 to 2) {
+            forWhileCount = forWhileCount + 1;
+        }
+        limit = limit - 1;
+    }
+    
+    poke($0400, forWhileCount);  // 3 * 3 = 9
+    
+    // While inside for
+    let whileForCount: byte = 0;
+    
+    for (j = 0 to 2) {
+        let inner: byte = 0;
+        while (inner < 4) {
+            whileForCount = whileForCount + 1;
+            inner = inner + 1;
+        }
+    }
+    
+    poke($0401, whileForCount);  // 3 * 4 = 12
+    
+    // Triple nesting: for -> while -> for
+    let tripleCount: byte = 0;
+    
+    for (a = 0 to 1) {
+        let b: byte = 0;
+        while (b < 2) {
+            for (c = 0 to 1) {
+                tripleCount = tripleCount + 1;
+            }
+            b = b + 1;
+        }
+    }
+    
+    poke($0402, tripleCount);  // 2 * 2 * 2 = 8
+    
+    // Nested while loops
+    let outer: byte = 0;
+    let whileWhileCount: byte = 0;
+    
+    while (outer < 3) {
+        let innerW: byte = 0;
+        while (innerW < 4) {
+            whileWhileCount = whileWhileCount + 1;
+            innerW = innerW + 1;
+        }
+        outer = outer + 1;
+    }
+    
+    poke($0403, whileWhileCount);  // 3 * 4 = 12
+    
+    // Deeply nested for loops (4 levels)
+    let deepCount: byte = 0;
+    
+    for (w = 0 to 1) {
+        for (x = 0 to 1) {
+            for (y = 0 to 1) {
+                for (z = 0 to 1) {
+                    deepCount = deepCount + 1;
+                }
+            }
+        }
+    }
+    
+    poke($0404, deepCount);  // 2^4 = 16
+}

@@ -1,0 +1,39 @@
+// @fixture: parser/expressions/binary/arithmetic-operations
+// @category: parser
+// @description: Tests parsing of binary arithmetic expressions
+// @expect: success
+// @output-contains: ADC
+// @tags: expressions, binary, arithmetic
+
+module ArithmeticOperations;
+
+function main(): void {
+    // Basic arithmetic operations
+    let a: byte = 10;
+    let b: byte = 5;
+    
+    // Addition
+    let sum: byte = a + b;
+    
+    // Subtraction
+    let diff: byte = a - b;
+    
+    // Multiplication (results in word)
+    let product: word = a * b;
+    
+    // Bitwise AND
+    let andResult: byte = a & b;
+    
+    // Bitwise OR
+    let orResult: byte = a | b;
+    
+    // Bitwise XOR
+    let xorResult: byte = a ^ b;
+    
+    // Combined expression with precedence
+    let complex: byte = a + b * 2 - 3;
+    
+    // Store result to memory
+    poke($0400, sum);
+    poke($0401, diff);
+}

@@ -1,0 +1,15 @@
+// @fixture: error-cases/type-errors/binary-op-mismatch
+// @category: error-cases
+// @description: Tests type error for mismatched binary operation types
+// @expect: error
+// @error-contains: type
+// @tags: error, type, binary, operator
+
+module BinaryOpMismatch;
+
+function main(): void {
+    let x: byte = 10;
+    let flag: bool = true;
+    // Cannot add byte and bool
+    let result: byte = x + flag;
+}

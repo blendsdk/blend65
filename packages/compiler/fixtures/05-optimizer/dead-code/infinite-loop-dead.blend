@@ -1,0 +1,33 @@
+// @fixture: optimizer/dead-code/infinite-loop-dead
+// @category: optimizer
+// @description: Tests dead code elimination for code after intentional infinite loops
+// @expect: success
+// @output-contains: RTS
+// @tags: optimizer, dead-code, infinite-loop
+
+module InfiniteLoopDead;
+
+function gameLoop(): void {
+    let running: byte = 1;
+    let frame: byte = 0;
+    
+    // Simulated game loop - in practice would run until break
+    while (running == 1) {
+        frame = frame + 1;
+        if (frame > 100) {
+            running = 0;
+        }
+        poke($D020, frame);
+    }
+}
+
+function neverReached(): void {
+    // This function would be dead if called after an infinite loop
+    poke($D021, 255);
+}
+
+function main(): void {
+    gameLoop();
+    // Code here is reachable since gameLoop exits
+    poke($0400, 42);
+}

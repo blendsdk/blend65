@@ -1,0 +1,40 @@
+// @fixture: edge-cases/large-files/many-variables
+// @category: edge-cases
+// @description: Tests compiler handling of files with many variables
+// @expect: success
+// @output-contains: LDA
+// @tags: edge-cases, large, variables
+
+module ManyVariables;
+
+function main(): void {
+    // Multiple variables to test memory allocation
+    let v01: byte = 1;
+    let v02: byte = 2;
+    let v03: byte = 3;
+    let v04: byte = 4;
+    let v05: byte = 5;
+    let v06: byte = 6;
+    let v07: byte = 7;
+    let v08: byte = 8;
+    let v09: byte = 9;
+    let v10: byte = 10;
+    let v11: byte = 11;
+    let v12: byte = 12;
+    let v13: byte = 13;
+    let v14: byte = 14;
+    let v15: byte = 15;
+    let v16: byte = 16;
+    
+    // Sum some of them to prevent dead code elimination
+    let sum: byte = v01 + v02 + v03 + v04;
+    let sum2: byte = v05 + v06 + v07 + v08;
+    let sum3: byte = v09 + v10 + v11 + v12;
+    let sum4: byte = v13 + v14 + v15 + v16;
+    
+    // Store results
+    poke($0400, sum);
+    poke($0401, sum2);
+    poke($0402, sum3);
+    poke($0403, sum4);
+}
