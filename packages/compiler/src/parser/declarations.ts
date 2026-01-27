@@ -181,6 +181,7 @@ export abstract class DeclarationParser extends ExpressionParser {
    *
    * Grammar: @map identifier at address : type ;
    * Example: @map vicBorderColor at $D020: byte;
+   * Example: @map screen at $0400: byte[1000];
    *
    * @param startToken - Starting @map token
    * @param name - Variable name
@@ -191,23 +192,8 @@ export abstract class DeclarationParser extends ExpressionParser {
     // Expect colon
     this.expect(TokenType.COLON, "Expected ':' after address");
 
-    // Parse type annotation
-    if (
-      !this.check(
-        TokenType.BYTE,
-        TokenType.WORD,
-        TokenType.STRING,
-        TokenType.BOOLEAN,
-        TokenType.IDENTIFIER
-      )
-    ) {
-      this.reportError(
-        DiagnosticCode.EXPECTED_TOKEN,
-        DeclarationParserErrors.expectedTypeAnnotation()
-      );
-    }
-    const typeToken = this.advance();
-    const typeAnnotation = typeToken.value;
+    // Parse type annotation (supports array types like byte[1000])
+    const typeAnnotation = this.parseTypeAnnotation();
 
     // Expect semicolon
     this.expectSemicolon('Expected semicolon after simple @map declaration');

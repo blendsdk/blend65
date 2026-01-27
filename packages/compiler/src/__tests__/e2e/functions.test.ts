@@ -420,7 +420,9 @@ describe('E2E Functions - Export', () => {
 
 describe('E2E Functions - Recursion', () => {
   describe('Direct Recursion', () => {
-    it('compiles recursive function', () => {
+    // Recursive functions now compile successfully with an INFO diagnostic
+    // explaining that stack depth cannot be statically determined.
+    it('compiles recursive function with INFO diagnostic', () => {
       const result = compile(`
         function countdown(n: byte): void {
           if (n > 0) {
@@ -430,11 +432,37 @@ describe('E2E Functions - Recursion', () => {
         }
       `);
       expect(result.success).toBe(true);
+      
+      // Should have an INFO diagnostic about recursion
+      const recursionInfo = result.diagnostics.find(
+        d => d.severity === 'info' && d.message.includes('recursive')
+      );
+      expect(recursionInfo).toBeDefined();
+      expect(recursionInfo?.message).toContain('countdown');
+      expect(recursionInfo?.message).toContain('bytes per call');
+    });
+
+    it('generates code for recursive function', () => {
+      const asm = compileToAsm(`
+        function factorial(n: byte): byte {
+          if (n == 0) {
+            return 1;
+          }
+          return n * factorial(n - 1);
+        }
+      `);
+      // Should generate a function label
+      expectAsmContains(asm, 'factorial');
+      // Should have a JSR to itself (recursive call)
+      expectAsmContains(asm, 'JSR _factorial');
+      expectAsmInstruction(asm, 'RTS');
     });
   });
 
   describe('Mutual Recursion', () => {
-    it('compiles mutually recursive functions', () => {
+    // Mutually recursive functions now compile with INFO diagnostics
+    // for all functions in the recursion cycle.
+    it('compiles mutually recursive functions with INFO diagnostics', () => {
       const result = compile(`
         function isEven(n: byte): boolean {
           if (n == 0) {
@@ -451,6 +479,37 @@ describe('E2E Functions - Recursion', () => {
         }
       `);
       expect(result.success).toBe(true);
+
+      // Should have INFO diagnostics for both recursive functions
+      const recursionInfos = result.diagnostics.filter(
+        d => d.severity === 'info' && d.message.includes('recursive')
+      );
+      // At least one function should be marked as recursive
+      expect(recursionInfos.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('generates code for mutually recursive functions', () => {
+      const asm = compileToAsm(`
+        function ping(n: byte): byte {
+          if (n == 0) {
+            return 0;
+          }
+          return pong(n - 1);
+        }
+        
+        function pong(n: byte): byte {
+          if (n == 0) {
+            return 1;
+          }
+          return ping(n - 1);
+        }
+      `);
+      // Should generate labels for both functions
+      expectAsmContains(asm, 'ping');
+      expectAsmContains(asm, 'pong');
+      // Should have cross-calls
+      expectAsmContains(asm, 'JSR _pong');
+      expectAsmContains(asm, 'JSR _ping');
     });
   });
 });

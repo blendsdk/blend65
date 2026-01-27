@@ -722,13 +722,23 @@ export abstract class BaseCodeGenerator {
   }
 
   /**
-   * Generates and returns a function label
+   * Gets the label for an existing function
+   *
+   * This returns the standard function label format without registering
+   * a new label. Use this when CALLING a function that was already defined.
+   *
+   * For function DEFINITIONS, use labelGenerator.functionLabel() to register
+   * the label in the label table.
    *
    * @param name - Function name
-   * @returns Generated label (e.g., '_main')
+   * @returns Standard function label (e.g., '_main')
    */
   protected getFunctionLabel(name: string): string {
-    return this.labelGenerator.functionLabel(name, this.currentAddress);
+    // Just return the standard function label format without registering
+    // This is used for function CALLS where the function is already defined
+    // Sanitize the name to match what functionLabel() does
+    const sanitized = name.replace(/[^a-zA-Z0-9_]/g, '_');
+    return `_${sanitized}`;
   }
 
   /**

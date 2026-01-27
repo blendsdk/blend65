@@ -606,7 +606,7 @@ describe('ModuleParser', () => {
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0].code).toBe(DiagnosticCode.UNEXPECTED_TOKEN);
       expect(diagnostics[0].message).toContain(
-        'Expected function, variable, type, or enum declaration'
+        'Expected function, variable, type, enum, or @map declaration'
       );
 
       // Returns dummy declaration for error recovery

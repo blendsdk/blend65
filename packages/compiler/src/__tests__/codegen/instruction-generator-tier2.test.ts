@@ -489,18 +489,21 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       expect(output).toContain('#$FF');
     });
 
-    it('should emit NOP placeholder for NEG operation', () => {
-      const v0 = createRegister(0);
+    it('should emit two\'s complement negation for NEG operation', () => {
+const v0 = createRegister(0);
       const v1 = createRegister(1);
       const instr = new ILUnaryInstruction(0, ILOpcode.NEG, v0, v1);
 
       generator.exposeGenerateUnaryOp(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('NOP');
+      // NEG implements two's complement: EOR #$FF, CLC, ADC #$01
+      expect(output).toContain('EOR #$FF');
+      expect(output).toContain('CLC');
+      expect(output).toContain('ADC #$01');
     });
 
-    it('should emit NOP placeholder for LOGICAL_NOT operation', () => {
+    it('should emit comparison for LOGICAL_NOT operation', () => {
       const v0 = createRegister(0);
       const v1 = createRegister(1);
       const instr = new ILUnaryInstruction(0, ILOpcode.LOGICAL_NOT, v0, v1);
@@ -508,10 +511,13 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       generator.exposeGenerateUnaryOp(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('NOP');
+      // LOGICAL_NOT compares with 0 then sets 0 or 1
+      expect(output).toContain('CMP #$00');
+      expect(output).toContain('LDA #$00');
+      expect(output).toContain('LDA #$01');
     });
 
-    it('should include STUB comment showing operation', () => {
+    it('should include comment showing unary operation', () => {
       const v0 = createRegister(0);
       const v1 = createRegister(1);
       const instr = new ILUnaryInstruction(0, ILOpcode.NEG, v0, v1);
@@ -519,8 +525,9 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       generator.exposeGenerateUnaryOp(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('STUB');
+      // Comment shows the operation (v1 = -v0)
       expect(output).toContain('-');
+      expect(output).toContain('v1');
     });
   });
 

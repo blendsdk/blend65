@@ -310,15 +310,41 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   // ============================================
 
   /**
+   * Tracks the last constant value loaded for potential optimization.
+   * Used by hi()/lo() to fold constant extractions.
+   */
+  protected lastConstValue: number | null = null;
+  protected lastConstResult: string | null = null;
+
+  /**
    * Generates code for CONST instruction
    *
    * Loads a constant value into the accumulator.
+   * For word (16-bit) values, stores low byte in A and high byte in X.
    *
    * @param instr - Const instruction
    */
   protected generateConst(instr: ILConstInstruction): void {
-    // Emit LDA for the value - it will be in A for subsequent use
-    this.emitLdaImmediate(instr.value, `${instr.result} = ${instr.value}`);
+    const value = instr.value;
+    
+    // Track this constant for potential hi()/lo() folding
+    this.lastConstValue = value;
+    this.lastConstResult = instr.result?.toString() ?? null;
+    
+    // For word values (> 255), we need to load both bytes
+    // A = low byte, X = high byte (for use by hi()/lo())
+    if (value > 255) {
+      const lowByte = value & 0xFF;
+      const highByte = (value >> 8) & 0xFF;
+      // Load low byte into A
+      this.emitLdaImmediate(lowByte, `${instr.result} = ${value} (low byte)`);
+      // Load high byte into X for potential hi() use - use byte-sized hex format
+      const highHex = '$' + highByte.toString(16).toUpperCase().padStart(2, '0');
+      this.emitInstruction('LDX', `#${highHex}`, `${instr.result} high byte`, 2);
+    } else {
+      // Single byte value - just load into A
+      this.emitLdaImmediate(value, `${instr.result} = ${value}`);
+    }
   }
 
   /**
@@ -576,19 +602,49 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   /**
    * Generates code for unary operations
    *
-   * STUB: Shows intended operation as comment + placeholder.
+   * Implements:
+   * - NEG (unary minus): Two's complement negation via EOR #$FF + CLC + ADC #$01
+   * - NOT (bitwise NOT): EOR #$FF
+   * - LOGICAL_NOT: Compare with 0 and invert
    *
    * @param instr - Unary instruction
    */
   protected generateUnaryOp(instr: ILUnaryInstruction): void {
     const op = this.getUnaryOperatorSymbol(instr.opcode);
-    this.emitComment(`STUB: ${instr.result} = ${op}${instr.operand}`);
+    this.emitComment(`${instr.result} = ${op}${instr.operand}`);
 
-    if (instr.opcode === ILOpcode.NOT) {
-      // Bitwise NOT
-      this.emitInstruction('EOR', '#$FF', 'Bitwise NOT', 2);
-    } else {
-      this.emitNop('STUB: Unary op placeholder');
+    switch (instr.opcode) {
+      case ILOpcode.NOT:
+        // Bitwise NOT: A = ~A (flip all bits)
+        this.emitInstruction('EOR', '#$FF', 'Bitwise NOT', 2);
+        break;
+
+      case ILOpcode.NEG:
+        // Two's complement negation: -A = ~A + 1 = EOR #$FF, CLC, ADC #$01
+        // This converts a value to its negative: 5 -> -5 (0xFB)
+        this.emitInstruction('EOR', '#$FF', 'Negate: flip all bits', 2);
+        this.emitInstruction('CLC', undefined, 'Clear carry for add', 1);
+        this.emitInstruction('ADC', '#$01', 'Add 1 to complete two\'s complement', 2);
+        break;
+
+      case ILOpcode.LOGICAL_NOT:
+        // Logical NOT: true -> false, false -> true
+        // If A == 0, result = 1; else result = 0
+        // CMP #$00; BEQ +3; LDA #$00; BEQ +2; LDA #$01
+        // Simplified: EOR #$FF converts 0 to $FF (truthy) and non-zero to potentially 0
+        // Better approach: use CMP and branch
+        this.emitInstruction('CMP', '#$00', 'Compare with 0', 2);
+        this.emitComment('STUB: Logical NOT needs branch (simplified)');
+        this.emitInstruction('BEQ', '+$04', 'If zero, skip to set 1', 2);
+        this.emitInstruction('LDA', '#$00', 'Was non-zero, result = false', 2);
+        this.emitInstruction('BNE', '+$02', 'Skip over next instruction', 2);
+        this.emitInstruction('LDA', '#$01', 'Was zero, result = true', 2);
+        break;
+
+      default:
+        this.emitComment(`Unknown unary op: ${instr.opcode}`);
+        this.emitNop('STUB: Unknown unary op');
+        break;
     }
   }
 

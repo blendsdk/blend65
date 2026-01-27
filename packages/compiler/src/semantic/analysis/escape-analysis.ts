@@ -137,6 +137,9 @@ export class EscapeAnalyzer {
   /** Warning threshold (80% of limit) */
   protected readonly STACK_WARNING_THRESHOLD = 200;
 
+  /** Set of functions that are recursive (direct or mutual) */
+  protected recursiveFunctions = new Set<string>();
+
   /**
    * Creates an escape analyzer
    *
@@ -431,6 +434,8 @@ export class EscapeAnalyzer {
       // Returned value escapes
       const value = stmt.getValue();
       if (value) {
+        // Track any function calls in the return expression
+        this.scanExpressionForCalls(value, funcName);
         this.scanExpressionForEscape(value, funcName, EscapeReason.ReturnedFromFunction);
       }
     } else if (stmt instanceof ExpressionStatement) {
@@ -629,12 +634,85 @@ export class EscapeAnalyzer {
   }
 
   /**
+   * Detect recursive functions using DFS cycle detection
+   *
+   * Identifies both direct recursion (A calls A) and mutual recursion
+   * (A calls B, B calls A). Results stored in this.recursiveFunctions.
+   *
+   * Uses standard DFS with "recursion stack" technique to find back edges
+   * in the call graph, which indicate cycles (recursion).
+   */
+  protected detectRecursiveFunctions(): void {
+    this.recursiveFunctions.clear();
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+
+    // DFS helper to detect cycles
+    const dfs = (funcName: string): void => {
+      visited.add(funcName);
+      recursionStack.add(funcName);
+
+      const info = this.functionInfo.get(funcName);
+      if (info) {
+        for (const calleeName of info.calledFunctions) {
+          // Only consider user-defined functions (in our function info)
+          if (!this.functionInfo.has(calleeName)) {
+            continue;
+          }
+
+          if (!visited.has(calleeName)) {
+            dfs(calleeName);
+          } else if (recursionStack.has(calleeName)) {
+            // Back edge found - this is recursion!
+            // Mark ALL functions in the current path as recursive
+            this.recursiveFunctions.add(calleeName);
+            this.recursiveFunctions.add(funcName);
+          }
+        }
+      }
+
+      recursionStack.delete(funcName);
+    };
+
+    // Run DFS from each function (to handle disconnected graphs)
+    for (const funcName of this.functionInfo.keys()) {
+      if (!visited.has(funcName)) {
+        dfs(funcName);
+      }
+    }
+  }
+
+  /**
    * Propagate stack depth through call graph
    *
    * If function A calls B, A's stack depth includes B's depth.
    * Iterate until fixpoint reached.
+   *
+   * **Recursion Handling:**
+   * Recursive functions (direct or mutual) are detected and handled specially:
+   * - They do NOT propagate depth through recursive calls (would be infinite)
+   * - An INFO diagnostic is emitted explaining the situation
+   * - Developer is informed of base stack frame size per call
    */
   protected propagateStackDepth(): void {
+    // First, detect which functions are recursive
+    this.detectRecursiveFunctions();
+
+    // Emit INFO diagnostics for recursive functions
+    for (const funcName of this.recursiveFunctions) {
+      const info = this.functionInfo.get(funcName);
+      if (info) {
+        const baseDepth = info.returnAddress + info.parameterBytes + info.localBytes;
+        this.diagnostics.push({
+          code: DiagnosticCode.TYPE_MISMATCH,
+          severity: DiagnosticSeverity.INFO,
+          message: `Function '${funcName}' is recursive. Stack usage: ${baseDepth} bytes per call. ` +
+            `Total stack depth cannot be determined statically. 6502 stack limit: ${this.STACK_SIZE_LIMIT} bytes.`,
+          location: info.declaration.getLocation(),
+        });
+      }
+    }
+
     let changed = true;
     let iterations = 0;
     const maxIterations = 100;
@@ -644,11 +722,27 @@ export class EscapeAnalyzer {
       iterations++;
 
       for (const [, info] of this.functionInfo) {
+        // Skip stack propagation for recursive functions (would be infinite)
+        if (this.recursiveFunctions.has(info.name)) {
+          // Set depth to just the base frame (one call)
+          const baseDepth = info.returnAddress + info.parameterBytes + info.localBytes;
+          if (info.totalDepth !== baseDepth) {
+            info.totalDepth = baseDepth;
+            changed = true;
+          }
+          continue;
+        }
+
         const oldDepth = info.totalDepth;
         let maxCalleeDepth = 0;
 
-        // Find maximum callee depth
+        // Find maximum callee depth (skip recursive callees to avoid infinite growth)
         for (const calleeName of info.calledFunctions) {
+          // Skip if callee is recursive (depth is unbounded)
+          if (this.recursiveFunctions.has(calleeName)) {
+            continue;
+          }
+
           const calleeInfo = this.functionInfo.get(calleeName);
           if (calleeInfo) {
             maxCalleeDepth = Math.max(maxCalleeDepth, calleeInfo.totalDepth);
@@ -663,7 +757,7 @@ export class EscapeAnalyzer {
           changed = true;
         }
 
-        // Check for stack overflow
+        // Check for stack overflow (only for non-recursive functions)
         if (info.totalDepth > this.STACK_SIZE_LIMIT) {
           this.diagnostics.push({
             code: DiagnosticCode.TYPE_MISMATCH,

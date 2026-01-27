@@ -218,8 +218,13 @@ export abstract class ModuleParser extends DeclarationParser {
           this.synchronize();
           return this.createDummyDeclaration();
         }
+      } else if (this.check(TokenType.MAP)) {
+        // Export @map declaration: parseMapDecl handles the @map parsing
+        // IMPORTANT: Check MAP before isStorageClass() since MAP is included in isStorageClass()
+        return this.parseMapDecl();
       } else if (this.isStorageClass() || this.isLetOrConst()) {
         // Export variable declaration: parseVariableDecl will handle export context
+        // Note: This handles @zp, @ram, @data storage classes, not @map
         return this.parseVariableDecl();
       } else if (this.check(TokenType.TYPE)) {
         // Export type declaration: call parseTypeDecl which handles export context
@@ -251,7 +256,7 @@ export abstract class ModuleParser extends DeclarationParser {
         // Unknown token after export
         this.reportError(
           DiagnosticCode.UNEXPECTED_TOKEN,
-          `Expected function, variable, type, or enum declaration after 'export', got '${this.getCurrentToken().value}'`
+          `Expected function, variable, type, enum, or @map declaration after 'export', got '${this.getCurrentToken().value}'`
         );
         this.synchronize();
         return this.createDummyDeclaration();
