@@ -238,6 +238,7 @@ export class TypeSystem {
    * - boolean ↔ byte are compatible (boolean is byte)
    * - Array types must have compatible elements and sizes
    * - Callback types must have compatible signatures
+   * - Unknown 'any' type accepts anything (for compile-time intrinsics)
    *
    * Uses numeric cache keys for performance (faster than string concatenation).
    *
@@ -246,6 +247,13 @@ export class TypeSystem {
    * @returns Compatibility result
    */
   public checkCompatibility(from: TypeInfo, to: TypeInfo): TypeCompatibility {
+    // Special case: Unknown 'any' type accepts any value
+    // This is used for compile-time intrinsics like sizeof() and length()
+    // that need to accept special parameter types (type names, arrays)
+    if (to.kind === TypeKind.Unknown && to.name === 'any') {
+      return TypeCompatibility.Compatible;
+    }
+
     // Check cache first for performance using numeric key
     const fromId = this.getTypeNameId(from.name);
     const toId = this.getTypeNameId(to.name);

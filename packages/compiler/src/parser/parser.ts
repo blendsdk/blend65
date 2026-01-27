@@ -33,7 +33,7 @@ import {
   isBreakStatement,
   isContinueStatement,
 } from '../ast/index.js';
-import { Token, TokenType } from '../lexer/types.js';
+import { TokenType } from '../lexer/types.js';
 import { DeclarationParserErrors } from './error-messages.js';
 import { StatementParser } from './statements.js';
 
@@ -408,7 +408,12 @@ export class Parser extends StatementParser {
    *
    * Grammar:
    * ParameterList := Parameter (, Parameter)*
-   * Parameter := identifier : TypeName
+   * Parameter := identifier : TypeAnnotation
+   *
+   * Supports:
+   * - Simple types: byte, word, void, boolean, string
+   * - Array types: byte[], word[256]
+   * - Multidimensional arrays: byte[25][40]
    *
    * @returns Array of Parameter objects with name, type, and location
    */
@@ -424,35 +429,18 @@ export class Parser extends StatementParser {
       // Parse parameter name
       const nameToken = this.expect(TokenType.IDENTIFIER, 'Expected parameter name');
 
-      // Parse type annotation
+      // Parse type annotation (colon + type)
       this.expect(TokenType.COLON, "Expected ':' after parameter name");
 
-      // Parameter type can be a keyword (byte, word, void) or identifier (custom type)
-      let typeToken: Token;
-      if (
-        this.check(
-          TokenType.BYTE,
-          TokenType.WORD,
-          TokenType.VOID,
-          TokenType.BOOLEAN,
-          TokenType.STRING,
-          TokenType.IDENTIFIER
-        )
-      ) {
-        typeToken = this.advance();
-      } else {
-        this.reportError(
-          DiagnosticCode.EXPECTED_TOKEN,
-          DeclarationParserErrors.expectedParameterType()
-        );
-        typeToken = this.getCurrentToken(); // For error recovery
-      }
+      // Use parseTypeAnnotation() to handle full type expressions including arrays
+      // This enables parameter types like: byte[], word[256], byte[25][40]
+      const typeAnnotation = this.parseTypeAnnotation();
 
-      // Create parameter object
-      const paramLocation = this.createLocation(nameToken, typeToken);
+      // Create parameter object with location spanning name to current position
+      const paramLocation = this.createLocation(nameToken, this.getCurrentToken());
       parameters.push({
         name: nameToken.value,
-        typeAnnotation: typeToken.value,
+        typeAnnotation: typeAnnotation,
         location: paramLocation,
       });
     } while (this.match(TokenType.COMMA));

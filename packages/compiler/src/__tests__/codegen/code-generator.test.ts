@@ -279,15 +279,15 @@ describe('CodeGenerator - Main API', () => {
       expect(result.assembly).toContain('Program Entry Point');
     });
 
-    it('should generate infinite loop when no main function', () => {
+    it('should return to BASIC when no main function', () => {
       const module = createEmptyModule();
       const options = createTestOptions();
       
       const result = codegen.generate(module, options);
       
       expect(result.assembly).toContain('No main function');
-      expect(result.assembly).toContain('JMP');
-      expect(result.assembly).toContain('loop');
+      expect(result.assembly).toContain('RTS');
+      expect(result.assembly).toContain('Return to BASIC');
     });
 
     it('should generate JSR to main when main function exists', () => {
@@ -309,14 +309,15 @@ describe('CodeGenerator - Main API', () => {
       expect(result.assembly).toContain('_start');
     });
 
-    it('should generate end loop after main returns', () => {
+    it('should return to BASIC after main returns', () => {
       const module = createMainModule();
       const options = createTestOptions();
       
       const result = codegen.generate(module, options);
       
-      expect(result.assembly).toContain('End');
-      expect(result.assembly).toContain('infinite loop');
+      // After calling main, returns to BASIC via RTS
+      expect(result.assembly).toContain('Return to BASIC');
+      expect(result.assembly).toContain('RTS');
     });
   });
 

@@ -7,10 +7,11 @@
  * - String literals
  * - Array literals
  * - Identifier expressions (symbol lookup)
+ * - Intrinsic function recognition
  */
 
 import { TypeCheckerBase } from './base.js';
-import type { TypeInfo } from '../../types.js';
+import type { TypeInfo, FunctionSignature } from '../../types.js';
 import { TypeKind } from '../../types.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../../ast/diagnostics.js';
 import type {
@@ -18,6 +19,8 @@ import type {
   IdentifierExpression,
   ArrayLiteralExpression,
 } from '../../../ast/nodes.js';
+import { INTRINSIC_REGISTRY } from '../../../il/intrinsics/registry.js';
+import { ILTypeKind, type ILType } from '../../../il/types.js';
 
 /**
  * TypeCheckerLiterals - Type checks literal expressions
@@ -149,10 +152,103 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
   }
 
   /**
-   * Visit IdentifierExpression - look up symbol type
+   * Convert IL type to semantic TypeInfo
+   *
+   * Maps IL types (IL_BYTE, IL_WORD, IL_VOID) to semantic TypeInfo.
+   * This is used for converting intrinsic function signatures.
+   *
+   * @param ilType - IL type to convert
+   * @returns Corresponding semantic TypeInfo
+   */
+  protected ilTypeToTypeInfo(ilType: ILType): TypeInfo {
+    switch (ilType.kind) {
+      case ILTypeKind.Void:
+        return this.typeSystem.getBuiltinType('void')!;
+      case ILTypeKind.Bool:
+        return this.typeSystem.getBuiltinType('boolean')!;
+      case ILTypeKind.Byte:
+        return this.typeSystem.getBuiltinType('byte')!;
+      case ILTypeKind.Word:
+        return this.typeSystem.getBuiltinType('word')!;
+      default:
+        // For complex types (array, pointer, function), default to word
+        return this.typeSystem.getBuiltinType('word')!;
+    }
+  }
+
+  /**
+   * Get intrinsic function type
+   *
+   * Creates a Callback TypeInfo for an intrinsic function based on its
+   * definition in the IntrinsicRegistry. This allows intrinsics to be
+   * type-checked like regular functions.
+   *
+   * **Special handling for compile-time intrinsics:**
+   * - sizeof(type) and length(array) take special parameters (types/arrays)
+   *   that aren't represented in the standard IL type system
+   * - For these, we create a signature that accepts any single argument
+   *
+   * @param name - Intrinsic function name
+   * @returns Callback TypeInfo for the intrinsic, or null if not an intrinsic
+   */
+  protected getIntrinsicType(name: string): TypeInfo | null {
+    const intrinsic = INTRINSIC_REGISTRY.get(name);
+    if (!intrinsic) {
+      return null;
+    }
+
+    // Convert IL parameter types to semantic TypeInfo
+    let parameterTypes: TypeInfo[];
+    let parameterNames: string[];
+
+    // Special handling for compile-time intrinsics that take type/array parameters
+    // These have parameterTypes: [] in the registry but actually accept an argument
+    // sizeof takes a type name (byte, word, boolean) or a variable expression
+    // length takes an array expression
+    // For semantic analysis, we use a permissive approach that accepts any argument
+    if (intrinsic.isCompileTime && intrinsic.parameterNames.length > 0 && intrinsic.parameterTypes.length === 0) {
+      // Create an Unknown type that accepts any argument
+      // This allows type names like "byte", "word" and also variable expressions
+      const anyType: TypeInfo = {
+        kind: TypeKind.Unknown,
+        name: 'any',
+        size: 0,
+        isSigned: false,
+        isAssignable: true, // Allow any value to be passed
+      };
+      parameterTypes = [anyType];
+      parameterNames = [...intrinsic.parameterNames];
+    } else {
+      // Standard intrinsics - convert IL parameter types to semantic TypeInfo
+      parameterTypes = intrinsic.parameterTypes.map(ilType => this.ilTypeToTypeInfo(ilType));
+      parameterNames = [...intrinsic.parameterNames];
+    }
+
+    // Convert IL return type to semantic TypeInfo
+    const returnType = this.ilTypeToTypeInfo(intrinsic.returnType);
+
+    // Create function signature
+    const signature: FunctionSignature = {
+      parameters: parameterTypes,
+      returnType,
+      parameterNames,
+    };
+
+    // Create and return callback type
+    return this.typeSystem.createCallbackType(signature);
+  }
+
+  /**
+   * Visit IdentifierExpression - look up symbol type or intrinsic
    *
    * Looks up the identifier in the symbol table and uses its declared type.
-   * Reports error if identifier is not found.
+   * If not found in symbol table, checks if it's a built-in intrinsic function.
+   * Reports error if identifier is not found anywhere.
+   *
+   * **Intrinsic Recognition:**
+   * Intrinsic functions (peek, poke, sei, cli, etc.) are recognized here
+   * and given proper Callback types based on their definitions in the
+   * IntrinsicRegistry. This allows type checking of intrinsic calls.
    *
    * **Phase 7 (Task 7.1): Symbol Usage Tracking**
    * Marks the symbol as used for unused import detection.
@@ -162,7 +258,17 @@ export abstract class TypeCheckerLiterals extends TypeCheckerBase {
     const symbol = this.symbolTable.lookup(name);
 
     if (!symbol) {
-      // Undefined identifier
+      // Symbol not found in symbol table - check if it's an intrinsic
+      const intrinsicType = this.getIntrinsicType(name);
+      if (intrinsicType) {
+        // Mark node as intrinsic call for IL generator
+        (node as any).isIntrinsic = true;
+        (node as any).intrinsicName = name;
+        (node as any).typeInfo = intrinsicType;
+        return;
+      }
+
+      // Not an intrinsic either - undefined identifier
       this.reportDiagnostic({
         severity: DiagnosticSeverity.ERROR,
         message: `Undefined identifier '${name}'`,

@@ -422,7 +422,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       expect(output).toContain('SBC');
     });
 
-    it('should emit NOP placeholder for AND operation', () => {
+    it('should emit AND instruction for AND operation', () => {
       const v0 = createRegister(0);
       const v1 = createRegister(1);
       const v2 = createRegister(2);
@@ -431,10 +431,10 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       generator.exposeGenerateBinaryOp(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('NOP');
+      expect(output).toContain('AND');
     });
 
-    it('should emit NOP placeholder for OR operation', () => {
+    it('should emit ORA instruction for OR operation', () => {
       const v0 = createRegister(0);
       const v1 = createRegister(1);
       const v2 = createRegister(2);
@@ -443,10 +443,10 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       generator.exposeGenerateBinaryOp(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('NOP');
+      expect(output).toContain('ORA');
     });
 
-    it('should emit NOP placeholder for comparison operations', () => {
+    it('should emit CMP instruction for comparison operations', () => {
       const v0 = createRegister(0);
       const v1 = createRegister(1);
       const v2 = createRegister(2);
@@ -455,7 +455,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       generator.exposeGenerateBinaryOp(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('NOP');
+      expect(output).toContain('CMP');
     });
 
     it('should include STUB comment showing operation', () => {

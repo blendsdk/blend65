@@ -204,6 +204,9 @@ export class DefiniteAssignmentAnalyzer {
    * These variables are initialized before any function runs,
    * so they should be considered definitely assigned at function entry.
    *
+   * Array declarations are considered initialized even without explicit
+   * initializers because they allocate memory at declaration time.
+   *
    * @returns Array of variable names that are initialized at module level
    */
   protected getModuleLevelInitializedVariables(): string[] {
@@ -213,11 +216,16 @@ export class DefiniteAssignmentAnalyzer {
     // Check all symbols in root (module) scope
     for (const symbol of rootScope.symbols.values()) {
       if (symbol.kind === SymbolKind.Variable) {
-        // Check if the variable has an initializer
+        // Check if the variable has an initializer or is an array type
         // We need to find the VariableDecl node associated with this symbol
         if (symbol.declaration && isVariableDecl(symbol.declaration)) {
           const varDecl = symbol.declaration as VariableDecl;
+          // Variables with initializers are initialized
           if (varDecl.getInitializer()) {
+            initialized.push(symbol.name);
+          }
+          // Array declarations are considered initialized (they allocate memory)
+          else if (this.isArrayType(varDecl.getTypeAnnotation())) {
             initialized.push(symbol.name);
           }
         }
@@ -225,6 +233,22 @@ export class DefiniteAssignmentAnalyzer {
     }
 
     return initialized;
+  }
+
+  /**
+   * Check if a type annotation represents an array type
+   *
+   * Array types have the form "baseType[size]" (e.g., "byte[10]", "word[5]")
+   *
+   * @param typeAnnotation - Type annotation string
+   * @returns True if this is an array type
+   */
+  protected isArrayType(typeAnnotation: string | null): boolean {
+    if (!typeAnnotation) {
+      return false;
+    }
+    // Array types contain '[' followed by a size and ']'
+    return /\[\d+\]$/.test(typeAnnotation);
   }
 
   /**

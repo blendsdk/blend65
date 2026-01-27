@@ -440,7 +440,8 @@ describe('Edge Cases', () => {
 
     // Should produce valid output with infinite loop fallback
     expect(result.module).toBeDefined();
-    expect(result.assembly).toContain('JMP');
+    expect(result.assembly).toContain('RTS');
+    expect(result.assembly).toContain('Return to BASIC');
   });
 
   it('should handle BASIC stub disabled', () => {

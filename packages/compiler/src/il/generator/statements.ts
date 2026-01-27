@@ -319,6 +319,13 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
     this.generateStatements(thenBranch, ilFunc);
 
     // Jump to merge if then branch doesn't terminate
+    // NOTE: This checks the original thenBlock, not the current block after
+    // body generation. For simple if bodies this works, but for nested control
+    // flow (like while inside if), the current block after generation may be
+    // different. A more complete fix would check currentBlock, but that requires
+    // SSA construction to handle additional CFG edges. See TODO below.
+    // TODO: Fix SSA phi construction to handle all predecessor edges, then
+    // update this to check this.context!.currentBlock instead of thenBlock.
     if (!thenBlock.hasTerminator()) {
       this.builder?.emitJump(mergeBlock);
     }
@@ -330,6 +337,7 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
       this.generateStatements(elseBranch, ilFunc);
 
       // Jump to merge if else branch doesn't terminate
+      // TODO: Same issue as above - should check current block after body.
       if (!elseBlock.hasTerminator()) {
         this.builder?.emitJump(mergeBlock);
       }
@@ -409,8 +417,11 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
     // Pop loop context
     this.popLoopContext();
 
-    // Jump back to header if body doesn't terminate
-    if (!bodyBlock.hasTerminator()) {
+    // Jump back to header if current block doesn't terminate
+    // NOTE: After generating body (which may contain nested control flow),
+    // the current block may be different from bodyBlock.
+    const currentBlockAfterWhileBody = this.context!.currentBlock;
+    if (currentBlockAfterWhileBody && !currentBlockAfterWhileBody.hasTerminator()) {
       this.builder?.emitJump(headerBlock);
     }
 
@@ -518,8 +529,12 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
     // Pop loop context
     this.popLoopContext();
 
-    // Jump to increment if body doesn't terminate
-    if (!bodyBlock.hasTerminator()) {
+    // Jump to increment if current block doesn't terminate
+    // NOTE: After generating body (which may contain nested loops),
+    // the current block may be different from bodyBlock.
+    // We need to check the CURRENT block, not the original bodyBlock.
+    const currentBlockAfterBody = this.context!.currentBlock;
+    if (currentBlockAfterBody && !currentBlockAfterBody.hasTerminator()) {
       this.builder?.emitJump(incrBlock);
     }
 
@@ -668,8 +683,11 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
       this.builder?.setCurrentBlock(bodyBlock);
       this.generateStatements(caseClause.body, ilFunc);
 
-      // Jump to merge if body doesn't terminate
-      if (!bodyBlock.hasTerminator()) {
+      // Jump to merge if current block doesn't terminate
+      // NOTE: After generating body (which may contain nested control flow),
+      // the current block may be different from bodyBlock.
+      const currentBlockAfterMatchBody = this.context!.currentBlock;
+      if (currentBlockAfterMatchBody && !currentBlockAfterMatchBody.hasTerminator()) {
         this.builder?.emitJump(mergeBlock);
       }
     }
@@ -680,8 +698,9 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
       this.builder?.setCurrentBlock(defaultBlock);
       this.generateStatements(defaultCase, ilFunc);
 
-      // Jump to merge if default doesn't terminate
-      if (!defaultBlock.hasTerminator()) {
+      // Jump to merge if current block doesn't terminate
+      const currentBlockAfterDefault = this.context!.currentBlock;
+      if (currentBlockAfterDefault && !currentBlockAfterDefault.hasTerminator()) {
         this.builder?.emitJump(mergeBlock);
       }
     }
@@ -775,8 +794,11 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
       this.builder?.setCurrentBlock(bodyBlock);
       this.generateStatements(caseClause.body, ilFunc);
 
-      // Jump to merge if body doesn't terminate
-      if (!bodyBlock.hasTerminator()) {
+      // Jump to merge if current block doesn't terminate
+      // NOTE: After generating body (which may contain nested control flow),
+      // the current block may be different from bodyBlock.
+      const currentBlockAfterSwitchBody = this.context!.currentBlock;
+      if (currentBlockAfterSwitchBody && !currentBlockAfterSwitchBody.hasTerminator()) {
         this.builder?.emitJump(mergeBlock);
       }
     }
@@ -787,8 +809,9 @@ export class ILStatementGenerator extends ILDeclarationGenerator {
       this.builder?.setCurrentBlock(defaultBlock);
       this.generateStatements(defaultCase, ilFunc);
 
-      // Jump to merge if default doesn't terminate
-      if (!defaultBlock.hasTerminator()) {
+      // Jump to merge if current block doesn't terminate
+      const currentBlockAfterSwitchDefault = this.context!.currentBlock;
+      if (currentBlockAfterSwitchDefault && !currentBlockAfterSwitchDefault.hasTerminator()) {
         this.builder?.emitJump(mergeBlock);
       }
     }

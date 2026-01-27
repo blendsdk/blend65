@@ -138,7 +138,8 @@ describe('ILGenerator Construction', () => {
 
     const options = generator.getOptions();
     expect(options.enableSSA).toBe(true);
-    expect(options.verifySSA).toBe(true);
+    // verifySSA is false by default due to known loop verification limitations
+    expect(options.verifySSA).toBe(false);
     expect(options.collectSSAStats).toBe(false);
     expect(options.insertPhiInstructions).toBe(true);
     expect(options.verbose).toBe(false);

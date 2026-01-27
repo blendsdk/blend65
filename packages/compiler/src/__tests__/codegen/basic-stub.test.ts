@@ -260,9 +260,10 @@ describe('BASIC Stub Generator', () => {
       // Next line pointer is at bytes 0-1 (little-endian)
       const nextLinePtr = bytes[0] | (bytes[1] << 8);
 
-      // Should point to byte AFTER end-of-line marker
-      // Load address + stub size - 2 (the end-of-program marker)
-      const expected = 0x0801 + bytes.length - 2;
+      // Should point to the second byte of the end-of-program marker
+      // This is where BASIC expects the "next line link" to be for proper line chaining.
+      // Load address + stub size - 1 (points to the high byte of the null $0000 link)
+      const expected = 0x0801 + bytes.length - 1;
       expect(nextLinePtr).toBe(expected);
     });
 

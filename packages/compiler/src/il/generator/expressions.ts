@@ -938,6 +938,9 @@ export class ILExpressionGenerator extends ILStatementGenerator {
    * sizeof() returns the size of a type at compile time. This requires
    * special handling because the argument is a type expression, not a value.
    *
+   * The parser handles type keywords (byte, word, boolean, void) as LiteralExpression
+   * nodes with string values, while variable names are IdentifierExpression nodes.
+   *
    * @param expr - Call expression for sizeof()
    * @returns Virtual register containing the constant size value
    */
@@ -949,23 +952,47 @@ export class ILExpressionGenerator extends ILStatementGenerator {
       return null;
     }
 
-    // Get the argument - should be a type identifier
+    // Get the argument - could be a type keyword (LiteralExpression) or variable name (IdentifierExpression)
     const arg = args[0];
 
+    // Handle type keywords parsed as LiteralExpression (e.g., sizeof(byte), sizeof(word))
+    // The parser converts type keywords to LiteralExpression with the type name as a string
+    if (arg.getNodeType() === ASTNodeType.LITERAL_EXPR) {
+      const literal = arg as LiteralExpression;
+      const value = literal.getValue();
+
+      // Type keywords are stored as string literals
+      if (typeof value === 'string') {
+        const size = this.getTypeSizeByName(value);
+        if (size !== null) {
+          return this.builder?.emitConstByte(size) ?? null;
+        }
+      }
+
+      // Not a recognized type - fall through to error
+      this.addError(
+        `Cannot determine size of '${value}'`,
+        expr.getLocation(),
+        'E_SIZEOF_UNKNOWN_TYPE',
+      );
+      return null;
+    }
+
+    // Handle variable names as IdentifierExpression (e.g., sizeof(myVar))
     if (arg.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
       const typeName = (arg as IdentifierExpression).getName();
 
-      // Look up the type size
+      // First check if it's a type name (in case parser produces identifier for types)
       const size = this.getTypeSizeByName(typeName);
       if (size !== null) {
-        return this.builder?.emitConstWord(size) ?? null;
+        return this.builder?.emitConstByte(size) ?? null;
       }
 
       // Check if it's a variable and get its type size
       const symbol = this.symbolTable.lookup(typeName);
       if (symbol && symbol.type) {
         const varSize = symbol.type.size ?? 1;
-        return this.builder?.emitConstWord(varSize) ?? null;
+        return this.builder?.emitConstByte(varSize) ?? null;
       }
 
       this.addError(
@@ -976,7 +1003,7 @@ export class ILExpressionGenerator extends ILStatementGenerator {
       return null;
     }
 
-    // Argument is not a simple identifier
+    // Argument is not a valid type or variable name
     this.addError(
       'sizeof() requires a type or variable name',
       expr.getLocation(),
@@ -988,7 +1015,7 @@ export class ILExpressionGenerator extends ILStatementGenerator {
   /**
    * Gets the size of a type by its name.
    *
-   * @param typeName - Type name (e.g., 'byte', 'word', 'bool')
+   * @param typeName - Type name (e.g., 'byte', 'word', 'boolean')
    * @returns Size in bytes, or null if unknown
    */
   protected getTypeSizeByName(typeName: string): number | null {
@@ -997,6 +1024,7 @@ export class ILExpressionGenerator extends ILStatementGenerator {
       case 'u8':
       case 'i8':
       case 'bool':
+      case 'boolean':
         return 1;
       case 'word':
       case 'u16':

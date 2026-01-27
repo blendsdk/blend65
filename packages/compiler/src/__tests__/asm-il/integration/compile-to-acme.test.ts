@@ -309,9 +309,10 @@ describe('Error Handling', () => {
 
       const config = createDefaultConfig();
       
-      // Should produce output with infinite loop fallback
+      // Should produce output with return to BASIC
       const result = compileToAcme(module, config);
-      expect(result.asmText).toContain('JMP');
+      expect(result.asmText).toContain('RTS');
+      expect(result.asmText).toContain('Return to BASIC');
     });
   });
 });

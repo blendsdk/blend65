@@ -248,10 +248,12 @@ export function generateBasicStub(options: BasicStubOptions): BasicStubResult {
   bytes.push(0x00, 0x00);
 
   // Calculate next line pointer
-  // Points to the byte AFTER the $00 end-of-line marker
-  // but BEFORE the end-of-program marker
-  // Actually, it points to where the next line WOULD start
-  const nextLinePointer = loadAddress + bytes.length - 2;
+  // For C64 BASIC, this points to where the "next line's link pointer" would be.
+  // For a single-line program, this is the address of the end-of-program marker
+  // (the two $00 bytes that act as a null link). The pointer should point to the
+  // second byte of the end marker (the high byte of the null $0000 link address).
+  // This ensures BASIC's line chaining works correctly when returning from SYS.
+  const nextLinePointer = loadAddress + bytes.length - 1;
 
   // Update the next line pointer (first two bytes)
   bytes[0] = nextLinePointer & 0xff;
@@ -409,7 +411,8 @@ export function verifyBasicStub(
   }
 
   // Validate next line pointer
-  const expectedNextLinePointer = loadAddress + bytes.length - 2;
+  // The pointer should point to the second byte of the end-of-program marker
+  const expectedNextLinePointer = loadAddress + bytes.length - 1;
   if (nextLinePointer !== expectedNextLinePointer) {
     errors.push(
       `Next line pointer mismatch: got $${nextLinePointer.toString(16).toUpperCase()}, ` +

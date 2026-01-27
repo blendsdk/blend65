@@ -266,7 +266,7 @@ describe('Integration - Multiple Functions', () => {
   // ===========================================================================
 
   describe('no main function', () => {
-    it('should generate infinite loop when only helper functions', () => {
+    it('should return to BASIC when only helper functions', () => {
       const module = new ILModule('helpers-only.bl65');
 
       // Only helper functions, no main
@@ -280,7 +280,8 @@ describe('Integration - Multiple Functions', () => {
       const result = codegen.generate(module, options);
 
       expect(result.assembly).toContain('No main function');
-      expect(result.assembly).toContain('JMP');
+      expect(result.assembly).toContain('RTS');
+      expect(result.assembly).toContain('Return to BASIC');
       expect(result.stats.functionCount).toBe(2);
     });
   });

@@ -60,14 +60,15 @@ describe('Integration - Basic Programs', () => {
       expect(result.assembly).toContain('Blend65');
     });
 
-    it('should include infinite loop when no main function', () => {
+    it('should return to BASIC when no main function', () => {
       const module = new ILModule('empty.bl65');
       const options = createTestOptions();
 
       const result = codegen.generate(module, options);
 
       expect(result.assembly).toContain('No main function');
-      expect(result.assembly).toContain('JMP');
+      expect(result.assembly).toContain('RTS');
+      expect(result.assembly).toContain('Return to BASIC');
     });
 
     it('should report 0 functions in stats', () => {

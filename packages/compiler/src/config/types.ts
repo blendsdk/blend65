@@ -248,6 +248,7 @@ export interface CompilerOptions {
    * @example ["sid", "sprites", "math"]
    */
   libraries?: string[];
+
 }
 
 /**

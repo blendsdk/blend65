@@ -192,8 +192,7 @@ export function sizeof(t: byte): byte;
  *   processItem(items[i]);
  * }
  */
-// NOTE: length() intrinsic removed - array parameter types not yet supported in stub functions
-// export function length(value: byte[]): word;
+export function length(value: byte[]): word;
 
 // ============================================================================
 // Byte Extraction Utilities

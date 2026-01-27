@@ -271,7 +271,12 @@ export class CodeGenerator extends InstructionGenerator {
    * Creates a simple entry point that:
    * 1. Optionally initializes globals
    * 2. Calls the main function (if present)
-   * 3. Returns or loops
+   * 3. Returns to BASIC via RTS
+   *
+   * **Clean Exit Philosophy:**
+   * Programs should behave like C programs - main() returns and control
+   * goes back to the caller (BASIC). If the user wants an infinite loop,
+   * they write `while(true) {}` in their code.
    */
   protected generateEntryPoint(): void {
     this.emitSectionComment('Program Entry Point');
@@ -281,11 +286,9 @@ export class CodeGenerator extends InstructionGenerator {
     const mainFunc = this.currentModule.getFunction('main') || this.currentModule.getFunction(entryPointName ?? '');
 
     if (!mainFunc) {
-      // No main function - just emit a simple infinite loop
-      this.emitComment('No main function - infinite loop');
-      const loopLabel = this.getTempLabel('loop');
-      this.emitLabel(loopLabel);
-      this.emitJmp(loopLabel, 'Infinite loop');
+      // No main function - just return to BASIC immediately
+      this.emitComment('No main function - return to BASIC');
+      this.emitRts('Return to BASIC');
       return;
     }
 
@@ -302,10 +305,8 @@ export class CodeGenerator extends InstructionGenerator {
     const mainLabel = `_${mainFunc.name}`;
     this.emitJsr(mainLabel, 'Call main');
 
-    // After main returns, infinite loop to prevent crash
-    const endLabel = this.getTempLabel('end');
-    this.emitLabel(endLabel);
-    this.emitJmp(endLabel, 'End: infinite loop');
+    // Return to BASIC after main returns
+    this.emitRts('Return to BASIC');
   }
 
   // ============================================

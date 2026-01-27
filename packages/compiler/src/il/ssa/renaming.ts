@@ -641,10 +641,18 @@ export class SSARenamer {
    * When we finish processing a block, we need to fill in the phi operands
    * in its successors with the current SSA versions of each variable.
    *
-   * @param _func - The IL function (unused, kept for API consistency)
+   * **IMPORTANT:** SSA form requires that phi functions have an operand from
+   * EVERY predecessor. If a variable is not defined on a path (e.g., the path
+   * from the entry block before any definitions), we must still provide an
+   * operand. In such cases, we use the phi's result from the current block
+   * if this block has a phi for that variable (loop back edge), or we skip
+   * adding an operand if the variable truly doesn't exist on this path
+   * (which would indicate a semantic error in the source program).
+   *
+   * @param func - The IL function (for register creation)
    * @param block - The block we just finished processing
    */
-  protected updateSuccessorPhiOperands(_func: ILFunction, block: BasicBlock): void {
+  protected updateSuccessorPhiOperands(func: ILFunction, block: BasicBlock): void {
     // Get successors
     const successors = block.getSuccessors();
 
@@ -657,19 +665,30 @@ export class SSARenamer {
 
       // For each phi at the successor, add an operand from this block
       for (const phi of successorPhis) {
-        const currentVersion = this.versionManager.getCurrentVersion(phi.variable);
+        let currentVersion = this.versionManager.getCurrentVersion(phi.variable);
 
-        if (currentVersion) {
-          // Add operand from this predecessor
-          phi.operands.push({
-            blockId: block.id,
-            ssaName: currentVersion,
-          });
-        } else {
-          // Variable not defined on this path - could indicate an error
-          // or the variable is only defined on some paths
-          // For robustness, we skip adding an operand
+        // SSA requires an operand from EVERY predecessor.
+        // If no version exists on this path, we need to create an undefined/initial value.
+        if (!currentVersion) {
+          // Allocate version 0 for this variable (the initial/undefined value).
+          // This happens when control reaches this block before any definition
+          // of the variable (e.g., from entry block directly to a loop header).
+          currentVersion = this.versionManager.allocateFreshVersion(phi.variable);
+
+          // CRITICAL: Also create a register mapping for this SSA name.
+          // We use a synthetic register ID that will be replaced with an actual
+          // "undef" or initial value during phi instruction insertion.
+          // The key insight is that we need to track this mapping so the phi
+          // instruction creation can find it later.
+          const undefRegisterId = func.getValueFactory().getNextRegisterId();
+          this.registerSSANames.set(undefRegisterId, currentVersion);
         }
+
+        // Add operand from this predecessor
+        phi.operands.push({
+          blockId: block.id,
+          ssaName: currentVersion,
+        });
       }
     }
   }

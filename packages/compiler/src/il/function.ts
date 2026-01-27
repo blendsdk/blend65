@@ -350,6 +350,9 @@ export class ILFunction {
    * Returns a map from block ID to its immediate dominator's ID.
    * The entry block has no dominator (mapped to -1).
    *
+   * Note: Only processes reachable blocks (from RPO traversal).
+   * Unreachable blocks are not included in the result.
+   *
    * @returns Map from block ID to immediate dominator ID
    */
   computeDominators(): Map<number, number> {
@@ -359,25 +362,62 @@ export class ILFunction {
       blockIndex.set(blocks[i].id, i);
     }
 
-    // Initialize dominators
+    // Initialize dominators - only for reachable blocks
     const idom = new Map<number, number>();
     for (const block of blocks) {
       idom.set(block.id, -1); // -1 means undefined
     }
     idom.set(this.entryBlockId, this.entryBlockId); // Entry dominates itself
 
-    // Intersect helper
+    // Intersect helper - finds common dominator of two blocks
+    // Returns -1 if no common dominator can be found (indicates unreachable predecessor)
     const intersect = (b1: number, b2: number): number => {
-      let finger1 = blockIndex.get(b1)!;
-      let finger2 = blockIndex.get(b2)!;
+      let finger1 = blockIndex.get(b1);
+      let finger2 = blockIndex.get(b2);
 
-      while (finger1 !== finger2) {
+      // If either block is not in our reachable set, cannot compute intersection
+      if (finger1 === undefined || finger2 === undefined) {
+        return -1;
+      }
+
+      // Limit iterations to prevent infinite loops from malformed CFGs
+      const maxIterations = blocks.length * 2;
+      let iterations = 0;
+
+      while (finger1 !== finger2 && iterations < maxIterations) {
+        iterations++;
         while (finger1 > finger2) {
-          finger1 = blockIndex.get(idom.get(blocks[finger1].id)!)!;
+          const domId = idom.get(blocks[finger1].id);
+          if (domId === undefined || domId === -1) {
+            // No dominator set yet - cannot continue
+            return -1;
+          }
+          const nextFinger = blockIndex.get(domId);
+          if (nextFinger === undefined) {
+            // Dominator not in reachable set
+            return -1;
+          }
+          finger1 = nextFinger;
         }
         while (finger2 > finger1) {
-          finger2 = blockIndex.get(idom.get(blocks[finger2].id)!)!;
+          const domId = idom.get(blocks[finger2].id);
+          if (domId === undefined || domId === -1) {
+            // No dominator set yet - cannot continue
+            return -1;
+          }
+          const nextFinger = blockIndex.get(domId);
+          if (nextFinger === undefined) {
+            // Dominator not in reachable set
+            return -1;
+          }
+          finger2 = nextFinger;
         }
+      }
+
+      if (iterations >= maxIterations) {
+        // Safety check - should never happen with valid CFG
+        console.warn(`computeDominators: intersect exceeded max iterations for blocks ${b1}, ${b2}`);
+        return -1;
       }
 
       return blocks[finger1].id;
@@ -385,27 +425,40 @@ export class ILFunction {
 
     // Iterate until fixed point
     let changed = true;
-    while (changed) {
+    const maxMainIterations = blocks.length * blocks.length; // Safety limit
+    let mainIterations = 0;
+
+    while (changed && mainIterations < maxMainIterations) {
       changed = false;
+      mainIterations++;
 
       for (const block of blocks) {
         if (block.id === this.entryBlockId) {
           continue;
         }
 
-        // Find first processed predecessor
+        // Find first processed predecessor (that is also reachable)
         let newIdom = -1;
         for (const pred of block.getPredecessors()) {
-          if (idom.get(pred.id) !== -1) {
+          // Only consider predecessors that are reachable and have a dominator set
+          if (blockIndex.has(pred.id) && idom.get(pred.id) !== -1) {
             newIdom = pred.id;
             break;
           }
         }
 
-        // Intersect with other predecessors
+        // If no processed predecessor found, skip this block for now
+        if (newIdom === -1) {
+          continue;
+        }
+
+        // Intersect with other processed predecessors
         for (const pred of block.getPredecessors()) {
-          if (pred.id !== newIdom && idom.get(pred.id) !== -1) {
-            newIdom = intersect(newIdom, pred.id);
+          if (pred.id !== newIdom && blockIndex.has(pred.id) && idom.get(pred.id) !== -1) {
+            const intersection = intersect(newIdom, pred.id);
+            if (intersection !== -1) {
+              newIdom = intersection;
+            }
           }
         }
 
@@ -414,6 +467,10 @@ export class ILFunction {
           changed = true;
         }
       }
+    }
+
+    if (mainIterations >= maxMainIterations) {
+      console.warn(`computeDominators: main loop exceeded max iterations (${maxMainIterations})`);
     }
 
     return idom;
