@@ -585,6 +585,148 @@ describe('Function Declaration Parser', () => {
     });
   });
 
+  describe('Array Return Types', () => {
+    test('parses function with explicit array return type', () => {
+      const source = `
+        function getBuffer(): byte[5] {
+          return buffer;
+        }
+      `;
+
+      const { ast, errors } = parseBlendProgram(source);
+
+      expect(errors).toHaveLength(0);
+
+      const program = ast as Program;
+      const functionDecl = program.getDeclarations()[0] as FunctionDecl;
+
+      expect(functionDecl.getName()).toBe('getBuffer');
+      expect(functionDecl.getReturnType()).toBe('byte[5]');
+    });
+
+    test('parses function with inferred array return type', () => {
+      const source = `
+        function getData(): byte[] {
+          return data;
+        }
+      `;
+
+      const { ast, errors } = parseBlendProgram(source);
+
+      expect(errors).toHaveLength(0);
+
+      const program = ast as Program;
+      const functionDecl = program.getDeclarations()[0] as FunctionDecl;
+
+      expect(functionDecl.getName()).toBe('getData');
+      expect(functionDecl.getReturnType()).toBe('byte[]');
+    });
+
+    test('parses function with multidimensional array return type', () => {
+      const source = `
+        function getMatrix(): byte[2][3] {
+          return matrix;
+        }
+      `;
+
+      const { ast, errors } = parseBlendProgram(source);
+
+      expect(errors).toHaveLength(0);
+
+      const program = ast as Program;
+      const functionDecl = program.getDeclarations()[0] as FunctionDecl;
+
+      expect(functionDecl.getName()).toBe('getMatrix');
+      expect(functionDecl.getReturnType()).toBe('byte[2][3]');
+    });
+
+    test('parses function with word array return type', () => {
+      const source = `
+        function getAddresses(): word[256] {
+          return addresses;
+        }
+      `;
+
+      const { ast, errors } = parseBlendProgram(source);
+
+      expect(errors).toHaveLength(0);
+
+      const program = ast as Program;
+      const functionDecl = program.getDeclarations()[0] as FunctionDecl;
+
+      expect(functionDecl.getName()).toBe('getAddresses');
+      expect(functionDecl.getReturnType()).toBe('word[256]');
+    });
+
+    test('parses exported function with array return type', () => {
+      const source = `
+        export function getSpriteData(): byte[64] {
+          return spriteData;
+        }
+      `;
+
+      const { ast, errors } = parseBlendProgram(source);
+
+      expect(errors).toHaveLength(0);
+
+      const program = ast as Program;
+      const functionDecl = program.getDeclarations()[0] as FunctionDecl;
+
+      expect(functionDecl.getName()).toBe('getSpriteData');
+      expect(functionDecl.getReturnType()).toBe('byte[64]');
+      expect(functionDecl.isExportedFunction()).toBe(true);
+    });
+
+    test('parses callback function with array return type', () => {
+      const source = `
+        callback function collectInput(): byte[4] {
+          return inputBuffer;
+        }
+      `;
+
+      const { ast, errors } = parseBlendProgram(source);
+
+      expect(errors).toHaveLength(0);
+
+      const program = ast as Program;
+      const functionDecl = program.getDeclarations()[0] as FunctionDecl;
+
+      expect(functionDecl.getName()).toBe('collectInput');
+      expect(functionDecl.getReturnType()).toBe('byte[4]');
+      expect(functionDecl.isCallbackFunction()).toBe(true);
+    });
+
+    test('parses multiple functions with different array return types', () => {
+      const source = `
+        function getSmallBuffer(): byte[8] {
+          return small;
+        }
+
+        function getBigBuffer(): byte[1024] {
+          return big;
+        }
+
+        function getInferred(): word[] {
+          return inferred;
+        }
+      `;
+
+      const { ast, errors } = parseBlendProgram(source);
+
+      expect(errors).toHaveLength(0);
+
+      const program = ast as Program;
+      const declarations = program.getDeclarations();
+      expect(declarations).toHaveLength(3);
+
+      const [small, big, inferred] = declarations as FunctionDecl[];
+
+      expect(small.getReturnType()).toBe('byte[8]');
+      expect(big.getReturnType()).toBe('byte[1024]');
+      expect(inferred.getReturnType()).toBe('word[]');
+    });
+  });
+
   describe('Specification Compliance', () => {
     test('follows exact grammar from language specification', () => {
       const source = `

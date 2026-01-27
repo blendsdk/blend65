@@ -396,6 +396,7 @@ export abstract class ExpressionParser extends BaseParser {
    * SUPPORTED (specification-compliant):
    * - Function calls on identifiers: func(), calculateScore(a, b)
    * - Array indexing: array[0], matrix[row][col] (chained indexing allowed)
+   * - Function call followed by indexing: getArray()[i] (returns array, then index)
    * - @map member access: vic.borderColor (single level only)
    *
    * NOT SUPPORTED (not in specification):
@@ -409,46 +410,57 @@ export abstract class ExpressionParser extends BaseParser {
     // Start with primary expression (atomic expressions)
     let expr = this.parseAtomicExpression();
 
-    // SPECIFICATION ENFORCEMENT: Only ONE postfix operation allowed, no chaining
-    if (this.isPostfixOperator()) {
+    // Process postfix operations in sequence
+    // Loop to handle chained operations like: getArray()[i] or matrix[i][j]
+    while (this.isPostfixOperator()) {
       if (this.check(TokenType.LEFT_PAREN)) {
-        // Function calls: only on identifiers, absolutely no chaining after
+        // Function calls: only on identifiers (not method calls)
         expr = this.parseCallExpression(expr);
 
-        // CRITICAL: Detect and reject any further chaining attempts
-        if (this.isPostfixOperator()) {
-          this.reportError(
-            DiagnosticCode.UNEXPECTED_TOKEN,
-            'Chaining after function calls is not supported in Blend65. Use standalone function calls only.'
-          );
-        }
-        return expr;
+        // After function call, ONLY array indexing is allowed (for functions returning arrays)
+        // This enables: getArray()[i], getData()[row][col]
+        // Continue the loop to check for [ after ()
       } else if (this.check(TokenType.LEFT_BRACKET)) {
         // Array indexing: allow multiple brackets (matrix[row][col])
-        while (this.check(TokenType.LEFT_BRACKET)) {
-          expr = this.parseIndexExpression(expr);
-        }
-
-        // CRITICAL: Detect and reject member access or function calls after indexing
-        if (this.check(TokenType.DOT) || this.check(TokenType.LEFT_PAREN)) {
-          this.reportError(
-            DiagnosticCode.UNEXPECTED_TOKEN,
-            'Member access and function calls after array indexing are not supported in Blend65.'
-          );
-        }
-        return expr;
+        // Also allows indexing into function return values: getArray()[i]
+        expr = this.parseIndexExpression(expr);
+        // Continue the loop to allow chained indexing: arr[i][j]
       } else if (this.check(TokenType.DOT)) {
         // Member access: only for @map, single level only
         expr = this.parseMemberExpression(expr);
 
-        // CRITICAL: Detect and reject any further chaining after member access
+        // CRITICAL: After member access, NO further chaining allowed
+        // This blocks: obj.prop.subprop, obj.prop()
         if (this.isPostfixOperator()) {
           this.reportError(
             DiagnosticCode.UNEXPECTED_TOKEN,
             'Chaining after member access is not supported in Blend65. Use simple @map access only.'
           );
+          break;
         }
-        return expr;
+      } else {
+        // Unknown postfix operator - should not happen
+        break;
+      }
+
+      // Additional validation: After function call + indexing, reject further function calls
+      // This blocks: getArray()[i]() but allows: getArray()[i][j]
+      if (this.check(TokenType.LEFT_PAREN)) {
+        this.reportError(
+          DiagnosticCode.UNEXPECTED_TOKEN,
+          'Function calls on indexed values are not supported in Blend65.'
+        );
+        break;
+      }
+
+      // Also reject member access after function call or indexing
+      // This blocks: getArray().prop, arr[i].prop
+      if (this.check(TokenType.DOT)) {
+        this.reportError(
+          DiagnosticCode.UNEXPECTED_TOKEN,
+          'Member access after function calls or array indexing is not supported in Blend65.'
+        );
+        break;
       }
     }
 

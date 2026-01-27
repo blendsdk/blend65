@@ -267,11 +267,20 @@ describe('Advanced Expression Parser - Phase 3', () => {
       expect((first.getIndex() as IdentifierExpression).getName()).toBe('row');
     });
 
-    test('rejects index access on function calls with error recovery', () => {
-      // SPECIFICATION: Index access on function results like func()[index] is not supported
-      const { expression, parser } = parseExpression('getData()[index]');
-      expect(parser.getDiagnostics().length).toBeGreaterThan(0); // Should have error
-      expect(expression).toBeTruthy(); // Should still return expression via recovery
+    test('allows index access on function calls that return arrays', () => {
+      // SPECIFICATION UPDATE: Index access on function results like func()[index] IS supported
+      // This enables functions that return arrays to be immediately indexed: getArray()[i]
+      const expr = parseExpr('getData()[index]') as IndexExpression;
+      expect(expr).toBeInstanceOf(IndexExpression);
+      
+      // Object should be the function call
+      const callExpr = expr.getObject() as CallExpression;
+      expect(callExpr).toBeInstanceOf(CallExpression);
+      expect((callExpr.getCallee() as IdentifierExpression).getName()).toBe('getData');
+      
+      // Index should be the identifier
+      expect(expr.getIndex()).toBeInstanceOf(IdentifierExpression);
+      expect((expr.getIndex() as IdentifierExpression).getName()).toBe('index');
     });
   });
 

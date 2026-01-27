@@ -621,8 +621,11 @@ describe('Type Checker - Complex Expression Scenarios', () => {
     expect(getErrors(diagnostics)).toEqual([]);
   });
 
-  it.skip('should type check chained function calls', () => {
-    // SKIP: Array return types (byte[5]) not yet supported in function declarations
+  it('should type check chained function calls', () => {
+    // Parser now supports:
+    // 1. Array return types (byte[5]) in function declarations
+    // 2. Chained call expressions: getArray()[getIndex()]
+    //    - Function call that returns array, immediately indexed
     const source = `
       function getIndex(): byte {
         return 2;
@@ -636,11 +639,7 @@ describe('Type Checker - Complex Expression Scenarios', () => {
     `;
 
     const { diagnostics } = parseAndTypeCheck(source);
-    // Note: This might have errors due to getArray() returning array type
-    // which needs proper handling - this tests the robustness
-    const errors = getErrors(diagnostics);
-    // We expect this to work or have meaningful errors
-    expect(Array.isArray(errors)).toBe(true);
+    expect(getErrors(diagnostics)).toEqual([]);
   });
 
   it('should handle complex expression with multiple operators', () => {

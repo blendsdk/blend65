@@ -326,26 +326,14 @@ export class Parser extends StatementParser {
     this.expect(TokenType.RIGHT_PAREN, "Expected ')' after parameters");
 
     // Parse optional return type
+    // Uses parseTypeAnnotation() to handle full type expressions including arrays:
+    // - Simple types: byte, word, void, boolean, string, callback
+    // - Array types: byte[5], word[256]
+    // - Inferred arrays: byte[], word[]
+    // - Multidimensional: byte[2][3], byte[][]
     let returnType: string | null = null;
     if (this.match(TokenType.COLON)) {
-      // Return type can be a keyword (void, byte, word) or identifier (custom type)
-      if (
-        this.check(
-          TokenType.VOID,
-          TokenType.BYTE,
-          TokenType.WORD,
-          TokenType.BOOLEAN,
-          TokenType.STRING,
-          TokenType.IDENTIFIER
-        )
-      ) {
-        returnType = this.advance().value;
-      } else {
-        this.reportError(
-          DiagnosticCode.EXPECTED_TOKEN,
-          DeclarationParserErrors.expectedReturnType()
-        );
-      }
+      returnType = this.parseTypeAnnotation();
     }
 
     // Check for stub function (semicolon-terminated)
