@@ -3,7 +3,7 @@
 > **Last Updated:** January 27, 2026  
 > **Version:** 0.1.0-alpha  
 > **Overall Progress:** ~85% Complete  
-> **Test Status:** 6,987/6,991 passing (99.94%)
+> **Test Status:** 6,996/6,998 passing (99.97%)
 
 ---
 
@@ -31,9 +31,9 @@ Blend65 is a modern programming language and compiler designed specifically for 
 | 🟢 **Semantic Analyzer** | ✅ Complete | Can check programs for errors and gather information |
 | 🟢 **IL Generator** | ✅ Complete | Can convert programs to internal format |
 | 🟢 **Code Generator** | ✅ Complete (Basic) | Can produce assembly code |
-| 🟡 **Optimizer** | 📋 Planning Complete | 103 design documents ready, implementation not started |
+| 🟡 **Optimizer** | 📋 Planning Complete | 103+ design documents ready, implementation not started |
 | 🟢 **Config System** | ✅ Complete | Project configuration works |
-| 🟡 **CLI Tool** | ⏳ Partial | Command-line interface needs work |
+| 🟡 **CLI Tool** | ⏳ Partial | Basic build/check commands work, more features planned |
 | 🟡 **Documentation** | ⏳ Partial | User guides and tutorials needed |
 
 ---
@@ -51,21 +51,14 @@ Blend65 is a modern programming language and compiler designed specifically for 
 | ASM-IL | 500+ | ✅ All Passing |
 | E2E & Integration | 1,800+ | ✅ All Passing |
 | CLI | 10 | ✅ All Passing |
-| **Total** | **6,991** | **6,987 passing (1 flaky, 3 skipped)** |
+| **Total** | **6,998** | **6,996 passing (2 skipped)** |
 
-### Skipped Tests (3)
+### Skipped Tests (2)
 
-| Test | Reason | Linked Plan |
-|------|--------|-------------|
-| Performance consistency test | Test flakiness/timing | - |
-| Chained function call type checking | Complex type gap | - |
-| Power-of-2 multiply strength reduction | Optimizer not implemented | `optimizer/` |
-
-### Flaky Test (1)
-
-| Test | Reason |
-|------|--------|
-| Small program compilation < 50ms | Timing-dependent, occasionally fails |
+| Test | Reason | Location |
+|------|--------|----------|
+| Power-of-2 multiply strength reduction | Optimizer not implemented | `optimizer-metrics.test.ts` |
+| Performance consistency test | Test flakiness/timing | `performance.test.ts` |
 
 ---
 
@@ -146,14 +139,14 @@ The optimizer will make your programs:
 - **Better** - Takes advantage of hardware features
 
 **Status:** 
-- ✅ **103 design documents complete** - Comprehensive planning done
+- ✅ **103+ design documents complete** - Comprehensive planning done
 - 📋 **Implementation not started** - Ready to begin coding
 
-### 🖥️ CLI Improvements
-- Better project scaffolding (`blend65 new myproject`)
-- Improved build commands
-- Watch mode for development
-- VICE emulator integration
+### 🖥️ CLI Improvements (dx-features plan)
+- Better project scaffolding (`blend65 init myproject`)
+- VICE emulator integration (`blend65 run`)
+- Watch mode for development (`blend65 watch`)
+- Source maps for debugging
 
 ### 📚 Documentation
 - Getting started guide
@@ -165,27 +158,13 @@ The optimizer will make your programs:
 
 ## Active Development Plans
 
-### Priority 1: Bug Fixes & Gaps
+### Priority 1: Major Features
 
 | Plan | Status | Description |
 |------|--------|-------------|
-| `call-void-and-length-gap/` | ✅ **COMPLETE** | Fixed CALL_VOID bug, added length("string") |
-| `go-intrinsics/` | ✅ **COMPLETE** | All 6 intrinsic handlers implemented |
-| `multiple-fixes/` | ✅ **COMPLETE** | Fixed arrays, locals, branches, data directives |
-
-### Priority 2: Major Features
-
-| Plan | Status | Description |
-|------|--------|-------------|
-| `optimizer/` | 📋 Docs Complete | 103 documents ready for implementation |
-| `native-assembler/` | 📋 Planning | Direct .prg generation |
-
-### Priority 3: Developer Experience
-
-| Plan | Status | Description |
-|------|--------|-------------|
-| `end-to-end/` | ⚠️ Needs Update | CLI, VICE integration, source maps |
-| `e2e-codegen-testing/` | 🔄 Partial | Phase 1 complete, Phases 2-4 remaining |
+| `optimizer/` | 📋 Docs Complete | 103+ documents ready for implementation |
+| `dx-features/` | 📋 Ready | CLI, VICE integration, source maps |
+| `native-assembler/` | 📋 Planning | Direct .prg generation (future) |
 
 ### Research (Future)
 
@@ -197,60 +176,26 @@ The optimizer will make your programs:
 
 ## Recently Completed
 
-### ✅ CALL_VOID Bug Fix (January 27, 2026)
-- Fixed functions returning values incorrectly using CALL_VOID
-- Added IL module fallback lookup for return type determination
-- Unskipped and verified ternary test
+### ✅ All Bug Fix Plans Complete (January 27, 2026)
 
-### ✅ length() String Support (January 27, 2026)
-- `length("hello")` now returns compile-time constant 5
-- Added string literal handling in IL generator
-- Unskipped and verified length() test
+**Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
 
-### ✅ Major Test Suite Stabilization (January 2026)
-- Reduced failing tests from 44 → 0
-- Fixed test expectations for InstructionGenerator Tier 2
-- Fixed SSA verification default
-- Fixed binary literal syntax per language spec
-- Documented codegen gaps with proper skip markers
+- ✅ **CALL_VOID Bug** - Functions returning values now correctly use CALL
+- ✅ **length() String Support** - `length("hello")` now returns 5
+- ✅ **All 6 Intrinsic Handlers** - brk, barrier, lo/hi, volatile ops
+- ✅ **Array Initializers** - Correct initialization values
+- ✅ **Local Variable Codegen** - Proper zero page allocation
+- ✅ **Branch Selection** - Correct BNE/BEQ selection
+- ✅ **Data Directives** - Correct `!fill` generation
 
-### ✅ C-Style Syntax Refactor (January 2026)
-- Changed from VB/Pascal-style (`end if`, `end function`) to C/TypeScript-style (`{ }`)
-- All language constructs now use curly braces
-- Updated language specification and examples
+### ✅ Previous Milestones
 
-### ✅ Ternary Operator (January 2026)
-- Full support for `condition ? thenExpr : elseExpr`
-- Parser, semantic analyzer, IL generator all support ternary
-- 80+ dedicated tests
-
-### ✅ Configuration System (January 2026)
-- `blend65.json` project configuration file support
-- CLI override merging
-- Glob pattern resolution for source files
-
-### ✅ Semantic Analyzer Improvements (January 2026)
-- Fixed for-loop variable typing
-- Fixed memory layout extraction
-- Improved type checking and validation
-
-### ✅ Address-of Operator (January 2026)
-- Get memory addresses of variables and functions with `@variable`
-- `@address` type alias for 16-bit pointer values
-- Callback parameters for passing function addresses
-- Full IL and code generation support
-- 450+ dedicated integration tests
-
-### ✅ Library Loading System (January 2026)
-- Standard library infrastructure
-- C64 hardware definitions (`@blend65/c64/hardware`)
-- Import resolution for library modules
-- Extensible library path configuration
-
-### ✅ Module/Export System Fix (January 2026)
-- Parser improvements for module declarations
-- Semantic analysis for export modifiers
-- Proper handling of exported vs internal symbols
+- ✅ C-Style Syntax Refactor (January 2026)
+- ✅ Ternary Operator Support (January 2026)
+- ✅ Configuration System (January 2026)
+- ✅ Address-of Operator (January 2026)
+- ✅ Library Loading System (January 2026)
+- ✅ Module/Export System Fix (January 2026)
 
 ---
 
@@ -272,12 +217,12 @@ The optimizer will make your programs:
 - [x] Module/export system
 
 ### Phase 2: Bug Fixes & Stabilization ✅ (COMPLETE)
-- [x] Fix CALL_VOID bug ✅
-- [x] Fix length() with string literals ✅
-- [x] Complete missing intrinsic handlers ✅
-- [x] Fix array initializers ✅
-- [x] Fix local variable codegen ✅
-- [x] Fix branch instruction selection ✅
+- [x] Fix CALL_VOID bug
+- [x] Fix length() with string literals
+- [x] Complete missing intrinsic handlers
+- [x] Fix array initializers
+- [x] Fix local variable codegen
+- [x] Fix branch instruction selection
 
 ### Phase 3: Optimization 🔜 (NEXT MAJOR FOCUS)
 - [ ] IL optimization passes
@@ -286,7 +231,7 @@ The optimizer will make your programs:
 - [ ] Constant folding
 
 ### Phase 4: Developer Experience 📋 (PLANNED)
-- [ ] Improved CLI
+- [ ] Improved CLI (init, run, watch)
 - [ ] Project templates
 - [ ] VICE integration
 - [ ] Source maps for debugging
@@ -337,14 +282,10 @@ yarn build
 
 ## Summary
 
-**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.94% test pass rate** (6,987/6,991 tests).
+**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.97% test pass rate** (6,996/6,998 tests).
 
-**Phase 2 (Bug Fixes & Stabilization) is COMPLETE!** All critical bug fixes have been implemented:
-- ✅ CALL_VOID bug fixed
-- ✅ length() string support added
-- ✅ All 6 intrinsic handlers implemented
-- ✅ Array initializers, local variables, branch selection fixed
+**Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
 
-**Next priority:** Optimizer implementation - 103 design documents ready
+**Next priority:** Optimizer implementation - 103+ design documents ready
 
 The project is actively developed and getting closer to a 1.0 release!

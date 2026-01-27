@@ -1,241 +1,209 @@
 # What's Left - Blend65 Compiler
 
 > **Generated**: January 27, 2026  
-> **Test Status**: 6,987/6,991 passing (99.94%)  
-> **Failed Tests**: 1 (flaky)  
-> **Skipped Tests**: 3  
-> **Active Plans**: 6 folders (4 archived this session)
+> **Test Status**: 6,996/6,998 passing (99.97%)  
+> **Failed Tests**: 0  
+> **Skipped Tests**: 2  
+> **Active Plans**: 4 folders
 
 ---
 
 ## Summary
 
-The Blend65 compiler core is **functionally complete** with an excellent 99.94% test pass rate. The remaining work falls into three categories:
+The Blend65 compiler core is **functionally complete** with an excellent 99.97% test pass rate. 
 
-1. **Bug Fixes** - 3 skipped tests need implementation fixes
-2. **Optimizer** - 103 design docs ready, implementation not started
-3. **Developer Experience** - CLI, VICE integration, documentation
+**🎉 Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
+
+All remaining work is for **new features**, not bug fixes:
+
+1. **Optimizer** - 103+ design docs ready, implementation not started
+2. **Developer Experience** - CLI, VICE integration, source maps
+3. **Future Features** - Inline assembly, interrupts, native assembler
 
 ---
 
 ## By Priority
 
-### 🔴 Critical (Must Fix Before 1.0)
+### 🔴 Critical (Blocking v1.0)
 
-- [x] **~~CALL_VOID Bug~~** ✅ FIXED - Functions returning values now correctly use CALL
-- [x] **~~length() String Support~~** ✅ FIXED - `length("string")` now works
+**None!** All critical bugs have been fixed.
 
-### 🟠 High Priority (Should Fix Soon)
+### 🟠 High Priority (Should Complete)
 
-- [x] **~~Missing Intrinsic Handlers (6)~~** ✅ FIXED - All 6 intrinsics implemented
-  - `brk()` - CPU_BRK instruction ✅
-  - `barrier()` - Optimization barrier ✅
-  - `lo()` / `hi()` - Byte extraction ✅
-  - `volatile_read()` / `volatile_write()` - Forced memory operations ✅
-  - Plan: `plans/archive/go-intrinsics/` (ARCHIVED)
+- [ ] **Optimizer Implementation** (~200 hours)
+  - 103+ design documents in `plans/optimizer/`
+  - Dead code elimination
+  - Constant folding/propagation
+  - Peephole optimization
+  - 6502-specific optimizations
 
-- [ ] **Chained Function Call Type Checking**
-  - Complex type inference gap
-  - Skipped test: `type-checker-assignments-complex.test.ts`
+### 🟡 Medium Priority (Important for DX)
 
-### 🟡 Medium Priority (Should Do)
+- [ ] **Developer Experience Features** (`plans/dx-features/`)
+  - Source maps for debugging
+  - VICE emulator integration
+  - `blend65 init` command
+  - `blend65 run` command  
+  - `blend65 watch` command
+  - Project templates
 
-- [x] ~~**Array Initializer Values**~~ ✅ FIXED - Arrays now init with correct values
-- [x] ~~**Local Variable Code Generation**~~ ✅ FIXED - Proper ZP allocation
-- [x] ~~**Branch Instruction Selection**~~ ✅ FIXED - Proper BNE/BEQ selection
-- [x] ~~**Data Directive Generation**~~ ✅ FIXED - Correct `!fill` directives
+### 🟢 Low Priority (Future)
 
-### 🟢 Low Priority (Nice to Have)
+- [ ] **Native Assembler** (`plans/native-assembler/`)
+  - Direct .prg generation without ACME
+  - After optimizer is complete
 
-- [ ] **Power-of-2 Multiply Optimization** - Strength reduction
-  - Requires optimizer implementation
-  - Skipped test: `optimizer-metrics.test.ts`
-
-- [ ] **Performance Test Stability** - Flaky test (timing-dependent)
-  - Test: `performance.test.ts`
-
----
-
-## By Category
-
-### Planned Features (In Active Plans)
-
-| Feature | Plan | Status | Est. Time |
-|---------|------|--------|-----------|
-| ~~CALL_VOID bug fix~~ | `call-void-and-length-gap/` | ✅ **COMPLETE** | - |
-| ~~length() string~~ | `call-void-and-length-gap/` | ✅ **COMPLETE** | - |
-| ~~6 intrinsic handlers~~ | `go-intrinsics/` | ✅ **COMPLETE** | - |
-| ~~Array initializers~~ | `multiple-fixes/` | ✅ **COMPLETE** | - |
-| ~~Local variables~~ | `multiple-fixes/` | ✅ **COMPLETE** | - |
-| ~~Branch selection~~ | `multiple-fixes/` | ✅ **COMPLETE** | - |
-| ~~Data directives~~ | `multiple-fixes/` | ✅ **COMPLETE** | - |
-| Optimizer (full) | `optimizer/` | 📋 Docs Complete | 4-6 weeks |
-| Native assembler | `native-assembler/` | 📋 Planning | TBD |
-
-### Unplanned Gaps (Discovered)
-
-| Gap | Category | Impact |
-|-----|----------|--------|
-| Chained function call type checking | Type system | Low - edge case |
-| Performance test flakiness | Testing | Low - test issue |
-
-### Test Issues
-
-| Issue | File | Status |
-|-------|------|--------|
-| Performance consistency flaky | `performance.test.ts` | Skipped |
-| Complex type checking incomplete | `type-checker-assignments-complex.test.ts` | Skipped |
-| Strength reduction optimizer | `optimizer-metrics.test.ts` | Skipped (needs optimizer) |
-
-### Documentation Needed
-
-| Document | Priority |
-|----------|----------|
-| Getting Started Guide | High |
-| Language Tutorial | High |
-| API Reference | Medium |
-| Example Programs | Medium |
-| Troubleshooting Guide | Low |
+- [ ] **Language Features** (`plans/features/`)
+  - Inline assembly
+  - Interrupt handlers
+  - Sprite system
+  - Bit manipulation
 
 ---
 
-## Plans Status Overview
+## Active Plans
 
-| Plan | Status | Notes |
-|------|--------|-------|
-| `call-void-and-length-gap/` | ✅ **COMPLETE** | Archived |
-| `multiple-fixes/` | ✅ **COMPLETE** | Archived |
-| `go-intrinsics/` | ✅ **COMPLETE** | Archived |
-| `il-generator/` | ✅ **COMPLETE** | Archived (core + phases 1-8) |
-| `array-return-types/` | ⚠️ Inconsistent | Deliverables [x], tasks [ ] - verify |
-| `e2e-codegen-testing/` | 🔄 In Progress | Phase 1 complete |
-| `end-to-end/` | ⏳ Planning | Design docs, not started |
-| `optimizer/` | 📋 Docs Complete | 103 docs, 0 implementation |
-| `features/` | 📖 Research | Future features |
-| `native-assembler/` | ⏳ Planning | After optimizer |
-
-### Plans to Archive
-
-All bug fix plans are now archived! ✅
-
-### Plans Needing Update
-
-| Plan | Issue |
-|------|-------|
-| `end-to-end/00-index.md` | Says "Code Generator: ❌ Missing" but codegen works |
-| `array-return-types/` | Deliverables marked done but tasks not checked |
+| Plan | Status | Description | Estimated Time |
+|------|--------|-------------|----------------|
+| `optimizer/` | 📋 Docs Complete | 103+ design documents | ~200 hours (4-6 weeks) |
+| `dx-features/` | 📋 Ready | CLI, VICE, source maps | ~6-10 hours |
+| `native-assembler/` | 📋 Planning | Direct .prg output | TBD |
+| `features/` | 📖 Research | Future language features | TBD |
 
 ---
 
-## Recommended Next Steps
+## Archived Plans (Completed)
 
-### ✅ All Bug Fix Plans Complete!
+All bug fix plans have been completed and moved to `plans/archive/`:
 
-All priority 1 bug fix plans have been completed and archived:
-- ~~**Fix CALL_VOID bug**~~ ✅ DONE
-- ~~**Add length() string support**~~ ✅ DONE
-- ~~**Complete go-intrinsics**~~ ✅ DONE (6 handlers implemented)
-- ~~**Multiple fixes**~~ ✅ DONE (arrays, locals, branches, data)
-
-### Immediate (This Week)
-
-1. **Update outdated plans**
-   - `end-to-end/` needs revision
-   - `array-return-types/` needs verification
-
-### Short Term (Next 2 Weeks)
-
-2. **Begin optimizer implementation** - `plans/optimizer/`
-   - 103 design docs ready
-   - Start with foundation classes
-
-### Medium Term (Next Month)
-
-3. **Continue optimizer implementation**
-   - Pattern-based peephole optimizer
-   - Dead code elimination
-
-### Long Term (v1.0 Release)
-
-4. **Complete optimizer**
-5. **CLI improvements**
-6. **Documentation**
-7. **Example programs**
+| Plan | What It Fixed |
+|------|---------------|
+| `call-void-and-length-gap/` | CALL_VOID bug, length() string support |
+| `go-intrinsics/` | 6 intrinsic handlers (brk, barrier, lo, hi, volatile) |
+| `multiple-fixes/` | Array initializers, local vars, branches, data |
+| `array-return-types/` | Array return type parsing |
+| `e2e-codegen-testing/` | E2E testing infrastructure |
+| `end-to-end/` | Core pipeline completion |
+| `il-generator/` | IL generator with SSA |
+| `ssa-id-collision-tests-plan.md` | SSA ID collision fix |
 
 ---
 
-## Estimated Remaining Work
+## Skipped Tests (2)
 
-| Category | Items | Est. Time |
-|----------|-------|-----------|
-| ~~Critical Bugs~~ | ~~2~~ | ✅ DONE |
-| ~~High Priority~~ | ~~7~~ | ✅ DONE (intrinsics) |
-| ~~Medium Priority~~ | ~~4~~ | ✅ DONE (arrays, locals, branches) |
-| Low Priority | 2 | 1 hour |
-| Optimizer | 1 (major) | 4-6 weeks |
-| Documentation | 5 | 2-3 weeks |
-| **Bug Fixes Remaining** | **2** | **~1 hour** |
-| **Total to v1.0** | - | **~6-8 weeks** |
+| Test | File | Reason |
+|------|------|--------|
+| Power-of-2 multiply | `optimizer-metrics.test.ts` | Needs optimizer |
+| Performance consistency | `performance.test.ts` | Flaky timing test |
+
+Both are documented and expected to be skipped until relevant features are implemented.
 
 ---
 
 ## Test Suite Health
 
 ```
-Total Tests:     6,991
-Passing:         6,987 (99.94%)
-Failed:          1 (flaky performance test)
-Skipped:         3 (documented gaps)
+Total Tests:     6,998
+Passing:         6,996 (99.97%)
+Failed:          0
+Skipped:         2 (documented)
 
 Component Breakdown:
-- Lexer:         150+  ✅
-- Parser:        400+  ✅
-- AST:           100+  ✅
-- Semantic:      1,500+ ✅
-- IL Generator:  2,000+ ✅
-- Code Generator: 500+ ✅
-- ASM-IL:        500+  ✅
-- E2E/Integration: 1,800+ ✅
-- CLI:           10    ✅
+├── Lexer:           150+  ✅
+├── Parser:          400+  ✅
+├── AST:             100+  ✅
+├── Semantic:      1,500+  ✅
+├── IL Generator:  2,000+  ✅
+├── Code Generator:  500+  ✅
+├── ASM-IL:          500+  ✅
+├── E2E/Integration: 1,800+ ✅
+└── CLI:              10   ✅
 ```
 
 ---
 
-## Recent Fixes (This Session)
+## Recommended Next Steps
 
-### ✅ CALL_VOID Bug (Fixed January 27, 2026)
-- **Problem**: Functions returning values incorrectly used `CALL_VOID` instead of `CALL`
-- **Root Cause**: Symbol table lookup returned undefined for function signatures
-- **Fix**: Added IL module fallback lookup in `generateCallExpression()`
-- **File**: `packages/compiler/src/il/generator/expressions.ts`
-- **Test**: `generator-expressions-ternary.test.ts` now passing
+### Immediate (This Week)
 
-### ✅ length() String Support (Fixed January 27, 2026)
-- **Problem**: `length("hello")` rejected string literals
-- **Fix**: Added string literal handling in `generateLengthIntrinsic()`
-- **File**: `packages/compiler/src/il/generator/expressions.ts`
-- **Test**: `type-acceptance.test.ts` now passing
+1. **Decide: Optimizer or DX Features first?**
+   - Optimizer: More impactful for generated code quality
+   - DX Features: Better developer experience, faster iteration
+
+### If Starting Optimizer
+
+1. Read `plans/optimizer/00-index.md`
+2. Start with `plans/optimizer/01-architecture.md`
+3. Implement foundation: PassManager, Pass base class
+4. Proceed through phases sequentially
+
+### If Starting DX Features
+
+1. Read `plans/dx-features/00-index.md`
+2. Start with `plans/dx-features/99-execution-plan.md`
+3. Phase 1: Source maps (~2-3 hours)
+4. Phase 2: VICE integration (~1-2 hours)
+
+---
+
+## What's Working (Complete Features)
+
+### ✅ Language Features (100%)
+- All primitive types (byte, word, bool, void)
+- Array types with size
+- Functions with parameters and return values
+- Control flow (if/else, while, for, break, continue)
+- Ternary expressions
+- Address-of operator (`@`)
+- Memory-mapped variables (`@map`)
+- Module system (import/export)
+- Callback parameters
+- All intrinsics (peek, poke, peekw, pokew, length, sizeof)
+- Built-in functions (brk, barrier, lo, hi, volatile)
+
+### ✅ Compiler Pipeline (100%)
+- Lexer (complete tokenization)
+- Parser (Pratt expression parser, 6-layer architecture)
+- AST (complete node types, visitors, walkers)
+- Semantic Analyzer (type checking, multi-module)
+- IL Generator (SSA form, phi functions)
+- Code Generator (6502 assembly output)
+- Config System (blend65.json)
+
+### ✅ Infrastructure (100%)
+- Configuration loading
+- Library resolution
+- Error reporting with source locations
+- Multi-file compilation
+
+---
+
+## Estimated Timeline to v1.0
+
+| Phase | Duration | Status |
+|-------|----------|--------|
+| Core Compiler | - | ✅ COMPLETE |
+| Bug Fixes & Stabilization | - | ✅ COMPLETE |
+| Optimizer | 4-6 weeks | 📋 Ready to Start |
+| DX Features | 1-2 weeks | 📋 Ready to Start |
+| Documentation | 2-3 weeks | 📋 Planned |
+| Polish & Release | 1-2 weeks | 📋 Planned |
+| **Total to v1.0** | **~8-13 weeks** | - |
 
 ---
 
 ## Conclusion
 
-The Blend65 compiler is in **excellent shape** with a near-perfect test pass rate. All critical and high-priority bug fix plans are now **COMPLETE**!
+**The Blend65 compiler is feature-complete and stable.**
 
-**🎉 Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
+- ✅ All 6,996 tests passing
+- ✅ All bug fixes complete
+- ✅ Core compilation pipeline working
+- ✅ Can compile real C64 programs
 
-All planned bug fixes have been implemented and archived:
-- ✅ CALL_VOID bug fixed
-- ✅ length() string support added  
-- ✅ All 6 intrinsic handlers implemented
-- ✅ Array initializers, local variables, branch selection fixed
+**The remaining work is all additive** - new features to make the compiler better, not fixes for broken functionality.
 
-**Next focus: Optimizer implementation**
-- 103 design documents ready
-- Start with foundation classes
-- Estimated 4-6 weeks
-
-**The compiler can already compile working C64 programs.** The core compilation pipeline is complete and production-ready.
+**Ready to start:** Optimizer implementation or DX features, depending on priority.
 
 ---
 

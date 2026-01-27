@@ -1,19 +1,9 @@
-// ============================================================================
-// Hello World Example for Commodore 64
-// ============================================================================
-// A simple demonstration using only fully-implemented compiler features:
-// - Memory-mapped variables (@map) for hardware registers
-// - Direct poke() calls for screen memory
-// ============================================================================
-
 module Hello.World;
 
 import { poke, length, lo } from system;
 
-// Module-level array (works around local variable parsing)
 let data: byte[5] = [1, 2, 3, 4, 5];
 
-// === Main Program ===
 export function main(): void {
     let len = length(data);
     poke($D9EE, lo(len));

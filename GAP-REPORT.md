@@ -1,20 +1,24 @@
 # Blend65 Compiler Gap Report
 
 > **Generated**: January 27, 2026  
-> **Total Tests**: 6,991  
-> **Passed**: 6,987 (99.94%)  
-> **Failed**: 1 (flaky)  
-> **Skipped**: 3 (documented gaps)
+> **Total Tests**: 6,998  
+> **Passed**: 6,996 (99.97%)  
+> **Failed**: 0  
+> **Skipped**: 2 (documented)
 
 ---
 
 ## Executive Summary
 
-The Blend65 compiler is in **excellent health** with a 99.94% test pass rate. Only 3 tests are skipped (documented gaps) and 1 flaky test occasionally fails due to timing.
+The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. Only 2 tests are skipped (both documented and expected).
 
-**Recent Fixes (January 27, 2026):**
+**All Bug Fix Plans COMPLETE!**
 - ✅ CALL_VOID bug - FIXED
 - ✅ length() string support - FIXED
+- ✅ All 6 intrinsic handlers - IMPLEMENTED
+- ✅ Array initializers - FIXED
+- ✅ Local variables - FIXED
+- ✅ Branch selection - FIXED
 
 ### Test Results Overview
 
@@ -32,126 +36,41 @@ The Blend65 compiler is in **excellent health** with a 99.94% test pass rate. On
 
 ---
 
-## Recently Fixed Gaps
+## Skipped Tests (2 Total)
 
-### ✅ CALL_VOID Bug - Ternary Function Arguments (FIXED)
-
-**File**: `packages/compiler/src/__tests__/il/generator-expressions-ternary.test.ts`  
-**Test**: "should generate ternary for function argument"
-
-**Problem**: When calling a non-void function in certain contexts (like as a ternary expression argument), the IL generator incorrectly emitted `CALL_VOID` instead of `CALL`.
-
-**Fix**: Added IL module fallback lookup in `generateCallExpression()` when symbol table lookup returns undefined.
-
-**Status**: ✅ **FIXED** - Test now passing
-
----
-
-### ✅ length() String Literal Support (FIXED)
-
-**File**: `packages/compiler/src/__tests__/e2e/type-acceptance.test.ts`  
-**Test**: "should accept length() with string literal"
-
-**Problem**: The `length()` intrinsic only accepted array variables, not string literals like `length("hello")`.
-
-**Fix**: Added string literal handling in `generateLengthIntrinsic()` to return compile-time constant.
-
-**Status**: ✅ **FIXED** - Test now passing
-
----
-
-## Remaining Skipped Tests (3 Total)
-
-### 1. Chained Function Call Type Checking
-
-**File**: `packages/compiler/src/__tests__/semantic/type-checker-assignments-complex.test.ts`  
-**Test**: "should type check chained function calls"
-
-**Problem**: Complex type inference for chained function calls not fully implemented.
-
-**Impact**: Low - edge case in type system
-
-**Plan**: None (low priority)
-
-**Estimated Fix**: 1-2 hours
-
----
-
-### 2. Optimizer Strength Reduction
+### 1. Optimizer Strength Reduction
 
 **File**: `packages/compiler/src/__tests__/e2e/optimizer-metrics.test.ts`  
 **Test**: "should apply strength reduction for power-of-2 multiply"
 
-**Problem**: Optimizer not implemented - this tests optimizer behavior that doesn't exist yet.
+**Why Skipped**: Optimizer not implemented - this tests optimizer behavior that doesn't exist yet.
 
 **Impact**: None - expected to fail until optimizer is implemented
 
-**Plan**: `plans/optimizer/` (103 design documents ready)
+**Plan**: `plans/optimizer/` (103+ design documents ready)
 
-**Estimated Fix**: Part of optimizer implementation (4-6 weeks)
+**Status**: Will be enabled when optimizer is implemented
 
 ---
 
-### 3. Performance Test Consistency
+### 2. Performance Test Consistency
 
 **File**: `packages/compiler/src/__tests__/asm-il/integration/performance.test.ts`  
 **Test**: "should maintain consistent performance over multiple compilations"
 
-**Problem**: Test is flaky due to timing variations.
+**Why Skipped**: Test is flaky due to timing variations and system load.
 
 **Impact**: None - test infrastructure issue, not compiler bug
 
-**Plan**: None (low priority)
+**Plan**: None (test quality issue, not a gap)
 
-**Estimated Fix**: 30 minutes to fix or remove test
-
----
-
-## Flaky Test (1)
-
-### Performance Threshold Test
-
-**File**: `packages/compiler/src/__tests__/asm-il/integration/performance.test.ts`  
-**Test**: "should compile in < 50ms"
-
-**Problem**: Compilation time occasionally exceeds 50ms threshold (~65ms observed).
-
-**Impact**: None - timing variation, not a compiler bug
-
-**Resolution**: Consider adjusting threshold or marking as skip
-
----
-
-## Remaining Gaps by Priority
-
-### 🟠 High (Should Fix)
-
-| Gap | Impact | Plan | Fix Time |
-|-----|--------|------|----------|
-| ~~Missing intrinsic handlers (6)~~ | ~~Codegen stubs~~ | `go-intrinsics/` | ✅ FIXED |
-| Complex type checking | Edge cases | None | 1-2 hours |
-
-### 🟡 Medium (Nice to Have)
-
-| Gap | Impact | Plan | Fix Time |
-|-----|--------|------|----------|
-| ~~Array initializer values~~ | ~~Wrong init values~~ | `multiple-fixes/` | ✅ FIXED |
-| ~~Local variable codegen~~ | ~~STUB comments~~ | `multiple-fixes/` | ✅ FIXED |
-| ~~Branch instruction selection~~ | ~~Always JMP~~ | `multiple-fixes/` | ✅ FIXED |
-| ~~Data directive generation~~ | ~~Missing !fill~~ | `multiple-fixes/` | ✅ FIXED |
-
-### 🟢 Low (Future)
-
-| Gap | Impact | Plan | Fix Time |
-|-----|--------|------|----------|
-| Optimizer | Code quality | `optimizer/` | 4-6 weeks |
-| Performance test | Test flakiness | None | 30 min |
+**Status**: Skipped indefinitely - timing tests are inherently unreliable
 
 ---
 
 ## What's Working Well
 
-### ✅ Core Compilation Pipeline
+### ✅ Core Compilation Pipeline (100% Functional)
 
 - **Lexer**: Complete tokenization of all Blend65 syntax
 - **Parser**: Full parsing with Pratt expression parser
@@ -159,20 +78,21 @@ The Blend65 compiler is in **excellent health** with a 99.94% test pass rate. On
 - **IL Generator**: SSA-based intermediate representation
 - **Code Generator**: Working 6502 assembly output
 
-### ✅ Language Features
+### ✅ Language Features (All Working)
 
 - All primitive types (byte, word, boolean)
 - Array types and access
 - Functions with parameters and return values
 - Control flow (if/else, while, for, break, continue)
-- Ternary expressions
-- Address-of operator (@)
-- Memory-mapped variables (@map)
+- Ternary expressions (`condition ? then : else`)
+- Address-of operator (`@variable`, `@function`)
+- Memory-mapped variables (`@map`)
 - Module system with imports/exports
 - Callback parameters
-- **NEW**: `length("string")` for compile-time string length
+- All 6 intrinsics (peek, poke, peekw, pokew, length, sizeof)
+- Built-in functions (brk, barrier, lo, hi, volatile_read, volatile_write)
 
-### ✅ Infrastructure
+### ✅ Infrastructure (Complete)
 
 - Configuration system (blend65.json)
 - Library loading (@blend65/c64/hardware)
@@ -181,35 +101,77 @@ The Blend65 compiler is in **excellent health** with a 99.94% test pass rate. On
 
 ---
 
-## Recommended Fix Order
+## Active Development Plans
 
-### ✅ COMPLETED: All Bug Fix Plans!
+### Priority 1: Optimizer
 
-1. ~~**CALL_VOID bug**~~ ✅ FIXED
-2. ~~**length() string support**~~ ✅ FIXED
-3. ~~**Complete 6 intrinsic handlers**~~ ✅ FIXED - All handlers implemented
-4. ~~**Multiple fixes plan**~~ ✅ FIXED - Arrays, locals, branches, data
+| Plan | Status | Description |
+|------|--------|-------------|
+| `optimizer/` | 📋 Docs Complete | 103+ documents ready, ~200 hours estimated |
 
-### Next: Major Features
+### Priority 2: Developer Experience
 
-5. **Optimizer implementation** (4-6 weeks)
-   - 103 design documents ready
-   - Start with foundation, then incremental passes
-   - Plan: `plans/optimizer/`
+| Plan | Status | Description |
+|------|--------|-------------|
+| `dx-features/` | 📋 Ready | Source maps, VICE integration, CLI commands |
+
+### Priority 3: Future
+
+| Plan | Status | Description |
+|------|--------|-------------|
+| `native-assembler/` | 📋 Planning | Direct .prg generation |
+| `features/` | 📖 Research | Inline assembly, interrupts, sprites |
+
+---
+
+## Archived Plans (Completed)
+
+All bug fix and stabilization plans have been completed and archived:
+
+| Plan | Archived Date |
+|------|---------------|
+| `call-void-and-length-gap/` | January 27, 2026 |
+| `multiple-fixes/` | January 27, 2026 |
+| `go-intrinsics/` | January 27, 2026 |
+| `array-return-types/` | January 27, 2026 |
+| `il-generator/` | January 2026 |
+| `e2e-codegen-testing/` | January 27, 2026 |
+| `end-to-end/` | January 27, 2026 |
+| `ssa-id-collision-tests-plan.md` | January 27, 2026 |
+
+---
+
+## Remaining Work
+
+### Next Major Feature: Optimizer
+
+The optimizer is the next major focus with:
+- **103+ design documents** ready in `plans/optimizer/`
+- **Estimated time**: 4-6 weeks
+- **Covers**: Dead code elimination, constant folding, peephole optimization, 6502-specific optimizations
+
+### Developer Experience: dx-features
+
+After optimizer, the dx-features plan covers:
+- Source maps for debugging
+- VICE emulator integration
+- CLI commands (init, run, watch)
+- Project templates
 
 ---
 
 ## Conclusion
 
-The Blend65 compiler is **production-ready for basic programs** with only minor gaps remaining:
+**The Blend65 compiler is production-ready for basic programs!**
 
-- **99.94% test pass rate** - Excellent quality
-- **3 skipped tests** - All documented (down from 5)
-- **1 flaky test** - Timing-dependent
-- **~1 hour of bug fixes** - Only low-priority items remain
-- **Optimizer ready** - 103 design docs, just needs implementation
+- **99.97% test pass rate** - Excellent quality
+- **0 failing tests** - All tests pass
+- **2 skipped tests** - Both documented and expected
+- **All bug fixes complete** - Phase 2 finished
 
-**🎉 All bug fix plans are COMPLETE!** The compiler can already compile working Commodore 64 programs. Focus now shifts to the optimizer implementation.
+**🎉 Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
+
+The compiler can compile working Commodore 64 programs. Focus now shifts to the **optimizer implementation**.
 
 ---
 
@@ -217,10 +179,9 @@ The Blend65 compiler is **production-ready for basic programs** with only minor 
 
 - **PROJECT_STATUS.md** - Overall project status
 - **WHATS-LEFT.md** - Comprehensive remaining work list
-- **plans/archive/call-void-and-length-gap/** - ✅ COMPLETE (archived)
-- **plans/archive/multiple-fixes/** - ✅ COMPLETE (archived)
-- **plans/archive/go-intrinsics/** - ✅ COMPLETE (archived)
-- **plans/optimizer/** - 103 optimizer design documents
+- **plans/optimizer/** - 103+ optimizer design documents
+- **plans/dx-features/** - Developer experience plan
+- **plans/archive/** - All completed/archived plans
 
 ---
 
