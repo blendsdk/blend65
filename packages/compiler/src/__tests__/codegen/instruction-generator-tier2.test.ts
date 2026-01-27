@@ -240,14 +240,16 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       expect(output).toContain('$D020');
     });
 
-    it('should emit stub comment for unknown variables', () => {
+    it('should emit LDA for unknown variables (allocated as locals)', () => {
+      // Unknown variables are now allocated as locals in zero-page ($50-$7F range)
       const v0 = createRegister(0);
       const instr = new ILLoadVarInstruction(0, 'unknown', v0);
 
       generator.exposeGenerateLoadVar(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('STUB');
+      // Should emit LDA to zero-page address (lazy local allocation)
+      expect(output).toContain('LDA $');
       expect(output).toContain('unknown');
     });
 
@@ -311,14 +313,17 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       expect(output).toContain('$D020');
     });
 
-    it('should emit stub comment for unknown variables', () => {
+    it('should emit STA for unknown variables (allocated as locals)', () => {
+      // Unknown variables are now allocated as locals in zero-page ($50-$7F range)
       const v0 = createRegister(0);
       const instr = new ILStoreVarInstruction(0, 'unknown', v0);
 
       generator.exposeGenerateStoreVar(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      expect(output).toContain('STUB');
+      // Should emit STA to zero-page address (lazy local allocation)
+      expect(output).toContain('STA $');
+      expect(output).toContain('unknown');
     });
   });
 
@@ -661,8 +666,8 @@ const v0 = createRegister(0);
       generator.exposeGenerateInstruction(instr);
       const output = generator.exposeAssemblyWriter().toString();
 
-      // Stub will emit comment for unknown variable
-      expect(output).toContain('STUB');
+      // Unknown variables are allocated as locals, emitting STA to zero-page
+      expect(output).toContain('STA $');
     });
 
     it('should dispatch CALL to generateCall', () => {

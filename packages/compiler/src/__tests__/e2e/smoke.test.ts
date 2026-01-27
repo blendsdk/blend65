@@ -239,21 +239,19 @@ describe('E2E Smoke Tests - Known Issues Documentation', () => {
    * As issues are fixed, these tests should pass.
    */
 
-  describe('Array Initializers (KNOWN BUG)', () => {
-    // This test documents the known bug where array initializers
-    // generate $00 instead of actual values
-    it.skip('array literal should generate correct byte values', () => {
+  describe('Array Initializers (FIXED)', () => {
+    // This test documents the fix for array initializers
+    // IL generator now extracts values from ArrayLiteralExpression
+    it('array literal should generate correct byte values', () => {
       const asm = compileToAsm('let data: byte[3] = [1, 2, 3];');
       // Expected: !byte $01, $02, $03
-      // Actual: !byte $00, $00, $00 (or similar)
       expectAsmContains(asm, '!byte $01, $02, $03');
     });
   });
 
-  describe('Local Variables (KNOWN BUG)', () => {
-    // This test documents the known bug where local variables
-    // generate "STUB: Unknown variable" comments
-    it.skip('local variable should generate valid load/store', () => {
+  describe('Local Variables (FIXED)', () => {
+    // Local variable codegen was implemented - tests proper load/store
+    it('local variable should generate valid load/store', () => {
       const asm = compileToAsm(`
         function test(): byte {
           let x: byte = 10;

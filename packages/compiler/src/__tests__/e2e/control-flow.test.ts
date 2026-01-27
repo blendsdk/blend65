@@ -187,9 +187,7 @@ describe('E2E Control Flow - If Statements', () => {
       expect(result.success).toBe(true);
     });
 
-    // CODEGEN GAP: Conditional branches (BNE, BEQ) not yet implemented
-    // TODO: Implement proper branch instruction selection in code generator
-    it.skip('generates BNE for equality comparison', () => {
+    it('generates BNE for equality comparison', () => {
       const asm = compileToAsm(`
         let x: byte = 10;
         function test(): void {
@@ -214,9 +212,7 @@ describe('E2E Control Flow - If Statements', () => {
       expect(result.success).toBe(true);
     });
 
-    // CODEGEN GAP: Conditional branches (BNE, BEQ) not yet implemented
-    // TODO: Implement proper branch instruction selection in code generator
-    it.skip('generates BEQ for inequality comparison', () => {
+    it('generates BEQ for inequality comparison', () => {
       const asm = compileToAsm(`
         let x: byte = 10;
         function test(): void {

@@ -32,12 +32,11 @@ import {
 
 describe('E2E Variables - Global Declarations', () => {
   describe('Byte Variables', () => {
-    // CODEGEN GAP: !byte directive generation not implemented in globals generator
-    // The compiler generates labels but not data directives
-    it.skip('generates data section for global byte', () => {
+    it('generates data section for global byte', () => {
       const asm = compileToAsm('let counter: byte = 0;');
-      // Should have label for variable
-      expectAsmInstruction(asm, '!byte');
+      // Should have label and !byte directive for the variable
+      expectAsmContains(asm, '_counter:');
+      expectAsmContains(asm, '!byte $00');
     });
 
     it('generates initialized byte value', () => {
@@ -96,19 +95,17 @@ describe('E2E Variables - Global Declarations', () => {
     });
   });
 
-  describe('Array Variables', () => {
-    // CODEGEN GAP: !fill directive generation for arrays not implemented
-    it.skip('generates data section for byte array', () => {
+  describe('Array Variables (FIXED)', () => {
+    it('generates data section for byte array', () => {
       const asm = compileToAsm('let buffer: byte[10];');
-      // Should allocate 10 bytes
-      expectAsmContains(asm, '!fill 10');
+      // Should allocate 10 bytes with zero fill
+      expectAsmContains(asm, '!fill 10, $00');
     });
 
-    // CODEGEN GAP: !fill directive generation for arrays not implemented
-    it.skip('generates data section for word array', () => {
+    it('generates data section for word array', () => {
       const asm = compileToAsm('let pointers: word[5];');
-      // Should allocate 10 bytes (5 words)
-      expectAsmContains(asm, '!fill 10');
+      // Should allocate 10 bytes (5 words) with zero fill
+      expectAsmContains(asm, '!fill 10, $00');
     });
 
     it('compiles byte array declaration', () => {
@@ -241,11 +238,11 @@ describe('E2E Variables - Memory Mapped (@map)', () => {
 // =============================================================================
 
 describe('E2E Variables - Local Variables', () => {
-  describe('Local Variable Declaration - KNOWN BUG', () => {
-    // These tests document the known bug where local variables
-    // generate "STUB: Unknown variable" comments
+  describe('Local Variable Declaration', () => {
+    // Local variables now use zero-page allocation ($50-$7F range)
+    // instead of generating STUB comments
 
-    it.skip('should generate valid STA for local variable init', () => {
+    it('should generate valid STA for local variable init', () => {
       const asm = compileToAsm(`
         function test(): void {
           let x: byte = 10;
@@ -257,7 +254,7 @@ describe('E2E Variables - Local Variables', () => {
       expectAsmNotContains(asm, 'Unknown variable');
     });
 
-    it.skip('should generate valid LDA for local variable read', () => {
+    it('should generate valid LDA for local variable read', () => {
       const asm = compileToAsm(`
         function test(): byte {
           let x: byte = 10;

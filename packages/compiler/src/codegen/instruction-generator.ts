@@ -48,6 +48,20 @@ import {
 import { GlobalsGenerator } from './globals-generator.js';
 
 /**
+ * Tracks local variable allocation within a function.
+ */
+interface LocalVariableAllocation {
+  /** Variable name */
+  name: string;
+  /** Allocated zero-page address */
+  zpAddress: number;
+  /** Size in bytes */
+  size: number;
+  /** Type kind for word handling */
+  typeKind: string;
+}
+
+/**
  * Instruction code generator - extends globals generator
  *
  * Handles translation of IL instructions to 6502 assembly.
@@ -74,6 +88,101 @@ import { GlobalsGenerator } from './globals-generator.js';
  * This class is extended by the final CodeGenerator class.
  */
 export abstract class InstructionGenerator extends GlobalsGenerator {
+  // ============================================
+  // LOCAL VARIABLE ALLOCATION
+  // ============================================
+
+  /**
+   * Tracks local variable allocation within a function.
+   * Reset when generating a new function.
+   */
+  protected localAllocations: Map<string, LocalVariableAllocation> = new Map();
+
+  /**
+   * Next available zero-page address for locals.
+   * Starts after global ZP allocations at $50.
+   */
+  protected nextLocalZpAddress: number = 0x50;
+
+  /**
+   * Start address for function-local zero-page allocation.
+   */
+  protected static readonly LOCAL_ZP_START = 0x50;
+
+  /**
+   * End address for function-local zero-page allocation (exclusive).
+   * 48 bytes available: $50-$7F
+   */
+  protected static readonly LOCAL_ZP_END = 0x80;
+
+  /**
+   * Current function's parameter names for lookup.
+   */
+  protected currentFunctionParams: Set<string> = new Set();
+
+  /**
+   * Resets local variable tracking for a new function.
+   */
+  protected resetLocalAllocations(): void {
+    this.localAllocations.clear();
+    this.nextLocalZpAddress = InstructionGenerator.LOCAL_ZP_START;
+    this.currentFunctionParams.clear();
+  }
+
+  /**
+   * Allocates zero-page space for a local variable.
+   *
+   * @param name - Variable name
+   * @param typeKind - Type kind (byte, word, bool)
+   * @returns Allocated address or undefined if out of space
+   */
+  protected allocateLocalVariable(name: string, typeKind: string): number | undefined {
+    // Check if already allocated
+    const existing = this.localAllocations.get(name);
+    if (existing) {
+      return existing.zpAddress;
+    }
+
+    const size = typeKind === 'word' || typeKind === 'pointer' ? 2 : 1;
+
+    if (this.nextLocalZpAddress + size > InstructionGenerator.LOCAL_ZP_END) {
+      this.addWarning(`Local variable ZP overflow: cannot allocate '${name}'`);
+      return undefined;
+    }
+
+    const address = this.nextLocalZpAddress;
+    this.nextLocalZpAddress += size;
+
+    this.localAllocations.set(name, {
+      name,
+      zpAddress: address,
+      size,
+      typeKind,
+    });
+
+    return address;
+  }
+
+  /**
+   * Looks up a local variable's allocation.
+   *
+   * @param name - Variable name
+   * @returns Allocation info or undefined if not found
+   */
+  protected lookupLocalVariable(name: string): LocalVariableAllocation | undefined {
+    return this.localAllocations.get(name);
+  }
+
+  /**
+   * Checks if a variable is a parameter of the current function.
+   *
+   * @param name - Variable name
+   * @returns true if it's a parameter
+   */
+  protected isCurrentFunctionParam(name: string): boolean {
+    return this.currentFunctionParams.has(name);
+  }
+
   // ============================================
   // FUNCTION CODE GENERATION
   // ============================================
@@ -102,6 +211,16 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
    */
   protected generateFunction(func: ILFunction): void {
     const label = this.getFunctionLabel(func.name);
+
+    // Reset local variable allocations for this function
+    this.resetLocalAllocations();
+
+    // Setup parameter tracking for this function
+    for (const param of func.parameters) {
+      this.currentFunctionParams.add(param.name);
+      // Pre-allocate parameters in local allocations
+      this.allocateLocalVariable(param.name, param.type.kind);
+    }
 
     // Track source location if available
     const entryBlock = func.getEntryBlock();
@@ -317,6 +436,13 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   protected lastConstResult: string | null = null;
 
   /**
+   * Tracks the last comparison opcode for branch instruction selection.
+   * When a CMP_* instruction is generated, this is set so the subsequent
+   * BRANCH instruction can select the appropriate 6502 branch instruction.
+   */
+  protected lastComparisonOpcode: ILOpcode | null = null;
+
+  /**
    * Generates code for CONST instruction
    *
    * Loads a constant value into the accumulator.
@@ -413,8 +539,16 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   /**
    * Generates code for BRANCH instruction
    *
-   * STUB: Generates unconditional jump to then-block.
-   * Full implementation would use conditional branches.
+   * Uses the tracked comparison opcode (from preceding CMP_* instruction)
+   * to select the appropriate 6502 conditional branch instruction.
+   *
+   * Branch logic:
+   * - CMP_EQ (==): Use BNE to skip to else if not equal
+   * - CMP_NE (!=): Use BEQ to skip to else if equal
+   * - CMP_LT (<): Use BCS to skip to else if >= (carry set)
+   * - CMP_GE (>=): Use BCC to skip to else if < (carry clear)
+   * - CMP_GT (>): Use BCC/BEQ to skip to else if <= 
+   * - CMP_LE (<=): Complex - requires BCS or (BCC + BNE sequence)
    *
    * @param instr - Branch instruction
    */
@@ -422,61 +556,162 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     const thenLabel = this.getBlockLabel(instr.thenTarget.name);
     const elseLabel = this.getBlockLabel(instr.elseTarget.name);
 
-    // STUB: Comment showing intended behavior, then unconditional jump
-    this.emitComment(`STUB: Branch on ${instr.condition} ? ${thenLabel} : ${elseLabel}`);
+    // Use tracked comparison opcode to select appropriate branch
+    if (this.lastComparisonOpcode !== null) {
+      this.emitComment(`Branch on ${instr.condition} ? ${thenLabel} : ${elseLabel}`);
+      
+      switch (this.lastComparisonOpcode) {
+        case ILOpcode.CMP_EQ:
+          // Equal: Z flag set if equal, use BNE to skip to else
+          this.emitInstruction('BNE', elseLabel, 'Skip to else if not equal', 2);
+          break;
+          
+        case ILOpcode.CMP_NE:
+          // Not equal: Z flag set if equal, use BEQ to skip to else
+          this.emitInstruction('BEQ', elseLabel, 'Skip to else if equal', 2);
+          break;
+          
+        case ILOpcode.CMP_LT:
+          // Less than: C flag clear if A < operand, use BCS to skip to else if >=
+          this.emitInstruction('BCS', elseLabel, 'Skip to else if >= (carry set)', 2);
+          break;
+          
+        case ILOpcode.CMP_GE:
+          // Greater or equal: C flag set if A >= operand, use BCC to skip to else if <
+          this.emitInstruction('BCC', elseLabel, 'Skip to else if < (carry clear)', 2);
+          break;
+          
+        case ILOpcode.CMP_GT:
+          // Greater than: C set AND Z clear means A > operand
+          // Skip to else if not greater: BCC (if <) or BEQ (if ==)
+          this.emitInstruction('BCC', elseLabel, 'Skip to else if <', 2);
+          this.emitInstruction('BEQ', elseLabel, 'Skip to else if ==', 2);
+          break;
+          
+        case ILOpcode.CMP_LE:
+          // Less than or equal: C clear OR Z set means A <= operand
+          // Skip to else if greater: C set AND Z clear
+          // This is complex - simplify by using BEQ to catch equal case first
+          this.emitInstruction('BEQ', thenLabel, 'Take then if equal', 2);
+          this.emitInstruction('BCS', elseLabel, 'Skip to else if > (carry set, not equal)', 2);
+          break;
+          
+        default:
+          // Unknown comparison - fall back to unconditional jump
+          this.emitComment(`Unknown comparison type: ${this.lastComparisonOpcode}`);
+          this.emitJmp(thenLabel, 'Fallback: unconditional jump');
+      }
+      
+      // Reset comparison tracking after use
+      this.lastComparisonOpcode = null;
+      
+      // Fall through to then block (except for CMP_LE which is handled above)
+      // Note: The jump to thenLabel is implicit - we fall through after the conditional branch
+      // Only emit JMP to then if the else branch was taken
+      return;
+    }
 
-    // For stub, always take the "then" path
+    // No tracked comparison - use STUB behavior with unconditional jump
+    this.emitComment(`STUB: Branch on ${instr.condition} ? ${thenLabel} : ${elseLabel}`);
     this.emitJmp(thenLabel, 'STUB: Always take then-branch');
   }
 
   /**
    * Generates code for LOAD_VAR instruction
    *
+   * Checks local variables first, then global variables and labels.
+   *
    * @param instr - Load variable instruction
    */
   protected generateLoadVar(instr: ILLoadVarInstruction): void {
-    const addrInfo = this.lookupGlobalAddress(instr.variableName);
+    // Check local variables FIRST (including function parameters)
+    const local = this.lookupLocalVariable(instr.variableName);
+    if (local) {
+      if (local.typeKind === 'word' || local.typeKind === 'pointer') {
+        // Word load: low byte to A, high byte to X
+        this.emitLdaZeroPage(local.zpAddress, `Load ${instr.variableName} (low)`);
+        this.emitInstruction('LDX', this.formatZeroPage(local.zpAddress + 1), `Load ${instr.variableName} (high)`, 2);
+      } else {
+        this.emitLdaZeroPage(local.zpAddress, `Load ${instr.variableName}`);
+      }
+      return;
+    }
 
+    // Check global memory-mapped addresses
+    const addrInfo = this.lookupGlobalAddress(instr.variableName);
     if (addrInfo) {
       if (addrInfo.isZeroPage) {
         this.emitLdaZeroPage(addrInfo.address, `Load ${instr.variableName}`);
       } else {
         this.emitLdaAbsolute(addrInfo.address, `Load ${instr.variableName}`);
       }
+      return;
+    }
+
+    // Check global label-based variables
+    const label = this.lookupGlobalLabel(instr.variableName);
+    if (label) {
+      this.emitInstruction('LDA', label, `Load ${instr.variableName}`, 3);
+      return;
+    }
+
+    // Unknown variable - try to allocate as local (lazy allocation)
+    // Default to byte type for unknown variables
+    const zpAddr = this.allocateLocalVariable(instr.variableName, 'byte');
+    if (zpAddr !== undefined) {
+      this.emitLdaZeroPage(zpAddr, `Load ${instr.variableName} (auto-allocated local)`);
     } else {
-      // Use label for RAM variables
-      const label = this.lookupGlobalLabel(instr.variableName);
-      if (label) {
-        this.emitInstruction('LDA', label, `Load ${instr.variableName}`, 3);
-      } else {
-        this.emitComment(`STUB: Unknown variable ${instr.variableName}`);
-        this.emitLdaImmediate(0, 'Placeholder');
-      }
+      this.emitComment(`STUB: Unknown variable ${instr.variableName}`);
+      this.emitLdaImmediate(0, 'Placeholder');
     }
   }
 
   /**
    * Generates code for STORE_VAR instruction
    *
+   * Checks local variables first, then global variables and labels.
+   *
    * @param instr - Store variable instruction
    */
   protected generateStoreVar(instr: ILStoreVarInstruction): void {
-    const addrInfo = this.lookupGlobalAddress(instr.variableName);
+    // Check local variables FIRST (including function parameters)
+    const local = this.lookupLocalVariable(instr.variableName);
+    if (local) {
+      if (local.typeKind === 'word' || local.typeKind === 'pointer') {
+        // Word store: A has low byte, X has high byte
+        this.emitStaZeroPage(local.zpAddress, `Store ${instr.variableName} (low)`);
+        this.emitInstruction('STX', this.formatZeroPage(local.zpAddress + 1), `Store ${instr.variableName} (high)`, 2);
+      } else {
+        this.emitStaZeroPage(local.zpAddress, `Store ${instr.variableName}`);
+      }
+      return;
+    }
 
+    // Check global memory-mapped addresses
+    const addrInfo = this.lookupGlobalAddress(instr.variableName);
     if (addrInfo) {
       if (addrInfo.isZeroPage) {
         this.emitStaZeroPage(addrInfo.address, `Store ${instr.variableName}`);
       } else {
         this.emitStaAbsolute(addrInfo.address, `Store ${instr.variableName}`);
       }
+      return;
+    }
+
+    // Check global label-based variables
+    const label = this.lookupGlobalLabel(instr.variableName);
+    if (label) {
+      this.emitInstruction('STA', label, `Store ${instr.variableName}`, 3);
+      return;
+    }
+
+    // Unknown variable - try to allocate as local (lazy allocation)
+    // Default to byte type for unknown variables
+    const zpAddr = this.allocateLocalVariable(instr.variableName, 'byte');
+    if (zpAddr !== undefined) {
+      this.emitStaZeroPage(zpAddr, `Store ${instr.variableName} (auto-allocated local)`);
     } else {
-      // Use label for RAM variables
-      const label = this.lookupGlobalLabel(instr.variableName);
-      if (label) {
-        this.emitInstruction('STA', label, `Store ${instr.variableName}`, 3);
-      } else {
-        this.emitComment(`STUB: Unknown variable ${instr.variableName}`);
-      }
+      this.emitComment(`STUB: Unknown variable ${instr.variableName}`);
     }
   }
 
@@ -560,35 +795,42 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
       // - Z flag: set if A == operand
       // - C flag: set if A >= operand (unsigned)
       // - N flag: set if result bit 7 is set
+      // Track the comparison opcode for subsequent BRANCH instruction to select
+      // the appropriate 6502 branch instruction.
       case ILOpcode.CMP_EQ:
         // Equal: Z flag set after CMP
         this.emitInstruction('CMP', '#$00', 'STUB: Compare for equality', 2);
-        // Result handling done by subsequent BRANCH instruction
+        this.lastComparisonOpcode = ILOpcode.CMP_EQ;
         break;
 
       case ILOpcode.CMP_NE:
         // Not equal: Z flag clear after CMP
         this.emitInstruction('CMP', '#$00', 'STUB: Compare for inequality', 2);
+        this.lastComparisonOpcode = ILOpcode.CMP_NE;
         break;
 
       case ILOpcode.CMP_LT:
         // Less than (unsigned): C flag clear after CMP
         this.emitInstruction('CMP', '#$00', 'STUB: Compare for less than', 2);
+        this.lastComparisonOpcode = ILOpcode.CMP_LT;
         break;
 
       case ILOpcode.CMP_LE:
         // Less than or equal (unsigned): C clear OR Z set
         this.emitInstruction('CMP', '#$00', 'STUB: Compare for less than or equal', 2);
+        this.lastComparisonOpcode = ILOpcode.CMP_LE;
         break;
 
       case ILOpcode.CMP_GT:
         // Greater than (unsigned): C set AND Z clear
         this.emitInstruction('CMP', '#$00', 'STUB: Compare for greater than', 2);
+        this.lastComparisonOpcode = ILOpcode.CMP_GT;
         break;
 
       case ILOpcode.CMP_GE:
         // Greater than or equal (unsigned): C flag set after CMP
         this.emitInstruction('CMP', '#$00', 'STUB: Compare for greater than or equal', 2);
+        this.lastComparisonOpcode = ILOpcode.CMP_GE;
         break;
 
       default:

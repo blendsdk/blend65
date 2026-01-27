@@ -184,12 +184,12 @@ describe('GlobalsGenerator - Type Size Calculation', () => {
       expect(generator.exposeGetTypeSize(arrayType)).toBe(10); // 5 * 2
     });
 
-    it('should default to 1 for array type without explicit size', () => {
-      // ILType uses sizeInBytes but getTypeSize looks for size property
-      // Without explicit size, it falls through to default case
+    it('should use sizeInBytes for array type without explicit size property', () => {
+      // Dynamic arrays (length: null) have sizeInBytes set to pointer size (2)
+      // getTypeSize now uses sizeInBytes when available
       const dynamicArray = createArrayType(IL_BYTE, null);
-      // The method doesn't recognize sizeInBytes, returns default 1
-      expect(generator.exposeGetTypeSize(dynamicArray)).toBe(1);
+      // Dynamic arrays have sizeInBytes: 2 (pointer size)
+      expect(generator.exposeGetTypeSize(dynamicArray)).toBe(2);
     });
 
     it('should use sizeInBytes when passed as size property', () => {

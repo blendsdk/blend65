@@ -432,13 +432,23 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
   /**
    * Gets the size in bytes for an IL type
    *
+   * Priority:
+   * 1. Explicit 'size' property (test/legacy API, allows 0)
+   * 2. 'sizeInBytes' property for ILType arrays (when > 0)
+   * 3. Kind-based inference
+   *
    * @param type - IL type
    * @returns Size in bytes
    */
-  protected getTypeSize(type: { kind: string; size?: number }): number {
-    // Use explicit size if available
+  protected getTypeSize(type: { kind: string; size?: number; sizeInBytes?: number }): number {
+    // Check for explicit size override first (allows size: 0)
     if (type.size !== undefined) {
       return type.size;
+    }
+
+    // Use sizeInBytes for ILType arrays (when meaningful, i.e., > 0)
+    if (type.sizeInBytes !== undefined && type.sizeInBytes > 0) {
+      return type.sizeInBytes;
     }
 
     // Infer from kind

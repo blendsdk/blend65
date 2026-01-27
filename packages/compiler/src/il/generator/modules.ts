@@ -41,6 +41,8 @@ import {
   SequentialStructMapDecl,
   ExplicitStructMapDecl,
   LiteralExpression,
+  ArrayLiteralExpression,
+  UnaryExpression,
 } from '../../ast/nodes.js';
 import { ASTNodeType } from '../../ast/base.js';
 import { TokenType } from '../../lexer/types.js';
@@ -294,23 +296,36 @@ export class ILModuleGenerator extends ILGeneratorBase {
     // Convert storage class
     const storageClass = this.convertTokenStorageClass(storageClassToken);
 
-    // Extract initial value if it's a literal
+    // Extract initial value if it's a literal or array literal
     let initialValue: number | number[] | undefined;
-    if (initializer && initializer.getNodeType() === ASTNodeType.LITERAL_EXPR) {
-      const literal = initializer as LiteralExpression;
-      const value = literal.getValue();
-      if (typeof value === 'number') {
-        initialValue = value;
-      } else if (typeof value === 'boolean') {
-        initialValue = value ? 1 : 0;
-      } else if (typeof value === 'string') {
-        // Convert string to array of character codes (ASCII/PETSCII)
-        // No null terminator - Blend65 has static sizes, users can add \0 explicitly
-        const bytes: number[] = [];
-        for (let i = 0; i < value.length; i++) {
-          bytes.push(value.charCodeAt(i) & 0xff);
+    if (initializer) {
+      const nodeType = initializer.getNodeType();
+
+      if (nodeType === ASTNodeType.LITERAL_EXPR) {
+        // Single literal value
+        const literal = initializer as LiteralExpression;
+        const value = literal.getValue();
+        if (typeof value === 'number') {
+          initialValue = value;
+        } else if (typeof value === 'boolean') {
+          initialValue = value ? 1 : 0;
+        } else if (typeof value === 'string') {
+          // Convert string to array of character codes (ASCII/PETSCII)
+          // No null terminator - Blend65 has static sizes, users can add \0 explicitly
+          const bytes: number[] = [];
+          for (let i = 0; i < value.length; i++) {
+            bytes.push(value.charCodeAt(i) & 0xff);
+          }
+          initialValue = bytes;
         }
-        initialValue = bytes;
+      } else if (nodeType === ASTNodeType.ARRAY_LITERAL_EXPR) {
+        // Array literal - extract values from elements
+        const arrayLiteral = initializer as ArrayLiteralExpression;
+        const extractedValues = this.extractArrayLiteralValues(arrayLiteral);
+        if (extractedValues !== undefined) {
+          initialValue = extractedValues;
+        }
+        // If extraction fails, initialValue remains undefined (will generate zeros)
       }
     }
 
@@ -326,6 +341,96 @@ export class ILModuleGenerator extends ILGeneratorBase {
     if (symbol) {
       this.recordVariableMapping(symbol, undefined, true);
     }
+  }
+
+  /**
+   * Extracts numeric values from an ArrayLiteralExpression.
+   *
+   * Handles:
+   * - Numeric literals (decimal, hex, binary)
+   * - Boolean literals (true = 1, false = 0)
+   * - Unary minus for negative numbers
+   *
+   * @param arrayLiteral - The array literal AST node
+   * @returns Array of numeric values, or undefined if extraction fails
+   */
+  protected extractArrayLiteralValues(
+    arrayLiteral: ArrayLiteralExpression,
+  ): number[] | undefined {
+    const values: number[] = [];
+
+    for (const element of arrayLiteral.getElements()) {
+      const extractedValue = this.extractConstantValue(element);
+      if (extractedValue === null) {
+        // Non-constant element - cannot extract at compile time
+        // Fall back to zero-fill behavior
+        return undefined;
+      }
+      values.push(extractedValue);
+    }
+
+    return values;
+  }
+
+  /**
+   * Extracts a constant numeric value from an expression.
+   *
+   * Handles:
+   * - Numeric literals
+   * - Boolean literals
+   * - Unary minus expressions on literals
+   *
+   * @param expr - The expression to extract from
+   * @returns The numeric value, or null if not a constant
+   */
+  protected extractConstantValue(expr: ASTNode): number | null {
+    const nodeType = expr.getNodeType();
+
+    if (nodeType === ASTNodeType.LITERAL_EXPR) {
+      const literal = expr as LiteralExpression;
+      const value = literal.getValue();
+      if (typeof value === 'number') {
+        return value;
+      }
+      if (typeof value === 'boolean') {
+        return value ? 1 : 0;
+      }
+      // String literals in array elements are not supported
+      return null;
+    }
+
+    if (nodeType === ASTNodeType.UNARY_EXPR) {
+      // Handle negative numbers: -1, -$FF, etc.
+      const unary = expr as UnaryExpression;
+      const operator = unary.getOperator();
+      const operand = unary.getOperand();
+
+      if (operator === TokenType.MINUS) {
+        const operandValue = this.extractConstantValue(operand);
+        if (operandValue !== null) {
+          return -operandValue;
+        }
+      }
+
+      if (operator === TokenType.BITWISE_NOT) {
+        // Bitwise NOT: ~$FF = $00
+        const operandValue = this.extractConstantValue(operand);
+        if (operandValue !== null) {
+          return ~operandValue & 0xff; // Keep as byte
+        }
+      }
+
+      if (operator === TokenType.NOT) {
+        // Logical NOT: !0 = 1, !1 = 0
+        const operandValue = this.extractConstantValue(operand);
+        if (operandValue !== null) {
+          return operandValue === 0 ? 1 : 0;
+        }
+      }
+    }
+
+    // Not a constant expression
+    return null;
   }
 
   /**
