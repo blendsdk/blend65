@@ -1,6 +1,5 @@
 # Intrinsics
 
-> **Version**: 2.0.0  
 > **Status**: Draft  
 > **Related**: [ASM Functions](09-asm-functions.md)
 
@@ -10,11 +9,9 @@ Intrinsics are built-in functions that the compiler handles specially. They eith
 - Generate optimized inline code (no function call overhead)
 - Evaluate at compile-time (no runtime cost)
 
-## v2 Intrinsics (10 Core Functions)
+Blend65 provides **10 core intrinsic functions** for memory access, byte extraction, compile-time operations, and optimizer control.
 
-v2 simplifies the intrinsic set from ~18 functions to **10 core functions**.
-
-CPU control operations (sei, cli, nop, brk) and stack operations (pha, pla, php, plp) are now available as `asm_*()` functions instead.
+CPU control operations (sei, cli, nop, brk) and stack operations (pha, pla, php, plp) are available as `asm_*()` functions - see [ASM Functions](09-asm-functions.md).
 
 ## Memory Access Intrinsics
 
@@ -211,22 +208,22 @@ volatile_write($DC0D, $7F);
 
 **Code Generation:** Forced `STA` instruction, never optimized away.
 
-## Removed Intrinsics (Use asm_* Instead)
+## CPU and Stack Operations
 
-The following intrinsics from v1 are **removed**. Use `asm_*()` functions instead:
+The following CPU control and stack operations are NOT intrinsics - they are available as `asm_*()` functions:
 
-| v1 Intrinsic | v2 Replacement |
-|--------------|----------------|
-| `sei()` | `asm_sei()` |
-| `cli()` | `asm_cli()` |
-| `nop()` | `asm_nop()` |
-| `brk()` | `asm_brk()` |
-| `pha()` | `asm_pha()` |
-| `pla()` | `asm_pla()` |
-| `php()` | `asm_php()` |
-| `plp()` | `asm_plp()` |
+| Operation | ASM Function |
+|-----------|--------------|
+| Disable interrupts | `asm_sei()` |
+| Enable interrupts | `asm_cli()` |
+| No operation | `asm_nop()` |
+| Break | `asm_brk()` |
+| Push accumulator | `asm_pha()` |
+| Pull accumulator | `asm_pla()` |
+| Push processor status | `asm_php()` |
+| Pull processor status | `asm_plp()` |
 
-See [ASM Functions](09-asm-functions.md) for the complete list.
+See [ASM Functions](09-asm-functions.md) for the complete list of all 56 6502 instructions.
 
 ## Summary
 

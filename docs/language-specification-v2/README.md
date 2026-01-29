@@ -1,13 +1,12 @@
-# Blend65 Language Specification v2
+# Blend65 Language Specification
 
-> **Version**: 2.0.0  
 > **Status**: Draft  
 > **Date**: January 29, 2026  
 > **Architecture**: Static Frame Allocation (SFA)
 
 ## Overview
 
-Blend65 v2 is a simplified, TypeScript-like language designed for Commodore 64 development. It compiles to efficient 6502 machine code using **Static Frame Allocation (SFA)** instead of SSA.
+Blend65 is a TypeScript-like language designed for Commodore 64 development. It compiles to efficient 6502 machine code using **Static Frame Allocation (SFA)**.
 
 ## Design Philosophy
 
@@ -15,26 +14,6 @@ Blend65 v2 is a simplified, TypeScript-like language designed for Commodore 64 d
 - **Simplicity over complexity** - Fewer features, done right
 - **6502-native design** - Works WITH the hardware, not against it
 - **Beginner-friendly** - Clear errors, good documentation
-
-## Key Changes from v1
-
-### Removed Features
-
-| Feature | Reason | Alternative |
-|---------|--------|-------------|
-| `@map` syntax (all 4 forms) | Too complex | Use `const` + `peek()`/`poke()` |
-| Recursion | Required for SFA | Use iteration |
-| sei/cli/nop/brk intrinsics | Redundant | Use `asm_*()` functions |
-| pha/pla/php/plp intrinsics | Redundant | Use `asm_*()` functions |
-
-### New Features
-
-| Feature | Description |
-|---------|-------------|
-| Static Frame Allocation | Compiler manages function frames at compile-time |
-| No recursion guarantee | Compile-time error if recursion detected |
-| Simplified intrinsics | 10 core functions only |
-| `asm_*()` functions | All 56 6502 instructions available as functions |
 
 ## Document Index
 
@@ -110,7 +89,7 @@ asm_jsr(address);       // JSR address
 asm_rts();              // RTS
 asm_pha();              // PHA
 asm_pla();              // PLA
-// ... etc
+// ... etc (see 09-asm-functions.md for complete list)
 ```
 
 ### Example Program

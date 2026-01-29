@@ -1,12 +1,11 @@
 # Compiler Architecture
 
-> **Version**: 2.0.0  
 > **Status**: Draft  
 > **Architecture**: Static Frame Allocation (SFA)
 
 ## Overview
 
-The Blend65 v2 compiler uses **Static Frame Allocation (SFA)** instead of SSA (Static Single Assignment). This is the standard approach for 6502 compilers like KickC, Prog8, and cc65.
+The Blend65 compiler uses **Static Frame Allocation (SFA)** instead of SSA (Static Single Assignment). This is the standard approach for 6502 compilers like KickC, Prog8, and cc65.
 
 ## Why SFA Instead of SSA?
 
@@ -429,7 +428,7 @@ $E000-$FFFF  KERNAL ROM
 
 ## Summary
 
-### v2 Compiler Characteristics
+### Compiler Characteristics
 
 | Aspect | Description |
 |--------|-------------|
