@@ -1,8 +1,8 @@
 # Blend65 Compiler Gap Report
 
-> **Generated**: January 27, 2026  
-> **Total Tests**: 7,080  
-> **Passed**: 7,078 (99.97%)  
+> **Generated**: January 28, 2026 (Updated)  
+> **Total Tests**: 7,061  
+> **Passed**: 7,059 (99.97%)  
 > **Failed**: 0  
 > **Skipped**: 2 (documented)
 
@@ -10,15 +10,26 @@
 
 ## Executive Summary
 
-The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. Only 2 tests are skipped (both documented and expected).
+⚠️ **CRITICAL UPDATE**: Despite 99.97% test pass rate, **real-world testing reveals the compiler produces non-functional code**.
 
-**All Bug Fix Plans COMPLETE!**
-- ✅ CALL_VOID bug - FIXED
-- ✅ length() string support - FIXED
-- ✅ All 6 intrinsic handlers - IMPLEMENTED
-- ✅ Array initializers - FIXED
-- ✅ Local variables - FIXED
-- ✅ Branch selection - FIXED
+**Tests pass because they verify compilation succeeds, not that generated code works.**
+
+### 🔴 Critical Gaps Discovered
+
+| Example Program | Status | Issue |
+|-----------------|--------|-------|
+| `print-demo.blend` | ❌ FAILS | STUB instructions, arithmetic broken |
+| `main.blend` | ❌ FAILS | Undefined labels (`_main`, `_data`) |
+| `hardware.blend` | ❌ FAILS | "Member access is not yet fully implemented" |
+
+### Root Cause
+
+The Code Generator has **STUB implementations**:
+- Binary operations (ADD, SUB, CMP) use `#$00` placeholder instead of actual operands
+- PHI nodes emit NOP instead of actual moves
+- MUL, SHR, arrays not implemented (emit NOP)
+
+**See**: `plans/fix-oversight/` for comprehensive fix plan (7 phases, 8-14 sessions)
 
 ### Test Results Overview
 
@@ -69,6 +80,27 @@ The Blend65 compiler is in **excellent health** with a 99.97% test pass rate. On
 
 ---
 
+## Recently Completed
+
+### ✅ ASM-IL Mandatory Refactor (January 28, 2026)
+
+The code generator now uses ASM-IL as the **mandatory and only** path for code generation:
+
+| Change | Description |
+|--------|-------------|
+| Removed `useAsmIL` flag | No more dual-path code generation |
+| Removed `AssemblyWriter` | No direct text assembly generation |
+| ASM-IL only path | All code flows through `AsmModuleBuilder` → `AcmeEmitter` |
+| ACME label format | Fixed label colon suffix for ACME compatibility |
+
+**Benefits**:
+- Structured assembly representation
+- Enables future ASM-level optimizations
+- Single code path = simpler maintenance
+- Better debugging and source map support
+
+---
+
 ## Code TODOs (Future Enhancements)
 
 The following TODOs exist in the source code - all are **low priority** future enhancements, not bugs:
@@ -98,7 +130,8 @@ The following TODOs exist in the source code - all are **low priority** future e
 - **Parser**: Full parsing with Pratt expression parser
 - **Semantic Analyzer**: Complete type checking, multi-module support
 - **IL Generator**: SSA-based intermediate representation
-- **Code Generator**: Working 6502 assembly output
+- **Code Generator**: Working 6502 assembly output via ASM-IL
+- **ASM-IL Layer**: Structured assembly representation (mandatory path)
 
 ### ✅ Language Features (All Working)
 
@@ -137,13 +170,7 @@ The following TODOs exist in the source code - all are **low priority** future e
 |------|--------|-------------|
 | `dx-features/` | 📋 Ready | Source maps, VICE integration, CLI commands |
 
-### Priority 3: Testing
-
-| Plan | Status | Description |
-|------|--------|-------------|
-| `extreme-e2e-testing/` | 🔄 In Progress | Phase 1-4 partially complete |
-
-### Priority 4: Future
+### Priority 3: Future
 
 | Plan | Status | Description |
 |------|--------|-------------|
@@ -160,7 +187,7 @@ All bug fix and stabilization plans have been completed and archived in `plans/a
 |----------|----------------|
 | Bug Fixes | call-void-and-length-gap, multiple-fixes, go-intrinsics |
 | Features | array-return-types, il-generator, e2e-codegen-testing, end-to-end |
-| Infrastructure | library-loading, module-and-export-fix, clean-exit |
+| Infrastructure | library-loading, module-and-export-fix, clean-exit, asm-il-mandatory |
 | Parser | parser, c-style |
 | Semantic | semantic-analyzer, phase8-advanced-analysis |
 | Refactoring | refactoring |
@@ -184,7 +211,6 @@ No critical gaps or blocking issues.
 | Item | Plan | Est. Time |
 |------|------|-----------|
 | DX Features (CLI, VICE) | `dx-features/` | 1-2 weeks |
-| Extreme E2E Testing | `extreme-e2e-testing/` | 2-3 weeks |
 
 ### 🟢 Low Priority (Future)
 
@@ -204,8 +230,10 @@ No critical gaps or blocking issues.
 - **0 failing tests** - All tests pass
 - **2 skipped tests** - Both documented and expected
 - **All bug fixes complete** - Phase 2 finished
+- **ASM-IL refactor complete** - Clean architecture
 
-**🎉 Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
+**🎉 Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**  
+**🎉 ASM-IL Mandatory Refactor is COMPLETE!**
 
 The compiler can compile working Commodore 64 programs. Focus now shifts to the **optimizer implementation**.
 

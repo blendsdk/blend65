@@ -150,7 +150,7 @@ export interface CompilationStats {
  * This function orchestrates the complete compilation pipeline:
  *
  * 1. **Code Generation** (IL → AsmModule)
- *    - Uses CodeGenerator.generateWithAsmIL()
+ *    - Uses CodeGenerator.generate()
  *    - Produces structured ASM-IL representation
  *
  * 2. **Optimization** (AsmModule → AsmModule)
@@ -212,7 +212,7 @@ export function compileToAcme(ilModule: ILModule, config: CompileToAcmeConfig): 
   // ========================================
 
   const codeGenerator = new CodeGenerator();
-  const codeGenResult = codeGenerator.generateWithAsmIL(ilModule, config.codeGen);
+  const codeGenResult = codeGenerator.generate(ilModule, config.codeGen);
 
   // Ensure AsmModule was produced
   if (!codeGenResult.module) {

@@ -16,6 +16,7 @@
  * @module __tests__/codegen/instruction-generator-tier2.test
  */
 
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InstructionGenerator } from '../../codegen/instruction-generator.js';
 import { ILModule } from '../../il/module.js';
@@ -84,8 +85,10 @@ class TestInstructionGenerator extends InstructionGenerator {
     this.generateGlobals();
   }
 
-  public exposeAssemblyWriter() {
-    return this.assemblyWriter;
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeGetStats() {
@@ -152,7 +155,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBranchInstruction(0, cond, thenLabel, elseLabel);
 
       generator.exposeGenerateBranch(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JMP');
       expect(output).toContain('.block_if_true');
@@ -165,7 +168,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBranchInstruction(0, cond, thenLabel, elseLabel);
 
       generator.exposeGenerateBranch(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STUB');
       expect(output).toContain('.block_loop');
@@ -179,7 +182,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBranchInstruction(0, cond, thenLabel, elseLabel);
 
       generator.exposeGenerateBranch(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STUB');
       expect(output).toContain('then-branch');
@@ -204,7 +207,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILLoadVarInstruction(0, 'counter', v0);
 
       generator.exposeGenerateLoadVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       // Should use zero-page addressing
@@ -219,7 +222,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILLoadVarInstruction(0, 'buffer', v0);
 
       generator.exposeGenerateLoadVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('_buffer');
@@ -234,7 +237,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILLoadVarInstruction(0, 'borderColor', v0);
 
       generator.exposeGenerateLoadVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('$D020');
@@ -246,7 +249,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILLoadVarInstruction(0, 'unknown', v0);
 
       generator.exposeGenerateLoadVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // Should emit LDA to zero-page address (lazy local allocation)
       expect(output).toContain('LDA $');
@@ -261,7 +264,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILLoadVarInstruction(0, 'score', v0);
 
       generator.exposeGenerateLoadVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('score');
     });
@@ -280,7 +283,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILStoreVarInstruction(0, 'counter', v0);
 
       generator.exposeGenerateStoreVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
     });
@@ -293,7 +296,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILStoreVarInstruction(0, 'buffer', v0);
 
       generator.exposeGenerateStoreVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
       expect(output).toContain('_buffer');
@@ -307,7 +310,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILStoreVarInstruction(0, 'borderColor', v0);
 
       generator.exposeGenerateStoreVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
       expect(output).toContain('$D020');
@@ -319,7 +322,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILStoreVarInstruction(0, 'unknown', v0);
 
       generator.exposeGenerateStoreVar(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // Should emit STA to zero-page address (lazy local allocation)
       expect(output).toContain('STA $');
@@ -337,7 +340,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILCallInstruction(0, 'getValue', [], v0);
 
       generator.exposeGenerateCall(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JSR');
       expect(output).toContain('_getValue');
@@ -350,7 +353,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILCallInstruction(0, 'add', [v0, v1], v2);
 
       generator.exposeGenerateCall(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JSR');
       expect(output).toContain('_add');
@@ -363,7 +366,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILCallInstruction(0, 'readInput', [], v0);
 
       generator.exposeGenerateCall(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('readInput');
     });
@@ -378,7 +381,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILCallVoidInstruction(0, 'init', []);
 
       generator.exposeGenerateCallVoid(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JSR');
       expect(output).toContain('_init');
@@ -389,7 +392,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILCallVoidInstruction(0, 'print', [v0]);
 
       generator.exposeGenerateCallVoid(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JSR');
       expect(output).toContain('STUB');
@@ -408,7 +411,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBinaryInstruction(0, ILOpcode.ADD, v0, v1, v2);
 
       generator.exposeGenerateBinaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('CLC');
       expect(output).toContain('ADC');
@@ -421,7 +424,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBinaryInstruction(0, ILOpcode.SUB, v0, v1, v2);
 
       generator.exposeGenerateBinaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('SEC');
       expect(output).toContain('SBC');
@@ -434,7 +437,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBinaryInstruction(0, ILOpcode.AND, v0, v1, v2);
 
       generator.exposeGenerateBinaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('AND');
     });
@@ -446,7 +449,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBinaryInstruction(0, ILOpcode.OR, v0, v1, v2);
 
       generator.exposeGenerateBinaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('ORA');
     });
@@ -458,22 +461,23 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILBinaryInstruction(0, ILOpcode.CMP_EQ, v0, v1, v2);
 
       generator.exposeGenerateBinaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('CMP');
     });
 
-    it('should include STUB comment showing operation', () => {
+    it('should include comment showing operation with operand names', () => {
       const v0 = createRegister(0);
       const v1 = createRegister(1);
       const v2 = createRegister(2);
       const instr = new ILBinaryInstruction(0, ILOpcode.ADD, v0, v1, v2);
 
       generator.exposeGenerateBinaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
-      expect(output).toContain('STUB');
+      // Now generates actual operands via value tracking
       expect(output).toContain('+');
+      expect(output).toContain('Add');
     });
   });
 
@@ -488,7 +492,7 @@ describe('InstructionGenerator - Tier 2 Instructions', () => {
       const instr = new ILUnaryInstruction(0, ILOpcode.NOT, v0, v1);
 
       generator.exposeGenerateUnaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('EOR');
       expect(output).toContain('#$FF');
@@ -500,7 +504,7 @@ const v0 = createRegister(0);
       const instr = new ILUnaryInstruction(0, ILOpcode.NEG, v0, v1);
 
       generator.exposeGenerateUnaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // NEG implements two's complement: EOR #$FF, CLC, ADC #$01
       expect(output).toContain('EOR #$FF');
@@ -514,7 +518,7 @@ const v0 = createRegister(0);
       const instr = new ILUnaryInstruction(0, ILOpcode.LOGICAL_NOT, v0, v1);
 
       generator.exposeGenerateUnaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // LOGICAL_NOT compares with 0 then sets 0 or 1
       expect(output).toContain('CMP #$00');
@@ -528,7 +532,7 @@ const v0 = createRegister(0);
       const instr = new ILUnaryInstruction(0, ILOpcode.NEG, v0, v1);
 
       generator.exposeGenerateUnaryOp(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // Comment shows the operation (v1 = -v0)
       expect(output).toContain('-');
@@ -644,7 +648,7 @@ const v0 = createRegister(0);
       const instr = new ILBranchInstruction(0, cond, thenLabel, elseLabel);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JMP');
     });
@@ -654,7 +658,7 @@ const v0 = createRegister(0);
       const instr = new ILLoadVarInstruction(0, 'counter', v0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
     });
@@ -664,7 +668,7 @@ const v0 = createRegister(0);
       const instr = new ILStoreVarInstruction(0, 'counter', v0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // Unknown variables are allocated as locals, emitting STA to zero-page
       expect(output).toContain('STA $');
@@ -675,7 +679,7 @@ const v0 = createRegister(0);
       const instr = new ILCallInstruction(0, 'func', [], v0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JSR');
     });
@@ -684,7 +688,7 @@ const v0 = createRegister(0);
       const instr = new ILCallVoidInstruction(0, 'func', []);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JSR');
     });
@@ -696,7 +700,7 @@ const v0 = createRegister(0);
       const instr = new ILBinaryInstruction(0, ILOpcode.ADD, v0, v1, v2);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('CLC');
       expect(output).toContain('ADC');
@@ -708,7 +712,7 @@ const v0 = createRegister(0);
       const instr = new ILUnaryInstruction(0, ILOpcode.NOT, v0, v1);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('EOR');
     });

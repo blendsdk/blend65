@@ -1,9 +1,9 @@
 # Blend65 Project Status
 
-> **Last Updated:** January 27, 2026  
+> **Last Updated:** January 28, 2026  
 > **Version:** 0.1.0-alpha  
 > **Overall Progress:** ~85% Complete  
-> **Test Status:** 7,078/7,080 passing (99.97%)
+> **Test Status:** 7,059/7,061 passing (99.97%)
 
 ---
 
@@ -30,8 +30,8 @@ Blend65 is a modern programming language and compiler designed specifically for 
 | 🟢 **Parser** | ✅ Complete | Can understand the structure of programs |
 | 🟢 **Semantic Analyzer** | ✅ Complete | Can check programs for errors and gather information |
 | 🟢 **IL Generator** | ✅ Complete | Can convert programs to internal format |
-| 🟢 **Code Generator** | ✅ Complete (Basic) | Can produce assembly code |
-| 🟢 **ASM-IL Layer** | ✅ Complete | Assembly intermediate representation |
+| 🟢 **Code Generator** | ✅ Complete | Can produce assembly code |
+| 🟢 **ASM-IL Layer** | ✅ Complete | Assembly intermediate representation (mandatory path) |
 | 🟡 **Optimizer** | 📋 Planning Complete | 7-phase roadmap ready, implementation not started |
 | 🟢 **Config System** | ✅ Complete | Project configuration works |
 | 🟡 **CLI Tool** | ⏳ Partial | Basic build/check commands work, more features planned |
@@ -53,7 +53,26 @@ Blend65 is a modern programming language and compiler designed specifically for 
 | E2E & Integration | 1,500+ | ✅ All Passing |
 | Pipeline | 50+ | ✅ All Passing |
 | CLI | 10 | ✅ All Passing |
-| **Total** | **7,080** | **7,078 passing (2 skipped)** |
+| **Total** | **7,061** | **7,059 passing (2 skipped)** |
+
+### Test File Count by Component
+
+| Component | Test Files |
+|-----------|------------|
+| IL Generator | 66 |
+| Semantic | 52 |
+| Code Generator | 22 |
+| Parser | 18 |
+| E2E | 13 |
+| Lexer | 12 |
+| ASM-IL | 10 |
+| Pipeline | 7 |
+| AST | 5 |
+| Config | 5 |
+| Integration | 3 |
+| Target | 2 |
+| Optimizer | 1 |
+| Library | 1 |
 
 ### Skipped Tests (2)
 
@@ -79,7 +98,7 @@ Blend65 is a modern programming language and compiler designed specifically for 
    - **Array types** (`byte[N]`, `word[256]`)
 
 2. **Compile to Assembly**
-   - The compiler generates ACME assembler output
+   - The compiler generates ACME assembler output via ASM-IL layer
    - Programs compile to working 6502 assembly
    - Expressions: arithmetic, bitwise, comparisons, logical
    - Control flow: if/else, while, for loops
@@ -166,7 +185,6 @@ The optimizer will make your programs:
 |------|--------|-------------|
 | `optimizer-series/` | 📋 Docs Complete | 7-phase roadmap, ~40 documents ready |
 | `dx-features/` | 📋 Ready | CLI, VICE integration, source maps |
-| `extreme-e2e-testing/` | 🔄 In Progress | Phase 1-4 partial, fixture infrastructure |
 | `native-assembler/` | 📋 Planning | Direct .prg generation (future) |
 
 ### Research (Future)
@@ -178,6 +196,15 @@ The optimizer will make your programs:
 ---
 
 ## Recently Completed
+
+### ✅ ASM-IL Mandatory Refactor (January 28, 2026)
+
+The code generator now uses ASM-IL as the **only** path for code generation:
+- Removed legacy `AssemblyWriter` direct output
+- Removed `useAsmIL` flag
+- All code flows through `AsmModuleBuilder` → `AcmeEmitter`
+- Structured assembly representation enables future optimizations
+- All 7,059 tests passing
 
 ### ✅ All Bug Fix Plans Complete (January 27, 2026)
 
@@ -218,6 +245,7 @@ The optimizer will make your programs:
 - [x] Address-of operator (`@`)
 - [x] Library loading system
 - [x] Module/export system
+- [x] ASM-IL mandatory refactor
 
 ### Phase 2: Bug Fixes & Stabilization ✅ (COMPLETE)
 - [x] Fix CALL_VOID bug
@@ -285,7 +313,7 @@ yarn build
 
 ## Summary
 
-**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.97% test pass rate** (7,078/7,080 tests).
+**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.97% test pass rate** (7,059/7,061 tests).
 
 **Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
 

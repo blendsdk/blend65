@@ -30,6 +30,9 @@ export enum TypeKind {
   /** Array type */
   Array = 'array',
 
+  /** Module/namespace type (for imported modules with exported members) */
+  Module = 'module',
+
   /** Unknown/error type */
   Unknown = 'unknown',
 }
@@ -106,6 +109,9 @@ export interface TypeInfo {
 
   /** Function signature (for callback types) */
   signature?: FunctionSignature;
+
+  /** Module members (for module types) - maps member name to type */
+  members?: Map<string, TypeInfo>;
 
   /** Additional type metadata */
   metadata?: TypeMetadata;

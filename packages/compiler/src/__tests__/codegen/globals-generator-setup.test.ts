@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import { GlobalsGenerator, ZP_RESERVED } from '../../codegen/globals-generator.js';
 import { ILModule } from '../../il/module.js';
 import { ILStorageClass } from '../../il/function.js';
@@ -64,8 +65,10 @@ class TestGlobalsGenerator extends GlobalsGenerator {
     return this.getTypeSize(type);
   }
 
-  public exposeAssemblyWriter() {
-    return this.assemblyWriter;
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeGetStats() {
@@ -188,11 +191,12 @@ describe('GlobalsGenerator - Setup and Initialization', () => {
       expect(generator.exposeMapAddresses().size).toBe(0);
     });
 
-    it('should not emit any output for empty module', () => {
+    it('should emit only origin directive for empty module', () => {
       generator.exposeGenerateGlobals();
       
-      const output = generator.exposeAssemblyWriter().toString();
-      expect(output).toBe('');
+      const output = generator.getAssemblyOutput();
+      // ASM-IL emitter always includes the origin directive
+      expect(output).toContain('*=');
     });
   });
 });

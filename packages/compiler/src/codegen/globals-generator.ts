@@ -234,7 +234,7 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
    */
   protected generateDataSection(globals: ILGlobalVariable[]): void {
     this.emitSectionComment('Data Section');
-    this.assemblyWriter.emitBlankLine();
+    this.asmBuilder.blank();
 
     for (const global of globals) {
       this.generateDataVariable(global);
@@ -258,8 +258,8 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
       initialValue: global.initialValue,
     });
 
-    // Emit label
-    this.emitLabel(label);
+    // Emit label with 'data' type (global scope, no '.' prefix)
+    this.emitLabel(label, 'data');
 
     // Emit data based on type and initial value
     if (global.initialValue !== undefined) {
@@ -277,8 +277,6 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
   /**
    * Emits an initial value for a variable
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param global - Variable with initial value
    */
   protected emitInitialValue(global: ILGlobalVariable): void {
@@ -290,61 +288,29 @@ export abstract class GlobalsGenerator extends BaseCodeGenerator {
 
     if (Array.isArray(value)) {
       // Array of bytes
-      this.assemblyWriter.emitBytes(value, global.name);
-
-      // Phase 3e: AsmBuilder (when enabled)
-      if (this.useAsmIL) {
-        this.asmBuilder.byte(value, global.name);
-      }
+      this.asmBuilder.byte(value, global.name);
     } else if (global.type.kind === 'word' || global.type.kind === 'pointer') {
       // Word value (16-bit)
-      this.assemblyWriter.emitWords([value], global.name);
-
-      // Phase 3e: AsmBuilder (when enabled)
-      if (this.useAsmIL) {
-        this.asmBuilder.word([value], global.name);
-      }
+      this.asmBuilder.word([value], global.name);
     } else {
       // Byte value
-      this.assemblyWriter.emitBytes([value], global.name);
-
-      // Phase 3e: AsmBuilder (when enabled)
-      if (this.useAsmIL) {
-        this.asmBuilder.byte([value], global.name);
-      }
+      this.asmBuilder.byte([value], global.name);
     }
   }
 
   /**
    * Emits zero-fill for uninitialized variables
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param size - Number of bytes to fill
    * @param name - Variable name for comment
    */
   protected emitZeroFill(size: number, name: string): void {
     if (size === 1) {
-      this.assemblyWriter.emitBytes([0], name);
-
-      // Phase 3e: AsmBuilder (when enabled)
-      if (this.useAsmIL) {
-        this.asmBuilder.byte([0], name);
-      }
+      this.asmBuilder.byte([0], name);
     } else if (size === 2) {
-      this.assemblyWriter.emitWords([0], name);
-
-      // Phase 3e: AsmBuilder (when enabled)
-      if (this.useAsmIL) {
-        this.asmBuilder.word([0], name);
-      }
+      this.asmBuilder.word([0], name);
     } else {
-      this.assemblyWriter.emitFill(size, 0, name);
-
-      // Phase 3e: AsmBuilder (when enabled)
-      if (this.useAsmIL) {
-        this.asmBuilder.fill(size, 0, name);
-      }
+      this.asmBuilder.fill(size, 0, name);
     }
   }
 

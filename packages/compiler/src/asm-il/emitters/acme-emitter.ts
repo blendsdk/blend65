@@ -93,10 +93,24 @@ export class AcmeEmitter extends BaseEmitter {
   }
 
   protected emitLabel(label: AsmLabel): void {
-    const prefix = label.exported ? '+' : (label.type === LabelType.Block || label.type === LabelType.Temp ? '.' : '');
+    // Determine prefix based on label type
+    // - Exported labels get '+' prefix for ACME visibility
+    // - Block/temp labels get '.' prefix for local scope
+    // - But skip prefix if label.name already starts with '.' to avoid double-dot
+    let prefix = '';
+    if (label.exported) {
+      prefix = '+';
+    } else if (label.type === LabelType.Block || label.type === LabelType.Temp) {
+      // Only add '.' prefix if name doesn't already start with '.'
+      if (!label.name.startsWith('.')) {
+        prefix = '.';
+      }
+    }
+    // ACME labels need colon suffix (e.g., '_counter:' or '.loop:')
+    const labelText = `${prefix}${label.name}:`;
     const line = label.comment && this.config.includeComments 
-      ? `${prefix}${label.name}`.padEnd(24) + `; ${label.comment}`
-      : `${prefix}${label.name}`;
+      ? labelText.padEnd(24) + `; ${label.comment}`
+      : labelText;
     this.addLine(line, label.sourceLocation);
   }
 

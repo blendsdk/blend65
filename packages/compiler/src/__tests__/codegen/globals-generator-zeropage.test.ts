@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import { GlobalsGenerator, ZP_RESERVED } from '../../codegen/globals-generator.js';
 import { ILModule } from '../../il/module.js';
 import { ILStorageClass } from '../../il/function.js';
@@ -38,8 +39,10 @@ class TestGlobalsGenerator extends GlobalsGenerator {
     return this.lookupGlobalAddress(name);
   }
 
-  public exposeAssemblyWriter() {
-    return this.assemblyWriter;
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeGetStats() {
@@ -228,7 +231,7 @@ describe('GlobalsGenerator - Zero Page Allocation', () => {
       module.createGlobal('counter', IL_BYTE, ILStorageClass.ZeroPage);
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('Zero Page');
     });
 
@@ -236,7 +239,7 @@ describe('GlobalsGenerator - Zero Page Allocation', () => {
       module.createGlobal('counter', IL_BYTE, ILStorageClass.ZeroPage);
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('counter');
       expect(output).toContain('$0A'); // USER_START = 0x0A
     });
@@ -245,7 +248,7 @@ describe('GlobalsGenerator - Zero Page Allocation', () => {
       module.createGlobal('score', IL_WORD, ILStorageClass.ZeroPage);
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('word');
     });
   });

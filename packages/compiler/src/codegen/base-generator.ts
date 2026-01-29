@@ -2,16 +2,16 @@
  * Base Code Generator Class for Blend65 Compiler
  *
  * Provides fundamental code generation infrastructure:
- * - AsmModuleBuilder for structured ASM-IL output (Phase 3e)
+ * - AsmModuleBuilder for structured ASM-IL output
  * - Helper class instances (LabelGenerator, SourceMapper)
  * - Code generation options and warnings management
  * - Statistics tracking
  * - Utility methods for common patterns
  *
- * **Phase 3e Changes:**
- * The code generator now uses AsmModuleBuilder to produce structured
- * AsmModule output instead of raw assembly text. The AssemblyWriter
- * is retained for backward compatibility during the transition.
+ * **ASM-IL Architecture:**
+ * The code generator produces a structured AsmModule via AsmModuleBuilder.
+ * This module can be optimized and then emitted to text via AcmeEmitter.
+ * All output flows through the ASM-IL layer - there is no direct text emission.
  *
  * This is the foundation that all code generator layers build upon.
  *
@@ -23,11 +23,11 @@
 
 import type { ILModule } from '../il/module.js';
 import type { SourceLocation } from '../ast/base.js';
-import type { CodegenOptions, CodegenStats, SourceMapEntry, CodegenWarning } from './types.js';
+import type { CodegenOptions, CodegenStats, SourceMapEntry, CodegenWarning, TrackedValue } from './types.js';
+import { ValueLocation } from './types.js';
 import type { AsmModule } from '../asm-il/types.js';
 import { AsmModuleBuilder } from '../asm-il/builder/index.js';
 import { createAcmeEmitter } from '../asm-il/emitters/index.js';
-import { AssemblyWriter } from './assembly-writer.js';
 import { LabelGenerator } from './label-generator.js';
 import { SourceMapper } from './source-mapper.js';
 import { C64_CODE_START } from './types.js';
@@ -36,59 +36,34 @@ import { C64_CODE_START } from './types.js';
  * Abstract base class for code generation
  *
  * Provides core infrastructure used by all code generation phases:
- * - AsmModuleBuilder for structured ASM-IL output (Phase 3e)
- * - AssemblyWriter for legacy text output (backward compatibility)
+ * - AsmModuleBuilder for structured ASM-IL output
  * - Label management via LabelGenerator
  * - Source mapping for debugging via SourceMapper
  * - Warning collection and statistics tracking
  *
- * **Phase 3e Architecture:**
+ * **ASM-IL Architecture:**
  * The generator produces an AsmModule via the builder, which is then
- * emitted to text via AcmeEmitter. The AssemblyWriter is retained
- * during the transition period but will be deprecated.
+ * emitted to text via AcmeEmitter. All code generation flows through
+ * the ASM-IL layer - there is no direct text emission.
  *
  * This class cannot be instantiated directly - use the concrete CodeGenerator class.
  */
 export abstract class BaseCodeGenerator {
   // ============================================
-  // ASM-IL BUILDER (Phase 3e)
+  // ASM-IL BUILDER
   // ============================================
 
   /**
    * ASM-IL module builder
    *
-   * Primary output mechanism for code generation (Phase 3e).
+   * Primary output mechanism for code generation.
    * Produces structured AsmModule that can be optimized and emitted.
-   *
-   * @since Phase 3e (CodeGenerator Rewire)
    */
   protected asmBuilder: AsmModuleBuilder;
 
-  /**
-   * Whether to use ASM-IL builder (Phase 3e) or legacy AssemblyWriter
-   *
-   * During transition, this allows gradual migration.
-   * Default: false (use legacy AssemblyWriter)
-   *
-   * Set to true to enable ASM-IL output.
-   *
-   * @since Phase 3e (CodeGenerator Rewire)
-   */
-  protected useAsmIL: boolean = false;
-
   // ============================================
-  // LEGACY HELPER CLASS INSTANCES
+  // HELPER CLASS INSTANCES
   // ============================================
-
-  /**
-   * Assembly text generator (legacy)
-   *
-   * Used to emit ACME-compatible 6502 assembly code.
-   * Handles formatting, indentation, and directives.
-   *
-   * @deprecated Use asmBuilder instead (Phase 3e transition)
-   */
-  protected assemblyWriter: AssemblyWriter;
 
   /**
    * Label name generator
@@ -150,6 +125,22 @@ export abstract class BaseCodeGenerator {
   protected currentAddress: number = C64_CODE_START;
 
   // ============================================
+  // VALUE TRACKING
+  // ============================================
+
+  /**
+   * Tracks where each IL value is stored at runtime
+   *
+   * Maps IL value IDs (e.g., "v1", "v2") to their current storage locations.
+   * This enables the code generator to emit correct operands for binary
+   * operations instead of using placeholder values.
+   *
+   * The map is cleared at the start of each function and updated as
+   * instructions are generated.
+   */
+  protected valueLocations: Map<string, TrackedValue> = new Map();
+
+  // ============================================
   // CONSTRUCTOR
   // ============================================
 
@@ -160,7 +151,6 @@ export abstract class BaseCodeGenerator {
    */
   constructor() {
     this.asmBuilder = new AsmModuleBuilder('unnamed');
-    this.assemblyWriter = new AssemblyWriter();
     this.labelGenerator = new LabelGenerator();
     this.sourceMapper = new SourceMapper();
   }
@@ -175,11 +165,10 @@ export abstract class BaseCodeGenerator {
    * Called at the start of generate() to ensure clean state.
    */
   protected resetState(): void {
-    // Reset ASM-IL builder (Phase 3e)
+    // Reset ASM-IL builder
     this.asmBuilder.reset();
 
-    // Reset legacy systems
-    this.assemblyWriter.reset();
+    // Reset helper systems
     this.labelGenerator.reset();
     this.sourceMapper.reset();
     this.warnings = [];
@@ -192,10 +181,353 @@ export abstract class BaseCodeGenerator {
       totalSize: 0,
     };
     this.currentAddress = this.options.loadAddress ?? C64_CODE_START;
+
+    // Reset value tracking
+    this.valueLocations.clear();
   }
 
   // ============================================
-  // ASM-IL GENERATION HELPERS (Phase 3e)
+  // VALUE TRACKING METHODS
+  // ============================================
+
+  /**
+   * Resets value tracking for a new function
+   *
+   * Called at the start of each function to clear any stale value
+   * location information from previous functions.
+   */
+  protected resetValueTracking(): void {
+    this.valueLocations.clear();
+  }
+
+  /**
+   * Tracks where an IL value is stored after an instruction
+   *
+   * This must be called after generating instructions that produce
+   * values (CONST, LOAD_VAR, binary operations, etc.) so that
+   * subsequent instructions can locate the operands.
+   *
+   * @param ilValueId - The IL value identifier (e.g., "v1", "v5:i.2")
+   * @param location - Where the value is now stored
+   *
+   * @example
+   * ```typescript
+   * // After generating LDA #$42 for CONST instruction
+   * this.trackValue('v1', {
+   *   location: ValueLocation.IMMEDIATE,
+   *   value: 0x42
+   * });
+   *
+   * // After storing to zero page
+   * this.trackValue('v2', {
+   *   location: ValueLocation.ZERO_PAGE,
+   *   address: 0x50
+   * });
+   * ```
+   */
+  protected trackValue(ilValueId: string, location: TrackedValue): void {
+    // Normalize the value ID - strip SSA version suffixes for simpler lookup
+    const normalizedId = this.normalizeValueId(ilValueId);
+    this.valueLocations.set(normalizedId, { ...location, ilValueId: normalizedId });
+  }
+
+  /**
+   * Gets the tracked location of an IL value
+   *
+   * Returns undefined if the value is not tracked (e.g., hasn't been
+   * generated yet or was invalidated).
+   *
+   * @param ilValueId - The IL value identifier
+   * @returns The tracked value location, or undefined if not found
+   */
+  protected getValueLocation(ilValueId: string): TrackedValue | undefined {
+    const normalizedId = this.normalizeValueId(ilValueId);
+    return this.valueLocations.get(normalizedId);
+  }
+
+  /**
+   * Normalizes an IL value ID for tracking lookup
+   *
+   * IL values may have SSA version suffixes like "v5:i.2" or simple
+   * forms like "v1". This normalizes them for consistent lookup.
+   *
+   * @param ilValueId - The IL value identifier
+   * @returns Normalized identifier
+   */
+  protected normalizeValueId(ilValueId: string): string {
+    // Keep the full ID including SSA suffixes for precise tracking
+    // This allows distinguishing between v5:i.0 and v5:i.1
+    return ilValueId.toString();
+  }
+
+  /**
+   * Emits code to load a tracked IL value into the accumulator
+   *
+   * This is the core method for operand resolution. It looks up where
+   * the value is stored and emits the appropriate LDA instruction.
+   *
+   * @param ilValueId - The IL value to load
+   * @returns true if the value was loaded, false if not tracked
+   *
+   * @example
+   * ```typescript
+   * // Before ADC instruction, ensure left operand is in A
+   * if (!this.loadValueToA('v1')) {
+   *   this.addWarning('Cannot load v1 - not tracked');
+   *   this.emitLdaImmediate(0, 'STUB: v1 not tracked');
+   * }
+   * ```
+   */
+  protected loadValueToA(ilValueId: string): boolean {
+    const loc = this.getValueLocation(ilValueId);
+
+    if (!loc) {
+      this.addWarning(`Unknown value location: ${ilValueId}`);
+      return false;
+    }
+
+    switch (loc.location) {
+      case ValueLocation.ACCUMULATOR:
+        // Already in A, nothing to do
+        this.emitComment(`${ilValueId} already in A`);
+        break;
+
+      case ValueLocation.IMMEDIATE:
+        this.emitLdaImmediate(loc.value ?? 0, `Load ${ilValueId}`);
+        break;
+
+      case ValueLocation.ZERO_PAGE:
+        this.emitLdaZeroPage(loc.address ?? 0, `Load ${ilValueId}`);
+        break;
+
+      case ValueLocation.ABSOLUTE:
+        this.emitLdaAbsolute(loc.address ?? 0, `Load ${ilValueId}`);
+        break;
+
+      case ValueLocation.LABEL:
+        this.emitInstruction('LDA', loc.label ?? '_unknown', `Load ${ilValueId}`, 3);
+        break;
+
+      case ValueLocation.X_REGISTER:
+        this.emitInstruction('TXA', undefined, `Transfer ${ilValueId} from X`, 1);
+        break;
+
+      case ValueLocation.Y_REGISTER:
+        this.emitInstruction('TYA', undefined, `Transfer ${ilValueId} from Y`, 1);
+        break;
+
+      case ValueLocation.STACK:
+        // Stack access is more complex - would need PLA
+        this.emitInstruction('PLA', undefined, `Pop ${ilValueId} from stack`, 1);
+        break;
+
+      default:
+        this.addWarning(`Unsupported value location for ${ilValueId}: ${loc.location}`);
+        return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Emits code to load a tracked IL value into the X register
+   *
+   * @param ilValueId - The IL value to load
+   * @returns true if the value was loaded, false if not tracked
+   */
+  protected loadValueToX(ilValueId: string): boolean {
+    const loc = this.getValueLocation(ilValueId);
+
+    if (!loc) {
+      this.addWarning(`Unknown value location: ${ilValueId}`);
+      return false;
+    }
+
+    switch (loc.location) {
+      case ValueLocation.X_REGISTER:
+        // Already in X, nothing to do
+        this.emitComment(`${ilValueId} already in X`);
+        break;
+
+      case ValueLocation.IMMEDIATE:
+        this.emitInstruction('LDX', this.formatImmediate(loc.value ?? 0), `Load ${ilValueId} to X`, 2);
+        break;
+
+      case ValueLocation.ZERO_PAGE:
+        this.emitInstruction('LDX', this.formatZeroPage(loc.address ?? 0), `Load ${ilValueId} to X`, 2);
+        break;
+
+      case ValueLocation.ABSOLUTE:
+        this.emitInstruction('LDX', this.formatAbsolute(loc.address ?? 0), `Load ${ilValueId} to X`, 3);
+        break;
+
+      case ValueLocation.LABEL:
+        this.emitInstruction('LDX', loc.label ?? '_unknown', `Load ${ilValueId} to X`, 3);
+        break;
+
+      case ValueLocation.ACCUMULATOR:
+        this.emitInstruction('TAX', undefined, `Transfer ${ilValueId} from A to X`, 1);
+        break;
+
+      case ValueLocation.Y_REGISTER:
+        // Y to X requires going through A
+        this.emitInstruction('TYA', undefined, `Transfer ${ilValueId} Y→A`, 1);
+        this.emitInstruction('TAX', undefined, `Transfer ${ilValueId} A→X`, 1);
+        break;
+
+      default:
+        this.addWarning(`Unsupported value location for X: ${ilValueId}: ${loc.location}`);
+        return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Emits code to load a tracked IL value into the Y register
+   *
+   * @param ilValueId - The IL value to load
+   * @returns true if the value was loaded, false if not tracked
+   */
+  protected loadValueToY(ilValueId: string): boolean {
+    const loc = this.getValueLocation(ilValueId);
+
+    if (!loc) {
+      this.addWarning(`Unknown value location: ${ilValueId}`);
+      return false;
+    }
+
+    switch (loc.location) {
+      case ValueLocation.Y_REGISTER:
+        // Already in Y, nothing to do
+        this.emitComment(`${ilValueId} already in Y`);
+        break;
+
+      case ValueLocation.IMMEDIATE:
+        this.emitInstruction('LDY', this.formatImmediate(loc.value ?? 0), `Load ${ilValueId} to Y`, 2);
+        break;
+
+      case ValueLocation.ZERO_PAGE:
+        this.emitInstruction('LDY', this.formatZeroPage(loc.address ?? 0), `Load ${ilValueId} to Y`, 2);
+        break;
+
+      case ValueLocation.ABSOLUTE:
+        this.emitInstruction('LDY', this.formatAbsolute(loc.address ?? 0), `Load ${ilValueId} to Y`, 3);
+        break;
+
+      case ValueLocation.LABEL:
+        this.emitInstruction('LDY', loc.label ?? '_unknown', `Load ${ilValueId} to Y`, 3);
+        break;
+
+      case ValueLocation.ACCUMULATOR:
+        this.emitInstruction('TAY', undefined, `Transfer ${ilValueId} from A to Y`, 1);
+        break;
+
+      case ValueLocation.X_REGISTER:
+        // X to Y requires going through A
+        this.emitInstruction('TXA', undefined, `Transfer ${ilValueId} X→A`, 1);
+        this.emitInstruction('TAY', undefined, `Transfer ${ilValueId} A→Y`, 1);
+        break;
+
+      default:
+        this.addWarning(`Unsupported value location for Y: ${ilValueId}: ${loc.location}`);
+        return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Formats an operand string based on a tracked value's location
+   *
+   * Returns the appropriate operand format for use in instructions
+   * like ADC, SBC, CMP, AND, ORA, EOR.
+   *
+   * @param ilValueId - The IL value to format as operand
+   * @returns Formatted operand string (e.g., "#$05", "$50", "_label")
+   */
+  protected formatOperand(ilValueId: string): string {
+    const loc = this.getValueLocation(ilValueId);
+
+    if (!loc) {
+      // Fallback for untracked values
+      this.addWarning(`formatOperand: Unknown value ${ilValueId}`);
+      return '#$00';
+    }
+
+    switch (loc.location) {
+      case ValueLocation.IMMEDIATE:
+        return this.formatImmediate(loc.value ?? 0);
+
+      case ValueLocation.ZERO_PAGE:
+        return this.formatZeroPage(loc.address ?? 0);
+
+      case ValueLocation.ABSOLUTE:
+        return this.formatAbsolute(loc.address ?? 0);
+
+      case ValueLocation.LABEL:
+        return loc.label ?? '_unknown';
+
+      case ValueLocation.ACCUMULATOR:
+      case ValueLocation.X_REGISTER:
+      case ValueLocation.Y_REGISTER:
+        // Value is in a register - need to save to temp first
+        // This is a complex case that should be handled by the caller
+        this.addWarning(`formatOperand: Value ${ilValueId} is in register, cannot use as operand directly`);
+        return '#$00';
+
+      default:
+        return '#$00';
+    }
+  }
+
+  /**
+   * Checks if a value is currently in the accumulator
+   *
+   * Useful for avoiding redundant loads.
+   *
+   * @param ilValueId - The IL value to check
+   * @returns true if the value is in A
+   */
+  protected isValueInA(ilValueId: string): boolean {
+    const loc = this.getValueLocation(ilValueId);
+    return loc?.location === ValueLocation.ACCUMULATOR;
+  }
+
+  /**
+   * Invalidates all register-based value locations
+   *
+   * Called when registers are clobbered by an instruction
+   * (e.g., after a JSR that doesn't preserve registers).
+   */
+  protected invalidateRegisters(): void {
+    for (const [key, value] of this.valueLocations.entries()) {
+      if (
+        value.location === ValueLocation.ACCUMULATOR ||
+        value.location === ValueLocation.X_REGISTER ||
+        value.location === ValueLocation.Y_REGISTER
+      ) {
+        this.valueLocations.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Invalidates the accumulator location tracking
+   *
+   * Called when A is modified by an operation that overwrites
+   * its previous value.
+   */
+  protected invalidateAccumulator(): void {
+    for (const [key, value] of this.valueLocations.entries()) {
+      if (value.location === ValueLocation.ACCUMULATOR) {
+        this.valueLocations.delete(key);
+      }
+    }
+  }
+
+  // ============================================
+  // ASM-IL GENERATION HELPERS
   // ============================================
 
   /**
@@ -206,8 +538,6 @@ export abstract class BaseCodeGenerator {
    *
    * @param moduleName - Name of the module being generated
    * @param origin - Load address (origin) for the module
-   *
-   * @since Phase 3e (CodeGenerator Rewire)
    */
   protected startAsmILGeneration(moduleName: string, origin: number): void {
     this.asmBuilder = new AsmModuleBuilder(moduleName, origin);
@@ -219,8 +549,6 @@ export abstract class BaseCodeGenerator {
    * Adds footer and builds the final AsmModule.
    *
    * @returns The completed AsmModule
-   *
-   * @since Phase 3e (CodeGenerator Rewire)
    */
   protected finishAsmILGeneration(): AsmModule {
     return this.asmBuilder.build();
@@ -233,8 +561,6 @@ export abstract class BaseCodeGenerator {
    *
    * @param module - The AsmModule to emit
    * @returns The ACME assembly text
-   *
-   * @since Phase 3e (CodeGenerator Rewire)
    */
   protected emitAsmModuleToText(module: AsmModule): string {
     const emitter = createAcmeEmitter();
@@ -248,8 +574,6 @@ export abstract class BaseCodeGenerator {
    * Useful for testing and inspection.
    *
    * @returns The AsmModule (calls build() on the builder)
-   *
-   * @since Phase 3e (CodeGenerator Rewire)
    */
   protected getCurrentAsmModule(): AsmModule {
     return this.asmBuilder.build();
@@ -376,7 +700,26 @@ export abstract class BaseCodeGenerator {
   }
 
   /**
+   * Sets the current source location for subsequent ASM-IL items
+   *
+   * All ASM-IL items emitted after calling this will have the source
+   * location attached for debugging and source maps.
+   *
+   * @param source - Source location to set, or undefined to clear
+   */
+  protected setCurrentSourceLocation(source?: SourceLocation): void {
+    if (source) {
+      this.asmBuilder.setLocation(source);
+    } else {
+      this.asmBuilder.clearLocation();
+    }
+  }
+
+  /**
    * Emits a source location comment if debug mode is enabled
+   *
+   * Adds the source location as a comment in the ASM-IL output
+   * for debugging purposes.
    *
    * @param source - Source location
    * @param description - Optional description
@@ -386,13 +729,10 @@ export abstract class BaseCodeGenerator {
     if (this.options.debug === 'none') return;
 
     if (this.options.debug === 'inline' || this.options.debug === 'both') {
-      if (description) {
-        this.assemblyWriter.emitRaw(
-          this.sourceMapper.formatInlineCommentWithDesc(source, description)
-        );
-      } else {
-        this.assemblyWriter.emitRaw(this.sourceMapper.formatInlineComment(source));
-      }
+      const comment = description
+        ? this.sourceMapper.formatInlineCommentWithDesc(source, description)
+        : this.sourceMapper.formatInlineComment(source);
+      this.asmBuilder.comment(comment);
     }
   }
 
@@ -457,37 +797,20 @@ export abstract class BaseCodeGenerator {
   /**
    * Emits a section separator comment
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param title - Section title
    */
   protected emitSectionComment(title: string): void {
-    // Legacy: AssemblyWriter
-    this.assemblyWriter.emitBlankLine();
-    this.assemblyWriter.emitSectionHeader(title);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.blank();
-      this.asmBuilder.section(title);
-    }
+    this.asmBuilder.blank();
+    this.asmBuilder.section(title);
   }
 
   /**
    * Emits a simple comment line
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param text - Comment text
    */
   protected emitComment(text: string): void {
-    // Legacy: AssemblyWriter
-    this.assemblyWriter.emitComment(text);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.comment(text);
-    }
+    this.asmBuilder.comment(text);
   }
 
   // ============================================
@@ -495,10 +818,11 @@ export abstract class BaseCodeGenerator {
   // ============================================
 
   /**
-   * Emits a single instruction
+   * Emits a single instruction via ASM-IL raw emission
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   * This is a low-level method used by specific instruction helpers.
+   * This is a low-level method used for instructions that don't have
+   * dedicated builder methods. Prefer specific instruction helpers
+   * (emitLdaImmediate, etc.) when available.
    *
    * @param mnemonic - Instruction mnemonic (e.g., 'LDA')
    * @param operand - Optional operand
@@ -511,174 +835,116 @@ export abstract class BaseCodeGenerator {
     comment?: string,
     bytes: number = 0
   ): void {
-    // Legacy: AssemblyWriter
-    this.assemblyWriter.emitInstruction(mnemonic, operand, comment);
+    // Format the instruction as raw text for ASM-IL
+    let text = `        ${mnemonic}`;
+    if (operand) {
+      text += ` ${operand}`;
+    }
+    if (comment) {
+      text += `  ; ${comment}`;
+    }
+    this.asmBuilder.raw(text);
+
     if (bytes > 0) {
       this.addCodeBytes(bytes);
     }
-
-    // Note: AsmBuilder instruction emission is handled by specific helpers
-    // (emitLdaImmediate, emitStaAbsolute, etc.) since they have typed methods
   }
 
   /**
    * Emits LDA immediate instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param value - Byte value to load
    * @param comment - Optional comment
    */
   protected emitLdaImmediate(value: number, comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('LDA', this.formatImmediate(value), comment, 2);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.ldaImm(value, comment);
-    }
+    this.asmBuilder.ldaImm(value, comment);
+    this.addCodeBytes(2);
   }
 
   /**
    * Emits LDA absolute instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param address - Memory address to load from
    * @param comment - Optional comment
    */
   protected emitLdaAbsolute(address: number, comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('LDA', this.formatAbsolute(address), comment, 3);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.ldaAbs(address, comment);
-    }
+    this.asmBuilder.ldaAbs(address, comment);
+    this.addCodeBytes(3);
   }
 
   /**
    * Emits LDA zero-page instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param address - Zero-page address to load from
    * @param comment - Optional comment
    */
   protected emitLdaZeroPage(address: number, comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('LDA', this.formatZeroPage(address), comment, 2);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.ldaZp(address, comment);
-    }
+    this.asmBuilder.ldaZp(address, comment);
+    this.addCodeBytes(2);
   }
 
   /**
    * Emits STA absolute instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param address - Memory address to store to
    * @param comment - Optional comment
    */
   protected emitStaAbsolute(address: number, comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('STA', this.formatAbsolute(address), comment, 3);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.staAbs(address, comment);
-    }
+    this.asmBuilder.staAbs(address, comment);
+    this.addCodeBytes(3);
   }
 
   /**
    * Emits STA zero-page instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param address - Zero-page address to store to
    * @param comment - Optional comment
    */
   protected emitStaZeroPage(address: number, comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('STA', this.formatZeroPage(address), comment, 2);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.staZp(address, comment);
-    }
+    this.asmBuilder.staZp(address, comment);
+    this.addCodeBytes(2);
   }
 
   /**
    * Emits JMP instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param label - Label to jump to
    * @param comment - Optional comment
    */
   protected emitJmp(label: string, comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('JMP', label, comment, 3);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.jmp(label, comment);
-    }
+    this.asmBuilder.jmp(label, comment);
+    this.addCodeBytes(3);
   }
 
   /**
    * Emits JSR instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param label - Label to call
    * @param comment - Optional comment
    */
   protected emitJsr(label: string, comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('JSR', label, comment, 3);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.jsr(label, comment);
-    }
+    this.asmBuilder.jsr(label, comment);
+    this.addCodeBytes(3);
   }
 
   /**
    * Emits RTS instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param comment - Optional comment
    */
   protected emitRts(comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('RTS', undefined, comment, 1);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.rts(comment);
-    }
+    this.asmBuilder.rts(comment);
+    this.addCodeBytes(1);
   }
 
   /**
    * Emits NOP instruction
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param comment - Optional comment
    */
   protected emitNop(comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.emitInstruction('NOP', undefined, comment, 1);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      this.asmBuilder.nop(comment);
-    }
+    this.asmBuilder.nop(comment);
+    this.addCodeBytes(1);
   }
 
   // ============================================
@@ -688,36 +954,32 @@ export abstract class BaseCodeGenerator {
   /**
    * Emits a label definition
    *
-   * Writes to both AssemblyWriter (legacy) and AsmBuilder (Phase 3e).
-   *
    * @param name - Label name
-   * @param labelType - Optional label type for AsmBuilder (default: 'block')
+   * @param labelType - Optional label type (default: 'block')
    * @param comment - Optional comment for the label
    */
-  protected emitLabel(name: string, labelType?: 'function' | 'global' | 'block' | 'data' | 'temp', comment?: string): void {
-    // Legacy: AssemblyWriter
-    this.assemblyWriter.emitLabel(name);
-
-    // Phase 3e: AsmBuilder (when enabled)
-    if (this.useAsmIL) {
-      switch (labelType) {
-        case 'function':
-          this.asmBuilder.functionLabel(name, comment);
-          break;
-        case 'global':
-          this.asmBuilder.globalLabel(name, comment);
-          break;
-        case 'data':
-          this.asmBuilder.dataLabel(name, comment);
-          break;
-        case 'temp':
-          this.asmBuilder.tempLabel(name, comment);
-          break;
-        case 'block':
-        default:
-          this.asmBuilder.blockLabel(name, comment);
-          break;
-      }
+  protected emitLabel(
+    name: string,
+    labelType?: 'function' | 'global' | 'block' | 'data' | 'temp',
+    comment?: string
+  ): void {
+    switch (labelType) {
+      case 'function':
+        this.asmBuilder.functionLabel(name, comment);
+        break;
+      case 'global':
+        this.asmBuilder.globalLabel(name, comment);
+        break;
+      case 'data':
+        this.asmBuilder.dataLabel(name, comment);
+        break;
+      case 'temp':
+        this.asmBuilder.tempLabel(name, comment);
+        break;
+      case 'block':
+      default:
+        this.asmBuilder.blockLabel(name, comment);
+        break;
     }
   }
 

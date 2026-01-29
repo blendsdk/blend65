@@ -18,6 +18,7 @@
  * @module __tests__/codegen/instruction-generator-cpu.test
  */
 
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InstructionGenerator } from '../../codegen/instruction-generator.js';
 import { ILModule } from '../../il/module.js';
@@ -50,8 +51,10 @@ class TestInstructionGenerator extends InstructionGenerator {
     this.generatePlaceholder(instr);
   }
 
-  public exposeAssemblyWriter() {
-    return this.assemblyWriter;
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeGetStats() {
@@ -115,7 +118,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_SEI);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('SEI');
     });
@@ -124,7 +127,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_SEI);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Disable interrupts');
     });
@@ -148,7 +151,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_CLI);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('CLI');
     });
@@ -157,7 +160,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_CLI);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Enable interrupts');
     });
@@ -181,7 +184,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_NOP);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('NOP');
     });
@@ -190,7 +193,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_NOP);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('No operation');
     });
@@ -205,7 +208,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PHA);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PHA');
     });
@@ -214,7 +217,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PHA);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Push A');
     });
@@ -238,7 +241,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PLA);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PLA');
     });
@@ -247,7 +250,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PLA);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Pull A');
     });
@@ -271,7 +274,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PHP);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PHP');
     });
@@ -280,7 +283,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PHP);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Push status');
     });
@@ -304,7 +307,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PLP);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PLP');
     });
@@ -313,7 +316,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PLP);
 
       generator.exposeGenerateCpuInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Pull status');
     });
@@ -337,7 +340,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_SEI);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('SEI');
     });
@@ -346,7 +349,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_CLI);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('CLI');
     });
@@ -355,7 +358,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_NOP);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('NOP');
     });
@@ -364,7 +367,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PHA);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PHA');
     });
@@ -373,7 +376,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PLA);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PLA');
     });
@@ -382,7 +385,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PHP);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PHP');
     });
@@ -391,7 +394,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILCpuInstruction(0, ILOpcode.CPU_PLP);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PLP');
     });
@@ -411,7 +414,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       ], v0);
 
       generator.exposeGeneratePlaceholder(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STUB');
     });
@@ -425,7 +428,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       ], v0);
 
       generator.exposeGeneratePlaceholder(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('NOP');
     });
@@ -451,7 +454,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
   // ===========================================================================
 
   describe('generateInstruction() - unsupported', () => {
-    it('should dispatch PHI to generatePlaceholder', () => {
+    it('should dispatch PHI to generatePhiNode', () => {
       const v0 = createRegister(0);
       const v1 = createRegister(1);
       const v2 = createRegister(2);
@@ -461,10 +464,12 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       ], v2);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
-      expect(output).toContain('STUB');
-      expect(output).toContain('NOP');
+      // PHI now has a dedicated handler that generates PHI merge comments
+      // and loads from the merge variable
+      expect(output).toContain('PHI');
+      expect(output).toContain('v2');
     });
 
     it('should dispatch LOAD_ARRAY to generatePlaceholder', () => {
@@ -473,7 +478,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILLoadArrayInstruction(0, 'buffer', v0, v1);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STUB');
     });
@@ -484,7 +489,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       const instr = new ILStoreArrayInstruction(0, 'buffer', v0, v1);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STUB');
     });
@@ -499,7 +504,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(0, ILOpcode.CPU_PHA));
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(1, ILOpcode.CPU_PLA));
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PHA');
       expect(output).toContain('PLA');
@@ -511,7 +516,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(0, ILOpcode.CPU_PHP));
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(1, ILOpcode.CPU_PLP));
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('PHP');
       expect(output).toContain('PLP');
@@ -537,7 +542,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(0, ILOpcode.CPU_SEI));
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(1, ILOpcode.CPU_CLI));
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('SEI');
       expect(output).toContain('CLI');
@@ -564,7 +569,7 @@ describe('InstructionGenerator - CPU Instructions and Placeholders', () => {
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(1, ILOpcode.CPU_NOP));
       generator.exposeGenerateCpuInstruction(new ILCpuInstruction(2, ILOpcode.CPU_NOP));
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       const nopCount = (output.match(/NOP/g) || []).length;
 
       expect(nopCount).toBe(3);

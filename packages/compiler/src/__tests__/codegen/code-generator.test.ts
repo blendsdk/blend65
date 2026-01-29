@@ -746,7 +746,7 @@ describe('CodeGenerator - Main API', () => {
       const result = codegen.generate(module, options);
       
       // Check for ACME syntax elements - origin directive uses "* = $address"
-      expect(result.assembly).toContain('* = $'); // Origin directive
+      expect(result.assembly).toContain('*='); // Origin directive
     });
 
     it('should have sections in correct order', () => {

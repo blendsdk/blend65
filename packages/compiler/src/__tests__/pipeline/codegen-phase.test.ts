@@ -138,7 +138,7 @@ describe('CodegenPhase', () => {
       const result = phase.execute(module, options);
 
       // Should have origin directive
-      expect(result.data.assembly).toContain('* =');
+      expect(result.data.assembly).toContain('*=');
       // Should have some content
       expect(result.data.assembly.length).toBeGreaterThan(100);
     });

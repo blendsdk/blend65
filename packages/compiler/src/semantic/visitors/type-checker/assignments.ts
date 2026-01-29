@@ -337,24 +337,53 @@ export abstract class TypeCheckerAssignments extends TypeCheckerExpressions {
    * Visit MemberExpression - type check member access
    *
    * Type rules:
-   * - Object must be a struct or map type
+   * - For Module types: Look up member in module's exported members
    * - Property must exist on the object type
    * - Result type is the property's type
    *
-   * Note: Currently simplified as Blend65 doesn't have full struct support yet.
-   * This is a placeholder for future struct implementation.
+   * Supports:
+   * - Module member access (e.g., vic.borderColor where vic is imported module)
    */
   public visitMemberExpression(node: MemberExpression): void {
     // Type check object
     const objectType = this.typeCheckExpression(node.getObject());
+    const propertyName = node.getProperty();
 
-    // For now, member access is only supported on structs/maps
-    // This is a placeholder implementation until we have full struct support
+    // Handle Module types - look up member in module's exported members
+    if (objectType.kind === TypeKind.Module) {
+      // Look up the member in the module's members map
+      const memberType = objectType.members?.get(propertyName);
+      
+      if (memberType) {
+        // Found the member - use its type
+        (node as any).typeInfo = memberType;
+        return;
+      }
+      
+      // Member not found in module
+      this.reportDiagnostic({
+        severity: DiagnosticSeverity.ERROR,
+        message: `Property '${propertyName}' does not exist on module '${objectType.name}'`,
+        location: node.getLocation(),
+        code: DiagnosticCode.TYPE_MISMATCH,
+      });
 
-    // Report error - member access not yet fully implemented
+      const unknownType: TypeInfo = {
+        kind: TypeKind.Unknown,
+        name: 'unknown',
+        size: 0,
+        isSigned: false,
+        isAssignable: false,
+      };
+      (node as any).typeInfo = unknownType;
+      return;
+    }
+
+    // For non-module types, member access is not yet fully implemented
+    // This will be extended when struct support is added
     this.reportDiagnostic({
       severity: DiagnosticSeverity.ERROR,
-      message: `Member access is not yet fully implemented (accessing '${node.getProperty()}' on type '${objectType.name}')`,
+      message: `Cannot access property '${propertyName}' on type '${objectType.name}' (member access only supported on modules)`,
       location: node.getLocation(),
       code: DiagnosticCode.TYPE_MISMATCH,
     });

@@ -540,7 +540,7 @@ describe('Type Checker - Index Expressions', () => {
 // ============================================
 
 describe('Type Checker - Member Expressions', () => {
-  it('should error on member access (not yet implemented)', () => {
+  it('should error on member access on non-module types', () => {
     const source = `
       let x: byte = 42;
       let value: byte = x.something;
@@ -549,7 +549,8 @@ describe('Type Checker - Member Expressions', () => {
     const { diagnostics } = parseAndTypeCheck(source);
     const errors = getErrors(diagnostics);
     expect(errors.length).toBeGreaterThan(0);
-    expect(errors.some(e => e.includes('not yet fully implemented'))).toBe(true);
+    // Member access on non-module types should report that it's only supported on modules
+    expect(errors.some(e => e.includes('only supported on modules'))).toBe(true);
   });
 });
 

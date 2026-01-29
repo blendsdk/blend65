@@ -16,6 +16,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import { InstructionGenerator } from '../../codegen/instruction-generator.js';
 import { ILModule } from '../../il/module.js';
 import { ILFunction } from '../../il/function.js';
@@ -65,8 +66,10 @@ class TestInstructionGenerator extends InstructionGenerator {
     this.generateJump(instr);
   }
 
-  public exposeAssemblyWriter() {
-    return this.assemblyWriter;
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeGetStats() {
@@ -127,7 +130,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILConstInstruction(0, 42, IL_BYTE, v0);
 
       generator.exposeGenerateConst(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('#$2A'); // 42 in hex
@@ -138,7 +141,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILConstInstruction(0, 0, IL_BYTE, v0);
 
       generator.exposeGenerateConst(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('#$00');
@@ -149,7 +152,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILConstInstruction(0, 255, IL_BYTE, v0);
 
       generator.exposeGenerateConst(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('#$FF');
@@ -160,7 +163,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILConstInstruction(0, 10, IL_BYTE, v0);
 
       generator.exposeGenerateConst(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // Should have comment showing the assignment
       expect(output).toContain('v0:counter');
@@ -172,7 +175,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILConstInstruction(0, 0x1234, IL_WORD, v0);
 
       generator.exposeGenerateConst(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       // Stub only loads into A, so should emit LDA
       expect(output).toContain('LDA');
@@ -189,7 +192,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareWriteInstruction(0, 0xD020, v0);
 
       generator.exposeGenerateHardwareWrite(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
       expect(output).toContain('$D020');
@@ -200,7 +203,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareWriteInstruction(0, 0xD021, v0);
 
       generator.exposeGenerateHardwareWrite(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
       expect(output).toContain('$D021');
@@ -211,7 +214,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareWriteInstruction(0, 0xD418, v0);
 
       generator.exposeGenerateHardwareWrite(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
       expect(output).toContain('$D418');
@@ -222,7 +225,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareWriteInstruction(0, 0xDC00, v0);
 
       generator.exposeGenerateHardwareWrite(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
       expect(output).toContain('$DC00');
@@ -233,7 +236,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareWriteInstruction(0, 0xD020, v0);
 
       generator.exposeGenerateHardwareWrite(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('$D020');
     });
@@ -249,7 +252,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareReadInstruction(0, 0xD012, v0);
 
       generator.exposeGenerateHardwareRead(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('$D012');
@@ -260,7 +263,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareReadInstruction(0, 0xDC00, v0);
 
       generator.exposeGenerateHardwareRead(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('$DC00');
@@ -271,7 +274,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareReadInstruction(0, 0xDC01, v0);
 
       generator.exposeGenerateHardwareRead(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('$DC01');
@@ -282,7 +285,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareReadInstruction(0, 0xD012, v0);
 
       generator.exposeGenerateHardwareRead(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('$D012');
     });
@@ -297,7 +300,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILReturnVoidInstruction(0);
 
       generator.exposeGenerateReturnVoid(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('RTS');
     });
@@ -306,7 +309,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILReturnVoidInstruction(0);
 
       generator.exposeGenerateReturnVoid(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Return');
     });
@@ -322,7 +325,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILReturnInstruction(0, v0);
 
       generator.exposeGenerateReturn(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('RTS');
     });
@@ -332,7 +335,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILReturnInstruction(0, v0);
 
       generator.exposeGenerateReturn(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('Return');
     });
@@ -348,7 +351,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILJumpInstruction(0, targetLabel);
 
       generator.exposeGenerateJump(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JMP');
       expect(output).toContain('.block_loop');
@@ -359,7 +362,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILJumpInstruction(0, targetLabel);
 
       generator.exposeGenerateJump(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JMP');
       expect(output).toContain('.block_endif');
@@ -370,7 +373,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILJumpInstruction(0, targetLabel);
 
       generator.exposeGenerateJump(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('next');
     });
@@ -386,7 +389,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILConstInstruction(0, 42, IL_BYTE, v0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
     });
@@ -396,7 +399,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareWriteInstruction(0, 0xD020, v0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('STA');
       expect(output).toContain('$D020');
@@ -407,7 +410,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILHardwareReadInstruction(0, 0xD012, v0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('LDA');
       expect(output).toContain('$D012');
@@ -417,7 +420,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILReturnVoidInstruction(0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('RTS');
     });
@@ -427,7 +430,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILReturnInstruction(0, v0);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('RTS');
     });
@@ -437,7 +440,7 @@ describe('InstructionGenerator - Tier 1 Instructions', () => {
       const instr = new ILJumpInstruction(0, targetLabel);
 
       generator.exposeGenerateInstruction(instr);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
 
       expect(output).toContain('JMP');
     });

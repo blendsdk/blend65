@@ -1,7 +1,7 @@
 # What's Left - Blend65 Compiler
 
-> **Generated**: January 27, 2026  
-> **Test Status**: 7,078/7,080 passing (99.97%)  
+> **Generated**: January 28, 2026  
+> **Test Status**: 7,059/7,061 passing (99.97%)  
 > **Failed Tests**: 0  
 > **Skipped Tests**: 2  
 > **Active Plans**: 4 folders
@@ -12,7 +12,8 @@
 
 The Blend65 compiler core is **functionally complete** with an excellent 99.97% test pass rate. 
 
-**🎉 Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
+**🎉 Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**  
+**🎉 ASM-IL Mandatory Refactor is COMPLETE!**
 
 All remaining work is for **new features**, not bug fixes:
 
@@ -50,11 +51,6 @@ All remaining work is for **new features**, not bug fixes:
   - `blend65 watch` command
   - Project templates
 
-- [x] **Extreme E2E Testing** - ✅ ARCHIVED
-  - Fixture infrastructure complete
-  - E2E tests integrated into main test suite
-  - 1,500+ E2E & integration tests now passing
-
 ### 🟢 Low Priority (Future)
 
 - [ ] **Native Assembler** (`plans/native-assembler/`)
@@ -87,6 +83,7 @@ All bug fix plans have been completed and moved to `plans/archive/`:
 
 | Plan | What It Fixed |
 |------|---------------|
+| `asm-il-mandatory/` | ASM-IL as only code generation path |
 | `call-void-and-length-gap/` | CALL_VOID bug, length() string support |
 | `go-intrinsics/` | 6 intrinsic handlers (brk, barrier, lo, hi, volatile) |
 | `multiple-fixes/` | Array initializers, local vars, branches, data |
@@ -116,22 +113,26 @@ Both are documented and expected to be skipped until relevant features are imple
 ## Test Suite Health
 
 ```
-Total Tests:     7,080
-Passing:         7,078 (99.97%)
+Total Tests:     7,061
+Passing:         7,059 (99.97%)
 Failed:          0
 Skipped:         2 (documented)
 
-Component Breakdown:
-├── Lexer:           150+   ✅
-├── Parser:          400+   ✅
-├── AST:             100+   ✅
-├── Semantic:      1,600+   ✅
-├── IL Generator:  2,200+   ✅
-├── ASM-IL:          500+   ✅
-├── Code Generator:  550+   ✅
-├── E2E/Integration: 1,500+ ✅
-├── Pipeline:         50+   ✅
-└── CLI:              10    ✅
+Component Breakdown (Test Files):
+├── IL Generator:    66 files
+├── Semantic:        52 files
+├── Code Generator:  22 files
+├── Parser:          18 files
+├── E2E:             13 files
+├── Lexer:           12 files
+├── ASM-IL:          10 files
+├── Pipeline:         7 files
+├── AST:              5 files
+├── Config:           5 files
+├── Integration:      3 files
+├── Target:           2 files
+├── Optimizer:        1 file
+└── Library:          1 file
 ```
 
 ---
@@ -194,7 +195,8 @@ Component Breakdown:
 - AST (complete node types, visitors, walkers)
 - Semantic Analyzer (type checking, multi-module)
 - IL Generator (SSA form, phi functions)
-- Code Generator (6502 assembly output)
+- Code Generator (6502 assembly output via ASM-IL)
+- ASM-IL Layer (mandatory structured representation)
 - Config System (blend65.json)
 
 ### ✅ Infrastructure (100%)
@@ -211,6 +213,7 @@ Component Breakdown:
 |-------|----------|--------|
 | Core Compiler | - | ✅ COMPLETE |
 | Bug Fixes & Stabilization | - | ✅ COMPLETE |
+| ASM-IL Mandatory Refactor | - | ✅ COMPLETE |
 | Optimizer | 4-6 weeks | 📋 Ready to Start |
 | DX Features | 1-2 weeks | 📋 Ready to Start |
 | Documentation | 2-3 weeks | 📋 Planned |
@@ -223,9 +226,10 @@ Component Breakdown:
 
 **The Blend65 compiler is feature-complete and stable.**
 
-- ✅ All 7,078 tests passing
+- ✅ All 7,059 tests passing
 - ✅ All bug fixes complete
 - ✅ Core compilation pipeline working
+- ✅ ASM-IL mandatory refactor complete
 - ✅ Can compile real C64 programs
 
 **The remaining work is all additive** - new features to make the compiler better, not fixes for broken functionality.

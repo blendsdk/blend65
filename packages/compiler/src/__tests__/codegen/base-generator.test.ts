@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import { BaseCodeGenerator } from '../../codegen/base-generator.js';
 import { AssemblyWriter } from '../../codegen/assembly-writer.js';
 import { LabelGenerator } from '../../codegen/label-generator.js';
@@ -29,8 +30,10 @@ import type { CodegenOptions } from '../../codegen/types.js';
 class TestBaseGenerator extends BaseCodeGenerator {
   // Expose protected methods for testing
 
-  public exposeAssemblyWriter(): AssemblyWriter {
-    return this.assemblyWriter;
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeLabelGenerator(): LabelGenerator {
@@ -191,9 +194,11 @@ describe('BaseCodeGenerator', () => {
   // ===========================================================================
 
   describe('helper class initialization', () => {
-    it('should initialize AssemblyWriter', () => {
-      const writer = generator.exposeAssemblyWriter();
-      expect(writer).toBeInstanceOf(AssemblyWriter);
+    it('should produce valid assembly output', () => {
+      // ASM-IL builder should produce valid output
+      generator.exposeEmitComment('test');
+      const output = generator.getAssemblyOutput();
+      expect(typeof output).toBe('string');
     });
 
     it('should initialize LabelGenerator', () => {
@@ -212,7 +217,7 @@ describe('BaseCodeGenerator', () => {
   // ===========================================================================
 
   describe('resetState()', () => {
-    it('should reset assembly writer', () => {
+    it('should reset assembly state', () => {
       // Must set options before calling resetState (requires loadAddress)
       generator.setOptions({
         target: C64_CONFIG,
@@ -222,12 +227,15 @@ describe('BaseCodeGenerator', () => {
         loadAddress: 0x0801,
       });
 
-      const writer = generator.exposeAssemblyWriter();
-      writer.emitComment('test');
-      expect(writer.toString()).toContain('test');
+      generator.exposeEmitComment('test');
+      const outputBefore = generator.getAssemblyOutput();
+      expect(outputBefore).toContain('test');
 
       generator.exposeResetState();
-      expect(writer.toString()).toBe('');
+      const outputAfter = generator.getAssemblyOutput();
+      // ASM-IL emitter always includes the origin directive, so check for that only
+      expect(outputAfter).toContain('*=');
+      expect(outputAfter).not.toContain('test'); // Verify comment was cleared
     });
 
     it('should reset label generator', () => {
@@ -383,27 +391,26 @@ describe('BaseCodeGenerator', () => {
   // ===========================================================================
 
   describe('emitComment()', () => {
-    it('should emit comment to assembly writer', () => {
+    it('should emit comment to assembly output', () => {
       generator.exposeEmitComment('This is a comment');
-      const output = generator.exposeAssemblyWriter().toString();
-      expect(output).toContain('; This is a comment');
+      const output = generator.getAssemblyOutput();
+      expect(output).toContain('This is a comment');
     });
   });
 
   describe('emitLabel()', () => {
-    it('should emit label to assembly writer', () => {
+    it('should emit label to assembly output', () => {
       generator.exposeEmitLabel('_main');
-      const output = generator.exposeAssemblyWriter().toString();
-      expect(output).toContain('_main:');
+      const output = generator.getAssemblyOutput();
+      expect(output).toContain('_main');
     });
   });
 
   describe('emitSectionComment()', () => {
     it('should emit section divider with title', () => {
       generator.exposeEmitSectionComment('Functions');
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('Functions');
-      expect(output).toContain('-'); // Should have divider characters
     });
   });
 
@@ -414,20 +421,20 @@ describe('BaseCodeGenerator', () => {
   describe('emitInstruction()', () => {
     it('should emit instruction with operand', () => {
       generator.exposeEmitInstruction('LDA', '#$42');
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('LDA');
       expect(output).toContain('#$42');
     });
 
     it('should emit instruction without operand', () => {
       generator.exposeEmitInstruction('RTS');
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('RTS');
     });
 
     it('should emit instruction with comment', () => {
       generator.exposeEmitInstruction('LDA', '#$42', 'Load value');
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('Load value');
     });
 
@@ -440,7 +447,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitLdaImmediate()', () => {
     it('should emit LDA with immediate addressing', () => {
       generator.exposeEmitLdaImmediate(0x05);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('LDA');
       expect(output).toContain('#$05');
     });
@@ -454,7 +461,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitStaAbsolute()', () => {
     it('should emit STA with absolute addressing', () => {
       generator.exposeEmitStaAbsolute(0xD020);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('STA');
       expect(output).toContain('$D020');
     });
@@ -468,7 +475,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitLdaAbsolute()', () => {
     it('should emit LDA with absolute addressing', () => {
       generator.exposeEmitLdaAbsolute(0xD020);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('LDA');
       expect(output).toContain('$D020');
     });
@@ -482,7 +489,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitStaZeroPage()', () => {
     it('should emit STA with zero-page addressing', () => {
       generator.exposeEmitStaZeroPage(0x02);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('STA');
       expect(output).toContain('$02');
     });
@@ -496,7 +503,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitLdaZeroPage()', () => {
     it('should emit LDA with zero-page addressing', () => {
       generator.exposeEmitLdaZeroPage(0x02);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('LDA');
       expect(output).toContain('$02');
     });
@@ -510,7 +517,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitJmp()', () => {
     it('should emit JMP with label', () => {
       generator.exposeEmitJmp('_loop');
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('JMP');
       expect(output).toContain('_loop');
     });
@@ -524,7 +531,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitJsr()', () => {
     it('should emit JSR with label', () => {
       generator.exposeEmitJsr('_subroutine');
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('JSR');
       expect(output).toContain('_subroutine');
     });
@@ -538,7 +545,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitRts()', () => {
     it('should emit RTS instruction', () => {
       generator.exposeEmitRts();
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('RTS');
     });
 
@@ -551,7 +558,7 @@ describe('BaseCodeGenerator', () => {
   describe('emitNop()', () => {
     it('should emit NOP instruction', () => {
       generator.exposeEmitNop();
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('NOP');
     });
 

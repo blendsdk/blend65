@@ -44,8 +44,12 @@ import {
   ILHiInstruction,
   ILVolatileReadInstruction,
   ILVolatileWriteInstruction,
+  ILPhiInstruction,
+  ILLoadArrayInstruction,
+  ILStoreArrayInstruction,
 } from '../il/instructions.js';
 import { GlobalsGenerator } from './globals-generator.js';
+import { ValueLocation } from './types.js';
 
 /**
  * Tracks local variable allocation within a function.
@@ -120,6 +124,40 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
    */
   protected currentFunctionParams: Set<string> = new Set();
 
+  // ============================================
+  // PHI NODE MERGE VARIABLE ALLOCATION
+  // ============================================
+
+  /**
+   * Maps PHI result IDs to their allocated zero-page merge addresses.
+   *
+   * PHI nodes in SSA form need to be lowered to explicit moves.
+   * Each PHI result gets a dedicated zero-page location where
+   * predecessor blocks store their contributions.
+   *
+   * Reset at the start of each function.
+   */
+  protected phiMergeLocations: Map<string, number> = new Map();
+
+  /**
+   * Next available zero-page address for PHI merge variables.
+   * Uses a separate region from regular locals: $40-$4F (16 bytes).
+   *
+   * This allows up to 16 PHI nodes per function, which is typically enough.
+   */
+  protected nextPhiZpAddress: number = 0x40;
+
+  /**
+   * Start address for PHI merge variable allocation.
+   */
+  protected static readonly PHI_ZP_START = 0x40;
+
+  /**
+   * End address for PHI merge variable allocation (exclusive).
+   * 16 bytes available: $40-$4F
+   */
+  protected static readonly PHI_ZP_END = 0x50;
+
   /**
    * Resets local variable tracking for a new function.
    */
@@ -127,6 +165,50 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     this.localAllocations.clear();
     this.nextLocalZpAddress = InstructionGenerator.LOCAL_ZP_START;
     this.currentFunctionParams.clear();
+    // Also reset PHI merge variable tracking
+    this.phiMergeLocations.clear();
+    this.nextPhiZpAddress = InstructionGenerator.PHI_ZP_START;
+  }
+
+  /**
+   * Allocates zero-page space for a PHI merge variable.
+   *
+   * PHI nodes in SSA form need to be lowered to explicit moves.
+   * This allocates a dedicated zero-page location where predecessor
+   * blocks can store their contributions before the merge point.
+   *
+   * @param phiResultId - The PHI result register ID (e.g., "v8")
+   * @returns Allocated zero-page address
+   */
+  protected allocatePhiMergeVariable(phiResultId: string): number {
+    // Check if already allocated
+    const existing = this.phiMergeLocations.get(phiResultId);
+    if (existing !== undefined) {
+      return existing;
+    }
+
+    // Allocate new location
+    if (this.nextPhiZpAddress >= InstructionGenerator.PHI_ZP_END) {
+      this.addWarning(`PHI merge ZP overflow: cannot allocate for '${phiResultId}'`);
+      // Fall back to using the last available address (may cause conflicts)
+      return InstructionGenerator.PHI_ZP_END - 1;
+    }
+
+    const address = this.nextPhiZpAddress;
+    this.nextPhiZpAddress++;
+    this.phiMergeLocations.set(phiResultId, address);
+
+    return address;
+  }
+
+  /**
+   * Gets the allocated merge address for a PHI result, if any.
+   *
+   * @param phiResultId - The PHI result register ID
+   * @returns The allocated address, or undefined if not allocated
+   */
+  protected getPhiMergeAddress(phiResultId: string): number | undefined {
+    return this.phiMergeLocations.get(phiResultId);
   }
 
   /**
@@ -230,9 +312,10 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     }
 
     // Emit function header
-    this.assemblyWriter.emitBlankLine();
+    this.asmBuilder.blank();
     this.emitComment(`function ${func.name}(${this.formatParams(func)}): ${func.returnType.kind}`);
-    this.emitLabel(label);
+    // Use 'function' label type to emit as global label (no '.' prefix)
+    this.emitLabel(label, 'function');
 
     // Generate code for each basic block
     const blocks = func.getBlocksInReversePostorder();
@@ -261,10 +344,15 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   /**
    * Generates code for a basic block
    *
-   * @param _func - Containing function (unused in stub, will be used for local vars)
+   * Handles PHI node lowering by:
+   * 1. Generating PHI nodes at the start (load from merge variables)
+   * 2. Generating regular instructions
+   * 3. Before terminal, inserting stores to PHI merge variables for successors
+   *
+   * @param func - Containing function
    * @param block - Basic block to generate
    */
-  protected generateBasicBlock(_func: ILFunction, block: BasicBlock): void {
+  protected generateBasicBlock(func: ILFunction, block: BasicBlock): void {
     // Skip entry block label if it's the first block
     if (block.id !== 0) {
       const blockLabel = this.getBlockLabel(block.label);
@@ -272,8 +360,104 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
     }
 
     // Generate code for each instruction
-    for (const instr of block.getInstructions()) {
+    const instructions = block.getInstructions();
+    for (let i = 0; i < instructions.length; i++) {
+      const instr = instructions[i];
+
+      // Before the terminator instruction, handle PHI moves for successors
+      if (instr.isTerminator()) {
+        this.handlePhiMovesForSuccessors(func, block);
+      }
+
       this.generateInstruction(instr);
+    }
+  }
+
+  /**
+   * Handles PHI node contributions before a block's terminator.
+   *
+   * At the end of each predecessor block, we need to store the appropriate
+   * value to the PHI merge variable so that when the successor block runs,
+   * it can load the correct value based on which path was taken.
+   *
+   * This is the key to PHI lowering: converting SSA PHI nodes to explicit
+   * memory stores and loads.
+   *
+   * @param func - The containing function
+   * @param block - The current block (predecessor)
+   */
+  protected handlePhiMovesForSuccessors(_func: ILFunction, block: BasicBlock): void {
+    // Get successor blocks
+    const successors = block.getSuccessors();
+
+    for (const successor of successors) {
+      // Get PHI instructions in the successor block
+      const phiInstructions = successor.getPhiInstructions();
+
+      for (const phiInstr of phiInstructions) {
+        const phi = phiInstr as ILPhiInstruction;
+        const phiResultId = phi.result?.toString() ?? '';
+
+        // Find the value this block contributes to the PHI
+        const contributedValue = phi.getValueForBlock(block.id);
+        if (contributedValue) {
+          const contributedValueId = contributedValue.toString();
+
+          // Allocate a merge variable for this PHI (if not already allocated)
+          const mergeAddr = this.allocatePhiMergeVariable(phiResultId);
+
+          // Emit a comment explaining what we're doing
+          this.emitComment(`PHI prep: ${phiResultId} <- ${contributedValueId} (from block ${block.label})`);
+
+          // Load the contributed value and store to merge location
+          // First, try to load the value to A
+          if (!this.loadValueToA(contributedValueId)) {
+            // If we couldn't load it (untracked), emit a placeholder
+            this.emitComment(`WARNING: Cannot load ${contributedValueId} for PHI`);
+            this.emitLdaImmediate(0, `STUB: ${contributedValueId}`);
+          }
+
+          // Store to the PHI merge variable
+          this.emitStaZeroPage(mergeAddr, `Store to PHI merge var for ${phiResultId}`);
+        }
+      }
+    }
+  }
+
+  /**
+   * Generates code for a PHI instruction.
+   *
+   * At the merge point, the PHI node loads from the merge variable
+   * where predecessor blocks stored their contributions.
+   *
+   * The actual "selection" happened at runtime when a predecessor block
+   * stored its value to the merge location before jumping here.
+   *
+   * @param instr - PHI instruction
+   */
+  protected generatePhiNode(instr: ILPhiInstruction): void {
+    const resultId = instr.result?.toString() ?? '';
+
+    // Get the merge address for this PHI
+    const mergeAddr = this.getPhiMergeAddress(resultId);
+
+    if (mergeAddr !== undefined) {
+      // Load the merged value from the ZP location
+      this.emitComment(`PHI: ${resultId} = merged value from predecessors`);
+      this.emitLdaZeroPage(mergeAddr, `Load PHI merge var ${resultId}`);
+
+      // Track the value as now being in the accumulator
+      this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+    } else {
+      // PHI wasn't set up properly - this shouldn't happen if
+      // handlePhiMovesForSuccessors ran correctly
+      this.emitComment(`PHI: ${resultId} (WARNING: merge var not allocated)`);
+      this.emitComment(`PHI sources: ${instr.sources.map(s => `${s.value}@block${s.blockId}`).join(', ')}`);
+
+      // Allocate now as a fallback
+      const newAddr = this.allocatePhiMergeVariable(resultId);
+      this.emitLdaZeroPage(newAddr, `Load PHI merge var ${resultId} (late allocation)`);
+      this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
     }
   }
 
@@ -353,6 +537,37 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
         this.generateBinaryOp(instr as ILBinaryInstruction);
         break;
 
+      // ====== Arithmetic Operations (MUL, DIV, MOD) ======
+      case ILOpcode.MUL:
+        this.generateMul(instr as ILBinaryInstruction);
+        break;
+
+      case ILOpcode.DIV:
+        this.generateDiv(instr as ILBinaryInstruction);
+        break;
+
+      case ILOpcode.MOD:
+        this.generateMod(instr as ILBinaryInstruction);
+        break;
+
+      // ====== Shift Operations ======
+      case ILOpcode.SHL:
+        this.generateShl(instr as ILBinaryInstruction);
+        break;
+
+      case ILOpcode.SHR:
+        this.generateShr(instr as ILBinaryInstruction);
+        break;
+
+      // ====== Array Operations ======
+      case ILOpcode.LOAD_ARRAY:
+        this.generateLoadArray(instr as ILLoadArrayInstruction);
+        break;
+
+      case ILOpcode.STORE_ARRAY:
+        this.generateStoreArray(instr as ILStoreArrayInstruction);
+        break;
+
       case ILOpcode.NEG:
       case ILOpcode.NOT:
       case ILOpcode.LOGICAL_NOT:
@@ -417,6 +632,11 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
         this.generateVolatileWrite(instr as ILVolatileWriteInstruction);
         break;
 
+      // ====== SSA PHI Nodes ======
+      case ILOpcode.PHI:
+        this.generatePhiNode(instr as ILPhiInstruction);
+        break;
+
       // ====== Tier 3: Placeholder ======
       default:
         this.generatePlaceholder(instr);
@@ -445,17 +665,20 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
   /**
    * Generates code for CONST instruction
    *
-   * Loads a constant value into the accumulator.
+   * Loads a constant value into the accumulator and tracks the value
+   * location for subsequent binary operations.
+   *
    * For word (16-bit) values, stores low byte in A and high byte in X.
    *
    * @param instr - Const instruction
    */
   protected generateConst(instr: ILConstInstruction): void {
     const value = instr.value;
+    const resultId = instr.result?.toString() ?? '';
     
     // Track this constant for potential hi()/lo() folding
     this.lastConstValue = value;
-    this.lastConstResult = instr.result?.toString() ?? null;
+    this.lastConstResult = resultId;
     
     // For word values (> 255), we need to load both bytes
     // A = low byte, X = high byte (for use by hi()/lo())
@@ -463,13 +686,27 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
       const lowByte = value & 0xFF;
       const highByte = (value >> 8) & 0xFF;
       // Load low byte into A
-      this.emitLdaImmediate(lowByte, `${instr.result} = ${value} (low byte)`);
+      this.emitLdaImmediate(lowByte, `${resultId} = ${value} (low byte)`);
       // Load high byte into X for potential hi() use - use byte-sized hex format
       const highHex = '$' + highByte.toString(16).toUpperCase().padStart(2, '0');
-      this.emitInstruction('LDX', `#${highHex}`, `${instr.result} high byte`, 2);
+      this.emitInstruction('LDX', `#${highHex}`, `${resultId} high byte`, 2);
+      
+      // Track as word value - low byte in A, need to mark as word
+      this.trackValue(resultId, {
+        location: ValueLocation.IMMEDIATE,
+        value: value,
+        isWord: true,
+      });
     } else {
       // Single byte value - just load into A
-      this.emitLdaImmediate(value, `${instr.result} = ${value}`);
+      this.emitLdaImmediate(value, `${resultId} = ${value}`);
+      
+      // Track this value as an immediate constant
+      // This allows binary ops to use the constant directly
+      this.trackValue(resultId, {
+        location: ValueLocation.IMMEDIATE,
+        value: value,
+      });
     }
   }
 
@@ -751,43 +988,66 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
    * Generates code for binary operations
    *
    * Handles arithmetic, bitwise, and comparison operations.
-   * Assumes left operand is already loaded in accumulator (A),
-   * and right operand is available as immediate or in memory.
+   * Uses value tracking to determine operand locations and emit
+   * correct addressing modes.
+   *
+   * The left operand should already be in the accumulator (A).
+   * The right operand is looked up via value tracking and formatted
+   * appropriately (immediate, zero page, absolute, or label).
    *
    * @param instr - Binary instruction
    */
   protected generateBinaryOp(instr: ILBinaryInstruction): void {
     const op = this.getOperatorSymbol(instr.opcode);
-    this.emitComment(`${instr.result} = ${instr.left} ${op} ${instr.right}`);
+    const leftId = instr.left?.toString() ?? '';
+    const rightId = instr.right?.toString() ?? '';
+    const resultId = instr.result?.toString() ?? '';
+    
+    this.emitComment(`${resultId} = ${leftId} ${op} ${rightId}`);
+    
+    // Get the right operand for the instruction
+    // Use value tracking to determine the correct addressing mode
+    const rightOperand = this.formatOperand(rightId);
+    
+    // Determine instruction size based on addressing mode
+    const instrSize = rightOperand.startsWith('#') ? 2 : 
+                      rightOperand.startsWith('$') && rightOperand.length <= 3 ? 2 : 3;
 
     switch (instr.opcode) {
       // ====== Arithmetic Operations ======
       case ILOpcode.ADD:
         // Proper 6502 addition: CLC then ADC
         this.emitInstruction('CLC', undefined, 'Clear carry for add', 1);
-        this.emitInstruction('ADC', '#$00', 'STUB: Add placeholder', 2);
+        this.emitInstruction('ADC', rightOperand, `Add ${rightId}`, instrSize);
+        // Track result in accumulator
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
         break;
 
       case ILOpcode.SUB:
         // Proper 6502 subtraction: SEC then SBC
         this.emitInstruction('SEC', undefined, 'Set carry for subtract', 1);
-        this.emitInstruction('SBC', '#$00', 'STUB: Subtract placeholder', 2);
+        this.emitInstruction('SBC', rightOperand, `Subtract ${rightId}`, instrSize);
+        // Track result in accumulator
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
         break;
 
       // ====== Bitwise Operations ======
       case ILOpcode.AND:
         // 6502 AND instruction: A = A & operand
-        this.emitInstruction('AND', '#$00', 'STUB: AND placeholder', 2);
+        this.emitInstruction('AND', rightOperand, `AND ${rightId}`, instrSize);
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
         break;
 
       case ILOpcode.OR:
         // 6502 ORA instruction: A = A | operand
-        this.emitInstruction('ORA', '#$00', 'STUB: ORA placeholder', 2);
+        this.emitInstruction('ORA', rightOperand, `OR ${rightId}`, instrSize);
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
         break;
 
       case ILOpcode.XOR:
         // 6502 EOR (exclusive OR) instruction: A = A ^ operand
-        this.emitInstruction('EOR', '#$00', 'STUB: EOR placeholder', 2);
+        this.emitInstruction('EOR', rightOperand, `XOR ${rightId}`, instrSize);
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
         break;
 
       // ====== Comparison Operations ======
@@ -799,37 +1059,37 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
       // the appropriate 6502 branch instruction.
       case ILOpcode.CMP_EQ:
         // Equal: Z flag set after CMP
-        this.emitInstruction('CMP', '#$00', 'STUB: Compare for equality', 2);
+        this.emitInstruction('CMP', rightOperand, `Compare for == with ${rightId}`, instrSize);
         this.lastComparisonOpcode = ILOpcode.CMP_EQ;
         break;
 
       case ILOpcode.CMP_NE:
         // Not equal: Z flag clear after CMP
-        this.emitInstruction('CMP', '#$00', 'STUB: Compare for inequality', 2);
+        this.emitInstruction('CMP', rightOperand, `Compare for != with ${rightId}`, instrSize);
         this.lastComparisonOpcode = ILOpcode.CMP_NE;
         break;
 
       case ILOpcode.CMP_LT:
         // Less than (unsigned): C flag clear after CMP
-        this.emitInstruction('CMP', '#$00', 'STUB: Compare for less than', 2);
+        this.emitInstruction('CMP', rightOperand, `Compare for < with ${rightId}`, instrSize);
         this.lastComparisonOpcode = ILOpcode.CMP_LT;
         break;
 
       case ILOpcode.CMP_LE:
         // Less than or equal (unsigned): C clear OR Z set
-        this.emitInstruction('CMP', '#$00', 'STUB: Compare for less than or equal', 2);
+        this.emitInstruction('CMP', rightOperand, `Compare for <= with ${rightId}`, instrSize);
         this.lastComparisonOpcode = ILOpcode.CMP_LE;
         break;
 
       case ILOpcode.CMP_GT:
         // Greater than (unsigned): C set AND Z clear
-        this.emitInstruction('CMP', '#$00', 'STUB: Compare for greater than', 2);
+        this.emitInstruction('CMP', rightOperand, `Compare for > with ${rightId}`, instrSize);
         this.lastComparisonOpcode = ILOpcode.CMP_GT;
         break;
 
       case ILOpcode.CMP_GE:
         // Greater than or equal (unsigned): C flag set after CMP
-        this.emitInstruction('CMP', '#$00', 'STUB: Compare for greater than or equal', 2);
+        this.emitInstruction('CMP', rightOperand, `Compare for >= with ${rightId}`, instrSize);
         this.lastComparisonOpcode = ILOpcode.CMP_GE;
         break;
 
@@ -926,6 +1186,463 @@ export abstract class InstructionGenerator extends GlobalsGenerator {
       default:
         this.emitComment(`Unknown CPU instruction: ${instr.opcode}`);
     }
+  }
+
+  // ============================================
+  // MULTIPLICATION, DIVISION, MODULO
+  // ============================================
+
+  /**
+   * Generates code for MUL (multiplication) instruction.
+   *
+   * The 6502 has no hardware multiply, so we use:
+   * 1. Power-of-two optimization: multiply by 2^n uses ASL shifts
+   * 2. General case: shift-and-add algorithm
+   *
+   * For constant multipliers that are powers of two, we emit
+   * unrolled ASL instructions for efficiency.
+   *
+   * @param instr - Binary multiply instruction
+   */
+  protected generateMul(instr: ILBinaryInstruction): void {
+    const leftId = instr.left?.toString() ?? '';
+    const rightId = instr.right?.toString() ?? '';
+    const resultId = instr.result?.toString() ?? '';
+
+    this.emitComment(`${resultId} = ${leftId} * ${rightId}`);
+
+    // Check if right operand is a constant power of 2 for optimization
+    const rightLoc = this.getValueLocation(rightId);
+    if (rightLoc?.location === ValueLocation.IMMEDIATE && rightLoc.value !== undefined) {
+      const multiplier = rightLoc.value;
+      
+      // Check for power of 2 (enables shift optimization)
+      if (multiplier > 0 && (multiplier & (multiplier - 1)) === 0) {
+        // Load the left operand into A
+        if (!this.loadValueToA(leftId)) {
+          this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+        }
+        
+        // Calculate number of shifts needed (log2 of multiplier)
+        const shifts = Math.log2(multiplier);
+        for (let i = 0; i < shifts; i++) {
+          this.emitInstruction('ASL', 'A', `Multiply by 2 (shift ${i + 1}/${shifts})`, 1);
+        }
+        
+        // Track result in accumulator
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+        return;
+      }
+    }
+
+    // General case: use shift-and-add multiplication
+    // For simplicity, we emit a software multiply routine call
+    // A = multiplicand, X = multiplier
+    
+    // Load left operand (multiplicand) to A
+    if (!this.loadValueToA(leftId)) {
+      this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+    }
+    
+    // Save multiplicand
+    this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Save multiplicand', 2);
+    
+    // Load right operand (multiplier) to A  
+    if (!this.loadValueToA(rightId)) {
+      this.emitLdaImmediate(0, `STUB: Cannot load ${rightId}`);
+    }
+    
+    // Transfer multiplier to X
+    this.emitInstruction('TAX', undefined, 'Multiplier in X', 1);
+    
+    // Reload multiplicand
+    this.emitInstruction('LDA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Reload multiplicand', 2);
+    
+    // Emit inline multiply loop (shift-and-add algorithm)
+    this.emitComment('8-bit multiply: A * X -> A');
+    this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'multiplicand', 2);
+    this.emitInstruction('STX', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'multiplier', 2);
+    this.emitInstruction('LDA', '#$00', 'Clear result', 2);
+    
+    // Generate 8-iteration loop inline for simplicity
+    const loopLabel = this.getTempLabel('mul');
+    const skipLabel = this.getTempLabel('mulskip');
+    const doneLabel = this.getTempLabel('muldone');
+    
+    this.emitLabel(loopLabel);
+    this.emitInstruction('LDX', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Load multiplier', 2);
+    this.emitInstruction('BEQ', doneLabel, 'Done if multiplier is 0', 2);
+    this.emitInstruction('TXA', undefined, 'Check bit 0', 1);
+    this.emitInstruction('AND', '#$01', 'Mask bit 0', 2);
+    this.emitInstruction('BEQ', skipLabel, 'Skip if bit 0 clear', 2);
+    this.emitInstruction('CLC', undefined, 'Clear carry', 1);
+    this.emitInstruction('ADC', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Add multiplicand', 2);
+    this.emitLabel(skipLabel);
+    this.emitInstruction('ASL', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Shift multiplicand left', 2);
+    this.emitInstruction('LSR', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Shift multiplier right', 2);
+    this.emitInstruction('JMP', loopLabel, 'Continue loop', 3);
+    this.emitLabel(doneLabel);
+    
+    // Result is in A
+    this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+  }
+
+  /**
+   * Generates code for DIV (division) instruction.
+   *
+   * The 6502 has no hardware divide. We use a simple
+   * repeated subtraction algorithm for unsigned division.
+   *
+   * For power-of-two divisors, we use LSR shifts.
+   *
+   * @param instr - Binary divide instruction
+   */
+  protected generateDiv(instr: ILBinaryInstruction): void {
+    const leftId = instr.left?.toString() ?? '';
+    const rightId = instr.right?.toString() ?? '';
+    const resultId = instr.result?.toString() ?? '';
+
+    this.emitComment(`${resultId} = ${leftId} / ${rightId}`);
+
+    // Check for power-of-two divisor optimization
+    const rightLoc = this.getValueLocation(rightId);
+    if (rightLoc?.location === ValueLocation.IMMEDIATE && rightLoc.value !== undefined) {
+      const divisor = rightLoc.value;
+      
+      if (divisor > 0 && (divisor & (divisor - 1)) === 0) {
+        // Power of 2 - use right shifts
+        if (!this.loadValueToA(leftId)) {
+          this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+        }
+        
+        const shifts = Math.log2(divisor);
+        for (let i = 0; i < shifts; i++) {
+          this.emitInstruction('LSR', 'A', `Divide by 2 (shift ${i + 1}/${shifts})`, 1);
+        }
+        
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+        return;
+      }
+    }
+
+    // General case: repeated subtraction
+    // dividend in A, divisor in X, quotient returned in A
+    if (!this.loadValueToA(leftId)) {
+      this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+    }
+    
+    // Save dividend
+    this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Save dividend', 2);
+    
+    // Load divisor
+    if (!this.loadValueToA(rightId)) {
+      this.emitLdaImmediate(1, `STUB: Cannot load ${rightId} (using 1)`);
+    }
+    this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Save divisor', 2);
+    
+    // Quotient starts at 0
+    this.emitInstruction('LDX', '#$00', 'Quotient = 0', 2);
+    this.emitInstruction('LDA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Load dividend', 2);
+    
+    const loopLabel = this.getTempLabel('div');
+    const doneLabel = this.getTempLabel('divdone');
+    
+    this.emitLabel(loopLabel);
+    this.emitInstruction('CMP', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Compare with divisor', 2);
+    this.emitInstruction('BCC', doneLabel, 'Done if dividend < divisor', 2);
+    this.emitInstruction('SEC', undefined, 'Set carry for subtract', 1);
+    this.emitInstruction('SBC', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Subtract divisor', 2);
+    this.emitInstruction('INX', undefined, 'Increment quotient', 1);
+    this.emitInstruction('JMP', loopLabel, 'Continue', 3);
+    this.emitLabel(doneLabel);
+    
+    // Transfer quotient from X to A
+    this.emitInstruction('TXA', undefined, 'Quotient to A', 1);
+    
+    this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+  }
+
+  /**
+   * Generates code for MOD (modulo) instruction.
+   *
+   * Uses the same algorithm as DIV but returns the remainder
+   * instead of the quotient.
+   *
+   * @param instr - Binary modulo instruction
+   */
+  protected generateMod(instr: ILBinaryInstruction): void {
+    const leftId = instr.left?.toString() ?? '';
+    const rightId = instr.right?.toString() ?? '';
+    const resultId = instr.result?.toString() ?? '';
+
+    this.emitComment(`${resultId} = ${leftId} % ${rightId}`);
+
+    // Check for power-of-two modulo optimization (n % 2^k = n & (2^k - 1))
+    const rightLoc = this.getValueLocation(rightId);
+    if (rightLoc?.location === ValueLocation.IMMEDIATE && rightLoc.value !== undefined) {
+      const divisor = rightLoc.value;
+      
+      if (divisor > 0 && (divisor & (divisor - 1)) === 0) {
+        // Power of 2 - use AND with (divisor - 1)
+        if (!this.loadValueToA(leftId)) {
+          this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+        }
+        
+        const mask = divisor - 1;
+        this.emitInstruction('AND', this.formatImmediate(mask), `Modulo ${divisor} via AND`, 2);
+        
+        this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+        return;
+      }
+    }
+
+    // General case: repeated subtraction, keep remainder
+    if (!this.loadValueToA(leftId)) {
+      this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+    }
+    
+    // Save dividend
+    this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Save dividend', 2);
+    
+    // Load divisor
+    if (!this.loadValueToA(rightId)) {
+      this.emitLdaImmediate(1, `STUB: Cannot load ${rightId} (using 1)`);
+    }
+    this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Save divisor', 2);
+    
+    this.emitInstruction('LDA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Load dividend', 2);
+    
+    const loopLabel = this.getTempLabel('mod');
+    const doneLabel = this.getTempLabel('moddone');
+    
+    this.emitLabel(loopLabel);
+    this.emitInstruction('CMP', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Compare with divisor', 2);
+    this.emitInstruction('BCC', doneLabel, 'Done if < divisor', 2);
+    this.emitInstruction('SEC', undefined, 'Set carry for subtract', 1);
+    this.emitInstruction('SBC', this.formatZeroPage(InstructionGenerator.ZP_PTR_HI), 'Subtract divisor', 2);
+    this.emitInstruction('JMP', loopLabel, 'Continue', 3);
+    this.emitLabel(doneLabel);
+    
+    // Remainder is now in A
+    this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+  }
+
+  // ============================================
+  // SHIFT OPERATIONS
+  // ============================================
+
+  /**
+   * Generates code for SHL (shift left) instruction.
+   *
+   * Uses ASL (Arithmetic Shift Left) instruction.
+   * For constant shift counts, unrolls the shifts.
+   * For variable counts, uses a loop.
+   *
+   * @param instr - Binary shift left instruction
+   */
+  protected generateShl(instr: ILBinaryInstruction): void {
+    const leftId = instr.left?.toString() ?? '';
+    const rightId = instr.right?.toString() ?? '';
+    const resultId = instr.result?.toString() ?? '';
+
+    this.emitComment(`${resultId} = ${leftId} << ${rightId}`);
+
+    // Load value to shift into A
+    if (!this.loadValueToA(leftId)) {
+      this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+    }
+
+    // Check for constant shift count
+    const rightLoc = this.getValueLocation(rightId);
+    if (rightLoc?.location === ValueLocation.IMMEDIATE && rightLoc.value !== undefined) {
+      const shiftCount = rightLoc.value & 7; // Limit to 0-7 for 8-bit values
+      
+      // Unroll shifts for constant count
+      for (let i = 0; i < shiftCount; i++) {
+        this.emitInstruction('ASL', 'A', `Shift left (${i + 1}/${shiftCount})`, 1);
+      }
+    } else {
+      // Variable shift count - use loop
+      // Save value, load count to X, loop
+      this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Save value', 2);
+      
+      if (!this.loadValueToX(rightId)) {
+        this.emitInstruction('LDX', '#$00', `STUB: Cannot load ${rightId}`, 2);
+      }
+      
+      this.emitInstruction('LDA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Reload value', 2);
+      
+      const loopLabel = this.getTempLabel('shl');
+      const doneLabel = this.getTempLabel('shldone');
+      
+      this.emitInstruction('CPX', '#$00', 'Check if count is 0', 2);
+      this.emitInstruction('BEQ', doneLabel, 'Done if zero', 2);
+      this.emitLabel(loopLabel);
+      this.emitInstruction('ASL', 'A', 'Shift left', 1);
+      this.emitInstruction('DEX', undefined, 'Decrement count', 1);
+      this.emitInstruction('BNE', loopLabel, 'Continue if not zero', 2);
+      this.emitLabel(doneLabel);
+    }
+
+    this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+  }
+
+  /**
+   * Generates code for SHR (shift right) instruction.
+   *
+   * Uses LSR (Logical Shift Right) instruction for unsigned values.
+   * For constant shift counts, unrolls the shifts.
+   * For variable counts, uses a loop.
+   *
+   * @param instr - Binary shift right instruction
+   */
+  protected generateShr(instr: ILBinaryInstruction): void {
+    const leftId = instr.left?.toString() ?? '';
+    const rightId = instr.right?.toString() ?? '';
+    const resultId = instr.result?.toString() ?? '';
+
+    this.emitComment(`${resultId} = ${leftId} >> ${rightId}`);
+
+    // Load value to shift into A
+    if (!this.loadValueToA(leftId)) {
+      this.emitLdaImmediate(0, `STUB: Cannot load ${leftId}`);
+    }
+
+    // Check for constant shift count
+    const rightLoc = this.getValueLocation(rightId);
+    if (rightLoc?.location === ValueLocation.IMMEDIATE && rightLoc.value !== undefined) {
+      const shiftCount = rightLoc.value & 7; // Limit to 0-7 for 8-bit values
+      
+      // Unroll shifts for constant count
+      for (let i = 0; i < shiftCount; i++) {
+        this.emitInstruction('LSR', 'A', `Shift right (${i + 1}/${shiftCount})`, 1);
+      }
+    } else {
+      // Variable shift count - use loop
+      this.emitInstruction('STA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Save value', 2);
+      
+      if (!this.loadValueToX(rightId)) {
+        this.emitInstruction('LDX', '#$00', `STUB: Cannot load ${rightId}`, 2);
+      }
+      
+      this.emitInstruction('LDA', this.formatZeroPage(InstructionGenerator.ZP_PTR), 'Reload value', 2);
+      
+      const loopLabel = this.getTempLabel('shr');
+      const doneLabel = this.getTempLabel('shrdone');
+      
+      this.emitInstruction('CPX', '#$00', 'Check if count is 0', 2);
+      this.emitInstruction('BEQ', doneLabel, 'Done if zero', 2);
+      this.emitLabel(loopLabel);
+      this.emitInstruction('LSR', 'A', 'Shift right', 1);
+      this.emitInstruction('DEX', undefined, 'Decrement count', 1);
+      this.emitInstruction('BNE', loopLabel, 'Continue if not zero', 2);
+      this.emitLabel(doneLabel);
+    }
+
+    this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+  }
+
+  // ============================================
+  // ARRAY OPERATIONS
+  // ============================================
+
+  /**
+   * Generates code for LOAD_ARRAY instruction.
+   *
+   * Loads a byte from array[index] using Y-indexed absolute addressing.
+   *
+   * Pattern: LDA array,Y
+   *
+   * @param instr - Load array instruction
+   */
+  protected generateLoadArray(instr: ILLoadArrayInstruction): void {
+    const arrayName = instr.arrayName;
+    const indexId = instr.index?.toString() ?? '';
+    const resultId = instr.result?.toString() ?? '';
+
+    this.emitComment(`${resultId} = ${arrayName}[${indexId}]`);
+
+    // Resolve the array label
+    const arrayLabel = this.resolveArrayLabel(arrayName);
+
+    // Load index into Y
+    if (!this.loadValueToY(indexId)) {
+      this.emitInstruction('LDY', '#$00', `STUB: Cannot load index ${indexId}`, 2);
+    }
+
+    // Load from array using indexed addressing: LDA array,Y
+    this.emitInstruction('LDA', `${arrayLabel},Y`, `Load ${arrayName}[${indexId}]`, 3);
+
+    // Track result in accumulator
+    this.trackValue(resultId, { location: ValueLocation.ACCUMULATOR });
+  }
+
+  /**
+   * Generates code for STORE_ARRAY instruction.
+   *
+   * Stores a byte to array[index] using Y-indexed absolute addressing.
+   *
+   * Pattern: STA array,Y
+   *
+   * Requires careful handling because we need both the value (in A)
+   * and the index (in Y). We save the value, load the index, then
+   * restore and store the value.
+   *
+   * @param instr - Store array instruction
+   */
+  protected generateStoreArray(instr: ILStoreArrayInstruction): void {
+    const arrayName = instr.arrayName;
+    const indexId = instr.index?.toString() ?? '';
+    const valueId = instr.value?.toString() ?? '';
+
+    this.emitComment(`${arrayName}[${indexId}] = ${valueId}`);
+
+    // Resolve the array label
+    const arrayLabel = this.resolveArrayLabel(arrayName);
+
+    // Load value first
+    if (!this.loadValueToA(valueId)) {
+      this.emitLdaImmediate(0, `STUB: Cannot load value ${valueId}`);
+    }
+
+    // Save value to ZP (because loading index may clobber A)
+    this.emitInstruction('PHA', undefined, 'Save value', 1);
+
+    // Load index into Y
+    if (!this.loadValueToY(indexId)) {
+      this.emitInstruction('LDY', '#$00', `STUB: Cannot load index ${indexId}`, 2);
+    }
+
+    // Restore value
+    this.emitInstruction('PLA', undefined, 'Restore value', 1);
+
+    // Store to array using indexed addressing: STA array,Y
+    this.emitInstruction('STA', `${arrayLabel},Y`, `Store to ${arrayName}[${indexId}]`, 3);
+  }
+
+  /**
+   * Resolves an array name to its assembly label.
+   *
+   * Checks global labels first, then constructs a default label.
+   *
+   * @param arrayName - The array variable name
+   * @returns The assembly label to use
+   */
+  protected resolveArrayLabel(arrayName: string): string {
+    // Check if there's a global label for this array
+    const label = this.lookupGlobalLabel(arrayName);
+    if (label) {
+      return label;
+    }
+
+    // Check for hardware-mapped address (array at fixed address)
+    const addrInfo = this.lookupGlobalAddress(arrayName);
+    if (addrInfo) {
+      return this.formatHex(addrInfo.address);
+    }
+
+    // Default: use underscore-prefixed name as label
+    return `_${arrayName}`;
   }
 
   // ============================================

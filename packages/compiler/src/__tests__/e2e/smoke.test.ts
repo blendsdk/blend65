@@ -102,12 +102,12 @@ describe('E2E Smoke Tests - Infrastructure Validation', () => {
     it('expectAsmContains finds string pattern', () => {
       const asm = compileToAsm('let x: byte = 10;');
       // Assembly should have some content
-      expectAsmContains(asm, '* ='); // ACME origin directive
+      expectAsmContains(asm, '*='); // ACME origin directive (no space)
     });
 
     it('expectAsmContains finds regex pattern', () => {
       const asm = compileToAsm('let x: byte = 10;');
-      expectAsmContains(asm, /\* = \$[0-9A-Fa-f]+/); // Origin with address
+      expectAsmContains(asm, /\*= \$[0-9A-Fa-f]+/); // Origin with address (no space before =)
     });
 
     it('expectAsmNotContains validates absence', () => {

@@ -1,0 +1,451 @@
+// ============================================================================
+// Print Library Demo for Blend65
+// ============================================================================
+// Demonstrates the print library functions for the Commodore 64.
+// Shows how to print numbers, hex values, and position the cursor.
+//
+// This demo shows the workaround for the desired:
+//   printLn("My Age is", 74)
+//
+// Since Blend65 doesn't support function overloading or generic types,
+// we use separate functions for each data type.
+//
+// To compile: yarn blend65 compile examples/simple/print-demo.blend
+// To run: Load the resulting .prg file in VICE or similar emulator
+// ============================================================================
+
+module PrintDemo;
+
+// Import the print library (would be: import Blend.Print)
+// For now, we inline the necessary parts since import isn't fully working
+
+// ============================================================================
+// Screen Memory Mapping
+// ============================================================================
+
+@map screenRAM from $0400 to $07E7: byte;
+@map colorRAM from $D800 to $DBE7: byte;
+
+// ============================================================================
+// Constants
+// ============================================================================
+
+const SCREEN_WIDTH: byte = 40;
+const SCREEN_HEIGHT: byte = 25;
+const CHAR_SPACE: byte = 32;
+
+// PETSCII character codes for letters (uppercase mode)
+// In uppercase mode: A=1, B=2, ... Z=26
+// Or use screen codes: A=65, etc.
+
+// ============================================================================
+// Cursor State (Zero-Page for Speed)
+// ============================================================================
+
+@zp let cursorX: byte = 0;
+@zp let cursorY: byte = 0;
+@zp let textColor: byte = 14;  // Light blue
+
+// ============================================================================
+// Print Functions
+// ============================================================================
+
+function getScreenAddr(): word {
+  let offset: word = cursorY * SCREEN_WIDTH + cursorX;
+  return $0400 + offset;
+}
+
+function getColorAddr(): word {
+  let offset: word = cursorY * SCREEN_WIDTH + cursorX;
+  return $D800 + offset;
+}
+
+function newLine(): void {
+  cursorX = 0;
+  cursorY += 1;
+  if (cursorY >= SCREEN_HEIGHT) {
+    cursorY = 0;
+  }
+}
+
+function printChar(ch: byte): void {
+  let screenAddr: word = getScreenAddr();
+  let colorAddr: word = getColorAddr();
+  poke(screenAddr, ch);
+  poke(colorAddr, textColor);
+  cursorX += 1;
+  if (cursorX >= SCREEN_WIDTH) {
+    newLine();
+  }
+}
+
+function printSpace(): void {
+  printChar(CHAR_SPACE);
+}
+
+function setCursor(x: byte, y: byte): void {
+  if (x >= SCREEN_WIDTH) {
+    x = SCREEN_WIDTH - 1;
+  }
+  if (y >= SCREEN_HEIGHT) {
+    y = SCREEN_HEIGHT - 1;
+  }
+  cursorX = x;
+  cursorY = y;
+}
+
+function setTextColor(color: byte): void {
+  textColor = color & $0F;
+}
+
+function clearScreen(): void {
+  for (i = 0 to 999) {
+    screenRAM[i] = CHAR_SPACE;
+    colorRAM[i] = textColor;
+  }
+  cursorX = 0;
+  cursorY = 0;
+}
+
+// Print byte as decimal (0-255)
+function printByte(value: byte): void {
+  let hundreds: byte = 0;
+  let tens: byte = 0;
+  let ones: byte = 0;
+  let temp: byte = value;
+  let started: boolean = false;
+
+  while (temp >= 100) {
+    hundreds += 1;
+    temp -= 100;
+  }
+
+  while (temp >= 10) {
+    tens += 1;
+    temp -= 10;
+  }
+
+  ones = lo(temp);
+
+  if (hundreds > 0) {
+    printChar(48 + hundreds);
+    started = true;
+  }
+
+  if (started || tens > 0) {
+    printChar(48 + tens);
+  }
+
+  printChar(48 + ones);
+}
+
+// Print word as decimal (0-65535)
+function printWord(value: word): void {
+  let tenThousands: byte = 0;
+  let thousands: byte = 0;
+  let hundreds: byte = 0;
+  let tens: byte = 0;
+  let ones: byte = 0;
+  let temp: word = value;
+  let started: boolean = false;
+
+  while (temp >= 10000) {
+    tenThousands += 1;
+    temp -= 10000;
+  }
+
+  while (temp >= 1000) {
+    thousands += 1;
+    temp -= 1000;
+  }
+
+  while (temp >= 100) {
+    hundreds += 1;
+    temp -= 100;
+  }
+
+  while (temp >= 10) {
+    tens += 1;
+    temp -= 10;
+  }
+
+  ones = lo(temp);
+
+  if (tenThousands > 0) {
+    printChar(48 + tenThousands);
+    started = true;
+  }
+
+  if (started || thousands > 0) {
+    printChar(48 + thousands);
+    started = true;
+  }
+
+  if (started || hundreds > 0) {
+    printChar(48 + hundreds);
+    started = true;
+  }
+
+  if (started || tens > 0) {
+    printChar(48 + tens);
+  }
+
+  printChar(48 + ones);
+}
+
+// Hex digit lookup
+@data const hexDigits: byte[] = [
+  48, 49, 50, 51, 52, 53, 54, 55,
+  56, 57, 1, 2, 3, 4, 5, 6  // 0-9, A-F (screen codes)
+];
+
+function printHexDigit(digit: byte): void {
+  printChar(hexDigits[digit & $0F]);
+}
+
+function printHexByte(value: byte): void {
+  printChar(36);  // '$'
+  printHexDigit(value >> 4);
+  printHexDigit(value & $0F);
+}
+
+function printHexWord(value: word): void {
+  let highByte: byte = hi(value);
+  let lowByte: byte = lo(value);
+  printChar(36);  // '$'
+  printHexDigit(highByte >> 4);
+  printHexDigit(highByte & $0F);
+  printHexDigit(lowByte >> 4);
+  printHexDigit(lowByte & $0F);
+}
+
+// ============================================================================
+// Helper: Print Individual Letters (PETSCII screen codes)
+// ============================================================================
+// In C64 uppercase mode, screen codes are:
+// A=1, B=2, C=3, ... Z=26
+// Space=32, 0=48, 1=49, ... 9=57
+// ============================================================================
+
+// Print specific text patterns using screen codes
+function printHELLO(): void {
+  printChar(8);   // H
+  printChar(5);   // E
+  printChar(12);  // L
+  printChar(12);  // L
+  printChar(15);  // O
+}
+
+function printWORLD(): void {
+  printChar(23);  // W
+  printChar(15);  // O
+  printChar(18);  // R
+  printChar(12);  // L
+  printChar(4);   // D
+}
+
+function printC64(): void {
+  printChar(3);   // C
+  printChar(54);  // 6
+  printChar(52);  // 4
+}
+
+function printMY(): void {
+  printChar(13);  // M
+  printChar(25);  // Y
+}
+
+function printAGE(): void {
+  printChar(1);   // A
+  printChar(7);   // G
+  printChar(5);   // E
+}
+
+function printIS(): void {
+  printChar(9);   // I
+  printChar(19);  // S
+}
+
+function printSCORE(): void {
+  printChar(19);  // S
+  printChar(3);   // C
+  printChar(15);  // O
+  printChar(18);  // R
+  printChar(5);   // E
+}
+
+function printVALUE(): void {
+  printChar(22);  // V
+  printChar(1);   // A
+  printChar(12);  // L
+  printChar(21);  // U
+  printChar(5);   // E
+}
+
+function printX(): void {
+  printChar(24);  // X
+}
+
+function printY(): void {
+  printChar(25);  // Y
+}
+
+function printColon(): void {
+  printChar(58);  // :
+}
+
+function printEquals(): void {
+  printChar(61);  // =
+}
+
+// ============================================================================
+// Main Demo Program
+// ============================================================================
+
+export function main(): void {
+  // Clear screen with light blue text
+  setTextColor(14);  // Light blue
+  clearScreen();
+
+  // ========================================
+  // Line 1: "HELLO C64!"
+  // ========================================
+  setCursor(0, 0);
+  setTextColor(1);  // White
+  printHELLO();
+  printSpace();
+  printC64();
+  printChar(33);  // !
+  newLine();
+
+  // ========================================
+  // Line 2: "MY AGE IS 74"
+  // This is the workaround for: printLn("My Age is", 74)
+  // ========================================
+  setTextColor(5);  // Green
+  printMY();
+  printSpace();
+  printAGE();
+  printSpace();
+  printIS();
+  printSpace();
+  printByte(74);    // <-- The numeric value!
+  newLine();
+
+  // ========================================
+  // Line 3: "SCORE: 12345"
+  // Workaround for: printLn("Score:", 12345)
+  // ========================================
+  setTextColor(7);  // Yellow
+  printSCORE();
+  printColon();
+  printSpace();
+  printWord(12345);  // <-- Word value
+  newLine();
+
+  // ========================================
+  // Line 4: "VALUE: $FF"
+  // Print hex value
+  // ========================================
+  setTextColor(2);  // Red
+  printVALUE();
+  printColon();
+  printSpace();
+  printHexByte(255);
+  newLine();
+
+  // ========================================
+  // Line 5: "X=10 Y=20"
+  // Multiple values on one line
+  // ========================================
+  setTextColor(3);  // Cyan
+  printX();
+  printEquals();
+  printByte(10);
+  printSpace();
+  printY();
+  printEquals();
+  printByte(20);
+  newLine();
+
+  // ========================================
+  // Line 6: Address example
+  // ========================================
+  newLine();
+  setTextColor(6);  // Blue
+  printChar(1);   // A
+  printChar(4);   // D
+  printChar(4);   // D
+  printChar(18);  // R
+  printColon();
+  printSpace();
+  printHexWord($D020);  // VIC border color address
+  newLine();
+
+  // ========================================
+  // Line 8: Show how the pattern works
+  // ========================================
+  newLine();
+  setTextColor(14);  // Light blue
+
+  // "PATTERN:"
+  printChar(16);  // P
+  printChar(1);   // A
+  printChar(20);  // T
+  printChar(20);  // T
+  printChar(5);   // E
+  printChar(18);  // R
+  printChar(14);  // N
+  printColon();
+  newLine();
+
+  // Show the workaround pattern
+  setTextColor(1);  // White
+
+  // "PRINT..."
+  printChar(16);  // P
+  printChar(18);  // R
+  printChar(9);   // I
+  printChar(14);  // N
+  printChar(20);  // T
+  printChar(40);  // (
+  printChar(34);  // "
+  printChar(20);  // T
+  printChar(5);   // E
+  printChar(24);  // X
+  printChar(20);  // T
+  printChar(34);  // "
+  printChar(41);  // )
+  newLine();
+
+  // "PRINTBYTE(N)"
+  printChar(16);  // P
+  printChar(18);  // R
+  printChar(9);   // I
+  printChar(14);  // N
+  printChar(20);  // T
+  printChar(2);   // B
+  printChar(25);  // Y
+  printChar(20);  // T
+  printChar(5);   // E
+  printChar(40);  // (
+  printChar(14);  // N
+  printChar(41);  // )
+  newLine();
+
+  // "NEWLINE()"
+  printChar(14);  // N
+  printChar(5);   // E
+  printChar(23);  // W
+  printChar(12);  // L
+  printChar(9);   // I
+  printChar(14);  // N
+  printChar(5);   // E
+  printChar(40);  // (
+  printChar(41);  // )
+
+  // Infinite loop to keep program running
+  while (true) {
+    // Just wait forever
+  }
+}

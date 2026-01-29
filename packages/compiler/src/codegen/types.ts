@@ -10,6 +10,8 @@
  * - {@link CodegenResult} - Complete code generation result
  * - {@link SourceMapEntry} - Source location mapping for debugging
  * - {@link CodegenStats} - Statistics about generated code
+ * - {@link ValueLocation} - Where an IL value is stored at runtime
+ * - {@link TrackedValue} - Complete tracking info for an IL value
  *
  * **ASM-IL Integration (Phase 3e):**
  * The CodeGenerator now produces an AsmModule which is then
@@ -22,6 +24,130 @@
 import type { TargetConfig } from '../target/config.js';
 import type { SourceLocation } from '../ast/base.js';
 import type { AsmModule } from '../asm-il/types.js';
+
+// ============================================
+// VALUE TRACKING TYPES
+// ============================================
+
+/**
+ * Location where an IL value is stored at runtime
+ *
+ * Used by the code generator to track where values are located
+ * so that binary operations can use the correct addressing mode.
+ *
+ * @example
+ * ```typescript
+ * // Value in accumulator after LDA #$42
+ * const loc: ValueLocation = ValueLocation.ACCUMULATOR;
+ *
+ * // Value stored at zero-page address
+ * const loc: ValueLocation = ValueLocation.ZERO_PAGE;
+ * ```
+ */
+export enum ValueLocation {
+  /**
+   * Value is currently in the A (accumulator) register
+   */
+  ACCUMULATOR = 'accumulator',
+
+  /**
+   * Value is currently in the X register
+   */
+  X_REGISTER = 'x_register',
+
+  /**
+   * Value is currently in the Y register
+   */
+  Y_REGISTER = 'y_register',
+
+  /**
+   * Value is stored at a zero-page address ($00-$FF)
+   */
+  ZERO_PAGE = 'zero_page',
+
+  /**
+   * Value is stored at an absolute memory address
+   */
+  ABSOLUTE = 'absolute',
+
+  /**
+   * Value is a known constant (immediate)
+   */
+  IMMEDIATE = 'immediate',
+
+  /**
+   * Value is on the 6502 hardware stack
+   */
+  STACK = 'stack',
+
+  /**
+   * Value is stored at a labeled memory location
+   */
+  LABEL = 'label',
+}
+
+/**
+ * Complete tracking information for an IL value
+ *
+ * Stores where a value is located and any additional metadata
+ * needed to emit correct assembly instructions.
+ *
+ * @example
+ * ```typescript
+ * // Tracking a constant value
+ * const tracked: TrackedValue = {
+ *   location: ValueLocation.IMMEDIATE,
+ *   value: 42,
+ * };
+ *
+ * // Tracking a zero-page variable
+ * const tracked: TrackedValue = {
+ *   location: ValueLocation.ZERO_PAGE,
+ *   address: 0x50,
+ * };
+ *
+ * // Tracking a 16-bit word
+ * const tracked: TrackedValue = {
+ *   location: ValueLocation.ZERO_PAGE,
+ *   address: 0x60,
+ *   isWord: true,
+ * };
+ * ```
+ */
+export interface TrackedValue {
+  /**
+   * Where the value is currently stored
+   */
+  location: ValueLocation;
+
+  /**
+   * Memory address for ZERO_PAGE or ABSOLUTE locations
+   */
+  address?: number;
+
+  /**
+   * Known constant value for IMMEDIATE location
+   */
+  value?: number;
+
+  /**
+   * Label name for LABEL location
+   */
+  label?: string;
+
+  /**
+   * True if this is a 16-bit (word) value
+   *
+   * For word values in ZERO_PAGE or ABSOLUTE, the low byte
+   * is at the address and high byte is at address+1.
+   */
+  isWord?: boolean;
+
+  /**
+   * Original IL value ID for debugging
+   */
+  ilValueId?: string;
+}
 
 /**
  * Code generation warning with optional source location

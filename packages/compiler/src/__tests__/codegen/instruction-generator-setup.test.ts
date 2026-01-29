@@ -10,6 +10,7 @@
  * @module __tests__/codegen/instruction-generator-setup.test
  */
 
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { InstructionGenerator } from '../../codegen/instruction-generator.js';
 import { ILModule } from '../../il/module.js';
@@ -66,8 +67,10 @@ class TestInstructionGenerator extends InstructionGenerator {
     return this.getBlockLabel(name);
   }
 
-  public exposeAssemblyWriter() {
-    return this.assemblyWriter;
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeGetStats() {
@@ -227,10 +230,10 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
   // ===========================================================================
 
   describe('generateFunctions() - empty module', () => {
-    it('should not emit output for module with no functions', () => {
+    it('should emit only origin for module with no functions', () => {
       generator.exposeGenerateFunctions();
-      const output = generator.exposeAssemblyWriter().toString();
-      expect(output).toBe('');
+      const output = generator.getAssemblyOutput();
+      expect(output).toContain('*=');
     });
 
     it('should keep function count at 0 for empty module', () => {
@@ -249,7 +252,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       const func = createSimpleVoidFunction(module, 'main');
       generator.exposeGenerateFunction(func);
       
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('_main');
     });
 
@@ -257,7 +260,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       const func = createSimpleVoidFunction(module, 'main');
       generator.exposeGenerateFunction(func);
       
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('function main');
       expect(output).toContain('void');
     });
@@ -266,7 +269,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       const func = createSimpleVoidFunction(module, 'main');
       generator.exposeGenerateFunction(func);
       
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('RTS');
     });
 
@@ -292,7 +295,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       func.getEntryBlock().addInstruction(new ILReturnVoidInstruction(0));
       
       generator.exposeGenerateFunction(func);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('a: byte');
       expect(output).toContain('b: byte');
     });
@@ -302,7 +305,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       func.getEntryBlock().addInstruction(new ILReturnVoidInstruction(0));
       
       generator.exposeGenerateFunction(func);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('byte');
     });
   });
@@ -318,7 +321,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       createSimpleVoidFunction(module, 'cleanup');
       
       generator.exposeGenerateFunctions();
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       
       expect(output).toContain('_init');
       expect(output).toContain('_main');
@@ -339,7 +342,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       createSimpleVoidFunction(module, 'main');
       
       generator.exposeGenerateFunctions();
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('Functions');
     });
   });
@@ -354,7 +357,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       const entry = func.getEntryBlock();
       
       generator.exposeGenerateBasicBlock(func, entry);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       
       // Entry block (id=0) should not have its own label emitted
       expect(output).not.toContain('.entry');
@@ -375,7 +378,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       
       // Generate the loop block (id=1)
       generator.exposeGenerateBasicBlock(func, loopBlock);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       
       expect(output).toContain('.block_loop');
     });
@@ -385,7 +388,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       const entry = func.getEntryBlock();
       
       generator.exposeGenerateBasicBlock(func, entry);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       
       // Should have LDA for const and RTS for return
       expect(output).toContain('LDA');
@@ -414,7 +417,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       entry.linkTo(block1);
       
       generator.exposeGenerateFunction(func);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       
       expect(output).toContain('_test');
       expect(output).toContain('.block_block1');
@@ -432,7 +435,7 @@ describe('InstructionGenerator - Setup and Function Generation', () => {
       entry.linkTo(block1);
       
       generator.exposeGenerateFunction(func);
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       
       expect(output).toContain('JMP');
       expect(output).toContain('.block_target');

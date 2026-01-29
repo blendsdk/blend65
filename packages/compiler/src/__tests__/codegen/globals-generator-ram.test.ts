@@ -16,6 +16,7 @@ import { ILModule } from '../../il/module.js';
 import { ILStorageClass } from '../../il/function.js';
 import { IL_BYTE, IL_WORD } from '../../il/types.js';
 import { C64_CONFIG } from '../../target/index.js';
+import { createAcmeEmitter } from '../../asm-il/emitters/index.js';
 import type { CodegenOptions } from '../../codegen/types.js';
 
 /**
@@ -38,8 +39,13 @@ class TestGlobalsGenerator extends GlobalsGenerator {
     return this.lookupGlobalAddress(name);
   }
 
-  public exposeAssemblyWriter() {
-    return this.assemblyWriter;
+  /**
+   * Gets the assembly text output from the current AsmModule
+   */
+  public getAssemblyOutput(): string {
+    const asmModule = this.asmBuilder.build();
+    const emitter = createAcmeEmitter();
+    return emitter.emit(asmModule).text;
   }
 
   public exposeGetStats() {
@@ -238,7 +244,7 @@ describe('GlobalsGenerator - RAM and Data Section Variables', () => {
       module.createGlobal('buffer', IL_BYTE, ILStorageClass.Ram);
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('Data Section');
     });
 
@@ -246,7 +252,7 @@ describe('GlobalsGenerator - RAM and Data Section Variables', () => {
       module.createGlobal('buffer', IL_BYTE, ILStorageClass.Ram);
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('_buffer');
     });
 
@@ -254,7 +260,7 @@ describe('GlobalsGenerator - RAM and Data Section Variables', () => {
       module.createGlobal('uninit', IL_BYTE, ILStorageClass.Ram);
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       // Should emit zero fill or byte 0
       expect(output).toMatch(/(!byte|!8|\.byte|\$00)/i);
     });
@@ -263,7 +269,7 @@ describe('GlobalsGenerator - RAM and Data Section Variables', () => {
       module.createGlobal('value', IL_BYTE, ILStorageClass.Data, { initialValue: 0x42 });
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('$42');
     });
 
@@ -271,7 +277,7 @@ describe('GlobalsGenerator - RAM and Data Section Variables', () => {
       module.createGlobal('addr', IL_WORD, ILStorageClass.Data, { initialValue: 0xD020 });
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('$D020');
     });
 
@@ -279,7 +285,7 @@ describe('GlobalsGenerator - RAM and Data Section Variables', () => {
       module.createGlobal('table', IL_BYTE, ILStorageClass.Data, { initialValue: [0x10, 0x20, 0x30] });
       generator.exposeGenerateGlobals();
 
-      const output = generator.exposeAssemblyWriter().toString();
+      const output = generator.getAssemblyOutput();
       expect(output).toContain('$10');
       expect(output).toContain('$20');
       expect(output).toContain('$30');

@@ -7,9 +7,10 @@
  * Inheritance chain:
  * BaseCodeGenerator → GlobalsGenerator → InstructionGenerator → CodeGenerator
  *
- * **STUB IMPLEMENTATION**
- * This is a minimal implementation that generates basic working code.
- * Full instruction selection and optimization will be added in future phases.
+ * **ASM-IL Architecture:**
+ * The code generator produces a structured AsmModule via AsmModuleBuilder.
+ * This module is then emitted to ACME assembly text via AcmeEmitter.
+ * All output flows through the ASM-IL layer - there is no direct text emission.
  *
  * @example
  * ```typescript
@@ -31,7 +32,6 @@
  */
 
 import type { ILModule } from '../il/module.js';
-import type { AsmModule } from '../asm-il/types.js';
 import type { CodegenOptions, CodegenResult } from './types.js';
 import { C64_BASIC_START, C64_CODE_START } from './types.js';
 import { generateBasicStub } from './basic-stub.js';
@@ -46,28 +46,25 @@ import { InstructionGenerator } from './instruction-generator.js';
  *
  * **Generation Pipeline:**
  * 1. Reset state and configure options
- * 2. Generate file header comments
- * 3. Generate BASIC stub (if enabled)
- * 4. Generate global variables (ZP, RAM, DATA, MAP)
- * 5. Generate functions and instructions
- * 6. Generate file footer
- * 7. Assemble to binary (if ACME available and format requires it)
- * 8. Return complete result
+ * 2. Start ASM-IL generation with module name and origin
+ * 3. Generate file header comments
+ * 4. Generate BASIC stub (if enabled)
+ * 5. Generate program entry point
+ * 6. Generate global variables (ZP, RAM, DATA, MAP)
+ * 7. Generate functions and instructions
+ * 8. Generate file footer
+ * 9. Finalize AsmModule
+ * 10. Emit to ACME text via AcmeEmitter
+ * 11. Assemble to binary (if ACME available and format requires it)
+ * 12. Return complete result
  *
- * **Current Capabilities (Stub Phase):**
- * - Generates ACME-compatible assembly
+ * **Current Capabilities:**
+ * - Generates ACME-compatible assembly via ASM-IL
  * - Handles @map hardware writes/reads
  * - Handles @zp, @ram, @data variable allocation
  * - Generates BASIC autostart stub
  * - Supports debug comments and source mapping
  * - Produces .prg binary output via ACME
- *
- * **Future Capabilities (Full Implementation):**
- * - Complete instruction selection
- * - Register allocation optimization
- * - Complex expression compilation
- * - Full control flow
- * - Function call ABI
  */
 export class CodeGenerator extends InstructionGenerator {
   // ============================================
@@ -79,10 +76,6 @@ export class CodeGenerator extends InstructionGenerator {
    *
    * Main entry point for code generation. Transforms IL into
    * assembly and optionally binary output.
-   *
-   * **Phase 3e:**
-   * When `useAsmIL` is enabled in options, the generator also produces
-   * a structured AsmModule that can be optimized before emission.
    *
    * @param module - IL module to generate code from
    * @param options - Code generation options
@@ -105,18 +98,13 @@ export class CodeGenerator extends InstructionGenerator {
 
     // Configure source mapper
     this.sourceMapper.setFilePath(module.name);
-    if (options.debug === 'inline' || options.debug === 'both') {
-      this.assemblyWriter.setIncludeSourceComments(true);
-    }
 
     // Reset state for new generation
     this.resetState();
 
-    // Phase 3e: Start ASM-IL generation if enabled
+    // Start ASM-IL generation
     const loadAddress = options.loadAddress ?? C64_BASIC_START;
-    if (this.useAsmIL) {
-      this.startAsmILGeneration(module.name, loadAddress);
-    }
+    this.startAsmILGeneration(module.name, loadAddress);
 
     // === GENERATION PIPELINE ===
 
@@ -145,14 +133,11 @@ export class CodeGenerator extends InstructionGenerator {
 
     // === BUILD RESULT ===
 
-    // Phase 3e: Finish ASM-IL generation
-    let asmModule: AsmModule | undefined;
-    if (this.useAsmIL) {
-      asmModule = this.finishAsmILGeneration();
-    }
+    // Finish ASM-IL generation and get the module
+    const asmModule = this.finishAsmILGeneration();
 
-    // Get assembly text
-    const assembly = this.assemblyWriter.toString();
+    // Emit to ACME assembly text
+    const assembly = this.emitAsmModuleToText(asmModule);
 
     // Assemble to binary if requested
     let binary: Uint8Array | undefined;
@@ -171,7 +156,7 @@ export class CodeGenerator extends InstructionGenerator {
       viceLabels = this.generateViceLabels();
     }
 
-    // Build and return result (includes AsmModule when useAsmIL is enabled)
+    // Build and return result
     return {
       module: asmModule,
       assembly,
@@ -183,40 +168,6 @@ export class CodeGenerator extends InstructionGenerator {
     };
   }
 
-  /**
-   * Generate code with ASM-IL enabled
-   *
-   * Convenience method that enables ASM-IL generation and returns
-   * a result with the structured AsmModule.
-   *
-   * @param module - IL module to generate code from
-   * @param options - Code generation options
-   * @returns Complete code generation result with AsmModule
-   *
-   * @since Phase 3e (CodeGenerator Rewire)
-   *
-   * @example
-   * ```typescript
-   * const result = codegen.generateWithAsmIL(ilModule, options);
-   * if (result.module) {
-   *   // Work with structured AsmModule
-   *   console.log(result.module.items.length);
-   * }
-   * ```
-   */
-  public generateWithAsmIL(module: ILModule, options: CodegenOptions): CodegenResult {
-    // Enable ASM-IL for this generation
-    const savedUseAsmIL = this.useAsmIL;
-    this.useAsmIL = true;
-
-    try {
-      return this.generate(module, options);
-    } finally {
-      // Restore previous setting
-      this.useAsmIL = savedUseAsmIL;
-    }
-  }
-
   // ============================================
   // HEADER GENERATION
   // ============================================
@@ -225,13 +176,13 @@ export class CodeGenerator extends InstructionGenerator {
    * Generates the file header comments
    */
   protected generateHeader(): void {
-    const targetName = this.options.target?.architecture ?? 'c64';
-    this.assemblyWriter.emitHeader(this.currentModule.name, targetName);
+    // Emit header via ASM-IL
+    this.asmBuilder.header(this.currentModule.name);
 
     // Emit load address
     const loadAddress = this.options.loadAddress ?? C64_BASIC_START;
     this.emitSectionComment('Configuration');
-    this.assemblyWriter.emitOrigin(loadAddress);
+    this.asmBuilder.setOrigin(loadAddress, 'Program load address');
   }
 
   // ============================================
@@ -252,12 +203,12 @@ export class CodeGenerator extends InstructionGenerator {
     this.emitSectionComment(`BASIC Stub (${stub.basicLine})`);
 
     // Emit stub bytes as assembly directives
-    this.assemblyWriter.emitBytes(Array.from(stub.bytes), 'BASIC stub bytes');
+    this.asmBuilder.byte(Array.from(stub.bytes), 'BASIC stub bytes');
     this.addDataBytes(stub.size);
 
     // Update address to code start
-    this.assemblyWriter.emitBlankLine();
-    this.assemblyWriter.emitOrigin(C64_CODE_START);
+    this.asmBuilder.blank();
+    this.asmBuilder.setOrigin(C64_CODE_START, 'Code start');
     this.currentAddress = C64_CODE_START;
   }
 
