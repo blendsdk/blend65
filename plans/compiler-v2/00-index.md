@@ -21,20 +21,20 @@ This plan describes the implementation of the Blend65 v2 compiler using Static F
 
 ## Document Index
 
-| # | Document | Description |
-|---|----------|-------------|
-| 00 | [Index](00-index.md) | This document - overview |
-| 01 | [Requirements](01-requirements.md) | What we're building |
-| 02 | [Salvage Analysis](02-salvage-analysis.md) | What to reuse from v1 |
-| 03 | [Package Setup](03-package-setup.md) | New package structure |
-| 04 | [Lexer Migration](04-lexer-migration.md) | Lexer changes |
-| 05 | [Parser Migration](05-parser-migration.md) | Parser changes |
-| 06 | [Semantic Migration](06-semantic-migration.md) | Semantic analyzer changes |
-| 07 | [Frame Allocator](07-frame-allocator.md) | NEW: SFA implementation |
-| 08 | [IL Generator](08-il-generator.md) | NEW: Simple linear IL |
-| 09 | [Code Generator](09-code-generator.md) | NEW: SFA-based codegen |
-| 10 | [ASM Optimizer](10-asm-optimizer.md) | Peephole optimization |
-| 99 | [Execution Plan](99-execution-plan.md) | Phases and sessions |
+| # | Document | Description | Status |
+|---|----------|-------------|--------|
+| 00 | [Index](00-index.md) | This document - overview | ✅ |
+| 01 | [Requirements](01-requirements.md) | Scope, requirements, acceptance criteria | ✅ |
+| 02 | [Salvage Analysis](02-salvage-analysis.md) | What to reuse from v1 (55% reuse) | ✅ |
+| 03 | [Package Setup](03-package-setup.md) | New package structure | ✅ |
+| 04 | [Lexer Migration](04-lexer-migration.md) | Lexer changes (95% reuse) | ✅ |
+| 05 | [Parser Migration](05-parser-migration.md) | Parser changes (85% reuse) | ✅ |
+| 06 | [Semantic Migration](06-semantic-migration.md) | Semantic + call graph + recursion check | ✅ |
+| 07 | [Frame Allocator](07-frame-allocator.md) | **NEW**: SFA implementation | ✅ |
+| 08 | [IL Generator](08-il-generator.md) | **NEW**: Simple linear IL (~25 opcodes) | ✅ |
+| 09 | [Code Generator](09-code-generator.md) | **NEW**: SFA-based codegen | ✅ |
+| 10 | [ASM Optimizer](10-asm-optimizer.md) | Peephole optimization (O1) | ✅ |
+| 99 | [Execution Plan](99-execution-plan.md) | Phases, sessions, task checklist | ✅ |
 
 ## Estimated Effort
 

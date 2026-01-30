@@ -512,11 +512,11 @@ packages/compiler-v2/
 ## Task Checklist (All Phases)
 
 ### Phase 1: Package Setup
-- [ ] 1.1.1 Create package.json
-- [ ] 1.1.2 Create tsconfig.json
-- [ ] 1.1.3 Create directory structure
-- [ ] 1.1.4 Create index.ts exports
-- [ ] 1.1.5 Update root turbo.json
+- [x] 1.1.1 Create package.json
+- [x] 1.1.2 Create tsconfig.json
+- [x] 1.1.3 Create directory structure
+- [x] 1.1.4 Create index.ts exports
+- [x] 1.1.5 Update root turbo.json (not needed - yarn workspaces auto-discovery)
 
 ### Phase 2: Lexer Migration
 - [ ] 2.1.1 Copy lexer types
