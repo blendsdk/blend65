@@ -26,8 +26,8 @@
 // Version info
 export const VERSION = '0.1.0';
 
-// Placeholder exports - will be populated as modules are implemented
-// export * from './lexer/index.js';
+// Module exports - populated as modules are implemented
+export * from './lexer/index.js';
 // export * from './parser/index.js';
 // export * from './ast/index.js';
 // export * from './semantic/index.js';

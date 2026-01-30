@@ -519,13 +519,13 @@ packages/compiler-v2/
 - [x] 1.1.5 Update root turbo.json (not needed - yarn workspaces auto-discovery)
 
 ### Phase 2: Lexer Migration
-- [ ] 2.1.1 Copy lexer types
-- [ ] 2.1.2 Remove @map token types
-- [ ] 2.1.3 Copy lexer implementation
-- [ ] 2.1.4 Remove @map tokenization
-- [ ] 2.1.5 Copy lexer tests
-- [ ] 2.1.6 Update tests (remove @map)
-- [ ] 2.1.7 Create lexer index.ts
+- [x] 2.1.1 Copy lexer types
+- [x] 2.1.2 Remove @map token types
+- [x] 2.1.3 Copy lexer implementation
+- [x] 2.1.4 Remove @map tokenization
+- [x] 2.1.5 Copy lexer tests
+- [x] 2.1.6 Update tests (remove @map)
+- [x] 2.1.7 Create lexer index.ts
 
 ### Phase 3: Parser Migration
 - [ ] 3.1.1 Copy parser base

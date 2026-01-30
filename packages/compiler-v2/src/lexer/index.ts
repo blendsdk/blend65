@@ -1,12 +1,15 @@
 /**
- * Lexer module for Blend65 v2
+ * Blend65 v2 Lexer Module
  *
- * Responsible for tokenizing source code into tokens.
- * This is a migration from v1 with @map token types removed.
+ * This module exports the lexical analyzer for the Blend65 v2 language.
+ * It provides the Lexer class for tokenizing source code, type definitions
+ * for tokens and keywords, and utility functions for convenient tokenization.
  *
- * @module lexer
+ * NOTE: v2 removes @map syntax - memory-mapped I/O uses peek/poke intrinsics instead.
+ *
+ * @module @blend65/compiler-v2/lexer
  */
 
-// Will be populated in Phase 2: Lexer Migration
-// export * from './types.js';
-// export * from './lexer.js';
+export * from './lexer.js';
+export * from './types.js';
+export * from './utils.js';
