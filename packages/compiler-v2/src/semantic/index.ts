@@ -89,5 +89,8 @@ export {
   type RecursionCheckResult,
 } from './recursion-checker.js';
 
+// Advanced analysis passes
+export * from './analysis/index.js';
+
 // Future exports (to be implemented in subsequent sessions):
 // export * from './analyzer.js';
