@@ -31,11 +31,12 @@ import { RecursionChecker, type RecursionError, RecursionErrorCode } from './rec
 import { ModuleRegistry } from './module-registry.js';
 import { DependencyGraph } from './dependency-graph.js';
 import { ImportResolver, ImportErrorCode, type ImportError } from './import-resolver.js';
-import { GlobalSymbolTable } from './global-symbol-table.js';
+import { GlobalSymbolTable, GlobalSymbolKind } from './global-symbol-table.js';
 import {
   SymbolTableBuilder,
   type SymbolTableBuildResult,
 } from './visitors/symbol-table-builder.js';
+import { SymbolKind } from './symbol.js';
 import { TypeResolver, type TypeResolutionResult } from './visitors/type-resolver.js';
 import { TypeChecker, type TypeCheckPassResult } from './visitors/type-checker/index.js';
 import { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
@@ -483,13 +484,17 @@ export class SemanticAnalyzer {
   /**
    * Analyzes multiple modules together
    *
-   * Handles cross-module dependencies:
-   * 1. Builds dependency graph from imports
-   * 2. Detects circular dependencies
-   * 3. Computes compilation order (topological sort)
-   * 4. Analyzes modules in dependency order
-   * 5. Resolves cross-module imports
-   * 6. Builds global symbol table
+   * Uses a multi-phase approach to handle cross-module dependencies:
+   *
+   * Phase 1: Register all modules
+   * Phase 2: Build dependency graph from imports
+   * Phase 3: Compute compilation order (topological sort)
+   * Phase 4: Build symbol tables for ALL modules
+   * Phase 5: Collect ALL exports into global symbol table
+   * Phase 6: Update global symbol types from analyzed modules
+   * Phase 7: Populate import types in each module's symbol table
+   * Phase 8: Run remaining passes (type resolution, type checking, etc.)
+   * Phase 9: Validate imports
    *
    * @param programs - Array of program ASTs to analyze
    * @returns The multi-module analysis result
@@ -538,28 +543,107 @@ export class SemanticAnalyzer {
     }
 
     // ----------------------------------------
-    // Phase 4: Analyze Modules in Order
+    // Phase 4: Build Symbol Tables for ALL Modules
     // ----------------------------------------
-    const moduleResults = new Map<string, AnalysisResult>();
+    const symbolTableResults = new Map<string, SymbolTableBuildResult>();
     const globalSymbolTable = new GlobalSymbolTable();
 
     for (const moduleName of compilationOrder) {
       const registeredModule = moduleRegistry.getModule(moduleName);
       if (!registeredModule) continue;
 
-      // Analyze the module
-      const result = this.analyze(registeredModule.program);
-      moduleResults.set(moduleName, result);
+      // Build symbol table only (Pass 1)
+      const symbolTableBuilder = new SymbolTableBuilder();
+      const symbolTableResult = symbolTableBuilder.build(registeredModule.program);
+      symbolTableResults.set(moduleName, symbolTableResult);
 
-      // Collect exports into global symbol table
-      globalSymbolTable.collectFromProgram(moduleName, registeredModule.program);
-
-      // Collect diagnostics
-      allDiagnostics.push(...result.diagnostics);
+      // Collect symbol table building errors
+      allDiagnostics.push(...symbolTableResult.diagnostics);
     }
 
     // ----------------------------------------
-    // Phase 5: Resolve Cross-Module Imports
+    // Phase 5: Collect ALL Exports into Global Symbol Table (type: null)
+    // ----------------------------------------
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      if (!registeredModule) continue;
+
+      globalSymbolTable.collectFromProgram(moduleName, registeredModule.program);
+    }
+
+    // ----------------------------------------
+    // Phase 6: Run Type Resolution for ALL Modules (to resolve types from annotations)
+    // ----------------------------------------
+    const typeResolutionResults = new Map<string, TypeResolutionResult>();
+
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      if (!registeredModule || !symbolTableResult) continue;
+
+      // Run type resolution (Pass 2) - resolves types from annotations
+      const typeResolver = new TypeResolver(this.typeSystem);
+      const typeResolutionResult = typeResolver.resolve(
+        symbolTableResult.symbolTable,
+        registeredModule.program,
+      );
+      typeResolutionResults.set(moduleName, typeResolutionResult);
+
+      // Collect type resolution errors
+      allDiagnostics.push(...typeResolutionResult.diagnostics);
+    }
+
+    // ----------------------------------------
+    // Phase 7: Update Global Symbol Types (now that types are resolved)
+    // ----------------------------------------
+    for (const moduleName of compilationOrder) {
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      if (!symbolTableResult) continue;
+
+      this.updateGlobalSymbolTypes(globalSymbolTable, moduleName, symbolTableResult.symbolTable);
+    }
+
+    // ----------------------------------------
+    // Phase 8: Populate Import Types in Each Module's Symbol Table
+    // ----------------------------------------
+    for (const moduleName of compilationOrder) {
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      if (!symbolTableResult) continue;
+
+      this.populateImportTypes(symbolTableResult.symbolTable, globalSymbolTable);
+    }
+
+    // ----------------------------------------
+    // Phase 9: Run Remaining Passes (Type Checking, Control Flow, etc.)
+    // ----------------------------------------
+    const moduleResults = new Map<string, AnalysisResult>();
+
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      const typeResolutionResult = typeResolutionResults.get(moduleName);
+      if (!registeredModule || !symbolTableResult) continue;
+
+      // Run analysis with existing symbol table (skipping Pass 1 and Pass 2)
+      const result = this.analyzeWithSymbolTableAndTypes(
+        registeredModule.program,
+        symbolTableResult,
+        typeResolutionResult!,
+        globalSymbolTable,
+      );
+      moduleResults.set(moduleName, result);
+
+      // Collect diagnostics (but not ones already added from earlier phases)
+      const existingDiagnostics = new Set([
+        ...symbolTableResult.diagnostics,
+        ...(typeResolutionResult?.diagnostics ?? []),
+      ]);
+      const newDiagnostics = result.diagnostics.filter((d) => !existingDiagnostics.has(d));
+      allDiagnostics.push(...newDiagnostics);
+    }
+
+    // ----------------------------------------
+    // Phase 9: Validate Imports
     // ----------------------------------------
     const importResolver = new ImportResolver(moduleRegistry);
     const importErrors: ImportError[] = [];
@@ -567,9 +651,6 @@ export class SemanticAnalyzer {
     for (const moduleName of compilationOrder) {
       const registeredModule = moduleRegistry.getModule(moduleName);
       if (!registeredModule) continue;
-
-      const moduleResult = moduleResults.get(moduleName);
-      if (!moduleResult) continue;
 
       const resolutions = importResolver.resolveImports(registeredModule.program);
 
@@ -612,6 +693,409 @@ export class SemanticAnalyzer {
         totalTimeMs: endTime - startTime,
       },
     };
+  }
+
+  /**
+   * Analyzes a module using an existing symbol table
+   *
+   * Skips Pass 1 (symbol table building) since it's already done.
+   * Runs Pass 2 onwards: type resolution, type checking, control flow, etc.
+   *
+   * @param program - The program AST
+   * @param symbolTableResult - Pre-built symbol table result
+   * @param globalSymbolTable - Global symbol table with cross-module info
+   * @returns Analysis result
+   */
+  protected analyzeWithSymbolTable(
+    program: Program,
+    symbolTableResult: SymbolTableBuildResult,
+    globalSymbolTable: GlobalSymbolTable,
+  ): AnalysisResult {
+    const startTime = Date.now();
+    const diagnostics: Diagnostic[] = [];
+    const moduleName = program.getModule().getFullName();
+
+    // Include symbol table building diagnostics
+    diagnostics.push(...symbolTableResult.diagnostics);
+
+    // Check if we should stop
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 2: Type Resolution
+    // ----------------------------------------
+    const typeResolver = new TypeResolver(this.typeSystem);
+    const typeResolutionResult = typeResolver.resolve(
+      symbolTableResult.symbolTable,
+      program,
+    );
+
+    diagnostics.push(...typeResolutionResult.diagnostics);
+
+    // After type resolution, update global symbol types with resolved types
+    this.updateGlobalSymbolTypes(globalSymbolTable, moduleName, symbolTableResult.symbolTable);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 3: Type Checking (includes Pass 4)
+    // ----------------------------------------
+    const typeChecker = new TypeChecker(this.typeSystem, {
+      stopOnFirstError: this.options.stopOnFirstError ?? false,
+      maxErrors: this.options.maxErrors ?? 100,
+      reportWarnings: true,
+    });
+    const typeCheckResult = typeChecker.check(symbolTableResult.symbolTable, program);
+
+    diagnostics.push(...typeCheckResult.diagnostics);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+        typeCheckResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 5: Control Flow Analysis
+    // ----------------------------------------
+    const cfAnalyzer = new ControlFlowAnalyzer(symbolTableResult.symbolTable);
+    cfAnalyzer.walk(program);
+    const cfgs = cfAnalyzer.getAllCFGs();
+    const cfDiagnostics = cfAnalyzer.getDiagnostics();
+
+    diagnostics.push(...cfDiagnostics);
+
+    // ----------------------------------------
+    // Pass 6: Call Graph & Recursion Detection
+    // ----------------------------------------
+    const callGraphBuilder = new CallGraphBuilder(symbolTableResult.symbolTable);
+    const callGraph = callGraphBuilder.build(program);
+
+    const recursionChecker = new RecursionChecker(callGraph);
+    const recursionResult = recursionChecker.check();
+
+    // Convert recursion errors to diagnostics
+    const recursionErrors = recursionResult.errors;
+    for (const error of recursionErrors) {
+      diagnostics.push(this.recursionErrorToDiagnostic(error));
+    }
+
+    // ----------------------------------------
+    // Pass 7: Advanced Analysis (optional)
+    // ----------------------------------------
+    let advancedResult: AdvancedAnalysisResult | undefined;
+
+    if (this.options.runAdvancedAnalysis && !this.hasErrors(diagnostics)) {
+      const advancedOptions: AdvancedAnalysisOptions = {
+        ...DEFAULT_ADVANCED_OPTIONS,
+        ...(this.options.advancedAnalysisOptions ?? {}),
+      };
+
+      const advancedAnalyzer = new AdvancedAnalyzer(
+        symbolTableResult.symbolTable,
+        this.typeSystem,
+        {
+          globalSymbolTable,
+          cfgs,
+          functionSymbols: this.createFunctionSymbolsMap(symbolTableResult.symbolTable),
+        },
+        advancedOptions,
+      );
+
+      advancedResult = advancedAnalyzer.analyze(program);
+
+      // Convert advanced diagnostics to standard diagnostics
+      for (const advDiag of advancedResult.diagnostics) {
+        if (this.shouldIncludeDiagnostic(advDiag)) {
+          diagnostics.push(this.advancedDiagnosticToStandard(advDiag));
+        }
+      }
+    }
+
+    // ----------------------------------------
+    // Build Result
+    // ----------------------------------------
+    const endTime = Date.now();
+    const errorCount = this.countErrors(diagnostics);
+    const warningCount = this.countWarnings(diagnostics);
+
+    return {
+      success: errorCount === 0,
+      moduleName,
+      ast: program,
+      symbolTable: symbolTableResult.symbolTable,
+      typeSystem: this.typeSystem,
+      cfgs,
+      callGraph,
+      diagnostics,
+      passResults: {
+        symbolTableBuild: symbolTableResult,
+        typeResolution: typeResolutionResult,
+        typeCheck: typeCheckResult,
+        recursionErrors,
+        advancedAnalysis: advancedResult,
+      },
+      stats: {
+        totalDeclarations: this.countDeclarations(symbolTableResult.symbolTable),
+        expressionsChecked: typeCheckResult.expressionsChecked,
+        functionsAnalyzed: callGraph.size(),
+        errorCount,
+        warningCount,
+        analysisTimeMs: endTime - startTime,
+      },
+    };
+  }
+
+  /**
+   * Analyzes a module using existing symbol table and type resolution results
+   *
+   * Skips Pass 1 (symbol table building) and Pass 2 (type resolution) since they're done.
+   * Runs Pass 3 onwards: type checking, control flow, call graph, etc.
+   *
+   * @param program - The program AST
+   * @param symbolTableResult - Pre-built symbol table result
+   * @param typeResolutionResult - Pre-computed type resolution result
+   * @param globalSymbolTable - Global symbol table with cross-module info
+   * @returns Analysis result
+   */
+  protected analyzeWithSymbolTableAndTypes(
+    program: Program,
+    symbolTableResult: SymbolTableBuildResult,
+    typeResolutionResult: TypeResolutionResult,
+    globalSymbolTable: GlobalSymbolTable,
+  ): AnalysisResult {
+    const startTime = Date.now();
+    const diagnostics: Diagnostic[] = [];
+    const moduleName = program.getModule().getFullName();
+
+    // Include symbol table building diagnostics
+    diagnostics.push(...symbolTableResult.diagnostics);
+
+    // Include type resolution diagnostics
+    diagnostics.push(...typeResolutionResult.diagnostics);
+
+    // Check if we should stop
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 3: Type Checking (includes Pass 4)
+    // ----------------------------------------
+    const typeChecker = new TypeChecker(this.typeSystem, {
+      stopOnFirstError: this.options.stopOnFirstError ?? false,
+      maxErrors: this.options.maxErrors ?? 100,
+      reportWarnings: true,
+    });
+    const typeCheckResult = typeChecker.check(symbolTableResult.symbolTable, program);
+
+    diagnostics.push(...typeCheckResult.diagnostics);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+        typeCheckResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 5: Control Flow Analysis
+    // ----------------------------------------
+    const cfAnalyzer = new ControlFlowAnalyzer(symbolTableResult.symbolTable);
+    cfAnalyzer.walk(program);
+    const cfgs = cfAnalyzer.getAllCFGs();
+    const cfDiagnostics = cfAnalyzer.getDiagnostics();
+
+    diagnostics.push(...cfDiagnostics);
+
+    // ----------------------------------------
+    // Pass 6: Call Graph & Recursion Detection
+    // ----------------------------------------
+    const callGraphBuilder = new CallGraphBuilder(symbolTableResult.symbolTable);
+    const callGraph = callGraphBuilder.build(program);
+
+    const recursionChecker = new RecursionChecker(callGraph);
+    const recursionResult = recursionChecker.check();
+
+    // Convert recursion errors to diagnostics
+    const recursionErrors = recursionResult.errors;
+    for (const error of recursionErrors) {
+      diagnostics.push(this.recursionErrorToDiagnostic(error));
+    }
+
+    // ----------------------------------------
+    // Pass 7: Advanced Analysis (optional)
+    // ----------------------------------------
+    let advancedResult: AdvancedAnalysisResult | undefined;
+
+    if (this.options.runAdvancedAnalysis && !this.hasErrors(diagnostics)) {
+      const advancedOptions: AdvancedAnalysisOptions = {
+        ...DEFAULT_ADVANCED_OPTIONS,
+        ...(this.options.advancedAnalysisOptions ?? {}),
+      };
+
+      const advancedAnalyzer = new AdvancedAnalyzer(
+        symbolTableResult.symbolTable,
+        this.typeSystem,
+        {
+          globalSymbolTable,
+          cfgs,
+          functionSymbols: this.createFunctionSymbolsMap(symbolTableResult.symbolTable),
+        },
+        advancedOptions,
+      );
+
+      advancedResult = advancedAnalyzer.analyze(program);
+
+      // Convert advanced diagnostics to standard diagnostics
+      for (const advDiag of advancedResult.diagnostics) {
+        if (this.shouldIncludeDiagnostic(advDiag)) {
+          diagnostics.push(this.advancedDiagnosticToStandard(advDiag));
+        }
+      }
+    }
+
+    // ----------------------------------------
+    // Build Result
+    // ----------------------------------------
+    const endTime = Date.now();
+    const errorCount = this.countErrors(diagnostics);
+    const warningCount = this.countWarnings(diagnostics);
+
+    return {
+      success: errorCount === 0,
+      moduleName,
+      ast: program,
+      symbolTable: symbolTableResult.symbolTable,
+      typeSystem: this.typeSystem,
+      cfgs,
+      callGraph,
+      diagnostics,
+      passResults: {
+        symbolTableBuild: symbolTableResult,
+        typeResolution: typeResolutionResult,
+        typeCheck: typeCheckResult,
+        recursionErrors,
+        advancedAnalysis: advancedResult,
+      },
+      stats: {
+        totalDeclarations: this.countDeclarations(symbolTableResult.symbolTable),
+        expressionsChecked: typeCheckResult.expressionsChecked,
+        functionsAnalyzed: callGraph.size(),
+        errorCount,
+        warningCount,
+        analysisTimeMs: endTime - startTime,
+      },
+    };
+  }
+
+  /**
+   * Updates global symbol types from a module's symbol table
+   *
+   * After type resolution, the symbol table has resolved types.
+   * This method copies those types to the global symbol table.
+   *
+   * @param globalSymbolTable - The global symbol table to update
+   * @param moduleName - The module name
+   * @param symbolTable - The module's symbol table with resolved types
+   */
+  protected updateGlobalSymbolTypes(
+    globalSymbolTable: GlobalSymbolTable,
+    moduleName: string,
+    symbolTable: SymbolTable,
+  ): void {
+    // Get all exported symbols from the root scope
+    const rootScope = symbolTable.getRootScope();
+
+    for (const symbol of rootScope.symbols.values()) {
+      if (symbol.isExported && symbol.type) {
+        globalSymbolTable.setSymbolType(moduleName, symbol.name, symbol.type);
+      }
+    }
+  }
+
+  /**
+   * Populates import symbol types from the global symbol table
+   *
+   * For each ImportedSymbol in the symbol table, looks up the actual type
+   * from the global symbol table and updates the import's type.
+   *
+   * @param symbolTable - The symbol table to update
+   * @param globalSymbolTable - The global symbol table with exported types
+   */
+  protected populateImportTypes(
+    symbolTable: SymbolTable,
+    globalSymbolTable: GlobalSymbolTable,
+  ): void {
+    // Get all symbols from the root scope
+    const rootScope = symbolTable.getRootScope();
+
+    for (const symbol of rootScope.symbols.values()) {
+      // Check if this is an imported symbol
+      if (symbol.kind === SymbolKind.ImportedSymbol && symbol.sourceModule) {
+        const sourceModule = symbol.sourceModule;
+        const originalName = symbol.originalName ?? symbol.name;
+
+        // Look up the global symbol
+        const globalLookup = globalSymbolTable.lookupQualified(sourceModule, originalName);
+
+        if (globalLookup.found && globalLookup.symbol) {
+          const globalSymbol = globalLookup.symbol;
+
+          // Copy type from global symbol to import symbol
+          if (globalSymbol.type) {
+            symbol.type = globalSymbol.type;
+          }
+
+          // If the global symbol is a function, create a function type
+          if (globalSymbol.kind === GlobalSymbolKind.Function && !symbol.type) {
+            // For functions, we need to look up the full type from the source module
+            // The globalSymbol may not have the full function type yet
+            // We'll mark this as needing resolution - the type checker should handle it
+          }
+        }
+      }
+    }
   }
 
   // ============================================

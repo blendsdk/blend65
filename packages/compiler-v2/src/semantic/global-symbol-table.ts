@@ -370,6 +370,9 @@ export class GlobalSymbolTable {
   /**
    * Collects exports from a single program
    *
+   * Supports both v1-style exports (ExportDecl wrapper) and v2-style exports
+   * (export flags on FunctionDecl/VariableDecl).
+   *
    * @param moduleName - The module name
    * @param program - The program AST
    * @returns Number of symbols collected
@@ -378,6 +381,7 @@ export class GlobalSymbolTable {
     let count = 0;
 
     for (const decl of program.getDeclarations()) {
+      // V1 style: ExportDecl wrapper node
       if (isExportDecl(decl)) {
         const exportDecl = decl as ExportDecl;
         const innerDecl = exportDecl.getDeclaration();
@@ -404,6 +408,41 @@ export class GlobalSymbolTable {
             kind: isConstVar ? GlobalSymbolKind.Constant : GlobalSymbolKind.Variable,
             type: null, // Resolved during type checking
             location,
+          });
+          count++;
+        }
+      }
+
+      // V2 style: Export flag on FunctionDecl
+      if (isFunctionDecl(decl) && decl.isExportedFunction()) {
+        const name = decl.getName();
+        // Only register if not already registered (avoid duplicates from v1 style)
+        if (!this.has(moduleName, name)) {
+          this.register({
+            name,
+            qualifiedName: this.makeQualifiedName(moduleName, name),
+            moduleName,
+            kind: GlobalSymbolKind.Function,
+            type: null, // Resolved during type checking
+            location: decl.getLocation(),
+          });
+          count++;
+        }
+      }
+
+      // V2 style: Export flag on VariableDecl
+      if (isVariableDecl(decl) && decl.isExportedVariable()) {
+        const name = decl.getName();
+        const isConstVar = decl.isConst();
+        // Only register if not already registered (avoid duplicates from v1 style)
+        if (!this.has(moduleName, name)) {
+          this.register({
+            name,
+            qualifiedName: this.makeQualifiedName(moduleName, name),
+            moduleName,
+            kind: isConstVar ? GlobalSymbolKind.Constant : GlobalSymbolKind.Variable,
+            type: null, // Resolved during type checking
+            location: decl.getLocation(),
           });
           count++;
         }
