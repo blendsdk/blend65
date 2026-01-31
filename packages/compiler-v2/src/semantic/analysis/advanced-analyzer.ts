@@ -34,9 +34,10 @@ import type {
   IdentifierExpression,
   AssignmentExpression,
   ForStatement,
+  FunctionDecl,
 } from '../../ast/index.js';
 import { ASTWalker } from '../../ast/walker/index.js';
-import type { SymbolTable, Symbol } from '../index.js';
+import type { SymbolTable, Symbol, Scope } from '../index.js';
 import { SymbolKind } from '../symbol.js';
 import type { ControlFlowGraph } from '../control-flow.js';
 import type { GlobalSymbolTable } from '../global-symbol-table.js';
@@ -488,21 +489,63 @@ export class AdvancedAnalyzer {
 
     /**
      * AST walker that records variable reads
-     * Uses constructor injection to capture the analyzer reference
+     * Uses constructor injection to capture the analyzer reference.
+     * Tracks the current function scope to ensure correct symbol lookup.
      */
     class UsageWalker extends ASTWalker {
       protected currentAssignment: AssignmentExpression | null = null;
+
+      /**
+       * Current scope being visited - used for correct symbol lookup.
+       * When null, falls back to root scope (for module-level code).
+       */
+      protected currentScope: Scope | null = null;
 
       constructor(
         private readonly usageAnalyzer: VariableUsageAnalyzer,
         private readonly symbolTable: SymbolTable
       ) {
         super();
+        // Start with the root scope for module-level declarations
+        this.currentScope = this.symbolTable.getRootScope();
+      }
+
+      /**
+       * Look up a symbol using the current scope context.
+       * Falls back to root scope if currentScope is null.
+       */
+      protected lookupSymbol(name: string): Symbol | undefined {
+        const scope = this.currentScope ?? this.symbolTable.getRootScope();
+        return this.symbolTable.lookupFrom(name, scope);
+      }
+
+      /**
+       * Override visitFunctionDecl to track the function's scope.
+       * This ensures symbols are looked up in the correct scope context.
+       */
+      override visitFunctionDecl(node: FunctionDecl): void {
+        const functionName = node.getName();
+
+        // Get the function's scope from the symbol table
+        // Function scopes are stored with key "function:name"
+        const functionScope = this.symbolTable.getScope(`function:${functionName}`);
+
+        // Save previous scope and enter function scope
+        const prevScope = this.currentScope;
+        if (functionScope) {
+          this.currentScope = functionScope;
+        }
+
+        // Visit the function body using parent's implementation
+        super.visitFunctionDecl(node);
+
+        // Restore previous scope after visiting function
+        this.currentScope = prevScope;
       }
 
       override visitIdentifierExpression(node: IdentifierExpression): void {
         const name = node.getName();
-        const symbol = this.symbolTable.lookup(name);
+        const symbol = this.lookupSymbol(name);
 
         if (symbol && (symbol.kind === SymbolKind.Variable || symbol.kind === SymbolKind.Parameter)) {
           // Check if this is a read or write context
@@ -523,7 +566,7 @@ export class AdvancedAnalyzer {
         if (target.getNodeType() === 'IdentifierExpression') {
           const identExpr = target as IdentifierExpression;
           const name = identExpr.getName();
-          const symbol = this.symbolTable.lookup(name);
+          const symbol = this.lookupSymbol(name);
 
           if (symbol && (symbol.kind === SymbolKind.Variable || symbol.kind === SymbolKind.Parameter)) {
             this.usageAnalyzer.recordWrite(symbol, target.getLocation());
@@ -551,7 +594,7 @@ export class AdvancedAnalyzer {
         // Mark loop counter as a loop counter (may be intentionally unused)
         // Blend65 for loops have a 'variable' property, not an initializer
         const varName = node.getVariable();
-        const symbol = this.symbolTable.lookup(varName);
+        const symbol = this.lookupSymbol(varName);
         if (symbol) {
           this.usageAnalyzer.markAsLoopCounter(symbol);
         }
