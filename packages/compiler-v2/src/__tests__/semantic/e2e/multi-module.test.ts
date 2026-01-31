@@ -96,11 +96,11 @@ describe('Multi-Module Analysis E2E', () => {
   describe('dependency tracking', () => {
     it('should track import dependencies', () => {
       const result = analyzeMultiple([
-        `module Lib
+        `module Lib;
          export function helper(): byte { return 1; }`,
 
-        `module Main
-         import { helper } from "Lib";
+        `module Main;
+         import { helper } from Lib;
          function main(): void { let x: byte = helper(); }`,
       ]);
 
@@ -111,15 +111,15 @@ describe('Multi-Module Analysis E2E', () => {
     it('should compute correct compilation order for dependencies', () => {
       const result = analyzeMultiple([
         // Main depends on Utils which depends on Core
-        `module Main
-         import { util } from "Utils";
+        `module Main;
+         import { util } from Utils;
          function main(): void { util(); }`,
 
-        `module Utils
-         import { core } from "Core";
+        `module Utils;
+         import { core } from Core;
          export function util(): void { core(); }`,
 
-        `module Core
+        `module Core;
          export function core(): void {}`,
       ]);
 
@@ -137,13 +137,13 @@ describe('Multi-Module Analysis E2E', () => {
   describe('export collection', () => {
     it('should collect exports into global symbol table', () => {
       const result = analyzeMultiple([
-        `module Math
+        `module Math;
          export function add(a: byte, b: byte): byte { return a + b; }
          export function sub(a: byte, b: byte): byte { return a - b; }
          export let PI: byte = 3;`,
 
-        `module Main
-         import { add, sub, PI } from "Math";
+        `module Main;
+         import { add, sub, PI } from Math;
          function main(): void {
            let x: byte = add(1, 2);
            let y: byte = sub(5, 3);
@@ -156,12 +156,12 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should not export non-exported members', () => {
       const result = analyzeMultiple([
-        `module Lib
+        `module Lib;
          export function publicFn(): void {}
          function privateFn(): void {}`,
 
-        `module Main
-         import { publicFn, privateFn } from "Lib";`,
+        `module Main;
+         import { publicFn, privateFn } from Lib;`,
       ]);
 
       // Should fail because privateFn is not exported
@@ -172,11 +172,11 @@ describe('Multi-Module Analysis E2E', () => {
   describe('import resolution', () => {
     it('should resolve simple imports', () => {
       const result = analyzeMultiple([
-        `module Lib
+        `module Lib;
          export function getValue(): byte { return 42; }`,
 
-        `module Main
-         import { getValue } from "Lib";
+        `module Main;
+         import { getValue } from Lib;
          function main(): void {
            let x: byte = getValue();
          }`,
@@ -188,13 +188,13 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should resolve multiple imports from same module', () => {
       const result = analyzeMultiple([
-        `module Lib
+        `module Lib;
          export function fn1(): void {}
          export function fn2(): void {}
          export function fn3(): void {}`,
 
-        `module Main
-         import { fn1, fn2, fn3 } from "Lib";
+        `module Main;
+         import { fn1, fn2, fn3 } from Lib;
          function main(): void { fn1(); fn2(); fn3(); }`,
       ]);
 
@@ -203,15 +203,15 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should resolve imports from multiple modules', () => {
       const result = analyzeMultiple([
-        `module Math
+        `module Math;
          export function add(a: byte, b: byte): byte { return a + b; }`,
 
-        `module IO
+        `module IO;
          export function print(): void {}`,
 
-        `module Main
-         import { add } from "Math";
-         import { print } from "IO";
+        `module Main;
+         import { add } from Math;
+         import { print } from IO;
          function main(): void {
            let sum: byte = add(1, 2);
            print();
@@ -223,8 +223,8 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should detect missing module', () => {
       const result = analyzeMultiple([
-        `module Main
-         import { something } from "NonExistent";`,
+        `module Main;
+         import { something } from NonExistent;`,
       ]);
 
       expect(result.importResolution.success).toBe(false);
@@ -233,11 +233,11 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should detect missing export', () => {
       const result = analyzeMultiple([
-        `module Lib
+        `module Lib;
          export function exported(): void {}`,
 
-        `module Main
-         import { notExported } from "Lib";`,
+        `module Main;
+         import { notExported } from Lib;`,
       ]);
 
       expect(result.importResolution.success).toBe(false);
@@ -247,12 +247,12 @@ describe('Multi-Module Analysis E2E', () => {
   describe('circular dependency detection', () => {
     it('should detect direct circular imports', () => {
       const result = analyzeMultiple([
-        `module A
-         import { bFn } from "B";
+        `module A;
+         import { bFn } from B;
          export function aFn(): void { bFn(); }`,
 
-        `module B
-         import { aFn } from "A";
+        `module B;
+         import { aFn } from A;
          export function bFn(): void { aFn(); }`,
       ]);
 
@@ -265,16 +265,16 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should detect indirect circular imports', () => {
       const result = analyzeMultiple([
-        `module A
-         import { c } from "C";
+        `module A;
+         import { c } from C;
          export function a(): void { c(); }`,
 
-        `module B
-         import { a } from "A";
+        `module B;
+         import { a } from A;
          export function b(): void { a(); }`,
 
-        `module C
-         import { b } from "B";
+        `module C;
+         import { b } from B;
          export function c(): void { b(); }`,
       ]);
 
@@ -287,20 +287,20 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should not flag non-circular dependencies', () => {
       const result = analyzeMultiple([
-        `module Base
+        `module Base;
          export function base(): void {}`,
 
-        `module A
-         import { base } from "Base";
+        `module A;
+         import { base } from Base;
          export function a(): void { base(); }`,
 
-        `module B
-         import { base } from "Base";
+        `module B;
+         import { base } from Base;
          export function b(): void { base(); }`,
 
-        `module Main
-         import { a } from "A";
-         import { b } from "B";
+        `module Main;
+         import { a } from A;
+         import { b } from B;
          function main(): void { a(); b(); }`,
       ]);
 
@@ -315,11 +315,11 @@ describe('Multi-Module Analysis E2E', () => {
   describe('cross-module type checking', () => {
     it('should type check imported function calls', () => {
       const result = analyzeMultiple([
-        `module Lib
+        `module Lib;
          export function add(a: byte, b: byte): byte { return a + b; }`,
 
-        `module Main
-         import { add } from "Lib";
+        `module Main;
+         import { add } from Lib;
          function main(): void {
            let sum: byte = add(1, 2);
          }`,
@@ -330,11 +330,11 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should detect type errors in cross-module calls', () => {
       const result = analyzeMultiple([
-        `module Lib
+        `module Lib;
          export function process(x: byte): byte { return x; }`,
 
-        `module Main
-         import { process } from "Lib";
+        `module Main;
+         import { process } from Lib;
          function main(): void {
            let flag: bool = true;
            let result: byte = process(flag);
@@ -346,11 +346,11 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should handle imported types correctly', () => {
       const result = analyzeMultiple([
-        `module Math
+        `module Math;
          export function square(n: word): word { return n * n; }`,
 
-        `module Main
-         import { square } from "Math";
+        `module Main;
+         import { square } from Math;
          function main(): void {
            let n: word = 100;
            let sq: word = square(n);
@@ -441,7 +441,7 @@ describe('Multi-Module Analysis E2E', () => {
     it('should handle library + application pattern', () => {
       const result = analyzeMultiple([
         // Library modules
-        `module Lib.Math
+        `module Lib.Math;
          export function abs(n: byte): byte {
            if (n < 0) { return 0 - n; }
            return n;
@@ -450,14 +450,14 @@ describe('Multi-Module Analysis E2E', () => {
            return a < b ? a : b;
          }`,
 
-        `module Lib.IO
+        `module Lib.IO;
          export function putChar(c: byte): void {}
          export function getChar(): byte { return 0; }`,
 
         // Application
-        `module App.Main
-         import { abs, min } from "Lib.Math";
-         import { putChar } from "Lib.IO";
+        `module App.Main;
+         import { abs, min } from Lib.Math;
+         import { putChar } from Lib.IO;
 
          function process(a: byte, b: byte): void {
            let diff: byte = abs(a - b);
@@ -473,13 +473,13 @@ describe('Multi-Module Analysis E2E', () => {
     it('should handle layered architecture', () => {
       const result = analyzeMultiple([
         // Data layer
-        `module Data
+        `module Data;
          export function loadData(): byte { return 42; }
          export function saveData(value: byte): void {}`,
 
         // Service layer
-        `module Service
-         import { loadData, saveData } from "Data";
+        `module Service;
+         import { loadData, saveData } from Data;
          export function processData(): byte {
            let data: byte = loadData();
            let result: byte = data + 1;
@@ -488,8 +488,8 @@ describe('Multi-Module Analysis E2E', () => {
          }`,
 
         // Presentation layer
-        `module Presentation
-         import { processData } from "Service";
+        `module Presentation;
+         import { processData } from Service;
          function display(): void {
            let result: byte = processData();
          }`,
@@ -502,7 +502,7 @@ describe('Multi-Module Analysis E2E', () => {
     it('should handle shared utilities pattern', () => {
       const result = analyzeMultiple([
         // Shared utilities
-        `module Utils
+        `module Utils;
          export function clamp(value: byte, min: byte, max: byte): byte {
            if (value < min) { return min; }
            if (value > max) { return max; }
@@ -510,16 +510,16 @@ describe('Multi-Module Analysis E2E', () => {
          }`,
 
         // Multiple consumers
-        `module ModuleA
-         import { clamp } from "Utils";
+        `module ModuleA;
+         import { clamp } from Utils;
          function useClamp(): byte { return clamp(150, 0, 100); }`,
 
-        `module ModuleB
-         import { clamp } from "Utils";
+        `module ModuleB;
+         import { clamp } from Utils;
          function useClamp(): byte { return clamp(50, 0, 255); }`,
 
-        `module ModuleC
-         import { clamp } from "Utils";
+        `module ModuleC;
+         import { clamp } from Utils;
          function useClamp(): byte { return clamp(0, 10, 20); }`,
       ]);
 
@@ -531,10 +531,10 @@ describe('Multi-Module Analysis E2E', () => {
   describe('error aggregation', () => {
     it('should collect all errors in aggregated diagnostics', () => {
       const result = analyzeMultiple([
-        `module A
+        `module A;
          function errA(): byte { return true; }`,
 
-        `module B
+        `module B;
          function errB(): byte { return "bad"; }`,
       ]);
 
@@ -545,11 +545,11 @@ describe('Multi-Module Analysis E2E', () => {
 
     it('should include import errors in diagnostics', () => {
       const result = analyzeMultiple([
-        `module A
+        `module A;
          export function a(): void {}`,
 
-        `module B
-         import { missing } from "A";`,
+        `module B;
+         import { missing } from A;`,
       ]);
 
       expect(result.success).toBe(false);

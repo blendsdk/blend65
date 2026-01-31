@@ -307,6 +307,9 @@ export class ImportResolver {
    * Returns a map of symbol name → ExportedSymbol for all symbols
    * that are exported from the given module.
    *
+   * V2 Note: In v2, exports use FLAGS on declarations (isExportedFunction, isExportedVariable)
+   * rather than ExportDecl wrapper nodes. This method supports both patterns.
+   *
    * @param moduleName - The module to get exports from
    * @returns Map of exported symbols
    *
@@ -331,8 +334,10 @@ export class ImportResolver {
       return exports;
     }
 
-    // Find all export declarations
+    // Find all exported declarations
+    // V2 uses export FLAGS on declarations, not ExportDecl wrapper nodes
     for (const decl of program.getDeclarations()) {
+      // Check for ExportDecl wrapper (v1 style) - keep for compatibility
       if (isExportDecl(decl)) {
         const exportDecl = decl as ExportDecl;
         const innerDecl = exportDecl.getDeclaration();
@@ -354,6 +359,27 @@ export class ImportResolver {
             location,
           });
         }
+      }
+
+      // Check for export FLAG on FunctionDecl (v2 style)
+      if (isFunctionDecl(decl) && decl.isExportedFunction()) {
+        const name = decl.getName();
+        exports.set(name, {
+          name,
+          kind: 'function',
+          location: decl.getLocation(),
+        });
+      }
+
+      // Check for export FLAG on VariableDecl (v2 style)
+      if (isVariableDecl(decl) && decl.isExportedVariable()) {
+        const name = decl.getName();
+        const isConstVar = decl.isConst();
+        exports.set(name, {
+          name,
+          kind: isConstVar ? 'constant' : 'variable',
+          location: decl.getLocation(),
+        });
       }
     }
 
