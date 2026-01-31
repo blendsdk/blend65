@@ -70,18 +70,20 @@ describe('TypeSystem - Type Compatibility', () => {
       expect(typeSystem.checkCompatibility(byte, word)).toBe(TypeCompatibility.Compatible);
     });
 
-    it('should return Compatible for bool to byte', () => {
+    // Note: bool”byte conversions now require explicit conversion for strict type safety
+    // This prevents accidental mixing of boolean and numeric types
+    it('should return RequiresConversion for bool to byte (strict typing)', () => {
       const bool = typeSystem.getBuiltinType('bool')!;
       const byte = typeSystem.getBuiltinType('byte')!;
 
-      expect(typeSystem.checkCompatibility(bool, byte)).toBe(TypeCompatibility.Compatible);
+      expect(typeSystem.checkCompatibility(bool, byte)).toBe(TypeCompatibility.RequiresConversion);
     });
 
-    it('should return Compatible for byte to bool', () => {
+    it('should return RequiresConversion for byte to bool (strict typing)', () => {
       const byte = typeSystem.getBuiltinType('byte')!;
       const bool = typeSystem.getBuiltinType('bool')!;
 
-      expect(typeSystem.checkCompatibility(byte, bool)).toBe(TypeCompatibility.Compatible);
+      expect(typeSystem.checkCompatibility(byte, bool)).toBe(TypeCompatibility.RequiresConversion);
     });
   });
 

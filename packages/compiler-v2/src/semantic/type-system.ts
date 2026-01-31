@@ -344,13 +344,17 @@ export class TypeSystem {
     else if (from.kind === TypeKind.Byte && to.kind === TypeKind.Word) {
       result = TypeCompatibility.Compatible;
     }
-    // bool → byte (bool is just a byte)
+    // bool → byte: Requires explicit conversion (strict type checking)
+    // While bool is stored as a byte internally, implicit conversion
+    // can hide bugs where a boolean is accidentally used as a number
     else if (from.kind === TypeKind.Bool && to.kind === TypeKind.Byte) {
-      result = TypeCompatibility.Compatible;
+      result = TypeCompatibility.RequiresConversion;
     }
-    // byte → bool (any non-zero = true)
+    // byte → bool: Requires explicit conversion (strict type checking)
+    // While any non-zero byte is truthy, implicit conversion can hide
+    // bugs where a number is accidentally used in boolean context
     else if (from.kind === TypeKind.Byte && to.kind === TypeKind.Bool) {
-      result = TypeCompatibility.Compatible;
+      result = TypeCompatibility.RequiresConversion;
     }
     // word → byte (narrowing, requires explicit conversion)
     else if (from.kind === TypeKind.Word && to.kind === TypeKind.Byte) {
