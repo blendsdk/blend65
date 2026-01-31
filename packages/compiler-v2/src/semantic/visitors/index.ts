@@ -31,6 +31,13 @@ export {
   TypeCheckPassResult,
   TypeCheckDiagnosticCodes,
   LiteralTypeChecker,
+  ExpressionTypeChecker,
+  DeclarationTypeChecker,
+  DeclarationDiagnosticCodes,
+  StatementTypeChecker,
+  StatementDiagnosticCodes,
+  TypeChecker,
+  type TypeCheckOptions,
 } from './type-checker/index.js';
 
 // Pass 5: Control Flow Analyzer

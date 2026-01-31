@@ -92,3 +92,14 @@ export {
   type M6502HintResult,
   type M6502HintOptions,
 } from './m6502-hints.js';
+
+// Advanced Analyzer Orchestrator
+export {
+  AdvancedAnalyzer,
+  DiagnosticSeverity,
+  DiagnosticCategory,
+  DEFAULT_ADVANCED_OPTIONS,
+  type AdvancedDiagnostic,
+  type AdvancedAnalysisOptions,
+  type AdvancedAnalysisResult,
+} from './advanced-analyzer.js';

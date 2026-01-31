@@ -92,5 +92,11 @@ export {
 // Advanced analysis passes
 export * from './analysis/index.js';
 
-// Future exports (to be implemented in subsequent sessions):
-// export * from './analyzer.js';
+// Main Semantic Analyzer (entry point)
+export {
+  SemanticAnalyzer,
+  DEFAULT_ANALYZER_OPTIONS,
+  type AnalysisResult,
+  type MultiModuleAnalysisResult,
+  type SemanticAnalyzerOptions,
+} from './analyzer.js';
