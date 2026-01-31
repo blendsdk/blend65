@@ -1817,9 +1817,17 @@ src/__tests__/semantic/edge-cases/
 > All for-loop tests converted to use `to` syntax: `for (i = 0 to 10)`.
 > **Final Count:** 3355 tests passing, 0 failed, 3 skipped (+110 new tests)
 
-**Session 5B.6: Type Coercion Edge Case Tests** ⏳ NOT STARTED
-- [ ] 5B.6.1 Create type coercion tests (type-coercion.test.ts)
-- [ ] 5B.6.2 Create type narrowing tests (type-narrowing.test.ts)
+**Session 5B.6: Type Coercion Edge Case Tests** ✅ COMPLETE (2025-01-31)
+- [x] 5B.6.1 Create type coercion tests (type-coercion.test.ts) ✅ (47 tests, 2 skipped)
+- [x] 5B.6.2 Create type narrowing tests (type-narrowing.test.ts) ✅ (40 tests)
+
+**Session 5B.6 Notes (2025-01-31):**
+> Created 2 test files with 87 total type edge case tests.
+> Discovered gaps in assignment type checking:
+> - Word to byte reassignment not checked (test skipped)
+> - Array element type mismatch not checked (test skipped)
+> - Byte variables in word array literals produce errors (no implicit promotion for variables)
+> **Final Count:** 3442 tests passing, 0 failed, 5 skipped (+87 new tests)
 
 **Session 5B.7: Error Combination Tests + Final Verification** ⏳ NOT STARTED
 - [ ] 5B.7.1 Create error combination tests (error-combinations.test.ts)
