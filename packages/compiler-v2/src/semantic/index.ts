@@ -47,6 +47,14 @@ export {
   type LoopContext,
 } from './control-flow.js';
 
+// Multi-module support
+export { ModuleRegistry, type RegisteredModule } from './module-registry.js';
+export {
+  DependencyGraph,
+  type DependencyEdge,
+  type CycleInfo,
+} from './dependency-graph.js';
+
 // Future exports (to be implemented in subsequent sessions):
 // export * from './call-graph.js';
 // export * from './recursion-checker.js';

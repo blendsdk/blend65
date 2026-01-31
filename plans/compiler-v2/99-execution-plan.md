@@ -1188,14 +1188,14 @@ packages/compiler-v2/
 - [x] 5.8.7 Add statement tests ✅ (70+ tests)
 - [x] 5.8.8 Add integration tests ✅ (16 skipped for full pipeline)
 
-**Session 5.9: Control Flow Analysis (Pass 5)**
-- [ ] 5.9.1 Create CFG types
-- [ ] 5.9.2 Create BasicBlock class
-- [ ] 5.9.3 Create CFGBuilder
-- [ ] 5.9.4 Create ControlFlowAnalyzer
-- [ ] 5.9.5 Build CFGs for functions
-- [ ] 5.9.6 Detect unreachable code
-- [ ] 5.9.7 Add CFG tests
+**Session 5.9: Control Flow Analysis (Pass 5)** ✅ COMPLETE (2025-01-31)
+- [x] 5.9.1 Create CFG types ✅
+- [x] 5.9.2 Create BasicBlock class (CFGNode + CFGBuilder) ✅
+- [x] 5.9.3 Create CFGBuilder ✅
+- [x] 5.9.4 Create ControlFlowAnalyzer ✅
+- [x] 5.9.5 Build CFGs for functions ✅
+- [x] 5.9.6 Detect unreachable code ✅
+- [x] 5.9.7 Add CFG tests ✅ (59 tests)
 
 **Session 5.10: Multi-Module Support (Part 1)**
 - [ ] 5.10.1 Create ModuleRegistry
