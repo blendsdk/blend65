@@ -20,7 +20,7 @@ import type { Program } from '../../../ast/index.js';
 function parse(source: string): Program {
   const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
-  const parser = new Parser(tokens, source);
+  const parser = new Parser(tokens);
   return parser.parse();
 }
 
@@ -36,7 +36,7 @@ function analyze(source: string, options?: { runAdvancedAnalysis?: boolean }): A
 describe('Complete Analysis E2E', () => {
   describe('minimal programs', () => {
     it('should analyze empty module', () => {
-      const result = analyze('module Empty');
+      const result = analyze('module Empty;');
 
       expect(result.success).toBe(true);
       expect(result.moduleName).toBe('Empty');
@@ -47,9 +47,9 @@ describe('Complete Analysis E2E', () => {
       expect(result.stats.errorCount).toBe(0);
     });
 
-    it('should analyze module with single variable', () => {
+    it('should analyze module Test; single variable', () => {
       const result = analyze(`
-        module Test
+        module Test;
         let x: byte = 10;
       `);
 
@@ -57,9 +57,9 @@ describe('Complete Analysis E2E', () => {
       expect(result.stats.totalDeclarations).toBeGreaterThanOrEqual(1);
     });
 
-    it('should analyze module with single function', () => {
+    it('should analyze module Test; single function', () => {
       const result = analyze(`
-        module Test
+        module Test;
 
         function add(a: byte, b: byte): byte {
           return a + b;
@@ -74,7 +74,7 @@ describe('Complete Analysis E2E', () => {
   describe('pass execution', () => {
     it('should populate all pass results', () => {
       const result = analyze(`
-        module Test
+        module Test;
 
         function main(): void {
           let x: byte = 5;
@@ -106,7 +106,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should build control flow graphs for all functions', () => {
       const result = analyze(`
-        module Test
+        module Test;
 
         function foo(): void {}
         function bar(): void {}
@@ -122,7 +122,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should build call graph correctly', () => {
       const result = analyze(`
-        module Test
+        module Test;
 
         function helper(): byte { return 1; }
 
@@ -140,7 +140,7 @@ describe('Complete Analysis E2E', () => {
   describe('complete programs', () => {
     it('should analyze program with variables and functions', () => {
       const result = analyze(`
-        module Math
+        module Test;
 
         let globalCounter: byte = 0;
 
@@ -168,7 +168,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should analyze program with control flow', () => {
       const result = analyze(`
-        module Control
+        module Test;
 
         function abs(n: byte): byte {
           if (n < 0) {
@@ -196,7 +196,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should analyze program with loops', () => {
       const result = analyze(`
-        module Loops
+        module Test;
 
         function sum(n: byte): byte {
           let total: byte = 0;
@@ -219,7 +219,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should analyze program with arrays', () => {
       const result = analyze(`
-        module Arrays
+        module Test;
 
         function sumArray(arr: byte[5]): byte {
           let total: byte = 0;
@@ -242,7 +242,7 @@ describe('Complete Analysis E2E', () => {
   describe('statistics', () => {
     it('should report accurate declaration count', () => {
       const result = analyze(`
-        module Stats
+        module Test;
 
         let a: byte = 1;
         let b: byte = 2;
@@ -261,7 +261,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should report accurate expression check count', () => {
       const result = analyze(`
-        module Exprs
+        module Test;
 
         function test(): byte {
           let x: byte = 1 + 2;
@@ -277,7 +277,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should report analysis time', () => {
       const result = analyze(`
-        module Timing
+        module Test;
 
         function main(): void {
           let x: byte = 1;
@@ -290,7 +290,7 @@ describe('Complete Analysis E2E', () => {
     it('should count errors and warnings separately', () => {
       // This program has no errors but may have warnings from unused variables
       const result = analyze(`
-        module Counts
+        module Test;
 
         function main(): void {
           let unused: byte = 10;
@@ -304,15 +304,21 @@ describe('Complete Analysis E2E', () => {
 
   describe('options', () => {
     it('should respect runAdvancedAnalysis option', () => {
-      const withAdvanced = analyze(`
-        module Test
+      const withAdvanced = analyze(
+        `
+        module Test;
         function main(): void { let x: byte = 1; }
-      `, { runAdvancedAnalysis: true });
+      `,
+        { runAdvancedAnalysis: true }
+      );
 
-      const withoutAdvanced = analyze(`
-        module Test
+      const withoutAdvanced = analyze(
+        `
+        module Test;
         function main(): void { let x: byte = 1; }
-      `, { runAdvancedAnalysis: false });
+      `,
+        { runAdvancedAnalysis: false }
+      );
 
       expect(withAdvanced.passResults.advancedAnalysis).toBeDefined();
       expect(withoutAdvanced.passResults.advancedAnalysis).toBeUndefined();
@@ -321,14 +327,14 @@ describe('Complete Analysis E2E', () => {
 
   describe('result structure', () => {
     it('should include AST in result', () => {
-      const result = analyze(`module Test`);
+      const result = analyze(`module Test;`);
 
       expect(result.ast).toBeDefined();
       expect(result.ast.getModule().getFullName()).toBe('Test');
     });
 
     it('should include type system in result', () => {
-      const result = analyze(`module Test`);
+      const result = analyze(`module Test;`);
 
       expect(result.typeSystem).toBeDefined();
       // TypeSystem uses lookup method, not getType
@@ -336,7 +342,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should include symbol table in result', () => {
       const result = analyze(`
-        module Test
+        module Test;
         let x: byte = 10;
       `);
 
@@ -348,7 +354,7 @@ describe('Complete Analysis E2E', () => {
   describe('complex real-world patterns', () => {
     it('should analyze C64-style memory access pattern', () => {
       const result = analyze(`
-        module C64Memory
+        module Test;
 
         function poke(addr: word, value: byte): void {
           // Intrinsic implementation
@@ -374,7 +380,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should analyze game loop pattern', () => {
       const result = analyze(`
-        module GameLoop
+        module Test;
 
         let running: bool = true;
         let frameCount: word = 0;
@@ -406,7 +412,7 @@ describe('Complete Analysis E2E', () => {
 
     it('should analyze sprite handling pattern', () => {
       const result = analyze(`
-        module Sprites
+        module Test;
 
         let spriteX: byte[8];
         let spriteY: byte[8];

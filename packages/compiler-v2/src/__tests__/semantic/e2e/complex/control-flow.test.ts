@@ -22,7 +22,7 @@ import type { Program } from '../../../../ast/index.js';
 function parse(source: string): Program {
   const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
-  const parser = new Parser(tokens, source);
+  const parser = new Parser(tokens);
   return parser.parse();
 }
 
@@ -39,7 +39,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('nested conditionals', () => {
     it('should analyze deeply nested if-else', () => {
       const result = analyze(`
-        module NestedIf
+        module Test;
 
         function classify(value: byte): byte {
           if (value < 50) {
@@ -72,7 +72,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze else-if chain', () => {
       const result = analyze(`
-        module ElseIfChain
+        module Test;
 
         function getGrade(score: byte): byte {
           if (score >= 90) {
@@ -100,7 +100,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze if with multiple conditions', () => {
       const result = analyze(`
-        module MultiCondition
+        module Test;
 
         function checkRange(x: byte, y: byte): bool {
           if (x > 0 && x < 100) {
@@ -119,7 +119,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze conditional with complex boolean expressions', () => {
       const result = analyze(`
-        module ComplexBool
+        module Test;
 
         function isValid(a: byte, b: byte, c: byte): bool {
           if ((a > 0 && b > 0) || c > 0) {
@@ -138,7 +138,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('complex loop patterns', () => {
     it.skip('should analyze nested while loops', () => {
       const result = analyze(`
-        module NestedWhile
+        module Test;
 
         function process2D(): byte {
           let total: byte = 0;
@@ -160,7 +160,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze nested for loops', () => {
       const result = analyze(`
-        module NestedFor
+        module Test;
 
         function sumMatrix(data: byte[100]): word {
           let total: word = 0;
@@ -179,7 +179,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it.skip('should analyze triple nested loops', () => {
       const result = analyze(`
-        module TripleNested
+        module Test;
 
         function countCombinations(): word {
           let count: word = 0;
@@ -205,7 +205,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze loop with multiple exit conditions', () => {
       const result = analyze(`
-        module MultiExitLoop
+        module Test;
 
         function findFirst(data: byte[100], target: byte, len: byte): byte {
           let i: byte = 0;
@@ -224,7 +224,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze countdown loop', () => {
       const result = analyze(`
-        module Countdown
+        module Test;
 
         function countDown(start: byte): byte {
           let count: byte = 0;
@@ -244,7 +244,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('early returns', () => {
     it('should analyze guard clause pattern', () => {
       const result = analyze(`
-        module GuardClauses
+        module Test;
 
         function processValue(value: byte): byte {
           // Guard clauses
@@ -272,7 +272,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze early return in loop', () => {
       const result = analyze(`
-        module EarlyReturnLoop
+        module Test;
 
         function contains(data: byte[50], target: byte, len: byte): bool {
           let i: byte = 0;
@@ -291,7 +291,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze multiple return paths', () => {
       const result = analyze(`
-        module MultiReturn
+        module Test;
 
         function categorize(x: byte, y: byte): byte {
           if (x == 0 && y == 0) {
@@ -325,7 +325,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('break and continue', () => {
     it('should analyze break in while loop', () => {
       const result = analyze(`
-        module BreakWhile
+        module Test;
 
         function findFirstZero(data: byte[20]): byte {
           let i: byte = 0;
@@ -344,7 +344,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it.skip('should analyze continue in while loop', () => {
       const result = analyze(`
-        module ContinueWhile
+        module Test;
 
         function sumNonZero(data: byte[10]): word {
           let total: word = 0;
@@ -366,7 +366,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze break in for loop', () => {
       const result = analyze(`
-        module BreakFor
+        module Test;
 
         function findValue(data: byte[100], target: byte): byte {
           let result: byte = 255;
@@ -385,7 +385,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it.skip('should analyze break in nested loops (inner only)', () => {
       const result = analyze(`
-        module BreakNested
+        module Test;
 
         function process(): byte {
           let found: byte = 0;
@@ -410,7 +410,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it.skip('should analyze continue in nested loops', () => {
       const result = analyze(`
-        module ContinueNested
+        module Test;
 
         function countValid(): byte {
           let count: byte = 0;
@@ -437,7 +437,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('mixed control flow', () => {
     it.skip('should analyze loop with conditionals and early exit', () => {
       const result = analyze(`
-        module MixedFlow
+        module Test;
 
         function findMatchingPair(a: byte[10], b: byte[10]): byte {
           let i: byte = 0;
@@ -463,7 +463,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it.skip('should analyze state machine with loop', () => {
       const result = analyze(`
-        module LoopStateMachine
+        module Test;
 
         function processInput(input: byte[50], len: byte): byte {
           let state: byte = 0;
@@ -509,7 +509,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze conditional loop bounds', () => {
       const result = analyze(`
-        module ConditionalBounds
+        module Test;
 
         function processRange(data: byte[100], start: byte, end: byte): byte {
           let sum: byte = 0;
@@ -542,7 +542,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('control flow graph verification', () => {
     it.skip('should build CFG for function with if-else', () => {
       const result = analyze(`
-        module CFGIfElse
+        module Test;
 
         function test(x: byte): byte {
           if (x > 10) {
@@ -561,7 +561,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should build CFG for function with while loop', () => {
       const result = analyze(`
-        module CFGWhile
+        module Test;
 
         function countdown(n: byte): byte {
           let i: byte = n;
@@ -579,7 +579,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it.skip('should build CFG for complex function', () => {
       const result = analyze(`
-        module CFGComplex
+        module Test;
 
         function complex(a: byte, b: byte): byte {
           let result: byte = 0;
@@ -611,7 +611,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('ternary operator control flow', () => {
     it('should analyze ternary in loop condition', () => {
       const result = analyze(`
-        module TernaryCondition
+        module Test;
 
         function process(useShort: bool, data: byte[100]): byte {
           let limit: byte = useShort ? 10 : 100;
@@ -630,7 +630,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze nested ternaries', () => {
       const result = analyze(`
-        module NestedTernary
+        module Test;
 
         function classify(x: byte): byte {
           return x < 10 ? 0 : x < 50 ? 1 : x < 100 ? 2 : 3;
@@ -642,7 +642,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze ternary in function calls', () => {
       const result = analyze(`
-        module TernaryCall
+        module Test;
 
         function slow(x: byte): byte { return x * 2; }
         function fast(x: byte): byte { return x << 1; }
@@ -659,7 +659,7 @@ describe('Complex Control Flow Programs E2E', () => {
   describe('edge cases', () => {
     it('should analyze empty function body', () => {
       const result = analyze(`
-        module EmptyBody
+        module Test;
 
         function doNothing(): void {
         }
@@ -670,7 +670,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze single statement function', () => {
       const result = analyze(`
-        module SingleStatement
+        module Test;
 
         function getOne(): byte {
           return 1;
@@ -682,7 +682,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze function with only declarations', () => {
       const result = analyze(`
-        module OnlyDeclarations
+        module Test;
 
         function setup(): void {
           let a: byte = 1;
@@ -696,7 +696,7 @@ describe('Complex Control Flow Programs E2E', () => {
 
     it('should analyze deeply nested control flow', () => {
       const result = analyze(`
-        module DeeplyNested
+        module Test;
 
         function deep(x: byte): byte {
           if (x > 0) {

@@ -24,7 +24,7 @@ import type { Program, Diagnostic } from '../../../ast/index.js';
 function parse(source: string): Program {
   const lexer = new Lexer(source);
   const tokens = lexer.tokenize();
-  const parser = new Parser(tokens, source);
+  const parser = new Parser(tokens);
   return parser.parse();
 }
 
