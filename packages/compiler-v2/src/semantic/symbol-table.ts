@@ -92,6 +92,9 @@ export class SymbolTable {
   /** All scopes indexed by ID */
   protected scopes: Map<string, Scope>;
 
+  /** Function scopes indexed by name for type checker lookup */
+  protected functionScopesByName: Map<string, Scope>;
+
   /** Counter for generating unique scope IDs */
   protected scopeCounter: number;
 
@@ -107,6 +110,7 @@ export class SymbolTable {
   constructor(moduleNode: ASTNode | null = null, moduleName: string = 'main') {
     this.scopeCounter = 0;
     this.scopes = new Map();
+    this.functionScopesByName = new Map();
     this.moduleName = moduleName;
 
     // Create the root module scope
@@ -133,10 +137,21 @@ export class SymbolTable {
   }
 
   /**
-   * Gets a scope by ID
+   * Gets a scope by ID or function name
+   *
+   * Checks both the main scopes map (for scope_N IDs) and
+   * the function scopes by name map (for function:name keys).
+   *
+   * @param id - Scope ID (scope_N) or function name key (function:name)
    */
   getScope(id: string): Scope | undefined {
-    return this.scopes.get(id);
+    // Check main scopes map first
+    const scope = this.scopes.get(id);
+    if (scope) {
+      return scope;
+    }
+    // Check function scopes by name (for type checker)
+    return this.functionScopesByName.get(id);
   }
 
   /**
@@ -202,13 +217,14 @@ export class SymbolTable {
     const id = `scope_${this.scopeCounter++}`;
     const scope = createFunctionScope(id, this.currentScope, functionSymbol, node);
     
-    // Register scope by numeric ID
+    // Register scope by numeric ID in main scopes map
     this.scopes.set(id, scope);
     
-    // Also register by function name for lookup during type checking
+    // Register by function name in separate map for type checker lookup
     // This allows type checker to enter scope using "function:name" pattern
+    // without polluting the scope count
     const functionName = functionSymbol.name;
-    this.scopes.set(`function:${functionName}`, scope);
+    this.functionScopesByName.set(`function:${functionName}`, scope);
     
     this.currentScope = scope;
     return scope;

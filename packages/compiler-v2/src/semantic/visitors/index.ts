@@ -11,24 +11,16 @@
  */
 
 // Pass 1: Symbol Table Builder
-export {
-  SymbolTableBuilder,
-  SymbolTableBuildResult,
-  SymbolTableDiagnosticCodes,
-} from './symbol-table-builder.js';
+export { SymbolTableBuilder, SymbolTableDiagnosticCodes } from './symbol-table-builder.js';
+export type { SymbolTableBuildResult } from './symbol-table-builder.js';
 
 // Pass 2: Type Resolver
-export {
-  TypeResolver,
-  TypeResolutionResult,
-  TypeResolverDiagnosticCodes,
-} from './type-resolver.js';
+export { TypeResolver, TypeResolverDiagnosticCodes } from './type-resolver.js';
+export type { TypeResolutionResult } from './type-resolver.js';
 
 // Pass 3: Type Checker (inheritance chain)
 export {
   TypeCheckerBase,
-  TypeCheckResult,
-  TypeCheckPassResult,
   TypeCheckDiagnosticCodes,
   LiteralTypeChecker,
   ExpressionTypeChecker,
@@ -37,8 +29,8 @@ export {
   StatementTypeChecker,
   StatementDiagnosticCodes,
   TypeChecker,
-  type TypeCheckOptions,
 } from './type-checker/index.js';
+export type { TypeCheckResult, TypeCheckPassResult, TypeCheckOptions } from './type-checker/index.js';
 
 // Pass 5: Control Flow Analyzer
 export { ControlFlowAnalyzer } from './control-flow-analyzer.js';

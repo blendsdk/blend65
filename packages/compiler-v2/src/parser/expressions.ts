@@ -143,6 +143,7 @@ export abstract class ExpressionParser extends BaseParser {
    * - Hex ($ prefix): $D000, $FF
    * - Hex (0x prefix): 0xD000, 0xFF
    * - Binary (0b prefix): 0b1010, 0b11110000
+   * - Binary (% prefix): %10101010, %11110000 (Blend65 style)
    *
    * @param value - String representation of number
    * @returns Numeric value
@@ -151,6 +152,11 @@ export abstract class ExpressionParser extends BaseParser {
     // Hex with $ prefix
     if (value.startsWith('$')) {
       return parseInt(value.substring(1), 16);
+    }
+
+    // Binary with % prefix (Blend65 style)
+    if (value.startsWith('%')) {
+      return parseInt(value.substring(1), 2);
     }
 
     // Hex with 0x prefix

@@ -106,7 +106,12 @@ export class Lexer {
     }
 
     // Numbers (including hex and binary)
-    if (this.isDigit(char) || (char === '$' && this.isHexDigit(this.peek()))) {
+    // Support: decimal, $hex, 0xhex, 0bbinary, %binary
+    if (
+      this.isDigit(char) ||
+      (char === '$' && this.isHexDigit(this.peek())) ||
+      (char === '%' && this.isBinaryDigit(this.peek()))
+    ) {
       return this.readNumber();
     }
 
@@ -232,7 +237,7 @@ export class Lexer {
 
   /**
    * Reads a numeric literal from the source
-   * Supports decimal, hexadecimal ($xx or 0x), and binary (0b) formats
+   * Supports decimal, hexadecimal ($xx or 0x), and binary (%xxx or 0b) formats
    * @returns Token containing the numeric value
    * @throws Error if number format is invalid
    */
@@ -252,6 +257,23 @@ export class Lexer {
 
       if (value === '$') {
         throw new Error(`Invalid hex number at line ${start.line}, column ${start.column}`);
+      }
+
+      return this.createToken(TokenType.NUMBER, value, start);
+    }
+
+    // Handle binary numbers starting with % (Blend65 style)
+    if (this.getCurrentChar() === '%') {
+      value += '%';
+      this.advance();
+
+      while (this.isBinaryDigit(this.getCurrentChar())) {
+        value += this.getCurrentChar();
+        this.advance();
+      }
+
+      if (value === '%') {
+        throw new Error(`Invalid binary number at line ${start.line}, column ${start.column}`);
       }
 
       return this.createToken(TokenType.NUMBER, value, start);
