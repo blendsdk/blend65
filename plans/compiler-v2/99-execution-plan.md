@@ -1794,10 +1794,16 @@ src/__tests__/semantic/edge-cases/
 - [x] 5B.3.3 Create logical edge case tests (logical-edge-cases.test.ts) ✅ (50 tests, 1 skipped)
 - [x] 5B.3.4 Create bitwise edge case tests (bitwise-edge-cases.test.ts) ✅ (52 tests)
 
-**Session 5B.4: Array Edge Case Tests** ⏳ NOT STARTED
-- [ ] 5B.4.1 Create empty/single element tests (array-empty-single.test.ts)
-- [ ] 5B.4.2 Create array boundary tests (array-boundaries.test.ts)
-- [ ] 5B.4.3 Create multi-dimensional tests (array-multidim.test.ts)
+**Session 5B.4: Array Edge Case Tests** ✅ COMPLETE (2025-01-31)
+- [x] 5B.4.1 Create empty/single element tests (array-empty-single.test.ts) ✅ (33 tests)
+- [x] 5B.4.2 Create array boundary tests (array-boundaries.test.ts) ✅ (37 tests)
+- [x] 5B.4.3 Create multi-dimensional tests (array-multidim.test.ts) ✅ (38 tests)
+
+**Session 5B.4 Notes (2025-01-31):**
+> Created 3 test files with 108 total array edge case tests.
+> Discovered: byte[N] is not assignable to word[N] - no implicit array type promotion.
+> Fixed tests to document actual behavior (word arrays need word-sized values >255).
+> **Final Count:** 3245 tests passing, 0 failed, 1 skipped
 
 **Session 5B.5: Control Flow Edge Case Tests** ⏳ NOT STARTED
 - [ ] 5B.5.1 Create unreachable code tests (unreachable-code.test.ts)
