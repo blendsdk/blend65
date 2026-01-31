@@ -73,7 +73,21 @@ export {
   type GlobalLookupResult,
 } from './global-symbol-table.js';
 
+// Call graph (function call relationship tracking)
+export {
+  CallGraph,
+  CallGraphBuilder,
+  type CallGraphNode,
+  type CallSite,
+} from './call-graph.js';
+
+// Recursion detection (SFA-critical - recursion is a compile-time error)
+export {
+  RecursionChecker,
+  RecursionErrorCode,
+  type RecursionError,
+  type RecursionCheckResult,
+} from './recursion-checker.js';
+
 // Future exports (to be implemented in subsequent sessions):
-// export * from './call-graph.js';
-// export * from './recursion-checker.js';
 // export * from './analyzer.js';

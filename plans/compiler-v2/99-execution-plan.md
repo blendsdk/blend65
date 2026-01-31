@@ -1214,16 +1214,16 @@ packages/compiler-v2/
 - [x] 5.11.6 Add import resolver tests ✅ (35 tests)
 - [x] 5.11.7 Add global symbol table tests ✅ (56 tests)
 
-**Session 5.12: Call Graph + Recursion Detection (Pass 6)**
-- [ ] 5.12.1 Create CallGraphNode type
-- [ ] 5.12.2 Create CallGraphBuilder
-- [ ] 5.12.3 Walk AST for function calls
-- [ ] 5.12.4 Create RecursionChecker
-- [ ] 5.12.5 Detect direct recursion
-- [ ] 5.12.6 Detect indirect recursion
-- [ ] 5.12.7 Add recursion error messages
-- [ ] 5.12.8 Add call graph tests
-- [ ] 5.12.9 Add recursion tests
+**Session 5.12: Call Graph + Recursion Detection (Pass 6)** ✅ COMPLETE (2025-01-31)
+- [x] 5.12.1 Create CallGraphNode type ✅
+- [x] 5.12.2 Create CallGraphBuilder ✅
+- [x] 5.12.3 Walk AST for function calls ✅
+- [x] 5.12.4 Create RecursionChecker ✅
+- [x] 5.12.5 Detect direct recursion ✅
+- [x] 5.12.6 Detect indirect recursion ✅
+- [x] 5.12.7 Add recursion error messages ✅
+- [x] 5.12.8 Add call graph tests ✅ (49 tests)
+- [x] 5.12.9 Add recursion tests ✅ (52 tests)
 
 **Session 5.13: Advanced Analysis (Part 1)**
 - [ ] 5.13.1 Create DefiniteAssignmentAnalyzer
