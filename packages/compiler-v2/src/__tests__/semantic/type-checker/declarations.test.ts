@@ -17,6 +17,7 @@ import {
   TypeCheckPassResult,
   DeclarationDiagnosticCodes,
 } from '../../../semantic/visitors/type-checker/index.js';
+import { SemanticAnalyzer, type AnalysisResult } from '../../../semantic/analyzer.js';
 
 // ============================================
 // TEST CONCRETE IMPLEMENTATION
@@ -114,6 +115,17 @@ function checkSource(source: string): { result: TypeCheckPassResult; checker: Te
 
   const result = checker.check(symbolTable, program);
   return { result, checker, symbolTable };
+}
+
+/**
+ * Analyzes a program using the full SemanticAnalyzer pipeline
+ */
+function analyzeProgram(source: string): AnalysisResult {
+  const program = parseProgram(source);
+  const analyzer = new SemanticAnalyzer({
+    runAdvancedAnalysis: false,
+  });
+  return analyzer.analyze(program);
 }
 
 // ============================================
@@ -318,10 +330,8 @@ describe('DeclarationTypeChecker', () => {
 
   describe('function declarations', () => {
     describe('parameter types', () => {
-      // Note: These tests require full SymbolTableBuilder to register params
-      // Skip until full semantic pipeline is ready (Session 5.17+)
-      it.skip('should resolve byte parameter type', () => {
-        const { result } = checkSource(`
+      it('should resolve byte parameter type', () => {
+        const result = analyzeProgram(`
           module test
           function add(a: byte, b: byte): byte {
             return a;
@@ -329,6 +339,7 @@ describe('DeclarationTypeChecker', () => {
         `);
 
         expect(result.success).toBe(true);
+        expect(result.stats.errorCount).toBe(0);
       });
 
       it('should resolve word parameter type', () => {
@@ -357,9 +368,8 @@ describe('DeclarationTypeChecker', () => {
         }
       });
 
-      // Note: Requires full SymbolTableBuilder to register params in scope
-      it.skip('should handle multiple parameters', () => {
-        const { result } = checkSource(`
+      it('should handle multiple parameters', () => {
+        const result = analyzeProgram(`
           module test
           function calc(a: byte, b: word, c: bool): byte {
             return a;
@@ -367,6 +377,7 @@ describe('DeclarationTypeChecker', () => {
         `);
 
         expect(result.success).toBe(true);
+        expect(result.stats.errorCount).toBe(0);
       });
     });
 
@@ -418,10 +429,8 @@ describe('DeclarationTypeChecker', () => {
     });
 
     describe('function body', () => {
-      // Note: These tests require SymbolTableBuilder to register local variables in function scope
-      // Skip until full semantic pipeline is ready (Session 5.17+)
-      it.skip('should type check expressions in function body', () => {
-        const { result } = checkSource(`
+      it('should type check expressions in function body', () => {
+        const result = analyzeProgram(`
           module test
           function calc(): byte {
             let x: byte = 1 + 2;
@@ -430,11 +439,11 @@ describe('DeclarationTypeChecker', () => {
         `);
 
         expect(result.success).toBe(true);
-        expect(result.expressionsChecked).toBeGreaterThan(0);
+        expect(result.stats.expressionsChecked).toBeGreaterThan(0);
       });
 
-      it.skip('should type check nested statements', () => {
-        const { result } = checkSource(`
+      it('should type check nested statements', () => {
+        const result = analyzeProgram(`
           module test
           function process(): void {
             let i: byte = 0;
@@ -445,6 +454,7 @@ describe('DeclarationTypeChecker', () => {
         `);
 
         expect(result.success).toBe(true);
+        expect(result.stats.errorCount).toBe(0);
       });
     });
 
@@ -708,9 +718,11 @@ describe('DeclarationTypeChecker', () => {
       expect(result.success).toBe(true);
     });
 
-    // Note: Requires SymbolTableBuilder to register local variables in function scope
+    // Skip: Known issue - variables declared in if-block not visible in nested while loop
+    // Bug: "Cannot find name 'b'" when b is declared in parent if-block
+    // This requires fixing scope resolution in SymbolTable for nested statement blocks
     it.skip('should handle deeply nested function body', () => {
-      const { result } = checkSource(`
+      const result = analyzeProgram(`
         module test
         function deep(): void {
           let a: byte = 1;
@@ -725,6 +737,7 @@ describe('DeclarationTypeChecker', () => {
       `);
 
       expect(result.success).toBe(true);
+      expect(result.stats.errorCount).toBe(0);
     });
 
     it('should reset state between program checks', () => {
@@ -750,12 +763,9 @@ describe('DeclarationTypeChecker', () => {
   // COMPLEX PROGRAMS
   // ============================================
 
-  // Note: These complex program tests require full SymbolTableBuilder pipeline
-  // to register function parameters and local variables in proper scopes.
-  // Skip until Session 5.17+ when full semantic pipeline is ready.
   describe('complex programs', () => {
-    it.skip('should handle program with multiple functions', () => {
-      const { result } = checkSource(`
+    it('should handle program with multiple functions', () => {
+      const result = analyzeProgram(`
         module game
         
         let score: word = 0;
@@ -774,10 +784,11 @@ describe('DeclarationTypeChecker', () => {
       `);
 
       expect(result.success).toBe(true);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    it.skip('should handle program with arrays and loops', () => {
-      const { result } = checkSource(`
+    it('should handle program with arrays and loops', () => {
+      const result = analyzeProgram(`
         module arrays
         
         let buffer: byte[256];
@@ -792,10 +803,11 @@ describe('DeclarationTypeChecker', () => {
       `);
 
       expect(result.success).toBe(true);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    it.skip('should handle program with enums and constants', () => {
-      const { result } = checkSource(`
+    it('should handle program with enums and constants', () => {
+      const result = analyzeProgram(`
         module sprites
         
         enum SpriteState { IDLE, MOVING, ATTACKING }
@@ -810,6 +822,7 @@ describe('DeclarationTypeChecker', () => {
       `);
 
       expect(result.success).toBe(true);
+      expect(result.stats.errorCount).toBe(0);
     });
   });
 });

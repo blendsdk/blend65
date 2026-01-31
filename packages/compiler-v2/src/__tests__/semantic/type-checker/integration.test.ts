@@ -3,6 +3,12 @@
  *
  * Integration tests for the complete TypeChecker class, testing the full
  * type checking pipeline from source code to diagnostics.
+ *
+ * NOTE: These tests now use the full SemanticAnalyzer pipeline which includes:
+ * - Pass 1: Symbol Table Building
+ * - Pass 2: Type Resolution
+ * - Pass 3: Type Checking
+ * - Pass 4+: Control Flow, Call Graph, Advanced Analysis
  */
 
 import { describe, it, expect } from 'vitest';
@@ -12,6 +18,7 @@ import type { Program } from '../../../ast/index.js';
 import { SymbolTable } from '../../../semantic/symbol-table.js';
 import { TypeSystem } from '../../../semantic/type-system.js';
 import { TypeChecker, TypeCheckPassResult } from '../../../semantic/visitors/type-checker/index.js';
+import { SemanticAnalyzer, type AnalysisResult } from '../../../semantic/analyzer.js';
 
 // ============================================
 // HELPER FUNCTIONS
@@ -28,7 +35,8 @@ function parseProgram(source: string): Program {
 }
 
 /**
- * Type checks a program and returns the result
+ * Type checks a program using only the TypeChecker (for simple tests)
+ * @deprecated Use analyzeProgram() for full pipeline testing
  */
 function checkProgram(source: string): TypeCheckPassResult {
   const typeSystem = new TypeSystem();
@@ -36,6 +44,25 @@ function checkProgram(source: string): TypeCheckPassResult {
   const symbolTable = new SymbolTable();
   const program = parseProgram(source);
   return checker.check(symbolTable, program);
+}
+
+/**
+ * Analyzes a program using the full SemanticAnalyzer pipeline
+ *
+ * This runs all semantic passes:
+ * 1. Symbol Table Building
+ * 2. Type Resolution
+ * 3. Type Checking
+ * 4. Control Flow Analysis
+ * 5. Call Graph & Recursion Detection
+ * 6. Advanced Analysis
+ */
+function analyzeProgram(source: string): AnalysisResult {
+  const program = parseProgram(source);
+  const analyzer = new SemanticAnalyzer({
+    runAdvancedAnalysis: false, // Skip advanced for faster tests
+  });
+  return analyzer.analyze(program);
 }
 
 // ============================================
@@ -61,10 +88,8 @@ describe('TypeChecker Integration', () => {
       expect(result.errorCount).toBe(0);
     });
 
-    // These tests require full semantic pipeline (Pass 1 + Pass 2 + Pass 3)
-    // to properly build and populate the symbol table.
-    // Skipped until full pipeline integration is available.
-    it.skip('should type check program with multiple functions', () => {
+    // These tests use the full SemanticAnalyzer pipeline (all passes)
+    it('should type check program with multiple functions', () => {
       const source = `
         module test
         
@@ -76,14 +101,13 @@ describe('TypeChecker Integration', () => {
           let result: byte = add(5, 3);
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline to register local variables in symbol table
-    it.skip('should type check program with global and local variables', () => {
+    it('should type check program with global and local variables', () => {
       const source = `
         module test
         
@@ -94,14 +118,13 @@ describe('TypeChecker Integration', () => {
           globalCounter = globalCounter + local;
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline to register for-loop iterator and buffer
-    it.skip('should type check program with arrays', () => {
+    it('should type check program with arrays', () => {
       const source = `
         module test
         
@@ -113,10 +136,10 @@ describe('TypeChecker Integration', () => {
           }
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
   });
 
@@ -315,8 +338,7 @@ describe('TypeChecker Integration', () => {
   // ============================================
 
   describe('C64 programming patterns', () => {
-    // Skip: requires full pipeline to register for-loop iterator
-    it.skip('should type check memory access pattern', () => {
+    it('should type check memory access pattern', () => {
       const source = `
         module test
         
@@ -328,14 +350,13 @@ describe('TypeChecker Integration', () => {
           }
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline to register function parameter 'num'
-    it.skip('should type check sprite setup pattern', () => {
+    it('should type check sprite setup pattern', () => {
       const source = `
         module test
         
@@ -347,14 +368,13 @@ describe('TypeChecker Integration', () => {
           spriteEnabled = spriteEnabled | (1 << num);
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline to register 'currentColor' global
-    it.skip('should type check color cycling pattern', () => {
+    it('should type check color cycling pattern', () => {
       const source = `
         module test
         
@@ -367,14 +387,13 @@ describe('TypeChecker Integration', () => {
           }
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline to register 'running' global
-    it.skip('should type check game loop pattern', () => {
+    it('should type check game loop pattern', () => {
       const source = `
         module test
         
@@ -388,10 +407,10 @@ describe('TypeChecker Integration', () => {
           }
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
   });
 
@@ -400,8 +419,7 @@ describe('TypeChecker Integration', () => {
   // ============================================
 
   describe('real world patterns', () => {
-    // Skip: requires full pipeline for symbol registration
-    it.skip('should type check counter with overflow check', () => {
+    it('should type check counter with overflow check', () => {
       const source = `
         module test
         
@@ -415,14 +433,13 @@ describe('TypeChecker Integration', () => {
           return counter;
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline for symbol registration
-    it.skip('should type check state machine pattern', () => {
+    it('should type check state machine pattern', () => {
       const source = `
         module test
         
@@ -440,14 +457,13 @@ describe('TypeChecker Integration', () => {
           }
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline for symbol registration
-    it.skip('should type check buffer processing pattern', () => {
+    it('should type check buffer processing pattern', () => {
       const source = `
         module test
         
@@ -464,10 +480,10 @@ describe('TypeChecker Integration', () => {
           return buffer[bufferIndex];
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
   });
 
@@ -536,8 +552,7 @@ describe('TypeChecker Integration', () => {
       expect(result.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline for symbol registration
-    it.skip('should handle complex control flow nesting', () => {
+    it('should handle complex control flow nesting', () => {
       const source = `
         module test
         function complex(): byte {
@@ -556,10 +571,10 @@ describe('TypeChecker Integration', () => {
           return result;
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
   });
 });

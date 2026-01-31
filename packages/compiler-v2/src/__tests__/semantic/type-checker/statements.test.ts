@@ -12,6 +12,7 @@ import type { Program } from '../../../ast/index.js';
 import { SymbolTable } from '../../../semantic/symbol-table.js';
 import { TypeSystem } from '../../../semantic/type-system.js';
 import { TypeChecker, TypeCheckPassResult } from '../../../semantic/visitors/type-checker/index.js';
+import { SemanticAnalyzer, type AnalysisResult } from '../../../semantic/analyzer.js';
 
 // ============================================
 // HELPER FUNCTIONS
@@ -73,6 +74,17 @@ function checkProgram(source: string): TypeCheckPassResult {
   const symbolTable = createTestSymbolTable(typeSystem);
   const program = parseProgram(source);
   return checker.check(symbolTable, program);
+}
+
+/**
+ * Analyzes a program using the full SemanticAnalyzer pipeline
+ */
+function analyzeProgram(source: string): AnalysisResult {
+  const program = parseProgram(source);
+  const analyzer = new SemanticAnalyzer({
+    runAdvancedAnalysis: false,
+  });
+  return analyzer.analyze(program);
 }
 
 // ============================================
@@ -758,8 +770,7 @@ describe('StatementTypeChecker', () => {
   // ============================================
 
   describe('expression statements', () => {
-    // Skip: requires full pipeline to register helper function
-    it.skip('should check function call expression', () => {
+    it('should check function call expression', () => {
       const source = `
         module test
         function helper(): void {
@@ -768,10 +779,10 @@ describe('StatementTypeChecker', () => {
           helper();
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
     it('should report error for undefined function call', () => {
@@ -793,8 +804,7 @@ describe('StatementTypeChecker', () => {
   // ============================================
 
   describe('block statements', () => {
-    // Skip: requires full pipeline to register local variables a, b, c
-    it.skip('should type check all statements in block', () => {
+    it('should type check all statements in block', () => {
       const source = `
         module test
         function main(): void {
@@ -803,10 +813,10 @@ describe('StatementTypeChecker', () => {
           let c: byte = a + b;
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
     it('should report multiple errors in block', () => {
@@ -904,8 +914,7 @@ describe('StatementTypeChecker', () => {
   // ============================================
 
   describe('complex scenarios', () => {
-    // Skip: requires full pipeline for full symbol resolution
-    it.skip('should handle function with multiple control flow', () => {
+    it('should handle function with multiple control flow', () => {
       const source = `
         module test
         function process(): byte {
@@ -921,14 +930,13 @@ describe('StatementTypeChecker', () => {
           return result;
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline for symbol resolution
-    it.skip('should handle early return in loop', () => {
+    it('should handle early return in loop', () => {
       const source = `
         module test
         function findValue(): byte {
@@ -940,14 +948,13 @@ describe('StatementTypeChecker', () => {
           return 0;
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
 
-    // Skip: requires full pipeline for symbol resolution
-    it.skip('should type check expression in all statement positions', () => {
+    it('should type check expression in all statement positions', () => {
       const source = `
         module test
         function test(): byte {
@@ -968,10 +975,10 @@ describe('StatementTypeChecker', () => {
           return x;
         }
       `;
-      const result = checkProgram(source);
+      const result = analyzeProgram(source);
 
       expect(result.success).toBe(true);
-      expect(result.errorCount).toBe(0);
+      expect(result.stats.errorCount).toBe(0);
     });
   });
 
