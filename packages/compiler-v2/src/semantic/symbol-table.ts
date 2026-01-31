@@ -191,6 +191,9 @@ export class SymbolTable {
    * Creates a new function scope and sets it as current.
    * The function symbol should already be declared in the parent scope.
    *
+   * Scopes are registered with both their numeric ID (scope_N) and
+   * a named key (function:name) to enable lookup by either method.
+   *
    * @param functionSymbol - The function symbol
    * @param node - The FunctionDecl AST node
    * @returns The new function scope
@@ -198,7 +201,15 @@ export class SymbolTable {
   enterFunctionScope(functionSymbol: Symbol, node: ASTNode | null = null): Scope {
     const id = `scope_${this.scopeCounter++}`;
     const scope = createFunctionScope(id, this.currentScope, functionSymbol, node);
+    
+    // Register scope by numeric ID
     this.scopes.set(id, scope);
+    
+    // Also register by function name for lookup during type checking
+    // This allows type checker to enter scope using "function:name" pattern
+    const functionName = functionSymbol.name;
+    this.scopes.set(`function:${functionName}`, scope);
+    
     this.currentScope = scope;
     return scope;
   }

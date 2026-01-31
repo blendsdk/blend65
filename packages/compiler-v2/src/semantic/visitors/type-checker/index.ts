@@ -13,12 +13,8 @@
  */
 
 // Base layer - common utilities and infrastructure
-export {
-  TypeCheckerBase,
-  TypeCheckResult,
-  TypeCheckPassResult,
-  TypeCheckDiagnosticCodes,
-} from './base.js';
+export { TypeCheckerBase, TypeCheckDiagnosticCodes } from './base.js';
+export type { TypeCheckResult, TypeCheckPassResult } from './base.js';
 
 // Literal type checking layer
 export { LiteralTypeChecker } from './literals.js';
@@ -33,4 +29,5 @@ export { DeclarationTypeChecker, DeclarationDiagnosticCodes } from './declaratio
 export { StatementTypeChecker, StatementDiagnosticCodes } from './statements.js';
 
 // Final concrete TypeChecker class
-export { TypeChecker, TypeCheckOptions } from './type-checker.js';
+export { TypeChecker } from './type-checker.js';
+export type { TypeCheckOptions } from './type-checker.js';

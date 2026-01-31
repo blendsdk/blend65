@@ -188,18 +188,26 @@ export abstract class TypeCheckerBase extends ASTWalker {
   }
 
   /**
-   * Finalize and return the type checking result
+   * Looks up a symbol in the scope chain
    *
-   * @returns The type checking pass result
+   * Searches from the type checker's current scope up through parent scopes.
+   * Uses the type checker's local currentScope tracking, not the symbol table's
+   * currentScope, because the type checker navigates scopes independently.
+   *
+   * @param name - The symbol name to look up
+   * @returns The symbol, or null if not found
    */
-  protected finalizeResult(): TypeCheckPassResult {
-    return {
-      success: this.errorCount === 0,
-      diagnostics: this.diagnostics,
-      expressionsChecked: this.expressionsChecked,
-      errorCount: this.errorCount,
-      warningCount: this.warningCount,
-    };
+  protected lookupSymbol(name: string): Symbol | null {
+    if (!this.symbolTable) {
+      return null;
+    }
+    // Use lookupFrom with the type checker's currentScope
+    // This ensures we look up symbols from the correct scope during type checking
+    if (this.currentScope) {
+      return this.symbolTable.lookupFrom(name, this.currentScope) ?? null;
+    }
+    // Fall back to symbolTable's current scope if local scope not set
+    return this.symbolTable.lookup(name) ?? null;
   }
 
   // ============================================
@@ -254,21 +262,6 @@ export abstract class TypeCheckerBase extends ASTWalker {
   // ============================================
   // SYMBOL LOOKUP UTILITIES
   // ============================================
-
-  /**
-   * Looks up a symbol by name in the current scope chain
-   *
-   * Searches from the current scope up through parent scopes.
-   *
-   * @param name - The symbol name to look up
-   * @returns The symbol, or null if not found
-   */
-  protected lookupSymbol(name: string): Symbol | null {
-    if (!this.symbolTable) {
-      return null;
-    }
-    return this.symbolTable.lookup(name) ?? null;
-  }
 
   /**
    * Looks up a symbol and returns its resolved type
@@ -533,6 +526,27 @@ export abstract class TypeCheckerBase extends ASTWalker {
     if (this.currentScope?.parent) {
       this.currentScope = this.currentScope.parent;
     }
+  }
+
+  // ============================================
+  // RESULT FINALIZATION
+  // ============================================
+
+  /**
+   * Finalize the type checking pass and return the result
+   *
+   * Creates the TypeCheckPassResult with all statistics and diagnostics.
+   *
+   * @returns The type checking pass result
+   */
+  protected finalizeResult(): TypeCheckPassResult {
+    return {
+      success: this.errorCount === 0,
+      diagnostics: this.diagnostics,
+      expressionsChecked: this.expressionsChecked,
+      errorCount: this.errorCount,
+      warningCount: this.warningCount,
+    };
   }
 
   // ============================================
