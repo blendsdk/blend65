@@ -1805,10 +1805,17 @@ src/__tests__/semantic/edge-cases/
 > Fixed tests to document actual behavior (word arrays need word-sized values >255).
 > **Final Count:** 3245 tests passing, 0 failed, 1 skipped
 
-**Session 5B.5: Control Flow Edge Case Tests** ⏳ NOT STARTED
-- [ ] 5B.5.1 Create unreachable code tests (unreachable-code.test.ts)
-- [ ] 5B.5.2 Create missing return tests (missing-returns.test.ts)
-- [ ] 5B.5.3 Create break/continue edge tests (break-continue.test.ts)
+**Session 5B.5: Control Flow Edge Case Tests** ✅ COMPLETE (2025-01-31)
+- [x] 5B.5.1 Create unreachable code tests (unreachable-code.test.ts) ✅ (38 tests)
+- [x] 5B.5.2 Create missing return tests (missing-returns.test.ts) ✅ (36 tests)
+- [x] 5B.5.3 Create break/continue edge tests (break-continue.test.ts) ✅ (38 tests, 2 skipped - known gaps)
+
+**Session 5B.5 Notes (2025-01-31):**
+> Created 3 test files with 112 total control flow edge case tests.
+> Discovered: Module-level break/continue not detected as error (documented as gap, 2 tests skipped).
+> Also discovered: C-style for loops `for (let i = 0; i < 10; i = i + 1)` cause parser errors.
+> All for-loop tests converted to use `to` syntax: `for (i = 0 to 10)`.
+> **Final Count:** 3355 tests passing, 0 failed, 3 skipped (+110 new tests)
 
 **Session 5B.6: Type Coercion Edge Case Tests** ⏳ NOT STARTED
 - [ ] 5B.6.1 Create type coercion tests (type-coercion.test.ts)
