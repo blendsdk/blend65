@@ -6,9 +6,9 @@
  * - Variable usage analysis (detecting unused variables/parameters)
  * - Dead code analysis (detecting unreachable code)
  * - Liveness analysis (computing live variable sets)
- * - Purity analysis (future)
- * - Loop analysis (future)
- * - M6502 hints (future)
+ * - Purity analysis (detecting function side effects)
+ * - Loop analysis (detecting loop invariants and induction variables)
+ * - M6502 hints (zero-page candidates, inline hints, hot variables)
  *
  * These analyzers help catch bugs and improve code quality by detecting
  * patterns that are likely errors or suboptimal.
@@ -53,3 +53,42 @@ export {
   type LivenessResult,
   type LivenessOptions,
 } from './liveness.js';
+
+// Purity Analysis
+export {
+  PurityAnalyzer,
+  PurityStatus,
+  ImpurityKind,
+  DEFAULT_PURITY_OPTIONS,
+  type FunctionPurity,
+  type ImpurityReason,
+  type PurityAnalysisResult,
+  type PurityAnalysisOptions,
+} from './purity-analysis.js';
+
+// Loop Analysis
+export {
+  LoopAnalyzer,
+  LoopKind,
+  InductionVariableKind,
+  DEFAULT_LOOP_OPTIONS,
+  type LoopInfo,
+  type InductionVariable,
+  type LoopInvariant,
+  type LoopAnalysisResult,
+  type LoopAnalysisOptions,
+} from './loop-analysis.js';
+
+// M6502 Hints Analysis
+export {
+  M6502HintAnalyzer,
+  M6502HintKind,
+  HintPriority,
+  DEFAULT_M6502_OPTIONS,
+  type M6502Hint,
+  type ZeroPageRecommendation,
+  type VariableAccessInfo,
+  type FunctionMetrics,
+  type M6502HintResult,
+  type M6502HintOptions,
+} from './m6502-hints.js';
