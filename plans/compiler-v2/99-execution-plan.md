@@ -731,73 +731,71 @@ packages/compiler-v2/
 
 ---
 
-## Phase 6: Frame Allocator (NEW)
+## Phase 6: Frame Allocator (NEW) - REVISED
 
-### Session 6.1: Frame Allocator Types
+> **REVISION NOTE (2025-01-31):** Removed duplicate Call Graph/Recursion sessions.
+> These already exist in semantic analyzer (call-graph.ts, recursion-checker.ts).
+> Added integration session to test Semantic → Frame pipeline.
 
-**Objective**: Define frame allocator data structures
+### Session 6.1: Frame Allocator Types & Core
 
-**Tasks**:
-
-| #     | Task                    | File(s)                |
-| ----- | ----------------------- | ---------------------- |
-| 6.1.1 | Define Frame type       | `src/frame/types.ts`   |
-| 6.1.2 | Define FrameSlot type   | `src/frame/types.ts`   |
-| 6.1.3 | Define FrameMap type    | `src/frame/types.ts`   |
-| 6.1.4 | Create frame tests file | `src/__tests__/frame/` |
-
-### Session 6.2: Call Graph Builder
-
-**Objective**: Build call graph from AST
+**Objective**: Define frame allocator data structures and core allocator
 
 **Tasks**:
 
-| #     | Task                       | File(s)                   |
-| ----- | -------------------------- | ------------------------- |
-| 6.2.1 | Create call graph builder  | `src/frame/call-graph.ts` |
-| 6.2.2 | Implement function visitor | `src/frame/call-graph.ts` |
-| 6.2.3 | Build caller/callee maps   | `src/frame/call-graph.ts` |
-| 6.2.4 | Add call graph tests       | `src/__tests__/frame/`    |
-
-### Session 6.3: Recursion Detection
-
-**Objective**: Detect direct and indirect recursion
-
-**Tasks**:
-
-| #     | Task                      | File(s)                  |
-| ----- | ------------------------- | ------------------------ |
-| 6.3.1 | Implement cycle detection | `src/frame/recursion.ts` |
-| 6.3.2 | Create error messages     | `src/frame/recursion.ts` |
-| 6.3.3 | Add recursion tests       | `src/__tests__/frame/`   |
-
-### Session 6.4: Frame Address Allocator
-
-**Objective**: Allocate static addresses for frames
-
-**Tasks**:
-
-| #     | Task                     | File(s)                  |
-| ----- | ------------------------ | ------------------------ |
-| 6.4.1 | Calculate frame sizes    | `src/frame/allocator.ts` |
-| 6.4.2 | Assign frame addresses   | `src/frame/allocator.ts` |
-| 6.4.3 | Handle param/local slots | `src/frame/allocator.ts` |
-| 6.4.4 | Add allocator tests      | `src/__tests__/frame/`   |
-| 6.4.5 | Create frame index.ts    | `src/frame/index.ts`     |
+| #     | Task                          | File(s)                    |
+| ----- | ----------------------------- | -------------------------- |
+| 6.1.1 | Define Frame type             | `src/frame/types.ts`       |
+| 6.1.2 | Define FrameSlot type         | `src/frame/types.ts`       |
+| 6.1.3 | Define FrameMap type          | `src/frame/types.ts`       |
+| 6.1.4 | Calculate frame sizes         | `src/frame/allocator.ts`   |
+| 6.1.5 | Assign frame addresses        | `src/frame/allocator.ts`   |
+| 6.1.6 | Handle param/local slots      | `src/frame/allocator.ts`   |
+| 6.1.7 | Add frame unit tests          | `src/__tests__/frame/`     |
+| 6.1.8 | Create frame index.ts         | `src/frame/index.ts`       |
 
 **Deliverables**:
-
+- [ ] Frame types defined
 - [ ] Frame allocator compiles
-- [ ] Call graph built correctly
-- [ ] Recursion detected
-- [ ] Frames allocated with addresses
-- [ ] All tests pass
+- [ ] Unit tests pass
 
 **Verify**: `clear && yarn clean && yarn build && yarn test`
 
 ---
 
-## Phase 7: Simple IL (NEW)
+### Session 6.2: Semantic → Frame Integration ⭐ NEW
+
+**Objective**: Integrate Frame Allocator with Semantic Analyzer's CallGraph
+
+**Tasks**:
+
+| #     | Task                                        | File(s)                             |
+| ----- | ------------------------------------------- | ----------------------------------- |
+| 6.2.1 | Import CallGraph from semantic              | `src/frame/allocator.ts`            |
+| 6.2.2 | Import RecursionChecker from semantic       | `src/frame/allocator.ts`            |
+| 6.2.3 | Create FrameAllocator.fromAnalysisResult()  | `src/frame/allocator.ts`            |
+| 6.2.4 | Add integration tests (Semantic → Frame)    | `src/__tests__/frame/integration.test.ts` |
+| 6.2.5 | Test: Parse → Semantic → Frame pipeline     | `src/__tests__/frame/integration.test.ts` |
+| 6.2.6 | Test: Frame allocation with real programs   | `src/__tests__/frame/integration.test.ts` |
+
+**Deliverables**:
+- [ ] Frame allocator uses semantic's CallGraph (no duplication!)
+- [ ] Frame allocator uses semantic's RecursionChecker (no duplication!)
+- [ ] Integration tests pass: Parse → Semantic → Frame
+- [ ] All tests pass
+
+**Why This Session Exists:**
+> Lesson learned from Phase 5: E2E integration tests should be added EARLY,
+> not at the end. This session catches orchestration bugs immediately.
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+## Phase 7: Simple IL (NEW) - REVISED
+
+> **REVISION NOTE (2025-01-31):** Added pipeline integration session (7.5).
+> Tests Parser → Semantic → Frame → IL pipeline early to catch orchestration bugs.
 
 ### Session 7.1: IL Types
 
@@ -854,11 +852,41 @@ packages/compiler-v2/
 | 7.4.6 | Create IL index.ts          | `src/il/index.ts`     |
 
 **Deliverables**:
-
 - [ ] IL types defined
 - [ ] IL builder works
 - [ ] IL generator produces correct output
 - [ ] All tests pass
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+### Session 7.5: Pipeline Integration Test ⭐ NEW
+
+**Objective**: Test full pipeline from source to IL
+
+**Tasks**:
+
+| #     | Task                                          | File(s)                               |
+| ----- | --------------------------------------------- | ------------------------------------- |
+| 7.5.1 | Create pipeline test helper                   | `src/__tests__/il/pipeline.test.ts`   |
+| 7.5.2 | Test: Source → Parser → Semantic → Frame → IL | `src/__tests__/il/pipeline.test.ts`   |
+| 7.5.3 | Test: Simple arithmetic programs              | `src/__tests__/il/pipeline.test.ts`   |
+| 7.5.4 | Test: Control flow programs                   | `src/__tests__/il/pipeline.test.ts`   |
+| 7.5.5 | Test: Function call programs                  | `src/__tests__/il/pipeline.test.ts`   |
+| 7.5.6 | Verify IL output matches expected             | `src/__tests__/il/pipeline.test.ts`   |
+
+**Deliverables**:
+- [ ] Pipeline test helper works
+- [ ] Simple programs compile to correct IL
+- [ ] Control flow generates correct branches
+- [ ] Function calls wire up correctly
+- [ ] All pipeline tests pass
+
+**Why This Session Exists:**
+> Lesson learned from Phase 5: Integration bugs are caught by E2E tests, not unit tests.
+> This session ensures the Parser → Semantic → Frame → IL pipeline works correctly
+> BEFORE we build the code generator on top of it.
 
 **Verify**: `clear && yarn clean && yarn build && yarn test`
 
@@ -1316,27 +1344,29 @@ packages/compiler-v2/
 - [ ] 5.22.5 Test large programs
 - [ ] 5.22.6 Final Phase 5 verification
 
-### Phase 6: Frame Allocator (NEW)
+### Phase 6: Frame Allocator (NEW) - REVISED
 
+**Session 6.1: Frame Types & Core**
 - [ ] 6.1.1 Define Frame type
 - [ ] 6.1.2 Define FrameSlot type
 - [ ] 6.1.3 Define FrameMap type
-- [ ] 6.1.4 Create frame tests file
-- [ ] 6.2.1 Create call graph builder
-- [ ] 6.2.2 Implement function visitor
-- [ ] 6.2.3 Build caller/callee maps
-- [ ] 6.2.4 Add call graph tests
-- [ ] 6.3.1 Implement cycle detection
-- [ ] 6.3.2 Create error messages
-- [ ] 6.3.3 Add recursion tests
-- [ ] 6.4.1 Calculate frame sizes
-- [ ] 6.4.2 Assign frame addresses
-- [ ] 6.4.3 Handle param/local slots
-- [ ] 6.4.4 Add allocator tests
-- [ ] 6.4.5 Create frame index.ts
+- [ ] 6.1.4 Calculate frame sizes
+- [ ] 6.1.5 Assign frame addresses
+- [ ] 6.1.6 Handle param/local slots
+- [ ] 6.1.7 Add frame unit tests
+- [ ] 6.1.8 Create frame index.ts
 
-### Phase 7: Simple IL (NEW)
+**Session 6.2: Semantic → Frame Integration** ⭐ NEW
+- [ ] 6.2.1 Import CallGraph from semantic
+- [ ] 6.2.2 Import RecursionChecker from semantic
+- [ ] 6.2.3 Create FrameAllocator.fromAnalysisResult()
+- [ ] 6.2.4 Add integration tests (Semantic → Frame)
+- [ ] 6.2.5 Test: Parse → Semantic → Frame pipeline
+- [ ] 6.2.6 Test: Frame allocation with real programs
 
+### Phase 7: Simple IL (NEW) - REVISED
+
+**Session 7.1-7.4: IL Types, Builder, Generator**
 - [ ] 7.1.1 Define IL opcode enum
 - [ ] 7.1.2 Define IL instruction type
 - [ ] 7.1.3 Define IL program type
@@ -1355,6 +1385,14 @@ packages/compiler-v2/
 - [ ] 7.4.4 Generate for break/continue
 - [ ] 7.4.5 Add generator tests
 - [ ] 7.4.6 Create IL index.ts
+
+**Session 7.5: Pipeline Integration Test** ⭐ NEW
+- [ ] 7.5.1 Create pipeline test helper
+- [ ] 7.5.2 Test: Source → Parser → Semantic → Frame → IL
+- [ ] 7.5.3 Test: Simple arithmetic programs
+- [ ] 7.5.4 Test: Control flow programs
+- [ ] 7.5.5 Test: Function call programs
+- [ ] 7.5.6 Verify IL output matches expected
 
 ### Phase 8: Code Generator (NEW)
 
