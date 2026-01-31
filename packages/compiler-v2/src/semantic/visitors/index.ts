@@ -5,6 +5,7 @@
  * - Pass 1: SymbolTableBuilder - Builds symbol table from declarations
  * - Pass 2: TypeResolver - Resolves type annotations
  * - Pass 3: TypeChecker - Type checks expressions and statements
+ * - Pass 5: ControlFlowAnalyzer - Builds CFGs and detects unreachable code
  *
  * @module semantic/visitors
  */
@@ -31,3 +32,6 @@ export {
   TypeCheckDiagnosticCodes,
   LiteralTypeChecker,
 } from './type-checker/index.js';
+
+// Pass 5: Control Flow Analyzer
+export { ControlFlowAnalyzer } from './control-flow-analyzer.js';

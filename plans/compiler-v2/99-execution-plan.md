@@ -1178,15 +1178,15 @@ packages/compiler-v2/
 - [x] 5.7.6 Check export declarations ✅
 - [x] 5.7.7 Add declaration tests ✅ (42 tests, 9 skipped for full pipeline)
 
-**Session 5.8: StatementTypeChecker + Final TypeChecker**
-- [ ] 5.8.1 Create StatementTypeChecker
-- [ ] 5.8.2 Check if/while/for statements
-- [ ] 5.8.3 Check return statements
-- [ ] 5.8.4 Check break/continue
-- [ ] 5.8.5 Create final TypeChecker
-- [ ] 5.8.6 Create type-checker index
-- [ ] 5.8.7 Add statement tests
-- [ ] 5.8.8 Add integration tests
+**Session 5.8: StatementTypeChecker + Final TypeChecker** ✅ COMPLETE (2025-01-31)
+- [x] 5.8.1 Create StatementTypeChecker ✅
+- [x] 5.8.2 Check if/while/for statements ✅
+- [x] 5.8.3 Check return statements ✅
+- [x] 5.8.4 Check break/continue ✅
+- [x] 5.8.5 Create final TypeChecker ✅
+- [x] 5.8.6 Create type-checker index ✅
+- [x] 5.8.7 Add statement tests ✅ (70+ tests)
+- [x] 5.8.8 Add integration tests ✅ (16 skipped for full pipeline)
 
 **Session 5.9: Control Flow Analysis (Pass 5)**
 - [ ] 5.9.1 Create CFG types

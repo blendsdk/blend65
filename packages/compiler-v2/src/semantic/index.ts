@@ -38,6 +38,15 @@ export * from './type-system.js';
 // Semantic analysis visitors
 export * from './visitors/index.js';
 
+// Control flow analysis infrastructure
+export {
+  ControlFlowGraph,
+  CFGBuilder,
+  CFGNodeKind,
+  type CFGNode,
+  type LoopContext,
+} from './control-flow.js';
+
 // Future exports (to be implemented in subsequent sessions):
 // export * from './call-graph.js';
 // export * from './recursion-checker.js';
