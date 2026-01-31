@@ -1197,22 +1197,22 @@ packages/compiler-v2/
 - [x] 5.9.6 Detect unreachable code ✅
 - [x] 5.9.7 Add CFG tests ✅ (59 tests)
 
-**Session 5.10: Multi-Module Support (Part 1)**
-- [ ] 5.10.1 Create ModuleRegistry
-- [ ] 5.10.2 Create DependencyGraph
-- [ ] 5.10.3 Add cycle detection
-- [ ] 5.10.4 Add topological sort
-- [ ] 5.10.5 Add module registry tests
-- [ ] 5.10.6 Add dependency graph tests
+**Session 5.10: Multi-Module Support (Part 1)** ✅ COMPLETE (2025-01-31)
+- [x] 5.10.1 Create ModuleRegistry ✅
+- [x] 5.10.2 Create DependencyGraph ✅
+- [x] 5.10.3 Add cycle detection ✅
+- [x] 5.10.4 Add topological sort ✅
+- [x] 5.10.5 Add module registry tests ✅ (35 tests)
+- [x] 5.10.6 Add dependency graph tests ✅ (57 tests)
 
-**Session 5.11: Multi-Module Support (Part 2)**
-- [ ] 5.11.1 Create ImportResolver
-- [ ] 5.11.2 Validate imports
-- [ ] 5.11.3 Create GlobalSymbolTable
-- [ ] 5.11.4 Aggregate module exports
-- [ ] 5.11.5 Cross-module symbol lookup
-- [ ] 5.11.6 Add import resolver tests
-- [ ] 5.11.7 Add global symbol table tests
+**Session 5.11: Multi-Module Support (Part 2)** ✅ COMPLETE (2025-01-31)
+- [x] 5.11.1 Create ImportResolver ✅
+- [x] 5.11.2 Validate imports ✅
+- [x] 5.11.3 Create GlobalSymbolTable ✅
+- [x] 5.11.4 Aggregate module exports ✅
+- [x] 5.11.5 Cross-module symbol lookup ✅
+- [x] 5.11.6 Add import resolver tests ✅ (35 tests)
+- [x] 5.11.7 Add global symbol table tests ✅ (56 tests)
 
 **Session 5.12: Call Graph + Recursion Detection (Pass 6)**
 - [ ] 5.12.1 Create CallGraphNode type

@@ -55,6 +55,24 @@ export {
   type CycleInfo,
 } from './dependency-graph.js';
 
+// Import resolution
+export {
+  ImportResolver,
+  ImportErrorCode,
+  type ImportError,
+  type ImportResolution,
+  type ResolvedImport,
+  type ExportedSymbol,
+} from './import-resolver.js';
+
+// Global symbol table (cross-module symbol aggregation)
+export {
+  GlobalSymbolTable,
+  GlobalSymbolKind,
+  type GlobalSymbol,
+  type GlobalLookupResult,
+} from './global-symbol-table.js';
+
 // Future exports (to be implemented in subsequent sessions):
 // export * from './call-graph.js';
 // export * from './recursion-checker.js';
