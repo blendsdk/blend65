@@ -624,20 +624,8 @@ describe('DeclarationTypeChecker', () => {
       expect(diagnostics[0].message).toContain('out of range');
     });
 
-    // Parser doesn't support negative enum values, so this causes parse error
-    // SKIP: Parser error - unrelated to block scope fix
-    it.skip('should report error for negative enum value', () => {
-      const { result, checker } = checkSource(`
-        module test
-        enum Neg { A = -1 }
-      `);
-
-      // Parser might not allow this, but if it does, check for error
-      if (result.success === false) {
-        const diagnostics = checker.getDiagnostics();
-        expect(diagnostics.some(d => d.message.includes('out of range') || d.message.includes('negative'))).toBe(true);
-      }
-    });
+    // NOTE: Negative enum values not supported by parser, so no semantic test needed.
+    // The parser will reject `enum Neg { A = -1 }` syntax before semantic analysis.
   });
 
   // ============================================
