@@ -1788,11 +1788,11 @@ src/__tests__/semantic/edge-cases/
 - [x] 5B.2.2 Create word boundary tests (word-boundaries.test.ts) ✅
 - [x] 5B.2.3 Create overflow behavior tests (overflow-behavior.test.ts) ✅
 
-**Session 5B.3: Operator Edge Case Tests** ⏳ NOT STARTED
-- [ ] 5B.3.1 Create arithmetic edge case tests (arithmetic-edge-cases.test.ts)
-- [ ] 5B.3.2 Create comparison edge case tests (comparison-edge-cases.test.ts)
-- [ ] 5B.3.3 Create logical edge case tests (logical-edge-cases.test.ts)
-- [ ] 5B.3.4 Create bitwise edge case tests (bitwise-edge-cases.test.ts)
+**Session 5B.3: Operator Edge Case Tests** ✅ COMPLETE (2025-01-31)
+- [x] 5B.3.1 Create arithmetic edge case tests (arithmetic-edge-cases.test.ts) ✅ (41 tests)
+- [x] 5B.3.2 Create comparison edge case tests (comparison-edge-cases.test.ts) ✅ (43 tests)
+- [x] 5B.3.3 Create logical edge case tests (logical-edge-cases.test.ts) ✅ (50 tests, 1 skipped)
+- [x] 5B.3.4 Create bitwise edge case tests (bitwise-edge-cases.test.ts) ✅ (52 tests)
 
 **Session 5B.4: Array Edge Case Tests** ⏳ NOT STARTED
 - [ ] 5B.4.1 Create empty/single element tests (array-empty-single.test.ts)
