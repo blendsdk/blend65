@@ -1339,12 +1339,22 @@ packages/compiler-v2/
 >
 > **Final Count:** 2460 tests passing, 0 failed, 2 skipped
 
-**Session 5.20: Main Analyzer Tests**
-- [ ] 5.20.1 Test single-module analysis
-- [ ] 5.20.2 Test multi-module analysis
-- [ ] 5.20.3 Test pass orchestration
-- [ ] 5.20.4 Test diagnostic collection
-- [ ] 5.20.5 Test analysis result types
+**Session 5.20: Main Analyzer Tests** ✅ COMPLETE (2025-01-31)
+- [x] 5.20.1 Test single-module analysis ✅ (analyzer/single-module.test.ts - 22 tests)
+- [x] 5.20.2 Test multi-module analysis ✅ (analyzer/multi-module.test.ts - 26 tests)
+- [x] 5.20.3 Test pass orchestration ✅ (analyzer/pass-orchestration.test.ts - 35 tests)
+- [x] 5.20.4 Test diagnostic collection ✅ (analyzer/diagnostic-collection.test.ts - 28 tests)
+- [x] 5.20.5 Test analysis result types ✅ (analyzer/analysis-results.test.ts - 39 tests)
+
+**Session 5.20 Notes (2025-01-31):**
+> Split into 5 separate test files for better AI context management:
+> - `analyzer/single-module.test.ts` - Basic single module analysis, result structure, statistics, control flow, type checking
+> - `analyzer/multi-module.test.ts` - Multiple independent modules, exports, compilation order, global symbol table, statistics
+> - `analyzer/pass-orchestration.test.ts` - Pass 1-7 tests (symbol table, type resolution, type checking, control flow, call graph, advanced)
+> - `analyzer/diagnostic-collection.test.ts` - Diagnostic collection, errors, aggregation, statistics, success flag, options
+> - `analyzer/analysis-results.test.ts` - AnalysisResult and MultiModuleAnalysisResult types, options, consistency
+>
+> **Final Count:** 2596 tests passing, 0 failed, 2 skipped (+136 new tests)
 
 **Session 5.21: E2E Tests (Part 1)**
 - [ ] 5.21.1 Test simple variable programs
