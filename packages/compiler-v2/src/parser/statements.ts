@@ -748,22 +748,10 @@ export abstract class StatementParser extends ModuleParser {
     const nameToken = this.expect(TokenType.IDENTIFIER, 'Expected variable name');
     const varName = nameToken.value;
 
-    // Parse optional type annotation
+    // Parse optional type annotation (including array types like byte[5])
     let typeAnnotation: string | null = null;
     if (this.match(TokenType.COLON)) {
-      if (
-        this.check(
-          TokenType.BYTE,
-          TokenType.WORD,
-          TokenType.BOOLEAN,
-          TokenType.STRING,
-          TokenType.IDENTIFIER
-        )
-      ) {
-        typeAnnotation = this.advance().value;
-      } else {
-        this.reportError(DiagnosticCode.EXPECTED_TOKEN, 'Expected type after colon');
-      }
+      typeAnnotation = this.parseTypeAnnotation();
     }
 
     // Parse optional initializer
