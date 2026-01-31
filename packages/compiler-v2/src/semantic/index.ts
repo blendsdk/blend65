@@ -2,22 +2,43 @@
  * Semantic Analysis module for Blend65 v2
  *
  * Responsible for type checking, symbol resolution, and recursion detection.
- * This is a migration from v1 with SSA preparation removed and
- * call graph + recursion detection added.
+ * This is a production-quality semantic analyzer with:
+ * - Multi-pass architecture (symbol collection, type resolution, type checking, etc.)
+ * - SFA-optimized design (no SSA, static frame allocation support)
+ * - Recursion detection as compile-time error (required for SFA)
+ * - Multi-module support with import/export resolution
  *
  * **Key Components:**
- * - Symbol Table: Variable and function symbol management
- * - Type System: Type definitions and checking
- * - Type Checker: Semantic validation
+ * - Symbol: Represents declared identifiers (variables, functions, parameters, etc.)
+ * - Scope: Represents lexical scopes (module, function, block, loop)
+ * - SymbolTable: Manages scopes and symbol declarations/lookups
+ * - TypeSystem: Type definitions and compatibility checking
+ * - Type Checker: Semantic validation (multi-layer inheritance chain)
  * - Call Graph: Function call relationship tracking
  * - Recursion Detection: Compile-time cycle detection (SFA requirement)
  *
  * @module semantic
  */
 
-// Will be populated in Phase 5: Semantic Migration
-// export * from './symbol-table.js';
-// export * from './types.js';
-// export * from './type-checker.js';
+// Core types
+export * from './types.js';
+
+// Symbol management
+export * from './symbol.js';
+
+// Scope management
+export * from './scope.js';
+
+// Symbol table
+export * from './symbol-table.js';
+
+// Type system
+export * from './type-system.js';
+
+// Semantic analysis visitors
+export * from './visitors/index.js';
+
+// Future exports (to be implemented in subsequent sessions):
 // export * from './call-graph.js';
-// export * from './recursion-check.js';
+// export * from './recursion-checker.js';
+// export * from './analyzer.js';

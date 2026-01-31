@@ -1,14 +1,36 @@
 /**
- * AST module for Blend65 v2
+ * AST Module Public API - Blend65 Compiler v2
  *
- * Defines the Abstract Syntax Tree node types and utilities.
- * This is a migration from v1 with @map AST nodes removed.
+ * This module exports all AST-related types, classes, and utilities
+ * for use throughout the compiler.
  *
- * @module ast
+ * Multi-file architecture for manageability:
+ * - base.ts: Base classes, enums, visitor interface
+ * - expressions.ts: All expression node classes
+ * - statements.ts: All statement node classes
+ * - declarations.ts: Function, variable, type, enum declarations
+ * - program.ts: Program, module, import, export declarations
+ * - type-guards.ts: Type narrowing utilities
+ * - diagnostics.ts: Error reporting system
  */
 
-// Will be populated in Phase 4: AST Migration
-// export * from './base.js';
-// export * from './nodes.js';
-// export * from './type-guards.js';
-// export * from './visitor.js';
+// Base types and classes
+export * from './base.js';
+
+// Expression node implementations
+export * from './expressions.js';
+
+// Statement node implementations
+export * from './statements.js';
+
+// Declaration node implementations
+export * from './declarations.js';
+
+// Program structure nodes
+export * from './program.js';
+
+// Type guard utilities
+export * from './type-guards.js';
+
+// Diagnostic system
+export * from './diagnostics.js';

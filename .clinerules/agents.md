@@ -767,38 +767,120 @@ clear && scripts/agent.sh finished
 
 ---
 
-### **Rule 10: ES Module Syntax for Node Debug Commands**
+### **Rule 10: NO Inline Node.js Debug Scripts - ALWAYS Create Script Files**
 
-**CRITICAL:** When generating quick debug commands with `node -e` for this repository, ALWAYS use ES module syntax.
+**🚨 ULTRA-CRITICAL:** NEVER use inline or command-line Node.js scripts for debugging. ALWAYS create script files instead.
 
-**Context:** This monorepo is configured with `"type": "module"` in package.json, making all code ES modules by default. CommonJS (`require`) syntax causes compatibility issues and errors when debugging repository code.
+**This rule is ABSOLUTE and NON-NEGOTIABLE.**
 
-**ES Module Requirements:**
+---
 
-1. **✅ Always use ES module imports in `node -e` commands**
-   - ✅ Use: `import { module1 } from './dist/file.js'`
-   - ❌ Never use: `const { module1 } = require('./dist/file.js')`
+#### **PROHIBITED (NEVER DO):**
 
-2. **✅ Proper ES module command structure**
-   - Use `--input-type=module` flag if needed for Node.js compatibility
-   - Include `.js` extensions in import paths
-   - Wrap in async context when using top-level await
+❌ **Inline `node -e` commands:**
+```bash
+node -e "import { Lexer } from './dist/lexer.js'; console.log(new Lexer('test').tokenize());"
+```
+
+❌ **Module-type inline commands:**
+```bash
+node --input-type=module -e "import { Parser } from './dist/parser.js'; ..."
+```
+
+❌ **Heredoc scripts:**
+```bash
+node << 'EOF'
+  import { Compiler } from './dist/compiler.js';
+  // debug code here
+EOF
+```
+
+❌ **Any variation of inline execution:**
+```bash
+node -e "..." 
+node --eval "..."
+echo "..." | node
+node <<< "..."
+```
+
+---
+
+#### **REQUIRED (ALWAYS DO):**
+
+✅ **Create a TypeScript debug script file in `scripts/` directory:**
+
+1. **Create the script file:**
+   ```bash
+   # scripts/debug-[feature]-[issue].ts
+   ```
+
+2. **Write proper TypeScript with imports:**
+   ```typescript
+   // scripts/debug-lexer-tokens.ts
+   import { Lexer } from '../packages/compiler/src/lexer/lexer.js';
+   
+   const source = 'let x: byte = 5;';
+   const lexer = new Lexer(source);
+   const tokens = lexer.tokenize();
+   
+   console.log('Tokens:', tokens);
+   ```
+
+3. **Run the script:**
+   ```bash
+   clear && npx tsx scripts/debug-lexer-tokens.ts
+   ```
+
+---
+
+#### **Why This Rule Exists:**
+
+| Reason | Explanation |
+|--------|-------------|
+| **Reproducibility** | Script files can be re-run, shared, and referenced later |
+| **Debugging** | Easier to modify, add breakpoints, and iterate on script files |
+| **Context** | Scripts provide context for future sessions and other developers |
+| **Quality** | TypeScript compilation catches errors before runtime |
+| **History** | Git tracks debug script evolution and changes |
+| **Complexity** | Complex debugging logic is readable in files, unreadable inline |
+
+---
+
+#### **Script Naming Convention:**
+
+```
+scripts/debug-[component]-[specific-issue].ts
+```
 
 **Examples:**
+- `scripts/debug-lexer-number-parsing.ts`
+- `scripts/debug-parser-binary-expressions.ts`
+- `scripts/debug-semantic-type-checking.ts`
+- `scripts/debug-codegen-register-allocation.ts`
 
-❌ **Wrong (CommonJS - causes errors in ES module monorepo):**
+---
 
-```bash
-node -e "const { Lexer } = require('./dist/file.js'); console.log(Lexer);"
-```
+#### **Script Lifecycle:**
 
-✅ **Correct (ES Module - compatible with monorepo):**
+1. **Create** - When debugging is needed
+2. **Use** - Run with `npx tsx scripts/debug-*.ts`
+3. **Keep** - If useful for future reference (commit to git)
+4. **Delete** - If temporary and no longer needed (don't commit)
 
-```bash
-node --input-type=module -e "import { Lexer } from './dist/file.js'; console.log(Lexer);"
-```
+---
 
-**Purpose:** Ensures debugging commands work correctly with the ES module-configured monorepo and prevents CommonJS/ESM compatibility errors.
+#### **Enforcement:**
+
+**If you find yourself about to write `node -e`:**
+
+1. 🛑 **STOP** - Do not execute inline code
+2. 📝 **CREATE** - Write a proper script file in `scripts/`
+3. ▶️ **RUN** - Execute with `npx tsx scripts/your-script.ts`
+4. 🔄 **ITERATE** - Modify the file as needed
+
+**This rule applies to BOTH `make_plan` and `exec_plan` workflows.**
+
+**Purpose:** Ensures all debugging is reproducible, maintainable, and properly documented through script files rather than ephemeral inline commands.
 
 ---
 
@@ -816,7 +898,7 @@ node --input-type=module -e "import { Lexer } from './dist/file.js'; console.log
 7. 🚫 **NEVER overcomplicate** - Use existing infrastructure (Rule 7 - simplicity first)
 8. ⚙️ **Act Mode ONLY:** Execute agent.sh commands (Rule 8 - start/finish settings)
 9. 🗜️ **After task completion:** Run `/compact` to optimize context (Rule 9 - conversation compaction)
-10. 📦 **ES modules for debug:** Use import syntax in `node -e` commands (Rule 10 - ES module monorepo)
+10. 📦 **NO inline debug scripts:** ALWAYS create script files in `scripts/` (Rule 10 - no `node -e`)
 
 **Remember:** These rules exist to ensure high-quality, complete implementations. Following them prevents errors, rework, and wasted effort.
 
@@ -831,3 +913,4 @@ node --input-type=module -e "import { Lexer } from './dist/file.js'; console.log
 - See **code.md** for coding standards, testing requirements, and quality guidelines
 - See **testing.md** for test commands and workflow
 - See **git-commands.md** for git workflow instructions
+- See **make_plan.md** for auto-commit rules (MUST commit when tests pass and task is complete)
