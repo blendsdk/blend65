@@ -29,8 +29,15 @@
  * @module semantic/analysis/advanced-analyzer
  */
 
-import type { Program } from '../../ast/index.js';
+import type {
+  Program,
+  IdentifierExpression,
+  AssignmentExpression,
+  ForStatement,
+} from '../../ast/index.js';
+import { ASTWalker } from '../../ast/walker/index.js';
 import type { SymbolTable, Symbol } from '../index.js';
+import { SymbolKind } from '../symbol.js';
 import type { ControlFlowGraph } from '../control-flow.js';
 import type { GlobalSymbolTable } from '../global-symbol-table.js';
 import type { TypeSystem } from '../type-system.js';
@@ -332,15 +339,19 @@ export class AdvancedAnalyzer {
     this.livenessAnalyzers = new Map();
   }
 
+  /** The current AST being analyzed */
+  protected currentAst?: Program;
+
   /**
    * Run all enabled analysis passes
    *
    * Executes analysis in tier order, collecting diagnostics from each pass.
    *
-   * @param _ast - The AST to analyze (for context, not actively walked here)
+   * @param ast - The AST to analyze
    * @returns Complete analysis result
    */
-  public analyze(_ast?: Program): AdvancedAnalysisResult {
+  public analyze(ast?: Program): AdvancedAnalysisResult {
+    this.currentAst = ast;
     const startTime = Date.now();
     this.diagnostics = [];
     const tiersCompleted: number[] = [];
@@ -435,6 +446,7 @@ export class AdvancedAnalyzer {
    * Run Tier 1: Variable Usage Analysis
    *
    * Detects unused variables and parameters.
+   * Walks the AST to record variable reads/writes before analyzing.
    */
   protected runTier1VariableUsage(): VariableUsageResult {
     this.variableUsageAnalyzer = new VariableUsageAnalyzer(
@@ -442,6 +454,12 @@ export class AdvancedAnalyzer {
       this.options.variableUsage
     );
     this.variableUsageAnalyzer.initialize();
+
+    // Walk the AST to record variable reads and writes
+    if (this.currentAst) {
+      this.recordVariableUsageFromAST(this.currentAst);
+    }
+
     const result = this.variableUsageAnalyzer.analyze();
 
     // Convert issues to unified diagnostics
@@ -452,6 +470,99 @@ export class AdvancedAnalyzer {
     }
 
     return result;
+  }
+
+  /**
+   * Walk the AST to record variable reads and writes for usage analysis
+   *
+   * This is necessary because the variable usage analyzer needs to know
+   * where variables are actually used (read) in expressions.
+   *
+   * @param ast - The program AST to walk
+   */
+  protected recordVariableUsageFromAST(ast: Program): void {
+    const analyzer = this.variableUsageAnalyzer;
+    if (!analyzer) return;
+
+    const symTable = this.symbolTable;
+
+    /**
+     * AST walker that records variable reads
+     * Uses constructor injection to capture the analyzer reference
+     */
+    class UsageWalker extends ASTWalker {
+      protected currentAssignment: AssignmentExpression | null = null;
+
+      constructor(
+        private readonly usageAnalyzer: VariableUsageAnalyzer,
+        private readonly symbolTable: SymbolTable
+      ) {
+        super();
+      }
+
+      override visitIdentifierExpression(node: IdentifierExpression): void {
+        const name = node.getName();
+        const symbol = this.symbolTable.lookup(name);
+
+        if (symbol && (symbol.kind === SymbolKind.Variable || symbol.kind === SymbolKind.Parameter)) {
+          // Check if this is a read or write context
+          // If we're inside an assignment and this is the target, it's a write (handled separately)
+          if (this.currentAssignment === null || this.currentAssignment.getTarget() !== node) {
+            // This is a READ - variable is being used in an expression
+            this.usageAnalyzer.recordRead(symbol, node.getLocation());
+          }
+          // Note: writes are handled in visitAssignmentExpression
+        }
+
+        super.visitIdentifierExpression(node);
+      }
+
+      override visitAssignmentExpression(node: AssignmentExpression): void {
+        // Record write for the assignment target
+        const target = node.getTarget();
+        if (target.getNodeType() === 'IdentifierExpression') {
+          const identExpr = target as IdentifierExpression;
+          const name = identExpr.getName();
+          const symbol = this.symbolTable.lookup(name);
+
+          if (symbol && (symbol.kind === SymbolKind.Variable || symbol.kind === SymbolKind.Parameter)) {
+            this.usageAnalyzer.recordWrite(symbol, target.getLocation());
+          }
+        }
+
+        // Save current assignment context for identifier visits
+        const prevAssignment = this.currentAssignment;
+        this.currentAssignment = node;
+
+        // Visit target (but it's a write context, so identifier won't record a read)
+        target.accept(this);
+
+        // Reset context before visiting value (value identifiers are reads)
+        this.currentAssignment = null;
+
+        // Visit value expression - identifiers here ARE reads
+        node.getValue().accept(this);
+
+        // Restore
+        this.currentAssignment = prevAssignment;
+      }
+
+      override visitForStatement(node: ForStatement): void {
+        // Mark loop counter as a loop counter (may be intentionally unused)
+        // Blend65 for loops have a 'variable' property, not an initializer
+        const varName = node.getVariable();
+        const symbol = this.symbolTable.lookup(varName);
+        if (symbol) {
+          this.usageAnalyzer.markAsLoopCounter(symbol);
+        }
+
+        // Continue normal traversal
+        super.visitForStatement(node);
+      }
+    }
+
+    const walker = new UsageWalker(analyzer, symTable);
+    walker.walk(ast);
   }
 
   /**
