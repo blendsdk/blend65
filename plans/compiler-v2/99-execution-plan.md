@@ -1234,13 +1234,13 @@ packages/compiler-v2/
 - [x] 5.13.6 Add definite assignment tests ✅ (26 tests)
 - [x] 5.13.7 Add variable usage tests ✅ (45 tests)
 
-**Session 5.14: Advanced Analysis (Part 2)**
-- [ ] 5.14.1 Create DeadCodeAnalyzer
-- [ ] 5.14.2 Detect unreachable code
-- [ ] 5.14.3 Create LivenessAnalyzer
-- [ ] 5.14.4 Compute live-in/live-out
-- [ ] 5.14.5 Add dead code tests
-- [ ] 5.14.6 Add liveness tests
+**Session 5.14: Advanced Analysis (Part 2)** ✅ COMPLETE (2025-01-31)
+- [x] 5.14.1 Create DeadCodeAnalyzer ✅
+- [x] 5.14.2 Detect unreachable code ✅
+- [x] 5.14.3 Create LivenessAnalyzer ✅
+- [x] 5.14.4 Compute live-in/live-out ✅
+- [x] 5.14.5 Add dead code tests ✅ (30 tests)
+- [x] 5.14.6 Add liveness tests ✅ (41 tests)
 
 **Session 5.15: Advanced Analysis (Part 3)**
 - [ ] 5.15.1 Create PurityAnalyzer
