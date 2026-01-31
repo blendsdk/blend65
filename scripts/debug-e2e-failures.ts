@@ -1,249 +1,113 @@
 /**
- * Debug E2E Test Failures
- *
- * This script tests the specific code patterns that are failing in E2E tests
- * and outputs detailed diagnostic information.
+ * Debug script for E2E test failures
  */
 
-import { Compiler } from '../packages/compiler/dist/compiler.js';
-import { getDefaultConfig } from '../packages/compiler/dist/config/defaults.js';
+import { SemanticAnalyzer } from '../packages/compiler-v2/src/semantic/index.js';
+import { Parser } from '../packages/compiler-v2/src/parser/index.js';
+import { Lexer } from '../packages/compiler-v2/src/lexer/index.js';
+import type { Program } from '../packages/compiler-v2/src/ast/index.js';
+import { DiagnosticSeverity } from '../packages/compiler-v2/src/ast/diagnostics.js';
 
-interface TestCase {
-  name: string;
-  source: string;
-  expectedSuccess: boolean;
-  expectedAsm?: string[];
+function parse(source: string): Program {
+  const lexer = new Lexer(source);
+  const tokens = lexer.tokenize();
+  const parser = new Parser(tokens, source);
+  return parser.parse();
 }
 
-const testCases: TestCase[] = [
-  // @map array type failures
-  {
-    name: '@map byte array at address',
-    source: '@map screen at $0400: byte[1000];',
-    expectedSuccess: true,
-  },
-  {
-    name: '@map word array at address',
-    source: '@map vectors at $FFFA: word[3];',
-    expectedSuccess: true,
-  },
-  {
-    name: 'export @map byte array',
-    source: 'export @map screen at $0400: byte[1000];',
-    expectedSuccess: true,
-  },
+function analyze(source: string) {
+  const program = parse(source);
+  const analyzer = new SemanticAnalyzer({ runAdvancedAnalysis: false });
+  return analyzer.analyze(program);
+}
 
-  // JSR function call failures
-  {
-    name: 'JSR for function call',
-    source: `
-function helper(): void {
-}
-function main(): void {
-  helper();
-}
-`,
-    expectedSuccess: true,
-    expectedAsm: ['JSR _helper'],
-  },
-  {
-    name: 'Multiple calls in sequence',
-    source: `
-function a(): void {
-}
-function b(): void {
-}
-function main(): void {
-  a();
-  b();
-}
-`,
-    expectedSuccess: true,
-    expectedAsm: ['JSR _a', 'JSR _b'],
-  },
+// Test 1: Should detect wrong argument type (bool to byte)
+console.log('=== Test 1: Wrong argument type ===');
+const test1 = analyze(`
+  module Test
 
-  // hi()/lo() codegen failures
-  {
-    name: 'hi() extracts high byte',
-    source: `
-let result: byte = 0;
-function main(): void {
-  result = hi($1234);
-}
-`,
-    expectedSuccess: true,
-    expectedAsm: ['LDA #$12'],
-  },
-  {
-    name: 'lo/hi both bytes',
-    source: `
-let low: byte = 0;
-let high: byte = 0;
-function main(): void {
-  low = lo($AB12);
-  high = hi($AB12);
-}
-`,
-    expectedSuccess: true,
-    expectedAsm: ['LDA #$12', 'LDA #$AB'],
-  },
+  function process(x: byte): void {}
 
-  // volatile intrinsics failures
-  {
-    name: 'volatile_read generates LDA',
-    source: `
-let rasterLine: byte = 0;
-function main(): void {
-  rasterLine = volatile_read($D012);
-}
-`,
-    expectedSuccess: true,
-    expectedAsm: ['LDA $D012'],
-  },
-  {
-    name: 'volatile_write generates STA',
-    source: `
-function main(): void {
-  volatile_write($D020, 1);
-}
-`,
-    expectedSuccess: true,
-    expectedAsm: ['STA $D020'],
-  },
-
-  // Recursive function failure
-  {
-    name: 'Recursive function',
-    source: `
-function factorial(n: byte): byte {
-  if (n == 0) {
-    return 1;
+  function main(): void {
+    let flag: bool = true;
+    process(flag);
   }
-  return n * factorial(n - 1);
+`);
+
+console.log('Success:', test1.success);
+console.log('Diagnostics:');
+for (const d of test1.diagnostics) {
+  console.log(`  [${DiagnosticSeverity[d.severity]}] ${d.message}`);
 }
-`,
-    expectedSuccess: true,
-  },
 
-  // Unary minus EOR failure
-  {
-    name: 'Unary minus negates variable',
-    source: `
-let x: byte = 5;
-let y: byte = 0;
-function main(): void {
-  y = -x;
+// Test 2: Should detect type mismatch in assignment
+console.log('\n=== Test 2: Type mismatch in assignment ===');
+const test2 = analyze(`
+  module Test
+
+  function main(): void {
+    let x: byte = 10;
+    let flag: bool = true;
+    x = flag;
+  }
+`);
+
+console.log('Success:', test2.success);
+console.log('Diagnostics:');
+for (const d of test2.diagnostics) {
+  console.log(`  [${DiagnosticSeverity[d.severity]}] ${d.message}`);
 }
-`,
-    expectedSuccess: true,
-    expectedAsm: ['EOR'],
-  },
 
-  // length() with @map array
-  {
-    name: 'length() with @map array',
-    source: `
-@map screen at $0400: byte[1000];
-function test(): word {
-  return length(screen);
-}
-`,
-    expectedSuccess: true,
-  },
-];
+// Test 3: Should analyze program with loops
+console.log('\n=== Test 3: Program with loops ===');
+const test3 = analyze(`
+  module Loops
 
-function runTests(): void {
-  console.log('='.repeat(70));
-  console.log('Debug E2E Test Failures');
-  console.log('='.repeat(70));
-  console.log('');
+  function sum(n: byte): byte {
+    let total: byte = 0;
+    for (let i: byte = 1 to n step 1) {
+      total = total + i;
+    }
+    return total;
+  }
 
-  const compiler = new Compiler();
-  const config = getDefaultConfig();
-
-  let passed = 0;
-  let failed = 0;
-
-  for (const test of testCases) {
-    const sources = new Map<string, string>();
-    sources.set('main.blend', test.source);
-
-    console.log(`\n--- Test: ${test.name} ---`);
-    console.log('Source:');
-    console.log(test.source.trim());
-    console.log('');
-
-    try {
-      const result = compiler.compileSource(sources, config);
-
-      console.log(`Success: ${result.success}`);
-
-      if (result.diagnostics.length > 0) {
-        console.log('Diagnostics:');
-        for (const d of result.diagnostics) {
-          const loc = d.location
-            ? ` at ${d.location.start.line}:${d.location.start.column}`
-            : '';
-          console.log(`  [${d.severity}] ${d.message}${loc}`);
-        }
-      }
-
-      if (result.success !== test.expectedSuccess) {
-        console.log(`FAIL: Expected success=${test.expectedSuccess}, got ${result.success}`);
-        failed++;
-        continue;
-      }
-
-      if (result.success && result.output?.assembly) {
-        console.log('\nGenerated Assembly (excerpt):');
-        const lines = result.output.assembly.split('\n');
-        // Show the main function section and any relevant code
-        let inMain = false;
-        let relevantLines: string[] = [];
-        for (const line of lines) {
-          if (line.includes('_main:') || line.includes('_helper:') || line.includes('_a:') || line.includes('_b:') || line.includes('_factorial:') || line.includes('_test:')) {
-            inMain = true;
-          }
-          if (inMain) {
-            relevantLines.push(line);
-            if (line.trim() === 'RTS') {
-              inMain = false;
-            }
-          }
-        }
-
-        if (relevantLines.length > 0) {
-          console.log(relevantLines.join('\n'));
-        } else {
-          // Show first 30 non-comment lines
-          const codeLines = lines.filter(l => !l.startsWith(';') && l.trim().length > 0).slice(0, 30);
-          console.log(codeLines.join('\n'));
-        }
-
-        // Check for expected ASM patterns
-        if (test.expectedAsm) {
-          const asm = result.output.assembly;
-          for (const pattern of test.expectedAsm) {
-            if (!asm.includes(pattern)) {
-              console.log(`\nFAIL: Expected assembly to contain "${pattern}"`);
-              failed++;
-              continue;
-            }
-          }
-        }
-      }
-
-      passed++;
-      console.log('PASS');
-    } catch (error) {
-      console.log(`ERROR: ${error}`);
-      failed++;
+  function countDown(start: byte): void {
+    let i: byte = start;
+    while (i > 0) {
+      i = i - 1;
     }
   }
+`);
 
-  console.log('\n' + '='.repeat(70));
-  console.log(`Results: ${passed} passed, ${failed} failed`);
-  console.log('='.repeat(70));
+console.log('Success:', test3.success);
+console.log('Diagnostics:');
+for (const d of test3.diagnostics) {
+  console.log(`  [${DiagnosticSeverity[d.severity]}] ${d.message}`);
 }
 
-runTests();
+// Test 4: Should analyze program with arrays
+console.log('\n=== Test 4: Program with arrays ===');
+const test4 = analyze(`
+  module Arrays
+
+  function sumArray(arr: byte[5]): byte {
+    let total: byte = 0;
+    for (let i: byte = 0 to 4 step 1) {
+      total = total + arr[i];
+    }
+    return total;
+  }
+
+  function main(): void {
+    let data: byte[5] = [1, 2, 3, 4, 5];
+    let sum: byte = sumArray(data);
+  }
+`);
+
+console.log('Success:', test4.success);
+console.log('Diagnostics:');
+for (const d of test4.diagnostics) {
+  console.log(`  [${DiagnosticSeverity[d.severity]}] ${d.message}`);
+}
+
+console.log('\n=== Debug Complete ===');

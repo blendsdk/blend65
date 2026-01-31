@@ -520,6 +520,31 @@ export abstract class TypeCheckerBase extends ASTWalker {
   }
 
   /**
+   * Enters a child scope that was created for a specific AST node
+   *
+   * Used for entering loop scopes, block scopes, etc. that don't have
+   * predictable names like function scopes do.
+   *
+   * @param node - The AST node that created the scope
+   * @returns True if the scope was found and entered
+   */
+  protected enterChildScopeForNode(node: unknown): boolean {
+    if (!this.currentScope) {
+      return false;
+    }
+
+    // Find child scope where the node matches
+    for (const childScope of this.currentScope.children) {
+      if (childScope.node === node) {
+        this.currentScope = childScope;
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Exits the current scope during traversal
    */
   protected exitScope(): void {

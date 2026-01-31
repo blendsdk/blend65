@@ -22,6 +22,7 @@ import type {
   VariableDecl,
   EnumDecl,
   TypeDecl,
+  ForStatement,
   SourceLocation,
 } from '../../ast/index.js';
 import type { SymbolTable } from '../symbol-table.js';
@@ -306,9 +307,19 @@ export class TypeResolver extends ASTWalker {
    * Resolves the type for a variable or constant symbol
    */
   protected resolveVariableType(symbol: Symbol): void {
+    const scope = symbol.scope;
+
+    // Check if this is a for-loop variable (symbol is in a loop scope and
+    // the scope's node is a ForStatement with a matching variable name)
+    if (scope.kind === 'loop' && scope.node) {
+      const forLoopType = this.resolveForLoopVariableType(symbol, scope.node);
+      if (forLoopType !== null) {
+        return; // Successfully resolved from for-loop
+      }
+    }
+
     // Find the corresponding AST node to get the type annotation
     // We need to find this through the symbol table's node reference
-    const scope = symbol.scope;
     const declaration = this.findVariableDeclaration(symbol.name, scope.node);
 
     if (!declaration) {
@@ -340,6 +351,58 @@ export class TypeResolver extends ASTWalker {
     } else {
       this.failedCount++;
     }
+  }
+
+  /**
+   * Resolves the type for a for-loop variable
+   *
+   * For-loop variables get their type from the ForStatement node, not a VariableDecl.
+   *
+   * @param symbol - The loop variable symbol
+   * @param node - The scope node (should be a ForStatement)
+   * @returns true if this was a for-loop variable and type was resolved/failed,
+   *          null if this is not a for-loop variable
+   */
+  protected resolveForLoopVariableType(symbol: Symbol, node: unknown): boolean | null {
+    // Check if the node is a ForStatement and the variable matches
+    if (
+      node &&
+      typeof node === 'object' &&
+      'getVariable' in node &&
+      'getVariableType' in node
+    ) {
+      const forStmt = node as ForStatement;
+      const varName = forStmt.getVariable();
+
+      // Check if this symbol is the for-loop's variable
+      if (varName === symbol.name) {
+        const typeAnnotation = forStmt.getVariableType();
+
+        if (!typeAnnotation) {
+          // For-loop without explicit type - default to byte
+          const byteType = this.typeSystem.getBuiltinType('byte');
+          if (byteType) {
+            symbol.type = byteType;
+            this.resolvedCount++;
+            return true;
+          }
+          return true; // Handled (with failure)
+        }
+
+        const resolvedType = this.resolveTypeName(typeAnnotation, symbol.location);
+
+        if (resolvedType) {
+          symbol.type = resolvedType;
+          this.resolvedCount++;
+        } else {
+          this.failedCount++;
+        }
+
+        return true; // Handled
+      }
+    }
+
+    return null; // Not a for-loop variable
   }
 
   /**

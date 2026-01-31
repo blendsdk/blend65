@@ -546,6 +546,7 @@ export class SymbolTableBuilder extends ASTWalker {
    * Visit For statement
    *
    * For loops create a loop scope for the loop variable and body.
+   * The loop variable is declared in the loop scope.
    */
   override visitForStatement(node: ForStatement): void {
     if (this.shouldStop) return;
@@ -554,12 +555,42 @@ export class SymbolTableBuilder extends ASTWalker {
     // Create loop scope for the for loop
     this.symbolTable.enterLoopScope(node);
 
-    // The loop variable is declared implicitly by the parser
+    // Declare the loop variable in the loop scope
+    const loopVarName = node.getVariable();
+    if (loopVarName) {
+      const result = this.symbolTable.declareVariable(
+        loopVarName,
+        node.getLocation(),
+        null, // Type resolved in Pass 2
+        {
+          isConst: false, // Loop variables are mutable (updated each iteration)
+          isExported: false,
+        },
+      );
+
+      if (!result.success) {
+        this.addError(
+          SymbolTableDiagnosticCodes.DUPLICATE_DECLARATION,
+          result.error ?? `Loop variable '${loopVarName}' is already declared`,
+          node.getLocation(),
+          result.existingSymbol
+            ? `Previously declared at line ${result.existingSymbol.location.start.line}`
+            : undefined,
+        );
+      }
+    }
+
     // Visit start and end expressions
     if (!this.shouldSkip && !this.shouldStop) {
       node.getStart().accept(this);
       if (!this.shouldStop) {
         node.getEnd().accept(this);
+      }
+
+      // Visit step expression if present
+      const step = node.getStep?.();
+      if (!this.shouldStop && step) {
+        step.accept(this);
       }
 
       // Visit body

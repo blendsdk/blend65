@@ -361,10 +361,14 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
       node.setInferredCounterType(needsWord ? 'word' : 'byte');
     }
 
+    // Enter the loop scope created by the symbol table builder
+    // This scope contains the loop variable declaration
+    this.enterChildScopeForNode(node);
+
     // Update counter variable type in symbol table
     this.updateSymbolType(variable, counterType);
 
-    // Enter loop context
+    // Enter loop context for break/continue validation
     this.loopDepth++;
 
     // Type check body
@@ -375,6 +379,9 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
 
     // Exit loop context
     this.loopDepth--;
+
+    // Exit the loop scope
+    this.exitScope();
 
     this.exitNode(node);
   }
