@@ -9,20 +9,21 @@ This document defines the execution phases and AI chat sessions for implementing
 
 ## Implementation Phases
 
-| Phase | Title                 | Sessions | Est. Time |
-| ----- | --------------------- | -------- | --------- |
-| 1     | Package Setup         | 1-2      | 1-2 hours |
-| 2     | Lexer Migration       | 1-2      | 1-2 hours |
-| 3     | Parser Migration      | 2-3      | 2-3 hours |
-| 4     | AST Migration         | 1-2      | 1-2 hours |
-| 5     | Semantic Analyzer (NEW) | 18-22   | 22-28 hours |
-| 6     | Frame Allocator (NEW) | 3-4      | 3-4 hours |
-| 7     | Simple IL (NEW)       | 3-4      | 3-4 hours |
-| 8     | Code Generator (NEW)  | 4-5      | 4-5 hours |
-| 9     | ASM Optimizer         | 2-3      | 2-3 hours |
-| 10    | Integration & Testing | 2-3      | 2-3 hours |
+| Phase | Title                           | Sessions | Est. Time |
+| ----- | ------------------------------- | -------- | --------- |
+| 1     | Package Setup                   | 1-2      | 1-2 hours |
+| 2     | Lexer Migration                 | 1-2      | 1-2 hours |
+| 3     | Parser Migration                | 2-3      | 2-3 hours |
+| 4     | AST Migration                   | 1-2      | 1-2 hours |
+| 5     | Semantic Analyzer (NEW)         | 18-22    | 22-28 hours |
+| 5B    | Edge Case Testing (NEW)         | 5-7      | 5-7 hours |
+| 6     | Frame Allocator (NEW)           | 3-4      | 3-4 hours |
+| 7     | Simple IL (NEW)                 | 3-4      | 3-4 hours |
+| 8     | Code Generator (NEW)            | 4-5      | 4-5 hours |
+| 9     | ASM Optimizer                   | 2-3      | 2-3 hours |
+| 10    | Integration & Testing           | 2-3      | 2-3 hours |
 
-**Total: 38-50 sessions, ~44-55 hours**
+**Total: 43-57 sessions, ~49-62 hours**
 
 ---
 
@@ -731,6 +732,391 @@ packages/compiler-v2/
 
 ---
 
+## Phase 5B: Edge Case Testing (NEW)
+
+> **Added**: 2025-01-31
+> **Purpose**: Systematic coverage of edge cases to ensure no bugs in component interactions
+> **Approach**: Language specification audit + targeted edge case tests
+> **Architecture**: Small, focused test files (~15-30 tests each) to prevent AI context limitations
+
+### 🚨 CRITICAL: AI Context Management Rules for Phase 5B
+
+**To prevent AI context limitations, ALL Phase 5B test files MUST be:**
+
+1. **Small and Focused**: Each test file should contain **15-30 tests maximum**
+2. **Single Concern**: Each file tests ONE edge case category
+3. **Independent**: Each test file can be implemented in a single session
+4. **Well-Named**: File names clearly indicate the edge case category
+
+**File Naming Convention:**
+```
+semantic/edge-cases/
+├── numeric/
+│   ├── byte-boundaries.test.ts       (~20 tests)
+│   ├── word-boundaries.test.ts       (~20 tests)
+│   └── overflow-behavior.test.ts     (~15 tests)
+├── operators/
+│   ├── arithmetic-edge-cases.test.ts (~20 tests)
+│   ├── comparison-edge-cases.test.ts (~15 tests)
+│   ├── logical-edge-cases.test.ts    (~15 tests)
+│   └── bitwise-edge-cases.test.ts    (~20 tests)
+├── arrays/
+│   ├── array-empty-single.test.ts    (~15 tests)
+│   ├── array-boundaries.test.ts      (~20 tests)
+│   └── array-multidim.test.ts        (~15 tests)
+├── control-flow/
+│   ├── unreachable-code.test.ts      (~15 tests)
+│   ├── missing-returns.test.ts       (~15 tests)
+│   └── break-continue.test.ts        (~15 tests)
+├── types/
+│   ├── type-coercion.test.ts         (~20 tests)
+│   └── type-narrowing.test.ts        (~15 tests)
+└── errors/
+    ├── error-combinations.test.ts    (~20 tests)
+    └── error-recovery.test.ts        (~15 tests)
+```
+
+---
+
+### Session 5B.1: Language Specification Audit
+
+**Objective**: Compare language specification with test coverage to identify gaps
+
+**Tasks**:
+
+| #       | Task                                    | File(s)                                  |
+| ------- | --------------------------------------- | ---------------------------------------- |
+| 5B.1.1  | Audit 01-lexical-structure.md           | Compare spec vs lexer tests              |
+| 5B.1.2  | Audit 02-types.md                       | Compare spec vs type system tests        |
+| 5B.1.3  | Audit 03-variables.md                   | Compare spec vs declaration tests        |
+| 5B.1.4  | Audit 04-expressions.md                 | Compare spec vs expression tests         |
+| 5B.1.5  | Audit 05-statements.md                  | Compare spec vs statement tests          |
+| 5B.1.6  | Audit 06-functions.md                   | Compare spec vs function tests           |
+| 5B.1.7  | Create EDGE-CASE-GAP-REPORT.md          | `plans/compiler-v2/EDGE-CASE-GAP-REPORT.md` |
+
+**Deliverables**:
+- [ ] Complete audit of language specification vs tests
+- [ ] Gap report identifying uncovered edge cases
+- [ ] Prioritized list of tests to create
+
+**Verify**: Report reviewed and approved
+
+---
+
+### Session 5B.2: Numeric Boundary Tests
+
+**Objective**: Test all numeric boundary conditions (0, max, overflow)
+
+**⚠️ SPLIT INTO SMALL FILES - Max 30 tests per file**
+
+**Tasks**:
+
+| #       | Task                                    | File(s)                                  |
+| ------- | --------------------------------------- | ---------------------------------------- |
+| 5B.2.1  | Create byte boundary tests (0, 255)     | `semantic/edge-cases/numeric/byte-boundaries.test.ts` |
+| 5B.2.2  | Create word boundary tests (0, 65535)   | `semantic/edge-cases/numeric/word-boundaries.test.ts` |
+| 5B.2.3  | Create overflow behavior tests          | `semantic/edge-cases/numeric/overflow-behavior.test.ts` |
+
+**Test Cases per File:**
+
+**byte-boundaries.test.ts** (~20 tests):
+- byte = 0 (minimum)
+- byte = 255 (maximum)
+- byte = 256 (should error - overflow)
+- byte = -1 (should error - negative)
+- byte arithmetic at boundaries
+- byte comparisons at boundaries
+
+**word-boundaries.test.ts** (~20 tests):
+- word = 0 (minimum)
+- word = 65535 (maximum)
+- word = 65536 (should error - overflow)
+- word = -1 (should error - negative)
+- word arithmetic at boundaries
+- word comparisons at boundaries
+
+**overflow-behavior.test.ts** (~15 tests):
+- byte + byte overflow detection
+- word + word overflow detection
+- byte * byte overflow to word
+- Implicit type promotion in overflow
+
+**Deliverables**:
+- [ ] 3 small test files created
+- [ ] ~55 tests total for numeric boundaries
+- [ ] All tests pass
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+### Session 5B.3: Operator Edge Case Tests
+
+**Objective**: Test all operator edge cases
+
+**⚠️ SPLIT INTO SMALL FILES - Max 25 tests per file**
+
+**Tasks**:
+
+| #       | Task                                    | File(s)                                  |
+| ------- | --------------------------------------- | ---------------------------------------- |
+| 5B.3.1  | Create arithmetic edge case tests       | `semantic/edge-cases/operators/arithmetic-edge-cases.test.ts` |
+| 5B.3.2  | Create comparison edge case tests       | `semantic/edge-cases/operators/comparison-edge-cases.test.ts` |
+| 5B.3.3  | Create logical edge case tests          | `semantic/edge-cases/operators/logical-edge-cases.test.ts` |
+| 5B.3.4  | Create bitwise edge case tests          | `semantic/edge-cases/operators/bitwise-edge-cases.test.ts` |
+
+**Test Cases per File:**
+
+**arithmetic-edge-cases.test.ts** (~20 tests):
+- Division by zero
+- Division truncation (5/2 = 2)
+- Modulo with zero
+- Subtraction resulting in negative (for unsigned types)
+- Multiplication overflow
+- Chained arithmetic operations
+
+**comparison-edge-cases.test.ts** (~15 tests):
+- Compare byte to byte at boundaries
+- Compare word to word at boundaries
+- Compare byte to word (type promotion)
+- Compare bool values
+- Equality vs identity
+
+**logical-edge-cases.test.ts** (~15 tests):
+- Short-circuit evaluation (!false && x)
+- Nested logical operators
+- Logical operators with non-bool (type errors)
+- Truthy/falsy semantics (if any)
+
+**bitwise-edge-cases.test.ts** (~20 tests):
+- Shift by 0
+- Shift by 8 (for byte)
+- Shift by 16 (for word)
+- Shift by more than type size
+- Bitwise NOT edge cases (~0, ~255)
+- Bitwise AND/OR/XOR at boundaries
+
+**Deliverables**:
+- [ ] 4 small test files created
+- [ ] ~70 tests total for operator edge cases
+- [ ] All tests pass
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+### Session 5B.4: Array Edge Case Tests
+
+**Objective**: Test array boundary conditions and edge cases
+
+**⚠️ SPLIT INTO SMALL FILES - Max 20 tests per file**
+
+**Tasks**:
+
+| #       | Task                                    | File(s)                                  |
+| ------- | --------------------------------------- | ---------------------------------------- |
+| 5B.4.1  | Create empty/single element tests       | `semantic/edge-cases/arrays/array-empty-single.test.ts` |
+| 5B.4.2  | Create array boundary tests             | `semantic/edge-cases/arrays/array-boundaries.test.ts` |
+| 5B.4.3  | Create multi-dimensional tests          | `semantic/edge-cases/arrays/array-multidim.test.ts` |
+
+**Test Cases per File:**
+
+**array-empty-single.test.ts** (~15 tests):
+- Array of size 0 (if allowed)
+- Array of size 1
+- Single element access
+- Array literal with no elements
+- Array literal with one element
+
+**array-boundaries.test.ts** (~20 tests):
+- Access index 0 (first element)
+- Access last valid index
+- Access out-of-bounds (should error)
+- Negative index (should error)
+- Index with expression at boundary
+- Maximum array size (if defined)
+
+**array-multidim.test.ts** (~15 tests):
+- 2D array access [0][0]
+- 2D array access at boundaries
+- 3D array (if supported)
+- Mixed dimension access
+- Type consistency in multidim
+
+**Deliverables**:
+- [ ] 3 small test files created
+- [ ] ~50 tests total for array edge cases
+- [ ] All tests pass
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+### Session 5B.5: Control Flow Edge Case Tests
+
+**Objective**: Test control flow edge cases and unreachable code detection
+
+**⚠️ SPLIT INTO SMALL FILES - Max 20 tests per file**
+
+**Tasks**:
+
+| #       | Task                                    | File(s)                                  |
+| ------- | --------------------------------------- | ---------------------------------------- |
+| 5B.5.1  | Create unreachable code tests           | `semantic/edge-cases/control-flow/unreachable-code.test.ts` |
+| 5B.5.2  | Create missing return tests             | `semantic/edge-cases/control-flow/missing-returns.test.ts` |
+| 5B.5.3  | Create break/continue edge tests        | `semantic/edge-cases/control-flow/break-continue.test.ts` |
+
+**Test Cases per File:**
+
+**unreachable-code.test.ts** (~15 tests):
+- Code after return
+- Code after break
+- Code after continue
+- Code in never-taken branch (if false)
+- Nested unreachable code
+
+**missing-returns.test.ts** (~15 tests):
+- All paths return (valid)
+- Some paths don't return (error)
+- Return in if but not else
+- Return in loop only
+- Void function with return
+- Void function without return
+
+**break-continue.test.ts** (~15 tests):
+- Break outside loop (error)
+- Continue outside loop (error)
+- Break in nested loops
+- Continue in nested loops
+- Break in switch (if supported)
+
+**Deliverables**:
+- [ ] 3 small test files created
+- [ ] ~45 tests total for control flow edge cases
+- [ ] All tests pass
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+### Session 5B.6: Type Coercion Edge Case Tests
+
+**Objective**: Test implicit type conversions and type narrowing
+
+**⚠️ SPLIT INTO SMALL FILES - Max 20 tests per file**
+
+**Tasks**:
+
+| #       | Task                                    | File(s)                                  |
+| ------- | --------------------------------------- | ---------------------------------------- |
+| 5B.6.1  | Create type coercion tests              | `semantic/edge-cases/types/type-coercion.test.ts` |
+| 5B.6.2  | Create type narrowing tests             | `semantic/edge-cases/types/type-narrowing.test.ts` |
+
+**Test Cases per File:**
+
+**type-coercion.test.ts** (~20 tests):
+- byte to word (implicit promotion)
+- word to byte (should error or warn)
+- bool to numeric (if allowed)
+- numeric to bool (if allowed)
+- Array element type coercion
+- Function parameter type coercion
+- Return type coercion
+
+**type-narrowing.test.ts** (~15 tests):
+- Type after type guard
+- Type in if branches
+- Type after null check (if applicable)
+- Type in loop contexts
+- Type inference from usage
+
+**Deliverables**:
+- [ ] 2 small test files created
+- [ ] ~35 tests total for type edge cases
+- [ ] All tests pass
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+### Session 5B.7: Error Combination Tests + Final Verification
+
+**Objective**: Test multiple errors and error recovery
+
+**⚠️ SPLIT INTO SMALL FILES - Max 20 tests per file**
+
+**Tasks**:
+
+| #       | Task                                    | File(s)                                  |
+| ------- | --------------------------------------- | ---------------------------------------- |
+| 5B.7.1  | Create error combination tests          | `semantic/edge-cases/errors/error-combinations.test.ts` |
+| 5B.7.2  | Create error recovery tests             | `semantic/edge-cases/errors/error-recovery.test.ts` |
+| 5B.7.3  | Final Phase 5B verification             | All edge case test files                 |
+| 5B.7.4  | Update EDGE-CASE-GAP-REPORT.md          | Mark all gaps as addressed               |
+
+**Test Cases per File:**
+
+**error-combinations.test.ts** (~20 tests):
+- Multiple type errors in same function
+- Type error + undefined variable
+- Multiple undefined variables
+- Errors across function boundaries
+- Errors in nested structures
+
+**error-recovery.test.ts** (~15 tests):
+- Continue after type error
+- Continue after undefined error
+- Continue after syntax-like semantic error
+- Error count limits
+- Error message quality
+
+**Deliverables**:
+- [ ] 2 small test files created
+- [ ] ~35 tests total for error edge cases
+- [ ] Final verification of all Phase 5B tests
+- [ ] Gap report updated
+- [ ] All tests pass (~150-200 new edge case tests)
+
+**Verify**: `clear && yarn clean && yarn build && yarn test`
+
+---
+
+### Phase 5B Summary
+
+**Total New Test Files**: ~17 small, focused test files
+**Total New Tests**: ~150-200 edge case tests
+**Sessions**: 7 sessions
+
+**Directory Structure**:
+```
+src/__tests__/semantic/edge-cases/
+├── numeric/
+│   ├── byte-boundaries.test.ts
+│   ├── word-boundaries.test.ts
+│   └── overflow-behavior.test.ts
+├── operators/
+│   ├── arithmetic-edge-cases.test.ts
+│   ├── comparison-edge-cases.test.ts
+│   ├── logical-edge-cases.test.ts
+│   └── bitwise-edge-cases.test.ts
+├── arrays/
+│   ├── array-empty-single.test.ts
+│   ├── array-boundaries.test.ts
+│   └── array-multidim.test.ts
+├── control-flow/
+│   ├── unreachable-code.test.ts
+│   ├── missing-returns.test.ts
+│   └── break-continue.test.ts
+├── types/
+│   ├── type-coercion.test.ts
+│   └── type-narrowing.test.ts
+└── errors/
+    ├── error-combinations.test.ts
+    └── error-recovery.test.ts
+```
+
+---
+
 ## Phase 6: Frame Allocator (NEW) - REVISED
 
 > **REVISION NOTE (2025-01-31):** Removed duplicate Call Graph/Recursion sessions.
@@ -1385,6 +1771,48 @@ packages/compiler-v2/
 - [x] 5.22.6 Final Phase 5 verification ✅ (3595 passing, 0 failed, 22 skipped)
 
 **Phase 5 COMPLETE** ✅ - Semantic Analyzer fully implemented with 3595 tests
+
+### Phase 5B: Edge Case Testing (NEW)
+
+**Session 5B.1: Language Specification Audit** ⏳ NOT STARTED
+- [ ] 5B.1.1 Audit 01-lexical-structure.md
+- [ ] 5B.1.2 Audit 02-types.md
+- [ ] 5B.1.3 Audit 03-variables.md
+- [ ] 5B.1.4 Audit 04-expressions.md
+- [ ] 5B.1.5 Audit 05-statements.md
+- [ ] 5B.1.6 Audit 06-functions.md
+- [ ] 5B.1.7 Create EDGE-CASE-GAP-REPORT.md
+
+**Session 5B.2: Numeric Boundary Tests** ⏳ NOT STARTED
+- [ ] 5B.2.1 Create byte boundary tests (byte-boundaries.test.ts)
+- [ ] 5B.2.2 Create word boundary tests (word-boundaries.test.ts)
+- [ ] 5B.2.3 Create overflow behavior tests (overflow-behavior.test.ts)
+
+**Session 5B.3: Operator Edge Case Tests** ⏳ NOT STARTED
+- [ ] 5B.3.1 Create arithmetic edge case tests (arithmetic-edge-cases.test.ts)
+- [ ] 5B.3.2 Create comparison edge case tests (comparison-edge-cases.test.ts)
+- [ ] 5B.3.3 Create logical edge case tests (logical-edge-cases.test.ts)
+- [ ] 5B.3.4 Create bitwise edge case tests (bitwise-edge-cases.test.ts)
+
+**Session 5B.4: Array Edge Case Tests** ⏳ NOT STARTED
+- [ ] 5B.4.1 Create empty/single element tests (array-empty-single.test.ts)
+- [ ] 5B.4.2 Create array boundary tests (array-boundaries.test.ts)
+- [ ] 5B.4.3 Create multi-dimensional tests (array-multidim.test.ts)
+
+**Session 5B.5: Control Flow Edge Case Tests** ⏳ NOT STARTED
+- [ ] 5B.5.1 Create unreachable code tests (unreachable-code.test.ts)
+- [ ] 5B.5.2 Create missing return tests (missing-returns.test.ts)
+- [ ] 5B.5.3 Create break/continue edge tests (break-continue.test.ts)
+
+**Session 5B.6: Type Coercion Edge Case Tests** ⏳ NOT STARTED
+- [ ] 5B.6.1 Create type coercion tests (type-coercion.test.ts)
+- [ ] 5B.6.2 Create type narrowing tests (type-narrowing.test.ts)
+
+**Session 5B.7: Error Combination Tests + Final Verification** ⏳ NOT STARTED
+- [ ] 5B.7.1 Create error combination tests (error-combinations.test.ts)
+- [ ] 5B.7.2 Create error recovery tests (error-recovery.test.ts)
+- [ ] 5B.7.3 Final Phase 5B verification
+- [ ] 5B.7.4 Update EDGE-CASE-GAP-REPORT.md
 
 ### Phase 6: Frame Allocator (NEW) - REVISED
 
