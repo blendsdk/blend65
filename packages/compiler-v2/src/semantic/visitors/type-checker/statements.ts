@@ -151,8 +151,12 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
    *
    * Validates:
    * 1. Condition expression is bool or numeric
-   * 2. Then branch statements type check correctly
-   * 3. Else branch statements type check correctly (if present)
+   * 2. Then branch statements type check correctly (in block scope)
+   * 3. Else branch statements type check correctly (in block scope, if present)
+   *
+   * The SymbolTableBuilder creates separate block scopes for the then and else
+   * branches, both using the same if statement node as the scope key. We use
+   * enterChildScopeByNodeIndex to enter the correct scope (0 for then, 1 for else).
    *
    * @param node - The if statement node
    */
@@ -164,7 +168,7 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
     const thenBranch = node.getThenBranch();
     const elseBranch = node.getElseBranch();
 
-    // Type check the condition
+    // Type check the condition (in parent scope, before entering block scopes)
     condition.accept(this);
     const conditionType = this.getTypeOf(condition);
 
@@ -173,18 +177,26 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
       this.reportInvalidConditionType(conditionType, node.getLocation(), 'if');
     }
 
-    // Type check then branch
-    for (const stmt of thenBranch) {
-      if (this.shouldStop) break;
-      stmt.accept(this);
+    // Type check then branch in its block scope
+    // The then branch scope is the first scope created for this node (index 0)
+    if (!this.shouldStop) {
+      this.enterChildScopeByNodeIndex(node, 0);
+      for (const stmt of thenBranch) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+      this.exitScope();
     }
 
-    // Type check else branch if present
-    if (elseBranch) {
+    // Type check else branch in its block scope (if present)
+    // The else branch scope is the second scope created for this node (index 1)
+    if (!this.shouldStop && elseBranch) {
+      this.enterChildScopeByNodeIndex(node, 1);
       for (const stmt of elseBranch) {
         if (this.shouldStop) break;
         stmt.accept(this);
       }
+      this.exitScope();
     }
 
     this.exitNode(node);
@@ -199,7 +211,10 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
    *
    * Validates:
    * 1. Condition expression is bool or numeric
-   * 2. Body statements type check correctly
+   * 2. Body statements type check correctly (in loop scope)
+   *
+   * The SymbolTableBuilder creates a loop scope for the while body. We must
+   * enter this scope for proper symbol resolution of variables declared in the loop.
    *
    * @param node - The while statement node
    */
@@ -210,7 +225,7 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
     const condition = node.getCondition();
     const body = node.getBody();
 
-    // Type check the condition
+    // Type check the condition (in parent scope, before entering loop scope)
     condition.accept(this);
     const conditionType = this.getTypeOf(condition);
 
@@ -219,10 +234,14 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
       this.reportInvalidConditionType(conditionType, node.getLocation(), 'while');
     }
 
-    // Enter loop context
+    // Enter the loop scope created by the symbol table builder
+    // This scope contains any variables declared in the loop body
+    this.enterChildScopeForNode(node);
+
+    // Enter loop context for break/continue validation
     this.loopDepth++;
 
-    // Type check body
+    // Type check body in the loop scope
     for (const stmt of body) {
       if (this.shouldStop) break;
       stmt.accept(this);
@@ -230,6 +249,9 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
 
     // Exit loop context
     this.loopDepth--;
+
+    // Exit the loop scope
+    this.exitScope();
 
     this.exitNode(node);
   }
@@ -242,8 +264,11 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
    * Type check a do-while statement
    *
    * Validates:
-   * 1. Body statements type check correctly
+   * 1. Body statements type check correctly (in loop scope)
    * 2. Condition expression is bool or numeric
+   *
+   * The SymbolTableBuilder creates a loop scope for the do-while body. We must
+   * enter this scope for proper symbol resolution of variables declared in the loop.
    *
    * @param node - The do-while statement node
    */
@@ -254,10 +279,14 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
     const body = node.getBody();
     const condition = node.getCondition();
 
-    // Enter loop context
+    // Enter the loop scope created by the symbol table builder
+    // This scope contains any variables declared in the loop body
+    this.enterChildScopeForNode(node);
+
+    // Enter loop context for break/continue validation
     this.loopDepth++;
 
-    // Type check body first (executed before condition check)
+    // Type check body first in the loop scope (executed before condition check)
     for (const stmt of body) {
       if (this.shouldStop) break;
       stmt.accept(this);
@@ -266,7 +295,10 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
     // Exit loop context
     this.loopDepth--;
 
-    // Type check the condition
+    // Exit the loop scope
+    this.exitScope();
+
+    // Type check the condition (in parent scope, after exiting loop scope)
     condition.accept(this);
     const conditionType = this.getTypeOf(condition);
 
@@ -707,7 +739,11 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
   /**
    * Type check a block statement
    *
-   * Evaluates all statements in the block sequentially.
+   * Evaluates all statements in the block sequentially within the block's scope.
+   *
+   * The SymbolTableBuilder creates a block scope for standalone block statements.
+   * We must enter this scope for proper symbol resolution of variables declared
+   * in the block.
    *
    * @param node - The block statement node
    */
@@ -715,11 +751,18 @@ export abstract class StatementTypeChecker extends DeclarationTypeChecker {
     if (this.shouldStop) return;
     this.enterNode(node);
 
+    // Enter the block scope created by the symbol table builder
+    // This scope contains any variables declared in the block
+    this.enterChildScopeForNode(node);
+
     // Type check all statements in the block
     for (const stmt of node.getStatements()) {
       if (this.shouldStop) break;
       stmt.accept(this);
     }
+
+    // Exit the block scope
+    this.exitScope();
 
     this.exitNode(node);
   }

@@ -625,6 +625,7 @@ describe('DeclarationTypeChecker', () => {
     });
 
     // Parser doesn't support negative enum values, so this causes parse error
+    // SKIP: Parser error - unrelated to block scope fix
     it.skip('should report error for negative enum value', () => {
       const { result, checker } = checkSource(`
         module test
@@ -721,7 +722,7 @@ describe('DeclarationTypeChecker', () => {
     // Skip: Known issue - variables declared in if-block not visible in nested while loop
     // Bug: "Cannot find name 'b'" when b is declared in parent if-block
     // This requires fixing scope resolution in SymbolTable for nested statement blocks
-    it.skip('should handle deeply nested function body', () => {
+    it('should handle deeply nested function body', () => {
       const result = analyzeProgram(`
         module test
         function deep(): void {

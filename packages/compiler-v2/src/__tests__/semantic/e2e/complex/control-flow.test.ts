@@ -136,7 +136,7 @@ describe('Complex Control Flow Programs E2E', () => {
   });
 
   describe('complex loop patterns', () => {
-    it.skip('should analyze nested while loops', () => {
+    it('should analyze nested while loops', () => {
       const result = analyze(`
         module Test;
 
@@ -177,7 +177,7 @@ describe('Complex Control Flow Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze triple nested loops', () => {
+    it('should analyze triple nested loops', () => {
       const result = analyze(`
         module Test;
 
@@ -342,7 +342,7 @@ describe('Complex Control Flow Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze continue in while loop', () => {
+    it('should analyze continue in while loop', () => {
       const result = analyze(`
         module Test;
 
@@ -383,7 +383,7 @@ describe('Complex Control Flow Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze break in nested loops (inner only)', () => {
+    it('should analyze break in nested loops (inner only)', () => {
       const result = analyze(`
         module Test;
 
@@ -408,7 +408,7 @@ describe('Complex Control Flow Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze continue in nested loops', () => {
+    it('should analyze continue in nested loops', () => {
       const result = analyze(`
         module Test;
 
@@ -435,7 +435,7 @@ describe('Complex Control Flow Programs E2E', () => {
   });
 
   describe('mixed control flow', () => {
-    it.skip('should analyze loop with conditionals and early exit', () => {
+    it('should analyze loop with conditionals and early exit', () => {
       const result = analyze(`
         module Test;
 
@@ -461,7 +461,7 @@ describe('Complex Control Flow Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze state machine with loop', () => {
+    it('should analyze state machine with loop', () => {
       const result = analyze(`
         module Test;
 
@@ -540,6 +540,7 @@ describe('Complex Control Flow Programs E2E', () => {
   });
 
   describe('control flow graph verification', () => {
+    // SKIP: CFG nodes issue - unrelated to block scope fix
     it.skip('should build CFG for function with if-else', () => {
       const result = analyze(`
         module Test;
@@ -577,7 +578,7 @@ describe('Complex Control Flow Programs E2E', () => {
       expect(cfg).toBeDefined();
     });
 
-    it.skip('should build CFG for complex function', () => {
+    it('should build CFG for complex function', () => {
       const result = analyze(`
         module Test;
 

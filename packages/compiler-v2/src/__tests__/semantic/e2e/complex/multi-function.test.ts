@@ -151,6 +151,7 @@ describe('Complex Multi-Function Programs E2E', () => {
   });
 
   describe('math utility patterns', () => {
+    // SKIP: Parser/semantic issue - unrelated to block scope fix
     it.skip('should analyze math library pattern', () => {
       const result = analyze(`
         module Test;
@@ -446,6 +447,7 @@ describe('Complex Multi-Function Programs E2E', () => {
   });
 
   describe('module-level organization', () => {
+    // SKIP: Declaration count issue - unrelated to block scope fix
     it.skip('should analyze well-organized module Test; sections', () => {
       const result = analyze(`
         module Test;

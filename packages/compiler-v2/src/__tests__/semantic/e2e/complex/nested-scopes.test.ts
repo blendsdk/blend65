@@ -134,7 +134,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze if-else blocks with different locals', () => {
+    it('should analyze if-else blocks with different locals', () => {
       const result = analyze(`
         module IfElseBlockScope;
 
@@ -154,7 +154,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze while loop with block-scoped variable', () => {
+    it('should analyze while loop with block-scoped variable', () => {
       const result = analyze(`
         module WhileBlockScope;
 
@@ -173,7 +173,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze nested if blocks', () => {
+    it('should analyze nested if blocks', () => {
       const result = analyze(`
         module NestedIfBlocks;
 
@@ -286,7 +286,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
   });
 
   describe('scope visibility rules', () => {
-    it.skip('should analyze correct scope chain lookup', () => {
+    it('should analyze correct scope chain lookup', () => {
       const result = analyze(`
         module ScopeChain;
 
@@ -353,7 +353,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
   });
 
   describe('complex nesting patterns', () => {
-    it.skip('should analyze deeply nested scopes', () => {
+    it('should analyze deeply nested scopes', () => {
       const result = analyze(`
         module DeepNesting;
 
@@ -376,7 +376,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze loop inside conditional', () => {
+    it('should analyze loop inside conditional', () => {
       const result = analyze(`
         module LoopInConditional;
 
@@ -397,7 +397,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
       expect(result.success).toBe(true);
     });
 
-    it.skip('should analyze conditional inside loop', () => {
+    it('should analyze conditional inside loop', () => {
       const result = analyze(`
         module ConditionalInLoop;
 
@@ -549,7 +549,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
   });
 
   describe('symbol table verification', () => {
-    it.skip('should correctly populate symbol table for nested scopes', () => {
+    it('should correctly populate symbol table for nested scopes', () => {
       const result = analyze(`
         module SymbolTableTest;
 
@@ -667,7 +667,7 @@ describe('Complex Nested Scopes Programs E2E', () => {
   });
 
   describe('real-world scope patterns', () => {
-    it.skip('should analyze game state pattern with scopes', () => {
+    it('should analyze game state pattern with scopes', () => {
       const result = analyze(`
         module GameState
 

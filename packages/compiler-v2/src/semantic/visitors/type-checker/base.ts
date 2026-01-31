@@ -545,6 +545,49 @@ export abstract class TypeCheckerBase extends ASTWalker {
   }
 
   /**
+   * Enters the Nth child scope that was created for a specific AST node
+   *
+   * Used when multiple scopes are created for the same node (e.g., if statement
+   * creates separate scopes for then and else branches, both with the same
+   * node reference).
+   *
+   * @param node - The AST node that created the scopes
+   * @param index - The zero-based index of which matching scope to enter
+   * @returns True if the scope was found and entered
+   *
+   * @example
+   * ```typescript
+   * // For if statements with then and else branches:
+   * this.enterChildScopeByNodeIndex(ifNode, 0);  // Enter then scope
+   * // ... type check then branch ...
+   * this.exitScope();
+   *
+   * this.enterChildScopeByNodeIndex(ifNode, 1);  // Enter else scope
+   * // ... type check else branch ...
+   * this.exitScope();
+   * ```
+   */
+  protected enterChildScopeByNodeIndex(node: unknown, index: number): boolean {
+    if (!this.currentScope) {
+      return false;
+    }
+
+    // Find the Nth child scope where the node matches
+    let matchCount = 0;
+    for (const childScope of this.currentScope.children) {
+      if (childScope.node === node) {
+        if (matchCount === index) {
+          this.currentScope = childScope;
+          return true;
+        }
+        matchCount++;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Exits the current scope during traversal
    */
   protected exitScope(): void {
