@@ -24,8 +24,17 @@
  * @module frame
  */
 
-// Will be populated in Phase 6: Frame Allocator
+// Enums - Phase 1 Session 1.1
+export * from './enums.js';
+
+// Types - Phase 1 (future sessions)
 // export * from './types.js';
+
+// Call Graph - Phase 2 (future)
 // export * from './call-graph.js';
-// export * from './recursion.js';
+
+// Platform Config - Phase 1 (future sessions)
+// export * from './platform.js';
+
+// Allocator - Phase 2-3 (future)
 // export * from './allocator.js';
