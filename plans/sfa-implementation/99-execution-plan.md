@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02 22:12
-> **Progress**: 9/20 sessions (45%)
+> **Last Updated**: 2026-01-02 23:39
+> **Progress**: 10/20 sessions (50%)
 
 ## Overview
 
@@ -493,7 +493,10 @@ Before proceeding to the next task/session/phase:
 - [x] 2.4.1 Implement allocate() method ✅ (completed: 2026-01-02 22:12)
 - [x] 2.4.2 Handle directives (@zp, @ram) ✅ (completed: 2026-01-02 22:12)
 - [x] 2.4.3 Write allocation tests ✅ (completed: 2026-01-02 22:12, 30 new tests)
-- [ ] 2.5.1 Create frame-allocator.ts
+- [x] 2.5.1 Create frame-allocator.ts ✅ (completed: 2026-01-02 23:39)
+- [x] 2.5.2 Implement allocate method (basic) ✅ (completed: 2026-01-02 23:39)
+- [x] 2.5.3 Implement recursion check ✅ (completed: 2026-01-02 23:39)
+- [x] 2.5.4 Write basic allocator tests ✅ (completed: 2026-01-02 23:39, 36 new tests)
 - [ ] 2.6.1 Wire all components
 
 ### Phase 3: Frame Coalescing
