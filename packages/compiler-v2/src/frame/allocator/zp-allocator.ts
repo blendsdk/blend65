@@ -21,9 +21,9 @@
  */
 
 import { TypeKind } from '../../semantic/types.js';
-import { ZpDirective } from '../enums.js';
+import { SlotLocation, ZpDirective } from '../enums.js';
 import { FrameSlot, ZpScoreBreakdown } from '../types.js';
-import { ZpPool } from './zp-pool.js';
+import { ZpPool, ZpPoolStats } from './zp-pool.js';
 import { PlatformConfig } from '../platform.js';
 
 // ============================================================================
@@ -96,6 +96,62 @@ export interface ZpScoreDetails extends ZpScoreBreakdown {
 
   /** The type kind used for weight lookup */
   readonly typeKind: TypeKind;
+}
+
+/**
+ * Error information for a failed @zp allocation.
+ *
+ * Contains details about why a required ZP slot could not be allocated.
+ */
+export interface ZpAllocationError {
+  /** The slot that failed to allocate */
+  readonly slot: FrameSlot;
+
+  /** Error message describing the failure */
+  readonly message: string;
+
+  /** Requested size that could not be satisfied */
+  readonly requestedSize: number;
+
+  /** Available ZP bytes at time of failure */
+  readonly availableBytes: number;
+
+  /** Largest contiguous block available */
+  readonly largestBlock: number;
+}
+
+/**
+ * Summary of ZP allocation results.
+ *
+ * Provides detailed information about the allocation outcome.
+ */
+export interface ZpAllocationSummary {
+  /** Whether all allocations succeeded */
+  readonly success: boolean;
+
+  /** Errors for failed @zp allocations (empty if success is true) */
+  readonly errors: readonly ZpAllocationError[];
+
+  /** Number of slots allocated to ZP */
+  readonly zpAllocatedCount: number;
+
+  /** Number of slots assigned to frame region */
+  readonly frameAllocatedCount: number;
+
+  /** Number of slots with @zp directive */
+  readonly requiredCount: number;
+
+  /** Number of slots with @ram directive */
+  readonly forbiddenCount: number;
+
+  /** Number of automatic slots */
+  readonly automaticCount: number;
+
+  /** Total ZP bytes used */
+  readonly zpBytesUsed: number;
+
+  /** ZP pool statistics after allocation */
+  readonly poolStats: ZpPoolStats;
 }
 
 // ============================================================================
@@ -589,6 +645,220 @@ export class ZpAllocator {
 
     // Required first, then automatic by score
     return [...required, ...sortedAutomatic];
+  }
+
+  // ========================================
+  // Allocation Methods
+  // ========================================
+
+  /**
+   * Allocate ZP addresses for frame slots.
+   *
+   * Performs the complete ZP allocation process:
+   * 1. Score all slots
+   * 2. Categorize by directive (@zp, @ram, none)
+   * 3. Allocate @zp required slots first (error if impossible)
+   * 4. Skip @ram forbidden slots (set to FrameRegion)
+   * 5. Allocate automatic slots by score until ZP is full
+   *
+   * **Slot Mutation:**
+   * This method mutates the input slots, setting:
+   * - `zpScore`: Calculated priority score
+   * - `location`: SlotLocation.ZeroPage or SlotLocation.FrameRegion
+   * - `address`: ZP address (only for ZP-allocated slots)
+   *
+   * @param slots - Slots to allocate (mutated)
+   * @returns Allocation summary with success status and statistics
+   *
+   * @example
+   * ```typescript
+   * const allocator = new ZpAllocator(C64_PLATFORM_CONFIG);
+   * const slots = frame.slots;
+   *
+   * const result = allocator.allocate(slots);
+   *
+   * if (!result.success) {
+   *   for (const error of result.errors) {
+   *     console.error(`@zp overflow: ${error.slot.name} - ${error.message}`);
+   *   }
+   * }
+   *
+   * console.log(`ZP: ${result.zpAllocatedCount} slots, ${result.zpBytesUsed} bytes`);
+   * console.log(`Frame: ${result.frameAllocatedCount} slots`);
+   * ```
+   */
+  allocate(slots: FrameSlot[]): ZpAllocationSummary {
+    // Track allocation results
+    const errors: ZpAllocationError[] = [];
+    let zpAllocatedCount = 0;
+    let frameAllocatedCount = 0;
+    let zpBytesUsed = 0;
+
+    // Step 1: Score all slots
+    this.scoreSlots(slots);
+
+    // Step 2: Categorize by directive
+    const { required, forbidden, automatic } = this.categorizeSlots(slots);
+
+    // Step 3: Allocate @zp required slots first (error if impossible)
+    for (const slot of required) {
+      const stats = this.pool.getStats();
+
+      if (!this.pool.canAllocate(slot.size)) {
+        // @zp slot cannot be allocated - this is an error
+        errors.push({
+          slot,
+          message: `@zp variable "${slot.name}" cannot be allocated to zero page: ` +
+            `need ${slot.size} contiguous bytes, ` +
+            `available: ${stats.bytesFree} bytes, largest block: ${stats.largestFreeBlock} bytes`,
+          requestedSize: slot.size,
+          availableBytes: stats.bytesFree,
+          largestBlock: stats.largestFreeBlock,
+        });
+
+        // Mark as frame region (fallback, but will report error)
+        slot.location = SlotLocation.FrameRegion;
+        frameAllocatedCount++;
+      } else {
+        // Allocate to ZP
+        const result = this.pool.allocate(slot.size);
+        if (result.success) {
+          slot.address = result.address;
+          slot.location = SlotLocation.ZeroPage;
+          zpAllocatedCount++;
+          zpBytesUsed += slot.size;
+        } else {
+          // Should not happen after canAllocate check, but handle gracefully
+          errors.push({
+            slot,
+            message: `@zp variable "${slot.name}" allocation failed: ${result.error}`,
+            requestedSize: slot.size,
+            availableBytes: stats.bytesFree,
+            largestBlock: stats.largestFreeBlock,
+          });
+          slot.location = SlotLocation.FrameRegion;
+          frameAllocatedCount++;
+        }
+      }
+    }
+
+    // Step 4: Mark @ram forbidden slots as FrameRegion
+    for (const slot of forbidden) {
+      slot.location = SlotLocation.FrameRegion;
+      frameAllocatedCount++;
+    }
+
+    // Step 5: Allocate automatic slots by score
+    // Sort by score (highest first)
+    const sortedAutomatic = [...automatic].sort((a, b) => b.zpScore - a.zpScore);
+
+    for (const slot of sortedAutomatic) {
+      // Skip arrays (they don't go in ZP)
+      if (slot.type.kind === TypeKind.Array) {
+        slot.location = SlotLocation.FrameRegion;
+        frameAllocatedCount++;
+        continue;
+      }
+
+      // Try to allocate to ZP
+      if (this.pool.canAllocate(slot.size)) {
+        const result = this.pool.allocate(slot.size);
+        if (result.success) {
+          slot.address = result.address;
+          slot.location = SlotLocation.ZeroPage;
+          zpAllocatedCount++;
+          zpBytesUsed += slot.size;
+        } else {
+          // Allocation failed (shouldn't happen after canAllocate)
+          slot.location = SlotLocation.FrameRegion;
+          frameAllocatedCount++;
+        }
+      } else {
+        // ZP is full - fallback to frame region
+        slot.location = SlotLocation.FrameRegion;
+        frameAllocatedCount++;
+      }
+    }
+
+    // Build summary
+    const poolStats = this.pool.getStats();
+
+    return {
+      success: errors.length === 0,
+      errors,
+      zpAllocatedCount,
+      frameAllocatedCount,
+      requiredCount: required.length,
+      forbiddenCount: forbidden.length,
+      automaticCount: automatic.length,
+      zpBytesUsed,
+      poolStats,
+    };
+  }
+
+  /**
+   * Try to allocate a single slot to ZP.
+   *
+   * Attempts to allocate the slot to Zero Page if possible.
+   * Does not consider directives - caller is responsible for
+   * directive enforcement.
+   *
+   * @param slot - Slot to try allocating (mutated if successful)
+   * @returns true if allocated to ZP, false otherwise
+   *
+   * @example
+   * ```typescript
+   * if (allocator.tryAllocateSlot(slot)) {
+   *   console.log(`${slot.name} allocated to ZP at $${slot.address.toString(16)}`);
+   * } else {
+   *   console.log(`${slot.name} will use frame region`);
+   * }
+   * ```
+   */
+  tryAllocateSlot(slot: FrameSlot): boolean {
+    // Arrays don't go in ZP
+    if (slot.type.kind === TypeKind.Array) {
+      return false;
+    }
+
+    // Check if we can allocate
+    if (!this.pool.canAllocate(slot.size)) {
+      return false;
+    }
+
+    // Allocate
+    const result = this.pool.allocate(slot.size);
+    if (result.success) {
+      slot.address = result.address;
+      slot.location = SlotLocation.ZeroPage;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Check if a slot can be allocated to ZP.
+   *
+   * Checks both the slot properties and current pool state.
+   * Does not modify any state.
+   *
+   * @param slot - Slot to check
+   * @returns true if the slot could be allocated to ZP
+   */
+  canAllocateSlot(slot: FrameSlot): boolean {
+    // @ram directive: never in ZP
+    if (slot.zpDirective === ZpDirective.Ram) {
+      return false;
+    }
+
+    // Arrays don't go in ZP
+    if (slot.type.kind === TypeKind.Array) {
+      return false;
+    }
+
+    // Check pool capacity
+    return this.pool.canAllocate(slot.size);
   }
 
   // ========================================

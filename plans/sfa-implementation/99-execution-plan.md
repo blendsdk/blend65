@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02 21:44
-> **Progress**: 8/20 sessions (40%)
+> **Last Updated**: 2026-01-02 22:12
+> **Progress**: 9/20 sessions (45%)
 
 ## Overview
 
@@ -490,7 +490,9 @@ Before proceeding to the next task/session/phase:
 - [x] 2.3.1 Create zp-allocator.ts ✅ (completed: 2026-01-02 21:44)
 - [x] 2.3.2 Implement calculateZPScore ✅ (completed: 2026-01-02 21:44)
 - [x] 2.3.3 Write scoring tests ✅ (completed: 2026-01-02 21:44, 66 new tests in 4 files)
-- [ ] 2.4.1 Implement ZP allocation
+- [x] 2.4.1 Implement allocate() method ✅ (completed: 2026-01-02 22:12)
+- [x] 2.4.2 Handle directives (@zp, @ram) ✅ (completed: 2026-01-02 22:12)
+- [x] 2.4.3 Write allocation tests ✅ (completed: 2026-01-02 22:12, 30 new tests)
 - [ ] 2.5.1 Create frame-allocator.ts
 - [ ] 2.6.1 Wire all components
 
