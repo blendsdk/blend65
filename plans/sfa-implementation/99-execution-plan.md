@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02 23:39
-> **Progress**: 10/20 sessions (50%)
+> **Last Updated**: 2026-01-02 23:49
+> **Progress**: 11/20 sessions (55%)
 
 ## Overview
 
@@ -497,7 +497,10 @@ Before proceeding to the next task/session/phase:
 - [x] 2.5.2 Implement allocate method (basic) ✅ (completed: 2026-01-02 23:39)
 - [x] 2.5.3 Implement recursion check ✅ (completed: 2026-01-02 23:39)
 - [x] 2.5.4 Write basic allocator tests ✅ (completed: 2026-01-02 23:39, 36 new tests)
-- [ ] 2.6.1 Wire all components
+- [x] 2.6.1 Wire FrameCalculator ✅ (completed in 2.5)
+- [x] 2.6.2 Wire ZPAllocator ✅ (completed in 2.5)
+- [x] 2.6.3 Compute stats ✅ (completed in 2.5)
+- [x] 2.6.4 Write integration tests ✅ (completed: 2026-01-02 23:49, 26 new tests)
 
 ### Phase 3: Frame Coalescing
 - [ ] 3.1.1 Implement overlap detection
