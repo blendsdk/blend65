@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2025-01-02
-> **Progress**: 0/20 sessions (0%)
+> **Last Updated**: 2026-01-02
+> **Progress**: 1/20 sessions (5%)
 
 ## Overview
 
@@ -387,9 +387,11 @@ This document defines the multi-session execution plan for SFA implementation. E
 ## Task Checklist (All Phases)
 
 ### Phase 0: Test Infrastructure
-- [ ] 0.1.1 Create helpers directory
-- [ ] 0.1.2 Implement builders.ts
-- [ ] 0.1.3 Implement fixtures.ts
+- [x] 0.1.1 Create helpers directory ✅ (completed: 2026-01-02)
+- [x] 0.1.2 Implement builders.ts ✅ (completed: 2026-01-02)
+- [x] 0.1.3 Implement fixtures.ts ✅ (completed: 2026-01-02)
+- [x] 0.1.4 Create index.ts exports ✅ (completed: 2026-01-02)
+- [x] 0.1.5 Create helpers.test.ts ✅ (completed: 2026-01-02, 21 tests passing)
 - [ ] 0.2.1 Implement assertions.ts
 - [ ] 0.2.2 Implement mocks.ts
 - [ ] 0.3.1 Create fixture directories
