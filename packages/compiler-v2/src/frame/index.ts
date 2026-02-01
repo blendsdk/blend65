@@ -36,8 +36,5 @@ export * from './platform.js';
 // Guards - Phase 1 Session 1.4
 export * from './guards.js';
 
-// Call Graph - Phase 2 (future)
-// export * from './call-graph.js';
-
-// Allocator - Phase 2-3 (future)
-// export * from './allocator.js';
+// Allocator - Phase 2 Session 2.1+
+export * from './allocator/index.js';

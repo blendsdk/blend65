@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02 17:44
-> **Progress**: 5/20 sessions (25%)
+> **Last Updated**: 2026-01-02 20:14
+> **Progress**: 6/20 sessions (30%)
 
 ## Overview
 
@@ -482,8 +482,9 @@ Before proceeding to the next task/session/phase:
 - [x] 1.4.3 Write guard tests ✅ (completed: 2026-01-02 17:44, 4 test files, 134 new tests)
 
 ### Phase 2: Frame Allocator Core
-- [ ] 2.1.1 Create allocator directory
-- [ ] 2.1.2 Implement frame-calculator.ts
+- [x] 2.1.1 Create allocator directory ✅ (completed: 2026-01-02 20:14)
+- [x] 2.1.2 Implement frame-calculator.ts ✅ (completed: 2026-01-02 20:14)
+- [x] 2.1.3 Write calculator tests ✅ (completed: 2026-01-02 20:14, 30 new tests)
 - [ ] 2.2.1 Implement zp-pool.ts
 - [ ] 2.3.1 Implement ZP scoring
 - [ ] 2.4.1 Implement ZP allocation
