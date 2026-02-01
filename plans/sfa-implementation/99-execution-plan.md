@@ -13,6 +13,31 @@ This document defines the multi-session execution plan for SFA implementation. E
 
 ---
 
+## Testing Philosophy: No Mocks
+
+**CRITICAL**: This project follows a strict "No Mocks" policy per code.md Rule 25.
+
+### ✅ ALWAYS Use Real Implementations:
+- Real Lexer and Parser
+- Real SymbolTable and SymbolTableBuilder  
+- Real CallGraph and CallGraphBuilder
+- Real FrameAllocator components (once implemented)
+- Real PlatformConfig instances
+
+### ✅ Acceptable: Simple Data Builders
+Helper functions that create valid instances of simple data types:
+- `createTestSourceLocation()` for SourceLocation
+- Platform configs defined as constants in `platform.ts` (test configs, not mocks)
+- Simple fixture data structures
+
+### ❌ NEVER Mock:
+- Classes that exist and have been developed
+- Complex objects with behavior
+- Compiler pipeline components
+- Any "fake" implementations of real modules
+
+---
+
 ## Implementation Phases
 
 | Phase | Title | Sessions | Est. Time |
@@ -49,14 +74,14 @@ This document defines the multi-session execution plan for SFA implementation. E
 
 ### Session 0.2: Test Assertions
 
-**Objective**: Create custom test assertions
+**Objective**: Create custom test assertions (NO MOCKS - per Testing Philosophy above)
 
 **Tasks**:
 | # | Task | File |
 |---|------|------|
 | 0.2.1 | Implement assertions.ts | `helpers/assertions.ts` |
-| 0.2.2 | Implement mocks.ts | `helpers/mocks.ts` |
-| 0.2.3 | Create inline fixtures | `helpers/fixtures.ts` |
+| 0.2.2 | Update index.ts exports | `helpers/index.ts` |
+| 0.2.3 | Write assertions.test.ts | `__tests__/frame/assertions.test.ts` |
 
 **Verify**: `./compiler-test`
 
@@ -392,8 +417,9 @@ This document defines the multi-session execution plan for SFA implementation. E
 - [x] 0.1.3 Implement fixtures.ts ✅ (completed: 2026-01-02)
 - [x] 0.1.4 Create index.ts exports ✅ (completed: 2026-01-02)
 - [x] 0.1.5 Create helpers.test.ts ✅ (completed: 2026-01-02, 21 tests passing)
-- [ ] 0.2.1 Implement assertions.ts
-- [ ] 0.2.2 Implement mocks.ts
+- [ ] 0.2.1 Implement assertions.ts (NO MOCKS - use real implementations)
+- [ ] 0.2.2 Update index.ts exports
+- [ ] 0.2.3 Write assertions.test.ts
 - [ ] 0.3.1 Create fixture directories
 - [ ] 0.3.2 Create basic fixtures
 

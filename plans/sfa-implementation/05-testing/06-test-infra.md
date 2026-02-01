@@ -10,6 +10,31 @@ This document defines the test infrastructure code to be created before SFA impl
 
 ---
 
+## Testing Philosophy: No Mocks
+
+**CRITICAL**: This project follows a strict "No Mocks" policy per code.md Rule 25.
+
+### ✅ ALWAYS Use Real Implementations:
+- Real Lexer and Parser
+- Real SymbolTable and SymbolTableBuilder  
+- Real CallGraph and CallGraphBuilder
+- Real FrameAllocator components (once implemented)
+- Real PlatformConfig instances
+
+### ✅ Acceptable: Simple Data Builders
+Helper functions that create valid instances of simple data types:
+- `createTestSourceLocation()` for SourceLocation
+- Platform configs defined as constants in `platform.ts` (test configs, not mocks)
+- Simple fixture data structures
+
+### ❌ NEVER Mock:
+- Classes that exist and have been developed
+- Complex objects with behavior
+- Compiler pipeline components
+- Any "fake" implementations of real modules
+
+---
+
 ## 1. Test Helper Module
 
 ### 1.1 File Location
@@ -17,11 +42,12 @@ This document defines the test infrastructure code to be created before SFA impl
 ```
 packages/compiler-v2/src/__tests__/frame/helpers/
 ├── index.ts           # Module exports
-├── builders.ts        # AST/CallGraph builders
+├── builders.ts        # AST/CallGraph builders (uses REAL compiler components)
 ├── assertions.ts      # Custom assertions
-├── fixtures.ts        # Fixture loaders
-└── mocks.ts           # Mock objects
+└── fixtures.ts        # Fixture loaders and inline fixtures
 ```
+
+**NOTE**: No `mocks.ts` file - we use real implementations instead.
 
 ### 1.2 Builders (builders.ts)
 
@@ -329,83 +355,6 @@ export const INLINE_FIXTURES = {
 };
 ```
 
-### 1.5 Mocks (mocks.ts)
-
-```typescript
-/**
- * Mock objects for isolated testing
- * @module __tests__/frame/helpers/mocks
- */
-
-import type { PlatformConfig } from '../../../frame/platform.js';
-
-/**
- * Mock C64 platform configuration for testing
- */
-export const MOCK_C64_CONFIG: PlatformConfig = {
-  name: 'c64-test',
-  zeroPage: {
-    start: 0x02,
-    end: 0x8f,
-    reserved: [0x00, 0x01],
-    scratchStart: 0xfb,
-    scratchEnd: 0xfe,
-  },
-  frameRegion: {
-    start: 0x0200,
-    end: 0x0400,
-  },
-  generalRam: {
-    start: 0x0800,
-    end: 0xcfff,
-  },
-};
-
-/**
- * Mock platform config with very limited ZP (for overflow testing)
- */
-export const MOCK_LIMITED_ZP_CONFIG: PlatformConfig = {
-  name: 'limited-zp-test',
-  zeroPage: {
-    start: 0x02,
-    end: 0x10,  // Only 14 bytes!
-    reserved: [],
-    scratchStart: 0x0e,
-    scratchEnd: 0x10,
-  },
-  frameRegion: {
-    start: 0x0200,
-    end: 0x0400,
-  },
-  generalRam: {
-    start: 0x0800,
-    end: 0xcfff,
-  },
-};
-
-/**
- * Mock platform config with very limited frame region
- */
-export const MOCK_LIMITED_FRAME_CONFIG: PlatformConfig = {
-  name: 'limited-frame-test',
-  zeroPage: {
-    start: 0x02,
-    end: 0x8f,
-    reserved: [],
-    scratchStart: 0xfb,
-    scratchEnd: 0xfe,
-  },
-  frameRegion: {
-    start: 0x0200,
-    end: 0x0220,  // Only 32 bytes!
-  },
-  generalRam: {
-    start: 0x0800,
-    end: 0xcfff,
-  },
-};
-```
-
 ---
 
 ## 2. Test Setup
@@ -456,12 +405,14 @@ declare module 'vitest' {
 | Order | Task | Session |
 |-------|------|---------|
 | 1 | Create `helpers/` directory structure | 0.1 |
-| 2 | Implement `builders.ts` | 0.1 |
+| 2 | Implement `builders.ts` (uses REAL compiler) | 0.1 |
 | 3 | Implement `fixtures.ts` | 0.1 |
-| 4 | Create inline fixture constants | 0.2 |
-| 5 | Implement `assertions.ts` (basic) | 0.2 |
-| 6 | Implement `mocks.ts` | 0.2 |
-| 7 | Add custom vitest matchers | 0.3 |
+| 4 | Create inline fixture constants | 0.1 |
+| 5 | Implement `assertions.ts` | 0.2 |
+| 6 | Update index.ts exports | 0.2 |
+| 7 | Add custom vitest matchers (optional) | 0.3 |
+
+**NOTE**: No `mocks.ts` task - per Testing Philosophy, we use real implementations.
 
 ### 3.2 Before Each Phase
 
@@ -506,14 +457,15 @@ describe('FrameCalculator', () => {
 import { describe, it, expect } from 'vitest';
 import { buildCallGraph } from '../helpers/index.js';
 import { FrameAllocator } from '../../../frame/allocator/frame-allocator.js';
-import { MOCK_C64_CONFIG } from '../helpers/mocks.js';
+import { C64_PLATFORM_CONFIG } from '../../../frame/platform.js'; // REAL config, not mock
 import { expectFrameAt, expectNoErrors } from '../helpers/assertions.js';
 import { INLINE_FIXTURES } from '../helpers/fixtures.js';
 
 describe('Basic Frame Allocation', () => {
   it('should allocate frames for simple program', () => {
     const { callGraph, symbolTable, program } = buildCallGraph(INLINE_FIXTURES.simpleLocals);
-    const allocator = new FrameAllocator(MOCK_C64_CONFIG);
+    // Use REAL platform config - NO MOCKS
+    const allocator = new FrameAllocator(C64_PLATFORM_CONFIG);
     
     const result = allocator.allocate(program, callGraph, symbolTable);
     
