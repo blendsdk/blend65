@@ -27,8 +27,8 @@
 // Enums - Phase 1 Session 1.1
 export * from './enums.js';
 
-// Types - Phase 1 (future sessions)
-// export * from './types.js';
+// Types - Phase 1 Session 1.2
+export * from './types.js';
 
 // Call Graph - Phase 2 (future)
 // export * from './call-graph.js';
