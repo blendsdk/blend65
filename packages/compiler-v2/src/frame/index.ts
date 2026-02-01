@@ -33,6 +33,9 @@ export * from './types.js';
 // Platform Config - Phase 1 Session 1.3
 export * from './platform.js';
 
+// Guards - Phase 1 Session 1.4
+export * from './guards.js';
+
 // Call Graph - Phase 2 (future)
 // export * from './call-graph.js';
 
