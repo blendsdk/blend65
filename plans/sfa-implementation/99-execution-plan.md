@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02
-> **Progress**: 1/20 sessions (5%)
+> **Last Updated**: 2026-01-02 13:43
+> **Progress**: 2/20 sessions (10%)
 
 ## Overview
 
@@ -460,9 +460,9 @@ Before proceeding to the next task/session/phase:
 - [x] 0.1.3 Implement fixtures.ts ✅ (completed: 2026-01-02)
 - [x] 0.1.4 Create index.ts exports ✅ (completed: 2026-01-02)
 - [x] 0.1.5 Create helpers.test.ts ✅ (completed: 2026-01-02, 21 tests passing)
-- [ ] 0.2.1 Implement assertions.ts (NO MOCKS - use real implementations)
-- [ ] 0.2.2 Update index.ts exports
-- [ ] 0.2.3 Write assertions.test.ts
+- [x] 0.2.1 Implement assertions.ts ✅ (completed: 2026-01-02 13:43, 23 assertions + 4 builders)
+- [x] 0.2.2 Update index.ts exports ✅ (completed: 2026-01-02 13:43)
+- [x] 0.2.3 Write assertions.test.ts ✅ (completed: 2026-01-02 13:43, 68 tests passing)
 - [ ] 0.3.1 Create fixture directories
 - [ ] 0.3.2 Create basic fixtures
 

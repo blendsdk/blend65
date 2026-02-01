@@ -36,6 +36,47 @@ export {
   type InlineFixtureKey,
 } from './fixtures.js';
 
-// Note: Assertions and mocks will be added in Session 0.2
-// export * from './assertions.js';
-// export * from './mocks.js';
+// Assertion functions for SFA testing
+export {
+  // Types
+  SlotLocation,
+  type DiagnosticSeverity,
+  type FrameDiagnostic,
+  type FrameSlot,
+  type Frame,
+  type FrameAllocationStats,
+  type FrameAllocationResult,
+  // Frame existence assertions
+  expectFrameExists,
+  expectFrameAt,
+  expectFrameSize,
+  // Slot location assertions
+  expectSlotInZP,
+  expectSlotInRAM,
+  expectSlotAt,
+  expectSlotSize,
+  // Coalescing assertions
+  expectCoalesced,
+  expectNotCoalesced,
+  expectAllCoalesced,
+  // Diagnostic assertions
+  expectNoErrors,
+  expectSuccess,
+  expectError,
+  expectErrorForFunction,
+  expectWarning,
+  expectErrorCount,
+  // Statistics assertions
+  expectCoalescingSavings,
+  expectZPUsage,
+  expectExactZPUsage,
+  expectTotalAllocation,
+  expectCoalesceGroupCount,
+  // Test data builders
+  createTestAllocationResult,
+  createTestFrame,
+  createTestSlot,
+  createTestDiagnostic,
+} from './assertions.js';
+
+// Note: NO MOCKS - per Testing Philosophy, we use real implementations
