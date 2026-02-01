@@ -30,11 +30,11 @@ export * from './enums.js';
 // Types - Phase 1 Session 1.2
 export * from './types.js';
 
+// Platform Config - Phase 1 Session 1.3
+export * from './platform.js';
+
 // Call Graph - Phase 2 (future)
 // export * from './call-graph.js';
-
-// Platform Config - Phase 1 (future sessions)
-// export * from './platform.js';
 
 // Allocator - Phase 2-3 (future)
 // export * from './allocator.js';
