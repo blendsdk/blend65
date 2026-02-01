@@ -1,0 +1,27 @@
+// 02-coalescing/deep-calls.blend
+// Tests: Multiple coalesce groups
+// Expected: Siblings coalesce, parent-child don't
+
+module SFA.Test.DeepCalls;
+
+function main(): void {
+    branch1();
+    branch2();
+}
+
+function branch1(): void {
+    let b1: byte = 1;
+    leaf1a();
+    leaf1b();
+}
+
+function branch2(): void {
+    let b2: byte = 2;
+    leaf2a();
+    leaf2b();
+}
+
+function leaf1a(): void { let x: byte = 0; }
+function leaf1b(): void { let x: byte = 0; }
+function leaf2a(): void { let x: byte = 0; }
+function leaf2b(): void { let x: byte = 0; }

@@ -1,0 +1,18 @@
+// 02-coalescing/overlapping.blend
+// Tests: Functions that overlap cannot coalesce
+// Expected: outer and inner have separate frames
+
+module SFA.Test.Overlapping;
+
+function main(): void {
+    outer();
+}
+
+function outer(): void {
+    let outerVar: word = 1000;
+    inner();
+}
+
+function inner(): void {
+    let innerVar: word = 2000;
+}

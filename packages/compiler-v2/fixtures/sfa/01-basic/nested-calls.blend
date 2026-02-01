@@ -1,0 +1,24 @@
+// 01-basic/nested-calls.blend
+// Tests: Nested function calls allocation
+// Expected: Proper frame chain without overlap
+
+module SFA.Test.NestedCalls;
+
+function main(): void {
+    let mainVar: byte = 0;
+    outer();
+}
+
+function outer(): void {
+    let outerVar: byte = 1;
+    middle();
+}
+
+function middle(): void {
+    let middleVar: byte = 2;
+    inner();
+}
+
+function inner(): void {
+    let innerVar: byte = 3;
+}

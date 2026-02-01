@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02 13:43
-> **Progress**: 2/20 sessions (10%)
+> **Last Updated**: 2026-01-02 13:56
+> **Progress**: 3/20 sessions (15%)
 
 ## Overview
 
@@ -463,8 +463,10 @@ Before proceeding to the next task/session/phase:
 - [x] 0.2.1 Implement assertions.ts ✅ (completed: 2026-01-02 13:43, 23 assertions + 4 builders)
 - [x] 0.2.2 Update index.ts exports ✅ (completed: 2026-01-02 13:43)
 - [x] 0.2.3 Write assertions.test.ts ✅ (completed: 2026-01-02 13:43, 68 tests passing)
-- [ ] 0.3.1 Create fixture directories
-- [ ] 0.3.2 Create basic fixtures
+- [x] 0.3.1 Create fixture directories ✅ (completed: 2026-01-02 13:56)
+- [x] 0.3.2 Create basic fixtures (5) ✅ (completed: 2026-01-02 13:56)
+- [x] 0.3.3 Create coalescing fixtures (3) ✅ (completed: 2026-01-02 13:56)
+- [x] 0.3.4 Write fixtures.test.ts ✅ (completed: 2026-01-02 13:56, 37 tests passing)
 
 ### Phase 1: Type Definitions
 - [ ] 1.1.1 Create frame directory

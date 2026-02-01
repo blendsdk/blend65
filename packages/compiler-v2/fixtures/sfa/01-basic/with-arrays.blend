@@ -1,0 +1,12 @@
+// 01-basic/with-arrays.blend
+// Tests: Array allocation in frames
+// Expected: Arrays in frame region, not ZP
+
+module SFA.Test.WithArrays;
+
+function main(): void {
+    let buffer: byte[16];
+    let index: byte = 0;
+    
+    buffer[index] = 42;
+}

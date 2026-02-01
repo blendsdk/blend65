@@ -1,0 +1,14 @@
+// 01-basic/with-parameters.blend
+// Tests: Parameter allocation in frames
+// Expected: Parameters allocated as slots
+
+module SFA.Test.WithParameters;
+
+function main(): void {
+    let result: byte = add(10, 20);
+}
+
+function add(a: byte, b: byte): byte {
+    let sum: byte = a + b;
+    return sum;
+}
