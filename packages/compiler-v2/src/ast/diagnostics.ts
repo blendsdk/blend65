@@ -80,6 +80,14 @@ export enum DiagnosticCode {
   // v2-specific: Recursion detection
   RECURSION_DETECTED = 'S110',
   INDIRECT_RECURSION_DETECTED = 'S111',
+
+  // Frame allocation errors (S200-S299)
+  FRAME_OVERFLOW = 'S200',
+  ZP_OVERFLOW = 'S201',
+  FRAME_ALLOCATION_ERROR = 'S202',
+
+  // Internal errors (S900-S999)
+  INTERNAL_ERROR = 'S999',
 }
 
 /**

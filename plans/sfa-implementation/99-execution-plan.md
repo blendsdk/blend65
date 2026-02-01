@@ -515,7 +515,15 @@ Before proceeding to the next task/session/phase:
 - [x] 3.4.2 Update allocator/index.ts exports ✅ (completed: 2026-02-02 00:20)
 
 ### Phase 4: Compiler Integration
-- [ ] 4.1.1 Semantic integration
+- [x] 4.1.1 Semantic integration ✅ (completed: 2026-02-02 00:36)
+  - Added FrameAllocator import to semantic analyzer
+  - Added frameMap and frameAllocationStats to AnalysisResult
+  - Added runFrameAllocation and platformConfig options
+  - Added Pass 7: Frame Allocation after call graph
+  - Added frameDiagnosticToStandard helper method
+  - Added FRAME_OVERFLOW, ZP_OVERFLOW diagnostic codes
+  - All 4313 semantic tests passing
+- [ ] 4.1.2 Write semantic integration tests
 - [ ] 4.2.1 IL integration
 - [ ] 4.3.1 Codegen basic integration
 - [ ] 4.4.1 Addressing modes

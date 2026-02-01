@@ -49,6 +49,16 @@ import {
   DiagnosticCategory,
   DEFAULT_ADVANCED_OPTIONS,
 } from './analysis/index.js';
+import {
+  FrameAllocator,
+  type FrameAllocationResult,
+  type FrameAllocationStats,
+  type FrameDiagnostic,
+  FrameDiagnosticCode,
+} from '../frame/allocator/frame-allocator.js';
+import type { Frame } from '../frame/allocator/frame-calculator.js';
+import { type PlatformConfig, C64_PLATFORM_CONFIG } from '../frame/platform.js';
+import { DiagnosticSeverity as FrameDiagSeverity } from '../frame/enums.js';
 
 // ============================================
 // RESULT TYPES
@@ -62,6 +72,7 @@ import {
  * - Type system with resolved types
  * - Control flow graphs for all functions
  * - Call graph tracking function relationships
+ * - Frame map for SFA allocation (if enabled)
  * - Diagnostics (errors and warnings)
  */
 export interface AnalysisResult {
@@ -86,6 +97,28 @@ export interface AnalysisResult {
   /** Call graph tracking function relationships */
   callGraph: CallGraph;
 
+  /**
+   * Frame map from SFA allocation (function name → Frame)
+   *
+   * Contains all function frame allocations with:
+   * - Base addresses
+   * - Frame slots (parameters, locals, return value)
+   * - ZP vs frame region assignments
+   *
+   * Only populated if frame allocation is enabled (default: true)
+   */
+  frameMap?: Map<string, Frame>;
+
+  /**
+   * Frame allocation statistics
+   *
+   * Includes:
+   * - Bytes used in frame region and ZP
+   * - Utilization percentages
+   * - Coalescing savings (when enabled)
+   */
+  frameAllocationStats?: FrameAllocationStats;
+
   /** All collected diagnostics (errors, warnings, info) */
   diagnostics: Diagnostic[];
 
@@ -103,7 +136,10 @@ export interface AnalysisResult {
     /** Pass 6: Recursion checking result */
     recursionErrors: RecursionError[];
 
-    /** Pass 7: Advanced analysis (if enabled) */
+    /** Pass 7: Frame allocation (if enabled) */
+    frameAllocation?: FrameAllocationResult;
+
+    /** Pass 8: Advanced analysis (if enabled) */
     advancedAnalysis?: AdvancedAnalysisResult;
   };
 
@@ -186,7 +222,27 @@ export interface MultiModuleAnalysisResult {
  */
 export interface SemanticAnalyzerOptions {
   /**
-   * Whether to run advanced analysis pass (Pass 7)
+   * Whether to run frame allocation pass (Pass 7)
+   *
+   * Frame allocation assigns static memory addresses to function frames
+   * and variables for SFA (Static Frame Allocation).
+   *
+   * Default: true
+   */
+  runFrameAllocation?: boolean;
+
+  /**
+   * Platform configuration for frame allocation
+   *
+   * Defines memory regions, ZP availability, and other platform-specific
+   * settings for the target 6502 platform (C64, X16, etc.)
+   *
+   * Default: C64_PLATFORM_CONFIG
+   */
+  platformConfig?: PlatformConfig;
+
+  /**
+   * Whether to run advanced analysis pass (Pass 8)
    * Includes: definite assignment, variable usage, liveness, etc.
    * Default: true
    */
@@ -225,6 +281,8 @@ export interface SemanticAnalyzerOptions {
  * Default analyzer options
  */
 export const DEFAULT_ANALYZER_OPTIONS: SemanticAnalyzerOptions = {
+  runFrameAllocation: true,
+  platformConfig: C64_PLATFORM_CONFIG,
   runAdvancedAnalysis: true,
   advancedAnalysisOptions: {},
   stopOnFirstError: false,
@@ -412,7 +470,34 @@ export class SemanticAnalyzer {
     }
 
     // ----------------------------------------
-    // Pass 7: Advanced Analysis (optional)
+    // Pass 7: Frame Allocation (optional)
+    // ----------------------------------------
+    let frameAllocationResult: FrameAllocationResult | undefined;
+    let frameMap: Map<string, Frame> | undefined;
+    let frameAllocationStats: FrameAllocationStats | undefined;
+
+    if (this.options.runFrameAllocation && !this.hasErrors(diagnostics)) {
+      const platformConfig = this.options.platformConfig ?? C64_PLATFORM_CONFIG;
+      const frameAllocator = new FrameAllocator(platformConfig, symbolTableResult.symbolTable);
+
+      frameAllocationResult = frameAllocator.allocate(
+        program,
+        callGraph,
+        symbolTableResult.symbolTable
+      );
+
+      // Store frame map and stats for result
+      frameMap = frameAllocationResult.frameMap;
+      frameAllocationStats = frameAllocationResult.stats;
+
+      // Convert frame diagnostics to standard diagnostics
+      for (const frameDiag of frameAllocationResult.diagnostics) {
+        diagnostics.push(this.frameDiagnosticToStandard(frameDiag));
+      }
+    }
+
+    // ----------------------------------------
+    // Pass 8: Advanced Analysis (optional)
     // ----------------------------------------
     let advancedResult: AdvancedAnalysisResult | undefined;
 
@@ -458,12 +543,15 @@ export class SemanticAnalyzer {
       typeSystem: this.typeSystem,
       cfgs,
       callGraph,
+      frameMap,
+      frameAllocationStats,
       diagnostics,
       passResults: {
         symbolTableBuild: symbolTableResult,
         typeResolution: typeResolutionResult,
         typeCheck: typeCheckResult,
         recursionErrors,
+        frameAllocation: frameAllocationResult,
         advancedAnalysis: advancedResult,
       },
       stats: {
@@ -1341,6 +1429,70 @@ export class SemanticAnalyzer {
       return this.options.includeInfoDiagnostics ?? false;
     }
     return true;
+  }
+
+  /**
+   * Converts a frame diagnostic to a standard diagnostic
+   *
+   * Maps frame allocator error codes to standard diagnostic codes
+   * and converts frame severity to standard severity.
+   *
+   * @param frameDiag - The frame diagnostic to convert
+   * @returns A standard Diagnostic object
+   */
+  protected frameDiagnosticToStandard(frameDiag: FrameDiagnostic): Diagnostic {
+    // Map frame severity to standard severity
+    let severity: DiagnosticSeverity;
+    switch (frameDiag.severity) {
+      case FrameDiagSeverity.Error:
+        severity = DiagnosticSeverity.ERROR;
+        break;
+      case FrameDiagSeverity.Warning:
+        severity = DiagnosticSeverity.WARNING;
+        break;
+      case FrameDiagSeverity.Info:
+      default:
+        severity = DiagnosticSeverity.INFO;
+        break;
+    }
+
+    // Map frame error code to standard diagnostic code
+    let code: DiagnosticCode;
+    switch (frameDiag.code) {
+      case FrameDiagnosticCode.RECURSION:
+        code = DiagnosticCode.RECURSION_DETECTED;
+        break;
+      case FrameDiagnosticCode.FRAME_OVERFLOW:
+        code = DiagnosticCode.FRAME_OVERFLOW;
+        break;
+      case FrameDiagnosticCode.ZP_OVERFLOW:
+        code = DiagnosticCode.ZP_OVERFLOW;
+        break;
+      case FrameDiagnosticCode.NO_FRAME:
+        code = DiagnosticCode.INTERNAL_ERROR;
+        break;
+      default:
+        code = DiagnosticCode.INTERNAL_ERROR;
+    }
+
+    // Build message with function context if available
+    let message = frameDiag.message;
+    if (frameDiag.functionName) {
+      message = `[${frameDiag.functionName}] ${message}`;
+    }
+
+    // Create a placeholder location (frame diagnostics don't have source locations)
+    const location: SourceLocation = {
+      start: { line: 1, column: 1, offset: 0 },
+      end: { line: 1, column: 1, offset: 0 },
+    };
+
+    return {
+      severity,
+      code,
+      message,
+      location,
+    };
   }
 
   /**
