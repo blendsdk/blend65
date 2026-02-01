@@ -38,6 +38,49 @@ Helper functions that create valid instances of simple data types:
 
 ---
 
+## 🚨 CRITICAL RULE: Tests Must Pass Before Proceeding 🚨
+
+**NON-NEGOTIABLE**: Do NOT proceed to the next task, phase, session, or any work until:
+
+### 1. ALL Tests Must Pass
+- Every test for the current work MUST pass successfully
+- Run `./compiler-test` and verify 100% pass rate
+- No failing tests allowed before moving forward
+- No exceptions - fix all failures before proceeding
+
+### 2. Re-evaluate Skipped Tests
+- Any skipped tests (`it.skip`, `.skip()`, `TODO`) from previous sessions MUST be re-evaluated
+- For each skipped test, determine:
+  - Can it be enabled and pass now?
+  - Does it need to be fixed?
+  - Is it still relevant?
+- Either:
+  - ✅ Enable and pass the test, OR
+  - ✅ Fix the test and make it pass, OR
+  - ✅ Remove the test if no longer relevant (with justification)
+- Skipped tests MUST NOT accumulate across sessions
+
+### Enforcement Checklist (Before Moving to Next Task)
+
+```markdown
+Before proceeding to the next task/session/phase:
+
+- [ ] All new tests pass
+- [ ] All existing tests pass
+- [ ] No skipped tests remain unaddressed
+- [ ] `./compiler-test` shows 100% pass rate (0 failures, 0 skipped)
+```
+
+### Why This Rule Exists
+- Prevents accumulation of technical debt
+- Ensures each session delivers complete, working functionality
+- Stops cascading failures that become harder to fix later
+- Maintains confidence in the test suite
+
+**This rule is ABSOLUTELY MANDATORY and supersedes all other considerations.**
+
+---
+
 ## Implementation Phases
 
 | Phase | Title | Sessions | Est. Time |
