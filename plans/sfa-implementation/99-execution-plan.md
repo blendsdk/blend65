@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02 21:25
-> **Progress**: 7/20 sessions (35%)
+> **Last Updated**: 2026-01-02 21:44
+> **Progress**: 8/20 sessions (40%)
 
 ## Overview
 
@@ -487,7 +487,9 @@ Before proceeding to the next task/session/phase:
 - [x] 2.1.3 Write calculator tests ✅ (completed: 2026-01-02 20:14, 30 new tests)
 - [x] 2.2.1 Implement zp-pool.ts ✅ (completed: 2026-01-02 21:25)
 - [x] 2.2.2 Write pool tests ✅ (completed: 2026-01-02 21:25, 55 new tests)
-- [ ] 2.3.1 Implement ZP scoring
+- [x] 2.3.1 Create zp-allocator.ts ✅ (completed: 2026-01-02 21:44)
+- [x] 2.3.2 Implement calculateZPScore ✅ (completed: 2026-01-02 21:44)
+- [x] 2.3.3 Write scoring tests ✅ (completed: 2026-01-02 21:44, 66 new tests in 4 files)
 - [ ] 2.4.1 Implement ZP allocation
 - [ ] 2.5.1 Create frame-allocator.ts
 - [ ] 2.6.1 Wire all components

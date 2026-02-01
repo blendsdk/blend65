@@ -16,8 +16,8 @@ export * from './frame-calculator.js';
 // Session 2.2: ZP Pool
 export * from './zp-pool.js';
 
-// Session 2.3-2.4: ZP Allocator (future)
-// export * from './zp-allocator.js';
+// Session 2.3-2.4: ZP Allocator
+export * from './zp-allocator.js';
 
 // Session 2.5-2.6: Frame Allocator (future)
 // export * from './frame-allocator.js';
