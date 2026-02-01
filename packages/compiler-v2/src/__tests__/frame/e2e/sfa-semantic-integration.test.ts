@@ -4,10 +4,6 @@
  * Tests the integration of Frame Allocator with Semantic Analyzer.
  * Verifies that analyzed programs have correct frame allocations.
  *
- * NOTE: These tests verify the semantic analyzer integration with frame allocation.
- * Some tests are marked as skipped because they depend on FunctionDecl being
- * properly parsed, which is a separate compiler phase that needs work.
- *
  * @module __tests__/frame/e2e/sfa-semantic-integration
  */
 
@@ -178,15 +174,13 @@ describe('SFA Semantic Integration E2E', () => {
     });
   });
 
-  // NOTE: These tests are skipped because they depend on FunctionDecl being
-  // properly parsed by the parser. Currently, the parser creates VariableDecl
-  // nodes for function syntax. Once the parser is fixed, these tests can be enabled.
-  describe.skip('Function Frame Allocation (requires parser FunctionDecl support)', () => {
+  // Tests for function frame allocation
+  describe('Function Frame Allocation', () => {
     it('should allocate frames for simple function with local variables', () => {
       const source = `
         module test;
         
-        fn getValue(): byte {
+        function getValue(): byte {
           let x: byte = 42;
           return x;
         }
@@ -203,9 +197,9 @@ describe('SFA Semantic Integration E2E', () => {
       const source = `
         module test;
         
-        fn foo(): byte { let x: byte = 1; return x; }
-        fn bar(): byte { let y: byte = 2; return y; }
-        fn baz(): byte { let z: byte = 3; return z; }
+        function foo(): byte { let x: byte = 1; return x; }
+        function bar(): byte { let y: byte = 2; return y; }
+        function baz(): byte { let z: byte = 3; return z; }
       `;
       
       const result = analyzeProgram(source);
@@ -218,8 +212,8 @@ describe('SFA Semantic Integration E2E', () => {
       const source = `
         module test;
         
-        fn first(): byte { let a: byte = 1; return a; }
-        fn second(): byte { let b: byte = 2; return b; }
+        function first(): byte { let a: byte = 1; return a; }
+        function second(): byte { let b: byte = 2; return b; }
       `;
       
       const result = analyzeProgram(source);
@@ -238,8 +232,8 @@ describe('SFA Semantic Integration E2E', () => {
       const source = `
         module test;
         
-        export fn external_stub(): byte;
-        fn real_function(): byte { let y: byte = 1; return y; }
+        export function external_stub(): byte;
+        function real_function(): byte { let y: byte = 1; return y; }
       `;
       
       const result = analyzeProgram(source);
