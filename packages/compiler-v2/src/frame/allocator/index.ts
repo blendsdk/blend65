@@ -3,9 +3,10 @@
  *
  * Core components for Static Frame Allocation (SFA):
  * - FrameCalculator: Calculates frame sizes from functions
- * - ZPPool: Manages zero page address pool (future)
- * - ZPAllocator: Scores and allocates ZP slots (future)
- * - FrameAllocator: Main allocator orchestrator (future)
+ * - ZPPool: Manages zero page address pool
+ * - ZPAllocator: Scores and allocates ZP slots
+ * - FrameAllocator: Main allocator orchestrator
+ * - FrameCoalescer: Coalesces non-overlapping function frames
  *
  * @module frame/allocator
  */
@@ -21,3 +22,6 @@ export * from './zp-allocator.js';
 
 // Session 2.5-2.6: Frame Allocator
 export * from './frame-allocator.js';
+
+// Session 3.1-3.4: Frame Coalescer
+export * from './coalescer.js';

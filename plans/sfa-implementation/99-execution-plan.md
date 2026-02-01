@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [00-index.md](00-index.md)
-> **Last Updated**: 2026-01-02 23:49
-> **Progress**: 11/20 sessions (55%)
+> **Last Updated**: 2026-02-02 00:25
+> **Progress**: 15/20 sessions (75%)
 
 ## Overview
 
@@ -503,10 +503,16 @@ Before proceeding to the next task/session/phase:
 - [x] 2.6.4 Write integration tests ✅ (completed: 2026-01-02 23:49, 26 new tests)
 
 ### Phase 3: Frame Coalescing
-- [ ] 3.1.1 Implement overlap detection
-- [ ] 3.2.1 Implement thread context
-- [ ] 3.3.1 Implement group building
-- [ ] 3.4.1 Integrate coalescer
+- [x] 3.1.1 Implement overlap detection ✅ (completed: 2026-02-02 00:20)
+- [x] 3.1.2 Write overlap tests ✅ (completed: 2026-02-02 00:22, 7 tests)
+- [x] 3.2.1 Implement thread context detection ✅ (completed: 2026-02-02 00:20)
+- [x] 3.2.2 Write thread context tests ✅ (completed: 2026-02-02 00:22, 6 tests)
+- [x] 3.3.1 Implement group building algorithm ✅ (completed: 2026-02-02 00:20)
+- [x] 3.3.2 Write grouping tests ✅ (completed: 2026-02-02 00:22, 12 tests)
+- [x] 3.3.3 Implement memory savings calculation ✅ (completed: 2026-02-02 00:20)
+- [x] 3.3.4 Write savings tests ✅ (completed: 2026-02-02 00:22, 3 tests)
+- [x] 3.4.1 Create coalescer integration tests ✅ (completed: 2026-02-02 00:24, 14 tests)
+- [x] 3.4.2 Update allocator/index.ts exports ✅ (completed: 2026-02-02 00:20)
 
 ### Phase 4: Compiler Integration
 - [ ] 4.1.1 Semantic integration
