@@ -375,8 +375,8 @@ This document defines the execution phases and AI chat sessions for implementing
 
 **Session 7d.1: Comprehensive Testing**
 
-- [ ] 7d.1.1 E2E: simple-add
-- [ ] 7d.1.2 E2E: loops
+- [x] 7d.1.1 E2E: simple-add ✅ (completed: 2026-02-02 09:19) - 11 tests passing
+- [ ] 7d.1.2 E2E: loops - 4/14 passing (for loop variables need frame allocation fix)
 - [ ] 7d.1.3 E2E: functions
 - [ ] 7d.1.4 Integration: AST → IL
 - [ ] 7d.1.5 Integration: SFA → IL
