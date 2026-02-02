@@ -105,3 +105,26 @@ export { ILBuilder, computeInstructionCost, computeDefUse } from './builder/inde
 // ============================================================================
 
 export { ILGenerator, ILGeneratorBase, ILGeneratorExpressions } from './generator/index.js';
+
+// ============================================================================
+// Analysis
+// ============================================================================
+
+export {
+  // Live range analysis
+  computeLiveRanges,
+  // Dead store detection
+  isDeadStore,
+  // Optimization hints
+  hasHotSlotAccess,
+  hasFrequentSlotAccess,
+  canCoalesce,
+  computeHints,
+  // Full analysis passes
+  runAnalysisPasses,
+  runAnalysisPassesWithLoops,
+  // Statistics
+  getAnalysisStats,
+} from './analysis.js';
+
+export type { AnalysisStats } from './analysis.js';

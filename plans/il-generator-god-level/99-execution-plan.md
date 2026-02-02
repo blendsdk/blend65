@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-02 08:22
-> **Progress**: 41/43 tasks (95%)
+> **Last Updated**: 2026-02-02 08:35
+> **Progress**: 48/50 tasks (96%)
 
 ---
 
@@ -342,13 +342,13 @@ This document defines the execution phases and AI chat sessions for implementing
 
 **Session 7b.2: Optimization Hints**
 
-- [ ] 7b.2.1 Implement computeDefUse
-- [ ] 7b.2.2 Implement computeInstructionCost
-- [ ] 7b.2.3 Implement computeLiveRanges
-- [ ] 7b.2.4 Implement computeHints
-- [ ] 7b.2.5 Integrate cost in builder
-- [ ] 7b.2.6 Add live range pass
-- [ ] 7b.2.7 Write tests
+- [x] 7b.2.1 Implement computeDefUse ✅ (completed: 2026-02-02 08:35) - already in builder/base.ts
+- [x] 7b.2.2 Implement computeInstructionCost ✅ (completed: 2026-02-02 08:35) - already in builder/base.ts
+- [x] 7b.2.3 Implement computeLiveRanges ✅ (completed: 2026-02-02 08:35) - created analysis.ts
+- [x] 7b.2.4 Implement computeHints ✅ (completed: 2026-02-02 08:35) - created in analysis.ts
+- [x] 7b.2.5 Integrate cost in builder ✅ (completed: 2026-02-02 08:35) - already done in emit()
+- [x] 7b.2.6 Add live range pass ✅ (completed: 2026-02-02 08:35) - updated index exports
+- [x] 7b.2.7 Write tests ✅ (completed: 2026-02-02 08:35) - 28 tests in analysis.test.ts
 
 ### Phase 7c: Advanced Features
 
