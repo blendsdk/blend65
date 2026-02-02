@@ -380,9 +380,27 @@ This document defines the execution phases and AI chat sessions for implementing
   - Fixed for loop iterator frame allocation in FrameCalculator
   - Added ForLoopIterator interface and collection
   - Updated frame-calculator tests to account for for loop iterator variables
-- [ ] 7d.1.3 E2E: functions
-- [ ] 7d.1.4 Integration: AST → IL
-- [ ] 7d.1.5 Integration: SFA → IL
+- [x] 7d.1.3 E2E: functions ✅ (completed: 2026-02-02 10:31) - 21 tests passing
+  - Function definitions (void, return values)
+  - Parameters (frame slots)
+  - Function calls (CALL opcode)
+  - Nested calls and return value handling
+  - Local variables with parameters
+- [x] 7d.1.4 Integration: AST → IL ✅ (completed: 2026-02-02 10:34) - 22 tests passing
+  - Literal → LOAD_IMM
+  - Identifier → LOAD_BYTE
+  - Binary → ADD/SUB/AND/OR/XOR
+  - Assignment → STORE_BYTE
+  - Return → RETURN
+  - Call → CALL
+  - Control flow → JUMP variants
+- [x] 7d.1.5 Integration: SFA → IL ✅ (completed: 2026-02-02 10:37) - 12 tests passing
+  - Frame preservation in ILFunction
+  - Parameter slots
+  - Return slots
+  - Frame size calculation
+  - Function metadata (isExported)
+  - Slot operands in IL instructions
 - [ ] 7d.1.6 Verify coverage
 - [ ] 7d.1.7 Add JSDoc
 
