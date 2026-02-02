@@ -1,31 +1,107 @@
 /**
- * Intermediate Language module for Blend65 v2 (NEW)
+ * IL Module - Intermediate Language for Blend65 Compiler
  *
- * Defines and generates a simple linear IL - NO SSA, NO PHI nodes.
- * Instructions directly reference frame slot addresses.
+ * This module provides the complete IL type system with slot-centric
+ * operands for optimal 6502 code generation.
  *
- * **Key Components:**
- * - IL Types: Opcode enum, instruction types, program structure
- * - IL Builder: Instruction construction utilities
- * - IL Generator: AST + Frames → IL instructions
- *
- * **IL Characteristics:**
- * - ~25 simple opcodes
- * - Direct frame slot addresses (no virtual registers)
- * - Accumulator-centric design (matches 6502)
- * - Linear control flow with explicit jumps
- *
- * **Example IL:**
- * ```
- * LOAD_BYTE $0200    ; Load from frame slot
- * ADD_IMM 1          ; Add immediate
- * STORE_BYTE $0200   ; Store back to frame slot
- * ```
+ * Key Features:
+ * - Slot-centric operands that carry full SFA context
+ * - Optimization hints for peephole optimizer
+ * - Loop structure preservation for loop-aware optimization
+ * - Cost model for instruction selection
  *
  * @module il
  */
 
-// Will be populated in Phase 7: IL Generator
-// export * from './types.js';
-// export * from './builder.js';
-// export * from './generator.js';
+// ============================================================================
+// Enums
+// ============================================================================
+
+export { ILOpcode, AddressingModeHint } from './enums.js';
+
+// ============================================================================
+// Operand Types
+// ============================================================================
+
+export type {
+  SlotOperand,
+  ImmediateOperand,
+  LabelOperand,
+  FunctionOperand,
+  AddressOperand,
+  ILOperand,
+} from './operands.js';
+
+// ============================================================================
+// Instruction Types
+// ============================================================================
+
+export type { InstructionCost, DefUse, OptimizationHints, ILInstruction } from './instruction.js';
+
+// ============================================================================
+// Program Structures
+// ============================================================================
+
+export type { ILLoop, ILFunction, ILProgram } from './structures.js';
+
+// ============================================================================
+// Factory Functions
+// ============================================================================
+
+export {
+  // Operand factories
+  createSlotOperand,
+  createImmediateOperand,
+  createLabelOperand,
+  createFunctionOperand,
+  createAddressOperand,
+  // Instruction factories
+  createInstruction,
+  createInstructionCost,
+  createDefUse,
+  createOptimizationHints,
+  // Structure factories
+  createILLoop,
+  createILFunction,
+  createILProgram,
+} from './factories.js';
+
+// ============================================================================
+// Type Guards
+// ============================================================================
+
+export {
+  // Operand guards
+  isSlotOperand,
+  isImmediateOperand,
+  isLabelOperand,
+  isFunctionOperand,
+  isAddressOperand,
+  // Instruction classification guards
+  isZeroPageInstruction,
+  isLoadInstruction,
+  isStoreInstruction,
+  isArithmeticInstruction,
+  isBitwiseInstruction,
+  isComparisonInstruction,
+  isControlFlowInstruction,
+  isConditionalJumpInstruction,
+  isFunctionInstruction,
+  isRegisterTransferInstruction,
+  isStackInstruction,
+  isIntrinsicInstruction,
+  isLabelInstruction,
+  hasSideEffects,
+} from './guards.js';
+
+// ============================================================================
+// Builder
+// ============================================================================
+
+export { ILBuilder, computeInstructionCost, computeDefUse } from './builder/index.js';
+
+// ============================================================================
+// Generator
+// ============================================================================
+
+export { ILGenerator, ILGeneratorBase, ILGeneratorExpressions } from './generator/index.js';
