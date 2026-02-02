@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-02 08:59
-> **Progress**: 50/50 tasks (100%)
+> **Last Updated**: 2026-02-02 10:15
+> **Progress**: 51/57 tasks (89%)
 
 ---
 
@@ -376,7 +376,10 @@ This document defines the execution phases and AI chat sessions for implementing
 **Session 7d.1: Comprehensive Testing**
 
 - [x] 7d.1.1 E2E: simple-add ✅ (completed: 2026-02-02 09:19) - 11 tests passing
-- [ ] 7d.1.2 E2E: loops - 4/14 passing (for loop variables need frame allocation fix)
+- [x] 7d.1.2 E2E: loops ✅ (completed: 2026-02-02 10:15) - 14 tests passing
+  - Fixed for loop iterator frame allocation in FrameCalculator
+  - Added ForLoopIterator interface and collection
+  - Updated frame-calculator tests to account for for loop iterator variables
 - [ ] 7d.1.3 E2E: functions
 - [ ] 7d.1.4 Integration: AST → IL
 - [ ] 7d.1.5 Integration: SFA → IL

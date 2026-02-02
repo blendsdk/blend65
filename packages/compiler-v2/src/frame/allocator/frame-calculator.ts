@@ -27,6 +27,23 @@ import { SlotKind, ZpDirective } from '../enums.js';
 // ============================================================================
 
 /**
+ * Represents a for loop iterator variable.
+ *
+ * Since for loop iterators are not VariableDecl nodes,
+ * we use this interface to represent them for frame allocation.
+ */
+export interface ForLoopIterator {
+  /** Name of the iterator variable */
+  name: string;
+
+  /** Explicit type annotation (null = use inferred type) */
+  explicitType: string | null;
+
+  /** Type inferred by semantic analyzer ('byte' or 'word') */
+  inferredType: 'byte' | 'word';
+}
+
+/**
  * Result of frame calculation for a single function.
  *
  * Contains all the slots in the function's frame and their
@@ -172,6 +189,9 @@ export class FrameCalculator {
     // 2. Add local variable slots from function body
     const body = func.getBody();
     if (body) {
+      // Reset for loop iterators collection before collecting locals
+      this.forLoopIterators = [];
+
       const locals = this.collectLocals(body);
       for (const local of locals) {
         const typeInfo = this.resolveTypeFromAnnotation(local.getTypeAnnotation());
@@ -180,6 +200,20 @@ export class FrameCalculator {
         const slot = createFrameSlot(local.getName(), SlotKind.Local, typeInfo, {
           offset,
           zpDirective,
+        });
+        frame.slots.push(slot);
+        offset += size;
+      }
+
+      // 2b. Add for loop iterator slots (collected during collectLocals)
+      for (const iterator of this.forLoopIterators) {
+        // Determine type: explicit type takes precedence over inferred type
+        const typeName = iterator.explicitType ?? iterator.inferredType;
+        const typeInfo = this.resolveType(typeName);
+        const size = getTypeSize(typeInfo);
+        const slot = createFrameSlot(iterator.name, SlotKind.Local, typeInfo, {
+          offset,
+          zpDirective: ZpDirective.None, // For loop iterators don't have storage class
         });
         frame.slots.push(slot);
         offset += size;
@@ -222,10 +256,22 @@ export class FrameCalculator {
   }
 
   /**
+   * Represents a for loop iterator variable.
+   *
+   * Since for loop iterators are not VariableDecl nodes,
+   * we use this interface to represent them for frame allocation.
+   */
+  protected forLoopIterators: ForLoopIterator[] = [];
+
+  /**
    * Collects all local variable declarations from statements.
    *
    * Recursively walks through all statements including nested
    * blocks (if, while, for, etc.) to find all local variables.
+   * Also collects for loop iterator variables into this.forLoopIterators.
+   *
+   * Note: this.forLoopIterators should be reset before calling this method
+   * at the top level (done in calculateFrame).
    *
    * @param statements - Statements to search
    * @returns Array of VariableDecl nodes for local variables
@@ -277,9 +323,15 @@ export class FrameCalculator {
       return;
     }
 
-    // For statement - check body
-    // Note: for loop variables are handled separately (not VariableDecl in Blend)
+    // For statement - collect iterator variable and check body
     if (isForStatement(stmt)) {
+      // Collect the for loop iterator variable
+      this.forLoopIterators.push({
+        name: stmt.getVariable(),
+        explicitType: stmt.getVariableType(),
+        inferredType: stmt.getInferredCounterType(),
+      });
+      // Also collect any locals from the body
       this.collectLocals(stmt.getBody()).forEach((l) => locals.push(l));
       return;
     }

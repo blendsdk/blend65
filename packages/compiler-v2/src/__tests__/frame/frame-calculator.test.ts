@@ -401,8 +401,10 @@ describe('FrameCalculator', () => {
       const frame = calculateFrameFromSource(source);
       
       const localSlots = frame.slots.filter(s => s.kind === SlotKind.Local);
-      expect(localSlots).toHaveLength(1);
-      expect(localSlots[0].name).toBe('temp');
+      // For loop iterator 'i' is also allocated as a local slot
+      expect(localSlots).toHaveLength(2);
+      expect(localSlots.map(s => s.name)).toContain('temp');
+      expect(localSlots.map(s => s.name)).toContain('i');
     });
 
     it('should find locals in deeply nested structures', () => {
@@ -418,8 +420,10 @@ describe('FrameCalculator', () => {
       const frame = calculateFrameFromSource(source);
       
       const localSlots = frame.slots.filter(s => s.kind === SlotKind.Local);
-      expect(localSlots).toHaveLength(1);
-      expect(localSlots[0].name).toBe('deep');
+      // For loop iterator 'i' is also allocated as a local slot
+      expect(localSlots).toHaveLength(2);
+      expect(localSlots.map(s => s.name)).toContain('deep');
+      expect(localSlots.map(s => s.name)).toContain('i');
     });
 
     it('should find locals in switch cases', () => {

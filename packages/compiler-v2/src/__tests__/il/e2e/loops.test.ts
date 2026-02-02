@@ -215,11 +215,12 @@ describe('E2E: Loops - For Loops', () => {
     const program = compileToIL(source);
     const mainFunc = program.functions.find(f => f.name === 'main');
 
-    // Should have SUB operation for decrement
-    const hasSub =
+    // Should have decrement operation (DEC_BYTE for step=1, or SUB for larger steps)
+    const hasDecrement =
+      countOpcode(mainFunc!.instructions, ILOpcode.DEC_BYTE) > 0 ||
       countOpcode(mainFunc!.instructions, ILOpcode.SUB_IMM) > 0 ||
       countOpcode(mainFunc!.instructions, ILOpcode.SUB_BYTE) > 0;
-    expect(hasSub).toBe(true);
+    expect(hasDecrement).toBe(true);
   });
 
   it('should compile for loop with step > 1', () => {
