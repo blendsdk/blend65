@@ -5,8 +5,11 @@
  * - Variable declaration
  * - Expression statements
  * - Block statements
- * - Placeholder control flow (Phase 7b)
+ * - Control flow (if/else, while, for, return, break, continue)
  * - Function and program generation
+ *
+ * Inheritance chain:
+ * ILGeneratorBase → ILGeneratorExpressions → ILGeneratorControlFlow → ILGenerator
  *
  * @module il/generator/generator
  */
@@ -24,11 +27,19 @@ import {
   isWhileStatement,
   isForStatement,
   isReturnStatement,
+  isBreakStatement,
+  isContinueStatement,
 } from '../../ast/type-guards.js';
+import {
+  IfStatement,
+  WhileStatement,
+  ForStatement,
+  ReturnStatement,
+} from '../../ast/statements.js';
 import { ILInstruction } from '../instruction.js';
 import { ILFunction, ILProgram } from '../structures.js';
 import { createILFunction, createILProgram } from '../factories.js';
-import { ILGeneratorExpressions } from './expressions.js';
+import { ILGeneratorControlFlow } from './control-flow.js';
 
 // ============================================================================
 // ILGenerator Class
@@ -40,6 +51,7 @@ import { ILGeneratorExpressions } from './expressions.js';
  * Generates IL from AST with full SFA context. The inheritance chain:
  * - ILGeneratorBase: Core infrastructure, variable resolution
  * - ILGeneratorExpressions: All expression generation
+ * - ILGeneratorControlFlow: Control flow (if, while, for, return, break, continue)
  * - ILGenerator: Statement generation and entry points
  *
  * @example
@@ -52,7 +64,7 @@ import { ILGeneratorExpressions } from './expressions.js';
  * }
  * ```
  */
-export class ILGenerator extends ILGeneratorExpressions {
+export class ILGenerator extends ILGeneratorControlFlow {
   // ═══════════════════════════════════════════════════════════════════
   // Main Entry Point
   // ═══════════════════════════════════════════════════════════════════
@@ -164,19 +176,31 @@ export class ILGenerator extends ILGeneratorExpressions {
     } else if (isBlockStatement(stmt)) {
       this.generateBlockStatement(stmt);
     } else if (isIfStatement(stmt)) {
-      // Placeholder for Phase 7b
-      this.generateIfStatement(stmt);
+      this.generateIfStatement(stmt as IfStatement);
     } else if (isWhileStatement(stmt)) {
-      // Placeholder for Phase 7b
-      this.generateWhileStatement(stmt);
+      this.generateWhileStatement(stmt as WhileStatement);
     } else if (isForStatement(stmt)) {
-      // Placeholder for Phase 7b
-      this.generateForStatement(stmt);
+      this.generateForStatement(stmt as ForStatement);
     } else if (isReturnStatement(stmt)) {
-      // Placeholder for Phase 7b
-      this.generateReturnStatement(stmt);
+      this.generateReturnStatement(stmt as ReturnStatement);
+    } else if (isBreakStatement(stmt)) {
+      this.generateBreakStatement();
+    } else if (isContinueStatement(stmt)) {
+      this.generateContinueStatement();
     }
-    // Other statement types will be added in Phase 7b
+    // Other statement types can be added as needed
+  }
+
+  /**
+   * Override generateStatementDispatch for control flow.
+   *
+   * This method is called by control flow generators (if/while/for)
+   * to generate statements in their bodies.
+   *
+   * @param stmt - Statement to generate
+   */
+  protected override generateStatementDispatch(stmt: Statement): void {
+    this.generateStatement(stmt);
   }
 
   /**
@@ -227,60 +251,6 @@ export class ILGenerator extends ILGeneratorExpressions {
     for (const s of stmt.getStatements()) {
       this.generateStatement(s);
     }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════
-  // Control Flow Placeholders (Phase 7b)
-  // ═══════════════════════════════════════════════════════════════════
-
-  /**
-   * Generate IL for an if statement.
-   *
-   * Placeholder - full implementation in Phase 7b.
-   *
-   * @param _stmt - If statement (unused in placeholder)
-   */
-  protected generateIfStatement(_stmt: Statement): void {
-    // Phase 7b will implement this fully
-    // For now, just mark as placeholder
-    this.builder.nop();
-  }
-
-  /**
-   * Generate IL for a while statement.
-   *
-   * Placeholder - full implementation in Phase 7b.
-   *
-   * @param _stmt - While statement (unused in placeholder)
-   */
-  protected generateWhileStatement(_stmt: Statement): void {
-    // Phase 7b will implement this fully
-    this.builder.nop();
-  }
-
-  /**
-   * Generate IL for a for statement.
-   *
-   * Placeholder - full implementation in Phase 7b.
-   *
-   * @param _stmt - For statement (unused in placeholder)
-   */
-  protected generateForStatement(_stmt: Statement): void {
-    // Phase 7b will implement this fully
-    this.builder.nop();
-  }
-
-  /**
-   * Generate IL for a return statement.
-   *
-   * Placeholder - full implementation in Phase 7b.
-   *
-   * @param _stmt - Return statement (unused in placeholder)
-   */
-  protected generateReturnStatement(_stmt: Statement): void {
-    // Phase 7b will implement this fully
-    // For now, just emit return
-    this.builder.return_();
   }
 
   // ═══════════════════════════════════════════════════════════════════
