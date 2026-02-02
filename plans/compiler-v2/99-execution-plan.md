@@ -1842,55 +1842,55 @@ src/__tests__/semantic/edge-cases/
 > error recovery, error message quality, success flag behavior, analysis completeness.
 > **Final Phase 5B Count:** 3499 tests passing (+57 new tests this session)
 
-### Phase 6: Frame Allocator (NEW) - REVISED
+### Phase 6: Frame Allocator (SFA) ✅ COMPLETE (2026-02-02)
 
-**Session 6.1: Frame Types & Core**
-- [ ] 6.1.1 Define Frame type
-- [ ] 6.1.2 Define FrameSlot type
-- [ ] 6.1.3 Define FrameMap type
-- [ ] 6.1.4 Calculate frame sizes
-- [ ] 6.1.5 Assign frame addresses
-- [ ] 6.1.6 Handle param/local slots
-- [ ] 6.1.7 Add frame unit tests
-- [ ] 6.1.8 Create frame index.ts
+**Session 6.1: Frame Types & Core** ✅
+- [x] 6.1.1 Define Frame type ✅
+- [x] 6.1.2 Define FrameSlot type ✅
+- [x] 6.1.3 Define FrameMap type ✅
+- [x] 6.1.4 Calculate frame sizes ✅
+- [x] 6.1.5 Assign frame addresses ✅
+- [x] 6.1.6 Handle param/local slots ✅
+- [x] 6.1.7 Add frame unit tests ✅ (500+ tests)
+- [x] 6.1.8 Create frame index.ts ✅
 
-**Session 6.2: Semantic → Frame Integration** ⭐ NEW
-- [ ] 6.2.1 Import CallGraph from semantic
-- [ ] 6.2.2 Import RecursionChecker from semantic
-- [ ] 6.2.3 Create FrameAllocator.fromAnalysisResult()
-- [ ] 6.2.4 Add integration tests (Semantic → Frame)
-- [ ] 6.2.5 Test: Parse → Semantic → Frame pipeline
-- [ ] 6.2.6 Test: Frame allocation with real programs
+**Session 6.2: Semantic → Frame Integration** ✅
+- [x] 6.2.1 Import CallGraph from semantic ✅
+- [x] 6.2.2 Import RecursionChecker from semantic ✅
+- [x] 6.2.3 Create FrameAllocator.fromAnalysisResult() ✅
+- [x] 6.2.4 Add integration tests (Semantic → Frame) ✅
+- [x] 6.2.5 Test: Parse → Semantic → Frame pipeline ✅
+- [x] 6.2.6 Test: Frame allocation with real programs ✅
 
-### Phase 7: Simple IL (NEW) - REVISED
+### Phase 7: IL Generator ✅ COMPLETE (2026-02-02)
 
-**Session 7.1-7.4: IL Types, Builder, Generator**
-- [ ] 7.1.1 Define IL opcode enum
-- [ ] 7.1.2 Define IL instruction type
-- [ ] 7.1.3 Define IL program type
-- [ ] 7.1.4 Define IL function type
-- [ ] 7.2.1 Create IL builder class
-- [ ] 7.2.2 Add instruction factories
-- [ ] 7.2.3 Add label management
-- [ ] 7.2.4 Add builder tests
-- [ ] 7.3.1 Create IL generator class
-- [ ] 7.3.2 Generate for expressions
-- [ ] 7.3.3 Generate for statements
-- [ ] 7.3.4 Generate for functions
-- [ ] 7.4.1 Generate for if/else
-- [ ] 7.4.2 Generate for while loops
-- [ ] 7.4.3 Generate for for loops
-- [ ] 7.4.4 Generate for break/continue
-- [ ] 7.4.5 Add generator tests
-- [ ] 7.4.6 Create IL index.ts
+**Session 7.1-7.4: IL Types, Builder, Generator** ✅
+- [x] 7.1.1 Define IL opcode enum ✅
+- [x] 7.1.2 Define IL instruction type ✅
+- [x] 7.1.3 Define IL program type ✅
+- [x] 7.1.4 Define IL function type ✅
+- [x] 7.2.1 Create IL builder class ✅
+- [x] 7.2.2 Add instruction factories ✅
+- [x] 7.2.3 Add label management ✅
+- [x] 7.2.4 Add builder tests ✅ (100+ tests)
+- [x] 7.3.1 Create IL generator class ✅
+- [x] 7.3.2 Generate for expressions ✅
+- [x] 7.3.3 Generate for statements ✅
+- [x] 7.3.4 Generate for functions ✅
+- [x] 7.4.1 Generate for if/else ✅
+- [x] 7.4.2 Generate for while loops ✅
+- [x] 7.4.3 Generate for for loops ✅
+- [x] 7.4.4 Generate for break/continue ✅
+- [x] 7.4.5 Add generator tests ✅
+- [x] 7.4.6 Create IL index.ts ✅
 
-**Session 7.5: Pipeline Integration Test** ⭐ NEW
-- [ ] 7.5.1 Create pipeline test helper
-- [ ] 7.5.2 Test: Source → Parser → Semantic → Frame → IL
-- [ ] 7.5.3 Test: Simple arithmetic programs
-- [ ] 7.5.4 Test: Control flow programs
-- [ ] 7.5.5 Test: Function call programs
-- [ ] 7.5.6 Verify IL output matches expected
+**Session 7.5: Pipeline Integration Test** ✅
+- [x] 7.5.1 Create pipeline test helper ✅
+- [x] 7.5.2 Test: Source → Parser → Semantic → Frame → IL ✅
+- [x] 7.5.3 Test: Simple arithmetic programs ✅
+- [x] 7.5.4 Test: Control flow programs ✅
+- [x] 7.5.5 Test: Function call programs ✅
+- [x] 7.5.6 Verify IL output matches expected ✅
 
 ### Phase 8: Code Generator (NEW)
 
