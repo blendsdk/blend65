@@ -48,14 +48,14 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module VoiceTrigger;
         
-        @map v1FreqLo at $D400: byte;
-        @map v1FreqHi at $D401: byte;
-        @map v1Control at $D404: byte;
+        const V1_FREQ_LO: word = $D400;
+        const V1_FREQ_HI: word = $D401;
+        const V1_CONTROL: word = $D404;
         
         function playNote(freqLo: byte, freqHi: byte): void {
-          v1FreqLo = freqLo;
-          v1FreqHi = freqHi;
-          v1Control = 17;
+          poke(V1_FREQ_LO, freqLo);
+          poke(V1_FREQ_HI, freqHi);
+          poke(V1_CONTROL, 17);
         }
         
         function main(): void {
@@ -79,12 +79,12 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
         let freqTableLo: byte[12] = [$17, $27, $39, $4B, $5F, $74, $8B, $A3, $BD, $D8, $F5, $14];
         let freqTableHi: byte[12] = [$01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $01, $02];
         
-        @map v1FreqLo at $D400: byte;
-        @map v1FreqHi at $D401: byte;
+        const V1_FREQ_LO: word = $D400;
+        const V1_FREQ_HI: word = $D401;
         
         function setNote(noteIndex: byte): void {
-          v1FreqLo = freqTableLo[noteIndex];
-          v1FreqHi = freqTableHi[noteIndex];
+          poke(V1_FREQ_LO, freqTableLo[noteIndex]);
+          poke(V1_FREQ_HI, freqTableHi[noteIndex]);
         }
         
         function main(): void {
@@ -105,12 +105,12 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module ADSR;
         
-        @map v1AD at $D405: byte;
-        @map v1SR at $D406: byte;
+        const V1_AD: word = $D405;
+        const V1_SR: word = $D406;
         
         function setEnvelope(attack: byte, decay: byte, sustain: byte, release: byte): void {
-          v1AD = (attack * 16) + decay;
-          v1SR = (sustain * 16) + release;
+          poke(V1_AD, (attack * 16) + decay);
+          poke(V1_SR, (sustain * 16) + release);
         }
         
         function main(): void {
@@ -131,22 +131,22 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module Waveform;
         
-        @map v1Control at $D404: byte;
+        const V1_CONTROL: word = $D404;
         
         function setTriangle(): void {
-          v1Control = 17;
+          poke(V1_CONTROL, 17);
         }
         
         function setSawtooth(): void {
-          v1Control = 33;
+          poke(V1_CONTROL, 33);
         }
         
         function setPulse(): void {
-          v1Control = 65;
+          poke(V1_CONTROL, 65);
         }
         
         function setNoise(): void {
-          v1Control = 129;
+          poke(V1_CONTROL, 129);
         }
         
         function main(): void {
@@ -176,10 +176,10 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module Volume;
         
-        @map sidVolume at $D418: byte;
+        const SID_VOLUME: word = $D418;
         
         function setVolume(vol: byte): void {
-          sidVolume = vol & $0F;
+          poke(SID_VOLUME, vol & $0F);
         }
         
         function main(): void {
@@ -199,11 +199,11 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module FadeIn;
         
-        @map sidVolume at $D418: byte;
+        const SID_VOLUME: word = $D418;
         
         function fadeIn(): void {
           for (let vol: byte = 0 to 15 step 1) {
-            sidVolume = vol;
+            poke(SID_VOLUME, vol);
             
             for (let delay: byte = 0 to 255 step 1) {
               let wait: byte = 0;
@@ -229,11 +229,11 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module FadeOut;
         
-        @map sidVolume at $D418: byte;
+        const SID_VOLUME: word = $D418;
         
         function fadeOut(): void {
           for (let vol: byte = 15 downto 0 step 1) {
-            sidVolume = vol;
+            poke(SID_VOLUME, vol);
             
             for (let delay: byte = 0 to 255 step 1) {
               let wait: byte = 0;
@@ -267,15 +267,18 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module FilterSweep;
         
-        @map filterLo at $D415: byte;
-        @map filterHi at $D416: byte;
+        const FILTER_LO: word = $D415;
+        const FILTER_HI: word = $D416;
         
         function sweepFilter(startHi: byte, endHi: byte): void {
-          filterLo = 0;
-          filterHi = startHi;
+          poke(FILTER_LO, 0);
           
-          while (filterHi < endHi) {
-            filterHi = filterHi + 1;
+          let currentHi: byte = startHi;
+          poke(FILTER_HI, currentHi);
+          
+          while (currentHi < endHi) {
+            currentHi = currentHi + 1;
+            poke(FILTER_HI, currentHi);
           }
         }
         
@@ -297,17 +300,17 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module FilterMode;
         
-        @map filterRes at $D417: byte;
-        @map volumeFilter at $D418: byte;
+        const FILTER_RES: word = $D417;
+        const VOLUME_FILTER: word = $D418;
         
         function setLowPass(resonance: byte, voiceMask: byte): void {
-          filterRes = (resonance * 16) | voiceMask;
-          volumeFilter = volumeFilter | $10;
+          poke(FILTER_RES, (resonance * 16) | voiceMask);
+          poke(VOLUME_FILTER, peek(VOLUME_FILTER) | $10);
         }
         
         function setHighPass(resonance: byte, voiceMask: byte): void {
-          filterRes = (resonance * 16) | voiceMask;
-          volumeFilter = volumeFilter | $40;
+          poke(FILTER_RES, (resonance * 16) | voiceMask);
+          poke(VOLUME_FILTER, peek(VOLUME_FILTER) | $40);
         }
         
         function main(): void {
@@ -334,29 +337,29 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module MultiVoice;
         
-        @map v1FreqLo at $D400: byte;
-        @map v1FreqHi at $D401: byte;
-        @map v1Control at $D404: byte;
+        const V1_FREQ_LO: word = $D400;
+        const V1_FREQ_HI: word = $D401;
+        const V1_CONTROL: word = $D404;
         
-        @map v2FreqLo at $D407: byte;
-        @map v2FreqHi at $D408: byte;
-        @map v2Control at $D40B: byte;
+        const V2_FREQ_LO: word = $D407;
+        const V2_FREQ_HI: word = $D408;
+        const V2_CONTROL: word = $D40B;
         
-        @map v3FreqLo at $D40E: byte;
-        @map v3FreqHi at $D40F: byte;
-        @map v3Control at $D412: byte;
+        const V3_FREQ_LO: word = $D40E;
+        const V3_FREQ_HI: word = $D40F;
+        const V3_CONTROL: word = $D412;
         
         function playChord(f1Lo: byte, f1Hi: byte, f2Lo: byte, f2Hi: byte, f3Lo: byte, f3Hi: byte): void {
-          v1FreqLo = f1Lo;
-          v1FreqHi = f1Hi;
-          v2FreqLo = f2Lo;
-          v2FreqHi = f2Hi;
-          v3FreqLo = f3Lo;
-          v3FreqHi = f3Hi;
+          poke(V1_FREQ_LO, f1Lo);
+          poke(V1_FREQ_HI, f1Hi);
+          poke(V2_FREQ_LO, f2Lo);
+          poke(V2_FREQ_HI, f2Hi);
+          poke(V3_FREQ_LO, f3Lo);
+          poke(V3_FREQ_HI, f3Hi);
           
-          v1Control = 17;
-          v2Control = 17;
-          v3Control = 17;
+          poke(V1_CONTROL, 17);
+          poke(V2_CONTROL, 17);
+          poke(V3_CONTROL, 17);
         }
         
         function main(): void {
@@ -383,19 +386,19 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module SFX;
         
-        @map v3FreqLo at $D40E: byte;
-        @map v3FreqHi at $D40F: byte;
-        @map v3AD at $D412: byte;
-        @map v3SR at $D413: byte;
-        @map v3Control at $D411: byte;
+        const V3_FREQ_LO: word = $D40E;
+        const V3_FREQ_HI: word = $D40F;
+        const V3_AD: word = $D412;
+        const V3_SR: word = $D413;
+        const V3_CONTROL: word = $D411;
         
         function playSFX(freqLo: byte, freqHi: byte): void {
-          v3FreqLo = freqLo;
-          v3FreqHi = freqHi;
-          v3AD = $00;
-          v3SR = $F0;
-          v3Control = 129;
-          v3Control = 128;
+          poke(V3_FREQ_LO, freqLo);
+          poke(V3_FREQ_HI, freqHi);
+          poke(V3_AD, $00);
+          poke(V3_SR, $F0);
+          poke(V3_CONTROL, 129);
+          poke(V3_CONTROL, 128);
         }
         
         function main(): void {
@@ -416,15 +419,18 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module PitchSlide;
         
-        @map v1FreqLo at $D400: byte;
-        @map v1FreqHi at $D401: byte;
+        const V1_FREQ_LO: word = $D400;
+        const V1_FREQ_HI: word = $D401;
         
         function slideUp(startHi: byte, endHi: byte): void {
-          v1FreqLo = 0;
-          v1FreqHi = startHi;
+          poke(V1_FREQ_LO, 0);
           
-          while (v1FreqHi < endHi) {
-            v1FreqHi = v1FreqHi + 1;
+          let currentHi: byte = startHi;
+          poke(V1_FREQ_HI, currentHi);
+          
+          while (currentHi < endHi) {
+            currentHi = currentHi + 1;
+            poke(V1_FREQ_HI, currentHi);
             
             for (let delay: byte = 0 to 10 step 1) {
               let wait: byte = 0;
@@ -459,10 +465,10 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
         let sequence: byte[8] = [0, 2, 4, 5, 7, 5, 4, 2];
         let seqPos: byte = 0;
         
-        @map v1FreqLo at $D400: byte;
+        const V1_FREQ_LO: word = $D400;
         
         function nextNote(): void {
-          v1FreqLo = sequence[seqPos];
+          poke(V1_FREQ_LO, sequence[seqPos]);
           seqPos = seqPos + 1;
           if (seqPos >= 8) {
             seqPos = 0;
@@ -526,7 +532,7 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const source = `
         module SIDInit;
         
-        let sidRegs: byte[25] = [];
+        let sidRegs: byte[25] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         
         function initSID(): void {
           for (let i: byte = 0 to 24 step 1) {

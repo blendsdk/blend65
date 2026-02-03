@@ -45,10 +45,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module Joy1;
         
-        @map joy1 at $DC00: byte;
+        const JOY_PORT_1: word = $DC00;
         
         function readJoystick1(): byte {
-          return joy1;
+          return volatile_read(JOY_PORT_1);
         }
         
         function main(): void {
@@ -69,10 +69,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module Joy2;
         
-        @map joy2 at $DC01: byte;
+        const JOY_PORT_2: word = $DC01;
         
         function readJoystick2(): byte {
-          return joy2;
+          return volatile_read(JOY_PORT_2);
         }
         
         function main(): void {
@@ -97,10 +97,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyUp;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         
         function isUp(): byte {
-          let raw: byte = joy & 1;
+          let raw: byte = volatile_read(JOY_PORT) & 1;
           if (raw == 0) {
             return 1;
           }
@@ -126,10 +126,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyDown;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         
         function isDown(): byte {
-          let raw: byte = joy & 2;
+          let raw: byte = volatile_read(JOY_PORT) & 2;
           if (raw == 0) {
             return 1;
           }
@@ -152,10 +152,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyLeft;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         
         function isLeft(): byte {
-          let raw: byte = joy & 4;
+          let raw: byte = volatile_read(JOY_PORT) & 4;
           if (raw == 0) {
             return 1;
           }
@@ -178,10 +178,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyRight;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         
         function isRight(): byte {
-          let raw: byte = joy & 8;
+          let raw: byte = volatile_read(JOY_PORT) & 8;
           if (raw == 0) {
             return 1;
           }
@@ -204,10 +204,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyFire;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         
         function isFire(): byte {
-          let raw: byte = joy & 16;
+          let raw: byte = volatile_read(JOY_PORT) & 16;
           if (raw == 0) {
             return 1;
           }
@@ -237,11 +237,11 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyDiagonal;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         
         function isUpRight(): byte {
           let mask: byte = 1 + 8;
-          let raw: byte = joy & mask;
+          let raw: byte = volatile_read(JOY_PORT) & mask;
           if (raw == 0) {
             return 1;
           }
@@ -267,13 +267,13 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyHandler;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         
         let playerX: byte = 128;
         let playerY: byte = 128;
         
         function handleJoystick(): void {
-          let input: byte = joy;
+          let input: byte = volatile_read(JOY_PORT);
           
           if ((input & 1) == 0) {
             playerY = playerY - 1;
@@ -324,11 +324,11 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module JoyDebounce;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         let lastInput: byte = 255;
         
         function isNewPress(): byte {
-          let current: byte = joy;
+          let current: byte = volatile_read(JOY_PORT);
           let newPress: byte = (lastInput ^ current) & current;
           lastInput = current;
           return newPress;
@@ -353,11 +353,11 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module FireDebounce;
         
-        @map joy at $DC00: byte;
+        const JOY_PORT: word = $DC00;
         let lastFire: byte = 1;
         
         function checkFirePressed(): byte {
-          let currentFire: byte = joy & 16;
+          let currentFire: byte = volatile_read(JOY_PORT) & 16;
           
           if (currentFire == 0) {
             if (lastFire != 0) {
@@ -394,12 +394,12 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module InputBuffer;
         
-        @map joy at $DC00: byte;
-        let inputBuffer: byte[8] = [];
+        const JOY_PORT: word = $DC00;
+        let inputBuffer: byte[8] = [0, 0, 0, 0, 0, 0, 0, 0];
         let bufferIndex: byte = 0;
         
         function recordInput(): void {
-          inputBuffer[bufferIndex] = joy;
+          inputBuffer[bufferIndex] = volatile_read(JOY_PORT);
           bufferIndex = bufferIndex + 1;
           if (bufferIndex >= 8) {
             bufferIndex = 0;
@@ -425,7 +425,7 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module InputHistory;
         
-        let inputHistory: byte[4] = [];
+        let inputHistory: byte[4] = [0, 0, 0, 0];
         let historyIndex: byte = 0;
         
         function checkSequence(expected: byte): byte {
@@ -467,12 +467,12 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module Keyboard;
         
-        @map keyColumn at $DC00: byte;
-        @map keyRow at $DC01: byte;
+        const KEY_COLUMN: word = $DC00;
+        const KEY_ROW: word = $DC01;
         
         function checkKey(column: byte): byte {
-          keyColumn = column;
-          return keyRow;
+          poke(KEY_COLUMN, column);
+          return volatile_read(KEY_ROW);
         }
         
         function main(): void {
@@ -493,15 +493,15 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module KeyScan;
         
-        @map keyColumn at $DC00: byte;
-        @map keyRow at $DC01: byte;
+        const KEY_COLUMN: word = $DC00;
+        const KEY_ROW: word = $DC01;
         
         function scanKeyboard(): byte {
           let column: byte = 254;
           
           for (let i: byte = 0 to 7 step 1) {
-            keyColumn = column;
-            let row: byte = keyRow;
+            poke(KEY_COLUMN, column);
+            let row: byte = volatile_read(KEY_ROW);
             
             if (row != 255) {
               return i;
@@ -537,8 +537,8 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const source = `
         module TwoPlayer;
         
-        @map joy1 at $DC01: byte;
-        @map joy2 at $DC00: byte;
+        const JOY_PORT_1: word = $DC01;
+        const JOY_PORT_2: word = $DC00;
         
         let player1X: byte = 64;
         let player1Y: byte = 128;
@@ -546,8 +546,8 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
         let player2Y: byte = 128;
         
         function updatePlayers(): void {
-          let input1: byte = joy1;
-          let input2: byte = joy2;
+          let input1: byte = volatile_read(JOY_PORT_1);
+          let input2: byte = volatile_read(JOY_PORT_2);
           
           if ((input1 & 4) == 0) {
             player1X = player1X - 1;

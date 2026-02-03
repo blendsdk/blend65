@@ -43,10 +43,10 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module RasterWait;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function waitForLine(line: byte): void {
-          while (rasterLine != line) {
+          while (volatile_read(RASTER_LINE) != line) {
             let wait: byte = 0;
           }
         }
@@ -71,10 +71,10 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module RasterCompare;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function waitUntilRaster(target: byte): void {
-          while (rasterLine < target) {
+          while (volatile_read(RASTER_LINE) < target) {
             let spin: byte = 0;
           }
         }
@@ -95,10 +95,10 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module TopOfScreen;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function waitForTopOfScreen(): void {
-          while (rasterLine != 0) {
+          while (volatile_read(RASTER_LINE) != 0) {
             let wait: byte = 0;
           }
         }
@@ -119,10 +119,10 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module BottomOfScreen;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function waitForBottomOfScreen(): void {
-          while (rasterLine != 255) {
+          while (volatile_read(RASTER_LINE) != 255) {
             let wait: byte = 0;
           }
         }
@@ -149,18 +149,18 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module RasterBar;
         
-        @map rasterLine at $D012: byte;
-        @map borderColor at $D020: byte;
+        const RASTER_LINE: word = $D012;
+        const BORDER_COLOR: word = $D020;
         
         let colors: byte[8] = [0, 6, 14, 3, 1, 3, 14, 6];
         
         function drawRasterBar(startLine: byte): void {
           for (let i: byte = 0 to 7 step 1) {
             let targetLine: byte = startLine + i;
-            while (rasterLine != targetLine) {
+            while (volatile_read(RASTER_LINE) != targetLine) {
               let wait: byte = 0;
             }
-            borderColor = colors[i];
+            poke(BORDER_COLOR, colors[i]);
           }
         }
         
@@ -186,19 +186,19 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module MultiColorRaster;
         
-        @map rasterLine at $D012: byte;
-        @map backgroundColor at $D021: byte;
+        const RASTER_LINE: word = $D012;
+        const BG_COLOR: word = $D021;
         
         function colorSplit(line1: byte, color1: byte, line2: byte, color2: byte): void {
-          while (rasterLine != line1) {
+          while (volatile_read(RASTER_LINE) != line1) {
             let wait: byte = 0;
           }
-          backgroundColor = color1;
+          poke(BG_COLOR, color1);
           
-          while (rasterLine != line2) {
+          while (volatile_read(RASTER_LINE) != line2) {
             let wait: byte = 0;
           }
-          backgroundColor = color2;
+          poke(BG_COLOR, color2);
         }
         
         function main(): void {
@@ -225,17 +225,17 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module SplitScreen;
         
-        @map rasterLine at $D012: byte;
-        @map memControl at $D018: byte;
+        const RASTER_LINE: word = $D012;
+        const MEM_CONTROL: word = $D018;
         
         let screenConfig1: byte = $14;
         let screenConfig2: byte = $18;
         
         function handleSplitScreen(splitLine: byte): void {
-          while (rasterLine != splitLine) {
+          while (volatile_read(RASTER_LINE) != splitLine) {
             let wait: byte = 0;
           }
-          memControl = screenConfig2;
+          poke(MEM_CONTROL, screenConfig2);
         }
         
         function main(): void {
@@ -260,20 +260,20 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module RasterIRQ;
         
-        @map rasterCompare at $D012: byte;
-        @map vicControl at $D011: byte;
-        @map irqEnable at $D01A: byte;
+        const RASTER_COMPARE: word = $D012;
+        const VIC_CONTROL: word = $D011;
+        const IRQ_ENABLE: word = $D01A;
         
         function setupRasterIRQ(line: byte, highBit: byte): void {
-          rasterCompare = line;
+          poke(RASTER_COMPARE, line);
           
           if (highBit > 0) {
-            vicControl = vicControl | 128;
+            poke(VIC_CONTROL, peek(VIC_CONTROL) | 128);
           } else {
-            vicControl = vicControl & 127;
+            poke(VIC_CONTROL, peek(VIC_CONTROL) & 127);
           }
           
-          irqEnable = irqEnable | 1;
+          poke(IRQ_ENABLE, peek(IRQ_ENABLE) | 1);
         }
         
         function main(): void {
@@ -307,14 +307,14 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module StableRaster;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function stableWait(line: byte): void {
-          while (rasterLine != line) {
+          while (volatile_read(RASTER_LINE) != line) {
             let wait: byte = 0;
           }
           
-          while (rasterLine == line) {
+          while (volatile_read(RASTER_LINE) == line) {
             let stable: byte = 0;
           }
         }
@@ -367,10 +367,10 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module VBlank;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function waitForVBlank(): void {
-          while (rasterLine < 251) {
+          while (volatile_read(RASTER_LINE) < 251) {
             let wait: byte = 0;
           }
         }
@@ -391,15 +391,15 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module FrameSync;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         let lastFrameRaster: byte = 0;
         
         function waitNextFrame(): void {
-          while (rasterLine >= 200) {
+          while (volatile_read(RASTER_LINE) >= 200) {
             let wait: byte = 0;
           }
           
-          while (rasterLine < 200) {
+          while (volatile_read(RASTER_LINE) < 200) {
             let wait: byte = 0;
           }
         }
@@ -428,10 +428,10 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const source = `
         module SystemDetect;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function detectSystem(): byte {
-          while (rasterLine != 0) {
+          while (volatile_read(RASTER_LINE) != 0) {
             let wait: byte = 0;
           }
           
@@ -439,7 +439,7 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
           let prevLine: byte = 0;
           
           for (let i: word = 0 to 400 step 1) {
-            let current: byte = rasterLine;
+            let current: byte = volatile_read(RASTER_LINE);
             if (current > maxLine) {
               maxLine = current;
             }

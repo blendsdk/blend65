@@ -42,14 +42,14 @@ import { ILOpcode } from '../../../../il/enums.js';
 
 describe('E2E Real-World: Sprite Handling Patterns', () => {
   describe('Sprite Enable/Disable', () => {
-    it('should generate IL for sprite enable via mapped register', () => {
+    it('should generate IL for sprite enable via poke/peek', () => {
       const source = `
         module SpriteEnable;
         
-        @map spriteEnable at $D015: byte;
+        const SPRITE_ENABLE: word = $D015;
         
         function enableSprite(mask: byte): void {
-          spriteEnable = spriteEnable | mask;
+          poke(SPRITE_ENABLE, peek(SPRITE_ENABLE) | mask);
         }
         
         function main(): void {
@@ -71,10 +71,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteDisable;
         
-        @map spriteEnable at $D015: byte;
+        const SPRITE_ENABLE: word = $D015;
         
         function disableSprite(mask: byte): void {
-          spriteEnable = spriteEnable & mask;
+          poke(SPRITE_ENABLE, peek(SPRITE_ENABLE) & mask);
         }
         
         function main(): void {
@@ -94,10 +94,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module EnableAll;
         
-        @map spriteEnable at $D015: byte;
+        const SPRITE_ENABLE: word = $D015;
         
         function enableAllSprites(): void {
-          spriteEnable = 255;
+          poke(SPRITE_ENABLE, 255);
         }
         
         function main(): void {
@@ -124,10 +124,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteX;
         
-        @map sprite0X at $D000: byte;
+        const SPRITE_0_X: word = $D000;
         
         function setSprite0X(x: byte): void {
-          sprite0X = x;
+          poke(SPRITE_0_X, x);
         }
         
         function main(): void {
@@ -139,7 +139,7 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const setFunc = getFunction(program, 'setSprite0X');
       expect(setFunc).toBeDefined();
 
-      // Should load parameter and store to mapped address
+      // Should load parameter and store to address
       expect(hasOpcode(setFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
       expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
     });
@@ -148,10 +148,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteY;
         
-        @map sprite0Y at $D001: byte;
+        const SPRITE_0_Y: word = $D001;
         
         function setSprite0Y(y: byte): void {
-          sprite0Y = y;
+          poke(SPRITE_0_Y, y);
         }
         
         function main(): void {
@@ -170,16 +170,16 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteMSB;
         
-        @map sprite0X at $D000: byte;
-        @map spriteMSB at $D010: byte;
+        const SPRITE_0_X: word = $D000;
+        const SPRITE_MSB: word = $D010;
         
         function setSprite0XExtended(xLo: byte, xHi: byte): void {
-          sprite0X = xLo;
+          poke(SPRITE_0_X, xLo);
           
           if (xHi > 0) {
-            spriteMSB = spriteMSB | 1;
+            poke(SPRITE_MSB, peek(SPRITE_MSB) | 1);
           } else {
-            spriteMSB = spriteMSB & 254;
+            poke(SPRITE_MSB, peek(SPRITE_MSB) & 254);
           }
         }
         
@@ -208,16 +208,16 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module MultiSprite;
         
-        @map sprite0X at $D000: byte;
-        @map sprite0Y at $D001: byte;
-        @map sprite1X at $D002: byte;
-        @map sprite1Y at $D003: byte;
+        const SPRITE_0_X: word = $D000;
+        const SPRITE_0_Y: word = $D001;
+        const SPRITE_1_X: word = $D002;
+        const SPRITE_1_Y: word = $D003;
         
         function updateSprites(x0: byte, y0: byte, x1: byte, y1: byte): void {
-          sprite0X = x0;
-          sprite0Y = y0;
-          sprite1X = x1;
-          sprite1Y = y1;
+          poke(SPRITE_0_X, x0);
+          poke(SPRITE_0_Y, y0);
+          poke(SPRITE_1_X, x1);
+          poke(SPRITE_1_Y, y1);
         }
         
         function main(): void {
@@ -244,10 +244,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteColor;
         
-        @map sprite0Color at $D027: byte;
+        const SPRITE_0_COLOR: word = $D027;
         
         function setSprite0Color(color: byte): void {
-          sprite0Color = color;
+          poke(SPRITE_0_COLOR, color);
         }
         
         function main(): void {
@@ -266,16 +266,16 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpritePriority;
         
-        @map spritePriority at $D01B: byte;
+        const SPRITE_PRIORITY: word = $D01B;
         
         function setSpriteInFront(spriteNum: byte): void {
           let mask: byte = 1;
-          spritePriority = spritePriority & (255 - mask);
+          poke(SPRITE_PRIORITY, peek(SPRITE_PRIORITY) & (255 - mask));
         }
         
         function setSpriteBehind(spriteNum: byte): void {
           let mask: byte = 1;
-          spritePriority = spritePriority | mask;
+          poke(SPRITE_PRIORITY, peek(SPRITE_PRIORITY) | mask);
         }
         
         function main(): void {
@@ -311,14 +311,14 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
         let currentFrame: byte = 0;
         let maxFrames: byte = 4;
         
-        @map spritePointer at $07F8: byte;
+        const SPRITE_POINTER: word = $07F8;
         
         function nextFrame(): void {
           currentFrame = currentFrame + 1;
           if (currentFrame >= maxFrames) {
             currentFrame = 0;
           }
-          spritePointer = currentFrame + 192;
+          poke(SPRITE_POINTER, currentFrame + 192);
         }
         
         function main(): void {
@@ -347,10 +347,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
         let animTable: byte[4] = [192, 193, 194, 195];
         let frameIndex: byte = 0;
         
-        @map spritePointer at $07F8: byte;
+        const SPRITE_POINTER: word = $07F8;
         
         function setFrame(index: byte): void {
-          spritePointer = animTable[index];
+          poke(SPRITE_POINTER, animTable[index]);
         }
         
         function main(): void {
@@ -376,10 +376,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteCollision;
         
-        @map spriteCollision at $D01E: byte;
+        const SPRITE_COLLISION: word = $D01E;
         
         function checkCollision(): byte {
-          return spriteCollision;
+          return volatile_read(SPRITE_COLLISION);
         }
         
         function main(): void {
@@ -400,10 +400,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module BgCollision;
         
-        @map bgCollision at $D01F: byte;
+        const BG_COLLISION: word = $D01F;
         
         function checkBgCollision(spriteMask: byte): byte {
-          let result: byte = bgCollision & spriteMask;
+          let result: byte = volatile_read(BG_COLLISION) & spriteMask;
           return result;
         }
         
@@ -424,11 +424,11 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module CollisionResponse;
         
-        @map spriteCollision at $D01E: byte;
+        const SPRITE_COLLISION: word = $D01E;
         let playerHit: byte = 0;
         
         function checkPlayerCollision(): void {
-          let collision: byte = spriteCollision & 1;
+          let collision: byte = volatile_read(SPRITE_COLLISION) & 1;
           if (collision > 0) {
             playerHit = 1;
           }
@@ -458,7 +458,7 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpritePool;
         
-        @map spriteEnable at $D015: byte;
+        const SPRITE_ENABLE: word = $D015;
         
         function enableNthSprite(n: byte): void {
           let mask: byte = 1;
@@ -469,7 +469,7 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
             }
           }
           
-          spriteEnable = spriteEnable | mask;
+          poke(SPRITE_ENABLE, peek(SPRITE_ENABLE) | mask);
         }
         
         function main(): void {
@@ -493,7 +493,7 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpritePoolDisable;
         
-        @map spriteEnable at $D015: byte;
+        const SPRITE_ENABLE: word = $D015;
         
         function disableNthSprite(n: byte): void {
           let mask: byte = 1;
@@ -505,7 +505,7 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
           }
           
           mask = 255 - mask;
-          spriteEnable = spriteEnable & mask;
+          poke(SPRITE_ENABLE, peek(SPRITE_ENABLE) & mask);
         }
         
         function main(): void {
@@ -533,10 +533,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteExpand;
         
-        @map spriteXExpand at $D01D: byte;
+        const SPRITE_X_EXPAND: word = $D01D;
         
         function expandSpriteX(spriteMask: byte): void {
-          spriteXExpand = spriteXExpand | spriteMask;
+          poke(SPRITE_X_EXPAND, peek(SPRITE_X_EXPAND) | spriteMask);
         }
         
         function main(): void {
@@ -555,10 +555,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const source = `
         module SpriteExpandY;
         
-        @map spriteYExpand at $D017: byte;
+        const SPRITE_Y_EXPAND: word = $D017;
         
         function expandSpriteY(spriteMask: byte): void {
-          spriteYExpand = spriteYExpand | spriteMask;
+          poke(SPRITE_Y_EXPAND, peek(SPRITE_Y_EXPAND) | spriteMask);
         }
         
         function main(): void {

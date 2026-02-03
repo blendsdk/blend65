@@ -230,11 +230,12 @@ describe('E2E Real-World: Game Loop Patterns', () => {
       const source = `
         module FrameLock;
         
-        // Simulated raster register
-        @map rasterLine at $D012: byte;
+        // Raster register address constant
+        const RASTER_LINE: word = $D012;
         
         function waitForVBlank(): void {
-          while (rasterLine != 0) {
+          // Use volatile_read for hardware register polling
+          while (volatile_read(RASTER_LINE) != 0) {
             let wait: byte = 0;
           }
         }
@@ -252,7 +253,7 @@ describe('E2E Real-World: Game Loop Patterns', () => {
       const waitFunc = getFunction(program, 'waitForVBlank');
       expect(waitFunc).toBeDefined();
 
-      // Wait function should read from mapped register
+      // Wait function should have volatile_read (generates LOAD instruction)
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.CMP_IMM)).toBe(true);
     });

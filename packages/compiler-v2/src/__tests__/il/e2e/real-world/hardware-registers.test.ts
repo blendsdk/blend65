@@ -56,10 +56,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module BorderColor;
         
-        @map borderColor at $D020: byte;
+        const BORDER_COLOR: word = $D020;
         
         function setBorderColor(color: byte): void {
-          borderColor = color;
+          poke(BORDER_COLOR, color);
         }
         
         function main(): void {
@@ -71,7 +71,7 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const setFunc = getFunction(program, 'setBorderColor');
       expect(setFunc).toBeDefined();
 
-      // Should have LOAD_BYTE (param) and STORE_BYTE (to mapped register)
+      // Should have LOAD_BYTE (param) and STORE_BYTE (to address)
       expect(hasOpcode(setFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
       expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
     });
@@ -80,10 +80,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module BackgroundColor;
         
-        @map backgroundColor at $D021: byte;
+        const BG_COLOR: word = $D021;
         
         function setBackgroundColor(color: byte): void {
-          backgroundColor = color;
+          poke(BG_COLOR, color);
         }
         
         function main(): void {
@@ -102,13 +102,15 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module ColorCycle;
         
-        @map borderColor at $D020: byte;
+        const BORDER_COLOR: word = $D020;
         
         function cycleBorderColor(): void {
-          borderColor = borderColor + 1;
-          if (borderColor > 15) {
-            borderColor = 0;
+          let currentColor: byte = peek(BORDER_COLOR);
+          currentColor = currentColor + 1;
+          if (currentColor > 15) {
+            currentColor = 0;
           }
+          poke(BORDER_COLOR, currentColor);
         }
         
         function main(): void {
@@ -136,10 +138,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module RasterLine;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function getRasterLine(): byte {
-          return rasterLine;
+          return volatile_read(RASTER_LINE);
         }
         
         function main(): void {
@@ -159,16 +161,16 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module RasterCompare;
         
-        @map rasterLine at $D012: byte;
-        @map vicControl1 at $D011: byte;
+        const RASTER_LINE: word = $D012;
+        const VIC_CONTROL_1: word = $D011;
         
         function setRasterCompare(line: byte, msb: byte): void {
-          rasterLine = line;
+          poke(RASTER_LINE, line);
           
           if (msb > 0) {
-            vicControl1 = vicControl1 | 128;
+            poke(VIC_CONTROL_1, peek(VIC_CONTROL_1) | 128);
           } else {
-            vicControl1 = vicControl1 & 127;
+            poke(VIC_CONTROL_1, peek(VIC_CONTROL_1) & 127);
           }
         }
         
@@ -198,10 +200,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module RasterWait;
         
-        @map rasterLine at $D012: byte;
+        const RASTER_LINE: word = $D012;
         
         function waitForRaster(targetLine: byte): void {
-          while (rasterLine != targetLine) {
+          while (volatile_read(RASTER_LINE) != targetLine) {
             let wait: byte = 0;
           }
         }
@@ -231,10 +233,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module ScreenMemory;
         
-        @map memoryControl at $D018: byte;
+        const MEMORY_CONTROL: word = $D018;
         
         function setScreenMemory(value: byte): void {
-          memoryControl = value;
+          poke(MEMORY_CONTROL, value);
         }
         
         function main(): void {
@@ -253,11 +255,11 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module SmoothScrollX;
         
-        @map vicControl2 at $D016: byte;
+        const VIC_CONTROL_2: word = $D016;
         
         function setXScroll(scroll: byte): void {
-          let masked: byte = vicControl2 & $F8;
-          vicControl2 = masked | (scroll & 7);
+          let masked: byte = peek(VIC_CONTROL_2) & $F8;
+          poke(VIC_CONTROL_2, masked | (scroll & 7));
         }
         
         function main(): void {
@@ -285,11 +287,11 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module SmoothScrollY;
         
-        @map vicControl1 at $D011: byte;
+        const VIC_CONTROL_1: word = $D011;
         
         function setYScroll(scroll: byte): void {
-          let masked: byte = vicControl1 & $F8;
-          vicControl1 = masked | (scroll & 7);
+          let masked: byte = peek(VIC_CONTROL_1) & $F8;
+          poke(VIC_CONTROL_1, masked | (scroll & 7));
         }
         
         function main(): void {
@@ -314,10 +316,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module IRQEnable;
         
-        @map irqControl at $D01A: byte;
+        const IRQ_CONTROL: word = $D01A;
         
         function enableRasterIRQ(): void {
-          irqControl = irqControl | 1;
+          poke(IRQ_CONTROL, peek(IRQ_CONTROL) | 1);
         }
         
         function main(): void {
@@ -336,10 +338,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module IRQDisable;
         
-        @map irqControl at $D01A: byte;
+        const IRQ_CONTROL: word = $D01A;
         
         function disableAllIRQ(): void {
-          irqControl = 0;
+          poke(IRQ_CONTROL, 0);
         }
         
         function main(): void {
@@ -359,10 +361,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module IRQAck;
         
-        @map irqStatus at $D019: byte;
+        const IRQ_STATUS: word = $D019;
         
         function acknowledgeRasterIRQ(): void {
-          irqStatus = 1;
+          volatile_write(IRQ_STATUS, 1);
         }
         
         function main(): void {
@@ -387,12 +389,12 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module CIATimer;
         
-        @map timerALo at $DC04: byte;
-        @map timerAHi at $DC05: byte;
+        const TIMER_A_LO: word = $DC04;
+        const TIMER_A_HI: word = $DC05;
         
         function setTimerA(valueLo: byte, valueHi: byte): void {
-          timerALo = valueLo;
-          timerAHi = valueHi;
+          poke(TIMER_A_LO, valueLo);
+          poke(TIMER_A_HI, valueHi);
         }
         
         function main(): void {
@@ -413,15 +415,15 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module CIATimerRead;
         
-        @map timerALo at $DC04: byte;
-        @map timerAHi at $DC05: byte;
+        const TIMER_A_LO: word = $DC04;
+        const TIMER_A_HI: word = $DC05;
         
         function readTimerALo(): byte {
-          return timerALo;
+          return volatile_read(TIMER_A_LO);
         }
         
         function readTimerAHi(): byte {
-          return timerAHi;
+          return volatile_read(TIMER_A_HI);
         }
         
         function main(): void {
@@ -451,12 +453,12 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module SIDFreq;
         
-        @map voice1FreqLo at $D400: byte;
-        @map voice1FreqHi at $D401: byte;
+        const VOICE_1_FREQ_LO: word = $D400;
+        const VOICE_1_FREQ_HI: word = $D401;
         
         function setVoice1Freq(freqLo: byte, freqHi: byte): void {
-          voice1FreqLo = freqLo;
-          voice1FreqHi = freqHi;
+          poke(VOICE_1_FREQ_LO, freqLo);
+          poke(VOICE_1_FREQ_HI, freqHi);
         }
         
         function main(): void {
@@ -476,10 +478,10 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module SIDVolume;
         
-        @map sidVolume at $D418: byte;
+        const SID_VOLUME: word = $D418;
         
         function setVolume(volume: byte): void {
-          sidVolume = volume & $0F;
+          poke(SID_VOLUME, volume & $0F);
         }
         
         function main(): void {
@@ -499,12 +501,12 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module SIDADSR;
         
-        @map voice1AD at $D405: byte;
-        @map voice1SR at $D406: byte;
+        const VOICE_1_AD: word = $D405;
+        const VOICE_1_SR: word = $D406;
         
         function setEnvelope(attack: byte, decay: byte, sustain: byte, release: byte): void {
-          voice1AD = (attack * 16) + decay;
-          voice1SR = (sustain * 16) + release;
+          poke(VOICE_1_AD, (attack * 16) + decay);
+          poke(VOICE_1_SR, (sustain * 16) + release);
         }
         
         function main(): void {
@@ -525,18 +527,18 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module SIDWaveform;
         
-        @map voice1Control at $D404: byte;
+        const VOICE_1_CONTROL: word = $D404;
         
         function setWaveform(waveform: byte): void {
-          voice1Control = waveform;
+          poke(VOICE_1_CONTROL, waveform);
         }
         
         function triggerNote(): void {
-          voice1Control = voice1Control | 1;
+          poke(VOICE_1_CONTROL, peek(VOICE_1_CONTROL) | 1);
         }
         
         function releaseNote(): void {
-          voice1Control = voice1Control & 254;
+          poke(VOICE_1_CONTROL, peek(VOICE_1_CONTROL) & 254);
         }
         
         function main(): void {
@@ -563,15 +565,18 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module SIDFilter;
         
-        @map filterFreqLo at $D415: byte;
-        @map filterFreqHi at $D416: byte;
+        const FILTER_FREQ_LO: word = $D415;
+        const FILTER_FREQ_HI: word = $D416;
         
         function sweepFilter(startLo: byte, startHi: byte, endHi: byte): void {
-          filterFreqLo = startLo;
-          filterFreqHi = startHi;
+          poke(FILTER_FREQ_LO, startLo);
           
-          while (filterFreqHi < endHi) {
-            filterFreqHi = filterFreqHi + 1;
+          let currentHi: byte = startHi;
+          poke(FILTER_FREQ_HI, currentHi);
+          
+          while (currentHi < endHi) {
+            currentHi = currentHi + 1;
+            poke(FILTER_FREQ_HI, currentHi);
           }
         }
         
@@ -600,11 +605,11 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const source = `
         module VICBank;
         
-        @map cia2DataA at $DD00: byte;
+        const CIA2_DATA_A: word = $DD00;
         
         function setVICBank(bank: byte): void {
-          let current: byte = cia2DataA & $FC;
-          cia2DataA = current | (3 - bank);
+          let current: byte = peek(CIA2_DATA_A) & $FC;
+          poke(CIA2_DATA_A, current | (3 - bank));
         }
         
         function main(): void {
