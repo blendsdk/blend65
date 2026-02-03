@@ -303,20 +303,21 @@ describe('ILOptimizer E2E - Custom Options', () => {
   });
 
   it('should respect disabledPasses option', () => {
+    // Disable both peephole AND constant-fold since both can remove ADD 0
     const optimizer = new ILOptimizer({
       level: 'O2',
-      disabledPasses: ['il-peephole'],
+      disabledPasses: ['il-peephole', 'constant-fold'],
     });
 
     const func = createTestILFunction('test', [
       createLoadImmInstr(5),
-      createAddImmInstr(0), // Would be removed by peephole, but it's disabled
+      createAddImmInstr(0), // Would be removed by peephole or constant-fold, but both disabled
       createReturnInstr(),
     ]);
 
     optimizer.optimizeFunction(func);
 
-    // Peephole is disabled, so ADD 0 remains
+    // Both peephole and constant-fold are disabled, so ADD 0 remains
     expect(func.instructions).toHaveLength(3);
   });
 
