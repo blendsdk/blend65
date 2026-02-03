@@ -473,13 +473,17 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 1.3.2 Create raster timing tests ✅ (2026-03-02 21:41)
 - [x] 1.3.3 Create sound/music tests ✅ (2026-03-02 21:43)
 
-**⚠️ DISCOVERED COMPILER LIMITATIONS (104 tests failing):**
-These tests revealed important gaps in the Blend65 semantic analyzer:
-1. **@map declarations not visible in functions** - Module-level @map vars can't be accessed inside functions
-2. **Global `let` variables not visible in functions** - Module-level variables aren't in function scope
-3. **Empty array type inference** - `byte[N] = []` not supported (need explicit initialization)
+**⚠️ TEST ISSUES FOUND (104 tests failing):**
+The tests need to be fixed for the following reasons:
 
-**These are REAL compiler gaps to be fixed, not test bugs. The tests are correct.**
+1. **Tests use outdated `@map` syntax** - `@map` was REMOVED from the language. Tests must be rewritten to use current memory-mapped variable syntax per language-specification-v2.
+2. **Global `let` variables not visible in functions** - Module-level variables aren't in function scope. This is a REAL compiler gap to fix.
+3. **Empty array should throw compiler error** - `byte[N] = []` is invalid because arrays are static-length and require initialization.
+
+**Action Required for Next Session:**
+- [ ] Fix tests to use correct language syntax (not @map)
+- [ ] Fix semantic analyzer: module-level variables must be visible in function scope
+- [ ] Add compiler error for empty array literals (arrays are static)
 
 ### Phase 2: IL Stress
 - [ ] 2.1.1 Create deep nesting tests
