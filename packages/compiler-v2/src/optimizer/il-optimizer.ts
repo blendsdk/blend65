@@ -30,6 +30,10 @@ import { getDefaultOptions } from './options.js';
 import { PassManager } from './pass-manager.js';
 import type { OptimizationResult } from './pass.js';
 import { DCEPass } from './passes/dce.js';
+import { ConstantFoldPass } from './passes/constant-fold.js';
+import { ConstantPropPass } from './passes/constant-prop.js';
+import { CopyPropPass } from './passes/copy-prop.js';
+import { ILPeepholePass } from './passes/il-peephole.js';
 
 // ============================================================================
 // IL Optimizer
@@ -120,20 +124,26 @@ export class ILOptimizer {
    *
    * Registers passes in dependency order:
    * 1. DCE (no dependencies)
-   * 2. ConstantFold (depends on DCE - future)
-   * 3. ConstantProp (depends on ConstantFold - future)
-   * 4. CopyProp (depends on ConstantProp - future)
-   * 5. ILPeephole (depends on CopyProp - future)
+   * 2. ConstantFold
+   * 3. ConstantProp
+   * 4. CopyProp
+   * 5. ILPeephole
    */
   protected registerDefaultPasses(): void {
     // Phase 2: DCE Pass
     this.passManager.registerPass(new DCEPass());
 
-    // Future passes (to be implemented):
-    // this.passManager.registerPass(new ConstantFoldPass());
-    // this.passManager.registerPass(new ConstantPropPass());
-    // this.passManager.registerPass(new CopyPropPass());
-    // this.passManager.registerPass(new ILPeepholePass());
+    // Phase 3: Constant Folding
+    this.passManager.registerPass(new ConstantFoldPass());
+
+    // Phase 4: Constant Propagation
+    this.passManager.registerPass(new ConstantPropPass());
+
+    // Phase 5: Copy Propagation
+    this.passManager.registerPass(new CopyPropPass());
+
+    // Phase 6: IL Peephole
+    this.passManager.registerPass(new ILPeepholePass());
   }
 
   /**
