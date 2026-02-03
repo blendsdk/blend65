@@ -177,9 +177,9 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const labelCount = countOpcode(drawFunc!.instructions, ILOpcode.LABEL);
       expect(labelCount).toBeGreaterThanOrEqual(4);
 
-      // Should have array access
+      // Should have array access and POKE via poke() intrinsic
       expect(hasOpcode(drawFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
-      expect(hasOpcode(drawFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(drawFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for multi-color raster effect', () => {
@@ -210,9 +210,9 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const splitFunc = getFunction(program, 'colorSplit');
       expect(splitFunc).toBeDefined();
 
-      // Should have 2 STORE_BYTE for color changes
-      const storeCount = countOpcode(splitFunc!.instructions, ILOpcode.STORE_BYTE);
-      expect(storeCount).toBe(2);
+      // poke() intrinsic generates POKE opcode - should have 2 POKE for color changes
+      const pokeCount = countOpcode(splitFunc!.instructions, ILOpcode.POKE);
+      expect(pokeCount).toBe(2);
     });
   });
 
@@ -247,7 +247,8 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const splitFunc = getFunction(program, 'handleSplitScreen');
       expect(splitFunc).toBeDefined();
 
-      expect(hasOpcode(splitFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode
+      expect(hasOpcode(splitFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
   });
 

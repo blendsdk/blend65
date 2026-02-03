@@ -67,9 +67,9 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const playFunc = getFunction(program, 'playNote');
       expect(playFunc).toBeDefined();
 
-      // Should have 3 STORE_BYTE operations
-      const storeCount = countOpcode(playFunc!.instructions, ILOpcode.STORE_BYTE);
-      expect(storeCount).toBe(3);
+      // poke() intrinsic generates POKE opcode - should have 3 POKE operations
+      const pokeCount = countOpcode(playFunc!.instructions, ILOpcode.POKE);
+      expect(pokeCount).toBe(3);
     });
 
     it('should generate IL for frequency table lookup', () => {
@@ -96,9 +96,9 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const setFunc = getFunction(program, 'setNote');
       expect(setFunc).toBeDefined();
 
-      // Should have array access
+      // Should have array access and POKE via poke() intrinsic
       expect(hasOpcode(setFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for ADSR envelope setting', () => {
@@ -371,9 +371,9 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const playFunc = getFunction(program, 'playChord');
       expect(playFunc).toBeDefined();
 
-      // Should have 9 STORE_BYTE operations
-      const storeCount = countOpcode(playFunc!.instructions, ILOpcode.STORE_BYTE);
-      expect(storeCount).toBe(9);
+      // poke() intrinsic generates POKE opcode - should have 9 POKE operations
+      const pokeCount = countOpcode(playFunc!.instructions, ILOpcode.POKE);
+      expect(pokeCount).toBe(9);
     });
   });
 
@@ -410,9 +410,9 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const playFunc = getFunction(program, 'playSFX');
       expect(playFunc).toBeDefined();
 
-      // Should have 6 STORE_BYTE operations
-      const storeCount = countOpcode(playFunc!.instructions, ILOpcode.STORE_BYTE);
-      expect(storeCount).toBe(6);
+      // poke() intrinsic generates POKE opcode - should have 6 POKE operations
+      const pokeCount = countOpcode(playFunc!.instructions, ILOpcode.POKE);
+      expect(pokeCount).toBe(6);
     });
 
     it('should generate IL for pitch slide effect', () => {

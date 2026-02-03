@@ -61,10 +61,11 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const enableFunc = getFunction(program, 'enableSprite');
       expect(enableFunc).toBeDefined();
 
-      // Should have LOAD for current value, OR for enable, STORE for write
+      // Should have LOAD for current value, OR for enable, POKE for write
       expect(hasOpcode(enableFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
       expect(hasOpcode(enableFunc!.instructions, ILOpcode.OR_BYTE)).toBe(true);
-      expect(hasOpcode(enableFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode
+      expect(hasOpcode(enableFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for sprite disable via AND mask', () => {
@@ -109,9 +110,9 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const enableFunc = getFunction(program, 'enableAllSprites');
       expect(enableFunc).toBeDefined();
 
-      // Should have LOAD_IMM for 255 and STORE_BYTE
+      // Should have LOAD_IMM for 255 and POKE for poke() intrinsic
       expect(hasOpcode(enableFunc!.instructions, ILOpcode.LOAD_IMM)).toBe(true);
-      expect(hasOpcode(enableFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(enableFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
   });
 
@@ -139,9 +140,9 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const setFunc = getFunction(program, 'setSprite0X');
       expect(setFunc).toBeDefined();
 
-      // Should load parameter and store to address
+      // Should load parameter and POKE to address via poke() intrinsic
       expect(hasOpcode(setFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for sprite Y position setting (0-255)', () => {
@@ -163,7 +164,8 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const setFunc = getFunction(program, 'setSprite0Y');
       expect(setFunc).toBeDefined();
 
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for sprite MSB handling for X > 255', () => {
@@ -229,9 +231,9 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const updateFunc = getFunction(program, 'updateSprites');
       expect(updateFunc).toBeDefined();
 
-      // Should have 4 STORE_BYTE operations
-      const storeCount = countOpcode(updateFunc!.instructions, ILOpcode.STORE_BYTE);
-      expect(storeCount).toBe(4);
+      // poke() intrinsic generates POKE opcode - should have 4 POKE operations
+      const pokeCount = countOpcode(updateFunc!.instructions, ILOpcode.POKE);
+      expect(pokeCount).toBe(4);
     });
   });
 
@@ -259,7 +261,8 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const setFunc = getFunction(program, 'setSprite0Color');
       expect(setFunc).toBeDefined();
 
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for sprite priority (behind/in-front)', () => {
@@ -362,8 +365,8 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const setFunc = getFunction(program, 'setFrame');
       expect(setFunc).toBeDefined();
 
-      // Should have array access and store
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // Should have array access and POKE via poke() intrinsic
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
   });
 

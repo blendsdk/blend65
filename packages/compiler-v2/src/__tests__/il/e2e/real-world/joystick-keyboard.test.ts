@@ -484,8 +484,8 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const checkFunc = getFunction(program, 'checkKey');
       expect(checkFunc).toBeDefined();
 
-      // Should have STORE for column select and LOAD for row read
-      expect(hasOpcode(checkFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode for column select, LOAD for row read
+      expect(hasOpcode(checkFunc!.instructions, ILOpcode.POKE)).toBe(true);
       expect(hasOpcode(checkFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
     });
 

@@ -95,7 +95,8 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const setFunc = getFunction(program, 'setBackgroundColor');
       expect(setFunc).toBeDefined();
 
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for color cycle pattern', () => {
@@ -248,7 +249,8 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const setFunc = getFunction(program, 'setScreenMemory');
       expect(setFunc).toBeDefined();
 
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for smooth scroll X ($D016)', () => {
@@ -354,7 +356,8 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       expect(disableFunc).toBeDefined();
 
       expect(hasOpcode(disableFunc!.instructions, ILOpcode.LOAD_IMM)).toBe(true);
-      expect(hasOpcode(disableFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // poke() intrinsic generates POKE opcode
+      expect(hasOpcode(disableFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for IRQ acknowledge pattern', () => {
@@ -376,7 +379,8 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const ackFunc = getFunction(program, 'acknowledgeRasterIRQ');
       expect(ackFunc).toBeDefined();
 
-      expect(hasOpcode(ackFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      // volatile_write() intrinsic generates POKE opcode
+      expect(hasOpcode(ackFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
   });
 
@@ -406,9 +410,9 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const setFunc = getFunction(program, 'setTimerA');
       expect(setFunc).toBeDefined();
 
-      // Should have 2 STORE_BYTE operations
-      const storeCount = countOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE);
-      expect(storeCount).toBe(2);
+      // poke() intrinsic generates POKE opcode - should have 2 POKE operations
+      const pokeCount = countOpcode(setFunc!.instructions, ILOpcode.POKE);
+      expect(pokeCount).toBe(2);
     });
 
     it('should generate IL for CIA timer read pattern', () => {
@@ -470,8 +474,9 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const setFunc = getFunction(program, 'setVoice1Freq');
       expect(setFunc).toBeDefined();
 
-      const storeCount = countOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE);
-      expect(storeCount).toBe(2);
+      // poke() intrinsic generates POKE opcode - should have 2 POKE operations
+      const pokeCount = countOpcode(setFunc!.instructions, ILOpcode.POKE);
+      expect(pokeCount).toBe(2);
     });
 
     it('should generate IL for SID volume control', () => {
