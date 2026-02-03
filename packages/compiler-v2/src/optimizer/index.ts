@@ -88,13 +88,13 @@ export { ILOptimizer } from './il-optimizer.js';
 export { DCEPass } from './passes/dce.js';
 
 // Phase 3: Constant Folding
-// export { ConstantFoldPass } from './passes/constant-fold.js';
+export { ConstantFoldPass } from './passes/constant-fold.js';
 
 // Phase 4: Constant Propagation
-// export { ConstantPropPass } from './passes/constant-prop.js';
+export { ConstantPropPass } from './passes/constant-prop.js';
 
 // Phase 5: Copy Propagation
-// export { CopyPropPass } from './passes/copy-prop.js';
+export { CopyPropPass } from './passes/copy-prop.js';
 
 // Phase 6: IL Peephole
 // export { ILPeepholePass } from './passes/il-peephole.js';
