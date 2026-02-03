@@ -71,9 +71,9 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const setFunc = getFunction(program, 'setBorderColor');
       expect(setFunc).toBeDefined();
 
-      // Should have LOAD_BYTE (param) and STORE_BYTE (to address)
+      // Should have LOAD_BYTE (param) and POKE (to address via poke intrinsic)
       expect(hasOpcode(setFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });
 
     it('should generate IL for background color change ($D021)', () => {

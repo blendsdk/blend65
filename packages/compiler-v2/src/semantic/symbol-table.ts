@@ -131,15 +131,18 @@ export class SymbolTable {
    * Registers built-in intrinsic functions
    *
    * Intrinsics are compiler-provided functions that don't need to be
-   * declared in user code. They include:
-   * - poke(address, value) - Write byte to memory
-   * - peek(address) - Read byte from memory
-   * - volatile_read(address) - Read byte from hardware register (non-optimizable)
-   * - volatile_write(address, value) - Write byte to hardware register (non-optimizable)
-   * - hi(value) - Get high byte of word
-   * - lo(value) - Get low byte of word
-   * - len(array) - Get length of array
-   * - sizeof(type) - Get size of type in bytes
+   * declared in user code. Per the language specification (08-intrinsics.md),
+   * the 10 core intrinsics are:
+   * - peek(address: word): byte - Read byte from memory
+   * - poke(address: word, value: byte): void - Write byte to memory
+   * - peekw(address: word): word - Read 16-bit word from memory (little-endian)
+   * - pokew(address: word, value: word): void - Write 16-bit word to memory (little-endian)
+   * - hi(value: word): byte - Get high byte of word
+   * - lo(value: word): byte - Get low byte of word
+   * - length(array: any[]): word - Get length of array (compile-time)
+   * - barrier(): void - Optimization barrier
+   * - volatile_read(address: word): byte - Read byte from hardware (non-optimizable)
+   * - volatile_write(address: word, value: byte): void - Write byte to hardware (non-optimizable)
    */
   protected registerIntrinsics(): void {
     // Helper to create function type
@@ -159,15 +162,6 @@ export class SymbolTable {
       };
     };
 
-    // poke(address: word, value: byte): void
-    // Writes a byte value to a memory address
-    const pokeType = createFunctionType(
-      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.BYTE],
-      BUILTIN_TYPES.VOID,
-    );
-    const pokeSymbol = createIntrinsicSymbol('poke', pokeType);
-    scopeDeclareSymbol(this.rootScope, pokeSymbol);
-
     // peek(address: word): byte
     // Reads a byte value from a memory address
     const peekType = createFunctionType(
@@ -177,23 +171,32 @@ export class SymbolTable {
     const peekSymbol = createIntrinsicSymbol('peek', peekType);
     scopeDeclareSymbol(this.rootScope, peekSymbol);
 
-    // volatile_read(address: word): byte
-    // Reads a byte from a hardware register (cannot be optimized away)
-    const volatileReadType = createFunctionType(
-      [BUILTIN_TYPES.WORD],
-      BUILTIN_TYPES.BYTE,
-    );
-    const volatileReadSymbol = createIntrinsicSymbol('volatile_read', volatileReadType);
-    scopeDeclareSymbol(this.rootScope, volatileReadSymbol);
-
-    // volatile_write(address: word, value: byte): void
-    // Writes a byte to a hardware register (cannot be optimized away)
-    const volatileWriteType = createFunctionType(
+    // poke(address: word, value: byte): void
+    // Writes a byte value to a memory address
+    const pokeType = createFunctionType(
       [BUILTIN_TYPES.WORD, BUILTIN_TYPES.BYTE],
       BUILTIN_TYPES.VOID,
     );
-    const volatileWriteSymbol = createIntrinsicSymbol('volatile_write', volatileWriteType);
-    scopeDeclareSymbol(this.rootScope, volatileWriteSymbol);
+    const pokeSymbol = createIntrinsicSymbol('poke', pokeType);
+    scopeDeclareSymbol(this.rootScope, pokeSymbol);
+
+    // peekw(address: word): word
+    // Reads a 16-bit word from memory (little-endian)
+    const peekwType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.WORD,
+    );
+    const peekwSymbol = createIntrinsicSymbol('peekw', peekwType);
+    scopeDeclareSymbol(this.rootScope, peekwSymbol);
+
+    // pokew(address: word, value: word): void
+    // Writes a 16-bit word to memory (little-endian)
+    const pokewType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.VOID,
+    );
+    const pokewSymbol = createIntrinsicSymbol('pokew', pokewType);
+    scopeDeclareSymbol(this.rootScope, pokewSymbol);
 
     // hi(value: word): byte
     // Gets the high byte of a 16-bit word
@@ -213,7 +216,7 @@ export class SymbolTable {
     const loSymbol = createIntrinsicSymbol('lo', loType);
     scopeDeclareSymbol(this.rootScope, loSymbol);
 
-    // len(array: any[]): word
+    // length(array: any[]): word
     // Gets the length of an array (compile-time constant for fixed arrays)
     // Uses 'any' type for the parameter since it accepts any array type
     const anyType: TypeInfo = {
@@ -223,22 +226,39 @@ export class SymbolTable {
       isSigned: false,
       isAssignable: false,
     };
-    const lenType = createFunctionType(
+    const lengthType = createFunctionType(
       [anyType],
       BUILTIN_TYPES.WORD,
     );
-    const lenSymbol = createIntrinsicSymbol('len', lenType);
-    scopeDeclareSymbol(this.rootScope, lenSymbol);
+    const lengthSymbol = createIntrinsicSymbol('length', lengthType);
+    scopeDeclareSymbol(this.rootScope, lengthSymbol);
 
-    // sizeof(type): byte
-    // Gets the size of a type in bytes (compile-time constant)
-    // Uses 'any' type since it accepts type names
-    const sizeofType = createFunctionType(
-      [anyType],
+    // barrier(): void
+    // Optimization barrier - prevents optimizer from reordering code across this point
+    const barrierType = createFunctionType(
+      [],
+      BUILTIN_TYPES.VOID,
+    );
+    const barrierSymbol = createIntrinsicSymbol('barrier', barrierType);
+    scopeDeclareSymbol(this.rootScope, barrierSymbol);
+
+    // volatile_read(address: word): byte
+    // Reads a byte from a hardware register (cannot be optimized away)
+    const volatileReadType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
       BUILTIN_TYPES.BYTE,
     );
-    const sizeofSymbol = createIntrinsicSymbol('sizeof', sizeofType);
-    scopeDeclareSymbol(this.rootScope, sizeofSymbol);
+    const volatileReadSymbol = createIntrinsicSymbol('volatile_read', volatileReadType);
+    scopeDeclareSymbol(this.rootScope, volatileReadSymbol);
+
+    // volatile_write(address: word, value: byte): void
+    // Writes a byte to a hardware register (cannot be optimized away)
+    const volatileWriteType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.BYTE],
+      BUILTIN_TYPES.VOID,
+    );
+    const volatileWriteSymbol = createIntrinsicSymbol('volatile_write', volatileWriteType);
+    scopeDeclareSymbol(this.rootScope, volatileWriteSymbol);
   }
 
   // ============================================================
