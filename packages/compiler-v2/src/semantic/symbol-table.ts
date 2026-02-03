@@ -11,12 +11,14 @@
 import type { ASTNode } from '../ast/index.js';
 import type { SourceLocation, Expression, FunctionDecl } from '../ast/index.js';
 import type { TypeInfo } from './types.js';
+import { TypeKind, BUILTIN_TYPES } from './types.js';
 import {
   type Symbol,
   SymbolKind,
   createSymbol,
   createFunctionSymbol,
   createImportedSymbol,
+  createIntrinsicSymbol,
 } from './symbol.js';
 import {
   type Scope,
@@ -116,6 +118,127 @@ export class SymbolTable {
     // Create the root module scope
     this.rootScope = this.createScopeInternal(ScopeKind.Module, null, moduleNode);
     this.currentScope = this.rootScope;
+
+    // Register built-in intrinsic functions
+    this.registerIntrinsics();
+  }
+
+  // ============================================================
+  // Intrinsic Registration
+  // ============================================================
+
+  /**
+   * Registers built-in intrinsic functions
+   *
+   * Intrinsics are compiler-provided functions that don't need to be
+   * declared in user code. They include:
+   * - poke(address, value) - Write byte to memory
+   * - peek(address) - Read byte from memory
+   * - volatile_read(address) - Read byte from hardware register (non-optimizable)
+   * - volatile_write(address, value) - Write byte to hardware register (non-optimizable)
+   * - hi(value) - Get high byte of word
+   * - lo(value) - Get low byte of word
+   * - len(array) - Get length of array
+   * - sizeof(type) - Get size of type in bytes
+   */
+  protected registerIntrinsics(): void {
+    // Helper to create function type
+    const createFunctionType = (
+      paramTypes: TypeInfo[],
+      returnType: TypeInfo,
+    ): TypeInfo => {
+      const paramStr = paramTypes.map((p) => p.name).join(', ');
+      return {
+        kind: TypeKind.Function,
+        name: `(${paramStr}) => ${returnType.name}`,
+        size: 2,
+        isSigned: false,
+        isAssignable: false,
+        parameterTypes: paramTypes,
+        returnType,
+      };
+    };
+
+    // poke(address: word, value: byte): void
+    // Writes a byte value to a memory address
+    const pokeType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.BYTE],
+      BUILTIN_TYPES.VOID,
+    );
+    const pokeSymbol = createIntrinsicSymbol('poke', pokeType);
+    scopeDeclareSymbol(this.rootScope, pokeSymbol);
+
+    // peek(address: word): byte
+    // Reads a byte value from a memory address
+    const peekType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const peekSymbol = createIntrinsicSymbol('peek', peekType);
+    scopeDeclareSymbol(this.rootScope, peekSymbol);
+
+    // volatile_read(address: word): byte
+    // Reads a byte from a hardware register (cannot be optimized away)
+    const volatileReadType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const volatileReadSymbol = createIntrinsicSymbol('volatile_read', volatileReadType);
+    scopeDeclareSymbol(this.rootScope, volatileReadSymbol);
+
+    // volatile_write(address: word, value: byte): void
+    // Writes a byte to a hardware register (cannot be optimized away)
+    const volatileWriteType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.BYTE],
+      BUILTIN_TYPES.VOID,
+    );
+    const volatileWriteSymbol = createIntrinsicSymbol('volatile_write', volatileWriteType);
+    scopeDeclareSymbol(this.rootScope, volatileWriteSymbol);
+
+    // hi(value: word): byte
+    // Gets the high byte of a 16-bit word
+    const hiType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const hiSymbol = createIntrinsicSymbol('hi', hiType);
+    scopeDeclareSymbol(this.rootScope, hiSymbol);
+
+    // lo(value: word): byte
+    // Gets the low byte of a 16-bit word
+    const loType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const loSymbol = createIntrinsicSymbol('lo', loType);
+    scopeDeclareSymbol(this.rootScope, loSymbol);
+
+    // len(array: any[]): word
+    // Gets the length of an array (compile-time constant for fixed arrays)
+    // Uses 'any' type for the parameter since it accepts any array type
+    const anyType: TypeInfo = {
+      kind: TypeKind.Unknown,
+      name: 'any',
+      size: 0,
+      isSigned: false,
+      isAssignable: false,
+    };
+    const lenType = createFunctionType(
+      [anyType],
+      BUILTIN_TYPES.WORD,
+    );
+    const lenSymbol = createIntrinsicSymbol('len', lenType);
+    scopeDeclareSymbol(this.rootScope, lenSymbol);
+
+    // sizeof(type): byte
+    // Gets the size of a type in bytes (compile-time constant)
+    // Uses 'any' type since it accepts type names
+    const sizeofType = createFunctionType(
+      [anyType],
+      BUILTIN_TYPES.BYTE,
+    );
+    const sizeofSymbol = createIntrinsicSymbol('sizeof', sizeofType);
+    scopeDeclareSymbol(this.rootScope, sizeofSymbol);
   }
 
   // ============================================================

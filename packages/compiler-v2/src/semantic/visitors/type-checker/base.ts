@@ -436,6 +436,24 @@ export abstract class TypeCheckerBase extends ASTWalker {
   }
 
   /**
+   * Checks if an expression is an empty array literal
+   *
+   * Used by declaration type checker to handle empty arrays with type annotations.
+   *
+   * @param expr - Expression to check
+   * @returns True if the expression is an ArrayLiteralExpression with no elements
+   */
+  protected isEmptyArrayLiteral(expr: Expression): boolean {
+    // Check if expression has getElements method (ArrayLiteralExpression)
+    const asArray = expr as { getElements?: () => Expression[] };
+    if (typeof asArray.getElements === 'function') {
+      const elements = asArray.getElements();
+      return elements.length === 0;
+    }
+    return false;
+  }
+
+  /**
    * Reports a type mismatch error
    *
    * Common error type, so has its own helper method.

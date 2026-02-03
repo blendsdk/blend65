@@ -63,10 +63,11 @@ describe('SymbolTable', () => {
       expect(symbolTable.getScopeCount()).toBe(1);
     });
 
-    it('should start with symbol count of 0', () => {
+    it('should start with intrinsics pre-registered', () => {
       const symbolTable = new SymbolTable();
-
-      expect(symbolTable.getTotalSymbolCount()).toBe(0);
+      
+      // 8 intrinsics are pre-registered: poke, peek, volatile_read, volatile_write, hi, lo, len, sizeof
+      expect(symbolTable.getTotalSymbolCount()).toBe(8);
     });
   });
 
@@ -568,7 +569,8 @@ describe('SymbolTable', () => {
 
         const symbols = symbolTable.getCurrentScopeSymbols();
 
-        expect(symbols.size).toBe(2);
+        // 8 intrinsics + 2 declared variables = 10
+        expect(symbols.size).toBe(10);
         expect(symbols.has('x')).toBe(true);
         expect(symbols.has('y')).toBe(true);
       });
@@ -593,7 +595,8 @@ describe('SymbolTable', () => {
 
         const symbols = symbolTable.getAllVisibleSymbols();
 
-        expect(symbols.size).toBe(2);
+        // 8 intrinsics + x + y = 10
+        expect(symbols.size).toBe(10);
         expect(symbols.has('x')).toBe(true);
         expect(symbols.has('y')).toBe(true);
       });
@@ -605,7 +608,8 @@ describe('SymbolTable', () => {
 
         const symbols = symbolTable.getAllVisibleSymbols();
 
-        expect(symbols.size).toBe(1);
+        // 8 intrinsics + 1 shadowed x = 9
+        expect(symbols.size).toBe(9);
         expect(symbols.get('x')?.type).toBe(BUILTIN_TYPES.WORD);
       });
     });
@@ -701,7 +705,8 @@ describe('SymbolTable', () => {
         symbolTable.enterBlockScope();
         symbolTable.declareVariable('z', location);
 
-        expect(symbolTable.getTotalSymbolCount()).toBe(3);
+        // 8 intrinsics + 3 declared variables = 11
+        expect(symbolTable.getTotalSymbolCount()).toBe(11);
       });
     });
 

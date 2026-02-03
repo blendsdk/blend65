@@ -181,8 +181,21 @@ export abstract class DeclarationTypeChecker extends ExpressionTypeChecker {
     let initializerType: TypeInfo | null = null;
 
     if (initializer) {
-      initializer.accept(this);
-      initializerType = this.getTypeOf(initializer);
+      // Special case: empty array with type annotation
+      // Empty arrays cannot infer their type, but if we have a declared array type,
+      // we can use that. Check if initializer is an empty ArrayLiteralExpression.
+      const isEmptyArray = this.isEmptyArrayLiteral(initializer);
+      
+      if (isEmptyArray && declaredType && declaredType.kind === TypeKind.Array) {
+        // Empty array with declared array type - use the declared type
+        // Set the expression type directly to avoid the "cannot infer type" error
+        this.setExpressionType(initializer, declaredType, true);
+        initializerType = declaredType;
+      } else {
+        // Normal case - type check the initializer
+        initializer.accept(this);
+        initializerType = this.getTypeOf(initializer);
+      }
     }
 
     // Determine the variable's type
