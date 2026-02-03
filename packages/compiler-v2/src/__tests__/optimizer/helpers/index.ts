@@ -37,7 +37,7 @@ export {
   
   // Test slot/frame creation
   createTestSlot,
-  createMockFrame,
+  createTestFrame,
   
   // Instruction creation helpers
   createLoadImmInstr,

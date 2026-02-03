@@ -149,12 +149,13 @@ export function createTestSlot(
 }
 
 /**
- * Creates a mock frame for testing.
+ * Creates a test frame using the real frame factory.
+ * This is NOT a mock - it uses the actual createFrame() implementation.
  *
  * @param name - Frame name (default: 'test')
- * @returns Frame for testing
+ * @returns Real Frame instance for testing
  */
-export function createMockFrame(name = 'test'): Frame {
+export function createTestFrame(name = 'test'): Frame {
   return createFrame(name, {
     isExported: false,
     isCallback: false,
@@ -447,7 +448,7 @@ export function createTestILFunction(
 ): ILFunction {
   return {
     name,
-    frame: createMockFrame(name),
+    frame: createTestFrame(name),
     instructions,
     isExported,
     isCallback: false,

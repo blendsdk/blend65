@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-03-02 20:30
-> **Progress**: 0/46 tasks (0%)
+> **Last Updated**: 2026-03-02 21:24
+> **Progress**: 2/46 tasks (4%)
 
 ## Overview
 
@@ -454,9 +454,15 @@ This document defines the execution phases and AI chat sessions for implementing
 
 ## Task Checklist (All Phases)
 
-### Phase 0: Shared Helpers
-- [ ] 0.1.1 Create IL test helpers
-- [ ] 0.1.2 Create optimizer test helpers
+### Phase 0: Shared Helpers ✅ COMPLETE
+- [x] 0.1.1 Create IL test helpers ✅ (completed: 2026-03-02 18:30)
+- [x] 0.1.2 Create optimizer test helpers ✅ (completed: 2026-03-02 18:30)
+
+**📝 Important Note:** All test helpers use **REAL compiler components** - NO mocks!
+- `compileToIL()` uses real Lexer → Parser → SemanticAnalyzer → ILGenerator
+- `createTestSlot()` uses real `createFrameSlot()` factory
+- `createTestFrame()` uses real `createFrame()` factory (renamed from misleading `createMockFrame`)
+- `compileAndOptimize()` uses real ILOptimizer
 
 ### Phase 1: IL Real-World
 - [ ] 1.1.1 Create game loop tests
