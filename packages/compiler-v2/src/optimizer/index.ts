@@ -81,11 +81,11 @@ export type {
 export { ILOptimizer } from './il-optimizer.js';
 
 // ============================================================================
-// Optimization Passes (to be added)
+// Optimization Passes
 // ============================================================================
 
 // Phase 2: DCE Pass
-// export { DCEPass } from './passes/dce.js';
+export { DCEPass } from './passes/dce.js';
 
 // Phase 3: Constant Folding
 // export { ConstantFoldPass } from './passes/constant-fold.js';
