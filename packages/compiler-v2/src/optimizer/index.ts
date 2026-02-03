@@ -1,31 +1,100 @@
 /**
- * ASM Optimizer module for Blend65 v2
+ * IL Optimizer Module
  *
- * Implements peephole optimization passes on the ASM-IL output.
- * Migrated from v1 with adjustments for SFA architecture.
+ * Implements optimization passes on the IL (Intermediate Language)
+ * before code generation. This is the first stage of a two-stage
+ * optimization pipeline.
+ *
+ * **Two-Stage Optimizer Pipeline:**
+ * ```
+ * IL Generator → IL OPTIMIZER → CodeGen → ASM-IL → ASM-IL Optimizer → Emitter
+ *                  (this)                             (phase 2)
+ * ```
  *
  * **Key Components:**
- * - Optimizer Types: Pass interface, optimization context
- * - Pass Runner: Executes optimization passes in order
- * - Peephole Passes: Pattern-based local optimizations
+ * - OptimizationOptions: Configuration for optimization levels (O0-Oz)
+ * - OptimizationPass: Interface for individual optimization passes
+ * - PassManager: Orchestrates pass execution with dependency ordering
+ * - ILOptimizer: High-level API for optimizing functions and programs
  *
  * **Optimization Passes:**
- * - Redundant load elimination (LDA followed by LDA same address)
- * - Dead store elimination (STA to never-read address)
- * - Branch chain optimization (JMP to JMP)
- * - Transfer elimination (TAX followed by TXA)
- * - INC/DEC optimization (ADC #1 → INC when possible)
+ * - DCE (Dead Code Elimination): Remove unused stores and unreachable code
+ * - Constant Folding: Evaluate constant expressions at compile time
+ * - Constant Propagation: Replace variables with known constant values
+ * - Copy Propagation: Replace copies with original values
+ * - IL Peephole: Pattern-based local optimizations
  *
- * **Design:**
- * - Two-slot architecture: IL slot (empty for O2), ASM slot (active for O1)
- * - Simple pattern matching
- * - No complex data flow analysis
+ * **Optimization Levels:**
+ * - O0: No optimization (fastest compile, debugging)
+ * - O1: Basic (DCE, constant folding)
+ * - O2: Standard (all passes, single iteration)
+ * - O3: Aggressive (all passes, multiple iterations)
+ * - Os: Size (all passes, prefer smaller code)
+ * - Oz: Minimum size (aggressive size reduction)
  *
  * @module optimizer
  */
 
-// Will be populated in Phase 9: ASM Optimizer
-// export * from './types.js';
-// export * from './pass.js';
-// export * from './optimizer.js';
-// export * from './passes/index.js';
+// ============================================================================
+// Options
+// ============================================================================
+
+export type { OptimizationLevel, OptimizationOptions } from './options.js';
+
+export {
+  getDefaultOptions,
+  getPassesForLevel,
+  shouldIterate,
+  isSizeOptimization,
+  getIterationCount,
+  resolveEnabledPasses,
+} from './options.js';
+
+// ============================================================================
+// Pass Interface
+// ============================================================================
+
+export type {
+  PassResult,
+  OptimizationPass,
+  PassStats,
+  OptimizationResult,
+} from './pass.js';
+
+export { createEmptyResult, createResult, mergeResults } from './pass.js';
+
+// ============================================================================
+// Pass Manager
+// ============================================================================
+
+export { PassManager } from './pass-manager.js';
+
+// ============================================================================
+// IL Optimizer
+// ============================================================================
+
+export type {
+  FunctionOptimizationResult,
+  ProgramOptimizationResult,
+} from './il-optimizer.js';
+
+export { ILOptimizer } from './il-optimizer.js';
+
+// ============================================================================
+// Optimization Passes (to be added)
+// ============================================================================
+
+// Phase 2: DCE Pass
+// export { DCEPass } from './passes/dce.js';
+
+// Phase 3: Constant Folding
+// export { ConstantFoldPass } from './passes/constant-fold.js';
+
+// Phase 4: Constant Propagation
+// export { ConstantPropPass } from './passes/constant-prop.js';
+
+// Phase 5: Copy Propagation
+// export { CopyPropPass } from './passes/copy-prop.js';
+
+// Phase 6: IL Peephole
+// export { ILPeepholePass } from './passes/il-peephole.js';
