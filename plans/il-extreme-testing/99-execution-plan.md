@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-03-02 21:24
-> **Progress**: 2/46 tasks (4%)
+> **Last Updated**: 2026-03-02 21:47
+> **Progress**: 9/46 tasks (20%)
 
 ## Overview
 
@@ -464,14 +464,22 @@ This document defines the execution phases and AI chat sessions for implementing
 - `createTestFrame()` uses real `createFrame()` factory (renamed from misleading `createMockFrame`)
 - `compileAndOptimize()` uses real ILOptimizer
 
-### Phase 1: IL Real-World
-- [ ] 1.1.1 Create game loop tests
-- [ ] 1.1.2 Create sprite handling tests
-- [ ] 1.2.1 Create hardware register tests
-- [ ] 1.2.2 Create memory operation tests
-- [ ] 1.3.1 Create joystick/keyboard tests
-- [ ] 1.3.2 Create raster timing tests
-- [ ] 1.3.3 Create sound/music tests
+### Phase 1: IL Real-World ⚠️ TEST FILES CREATED (reveal compiler gaps)
+- [x] 1.1.1 Create game loop tests ✅ (2026-03-02 21:33)
+- [x] 1.1.2 Create sprite handling tests ✅ (2026-03-02 21:35)
+- [x] 1.2.1 Create hardware register tests ✅ (2026-03-02 21:36)
+- [x] 1.2.2 Create memory operation tests ✅ (2026-03-02 21:38)
+- [x] 1.3.1 Create joystick/keyboard tests ✅ (2026-03-02 21:39)
+- [x] 1.3.2 Create raster timing tests ✅ (2026-03-02 21:41)
+- [x] 1.3.3 Create sound/music tests ✅ (2026-03-02 21:43)
+
+**⚠️ DISCOVERED COMPILER LIMITATIONS (104 tests failing):**
+These tests revealed important gaps in the Blend65 semantic analyzer:
+1. **@map declarations not visible in functions** - Module-level @map vars can't be accessed inside functions
+2. **Global `let` variables not visible in functions** - Module-level variables aren't in function scope
+3. **Empty array type inference** - `byte[N] = []` not supported (need explicit initialization)
+
+**These are REAL compiler gaps to be fixed, not test bugs. The tests are correct.**
 
 ### Phase 2: IL Stress
 - [ ] 2.1.1 Create deep nesting tests
