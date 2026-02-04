@@ -253,8 +253,8 @@ describe('E2E Real-World: Game Loop Patterns', () => {
       const waitFunc = getFunction(program, 'waitForVBlank');
       expect(waitFunc).toBeDefined();
 
-      // Wait function should have volatile_read (generates LOAD instruction)
-      expect(hasOpcode(waitFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() intrinsic generates PEEK opcode
+      expect(hasOpcode(waitFunc!.instructions, ILOpcode.PEEK)).toBe(true);
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.CMP_IMM)).toBe(true);
     });
   });

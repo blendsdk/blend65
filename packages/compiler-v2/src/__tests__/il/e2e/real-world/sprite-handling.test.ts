@@ -394,8 +394,8 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const checkFunc = getFunction(program, 'checkCollision');
       expect(checkFunc).toBeDefined();
 
-      // Should have LOAD_BYTE and RETURN
-      expect(hasOpcode(checkFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() intrinsic generates PEEK opcode
+      expect(hasOpcode(checkFunc!.instructions, ILOpcode.PEEK)).toBe(true);
       expect(hasOpcode(checkFunc!.instructions, ILOpcode.RETURN)).toBe(true);
     });
 

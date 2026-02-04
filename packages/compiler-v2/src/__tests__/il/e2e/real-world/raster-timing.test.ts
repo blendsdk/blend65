@@ -60,8 +60,8 @@ describe('E2E Real-World: Raster Timing Patterns', () => {
       const waitFunc = getFunction(program, 'waitForLine');
       expect(waitFunc).toBeDefined();
 
-      // Should have LOAD, CMP, conditional JUMP, unconditional JUMP
-      expect(hasOpcode(waitFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() generates PEEK, CMP, conditional JUMP, unconditional JUMP
+      expect(hasOpcode(waitFunc!.instructions, ILOpcode.PEEK)).toBe(true);
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.CMP_BYTE)).toBe(true);
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.JUMP)).toBe(true);
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.LABEL)).toBe(true);

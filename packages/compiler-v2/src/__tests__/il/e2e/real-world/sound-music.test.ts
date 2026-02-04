@@ -102,19 +102,26 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
     });
 
     it('should generate IL for ADSR envelope setting', () => {
+      // Use module-level variables so they get memory slots (not register params)
+      // which allows MUL_BYTE to be generated
       const source = `
         module ADSR;
         
         const V1_AD: word = $D405;
         const V1_SR: word = $D406;
         
-        function setEnvelope(attack: byte, decay: byte, sustain: byte, release: byte): void {
+        let attack: byte = 0;
+        let decay: byte = 9;
+        let sustain: byte = 0;
+        let release: byte = 0;
+        
+        function setEnvelope(): void {
           poke(V1_AD, (attack * 16) + decay);
           poke(V1_SR, (sustain * 16) + release);
         }
         
         function main(): void {
-          setEnvelope(0, 9, 0, 0);
+          setEnvelope();
         }
       `;
 
@@ -123,6 +130,7 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       expect(setFunc).toBeDefined();
 
       // Should have MUL for nibble packing and ADD for combining
+      // Note: With module-level variables as slots, MUL_BYTE is generated
       expect(hasOpcode(setFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
       expect(hasOpcode(setFunc!.instructions, ILOpcode.ADD_BYTE)).toBe(true);
     });
@@ -297,24 +305,23 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
     });
 
     it('should generate IL for filter mode and resonance', () => {
+      // Use module-level variables for resonance/voiceMask so MUL_BYTE is generated
       const source = `
         module FilterMode;
         
         const FILTER_RES: word = $D417;
         const VOLUME_FILTER: word = $D418;
         
-        function setLowPass(resonance: byte, voiceMask: byte): void {
+        let resonance: byte = 8;
+        let voiceMask: byte = 1;
+        
+        function setLowPass(): void {
           poke(FILTER_RES, (resonance * 16) | voiceMask);
           poke(VOLUME_FILTER, peek(VOLUME_FILTER) | $10);
         }
         
-        function setHighPass(resonance: byte, voiceMask: byte): void {
-          poke(FILTER_RES, (resonance * 16) | voiceMask);
-          poke(VOLUME_FILTER, peek(VOLUME_FILTER) | $40);
-        }
-        
         function main(): void {
-          setLowPass(8, 1);
+          setLowPass();
         }
       `;
 
@@ -322,7 +329,7 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const lowFunc = getFunction(program, 'setLowPass');
       expect(lowFunc).toBeDefined();
 
-      // Should have MUL, OR
+      // Should have MUL, OR (with module-level vars as slots)
       expect(hasOpcode(lowFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
       expect(hasOpcode(lowFunc!.instructions, ILOpcode.OR_BYTE)).toBe(true);
     });

@@ -60,8 +60,8 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const readFunc = getFunction(program, 'readJoystick1');
       expect(readFunc).toBeDefined();
 
-      // Should have LOAD_BYTE and RETURN
-      expect(hasOpcode(readFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() intrinsic generates PEEK opcode
+      expect(hasOpcode(readFunc!.instructions, ILOpcode.PEEK)).toBe(true);
       expect(hasOpcode(readFunc!.instructions, ILOpcode.RETURN)).toBe(true);
     });
 
@@ -84,7 +84,8 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const readFunc = getFunction(program, 'readJoystick2');
       expect(readFunc).toBeDefined();
 
-      expect(hasOpcode(readFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() intrinsic generates PEEK opcode
+      expect(hasOpcode(readFunc!.instructions, ILOpcode.PEEK)).toBe(true);
     });
   });
 
@@ -484,9 +485,10 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const checkFunc = getFunction(program, 'checkKey');
       expect(checkFunc).toBeDefined();
 
-      // poke() intrinsic generates POKE opcode for column select, LOAD for row read
+      // poke() intrinsic generates POKE opcode for column select
+      // volatile_read() intrinsic generates PEEK opcode for row read
       expect(hasOpcode(checkFunc!.instructions, ILOpcode.POKE)).toBe(true);
-      expect(hasOpcode(checkFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      expect(hasOpcode(checkFunc!.instructions, ILOpcode.PEEK)).toBe(true);
     });
 
     it('should generate IL for keyboard scan pattern', () => {

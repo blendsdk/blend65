@@ -154,7 +154,8 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const getFunc = getFunction(program, 'getRasterLine');
       expect(getFunc).toBeDefined();
 
-      expect(hasOpcode(getFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() intrinsic generates PEEK opcode
+      expect(hasOpcode(getFunc!.instructions, ILOpcode.PEEK)).toBe(true);
       expect(hasOpcode(getFunc!.instructions, ILOpcode.RETURN)).toBe(true);
     });
 
@@ -218,8 +219,8 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       const waitFunc = getFunction(program, 'waitForRaster');
       expect(waitFunc).toBeDefined();
 
-      // Should have LOAD, CMP, conditional JUMP, unconditional JUMP
-      expect(hasOpcode(waitFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() generates PEEK, CMP, conditional JUMP, unconditional JUMP
+      expect(hasOpcode(waitFunc!.instructions, ILOpcode.PEEK)).toBe(true);
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.CMP_BYTE)).toBe(true);
       expect(hasOpcode(waitFunc!.instructions, ILOpcode.JUMP)).toBe(true);
     });
@@ -443,8 +444,9 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       expect(readLoFunc).toBeDefined();
       expect(readHiFunc).toBeDefined();
 
-      expect(hasOpcode(readLoFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
-      expect(hasOpcode(readHiFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
+      // volatile_read() intrinsic generates PEEK opcode
+      expect(hasOpcode(readLoFunc!.instructions, ILOpcode.PEEK)).toBe(true);
+      expect(hasOpcode(readHiFunc!.instructions, ILOpcode.PEEK)).toBe(true);
     });
   });
 

@@ -630,7 +630,16 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
    * @returns True if intrinsic
    */
   protected isIntrinsic(name: string): boolean {
-    const intrinsics = ['peek', 'poke', 'peekw', 'pokew', 'hi', 'lo'];
+    const intrinsics = [
+      'peek',
+      'poke',
+      'peekw',
+      'pokew',
+      'volatile_read',
+      'volatile_write',
+      'hi',
+      'lo',
+    ];
     return intrinsics.includes(name);
   }
 
@@ -673,6 +682,22 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
           this.builder.emit(ILOpcode.PUSH_A, [], 'pokew addr');
           this.generateExpression(args[1]);
           this.builder.emit(ILOpcode.POKEW, [], 'pokew(addr, value)');
+        }
+        break;
+      case 'volatile_read':
+        // Same as peek() - reads byte from address with volatile semantics
+        if (args.length >= 1) {
+          this.generateExpression(args[0]);
+          this.builder.emit(ILOpcode.PEEK, [], 'volatile_read(addr)');
+        }
+        break;
+      case 'volatile_write':
+        // Same as poke() - writes byte to address with volatile semantics
+        if (args.length >= 2) {
+          this.generateExpression(args[0]);
+          this.builder.emit(ILOpcode.PUSH_A, [], 'volatile_write addr');
+          this.generateExpression(args[1]);
+          this.builder.emit(ILOpcode.POKE, [], 'volatile_write(addr, value)');
         }
         break;
       case 'hi':
