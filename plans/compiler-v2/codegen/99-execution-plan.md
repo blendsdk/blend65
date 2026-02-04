@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-04-02 14:46
-> **Progress**: Implementation COMPLETE, CGT1 COMPLETE
+> **Last Updated**: 2026-04-02 15:02
+> **Progress**: Implementation COMPLETE, CGT1 COMPLETE, CGT2 COMPLETE
 
 ## Current Status
 
@@ -231,9 +231,9 @@ No test files exist in `__tests__/codegen/`.
 - [x] CGT1.2 ASM-IL builder tests ✅ (completed: 2026-04-02 14:46)
 
 **Phase CGT2: Base Generator Tests**
-- [ ] CGT2.1 Accumulator state tests
-- [ ] CGT2.2 Operand extraction tests
-- [ ] CGT2.3 Address mode tests
+- [x] CGT2.1 Accumulator state tests ✅ (completed: 2026-04-02 15:02)
+- [x] CGT2.2 Operand extraction tests ✅ (completed: 2026-04-02 15:02)
+- [x] CGT2.3 Address mode tests ✅ (completed: 2026-04-02 15:02)
 
 **Phase CGT3: Memory Operations Tests**
 - [ ] CGT3.1-CGT3.8 Memory operation unit tests
