@@ -526,7 +526,7 @@ describe('E2E Real-World: Hardware Register Patterns', () => {
       expect(setFunc).toBeDefined();
 
       // Should have MUL for shifting and ADD for combining
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.MUL_IMM)).toBe(true);
       expect(hasOpcode(setFunc!.instructions, ILOpcode.ADD_BYTE)).toBe(true);
     });
 

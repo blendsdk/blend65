@@ -120,6 +120,14 @@ export enum ILOpcode {
   MUL_BYTE = 'MUL_BYTE',
 
   /**
+   * Multiply by immediate (software implementation).
+   * Operands: [ImmediateOperand]
+   * Effect: A ← A * imm
+   * 6502: JSR __mul8_imm
+   */
+  MUL_IMM = 'MUL_IMM',
+
+  /**
    * Divide (software implementation).
    * Operands: [SlotOperand]
    * Effect: A ← A / [slot.address]

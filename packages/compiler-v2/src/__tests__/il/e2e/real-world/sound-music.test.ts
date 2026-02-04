@@ -130,8 +130,8 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       expect(setFunc).toBeDefined();
 
       // Should have MUL for nibble packing and ADD for combining
-      // Note: With module-level variables as slots, MUL_BYTE is generated
-      expect(hasOpcode(setFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
+      // Note: With module-level variables as slots, MUL_IMM is generated for * 16
+      expect(hasOpcode(setFunc!.instructions, ILOpcode.MUL_IMM)).toBe(true);
       expect(hasOpcode(setFunc!.instructions, ILOpcode.ADD_BYTE)).toBe(true);
     });
 
@@ -329,8 +329,8 @@ describe('E2E Real-World: Sound & Music Patterns', () => {
       const lowFunc = getFunction(program, 'setLowPass');
       expect(lowFunc).toBeDefined();
 
-      // Should have MUL, OR (with module-level vars as slots)
-      expect(hasOpcode(lowFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
+      // Should have MUL_IMM (multiply by 16), OR (with module-level vars as slots)
+      expect(hasOpcode(lowFunc!.instructions, ILOpcode.MUL_IMM)).toBe(true);
       expect(hasOpcode(lowFunc!.instructions, ILOpcode.OR_BYTE)).toBe(true);
     });
   });

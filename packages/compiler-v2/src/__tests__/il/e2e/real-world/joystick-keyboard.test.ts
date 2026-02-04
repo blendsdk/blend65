@@ -524,8 +524,8 @@ describe('E2E Real-World: Joystick & Keyboard Patterns', () => {
       const scanFunc = getFunction(program, 'scanKeyboard');
       expect(scanFunc).toBeDefined();
 
-      // Should have loop with shift-like operation
-      expect(hasOpcode(scanFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
+      // Should have loop with shift-like operation (multiply by immediate)
+      expect(hasOpcode(scanFunc!.instructions, ILOpcode.MUL_IMM)).toBe(true);
       expect(hasOpcode(scanFunc!.instructions, ILOpcode.OR_IMM)).toBe(true);
     });
   });

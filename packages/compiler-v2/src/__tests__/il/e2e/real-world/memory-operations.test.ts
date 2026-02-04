@@ -115,8 +115,8 @@ describe('E2E Real-World: Memory Operation Patterns', () => {
       const copyFunc = getFunction(program, 'copyRow');
       expect(copyFunc).toBeDefined();
 
-      // Should have MUL for offset calculation
-      expect(hasOpcode(copyFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
+      // Should have MUL for offset calculation (multiply by immediate)
+      expect(hasOpcode(copyFunc!.instructions, ILOpcode.MUL_IMM)).toBe(true);
       
       // Should have LOAD and STORE for copy
       expect(hasOpcode(copyFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
@@ -265,8 +265,8 @@ describe('E2E Real-World: Memory Operation Patterns', () => {
       const drawFunc = getFunction(program, 'drawHorizontalLine');
       expect(drawFunc).toBeDefined();
 
-      // Should have multiplication for offset
-      expect(hasOpcode(drawFunc!.instructions, ILOpcode.MUL_BYTE)).toBe(true);
+      // Should have multiplication for offset (multiply by immediate)
+      expect(hasOpcode(drawFunc!.instructions, ILOpcode.MUL_IMM)).toBe(true);
     });
   });
 

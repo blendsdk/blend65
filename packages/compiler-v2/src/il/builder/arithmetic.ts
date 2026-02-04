@@ -99,6 +99,16 @@ export class ILBuilderArithmetic extends ILBuilderMemory {
     this.emit(ILOpcode.SUB_IMM, [createImmediateOperand(value)], comment);
   }
 
+  /**
+   * Multiply accumulator by immediate value.
+   *
+   * @param value - Byte value (0-255)
+   * @param comment - Optional comment
+   */
+  mulImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.MUL_IMM, [createImmediateOperand(value)], comment);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Increment/Decrement
   // ═══════════════════════════════════════════════════════════════════

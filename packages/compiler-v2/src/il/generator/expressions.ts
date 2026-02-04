@@ -259,6 +259,9 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       case TokenType.BITWISE_XOR:
         this.builder.xorImm(value);
         break;
+      case TokenType.MULTIPLY:
+        this.builder.mulImm(value);
+        break;
       case TokenType.EQUAL:
       case TokenType.NOT_EQUAL:
       case TokenType.LESS_THAN:
