@@ -353,19 +353,16 @@ describe('Complete Analysis E2E', () => {
 
   describe('complex real-world patterns', () => {
     it('should analyze C64-style memory access pattern', () => {
+      // Note: poke() and peek() are now built-in intrinsics, no need to declare them
       const result = analyze(`
         module Test;
 
-        function poke(addr: word, value: byte): void {
-          // Intrinsic implementation
-        }
-
-        function peek(addr: word): byte {
-          return 0;
-        }
-
         function setBorderColor(color: byte): void {
           poke(53280, color);
+        }
+
+        function getBorderColor(): byte {
+          return peek(53280);
         }
 
         function clearScreen(): void {

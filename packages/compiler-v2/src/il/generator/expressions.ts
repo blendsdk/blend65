@@ -21,6 +21,7 @@ import {
   AssignmentExpression,
   CallExpression,
   TernaryExpression,
+  IndexExpression,
 } from '../../ast/expressions.js';
 import {
   isLiteralExpression,
@@ -30,6 +31,7 @@ import {
   isAssignmentExpression,
   isCallExpression,
   isTernaryExpression,
+  isIndexExpression,
 } from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
 import { SlotLocation } from '../../frame/enums.js';
@@ -89,6 +91,8 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       this.generateTernary(expr);
     } else if (isCallExpression(expr)) {
       this.generateCall(expr);
+    } else if (isIndexExpression(expr)) {
+      this.generateIndex(expr);
     } else {
       // Unknown expression type - emit NOP as placeholder
       this.builder.nop();
@@ -187,6 +191,65 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // Index Expression (Array Element Access)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for array element access (arr[index]).
+   *
+   * Strategy:
+   * 1. Get the base array slot
+   * 2. Generate index expression into Y register
+   * 3. Use indexed addressing mode to load the element
+   *
+   * For byte arrays: LOAD_INDEXED with base slot and Y
+   *
+   * @param expr - Index expression (e.g., arr[i])
+   */
+  protected generateIndex(expr: IndexExpression): void {
+    this.setLocation(expr.getLocation());
+
+    const obj = expr.getObject();
+    const index = expr.getIndex();
+
+    // Get the array base slot
+    if (isIdentifierExpression(obj)) {
+      const arrayName = obj.getName();
+      const arraySlot = this.tryResolveVariable(arrayName);
+
+      if (!arraySlot) {
+        // Array not found - emit placeholder
+        this.builder.nop();
+        this.clearLocation();
+        return;
+      }
+
+      // Check if index is a literal for optimization
+      if (isLiteralExpression(index)) {
+        const indexValue = index.getValue();
+        if (typeof indexValue === 'number') {
+          // Static index - can compute address at compile time
+          // Load from base + offset directly
+          this.builder.loadIndexedImm(arraySlot, indexValue, `${arrayName}[${indexValue}]`);
+          this.clearLocation();
+          return;
+        }
+      }
+
+      // Dynamic index - need to use Y register for indexing
+      // Generate index into A, transfer to Y, then use indexed load
+      this.generateExpression(index);
+      this.builder.transferAY();
+      this.builder.loadIndexedY(arraySlot, `${arrayName}[Y]`);
+    } else {
+      // Complex base expression - not yet supported
+      this.builder.nop();
+    }
+
+    this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Binary Expression
   // ═══════════════════════════════════════════════════════════════════
 
@@ -275,7 +338,7 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         // Other operators need full evaluation
         this.builder.emit(ILOpcode.PUSH_A, []);
         this.builder.loadImm(value);
-        this.generateBinaryOperation(op);
+        this.generateBinaryComplexOp(op);
     }
   }
 
@@ -323,12 +386,18 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         // Unsupported slot operation - fallback to complex
         this.builder.emit(ILOpcode.PUSH_A, []);
         this.builder.loadSlot(slot);
-        this.generateBinaryOperation(op);
+        this.generateBinaryComplexOp(op);
     }
   }
 
   /**
    * Generate binary operation with complex right operand.
+   *
+   * Strategy for A OP B where B is complex:
+   * 1. Compute A (left), push to stack
+   * 2. Compute B (right), result in A
+   * 3. Save right to temp, pop left to A
+   * 4. Execute A OP temp (using _BYTE opcodes)
    *
    * @param op - Operator token type
    * @param right - Right operand expression
@@ -337,52 +406,96 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // Save left value to stack
     this.builder.emit(ILOpcode.PUSH_A, [], 'save left');
 
-    // Generate right operand
+    // Generate right operand (result in A)
     this.generateExpression(right);
 
     // Now we have: stack = left, A = right
-    // For most operations, we need left OP right
-    // But A has right, so we need to swap or reorganize
+    // For correct operation, we need: A = left OP right
+    //
+    // For commutative ops (add, and, or, xor), we can swap:
+    //   A = right OP stack (pop)
+    //
+    // For non-commutative ops (sub, cmp), we need proper order:
+    //   Save right to temp, pop left to A, then A OP temp
 
-    // For commutative ops (add, and, or, xor), order doesn't matter
-    // For non-commutative ops (sub, div, cmp), we need left in A
-
-    // Strategy: Use a temp slot or swap pattern
-    // For simplicity, we'll use the stack approach:
-    // 1. Save right to stack
-    // 2. Pop left to A
-    // 3. Exchange (not efficient on 6502, but correct)
-
-    // TODO: Optimize this pattern with temp slots
-    this.generateBinaryOperation(op);
+    this.generateBinaryComplexOp(op);
   }
 
   /**
-   * Generate the actual binary operation.
+   * Generate the actual binary operation for complex operands.
    *
-   * Assumes left is on stack, right is in A.
-   * For commutative ops, uses A directly.
-   * For non-commutative ops, needs stack manipulation.
+   * At entry: stack has left, A has right
+   * For commutative ops: A OP stack is same as stack OP A
+   * For non-commutative ops: need proper ordering
    *
    * @param op - Operator token type
    */
-  protected generateBinaryOperation(op: TokenType): void {
-    // For now, implement commutative ops directly
-    // Non-commutative will need fixing in Phase 7b
+  protected generateBinaryComplexOp(op: TokenType): void {
     switch (op) {
+      // Commutative operations - right OP left = left OP right
       case TokenType.PLUS:
-        // Commutative: left + right = right + left
-        // Pop left, add to current A
-        // This is a placeholder - real impl needs proper stack handling
-        this.builder.emit(ILOpcode.POP_A, [], 'get left');
+        // right + left: ADD right with popped left
+        // Save right temp, pop left, add temp
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (add)');
+        this.builder.emit(ILOpcode.ADD_BYTE, [], 'add right'); // Uses stack
         break;
+
+      case TokenType.BITWISE_AND:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (and)');
+        this.builder.emit(ILOpcode.AND_BYTE, [], 'and right');
+        break;
+
+      case TokenType.BITWISE_OR:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (or)');
+        this.builder.emit(ILOpcode.OR_BYTE, [], 'or right');
+        break;
+
+      case TokenType.BITWISE_XOR:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (xor)');
+        this.builder.emit(ILOpcode.XOR_BYTE, [], 'xor right');
+        break;
+
       case TokenType.MULTIPLY:
-        // Multiply is software routine anyway
-        this.builder.emit(ILOpcode.POP_A, [], 'mul (placeholder)');
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (mul)');
+        this.builder.emit(ILOpcode.MUL_BYTE, [], 'mul right');
         break;
+
+      // Non-commutative - need proper left OP right ordering
+      case TokenType.MINUS:
+        // left - right: We have right in A, left on stack
+        // Need: A = left - right
+        // Swap: push right, pop left to A, sub with original right
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (sub)');
+        this.builder.emit(ILOpcode.SUB_BYTE, [], 'sub right');
+        break;
+
+      case TokenType.DIVIDE:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (div)');
+        this.builder.emit(ILOpcode.DIV_BYTE, [], 'div right');
+        break;
+
+      case TokenType.MODULO:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (mod)');
+        this.builder.emit(ILOpcode.MOD_BYTE, [], 'mod right');
+        break;
+
+      // Comparison operators
+      case TokenType.EQUAL:
+      case TokenType.NOT_EQUAL:
+      case TokenType.LESS_THAN:
+      case TokenType.LESS_EQUAL:
+      case TokenType.GREATER_THAN:
+      case TokenType.GREATER_EQUAL:
+        // Comparison: left CMP right
+        // We have right in A, left on stack
+        // For proper CMP, we need left in A, compare with right
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (cmp)');
+        this.builder.emit(ILOpcode.CMP_BYTE, [], 'cmp right');
+        break;
+
       default:
-        // Placeholder for other operations
-        this.builder.emit(ILOpcode.POP_A, [], 'op (placeholder)');
+        // Fallback - just pop
+        this.builder.emit(ILOpcode.POP_A, [], 'op (unsupported)');
     }
   }
 

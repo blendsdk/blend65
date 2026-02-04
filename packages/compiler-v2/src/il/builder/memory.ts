@@ -91,4 +91,50 @@ export class ILBuilderMemory extends ILBuilderBase {
   loadImmWord(value: number, comment?: string): void {
     this.emit(ILOpcode.LOAD_IMM_WORD, [createImmediateOperand(value, true)], comment);
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Indexed Array Access
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Load array element at static offset.
+   *
+   * Creates a virtual slot at base + offset for the load.
+   *
+   * @param arraySlot - Base array slot
+   * @param offset - Static index offset
+   * @param comment - Optional comment
+   */
+  loadIndexedImm(arraySlot: FrameSlot, offset: number, comment?: string): void {
+    // Create a modified slot with the computed address
+    const elementSlot: FrameSlot = {
+      ...arraySlot,
+      name: `${arraySlot.name}[${offset}]`,
+      address: (arraySlot.address ?? 0) + offset,
+      isArrayElement: true,
+    };
+    this.emit(ILOpcode.LOAD_BYTE, [createSlotOperand(elementSlot)], comment);
+  }
+
+  /**
+   * Load array element using Y register as index.
+   *
+   * Emits LOAD_BYTE with an indexed slot operand.
+   * The code generator will use Y-indexed addressing.
+   *
+   * @param arraySlot - Base array slot
+   * @param comment - Optional comment
+   */
+  loadIndexedY(arraySlot: FrameSlot, comment?: string): void {
+    // Create an indexed slot operand - the slot's base + Y
+    const indexedSlot: FrameSlot = {
+      ...arraySlot,
+      name: `${arraySlot.name}[Y]`,
+      isArrayElement: true,
+    };
+    const operand = createSlotOperand(indexedSlot);
+    // Mark this as Y-indexed addressing
+    (operand as any).indexedByY = true;
+    this.emit(ILOpcode.LOAD_BYTE, [operand], comment);
+  }
 }
