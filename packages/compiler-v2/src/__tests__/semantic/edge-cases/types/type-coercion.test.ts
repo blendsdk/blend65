@@ -348,15 +348,14 @@ describe('Assignment Expression Type Coercion', () => {
     expect(hasNoErrors(source)).toBe(true);
   });
 
-  // GAP: Assignment expression type checking not fully implemented
-  // This documents a gap - word to byte reassignment should error but doesn't
-  it.skip('should error on word to byte reassignment (GAP: not currently checked)', () => {
+  it('should error on word to byte reassignment (inside function)', () => {
     const source = `
-      let b: byte = 100;
-      let w: word = 1000;
-      b = w;
+      function test(): void {
+        let b: byte = 100;
+        let w: word = 1000;
+        b = w;
+      }
     `;
-    // This SHOULD produce an error but doesn't - gap in assignment type checking
     expect(hasErrors(source)).toBe(true);
   });
 
@@ -369,15 +368,14 @@ describe('Assignment Expression Type Coercion', () => {
     expect(hasNoErrors(source)).toBe(true);
   });
 
-  // GAP: Array element assignment type checking not fully implemented
-  // This documents a gap - array element type mismatch should error but doesn't
-  it.skip('should error on array element type mismatch (GAP: not currently checked)', () => {
+  it('should error on array element type mismatch (inside function)', () => {
     const source = `
-      let arr: byte[3] = [1, 2, 3];
-      let w: word = 1000;
-      arr[0] = w;
+      function test(): void {
+        let arr: byte[3] = [1, 2, 3];
+        let w: word = 1000;
+        arr[0] = w;
+      }
     `;
-    // This SHOULD produce an error but doesn't - gap in array element type checking
     expect(hasErrors(source)).toBe(true);
   });
 

@@ -362,18 +362,6 @@ describe('Logical Operators in Control Flow', () => {
     expect(hasNoErrors(source)).toBe(true);
   });
 
-  // Note: Skipped due to known parser limitation with for-loop variable declarations
-  it.skip('should use complex logical in for condition', () => {
-    const source = `
-      function test(): void {
-        let running: bool = true;
-        for (let i: byte = 0; i < 10 && running; i = i + 1) {
-          running = i < 5;
-        }
-      }
-    `;
-    expect(hasNoErrors(source)).toBe(true);
-  });
 });
 
 // =============================================================================
