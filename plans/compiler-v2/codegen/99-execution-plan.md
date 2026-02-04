@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-04-02 17:11
-> **Progress**: Implementation COMPLETE, CGT1-CGT5 COMPLETE
+> **Last Updated**: 2026-04-02 17:38
+> **Progress**: Implementation COMPLETE, CGT1-CGT6 COMPLETE
 
 ## Current Status
 
@@ -245,7 +245,7 @@ No test files exist in `__tests__/codegen/`.
 - [x] CGT5.1-CGT5.6 Bitwise operation unit tests ✅ (completed: 2026-04-02 17:11)
 
 **Phase CGT6: Comparison & Control Flow Tests**
-- [ ] CGT6.1-CGT6.10 Comparison and control flow unit tests
+- [x] CGT6.1-CGT6.10 Comparison and control flow unit tests ✅ (completed: 2026-04-02 17:38)
 
 **Phase CGT7: Functions & Intrinsics Tests**
 - [ ] CGT7.1-CGT7.8 Function and intrinsic unit tests
