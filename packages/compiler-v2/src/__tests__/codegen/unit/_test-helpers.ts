@@ -426,6 +426,7 @@ export function countInstructions(
 
 /**
  * Checks if the output contains a comment with specific text.
+ * Checks both standalone comment elements and instruction comments.
  *
  * @param elements - All ASM-IL elements
  * @param text - Text to search for
@@ -435,7 +436,19 @@ export function hasCommentContaining(
   elements: AsmILElement[],
   text: string
 ): boolean {
-  return elements.some(
-    (e) => isCommentElement(e) && e.comment.text.includes(text)
-  );
+  return elements.some((e) => {
+    // Check standalone comment elements
+    if (isCommentElement(e) && e.comment.text.includes(text)) {
+      return true;
+    }
+    // Check instruction comments
+    if (
+      isInstructionElement(e) &&
+      e.instruction.comment &&
+      e.instruction.comment.includes(text)
+    ) {
+      return true;
+    }
+    return false;
+  });
 }
