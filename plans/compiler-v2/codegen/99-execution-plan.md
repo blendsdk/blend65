@@ -248,7 +248,7 @@ No test files exist in `__tests__/codegen/`.
 - [x] CGT6.1-CGT6.10 Comparison and control flow unit tests ✅ (completed: 2026-04-02 17:38)
 
 **Phase CGT7: Functions & Intrinsics Tests**
-- [ ] CGT7.1-CGT7.8 Function and intrinsic unit tests
+- [x] CGT7.1-CGT7.8 Function and intrinsic unit tests ✅ (completed: 2026-05-02 01:05)
 
 **Phase CGT8: Integration Tests**
 - [ ] CGT8.1-CGT8.4 Integration tests
