@@ -774,6 +774,129 @@ export class AsmILBuilder {
   }
 
   // ==========================================================================
+  // 65C02-Specific Instructions
+  // ==========================================================================
+  // These helpers emit instructions exclusive to the WDC 65C02 CPU.
+  // They MUST only be used when targeting a 65C02 platform (e.g., X16).
+  // On a base MOS 6502, these opcodes do not exist and would crash.
+
+  /**
+   * STZ - Store Zero (65C02 only).
+   *
+   * Stores zero to memory without clobbering the accumulator.
+   * On the base 6502, this requires LDA #0 + STA which destroys A.
+   *
+   * Supported modes: zeroPage, zeroPageX, absolute, absoluteX.
+   *
+   * @param operand - Memory address to store zero at
+   * @param mode - Addressing mode
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public stz(
+    operand: number,
+    mode: 'zeroPage' | 'zeroPageX' | 'absolute' | 'absoluteX',
+    comment?: string
+  ): this {
+    const asmMode = this.mapMode(mode);
+    return this.instruction('STZ', asmMode, operand, undefined, comment);
+  }
+
+  /**
+   * BRA - Branch Always (65C02 only).
+   *
+   * Unconditional relative branch (±127 bytes range).
+   * Saves 1 byte compared to the 6502's JMP absolute (3 bytes vs 2 bytes).
+   *
+   * @param label - Target label to branch to
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public bra(label: string, comment?: string): this {
+    return this.instruction('BRA', AsmAddressingMode.Relative, undefined, label, comment);
+  }
+
+  /**
+   * INA - Increment Accumulator (65C02 only).
+   *
+   * Emits INC with accumulator addressing mode (INC A).
+   * Single byte instruction. Does NOT affect the carry flag,
+   * unlike the 6502 equivalent (CLC + ADC #1).
+   *
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public ina(comment?: string): this {
+    return this.instruction('INC', AsmAddressingMode.Accumulator, undefined, undefined, comment);
+  }
+
+  /**
+   * DEA - Decrement Accumulator (65C02 only).
+   *
+   * Emits DEC with accumulator addressing mode (DEC A).
+   * Single byte instruction. Does NOT affect the carry flag,
+   * unlike the 6502 equivalent (SEC + SBC #1).
+   *
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public dea(comment?: string): this {
+    return this.instruction('DEC', AsmAddressingMode.Accumulator, undefined, undefined, comment);
+  }
+
+  /**
+   * PHX - Push X Register (65C02 only).
+   *
+   * Pushes X directly onto the stack without clobbering A.
+   * On the base 6502, this requires TXA + PHA which destroys A.
+   *
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public phx(comment?: string): this {
+    return this.instruction('PHX', AsmAddressingMode.Implied, undefined, undefined, comment);
+  }
+
+  /**
+   * PLX - Pull X Register (65C02 only).
+   *
+   * Pulls X directly from the stack without clobbering A.
+   * On the base 6502, this requires PLA + TAX which destroys A.
+   *
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public plx(comment?: string): this {
+    return this.instruction('PLX', AsmAddressingMode.Implied, undefined, undefined, comment);
+  }
+
+  /**
+   * PHY - Push Y Register (65C02 only).
+   *
+   * Pushes Y directly onto the stack without clobbering A.
+   * On the base 6502, this requires TYA + PHA which destroys A.
+   *
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public phy(comment?: string): this {
+    return this.instruction('PHY', AsmAddressingMode.Implied, undefined, undefined, comment);
+  }
+
+  /**
+   * PLY - Pull Y Register (65C02 only).
+   *
+   * Pulls Y directly from the stack without clobbering A.
+   * On the base 6502, this requires PLA + TAY which destroys A.
+   *
+   * @param comment - Optional comment
+   * @returns this for chaining
+   */
+  public ply(comment?: string): this {
+    return this.instruction('PLY', AsmAddressingMode.Implied, undefined, undefined, comment);
+  }
+
+  // ==========================================================================
   // Build
   // ==========================================================================
 

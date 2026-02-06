@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-06-02 10:43
-> **Progress**: 6/18 tasks (33%)
+> **Last Updated**: 2026-06-02 11:48
+> **Progress**: 10/18 tasks (56%)
 
 ## Overview
 
@@ -162,10 +162,10 @@
 - [x] 1.1.6 Add CPU strategy unit tests ✅ (completed: 2026-06-02 10:42)
 
 ### Phase 2: ASM-IL Builder 65C02 Instructions
-- [ ] 2.1.1 Add AsmAddressingMode.Relative if missing
-- [ ] 2.1.2 Add AsmAddressingMode.Accumulator if missing
-- [ ] 2.1.3 Add builder helpers for 65C02
-- [ ] 2.1.4 Add builder tests for 65C02
+- [x] 2.1.1 Add AsmAddressingMode.Relative if missing ✅ (already existed: 2026-06-02 11:23)
+- [x] 2.1.2 Add AsmAddressingMode.Accumulator if missing ✅ (already existed: 2026-06-02 11:23)
+- [x] 2.1.3 Add builder helpers for 65C02 ✅ (completed: 2026-06-02 11:32)
+- [x] 2.1.4 Add builder tests for 65C02 ✅ (completed: 2026-06-02 11:47)
 
 ### Phase 3: PlatformConfig + Codegen Integration
 - [ ] 3.1.1 Add cpuTarget to PlatformConfig
