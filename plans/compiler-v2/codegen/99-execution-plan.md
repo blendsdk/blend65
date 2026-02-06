@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-04-02 17:38
-> **Progress**: Implementation COMPLETE, CGT1-CGT6 COMPLETE
+> **Last Updated**: 2026-06-02 01:10
+> **Progress**: Implementation COMPLETE, CGT1-CGT8 COMPLETE
 
 ## Current Status
 
@@ -251,7 +251,7 @@ No test files exist in `__tests__/codegen/`.
 - [x] CGT7.1-CGT7.8 Function and intrinsic unit tests ✅ (completed: 2026-05-02 01:05)
 
 **Phase CGT8: Integration Tests**
-- [ ] CGT8.1-CGT8.4 Integration tests
+- [x] CGT8.1-CGT8.4 Integration tests ✅ (completed: 2026-06-02 01:10)
 
 **Phase CGT9: E2E Tests**
 - [ ] CGT9.1-CGT9.4 E2E tests
