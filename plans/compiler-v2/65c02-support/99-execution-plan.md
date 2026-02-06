@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-06-02 22:31
-> **Progress**: 14/18 tasks (78%)
+> **Last Updated**: 2026-06-02 22:57
+> **Progress**: 18/20 tasks (90%)
 
 ## Overview
 
@@ -174,10 +174,10 @@
 - [x] 3.1.7-3.1.8 Update CodeGenerator + exports ✅ (completed: 2026-06-02 22:29)
 
 ### Phase 4: Codegen Layer Refactor
-- [ ] 4.1.1 Refactor memory.ts
-- [ ] 4.1.2 Refactor control.ts
-- [ ] 4.1.3 Refactor arithmetic.ts
-- [ ] 4.1.4 Refactor functions.ts
+- [x] 4.1.1 Refactor memory.ts — added storeZeroToAddress() CPU helper ✅ (completed: 2026-06-02 22:53)
+- [x] 4.1.2 Refactor control.ts — genJump uses cpu.emitBranchAlways() ✅ (completed: 2026-06-02 22:54)
+- [x] 4.1.3 Refactor arithmetic.ts — ADD_IMM 1/SUB_IMM 1 use cpu.emitIncrementA()/emitDecrementA() ✅ (completed: 2026-06-02 22:55)
+- [x] 4.1.4 Refactor functions.ts — added saveX/restoreX/saveY/restoreY CPU helpers ✅ (completed: 2026-06-02 22:56)
 
 ### Phase 5: Testing
 - [ ] 5.1.1-5.1.4 Create 65C02-specific tests

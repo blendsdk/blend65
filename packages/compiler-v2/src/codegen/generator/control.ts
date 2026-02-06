@@ -31,10 +31,20 @@ export class ControlFlowOpsGenerator extends ComparisonOpsGenerator {
   // JUMP - Unconditional jump
   // ==========================================================================
 
+  /**
+   * Generates code for JUMP (unconditional branch).
+   *
+   * Delegates to the CPU strategy which selects the optimal instruction:
+   * - **6502:** JMP addr (3 bytes, absolute addressing)
+   * - **65C02:** BRA rel (2 bytes, relative addressing, ±127 range)
+   *
+   * IL: JUMP label
+   */
   protected genJump(instr: ILInstruction): void {
     this.emitComment(instr);
     const label = this.getLabelOperand(instr.operands);
-    this.asm.jmp(this.localLabel(label.name));
+    // Delegate to CPU strategy: JMP on 6502, BRA on 65C02
+    this.cpu.emitBranchAlways(this.asm, this.localLabel(label.name));
   }
 
   // ==========================================================================

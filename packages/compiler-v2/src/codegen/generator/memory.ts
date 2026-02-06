@@ -18,6 +18,35 @@ import { CodeGeneratorBase } from './base.js';
  */
 export class MemoryOpsGenerator extends CodeGeneratorBase {
   // ==========================================================================
+  // CPU-Aware Memory Helpers
+  // ==========================================================================
+
+  /**
+   * Stores zero to a memory address using the CPU strategy.
+   *
+   * Delegates to `this.cpu.emitStoreZero()` which selects the optimal
+   * instruction sequence for the target CPU:
+   * - **6502:** LDA #0 + STA addr (4-5 bytes, clobbers A)
+   * - **65C02:** STZ addr (2-3 bytes, preserves A)
+   *
+   * Use this method when the codegen needs to explicitly zero a memory
+   * location WITHOUT a preceding LOAD_IMM 0. For the LOAD_IMM 0 + STORE_BYTE
+   * IL sequence, the normal genLoadImm + genStoreByte path is used instead
+   * (the LOAD_IMM already loads zero into A, so only STA is needed).
+   *
+   * @param address - The memory address to store zero at
+   * @param isZp - Whether the address is in zero page ($00-$FF)
+   * @param comment - Optional comment for the instruction
+   */
+  protected storeZeroToAddress(address: number, isZp: boolean, comment?: string): void {
+    this.cpu.emitStoreZero(this.asm, address, isZp, comment);
+    // On 6502, emitStoreZero clobbers A (loads 0). On 65C02, A is preserved.
+    // Conservatively mark A as holding immediate 0 since that's the
+    // common case (6502), and on 65C02 we're being conservative.
+    this.setAFromImmediate(0);
+  }
+
+  // ==========================================================================
   // LOAD_BYTE - Load byte from slot into A
   // ==========================================================================
 

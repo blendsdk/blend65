@@ -46,15 +46,27 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
   /**
    * Generates code for ADD_IMM.
    *
+   * When value is 1, delegates to the CPU strategy for optimal output:
+   * - **6502:** CLC + ADC #1 (3 bytes)
+   * - **65C02:** INC A (1 byte, preserves carry)
+   *
+   * For other values, uses the standard CLC + ADC #value sequence
+   * (identical on both CPUs).
+   *
    * IL: ADD_IMM value
-   * 6502: CLC / ADC #value
    */
   protected genAddImm(instr: ILInstruction): void {
     this.emitComment(instr);
     const imm = this.getImmediateOperand(instr.operands);
 
-    this.asm.clc();
-    this.asm.adc(imm.value, 'immediate');
+    if (imm.value === 1) {
+      // Special case: increment A by 1 — use CPU strategy
+      // On 65C02 this emits INC A (1 byte) instead of CLC + ADC #1 (3 bytes)
+      this.cpu.emitIncrementA(this.asm, 'A += 1');
+    } else {
+      this.asm.clc();
+      this.asm.adc(imm.value, 'immediate');
+    }
     this.invalidateA();
   }
 
@@ -86,15 +98,27 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
   /**
    * Generates code for SUB_IMM.
    *
+   * When value is 1, delegates to the CPU strategy for optimal output:
+   * - **6502:** SEC + SBC #1 (3 bytes)
+   * - **65C02:** DEC A (1 byte, preserves carry)
+   *
+   * For other values, uses the standard SEC + SBC #value sequence
+   * (identical on both CPUs).
+   *
    * IL: SUB_IMM value
-   * 6502: SEC / SBC #value
    */
   protected genSubImm(instr: ILInstruction): void {
     this.emitComment(instr);
     const imm = this.getImmediateOperand(instr.operands);
 
-    this.asm.sec();
-    this.asm.sbc(imm.value, 'immediate');
+    if (imm.value === 1) {
+      // Special case: decrement A by 1 — use CPU strategy
+      // On 65C02 this emits DEC A (1 byte) instead of SEC + SBC #1 (3 bytes)
+      this.cpu.emitDecrementA(this.asm, 'A -= 1');
+    } else {
+      this.asm.sec();
+      this.asm.sbc(imm.value, 'immediate');
+    }
     this.invalidateA();
   }
 
