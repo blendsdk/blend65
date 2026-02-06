@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-06-02 11:48
-> **Progress**: 10/18 tasks (56%)
+> **Last Updated**: 2026-06-02 22:31
+> **Progress**: 14/18 tasks (78%)
 
 ## Overview
 
@@ -168,10 +168,10 @@
 - [x] 2.1.4 Add builder tests for 65C02 ✅ (completed: 2026-06-02 11:47)
 
 ### Phase 3: PlatformConfig + Codegen Integration
-- [ ] 3.1.1 Add cpuTarget to PlatformConfig
-- [ ] 3.1.2-3.1.4 Set cpuTarget on all platform configs
-- [ ] 3.1.5-3.1.6 Update CodeGeneratorBase with CpuInstructionSet
-- [ ] 3.1.7-3.1.8 Update CodeGenerator + exports
+- [x] 3.1.1 Add cpuTarget to PlatformConfig ✅ (completed: 2026-06-02 22:26)
+- [x] 3.1.2-3.1.4 Set cpuTarget on all platform configs ✅ (completed: 2026-06-02 22:27)
+- [x] 3.1.5-3.1.6 Update CodeGeneratorBase with CpuInstructionSet ✅ (completed: 2026-06-02 22:28)
+- [x] 3.1.7-3.1.8 Update CodeGenerator + exports ✅ (completed: 2026-06-02 22:29)
 
 ### Phase 4: Codegen Layer Refactor
 - [ ] 4.1.1 Refactor memory.ts

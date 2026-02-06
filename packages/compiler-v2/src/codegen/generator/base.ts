@@ -15,6 +15,10 @@ import { ILInstruction, ILProgram, ILFunction } from '../../il/index.js';
 import { SlotOperand, ImmediateOperand, LabelOperand, FunctionOperand, AddressOperand, ILOperand } from '../../il/operands.js';
 import { FrameSlot, isZpSlot } from '../../frame/types.js';
 import { AsmILBuilder, AsmILProgram } from '../asm-il/index.js';
+import { CpuInstructionSet } from '../cpu/cpu-instruction-set.js';
+import { createCpuInstructionSet } from '../cpu/index.js';
+import { DEFAULT_CPU_TARGET } from '../cpu/types.js';
+import type { CpuTarget } from '../cpu/types.js';
 
 // ============================================================================
 // Accumulator State Tracking
@@ -101,6 +105,17 @@ export class CodeGeneratorBase {
   /** Label counter for unique labels */
   protected labelCounter: number = 0;
 
+  /**
+   * CPU instruction set strategy.
+   *
+   * Provides CPU-specific instruction emission methods.
+   * On 6502, multi-instruction sequences are used (e.g., LDA #0 + STA).
+   * On 65C02, single instructions are used (e.g., STZ).
+   *
+   * Available to all layers in the inheritance chain via `this.cpu`.
+   */
+  protected cpu: CpuInstructionSet;
+
   // ==========================================================================
   // Constructor
   // ==========================================================================
@@ -109,10 +124,12 @@ export class CodeGeneratorBase {
    * Creates a new CodeGeneratorBase.
    *
    * @param moduleName - Name of the module being generated
+   * @param cpuTarget - CPU target for instruction selection (default: '6502')
    */
-  constructor(moduleName: string = 'main') {
+  constructor(moduleName: string = 'main', cpuTarget: CpuTarget = DEFAULT_CPU_TARGET) {
     this.asm = new AsmILBuilder(moduleName);
     this.aState = createUnknownAState();
+    this.cpu = createCpuInstructionSet(cpuTarget);
   }
 
   // ==========================================================================

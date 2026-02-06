@@ -15,3 +15,13 @@ export * from './asm-il/index.js';
 
 // Code generator
 export { CodeGenerator, CodeGeneratorBase } from './generator/index.js';
+
+// CPU instruction set abstraction
+export {
+  createCpuInstructionSet,
+  CpuInstructionSet,
+  Cpu6502InstructionSet,
+  Cpu65C02InstructionSet,
+  DEFAULT_CPU_TARGET,
+} from './cpu/index.js';
+export type { CpuTarget } from './cpu/index.js';

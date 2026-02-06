@@ -15,6 +15,8 @@
  * @module frame/platform
  */
 
+import type { CpuTarget } from '../codegen/cpu/types.js';
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -185,6 +187,24 @@ export interface PlatformConfig {
    * 6502 has no alignment requirements (alignment = 1).
    */
   readonly alignment: number;
+
+  // ========================================
+  // CPU Target
+  // ========================================
+
+  /**
+   * CPU target for code generation.
+   *
+   * Determines which instruction set the code generator uses:
+   * - `'6502'` — MOS 6502 (C64, Atari, NES, etc.)
+   * - `'65c02'` — WDC 65C02 (Commander X16, Apple IIe enhanced, etc.)
+   *
+   * The 65C02 adds instructions like STZ, BRA, PHX/PLX/PHY/PLY,
+   * INC A, DEC A that produce shorter and faster code.
+   *
+   * Defaults to `'6502'` for backward compatibility.
+   */
+  readonly cpuTarget: CpuTarget;
 }
 
 // ============================================================================
@@ -251,6 +271,9 @@ export const C64_PLATFORM_CONFIG: PlatformConfig = {
   // Types
   pointerSize: 2,
   alignment: 1, // No alignment required on 6502
+
+  // CPU: MOS 6502 (C64 uses the original 6502)
+  cpuTarget: '6502',
 };
 
 // ============================================================================
@@ -312,6 +335,9 @@ export const X16_PLATFORM_CONFIG: PlatformConfig = {
   // Types
   pointerSize: 2,
   alignment: 1,
+
+  // CPU: WDC 65C02 (X16 uses the enhanced 65C02)
+  cpuTarget: '65c02',
 };
 
 // ============================================================================
@@ -362,6 +388,9 @@ export const TEST_PLATFORM_CONFIG: PlatformConfig = {
   // Types
   pointerSize: 2,
   alignment: 1,
+
+  // CPU: MOS 6502 (test platform defaults to baseline)
+  cpuTarget: '6502',
 };
 
 // ============================================================================
@@ -410,6 +439,9 @@ export interface CustomPlatformOptions {
 
   /** Optional: Alignment requirement (default: 1) */
   alignment?: number;
+
+  /** Optional: CPU target (default: '6502') */
+  cpuTarget?: CpuTarget;
 }
 
 /**
@@ -496,6 +528,9 @@ export function createCustomPlatform(
     // Types
     pointerSize: options.pointerSize ?? 2,
     alignment: options.alignment ?? 1,
+
+    // CPU target (default: 6502 for maximum compatibility)
+    cpuTarget: options.cpuTarget ?? '6502',
   };
 }
 
