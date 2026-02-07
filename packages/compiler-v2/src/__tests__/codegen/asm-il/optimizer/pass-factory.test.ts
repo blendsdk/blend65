@@ -56,33 +56,38 @@ describe('ASM-IL Pass Factory', () => {
       expect(passes1).not.toBe(passes2);
     });
 
-    // Note: Currently all levels return 0 passes since no pass classes exist.
-    // These tests verify the structure is correct and will be updated as
-    // passes are implemented in Phases 3-6.
+    // Pass counts reflect currently implemented passes:
+    // - FlagPatternsPass: O1+ (Phase 3, Session 3.1)
+    // Remaining passes will be added in Phases 3-6.
 
-    it('should return 0 passes for O1 (passes not yet implemented)', () => {
+    it('should return 1 pass for O1 (FlagPatternsPass)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O1));
-      expect(passes).toHaveLength(0);
+      expect(passes).toHaveLength(1);
+      expect(passes[0].name).toBe('flag-patterns');
     });
 
-    it('should return 0 passes for O2 (passes not yet implemented)', () => {
+    it('should return 1 pass for O2 (FlagPatternsPass)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O2));
-      expect(passes).toHaveLength(0);
+      expect(passes).toHaveLength(1);
+      expect(passes[0].name).toBe('flag-patterns');
     });
 
-    it('should return 0 passes for O3 (passes not yet implemented)', () => {
+    it('should return 1 pass for O3 (FlagPatternsPass)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O3));
-      expect(passes).toHaveLength(0);
+      expect(passes).toHaveLength(1);
+      expect(passes[0].name).toBe('flag-patterns');
     });
 
-    it('should return 0 passes for Os (passes not yet implemented)', () => {
+    it('should return 1 pass for Os (FlagPatternsPass)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Os));
-      expect(passes).toHaveLength(0);
+      expect(passes).toHaveLength(1);
+      expect(passes[0].name).toBe('flag-patterns');
     });
 
-    it('should return 0 passes for Oz (passes not yet implemented)', () => {
+    it('should return 1 pass for Oz (FlagPatternsPass)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Oz));
-      expect(passes).toHaveLength(0);
+      expect(passes).toHaveLength(1);
+      expect(passes[0].name).toBe('flag-patterns');
     });
 
     it('should accept custom zpSlots in options', () => {

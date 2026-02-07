@@ -178,11 +178,12 @@ describe('AsmILOptimizer (Level-Based)', () => {
       expect(optimizer.getPasses()).toHaveLength(0);
     });
 
-    // Note: Currently all levels return 0 passes since no pass classes
-    // exist yet. Tests will be updated as passes are implemented.
-    it('should return 0 passes currently (passes not yet implemented)', () => {
+    // FlagPatternsPass is now active for all O1+ levels (Phase 3, Session 3.1)
+    it('should return 1 pass for O2 (FlagPatternsPass active)', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
-      expect(optimizer.getPasses()).toHaveLength(0);
+      const passes = optimizer.getPasses();
+      expect(passes).toHaveLength(1);
+      expect(passes[0].name).toBe('flag-patterns');
     });
   });
 
@@ -237,8 +238,8 @@ describe('AsmILOptimizer (Level-Based)', () => {
       expect(result.passStats.size).toBe(0);
     });
 
-    it('should return unchanged result when no passes are configured', () => {
-      // Currently all levels have 0 passes, so they all return unchanged
+    it('should return unchanged result for empty program', () => {
+      // An empty program (no sections/instructions) has nothing to optimize
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
       const program = createAsmILProgram('test');
 

@@ -41,6 +41,9 @@ export { AsmOptimizer, createAsmOptimizer } from './asm-optimizer.js';
 // Built-in passes
 export { PassThroughPass } from './pass-through.js';
 
+// Optimization passes
+export { FlagPatternsPass } from './passes/index.js';
+
 // Optimization level system
 export {
   OptimizationLevel,

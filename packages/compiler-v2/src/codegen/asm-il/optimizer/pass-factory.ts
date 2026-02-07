@@ -38,7 +38,7 @@ import { OptimizationLevel } from './options.js';
 // ============================================================================
 
 // Phase 3: Core Passes (O1)
-// import { FlagPatternsPass } from './passes/flag-patterns.js';
+import { FlagPatternsPass } from './passes/flag-patterns.js';
 // import { StoreLoadPass } from './passes/store-load.js';
 
 // Phase 4: Standard Passes (O2)
@@ -93,7 +93,7 @@ export function createPassesForLevel(
 
   // ── O1+ passes: Basic patterns ──────────────────────────────────────────
   // These are safe, fast optimizations with no resource requirements.
-  // Phase 3, Session 3.1: passes.push(new FlagPatternsPass());
+  passes.push(new FlagPatternsPass());
   // Phase 3, Session 3.2: passes.push(new StoreLoadPass());
 
   // ── O2+ passes: Standard patterns ──────────────────────────────────────

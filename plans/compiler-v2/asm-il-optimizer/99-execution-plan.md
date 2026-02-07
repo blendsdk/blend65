@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 09:13
-> **Progress**: 13/32 tasks (41%)
+> **Last Updated**: 2026-07-02 12:18
+> **Progress**: 17/32 tasks (53%)
 
 ## Overview
 
@@ -295,10 +295,10 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 2.1.4 Add analysis unit tests ✅ (completed: 2026-07-02 09:13 — 3 test files, 194 new tests)
 
 ### Phase 3: Core Passes (O1)
-- [ ] 3.1.1 Implement FlagPatternsPass
-- [ ] 3.1.2 Add redundant CMP #0 removal
-- [ ] 3.1.3 Add dead CLC/SEC removal
-- [ ] 3.1.4 Add flag patterns unit tests
+- [x] 3.1.1 Implement FlagPatternsPass ✅ (completed: 2026-07-02 11:10 — with 3 pattern types)
+- [x] 3.1.2 Add redundant CMP #0 removal ✅ (completed: 2026-07-02 11:10 — with Immediate mode check)
+- [x] 3.1.3 Add dead CLC/SEC removal ✅ (completed: 2026-07-02 11:10 — duplicate/opposite/dead patterns)
+- [x] 3.1.4 Add flag patterns unit tests ✅ (completed: 2026-07-02 12:15 — 4 test files, ~65 tests)
 - [ ] 3.2.1 Implement StoreLoadPass
 - [ ] 3.2.2 Add STA/LDA elimination
 - [ ] 3.2.3 Add STX/LDX, STY/LDY
