@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 17:03
-> **Progress**: 27/32 tasks (84%)
+> **Last Updated**: 2026-07-02 22:08
+> **Progress**: 33/38 tasks (87%)
 
 ## Overview
 
@@ -314,17 +314,17 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 4.2.3 Add transfer-opt unit tests ✅ (completed: 2026-07-02 17:03 — 3 test files: basics, patterns, edge-cases, 64 tests)
 
 ### Phase 5: Advanced Passes (O3)
-- [ ] 5.1.1 Implement ZPPromotionPass
-- [ ] 5.1.2 Add frequency counting
-- [ ] 5.1.3 Add hotness ranking
-- [ ] 5.1.4 Add reference transformation
+- [x] 5.1.1 Implement ZPPromotionPass ✅ (completed: 2026-07-02 21:30 — frequency counting, hotness ranking, Absolute→ZP transform)
+- [x] 5.1.2 Add frequency counting ✅ (completed: 2026-07-02 21:30)
+- [x] 5.1.3 Add hotness ranking ✅ (completed: 2026-07-02 21:30)
+- [x] 5.1.4 Add reference transformation ✅ (completed: 2026-07-02 21:30)
 - [ ] 5.1.5 Add ZP promotion unit tests
-- [ ] 5.2.1 Implement Strength6502Pass
-- [ ] 5.2.2 Add multiply patterns
-- [ ] 5.2.3 Add divide/modulo patterns
+- [x] 5.2.1 Implement Strength6502Pass ✅ (completed: 2026-07-02 21:30 — mul/div/mod by power-of-2 → shifts/masks)
+- [x] 5.2.2 Add multiply patterns ✅ (completed: 2026-07-02 21:30 — ASL chain for *2, *4, *8, etc.)
+- [x] 5.2.3 Add divide/modulo patterns ✅ (completed: 2026-07-02 21:30 — LSR chain for div, AND mask for mod)
 - [ ] 5.2.4 Add strength-6502 unit tests
-- [ ] 5.3.1 Implement StackOptPass
-- [ ] 5.3.2 Add redundant pair detection
+- [x] 5.3.1 Implement StackOptPass ✅ (completed: 2026-07-02 21:30 — PHA/PLA pair elimination)
+- [x] 5.3.2 Add redundant pair detection ✅ (completed: 2026-07-02 21:30 — depth tracking, A-unmodified/A-overwritten detection)
 - [ ] 5.3.3 Add stack-opt unit tests
 
 ### Phase 6: Size Passes (Os/Oz)
