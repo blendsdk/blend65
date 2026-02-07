@@ -43,7 +43,7 @@ import { StoreLoadPass } from './passes/store-load.js';
 
 // Phase 4: Standard Passes (O2)
 import { BranchOptPass } from './passes/branch-opt.js';
-// import { TransferOptPass } from './passes/transfer-opt.js';
+import { TransferOptPass } from './passes/transfer-opt.js';
 
 // Phase 5: Advanced Passes (O3)
 // import { ZPPromotionPass } from './passes/zp-promotion.js';
@@ -100,7 +100,7 @@ export function createPassesForLevel(
   // Additional optimizations that handle control flow and register usage.
   if (level !== OptimizationLevel.O1) {
     passes.push(new BranchOptPass());
-    // Phase 4, Session 4.2: passes.push(new TransferOptPass());
+    passes.push(new TransferOptPass());
   }
 
   // ── O3 passes: Aggressive optimization ─────────────────────────────────

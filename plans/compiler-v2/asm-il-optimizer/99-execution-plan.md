@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 16:05
-> **Progress**: 24/32 tasks (75%)
+> **Last Updated**: 2026-07-02 17:03
+> **Progress**: 27/32 tasks (84%)
 
 ## Overview
 
@@ -308,10 +308,10 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 4.1.1 Implement BranchOptPass ✅ (completed: 2026-07-02 15:57 — JMP chain, unreachable code, branch-over-JMP)
 - [x] 4.1.2 Add JMP chain collapse ✅ (completed: 2026-07-02 15:57)
 - [x] 4.1.3 Add unreachable code removal ✅ (completed: 2026-07-02 15:57)
-- [ ] 4.1.4 Add branch-opt unit tests
-- [ ] 4.2.1 Implement TransferOptPass
-- [ ] 4.2.2 Add reverse transfer removal
-- [ ] 4.2.3 Add transfer-opt unit tests
+- [x] 4.1.4 Add branch-opt unit tests ✅ (completed: 2026-07-02 17:03 — 3 test files: basics, patterns, edge-cases, 64 tests)
+- [x] 4.2.1 Implement TransferOptPass ✅ (completed: 2026-07-02 17:03 — redundant reverse transfer removal)
+- [x] 4.2.2 Add reverse transfer removal ✅ (completed: 2026-07-02 17:03 — TAX↔TXA, TAY↔TYA with register safety checks)
+- [x] 4.2.3 Add transfer-opt unit tests ✅ (completed: 2026-07-02 17:03 — 3 test files: basics, patterns, edge-cases, 64 tests)
 
 ### Phase 5: Advanced Passes (O3)
 - [ ] 5.1.1 Implement ZPPromotionPass

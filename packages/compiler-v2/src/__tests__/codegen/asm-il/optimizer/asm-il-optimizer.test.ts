@@ -178,14 +178,15 @@ describe('AsmILOptimizer (Level-Based)', () => {
       expect(optimizer.getPasses()).toHaveLength(0);
     });
 
-    // FlagPatterns + StoreLoad + BranchOpt are active for O2+ levels
-    it('should return 3 passes for O2 (FlagPatterns + StoreLoad + BranchOpt)', () => {
+    // FlagPatterns + StoreLoad + BranchOpt + TransferOpt are active for O2+ levels
+    it('should return 4 passes for O2 (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
       const passes = optimizer.getPasses();
-      expect(passes).toHaveLength(3);
+      expect(passes).toHaveLength(4);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
+      expect(passes[3].name).toBe('transfer-opt');
     });
   });
 

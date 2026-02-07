@@ -14,7 +14,7 @@ export { StoreLoadPass } from './store-load.js';
 
 // Phase 4: Standard Passes (O2)
 export { BranchOptPass } from './branch-opt.js';
-// export { TransferOptPass } from './transfer-opt.js';
+export { TransferOptPass } from './transfer-opt.js';
 
 // Phase 5: Advanced Passes (O3)
 // export { ZPPromotionPass } from './zp-promotion.js';

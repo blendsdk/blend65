@@ -68,36 +68,40 @@ describe('ASM-IL Pass Factory', () => {
       expect(passes[1].name).toBe('store-load');
     });
 
-    it('should return 3 passes for O2 (FlagPatterns + StoreLoad + BranchOpt)', () => {
+    it('should return 4 passes for O2 (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O2));
-      expect(passes).toHaveLength(3);
+      expect(passes).toHaveLength(4);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
+      expect(passes[3].name).toBe('transfer-opt');
     });
 
-    it('should return 3 passes for O3 (FlagPatterns + StoreLoad + BranchOpt)', () => {
+    it('should return 4 passes for O3 (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O3));
-      expect(passes).toHaveLength(3);
+      expect(passes).toHaveLength(4);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
+      expect(passes[3].name).toBe('transfer-opt');
     });
 
-    it('should return 3 passes for Os (FlagPatterns + StoreLoad + BranchOpt)', () => {
+    it('should return 4 passes for Os (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Os));
-      expect(passes).toHaveLength(3);
+      expect(passes).toHaveLength(4);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
+      expect(passes[3].name).toBe('transfer-opt');
     });
 
-    it('should return 3 passes for Oz (FlagPatterns + StoreLoad + BranchOpt)', () => {
+    it('should return 4 passes for Oz (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Oz));
-      expect(passes).toHaveLength(3);
+      expect(passes).toHaveLength(4);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
+      expect(passes[3].name).toBe('transfer-opt');
     });
 
     it('should accept custom zpSlots in options', () => {
