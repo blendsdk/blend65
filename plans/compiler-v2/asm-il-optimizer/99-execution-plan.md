@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 02:08
-> **Progress**: 4/32 tasks (12.5%)
+> **Last Updated**: 2026-07-02 04:08
+> **Progress**: 9/32 tasks (28%)
 
 ## Overview
 
@@ -282,11 +282,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 1.1.2 Migrate optimizer types ✅ (completed: 2026-07-02 00:34 — adapted for v2 AsmILProgram)
 - [x] 1.1.3 Migrate base optimizer ✅ (completed: 2026-07-02 00:36 — with passes array clone fix)
 - [x] 1.1.4 Migrate pass manager ✅ (completed: 2026-07-02 00:39 — with fixed-point iteration + stats)
-- [ ] 1.2.1 Create OptimizationLevel enum
-- [ ] 1.2.2 Create DEFAULT_OPTIONS
-- [ ] 1.2.3 Create createPassesForLevel()
-- [ ] 1.2.4 Create AsmILOptimizer class
-- [ ] 1.2.5 Add unit tests
+- [x] 1.2.1 Create OptimizationLevel enum ✅ (completed: 2026-07-02 02:24)
+- [x] 1.2.2 Create DEFAULT_OPTIONS ✅ (completed: 2026-07-02 02:24)
+- [x] 1.2.3 Create createPassesForLevel() ✅ (completed: 2026-07-02 02:29)
+- [x] 1.2.4 Create AsmILOptimizer class ✅ (completed: 2026-07-02 02:33)
+- [x] 1.2.5 Add unit tests ✅ (completed: 2026-07-02 04:08 — 3 test files, 78 new tests)
 
 ### Phase 2: Analysis Utilities
 - [ ] 2.1.1 Implement FlagStateAnalyzer

@@ -40,3 +40,24 @@ export { AsmOptimizer, createAsmOptimizer } from './asm-optimizer.js';
 
 // Built-in passes
 export { PassThroughPass } from './pass-through.js';
+
+// Optimization level system
+export {
+  OptimizationLevel,
+  type AsmOptimizerOptions,
+  DEFAULT_OPTIONS,
+  getDefaultOptions,
+  resolveOptions,
+  isOptimizationEnabled,
+  getAllLevels,
+} from './options.js';
+
+// Pass factory
+export {
+  createPassesForLevel,
+  getPassCountForLevel,
+  getPlannedPassCounts,
+} from './pass-factory.js';
+
+// Level-based optimizer
+export { AsmILOptimizer, createAsmILOptimizer } from './asm-il-optimizer.js';
