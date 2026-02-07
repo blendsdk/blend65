@@ -42,7 +42,7 @@ export { AsmOptimizer, createAsmOptimizer } from './asm-optimizer.js';
 export { PassThroughPass } from './pass-through.js';
 
 // Optimization passes
-export { FlagPatternsPass } from './passes/index.js';
+export { FlagPatternsPass, StoreLoadPass, BranchOptPass } from './passes/index.js';
 
 // Optimization level system
 export {

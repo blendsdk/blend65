@@ -10,10 +10,10 @@
 
 // Phase 3: Core Passes (O1)
 export { FlagPatternsPass } from './flag-patterns.js';
-// export { StoreLoadPass } from './store-load.js';
+export { StoreLoadPass } from './store-load.js';
 
 // Phase 4: Standard Passes (O2)
-// export { BranchOptPass } from './branch-opt.js';
+export { BranchOptPass } from './branch-opt.js';
 // export { TransferOptPass } from './transfer-opt.js';
 
 // Phase 5: Advanced Passes (O3)

@@ -39,10 +39,10 @@ import { OptimizationLevel } from './options.js';
 
 // Phase 3: Core Passes (O1)
 import { FlagPatternsPass } from './passes/flag-patterns.js';
-// import { StoreLoadPass } from './passes/store-load.js';
+import { StoreLoadPass } from './passes/store-load.js';
 
 // Phase 4: Standard Passes (O2)
-// import { BranchOptPass } from './passes/branch-opt.js';
+import { BranchOptPass } from './passes/branch-opt.js';
 // import { TransferOptPass } from './passes/transfer-opt.js';
 
 // Phase 5: Advanced Passes (O3)
@@ -94,12 +94,12 @@ export function createPassesForLevel(
   // ── O1+ passes: Basic patterns ──────────────────────────────────────────
   // These are safe, fast optimizations with no resource requirements.
   passes.push(new FlagPatternsPass());
-  // Phase 3, Session 3.2: passes.push(new StoreLoadPass());
+  passes.push(new StoreLoadPass());
 
   // ── O2+ passes: Standard patterns ──────────────────────────────────────
   // Additional optimizations that handle control flow and register usage.
   if (level !== OptimizationLevel.O1) {
-    // Phase 4, Session 4.1: passes.push(new BranchOptPass());
+    passes.push(new BranchOptPass());
     // Phase 4, Session 4.2: passes.push(new TransferOptPass());
   }
 

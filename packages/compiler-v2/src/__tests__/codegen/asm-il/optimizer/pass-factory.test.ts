@@ -58,36 +58,46 @@ describe('ASM-IL Pass Factory', () => {
 
     // Pass counts reflect currently implemented passes:
     // - FlagPatternsPass: O1+ (Phase 3, Session 3.1)
-    // Remaining passes will be added in Phases 3-6.
+    // - StoreLoadPass: O1+ (Phase 3, Session 3.2)
+    // Remaining passes will be added in Phases 4-6.
 
-    it('should return 1 pass for O1 (FlagPatternsPass)', () => {
+    it('should return 2 passes for O1 (FlagPatterns + StoreLoad)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O1));
-      expect(passes).toHaveLength(1);
+      expect(passes).toHaveLength(2);
       expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
     });
 
-    it('should return 1 pass for O2 (FlagPatternsPass)', () => {
+    it('should return 3 passes for O2 (FlagPatterns + StoreLoad + BranchOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O2));
-      expect(passes).toHaveLength(1);
+      expect(passes).toHaveLength(3);
       expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('branch-opt');
     });
 
-    it('should return 1 pass for O3 (FlagPatternsPass)', () => {
+    it('should return 3 passes for O3 (FlagPatterns + StoreLoad + BranchOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O3));
-      expect(passes).toHaveLength(1);
+      expect(passes).toHaveLength(3);
       expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('branch-opt');
     });
 
-    it('should return 1 pass for Os (FlagPatternsPass)', () => {
+    it('should return 3 passes for Os (FlagPatterns + StoreLoad + BranchOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Os));
-      expect(passes).toHaveLength(1);
+      expect(passes).toHaveLength(3);
       expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('branch-opt');
     });
 
-    it('should return 1 pass for Oz (FlagPatternsPass)', () => {
+    it('should return 3 passes for Oz (FlagPatterns + StoreLoad + BranchOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Oz));
-      expect(passes).toHaveLength(1);
+      expect(passes).toHaveLength(3);
       expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('branch-opt');
     });
 
     it('should accept custom zpSlots in options', () => {

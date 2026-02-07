@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 12:18
-> **Progress**: 17/32 tasks (53%)
+> **Last Updated**: 2026-07-02 16:05
+> **Progress**: 24/32 tasks (75%)
 
 ## Overview
 
@@ -299,15 +299,15 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 3.1.2 Add redundant CMP #0 removal ✅ (completed: 2026-07-02 11:10 — with Immediate mode check)
 - [x] 3.1.3 Add dead CLC/SEC removal ✅ (completed: 2026-07-02 11:10 — duplicate/opposite/dead patterns)
 - [x] 3.1.4 Add flag patterns unit tests ✅ (completed: 2026-07-02 12:15 — 4 test files, ~65 tests)
-- [ ] 3.2.1 Implement StoreLoadPass
-- [ ] 3.2.2 Add STA/LDA elimination
-- [ ] 3.2.3 Add STX/LDX, STY/LDY
-- [ ] 3.2.4 Add store-load unit tests
+- [x] 3.2.1 Implement StoreLoadPass ✅ (completed: 2026-07-02 14:16)
+- [x] 3.2.2 Add STA/LDA elimination ✅ (completed: 2026-07-02 14:16)
+- [x] 3.2.3 Add STX/LDX, STY/LDY ✅ (completed: 2026-07-02 14:16)
+- [x] 3.2.4 Add store-load unit tests ✅ (completed: 2026-07-02 14:55 — 3 test files: basics, patterns, edge-cases)
 
 ### Phase 4: Standard Passes (O2)
-- [ ] 4.1.1 Implement BranchOptPass
-- [ ] 4.1.2 Add JMP chain collapse
-- [ ] 4.1.3 Add unreachable code removal
+- [x] 4.1.1 Implement BranchOptPass ✅ (completed: 2026-07-02 15:57 — JMP chain, unreachable code, branch-over-JMP)
+- [x] 4.1.2 Add JMP chain collapse ✅ (completed: 2026-07-02 15:57)
+- [x] 4.1.3 Add unreachable code removal ✅ (completed: 2026-07-02 15:57)
 - [ ] 4.1.4 Add branch-opt unit tests
 - [ ] 4.2.1 Implement TransferOptPass
 - [ ] 4.2.2 Add reverse transfer removal
