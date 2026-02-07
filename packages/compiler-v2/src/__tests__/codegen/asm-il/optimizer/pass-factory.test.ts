@@ -77,31 +77,38 @@ describe('ASM-IL Pass Factory', () => {
       expect(passes[3].name).toBe('transfer-opt');
     });
 
-    it('should return 4 passes for O3 (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
+    it('should return 7 passes for O3 (O2 + ZPPromotion + Strength6502 + StackOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O3));
-      expect(passes).toHaveLength(4);
+      expect(passes).toHaveLength(7);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
+      expect(passes[4].name).toBe('zp-promotion');
+      expect(passes[5].name).toBe('6502-strength');
+      expect(passes[6].name).toBe('stack-opt');
     });
 
-    it('should return 4 passes for Os (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
+    it('should return 6 passes for Os (O2 + ZPPromotion + StackOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Os));
-      expect(passes).toHaveLength(4);
+      expect(passes).toHaveLength(6);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
+      expect(passes[4].name).toBe('zp-promotion');
+      expect(passes[5].name).toBe('stack-opt');
     });
 
-    it('should return 4 passes for Oz (FlagPatterns + StoreLoad + BranchOpt + TransferOpt)', () => {
+    it('should return 6 passes for Oz (O2 + ZPPromotion + StackOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Oz));
-      expect(passes).toHaveLength(4);
+      expect(passes).toHaveLength(6);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
+      expect(passes[4].name).toBe('zp-promotion');
+      expect(passes[5].name).toBe('stack-opt');
     });
 
     it('should accept custom zpSlots in options', () => {

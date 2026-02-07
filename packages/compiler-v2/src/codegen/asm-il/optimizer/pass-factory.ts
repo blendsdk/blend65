@@ -46,9 +46,9 @@ import { BranchOptPass } from './passes/branch-opt.js';
 import { TransferOptPass } from './passes/transfer-opt.js';
 
 // Phase 5: Advanced Passes (O3)
-// import { ZPPromotionPass } from './passes/zp-promotion.js';
-// import { Strength6502Pass } from './passes/strength-6502.js';
-// import { StackOptPass } from './passes/stack-opt.js';
+import { ZPPromotionPass } from './passes/zp-promotion.js';
+import { Strength6502Pass } from './passes/strength-6502.js';
+import { StackOptPass } from './passes/stack-opt.js';
 
 // Phase 6: Size Passes (Os/Oz)
 // import { SizeOptPass } from './passes/size-opt.js';
@@ -107,17 +107,17 @@ export function createPassesForLevel(
   // Uses zero-page slots, strength reduction, and stack optimization.
   // May increase code size in exchange for speed.
   if (level === OptimizationLevel.O3) {
-    // Phase 5, Session 5.1: passes.push(new ZPPromotionPass(options.zpSlots));
-    // Phase 5, Session 5.2: passes.push(new Strength6502Pass());
-    // Phase 5, Session 5.3: passes.push(new StackOptPass());
+    passes.push(new ZPPromotionPass(options.zpSlots));
+    passes.push(new Strength6502Pass());
+    passes.push(new StackOptPass());
   }
 
   // ── Os/Oz passes: Size optimization ────────────────────────────────────
   // Prioritizes smaller code output. Includes ZP promotion (smaller
   // instructions) and stack optimization (fewer save/restore pairs).
   if (level === OptimizationLevel.Os || level === OptimizationLevel.Oz) {
-    // Phase 5, Session 5.1: passes.push(new ZPPromotionPass(options.zpSlots));
-    // Phase 5, Session 5.3: passes.push(new StackOptPass());
+    passes.push(new ZPPromotionPass(options.zpSlots));
+    passes.push(new StackOptPass());
     // Phase 6, Session 6.1: passes.push(new SizeOptPass(level === OptimizationLevel.Oz));
   }
 
