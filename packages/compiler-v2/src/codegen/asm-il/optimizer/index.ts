@@ -61,3 +61,7 @@ export {
 
 // Level-based optimizer
 export { AsmILOptimizer, createAsmILOptimizer } from './asm-il-optimizer.js';
+
+// Analysis utilities
+export { FlagStateAnalyzer, RegisterTracker, AddressAnalyzer } from './analysis/index.js';
+export type { FlagState, RegisterState, RegisterValue, AddressRef } from './analysis/index.js';
