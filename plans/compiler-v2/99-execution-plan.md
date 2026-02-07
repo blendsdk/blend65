@@ -2,6 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
+> **Last Updated**: 2026-07-02
 
 ## Overview
 
@@ -1355,52 +1356,24 @@ src/__tests__/semantic/edge-cases/
 
 ---
 
-## Phase 9: ASM Optimizer
+## Phase 9: ASM-IL Optimizer
 
-### Session 9.1: Optimizer Infrastructure
+> **⚠️ NOTE (2026-07-02):** This phase is now tracked by a dedicated sub-plan.
+> See: `plans/compiler-v2/asm-il-optimizer/99-execution-plan.md` (32 tasks, 7 phases)
+>
+> **Previous tasks 9.3.1-9.3.2 (ASM-IL Emitter) are ALREADY DONE** — implemented in
+> `codegen/asm-il/emitter.ts` as part of the Codegen sub-plan (CGT10).
+>
+> **Previous tasks 9.1.x (IL Optimizer) are ALREADY DONE** — implemented in
+> `optimizer/` as part of the IL Optimizer sub-plan (100% complete).
+>
+> The remaining work is the **ASM-IL Optimizer** (assembly-level peephole passes).
 
-**Objective**: Set up optimizer architecture
+**Sub-Plan**: [asm-il-optimizer/99-execution-plan.md](asm-il-optimizer/99-execution-plan.md)
+**Status**: 0/32 tasks — NOT STARTED
+**Scope**: 8 optimization passes (flag patterns, store-load, branch, transfer, ZP promotion, 6502 strength, stack, size)
 
-**Tasks**:
-
-| #     | Task                            | File(s)                      |
-| ----- | ------------------------------- | ---------------------------- |
-| 9.1.1 | Copy optimizer types            | `src/optimizer/types.ts`     |
-| 9.1.2 | Create optimizer pass interface | `src/optimizer/pass.ts`      |
-| 9.1.3 | Create optimizer runner         | `src/optimizer/optimizer.ts` |
-
-### Session 9.2: Peephole Passes
-
-**Objective**: Implement peephole optimization passes
-
-**Tasks**:
-
-| #     | Task                       | File(s)                    |
-| ----- | -------------------------- | -------------------------- |
-| 9.2.1 | Redundant load elimination | `src/optimizer/passes/`    |
-| 9.2.2 | Dead store elimination     | `src/optimizer/passes/`    |
-| 9.2.3 | Add optimizer tests        | `src/__tests__/optimizer/` |
-
-### Session 9.3: ASM Emitter
-
-**Objective**: Emit ACME assembler output
-
-**Tasks**:
-
-| #     | Task                      | File(s)                  |
-| ----- | ------------------------- | ------------------------ |
-| 9.3.1 | Copy ASM-IL emitter       | `src/asm-il/emitter.ts`  |
-| 9.3.2 | Update for v2             | `src/asm-il/emitter.ts`  |
-| 9.3.3 | Create optimizer index.ts | `src/optimizer/index.ts` |
-
-**Deliverables**:
-
-- [ ] Optimizer infrastructure works
-- [ ] Peephole passes reduce code
-- [ ] ACME output generated
-- [ ] All tests pass
-
-**Verify**: `clear && yarn clean && yarn build && yarn test`
+**Verify**: `./compiler-test`
 
 ---
 
@@ -1914,17 +1887,12 @@ src/__tests__/semantic/edge-cases/
 - [x] 8.5.5 Add comprehensive tests - DEFERRED to next session
 - [x] 8.5.6 Create codegen index.ts ✅
 
-### Phase 9: ASM Optimizer
+### Phase 9: ASM-IL Optimizer (tracked in sub-plan)
 
-- [ ] 9.1.1 Copy optimizer types
-- [ ] 9.1.2 Create optimizer pass interface
-- [ ] 9.1.3 Create optimizer runner
-- [ ] 9.2.1 Redundant load elimination
-- [ ] 9.2.2 Dead store elimination
-- [ ] 9.2.3 Add optimizer tests
-- [ ] 9.3.1 Copy ASM-IL emitter
-- [ ] 9.3.2 Update for v2
-- [ ] 9.3.3 Create optimizer index.ts
+> See: `plans/compiler-v2/asm-il-optimizer/99-execution-plan.md`
+> IL Optimizer: ✅ DONE (separate sub-plan — 100% complete)
+> ASM-IL Emitter: ✅ DONE (codegen sub-plan CGT10 — 100% complete)
+> ASM-IL Optimizer: ⬜ NOT STARTED (32 tasks in sub-plan)
 
 ### Phase 10: Integration & Testing
 

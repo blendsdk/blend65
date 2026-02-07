@@ -1,322 +1,181 @@
-# Blend65 Project Status
+# Blend65 Compiler — Project Status
 
-> **Last Updated:** January 28, 2026  
-> **Version:** 0.1.0-alpha  
-> **Overall Progress:** ~85% Complete  
-> **Test Status:** 7,059/7,061 passing (99.97%)
+> **Last Updated**: July 2, 2026
+> **Architecture**: Static Frame Allocation (SFA)
+> **Package**: `packages/compiler-v2/`
+> **Language Spec**: `docs/language-specification-v2/`
+> **Test Status**: 6,534 tests — 6,524 passing, 0 failed, 10 skipped
 
 ---
 
 ## What is Blend65?
 
-Blend65 is a modern programming language and compiler designed specifically for creating software for the **Commodore 64** (and related 8-bit computers using the 6502 processor).
+Blend65 is a modern programming language and compiler targeting the **Commodore 64** and other 6502-based systems. It compiles high-level, type-safe code to 6502 assembly via the ACME assembler.
 
-**Design Philosophy:**
-- **Explicit over Implicit** - Memory placement, types, and control flow are always explicit
-- **Zero Cost Abstractions** - High-level constructs compile to efficient 6502 code
-- **Hardware First** - Language features map directly to 6502 capabilities
-- **Readable Assembly Alternative** - More maintainable than raw assembly, as efficient as hand-written code
+**Design Philosophy:** Explicit over implicit • Zero-cost abstractions • Hardware-first • Readable assembly alternative
 
-**Think of it as:** A structured, type-safe alternative to 6502 assembly that gives you direct hardware control.
+**Compiler Pipeline:**
 
----
-
-## Project Status at a Glance
-
-| Component | Status | What it means |
-|-----------|--------|---------------|
-| 🟢 **Language Design** | ✅ Complete | The language syntax and features are fully designed |
-| 🟢 **Lexer** | ✅ Complete | Can read and understand source code text |
-| 🟢 **Parser** | ✅ Complete | Can understand the structure of programs |
-| 🟢 **Semantic Analyzer** | ✅ Complete | Can check programs for errors and gather information |
-| 🟢 **IL Generator** | ✅ Complete | Can convert programs to internal format |
-| 🟢 **Code Generator** | ✅ Complete | Can produce assembly code |
-| 🟢 **ASM-IL Layer** | ✅ Complete | Assembly intermediate representation (mandatory path) |
-| 🟡 **Optimizer** | 📋 Planning Complete | 7-phase roadmap ready, implementation not started |
-| 🟢 **Config System** | ✅ Complete | Project configuration works |
-| 🟡 **CLI Tool** | ⏳ Partial | Basic build/check commands work, more features planned |
-| 🟡 **Documentation** | ⏳ Partial | User guides and tutorials needed |
-
----
-
-## Test Coverage Summary
-
-| Area | Tests | Status |
-|------|-------|--------|
-| Lexer | 150+ | ✅ All Passing |
-| Parser | 400+ | ✅ All Passing |
-| AST | 100+ | ✅ All Passing |
-| Semantic Analysis | 1,600+ | ✅ All Passing |
-| IL Generator | 2,200+ | ✅ All Passing |
-| ASM-IL | 500+ | ✅ All Passing |
-| Code Generator | 550+ | ✅ All Passing |
-| E2E & Integration | 1,500+ | ✅ All Passing |
-| Pipeline | 50+ | ✅ All Passing |
-| CLI | 10 | ✅ All Passing |
-| **Total** | **7,061** | **7,059 passing (2 skipped)** |
-
-### Test File Count by Component
-
-| Component | Test Files |
-|-----------|------------|
-| IL Generator | 66 |
-| Semantic | 52 |
-| Code Generator | 22 |
-| Parser | 18 |
-| E2E | 13 |
-| Lexer | 12 |
-| ASM-IL | 10 |
-| Pipeline | 7 |
-| AST | 5 |
-| Config | 5 |
-| Integration | 3 |
-| Target | 2 |
-| Optimizer | 1 |
-| Library | 1 |
-
-### Skipped Tests (2)
-
-| Test | Reason | Location |
-|------|--------|----------|
-| Power-of-2 multiply strength reduction | Optimizer not implemented | `optimizer-metrics.test.ts` |
-| Performance consistency test | Test flakiness/timing | `performance.test.ts` |
-
----
-
-## What's Working Now?
-
-### ✅ You Can Currently:
-
-1. **Write Blend65 Programs**
-   - Variables, functions, loops, conditions
-   - Type annotations (`byte`, `word`, `bool`)
-   - Hardware access (`@map` for memory-mapped I/O)
-   - Modules and imports
-   - **Ternary expressions** (`condition ? then : else`)
-   - **Address-of operator** (`@variable` to get memory address)
-   - **Callback parameters** (pass function addresses)
-   - **Array types** (`byte[N]`, `word[256]`)
-
-2. **Compile to Assembly**
-   - The compiler generates ACME assembler output via ASM-IL layer
-   - Programs compile to working 6502 assembly
-   - Expressions: arithmetic, bitwise, comparisons, logical
-   - Control flow: if/else, while, for loops
-   - Functions with parameters and return values
-
-3. **Get Helpful Error Messages**
-   - Shows exactly where errors are in your code
-   - Displays the problematic line with markers
-   - Suggests fixes when possible
-
-### 🎮 Example of What Works:
-
-```js
-// A simple Blend65 program
-module Main;
-
-@map borderColor at $D020: byte;
-@map backgroundColor at $D021: byte;
-
-// Function that can be called via callback
-function flashBorder(): void {
-    borderColor = borderColor + 1;
-}
-
-// Function accepting a callback parameter
-function callHandler(handler: callback): void {
-    handler();  // Invoke the callback
-}
-
-export function main(): void {
-    borderColor = 0;      // Black border
-    backgroundColor = 6;  // Blue background
-    
-    // Ternary operator for conditional values
-    let a: byte = 10;
-    let b: byte = 5;
-    let max: byte = (a > b) ? a : b;
-    
-    // Address-of operator - get function address
-    let handlerAddr: @address = @flashBorder;
-    
-    // Pass function as callback
-    callHandler(@flashBorder);
-    
-    // Use length() with string literals
-    let len: byte = length("hello"); // Returns 5
-}
+```
+Source → Lexer → Parser → Semantic Analyzer → Frame Allocator
+→ IL Generator → IL Optimizer → Code Generator → ASM-IL Emitter → .asm
 ```
 
 ---
 
-## What's Still Being Built?
+## Component Status
 
-### 🔧 Optimizer (Next Major Feature)
-
-The optimizer will make your programs:
-- **Faster** - Uses efficient 6502 instructions
-- **Smaller** - Removes unnecessary code
-- **Better** - Takes advantage of hardware features
-
-**Status:** 
-- ✅ **7-phase optimizer roadmap complete** - Comprehensive planning done
-- 📋 **Implementation not started** - Ready to begin coding
-
-### 🖥️ CLI Improvements (dx-features plan)
-- Better project scaffolding (`blend65 init myproject`)
-- VICE emulator integration (`blend65 run`)
-- Watch mode for development (`blend65 watch`)
-- Source maps for debugging
-
-### 📚 Documentation
-- Getting started guide
-- Language tutorial
-- API reference
-- Example projects
+| Component | Status | Tests | Notes |
+|-----------|--------|-------|-------|
+| **Lexer** | ✅ Complete | ~150+ | Full tokenization, no @map tokens |
+| **Parser** | ✅ Complete | ~400+ | Pratt expression parser, 6-layer architecture |
+| **AST** | ✅ Complete | ~180+ | Walkers, collectors, transformers, type guards |
+| **Semantic Analyzer** | ✅ Complete | ~3,500+ | Multi-pass, multi-module, recursion detection |
+| **Frame Allocator** | ✅ Complete | ~500+ | Static memory allocation per function (SFA) |
+| **IL Generator** | ✅ Complete | ~200+ | Linear IL, ~25 opcodes |
+| **IL Optimizer** | ✅ Complete | ~200+ | 5 passes: DCE, const-fold, const-prop, copy-prop, peephole |
+| **Code Generator** | ✅ Complete | ~300+ | 8-layer inheritance chain + CPU strategy pattern |
+| **ASM-IL Emitter** | ✅ Complete | ~70+ | Full ACME assembler text output |
+| **65C02 Support** | ✅ Complete | ~170+ | CPU strategy: 6502 + 65C02 instruction sets |
+| **ASM-IL Optimizer** | ❌ Not Started | 0 | 32 tasks planned across 7 phases |
+| **Compiler Entry Point** | ❌ Not Started | 0 | Pipeline wiring, optimization levels, public API |
 
 ---
 
-## Active Development Plans
+## Test Summary
 
-### Priority 1: Major Features
-
-| Plan | Status | Description |
-|------|--------|-------------|
-| `optimizer-series/` | 📋 Docs Complete | 7-phase roadmap, ~40 documents ready |
-| `dx-features/` | 📋 Ready | CLI, VICE integration, source maps |
-| `native-assembler/` | 📋 Planning | Direct .prg generation (future) |
-
-### Research (Future)
-
-| Plan | Status | Description |
-|------|--------|-------------|
-| `features/` | 📋 Research | Inline assembly, interrupts, sprites |
+```
+Total:    6,534 tests
+Passing:  6,524 (99.85%)
+Failed:   0
+Skipped:  10 (documented — known edge cases and parser limitations)
+```
 
 ---
 
-## Recently Completed
+## What's Remaining
 
-### ✅ ASM-IL Mandatory Refactor (January 28, 2026)
+### Phase 9: ASM-IL Optimizer (NOT STARTED)
 
-The code generator now uses ASM-IL as the **only** path for code generation:
-- Removed legacy `AssemblyWriter` direct output
-- Removed `useAsmIL` flag
-- All code flows through `AsmModuleBuilder` → `AcmeEmitter`
-- Structured assembly representation enables future optimizations
-- All 7,059 tests passing
+**Plan:** `plans/compiler-v2/asm-il-optimizer/99-execution-plan.md`
+**Scope:** 32 tasks across 7 phases, ~13-20 hours
 
-### ✅ All Bug Fix Plans Complete (January 27, 2026)
+8 optimization passes for 6502-specific assembly optimization:
+- **O1:** Flag patterns, store-load elimination
+- **O2:** Branch optimization, transfer patterns
+- **O3:** ZP promotion, 6502 strength reduction, stack optimization
+- **Os/Oz:** Size optimization, tail calls, sequence factoring
 
-**Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
+### Phase 10: Integration & Testing (NOT STARTED)
 
-- ✅ **CALL_VOID Bug** - Functions returning values now correctly use CALL
-- ✅ **length() String Support** - `length("hello")` now returns 5
-- ✅ **All 6 Intrinsic Handlers** - brk, barrier, lo/hi, volatile ops
-- ✅ **Array Initializers** - Correct initialization values
-- ✅ **Local Variable Codegen** - Proper zero page allocation
-- ✅ **Branch Selection** - Correct BNE/BEQ selection
-- ✅ **Data Directives** - Correct `!fill` generation
+**Plan:** `plans/compiler-v2/99-execution-plan.md` (Phase 10)
+**Scope:** 3 sessions, ~2-3 hours
 
-### ✅ Previous Milestones
+- Compiler entry point class (`src/compiler.ts`)
+- Wire up full pipeline with optimization levels
+- Export public API
+- E2E test fixtures
+- Example program compilation
+- VICE emulator validation
+- CLI update to use v2
 
-- ✅ C-Style Syntax Refactor (January 2026)
-- ✅ Ternary Operator Support (January 2026)
-- ✅ Configuration System (January 2026)
-- ✅ Address-of Operator (January 2026)
-- ✅ Library Loading System (January 2026)
-- ✅ Module/Export System Fix (January 2026)
+### Future Work
 
----
-
-## Roadmap
-
-### Phase 1: Core Compiler ✅ (COMPLETE)
-- [x] Language specification
-- [x] Lexer (tokenization)
-- [x] Parser (syntax analysis)
-- [x] AST (program representation)
-- [x] Semantic analyzer (error checking)
-- [x] IL generator (intermediate language)
-- [x] Code generator (assembly output)
-- [x] C-style syntax refactor
-- [x] Ternary operator support
-- [x] Configuration system
-- [x] Address-of operator (`@`)
-- [x] Library loading system
-- [x] Module/export system
-- [x] ASM-IL mandatory refactor
-
-### Phase 2: Bug Fixes & Stabilization ✅ (COMPLETE)
-- [x] Fix CALL_VOID bug
-- [x] Fix length() with string literals
-- [x] Complete missing intrinsic handlers
-- [x] Fix array initializers
-- [x] Fix local variable codegen
-- [x] Fix branch instruction selection
-
-### Phase 3: Optimization 🔜 (NEXT MAJOR FOCUS)
-- [ ] IL optimization passes
-- [ ] Peephole optimization
-- [ ] Dead code elimination
-- [ ] Constant folding
-
-### Phase 4: Developer Experience 📋 (PLANNED)
-- [ ] Improved CLI (init, run, watch)
-- [ ] Project templates
-- [ ] VICE integration
-- [ ] Source maps for debugging
-
-### Phase 5: Documentation & Examples 📋 (PLANNED)
-- [ ] User documentation
-- [ ] Tutorials
-- [ ] Example games
-- [ ] API reference
+| Plan | Description | Status |
+|------|-------------|--------|
+| `plans/dx-features/` | CLI improvements, VICE integration, source maps | 📋 Planned |
+| `plans/native-assembler/` | Direct .prg generation without ACME | 📋 Planning |
+| `plans/features/` | Inline assembly, interrupts, sprites | 📖 Research |
 
 ---
 
-## Target Platforms
+## Architecture
 
-| Platform | Status |
-|----------|--------|
-| **Commodore 64** | ✅ Primary target |
-| Commodore 128 | 🔄 Planned |
-| Commander X16 | 🔄 Planned |
+### v2 Key Decisions
+
+| Decision | Outcome |
+|----------|---------|
+| **IR Architecture** | Static Frame Allocation (SFA) — no SSA, no PHI nodes |
+| **Recursion** | Forbidden (compile-time error via call graph analysis) |
+| **Hardware Access** | `peek()`/`poke()` intrinsics (no @map syntax) |
+| **Code Generation** | Inheritance chain: Base → Memory → Arithmetic → Bitwise → Comparison → Control → Functions → Intrinsics → Generator |
+| **CPU Targets** | Strategy pattern: `CpuInstructionSet` with 6502 and 65C02 implementations |
+| **Assembly Output** | ASM-IL → ACME assembler format via `AsmILEmitter` |
+
+### Memory Model (SFA)
+
+```
+┌─────────────────────────────────────────┐
+│ Global Memory Layout                     │
+├─────────────────────────────────────────┤
+│ @zp Variables        ($02-$FF)          │
+│ @ram Variables       ($0800+)           │
+│ @data Variables      (ROM-able)         │
+├─────────────────────────────────────────┤
+│ Function Frames (static allocation)     │
+│ ├── main_frame       (params + locals)  │
+│ ├── func1_frame      (params + locals)  │
+│ └── func2_frame      (params + locals)  │
+└─────────────────────────────────────────┘
+```
 
 ---
 
-## Getting Started (For Developers)
+## Active Plans
+
+| Plan | Location | Status |
+|------|----------|--------|
+| **Compiler v2 (main)** | `plans/compiler-v2/99-execution-plan.md` | Phases 1-8 ✅, Phase 9-10 pending |
+| **Codegen** | `plans/compiler-v2/codegen/99-execution-plan.md` | ✅ 100% Complete |
+| **IL Optimizer** | `plans/compiler-v2/il-optimizer/99-execution-plan.md` | ✅ 100% Complete |
+| **65C02 Support** | `plans/compiler-v2/65c02-support/99-execution-plan.md` | ✅ 100% Complete |
+| **ASM-IL Optimizer** | `plans/compiler-v2/asm-il-optimizer/99-execution-plan.md` | ⬜ 0% — Not Started |
+| **DX Features** | `plans/dx-features/99-execution-plan.md` | 📋 Planned |
+
+---
+
+## Language Features (All Working)
+
+- **Types:** `byte`, `word`, `bool`, `void`, arrays (`byte[N]`, `word[256]`)
+- **Variables:** `let`, `const`, storage classes (`@zp`, `@ram`, `@data`)
+- **Functions:** Parameters, return values, `export`, no recursion
+- **Control Flow:** `if`/`else if`/`else`, `while`, `for`, `break`, `continue`
+- **Expressions:** Arithmetic, bitwise, comparison, logical, ternary (`? :`), address-of (`@`)
+- **Intrinsics:** `peek()`, `poke()`, `peekw()`, `pokew()`, `length()`, `sizeof()`, `hi()`, `lo()`
+- **Modules:** `module`, `import`, `export`
+
+---
+
+## Getting Started
 
 ```bash
-# Clone the repository
-git clone https://github.com/blendsdk/blend65.git
-cd blend65
-
 # Install dependencies
 yarn install
 
-# Build the compiler
+# Build
 yarn build
 
-# Run tests
+# Run all tests
 ./compiler-test
+
+# Run targeted tests
+./compiler-test parser
+./compiler-test semantic
+./compiler-test codegen
 ```
 
 ---
 
-## Questions?
+## Archived Documents
 
-- **GitHub:** https://github.com/blendsdk/blend65
-- **Issues:** https://github.com/blendsdk/blend65/issues
+The following documents have been archived to `archive/docs/`:
+- `COMPILER-MASTER-PLAN.md` — Superseded by `plans/compiler-v2/`
+- `WHATS-LEFT.md` — Merged into this document
+- `GAP-REPORT.md` — Merged into this document
+- `CODEGEN-ISSUES-ANALYSIS.md` — v1 analysis, no longer relevant
+- `SFA-IMPLEMENTATION-SUMMARY.md` — Historical reference
 
 ---
 
-## Summary
-
-**Blend65 is a functional compiler** that can already compile programs for the Commodore 64. The core compilation pipeline is complete and well-tested with **99.97% test pass rate** (7,059/7,061 tests).
-
-**Phase 2 (Bug Fixes & Stabilization) is COMPLETE!**
-
-**Next priority:** Optimizer implementation - 7-phase roadmap ready
-
-The project is actively developed and getting closer to a 1.0 release!
+**This is the single source of truth for project status.**
+**For detailed task tracking, see `plans/compiler-v2/99-execution-plan.md`.**
