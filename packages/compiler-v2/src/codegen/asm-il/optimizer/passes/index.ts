@@ -22,4 +22,4 @@ export { Strength6502Pass } from './strength-6502.js';
 export { StackOptPass } from './stack-opt.js';
 
 // Phase 6: Size Passes (Os/Oz)
-// export { SizeOptPass } from './size-opt.js';
+export { SizeOptPass } from './size-opt.js';

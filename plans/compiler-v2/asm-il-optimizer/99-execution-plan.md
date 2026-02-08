@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 22:08
-> **Progress**: 33/38 tasks (87%)
+> **Last Updated**: 2026-08-02 01:37
+> **Progress**: 40/42 tasks (95%)
 
 ## Overview
 
@@ -318,20 +318,20 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 5.1.2 Add frequency counting ✅ (completed: 2026-07-02 21:30)
 - [x] 5.1.3 Add hotness ranking ✅ (completed: 2026-07-02 21:30)
 - [x] 5.1.4 Add reference transformation ✅ (completed: 2026-07-02 21:30)
-- [ ] 5.1.5 Add ZP promotion unit tests
+- [x] 5.1.5 Add ZP promotion unit tests ✅ (completed: 2026-07-08 01:04 — 3 test files: basics, patterns, edge-cases, ~31 tests)
 - [x] 5.2.1 Implement Strength6502Pass ✅ (completed: 2026-07-02 21:30 — mul/div/mod by power-of-2 → shifts/masks)
 - [x] 5.2.2 Add multiply patterns ✅ (completed: 2026-07-02 21:30 — ASL chain for *2, *4, *8, etc.)
 - [x] 5.2.3 Add divide/modulo patterns ✅ (completed: 2026-07-02 21:30 — LSR chain for div, AND mask for mod)
-- [ ] 5.2.4 Add strength-6502 unit tests
+- [x] 5.2.4 Add strength-6502 unit tests ✅ (completed: 2026-07-08 01:04 — 3 test files: basics, patterns, edge-cases, ~35 tests)
 - [x] 5.3.1 Implement StackOptPass ✅ (completed: 2026-07-02 21:30 — PHA/PLA pair elimination)
 - [x] 5.3.2 Add redundant pair detection ✅ (completed: 2026-07-02 21:30 — depth tracking, A-unmodified/A-overwritten detection)
-- [ ] 5.3.3 Add stack-opt unit tests
+- [x] 5.3.3 Add stack-opt unit tests ✅ (completed: 2026-07-08 01:04 — 3 test files: basics, patterns, edge-cases, ~32 tests)
 
 ### Phase 6: Size Passes (Os/Oz)
-- [ ] 6.1.1 Implement SizeOptPass
-- [ ] 6.1.2 Add tail call optimization
-- [ ] 6.1.3 Add sequence factoring (Oz)
-- [ ] 6.1.4 Add size-opt unit tests
+- [x] 6.1.1 Implement SizeOptPass ✅ (completed: 2026-08-02 01:16 — tail call opt + sequence factoring)
+- [x] 6.1.2 Add tail call optimization ✅ (completed: 2026-08-02 01:16 — JSR+RTS → JMP pattern)
+- [x] 6.1.3 Add sequence factoring (Oz) ✅ (completed: 2026-08-02 01:16 — repeated sequence extraction to subroutines)
+- [x] 6.1.4 Add size-opt unit tests ✅ (completed: 2026-08-02 01:35 — 3 test files: basics, tail-calls, factoring, 45 tests)
 
 ### Phase 7: Integration & Testing
 - [ ] 7.1.1 Create integration test suite

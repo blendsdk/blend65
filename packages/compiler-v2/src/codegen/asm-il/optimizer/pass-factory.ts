@@ -51,7 +51,7 @@ import { Strength6502Pass } from './passes/strength-6502.js';
 import { StackOptPass } from './passes/stack-opt.js';
 
 // Phase 6: Size Passes (Os/Oz)
-// import { SizeOptPass } from './passes/size-opt.js';
+import { SizeOptPass } from './passes/size-opt.js';
 
 // ============================================================================
 // Pass Factory
@@ -118,7 +118,7 @@ export function createPassesForLevel(
   if (level === OptimizationLevel.Os || level === OptimizationLevel.Oz) {
     passes.push(new ZPPromotionPass(options.zpSlots));
     passes.push(new StackOptPass());
-    // Phase 6, Session 6.1: passes.push(new SizeOptPass(level === OptimizationLevel.Oz));
+    passes.push(new SizeOptPass(level === OptimizationLevel.Oz));
   }
 
   return passes;
