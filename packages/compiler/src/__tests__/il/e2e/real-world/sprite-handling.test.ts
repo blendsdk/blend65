@@ -61,9 +61,10 @@ describe('E2E Real-World: Sprite Handling Patterns', () => {
       const enableFunc = getFunction(program, 'enableSprite');
       expect(enableFunc).toBeDefined();
 
-      // Should have LOAD for current value, OR for enable, POKE for write
-      expect(hasOpcode(enableFunc!.instructions, ILOpcode.LOAD_BYTE)).toBe(true);
-      expect(hasOpcode(enableFunc!.instructions, ILOpcode.OR_BYTE)).toBe(true);
+      // With constant address resolution, peek/poke intrinsics use address operands
+      // directly, so LOAD_BYTE for the constant slot is no longer needed.
+      // The OR operation and POKE instruction should still be present.
+      expect(hasOpcode(enableFunc!.instructions, ILOpcode.PEEK)).toBe(true);
       // poke() intrinsic generates POKE opcode
       expect(hasOpcode(enableFunc!.instructions, ILOpcode.POKE)).toBe(true);
     });

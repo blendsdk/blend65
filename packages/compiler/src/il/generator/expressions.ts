@@ -37,7 +37,7 @@ import { TokenType } from '../../lexer/types.js';
 import { SlotLocation } from '../../frame/enums.js';
 import { FrameSlot } from '../../frame/types.js';
 import { ILOpcode } from '../enums.js';
-import { createImmediateOperand } from '../factories.js';
+import { createImmediateOperand, createAddressOperand } from '../factories.js';
 import { isAsmFunction, parseAsmFunctionName, addressingModeRequiresOperand } from '../asm-utils.js';
 import { AsmRawOperand } from '../operands.js';
 import { ILGeneratorBase } from './base.js';
@@ -836,10 +836,49 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   /**
+   * Try to resolve an expression to a constant numeric address.
+   *
+   * This is critical for peek/poke/peekw/pokew intrinsics which need
+   * the address as an operand on the IL instruction (not on the stack).
+   * The codegen expects address operands to generate proper 6502
+   * `LDA abs` / `STA abs` instructions.
+   *
+   * Handles two cases:
+   * 1. Numeric literal: `poke($D020, value)` → returns 0xD020
+   * 2. Constant identifier: `poke(BORDER, value)` where BORDER = $D020 → returns 0xD020
+   *
+   * @param expr - Address expression to evaluate
+   * @returns Numeric address if resolvable at compile time, undefined otherwise
+   */
+  protected tryResolveConstantAddress(expr: Expression): number | undefined {
+    // Case 1: Numeric literal (e.g., $D020, 53280, 0xD020)
+    if (isLiteralExpression(expr)) {
+      const value = expr.getValue();
+      if (typeof value === 'number') {
+        return value;
+      }
+    }
+
+    // Case 2: Constant identifier reference (e.g., BORDER where const BORDER = $D020)
+    if (isIdentifierExpression(expr)) {
+      const name = expr.getName();
+      const symbol = this.symbolTable.lookupGlobal(name);
+      if (symbol && symbol.isConst && symbol.initializer) {
+        // Recursively resolve the initializer (handles const BORDER = $D020)
+        return this.tryResolveConstantAddress(symbol.initializer);
+      }
+    }
+
+    // Cannot resolve to a constant address
+    return undefined;
+  }
+
+  /**
    * Generate IL for an intrinsic call.
    *
-   * For peek/poke intrinsics, the address is dynamic (from expression),
-   * so we use the raw IL opcode rather than the builder's address-based method.
+   * When the address argument can be resolved to a compile-time constant,
+   * emits the intrinsic with an address operand (required by codegen).
+   * Falls back to stack-based approach for dynamic addresses.
    *
    * @param name - Intrinsic name
    * @param args - Arguments
@@ -848,48 +887,34 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     switch (name) {
       case 'peek':
         if (args.length >= 1) {
-          // Generate address to A, then PEEK reads from (addr) into A
-          this.generateExpression(args[0]);
-          this.builder.emit(ILOpcode.PEEK, [], 'peek(addr)');
+          this.generatePeekIntrinsic(args[0], 'peek');
         }
         break;
       case 'poke':
         if (args.length >= 2) {
-          // Generate address, push, generate value, then POKE
-          this.generateExpression(args[0]);
-          this.builder.emit(ILOpcode.PUSH_A, [], 'poke addr');
-          this.generateExpression(args[1]);
-          this.builder.emit(ILOpcode.POKE, [], 'poke(addr, value)');
+          this.generatePokeIntrinsic(args[0], args[1], 'poke');
         }
         break;
       case 'peekw':
         if (args.length >= 1) {
-          this.generateExpression(args[0]);
-          this.builder.emit(ILOpcode.PEEKW, [], 'peekw(addr)');
+          this.generatePeekwIntrinsic(args[0], 'peekw');
         }
         break;
       case 'pokew':
         if (args.length >= 2) {
-          this.generateExpression(args[0]);
-          this.builder.emit(ILOpcode.PUSH_A, [], 'pokew addr');
-          this.generateExpression(args[1]);
-          this.builder.emit(ILOpcode.POKEW, [], 'pokew(addr, value)');
+          this.generatePokewIntrinsic(args[0], args[1], 'pokew');
         }
         break;
       case 'volatile_read':
-        // Same as peek() - reads byte from address with volatile semantics
+        // Same as peek() with volatile semantics
         if (args.length >= 1) {
-          this.generateExpression(args[0]);
-          this.builder.emit(ILOpcode.PEEK, [], 'volatile_read(addr)');
+          this.generatePeekIntrinsic(args[0], 'volatile_read');
         }
         break;
       case 'volatile_write':
-        // Same as poke() - writes byte to address with volatile semantics
+        // Same as poke() with volatile semantics
         if (args.length >= 2) {
-          this.generateExpression(args[0]);
-          this.builder.emit(ILOpcode.PUSH_A, [], 'volatile_write addr');
-          this.generateExpression(args[1]);
-          this.builder.emit(ILOpcode.POKE, [], 'volatile_write(addr, value)');
+          this.generatePokeIntrinsic(args[0], args[1], 'volatile_write');
         }
         break;
       case 'hi':
@@ -904,6 +929,109 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
           this.builder.emit(ILOpcode.LO, [], 'lo(value)');
         }
         break;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Intrinsic Helper Methods
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for peek/volatile_read intrinsic.
+   *
+   * When the address is a compile-time constant, emits PEEK with
+   * an address operand. Falls back to stack-based for dynamic addresses.
+   *
+   * @param addrExpr - Address expression
+   * @param label - Comment label (e.g., 'peek' or 'volatile_read')
+   */
+  protected generatePeekIntrinsic(addrExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      // Constant address - emit PEEK with address operand (codegen-compatible)
+      this.builder.emit(
+        ILOpcode.PEEK,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)})`
+      );
+    } else {
+      // Dynamic address - stack-based fallback (known codegen gap for dynamic addresses)
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PEEK, [], `${label}(addr)`);
+    }
+  }
+
+  /**
+   * Generate IL for poke/volatile_write intrinsic.
+   *
+   * When the address is a compile-time constant, emits the value
+   * expression followed by POKE with an address operand.
+   * Falls back to stack-based for dynamic addresses.
+   *
+   * @param addrExpr - Address expression
+   * @param valueExpr - Value expression
+   * @param label - Comment label (e.g., 'poke' or 'volatile_write')
+   */
+  protected generatePokeIntrinsic(addrExpr: Expression, valueExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      // Constant address - generate value, then POKE with address operand
+      this.generateExpression(valueExpr);
+      this.builder.emit(
+        ILOpcode.POKE,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)}, value)`
+      );
+    } else {
+      // Dynamic address - stack-based fallback (known codegen gap)
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PUSH_A, [], `${label} addr`);
+      this.generateExpression(valueExpr);
+      this.builder.emit(ILOpcode.POKE, [], `${label}(addr, value)`);
+    }
+  }
+
+  /**
+   * Generate IL for peekw intrinsic (16-bit read).
+   *
+   * @param addrExpr - Address expression
+   * @param label - Comment label
+   */
+  protected generatePeekwIntrinsic(addrExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      this.builder.emit(
+        ILOpcode.PEEKW,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)})`
+      );
+    } else {
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PEEKW, [], `${label}(addr)`);
+    }
+  }
+
+  /**
+   * Generate IL for pokew intrinsic (16-bit write).
+   *
+   * @param addrExpr - Address expression
+   * @param valueExpr - Value expression
+   * @param label - Comment label
+   */
+  protected generatePokewIntrinsic(addrExpr: Expression, valueExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      this.generateExpression(valueExpr);
+      this.builder.emit(
+        ILOpcode.POKEW,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)}, value)`
+      );
+    } else {
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PUSH_A, [], `${label} addr`);
+      this.generateExpression(valueExpr);
+      this.builder.emit(ILOpcode.POKEW, [], `${label}(addr, value)`);
     }
   }
 }

@@ -1,0 +1,7 @@
+module BorderCycle;
+
+const BORDER: word = $D020;
+
+export function main(): void {
+    poke(BORDER, 1);
+}

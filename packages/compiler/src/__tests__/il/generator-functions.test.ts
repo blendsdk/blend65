@@ -361,11 +361,13 @@ describe('ILGenerator - Intrinsics', () => {
       const result = generator.generate(program);
       const instructions = result.functions[0].instructions;
       
-      // Should have LOAD_IMM for address and PEEK
-      const loadImm = instructions.find(i => i.opcode === ILOpcode.LOAD_IMM);
+      // With constant address resolution, PEEK should have an address operand
+      // and no separate LOAD_IMM for the address
       const peek = instructions.find(i => i.opcode === ILOpcode.PEEK);
-      expect(loadImm).toBeDefined();
       expect(peek).toBeDefined();
+      // Address should be directly in the PEEK operand
+      expect(peek!.operands.length).toBeGreaterThan(0);
+      expect(peek!.operands[0].kind).toBe('address');
     });
 
     it('should generate PEEK with variable address', () => {
@@ -438,7 +440,7 @@ describe('ILGenerator - Intrinsics', () => {
       expect(poke).toBeDefined();
     });
 
-    it('should push address before evaluating value for poke', () => {
+    it('should include address operand on POKE for constant address', () => {
       const generator = new ILGenerator(frameMap, symbolTable);
       const loc = createTestLocation();
 
@@ -465,10 +467,13 @@ describe('ILGenerator - Intrinsics', () => {
 
       const result = generator.generate(program);
       const instructions = result.functions[0].instructions;
-      
-      // Should have PUSH_A to save address
-      const pushA = instructions.find(i => i.opcode === ILOpcode.PUSH_A);
-      expect(pushA).toBeDefined();
+
+      // With constant address resolution, POKE has the address as operand
+      // No PUSH_A needed for constant addresses
+      const poke = instructions.find(i => i.opcode === ILOpcode.POKE);
+      expect(poke).toBeDefined();
+      expect(poke!.operands.length).toBeGreaterThan(0);
+      expect(poke!.operands[0].kind).toBe('address');
     });
   });
 
