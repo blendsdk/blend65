@@ -38,6 +38,8 @@ import { SlotLocation } from '../../frame/enums.js';
 import { FrameSlot } from '../../frame/types.js';
 import { ILOpcode } from '../enums.js';
 import { createImmediateOperand } from '../factories.js';
+import { isAsmFunction, parseAsmFunctionName, addressingModeRequiresOperand } from '../asm-utils.js';
+import { AsmRawOperand } from '../operands.js';
 import { ILGeneratorBase } from './base.js';
 
 // ============================================================================
@@ -714,7 +716,10 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   /**
    * Generate IL for a function call.
    *
-   * Placeholder implementation - full version in Phase 7c.
+   * Handles three categories of calls:
+   * 1. asm_* functions → ASM_RAW IL instructions (raw 6502 assembly)
+   * 2. Intrinsic functions → Dedicated IL opcodes (peek, poke, hi, lo, etc.)
+   * 3. Regular functions → CALL IL instruction
    *
    * @param expr - Call expression
    */
@@ -725,7 +730,14 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     if (isIdentifierExpression(callee)) {
       const funcName = callee.getName();
 
-      // Check for intrinsics
+      // Check for asm_* functions first (raw 6502 assembly)
+      if (isAsmFunction(funcName)) {
+        this.generateAsmRaw(funcName, expr.getArguments());
+        this.clearLocation();
+        return;
+      }
+
+      // Check for intrinsics (peek, poke, hi, lo, etc.)
       if (this.isIntrinsic(funcName)) {
         this.generateIntrinsic(funcName, expr.getArguments());
         this.clearLocation();
@@ -737,6 +749,70 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     }
 
     this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ASM_RAW Generation (asm_* functions)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for an asm_* function call.
+   *
+   * Parses the function name to extract the 6502 mnemonic and addressing
+   * mode, then emits an ASM_RAW IL instruction. For implied-mode
+   * instructions (e.g., asm_sei), no argument is needed. For addressed
+   * modes (e.g., asm_lda_imm), the single argument is evaluated first
+   * and passed as an immediate operand.
+   *
+   * @param name - Function name (e.g., 'asm_sei', 'asm_lda_imm')
+   * @param args - Call arguments (0 for implied, 1 for addressed modes)
+   */
+  protected generateAsmRaw(name: string, args: Expression[]): void {
+    const parsed = parseAsmFunctionName(name);
+    if (!parsed) {
+      // Invalid asm_* name - emit NOP as fallback
+      this.builder.nop();
+      return;
+    }
+
+    const { mnemonic, addressingMode } = parsed;
+
+    // Create the AsmRawOperand that carries the 6502 instruction metadata
+    const asmRawOp: AsmRawOperand = {
+      kind: 'asm_raw',
+      mnemonic,
+      addressingMode,
+    };
+
+    if (addressingModeRequiresOperand(addressingMode)) {
+      // Addressed mode (immediate, zeroPage, absolute, etc.)
+      // The argument provides the operand value
+      if (args.length >= 1) {
+        // Generate argument value into accumulator, then push it
+        // so ASM_RAW can reference it via immediate operand
+        this.generateExpression(args[0]);
+
+        // Emit ASM_RAW with both the asm metadata and the generated operand
+        // The value is already in A from generateExpression above.
+        // We pass the AsmRawOperand as the first operand for the codegen
+        // to know mnemonic + addressing mode.
+        this.builder.emit(
+          ILOpcode.ASM_RAW,
+          [asmRawOp],
+          `${name}(arg)`
+        );
+      } else {
+        // Missing argument - emit NOP as fallback
+        this.builder.nop();
+      }
+    } else {
+      // Implied mode - no operand needed (e.g., SEI, CLI, NOP, TAX, PHA)
+      this.builder.emit(
+        ILOpcode.ASM_RAW,
+        [asmRawOp],
+        `${name}()`
+      );
+    }
   }
 
   /**

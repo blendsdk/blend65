@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-02 10:59
-> **Progress**: 28/75 tasks (37%)
+> **Last Updated**: 2026-08-02 11:47
+> **Progress**: 40/75 tasks (53%)
 
 ## Overview
 
@@ -439,18 +439,18 @@ This document defines the execution sessions for Phase 10 of the Blend65 compile
 
 ### Phase 10C: ASM_RAW IL + CodeGen
 
-- [ ] 10C.1.1 Add ASM_RAW to ILOpcode enum
-- [ ] 10C.1.2 Add AsmRawOperand type
-- [ ] 10C.1.3 Create parseAsmFunctionName() utility
-- [ ] 10C.1.4 Unit test: parseAsmFunctionName
-- [ ] 10C.2.1 Add asm_* detection in call handler
-- [ ] 10C.2.2 Emit ASM_RAW for implied-mode calls
-- [ ] 10C.2.3 Emit ASM_RAW with operand for addressed calls
-- [ ] 10C.2.4 Unit tests: IL output for asm_* calls
-- [ ] 10C.3.1 Add ASM_RAW case to intrinsics codegen
-- [ ] 10C.3.2 Implement all addressing mode formatters
-- [ ] 10C.3.3 Unit tests: addressing mode output
-- [ ] 10C.3.4 Integration test: asm_* → IL → ASM-IL
+- [x] 10C.1.1 Add ASM_RAW to ILOpcode enum ✅ (completed: 2026-08-02 11:02)
+- [x] 10C.1.2 Add AsmRawOperand type ✅ (completed: 2026-08-02 11:03)
+- [x] 10C.1.3 Create parseAsmFunctionName() utility ✅ (completed: 2026-08-02 11:05)
+- [x] 10C.1.4 Unit test: parseAsmFunctionName ✅ (completed: 2026-08-02 11:09)
+- [x] 10C.2.1 Add asm_* detection in call handler ✅ (completed: 2026-08-02 11:28)
+- [x] 10C.2.2 Emit ASM_RAW for implied-mode calls ✅ (completed: 2026-08-02 11:28)
+- [x] 10C.2.3 Emit ASM_RAW with operand for addressed calls ✅ (completed: 2026-08-02 11:28)
+- [x] 10C.2.4 Unit tests: IL output for asm_* calls ✅ (completed: 2026-08-02 11:45)
+- [x] 10C.3.1 Add ASM_RAW case to intrinsics codegen ✅ (completed: 2026-08-02 11:30)
+- [x] 10C.3.2 Implement all addressing mode formatters ✅ (completed: 2026-08-02 11:30)
+- [x] 10C.3.3 Unit tests: addressing mode output ✅ (completed: 2026-08-02 11:45)
+- [x] 10C.3.4 Integration test: asm_* → IL → ASM-IL ✅ (completed: 2026-08-02 11:45)
 
 ### Phase 10D: Pipeline & Compiler Class
 
