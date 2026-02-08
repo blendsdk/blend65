@@ -175,9 +175,47 @@ export interface AddressOperand {
  * IL instructions use this type for their operands array.
  * Use type guards to narrow down to specific operand types.
  */
+/**
+ * Raw 6502 assembly instruction operand
+ *
+ * Carries the 6502 mnemonic and addressing mode for ASM_RAW IL instructions.
+ * Used by asm_*() function calls to emit raw assembly.
+ *
+ * @example
+ * ```typescript
+ * const seiOp: AsmRawOperand = { kind: 'asm_raw', mnemonic: 'SEI', addressingMode: 'implied' };
+ * const ldaImm: AsmRawOperand = { kind: 'asm_raw', mnemonic: 'LDA', addressingMode: 'immediate' };
+ * ```
+ */
+export interface AsmRawOperand {
+  /** Discriminant for operand kind */
+  readonly kind: 'asm_raw';
+
+  /**
+   * 6502 mnemonic in uppercase.
+   * e.g., 'LDA', 'STA', 'SEI', 'NOP', 'JMP', 'BEQ', etc.
+   */
+  readonly mnemonic: string;
+
+  /**
+   * Addressing mode string.
+   * One of: 'implied', 'immediate', 'zeroPage', 'zeroPageX', 'zeroPageY',
+   * 'absolute', 'absoluteX', 'absoluteY', 'indirect', 'indirectX',
+   * 'indirectY', 'relative'
+   */
+  readonly addressingMode: string;
+}
+
+/**
+ * Union of all IL operand types
+ *
+ * Every IL instruction operand must be one of these types.
+ * The `kind` field is the discriminant for type narrowing.
+ */
 export type ILOperand =
   | SlotOperand
   | ImmediateOperand
   | LabelOperand
   | FunctionOperand
-  | AddressOperand;
+  | AddressOperand
+  | AsmRawOperand;

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-02 10:29
-> **Progress**: 19/75 tasks (25%)
+> **Last Updated**: 2026-08-02 10:59
+> **Progress**: 28/75 tasks (37%)
 
 ## Overview
 
@@ -417,25 +417,25 @@ This document defines the execution sessions for Phase 10 of the Blend65 compile
 - [x] 10A.1.4 Copy target config.ts ✅ (completed: 2026-08-02 10:19)
 - [x] 10A.1.5 Copy target registry.ts + configs/ ✅ (completed: 2026-08-02 10:21)
 - [x] 10A.1.6 Create target index.ts ✅ (completed: 2026-08-02 10:21)
-- [ ] 10A.1.7 Add config + target unit tests
+- [x] 10A.1.7 Add config + target unit tests ✅ (completed: 2026-08-02 10:59)
 - [x] 10A.2.1 Copy library loader.ts, update imports ✅ (completed: 2026-08-02 10:23)
 - [x] 10A.2.2 Create library index.ts ✅ (completed: 2026-08-02 10:23)
 - [x] 10A.2.3 Create v2 library directory structure (incl. x16/common/) ✅ (completed: 2026-08-02 10:25)
 - [x] 10A.2.4 Copy SourceRegistry from v1, update imports ✅ (completed: 2026-08-02 10:24)
-- [ ] 10A.2.5 Add library loader unit tests
+- [x] 10A.2.5 Add library loader unit tests ✅ (completed: 2026-08-02 10:59)
 
 ### Phase 10B: Library Files
 
 - [x] 10B.1.1 Write v2 system.blend ✅ (completed: 2026-08-02 10:25)
 - [x] 10B.1.2 Copy hardware.blend from v1 (no changes needed) ✅ (completed: 2026-08-02 10:25)
-- [ ] 10B.1.3 Verify hardware.blend parses with v2
-- [ ] 10B.1.4 Test: system.blend parses
-- [ ] 10B.1.5 Test: hardware.blend parses
-- [ ] 10B.1.6 Integration test: LibraryLoader loads both
+- [x] 10B.1.3 Verify hardware.blend parses with v2 ✅ (completed: 2026-08-02 10:59)
+- [x] 10B.1.4 Test: system.blend parses ✅ (completed: 2026-08-02 10:59)
+- [x] 10B.1.5 Test: hardware.blend parses ✅ (completed: 2026-08-02 10:59)
+- [x] 10B.1.6 Integration test: LibraryLoader loads both ✅ (completed: 2026-08-02 10:59)
 - [x] 10B.2.1 Write asm.blend with all 151 stubs ✅ (completed: 2026-08-02 10:27)
-- [ ] 10B.2.2 Test: asm.blend parses
-- [ ] 10B.2.3 Test: LibraryLoader auto-loads asm.blend
-- [ ] 10B.2.4 Test: Semantic registers all stubs
+- [x] 10B.2.2 Test: asm.blend parses ✅ (completed: 2026-08-02 10:59)
+- [x] 10B.2.3 Test: LibraryLoader auto-loads asm.blend ✅ (completed: 2026-08-02 10:59)
+- [ ] 10B.2.4 Test: Semantic registers all stubs (deferred - needs pipeline)
 
 ### Phase 10C: ASM_RAW IL + CodeGen
 

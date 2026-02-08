@@ -435,6 +435,18 @@ export enum ILOpcode {
    * 6502: PLA
    */
   POP_A = 'POP_A',
+
+  // ══════════════════════════════════════════════════════════════════
+  // RAW 6502 ASSEMBLY (asm_* functions)
+  // ══════════════════════════════════════════════════════════════════
+
+  /**
+   * Raw 6502 assembly instruction.
+   * Operands: [AsmRawOperand] + optional [ImmediateOperand | AddressOperand]
+   * Maps to exactly one 6502 instruction.
+   * Used by asm_*() function calls (e.g., asm_lda_imm, asm_sei).
+   */
+  ASM_RAW = 'ASM_RAW',
 }
 
 /**

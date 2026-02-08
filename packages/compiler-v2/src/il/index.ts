@@ -29,6 +29,7 @@ export type {
   LabelOperand,
   FunctionOperand,
   AddressOperand,
+  AsmRawOperand,
   ILOperand,
 } from './operands.js';
 
@@ -128,3 +129,14 @@ export {
 } from './analysis.js';
 
 export type { AnalysisStats } from './analysis.js';
+
+// ASM function name parsing utilities
+export {
+  isAsmFunction,
+  parseAsmFunctionName,
+  addressingModeRequiresOperand,
+  getExpectedArgCount,
+  getValidAddressingModeSuffixes,
+  getValidMnemonics,
+} from './asm-utils.js';
+export type { AsmParseResult } from './asm-utils.js';

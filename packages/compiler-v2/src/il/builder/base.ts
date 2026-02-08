@@ -97,6 +97,8 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
 
   // Special
   [ILOpcode.NOP]: { cycles: 2, bytes: 1, memoryAccesses: 0 },
+  // ASM_RAW costs vary per instruction; use average 6502 instruction cost
+  [ILOpcode.ASM_RAW]: { cycles: 3, bytes: 2, memoryAccesses: 1 },
 };
 
 /**
