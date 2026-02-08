@@ -119,8 +119,14 @@ export class SymbolTable {
     this.rootScope = this.createScopeInternal(ScopeKind.Module, null, moduleNode);
     this.currentScope = this.rootScope;
 
-    // Register built-in intrinsic functions
-    this.registerIntrinsics();
+    // Register built-in intrinsic functions for non-library modules.
+    // The 'system' module declares these functions itself as exports,
+    // so pre-registering them would cause duplicate declaration errors.
+    // Other stdlib modules (asm, hardware) don't conflict because they
+    // declare different function/constant names.
+    if (moduleName !== 'system') {
+      this.registerIntrinsics();
+    }
   }
 
   // ============================================================
@@ -598,6 +604,11 @@ export class SymbolTable {
   /**
    * Declares an imported symbol
    *
+   * If the name already exists as an auto-registered intrinsic,
+   * the import silently replaces it. This allows users to write
+   * explicit `import { poke } from system;` without errors, even
+   * though `poke` is already available as a pre-registered intrinsic.
+   *
    * @param localName - Local name (possibly aliased)
    * @param originalName - Name in source module
    * @param sourceModule - Module path
@@ -612,11 +623,19 @@ export class SymbolTable {
   ): DeclareResult {
     const existing = lookupLocal(this.currentScope, localName);
     if (existing) {
-      return {
-        success: false,
-        error: `'${localName}' is already declared in this scope`,
-        existingSymbol: existing,
-      };
+      // Allow explicit imports to shadow auto-registered intrinsics.
+      // Intrinsics are pre-registered in every non-system module for convenience,
+      // but explicit imports should take precedence without causing errors.
+      if (existing.kind === SymbolKind.Intrinsic) {
+        // Remove the intrinsic so the import can replace it
+        this.currentScope.symbols.delete(localName);
+      } else {
+        return {
+          success: false,
+          error: `'${localName}' is already declared in this scope`,
+          existingSymbol: existing,
+        };
+      }
     }
 
     const symbol = createImportedSymbol(localName, originalName, sourceModule, location, this.currentScope);

@@ -86,8 +86,8 @@ Total:    7,868 tests — 7,845 passing (99.7%)
 
 ## Known Issues
 
-- **Library auto-loading duplicate declarations**: When library modules (system.blend) are auto-loaded alongside user imports of the same module, the semantic analyzer reports duplicate declaration errors. This is a semantic analyzer improvement for a future release.
-- **Example programs**: The `examples/` directory needs updating for v2 syntax (auto-loaded intrinsics mean explicit `import` from system causes conflicts).
+- ~~**Library auto-loading duplicate declarations**~~: ✅ **FIXED** — The `system` module no longer pre-registers intrinsics (it declares them itself), and explicit imports now correctly shadow auto-registered intrinsics.
+- **Example programs**: The `examples/` directory needs updating for v2 syntax. Note: explicit `import { poke } from system;` now works correctly alongside auto-loaded intrinsics.
 
 ---
 
