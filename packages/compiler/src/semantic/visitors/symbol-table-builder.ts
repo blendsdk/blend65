@@ -34,6 +34,7 @@ import { SymbolTable } from '../symbol-table.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
 import type { SourceLocation } from '../../ast/index.js';
+import { TokenType } from '../../lexer/types.js';
 
 /**
  * Result of symbol table building
@@ -418,6 +419,13 @@ export class SymbolTableBuilder extends ASTWalker {
           ? `Previously declared at line ${result.existingSymbol.location.start.line}`
           : undefined,
       );
+    }
+
+    // Store @zp storage class in symbol metadata so the variable usage
+    // analyzer can detect ZP-directive variables. Underscore-prefixed variables
+    // that are @zp should still warn about being unused (ZP is precious).
+    if (result.symbol && node.getStorageClass() === TokenType.ZP) {
+      result.symbol.metadata?.set('zpDirective', true);
     }
 
     // Visit initializer if present (for nested declarations in expressions)

@@ -404,9 +404,9 @@ describe('CGT8.3: Control Structure Integration Tests', () => {
       expect(hasLabel(output, 'inner_header')).toBe(true);
       expect(hasLabel(output, 'inner_exit')).toBe(true);
 
-      // Two CMPs, two JMPs (back to headers), two BCS (exit branches)
+      // Two CMPs, three JMPs (startup JMP + two loop back-jumps), two BCS (exit branches)
       expect(countMnemonic(output, 'CMP')).toBe(2);
-      expect(countMnemonic(output, 'JMP')).toBe(2);
+      expect(countMnemonic(output, 'JMP')).toBe(3);
       expect(countMnemonic(output, 'BCS')).toBe(2); // JUMP_GE → BCS
 
       // Three INC instructions (result++, j++, i++)

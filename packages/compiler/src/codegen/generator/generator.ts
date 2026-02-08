@@ -153,12 +153,12 @@ export class CodeGenerator extends IntrinsicsOpsGenerator {
       this.asm.jsr('__global_init', 'Initialize global variables');
     }
 
-    // Call the program entry point
+    // Tail-call the program entry point.
+    // Uses JMP instead of JSR+RTS — saves 1 byte and ~12 cycles.
+    // When main's RTS executes, it returns directly to BASIC
+    // because BASIC's return address is already on the stack from SYS.
     const entryPoint = program.entryPoint || 'main';
-    this.asm.jsr(entryPoint, 'Run program');
-
-    // Return to BASIC
-    this.asm.rts('Return to BASIC');
+    this.asm.jmp(entryPoint, false, 'Run program');
     this.asm.blank();
   }
 

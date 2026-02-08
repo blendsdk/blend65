@@ -371,9 +371,14 @@ export class VariableUsageAnalyzer {
    * - Parameters of stub functions (no body — intrinsic/extern declarations)
    */
   protected shouldSkip(usage: UsageInfo, key: string): boolean {
-    // Skip intentionally unused (underscore-prefixed)
+    // Skip intentionally unused (underscore-prefixed) — but NOT if the variable
+    // has a @zp directive. Zero-page addresses are precious on the 6502 and
+    // wasting them on unused variables should still produce a warning.
     if (this.options.ignoreUnderscorePrefixed && usage.isIntentionallyUnused) {
-      return true;
+      const hasZpDirective = usage.symbol.metadata?.get('zpDirective') === true;
+      if (!hasZpDirective) {
+        return true;
+      }
     }
 
     // Skip exported symbols
