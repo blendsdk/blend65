@@ -1370,7 +1370,7 @@ src/__tests__/semantic/edge-cases/
 > The remaining work is the **ASM-IL Optimizer** (assembly-level peephole passes).
 
 **Sub-Plan**: [asm-il-optimizer/99-execution-plan.md](asm-il-optimizer/99-execution-plan.md)
-**Status**: 0/32 tasks — NOT STARTED
+**Status**: ✅ 48/48 tasks — 100% COMPLETE (7426 tests passing)
 **Scope**: 8 optimization passes (flag patterns, store-load, branch, transfer, ZP promotion, 6502 strength, stack, size)
 
 **Verify**: `./compiler-test`
@@ -1892,7 +1892,7 @@ src/__tests__/semantic/edge-cases/
 > See: `plans/compiler-v2/asm-il-optimizer/99-execution-plan.md`
 > IL Optimizer: ✅ DONE (separate sub-plan — 100% complete)
 > ASM-IL Emitter: ✅ DONE (codegen sub-plan CGT10 — 100% complete)
-> ASM-IL Optimizer: ⬜ NOT STARTED (32 tasks in sub-plan)
+> ASM-IL Optimizer: ✅ DONE (48/48 tasks — 100% complete, 7426 tests passing)
 
 ### Phase 10: Integration & Testing
 
