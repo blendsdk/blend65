@@ -16,6 +16,7 @@
  * - Exported variables (may be used by other modules)
  * - Variables prefixed with underscore (conventional "intentionally unused" marker)
  * - Loop counters in for loops (often intentionally unused)
+ * - Parameters of stub functions (intrinsic/extern declarations without bodies)
  *
  * @module semantic/analysis/variable-usage
  */
@@ -23,6 +24,7 @@
 import type { SourceLocation } from '../../ast/index.js';
 import type { Symbol, SymbolTable } from '../index.js';
 import { SymbolKind } from '../symbol.js';
+import { ScopeKind } from '../scope.js';
 
 /**
  * Types of variable usage issues
@@ -361,6 +363,12 @@ export class VariableUsageAnalyzer {
 
   /**
    * Check if a symbol should be skipped from analysis
+   *
+   * Skips symbols that are:
+   * - Intentionally unused (underscore-prefixed)
+   * - Exported (may be used by other modules)
+   * - Loop counters (often intentionally unused)
+   * - Parameters of stub functions (no body — intrinsic/extern declarations)
    */
   protected shouldSkip(usage: UsageInfo, key: string): boolean {
     // Skip intentionally unused (underscore-prefixed)
@@ -376,6 +384,20 @@ export class VariableUsageAnalyzer {
     // Skip loop counters if configured
     if (this.options.ignoreLoopCounters && this.loopCounters.has(key)) {
       return true;
+    }
+
+    // Skip parameters of stub functions (functions without bodies).
+    // Stub functions are intrinsic/extern declarations like those in
+    // system.blend and asm.blend — their parameters can never be "used"
+    // because there is no function body where they could be referenced.
+    if (usage.symbol.kind === SymbolKind.Parameter) {
+      const scope = usage.symbol.scope;
+      if (scope.kind === ScopeKind.Function && scope.functionSymbol) {
+        const funcDecl = scope.functionSymbol.declaration;
+        if (funcDecl && funcDecl.isStubFunction()) {
+          return true;
+        }
+      }
     }
 
     return false;
