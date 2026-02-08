@@ -2,13 +2,13 @@ module BorderCycle;
 
 const BORDER_COLOR: word = $D020;
 
-export function test1(): void {
+export function main(): void {
     let color: byte = 0;
 
     while (true) {
         poke(BORDER_COLOR, color);
 
-        //delay();
+        delay();
 
         color += 1;
         if (color > 15) {
@@ -17,7 +17,7 @@ export function test1(): void {
     }
 }
 
-function test2(): void {
+function delay(): void {
     for (_outer = 0 to 254) {
         for (_inner = 0 to 254) {
             barrier();
@@ -25,9 +25,10 @@ function test2(): void {
     }
 }
 
-
+/*
 export function main(): void {
     while (true) {
         poke(BORDER_COLOR, peek(BORDER_COLOR)+1);
     }
 }
+*/

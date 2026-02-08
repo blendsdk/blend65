@@ -75,8 +75,8 @@ export const buildCommand: CommandModule<GlobalOptions, BuildOptions> = {
         alias: 'O',
         type: 'string',
         description: 'Optimization level',
-        choices: ['O0', 'O1', 'O2', 'O3', 'Os', 'Oz'] as const,
-        default: 'O0',
+        choices: ['0', '1', '2', '3', 's', 'z'] as const,
+        default: '0',
       })
       .option('debug', {
         alias: 'd',
@@ -102,9 +102,21 @@ export const buildCommand: CommandModule<GlobalOptions, BuildOptions> = {
       })
       .example('$0 build src/main.blend', 'Build single file')
       .example('$0 build src/**/*.blend', 'Build multiple files')
-      .example('$0 build -t c64 -O2', 'Build with optimization')
-      .example('$0 build -o dist/', 'Build to custom directory')
-      .example('$0 build --libraries=sid,sprites', 'Build with optional libraries');
+      .example('$0 build -O2', 'Standard optimization')
+      .example('$0 build -Os', 'Optimize for size')
+      .example('$0 build -t c64 -O2 -o dist/', 'Full build options')
+      .example('$0 build --libraries=sid,sprites', 'Build with optional libraries')
+      .epilog(
+        [
+          'Optimization Levels:',
+          '  0   No optimization (default)',
+          '  1   Basic optimizations (dead code, constant folding)',
+          '  2   Standard optimizations (+ peephole, register reuse)',
+          '  3   Aggressive optimizations (+ inlining, loop unrolling)',
+          '  s   Optimize for code size',
+          '  z   Minimum size (aggressive size reduction)',
+        ].join('\n'),
+      );
   },
 
   handler: async (args: ArgumentsCamelCase<BuildOptions>): Promise<void> => {
@@ -263,7 +275,31 @@ function parseLibraries(librariesArg: string | undefined): string[] {
 }
 
 /**
+ * Resolve the optimization level from CLI arguments
+ *
+ * Handles two edge cases:
+ * 1. Duplicate flags (e.g., `-O1 -O2`) — yargs passes an array; we take the last value
+ * 2. Prepends 'O' prefix — CLI accepts bare levels ('0','1','s','z') and converts
+ *    to the compiler's expected format ('O0','O1','Os','Oz')
+ *
+ * @param opt - Raw optimization value from yargs (string or string[] if duplicated)
+ * @returns Valid OptimizationLevelId for the compiler (e.g., 'O0', 'O2', 'Os')
+ */
+function resolveOptimizationLevel(opt: unknown): 'O0' | 'O1' | 'O2' | 'O3' | 'Os' | 'Oz' {
+  // BUG-007: Handle duplicate flags — yargs may pass an array when flag is repeated
+  const raw = Array.isArray(opt) ? opt[opt.length - 1] : opt;
+  const level = typeof raw === 'string' ? raw : '0';
+
+  // Prepend 'O' to convert CLI value ('0','1','s','z') to compiler format ('O0','O1','Os','Oz')
+  return `O${level}` as 'O0' | 'O1' | 'O2' | 'O3' | 'Os' | 'Oz';
+}
+
+/**
  * Build configuration from CLI options
+ *
+ * Converts CLI arguments into a Blend65Config object for the compiler.
+ * The optimization level is resolved via {@link resolveOptimizationLevel}
+ * to handle the 'O' prefix prepending and duplicate flag edge cases.
  *
  * @param args - CLI arguments
  * @returns Blend65 configuration
@@ -272,7 +308,7 @@ function buildConfig(args: ArgumentsCamelCase<BuildOptions>): Blend65Config {
   return {
     compilerOptions: {
       target: (args.target as 'c64' | 'c128' | 'x16') || 'c64',
-      optimization: (args.optimization as 'O0' | 'O1' | 'O2' | 'O3' | 'Os' | 'Oz') || 'O0',
+      optimization: resolveOptimizationLevel(args.optimization),
       debug: (args.debug as 'none' | 'inline' | 'vice' | 'both') || 'none',
       outDir: args.out || './build',
       outFile: args.outFile,

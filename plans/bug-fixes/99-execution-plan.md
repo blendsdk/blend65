@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-09 00:32
-> **Progress**: 11/22 tasks (50%)
+> **Last Updated**: 2026-09-02 00:39
+> **Progress**: 18/22 tasks (82%)
 
 ## Overview
 
@@ -186,13 +186,13 @@ This document defines the execution phases for fixing all known bugs and design 
 - [x] 1.2.5 All comparison operators use correct inverted branch pattern
 
 ### Phase 2: CLI Bugs
-- [ ] 2.1.1 Change optimization choices (remove O prefix)
-- [ ] 2.1.2 Update default to '0'
-- [ ] 2.1.3 Update buildConfig to prepend 'O'
-- [ ] 2.1.4 Add array guard for duplicate flags
-- [ ] 2.1.5 Add optimization level descriptions
-- [ ] 2.1.6 Update help examples
-- [ ] 2.1.7 Test CLI manually
+- [x] 2.1.1 Change optimization choices (remove O prefix) ✅ (2026-09-02 00:36)
+- [x] 2.1.2 Update default to '0' ✅ (2026-09-02 00:36)
+- [x] 2.1.3 Update buildConfig to prepend 'O' via resolveOptimizationLevel() ✅ (2026-09-02 00:36)
+- [x] 2.1.4 Add array guard for duplicate flags ✅ (2026-09-02 00:36)
+- [x] 2.1.5 Add optimization level descriptions via .epilog() ✅ (2026-09-02 00:37)
+- [x] 2.1.6 Update help examples ✅ (2026-09-02 00:37)
+- [x] 2.1.7 Test CLI manually — 10/10 cases pass, -O2 builds successfully ✅ (2026-09-02 00:39)
 
 ### Phase 3: Design Improvements
 - [ ] 3.1.1 Find function emission point
