@@ -165,7 +165,10 @@ export class ILPhase {
     const moduleDecl = program.getModule();
     const fullName = moduleDecl.getFullName();
 
-    if (moduleDecl.isImplicitModule() || !fullName || fullName === '') {
+    // Use the actual module name from the declaration.
+    // Implicit modules created by parse-phase use 'global' as their name.
+    // Fall back to 'main' only if the name is truly empty.
+    if (!fullName || fullName === '') {
       return 'main';
     }
 
