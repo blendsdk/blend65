@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-02 12:44
-> **Progress**: 51/75 tasks (68%)
+> **Last Updated**: 2026-08-02 15:45
+> **Progress**: 60/75 tasks (80%)
 
 ## Overview
 
@@ -465,18 +465,18 @@ This document defines the execution sessions for Phase 10 of the Blend65 compile
 - [x] 10D.2.4 Create EmitPhase ✅ (completed: 2026-08-02 12:20)
 - [x] 10D.2.5 Create pipeline index.ts ✅ (completed: 2026-08-02 12:20)
 - [x] 10D.2.6 Create Compiler class ✅ (completed: 2026-08-02 12:30)
-- [ ] 10D.3.1 Update index.ts: uncomment module re-exports + add public API
-- [ ] 10D.3.2 Unit test: Compiler.compile()
-- [ ] 10D.3.3 Unit test: Compiler.check()
-- [ ] 10D.3.4 Unit test: library auto-loading
-- [ ] 10D.3.5 Unit test: error propagation
+- [x] 10D.3.1 Update index.ts: selective re-exports + full public API ✅ (completed: 2026-08-02 13:00)
+- [x] 10D.3.2 Unit test: Compiler.compile() + compileSource() ✅ (completed: 2026-08-02 13:55)
+- [x] 10D.3.3 Unit test: Compiler.check() + parseOnly() ✅ (completed: 2026-08-02 13:55)
+- [x] 10D.3.4 Unit test: library auto-loading ✅ (completed: 2026-08-02 13:55)
+- [x] 10D.3.5 Unit test: error propagation + formatDiagnostics ✅ (completed: 2026-08-02 13:55)
 
 ### Phase 10E: E2E Tests
 
-- [ ] 10E.1.1 Create E2E test helper
-- [ ] 10E.1.2 Simple programs E2E tests
-- [ ] 10E.1.3 Intrinsics E2E tests
-- [ ] 10E.1.4 Error cases E2E tests
+- [x] 10E.1.1 Create E2E test helper ✅ (completed: 2026-08-02 15:03)
+- [x] 10E.1.2 Simple programs E2E tests ✅ (completed: 2026-08-02 15:11)
+- [x] 10E.1.3 Intrinsics E2E tests ✅ (completed: 2026-08-02 15:16)
+- [x] 10E.1.4 Error cases E2E tests ✅ (completed: 2026-08-02 15:20)
 - [ ] 10E.2.1 ASM function E2E tests
 - [ ] 10E.2.2 Multi-module E2E tests
 - [ ] 10E.2.3 C64 pattern E2E tests
