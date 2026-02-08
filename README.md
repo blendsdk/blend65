@@ -1,12 +1,12 @@
 # Blend65
 
-> **⚠️ DEVELOPMENT STATUS: ~75% COMPLETE**
+> **⚠️ DEVELOPMENT STATUS: ~90% COMPLETE**
 >
-> The compiler frontend is fully functional with production-quality lexer, parser, semantic analyzer,
-> IL generator, and basic code generator. The compiler can parse, validate, and generate 6502 assembly
-> for Blend65 programs.
+> The full compiler pipeline is functional: lexer, parser, semantic analyzer, IL generator,
+> code generator, IL optimizer, and ASM-IL optimizer. The compiler can compile Blend65 programs
+> to 6502 assembly that runs on real Commodore 64 hardware.
 >
-> **Current milestone**: 6,500+ tests passing | Next phase: Optimizer
+> **Current milestone**: 7,800+ tests passing | Next phase: Bug fixes and polish
 
 ## Overview
 
@@ -14,15 +14,17 @@ Blend65 is a modern programming language compiler targeting 6502-based systems i
 
 ## Quick Examples
 
-### Hello World - Change Border Color
+### Border Color Cycle (Real Working Example)
 
 ```js
-module Main;
+module BorderCycle;
 
-@map borderColor at $D020: byte;
+const BORDER_COLOR: word = $D020;
 
 export function main(): void {
-    borderColor = 1;  // White border
+    while (true) {
+        poke(BORDER_COLOR, peek(BORDER_COLOR) + 1);
+    }
 }
 ```
 
@@ -32,14 +34,18 @@ export function main(): void {
 // Integer types
 let counter: byte = 0;          // 8-bit unsigned (0-255)
 let health: word = 1000;        // 16-bit unsigned (0-65535)
-let flag: bool = true;          // Boolean
 
-// Arrays
-let buffer: byte[256];          // 256-byte array
-let positions: word[8];         // 8 words
+// Constants
+const SCREEN_RAM: word = $0400;
+const SPRITE_ENABLE: word = $D015;
 
-// Zero-page for speed-critical variables
-@zp let fastCounter: byte = 0;
+// Arrays with initializers
+let data: byte[5] = [1, 2, 3, 4, 5];
+let positions: word[8];
+
+// Storage classes for memory placement
+@zp let fastCounter: byte = 0;  // Zero-page (fastest access)
+@ram let buffer: byte[256];     // Standard RAM (default)
 ```
 
 ### Expressions
@@ -51,255 +57,269 @@ let shifted: byte = value << 2;     // Shift left
 let masked: byte = value & $0F;     // Bitwise AND
 
 // Comparisons
-let isEqual: bool = a == b;
-let isGreater: bool = score > highScore;
+let isGreater: byte = score > highScore;
 
 // Ternary operator
 let max: byte = (a > b) ? a : b;
-let sign: byte = (value < 0) ? 1 : 0;
+
+// Compound assignment
+color += 1;
+score -= 10;
 ```
 
 ### Functions
 
 ```js
-// Simple function
-function clearScreen(): void {
-    for (let i: word = 0 to 999) {
-        screenRAM[i] = 32;  // Space character
-    }
-}
-
-// Function with parameters and return
+// Function with parameters and return value
 function add(a: byte, b: byte): byte {
     return a + b;
+}
+
+// Void function
+function clearScreen(): void {
+    for (i = 0 to 999) {
+        poke($0400 + i, 32);  // Space character
+    }
 }
 
 // Exported function (visible to other modules)
 export function main(): void {
     clearScreen();
+    let sum: byte = add(3, 7);
 }
 ```
 
-### Hardware Access
+### Hardware Access with Intrinsics
 
 ```js
-// Memory-mapped hardware registers
-@map borderColor at $D020: byte;
-@map backgroundColor at $D021: byte;
-@map spriteEnable at $D015: byte;
+// Define hardware addresses as constants
+const BORDER_COLOR: word = $D020;
+const BACKGROUND: word = $D021;
 
-// Direct hardware manipulation
-borderColor = 0;           // Black border
-backgroundColor = 6;       // Blue background
-spriteEnable = $FF;        // Enable all sprites
+// Read/write hardware using peek/poke
+let currentColor: byte = peek(BORDER_COLOR);
+poke(BORDER_COLOR, 14);       // Set to light blue
+poke(BACKGROUND, 6);          // Blue background
+
+// Word (16-bit) access
+let timer: word = peekw($DC04);
+pokew($DC04, $4000);
+
+// Byte manipulation
+let lowByte: byte = lo(timer);
+let highByte: byte = hi(timer);
+
+// Array length
+let data: byte[10] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+let size: word = length(data);
+```
+
+### Low-Level CPU Control via ASM Functions
+
+```js
+// Disable interrupts during critical section
+asm_sei();
+poke($D020, 0);
+poke($D021, 0);
+asm_cli();
+
+// Direct 6502 instructions (all 56 opcodes available)
+asm_lda_imm(14);
+asm_sta_abs($D020);
+asm_nop();
+```
+
+### Control Flow
+
+```js
+// If-else
+if (score > highScore) {
+    highScore = score;
+} else {
+    poke($D020, 2);  // Red flash
+}
+
+// While loops
+while (running) {
+    updateGame();
+}
+
+// For loops with range syntax
+for (i = 0 to 7) {
+    poke($D027 + i, i + 1);  // Set sprite colors
+}
+
+// For loops with step and downto
+for (i = 0 to 100 step 2) {
+    poke($0400 + i, 42);
+}
+
+for (i = 255 downto 0) {
+    poke($0400 + i, 32);
+}
+
+// Do-while loops
+do {
+    color = peek($D012);
+} while (color != 255);
+
+// Switch statements
+switch (direction) {
+    case 0: moveUp();
+    case 1: moveDown();
+    case 2: moveLeft();
+    case 3: moveRight();
+}
+
+// Ternary expressions
+let color: byte = isHit ? 2 : 5;
+```
+
+### Multi-Module Programs
+
+```js
+// hardware.blend
+module Hardware;
+
+const BORDER: word = $D020;
+const BACKGROUND: word = $D021;
+
+export function setBorder(color: byte): void {
+    poke(BORDER, color);
+}
+
+export function setBackground(color: byte): void {
+    poke(BACKGROUND, color);
+}
+```
+
+```js
+// main.blend
+module Main;
+
+import { setBorder, setBackground } from hardware;
+
+export function main(): void {
+    setBorder(14);       // Light blue
+    setBackground(6);    // Blue
+}
 ```
 
 ## Language Features
-
-The language uses C-style syntax with direct hardware access capabilities:
-
-```js
-module C64Game.Snake;
-
-import { setSpritePosition, enableSprite } from c64.sprites;
-import { joystickLeft, joystickRight } from c64.input;
-import { playNote } from c64.sid;
-
-@zp var snakeX: byte = 160;     // Zero-page variable allocation
-var score: word = 0;            // 16-bit integer
-var gameState: GameState = PLAYING;
-
-enum GameState {
-    MENU,
-    PLAYING,
-    GAME_OVER
-}
-
-function updateSnake(): void {
-    if (joystickLeft()) {
-        snakeX = snakeX - 2;
-    }
-
-    setSpritePosition(0, snakeX, 100);
-
-    if (snakeX == appleX) {
-        score = score + 10;
-        playNote(0, 440);
-    }
-}
-```
 
 ### Storage Classes
 
 Variables can be declared with specific memory allocation strategies:
 
-- `@zp var` - Zero page allocation for fastest access
-- `@ram var` - Standard RAM allocation
-- `@data var` - Initialized data section
-- `var` - Same as `@ram var`
+| Storage Class | Syntax | Description |
+|---------------|--------|-------------|
+| Default | `let x: byte` | Standard RAM allocation |
+| Zero Page | `@zp let x: byte` | Fastest 6502 access (limited to 256 bytes) |
+| RAM | `@ram let x: byte` | Explicit standard RAM |
+| Data | `@data let x: byte` | Initialized data section |
 
-### Memory-Mapped Hardware
+### Built-in Intrinsics
 
-The `@map` system provides type-safe access to hardware registers (unique to Blend65):
+| Function | Description |
+|----------|-------------|
+| `peek(addr)` | Read byte from memory address |
+| `poke(addr, val)` | Write byte to memory address |
+| `peekw(addr)` | Read 16-bit word from memory |
+| `pokew(addr, val)` | Write 16-bit word to memory |
+| `lo(val)` | Get low byte of a word |
+| `hi(val)` | Get high byte of a word |
+| `length(arr)` | Get length of an array |
+| `barrier()` | Prevent optimizer from reordering across this point |
+
+### ASM Functions (All 56 Opcodes)
+
+Every 6502 instruction is available as a typed function:
 
 ```js
-// Simple register mapping
-@map borderColor at $D020: byte;
-
-// Structured layout mapping
-@map vic at $D000 layout {
-    spriteX: at $00: byte[8],
-    borderColor: at $20: byte,
-    backgroundColor: at $21: byte
-}
-
-// Type-based mapping
-@map sid at $D400 type SIDRegisters;
-
-// Usage - clean, self-documenting hardware access
-vic.borderColor = LIGHT_BLUE;
-sid.voice1.frequency = 440;
+asm_sei();              // Set interrupt disable
+asm_cli();              // Clear interrupt disable
+asm_lda_imm(value);     // Load accumulator immediate
+asm_sta_abs(addr);      // Store accumulator absolute
+asm_jmp_abs(addr);      // Jump absolute
+asm_nop();              // No operation
+// ... all 56 opcodes with all addressing modes
 ```
 
-### Address-of Operator
+### No Recursion (By Design)
 
-Get memory addresses of variables and functions for low-level programming:
-
-```js
-// Get the address of a variable
-let buffer: byte[256];
-let bufferAddr: @address = @buffer;
-
-// Get the address of a function for callbacks
-function myHandler(): void {
-    borderColor = borderColor + 1;
-}
-let handlerAddr: @address = @myHandler;
-
-// Pass function addresses as callbacks
-function installIRQ(handler: callback): void {
-    // Set up interrupt vector
-}
-installIRQ(@myHandler);
-```
-
-### Callback Functions
-
-Type-safe function pointers enable interrupt-driven programming and behavioral dispatch:
+Blend65 uses **Static Frame Allocation (SFA)** — each function gets a fixed memory frame at compile time. This means recursion is forbidden (detected at compile time), but code generation is simpler and more predictable with zero stack overhead.
 
 ```js
-// Define callback-compatible functions
-function onRasterLine(): void {
-    vic.borderColor = vic.borderColor + 1;
+// ❌ COMPILE ERROR: Recursion not allowed
+function countdown(n: byte): void {
+    if (n > 0) {
+        countdown(n - 1);  // ERROR: direct recursion detected
+    }
 }
 
-// Accept callbacks as parameters
-function setRasterHandler(handler: callback): void {
-    handler();  // Invoke the callback
+// ✅ Use iteration instead
+function countdown(n: byte): void {
+    for (i = n downto 0) {
+        poke($0400 + i, i);
+    }
 }
-
-// Use address-of operator to pass function
-setRasterHandler(@onRasterLine);
-```
-
-### Control Flow
-
-Blend65 supports familiar C-style control flow constructs:
-
-```js
-// If-else statements
-if (score > highScore) {
-    highScore = score;
-} else {
-    displayMessage("Try again!");
-}
-
-// While loops
-while (gameRunning) {
-    updateGame();
-    renderFrame();
-}
-
-// For loops with range syntax
-for (i = 0 to 7) {
-    sprites[i].update();
-}
-
-// For loops with step and downto
-for (i = 0 to 100 step 2) {
-    evenNumbers[i / 2] = i;
-}
-
-for (i = 10 downto 0) {
-    countdown[10 - i] = i;
-}
-
-// Do-while loops
-do {
-    waitForVBlank();
-} while (!frameReady);
-
-// Switch statements
-switch (direction) {
-    case UP: moveUp();
-    case DOWN: moveDown();
-    case LEFT: moveLeft();
-    case RIGHT: moveRight();
-}
-
-// Ternary expressions
-let color: byte = isHit ? RED : GREEN;
 ```
 
 ## Target Platforms
 
-- **Commodore 64** - Full VIC-II, SID, and CIA support
-- **VIC-20** - VIA and basic graphics support
-- **Commander X16** - VERA graphics and enhanced features
-- **Generic 6502** - Basic instruction set compatibility
+- **Commodore 64** — Full VIC-II, SID, and CIA support via peek/poke
+- **VIC-20** — VIA and basic graphics support
+- **Commander X16** — VERA graphics and enhanced features
+- **Generic 6502** — Basic instruction set compatibility
+
+## Building & Running
+
+```bash
+# Compile a Blend65 program
+./packages/cli/bin/blend65.js build ./examples/border-cycle/main.blend
+
+# Output: build/main.asm (ACME-compatible assembly)
+
+# Assemble with ACME to create .prg file
+acme -o ./build/main.prg -f cbm ./build/main.asm
+
+# Run in VICE emulator
+x64sc ./build/main.prg
+```
+
+### Optimization Levels
+
+```bash
+blend65 build main.blend -O1     # Basic optimizations
+blend65 build main.blend -O2     # Standard optimizations
+blend65 build main.blend -O3     # Aggressive optimizations
+blend65 build main.blend -Os     # Optimize for size
+```
 
 ## Implementation Status
 
 **Compiler Pipeline:**
 
 ```
-Source → Lexer ✅ → Parser ✅ → AST ✅ → Semantic ✅ → IL ✅ → CodeGen ✅ → Assembly ✅
-                                                              ↓
-                                                         Optimizer 🔜
+Source → Lexer ✅ → Parser ✅ → Semantic ✅ → IL ✅ → CodeGen ✅ → Optimizer ✅ → ASM ✅
 ```
-
-### Completed (~75%)
 
 | Component | Tests | Status |
 |-----------|-------|--------|
 | **Lexer** | 150+ | ✅ Production-ready |
 | **Parser** | 400+ | ✅ Production-ready |
-| **AST System** | 100+ | ✅ Production-ready |
-| **Semantic Analyzer** | 1,500+ | ✅ Production-ready |
-| **IL Generator** | 2,000+ | ✅ Production-ready |
-| **Code Generator** | 500+ | ✅ Basic Complete |
-| **E2E & Integration** | 1,500+ | ✅ All Passing |
-| **Total** | **6,500+** | **✅ All Passing** |
+| **AST System** | 180+ | ✅ Production-ready |
+| **Semantic Analyzer** | 3,500+ | ✅ Production-ready |
+| **IL Generator** | 500+ | ✅ Production-ready |
+| **Code Generator** | 700+ | ✅ Production-ready |
+| **IL Optimizer** | 800+ | ✅ Complete (5 passes) |
+| **ASM-IL Optimizer** | 700+ | ✅ Complete (8 passes) |
+| **E2E & Integration** | 800+ | ✅ All passing |
+| **Total** | **7,800+** | **✅ All Passing** |
 
-**Key Features:**
+### Known Issues
 
-- Complete type checking with multi-module support
-- Control flow analysis with CFG construction
-- Definite assignment and variable usage tracking
-- Dead code and unused function detection
-- Address-of operator for function pointers and callbacks
-- Standard library loading system
-- ACME assembler output generation
-
-### In Development
-
-- **Optimizer** - Peephole optimization, dead code elimination, constant folding
-
-### Planned
-
-- Advanced optimization passes
-- VICE emulator integration
-- Additional examples and documentation
+See [bug-list.md](bug-list.md) for current known bugs and their status.
 
 ## Development
 
@@ -312,14 +332,16 @@ yarn install
 # Build all packages
 yarn build
 
-# Run tests
-yarn test
+# Run all tests
+./compiler-test
+
+# Run tests for specific component
+./compiler-test parser
+./compiler-test semantic
+./compiler-test codegen
 
 # Clean build artifacts
 yarn clean
-
-# Build, clean, and test (full validation)
-yarn clean && yarn build && yarn test
 ```
 
 **Requirements:**
@@ -332,23 +354,29 @@ yarn clean && yarn build && yarn test
 ```
 blend65/
 ├── packages/
-│   └── compiler/          # Main compiler package
-│       └── src/
-│           ├── lexer/     # Tokenization
-│           ├── parser/    # Syntax parsing
-│           ├── ast/       # AST nodes and utilities
-│           ├── semantic/  # Type checking and analysis
-│           └── target/    # Code generation (WIP)
+│   ├── compiler/              # Main compiler package
+│   │   └── src/
+│   │       ├── lexer/         # Tokenization
+│   │       ├── parser/        # Syntax parsing (Pratt parser)
+│   │       ├── ast/           # AST nodes, walkers, type guards
+│   │       ├── semantic/      # Type checking, control flow, call graph
+│   │       ├── frame/         # Static Frame Allocator (SFA)
+│   │       ├── il/            # Intermediate Language generator
+│   │       ├── codegen/       # 6502 code generation + ASM-IL
+│   │       ├── optimizer/     # IL optimizer (DCE, const fold, etc.)
+│   │       ├── pipeline/      # Compiler pipeline orchestration
+│   │       └── __tests__/     # 7,800+ tests
+│   └── cli/                   # Command-line interface
 ├── docs/
-│   └── language-specification/  # Complete language spec
-├── examples/              # Example Blend65 programs
-└── plans/                 # Development roadmap
+│   └── language-specification-v2/  # Complete language specification
+├── examples/                  # Example Blend65 programs
+└── plans/                     # Development roadmap
 ```
 
 ## Documentation
 
-- [Language Specification](docs/language-specification/README.md) - Complete syntax and semantics reference
-- [Compiler Master Plan](plans/COMPILER-MASTER-PLAN.md) - Implementation roadmap and status
+- [Language Specification](docs/language-specification-v2/README.md) — Complete syntax and semantics reference
+- [Bug List](bug-list.md) — Known issues and their status
 
 ## License
 
@@ -356,7 +384,7 @@ blend65/
 >
 > This software is licensed under the Elastic License 2.0. You are free to use it to create
 > games and software, but you cannot sell the compiler itself or offer it as a service.
-> See [LICENSE](LICENSE) for full details.
+> See [LICENSE](LICENSE.md) for full details.
 
 | Use Case | Allowed |
 |----------|---------|
@@ -371,4 +399,4 @@ blend65/
 
 ## Contributing
 
-The project is under active development. See the [master plan](plans/COMPILER-MASTER-PLAN.md) for current priorities and the implementation roadmap.
+The project is under active development. See the [plans/](plans/) directory for current priorities and implementation roadmaps.

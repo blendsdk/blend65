@@ -298,7 +298,11 @@ export class ILBuilderBase {
    */
   clear(): void {
     this.instructions = [];
-    this.labelCounter = 0;
+    // NOTE: labelCounter is intentionally NOT reset here.
+    // Labels must be unique across all functions in a module.
+    // clear() is called per-function (via beginFunction()) and during
+    // global init save/restore, so resetting the counter would produce
+    // duplicate labels like .while0 in multiple functions.
     this.currentLocation = undefined;
   }
 }
