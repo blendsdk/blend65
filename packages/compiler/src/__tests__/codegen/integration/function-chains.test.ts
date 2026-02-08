@@ -149,8 +149,8 @@ describe('CGT8.4: Function Chain Integration Tests', () => {
       expect(hasLabel(output, 'funcA')).toBe(true);
       expect(hasLabel(output, 'funcB')).toBe(true);
 
-      // Each function should have its own RTS
-      expect(countMnemonic(output, 'RTS')).toBe(2);
+      // Each function should have its own RTS, plus startup RTS
+      expect(countMnemonic(output, 'RTS')).toBe(3);
     });
 
     it('generates function that calls another function', () => {
@@ -183,15 +183,15 @@ describe('CGT8.4: Function Chain Integration Tests', () => {
       expect(hasLabel(output, 'main')).toBe(true);
       expect(hasLabel(output, 'helper')).toBe(true);
 
-      // Check the JSR instruction references 'helper'
+      // Check that a JSR instruction references 'helper'
       const instrs = allInstructions(output);
-      const jsr = instrs.find(
-        (e) => isInstructionElement(e) && e.instruction.mnemonic === 'JSR'
+      const jsrToHelper = instrs.find(
+        (e) =>
+          isInstructionElement(e) &&
+          e.instruction.mnemonic === 'JSR' &&
+          e.instruction.labelOperand === 'helper'
       );
-      expect(jsr).toBeDefined();
-      if (jsr && isInstructionElement(jsr)) {
-        expect(jsr.instruction.labelOperand).toBe('helper');
-      }
+      expect(jsrToHelper).toBeDefined();
     });
 
     it('generates chain of function calls: main → funcA → funcB', () => {
@@ -232,11 +232,11 @@ describe('CGT8.4: Function Chain Integration Tests', () => {
       expect(hasLabel(output, 'funcA')).toBe(true);
       expect(hasLabel(output, 'funcB')).toBe(true);
 
-      // Two JSR calls (main→funcA, funcA→funcB)
-      expect(countMnemonic(output, 'JSR')).toBe(2);
+      // Three JSR calls: startup→main, main→funcA, funcA→funcB
+      expect(countMnemonic(output, 'JSR')).toBe(3);
 
-      // Three RTS instructions (one per function)
-      expect(countMnemonic(output, 'RTS')).toBe(3);
+      // Four RTS: startup + one per function
+      expect(countMnemonic(output, 'RTS')).toBe(4);
     });
 
     it('generates function that calls multiple functions', () => {
@@ -270,11 +270,11 @@ describe('CGT8.4: Function Chain Integration Tests', () => {
 
       const output = generate(program);
 
-      // main calls three functions
-      expect(countMnemonic(output, 'JSR')).toBe(3);
+      // main calls three functions + startup JSR
+      expect(countMnemonic(output, 'JSR')).toBe(4);
 
-      // Four functions = four RTS
-      expect(countMnemonic(output, 'RTS')).toBe(4);
+      // Four functions + startup = five RTS
+      expect(countMnemonic(output, 'RTS')).toBe(5);
 
       // All labels present
       expect(hasLabel(output, 'main')).toBe(true);
@@ -557,10 +557,11 @@ describe('CGT8.4: Function Chain Integration Tests', () => {
       expect(hasLabel(output, 'main')).toBe(true);
       expect(hasLabel(output, 'updateBorder')).toBe(true);
 
+      // startup: JSR main, RTS
       // main: LDA #6, STA color, JSR updateBorder, RTS
       // updateBorder: LDA color, STA $D020, LDA color, STA $D021, RTS
-      expect(countMnemonic(output, 'JSR')).toBe(1);
-      expect(countMnemonic(output, 'RTS')).toBe(2);
+      expect(countMnemonic(output, 'JSR')).toBe(2);
+      expect(countMnemonic(output, 'RTS')).toBe(3);
 
       // Hardware writes (STA to $D020 and $D021)
       const instrs = allInstructions(output);

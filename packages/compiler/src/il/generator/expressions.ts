@@ -831,6 +831,8 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       'volatile_write',
       'hi',
       'lo',
+      'barrier',
+      'length',
     ];
     return intrinsics.includes(name);
   }
@@ -928,6 +930,14 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
           this.generateExpression(args[0]);
           this.builder.emit(ILOpcode.LO, [], 'lo(value)');
         }
+        break;
+      case 'barrier':
+        // Optimization barrier - no IL generated, just a directive to the optimizer
+        // to prevent reordering code across this point (per spec 08-intrinsics.md)
+        break;
+      case 'length':
+        // length() is a compile-time intrinsic - resolved during semantic analysis
+        // No runtime IL needed (per spec 08-intrinsics.md)
         break;
     }
   }

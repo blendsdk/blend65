@@ -270,6 +270,13 @@ export class ILGenerator extends ILGeneratorControlFlow {
     decl: VariableDecl,
     globalInit: ILInstruction[]
   ): void {
+    // Skip const declarations - they are compile-time constants
+    // resolved during codegen (e.g., const BORDER: word = $D020
+    // is used inline, not stored at runtime)
+    if (decl.isConst()) {
+      return;
+    }
+
     const initializer = decl.getInitializer();
     if (!initializer) {
       return; // No initialization needed

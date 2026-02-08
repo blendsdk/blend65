@@ -1,7 +1,28 @@
 module BorderCycle;
 
-const BORDER: word = $D020;
+const BORDER_COLOR: word = $D020;
 
 export function main(): void {
-    poke(BORDER, 1);
+    let color: byte = 0;
+
+    while (true) {
+        poke(BORDER_COLOR, color);
+
+        delay();
+
+        color += 1;
+        if (color > 15) {
+            color = 0;
+        }
+    }
+}
+
+function delay(): void {
+    let outer: byte = 0;
+    let inner: byte = 0;
+    for (outer = 0 to 254) {
+        for (inner = 0 to 254) {
+            barrier();
+        }
+    }
 }
