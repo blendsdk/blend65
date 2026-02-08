@@ -289,5 +289,6 @@ These rules are **mandatory** and must be applied **strictly and consistently** 
 - See **agents.md** for verification procedures and task completion criteria
 - See **testing.md** for test script usage and AI testing workflow
 - See **plans.md Rule 10** for inheritance chain planning guidelines
+- See **agents.md Rule 10** for debugging rules (NO inline `node -e` scripts - ALWAYS create script files)
 - Note: Testing rules in this file (Rules 4-8) are the single source of truth for all testing standards
 - Note: Inheritance chain rules in this file (Rules 17-20) are the single source of truth for architectural standards

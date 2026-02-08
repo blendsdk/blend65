@@ -249,13 +249,4 @@ clear && scripts/agent.sh finished
 
 ---
 
-## Archive Note
-
-The original detailed optimizer plan (~90 documents) is preserved in:
-`plans/archive/optimizer-v1/`
-
-These documents contain deep technical details that can be referenced when implementing specific optimizations.
-
----
-
 **Next Step**: Begin with [Phase 1: Foundation](phase-1-foundation/00-phase-index.md)

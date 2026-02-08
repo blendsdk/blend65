@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Lexer, TokenType } from '../../lexer/index.js';
 
+/**
+ * Callback Keyword Lexing Tests
+ *
+ * v2: Callback remains a valid keyword for interrupt handlers.
+ */
 describe('Callback Keyword Lexing', () => {
   it('should tokenize callback keyword', () => {
     const source = 'callback function';

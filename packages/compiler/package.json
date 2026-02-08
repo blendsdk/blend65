@@ -1,7 +1,7 @@
 {
   "name": "@blend65/compiler",
   "version": "0.2.0",
-  "description": "Blend65 - A programming for high-performance 6502 family game development",
+  "description": "Blend65 Compiler - Static Frame Allocation architecture for 6502 game development",
   "license": "Elastic-2.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,15 +22,13 @@
     "dev": "tsc --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:fixtures": "vitest run src/__tests__/e2e/fixture-runner.test.ts",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "type-check": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@types/node": "^25.0.10",
-    "glob": "^13.0.0"
+    "@types/node": "^25.2.1"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
@@ -41,7 +39,7 @@
     "c64",
     "6502",
     "assembly",
-    "c128",
-    "blend65"
+    "blend65",
+    "static-frame-allocation"
   ]
 }

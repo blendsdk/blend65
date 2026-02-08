@@ -17,7 +17,7 @@
 
 import { Lexer } from '../lexer/lexer.js';
 import { Parser } from '../parser/parser.js';
-import { Program, ModuleDecl } from '../ast/nodes.js';
+import { Program, ModuleDecl } from '../ast/program.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
 import { DiagnosticCode, DiagnosticSeverity } from '../ast/diagnostics.js';
 import type { PhaseResult } from './types.js';
@@ -40,13 +40,8 @@ import { SourceRegistry } from '../utils/source-registry.js';
  * const parsePhase = new ParsePhase();
  * const sources = new Map([
  *   ['main.blend', 'export function main(): void { }'],
- *   ['game.blend', 'function update(): void { }'],
  * ]);
  * const result = parsePhase.execute(sources);
- *
- * if (!result.success) {
- *   console.error('Parse errors:', result.diagnostics);
- * }
  * ```
  */
 export class ParsePhase {
@@ -64,7 +59,7 @@ export class ParsePhase {
     const programs: Program[] = [];
     const diagnostics: Diagnostic[] = [];
 
-    // Process each source file
+    // Process each source file through Lexer → Parser
     for (const [filename, source] of sources) {
       const fileResult = this.parseFile(filename, source);
       programs.push(fileResult.program);
@@ -72,7 +67,7 @@ export class ParsePhase {
     }
 
     // Determine success based on error-severity diagnostics
-    const hasErrors = diagnostics.some(d => d.severity === 'error');
+    const hasErrors = diagnostics.some(d => d.severity === DiagnosticSeverity.ERROR);
 
     return {
       data: programs,
@@ -195,7 +190,6 @@ export class ParsePhase {
     };
 
     // Create implicit global module
-    // ModuleDecl(namePath: string[], location, isImplicit)
     const implicitModule = new ModuleDecl(['global'], emptyLocation, true);
 
     return new Program(implicitModule, [], emptyLocation);

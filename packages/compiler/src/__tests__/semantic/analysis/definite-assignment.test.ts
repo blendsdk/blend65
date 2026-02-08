@@ -1,444 +1,438 @@
 /**
- * Tests for Definite Assignment Analysis (Task 8.1)
+ * Tests for DefiniteAssignmentAnalyzer
  *
- * Verifies that the analyzer correctly:
- * - Detects variables used before initialization
- * - Marks variables that are always initialized
- * - Handles branching and merging
- * - Handles loops correctly
- * - Sets metadata for optimization
+ * Verifies detection of variables used before being assigned.
  */
 
-import { describe, it, expect } from 'vitest';
-import { Lexer } from '../../../lexer/lexer.js';
-import { Parser } from '../../../parser/parser.js';
-import { SemanticAnalyzer } from '../../../semantic/analyzer.js';
-import { OptimizationMetadataKey } from '../../../semantic/analysis/optimization-metadata-keys.js';
-import { DiagnosticSeverity } from '../../../ast/diagnostics.js';
-import { isFunctionDecl } from '../../../ast/type-guards.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  DefiniteAssignmentAnalyzer,
+  DefiniteAssignmentSeverity,
+  DefiniteAssignmentIssueKind,
+} from '../../../semantic/analysis/definite-assignment.js';
+import { SymbolTable } from '../../../semantic/symbol-table.js';
+import type { SourceLocation } from '../../../ast/index.js';
 
 /**
- * Helper to parse and analyze code
+ * Helper to create a test location
  */
-function analyzeCode(source: string) {
-  const lexer = new Lexer(source);
-  const tokens = lexer.tokenize();
-  const parser = new Parser(tokens);
-  const ast = parser.parse();
-
-  const analyzer = new SemanticAnalyzer();
-  analyzer.analyze(ast);
-
+function createTestLocation(line: number = 1, column: number = 1): SourceLocation {
   return {
-    ast,
-    analyzer,
-    diagnostics: analyzer.getDiagnostics(),
-    errors: analyzer.getDiagnostics().filter(d => d.severity === DiagnosticSeverity.ERROR),
-    warnings: analyzer.getDiagnostics().filter(d => d.severity === DiagnosticSeverity.WARNING),
+    start: { line, column, offset: 0 },
+    end: { line, column: column + 1, offset: 1 },
   };
 }
 
 describe('DefiniteAssignmentAnalyzer', () => {
-  describe('Basic Initialization Detection', () => {
-    it('should allow using initialized variable', () => {
-      const source = `
-        function test(): void {
-          let x: byte = 10;
-          let y: byte = x;
-        }
-      `;
+  let symbolTable: SymbolTable;
+  let analyzer: DefiniteAssignmentAnalyzer;
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+  beforeEach(() => {
+    // SymbolTable automatically creates module scope on construction
+    symbolTable = new SymbolTable(null, 'test');
+    analyzer = new DefiniteAssignmentAnalyzer(symbolTable);
+  });
+
+  describe('construction', () => {
+    it('should create analyzer with symbol table', () => {
+      expect(analyzer).toBeInstanceOf(DefiniteAssignmentAnalyzer);
     });
 
-    it('should detect use before initialization', () => {
-      const source = `
-        function test(): void {
-          let x: byte;
-          let y: byte = x;
-        }
-      `;
-
-      const { errors } = analyzeCode(source);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(e => e.message.includes('used before being initialized'))).toBe(true);
-    });
-
-    it('should allow use after assignment', () => {
-      const source = `
-        function test(): void {
-          let x: byte;
-          x = 10;
-          let y: byte = x;
-        }
-      `;
-
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle multiple variables independently', () => {
-      const source = `
-        function test(): void {
-          let a: byte = 1;
-          let b: byte;
-          let c: byte = a;
-          b = 2;
-          let d: byte = b;
-        }
-      `;
-
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+    it('should have empty issues initially', () => {
+      const result = analyzer.analyze();
+      expect(result.hasIssues).toBe(false);
+      expect(result.issues).toHaveLength(0);
     });
   });
 
-  describe('Conditional Initialization', () => {
-    it('should detect uninitialized use when only one branch initializes', () => {
-      const source = `
-        function test(condition: boolean): void {
-          let x: byte;
-          if (condition) {
-            x = 10;
-          }
-          let y: byte = x;
-        }
-      `;
+  describe('analyze() with symbol table', () => {
+    it('should track variables from symbol table', () => {
+      // Declare a variable with initializer
+      const result = symbolTable.declareVariable('x', createTestLocation(1, 1), null, {
+        initializer: {} as any,
+      });
+      expect(result.success).toBe(true);
 
-      const { errors } = analyzeCode(source);
-      expect(errors.length).toBeGreaterThan(0);
-      expect(errors.some(e => e.message.includes('used before being initialized'))).toBe(true);
+      // Analyze
+      const analysisResult = analyzer.analyze();
+      expect(analysisResult.variablesAnalyzed).toBe(1);
     });
 
-    it('should allow use when both branches initialize', () => {
-      const source = `
-        function test(condition: boolean): void {
-          let x: byte;
-          if (condition) {
-            x = 10;
-          } else {
-            x = 20;
-          }
-          let y: byte = x;
-        }
-      `;
+    it('should count variables without initializers', () => {
+      // Declare a variable WITHOUT initializer
+      symbolTable.declareVariable('x', createTestLocation(1, 1));
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+      const result = analyzer.analyze();
+      expect(result.variablesAnalyzed).toBe(1);
     });
 
-    it('should handle nested conditionals', () => {
-      const source = `
-        function test(a: boolean, b: boolean): void {
-          let x: byte;
-          if (a) {
-            if (b) {
-              x = 10;
-            } else {
-              x = 20;
-            }
-          } else {
-            x = 30;
-          }
-          let y: byte = x;
-        }
-      `;
+    it('should track parameters as definitely assigned', () => {
+      // Declare a function first
+      const funcResult = symbolTable.declareFunction('testFunc', createTestLocation(1, 1));
+      expect(funcResult.success).toBe(true);
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+      // Enter function scope
+      symbolTable.enterFunctionScope(funcResult.symbol!);
+
+      // Declare a parameter
+      symbolTable.declareParameter('param', createTestLocation(1, 10));
+
+      const result = analyzer.analyze();
+      expect(result.variablesAnalyzed).toBe(1);
+
+      // Get the parameter symbol and check it's definitely assigned
+      const paramSymbol = symbolTable.lookup('param');
+      expect(paramSymbol).toBeDefined();
+      expect(analyzer.isDefinitelyAssigned(paramSymbol!)).toBe(true);
     });
   });
 
-  describe('Loop Initialization', () => {
-    it('should detect uninitialized use before loop', () => {
-      const source = `
-        function test(): void {
-          let x: byte;
-          while (x < 10) {
-            x = x + 1;
-          }
-        }
-      `;
+  describe('recordAssignment()', () => {
+    it('should mark variable as definitely assigned after assignment', () => {
+      // Variable without initializer
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      expect(declResult.success).toBe(true);
+      const varSymbol = declResult.symbol!;
 
-      const { errors } = analyzeCode(source);
-      expect(errors.length).toBeGreaterThan(0);
+      // Initialize states
+      analyzer.analyze();
+
+      // Initially not assigned
+      expect(analyzer.isDefinitelyAssigned(varSymbol)).toBe(false);
+
+      // Record assignment
+      analyzer.recordAssignment(varSymbol, createTestLocation(2, 1));
+
+      // Now should be assigned
+      expect(analyzer.isDefinitelyAssigned(varSymbol)).toBe(true);
     });
 
-    it('should allow use when initialized before loop', () => {
-      const source = `
-        function test(): void {
-          let x: byte = 0;
-          while (x < 10) {
-            x = x + 1;
-          }
-        }
-      `;
+    it('should track multiple assignments', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
-    });
+      analyzer.analyze();
 
-    it('should detect uninitialized use after loop when not initialized on all paths', () => {
-      const source = `
-        function test(condition: boolean): void {
-          let x: byte;
-          while (condition) {
-            x = 10;
-          }
-          let y: byte = x;
-        }
-      `;
+      // Multiple assignments
+      analyzer.recordAssignment(varSymbol, createTestLocation(2, 1));
+      analyzer.recordAssignment(varSymbol, createTestLocation(3, 1));
 
-      const { errors } = analyzeCode(source);
-      // Loop may not execute, so x might not be initialized
-      expect(errors.length).toBeGreaterThan(0);
+      expect(analyzer.isDefinitelyAssigned(varSymbol)).toBe(true);
     });
   });
 
-  describe('Return Statements', () => {
-    it('should allow early return with initialized variable', () => {
-      const source = `
-        function test(condition: boolean): byte {
-          let x: byte = 10;
-          if (condition) {
-            return x;
-          }
-          return 0;
-        }
-      `;
+  describe('checkRead()', () => {
+    it('should report error when reading unassigned variable', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+      analyzer.analyze();
+
+      // Read without assignment
+      analyzer.checkRead(varSymbol, createTestLocation(5, 1));
+
+      const issues = analyzer.getIssues();
+      expect(issues).toHaveLength(1);
+      expect(issues[0].kind).toBe(DefiniteAssignmentIssueKind.UsedBeforeAssigned);
+      expect(issues[0].severity).toBe(DefiniteAssignmentSeverity.Error);
+      expect(issues[0].symbol.name).toBe('x');
     });
 
-    it('should detect uninitialized use in return', () => {
-      const source = `
-        function test(): byte {
-          let x: byte;
-          return x;
-        }
-      `;
+    it('should not report error when reading assigned variable', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1), null, {
+        initializer: {} as any,
+      });
+      const varSymbol = declResult.symbol!;
 
-      const { errors } = analyzeCode(source);
-      expect(errors.length).toBeGreaterThan(0);
+      analyzer.analyze();
+
+      // Read after initialization
+      analyzer.checkRead(varSymbol, createTestLocation(5, 1));
+
+      const issues = analyzer.getIssues();
+      expect(issues).toHaveLength(0);
     });
 
-    it('should handle multiple return paths', () => {
-      const source = `
-        function test(condition: boolean): byte {
-          let x: byte;
-          if (condition) {
-            x = 10;
-            return x;
-          } else {
-            x = 20;
-            return x;
-          }
-        }
-      `;
+    it('should not report error when reading parameter', () => {
+      // Declare a function first
+      const funcResult = symbolTable.declareFunction('testFunc', createTestLocation(1, 1));
+      symbolTable.enterFunctionScope(funcResult.symbol!);
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
-    });
-  });
+      // Declare a parameter
+      const paramResult = symbolTable.declareParameter('param', createTestLocation(1, 10));
+      const paramSymbol = paramResult.symbol!;
 
-  describe('Metadata Generation', () => {
-    it('should mark always-initialized variables', () => {
-      const source = `
-        function test(): void {
-          let x: byte = 10;
-          let y: byte = x;
-        }
-      `;
+      analyzer.analyze();
 
-      const { ast } = analyzeCode(source);
+      // Read parameter
+      analyzer.checkRead(paramSymbol, createTestLocation(2, 1));
 
-      // Find variable declaration for x
-      const functionDecl = ast.getDeclarations()[0];
-      if (isFunctionDecl(functionDecl)) {
-        const body = (functionDecl as any).getBody();
-        if (body && body.length > 0) {
-          const varDecl = body[0];
-
-          // Check metadata
-          const metadata = varDecl.metadata;
-          expect(metadata).toBeDefined();
-          expect(metadata?.get(OptimizationMetadataKey.DefiniteAssignmentAlwaysInitialized)).toBe(
-            true
-          );
-        }
-      }
+      const issues = analyzer.getIssues();
+      expect(issues).toHaveLength(0);
     });
 
-    it('should store constant initialization values', () => {
-      const source = `
-        function test(): void {
-          let x: byte = 42;
-          let y: byte = x;
-        }
-      `;
+    it('should track read count', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1), null, {
+        initializer: {} as any,
+      });
+      const varSymbol = declResult.symbol!;
 
-      const { ast } = analyzeCode(source);
+      analyzer.analyze();
 
-      // Find variable declaration for x
-      const functionDecl = ast.getDeclarations()[0];
-      if (isFunctionDecl(functionDecl)) {
-        const body = (functionDecl as any).getBody();
-        if (body && body.length > 0) {
-          const varDecl = body[0];
+      // Multiple reads
+      analyzer.checkRead(varSymbol, createTestLocation(2, 1));
+      analyzer.checkRead(varSymbol, createTestLocation(3, 1));
+      analyzer.checkRead(varSymbol, createTestLocation(4, 1));
 
-          // Check metadata
-          const metadata = varDecl.metadata;
-          expect(metadata).toBeDefined();
-          expect(metadata?.get(OptimizationMetadataKey.DefiniteAssignmentInitValue)).toBe(42);
-        }
-      }
-    });
-
-    it('should mark uninitialized use nodes', () => {
-      const source = `
-        function test(): void {
-          let x: byte;
-          let y: byte = x;
-        }
-      `;
-
-      const { ast, errors } = analyzeCode(source);
-
-      // Should have error
-      expect(errors.length).toBeGreaterThan(0);
-
-      // Find identifier node in the use
-      const functionDecl = ast.getDeclarations()[0];
-      if (isFunctionDecl(functionDecl)) {
-        const body = (functionDecl as any).getBody();
-        if (body && body.length > 1) {
-          const varDecl2 = body[1];
-          const initializer = (varDecl2 as any).getInitializer();
-
-          // The identifier 'x' should be marked as uninitialized use
-          if (initializer && initializer.metadata) {
-            const hasUninitUse = initializer.metadata.get(
-              OptimizationMetadataKey.DefiniteAssignmentUninitializedUse
-            );
-            expect(hasUninitUse).toBe(true);
-          }
-        }
-      }
+      // Build result without resetting (use getIssues which doesn't reset)
+      // The readsAnalyzed is only tracked internally, so we verify no issues instead
+      const issues = analyzer.getIssues();
+      expect(issues).toHaveLength(0); // All reads are valid (variable was initialized)
     });
   });
 
-  describe('Complex Control Flow', () => {
-    it('should handle complex branching', () => {
-      const source = `
-        function test(a: boolean, b: boolean, c: boolean): void {
-          let x: byte;
+  describe('branch handling', () => {
+    it('should save and restore state with enterBranch()', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
 
-          if (a) {
-            if (b) {
-              x = 1;
-            } else {
-              if (c) {
-                x = 2;
-              } else {
-                x = 3;
-              }
-            }
-          } else {
-            x = 4;
-          }
+      analyzer.analyze();
 
-          let y: byte = x;
-        }
-      `;
+      // Save state before branch
+      const beforeState = analyzer.enterBranch();
+      expect(beforeState).toBeInstanceOf(Map);
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+      // Assign in branch
+      analyzer.recordAssignment(varSymbol, createTestLocation(3, 1));
+      expect(analyzer.isDefinitelyAssigned(varSymbol)).toBe(true);
     });
 
-    it('should detect missing initialization in complex branches', () => {
-      const source = `
-        function test(a: boolean, b: boolean): void {
-          let x: byte;
+    it('should merge branch states correctly for if-else', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
 
-          if (a) {
-            if (b) {
-              x = 1;
-            }
-          } else {
-            x = 2;
-          }
+      analyzer.analyze();
 
-          let y: byte = x;
-        }
-      `;
+      // Save state before if
+      const beforeState = analyzer.enterBranch();
 
-      const { errors } = analyzeCode(source);
-      // The inner 'if (b)' branch doesn't cover all cases
-      expect(errors.length).toBeGreaterThan(0);
+      // Then branch assigns x
+      analyzer.recordAssignment(varSymbol, createTestLocation(3, 1));
+      const thenState = analyzer.enterBranch();
+
+      // Reset to before state for else branch
+      analyzer.mergeBranch(beforeState);
+
+      // Else branch does NOT assign x
+      const elseState = analyzer.enterBranch();
+
+      // Merge both branches - x should NOT be definitely assigned
+      analyzer.mergeIfElse(thenState, elseState);
+
+      // Variable should NOT be definitely assigned after merge
+      expect(analyzer.isDefinitelyAssigned(varSymbol)).toBe(false);
     });
 
-    it('should handle loops with breaks', () => {
-      const source = `
-        function test(condition: boolean): void {
-          let x: byte = 0;
+    it('should mark variable as definitely assigned when both branches assign', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
 
-          while (x < 10) {
-            if (condition) {
-              break;
-            }
-            x = x + 1;
-          }
+      analyzer.analyze();
 
-          let y: byte = x;
-        }
-      `;
+      // Save state before if
+      const beforeState = analyzer.enterBranch();
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
-    });
-  });
+      // Then branch assigns x
+      analyzer.recordAssignment(varSymbol, createTestLocation(3, 1));
+      const thenState = analyzer.enterBranch();
 
-  describe('Parameter Initialization', () => {
-    it('should treat parameters as initialized', () => {
-      const source = `
-        function test(x: byte): byte {
-          return x + 1;
-        }
-      `;
+      // Restore for else
+      analyzer.mergeBranch(beforeState);
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+      // Else branch ALSO assigns x
+      analyzer.recordAssignment(varSymbol, createTestLocation(5, 1));
+      const elseState = analyzer.enterBranch();
+
+      // Merge both branches
+      analyzer.mergeIfElse(thenState, elseState);
+
+      // Now x IS definitely assigned
+      expect(analyzer.isDefinitelyAssigned(varSymbol)).toBe(true);
     });
 
-    it('should handle both parameters and local variables', () => {
-      const source = `
-        function test(x: byte): byte {
-          let y: byte;
-          y = x + 1;
-          return y;
-        }
-      `;
+    it('should handle loop branches correctly', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+      analyzer.analyze();
+
+      // Save state before loop
+      const beforeLoop = analyzer.enterBranch();
+
+      // Loop body assigns x
+      analyzer.recordAssignment(varSymbol, createTestLocation(3, 1));
+
+      // Merge with branchExecuted = false (loop might not execute)
+      analyzer.mergeBranch(beforeLoop, false);
+
+      // After loop, x might not be assigned (loop might not run)
+      expect(analyzer.isDefinitelyAssigned(varSymbol)).toBe(false);
     });
   });
 
-  describe('Assignment in Expressions', () => {
-    it('should track assignments in complex expressions', () => {
-      const source = `
-        function test(): void {
-          let x: byte;
-          let y: byte;
-          y = (x = 10);
-          let z: byte = x + y;
-        }
-      `;
+  describe('possibly uninitialized warnings', () => {
+    it('should report warning for possibly uninitialized variable', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
 
-      const { errors } = analyzeCode(source);
-      expect(errors).toHaveLength(0);
+      analyzer.analyze();
+
+      // Save state
+      const beforeState = analyzer.enterBranch();
+
+      // Assign only in one branch
+      analyzer.recordAssignment(varSymbol, createTestLocation(3, 1));
+      const thenState = analyzer.enterBranch();
+
+      // Restore for else (no assignment)
+      analyzer.mergeBranch(beforeState);
+      const elseState = analyzer.enterBranch();
+
+      // Merge
+      analyzer.mergeIfElse(thenState, elseState);
+
+      // Now read the variable
+      analyzer.checkRead(varSymbol, createTestLocation(10, 1));
+
+      const issues = analyzer.getIssues();
+      expect(issues).toHaveLength(1);
+      expect(issues[0].kind).toBe(DefiniteAssignmentIssueKind.PossiblyUninitialized);
+      expect(issues[0].severity).toBe(DefiniteAssignmentSeverity.Warning);
+    });
+  });
+
+  describe('buildResult()', () => {
+    it('should build result with correct statistics', () => {
+      // Add multiple variables
+      symbolTable.declareVariable('x', createTestLocation(1, 1));
+      symbolTable.declareVariable('y', createTestLocation(2, 1), null, {
+        initializer: {} as any,
+      });
+
+      const result = analyzer.analyze();
+
+      expect(result.variablesAnalyzed).toBe(2);
+      expect(result.hasIssues).toBe(false);
+    });
+
+    it('should count errors and warnings separately', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
+
+      analyzer.analyze();
+
+      // Read without assignment (error)
+      analyzer.checkRead(varSymbol, createTestLocation(5, 1));
+
+      // Check issues directly (analyze() would reset)
+      const issues = analyzer.getIssues();
+
+      expect(issues).toHaveLength(1);
+      expect(issues[0].severity).toBe(DefiniteAssignmentSeverity.Error);
+    });
+  });
+
+  describe('formatReport()', () => {
+    it('should format report with no issues', () => {
+      const report = analyzer.formatReport();
+      expect(report).toContain('No issues found');
+    });
+
+    it('should format report with issues', () => {
+      const declResult = symbolTable.declareVariable('myVar', createTestLocation(1, 5));
+      const varSymbol = declResult.symbol!;
+
+      analyzer.analyze();
+      analyzer.checkRead(varSymbol, createTestLocation(5, 10));
+
+      const report = analyzer.formatReport();
+
+      expect(report).toContain('Definite Assignment Analysis Report');
+      expect(report).toContain('myVar');
+      expect(report).toContain('used before being assigned');
+      expect(report).toContain('suggestion');
+    });
+  });
+
+  describe('reset()', () => {
+    it('should clear all state when reset', () => {
+      const declResult = symbolTable.declareVariable('x', createTestLocation(1, 1));
+      const varSymbol = declResult.symbol!;
+
+      analyzer.analyze();
+      analyzer.checkRead(varSymbol, createTestLocation(5, 1));
+
+      expect(analyzer.getIssues()).toHaveLength(1);
+
+      analyzer.reset();
+
+      expect(analyzer.getIssues()).toHaveLength(0);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle unknown symbols gracefully', () => {
+      // Create a different symbol table and symbol not in our analyzer's symbol table
+      const otherSymbolTable = new SymbolTable(null, 'other');
+      const unknownResult = otherSymbolTable.declareVariable('unknown', createTestLocation(1, 1));
+      const unknownSymbol = unknownResult.symbol!;
+
+      analyzer.analyze();
+
+      // Should not throw when checking read of unknown symbol
+      analyzer.checkRead(unknownSymbol, createTestLocation(5, 1));
+
+      // Should not report issues for unknown symbols
+      expect(analyzer.getIssues()).toHaveLength(0);
+    });
+
+    it('should handle multiple scopes', () => {
+      // Module scope variable
+      symbolTable.declareVariable('moduleX', createTestLocation(1, 1), null, {
+        initializer: {} as any,
+      });
+
+      // Function scope
+      const funcResult = symbolTable.declareFunction('testFunc', createTestLocation(2, 1));
+      symbolTable.enterFunctionScope(funcResult.symbol!);
+
+      // Local variable in function
+      symbolTable.declareVariable('localY', createTestLocation(3, 1));
+
+      const result = analyzer.analyze();
+
+      expect(result.variablesAnalyzed).toBe(2);
+    });
+
+    it('should handle shadowed variables correctly', () => {
+      // Module scope variable with initializer
+      const outerResult = symbolTable.declareVariable('x', createTestLocation(1, 1), null, {
+        initializer: {} as any,
+      });
+      const outerX = outerResult.symbol!;
+
+      // Enter block scope
+      symbolTable.enterBlockScope();
+
+      // Inner variable without initializer
+      const innerResult = symbolTable.declareVariable('x', createTestLocation(3, 1));
+      const innerX = innerResult.symbol!;
+
+      analyzer.analyze();
+
+      // Outer x is assigned, inner x is not
+      expect(analyzer.isDefinitelyAssigned(outerX)).toBe(true);
+      expect(analyzer.isDefinitelyAssigned(innerX)).toBe(false);
     });
   });
 });

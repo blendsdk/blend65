@@ -1,0 +1,590 @@
+// ============================================================================
+// Print Library for Blend65
+// ============================================================================
+// Provides text output functions for the Commodore 64 screen.
+// Tracks cursor position and provides various print functions for
+// different data types.
+//
+// Module: Blend.Print
+// Version: 1.0.0
+// Target: Commodore 64
+// ============================================================================
+
+module Blend.Print;
+
+// ============================================================================
+// Screen Memory Mapping
+// ============================================================================
+
+// C64 default screen memory ($0400-$07E7 = 1000 bytes for 40x25 characters)
+@map screenRAM from $0400 to $07E7: byte;
+
+// C64 color RAM ($D800-$DBE7 = 1000 bytes)
+@map colorRAM from $D800 to $DBE7: byte;
+
+// Default text color (light blue)
+const DEFAULT_COLOR: byte = 14;
+
+// Screen dimensions
+const SCREEN_WIDTH: byte = 40;
+const SCREEN_HEIGHT: byte = 25;
+
+// PETSCII space character
+const CHAR_SPACE: byte = 32;
+
+// ============================================================================
+// Cursor State (Zero-Page for Speed)
+// ============================================================================
+
+// Current cursor position
+@zp let cursorX: byte = 0;
+@zp let cursorY: byte = 0;
+
+// Current text color
+@zp let textColor: byte = DEFAULT_COLOR;
+
+// ============================================================================
+// Helper: Calculate Screen Address
+// ============================================================================
+
+/**
+ * Calculate the screen memory address for the current cursor position.
+ * Formula: $0400 + (cursorY * 40) + cursorX
+ *
+ * @returns Screen memory address for current cursor position
+ */
+function getScreenAddr(): word {
+  let offset: word = cursorY * SCREEN_WIDTH + cursorX;
+  return $0400 + offset;
+}
+
+/**
+ * Calculate the color RAM address for the current cursor position.
+ * Formula: $D800 + (cursorY * 40) + cursorX
+ *
+ * @returns Color RAM address for current cursor position
+ */
+function getColorAddr(): word {
+  let offset: word = cursorY * SCREEN_WIDTH + cursorX;
+  return $D800 + offset;
+}
+
+// ============================================================================
+// Cursor Control Functions
+// ============================================================================
+
+/**
+ * Set the cursor position on screen.
+ *
+ * @param x - Column (0-39)
+ * @param y - Row (0-24)
+ *
+ * @example
+ * setCursor(0, 0);   // Top-left corner
+ * setCursor(20, 12); // Center of screen
+ */
+export function setCursor(x: byte, y: byte): void {
+  // Clamp to valid screen coordinates
+  if (x >= SCREEN_WIDTH) {
+    x = SCREEN_WIDTH - 1;
+  }
+  if (y >= SCREEN_HEIGHT) {
+    y = SCREEN_HEIGHT - 1;
+  }
+
+  cursorX = x;
+  cursorY = y;
+}
+
+/**
+ * Get the current cursor X position.
+ *
+ * @returns Current column (0-39)
+ */
+export function getCursorX(): byte {
+  return cursorX;
+}
+
+/**
+ * Get the current cursor Y position.
+ *
+ * @returns Current row (0-24)
+ */
+export function getCursorY(): byte {
+  return cursorY;
+}
+
+/**
+ * Move cursor to the beginning of the next line.
+ * If at the bottom of the screen, wraps to top.
+ *
+ * @example
+ * printString("Hello");
+ * newLine();
+ * printString("World");
+ */
+export function newLine(): void {
+  cursorX = 0;
+  cursorY += 1;
+
+  // Wrap to top if at bottom
+  if (cursorY >= SCREEN_HEIGHT) {
+    cursorY = 0;
+  }
+}
+
+/**
+ * Move cursor to the home position (top-left corner).
+ */
+export function homeCursor(): void {
+  cursorX = 0;
+  cursorY = 0;
+}
+
+// ============================================================================
+// Color Control
+// ============================================================================
+
+/**
+ * Set the text color for subsequent print operations.
+ *
+ * C64 Color Codes:
+ *  0 = Black      8 = Orange
+ *  1 = White      9 = Brown
+ *  2 = Red       10 = Light Red
+ *  3 = Cyan      11 = Dark Grey
+ *  4 = Purple    12 = Grey
+ *  5 = Green     13 = Light Green
+ *  6 = Blue      14 = Light Blue
+ *  7 = Yellow    15 = Light Grey
+ *
+ * @param color - Color code (0-15)
+ */
+export function setTextColor(color: byte): void {
+  textColor = color & $0F;  // Mask to valid color range
+}
+
+// ============================================================================
+// Screen Control
+// ============================================================================
+
+/**
+ * Clear the entire screen and reset cursor to home position.
+ * Fills screen with spaces and sets all colors to current text color.
+ *
+ * @example
+ * clearScreen();
+ * printString("Fresh start!");
+ */
+export function clearScreen(): void {
+  // Fill screen with spaces
+  for (i = 0 to 999) {
+    screenRAM[i] = CHAR_SPACE;
+    colorRAM[i] = textColor;
+  }
+
+  // Reset cursor to home
+  cursorX = 0;
+  cursorY = 0;
+}
+
+/**
+ * Clear the current line and move cursor to beginning of line.
+ */
+export function clearLine(): void {
+  let startOffset: word = cursorY * SCREEN_WIDTH;
+
+  for (i = 0 to SCREEN_WIDTH - 1) {
+    screenRAM[startOffset + i] = CHAR_SPACE;
+    colorRAM[startOffset + i] = textColor;
+  }
+
+  cursorX = 0;
+}
+
+// ============================================================================
+// Character Output
+// ============================================================================
+
+/**
+ * Print a single character at the current cursor position.
+ * Advances cursor by one position. Wraps to next line if at edge.
+ *
+ * Note: Uses PETSCII character codes (not ASCII).
+ *
+ * @param ch - PETSCII character code to print
+ *
+ * @example
+ * printChar(65);  // Print 'A'
+ * printChar(32);  // Print space
+ */
+export function printChar(ch: byte): void {
+  let screenAddr: word = getScreenAddr();
+  let colorAddr: word = getColorAddr();
+
+  // Write character and color
+  poke(screenAddr, ch);
+  poke(colorAddr, textColor);
+
+  // Advance cursor
+  cursorX += 1;
+
+  // Wrap to next line if needed
+  if (cursorX >= SCREEN_WIDTH) {
+    newLine();
+  }
+}
+
+/**
+ * Print a space character.
+ */
+export function printSpace(): void {
+  printChar(CHAR_SPACE);
+}
+
+// ============================================================================
+// Number Output - Byte (0-255)
+// ============================================================================
+
+/**
+ * Print a byte value as a decimal number (0-255).
+ * Does not print leading zeros.
+ *
+ * @param value - Byte value to print (0-255)
+ *
+ * @example
+ * printByte(42);   // Prints "42"
+ * printByte(255);  // Prints "255"
+ * printByte(0);    // Prints "0"
+ */
+export function printByte(value: byte): void {
+  let hundreds: byte = 0;
+  let tens: byte = 0;
+  let ones: byte = 0;
+  let temp: byte = value;
+  let started: boolean = false;
+
+  // Extract hundreds digit
+  while (temp >= 100) {
+    hundreds += 1;
+    temp -= 100;
+  }
+
+  // Extract tens digit
+  while (temp >= 10) {
+    tens += 1;
+    temp -= 10;
+  }
+
+  // Remaining is ones digit
+  ones = lo(temp);
+
+  // Print hundreds (if non-zero)
+  if (hundreds > 0) {
+    printChar(48 + hundreds);  // 48 = PETSCII '0'
+    started = true;
+  }
+
+  // Print tens (if started or non-zero)
+  if (started || tens > 0) {
+    printChar(48 + tens);
+  }
+
+  // Always print ones (handles zero case)
+  printChar(48 + ones);
+}
+
+/**
+ * Print a byte value as a 3-digit decimal with leading zeros.
+ *
+ * @param value - Byte value to print (0-255)
+ *
+ * @example
+ * printByte3(42);  // Prints "042"
+ * printByte3(7);   // Prints "007"
+ */
+export function printByte3(value: byte): void {
+  let hundreds: byte = 0;
+  let tens: byte = 0;
+  let ones: byte = 0;
+  let temp: byte = value;
+
+  // Extract hundreds digit
+  while (temp >= 100) {
+    hundreds += 1;
+    temp -= 100;
+  }
+
+  // Extract tens digit
+  while (temp >= 10) {
+    tens += 1;
+    temp -= 10;
+  }
+
+  // Remaining is ones digit
+  ones = temp;
+
+  // Print all three digits
+  printChar(48 + hundreds);
+  printChar(48 + tens);
+  printChar(48 + ones);
+}
+
+// ============================================================================
+// Number Output - Word (0-65535)
+// ============================================================================
+
+/**
+ * Print a word value as a decimal number (0-65535).
+ * Does not print leading zeros.
+ *
+ * @param value - Word value to print (0-65535)
+ *
+ * @example
+ * printWord(12345);  // Prints "12345"
+ * printWord(65535);  // Prints "65535"
+ * printWord(0);      // Prints "0"
+ */
+export function printWord(value: word): void {
+  let tenThousands: byte = 0;
+  let thousands: byte = 0;
+  let hundreds: byte = 0;
+  let tens: byte = 0;
+  let ones: byte = 0;
+  let temp: word = value;
+  let started: boolean = false;
+
+  // Extract ten-thousands digit
+  while (temp >= 10000) {
+    tenThousands += 1;
+    temp -= 10000;
+  }
+
+  // Extract thousands digit
+  while (temp >= 1000) {
+    thousands += 1;
+    temp -= 1000;
+  }
+
+  // Extract hundreds digit
+  while (temp >= 100) {
+    hundreds += 1;
+    temp -= 100;
+  }
+
+  // Extract tens digit
+  while (temp >= 10) {
+    tens += 1;
+    temp -= 10;
+  }
+
+  // Remaining is ones digit
+  ones = temp;
+
+  // Print ten-thousands (if non-zero)
+  if (tenThousands > 0) {
+    printChar(48 + tenThousands);
+    started = true;
+  }
+
+  // Print thousands
+  if (started || thousands > 0) {
+    printChar(48 + thousands);
+    started = true;
+  }
+
+  // Print hundreds
+  if (started || hundreds > 0) {
+    printChar(48 + hundreds);
+    started = true;
+  }
+
+  // Print tens
+  if (started || tens > 0) {
+    printChar(48 + tens);
+  }
+
+  // Always print ones (handles zero case)
+  printChar(48 + ones);
+}
+
+/**
+ * Print a word value as a 5-digit decimal with leading zeros.
+ *
+ * @param value - Word value to print (0-65535)
+ *
+ * @example
+ * printWord5(42);     // Prints "00042"
+ * printWord5(12345);  // Prints "12345"
+ */
+export function printWord5(value: word): void {
+  let tenThousands: byte = 0;
+  let thousands: byte = 0;
+  let hundreds: byte = 0;
+  let tens: byte = 0;
+  let ones: byte = 0;
+  let temp: word = value;
+
+  // Extract all digits
+  while (temp >= 10000) {
+    tenThousands += 1;
+    temp -= 10000;
+  }
+
+  while (temp >= 1000) {
+    thousands += 1;
+    temp -= 1000;
+  }
+
+  while (temp >= 100) {
+    hundreds += 1;
+    temp -= 100;
+  }
+
+  while (temp >= 10) {
+    tens += 1;
+    temp -= 10;
+  }
+
+  ones = temp;
+
+  // Print all five digits
+  printChar(48 + tenThousands);
+  printChar(48 + thousands);
+  printChar(48 + hundreds);
+  printChar(48 + tens);
+  printChar(48 + ones);
+}
+
+// ============================================================================
+// Hexadecimal Output
+// ============================================================================
+
+// Hex digit lookup (PETSCII)
+@data const hexDigits: byte[] = [
+  48, 49, 50, 51, 52, 53, 54, 55,  // 0-7
+  56, 57, 65, 66, 67, 68, 69, 70   // 8-9, A-F
+];
+
+/**
+ * Print a single hex digit (0-15).
+ *
+ * @param digit - Value 0-15
+ */
+function printHexDigit(digit: byte): void {
+  printChar(hexDigits[digit & $0F]);
+}
+
+/**
+ * Print a byte value as 2-digit hexadecimal with '$' prefix.
+ *
+ * @param value - Byte value to print
+ *
+ * @example
+ * printHexByte(255);  // Prints "$FF"
+ * printHexByte(16);   // Prints "$10"
+ */
+export function printHexByte(value: byte): void {
+  printChar(36);  // '$' character
+  printHexDigit(value >> 4);   // High nibble
+  printHexDigit(value & $0F);  // Low nibble
+}
+
+/**
+ * Print a word value as 4-digit hexadecimal with '$' prefix.
+ *
+ * @param value - Word value to print
+ *
+ * @example
+ * printHexWord(65535);  // Prints "$FFFF"
+ * printHexWord(4096);   // Prints "$1000"
+ */
+export function printHexWord(value: word): void {
+  let highByte: byte = hi(value);
+  let lowByte: byte = lo(value);
+
+  printChar(36);  // '$' character
+  printHexDigit(highByte >> 4);
+  printHexDigit(highByte & $0F);
+  printHexDigit(lowByte >> 4);
+  printHexDigit(lowByte & $0F);
+}
+
+// ============================================================================
+// Convenience Functions (Workarounds for lack of overloading)
+// ============================================================================
+
+/**
+ * Print a byte value followed by a newline.
+ * This is a workaround for printLn(value) pattern.
+ *
+ * @param value - Byte value to print
+ */
+export function printByteLn(value: byte): void {
+  printByte(value);
+  newLine();
+}
+
+/**
+ * Print a word value followed by a newline.
+ *
+ * @param value - Word value to print
+ */
+export function printWordLn(value: word): void {
+  printWord(value);
+  newLine();
+}
+
+/**
+ * Print a hex byte followed by a newline.
+ *
+ * @param value - Byte value to print
+ */
+export function printHexByteLn(value: byte): void {
+  printHexByte(value);
+  newLine();
+}
+
+/**
+ * Print a hex word followed by a newline.
+ *
+ * @param value - Word value to print
+ */
+export function printHexWordLn(value: word): void {
+  printHexWord(value);
+  newLine();
+}
+
+// ============================================================================
+// Implementation Notes
+// ============================================================================
+//
+// Character Set:
+// --------------
+// The C64 uses PETSCII (not ASCII). Key differences:
+// - Uppercase letters: 65-90 (same as ASCII)
+// - Lowercase letters: 97-122 (same as ASCII)
+// - Numbers: 48-57 (same as ASCII)
+// - Space: 32 (same as ASCII)
+// - Graphics characters: Various codes
+//
+// Screen Memory Layout:
+// ---------------------
+// - Screen RAM: $0400-$07E7 (1000 bytes)
+// - Color RAM: $D800-$DBE7 (1000 bytes)
+// - 40 columns x 25 rows = 1000 characters
+// - Each character = 1 byte (screen) + 1 nibble (color)
+//
+// Performance Notes:
+// ------------------
+// - cursorX/cursorY in zero-page for fast access
+// - Division avoided in favor of subtraction loops
+// - Direct poke() used for screen writes
+//
+// Limitations:
+// ------------
+// - No string printing (Blend65 string support TBD)
+// - No scrolling (screen wraps instead)
+// - Fixed screen location ($0400)
+//
+// ============================================================================

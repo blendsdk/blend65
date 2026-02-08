@@ -1,5 +1,5 @@
 /**
- * Base Parser Class for Blend65 Compiler
+ * Base Parser Class for Blend65 Compiler v2
  *
  * Provides fundamental parsing infrastructure:
  * - Token stream management (current, peek, advance)
@@ -8,6 +8,8 @@
  * - Helper methods for common parsing patterns
  *
  * This is the foundation that all parser layers build upon.
+ *
+ * NOTE: v2 removes @map token handling since @map is not supported.
  */
 
 import { Diagnostic, DiagnosticCode, DiagnosticCollector, SourceLocation } from '../ast/index.js';
@@ -67,7 +69,7 @@ export abstract class BaseParser {
   protected isModuleScope: boolean = true;
 
   /**
-   * Centralized scope manager for function and loop tracking (Task 2.2)
+   * Centralized scope manager for function and loop tracking
    *
    * Manages all scope-related operations:
    * - Function scope lifecycle (enter/exit with parameters)
@@ -89,7 +91,7 @@ export abstract class BaseParser {
     this.tokens = tokens;
     this.config = createParserConfig(config);
 
-    // Initialize ScopeManager with error reporter callback (Task 2.2)
+    // Initialize ScopeManager with error reporter callback
     this.scopeManager = new ScopeManager((code, message, location) => {
       this.reportError(code, message, location);
     });
@@ -350,15 +352,12 @@ export abstract class BaseParser {
    * 1. Skip tokens until we find a "synchronization point"
    * 2. Resume parsing from a safe state
    *
-   * Synchronization points for Blend65:
+   * Synchronization points for Blend65 v2:
    * - SEMICOLON (statement separator)
    * - Statement/declaration keywords (function, let, if, while, etc.)
    * - EOF
    *
-   * Why synchronization?
-   * After an error, the parser is in an unknown state.
-   * We skip forward to a known-good place to continue.
-   * This allows reporting multiple errors instead of just the first.
+   * NOTE: v2 does not include @map in synchronization points.
    */
   protected synchronize(): void {
     this.advance(); // Skip the problematic token
@@ -423,6 +422,8 @@ export abstract class BaseParser {
    * Enforces ordering rule: only declarations at module level
    * No executable statements allowed (function calls, assignments, etc.)
    *
+   * NOTE: v2 does not include @map tokens in valid module tokens.
+   *
    * @param token - Token to validate
    */
   protected validateModuleScopeItem(token: Token): void {
@@ -431,6 +432,7 @@ export abstract class BaseParser {
     }
 
     // At module scope - only declarations allowed
+    // NOTE: v2 removes MAP, ZP, RAM, DATA from this list
     const validModuleTokens = [
       TokenType.MODULE,
       TokenType.IMPORT,
@@ -441,10 +443,6 @@ export abstract class BaseParser {
       TokenType.CONST,
       TokenType.TYPE,
       TokenType.ENUM,
-      TokenType.ZP, // Storage classes
-      TokenType.RAM,
-      TokenType.DATA,
-      TokenType.MAP, // @map declarations
       TokenType.EOF,
       TokenType.NEWLINE,
       TokenType.LINE_COMMENT,
@@ -649,20 +647,6 @@ export abstract class BaseParser {
   }
 
   /**
-   * Checks if current token is a storage class
-   *
-   * Storage classes: @zp, @ram, @data, @map
-   *
-   * Note: This only checks for explicit storage class tokens.
-   * Use parseStorageClass() to get the effective storage class (including default).
-   *
-   * @returns True if current token is an explicit storage class token
-   */
-  protected isStorageClass(): boolean {
-    return this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA, TokenType.MAP);
-  }
-
-  /**
    * Checks if current token is an export modifier (optimized)
    *
    * Uses fast path for single token check.
@@ -680,32 +664,6 @@ export abstract class BaseParser {
    */
   protected isLetOrConst(): boolean {
     return this.check(TokenType.LET, TokenType.CONST);
-  }
-
-  /**
-   * Parses an optional storage class
-   *
-   * Consumes storage class token if present (@zp, @ram, @data).
-   * When no storage class is specified, defaults to @ram.
-   *
-   * @returns Storage class token type (always returns a value; defaults to TokenType.RAM)
-   *
-   * @example
-   * ```typescript
-   * // Explicit storage class
-   * // @zp let x: byte;     // Returns TokenType.ZP
-   * // @ram let y: byte;    // Returns TokenType.RAM
-   * // @data const z: byte; // Returns TokenType.DATA
-   *
-   * // No storage class specified
-   * // let w: byte;         // Returns TokenType.RAM (default)
-   * ```
-   */
-  protected parseStorageClass(): TokenType | null {
-    if (this.match(TokenType.ZP)) return TokenType.ZP;
-    if (this.match(TokenType.RAM)) return TokenType.RAM;
-    if (this.match(TokenType.DATA)) return TokenType.DATA;
-    return TokenType.RAM; // Default storage class
   }
 
   /**

@@ -1,5 +1,5 @@
 /**
- * Control Flow Statement Tests
+ * Control Flow Statement Tests (v2)
  *
  * Comprehensive tests for all control flow statement parsing including:
  * - If statements (simple, if-else, nested)
@@ -9,6 +9,8 @@
  * - Return, break, continue statements
  * - Deep nesting scenarios
  * - Error recovery and edge cases
+ *
+ * NOTE: v2 compiler - no @map support, uses peek/poke intrinsics instead
  */
 
 import { describe, it, expect } from 'vitest';
@@ -36,35 +38,58 @@ class TestControlFlowParser extends StatementParser {
     this.isModuleScope = false;
   }
 
-  // Expose protected methods for testing
+  /**
+   * Expose parseIfStatement for testing
+   */
   public testParseIfStatement() {
     return this.parseIfStatement();
   }
 
+  /**
+   * Expose parseWhileStatement for testing
+   */
   public testParseWhileStatement() {
     return this.parseWhileStatement();
   }
 
+  /**
+   * Expose parseForStatement for testing
+   */
   public testParseForStatement() {
     return this.parseForStatement();
   }
 
+  /**
+   * Expose parseSwitchStatement for testing
+   */
   public testParseSwitchStatement() {
     return this.parseSwitchStatement();
   }
 
+  /**
+   * Expose parseReturnStatement for testing
+   */
   public testParseReturnStatement() {
     return this.parseReturnStatement();
   }
 
+  /**
+   * Expose parseBreakStatement for testing
+   */
   public testParseBreakStatement() {
     return this.parseBreakStatement();
   }
 
+  /**
+   * Expose parseContinueStatement for testing
+   */
   public testParseContinueStatement() {
     return this.parseContinueStatement();
   }
 
+  /**
+   * Expose parseStatement for testing
+   */
   public testParseStatement() {
     return this.parseStatement();
   }
@@ -72,6 +97,10 @@ class TestControlFlowParser extends StatementParser {
 
 /**
  * Helper to parse control flow statements in isolation
+ *
+ * @param source - Source code to parse
+ * @param method - Method name to call on the parser
+ * @returns Object with parsed statement, diagnostics, and error status
  */
 function parseControlFlow(source: string, method: keyof TestControlFlowParser) {
   const lexer = new Lexer(source);

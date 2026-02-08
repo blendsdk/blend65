@@ -8,7 +8,7 @@
  */
 
 import chalk from 'chalk';
-import type { Diagnostic } from '@blend65/compiler/dist/ast/diagnostics.js';
+import type { Diagnostic } from '@blend65/compiler';
 import { SourceRegistry } from '@blend65/compiler';
 
 /**

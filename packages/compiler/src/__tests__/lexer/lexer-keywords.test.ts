@@ -4,7 +4,8 @@ import { TokenType } from '../../lexer/types.js';
 
 /**
  * Lexer keyword recognition tests - C-style syntax (curly braces)
- * Split from original lexer.test.ts for better maintainability
+ *
+ * v2: No changes needed - these tests don't involve @map.
  */
 describe('Blend65Lexer - Keywords', () => {
   describe('Module System Keywords', () => {

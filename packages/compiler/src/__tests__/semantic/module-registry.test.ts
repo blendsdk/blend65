@@ -1,23 +1,43 @@
 /**
- * Module Registry Tests
+ * Module Registry Tests for Blend65 Compiler v2
  *
- * Tests for Phase 6.1.2 - Module registry with duplicate detection
+ * Tests the ModuleRegistry class which tracks all modules
+ * in a multi-module compilation.
+ *
+ * Test categories:
+ * - Creation and basic operations
+ * - Module registration
+ * - Module retrieval
+ * - Module existence checking
+ * - Module removal
+ * - Iteration and collection operations
+ * - Edge cases
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ModuleRegistry } from '../../semantic/module-registry.js';
-import { Parser } from '../../parser/parser.js';
-import { Lexer } from '../../lexer/lexer.js';
-import type { Program } from '../../ast/nodes.js';
+import { ModuleRegistry, RegisteredModule } from '../../semantic/module-registry.js';
+import { Program, ModuleDecl, SourceLocation } from '../../ast/index.js';
 
 /**
- * Helper: Parse a module from source code
+ * Creates a test source location
  */
-function parseModule(source: string): Program {
-  const lexer = new Lexer(source);
-  const tokens = lexer.tokenize();
-  const parser = new Parser(tokens);
-  return parser.parse();
+function createLocation(line: number = 1, col: number = 1): SourceLocation {
+  return {
+    start: { line, column: col, offset: 0 },
+    end: { line, column: col + 10, offset: 10 },
+  };
+}
+
+/**
+ * Creates a mock Program AST for testing
+ *
+ * @param moduleName - The module name (e.g., "Game.Main")
+ * @returns A Program with the given module name
+ */
+function createMockProgram(moduleName: string): Program {
+  const namePath = moduleName.split('.');
+  const moduleDecl = new ModuleDecl(namePath, createLocation(), false);
+  return new Program(moduleDecl, [], createLocation());
 }
 
 describe('ModuleRegistry', () => {
@@ -27,325 +47,381 @@ describe('ModuleRegistry', () => {
     registry = new ModuleRegistry();
   });
 
-  describe('Basic Registration', () => {
+  // ============================================
+  // CREATION AND BASIC OPERATIONS
+  // ============================================
+
+  describe('creation', () => {
+    it('should create an empty registry', () => {
+      expect(registry.isEmpty()).toBe(true);
+      expect(registry.getModuleCount()).toBe(0);
+    });
+
+    it('should have no modules initially', () => {
+      expect(registry.getAllModuleNames()).toEqual([]);
+      expect(registry.getAllModules()).toEqual([]);
+    });
+  });
+
+  // ============================================
+  // MODULE REGISTRATION
+  // ============================================
+
+  describe('register', () => {
     it('should register a single module', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
+      const program = createMockProgram('Game.Main');
+      registry.register('Game.Main', program);
 
-      registry.register('Main', program);
-
-      expect(registry.hasModule('Main')).toBe(true);
+      expect(registry.hasModule('Game.Main')).toBe(true);
       expect(registry.getModuleCount()).toBe(1);
     });
 
     it('should register multiple modules', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
-      const sprites = parseModule('module c64.sprites\nexport function init(): void { }');
+      const main = createMockProgram('Game.Main');
+      const sprites = createMockProgram('Game.Sprites');
+      const math = createMockProgram('Lib.Math');
 
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
-      registry.register('c64.sprites', sprites);
+      registry.register('Game.Main', main);
+      registry.register('Game.Sprites', sprites);
+      registry.register('Lib.Math', math);
 
       expect(registry.getModuleCount()).toBe(3);
-      expect(registry.hasModule('Main')).toBe(true);
-      expect(registry.hasModule('c64.graphics')).toBe(true);
-      expect(registry.hasModule('c64.sprites')).toBe(true);
+      expect(registry.hasModule('Game.Main')).toBe(true);
+      expect(registry.hasModule('Game.Sprites')).toBe(true);
+      expect(registry.hasModule('Lib.Math')).toBe(true);
     });
 
-    it('should register module with file path', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
+    it('should overwrite existing module when registered again', () => {
+      const program1 = createMockProgram('Game.Main');
+      const program2 = createMockProgram('Game.Main');
 
-      registry.register('Main', program, 'src/main.b65');
+      registry.register('Game.Main', program1);
+      const first = registry.getProgram('Game.Main');
 
-      const info = registry.getModuleInfo('Main');
-      expect(info?.filePath).toBe('src/main.b65');
+      registry.register('Game.Main', program2);
+      const second = registry.getProgram('Game.Main');
+
+      expect(registry.getModuleCount()).toBe(1);
+      expect(first).toBe(program1);
+      expect(second).toBe(program2);
     });
 
-    it('should register module without file path', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
+    it('should set registeredAt timestamp', () => {
+      const before = new Date();
+      const program = createMockProgram('Test');
+      registry.register('Test', program);
+      const after = new Date();
 
-      registry.register('Main', program);
-
-      const info = registry.getModuleInfo('Main');
-      expect(info?.filePath).toBeUndefined();
-    });
-  });
-
-  describe('Duplicate Detection', () => {
-    it('should detect duplicate module names', () => {
-      const program1 = parseModule('module Main\nexport function main(): void { }');
-      const program2 = parseModule('module Main\nlet x: byte = 0;');
-
-      registry.register('Main', program1, 'src/main.b65');
-
-      expect(() => {
-        registry.register('Main', program2, 'src/main2.b65');
-      }).toThrow(/Duplicate module 'Main'/);
+      const module = registry.getModule('Test');
+      expect(module).toBeDefined();
+      expect(module!.registeredAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
+      expect(module!.registeredAt.getTime()).toBeLessThanOrEqual(after.getTime());
     });
 
-    it('should report file paths in duplicate error', () => {
-      const program1 = parseModule('module Main\nexport function main(): void { }');
-      const program2 = parseModule('module Main\nlet x: byte = 0;');
+    it('should store the correct module name', () => {
+      const program = createMockProgram('Deep.Nested.Module.Name');
+      registry.register('Deep.Nested.Module.Name', program);
 
-      registry.register('Main', program1, 'src/main.b65');
-
-      expect(() => {
-        registry.register('Main', program2, 'src/other.b65');
-      }).toThrow(/already registered at 'src\/main.b65'/);
-      expect(() => {
-        registry.register('Main', program2, 'src/other.b65');
-      }).toThrow(/attempted to register again from 'src\/other.b65'/);
-    });
-
-    it('should handle duplicate without file paths', () => {
-      const program1 = parseModule('module Main\nexport function main(): void { }');
-      const program2 = parseModule('module Main\nlet x: byte = 0;');
-
-      registry.register('Main', program1);
-
-      expect(() => {
-        registry.register('Main', program2);
-      }).toThrow(/Duplicate module 'Main'/);
-      expect(() => {
-        registry.register('Main', program2);
-      }).toThrow(/\(unknown\)/);
+      const module = registry.getModule('Deep.Nested.Module.Name');
+      expect(module?.name).toBe('Deep.Nested.Module.Name');
     });
   });
 
-  describe('Module Lookup', () => {
-    it('should lookup existing module', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
-      registry.register('Main', program);
+  // ============================================
+  // MODULE RETRIEVAL
+  // ============================================
 
-      const retrieved = registry.getModule('Main');
-
-      expect(retrieved).toBe(program);
-    });
-
+  describe('getModule', () => {
     it('should return undefined for non-existent module', () => {
-      const retrieved = registry.getModule('NonExistent');
-
-      expect(retrieved).toBeUndefined();
+      expect(registry.getModule('NonExistent')).toBeUndefined();
     });
 
-    it('should check if module exists', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
-      registry.register('Main', program);
+    it('should return RegisteredModule with all fields', () => {
+      const program = createMockProgram('Game.Main');
+      registry.register('Game.Main', program);
 
-      expect(registry.hasModule('Main')).toBe(true);
+      const module = registry.getModule('Game.Main');
+      expect(module).toBeDefined();
+      expect(module!.name).toBe('Game.Main');
+      expect(module!.program).toBe(program);
+      expect(module!.registeredAt).toBeInstanceOf(Date);
+    });
+
+    it('should return the same module on multiple calls', () => {
+      const program = createMockProgram('Game.Main');
+      registry.register('Game.Main', program);
+
+      const module1 = registry.getModule('Game.Main');
+      const module2 = registry.getModule('Game.Main');
+
+      expect(module1).toBe(module2);
+    });
+  });
+
+  describe('getProgram', () => {
+    it('should return undefined for non-existent module', () => {
+      expect(registry.getProgram('NonExistent')).toBeUndefined();
+    });
+
+    it('should return the Program AST directly', () => {
+      const program = createMockProgram('Game.Main');
+      registry.register('Game.Main', program);
+
+      expect(registry.getProgram('Game.Main')).toBe(program);
+    });
+
+    it('should return undefined after module is unregistered', () => {
+      const program = createMockProgram('Game.Main');
+      registry.register('Game.Main', program);
+
+      expect(registry.getProgram('Game.Main')).toBe(program);
+
+      registry.unregister('Game.Main');
+
+      expect(registry.getProgram('Game.Main')).toBeUndefined();
+    });
+  });
+
+  // ============================================
+  // MODULE EXISTENCE CHECKING
+  // ============================================
+
+  describe('hasModule', () => {
+    it('should return false for non-existent module', () => {
       expect(registry.hasModule('NonExistent')).toBe(false);
     });
 
+    it('should return true for registered module', () => {
+      registry.register('Game.Main', createMockProgram('Game.Main'));
+      expect(registry.hasModule('Game.Main')).toBe(true);
+    });
+
+    it('should return false after module is unregistered', () => {
+      registry.register('Game.Main', createMockProgram('Game.Main'));
+      expect(registry.hasModule('Game.Main')).toBe(true);
+
+      registry.unregister('Game.Main');
+      expect(registry.hasModule('Game.Main')).toBe(false);
+    });
+
     it('should be case-sensitive', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
-      registry.register('Main', program);
+      registry.register('Game.Main', createMockProgram('Game.Main'));
 
-      expect(registry.hasModule('Main')).toBe(true);
-      expect(registry.hasModule('main')).toBe(false);
-      expect(registry.hasModule('MAIN')).toBe(false);
+      expect(registry.hasModule('Game.Main')).toBe(true);
+      expect(registry.hasModule('game.main')).toBe(false);
+      expect(registry.hasModule('GAME.MAIN')).toBe(false);
     });
   });
 
-  describe('Module Information', () => {
-    it('should retrieve module info', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
-      registry.register('Main', program, 'src/main.b65');
+  // ============================================
+  // MODULE REMOVAL
+  // ============================================
 
-      const info = registry.getModuleInfo('Main');
-
-      expect(info?.name).toBe('Main');
-      expect(info?.program).toBe(program);
-      expect(info?.filePath).toBe('src/main.b65');
-      expect(info?.dependencies).toEqual([]);
+  describe('unregister', () => {
+    it('should return false for non-existent module', () => {
+      expect(registry.unregister('NonExistent')).toBe(false);
     });
 
-    it('should return undefined for non-existent module info', () => {
-      const info = registry.getModuleInfo('NonExistent');
+    it('should return true and remove existing module', () => {
+      registry.register('Game.Main', createMockProgram('Game.Main'));
 
-      expect(info).toBeUndefined();
+      expect(registry.unregister('Game.Main')).toBe(true);
+      expect(registry.hasModule('Game.Main')).toBe(false);
+      expect(registry.getModuleCount()).toBe(0);
     });
 
-    it('should return defensive copy of module info', () => {
-      const program = parseModule('module Main\nexport function main(): void { }');
-      registry.register('Main', program);
+    it('should only remove the specified module', () => {
+      registry.register('Game.Main', createMockProgram('Game.Main'));
+      registry.register('Game.Sprites', createMockProgram('Game.Sprites'));
 
-      const info1 = registry.getModuleInfo('Main');
-      const info2 = registry.getModuleInfo('Main');
+      registry.unregister('Game.Main');
 
-      expect(info1).not.toBe(info2); // Different objects
-      expect(info1).toEqual(info2); // Same content
+      expect(registry.hasModule('Game.Main')).toBe(false);
+      expect(registry.hasModule('Game.Sprites')).toBe(true);
+      expect(registry.getModuleCount()).toBe(1);
     });
   });
 
-  describe('Bulk Operations', () => {
-    it('should get all module names', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
-      const sprites = parseModule('module c64.sprites\nexport function init(): void { }');
+  describe('clear', () => {
+    it('should remove all modules', () => {
+      registry.register('A', createMockProgram('A'));
+      registry.register('B', createMockProgram('B'));
+      registry.register('C', createMockProgram('C'));
 
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
-      registry.register('c64.sprites', sprites);
+      expect(registry.getModuleCount()).toBe(3);
+
+      registry.clear();
+
+      expect(registry.isEmpty()).toBe(true);
+      expect(registry.getModuleCount()).toBe(0);
+    });
+
+    it('should work on empty registry', () => {
+      registry.clear();
+      expect(registry.isEmpty()).toBe(true);
+    });
+  });
+
+  // ============================================
+  // ITERATION AND COLLECTION OPERATIONS
+  // ============================================
+
+  describe('getAllModuleNames', () => {
+    it('should return empty array for empty registry', () => {
+      expect(registry.getAllModuleNames()).toEqual([]);
+    });
+
+    it('should return all registered module names', () => {
+      registry.register('A', createMockProgram('A'));
+      registry.register('B', createMockProgram('B'));
+      registry.register('C', createMockProgram('C'));
 
       const names = registry.getAllModuleNames();
 
       expect(names).toHaveLength(3);
-      expect(names).toContain('Main');
-      expect(names).toContain('c64.graphics');
-      expect(names).toContain('c64.sprites');
+      expect(names).toContain('A');
+      expect(names).toContain('B');
+      expect(names).toContain('C');
     });
+  });
 
-    it('should get all modules', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
-
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
-
-      const allModules = registry.getAllModules();
-
-      expect(allModules.size).toBe(2);
-      expect(allModules.get('Main')).toBe(main);
-      expect(allModules.get('c64.graphics')).toBe(graphics);
-    });
-
+  describe('getAllModules', () => {
     it('should return empty array for empty registry', () => {
-      const names = registry.getAllModuleNames();
-
-      expect(names).toEqual([]);
+      expect(registry.getAllModules()).toEqual([]);
     });
 
-    it('should return empty map for empty registry', () => {
+    it('should return all registered modules', () => {
+      const progA = createMockProgram('A');
+      const progB = createMockProgram('B');
+
+      registry.register('A', progA);
+      registry.register('B', progB);
+
       const modules = registry.getAllModules();
 
-      expect(modules.size).toBe(0);
+      expect(modules).toHaveLength(2);
+      expect(modules.map(m => m.name)).toContain('A');
+      expect(modules.map(m => m.name)).toContain('B');
     });
   });
 
-  describe('Dependency Tracking', () => {
-    it('should add dependency', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
+  describe('iterator', () => {
+    it('should support for...of iteration', () => {
+      registry.register('A', createMockProgram('A'));
+      registry.register('B', createMockProgram('B'));
 
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
+      const collected: Array<[string, RegisteredModule]> = [];
+      for (const entry of registry) {
+        collected.push(entry);
+      }
 
-      registry.addDependency('Main', 'c64.graphics');
-
-      const deps = registry.getDependencies('Main');
-      expect(deps).toEqual(['c64.graphics']);
+      expect(collected).toHaveLength(2);
+      expect(collected.map(([name]) => name)).toContain('A');
+      expect(collected.map(([name]) => name)).toContain('B');
     });
 
-    it('should add multiple dependencies', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
-      const sprites = parseModule('module c64.sprites\nexport function init(): void { }');
+    it('should yield [name, RegisteredModule] tuples', () => {
+      const progA = createMockProgram('A');
+      registry.register('A', progA);
 
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
-      registry.register('c64.sprites', sprites);
-
-      registry.addDependency('Main', 'c64.graphics');
-      registry.addDependency('Main', 'c64.sprites');
-
-      const deps = registry.getDependencies('Main');
-      expect(deps).toHaveLength(2);
-      expect(deps).toContain('c64.graphics');
-      expect(deps).toContain('c64.sprites');
-    });
-
-    it('should prevent duplicate dependencies', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
-
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
-
-      registry.addDependency('Main', 'c64.graphics');
-      registry.addDependency('Main', 'c64.graphics'); // Duplicate
-
-      const deps = registry.getDependencies('Main');
-      expect(deps).toEqual(['c64.graphics']); // Only once
-    });
-
-    it('should return empty array for module with no dependencies', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      registry.register('Main', main);
-
-      const deps = registry.getDependencies('Main');
-
-      expect(deps).toEqual([]);
-    });
-
-    it('should return empty array for non-existent module', () => {
-      const deps = registry.getDependencies('NonExistent');
-
-      expect(deps).toEqual([]);
-    });
-
-    it('should include dependencies in module info', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
-
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
-      registry.addDependency('Main', 'c64.graphics');
-
-      const info = registry.getModuleInfo('Main');
-
-      expect(info?.dependencies).toEqual(['c64.graphics']);
+      for (const [name, module] of registry) {
+        expect(name).toBe('A');
+        expect(module.name).toBe('A');
+        expect(module.program).toBe(progA);
+      }
     });
   });
 
-  describe('Clear Operation', () => {
-    it('should clear all modules', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
-      const graphics = parseModule('module c64.graphics\nexport function clear(): void { }');
+  // ============================================
+  // COUNT AND EMPTY CHECKS
+  // ============================================
 
-      registry.register('Main', main);
-      registry.register('c64.graphics', graphics);
-
-      expect(registry.getModuleCount()).toBe(2);
-
-      registry.clear();
-
+  describe('getModuleCount', () => {
+    it('should return 0 for empty registry', () => {
       expect(registry.getModuleCount()).toBe(0);
-      expect(registry.hasModule('Main')).toBe(false);
-      expect(registry.hasModule('c64.graphics')).toBe(false);
     });
 
-    it('should allow re-registration after clear', () => {
-      const main = parseModule('module Main\nexport function main(): void { }');
+    it('should return correct count after registrations', () => {
+      registry.register('A', createMockProgram('A'));
+      expect(registry.getModuleCount()).toBe(1);
 
-      registry.register('Main', main);
-      registry.clear();
-      registry.register('Main', main); // Should not throw
+      registry.register('B', createMockProgram('B'));
+      expect(registry.getModuleCount()).toBe(2);
 
-      expect(registry.hasModule('Main')).toBe(true);
+      registry.register('C', createMockProgram('C'));
+      expect(registry.getModuleCount()).toBe(3);
+    });
+
+    it('should return correct count after unregistration', () => {
+      registry.register('A', createMockProgram('A'));
+      registry.register('B', createMockProgram('B'));
+
+      expect(registry.getModuleCount()).toBe(2);
+
+      registry.unregister('A');
+
+      expect(registry.getModuleCount()).toBe(1);
     });
   });
 
-  describe('Hierarchical Module Names', () => {
-    it('should handle deeply nested module names', () => {
-      const program = parseModule(
-        'module c64.graphics.screen.utils\nexport function test(): void { }'
-      );
-
-      registry.register('c64.graphics.screen.utils', program);
-
-      expect(registry.hasModule('c64.graphics.screen.utils')).toBe(true);
+  describe('isEmpty', () => {
+    it('should return true for new registry', () => {
+      expect(registry.isEmpty()).toBe(true);
     });
 
-    it('should treat different nesting levels as separate modules', () => {
-      const screen = parseModule('module c64.screen\nexport function test(): void { }');
-      const graphics = parseModule('module c64.screen.graphics\nexport function test(): void { }');
+    it('should return false after registration', () => {
+      registry.register('A', createMockProgram('A'));
+      expect(registry.isEmpty()).toBe(false);
+    });
 
-      registry.register('c64.screen', screen);
-      registry.register('c64.screen.graphics', graphics);
+    it('should return true after clearing', () => {
+      registry.register('A', createMockProgram('A'));
+      registry.clear();
+      expect(registry.isEmpty()).toBe(true);
+    });
 
-      expect(registry.getModuleCount()).toBe(2);
-      expect(registry.hasModule('c64.screen')).toBe(true);
-      expect(registry.hasModule('c64.screen.graphics')).toBe(true);
+    it('should return true after all modules unregistered', () => {
+      registry.register('A', createMockProgram('A'));
+      registry.unregister('A');
+      expect(registry.isEmpty()).toBe(true);
+    });
+  });
+
+  // ============================================
+  // EDGE CASES
+  // ============================================
+
+  describe('edge cases', () => {
+    it('should handle module names with dots correctly', () => {
+      const program = createMockProgram('Very.Deep.Nested.Module');
+      registry.register('Very.Deep.Nested.Module', program);
+
+      expect(registry.hasModule('Very.Deep.Nested.Module')).toBe(true);
+      expect(registry.hasModule('Very')).toBe(false);
+      expect(registry.hasModule('Very.Deep')).toBe(false);
+    });
+
+    it('should handle single-word module names', () => {
+      const program = createMockProgram('Global');
+      registry.register('Global', program);
+
+      expect(registry.hasModule('Global')).toBe(true);
+    });
+
+    it('should handle empty string module name', () => {
+      // Edge case - not recommended but should work
+      const program = createMockProgram('');
+      registry.register('', program);
+
+      expect(registry.hasModule('')).toBe(true);
+    });
+
+    it('should handle special characters in module names', () => {
+      // Module names should normally be identifiers, but test edge cases
+      const program = createMockProgram('Test_123');
+      registry.register('Test_123', program);
+
+      expect(registry.hasModule('Test_123')).toBe(true);
     });
   });
 });

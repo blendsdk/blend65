@@ -1,232 +1,847 @@
 /**
- * Symbol Table Implementation
+ * Symbol Table for Blend65 Compiler v2
  *
- * Manages scopes and symbols throughout the compilation process.
- * Provides symbol declaration, lookup, and scope management operations.
+ * The SymbolTable is the central manager for all symbols and scopes during
+ * semantic analysis. It maintains the scope tree and provides methods for
+ * symbol declaration and lookup.
+ *
+ * @module semantic/symbol-table
  */
 
-import type { ASTNode } from '../ast/base.js';
-import type { Symbol } from './symbol.js';
-import { Scope, ScopeKind } from './scope.js';
+import type { ASTNode } from '../ast/index.js';
+import type { SourceLocation, Expression, FunctionDecl } from '../ast/index.js';
+import type { TypeInfo } from './types.js';
+import { TypeKind, BUILTIN_TYPES } from './types.js';
+import {
+  type Symbol,
+  SymbolKind,
+  createSymbol,
+  createFunctionSymbol,
+  createImportedSymbol,
+  createIntrinsicSymbol,
+} from './symbol.js';
+import {
+  type Scope,
+  ScopeKind,
+  createModuleScope,
+  createFunctionScope,
+  createBlockScope,
+  createLoopScope,
+  declareSymbol as scopeDeclareSymbol,
+  lookupLocal,
+  lookupInChain,
+  getEnclosingFunctionSymbol,
+} from './scope.js';
 
 /**
- * Symbol table manages all scopes and symbols in the program
+ * Result of declaring a symbol
+ */
+export interface DeclareResult {
+  /** Whether declaration was successful */
+  success: boolean;
+
+  /** The declared symbol (if successful) */
+  symbol?: Symbol;
+
+  /** Error message (if failed) */
+  error?: string;
+
+  /** Existing symbol (if duplicate) */
+  existingSymbol?: Symbol;
+}
+
+/**
+ * SymbolTable manages all scopes and symbols for a module
  *
- * The symbol table maintains a tree of scopes with the module scope
- * at the root. It provides operations for:
- * - Creating and navigating scopes
- * - Declaring symbols within scopes
- * - Looking up symbols (with scope chain traversal)
- * - Managing current scope during AST traversal
+ * The SymbolTable:
+ * - Maintains the scope tree (module -> function -> block -> loop)
+ * - Tracks the current scope during AST traversal
+ * - Provides symbol declaration with duplicate checking
+ * - Provides symbol lookup with scope chain traversal
+ * - Generates unique scope IDs
+ *
+ * Usage during semantic analysis:
+ * 1. Create SymbolTable with module AST node
+ * 2. Traverse AST, calling enterScope/exitScope for each scope-creating node
+ * 3. Call declare* methods to register symbols
+ * 4. Call lookup* methods to resolve identifiers
+ *
+ * @example
+ * ```typescript
+ * const symbolTable = new SymbolTable(programNode);
+ *
+ * // Enter a function
+ * const funcSymbol = symbolTable.declareFunction('add', location, ...);
+ * symbolTable.enterFunctionScope(funcSymbol, funcNode);
+ *
+ * // Declare parameters
+ * symbolTable.declareParameter('a', location, byteType);
+ *
+ * // Look up a symbol
+ * const symbol = symbolTable.lookup('a');
+ *
+ * // Exit the function
+ * symbolTable.exitScope();
+ * ```
  */
 export class SymbolTable {
-  /** Root scope (module scope) - top of the scope tree */
+  /** Root scope (module scope) */
   protected rootScope: Scope;
 
-  /** All scopes indexed by their unique ID */
-  protected scopes: Map<string, Scope>;
-
-  /** Current scope during AST traversal */
+  /** Current scope during traversal */
   protected currentScope: Scope;
 
-  /** Scope counter for generating unique IDs */
+  /** All scopes indexed by ID */
+  protected scopes: Map<string, Scope>;
+
+  /** Function scopes indexed by name for type checker lookup */
+  protected functionScopesByName: Map<string, Scope>;
+
+  /** Counter for generating unique scope IDs */
   protected scopeCounter: number;
 
+  /** Module name (for error messages and debugging) */
+  protected moduleName: string;
+
   /**
-   * Creates a new symbol table with an empty module scope
+   * Creates a new SymbolTable
+   *
+   * @param moduleNode - The Program AST node
+   * @param moduleName - The module name (defaults to 'main')
    */
-  constructor() {
+  constructor(moduleNode: ASTNode | null = null, moduleName: string = 'main') {
     this.scopeCounter = 0;
     this.scopes = new Map();
+    this.functionScopesByName = new Map();
+    this.moduleName = moduleName;
 
-    // Create root module scope (no parent, no node initially)
-    this.rootScope = this.createScope(ScopeKind.Module, null, null);
+    // Create the root module scope
+    this.rootScope = this.createScopeInternal(ScopeKind.Module, null, moduleNode);
     this.currentScope = this.rootScope;
+
+    // Register built-in intrinsic functions for non-library modules.
+    // The 'system' module declares these functions itself as exports,
+    // so pre-registering them would cause duplicate declaration errors.
+    // Other stdlib modules (asm, hardware) don't conflict because they
+    // declare different function/constant names.
+    if (moduleName !== 'system') {
+      this.registerIntrinsics();
+    }
   }
 
-  /**
-   * Create a new scope
-   *
-   * @param kind - Scope kind (Module or Function)
-   * @param parent - Parent scope (null for root)
-   * @param node - AST node that created this scope (null for synthetic scopes)
-   * @returns The newly created scope
-   */
-  public createScope(kind: ScopeKind, parent: Scope | null, node: ASTNode | null): Scope {
-    const id = `scope_${this.scopeCounter++}`;
+  // ============================================================
+  // Intrinsic Registration
+  // ============================================================
 
-    const scope: Scope = {
-      id,
-      kind,
-      parent,
-      children: [],
-      symbols: new Map(),
-      node: node!,
+  /**
+   * Registers built-in intrinsic functions
+   *
+   * Intrinsics are compiler-provided functions that don't need to be
+   * declared in user code. Per the language specification (08-intrinsics.md),
+   * the 10 core intrinsics are:
+   * - peek(address: word): byte - Read byte from memory
+   * - poke(address: word, value: byte): void - Write byte to memory
+   * - peekw(address: word): word - Read 16-bit word from memory (little-endian)
+   * - pokew(address: word, value: word): void - Write 16-bit word to memory (little-endian)
+   * - hi(value: word): byte - Get high byte of word
+   * - lo(value: word): byte - Get low byte of word
+   * - length(array: any[]): word - Get length of array (compile-time)
+   * - barrier(): void - Optimization barrier
+   * - volatile_read(address: word): byte - Read byte from hardware (non-optimizable)
+   * - volatile_write(address: word, value: byte): void - Write byte to hardware (non-optimizable)
+   */
+  protected registerIntrinsics(): void {
+    // Helper to create function type
+    const createFunctionType = (
+      paramTypes: TypeInfo[],
+      returnType: TypeInfo,
+    ): TypeInfo => {
+      const paramStr = paramTypes.map((p) => p.name).join(', ');
+      return {
+        kind: TypeKind.Function,
+        name: `(${paramStr}) => ${returnType.name}`,
+        size: 2,
+        isSigned: false,
+        isAssignable: false,
+        parameterTypes: paramTypes,
+        returnType,
+      };
     };
 
-    this.scopes.set(id, scope);
+    // peek(address: word): byte
+    // Reads a byte value from a memory address
+    const peekType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const peekSymbol = createIntrinsicSymbol('peek', peekType);
+    scopeDeclareSymbol(this.rootScope, peekSymbol);
 
-    // Add to parent's children if there is a parent
-    if (parent) {
-      parent.children.push(scope);
-    }
+    // poke(address: word, value: byte): void
+    // Writes a byte value to a memory address
+    const pokeType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.BYTE],
+      BUILTIN_TYPES.VOID,
+    );
+    const pokeSymbol = createIntrinsicSymbol('poke', pokeType);
+    scopeDeclareSymbol(this.rootScope, pokeSymbol);
 
-    return scope;
+    // peekw(address: word): word
+    // Reads a 16-bit word from memory (little-endian)
+    const peekwType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.WORD,
+    );
+    const peekwSymbol = createIntrinsicSymbol('peekw', peekwType);
+    scopeDeclareSymbol(this.rootScope, peekwSymbol);
+
+    // pokew(address: word, value: word): void
+    // Writes a 16-bit word to memory (little-endian)
+    const pokewType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.VOID,
+    );
+    const pokewSymbol = createIntrinsicSymbol('pokew', pokewType);
+    scopeDeclareSymbol(this.rootScope, pokewSymbol);
+
+    // hi(value: word): byte
+    // Gets the high byte of a 16-bit word
+    const hiType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const hiSymbol = createIntrinsicSymbol('hi', hiType);
+    scopeDeclareSymbol(this.rootScope, hiSymbol);
+
+    // lo(value: word): byte
+    // Gets the low byte of a 16-bit word
+    const loType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const loSymbol = createIntrinsicSymbol('lo', loType);
+    scopeDeclareSymbol(this.rootScope, loSymbol);
+
+    // length(array: any[]): word
+    // Gets the length of an array (compile-time constant for fixed arrays)
+    // Uses 'any' type for the parameter since it accepts any array type
+    const anyType: TypeInfo = {
+      kind: TypeKind.Unknown,
+      name: 'any',
+      size: 0,
+      isSigned: false,
+      isAssignable: false,
+    };
+    const lengthType = createFunctionType(
+      [anyType],
+      BUILTIN_TYPES.WORD,
+    );
+    const lengthSymbol = createIntrinsicSymbol('length', lengthType);
+    scopeDeclareSymbol(this.rootScope, lengthSymbol);
+
+    // barrier(): void
+    // Optimization barrier - prevents optimizer from reordering code across this point
+    const barrierType = createFunctionType(
+      [],
+      BUILTIN_TYPES.VOID,
+    );
+    const barrierSymbol = createIntrinsicSymbol('barrier', barrierType);
+    scopeDeclareSymbol(this.rootScope, barrierSymbol);
+
+    // volatile_read(address: word): byte
+    // Reads a byte from a hardware register (cannot be optimized away)
+    const volatileReadType = createFunctionType(
+      [BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.BYTE,
+    );
+    const volatileReadSymbol = createIntrinsicSymbol('volatile_read', volatileReadType);
+    scopeDeclareSymbol(this.rootScope, volatileReadSymbol);
+
+    // volatile_write(address: word, value: byte): void
+    // Writes a byte to a hardware register (cannot be optimized away)
+    const volatileWriteType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.BYTE],
+      BUILTIN_TYPES.VOID,
+    );
+    const volatileWriteSymbol = createIntrinsicSymbol('volatile_write', volatileWriteType);
+    scopeDeclareSymbol(this.rootScope, volatileWriteSymbol);
   }
 
-  /**
-   * Enter a scope (make it the current scope)
-   *
-   * Used during AST traversal to track which scope declarations
-   * should be added to.
-   *
-   * @param scope - Scope to enter
-   */
-  public enterScope(scope: Scope): void {
-    this.currentScope = scope;
-  }
+  // ============================================================
+  // Scope Management
+  // ============================================================
 
   /**
-   * Exit current scope (return to parent scope)
-   *
-   * Used after finishing traversal of a scope's contents.
-   * If current scope has no parent (root scope), stays at root.
+   * Gets the root (module) scope
    */
-  public exitScope(): void {
-    if (this.currentScope.parent) {
-      this.currentScope = this.currentScope.parent;
-    }
-  }
-
-  /**
-   * Get the current scope
-   *
-   * @returns Current scope being traversed
-   */
-  public getCurrentScope(): Scope {
-    return this.currentScope;
-  }
-
-  /**
-   * Get the root (module) scope
-   *
-   * @returns Root scope of the symbol table
-   */
-  public getRootScope(): Scope {
+  getRootScope(): Scope {
     return this.rootScope;
   }
 
   /**
-   * Get a scope by its ID
-   *
-   * @param id - Scope identifier
-   * @returns Scope with the given ID, or undefined if not found
+   * Gets the current scope
    */
-  public getScope(id: string): Scope | undefined {
-    return this.scopes.get(id);
+  getCurrentScope(): Scope {
+    return this.currentScope;
   }
 
   /**
-   * Declare a symbol in the current scope
+   * Gets a scope by ID or function name
    *
-   * @param symbol - Symbol to declare
-   * @throws Error if a symbol with the same name already exists in current scope
+   * Checks both the main scopes map (for scope_N IDs) and
+   * the function scopes by name map (for function:name keys).
+   *
+   * @param id - Scope ID (scope_N) or function name key (function:name)
    */
-  public declare(symbol: Symbol): void {
-    const existing = this.currentScope.symbols.get(symbol.name);
+  getScope(id: string): Scope | undefined {
+    // Check main scopes map first
+    const scope = this.scopes.get(id);
+    if (scope) {
+      return scope;
+    }
+    // Check function scopes by name (for type checker)
+    return this.functionScopesByName.get(id);
+  }
 
+  /**
+   * Gets all scopes
+   */
+  getAllScopes(): Map<string, Scope> {
+    return this.scopes;
+  }
+
+  /**
+   * Gets the module name
+   */
+  getModuleName(): string {
+    return this.moduleName;
+  }
+
+  /**
+   * Creates a new scope with a unique ID
+   *
+   * Internal method - use enterFunctionScope, enterBlockScope, etc.
+   */
+  protected createScopeInternal(kind: ScopeKind, parent: Scope | null, node: ASTNode | null): Scope {
+    const id = `scope_${this.scopeCounter++}`;
+    let scope: Scope;
+
+    switch (kind) {
+      case ScopeKind.Module:
+        scope = createModuleScope(id, node);
+        break;
+      case ScopeKind.Function:
+        // Function scopes need a symbol, handle specially in enterFunctionScope
+        throw new Error('Use enterFunctionScope to create function scopes');
+      case ScopeKind.Block:
+        if (!parent) throw new Error('Block scope requires parent');
+        scope = createBlockScope(id, parent, node);
+        break;
+      case ScopeKind.Loop:
+        if (!parent) throw new Error('Loop scope requires parent');
+        scope = createLoopScope(id, parent, node);
+        break;
+      default:
+        throw new Error(`Unknown scope kind: ${kind}`);
+    }
+
+    this.scopes.set(id, scope);
+    return scope;
+  }
+
+  /**
+   * Enters a function scope
+   *
+   * Creates a new function scope and sets it as current.
+   * The function symbol should already be declared in the parent scope.
+   *
+   * Scopes are registered with both their numeric ID (scope_N) and
+   * a named key (function:name) to enable lookup by either method.
+   *
+   * @param functionSymbol - The function symbol
+   * @param node - The FunctionDecl AST node
+   * @returns The new function scope
+   */
+  enterFunctionScope(functionSymbol: Symbol, node: ASTNode | null = null): Scope {
+    const id = `scope_${this.scopeCounter++}`;
+    const scope = createFunctionScope(id, this.currentScope, functionSymbol, node);
+    
+    // Register scope by numeric ID in main scopes map
+    this.scopes.set(id, scope);
+    
+    // Register by function name in separate map for type checker lookup
+    // This allows type checker to enter scope using "function:name" pattern
+    // without polluting the scope count
+    const functionName = functionSymbol.name;
+    this.functionScopesByName.set(`function:${functionName}`, scope);
+    
+    this.currentScope = scope;
+    return scope;
+  }
+
+  /**
+   * Enters a block scope
+   *
+   * Creates a new block scope for if/else bodies, standalone blocks, etc.
+   *
+   * @param node - The statement AST node
+   * @returns The new block scope
+   */
+  enterBlockScope(node: ASTNode | null = null): Scope {
+    const scope = this.createScopeInternal(ScopeKind.Block, this.currentScope, node);
+    this.currentScope = scope;
+    return scope;
+  }
+
+  /**
+   * Enters a loop scope
+   *
+   * Creates a new loop scope for while/for loops.
+   * Loop scopes track nesting for break/continue validation.
+   *
+   * @param node - The loop AST node
+   * @returns The new loop scope
+   */
+  enterLoopScope(node: ASTNode | null = null): Scope {
+    const scope = this.createScopeInternal(ScopeKind.Loop, this.currentScope, node);
+    this.currentScope = scope;
+    return scope;
+  }
+
+  /**
+   * Exits the current scope
+   *
+   * Returns to the parent scope.
+   *
+   * @returns The parent scope
+   * @throws If trying to exit the module scope
+   */
+  exitScope(): Scope {
+    if (!this.currentScope.parent) {
+      throw new Error('Cannot exit module scope');
+    }
+    this.currentScope = this.currentScope.parent;
+    return this.currentScope;
+  }
+
+  /**
+   * Checks if currently inside a loop
+   */
+  isInLoop(): boolean {
+    return (this.currentScope.loopDepth ?? 0) > 0;
+  }
+
+  /**
+   * Checks if currently inside a function
+   */
+  isInFunction(): boolean {
+    let scope: Scope | null = this.currentScope;
+    while (scope) {
+      if (scope.kind === ScopeKind.Function) return true;
+      scope = scope.parent;
+    }
+    return false;
+  }
+
+  /**
+   * Gets the current function symbol (if inside a function)
+   */
+  getCurrentFunction(): Symbol | undefined {
+    return getEnclosingFunctionSymbol(this.currentScope);
+  }
+
+  // ============================================================
+  // Symbol Declaration
+  // ============================================================
+
+  /**
+   * Declares a variable symbol
+   *
+   * @param name - Variable name
+   * @param location - Source location
+   * @param type - Type (null if not yet resolved)
+   * @param options - Additional options
+   * @returns Declaration result
+   */
+  declareVariable(
+    name: string,
+    location: SourceLocation,
+    type: TypeInfo | null = null,
+    options: {
+      isConst?: boolean;
+      isExported?: boolean;
+      initializer?: Expression;
+    } = {},
+  ): DeclareResult {
+    // Check for duplicate in current scope
+    const existing = lookupLocal(this.currentScope, name);
     if (existing) {
-      throw new Error(`Duplicate declaration: '${symbol.name}' is already declared in this scope`);
+      return {
+        success: false,
+        error: `Variable '${name}' is already declared in this scope`,
+        existingSymbol: existing,
+      };
     }
 
-    this.currentScope.symbols.set(symbol.name, symbol);
+    const symbol = createSymbol(name, SymbolKind.Variable, location, this.currentScope, {
+      type,
+      isConst: options.isConst,
+      isExported: options.isExported,
+      initializer: options.initializer,
+    });
+
+    scopeDeclareSymbol(this.currentScope, symbol);
+
+    return { success: true, symbol };
   }
 
   /**
-   * Lookup a symbol by name in current scope and parent scopes
+   * Declares a constant symbol
    *
-   * Searches up the scope chain:
-   * 1. Check current scope
-   * 2. Check parent scope
-   * 3. Continue up to module scope
-   *
-   * @param name - Symbol name to lookup
-   * @returns Symbol if found, undefined otherwise
+   * @param name - Constant name
+   * @param location - Source location
+   * @param type - Type (null if not yet resolved)
+   * @param initializer - The initializer expression
+   * @param isExported - Whether exported
+   * @returns Declaration result
    */
-  public lookup(name: string): Symbol | undefined {
-    let scope: Scope | null = this.currentScope;
+  declareConstant(
+    name: string,
+    location: SourceLocation,
+    type: TypeInfo | null = null,
+    initializer?: Expression,
+    isExported: boolean = false,
+  ): DeclareResult {
+    const existing = lookupLocal(this.currentScope, name);
+    if (existing) {
+      return {
+        success: false,
+        error: `Constant '${name}' is already declared in this scope`,
+        existingSymbol: existing,
+      };
+    }
 
-    // Walk up the scope chain
-    while (scope) {
-      const symbol = scope.symbols.get(name);
-      if (symbol) {
-        return symbol;
+    const symbol = createSymbol(name, SymbolKind.Constant, location, this.currentScope, {
+      type,
+      isConst: true,
+      isExported,
+      initializer,
+    });
+
+    scopeDeclareSymbol(this.currentScope, symbol);
+
+    return { success: true, symbol };
+  }
+
+  /**
+   * Declares a parameter symbol
+   *
+   * Parameters are declared in function scopes.
+   *
+   * @param name - Parameter name
+   * @param location - Source location
+   * @param type - Parameter type
+   * @returns Declaration result
+   */
+  declareParameter(name: string, location: SourceLocation, type: TypeInfo | null = null): DeclareResult {
+    const existing = lookupLocal(this.currentScope, name);
+    if (existing) {
+      return {
+        success: false,
+        error: `Parameter '${name}' is already declared`,
+        existingSymbol: existing,
+      };
+    }
+
+    const symbol = createSymbol(name, SymbolKind.Parameter, location, this.currentScope, {
+      type,
+      isConst: false, // Parameters are mutable in Blend65
+      isExported: false,
+    });
+
+    scopeDeclareSymbol(this.currentScope, symbol);
+
+    return { success: true, symbol };
+  }
+
+  /**
+   * Declares a function symbol
+   *
+   * Functions are declared in the current scope (typically module scope).
+   * The function scope is not created here - use enterFunctionScope after.
+   *
+   * @param name - Function name
+   * @param location - Source location
+   * @param returnType - Return type (null if not yet resolved)
+   * @param declaration - The FunctionDecl AST node
+   * @param isExported - Whether exported
+   * @returns Declaration result
+   */
+  declareFunction(
+    name: string,
+    location: SourceLocation,
+    returnType: TypeInfo | null = null,
+    declaration?: FunctionDecl,
+    isExported: boolean = false,
+  ): DeclareResult {
+    const existing = lookupLocal(this.currentScope, name);
+    if (existing) {
+      return {
+        success: false,
+        error: `Function '${name}' is already declared in this scope`,
+        existingSymbol: existing,
+      };
+    }
+
+    // Parameters are added later when entering the function scope
+    const symbol = createFunctionSymbol(name, location, this.currentScope, [], returnType, declaration, isExported);
+
+    scopeDeclareSymbol(this.currentScope, symbol);
+
+    return { success: true, symbol };
+  }
+
+  /**
+   * Declares an imported symbol
+   *
+   * If the name already exists as an auto-registered intrinsic,
+   * the import silently replaces it. This allows users to write
+   * explicit `import { poke } from system;` without errors, even
+   * though `poke` is already available as a pre-registered intrinsic.
+   *
+   * @param localName - Local name (possibly aliased)
+   * @param originalName - Name in source module
+   * @param sourceModule - Module path
+   * @param location - Source location
+   * @returns Declaration result
+   */
+  declareImport(
+    localName: string,
+    originalName: string,
+    sourceModule: string,
+    location: SourceLocation,
+  ): DeclareResult {
+    const existing = lookupLocal(this.currentScope, localName);
+    if (existing) {
+      // Allow explicit imports to shadow auto-registered intrinsics.
+      // Intrinsics are pre-registered in every non-system module for convenience,
+      // but explicit imports should take precedence without causing errors.
+      if (existing.kind === SymbolKind.Intrinsic) {
+        // Remove the intrinsic so the import can replace it
+        this.currentScope.symbols.delete(localName);
+      } else {
+        return {
+          success: false,
+          error: `'${localName}' is already declared in this scope`,
+          existingSymbol: existing,
+        };
       }
+    }
+
+    const symbol = createImportedSymbol(localName, originalName, sourceModule, location, this.currentScope);
+
+    scopeDeclareSymbol(this.currentScope, symbol);
+
+    return { success: true, symbol };
+  }
+
+  /**
+   * Declares an enum member
+   *
+   * @param name - Member name
+   * @param location - Source location
+   * @param type - Enum type
+   * @returns Declaration result
+   */
+  declareEnumMember(name: string, location: SourceLocation, type: TypeInfo | null = null): DeclareResult {
+    const existing = lookupLocal(this.currentScope, name);
+    if (existing) {
+      return {
+        success: false,
+        error: `Enum member '${name}' is already declared`,
+        existingSymbol: existing,
+      };
+    }
+
+    const symbol = createSymbol(name, SymbolKind.EnumMember, location, this.currentScope, {
+      type,
+      isConst: true, // Enum members are constants
+      isExported: false,
+    });
+
+    scopeDeclareSymbol(this.currentScope, symbol);
+
+    return { success: true, symbol };
+  }
+
+  // ============================================================
+  // Symbol Lookup
+  // ============================================================
+
+  /**
+   * Looks up a symbol in the current scope only
+   *
+   * @param name - Symbol name
+   * @returns The symbol if found in current scope
+   */
+  lookupLocal(name: string): Symbol | undefined {
+    return lookupLocal(this.currentScope, name);
+  }
+
+  /**
+   * Looks up a symbol in the scope chain
+   *
+   * Traverses from current scope to module scope.
+   *
+   * @param name - Symbol name
+   * @returns The symbol if found in any enclosing scope
+   */
+  lookup(name: string): Symbol | undefined {
+    return lookupInChain(this.currentScope, name);
+  }
+
+  /**
+   * Looks up a symbol starting from a specific scope
+   *
+   * @param name - Symbol name
+   * @param scope - Starting scope
+   * @returns The symbol if found
+   */
+  lookupFrom(name: string, scope: Scope): Symbol | undefined {
+    return lookupInChain(scope, name);
+  }
+
+  /**
+   * Looks up a symbol in the module scope only
+   *
+   * @param name - Symbol name
+   * @returns The symbol if found in module scope
+   */
+  lookupGlobal(name: string): Symbol | undefined {
+    return lookupLocal(this.rootScope, name);
+  }
+
+  /**
+   * Checks if a symbol exists in the current scope
+   *
+   * @param name - Symbol name
+   * @returns true if exists in current scope
+   */
+  hasLocal(name: string): boolean {
+    return this.currentScope.symbols.has(name);
+  }
+
+  /**
+   * Checks if a symbol exists anywhere in the scope chain
+   *
+   * @param name - Symbol name
+   * @returns true if exists in any enclosing scope
+   */
+  has(name: string): boolean {
+    return this.lookup(name) !== undefined;
+  }
+
+  // ============================================================
+  // Query Methods
+  // ============================================================
+
+  /**
+   * Gets all symbols in the current scope
+   */
+  getCurrentScopeSymbols(): Map<string, Symbol> {
+    return this.currentScope.symbols;
+  }
+
+  /**
+   * Gets all symbols visible from the current scope
+   *
+   * Includes symbols from all parent scopes, with inner scopes
+   * shadowing outer scopes.
+   */
+  getAllVisibleSymbols(): Map<string, Symbol> {
+    const result = new Map<string, Symbol>();
+    const scopes: Scope[] = [];
+
+    // Collect scopes from module to current
+    let scope: Scope | null = this.currentScope;
+    while (scope) {
+      scopes.unshift(scope);
       scope = scope.parent;
     }
 
-    return undefined;
+    // Process from module scope down
+    for (const s of scopes) {
+      for (const [name, symbol] of s.symbols) {
+        result.set(name, symbol);
+      }
+    }
+
+    return result;
   }
 
   /**
-   * Lookup a symbol only in the current scope (no parent search)
-   *
-   * Used for duplicate declaration detection and scope-local queries.
-   *
-   * @param name - Symbol name to lookup
-   * @returns Symbol if found in current scope, undefined otherwise
+   * Gets all exported symbols from the module
    */
-  public lookupLocal(name: string): Symbol | undefined {
-    return this.currentScope.symbols.get(name);
+  getExportedSymbols(): Symbol[] {
+    const exports: Symbol[] = [];
+
+    for (const symbol of this.rootScope.symbols.values()) {
+      if (symbol.isExported) {
+        exports.push(symbol);
+      }
+    }
+
+    return exports;
   }
 
   /**
-   * Get all symbols declared in a specific scope
-   *
-   * @param scope - Scope to query (defaults to current scope)
-   * @returns Array of symbols in the scope
+   * Gets all function symbols in the module
    */
-  public getSymbolsInScope(scope?: Scope): Symbol[] {
-    const targetScope = scope || this.currentScope;
-    return Array.from(targetScope.symbols.values());
+  getFunctionSymbols(): Symbol[] {
+    const functions: Symbol[] = [];
+
+    for (const symbol of this.rootScope.symbols.values()) {
+      if (symbol.kind === SymbolKind.Function) {
+        functions.push(symbol);
+      }
+    }
+
+    return functions;
   }
 
   /**
-   * Get all visible symbols (current scope + all parent scopes)
+   * Gets all symbols of a specific kind
    *
-   * Returns symbols in the current scope chain, useful for
-   * completion, diagnostics, and symbol visibility queries.
-   *
-   * @returns Array of all visible symbols
+   * @param kind - The symbol kind to filter by
+   * @param scope - Optional scope (defaults to root scope)
    */
-  public getVisibleSymbols(): Symbol[] {
+  getSymbolsByKind(kind: SymbolKind, scope: Scope = this.rootScope): Symbol[] {
     const symbols: Symbol[] = [];
-    let scope: Scope | null = this.currentScope;
 
-    // Walk up the scope chain and collect all symbols
-    while (scope) {
-      symbols.push(...Array.from(scope.symbols.values()));
-      scope = scope.parent;
+    for (const symbol of scope.symbols.values()) {
+      if (symbol.kind === kind) {
+        symbols.push(symbol);
+      }
     }
 
     return symbols;
   }
 
+  // ============================================================
+  // Utility Methods
+  // ============================================================
+
   /**
-   * Get total number of scopes in the symbol table
-   *
-   * @returns Total scope count
+   * Gets the total number of scopes
    */
-  public getScopeCount(): number {
+  getScopeCount(): number {
     return this.scopes.size;
   }
 
   /**
-   * Get total number of symbols across all scopes
-   *
-   * @returns Total symbol count
+   * Gets the total number of symbols across all scopes
    */
-  public getSymbolCount(): number {
+  getTotalSymbolCount(): number {
     let count = 0;
     for (const scope of this.scopes.values()) {
       count += scope.symbols.size;
@@ -235,15 +850,28 @@ export class SymbolTable {
   }
 
   /**
-   * Reset symbol table to initial state
-   *
-   * Clears all scopes and symbols, creates fresh module scope.
-   * Used for testing or recompilation.
+   * Creates a snapshot of the symbol table for debugging
    */
-  public reset(): void {
-    this.scopeCounter = 0;
-    this.scopes.clear();
-    this.rootScope = this.createScope(ScopeKind.Module, null, null);
-    this.currentScope = this.rootScope;
+  toDebugString(): string {
+    const lines: string[] = [];
+    lines.push(`SymbolTable for module '${this.moduleName}':`);
+    lines.push(`  Total scopes: ${this.scopes.size}`);
+    lines.push(`  Total symbols: ${this.getTotalSymbolCount()}`);
+    lines.push('');
+
+    const printScope = (scope: Scope, indent: string) => {
+      lines.push(`${indent}Scope ${scope.id} (${scope.kind}):`);
+      for (const [name, symbol] of scope.symbols) {
+        const typeStr = symbol.type ? symbol.type.name : '<unresolved>';
+        lines.push(`${indent}  ${symbol.kind} ${name}: ${typeStr}`);
+      }
+      for (const child of scope.children) {
+        printScope(child, indent + '  ');
+      }
+    };
+
+    printScope(this.rootScope, '  ');
+
+    return lines.join('\n');
   }
 }

@@ -1,59 +1,102 @@
 /**
- * Semantic Analyzer Module
+ * Semantic Analysis module for Blend65 v2
  *
- * Exports all semantic analysis components:
- * - Symbol table infrastructure
- * - Type system infrastructure
- * - Semantic analyzer orchestrator
- * - Analysis visitors
+ * Responsible for type checking, symbol resolution, and recursion detection.
+ * This is a production-quality semantic analyzer with:
+ * - Multi-pass architecture (symbol collection, type resolution, type checking, etc.)
+ * - SFA-optimized design (no SSA, static frame allocation support)
+ * - Recursion detection as compile-time error (required for SFA)
+ * - Multi-module support with import/export resolution
+ *
+ * **Key Components:**
+ * - Symbol: Represents declared identifiers (variables, functions, parameters, etc.)
+ * - Scope: Represents lexical scopes (module, function, block, loop)
+ * - SymbolTable: Manages scopes and symbol declarations/lookups
+ * - TypeSystem: Type definitions and compatibility checking
+ * - Type Checker: Semantic validation (multi-layer inheritance chain)
+ * - Call Graph: Function call relationship tracking
+ * - Recursion Detection: Compile-time cycle detection (SFA requirement)
+ *
+ * @module semantic
  */
 
-// Main analyzer
-export { SemanticAnalyzer } from './analyzer.js';
-export type {
-  AnalysisResult,
-  ModuleAnalysisResult,
-  MultiModuleAnalysisResult,
+// Core types
+export * from './types.js';
+
+// Symbol management
+export * from './symbol.js';
+
+// Scope management
+export * from './scope.js';
+
+// Symbol table
+export * from './symbol-table.js';
+
+// Type system
+export * from './type-system.js';
+
+// Semantic analysis visitors
+export * from './visitors/index.js';
+
+// Control flow analysis infrastructure
+export {
+  ControlFlowGraph,
+  CFGBuilder,
+  CFGNodeKind,
+  type CFGNode,
+  type LoopContext,
+} from './control-flow.js';
+
+// Multi-module support
+export { ModuleRegistry, type RegisteredModule } from './module-registry.js';
+export {
+  DependencyGraph,
+  type DependencyEdge,
+  type CycleInfo,
+} from './dependency-graph.js';
+
+// Import resolution
+export {
+  ImportResolver,
+  ImportErrorCode,
+  type ImportError,
+  type ImportResolution,
+  type ResolvedImport,
+  type ExportedSymbol,
+} from './import-resolver.js';
+
+// Global symbol table (cross-module symbol aggregation)
+export {
+  GlobalSymbolTable,
+  GlobalSymbolKind,
+  type GlobalSymbol,
+  type GlobalLookupResult,
+} from './global-symbol-table.js';
+
+// Call graph (function call relationship tracking)
+export {
+  CallGraph,
+  CallGraphBuilder,
+  type CallGraphNode,
+  type CallSite,
+} from './call-graph.js';
+
+// Recursion detection (SFA-critical - recursion is a compile-time error)
+export {
+  RecursionChecker,
+  RecursionErrorCode,
+  type RecursionError,
+  type RecursionCheckResult,
+} from './recursion-checker.js';
+
+// Advanced analysis passes
+export * from './analysis/index.js';
+
+// Main Semantic Analyzer (entry point)
+export {
+  SemanticAnalyzer,
+  DEFAULT_ANALYZER_OPTIONS,
+  type AnalysisResult,
+  type MultiModuleAnalysisResult,
+  type SemanticAnalyzerOptions,
 } from './analyzer.js';
-
-// Symbol table infrastructure
-export { SymbolTable } from './symbol-table.js';
-export { ScopeKind } from './scope.js';
-export type { Scope, ScopeMetadata } from './scope.js';
-export { SymbolKind, StorageClass } from './symbol.js';
-export type { Symbol, SymbolMetadata } from './symbol.js';
-
-// Type system infrastructure
-export { TypeKind, TypeCompatibility } from './types.js';
-export type { TypeInfo, FunctionSignature, TypeMetadata } from './types.js';
-export { TypeSystem } from './type-system.js';
-export { TypeResolver } from './visitors/type-resolver.js';
-
-// Visitors
-export { SymbolTableBuilder } from './visitors/symbol-table-builder.js';
-export { TypeChecker } from './visitors/type-checker/index.js';
-export { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
-
-// Control flow infrastructure
-export { ControlFlowGraph, CFGNodeKind } from './control-flow.js';
-export type { CFGNode } from './control-flow.js';
-
-// Multi-module infrastructure (Phase 6)
-export { ModuleRegistry } from './module-registry.js';
-export type { ModuleInfo } from './module-registry.js';
-export { DependencyGraph } from './dependency-graph.js';
-export type { DependencyEdge } from './dependency-graph.js';
-export { ImportResolver } from './import-resolver.js';
-export type { ResolvedImport } from './import-resolver.js';
-export { GlobalSymbolTable } from './global-symbol-table.js';
-export type { GlobalSymbol } from './global-symbol-table.js';
-
-// Memory layout infrastructure (Phase 6.3)
-export { MemoryLayoutBuilder } from './memory-layout.js';
-export type {
-  GlobalMemoryLayout,
-  ZeroPageEntry,
-  MapEntry,
-  MemoryConflict,
-  MemoryStatistics,
-} from './memory-layout.js';

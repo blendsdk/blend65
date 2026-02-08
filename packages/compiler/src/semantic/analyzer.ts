@@ -1,351 +1,1218 @@
 /**
- * Semantic Analyzer - Main Orchestrator
+ * Semantic Analyzer for Blend65 Compiler v2
  *
- * Coordinates all semantic analysis passes and provides
- * a unified interface for semantic checking.
+ * Main entry point for semantic analysis. Orchestrates all semantic passes:
  *
- * Multi-Pass Architecture:
- * - Pass 1: Symbol Table Builder (collect declarations, build scopes)
- * - Pass 2: Type Resolution (resolve type annotations) [Phase 2]
- * - Pass 3: Type Checker (type check expressions/statements) [Phase 3]
- * - Pass 4: Statement Validator (control flow validation) [Phase 4]
- * - Pass 5-8: Advanced analysis passes [Phases 5-8]
+ * **Pass 1**: Symbol Table Builder - Collects declarations, builds scope tree
+ * **Pass 2**: Type Resolution - Resolves type annotations to TypeInfo objects
+ * **Pass 3**: Type Checking - Type checks expressions and validates statements
+ * **Pass 4**: (Integrated in Pass 3) - Statement validation (break/continue/return)
+ * **Pass 5**: Control Flow Analysis - Builds CFGs, detects unreachable code
+ * **Pass 6**: Call Graph & Recursion - Builds call graph, detects recursion (SFA error!)
+ * **Pass 7**: Advanced Analysis - Definite assignment, variable usage, purity, etc.
+ *
+ * **Key Features:**
+ * - Multi-pass architecture for clean separation of concerns
+ * - SFA-optimized: Recursion detection is a compile-time ERROR
+ * - Multi-module support with import/export resolution
+ * - Comprehensive diagnostics with helpful error messages
+ *
+ * @module semantic/analyzer
  */
 
-import { SymbolTableBuilder } from './visitors/symbol-table-builder.js';
-import { TypeResolver } from './visitors/type-resolver.js';
-import { TypeChecker } from './visitors/type-checker/type-checker.js';
-import { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
-import { AdvancedAnalyzer } from './analysis/advanced-analyzer.js';
-import { SymbolTable } from './symbol-table.js';
+import type { Program, Diagnostic, SourceLocation } from '../ast/index.js';
+import { DiagnosticSeverity, DiagnosticCode } from '../ast/diagnostics.js';
+import type { SymbolTable } from './symbol-table.js';
+import type { Symbol } from './symbol.js';
 import { TypeSystem } from './type-system.js';
-import { ControlFlowGraph } from './control-flow.js';
-import { Diagnostic, DiagnosticSeverity, DiagnosticCode } from '../ast/diagnostics.js';
+import type { ControlFlowGraph } from './control-flow.js';
+import { CallGraph, CallGraphBuilder } from './call-graph.js';
+import { RecursionChecker, type RecursionError, RecursionErrorCode } from './recursion-checker.js';
 import { ModuleRegistry } from './module-registry.js';
 import { DependencyGraph } from './dependency-graph.js';
-import { ImportResolver } from './import-resolver.js';
-import { GlobalSymbolTable } from './global-symbol-table.js';
-import { MemoryLayoutBuilder, type GlobalMemoryLayout } from './memory-layout.js';
-import type { Program } from '../ast/nodes.js';
-import { isImportDecl } from '../ast/type-guards.js';
+import { ImportResolver, ImportErrorCode, type ImportError } from './import-resolver.js';
+import { GlobalSymbolTable, GlobalSymbolKind } from './global-symbol-table.js';
+import {
+  SymbolTableBuilder,
+  type SymbolTableBuildResult,
+} from './visitors/symbol-table-builder.js';
+import { SymbolKind } from './symbol.js';
+import { TypeResolver, type TypeResolutionResult } from './visitors/type-resolver.js';
+import { TypeChecker, type TypeCheckPassResult } from './visitors/type-checker/index.js';
+import { ControlFlowAnalyzer } from './visitors/control-flow-analyzer.js';
+import {
+  AdvancedAnalyzer,
+  type AdvancedAnalysisResult,
+  type AdvancedAnalysisOptions,
+  type AdvancedDiagnostic,
+  DiagnosticSeverity as AdvSeverity,
+  DiagnosticCategory,
+  DEFAULT_ADVANCED_OPTIONS,
+} from './analysis/index.js';
+import {
+  FrameAllocator,
+  type FrameAllocationResult,
+  type FrameAllocationStats,
+  type FrameDiagnostic,
+  FrameDiagnosticCode,
+} from '../frame/allocator/frame-allocator.js';
+import type { Frame } from '../frame/allocator/frame-calculator.js';
+import { type PlatformConfig, C64_PLATFORM_CONFIG } from '../frame/platform.js';
+import { DiagnosticSeverity as FrameDiagSeverity } from '../frame/enums.js';
 
-/**
- * Result of single-module semantic analysis
- *
- * @deprecated Use ModuleAnalysisResult for new code
- */
-export interface AnalysisResult {
-  /** Symbol table with all symbols and scopes */
-  symbolTable: SymbolTable;
-
-  /** All diagnostics from all passes */
-  diagnostics: Diagnostic[];
-
-  /** True if analysis succeeded (no errors) */
-  success: boolean;
-}
+// ============================================
+// RESULT TYPES
+// ============================================
 
 /**
  * Result of analyzing a single module
  *
- * Contains all analysis artifacts for one module including
- * symbols, types, control flow graphs, and diagnostics.
+ * Contains all artifacts from semantic analysis:
+ * - Symbol table with all declarations and scopes
+ * - Type system with resolved types
+ * - Control flow graphs for all functions
+ * - Call graph tracking function relationships
+ * - Frame map for SFA allocation (if enabled)
+ * - Diagnostics (errors and warnings)
  */
-export interface ModuleAnalysisResult {
-  /** Name of the analyzed module */
+export interface AnalysisResult {
+  /** Whether analysis completed successfully (no errors) */
+  success: boolean;
+
+  /** The module name */
   moduleName: string;
 
-  /** Symbol table with all symbols and scopes */
+  /** The AST that was analyzed */
+  ast: Program;
+
+  /** Symbol table with all declarations and scopes */
   symbolTable: SymbolTable;
 
-  /** Type system with resolved types */
+  /** Type system with built-in and custom types */
   typeSystem: TypeSystem;
 
   /** Control flow graphs for all functions */
   cfgs: Map<string, ControlFlowGraph>;
 
-  /** All diagnostics from this module */
+  /** Call graph tracking function relationships */
+  callGraph: CallGraph;
+
+  /**
+   * Frame map from SFA allocation (function name → Frame)
+   *
+   * Contains all function frame allocations with:
+   * - Base addresses
+   * - Frame slots (parameters, locals, return value)
+   * - ZP vs frame region assignments
+   *
+   * Only populated if frame allocation is enabled (default: true)
+   */
+  frameMap?: Map<string, Frame>;
+
+  /**
+   * Frame allocation statistics
+   *
+   * Includes:
+   * - Bytes used in frame region and ZP
+   * - Utilization percentages
+   * - Coalescing savings (when enabled)
+   */
+  frameAllocationStats?: FrameAllocationStats;
+
+  /** All collected diagnostics (errors, warnings, info) */
   diagnostics: Diagnostic[];
 
-  /** True if module analysis succeeded (no errors) */
-  success: boolean;
+  /** Pass-specific results for debugging */
+  passResults: {
+    /** Pass 1: Symbol table building */
+    symbolTableBuild: SymbolTableBuildResult;
+
+    /** Pass 2: Type resolution */
+    typeResolution: TypeResolutionResult;
+
+    /** Pass 3: Type checking */
+    typeCheck: TypeCheckPassResult;
+
+    /** Pass 6: Recursion checking result */
+    recursionErrors: RecursionError[];
+
+    /** Pass 7: Frame allocation (if enabled) */
+    frameAllocation?: FrameAllocationResult;
+
+    /** Pass 8: Advanced analysis (if enabled) */
+    advancedAnalysis?: AdvancedAnalysisResult;
+  };
+
+  /** Statistics about the analysis */
+  stats: {
+    /** Total declarations analyzed */
+    totalDeclarations: number;
+
+    /** Total expressions type-checked */
+    expressionsChecked: number;
+
+    /** Total functions analyzed */
+    functionsAnalyzed: number;
+
+    /** Number of errors */
+    errorCount: number;
+
+    /** Number of warnings */
+    warningCount: number;
+
+    /** Time taken for analysis (ms) */
+    analysisTimeMs: number;
+  };
 }
 
 /**
- * Result of multi-module semantic analysis
+ * Result of analyzing multiple modules together
  *
- * Contains aggregated analysis results for all modules
- * plus cross-module resolution and global resource allocation.
+ * Contains aggregated results from all modules plus
+ * cross-module information like import resolution.
  */
 export interface MultiModuleAnalysisResult {
-  /** Per-module analysis results (keyed by module name) */
-  modules: Map<string, ModuleAnalysisResult>;
-
-  /** All diagnostics from all modules */
-  diagnostics: Diagnostic[];
-
-  /** True if entire multi-module analysis succeeded */
+  /** Whether all modules analyzed successfully */
   success: boolean;
 
-  /** Global symbol table aggregating all exports (Phase 6.2.1) */
+  /** Per-module analysis results */
+  modules: Map<string, AnalysisResult>;
+
+  /** Global symbol table aggregating all exports */
   globalSymbolTable: GlobalSymbolTable;
 
-  /** Module dependency graph (Phase 6.1.3) */
+  /** Module dependency graph */
   dependencyGraph: DependencyGraph;
 
-  /** Global memory layout (Phase 6.3) */
-  memoryLayout?: GlobalMemoryLayout;
+  /** Import resolution results */
+  importResolution: {
+    /** Whether all imports resolved successfully */
+    success: boolean;
+    /** Import resolution errors */
+    errors: ImportError[];
+  };
+
+  /** Aggregated diagnostics from all modules */
+  diagnostics: Diagnostic[];
+
+  /** Compilation order (topologically sorted) */
+  compilationOrder: string[];
+
+  /** Statistics about the multi-module analysis */
+  stats: {
+    /** Total modules analyzed */
+    totalModules: number;
+    /** Total declarations across all modules */
+    totalDeclarations: number;
+    /** Total errors across all modules */
+    totalErrors: number;
+    /** Total warnings across all modules */
+    totalWarnings: number;
+    /** Total analysis time (ms) */
+    totalTimeMs: number;
+  };
+}
+
+// ============================================
+// OPTIONS
+// ============================================
+
+/**
+ * Options for semantic analysis
+ */
+export interface SemanticAnalyzerOptions {
+  /**
+   * Whether to run frame allocation pass (Pass 7)
+   *
+   * Frame allocation assigns static memory addresses to function frames
+   * and variables for SFA (Static Frame Allocation).
+   *
+   * Default: true
+   */
+  runFrameAllocation?: boolean;
+
+  /**
+   * Platform configuration for frame allocation
+   *
+   * Defines memory regions, ZP availability, and other platform-specific
+   * settings for the target 6502 platform (C64, X16, etc.)
+   *
+   * Default: C64_PLATFORM_CONFIG
+   */
+  platformConfig?: PlatformConfig;
+
+  /**
+   * Whether to run advanced analysis pass (Pass 8)
+   * Includes: definite assignment, variable usage, liveness, etc.
+   * Default: true
+   */
+  runAdvancedAnalysis?: boolean;
+
+  /**
+   * Options for the advanced analyzer
+   */
+  advancedAnalysisOptions?: Partial<AdvancedAnalysisOptions>;
+
+  /**
+   * Whether to stop on first error
+   * Default: false
+   */
+  stopOnFirstError?: boolean;
+
+  /**
+   * Maximum number of errors before stopping
+   * Default: 100
+   */
+  maxErrors?: number;
+
+  /**
+   * Whether to include info-level diagnostics
+   * Default: false
+   */
+  includeInfoDiagnostics?: boolean;
+
+  /**
+   * Custom type system (for testing or extension)
+   */
+  typeSystem?: TypeSystem;
 }
 
 /**
- * Semantic analyzer orchestrator
+ * Default analyzer options
+ */
+export const DEFAULT_ANALYZER_OPTIONS: SemanticAnalyzerOptions = {
+  runFrameAllocation: true,
+  platformConfig: C64_PLATFORM_CONFIG,
+  runAdvancedAnalysis: true,
+  advancedAnalysisOptions: {},
+  stopOnFirstError: false,
+  maxErrors: 100,
+  includeInfoDiagnostics: false,
+  typeSystem: undefined,
+};
+
+// ============================================
+// SEMANTIC ANALYZER
+// ============================================
+
+/**
+ * Semantic Analyzer - Main entry point for semantic analysis
  *
- * Coordinates multi-pass semantic analysis:
- * 1. Builds symbol tables and scopes (Phase 1)
- * 2. Resolves types (Phase 2)
- * 3. Type checks expressions and statements (Phase 3 + 4)
- * 4. Builds control flow graphs (Phase 5)
- * 5. Advanced optimization analysis (Phase 8)
+ * Orchestrates all semantic passes for single and multi-module analysis.
  *
- * **Current Implementation:** Passes 1-5, 8 complete and integrated.
+ * **Single Module Analysis:**
+ * ```typescript
+ * const analyzer = new SemanticAnalyzer();
+ * const result = analyzer.analyze(programAST);
+ *
+ * if (result.success) {
+ *   console.log('Analysis passed!');
+ *   // Use result.symbolTable, result.callGraph, etc.
+ * } else {
+ *   for (const diag of result.diagnostics) {
+ *     console.error(diag.message);
+ *   }
+ * }
+ * ```
+ *
+ * **Multi-Module Analysis:**
+ * ```typescript
+ * const analyzer = new SemanticAnalyzer();
+ * const result = analyzer.analyzeMultiple([program1, program2, program3]);
+ *
+ * if (result.success) {
+ *   const order = result.compilationOrder;
+ *   for (const moduleName of order) {
+ *     const moduleResult = result.modules.get(moduleName)!;
+ *     // Use moduleResult...
+ *   }
+ * }
+ * ```
  */
 export class SemanticAnalyzer {
-  /** Symbol table (built during Pass 1) */
-  protected symbolTable: SymbolTable | null = null;
-
-  /** Type system (built during Pass 2) */
-  protected typeSystem: TypeSystem | null = null;
-
-  /** Control flow graphs (built during Pass 5) */
-  protected cfgs: Map<string, ControlFlowGraph> = new Map();
-
-  /** All diagnostics from all passes */
-  protected diagnostics: Diagnostic[] = [];
+  /**
+   * Analysis options
+   */
+  protected options: SemanticAnalyzerOptions;
 
   /**
-   * Analyze a single AST (backward compatibility)
-   *
-   * Runs all semantic analysis passes and returns results.
-   *
-   * @param ast - Program AST to analyze
-   * @returns Analysis result with symbol table and diagnostics
-   * @deprecated Use analyzeMultiple() for multi-module support
+   * Type system (shared across passes)
    */
-  public analyze(ast: Program): AnalysisResult {
-    // Reset state for new analysis
-    this.symbolTable = null;
-    this.typeSystem = null;
-    this.cfgs.clear();
-    this.diagnostics = [];
+  protected typeSystem: TypeSystem;
 
-    // Run per-module analysis
-    this.analyzeModule(ast);
+  /**
+   * Creates a new SemanticAnalyzer
+   *
+   * @param options - Analysis options
+   */
+  constructor(options?: SemanticAnalyzerOptions) {
+    this.options = {
+      ...DEFAULT_ANALYZER_OPTIONS,
+      ...options,
+    };
+    this.typeSystem = this.options.typeSystem ?? new TypeSystem();
+  }
 
-    // Return legacy format
+  // ============================================
+  // SINGLE MODULE ANALYSIS
+  // ============================================
+
+  /**
+   * Analyzes a single module (program)
+   *
+   * Runs all semantic passes in sequence:
+   * 1. Symbol table building
+   * 2. Type resolution
+   * 3. Type checking
+   * 4. Control flow analysis
+   * 5. Call graph & recursion detection
+   * 6. Advanced analysis (optional)
+   *
+   * @param program - The program AST to analyze
+   * @returns The analysis result
+   */
+  public analyze(program: Program): AnalysisResult {
+    const startTime = Date.now();
+    const diagnostics: Diagnostic[] = [];
+    const moduleName = program.getModule().getFullName();
+
+    // ----------------------------------------
+    // Pass 1: Symbol Table Building
+    // ----------------------------------------
+    const symbolTableBuilder = new SymbolTableBuilder();
+    const symbolTableResult = symbolTableBuilder.build(program);
+
+    diagnostics.push(...symbolTableResult.diagnostics);
+
+    // Check if we should stop
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 2: Type Resolution
+    // ----------------------------------------
+    const typeResolver = new TypeResolver(this.typeSystem);
+    const typeResolutionResult = typeResolver.resolve(
+      symbolTableResult.symbolTable,
+      program,
+    );
+
+    diagnostics.push(...typeResolutionResult.diagnostics);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 3: Type Checking (includes Pass 4)
+    // ----------------------------------------
+    const typeChecker = new TypeChecker(this.typeSystem, {
+      stopOnFirstError: this.options.stopOnFirstError ?? false,
+      maxErrors: this.options.maxErrors ?? 100,
+      reportWarnings: true,
+    });
+    const typeCheckResult = typeChecker.check(symbolTableResult.symbolTable, program);
+
+    diagnostics.push(...typeCheckResult.diagnostics);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+        typeCheckResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 5: Control Flow Analysis
+    // ----------------------------------------
+    const cfAnalyzer = new ControlFlowAnalyzer(symbolTableResult.symbolTable);
+    cfAnalyzer.walk(program);
+    const cfgs = cfAnalyzer.getAllCFGs();
+    const cfDiagnostics = cfAnalyzer.getDiagnostics();
+
+    diagnostics.push(...cfDiagnostics);
+
+    // ----------------------------------------
+    // Pass 6: Call Graph & Recursion Detection
+    // ----------------------------------------
+    const callGraphBuilder = new CallGraphBuilder(symbolTableResult.symbolTable);
+    const callGraph = callGraphBuilder.build(program);
+
+    const recursionChecker = new RecursionChecker(callGraph);
+    const recursionResult = recursionChecker.check();
+
+    // Convert recursion errors to diagnostics
+    const recursionErrors = recursionResult.errors;
+    for (const error of recursionErrors) {
+      diagnostics.push(this.recursionErrorToDiagnostic(error));
+    }
+
+    // ----------------------------------------
+    // Pass 7: Frame Allocation (optional)
+    // ----------------------------------------
+    let frameAllocationResult: FrameAllocationResult | undefined;
+    let frameMap: Map<string, Frame> | undefined;
+    let frameAllocationStats: FrameAllocationStats | undefined;
+
+    if (this.options.runFrameAllocation && !this.hasErrors(diagnostics)) {
+      const platformConfig = this.options.platformConfig ?? C64_PLATFORM_CONFIG;
+      const frameAllocator = new FrameAllocator(platformConfig, symbolTableResult.symbolTable);
+
+      frameAllocationResult = frameAllocator.allocate(
+        program,
+        callGraph,
+        symbolTableResult.symbolTable
+      );
+
+      // Store frame map and stats for result
+      frameMap = frameAllocationResult.frameMap;
+      frameAllocationStats = frameAllocationResult.stats;
+
+      // Convert frame diagnostics to standard diagnostics
+      for (const frameDiag of frameAllocationResult.diagnostics) {
+        diagnostics.push(this.frameDiagnosticToStandard(frameDiag));
+      }
+    }
+
+    // ----------------------------------------
+    // Pass 8: Advanced Analysis (optional)
+    // ----------------------------------------
+    let advancedResult: AdvancedAnalysisResult | undefined;
+
+    if (this.options.runAdvancedAnalysis && !this.hasErrors(diagnostics)) {
+      const advancedOptions: AdvancedAnalysisOptions = {
+        ...DEFAULT_ADVANCED_OPTIONS,
+        ...(this.options.advancedAnalysisOptions ?? {}),
+      };
+
+      const advancedAnalyzer = new AdvancedAnalyzer(
+        symbolTableResult.symbolTable,
+        this.typeSystem,
+        {
+          globalSymbolTable: this.createGlobalSymbolTableForSingleModule(moduleName, program),
+          cfgs,
+          functionSymbols: this.createFunctionSymbolsMap(symbolTableResult.symbolTable),
+        },
+        advancedOptions,
+      );
+
+      advancedResult = advancedAnalyzer.analyze(program);
+
+      // Convert advanced diagnostics to standard diagnostics
+      for (const advDiag of advancedResult.diagnostics) {
+        if (this.shouldIncludeDiagnostic(advDiag)) {
+          diagnostics.push(this.advancedDiagnosticToStandard(advDiag));
+        }
+      }
+    }
+
+    // ----------------------------------------
+    // Build Result
+    // ----------------------------------------
+    const endTime = Date.now();
+    const errorCount = this.countErrors(diagnostics);
+    const warningCount = this.countWarnings(diagnostics);
+
     return {
-      symbolTable: this.symbolTable!,
-      diagnostics: [...this.diagnostics],
-      success: !this.hasErrors(),
+      success: errorCount === 0,
+      moduleName,
+      ast: program,
+      symbolTable: symbolTableResult.symbolTable,
+      typeSystem: this.typeSystem,
+      cfgs,
+      callGraph,
+      frameMap,
+      frameAllocationStats,
+      diagnostics,
+      passResults: {
+        symbolTableBuild: symbolTableResult,
+        typeResolution: typeResolutionResult,
+        typeCheck: typeCheckResult,
+        recursionErrors,
+        frameAllocation: frameAllocationResult,
+        advancedAnalysis: advancedResult,
+      },
+      stats: {
+        totalDeclarations: this.countDeclarations(symbolTableResult.symbolTable),
+        expressionsChecked: typeCheckResult.expressionsChecked,
+        functionsAnalyzed: callGraph.size(),
+        errorCount,
+        warningCount,
+        analysisTimeMs: endTime - startTime,
+      },
     };
   }
 
+  // ============================================
+  // MULTI-MODULE ANALYSIS
+  // ============================================
+
   /**
-   * Analyze multiple Program ASTs (multi-module support)
+   * Analyzes multiple modules together
    *
-   * **Multi-Pass Architecture (Phase 6.2.2):**
+   * Uses a multi-phase approach to handle cross-module dependencies:
    *
-   * **Phase A: Module Discovery & Validation**
-   * 1. Build module registry (all modules by name)
-   * 2. Build dependency graph from imports
-   * 3. Detect circular dependencies (fail-fast)
-   * 4. Validate imports (fail-fast on missing modules)
+   * Phase 1: Register all modules
+   * Phase 2: Build dependency graph from imports
+   * Phase 3: Compute compilation order (topological sort)
+   * Phase 4: Build symbol tables for ALL modules
+   * Phase 5: Collect ALL exports into global symbol table
+   * Phase 6: Update global symbol types from analyzed modules
+   * Phase 7: Populate import types in each module's symbol table
+   * Phase 8: Run remaining passes (type resolution, type checking, etc.)
+   * Phase 9: Validate imports
    *
-   * **Phase B: Per-Module Analysis (in dependency order)**
-   * 5. Get topological sort (compilation order)
-   * 6. Analyze each module using existing Passes 1-5
-   * 7. Collect per-module results (symbols, types, CFGs, diagnostics)
-   *
-   * **Phase C: Cross-Module Integration**
-   * 8. Build global symbol table (aggregate all exports)
-   * 9. Cross-module validation (Phase 6.2.3, future)
-   * 10. Global resource allocation (Phase 6.3, future)
-   *
-   * @param programs - Array of Program ASTs to analyze
-   * @returns Multi-module analysis results
+   * @param programs - Array of program ASTs to analyze
+   * @returns The multi-module analysis result
    */
   public analyzeMultiple(programs: Program[]): MultiModuleAnalysisResult {
-    // ============================================
-    // PHASE A: Module Discovery & Validation
-    // ============================================
-
-    // Pass 0: Build module registry
-    const registry = this.buildModuleRegistry(programs);
-
-    // Pass 1: Build dependency graph (extracts imports)
-    const depGraph = this.buildDependencyGraph(programs, registry);
-
-    // Check for circular imports (fail-fast)
-    const cycles = depGraph.detectCycles();
-    if (cycles.length > 0) {
-      return this.failWithCircularImports(cycles, depGraph);
-    }
-
-    // Pass 2: Validate imports (fail-fast on missing modules)
-    const importErrors = this.validateImports(programs, registry);
-    if (importErrors.length > 0) {
-      return this.failWithImportErrors(importErrors, depGraph);
-    }
-
-    // ============================================
-    // PHASE B: Per-Module Analysis (Dependency Order)
-    // ============================================
-
-    // Pass 3: Get compilation order (topological sort)
-    const compilationOrder = depGraph.getTopologicalOrder();
-
-    // Pass 4: Analyze each module in dependency order
-    const moduleResults = this.analyzeModulesInOrder(compilationOrder, registry);
-
-    // ============================================
-    // PHASE C: Cross-Module Integration
-    // ============================================
-
-    // Pass 5: Build global symbol table
-    const globalSymbols = this.buildGlobalSymbolTable(moduleResults);
-
-    // Collect all diagnostics
+    const startTime = Date.now();
     const allDiagnostics: Diagnostic[] = [];
-    for (const result of moduleResults.values()) {
-      allDiagnostics.push(...result.diagnostics);
-    }
 
-    // ============================================
-    // PHASE D: Global Resource Management (Phase 6.3)
-    // ============================================
-
-    // Pass 6: Build global memory layout
-    const memoryLayoutBuilder = new MemoryLayoutBuilder();
-    const memoryLayout = memoryLayoutBuilder.buildLayout(moduleResults);
-
-    // Add memory layout conflicts to diagnostics
-    for (const conflict of memoryLayout.conflicts) {
-      allDiagnostics.push({
-        code: this.getConflictDiagnosticCode(conflict.type),
-        severity: DiagnosticSeverity.ERROR,
-        message: conflict.message,
-        location: conflict.locations[0], // Use first location
-      });
-    }
-
-    // Return aggregated results
-    return {
-      modules: moduleResults,
-      diagnostics: allDiagnostics,
-      success: !allDiagnostics.some(d => d.severity === 'error'),
-      globalSymbolTable: globalSymbols,
-      dependencyGraph: depGraph,
-      memoryLayout,
-    };
-  }
-
-  /**
-   * Analyze a single module (internal helper)
-   *
-   * This method contains the core per-module analysis logic
-   * that was previously in analyze(). It's now reused by both
-   * the legacy analyze() and the new analyzeMultiple().
-   *
-   * **Assumptions:**
-   * - this.symbolTable, this.typeSystem, this.cfgs are already reset
-   * - this.diagnostics is already cleared
-   *
-   * @param ast - Program AST to analyze
-   */
-  protected analyzeModule(ast: Program): void {
-    // Pass 1: Build symbol table
-    this.runPass1_SymbolTableBuilder(ast);
-
-    // Pass 2: Type resolution (only if Pass 1 succeeded)
-    if (!this.hasErrors()) {
-      this.runPass2_TypeResolution(ast);
-    }
-
-    // Pass 3: Type checking (only if Pass 2 succeeded)
-    if (!this.hasErrors()) {
-      this.runPass3_TypeChecker(ast);
-    }
-
-    // Pass 5: Control flow analysis (only if Pass 1 succeeded)
-    // Note: Can run independently of type checking
-    if (!this.hasErrors()) {
-      this.runPass5_ControlFlowAnalyzer(ast);
-    }
-
-    // Pass 8: Advanced analysis (only if all previous passes succeeded)
-    if (!this.hasErrors()) {
-      this.runPass8_AdvancedAnalysis(ast);
-    }
-  }
-
-  /**
-   * Build module registry from programs
-   *
-   * Registers all modules by name, detecting duplicate module declarations.
-   *
-   * @param programs - Array of Program ASTs
-   * @returns Module registry
-   */
-  protected buildModuleRegistry(programs: Program[]): ModuleRegistry {
-    const registry = new ModuleRegistry();
+    // ----------------------------------------
+    // Phase 1: Register Modules
+    // ----------------------------------------
+    const moduleRegistry = new ModuleRegistry();
 
     for (const program of programs) {
-      const moduleName = this.getModuleName(program);
+      const moduleName = program.getModule().getFullName();
+      moduleRegistry.register(moduleName, program);
+    }
 
-      try {
-        registry.register(moduleName, program);
-      } catch (error) {
-        // Duplicate module error
-        this.diagnostics.push({
-          code: DiagnosticCode.DUPLICATE_MODULE,
+    // ----------------------------------------
+    // Phase 2: Build Dependency Graph
+    // ----------------------------------------
+    const dependencyGraph = this.buildDependencyGraph(programs, moduleRegistry);
+
+    // Check for circular dependencies
+    const cycles = dependencyGraph.detectCycles();
+    if (cycles.length > 0) {
+      for (const cycle of cycles) {
+        allDiagnostics.push({
           severity: DiagnosticSeverity.ERROR,
-          message: error instanceof Error ? error.message : String(error),
-          location: program.getModule().getLocation(),
+          code: DiagnosticCode.CIRCULAR_IMPORT,
+          message: `Circular dependency detected: ${cycle.cycle.join(' → ')}`,
+          location: cycle.location,
         });
       }
     }
 
-    return registry;
+    // ----------------------------------------
+    // Phase 3: Compute Compilation Order
+    // ----------------------------------------
+    let compilationOrder: string[];
+    try {
+      compilationOrder = dependencyGraph.getCompilationOrder();
+    } catch {
+      // If topological sort fails (due to cycles), use registration order
+      compilationOrder = moduleRegistry.getAllModuleNames();
+    }
+
+    // ----------------------------------------
+    // Phase 4: Build Symbol Tables for ALL Modules
+    // ----------------------------------------
+    const symbolTableResults = new Map<string, SymbolTableBuildResult>();
+    const globalSymbolTable = new GlobalSymbolTable();
+
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      if (!registeredModule) continue;
+
+      // Build symbol table only (Pass 1)
+      const symbolTableBuilder = new SymbolTableBuilder();
+      const symbolTableResult = symbolTableBuilder.build(registeredModule.program);
+      symbolTableResults.set(moduleName, symbolTableResult);
+
+      // Collect symbol table building errors
+      allDiagnostics.push(...symbolTableResult.diagnostics);
+    }
+
+    // ----------------------------------------
+    // Phase 5: Collect ALL Exports into Global Symbol Table (type: null)
+    // ----------------------------------------
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      if (!registeredModule) continue;
+
+      globalSymbolTable.collectFromProgram(moduleName, registeredModule.program);
+    }
+
+    // ----------------------------------------
+    // Phase 6: Run Type Resolution for ALL Modules (to resolve types from annotations)
+    // ----------------------------------------
+    const typeResolutionResults = new Map<string, TypeResolutionResult>();
+
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      if (!registeredModule || !symbolTableResult) continue;
+
+      // Run type resolution (Pass 2) - resolves types from annotations
+      const typeResolver = new TypeResolver(this.typeSystem);
+      const typeResolutionResult = typeResolver.resolve(
+        symbolTableResult.symbolTable,
+        registeredModule.program,
+      );
+      typeResolutionResults.set(moduleName, typeResolutionResult);
+
+      // Collect type resolution errors
+      allDiagnostics.push(...typeResolutionResult.diagnostics);
+    }
+
+    // ----------------------------------------
+    // Phase 7: Update Global Symbol Types (now that types are resolved)
+    // ----------------------------------------
+    for (const moduleName of compilationOrder) {
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      if (!symbolTableResult) continue;
+
+      this.updateGlobalSymbolTypes(globalSymbolTable, moduleName, symbolTableResult.symbolTable);
+    }
+
+    // ----------------------------------------
+    // Phase 8: Populate Import Types in Each Module's Symbol Table
+    // ----------------------------------------
+    for (const moduleName of compilationOrder) {
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      if (!symbolTableResult) continue;
+
+      this.populateImportTypes(symbolTableResult.symbolTable, globalSymbolTable);
+    }
+
+    // ----------------------------------------
+    // Phase 9: Run Remaining Passes (Type Checking, Control Flow, etc.)
+    // ----------------------------------------
+    const moduleResults = new Map<string, AnalysisResult>();
+
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      const symbolTableResult = symbolTableResults.get(moduleName);
+      const typeResolutionResult = typeResolutionResults.get(moduleName);
+      if (!registeredModule || !symbolTableResult) continue;
+
+      // Run analysis with existing symbol table (skipping Pass 1 and Pass 2)
+      const result = this.analyzeWithSymbolTableAndTypes(
+        registeredModule.program,
+        symbolTableResult,
+        typeResolutionResult!,
+        globalSymbolTable,
+      );
+      moduleResults.set(moduleName, result);
+
+      // Collect diagnostics (but not ones already added from earlier phases)
+      const existingDiagnostics = new Set([
+        ...symbolTableResult.diagnostics,
+        ...(typeResolutionResult?.diagnostics ?? []),
+      ]);
+      const newDiagnostics = result.diagnostics.filter((d) => !existingDiagnostics.has(d));
+      allDiagnostics.push(...newDiagnostics);
+    }
+
+    // ----------------------------------------
+    // Phase 9: Validate Imports
+    // ----------------------------------------
+    const importResolver = new ImportResolver(moduleRegistry);
+    const importErrors: ImportError[] = [];
+
+    for (const moduleName of compilationOrder) {
+      const registeredModule = moduleRegistry.getModule(moduleName);
+      if (!registeredModule) continue;
+
+      const resolutions = importResolver.resolveImports(registeredModule.program);
+
+      // Extract errors from resolutions
+      for (const resolution of resolutions) {
+        if (!resolution.success && resolution.errors) {
+          importErrors.push(...resolution.errors);
+        }
+      }
+    }
+
+    // Convert import errors to diagnostics
+    for (const error of importErrors) {
+      allDiagnostics.push(this.importErrorToDiagnostic(error));
+    }
+
+    // ----------------------------------------
+    // Build Result
+    // ----------------------------------------
+    const endTime = Date.now();
+    const totalErrors = this.countErrors(allDiagnostics);
+    const totalWarnings = this.countWarnings(allDiagnostics);
+
+    return {
+      success: totalErrors === 0,
+      modules: moduleResults,
+      globalSymbolTable,
+      dependencyGraph,
+      importResolution: {
+        success: importErrors.length === 0,
+        errors: importErrors,
+      },
+      diagnostics: allDiagnostics,
+      compilationOrder,
+      stats: {
+        totalModules: programs.length,
+        totalDeclarations: this.sumStats(moduleResults, (r) => r.stats.totalDeclarations),
+        totalErrors,
+        totalWarnings,
+        totalTimeMs: endTime - startTime,
+      },
+    };
   }
 
   /**
-   * Build dependency graph from imports
+   * Analyzes a module using an existing symbol table
    *
-   * Extracts all import declarations and builds the module dependency graph.
+   * Skips Pass 1 (symbol table building) since it's already done.
+   * Runs Pass 2 onwards: type resolution, type checking, control flow, etc.
    *
-   * @param programs - Array of Program ASTs
-   * @param registry - Module registry
-   * @returns Dependency graph
+   * @param program - The program AST
+   * @param symbolTableResult - Pre-built symbol table result
+   * @param globalSymbolTable - Global symbol table with cross-module info
+   * @returns Analysis result
    */
-  protected buildDependencyGraph(programs: Program[], registry: ModuleRegistry): DependencyGraph {
+  protected analyzeWithSymbolTable(
+    program: Program,
+    symbolTableResult: SymbolTableBuildResult,
+    globalSymbolTable: GlobalSymbolTable,
+  ): AnalysisResult {
+    const startTime = Date.now();
+    const diagnostics: Diagnostic[] = [];
+    const moduleName = program.getModule().getFullName();
+
+    // Include symbol table building diagnostics
+    diagnostics.push(...symbolTableResult.diagnostics);
+
+    // Check if we should stop
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 2: Type Resolution
+    // ----------------------------------------
+    const typeResolver = new TypeResolver(this.typeSystem);
+    const typeResolutionResult = typeResolver.resolve(
+      symbolTableResult.symbolTable,
+      program,
+    );
+
+    diagnostics.push(...typeResolutionResult.diagnostics);
+
+    // After type resolution, update global symbol types with resolved types
+    this.updateGlobalSymbolTypes(globalSymbolTable, moduleName, symbolTableResult.symbolTable);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 3: Type Checking (includes Pass 4)
+    // ----------------------------------------
+    const typeChecker = new TypeChecker(this.typeSystem, {
+      stopOnFirstError: this.options.stopOnFirstError ?? false,
+      maxErrors: this.options.maxErrors ?? 100,
+      reportWarnings: true,
+    });
+    const typeCheckResult = typeChecker.check(symbolTableResult.symbolTable, program);
+
+    diagnostics.push(...typeCheckResult.diagnostics);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+        typeCheckResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 5: Control Flow Analysis
+    // ----------------------------------------
+    const cfAnalyzer = new ControlFlowAnalyzer(symbolTableResult.symbolTable);
+    cfAnalyzer.walk(program);
+    const cfgs = cfAnalyzer.getAllCFGs();
+    const cfDiagnostics = cfAnalyzer.getDiagnostics();
+
+    diagnostics.push(...cfDiagnostics);
+
+    // ----------------------------------------
+    // Pass 6: Call Graph & Recursion Detection
+    // ----------------------------------------
+    const callGraphBuilder = new CallGraphBuilder(symbolTableResult.symbolTable);
+    const callGraph = callGraphBuilder.build(program);
+
+    const recursionChecker = new RecursionChecker(callGraph);
+    const recursionResult = recursionChecker.check();
+
+    // Convert recursion errors to diagnostics
+    const recursionErrors = recursionResult.errors;
+    for (const error of recursionErrors) {
+      diagnostics.push(this.recursionErrorToDiagnostic(error));
+    }
+
+    // ----------------------------------------
+    // Pass 7: Advanced Analysis (optional)
+    // ----------------------------------------
+    let advancedResult: AdvancedAnalysisResult | undefined;
+
+    if (this.options.runAdvancedAnalysis && !this.hasErrors(diagnostics)) {
+      const advancedOptions: AdvancedAnalysisOptions = {
+        ...DEFAULT_ADVANCED_OPTIONS,
+        ...(this.options.advancedAnalysisOptions ?? {}),
+      };
+
+      const advancedAnalyzer = new AdvancedAnalyzer(
+        symbolTableResult.symbolTable,
+        this.typeSystem,
+        {
+          globalSymbolTable,
+          cfgs,
+          functionSymbols: this.createFunctionSymbolsMap(symbolTableResult.symbolTable),
+        },
+        advancedOptions,
+      );
+
+      advancedResult = advancedAnalyzer.analyze(program);
+
+      // Convert advanced diagnostics to standard diagnostics
+      for (const advDiag of advancedResult.diagnostics) {
+        if (this.shouldIncludeDiagnostic(advDiag)) {
+          diagnostics.push(this.advancedDiagnosticToStandard(advDiag));
+        }
+      }
+    }
+
+    // ----------------------------------------
+    // Build Result
+    // ----------------------------------------
+    const endTime = Date.now();
+    const errorCount = this.countErrors(diagnostics);
+    const warningCount = this.countWarnings(diagnostics);
+
+    return {
+      success: errorCount === 0,
+      moduleName,
+      ast: program,
+      symbolTable: symbolTableResult.symbolTable,
+      typeSystem: this.typeSystem,
+      cfgs,
+      callGraph,
+      diagnostics,
+      passResults: {
+        symbolTableBuild: symbolTableResult,
+        typeResolution: typeResolutionResult,
+        typeCheck: typeCheckResult,
+        recursionErrors,
+        advancedAnalysis: advancedResult,
+      },
+      stats: {
+        totalDeclarations: this.countDeclarations(symbolTableResult.symbolTable),
+        expressionsChecked: typeCheckResult.expressionsChecked,
+        functionsAnalyzed: callGraph.size(),
+        errorCount,
+        warningCount,
+        analysisTimeMs: endTime - startTime,
+      },
+    };
+  }
+
+  /**
+   * Analyzes a module using existing symbol table and type resolution results
+   *
+   * Skips Pass 1 (symbol table building) and Pass 2 (type resolution) since they're done.
+   * Runs Pass 3 onwards: type checking, control flow, call graph, etc.
+   *
+   * @param program - The program AST
+   * @param symbolTableResult - Pre-built symbol table result
+   * @param typeResolutionResult - Pre-computed type resolution result
+   * @param globalSymbolTable - Global symbol table with cross-module info
+   * @returns Analysis result
+   */
+  protected analyzeWithSymbolTableAndTypes(
+    program: Program,
+    symbolTableResult: SymbolTableBuildResult,
+    typeResolutionResult: TypeResolutionResult,
+    globalSymbolTable: GlobalSymbolTable,
+  ): AnalysisResult {
+    const startTime = Date.now();
+    const diagnostics: Diagnostic[] = [];
+    const moduleName = program.getModule().getFullName();
+
+    // Include symbol table building diagnostics
+    diagnostics.push(...symbolTableResult.diagnostics);
+
+    // Include type resolution diagnostics
+    diagnostics.push(...typeResolutionResult.diagnostics);
+
+    // Check if we should stop
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 3: Type Checking (includes Pass 4)
+    // ----------------------------------------
+    const typeChecker = new TypeChecker(this.typeSystem, {
+      stopOnFirstError: this.options.stopOnFirstError ?? false,
+      maxErrors: this.options.maxErrors ?? 100,
+      reportWarnings: true,
+    });
+    const typeCheckResult = typeChecker.check(symbolTableResult.symbolTable, program);
+
+    diagnostics.push(...typeCheckResult.diagnostics);
+
+    if (this.shouldStopAnalysis(diagnostics)) {
+      return this.createFailedResult(
+        moduleName,
+        program,
+        symbolTableResult.symbolTable,
+        diagnostics,
+        symbolTableResult,
+        Date.now() - startTime,
+        typeResolutionResult,
+        typeCheckResult,
+      );
+    }
+
+    // ----------------------------------------
+    // Pass 5: Control Flow Analysis
+    // ----------------------------------------
+    const cfAnalyzer = new ControlFlowAnalyzer(symbolTableResult.symbolTable);
+    cfAnalyzer.walk(program);
+    const cfgs = cfAnalyzer.getAllCFGs();
+    const cfDiagnostics = cfAnalyzer.getDiagnostics();
+
+    diagnostics.push(...cfDiagnostics);
+
+    // ----------------------------------------
+    // Pass 6: Call Graph & Recursion Detection
+    // ----------------------------------------
+    const callGraphBuilder = new CallGraphBuilder(symbolTableResult.symbolTable);
+    const callGraph = callGraphBuilder.build(program);
+
+    const recursionChecker = new RecursionChecker(callGraph);
+    const recursionResult = recursionChecker.check();
+
+    // Convert recursion errors to diagnostics
+    const recursionErrors = recursionResult.errors;
+    for (const error of recursionErrors) {
+      diagnostics.push(this.recursionErrorToDiagnostic(error));
+    }
+
+    // ----------------------------------------
+    // Pass 7: Advanced Analysis (optional)
+    // ----------------------------------------
+    let advancedResult: AdvancedAnalysisResult | undefined;
+
+    if (this.options.runAdvancedAnalysis && !this.hasErrors(diagnostics)) {
+      const advancedOptions: AdvancedAnalysisOptions = {
+        ...DEFAULT_ADVANCED_OPTIONS,
+        ...(this.options.advancedAnalysisOptions ?? {}),
+      };
+
+      const advancedAnalyzer = new AdvancedAnalyzer(
+        symbolTableResult.symbolTable,
+        this.typeSystem,
+        {
+          globalSymbolTable,
+          cfgs,
+          functionSymbols: this.createFunctionSymbolsMap(symbolTableResult.symbolTable),
+        },
+        advancedOptions,
+      );
+
+      advancedResult = advancedAnalyzer.analyze(program);
+
+      // Convert advanced diagnostics to standard diagnostics
+      for (const advDiag of advancedResult.diagnostics) {
+        if (this.shouldIncludeDiagnostic(advDiag)) {
+          diagnostics.push(this.advancedDiagnosticToStandard(advDiag));
+        }
+      }
+    }
+
+    // ----------------------------------------
+    // Build Result
+    // ----------------------------------------
+    const endTime = Date.now();
+    const errorCount = this.countErrors(diagnostics);
+    const warningCount = this.countWarnings(diagnostics);
+
+    return {
+      success: errorCount === 0,
+      moduleName,
+      ast: program,
+      symbolTable: symbolTableResult.symbolTable,
+      typeSystem: this.typeSystem,
+      cfgs,
+      callGraph,
+      diagnostics,
+      passResults: {
+        symbolTableBuild: symbolTableResult,
+        typeResolution: typeResolutionResult,
+        typeCheck: typeCheckResult,
+        recursionErrors,
+        advancedAnalysis: advancedResult,
+      },
+      stats: {
+        totalDeclarations: this.countDeclarations(symbolTableResult.symbolTable),
+        expressionsChecked: typeCheckResult.expressionsChecked,
+        functionsAnalyzed: callGraph.size(),
+        errorCount,
+        warningCount,
+        analysisTimeMs: endTime - startTime,
+      },
+    };
+  }
+
+  /**
+   * Updates global symbol types from a module's symbol table
+   *
+   * After type resolution, the symbol table has resolved types.
+   * This method copies those types to the global symbol table.
+   *
+   * @param globalSymbolTable - The global symbol table to update
+   * @param moduleName - The module name
+   * @param symbolTable - The module's symbol table with resolved types
+   */
+  protected updateGlobalSymbolTypes(
+    globalSymbolTable: GlobalSymbolTable,
+    moduleName: string,
+    symbolTable: SymbolTable,
+  ): void {
+    // Get all exported symbols from the root scope
+    const rootScope = symbolTable.getRootScope();
+
+    for (const symbol of rootScope.symbols.values()) {
+      if (symbol.isExported && symbol.type) {
+        globalSymbolTable.setSymbolType(moduleName, symbol.name, symbol.type);
+      }
+    }
+  }
+
+  /**
+   * Populates import symbol types from the global symbol table
+   *
+   * For each ImportedSymbol in the symbol table, looks up the actual type
+   * from the global symbol table and updates the import's type.
+   *
+   * @param symbolTable - The symbol table to update
+   * @param globalSymbolTable - The global symbol table with exported types
+   */
+  protected populateImportTypes(
+    symbolTable: SymbolTable,
+    globalSymbolTable: GlobalSymbolTable,
+  ): void {
+    // Get all symbols from the root scope
+    const rootScope = symbolTable.getRootScope();
+
+    for (const symbol of rootScope.symbols.values()) {
+      // Check if this is an imported symbol
+      if (symbol.kind === SymbolKind.ImportedSymbol && symbol.sourceModule) {
+        const sourceModule = symbol.sourceModule;
+        const originalName = symbol.originalName ?? symbol.name;
+
+        // Look up the global symbol
+        const globalLookup = globalSymbolTable.lookupQualified(sourceModule, originalName);
+
+        if (globalLookup.found && globalLookup.symbol) {
+          const globalSymbol = globalLookup.symbol;
+
+          // Copy type from global symbol to import symbol
+          if (globalSymbol.type) {
+            symbol.type = globalSymbol.type;
+          }
+
+          // If the global symbol is a function, create a function type
+          if (globalSymbol.kind === GlobalSymbolKind.Function && !symbol.type) {
+            // For functions, we need to look up the full type from the source module
+            // The globalSymbol may not have the full function type yet
+            // We'll mark this as needing resolution - the type checker should handle it
+          }
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
+
+  /**
+   * Builds a dependency graph from program imports
+   */
+  protected buildDependencyGraph(
+    programs: Program[],
+    registry: ModuleRegistry,
+  ): DependencyGraph {
     const graph = new DependencyGraph();
 
     for (const program of programs) {
-      const moduleName = this.getModuleName(program);
-
-      // Register module in graph (ensures it's included even without imports)
+      const moduleName = program.getModule().getFullName();
       graph.addNode(moduleName);
 
-      // Extract all import declarations
-      const imports = program
-        .getDeclarations()
-        .filter(isImportDecl);
+      // Add edges for each import
+      for (const decl of program.getDeclarations()) {
+        if (decl.getNodeType() === 'ImportDecl') {
+          const importDecl = decl as unknown as { getModuleName(): string; getLocation(): SourceLocation };
+          const targetModule = importDecl.getModuleName();
 
-      for (const importDecl of imports) {
-        const targetModule = importDecl.getModuleName();
-        graph.addEdge(moduleName, targetModule, importDecl.getLocation());
-
-        // Also track in registry for dependency tracking
-        registry.addDependency(moduleName, targetModule);
+          if (registry.hasModule(targetModule)) {
+            graph.addEdge(moduleName, targetModule, importDecl.getLocation());
+          }
+        }
       }
     }
 
@@ -353,570 +1220,354 @@ export class SemanticAnalyzer {
   }
 
   /**
-   * Validate imports across all modules
-   *
-   * Uses ImportResolver to check that all imported modules exist.
-   *
-   * @param programs - Array of Program ASTs
-   * @param registry - Module registry
-   * @returns Array of import validation errors
+   * Creates a global symbol table for single-module analysis
    */
-  protected validateImports(programs: Program[], registry: ModuleRegistry): Diagnostic[] {
-    const resolver = new ImportResolver(registry);
-    return resolver.validateAllImports(programs);
-  }
-
-  /**
-   * Analyze modules in dependency order
-   *
-   * Analyzes each module using existing Passes 1-5, processing modules
-   * in topological order (dependencies first).
-   *
-   * **Cross-Module Symbol Resolution:**
-   * Makes imported symbols from previously-analyzed modules available
-   * during type checking. This enables basic cross-module type checking
-   * before the full validation pass (Task 6.2.3).
-   *
-   * @param compilationOrder - Module names in compilation order
-   * @param registry - Module registry
-   * @returns Map of module name → analysis result
-   */
-  protected analyzeModulesInOrder(
-    compilationOrder: string[],
-    registry: ModuleRegistry
-  ): Map<string, ModuleAnalysisResult> {
-    const moduleResults = new Map<string, ModuleAnalysisResult>();
-    const globalSymbols = new GlobalSymbolTable();
-
-    for (const moduleName of compilationOrder) {
-      const program = registry.getModule(moduleName);
-
-      // Module must exist (registry ensures this)
-      if (!program) {
-        throw new Error(`Module '${moduleName}' not found in registry (internal error)`);
-      }
-
-      // Reset state for this module
-      this.symbolTable = null;
-      this.typeSystem = null;
-      this.cfgs.clear();
-      this.diagnostics = [];
-
-      // Analyze this module using existing passes
-      // Note: Pass 1 (Symbol Table Builder) will use global symbols for imports
-      this.analyzeModuleWithContext(program, globalSymbols);
-
-      // Collect results for this module
-      const moduleResult: ModuleAnalysisResult = {
-        moduleName,
-        symbolTable: this.symbolTable!,
-        typeSystem: this.typeSystem!,
-        cfgs: new Map(this.cfgs),
-        diagnostics: [...this.diagnostics],
-        success: !this.hasErrors(),
-      };
-
-      moduleResults.set(moduleName, moduleResult);
-
-      // Register this module's symbols for next modules to use
-      globalSymbols.registerModule(moduleName, this.symbolTable!);
-    }
-
-    return moduleResults;
-  }
-
-  /**
-   * Analyze a single module with cross-module context
-   *
-   * Similar to analyzeModule(), but makes imported symbols from
-   * previously-analyzed modules available via the global symbol table.
-   *
-   * @param ast - Program AST to analyze
-   * @param globalSymbols - Global symbol table with previously-analyzed modules
-   */
-  protected analyzeModuleWithContext(ast: Program, globalSymbols: GlobalSymbolTable): void {
-    // Pass 1: Build symbol table
-    // TODO: Pass global symbols to symbol table builder for import resolution
-    this.runPass1_SymbolTableBuilder(ast);
-
-    // Import cross-module symbols into this module's symbol table
-    this.resolveImports(ast, globalSymbols);
-
-    // Pass 2: Type resolution (only if Pass 1 succeeded)
-    if (!this.hasErrors()) {
-      this.runPass2_TypeResolution(ast);
-    }
-
-    // Pass 3: Type checking (only if Pass 2 succeeded)
-    if (!this.hasErrors()) {
-      this.runPass3_TypeChecker(ast);
-    }
-
-    // Pass 5: Control flow analysis (only if Pass 1 succeeded)
-    if (!this.hasErrors()) {
-      this.runPass5_ControlFlowAnalyzer(ast);
-    }
-
-    // Phase 7 (Task 7.2): Unused import detection (after type checking)
-    // This runs even if there are errors, as usage tracking is complete
-    const unusedImportHints = this.detectUnusedImports(ast, this.symbolTable!);
-    this.diagnostics.push(...unusedImportHints);
-
-    // Pass 8: Advanced analysis (only if all previous passes succeeded)
-    if (!this.hasErrors()) {
-      this.runPass8_AdvancedAnalysis(ast);
-    }
-  }
-
-  /**
-   * Resolve imports by updating cross-module symbol types
-   *
-   * Extracts import declarations and looks up symbols from the global
-   * symbol table, updating the type information of imported symbols
-   * in the current module's symbol table.
-   *
-   * This enables full cross-module type checking with complete type
-   * information from analyzed dependency modules.
-   *
-   * **Implementation (Task 6.2.3):**
-   * - Looks up imported symbols that were created during Pass 1
-   * - Updates their type information from the analyzed source module
-   * - Validates that imported symbols exist and are exported
-   * - Creates diagnostics for missing or non-exported symbols
-   *
-   * **Validation Rules:**
-   * - Import of non-exported symbol → IMPORT_NOT_EXPORTED error (P107)
-   * - Import of non-existent symbol → IMPORT_SYMBOL_NOT_FOUND error (P108)
-   * - Import of symbol with no type info → IMPORT_SYMBOL_NOT_FOUND error (P108)
-   *
-   * @param ast - Program AST
-   * @param globalSymbols - Global symbol table with analyzed modules
-   */
-  protected resolveImports(ast: Program, globalSymbols: GlobalSymbolTable): void {
-    if (!this.symbolTable) {
-      return;
-    }
-
-    // Extract import declarations
-    const imports = ast
-      .getDeclarations()
-      .filter(isImportDecl);
-
-    for (const importDecl of imports) {
-      const targetModule = importDecl.getModuleName();
-      const identifiers = importDecl.getIdentifiers();
-
-      for (const identifier of identifiers) {
-        // Lookup the imported symbol that was created during Pass 1
-        // (SymbolTableBuilder creates ImportedSymbol with undefined type)
-        const localImportedSymbol = this.symbolTable.lookup(identifier);
-
-        if (!localImportedSymbol) {
-          // Symbol wasn't created during Pass 1 (shouldn't happen)
-          continue;
-        }
-
-        // Lookup the actual symbol definition in the source module
-        const globalSymbol = globalSymbols.lookupInModule(identifier, targetModule);
-
-        if (globalSymbol && globalSymbol.typeInfo) {
-          // Update the imported symbol's type with the actual type
-          // from the analyzed source module
-          localImportedSymbol.type = globalSymbol.typeInfo;
-
-          // Validate export status
-          if (!globalSymbol.isExported) {
-            this.diagnostics.push({
-              code: DiagnosticCode.IMPORT_NOT_EXPORTED,
-              severity: DiagnosticSeverity.ERROR,
-              message: `Cannot import '${identifier}' from module '${targetModule}': symbol is not exported`,
-              location: importDecl.getLocation(),
-            });
-          }
-        } else {
-          // Create diagnostic for missing symbol
-          if (!globalSymbol) {
-            // Symbol doesn't exist in target module
-            this.diagnostics.push({
-              code: DiagnosticCode.IMPORT_SYMBOL_NOT_FOUND,
-              severity: DiagnosticSeverity.ERROR,
-              message: `Cannot import '${identifier}' from module '${targetModule}': symbol not found in module`,
-              location: importDecl.getLocation(),
-            });
-          } else if (!globalSymbol.typeInfo) {
-            // Symbol exists but has no type information
-            this.diagnostics.push({
-              code: DiagnosticCode.IMPORT_SYMBOL_NOT_FOUND,
-              severity: DiagnosticSeverity.ERROR,
-              message: `Cannot import '${identifier}' from module '${targetModule}': symbol has no type information`,
-              location: importDecl.getLocation(),
-            });
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Build global symbol table from module results
-   *
-   * Aggregates symbols from all module-level symbol tables into
-   * a global symbol table for cross-module lookup.
-   *
-   * @param moduleResults - Per-module analysis results
-   * @returns Global symbol table
-   */
-  protected buildGlobalSymbolTable(
-    moduleResults: Map<string, ModuleAnalysisResult>
+  protected createGlobalSymbolTableForSingleModule(
+    moduleName: string,
+    program: Program,
   ): GlobalSymbolTable {
-    const globalSymbols = new GlobalSymbolTable();
-
-    for (const [moduleName, result] of moduleResults) {
-      globalSymbols.registerModule(moduleName, result.symbolTable);
-    }
-
-    return globalSymbols;
+    const globalTable = new GlobalSymbolTable();
+    globalTable.collectFromProgram(moduleName, program);
+    return globalTable;
   }
 
   /**
-   * Fail with circular import errors
-   *
-   * Creates a failure result when circular dependencies are detected.
-   *
-   * @param cycles - Detected circular dependency chains
-   * @param depGraph - Dependency graph
-   * @returns Failed multi-module analysis result
+   * Creates a map of function name to function symbol
    */
-  protected failWithCircularImports(
-    cycles: string[][],
-    depGraph: DependencyGraph
-  ): MultiModuleAnalysisResult {
-    const diagnostics: Diagnostic[] = [];
+  protected createFunctionSymbolsMap(symbolTable: SymbolTable): Map<string, Symbol> {
+    const map = new Map<string, Symbol>();
+    const allScopes = symbolTable.getAllScopes();
 
-    for (const cycle of cycles) {
-      const cycleString = cycle.join(' → ');
-      diagnostics.push({
-        code: DiagnosticCode.CIRCULAR_IMPORT,
-        severity: DiagnosticSeverity.ERROR,
-        message: `Circular import detected: ${cycleString}`,
-        location: {
-          source: '',
-          start: { line: 1, column: 1, offset: 0 },
-          end: { line: 1, column: 1, offset: 0 },
-        },
-      });
-    }
-
-    return {
-      modules: new Map(),
-      diagnostics,
-      success: false,
-      globalSymbolTable: new GlobalSymbolTable(),
-      dependencyGraph: depGraph,
-      memoryLayout: undefined,
-    };
-  }
-
-  /**
-   * Fail with import validation errors
-   *
-   * Creates a failure result when import validation fails (missing modules).
-   *
-   * @param importErrors - Import validation errors
-   * @param depGraph - Dependency graph
-   * @returns Failed multi-module analysis result
-   */
-  protected failWithImportErrors(
-    importErrors: Diagnostic[],
-    depGraph: DependencyGraph
-  ): MultiModuleAnalysisResult {
-    return {
-      modules: new Map(),
-      diagnostics: importErrors,
-      success: false,
-      globalSymbolTable: new GlobalSymbolTable(),
-      dependencyGraph: depGraph,
-      memoryLayout: undefined, // No memory layout on early failure
-    };
-  }
-
-  /**
-   * Get diagnostic code for memory conflict type
-   *
-   * @param conflictType - Type of memory conflict
-   * @returns Appropriate diagnostic code
-   */
-  protected getConflictDiagnosticCode(
-    conflictType: 'zp_overflow' | 'map_overlap' | 'zp_map_overlap'
-  ): DiagnosticCode {
-    switch (conflictType) {
-      case 'zp_overflow':
-        return DiagnosticCode.ZERO_PAGE_OVERFLOW;
-      case 'map_overlap':
-        return DiagnosticCode.MEMORY_MAP_OVERLAP;
-      case 'zp_map_overlap':
-        return DiagnosticCode.ZERO_PAGE_MAP_OVERLAP;
-    }
-  }
-
-  /**
-   * Get module name from Program AST
-   *
-   * Extracts the module name from the module declaration.
-   * Falls back to 'main' if module is implicit/unnamed.
-   *
-   * @param program - Program AST
-   * @returns Module name
-   */
-  protected getModuleName(program: Program): string {
-    const moduleDecl = program.getModule();
-    const fullName = moduleDecl.getFullName();
-
-    // If implicit module or empty name, use 'main'
-    if (moduleDecl.isImplicitModule() || !fullName || fullName === '') {
-      return 'main';
-    }
-
-    return fullName;
-  }
-
-  /**
-   * Detect unused imports (Phase 7 - Task 7.2)
-   *
-   * Checks which imported symbols were never marked as used
-   * during type checking (Phase 3).
-   *
-   * Reports HINT-level diagnostics for unused imports to help
-   * developers keep import lists clean without being intrusive.
-   *
-   * **Why Hints (not Warnings):**
-   * - Unused imports don't affect correctness
-   * - They're style/cleanliness issues
-   * - Gentle feedback encourages cleanup
-   *
-   * @param ast - Program AST
-   * @param symbolTable - Module's symbol table
-   * @returns Array of hint diagnostics for unused imports
-   */
-  protected detectUnusedImports(ast: Program, symbolTable: SymbolTable): Diagnostic[] {
-    const diagnostics: Diagnostic[] = [];
-
-    // Extract all import declarations
-    const imports = ast
-      .getDeclarations()
-      .filter(isImportDecl);
-
-    for (const importDecl of imports) {
-      const identifiers = importDecl.getIdentifiers();
-
-      for (const identifier of identifiers) {
-        const symbol = symbolTable.lookup(identifier);
-
-        // Check if symbol is an imported symbol that was never used
-        if (symbol && symbol.kind === 'ImportedSymbol' && !symbol.metadata?.isUsed) {
-          diagnostics.push({
-            code: DiagnosticCode.UNUSED_IMPORT,
-            severity: DiagnosticSeverity.HINT,
-            message: `Unused import: '${identifier}' is imported but never used`,
-            location: importDecl.getLocation(),
-          });
+    for (const scope of allScopes.values()) {
+      for (const symbol of scope.symbols.values()) {
+        if (symbol.kind === 'function') {
+          map.set(symbol.name, symbol);
         }
       }
     }
 
-    return diagnostics;
+    return map;
   }
 
   /**
-   * Pass 1: Symbol Table Builder
-   *
-   * Collects all declarations and builds the symbol table with
-   * proper scope hierarchy. This is the foundation for all
-   * subsequent analysis passes.
-   *
-   * @param ast - Program AST
+   * Checks if analysis should stop based on current diagnostics
    */
-  protected runPass1_SymbolTableBuilder(ast: Program): void {
-    const builder = new SymbolTableBuilder();
-
-    // Visit the entire AST to collect declarations
-    ast.accept(builder);
-
-    // Extract results
-    this.symbolTable = builder.getSymbolTable();
-    this.diagnostics.push(...builder.getDiagnostics());
-  }
-
-  /**
-   * Pass 2: Type Resolution
-   *
-   * Resolves type annotations and annotates symbols with type information.
-   * Creates the type system with all built-in types and operations.
-   *
-   * @param ast - Program AST
-   */
-  protected runPass2_TypeResolution(ast: Program): void {
-    if (!this.symbolTable) {
-      throw new Error('Pass 1 must be run before Pass 2');
+  protected shouldStopAnalysis(diagnostics: Diagnostic[]): boolean {
+    if (this.options.stopOnFirstError && this.hasErrors(diagnostics)) {
+      return true;
     }
 
-    const resolver = new TypeResolver(this.symbolTable);
-
-    // Visit the entire AST to resolve types
-    ast.accept(resolver);
-
-    // Extract results
-    this.typeSystem = resolver.getTypeSystem();
-    this.diagnostics.push(...resolver.getDiagnostics());
-  }
-
-  /**
-   * Pass 3: Type Checking
-   *
-   * Type checks all expressions and statements, validates type compatibility,
-   * and performs statement-level semantic validation (break/continue, returns, etc.).
-   *
-   * Note: Statement validation (Phase 4) is integrated into the TypeChecker.
-   *
-   * @param ast - Program AST
-   */
-  protected runPass3_TypeChecker(ast: Program): void {
-    if (!this.symbolTable || !this.typeSystem) {
-      throw new Error('Pass 1 and Pass 2 must be run before Pass 3');
+    if (this.countErrors(diagnostics) >= (this.options.maxErrors ?? 100)) {
+      return true;
     }
 
-    const checker = new TypeChecker(this.symbolTable, this.typeSystem);
-
-    // Visit the entire AST to type check
-    ast.accept(checker);
-
-    // Extract diagnostics
-    this.diagnostics.push(...checker.getDiagnostics());
+    return false;
   }
 
   /**
-   * Pass 5: Control Flow Analysis
-   *
-   * Builds control flow graphs for all functions, performs reachability analysis,
-   * and detects dead code.
-   *
-   * @param ast - Program AST
+   * Checks if there are any errors in diagnostics
    */
-  protected runPass5_ControlFlowAnalyzer(ast: Program): void {
-    if (!this.symbolTable) {
-      throw new Error('Pass 1 must be run before Pass 5');
+  protected hasErrors(diagnostics: Diagnostic[]): boolean {
+    return diagnostics.some((d) => d.severity === DiagnosticSeverity.ERROR);
+  }
+
+  /**
+   * Counts error diagnostics
+   */
+  protected countErrors(diagnostics: Diagnostic[]): number {
+    return diagnostics.filter((d) => d.severity === DiagnosticSeverity.ERROR).length;
+  }
+
+  /**
+   * Counts warning diagnostics
+   */
+  protected countWarnings(diagnostics: Diagnostic[]): number {
+    return diagnostics.filter((d) => d.severity === DiagnosticSeverity.WARNING).length;
+  }
+
+  /**
+   * Counts total declarations in symbol table
+   */
+  protected countDeclarations(symbolTable: SymbolTable): number {
+    let count = 0;
+    const allScopes = symbolTable.getAllScopes();
+
+    for (const scope of allScopes.values()) {
+      count += scope.symbols.size;
     }
 
-    const analyzer = new ControlFlowAnalyzer(this.symbolTable);
-
-    // Visit the entire AST to build CFGs
-    ast.accept(analyzer);
-
-    // Extract results
-    this.cfgs = analyzer.getAllCFGs();
-    this.diagnostics.push(...analyzer.getDiagnostics());
+    return count;
   }
 
   /**
-   * Pass 8: Advanced Analysis (Phase 8)
-   *
-   * Performs god-level optimization analysis and generates metadata
-   * for IL optimizer. Only runs if all previous passes succeeded.
-   *
-   * Analysis includes:
-   * - Tier 1: Definite assignment, usage analysis, dead code
-   * - Tier 2: Reaching definitions, liveness, constant propagation
-   * - Tier 3: Alias analysis, purity, loops, 6502 hints
-   *
-   * Results are stored in AST node metadata using OptimizationMetadataKey enum.
-   *
-   * @param ast - Program AST
+   * Sums a stat across all module results
    */
-  protected runPass8_AdvancedAnalysis(ast: Program): void {
-    if (!this.symbolTable || !this.typeSystem) {
-      throw new Error('Pass 1 and Pass 2 must be run before Pass 8');
+  protected sumStats(
+    results: Map<string, AnalysisResult>,
+    getter: (r: AnalysisResult) => number,
+  ): number {
+    let sum = 0;
+    for (const result of results.values()) {
+      sum += getter(result);
+    }
+    return sum;
+  }
+
+  /**
+   * Converts a recursion error to a standard diagnostic
+   */
+  protected recursionErrorToDiagnostic(error: RecursionError): Diagnostic {
+    const code =
+      error.code === RecursionErrorCode.DIRECT_RECURSION
+        ? DiagnosticCode.RECURSION_DETECTED
+        : DiagnosticCode.INDIRECT_RECURSION_DETECTED;
+
+    return {
+      severity: DiagnosticSeverity.ERROR,
+      code,
+      message: error.message,
+      location: error.functionLocation,
+      relatedLocations: [
+        {
+          location: error.callLocation,
+          message: `Recursive call occurs here`,
+        },
+      ],
+    };
+  }
+
+  /**
+   * Converts an import error to a standard diagnostic
+   */
+  protected importErrorToDiagnostic(error: ImportError): Diagnostic {
+    let code: DiagnosticCode;
+
+    switch (error.code) {
+      case ImportErrorCode.MODULE_NOT_FOUND:
+        code = DiagnosticCode.MODULE_NOT_FOUND;
+        break;
+      case ImportErrorCode.SYMBOL_NOT_EXPORTED:
+        code = DiagnosticCode.IMPORT_NOT_EXPORTED;
+        break;
+      case ImportErrorCode.SYMBOL_NOT_FOUND:
+        code = DiagnosticCode.IMPORT_SYMBOL_NOT_FOUND;
+        break;
+      default:
+        code = DiagnosticCode.INVALID_IMPORT_SYNTAX;
     }
 
-    const analyzer = new AdvancedAnalyzer(this.symbolTable, this.cfgs, this.typeSystem);
-
-    // Run all analyses (Tiers 1-3)
-    analyzer.analyze(ast);
-
-    // Collect diagnostics (warnings about unused code, optimization hints)
-    this.diagnostics.push(...analyzer.getDiagnostics());
+    return {
+      severity: DiagnosticSeverity.ERROR,
+      code,
+      message: error.message,
+      location: error.location,
+    };
   }
 
   /**
-   * Get the symbol table
-   *
-   * @returns Symbol table (null if analyze() not called yet)
+   * Converts an advanced diagnostic to a standard diagnostic
    */
-  public getSymbolTable(): SymbolTable | null {
-    return this.symbolTable;
+  protected advancedDiagnosticToStandard(adv: AdvancedDiagnostic): Diagnostic {
+    let severity: DiagnosticSeverity;
+
+    switch (adv.severity) {
+      case AdvSeverity.Error:
+        severity = DiagnosticSeverity.ERROR;
+        break;
+      case AdvSeverity.Warning:
+        severity = DiagnosticSeverity.WARNING;
+        break;
+      case AdvSeverity.Info:
+      default:
+        severity = DiagnosticSeverity.INFO;
+        break;
+    }
+
+    // Map category to diagnostic code
+    let code: DiagnosticCode;
+    switch (adv.category) {
+      case DiagnosticCategory.DefiniteAssignment:
+        code = DiagnosticCode.UNDEFINED_VARIABLE;
+        break;
+      case DiagnosticCategory.VariableUsage:
+        code = DiagnosticCode.UNUSED_VARIABLE;
+        break;
+      case DiagnosticCategory.DeadCode:
+        code = DiagnosticCode.UNREACHABLE_CODE;
+        break;
+      default:
+        code = DiagnosticCode.TYPE_MISMATCH; // Generic semantic error
+    }
+
+    // Convert advanced location { line, column } to SourceLocation
+    const location: SourceLocation = {
+      start: {
+        line: adv.location.line,
+        column: adv.location.column,
+        offset: 0, // Not available from advanced diagnostic
+      },
+      end: {
+        line: adv.location.line,
+        column: adv.location.column + 1,
+        offset: 0,
+      },
+    };
+
+    return {
+      severity,
+      code,
+      message: adv.message,
+      location,
+    };
   }
 
   /**
-   * Get the type system
-   *
-   * @returns Type system (null if analyze() not called yet or Pass 2 failed)
+   * Checks if a diagnostic should be included based on options
    */
-  public getTypeSystem(): TypeSystem | null {
+  protected shouldIncludeDiagnostic(diag: AdvancedDiagnostic): boolean {
+    if (diag.severity === AdvSeverity.Info) {
+      return this.options.includeInfoDiagnostics ?? false;
+    }
+    return true;
+  }
+
+  /**
+   * Converts a frame diagnostic to a standard diagnostic
+   *
+   * Maps frame allocator error codes to standard diagnostic codes
+   * and converts frame severity to standard severity.
+   *
+   * @param frameDiag - The frame diagnostic to convert
+   * @returns A standard Diagnostic object
+   */
+  protected frameDiagnosticToStandard(frameDiag: FrameDiagnostic): Diagnostic {
+    // Map frame severity to standard severity
+    let severity: DiagnosticSeverity;
+    switch (frameDiag.severity) {
+      case FrameDiagSeverity.Error:
+        severity = DiagnosticSeverity.ERROR;
+        break;
+      case FrameDiagSeverity.Warning:
+        severity = DiagnosticSeverity.WARNING;
+        break;
+      case FrameDiagSeverity.Info:
+      default:
+        severity = DiagnosticSeverity.INFO;
+        break;
+    }
+
+    // Map frame error code to standard diagnostic code
+    let code: DiagnosticCode;
+    switch (frameDiag.code) {
+      case FrameDiagnosticCode.RECURSION:
+        code = DiagnosticCode.RECURSION_DETECTED;
+        break;
+      case FrameDiagnosticCode.FRAME_OVERFLOW:
+        code = DiagnosticCode.FRAME_OVERFLOW;
+        break;
+      case FrameDiagnosticCode.ZP_OVERFLOW:
+        code = DiagnosticCode.ZP_OVERFLOW;
+        break;
+      case FrameDiagnosticCode.NO_FRAME:
+        code = DiagnosticCode.INTERNAL_ERROR;
+        break;
+      default:
+        code = DiagnosticCode.INTERNAL_ERROR;
+    }
+
+    // Build message with function context if available
+    let message = frameDiag.message;
+    if (frameDiag.functionName) {
+      message = `[${frameDiag.functionName}] ${message}`;
+    }
+
+    // Create a placeholder location (frame diagnostics don't have source locations)
+    const location: SourceLocation = {
+      start: { line: 1, column: 1, offset: 0 },
+      end: { line: 1, column: 1, offset: 0 },
+    };
+
+    return {
+      severity,
+      code,
+      message,
+      location,
+    };
+  }
+
+  /**
+   * Creates a failed result (for early termination)
+   */
+  protected createFailedResult(
+    moduleName: string,
+    program: Program,
+    symbolTable: SymbolTable,
+    diagnostics: Diagnostic[],
+    symbolTableResult: SymbolTableBuildResult,
+    elapsedMs: number,
+    typeResolutionResult?: TypeResolutionResult,
+    typeCheckResult?: TypeCheckPassResult,
+  ): AnalysisResult {
+    return {
+      success: false,
+      moduleName,
+      ast: program,
+      symbolTable,
+      typeSystem: this.typeSystem,
+      cfgs: new Map(),
+      callGraph: new CallGraph(),
+      diagnostics,
+      passResults: {
+        symbolTableBuild: symbolTableResult,
+        typeResolution: typeResolutionResult ?? {
+          success: false,
+          diagnostics: [],
+          resolvedCount: 0,
+          failedCount: 0,
+        },
+        typeCheck: typeCheckResult ?? {
+          success: false,
+          diagnostics: [],
+          errorCount: 0,
+          warningCount: 0,
+          expressionsChecked: 0,
+        },
+        recursionErrors: [],
+        advancedAnalysis: undefined,
+      },
+      stats: {
+        totalDeclarations: this.countDeclarations(symbolTable),
+        expressionsChecked: typeCheckResult?.expressionsChecked ?? 0,
+        functionsAnalyzed: 0,
+        errorCount: this.countErrors(diagnostics),
+        warningCount: this.countWarnings(diagnostics),
+        analysisTimeMs: elapsedMs,
+      },
+    };
+  }
+
+  // ============================================
+  // PUBLIC ACCESSORS
+  // ============================================
+
+  /**
+   * Gets the type system
+   */
+  public getTypeSystem(): TypeSystem {
     return this.typeSystem;
   }
 
   /**
-   * Get control flow graph for a specific function
-   *
-   * @param functionName - Name of the function
-   * @returns CFG for the function, or undefined if not found
+   * Gets the current options
    */
-  public getCFG(functionName: string): ControlFlowGraph | undefined {
-    return this.cfgs.get(functionName);
+  public getOptions(): SemanticAnalyzerOptions {
+    return { ...this.options };
   }
 
   /**
-   * Get all control flow graphs
-   *
-   * @returns Map of function names to CFGs
+   * Updates options
    */
-  public getAllCFGs(): Map<string, ControlFlowGraph> {
-    return this.cfgs;
-  }
-
-  /**
-   * Get all diagnostics
-   *
-   * @returns Array of diagnostics from all passes
-   */
-  public getDiagnostics(): Diagnostic[] {
-    return [...this.diagnostics];
-  }
-
-  /**
-   * Check if any errors occurred during analysis
-   *
-   * @returns True if any error-level diagnostics exist
-   */
-  public hasErrors(): boolean {
-    return this.diagnostics.some(d => d.severity === 'error');
-  }
-
-  /**
-   * Get count of diagnostics by severity
-   *
-   * @returns Counts of errors, warnings, info, hints
-   */
-  public getDiagnosticCounts(): {
-    errors: number;
-    warnings: number;
-    info: number;
-    hints: number;
-  } {
-    return {
-      errors: this.diagnostics.filter(d => d.severity === 'error').length,
-      warnings: this.diagnostics.filter(d => d.severity === 'warning').length,
-      info: this.diagnostics.filter(d => d.severity === 'info').length,
-      hints: this.diagnostics.filter(d => d.severity === 'hint').length,
-    };
+  public setOptions(options: Partial<SemanticAnalyzerOptions>): void {
+    this.options = { ...this.options, ...options };
   }
 }

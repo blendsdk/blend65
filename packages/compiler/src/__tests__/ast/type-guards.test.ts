@@ -1,8 +1,10 @@
 /**
- * Type Guard Tests
+ * Type Guard Tests for Compiler v2
  *
  * Comprehensive tests for all AST node type guards.
  * Verifies correct type narrowing and handles edge cases (null, undefined, wrong types).
+ *
+ * NOTE: v2 does NOT include @map declarations (removed for Static Frame Allocation)
  */
 
 import { describe, expect, it } from 'vitest';
@@ -35,11 +37,6 @@ import {
   isContinueStatement,
   isExpressionStatement,
   isBlockStatement,
-  isSimpleMapDecl,
-  isRangeMapDecl,
-  isSequentialStructMapDecl,
-  isExplicitStructMapDecl,
-  isMapDecl,
   isLoopStatement,
 } from '../../ast/type-guards.js';
 
@@ -69,11 +66,7 @@ import {
   ContinueStatement,
   ExpressionStatement,
   BlockStatement,
-  SimpleMapDecl,
-  RangeMapDecl,
-  SequentialStructMapDecl,
-  ExplicitStructMapDecl,
-} from '../../ast/nodes.js';
+} from '../../ast/index.js';
 
 import { TokenType } from '../../lexer/types.js';
 
@@ -359,61 +352,11 @@ describe('Type Guards - Statements', () => {
   });
 });
 
-describe('Type Guards - Memory-Mapped Declarations', () => {
-  it('isSimpleMapDecl correctly identifies SimpleMapDecl nodes', () => {
-    const address = new LiteralExpression(0xd020, mockLocation);
-    const simpleMap = new SimpleMapDecl('borderColor', address, 'byte', mockLocation);
-    const varDecl = new VariableDecl('x', 'byte', null, mockLocation);
-
-    expect(isSimpleMapDecl(simpleMap)).toBe(true);
-    expect(isSimpleMapDecl(varDecl)).toBe(false);
-  });
-
-  it('isRangeMapDecl correctly identifies RangeMapDecl nodes', () => {
-    const start = new LiteralExpression(0xd000, mockLocation);
-    const end = new LiteralExpression(0xd02e, mockLocation);
-    const rangeMap = new RangeMapDecl('sprites', start, end, 'byte', mockLocation);
-    const varDecl = new VariableDecl('x', 'byte', null, mockLocation);
-
-    expect(isRangeMapDecl(rangeMap)).toBe(true);
-    expect(isRangeMapDecl(varDecl)).toBe(false);
-  });
-
-  it('isSequentialStructMapDecl correctly identifies SequentialStructMapDecl nodes', () => {
-    const address = new LiteralExpression(0xd400, mockLocation);
-    const seqMap = new SequentialStructMapDecl('sid', address, [], mockLocation);
-    const varDecl = new VariableDecl('x', 'byte', null, mockLocation);
-
-    expect(isSequentialStructMapDecl(seqMap)).toBe(true);
-    expect(isSequentialStructMapDecl(varDecl)).toBe(false);
-  });
-
-  it('isExplicitStructMapDecl correctly identifies ExplicitStructMapDecl nodes', () => {
-    const address = new LiteralExpression(0xd000, mockLocation);
-    const explicitMap = new ExplicitStructMapDecl('vic', address, [], mockLocation);
-    const varDecl = new VariableDecl('x', 'byte', null, mockLocation);
-
-    expect(isExplicitStructMapDecl(explicitMap)).toBe(true);
-    expect(isExplicitStructMapDecl(varDecl)).toBe(false);
-  });
-});
+// NOTE: v2 does NOT have @map declarations - removed for Static Frame Allocation
+// The isSimpleMapDecl, isRangeMapDecl, isSequentialStructMapDecl, isExplicitStructMapDecl,
+// and isMapDecl type guards do not exist in v2.
 
 describe('Type Guards - Convenience Functions', () => {
-  it('isMapDecl identifies all @map declaration types', () => {
-    const address = new LiteralExpression(0xd020, mockLocation);
-    const simpleMap = new SimpleMapDecl('borderColor', address, 'byte', mockLocation);
-    const rangeMap = new RangeMapDecl('sprites', address, address, 'byte', mockLocation);
-    const seqMap = new SequentialStructMapDecl('sid', address, [], mockLocation);
-    const explicitMap = new ExplicitStructMapDecl('vic', address, [], mockLocation);
-    const varDecl = new VariableDecl('x', 'byte', null, mockLocation);
-
-    expect(isMapDecl(simpleMap)).toBe(true);
-    expect(isMapDecl(rangeMap)).toBe(true);
-    expect(isMapDecl(seqMap)).toBe(true);
-    expect(isMapDecl(explicitMap)).toBe(true);
-    expect(isMapDecl(varDecl)).toBe(false);
-  });
-
   it('isLoopStatement identifies for and while statements', () => {
     const condition = new LiteralExpression(true, mockLocation);
     const start = new LiteralExpression(0, mockLocation);

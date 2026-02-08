@@ -1,0 +1,47 @@
+{
+  "name": "@blend65/compiler",
+  "version": "0.2.0",
+  "description": "Blend65 - A programming for high-performance 6502 family game development",
+  "license": "Elastic-2.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*",
+    "library/**/*"
+  ],
+  "scripts": {
+    "build": "echo 0",
+    "dev": "tsc --watch",
+    "test": "echo 0",
+    "test:watch": "vitest",
+    "test:fixtures": "vitest run src/__tests__/e2e/fixture-runner.test.ts",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@types/node": "^25.2.1",
+    "glob": "^13.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "4.0.18"
+  },
+  "keywords": [
+    "compiler",
+    "c64",
+    "6502",
+    "assembly",
+    "c128",
+    "blend65"
+  ]
+}

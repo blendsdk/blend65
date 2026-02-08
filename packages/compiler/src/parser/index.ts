@@ -1,29 +1,41 @@
 /**
- * Parser Module Public API
+ * Parser module for Blend65 v2
  *
- * This module exports all parser-related types, classes, and utilities
- * for use throughout the compiler.
+ * Responsible for parsing tokens into an Abstract Syntax Tree (AST).
+ * This is a migration from v1 with @map parsing removed.
  *
- * Architecture: Inheritance Chain
- * BaseParser → ExpressionParser → DeclarationParser → ModuleParser → StatementParser → Parser
+ * **Parser Inheritance Chain:**
+ * - BaseParser: Core utilities, token consumption, error handling
+ * - ExpressionParser: Expression parsing (Pratt parser)
+ * - DeclarationParser: Variable declaration parsing (no @map in v2)
+ * - ModuleParser: Module/import/export parsing
+ * - StatementParser: Statement parsing (control flow, etc.)
+ * - Parser: Final concrete class - main entry point
+ *
+ * **V2 Changes:**
+ * - No @map declarations (removed in v2)
+ * - Memory-mapped I/O uses peek/poke intrinsics instead
+ * - Simplified storage classes (handled by frame allocator)
+ *
+ * @module parser
  */
 
-// Parser configuration
+// Parser configuration and presets
 export * from './config.js';
 
-// Operator precedence
-export * from './precedence.js';
-
-// Error messages
+// Error messages for parser diagnostics
 export * from './error-messages.js';
 
-// Scope management
-export { ScopeManager, ScopeType, ErrorReporter } from './scope-manager.js';
+// Operator precedence definitions
+export * from './precedence.js';
 
-// Export classes in dependency order to avoid circular import issues
-export { BaseParser, ParseError } from './base.js';
-export { ExpressionParser } from './expressions.js';
-export { DeclarationParser } from './declarations.js';
-export { ModuleParser } from './modules.js';
-export { StatementParser } from './statements.js';
-export { Parser } from './parser.js';
+// Scope manager for function/loop tracking
+export * from './scope-manager.js';
+
+// Parser inheritance chain (order matters for dependencies)
+export * from './base.js';
+export * from './expressions.js';
+export * from './declarations.js';
+export * from './modules.js';
+export * from './statements.js';
+export * from './parser.js';

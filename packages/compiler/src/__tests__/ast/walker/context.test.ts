@@ -1,7 +1,7 @@
 /**
- * Tests for Context Management (WalkerContext and ContextWalker)
+ * Tests for Context Management (WalkerContext and ContextWalker) v2
  *
- * Tests Phase 0 Task 0.4: Context-aware walker with scope tracking
+ * Tests context-aware walker with scope tracking
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -19,7 +19,7 @@ import {
   ReturnStatement,
   BreakStatement,
   ExpressionStatement,
-} from '../../../ast/nodes.js';
+} from '../../../ast/index.js';
 import { ASTNodeType, SourceLocation } from '../../../ast/base.js';
 
 // Test helper: Create source location
@@ -44,7 +44,7 @@ describe('WalkerContext', () => {
     });
 
     it('should enter and exit contexts', () => {
-      const node = new ModuleDecl(['test'], loc(), true);
+      const node = new ModuleDecl(['test'], loc());
 
       context.enterContext(ContextType.PROGRAM, node);
       expect(context.getDepth()).toBe(1);
@@ -56,7 +56,7 @@ describe('WalkerContext', () => {
     });
 
     it('should handle nested contexts', () => {
-      const programNode = new ModuleDecl(['test'], loc(), true);
+      const programNode = new ModuleDecl(['test'], loc());
       const functionNode = new FunctionDecl('test', [], 'void', [], loc());
 
       context.enterContext(ContextType.PROGRAM, programNode);
@@ -80,7 +80,7 @@ describe('WalkerContext', () => {
 
   describe('Context Access', () => {
     it('should get current context', () => {
-      const node = new ModuleDecl(['test'], loc(), true);
+      const node = new ModuleDecl(['test'], loc());
       context.enterContext(ContextType.PROGRAM, node);
 
       const current = context.getCurrentContext();
@@ -89,7 +89,7 @@ describe('WalkerContext', () => {
     });
 
     it('should get parent context', () => {
-      const programNode = new ModuleDecl(['test'], loc(), true);
+      const programNode = new ModuleDecl(['test'], loc());
       const functionNode = new FunctionDecl('test', [], 'void', [], loc());
 
       context.enterContext(ContextType.PROGRAM, programNode);
@@ -101,14 +101,14 @@ describe('WalkerContext', () => {
     });
 
     it('should return undefined for parent when only one context', () => {
-      const node = new ModuleDecl(['test'], loc(), true);
+      const node = new ModuleDecl(['test'], loc());
       context.enterContext(ContextType.PROGRAM, node);
 
       expect(context.getParentContext()).toBeUndefined();
     });
 
     it('should get ancestor contexts', () => {
-      const programNode = new ModuleDecl(['test'], loc(), true);
+      const programNode = new ModuleDecl(['test'], loc());
       const functionNode = new FunctionDecl('test', [], 'void', [], loc());
       const loopNode = new WhileStatement(new LiteralExpression(true, loc()), [], loc());
 
@@ -128,7 +128,7 @@ describe('WalkerContext', () => {
   describe('Context Finding', () => {
     beforeEach(() => {
       // Setup nested contexts: program → function → loop → block
-      const programNode = new ModuleDecl(['test'], loc(), true);
+      const programNode = new ModuleDecl(['test'], loc());
       const functionNode = new FunctionDecl('test', [], 'void', [], loc());
       const loopNode = new WhileStatement(new LiteralExpression(true, loc()), [], loc());
       const blockNode = new BlockStatement([], loc());
@@ -233,7 +233,7 @@ describe('WalkerContext', () => {
     it('should get correct depth', () => {
       expect(context.getDepth()).toBe(0);
 
-      const programNode = new ModuleDecl(['test'], loc(), true);
+      const programNode = new ModuleDecl(['test'], loc());
       context.enterContext(ContextType.PROGRAM, programNode);
       expect(context.getDepth()).toBe(1);
 
@@ -347,7 +347,7 @@ describe('WalkerContext', () => {
 
   describe('Stack Operations', () => {
     it('should reset all contexts', () => {
-      const node1 = new ModuleDecl(['test'], loc(), true);
+      const node1 = new ModuleDecl(['test'], loc());
       const node2 = new FunctionDecl('test', [], 'void', [], loc());
 
       context.enterContext(ContextType.PROGRAM, node1);
@@ -360,7 +360,7 @@ describe('WalkerContext', () => {
     });
 
     it('should get stack snapshot', () => {
-      const programNode = new ModuleDecl(['test'], loc(), true);
+      const programNode = new ModuleDecl(['test'], loc());
       const functionNode = new FunctionDecl('test', [], 'void', [], loc());
       const loopNode = new WhileStatement(new LiteralExpression(true, loc()), [], loc());
 
@@ -402,9 +402,12 @@ describe('ContextWalker', () => {
       this.context.setMetadata('returnType', node.getReturnType());
 
       // Visit body statements
-      for (const stmt of node.getBody()) {
-        if (this.shouldStop) break;
-        stmt.accept(this);
+      const body = node.getBody();
+      if (body) {
+        for (const stmt of body) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
       }
 
       // Exit context
@@ -441,7 +444,7 @@ describe('ContextWalker', () => {
   describe('Automatic Context Management', () => {
     it('should automatically manage program context', () => {
       const walker = new TestContextWalker();
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [], loc());
 
       walker.walk(program);
 
@@ -461,7 +464,7 @@ describe('ContextWalker', () => {
         false
       );
 
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
 
@@ -479,7 +482,7 @@ describe('ContextWalker', () => {
       );
 
       const func = new FunctionDecl('test', [], 'void', [loop], loc());
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
 
@@ -500,7 +503,7 @@ describe('ContextWalker', () => {
         false
       );
 
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
 
@@ -514,7 +517,7 @@ describe('ContextWalker', () => {
         [new BreakStatement(loc())],
         loc()
       );
-      // ForStatement(variable, variableType, start, end, direction, step, body, location)
+      // v2 ForStatement: (variable, variableType, start, end, direction, step, body, location)
       const outerLoop = new ForStatement(
         'i',
         null,
@@ -527,7 +530,7 @@ describe('ContextWalker', () => {
       );
 
       const func = new FunctionDecl('test', [], 'void', [outerLoop], loc());
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
 
@@ -560,14 +563,7 @@ describe('ContextWalker', () => {
 
       const outerFunc = new FunctionDecl('outer', [], 'void', [loop], loc());
 
-      // We'll need to manually trigger the nested function visit
-      // This is a limitation of the test - in real usage, nested functions
-      // would be declarations, not statements
-      const program = new Program(
-        new ModuleDecl(['test'], loc(), true),
-        [outerFunc, nestedFunc],
-        loc()
-      );
+      const program = new Program(new ModuleDecl(['test'], loc()), [outerFunc, nestedFunc], loc());
 
       walker.walk(program);
 
@@ -588,9 +584,12 @@ describe('ContextWalker', () => {
           this.context.setMetadata('returnType', node.getReturnType());
 
           // Visit body
-          for (const stmt of node.getBody()) {
-            if (this.shouldStop) break;
-            stmt.accept(this);
+          const body = node.getBody();
+          if (body) {
+            for (const stmt of body) {
+              if (this.shouldStop) break;
+              stmt.accept(this);
+            }
           }
 
           // Exit context
@@ -634,7 +633,7 @@ describe('ContextWalker', () => {
         false
       );
 
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func1, func2], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func1, func2], loc());
 
       walker.walk(program);
 
@@ -678,7 +677,7 @@ describe('ContextWalker', () => {
       );
 
       const func = new FunctionDecl('test', [], 'void', [match], loc());
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
 
@@ -714,7 +713,7 @@ describe('ContextWalker', () => {
       const outerBlock = new BlockStatement([innerBlock], loc());
 
       const func = new FunctionDecl('test', [], 'void', [outerBlock], loc());
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
 
@@ -726,7 +725,7 @@ describe('ContextWalker', () => {
     it('should reset context between walk calls', () => {
       const walker = new TestContextWalker();
       const func = new FunctionDecl('test', [], 'void', [], loc());
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
       expect(walker.context.getDepth()).toBe(0);
@@ -752,7 +751,7 @@ describe('ContextWalker', () => {
 
       const walker = new MetadataCheckWalker();
       const func = new FunctionDecl('test', [], 'void', [], loc());
-      const program = new Program(new ModuleDecl(['test'], loc(), true), [func], loc());
+      const program = new Program(new ModuleDecl(['test'], loc()), [func], loc());
 
       walker.walk(program);
       expect(walker.metadataFound).toBe(false);

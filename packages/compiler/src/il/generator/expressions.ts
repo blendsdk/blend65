@@ -1,1356 +1,1047 @@
 /**
- * IL Expression Generator - Part 1: Foundation and Literals
+ * IL Generator - Expressions Layer
  *
- * Generates IL for expressions. Extends ILStatementGenerator to override
- * the generateExpression hook with actual expression generation.
- *
- * This file is Phase 4 of the IL generator implementation.
- * Expression types handled:
- * - Literal expressions (numbers, booleans, strings)
- * - More types will be added in subsequent steps
+ * Expression generation:
+ * - Literal expressions (numbers, booleans)
+ * - Identifier expressions (variable loads)
+ * - Binary expressions (arithmetic, bitwise, comparison)
+ * - Unary expressions (negation, not)
+ * - Assignment expressions (store to slot)
+ * - Call expressions (function calls)
  *
  * @module il/generator/expressions
  */
 
-import type { Expression } from '../../ast/base.js';
-import type { SymbolTable } from '../../semantic/symbol-table.js';
-import type { Symbol } from '../../semantic/symbol.js';
-import type { TargetConfig } from '../../target/config.js';
-import type { ILFunction } from '../function.js';
-import type { VirtualRegister } from '../values.js';
-
-import { ASTNodeType } from '../../ast/base.js';
-import { LiteralExpression, IdentifierExpression, BinaryExpression, UnaryExpression, TernaryExpression, CallExpression, IndexExpression, AssignmentExpression } from '../../ast/nodes.js';
-import { isIdentifierExpression } from '../../ast/type-guards.js';
+import { Expression } from '../../ast/base.js';
+import {
+  LiteralExpression,
+  IdentifierExpression,
+  BinaryExpression,
+  UnaryExpression,
+  AssignmentExpression,
+  CallExpression,
+  TernaryExpression,
+  IndexExpression,
+} from '../../ast/expressions.js';
+import {
+  isLiteralExpression,
+  isIdentifierExpression,
+  isBinaryExpression,
+  isUnaryExpression,
+  isAssignmentExpression,
+  isCallExpression,
+  isTernaryExpression,
+  isIndexExpression,
+} from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
-import { SymbolKind } from '../../semantic/symbol.js';
-import { IL_BYTE } from '../types.js';
-import { ILStatementGenerator } from './statements.js';
+import { SlotLocation } from '../../frame/enums.js';
+import { FrameSlot } from '../../frame/types.js';
+import { ILOpcode } from '../enums.js';
+import { createImmediateOperand, createAddressOperand } from '../factories.js';
+import { isAsmFunction, parseAsmFunctionName, addressingModeRequiresOperand } from '../asm-utils.js';
+import { AsmRawOperand } from '../operands.js';
+import { ILGeneratorBase } from './base.js';
 
-// =============================================================================
-// ILExpressionGenerator Class
-// =============================================================================
+// ============================================================================
+// ILGeneratorExpressions Class
+// ============================================================================
 
 /**
- * Generates IL for expressions.
+ * Expression generation layer.
  *
- * This class extends ILStatementGenerator to provide expression-level
- * generation capabilities. It overrides the generateExpression hook
- * to produce actual IL instructions for expressions.
- *
- * @example
- * ```typescript
- * const generator = new ILExpressionGenerator(symbolTable, targetConfig);
- * const result = generator.generateModule(program);
- * ```
+ * Handles all expression types:
+ * - Literals: Load immediate values into accumulator
+ * - Identifiers: Load from slot (with register param optimization)
+ * - Binary: Arithmetic, bitwise, comparison operations
+ * - Unary: Negation, logical/bitwise NOT
+ * - Assignment: Store accumulator to slot
+ * - Ternary: Conditional expressions
+ * - Calls: Function calls (placeholder for Phase 7c)
  */
-export class ILExpressionGenerator extends ILStatementGenerator {
-  /**
-   * Creates a new expression generator.
-   *
-   * @param symbolTable - Symbol table from semantic analysis
-   * @param targetConfig - Optional target configuration
-   */
-  constructor(symbolTable: SymbolTable, targetConfig: TargetConfig | null = null) {
-    super(symbolTable, targetConfig);
-  }
-
-  // ===========================================================================
-  // Expression Generation Entry Point
-  // ===========================================================================
+export class ILGeneratorExpressions extends ILGeneratorBase {
+  // ═══════════════════════════════════════════════════════════════════
+  // Main Expression Dispatcher
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Generates IL for an expression.
+   * Generate IL for an expression.
    *
-   * Overrides the hook from ILStatementGenerator to dispatch to
-   * the appropriate expression handler based on node type.
+   * Dispatches to specific handlers based on expression type.
+   * Result is left in the accumulator (A register).
    *
    * @param expr - Expression to generate
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing result, or null on error
+   *
+   * @example
+   * ```typescript
+   * this.generateExpression(someExpr);
+   * // A register now contains result
+   * this.builder.storeSlot(targetSlot);
+   * ```
    */
-  protected override generateExpression(
-    expr: Expression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
-    switch (expr.getNodeType()) {
-      case ASTNodeType.LITERAL_EXPR:
-        return this.generateLiteralExpression(expr as LiteralExpression);
-
-      case ASTNodeType.IDENTIFIER_EXPR:
-        return this.generateIdentifierExpression(expr as IdentifierExpression, ilFunc);
-
-      case ASTNodeType.BINARY_EXPR:
-        return this.generateBinaryExpression(expr as BinaryExpression, ilFunc);
-
-      case ASTNodeType.UNARY_EXPR:
-        return this.generateUnaryExpression(expr as UnaryExpression, ilFunc);
-
-      case ASTNodeType.TERNARY_EXPR:
-        return this.generateTernaryExpression(expr as TernaryExpression, ilFunc);
-
-      case ASTNodeType.CALL_EXPR:
-        return this.generateCallExpression(expr as CallExpression, ilFunc);
-
-      case ASTNodeType.INDEX_EXPR:
-        return this.generateIndexExpression(expr as IndexExpression, ilFunc);
-
-      case ASTNodeType.ASSIGNMENT_EXPR:
-        return this.generateAssignmentExpression(expr as AssignmentExpression, ilFunc);
-
-      default:
-        // Not yet implemented - return placeholder
-        this.addWarning(
-          `Expression type not yet implemented: ${expr.getNodeType()}`,
-          expr.getLocation(),
-          'W_EXPR_NOT_IMPLEMENTED',
-        );
-        return this.builder?.emitConstBool(true) ?? null;
+  protected generateExpression(expr: Expression): void {
+    if (isLiteralExpression(expr)) {
+      this.generateLiteral(expr);
+    } else if (isIdentifierExpression(expr)) {
+      this.generateIdentifier(expr);
+    } else if (isBinaryExpression(expr)) {
+      this.generateBinary(expr);
+    } else if (isUnaryExpression(expr)) {
+      this.generateUnary(expr);
+    } else if (isAssignmentExpression(expr)) {
+      this.generateAssignment(expr);
+    } else if (isTernaryExpression(expr)) {
+      this.generateTernary(expr);
+    } else if (isCallExpression(expr)) {
+      this.generateCall(expr);
+    } else if (isIndexExpression(expr)) {
+      this.generateIndex(expr);
+    } else {
+      // Unknown expression type - emit NOP as placeholder
+      this.builder.nop();
     }
   }
 
-  // ===========================================================================
-  // Literal Expression Generation (Task 4.2)
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════
+  // Literal Expression
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Generates IL for a literal expression.
+   * Generate IL for a literal value.
    *
-   * Handles numeric, boolean, and string literals by emitting
-   * appropriate CONST instructions.
+   * Loads the immediate value into the accumulator:
+   * - Numbers: LDA #value
+   * - Booleans: LDA #0 or LDA #1
    *
    * @param expr - Literal expression
-   * @returns Virtual register containing the constant value
    */
-  protected generateLiteralExpression(expr: LiteralExpression): VirtualRegister | null {
+  protected generateLiteral(expr: LiteralExpression): void {
     const value = expr.getValue();
+    this.setLocation(expr.getLocation());
 
-    // Handle numeric literals
     if (typeof value === 'number') {
-      return this.generateNumericLiteral(value);
-    }
-
-    // Handle boolean literals
-    if (typeof value === 'boolean') {
-      return this.builder?.emitConstBool(value) ?? null;
-    }
-
-    // Handle string literals
-    if (typeof value === 'string') {
-      return this.generateStringLiteral(value, expr);
-    }
-
-    // Unknown literal type
-    this.addError(
-      `Unknown literal type: ${typeof value}`,
-      expr.getLocation(),
-      'E_UNKNOWN_LITERAL',
-    );
-    return null;
-  }
-
-  /**
-   * Generates IL for a numeric literal.
-   *
-   * Determines whether to emit a byte or word constant based on value.
-   *
-   * @param value - Numeric value
-   * @returns Virtual register containing the constant
-   */
-  protected generateNumericLiteral(value: number): VirtualRegister | null {
-    // Use byte for values 0-255, word for larger values
-    if (value >= 0 && value <= 255) {
-      return this.builder?.emitConstByte(value) ?? null;
-    } else if (value >= 0 && value <= 65535) {
-      return this.builder?.emitConstWord(value) ?? null;
+      // Numeric literal - load immediate
+      this.builder.loadImm(value, `literal ${value}`);
+    } else if (typeof value === 'boolean') {
+      // Boolean literal - 0 or 1
+      this.builder.loadImm(value ? 1 : 0, value ? 'true' : 'false');
     } else {
-      // Value out of range for 6502
-      this.addWarning(
-        `Numeric value ${value} out of 16-bit range, using low 16 bits`,
-        this.dummyLocation(),
-        'W_NUMERIC_OVERFLOW',
-      );
-      return this.builder?.emitConstWord(value & 0xffff) ?? null;
+      // String literal - TODO: handle in Phase 7c
+      this.builder.loadImm(0, 'string (placeholder)');
     }
+
+    this.clearLocation();
   }
 
-  /**
-   * Generates IL for a string literal.
-   *
-   * For now, strings are stored as byte arrays and the address is returned.
-   * Full string support will be implemented in a later phase.
-   *
-   * @param value - String value
-   * @param expr - Original expression for error reporting
-   * @returns Virtual register containing pointer to string data
-   */
-  protected generateStringLiteral(
-    _value: string,
-    expr: LiteralExpression,
-  ): VirtualRegister | null {
-    // TODO: Implement proper string literal handling with _value
-    // For now, emit a placeholder address
-    this.addWarning(
-      'String literal support not fully implemented',
-      expr.getLocation(),
-      'W_STRING_NOT_IMPLEMENTED',
-    );
-
-    // Return a placeholder byte (0) for now
-    return this.builder?.emitConstByte(0) ?? null;
-  }
-
-  // ===========================================================================
-  // Identifier Expression Generation (Task 4.3)
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════
+  // Identifier Expression
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Generates IL for an identifier expression.
+   * Generate IL for an identifier (variable reference).
    *
-   * Looks up the variable in the local or global scope and emits
-   * a LOAD_VAR instruction to read its value.
-   *
-   * Also handles function names used as values (for callback parameters):
-   * when a function name is used without `@`, it still gets the function's
-   * address, enabling patterns like `setInterrupt(100, myHandler)`.
+   * Loads the variable's value into the accumulator:
+   * - Register parameters: Transfer from X/Y register
+   * - Memory slots: Load from memory address
    *
    * @param expr - Identifier expression
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing the variable's value
    */
-  protected generateIdentifierExpression(
-    expr: IdentifierExpression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
+  protected generateIdentifier(expr: IdentifierExpression): void {
     const name = expr.getName();
+    this.setLocation(expr.getLocation());
 
-    // Check if it's a local variable first
-    const localInfo = this.getLocalVariable(name);
-    if (localInfo) {
-      // Emit LOAD_VAR instruction
-      return this.builder?.emitLoadVar(name, localInfo.type) ?? null;
+    const slot = this.tryResolveVariable(name);
+
+    if (!slot) {
+      // Not a local variable - might be intrinsic or global
+      // Emit placeholder for now (will be handled in Phase 7c)
+      this.builder.nop();
+      this.clearLocation();
+      return;
     }
 
-    // Check if it's a parameter
-    const paramReg = ilFunc.getParameterRegisterByName(name);
-    if (paramReg) {
-      // Parameters are already in registers - emit LOAD_VAR
-      return this.builder?.emitLoadVar(name, paramReg.type) ?? null;
+    // Check for register parameter (no memory load needed!)
+    if (slot.location === SlotLocation.Register) {
+      this.generateRegisterLoad(slot);
+    } else {
+      // Memory slot - load from address
+      this.builder.loadSlot(slot, `load ${name}`);
     }
 
-    // Check global variable mapping
-    const mapping = this.getVariableMapping(name);
-    if (mapping) {
-      // Global variable - emit LOAD_VAR with appropriate type
-      const globalType = mapping.symbol.type
-        ? this.convertType(mapping.symbol.type)
-        : IL_BYTE;
-      return this.builder?.emitLoadVar(name, globalType) ?? null;
-    }
-
-    // Check if it's a function name (for callback parameters)
-    // When a function name is used as a value (e.g., passed to callback parameter),
-    // we emit LOAD_ADDRESS to get the function's memory address.
-    const funcSymbol = this.lookupFunction(name);
-    if (funcSymbol) {
-      // Function used as value = get its address (for callbacks)
-      return this.builder?.emitLoadAddress(name, 'function') ?? null;
-    }
-
-    // Variable not found - error
-    this.addError(
-      `Undefined variable: ${name}`,
-      expr.getLocation(),
-      'E_UNDEFINED_VAR',
-    );
-    return null;
-  }
-
-  // ===========================================================================
-  // Binary Expression Generation (Task 4.4)
-  // ===========================================================================
-
-  /**
-   * Generates IL for a binary expression.
-   *
-   * Generates both operands, then emits the appropriate binary instruction.
-   * Handles arithmetic, comparison, logical, and bitwise operators.
-   *
-   * @param expr - Binary expression
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing the result
-   */
-  protected generateBinaryExpression(
-    expr: BinaryExpression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
-    const operator = expr.getOperator();
-
-    // Generate left operand
-    const leftReg = this.generateExpression(expr.getLeft(), ilFunc);
-    if (!leftReg) {
-      return null;
-    }
-
-    // Generate right operand
-    const rightReg = this.generateExpression(expr.getRight(), ilFunc);
-    if (!rightReg) {
-      return null;
-    }
-
-    // Emit the appropriate binary operation
-    return this.emitBinaryOperation(operator, leftReg, rightReg, expr);
+    this.clearLocation();
   }
 
   /**
-   * Emits the appropriate binary operation instruction.
+   * Generate register transfer for register-passed parameters.
    *
-   * @param operator - Token type of the operator
-   * @param left - Left operand register
-   * @param right - Right operand register
-   * @param expr - Original expression for error reporting
-   * @returns Result register
+   * @param slot - Slot in register
    */
-  protected emitBinaryOperation(
-    operator: TokenType,
-    left: VirtualRegister,
-    right: VirtualRegister,
-    expr: BinaryExpression,
-  ): VirtualRegister | null {
-    switch (operator) {
-      // Arithmetic operators
-      case TokenType.PLUS:
-        return this.builder?.emitAdd(left, right) ?? null;
-      case TokenType.MINUS:
-        return this.builder?.emitSub(left, right) ?? null;
-      case TokenType.MULTIPLY:
-        return this.builder?.emitMul(left, right) ?? null;
-      case TokenType.DIVIDE:
-        return this.builder?.emitDiv(left, right) ?? null;
-      case TokenType.MODULO:
-        return this.builder?.emitMod(left, right) ?? null;
-
-      // Comparison operators
-      case TokenType.EQUAL:
-        return this.builder?.emitCmpEq(left, right) ?? null;
-      case TokenType.NOT_EQUAL:
-        return this.builder?.emitCmpNe(left, right) ?? null;
-      case TokenType.LESS_THAN:
-        return this.builder?.emitCmpLt(left, right) ?? null;
-      case TokenType.LESS_EQUAL:
-        return this.builder?.emitCmpLe(left, right) ?? null;
-      case TokenType.GREATER_THAN:
-        return this.builder?.emitCmpGt(left, right) ?? null;
-      case TokenType.GREATER_EQUAL:
-        return this.builder?.emitCmpGe(left, right) ?? null;
-
-      // Bitwise operators
-      case TokenType.BITWISE_AND:
-        return this.builder?.emitAnd(left, right) ?? null;
-      case TokenType.BITWISE_OR:
-        return this.builder?.emitOr(left, right) ?? null;
-      case TokenType.BITWISE_XOR:
-        return this.builder?.emitXor(left, right) ?? null;
-      case TokenType.LEFT_SHIFT:
-        return this.builder?.emitShl(left, right) ?? null;
-      case TokenType.RIGHT_SHIFT:
-        return this.builder?.emitShr(left, right) ?? null;
-
-      // Logical operators (non-short-circuit for now)
-      case TokenType.AND:
-        return this.builder?.emitAnd(left, right) ?? null;
-      case TokenType.OR:
-        return this.builder?.emitOr(left, right) ?? null;
-
+  protected generateRegisterLoad(slot: FrameSlot): void {
+    switch (slot.register) {
+      case 'X':
+        this.builder.transferXA();
+        break;
+      case 'Y':
+        this.builder.transferYA();
+        break;
+      case 'A':
+        // Already in accumulator - no transfer needed
+        break;
       default:
-        this.addError(
-          `Unsupported binary operator: ${operator}`,
-          expr.getLocation(),
-          'E_UNSUPPORTED_OP',
-        );
-        return null;
+        // Unknown register - should not happen
+        throw new Error(`Unknown register: ${slot.register}`);
     }
   }
 
-  // ===========================================================================
-  // Unary Expression Generation (Task 4.5)
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════
+  // Index Expression (Array Element Access)
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Generates IL for a unary expression.
+   * Generate IL for array element access (arr[index]).
    *
-   * Handles negation, logical not, bitwise not, and address-of operators.
+   * Strategy:
+   * 1. Get the base array slot
+   * 2. Generate index expression into Y register
+   * 3. Use indexed addressing mode to load the element
    *
-   * @param expr - Unary expression
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing the result
+   * For byte arrays: LOAD_INDEXED with base slot and Y
+   *
+   * @param expr - Index expression (e.g., arr[i])
    */
-  protected generateUnaryExpression(
-    expr: UnaryExpression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
-    const operator = expr.getOperator();
-    const operand = expr.getOperand();
+  protected generateIndex(expr: IndexExpression): void {
+    this.setLocation(expr.getLocation());
 
-    // Handle address-of operator specially - don't generate operand as value
-    // The '@' symbol is tokenized as TokenType.AT in the lexer
-    if (operator === TokenType.AT) {
-      return this.generateAddressOf(operand, expr);
-    }
-
-    // Generate operand for other unary operators
-    const operandReg = this.generateExpression(operand, ilFunc);
-    if (!operandReg) {
-      return null;
-    }
-
-    // Emit appropriate unary operation
-    switch (operator) {
-      case TokenType.MINUS:
-        // Arithmetic negation
-        return this.builder?.emitNeg(operandReg) ?? null;
-
-      case TokenType.NOT:
-        // Logical NOT
-        return this.builder?.emitLogicalNot(operandReg) ?? null;
-
-      case TokenType.BITWISE_NOT:
-        // Bitwise NOT
-        return this.builder?.emitNot(operandReg) ?? null;
-
-      default:
-        this.addError(
-          `Unsupported unary operator: ${operator}`,
-          expr.getLocation(),
-          'E_UNSUPPORTED_OP',
-        );
-        return null;
-    }
-  }
-
-  // ===========================================================================
-  // Address-of Operator Implementation
-  // ===========================================================================
-
-  /**
-   * Generates IL for the address-of operator (@).
-   *
-   * The address-of operator returns the memory address of a variable or function.
-   * This emits a LOAD_ADDRESS instruction that will be resolved during code generation.
-   *
-   * Usage:
-   * - `@variable` - get address of variable
-   * - `@function` - get address of function (for callbacks)
-   *
-   * @param operand - The expression to get the address of (must be an identifier)
-   * @param expr - The unary expression for error location
-   * @returns Virtual register containing the 16-bit address
-   */
-  protected generateAddressOf(
-    operand: Expression,
-    expr: UnaryExpression,
-  ): VirtualRegister | null {
-    // Address-of operator requires an identifier (variable or function name)
-    if (!isIdentifierExpression(operand)) {
-      this.addError(
-        'Address-of operator requires an identifier',
-        expr.getLocation(),
-        'E_ADDRESS_REQUIRES_IDENTIFIER',
-      );
-      // Return a placeholder constant for error recovery
-      return this.builder?.emitConstWord(0) ?? null;
-    }
-
-    const name = (operand as IdentifierExpression).getName();
-
-    // Check if it's a function
-    const funcSymbol = this.lookupFunction(name);
-    if (funcSymbol) {
-      // Emit LOAD_ADDRESS for function - returns 16-bit address
-      return this.builder?.emitLoadAddress(name, 'function') ?? null;
-    }
-
-    // Check if it's a variable (local, parameter, or global)
-    const varSymbol = this.lookupVariable(name);
-    if (varSymbol) {
-      // Emit LOAD_ADDRESS for variable - returns 16-bit address
-      return this.builder?.emitLoadAddress(name, 'variable') ?? null;
-    }
-
-    // Unknown symbol
-    this.addError(
-      `Unknown symbol '${name}'`,
-      operand.getLocation(),
-      'E_UNKNOWN_SYMBOL',
-    );
-    // Return a placeholder constant for error recovery
-    return this.builder?.emitConstWord(0) ?? null;
-  }
-
-  /**
-   * Looks up a function by name in the symbol table.
-   *
-   * @param name - The function name to look up
-   * @returns The function symbol if found, undefined otherwise
-   */
-  protected lookupFunction(name: string): Symbol | undefined {
-    const symbol = this.symbolTable.lookup(name);
-    if (symbol && symbol.kind === SymbolKind.Function) {
-      return symbol;
-    }
-    return undefined;
-  }
-
-  /**
-   * Looks up a variable by name (local, parameter, or global).
-   *
-   * @param name - The variable name to look up
-   * @returns The variable symbol if found, undefined otherwise
-   */
-  protected lookupVariable(name: string): Symbol | undefined {
-    // Check if it's a local variable in the current function
-    if (this.currentLocals.has(name)) {
-      // Local variables don't have a Symbol in the symbol table with the same lookup
-      // but we can create a synthetic return or check the mapping
-      const mapping = this.getVariableMapping(name);
-      if (mapping) {
-        return mapping.symbol;
-      }
-    }
-
-    // Check symbol table for variables (includes parameters and globals)
-    const symbol = this.symbolTable.lookup(name);
-    if (symbol) {
-      // Accept Variable, Parameter, and MapVariable kinds
-      if (
-        symbol.kind === SymbolKind.Variable ||
-        symbol.kind === SymbolKind.Parameter ||
-        symbol.kind === SymbolKind.MapVariable
-      ) {
-        return symbol;
-      }
-    }
-
-    return undefined;
-  }
-
-  // ===========================================================================
-  // Ternary Expression Generation
-  // ===========================================================================
-
-  /**
-   * Generates IL for a ternary (conditional) expression.
-   *
-   * The ternary expression `condition ? thenBranch : elseBranch` is compiled to:
-   *   1. Generate condition
-   *   2. Branch based on condition to then/else blocks
-   *   3. Generate then value in then block, jump to merge
-   *   4. Generate else value in else block, jump to merge
-   *   5. In merge block, use PHI to select the result
-   *
-   * This generates proper SSA form with PHI nodes for control flow merging.
-   *
-   * @param expr - Ternary expression to generate
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing the result value
-   */
-  protected generateTernaryExpression(
-    expr: TernaryExpression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
-    // Generate the condition expression
-    const condReg = this.generateExpression(expr.getCondition(), ilFunc);
-    if (!condReg) {
-      return null;
-    }
-
-    // Get current block for later reference
-    const conditionBlock = this.builder?.getCurrentBlock();
-    if (!conditionBlock) {
-      this.addError(
-        'No current block for ternary expression',
-        expr.getLocation(),
-        'E_NO_BLOCK',
-      );
-      return null;
-    }
-
-    // Create blocks for then, else, and merge
-    const thenBlock = this.builder?.createBlock('ternary.then');
-    const elseBlock = this.builder?.createBlock('ternary.else');
-    const mergeBlock = this.builder?.createBlock('ternary.merge');
-
-    if (!thenBlock || !elseBlock || !mergeBlock) {
-      this.addError(
-        'Failed to create basic blocks for ternary expression',
-        expr.getLocation(),
-        'E_BLOCK_CREATE',
-      );
-      return null;
-    }
-
-    // Emit branch based on condition
-    this.builder?.emitBranch(condReg, thenBlock, elseBlock);
-
-    // Generate then branch
-    this.builder?.setCurrentBlock(thenBlock);
-    const thenReg = this.generateExpression(expr.getThenBranch(), ilFunc);
-    if (!thenReg) {
-      return null;
-    }
-    // Get the block after generating then (may have changed due to nested ternaries)
-    const thenEndBlock = this.builder?.getCurrentBlock();
-    // Jump to merge block
-    this.builder?.emitJump(mergeBlock);
-
-    // Generate else branch
-    this.builder?.setCurrentBlock(elseBlock);
-    const elseReg = this.generateExpression(expr.getElseBranch(), ilFunc);
-    if (!elseReg) {
-      return null;
-    }
-    // Get the block after generating else (may have changed due to nested ternaries)
-    const elseEndBlock = this.builder?.getCurrentBlock();
-    // Jump to merge block
-    this.builder?.emitJump(mergeBlock);
-
-    // Set merge block as current
-    this.builder?.setCurrentBlock(mergeBlock);
-
-    // Emit PHI instruction to select the result based on which path was taken
-    // The PHI sources are: [value from then path, value from else path]
-    const thenBlockId = thenEndBlock?.id ?? thenBlock.id;
-    const elseBlockId = elseEndBlock?.id ?? elseBlock.id;
-
-    const resultReg = this.builder?.emitPhi(
-      [
-        { value: thenReg, blockId: thenBlockId },
-        { value: elseReg, blockId: elseBlockId },
-      ],
-      thenReg.type, // Use then branch type (type checker ensures compatibility)
-    );
-
-    return resultReg ?? null;
-  }
-
-  // ===========================================================================
-  // Call Expression Generation (Task 4.6)
-  // ===========================================================================
-
-  /**
-   * Generates IL for a call expression.
-   *
-   * Generates arguments, checks for intrinsics, and emits CALL instruction.
-   *
-   * @param expr - Call expression
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing the return value (if any)
-   */
-  protected generateCallExpression(
-    expr: CallExpression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
-    const callee = expr.getCallee();
-    const args = expr.getArguments();
-
-    // Get function name from callee
-    const funcName = this.getCalleeFunction(callee);
-    if (!funcName) {
-      this.addError(
-        'Cannot determine function name from callee expression',
-        expr.getLocation(),
-        'E_INVALID_CALLEE',
-      );
-      return null;
-    }
-
-    // Generate argument expressions
-    const argRegs: VirtualRegister[] = [];
-    for (const arg of args) {
-      const argReg = this.generateExpression(arg, ilFunc);
-      if (!argReg) {
-        return null;
-      }
-      argRegs.push(argReg);
-    }
-
-    // Check if this is an intrinsic function
-    const intrinsicInfo = this.getIntrinsicInfo(funcName);
-    if (intrinsicInfo) {
-      return this.generateIntrinsicCall(funcName, argRegs, intrinsicInfo, expr);
-    }
-
-    // Look up the function to determine return type
-    const funcSymbol = this.symbolTable.lookup(funcName);
-
-    // First check if we have function info in the symbol table
-    if (funcSymbol?.type?.signature) {
-      // Emit call based on return type from symbol table
-      const returnType = this.convertType(funcSymbol.type.signature.returnType);
-      if (returnType.kind === 'void') {
-        this.builder?.emitCallVoid(funcName, argRegs);
-        return null;
-      } else {
-        return this.builder?.emitCall(funcName, argRegs, returnType) ?? null;
-      }
-    }
-
-    // Fallback: Try to find the function in the current module's IL functions
-    // This handles cases where the symbol table doesn't have the function signature
-    // (e.g., when the IL generator creates its own symbol tracking)
-    if (this.context?.module) {
-      const calledFunc = this.context.module.getFunction(funcName);
-      if (calledFunc) {
-        const ilReturnType = calledFunc.returnType;
-        if (ilReturnType.kind === 'void') {
-          this.builder?.emitCallVoid(funcName, argRegs);
-          return null;
-        } else {
-          // Function exists and returns a value - use CALL
-          return this.builder?.emitCall(funcName, argRegs, ilReturnType) ?? null;
-        }
-      }
-    }
-
-    // Unknown function - emit void call and warn
-    this.addWarning(
-      `Unknown function '${funcName}', assuming void return`,
-      expr.getLocation(),
-      'W_UNKNOWN_FUNCTION',
-    );
-    this.builder?.emitCallVoid(funcName, argRegs);
-    return null;
-  }
-
-  /**
-   * Gets the function name from a callee expression.
-   *
-   * @param callee - Callee expression
-   * @returns Function name, or null if cannot be determined
-   */
-  protected getCalleeFunction(callee: Expression): string | null {
-    if (callee.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
-      return (callee as IdentifierExpression).getName();
-    }
-    // TODO: Handle member expressions for method calls
-    return null;
-  }
-
-  /**
-   * Generates IL for an intrinsic function call.
-   *
-   * Intrinsic functions are handled specially and may emit
-   * different instructions than regular calls. This includes:
-   * - Memory intrinsics: peek, poke, peekw, pokew
-   * - Byte extraction: lo, hi
-   * - CPU control: sei, cli, nop, brk
-   * - Stack operations: pha, pla, php, plp
-   * - Optimization: barrier, volatile_read, volatile_write
-   * - Compile-time: sizeof, length
-   *
-   * @param name - Intrinsic function name
-   * @param args - Argument registers
-   * @param info - Intrinsic info
-   * @param expr - Original expression for error reporting
-   * @returns Result register
-   */
-  protected generateIntrinsicCall(
-    name: string,
-    args: VirtualRegister[],
-    info: import('./declarations.js').IntrinsicInfo,
-    expr: CallExpression,
-  ): VirtualRegister | null {
-    // Handle known intrinsics
-    switch (name) {
-      // =========================================================================
-      // Memory Intrinsics - Byte Access
-      // =========================================================================
-      case 'peek':
-        // peek(address) - read byte from memory
-        if (args.length !== 1) {
-          this.addError('peek() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        return this.builder?.emitPeek(args[0]) ?? null;
-
-      case 'poke':
-        // poke(address, value) - write byte to memory
-        if (args.length !== 2) {
-          this.addError('poke() requires exactly 2 arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitPoke(args[0], args[1]);
-        return null;
-
-      // =========================================================================
-      // Memory Intrinsics - Word Access
-      // =========================================================================
-      case 'peekw':
-        // peekw(address) - read word (16-bit) from memory
-        if (args.length !== 1) {
-          this.addError('peekw() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        return this.builder?.emitPeekw(args[0]) ?? null;
-
-      case 'pokew':
-        // pokew(address, value) - write word (16-bit) to memory
-        if (args.length !== 2) {
-          this.addError('pokew() requires exactly 2 arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitPokew(args[0], args[1]);
-        return null;
-
-      // =========================================================================
-      // Byte Extraction Intrinsics
-      // =========================================================================
-      case 'lo':
-        // lo(value) - extract low byte from word
-        if (args.length !== 1) {
-          this.addError('lo() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        return this.builder?.emitLo(args[0]) ?? null;
-
-      case 'hi':
-        // hi(value) - extract high byte from word
-        if (args.length !== 1) {
-          this.addError('hi() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        return this.builder?.emitHi(args[0]) ?? null;
-
-      // =========================================================================
-      // CPU Control Intrinsics
-      // =========================================================================
-      case 'sei':
-        // sei() - set interrupt disable flag
-        if (args.length !== 0) {
-          this.addError('sei() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitSei();
-        return null;
-
-      case 'cli':
-        // cli() - clear interrupt disable flag
-        if (args.length !== 0) {
-          this.addError('cli() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitCli();
-        return null;
-
-      case 'nop':
-        // nop() - no operation (timing/padding)
-        if (args.length !== 0) {
-          this.addError('nop() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitNop();
-        return null;
-
-      case 'brk':
-        // brk() - break (software interrupt)
-        if (args.length !== 0) {
-          this.addError('brk() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitBrk();
-        return null;
-
-      // =========================================================================
-      // Stack Operation Intrinsics
-      // =========================================================================
-      case 'pha':
-        // pha() - push accumulator to stack
-        if (args.length !== 0) {
-          this.addError('pha() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitPha();
-        return null;
-
-      case 'pla':
-        // pla() - pull accumulator from stack (returns byte)
-        if (args.length !== 0) {
-          this.addError('pla() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        return this.builder?.emitPla() ?? null;
-
-      case 'php':
-        // php() - push processor status to stack
-        if (args.length !== 0) {
-          this.addError('php() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitPhp();
-        return null;
-
-      case 'plp':
-        // plp() - pull processor status from stack
-        if (args.length !== 0) {
-          this.addError('plp() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitPlp();
-        return null;
-
-      // =========================================================================
-      // Optimization Control Intrinsics
-      // =========================================================================
-      case 'barrier':
-        // barrier() - optimization barrier, prevents reordering
-        if (args.length !== 0) {
-          this.addError('barrier() takes no arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitOptBarrier();
-        return null;
-
-      case 'volatile_read':
-        // volatile_read(address) - read that cannot be optimized away
-        if (args.length !== 1) {
-          this.addError('volatile_read() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        return this.builder?.emitVolatileRead(args[0]) ?? null;
-
-      case 'volatile_write':
-        // volatile_write(address, value) - write that cannot be optimized away
-        if (args.length !== 2) {
-          this.addError('volatile_write() requires exactly 2 arguments', expr.getLocation(), 'E_INTRINSIC_ARGS');
-          return null;
-        }
-        this.builder?.emitVolatileWrite(args[0], args[1]);
-        return null;
-
-      // =========================================================================
-      // Compile-Time Intrinsics
-      // =========================================================================
-      case 'sizeof':
-        // sizeof(type) - returns size of type at compile time
-        // Note: This requires special handling as the argument is a type, not a value
-        // For now, emit placeholder - full implementation needs type expression support
-        return this.generateSizeofIntrinsic(expr);
-
-      case 'length':
-        // length(array) - returns array length at compile time
-        return this.generateLengthIntrinsic(expr);
-
-      default:
-        // Unknown intrinsic - emit regular call
-        this.addWarning(
-          `Unknown intrinsic '${name}', treating as regular call`,
-          expr.getLocation(),
-          'W_UNKNOWN_INTRINSIC',
-        );
-        return this.builder?.emitCall(name, args, info.returnType) ?? null;
-    }
-  }
-
-  /**
-   * Generates IL for the sizeof() compile-time intrinsic.
-   *
-   * sizeof() returns the size of a type at compile time. This requires
-   * special handling because the argument is a type expression, not a value.
-   *
-   * The parser handles type keywords (byte, word, boolean, void) as LiteralExpression
-   * nodes with string values, while variable names are IdentifierExpression nodes.
-   *
-   * @param expr - Call expression for sizeof()
-   * @returns Virtual register containing the constant size value
-   */
-  protected generateSizeofIntrinsic(expr: CallExpression): VirtualRegister | null {
-    const args = expr.getArguments();
-
-    if (args.length !== 1) {
-      this.addError('sizeof() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
-      return null;
-    }
-
-    // Get the argument - could be a type keyword (LiteralExpression) or variable name (IdentifierExpression)
-    const arg = args[0];
-
-    // Handle type keywords parsed as LiteralExpression (e.g., sizeof(byte), sizeof(word))
-    // The parser converts type keywords to LiteralExpression with the type name as a string
-    if (arg.getNodeType() === ASTNodeType.LITERAL_EXPR) {
-      const literal = arg as LiteralExpression;
-      const value = literal.getValue();
-
-      // Type keywords are stored as string literals
-      if (typeof value === 'string') {
-        const size = this.getTypeSizeByName(value);
-        if (size !== null) {
-          return this.builder?.emitConstByte(size) ?? null;
-        }
-      }
-
-      // Not a recognized type - fall through to error
-      this.addError(
-        `Cannot determine size of '${value}'`,
-        expr.getLocation(),
-        'E_SIZEOF_UNKNOWN_TYPE',
-      );
-      return null;
-    }
-
-    // Handle variable names as IdentifierExpression (e.g., sizeof(myVar))
-    if (arg.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
-      const typeName = (arg as IdentifierExpression).getName();
-
-      // First check if it's a type name (in case parser produces identifier for types)
-      const size = this.getTypeSizeByName(typeName);
-      if (size !== null) {
-        return this.builder?.emitConstByte(size) ?? null;
-      }
-
-      // Check if it's a variable and get its type size
-      const symbol = this.symbolTable.lookup(typeName);
-      if (symbol && symbol.type) {
-        const varSize = symbol.type.size ?? 1;
-        return this.builder?.emitConstByte(varSize) ?? null;
-      }
-
-      this.addError(
-        `Cannot determine size of '${typeName}'`,
-        expr.getLocation(),
-        'E_SIZEOF_UNKNOWN_TYPE',
-      );
-      return null;
-    }
-
-    // Argument is not a valid type or variable name
-    this.addError(
-      'sizeof() requires a type or variable name',
-      expr.getLocation(),
-      'E_SIZEOF_INVALID_ARG',
-    );
-    return null;
-  }
-
-  /**
-   * Gets the size of a type by its name.
-   *
-   * @param typeName - Type name (e.g., 'byte', 'word', 'boolean')
-   * @returns Size in bytes, or null if unknown
-   */
-  protected getTypeSizeByName(typeName: string): number | null {
-    switch (typeName.toLowerCase()) {
-      case 'byte':
-      case 'u8':
-      case 'i8':
-      case 'bool':
-      case 'boolean':
-        return 1;
-      case 'word':
-      case 'u16':
-      case 'i16':
-        return 2;
-      case 'void':
-        return 0;
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * Generates IL for the length() compile-time intrinsic.
-   *
-   * length() returns the length of an array or string at compile time.
-   * The argument can be:
-   * - A string literal (e.g., length("hello") -> 5)
-   * - A variable with a known compile-time size
-   *
-   * @param expr - Call expression for length()
-   * @returns Virtual register containing the constant length value
-   */
-  protected generateLengthIntrinsic(expr: CallExpression): VirtualRegister | null {
-    const args = expr.getArguments();
-
-    if (args.length !== 1) {
-      this.addError('length() requires exactly 1 argument', expr.getLocation(), 'E_INTRINSIC_ARGS');
-      return null;
-    }
-
-    const arg = args[0];
-
-    // Handle string literals: length("hello") -> 5
-    if (arg.getNodeType() === ASTNodeType.LITERAL_EXPR) {
-      const literal = arg as LiteralExpression;
-      const value = literal.getValue();
-
-      if (typeof value === 'string') {
-        // Return the length of the string literal as a compile-time constant
-        return this.builder?.emitConstWord(value.length) ?? null;
-      }
-
-      // Other literal types (numbers, booleans) are not valid for length()
-      this.addError(
-        'length() requires a string literal or array variable',
-        expr.getLocation(),
-        'E_LENGTH_INVALID_ARG',
-      );
-      return null;
-    }
-
-    // Check if argument is an identifier (array/string variable name)
-    if (arg.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
-      const varName = (arg as IdentifierExpression).getName();
-
-      // Look up the variable in symbol table
-      const symbol = this.symbolTable.lookup(varName);
-      if (symbol && symbol.type) {
-        // Check for array type with known size
-        if (symbol.type.arraySize !== undefined && symbol.type.arraySize !== null) {
-          return this.builder?.emitConstWord(symbol.type.arraySize) ?? null;
-        }
-
-        // Check for string type with known length
-        if (symbol.type.kind === 'string' && symbol.type.size !== undefined) {
-          // String size includes null terminator, length does not
-          const stringLength = Math.max(0, symbol.type.size - 1);
-          return this.builder?.emitConstWord(stringLength) ?? null;
-        }
-
-        // Check for array type element count
-        if (symbol.type.elementType !== undefined && symbol.type.size !== undefined) {
-          const elementSize = symbol.type.elementType.size ?? 1;
-          const arrayLength = Math.floor(symbol.type.size / elementSize);
-          return this.builder?.emitConstWord(arrayLength) ?? null;
-        }
-      }
-
-      this.addError(
-        `Cannot determine length of '${varName}' - must be an array or string with known size`,
-        expr.getLocation(),
-        'E_LENGTH_UNKNOWN_SIZE',
-      );
-      return null;
-    }
-
-    // Argument is not a valid type for length()
-    this.addError(
-      'length() requires a string literal or array variable',
-      expr.getLocation(),
-      'E_LENGTH_INVALID_ARG',
-    );
-    return null;
-  }
-
-  // ===========================================================================
-  // Index Expression Generation (Task 4.7)
-  // ===========================================================================
-
-  /**
-   * Generates IL for an index expression (array access).
-   *
-   * Emits LOAD_ARRAY instruction to read array element.
-   *
-   * @param expr - Index expression
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing the element value
-   */
-  protected generateIndexExpression(
-    expr: IndexExpression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
     const obj = expr.getObject();
     const index = expr.getIndex();
 
-    // Get the array name
-    const arrayName = this.getArrayName(obj);
-    if (!arrayName) {
-      this.addError(
-        'Cannot determine array name for indexing',
-        expr.getLocation(),
-        'E_INVALID_ARRAY',
-      );
-      return null;
-    }
+    // Get the array base slot
+    if (isIdentifierExpression(obj)) {
+      const arrayName = obj.getName();
+      const arraySlot = this.tryResolveVariable(arrayName);
 
-    // Generate index expression
-    const indexReg = this.generateExpression(index, ilFunc);
-    if (!indexReg) {
-      return null;
-    }
-
-    // Get element type from array type
-    const elementType = this.getArrayElementType(arrayName);
-
-    // Emit LOAD_ARRAY instruction
-    return this.builder?.emitLoadArray(arrayName, indexReg, elementType) ?? null;
-  }
-
-  /**
-   * Gets the array name from an expression.
-   *
-   * @param expr - Expression that should resolve to an array
-   * @returns Array name, or null if cannot be determined
-   */
-  protected getArrayName(expr: Expression): string | null {
-    if (expr.getNodeType() === ASTNodeType.IDENTIFIER_EXPR) {
-      return (expr as IdentifierExpression).getName();
-    }
-    return null;
-  }
-
-  /**
-   * Gets the element type of an array.
-   *
-   * @param arrayName - Array variable name
-   * @returns Element type (defaults to byte)
-   */
-  protected getArrayElementType(arrayName: string): import('../types.js').ILType {
-    // Check local variables
-    const localInfo = this.getLocalVariable(arrayName);
-    if (localInfo && localInfo.type.kind === 'array') {
-      return (localInfo.type as import('../types.js').ILArrayType).elementType;
-    }
-
-    // Check global variable mapping
-    const mapping = this.getVariableMapping(arrayName);
-    if (mapping && mapping.symbol.type?.elementType) {
-      return this.convertType(mapping.symbol.type.elementType);
-    }
-
-    // Default to byte
-    return IL_BYTE;
-  }
-
-  // ===========================================================================
-  // Assignment Expression Generation (Task 4.8)
-  // ===========================================================================
-
-  /**
-   * Generates IL for an assignment expression.
-   *
-   * Handles simple assignment (=) and compound assignments (+=, -=, etc.).
-   *
-   * @param expr - Assignment expression
-   * @param ilFunc - Current IL function
-   * @returns Virtual register containing the assigned value
-   */
-  protected generateAssignmentExpression(
-    expr: AssignmentExpression,
-    ilFunc: ILFunction,
-  ): VirtualRegister | null {
-    const target = expr.getTarget();
-    const operator = expr.getOperator();
-    const value = expr.getValue();
-
-    // Generate the value to assign
-    let valueReg = this.generateExpression(value, ilFunc);
-    if (!valueReg) {
-      return null;
-    }
-
-    // Handle compound assignments
-    if (operator !== TokenType.ASSIGN) {
-      // Load current value
-      const currentReg = this.generateExpression(target, ilFunc);
-      if (!currentReg) {
-        return null;
+      if (!arraySlot) {
+        // Array not found - emit placeholder
+        this.builder.nop();
+        this.clearLocation();
+        return;
       }
 
-      // Apply compound operation
-      valueReg = this.emitCompoundOperation(operator, currentReg, valueReg, expr);
-      if (!valueReg) {
-        return null;
-      }
-    }
-
-    // Store to target
-    this.storeToTarget(target, valueReg, ilFunc, expr);
-
-    // Return the assigned value
-    return valueReg;
-  }
-
-  /**
-   * Emits the operation for a compound assignment.
-   *
-   * @param operator - Compound assignment operator
-   * @param current - Current value register
-   * @param value - Value to apply
-   * @param expr - Original expression for error reporting
-   * @returns Result register
-   */
-  protected emitCompoundOperation(
-    operator: TokenType,
-    current: VirtualRegister,
-    value: VirtualRegister,
-    expr: AssignmentExpression,
-  ): VirtualRegister | null {
-    switch (operator) {
-      case TokenType.PLUS_ASSIGN:
-        return this.builder?.emitAdd(current, value) ?? null;
-      case TokenType.MINUS_ASSIGN:
-        return this.builder?.emitSub(current, value) ?? null;
-      case TokenType.MULTIPLY_ASSIGN:
-        return this.builder?.emitMul(current, value) ?? null;
-      case TokenType.DIVIDE_ASSIGN:
-        return this.builder?.emitDiv(current, value) ?? null;
-      case TokenType.MODULO_ASSIGN:
-        return this.builder?.emitMod(current, value) ?? null;
-      case TokenType.BITWISE_AND_ASSIGN:
-        return this.builder?.emitAnd(current, value) ?? null;
-      case TokenType.BITWISE_OR_ASSIGN:
-        return this.builder?.emitOr(current, value) ?? null;
-      case TokenType.BITWISE_XOR_ASSIGN:
-        return this.builder?.emitXor(current, value) ?? null;
-      case TokenType.LEFT_SHIFT_ASSIGN:
-        return this.builder?.emitShl(current, value) ?? null;
-      case TokenType.RIGHT_SHIFT_ASSIGN:
-        return this.builder?.emitShr(current, value) ?? null;
-      default:
-        this.addError(
-          `Unsupported compound assignment: ${operator}`,
-          expr.getLocation(),
-          'E_UNSUPPORTED_OP',
-        );
-        return null;
-    }
-  }
-
-  /**
-   * Stores a value to an assignment target.
-   *
-   * @param target - Target expression (lvalue)
-   * @param value - Value register to store
-   * @param ilFunc - Current IL function
-   * @param expr - Original expression for error reporting
-   */
-  protected storeToTarget(
-    target: Expression,
-    value: VirtualRegister,
-    ilFunc: ILFunction,
-    expr: AssignmentExpression,
-  ): void {
-    const nodeType = target.getNodeType();
-
-    if (nodeType === ASTNodeType.IDENTIFIER_EXPR) {
-      // Simple variable assignment
-      const name = (target as IdentifierExpression).getName();
-      this.builder?.emitStoreVar(name, value);
-    } else if (nodeType === ASTNodeType.INDEX_EXPR) {
-      // Array element assignment
-      const indexExpr = target as IndexExpression;
-      const arrayName = this.getArrayName(indexExpr.getObject());
-      if (arrayName) {
-        const indexReg = this.generateExpression(indexExpr.getIndex(), ilFunc);
-        if (indexReg) {
-          this.builder?.emitStoreArray(arrayName, indexReg, value);
+      // Check if index is a literal for optimization
+      if (isLiteralExpression(index)) {
+        const indexValue = index.getValue();
+        if (typeof indexValue === 'number') {
+          // Static index - can compute address at compile time
+          // Load from base + offset directly
+          this.builder.loadIndexedImm(arraySlot, indexValue, `${arrayName}[${indexValue}]`);
+          this.clearLocation();
+          return;
         }
       }
+
+      // Dynamic index - need to use Y register for indexing
+      // Generate index into A, transfer to Y, then use indexed load
+      this.generateExpression(index);
+      this.builder.transferAY();
+      this.builder.loadIndexedY(arraySlot, `${arrayName}[Y]`);
     } else {
-      this.addError(
-        `Invalid assignment target: ${nodeType}`,
-        expr.getLocation(),
-        'E_INVALID_LVALUE',
+      // Complex base expression - not yet supported
+      this.builder.nop();
+    }
+
+    this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Binary Expression
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for a binary expression.
+   *
+   * Strategy:
+   * 1. Generate left operand (result in A)
+   * 2. If right is immediate: Use immediate instruction
+   * 3. If right is identifier: Use slot instruction
+   * 4. Otherwise: Push A, generate right, operate
+   *
+   * @param expr - Binary expression
+   */
+  protected generateBinary(expr: BinaryExpression): void {
+    this.setLocation(expr.getLocation());
+
+    // Generate left operand first (result in A)
+    this.generateExpression(expr.getLeft());
+
+    const right = expr.getRight();
+    const op = expr.getOperator();
+
+    // Optimization: Check for immediate right operand
+    if (isLiteralExpression(right)) {
+      const value = right.getValue();
+      if (typeof value === 'number') {
+        this.generateBinaryImmediate(op, value);
+        this.clearLocation();
+        return;
+      }
+    }
+
+    // Optimization: Check for slot right operand
+    if (isIdentifierExpression(right)) {
+      const slot = this.tryResolveVariable(right.getName());
+      if (slot && slot.location !== SlotLocation.Register) {
+        this.generateBinarySlot(op, slot);
+        this.clearLocation();
+        return;
+      }
+    }
+
+    // Complex right operand - need temporary storage
+    // Push left value, generate right, then operate
+    this.generateBinaryComplex(op, right);
+    this.clearLocation();
+  }
+
+  /**
+   * Generate binary operation with immediate operand.
+   *
+   * @param op - Operator token type
+   * @param value - Immediate value
+   */
+  protected generateBinaryImmediate(op: TokenType, value: number): void {
+    switch (op) {
+      case TokenType.PLUS:
+        this.builder.addImm(value);
+        break;
+      case TokenType.MINUS:
+        this.builder.subImm(value);
+        break;
+      case TokenType.BITWISE_AND:
+        this.builder.andImm(value);
+        break;
+      case TokenType.BITWISE_OR:
+        this.builder.orImm(value);
+        break;
+      case TokenType.BITWISE_XOR:
+        this.builder.xorImm(value);
+        break;
+      case TokenType.MULTIPLY:
+        this.builder.mulImm(value);
+        break;
+      case TokenType.EQUAL:
+      case TokenType.NOT_EQUAL:
+      case TokenType.LESS_THAN:
+      case TokenType.LESS_EQUAL:
+      case TokenType.GREATER_THAN:
+      case TokenType.GREATER_EQUAL:
+        // Comparison: CMP, then result depends on branch
+        this.builder.cmpImm(value);
+        break;
+      default:
+        // Other operators need full evaluation
+        this.builder.emit(ILOpcode.PUSH_A, []);
+        this.builder.loadImm(value);
+        this.generateBinaryComplexOp(op);
+    }
+  }
+
+  /**
+   * Generate binary operation with slot operand.
+   *
+   * @param op - Operator token type
+   * @param slot - Right operand slot
+   */
+  protected generateBinarySlot(op: TokenType, slot: FrameSlot): void {
+    switch (op) {
+      case TokenType.PLUS:
+        this.builder.addSlot(slot);
+        break;
+      case TokenType.MINUS:
+        this.builder.subSlot(slot);
+        break;
+      case TokenType.MULTIPLY:
+        this.builder.mulSlot(slot);
+        break;
+      case TokenType.DIVIDE:
+        this.builder.divSlot(slot);
+        break;
+      case TokenType.MODULO:
+        this.builder.modSlot(slot);
+        break;
+      case TokenType.BITWISE_AND:
+        this.builder.andSlot(slot);
+        break;
+      case TokenType.BITWISE_OR:
+        this.builder.orSlot(slot);
+        break;
+      case TokenType.BITWISE_XOR:
+        this.builder.xorSlot(slot);
+        break;
+      case TokenType.EQUAL:
+      case TokenType.NOT_EQUAL:
+      case TokenType.LESS_THAN:
+      case TokenType.LESS_EQUAL:
+      case TokenType.GREATER_THAN:
+      case TokenType.GREATER_EQUAL:
+        this.builder.cmpSlot(slot);
+        break;
+      default:
+        // Unsupported slot operation - fallback to complex
+        this.builder.emit(ILOpcode.PUSH_A, []);
+        this.builder.loadSlot(slot);
+        this.generateBinaryComplexOp(op);
+    }
+  }
+
+  /**
+   * Generate binary operation with complex right operand.
+   *
+   * Strategy for A OP B where B is complex:
+   * 1. Compute A (left), push to stack
+   * 2. Compute B (right), result in A
+   * 3. Save right to temp, pop left to A
+   * 4. Execute A OP temp (using _BYTE opcodes)
+   *
+   * @param op - Operator token type
+   * @param right - Right operand expression
+   */
+  protected generateBinaryComplex(op: TokenType, right: Expression): void {
+    // Save left value to stack
+    this.builder.emit(ILOpcode.PUSH_A, [], 'save left');
+
+    // Generate right operand (result in A)
+    this.generateExpression(right);
+
+    // Now we have: stack = left, A = right
+    // For correct operation, we need: A = left OP right
+    //
+    // For commutative ops (add, and, or, xor), we can swap:
+    //   A = right OP stack (pop)
+    //
+    // For non-commutative ops (sub, cmp), we need proper order:
+    //   Save right to temp, pop left to A, then A OP temp
+
+    this.generateBinaryComplexOp(op);
+  }
+
+  /**
+   * Generate the actual binary operation for complex operands.
+   *
+   * At entry: stack has left, A has right
+   * For commutative ops: A OP stack is same as stack OP A
+   * For non-commutative ops: need proper ordering
+   *
+   * @param op - Operator token type
+   */
+  protected generateBinaryComplexOp(op: TokenType): void {
+    switch (op) {
+      // Commutative operations - right OP left = left OP right
+      case TokenType.PLUS:
+        // right + left: ADD right with popped left
+        // Save right temp, pop left, add temp
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (add)');
+        this.builder.emit(ILOpcode.ADD_BYTE, [], 'add right'); // Uses stack
+        break;
+
+      case TokenType.BITWISE_AND:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (and)');
+        this.builder.emit(ILOpcode.AND_BYTE, [], 'and right');
+        break;
+
+      case TokenType.BITWISE_OR:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (or)');
+        this.builder.emit(ILOpcode.OR_BYTE, [], 'or right');
+        break;
+
+      case TokenType.BITWISE_XOR:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (xor)');
+        this.builder.emit(ILOpcode.XOR_BYTE, [], 'xor right');
+        break;
+
+      case TokenType.MULTIPLY:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (mul)');
+        this.builder.emit(ILOpcode.MUL_BYTE, [], 'mul right');
+        break;
+
+      // Non-commutative - need proper left OP right ordering
+      case TokenType.MINUS:
+        // left - right: We have right in A, left on stack
+        // Need: A = left - right
+        // Swap: push right, pop left to A, sub with original right
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (sub)');
+        this.builder.emit(ILOpcode.SUB_BYTE, [], 'sub right');
+        break;
+
+      case TokenType.DIVIDE:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (div)');
+        this.builder.emit(ILOpcode.DIV_BYTE, [], 'div right');
+        break;
+
+      case TokenType.MODULO:
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (mod)');
+        this.builder.emit(ILOpcode.MOD_BYTE, [], 'mod right');
+        break;
+
+      // Comparison operators
+      case TokenType.EQUAL:
+      case TokenType.NOT_EQUAL:
+      case TokenType.LESS_THAN:
+      case TokenType.LESS_EQUAL:
+      case TokenType.GREATER_THAN:
+      case TokenType.GREATER_EQUAL:
+        // Comparison: left CMP right
+        // We have right in A, left on stack
+        // For proper CMP, we need left in A, compare with right
+        this.builder.emit(ILOpcode.POP_A, [], 'get left (cmp)');
+        this.builder.emit(ILOpcode.CMP_BYTE, [], 'cmp right');
+        break;
+
+      default:
+        // Fallback - just pop
+        this.builder.emit(ILOpcode.POP_A, [], 'op (unsupported)');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Unary Expression
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for a unary expression.
+   *
+   * @param expr - Unary expression
+   */
+  protected generateUnary(expr: UnaryExpression): void {
+    this.setLocation(expr.getLocation());
+
+    // Generate operand (result in A)
+    this.generateExpression(expr.getOperand());
+
+    const op = expr.getOperator();
+
+    switch (op) {
+      case TokenType.MINUS:
+        // Negate: 0 - value
+        // Store A, load 0, subtract stored value
+        // For simplicity, use EOR #$FF then INC (two's complement)
+        this.builder.emit(
+          ILOpcode.XOR_IMM,
+          [createImmediateOperand(0xff)],
+          'negate step 1'
+        );
+        // Need to add 1 - but we don't have INC_A directly
+        // Use ADC #1 (assuming carry clear)
+        this.builder.addImm(1, 'negate step 2');
+        break;
+
+      case TokenType.NOT:
+        // Logical NOT: 0 becomes 1, non-zero becomes 0
+        // Compare with 0, if equal set 1, else set 0
+        this.builder.cmpImm(0);
+        // After CMP, Z flag is set if A == 0
+        // Use branch to set result - placeholder for now
+        this.builder.not();
+        break;
+
+      case TokenType.BITWISE_NOT:
+        // Bitwise NOT: EOR #$FF
+        this.builder.not();
+        break;
+
+      default:
+        // Unknown unary operator
+        break;
+    }
+
+    this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Assignment Expression
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for an assignment expression.
+   *
+   * Generates the value expression, then stores to target slot.
+   *
+   * @param expr - Assignment expression
+   */
+  protected generateAssignment(expr: AssignmentExpression): void {
+    this.setLocation(expr.getLocation());
+
+    const target = expr.getTarget();
+    const op = expr.getOperator();
+    const value = expr.getValue();
+
+    // Get target slot
+    if (!isIdentifierExpression(target)) {
+      // Complex target (index, member) - TODO in Phase 7c
+      this.generateExpression(value);
+      this.clearLocation();
+      return;
+    }
+
+    const targetName = target.getName();
+    const slot = this.resolveVariable(targetName);
+
+    if (op === TokenType.ASSIGN) {
+      // Simple assignment: x = value
+      this.generateExpression(value);
+      this.builder.storeSlot(slot, `${targetName} =`);
+    } else {
+      // Compound assignment: x += value, x -= value, etc.
+      this.generateCompoundAssignment(slot, op, value);
+    }
+
+    this.clearLocation();
+  }
+
+  /**
+   * Generate compound assignment (+=, -=, etc.).
+   *
+   * @param slot - Target slot
+   * @param op - Compound operator
+   * @param value - Value expression
+   */
+  protected generateCompoundAssignment(
+    slot: FrameSlot,
+    op: TokenType,
+    value: Expression
+  ): void {
+    // Load current value
+    this.builder.loadSlot(slot, `load ${slot.name}`);
+
+    // Apply operation
+    if (isLiteralExpression(value)) {
+      const literalValue = value.getValue();
+      if (typeof literalValue === 'number') {
+        switch (op) {
+          case TokenType.PLUS_ASSIGN:
+            this.builder.addImm(literalValue);
+            break;
+          case TokenType.MINUS_ASSIGN:
+            this.builder.subImm(literalValue);
+            break;
+          case TokenType.BITWISE_AND_ASSIGN:
+            this.builder.andImm(literalValue);
+            break;
+          case TokenType.BITWISE_OR_ASSIGN:
+            this.builder.orImm(literalValue);
+            break;
+          case TokenType.BITWISE_XOR_ASSIGN:
+            this.builder.xorImm(literalValue);
+            break;
+          default:
+            // Other compound ops need full generation
+            this.builder.emit(ILOpcode.PUSH_A, []);
+            this.generateExpression(value);
+            this.generateCompoundOperation(op);
+        }
+      } else {
+        this.builder.emit(ILOpcode.PUSH_A, []);
+        this.generateExpression(value);
+        this.generateCompoundOperation(op);
+      }
+    } else {
+      // Complex value - full generation
+      this.builder.emit(ILOpcode.PUSH_A, []);
+      this.generateExpression(value);
+      this.generateCompoundOperation(op);
+    }
+
+    // Store result
+    this.builder.storeSlot(slot, `store ${slot.name}`);
+  }
+
+  /**
+   * Generate the operation for compound assignment.
+   *
+   * @param op - Compound operator token type
+   */
+  protected generateCompoundOperation(op: TokenType): void {
+    // Stack has old value, A has new value
+    // Similar to binary complex case
+    switch (op) {
+      case TokenType.PLUS_ASSIGN:
+      case TokenType.MINUS_ASSIGN:
+      case TokenType.MULTIPLY_ASSIGN:
+      case TokenType.DIVIDE_ASSIGN:
+      case TokenType.MODULO_ASSIGN:
+      case TokenType.BITWISE_AND_ASSIGN:
+      case TokenType.BITWISE_OR_ASSIGN:
+      case TokenType.BITWISE_XOR_ASSIGN:
+        this.builder.emit(ILOpcode.POP_A, [], 'compound op');
+        break;
+      default:
+        this.builder.emit(ILOpcode.POP_A, []);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Ternary Expression
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for a ternary conditional expression.
+   *
+   * @param expr - Ternary expression
+   */
+  protected generateTernary(expr: TernaryExpression): void {
+    this.setLocation(expr.getLocation());
+
+    const elseLabel = this.builder.newLabel('ternelse');
+    const endLabel = this.builder.newLabel('ternend');
+
+    // Generate condition
+    this.generateExpression(expr.getCondition());
+    this.builder.cmpImm(0);
+    this.builder.jumpEq(elseLabel);
+
+    // Generate then branch
+    this.generateExpression(expr.getThenBranch());
+    this.builder.jump(endLabel);
+
+    // Generate else branch
+    this.builder.label(elseLabel);
+    this.generateExpression(expr.getElseBranch());
+
+    this.builder.label(endLabel);
+    this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Call Expression (Placeholder)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for a function call.
+   *
+   * Handles three categories of calls:
+   * 1. asm_* functions → ASM_RAW IL instructions (raw 6502 assembly)
+   * 2. Intrinsic functions → Dedicated IL opcodes (peek, poke, hi, lo, etc.)
+   * 3. Regular functions → CALL IL instruction
+   *
+   * @param expr - Call expression
+   */
+  protected generateCall(expr: CallExpression): void {
+    this.setLocation(expr.getLocation());
+
+    const callee = expr.getCallee();
+    if (isIdentifierExpression(callee)) {
+      const funcName = callee.getName();
+
+      // Check for asm_* functions first (raw 6502 assembly)
+      if (isAsmFunction(funcName)) {
+        this.generateAsmRaw(funcName, expr.getArguments());
+        this.clearLocation();
+        return;
+      }
+
+      // Check for intrinsics (peek, poke, hi, lo, etc.)
+      if (this.isIntrinsic(funcName)) {
+        this.generateIntrinsic(funcName, expr.getArguments());
+        this.clearLocation();
+        return;
+      }
+
+      // Regular function call - placeholder
+      this.builder.call(funcName, false, -1);
+    }
+
+    this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ASM_RAW Generation (asm_* functions)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for an asm_* function call.
+   *
+   * Parses the function name to extract the 6502 mnemonic and addressing
+   * mode, then emits an ASM_RAW IL instruction. For implied-mode
+   * instructions (e.g., asm_sei), no argument is needed. For addressed
+   * modes (e.g., asm_lda_imm), the single argument is evaluated first
+   * and passed as an immediate operand.
+   *
+   * @param name - Function name (e.g., 'asm_sei', 'asm_lda_imm')
+   * @param args - Call arguments (0 for implied, 1 for addressed modes)
+   */
+  protected generateAsmRaw(name: string, args: Expression[]): void {
+    const parsed = parseAsmFunctionName(name);
+    if (!parsed) {
+      // Invalid asm_* name - emit NOP as fallback
+      this.builder.nop();
+      return;
+    }
+
+    const { mnemonic, addressingMode } = parsed;
+
+    // Create the AsmRawOperand that carries the 6502 instruction metadata
+    const asmRawOp: AsmRawOperand = {
+      kind: 'asm_raw',
+      mnemonic,
+      addressingMode,
+    };
+
+    if (addressingModeRequiresOperand(addressingMode)) {
+      // Addressed mode (immediate, zeroPage, absolute, etc.)
+      // The argument provides the operand value
+      if (args.length >= 1) {
+        // Generate argument value into accumulator, then push it
+        // so ASM_RAW can reference it via immediate operand
+        this.generateExpression(args[0]);
+
+        // Emit ASM_RAW with both the asm metadata and the generated operand
+        // The value is already in A from generateExpression above.
+        // We pass the AsmRawOperand as the first operand for the codegen
+        // to know mnemonic + addressing mode.
+        this.builder.emit(
+          ILOpcode.ASM_RAW,
+          [asmRawOp],
+          `${name}(arg)`
+        );
+      } else {
+        // Missing argument - emit NOP as fallback
+        this.builder.nop();
+      }
+    } else {
+      // Implied mode - no operand needed (e.g., SEI, CLI, NOP, TAX, PHA)
+      this.builder.emit(
+        ILOpcode.ASM_RAW,
+        [asmRawOp],
+        `${name}()`
       );
+    }
+  }
+
+  /**
+   * Check if a function name is an intrinsic.
+   *
+   * @param name - Function name
+   * @returns True if intrinsic
+   */
+  protected isIntrinsic(name: string): boolean {
+    const intrinsics = [
+      'peek',
+      'poke',
+      'peekw',
+      'pokew',
+      'volatile_read',
+      'volatile_write',
+      'hi',
+      'lo',
+      'barrier',
+      'length',
+    ];
+    return intrinsics.includes(name);
+  }
+
+  /**
+   * Try to resolve an expression to a constant numeric address.
+   *
+   * This is critical for peek/poke/peekw/pokew intrinsics which need
+   * the address as an operand on the IL instruction (not on the stack).
+   * The codegen expects address operands to generate proper 6502
+   * `LDA abs` / `STA abs` instructions.
+   *
+   * Handles two cases:
+   * 1. Numeric literal: `poke($D020, value)` → returns 0xD020
+   * 2. Constant identifier: `poke(BORDER, value)` where BORDER = $D020 → returns 0xD020
+   *
+   * @param expr - Address expression to evaluate
+   * @returns Numeric address if resolvable at compile time, undefined otherwise
+   */
+  protected tryResolveConstantAddress(expr: Expression): number | undefined {
+    // Case 1: Numeric literal (e.g., $D020, 53280, 0xD020)
+    if (isLiteralExpression(expr)) {
+      const value = expr.getValue();
+      if (typeof value === 'number') {
+        return value;
+      }
+    }
+
+    // Case 2: Constant identifier reference (e.g., BORDER where const BORDER = $D020)
+    if (isIdentifierExpression(expr)) {
+      const name = expr.getName();
+      const symbol = this.symbolTable.lookupGlobal(name);
+      if (symbol && symbol.isConst && symbol.initializer) {
+        // Recursively resolve the initializer (handles const BORDER = $D020)
+        return this.tryResolveConstantAddress(symbol.initializer);
+      }
+    }
+
+    // Cannot resolve to a constant address
+    return undefined;
+  }
+
+  /**
+   * Generate IL for an intrinsic call.
+   *
+   * When the address argument can be resolved to a compile-time constant,
+   * emits the intrinsic with an address operand (required by codegen).
+   * Falls back to stack-based approach for dynamic addresses.
+   *
+   * @param name - Intrinsic name
+   * @param args - Arguments
+   */
+  protected generateIntrinsic(name: string, args: Expression[]): void {
+    switch (name) {
+      case 'peek':
+        if (args.length >= 1) {
+          this.generatePeekIntrinsic(args[0], 'peek');
+        }
+        break;
+      case 'poke':
+        if (args.length >= 2) {
+          this.generatePokeIntrinsic(args[0], args[1], 'poke');
+        }
+        break;
+      case 'peekw':
+        if (args.length >= 1) {
+          this.generatePeekwIntrinsic(args[0], 'peekw');
+        }
+        break;
+      case 'pokew':
+        if (args.length >= 2) {
+          this.generatePokewIntrinsic(args[0], args[1], 'pokew');
+        }
+        break;
+      case 'volatile_read':
+        // Same as peek() with volatile semantics
+        if (args.length >= 1) {
+          this.generatePeekIntrinsic(args[0], 'volatile_read');
+        }
+        break;
+      case 'volatile_write':
+        // Same as poke() with volatile semantics
+        if (args.length >= 2) {
+          this.generatePokeIntrinsic(args[0], args[1], 'volatile_write');
+        }
+        break;
+      case 'hi':
+        if (args.length >= 1) {
+          this.generateExpression(args[0]);
+          this.builder.emit(ILOpcode.HI, [], 'hi(value)');
+        }
+        break;
+      case 'lo':
+        if (args.length >= 1) {
+          this.generateExpression(args[0]);
+          this.builder.emit(ILOpcode.LO, [], 'lo(value)');
+        }
+        break;
+      case 'barrier':
+        // Optimization barrier - no IL generated, just a directive to the optimizer
+        // to prevent reordering code across this point (per spec 08-intrinsics.md)
+        break;
+      case 'length':
+        // length() is a compile-time intrinsic - resolved during semantic analysis
+        // No runtime IL needed (per spec 08-intrinsics.md)
+        break;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Intrinsic Helper Methods
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for peek/volatile_read intrinsic.
+   *
+   * When the address is a compile-time constant, emits PEEK with
+   * an address operand. Falls back to stack-based for dynamic addresses.
+   *
+   * @param addrExpr - Address expression
+   * @param label - Comment label (e.g., 'peek' or 'volatile_read')
+   */
+  protected generatePeekIntrinsic(addrExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      // Constant address - emit PEEK with address operand (codegen-compatible)
+      this.builder.emit(
+        ILOpcode.PEEK,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)})`
+      );
+    } else {
+      // Dynamic address - stack-based fallback (known codegen gap for dynamic addresses)
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PEEK, [], `${label}(addr)`);
+    }
+  }
+
+  /**
+   * Generate IL for poke/volatile_write intrinsic.
+   *
+   * When the address is a compile-time constant, emits the value
+   * expression followed by POKE with an address operand.
+   * Falls back to stack-based for dynamic addresses.
+   *
+   * @param addrExpr - Address expression
+   * @param valueExpr - Value expression
+   * @param label - Comment label (e.g., 'poke' or 'volatile_write')
+   */
+  protected generatePokeIntrinsic(addrExpr: Expression, valueExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      // Constant address - generate value, then POKE with address operand
+      this.generateExpression(valueExpr);
+      this.builder.emit(
+        ILOpcode.POKE,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)}, value)`
+      );
+    } else {
+      // Dynamic address - stack-based fallback (known codegen gap)
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PUSH_A, [], `${label} addr`);
+      this.generateExpression(valueExpr);
+      this.builder.emit(ILOpcode.POKE, [], `${label}(addr, value)`);
+    }
+  }
+
+  /**
+   * Generate IL for peekw intrinsic (16-bit read).
+   *
+   * @param addrExpr - Address expression
+   * @param label - Comment label
+   */
+  protected generatePeekwIntrinsic(addrExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      this.builder.emit(
+        ILOpcode.PEEKW,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)})`
+      );
+    } else {
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PEEKW, [], `${label}(addr)`);
+    }
+  }
+
+  /**
+   * Generate IL for pokew intrinsic (16-bit write).
+   *
+   * @param addrExpr - Address expression
+   * @param valueExpr - Value expression
+   * @param label - Comment label
+   */
+  protected generatePokewIntrinsic(addrExpr: Expression, valueExpr: Expression, label: string): void {
+    const constAddr = this.tryResolveConstantAddress(addrExpr);
+    if (constAddr !== undefined) {
+      this.generateExpression(valueExpr);
+      this.builder.emit(
+        ILOpcode.POKEW,
+        [createAddressOperand(constAddr)],
+        `${label}($${constAddr.toString(16)}, value)`
+      );
+    } else {
+      this.generateExpression(addrExpr);
+      this.builder.emit(ILOpcode.PUSH_A, [], `${label} addr`);
+      this.generateExpression(valueExpr);
+      this.builder.emit(ILOpcode.POKEW, [], `${label}(addr, value)`);
     }
   }
 }

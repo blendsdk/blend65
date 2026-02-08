@@ -1,499 +1,545 @@
 /**
- * Variable Usage Analysis (Task 8.2)
+ * Variable Usage Analyzer for Blend65 Compiler v2
  *
- * Analyzes variable usage patterns to detect:
- * - Unused variables (declared but never read)
- * - Write-only variables (written but never read)
- * - Read-only variables (read but never written after initialization)
- * - Read/write counts (for optimization hints)
- * - Hot path accesses (variables accessed in loops)
- * - Loop depth tracking (maximum nesting depth)
+ * Detects unused variables and parameters to help keep code clean and catch
+ * potential bugs. Unused variables often indicate:
+ * - Incomplete implementation (forgot to use a computed value)
+ * - Dead code (result of refactoring)
+ * - Typos in variable names
  *
- * **Algorithm:**
- * 1. Collect all variable declarations in the program
- * 2. Walk AST to track all reads and writes to each variable
- * 3. Track current loop depth during traversal
- * 4. Generate usage statistics and classify variables
- * 5. Emit warnings for unused and write-only variables
- * 6. Set metadata for optimization hints
+ * **Analysis Types:**
+ * - Unused variables: Declared but never read
+ * - Unused parameters: Function parameters that are never used
+ * - Write-only variables: Assigned but never read (different from unused)
  *
- * **Metadata Generated:**
- * - `UsageReadCount`: Number of times variable is read
- * - `UsageWriteCount`: Number of times variable is written
- * - `UsageIsUsed`: Variable is used (read or written)
- * - `UsageIsWriteOnly`: Variable is written but never read
- * - `UsageIsReadOnly`: Variable is read but never written (except initialization)
- * - `UsageHotPathAccesses`: Number of accesses inside loops
- * - `UsageMaxLoopDepth`: Maximum loop nesting depth where variable is accessed
+ * **Exclusions:**
+ * - Exported variables (may be used by other modules)
+ * - Variables prefixed with underscore (conventional "intentionally unused" marker)
+ * - Loop counters in for loops (often intentionally unused)
+ * - Parameters of stub functions (intrinsic/extern declarations without bodies)
+ *
+ * @module semantic/analysis/variable-usage
  */
 
-import type { Program, VariableDecl, IdentifierExpression } from '../../ast/nodes.js';
-import type { SymbolTable } from '../symbol-table.js';
-import type { Diagnostic } from '../../ast/diagnostics.js';
-import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
-import { ASTWalker } from '../../ast/walker/base.js';
+import type { SourceLocation } from '../../ast/index.js';
+import type { Symbol, SymbolTable } from '../index.js';
 import { SymbolKind } from '../symbol.js';
-import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
-import { isIdentifierExpression } from '../../ast/type-guards.js';
+import { ScopeKind } from '../scope.js';
 
 /**
- * Variable usage information
- *
- * Tracks read/write patterns and loop access for a single variable.
+ * Types of variable usage issues
  */
-interface VariableUsageInfo {
-  /** Variable name (symbol name) */
-  name: string;
+export enum VariableUsageIssueKind {
+  /** Variable declared but never used */
+  UnusedVariable = 'unused_variable',
+  /** Parameter declared but never used */
+  UnusedParameter = 'unused_parameter',
+  /** Variable assigned but never read */
+  WriteOnlyVariable = 'write_only_variable',
+  /** Variable read but never assigned (covered by definite assignment) */
+  ReadOnlyVariable = 'read_only_variable',
+}
 
-  /** Number of times variable is read */
+/**
+ * Severity of variable usage issues
+ */
+export enum VariableUsageSeverity {
+  /** Potential bug - should be addressed */
+  Warning = 'warning',
+  /** Informational - may be intentional */
+  Info = 'info',
+}
+
+/**
+ * A variable usage issue
+ */
+export interface VariableUsageIssue {
+  /** The kind of issue */
+  kind: VariableUsageIssueKind;
+
+  /** The severity of this issue */
+  severity: VariableUsageSeverity;
+
+  /** The symbol with the issue */
+  symbol: Symbol;
+
+  /** Location of the symbol declaration */
+  location: SourceLocation;
+
+  /** Human-readable message */
+  message: string;
+
+  /** Suggested fix */
+  suggestion: string;
+}
+
+/**
+ * Result of variable usage analysis
+ */
+export interface VariableUsageResult {
+  /** Whether any issues were found */
+  hasIssues: boolean;
+
+  /** All issues found */
+  issues: VariableUsageIssue[];
+
+  /** Count by type */
+  unusedVariableCount: number;
+  unusedParameterCount: number;
+  writeOnlyCount: number;
+
+  /** Statistics */
+  totalVariables: number;
+  totalParameters: number;
+  usedVariables: number;
+  usedParameters: number;
+}
+
+/**
+ * Tracks usage of a single symbol
+ */
+interface UsageInfo {
+  /** The symbol being tracked */
+  symbol: Symbol;
+
+  /** Number of times the symbol is read */
   readCount: number;
 
-  /** Number of times variable is written (including initialization) */
+  /** Number of times the symbol is written (assigned) */
   writeCount: number;
 
-  /** Number of accesses inside loops (hot path) */
-  hotPathAccesses: number;
+  /** Locations where the symbol is read */
+  readLocations: SourceLocation[];
 
-  /** Maximum loop nesting depth where variable is accessed */
-  maxLoopDepth: number;
+  /** Locations where the symbol is written */
+  writeLocations: SourceLocation[];
 
-  /** Variable declaration node */
-  declaration: VariableDecl;
+  /** Is this an intentionally unused symbol (prefixed with _)? */
+  isIntentionallyUnused: boolean;
+
+  /** Is this symbol exported? */
+  isExported: boolean;
 }
+
+/**
+ * Configuration options for variable usage analysis
+ */
+export interface VariableUsageOptions {
+  /** Report unused variables (default: true) */
+  reportUnusedVariables: boolean;
+
+  /** Report unused parameters (default: true) */
+  reportUnusedParameters: boolean;
+
+  /** Report write-only variables (default: true) */
+  reportWriteOnly: boolean;
+
+  /** Ignore underscore-prefixed variables (default: true) */
+  ignoreUnderscorePrefixed: boolean;
+
+  /** Ignore exported symbols (default: true) */
+  ignoreExported: boolean;
+
+  /** Ignore loop counter variables (default: false) */
+  ignoreLoopCounters: boolean;
+}
+
+/**
+ * Default configuration options
+ */
+export const DEFAULT_VARIABLE_USAGE_OPTIONS: VariableUsageOptions = {
+  reportUnusedVariables: true,
+  reportUnusedParameters: true,
+  reportWriteOnly: true,
+  ignoreUnderscorePrefixed: true,
+  ignoreExported: true,
+  ignoreLoopCounters: false,
+};
 
 /**
  * Variable Usage Analyzer
  *
- * Tracks read and write patterns for all variables to:
- * 1. Detect unused, write-only, and read-only variables
- * 2. Generate usage statistics for optimizer
- * 3. Track hot path accesses (loops)
- * 4. Emit warnings for unused variables
+ * Tracks variable and parameter usage to detect unused declarations.
  *
- * @example
+ * **Usage:**
  * ```typescript
  * const analyzer = new VariableUsageAnalyzer(symbolTable);
- * analyzer.analyze(ast);
- * const diagnostics = analyzer.getDiagnostics();
+ *
+ * // Record reads and writes during AST traversal
+ * analyzer.recordRead(symbol, location);
+ * analyzer.recordWrite(symbol, location);
+ *
+ * // Get analysis results
+ * const result = analyzer.analyze();
+ *
+ * if (result.hasIssues) {
+ *   for (const issue of result.issues) {
+ *     console.warn(`${issue.severity}: ${issue.message}`);
+ *   }
+ * }
  * ```
+ *
+ * **Integration:**
+ * This analyzer is typically used as part of the semantic analysis pipeline,
+ * with reads/writes recorded during the type checking pass.
  */
 export class VariableUsageAnalyzer {
-  /** Diagnostics collected during analysis */
-  protected diagnostics: Diagnostic[] = [];
+  /** Symbol table for looking up all symbols */
+  protected readonly symbolTable: SymbolTable;
 
-  /** Map of variable name to usage information */
-  protected usageMap: Map<string, VariableUsageInfo> = new Map();
+  /** Configuration options */
+  protected readonly options: VariableUsageOptions;
 
-  /** Current loop nesting depth (0 = not in loop) */
-  protected currentLoopDepth: number = 0;
+  /** Usage tracking per symbol (keyed by symbol key) */
+  protected usageMap: Map<string, UsageInfo>;
 
-  /**
-   * Create variable usage analyzer
-   *
-   * @param symbolTable - Symbol table from Pass 1
-   */
-  constructor(protected readonly symbolTable: SymbolTable) {}
+  /** Set of loop counter variable keys */
+  protected loopCounters: Set<string>;
 
   /**
-   * Run variable usage analysis on entire program
+   * Create a new variable usage analyzer
    *
-   * Analyzes variable usage patterns to detect:
-   * - Unused variables
-   * - Write-only variables
-   * - Read/write counts
-   * - Hot path accesses
-   *
-   * Sets metadata on variable declarations for optimizer.
-   *
-   * @param ast - Program AST
+   * @param symbolTable - The symbol table to analyze
+   * @param options - Configuration options (optional)
    */
-  public analyze(ast: Program): void {
-    // Step 1: Collect all variable declarations
-    this.collectVariableDeclarations(ast);
-
-    // Step 2: Track reads
-    this.trackReads(ast);
-
-    // Step 3: Track writes
-    this.trackWrites(ast);
-
-    // Step 4: Generate metadata
-    this.setVariableMetadata();
-
-    // Step 5: Detect unused variables
-    this.detectUnusedVariables();
+  constructor(symbolTable: SymbolTable, options?: Partial<VariableUsageOptions>) {
+    this.symbolTable = symbolTable;
+    this.options = { ...DEFAULT_VARIABLE_USAGE_OPTIONS, ...options };
+    this.usageMap = new Map();
+    this.loopCounters = new Set();
   }
 
   /**
-   * Detect unused and write-only variables
+   * Initialize usage tracking from symbol table
    *
-   * Generates WARNING diagnostics for:
-   * - Variables that are declared but never used (read or written)
-   * - Variables that are written but never read (write-only)
-   *
-   * Skips function parameters and exported variables.
+   * Must be called before recording reads/writes.
    */
-  protected detectUnusedVariables(): void {
-    for (const [_name, info] of this.usageMap) {
-      const decl = info.declaration;
+  public initialize(): void {
+    this.usageMap.clear();
+    this.loopCounters.clear();
 
-      // Skip exported variables - they are intentionally exposed for external use
-      // by other modules and may be used outside this compilation unit
-      if (decl.isExportedVariable()) {
+    const allScopes = this.symbolTable.getAllScopes();
+
+    for (const [, scope] of allScopes) {
+      for (const [, symbol] of scope.symbols) {
+        // Track variables and parameters
+        if (symbol.kind === SymbolKind.Variable || symbol.kind === SymbolKind.Parameter) {
+          const key = this.getSymbolKey(symbol);
+          const isIntentionallyUnused = symbol.name.startsWith('_');
+
+          this.usageMap.set(key, {
+            symbol,
+            readCount: 0,
+            writeCount: symbol.initializer !== undefined ? 1 : 0, // Initializer counts as write
+            readLocations: [],
+            writeLocations: symbol.initializer !== undefined ? [symbol.location] : [],
+            isIntentionallyUnused,
+            isExported: symbol.isExported,
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Record a variable read
+   *
+   * @param symbol - The symbol being read
+   * @param location - Location of the read
+   */
+  public recordRead(symbol: Symbol, location: SourceLocation): void {
+    const key = this.getSymbolKey(symbol);
+    const usage = this.usageMap.get(key);
+
+    if (usage) {
+      usage.readCount++;
+      usage.readLocations.push(location);
+    }
+  }
+
+  /**
+   * Record a variable write (assignment)
+   *
+   * @param symbol - The symbol being written
+   * @param location - Location of the write
+   */
+  public recordWrite(symbol: Symbol, location: SourceLocation): void {
+    const key = this.getSymbolKey(symbol);
+    const usage = this.usageMap.get(key);
+
+    if (usage) {
+      usage.writeCount++;
+      usage.writeLocations.push(location);
+    }
+  }
+
+  /**
+   * Mark a variable as a loop counter
+   *
+   * Loop counters may be intentionally unused in some cases.
+   *
+   * @param symbol - The loop counter symbol
+   */
+  public markAsLoopCounter(symbol: Symbol): void {
+    const key = this.getSymbolKey(symbol);
+    this.loopCounters.add(key);
+  }
+
+  /**
+   * Analyze usage and generate report
+   *
+   * @returns Analysis results with all issues found
+   */
+  public analyze(): VariableUsageResult {
+    const issues: VariableUsageIssue[] = [];
+    let unusedVariableCount = 0;
+    let unusedParameterCount = 0;
+    let writeOnlyCount = 0;
+    let totalVariables = 0;
+    let totalParameters = 0;
+    let usedVariables = 0;
+    let usedParameters = 0;
+
+    for (const [key, usage] of this.usageMap) {
+      const symbol = usage.symbol;
+      const isParameter = symbol.kind === SymbolKind.Parameter;
+
+      // Update statistics
+      if (isParameter) {
+        totalParameters++;
+      } else {
+        totalVariables++;
+      }
+
+      // Check if we should skip this symbol
+      if (this.shouldSkip(usage, key)) {
+        // Count as used if skipped for valid reasons
+        if (isParameter) {
+          usedParameters++;
+        } else {
+          usedVariables++;
+        }
         continue;
       }
 
-      // Detect completely unused variables
-      if (info.readCount === 0 && info.writeCount === 0) {
-        this.diagnostics.push({
-          code: DiagnosticCode.TYPE_MISMATCH, // Generic semantic warning code
-          severity: DiagnosticSeverity.WARNING,
-          message: `Variable '${info.name}' is declared but never used`,
-          location: decl.getLocation(),
-        });
-      }
-      // Detect write-only variables (written but never read)
-      else if (info.writeCount > 0 && info.readCount === 0) {
-        this.diagnostics.push({
-          code: DiagnosticCode.TYPE_MISMATCH,
-          severity: DiagnosticSeverity.WARNING,
-          message: `Variable '${info.name}' is assigned but never read`,
-          location: decl.getLocation(),
-        });
-      }
-    }
-  }
-
-  /**
-   * Set metadata on all variable declarations
-   *
-   * For each variable, sets:
-   * - Read/write counts
-   * - Hot path accesses
-   * - Loop depth
-   * - Classification flags (used, write-only, read-only)
-   */
-  protected setVariableMetadata(): void {
-    for (const [_name, info] of this.usageMap) {
-      const decl = info.declaration;
-
-      // Ensure metadata map exists
-      if (!decl.metadata) {
-        decl.metadata = new Map();
-      }
-
-      // Set count metadata
-      decl.metadata.set(OptimizationMetadataKey.UsageReadCount, info.readCount);
-      decl.metadata.set(OptimizationMetadataKey.UsageWriteCount, info.writeCount);
-      decl.metadata.set(OptimizationMetadataKey.UsageHotPathAccesses, info.hotPathAccesses);
-      decl.metadata.set(OptimizationMetadataKey.UsageMaxLoopDepth, info.maxLoopDepth);
-
-      // Compute and set classification flags
-      const isUsed = info.readCount > 0 || info.writeCount > 0;
-      const isWriteOnly = info.writeCount > 0 && info.readCount === 0;
-      const isReadOnly = info.readCount > 0 && info.writeCount <= 1;
-
-      decl.metadata.set(OptimizationMetadataKey.UsageIsUsed, isUsed);
-      decl.metadata.set(OptimizationMetadataKey.UsageIsWriteOnly, isWriteOnly);
-      decl.metadata.set(OptimizationMetadataKey.UsageIsReadOnly, isReadOnly);
-    }
-  }
-
-  /**
-   * Track all variable writes in the program
-   *
-   * Walks the AST to find all variable assignments and initializers.
-   * Updates write counts and tracks hot path accesses.
-   *
-   * @param ast - Program AST
-   */
-  protected trackWrites(ast: Program): void {
-    const tracker = new WriteTracker(this.symbolTable, this.usageMap, () =>
-      this.getCurrentLoopDepth()
-    );
-    tracker.walk(ast);
-  }
-
-  /**
-   * Track all variable reads in the program
-   *
-   * Walks the AST to find all identifier expressions that represent
-   * variable reads. Updates read counts and tracks hot path accesses.
-   *
-   * @param ast - Program AST
-   */
-  protected trackReads(ast: Program): void {
-    const tracker = new ReadTracker(this.symbolTable, this.usageMap, () =>
-      this.getCurrentLoopDepth()
-    );
-    tracker.walk(ast);
-  }
-
-  /**
-   * Collect all variable declarations in the program
-   *
-   * Walks the AST to find all VariableDecl nodes and creates
-   * a VariableUsageInfo entry for each one.
-   *
-   * Skips function parameters (handled separately).
-   *
-   * @param ast - Program AST
-   */
-  protected collectVariableDeclarations(ast: Program): void {
-    const collector = new VariableCollector(this.symbolTable, this.usageMap);
-    collector.walk(ast);
-  }
-
-  /**
-   * Enter a loop (increment loop depth)
-   *
-   * Called when traversing into a loop body.
-   */
-  protected enterLoop(): void {
-    this.currentLoopDepth++;
-  }
-
-  /**
-   * Exit a loop (decrement loop depth)
-   *
-   * Called when exiting a loop body.
-   */
-  protected exitLoop(): void {
-    this.currentLoopDepth--;
-  }
-
-  /**
-   * Get current loop nesting depth
-   *
-   * @returns Current loop depth (0 = not in loop)
-   */
-  protected getCurrentLoopDepth(): number {
-    return this.currentLoopDepth;
-  }
-
-  /**
-   * Get all diagnostics from analysis
-   *
-   * @returns Array of diagnostics (warnings for unused variables)
-   */
-  public getDiagnostics(): Diagnostic[] {
-    return [...this.diagnostics];
-  }
-}
-
-/**
- * Walker to collect all variable declarations
- *
- * Finds all VariableDecl nodes and creates VariableUsageInfo entries.
- */
-class VariableCollector extends ASTWalker {
-  /**
-   * Create variable collector
-   *
-   * @param symbolTable - Symbol table
-   * @param usageMap - Map to populate with variable info
-   */
-  constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly usageMap: Map<string, VariableUsageInfo>
-  ) {
-    super();
-  }
-
-  /**
-   * Visit variable declaration
-   *
-   * Creates a VariableUsageInfo entry for this variable.
-   */
-  public visitVariableDecl(node: VariableDecl): void {
-    // First do the default behavior (traverse children)
-    super.visitVariableDecl(node);
-
-    // Look up the symbol for this variable
-    const symbol = this.symbolTable.lookup(node.getName());
-
-    // Only track regular variables (not function parameters, which are handled separately)
-    if (symbol && symbol.kind === SymbolKind.Variable) {
-      // Create usage info entry
-      this.usageMap.set(symbol.name, {
-        name: symbol.name,
-        readCount: 0,
-        writeCount: 0,
-        hotPathAccesses: 0,
-        maxLoopDepth: 0,
-        declaration: node,
-      });
-    }
-  }
-}
-
-/**
- * Walker to track variable writes
- *
- * Finds all variable assignments and increments write counts.
- * Also tracks initializers as writes.
- */
-class WriteTracker extends ASTWalker {
-  /**
-   * Create write tracker
-   *
-   * @param symbolTable - Symbol table
-   * @param usageMap - Map to update with write counts
-   * @param getCurrentLoopDepth - Function to get current loop depth
-   */
-  constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly usageMap: Map<string, VariableUsageInfo>,
-    protected readonly getCurrentLoopDepth: () => number
-  ) {
-    super();
-  }
-
-  /**
-   * Visit variable declaration
-   *
-   * If the variable has an initializer, count it as a write.
-   */
-  public visitVariableDecl(node: VariableDecl): void {
-    // First do the default behavior (traverse children)
-    super.visitVariableDecl(node);
-
-    // Check if variable has initializer
-    const initializer = node.getInitializer();
-    if (initializer) {
-      // Look up the symbol
-      const symbol = this.symbolTable.lookup(node.getName());
-
-      if (symbol && symbol.kind === SymbolKind.Variable) {
-        const info = this.usageMap.get(symbol.name);
-        if (info) {
-          // Count initialization as a write
-          info.writeCount++;
-
-          // Track loop access if in loop
-          const loopDepth = this.getCurrentLoopDepth();
-          if (loopDepth > 0) {
-            info.hotPathAccesses++;
-            if (loopDepth > info.maxLoopDepth) {
-              info.maxLoopDepth = loopDepth;
-            }
+      // Check for unused variable/parameter (never read)
+      if (usage.readCount === 0) {
+        if (usage.writeCount === 0) {
+          // Never used at all
+          if (isParameter && this.options.reportUnusedParameters) {
+            unusedParameterCount++;
+            issues.push(this.createUnusedParameterIssue(symbol));
+          } else if (!isParameter && this.options.reportUnusedVariables) {
+            unusedVariableCount++;
+            issues.push(this.createUnusedVariableIssue(symbol));
           }
+        } else if (this.options.reportWriteOnly) {
+          // Written but never read
+          writeOnlyCount++;
+          issues.push(this.createWriteOnlyIssue(symbol, usage.writeCount));
+        }
+      } else {
+        // Read at least once - count as used
+        if (isParameter) {
+          usedParameters++;
+        } else {
+          usedVariables++;
         }
       }
     }
+
+    return {
+      hasIssues: issues.length > 0,
+      issues,
+      unusedVariableCount,
+      unusedParameterCount,
+      writeOnlyCount,
+      totalVariables,
+      totalParameters,
+      usedVariables,
+      usedParameters,
+    };
   }
 
   /**
-   * Visit assignment expression
+   * Check if a symbol should be skipped from analysis
    *
-   * Track the assignment as a write.
+   * Skips symbols that are:
+   * - Intentionally unused (underscore-prefixed)
+   * - Exported (may be used by other modules)
+   * - Loop counters (often intentionally unused)
+   * - Parameters of stub functions (no body — intrinsic/extern declarations)
    */
-  public visitAssignmentExpression(node: any): void {
-    // First do the default behavior (traverse children)
-    super.visitAssignmentExpression(node);
+  protected shouldSkip(usage: UsageInfo, key: string): boolean {
+    // Skip intentionally unused (underscore-prefixed) — but NOT if the variable
+    // has a @zp directive. Zero-page addresses are precious on the 6502 and
+    // wasting them on unused variables should still produce a warning.
+    if (this.options.ignoreUnderscorePrefixed && usage.isIntentionallyUnused) {
+      const hasZpDirective = usage.symbol.metadata?.get('zpDirective') === true;
+      if (!hasZpDirective) {
+        return true;
+      }
+    }
 
-    // Extract the target (left side)
-    const target = node.getTarget();
+    // Skip exported symbols
+    if (this.options.ignoreExported && usage.isExported) {
+      return true;
+    }
 
-    // Check if target is an identifier (simple variable assignment)
-    if (target && isIdentifierExpression(target)) {
-      const symbol = this.symbolTable.lookup(target.getName());
+    // Skip loop counters if configured
+    if (this.options.ignoreLoopCounters && this.loopCounters.has(key)) {
+      return true;
+    }
 
-      if (symbol && symbol.kind === SymbolKind.Variable) {
-        const info = this.usageMap.get(symbol.name);
-        if (info) {
-          // Count assignment as a write
-          info.writeCount++;
-
-          // Track loop access if in loop
-          const loopDepth = this.getCurrentLoopDepth();
-          if (loopDepth > 0) {
-            info.hotPathAccesses++;
-            if (loopDepth > info.maxLoopDepth) {
-              info.maxLoopDepth = loopDepth;
-            }
-          }
+    // Skip parameters of stub functions (functions without bodies).
+    // Stub functions are intrinsic/extern declarations like those in
+    // system.blend and asm.blend — their parameters can never be "used"
+    // because there is no function body where they could be referenced.
+    if (usage.symbol.kind === SymbolKind.Parameter) {
+      const scope = usage.symbol.scope;
+      if (scope.kind === ScopeKind.Function && scope.functionSymbol) {
+        const funcDecl = scope.functionSymbol.declaration;
+        if (funcDecl && funcDecl.isStubFunction()) {
+          return true;
         }
       }
     }
-  }
-}
 
-/**
- * Walker to track variable reads
- *
- * Finds all IdentifierExpression nodes that represent variable reads
- * and increments read counts. Tracks loop depth for hot path analysis.
- *
- * **Important:** Skips assignment targets (left-hand side of assignments)
- * since those are writes, not reads.
- */
-class ReadTracker extends ASTWalker {
-  /**
-   * Create read tracker
-   *
-   * @param symbolTable - Symbol table
-   * @param usageMap - Map to update with read counts
-   * @param getCurrentLoopDepth - Function to get current loop depth
-   */
-  constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly usageMap: Map<string, VariableUsageInfo>,
-    protected readonly getCurrentLoopDepth: () => number
-  ) {
-    super();
+    return false;
   }
 
   /**
-   * Visit assignment expression
-   *
-   * For assignments, we only want to track reads in the VALUE (right side),
-   * NOT the target (left side), since the target is being written to.
+   * Create an unused variable issue
    */
-  public visitAssignmentExpression(node: any): void {
-    // Don't use default behavior - we need custom traversal
-
-    // Only walk the value (right side) - this contains the reads
-    const value = node.getValue();
-    if (value) {
-      this.walk(value);
-    }
-
-    // Do NOT walk the target - that's a write, not a read
+  protected createUnusedVariableIssue(symbol: Symbol): VariableUsageIssue {
+    return {
+      kind: VariableUsageIssueKind.UnusedVariable,
+      severity: VariableUsageSeverity.Warning,
+      symbol,
+      location: symbol.location,
+      message: `Variable '${symbol.name}' is declared but never used`,
+      suggestion: `Remove the unused variable or prefix with underscore (_${symbol.name}) if intentional`,
+    };
   }
 
   /**
-   * Visit identifier expression
-   *
-   * This is a variable read (unless it's an assignment target, which we skip above).
-   * Increment read count and track loop access.
+   * Create an unused parameter issue
    */
-  public visitIdentifierExpression(node: IdentifierExpression): void {
-    // First do the default behavior (enter/exit node)
-    super.visitIdentifierExpression(node);
+  protected createUnusedParameterIssue(symbol: Symbol): VariableUsageIssue {
+    return {
+      kind: VariableUsageIssueKind.UnusedParameter,
+      severity: VariableUsageSeverity.Warning,
+      symbol,
+      location: symbol.location,
+      message: `Parameter '${symbol.name}' is never used`,
+      suggestion: `Remove the parameter or prefix with underscore (_${symbol.name}) if required by interface`,
+    };
+  }
 
-    // Look up the symbol
-    const symbol = this.symbolTable.lookup(node.getName());
+  /**
+   * Create a write-only variable issue
+   */
+  protected createWriteOnlyIssue(symbol: Symbol, writeCount: number): VariableUsageIssue {
+    return {
+      kind: VariableUsageIssueKind.WriteOnlyVariable,
+      severity: VariableUsageSeverity.Warning,
+      symbol,
+      location: symbol.location,
+      message: `Variable '${symbol.name}' is assigned ${writeCount} time(s) but never read`,
+      suggestion: `Use the variable or remove it if the computation is unnecessary`,
+    };
+  }
 
-    // Only track variable reads
-    if (symbol && symbol.kind === SymbolKind.Variable) {
-      const info = this.usageMap.get(symbol.name);
-      if (info) {
-        // Increment read count
-        info.readCount++;
+  /**
+   * Get usage information for a symbol
+   *
+   * @param symbol - The symbol to look up
+   * @returns Usage info, or undefined if not tracked
+   */
+  public getUsage(symbol: Symbol): UsageInfo | undefined {
+    const key = this.getSymbolKey(symbol);
+    return this.usageMap.get(key);
+  }
 
-        // Track loop access
-        const loopDepth = this.getCurrentLoopDepth();
-        if (loopDepth > 0) {
-          // Variable accessed in a loop (hot path)
-          info.hotPathAccesses++;
+  /**
+   * Check if a symbol has been used (read at least once)
+   *
+   * @param symbol - The symbol to check
+   * @returns True if the symbol has been read
+   */
+  public isUsed(symbol: Symbol): boolean {
+    const usage = this.getUsage(symbol);
+    return usage ? usage.readCount > 0 : true; // Assume used if not tracked
+  }
 
-          // Update max loop depth
-          if (loopDepth > info.maxLoopDepth) {
-            info.maxLoopDepth = loopDepth;
-          }
-        }
+  /**
+   * Get all unused symbols
+   *
+   * @returns Array of symbols that are declared but never read
+   */
+  public getUnusedSymbols(): Symbol[] {
+    const unused: Symbol[] = [];
+
+    for (const [key, usage] of this.usageMap) {
+      if (usage.readCount === 0 && !this.shouldSkip(usage, key)) {
+        unused.push(usage.symbol);
       }
     }
+
+    return unused;
+  }
+
+  /**
+   * Get unique key for a symbol (name + scope)
+   */
+  protected getSymbolKey(symbol: Symbol): string {
+    return `${symbol.scope.id}::${symbol.name}`;
+  }
+
+  /**
+   * Format a human-readable report
+   *
+   * @returns Multi-line string with all issues
+   */
+  public formatReport(): string {
+    const result = this.analyze();
+
+    if (!result.hasIssues) {
+      const stats = `(${result.usedVariables}/${result.totalVariables} variables, ${result.usedParameters}/${result.totalParameters} parameters used)`;
+      return `Variable Usage Analysis: No issues found ${stats}`;
+    }
+
+    const lines: string[] = [
+      '=== Variable Usage Analysis Report ===',
+      '',
+      'Statistics:',
+      `  Variables: ${result.usedVariables}/${result.totalVariables} used`,
+      `  Parameters: ${result.usedParameters}/${result.totalParameters} used`,
+      '',
+      'Issues found:',
+      `  Unused variables: ${result.unusedVariableCount}`,
+      `  Unused parameters: ${result.unusedParameterCount}`,
+      `  Write-only variables: ${result.writeOnlyCount}`,
+      '',
+      'Details:',
+    ];
+
+    for (const issue of result.issues) {
+      const loc = issue.location;
+      lines.push('');
+      lines.push(`  ${issue.severity.toUpperCase()}: ${issue.message}`);
+      lines.push(`    at line ${loc.start.line}, column ${loc.start.column}`);
+      lines.push(`    suggestion: ${issue.suggestion}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Reset analyzer state for reuse
+   */
+  public reset(): void {
+    this.usageMap.clear();
+    this.loopCounters.clear();
   }
 }

@@ -102,153 +102,63 @@ export type EmulatorType = 'vice' | 'x16emu';
 export interface CompilerOptions {
   /**
    * Target platform
-   *
-   * Specifies which 6502-based platform to compile for.
-   * Each target has different hardware characteristics:
-   * - Memory layout
-   * - Zero-page availability
-   * - Hardware registers
-   *
-   * **Note**: Currently only 'c64' is implemented. Other targets
-   * ('c128', 'x16') will generate a "not implemented yet" error.
-   *
    * @default "c64"
    */
   target?: TargetPlatform;
 
   /**
    * Optimization level
-   *
-   * Controls which optimization passes are applied to generated code.
-   *
-   * **Levels:**
-   * - 'O0': No optimization (fastest compilation, debugging)
-   * - 'O1': Basic optimizations (constant folding, dead code)
-   * - 'O2': Standard optimizations (recommended for release)
-   * - 'O3': Aggressive optimizations (may increase code size)
-   * - 'Os': Size optimization (minimize code footprint)
-   * - 'Oz': Minimum size (aggressive size reduction)
-   *
    * @default "O0"
    */
   optimization?: OptimizationLevelId;
 
   /**
    * Debug information generation
-   *
-   * Controls what debug info is included in output.
-   *
-   * - 'none': No debug info (production builds)
-   * - 'inline': Assembly comments showing source mapping
-   * - 'vice': Generate VICE .lbl label file
-   * - 'both': Inline comments + VICE labels
-   *
    * @default "none"
    */
   debug?: DebugMode;
 
   /**
    * Output directory for compiled files
-   *
-   * Directory where generated files are placed.
-   * Relative to the project root (where blend65.json is located).
-   * Created automatically if it doesn't exist.
-   *
    * @default "./build"
    */
   outDir?: string;
 
   /**
    * Output filename (without path)
-   *
-   * Base name for generated output files.
-   * If omitted, derived from the entry file name.
-   *
    * @example "game.prg"
    */
   outFile?: string;
 
   /**
    * Output format
-   *
-   * Determines what types of files are generated.
-   *
-   * - 'asm': Assembly source only (for manual assembly)
-   * - 'prg': C64 executable (requires ACME assembler)
-   * - 'crt': Cartridge image (not yet implemented)
-   * - 'both': Assembly + PRG files
-   *
    * @default "prg"
    */
   outputFormat?: OutputFormat;
 
   /**
    * Enable verbose compiler output
-   *
-   * When true, the compiler outputs detailed information about:
-   * - Compilation phases
-   * - File processing
-   * - Optimization decisions
-   *
-   * Useful for debugging compilation issues.
-   *
    * @default false
    */
   verbose?: boolean;
 
   /**
-   * Enable strict mode
-   *
-   * When true, the compiler treats warnings as errors.
-   * Compilation fails on any warning.
-   *
-   * Recommended for CI/CD pipelines.
-   *
+   * Enable strict mode (warnings as errors)
    * @default false
    */
   strict?: boolean;
 
   /**
    * Program load address
-   *
-   * Memory address where the program is loaded.
-   * This is the BASIC start address for C64 PRG files.
-   *
-   * - C64 default: 0x0801 ($0801) - standard BASIC start
-   * - Custom addresses can be used for non-BASIC programs
-   *
    * @default 2049 (0x0801)
    */
   loadAddress?: number;
 
   /**
    * Optional libraries to load
-   *
-   * List of optional library names to include in compilation.
-   * These libraries are loaded from the compiler's built-in library directory.
-   *
-   * **Library Loading:**
-   * - `common/` and `{target}/common/` are always auto-loaded
-   * - Optional libraries are loaded only when specified here or via CLI
-   *
-   * **Library Types:**
-   * - Single-file: `sid` → loads `{target}/sid.blend`
-   * - Folder: `sprites` → loads all `.blend` files from `{target}/sprites/`
-   *
-   * **Example:**
-   * ```json
-   * {
-   *   "compilerOptions": {
-   *     "target": "c64",
-   *     "libraries": ["sid", "sprites"]
-   *   }
-   * }
-   * ```
-   *
-   * @example ["sid", "sprites", "math"]
+   * @example ["sid", "sprites"]
    */
   libraries?: string[];
-
 }
 
 /**
@@ -256,69 +166,21 @@ export interface CompilerOptions {
  *
  * Configures how `blend65 run` launches the emulator.
  * Supports VICE and Commander X16 emulators.
- *
- * @example
- * ```typescript
- * const emulator: EmulatorConfig = {
- *   path: '/usr/local/bin/x64sc',
- *   type: 'vice',
- *   args: ['-autostartprgmode', '1', '-autostart-warp'],
- *   autoRun: true,
- * };
- * ```
  */
 export interface EmulatorConfig {
-  /**
-   * Path to emulator executable
-   *
-   * Absolute or relative path to the emulator binary.
-   * If omitted, the system PATH is searched for common names:
-   * - VICE: x64sc, x64, x128
-   * - X16: x16emu
-   *
-   * @example "/usr/local/bin/x64sc"
-   * @example "x64sc" (search PATH)
-   */
+  /** Path to emulator executable */
   path?: string;
 
-  /**
-   * Emulator type
-   *
-   * Specifies the emulator for correct argument formatting.
-   * Auto-detected from path if omitted.
-   *
-   * @default "vice"
-   */
+  /** Emulator type */
   type?: EmulatorType;
 
-  /**
-   * Additional command-line arguments
-   *
-   * Extra arguments passed to the emulator.
-   * Useful for emulator-specific settings.
-   *
-   * @example ["-autostartprgmode", "1", "-autostart-warp"]
-   */
+  /** Additional command-line arguments */
   args?: string[];
 
-  /**
-   * Automatically run program after loading
-   *
-   * When true, the emulator auto-starts the program.
-   * Equivalent to typing RUN in BASIC.
-   *
-   * @default true
-   */
+  /** Automatically run program after loading */
   autoRun?: boolean;
 
-  /**
-   * Wait for emulator to exit
-   *
-   * When true, the CLI waits for the emulator to close
-   * before returning. Useful for scripted testing.
-   *
-   * @default false
-   */
+  /** Wait for emulator to exit */
   waitForExit?: boolean;
 }
 
@@ -328,48 +190,15 @@ export interface EmulatorConfig {
  * Configuration for the asset pipeline.
  * Specifies patterns for resource files that should be
  * processed and included in the build.
- *
- * **Note**: This is a future feature placeholder.
- * Resource processing is not yet implemented.
- *
- * @example
- * ```typescript
- * const resources: ResourceConfig = {
- *   sprites: ['assets/sprites/*.spr'],
- *   music: ['assets/music/*.sid'],
- *   charsets: ['assets/charsets/*.chr'],
- * };
- * ```
  */
 export interface ResourceConfig {
-  /**
-   * Sprite file patterns
-   *
-   * Glob patterns for sprite definition files.
-   * Sprites will be converted to C64 format.
-   *
-   * @example ["assets/sprites/*.spr"]
-   */
+  /** Sprite file patterns */
   sprites?: string[];
 
-  /**
-   * Music file patterns
-   *
-   * Glob patterns for SID music files.
-   * Music data will be included in the build.
-   *
-   * @example ["assets/music/*.sid"]
-   */
+  /** Music file patterns */
   music?: string[];
 
-  /**
-   * Character set patterns
-   *
-   * Glob patterns for custom character sets.
-   * Charsets will be converted to C64 format.
-   *
-   * @example ["assets/charsets/*.chr"]
-   */
+  /** Character set patterns */
   charsets?: string[];
 }
 
@@ -377,214 +206,64 @@ export interface ResourceConfig {
  * Blend65 project configuration
  *
  * Main configuration interface for `blend65.json` project files.
- * Similar to TypeScript's `tsconfig.json`, this provides project-wide
- * settings for the Blend65 compiler.
- *
- * **Configuration Structure:**
- * - `compilerOptions`: Compiler settings (target, optimization, output)
- * - `include`/`exclude`: Source file patterns
- * - `files`: Explicit file list (overrides patterns)
- * - `emulator`: Emulator settings for `blend65 run`
- * - `resources`: Asset pipeline settings (future)
- *
- * **Entry Point:**
- * The compiler automatically detects the program entry point by finding
- * the single `export function main(): void` in the compiled sources.
- *
- * @example Minimal configuration
- * ```json
- * {
- *   "compilerOptions": {
- *     "target": "c64"
- *   },
- *   "include": ["*.blend"]
- * }
- * ```
- *
- * @example Full configuration
- * ```json
- * {
- *   "$schema": "https://blend65.dev/schema/blend65.json",
- *   "compilerOptions": {
- *     "target": "c64",
- *     "optimization": "O2",
- *     "debug": "both",
- *     "outDir": "./build",
- *     "outFile": "game.prg"
- *   },
- *   "include": ["src/**‎/*.blend"],
- *   "exclude": ["src/**‎/*.test.blend"],
- *   "rootDir": "./src",
- *   "emulator": {
- *     "path": "x64sc",
- *     "autoRun": true
- *   }
- * }
- * ```
+ * Similar to TypeScript's `tsconfig.json`.
  */
 export interface Blend65Config {
-  /**
-   * JSON Schema reference for IDE support
-   *
-   * When set, IDEs can provide autocomplete and validation.
-   * Should point to the official Blend65 JSON schema.
-   *
-   * @example "https://blend65.dev/schema/blend65.json"
-   */
+  /** JSON Schema reference for IDE support */
   $schema?: string;
 
-  /**
-   * Compiler options
-   *
-   * Controls how the compiler processes source files and
-   * generates output. See {@link CompilerOptions} for details.
-   */
+  /** Compiler options */
   compilerOptions: CompilerOptions;
 
-  /**
-   * Glob patterns for source files to include
-   *
-   * Specifies which files should be compiled.
-   * Patterns are relative to the project root.
-   *
-   * @default ["**‎/*.blend"]
-   * @example ["src/**‎/*.blend"]
-   */
+  /** Glob patterns for source files to include */
   include?: string[];
 
-  /**
-   * Glob patterns for files to exclude
-   *
-   * Specifies which files should NOT be compiled,
-   * even if they match include patterns.
-   *
-   * @default ["node_modules/**", "build/**"]
-   * @example ["src/**‎/*.test.blend", "src/**‎/*.spec.blend"]
-   */
+  /** Glob patterns for files to exclude */
   exclude?: string[];
 
-  /**
-   * Explicit list of files to compile
-   *
-   * When specified, overrides include/exclude patterns.
-   * Useful for explicit control over compilation order
-   * or including files outside include patterns.
-   *
-   * @example ["src/main.blend", "src/game.blend"]
-   */
+  /** Explicit list of files to compile */
   files?: string[];
 
-  /**
-   * Root directory for source files
-   *
-   * Used to calculate relative paths in output.
-   * Source file paths are made relative to this directory.
-   *
-   * @default "."
-   */
+  /** Root directory for source files */
   rootDir?: string;
 
-  /**
-   * Emulator configuration
-   *
-   * Settings for `blend65 run` command.
-   * See {@link EmulatorConfig} for details.
-   */
+  /** Emulator configuration */
   emulator?: EmulatorConfig;
 
-  /**
-   * Resource file mappings (future)
-   *
-   * Configuration for asset pipeline.
-   * See {@link ResourceConfig} for details.
-   *
-   * **Note**: Not yet implemented.
-   */
+  /** Resource file mappings (future) */
   resources?: ResourceConfig;
 }
 
 /**
  * Configuration validation error
- *
- * Represents a validation error found in a configuration object.
- * Used by {@link ../validator.js!ConfigValidator} to report issues.
  */
 export interface ConfigValidationError {
-  /**
-   * JSON path to the invalid property
-   *
-   * Uses dot notation to identify the location.
-   *
-   * @example "compilerOptions.target"
-   * @example "include[0]"
-   */
+  /** JSON path to the invalid property */
   path: string;
 
-  /**
-   * Human-readable error message
-   *
-   * Describes what's wrong and how to fix it.
-   *
-   * @example "Invalid target 'c65'. Valid targets: c64, c128, x16"
-   */
+  /** Human-readable error message */
   message: string;
 
-  /**
-   * The invalid value that caused the error
-   *
-   * Included for debugging purposes.
-   */
+  /** The invalid value that caused the error */
   value: unknown;
 }
 
 /**
  * Options for loading configuration
- *
- * Used by {@link ../loader.js!ConfigLoader} to control loading behavior.
  */
 export interface ConfigLoadOptions {
-  /**
-   * Explicit path to configuration file
-   *
-   * If provided, this path is used directly.
-   * If not provided, the loader searches for blend65.json.
-   */
+  /** Explicit path to configuration file */
   configPath?: string;
 
-  /**
-   * Working directory for file resolution
-   *
-   * Directory to search for blend65.json if configPath is not provided.
-   *
-   * @default process.cwd()
-   */
+  /** Working directory for file resolution */
   cwd?: string;
 
-  /**
-   * CLI overrides for compiler options
-   *
-   * Values from CLI flags that override config file settings.
-   */
+  /** CLI overrides for compiler options */
   cliOverrides?: Partial<CompilerOptions>;
 
-  /**
-   * Files specified on command line
-   *
-   * Explicit files from CLI that override include/exclude/files.
-   */
+  /** Files specified on command line */
   cliFiles?: string[];
 
-  /**
-   * Libraries specified on command line
-   *
-   * Library names from CLI `--libraries` flag that are merged with
-   * config file libraries. CLI libraries are added to config libraries,
-   * not replace them.
-   *
-   * **Format:** Comma-separated library names on CLI
-   * **Example:** `--libraries=sid,sprites`
-   *
-   * @example ["sid", "sprites"]
-   */
+  /** Libraries specified on command line */
   cliLibraries?: string[];
 }

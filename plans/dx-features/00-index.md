@@ -2,7 +2,6 @@
 
 > **Status**: Planning Complete
 > **Created**: January 27, 2026
-> **Extracted From**: `plans/end-to-end/` (archived)
 > **Goal**: Enhance developer experience with debugging, emulator integration, and project tooling
 
 ---
@@ -148,10 +147,9 @@ Phase 4: E2E Test Rig
 
 ## Cross-References
 
-- **Archived End-to-End Plan**: `plans/archive/end-to-end/`
-- **Optimizer Plan**: `plans/optimizer/` - Peephole optimization (separate)
-- **Language Specification**: `docs/language-specification/`
-- **Compiler Design**: `docs/language-specification/30-compiler-design.md`
+- **Optimizer Plan**: `plans/optimizer-series/` - Peephole optimization (separate)
+- **Language Specification**: `docs/language-specification-v2/`
+- **Compiler Design**: `docs/language-specification-v2/10-compiler.md`
 
 ---
 

@@ -1,924 +1,351 @@
 /**
- * IL Builder Tests
+ * Tests for IL Builder
  *
- * Tests for ILBuilder class which provides a fluent API for constructing IL instructions.
- *
- * Test Categories:
- * - Module/Function Management: begin/end functions
- * - Block Management: creating and switching blocks
- * - Register Management: creating registers
- * - Constant Instructions: emitConst variants
- * - Arithmetic Instructions: emitAdd, emitSub, etc.
- * - Bitwise Instructions: emitAnd, emitOr, etc.
- * - Comparison Instructions: emitCmpEq, emitCmpLt, etc.
- * - Control Flow: emitJump, emitBranch, emitReturn
- * - Memory Instructions: emitLoad/Store
- * - Call Instructions: emitCall variants
- *
- * @module il/builder.test
+ * @module __tests__/il/builder.test
  */
 
-import { describe, expect, it, beforeEach } from 'vitest';
-import { ILBuilder } from '../../il/builder.js';
-import { ILModule } from '../../il/module.js';
-import { IL_BYTE, IL_WORD, IL_BOOL, IL_VOID, ILTypeKind } from '../../il/types.js';
-import { ILOpcode } from '../../il/instructions.js';
-
-// =============================================================================
-// Test Setup
-// =============================================================================
+import { describe, it, expect, beforeEach } from 'vitest';
+import { SlotKind, SlotLocation } from '../../frame/enums.js';
+import { createFrameSlot } from '../../frame/types.js';
+import { BUILTIN_TYPES } from '../../semantic/types.js';
+import { ILOpcode } from '../../il/enums.js';
+import { ILBuilder, computeInstructionCost, computeDefUse } from '../../il/builder/index.js';
+import { createInstruction, createSlotOperand } from '../../il/factories.js';
+import { isSlotOperand, isImmediateOperand, isLabelOperand } from '../../il/guards.js';
 
 describe('ILBuilder', () => {
-  let module: ILModule;
   let builder: ILBuilder;
 
   beforeEach(() => {
-    module = new ILModule('test');
-    builder = new ILBuilder(module);
+    builder = new ILBuilder();
   });
 
-  // ===========================================================================
-  // Module Access Tests
-  // ===========================================================================
+  describe('Label Management', () => {
+    it('should generate unique label names', () => {
+      const label1 = builder.newLabel();
+      const label2 = builder.newLabel();
+      const label3 = builder.newLabel('custom');
 
-  describe('module access', () => {
-    it('should return the module', () => {
-      expect(builder.getModule()).toBe(module);
-    });
-  });
-
-  // ===========================================================================
-  // Function Management Tests
-  // ===========================================================================
-
-  describe('function management - beginFunction()', () => {
-    it('should create function in module', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      expect(module.hasFunction('test')).toBe(true);
+      expect(label1).toBe('L0');
+      expect(label2).toBe('L1');
+      expect(label3).toBe('custom2');
     });
 
-    it('should set current function', () => {
-      builder.beginFunction('myFunc', [], IL_VOID);
+    it('should emit label instruction', () => {
+      builder.label('test_label');
+      const instructions = builder.getInstructions();
 
-      expect(builder.getCurrentFunction()?.name).toBe('myFunc');
-    });
-
-    it('should create function with parameters', () => {
-      const func = builder.beginFunction(
-        'add',
-        [
-          { name: 'a', type: IL_BYTE },
-          { name: 'b', type: IL_BYTE },
-        ],
-        IL_BYTE,
-      );
-
-      expect(func.parameters).toHaveLength(2);
-    });
-
-    it('should set current block to entry', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      expect(builder.getCurrentBlock()?.label).toBe('entry');
-    });
-
-    it('should throw when function already being built', () => {
-      builder.beginFunction('first', [], IL_VOID);
-
-      expect(() => {
-        builder.beginFunction('second', [], IL_VOID);
-      }).toThrow();
+      expect(instructions).toHaveLength(1);
+      expect(instructions[0].opcode).toBe(ILOpcode.LABEL);
+      expect(isLabelOperand(instructions[0].operands[0])).toBe(true);
     });
   });
 
-  describe('function management - endFunction()', () => {
-    it('should return completed function', () => {
-      builder.beginFunction('test', [], IL_VOID);
+  describe('Memory Operations', () => {
+    it('should emit loadSlot instruction', () => {
+      const slot = createFrameSlot('x', SlotKind.Local, BUILTIN_TYPES.BYTE);
+      builder.loadSlot(slot, 'load x');
 
-      const func = builder.endFunction();
-
-      expect(func.name).toBe('test');
+      const instructions = builder.getInstructions();
+      expect(instructions).toHaveLength(1);
+      expect(instructions[0].opcode).toBe(ILOpcode.LOAD_BYTE);
+      expect(instructions[0].comment).toBe('load x');
+      expect(isSlotOperand(instructions[0].operands[0])).toBe(true);
     });
 
-    it('should clear current function', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      builder.endFunction();
+    it('should emit storeSlot instruction', () => {
+      const slot = createFrameSlot('y', SlotKind.Local, BUILTIN_TYPES.BYTE);
+      builder.storeSlot(slot);
 
-      expect(builder.getCurrentFunction()).toBeNull();
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.STORE_BYTE);
     });
 
-    it('should clear current block', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      builder.endFunction();
+    it('should emit loadImm instruction', () => {
+      builder.loadImm(42);
 
-      expect(builder.getCurrentBlock()).toBeNull();
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.LOAD_IMM);
+      expect(isImmediateOperand(instructions[0].operands[0])).toBe(true);
     });
 
-    it('should throw when no function being built', () => {
-      expect(() => {
-        builder.endFunction();
-      }).toThrow();
-    });
-  });
+    it('should emit word operations', () => {
+      const slot = createFrameSlot('ptr', SlotKind.Local, BUILTIN_TYPES.WORD);
 
-  // ===========================================================================
-  // Block Management Tests
-  // ===========================================================================
+      builder.loadSlotWord(slot);
+      builder.storeSlotWord(slot);
+      builder.loadImmWord(0x1000);
 
-  describe('block management', () => {
-    it('should create new block', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const block = builder.createBlock('loop');
-
-      expect(block.label).toBe('loop');
-    });
-
-    it('should set current block', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const block = builder.createBlock('other');
-
-      builder.setCurrentBlock(block);
-
-      expect(builder.getCurrentBlock()).toBe(block);
-    });
-
-    it('should append block and set as current', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const block = builder.appendBlock('newBlock');
-
-      expect(builder.getCurrentBlock()).toBe(block);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.LOAD_WORD);
+      expect(instructions[1].opcode).toBe(ILOpcode.STORE_WORD);
+      expect(instructions[2].opcode).toBe(ILOpcode.LOAD_IMM_WORD);
     });
   });
 
-  // ===========================================================================
-  // Register Management Tests
-  // ===========================================================================
+  describe('Arithmetic Operations', () => {
+    it('should emit add/sub slot operations', () => {
+      const slot = createFrameSlot('n', SlotKind.Local, BUILTIN_TYPES.BYTE);
 
-  describe('register management', () => {
-    it('should create register with type', () => {
-      builder.beginFunction('test', [], IL_VOID);
+      builder.addSlot(slot);
+      builder.subSlot(slot);
 
-      const reg = builder.createRegister(IL_BYTE);
-
-      expect(reg.type).toBe(IL_BYTE);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.ADD_BYTE);
+      expect(instructions[1].opcode).toBe(ILOpcode.SUB_BYTE);
     });
 
-    it('should create register with name', () => {
-      builder.beginFunction('test', [], IL_VOID);
+    it('should emit add/sub immediate operations', () => {
+      builder.addImm(5);
+      builder.subImm(3);
 
-      const reg = builder.createRegister(IL_WORD, 'address');
-
-      expect(reg.name).toBe('address');
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.ADD_IMM);
+      expect(instructions[1].opcode).toBe(ILOpcode.SUB_IMM);
     });
 
-    it('should get parameter register by index', () => {
-      builder.beginFunction('test', [{ name: 'x', type: IL_BYTE }], IL_VOID);
+    it('should emit inc/dec operations', () => {
+      const slot = createFrameSlot('counter', SlotKind.Local, BUILTIN_TYPES.BYTE);
 
-      const param = builder.getParameterRegister(0);
+      builder.incSlot(slot);
+      builder.decSlot(slot);
 
-      expect(param?.type).toBe(IL_BYTE);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.INC_BYTE);
+      expect(instructions[1].opcode).toBe(ILOpcode.DEC_BYTE);
     });
 
-    it('should get parameter register by name', () => {
-      builder.beginFunction('test', [{ name: 'value', type: IL_WORD }], IL_VOID);
+    it('should emit mul/div/mod operations', () => {
+      const slot = createFrameSlot('n', SlotKind.Local, BUILTIN_TYPES.BYTE);
 
-      const param = builder.getParameterRegisterByName('value');
+      builder.mulSlot(slot);
+      builder.divSlot(slot);
+      builder.modSlot(slot);
 
-      expect(param?.type).toBe(IL_WORD);
-    });
-  });
-
-  // ===========================================================================
-  // Constant Instructions Tests
-  // ===========================================================================
-
-  describe('constant instructions - emitConstByte()', () => {
-    it('should emit byte constant', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitConstByte(42);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-
-    it('should add instruction to current block', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      builder.emitConstByte(42);
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(1);
-    });
-
-    it('should emit max byte value', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitConstByte(255);
-
-      expect(result.type.kind).toBe(ILTypeKind.Byte);
-    });
-
-    it('should emit zero', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitConstByte(0);
-
-      expect(result).toBeDefined();
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.MUL_BYTE);
+      expect(instructions[1].opcode).toBe(ILOpcode.DIV_BYTE);
+      expect(instructions[2].opcode).toBe(ILOpcode.MOD_BYTE);
     });
   });
 
-  describe('constant instructions - emitConstWord()', () => {
-    it('should emit word constant', () => {
-      builder.beginFunction('test', [], IL_VOID);
+  describe('Bitwise Operations', () => {
+    it('should emit and/or/xor slot operations', () => {
+      const slot = createFrameSlot('mask', SlotKind.Local, BUILTIN_TYPES.BYTE);
 
-      const result = builder.emitConstWord(1000);
+      builder.andSlot(slot);
+      builder.orSlot(slot);
+      builder.xorSlot(slot);
 
-      expect(result.type).toBe(IL_WORD);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.AND_BYTE);
+      expect(instructions[1].opcode).toBe(ILOpcode.OR_BYTE);
+      expect(instructions[2].opcode).toBe(ILOpcode.XOR_BYTE);
     });
 
-    it('should emit max word value', () => {
-      builder.beginFunction('test', [], IL_VOID);
+    it('should emit and/or/xor immediate operations', () => {
+      builder.andImm(0x0f);
+      builder.orImm(0x80);
+      builder.xorImm(0xff);
 
-      const result = builder.emitConstWord(65535);
-
-      expect(result.type.kind).toBe(ILTypeKind.Word);
-    });
-  });
-
-  describe('constant instructions - emitConstBool()', () => {
-    it('should emit true', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitConstBool(true);
-
-      expect(result.type).toBe(IL_BOOL);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.AND_IMM);
+      expect(instructions[1].opcode).toBe(ILOpcode.OR_IMM);
+      expect(instructions[2].opcode).toBe(ILOpcode.XOR_IMM);
     });
 
-    it('should emit false', () => {
-      builder.beginFunction('test', [], IL_VOID);
+    it('should emit not/shl/shr operations', () => {
+      builder.not();
+      builder.shl(2);
+      builder.shr(1);
 
-      const result = builder.emitConstBool(false);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  describe('constant instructions - emitUndef()', () => {
-    it('should emit undefined byte', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitUndef(IL_BYTE);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-
-    it('should emit undefined word', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitUndef(IL_WORD);
-
-      expect(result.type).toBe(IL_WORD);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.NOT_BYTE);
+      expect(instructions[1].opcode).toBe(ILOpcode.SHL_BYTE);
+      expect(instructions[2].opcode).toBe(ILOpcode.SHR_BYTE);
     });
   });
 
-  // ===========================================================================
-  // Arithmetic Instructions Tests
-  // ===========================================================================
+  describe('Comparison Operations', () => {
+    it('should emit cmpSlot operation', () => {
+      const slot = createFrameSlot('limit', SlotKind.Local, BUILTIN_TYPES.BYTE);
+      builder.cmpSlot(slot);
 
-  describe('arithmetic instructions - emitAdd()', () => {
-    it('should emit add instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(20);
-
-      const result = builder.emitAdd(a, b);
-
-      expect(result.type).toBe(IL_BYTE);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.CMP_BYTE);
     });
 
-    it('should add instruction to block', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(20);
-      builder.emitAdd(a, b);
+    it('should emit cmpImm operation', () => {
+      builder.cmpImm(10);
 
-      // 2 consts + 1 add = 3
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(3);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.CMP_IMM);
     });
   });
 
-  describe('arithmetic instructions - emitSub()', () => {
-    it('should emit sub instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(30);
-      const b = builder.emitConstByte(10);
+  describe('Control Flow', () => {
+    it('should emit jump operation', () => {
+      builder.jump('target');
 
-      const result = builder.emitSub(a, b);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.JUMP);
+    });
 
-      expect(result.type).toBe(IL_BYTE);
+    it('should emit conditional jumps', () => {
+      builder.jumpEq('eq');
+      builder.jumpNe('ne');
+      builder.jumpLt('lt');
+      builder.jumpLe('le');
+      builder.jumpGe('ge');
+      builder.jumpGt('gt');
+
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.JUMP_EQ);
+      expect(instructions[1].opcode).toBe(ILOpcode.JUMP_NE);
+      expect(instructions[2].opcode).toBe(ILOpcode.JUMP_LT);
+      expect(instructions[3].opcode).toBe(ILOpcode.JUMP_LE);
+      expect(instructions[4].opcode).toBe(ILOpcode.JUMP_GE);
+      expect(instructions[5].opcode).toBe(ILOpcode.JUMP_GT);
     });
   });
 
-  describe('arithmetic instructions - emitMul()', () => {
-    it('should emit mul instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(5);
-      const b = builder.emitConstByte(4);
+  describe('Function Operations', () => {
+    it('should emit call operation', () => {
+      builder.call('myFunc');
 
-      const result = builder.emitMul(a, b);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.CALL);
+    });
 
-      expect(result.type).toBe(IL_BYTE);
+    it('should emit return operation', () => {
+      builder.return_();
+
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.RETURN);
     });
   });
 
-  describe('arithmetic instructions - emitDiv()', () => {
-    it('should emit div instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(20);
-      const b = builder.emitConstByte(5);
+  describe('Register Transfers', () => {
+    it('should emit transfer operations', () => {
+      builder.transferAX();
+      builder.transferAY();
+      builder.transferXA();
+      builder.transferYA();
 
-      const result = builder.emitDiv(a, b);
-
-      expect(result.type).toBe(IL_BYTE);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.TRANSFER_AX);
+      expect(instructions[1].opcode).toBe(ILOpcode.TRANSFER_AY);
+      expect(instructions[2].opcode).toBe(ILOpcode.TRANSFER_XA);
+      expect(instructions[3].opcode).toBe(ILOpcode.TRANSFER_YA);
     });
   });
 
-  describe('arithmetic instructions - emitMod()', () => {
-    it('should emit mod instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(17);
-      const b = builder.emitConstByte(5);
+  describe('Stack Operations', () => {
+    it('should emit push/pop operations', () => {
+      builder.pushA();
+      builder.popA();
 
-      const result = builder.emitMod(a, b);
-
-      expect(result.type).toBe(IL_BYTE);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.PUSH_A);
+      expect(instructions[1].opcode).toBe(ILOpcode.POP_A);
     });
   });
 
-  describe('arithmetic instructions - emitNeg()', () => {
-    it('should emit neg instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const v = builder.emitConstByte(42);
+  describe('Intrinsics', () => {
+    it('should emit peek/poke operations', () => {
+      builder.peek(0xd020);
+      builder.poke(0xd021);
+      builder.peekw(0x0314);
+      builder.pokew(0x0316);
 
-      const result = builder.emitNeg(v);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.PEEK);
+      expect(instructions[1].opcode).toBe(ILOpcode.POKE);
+      expect(instructions[2].opcode).toBe(ILOpcode.PEEKW);
+      expect(instructions[3].opcode).toBe(ILOpcode.POKEW);
+    });
 
-      expect(result.type).toBe(IL_BYTE);
+    it('should emit hi/lo operations', () => {
+      builder.hi();
+      builder.lo();
+
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.HI);
+      expect(instructions[1].opcode).toBe(ILOpcode.LO);
     });
   });
 
-  // ===========================================================================
-  // Bitwise Instructions Tests
-  // ===========================================================================
+  describe('Utility Methods', () => {
+    it('should clear instructions', () => {
+      builder.loadImm(1);
+      builder.loadImm(2);
+      expect(builder.getInstructionCount()).toBe(2);
 
-  describe('bitwise instructions - emitAnd()', () => {
-    it('should emit and instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(0x0F);
-      const b = builder.emitConstByte(0xFF);
+      builder.clear();
+      expect(builder.getInstructionCount()).toBe(0);
+    });
 
-      const result = builder.emitAnd(a, b);
+    it('should emit nop', () => {
+      builder.nop();
 
-      expect(result.type).toBe(IL_BYTE);
+      const instructions = builder.getInstructions();
+      expect(instructions[0].opcode).toBe(ILOpcode.NOP);
     });
   });
+});
 
-  describe('bitwise instructions - emitOr()', () => {
-    it('should emit or instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(0x0F);
-      const b = builder.emitConstByte(0xF0);
+describe('computeInstructionCost', () => {
+  it('should return base cost for immediate operations', () => {
+    const instr = createInstruction(ILOpcode.LOAD_IMM);
+    const cost = computeInstructionCost(instr);
 
-      const result = builder.emitOr(a, b);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
+    expect(cost.cycles).toBe(2);
+    expect(cost.bytes).toBe(2);
+    expect(cost.memoryAccesses).toBe(0);
   });
 
-  describe('bitwise instructions - emitXor()', () => {
-    it('should emit xor instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(0xFF);
-      const b = builder.emitConstByte(0x0F);
-
-      const result = builder.emitXor(a, b);
-
-      expect(result.type).toBe(IL_BYTE);
+  it('should reduce cost for ZP slot access', () => {
+    const zpSlot = createFrameSlot('x', SlotKind.Local, BUILTIN_TYPES.BYTE, {
+      location: SlotLocation.ZeroPage,
+      address: 0x02,
     });
+    const slotOp = createSlotOperand(zpSlot);
+    const instr = createInstruction(ILOpcode.LOAD_BYTE, [slotOp]);
+    const cost = computeInstructionCost(instr);
+
+    expect(cost.cycles).toBeLessThan(3); // Less than base cost
+    expect(cost.bytes).toBeLessThan(2);
+  });
+});
+
+describe('computeDefUse', () => {
+  it('should identify uses in load operations', () => {
+    const slot = createFrameSlot('x', SlotKind.Local, BUILTIN_TYPES.BYTE);
+    const slotOp = createSlotOperand(slot);
+    const instr = createInstruction(ILOpcode.LOAD_BYTE, [slotOp]);
+    const defUse = computeDefUse(instr);
+
+    expect(defUse.uses).toContain('x');
+    expect(defUse.defs).not.toContain('x');
   });
 
-  describe('bitwise instructions - emitNot()', () => {
-    it('should emit not instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const v = builder.emitConstByte(0x0F);
+  it('should identify defs in store operations', () => {
+    const slot = createFrameSlot('y', SlotKind.Local, BUILTIN_TYPES.BYTE);
+    const slotOp = createSlotOperand(slot);
+    const instr = createInstruction(ILOpcode.STORE_BYTE, [slotOp]);
+    const defUse = computeDefUse(instr);
 
-      const result = builder.emitNot(v);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
+    expect(defUse.defs).toContain('y');
+    expect(defUse.uses).not.toContain('y');
   });
 
-  describe('bitwise instructions - emitShl()', () => {
-    it('should emit shl instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const v = builder.emitConstByte(1);
-      const s = builder.emitConstByte(4);
-
-      const result = builder.emitShl(v, s);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  describe('bitwise instructions - emitShr()', () => {
-    it('should emit shr instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const v = builder.emitConstByte(16);
-      const s = builder.emitConstByte(2);
-
-      const result = builder.emitShr(v, s);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  // ===========================================================================
-  // Comparison Instructions Tests
-  // ===========================================================================
-
-  describe('comparison instructions - emitCmpEq()', () => {
-    it('should emit cmp_eq instruction with bool result', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(10);
-
-      const result = builder.emitCmpEq(a, b);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  describe('comparison instructions - emitCmpNe()', () => {
-    it('should emit cmp_ne instruction with bool result', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(20);
-
-      const result = builder.emitCmpNe(a, b);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  describe('comparison instructions - emitCmpLt()', () => {
-    it('should emit cmp_lt instruction with bool result', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(5);
-      const b = builder.emitConstByte(10);
-
-      const result = builder.emitCmpLt(a, b);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  describe('comparison instructions - emitCmpLe()', () => {
-    it('should emit cmp_le instruction with bool result', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(10);
-
-      const result = builder.emitCmpLe(a, b);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  describe('comparison instructions - emitCmpGt()', () => {
-    it('should emit cmp_gt instruction with bool result', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(20);
-      const b = builder.emitConstByte(10);
-
-      const result = builder.emitCmpGt(a, b);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  describe('comparison instructions - emitCmpGe()', () => {
-    it('should emit cmp_ge instruction with bool result', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(10);
-
-      const result = builder.emitCmpGe(a, b);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  // ===========================================================================
-  // Logical Instructions Tests
-  // ===========================================================================
-
-  describe('logical instructions - emitLogicalNot()', () => {
-    it('should emit logical_not instruction with bool result', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const v = builder.emitConstBool(true);
-
-      const result = builder.emitLogicalNot(v);
-
-      expect(result.type).toBe(IL_BOOL);
-    });
-  });
-
-  // ===========================================================================
-  // Type Conversion Tests
-  // ===========================================================================
-
-  describe('type conversion - emitZeroExtend()', () => {
-    it('should zero extend byte to word', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const b = builder.emitConstByte(255);
-
-      const result = builder.emitZeroExtend(b);
-
-      expect(result.type).toBe(IL_WORD);
-    });
-  });
-
-  describe('type conversion - emitTruncate()', () => {
-    it('should truncate word to byte', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const w = builder.emitConstWord(0x1234);
-
-      const result = builder.emitTruncate(w);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  // ===========================================================================
-  // Control Flow Tests
-  // ===========================================================================
-
-  describe('control flow - emitJump()', () => {
-    it('should emit jump instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const target = builder.createBlock('target');
-
-      builder.emitJump(target);
-
-      expect(builder.getCurrentBlock()?.hasTerminator()).toBe(true);
-    });
-
-    it('should link blocks', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const entry = builder.getCurrentBlock()!;
-      const target = builder.createBlock('target');
-
-      builder.emitJump(target);
-
-      expect(entry.getSuccessors()).toContain(target);
-    });
-  });
-
-  describe('control flow - emitBranch()', () => {
-    it('should emit branch instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const cond = builder.emitConstBool(true);
-      const thenBlock = builder.createBlock('then');
-      const elseBlock = builder.createBlock('else');
-
-      builder.emitBranch(cond, thenBlock, elseBlock);
-
-      expect(builder.getCurrentBlock()?.hasTerminator()).toBe(true);
-    });
-
-    it('should link to both targets', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const entry = builder.getCurrentBlock()!;
-      const cond = builder.emitConstBool(true);
-      const thenBlock = builder.createBlock('then');
-      const elseBlock = builder.createBlock('else');
-
-      builder.emitBranch(cond, thenBlock, elseBlock);
-
-      expect(entry.getSuccessors()).toContain(thenBlock);
-      expect(entry.getSuccessors()).toContain(elseBlock);
-    });
-  });
-
-  describe('control flow - emitReturn()', () => {
-    it('should emit return instruction', () => {
-      builder.beginFunction('test', [], IL_BYTE);
-      const v = builder.emitConstByte(42);
-
-      builder.emitReturn(v);
-
-      expect(builder.getCurrentBlock()?.hasTerminator()).toBe(true);
-    });
-  });
-
-  describe('control flow - emitReturnVoid()', () => {
-    it('should emit return_void instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      builder.emitReturnVoid();
-
-      expect(builder.getCurrentBlock()?.hasTerminator()).toBe(true);
-    });
-  });
-
-  // ===========================================================================
-  // Memory Instructions Tests
-  // ===========================================================================
-
-  describe('memory instructions - emitLoadVar()', () => {
-    it('should emit load_var instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitLoadVar('counter', IL_BYTE);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  describe('memory instructions - emitStoreVar()', () => {
-    it('should emit store_var instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const v = builder.emitConstByte(42);
-
-      builder.emitStoreVar('counter', v);
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(2);
-    });
-  });
-
-  describe('memory instructions - emitLoadArray()', () => {
-    it('should emit load_array instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const idx = builder.emitConstByte(0);
-
-      const result = builder.emitLoadArray('buffer', idx, IL_BYTE);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  describe('memory instructions - emitStoreArray()', () => {
-    it('should emit store_array instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const idx = builder.emitConstByte(0);
-      const val = builder.emitConstByte(65);
-
-      builder.emitStoreArray('buffer', idx, val);
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(3);
-    });
-  });
-
-  // ===========================================================================
-  // Call Instructions Tests
-  // ===========================================================================
-
-  describe('call instructions - emitCall()', () => {
-    it('should emit call instruction with return value', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const arg = builder.emitConstByte(10);
-
-      const result = builder.emitCall('getValue', [arg], IL_BYTE);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-
-    it('should emit call with multiple arguments', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(20);
-
-      const result = builder.emitCall('add', [a, b], IL_BYTE);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-
-    it('should emit call with no arguments', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitCall('getTime', [], IL_WORD);
-
-      expect(result.type).toBe(IL_WORD);
-    });
-  });
-
-  describe('call instructions - emitCallVoid()', () => {
-    it('should emit call_void instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      builder.emitCallVoid('init', []);
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(1);
-    });
-
-    it('should emit call_void with arguments', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const v = builder.emitConstByte(42);
-
-      builder.emitCallVoid('setValue', [v]);
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(2);
-    });
-  });
-
-  // ===========================================================================
-  // SSA Instructions Tests
-  // ===========================================================================
-
-  describe('SSA instructions - emitPhi()', () => {
-    it('should emit phi instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const entry = builder.getCurrentBlock()!;
-      const thenBlock = builder.createBlock('then');
-      const elseBlock = builder.createBlock('else');
-      const mergeBlock = builder.createBlock('merge');
-
-      // Create values in each branch
-      builder.setCurrentBlock(thenBlock);
-      const thenVal = builder.emitConstByte(1);
-      thenBlock.linkTo(mergeBlock);
-
-      builder.setCurrentBlock(elseBlock);
-      const elseVal = builder.emitConstByte(2);
-      elseBlock.linkTo(mergeBlock);
-
-      // Create phi in merge block
-      builder.setCurrentBlock(mergeBlock);
-      const result = builder.emitPhi(
-        [
-          { value: thenVal, blockId: thenBlock.id },
-          { value: elseVal, blockId: elseBlock.id },
-        ],
-        IL_BYTE,
-      );
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  // ===========================================================================
-  // Intrinsic Instructions Tests
-  // ===========================================================================
-
-  describe('intrinsic instructions - emitPeek()', () => {
-    it('should emit peek instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const addr = builder.emitConstWord(0xD020);
-
-      const result = builder.emitPeek(addr);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  describe('intrinsic instructions - emitPoke()', () => {
-    it('should emit poke instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const addr = builder.emitConstWord(0xD020);
-      const val = builder.emitConstByte(0);
-
-      builder.emitPoke(addr, val);
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(3);
-    });
-  });
-
-  // ===========================================================================
-  // Hardware Instructions Tests
-  // ===========================================================================
-
-  describe('hardware instructions - emitHardwareRead()', () => {
-    it('should emit hardware_read instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      const result = builder.emitHardwareRead(0xD020);
-
-      expect(result.type).toBe(IL_BYTE);
-    });
-  });
-
-  describe('hardware instructions - emitHardwareWrite()', () => {
-    it('should emit hardware_write instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const val = builder.emitConstByte(0);
-
-      builder.emitHardwareWrite(0xD020, val);
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(2);
-    });
-  });
-
-  // ===========================================================================
-  // Optimization Control Tests
-  // ===========================================================================
-
-  describe('optimization control - emitOptBarrier()', () => {
-    it('should emit opt_barrier instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      builder.emitOptBarrier();
-
-      expect(builder.getCurrentBlock()?.getInstructionCount()).toBe(1);
-    });
-  });
-
-  // ===========================================================================
-  // Metadata Tests
-  // ===========================================================================
-
-  describe('metadata', () => {
-    it('should pass metadata to constant instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-
-      builder.emitConstByte(42, { sourceLocation: { line: 1, column: 1 } });
-
-      const block = builder.getCurrentBlock()!;
-      const inst = block.getInstructions()[0];
-      expect(inst.metadata?.sourceLocation).toBeDefined();
-    });
-
-    it('should pass metadata to binary instruction', () => {
-      builder.beginFunction('test', [], IL_VOID);
-      const a = builder.emitConstByte(10);
-      const b = builder.emitConstByte(20);
-
-      builder.emitAdd(a, b, { comment: 'addition' });
-
-      const block = builder.getCurrentBlock()!;
-      const addInst = block.getInstructions()[2];
-      expect(addInst.metadata?.comment).toBe('addition');
-    });
-  });
-
-  // ===========================================================================
-  // Integration Tests
-  // ===========================================================================
-
-  describe('integration - complete function building', () => {
-    it('should build complete add function', () => {
-      builder.beginFunction(
-        'add',
-        [
-          { name: 'a', type: IL_BYTE },
-          { name: 'b', type: IL_BYTE },
-        ],
-        IL_BYTE,
-      );
-
-      const a = builder.getParameterRegister(0)!;
-      const b = builder.getParameterRegister(1)!;
-      const result = builder.emitAdd(a, b);
-      builder.emitReturn(result);
-
-      const func = builder.endFunction();
-
-      expect(func.name).toBe('add');
-      expect(func.getInstructionCount()).toBe(2); // add + return
-    });
-
-    it('should build function with conditional', () => {
-      builder.beginFunction('abs', [{ name: 'x', type: IL_BYTE }], IL_BYTE);
-
-      const x = builder.getParameterRegister(0)!;
-      const zero = builder.emitConstByte(0);
-      const isNegative = builder.emitCmpLt(x, zero);
-
-      const thenBlock = builder.createBlock('negative');
-      const elseBlock = builder.createBlock('positive');
-      const mergeBlock = builder.createBlock('merge');
-
-      builder.emitBranch(isNegative, thenBlock, elseBlock);
-
-      builder.setCurrentBlock(thenBlock);
-      const negated = builder.emitNeg(x);
-      builder.emitJump(mergeBlock);
-
-      builder.setCurrentBlock(elseBlock);
-      builder.emitJump(mergeBlock);
-
-      builder.setCurrentBlock(mergeBlock);
-      const result = builder.emitPhi(
-        [
-          { value: negated, blockId: thenBlock.id },
-          { value: x, blockId: elseBlock.id },
-        ],
-        IL_BYTE,
-      );
-      builder.emitReturn(result);
-
-      const func = builder.endFunction();
-
-      expect(func.getBlockCount()).toBe(4);
-    });
+  it('should identify both def and use in inc/dec operations', () => {
+    const slot = createFrameSlot('counter', SlotKind.Local, BUILTIN_TYPES.BYTE);
+    const slotOp = createSlotOperand(slot);
+    const instr = createInstruction(ILOpcode.INC_BYTE, [slotOp]);
+    const defUse = computeDefUse(instr);
+
+    expect(defUse.defs).toContain('counter');
+    expect(defUse.uses).toContain('counter');
   });
 });

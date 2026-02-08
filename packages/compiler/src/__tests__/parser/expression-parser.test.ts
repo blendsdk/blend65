@@ -1,11 +1,13 @@
 /**
- * ExpressionParser Tests
+ * ExpressionParser Tests (v2)
  *
  * Tests expression parsing capabilities including:
  * - Primary expressions (literals, identifiers, parenthesized)
  * - Binary expressions with proper precedence
  * - Number format parsing (decimal, hex, binary)
  * - Pratt parser infrastructure
+ *
+ * NOTE: v2 compiler - no @map support, uses peek/poke intrinsics instead
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -18,35 +20,57 @@ import {
   DiagnosticCode,
 } from '../../ast/index.js';
 
-// Create a concrete test implementation of ExpressionParser
+/**
+ * Concrete test implementation of ExpressionParser
+ * Exposes protected methods for testing purposes
+ */
 class TestExpressionParser extends ExpressionParser {
-  // Expose protected methods for testing
+  /**
+   * Expose parsePrimaryExpression for testing
+   */
   public testParsePrimaryExpression() {
     return this.parsePrimaryExpression();
   }
 
+  /**
+   * Expose parseNumberValue for testing
+   */
   public testParseNumberValue(value: string) {
     return this.parseNumberValue(value);
   }
 
+  /**
+   * Expose parseExpression for testing
+   */
   public testParseExpression(minPrecedence?: number) {
     return this.parseExpression(minPrecedence);
   }
 
+  /**
+   * Expose getCurrentPrecedence for testing
+   */
   public testGetCurrentPrecedence() {
     return this.getCurrentPrecedence();
   }
 
+  /**
+   * Expose isBinaryOp for testing
+   */
   public testIsBinaryOp() {
     return this.isBinaryOp();
   }
 
+  /**
+   * Expose isRightAssoc for testing
+   */
   public testIsRightAssoc(tokenType: TokenType) {
     return this.isRightAssoc(tokenType);
   }
 }
 
-// Helper to create test tokens
+/**
+ * Helper to create test tokens with source location information
+ */
 function createToken(type: TokenType, value: string, line = 1, column = 1): Token {
   return {
     type,

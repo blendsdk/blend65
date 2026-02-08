@@ -1,5 +1,5 @@
 /**
- * Parser Configuration
+ * Parser Configuration - Blend65 v2
  *
  * Configuration options for the Blend65 parser, allowing customization
  * of parsing behavior, error handling, and output.

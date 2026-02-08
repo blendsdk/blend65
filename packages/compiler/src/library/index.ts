@@ -1,9 +1,10 @@
 /**
  * Library Module
  *
- * Exports the library loading functionality for the Blend65 compiler.
+ * Provides library loading functionality for the Blend65 compiler.
  *
  * @module library
  */
 
-export { LibraryLoader, type LibraryLoadResult } from './loader.js';
+export { LibraryLoader } from './loader.js';
+export type { LibraryLoadResult } from './loader.js';

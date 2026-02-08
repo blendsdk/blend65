@@ -1,53 +1,47 @@
 /**
- * Control Flow Analyzer for Blend65 Compiler
+ * Control Flow Analyzer for Blend65 Compiler v2
  *
  * Builds control flow graphs (CFGs) for functions and performs reachability analysis.
- * This is Phase 5 of the semantic analyzer implementation.
+ * This is Phase 5 (Pass 5) of the semantic analyzer implementation.
  *
  * **Responsibilities:**
  * - Build CFGs from AST
  * - Track control flow through statements
- * - Handle branches (if/else)
- * - Handle loops (while/for/match)
+ * - Handle branches (if/else/else-if)
+ * - Handle loops (while/for/do-while)
  * - Handle jumps (return/break/continue)
+ * - Handle switch/match statements
  * - Perform reachability analysis
  * - Report dead code warnings
  *
  * **Architecture:**
  * Extends ContextWalker to automatically track function/loop contexts.
- * Uses a "current node" pointer to build CFG incrementally during traversal.
+ * Uses CFGBuilder to construct CFGs incrementally during traversal.
+ *
+ * @module semantic/visitors/control-flow-analyzer
  */
 
 import { ContextWalker, ContextType } from '../../ast/walker/context.js';
 import type { Diagnostic } from '../../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
 import type { SymbolTable } from '../symbol-table.js';
-import { ControlFlowGraph, CFGNode, CFGNodeKind } from '../control-flow.js';
+import { ControlFlowGraph, CFGBuilder, CFGNodeKind, type CFGNode } from '../control-flow.js';
 import type {
   FunctionDecl,
   BlockStatement,
   IfStatement,
   WhileStatement,
   ForStatement,
+  DoWhileStatement,
   ReturnStatement,
   BreakStatement,
   ContinueStatement,
   ExpressionStatement,
   VariableDecl,
-} from '../../ast/nodes.js';
-
-/**
- * Loop context for break/continue handling
- *
- * Tracks the entry and exit points of a loop for connecting
- * break and continue statements.
- */
-interface LoopContext {
-  /** Loop entry node (where continue jumps to) */
-  entry: CFGNode;
-  /** Loop exit node (where break jumps to) */
-  exit: CFGNode;
-}
+  SwitchStatement,
+  MatchStatement,
+  Statement,
+} from '../../ast/index.js';
 
 /**
  * Control Flow Analyzer
@@ -65,7 +59,7 @@ interface LoopContext {
  * ```
  *
  * **CFG Construction Algorithm:**
- * 1. Create entry node
+ * 1. Create entry node for function
  * 2. Walk through statements, connecting them sequentially
  * 3. Handle branches by creating multiple successor edges
  * 4. Handle loops by creating back edges
@@ -75,7 +69,7 @@ interface LoopContext {
  * 8. Report unreachable code
  *
  * **Current Node Pointer:**
- * The `currentNode` is the insertion point in the CFG.
+ * The CFGBuilder's `currentNode` is the insertion point in the CFG.
  * When visiting a statement, we:
  * 1. Create a node for it
  * 2. Connect currentNode → new node
@@ -85,36 +79,32 @@ interface LoopContext {
  */
 export class ControlFlowAnalyzer extends ContextWalker {
   /** Symbol table for the program */
-  protected symbolTable: SymbolTable;
+  protected readonly symbolTable: SymbolTable;
 
   /** Collected diagnostics (warnings about dead code) */
   protected diagnostics: Diagnostic[];
 
-  /** Current CFG being built (null when not in function) */
-  protected currentCFG: ControlFlowGraph | null;
-
-  /** Current insertion point (null means unreachable) */
-  protected currentNode: CFGNode | null;
-
-  /** Loop stack for break/continue (innermost loop at end) */
-  protected loopStack: LoopContext[];
+  /** Current CFG builder (null when not in function) */
+  protected builder: CFGBuilder | null;
 
   /** CFGs by function name */
   protected cfgs: Map<string, ControlFlowGraph>;
 
+  /** Track reported unreachable code locations to avoid duplicates */
+  protected reportedLocations: Set<string>;
+
   /**
    * Create a new control flow analyzer
    *
-   * @param symbolTable Symbol table for the program
+   * @param symbolTable - Symbol table for the program
    */
   constructor(symbolTable: SymbolTable) {
     super();
     this.symbolTable = symbolTable;
     this.diagnostics = [];
-    this.currentCFG = null;
-    this.currentNode = null;
-    this.loopStack = [];
+    this.builder = null;
     this.cfgs = new Map();
+    this.reportedLocations = new Set();
   }
 
   /**
@@ -134,7 +124,7 @@ export class ControlFlowAnalyzer extends ContextWalker {
    * Returns the control flow graph for the specified function,
    * or undefined if function not found.
    *
-   * @param functionName Name of the function
+   * @param functionName - Name of the function
    * @returns CFG for the function, or undefined
    */
   public getCFG(functionName: string): ControlFlowGraph | undefined {
@@ -157,10 +147,34 @@ export class ControlFlowAnalyzer extends ContextWalker {
    *
    * Adds a diagnostic to the collected list.
    *
-   * @param diagnostic Diagnostic to report
+   * @param diagnostic - Diagnostic to report
    */
   protected reportDiagnostic(diagnostic: Diagnostic): void {
     this.diagnostics.push(diagnostic);
+  }
+
+  /**
+   * Report unreachable code warning
+   *
+   * Avoids duplicate warnings for the same location.
+   *
+   * @param stmt - The unreachable statement
+   */
+  protected reportUnreachableCode(stmt: Statement): void {
+    const loc = stmt.getLocation();
+    const key = `${loc.start.line}:${loc.start.column}`;
+
+    if (this.reportedLocations.has(key)) {
+      return;
+    }
+
+    this.reportedLocations.add(key);
+    this.reportDiagnostic({
+      severity: DiagnosticSeverity.WARNING,
+      code: DiagnosticCode.UNREACHABLE_CODE,
+      message: 'Unreachable code detected',
+      location: loc,
+    });
   }
 
   // ============================================
@@ -180,21 +194,19 @@ export class ControlFlowAnalyzer extends ContextWalker {
    *
    * Note: Stub functions (functions without bodies) are skipped entirely.
    */
-  public visitFunctionDecl(node: FunctionDecl): void {
+  public override visitFunctionDecl(node: FunctionDecl): void {
     if (this.shouldStop) return;
 
     // Skip stub functions entirely - they have no body to analyze
-    // TODO(IL-GEN): Stub functions are skipped (no CFG created).
-    // This is correct behavior - intrinsics have no control flow to analyze.
-    // See: plans/il-generator-requirements.md
     const body = node.getBody();
     if (!body) {
       return;
     }
 
-    // Create new CFG for this function
-    this.currentCFG = new ControlFlowGraph();
-    this.currentNode = this.currentCFG.entry;
+    // Create new CFG builder for this function
+    const functionName = node.getName();
+    this.builder = new CFGBuilder(functionName);
+    this.reportedLocations.clear();
 
     // Enter function context (ContextWalker handles this)
     this.context.enterContext(ContextType.FUNCTION, node);
@@ -202,50 +214,31 @@ export class ControlFlowAnalyzer extends ContextWalker {
 
     // Build CFG from function body
     if (!this.shouldSkip && !this.shouldStop) {
-      if (body) {
-        for (const stmt of body) {
-          if (this.shouldStop) break;
+      for (const stmt of body) {
+        if (this.shouldStop) break;
 
-          // If currentNode is null, rest of body is unreachable
-          if (!this.currentNode) {
-            this.reportDiagnostic({
-              severity: DiagnosticSeverity.WARNING,
-              code: DiagnosticCode.UNREACHABLE_CODE,
-              message: 'Unreachable code detected',
-              location: stmt.getLocation(),
-            });
-            // Don't break - continue analyzing to find more issues
-          }
-
-          stmt.accept(this);
+        // If builder says code is unreachable, report warning
+        if (!this.builder.isReachable()) {
+          this.reportUnreachableCode(stmt);
+          // Continue analyzing to find more issues and build complete CFG
         }
+
+        stmt.accept(this);
       }
 
-      // Connect current node to exit if not already terminated
-      if (this.currentNode && this.currentCFG) {
-        this.currentCFG.addEdge(this.currentNode, this.currentCFG.exit);
-      }
-    }
+      // Finalize the CFG
+      const cfg = this.builder.finalize();
 
-    // Compute reachability
-    if (this.currentCFG) {
-      this.currentCFG.computeReachability();
-
-      // Check for unreachable nodes
-      const unreachableNodes = this.currentCFG.getUnreachableNodes();
+      // Check for unreachable nodes found by reachability analysis
+      const unreachableNodes = cfg.getUnreachableNodes();
       for (const unreachable of unreachableNodes) {
         if (unreachable.statement) {
-          this.reportDiagnostic({
-            severity: DiagnosticSeverity.WARNING,
-            code: DiagnosticCode.UNREACHABLE_CODE,
-            message: 'Unreachable code detected',
-            location: unreachable.statement.getLocation(),
-          });
+          this.reportUnreachableCode(unreachable.statement);
         }
       }
 
       // Store CFG
-      this.cfgs.set(node.getName(), this.currentCFG);
+      this.cfgs.set(functionName, cfg);
     }
 
     // Clean up
@@ -253,8 +246,7 @@ export class ControlFlowAnalyzer extends ContextWalker {
     this.exitNode(node);
     this.context.exitContext();
 
-    this.currentCFG = null;
-    this.currentNode = null;
+    this.builder = null;
   }
 
   // ============================================
@@ -267,24 +259,20 @@ export class ControlFlowAnalyzer extends ContextWalker {
    * Processes statements sequentially.
    * If currentNode becomes null, rest of block is unreachable.
    */
-  public visitBlockStatement(node: BlockStatement): void {
-    if (this.shouldStop) return;
+  public override visitBlockStatement(node: BlockStatement): void {
+    if (this.shouldStop || !this.builder) return;
 
+    // Don't push context for block - we're already in a function
     this.enterNode(node);
 
     if (!this.shouldSkip && !this.shouldStop) {
       for (const stmt of node.getStatements()) {
         if (this.shouldStop) break;
 
-        // If currentNode is null, rest of block is unreachable
-        if (!this.currentNode) {
-          this.reportDiagnostic({
-            severity: DiagnosticSeverity.WARNING,
-            code: DiagnosticCode.UNREACHABLE_CODE,
-            message: 'Unreachable code detected',
-            location: stmt.getLocation(),
-          });
-          continue; // Continue to analyze rest of block
+        // If code is unreachable, report warning
+        if (!this.builder.isReachable()) {
+          this.reportUnreachableCode(stmt);
+          // Continue to analyze rest of block
         }
 
         stmt.accept(this);
@@ -310,26 +298,32 @@ export class ControlFlowAnalyzer extends ContextWalker {
    * 5. Connect both branches to merge
    * 6. If both branches terminate, currentNode = null
    */
-  public visitIfStatement(node: IfStatement): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitIfStatement(node: IfStatement): void {
+    if (this.shouldStop || !this.builder || !this.builder.isReachable()) {
+      // If unreachable, still create nodes for the CFG but they'll be marked unreachable
+      if (this.builder && !this.builder.isReachable()) {
+        // Add the if statement as an unreachable node
+        this.builder.addNode(CFGNodeKind.Branch, node as any);
+        this.builder.setCurrentNode(null);
+      }
+      return;
+    }
 
     this.enterNode(node);
 
     // Create branch node
-    const branchNode = this.currentCFG.createNode(CFGNodeKind.Branch, node as any);
-    this.currentCFG.addEdge(this.currentNode, branchNode);
+    const branchNode = this.builder.startBranch(node as any);
 
     // Build then branch
-    this.currentNode = branchNode;
     const thenBranch = node.getThenBranch();
     for (const stmt of thenBranch) {
       if (this.shouldStop) break;
       stmt.accept(this);
     }
-    const thenExit = this.currentNode;
+    const thenExit = this.builder.getCurrentNode();
 
     // Build else branch (if present)
-    this.currentNode = branchNode;
+    this.builder.startAlternate(branchNode);
     let elseExit: CFGNode | null = branchNode;
 
     const elseBranch = node.getElseBranch();
@@ -338,26 +332,11 @@ export class ControlFlowAnalyzer extends ContextWalker {
         if (this.shouldStop) break;
         stmt.accept(this);
       }
-      elseExit = this.currentNode;
+      elseExit = this.builder.getCurrentNode();
     }
 
     // Merge branches
-    if (thenExit || elseExit) {
-      // At least one branch doesn't terminate, create merge node
-      const mergeNode = this.currentCFG.createNode(CFGNodeKind.Statement, null);
-
-      if (thenExit) {
-        this.currentCFG.addEdge(thenExit, mergeNode);
-      }
-      if (elseExit) {
-        this.currentCFG.addEdge(elseExit, mergeNode);
-      }
-
-      this.currentNode = mergeNode;
-    } else {
-      // Both branches terminate (return/break/continue)
-      this.currentNode = null;
-    }
+    this.builder.mergeBranches([thenExit, elseExit]);
 
     this.shouldSkip = false;
     this.exitNode(node);
@@ -380,42 +359,31 @@ export class ControlFlowAnalyzer extends ContextWalker {
    * 7. Pop loop context
    * 8. Continue from exit
    */
-  public visitWhileStatement(node: WhileStatement): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitWhileStatement(node: WhileStatement): void {
+    if (this.shouldStop || !this.builder || !this.builder.isReachable()) {
+      return;
+    }
 
     this.enterNode(node);
 
-    // Create loop entry node (condition)
-    const loopEntry = this.currentCFG.createNode(CFGNodeKind.Loop, node as any);
-    this.currentCFG.addEdge(this.currentNode, loopEntry);
+    // Start the loop - this creates entry and exit nodes
+    const { entry, exit } = this.builder.startLoop(node as any);
 
-    // Create loop exit node
-    const loopExit = this.currentCFG.createNode(CFGNodeKind.Statement, null);
-
-    // Push loop context
-    this.loopStack.push({ entry: loopEntry, exit: loopExit });
+    // Enter loop context (ContextWalker tracks this)
+    this.context.enterContext(ContextType.LOOP, node);
 
     // Build loop body
-    this.currentNode = loopEntry;
     const body = node.getBody();
     for (const stmt of body) {
       if (this.shouldStop) break;
       stmt.accept(this);
     }
 
-    // Add back edge to loop entry
-    if (this.currentNode) {
-      this.currentCFG.addEdge(this.currentNode, loopEntry);
-    }
+    // Exit loop context
+    this.context.exitContext();
 
-    // Add forward edge from entry to exit (loop may not execute)
-    this.currentCFG.addEdge(loopEntry, loopExit);
-
-    // Pop loop context
-    this.loopStack.pop();
-
-    // Continue from exit
-    this.currentNode = loopExit;
+    // End the loop - this adds back edge and continues from exit
+    this.builder.endLoop(entry, exit);
 
     this.shouldSkip = false;
     this.exitNode(node);
@@ -428,47 +396,280 @@ export class ControlFlowAnalyzer extends ContextWalker {
   /**
    * Visit for statement
    *
-   * Similar to while loop with initialization step.
+   * Similar to while loop. In Blend65, for loops are:
+   * `for (i = start to end) { body }`
    */
-  public visitForStatement(node: ForStatement): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitForStatement(node: ForStatement): void {
+    if (this.shouldStop || !this.builder || !this.builder.isReachable()) {
+      return;
+    }
 
     this.enterNode(node);
 
-    // Note: For loop variable initialization is handled by parser's scope manager
-    // We don't need to create a separate init node
+    // Start the loop
+    const { entry, exit } = this.builder.startLoop(node as any);
 
-    // Create loop entry node (condition check)
-    const loopEntry = this.currentCFG.createNode(CFGNodeKind.Loop, node as any);
-    this.currentCFG.addEdge(this.currentNode, loopEntry);
-
-    // Create loop exit node
-    const loopExit = this.currentCFG.createNode(CFGNodeKind.Statement, null);
-
-    // Push loop context
-    this.loopStack.push({ entry: loopEntry, exit: loopExit });
+    // Enter loop context
+    this.context.enterContext(ContextType.LOOP, node);
 
     // Build loop body
-    this.currentNode = loopEntry;
     const body = node.getBody();
     for (const stmt of body) {
       if (this.shouldStop) break;
       stmt.accept(this);
     }
 
-    // Add back edge to loop entry (for loop continues)
-    if (this.currentNode) {
-      this.currentCFG.addEdge(this.currentNode, loopEntry);
+    // Exit loop context
+    this.context.exitContext();
+
+    // End the loop
+    this.builder.endLoop(entry, exit);
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  // ============================================
+  // DO-WHILE STATEMENT
+  // ============================================
+
+  /**
+   * Visit do-while statement
+   *
+   * Creates a loop in the CFG where the body executes at least once:
+   * 1. Create loop entry node (body start)
+   * 2. Build loop body
+   * 3. Create condition node
+   * 4. Add back edge from condition to entry (if true)
+   * 5. Continue to exit (if false)
+   */
+  public override visitDoWhileStatement(node: DoWhileStatement): void {
+    if (this.shouldStop || !this.builder || !this.builder.isReachable()) {
+      return;
     }
 
-    // Add forward edge from entry to exit
-    this.currentCFG.addEdge(loopEntry, loopExit);
+    this.enterNode(node);
+
+    // For do-while, we create a custom structure:
+    // entry → body → condition → (back to body | exit)
+
+    // Create the body entry node (this is where continue jumps to)
+    const bodyEntry = this.builder.addNode(CFGNodeKind.Loop, node as any);
+
+    // Create loop exit node (where break jumps to)
+    const loopExit = this.builder.cfg.createNode(CFGNodeKind.Statement, null);
+
+    // Manually manage the loop context for break/continue
+    // Note: Using protected property access through cast
+    (this.builder as any).loopStack.push({ entry: bodyEntry, exit: loopExit });
+
+    // Enter loop context
+    this.context.enterContext(ContextType.LOOP, node);
+
+    // Build loop body
+    const body = node.getBody();
+    for (const stmt of body) {
+      if (this.shouldStop) break;
+      stmt.accept(this);
+    }
+
+    // After body, add back edge to entry (condition is checked at end)
+    if (this.builder.isReachable()) {
+      this.builder.cfg.addEdge(this.builder.getCurrentNode()!, bodyEntry);
+    }
+
+    // Add edge to exit (when condition is false)
+    this.builder.cfg.addEdge(bodyEntry, loopExit);
+
+    // Exit loop context
+    this.context.exitContext();
 
     // Pop loop context
-    this.loopStack.pop();
+    (this.builder as any).loopStack.pop();
 
     // Continue from exit
-    this.currentNode = loopExit;
+    this.builder.setCurrentNode(loopExit);
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  // ============================================
+  // SWITCH STATEMENT
+  // ============================================
+
+  /**
+   * Visit switch statement
+   *
+   * Creates a multi-way branch in the CFG.
+   * In Blend65, switch cases fall through by default (like C).
+   */
+  public override visitSwitchStatement(node: SwitchStatement): void {
+    if (this.shouldStop || !this.builder || !this.builder.isReachable()) {
+      return;
+    }
+
+    this.enterNode(node);
+
+    // Create switch entry node
+    const switchEntry = this.builder.addNode(CFGNodeKind.Case, node as any);
+
+    // Create switch exit node (where break jumps to)
+    const switchExit = this.builder.cfg.createNode(CFGNodeKind.Statement, null);
+
+    // Push "loop" context for break (switch uses break like loops)
+    (this.builder as any).loopStack.push({ entry: switchEntry, exit: switchExit });
+
+    // Enter switch context
+    this.context.enterContext(ContextType.LOOP, node);
+
+    const cases = node.getCases();
+    const defaultCase = node.getDefaultCase();
+
+    // Track exit nodes from each case
+    const caseExits: (CFGNode | null)[] = [];
+
+    // Build each case
+    for (const caseClause of cases) {
+      // Each case starts from switch entry
+      this.builder.setCurrentNode(switchEntry);
+
+      // Create case node
+      this.builder.addNode(CFGNodeKind.Case, null);
+
+      // Build case body
+      for (const stmt of caseClause.body) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+
+      caseExits.push(this.builder.getCurrentNode());
+    }
+
+    // Build default case if present
+    if (defaultCase) {
+      this.builder.setCurrentNode(switchEntry);
+      this.builder.addNode(CFGNodeKind.Case, null);
+
+      for (const stmt of defaultCase) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+
+      caseExits.push(this.builder.getCurrentNode());
+    } else {
+      // No default case - switch entry can fall through
+      caseExits.push(switchEntry);
+    }
+
+    // Exit switch context
+    this.context.exitContext();
+
+    // Pop loop context
+    (this.builder as any).loopStack.pop();
+
+    // Merge all case exits
+    const validExits = caseExits.filter((e): e is CFGNode => e !== null);
+
+    if (validExits.length === 0) {
+      // All cases terminate
+      this.builder.setCurrentNode(switchExit);
+    } else {
+      // Connect all exits to switch exit
+      for (const exit of validExits) {
+        this.builder.cfg.addEdge(exit, switchExit);
+      }
+      this.builder.setCurrentNode(switchExit);
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  // ============================================
+  // MATCH STATEMENT
+  // ============================================
+
+  /**
+   * Visit match statement
+   *
+   * Similar to switch but without fall-through.
+   * Each case is a separate branch that must break or return.
+   */
+  public override visitMatchStatement(node: MatchStatement): void {
+    if (this.shouldStop || !this.builder || !this.builder.isReachable()) {
+      return;
+    }
+
+    this.enterNode(node);
+
+    // Create match entry node
+    const matchEntry = this.builder.addNode(CFGNodeKind.Case, node as any);
+
+    // Create match exit node
+    const matchExit = this.builder.cfg.createNode(CFGNodeKind.Statement, null);
+
+    // Push "loop" context for break
+    (this.builder as any).loopStack.push({ entry: matchEntry, exit: matchExit });
+
+    // Enter match context
+    this.context.enterContext(ContextType.LOOP, node);
+
+    const cases = node.getCases();
+    const defaultCase = node.getDefaultCase();
+
+    // Track exit nodes from each case
+    const caseExits: (CFGNode | null)[] = [];
+
+    // Build each case
+    for (const caseClause of cases) {
+      // Each case starts from match entry
+      this.builder.setCurrentNode(matchEntry);
+
+      // Create case node
+      this.builder.addNode(CFGNodeKind.Case, null);
+
+      // Build case body
+      for (const stmt of caseClause.body) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+
+      caseExits.push(this.builder.getCurrentNode());
+    }
+
+    // Build default case if present
+    if (defaultCase) {
+      this.builder.setCurrentNode(matchEntry);
+      this.builder.addNode(CFGNodeKind.Case, null);
+
+      for (const stmt of defaultCase) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+
+      caseExits.push(this.builder.getCurrentNode());
+    }
+
+    // Exit match context
+    this.context.exitContext();
+
+    // Pop loop context
+    (this.builder as any).loopStack.pop();
+
+    // Merge all case exits
+    const validExits = caseExits.filter((e): e is CFGNode => e !== null);
+
+    if (validExits.length === 0) {
+      // All cases terminate
+      this.builder.setCurrentNode(null);
+    } else {
+      // Connect all exits to match exit
+      for (const exit of validExits) {
+        this.builder.cfg.addEdge(exit, matchExit);
+      }
+      this.builder.setCurrentNode(matchExit);
+    }
 
     this.shouldSkip = false;
     this.exitNode(node);
@@ -483,20 +684,18 @@ export class ControlFlowAnalyzer extends ContextWalker {
    *
    * Connects to exit node and terminates control flow.
    */
-  public visitReturnStatement(node: ReturnStatement): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitReturnStatement(node: ReturnStatement): void {
+    if (this.shouldStop || !this.builder) return;
 
     this.enterNode(node);
 
-    // Create return node
-    const returnNode = this.currentCFG.createNode(CFGNodeKind.Return, node as any);
-    this.currentCFG.addEdge(this.currentNode, returnNode);
-
-    // Connect to exit
-    this.currentCFG.addEdge(returnNode, this.currentCFG.exit);
-
-    // Terminate control flow
-    this.currentNode = null;
+    if (this.builder.isReachable()) {
+      this.builder.addReturn(node as any);
+    } else {
+      // Still create node for unreachable code tracking
+      this.builder.addNode(CFGNodeKind.Return, node as any);
+      this.builder.setCurrentNode(null);
+    }
 
     this.shouldSkip = false;
     this.exitNode(node);
@@ -509,30 +708,19 @@ export class ControlFlowAnalyzer extends ContextWalker {
   /**
    * Visit break statement
    *
-   * Connects to loop exit and terminates control flow.
+   * Connects to loop/switch exit and terminates control flow.
    */
-  public visitBreakStatement(node: BreakStatement): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitBreakStatement(node: BreakStatement): void {
+    if (this.shouldStop || !this.builder) return;
 
     this.enterNode(node);
 
-    // Error checking is done in Phase 4, just build CFG here
-    if (this.loopStack.length === 0) {
-      // Invalid break, but still create node for CFG completeness
-      const breakNode = this.currentCFG.createNode(CFGNodeKind.Break, node as any);
-      this.currentCFG.addEdge(this.currentNode, breakNode);
-      this.currentNode = null;
+    if (this.builder.isReachable()) {
+      this.builder.addBreak(node as any);
     } else {
-      // Create break node
-      const breakNode = this.currentCFG.createNode(CFGNodeKind.Break, node as any);
-      this.currentCFG.addEdge(this.currentNode, breakNode);
-
-      // Connect to loop exit
-      const loopContext = this.loopStack[this.loopStack.length - 1];
-      this.currentCFG.addEdge(breakNode, loopContext.exit);
-
-      // Terminate control flow
-      this.currentNode = null;
+      // Still create node for unreachable code tracking
+      this.builder.addNode(CFGNodeKind.Break, node as any);
+      this.builder.setCurrentNode(null);
     }
 
     this.shouldSkip = false;
@@ -548,28 +736,17 @@ export class ControlFlowAnalyzer extends ContextWalker {
    *
    * Connects to loop entry and terminates control flow.
    */
-  public visitContinueStatement(node: ContinueStatement): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitContinueStatement(node: ContinueStatement): void {
+    if (this.shouldStop || !this.builder) return;
 
     this.enterNode(node);
 
-    // Error checking is done in Phase 4, just build CFG here
-    if (this.loopStack.length === 0) {
-      // Invalid continue, but still create node for CFG completeness
-      const continueNode = this.currentCFG.createNode(CFGNodeKind.Continue, node as any);
-      this.currentCFG.addEdge(this.currentNode, continueNode);
-      this.currentNode = null;
+    if (this.builder.isReachable()) {
+      this.builder.addContinue(node as any);
     } else {
-      // Create continue node
-      const continueNode = this.currentCFG.createNode(CFGNodeKind.Continue, node as any);
-      this.currentCFG.addEdge(this.currentNode, continueNode);
-
-      // Connect to loop entry
-      const loopContext = this.loopStack[this.loopStack.length - 1];
-      this.currentCFG.addEdge(continueNode, loopContext.entry);
-
-      // Terminate control flow
-      this.currentNode = null;
+      // Still create node for unreachable code tracking
+      this.builder.addNode(CFGNodeKind.Continue, node as any);
+      this.builder.setCurrentNode(null);
     }
 
     this.shouldSkip = false;
@@ -585,15 +762,13 @@ export class ControlFlowAnalyzer extends ContextWalker {
    *
    * Creates a statement node and continues control flow.
    */
-  public visitExpressionStatement(node: ExpressionStatement): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitExpressionStatement(node: ExpressionStatement): void {
+    if (this.shouldStop || !this.builder) return;
 
     this.enterNode(node);
 
-    // Create statement node
-    const stmtNode = this.currentCFG.createNode(CFGNodeKind.Statement, node as any);
-    this.currentCFG.addEdge(this.currentNode, stmtNode);
-    this.currentNode = stmtNode;
+    // Create statement node (even if unreachable - for CFG completeness)
+    this.builder.addStatement(node as any);
 
     this.shouldSkip = false;
     this.exitNode(node);
@@ -608,15 +783,13 @@ export class ControlFlowAnalyzer extends ContextWalker {
    *
    * Creates a statement node and continues control flow.
    */
-  public visitVariableDecl(node: VariableDecl): void {
-    if (this.shouldStop || !this.currentCFG || !this.currentNode) return;
+  public override visitVariableDecl(node: VariableDecl): void {
+    if (this.shouldStop || !this.builder) return;
 
     this.enterNode(node);
 
     // Create statement node for declaration
-    const declNode = this.currentCFG.createNode(CFGNodeKind.Statement, node as any);
-    this.currentCFG.addEdge(this.currentNode, declNode);
-    this.currentNode = declNode;
+    this.builder.addStatement(node as any);
 
     this.shouldSkip = false;
     this.exitNode(node);

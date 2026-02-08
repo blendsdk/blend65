@@ -1,9 +1,11 @@
 /**
- * Token types for the Blend65 lexer
+ * Token types for the Blend65 v2 lexer
  * Blend65 is a multi-target 6502 language without OOP features
  *
  * This enum defines all possible token types that can be produced by the lexer,
  * including literals, keywords, operators, and punctuation.
+ *
+ * NOTE: v2 removes @map syntax - memory-mapped I/O uses peek/poke intrinsics instead.
  */
 export enum TokenType {
   // Literals
@@ -46,15 +48,10 @@ export enum TokenType {
   LET = 'LET', // Mutable variable
   CONST = 'CONST', // Immutable constant
 
-  // Storage class keywords
+  // Storage class keywords (v2: no MAP - uses peek/poke intrinsics instead)
   ZP = 'ZP', // Zero page storage
   RAM = 'RAM', // RAM storage
   DATA = 'DATA', // Initialized data
-  MAP = 'MAP', // Memory-mapped I/O
-
-  // Memory mapping keywords
-  AT = 'AT', // Address specifier for @map
-  LAYOUT = 'LAYOUT', // Explicit layout keyword for @map structs
 
   // Primitive type keywords
   BYTE = 'BYTE',
@@ -119,6 +116,7 @@ export enum TokenType {
   COLON = 'COLON',
   DOT = 'DOT',
   QUESTION = 'QUESTION', // For ternary operator ?:
+  AT = 'AT', // @ sign (for storage classes, address-of)
 
   // Special
   NEWLINE = 'NEWLINE',
@@ -222,22 +220,13 @@ export const eControlFlowKeyword = {
  * - ZP: Zero page (fast access, limited space)
  * - RAM: Regular RAM storage
  * - DATA: Initialized data section
- * - MAP: Memory-mapped I/O (hardware registers at fixed addresses)
+ *
+ * NOTE: v2 removes MAP - memory-mapped I/O now uses peek/poke intrinsics
  */
 export const eStorageClass = {
   ZP: '@zp',
   RAM: '@ram',
   DATA: '@data',
-  MAP: '@map',
-};
-
-/**
- * Memory mapping keywords
- * Used for @map declarations to specify address locations
- */
-export const eMemoryMappingKeyword = {
-  AT: 'at',
-  LAYOUT: 'layout',
 };
 
 /**
@@ -255,9 +244,11 @@ export const ePrimitiveType = {
 };
 
 /**
- * All keywords in Blend65 language
+ * All keywords in Blend65 v2 language
  * Built from categorized keyword objects to avoid duplicates and ensure consistency.
  * This set is used by the lexer to distinguish keywords from identifiers.
+ *
+ * NOTE: v2 removes @map-related keywords (at, layout)
  */
 export const KEYWORDS = new Set([
   ...Object.values(eModuleKeyword),
@@ -266,6 +257,5 @@ export const KEYWORDS = new Set([
   ...Object.values(eMutabilityModifier),
   ...Object.values(eControlFlowKeyword),
   ...Object.values(eStorageClass),
-  ...Object.values(eMemoryMappingKeyword),
   ...Object.values(ePrimitiveType),
 ]);

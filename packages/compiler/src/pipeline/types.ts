@@ -1,26 +1,32 @@
 /**
  * Pipeline Type Definitions
  *
- * Defines TypeScript interfaces for the compilation pipeline.
+ * Defines TypeScript interfaces for the v2 compilation pipeline.
  * These types support the unified Compiler class that orchestrates
  * all compilation phases.
  *
- * **Key Interfaces:**
- * - {@link PhaseResult} - Result of a single compilation phase
- * - {@link CompilationResult} - Complete compilation result
- * - {@link CompileOptions} - Options for compilation
- * - {@link CodegenResult} - Code generation output (stub)
+ * **V2 Pipeline Phases:**
+ * 1. Parse - Lexer + Parser (source → AST)
+ * 2. Semantic - Type checking, symbol resolution
+ * 3. Frame - Static Frame Allocation
+ * 4. IL - Intermediate language generation
+ * 5. Optimize - IL optimization passes
+ * 6. Codegen - IL → ASM-IL (structured assembly)
+ * 7. AsmOpt - ASM-IL peephole optimization
+ * 8. Emit - ASM-IL → assembly text
  *
  * @module pipeline/types
  */
 
 import type { Diagnostic } from '../ast/diagnostics.js';
-import type { Program } from '../ast/nodes.js';
+import type { Program } from '../ast/index.js';
 import type { MultiModuleAnalysisResult } from '../semantic/analyzer.js';
-import type { ILModule } from '../il/module.js';
+import type { FrameAllocationResult } from '../frame/allocator/frame-allocator.js';
+import type { ILProgram } from '../il/structures.js';
+import type { AsmILProgram } from '../codegen/asm-il/types.js';
+import type { AsmOptimizationResult } from '../codegen/asm-il/optimizer/types.js';
 import type { TargetConfig } from '../target/config.js';
 import type { Blend65Config } from '../config/types.js';
-import type { OptimizationResult } from '../optimizer/optimizer.js';
 
 /**
  * Result of a single compilation phase
@@ -32,145 +38,19 @@ import type { OptimizationResult } from '../optimizer/optimizer.js';
  * - Timing information for performance analysis
  *
  * @typeParam T - The type of data produced by this phase
- *
- * @example
- * ```typescript
- * const parseResult: PhaseResult<Program[]> = {
- *   data: [program1, program2],
- *   diagnostics: [],
- *   success: true,
- *   timeMs: 42.5,
- * };
- * ```
  */
 export interface PhaseResult<T> {
-  /**
-   * Output data from this phase
-   *
-   * The type depends on the phase:
-   * - Parse: Program[] (AST per file)
-   * - Semantic: MultiModuleAnalysisResult
-   * - IL: ILModule
-   * - Optimize: OptimizationResult
-   * - Codegen: CodegenResult
-   */
+  /** Output data from this phase */
   data: T;
 
-  /**
-   * Diagnostics generated during this phase
-   *
-   * Includes errors, warnings, info, and hints.
-   * Check for errors to determine if phase succeeded.
-   */
+  /** Diagnostics generated during this phase */
   diagnostics: Diagnostic[];
 
-  /**
-   * Whether this phase completed successfully
-   *
-   * True if no error-severity diagnostics were generated.
-   * Warnings and hints don't cause failure.
-   */
+  /** Whether this phase completed successfully (no error-severity diagnostics) */
   success: boolean;
 
-  /**
-   * Phase execution time in milliseconds
-   *
-   * Useful for performance profiling and optimization.
-   */
+  /** Phase execution time in milliseconds */
   timeMs: number;
-}
-
-/**
- * Result of code generation phase
- *
- * Contains all output artifacts from the code generator.
- * This is a stub implementation for Phase 1 - real code
- * generation will be implemented in Phase 2.
- */
-export interface CodegenResult {
-  /**
-   * Generated assembly source code
-   *
-   * Human-readable 6502 assembly that can be:
-   * - Assembled with ACME or other assemblers
-   * - Inspected for debugging
-   * - Modified manually if needed
-   */
-  assembly: string;
-
-  /**
-   * Compiled binary data (PRG format) - optional
-   *
-   * Ready-to-load binary including:
-   * - 2-byte load address header
-   * - BASIC stub (if applicable)
-   * - Machine code
-   *
-   * Only present when ACME assembler is available and assembly succeeds.
-   * If undefined, only the .asm file should be written.
-   */
-  binary?: Uint8Array;
-
-  /**
-   * Source map for debugging (optional)
-   *
-   * Maps generated assembly/binary locations back to
-   * original Blend65 source code.
-   *
-   * Phase 3 implementation - undefined in stub.
-   */
-  sourceMap?: SourceMap;
-
-  /**
-   * VICE label file content (optional)
-   *
-   * Label file for VICE debugger integration.
-   * Generated when debug mode includes 'vice'.
-   */
-  viceLabels?: string;
-}
-
-/**
- * Source map for debugging
- *
- * Maps generated code positions back to original source.
- * Enables:
- * - Breakpoints in original source
- * - Stack traces with source locations
- * - Step-through debugging
- *
- * @note Future implementation - Phase 3
- */
-export interface SourceMap {
-  /**
-   * Source map version (always 3)
-   */
-  version: 3;
-
-  /**
-   * Generated file name
-   */
-  file: string;
-
-  /**
-   * Original source file names
-   */
-  sources: string[];
-
-  /**
-   * Original source content (optional)
-   */
-  sourcesContent?: (string | null)[];
-
-  /**
-   * VLQ-encoded mappings
-   */
-  mappings: string;
-
-  /**
-   * Symbol names used in mappings
-   */
-  names: string[];
 }
 
 /**
@@ -178,92 +58,46 @@ export interface SourceMap {
  *
  * Contains results from all pipeline phases plus
  * final output artifacts. Used by CLI and programmatic API.
- *
- * @example
- * ```typescript
- * const result = compiler.compile({ files, config });
- *
- * if (result.success) {
- *   writeFileSync('game.prg', result.output!.binary);
- * } else {
- *   console.error(formatDiagnostics(result.diagnostics));
- * }
- * ```
  */
 export interface CompilationResult {
-  /**
-   * True if compilation succeeded with no errors
-   *
-   * When true, result.output contains valid output.
-   * When false, check result.diagnostics for errors.
-   */
+  /** True if compilation succeeded with no errors */
   success: boolean;
 
-  /**
-   * All diagnostics from all phases
-   *
-   * Aggregated in order of occurrence.
-   * Includes errors, warnings, info, and hints.
-   */
+  /** All diagnostics from all phases, aggregated in order */
   diagnostics: Diagnostic[];
 
   /**
    * Phase-specific results for debugging
    *
    * Contains intermediate results from each phase.
-   * Useful for debugging compilation issues.
    * May be undefined if phase wasn't reached.
    */
   phases: {
-    /** Parse phase result */
     parse?: PhaseResult<Program[]>;
-
-    /** Semantic analysis phase result */
     semantic?: PhaseResult<MultiModuleAnalysisResult>;
-
-    /** IL generation phase result */
-    il?: PhaseResult<ILModule>;
-
-    /** Optimization phase result */
-    optimize?: PhaseResult<OptimizationResult>;
-
-    /** Code generation phase result */
-    codegen?: PhaseResult<CodegenResult>;
+    frame?: PhaseResult<FrameAllocationResult>;
+    il?: PhaseResult<ILProgram>;
+    optimize?: PhaseResult<ILProgram>;
+    codegen?: PhaseResult<AsmILProgram>;
+    asmOpt?: PhaseResult<AsmOptimizationResult>;
+    emit?: PhaseResult<string>;
   };
 
   /**
    * Final output artifacts (if successful)
    *
-   * Contains generated assembly, binary, source maps, etc.
+   * Contains generated assembly text.
    * Only present when success is true.
    */
   output?: {
     /** Generated assembly text */
     assembly?: string;
-
-    /** Binary .prg data */
-    binary?: Uint8Array;
-
-    /** Source map data */
-    sourceMap?: SourceMap;
-
-    /** VICE label file content */
-    viceLabels?: string;
   };
 
-  /**
-   * Total compilation time in milliseconds
-   *
-   * Sum of all phase times plus overhead.
-   */
+  /** Total compilation time in milliseconds */
   totalTimeMs: number;
 
-  /**
-   * Target configuration used for compilation
-   *
-   * Contains target-specific settings like memory layout,
-   * hardware register addresses, etc.
-   */
+  /** Target configuration used for compilation */
   target: TargetConfig;
 }
 
@@ -274,70 +108,36 @@ export interface CompilationResult {
  * Passed to Compiler.compile().
  */
 export interface CompileOptions {
-  /**
-   * Source files to compile
-   *
-   * Array of file paths relative to project root.
-   * Files are parsed and analyzed as a multi-module project.
-   *
-   * @example ['src/main.blend', 'src/game.blend']
-   */
+  /** Source files to compile (file paths) */
   files: string[];
 
-  /**
-   * Configuration for compilation
-   *
-   * Merged configuration from blend65.json and CLI overrides.
-   * Controls target platform, optimization level, output format, etc.
-   */
+  /** Configuration for compilation */
   config: Blend65Config;
 
   /**
    * Stop compilation after specific phase (optional)
    *
-   * Useful for:
-   * - IDE integration (parse/check only)
-   * - Debugging (inspect intermediate results)
-   * - Performance testing (measure specific phases)
-   *
-   * @example 'semantic' - Stop after type checking
+   * Useful for IDE integration (parse/check only),
+   * debugging (inspect intermediate results), etc.
    */
-  stopAfterPhase?: 'parse' | 'semantic' | 'il' | 'optimize' | 'codegen';
-}
-
-/**
- * Options for code generation phase
- *
- * Configuration passed to the code generator.
- */
-export interface CodegenOptions {
-  /**
-   * Target platform configuration
-   */
-  target: TargetConfig;
-
-  /**
-   * Output format ('asm', 'prg', 'both')
-   */
-  format: string;
-
-  /**
-   * Generate source maps
-   */
-  sourceMap: boolean;
-
-  /**
-   * Debug mode ('none', 'inline', 'vice', 'both')
-   */
-  debug?: string;
+  stopAfterPhase?: CompilationPhase;
 }
 
 /**
  * Compilation phase names
  *
  * Used for stopAfterPhase and phase identification.
+ * V2 has 8 phases vs v1's 5 phases.
  */
-export type CompilationPhase = 'parse' | 'semantic' | 'il' | 'optimize' | 'codegen';
+export type CompilationPhase =
+  | 'parse'
+  | 'semantic'
+  | 'frame'
+  | 'il'
+  | 'optimize'
+  | 'codegen'
+  | 'asmOpt'
+  | 'emit';
 
 /**
  * Type guard for checking if a phase result has data
@@ -355,6 +155,8 @@ export function hasPhaseData<T>(result: PhaseResult<T> | undefined): result is P
  * @param result - Compilation result to check
  * @returns True if result has output data
  */
-export function hasOutput(result: CompilationResult): result is CompilationResult & { output: NonNullable<CompilationResult['output']> } {
+export function hasOutput(
+  result: CompilationResult
+): result is CompilationResult & { output: NonNullable<CompilationResult['output']> } {
   return result.success && result.output !== undefined;
 }

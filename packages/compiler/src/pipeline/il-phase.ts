@@ -3,187 +3,160 @@
  *
  * Orchestrates intermediate language generation from AST.
  * This phase converts the analyzed AST into IL (Intermediate Language)
- * which is a lower-level representation suitable for optimization
- * and code generation.
+ * using frame-allocated addresses from the FramePhase.
  *
- * **Phase Responsibilities:**
- * - Generate IL from AST using ILGenerator
- * - Apply SSA construction (if enabled)
- * - Collect generation errors as diagnostics
- * - Track timing for performance analysis
+ * **V2 Differences from V1:**
+ * - Receives FrameAllocationResult (frame map with resolved addresses)
+ * - ILGenerator takes (frameMap, symbolTable) in constructor
+ * - No SSA construction (v2 uses simple linear IL)
+ * - Returns ILProgram (not ILModule)
  *
  * @module pipeline/il-phase
  */
 
-import { ILGenerator, type ILGeneratorOptions } from '../il/generator/index.js';
-import { ILModule } from '../il/module.js';
-import type { Program } from '../ast/nodes.js';
+import { ILGenerator } from '../il/generator/index.js';
+import type { ILProgram } from '../il/structures.js';
+import type { Program } from '../ast/program.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
 import { DiagnosticCode, DiagnosticSeverity } from '../ast/diagnostics.js';
-import type { MultiModuleAnalysisResult } from '../semantic/analyzer.js';
-import type { TargetConfig } from '../target/config.js';
+import type { MultiModuleAnalysisResult, AnalysisResult } from '../semantic/analyzer.js';
+import type { FrameAllocationResult } from '../frame/allocator/frame-allocator.js';
 import type { PhaseResult } from './types.js';
 
 /**
- * IL Phase - generates IL from analyzed AST
+ * IL Phase - generates IL from analyzed AST with frame allocation
  *
  * Orchestrates the IL generation pipeline using the ILGenerator.
- * The generator:
- * 1. Processes global declarations (variables, @map, functions)
- * 2. Generates IL for function bodies
- * 3. Optionally converts to SSA form
- *
- * **Note:** Currently generates IL for a single module.
- * Multi-module IL generation will be added in a future phase.
+ * The generator uses the frame map to emit load/store instructions
+ * with resolved memory addresses.
  *
  * @example
  * ```typescript
  * const ilPhase = new ILPhase();
- * const result = ilPhase.execute(semanticResult, programs, targetConfig);
+ * const result = ilPhase.execute(semanticResult, frameResult, programs);
  *
  * if (result.success) {
- *   const ilModule = result.data;
- *   console.log(ilModule.toDetailedString());
+ *   const ilProgram = result.data;
+ *   for (const func of ilProgram.functions) {
+ *     console.log(`${func.name}: ${func.instructions.length} IL ops`);
+ *   }
  * }
  * ```
  */
 export class ILPhase {
   /**
-   * Default IL generator options
+   * Generate IL from analyzed AST with frame allocation
    *
-   * SSA is enabled by default for optimization opportunities.
-   *
-   * NOTE: verifySSA is disabled by default because SSA verification for loops
-   * has known limitations with phi operand dominance checking. The SSA construction
-   * works correctly for code generation purposes, but the verification is strict
-   * about phi operand placement for loop back-edges.
-   */
-  protected readonly defaultOptions: ILGeneratorOptions = {
-    enableSSA: true,
-    verifySSA: false, // Disabled due to known loop verification limitations
-    collectSSAStats: false,
-  };
-
-  /**
-   * Generate IL from analyzed AST
-   *
-   * Creates an ILGenerator with the symbol table from semantic analysis
-   * and generates IL for the first program (entry module).
+   * Creates an ILGenerator with the frame map and symbol table,
+   * then generates IL for the primary module's program.
    *
    * @param semanticResult - Result from semantic analysis
+   * @param frameResult - Result from frame allocation
    * @param programs - Array of parsed Program ASTs
-   * @param targetConfig - Target platform configuration
-   * @param options - Optional IL generator options
-   * @returns Phase result with generated ILModule
+   * @returns Phase result with generated ILProgram
    */
   public execute(
     semanticResult: MultiModuleAnalysisResult,
-    programs: Program[],
-    targetConfig: TargetConfig,
-    options?: Partial<ILGeneratorOptions>
-  ): PhaseResult<ILModule> {
+    frameResult: FrameAllocationResult,
+    programs: Program[]
+  ): PhaseResult<ILProgram> {
     const startTime = performance.now();
     const diagnostics: Diagnostic[] = [];
 
-    // Merge options with defaults
-    const generatorOptions: ILGeneratorOptions = {
-      ...this.defaultOptions,
-      ...options,
-    };
-
-    // Get the primary module's symbol table
-    // For now, use the first module - multi-module IL gen is future work
-    const primaryModuleName = this.getPrimaryModuleName(programs);
+    // Find the primary module (entry point)
+    const primaryModuleName = this.getPrimaryModuleName(semanticResult, programs);
     const moduleResult = semanticResult.modules.get(primaryModuleName);
 
     if (!moduleResult) {
-      diagnostics.push(this.createInternalError(`Module '${primaryModuleName}' not found in semantic analysis results`));
+      diagnostics.push(this.createInternalError(
+        `Module '${primaryModuleName}' not found in semantic analysis results`
+      ));
       return {
-        data: this.createEmptyModule(primaryModuleName),
+        data: this.createEmptyProgram(primaryModuleName),
         diagnostics,
         success: false,
         timeMs: performance.now() - startTime,
       };
     }
-
-    // Create IL generator with symbol table and target config
-    const generator = new ILGenerator(moduleResult.symbolTable, targetConfig, generatorOptions);
 
     // Find the primary program AST
     const primaryProgram = programs.find(p => this.getModuleName(p) === primaryModuleName);
 
     if (!primaryProgram) {
-      diagnostics.push(this.createInternalError(`Program AST for module '${primaryModuleName}' not found`));
+      diagnostics.push(this.createInternalError(
+        `Program AST for module '${primaryModuleName}' not found`
+      ));
       return {
-        data: this.createEmptyModule(primaryModuleName),
+        data: this.createEmptyProgram(primaryModuleName),
         diagnostics,
         success: false,
         timeMs: performance.now() - startTime,
       };
     }
 
-    // Generate IL
-    const ilResult = generator.generateModule(primaryProgram);
+    // Create IL generator with frame map and symbol table
+    // The frame map provides resolved memory addresses for variables
+    const generator = new ILGenerator(
+      frameResult.frameMap,
+      moduleResult.symbolTable
+    );
 
-    // Convert IL generator errors to diagnostics
-    const generatorErrors = generator.getErrors();
-    for (const error of generatorErrors) {
-      diagnostics.push({
-        code: DiagnosticCode.TYPE_MISMATCH, // Generic code for IL errors
-        severity: error.severity === 'error' ? DiagnosticSeverity.ERROR : DiagnosticSeverity.WARNING,
-        message: error.message,
-        location: error.location,
-      });
-    }
+    // Generate IL from the program AST
+    const ilProgram = generator.generate(primaryProgram);
 
     return {
-      data: ilResult.module,
+      data: ilProgram,
       diagnostics,
-      success: ilResult.success && !generator.hasErrors(),
+      success: true,
       timeMs: performance.now() - startTime,
     };
   }
 
   /**
-   * Get the primary module name from programs
+   * Get the primary module name from semantic results
    *
-   * Finds the entry point module by looking for a module with an
-   * exported main() function. If no main is found, uses the last module
-   * (which is typically the user's entry module when libraries are loaded first).
+   * Uses the same logic as FramePhase to ensure consistency.
    *
+   * @param semanticResult - Multi-module analysis result
    * @param programs - Array of Program ASTs
    * @returns Primary module name
    */
-  protected getPrimaryModuleName(programs: Program[]): string {
-    if (programs.length === 0) {
-      return 'main';
-    }
-
-    // Look for a module with an exported main function
-    for (const program of programs) {
-      const declarations = program.getDeclarations();
-      for (const decl of declarations) {
-        // Check for exported main function
-        if (decl.getNodeType() === 'FunctionDecl') {
-          const funcDecl = decl as import('../ast/nodes.js').FunctionDecl;
-          const funcName = funcDecl.getName();
-          const isExported = funcDecl.isExportedFunction();
-          if (funcName === 'main' && isExported) {
-            return this.getModuleName(program);
-          }
+  protected getPrimaryModuleName(
+    semanticResult: MultiModuleAnalysisResult,
+    programs: Program[]
+  ): string {
+    const order = semanticResult.compilationOrder;
+    if (order.length > 0) {
+      // Look for a module with exported main
+      for (const moduleName of order) {
+        const moduleResult = semanticResult.modules.get(moduleName);
+        if (moduleResult && this.hasExportedMain(moduleResult)) {
+          return moduleName;
         }
       }
+      return order[order.length - 1];
     }
 
-    // No exported main found - use the last module (user module after libraries)
-    return this.getModuleName(programs[programs.length - 1]);
+    if (programs.length > 0) {
+      return this.getModuleName(programs[programs.length - 1]);
+    }
+
+    return 'main';
+  }
+
+  /**
+   * Check if a module has an exported main function
+   *
+   * @param moduleResult - Analysis result for a module
+   * @returns True if module has exported main
+   */
+  protected hasExportedMain(moduleResult: AnalysisResult): boolean {
+    const exported = moduleResult.symbolTable.getExportedSymbols();
+    return exported.some(s => s.name === 'main');
   }
 
   /**
    * Get module name from a Program AST
-   *
-   * Uses the same logic as SemanticAnalyzer.getModuleName() to ensure
-   * consistency between semantic analysis and IL generation phases.
    *
    * @param program - Program AST
    * @returns Module name
@@ -192,9 +165,10 @@ export class ILPhase {
     const moduleDecl = program.getModule();
     const fullName = moduleDecl.getFullName();
 
-    // If implicit module or empty name, use 'main'
-    // This matches SemanticAnalyzer.getModuleName() exactly
-    if (moduleDecl.isImplicitModule() || !fullName || fullName === '') {
+    // Use the actual module name from the declaration.
+    // Implicit modules created by parse-phase use 'global' as their name.
+    // Fall back to 'main' only if the name is truly empty.
+    if (!fullName || fullName === '') {
       return 'main';
     }
 
@@ -202,13 +176,20 @@ export class ILPhase {
   }
 
   /**
-   * Create an empty IL module for error cases
+   * Create an empty ILProgram for error cases
    *
-   * @param name - Module name
-   * @returns Empty ILModule
+   * @param moduleName - Module name
+   * @returns Empty ILProgram
    */
-  protected createEmptyModule(name: string): ILModule {
-    return new ILModule(name);
+  protected createEmptyProgram(moduleName: string): ILProgram {
+    return {
+      moduleName,
+      functions: [],
+      globalInit: [],
+      entryPoint: 'main',
+      instructionCount: 0,
+      totalEstimatedCycles: 0,
+    };
   }
 
   /**
@@ -219,7 +200,7 @@ export class ILPhase {
    */
   protected createInternalError(message: string): Diagnostic {
     return {
-      code: DiagnosticCode.TYPE_MISMATCH, // Generic code
+      code: DiagnosticCode.TYPE_MISMATCH,
       severity: DiagnosticSeverity.ERROR,
       message: `Internal compiler error: ${message}`,
       location: {

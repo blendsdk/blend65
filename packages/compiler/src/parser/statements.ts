@@ -1,5 +1,5 @@
 /**
- * Statement Parser for Blend65 Compiler - C-Style Syntax
+ * Statement Parser for Blend65 Compiler v2 - C-Style Syntax
  *
  * Extends ModuleParser to provide statement parsing capabilities:
  * - Statement dispatcher (parseStatement)
@@ -748,22 +748,10 @@ export abstract class StatementParser extends ModuleParser {
     const nameToken = this.expect(TokenType.IDENTIFIER, 'Expected variable name');
     const varName = nameToken.value;
 
-    // Parse optional type annotation
+    // Parse optional type annotation (including array types like byte[5])
     let typeAnnotation: string | null = null;
     if (this.match(TokenType.COLON)) {
-      if (
-        this.check(
-          TokenType.BYTE,
-          TokenType.WORD,
-          TokenType.BOOLEAN,
-          TokenType.STRING,
-          TokenType.IDENTIFIER
-        )
-      ) {
-        typeAnnotation = this.advance().value;
-      } else {
-        this.reportError(DiagnosticCode.EXPECTED_TOKEN, 'Expected type after colon');
-      }
+      typeAnnotation = this.parseTypeAnnotation();
     }
 
     // Parse optional initializer
@@ -790,7 +778,7 @@ export abstract class StatementParser extends ModuleParser {
       typeAnnotation,
       initializer,
       location,
-      null, // storageClass: not allowed inside functions
+      null, // storageClass: not allowed inside functions (v2: handled by frame allocator)
       isConst, // isConstant: true for const, false for let
       false // isExported: function-local variables cannot be exported
     );

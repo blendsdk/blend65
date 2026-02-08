@@ -1,5 +1,5 @@
 /**
- * Parser Class for Blend65 Compiler
+ * Parser Class for Blend65 Compiler v2
  *
  * Final concrete parser class that extends the full inheritance chain:
  * BaseParser → ExpressionParser → DeclarationParser → ModuleParser → StatementParser → Parser
@@ -10,9 +10,14 @@
  * The inheritance chain gives this class access to all parsing capabilities:
  * - Token management and error handling (BaseParser)
  * - Expression parsing with Pratt parser (ExpressionParser)
- * - Variable and @map declaration parsing (DeclarationParser)
+ * - Variable declaration parsing (DeclarationParser)
  * - Module system parsing (ModuleParser)
  * - Statement parsing infrastructure (StatementParser)
+ *
+ * V2 Changes:
+ * - No @map declarations (removed in v2)
+ * - Memory-mapped I/O uses peek/poke intrinsics instead
+ * - Simplified storage classes (handled by frame allocator)
  *
  * This class focuses solely on high-level orchestration and provides
  * the public API that external code uses.
@@ -38,24 +43,23 @@ import { DeclarationParserErrors } from './error-messages.js';
 import { StatementParser } from './statements.js';
 
 /**
- * Complete Blend65 parser - final concrete implementation
+ * Complete Blend65 parser v2 - final concrete implementation
  *
  * Inherits all parsing capabilities from the inheritance chain and provides
  * the main parse() entry point. This is the class that external code
  * should instantiate and use.
  *
- * Current parsing capabilities (Phase 4):
+ * Current parsing capabilities (v2):
  * - Module declarations and implicit global modules
- * - Variable declarations with storage classes and export modifiers
- * - All @map declaration forms (simple, range, sequential, explicit)
+ * - Variable declarations (no storage classes - handled by frame allocator)
  * - Expression parsing with proper operator precedence
- * - Function declarations with parameters and bodies (Phase 4)
- * - Comprehensive error handling and recovery
- *
- * Future capabilities (Phases 5-8):
+ * - Function declarations with parameters and bodies
  * - Import/export system
  * - Type system declarations (type aliases, enums)
- * - Complete language support
+ * - Comprehensive error handling and recovery
+ *
+ * Note: @map declarations are NOT supported in v2. Use peek/poke intrinsics
+ * for memory-mapped I/O instead.
  *
  * Usage:
  * ```typescript
@@ -84,9 +88,11 @@ export class Parser extends StatementParser {
    *
    * This method orchestrates the parsing process:
    * 1. Parse optional module declaration (or create implicit global)
-   * 2. Parse sequence of declarations (variables, @map, functions, etc.)
+   * 2. Parse sequence of declarations (variables, functions, etc.)
    * 3. Handle errors and synchronization
    * 4. Return complete Program AST node
+   *
+   * Note: v2 does not support @map declarations. Use peek/poke for memory I/O.
    *
    * @returns Program AST node representing the entire source file
    */
@@ -101,7 +107,7 @@ export class Parser extends StatementParser {
       moduleDecl = this.createImplicitGlobalModuleDecl();
     }
 
-    // Parse declarations (variables, @map, functions, etc.)
+    // Parse declarations (variables, functions, etc.) - NO @map in v2
     const declarations: Declaration[] = [];
 
     while (!this.isAtEnd()) {
@@ -117,10 +123,6 @@ export class Parser extends StatementParser {
       // Parse export declaration (wraps other declarations)
       else if (this.check(TokenType.EXPORT)) {
         declarations.push(this.parseExportDecl());
-      }
-      // Parse @map declaration
-      else if (this.check(TokenType.MAP)) {
-        declarations.push(this.parseMapDecl());
       }
       // Parse function declaration (callback or regular)
       else if (this.check(TokenType.CALLBACK, TokenType.FUNCTION)) {
@@ -149,8 +151,8 @@ export class Parser extends StatementParser {
       else if (this.check(TokenType.ENUM)) {
         declarations.push(this.parseEnumDecl());
       }
-      // Parse variable declaration
-      else if (this.isStorageClass() || this.isLetOrConst()) {
+      // Parse variable declaration (v2: no storage classes - handled by frame allocator)
+      else if (this.isLetOrConst()) {
         declarations.push(this.parseVariableDecl());
       } else {
         // Unknown token - report error and synchronize
@@ -185,11 +187,11 @@ export class Parser extends StatementParser {
   }
 
   // ============================================
-  // SCOPE MANAGEMENT (Task 2.2 - ScopeManager Integration)
+  // SCOPE MANAGEMENT (ScopeManager Integration)
   // ============================================
 
   /**
-   * Note: scopeManager is now inherited from BaseParser (Task 2.2)
+   * Note: scopeManager is now inherited from BaseParser
    * No need to declare or initialize it here.
    */
 
@@ -200,7 +202,7 @@ export class Parser extends StatementParser {
    *
    * @param parameters Function parameters to add to scope
    * @param returnType Expected return type for validation
-   * @param functionName Optional function name for error messages (Task 3.3)
+   * @param functionName Optional function name for error messages
    */
   protected enterFunctionScopeWithParams(
     parameters: Parameter[],
@@ -210,7 +212,7 @@ export class Parser extends StatementParser {
     // Call base class method first
     this.enterFunctionScope();
 
-    // Use ScopeManager for centralized scope management (with function name for Task 3.3)
+    // Use ScopeManager for centralized scope management (with function name)
     this.scopeManager.enterFunctionScope(parameters, returnType, functionName);
   }
 
@@ -275,7 +277,7 @@ export class Parser extends StatementParser {
   }
 
   // ============================================
-  // PHASE 4: FUNCTION DECLARATION PARSING
+  // FUNCTION DECLARATION PARSING
   // ============================================
 
   /**
@@ -284,8 +286,7 @@ export class Parser extends StatementParser {
    * Grammar:
    * FunctionDecl := [export] [callback] function identifier
    *                 ( [ParameterList] ) [: TypeName]
-   *                 StatementList
-   *                 end function
+   *                 { StatementList }
    *
    * Handles:
    * - Optional export modifier (makes function visible to other modules)
@@ -360,8 +361,8 @@ export class Parser extends StatementParser {
     this.expect(TokenType.LEFT_BRACE, "Expected '{' after function declaration");
 
     // Regular function with body - enter function scope
-    // Enter function scope with parameters and return type for validation (Subtask 4.3.4)
-    // Pass function name for better error messages (Task 3.3)
+    // Enter function scope with parameters and return type for validation
+    // Pass function name for better error messages
     this.enterFunctionScopeWithParams(parameters, returnType, functionName);
 
     try {
@@ -386,7 +387,7 @@ export class Parser extends StatementParser {
         false // isStub = false (regular function)
       );
     } finally {
-      // Always exit function scope, even if parsing fails (Subtask 4.3.4)
+      // Always exit function scope, even if parsing fails
       this.exitFunctionScopeWithCleanup();
     }
   }
@@ -459,7 +460,7 @@ export class Parser extends StatementParser {
           this.handleLocalVariableDeclaration(statement);
         }
 
-        // Note: Return statement validation is now handled directly in parseReturnStatement() (Task 3.3)
+        // Note: Return statement validation is now handled directly in parseReturnStatement()
         // No additional validation needed here
 
         // Validate break/continue statements (not allowed in function scope, only in loops)
@@ -496,7 +497,7 @@ export class Parser extends StatementParser {
   }
 
   // ============================================
-  // STATEMENT VALIDATION HELPERS (Subtask 4.3.2 & 4.3.3)
+  // STATEMENT VALIDATION HELPERS
   // ============================================
 
   /**
@@ -532,7 +533,7 @@ export class Parser extends StatementParser {
   }
 
   /**
-   * Validate break/continue statements are only used in loop context (Subtask 4.3.5)
+   * Validate break/continue statements are only used in loop context
    *
    * Uses type guards to safely access statement location without casting to any.
    */
@@ -558,7 +559,7 @@ export class Parser extends StatementParser {
   }
 
   // ============================================
-  // PHASE 6: TYPE SYSTEM DECLARATION PARSING
+  // TYPE SYSTEM DECLARATION PARSING
   // ============================================
 
   /**

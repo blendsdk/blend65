@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { tokenize, TokenType } from '../../lexer/index.js';
 
+/**
+ * Lexer edge case tests
+ *
+ * v2: No changes needed - these tests don't involve @map.
+ */
 describe('Blend65Lexer Edge Cases', () => {
   describe('Invalid Number Formats', () => {
     it('should handle invalid hex numbers', () => {
@@ -221,14 +226,14 @@ describe('Blend65Lexer Edge Cases', () => {
 import clearScreen, setPixel from c64.graphics.screen
 import joystickUp, joystickDown from c64.input.joystick
 
-export function main(): void
+export function main(): void {
   // Main game loop
-  while gameState != 255
-    handleInput() /* Check player input */
-    updateGame()  // Update game logic
-    renderFrame() // Draw everything
-  end while
-end function`;
+  while (gameState != 255) {
+    handleInput(); /* Check player input */
+    updateGame();  // Update game logic
+    renderFrame(); // Draw everything
+  }
+}`;
 
       const tokens = tokenize(source);
 

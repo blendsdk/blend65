@@ -1,0 +1,18 @@
+// 01-basic/two-functions.blend
+// Tests: Multiple function frame allocation
+// Expected: Three frames allocated, update and draw can coalesce
+
+module SFA.Test.TwoFunctions;
+
+function main(): void {
+    update();
+    draw();
+}
+
+function update(): void {
+    let delta: byte = 1;
+}
+
+function draw(): void {
+    let color: byte = 0;
+}

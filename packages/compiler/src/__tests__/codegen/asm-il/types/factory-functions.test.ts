@@ -1,0 +1,251 @@
+/**
+ * ASM-IL Types Tests - Factory Functions
+ *
+ * Tests for the createXxxElement factory functions.
+ *
+ * @module __tests__/codegen/asm-il/types/factory-functions.test
+ */
+
+import { describe, it, expect } from 'vitest';
+import {
+  AsmAddressingMode,
+  createInstructionElement,
+  createLabelElement,
+  createDirectiveElement,
+  createCommentElement,
+  createBlankElement,
+  createDataElement,
+  createSection,
+  createAsmILProgram,
+} from '../../../../codegen/asm-il/types.js';
+
+describe('Factory Functions', () => {
+  describe('createInstructionElement', () => {
+    it('should create an instruction element with minimal args', () => {
+      const elem = createInstructionElement('NOP', AsmAddressingMode.Implied);
+
+      expect(elem.kind).toBe('instruction');
+      expect(elem.instruction.mnemonic).toBe('NOP');
+      expect(elem.instruction.mode).toBe(AsmAddressingMode.Implied);
+      expect(elem.instruction.operand).toBeUndefined();
+      expect(elem.instruction.labelOperand).toBeUndefined();
+      expect(elem.instruction.comment).toBeUndefined();
+    });
+
+    it('should create an instruction element with numeric operand', () => {
+      const elem = createInstructionElement('LDA', AsmAddressingMode.Immediate, 0xff);
+
+      expect(elem.kind).toBe('instruction');
+      expect(elem.instruction.mnemonic).toBe('LDA');
+      expect(elem.instruction.mode).toBe(AsmAddressingMode.Immediate);
+      expect(elem.instruction.operand).toBe(0xff);
+    });
+
+    it('should create an instruction element with label operand', () => {
+      const elem = createInstructionElement(
+        'JMP',
+        AsmAddressingMode.Absolute,
+        undefined,
+        'main_loop'
+      );
+
+      expect(elem.kind).toBe('instruction');
+      expect(elem.instruction.mnemonic).toBe('JMP');
+      expect(elem.instruction.labelOperand).toBe('main_loop');
+    });
+
+    it('should create an instruction element with comment', () => {
+      const elem = createInstructionElement(
+        'STA',
+        AsmAddressingMode.Absolute,
+        0xd020,
+        undefined,
+        'Set border color'
+      );
+
+      expect(elem.instruction.comment).toBe('Set border color');
+    });
+
+    it('should create an instruction element with all arguments', () => {
+      const elem = createInstructionElement(
+        'BNE',
+        AsmAddressingMode.Relative,
+        undefined,
+        '.loop',
+        'Loop back'
+      );
+
+      expect(elem.kind).toBe('instruction');
+      expect(elem.instruction.mnemonic).toBe('BNE');
+      expect(elem.instruction.mode).toBe(AsmAddressingMode.Relative);
+      expect(elem.instruction.labelOperand).toBe('.loop');
+      expect(elem.instruction.comment).toBe('Loop back');
+    });
+  });
+
+  describe('createLabelElement', () => {
+    it('should create a label element with just name', () => {
+      const elem = createLabelElement('main');
+
+      expect(elem.kind).toBe('label');
+      expect(elem.label.name).toBe('main');
+      expect(elem.label.isLocal).toBe(false);
+      expect(elem.label.comment).toBeUndefined();
+    });
+
+    it('should create a local label element', () => {
+      const elem = createLabelElement('.loop', true);
+
+      expect(elem.kind).toBe('label');
+      expect(elem.label.name).toBe('.loop');
+      expect(elem.label.isLocal).toBe(true);
+    });
+
+    it('should create a label element with comment', () => {
+      const elem = createLabelElement('irq_handler', false, 'IRQ interrupt handler');
+
+      expect(elem.label.comment).toBe('IRQ interrupt handler');
+    });
+  });
+
+  describe('createDirectiveElement', () => {
+    it('should create a directive element with just name', () => {
+      const elem = createDirectiveElement('!align');
+
+      expect(elem.kind).toBe('directive');
+      expect(elem.directive.directive).toBe('!align');
+      expect(elem.directive.value).toBeUndefined();
+      expect(elem.directive.values).toBeUndefined();
+    });
+
+    it('should create a directive element with numeric value', () => {
+      const elem = createDirectiveElement('*=', 0x0801);
+
+      expect(elem.kind).toBe('directive');
+      expect(elem.directive.directive).toBe('*=');
+      expect(elem.directive.value).toBe(0x0801);
+    });
+
+    it('should create a directive element with string value', () => {
+      const elem = createDirectiveElement('!src', '"utils.asm"');
+
+      expect(elem.directive.value).toBe('"utils.asm"');
+    });
+
+    it('should create a directive element with values array', () => {
+      const elem = createDirectiveElement('!byte', undefined, [0x0c, 0x08, 0x00]);
+
+      expect(elem.directive.values).toEqual([0x0c, 0x08, 0x00]);
+    });
+
+    it('should create a directive element with comment', () => {
+      const elem = createDirectiveElement('*=', 0x0801, undefined, 'BASIC program start');
+
+      expect(elem.directive.comment).toBe('BASIC program start');
+    });
+  });
+
+  describe('createCommentElement', () => {
+    it('should create a comment element', () => {
+      const elem = createCommentElement('Generated by Blend65');
+
+      expect(elem.kind).toBe('comment');
+      expect(elem.comment.text).toBe('Generated by Blend65');
+    });
+
+    it('should handle empty comment text', () => {
+      const elem = createCommentElement('');
+
+      expect(elem.kind).toBe('comment');
+      expect(elem.comment.text).toBe('');
+    });
+
+    it('should handle multi-line comment text', () => {
+      const elem = createCommentElement('Line 1\nLine 2');
+
+      expect(elem.comment.text).toBe('Line 1\nLine 2');
+    });
+  });
+
+  describe('createBlankElement', () => {
+    it('should create a blank line element', () => {
+      const elem = createBlankElement();
+
+      expect(elem.kind).toBe('blank');
+    });
+
+    it('should create multiple distinct blank elements', () => {
+      const elem1 = createBlankElement();
+      const elem2 = createBlankElement();
+
+      expect(elem1).not.toBe(elem2); // Different object instances
+      expect(elem1.kind).toBe('blank');
+      expect(elem2.kind).toBe('blank');
+    });
+  });
+
+  describe('createDataElement', () => {
+    it('should create a data element with bytes', () => {
+      const elem = createDataElement([0x00, 0x01, 0x02]);
+
+      expect(elem.kind).toBe('data');
+      expect(elem.data.bytes).toEqual([0x00, 0x01, 0x02]);
+      expect(elem.data.comment).toBeUndefined();
+    });
+
+    it('should create a data element with comment', () => {
+      const elem = createDataElement([0xff], 'Terminator byte');
+
+      expect(elem.data.bytes).toEqual([0xff]);
+      expect(elem.data.comment).toBe('Terminator byte');
+    });
+
+    it('should handle empty bytes array', () => {
+      const elem = createDataElement([]);
+
+      expect(elem.data.bytes).toEqual([]);
+    });
+  });
+
+  describe('createSection', () => {
+    it('should create an empty section', () => {
+      const section = createSection('code');
+
+      expect(section.name).toBe('code');
+      expect(section.elements).toEqual([]);
+    });
+
+    it('should create sections with different names', () => {
+      const header = createSection('header');
+      const code = createSection('code');
+      const data = createSection('data');
+
+      expect(header.name).toBe('header');
+      expect(code.name).toBe('code');
+      expect(data.name).toBe('data');
+    });
+  });
+
+  describe('createAsmILProgram', () => {
+    it('should create an empty program', () => {
+      const program = createAsmILProgram('main');
+
+      expect(program.moduleName).toBe('main');
+      expect(program.sections).toEqual([]);
+      expect(program.stats).toEqual({
+        instructionCount: 0,
+        labelCount: 0,
+        estimatedBytes: 0,
+        estimatedCycles: 0,
+      });
+    });
+
+    it('should create programs with different names', () => {
+      const main = createAsmILProgram('main');
+      const utils = createAsmILProgram('utils');
+
+      expect(main.moduleName).toBe('main');
+      expect(utils.moduleName).toBe('utils');
+    });
+  });
+});

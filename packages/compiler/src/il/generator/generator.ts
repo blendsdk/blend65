@@ -1,395 +1,384 @@
 /**
- * IL Generator - Final Generator with SSA Integration
+ * IL Generator - Final Concrete Class
  *
- * This is the final class in the IL generator inheritance chain.
- * It extends ILExpressionGenerator to add SSA construction capability.
+ * Statement generation and main entry points:
+ * - Variable declaration
+ * - Expression statements
+ * - Block statements
+ * - Control flow (if/else, while, for, return, break, continue)
+ * - Function and program generation
  *
- * The complete inheritance chain is:
- * - ILGeneratorBase: Foundation with type conversion and utilities
- * - ILModuleGenerator: Module-level generation (imports, globals, functions)
- * - ILDeclarationGenerator: Function body setup, parameter mapping, intrinsics
- * - ILStatementGenerator: Statement generation (if/while/for/return/break/continue)
- * - ILExpressionGenerator: Expression generation (literals, binary, unary, calls)
- * - ILGenerator: SSA construction integration (this class)
- *
- * Usage:
- * ```typescript
- * import { ILGenerator } from '@blend65/compiler/il/generator';
- *
- * const generator = new ILGenerator(symbolTable, targetConfig, {
- *   enableSSA: true,           // Convert IL to SSA form (default: true)
- *   verifySSA: true,           // Verify SSA invariants (default: true)
- *   collectSSAStats: false,    // Collect SSA statistics (default: false)
- * });
- *
- * const result = generator.generateModule(program);
- *
- * if (result.success) {
- *   // Module is in SSA form if enableSSA was true
- *   console.log(result.module.toDetailedString());
- *
- *   // Access SSA results for each function
- *   for (const [funcName, ssaResult] of generator.getSSAResults()) {
- *     console.log(`${funcName}: ${ssaResult.stats.phiCount} phi functions`);
- *   }
- * }
- * ```
+ * Inheritance chain:
+ * ILGeneratorBase → ILGeneratorExpressions → ILGeneratorControlFlow → ILGenerator
  *
  * @module il/generator/generator
  */
 
-import type { SymbolTable } from '../../semantic/symbol-table.js';
-import type { TargetConfig } from '../../target/config.js';
+import { Statement } from '../../ast/base.js';
+import { VariableDecl, FunctionDecl } from '../../ast/declarations.js';
+import { ExpressionStatement, BlockStatement } from '../../ast/statements.js';
+import { Program } from '../../ast/program.js';
+import {
+  isVariableDecl,
+  isFunctionDecl,
+  isExpressionStatement,
+  isBlockStatement,
+  isIfStatement,
+  isWhileStatement,
+  isForStatement,
+  isReturnStatement,
+  isBreakStatement,
+  isContinueStatement,
+} from '../../ast/type-guards.js';
+import {
+  IfStatement,
+  WhileStatement,
+  ForStatement,
+  ReturnStatement,
+} from '../../ast/statements.js';
+import { ILInstruction } from '../instruction.js';
+import { ILFunction, ILProgram } from '../structures.js';
+import { createILFunction, createILProgram } from '../factories.js';
+import { ILGeneratorControlFlow } from './control-flow.js';
 
-import { Program } from '../../ast/nodes.js';
-import { ILExpressionGenerator } from './expressions.js';
-import { SSAConstructor, type SSAConstructionResult, type SSAConstructionOptions } from '../ssa/index.js';
-import type { ModuleGenerationResult } from './modules.js';
-
-// =============================================================================
-// Generator Options
-// =============================================================================
-
-/**
- * Configuration options for the IL generator.
- */
-export interface ILGeneratorOptions {
-  /**
-   * Enable SSA construction.
-   * When true, all functions are converted to SSA form after generation.
-   * @default true
-   */
-  readonly enableSSA?: boolean;
-
-  /**
-   * Verify SSA invariants after construction.
-   * Only applicable when enableSSA is true.
-   * @default true
-   */
-  readonly verifySSA?: boolean;
-
-  /**
-   * Collect detailed SSA statistics.
-   * Only applicable when enableSSA is true.
-   * @default false
-   */
-  readonly collectSSAStats?: boolean;
-
-  /**
-   * Insert phi instructions into basic blocks.
-   * When false, phi placement info is computed but not inserted.
-   * Only applicable when enableSSA is true.
-   * @default true
-   */
-  readonly insertPhiInstructions?: boolean;
-
-  /**
-   * Verbose mode - log SSA construction progress.
-   * Only applicable when enableSSA is true.
-   * @default false
-   */
-  readonly verbose?: boolean;
-}
-
-/**
- * Default generator options.
- *
- * NOTE: verifySSA is disabled by default because SSA verification for loops
- * has known limitations with phi operand dominance checking. The SSA construction
- * works correctly for code generation purposes, but the verification is strict
- * about phi operand placement for loop back-edges. This matches the behavior
- * of existing SSA tests which use skipVerification: true for loop patterns.
- */
-const DEFAULT_OPTIONS: Required<ILGeneratorOptions> = {
-  enableSSA: true,
-  verifySSA: false, // Disabled due to known loop verification limitations
-  collectSSAStats: false,
-  insertPhiInstructions: true,
-  verbose: false,
-};
-
-// =============================================================================
-// Extended Generation Result
-// =============================================================================
-
-/**
- * Extended result of module generation with SSA information.
- */
-export interface ILGenerationResult extends ModuleGenerationResult {
-  /**
-   * Whether SSA construction was performed.
-   */
-  readonly ssaEnabled: boolean;
-
-  /**
-   * SSA construction results for each function.
-   * Key is the function name, value is the SSA construction result.
-   * Only populated if ssaEnabled is true.
-   */
-  readonly ssaResults: ReadonlyMap<string, SSAConstructionResult>;
-
-  /**
-   * Number of functions successfully converted to SSA form.
-   * Only meaningful if ssaEnabled is true.
-   */
-  readonly ssaSuccessCount: number;
-
-  /**
-   * Number of functions that failed SSA construction.
-   * Only meaningful if ssaEnabled is true.
-   */
-  readonly ssaFailureCount: number;
-}
-
-// =============================================================================
+// ============================================================================
 // ILGenerator Class
-// =============================================================================
+// ============================================================================
 
 /**
- * Final IL generator with SSA construction integration.
+ * Complete IL Generator.
  *
- * This class provides the complete IL generation pipeline:
- * 1. Generate IL from AST (inherited from expression generator)
- * 2. Convert each function to SSA form (this class)
- * 3. Verify SSA invariants (optional)
- *
- * SSA form enables:
- * - Clean dataflow analysis (each variable assigned exactly once)
- * - Efficient optimizations (dead code elimination, constant propagation)
- * - Better register allocation (live range analysis)
- * - Phi functions at control flow merge points
+ * Generates IL from AST with full SFA context. The inheritance chain:
+ * - ILGeneratorBase: Core infrastructure, variable resolution
+ * - ILGeneratorExpressions: All expression generation
+ * - ILGeneratorControlFlow: Control flow (if, while, for, return, break, continue)
+ * - ILGenerator: Statement generation and entry points
  *
  * @example
  * ```typescript
- * const generator = new ILGenerator(symbolTable, targetConfig);
- * const result = generator.generateModule(program);
+ * const generator = new ILGenerator(frameMap, symbolTable);
+ * const ilProgram = generator.generate(program);
  *
- * if (result.success && result.ssaEnabled) {
- *   console.log(`SSA: ${result.ssaSuccessCount} functions converted`);
+ * for (const func of ilProgram.functions) {
+ *   console.log(`Function ${func.name}: ${func.instructions.length} instructions`);
  * }
  * ```
  */
-export class ILGenerator extends ILExpressionGenerator {
-  /**
-   * Generator options.
-   */
-  protected readonly options: Required<ILGeneratorOptions>;
+export class ILGenerator extends ILGeneratorControlFlow {
+  // ═══════════════════════════════════════════════════════════════════
+  // Main Entry Point
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * SSA constructor instance (reused across functions).
-   */
-  protected ssaConstructor: SSAConstructor;
-
-  /**
-   * SSA results for each function.
-   */
-  protected ssaResults: Map<string, SSAConstructionResult>;
-
-  /**
-   * Creates a new IL generator with SSA integration.
+   * Generate IL for an entire program.
    *
-   * @param symbolTable - Symbol table from semantic analysis
-   * @param targetConfig - Optional target configuration
-   * @param options - Generator options
-   */
-  constructor(
-    symbolTable: SymbolTable,
-    targetConfig: TargetConfig | null = null,
-    options: ILGeneratorOptions = {},
-  ) {
-    super(symbolTable, targetConfig);
-
-    // Merge options with defaults
-    this.options = { ...DEFAULT_OPTIONS, ...options };
-
-    // Create SSA constructor with matching options
-    const ssaOptions: SSAConstructionOptions = {
-      skipVerification: !this.options.verifySSA,
-      insertPhiInstructions: this.options.insertPhiInstructions,
-      collectTimings: this.options.collectSSAStats,
-      verbose: this.options.verbose,
-    };
-    this.ssaConstructor = new SSAConstructor(ssaOptions);
-
-    // Initialize results map
-    this.ssaResults = new Map();
-  }
-
-  // ===========================================================================
-  // Module Generation with SSA
-  // ===========================================================================
-
-  /**
-   * Generates IL for a complete program with SSA construction.
+   * Processes all function declarations and global variable
+   * initializations to produce a complete ILProgram.
    *
-   * This overrides the base implementation to add SSA construction
-   * after the module is generated.
+   * @param program - Program AST node
+   * @returns Complete IL program
    *
-   * @param program - AST Program node
-   * @returns Generation result with module, success status, and SSA info
+   * @example
+   * ```typescript
+   * const program = parser.parse();
+   * const frameMap = frameAllocator.allocate(program);
+   * const generator = new ILGenerator(frameMap, symbolTable);
+   * const ilProgram = generator.generate(program);
+   * ```
    */
-  public override generateModule(program: Program): ILGenerationResult {
-    // Clear previous SSA results
-    this.ssaResults.clear();
+  generate(program: Program): ILProgram {
+    const functions: ILFunction[] = [];
+    const globalInit: ILInstruction[] = [];
 
-    // Generate IL using parent implementation
-    const baseResult = super.generateModule(program);
-
-    // If base generation failed or SSA is disabled, return base result
-    if (!baseResult.success || !this.options.enableSSA) {
-      return {
-        ...baseResult,
-        ssaEnabled: false,
-        ssaResults: new Map(),
-        ssaSuccessCount: 0,
-        ssaFailureCount: 0,
-      };
-    }
-
-    // Apply SSA construction to each function
-    let ssaSuccessCount = 0;
-    let ssaFailureCount = 0;
-
-    const module = baseResult.module;
-    const functionNames = module.getFunctionNames();
-
-    for (const funcName of functionNames) {
-      const func = module.getFunction(funcName);
-      if (!func) {
-        continue;
-      }
-
-      // Skip stub functions (they have no body to convert)
-      // A stub function typically has just an entry block with no instructions
-      // or only a return instruction
-      if (this.isStubFunction(func)) {
-        if (this.options.verbose) {
-          console.log(`SSA: Skipping stub function '${funcName}'`);
+    // Process all declarations in the program
+    for (const decl of program.getDeclarations()) {
+      if (isFunctionDecl(decl)) {
+        // Skip stub functions (no body)
+        if (!decl.isStubFunction()) {
+          functions.push(this.generateFunction(decl));
         }
-        continue;
-      }
-
-      // Construct SSA for this function
-      if (this.options.verbose) {
-        console.log(`SSA: Converting function '${funcName}' to SSA form...`);
-      }
-
-      const ssaResult = this.ssaConstructor.construct(func);
-      this.ssaResults.set(funcName, ssaResult);
-
-      if (ssaResult.success) {
-        ssaSuccessCount++;
-        if (this.options.verbose) {
-          console.log(`SSA: Function '${funcName}' converted successfully`);
-          console.log(`  Phi functions: ${ssaResult.stats.phiCount}`);
-          console.log(`  Variable versions: ${ssaResult.stats.versionsCreated}`);
-        }
-      } else {
-        ssaFailureCount++;
-        if (this.options.verbose) {
-          console.log(`SSA: Function '${funcName}' failed conversion`);
-          for (const error of ssaResult.errors) {
-            console.log(`  Error: [${error.phase}] ${error.message}`);
-          }
-        }
-
-        // Add SSA errors to generator errors
-        for (const error of ssaResult.errors) {
-          this.addError(
-            `SSA construction failed: ${error.message}`,
-            this.dummyLocation(),
-            `E_SSA_${error.phase.toUpperCase()}`,
-          );
-        }
+      } else if (isVariableDecl(decl)) {
+        // Global variable initialization
+        this.generateGlobalInit(decl, globalInit);
       }
     }
 
-    // Return extended result
-    return {
-      module,
-      success: baseResult.success && ssaFailureCount === 0,
-      ssaEnabled: true,
-      ssaResults: new Map(this.ssaResults),
-      ssaSuccessCount,
-      ssaFailureCount,
-    };
+    // Calculate statistics
+    const instructionCount = this.countInstructions(functions, globalInit);
+    const totalCycles = this.sumCycles(functions, globalInit);
+
+    return createILProgram(program.getModule().getFullName(), {
+      functions,
+      globalInit,
+      entryPoint: this.findEntryPoint(functions),
+      instructionCount,
+      totalEstimatedCycles: totalCycles,
+    });
   }
 
-  // ===========================================================================
-  // SSA Result Access
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════
+  // Function Generation
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Gets the SSA results for all functions.
+   * Generate IL for a function.
    *
-   * @returns Map of function name to SSA construction result
+   * @param func - Function declaration
+   * @returns IL function with instructions
    */
-  public getSSAResults(): ReadonlyMap<string, SSAConstructionResult> {
-    return this.ssaResults;
-  }
+  protected generateFunction(func: FunctionDecl): ILFunction {
+    // Begin function generation
+    this.beginFunction(func.getName());
 
-  /**
-   * Gets the SSA result for a specific function.
-   *
-   * @param funcName - Function name
-   * @returns SSA construction result, or undefined if not found
-   */
-  public getSSAResult(funcName: string): SSAConstructionResult | undefined {
-    return this.ssaResults.get(funcName);
-  }
+    // Get the function's frame for slot context
+    const frame = this.getCurrentFrame();
 
-  /**
-   * Gets the generator options.
-   *
-   * @returns Current generator options
-   */
-  public getOptions(): Readonly<Required<ILGeneratorOptions>> {
-    return this.options;
-  }
-
-  // ===========================================================================
-  // Helper Methods
-  // ===========================================================================
-
-  /**
-   * Checks if a function is a stub (no body to convert to SSA).
-   *
-   * A stub function is one that has:
-   * - No blocks, or
-   * - Only an entry block with no instructions or just a return
-   *
-   * @param func - IL function to check
-   * @returns true if the function is a stub
-   */
-  protected isStubFunction(func: import('../function.js').ILFunction): boolean {
-    const blocks = func.getBlocks();
-
-    // No blocks at all
-    if (blocks.length === 0) {
-      return true;
-    }
-
-    // Only entry block
-    if (blocks.length === 1) {
-      const entryBlock = blocks[0];
-      const instructions = entryBlock.getInstructions();
-
-      // No instructions
-      if (instructions.length === 0) {
-        return true;
-      }
-
-      // Only a return instruction
-      if (instructions.length === 1) {
-        const inst = instructions[0];
-        const opcode = inst.opcode;
-        // Return or ReturnVoid
-        if (opcode === 'RETURN' || opcode === 'RETURN_VOID') {
-          return true;
-        }
+    // Generate function body
+    const body = func.getBody();
+    if (body) {
+      for (const stmt of body) {
+        this.generateStatement(stmt);
       }
     }
 
-    return false;
+    // Ensure void functions end with return
+    const returnType = func.getReturnType();
+    if (returnType === 'void' || !returnType) {
+      this.builder.return_();
+    }
+
+    // End function and collect results
+    const result = this.endFunction();
+
+    return createILFunction(func.getName(), frame, {
+      instructions: result.instructions,
+      loops: result.loops,
+      maxLoopDepth: result.maxLoopDepth,
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Statement Generation
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for a statement.
+   *
+   * Dispatches to specific handlers based on statement type.
+   *
+   * @param stmt - Statement to generate
+   */
+  protected generateStatement(stmt: Statement): void {
+    if (isVariableDecl(stmt)) {
+      this.generateVariableDecl(stmt);
+    } else if (isExpressionStatement(stmt)) {
+      this.generateExpressionStatement(stmt);
+    } else if (isBlockStatement(stmt)) {
+      this.generateBlockStatement(stmt);
+    } else if (isIfStatement(stmt)) {
+      this.generateIfStatement(stmt as IfStatement);
+    } else if (isWhileStatement(stmt)) {
+      this.generateWhileStatement(stmt as WhileStatement);
+    } else if (isForStatement(stmt)) {
+      this.generateForStatement(stmt as ForStatement);
+    } else if (isReturnStatement(stmt)) {
+      this.generateReturnStatement(stmt as ReturnStatement);
+    } else if (isBreakStatement(stmt)) {
+      this.generateBreakStatement();
+    } else if (isContinueStatement(stmt)) {
+      this.generateContinueStatement();
+    }
+    // Other statement types can be added as needed
+  }
+
+  /**
+   * Override generateStatementDispatch for control flow.
+   *
+   * This method is called by control flow generators (if/while/for)
+   * to generate statements in their bodies.
+   *
+   * @param stmt - Statement to generate
+   */
+  protected override generateStatementDispatch(stmt: Statement): void {
+    this.generateStatement(stmt);
+  }
+
+  /**
+   * Generate IL for a variable declaration.
+   *
+   * If the declaration has an initializer, generates the
+   * initializer expression and stores to the slot.
+   *
+   * @param decl - Variable declaration
+   */
+  protected generateVariableDecl(decl: VariableDecl): void {
+    this.setLocation(decl.getLocation());
+
+    const initializer = decl.getInitializer();
+    if (initializer) {
+      // Generate initializer expression
+      this.generateExpression(initializer);
+
+      // Store to slot
+      const slot = this.resolveVariable(decl.getName());
+      this.builder.storeSlot(slot, `let ${decl.getName()}`);
+    }
+    // If no initializer, the slot is uninitialized (value undefined)
+
+    this.clearLocation();
+  }
+
+  /**
+   * Generate IL for an expression statement.
+   *
+   * Simply generates the expression and discards the result.
+   *
+   * @param stmt - Expression statement
+   */
+  protected generateExpressionStatement(stmt: ExpressionStatement): void {
+    this.generateExpression(stmt.getExpression());
+    // Result in A is discarded (used for side effects only)
+  }
+
+  /**
+   * Generate IL for a block statement.
+   *
+   * Generates all statements in the block sequentially.
+   *
+   * @param stmt - Block statement
+   */
+  protected generateBlockStatement(stmt: BlockStatement): void {
+    for (const s of stmt.getStatements()) {
+      this.generateStatement(s);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Global Initialization
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for global variable initialization.
+   *
+   * Global initializers are collected separately from function
+   * instructions and executed at program startup.
+   *
+   * @param decl - Global variable declaration
+   * @param globalInit - Array to add instructions to
+   */
+  protected generateGlobalInit(
+    decl: VariableDecl,
+    globalInit: ILInstruction[]
+  ): void {
+    // Skip const declarations - they are compile-time constants
+    // resolved during codegen (e.g., const BORDER: word = $D020
+    // is used inline, not stored at runtime)
+    if (decl.isConst()) {
+      return;
+    }
+
+    const initializer = decl.getInitializer();
+    if (!initializer) {
+      return; // No initialization needed
+    }
+
+    // Save current state
+    const savedInstructions = this.builder.getInstructions().slice();
+    this.builder.clear();
+
+    // Generate initializer
+    this.setLocation(decl.getLocation());
+    this.generateExpression(initializer);
+
+    // Note: Global slot resolution needs special handling
+    // For now, we just collect the instructions
+    // Full global support will be added in Phase 7c
+
+    // Collect generated instructions
+    for (const instr of this.builder.getInstructions()) {
+      globalInit.push(instr);
+    }
+
+    // Restore state
+    this.builder.clear();
+    for (const instr of savedInstructions) {
+      // Re-emit saved instructions
+      this.builder.emit(instr.opcode, instr.operands, instr.comment);
+    }
+
+    this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Statistics Helpers
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Count total instructions across all functions.
+   *
+   * @param functions - Array of IL functions
+   * @param globalInit - Global initialization instructions
+   * @returns Total instruction count
+   */
+  protected countInstructions(
+    functions: ILFunction[],
+    globalInit: ILInstruction[]
+  ): number {
+    let count = globalInit.length;
+    for (const func of functions) {
+      count += func.instructions.length;
+    }
+    return count;
+  }
+
+  /**
+   * Sum estimated cycles across all functions.
+   *
+   * @param functions - Array of IL functions
+   * @param globalInit - Global initialization instructions
+   * @returns Total estimated cycles
+   */
+  protected sumCycles(
+    functions: ILFunction[],
+    globalInit: ILInstruction[]
+  ): number {
+    let cycles = 0;
+
+    // Global init cycles
+    for (const instr of globalInit) {
+      cycles += instr.cost?.cycles ?? 0;
+    }
+
+    // Function cycles
+    for (const func of functions) {
+      for (const instr of func.instructions) {
+        cycles += instr.cost?.cycles ?? 0;
+      }
+    }
+
+    return cycles;
+  }
+
+  /**
+   * Find the program entry point.
+   *
+   * Looks for a 'main' function, or returns the first function.
+   *
+   * @param functions - Array of IL functions
+   * @returns Entry point function name
+   */
+  protected findEntryPoint(functions: ILFunction[]): string {
+    // Look for 'main' function
+    const main = functions.find((f) => f.name === 'main');
+    if (main) {
+      return 'main';
+    }
+
+    // Fall back to first function
+    if (functions.length > 0) {
+      return functions[0].name;
+    }
+
+    return 'main'; // Default
   }
 }

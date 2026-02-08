@@ -400,10 +400,17 @@ plans/
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
+> **Last Updated**: [YYYY-MM-DD HH:MM]
+> **Progress**: 0/X tasks (0%)
 
 ## Overview
 
 This document defines the execution phases and AI chat sessions for implementation.
+
+**🚨 IMPORTANT: Update this document after EACH completed task!**
+- Mark completed tasks with `[x]` and add ✅ with timestamp
+- Update the "Last Updated" timestamp above
+- Update the "Progress" counter above
 
 ## Implementation Phases
 
@@ -628,6 +635,23 @@ Based on an educated guess regarding the size of each major component do one of 
 
 ---
 
+## **🚨 CRITICAL: Task Completion Tracking During Planning 🚨**
+
+**When creating a plan, you MUST include clear instructions in `99-execution-plan.md` about task completion tracking:**
+
+1. **✅ Include tracking metadata** in the execution plan header:
+   - `Last Updated: [timestamp]`
+   - `Progress: X/Y tasks (Z%)`
+   
+2. **✅ Document the update protocol** in the execution plan itself so future sessions know to update it
+
+3. **✅ Use consistent completion format**:
+   ```markdown
+   - [x] 1.1.1 Task description ✅ (completed: YYYY-MM-DD HH:MM)
+   ```
+
+---
+
 ## **Integration with Other Rules**
 
 When executing "make_plan":
@@ -635,8 +659,8 @@ When executing "make_plan":
 - Follow **plans.md** rules for task granularity and format
 - Follow **agents.md** rules for multi-session execution
 - Follow **code.md** rules for testing requirements
+- Follow **agents.md Rule 10** for debugging (NO inline `node -e` scripts)
 - If project-specific rules exist, incorporate them
-- **CRITICAL**: Update the execution plan up on each completed phase or session
 
 ---
 
@@ -672,6 +696,41 @@ This trigger allows the AI to:
 3. **Track progress** by updating checkboxes in the execution plan
 4. **Manage context window** by stopping at ~80% capacity
 5. **Enable continuation** in subsequent sessions
+
+---
+
+## **🚨 CRITICAL: Real-Time Progress Updates 🚨**
+
+**You MUST update `99-execution-plan.md` after completing EACH task. This is NON-NEGOTIABLE.**
+
+### **Mandatory Update Protocol:**
+
+1. **✅ Update IMMEDIATELY after each task completion** - Do not batch updates
+2. **✅ Use `replace_in_file`** to change `[ ]` to `[x]` with completion marker
+3. **✅ Update the "Last Updated" timestamp** in the document header
+4. **✅ Update the "Progress" counter** (e.g., `Progress: 3/10 tasks (30%)`)
+
+### **Task Completion Format:**
+
+```markdown
+- [x] 1.1.1 Task description ✅ (completed: 2025-01-30 17:45)
+```
+
+### **Why This is Critical:**
+
+- Enables accurate progress tracking across sessions
+- Prevents duplicate work in future sessions
+- Provides audit trail of implementation
+- Allows other team members to see real-time status
+
+### **Enforcement:**
+
+**Before proceeding to the NEXT task, you MUST have:**
+1. ✅ Marked the current task complete in `99-execution-plan.md`
+2. ✅ Updated the progress counter
+3. ✅ Updated the "Last Updated" timestamp
+
+**Failure to update the execution plan is a VIOLATION of the exec_plan protocol.**
 
 ---
 
@@ -722,7 +781,8 @@ After completing each task, update `99-execution-plan.md`:
 1. **✅ Ensure clean stopping point** - Complete current task before stopping
 2. **✅ Update execution plan** - All completed tasks marked with `[x]`
 3. **✅ Run final verification** - Execute project's test command(s)
-4. **✅ Report session summary** - What was completed, what remains
+4. **✅ Auto-commit if tests pass** - Stage and commit all changes (see below)
+5. **✅ Report session summary** - What was completed, what remains
 
 **Session Summary Format:**
 
@@ -741,10 +801,118 @@ After completing each task, update `99-execution-plan.md`:
 - [ ] Phase Y: [phase description]
 
 **Tests:** [Status]
+**Commit:** [Commit hash or "Committed successfully"]
 **Context Used:** ~XX%
 
 **To Continue:**
 Run `exec_plan [feature-name]` in a new session after `/compact`
+```
+
+---
+
+## **🚨 CRITICAL: Auto-Commit on Successful Task Completion 🚨**
+
+**When ALL tests pass and a task/session is successfully complete, you MUST stage and commit all changes. This is NON-NEGOTIABLE.**
+
+### **When to Auto-Commit:**
+
+Auto-commit is **MANDATORY** when ALL of these conditions are met:
+
+1. ✅ Task or session is successfully complete
+2. ✅ All tests pass without errors (`./compiler-test` returns success)
+3. ✅ No build errors or warnings
+4. ✅ Execution plan has been updated with completed tasks
+
+### **Auto-Commit Protocol:**
+
+**After successful task completion and passing tests:**
+
+```bash
+# 1. Stage all changes
+clear && git add .
+
+# 2. Create commit with descriptive message
+git commit -m "feat([component]): [task description]
+
+- [Specific change 1]
+- [Specific change 2]
+- Tests: [X] passing"
+```
+
+### **Commit Message Format:**
+
+```
+feat([component]): [brief description of what was implemented]
+
+- [Specific change or file modified]
+- [Another specific change]
+- [Test results summary]
+
+Ref: plans/[feature-name]/99-execution-plan.md
+Task: [X.X.X]
+```
+
+**Examples:**
+
+```
+feat(parser): implement binary expression parsing
+
+- Added precedence table for operators
+- Implemented Pratt parser for expressions
+- Tests: 45 passing, 0 failing
+
+Ref: plans/compiler-v2/99-execution-plan.md
+Task: 2.1.3
+```
+
+```
+feat(semantic): add type checking for variable declarations
+
+- Implemented type resolution for let/const
+- Added type compatibility checking
+- Fixed edge case for array types
+- Tests: 128 passing, 0 failing
+
+Ref: plans/compiler-v2/99-execution-plan.md
+Task: 3.2.1
+```
+
+### **When NOT to Auto-Commit:**
+
+❌ **Do NOT commit when:**
+- Tests are failing
+- Build errors exist
+- Task is only partially complete
+- Context limit reached mid-task (commit only after completing the current task)
+
+### **Enforcement:**
+
+**Before calling `attempt_completion`, you MUST have:**
+
+1. ✅ Verified all tests pass
+2. ✅ Staged all changes (`git add .`)
+3. ✅ Created a descriptive commit
+4. ✅ Confirmed commit was successful
+
+**Failure to commit after successful task completion is a VIOLATION of the exec_plan protocol.**
+
+### **Integration with Session Protocol:**
+
+**Updated session ending workflow:**
+
+```bash
+# 1. Verify tests pass
+./compiler-test
+
+# 2. If tests pass, commit changes
+git add .
+git commit -m "feat([component]): [description]"
+
+# 3. End agent settings
+clear && scripts/agent.sh finished
+
+# 4. Call attempt_completion
+# 5. User runs /compact
 ```
 
 ---

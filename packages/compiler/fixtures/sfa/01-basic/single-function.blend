@@ -1,0 +1,11 @@
+// 01-basic/single-function.blend
+// Tests: Basic frame allocation for single function
+// Expected: main frame at $0200 with 2 bytes
+
+module SFA.Test.SingleFunction;
+
+function main(): void {
+    let x: byte = 10;
+    let y: byte = 20;
+    x = y;
+}

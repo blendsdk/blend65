@@ -1,77 +1,77 @@
 /**
- * Tests for Global Symbol Table
+ * Global Symbol Table Tests for Blend65 Compiler v2
  *
- * Validates cross-module symbol aggregation and lookup
+ * Tests the GlobalSymbolTable class which aggregates exports from all modules
+ * and provides cross-module symbol lookup.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { GlobalSymbolTable } from '../../semantic/global-symbol-table.js';
-import { SymbolTable } from '../../semantic/symbol-table.js';
-import { SymbolKind, type Symbol } from '../../semantic/symbol.js';
-import { TypeKind, type TypeInfo } from '../../semantic/types.js';
-import { SourceLocation } from '../../ast/base.js';
-import { VariableDecl } from '../../ast/nodes.js';
+import {
+  GlobalSymbolTable,
+  GlobalSymbolKind,
+  ModuleRegistry,
+} from '../../semantic/index.js';
+import {
+  Program,
+  ModuleDecl,
+  ExportDecl,
+  FunctionDecl,
+  VariableDecl,
+  type SourceLocation,
+} from '../../ast/index.js';
+
+// ============================================================
+// Test Helpers
+// ============================================================
 
 /**
- * Helper: Create a test source location
+ * Creates a test source location
  */
-function createLocation(line = 1, column = 1): SourceLocation {
+function createLocation(): SourceLocation {
   return {
-    start: { line, column, offset: 0 },
-    end: { line, column: column + 1, offset: 1 },
+    start: { line: 1, column: 1, offset: 0 },
+    end: { line: 1, column: 10, offset: 9 },
   };
 }
 
 /**
- * Helper: Create a test type info
+ * Creates a module declaration
  */
-function createTypeInfo(kind: TypeKind): TypeInfo {
-  return {
-    kind,
-    name: kind,
-    size: kind === TypeKind.Byte ? 1 : kind === TypeKind.Word ? 2 : 0,
-    isSigned: false,
-    isAssignable: true,
-  };
+function createModuleDecl(name: string): ModuleDecl {
+  return new ModuleDecl(name.split('.'), createLocation());
 }
 
 /**
- * Helper: Create a mock SymbolTable with symbols
+ * Creates a function declaration
  */
-function createSymbolTable(
-  symbols: Array<{ name: string; exported: boolean; kind?: SymbolKind }>
-): SymbolTable {
-  const table = new SymbolTable();
-
-  // Create symbols in the root scope
-  for (const sym of symbols) {
-    const loc = createLocation();
-    const decl = new VariableDecl(
-      sym.name,
-      'byte',
-      null, // No initializer
-      loc,
-      null, // No storage class
-      false, // Not const
-      sym.exported
-    );
-
-    const symbol: Symbol = {
-      name: sym.name,
-      kind: sym.kind || SymbolKind.Variable,
-      declaration: decl,
-      type: createTypeInfo(TypeKind.Byte),
-      isExported: sym.exported,
-      isConst: false,
-      scope: table.getRootScope(),
-      location: loc,
-    };
-
-    table.declare(symbol);
-  }
-
-  return table;
+function createFunctionDecl(name: string, isExported = false): FunctionDecl {
+  return new FunctionDecl(name, [], null, [], createLocation(), isExported);
 }
+
+/**
+ * Creates a variable declaration
+ */
+function createVariableDecl(name: string, isConst = false, isExported = false): VariableDecl {
+  return new VariableDecl(name, 'byte', null, createLocation(), null, isConst, isExported);
+}
+
+/**
+ * Creates an export declaration wrapping another declaration
+ */
+function createExportDecl(decl: FunctionDecl | VariableDecl): ExportDecl {
+  return new ExportDecl(decl, createLocation());
+}
+
+/**
+ * Creates a Program with the given declarations
+ */
+function createProgram(moduleName: string, declarations: any[]): Program {
+  return new Program(createModuleDecl(moduleName), declarations, createLocation());
+}
+
+// ============================================================
+// Tests
+// ============================================================
 
 describe('GlobalSymbolTable', () => {
   let globalTable: GlobalSymbolTable;
@@ -80,401 +80,630 @@ describe('GlobalSymbolTable', () => {
     globalTable = new GlobalSymbolTable();
   });
 
-  describe('Module Registration', () => {
-    it('should register a module successfully', () => {
-      const symbolTable = createSymbolTable([{ name: 'foo', exported: true }]);
+  // ============================================================
+  // Creation Tests
+  // ============================================================
 
-      globalTable.registerModule('moduleA', symbolTable);
-
-      expect(globalTable.hasModule('moduleA')).toBe(true);
-      expect(globalTable.getModuleNames()).toEqual(['moduleA']);
-    });
-
-    it('should register multiple modules', () => {
-      const table1 = createSymbolTable([{ name: 'foo', exported: true }]);
-      const table2 = createSymbolTable([{ name: 'bar', exported: true }]);
-
-      globalTable.registerModule('moduleA', table1);
-      globalTable.registerModule('moduleB', table2);
-
-      expect(globalTable.hasModule('moduleA')).toBe(true);
-      expect(globalTable.hasModule('moduleB')).toBe(true);
-      expect(globalTable.getModuleNames()).toEqual(['moduleA', 'moduleB']);
-    });
-
-    it('should throw error when registering duplicate module', () => {
-      const table1 = createSymbolTable([{ name: 'foo', exported: true }]);
-      const table2 = createSymbolTable([{ name: 'bar', exported: true }]);
-
-      globalTable.registerModule('moduleA', table1);
-
-      expect(() => {
-        globalTable.registerModule('moduleA', table2);
-      }).toThrow("Module 'moduleA' is already registered");
-    });
-
-    it('should handle module with no symbols', () => {
-      const emptyTable = createSymbolTable([]);
-
-      globalTable.registerModule('emptyModule', emptyTable);
-
-      expect(globalTable.hasModule('emptyModule')).toBe(true);
-      expect(globalTable.getAllSymbols('emptyModule')).toEqual([]);
-    });
-
-    it('should correctly separate exported and non-exported symbols', () => {
-      const table = createSymbolTable([
-        { name: 'exported1', exported: true },
-        { name: 'private1', exported: false },
-        { name: 'exported2', exported: true },
-        { name: 'private2', exported: false },
-      ]);
-
-      globalTable.registerModule('moduleA', table);
-
-      const allSymbols = globalTable.getAllSymbols('moduleA');
-      const exportedSymbols = globalTable.getExportedSymbols('moduleA');
-
-      expect(allSymbols).toHaveLength(4);
-      expect(exportedSymbols).toHaveLength(2);
-      expect(exportedSymbols.map(s => s.name)).toEqual(['exported1', 'exported2']);
+  describe('creation', () => {
+    it('creates an empty table', () => {
+      expect(globalTable).toBeDefined();
+      expect(globalTable.isEmpty()).toBe(true);
+      expect(globalTable.getSymbolCount()).toBe(0);
     });
   });
 
-  describe('Symbol Lookup - Cross-Module', () => {
+  // ============================================================
+  // Registration Tests
+  // ============================================================
+
+  describe('registration', () => {
+    it('registers a global symbol', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+
+      expect(globalTable.getSymbolCount()).toBe(1);
+      expect(globalTable.isEmpty()).toBe(false);
+    });
+
+    it('registers multiple symbols from same module', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'subtract',
+        qualifiedName: 'Lib.Math.subtract',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+
+      expect(globalTable.getSymbolCount()).toBe(2);
+      expect(globalTable.getModuleExports('Lib.Math').size).toBe(2);
+    });
+
+    it('registers symbols from multiple modules', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'concat',
+        qualifiedName: 'Lib.String.concat',
+        moduleName: 'Lib.String',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+
+      expect(globalTable.getSymbolCount()).toBe(2);
+      expect(globalTable.getModuleNames()).toHaveLength(2);
+    });
+  });
+
+  // ============================================================
+  // Qualified Lookup Tests
+  // ============================================================
+
+  describe('qualified lookup', () => {
     beforeEach(() => {
-      // Setup: moduleA exports foo, moduleB exports bar
-      const tableA = createSymbolTable([
-        { name: 'foo', exported: true },
-        { name: 'internalA', exported: false },
-      ]);
-
-      const tableB = createSymbolTable([
-        { name: 'bar', exported: true },
-        { name: 'internalB', exported: false },
-      ]);
-
-      globalTable.registerModule('moduleA', tableA);
-      globalTable.registerModule('moduleB', tableB);
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
     });
 
-    it('should find exported symbol from another module', () => {
-      const symbol = globalTable.lookup('foo', 'moduleB');
+    it('finds symbol by qualified name', () => {
+      const result = globalTable.lookupQualified('Lib.Math', 'add');
 
-      expect(symbol).toBeDefined();
-      expect(symbol!.name).toBe('foo');
-      expect(symbol!.moduleName).toBe('moduleA');
-      expect(symbol!.isExported).toBe(true);
+      expect(result.found).toBe(true);
+      expect(result.symbol?.name).toBe('add');
+      expect(result.symbol?.moduleName).toBe('Lib.Math');
     });
 
-    it('should not find non-exported symbol', () => {
-      const symbol = globalTable.lookup('internalA', 'moduleB');
+    it('returns error for non-existent symbol in existing module', () => {
+      const result = globalTable.lookupQualified('Lib.Math', 'nonExistent');
 
-      expect(symbol).toBeUndefined();
+      expect(result.found).toBe(false);
+      expect(result.error).toContain("Symbol 'nonExistent' not found");
     });
 
-    it('should not find symbol from same module', () => {
-      const symbol = globalTable.lookup('foo', 'moduleA');
+    it('returns error for non-existent module', () => {
+      const result = globalTable.lookupQualified('NonExistent', 'anything');
 
-      expect(symbol).toBeUndefined();
-    });
-
-    it('should return undefined for non-existent symbol', () => {
-      const symbol = globalTable.lookup('doesNotExist', 'moduleA');
-
-      expect(symbol).toBeUndefined();
-    });
-
-    it('should find first match when multiple modules export same name', () => {
-      const tableC = createSymbolTable([{ name: 'common', exported: true }]);
-      const tableD = createSymbolTable([{ name: 'common', exported: true }]);
-
-      globalTable.registerModule('moduleC', tableC);
-      globalTable.registerModule('moduleD', tableD);
-
-      const symbol = globalTable.lookup('common', 'moduleA');
-
-      expect(symbol).toBeDefined();
-      expect(symbol!.name).toBe('common');
-      // Should find from one of the modules (implementation dependent)
-      expect(['moduleC', 'moduleD']).toContain(symbol!.moduleName);
+      expect(result.found).toBe(false);
+      expect(result.error).toContain("Module 'NonExistent' not found");
     });
   });
 
-  describe('Symbol Lookup - Module-Specific', () => {
+  // ============================================================
+  // Simple Lookup Tests
+  // ============================================================
+
+  describe('simple lookup', () => {
+    it('finds unique symbol by simple name', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+
+      const result = globalTable.lookup('add');
+
+      expect(result.found).toBe(true);
+      expect(result.symbol?.name).toBe('add');
+    });
+
+    it('returns error for non-existent symbol', () => {
+      const result = globalTable.lookup('nonExistent');
+
+      expect(result.found).toBe(false);
+      expect(result.error).toContain("Symbol 'nonExistent' not found");
+    });
+
+    it('detects ambiguous symbols exported by multiple modules', () => {
+      globalTable.register({
+        name: 'helper',
+        qualifiedName: 'Module1.helper',
+        moduleName: 'Module1',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'helper',
+        qualifiedName: 'Module2.helper',
+        moduleName: 'Module2',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+
+      const result = globalTable.lookup('helper');
+
+      expect(result.found).toBe(false);
+      expect(result.ambiguous).toHaveLength(2);
+      expect(result.error).toContain('ambiguous');
+    });
+  });
+
+  // ============================================================
+  // Module Exports Tests
+  // ============================================================
+
+  describe('module exports', () => {
     beforeEach(() => {
-      const table = createSymbolTable([
-        { name: 'exported', exported: true },
-        { name: 'private', exported: false },
-      ]);
-
-      globalTable.registerModule('moduleA', table);
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'PI',
+        qualifiedName: 'Lib.Math.PI',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Constant,
+        type: null,
+        location: createLocation(),
+      });
     });
 
-    it('should find exported symbol in specific module', () => {
-      const symbol = globalTable.lookupInModule('exported', 'moduleA');
+    it('gets all exports from a module', () => {
+      const exports = globalTable.getModuleExports('Lib.Math');
 
-      expect(symbol).toBeDefined();
-      expect(symbol!.name).toBe('exported');
-      expect(symbol!.moduleName).toBe('moduleA');
+      expect(exports.size).toBe(2);
+      expect(exports.has('add')).toBe(true);
+      expect(exports.has('PI')).toBe(true);
     });
 
-    it('should find non-exported symbol in specific module', () => {
-      const symbol = globalTable.lookupInModule('private', 'moduleA');
+    it('returns empty map for non-existent module', () => {
+      const exports = globalTable.getModuleExports('NonExistent');
 
-      expect(symbol).toBeDefined();
-      expect(symbol!.name).toBe('private');
-      expect(symbol!.isExported).toBe(false);
+      expect(exports.size).toBe(0);
     });
 
-    it('should return undefined for non-existent symbol in module', () => {
-      const symbol = globalTable.lookupInModule('doesNotExist', 'moduleA');
-
-      expect(symbol).toBeUndefined();
+    it('hasModuleExports returns true for module with exports', () => {
+      expect(globalTable.hasModuleExports('Lib.Math')).toBe(true);
     });
 
-    it('should return undefined for non-existent module', () => {
-      const symbol = globalTable.lookupInModule('exported', 'nonExistentModule');
-
-      expect(symbol).toBeUndefined();
-    });
-  });
-
-  describe('Export Queries', () => {
-    it('should get all exported symbols from a module', () => {
-      const table = createSymbolTable([
-        { name: 'export1', exported: true },
-        { name: 'export2', exported: true },
-        { name: 'private1', exported: false },
-      ]);
-
-      globalTable.registerModule('moduleA', table);
-
-      const exports = globalTable.getExportedSymbols('moduleA');
-
-      expect(exports).toHaveLength(2);
-      expect(exports.map(s => s.name).sort()).toEqual(['export1', 'export2']);
-      expect(exports.every(s => s.isExported)).toBe(true);
-    });
-
-    it('should return empty array for module with no exports', () => {
-      const table = createSymbolTable([
-        { name: 'private1', exported: false },
-        { name: 'private2', exported: false },
-      ]);
-
-      globalTable.registerModule('moduleA', table);
-
-      const exports = globalTable.getExportedSymbols('moduleA');
-
-      expect(exports).toEqual([]);
-    });
-
-    it('should return empty array for non-existent module', () => {
-      const exports = globalTable.getExportedSymbols('nonExistent');
-
-      expect(exports).toEqual([]);
-    });
-
-    it('should get all symbols (exported + non-exported)', () => {
-      const table = createSymbolTable([
-        { name: 'export1', exported: true },
-        { name: 'private1', exported: false },
-      ]);
-
-      globalTable.registerModule('moduleA', table);
-
-      const allSymbols = globalTable.getAllSymbols('moduleA');
-
-      expect(allSymbols).toHaveLength(2);
-      expect(allSymbols.map(s => s.name).sort()).toEqual(['export1', 'private1']);
+    it('hasModuleExports returns false for module without exports', () => {
+      expect(globalTable.hasModuleExports('NonExistent')).toBe(false);
     });
   });
 
-  describe('Module Queries', () => {
-    it('should check if module exists', () => {
-      const table = createSymbolTable([]);
-      globalTable.registerModule('moduleA', table);
+  // ============================================================
+  // Has/HasAny Tests
+  // ============================================================
 
-      expect(globalTable.hasModule('moduleA')).toBe(true);
-      expect(globalTable.hasModule('moduleB')).toBe(false);
+  describe('has methods', () => {
+    beforeEach(() => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
     });
 
-    it('should get all module names', () => {
-      const table1 = createSymbolTable([]);
-      const table2 = createSymbolTable([]);
-      const table3 = createSymbolTable([]);
+    it('has returns true for existing symbol', () => {
+      expect(globalTable.has('Lib.Math', 'add')).toBe(true);
+    });
 
-      globalTable.registerModule('alpha', table1);
-      globalTable.registerModule('beta', table2);
-      globalTable.registerModule('gamma', table3);
+    it('has returns false for non-existing symbol', () => {
+      expect(globalTable.has('Lib.Math', 'nonExistent')).toBe(false);
+    });
 
+    it('has returns false for non-existing module', () => {
+      expect(globalTable.has('NonExistent', 'add')).toBe(false);
+    });
+
+    it('hasAny returns true when symbol exists in any module', () => {
+      expect(globalTable.hasAny('add')).toBe(true);
+    });
+
+    it('hasAny returns false when symbol does not exist', () => {
+      expect(globalTable.hasAny('nonExistent')).toBe(false);
+    });
+  });
+
+  // ============================================================
+  // Collect from Registry Tests
+  // ============================================================
+
+  describe('collectFromRegistry', () => {
+    it('collects exports from all modules in registry', () => {
+      const registry = new ModuleRegistry();
+
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+        createExportDecl(createFunctionDecl('subtract')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const stringProgram = createProgram('Lib.String', [
+        createExportDecl(createFunctionDecl('concat')),
+      ]);
+      registry.register('Lib.String', stringProgram);
+
+      const count = globalTable.collectFromRegistry(registry);
+
+      expect(count).toBe(3);
+      expect(globalTable.getSymbolCount()).toBe(3);
+      expect(globalTable.getModuleNames()).toHaveLength(2);
+    });
+
+    it('collects exported functions as GlobalSymbolKind.Function', () => {
+      const registry = new ModuleRegistry();
+
+      const program = createProgram('Lib.Utils', [
+        createExportDecl(createFunctionDecl('helper')),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      globalTable.collectFromRegistry(registry);
+
+      const result = globalTable.lookupQualified('Lib.Utils', 'helper');
+      expect(result.symbol?.kind).toBe(GlobalSymbolKind.Function);
+    });
+
+    it('collects exported variables as GlobalSymbolKind.Variable', () => {
+      const registry = new ModuleRegistry();
+
+      const program = createProgram('Lib.Utils', [
+        createExportDecl(createVariableDecl('counter', false)),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      globalTable.collectFromRegistry(registry);
+
+      const result = globalTable.lookupQualified('Lib.Utils', 'counter');
+      expect(result.symbol?.kind).toBe(GlobalSymbolKind.Variable);
+    });
+
+    it('collects exported constants as GlobalSymbolKind.Constant', () => {
+      const registry = new ModuleRegistry();
+
+      const program = createProgram('Lib.Utils', [
+        createExportDecl(createVariableDecl('MAX', true)),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      globalTable.collectFromRegistry(registry);
+
+      const result = globalTable.lookupQualified('Lib.Utils', 'MAX');
+      expect(result.symbol?.kind).toBe(GlobalSymbolKind.Constant);
+    });
+
+    it('ignores non-exported declarations', () => {
+      const registry = new ModuleRegistry();
+
+      const program = createProgram('Lib.Utils', [
+        createFunctionDecl('privateFunc'),  // Not exported
+        createExportDecl(createFunctionDecl('publicFunc')),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      globalTable.collectFromRegistry(registry);
+
+      expect(globalTable.getSymbolCount()).toBe(1);
+      expect(globalTable.hasAny('privateFunc')).toBe(false);
+      expect(globalTable.hasAny('publicFunc')).toBe(true);
+    });
+  });
+
+  // ============================================================
+  // Collect from Program Tests
+  // ============================================================
+
+  describe('collectFromProgram', () => {
+    it('collects exports from a single program', () => {
+      const program = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+        createExportDecl(createVariableDecl('PI', true)),
+      ]);
+
+      const count = globalTable.collectFromProgram('Lib.Math', program);
+
+      expect(count).toBe(2);
+      expect(globalTable.getSymbolCount()).toBe(2);
+    });
+
+    it('returns 0 for program with no exports', () => {
+      const program = createProgram('Lib.Empty', [
+        createFunctionDecl('privateFunc'),
+      ]);
+
+      const count = globalTable.collectFromProgram('Lib.Empty', program);
+
+      expect(count).toBe(0);
+    });
+  });
+
+  // ============================================================
+  // Get Symbols Tests
+  // ============================================================
+
+  describe('symbol queries', () => {
+    beforeEach(() => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'counter',
+        qualifiedName: 'Lib.State.counter',
+        moduleName: 'Lib.State',
+        kind: GlobalSymbolKind.Variable,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'MAX',
+        qualifiedName: 'Lib.Const.MAX',
+        moduleName: 'Lib.Const',
+        kind: GlobalSymbolKind.Constant,
+        type: null,
+        location: createLocation(),
+      });
+    });
+
+    it('getAllSymbols returns all symbols', () => {
+      const symbols = globalTable.getAllSymbols();
+
+      expect(symbols).toHaveLength(3);
+    });
+
+    it('getSymbolsByKind filters by kind', () => {
+      expect(globalTable.getSymbolsByKind(GlobalSymbolKind.Function)).toHaveLength(1);
+      expect(globalTable.getSymbolsByKind(GlobalSymbolKind.Variable)).toHaveLength(1);
+      expect(globalTable.getSymbolsByKind(GlobalSymbolKind.Constant)).toHaveLength(1);
+    });
+
+    it('getModuleNames returns all module names', () => {
       const names = globalTable.getModuleNames();
 
       expect(names).toHaveLength(3);
-      expect(names.sort()).toEqual(['alpha', 'beta', 'gamma']);
-    });
-
-    it('should return empty array when no modules registered', () => {
-      expect(globalTable.getModuleNames()).toEqual([]);
+      expect(names).toContain('Lib.Math');
+      expect(names).toContain('Lib.State');
+      expect(names).toContain('Lib.Const');
     });
   });
 
-  describe('Symbol Counting', () => {
-    it('should count total symbols across all modules', () => {
-      const table1 = createSymbolTable([
-        { name: 'a', exported: true },
-        { name: 'b', exported: false },
-      ]);
+  // ============================================================
+  // Type Assignment Tests
+  // ============================================================
 
-      const table2 = createSymbolTable([
-        { name: 'c', exported: true },
-        { name: 'd', exported: false },
-        { name: 'e', exported: true },
-      ]);
+  describe('type assignment', () => {
+    it('setSymbolType updates symbol type', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
 
-      globalTable.registerModule('moduleA', table1);
-      globalTable.registerModule('moduleB', table2);
+      const mockType = { kind: 'Function' as any, name: 'function', size: 0 };
+      const updated = globalTable.setSymbolType('Lib.Math', 'add', mockType);
 
-      expect(globalTable.getTotalSymbolCount()).toBe(5);
+      expect(updated).toBe(true);
+      expect(globalTable.lookupQualified('Lib.Math', 'add').symbol?.type).toBe(mockType);
     });
 
-    it('should count total exported symbols across all modules', () => {
-      const table1 = createSymbolTable([
-        { name: 'a', exported: true },
-        { name: 'b', exported: false },
-      ]);
+    it('setSymbolType returns false for non-existent symbol', () => {
+      const mockType = { kind: 'Function' as any, name: 'function', size: 0 };
+      const updated = globalTable.setSymbolType('NonExistent', 'nonExistent', mockType);
 
-      const table2 = createSymbolTable([
-        { name: 'c', exported: true },
-        { name: 'd', exported: false },
-        { name: 'e', exported: true },
-      ]);
-
-      globalTable.registerModule('moduleA', table1);
-      globalTable.registerModule('moduleB', table2);
-
-      expect(globalTable.getTotalExportCount()).toBe(3);
-    });
-
-    it('should return 0 for empty global table', () => {
-      expect(globalTable.getTotalSymbolCount()).toBe(0);
-      expect(globalTable.getTotalExportCount()).toBe(0);
+      expect(updated).toBe(false);
     });
   });
 
-  describe('Symbol Kind Preservation', () => {
-    it('should preserve symbol kind during registration', () => {
-      const table = createSymbolTable([
-        { name: 'myVar', exported: true, kind: SymbolKind.Variable },
-        { name: 'myFunc', exported: true, kind: SymbolKind.Function },
-      ]);
+  // ============================================================
+  // Clear Tests
+  // ============================================================
 
-      globalTable.registerModule('moduleA', table);
+  describe('clear', () => {
+    it('clears all symbols', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
 
-      const varSymbol = globalTable.lookupInModule('myVar', 'moduleA');
-      const funcSymbol = globalTable.lookupInModule('myFunc', 'moduleA');
+      expect(globalTable.isEmpty()).toBe(false);
 
-      expect(varSymbol!.kind).toBe(SymbolKind.Variable);
-      expect(funcSymbol!.kind).toBe(SymbolKind.Function);
+      globalTable.clear();
+
+      expect(globalTable.isEmpty()).toBe(true);
+      expect(globalTable.getSymbolCount()).toBe(0);
     });
   });
 
-  describe('Type Information Preservation', () => {
-    it('should preserve type information from symbol table', () => {
-      const table = createSymbolTable([{ name: 'counter', exported: true }]);
+  // ============================================================
+  // Find Symbols Tests
+  // ============================================================
 
-      globalTable.registerModule('moduleA', table);
+  describe('findSymbols', () => {
+    beforeEach(() => {
+      globalTable.register({
+        name: 'addNumbers',
+        qualifiedName: 'Lib.Math.addNumbers',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'addStrings',
+        qualifiedName: 'Lib.String.addStrings',
+        moduleName: 'Lib.String',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'multiply',
+        qualifiedName: 'Lib.Math.multiply',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+    });
 
-      const symbol = globalTable.lookupInModule('counter', 'moduleA');
+    it('finds symbols by partial name match', () => {
+      const results = globalTable.findSymbols('add');
 
-      expect(symbol!.typeInfo).toBeDefined();
-      expect(symbol!.typeInfo!.kind).toBe(TypeKind.Byte);
+      expect(results).toHaveLength(2);
+    });
+
+    it('finds symbols by partial qualified name match', () => {
+      const results = globalTable.findSymbols('Math');
+
+      expect(results).toHaveLength(2);  // addNumbers and multiply
+    });
+
+    it('case insensitive search', () => {
+      const results = globalTable.findSymbols('ADD');
+
+      expect(results).toHaveLength(2);
+    });
+
+    it('returns empty array for no matches', () => {
+      const results = globalTable.findSymbols('nonexistent');
+
+      expect(results).toHaveLength(0);
     });
   });
 
-  describe('Reset', () => {
-    it('should reset global symbol table to empty state', () => {
-      const table1 = createSymbolTable([{ name: 'foo', exported: true }]);
-      const table2 = createSymbolTable([{ name: 'bar', exported: true }]);
+  // ============================================================
+  // Stats Tests
+  // ============================================================
 
-      globalTable.registerModule('moduleA', table1);
-      globalTable.registerModule('moduleB', table2);
+  describe('getStats', () => {
+    it('returns accurate statistics', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'counter',
+        qualifiedName: 'Lib.State.counter',
+        moduleName: 'Lib.State',
+        kind: GlobalSymbolKind.Variable,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'MAX',
+        qualifiedName: 'Lib.Const.MAX',
+        moduleName: 'Lib.Const',
+        kind: GlobalSymbolKind.Constant,
+        type: null,
+        location: createLocation(),
+      });
 
-      expect(globalTable.getTotalSymbolCount()).toBeGreaterThan(0);
+      const stats = globalTable.getStats();
 
-      globalTable.reset();
-
-      expect(globalTable.getTotalSymbolCount()).toBe(0);
-      expect(globalTable.getTotalExportCount()).toBe(0);
-      expect(globalTable.getModuleNames()).toEqual([]);
-      expect(globalTable.hasModule('moduleA')).toBe(false);
-    });
-
-    it('should allow registration after reset', () => {
-      const table1 = createSymbolTable([{ name: 'foo', exported: true }]);
-      const table2 = createSymbolTable([{ name: 'bar', exported: true }]);
-
-      globalTable.registerModule('moduleA', table1);
-      globalTable.reset();
-      globalTable.registerModule('moduleB', table2);
-
-      expect(globalTable.hasModule('moduleA')).toBe(false);
-      expect(globalTable.hasModule('moduleB')).toBe(true);
-      expect(globalTable.getTotalSymbolCount()).toBe(1);
+      expect(stats.totalSymbols).toBe(3);
+      expect(stats.modules).toBe(3);
+      expect(stats.functions).toBe(1);
+      expect(stats.variables).toBe(1);
+      expect(stats.constants).toBe(1);
     });
   });
 
-  describe('Real-World Scenarios', () => {
-    it('should handle c64.kernal module with multiple exports', () => {
-      const kernalTable = createSymbolTable([
-        { name: 'CHROUT', exported: true, kind: SymbolKind.Function },
-        { name: 'GETIN', exported: true, kind: SymbolKind.Function },
-        { name: 'PLOT', exported: true, kind: SymbolKind.Function },
-        { name: 'internalHelper', exported: false, kind: SymbolKind.Function },
-      ]);
+  // ============================================================
+  // Iterator Tests
+  // ============================================================
 
-      globalTable.registerModule('c64.kernal', kernalTable);
+  describe('iterator', () => {
+    it('supports for...of iteration', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
+      globalTable.register({
+        name: 'subtract',
+        qualifiedName: 'Lib.Math.subtract',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
 
-      const exports = globalTable.getExportedSymbols('c64.kernal');
-      expect(exports).toHaveLength(3);
-      expect(exports.map(s => s.name).sort()).toEqual(['CHROUT', 'GETIN', 'PLOT']);
+      const symbols = [];
+      for (const symbol of globalTable) {
+        symbols.push(symbol);
+      }
+
+      expect(symbols).toHaveLength(2);
     });
+  });
 
-    it('should handle snake game imports from multiple modules', () => {
-      const mathTable = createSymbolTable([
-        { name: 'abs', exported: true, kind: SymbolKind.Function },
-      ]);
+  // ============================================================
+  // toString Tests
+  // ============================================================
 
-      const randomTable = createSymbolTable([
-        { name: 'random', exported: true, kind: SymbolKind.Function },
-      ]);
+  describe('toString', () => {
+    it('produces readable debug output', () => {
+      globalTable.register({
+        name: 'add',
+        qualifiedName: 'Lib.Math.add',
+        moduleName: 'Lib.Math',
+        kind: GlobalSymbolKind.Function,
+        type: null,
+        location: createLocation(),
+      });
 
-      const hardwareTable = createSymbolTable([
-        { name: 'borderColor', exported: true, kind: SymbolKind.MapVariable },
-      ]);
+      const output = globalTable.toString();
 
-      globalTable.registerModule('lib.math', mathTable);
-      globalTable.registerModule('lib.random', randomTable);
-      globalTable.registerModule('hardware', hardwareTable);
-
-      // Game module imports from all libraries
-      expect(globalTable.lookup('abs', 'game')).toBeDefined();
-      expect(globalTable.lookup('random', 'game')).toBeDefined();
-      expect(globalTable.lookup('borderColor', 'game')).toBeDefined();
-    });
-
-    it('should handle large module with many symbols', () => {
-      const symbols = Array.from({ length: 100 }, (_, i) => ({
-        name: `symbol${i}`,
-        exported: i % 2 === 0, // Even indices exported
-      }));
-
-      const largeTable = createSymbolTable(symbols);
-      globalTable.registerModule('largeModule', largeTable);
-
-      expect(globalTable.getTotalSymbolCount()).toBe(100);
-      expect(globalTable.getTotalExportCount()).toBe(50);
+      expect(output).toContain('GlobalSymbolTable');
+      expect(output).toContain('Lib.Math');
+      expect(output).toContain('add');
     });
   });
 });

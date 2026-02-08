@@ -1,7 +1,5 @@
 /**
- * AST Walker Infrastructure
- *
- * Provides reusable, type-safe AST traversal mechanisms.
+ * AST Walker Infrastructure for Blend65 Compiler v2
  */
 
 export { ASTWalker } from './base.js';

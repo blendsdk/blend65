@@ -6,6 +6,8 @@ import { Lexer, tokenize, TokenType } from '../../lexer/index.js';
  * and diagnostic messaging. These scenarios complement the existing suites by
  * locking down behavior that is easy to regress inadvertently (e.g., comment
  * retention and newline normalization across different operating systems).
+ *
+ * v2: No changes needed - these tests don't involve @map.
  */
 describe('Blend65Lexer Additional Coverage', () => {
   describe('Token metadata accuracy', () => {
