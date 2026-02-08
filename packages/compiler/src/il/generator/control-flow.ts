@@ -21,8 +21,9 @@ import {
   ForStatement,
   ReturnStatement,
 } from '../../ast/statements.js';
-import { LiteralExpression } from '../../ast/expressions.js';
-import { isLiteralExpression } from '../../ast/type-guards.js';
+import { BinaryExpression, IdentifierExpression, LiteralExpression } from '../../ast/expressions.js';
+import { isBinaryExpression, isIdentifierExpression, isLiteralExpression } from '../../ast/type-guards.js';
+import { TokenType } from '../../lexer/types.js';
 import { createILLoop } from '../factories.js';
 import { ILGeneratorExpressions } from './expressions.js';
 
@@ -71,6 +72,168 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
   protected loopLabelStack: LoopLabelEntry[] = [];
 
   // ═══════════════════════════════════════════════════════════════════
+  // Comparison Condition Helpers
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Check if a token type is a comparison operator.
+   *
+   * Used to detect comparison conditions in if/while statements
+   * so we can emit direct conditional branches instead of the
+   * generic CMP_IMM 0 + JUMP_EQ pattern.
+   *
+   * @param op - Token type to check
+   * @returns true if the token is a comparison operator
+   */
+  protected isComparisonOperator(op: TokenType): boolean {
+    return (
+      op === TokenType.EQUAL ||
+      op === TokenType.NOT_EQUAL ||
+      op === TokenType.LESS_THAN ||
+      op === TokenType.LESS_EQUAL ||
+      op === TokenType.GREATER_THAN ||
+      op === TokenType.GREATER_EQUAL
+    );
+  }
+
+  /**
+   * Emit the inverted conditional jump for a comparison operator.
+   *
+   * When we have `if (A op B)`, we want to branch to the else/exit label
+   * when the condition is FALSE. This requires inverting the comparison:
+   *
+   * | Source op | Branch to else when NOT true |
+   * |----------|------------------------------|
+   * | ==       | JUMP_NE (not equal)          |
+   * | !=       | JUMP_EQ (equal)              |
+   * | <        | JUMP_GE (greater or equal)   |
+   * | <=       | JUMP_GT (greater than)       |
+   * | >        | JUMP_LE (less or equal)      |
+   * | >=       | JUMP_LT (less than)          |
+   *
+   * @param op - The comparison operator from the source code
+   * @param label - The label to jump to when condition is false
+   */
+  protected emitInvertedJump(op: TokenType, label: string): void {
+    switch (op) {
+      case TokenType.EQUAL:
+        this.builder.jumpNe(label, 'skip if not equal');
+        break;
+      case TokenType.NOT_EQUAL:
+        this.builder.jumpEq(label, 'skip if equal');
+        break;
+      case TokenType.LESS_THAN:
+        this.builder.jumpGe(label, 'skip if >= (not less)');
+        break;
+      case TokenType.LESS_EQUAL:
+        this.builder.jumpGt(label, 'skip if > (not less/equal)');
+        break;
+      case TokenType.GREATER_THAN:
+        this.builder.jumpLe(label, 'skip if <= (not greater)');
+        break;
+      case TokenType.GREATER_EQUAL:
+        this.builder.jumpLt(label, 'skip if < (not greater/equal)');
+        break;
+    }
+  }
+
+  /**
+   * Generate a condition with direct conditional branching.
+   *
+   * For comparison conditions (e.g., `color > 15`), generates the
+   * left operand, the CMP instruction, and the inverted branch
+   * directly — avoiding the broken CMP_IMM 0 pattern that clobbers
+   * CPU flags from the comparison.
+   *
+   * For non-comparison conditions (booleans, function calls, etc.),
+   * falls back to the generic CMP_IMM 0 + JUMP_EQ pattern.
+   *
+   * For literal `true`, emits nothing (unconditional — always enters body).
+   * For literal `false`, emits JUMP to skip label (never enters body).
+   *
+   * @param condition - The condition expression
+   * @param skipLabel - Label to jump to when condition is false
+   * @returns true if a condition was generated, false if unconditionally true
+   */
+  protected generateConditionWithBranch(
+    condition: Expression,
+    skipLabel: string
+  ): boolean {
+    // Optimization: detect literal true/false conditions
+    if (isLiteralExpression(condition)) {
+      const value = (condition as LiteralExpression).getValue();
+      if (value === true) {
+        // Unconditionally true — no condition check needed
+        return false;
+      }
+      if (value === false) {
+        // Unconditionally false — jump directly to skip label
+        this.builder.jump(skipLabel, 'condition is false');
+        return true;
+      }
+    }
+
+    // Optimization: detect comparison expressions (e.g., color > 15)
+    // Generate direct CMP + conditional branch instead of generic CMP 0 + JUMP_EQ
+    // This avoids the bug where CMP_IMM 0 clobbers the flags from the comparison.
+    if (isBinaryExpression(condition)) {
+      const binExpr = condition as BinaryExpression;
+      const op = binExpr.getOperator();
+
+      if (this.isComparisonOperator(op)) {
+        // Generate left operand (result in A)
+        this.generateExpression(binExpr.getLeft());
+
+        // Generate the CMP with the right operand
+        // We reuse the same logic as generateBinaryImmediate/Slot/Complex
+        // but only emit the CMP, not the generic boolean check
+        const right = binExpr.getRight();
+
+        if (isLiteralExpression(right)) {
+          const rightVal = (right as LiteralExpression).getValue();
+          if (typeof rightVal === 'number') {
+            this.builder.cmpImm(rightVal, 'compare');
+          } else {
+            // Non-numeric literal — fallback
+            this.generateExpression(right);
+            // Complex comparison needs CMP_BYTE
+          }
+        } else if (isIdentifierExpression(right)) {
+          // Identifier right operand — use slot comparison
+          const identRight = right as IdentifierExpression;
+          const slot = this.tryResolveVariable(identRight.getName());
+          if (slot) {
+            this.builder.cmpSlot(slot, 'compare');
+          } else {
+            // Variable not found — fallback to generic pattern
+            this.generateExpression(condition);
+            this.builder.cmpImm(0, 'condition (fallback)');
+            this.builder.jumpEq(skipLabel, 'skip if false');
+            return true;
+          }
+        } else {
+          // Complex right operand — fallback to generic pattern
+          this.generateExpression(condition);
+          this.builder.cmpImm(0, 'condition (fallback)');
+          this.builder.jumpEq(skipLabel, 'skip if false');
+          return true;
+        }
+
+        // Emit the inverted conditional jump
+        this.emitInvertedJump(op, skipLabel);
+        return true;
+      }
+    }
+
+    // Generic pattern for non-comparison conditions
+    // (boolean variables, function calls, logical operators, etc.)
+    this.generateExpression(condition);
+    this.builder.cmpImm(0, 'condition');
+    this.builder.jumpEq(skipLabel, 'skip if false');
+    return true;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // If/Else Generation
   // ═══════════════════════════════════════════════════════════════════
 
@@ -110,12 +273,11 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
     const elseLabel = this.builder.newLabel('else');
     const endLabel = hasElse ? this.builder.newLabel('endif') : elseLabel;
 
-    // Generate condition
-    this.generateExpression(stmt.getCondition());
-
-    // Compare with false (0) and jump to else if equal
-    this.builder.cmpImm(0, 'if condition');
-    this.builder.jumpEq(elseLabel, 'skip then if false');
+    // Generate condition with direct conditional branching
+    // This detects comparison expressions (e.g., color > 15) and emits
+    // CMP + inverted branch directly, avoiding the double-CMP bug where
+    // CMP_IMM 0 would clobber the flags from the comparison instruction.
+    this.generateConditionWithBranch(stmt.getCondition(), elseLabel);
 
     // Generate then branch
     for (const s of stmt.getThenBranch()) {
@@ -179,12 +341,11 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
     // Header label
     this.builder.label(headerLabel);
 
-    // Generate condition
-    this.generateExpression(stmt.getCondition());
-
-    // Compare with false (0) and exit if equal
-    this.builder.cmpImm(0, 'while condition');
-    this.builder.jumpEq(exitLabel, 'exit if false');
+    // Generate condition with direct conditional branching
+    // Detects while(true) → no condition check (unconditional loop)
+    // Detects comparisons → direct CMP + inverted branch
+    // Falls back to CMP 0 + JUMP_EQ for other conditions
+    this.generateConditionWithBranch(stmt.getCondition(), exitLabel);
 
     // Generate body
     for (const s of stmt.getBody()) {

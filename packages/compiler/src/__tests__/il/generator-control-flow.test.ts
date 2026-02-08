@@ -115,25 +115,26 @@ describe('ILGenerator - If/Else Statements', () => {
     symbolTable = new SymbolTable();
   });
 
-  it('should generate CMP_IMM and JUMP_EQ for simple if', () => {
+  it('should optimize if(true) by skipping condition check', () => {
     const loc = createTestLocation();
 
     // if (true) { }
+    // Optimization: literal true condition generates no condition code at all —
+    // the body is unconditionally entered. Only the else label remains.
     const condition = new LiteralExpression(true, loc);
     const ifStmt = new IfStatement(condition, [], null, loc);
 
     const result = generateFunctionWithBody(frameMap, symbolTable, [ifStmt]);
     const instructions = result.functions[0].instructions;
 
-    // Should have: LOAD_IMM 1, CMP_IMM 0, JUMP_EQ else_label, LABEL else
-    const loadImm = instructions.find(i => i.opcode === ILOpcode.LOAD_IMM);
+    // Should NOT have CMP_IMM or JUMP_EQ (optimized away for literal true)
     const cmpImm = instructions.find(i => i.opcode === ILOpcode.CMP_IMM);
     const jumpEq = instructions.find(i => i.opcode === ILOpcode.JUMP_EQ);
-    const label = instructions.find(i => i.opcode === ILOpcode.LABEL);
+    expect(cmpImm).toBeUndefined();
+    expect(jumpEq).toBeUndefined();
 
-    expect(loadImm).toBeDefined();
-    expect(cmpImm).toBeDefined();
-    expect(jumpEq).toBeDefined();
+    // Should still have the else label (as a merge point)
+    const label = instructions.find(i => i.opcode === ILOpcode.LABEL);
     expect(label).toBeDefined();
   });
 
@@ -183,10 +184,12 @@ describe('ILGenerator - If/Else Statements', () => {
     expect(loadByte).toBeDefined();
   });
 
-  it('should generate nested if correctly', () => {
+  it('should generate nested if correctly with literal optimizations', () => {
     const loc = createTestLocation();
 
     // if (true) { if (false) { } }
+    // Outer if(true) → no condition code (optimized)
+    // Inner if(false) → unconditional JUMP to skip label (optimized)
     const innerIf = new IfStatement(
       new LiteralExpression(false, loc),
       [],
@@ -203,13 +206,21 @@ describe('ILGenerator - If/Else Statements', () => {
     const result = generateFunctionWithBody(frameMap, symbolTable, [outerIf]);
     const instructions = result.functions[0].instructions;
 
-    // Should have 4 labels (else for each if)
+    // Should have 2 labels (else for each if)
     const labels = instructions.filter(i => i.opcode === ILOpcode.LABEL);
     expect(labels.length).toBe(2);
 
-    // Should have 2 JUMP_EQ (one for each if)
+    // if(true) → no JUMP_EQ (optimized away)
+    // if(false) → JUMP to skip (not JUMP_EQ)
+    // So expect 1 JUMP (from if(false) optimization) and 0 JUMP_EQ
     const jumpEqs = instructions.filter(i => i.opcode === ILOpcode.JUMP_EQ);
-    expect(jumpEqs.length).toBe(2);
+    expect(jumpEqs.length).toBe(0);
+
+    // if(false) generates an unconditional JUMP to its else label
+    const jumps = instructions.filter(i =>
+      i.opcode === ILOpcode.JUMP && i.comment?.includes('condition is false')
+    );
+    expect(jumps.length).toBe(1);
   });
 });
 
@@ -226,23 +237,30 @@ describe('ILGenerator - While Loops', () => {
     symbolTable = new SymbolTable();
   });
 
-  it('should generate while loop structure', () => {
+  it('should optimize while(true) by skipping condition check', () => {
     const loc = createTestLocation();
 
     // while (true) { }
+    // Optimization: literal true condition generates no condition check —
+    // just LABEL header, [body], JUMP header, LABEL exit
     const condition = new LiteralExpression(true, loc);
     const whileStmt = new WhileStatement(condition, [], loc);
 
     const result = generateFunctionWithBody(frameMap, symbolTable, [whileStmt]);
     const instructions = result.functions[0].instructions;
 
-    // Should have: LABEL header, [condition], CMP_IMM 0, JUMP_EQ exit, JUMP header, LABEL exit
+    // Should have header and exit labels
     const labels = instructions.filter(i => i.opcode === ILOpcode.LABEL);
     expect(labels.length).toBe(2); // header and exit
 
+    // Should NOT have JUMP_EQ or CMP_IMM (optimized away for literal true)
     const jumpEq = instructions.find(i => i.opcode === ILOpcode.JUMP_EQ);
-    expect(jumpEq).toBeDefined();
+    expect(jumpEq).toBeUndefined();
 
+    const cmpImm = instructions.find(i => i.opcode === ILOpcode.CMP_IMM);
+    expect(cmpImm).toBeUndefined();
+
+    // Should still have unconditional JUMP for loop back
     const jumpUnconditional = instructions.find(
       i => i.opcode === ILOpcode.JUMP && i.comment?.includes('loop back')
     );
