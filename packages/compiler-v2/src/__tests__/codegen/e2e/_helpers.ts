@@ -24,6 +24,9 @@ import {
   isLabelElement,
   isCommentElement,
 } from '../../../codegen/asm-il/types.js';
+import { createAsmILOptimizer } from '../../../codegen/asm-il/optimizer/asm-il-optimizer.js';
+import { OptimizationLevel } from '../../../codegen/asm-il/optimizer/options.js';
+import type { AsmOptimizationResult } from '../../../codegen/asm-il/optimizer/types.js';
 
 // ============================================================================
 // Full Pipeline: Source → ASM-IL
@@ -213,4 +216,45 @@ export function getSection(program: AsmILProgram, name: string): AsmILSection | 
  */
 export function hasAnyMnemonic(program: AsmILProgram, mnemonicList: string[]): boolean {
   return mnemonicList.some(m => countMnemonic(program, m) > 0);
+}
+
+// ============================================================================
+// Optimized Pipeline: Source → ASM-IL → Optimized ASM-IL
+// ============================================================================
+
+/**
+ * Compiles Blend source code and optimizes the resulting ASM-IL.
+ *
+ * Uses the full pipeline (compileToAsm) then runs the ASM-IL optimizer
+ * at the specified optimization level.
+ *
+ * @param source - Blend source code
+ * @param level - Optimization level (default: O2)
+ * @returns Optimization result with program and statistics
+ * @throws Error if any pipeline stage fails
+ */
+export function compileAndOptimize(
+  source: string,
+  level: OptimizationLevel = OptimizationLevel.O2
+): AsmOptimizationResult {
+  const program = compileToAsm(source);
+  const optimizer = createAsmILOptimizer(level);
+  return optimizer.optimize(program);
+}
+
+/**
+ * Compiles Blend source code to optimized ASM-IL.
+ *
+ * Convenience wrapper that returns just the optimized program.
+ *
+ * @param source - Blend source code
+ * @param level - Optimization level (default: O2)
+ * @returns Optimized AsmILProgram
+ * @throws Error if any pipeline stage fails
+ */
+export function compileToOptimizedAsm(
+  source: string,
+  level: OptimizationLevel = OptimizationLevel.O2
+): AsmILProgram {
+  return compileAndOptimize(source, level).program;
 }
