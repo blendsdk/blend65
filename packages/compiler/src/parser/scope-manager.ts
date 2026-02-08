@@ -1,5 +1,5 @@
 /**
- * Scope Manager for Blend65 Parser
+ * Scope Manager for Blend65 Parser v2
  *
  * Centralized scope tracking for the parser, managing:
  * - Function scopes with parameters and local variables
@@ -107,7 +107,7 @@ export class ScopeManager {
    *
    * @param parameters Function parameters to add to scope
    * @param returnType Expected return type for validation (null for void)
-   * @param functionName Optional function name for error messages (Task 3.3)
+   * @param functionName Optional function name for error messages
    */
   public enterFunctionScope(
     parameters: Parameter[],
@@ -242,7 +242,7 @@ export class ScopeManager {
   }
 
   /**
-   * Get the current function's name (Task 3.3)
+   * Get the current function's name
    *
    * Returns the name of the innermost function scope for error messages.
    * Returns placeholder if not in a function scope or name not tracked.

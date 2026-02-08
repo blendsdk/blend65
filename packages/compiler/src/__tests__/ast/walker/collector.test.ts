@@ -1,5 +1,5 @@
 /**
- * Tests for AST Collector Infrastructure
+ * Tests for AST Collector Infrastructure v2
  *
  * Validates ASTCollector base class, NodeFinder, and NodeCounter
  * utilities for gathering information during AST traversal.
@@ -19,7 +19,7 @@ import {
   ReturnStatement,
   ExpressionStatement,
   IfStatement,
-} from '../../../ast/nodes.js';
+} from '../../../ast/index.js';
 import { TokenType } from '../../../lexer/types.js';
 
 /**
@@ -36,7 +36,7 @@ function loc(): SourceLocation {
  * Helper: Create test program with various node types
  */
 function createTestProgram(): Program {
-  const module = new ModuleDecl(['test'], loc(), true);
+  const module = new ModuleDecl(['test'], loc());
 
   // Variable: let counter: byte = 0
   const counterInit = new LiteralExpression(0, loc());
@@ -165,9 +165,6 @@ describe('ASTCollector', () => {
 
     // Should collect variable names
     expect(names).toEqual(['counter', 'max']);
-
-    // But literals from initializers should NOT be collected
-    // (This is implicit - we'd need a combo collector to verify)
   });
 
   /**
@@ -207,7 +204,7 @@ describe('ASTCollector', () => {
    * Test collector on empty program
    */
   it('should return empty array for empty AST', () => {
-    const module = new ModuleDecl(['test'], loc(), true);
+    const module = new ModuleDecl(['test'], loc());
     const program = new Program(module, [], loc());
     const collector = new VariableNameCollector();
 
@@ -327,9 +324,6 @@ describe('NodeFinder', () => {
     expect(allNodes.length).toBeGreaterThan(10);
   });
 
-  /**
-   * Test using NodeFinder instance directly (not static)
-   */
   it('should work as instance', () => {
     const program = createTestProgram();
     const finder = new NodeFinder(node => node.getNodeType() === ASTNodeType.VARIABLE_DECL);
@@ -338,9 +332,6 @@ describe('NodeFinder', () => {
     expect(variables.length).toBe(2);
   });
 
-  /**
-   * Test reusing finder instance
-   */
   it('should allow reuse of finder instance', () => {
     const program = createTestProgram();
     const finder = new NodeFinder(node => node.getNodeType() === ASTNodeType.FUNCTION_DECL);
@@ -424,7 +415,7 @@ describe('NodeCounter', () => {
   });
 
   it('should work on empty program', () => {
-    const module = new ModuleDecl(['test'], loc(), true);
+    const module = new ModuleDecl(['test'], loc());
     const program = new Program(module, [], loc());
     const counts = NodeCounter.count(program);
 

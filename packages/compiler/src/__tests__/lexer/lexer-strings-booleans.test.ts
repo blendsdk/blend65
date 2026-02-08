@@ -4,7 +4,8 @@ import { TokenType } from '../../lexer/types.js';
 
 /**
  * Lexer string and boolean literal tests
- * Split from original lexer.test.ts for better maintainability
+ *
+ * v2: No changes needed - these tests don't involve @map.
  */
 describe('Blend65Lexer - Strings and Booleans', () => {
   describe('String Literals', () => {

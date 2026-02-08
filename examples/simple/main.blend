@@ -1,10 +1,11 @@
 module Hello.World;
 
-import { poke, length, lo } from system;
+// In v2, system intrinsics (poke, peek, lo, hi, length, etc.) are auto-loaded.
+// No explicit import needed for system functions.
 
 let data: byte[5] = [1, 2, 3, 4, 5];
 
 export function main(): void {
-    let len = length(data);
+    let len: word = length(data);
     poke($D9EE, lo(len));
 }

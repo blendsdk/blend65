@@ -1,602 +1,371 @@
 /**
- * IL Generator Base
+ * IL Generator - Base Layer
  *
- * Foundation class for generating IL (Intermediate Language) from the Blend65 AST.
- * This class provides:
- * - Type conversion (AST TypeInfo → IL ILType)
- * - Variable-to-register mapping
- * - Error handling and diagnostics
- * - Context management (current function, current block)
- * - Symbol table integration
- *
- * The generator uses an inheritance chain architecture:
- * ILGeneratorBase → ILModuleGenerator → ... → ILGenerator
+ * Foundation class with core infrastructure:
+ * - Frame/symbol table management
+ * - Variable resolution (both function-local and module-level)
+ * - Current function tracking
+ * - Loop depth tracking
  *
  * @module il/generator/base
  */
 
-import type { SourceLocation } from '../../ast/base.js';
-import type { Symbol } from '../../semantic/symbol.js';
-import type { SymbolTable } from '../../semantic/symbol-table.js';
-import type { TypeInfo } from '../../semantic/types.js';
-import type { TargetConfig } from '../../target/config.js';
-import type { ILType } from '../types.js';
-import type { VirtualRegister } from '../values.js';
-import type { BasicBlock } from '../basic-block.js';
-import type { ILFunction } from '../function.js';
-import type { ILModule } from '../module.js';
-import type { ILBuilder } from '../builder.js';
+import { SourceLocation } from '../../ast/base.js';
+import { Frame } from '../../frame/allocator/frame-calculator.js';
+import { FrameSlot, createFrameSlot } from '../../frame/types.js';
+import { SlotKind, SlotLocation, ZpDirective } from '../../frame/enums.js';
+import { SymbolTable } from '../../semantic/symbol-table.js';
+import { SymbolKind } from '../../semantic/symbol.js';
+import { TypeKind, BUILTIN_TYPES, TypeInfo } from '../../semantic/types.js';
+import { ILBuilder } from '../builder/index.js';
+import { ILInstruction } from '../instruction.js';
+import { ILLoop } from '../structures.js';
 
-import { TypeKind } from '../../semantic/types.js';
-import { StorageClass } from '../../semantic/symbol.js';
-import {
-  IL_VOID,
-  IL_BOOL,
-  IL_BYTE,
-  IL_WORD,
-  createArrayType,
-  createPointerType,
-  createFunctionType,
-} from '../types.js';
-import { ILStorageClass } from '../function.js';
-
-// =============================================================================
-// Error Types
-// =============================================================================
-
-/**
- * Error severity levels for IL generation.
- */
-export enum ILErrorSeverity {
-  /** Informational message - does not prevent code generation */
-  Info = 'info',
-
-  /** Warning - code will be generated but may have issues */
-  Warning = 'warning',
-
-  /** Error - prevents code generation */
-  Error = 'error',
-}
-
-/**
- * Represents an error or diagnostic during IL generation.
- */
-export interface ILGeneratorError {
-  /** Error message */
-  readonly message: string;
-
-  /** Source location where the error occurred */
-  readonly location: SourceLocation;
-
-  /** Error severity */
-  readonly severity: ILErrorSeverity;
-
-  /** Optional error code for programmatic handling */
-  readonly code?: string;
-}
-
-// =============================================================================
-// Context Types
-// =============================================================================
-
-/**
- * Generation context tracking the current state.
- *
- * Maintains information about what is being generated:
- * - Current function being generated
- * - Current basic block
- * - Loop context (for break/continue)
- * - Variable mappings
- */
-export interface GenerationContext {
-  /** Current module being generated */
-  readonly module: ILModule;
-
-  /** Current function being generated (null at module level) */
-  currentFunction: ILFunction | null;
-
-  /** Current basic block for instruction emission */
-  currentBlock: BasicBlock | null;
-
-  /** Loop stack for break/continue (label of loop header, label of loop exit) */
-  loopStack: Array<{ continueBlock: BasicBlock; breakBlock: BasicBlock }>;
-}
-
-/**
- * Variable mapping entry.
- *
- * Maps a variable (by symbol) to its IL representation.
- */
-export interface VariableMapping {
-  /** The symbol from the symbol table */
-  readonly symbol: Symbol;
-
-  /** Virtual register holding the variable's value (for locals) */
-  readonly register?: VirtualRegister;
-
-  /** Whether this is a global variable */
-  readonly isGlobal: boolean;
-
-  /** Fixed address for @map variables */
-  readonly address?: number;
-}
-
-// =============================================================================
+// ============================================================================
 // ILGeneratorBase Class
-// =============================================================================
+// ============================================================================
 
 /**
- * Base class for IL generation.
+ * Base class for IL Generator.
  *
- * Provides foundation utilities for all IL generation:
- * - Type conversion from semantic types to IL types
- * - Variable-to-register mapping
- * - Error collection and reporting
- * - Context management
+ * Provides core infrastructure:
+ * - Frame map from SFA for variable slot lookups
+ * - Symbol table for type/scope information
+ * - ILBuilder for emitting instructions
+ * - Current function and loop tracking
  *
- * Subclasses extend this to add specific generation capabilities:
- * - ILModuleGenerator: Generates entire modules
- * - Expression generators
- * - Statement generators
- * - Declaration generators
+ * Extended by expression and statement generation layers.
  *
  * @example
  * ```typescript
- * // This is a base class - use ILGenerator (the concrete class) instead
- * const generator = new ILGenerator(symbolTable, targetConfig);
- * const module = generator.generate(program);
+ * const generator = new ILGenerator(frameMap, symbolTable);
+ * const ilProgram = generator.generate(program);
  * ```
  */
 export class ILGeneratorBase {
-  /** Symbol table from semantic analysis */
-  protected readonly symbolTable: SymbolTable;
+  /** IL instruction builder */
+  protected builder: ILBuilder;
 
-  /** Target configuration for architecture-specific decisions */
-  protected readonly targetConfig: TargetConfig | null;
+  /** Frame map from SFA - contains slots for all functions */
+  protected frameMap: Map<string, Frame>;
 
-  /** IL builder for instruction emission */
-  protected builder: ILBuilder | null = null;
+  /** Symbol table for type/scope lookups */
+  protected symbolTable: SymbolTable;
 
-  /** Collection of errors and warnings during generation */
-  protected readonly errors: ILGeneratorError[] = [];
+  /** Name of the function currently being generated */
+  protected currentFunction: string | null = null;
 
-  /** Variable mappings (symbol name → mapping) */
-  protected readonly variableMappings: Map<string, VariableMapping> = new Map();
+  /** Current loop nesting depth (for optimization hints) */
+  protected currentLoopDepth: number = 0;
 
-  /** Current generation context */
-  protected context: GenerationContext | null = null;
+  /** Detected loops in current function */
+  protected loops: ILLoop[] = [];
+
+  /** Maximum loop depth reached in current function */
+  protected maxLoopDepth: number = 0;
 
   /**
-   * Creates a new IL generator base.
+   * Cache of module-level variable slots
    *
-   * @param symbolTable - Symbol table from semantic analysis
-   * @param targetConfig - Optional target configuration (null for generic generation)
+   * Module-level variables are allocated in the frame region after function frames.
+   * This cache stores synthetic FrameSlot objects for these variables.
    */
-  constructor(symbolTable: SymbolTable, targetConfig: TargetConfig | null = null) {
+  protected moduleVariableSlots: Map<string, FrameSlot> = new Map();
+
+  /** Next available address for module-level variables (starts after frame region functions) */
+  protected nextModuleVarAddress: number = 0;
+
+  /**
+   * Creates an IL generator.
+   *
+   * @param frameMap - Frame map from SFA (function name → Frame)
+   * @param symbolTable - Symbol table from semantic analysis
+   */
+  constructor(frameMap: Map<string, Frame>, symbolTable: SymbolTable) {
+    this.builder = new ILBuilder();
+    this.frameMap = frameMap;
     this.symbolTable = symbolTable;
-    this.targetConfig = targetConfig;
   }
 
-  // ===========================================================================
-  // Type Conversion
-  // ===========================================================================
+  // ═══════════════════════════════════════════════════════════════════
+  // Variable Resolution
+  // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Converts a semantic TypeInfo to an IL ILType.
+   * Resolve a variable name to its frame slot.
    *
-   * This is the core type conversion method used throughout IL generation.
-   * Handles all Blend65 types including primitives, arrays, and callbacks.
+   * Resolution order:
+   * 1. Check current function's local variables (parameters, locals)
+   * 2. Check module-level variables (globals)
    *
-   * @param typeInfo - Semantic type information
-   * @returns Corresponding IL type
+   * This provides complete SFA context (location, address, ZP status) for code generation.
+   *
+   * @param name - Variable name to resolve
+   * @returns FrameSlot for the variable
+   * @throws Error if no current function or variable not found
    *
    * @example
    * ```typescript
-   * // Convert a byte type
-   * const byteType = generator.convertType({ kind: TypeKind.Byte, ... });
-   * // Returns IL_BYTE
-   *
-   * // Convert an array type
-   * const arrayType = generator.convertType({
-   *   kind: TypeKind.Array,
-   *   elementType: { kind: TypeKind.Byte, ... },
-   *   arraySize: 10,
-   *   ...
-   * });
-   * // Returns ILArrayType with element IL_BYTE, length 10
+   * const slot = this.resolveVariable('counter');
+   * // slot contains: name, kind, type, size, location, address, etc.
+   * this.builder.loadSlot(slot);
    * ```
    */
-  public convertType(typeInfo: TypeInfo): ILType {
-    switch (typeInfo.kind) {
-      case TypeKind.Void:
-        return IL_VOID;
-
-      case TypeKind.Boolean:
-        return IL_BOOL;
-
-      case TypeKind.Byte:
-        return IL_BYTE;
-
-      case TypeKind.Word:
-        return IL_WORD;
-
-      case TypeKind.String:
-        // Strings are pointers to byte arrays at runtime
-        return createPointerType(IL_BYTE);
-
-      case TypeKind.Array:
-        if (!typeInfo.elementType) {
-          // Fallback for malformed array types
-          this.addError('Array type missing element type', this.dummyLocation(), 'E_MALFORMED_TYPE');
-          return createArrayType(IL_BYTE, typeInfo.arraySize ?? null);
-        }
-        return createArrayType(
-          this.convertType(typeInfo.elementType),
-          typeInfo.arraySize ?? null,
-        );
-
-      case TypeKind.Callback:
-        if (!typeInfo.signature) {
-          // Fallback for malformed callback types
-          this.addError('Callback type missing signature', this.dummyLocation(), 'E_MALFORMED_TYPE');
-          return createFunctionType([], IL_VOID);
-        }
-        return createFunctionType(
-          typeInfo.signature.parameters.map((p) => this.convertType(p)),
-          this.convertType(typeInfo.signature.returnType),
-        );
-
-      case TypeKind.Unknown:
-      default:
-        // Unknown types become void (errors should have been caught in semantic analysis)
-        this.addWarning(
-          `Unknown type kind '${typeInfo.kind}' converted to void`,
-          this.dummyLocation(),
-        );
-        return IL_VOID;
-    }
-  }
-
-  /**
-   * Converts a type annotation string to an IL type.
-   *
-   * Used for declarations where we have a type annotation string
-   * rather than a resolved TypeInfo.
-   *
-   * @param annotation - Type annotation string (e.g., "byte", "word", "byte[10]")
-   * @returns Corresponding IL type
-   */
-  public convertTypeAnnotation(annotation: string): ILType {
-    // Handle array types: "byte[10]" or "word[]"
-    const arrayMatch = annotation.match(/^(\w+)\[(\d*)\]$/);
-    if (arrayMatch) {
-      const elementType = this.convertTypeAnnotation(arrayMatch[1]);
-      const size = arrayMatch[2] ? parseInt(arrayMatch[2], 10) : null;
-      return createArrayType(elementType, size);
+  protected resolveVariable(name: string): FrameSlot {
+    if (!this.currentFunction) {
+      throw new Error(`Cannot resolve variable "${name}": no current function`);
     }
 
-    // Handle primitive types
-    switch (annotation.toLowerCase()) {
-      case 'void':
-        return IL_VOID;
-      case 'bool':
-      case 'boolean':
-        return IL_BOOL;
-      case 'byte':
-      case 'u8':
-        return IL_BYTE;
-      case 'word':
-      case 'u16':
-        return IL_WORD;
-      default:
-        // Unknown annotation - treat as byte (error in semantic analysis)
-        return IL_BYTE;
-    }
-  }
-
-  /**
-   * Converts a semantic StorageClass to IL StorageClass.
-   *
-   * @param storageClass - Semantic storage class
-   * @returns IL storage class
-   */
-  public convertStorageClass(storageClass: StorageClass | undefined): ILStorageClass {
-    if (!storageClass) {
-      return ILStorageClass.Ram; // Default to RAM
-    }
-
-    switch (storageClass) {
-      case StorageClass.ZeroPage:
-        return ILStorageClass.ZeroPage;
-      case StorageClass.RAM:
-        return ILStorageClass.Ram;
-      case StorageClass.Data:
-        return ILStorageClass.Data;
-      case StorageClass.Map:
-        return ILStorageClass.Map;
-      default:
-        return ILStorageClass.Ram;
-    }
-  }
-
-  // ===========================================================================
-  // Variable Mapping
-  // ===========================================================================
-
-  /**
-   * Records a variable mapping.
-   *
-   * Used to track how AST variables map to IL registers or globals.
-   *
-   * @param symbol - Symbol from the symbol table
-   * @param register - Virtual register (for locals)
-   * @param isGlobal - Whether this is a global variable
-   * @param address - Fixed address for @map variables
-   */
-  protected recordVariableMapping(
-    symbol: Symbol,
-    register?: VirtualRegister,
-    isGlobal: boolean = false,
-    address?: number,
-  ): void {
-    this.variableMappings.set(symbol.name, {
-      symbol,
-      register,
-      isGlobal,
-      address,
-    });
-  }
-
-  /**
-   * Gets the mapping for a variable.
-   *
-   * @param name - Variable name
-   * @returns Variable mapping, or undefined if not found
-   */
-  protected getVariableMapping(name: string): VariableMapping | undefined {
-    return this.variableMappings.get(name);
-  }
-
-  /**
-   * Clears all variable mappings.
-   *
-   * Called when entering a new function scope.
-   */
-  protected clearVariableMappings(): void {
-    this.variableMappings.clear();
-  }
-
-  /**
-   * Clears local (non-global) variable mappings.
-   *
-   * Preserves global variable mappings while clearing function-local ones.
-   */
-  protected clearLocalVariableMappings(): void {
-    for (const [name, mapping] of this.variableMappings) {
-      if (!mapping.isGlobal) {
-        this.variableMappings.delete(name);
+    // First, try function-local variables
+    const frame = this.frameMap.get(this.currentFunction);
+    if (frame) {
+      const localSlot = frame.slots.find((s) => s.name === name);
+      if (localSlot) {
+        return localSlot;
       }
     }
-  }
 
-  // ===========================================================================
-  // Context Management
-  // ===========================================================================
-
-  /**
-   * Gets the current function being generated.
-   *
-   * @returns Current function, or null if at module level
-   */
-  protected getCurrentFunction(): ILFunction | null {
-    return this.context?.currentFunction ?? null;
-  }
-
-  /**
-   * Gets the current basic block.
-   *
-   * @returns Current block, or null if not in a function
-   */
-  protected getCurrentBlock(): BasicBlock | null {
-    return this.context?.currentBlock ?? null;
-  }
-
-  /**
-   * Sets the current basic block.
-   *
-   * @param block - Block to set as current
-   */
-  protected setCurrentBlock(block: BasicBlock): void {
-    if (this.context) {
-      this.context.currentBlock = block;
+    // Second, try module-level variables
+    const moduleSlot = this.tryResolveModuleVariable(name);
+    if (moduleSlot) {
+      return moduleSlot;
     }
+
+    throw new Error(
+      `Unknown variable "${name}" in function "${this.currentFunction}"`
+    );
   }
 
   /**
-   * Pushes a loop context for break/continue handling.
+   * Try to resolve a variable, returning undefined if not found.
    *
-   * @param continueBlock - Block to jump to for 'continue'
-   * @param breakBlock - Block to jump to for 'break'
+   * Resolution order:
+   * 1. Check current function's local variables
+   * 2. Check module-level variables
+   *
+   * Useful for checking if a name refers to a local variable
+   * or something else (intrinsic, etc.).
+   *
+   * @param name - Variable name to resolve
+   * @returns FrameSlot or undefined if not found
    */
-  protected pushLoopContext(continueBlock: BasicBlock, breakBlock: BasicBlock): void {
-    if (this.context) {
-      this.context.loopStack.push({ continueBlock, breakBlock });
+  protected tryResolveVariable(name: string): FrameSlot | undefined {
+    // First, try function-local variables
+    if (this.currentFunction) {
+      const frame = this.frameMap.get(this.currentFunction);
+      if (frame) {
+        const localSlot = frame.slots.find((s) => s.name === name);
+        if (localSlot) {
+          return localSlot;
+        }
+      }
     }
+
+    // Second, try module-level variables
+    return this.tryResolveModuleVariable(name);
   }
 
   /**
-   * Pops the current loop context.
+   * Try to resolve a module-level variable.
+   *
+   * Checks the symbol table for module-level (root scope) variables.
+   * If found, creates or returns a cached FrameSlot for the variable.
+   *
+   * @param name - Variable name to resolve
+   * @returns FrameSlot or undefined if not a module-level variable
    */
-  protected popLoopContext(): void {
-    if (this.context) {
-      this.context.loopStack.pop();
+  protected tryResolveModuleVariable(name: string): FrameSlot | undefined {
+    // Check cache first
+    if (this.moduleVariableSlots.has(name)) {
+      return this.moduleVariableSlots.get(name);
     }
-  }
 
-  /**
-   * Gets the current loop context.
-   *
-   * @returns Loop context, or null if not in a loop
-   */
-  protected getCurrentLoopContext(): { continueBlock: BasicBlock; breakBlock: BasicBlock } | null {
-    if (!this.context || this.context.loopStack.length === 0) {
-      return null;
+    // Look up in symbol table's root scope (module-level)
+    const symbol = this.symbolTable.lookupGlobal(name);
+    if (!symbol) {
+      return undefined;
     }
-    return this.context.loopStack[this.context.loopStack.length - 1];
-  }
 
-  // ===========================================================================
-  // Error Handling
-  // ===========================================================================
+    // Only handle variable/constant symbols (not functions)
+    if (symbol.kind !== SymbolKind.Variable && symbol.kind !== SymbolKind.Constant) {
+      return undefined;
+    }
 
-  /**
-   * Adds an error to the error collection.
-   *
-   * Errors prevent successful code generation.
-   *
-   * @param message - Error message
-   * @param location - Source location
-   * @param code - Optional error code
-   */
-  protected addError(message: string, location: SourceLocation, code?: string): void {
-    this.errors.push({
-      message,
-      location,
-      severity: ILErrorSeverity.Error,
-      code,
+    // Determine the type from the symbol
+    const typeInfo: TypeInfo = symbol.type ?? BUILTIN_TYPES.BYTE;
+
+    // Initialize nextModuleVarAddress if needed (place after function frames)
+    if (this.nextModuleVarAddress === 0) {
+      this.initializeModuleVarAddress();
+    }
+
+    // Calculate size for address allocation
+    let size = 1;
+    switch (typeInfo.kind) {
+      case TypeKind.Byte:
+      case TypeKind.Bool:
+        size = 1;
+        break;
+      case TypeKind.Word:
+        size = 2;
+        break;
+      case TypeKind.Array:
+        size = typeInfo.size ?? 1;
+        break;
+      default:
+        size = typeInfo.size ?? 1;
+    }
+
+    // Allocate address for this module variable
+    const address = this.nextModuleVarAddress;
+    this.nextModuleVarAddress += size;
+
+    // Create a synthetic FrameSlot for the module-level variable using createFrameSlot
+    const slot = createFrameSlot(name, SlotKind.Local, typeInfo, {
+      zpDirective: ZpDirective.None,
+      location: SlotLocation.FrameRegion,
+      address,
+      offset: 0,
     });
+
+    // Cache the slot
+    this.moduleVariableSlots.set(name, slot);
+
+    return slot;
   }
 
   /**
-   * Adds a warning to the error collection.
+   * Initialize the starting address for module-level variables.
    *
-   * Warnings don't prevent code generation but indicate potential issues.
-   *
-   * @param message - Warning message
-   * @param location - Source location
-   * @param code - Optional warning code
+   * Module-level variables are placed after all function frames in the frame region.
+   * This computes the next available address after the highest function frame.
    */
-  protected addWarning(message: string, location: SourceLocation, code?: string): void {
-    this.errors.push({
-      message,
-      location,
-      severity: ILErrorSeverity.Warning,
-      code,
-    });
+  protected initializeModuleVarAddress(): void {
+    // Default to frame region start ($0200 for C64)
+    let highestUsedAddress = 0x0200;
+
+    // Find the highest address used by any function frame
+    for (const frame of this.frameMap.values()) {
+      const frameEnd = frame.baseAddress + frame.totalSize;
+      if (frameEnd > highestUsedAddress) {
+        highestUsedAddress = frameEnd;
+      }
+    }
+
+    // Start module variables after function frames
+    this.nextModuleVarAddress = highestUsedAddress;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Current Function Management
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Get the current function's frame.
+   *
+   * @returns Frame for current function
+   * @throws Error if no current function
+   */
+  protected getCurrentFrame(): Frame {
+    if (!this.currentFunction) {
+      throw new Error('No current function');
+    }
+
+    const frame = this.frameMap.get(this.currentFunction);
+    if (!frame) {
+      throw new Error(`No frame for function "${this.currentFunction}"`);
+    }
+
+    return frame;
   }
 
   /**
-   * Adds an info message to the error collection.
+   * Begin generating a new function.
    *
-   * Informational messages for debugging or hints.
+   * Resets state for the new function:
+   * - Clears the instruction builder
+   * - Resets loop tracking
+   * - Sets the current function name
    *
-   * @param message - Info message
-   * @param location - Source location
-   * @param code - Optional message code
+   * @param functionName - Name of the function to generate
    */
-  protected addInfo(message: string, location: SourceLocation, code?: string): void {
-    this.errors.push({
-      message,
-      location,
-      severity: ILErrorSeverity.Info,
-      code,
-    });
+  protected beginFunction(functionName: string): void {
+    this.currentFunction = functionName;
+    this.builder.clear();
+    this.loops = [];
+    this.currentLoopDepth = 0;
+    this.maxLoopDepth = 0;
   }
 
   /**
-   * Gets all errors and diagnostics.
+   * End generating the current function.
    *
-   * @returns Array of all errors, warnings, and info messages
+   * @returns Generated instructions, loops, and max depth
    */
-  public getErrors(): ILGeneratorError[] {
-    return [...this.errors];
-  }
-
-  /**
-   * Gets only errors (not warnings or info).
-   *
-   * @returns Array of errors only
-   */
-  public getErrorsOnly(): ILGeneratorError[] {
-    return this.errors.filter((e) => e.severity === ILErrorSeverity.Error);
-  }
-
-  /**
-   * Checks if there are any errors.
-   *
-   * @returns true if there are errors (not counting warnings/info)
-   */
-  public hasErrors(): boolean {
-    return this.errors.some((e) => e.severity === ILErrorSeverity.Error);
-  }
-
-  /**
-   * Clears all errors.
-   */
-  protected clearErrors(): void {
-    this.errors.length = 0;
-  }
-
-  // ===========================================================================
-  // Utility Methods
-  // ===========================================================================
-
-  /**
-   * Creates a dummy source location for internal errors.
-   *
-   * Used when we need to report an error but don't have a real location.
-   *
-   * @returns A dummy source location
-   */
-  protected dummyLocation(): SourceLocation {
-    return {
-      start: { line: 0, column: 0, offset: 0 },
-      end: { line: 0, column: 0, offset: 0 },
+  protected endFunction(): {
+    instructions: ILInstruction[];
+    loops: ILLoop[];
+    maxLoopDepth: number;
+  } {
+    const result = {
+      instructions: this.builder.getInstructions(),
+      loops: this.loops,
+      maxLoopDepth: this.maxLoopDepth,
     };
+
+    this.currentFunction = null;
+    return result;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Loop Tracking
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Enter a loop (increment depth).
+   *
+   * Called at the start of while/for loop generation.
+   */
+  protected enterLoop(): void {
+    this.currentLoopDepth++;
+    this.maxLoopDepth = Math.max(this.maxLoopDepth, this.currentLoopDepth);
   }
 
   /**
-   * Checks if a type is a numeric type (byte or word).
+   * Exit a loop (decrement depth).
    *
-   * @param type - IL type to check
-   * @returns true if numeric
+   * Called at the end of while/for loop generation.
    */
-  protected isNumericType(type: ILType): boolean {
-    return type.kind === 'byte' || type.kind === 'word';
+  protected exitLoop(): void {
+    this.currentLoopDepth--;
   }
 
   /**
-   * Gets the larger of two numeric types.
+   * Record a detected loop for optimization hints.
    *
-   * Used for type promotion in binary operations.
-   *
-   * @param a - First type
-   * @param b - Second type
-   * @returns The larger type (word > byte)
+   * @param loop - Loop information
    */
-  protected getPromotedType(a: ILType, b: ILType): ILType {
-    // Word is larger than byte
-    if (a.kind === 'word' || b.kind === 'word') {
-      return IL_WORD;
-    }
-    return IL_BYTE;
+  protected recordLoop(loop: ILLoop): void {
+    this.loops.push(loop);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Source Location
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Set source location for upcoming instructions.
+   *
+   * @param location - Source location
+   */
+  protected setLocation(location: SourceLocation): void {
+    this.builder.setLocation(location);
   }
 
   /**
-   * Gets the symbol table.
-   *
-   * @returns Symbol table from semantic analysis
+   * Clear source location.
    */
-  protected getSymbolTable(): SymbolTable {
-    return this.symbolTable;
-  }
-
-  /**
-   * Gets the target configuration.
-   *
-   * @returns Target config, or null if not specified
-   */
-  protected getTargetConfig(): TargetConfig | null {
-    return this.targetConfig;
+  protected clearLocation(): void {
+    this.builder.clearLocation();
   }
 }

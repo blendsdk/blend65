@@ -1,108 +1,147 @@
 /**
- * Module Registry
+ * Module Registry for Blend65 Compiler v2
  *
- * Tracks all modules in a compilation unit by name.
- * Provides module lookup, duplicate detection, and metadata tracking.
+ * Tracks all modules in a multi-module compilation.
+ * The registry stores parsed Program ASTs and tracks dependencies
+ * between modules for compilation ordering.
  *
- * **Phase 6.1.2** - Core module discovery infrastructure
+ * Key responsibilities:
+ * - Store and retrieve module ASTs by name
+ * - Track module dependencies (which module imports which)
+ * - Validate module existence
+ * - Support iteration over all registered modules
+ *
+ * @module semantic/module-registry
  */
 
-import type { Program } from '../ast/nodes.js';
+import type { Program } from '../ast/index.js';
 
 /**
- * Information about a registered module
+ * Module metadata stored in the registry
+ *
+ * Contains the parsed AST and tracking information for each module.
  */
-export interface ModuleInfo {
-  /** Full module name (e.g., 'c64.graphics.screen') */
+export interface RegisteredModule {
+  /** The full module name (e.g., "Game.Main") */
   name: string;
 
-  /** Parsed Program AST for this module */
+  /** The parsed AST for this module */
   program: Program;
 
-  /** Source file path (optional, for error reporting) */
-  filePath?: string;
-
-  /** Names of modules this module imports from */
-  dependencies: string[];
+  /** When this module was registered (for debugging) */
+  registeredAt: Date;
 }
 
 /**
- * Module registry tracks all modules in a compilation unit
+ * Module Registry - tracks all modules in a multi-module compilation
  *
- * Responsibilities:
- * - Register modules by name
- * - Detect duplicate module declarations (fail-fast)
- * - Provide module lookup by name
- * - Track module metadata (file paths, dependencies)
+ * The registry is the central store for all module ASTs during compilation.
+ * It provides methods to register, retrieve, and query modules.
  *
- * **Usage:**
+ * Usage:
+ * 1. Parse all source files into Program ASTs
+ * 2. Register each Program with its module name
+ * 3. Use the registry to look up modules during import resolution
+ *
+ * @example
  * ```typescript
  * const registry = new ModuleRegistry();
  *
- * // Register modules
- * registry.register('Main', mainProgram);
- * registry.register('c64.graphics', graphicsProgram, 'src/c64/graphics.b65');
+ * // Register parsed modules
+ * registry.register('Game.Main', mainProgram);
+ * registry.register('Game.Sprites', spritesProgram);
  *
- * // Query modules
- * if (registry.hasModule('Main')) {
- *   const program = registry.getModule('Main');
+ * // Look up modules
+ * const mainModule = registry.getModule('Game.Main');
+ *
+ * // Check if module exists
+ * if (registry.hasModule('Game.Audio')) {
+ *   // ...
  * }
- *
- * // Get metadata
- * const info = registry.getModuleInfo('Main');
- * console.log(info.filePath, info.dependencies);
  * ```
  */
 export class ModuleRegistry {
-  /** Map of module name → module info */
-  protected modules: Map<string, ModuleInfo> = new Map();
+  /**
+   * Map of module name to registered module data
+   * Key: Full module name (e.g., "Game.Main")
+   * Value: RegisteredModule containing the AST and metadata
+   */
+  protected modules: Map<string, RegisteredModule> = new Map();
 
   /**
-   * Register a module in the registry
+   * Registers a module with its parsed AST
    *
-   * @param name - Full module name (case-sensitive)
-   * @param program - Parsed Program AST
-   * @param filePath - Optional source file path
-   * @throws Error if module name already registered (duplicate module)
+   * The module name is extracted from the Program's module declaration.
+   * If a module with the same name is already registered, it will be
+   * overwritten (useful for hot-reloading during development).
+   *
+   * @param name - The full module name (e.g., "Game.Main")
+   * @param program - The parsed AST for this module
    *
    * @example
    * ```typescript
-   * registry.register('Main', program);
-   * registry.register('c64.graphics.screen', program, 'src/c64/graphics/screen.b65');
+   * registry.register('Game.Main', mainProgram);
    * ```
    */
-  public register(name: string, program: Program, filePath?: string): void {
-    // Check for duplicate module name
-    if (this.modules.has(name)) {
-      const existing = this.modules.get(name);
-      const existingPath = existing?.filePath || '(unknown)';
-      const newPath = filePath || '(unknown)';
-
-      throw new Error(
-        `Duplicate module '${name}': already registered at '${existingPath}', ` +
-          `attempted to register again from '${newPath}'`
-      );
-    }
-
-    // Register the module
+  public register(name: string, program: Program): void {
     this.modules.set(name, {
       name,
       program,
-      filePath,
-      dependencies: [], // Will be populated during import analysis (Task 6.1.4)
+      registeredAt: new Date(),
     });
   }
 
   /**
-   * Check if a module is registered
+   * Gets a module by name
    *
-   * @param name - Module name to check
-   * @returns True if module exists in registry
+   * Returns the registered module data if found, undefined otherwise.
+   *
+   * @param name - The full module name to look up
+   * @returns The registered module or undefined if not found
    *
    * @example
    * ```typescript
-   * if (registry.hasModule('c64.graphics')) {
-   *   // Module exists
+   * const module = registry.getModule('Game.Main');
+   * if (module) {
+   *   const declarations = module.program.getDeclarations();
+   * }
+   * ```
+   */
+  public getModule(name: string): RegisteredModule | undefined {
+    return this.modules.get(name);
+  }
+
+  /**
+   * Gets a module's Program AST by name
+   *
+   * Convenience method that returns just the Program AST.
+   * Returns undefined if the module is not registered.
+   *
+   * @param name - The full module name to look up
+   * @returns The Program AST or undefined if not found
+   *
+   * @example
+   * ```typescript
+   * const program = registry.getProgram('Game.Main');
+   * if (program) {
+   *   console.log('Module has', program.getDeclarations().length, 'declarations');
+   * }
+   * ```
+   */
+  public getProgram(name: string): Program | undefined {
+    return this.modules.get(name)?.program;
+  }
+
+  /**
+   * Checks if a module is registered
+   *
+   * @param name - The full module name to check
+   * @returns true if the module is registered, false otherwise
+   *
+   * @example
+   * ```typescript
+   * if (registry.hasModule('Game.Audio')) {
+   *   // Safe to import from Game.Audio
    * }
    * ```
    */
@@ -111,53 +150,36 @@ export class ModuleRegistry {
   }
 
   /**
-   * Get a module's Program AST by name
+   * Removes a module from the registry
    *
-   * @param name - Module name
-   * @returns Program AST, or undefined if not found
+   * Useful for hot-reloading during development when a file changes.
    *
-   * @example
-   * ```typescript
-   * const program = registry.getModule('Main');
-   * if (program) {
-   *   // Analyze the program
-   * }
-   * ```
-   */
-  public getModule(name: string): Program | undefined {
-    return this.modules.get(name)?.program;
-  }
-
-  /**
-   * Get full module information by name
-   *
-   * @param name - Module name
-   * @returns ModuleInfo, or undefined if not found
+   * @param name - The full module name to remove
+   * @returns true if the module was removed, false if it didn't exist
    *
    * @example
    * ```typescript
-   * const info = registry.getModuleInfo('Main');
-   * if (info) {
-   *   console.log('File:', info.filePath);
-   *   console.log('Dependencies:', info.dependencies);
+   * if (registry.unregister('Game.Main')) {
+   *   console.log('Module removed, re-parsing...');
    * }
    * ```
    */
-  public getModuleInfo(name: string): ModuleInfo | undefined {
-    const info = this.modules.get(name);
-    // Return a copy to prevent external modification
-    return info ? { ...info, dependencies: [...info.dependencies] } : undefined;
+  public unregister(name: string): boolean {
+    return this.modules.delete(name);
   }
 
   /**
-   * Get all registered module names
+   * Gets all registered module names
    *
-   * @returns Array of module names in registration order
+   * Returns an array of all module names currently in the registry.
+   * The order is not guaranteed (depends on Map iteration order).
+   *
+   * @returns Array of all registered module names
    *
    * @example
    * ```typescript
    * const names = registry.getAllModuleNames();
-   * // ['Main', 'c64.graphics', 'c64.sprites']
+   * // ['Game.Main', 'Game.Sprites', 'Lib.Math']
    * ```
    */
   public getAllModuleNames(): string[] {
@@ -165,91 +187,61 @@ export class ModuleRegistry {
   }
 
   /**
-   * Get all registered modules
+   * Gets all registered modules
    *
-   * @returns Map of module name → Program AST (copy, not reference)
+   * Returns an array of all registered module data.
+   *
+   * @returns Array of all registered modules
    *
    * @example
    * ```typescript
-   * const allModules = registry.getAllModules();
-   * for (const [name, program] of allModules) {
-   *   console.log('Module:', name);
+   * for (const module of registry.getAllModules()) {
+   *   console.log('Processing module:', module.name);
    * }
    * ```
    */
-  public getAllModules(): Map<string, Program> {
-    const result = new Map<string, Program>();
-    for (const [name, info] of this.modules) {
-      result.set(name, info.program);
-    }
-    return result;
+  public getAllModules(): RegisteredModule[] {
+    return Array.from(this.modules.values());
   }
 
   /**
-   * Get number of registered modules
+   * Gets the number of registered modules
    *
-   * @returns Count of modules
-   *
-   * @example
-   * ```typescript
-   * console.log(`Registered ${registry.getModuleCount()} modules`);
-   * ```
+   * @returns The count of registered modules
    */
   public getModuleCount(): number {
     return this.modules.size;
   }
 
   /**
-   * Add a dependency for a module
+   * Checks if the registry is empty
    *
-   * This is called during import analysis (Task 6.1.4) to track
-   * which modules depend on which other modules.
-   *
-   * @param moduleName - Module that has the dependency
-   * @param dependencyName - Module being depended upon
-   *
-   * @example
-   * ```typescript
-   * // Module 'Main' imports from 'c64.graphics'
-   * registry.addDependency('Main', 'c64.graphics');
-   * ```
+   * @returns true if no modules are registered
    */
-  public addDependency(moduleName: string, dependencyName: string): void {
-    const info = this.modules.get(moduleName);
-    if (info && !info.dependencies.includes(dependencyName)) {
-      info.dependencies.push(dependencyName);
-    }
+  public isEmpty(): boolean {
+    return this.modules.size === 0;
   }
 
   /**
-   * Get dependencies for a specific module
+   * Clears all registered modules
    *
-   * @param moduleName - Module name
-   * @returns Array of module names this module depends on
-   *
-   * @example
-   * ```typescript
-   * const deps = registry.getDependencies('Main');
-   * // ['c64.graphics', 'c64.sprites']
-   * ```
-   */
-  public getDependencies(moduleName: string): string[] {
-    const info = this.modules.get(moduleName);
-    return info ? [...info.dependencies] : [];
-  }
-
-  /**
-   * Clear all registered modules
-   *
-   * Used for testing and when starting a new compilation.
-   *
-   * @example
-   * ```typescript
-   * registry.clear();
-   * assert(registry.getModuleCount() === 0);
-   * ```
+   * Useful for resetting the registry between compilations.
    */
   public clear(): void {
     this.modules.clear();
+  }
+
+  /**
+   * Iterator support - allows for...of iteration
+   *
+   * @example
+   * ```typescript
+   * for (const [name, module] of registry) {
+   *   console.log('Module:', name);
+   * }
+   * ```
+   */
+  public [Symbol.iterator](): IterableIterator<[string, RegisteredModule]> {
+    return this.modules.entries();
   }
 }

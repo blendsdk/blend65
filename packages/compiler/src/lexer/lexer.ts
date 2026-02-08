@@ -1,10 +1,12 @@
 /**
- * Blend65 Lexer Implementation
+ * Blend65 v2 Lexer Implementation
  * A lexical analyzer for the Blend65 multi-target 6502 language
  *
  * The lexer converts source code into a stream of tokens that can be
- * consumed by the parser. It handles all Blend65 syntax including
+ * consumed by the parser. It handles all Blend65 v2 syntax including
  * keywords, operators, literals, and comments.
+ *
+ * NOTE: v2 removes @map syntax - memory-mapped I/O uses peek/poke intrinsics instead.
  */
 
 import {
@@ -18,7 +20,6 @@ import {
   eDeclarationKeyword,
   eMutabilityModifier,
   eStorageClass,
-  eMemoryMappingKeyword,
   ePrimitiveType,
 } from './types.js';
 
@@ -33,7 +34,7 @@ export interface LexerOptions {
 }
 
 /**
- * Lexer class for tokenizing Blend65 source code
+ * Lexer class for tokenizing Blend65 v2 source code
  *
  * The lexer maintains internal state including position, line, and column
  * numbers for accurate error reporting and source mapping.
@@ -105,7 +106,12 @@ export class Lexer {
     }
 
     // Numbers (including hex and binary)
-    if (this.isDigit(char) || (char === '$' && this.isHexDigit(this.peek()))) {
+    // Support: decimal, $hex, 0xhex, 0bbinary, %binary
+    if (
+      this.isDigit(char) ||
+      (char === '$' && this.isHexDigit(this.peek())) ||
+      (char === '%' && this.isBinaryDigit(this.peek()))
+    ) {
       return this.readNumber();
     }
 
@@ -115,6 +121,7 @@ export class Lexer {
     }
 
     // Keywords with @ prefix (storage classes and @address type)
+    // NOTE: v2 removes @map - only @zp, @ram, @data, @address are recognized
     if (char === '@') {
       return this.readAtKeyword();
     }
@@ -230,7 +237,7 @@ export class Lexer {
 
   /**
    * Reads a numeric literal from the source
-   * Supports decimal, hexadecimal ($xx or 0x), and binary (0b) formats
+   * Supports decimal, hexadecimal ($xx or 0x), and binary (%xxx or 0b) formats
    * @returns Token containing the numeric value
    * @throws Error if number format is invalid
    */
@@ -250,6 +257,23 @@ export class Lexer {
 
       if (value === '$') {
         throw new Error(`Invalid hex number at line ${start.line}, column ${start.column}`);
+      }
+
+      return this.createToken(TokenType.NUMBER, value, start);
+    }
+
+    // Handle binary numbers starting with % (Blend65 style)
+    if (this.getCurrentChar() === '%') {
+      value += '%';
+      this.advance();
+
+      while (this.isBinaryDigit(this.getCurrentChar())) {
+        value += this.getCurrentChar();
+        this.advance();
+      }
+
+      if (value === '%') {
+        throw new Error(`Invalid binary number at line ${start.line}, column ${start.column}`);
       }
 
       return this.createToken(TokenType.NUMBER, value, start);
@@ -367,8 +391,11 @@ export class Lexer {
 
   /**
    * Reads keywords that start with '@' prefix
-   * Handles storage classes (@zp, @ram, @data, @map) and the @address type
+   * Handles storage classes (@zp, @ram, @data) and the @address type
    * For unknown keywords like @buffer, returns just the @ token
+   *
+   * NOTE: v2 removes @map - only @zp, @ram, @data, @address are recognized
+   *
    * @returns Token representing an @ keyword or just AT token
    */
   protected readAtKeyword(): Token {
@@ -385,7 +412,7 @@ export class Lexer {
       pos++;
     }
 
-    // Check if it's a known @ keyword
+    // Check if it's a known @ keyword (v2: no @map!)
     if (keyword === 'zp') {
       // Consume the keyword and return the full token
       this.advance(keyword.length);
@@ -396,13 +423,11 @@ export class Lexer {
     } else if (keyword === 'data') {
       this.advance(keyword.length);
       return this.createToken(TokenType.DATA, '@data', start);
-    } else if (keyword === 'map') {
-      this.advance(keyword.length);
-      return this.createToken(TokenType.MAP, '@map', start);
     } else if (keyword === 'address') {
       this.advance(keyword.length);
       return this.createToken(TokenType.ADDRESS, '@address', start);
     }
+    // NOTE: @map is NOT handled in v2 - falls through to AT token
 
     // Unknown keyword after @, just return AT token
     // Don't consume the following identifier - let it be parsed separately
@@ -438,6 +463,9 @@ export class Lexer {
    * Maps a keyword string to its corresponding TokenType
    * C-style syntax: no END, THEN, NEXT, ELSEIF, MATCH keywords
    * New keywords: DOWNTO, STEP, DO, SWITCH
+   *
+   * NOTE: v2 removes @map-related keywords (at, layout)
+   *
    * @param keyword - The keyword string to map
    * @returns The TokenType for the given keyword, or IDENTIFIER if not found
    */
@@ -494,18 +522,13 @@ export class Lexer {
         return TokenType.LET;
       case eMutabilityModifier.CONST:
         return TokenType.CONST;
-      // Storage class keywords
+      // Storage class keywords (NOTE: v2 removes @map handling)
       case eStorageClass.ZP:
         return TokenType.ZP;
       case eStorageClass.RAM:
         return TokenType.RAM;
       case eStorageClass.DATA:
         return TokenType.DATA;
-      // Memory mapping keywords
-      case eMemoryMappingKeyword.AT:
-        return TokenType.AT;
-      case eMemoryMappingKeyword.LAYOUT:
-        return TokenType.LAYOUT;
       // Primitive type keywords
       case ePrimitiveType.BYTE:
         return TokenType.BYTE;

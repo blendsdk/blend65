@@ -1,234 +1,142 @@
 /**
- * IL (Intermediate Language) Generator
+ * IL Module - Intermediate Language for Blend65 Compiler
  *
- * This module provides the infrastructure for generating intermediate
- * language code from the Blend65 AST. The IL is designed for:
+ * This module provides the complete IL type system with slot-centric
+ * operands for optimal 6502 code generation.
  *
- * 1. SSA Form - Every variable assigned exactly once for clean dataflow analysis
- * 2. Three-Address Code - Max 2 operands + 1 result per instruction
- * 3. Virtual Registers - Unlimited registers, code generator allocates to A/X/Y
- * 4. Rich Metadata - Preserves semantic analysis info (addressing modes, hints, etc.)
- * 5. Target-Agnostic Core - Generic IL with target-specific info in metadata
+ * Key Features:
+ * - Slot-centric operands that carry full SFA context
+ * - Optimization hints for peephole optimizer
+ * - Loop structure preservation for loop-aware optimization
+ * - Cost model for instruction selection
  *
  * @module il
  */
 
-// =============================================================================
-// Types
-// =============================================================================
+// ============================================================================
+// Enums
+// ============================================================================
+
+export { ILOpcode, AddressingModeHint } from './enums.js';
+
+// ============================================================================
+// Operand Types
+// ============================================================================
+
+export type {
+  SlotOperand,
+  ImmediateOperand,
+  LabelOperand,
+  FunctionOperand,
+  AddressOperand,
+  AsmRawOperand,
+  ILOperand,
+} from './operands.js';
+
+// ============================================================================
+// Instruction Types
+// ============================================================================
+
+export type { InstructionCost, DefUse, OptimizationHints, ILInstruction } from './instruction.js';
+
+// ============================================================================
+// Program Structures
+// ============================================================================
+
+export type { ILLoop, ILFunction, ILProgram } from './structures.js';
+
+// ============================================================================
+// Factory Functions
+// ============================================================================
 
 export {
-  // Type kind enum
-  ILTypeKind,
-  // Type interfaces
-  type ILType,
-  type ILArrayType,
-  type ILPointerType,
-  type ILFunctionType,
-  // Singleton type instances
-  IL_VOID,
-  IL_BOOL,
-  IL_BYTE,
-  IL_WORD,
-  // Type factory functions
-  createArrayType,
-  createPointerType,
-  createFunctionType,
-  // Type utility functions
-  typesEqual,
-  isPrimitiveType,
-  isNumericType,
-  isArrayType,
-  isPointerType,
-  isFunctionType,
-  typeToString,
-} from './types.js';
+  // Operand factories
+  createSlotOperand,
+  createImmediateOperand,
+  createLabelOperand,
+  createFunctionOperand,
+  createAddressOperand,
+  // Instruction factories
+  createInstruction,
+  createInstructionCost,
+  createDefUse,
+  createOptimizationHints,
+  // Structure factories
+  createILLoop,
+  createILFunction,
+  createILProgram,
+} from './factories.js';
 
-// =============================================================================
-// Values
-// =============================================================================
+// ============================================================================
+// Type Guards
+// ============================================================================
 
 export {
-  // Virtual register class
-  VirtualRegister,
-  // Value interfaces
-  type ILConstant,
-  type ILLabel,
-  type ILValue,
-  // Type guards
-  isVirtualRegister,
-  isILConstant,
-  isILLabel,
-  // Value factory
-  ILValueFactory,
-  // Utility functions
-  valueToString,
-  getValueType,
-} from './values.js';
+  // Operand guards
+  isSlotOperand,
+  isImmediateOperand,
+  isLabelOperand,
+  isFunctionOperand,
+  isAddressOperand,
+  // Instruction classification guards
+  isZeroPageInstruction,
+  isLoadInstruction,
+  isStoreInstruction,
+  isArithmeticInstruction,
+  isBitwiseInstruction,
+  isComparisonInstruction,
+  isControlFlowInstruction,
+  isConditionalJumpInstruction,
+  isFunctionInstruction,
+  isRegisterTransferInstruction,
+  isStackInstruction,
+  isIntrinsicInstruction,
+  isLabelInstruction,
+  hasSideEffects,
+} from './guards.js';
 
-// =============================================================================
-// Instructions
-// =============================================================================
+// ============================================================================
+// Builder
+// ============================================================================
 
-export {
-  // Opcode enum
-  ILOpcode,
-  // Metadata interface
-  type ILMetadata,
-  // Base class
-  ILInstruction,
-  // Arithmetic/Logic instructions
-  ILBinaryInstruction,
-  ILUnaryInstruction,
-  ILConstInstruction,
-  ILUndefInstruction,
-  ILConvertInstruction,
-  // Control flow instructions
-  ILJumpInstruction,
-  ILBranchInstruction,
-  ILReturnInstruction,
-  ILReturnVoidInstruction,
-  // Memory instructions
-  ILLoadVarInstruction,
-  ILStoreVarInstruction,
-  ILLoadArrayInstruction,
-  ILStoreArrayInstruction,
-  // Call instructions
-  ILCallInstruction,
-  ILCallVoidInstruction,
-  // SSA instructions
-  ILPhiInstruction,
-  // Intrinsic instructions
-  ILPeekInstruction,
-  ILPokeInstruction,
-  // Hardware instructions
-  ILHardwareReadInstruction,
-  ILHardwareWriteInstruction,
-  // Optimization control
-  ILOptBarrierInstruction,
-  // Address-of instruction
-  ILLoadAddressInstruction,
-  // Type guards
-  isLoadAddressInstruction,
-} from './instructions.js';
+export { ILBuilder, computeInstructionCost, computeDefUse } from './builder/index.js';
 
-// =============================================================================
-// Basic Blocks & CFG (Phase 2)
-// =============================================================================
+// ============================================================================
+// Generator
+// ============================================================================
 
-export { BasicBlock } from './basic-block.js';
+export { ILGenerator, ILGeneratorBase, ILGeneratorExpressions } from './generator/index.js';
+
+// ============================================================================
+// Analysis
+// ============================================================================
 
 export {
-  ILFunction,
-  ILStorageClass,
-  type ILParameter,
-} from './function.js';
+  // Live range analysis
+  computeLiveRanges,
+  // Dead store detection
+  isDeadStore,
+  // Optimization hints
+  hasHotSlotAccess,
+  hasFrequentSlotAccess,
+  canCoalesce,
+  computeHints,
+  // Full analysis passes
+  runAnalysisPasses,
+  runAnalysisPassesWithLoops,
+  // Statistics
+  getAnalysisStats,
+} from './analysis.js';
 
+export type { AnalysisStats } from './analysis.js';
+
+// ASM function name parsing utilities
 export {
-  ILModule,
-  type ILGlobalVariable,
-  type ILImport,
-  type ILExport,
-  type ILModuleStats,
-} from './module.js';
-
-export { ILBuilder } from './builder.js';
-
-export {
-  ILPrinter,
-  type ILPrinterOptions,
-  printModule,
-  printFunction,
-  printBlock,
-  printInstruction,
-} from './printer.js';
-
-export {
-  ILValidator,
-  type ValidationError,
-  type ValidationResult,
-  type ValidatorOptions,
-  validateModule,
-  validateFunction,
-  formatValidationErrors,
-} from './validator.js';
-
-// =============================================================================
-// Generator (Phase 3) - COMPLETE with SSA Integration
-// =============================================================================
-
-export {
-  // Base generator
-  ILGeneratorBase,
-  ILErrorSeverity,
-  type ILGeneratorError,
-  type GenerationContext,
-  type VariableMapping,
-  // Module generator
-  ILModuleGenerator,
-  type ModuleGenerationResult,
-  // Final generator with SSA integration
-  ILGenerator,
-  type ILGeneratorOptions,
-  type ILGenerationResult,
-} from './generator/index.js';
-
-// =============================================================================
-// SSA Construction (Phase 6) - COMPLETE
-// =============================================================================
-
-// Dominator Tree (Sessions 2-4)
-export {
-  type DominatorInfo,
-  DominatorTree,
-  computeDominators,
-  computeIntersection,
-} from './ssa/index.js';
-
-// Dominance Frontiers (Sessions 5-6)
-export { DominanceFrontier, computeFrontiers } from './ssa/index.js';
-
-// Phi Placement (Sessions 7-9)
-export {
-  type VariableDefInfo,
-  type PhiPlacementInfo,
-  type PhiPlacementResult,
-  type PhiPlacementStats,
-  PhiPlacer,
-} from './ssa/index.js';
-
-// Variable Renaming (Session 10)
-export {
-  type SSAName,
-  type RenamedInstruction,
-  type SSAPhiOperand,
-  type RenamedPhi,
-  type SSARenamingResult,
-  type SSARenamingStats,
-  VersionStackManager,
-  SSARenamer,
-  formatSSAName,
-  parseSSAName,
-  renameVariables,
-} from './ssa/index.js';
-
-// SSA Verification (Session 11)
-export {
-  SSAVerificationErrorCode,
-  type SSAVerificationError,
-  type SSAVerificationResult,
-  type SSAVerificationStats,
-  SSAVerifier,
-  verifySSA,
-} from './ssa/index.js';
-
-// SSA Constructor (Session 12)
-export {
-  SSAConstructionPhase,
-  type SSAConstructionError,
-  type SSAConstructionStats,
-  type SSAConstructionResult,
-  type SSAConstructionOptions,
-  SSAConstructor,
-  constructSSA,
-} from './ssa/index.js';
+  isAsmFunction,
+  parseAsmFunctionName,
+  addressingModeRequiresOperand,
+  getExpectedArgCount,
+  getValidAddressingModeSuffixes,
+  getValidMnemonics,
+} from './asm-utils.js';
+export type { AsmParseResult } from './asm-utils.js';

@@ -1894,20 +1894,19 @@ src/__tests__/semantic/edge-cases/
 > ASM-IL Emitter: ✅ DONE (codegen sub-plan CGT10 — 100% complete)
 > ASM-IL Optimizer: ✅ DONE (48/48 tasks — 100% complete, 7426 tests passing)
 
-### Phase 10: Integration & Testing
+### Phase 10: Integration, Pipeline & v1 Removal
 
-- [ ] 10.1.1 Create Compiler class
-- [ ] 10.1.2 Wire up pipeline stages
-- [ ] 10.1.3 Add optimization levels
-- [ ] 10.1.4 Export public API
-- [ ] 10.2.1 Create E2E test fixtures
-- [ ] 10.2.2 Test simple programs
-- [ ] 10.2.3 Test control flow
-- [ ] 10.2.4 Test functions
-- [ ] 10.3.1 Compile hello world
-- [ ] 10.3.2 Test in VICE emulator
-- [ ] 10.3.3 Fix any issues
-- [ ] 10.3.4 Update CLI to use v2
+Integration & Pipeline: DONE (75/75 tasks, 100% complete, 7845 tests passing)
+See `plans/compiler-v2/phase-10/99-execution-plan.md` for detailed breakdown.
+
+- [x] 10A Infrastructure Migration (config, target, library loader) ✅
+- [x] 10B Library Files (system.blend, asm.blend, hardware.blend) ✅
+- [x] 10C ASM_RAW IL + CodeGen (151 asm_* functions) ✅
+- [x] 10D Pipeline & Compiler Class (8 phases, public API) ✅
+- [x] 10E E2E Tests (simple, intrinsics, asm, multi-module, C64) ✅
+- [x] 10F CLI Update (imports switched to v2) ✅
+- [x] 10G V1 Removal & Rename (archived v1, renamed v2→compiler) ✅
+- [x] 10H Final Verification (7845 tests, docs updated) ✅
 
 ---
 

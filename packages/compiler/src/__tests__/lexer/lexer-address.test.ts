@@ -4,7 +4,9 @@ import { TokenType } from '../../lexer/types.js';
 
 /**
  * Lexer address type and address-of operator tests
- * Split from original lexer.test.ts for better maintainability
+ *
+ * v2: @map tests REMOVED - @map is no longer a valid token.
+ * Memory-mapped I/O uses peek/poke intrinsics instead.
  */
 describe('Blend65Lexer - Address Type and Address-of Operator', () => {
   describe('@address type alias', () => {
@@ -277,9 +279,9 @@ describe('Blend65Lexer - Address Type and Address-of Operator', () => {
     });
   });
 
-  describe('Integration with existing storage classes', () => {
-    it('should continue to recognize all existing storage classes', () => {
-      const source = '@zp @ram @data @map @address';
+  describe('v2 Storage Classes (NO @map)', () => {
+    it('should recognize v2 storage classes (@zp, @ram, @data, @address)', () => {
+      const source = '@zp @ram @data @address';
       const tokens = tokenize(source);
 
       expect(tokens[0].type).toBe(TokenType.ZP);
@@ -288,10 +290,19 @@ describe('Blend65Lexer - Address Type and Address-of Operator', () => {
       expect(tokens[1].value).toBe('@ram');
       expect(tokens[2].type).toBe(TokenType.DATA);
       expect(tokens[2].value).toBe('@data');
-      expect(tokens[3].type).toBe(TokenType.MAP);
-      expect(tokens[3].value).toBe('@map');
-      expect(tokens[4].type).toBe(TokenType.ADDRESS);
-      expect(tokens[4].value).toBe('@address');
+      expect(tokens[3].type).toBe(TokenType.ADDRESS);
+      expect(tokens[3].value).toBe('@address');
+    });
+
+    it('should NOT recognize @map as storage class in v2', () => {
+      // v2: @map is tokenized as AT + IDENTIFIER
+      const source = '@map';
+      const tokens = tokenize(source);
+
+      expect(tokens[0].type).toBe(TokenType.AT);
+      expect(tokens[0].value).toBe('@');
+      expect(tokens[1].type).toBe(TokenType.IDENTIFIER);
+      expect(tokens[1].value).toBe('map');
     });
 
     it('should distinguish @address from similar patterns', () => {

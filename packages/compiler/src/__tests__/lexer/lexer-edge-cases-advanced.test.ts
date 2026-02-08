@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { tokenize, TokenType } from '../../lexer/index.js';
 
+/**
+ * Advanced edge case tests for the lexer
+ *
+ * v2: No changes needed - these tests don't involve @map.
+ */
 describe('Blend65Lexer Advanced Edge Cases', () => {
   describe('Storage class interleaving', () => {
     it('should tokenize mixed storage-decorated and plain declarations', () => {

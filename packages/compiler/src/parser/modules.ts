@@ -1,14 +1,15 @@
 /**
- * Module Parser for Blend65 Compiler
+ * Module Parser for Blend65 Compiler v2
  *
  * Extends DeclarationParser to provide module system parsing capabilities:
  * - Module declarations (explicit and implicit)
- * - Import declarations (future)
- * - Export declarations (future)
+ * - Import declarations
+ * - Export declarations
  * - Module scope validation
  *
- * Current module support includes basic module declarations.
- * Future phases will add complete import/export system.
+ * V2 Changes:
+ * - No @map declarations (removed in v2)
+ * - Memory-mapped I/O uses peek/poke intrinsics instead
  */
 
 import { Declaration, DiagnosticCode, ImportDecl, ModuleDecl, VariableDecl } from '../ast/index.js';
@@ -19,17 +20,17 @@ import { DeclarationParser } from './declarations.js';
  * Module parser class - extends DeclarationParser with module system parsing
  *
  * Handles module system parsing including module declarations and provides
- * foundation for future import/export functionality.
+ * foundation for import/export functionality.
  *
- * Current module support (Phase 0):
+ * Current module support (v2):
  * - Module declarations: module Game.Main
  * - Implicit global module when no module declared
  * - Module scope validation
- *
- * Future module support (Phase 5):
  * - Import declarations: import { Function } from "module"
  * - Export declarations: export function name() ... end function
- * - Module resolution and dependencies
+ *
+ * Note: @map declarations are NOT supported in v2. Use peek/poke intrinsics
+ * for memory-mapped I/O instead.
  */
 export abstract class ModuleParser extends DeclarationParser {
   // ============================================
@@ -70,6 +71,7 @@ export abstract class ModuleParser extends DeclarationParser {
     // Default behavior: check for export token
     return this.match(TokenType.EXPORT);
   }
+
   // ============================================
   // MODULE DECLARATION PARSING
   // ============================================
@@ -122,7 +124,7 @@ export abstract class ModuleParser extends DeclarationParser {
   }
 
   // ============================================
-  // IMPORT DECLARATION PARSING (PHASE 5.1)
+  // IMPORT DECLARATION PARSING
   // ============================================
 
   /**
@@ -177,22 +179,21 @@ export abstract class ModuleParser extends DeclarationParser {
   }
 
   // ============================================
-  // EXPORT DECLARATION PARSING (PHASE 5.2)
+  // EXPORT DECLARATION PARSING (v2 - no @map)
   // ============================================
 
   /**
-   * Parses an export declaration using the original export flag design
+   * Parses an export declaration using the original export flag design (v2)
    *
    * Grammar (per specification): export (function_decl | variable_decl | type_decl | enum_decl)
    *
    * Examples:
    * - export function clearScreen(): void  → Returns FunctionDecl with isExported=true
    * - export const MAX_SPRITES: byte = 8;  → Returns VariableDecl with isExported=true
-   * - export @zp let frameCounter: byte = 0; → Returns VariableDecl with isExported=true
+   * - export let frameCounter: byte = 0;   → Returns VariableDecl with isExported=true
    *
-   * Note: This method sets the export flag on declarations rather than wrapping them.
-   * This preserves backward compatibility with existing tests and follows the established
-   * AST design where export status is a property of declarations.
+   * Note: @map declarations are NOT supported in v2. Use peek/poke intrinsics
+   * for memory-mapped I/O instead.
    *
    * @returns Declaration with export flag set to true
    */
@@ -218,13 +219,9 @@ export abstract class ModuleParser extends DeclarationParser {
           this.synchronize();
           return this.createDummyDeclaration();
         }
-      } else if (this.check(TokenType.MAP)) {
-        // Export @map declaration: parseMapDecl handles the @map parsing
-        // IMPORTANT: Check MAP before isStorageClass() since MAP is included in isStorageClass()
-        return this.parseMapDecl();
-      } else if (this.isStorageClass() || this.isLetOrConst()) {
+      } else if (this.isLetOrConst()) {
         // Export variable declaration: parseVariableDecl will handle export context
-        // Note: This handles @zp, @ram, @data storage classes, not @map
+        // Note: v2 does not support storage classes - handled by frame allocator
         return this.parseVariableDecl();
       } else if (this.check(TokenType.TYPE)) {
         // Export type declaration: call parseTypeDecl which handles export context
@@ -256,7 +253,7 @@ export abstract class ModuleParser extends DeclarationParser {
         // Unknown token after export
         this.reportError(
           DiagnosticCode.UNEXPECTED_TOKEN,
-          `Expected function, variable, type, enum, or @map declaration after 'export', got '${this.getCurrentToken().value}'`
+          `Expected function, variable, type, or enum declaration after 'export', got '${this.getCurrentToken().value}'`
         );
         this.synchronize();
         return this.createDummyDeclaration();
@@ -274,12 +271,4 @@ export abstract class ModuleParser extends DeclarationParser {
   protected createDummyDeclaration(): Declaration {
     return new VariableDecl('error', null, null, this.currentLocation(), null, false, false);
   }
-
-  // ============================================
-  // FUTURE MODULE RESOLUTION (PHASE 7+)
-  // ============================================
-
-  // Module Resolution (Future):
-  // protected resolveModulePath(path: string): string
-  // protected validateModuleDependencies(): void
 }

@@ -9,6 +9,8 @@
  * - Trailing commas
  * - Error cases
  * - Integration with variable declarations
+ *
+ * Note: v2 has no storage classes (@zp/@ram/@data) - frame allocator handles memory
  */
 
 import { describe, it, expect } from 'vitest';
@@ -557,25 +559,6 @@ describe('Parser - Array Literals', () => {
       }
     });
 
-    it('should parse array literal with storage class', () => {
-      const source = '@data const lookup: byte[256] = [0, 1, 2, 3];';
-      const lexer = new Lexer(source);
-      const tokens = lexer.tokenize();
-      const parser = new Parser(tokens);
-      const program = parser.parse();
-
-      expect(parser.hasErrors()).toBe(false);
-
-      const decls = program.getDeclarations();
-      const varDecl = decls[0];
-      expect(isVariableDecl(varDecl)).toBe(true);
-
-      if (isVariableDecl(varDecl)) {
-        expect(varDecl.getStorageClass()).not.toBeNull();
-        expect(isArrayLiteralExpression(varDecl.getInitializer())).toBe(true);
-      }
-    });
-
     it('should parse nested array type with nested array literal', () => {
       const source = 'let matrix: byte[2][2] = [[1, 2], [3, 4]];';
       const lexer = new Lexer(source);
@@ -636,7 +619,7 @@ describe('Parser - Array Literals', () => {
   describe('C64-Specific Use Cases', () => {
     it('should parse sprite data array', () => {
       const source =
-        '@data const spriteData: byte[8] = [0xFF, 0x3C, 0x18, 0x18, 0x18, 0x3C, 0xFF, 0x00];';
+        'const spriteData: byte[8] = [0xFF, 0x3C, 0x18, 0x18, 0x18, 0x3C, 0xFF, 0x00];';
       const lexer = new Lexer(source);
       const tokens = lexer.tokenize();
       const parser = new Parser(tokens);

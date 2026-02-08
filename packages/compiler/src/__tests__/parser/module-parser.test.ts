@@ -1,10 +1,13 @@
 /**
- * ModuleParser Tests
+ * ModuleParser Tests (V2)
  *
  * Tests module system parsing capabilities including:
  * - Module declarations (explicit and implicit)
  * - Module scope validation
  * - Module name path parsing
+ *
+ * NOTE: V2 has NO storage classes (@zp/@ram/@data) - frame allocator handles memory.
+ * NOTE: V2 has NO @map syntax - uses peek/poke intrinsics instead.
  */
 
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -179,6 +182,7 @@ describe('ModuleParser', () => {
     });
 
     it('allows declaration tokens at module scope', () => {
+      // V2: No storage classes (@zp/@ram/@data) - removed from valid tokens
       const validTokens = [
         TokenType.MODULE,
         TokenType.IMPORT,
@@ -188,9 +192,6 @@ describe('ModuleParser', () => {
         TokenType.CONST,
         TokenType.TYPE,
         TokenType.ENUM,
-        TokenType.ZP,
-        TokenType.RAM,
-        TokenType.DATA,
         TokenType.EOF,
       ];
 
@@ -520,27 +521,7 @@ describe('ModuleParser', () => {
       expect(varDecl.isConst()).toBe(true);
     });
 
-    it('parses export storage class variable declaration with export flag', () => {
-      const tokens = [
-        createToken(TokenType.EXPORT, 'export'),
-        createToken(TokenType.ZP, '@zp'),
-        createToken(TokenType.LET, 'let'),
-        createToken(TokenType.IDENTIFIER, 'frameCounter'),
-        createToken(TokenType.COLON, ':'),
-        createToken(TokenType.BYTE, 'byte'),
-        createToken(TokenType.ASSIGN, '='),
-        createToken(TokenType.NUMBER, '0'),
-        createToken(TokenType.SEMICOLON, ';'),
-        createToken(TokenType.EOF, ''),
-      ];
-      parser = new TestModuleParser(tokens);
-
-      const varDecl = parser.testParseExportDecl() as VariableDecl;
-      expect(varDecl).toBeInstanceOf(VariableDecl);
-      expect(varDecl.getName()).toBe('frameCounter');
-      expect(varDecl.isExportedVariable()).toBe(true);
-      expect(varDecl.getStorageClass()).toBe(TokenType.ZP);
-    });
+    // V2: Removed "export storage class variable declaration" test - no storage classes in v2
 
     it('handles export type declaration at ModuleParser level (requires full Parser)', () => {
       const tokens = [
@@ -605,9 +586,8 @@ describe('ModuleParser', () => {
       const diagnostics = parser.getDiagnostics();
       expect(diagnostics.length).toBe(1);
       expect(diagnostics[0].code).toBe(DiagnosticCode.UNEXPECTED_TOKEN);
-      expect(diagnostics[0].message).toContain(
-        'Expected function, variable, type, enum, or @map declaration'
-      );
+      // V2: Error message updated - no @map mention
+      expect(diagnostics[0].message).toContain('Expected function, variable, type, or enum declaration');
 
       // Returns dummy declaration for error recovery
       expect(declaration.constructor.name).toBe('VariableDecl');

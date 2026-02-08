@@ -8,8 +8,8 @@
  */
 
 import chalk from 'chalk';
-import type { Diagnostic } from '@blend65/compiler-v2';
-import { SourceRegistry } from '@blend65/compiler-v2';
+import type { Diagnostic } from '@blend65/compiler';
+import { SourceRegistry } from '@blend65/compiler';
 
 /**
  * Maximum line length before truncation for display

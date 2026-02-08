@@ -1,513 +1,1004 @@
 /**
- * Advanced Analyzer Orchestrator (Phase 8)
+ * Advanced Analyzer Orchestrator for Blend65 Compiler v2
  *
- * Main orchestrator for all Phase 8 optimization analyses.
- * Coordinates Tier 1-4 analyses in proper dependency order.
+ * Coordinates all advanced semantic analysis passes beyond basic type checking.
+ * This orchestrator runs analysis passes in the correct order and collects
+ * all diagnostics and optimization hints.
  *
  * **Analysis Tiers:**
- * - Tier 1: Basic analysis (definite assignment, usage, dead code)
- * - Tier 2: Data flow analysis (reaching defs, liveness, constants)
- * - Tier 3: Advanced analysis (alias, purity, escape, loops, 6502 hints)
- * - Tier 4: Target-specific hardware analysis (VIC-II, SID, etc.)
+ * The analysis passes are organized into tiers based on their dependencies:
  *
- * **Target Configuration**: The analyzer now accepts an optional TargetConfig
- * parameter to support different 6502-based targets. Hardware-specific
- * analysis runs based on the selected target.
+ * **Tier 1 - Core Analysis (no CFG required):**
+ * - Definite Assignment: Detects uninitialized variables
+ * - Variable Usage: Detects unused variables and parameters
  *
- * **Analysis Only**: This class performs analysis and marks opportunities.
- * It does NOT perform transformations - that's the IL optimizer's job.
+ * **Tier 2 - CFG-Based Analysis (requires control flow graphs):**
+ * - Dead Code: Detects unreachable code
+ * - Liveness: Computes live variable sets for optimization
  *
- * @example
- * ```typescript
- * // With target config (recommended)
- * const config = getTargetConfig(TargetArchitecture.C64);
- * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, config);
- * analyzer.analyze(ast);
+ * **Tier 3 - Optimization Hints (requires call graph and earlier analysis):**
+ * - Purity: Determines function side effects
+ * - Loop Analysis: Identifies loop optimization opportunities
+ * - M6502 Hints: Generates 6502-specific optimization hints
  *
- * // Backward compatible (defaults to C64)
- * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem);
- * analyzer.analyze(ast);
- * ```
+ * **SFA Context:**
+ * These analyses help produce optimal code for Blend65's Static Frame Allocation
+ * model. The hints generated guide code generation to produce efficient 6502
+ * assembly code that fits in limited memory.
+ *
+ * @module semantic/analysis/advanced-analyzer
  */
 
-import type { Program } from '../../ast/nodes.js';
-import type { SymbolTable } from '../symbol-table.js';
-import type { TypeSystem } from '../type-system.js';
+import type {
+  Program,
+  IdentifierExpression,
+  AssignmentExpression,
+  ForStatement,
+  FunctionDecl,
+} from '../../ast/index.js';
+import { ASTWalker } from '../../ast/walker/index.js';
+import type { SymbolTable, Symbol, Scope } from '../index.js';
+import { SymbolKind } from '../symbol.js';
 import type { ControlFlowGraph } from '../control-flow.js';
-import type { Diagnostic } from '../../ast/diagnostics.js';
-import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
-import type { TargetConfig } from '../../target/config.js';
-import { getDefaultTargetConfig } from '../../target/registry.js';
-import { isHardwareAnalyzerAvailable, createHardwareAnalyzer } from './hardware/target-analyzer-registry.js';
-import { DefiniteAssignmentAnalyzer } from './definite-assignment.js';
-import { VariableUsageAnalyzer } from './variable-usage.js';
-import { UnusedFunctionAnalyzer } from './unused-functions.js';
-import { DeadCodeAnalyzer } from './dead-code.js';
-import { ReachingDefinitionsAnalyzer } from './reaching-definitions.js';
-import { LivenessAnalyzer } from './liveness.js';
-import { ConstantPropagationAnalyzer } from './constant-propagation.js';
-import { AliasAnalyzer } from './alias-analysis.js';
-import { PurityAnalyzer } from './purity-analysis.js';
-import { EscapeAnalyzer } from './escape-analysis.js';
-import { LoopAnalyzer } from './loop-analysis.js';
-import { CallGraphAnalyzer } from './call-graph.js';
-import { M6502HintAnalyzer } from './m6502-hints.js';
-import { GlobalValueNumberingAnalyzer } from './global-value-numbering.js';
-import { CommonSubexpressionEliminationAnalyzer } from './common-subexpr-elimination.js';
-import { TypeCoercionAnalyzer } from './type-coercion.js';
-import { ExpressionComplexityAnalyzer } from './expression-complexity.js';
-import { SourceLocation } from '../../ast/index.js';
+import type { GlobalSymbolTable } from '../global-symbol-table.js';
+import type { TypeSystem } from '../type-system.js';
+
+import {
+  DefiniteAssignmentAnalyzer,
+  DefiniteAssignmentSeverity,
+  type DefiniteAssignmentResult,
+  type DefiniteAssignmentIssue,
+} from './definite-assignment.js';
+
+import {
+  VariableUsageAnalyzer,
+  VariableUsageSeverity,
+  type VariableUsageResult,
+  type VariableUsageIssue,
+  type VariableUsageOptions,
+} from './variable-usage.js';
+
+import {
+  DeadCodeAnalyzer,
+  DeadCodeSeverity,
+  type DeadCodeResult,
+  type DeadCodeIssue,
+} from './dead-code.js';
+
+import {
+  LivenessAnalyzer,
+  type LivenessResult,
+  type LivenessOptions,
+} from './liveness.js';
+
+import {
+  PurityAnalyzer,
+  type PurityAnalysisResult,
+  type PurityAnalysisOptions,
+} from './purity-analysis.js';
+
+import {
+  LoopAnalyzer,
+  type LoopAnalysisResult,
+  type LoopAnalysisOptions,
+} from './loop-analysis.js';
+
+import {
+  M6502HintAnalyzer,
+  type M6502HintResult,
+  type M6502HintOptions,
+} from './m6502-hints.js';
 
 /**
- * Advanced analyzer orchestrator (Phase 8)
+ * Diagnostic severity levels
+ */
+export enum DiagnosticSeverity {
+  /** Error - must be fixed */
+  Error = 'error',
+  /** Warning - should be reviewed */
+  Warning = 'warning',
+  /** Info - informational only */
+  Info = 'info',
+}
+
+/**
+ * Diagnostic category for grouping
+ */
+export enum DiagnosticCategory {
+  /** Definite assignment issues */
+  DefiniteAssignment = 'definite_assignment',
+  /** Variable usage issues */
+  VariableUsage = 'variable_usage',
+  /** Dead code issues */
+  DeadCode = 'dead_code',
+  /** Purity analysis findings */
+  Purity = 'purity',
+  /** Loop analysis findings */
+  Loop = 'loop',
+  /** M6502 optimization hints */
+  M6502 = 'm6502',
+}
+
+/**
+ * A unified diagnostic from any analysis pass
+ */
+export interface AdvancedDiagnostic {
+  /** Unique identifier for this diagnostic type */
+  code: string;
+  /** Severity level */
+  severity: DiagnosticSeverity;
+  /** Category of the diagnostic */
+  category: DiagnosticCategory;
+  /** Human-readable message */
+  message: string;
+  /** Source location */
+  location: {
+    line: number;
+    column: number;
+    file?: string;
+  };
+  /** Suggested fix */
+  suggestion?: string;
+  /** Related symbol (if applicable) */
+  symbol?: Symbol;
+  /** Function name (if applicable) */
+  functionName?: string;
+}
+
+/**
+ * Configuration options for advanced analysis
+ */
+export interface AdvancedAnalysisOptions {
+  /**
+   * Enable Tier 1 analysis (definite assignment, variable usage)
+   * @default true
+   */
+  enableTier1: boolean;
+
+  /**
+   * Enable Tier 2 analysis (dead code, liveness)
+   * Requires CFGs to be provided
+   * @default true
+   */
+  enableTier2: boolean;
+
+  /**
+   * Enable Tier 3 analysis (purity, loop, m6502 hints)
+   * Requires global symbol table
+   * @default true
+   */
+  enableTier3: boolean;
+
+  /**
+   * Variable usage analysis options
+   */
+  variableUsage?: Partial<VariableUsageOptions>;
+
+  /**
+   * Liveness analysis options
+   */
+  liveness?: Partial<LivenessOptions>;
+
+  /**
+   * Purity analysis options
+   */
+  purity?: Partial<PurityAnalysisOptions>;
+
+  /**
+   * Loop analysis options
+   */
+  loop?: Partial<LoopAnalysisOptions>;
+
+  /**
+   * M6502 hints options
+   */
+  m6502?: Partial<M6502HintOptions>;
+
+  /**
+   * Maximum diagnostics to collect before stopping
+   * @default 1000
+   */
+  maxDiagnostics: number;
+
+  /**
+   * Include informational diagnostics
+   * @default true
+   */
+  includeInfo: boolean;
+}
+
+/**
+ * Default advanced analysis options
+ */
+export const DEFAULT_ADVANCED_OPTIONS: AdvancedAnalysisOptions = {
+  enableTier1: true,
+  enableTier2: true,
+  enableTier3: true,
+  maxDiagnostics: 1000,
+  includeInfo: true,
+};
+
+/**
+ * Result of advanced analysis
+ */
+export interface AdvancedAnalysisResult {
+  /** All diagnostics from all analysis passes */
+  diagnostics: AdvancedDiagnostic[];
+
+  /** Count by severity */
+  errorCount: number;
+  warningCount: number;
+  infoCount: number;
+
+  /** Results from individual analyzers */
+  definiteAssignment?: DefiniteAssignmentResult;
+  variableUsage?: VariableUsageResult;
+  deadCode?: DeadCodeResult;
+  liveness?: Map<string, LivenessResult>;
+  purity?: PurityAnalysisResult;
+  loopAnalysis?: LoopAnalysisResult;
+  m6502Hints?: M6502HintResult;
+
+  /** Statistics */
+  analysisTime: number;
+  tiersCompleted: number[];
+}
+
+/**
+ * Advanced Analyzer Orchestrator
  *
- * Coordinates all optimization analysis passes and generates
- * metadata for IL optimizer consumption.
+ * Coordinates all advanced semantic analysis passes and collects
+ * unified diagnostics. Designed to be used after the main semantic
+ * analysis (symbol table building, type resolution, type checking).
  *
- * Analysis is performed in four tiers:
- * - Tier 1: Basic analysis (definite assignment, usage, dead code)
- * - Tier 2: Data flow analysis (reaching defs, liveness, constants)
- * - Tier 3: Advanced analysis (alias, purity, loops, 6502 hints)
- * - Tier 4: Target-specific hardware analysis (VIC-II timing, SID conflicts, etc.)
- *
- * Each tier builds on results from previous tiers.
- *
- * **Target Configuration**: The analyzer accepts an optional TargetConfig
- * parameter. Zero-page and hardware-specific analysis uses this config.
- * Defaults to C64 for backward compatibility.
- *
- * @example
+ * **Usage:**
  * ```typescript
- * // With target config (recommended)
- * const config = getTargetConfig(TargetArchitecture.C64);
- * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, config);
- * analyzer.analyze(ast);
+ * const analyzer = new AdvancedAnalyzer(symbolTable, typeSystem, {
+ *   globalSymbolTable,  // Required for Tier 3
+ *   cfgs,               // Required for Tier 2
+ *   functionSymbols,    // Required for Tier 3
+ * });
  *
- * // Backward compatible (defaults to C64)
- * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem);
- * analyzer.analyze(ast);
+ * // Run analysis
+ * const result = analyzer.analyze(ast);
+ *
+ * // Process diagnostics
+ * for (const diag of result.diagnostics) {
+ *   console.log(`${diag.severity}: ${diag.message}`);
+ * }
+ *
+ * // Access individual results
+ * if (result.m6502Hints) {
+ *   // Use zero-page recommendations
+ *   for (const rec of result.m6502Hints.zeroPageRecommendations) {
+ *     console.log(`Zero-page candidate: ${rec.symbol.name}`);
+ *   }
+ * }
  * ```
+ *
+ * **Analysis Order:**
+ * 1. Tier 1: Definite assignment → Variable usage
+ * 2. Tier 2: Dead code → Liveness (requires CFGs)
+ * 3. Tier 3: Purity → Loop analysis → M6502 hints
  */
 export class AdvancedAnalyzer {
-  /** Diagnostics collected during analysis */
-  protected diagnostics: Diagnostic[] = [];
+  /** Symbol table from semantic analysis */
+  protected readonly symbolTable: SymbolTable;
 
-  /** Target configuration for hardware-specific analysis */
-  protected readonly targetConfig: TargetConfig;
+  /** Type system for type information */
+  protected readonly typeSystem: TypeSystem;
+
+  /** Global symbol table (for Tier 3 analysis) */
+  protected readonly globalSymbolTable?: GlobalSymbolTable;
+
+  /** Control flow graphs per function (for Tier 2 analysis) */
+  protected readonly cfgs?: Map<string, ControlFlowGraph>;
+
+  /** Function symbols map (for Tier 3 analysis) */
+  protected readonly functionSymbols?: Map<string, Symbol>;
+
+  /** Configuration options */
+  protected readonly options: AdvancedAnalysisOptions;
+
+  /** Collected diagnostics */
+  protected diagnostics: AdvancedDiagnostic[];
+
+  /** Individual analyzer instances */
+  protected definiteAssignmentAnalyzer?: DefiniteAssignmentAnalyzer;
+  protected variableUsageAnalyzer?: VariableUsageAnalyzer;
+  protected deadCodeAnalyzer?: DeadCodeAnalyzer;
+  protected livenessAnalyzers: Map<string, LivenessAnalyzer>;
+  protected purityAnalyzer?: PurityAnalyzer;
+  protected loopAnalyzer?: LoopAnalyzer;
+  protected m6502Analyzer?: M6502HintAnalyzer;
 
   /**
-   * Creates an advanced analyzer
+   * Create a new advanced analyzer
    *
-   * @param symbolTable - Symbol table from Pass 1
-   * @param cfgs - Control flow graphs from Pass 5
-   * @param typeSystem - Type system from Pass 2
-   * @param targetConfig - Optional target configuration (defaults to C64)
+   * @param symbolTable - Symbol table from semantic analysis
+   * @param typeSystem - Type system for type information
+   * @param context - Additional context required for analysis
+   * @param options - Configuration options
    */
   constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly cfgs: Map<string, ControlFlowGraph>,
-    protected readonly typeSystem: TypeSystem,
-    targetConfig?: TargetConfig
+    symbolTable: SymbolTable,
+    typeSystem: TypeSystem,
+    context?: {
+      globalSymbolTable?: GlobalSymbolTable;
+      cfgs?: Map<string, ControlFlowGraph>;
+      functionSymbols?: Map<string, Symbol>;
+    },
+    options?: Partial<AdvancedAnalysisOptions>
   ) {
-    // Default to C64 config for backward compatibility
-    this.targetConfig = targetConfig ?? getDefaultTargetConfig();
+    this.symbolTable = symbolTable;
+    this.typeSystem = typeSystem;
+    this.globalSymbolTable = context?.globalSymbolTable;
+    this.cfgs = context?.cfgs;
+    this.functionSymbols = context?.functionSymbols;
+    this.options = { ...DEFAULT_ADVANCED_OPTIONS, ...options };
+    this.diagnostics = [];
+    this.livenessAnalyzers = new Map();
   }
 
+  /** The current AST being analyzed */
+  protected currentAst?: Program;
+
   /**
-   * Run all Phase 8 analyses
+   * Run all enabled analysis passes
    *
-   * Executes analyses in dependency order:
-   * 1. Tier 1: Basic analysis (usage, dead code detection)
-   * 2. Tier 2: Data flow (reaching defs, liveness, constant propagation)
-   * 3. Tier 3: Advanced (alias, purity, escape, loops, 6502 hints)
+   * Executes analysis in tier order, collecting diagnostics from each pass.
    *
-   * Each tier's results are stored in AST node metadata using
-   * OptimizationMetadataKey enum for type safety.
-   *
-   * @param ast - Program AST to analyze
+   * @param ast - The AST to analyze
+   * @returns Complete analysis result
    */
-  public analyze(ast: Program): void {
-    try {
-      // Tier 1: Basic Analysis
-      // Provides: usage counts, dead code detection, definite assignment
-      this.runTier1BasicAnalysis(ast);
+  public analyze(ast?: Program): AdvancedAnalysisResult {
+    this.currentAst = ast;
+    const startTime = Date.now();
+    this.diagnostics = [];
+    const tiersCompleted: number[] = [];
 
-      // Tier 2: Data Flow Analysis (requires Tier 1)
-      // Provides: reaching definitions, liveness, constant propagation
-      this.runTier2DataFlowAnalysis(ast);
+    // Individual results
+    let definiteAssignmentResult: DefiniteAssignmentResult | undefined;
+    let variableUsageResult: VariableUsageResult | undefined;
+    let deadCodeResult: DeadCodeResult | undefined;
+    let livenessResults: Map<string, LivenessResult> | undefined;
+    let purityResult: PurityAnalysisResult | undefined;
+    let loopResult: LoopAnalysisResult | undefined;
+    let m6502Result: M6502HintResult | undefined;
 
-      // Tier 3: Advanced Analysis (requires Tiers 1+2)
-      // Provides: alias analysis, purity, escape, loops, 6502 hints
-      this.runTier3AdvancedAnalysis(ast);
-    } catch (error) {
-      // Catch any unexpected analysis errors
-      this.diagnostics.push({
-        code: DiagnosticCode.TYPE_MISMATCH, // Generic semantic error
-        severity: DiagnosticSeverity.ERROR,
-        message: `Internal error during advanced analysis: ${error instanceof Error ? error.message : String(error)}`,
-        location: ast.getLocation(),
-      });
+    // Tier 1: Core analysis
+    if (this.options.enableTier1) {
+      definiteAssignmentResult = this.runTier1DefiniteAssignment();
+      variableUsageResult = this.runTier1VariableUsage();
+      tiersCompleted.push(1);
     }
+
+    // Tier 2: CFG-based analysis
+    if (this.options.enableTier2 && this.cfgs && this.cfgs.size > 0) {
+      deadCodeResult = this.runTier2DeadCode();
+      livenessResults = this.runTier2Liveness();
+      tiersCompleted.push(2);
+    }
+
+    // Tier 3: Optimization hints
+    if (this.options.enableTier3 && this.globalSymbolTable && this.functionSymbols) {
+      purityResult = this.runTier3Purity();
+      loopResult = this.runTier3LoopAnalysis();
+      m6502Result = this.runTier3M6502Hints();
+      tiersCompleted.push(3);
+    }
+
+    // Count by severity
+    let errorCount = 0;
+    let warningCount = 0;
+    let infoCount = 0;
+
+    for (const diag of this.diagnostics) {
+      switch (diag.severity) {
+        case DiagnosticSeverity.Error:
+          errorCount++;
+          break;
+        case DiagnosticSeverity.Warning:
+          warningCount++;
+          break;
+        case DiagnosticSeverity.Info:
+          infoCount++;
+          break;
+      }
+    }
+
+    return {
+      diagnostics: [...this.diagnostics],
+      errorCount,
+      warningCount,
+      infoCount,
+      definiteAssignment: definiteAssignmentResult,
+      variableUsage: variableUsageResult,
+      deadCode: deadCodeResult,
+      liveness: livenessResults,
+      purity: purityResult,
+      loopAnalysis: loopResult,
+      m6502Hints: m6502Result,
+      analysisTime: Date.now() - startTime,
+      tiersCompleted,
+    };
   }
 
   /**
-   * Tier 1: Basic Analysis
+   * Run Tier 1: Definite Assignment Analysis
    *
-   * Performs fundamental analyses that other tiers depend on:
-   * - Task 8.1: Definite assignment analysis 
-   * - Task 8.2: Variable usage analysis
-   * - Task 8.3: Unused function detection
-   * - Task 8.4: Dead code detection
-   *
-   * Results stored using OptimizationMetadataKey enum.
-   *
-   * @param ast - Program AST
+   * Detects variables that may be used before being assigned.
    */
-  protected runTier1BasicAnalysis(ast: Program): void {
-    // Task 8.1: Definite assignment analysis 
-    // Analyzes: variable initialization before use
-    // Metadata: DefiniteAssignmentAlwaysInitialized, DefiniteAssignmentInitValue
-    const definiteAssignment = new DefiniteAssignmentAnalyzer(this.symbolTable, this.cfgs);
-    definiteAssignment.analyze(ast);
-    this.diagnostics.push(...definiteAssignment.getDiagnostics());
+  protected runTier1DefiniteAssignment(): DefiniteAssignmentResult {
+    this.definiteAssignmentAnalyzer = new DefiniteAssignmentAnalyzer(this.symbolTable);
+    const result = this.definiteAssignmentAnalyzer.analyze();
 
-    // Task 8.2: Variable usage analysis
-    // Analyzes: read/write counts, hot path accesses, loop depth
-    // Metadata: UsageReadCount, UsageWriteCount, UsageIsUsed, etc.
-    const usageAnalyzer = new VariableUsageAnalyzer(this.symbolTable);
-    usageAnalyzer.analyze(ast);
-    this.diagnostics.push(...usageAnalyzer.getDiagnostics());
+    // Convert issues to unified diagnostics
+    for (const issue of result.issues) {
+      if (this.shouldIncludeDiagnostic(this.convertDefiniteAssignmentSeverity(issue.severity))) {
+        this.addDiagnostic(this.convertDefiniteAssignmentIssue(issue));
+      }
+    }
 
-    // Task 8.3: Unused function detection
-    // Analyzes: functions that are never called
-    // Metadata: CallGraphUnused, CallGraphCallCount
-    const functionAnalyzer = new UnusedFunctionAnalyzer(this.symbolTable);
-    functionAnalyzer.analyze(ast);
-    this.diagnostics.push(...functionAnalyzer.getDiagnostics());
-
-    // Task 8.4: Dead code detection
-    // Analyzes: unreachable statements, dead stores, unreachable branches
-    // Metadata: DeadCodeUnreachable, DeadCodeKind, DeadCodeReason, DeadCodeRemovable
-    const deadCodeAnalyzer = new DeadCodeAnalyzer(this.symbolTable, this.cfgs, this.typeSystem);
-    deadCodeAnalyzer.analyze(ast);
-    this.diagnostics.push(...deadCodeAnalyzer.getDiagnostics());
+    return result;
   }
 
   /**
-   * Tier 2: Data Flow Analysis
+   * Run Tier 1: Variable Usage Analysis
    *
-   * Performs classic data flow analyses:
-   * - Task 8.5: Reaching definitions
-   * - Task 8.6: Liveness analysis
-   * - Task 8.7: Constant propagation
-   *
-   * Requires Tier 1 results (usage information).
-   *
-   * @param ast - Program AST
+   * Detects unused variables and parameters.
+   * Walks the AST to record variable reads/writes before analyzing.
    */
-  protected runTier2DataFlowAnalysis(ast: Program): void {
-    // Task 8.5: Reaching definitions analysis
-    // Analyzes: which definitions reach which uses
-    // Metadata: ReachingDefinitionsSet, DefUseChain, UseDefChain
-    const reachingAnalyzer = new ReachingDefinitionsAnalyzer(this.symbolTable, this.cfgs);
-    reachingAnalyzer.analyze(ast);
-    this.diagnostics.push(...reachingAnalyzer.getDiagnostics());
+  protected runTier1VariableUsage(): VariableUsageResult {
+    this.variableUsageAnalyzer = new VariableUsageAnalyzer(
+      this.symbolTable,
+      this.options.variableUsage
+    );
+    this.variableUsageAnalyzer.initialize();
 
-    // Task 8.6: Liveness analysis
-    // Analyzes: variable live ranges, register allocation hints
-    // Metadata: LivenessLiveIn, LivenessLiveOut, LivenessInterval
-    const livenessAnalyzer = new LivenessAnalyzer(this.symbolTable, this.cfgs);
-    livenessAnalyzer.analyze(ast);
-    this.diagnostics.push(...livenessAnalyzer.getDiagnostics());
+    // Walk the AST to record variable reads and writes
+    if (this.currentAst) {
+      this.recordVariableUsageFromAST(this.currentAst);
+    }
 
-    // Task 8.7: Constant propagation
-    // Analyzes: compile-time constant values, foldable expressions
-    // Metadata: ConstantValue, ConstantFoldable, ConstantBranchCondition
-    const constAnalyzer = new ConstantPropagationAnalyzer(this.symbolTable, this.cfgs);
-    constAnalyzer.analyze(ast);
-    this.diagnostics.push(...constAnalyzer.getDiagnostics());
+    const result = this.variableUsageAnalyzer.analyze();
+
+    // Convert issues to unified diagnostics
+    for (const issue of result.issues) {
+      if (this.shouldIncludeDiagnostic(this.convertVariableUsageSeverity(issue.severity))) {
+        this.addDiagnostic(this.convertVariableUsageIssue(issue));
+      }
+    }
+
+    return result;
   }
 
   /**
-   * Tier 3: Advanced Analysis
+   * Walk the AST to record variable reads and writes for usage analysis
    *
-   * Performs sophisticated analyses for optimization:
-   * - Task 8.8: Alias analysis
-   * - Task 8.9: Purity analysis
-   * - Task 8.10: Escape analysis
-   * - Task 8.11: Loop analysis
-   * - Task 8.12: Call graph analysis
-   * - Task 8.13: 6502-specific hints
-   * - Task 8.14.2: Global Value Numbering (GVN)
-   * - Task 8.14.4: Common Subexpression Elimination (CSE)
+   * This is necessary because the variable usage analyzer needs to know
+   * where variables are actually used (read) in expressions.
    *
-   * Requires Tiers 1+2 results (usage + data flow).
-   *
-   * @param ast - Program AST
+   * @param ast - The program AST to walk
    */
-  protected runTier3AdvancedAnalysis(ast: Program): void {
-    // Task 8.8: Alias analysis
-    // Analyzes: pointer aliasing, memory regions, self-modifying code
-    // Metadata: AliasPointsTo, AliasNonAliasSet, AliasMemoryRegion
-    const aliasAnalyzer = new AliasAnalyzer(this.symbolTable);
-    aliasAnalyzer.analyze(ast);
-    this.diagnostics.push(...aliasAnalyzer.getDiagnostics());
+  protected recordVariableUsageFromAST(ast: Program): void {
+    const analyzer = this.variableUsageAnalyzer;
+    if (!analyzer) return;
 
-    // Task 8.9: Purity analysis
-    // Analyzes: function side effects, pure functions
-    // Metadata: PurityLevel, PurityHasSideEffects, PurityWrittenLocations, PurityIsPure
-    const purityAnalyzer = new PurityAnalyzer(this.symbolTable);
-    purityAnalyzer.analyze(ast);
-    this.diagnostics.push(...purityAnalyzer.getDiagnostics());
+    const symTable = this.symbolTable;
 
-    // Task 8.10: Escape analysis
-    // Analyzes: variable escape, stack allocatability, 6502 stack overflow detection
-    // Metadata: EscapeEscapes, EscapeStackAllocatable, EscapeReason, StackDepth, StackOverflowRisk
-    const escapeAnalyzer = new EscapeAnalyzer(this.symbolTable);
-    escapeAnalyzer.analyze(ast);
-    this.diagnostics.push(...escapeAnalyzer.getDiagnostics());
+    /**
+     * AST walker that records variable reads
+     * Uses constructor injection to capture the analyzer reference.
+     * Tracks the current function scope to ensure correct symbol lookup.
+     */
+    class UsageWalker extends ASTWalker {
+      protected currentAssignment: AssignmentExpression | null = null;
 
-    // Task 8.11: Loop analysis
-    // Analyzes: loop invariants, induction variables, hoisting, iteration counts
-    // Metadata: LoopInvariant, LoopHoistCandidate, LoopInductionVariable, LoopIterationCount, LoopUnrollable
-    const loopAnalyzer = new LoopAnalyzer(this.cfgs, this.symbolTable);
-    loopAnalyzer.analyze(ast);
-    this.diagnostics.push(...loopAnalyzer.getDiagnostics());
+      /**
+       * Current scope being visited - used for correct symbol lookup.
+       * When null, falls back to root scope (for module-level code).
+       */
+      protected currentScope: Scope | null = null;
 
-    // Task 8.12: Call graph analysis
-    // Analyzes: inlining candidates, recursion, tail calls, dead functions
-    // Metadata: CallGraphInlineCandidate, CallGraphRecursionDepth, CallGraphCallCount, CallGraphUnused
-    const callGraphAnalyzer = new CallGraphAnalyzer();
-    callGraphAnalyzer.analyze(ast);
-    this.diagnostics.push(...callGraphAnalyzer.getDiagnostics());
+      constructor(
+        private readonly usageAnalyzer: VariableUsageAnalyzer,
+        private readonly symbolTable: SymbolTable
+      ) {
+        super();
+        // Start with the root scope for module-level declarations
+        this.currentScope = this.symbolTable.getRootScope();
+      }
 
-    // Task 8.13: 6502-specific hints (uses target configuration)
-    // Analyzes: zero-page priority, register preferences, cycle counts, reserved ZP validation
-    // Metadata: M6502ZeroPagePriority, M6502RegisterPreference, M6502CycleEstimate, M6502ZeroPageReserved
-    // NOTE: Passes targetConfig for target-aware zero-page validation
-    const m6502Analyzer = new M6502HintAnalyzer(this.symbolTable, this.cfgs, this.targetConfig);
-    m6502Analyzer.analyze(ast);
-    this.diagnostics.push(...m6502Analyzer.getDiagnostics());
+      /**
+       * Look up a symbol using the current scope context.
+       * Falls back to root scope if currentScope is null.
+       */
+      protected lookupSymbol(name: string): Symbol | undefined {
+        const scope = this.currentScope ?? this.symbolTable.getRootScope();
+        return this.symbolTable.lookupFrom(name, scope);
+      }
 
-    // Task 8.14.2: Global Value Numbering
-    // Analyzes: redundant computations, value equivalence across code paths
-    // Metadata: GVNNumber, GVNRedundant, GVNReplacement
-    const gvnAnalyzer = new GlobalValueNumberingAnalyzer(this.cfgs, this.symbolTable);
-    gvnAnalyzer.analyze(ast);
-    this.diagnostics.push(...gvnAnalyzer.getDiagnostics());
+      /**
+       * Override visitFunctionDecl to track the function's scope.
+       * This ensures symbols are looked up in the correct scope context.
+       */
+      override visitFunctionDecl(node: FunctionDecl): void {
+        const functionName = node.getName();
 
-    // Task 8.14.4: Common Subexpression Elimination
-    // Analyzes: local redundant subexpressions within basic blocks
-    // Metadata: CSEAvailable, CSECandidate
-    const cseAnalyzer = new CommonSubexpressionEliminationAnalyzer(this.cfgs, this.symbolTable);
-    cseAnalyzer.analyze(ast);
-    this.diagnostics.push(...cseAnalyzer.getDiagnostics());
+        // Get the function's scope from the symbol table
+        // Function scopes are stored with key "function:name"
+        const functionScope = this.symbolTable.getScope(`function:${functionName}`);
 
-    // ==========================================
-    // IL Readiness Analysis
-    // ==========================================
+        // Save previous scope and enter function scope
+        const prevScope = this.currentScope;
+        if (functionScope) {
+          this.currentScope = functionScope;
+        }
 
-    // Type Coercion Analysis
-    // Analyzes: where type conversions are needed for IL generation
-    // Metadata: TypeCoercionRequired, TypeCoercionSourceType, TypeCoercionTargetType, TypeCoercionImplicit, TypeCoercionCost
-    // NOTE: Must run after type checking has set typeInfo on nodes
-    const typeCoercionAnalyzer = new TypeCoercionAnalyzer(this.symbolTable, this.typeSystem);
-    typeCoercionAnalyzer.analyze(ast);
-    this.diagnostics.push(...typeCoercionAnalyzer.getDiagnostics());
+        // Visit the function body using parent's implementation
+        super.visitFunctionDecl(node);
 
-    // Expression Complexity Analysis
-    // Analyzes: complexity scores for optimal register allocation decisions on 6502
-    // Metadata: ExprComplexityScore, ExprRegisterPressure, ExprTreeDepth, ExprOperationCount, ExprContainsCall, ExprContainsMemoryAccess
-    // NOTE: Critical for IL generator to make spill/register allocation decisions
-    const exprComplexityAnalyzer = new ExpressionComplexityAnalyzer();
-    exprComplexityAnalyzer.analyze(ast);
-    this.diagnostics.push(...exprComplexityAnalyzer.getDiagnostics());
+        // Restore previous scope after visiting function
+        this.currentScope = prevScope;
+      }
+
+      override visitIdentifierExpression(node: IdentifierExpression): void {
+        const name = node.getName();
+        const symbol = this.lookupSymbol(name);
+
+        if (symbol && (symbol.kind === SymbolKind.Variable || symbol.kind === SymbolKind.Parameter)) {
+          // Check if this is a read or write context
+          // If we're inside an assignment and this is the target, it's a write (handled separately)
+          if (this.currentAssignment === null || this.currentAssignment.getTarget() !== node) {
+            // This is a READ - variable is being used in an expression
+            this.usageAnalyzer.recordRead(symbol, node.getLocation());
+          }
+          // Note: writes are handled in visitAssignmentExpression
+        }
+
+        super.visitIdentifierExpression(node);
+      }
+
+      override visitAssignmentExpression(node: AssignmentExpression): void {
+        // Record write for the assignment target
+        const target = node.getTarget();
+        if (target.getNodeType() === 'IdentifierExpression') {
+          const identExpr = target as IdentifierExpression;
+          const name = identExpr.getName();
+          const symbol = this.lookupSymbol(name);
+
+          if (symbol && (symbol.kind === SymbolKind.Variable || symbol.kind === SymbolKind.Parameter)) {
+            this.usageAnalyzer.recordWrite(symbol, target.getLocation());
+          }
+        }
+
+        // Save current assignment context for identifier visits
+        const prevAssignment = this.currentAssignment;
+        this.currentAssignment = node;
+
+        // Visit target (but it's a write context, so identifier won't record a read)
+        target.accept(this);
+
+        // Reset context before visiting value (value identifiers are reads)
+        this.currentAssignment = null;
+
+        // Visit value expression - identifiers here ARE reads
+        node.getValue().accept(this);
+
+        // Restore
+        this.currentAssignment = prevAssignment;
+      }
+
+      override visitForStatement(node: ForStatement): void {
+        // Mark loop counter as a loop counter (may be intentionally unused)
+        // Blend65 for loops have a 'variable' property, not an initializer
+        const varName = node.getVariable();
+        const symbol = this.lookupSymbol(varName);
+        if (symbol) {
+          this.usageAnalyzer.markAsLoopCounter(symbol);
+        }
+
+        // Continue normal traversal
+        super.visitForStatement(node);
+      }
+    }
+
+    const walker = new UsageWalker(analyzer, symTable);
+    walker.walk(ast);
   }
 
   /**
-   * Get all diagnostics generated during analysis
+   * Run Tier 2: Dead Code Analysis
    *
-   * Includes warnings about:
-   * - Unused variables and functions
-   * - Unreachable code
-   * - Uninitialized variables
-   * - Inefficient patterns
-   *
-   * @returns Array of diagnostics
+   * Detects unreachable code using CFGs.
    */
-  public getDiagnostics(): Diagnostic[] {
-    return [...this.diagnostics];
+  protected runTier2DeadCode(): DeadCodeResult {
+    this.deadCodeAnalyzer = new DeadCodeAnalyzer();
+
+    if (this.cfgs) {
+      this.deadCodeAnalyzer.analyzeFunctions(this.cfgs);
+    }
+
+    const result = this.deadCodeAnalyzer.getResult();
+
+    // Convert issues to unified diagnostics
+    for (const issue of result.issues) {
+      if (this.shouldIncludeDiagnostic(this.convertDeadCodeSeverity(issue.severity))) {
+        this.addDiagnostic(this.convertDeadCodeIssue(issue));
+      }
+    }
+
+    return result;
   }
 
   /**
-   * Check if any errors occurred during analysis
+   * Run Tier 2: Liveness Analysis
    *
-   * @returns True if errors exist
+   * Computes live variable sets for each function's CFG.
    */
-  public hasErrors(): boolean {
-    return this.diagnostics.some(d => d.severity === DiagnosticSeverity.ERROR);
+  protected runTier2Liveness(): Map<string, LivenessResult> {
+    const results = new Map<string, LivenessResult>();
+
+    if (this.cfgs) {
+      for (const [functionName, cfg] of this.cfgs) {
+        const analyzer = new LivenessAnalyzer(this.options.liveness);
+        this.livenessAnalyzers.set(functionName, analyzer);
+
+        // Note: The liveness analyzer requires use/def information to be recorded
+        // during AST traversal. Here we just run the analysis with whatever
+        // has been recorded.
+        const result = analyzer.analyze(cfg);
+        results.set(functionName, result);
+
+        // Liveness analysis doesn't produce diagnostics directly
+        // but the results are used by other optimizations
+      }
+    }
+
+    return results;
   }
 
   /**
-   * Check if any warnings occurred during analysis
+   * Run Tier 3: Purity Analysis
    *
-   * @returns True if warnings exist
+   * Determines which functions have side effects.
    */
-  public hasWarnings(): boolean {
-    return this.diagnostics.some(d => d.severity === DiagnosticSeverity.WARNING);
+  protected runTier3Purity(): PurityAnalysisResult {
+    if (!this.globalSymbolTable || !this.functionSymbols) {
+      return {
+        functions: new Map(),
+        pureCount: 0,
+        impureCount: 0,
+        totalFunctions: 0,
+        purityPercentage: 0,
+      };
+    }
+
+    this.purityAnalyzer = new PurityAnalyzer(
+      this.globalSymbolTable,
+      this.functionSymbols,
+      this.options.purity
+    );
+
+    // Initialize all functions
+    for (const name of this.functionSymbols.keys()) {
+      this.purityAnalyzer.initializeFunction(name);
+    }
+
+    const result = this.purityAnalyzer.analyze();
+
+    // Purity results are informational, not diagnostics
+    // They're used by the optimizer
+
+    return result;
+  }
+
+  /**
+   * Run Tier 3: Loop Analysis
+   *
+   * Identifies loop optimization opportunities.
+   */
+  protected runTier3LoopAnalysis(): LoopAnalysisResult {
+    this.loopAnalyzer = new LoopAnalyzer(this.options.loop);
+    const result = this.loopAnalyzer.analyze();
+
+    // Loop analysis results are used by the optimizer
+    // No diagnostics are generated
+
+    return result;
+  }
+
+  /**
+   * Run Tier 3: M6502 Hints Analysis
+   *
+   * Generates 6502-specific optimization hints.
+   */
+  protected runTier3M6502Hints(): M6502HintResult {
+    if (!this.globalSymbolTable || !this.functionSymbols) {
+      return {
+        hints: [],
+        zeroPageRecommendations: [],
+        estimatedZeroPageNeeds: 0,
+        inlineCandidates: [],
+        tailCallCandidates: [],
+        hotVariables: [],
+      };
+    }
+
+    this.m6502Analyzer = new M6502HintAnalyzer(
+      this.globalSymbolTable,
+      this.functionSymbols,
+      this.options.m6502
+    );
+
+    const result = this.m6502Analyzer.analyze();
+
+    // M6502 hints can produce informational diagnostics
+    if (this.options.includeInfo) {
+      for (const hint of result.hints) {
+        this.addDiagnostic({
+          code: `M6502_${hint.kind.toUpperCase()}`,
+          severity: DiagnosticSeverity.Info,
+          category: DiagnosticCategory.M6502,
+          message: hint.description,
+          location: {
+            line: hint.location.start.line,
+            column: hint.location.start.column,
+          },
+          symbol: hint.symbol,
+          functionName: hint.functionName,
+        });
+      }
+    }
+
+    return result;
   }
 
   /**
    * Add a diagnostic to the collection
-   *
-   * @param diagnostic - Diagnostic to add
    */
-  protected addDiagnostic(diagnostic: Diagnostic): void {
-    this.diagnostics.push(diagnostic);
-  }
-
-  /**
-   * Create and add an error diagnostic
-   *
-   * @param message - Error message
-   * @param location - Source location
-   */
-  protected addError(message: string, location: SourceLocation): void {
-    this.diagnostics.push({
-      code: DiagnosticCode.TYPE_MISMATCH, // Generic semantic error
-      severity: DiagnosticSeverity.ERROR,
-      message,
-      location,
-    });
-  }
-
-  /**
-   * Create and add a warning diagnostic
-   *
-   * @param message - Warning message
-   * @param location - Source location
-   */
-  protected addWarning(message: string, location: SourceLocation): void {
-    this.diagnostics.push({
-      code: DiagnosticCode.UNUSED_IMPORT, // Generic warning code
-      severity: DiagnosticSeverity.WARNING,
-      message,
-      location,
-    });
-  }
-
-  /**
-   * Create and add an info diagnostic
-   *
-   * @param message - Info message
-   * @param location - Source location
-   */
-  protected addInfo(message: string, location: SourceLocation): void {
-    this.diagnostics.push({
-      code: DiagnosticCode.UNUSED_IMPORT, // Generic info code (will be refined later)
-      severity: DiagnosticSeverity.INFO,
-      message,
-      location,
-    });
-  }
-
-  /**
-   * Get the target configuration used by this analyzer
-   *
-   * @returns Target configuration
-   */
-  public getTargetConfig(): TargetConfig {
-    return this.targetConfig;
-  }
-
-  /**
-   * Tier 4: Target-Specific Hardware Analysis
-   *
-   * Performs hardware-specific analysis for the configured target:
-   * - C64: VIC-II raster timing, SID resource conflicts, I/O register validation
-   * - C128: VDC timing (not yet implemented)
-   * - X16: VERA timing (not yet implemented)
-   *
-   * **IMPORTANT**: This tier is optional and should only be run when
-   * hardware-specific analysis is needed (e.g., for raster effects).
-   * It is NOT called automatically by analyze() to maintain backward compatibility.
-   *
-   * Requires Tiers 1-3 results (usage + data flow + advanced analysis).
-   *
-   * @param ast - Program AST to analyze
-   * @returns True if analysis was performed, false if no analyzer available
-   *
-   * @example
-   * ```typescript
-   * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, c64Config);
-   * analyzer.analyze(ast);
-   *
-   * // Optionally run hardware-specific analysis for raster effects
-   * if (analyzer.runTier4HardwareAnalysis(ast)) {
-   *   console.log('Hardware analysis complete');
-   * }
-   * ```
-   */
-  public runTier4HardwareAnalysis(ast: Program): boolean {
-    // Check if hardware analyzer is available for this target
-    if (!isHardwareAnalyzerAvailable(this.targetConfig.architecture)) {
-      this.addWarning(
-        `No hardware analyzer available for target '${this.targetConfig.architecture}'. ` +
-          `Hardware-specific analysis skipped.`,
-        ast.getLocation()
-      );
-      return false;
-    }
-
-    try {
-      // Create and run the target-specific hardware analyzer
-      const hardwareAnalyzer = createHardwareAnalyzer(
-        this.targetConfig.architecture,
-        this.symbolTable,
-        this.cfgs
-      );
-
-      const result = hardwareAnalyzer.analyze(ast);
-
-      // Collect diagnostics from hardware analysis
-      this.diagnostics.push(...result.diagnostics);
-
-      return result.success;
-    } catch (error) {
-      // Handle analyzer creation/execution errors gracefully
-      this.addError(
-        `Error during hardware analysis: ${error instanceof Error ? error.message : String(error)}`,
-        ast.getLocation()
-      );
-      return false;
+  protected addDiagnostic(diagnostic: AdvancedDiagnostic): void {
+    if (this.diagnostics.length < this.options.maxDiagnostics) {
+      this.diagnostics.push(diagnostic);
     }
   }
 
   /**
-   * Run full analysis including Tier 4 hardware analysis
-   *
-   * Convenience method that runs all tiers including hardware-specific analysis.
-   * Equivalent to calling analyze() followed by runTier4HardwareAnalysis().
-   *
-   * @param ast - Program AST to analyze
-   * @returns True if all analyses succeeded (including Tier 4)
-   *
-   * @example
-   * ```typescript
-   * const analyzer = new AdvancedAnalyzer(symbolTable, cfgs, typeSystem, c64Config);
-   * const success = analyzer.analyzeWithHardware(ast);
-   * ```
+   * Check if a diagnostic should be included based on severity
    */
-  public analyzeWithHardware(ast: Program): boolean {
-    // Run Tiers 1-3
-    this.analyze(ast);
+  protected shouldIncludeDiagnostic(severity: DiagnosticSeverity): boolean {
+    if (severity === DiagnosticSeverity.Info) {
+      return this.options.includeInfo;
+    }
+    return true;
+  }
 
-    // Check if Tier 1-3 had errors
-    if (this.hasErrors()) {
-      return false;
+  /**
+   * Convert definite assignment severity to unified severity
+   */
+  protected convertDefiniteAssignmentSeverity(severity: DefiniteAssignmentSeverity): DiagnosticSeverity {
+    switch (severity) {
+      case DefiniteAssignmentSeverity.Error:
+        return DiagnosticSeverity.Error;
+      case DefiniteAssignmentSeverity.Warning:
+        return DiagnosticSeverity.Warning;
+      case DefiniteAssignmentSeverity.Info:
+        return DiagnosticSeverity.Info;
+    }
+  }
+
+  /**
+   * Convert variable usage severity to unified severity
+   */
+  protected convertVariableUsageSeverity(severity: VariableUsageSeverity): DiagnosticSeverity {
+    switch (severity) {
+      case VariableUsageSeverity.Warning:
+        return DiagnosticSeverity.Warning;
+      case VariableUsageSeverity.Info:
+        return DiagnosticSeverity.Info;
+    }
+  }
+
+  /**
+   * Convert dead code severity to unified severity
+   */
+  protected convertDeadCodeSeverity(severity: DeadCodeSeverity): DiagnosticSeverity {
+    switch (severity) {
+      case DeadCodeSeverity.Warning:
+        return DiagnosticSeverity.Warning;
+      case DeadCodeSeverity.Info:
+        return DiagnosticSeverity.Info;
+    }
+  }
+
+  /**
+   * Convert definite assignment issue to unified diagnostic
+   */
+  protected convertDefiniteAssignmentIssue(issue: DefiniteAssignmentIssue): AdvancedDiagnostic {
+    return {
+      code: `DA_${issue.kind.toUpperCase()}`,
+      severity: this.convertDefiniteAssignmentSeverity(issue.severity),
+      category: DiagnosticCategory.DefiniteAssignment,
+      message: issue.message,
+      location: {
+        line: issue.readLocation.start.line,
+        column: issue.readLocation.start.column,
+      },
+      suggestion: issue.suggestion,
+      symbol: issue.symbol,
+    };
+  }
+
+  /**
+   * Convert variable usage issue to unified diagnostic
+   */
+  protected convertVariableUsageIssue(issue: VariableUsageIssue): AdvancedDiagnostic {
+    return {
+      code: `VU_${issue.kind.toUpperCase()}`,
+      severity: this.convertVariableUsageSeverity(issue.severity),
+      category: DiagnosticCategory.VariableUsage,
+      message: issue.message,
+      location: {
+        line: issue.location.start.line,
+        column: issue.location.start.column,
+      },
+      suggestion: issue.suggestion,
+      symbol: issue.symbol,
+    };
+  }
+
+  /**
+   * Convert dead code issue to unified diagnostic
+   */
+  protected convertDeadCodeIssue(issue: DeadCodeIssue): AdvancedDiagnostic {
+    return {
+      code: `DC_${issue.kind.toUpperCase()}`,
+      severity: this.convertDeadCodeSeverity(issue.severity),
+      category: DiagnosticCategory.DeadCode,
+      message: issue.message,
+      location: {
+        line: issue.location.start.line,
+        column: issue.location.start.column,
+      },
+      suggestion: issue.suggestion,
+      functionName: issue.functionName,
+    };
+  }
+
+  /**
+   * Get all collected diagnostics
+   *
+   * @returns Array of all diagnostics
+   */
+  public getDiagnostics(): AdvancedDiagnostic[] {
+    return [...this.diagnostics];
+  }
+
+  /**
+   * Get diagnostics filtered by severity
+   *
+   * @param severity - Severity to filter by
+   * @returns Filtered diagnostics
+   */
+  public getDiagnosticsBySeverity(severity: DiagnosticSeverity): AdvancedDiagnostic[] {
+    return this.diagnostics.filter(d => d.severity === severity);
+  }
+
+  /**
+   * Get diagnostics filtered by category
+   *
+   * @param category - Category to filter by
+   * @returns Filtered diagnostics
+   */
+  public getDiagnosticsByCategory(category: DiagnosticCategory): AdvancedDiagnostic[] {
+    return this.diagnostics.filter(d => d.category === category);
+  }
+
+  /**
+   * Check if any errors were found
+   *
+   * @returns true if there are error-level diagnostics
+   */
+  public hasErrors(): boolean {
+    return this.diagnostics.some(d => d.severity === DiagnosticSeverity.Error);
+  }
+
+  /**
+   * Check if any warnings were found
+   *
+   * @returns true if there are warning-level diagnostics
+   */
+  public hasWarnings(): boolean {
+    return this.diagnostics.some(d => d.severity === DiagnosticSeverity.Warning);
+  }
+
+  /**
+   * Get access to individual analyzers for advanced use
+   */
+  public getDefiniteAssignmentAnalyzer(): DefiniteAssignmentAnalyzer | undefined {
+    return this.definiteAssignmentAnalyzer;
+  }
+
+  public getVariableUsageAnalyzer(): VariableUsageAnalyzer | undefined {
+    return this.variableUsageAnalyzer;
+  }
+
+  public getDeadCodeAnalyzer(): DeadCodeAnalyzer | undefined {
+    return this.deadCodeAnalyzer;
+  }
+
+  public getLivenessAnalyzer(functionName: string): LivenessAnalyzer | undefined {
+    return this.livenessAnalyzers.get(functionName);
+  }
+
+  public getPurityAnalyzer(): PurityAnalyzer | undefined {
+    return this.purityAnalyzer;
+  }
+
+  public getLoopAnalyzer(): LoopAnalyzer | undefined {
+    return this.loopAnalyzer;
+  }
+
+  public getM6502Analyzer(): M6502HintAnalyzer | undefined {
+    return this.m6502Analyzer;
+  }
+
+  /**
+   * Format a human-readable report of all analysis results
+   *
+   * @returns Multi-line report string
+   */
+  public formatReport(): string {
+    const lines: string[] = [];
+
+    lines.push('=== Advanced Analysis Report ===');
+    lines.push('');
+
+    // Summary
+    const errors = this.getDiagnosticsBySeverity(DiagnosticSeverity.Error);
+    const warnings = this.getDiagnosticsBySeverity(DiagnosticSeverity.Warning);
+    const info = this.getDiagnosticsBySeverity(DiagnosticSeverity.Info);
+
+    lines.push('Summary:');
+    lines.push(`  Errors: ${errors.length}`);
+    lines.push(`  Warnings: ${warnings.length}`);
+    lines.push(`  Info: ${info.length}`);
+    lines.push('');
+
+    // Diagnostics by category
+    for (const category of Object.values(DiagnosticCategory)) {
+      const categoryDiags = this.getDiagnosticsByCategory(category);
+      if (categoryDiags.length > 0) {
+        lines.push(`${category}:`);
+        for (const diag of categoryDiags.slice(0, 10)) {
+          lines.push(`  [${diag.severity}] ${diag.message}`);
+          lines.push(`    at line ${diag.location.line}, column ${diag.location.column}`);
+          if (diag.suggestion) {
+            lines.push(`    suggestion: ${diag.suggestion}`);
+          }
+        }
+        if (categoryDiags.length > 10) {
+          lines.push(`  ... and ${categoryDiags.length - 10} more`);
+        }
+        lines.push('');
+      }
     }
 
-    // Run Tier 4 hardware analysis
-    return this.runTier4HardwareAnalysis(ast);
+    return lines.join('\n');
+  }
+
+  /**
+   * Reset analyzer state for reuse
+   */
+  public reset(): void {
+    this.diagnostics = [];
+    this.definiteAssignmentAnalyzer = undefined;
+    this.variableUsageAnalyzer = undefined;
+    this.deadCodeAnalyzer = undefined;
+    this.livenessAnalyzers.clear();
+    this.purityAnalyzer = undefined;
+    this.loopAnalyzer = undefined;
+    this.m6502Analyzer = undefined;
   }
 }

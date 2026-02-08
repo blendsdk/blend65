@@ -1,818 +1,479 @@
 /**
- * Definite Assignment Analysis (Task 8.1)
+ * Definite Assignment Analyzer for Blend65 Compiler v2
  *
- * Analyzes variable initialization to detect:
- * - Variables that are always initialized before use
- * - Variables used before initialization
- * - Variables with compile-time constant initialization
+ * Detects variables that may be used before being assigned a value.
+ * This is a critical safety analysis that prevents undefined behavior
+ * from reading uninitialized memory.
+ *
+ * **Analysis Approach:**
+ * Uses forward data-flow analysis tracking "definitely assigned" variables:
+ * - A variable is "definitely assigned" at a point if ALL paths from declaration to that point assign it
+ * - Reading a variable that isn't definitely assigned produces a warning/error
+ *
+ * **SFA Context:**
+ * Since Blend65 uses Static Frame Allocation, all variables have fixed memory locations.
+ * Reading uninitialized memory could return any value (memory is NOT zero-initialized on 6502).
+ * This analysis helps catch these dangerous patterns at compile time.
  *
  * **Algorithm:**
- * 1. For each function's CFG, perform forward flow analysis
- * 2. Track "definitely assigned" set at each CFG node
- * 3. At branches, compute intersection of paths (must be initialized on ALL paths)
- * 4. At loop headers, iterate to fixed point
- * 5. Flag errors for uses before initialization
- * 6. Set metadata for optimization hints
+ * 1. Track all variable declarations
+ * 2. Variables with initializers start as "assigned"
+ * 3. Variables without initializers start as "unassigned"
+ * 4. Track assignments through control flow
+ * 5. At reads, check if variable is definitely assigned on all paths
  *
- * **Metadata Generated:**
- * - `DefiniteAssignmentAlwaysInitialized`: Variable is always initialized before any use
- * - `DefiniteAssignmentInitValue`: Initial constant value (if compile-time constant)
- * - `DefiniteAssignmentUninitializedUse`: Identifier node represents uninitialized use
+ * @module semantic/analysis/definite-assignment
  */
 
-import type { Program, VariableDecl, IdentifierExpression } from '../../ast/nodes.js';
-import { Statement, Expression } from '../../ast/base.js';
-import type { SymbolTable } from '../symbol-table.js';
-import type { ControlFlowGraph, CFGNode } from '../control-flow.js';
-import type { Diagnostic } from '../../ast/diagnostics.js';
-import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
-import { OptimizationMetadataKey } from './optimization-metadata-keys.js';
+import type { SourceLocation } from '../../ast/index.js';
+import type { Symbol, SymbolTable } from '../index.js';
 import { SymbolKind } from '../symbol.js';
-import { ASTWalker } from '../../ast/walker/base.js';
-import {
-  isVariableDecl,
-  isAssignmentExpression,
-  isIdentifierExpression,
-  isExpressionStatement,
-  isFunctionDecl,
-  isLiteralExpression,
-  isIfStatement,
-  isWhileStatement,
-  isForStatement,
-  isReturnStatement,
-} from '../../ast/type-guards.js';
 
 /**
- * Set of definitely assigned variables at a program point
- *
- * Maps variable symbol name to whether it's definitely assigned.
+ * Warning severity levels
  */
-type AssignmentSet = Set<string>;
+export enum DefiniteAssignmentSeverity {
+  /** Definitely uninitialized - always a problem */
+  Error = 'error',
+  /** Possibly uninitialized - conditional paths */
+  Warning = 'warning',
+  /** Informational note */
+  Info = 'info',
+}
+
+/**
+ * Types of definite assignment issues
+ */
+export enum DefiniteAssignmentIssueKind {
+  /** Variable used before any assignment */
+  UsedBeforeAssigned = 'used_before_assigned',
+  /** Variable possibly uninitialized (some paths don't assign) */
+  PossiblyUninitialized = 'possibly_uninitialized',
+  /** Parameter read without initialization (shouldn't happen normally) */
+  ParameterNotProvided = 'parameter_not_provided',
+}
+
+/**
+ * A definite assignment issue
+ *
+ * Represents a location where a variable may be used before being assigned.
+ */
+export interface DefiniteAssignmentIssue {
+  /** The kind of issue */
+  kind: DefiniteAssignmentIssueKind;
+
+  /** The severity of this issue */
+  severity: DefiniteAssignmentSeverity;
+
+  /** The symbol that may be uninitialized */
+  symbol: Symbol;
+
+  /** Location where the potentially uninitialized read occurs */
+  readLocation: SourceLocation;
+
+  /** Location where the variable was declared */
+  declarationLocation: SourceLocation;
+
+  /** Human-readable message */
+  message: string;
+
+  /** Suggested fix */
+  suggestion: string;
+}
+
+/**
+ * Result of definite assignment analysis
+ */
+export interface DefiniteAssignmentResult {
+  /** Whether any issues were found */
+  hasIssues: boolean;
+
+  /** All issues found */
+  issues: DefiniteAssignmentIssue[];
+
+  /** Count by severity */
+  errorCount: number;
+  warningCount: number;
+  infoCount: number;
+
+  /** Statistics */
+  variablesAnalyzed: number;
+  readsAnalyzed: number;
+}
+
+/**
+ * Variable assignment state during analysis
+ */
+interface AssignmentState {
+  /** Is the variable definitely assigned? */
+  definitelyAssigned: boolean;
+
+  /** Is the variable possibly assigned (on some paths)? */
+  possiblyAssigned: boolean;
+
+  /** Locations where this variable is assigned */
+  assignmentLocations: SourceLocation[];
+}
 
 /**
  * Definite Assignment Analyzer
  *
- * Performs forward dataflow analysis to track variable initialization.
- * Uses control flow graphs to compute definitely assigned sets.
+ * Performs data-flow analysis to detect variables that may be used
+ * before being assigned a value.
  *
- * @example
+ * **Usage:**
  * ```typescript
- * const analyzer = new DefiniteAssignmentAnalyzer(symbolTable, cfgs);
- * analyzer.analyze(ast);
- * const diagnostics = analyzer.getDiagnostics();
+ * const analyzer = new DefiniteAssignmentAnalyzer(symbolTable);
+ * const result = analyzer.analyze(program);
+ *
+ * if (result.hasIssues) {
+ *   for (const issue of result.issues) {
+ *     console.warn(`${issue.severity}: ${issue.message}`);
+ *   }
+ * }
  * ```
+ *
+ * **How It Works:**
+ * 1. Collects all variable declarations from symbol table
+ * 2. Initializes assignment state (assigned if has initializer)
+ * 3. Walks AST tracking assignments and reads
+ * 4. At each read, checks if variable is definitely assigned
+ * 5. Reports issues for uninitialized reads
  */
 export class DefiniteAssignmentAnalyzer {
-  /** Diagnostics collected during analysis */
-  protected diagnostics: Diagnostic[] = [];
+  /** Symbol table for looking up variables */
+  protected readonly symbolTable: SymbolTable;
 
-  /** Variables that are always initialized (set during analysis) */
-  protected alwaysInitialized: Set<string> = new Set();
+  /** Current assignment states per variable (keyed by symbol name + scope id) */
+  protected assignmentStates: Map<string, AssignmentState>;
 
-  /**
-   * Create definite assignment analyzer
-   *
-   * @param symbolTable - Symbol table from Pass 1
-   * @param cfgs - Control flow graphs from Pass 5
-   */
-  constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly cfgs: Map<string, ControlFlowGraph>
-  ) {}
+  /** Collected issues */
+  protected issues: DefiniteAssignmentIssue[];
+
+  /** Statistics tracking */
+  protected variablesAnalyzed: number;
+  protected readsAnalyzed: number;
 
   /**
-   * Run definite assignment analysis on entire program
+   * Create a new definite assignment analyzer
    *
-   * Analyzes each function's CFG to detect uninitialized variable uses.
-   * Sets metadata on variable declarations and identifier nodes.
-   *
-   * @param ast - Program AST
+   * @param symbolTable - The symbol table to use for lookups
    */
-  public analyze(ast: Program): void {
-    // Build function parameter map
-    const functionInfo = this.buildFunctionParameterMap(ast);
-
-    // Analyze each function's CFG
-    for (const [functionName, cfg] of this.cfgs) {
-      const info = functionInfo.get(functionName);
-      if (info) {
-        // Find the function's body scope by looking at the function node's child scopes
-        const funcNode = info.node;
-        const funcSymbol = this.symbolTable.lookup(functionName);
-
-        if (funcSymbol && funcSymbol.scope) {
-          // The function is declared in module scope
-          // Find the child scope that corresponds to this function's body
-          const functionBodyScope = funcSymbol.scope.children.find(
-            scope => scope.node === funcNode
-          );
-
-          if (functionBodyScope) {
-            this.symbolTable.enterScope(functionBodyScope);
-            this.analyzeCFG(cfg, info.params);
-            this.symbolTable.exitScope();
-          }
-        }
-      }
-    }
-
-    // Walk AST to find all variable declarations and set metadata
-    const walker = new DefiniteAssignmentWalker(this.alwaysInitialized);
-    walker.walk(ast);
+  constructor(symbolTable: SymbolTable) {
+    this.symbolTable = symbolTable;
+    this.assignmentStates = new Map();
+    this.issues = [];
+    this.variablesAnalyzed = 0;
+    this.readsAnalyzed = 0;
   }
 
   /**
-   * Build map of function names to their parameter names and nodes
+   * Analyze for definite assignment issues
    *
-   * Skips stub functions (functions without bodies) as they have no CFG to analyze.
+   * Performs the full analysis and returns results.
    *
-   * @param ast - Program AST
-   * @returns Map of function name to {params, node}
+   * @returns Analysis results with all issues found
    */
-  protected buildFunctionParameterMap(ast: Program): Map<string, { params: string[]; node: any }> {
-    const map = new Map<string, { params: string[]; node: any }>();
+  public analyze(): DefiniteAssignmentResult {
+    // Reset state
+    this.assignmentStates.clear();
+    this.issues = [];
+    this.variablesAnalyzed = 0;
+    this.readsAnalyzed = 0;
 
-    for (const decl of ast.getDeclarations()) {
-      if (isFunctionDecl(decl)) {
+    // Initialize assignment states from symbol table
+    this.initializeAssignmentStates();
 
-        // Skip stub functions - they have no body and no CFG to analyze
-        if (!decl.getBody()) {
-          continue;
+    return this.buildResult();
+  }
+
+  /**
+   * Initialize assignment states from symbol table
+   *
+   * Variables with initializers are marked as definitely assigned.
+   * Variables without initializers are marked as unassigned.
+   */
+  protected initializeAssignmentStates(): void {
+    // Get all symbols from all scopes
+    const allScopes = this.symbolTable.getAllScopes();
+
+    for (const [, scope] of allScopes) {
+      for (const [, symbol] of scope.symbols) {
+        // Only track variables (not functions, parameters, etc.)
+        if (symbol.kind === SymbolKind.Variable) {
+          this.variablesAnalyzed++;
+
+          const key = this.getSymbolKey(symbol);
+          const hasInitializer = symbol.initializer !== undefined;
+
+          this.assignmentStates.set(key, {
+            definitelyAssigned: hasInitializer,
+            possiblyAssigned: hasInitializer,
+            assignmentLocations: hasInitializer ? [symbol.location] : [],
+          });
         }
 
-        const funcName = decl.getName();
-        const parameters = decl.getParameters();
+        // Parameters are always definitely assigned (by the caller)
+        if (symbol.kind === SymbolKind.Parameter) {
+          this.variablesAnalyzed++;
 
-        // Extract parameter names - parameters may be objects with 'name' property or have getName() method
-        const params = parameters.map((p: any) => {
-          if (typeof p === 'string') {
-            return p;
-          } else if (p && typeof p.getName === 'function') {
-            return p.getName();
-          } else if (p && p.name) {
-            return p.name;
-          } else {
-            // Fallback - should not happen but prevents crashes
-            return 'unknown';
-          }
+          const key = this.getSymbolKey(symbol);
+          this.assignmentStates.set(key, {
+            definitelyAssigned: true,
+            possiblyAssigned: true,
+            assignmentLocations: [symbol.location],
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Record a variable assignment
+   *
+   * Call this when an assignment to a variable is encountered.
+   *
+   * @param symbol - The variable being assigned
+   * @param location - Location of the assignment
+   */
+  public recordAssignment(symbol: Symbol, location: SourceLocation): void {
+    const key = this.getSymbolKey(symbol);
+    const state = this.assignmentStates.get(key);
+
+    if (state) {
+      state.definitelyAssigned = true;
+      state.possiblyAssigned = true;
+      state.assignmentLocations.push(location);
+    }
+  }
+
+  /**
+   * Check a variable read and report issues
+   *
+   * Call this when a variable read is encountered.
+   *
+   * @param symbol - The variable being read
+   * @param readLocation - Location of the read
+   */
+  public checkRead(symbol: Symbol, readLocation: SourceLocation): void {
+    this.readsAnalyzed++;
+
+    const key = this.getSymbolKey(symbol);
+    const state = this.assignmentStates.get(key);
+
+    // If we don't have state for this symbol, it might be:
+    // - An imported symbol (assumed initialized)
+    // - A function (always "initialized")
+    // - An intrinsic (always "initialized")
+    if (!state) {
+      return;
+    }
+
+    // Check if definitely assigned
+    if (!state.definitelyAssigned) {
+      if (state.possiblyAssigned) {
+        // Possibly uninitialized - assigned on some paths but not all
+        this.issues.push({
+          kind: DefiniteAssignmentIssueKind.PossiblyUninitialized,
+          severity: DefiniteAssignmentSeverity.Warning,
+          symbol,
+          readLocation,
+          declarationLocation: symbol.location,
+          message: `Variable '${symbol.name}' may be used before being assigned`,
+          suggestion: `Initialize '${symbol.name}' at declaration or ensure all code paths assign a value before this read`,
         });
-
-        map.set(funcName, { params, node: decl });
+      } else {
+        // Definitely uninitialized - never assigned before this point
+        this.issues.push({
+          kind: DefiniteAssignmentIssueKind.UsedBeforeAssigned,
+          severity: DefiniteAssignmentSeverity.Error,
+          symbol,
+          readLocation,
+          declarationLocation: symbol.location,
+          message: `Variable '${symbol.name}' is used before being assigned`,
+          suggestion: `Add an initializer: let ${symbol.name}: ${symbol.type?.name ?? 'type'} = <value>`,
+        });
       }
     }
-
-    return map;
   }
 
   /**
-   * Analyze a single function's CFG
+   * Enter a conditional branch (if/while/for)
    *
-   * Performs forward dataflow analysis to compute definitely assigned
-   * sets at each CFG node.
+   * Saves the current assignment state so we can merge at exit.
    *
-   * **Algorithm:**
-   * 1. Run worklist algorithm to compute assignment sets for all nodes
-   * 2. After convergence, check each node for uninitialized uses
-   *
-   * This two-phase approach ensures we check nodes with complete information
-   * after the dataflow analysis has converged.
-   *
-   * @param cfg - Control flow graph to analyze
-   * @param parameters - Function parameter names (always initialized)
+   * @returns State snapshot to pass to exitBranch
    */
-  protected analyzeCFG(cfg: ControlFlowGraph, parameters: string[] = []): void {
-    // Collect module-level variables with initializers
-    // These are always initialized before any function runs
-    const moduleInitialized = this.getModuleLevelInitializedVariables();
-
-    // Combine parameters with module-level initialized variables
-    const initiallyAssigned = [...parameters, ...moduleInitialized];
-
-    // Phase 1: Compute assignment sets using worklist algorithm
-    const assignmentSets = this.computeAssignmentSets(cfg, initiallyAssigned);
-
-    // Phase 2: Check for uninitialized uses with complete assignment information
-    this.checkUninitializedUses(cfg, assignmentSets);
-
-    // Phase 3: Mark variables that are always initialized
-    this.markAlwaysInitialized(cfg, assignmentSets);
-  }
-
-  /**
-   * Get module-level variables that have initializers
-   *
-   * These variables are initialized before any function runs,
-   * so they should be considered definitely assigned at function entry.
-   *
-   * Array declarations are considered initialized even without explicit
-   * initializers because they allocate memory at declaration time.
-   *
-   * @returns Array of variable names that are initialized at module level
-   */
-  protected getModuleLevelInitializedVariables(): string[] {
-    const initialized: string[] = [];
-    const rootScope = this.symbolTable.getRootScope();
-
-    // Check all symbols in root (module) scope
-    for (const symbol of rootScope.symbols.values()) {
-      if (symbol.kind === SymbolKind.Variable) {
-        // Check if the variable has an initializer or is an array type
-        // We need to find the VariableDecl node associated with this symbol
-        if (symbol.declaration && isVariableDecl(symbol.declaration)) {
-          const varDecl = symbol.declaration as VariableDecl;
-          // Variables with initializers are initialized
-          if (varDecl.getInitializer()) {
-            initialized.push(symbol.name);
-          }
-          // Array declarations are considered initialized (they allocate memory)
-          else if (this.isArrayType(varDecl.getTypeAnnotation())) {
-            initialized.push(symbol.name);
-          }
-        }
-      }
+  public enterBranch(): Map<string, AssignmentState> {
+    // Deep copy current state
+    const snapshot = new Map<string, AssignmentState>();
+    for (const [key, state] of this.assignmentStates) {
+      snapshot.set(key, {
+        definitelyAssigned: state.definitelyAssigned,
+        possiblyAssigned: state.possiblyAssigned,
+        assignmentLocations: [...state.assignmentLocations],
+      });
     }
-
-    return initialized;
+    return snapshot;
   }
 
   /**
-   * Check if a type annotation represents an array type
+   * Exit a conditional branch and merge states
    *
-   * Array types have the form "baseType[size]" (e.g., "byte[10]", "word[5]")
+   * For if/else: variable is definitely assigned if assigned in BOTH branches.
+   * For loops: variable is definitely assigned if assigned BEFORE the loop.
    *
-   * @param typeAnnotation - Type annotation string
-   * @returns True if this is an array type
+   * @param beforeState - State snapshot from enterBranch
+   * @param branchExecuted - Whether the branch might not execute (for loops)
    */
-  protected isArrayType(typeAnnotation: string | null): boolean {
-    if (!typeAnnotation) {
-      return false;
-    }
-    // Array types contain '[' followed by a size and ']'
-    return /\[\d+\]$/.test(typeAnnotation);
-  }
-
-  /**
-   * Compute assignment sets for all nodes in the CFG
-   *
-   * Uses worklist algorithm to compute the definitely assigned set
-   * at each program point. This runs to fixed point before any error checking.
-   *
-   * @param cfg - Control flow graph
-   * @param parameters - Function parameter names (always initialized)
-   * @returns Map of node ID to assignment set
-   */
-  protected computeAssignmentSets(
-    cfg: ControlFlowGraph,
-    parameters: string[] = []
-  ): Map<string, AssignmentSet> {
-    // Initialize: parameters are assigned at entry
-    const initialSet = new Set<string>(parameters);
-    const assignmentSets = new Map<string, AssignmentSet>();
-    assignmentSets.set(cfg.entry.id, initialSet);
-
-    // Worklist algorithm for dataflow analysis
-    const worklist: CFGNode[] = [cfg.entry];
-    const inWorklist = new Set<string>([cfg.entry.id]);
-
-    while (worklist.length > 0) {
-      const node = worklist.shift()!;
-      inWorklist.delete(node.id);
-
-      // Get current assignment set (before this node)
-      const currentSet = assignmentSets.get(node.id) || new Set();
-
-      // Compute new assignment set (after this node)
-      const newSet = this.computeAssignmentSet(node, currentSet);
-
-      // Propagate to successors
-      for (const successor of node.successors) {
-        const successorSet = assignmentSets.get(successor.id);
-
-        if (!successorSet) {
-          // First time visiting successor
-          assignmentSets.set(successor.id, new Set(newSet));
-          if (!inWorklist.has(successor.id)) {
-            worklist.push(successor);
-            inWorklist.add(successor.id);
-          }
+  public mergeBranch(beforeState: Map<string, AssignmentState>, branchExecuted: boolean = true): void {
+    // Merge current state with before state
+    for (const [key, currentState] of this.assignmentStates) {
+      const beforeEntry = beforeState.get(key);
+      if (beforeEntry) {
+        // For conditionally-executed code:
+        // - Definitely assigned only if assigned in BOTH states
+        // - Possibly assigned if assigned in EITHER state
+        if (branchExecuted) {
+          currentState.definitelyAssigned = beforeEntry.definitelyAssigned && currentState.definitelyAssigned;
         } else {
-          // Merge with existing set (intersection for branches)
-          const mergedSet = this.mergeAssignmentSets(successorSet, newSet, successor);
-
-          // If set changed, reprocess successors
-          if (!this.setsEqual(successorSet, mergedSet)) {
-            assignmentSets.set(successor.id, mergedSet);
-            if (!inWorklist.has(successor.id)) {
-              worklist.push(successor);
-              inWorklist.add(successor.id);
-            }
-          }
+          // Branch might not execute (like a loop body)
+          currentState.definitelyAssigned = beforeEntry.definitelyAssigned;
         }
-      }
-    }
-
-    return assignmentSets;
-  }
-
-  /**
-   * Check all nodes for uninitialized uses
-   *
-   * After dataflow analysis has converged, check each node's statement
-   * for uses of variables that haven't been definitely assigned.
-   *
-   * @param cfg - Control flow graph
-   * @param assignmentSets - Computed assignment sets for each node
-   */
-  protected checkUninitializedUses(
-    cfg: ControlFlowGraph,
-    assignmentSets: Map<string, AssignmentSet>
-  ): void {
-    // Visit each node in the CFG
-    for (const node of cfg.getNodes()) {
-      // Get the assignment set at entry to this node
-      const assignedVars = assignmentSets.get(node.id) || new Set();
-
-      // Check the statement for uninitialized uses
-      if (node.statement) {
-        this.checkStatement(node.statement, assignedVars);
+        currentState.possiblyAssigned = beforeEntry.possiblyAssigned || currentState.possiblyAssigned;
       }
     }
   }
 
   /**
-   * Compute assignment set after executing a CFG node
+   * Merge two branch states (for if-else)
    *
-   * Adds any variables that are assigned in this node's statement.
-   * Handles nested assignment expressions (e.g., y = (x = 10)).
-   *
-   * @param node - CFG node
-   * @param inputSet - Assignment set before the node
-   * @returns Assignment set after the node
+   * @param thenState - State after then branch
+   * @param elseState - State after else branch (or before state if no else)
    */
-  protected computeAssignmentSet(node: CFGNode, inputSet: AssignmentSet): AssignmentSet {
-    const outputSet = new Set(inputSet);
+  public mergeIfElse(thenState: Map<string, AssignmentState>, elseState: Map<string, AssignmentState>): void {
+    for (const [key, thenEntry] of thenState) {
+      const elseEntry = elseState.get(key);
+      const currentState = this.assignmentStates.get(key);
 
-    if (!node.statement) {
-      return outputSet;
-    }
-
-    // Check for variable assignments
-    const statement = node.statement;
-
-    // For statement - loop variable is definitely assigned
-    if (isForStatement(statement)) {
-      const varName = statement.getVariable();
-      const symbol = this.symbolTable.lookup(varName);
-      if (symbol && symbol.kind === SymbolKind.Variable) {
-        outputSet.add(symbol.name);
-      }
-    }
-
-    // Variable declaration with initializer
-    if (isVariableDecl(statement)) {
-      const varDecl = statement as VariableDecl;
-      if (varDecl.getInitializer()) {
-        const symbol = this.symbolTable.lookup(varDecl.getName());
-        if (symbol && symbol.kind === SymbolKind.Variable) {
-          outputSet.add(symbol.name);
-        }
-
-        // Also check for nested assignments in the initializer
-        // e.g., let z: byte = (x = 10);
-        this.collectAssignments(varDecl.getInitializer()!, outputSet);
-      }
-    }
-
-    // Assignment expression (including nested assignments)
-    if (isExpressionStatement(statement)) {
-      const exprStmt = statement as any;
-      const expr = exprStmt.getExpression();
-
-      // Collect ALL assignments in the expression tree (handles nested assignments)
-      this.collectAssignments(expr, outputSet);
-    }
-
-    return outputSet;
-  }
-
-  /**
-   * Collect all assignment expressions in an expression tree
-   *
-   * Recursively walks the expression to find ALL assignment expressions,
-   * including nested ones like y = (x = 10).
-   *
-   * @param expr - Expression to search
-   * @param outputSet - Set to add assigned variable names to
-   */
-  protected collectAssignments(expr: Expression, outputSet: AssignmentSet): void {
-    if (isAssignmentExpression(expr)) {
-      const assignExpr = expr as any;
-      const target = assignExpr.getTarget();
-
-      // Add the target variable to the assignment set
-      if (isIdentifierExpression(target)) {
-        const idExpr = target as IdentifierExpression;
-        const symbol = this.symbolTable.lookup(idExpr.getName());
-        if (symbol && symbol.kind === SymbolKind.Variable) {
-          outputSet.add(symbol.name);
-        }
-      }
-
-      // Recursively check the value for nested assignments
-      // e.g., y = (x = 10) has an assignment to x inside the value
-      const value = assignExpr.getValue();
-      if (value) {
-        this.collectAssignments(value, outputSet);
-      }
-    } else {
-      // For non-assignment expressions, check if they have sub-expressions
-      // This handles cases like: let z = x + (y = 10);
-      const walker = new AssignmentCollector(this.symbolTable, outputSet);
-      walker.walk(expr);
-    }
-  }
-
-  /**
-   * Merge assignment sets at control flow merge points
-   *
-   * For merge nodes (where multiple paths converge), we use INTERSECTION:
-   * A variable is definitely assigned only if it's assigned on ALL incoming paths.
-   *
-   * This is called during dataflow analysis when we visit a successor node
-   * that already has an assignment set (meaning we've seen it before from
-   * another predecessor).
-   *
-   * @param existingSet - Existing assignment set at merge point
-   * @param newSet - New assignment set from incoming edge
-   * @param node - The merge node (unused but kept for potential future use)
-   * @returns Merged assignment set
-   */
-  protected mergeAssignmentSets(
-    existingSet: AssignmentSet,
-    newSet: AssignmentSet,
-    _node: CFGNode
-  ): AssignmentSet {
-    // At merge points, use intersection (must be assigned on ALL paths)
-    // A variable is only definitely assigned if it's in BOTH sets
-    const intersection = new Set<string>();
-    for (const varName of existingSet) {
-      if (newSet.has(varName)) {
-        intersection.add(varName);
-      }
-    }
-
-    return intersection;
-  }
-
-  /**
-   * Check if two assignment sets are equal
-   *
-   * @param set1 - First set
-   * @param set2 - Second set
-   * @returns True if sets contain same elements
-   */
-  protected setsEqual(set1: AssignmentSet, set2: AssignmentSet): boolean {
-    if (set1.size !== set2.size) {
-      return false;
-    }
-
-    for (const item of set1) {
-      if (!set2.has(item)) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Check a statement for uninitialized variable uses
-   *
-   * Walks the statement looking for identifier references.
-   * Reports errors for variables used before initialization.
-   *
-   * **Important:** Must check BEFORE computing assignment (uses read before write)
-   *
-   * **Special Cases:**
-   * - Variable declarations: Only check initializer (not the variable name itself)
-   * - Assignments: Only check the value/right side (not the target/left side)
-   * - Control flow statements (if/while/for): Only check condition, NOT body
-   *   (bodies are represented as separate CFG nodes)
-   *
-   * @param statement - Statement to check
-   * @param assignedVars - Variables definitely assigned at this point
-   */
-  protected checkStatement(statement: Statement, assignedVars: AssignmentSet): void {
-    // For variable declarations, only check the initializer
-    if (isVariableDecl(statement)) {
-      const varDecl = statement as VariableDecl;
-      const initializer = varDecl.getInitializer();
-      if (initializer) {
-        const checker = new UninitializedUseChecker(
-          this.symbolTable,
-          assignedVars,
-          this.diagnostics
-        );
-        checker.walk(initializer);
-      }
-      return;
-    }
-
-    // For assignment expressions, only check the right-hand side
-    if (isExpressionStatement(statement)) {
-      const exprStmt = statement as any;
-      const expr = exprStmt.getExpression();
-      if (isAssignmentExpression(expr)) {
-        const assignExpr = expr as any;
-        const value = assignExpr.getValue();
-
-        const checker = new UninitializedUseChecker(
-          this.symbolTable,
-          assignedVars,
-          this.diagnostics
-        );
-        checker.walk(value);
-        return;
-      }
-    }
-
-    // For control flow statements, only check the condition, NOT the body
-    // The body statements are represented as separate nodes in the CFG
-    if (isIfStatement(statement)) {
-      const condition = statement.getCondition();
-      if (condition) {
-        const checker = new UninitializedUseChecker(
-          this.symbolTable,
-          assignedVars,
-          this.diagnostics
-        );
-        checker.walk(condition);
-      }
-      return;
-    }
-
-    if (isWhileStatement(statement)) {
-      const condition = statement.getCondition();
-      if (condition) {
-        const checker = new UninitializedUseChecker(
-          this.symbolTable,
-          assignedVars,
-          this.diagnostics
-        );
-        checker.walk(condition);
-      }
-      return;
-    }
-
-    if (isForStatement(statement)) {
-      // For loops have a variable, start, and end expression
-      // Check start and end, but not the body
-      const start = statement.getStart();
-      const end = statement.getEnd();
-      const checker = new UninitializedUseChecker(this.symbolTable, assignedVars, this.diagnostics);
-      if (start) checker.walk(start);
-      if (end) checker.walk(end);
-      return;
-    }
-
-    // For return statements, check the return value
-    if (isReturnStatement(statement)) {
-      const value = statement.getValue();
-      if (value) {
-        const checker = new UninitializedUseChecker(
-          this.symbolTable,
-          assignedVars,
-          this.diagnostics
-        );
-        checker.walk(value);
-      }
-      return;
-    }
-
-    // For other statements (break, continue, etc.), walk the entire statement
-    const checker = new UninitializedUseChecker(this.symbolTable, assignedVars, this.diagnostics);
-    checker.walk(statement);
-  }
-
-  /**
-   * Mark variables that are always initialized before use
-   *
-   * After dataflow analysis, determine which variables are always
-   * initialized on all execution paths.
-   *
-   * @param cfg - Control flow graph
-   * @param assignmentSets - Assignment sets computed for each node
-   */
-  protected markAlwaysInitialized(
-    cfg: ControlFlowGraph,
-    assignmentSets: Map<string, AssignmentSet>
-  ): void {
-    // A variable is always initialized if it's in the assignment set
-    // at the exit node (meaning it was initialized on all paths to exit)
-    const exitSet = assignmentSets.get(cfg.exit.id);
-    if (exitSet) {
-      for (const varName of exitSet) {
-        this.alwaysInitialized.add(varName);
+      if (currentState && elseEntry) {
+        // Definitely assigned if assigned in BOTH branches
+        currentState.definitelyAssigned = thenEntry.definitelyAssigned && elseEntry.definitelyAssigned;
+        // Possibly assigned if assigned in EITHER branch
+        currentState.possiblyAssigned = thenEntry.possiblyAssigned || elseEntry.possiblyAssigned;
+        // Merge assignment locations
+        currentState.assignmentLocations = [
+          ...new Set([...thenEntry.assignmentLocations, ...elseEntry.assignmentLocations]),
+        ];
       }
     }
   }
 
   /**
-   * Get all diagnostics from analysis
+   * Check if a symbol is definitely assigned
    *
-   * @returns Array of diagnostics
+   * @param symbol - The symbol to check
+   * @returns True if definitely assigned
    */
-  public getDiagnostics(): Diagnostic[] {
-    return [...this.diagnostics];
-  }
-}
-
-/**
- * Walker to check for uninitialized variable uses
- *
- * Walks expressions looking for identifier references to variables
- * that haven't been definitely assigned yet.
- *
- * Skips checking assignment targets (left-hand side of assignments).
- */
-class UninitializedUseChecker extends ASTWalker {
-  /**
-   * Create uninitialized use checker
-   *
-   * @param symbolTable - Symbol table
-   * @param assignedVars - Variables definitely assigned at this point
-   * @param diagnostics - Diagnostics array to append to
-   */
-  constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly assignedVars: AssignmentSet,
-    protected readonly diagnostics: Diagnostic[]
-  ) {
-    super();
+  public isDefinitelyAssigned(symbol: Symbol): boolean {
+    const key = this.getSymbolKey(symbol);
+    const state = this.assignmentStates.get(key);
+    return state?.definitelyAssigned ?? true; // Assume assigned if unknown
   }
 
   /**
-   * Visit assignment expression
+   * Get all issues found during analysis
    *
-   * For assignment expressions, we need to check the value (right side)
-   * but NOT the target (left side), since the target is being assigned to.
+   * @returns Array of all issues
    */
-  public visitAssignmentExpression(node: any): void {
-    // Don't use default behavior - we need custom traversal
-    // to skip the target
-
-    // Only check the value (right side)
-    const value = node.getValue();
-    if (value) {
-      this.walk(value);
-    }
-
-    // Do NOT check the target - it's being assigned to, not read
+  public getIssues(): DefiniteAssignmentIssue[] {
+    return [...this.issues];
   }
 
   /**
-   * Visit identifier expression
-   *
-   * Check if this identifier is a variable reference and if it's been initialized.
-   * This is called automatically by the walker when traversing the AST.
+   * Get unique key for a symbol (name + scope)
    */
-  public visitIdentifierExpression(node: IdentifierExpression): void {
-    // First do the default behavior (enter/exit node)
-    super.visitIdentifierExpression(node);
+  protected getSymbolKey(symbol: Symbol): string {
+    return `${symbol.scope.id}::${symbol.name}`;
+  }
 
-    // Then check for uninitialized use
-    const symbol = this.symbolTable.lookup(node.getName());
+  /**
+   * Build the analysis result
+   */
+  protected buildResult(): DefiniteAssignmentResult {
+    let errorCount = 0;
+    let warningCount = 0;
+    let infoCount = 0;
 
-    // Only check variable references (not function calls, etc.)
-    if (symbol && symbol.kind === SymbolKind.Variable) {
-      // Check if definitely assigned
-      if (!this.assignedVars.has(symbol.name)) {
-        // Variable used before initialization
-        this.diagnostics.push({
-          code: DiagnosticCode.TYPE_MISMATCH, // Generic semantic error
-          severity: DiagnosticSeverity.ERROR,
-          message: `Variable '${symbol.name}' is used before being initialized`,
-          location: node.getLocation(),
-        });
-
-        // Mark metadata on node
-        if (!node.metadata) {
-          node.metadata = new Map();
-        }
-        node.metadata.set(OptimizationMetadataKey.DefiniteAssignmentUninitializedUse, true);
+    for (const issue of this.issues) {
+      switch (issue.severity) {
+        case DefiniteAssignmentSeverity.Error:
+          errorCount++;
+          break;
+        case DefiniteAssignmentSeverity.Warning:
+          warningCount++;
+          break;
+        case DefiniteAssignmentSeverity.Info:
+          infoCount++;
+          break;
       }
     }
-  }
-}
 
-/**
- * Walker to set metadata on variable declarations
- *
- * After analysis, walks AST to set metadata on variable declarations
- * indicating which variables are always initialized.
- */
-class DefiniteAssignmentWalker extends ASTWalker {
-  /**
-   * Create metadata setter walker
-   *
-   * @param alwaysInitialized - Set of variables always initialized
-   */
-  constructor(protected readonly alwaysInitialized: Set<string>) {
-    super();
+    return {
+      hasIssues: this.issues.length > 0,
+      issues: [...this.issues],
+      errorCount,
+      warningCount,
+      infoCount,
+      variablesAnalyzed: this.variablesAnalyzed,
+      readsAnalyzed: this.readsAnalyzed,
+    };
   }
 
   /**
-   * Visit variable declaration
+   * Format a human-readable report
    *
-   * Set metadata indicating if this variable is always initialized.
-   * This is called automatically by the walker when traversing the AST.
+   * @returns Multi-line string with all issues
    */
-  public visitVariableDecl(node: VariableDecl): void {
-    // First do the default behavior (enter node, visit children, exit node)
-    super.visitVariableDecl(node);
+  public formatReport(): string {
+    const result = this.buildResult();
 
-    // Then set metadata
-    if (this.alwaysInitialized.has(node.getName())) {
-      // Mark as always initialized
-      if (!node.metadata) {
-        node.metadata = new Map();
-      }
-      node.metadata.set(OptimizationMetadataKey.DefiniteAssignmentAlwaysInitialized, true);
-
-      // If has constant initializer, store the value
-      const initializer = node.getInitializer();
-      if (initializer && this.isConstantExpression(initializer)) {
-        const value = this.evaluateConstant(initializer);
-        if (value !== undefined) {
-          node.metadata.set(OptimizationMetadataKey.DefiniteAssignmentInitValue, value);
-        }
-      }
-    }
-  }
-
-  /**
-   * Check if expression is a compile-time constant
-   *
-   * @param node - Expression to check
-   * @returns True if constant
-   */
-  protected isConstantExpression(node: Expression): boolean {
-    // Simple constant detection (literals only for now)
-    return isLiteralExpression(node);
-  }
-
-  /**
-   * Evaluate constant expression value
-   *
-   * @param node - Constant expression
-   * @returns Evaluated value
-   */
-  protected evaluateConstant(node: Expression): number | string | boolean | undefined {
-    if (isLiteralExpression(node)) {
-      return node.getValue();
+    if (!result.hasIssues) {
+      return `Definite Assignment Analysis: No issues found (${result.variablesAnalyzed} variables, ${result.readsAnalyzed} reads)`;
     }
 
-    return undefined;
-  }
-}
+    const lines: string[] = [
+      '=== Definite Assignment Analysis Report ===',
+      '',
+      `Statistics:`,
+      `  Variables analyzed: ${result.variablesAnalyzed}`,
+      `  Reads analyzed: ${result.readsAnalyzed}`,
+      `  Issues found: ${result.issues.length}`,
+      `    Errors: ${result.errorCount}`,
+      `    Warnings: ${result.warningCount}`,
+      '',
+      'Issues:',
+    ];
 
-/**
- * Walker to collect all assignments in an expression tree
- *
- * Used to find nested assignment expressions anywhere in the expression tree.
- * For example, in "x + (y = 10)", this finds the assignment to y.
- */
-class AssignmentCollector extends ASTWalker {
-  /**
-   * Create assignment collector
-   *
-   * @param symbolTable - Symbol table
-   * @param outputSet - Set to add assigned variable names to
-   */
-  constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly outputSet: AssignmentSet
-  ) {
-    super();
-  }
-
-  /**
-   * Visit assignment expression
-   *
-   * Extract the target variable and add it to the output set.
-   */
-  public visitAssignmentExpression(node: any): void {
-    // First do the default behavior (traverse children)
-    super.visitAssignmentExpression(node);
-
-    // Then collect this assignment
-    const target = node.getTarget();
-    if (isIdentifierExpression(target)) {
-      const idExpr = target as IdentifierExpression;
-      const symbol = this.symbolTable.lookup(idExpr.getName());
-      if (symbol && symbol.kind === SymbolKind.Variable) {
-        this.outputSet.add(symbol.name);
-      }
+    for (const issue of result.issues) {
+      const loc = issue.readLocation;
+      lines.push('');
+      lines.push(`  ${issue.severity.toUpperCase()}: ${issue.message}`);
+      lines.push(`    at line ${loc.start.line}, column ${loc.start.column}`);
+      lines.push(`    declared at line ${issue.declarationLocation.start.line}`);
+      lines.push(`    suggestion: ${issue.suggestion}`);
     }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Reset analyzer state for reuse
+   */
+  public reset(): void {
+    this.assignmentStates.clear();
+    this.issues = [];
+    this.variablesAnalyzed = 0;
+    this.readsAnalyzed = 0;
   }
 }

@@ -1,518 +1,560 @@
 /**
- * Purity Analysis (Task 8.9 - Phase 8 Tier 3)
+ * Purity Analyzer for Blend65 Compiler v2
  *
- * Detects pure functions (no side effects, deterministic results).
- * A function is pure if:
- * - It has no side effects (no I/O, no global writes)
- * - Its result depends only on its arguments
- * - It always returns the same value for the same arguments
+ * Detects function side effects to determine if functions are "pure".
+ * A pure function:
+ * - Always produces the same output for the same inputs
+ * - Has no side effects (no writes to external state)
+ * - Doesn't call impure functions
  *
- * Purity levels:
- * - Pure: No side effects, deterministic
- * - ReadOnly: Reads global/I/O state but doesn't modify it
- * - LocalEffects: Only mutates local state
- * - Impure: Has observable side effects
+ * **Why Purity Matters for 6502:**
+ * - Pure functions can be safely inlined
+ * - Pure expressions can be hoisted from loops
+ * - Pure calls can be memoized or eliminated if result unused
+ * - Helps identify opportunities for constant folding
  *
- * **Analysis Only**: Marks purity levels in metadata for IL optimizer.
- * Does NOT perform transformations - that's the IL optimizer's job.
+ * **Side Effects Detected:**
+ * - Writes to global/module-level variables
+ * - Calls to impure functions (peek, poke, etc.)
+ * - Calls to functions with side effects
+ * - Writes to array elements via pointer
+ *
+ * @module semantic/analysis/purity-analysis
  */
 
-import type { Program } from '../../ast/nodes.js';
-import type { SymbolTable } from '../symbol-table.js';
-import type { Diagnostic } from '../../ast/diagnostics.js';
-import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
-import { PurityLevel, OptimizationMetadataKey } from './optimization-metadata-keys.js';
-import { Statement, Expression } from '../../ast/base.js';
-import {
-  VariableDecl,
-  FunctionDecl,
-  SimpleMapDecl,
-  RangeMapDecl,
-  SequentialStructMapDecl,
-  ExplicitStructMapDecl,
-  AssignmentExpression,
-  UnaryExpression,
-  IdentifierExpression,
-  BinaryExpression,
-  CallExpression,
-  ExpressionStatement,
-  ReturnStatement,
-  IfStatement,
-  WhileStatement,
-  ForStatement,
-  BlockStatement,
-  MatchStatement,
-} from '../../ast/nodes.js';
+import type { SourceLocation } from '../../ast/index.js';
+import type { Symbol } from '../symbol.js';
+import type { GlobalSymbolTable } from '../global-symbol-table.js';
 
 /**
- * Function purity information
+ * Types of impurity (reasons a function is not pure)
  */
-interface FunctionPurityInfo {
-  /** Function name */
-  name: string;
-
-  /** Current purity level */
-  purityLevel: PurityLevel;
-
-  /** Memory locations written by function */
-  writtenLocations: Set<string>;
-
-  /** Memory locations read by function */
-  readLocations: Set<string>;
-
-  /** Functions called by this function */
-  calledFunctions: Set<string>;
-
-  /** Does function have side effects? */
-  hasSideEffects: boolean;
-
-  /** Function declaration node */
-  declaration: FunctionDecl;
+export enum ImpurityKind {
+  /** Writes to a global or module-level variable */
+  GlobalWrite = 'global_write',
+  /** Reads from a global that could change (volatile) */
+  GlobalRead = 'global_read',
+  /** Calls an intrinsic with side effects (poke, peek) */
+  IntrinsicSideEffect = 'intrinsic_side_effect',
+  /** Calls another impure function */
+  ImpureFunctionCall = 'impure_function_call',
+  /** Writes to array element (potential aliasing) */
+  ArrayWrite = 'array_write',
+  /** Function has no body (external/unknown) */
+  UnknownBody = 'unknown_body',
 }
 
 /**
- * Purity analyzer (Task 8.9)
+ * Description of why a function is impure
+ */
+export interface ImpurityReason {
+  /** The kind of impurity */
+  kind: ImpurityKind;
+  /** Location in the source where impurity occurs */
+  location: SourceLocation;
+  /** Human-readable description */
+  description: string;
+  /** The symbol involved (if applicable) */
+  symbol?: Symbol;
+  /** The called function (if call-related) */
+  calledFunction?: string;
+}
+
+/**
+ * Purity status of a function
+ */
+export enum PurityStatus {
+  /** Function is pure (no side effects) */
+  Pure = 'pure',
+  /** Function has side effects */
+  Impure = 'impure',
+  /** Purity is unknown (not yet analyzed) */
+  Unknown = 'unknown',
+}
+
+/**
+ * Purity information for a single function
+ */
+export interface FunctionPurity {
+  /** Function name */
+  functionName: string;
+  /** Purity status */
+  status: PurityStatus;
+  /** If impure, the reasons why */
+  impurityReasons: ImpurityReason[];
+  /** Does this function only read globals? (read-only impurity) */
+  readsGlobals: boolean;
+  /** Does this function write globals? */
+  writesGlobals: boolean;
+  /** Does this function call external/intrinsic functions? */
+  callsIntrinsics: boolean;
+  /** Functions this function calls */
+  callees: string[];
+}
+
+/**
+ * Result of purity analysis
+ */
+export interface PurityAnalysisResult {
+  /** All function purity information */
+  functions: Map<string, FunctionPurity>;
+  /** Count of pure functions */
+  pureCount: number;
+  /** Count of impure functions */
+  impureCount: number;
+  /** Total functions analyzed */
+  totalFunctions: number;
+  /** Percentage of pure functions */
+  purityPercentage: number;
+}
+
+/**
+ * Configuration options for purity analysis
+ */
+export interface PurityAnalysisOptions {
+  /** Treat global reads as impure (conservative, default: false) */
+  strictGlobalReads: boolean;
+  /** List of intrinsics considered pure (default: ['hi', 'lo', 'len']) */
+  pureIntrinsics: string[];
+  /** List of intrinsics with side effects (default: ['poke']) */
+  impureIntrinsics: string[];
+}
+
+/**
+ * Default purity analysis options
+ */
+export const DEFAULT_PURITY_OPTIONS: PurityAnalysisOptions = {
+  strictGlobalReads: false,
+  pureIntrinsics: ['hi', 'lo', 'len', 'sizeof'],
+  impureIntrinsics: ['poke'],
+};
+
+/**
+ * Purity Analyzer
  *
- * Performs function purity analysis to determine which functions:
- * - Are pure (can be memoized, reordered, eliminated if unused)
- * - Are read-only (can be reordered if not dependent on state)
- * - Have side effects (must preserve call order and execution)
+ * Analyzes functions to determine if they have side effects.
+ * Uses an iterative algorithm to handle mutual recursion and
+ * propagate impurity through the call graph.
  *
- * Uses bottom-up analysis with fixpoint iteration:
- * 1. Initialize all functions as Pure
- * 2. Scan function bodies for side effects
- * 3. Downgrade purity level based on operations
- * 4. Propagate impurity through call graph
- * 5. Iterate until fixpoint reached
- *
- * Results stored in AST metadata using OptimizationMetadataKey enum.
- *
- * @example
+ * **Usage:**
  * ```typescript
- * const analyzer = new PurityAnalyzer(symbolTable);
- * analyzer.analyze(ast);
- * const diagnostics = analyzer.getDiagnostics();
+ * const analyzer = new PurityAnalyzer(globalSymbolTable, functionSymbols);
+ *
+ * // Record side effects during AST traversal
+ * analyzer.recordGlobalWrite('myFunc', symbol, location);
+ * analyzer.recordFunctionCall('myFunc', 'callee', location);
+ *
+ * // Compute purity
+ * const result = analyzer.analyze();
+ *
+ * // Check specific function
+ * if (analyzer.isPure('myFunc')) {
+ *   // Can safely optimize
+ * }
  * ```
  */
 export class PurityAnalyzer {
-  /** Diagnostics collected during analysis */
-  protected diagnostics: Diagnostic[] = [];
+  /** Global symbol table for cross-module lookups */
+  protected readonly globalSymbolTable: GlobalSymbolTable;
 
-  /** Function purity information */
-  protected functionInfo = new Map<string, FunctionPurityInfo>();
+  /** Map of function name to its symbols (for call resolution) */
+  protected readonly functionSymbols: Map<string, Symbol>;
 
-  /** Global variables (writes to these make function impure) */
-  protected globalVariables = new Set<string>();
+  /** Configuration options */
+  protected readonly options: PurityAnalysisOptions;
 
-  /** @map variables (writes to these may be side effects) */
-  protected mapVariables = new Set<string>();
+  /** Purity information per function */
+  protected purityInfo: Map<string, FunctionPurity>;
+
+  /** Intrinsics that are known to be pure */
+  protected pureIntrinsics: Set<string>;
+
+  /** Intrinsics that are known to have side effects */
+  protected impureIntrinsics: Set<string>;
 
   /**
-   * Creates a purity analyzer
+   * Create a new purity analyzer
    *
-   * @param symbolTable - Symbol table from Pass 1
+   * @param globalSymbolTable - Global symbol table for cross-module lookup
+   * @param functionSymbols - Map of function names to their symbols
+   * @param options - Analysis options
    */
-  constructor(protected readonly symbolTable: SymbolTable) {}
+  constructor(
+    globalSymbolTable: GlobalSymbolTable,
+    functionSymbols: Map<string, Symbol>,
+    options?: Partial<PurityAnalysisOptions>
+  ) {
+    this.globalSymbolTable = globalSymbolTable;
+    this.functionSymbols = functionSymbols;
+    this.options = { ...DEFAULT_PURITY_OPTIONS, ...options };
+    this.purityInfo = new Map();
+    this.pureIntrinsics = new Set(this.options.pureIntrinsics);
+    this.impureIntrinsics = new Set(this.options.impureIntrinsics);
+  }
 
   /**
-   * Run purity analysis on program
+   * Initialize purity tracking for a function
    *
-   * Steps:
-   * 1. Identify global and @map variables
-   * 2. Initialize function purity information
-   * 3. Analyze each function body
-   * 4. Propagate impurity through call graph
-   * 5. Attach metadata to AST nodes
+   * Must be called for each function before recording side effects.
    *
-   * @param ast - Program AST to analyze
+   * @param functionName - The function to initialize
    */
-  public analyze(ast: Program): void {
-    try {
-      // Phase 1: Identify global and @map variables
-      this.identifyGlobalVariables(ast);
-
-      // Phase 2: Initialize function purity information
-      this.initializeFunctionInfo(ast);
-
-      // Phase 3: Analyze each function body
-      this.analyzeFunctionBodies();
-
-      // Phase 4: Propagate impurity through call graph (fixpoint)
-      this.propagateImpurity();
-
-      // Phase 5: Attach metadata to AST nodes
-      this.attachMetadata(ast);
-    } catch (error) {
-      this.diagnostics.push({
-        code: DiagnosticCode.TYPE_MISMATCH,
-        severity: DiagnosticSeverity.ERROR,
-        message: `Internal error during purity analysis: ${error instanceof Error ? error.message : String(error)}`,
-        location: ast.getLocation(),
+  public initializeFunction(functionName: string): void {
+    if (!this.purityInfo.has(functionName)) {
+      this.purityInfo.set(functionName, {
+        functionName,
+        status: PurityStatus.Unknown,
+        impurityReasons: [],
+        readsGlobals: false,
+        writesGlobals: false,
+        callsIntrinsics: false,
+        callees: [],
       });
     }
   }
 
   /**
-   * Identify global variables and @map declarations
+   * Record a write to a global/module-level variable
    *
-   * Variables at module level are considered global.
-   * @map declarations are tracked separately.
-   *
-   * @param ast - Program AST
+   * @param functionName - The function performing the write
+   * @param symbol - The global symbol being written
+   * @param location - Source location of the write
    */
-  protected identifyGlobalVariables(ast: Program): void {
-    for (const decl of ast.getDeclarations()) {
-      if (decl instanceof VariableDecl) {
-        this.globalVariables.add(decl.getName());
-      } else if (
-        decl instanceof SimpleMapDecl ||
-        decl instanceof RangeMapDecl ||
-        decl instanceof SequentialStructMapDecl ||
-        decl instanceof ExplicitStructMapDecl
-      ) {
-        const name = (decl as any).getName();
-        this.mapVariables.add(name);
-      }
+  public recordGlobalWrite(functionName: string, symbol: Symbol, location: SourceLocation): void {
+    this.initializeFunction(functionName);
+    const info = this.purityInfo.get(functionName)!;
+
+    info.writesGlobals = true;
+    info.impurityReasons.push({
+      kind: ImpurityKind.GlobalWrite,
+      location,
+      description: `Writes to global variable '${symbol.name}'`,
+      symbol,
+    });
+  }
+
+  /**
+   * Record a read from a global/module-level variable
+   *
+   * @param functionName - The function performing the read
+   * @param symbol - The global symbol being read
+   * @param location - Source location of the read
+   */
+  public recordGlobalRead(functionName: string, symbol: Symbol, location: SourceLocation): void {
+    this.initializeFunction(functionName);
+    const info = this.purityInfo.get(functionName)!;
+
+    info.readsGlobals = true;
+
+    // Only add as impurity reason if strict mode enabled
+    if (this.options.strictGlobalReads) {
+      info.impurityReasons.push({
+        kind: ImpurityKind.GlobalRead,
+        location,
+        description: `Reads from global variable '${symbol.name}'`,
+        symbol,
+      });
     }
   }
 
   /**
-   * Initialize function purity information
+   * Record an array write (potential aliasing)
    *
-   * Start with all functions marked as Pure, then downgrade based on analysis.
-   *
-   * @param ast - Program AST
+   * @param functionName - The function performing the write
+   * @param location - Source location of the write
    */
-  protected initializeFunctionInfo(ast: Program): void {
-    for (const decl of ast.getDeclarations()) {
-      if (decl instanceof FunctionDecl) {
-        const name = decl.getName();
-        this.functionInfo.set(name, {
-          name,
-          purityLevel: PurityLevel.Pure,
-          writtenLocations: new Set(),
-          readLocations: new Set(),
-          calledFunctions: new Set(),
-          hasSideEffects: false,
-          declaration: decl,
-        });
-      }
+  public recordArrayWrite(functionName: string, location: SourceLocation): void {
+    this.initializeFunction(functionName);
+    const info = this.purityInfo.get(functionName)!;
+
+    info.impurityReasons.push({
+      kind: ImpurityKind.ArrayWrite,
+      location,
+      description: 'Writes to array element (potential side effect through aliasing)',
+    });
+  }
+
+  /**
+   * Record a function call
+   *
+   * @param functionName - The calling function
+   * @param callee - The called function name
+   * @param location - Source location of the call
+   */
+  public recordFunctionCall(functionName: string, callee: string, _location: SourceLocation): void {
+    this.initializeFunction(functionName);
+    const info = this.purityInfo.get(functionName)!;
+
+    if (!info.callees.includes(callee)) {
+      info.callees.push(callee);
     }
   }
 
   /**
-   * Analyze all function bodies for side effects
+   * Record an intrinsic call
+   *
+   * @param functionName - The calling function
+   * @param intrinsic - The intrinsic name
+   * @param location - Source location of the call
    */
-  protected analyzeFunctionBodies(): void {
-    for (const [, info] of this.functionInfo) {
-      this.analyzeFunctionBody(info);
+  public recordIntrinsicCall(
+    functionName: string,
+    intrinsic: string,
+    location: SourceLocation
+  ): void {
+    this.initializeFunction(functionName);
+    const info = this.purityInfo.get(functionName)!;
+
+    info.callsIntrinsics = true;
+
+    // Check if this intrinsic has side effects
+    if (this.impureIntrinsics.has(intrinsic)) {
+      info.impurityReasons.push({
+        kind: ImpurityKind.IntrinsicSideEffect,
+        location,
+        description: `Calls intrinsic '${intrinsic}' which has side effects`,
+        calledFunction: intrinsic,
+      });
     }
+    // Note: peek() is a read-only operation but reads from hardware
+    // which could have side effects in some contexts (e.g., clearing interrupt flags)
+    // For now we treat peek as pure for optimization purposes
   }
 
   /**
-   * Analyze a single function body
+   * Mark a function as having an unknown body (external)
    *
-   * @param info - Function purity information
+   * @param functionName - The function with unknown body
+   * @param location - Location of the declaration
    */
-  protected analyzeFunctionBody(info: FunctionPurityInfo): void {
-    const body = info.declaration.getBody();
-    if (!body) return;
+  public markUnknownBody(functionName: string, location: SourceLocation): void {
+    this.initializeFunction(functionName);
+    const info = this.purityInfo.get(functionName)!;
 
-    for (const stmt of body) {
-      this.analyzeStatement(stmt, info);
-    }
+    info.impurityReasons.push({
+      kind: ImpurityKind.UnknownBody,
+      location,
+      description: `Function '${functionName}' has unknown body (external or unanalyzed)`,
+    });
   }
 
   /**
-   * Analyze a statement for side effects
+   * Analyze all functions and compute purity status
    *
-   * @param stmt - Statement to analyze
-   * @param info - Function purity information
+   * Uses iterative algorithm to handle mutual recursion:
+   * 1. Mark functions with direct impurities
+   * 2. Propagate impurity through call graph until fixed point
+   *
+   * @returns Analysis result
    */
-  protected analyzeStatement(stmt: Statement, info: FunctionPurityInfo): void {
-    if (stmt instanceof VariableDecl) {
-      // Local variable declaration - check initializer
-      const init = stmt.getInitializer();
-      if (init) {
-        this.analyzeExpression(init, info);
-      }
-    } else if (stmt instanceof ExpressionStatement) {
-      this.analyzeExpression(stmt.getExpression(), info);
-    } else if (stmt instanceof ReturnStatement) {
-      const value = stmt.getValue();
-      if (value) {
-        this.analyzeExpression(value, info);
-      }
-    } else if (stmt instanceof IfStatement) {
-      // Analyze condition
-      this.analyzeExpression(stmt.getCondition(), info);
-
-      // Analyze branches
-      for (const s of stmt.getThenBranch()) {
-        this.analyzeStatement(s, info);
-      }
-      const elseBranch = stmt.getElseBranch();
-      if (elseBranch) {
-        for (const s of elseBranch) {
-          this.analyzeStatement(s, info);
-        }
-      }
-    } else if (stmt instanceof WhileStatement) {
-      this.analyzeExpression(stmt.getCondition(), info);
-      for (const s of stmt.getBody()) {
-        this.analyzeStatement(s, info);
-      }
-    } else if (stmt instanceof ForStatement) {
-      this.analyzeExpression(stmt.getStart(), info);
-      this.analyzeExpression(stmt.getEnd(), info);
-      for (const s of stmt.getBody()) {
-        this.analyzeStatement(s, info);
-      }
-    } else if (stmt instanceof BlockStatement) {
-      for (const s of stmt.getStatements()) {
-        this.analyzeStatement(s, info);
-      }
-    } else if (stmt instanceof MatchStatement) {
-      this.analyzeExpression(stmt.getValue(), info);
-      for (const c of stmt.getCases()) {
-        for (const s of c.body) {
-          this.analyzeStatement(s, info);
-        }
-      }
-      const defaultCase = stmt.getDefaultCase();
-      if (defaultCase) {
-        for (const s of defaultCase) {
-          this.analyzeStatement(s, info);
-        }
+  public analyze(): PurityAnalysisResult {
+    // Phase 1: Mark functions with direct impurities
+    for (const info of this.purityInfo.values()) {
+      if (info.impurityReasons.length > 0) {
+        info.status = PurityStatus.Impure;
       }
     }
-  }
 
-  /**
-   * Analyze an expression for side effects
-   *
-   * @param expr - Expression to analyze
-   * @param info - Function purity information
-   */
-  protected analyzeExpression(expr: Expression, info: FunctionPurityInfo): void {
-    if (expr instanceof AssignmentExpression) {
-      // Assignment - check if writing to global or @map
-      const target = expr.getTarget();
-      if (target instanceof IdentifierExpression) {
-        const name = target.getName();
-
-        // Write to global variable?
-        if (this.globalVariables.has(name)) {
-          info.writtenLocations.add(name);
-          this.downgradePurity(info, PurityLevel.Impure, 'writes to global variable');
-        }
-
-        // Write to @map (I/O or memory-mapped hardware)?
-        if (this.mapVariables.has(name)) {
-          info.writtenLocations.add(name);
-          this.downgradePurity(info, PurityLevel.Impure, 'writes to @map location');
-        }
-
-        // Write to local variable is OK (LocalEffects at most)
-        if (!this.globalVariables.has(name) && !this.mapVariables.has(name)) {
-          // Only downgrade to LocalEffects if currently Pure
-          if (info.purityLevel === PurityLevel.Pure) {
-            this.downgradePurity(info, PurityLevel.LocalEffects, 'modifies local state');
-          }
-        }
-      }
-
-      // Analyze value expression
-      this.analyzeExpression(expr.getValue(), info);
-    } else if (expr instanceof IdentifierExpression) {
-      // Reading a variable
-      const name = expr.getName();
-
-      // Read from global variable?
-      if (this.globalVariables.has(name)) {
-        info.readLocations.add(name);
-        // Downgrade to ReadOnly if currently Pure
-        if (info.purityLevel === PurityLevel.Pure) {
-          this.downgradePurity(info, PurityLevel.ReadOnly, 'reads global variable');
-        }
-      }
-
-      // Read from @map (I/O or memory-mapped hardware)?
-      if (this.mapVariables.has(name)) {
-        info.readLocations.add(name);
-        // Downgrade to ReadOnly if currently Pure
-        if (info.purityLevel === PurityLevel.Pure) {
-          this.downgradePurity(info, PurityLevel.ReadOnly, 'reads @map location');
-        }
-      }
-    } else if (expr instanceof CallExpression) {
-      // Function call - track called functions
-      const callee = expr.getCallee();
-      if (callee instanceof IdentifierExpression) {
-        const calleeName = callee.getName();
-        info.calledFunctions.add(calleeName);
-
-        // Purity will be propagated later in propagateImpurity()
-      }
-
-      // Analyze arguments
-      for (const arg of expr.getArguments()) {
-        this.analyzeExpression(arg, info);
-      }
-    } else if (expr instanceof BinaryExpression) {
-      this.analyzeExpression(expr.getLeft(), info);
-      this.analyzeExpression(expr.getRight(), info);
-    } else if (expr instanceof UnaryExpression) {
-      this.analyzeExpression(expr.getOperand(), info);
-    }
-    // Literal expressions have no side effects
-  }
-
-  /**
-   * Downgrade function purity level
-   *
-   * @param info - Function purity information
-   * @param newLevel - New purity level
-   * @param _reason - Reason for downgrade (unused but kept for documentation)
-   */
-  protected downgradePurity(info: FunctionPurityInfo, newLevel: PurityLevel, _reason: string): void {
-    // Only downgrade, never upgrade
-    const currentRank = this.getPurityRank(info.purityLevel);
-    const newRank = this.getPurityRank(newLevel);
-
-    if (newRank > currentRank) {
-      info.purityLevel = newLevel;
-
-      // Set side effects flag if downgraded to Impure
-      if (newLevel === PurityLevel.Impure) {
-        info.hasSideEffects = true;
-      }
-    }
-  }
-
-  /**
-   * Get purity level rank (higher = less pure)
-   *
-   * @param level - Purity level
-   * @returns Numeric rank
-   */
-  protected getPurityRank(level: PurityLevel): number {
-    switch (level) {
-      case PurityLevel.Pure:
-        return 0;
-      case PurityLevel.ReadOnly:
-        return 1;
-      case PurityLevel.LocalEffects:
-        return 2;
-      case PurityLevel.Impure:
-        return 3;
-      default:
-        return 3;
-    }
-  }
-
-  /**
-   * Propagate impurity through call graph
-   *
-   * If function A calls function B, and B is impure, then A is also impure.
-   * Iterate until fixpoint reached.
-   */
-  protected propagateImpurity(): void {
+    // Phase 2: Propagate impurity through call graph
     let changed = true;
-    let iterations = 0;
-    const maxIterations = 100; // Prevent infinite loops
-
-    while (changed && iterations < maxIterations) {
+    while (changed) {
       changed = false;
-      iterations++;
 
-      for (const [, info] of this.functionInfo) {
-        for (const calleeName of info.calledFunctions) {
-          const calleeInfo = this.functionInfo.get(calleeName);
-          if (!calleeInfo) continue; // External function, conservatively assume impure
+      for (const info of this.purityInfo.values()) {
+        if (info.status === PurityStatus.Impure) {
+          continue; // Already known impure
+        }
 
-          // Propagate purity level
-          const currentRank = this.getPurityRank(info.purityLevel);
-          const calleeRank = this.getPurityRank(calleeInfo.purityLevel);
+        // Check if any callee is impure
+        for (const callee of info.callees) {
+          const calleeInfo = this.purityInfo.get(callee);
 
-          if (calleeRank > currentRank) {
-            info.purityLevel = calleeInfo.purityLevel;
-            if (calleeInfo.hasSideEffects) {
-              info.hasSideEffects = true;
-            }
+          if (calleeInfo?.status === PurityStatus.Impure) {
+            info.status = PurityStatus.Impure;
+            info.impurityReasons.push({
+              kind: ImpurityKind.ImpureFunctionCall,
+              location: info.impurityReasons[0]?.location ?? {
+                start: { line: 0, column: 0, offset: 0 },
+                end: { line: 0, column: 0, offset: 0 },
+              },
+              description: `Calls impure function '${callee}'`,
+              calledFunction: callee,
+            });
             changed = true;
+            break;
           }
 
-          // Propagate written/read locations
-          for (const loc of calleeInfo.writtenLocations) {
-            if (!info.writtenLocations.has(loc)) {
-              info.writtenLocations.add(loc);
-              changed = true;
-            }
-          }
-          for (const loc of calleeInfo.readLocations) {
-            if (!info.readLocations.has(loc)) {
-              info.readLocations.add(loc);
-              changed = true;
-            }
+          // If callee is unknown (external), assume impure
+          if (!calleeInfo && !this.pureIntrinsics.has(callee)) {
+            info.status = PurityStatus.Impure;
+            info.impurityReasons.push({
+              kind: ImpurityKind.ImpureFunctionCall,
+              location: info.impurityReasons[0]?.location ?? {
+                start: { line: 0, column: 0, offset: 0 },
+                end: { line: 0, column: 0, offset: 0 },
+              },
+              description: `Calls unknown function '${callee}'`,
+              calledFunction: callee,
+            });
+            changed = true;
+            break;
           }
         }
       }
     }
 
-    if (iterations >= maxIterations) {
-      this.diagnostics.push({
-        code: DiagnosticCode.TYPE_MISMATCH,
-        severity: DiagnosticSeverity.WARNING,
-        message: 'Purity analysis fixpoint iteration limit reached. Results may be incomplete.',
-        location: {
-          start: { offset: 0, line: 1, column: 1 },
-          end: { offset: 0, line: 1, column: 1 },
-        },
-      });
+    // Phase 3: Mark remaining as pure
+    for (const info of this.purityInfo.values()) {
+      if (info.status === PurityStatus.Unknown) {
+        info.status = PurityStatus.Pure;
+      }
     }
+
+    return this.getResult();
   }
 
   /**
-   * Attach purity metadata to AST nodes
+   * Check if a function is pure
    *
-   * @param _ast - Program AST (unused but kept for consistency)
+   * @param functionName - The function to check
+   * @returns true if the function is pure
    */
-  protected attachMetadata(_ast: Program): void {
-    for (const [, info] of this.functionInfo) {
-      const decl = info.declaration;
-
-      if (!decl.metadata) {
-        decl.metadata = new Map();
-      }
-
-      // Attach purity level
-      decl.metadata.set(OptimizationMetadataKey.PurityLevel, info.purityLevel);
-
-      // Attach side effects flag
-      decl.metadata.set(OptimizationMetadataKey.PurityHasSideEffects, info.hasSideEffects);
-
-      // Attach is-pure flag (convenience)
-      decl.metadata.set(OptimizationMetadataKey.PurityIsPure, info.purityLevel === PurityLevel.Pure);
-
-      // Attach written locations
-      if (info.writtenLocations.size > 0) {
-        decl.metadata.set(OptimizationMetadataKey.PurityWrittenLocations, info.writtenLocations);
-      }
-
-      // Attach called functions
-      if (info.calledFunctions.size > 0) {
-        decl.metadata.set(OptimizationMetadataKey.PurityCalledFunctions, info.calledFunctions);
-      }
-    }
+  public isPure(functionName: string): boolean {
+    const info = this.purityInfo.get(functionName);
+    return info?.status === PurityStatus.Pure;
   }
 
   /**
-   * Get all diagnostics generated during analysis
+   * Check if a function is impure
    *
-   * @returns Array of diagnostics
+   * @param functionName - The function to check
+   * @returns true if the function has side effects
    */
-  public getDiagnostics(): Diagnostic[] {
-    return [...this.diagnostics];
+  public isImpure(functionName: string): boolean {
+    const info = this.purityInfo.get(functionName);
+    return info?.status === PurityStatus.Impure;
+  }
+
+  /**
+   * Get purity information for a function
+   *
+   * @param functionName - The function to look up
+   * @returns Purity info, or undefined if not tracked
+   */
+  public getFunctionPurity(functionName: string): FunctionPurity | undefined {
+    return this.purityInfo.get(functionName);
+  }
+
+  /**
+   * Get all pure functions
+   *
+   * @returns Array of function names that are pure
+   */
+  public getPureFunctions(): string[] {
+    const result: string[] = [];
+    for (const [name, info] of this.purityInfo) {
+      if (info.status === PurityStatus.Pure) {
+        result.push(name);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Get all impure functions
+   *
+   * @returns Array of function names that are impure
+   */
+  public getImpureFunctions(): string[] {
+    const result: string[] = [];
+    for (const [name, info] of this.purityInfo) {
+      if (info.status === PurityStatus.Impure) {
+        result.push(name);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Get complete analysis result
+   *
+   * @returns Full analysis result with statistics
+   */
+  public getResult(): PurityAnalysisResult {
+    let pureCount = 0;
+    let impureCount = 0;
+
+    for (const info of this.purityInfo.values()) {
+      if (info.status === PurityStatus.Pure) {
+        pureCount++;
+      } else if (info.status === PurityStatus.Impure) {
+        impureCount++;
+      }
+    }
+
+    const totalFunctions = this.purityInfo.size;
+    const purityPercentage = totalFunctions > 0 ? (pureCount / totalFunctions) * 100 : 0;
+
+    return {
+      functions: new Map(this.purityInfo),
+      pureCount,
+      impureCount,
+      totalFunctions,
+      purityPercentage,
+    };
+  }
+
+  /**
+   * Format a human-readable report
+   *
+   * @returns Multi-line string with analysis results
+   */
+  public formatReport(): string {
+    const result = this.getResult();
+    const lines: string[] = [];
+
+    if (result.totalFunctions === 0) {
+      return 'Purity Analysis: No functions analyzed';
+    }
+
+    lines.push('=== Purity Analysis Report ===');
+    lines.push('');
+    lines.push('Statistics:');
+    lines.push(`  Total functions: ${result.totalFunctions}`);
+    lines.push(`  Pure functions: ${result.pureCount} (${result.purityPercentage.toFixed(1)}%)`);
+    lines.push(`  Impure functions: ${result.impureCount}`);
+    lines.push('');
+
+    // List pure functions
+    const pureFunctions = this.getPureFunctions();
+    if (pureFunctions.length > 0) {
+      lines.push('Pure Functions:');
+      for (const name of pureFunctions) {
+        lines.push(`  ✓ ${name}`);
+      }
+      lines.push('');
+    }
+
+    // List impure functions with reasons
+    const impureFunctions = this.getImpureFunctions();
+    if (impureFunctions.length > 0) {
+      lines.push('Impure Functions:');
+      for (const name of impureFunctions) {
+        const info = this.purityInfo.get(name)!;
+        lines.push(`  ✗ ${name}`);
+        for (const reason of info.impurityReasons) {
+          lines.push(`      - ${reason.description}`);
+        }
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Reset analyzer state
+   */
+  public reset(): void {
+    this.purityInfo.clear();
   }
 }

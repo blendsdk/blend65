@@ -16,7 +16,7 @@
  */
 
 import { SemanticAnalyzer, type MultiModuleAnalysisResult } from '../semantic/analyzer.js';
-import type { Program } from '../ast/nodes.js';
+import type { Program } from '../ast/program.js';
 import type { PhaseResult } from './types.js';
 
 /**
@@ -38,7 +38,6 @@ import type { PhaseResult } from './types.js';
  *
  * if (result.success) {
  *   const symbolTable = result.data.globalSymbolTable;
- *   // Access symbols, types, etc.
  * }
  * ```
  */

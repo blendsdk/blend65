@@ -1,149 +1,69 @@
 /**
  * Code Generation Phase
  *
- * Generates target code from optimized IL.
+ * Generates ASM-IL (structured 6502 assembly) from optimized IL.
  *
- * **Phase Responsibilities:**
- * - Generate 6502 assembly from IL via CodeGenerator
- * - Produce binary .prg files via ACME
- * - Generate source maps
- * - Create VICE label files
+ * **V2 Differences from V1:**
+ * - Generates AsmILProgram (structured ASM-IL), not raw assembly text
+ * - The emitter phase converts AsmILProgram → assembly text
+ * - The ASM optimizer operates on AsmILProgram before emission
  *
  * @module pipeline/codegen-phase
  */
 
-import type { ILModule } from '../il/module.js';
+import { CodeGenerator } from '../codegen/generator/index.js';
+import type { CpuTarget } from '../codegen/cpu/index.js';
+import { DEFAULT_CPU_TARGET } from '../codegen/cpu/index.js';
+import type { ILProgram } from '../il/structures.js';
+import type { AsmILProgram } from '../codegen/asm-il/types.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
-import { DiagnosticCode, DiagnosticSeverity } from '../ast/diagnostics.js';
-import type { PhaseResult, CodegenResult, CodegenOptions } from './types.js';
-import { CodeGenerator } from '../codegen/code-generator.js';
-import type {
-  CodegenOptions as InternalCodegenOptions,
-  OutputFormat,
-  DebugMode,
-} from '../codegen/types.js';
+import type { PhaseResult } from './types.js';
 
 /**
- * Code Generation Phase - generates target code from IL
+ * Code Generation Phase - generates ASM-IL from IL
  *
- * This phase converts IL to target machine code using the
- * CodeGenerator class which provides:
- * - Full 6502 instruction selection
- * - Global variable allocation (ZP, RAM, DATA, MAP)
- * - BASIC stub generation
- * - Debug info generation
- * - VICE label file generation
+ * Converts the IL program to a structured assembly representation
+ * (AsmILProgram) that can be further optimized and then emitted
+ * as assembly text.
  *
  * @example
  * ```typescript
  * const codegenPhase = new CodegenPhase();
- * const result = codegenPhase.execute(ilModule, {
- *   target: targetConfig,
- *   format: 'prg',
- *   sourceMap: true,
- * });
- *
- * if (result.success) {
- *   writeFileSync('game.prg', result.data.binary);
- * }
+ * const result = codegenPhase.execute(ilProgram);
  * ```
  */
 export class CodegenPhase {
   /**
-   * The code generator instance
-   */
-  protected codeGenerator: CodeGenerator;
-
-  /**
-   * Default load address for C64 BASIC programs
-   */
-  protected readonly DEFAULT_LOAD_ADDRESS = 0x0801;
-
-  /**
-   * Creates a new CodegenPhase
-   */
-  constructor() {
-    this.codeGenerator = new CodeGenerator();
-  }
-
-  /**
-   * Generate target code from IL module
+   * Generate ASM-IL from IL program
    *
-   * Uses the CodeGenerator to translate IL instructions to 6502 assembly
-   * and optionally assemble to PRG binary.
+   * Creates a CodeGenerator and translates IL instructions to
+   * structured 6502 assembly (AsmILProgram).
    *
-   * @param ilModule - Optimized IL module
-   * @param options - Code generation options
-   * @returns Phase result with generated code
+   * @param ilProgram - Optimized IL program
+   * @param cpuTarget - CPU target (defaults to 6502)
+   * @returns Phase result with generated AsmILProgram
    */
-  public execute(ilModule: ILModule, options: CodegenOptions): PhaseResult<CodegenResult> {
+  public execute(
+    ilProgram: ILProgram,
+    cpuTarget: CpuTarget = DEFAULT_CPU_TARGET
+  ): PhaseResult<AsmILProgram> {
     const startTime = performance.now();
     const diagnostics: Diagnostic[] = [];
 
-    // Map pipeline format string to internal OutputFormat type
-    const formatMap: Record<string, OutputFormat> = {
-      'asm': 'asm',
-      'prg': 'prg',
-      'both': 'both',
-      'crt': 'crt',
-    };
-    const format: OutputFormat = formatMap[options.format] ?? 'both';
+    // Create code generator for the target CPU
+    const generator = new CodeGenerator(
+      ilProgram.moduleName,
+      cpuTarget
+    );
 
-    // Map pipeline debug string to internal DebugMode type
-    const debugMap: Record<string, DebugMode> = {
-      'none': 'none',
-      'inline': 'inline',
-      'vice': 'vice',
-      'both': 'both',
-    };
-    const debug: DebugMode = debugMap[options.debug ?? 'none'] ?? 'none';
-
-    // Convert pipeline options to internal codegen options
-    const internalOptions: InternalCodegenOptions = {
-      target: options.target,
-      format,
-      debug,
-      sourceMap: options.sourceMap ?? false,
-      basicStub: true,
-      loadAddress: this.DEFAULT_LOAD_ADDRESS,
-    };
-
-    // Use the real CodeGenerator
-    const codegenResult = this.codeGenerator.generate(ilModule, internalOptions);
-
-    // Convert warnings to diagnostics
-    // CodeGenerator returns CodegenWarning[] with message and optional location
-    for (const warning of codegenResult.warnings ?? []) {
-      diagnostics.push({
-        code: DiagnosticCode.TYPE_MISMATCH, // Generic code for codegen warnings
-        severity: DiagnosticSeverity.WARNING,
-        message: warning.message,
-        location: warning.location ?? {
-          // Fallback to module location if no specific location provided
-          file: ilModule.name,
-          start: { line: 1, column: 1, offset: 0 },
-          end: { line: 1, column: 1, offset: 0 },
-        },
-      });
-    }
-
-    // Only include binary if CodeGenerator actually produced one (ACME assembled successfully)
-    // If ACME is not available, binary will be undefined and no .prg file should be written
-    const result: CodegenResult = {
-      assembly: codegenResult.assembly,
-      binary: codegenResult.binary,
-      // Note: sourceMap format differs - pipeline uses SourceMap, codegen uses SourceMapEntry[]
-      // For now, we omit sourceMap until proper conversion is implemented
-      sourceMap: undefined,
-      viceLabels: codegenResult.viceLabels,
-    };
+    // Generate ASM-IL from IL program
+    const asmProgram = generator.generate(ilProgram);
 
     return {
-      data: result,
+      data: asmProgram,
       diagnostics,
       success: true,
       timeMs: performance.now() - startTime,
     };
   }
-
 }

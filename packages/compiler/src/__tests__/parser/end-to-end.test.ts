@@ -1,22 +1,18 @@
 /**
- * End-to-End Parser Tests
+ * End-to-End Parser Tests (V2)
  *
  * Tests complete parsing workflows with realistic Blend65 programs:
  * - Real-world code examples
  * - Integration with lexer
  * - Performance with larger programs
  * - Complete error scenarios
+ *
+ * NOTE: V2 has NO storage classes (@zp/@ram/@data) - frame allocator handles memory.
+ * NOTE: V2 has NO @map syntax - uses peek/poke intrinsics instead.
  */
 
 import { describe, expect, it } from 'vitest';
-import {
-  BinaryExpression,
-  LiteralExpression,
-  Program,
-  SequentialStructMapDecl,
-  SimpleMapDecl,
-  VariableDecl,
-} from '../../ast/index.js';
+import { BinaryExpression, LiteralExpression, Program, VariableDecl } from '../../ast/index.js';
 import { Lexer } from '../../lexer/lexer.js';
 import { Parser } from '../../parser/parser.js';
 
@@ -45,7 +41,7 @@ describe('End-to-End Parser Tests', () => {
 
         let score: word = 0;
         const MAX_LIVES: byte = 3;
-        @zp let lives: byte = MAX_LIVES;
+        let lives: byte = MAX_LIVES;
       `;
 
       const result = parseBlendProgram(source);
@@ -55,41 +51,13 @@ describe('End-to-End Parser Tests', () => {
       expect(result.program.getModule().getFullName()).toBe('Game');
       expect(result.program.getDeclarations()).toHaveLength(3);
 
-      const [scoreDecl, livesDecl, zpLivesDecl] = result.program.getDeclarations();
+      const [scoreDecl, livesDecl, currentLivesDecl] = result.program.getDeclarations();
       expect((scoreDecl as VariableDecl).getName()).toBe('score');
       expect((livesDecl as VariableDecl).getName()).toBe('MAX_LIVES');
-      expect((zpLivesDecl as VariableDecl).getName()).toBe('lives');
+      expect((currentLivesDecl as VariableDecl).getName()).toBe('lives');
     });
 
-    it('parses C64 memory mapping program', () => {
-      const source = `
-        module Hardware.C64;
-
-        // VIC-II registers
-        @map vic at $D000 layout {
-          borderColor: at $D020: byte,
-          backgroundColor: at $D021: byte,
-          sprites: from $D000 to $D02E: byte
-        }
-
-        // SID sound chip
-        @map sid at $D400 type {
-          voice1Freq: word,
-          voice1Pulse: word,
-          voice1Control: byte,
-          voice1Attack: byte
-        }
-
-        // Screen memory
-        @map screen from $0400 to $07E7: byte;
-      `;
-
-      const result = parseBlendProgram(source);
-
-      expect(result.hasErrors).toBe(false);
-      expect(result.program.getModule().getFullName()).toBe('Hardware.C64');
-      expect(result.program.getDeclarations()).toHaveLength(3);
-    });
+    // V2: Removed "parses C64 memory mapping program" - all @map syntax
 
     it('parses game logic with expressions', () => {
       const source = `
@@ -120,37 +88,26 @@ describe('End-to-End Parser Tests', () => {
       expect(isOnScreenDecl.getInitializer()).toBeInstanceOf(BinaryExpression);
     });
 
-    it('parses sprite system module', () => {
+    it('parses game constants module', () => {
       const source = `
-        module Graphics.Sprites;
-
-        // Sprite data structures
-        @map spritePointers from $07F8 to $07FF: byte;
-        @map spriteData from $2000 to $3FFF: byte;
-
-        // Sprite registers
-        @map spriteRegs at $D000 type {
-          x: byte[8],
-          y: byte[8],
-          msb: byte,
-          enable: byte,
-          expandX: byte,
-          expandY: byte,
-          priority: byte,
-          multicolor: byte,
-          colors: byte[8]
-        }
+        module Game.Constants;
 
         // Sprite configuration
         export const MAX_SPRITES: byte = 8;
-        export @data let spriteBuffer: byte = 0;
+        export const SPRITE_SIZE: byte = 64;
+        export const SCREEN_WIDTH: word = 320;
+        export const SCREEN_HEIGHT: word = 200;
+        
+        // Game limits
+        export const MAX_ENEMIES: byte = 16;
+        export const MAX_BULLETS: byte = 4;
       `;
 
       const result = parseBlendProgram(source);
 
       expect(result.hasErrors).toBe(false);
-      expect(result.program.getModule().getFullName()).toBe('Graphics.Sprites');
-      expect(result.program.getDeclarations()).toHaveLength(5);
+      expect(result.program.getModule().getFullName()).toBe('Game.Constants');
+      expect(result.program.getDeclarations()).toHaveLength(6);
     });
   });
 
@@ -164,7 +121,7 @@ describe('End-to-End Parser Tests', () => {
         invalid let byte = ;
 
         let valid2: byte = 10;
-        @map test at $1000: byte;
+        let test: byte = 1;
       `;
 
       const result = parseBlendProgram(source);
@@ -176,26 +133,7 @@ describe('End-to-End Parser Tests', () => {
       expect(result.program.getDeclarations().length).toBeGreaterThan(0);
     });
 
-    it('handles malformed @map declarations', () => {
-      const source = `
-        module MapErrors
-
-        // Valid declaration
-        let x: byte = 1;
-
-        // Invalid @map (missing 'at')
-        @map broken $1000: byte;
-
-        // Another valid declaration
-        let y: byte = 2;
-      `;
-
-      const result = parseBlendProgram(source);
-
-      expect(result.hasErrors).toBe(true);
-      // Should still parse valid declarations
-      expect(result.program.getDeclarations().length).toBeGreaterThan(1);
-    });
+    // V2: Removed "handles malformed @map declarations" - no @map in v2
 
     it('handles missing semicolons', () => {
       const source = `
@@ -256,7 +194,7 @@ describe('End-to-End Parser Tests', () => {
       expect(resultDecl.getInitializer()).toBeInstanceOf(BinaryExpression);
     });
 
-    it('handles programs with mixed declaration types', () => {
+    it('handles programs with many variable declarations', () => {
       const source = `
         module Mixed;
 
@@ -264,46 +202,25 @@ describe('End-to-End Parser Tests', () => {
         let gameState: byte = 0;
         const VERSION: word = 100;
 
-        // Simple maps
-        @map borderColor at $D020: byte;
-        @map backgroundColor at $D021: byte;
-
-        // Range map
-        @map colorRam from $D800 to $DBE7: byte;
-
-        // Sequential struct
-        @map player at $8000 type {
-          x: byte,
-          y: byte,
-          sprite: byte,
-          health: byte
-        }
-
-        // Explicit struct
-        @map vic at $D000 layout {
-          border: at $D020: byte,
-          background: at $D021: byte
-        }
+        // Exported variables
+        export let playerX: byte = 100;
+        export let playerY: byte = 50;
+        export const MAX_SCORE: word = 99999;
 
         // More variables
-        export @zp let fastCounter: byte = 0;
-        export @ram const BUFFER_SIZE: word = 1024;
+        let counter: byte = 0;
+        const BUFFER_SIZE: word = 1024;
       `;
 
       const result = parseBlendProgram(source);
 
       expect(result.hasErrors).toBe(false);
-      expect(result.program.getDeclarations()).toHaveLength(9);
+      expect(result.program.getDeclarations()).toHaveLength(7);
 
       // Verify mix of declaration types
       const declarations = result.program.getDeclarations();
       const hasVariableDecl = declarations.some(d => d instanceof VariableDecl);
-      const hasSimpleMapDecl = declarations.some(d => d instanceof SimpleMapDecl);
-      const hasStructMapDecl = declarations.some(d => d instanceof SequentialStructMapDecl);
-
       expect(hasVariableDecl).toBe(true);
-      expect(hasSimpleMapDecl).toBe(true);
-      expect(hasStructMapDecl).toBe(true);
     });
   });
 
@@ -318,21 +235,13 @@ describe('End-to-End Parser Tests', () => {
         export let level: byte = 1;
 
         // Player data
-        @zp let playerX: byte = 160;
-        @zp let playerY: byte = 230;
+        let playerX: byte = 160;
+        let playerY: byte = 230;
         const PLAYER_SPEED: byte = 2;
 
-        // VIC-II memory mapping
-        @map vic at $D000 layout {
-          sprites: from $D000 to $D00F: byte,
-          spriteX: from $D000 to $D00F: byte,
-          spriteY: from $D001 to $D00F: byte,
-          borderColor: at $D020: byte,
-          backgroundColor: at $D021: byte
-        }
-
-        // Sprite pointers
-        @map spritePointers from $07F8 to $07FF: byte;
+        // Screen constants
+        const SCREEN_WIDTH: word = 320;
+        const SCREEN_HEIGHT: word = 200;
 
         // Color calculations
         let playerColor: byte = 1 + level * 2;
@@ -351,20 +260,12 @@ describe('End-to-End Parser Tests', () => {
         module Demo.Effects;
 
         // Raster interrupt data
-        @zp let rasterLine: byte = 50;
-        @zp let colorIndex: byte = 0;
+        let rasterLine: byte = 50;
+        let colorIndex: byte = 0;
 
         // Color cycle data
-        @data const rainbow: byte = 1;  // Will be array later
-        @data const CYCLE_LENGTH: byte = 16;
-
-        // VIC registers for effects
-        @map vicEffect at $D000 layout {
-          rasterInterrupt: at $D012: byte,
-          interruptEnable: at $D01A: byte,
-          borderColor: at $D020: byte,
-          backgroundColor: at $D021: byte
-        }
+        const CYCLE_LENGTH: byte = 16;
+        const RASTER_STEP: byte = 8;
 
         // Timing calculations
         let nextRaster: byte = rasterLine + 1;
@@ -376,7 +277,7 @@ describe('End-to-End Parser Tests', () => {
 
       expect(result.hasErrors).toBe(false);
       expect(result.program.getModule().getFullName()).toBe('Demo.Effects');
-      expect(result.program.getDeclarations()).toHaveLength(8);
+      expect(result.program.getDeclarations()).toHaveLength(7);
     });
   });
 
@@ -403,17 +304,15 @@ describe('End-to-End Parser Tests', () => {
       expect(result.program.getDeclarations()).toHaveLength(0);
     });
 
-    it('handles program with maximum nesting', () => {
+    it('handles program with deep module nesting and expressions', () => {
       const source = `
         module Very.Deeply.Nested.Module.Name;
 
-        @map deep at $1000 layout {
-          field1: at $1000: byte,
-          field2: at $1001: byte,
-          field3: at $1002: byte,
-          field4: at $1003: byte,
-          field5: at $1004: byte
-        }
+        let field1: byte = 1;
+        let field2: byte = 2;
+        let field3: byte = 3;
+        let field4: byte = 4;
+        let field5: byte = 5;
 
         let deepExpr: word = ((((1 + 2) * 3) - 4) + 5) * 6;
       `;
@@ -422,7 +321,7 @@ describe('End-to-End Parser Tests', () => {
 
       expect(result.hasErrors).toBe(false);
       expect(result.program.getModule().getNamePath()).toHaveLength(5);
-      expect(result.program.getDeclarations()).toHaveLength(2);
+      expect(result.program.getDeclarations()).toHaveLength(6);
     });
   });
 
@@ -519,7 +418,7 @@ describe('End-to-End Parser Tests', () => {
 
         let valid2: byte = 10;
 
-        @map broken at: byte;    // Invalid @map syntax
+        let broken: = byte;    // Invalid syntax
 
         let valid3: byte = 15;
       `;
@@ -539,28 +438,21 @@ describe('End-to-End Parser Tests', () => {
       const source = `
         module C64Game.Init;
 
-        // Memory layout
-        @map vic at $D000 layout {
-          spriteEnable: at $D015: byte,
-          spriteExpandX: at $D01D: byte,
-          spriteExpandY: at $D017: byte,
-          borderColor: at $D020: byte,
-          backgroundColor: at $D021: byte
-        }
-
-        @map colorRam from $D800 to $DBE7: byte;
-        @map screen from $0400 to $07E7: byte;
-
         // Game variables
-        export @zp let gameState: byte = 0;
-        export @zp let frameCounter: byte = 0;
-        export @ram let score: word = 0;
-        export @ram let hiScore: word = 5000;
+        export let gameState: byte = 0;
+        export let frameCounter: byte = 0;
+        export let score: word = 0;
+        export let hiScore: word = 5000;
 
         // Constants
         const SCREEN_WIDTH: byte = 40;
         const SCREEN_HEIGHT: byte = 25;
         const MAX_SCORE: word = 99999;
+
+        // Memory addresses as constants (v2 uses peek/poke)
+        const VIC_BORDER: word = $D020;
+        const VIC_BACKGROUND: word = $D021;
+        const SCREEN_RAM: word = $0400;
 
         // Calculated values
         let screenCenter: byte = SCREEN_WIDTH + SCREEN_HEIGHT * 2;
@@ -583,7 +475,7 @@ describe('End-to-End Parser Tests', () => {
       for (let i = 0; i < 200; i++) {
         source += `let var${i}: byte = ${i % 256};\n`;
         if (i % 10 === 0) {
-          source += `@map mem${i} at $${(0x1000 + i).toString(16).toUpperCase()}: byte;\n`;
+          source += `const ADDR${i}: word = $${(0x1000 + i).toString(16).toUpperCase()};\n`;
         }
       }
 

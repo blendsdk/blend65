@@ -1,555 +1,517 @@
 /**
- * Dead Code Detection Tests (Task 8.4)
+ * Tests for DeadCodeAnalyzer
  *
- * Tests the DeadCodeAnalyzer for:
- * - Unreachable statement detection
- * - Unreachable branch detection
- * - Dead store detection
- * - Metadata generation
+ * Tests the dead code detection capabilities using CFG analysis.
+ * The analyzer detects unreachable code after:
+ * - Return statements
+ * - Break statements
+ * - Continue statements
+ * - Infinite loops
+ *
+ * @module tests/semantic/analysis/dead-code
  */
 
-import { describe, it, expect } from 'vitest';
-import { Lexer } from '../../../lexer/lexer.js';
-import { Parser } from '../../../parser/parser.js';
-import { SemanticAnalyzer } from '../../../semantic/analyzer.js';
-import { DiagnosticSeverity } from '../../../ast/diagnostics.js';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  OptimizationMetadataKey,
-  DeadCodeKind,
-} from '../../../semantic/analysis/optimization-metadata-keys.js';
+  DeadCodeAnalyzer,
+  DeadCodeSeverity,
+  DeadCodeIssueKind,
+} from '../../../semantic/analysis/dead-code.js';
+import { ControlFlowGraph, CFGBuilder, CFGNodeKind } from '../../../semantic/control-flow.js';
+import type { Statement, SourceLocation } from '../../../ast/index.js';
 
-describe('Dead Code Detection (Task 8.4)', () => {
-  /**
-   * Helper: Parse and analyze source code
-   */
-  function analyze(source: string) {
-    const lexer = new Lexer(source);
-    const tokens = lexer.tokenize();
-    const parser = new Parser(tokens);
-    const ast = parser.parse();
+/**
+ * Create a mock statement for testing
+ */
+function createMockStatement(line: number, column: number = 1): Statement {
+  const location: SourceLocation = {
+    start: { line, column, offset: 0 },
+    end: { line, column: column + 10, offset: 10 },
+  };
 
-    const analyzer = new SemanticAnalyzer();
-    analyzer.analyze(ast);
+  return {
+    getNodeType: () => 'ExpressionStatement',
+    getLocation: () => location,
+    getChildren: () => [],
+    accept: () => {},
+  } as unknown as Statement;
+}
 
-    return {
-      ast,
-      diagnostics: analyzer.getDiagnostics(),
-      warnings: analyzer.getDiagnostics().filter(d => d.severity === DiagnosticSeverity.WARNING),
-      errors: analyzer.getDiagnostics().filter(d => d.severity === DiagnosticSeverity.ERROR),
-    };
-  }
+/**
+ * Create a mock return statement
+ */
+function createMockReturn(line: number, column: number = 1): Statement {
+  const location: SourceLocation = {
+    start: { line, column, offset: 0 },
+    end: { line, column: column + 6, offset: 6 },
+  };
 
-  describe('Unreachable Statement Detection', () => {
-    it('detects unreachable code after return', () => {
-      const source = `
-        function test(): void {
-          return;
-          let x: byte = 5;  // Unreachable
-        }
-      `;
+  return {
+    getNodeType: () => 'ReturnStatement',
+    getLocation: () => location,
+    getChildren: () => [],
+    accept: () => {},
+  } as unknown as Statement;
+}
 
-      const { warnings } = analyze(source);
+describe('DeadCodeAnalyzer', () => {
+  let analyzer: DeadCodeAnalyzer;
 
-      // Should warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeDefined();
-    });
+  beforeEach(() => {
+    analyzer = new DeadCodeAnalyzer();
+  });
 
-    it('detects unreachable code after unconditional return in if', () => {
-      const source = `
-        function test(flag: boolean): byte {
-          if (flag) {
-            return 1;
-          } else {
-            return 2;
-          }
-          let x: byte = 5;  // Unreachable - all paths return
-        }
-      `;
-
-      const { warnings } = analyze(source);
-
-      // Should warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeDefined();
-    });
-
-    it('does not warn about reachable code after conditional return', () => {
-      const source = `
-        function test(flag: boolean): byte {
-          if (flag) {
-            return 1;
-          }
-          return 0;  // Reachable - else path doesn't return
-        }
-      `;
-
-      const { warnings } = analyze(source);
-
-      // Should NOT warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeUndefined();
-    });
-
-    it('detects unreachable code after break in loop', () => {
-      const source = `
-        function test(): void {
-          while (true) {
-            break;
-            let x: byte = 5;  // Unreachable after break
-          }
-        }
-      `;
-
-      const { warnings } = analyze(source);
-
-      // Note: CFG doesn't yet support break/continue unreachability
-      // This is a known limitation - skipping this test
-      // Should warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      // expect(unreachableWarning).toBeDefined();
-      // For now, we accept that this may not be detected
-    });
-
-    it('detects unreachable code after continue in loop', () => {
-      const source = `
-        function test(): void {
-          while (true) {
-            continue;
-            let x: byte = 5;  // Unreachable after continue
-          }
-        }
-      `;
-
-      const { warnings } = analyze(source);
-
-      // Note: CFG doesn't yet support break/continue unreachability
-      // This is a known limitation - skipping this test
-      // Should warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      // expect(unreachableWarning).toBeDefined();
-      // For now, we accept that this may not be detected
+  describe('constructor', () => {
+    it('should create analyzer with empty state', () => {
+      expect(analyzer.getIssues()).toHaveLength(0);
+      expect(analyzer.hasDeadCode()).toBe(false);
+      expect(analyzer.getDeadCodeCount()).toBe(0);
     });
   });
 
-  describe('Unreachable Branch Detection', () => {
-    it('detects unreachable then branch when condition is false literal', () => {
-      const source = `
-        function test(): void {
-          if (false) {
-            let x: byte = 5;  // Unreachable - condition always false
-          }
-        }
-      `;
+  describe('analyzeFunction', () => {
+    it('should detect no issues in simple sequential code', () => {
+      // Build a simple CFG: entry -> stmt1 -> stmt2 -> exit
+      const cfg = new ControlFlowGraph('testFunc');
+      const stmt1 = cfg.createNode(CFGNodeKind.Statement, createMockStatement(1));
+      const stmt2 = cfg.createNode(CFGNodeKind.Statement, createMockStatement(2));
 
-      const { warnings } = analyze(source);
+      cfg.addEdge(cfg.entry, stmt1);
+      cfg.addEdge(stmt1, stmt2);
+      cfg.addEdge(stmt2, cfg.exit);
+      cfg.computeReachability();
 
-      // Should warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeDefined();
+      analyzer.analyzeFunction(cfg, 'testFunc');
+
+      expect(analyzer.hasDeadCode()).toBe(false);
+      expect(analyzer.getIssues()).toHaveLength(0);
     });
 
-    it('detects unreachable else branch when condition is true literal', () => {
-      const source = `
-        function test(): void {
-          if (true) {
-            let x: byte = 5;
-          } else {
-            let y: byte = 10;  // Unreachable - condition always true
-          }
-        }
-      `;
+    it('should detect unreachable code after return', () => {
+      // Build CFG: entry -> stmt1 -> return -> unreachable -> exit
+      const builder = new CFGBuilder('testFunc');
+      builder.addStatement(createMockStatement(1));
+      builder.addReturn(createMockReturn(2));
 
-      const { warnings } = analyze(source);
-
-      // Should warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
+      // Add unreachable code (won't be connected since current is null after return)
+      const unreachableNode = builder.cfg.createNode(
+        CFGNodeKind.Statement,
+        createMockStatement(3)
       );
-      expect(unreachableWarning).toBeDefined();
+      // Don't connect it - it's unreachable
+
+      const cfg = builder.finalize();
+      analyzer.analyzeFunction(cfg, 'testFunc');
+
+      expect(analyzer.hasDeadCode()).toBe(true);
+      expect(analyzer.getIssues()).toHaveLength(1);
+
+      const issue = analyzer.getIssues()[0];
+      expect(issue.kind).toBe(DeadCodeIssueKind.AfterReturn);
+      expect(issue.severity).toBe(DeadCodeSeverity.Warning);
+      expect(issue.functionName).toBe('testFunc');
+      expect(issue.causedBy).toBe('return');
     });
 
-    it('does not warn about reachable branches with non-constant condition', () => {
-      const source = `
-        function test(flag: boolean): void {
-          if (flag) {
-            let x: byte = 5;
-          } else {
-            let y: byte = 10;
-          }
-        }
-      `;
+    it('should detect unreachable code after break', () => {
+      const builder = new CFGBuilder('loopFunc');
 
-      const { warnings } = analyze(source);
+      // Start loop
+      const { entry: loopEntry, exit: loopExit } = builder.startLoop(createMockStatement(1));
 
-      // Should NOT warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
+      // Add statement in loop
+      builder.addStatement(createMockStatement(2));
+
+      // Add break
+      builder.addBreak(createMockStatement(3));
+
+      // Add unreachable statement after break (in loop body)
+      const unreachableNode = builder.cfg.createNode(
+        CFGNodeKind.Statement,
+        createMockStatement(4)
       );
-      expect(unreachableWarning).toBeUndefined();
-    });
-  });
 
-  describe('Dead Store Detection', () => {
-    it('detects dead store to write-only variable', () => {
-      const source = `
-        function test(): void {
-          let x: byte = 5;  // Dead store - never read
-          x = 10;           // Dead store - never read
-        }
-      `;
+      builder.endLoop(loopEntry, loopExit);
 
-      const { warnings, ast } = analyze(source);
+      const cfg = builder.finalize();
+      analyzer.analyzeFunction(cfg, 'loopFunc');
 
-      // Should have warnings about unused variable (from Task 8.2)
-      const unusedWarning = warnings.find(w =>
-        w.message.includes('never used') || w.message.includes('never read')
-      );
-      expect(unusedWarning).toBeDefined();
+      expect(analyzer.hasDeadCode()).toBe(true);
 
-      // Note: Dead store detection not yet implemented (requires parent node tracking)
-      // Skipping metadata checks for now
-
-      // Check metadata on assignment statements (when implemented)
-      // const functionDecl = (ast as any).declarations[0];
-      // const body = functionDecl.getBody();
-      //
-      // // Find assignment statement
-      // let foundDeadStore = false;
-      // if (body) {
-      //   for (const stmt of body) {
-      //     if (stmt.getNodeType() === 'ExpressionStatement') {
-      //       const expr = stmt.getExpression();
-      //       if (expr.getNodeType() === 'AssignmentExpression') {
-      //         const metadata = stmt.metadata;
-      //         if (metadata?.get(OptimizationMetadataKey.DeadCodeKind) === DeadCodeKind.DeadStore) {
-      //           foundDeadStore = true;
-      //           expect(metadata.get(OptimizationMetadataKey.DeadCodeUnreachable)).toBe(true);
-      //           expect(metadata.get(OptimizationMetadataKey.DeadCodeRemovable)).toBe(true);
-      //         }
-      //       }
-      //     }
-      //   }
-      // }
+      const issues = analyzer.getIssues();
+      const breakIssue = issues.find(i => i.causedBy === 'break');
+      expect(breakIssue).toBeDefined();
+      if (breakIssue) {
+        expect(breakIssue.kind).toBe(DeadCodeIssueKind.AfterBreak);
+      }
     });
 
-    it('does not warn about stores to read variables', () => {
-      const source = `
-        function test(): byte {
-          let x: byte = 5;  // Not dead - x is read
-          return x;
-        }
-      `;
+    it('should detect unreachable code after continue', () => {
+      const builder = new CFGBuilder('loopFunc');
 
-      const { warnings } = analyze(source);
+      // Start loop
+      const { entry: loopEntry, exit: loopExit } = builder.startLoop(createMockStatement(1));
 
-      // Should NOT warn about dead stores
-      const deadStoreWarning = warnings.find(w =>
-        w.message.includes('dead store') || w.message.includes('never read')
+      // Add continue
+      builder.addContinue(createMockStatement(2));
+
+      // Add unreachable statement after continue
+      const unreachableNode = builder.cfg.createNode(
+        CFGNodeKind.Statement,
+        createMockStatement(3)
       );
-      expect(deadStoreWarning).toBeUndefined();
-    });
-  });
 
-  describe('Metadata Generation', () => {
-    it('sets DeadCodeUnreachable metadata on unreachable statements', () => {
-      const source = `
-        function test(): void {
-          return;
-          let x: byte = 5;  // Unreachable
-        }
-      `;
+      builder.endLoop(loopEntry, loopExit);
 
-      const { ast } = analyze(source);
+      const cfg = builder.finalize();
+      analyzer.analyzeFunction(cfg, 'loopFunc');
 
-      // Find the unreachable statement
-      const functionDecl = (ast as any).declarations[0];
-      const body = functionDecl.getBody();
+      expect(analyzer.hasDeadCode()).toBe(true);
 
-      // body is Statement[] | null, not BlockStatement
-      expect(body).toBeDefined();
-      expect(body).not.toBeNull();
-
-      const unreachableStmt = body![1]; // After return
-
-      // Check metadata
-      expect(unreachableStmt.metadata).toBeDefined();
-      expect(unreachableStmt.metadata?.get(OptimizationMetadataKey.DeadCodeUnreachable)).toBe(true);
-      expect(unreachableStmt.metadata?.get(OptimizationMetadataKey.DeadCodeKind)).toBe(
-        DeadCodeKind.UnreachableStatement
-      );
-      expect(unreachableStmt.metadata?.get(OptimizationMetadataKey.DeadCodeReason)).toBeDefined();
-      expect(unreachableStmt.metadata?.get(OptimizationMetadataKey.DeadCodeRemovable)).toBe(true);
+      const issues = analyzer.getIssues();
+      const continueIssue = issues.find(i => i.causedBy === 'continue');
+      expect(continueIssue).toBeDefined();
+      if (continueIssue) {
+        expect(continueIssue.kind).toBe(DeadCodeIssueKind.AfterContinue);
+      }
     });
 
-    it('sets DeadCodeKind to UnreachableStatement for code after return', () => {
-      const source = `
-        function test(): void {
-          return;
-          let x: byte = 5;
-        }
-      `;
+    it('should handle multiple functions', () => {
+      // First function with dead code
+      const builder1 = new CFGBuilder('func1');
+      builder1.addStatement(createMockStatement(1));
+      builder1.addReturn(createMockReturn(2));
+      builder1.cfg.createNode(CFGNodeKind.Statement, createMockStatement(3)); // unreachable
+      const cfg1 = builder1.finalize();
 
-      const { ast } = analyze(source);
+      // Second function without dead code
+      const builder2 = new CFGBuilder('func2');
+      builder2.addStatement(createMockStatement(1));
+      builder2.addStatement(createMockStatement(2));
+      const cfg2 = builder2.finalize();
 
-      const functionDecl = (ast as any).declarations[0];
-      const body = functionDecl.getBody();
+      analyzer.analyzeFunction(cfg1, 'func1');
+      analyzer.analyzeFunction(cfg2, 'func2');
 
-      expect(body).toBeDefined();
-      expect(body).not.toBeNull();
-
-      const unreachableStmt = body![1];
-
-      expect(unreachableStmt.metadata?.get(OptimizationMetadataKey.DeadCodeKind)).toBe(
-        DeadCodeKind.UnreachableStatement
-      );
-    });
-
-    it('sets DeadCodeKind to UnreachableBranch for unreachable if branches', () => {
-      const source = `
-        function test(): void {
-          if (false) {
-            let x: byte = 5;
-          }
-        }
-      `;
-
-      const { ast } = analyze(source);
-
-      const functionDecl = (ast as any).declarations[0];
-      const body = functionDecl.getBody();
-
-      expect(body).toBeDefined();
-      expect(body).not.toBeNull();
-
-      const ifStmt = body![0];
-      const thenBranch = ifStmt.getThenBranch();
-
-      // thenBranch is Statement[], check metadata on first statement
-      expect(thenBranch).toBeDefined();
-      expect(thenBranch.length).toBeGreaterThan(0);
-
-      const firstStmt = thenBranch[0];
-      expect(firstStmt.metadata?.get(OptimizationMetadataKey.DeadCodeKind)).toBe(
-        DeadCodeKind.UnreachableBranch
-      );
-      expect(firstStmt.metadata?.get(OptimizationMetadataKey.DeadCodeReason)).toContain(
-        'always false'
-      );
-    });
-
-    it('provides descriptive reasons for unreachability', () => {
-      const source = `
-        function test(): void {
-          return;
-          let x: byte = 5;
-        }
-      `;
-
-      const { ast } = analyze(source);
-
-      const functionDecl = (ast as any).declarations[0];
-      const body = functionDecl.getBody();
-
-      expect(body).toBeDefined();
-      expect(body).not.toBeNull();
-
-      const unreachableStmt = body![1];
-
-      const reason = unreachableStmt.metadata?.get(OptimizationMetadataKey.DeadCodeReason);
-      expect(reason).toBeDefined();
-      expect(typeof reason).toBe('string');
-      expect((reason as string).length).toBeGreaterThan(0);
+      expect(analyzer.hasDeadCode()).toBe(true);
+      expect(analyzer.getFunctionIssues('func1')).toHaveLength(1);
+      expect(analyzer.getFunctionIssues('func2')).toHaveLength(0);
     });
   });
 
-  describe('Integration with CFG', () => {
-    it('uses CFG reachability analysis for detection', () => {
-      const source = `
-        function test(): void {
-          let a: byte = 1;
-          return;
-          let b: byte = 2;  // Unreachable per CFG
-          let c: byte = 3;  // Unreachable per CFG
-        }
-      `;
+  describe('analyzeFunctions', () => {
+    it('should analyze multiple functions at once', () => {
+      const builder1 = new CFGBuilder('func1');
+      builder1.addStatement(createMockStatement(1));
+      builder1.addReturn(createMockReturn(2));
+      builder1.cfg.createNode(CFGNodeKind.Statement, createMockStatement(3));
+      const cfg1 = builder1.finalize();
 
-      const { warnings, ast } = analyze(source);
+      const builder2 = new CFGBuilder('func2');
+      builder2.addStatement(createMockStatement(1));
+      const cfg2 = builder2.finalize();
 
-      // Should detect both unreachable statements
-      const unreachableWarnings = warnings.filter(w =>
-        w.message.includes('Unreachable code detected')
-      );
+      const cfgs = new Map<string, ControlFlowGraph>();
+      cfgs.set('func1', cfg1);
+      cfgs.set('func2', cfg2);
 
-      // Expect at least one warning (may be one per statement or combined)
-      expect(unreachableWarnings.length).toBeGreaterThan(0);
+      analyzer.analyzeFunctions(cfgs);
 
-      // Both statements should have metadata
-      const functionDecl = (ast as any).declarations[0];
-      const body = functionDecl.getBody();
-
-      expect(body).toBeDefined();
-      expect(body).not.toBeNull();
-
-      // Check statements after return
-      const stmt1 = body![2]; // let b
-      const stmt2 = body![3]; // let c
-
-      expect(stmt1.metadata?.get(OptimizationMetadataKey.DeadCodeUnreachable)).toBe(true);
-      expect(stmt2.metadata?.get(OptimizationMetadataKey.DeadCodeUnreachable)).toBe(true);
-    });
-
-    it('handles complex control flow correctly', () => {
-      const source = `
-        function test(x: byte): byte {
-          if (x > 10) {
-            return x;
-          }
-          
-          while (x < 5) {
-            x = x + 1;
-          }
-          
-          return x;  // Reachable - some paths reach here
-        }
-      `;
-
-      const { warnings } = analyze(source);
-
-      // Final return should NOT be marked as unreachable
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeUndefined();
+      expect(analyzer.hasDeadCode()).toBe(true);
+      const result = analyzer.getResult();
+      expect(result.functionsAnalyzed).toBe(2);
+      expect(result.issuesByFunction.get('func1')?.length).toBe(1);
     });
   });
 
-  describe('Edge Cases', () => {
-    it('handles empty functions correctly', () => {
-      const source = `
-        function test(): void {
-        }
-      `;
+  describe('getResult', () => {
+    it('should return complete statistics', () => {
+      const builder = new CFGBuilder('testFunc');
+      builder.addStatement(createMockStatement(1));
+      builder.addStatement(createMockStatement(2));
+      builder.addReturn(createMockReturn(3));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(4)); // dead
+      const cfg = builder.finalize();
 
-      const { warnings, errors } = analyze(source);
+      analyzer.analyzeFunction(cfg, 'testFunc');
 
-      // Should not crash or produce errors
-      expect(errors.length).toBe(0);
+      const result = analyzer.getResult();
+      expect(result.hasIssues).toBe(true);
+      expect(result.functionsAnalyzed).toBe(1);
+      expect(result.totalStatements).toBeGreaterThan(0);
+      expect(result.deadStatements).toBe(1);
+      expect(result.deadCodePercentage).toBeGreaterThan(0);
+      expect(result.issuesByFunction).toBeInstanceOf(Map);
     });
 
-    it('handles functions with only return correctly', () => {
-      const source = `
-        function test(): byte {
-          return 42;
-        }
-      `;
+    it('should calculate dead code percentage correctly', () => {
+      // Create function with 2 reachable and 2 unreachable statements
+      const cfg = new ControlFlowGraph('testFunc');
 
-      const { warnings } = analyze(source);
+      const stmt1 = cfg.createNode(CFGNodeKind.Statement, createMockStatement(1));
+      const stmt2 = cfg.createNode(CFGNodeKind.Statement, createMockStatement(2));
+      const returnNode = cfg.createNode(CFGNodeKind.Return, createMockReturn(3));
+      const dead1 = cfg.createNode(CFGNodeKind.Statement, createMockStatement(4));
+      const dead2 = cfg.createNode(CFGNodeKind.Statement, createMockStatement(5));
 
-      // Should not warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeUndefined();
-    });
+      cfg.addEdge(cfg.entry, stmt1);
+      cfg.addEdge(stmt1, stmt2);
+      cfg.addEdge(stmt2, returnNode);
+      cfg.addEdge(returnNode, cfg.exit);
+      // dead1 and dead2 are not connected
 
-    it('handles nested if statements with constant conditions', () => {
-      const source = `
-        function test(): void {
-          if (true) {
-            if (false) {
-              let x: byte = 5;  // Unreachable
-            }
-          }
-        }
-      `;
+      cfg.computeReachability();
+      analyzer.analyzeFunction(cfg, 'testFunc');
 
-      const { warnings } = analyze(source);
-
-      // Should detect nested unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeDefined();
-    });
-
-    it('handles infinite loops correctly', () => {
-      const source = `
-        function test(): void {
-          while (true) {
-            let x: byte = 1;
-          }
-          let y: byte = 2;  // Unreachable - loop never exits
-        }
-      `;
-
-      const { warnings } = analyze(source);
-
-      // Note: CFG may not detect infinite loop unreachability yet
-      // This is acceptable - infinite loop detection is complex
-      // Should detect code after infinite loop
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      // expect(unreachableWarning).toBeDefined();
-      // For now, we accept that this may not be detected
+      const result = analyzer.getResult();
+      expect(result.deadStatements).toBe(2);
+      // Percentage depends on total statement count
+      expect(result.deadCodePercentage).toBeGreaterThan(0);
+      expect(result.deadCodePercentage).toBeLessThanOrEqual(100);
     });
   });
 
-  describe('No False Positives', () => {
-    it('does not warn about reachable code in normal functions', () => {
-      const source = `
-        function test(x: byte): byte {
-          let result: byte = 0;
-          
-          if (x > 10) {
-            result = x * 2;
-          } else {
-            result = x + 1;
-          }
-          
-          return result;
-        }
-      `;
+  describe('getFunctionIssues', () => {
+    it('should return issues for specific function', () => {
+      const builder = new CFGBuilder('myFunc');
+      builder.addReturn(createMockReturn(1));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(2));
+      const cfg = builder.finalize();
 
-      const { warnings } = analyze(source);
+      analyzer.analyzeFunction(cfg, 'myFunc');
 
-      // Should NOT warn about unreachable code
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeUndefined();
+      const issues = analyzer.getFunctionIssues('myFunc');
+      expect(issues).toHaveLength(1);
+      expect(issues[0].functionName).toBe('myFunc');
     });
 
-    it('does not warn about loop bodies', () => {
-      const source = `
-        function test(): void {
-          let i: byte = 0;
-          while (i < 10) {
-            i = i + 1;
-          }
-        }
-      `;
+    it('should return empty array for unknown function', () => {
+      const issues = analyzer.getFunctionIssues('unknownFunc');
+      expect(issues).toEqual([]);
+    });
+  });
 
-      const { warnings } = analyze(source);
+  describe('formatReport', () => {
+    it('should format report with no issues', () => {
+      const builder = new CFGBuilder('cleanFunc');
+      builder.addStatement(createMockStatement(1));
+      const cfg = builder.finalize();
 
-      // Should NOT warn about unreachable code in loop
-      const unreachableWarning = warnings.find(w =>
-        w.message.includes('Unreachable code detected')
-      );
-      expect(unreachableWarning).toBeUndefined();
+      analyzer.analyzeFunction(cfg, 'cleanFunc');
+
+      const report = analyzer.formatReport();
+      expect(report).toContain('No issues found');
+      expect(report).toContain('1 functions');
+    });
+
+    it('should format report with issues', () => {
+      const builder = new CFGBuilder('problemFunc');
+      builder.addReturn(createMockReturn(1));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(2));
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'problemFunc');
+
+      const report = analyzer.formatReport();
+      expect(report).toContain('Dead Code Analysis Report');
+      expect(report).toContain('problemFunc');
+      expect(report).toContain('WARNING');
+      expect(report).toContain('suggestion');
+    });
+  });
+
+  describe('reset', () => {
+    it('should clear all state', () => {
+      const builder = new CFGBuilder('func');
+      builder.addReturn(createMockReturn(1));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(2));
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'func');
+      expect(analyzer.hasDeadCode()).toBe(true);
+
+      analyzer.reset();
+
+      expect(analyzer.hasDeadCode()).toBe(false);
+      expect(analyzer.getIssues()).toHaveLength(0);
+      expect(analyzer.getDeadCodeCount()).toBe(0);
+    });
+  });
+
+  describe('issue kinds', () => {
+    it('should use AfterReturn for code after return', () => {
+      const builder = new CFGBuilder('func');
+      builder.addReturn(createMockReturn(1));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(2));
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'func');
+
+      const issue = analyzer.getIssues()[0];
+      expect(issue.kind).toBe(DeadCodeIssueKind.AfterReturn);
+    });
+
+    it('should use AfterBreak for code after break', () => {
+      const builder = new CFGBuilder('func');
+      const { entry, exit } = builder.startLoop(createMockStatement(1));
+      builder.addBreak(createMockStatement(2));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(3));
+      builder.endLoop(entry, exit);
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'func');
+
+      const issues = analyzer.getIssues();
+      expect(issues.some(i => i.kind === DeadCodeIssueKind.AfterBreak)).toBe(true);
+    });
+
+    it('should use AfterContinue for code after continue', () => {
+      const builder = new CFGBuilder('func');
+      const { entry, exit } = builder.startLoop(createMockStatement(1));
+      builder.addContinue(createMockStatement(2));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(3));
+      builder.endLoop(entry, exit);
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'func');
+
+      const issues = analyzer.getIssues();
+      expect(issues.some(i => i.kind === DeadCodeIssueKind.AfterContinue)).toBe(true);
+    });
+
+    it('should use Unreachable for general unreachable code', () => {
+      // Create CFG with unreachable code not caused by a specific terminator
+      const cfg = new ControlFlowGraph('func');
+      const stmt1 = cfg.createNode(CFGNodeKind.Statement, createMockStatement(1));
+      const unreachable = cfg.createNode(CFGNodeKind.Statement, createMockStatement(10));
+
+      cfg.addEdge(cfg.entry, stmt1);
+      cfg.addEdge(stmt1, cfg.exit);
+      // unreachable is not connected
+
+      cfg.computeReachability();
+      analyzer.analyzeFunction(cfg, 'func');
+
+      const issues = analyzer.getIssues();
+      expect(issues).toHaveLength(1);
+      expect(issues[0].kind).toBe(DeadCodeIssueKind.Unreachable);
+    });
+  });
+
+  describe('issue details', () => {
+    it('should include statement and location in issue', () => {
+      const builder = new CFGBuilder('func');
+      builder.addReturn(createMockReturn(5));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(10, 5));
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'func');
+
+      const issue = analyzer.getIssues()[0];
+      expect(issue.statement).toBeDefined();
+      expect(issue.location).toBeDefined();
+      expect(issue.location.start.line).toBe(10);
+      expect(issue.location.start.column).toBe(5);
+    });
+
+    it('should include message and suggestion', () => {
+      const builder = new CFGBuilder('func');
+      builder.addReturn(createMockReturn(1));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(2));
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'func');
+
+      const issue = analyzer.getIssues()[0];
+      expect(issue.message).toContain('Unreachable');
+      expect(issue.suggestion).toBeDefined();
+      expect(issue.suggestion.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should handle empty function', () => {
+      const builder = new CFGBuilder('emptyFunc');
+      const cfg = builder.finalize();
+
+      analyzer.analyzeFunction(cfg, 'emptyFunc');
+
+      expect(analyzer.hasDeadCode()).toBe(false);
+    });
+
+    it('should handle function with only entry and exit', () => {
+      const cfg = new ControlFlowGraph('minimalFunc');
+      cfg.addEdge(cfg.entry, cfg.exit);
+      cfg.computeReachability();
+
+      analyzer.analyzeFunction(cfg, 'minimalFunc');
+
+      expect(analyzer.hasDeadCode()).toBe(false);
+    });
+
+    it('should handle nested loops with dead code', () => {
+      const builder = new CFGBuilder('nestedFunc');
+
+      // Outer loop
+      const { entry: outerEntry, exit: outerExit } = builder.startLoop(createMockStatement(1));
+
+      // Inner loop
+      const { entry: innerEntry, exit: innerExit } = builder.startLoop(createMockStatement(2));
+      builder.addBreak(createMockStatement(3));
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(4)); // dead in inner
+      builder.endLoop(innerEntry, innerExit);
+
+      builder.addStatement(createMockStatement(5));
+      builder.endLoop(outerEntry, outerExit);
+
+      const cfg = builder.finalize();
+      analyzer.analyzeFunction(cfg, 'nestedFunc');
+
+      expect(analyzer.hasDeadCode()).toBe(true);
+    });
+
+    it('should handle branching code without dead code', () => {
+      const builder = new CFGBuilder('branchFunc');
+
+      // Create branch
+      const branchNode = builder.startBranch(createMockStatement(1));
+      builder.addStatement(createMockStatement(2)); // then branch
+      const thenExit = builder.getCurrentNode();
+
+      builder.startAlternate(branchNode);
+      builder.addStatement(createMockStatement(3)); // else branch
+      const elseExit = builder.getCurrentNode();
+
+      builder.mergeBranches([thenExit, elseExit]);
+      builder.addStatement(createMockStatement(4)); // after merge
+
+      const cfg = builder.finalize();
+      analyzer.analyzeFunction(cfg, 'branchFunc');
+
+      expect(analyzer.hasDeadCode()).toBe(false);
+    });
+
+    it('should handle both branches terminating', () => {
+      const builder = new CFGBuilder('bothTerminateFunc');
+
+      // Create branch where both sides return
+      const branchNode = builder.startBranch(createMockStatement(1));
+      builder.addReturn(createMockReturn(2)); // then branch returns
+      const thenExit = builder.getCurrentNode();
+
+      builder.startAlternate(branchNode);
+      builder.addReturn(createMockReturn(3)); // else branch returns
+      const elseExit = builder.getCurrentNode();
+
+      builder.mergeBranches([thenExit, elseExit]);
+
+      // Add unreachable code after both branches terminate
+      builder.cfg.createNode(CFGNodeKind.Statement, createMockStatement(4));
+
+      const cfg = builder.finalize();
+      analyzer.analyzeFunction(cfg, 'bothTerminateFunc');
+
+      expect(analyzer.hasDeadCode()).toBe(true);
     });
   });
 });

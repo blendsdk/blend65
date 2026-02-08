@@ -1,11 +1,33 @@
 /**
- * TypeChecker Module Exports
+ * Type Checker Module for Blend65 Compiler v2
  *
- * Exports the complete TypeChecker implementation.
- * All layers are internal implementation details - only export the concrete class.
+ * This module exports the type checker inheritance chain:
+ *
+ * TypeCheckerBase → LiteralTypeChecker → ExpressionTypeChecker →
+ * DeclarationTypeChecker → StatementTypeChecker → TypeChecker
+ *
+ * For most use cases, import and use the final `TypeChecker` class.
+ * The intermediate classes are exported for extension and testing.
+ *
+ * @module semantic/visitors/type-checker
  */
 
-export { TypeChecker } from './type-checker.js';
+// Base layer - common utilities and infrastructure
+export { TypeCheckerBase, TypeCheckDiagnosticCodes } from './base.js';
+export type { TypeCheckResult, TypeCheckPassResult } from './base.js';
 
-// Layer classes are kept internal (not exported)
-// This encapsulates the inheritance chain architecture
+// Literal type checking layer
+export { LiteralTypeChecker } from './literals.js';
+
+// Expression type checking layer
+export { ExpressionTypeChecker } from './expressions.js';
+
+// Declaration type checking layer
+export { DeclarationTypeChecker, DeclarationDiagnosticCodes } from './declarations.js';
+
+// Statement type checking layer
+export { StatementTypeChecker, StatementDiagnosticCodes } from './statements.js';
+
+// Final concrete TypeChecker class
+export { TypeChecker } from './type-checker.js';
+export type { TypeCheckOptions } from './type-checker.js';

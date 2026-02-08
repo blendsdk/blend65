@@ -1,11 +1,14 @@
 /**
- * Import/Export Integration Tests
+ * Import/Export Integration Tests (V2)
  *
  * Comprehensive tests for Phase 5 import/export system including:
  * - Import declaration edge cases
  * - Export declaration with full Parser
  * - End-to-end module system integration
  * - Real-world usage patterns
+ *
+ * NOTE: V2 has NO storage classes (@zp/@ram/@data) - frame allocator handles memory.
+ * NOTE: V2 has NO @map syntax - uses peek/poke intrinsics instead.
  */
 
 import { describe, test, expect } from 'vitest';
@@ -337,32 +340,14 @@ describe('Import/Export Integration Tests', () => {
       expect(varDecl.isConst()).toBe(true);
     });
 
-    test('parses exported variable with storage class', () => {
-      const source = `
-        module Game.State;
-
-        export @zp let frameCounter: byte = 0;
-      `;
-
-      const lexer = new Lexer(source);
-      const tokens = lexer.tokenize();
-      const parser = new Parser(tokens);
-      const ast = parser.parse();
-
-      expect(parser.hasErrors()).toBe(false);
-
-      const varDecl = ast.getDeclarations()[0] as VariableDecl;
-      expect(varDecl.getName()).toBe('frameCounter');
-      expect(varDecl.isExportedVariable()).toBe(true);
-      expect(varDecl.getStorageClass()).toBeTruthy();
-    });
+    // V2: Removed "parses exported variable with storage class" - no storage classes in v2
 
     test('parses multiple exported variables', () => {
       const source = `
         module Game.State;
 
-        export @zp let score: word = 0;
-        export @zp let lives: byte = 3;
+        export let score: word = 0;
+        export let lives: byte = 3;
         export const MAX_LEVEL: byte = 10;
       `;
 
@@ -392,7 +377,7 @@ describe('Import/Export Integration Tests', () => {
         import { clearScreen, setPixel } from c64.graphics;
         import { initSID } from c64.audio;
 
-        export @zp let score: word = 0;
+        export let score: word = 0;
         export const MAX_SCORE: word = 9999;
 
         export function init(): void {
@@ -436,49 +421,7 @@ describe('Import/Export Integration Tests', () => {
       expect((declarations[5] as FunctionDecl).isExportedFunction()).toBe(true);
     });
 
-    test('parses graphics module example', () => {
-      const source = `
-        module c64.graphics;
-
-        @map screenRAM from $0400 to $07E7: byte;
-        @map colorRAM from $D800 to $DBE7: byte;
-
-        const SCREEN_WIDTH: byte = 40;
-
-        export function clearScreen(): void {
-          let i: word = 0;
-          while (i < 1000) {
-            screenRAM[i] = 32;
-            colorRAM[i] = 14;
-            i = i + 1;
-          }
-        }
-
-        export function setPixel(x: byte, y: byte): void {
-          let offset: word = y * SCREEN_WIDTH + x;
-          screenRAM[offset] = 160;
-        }
-      `;
-
-      const lexer = new Lexer(source);
-      const tokens = lexer.tokenize();
-      const parser = new Parser(tokens);
-      const ast = parser.parse();
-
-      expect(parser.hasErrors()).toBe(false);
-
-      const module = ast.getModule();
-      expect(module.getFullName()).toBe('c64.graphics');
-
-      const declarations = ast.getDeclarations();
-      expect(declarations.length).toBe(5); // 2 @map, 1 const, 2 exported functions
-
-      // Check exported functions
-      const exportedFunctions = declarations.filter(
-        d => d instanceof FunctionDecl && (d as FunctionDecl).isExportedFunction()
-      );
-      expect(exportedFunctions.length).toBe(2);
-    });
+    // V2: Removed "parses graphics module example" - had @map syntax
 
     test('parses game module with imports and state', () => {
       const source = `
@@ -487,9 +430,9 @@ describe('Import/Export Integration Tests', () => {
         import { clearScreen, setPixel } from c64.graphics;
         import { random } from utils.math;
 
-        @zp let playerX: byte = 10;
-        @zp let playerY: byte = 10;
-        export @zp let score: word = 0;
+        let playerX: byte = 10;
+        let playerY: byte = 10;
+        export let score: word = 0;
 
         function updatePosition(): void {
           playerX = playerX + 1;
@@ -538,7 +481,7 @@ describe('Import/Export Integration Tests', () => {
 
         import { clearScreen } from c64.graphics;
 
-        export @zp let score: word = 0;
+        export let score: word = 0;
 
         export function main(): void {
           clearScreen();
@@ -601,46 +544,16 @@ describe('Import/Export Integration Tests', () => {
   // ============================================
 
   describe('Real-World Usage Patterns', () => {
-    test('C64 hardware abstraction module', () => {
-      const source = `
-        module c64.hardware;
-
-        @map borderColor at $D020: byte;
-        @map backgroundColor at $D021: byte;
-
-        export function setBorderColor(color: byte): void {
-          borderColor = color;
-        }
-
-        export function setBackgroundColor(color: byte): void {
-          backgroundColor = color;
-        }
-      `;
-
-      const lexer = new Lexer(source);
-      const tokens = lexer.tokenize();
-      const parser = new Parser(tokens);
-      const ast = parser.parse();
-
-      expect(parser.hasErrors()).toBe(false);
-
-      const module = ast.getModule();
-      expect(module.getFullName()).toBe('c64.hardware');
-
-      const exportedFunctions = ast
-        .getDeclarations()
-        .filter(d => d instanceof FunctionDecl && (d as FunctionDecl).isExportedFunction());
-      expect(exportedFunctions.length).toBe(2);
-    });
+    // V2: Removed "C64 hardware abstraction module" - had @map syntax
 
     test('Game state management module', () => {
       const source = `
         module Game.State;
 
-        export @zp let score: word = 0;
-        export @zp let lives: byte = 3;
-        export @zp let level: byte = 1;
-        export @ram let hiScore: word = 5000;
+        export let score: word = 0;
+        export let lives: byte = 3;
+        export let level: byte = 1;
+        export let hiScore: word = 5000;
 
         export function resetGame(): void {
           score = 0;

@@ -1,11 +1,14 @@
 /**
- * Error Message Tests
+ * Error Message Tests (V2)
  *
  * Validates all error message constants for:
  * - Correct parameter handling
  * - Grammatical correctness
  * - Message consistency
  * - Complete coverage of all error scenarios
+ *
+ * NOTE: V2 has NO @map syntax - uses peek/poke intrinsics instead.
+ * NOTE: V2 has NO storage classes (@zp/@ram/@data) - frame allocator handles memory.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -289,32 +292,7 @@ describe('DeclarationParserErrors', () => {
     });
   });
 
-  describe('map declaration errors', () => {
-    it('should have correct map variable name message', () => {
-      const msg = DeclarationParserErrors.expectedMapVariableName();
-      expect(msg).toBe('Expected variable name after @map');
-    });
-
-    it('should have correct at keyword message', () => {
-      const msg = DeclarationParserErrors.expectedAtKeywordInMap();
-      expect(msg).toBe("Expected 'at' keyword in @map declaration");
-    });
-
-    it('should have correct address message', () => {
-      const msg = DeclarationParserErrors.expectedAddressInMap();
-      expect(msg).toBe('Expected memory address in @map declaration');
-    });
-
-    it('should format invalid address', () => {
-      const msg = DeclarationParserErrors.invalidMapAddress('xyz');
-      expect(msg).toBe("Invalid memory address 'xyz' - must be numeric or hex literal");
-    });
-
-    it('should have correct type in map message', () => {
-      const msg = DeclarationParserErrors.expectedTypeInMap();
-      expect(msg).toBe('Expected type annotation in @map declaration');
-    });
-  });
+  // V2: Removed "map declaration errors" - no @map syntax in v2
 
   describe('type errors', () => {
     it('should have correct type name message', () => {

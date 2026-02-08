@@ -1,243 +1,522 @@
 /**
- * Import Resolver
+ * Import Resolver for Blend65 Compiler v2
  *
- * Validates and resolves import declarations across all modules.
- * Ensures that all imported modules exist and prepares import metadata
- * for later symbol validation (cross-module type checking).
+ * Validates import statements and resolves imported symbols.
+ * Works with the ModuleRegistry to check that imported modules exist
+ * and that imported symbols are exported from those modules.
  *
- * **Phase 6.1.4** - Import validation infrastructure
+ * Key responsibilities:
+ * - Validate that imported modules exist in the registry
+ * - Validate that imported symbols exist in the source module
+ * - Validate that imported symbols are exported (not private)
+ * - Report meaningful error messages for import failures
  *
- * **Responsibilities:**
- * - Validate that all imported modules exist in the module registry
- * - Fail-fast error reporting for missing modules
- * - Build list of resolved imports for later symbol validation
- * - Track import locations for precise error messages
- *
- * **Usage:**
- * ```typescript
- * const registry = new ModuleRegistry();
- * // ... register modules ...
- *
- * const resolver = new ImportResolver(registry);
- *
- * // Validate imports (fail-fast on missing modules)
- * const errors = resolver.validateAllImports(programs);
- * if (errors.length > 0) {
- *   // Handle errors - compilation cannot proceed
- * }
- *
- * // Resolve imports for later cross-module validation
- * const resolved = resolver.resolveImports(programs);
- * // Use resolved imports to validate exported symbols exist
- * ```
+ * @module semantic/import-resolver
  */
 
-import type { Program, ImportDecl } from '../ast/nodes.js';
+import type { SourceLocation } from '../ast/index.js';
+import { ImportDecl, ExportDecl, Program } from '../ast/index.js';
+import { isExportDecl, isFunctionDecl, isVariableDecl } from '../ast/type-guards.js';
 import type { ModuleRegistry } from './module-registry.js';
-import type { Diagnostic } from '../ast/diagnostics.js';
-import { DiagnosticCode, DiagnosticSeverity } from '../ast/diagnostics.js';
-import type { SourceLocation } from '../ast/base.js';
-import { isImportDecl } from '../ast/type-guards.js';
+import type { SymbolTable } from './symbol-table.js';
 
 /**
- * Resolved import metadata
+ * Import validation error information
  *
- * Represents a validated import that can be used for cross-module
- * symbol validation (checking that imported identifiers actually exist).
+ * Contains details about why an import validation failed.
  */
-export interface ResolvedImport {
-  /** Module that contains the import declaration */
-  fromModule: string;
+export interface ImportError {
+  /** Error code for programmatic handling */
+  code: ImportErrorCode;
 
-  /** Module being imported from */
-  toModule: string;
+  /** Human-readable error message */
+  message: string;
 
-  /** Identifiers being imported (empty array for wildcard imports) */
-  importedIdentifiers: string[];
+  /** Source location of the import statement */
+  location: SourceLocation;
 
-  /** Original import declaration AST node */
-  importDecl: ImportDecl;
+  /** The module being imported from (if relevant) */
+  moduleName?: string;
+
+  /** The symbol being imported (if relevant) */
+  symbolName?: string;
 }
 
 /**
- * Import resolver validates and resolves imports
+ * Import error codes
  *
- * **Two-Phase Validation:**
+ * Allows programmatic handling of different error types.
+ */
+export enum ImportErrorCode {
+  /** The imported module does not exist */
+  MODULE_NOT_FOUND = 'MODULE_NOT_FOUND',
+
+  /** The imported symbol does not exist in the module */
+  SYMBOL_NOT_FOUND = 'SYMBOL_NOT_FOUND',
+
+  /** The symbol exists but is not exported */
+  SYMBOL_NOT_EXPORTED = 'SYMBOL_NOT_EXPORTED',
+
+  /** Circular import detected (handled by DependencyGraph, but reported here) */
+  CIRCULAR_IMPORT = 'CIRCULAR_IMPORT',
+
+  /** Wildcard import from module with no exports */
+  NO_EXPORTS = 'NO_EXPORTS',
+}
+
+/**
+ * Result of resolving a single import
  *
- * 1. **Module Existence** (this class - Phase 6.1.4):
- *    - Check that every imported module exists in the registry
- *    - Fail-fast if any modules are missing
+ * Contains the resolved symbols or error information.
+ */
+export interface ImportResolution {
+  /** The import declaration that was resolved */
+  importDecl: ImportDecl;
+
+  /** Whether the import was resolved successfully */
+  success: boolean;
+
+  /** Resolved symbols (if successful) */
+  symbols?: ResolvedImport[];
+
+  /** Errors encountered (if unsuccessful) */
+  errors?: ImportError[];
+}
+
+/**
+ * A successfully resolved import
  *
- * 2. **Symbol Existence** (later - Phase 6.2.3):
- *    - Check that imported identifiers are actually exported
- *    - Validate types match across module boundaries
- *    - (Not implemented in this task)
+ * Maps the local name to the exported symbol from the source module.
+ */
+export interface ResolvedImport {
+  /** The local name used in the importing module */
+  localName: string;
+
+  /** The original name in the source module */
+  originalName: string;
+
+  /** The source module name */
+  moduleName: string;
+
+  /** The resolved symbol from the source module */
+  symbol: ExportedSymbol;
+}
+
+/**
+ * Exported symbol information
  *
- * **Error Handling Strategy:**
- * - Missing modules → immediate error (fail-fast)
- * - Location tracking for precise error messages
- * - Clear error messages indicating which module is missing and where it was imported
+ * Contains the symbol information and its origin.
+ */
+export interface ExportedSymbol {
+  /** Symbol name */
+  name: string;
+
+  /** Symbol kind (function, variable, etc.) */
+  kind: 'function' | 'variable' | 'constant';
+
+  /** Source location of the export */
+  location: SourceLocation;
+}
+
+/**
+ * Import Resolver - validates and resolves import statements
+ *
+ * The ImportResolver works with the ModuleRegistry to validate that:
+ * 1. Imported modules exist
+ * 2. Imported symbols exist in the source module
+ * 3. Imported symbols are exported (public)
+ *
+ * It does NOT perform type checking - that happens later in the
+ * type checking pass. This is purely about symbol resolution.
+ *
+ * @example
+ * ```typescript
+ * const resolver = new ImportResolver(registry);
+ *
+ * // Resolve all imports in a module
+ * const results = resolver.resolveImports(program);
+ *
+ * // Check for errors
+ * for (const result of results) {
+ *   if (!result.success) {
+ *     for (const error of result.errors) {
+ *       console.error(error.message);
+ *     }
+ *   }
+ * }
+ * ```
  */
 export class ImportResolver {
   /**
-   * Creates an ImportResolver
-   *
-   * @param registry - Module registry containing all available modules
+   * The module registry containing all parsed modules
    */
-  constructor(protected readonly registry: ModuleRegistry) {}
+  protected registry: ModuleRegistry;
 
   /**
-   * Validate all imports across all modules
-   *
-   * Checks that every module referenced in import declarations
-   * actually exists in the module registry.
-   *
-   * **Fail-Fast Behavior:**
-   * If any modules are missing, returns errors immediately.
-   * Compilation cannot proceed until all modules are available.
-   *
-   * @param programs - Array of all parsed programs
-   * @returns Array of diagnostics (errors for missing modules)
-   *
-   * @example
-   * ```typescript
-   * const errors = resolver.validateAllImports(programs);
-   * if (errors.length > 0) {
-   *   // Missing module(s) - cannot compile
-   *   console.error('Import validation failed:', errors);
-   *   return;
-   * }
-   * ```
+   * Cache of exported symbols per module
+   * Key: module name
+   * Value: Map of symbol name → ExportedSymbol
    */
-  public validateAllImports(programs: Program[]): Diagnostic[] {
-    const diagnostics: Diagnostic[] = [];
+  protected exportCache: Map<string, Map<string, ExportedSymbol>> = new Map();
 
-    for (const program of programs) {
-      const moduleName = program.getModule().getFullName();
-      const moduleErrors = this.validateModuleImports(program, moduleName);
-      diagnostics.push(...moduleErrors);
-    }
-
-    return diagnostics;
+  /**
+   * Creates a new ImportResolver
+   *
+   * @param registry - The module registry to use for module lookups
+   */
+  constructor(registry: ModuleRegistry) {
+    this.registry = registry;
   }
 
   /**
-   * Validate imports for a single module
+   * Resolves all imports in a program
    *
-   * Extracts all import declarations and verifies each target module exists.
+   * Processes each import declaration and validates that the imported
+   * module and symbols exist and are properly exported.
    *
-   * @param program - Program AST to validate
-   * @param moduleName - Name of the module being validated (for error messages)
-   * @returns Array of diagnostics for this module
+   * @param program - The program AST to resolve imports for
+   * @returns Array of ImportResolution results for each import
+   *
+   * @example
+   * ```typescript
+   * const results = resolver.resolveImports(program);
+   * const allSuccess = results.every(r => r.success);
+   * ```
    */
-  protected validateModuleImports(program: Program, moduleName: string): Diagnostic[] {
-    const diagnostics: Diagnostic[] = [];
+  public resolveImports(program: Program): ImportResolution[] {
+    const results: ImportResolution[] = [];
 
-    // Extract all import declarations from the program
-    const imports = program
-      .getDeclarations()
-      .filter(isImportDecl);
-
-    for (const importDecl of imports) {
-      const targetModule = importDecl.getModuleName();
-
-      // Check if target module exists in registry
-      if (!this.registry.hasModule(targetModule)) {
-        diagnostics.push(
-          this.createError(
-            DiagnosticCode.MODULE_NOT_FOUND,
-            `Module '${targetModule}' not found (imported by module '${moduleName}')`,
-            importDecl.getLocation()
-          )
-        );
+    // Find all import declarations in the program
+    for (const decl of program.getDeclarations()) {
+      if (decl.getNodeType() === 'ImportDecl') {
+        const importDecl = decl as ImportDecl;
+        results.push(this.resolveImport(importDecl));
       }
     }
 
-    return diagnostics;
+    return results;
   }
 
   /**
-   * Resolve all imports for later symbol validation
+   * Resolves a single import declaration
    *
-   * Builds a list of all import relationships that can be used
-   * for cross-module symbol validation.
+   * Validates the module exists, then validates each imported symbol.
    *
-   * **Only includes valid imports:**
-   * - Skips imports to non-existent modules
-   * - Only returns imports where target module exists
-   *
-   * **Use this after validateAllImports():**
-   * 1. Call validateAllImports() - fail if errors
-   * 2. Call resolveImports() - get valid imports for symbol checking
-   * 3. Use resolved imports for cross-module validation
-   *
-   * @param programs - Array of all parsed programs
-   * @returns Array of resolved imports
+   * @param importDecl - The import declaration to resolve
+   * @returns Resolution result with symbols or errors
    *
    * @example
    * ```typescript
-   * // After validation passes
-   * const resolved = resolver.resolveImports(programs);
-   *
-   * // Later: validate that imported symbols are actually exported
-   * for (const imp of resolved) {
-   *   const targetModule = registry.getModule(imp.toModule);
-   *   for (const identifier of imp.importedIdentifiers) {
-   *     // Check that identifier is exported by targetModule
+   * const result = resolver.resolveImport(importDecl);
+   * if (result.success) {
+   *   for (const sym of result.symbols) {
+   *     console.log(`Imported ${sym.localName} from ${sym.moduleName}`);
    *   }
    * }
    * ```
    */
-  public resolveImports(programs: Program[]): ResolvedImport[] {
-    const resolved: ResolvedImport[] = [];
+  public resolveImport(importDecl: ImportDecl): ImportResolution {
+    const moduleName = importDecl.getModuleName();
+    const errors: ImportError[] = [];
+    const symbols: ResolvedImport[] = [];
 
-    for (const program of programs) {
-      const moduleName = program.getModule().getFullName();
+    // Step 1: Check if the module exists
+    if (!this.registry.hasModule(moduleName)) {
+      errors.push({
+        code: ImportErrorCode.MODULE_NOT_FOUND,
+        message: `Module '${moduleName}' not found`,
+        location: importDecl.getLocation(),
+        moduleName,
+      });
+      return { importDecl, success: false, errors };
+    }
 
-      // Extract all import declarations
-      const imports = program
-        .getDeclarations()
-        .filter(isImportDecl);
+    // Step 2: Get exports from the module
+    const exports = this.getModuleExports(moduleName);
 
-      for (const importDecl of imports) {
-        const targetModule = importDecl.getModuleName();
+    // Step 3: Handle wildcard imports
+    if (importDecl.isWildcardImport()) {
+      if (exports.size === 0) {
+        errors.push({
+          code: ImportErrorCode.NO_EXPORTS,
+          message: `Module '${moduleName}' has no exports`,
+          location: importDecl.getLocation(),
+          moduleName,
+        });
+        return { importDecl, success: false, errors };
+      }
 
-        // Only include imports to modules that exist
-        // (Validation should have caught missing modules already)
-        if (this.registry.hasModule(targetModule)) {
-          resolved.push({
-            fromModule: moduleName,
-            toModule: targetModule,
-            importedIdentifiers: importDecl.getIdentifiers(),
-            importDecl,
+      // Import all exported symbols
+      for (const [name, exportedSymbol] of exports) {
+        symbols.push({
+          localName: name,
+          originalName: name,
+          moduleName,
+          symbol: exportedSymbol,
+        });
+      }
+
+      return { importDecl, success: true, symbols };
+    }
+
+    // Step 4: Handle named imports
+    for (const identifier of importDecl.getIdentifiers()) {
+      const exportedSymbol = exports.get(identifier);
+
+      if (!exportedSymbol) {
+        // Check if symbol exists but isn't exported
+        const exists = this.symbolExistsInModule(moduleName, identifier);
+
+        if (exists) {
+          errors.push({
+            code: ImportErrorCode.SYMBOL_NOT_EXPORTED,
+            message: `Symbol '${identifier}' exists in module '${moduleName}' but is not exported`,
+            location: importDecl.getLocation(),
+            moduleName,
+            symbolName: identifier,
+          });
+        } else {
+          errors.push({
+            code: ImportErrorCode.SYMBOL_NOT_FOUND,
+            message: `Symbol '${identifier}' not found in module '${moduleName}'`,
+            location: importDecl.getLocation(),
+            moduleName,
+            symbolName: identifier,
+          });
+        }
+      } else {
+        symbols.push({
+          localName: identifier,
+          originalName: identifier,
+          moduleName,
+          symbol: exportedSymbol,
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return { importDecl, success: false, errors, symbols };
+    }
+
+    return { importDecl, success: true, symbols };
+  }
+
+  /**
+   * Gets all exported symbols from a module
+   *
+   * Returns a map of symbol name → ExportedSymbol for all symbols
+   * that are exported from the given module.
+   *
+   * V2 Note: In v2, exports use FLAGS on declarations (isExportedFunction, isExportedVariable)
+   * rather than ExportDecl wrapper nodes. This method supports both patterns.
+   *
+   * @param moduleName - The module to get exports from
+   * @returns Map of exported symbols
+   *
+   * @example
+   * ```typescript
+   * const exports = resolver.getModuleExports('Game.Sprites');
+   * for (const [name, symbol] of exports) {
+   *   console.log(`${name}: ${symbol.kind}`);
+   * }
+   * ```
+   */
+  public getModuleExports(moduleName: string): Map<string, ExportedSymbol> {
+    // Check cache first
+    if (this.exportCache.has(moduleName)) {
+      return this.exportCache.get(moduleName)!;
+    }
+
+    const exports = new Map<string, ExportedSymbol>();
+    const program = this.registry.getProgram(moduleName);
+
+    if (!program) {
+      return exports;
+    }
+
+    // Find all exported declarations
+    // V2 uses export FLAGS on declarations, not ExportDecl wrapper nodes
+    for (const decl of program.getDeclarations()) {
+      // Check for ExportDecl wrapper (v1 style) - keep for compatibility
+      if (isExportDecl(decl)) {
+        const exportDecl = decl as ExportDecl;
+        const innerDecl = exportDecl.getDeclaration();
+        const location = innerDecl.getLocation();
+
+        if (isFunctionDecl(innerDecl)) {
+          const name = innerDecl.getName();
+          exports.set(name, {
+            name,
+            kind: 'function',
+            location,
+          });
+        } else if (isVariableDecl(innerDecl)) {
+          const name = innerDecl.getName();
+          const isConstVar = innerDecl.isConst();
+          exports.set(name, {
+            name,
+            kind: isConstVar ? 'constant' : 'variable',
+            location,
+          });
+        }
+      }
+
+      // Check for export FLAG on FunctionDecl (v2 style)
+      if (isFunctionDecl(decl) && decl.isExportedFunction()) {
+        const name = decl.getName();
+        exports.set(name, {
+          name,
+          kind: 'function',
+          location: decl.getLocation(),
+        });
+      }
+
+      // Check for export FLAG on VariableDecl (v2 style)
+      if (isVariableDecl(decl) && decl.isExportedVariable()) {
+        const name = decl.getName();
+        const isConstVar = decl.isConst();
+        exports.set(name, {
+          name,
+          kind: isConstVar ? 'constant' : 'variable',
+          location: decl.getLocation(),
+        });
+      }
+    }
+
+    // Cache the result
+    this.exportCache.set(moduleName, exports);
+
+    return exports;
+  }
+
+  /**
+   * Checks if a symbol exists in a module (regardless of export status)
+   *
+   * Used to provide better error messages - "not exported" vs "not found".
+   *
+   * @param moduleName - The module to check
+   * @param symbolName - The symbol to look for
+   * @returns true if the symbol exists (exported or not)
+   */
+  public symbolExistsInModule(moduleName: string, symbolName: string): boolean {
+    const program = this.registry.getProgram(moduleName);
+
+    if (!program) {
+      return false;
+    }
+
+    // Check all top-level declarations
+    for (const decl of program.getDeclarations()) {
+      // Check export declarations
+      if (isExportDecl(decl)) {
+        const innerDecl = (decl as ExportDecl).getDeclaration();
+        if (isFunctionDecl(innerDecl) && innerDecl.getName() === symbolName) {
+          return true;
+        }
+        if (isVariableDecl(innerDecl) && innerDecl.getName() === symbolName) {
+          return true;
+        }
+      }
+
+      // Check non-exported declarations
+      if (isFunctionDecl(decl) && decl.getName() === symbolName) {
+        return true;
+      }
+      if (isVariableDecl(decl) && decl.getName() === symbolName) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Validates an import against a SymbolTable
+   *
+   * Checks that the imported symbol doesn't conflict with existing
+   * symbols in the importing module's symbol table.
+   *
+   * @param importDecl - The import declaration
+   * @param symbolTable - The importing module's symbol table
+   * @returns Array of conflict errors (empty if no conflicts)
+   */
+  public checkImportConflicts(importDecl: ImportDecl, symbolTable: SymbolTable): ImportError[] {
+    const errors: ImportError[] = [];
+
+    // For wildcard imports, check all exported names
+    if (importDecl.isWildcardImport()) {
+      const moduleName = importDecl.getModuleName();
+      const exports = this.getModuleExports(moduleName);
+
+      for (const [name] of exports) {
+        const existing = symbolTable.lookupLocal(name);
+        if (existing) {
+          errors.push({
+            code: ImportErrorCode.SYMBOL_NOT_FOUND, // Using existing code, could add CONFLICT
+            message: `Import '${name}' from '${moduleName}' conflicts with existing declaration`,
+            location: importDecl.getLocation(),
+            moduleName,
+            symbolName: name,
+          });
+        }
+      }
+    } else {
+      // For named imports, check each name
+      for (const name of importDecl.getIdentifiers()) {
+        const existing = symbolTable.lookupLocal(name);
+        if (existing) {
+          errors.push({
+            code: ImportErrorCode.SYMBOL_NOT_FOUND,
+            message: `Import '${name}' conflicts with existing declaration`,
+            location: importDecl.getLocation(),
+            moduleName: importDecl.getModuleName(),
+            symbolName: name,
           });
         }
       }
     }
 
-    return resolved;
+    return errors;
   }
 
   /**
-   * Create an error diagnostic
+   * Clears the export cache
    *
-   * Helper method to create properly formatted error diagnostics.
-   *
-   * @param code - Diagnostic code
-   * @param message - Error message
-   * @param location - Source location of the error
-   * @returns Complete diagnostic object
+   * Should be called when modules are re-parsed or the registry changes.
    */
-  protected createError(
-    code: DiagnosticCode,
-    message: string,
-    location: SourceLocation
-  ): Diagnostic {
-    return {
-      code,
-      severity: DiagnosticSeverity.ERROR,
-      message,
-      location,
-    };
+  public clearCache(): void {
+    this.exportCache.clear();
+  }
+
+  /**
+   * Gets all import errors for a program
+   *
+   * Convenience method that collects all errors from all imports.
+   *
+   * @param program - The program to check
+   * @returns Array of all import errors
+   */
+  public getAllErrors(program: Program): ImportError[] {
+    const results = this.resolveImports(program);
+    const errors: ImportError[] = [];
+
+    for (const result of results) {
+      if (result.errors) {
+        errors.push(...result.errors);
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Checks if all imports in a program are valid
+   *
+   * @param program - The program to check
+   * @returns true if all imports are valid
+   */
+  public allImportsValid(program: Program): boolean {
+    const results = this.resolveImports(program);
+    return results.every((r) => r.success);
   }
 }

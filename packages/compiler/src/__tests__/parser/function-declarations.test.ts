@@ -1,8 +1,10 @@
 /**
- * Function Declaration Parser Tests
+ * Function Declaration Parser Tests (v2)
  *
- * Tests for Phase 4 function declaration parsing implementation.
+ * Tests for function declaration parsing implementation.
  * Covers all function declaration syntax from the language specification.
+ *
+ * NOTE: v2 compiler - no @map support, uses peek/poke intrinsics instead
  */
 
 import { describe, test, expect } from 'vitest';
@@ -12,6 +14,9 @@ import { FunctionDecl, Program, DiagnosticSeverity } from '../../ast/index.js';
 
 /**
  * Helper function to parse complete Blend65 source code
+ *
+ * @param source - Source code to parse
+ * @returns Parsed AST, parser, diagnostics, errors, and warnings
  */
 function parseBlendProgram(source: string) {
   const lexer = new Lexer(source);

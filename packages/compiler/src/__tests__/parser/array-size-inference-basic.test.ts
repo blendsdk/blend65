@@ -3,6 +3,8 @@
  *
  * Tests that the parser correctly handles empty array brackets syntax.
  * Semantic validation (ensuring initializer is present) will be tested separately.
+ *
+ * Note: v2 has no storage classes (@zp/@ram/@data) - frame allocator handles memory
  */
 
 import { describe, it, expect } from 'vitest';
@@ -99,31 +101,6 @@ describe('Parser - Array Size Inference (Basic)', () => {
       if (isVariableDecl(decl)) {
         expect(decl.getName()).toBe('mixed');
         expect(decl.getTypeAnnotation()).toBe('byte[][4]');
-      }
-    });
-  });
-
-  describe('Storage classes with empty brackets', () => {
-    it('should parse @zp with empty brackets', () => {
-      const decl = parseFirstDecl('@zp let fast: byte[] = [0, 0, 0];');
-
-      expect(isVariableDecl(decl)).toBe(true);
-      if (isVariableDecl(decl)) {
-        expect(decl.getName()).toBe('fast');
-        expect(decl.getTypeAnnotation()).toBe('byte[]');
-        expect(decl.getStorageClass()).toBe('ZP'); // Storage class stored as 'ZP' not '@zp'
-      }
-    });
-
-    it('should parse @data const with empty brackets', () => {
-      const decl = parseFirstDecl('@data const lookup: byte[] = [1, 2, 4, 8];');
-
-      expect(isVariableDecl(decl)).toBe(true);
-      if (isVariableDecl(decl)) {
-        expect(decl.getName()).toBe('lookup');
-        expect(decl.getTypeAnnotation()).toBe('byte[]');
-        expect(decl.getStorageClass()).toBe('DATA'); // Storage class stored as 'DATA' not '@data'
-        expect(decl.isConst()).toBe(true);
       }
     });
   });

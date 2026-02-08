@@ -1,8 +1,13 @@
 /**
- * AST Base Types for Blend65 Compiler
+ * AST Base Types for Blend65 Compiler v2
  *
  * This module contains the foundational types and classes for the
  * Abstract Syntax Tree (AST) used throughout the compiler.
+ *
+ * v2 Changes:
+ * - Removed @map declaration node types (SIMPLE_MAP_DECL, etc.)
+ * - Removed @map visitor methods
+ * - Simplified for Static Frame Allocation (SFA) architecture
  */
 
 import { SourcePosition } from '../lexer/types.js';
@@ -11,43 +16,37 @@ import { SourcePosition } from '../lexer/types.js';
 import type { TypeInfo } from '../semantic/types.js';
 
 // Import concrete node types for visitor interface
-// Note: This creates a circular dependency (base → nodes → base)
-// which is resolved at runtime because visitor interface only uses types
+// With multi-file architecture, imports are split by category
 import type {
   ArrayLiteralExpression,
   AssignmentExpression,
   BinaryExpression,
-  BlockStatement,
-  BreakStatement,
   CallExpression,
-  ContinueStatement,
-  DoWhileStatement,
-  EnumDecl,
-  ExplicitStructMapDecl,
-  ExportDecl,
-  ExpressionStatement,
-  ForStatement,
-  FunctionDecl,
   IdentifierExpression,
-  IfStatement,
-  ImportDecl,
   IndexExpression,
   LiteralExpression,
-  MatchStatement,
   MemberExpression,
-  ModuleDecl,
-  Program,
-  RangeMapDecl,
-  ReturnStatement,
-  SequentialStructMapDecl,
-  SimpleMapDecl,
-  SwitchStatement,
   TernaryExpression,
-  TypeDecl,
   UnaryExpression,
-  VariableDecl,
+} from './expressions.js';
+
+import type {
+  BlockStatement,
+  BreakStatement,
+  ContinueStatement,
+  DoWhileStatement,
+  ExpressionStatement,
+  ForStatement,
+  IfStatement,
+  MatchStatement,
+  ReturnStatement,
+  SwitchStatement,
   WhileStatement,
-} from './nodes.js';
+} from './statements.js';
+
+import type { EnumDecl, FunctionDecl, TypeDecl, VariableDecl } from './declarations.js';
+
+import type { ExportDecl, ImportDecl, ModuleDecl, Program } from './program.js';
 
 /**
  * Source location information for god-level error reporting
@@ -96,6 +95,8 @@ export interface SourceLocation {
  *
  * Design note: We use string literals instead of numeric values
  * for better debugging and serialization.
+ *
+ * v2 Changes: Removed @map declaration types (SIMPLE_MAP_DECL, etc.)
  */
 export enum ASTNodeType {
   // ============================================
@@ -153,34 +154,6 @@ export enum ASTNodeType {
    * e.g., "enum Direction { UP, DOWN, LEFT, RIGHT }"
    */
   ENUM_DECL = 'EnumDecl',
-
-  // ============================================
-  // MEMORY-MAPPED DECLARATIONS (@map)
-  // ============================================
-
-  /**
-   * Simple memory-mapped declaration
-   * e.g., "@map vicBorderColor at $D020: byte;"
-   */
-  SIMPLE_MAP_DECL = 'SimpleMapDecl',
-
-  /**
-   * Range memory-mapped declaration
-   * e.g., "@map spriteRegisters from $D000 to $D02E: byte;"
-   */
-  RANGE_MAP_DECL = 'RangeMapDecl',
-
-  /**
-   * Sequential struct memory-mapped declaration
-   * e.g., "@map sid at $D400 type ... end @map"
-   */
-  SEQUENTIAL_STRUCT_MAP_DECL = 'SequentialStructMapDecl',
-
-  /**
-   * Explicit struct memory-mapped declaration
-   * e.g., "@map vic at $D000 layout ... end @map"
-   */
-  EXPLICIT_STRUCT_MAP_DECL = 'ExplicitStructMapDecl',
 
   // ============================================
   // EXPRESSIONS
@@ -308,8 +281,6 @@ export enum ASTNodeType {
    */
   BLOCK_STMT = 'BlockStatement',
 }
-
-// Forward declarations removed - actual implementations are in nodes.ts
 
 /**
  * Abstract base class for all AST nodes in Blend65 compiler
@@ -634,6 +605,8 @@ export abstract class Declaration extends Statement {
  *
  * @template R The return type of all visit methods
  *
+ * v2 Changes: Removed @map visitor methods
+ *
  * @example
  * ```typescript
  * class PrettyPrinter implements ASTVisitor<string> {
@@ -718,38 +691,6 @@ export interface ASTVisitor<R> {
    * @returns Result of visiting this node
    */
   visitEnumDecl(node: EnumDecl): R;
-
-  // ============================================
-  // MEMORY-MAPPED DECLARATIONS (@map)
-  // ============================================
-
-  /**
-   * Visit a Simple memory-mapped declaration
-   * @param node - The simple @map declaration to visit
-   * @returns Result of visiting this node
-   */
-  visitSimpleMapDecl(node: SimpleMapDecl): R;
-
-  /**
-   * Visit a Range memory-mapped declaration
-   * @param node - The range @map declaration to visit
-   * @returns Result of visiting this node
-   */
-  visitRangeMapDecl(node: RangeMapDecl): R;
-
-  /**
-   * Visit a Sequential struct memory-mapped declaration
-   * @param node - The sequential struct @map declaration to visit
-   * @returns Result of visiting this node
-   */
-  visitSequentialStructMapDecl(node: SequentialStructMapDecl): R;
-
-  /**
-   * Visit an Explicit struct memory-mapped declaration
-   * @param node - The explicit struct @map declaration to visit
-   * @returns Result of visiting this node
-   */
-  visitExplicitStructMapDecl(node: ExplicitStructMapDecl): R;
 
   // ============================================
   // EXPRESSIONS

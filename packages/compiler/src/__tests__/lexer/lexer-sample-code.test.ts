@@ -4,7 +4,8 @@ import { TokenType } from '../../lexer/types.js';
 
 /**
  * Lexer tests for sample Blend65 code - C-style syntax (curly braces)
- * Split from original lexer.test.ts for better maintainability
+ *
+ * v2: No changes needed - these tests don't involve @map.
  *
  * Note: All code examples use C-style syntax with curly braces,
  * not VB/Pascal-style with end keywords.

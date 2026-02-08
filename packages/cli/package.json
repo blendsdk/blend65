@@ -21,9 +21,9 @@
     "templates/**/*"
   ],
   "scripts": {
-    "build": "echo 0",
+    "build": "tsc",
     "dev": "tsc --watch",
-    "test": "echo 0",
+    "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
@@ -31,7 +31,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@blend65/compiler-v2": "*",
+    "@blend65/compiler": "*",
     "chalk": "^5.6.2",
     "chokidar": "^5.0.0",
     "glob": "^13.0.1",

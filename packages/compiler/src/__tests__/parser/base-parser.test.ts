@@ -1,11 +1,13 @@
 /**
- * BaseParser Tests
+ * BaseParser Tests (v2)
  *
  * Tests the foundational parser infrastructure including:
  * - Token stream management
  * - Error handling and recovery
  * - Module scope validation
  * - Utility helper methods
+ *
+ * NOTE: v2 compiler - no @map support, no storage classes (@zp/@ram/@data)
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -13,75 +15,113 @@ import { Token, TokenType } from '../../lexer/types.js';
 import { BaseParser } from '../../parser/base.js';
 import { DiagnosticCode } from '../../ast/index.js';
 
-// Create a concrete test implementation of BaseParser
+/**
+ * Concrete test implementation of BaseParser
+ * Exposes protected methods for testing purposes
+ */
 class TestBaseParser extends BaseParser {
-  // Expose protected methods for testing
+  /**
+   * Expose getCurrentToken for testing
+   */
   public testGetCurrentToken() {
     return this.getCurrentToken();
   }
 
+  /**
+   * Expose peek for testing
+   */
   public testPeek(offset?: number) {
     return this.peek(offset);
   }
 
+  /**
+   * Expose advance for testing
+   */
   public testAdvance() {
     return this.advance();
   }
 
+  /**
+   * Expose isAtEnd for testing
+   */
   public testIsAtEnd() {
     return this.isAtEnd();
   }
 
+  /**
+   * Expose check for testing
+   */
   public testCheck(...types: TokenType[]) {
     return this.check(...types);
   }
 
+  /**
+   * Expose match for testing
+   */
   public testMatch(...types: TokenType[]) {
     return this.match(...types);
   }
 
+  /**
+   * Expose expect for testing
+   */
   public testExpect(type: TokenType, message: string) {
     return this.expect(type, message);
   }
 
+  /**
+   * Expose reportError for testing
+   */
   public testReportError(code: DiagnosticCode, message: string) {
     this.reportError(code, message);
   }
 
+  /**
+   * Expose synchronize for testing
+   */
   public testSynchronize() {
     this.synchronize();
   }
 
+  /**
+   * Expose createLocation for testing
+   */
   public testCreateLocation(start: Token, end: Token) {
     return this.createLocation(start, end);
   }
 
+  /**
+   * Expose mergeLocations for testing
+   */
   public testMergeLocations(start: any, end: any) {
     return this.mergeLocations(start, end);
   }
 
-  public testIsStorageClass() {
-    return this.isStorageClass();
-  }
-
+  /**
+   * Expose isExportModifier for testing
+   */
   public testIsExportModifier() {
     return this.isExportModifier();
   }
 
+  /**
+   * Expose isLetOrConst for testing
+   */
   public testIsLetOrConst() {
     return this.isLetOrConst();
   }
 
-  public testParseStorageClass() {
-    return this.parseStorageClass();
-  }
-
+  /**
+   * Expose parseExportModifier for testing
+   */
   public testParseExportModifier() {
     return this.parseExportModifier();
   }
 }
 
-// Helper to create test tokens
+/**
+ * Helper to create test tokens with source location information
+ */
 function createToken(type: TokenType, value: string, line = 1, column = 1): Token {
   return {
     type,
@@ -260,11 +300,10 @@ describe('BaseParser', () => {
     });
   });
 
-  describe('Storage Classes and Modifiers', () => {
+  describe('Export Modifier', () => {
     beforeEach(() => {
       tokens = [
         createToken(TokenType.EXPORT, 'export'),
-        createToken(TokenType.ZP, '@zp'),
         createToken(TokenType.LET, 'let'),
         createToken(TokenType.CONST, 'const'),
         createToken(TokenType.EOF, ''),
@@ -278,16 +317,8 @@ describe('BaseParser', () => {
       expect(parser.testIsExportModifier()).toBe(false);
     });
 
-    it('isStorageClass detects storage class tokens', () => {
-      parser.testAdvance(); // Move to @zp
-      expect(parser.testIsStorageClass()).toBe(true);
-      parser.testAdvance(); // Move to let
-      expect(parser.testIsStorageClass()).toBe(false);
-    });
-
     it('isLetOrConst detects variable declaration keywords', () => {
       parser.testAdvance(); // Move past export
-      parser.testAdvance(); // Move past @zp
       expect(parser.testIsLetOrConst()).toBe(true);
       parser.testAdvance(); // Move to const
       expect(parser.testIsLetOrConst()).toBe(true);
@@ -295,21 +326,6 @@ describe('BaseParser', () => {
 
     it('parseExportModifier consumes export token', () => {
       expect(parser.testParseExportModifier()).toBe(true);
-      expect(parser.testGetCurrentToken().type).toBe(TokenType.ZP);
-    });
-
-    it('parseStorageClass consumes storage class token', () => {
-      parser.testAdvance(); // Move to @zp
-      const storageClass = parser.testParseStorageClass();
-      expect(storageClass).toBe(TokenType.ZP);
-      expect(parser.testGetCurrentToken().type).toBe(TokenType.LET);
-    });
-
-    it('parseStorageClass defaults to RAM when no storage class', () => {
-      parser.testAdvance(); // Move past export
-      parser.testAdvance(); // Move past @zp to let
-      const storageClass = parser.testParseStorageClass();
-      expect(storageClass).toBe(TokenType.RAM);
       expect(parser.testGetCurrentToken().type).toBe(TokenType.LET);
     });
   });

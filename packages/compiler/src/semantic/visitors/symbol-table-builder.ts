@@ -1,586 +1,802 @@
 /**
- * Symbol Table Builder - Pass 1
+ * Symbol Table Builder for Blend65 Compiler v2
  *
- * First semantic analysis pass that collects all declarations
- * and builds the symbol table with proper scope management.
+ * Pass 1 of semantic analysis: walks the AST and builds the symbol table
+ * by registering all declarations (variables, functions, parameters, imports).
  *
- * This visitor:
- * - Creates symbols for all declarations (variables, functions, @map, imports)
- * - Builds scope hierarchy (module scope + function scopes)
+ * This pass:
+ * - Creates scopes for modules, functions, and blocks
+ * - Registers all declarations as symbols
+ * - Handles export modifiers
  * - Detects duplicate declarations
- * - Does NOT perform type checking (that's Phase 3)
- * - Does NOT resolve types (that's Phase 2)
+ * - Does NOT resolve types (that's Pass 2)
+ *
+ * @module semantic/visitors/symbol-table-builder
  */
 
-import { ContextWalker } from '../../ast/walker/context.js';
-import { SymbolTable } from '../symbol-table.js';
-import { Symbol, SymbolKind, StorageClass } from '../symbol.js';
-import { ScopeKind } from '../scope.js';
-import { Diagnostic, DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
-import type { SourceLocation } from '../../ast/base.js';
+import { ASTWalker } from '../../ast/walker/index.js';
 import type {
   Program,
-  VariableDecl,
-  FunctionDecl,
-  Parameter,
+  ModuleDecl,
   ImportDecl,
-  SimpleMapDecl,
-  RangeMapDecl,
-  SequentialStructMapDecl,
-  ExplicitStructMapDecl,
-} from '../../ast/nodes.js';
-import { TokenType } from '../../lexer/types.js';
+  ExportDecl,
+  FunctionDecl,
+  VariableDecl,
+  EnumDecl,
+  TypeDecl,
+  ForStatement,
+  WhileStatement,
+  DoWhileStatement,
+  IfStatement,
+  BlockStatement,
+} from '../../ast/index.js';
+import { SymbolTable } from '../symbol-table.js';
+import type { Diagnostic } from '../../ast/diagnostics.js';
+import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
+import type { SourceLocation } from '../../ast/index.js';
 
 /**
- * Symbol table builder visitor
- *
- * Traverses the AST once to collect all declarations and build
- * the complete symbol table with proper scoping.
+ * Result of symbol table building
  */
-export class SymbolTableBuilder extends ContextWalker {
-  /** Symbol table being built */
+export interface SymbolTableBuildResult {
+  /** The constructed symbol table */
+  symbolTable: SymbolTable;
+
+  /** Diagnostics collected during building */
+  diagnostics: Diagnostic[];
+
+  /** Whether building succeeded without errors */
+  success: boolean;
+}
+
+/**
+ * Diagnostic codes for symbol table building
+ *
+ * Uses existing DiagnosticCode enum values where applicable,
+ * or custom E-series codes for new errors.
+ */
+export const SymbolTableDiagnosticCodes = {
+  /** Duplicate declaration in same scope */
+  DUPLICATE_DECLARATION: DiagnosticCode.DUPLICATE_DECLARATION,
+
+  /** Duplicate parameter name */
+  DUPLICATE_PARAMETER: DiagnosticCode.DUPLICATE_DECLARATION,
+
+  /** Duplicate import name */
+  DUPLICATE_IMPORT: DiagnosticCode.DUPLICATE_DECLARATION,
+
+  /** Duplicate enum member */
+  DUPLICATE_ENUM_MEMBER: DiagnosticCode.DUPLICATE_DECLARATION,
+
+  /** Invalid export (not at module level) */
+  INVALID_EXPORT: DiagnosticCode.EXPORT_REQUIRES_DECLARATION,
+} as const;
+
+/**
+ * Symbol Table Builder - Pass 1 of semantic analysis
+ *
+ * Walks the AST and constructs the symbol table by:
+ * 1. Creating scopes for modules, functions, and blocks
+ * 2. Registering all declarations as symbols
+ * 3. Handling export/import modifiers
+ * 4. Detecting duplicate declarations
+ *
+ * Usage:
+ * ```typescript
+ * const builder = new SymbolTableBuilder();
+ * const result = builder.build(programAST);
+ *
+ * if (result.success) {
+ *   // Use result.symbolTable for subsequent passes
+ * } else {
+ *   // Handle result.diagnostics
+ * }
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // For this Blend65 code:
+ * // module Game
+ * // export function main(): void { let x: byte = 0; }
+ *
+ * const builder = new SymbolTableBuilder();
+ * const result = builder.build(program);
+ *
+ * // result.symbolTable contains:
+ * // - Module scope "Game" with:
+ * //   - Function symbol "main" (exported)
+ * //     - Function scope with:
+ * //       - Variable symbol "x"
+ * ```
+ */
+export class SymbolTableBuilder extends ASTWalker {
+  /** The symbol table being built */
   protected symbolTable: SymbolTable;
 
-  /** Diagnostics collected during symbol table building */
+  /** Collected diagnostics */
   protected diagnostics: Diagnostic[];
 
-  /** Current function being processed (for parameter declarations) */
-  protected currentFunctionNode: FunctionDecl | null = null;
+  /** Track if we're processing an export declaration */
+  protected isExporting: boolean = false;
+
+  /** Track the current module name for error messages */
+  protected currentModuleName: string = 'main';
 
   /**
-   * Creates a new symbol table builder
+   * Creates a new SymbolTableBuilder
    */
   constructor() {
     super();
-    this.symbolTable = new SymbolTable();
+    // These will be initialized in build()
+    this.symbolTable = null!;
     this.diagnostics = [];
   }
 
   /**
-   * Get the built symbol table
+   * Builds the symbol table for a program
    *
-   * @returns Complete symbol table with all symbols and scopes
+   * Main entry point for Pass 1 of semantic analysis.
+   *
+   * @param program - The Program AST node
+   * @returns The build result with symbol table and diagnostics
+   */
+  public build(program: Program): SymbolTableBuildResult {
+    // Initialize fresh state
+    this.diagnostics = [];
+    this.isExporting = false;
+
+    // Create symbol table with the program as the module node
+    this.symbolTable = new SymbolTable(program, this.getModuleName(program));
+    this.currentModuleName = this.symbolTable.getModuleName();
+
+    // Walk the AST
+    this.walk(program);
+
+    return {
+      symbolTable: this.symbolTable,
+      diagnostics: this.diagnostics,
+      success: !this.hasErrors(),
+    };
+  }
+
+  /**
+   * Gets the symbol table (for testing)
    */
   public getSymbolTable(): SymbolTable {
     return this.symbolTable;
   }
 
   /**
-   * Get collected diagnostics
-   *
-   * @returns Array of diagnostics (errors, warnings)
+   * Gets collected diagnostics
    */
   public getDiagnostics(): Diagnostic[] {
-    return [...this.diagnostics];
+    return this.diagnostics;
   }
 
   /**
-   * Check if any errors were collected
-   *
-   * @returns True if there are any error-level diagnostics
+   * Checks if any errors were reported
    */
   public hasErrors(): boolean {
-    return this.diagnostics.some(d => d.severity === DiagnosticSeverity.ERROR);
+    return this.diagnostics.some((d) => d.severity === 'error');
+  }
+
+  // ============================================
+  // VISITOR METHODS
+  // ============================================
+
+  /**
+   * Visit Program node - entry point for the AST
+   *
+   * The base class ASTWalker.visitProgram already:
+   * 1. Visits the module declaration
+   * 2. Visits all top-level declarations
+   *
+   * We override to ensure module name is captured.
+   */
+  override visitProgram(node: Program): void {
+    // Extract module name before walking
+    this.currentModuleName = this.getModuleName(node);
+
+    // Let base class handle traversal
+    super.visitProgram(node);
   }
 
   /**
-   * Report a diagnostic
+   * Visit Module declaration
    *
-   * @param diagnostic - Diagnostic to add to collection
+   * The module scope is already created in the SymbolTable constructor.
+   * This visitor just ensures we track the module name.
    */
-  protected reportDiagnostic(diagnostic: Diagnostic): void {
+  override visitModule(node: ModuleDecl): void {
+    // Module name is already captured from Program
+    super.visitModule(node);
+  }
+
+  /**
+   * Visit Import declaration
+   *
+   * Creates imported symbols for each identifier in the import.
+   */
+  override visitImportDecl(node: ImportDecl): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    const sourceModule = node.getModuleName();
+
+    if (node.isWildcardImport()) {
+      // Wildcard imports are resolved later in cross-module analysis
+      // For now, just record the import declaration
+      // The actual symbols will be added during import resolution
+    } else {
+      // Named imports: import foo, bar from module
+      for (const identifier of node.getIdentifiers()) {
+        const result = this.symbolTable.declareImport(identifier, identifier, sourceModule, node.getLocation());
+
+        if (!result.success) {
+          this.addError(
+            SymbolTableDiagnosticCodes.DUPLICATE_IMPORT,
+            result.error ?? `Import '${identifier}' is already declared`,
+            node.getLocation(),
+            result.existingSymbol
+              ? `Previously declared at line ${result.existingSymbol.location.start.line}`
+              : undefined,
+          );
+        }
+      }
+    }
+
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Export declaration
+   *
+   * Sets the export flag and delegates to the wrapped declaration.
+   */
+  override visitExportDecl(node: ExportDecl): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    // Check we're at module level
+    if (this.symbolTable.getCurrentScope() !== this.symbolTable.getRootScope()) {
+      this.addError(
+        SymbolTableDiagnosticCodes.INVALID_EXPORT,
+        'Exports are only allowed at module level',
+        node.getLocation(),
+      );
+      // Still process the declaration
+    }
+
+    // Set export flag before visiting the wrapped declaration
+    this.isExporting = true;
+
+    // Visit the wrapped declaration
+    if (!this.shouldSkip && !this.shouldStop) {
+      node.getDeclaration().accept(this);
+    }
+
+    // Reset export flag
+    this.isExporting = false;
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Function declaration
+   *
+   * 1. Declares the function symbol in the current scope
+   * 2. Creates a function scope
+   * 3. Declares parameters in the function scope
+   * 4. Visits the function body
+   */
+  override visitFunctionDecl(node: FunctionDecl): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    const name = node.getName();
+    const isExported = this.isExporting || node.isExportedFunction();
+
+    // Declare the function in the current scope
+    const result = this.symbolTable.declareFunction(
+      name,
+      node.getLocation(),
+      null, // Type resolved in Pass 2
+      node,
+      isExported,
+    );
+
+    if (!result.success) {
+      this.addError(
+        SymbolTableDiagnosticCodes.DUPLICATE_DECLARATION,
+        result.error ?? `Function '${name}' is already declared`,
+        node.getLocation(),
+        result.existingSymbol
+          ? `Previously declared at line ${result.existingSymbol.location.start.line}`
+          : undefined,
+      );
+      // Continue to process body for better error recovery
+    }
+
+    const funcSymbol = result.symbol;
+
+    // Enter function scope (even if declaration failed, for error recovery)
+    if (funcSymbol) {
+      this.symbolTable.enterFunctionScope(funcSymbol, node);
+    }
+
+    // Declare parameters
+    const parameterSymbols = [];
+    for (const param of node.getParameters()) {
+      const paramResult = this.symbolTable.declareParameter(
+        param.name,
+        param.location,
+        null, // Type resolved in Pass 2
+      );
+
+      if (!paramResult.success) {
+        this.addError(
+          SymbolTableDiagnosticCodes.DUPLICATE_PARAMETER,
+          paramResult.error ?? `Parameter '${param.name}' is already declared`,
+          param.location,
+        );
+      } else if (paramResult.symbol) {
+        parameterSymbols.push(paramResult.symbol);
+      }
+    }
+
+    // Attach parameters to function symbol
+    if (funcSymbol) {
+      funcSymbol.parameters = parameterSymbols;
+    }
+
+    // Visit function body (if not a stub)
+    if (!this.shouldSkip && !this.shouldStop) {
+      const body = node.getBody();
+      if (body) {
+        for (const stmt of body) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+      }
+    }
+
+    // Exit function scope
+    if (funcSymbol) {
+      this.symbolTable.exitScope();
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Variable declaration
+   *
+   * Declares the variable in the current scope.
+   */
+  override visitVariableDecl(node: VariableDecl): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    const name = node.getName();
+    const isExported = this.isExporting || node.isExportedVariable();
+    const isConst = node.isConst();
+
+    // Declare the variable or constant
+    let result;
+
+    if (isConst) {
+      // declareConstant(name, location, type, initializer, isExported)
+      result = this.symbolTable.declareConstant(
+        name,
+        node.getLocation(),
+        null, // Type resolved in Pass 2
+        node.getInitializer() ?? undefined,
+        isExported,
+      );
+    } else {
+      // declareVariable(name, location, type, options)
+      result = this.symbolTable.declareVariable(
+        name,
+        node.getLocation(),
+        null, // Type resolved in Pass 2
+        {
+          isConst: false,
+          isExported,
+          initializer: node.getInitializer() ?? undefined,
+        },
+      );
+    }
+
+    if (!result.success) {
+      this.addError(
+        SymbolTableDiagnosticCodes.DUPLICATE_DECLARATION,
+        result.error ?? `Variable '${name}' is already declared`,
+        node.getLocation(),
+        result.existingSymbol
+          ? `Previously declared at line ${result.existingSymbol.location.start.line}`
+          : undefined,
+      );
+    }
+
+    // Visit initializer if present (for nested declarations in expressions)
+    if (!this.shouldSkip && !this.shouldStop) {
+      const init = node.getInitializer();
+      if (init) {
+        init.accept(this);
+      }
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Enum declaration
+   *
+   * Declares the enum and all its members.
+   */
+  override visitEnumDecl(node: EnumDecl): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    const name = node.getName();
+    const isExported = this.isExporting || node.isExportedEnum();
+
+    // Declare the enum type itself as a constant
+    // (Enums are types but we don't have TypeDecl symbol kind, so we use Constant)
+    const result = this.symbolTable.declareConstant(
+      name,
+      node.getLocation(),
+      null, // Type resolved in Pass 2
+      undefined,
+      isExported,
+    );
+
+    if (!result.success) {
+      this.addError(
+        SymbolTableDiagnosticCodes.DUPLICATE_DECLARATION,
+        result.error ?? `Enum '${name}' is already declared`,
+        node.getLocation(),
+        result.existingSymbol
+          ? `Previously declared at line ${result.existingSymbol.location.start.line}`
+          : undefined,
+      );
+    }
+
+    // Declare enum members
+    // Enum members are accessible as EnumName.MemberName, but we also
+    // add them to the current scope for convenience (like TypeScript)
+    const seenMembers = new Set<string>();
+
+    for (const member of node.getMembers()) {
+      // Check for duplicate members within the enum
+      if (seenMembers.has(member.name)) {
+        this.addError(
+          SymbolTableDiagnosticCodes.DUPLICATE_ENUM_MEMBER,
+          `Enum member '${member.name}' is already declared in enum '${name}'`,
+          member.location,
+        );
+        continue;
+      }
+      seenMembers.add(member.name);
+
+      const memberResult = this.symbolTable.declareEnumMember(
+        member.name,
+        member.location,
+        null, // Type resolved in Pass 2
+      );
+
+      if (!memberResult.success) {
+        this.addError(
+          SymbolTableDiagnosticCodes.DUPLICATE_DECLARATION,
+          memberResult.error ?? `Enum member '${member.name}' conflicts with existing declaration`,
+          member.location,
+          memberResult.existingSymbol
+            ? `Previously declared at line ${memberResult.existingSymbol.location.start.line}`
+            : undefined,
+        );
+      }
+    }
+
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Type declaration
+   *
+   * Type aliases create a new name for an existing type.
+   */
+  override visitTypeDecl(node: TypeDecl): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    const name = node.getName();
+    const isExported = this.isExporting || node.isExportedType();
+
+    // Type aliases are stored as constants (they're compile-time only)
+    const result = this.symbolTable.declareConstant(
+      name,
+      node.getLocation(),
+      null, // Type resolved in Pass 2
+      undefined,
+      isExported,
+    );
+
+    if (!result.success) {
+      this.addError(
+        SymbolTableDiagnosticCodes.DUPLICATE_DECLARATION,
+        result.error ?? `Type '${name}' is already declared`,
+        node.getLocation(),
+        result.existingSymbol
+          ? `Previously declared at line ${result.existingSymbol.location.start.line}`
+          : undefined,
+      );
+    }
+
+    this.exitNode(node);
+  }
+
+  // ============================================
+  // SCOPE-CREATING STATEMENTS
+  // ============================================
+
+  /**
+   * Visit For statement
+   *
+   * For loops create a loop scope for the loop variable and body.
+   * The loop variable is declared in the loop scope.
+   */
+  override visitForStatement(node: ForStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    // Create loop scope for the for loop
+    this.symbolTable.enterLoopScope(node);
+
+    // Declare the loop variable in the loop scope
+    const loopVarName = node.getVariable();
+    if (loopVarName) {
+      const result = this.symbolTable.declareVariable(
+        loopVarName,
+        node.getLocation(),
+        null, // Type resolved in Pass 2
+        {
+          isConst: false, // Loop variables are mutable (updated each iteration)
+          isExported: false,
+        },
+      );
+
+      if (!result.success) {
+        this.addError(
+          SymbolTableDiagnosticCodes.DUPLICATE_DECLARATION,
+          result.error ?? `Loop variable '${loopVarName}' is already declared`,
+          node.getLocation(),
+          result.existingSymbol
+            ? `Previously declared at line ${result.existingSymbol.location.start.line}`
+            : undefined,
+        );
+      }
+    }
+
+    // Visit start and end expressions
+    if (!this.shouldSkip && !this.shouldStop) {
+      node.getStart().accept(this);
+      if (!this.shouldStop) {
+        node.getEnd().accept(this);
+      }
+
+      // Visit step expression if present
+      const step = node.getStep?.();
+      if (!this.shouldStop && step) {
+        step.accept(this);
+      }
+
+      // Visit body
+      if (!this.shouldStop) {
+        for (const stmt of node.getBody()) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+      }
+    }
+
+    // Exit loop scope
+    this.symbolTable.exitScope();
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit While statement
+   *
+   * While loops create a loop scope for the body.
+   */
+  override visitWhileStatement(node: WhileStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    // Create loop scope
+    this.symbolTable.enterLoopScope(node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      node.getCondition().accept(this);
+      if (!this.shouldStop) {
+        for (const stmt of node.getBody()) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+      }
+    }
+
+    // Exit loop scope
+    this.symbolTable.exitScope();
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Do-While statement
+   *
+   * Do-while loops create a loop scope for the body.
+   */
+  override visitDoWhileStatement(node: DoWhileStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    // Create loop scope
+    this.symbolTable.enterLoopScope(node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      for (const stmt of node.getBody()) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+      if (!this.shouldStop) {
+        node.getCondition().accept(this);
+      }
+    }
+
+    // Exit loop scope
+    this.symbolTable.exitScope();
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit If statement
+   *
+   * If statements create block scopes for then and else branches.
+   */
+  override visitIfStatement(node: IfStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      node.getCondition().accept(this);
+
+      // Then branch gets a block scope
+      if (!this.shouldStop) {
+        this.symbolTable.enterBlockScope(node);
+        for (const stmt of node.getThenBranch()) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+        this.symbolTable.exitScope();
+      }
+
+      // Else branch gets a block scope (if present)
+      if (!this.shouldStop) {
+        const elseBranch = node.getElseBranch();
+        if (elseBranch) {
+          this.symbolTable.enterBlockScope(node);
+          for (const stmt of elseBranch) {
+            if (this.shouldStop) break;
+            stmt.accept(this);
+          }
+          this.symbolTable.exitScope();
+        }
+      }
+    }
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  /**
+   * Visit Block statement
+   *
+   * Standalone blocks create a block scope.
+   */
+  override visitBlockStatement(node: BlockStatement): void {
+    if (this.shouldStop) return;
+    this.enterNode(node);
+
+    // Create block scope
+    this.symbolTable.enterBlockScope(node);
+
+    if (!this.shouldSkip && !this.shouldStop) {
+      for (const stmt of node.getStatements()) {
+        if (this.shouldStop) break;
+        stmt.accept(this);
+      }
+    }
+
+    // Exit block scope
+    this.symbolTable.exitScope();
+
+    this.shouldSkip = false;
+    this.exitNode(node);
+  }
+
+  // ============================================
+  // HELPER METHODS
+  // ============================================
+
+  /**
+   * Gets the module name from a Program node
+   */
+  protected getModuleName(program: Program): string {
+    return program.getModule().getFullName();
+  }
+
+  /**
+   * Adds an error diagnostic
+   *
+   * @param code - Diagnostic code
+   * @param message - Error message
+   * @param location - Source location
+   * @param note - Optional note with additional context
+   */
+  protected addError(code: DiagnosticCode, message: string, location: SourceLocation, note?: string): void {
+    const diagnostic: Diagnostic = {
+      code,
+      severity: DiagnosticSeverity.ERROR,
+      message,
+      location,
+    };
+
+    if (note) {
+      diagnostic.relatedLocations = [
+        {
+          location,
+          message: note,
+        },
+      ];
+    }
+
     this.diagnostics.push(diagnostic);
   }
 
   /**
-   * Report a duplicate declaration error
+   * Adds a warning diagnostic
    *
-   * @param name - Name of the duplicate symbol
-   * @param location - Location where duplicate was declared
+   * @param code - Diagnostic code
+   * @param message - Warning message
+   * @param location - Source location
+   * @param note - Optional note with additional context
    */
-  protected reportDuplicateDeclaration(name: string, location: SourceLocation): void {
-    this.reportDiagnostic({
-      code: DiagnosticCode.DUPLICATE_DECLARATION,
-      severity: DiagnosticSeverity.ERROR,
-      message: `Duplicate declaration of '${name}'`,
+  protected addWarning(code: DiagnosticCode, message: string, location: SourceLocation, note?: string): void {
+    const diagnostic: Diagnostic = {
+      code,
+      severity: DiagnosticSeverity.WARNING,
+      message,
       location,
-    });
-  }
+    };
 
-  /**
-   * Extract storage class from variable declaration
-   *
-   * @param node - Variable declaration node
-   * @returns Storage class enum value
-   */
-  protected getStorageClass(node: VariableDecl): StorageClass {
-    const storageClassToken = node.getStorageClass();
-
-    if (!storageClassToken) {
-      return StorageClass.RAM; // Default storage class
-    }
-
-    switch (storageClassToken) {
-      case TokenType.ZP:
-        return StorageClass.ZeroPage;
-      case TokenType.RAM:
-        return StorageClass.RAM;
-      case TokenType.DATA:
-        return StorageClass.Data;
-      default:
-        return StorageClass.RAM;
-    }
-  }
-
-  //
-  // Program and Module
-  //
-
-  /**
-   * Visit program node (root of AST)
-   *
-   * Sets the program node on the root scope and processes all declarations.
-   */
-  public visitProgram(node: Program): void {
-    // Set the program node on root scope
-    this.symbolTable.getRootScope().node = node;
-
-    // Process module declaration (just for completeness, doesn't create symbols)
-    node.getModule().accept(this);
-
-    // Process all top-level declarations
-    for (const decl of node.getDeclarations()) {
-      decl.accept(this);
-    }
-  }
-
-  //
-  // Variable Declarations
-  //
-
-  /**
-   * Visit variable declaration
-   *
-   * Creates a symbol for the variable in the current scope.
-   * Handles: let, const, @zp, @ram, @data, export modifiers.
-   */
-  public visitVariableDecl(node: VariableDecl): void {
-    try {
-      const symbol: Symbol = {
-        name: node.getName(),
-        kind: SymbolKind.Variable,
-        declaration: node,
-        isExported: node.isExportedVariable(),
-        isConst: node.isConst(),
-        scope: this.symbolTable.getCurrentScope(),
-        location: node.getLocation(),
-        storageClass: this.getStorageClass(node),
-      };
-
-      this.symbolTable.declare(symbol);
-    } catch (error) {
-      // Duplicate declaration error
-      this.reportDuplicateDeclaration(node.getName(), node.getLocation());
-    }
-
-    // Skip initializer expression - Phase 1 doesn't analyze expressions
-    // Don't call accept() on initializer to avoid expression traversal
-  }
-
-  //
-  // Memory-Mapped Declarations (@map)
-  //
-
-  /**
-   * Visit simple @map declaration
-   *
-   * Creates a symbol for @map variable: @map var at $D020: byte
-   */
-  public visitSimpleMapDecl(node: SimpleMapDecl): void {
-    try {
-      const symbol: Symbol = {
-        name: node.getName(),
-        kind: SymbolKind.MapVariable,
-        declaration: node,
-        isExported: false, // @map variables are module-scope, not exported
-        isConst: false, // @map variables can be modified (they're hardware registers)
-        scope: this.symbolTable.getCurrentScope(),
-        location: node.getLocation(),
-        storageClass: StorageClass.Map,
-      };
-
-      this.symbolTable.declare(symbol);
-    } catch (error) {
-      this.reportDuplicateDeclaration(node.getName(), node.getLocation());
-    }
-
-    // Visit address expression (may reference other symbols)
-    node.getAddress().accept(this);
-  }
-
-  /**
-   * Visit range @map declaration
-   *
-   * Creates a symbol for @map range: @map sprites from $D000 to $D02E: byte
-   */
-  public visitRangeMapDecl(node: RangeMapDecl): void {
-    try {
-      const symbol: Symbol = {
-        name: node.getName(),
-        kind: SymbolKind.MapVariable,
-        declaration: node,
-        isExported: false,
-        isConst: false,
-        scope: this.symbolTable.getCurrentScope(),
-        location: node.getLocation(),
-        storageClass: StorageClass.Map,
-      };
-
-      this.symbolTable.declare(symbol);
-    } catch (error) {
-      this.reportDuplicateDeclaration(node.getName(), node.getLocation());
-    }
-
-    // Visit address expressions
-    node.getStartAddress().accept(this);
-    node.getEndAddress().accept(this);
-  }
-
-  /**
-   * Visit sequential struct @map declaration
-   *
-   * Creates a symbol for @map struct with auto-layout
-   */
-  public visitSequentialStructMapDecl(node: SequentialStructMapDecl): void {
-    try {
-      const symbol: Symbol = {
-        name: node.getName(),
-        kind: SymbolKind.MapVariable,
-        declaration: node,
-        isExported: false,
-        isConst: false,
-        scope: this.symbolTable.getCurrentScope(),
-        location: node.getLocation(),
-        storageClass: StorageClass.Map,
-      };
-
-      this.symbolTable.declare(symbol);
-    } catch (error) {
-      this.reportDuplicateDeclaration(node.getName(), node.getLocation());
-    }
-
-    // Visit base address expression
-    node.getBaseAddress().accept(this);
-
-    // Note: Fields are NOT separate symbols, they're properties of the struct
-    // Field access will be handled during type checking phase
-  }
-
-  /**
-   * Visit explicit struct @map declaration
-   *
-   * Creates a symbol for @map struct with explicit layout
-   */
-  public visitExplicitStructMapDecl(node: ExplicitStructMapDecl): void {
-    try {
-      const symbol: Symbol = {
-        name: node.getName(),
-        kind: SymbolKind.MapVariable,
-        declaration: node,
-        isExported: false,
-        isConst: false,
-        scope: this.symbolTable.getCurrentScope(),
-        location: node.getLocation(),
-        storageClass: StorageClass.Map,
-      };
-
-      this.symbolTable.declare(symbol);
-    } catch (error) {
-      this.reportDuplicateDeclaration(node.getName(), node.getLocation());
-    }
-
-    // Visit base address expression
-    node.getBaseAddress().accept(this);
-
-    // Visit field address expressions
-    for (const field of node.getFields()) {
-      if (field.addressSpec.kind === 'single') {
-        field.addressSpec.address.accept(this);
-      } else {
-        field.addressSpec.startAddress.accept(this);
-        field.addressSpec.endAddress.accept(this);
-      }
-    }
-  }
-
-  //
-  // Function Declarations
-  //
-
-  /**
-   * Visit function declaration
-   *
-   * Creates a symbol for the function in current scope,
-   * then creates a new function scope and declares parameters.
-   */
-  public visitFunctionDecl(node: FunctionDecl): void {
-    try {
-      // Declare function in current (module) scope
-      const symbol: Symbol = {
-        name: node.getName(),
-        kind: SymbolKind.Function,
-        declaration: node,
-        isExported: node.isExportedFunction(),
-        isConst: false,
-        scope: this.symbolTable.getCurrentScope(),
-        location: node.getLocation(),
-      };
-
-      this.symbolTable.declare(symbol);
-    } catch (error) {
-      this.reportDuplicateDeclaration(node.getName(), node.getLocation());
-    }
-
-    // Create function scope
-    const functionScope = this.symbolTable.createScope(
-      ScopeKind.Function,
-      this.symbolTable.getCurrentScope(),
-      node
-    );
-
-    // Enter function scope
-    this.symbolTable.enterScope(functionScope);
-
-    // Track current function for parameter declarations
-    this.currentFunctionNode = node;
-
-    try {
-      // Declare parameters in function scope
-      for (const param of node.getParameters()) {
-        this.visitParameter(param);
-      }
-
-      // Visit function body statements (if present - stub functions have no body)
-      // TODO(IL-GEN): Stub functions are currently handled passively.
-      // Future enhancement: Add metadata to symbol for faster intrinsic detection.
-      // See: plans/il-generator-requirements.md - AST Annotation Strategy
-      const body = node.getBody();
-      if (body) {
-        for (const stmt of body) {
-          stmt.accept(this);
-        }
-      }
-    } finally {
-      // Clear current function reference
-      this.currentFunctionNode = null;
-      // Exit function scope
-      this.symbolTable.exitScope();
-    }
-  }
-
-  /**
-   * Visit function parameter
-   *
-   * Creates a symbol for the parameter in the function scope.
-   * Uses the containing function declaration as the parameter's declaration
-   * since Parameter itself is not a full ASTNode.
-   *
-   * @param param - Function parameter
-   */
-  protected visitParameter(param: Parameter): void {
-    try {
-      // Use the containing function as the declaration node
-      // Parameter metadata (name, type) can be retrieved from function's parameter list
-      const symbol: Symbol = {
-        name: param.name,
-        kind: SymbolKind.Parameter,
-        declaration: this.currentFunctionNode!,
-        isExported: false,
-        isConst: false,
-        scope: this.symbolTable.getCurrentScope(),
-        location: param.location,
-        metadata: {
-          // Store parameter index for retrieval from function declaration
-          parameterName: param.name,
-          parameterTypeAnnotation: param.typeAnnotation,
+    if (note) {
+      diagnostic.relatedLocations = [
+        {
+          location,
+          message: note,
         },
-      };
-
-      this.symbolTable.declare(symbol);
-    } catch (error) {
-      this.reportDuplicateDeclaration(param.name, param.location);
-    }
-  }
-
-  //
-  // Import/Export Declarations
-  //
-
-  /**
-   * Visit import declaration
-   *
-   * Creates symbols for all imported identifiers.
-   * Handles: import foo from bar, import foo, bar from baz
-   */
-  public visitImportDecl(node: ImportDecl): void {
-    // Create imported symbols in current scope
-    for (const identifier of node.getIdentifiers()) {
-      try {
-        const symbol: Symbol = {
-          name: identifier,
-          kind: SymbolKind.ImportedSymbol,
-          declaration: node,
-          isExported: false,
-          isConst: false,
-          scope: this.symbolTable.getCurrentScope(),
-          location: node.getLocation(),
-          metadata: {
-            importSource: node.getModuleName(),
-            importedName: identifier,
-          },
-        };
-
-        this.symbolTable.declare(symbol);
-      } catch (error) {
-        this.reportDuplicateDeclaration(identifier, node.getLocation());
-      }
-    }
-  }
-
-  //
-  // Statement & Expression Overrides - Phase 1 Skips Expression Analysis
-  //
-
-  /**
-   * Override expression visitors to skip expression traversal.
-   *
-   * Phase 1 (Symbol Table Builder) only collects declarations.
-   * We skip expression analysis but still need to traverse statements
-   * that might contain variable declarations.
-   */
-
-  public visitExpressionStatement(): void {
-    // Skip - expression statements don't contain declarations
-  }
-
-  public visitReturnStatement(): void {
-    // Skip - return statements don't contain declarations
-  }
-
-  /**
-   * Override control flow to skip conditions but visit bodies for declarations
-   */
-  public visitIfStatement(node: any): void {
-    // Skip condition, visit branches for declarations
-    const thenBranch = node.getThenBranch();
-    for (const stmt of thenBranch) {
-      stmt.accept(this);
+      ];
     }
 
-    const elseBranch = node.getElseBranch();
-    if (elseBranch) {
-      for (const stmt of elseBranch) {
-        stmt.accept(this);
-      }
-    }
-  }
-
-  public visitWhileStatement(node: any): void {
-    // Skip condition, visit body for declarations
-    const body = node.getBody();
-    for (const stmt of body) {
-      stmt.accept(this);
-    }
-  }
-
-  public visitForStatement(node: any): void {
-    // Declare loop variable
-    const loopVar = node.getVariable();
-    if (loopVar) {
-      try {
-        const symbol: Symbol = {
-          name: loopVar,
-          kind: SymbolKind.Variable,
-          declaration: node as any,
-          isExported: false,
-          isConst: false,
-          scope: this.symbolTable.getCurrentScope(),
-          location: node.getLocation(),
-          storageClass: StorageClass.RAM,
-        };
-
-        this.symbolTable.declare(symbol);
-      } catch (error) {
-        this.reportDuplicateDeclaration(loopVar, node.getLocation());
-      }
-    }
-
-    // Visit body for declarations (skip range expressions)
-    const body = node.getBody();
-    for (const stmt of body) {
-      stmt.accept(this);
-    }
-  }
-
-  public visitMatchStatement(node: any): void {
-    // Skip match expression, visit cases for declarations
-    const cases = node.getCases();
-    for (const caseNode of cases) {
-      const body = caseNode.body;
-      for (const stmt of body) {
-        stmt.accept(this);
-      }
-    }
-
-    const defaultCase = node.getDefaultCase();
-    if (defaultCase) {
-      for (const stmt of defaultCase) {
-        stmt.accept(this);
-      }
-    }
-  }
-
-  public visitBinaryExpression(): void {
-    // Skip - don't analyze binary expressions in Phase 1
-  }
-
-  public visitUnaryExpression(): void {
-    // Skip - don't analyze unary expressions in Phase 1
-  }
-
-  public visitCallExpression(): void {
-    // Skip - don't analyze function calls in Phase 1
-  }
-
-  public visitIndexExpression(): void {
-    // Skip - don't analyze index expressions in Phase 1
-  }
-
-  public visitMemberExpression(): void {
-    // Skip - don't analyze member access in Phase 1
-  }
-
-  public visitIdentifierExpression(): void {
-    // Skip - don't analyze identifiers in Phase 1
-  }
-
-  public visitNumericLiteral(): void {
-    // Skip - don't analyze literals in Phase 1
-  }
-
-  public visitStringLiteral(): void {
-    // Skip - don't analyze literals in Phase 1
-  }
-
-  public visitBooleanLiteral(): void {
-    // Skip - don't analyze literals in Phase 1
-  }
-
-  public visitArrayLiteralExpression(): void {
-    // Skip - don't analyze array literals in Phase 1
-  }
-
-  public visitAssignmentExpression(): void {
-    // Skip - don't analyze assignments in Phase 1
+    this.diagnostics.push(diagnostic);
   }
 }

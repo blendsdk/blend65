@@ -1,80 +1,85 @@
 /**
- * Import Resolver Tests
+ * Import Resolver Tests for Blend65 Compiler v2
  *
- * Comprehensive test suite for ImportResolver class.
- * Validates import resolution, missing module detection, and integration.
- *
- * **Test Coverage:**
- * - Module existence validation
- * - Missing module detection with precise error locations
- * - Multiple imports handling
- * - Resolved import generation
- * - Integration with ModuleRegistry
- * - Edge cases and error conditions
+ * Tests the ImportResolver class which validates import statements
+ * and resolves imported symbols from source modules.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ImportResolver } from '../../semantic/import-resolver.js';
-import { ModuleRegistry } from '../../semantic/module-registry.js';
+import {
+  ImportResolver,
+  ImportErrorCode,
+  ModuleRegistry,
+} from '../../semantic/index.js';
 import {
   Program,
   ModuleDecl,
   ImportDecl,
+  ExportDecl,
+  FunctionDecl,
   VariableDecl,
-  LiteralExpression,
-} from '../../ast/nodes.js';
-import { DiagnosticCode, DiagnosticSeverity } from '../../ast/diagnostics.js';
-import type { SourceLocation } from '../../ast/base.js';
+  type SourceLocation,
+} from '../../ast/index.js';
+
+// ============================================================
+// Test Helpers
+// ============================================================
 
 /**
- * Helper: Create a test source location
+ * Creates a test source location
  */
-function createLocation(line = 1, column = 1): SourceLocation {
+function createLocation(): SourceLocation {
   return {
-    start: { line, column, offset: 0 },
-    end: { line, column: column + 10, offset: 10 },
-    source: 'test.bl65',
+    start: { line: 1, column: 1, offset: 0 },
+    end: { line: 1, column: 10, offset: 9 },
   };
 }
 
 /**
- * Helper: Create a minimal Program with imports
+ * Creates a module declaration
  */
-function createProgramWithImports(
-  moduleName: string,
-  imports: Array<{ identifiers: string[]; modulePath: string[] }>
-): Program {
-  const loc = createLocation();
-
-  const moduleDecl = new ModuleDecl([moduleName], loc);
-
-  const importDecls = imports.map(
-    imp => new ImportDecl(imp.identifiers, imp.modulePath, loc, false)
-  );
-
-  return new Program(moduleDecl, importDecls, loc);
+function createModuleDecl(name: string): ModuleDecl {
+  return new ModuleDecl(name.split('.'), createLocation());
 }
 
 /**
- * Helper: Create a Program without imports
+ * Creates a function declaration
  */
-function createProgramWithoutImports(moduleName: string): Program {
-  const loc = createLocation();
-  const moduleDecl = new ModuleDecl([moduleName], loc);
-
-  // Add a dummy variable declaration (no imports)
-  const varDecl = new VariableDecl(
-    'dummy',
-    'byte',
-    new LiteralExpression(0, loc),
-    loc,
-    null,
-    false,
-    false
-  );
-
-  return new Program(moduleDecl, [varDecl], loc);
+function createFunctionDecl(name: string, isExported = false): FunctionDecl {
+  return new FunctionDecl(name, [], null, [], createLocation(), isExported);
 }
+
+/**
+ * Creates a variable declaration
+ */
+function createVariableDecl(name: string, isConst = false, isExported = false): VariableDecl {
+  return new VariableDecl(name, 'byte', null, createLocation(), null, isConst, isExported);
+}
+
+/**
+ * Creates an export declaration wrapping another declaration
+ */
+function createExportDecl(decl: FunctionDecl | VariableDecl): ExportDecl {
+  return new ExportDecl(decl, createLocation());
+}
+
+/**
+ * Creates an import declaration
+ */
+function createImportDecl(identifiers: string[], modulePath: string[], isWildcard = false): ImportDecl {
+  return new ImportDecl(identifiers, modulePath, createLocation(), isWildcard);
+}
+
+/**
+ * Creates a Program with the given declarations
+ */
+function createProgram(moduleName: string, declarations: any[]): Program {
+  return new Program(createModuleDecl(moduleName), declarations, createLocation());
+}
+
+// ============================================================
+// Tests
+// ============================================================
 
 describe('ImportResolver', () => {
   let registry: ModuleRegistry;
@@ -85,452 +90,434 @@ describe('ImportResolver', () => {
     resolver = new ImportResolver(registry);
   });
 
-  // ============================================
-  // BASIC VALIDATION - SUCCESSFUL CASES
-  // ============================================
+  // ============================================================
+  // Creation Tests
+  // ============================================================
 
-  describe('Successful Import Validation', () => {
-    it('should validate imports when all modules exist', () => {
-      // Register modules
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-      ]);
-
-      const utilsProgram = createProgramWithoutImports('Utils');
-
-      registry.register('Main', mainProgram);
-      registry.register('Utils', utilsProgram);
-
-      // Validate imports
-      const errors = resolver.validateAllImports([mainProgram, utilsProgram]);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle multiple imports from same module', () => {
-      // Main imports from Utils twice (different identifiers)
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-        { identifiers: ['bar'], modulePath: ['Utils'] },
-      ]);
-
-      const utilsProgram = createProgramWithoutImports('Utils');
-
-      registry.register('Main', mainProgram);
-      registry.register('Utils', utilsProgram);
-
-      const errors = resolver.validateAllImports([mainProgram, utilsProgram]);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle modules with no imports', () => {
-      const mainProgram = createProgramWithoutImports('Main');
-
-      registry.register('Main', mainProgram);
-
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle complex dependency chains', () => {
-      // A → B, B → C, C has no imports
-      const programA = createProgramWithImports('A', [{ identifiers: ['x'], modulePath: ['B'] }]);
-      const programB = createProgramWithImports('B', [{ identifiers: ['y'], modulePath: ['C'] }]);
-      const programC = createProgramWithoutImports('C');
-
-      registry.register('A', programA);
-      registry.register('B', programB);
-      registry.register('C', programC);
-
-      const errors = resolver.validateAllImports([programA, programB, programC]);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle deeply nested module names', () => {
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['screen'], modulePath: ['c64', 'graphics', 'screen'] },
-      ]);
-
-      const screenProgram = createProgramWithoutImports('c64.graphics.screen');
-
-      registry.register('Main', mainProgram);
-      registry.register('c64.graphics.screen', screenProgram);
-
-      const errors = resolver.validateAllImports([mainProgram, screenProgram]);
-
-      expect(errors).toHaveLength(0);
+  describe('creation', () => {
+    it('creates with a module registry', () => {
+      expect(resolver).toBeDefined();
     });
   });
 
-  // ============================================
-  // MISSING MODULE DETECTION
-  // ============================================
+  // ============================================================
+  // Module Existence Tests
+  // ============================================================
 
-  describe('Missing Module Detection', () => {
-    it('should detect missing imported module', () => {
-      // Main imports from Utils, but Utils doesn't exist
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
+  describe('module existence validation', () => {
+    it('returns error when importing from non-existent module', () => {
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['foo'], ['Game', 'Sprites']),
       ]);
+      registry.register('Game.Main', mainProgram);
 
-      registry.register('Main', mainProgram);
+      const results = resolver.resolveImports(mainProgram);
 
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe(DiagnosticCode.MODULE_NOT_FOUND);
-      expect(errors[0].severity).toBe(DiagnosticSeverity.ERROR);
-      expect(errors[0].message).toContain('Utils');
-      expect(errors[0].message).toContain('not found');
-      expect(errors[0].message).toContain('Main');
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].errors).toHaveLength(1);
+      expect(results[0].errors![0].code).toBe(ImportErrorCode.MODULE_NOT_FOUND);
+      expect(results[0].errors![0].moduleName).toBe('Game.Sprites');
     });
 
-    it('should detect multiple missing modules', () => {
-      // Main imports from Utils and Graphics, neither exist
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-        { identifiers: ['bar'], modulePath: ['Graphics'] },
+    it('succeeds when importing from existing module with exports', () => {
+      const spritesProgram = createProgram('Game.Sprites', [
+        createExportDecl(createFunctionDecl('drawSprite')),
       ]);
+      registry.register('Game.Sprites', spritesProgram);
 
-      registry.register('Main', mainProgram);
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['drawSprite'], ['Game', 'Sprites']),
+      ]);
+      registry.register('Game.Main', mainProgram);
 
-      const errors = resolver.validateAllImports([mainProgram]);
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+      expect(results[0].symbols).toHaveLength(1);
+      expect(results[0].symbols![0].localName).toBe('drawSprite');
+    });
+  });
+
+  // ============================================================
+  // Symbol Existence Tests
+  // ============================================================
+
+  describe('symbol existence validation', () => {
+    it('returns error when importing non-existent symbol', () => {
+      const spritesProgram = createProgram('Game.Sprites', [
+        createExportDecl(createFunctionDecl('drawSprite')),
+      ]);
+      registry.register('Game.Sprites', spritesProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['nonExistent'], ['Game', 'Sprites']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].errors![0].code).toBe(ImportErrorCode.SYMBOL_NOT_FOUND);
+      expect(results[0].errors![0].symbolName).toBe('nonExistent');
+    });
+
+    it('returns error when symbol exists but is not exported', () => {
+      const spritesProgram = createProgram('Game.Sprites', [
+        createFunctionDecl('privateFunc'),  // Not exported
+        createExportDecl(createFunctionDecl('publicFunc')),
+      ]);
+      registry.register('Game.Sprites', spritesProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['privateFunc'], ['Game', 'Sprites']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].errors![0].code).toBe(ImportErrorCode.SYMBOL_NOT_EXPORTED);
+      expect(results[0].errors![0].message).toContain('not exported');
+    });
+  });
+
+  // ============================================================
+  // Named Import Tests
+  // ============================================================
+
+  describe('named imports', () => {
+    it('resolves single named import', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['add'], ['Lib', 'Math']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+      expect(results[0].symbols).toHaveLength(1);
+      expect(results[0].symbols![0].localName).toBe('add');
+      expect(results[0].symbols![0].moduleName).toBe('Lib.Math');
+      expect(results[0].symbols![0].symbol.kind).toBe('function');
+    });
+
+    it('resolves multiple named imports', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+        createExportDecl(createFunctionDecl('subtract')),
+        createExportDecl(createFunctionDecl('multiply')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['add', 'subtract', 'multiply'], ['Lib', 'Math']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+      expect(results[0].symbols).toHaveLength(3);
+    });
+
+    it('handles partial success with some valid and some invalid imports', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['add', 'nonExistent'], ['Lib', 'Math']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].symbols).toHaveLength(1);  // add was resolved
+      expect(results[0].errors).toHaveLength(1);   // nonExistent failed
+    });
+  });
+
+  // ============================================================
+  // Wildcard Import Tests
+  // ============================================================
+
+  describe('wildcard imports', () => {
+    it('imports all exported symbols with wildcard', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+        createExportDecl(createFunctionDecl('subtract')),
+        createExportDecl(createVariableDecl('PI', true)),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl([], ['Lib', 'Math'], true),  // wildcard import
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(true);
+      expect(results[0].symbols).toHaveLength(3);
+    });
+
+    it('returns error for wildcard import from module with no exports', () => {
+      const emptyProgram = createProgram('Lib.Empty', [
+        createFunctionDecl('privateFunc'),  // Not exported
+      ]);
+      registry.register('Lib.Empty', emptyProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl([], ['Lib', 'Empty'], true),  // wildcard import
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].errors![0].code).toBe(ImportErrorCode.NO_EXPORTS);
+    });
+  });
+
+  // ============================================================
+  // Symbol Kind Tests
+  // ============================================================
+
+  describe('symbol kinds', () => {
+    it('identifies exported functions', () => {
+      const program = createProgram('Lib.Utils', [
+        createExportDecl(createFunctionDecl('helper')),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      const exports = resolver.getModuleExports('Lib.Utils');
+
+      expect(exports.get('helper')?.kind).toBe('function');
+    });
+
+    it('identifies exported variables', () => {
+      const program = createProgram('Lib.Utils', [
+        createExportDecl(createVariableDecl('counter', false)),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      const exports = resolver.getModuleExports('Lib.Utils');
+
+      expect(exports.get('counter')?.kind).toBe('variable');
+    });
+
+    it('identifies exported constants', () => {
+      const program = createProgram('Lib.Utils', [
+        createExportDecl(createVariableDecl('MAX_VALUE', true)),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      const exports = resolver.getModuleExports('Lib.Utils');
+
+      expect(exports.get('MAX_VALUE')?.kind).toBe('constant');
+    });
+  });
+
+  // ============================================================
+  // Multiple Imports Tests
+  // ============================================================
+
+  describe('multiple imports', () => {
+    it('resolves imports from multiple modules', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const stringProgram = createProgram('Lib.String', [
+        createExportDecl(createFunctionDecl('concat')),
+      ]);
+      registry.register('Lib.String', stringProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['add'], ['Lib', 'Math']),
+        createImportDecl(['concat'], ['Lib', 'String']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(2);
+      expect(results[0].success).toBe(true);
+      expect(results[1].success).toBe(true);
+    });
+
+    it('handles mix of successful and failed imports', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['add'], ['Lib', 'Math']),
+        createImportDecl(['nonExistent'], ['Lib', 'NonExistent']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const results = resolver.resolveImports(mainProgram);
+
+      expect(results).toHaveLength(2);
+      expect(results[0].success).toBe(true);
+      expect(results[1].success).toBe(false);
+    });
+  });
+
+  // ============================================================
+  // Cache Tests
+  // ============================================================
+
+  describe('caching', () => {
+    it('caches module exports', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      // First call populates cache
+      const exports1 = resolver.getModuleExports('Lib.Math');
+      // Second call should return same object (cached)
+      const exports2 = resolver.getModuleExports('Lib.Math');
+
+      expect(exports1).toBe(exports2);  // Same reference
+    });
+
+    it('clears cache when clearCache is called', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
+      ]);
+      registry.register('Lib.Math', mathProgram);
+
+      const exports1 = resolver.getModuleExports('Lib.Math');
+      resolver.clearCache();
+      const exports2 = resolver.getModuleExports('Lib.Math');
+
+      expect(exports1).not.toBe(exports2);  // Different references
+      expect(exports1).toEqual(exports2);   // Same content
+    });
+  });
+
+  // ============================================================
+  // Utility Method Tests
+  // ============================================================
+
+  describe('utility methods', () => {
+    it('symbolExistsInModule finds exported symbols', () => {
+      const program = createProgram('Lib.Utils', [
+        createExportDecl(createFunctionDecl('helper')),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      expect(resolver.symbolExistsInModule('Lib.Utils', 'helper')).toBe(true);
+    });
+
+    it('symbolExistsInModule finds non-exported symbols', () => {
+      const program = createProgram('Lib.Utils', [
+        createFunctionDecl('privateHelper'),
+      ]);
+      registry.register('Lib.Utils', program);
+
+      expect(resolver.symbolExistsInModule('Lib.Utils', 'privateHelper')).toBe(true);
+    });
+
+    it('symbolExistsInModule returns false for non-existent symbols', () => {
+      const program = createProgram('Lib.Utils', []);
+      registry.register('Lib.Utils', program);
+
+      expect(resolver.symbolExistsInModule('Lib.Utils', 'nonExistent')).toBe(false);
+    });
+
+    it('symbolExistsInModule returns false for non-existent module', () => {
+      expect(resolver.symbolExistsInModule('NonExistent', 'anything')).toBe(false);
+    });
+
+    it('getAllErrors collects errors from all imports', () => {
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['foo'], ['Module1']),
+        createImportDecl(['bar'], ['Module2']),
+      ]);
+      registry.register('Game.Main', mainProgram);
+
+      const errors = resolver.getAllErrors(mainProgram);
 
       expect(errors).toHaveLength(2);
-      expect(errors[0].code).toBe(DiagnosticCode.MODULE_NOT_FOUND);
-      expect(errors[1].code).toBe(DiagnosticCode.MODULE_NOT_FOUND);
-
-      const messages = errors.map(e => e.message);
-      expect(messages.some(m => m.includes('Utils'))).toBe(true);
-      expect(messages.some(m => m.includes('Graphics'))).toBe(true);
+      expect(errors[0].code).toBe(ImportErrorCode.MODULE_NOT_FOUND);
+      expect(errors[1].code).toBe(ImportErrorCode.MODULE_NOT_FOUND);
     });
 
-    it('should detect missing deeply nested module', () => {
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['screen'], modulePath: ['c64', 'graphics', 'screen'] },
+    it('allImportsValid returns true when all imports valid', () => {
+      const mathProgram = createProgram('Lib.Math', [
+        createExportDecl(createFunctionDecl('add')),
       ]);
+      registry.register('Lib.Math', mathProgram);
 
-      registry.register('Main', mainProgram);
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['add'], ['Lib', 'Math']),
+      ]);
+      registry.register('Game.Main', mainProgram);
 
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('c64.graphics.screen');
+      expect(resolver.allImportsValid(mainProgram)).toBe(true);
     });
 
-    it('should provide accurate error locations', () => {
-      const loc = createLocation(5, 10); // Line 5, column 10
+    it('allImportsValid returns false when any import invalid', () => {
+      const mainProgram = createProgram('Game.Main', [
+        createImportDecl(['foo'], ['NonExistent']),
+      ]);
+      registry.register('Game.Main', mainProgram);
 
-      const moduleDecl = new ModuleDecl(['Main'], loc);
-      const importDecl = new ImportDecl(['foo'], ['MissingModule'], loc, false);
-      const mainProgram = new Program(moduleDecl, [importDecl], loc);
-
-      registry.register('Main', mainProgram);
-
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].location.start.line).toBe(5);
-      expect(errors[0].location.start.column).toBe(10);
+      expect(resolver.allImportsValid(mainProgram)).toBe(false);
     });
   });
 
-  // ============================================
-  // IMPORT RESOLUTION
-  // ============================================
+  // ============================================================
+  // Edge Cases
+  // ============================================================
 
-  describe('Import Resolution', () => {
-    it('should resolve valid imports', () => {
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo', 'bar'], modulePath: ['Utils'] },
+  describe('edge cases', () => {
+    it('handles program with no imports', () => {
+      const mainProgram = createProgram('Game.Main', [
+        createFunctionDecl('main'),
       ]);
+      registry.register('Game.Main', mainProgram);
 
-      const utilsProgram = createProgramWithoutImports('Utils');
+      const results = resolver.resolveImports(mainProgram);
 
-      registry.register('Main', mainProgram);
-      registry.register('Utils', utilsProgram);
-
-      const resolved = resolver.resolveImports([mainProgram, utilsProgram]);
-
-      expect(resolved).toHaveLength(1);
-      expect(resolved[0].fromModule).toBe('Main');
-      expect(resolved[0].toModule).toBe('Utils');
-      expect(resolved[0].importedIdentifiers).toEqual(['foo', 'bar']);
-      expect(resolved[0].importDecl).toBeDefined();
+      expect(results).toHaveLength(0);
     });
 
-    it('should resolve multiple imports', () => {
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-        { identifiers: ['bar'], modulePath: ['Graphics'] },
-      ]);
+    it('handles module with no exports', () => {
+      const emptyProgram = createProgram('Lib.Empty', []);
+      registry.register('Lib.Empty', emptyProgram);
 
-      const utilsProgram = createProgramWithoutImports('Utils');
-      const graphicsProgram = createProgramWithoutImports('Graphics');
+      const exports = resolver.getModuleExports('Lib.Empty');
 
-      registry.register('Main', mainProgram);
-      registry.register('Utils', utilsProgram);
-      registry.register('Graphics', graphicsProgram);
-
-      const resolved = resolver.resolveImports([mainProgram, utilsProgram, graphicsProgram]);
-
-      expect(resolved).toHaveLength(2);
-
-      const targets = resolved.map(r => r.toModule);
-      expect(targets).toContain('Utils');
-      expect(targets).toContain('Graphics');
+      expect(exports.size).toBe(0);
     });
 
-    it('should skip imports to non-existent modules', () => {
-      // Main imports from Utils (exists) and Missing (doesn't exist)
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-        { identifiers: ['bar'], modulePath: ['Missing'] },
-      ]);
+    it('handles non-registered module in getModuleExports', () => {
+      const exports = resolver.getModuleExports('NonExistent');
 
-      const utilsProgram = createProgramWithoutImports('Utils');
-
-      registry.register('Main', mainProgram);
-      registry.register('Utils', utilsProgram);
-
-      const resolved = resolver.resolveImports([mainProgram, utilsProgram]);
-
-      // Only Utils import should be resolved (Missing is skipped)
-      expect(resolved).toHaveLength(1);
-      expect(resolved[0].toModule).toBe('Utils');
-    });
-
-    it('should return empty array for modules without imports', () => {
-      const mainProgram = createProgramWithoutImports('Main');
-
-      registry.register('Main', mainProgram);
-
-      const resolved = resolver.resolveImports([mainProgram]);
-
-      expect(resolved).toHaveLength(0);
-    });
-
-    it('should preserve import declaration references', () => {
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-      ]);
-
-      const utilsProgram = createProgramWithoutImports('Utils');
-
-      registry.register('Main', mainProgram);
-      registry.register('Utils', utilsProgram);
-
-      const resolved = resolver.resolveImports([mainProgram, utilsProgram]);
-
-      expect(resolved).toHaveLength(1);
-      expect(resolved[0].importDecl).toBeInstanceOf(ImportDecl);
-      expect(resolved[0].importDecl.getModuleName()).toBe('Utils');
-    });
-  });
-
-  // ============================================
-  // INTEGRATION WITH MODULE REGISTRY
-  // ============================================
-
-  describe('Integration with ModuleRegistry', () => {
-    it('should work with empty registry', () => {
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-      ]);
-
-      // Registry is empty - module not registered
-
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].code).toBe(DiagnosticCode.MODULE_NOT_FOUND);
-    });
-
-    it('should validate against registered modules', () => {
-      // Register Utils
-      const utilsProgram = createProgramWithoutImports('Utils');
-      registry.register('Utils', utilsProgram);
-
-      // Main imports Utils (should succeed)
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Utils'] },
-      ]);
-
-      registry.register('Main', mainProgram);
-
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle case-sensitive module names', () => {
-      // Register 'Utils' (exact case)
-      const utilsProgram = createProgramWithoutImports('Utils');
-      registry.register('Utils', utilsProgram);
-
-      // Import 'utils' (different case) - should fail
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['utils'] }, // lowercase
-      ]);
-
-      registry.register('Main', mainProgram);
-
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('utils');
-    });
-  });
-
-  // ============================================
-  // EDGE CASES
-  // ============================================
-
-  describe('Edge Cases', () => {
-    it('should handle empty programs array', () => {
-      const errors = resolver.validateAllImports([]);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle wildcard imports', () => {
-      const loc = createLocation();
-      const moduleDecl = new ModuleDecl(['Main'], loc);
-
-      // Wildcard import: import * from Utils
-      const wildcardImport = new ImportDecl([], ['Utils'], loc, true);
-      const mainProgram = new Program(moduleDecl, [wildcardImport], loc);
-
-      const utilsProgram = createProgramWithoutImports('Utils');
-
-      registry.register('Main', mainProgram);
-      registry.register('Utils', utilsProgram);
-
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      expect(errors).toHaveLength(0);
-
-      const resolved = resolver.resolveImports([mainProgram]);
-
-      expect(resolved).toHaveLength(1);
-      expect(resolved[0].importedIdentifiers).toHaveLength(0); // Wildcard = empty array
-    });
-
-    it('should handle self-import attempts', () => {
-      // Module tries to import from itself (technically allowed at this stage)
-      const mainProgram = createProgramWithImports('Main', [
-        { identifiers: ['foo'], modulePath: ['Main'] },
-      ]);
-
-      registry.register('Main', mainProgram);
-
-      const errors = resolver.validateAllImports([mainProgram]);
-
-      // No error - self-imports are detected later in semantic analysis
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should handle multiple modules with same missing import', () => {
-      // Both A and B import from Missing
-      const programA = createProgramWithImports('A', [
-        { identifiers: ['x'], modulePath: ['Missing'] },
-      ]);
-
-      const programB = createProgramWithImports('B', [
-        { identifiers: ['y'], modulePath: ['Missing'] },
-      ]);
-
-      registry.register('A', programA);
-      registry.register('B', programB);
-
-      const errors = resolver.validateAllImports([programA, programB]);
-
-      // Should report error for both modules
-      expect(errors).toHaveLength(2);
-      expect(errors[0].code).toBe(DiagnosticCode.MODULE_NOT_FOUND);
-      expect(errors[1].code).toBe(DiagnosticCode.MODULE_NOT_FOUND);
-    });
-  });
-
-  // ============================================
-  // REAL-WORLD SCENARIOS
-  // ============================================
-
-  describe('Real-World Scenarios', () => {
-    it('should validate C64 system library imports', () => {
-      // Game imports from C64 system modules
-      const gameProgram = createProgramWithImports('Game', [
-        { identifiers: ['screen'], modulePath: ['c64', 'graphics', 'screen'] },
-        { identifiers: ['sprite'], modulePath: ['c64', 'graphics', 'sprite'] },
-        { identifiers: ['sid'], modulePath: ['c64', 'sound', 'sid'] },
-      ]);
-
-      const screenProgram = createProgramWithoutImports('c64.graphics.screen');
-      const spriteProgram = createProgramWithoutImports('c64.graphics.sprite');
-      const sidProgram = createProgramWithoutImports('c64.sound.sid');
-
-      registry.register('Game', gameProgram);
-      registry.register('c64.graphics.screen', screenProgram);
-      registry.register('c64.graphics.sprite', spriteProgram);
-      registry.register('c64.sound.sid', sidProgram);
-
-      const errors = resolver.validateAllImports([
-        gameProgram,
-        screenProgram,
-        spriteProgram,
-        sidProgram,
-      ]);
-
-      expect(errors).toHaveLength(0);
-    });
-
-    it('should detect missing system library module', () => {
-      // Game imports from c64.graphics.screen, but it doesn't exist
-      const gameProgram = createProgramWithImports('Game', [
-        { identifiers: ['screen'], modulePath: ['c64', 'graphics', 'screen'] },
-      ]);
-
-      registry.register('Game', gameProgram);
-
-      const errors = resolver.validateAllImports([gameProgram]);
-
-      expect(errors).toHaveLength(1);
-      expect(errors[0].message).toContain('c64.graphics.screen');
-      expect(errors[0].message).toContain('Game');
-    });
-
-    it('should handle large project with many modules', () => {
-      // Create 10 modules, each importing from the next
-      const programs: Program[] = [];
-
-      for (let i = 0; i < 10; i++) {
-        const moduleName = `Module${i}`;
-        const nextModule = `Module${i + 1}`;
-
-        if (i < 9) {
-          // Import from next module
-          const program = createProgramWithImports(moduleName, [
-            { identifiers: ['value'], modulePath: [nextModule] },
-          ]);
-          programs.push(program);
-          registry.register(moduleName, program);
-        } else {
-          // Last module has no imports
-          const program = createProgramWithoutImports(moduleName);
-          programs.push(program);
-          registry.register(moduleName, program);
-        }
-      }
-
-      const errors = resolver.validateAllImports(programs);
-
-      expect(errors).toHaveLength(0);
-
-      const resolved = resolver.resolveImports(programs);
-      expect(resolved).toHaveLength(9); // 9 import relationships
+      expect(exports.size).toBe(0);
     });
   });
 });

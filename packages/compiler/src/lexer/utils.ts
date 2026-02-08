@@ -1,5 +1,5 @@
 /**
- * Utility functions for the Blend65 lexer
+ * Utility functions for the Blend65 v2 lexer
  * Provides convenient helper functions for tokenizing source code
  */
 
@@ -7,10 +7,10 @@ import { Lexer, LexerOptions } from './lexer.js';
 import { Token } from './types.js';
 
 /**
- * Convenience function to tokenize Blend65 source code
+ * Convenience function to tokenize Blend65 v2 source code
  * Creates a lexer instance, tokenizes the source, and returns all tokens
  *
- * @param source - The Blend65 source code to tokenize
+ * @param source - The Blend65 v2 source code to tokenize
  * @param options - Optional lexer configuration options
  * @returns Array of all tokens found in the source code, including EOF token
  *

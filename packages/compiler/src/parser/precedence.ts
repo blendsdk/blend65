@@ -1,5 +1,5 @@
 /**
- * Operator Precedence for Pratt Parser
+ * Operator Precedence for Pratt Parser - Blend65 v2
  *
  * Defines the precedence (binding power) of operators for expression parsing.
  * Higher precedence = tighter binding.

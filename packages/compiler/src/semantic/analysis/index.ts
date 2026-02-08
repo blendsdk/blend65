@@ -1,49 +1,105 @@
 /**
- * Phase 8: Advanced Analysis (Optimization Analysis)
+ * Advanced Analysis Module for Blend65 Compiler v2
  *
- * Exports all optimization analysis components for Phase 8.
+ * Provides sophisticated program analysis beyond basic type checking:
+ * - Definite assignment analysis (detecting uninitialized variables)
+ * - Variable usage analysis (detecting unused variables/parameters)
+ * - Dead code analysis (detecting unreachable code)
+ * - Liveness analysis (computing live variable sets)
+ * - Purity analysis (detecting function side effects)
+ * - Loop analysis (detecting loop invariants and induction variables)
+ * - M6502 hints (zero-page candidates, inline hints, hot variables)
  *
- * This module provides:
- * - Optimization metadata keys (enum-based, IL optimizer friendly)
- * - Type-safe metadata accessor
- * - Advanced analyzer orchestrator
- * - Individual analysis passes (implemented in future tasks)
+ * These analyzers help catch bugs and improve code quality by detecting
+ * patterns that are likely errors or suboptimal.
+ *
+ * @module semantic/analysis
  */
 
-// Core infrastructure
+// Definite Assignment Analysis
 export {
-  OptimizationMetadataKey,
-  TypeCoercionKind,
-  DeadCodeKind,
-  PurityLevel,
-  EscapeReason,
-  MemoryRegion,
-  Register,
-  AddressingMode,
+  DefiniteAssignmentAnalyzer,
+  DefiniteAssignmentSeverity,
+  DefiniteAssignmentIssueKind,
+  type DefiniteAssignmentIssue,
+  type DefiniteAssignmentResult,
+} from './definite-assignment.js';
+
+// Variable Usage Analysis
+export {
+  VariableUsageAnalyzer,
+  VariableUsageSeverity,
+  VariableUsageIssueKind,
+  DEFAULT_VARIABLE_USAGE_OPTIONS,
+  type VariableUsageIssue,
+  type VariableUsageResult,
+  type VariableUsageOptions,
+} from './variable-usage.js';
+
+// Dead Code Analysis
+export {
+  DeadCodeAnalyzer,
+  DeadCodeSeverity,
+  DeadCodeIssueKind,
+  type DeadCodeIssue,
+  type DeadCodeResult,
+} from './dead-code.js';
+
+// Liveness Analysis
+export {
+  LivenessAnalyzer,
+  DEFAULT_LIVENESS_OPTIONS,
+  type LivenessInfo,
+  type LivenessResult,
+  type LivenessOptions,
+} from './liveness.js';
+
+// Purity Analysis
+export {
+  PurityAnalyzer,
+  PurityStatus,
+  ImpurityKind,
+  DEFAULT_PURITY_OPTIONS,
+  type FunctionPurity,
+  type ImpurityReason,
+  type PurityAnalysisResult,
+  type PurityAnalysisOptions,
+} from './purity-analysis.js';
+
+// Loop Analysis
+export {
+  LoopAnalyzer,
+  LoopKind,
+  InductionVariableKind,
+  DEFAULT_LOOP_OPTIONS,
+  type LoopInfo,
   type InductionVariable,
-} from './optimization-metadata-keys.js';
+  type LoopInvariant,
+  type LoopAnalysisResult,
+  type LoopAnalysisOptions,
+} from './loop-analysis.js';
 
-export { OptimizationMetadataAccessor } from './metadata-accessor.js';
+// M6502 Hints Analysis
+export {
+  M6502HintAnalyzer,
+  M6502HintKind,
+  HintPriority,
+  DEFAULT_M6502_OPTIONS,
+  type M6502Hint,
+  type ZeroPageRecommendation,
+  type VariableAccessInfo,
+  type FunctionMetrics,
+  type M6502HintResult,
+  type M6502HintOptions,
+} from './m6502-hints.js';
 
-export { AdvancedAnalyzer } from './advanced-analyzer.js';
-
-// Individual analysis passes
-export { DefiniteAssignmentAnalyzer } from './definite-assignment.js';
-export { VariableUsageAnalyzer } from './variable-usage.js';
-export { UnusedFunctionAnalyzer } from './unused-functions.js';
-export { DeadCodeAnalyzer } from './dead-code.js';
-export { ReachingDefinitionsAnalyzer } from './reaching-definitions.js';
-export { LivenessAnalyzer, type LivenessInfo, type LivenessInterval } from './liveness.js';
-export { ConstantPropagationAnalyzer, type ConstantPropagationInfo, type LatticeValue } from './constant-propagation.js';
-export { AliasAnalyzer } from './alias-analysis.js';
-export { PurityAnalyzer } from './purity-analysis.js';
-export { EscapeAnalyzer } from './escape-analysis.js';
-export { LoopAnalyzer } from './loop-analysis.js';
-export { CallGraphAnalyzer } from './call-graph.js';
-export { M6502HintAnalyzer, M6502Register, MemoryAccessPattern } from './m6502-hints.js';
-export { GlobalValueNumberingAnalyzer } from './global-value-numbering.js';
-export { CommonSubexpressionEliminationAnalyzer } from './common-subexpr-elimination.js';
-
-// IL Readiness analyzers
-export { TypeCoercionAnalyzer, type CoercionInfo } from './type-coercion.js';
-export { ExpressionComplexityAnalyzer, type ComplexityInfo } from './expression-complexity.js';
+// Advanced Analyzer Orchestrator
+export {
+  AdvancedAnalyzer,
+  DiagnosticSeverity,
+  DiagnosticCategory,
+  DEFAULT_ADVANCED_OPTIONS,
+  type AdvancedDiagnostic,
+  type AdvancedAnalysisOptions,
+  type AdvancedAnalysisResult,
+} from './advanced-analyzer.js';

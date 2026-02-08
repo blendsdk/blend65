@@ -1,5 +1,5 @@
 /**
- * Expression Parser for Blend65 Compiler
+ * Expression Parser for Blend65 Compiler v2
  *
  * Extends BaseParser to provide expression parsing capabilities:
  * - Primary expressions (literals, identifiers, parenthesized)
@@ -7,7 +7,19 @@
  * - Number parsing (decimal, hex, binary formats)
  * - Expression utilities and precedence handling
  *
- * Future phases will add advanced expressions (calls, member access, assignments).
+ * Full expression support:
+ * - Number literals: 42, $D000, 0xFF, 0b1010
+ * - String literals: "hello", 'world'
+ * - Boolean literals: true, false
+ * - Identifiers: counter, myVar
+ * - Parenthesized expressions: (2 + 3)
+ * - Binary expressions: +, -, *, /, ==, !=, <, >, etc.
+ * - Unary expressions: !, ~, -, +, @
+ * - Ternary: condition ? then : else
+ * - Function calls: foo(x, y)
+ * - Member access: obj.property
+ * - Index access: array[index]
+ * - Array literals: [1, 2, 3]
  */
 
 import {
@@ -39,21 +51,6 @@ import { BaseParser } from './base.js';
  * Handles all expression parsing using Pratt parser algorithm for proper
  * operator precedence and associativity. Provides the foundation that
  * statement and declaration parsers can build upon.
- *
- * Current expression support (Phase 0):
- * - Number literals: 42, $D000, 0xFF, 0b1010
- * - String literals: "hello", 'world'
- * - Boolean literals: true, false
- * - Identifiers: counter, myVar
- * - Parenthesized expressions: (2 + 3)
- * - Binary expressions: +, -, *, /, ==, !=, <, >, etc.
- *
- * Future expression support (Phase 3):
- * - Function calls: foo(x, y)
- * - Member access: obj.property
- * - Index access: array[index]
- * - Assignment: x = value
- * - Unary operators: -x, !flag
  */
 export abstract class ExpressionParser extends BaseParser {
   // ============================================
@@ -146,6 +143,7 @@ export abstract class ExpressionParser extends BaseParser {
    * - Hex ($ prefix): $D000, $FF
    * - Hex (0x prefix): 0xD000, 0xFF
    * - Binary (0b prefix): 0b1010, 0b11110000
+   * - Binary (% prefix): %10101010, %11110000 (Blend65 style)
    *
    * @param value - String representation of number
    * @returns Numeric value
@@ -154,6 +152,11 @@ export abstract class ExpressionParser extends BaseParser {
     // Hex with $ prefix
     if (value.startsWith('$')) {
       return parseInt(value.substring(1), 16);
+    }
+
+    // Binary with % prefix (Blend65 style)
+    if (value.startsWith('%')) {
+      return parseInt(value.substring(1), 2);
     }
 
     // Hex with 0x prefix
@@ -191,13 +194,6 @@ export abstract class ExpressionParser extends BaseParser {
    *    e. Build binary expression node with merged locations
    *    f. Continue with result as new left operand
    * 3. Return final expression tree
-   *
-   * Examples of parsed expressions:
-   * - Simple: 42 → LiteralExpression(42)
-   * - Variable: counter → IdentifierExpression("counter")
-   * - Binary: 2 + 3 → BinaryExpression(2, PLUS, 3)
-   * - Precedence: x * y + z → BinaryExpression((x * y), PLUS, z)
-   * - Associativity: a = b = c → BinaryExpression(a, ASSIGN, (b = c))
    *
    * @param minPrecedence - Minimum precedence for operators (default: NONE)
    *                        Used internally for precedence climbing
@@ -262,13 +258,6 @@ export abstract class ExpressionParser extends BaseParser {
    *
    * Grammar: conditional_expr = logical_or_expr , [ "?" , expression , ":" , conditional_expr ] ;
    *
-   * Examples:
-   * - (a > b) ? a : b          // Simple comparison
-   * - isValid ? compute() : defaultValue  // With function calls
-   * - (score > 90) ? "A" : (score > 80) ? "B" : "C"  // Nested (right-associative)
-   *
-   * Note: On 6502, this compiles to the same branch code as if-else (no performance difference).
-   *
    * @param condition - The already-parsed condition expression
    * @returns TernaryExpression AST node
    */
@@ -278,7 +267,6 @@ export abstract class ExpressionParser extends BaseParser {
 
     // Parse 'then' branch expression
     // Use TERNARY + 1 precedence to prevent ternary in then branch binding
-    // This allows: a ? b : c ? d : e to parse as a ? b : (c ? d : e)
     const thenBranch = this.parseExpression(OperatorPrecedence.TERNARY + 1);
 
     // Expect ':'
@@ -288,7 +276,6 @@ export abstract class ExpressionParser extends BaseParser {
 
     // Parse 'else' branch expression
     // Use TERNARY precedence to allow chained ternaries (right-associative)
-    // This makes: a ? b : c ? d : e parse as a ? b : (c ? d : e)
     const elseBranch = this.parseExpression(OperatorPrecedence.TERNARY);
 
     // Create location spanning from condition to else branch
@@ -331,7 +318,7 @@ export abstract class ExpressionParser extends BaseParser {
   }
 
   // ============================================
-  // UNARY EXPRESSION PARSING (PHASE 3)
+  // UNARY EXPRESSION PARSING
   // ============================================
 
   /**
@@ -340,7 +327,7 @@ export abstract class ExpressionParser extends BaseParser {
    * Unary expressions have right-to-left associativity and high precedence.
    * They support nesting: --x, !!flag, ~-value
    *
-   * Supported unary operators (from specification):
+   * Supported unary operators:
    * - ! (logical NOT): !flag, !!value
    * - ~ (bitwise NOT): ~mask, ~0xFF
    * - + (unary plus): +value (explicit positive)
@@ -351,8 +338,6 @@ export abstract class ExpressionParser extends BaseParser {
    * - Can only be applied to identifiers (variables)
    * - Cannot be applied to literals: @5 (compile error)
    * - Cannot be applied to expressions: @(x + y) (compile error)
-   *
-   * Grammar: unary_expr = [ unary_op ] , unary_expr | postfix_expr
    *
    * @returns Expression AST node representing unary or postfix expression
    */
@@ -391,18 +376,17 @@ export abstract class ExpressionParser extends BaseParser {
   /**
    * Parses postfix expressions - SPECIFICATION COMPLIANT
    *
-   * Blend65 has LIMITED support for postfix operations, unlike object-oriented languages:
+   * Blend65 has LIMITED support for postfix operations:
    *
-   * SUPPORTED (specification-compliant):
+   * SUPPORTED:
    * - Function calls on identifiers: func(), calculateScore(a, b)
    * - Array indexing: array[0], matrix[row][col] (chained indexing allowed)
    * - Function call followed by indexing: getArray()[i] (returns array, then index)
-   * - @map member access: vic.borderColor (single level only)
+   * - Member access for intrinsics: vic.borderColor (single level only)
    *
-   * NOT SUPPORTED (not in specification):
+   * NOT SUPPORTED:
    * - Method calls: obj.method()
    * - Complex chaining: obj.prop.method()[index].field
-   * - Mixed operation chains: player.inventory.items[slot].getValue()
    *
    * @returns Expression AST node representing postfix or atomic expression
    */
@@ -411,40 +395,30 @@ export abstract class ExpressionParser extends BaseParser {
     let expr = this.parseAtomicExpression();
 
     // Process postfix operations in sequence
-    // Loop to handle chained operations like: getArray()[i] or matrix[i][j]
     while (this.isPostfixOperator()) {
       if (this.check(TokenType.LEFT_PAREN)) {
         // Function calls: only on identifiers (not method calls)
         expr = this.parseCallExpression(expr);
-
-        // After function call, ONLY array indexing is allowed (for functions returning arrays)
-        // This enables: getArray()[i], getData()[row][col]
-        // Continue the loop to check for [ after ()
       } else if (this.check(TokenType.LEFT_BRACKET)) {
         // Array indexing: allow multiple brackets (matrix[row][col])
-        // Also allows indexing into function return values: getArray()[i]
         expr = this.parseIndexExpression(expr);
-        // Continue the loop to allow chained indexing: arr[i][j]
       } else if (this.check(TokenType.DOT)) {
-        // Member access: only for @map, single level only
+        // Member access: single level only
         expr = this.parseMemberExpression(expr);
 
-        // CRITICAL: After member access, NO further chaining allowed
-        // This blocks: obj.prop.subprop, obj.prop()
+        // After member access, NO further chaining allowed
         if (this.isPostfixOperator()) {
           this.reportError(
             DiagnosticCode.UNEXPECTED_TOKEN,
-            'Chaining after member access is not supported in Blend65. Use simple @map access only.'
+            'Chaining after member access is not supported in Blend65.'
           );
           break;
         }
       } else {
-        // Unknown postfix operator - should not happen
         break;
       }
 
-      // Additional validation: After function call + indexing, reject further function calls
-      // This blocks: getArray()[i]() but allows: getArray()[i][j]
+      // Reject function calls on indexed values
       if (this.check(TokenType.LEFT_PAREN)) {
         this.reportError(
           DiagnosticCode.UNEXPECTED_TOKEN,
@@ -453,8 +427,7 @@ export abstract class ExpressionParser extends BaseParser {
         break;
       }
 
-      // Also reject member access after function call or indexing
-      // This blocks: getArray().prop, arr[i].prop
+      // Reject member access after function call or indexing
       if (this.check(TokenType.DOT)) {
         this.reportError(
           DiagnosticCode.UNEXPECTED_TOKEN,
@@ -504,7 +477,6 @@ export abstract class ExpressionParser extends BaseParser {
     }
 
     // Type keywords (for sizeof() and other compile-time operations)
-    // These are parsed as literals containing the type name string
     if (
       this.check(TokenType.BYTE) ||
       this.check(TokenType.WORD) ||
@@ -513,7 +485,6 @@ export abstract class ExpressionParser extends BaseParser {
     ) {
       const token = this.advance();
       const location = this.createLocation(token, token);
-      // Store the type name as a string literal
       return new LiteralExpression(token.value, location);
     }
 
@@ -553,42 +524,7 @@ export abstract class ExpressionParser extends BaseParser {
   /**
    * Creates a dummy expression for error recovery
    *
-   * **Purpose:**
-   * When the parser encounters an error while parsing an expression
-   * (e.g., unexpected token, missing operand, invalid syntax), we need
-   * to return a synthetic expression to allow parsing to continue.
-   *
-   * **Why a Literal with Value 0?**
-   * - Simple and predictable: won't cause secondary errors
-   * - Type-safe: LiteralExpression is a valid Expression subtype
-   * - Neutral value: 0 is safe for most contexts (arithmetic, boolean, etc.)
-   * - Easy to identify: developers can see "0" in error recovery paths
-   *
-   * **Usage Patterns:**
-   * This helper is called whenever:
-   * - Expected expression token not found (parsePrimaryExpression)
-   * - Invalid operand in unary expression
-   * - Malformed postfix expression
-   * - Error in function call arguments
-   * - Any other expression parsing error
-   *
-   * **Error Recovery Strategy:**
-   * By returning a dummy expression instead of throwing:
-   * - Parser can continue and report multiple errors
-   * - Partial AST can be constructed for IDE features
-   * - Better developer experience (see all errors at once)
-   * - Enables incremental parsing for editors
-   *
    * @returns A dummy LiteralExpression(0) positioned at current location
-   *
-   * @example
-   * ```typescript
-   * // Parser expected expression but found '}'
-   * if (!this.isExpression()) {
-   *   this.reportError(...);
-   *   return this.createDummyExpression(); // Returns LiteralExpression(0)
-   * }
-   * ```
    */
   protected createDummyExpression(): Expression {
     return new LiteralExpression(0, this.currentLocation());
@@ -627,9 +563,6 @@ export abstract class ExpressionParser extends BaseParser {
   /**
    * Checks if a token is an assignment operator
    *
-   * Assignment operators from specification:
-   * = += -= *= /= %= &= |= ^= <<= >>=
-   *
    * @param tokenType - Token type to check
    * @returns True if token is an assignment operator
    */
@@ -652,58 +585,35 @@ export abstract class ExpressionParser extends BaseParser {
   /**
    * Checks if an expression is a valid left-hand side value (lvalue)
    *
-   * Valid lvalues from specification:
-   * - Identifiers: counter, myVar
-   * - Member expressions: player.health, Game.score
-   * - Index expressions: array[0], buffer[i]
-   *
-   * Invalid lvalues (literals and function calls):
-   * - Literals: 42, "hello", true
-   * - Function calls: func(), getValue()
-   * - Complex expressions: (x + y), -value
-   *
    * @param expr - Expression to validate
    * @returns True if expression can be assigned to
    */
   protected isValidLValue(expr: Expression): boolean {
     return (
       expr instanceof IdentifierExpression || // counter, myVar
-      expr instanceof MemberExpression || // player.health, Game.score
+      expr instanceof MemberExpression || // player.health
       expr instanceof IndexExpression // array[0], buffer[i]
     );
   }
 
   // ============================================
-  // POSTFIX EXPRESSION METHODS (PHASE 3 - TO BE IMPLEMENTED)
+  // POSTFIX EXPRESSION METHODS
   // ============================================
 
   /**
-   * Parses function call expressions - SPECIFICATION COMPLIANT
+   * Parses function call expressions
    *
-   * Function calls in Blend65 can ONLY be called on identifiers (standalone functions).
-   * Object-oriented method calls (obj.method()) are NOT supported in Blend65.
-   *
-   * Valid calls:
-   * - init()
-   * - calculateScore(level, bonus)
-   * - getValue()
-   *
-   * Invalid calls (not in specification):
-   * - obj.method()  // No method calls
-   * - array[i].func()  // No method calls on expressions
-   *
-   * Grammar: call_suffix = "(" , [ argument_list ] , ")" ;
-   *          argument_list = expression , { "," , expression } ;
+   * Function calls can ONLY be called on identifiers (standalone functions).
    *
    * @param callee - The expression being called (MUST be identifier only)
    * @returns CallExpression AST node
    */
   protected parseCallExpression(callee: Expression): CallExpression {
-    // SPECIFICATION COMPLIANCE: Only allow function calls on identifiers
+    // Only allow function calls on identifiers
     if (!(callee instanceof IdentifierExpression)) {
       this.reportError(
         DiagnosticCode.UNEXPECTED_TOKEN,
-        'Function calls can only be made on standalone function names, not on expressions. Blend65 does not support object methods.'
+        'Function calls can only be made on standalone function names, not on expressions.'
       );
       // Return dummy call for error recovery
       const location = this.mergeLocations(callee.getLocation(), this.currentLocation());
@@ -718,7 +628,6 @@ export abstract class ExpressionParser extends BaseParser {
     // Parse argument list (if any)
     if (!this.check(TokenType.RIGHT_PAREN)) {
       do {
-        // Parse each argument as a full expression
         args.push(this.parseExpression());
       } while (this.match(TokenType.COMMA));
     }
@@ -726,39 +635,22 @@ export abstract class ExpressionParser extends BaseParser {
     // Consume closing parenthesis
     this.expect(TokenType.RIGHT_PAREN, "Expected ')' after function arguments");
 
-    // Create location spanning from callee to closing parenthesis
     const location = this.mergeLocations(callee.getLocation(), this.currentLocation());
 
     return new CallExpression(callee, args, location);
   }
 
   /**
-   * Parses member access expressions - SPECIFICATION COMPLIANT
+   * Parses member access expressions
    *
-   * Member access in Blend65 is ONLY allowed for @map declarations (memory-mapped registers).
-   * General object-oriented member access is NOT supported in Blend65.
-   *
-   * Valid member access:
-   * - vic.borderColor  // If vic is a @map declaration
-   * - sid.voice1Freq   // If sid is a @map declaration
-   *
-   * Invalid member access (not in specification):
-   * - player.health    // No general object access
-   * - obj.prop.subprop // No nested object access
-   * - array[i].field   // No member access on expressions
-   *
-   * Grammar: member_suffix = "." , identifier ;
-   *
-   * @param object - The expression being accessed (MUST be @map identifier only)
+   * @param object - The expression being accessed
    * @returns MemberExpression AST node
    */
   protected parseMemberExpression(object: Expression): MemberExpression {
-    // SPECIFICATION COMPLIANCE: Only allow member access on @map declarations
-    // For now, we only allow simple identifiers (not complex expressions)
     if (!(object instanceof IdentifierExpression)) {
       this.reportError(
         DiagnosticCode.UNEXPECTED_TOKEN,
-        'Member access can only be used on @map declarations, not on expressions. Blend65 does not support general object-oriented syntax.'
+        'Member access can only be used on identifiers, not on expressions.'
       );
     }
 
@@ -768,7 +660,6 @@ export abstract class ExpressionParser extends BaseParser {
     // Property name must be an identifier
     const propertyToken = this.expect(TokenType.IDENTIFIER, "Expected property name after '.'");
 
-    // Create location spanning from object to property
     const location = this.mergeLocations(object.getLocation(), this.currentLocation());
 
     return new MemberExpression(object, propertyToken.value, location);
@@ -777,28 +668,19 @@ export abstract class ExpressionParser extends BaseParser {
   /**
    * Parses index access expressions
    *
-   * Index access has the form: expression[expression]
-   * - Simple indexing: array[0]
-   * - Expression indexing: buffer[i * 2 + 1]
-   * - Chained indexing: matrix[row][col]
-   * - On function calls: getData()[index]
-   *
-   * Grammar: index_suffix = "[" , expression , "]" ;
-   *
-   * @param array - The expression being indexed (left side of bracket)
+   * @param array - The expression being indexed
    * @returns IndexExpression AST node
    */
   protected parseIndexExpression(array: Expression): IndexExpression {
     // Consume opening bracket
     this.expect(TokenType.LEFT_BRACKET, "Expected '[' for index access");
 
-    // Parse index expression (can be any expression: literals, variables, complex expressions)
+    // Parse index expression
     const indexExpr = this.parseExpression();
 
     // Consume closing bracket
     this.expect(TokenType.RIGHT_BRACKET, "Expected ']' after index expression");
 
-    // Create location spanning from array to closing bracket
     const location = this.mergeLocations(array.getLocation(), this.currentLocation());
 
     return new IndexExpression(array, indexExpr, location);
@@ -811,14 +693,6 @@ export abstract class ExpressionParser extends BaseParser {
   /**
    * Parses array literal expressions
    *
-   * Array literals provide a concise syntax for initializing arrays inline.
-   * Supports empty arrays, single/multiple elements, nested arrays (multidimensional),
-   * and expressions as elements.
-   *
-   * Grammar:
-   * array_literal = "[" , [ expression_list ] , "]" ;
-   * expression_list = expression , { "," , expression } , [ "," ] ;
-   *
    * Handles:
    * - Empty arrays: []
    * - Single element: [42]
@@ -826,9 +700,6 @@ export abstract class ExpressionParser extends BaseParser {
    * - Nested arrays (multidimensional): [[1, 2], [3, 4]]
    * - Trailing commas: [1, 2, 3,]
    * - Expressions as elements: [x, y + 1, foo()]
-   *
-   * Note: Multidimensional arrays are syntactic sugar - they will compile to
-   * flat arrays with calculated offsets for 6502 efficiency in code generation phase.
    *
    * @returns ArrayLiteralExpression AST node
    */
@@ -849,19 +720,16 @@ export abstract class ExpressionParser extends BaseParser {
 
     // Parse element list
     do {
-      // Parse element expression (can be any expression, including nested arrays)
       const element = this.parseExpression();
       elements.push(element);
 
-      // Check for comma (required between elements, optional after last)
+      // Check for comma
       if (this.match(TokenType.COMMA)) {
         // Check for trailing comma: [1, 2, 3,]
         if (this.check(TokenType.RIGHT_BRACKET)) {
           break; // Allow trailing comma
         }
-        // Continue parsing next element
       } else {
-        // No comma, must be end of list
         break;
       }
     } while (!this.check(TokenType.RIGHT_BRACKET) && !this.isAtEnd());

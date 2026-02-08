@@ -1,262 +1,593 @@
 /**
- * Global Symbol Table
+ * Global Symbol Table for Blend65 Compiler v2
  *
- * Aggregates symbols from all modules in a multi-module compilation.
- * Provides cross-module symbol lookup and export validation.
+ * Aggregates exports from all modules in a multi-module compilation.
+ * Provides cross-module symbol lookup and tracks which module each
+ * exported symbol comes from.
+ *
+ * Key responsibilities:
+ * - Collect all exported symbols from all modules
+ * - Provide cross-module symbol lookup by name
+ * - Track which module each symbol originates from
+ * - Support fully qualified lookups (module.symbol)
+ * - Detect duplicate export names across modules
+ *
+ * @module semantic/global-symbol-table
  */
 
-import type { Declaration } from '../ast/base.js';
-import type { SymbolTable } from './symbol-table.js';
-import type { Symbol, SymbolKind } from './symbol.js';
+import type { SourceLocation, Program } from '../ast/index.js';
+import { ExportDecl } from '../ast/index.js';
+import { isExportDecl, isFunctionDecl, isVariableDecl } from '../ast/type-guards.js';
+import type { ModuleRegistry } from './module-registry.js';
 import type { TypeInfo } from './types.js';
 
 /**
- * Global symbol with module context
+ * A globally visible symbol (exported from a module)
  *
- * Represents a symbol that exists in the global compilation scope,
- * tracking which module it belongs to and whether it's exported.
+ * Contains all information needed to reference a symbol across modules.
  */
 export interface GlobalSymbol {
   /** Symbol name */
   name: string;
 
-  /** Module where this symbol is declared */
+  /** Fully qualified name (module.symbol) */
+  qualifiedName: string;
+
+  /** Module that exports this symbol */
   moduleName: string;
 
-  /** Symbol kind (Variable, Function, etc.) */
-  kind: SymbolKind;
+  /** Symbol kind */
+  kind: GlobalSymbolKind;
 
-  /** Is this symbol exported from its module? */
-  isExported: boolean;
+  /** Type information (resolved during type checking) */
+  type: TypeInfo | null;
 
-  /** Original declaration AST node */
-  declaration: Declaration;
+  /** Source location of the declaration */
+  location: SourceLocation;
 
-  /** Type information (from semantic analysis) */
-  typeInfo?: TypeInfo;
-
-  /** Is this symbol a constant? */
-  isConst: boolean;
-
-  /** Original local symbol (from module's symbol table) */
-  localSymbol: Symbol;
+  /** Additional metadata */
+  metadata?: Map<string, unknown>;
 }
 
 /**
- * Global Symbol Table
+ * Global symbol kinds
  *
- * Aggregates symbols from all modules and provides cross-module lookup.
- * Built after per-module analysis completes (Phase B in analyzer).
+ * Simplified set of kinds for globally exported symbols.
+ */
+export enum GlobalSymbolKind {
+  /** Exported function */
+  Function = 'function',
+
+  /** Exported variable */
+  Variable = 'variable',
+
+  /** Exported constant */
+  Constant = 'constant',
+}
+
+/**
+ * Result of looking up a global symbol
  *
- * **Usage Pattern:**
- * 1. Register each module's symbol table after analysis
- * 2. Use lookup() for import resolution (respects export visibility)
- * 3. Use lookupInModule() for module-specific queries
- * 4. Use getExportedSymbols() for import validation
+ * Contains the symbol and information about how it was found.
+ */
+export interface GlobalLookupResult {
+  /** Whether the lookup was successful */
+  found: boolean;
+
+  /** The found symbol (if any) */
+  symbol?: GlobalSymbol;
+
+  /** If multiple symbols match, list all (for ambiguity detection) */
+  ambiguous?: GlobalSymbol[];
+
+  /** Error message (if lookup failed) */
+  error?: string;
+}
+
+/**
+ * Global Symbol Table - aggregates exports from all modules
+ *
+ * The GlobalSymbolTable provides a unified view of all exported symbols
+ * across all modules in a compilation. It supports:
+ *
+ * 1. **Simple lookups**: Find a symbol by name (may be ambiguous)
+ * 2. **Qualified lookups**: Find a symbol by module.name (unambiguous)
+ * 3. **Module exports**: Get all exports from a specific module
+ * 4. **Cross-module resolution**: Resolve imports to their actual symbols
+ *
+ * @example
+ * ```typescript
+ * const globalTable = new GlobalSymbolTable();
+ *
+ * // Collect exports from all modules
+ * globalTable.collectFromRegistry(registry);
+ *
+ * // Look up by qualified name
+ * const result = globalTable.lookupQualified('Game.Sprites', 'drawSprite');
+ * if (result.found) {
+ *   console.log('Found:', result.symbol.qualifiedName);
+ * }
+ *
+ * // Look up by simple name (may be ambiguous)
+ * const simpleResult = globalTable.lookup('drawSprite');
+ * if (simpleResult.ambiguous) {
+ *   console.error('Multiple modules export drawSprite');
+ * }
+ * ```
  */
 export class GlobalSymbolTable {
   /**
-   * Map of module name → Global symbols in that module
-   * Includes ALL symbols (exported and non-exported)
+   * All global symbols indexed by qualified name (module.symbol)
    */
-  protected moduleSymbols: Map<string, Map<string, GlobalSymbol>>;
+  protected symbolsByQualifiedName: Map<string, GlobalSymbol> = new Map();
 
   /**
-   * Map of module name → Only exported symbols
-   * Used for import resolution (only exported symbols are visible)
+   * Symbols indexed by simple name (for quick lookup)
+   * Value is an array because multiple modules may export same name
    */
-  protected moduleExports: Map<string, Map<string, GlobalSymbol>>;
+  protected symbolsBySimpleName: Map<string, GlobalSymbol[]> = new Map();
 
   /**
-   * Creates an empty global symbol table
+   * All symbols grouped by module
    */
-  constructor() {
-    this.moduleSymbols = new Map();
-    this.moduleExports = new Map();
+  protected symbolsByModule: Map<string, Map<string, GlobalSymbol>> = new Map();
+
+  /**
+   * Registers a global symbol
+   *
+   * Adds the symbol to all lookup indices.
+   *
+   * @param symbol - The global symbol to register
+   *
+   * @example
+   * ```typescript
+   * globalTable.register({
+   *   name: 'drawSprite',
+   *   qualifiedName: 'Game.Sprites.drawSprite',
+   *   moduleName: 'Game.Sprites',
+   *   kind: GlobalSymbolKind.Function,
+   *   type: null,
+   *   location: { start: {...}, end: {...} }
+   * });
+   * ```
+   */
+  public register(symbol: GlobalSymbol): void {
+    // Add to qualified name index
+    this.symbolsByQualifiedName.set(symbol.qualifiedName, symbol);
+
+    // Add to simple name index
+    const existing = this.symbolsBySimpleName.get(symbol.name) ?? [];
+    existing.push(symbol);
+    this.symbolsBySimpleName.set(symbol.name, existing);
+
+    // Add to module index
+    let moduleSymbols = this.symbolsByModule.get(symbol.moduleName);
+    if (!moduleSymbols) {
+      moduleSymbols = new Map();
+      this.symbolsByModule.set(symbol.moduleName, moduleSymbols);
+    }
+    moduleSymbols.set(symbol.name, symbol);
   }
 
   /**
-   * Register a module's symbols
+   * Looks up a symbol by qualified name (module.symbol)
    *
-   * Extracts all symbols from a module's symbol table and adds them
-   * to the global registry. Must be called after per-module analysis.
+   * This is the unambiguous lookup - there can only be one symbol
+   * with a given qualified name.
    *
-   * @param moduleName - Fully qualified module name
-   * @param symbolTable - Module's symbol table from semantic analysis
-   * @throws Error if module already registered
+   * @param moduleName - The module name
+   * @param symbolName - The symbol name within the module
+   * @returns Lookup result
+   *
+   * @example
+   * ```typescript
+   * const result = globalTable.lookupQualified('Game.Sprites', 'drawSprite');
+   * if (result.found) {
+   *   // Use result.symbol
+   * }
+   * ```
    */
-  public registerModule(moduleName: string, symbolTable: SymbolTable): void {
-    if (this.moduleSymbols.has(moduleName)) {
-      throw new Error(`Module '${moduleName}' is already registered in global symbol table`);
+  public lookupQualified(moduleName: string, symbolName: string): GlobalLookupResult {
+    const qualifiedName = this.makeQualifiedName(moduleName, symbolName);
+    const symbol = this.symbolsByQualifiedName.get(qualifiedName);
+
+    if (symbol) {
+      return { found: true, symbol };
     }
 
-    const symbols = new Map<string, GlobalSymbol>();
-    const exports = new Map<string, GlobalSymbol>();
-
-    // Extract all symbols from module's root scope
-    const rootScope = symbolTable.getRootScope();
-    const moduleLocalSymbols = Array.from(rootScope.symbols.values());
-
-    for (const localSymbol of moduleLocalSymbols) {
-      const globalSymbol: GlobalSymbol = {
-        name: localSymbol.name,
-        moduleName,
-        kind: localSymbol.kind,
-        isExported: localSymbol.isExported,
-        declaration: localSymbol.declaration as Declaration,
-        typeInfo: localSymbol.type,
-        isConst: localSymbol.isConst,
-        localSymbol,
+    // Check if module exists but symbol doesn't
+    const moduleSymbols = this.symbolsByModule.get(moduleName);
+    if (moduleSymbols) {
+      return {
+        found: false,
+        error: `Symbol '${symbolName}' not found in module '${moduleName}'`,
       };
-
-      symbols.set(localSymbol.name, globalSymbol);
-
-      // Also add to exports map if exported
-      if (localSymbol.isExported) {
-        exports.set(localSymbol.name, globalSymbol);
-      }
     }
 
-    this.moduleSymbols.set(moduleName, symbols);
-    this.moduleExports.set(moduleName, exports);
+    return {
+      found: false,
+      error: `Module '${moduleName}' not found`,
+    };
   }
 
   /**
-   * Lookup a symbol across modules (respects export visibility)
+   * Looks up a symbol by simple name
    *
-   * Searches for a symbol that can be imported by the requesting module.
-   * Only returns symbols that are exported from their declaring module.
+   * This lookup may be ambiguous if multiple modules export the same name.
+   * Use lookupQualified for unambiguous lookups.
    *
-   * **Use Case**: Validating `import { foo } from "bar"` statements
+   * @param symbolName - The symbol name to look up
+   * @returns Lookup result (may indicate ambiguity)
    *
-   * @param identifier - Symbol name to lookup
-   * @param fromModule - Module requesting the lookup (for future scoping rules)
-   * @returns Global symbol if found and exported, undefined otherwise
+   * @example
+   * ```typescript
+   * const result = globalTable.lookup('drawSprite');
+   * if (result.ambiguous) {
+   *   console.error('Ambiguous: multiple modules export', result.ambiguous);
+   * } else if (result.found) {
+   *   // Use result.symbol
+   * }
+   * ```
    */
-  public lookup(identifier: string, fromModule: string): GlobalSymbol | undefined {
-    // Search all modules for an exported symbol with this name
-    // TODO: In future, respect module visibility rules (public/protected modules)
+  public lookup(symbolName: string): GlobalLookupResult {
+    const symbols = this.symbolsBySimpleName.get(symbolName);
 
-    for (const [moduleName, exports] of this.moduleExports) {
-      // Skip the requesting module (imports must be from other modules)
-      if (moduleName === fromModule) {
-        continue;
-      }
-
-      const symbol = exports.get(identifier);
-      if (symbol) {
-        return symbol;
-      }
+    if (!symbols || symbols.length === 0) {
+      return {
+        found: false,
+        error: `Symbol '${symbolName}' not found in any module`,
+      };
     }
 
-    return undefined;
-  }
-
-  /**
-   * Lookup a symbol in a specific module
-   *
-   * Searches only the specified module for the symbol.
-   * Returns symbol regardless of export status.
-   *
-   * **Use Case**: Validating `import { foo } from "bar"` where module "bar" is known
-   *
-   * @param identifier - Symbol name to lookup
-   * @param moduleName - Specific module to search
-   * @returns Global symbol if found in that module, undefined otherwise
-   */
-  public lookupInModule(identifier: string, moduleName: string): GlobalSymbol | undefined {
-    const symbols = this.moduleSymbols.get(moduleName);
-    if (!symbols) {
-      return undefined;
+    if (symbols.length === 1) {
+      return { found: true, symbol: symbols[0] };
     }
 
-    return symbols.get(identifier);
+    // Ambiguous - multiple modules export this name
+    return {
+      found: false,
+      ambiguous: symbols,
+      error: `Symbol '${symbolName}' is ambiguous - exported by multiple modules: ${symbols.map((s) => s.moduleName).join(', ')}`,
+    };
   }
 
   /**
-   * Get all exported symbols from a module
+   * Gets all exported symbols from a specific module
    *
-   * **Use Case**: List available imports from a module for IDE completion
+   * @param moduleName - The module to get exports from
+   * @returns Map of symbol name → GlobalSymbol, or empty map if module not found
    *
-   * @param moduleName - Module to query
-   * @returns Array of exported symbols (empty if module not found)
+   * @example
+   * ```typescript
+   * const exports = globalTable.getModuleExports('Game.Sprites');
+   * for (const [name, symbol] of exports) {
+   *   console.log(`${name}: ${symbol.kind}`);
+   * }
+   * ```
    */
-  public getExportedSymbols(moduleName: string): GlobalSymbol[] {
-    const exports = this.moduleExports.get(moduleName);
-    if (!exports) {
-      return [];
-    }
-
-    return Array.from(exports.values());
+  public getModuleExports(moduleName: string): Map<string, GlobalSymbol> {
+    return this.symbolsByModule.get(moduleName) ?? new Map();
   }
 
   /**
-   * Get all symbols from a module (including non-exported)
+   * Checks if a module has any exports
    *
-   * @param moduleName - Module to query
-   * @returns Array of all symbols (empty if module not found)
+   * @param moduleName - The module to check
+   * @returns true if the module has at least one export
    */
-  public getAllSymbols(moduleName: string): GlobalSymbol[] {
-    const symbols = this.moduleSymbols.get(moduleName);
-    if (!symbols) {
-      return [];
-    }
-
-    return Array.from(symbols.values());
+  public hasModuleExports(moduleName: string): boolean {
+    const exports = this.symbolsByModule.get(moduleName);
+    return exports !== undefined && exports.size > 0;
   }
 
   /**
-   * Check if a module is registered
+   * Checks if a specific symbol exists
    *
-   * @param moduleName - Module name to check
-   * @returns True if module is registered
+   * @param moduleName - The module name
+   * @param symbolName - The symbol name
+   * @returns true if the symbol exists
    */
-  public hasModule(moduleName: string): boolean {
-    return this.moduleSymbols.has(moduleName);
+  public has(moduleName: string, symbolName: string): boolean {
+    const qualifiedName = this.makeQualifiedName(moduleName, symbolName);
+    return this.symbolsByQualifiedName.has(qualifiedName);
   }
 
   /**
-   * Get all registered module names
+   * Checks if any symbol with the given name exists
+   *
+   * @param symbolName - The simple name to check
+   * @returns true if at least one module exports this name
+   */
+  public hasAny(symbolName: string): boolean {
+    const symbols = this.symbolsBySimpleName.get(symbolName);
+    return symbols !== undefined && symbols.length > 0;
+  }
+
+  /**
+   * Gets all module names that have exports
    *
    * @returns Array of module names
    */
   public getModuleNames(): string[] {
-    return Array.from(this.moduleSymbols.keys());
+    return Array.from(this.symbolsByModule.keys());
   }
 
   /**
-   * Get total number of symbols across all modules
+   * Gets all global symbols
    *
-   * @returns Total symbol count (all modules)
+   * @returns Array of all global symbols
    */
-  public getTotalSymbolCount(): number {
+  public getAllSymbols(): GlobalSymbol[] {
+    return Array.from(this.symbolsByQualifiedName.values());
+  }
+
+  /**
+   * Gets the total number of global symbols
+   *
+   * @returns Symbol count
+   */
+  public getSymbolCount(): number {
+    return this.symbolsByQualifiedName.size;
+  }
+
+  /**
+   * Gets symbols of a specific kind
+   *
+   * @param kind - The symbol kind to filter by
+   * @returns Array of matching symbols
+   */
+  public getSymbolsByKind(kind: GlobalSymbolKind): GlobalSymbol[] {
+    return this.getAllSymbols().filter((s) => s.kind === kind);
+  }
+
+  /**
+   * Collects exports from all modules in a registry
+   *
+   * Scans all registered modules and collects their exported symbols
+   * into this global symbol table.
+   *
+   * @param registry - The module registry to collect from
+   * @returns Number of symbols collected
+   *
+   * @example
+   * ```typescript
+   * const globalTable = new GlobalSymbolTable();
+   * const count = globalTable.collectFromRegistry(registry);
+   * console.log(`Collected ${count} global symbols`);
+   * ```
+   */
+  public collectFromRegistry(registry: ModuleRegistry): number {
     let count = 0;
-    for (const symbols of this.moduleSymbols.values()) {
-      count += symbols.size;
+
+    for (const module of registry.getAllModules()) {
+      const collected = this.collectFromProgram(module.name, module.program);
+      count += collected;
     }
+
     return count;
   }
 
   /**
-   * Get total number of exported symbols across all modules
+   * Collects exports from a single program
    *
-   * @returns Total exported symbol count
+   * Supports both v1-style exports (ExportDecl wrapper) and v2-style exports
+   * (export flags on FunctionDecl/VariableDecl).
+   *
+   * @param moduleName - The module name
+   * @param program - The program AST
+   * @returns Number of symbols collected
    */
-  public getTotalExportCount(): number {
+  public collectFromProgram(moduleName: string, program: Program): number {
     let count = 0;
-    for (const exports of this.moduleExports.values()) {
-      count += exports.size;
+
+    for (const decl of program.getDeclarations()) {
+      // V1 style: ExportDecl wrapper node
+      if (isExportDecl(decl)) {
+        const exportDecl = decl as ExportDecl;
+        const innerDecl = exportDecl.getDeclaration();
+        const location = innerDecl.getLocation();
+
+        if (isFunctionDecl(innerDecl)) {
+          const name = innerDecl.getName();
+          this.register({
+            name,
+            qualifiedName: this.makeQualifiedName(moduleName, name),
+            moduleName,
+            kind: GlobalSymbolKind.Function,
+            type: null, // Resolved during type checking
+            location,
+          });
+          count++;
+        } else if (isVariableDecl(innerDecl)) {
+          const name = innerDecl.getName();
+          const isConstVar = innerDecl.isConst();
+          this.register({
+            name,
+            qualifiedName: this.makeQualifiedName(moduleName, name),
+            moduleName,
+            kind: isConstVar ? GlobalSymbolKind.Constant : GlobalSymbolKind.Variable,
+            type: null, // Resolved during type checking
+            location,
+          });
+          count++;
+        }
+      }
+
+      // V2 style: Export flag on FunctionDecl
+      if (isFunctionDecl(decl) && decl.isExportedFunction()) {
+        const name = decl.getName();
+        // Only register if not already registered (avoid duplicates from v1 style)
+        if (!this.has(moduleName, name)) {
+          this.register({
+            name,
+            qualifiedName: this.makeQualifiedName(moduleName, name),
+            moduleName,
+            kind: GlobalSymbolKind.Function,
+            type: null, // Resolved during type checking
+            location: decl.getLocation(),
+          });
+          count++;
+        }
+      }
+
+      // V2 style: Export flag on VariableDecl
+      if (isVariableDecl(decl) && decl.isExportedVariable()) {
+        const name = decl.getName();
+        const isConstVar = decl.isConst();
+        // Only register if not already registered (avoid duplicates from v1 style)
+        if (!this.has(moduleName, name)) {
+          this.register({
+            name,
+            qualifiedName: this.makeQualifiedName(moduleName, name),
+            moduleName,
+            kind: isConstVar ? GlobalSymbolKind.Constant : GlobalSymbolKind.Variable,
+            type: null, // Resolved during type checking
+            location: decl.getLocation(),
+          });
+          count++;
+        }
+      }
     }
+
     return count;
   }
 
   /**
-   * Reset the global symbol table
+   * Updates the type of a global symbol
    *
-   * Clears all modules and symbols. Used for testing.
+   * Called during type resolution to annotate symbols with their types.
+   *
+   * @param moduleName - The module name
+   * @param symbolName - The symbol name
+   * @param type - The resolved type
+   * @returns true if the symbol was found and updated
    */
-  public reset(): void {
-    this.moduleSymbols.clear();
-    this.moduleExports.clear();
+  public setSymbolType(moduleName: string, symbolName: string, type: TypeInfo): boolean {
+    const qualifiedName = this.makeQualifiedName(moduleName, symbolName);
+    const symbol = this.symbolsByQualifiedName.get(qualifiedName);
+
+    if (symbol) {
+      symbol.type = type;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Clears all symbols
+   *
+   * Resets the global symbol table.
+   */
+  public clear(): void {
+    this.symbolsByQualifiedName.clear();
+    this.symbolsBySimpleName.clear();
+    this.symbolsByModule.clear();
+  }
+
+  /**
+   * Checks if the table is empty
+   *
+   * @returns true if no symbols are registered
+   */
+  public isEmpty(): boolean {
+    return this.symbolsByQualifiedName.size === 0;
+  }
+
+  /**
+   * Finds all symbols that match a pattern
+   *
+   * Useful for IDE completion and search features.
+   *
+   * @param pattern - Simple pattern to match (substring)
+   * @returns Array of matching symbols
+   */
+  public findSymbols(pattern: string): GlobalSymbol[] {
+    const lowerPattern = pattern.toLowerCase();
+    const results: GlobalSymbol[] = [];
+
+    for (const symbol of this.symbolsByQualifiedName.values()) {
+      if (
+        symbol.name.toLowerCase().includes(lowerPattern) ||
+        symbol.qualifiedName.toLowerCase().includes(lowerPattern)
+      ) {
+        results.push(symbol);
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Gets statistics about the global symbol table
+   *
+   * @returns Object with table statistics
+   */
+  public getStats(): {
+    totalSymbols: number;
+    modules: number;
+    functions: number;
+    variables: number;
+    constants: number;
+  } {
+    const symbols = this.getAllSymbols();
+    return {
+      totalSymbols: symbols.length,
+      modules: this.symbolsByModule.size,
+      functions: symbols.filter((s) => s.kind === GlobalSymbolKind.Function).length,
+      variables: symbols.filter((s) => s.kind === GlobalSymbolKind.Variable).length,
+      constants: symbols.filter((s) => s.kind === GlobalSymbolKind.Constant).length,
+    };
+  }
+
+  /**
+   * Creates a qualified name from module and symbol names
+   *
+   * @param moduleName - The module name
+   * @param symbolName - The symbol name
+   * @returns The qualified name (module.symbol)
+   */
+  protected makeQualifiedName(moduleName: string, symbolName: string): string {
+    return `${moduleName}.${symbolName}`;
+  }
+
+  /**
+   * Debug: Gets a string representation of the global symbol table
+   *
+   * @returns Human-readable table description
+   */
+  public toString(): string {
+    const lines: string[] = ['GlobalSymbolTable:'];
+    const stats = this.getStats();
+
+    lines.push(`  Total symbols: ${stats.totalSymbols}`);
+    lines.push(`  Modules: ${stats.modules}`);
+    lines.push(`  Functions: ${stats.functions}`);
+    lines.push(`  Variables: ${stats.variables}`);
+    lines.push(`  Constants: ${stats.constants}`);
+    lines.push('');
+
+    for (const [moduleName, symbols] of this.symbolsByModule) {
+      lines.push(`  Module: ${moduleName}`);
+      for (const [name, symbol] of symbols) {
+        lines.push(`    ${symbol.kind} ${name}`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Iterator support - allows for...of iteration over all symbols
+   *
+   * @example
+   * ```typescript
+   * for (const symbol of globalTable) {
+   *   console.log(symbol.qualifiedName);
+   * }
+   * ```
+   */
+  public [Symbol.iterator](): IterableIterator<GlobalSymbol> {
+    return this.symbolsByQualifiedName.values();
   }
 }

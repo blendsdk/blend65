@@ -9,11 +9,6 @@
  * 2. `{target}/common/` - Always loaded for specific target
  * 3. `{target}/{library}` - Opt-in libraries
  *
- * **Library Resolution:**
- * - If `{library}.blend` exists → load single file
- * - If `{library}/` exists → load all .blend files in folder
- * - Otherwise → error
- *
  * @module library/loader
  */
 
@@ -25,32 +20,19 @@ import { DiagnosticCode, DiagnosticSeverity } from '../ast/diagnostics.js';
 
 /**
  * Result of loading libraries
- *
- * Contains the loaded source files, any diagnostics generated during loading,
- * and a success flag indicating whether loading completed without errors.
  */
 export interface LibraryLoadResult {
   /**
    * Map of filepath → source content
    *
    * Keys are prefixed with `@stdlib/` to distinguish library sources from user sources.
-   * Example: `@stdlib/common/types.blend`, `@stdlib/c64/sid.blend`
    */
   sources: Map<string, string>;
 
-  /**
-   * Any errors or warnings generated during loading
-   *
-   * Errors indicate library load failures (e.g., missing library).
-   * Warnings indicate non-fatal issues (e.g., empty directory).
-   */
+  /** Any errors or warnings generated during loading */
   diagnostics: Diagnostic[];
 
-  /**
-   * Whether loading was successful
-   *
-   * True if no ERROR severity diagnostics were generated.
-   */
+  /** Whether loading was successful (no ERROR severity diagnostics) */
   success: boolean;
 }
 
@@ -62,40 +44,15 @@ export interface LibraryLoadResult {
  *
  * **Loading Order:**
  * 1. `common/` - Always loaded for all targets (cross-platform utilities)
- * 2. `{target}/common/` - Always loaded for specific target (target-specific utilities)
+ * 2. `{target}/common/` - Always loaded for specific target
  * 3. `{target}/{library}` - Opt-in libraries specified in config or CLI
- *
- * **Library Resolution:**
- * - Single file: `{target}/{library}.blend` → load that file
- * - Folder: `{target}/{library}/` → load all .blend files recursively
- *
- * @example Basic usage
- * ```typescript
- * const loader = new LibraryLoader();
- * const result = loader.loadLibraries('c64', ['sid']);
- *
- * if (result.success) {
- *   // Merge with user sources
- *   for (const [file, content] of result.sources) {
- *     allSources.set(file, content);
- *   }
- * }
- * ```
- *
- * @example List available libraries
- * ```typescript
- * const loader = new LibraryLoader();
- * const available = loader.listAvailableLibraries('c64');
- * console.log('Available:', available); // ['sid', 'sprites', ...]
- * ```
  */
 export class LibraryLoader {
   /**
    * Base path to library directory
    *
    * Resolved relative to this module's location.
-   * In development: `packages/compiler/library/`
-   * In production: `packages/compiler/library/` (same, included in npm package)
+   * In v2: `packages/compiler/library/`
    */
   protected readonly libraryPath: string;
 
@@ -110,11 +67,9 @@ export class LibraryLoader {
       this.libraryPath = libraryPath;
     } else {
       // Resolve relative to this module's location
-      // In ESM, we need to use import.meta.url
       // This file: packages/compiler/src/library/loader.ts (or dist/library/loader.js)
       // Library dir: packages/compiler/library/
       const currentDir = path.dirname(fileURLToPath(import.meta.url));
-      // Go up from src/library or dist/library to compiler package root, then into library/
       this.libraryPath = path.resolve(currentDir, '..', '..', 'library');
     }
   }
@@ -122,18 +77,9 @@ export class LibraryLoader {
   /**
    * Load all libraries for a compilation
    *
-   * Loads common libraries (auto-loaded) and any specified optional libraries.
-   * The loading order ensures that common utilities are available to all other libraries.
-   *
    * @param target - Target platform (e.g., 'c64', 'x16')
-   * @param optionalLibraries - Array of opt-in library names (e.g., ['sid', 'sprites'])
+   * @param optionalLibraries - Array of opt-in library names
    * @returns LibraryLoadResult with sources map and any diagnostics
-   *
-   * @example Load with optional libraries
-   * ```typescript
-   * const result = loader.loadLibraries('c64', ['sid', 'sprites']);
-   * console.log('Loaded files:', result.sources.size);
-   * ```
    */
   public loadLibraries(target: string, optionalLibraries: string[] = []): LibraryLoadResult {
     const sources = new Map<string, string>();
@@ -162,7 +108,7 @@ export class LibraryLoader {
    * Load all .blend files from a directory
    *
    * Recursively loads all `.blend` files from the specified directory.
-   * If the directory doesn't exist, this is silently ignored (not an error).
+   * If the directory doesn't exist, this is silently ignored.
    *
    * @param dirPath - Absolute path to directory
    * @param sources - Map to add loaded sources to
@@ -171,9 +117,8 @@ export class LibraryLoader {
   protected loadDirectory(
     dirPath: string,
     sources: Map<string, string>,
-    diagnostics: Diagnostic[]
+    diagnostics: Diagnostic[],
   ): void {
-    // Skip if directory doesn't exist (not an error for common/)
     if (!fs.existsSync(dirPath)) {
       return;
     }
@@ -185,10 +130,8 @@ export class LibraryLoader {
         const fullPath = path.join(dirPath, entry.name);
 
         if (entry.isDirectory()) {
-          // Recursively load subdirectories
           this.loadDirectory(fullPath, sources, diagnostics);
         } else if (entry.isFile() && entry.name.endsWith('.blend')) {
-          // Load .blend files
           this.loadFile(fullPath, sources, diagnostics);
         }
       }
@@ -196,17 +139,14 @@ export class LibraryLoader {
       diagnostics.push(
         this.createError(
           `Failed to read library directory '${dirPath}': ${this.getErrorMessage(error)}`,
-          dirPath
-        )
+          dirPath,
+        ),
       );
     }
   }
 
   /**
    * Load a single library (file or folder)
-   *
-   * Resolves the library name to either a single file (`{library}.blend`)
-   * or a folder (`{library}/`), and loads accordingly.
    *
    * @param target - Target platform
    * @param library - Library name (e.g., 'sid', 'sprites')
@@ -217,7 +157,7 @@ export class LibraryLoader {
     target: string,
     library: string,
     sources: Map<string, string>,
-    diagnostics: Diagnostic[]
+    diagnostics: Diagnostic[],
   ): void {
     const basePath = path.join(this.libraryPath, target);
 
@@ -235,21 +175,18 @@ export class LibraryLoader {
       return;
     }
 
-    // Library not found - add error diagnostic
+    // Library not found
     diagnostics.push(
       this.createError(
         `Library '${library}' not found for target '${target}'. ` +
           `Searched: ${filePath}, ${folderPath}/`,
-        basePath
-      )
+        basePath,
+      ),
     );
   }
 
   /**
    * Load a single .blend file
-   *
-   * Reads the file content and adds it to the sources map.
-   * The key is prefixed with `@stdlib/` to distinguish from user sources.
    *
    * @param filePath - Absolute path to .blend file
    * @param sources - Map to add source to
@@ -258,19 +195,18 @@ export class LibraryLoader {
   protected loadFile(
     filePath: string,
     sources: Map<string, string>,
-    diagnostics: Diagnostic[]
+    diagnostics: Diagnostic[],
   ): void {
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
-      // Use relative path from library root as key, prefixed with @stdlib/
       const relativePath = path.relative(this.libraryPath, filePath);
       sources.set(`@stdlib/${relativePath}`, content);
     } catch (error) {
       diagnostics.push(
         this.createError(
           `Failed to read library file '${filePath}': ${this.getErrorMessage(error)}`,
-          filePath
-        )
+          filePath,
+        ),
       );
     }
   }
@@ -278,17 +214,8 @@ export class LibraryLoader {
   /**
    * List available libraries for a target
    *
-   * Returns an array of library names that can be passed to `loadLibraries()`.
-   * This does not include auto-loaded libraries (common/).
-   *
    * @param target - Target platform (e.g., 'c64')
-   * @returns Array of available library names (sorted alphabetically)
-   *
-   * @example
-   * ```typescript
-   * const libs = loader.listAvailableLibraries('c64');
-   * // Returns: ['math', 'sid', 'sprites', ...]
-   * ```
+   * @returns Array of available library names (sorted)
    */
   public listAvailableLibraries(target: string): string[] {
     const libraries: string[] = [];
@@ -302,14 +229,11 @@ export class LibraryLoader {
       const entries = fs.readdirSync(targetPath, { withFileTypes: true });
 
       for (const entry of entries) {
-        // Skip common/ directory (it's auto-loaded, not opt-in)
         if (entry.name === 'common') continue;
 
         if (entry.isDirectory()) {
-          // Folder library
           libraries.push(entry.name);
         } else if (entry.isFile() && entry.name.endsWith('.blend')) {
-          // File library (remove .blend extension)
           libraries.push(entry.name.replace('.blend', ''));
         }
       }
@@ -322,8 +246,6 @@ export class LibraryLoader {
 
   /**
    * Get the path to the library directory
-   *
-   * Useful for debugging or testing.
    *
    * @returns Absolute path to library directory
    */

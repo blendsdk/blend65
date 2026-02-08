@@ -1,5 +1,5 @@
 /**
- * Parser Error Message Constants
+ * Parser Error Message Constants - Blend65 v2
  *
  * Centralized error messages for consistent, clear diagnostics.
  * All parser error messages should use these constants instead of inline strings.
@@ -15,8 +15,10 @@
  * - Base Parser: Token-level errors
  * - Expression Parser: Expression-related errors
  * - Statement Parser: Control flow and statement errors
- * - Declaration Parser: Variable, function, map declaration errors
+ * - Declaration Parser: Variable, function declaration errors
  * - Module Parser: Module, import, export errors
+ *
+ * NOTE: v2 removes @map-related error messages since @map is not supported.
  */
 
 /**
@@ -321,7 +323,9 @@ export const StatementParserErrors = {
 /**
  * Declaration Parser Error Messages
  *
- * Errors related to parsing declarations (variables, functions, maps, etc.).
+ * Errors related to parsing declarations (variables, functions, etc.).
+ *
+ * NOTE: v2 does not include @map declaration errors since @map is not supported.
  */
 export const DeclarationParserErrors = {
   // ============================================
@@ -438,48 +442,6 @@ export const DeclarationParserErrors = {
    */
   duplicateFunction: (name: string): string => {
     return `Function '${name}' is already declared`;
-  },
-
-  // ============================================
-  // MAP DECLARATION ERRORS
-  // ============================================
-
-  /**
-   * Missing variable name after @map
-   */
-  expectedMapVariableName: (): string => {
-    return 'Expected variable name after @map';
-  },
-
-  /**
-   * Missing 'at' keyword in @map declaration
-   */
-  expectedAtKeywordInMap: (): string => {
-    return "Expected 'at' keyword in @map declaration";
-  },
-
-  /**
-   * Missing address in @map declaration
-   */
-  expectedAddressInMap: (): string => {
-    return 'Expected memory address in @map declaration';
-  },
-
-  /**
-   * Invalid address format
-   *
-   * @param address - The invalid address
-   * @returns Formatted error message
-   */
-  invalidMapAddress: (address: string): string => {
-    return `Invalid memory address '${address}' - must be numeric or hex literal`;
-  },
-
-  /**
-   * Missing type in @map declaration
-   */
-  expectedTypeInMap: (): string => {
-    return 'Expected type annotation in @map declaration';
   },
 
   // ============================================

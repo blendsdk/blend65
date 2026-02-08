@@ -1,16 +1,19 @@
 /**
- * Phase 3 Integration Tests - Advanced Expression Integration
+ * Phase 3 Integration Tests - Advanced Expression Integration (V2)
  *
  * Verifies that all advanced expression features from Phase 3 are properly
  * integrated into the main Parser and work in realistic statement contexts.
  *
  * This test suite confirms that Phase 3 is complete by testing:
  * - Function calls in variable declarations
- * - Member access in assignments
+ * - Member access in assignments (for structs)
  * - Index expressions in statements
  * - Unary expressions in calculations
  * - Assignment expressions in statement contexts
  * - Complex expression chains
+ *
+ * NOTE: V2 has NO @map syntax - uses peek/poke intrinsics instead.
+ * NOTE: Member access is for struct types and module-qualified identifiers.
  */
 
 import { describe, test, expect } from 'vitest';
@@ -76,13 +79,13 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
   // MEMBER ACCESS IN VARIABLE DECLARATIONS
   // ============================================
 
-  test('member access works only for @map declarations - specification compliant', () => {
+  test('member access works for struct types - specification compliant', () => {
     const source = `
       module Test;
 
-      let borderColor: byte = vic.borderColor;
-      let backgroundColor: byte = vic.backgroundColor;
-      let spriteData: byte = sid.voice1Freq;
+      let health: byte = player.health;
+      let x: byte = position.x;
+      let value: byte = state.currentValue;
     `;
 
     const { program, hasErrors } = parseBlendProgram(source);
@@ -90,15 +93,15 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
     expect(hasErrors).toBe(false);
     expect(program.getDeclarations()).toHaveLength(3);
 
-    // Verify @map member access is parsed correctly
-    const borderDecl = program.getDeclarations()[0] as VariableDecl;
-    expect(borderDecl.getInitializer()).toBeInstanceOf(MemberExpression);
+    // Verify struct member access is parsed correctly
+    const healthDecl = program.getDeclarations()[0] as VariableDecl;
+    expect(healthDecl.getInitializer()).toBeInstanceOf(MemberExpression);
 
-    const bgDecl = program.getDeclarations()[1] as VariableDecl;
-    expect(bgDecl.getInitializer()).toBeInstanceOf(MemberExpression);
+    const xDecl = program.getDeclarations()[1] as VariableDecl;
+    expect(xDecl.getInitializer()).toBeInstanceOf(MemberExpression);
 
-    const spriteDecl = program.getDeclarations()[2] as VariableDecl;
-    expect(spriteDecl.getInitializer()).toBeInstanceOf(MemberExpression);
+    const valueDecl = program.getDeclarations()[2] as VariableDecl;
+    expect(valueDecl.getInitializer()).toBeInstanceOf(MemberExpression);
   });
 
   // ============================================
@@ -212,7 +215,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
     const source = `
       module Test;
 
-      let comparison: boolean = vic.borderColor > getMaxHealth() / 2;
+      let comparison: boolean = player.health > getMaxHealth() / 2;
       let calculation: word = getValue() + array[index] * factor;
       let complex: boolean = !flag && (getValue() > 0 || array[0] == target);
     `;
@@ -244,7 +247,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
       let test1: word = func() + value;
       let test2: boolean = !flag || getValue() > 0;
       let test3: byte = array[index] * 2 + offset;
-      let test4: word = vic.borderColor + func() * array[i];
+      let test4: word = player.health + func() * array[i];
     `;
 
     const { program, hasErrors } = parseBlendProgram(source);
@@ -294,7 +297,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
       // Sprite collision detection - using standalone functions and arrays
       let collision: boolean = !sprites[0] || getDistance(playerX, playerY, enemyX, enemyY) < 16;
 
-      // Screen memory calculations - using @map and variables
+      // Screen memory calculations - using address-of operator and variables
       let screenAddr: word = @screen + playerY * 40 + playerX;
 
       // Color cycling - simple arithmetic
@@ -335,7 +338,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
     // Generate many specification-compliant expressions
     for (let i = 0; i < 50; i++) {
-      source += `let expr${i}: word = getValue${i}() + array[${i}] * vic.borderColor;\n`;
+      source += `let expr${i}: word = getValue${i}() + array[${i}] * player.health;\n`;
     }
 
     const startTime = performance.now();
@@ -360,7 +363,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
 
       // All specification-compliant expression types
       let functionCall: word = calculateScore(level, multiplier);
-      let memberAccess: byte = vic.borderColor;
+      let memberAccess: byte = player.health;
       let indexAccess: byte = buffer[offset];
       let unaryNot: boolean = !gameOver;
       let unaryMinus: word = -velocity;
@@ -373,10 +376,10 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
       let mixed3: byte = ~flags | getValue() & mask;
 
       // Deeply nested but specification compliant
-      let nested: boolean = ((getFunc() + array[i]) * factor) > (vic.borderColor - damage);
+      let nested: boolean = ((getFunc() + array[i]) * factor) > (player.health - damage);
 
       // Real C64 scenarios - specification compliant
-      let spriteCollision: boolean = (vic.spriteCollision & (1 << spriteIndex)) != 0;
+      let spriteCollision: boolean = (spriteData.collision & (1 << spriteIndex)) != 0;
       let colorCycle: byte = colorTable[(frameCounter + colorOffset) % COLOR_TABLE_SIZE];
       let soundFreq: word = frequencies[noteIndex] + getVibrato();
     `;

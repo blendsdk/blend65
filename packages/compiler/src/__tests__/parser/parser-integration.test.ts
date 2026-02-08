@@ -1,11 +1,14 @@
 /**
- * Parser Integration Tests
+ * Parser Integration Tests (V2)
  *
  * Tests the complete Parser class integration including:
  * - Full inheritance chain functionality
  * - Main parse() entry point
  * - Integration between all parser layers
  * - End-to-end parsing of complete programs
+ *
+ * NOTE: V2 has NO storage classes (@zp/@ram/@data) - frame allocator handles memory.
+ * NOTE: V2 has NO @map syntax - uses peek/poke intrinsics instead.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -14,7 +17,6 @@ import { Parser } from '../../parser/parser.js';
 import {
   Program,
   VariableDecl,
-  SimpleMapDecl,
   LiteralExpression,
   BinaryExpression,
   IdentifierExpression,
@@ -79,7 +81,7 @@ describe('Parser Integration', () => {
         createToken(TokenType.MODULE, 'module'),
         createToken(TokenType.IDENTIFIER, 'Test'),
         createToken(TokenType.SEMICOLON, ';'),
-        // Variable declaration
+        // First variable declaration
         createToken(TokenType.LET, 'let'),
         createToken(TokenType.IDENTIFIER, 'counter'),
         createToken(TokenType.COLON, ':'),
@@ -87,13 +89,13 @@ describe('Parser Integration', () => {
         createToken(TokenType.ASSIGN, '='),
         createToken(TokenType.NUMBER, '0'),
         createToken(TokenType.SEMICOLON, ';'),
-        // @map declaration
-        createToken(TokenType.MAP, '@map'),
-        createToken(TokenType.IDENTIFIER, 'border'),
-        createToken(TokenType.AT, 'at'),
-        createToken(TokenType.NUMBER, '$D020'),
+        // Second variable declaration
+        createToken(TokenType.CONST, 'const'),
+        createToken(TokenType.IDENTIFIER, 'MAX_VALUE'),
         createToken(TokenType.COLON, ':'),
-        createToken(TokenType.BYTE, 'byte'),
+        createToken(TokenType.WORD, 'word'),
+        createToken(TokenType.ASSIGN, '='),
+        createToken(TokenType.NUMBER, '1000'),
         createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
@@ -104,11 +106,11 @@ describe('Parser Integration', () => {
       expect(program.getModule().getFullName()).toBe('Test');
       expect(program.getDeclarations()).toHaveLength(2);
 
-      const [varDecl, mapDecl] = program.getDeclarations();
-      expect(varDecl).toBeInstanceOf(VariableDecl);
-      expect((varDecl as VariableDecl).getName()).toBe('counter');
-      expect(mapDecl).toBeInstanceOf(SimpleMapDecl);
-      expect((mapDecl as SimpleMapDecl).getName()).toBe('border');
+      const [counterDecl, maxDecl] = program.getDeclarations();
+      expect(counterDecl).toBeInstanceOf(VariableDecl);
+      expect((counterDecl as VariableDecl).getName()).toBe('counter');
+      expect(maxDecl).toBeInstanceOf(VariableDecl);
+      expect((maxDecl as VariableDecl).getName()).toBe('MAX_VALUE');
     });
   });
 
@@ -154,14 +156,14 @@ describe('Parser Integration', () => {
       expect((leftSide.getRight() as IdentifierExpression).getName()).toBe('y');
     });
 
-    it('parses hex addresses in @map declarations', () => {
+    it('parses hex values in variable initializers', () => {
       const tokens = [
-        createToken(TokenType.MAP, '@map'),
-        createToken(TokenType.IDENTIFIER, 'vic'),
-        createToken(TokenType.AT, 'at'),
-        createToken(TokenType.NUMBER, '$D000'),
+        createToken(TokenType.CONST, 'const'),
+        createToken(TokenType.IDENTIFIER, 'SCREEN_ADDRESS'),
         createToken(TokenType.COLON, ':'),
-        createToken(TokenType.BYTE, 'byte'),
+        createToken(TokenType.WORD, 'word'),
+        createToken(TokenType.ASSIGN, '='),
+        createToken(TokenType.NUMBER, '$0400'),
         createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
@@ -171,9 +173,9 @@ describe('Parser Integration', () => {
       const declarations = program.getDeclarations();
       expect(declarations).toHaveLength(1);
 
-      const mapDecl = declarations[0] as SimpleMapDecl;
-      expect(mapDecl.getName()).toBe('vic');
-      expect((mapDecl.getAddress() as LiteralExpression).getValue()).toBe(0xd000);
+      const varDecl = declarations[0] as VariableDecl;
+      expect(varDecl.getName()).toBe('SCREEN_ADDRESS');
+      expect((varDecl.getInitializer() as LiteralExpression).getValue()).toBe(0x0400);
     });
   });
 
@@ -233,17 +235,16 @@ describe('Parser Integration', () => {
     });
   });
 
-  describe('Storage Classes and Export Modifiers', () => {
-    it('parses complex variable with all modifiers', () => {
+  describe('Export Modifiers', () => {
+    it('parses exported const variable', () => {
       const tokens = [
         createToken(TokenType.EXPORT, 'export'),
-        createToken(TokenType.ZP, '@zp'),
         createToken(TokenType.CONST, 'const'),
-        createToken(TokenType.IDENTIFIER, 'FAST_COUNTER'),
+        createToken(TokenType.IDENTIFIER, 'MAX_PLAYERS'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
         createToken(TokenType.ASSIGN, '='),
-        createToken(TokenType.NUMBER, '$FF'),
+        createToken(TokenType.NUMBER, '4'),
         createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
@@ -254,13 +255,38 @@ describe('Parser Integration', () => {
       expect(declarations).toHaveLength(1);
 
       const varDecl = declarations[0] as VariableDecl;
-      expect(varDecl.getName()).toBe('FAST_COUNTER');
+      expect(varDecl.getName()).toBe('MAX_PLAYERS');
       expect(varDecl.isExportedVariable()).toBe(true);
-      expect(varDecl.getStorageClass()).toBe(TokenType.ZP);
       expect(varDecl.isConst()).toBe(true);
-      expect((varDecl.getInitializer() as LiteralExpression).getValue()).toBe(0xff);
+      expect((varDecl.getInitializer() as LiteralExpression).getValue()).toBe(4);
+    });
+
+    it('parses exported let variable', () => {
+      const tokens = [
+        createToken(TokenType.EXPORT, 'export'),
+        createToken(TokenType.LET, 'let'),
+        createToken(TokenType.IDENTIFIER, 'playerCount'),
+        createToken(TokenType.COLON, ':'),
+        createToken(TokenType.BYTE, 'byte'),
+        createToken(TokenType.ASSIGN, '='),
+        createToken(TokenType.NUMBER, '0'),
+        createToken(TokenType.SEMICOLON, ';'),
+        createToken(TokenType.EOF, ''),
+      ];
+      parser = new Parser(tokens);
+
+      const program = parser.parse();
+      const declarations = program.getDeclarations();
+      expect(declarations).toHaveLength(1);
+
+      const varDecl = declarations[0] as VariableDecl;
+      expect(varDecl.getName()).toBe('playerCount');
+      expect(varDecl.isExportedVariable()).toBe(true);
+      expect(varDecl.isConst()).toBe(false);
     });
   });
+
+  // V2: Removed "Storage Classes and Export Modifiers" test with @zp - no storage classes in v2
 
   describe('Inheritance Chain Verification', () => {
     it('can access BaseParser utilities', () => {
@@ -298,12 +324,12 @@ describe('Parser Integration', () => {
 
     it('can access DeclarationParser functionality', () => {
       const tokens = [
-        createToken(TokenType.MAP, '@map'),
+        createToken(TokenType.LET, 'let'),
         createToken(TokenType.IDENTIFIER, 'test'),
-        createToken(TokenType.AT, 'at'),
-        createToken(TokenType.NUMBER, '$1000'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
+        createToken(TokenType.ASSIGN, '='),
+        createToken(TokenType.NUMBER, '42'),
         createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
@@ -312,9 +338,10 @@ describe('Parser Integration', () => {
       const program = parser.parse();
       const declarations = program.getDeclarations();
 
-      // Verifies @map parsing works (DeclarationParser)
+      // Verifies variable parsing works (DeclarationParser)
       expect(declarations).toHaveLength(1);
-      expect(declarations[0]).toBeInstanceOf(SimpleMapDecl);
+      expect(declarations[0]).toBeInstanceOf(VariableDecl);
+      expect((declarations[0] as VariableDecl).getName()).toBe('test');
     });
 
     it('can access ModuleParser functionality', () => {
@@ -346,7 +373,6 @@ describe('Parser Integration', () => {
         createToken(TokenType.SEMICOLON, ';'),
         // Score variable
         createToken(TokenType.EXPORT, 'export'),
-        createToken(TokenType.RAM, '@ram'),
         createToken(TokenType.LET, 'let'),
         createToken(TokenType.IDENTIFIER, 'score'),
         createToken(TokenType.COLON, ':'),
@@ -354,13 +380,13 @@ describe('Parser Integration', () => {
         createToken(TokenType.ASSIGN, '='),
         createToken(TokenType.NUMBER, '0'),
         createToken(TokenType.SEMICOLON, ';'),
-        // Border color mapping
-        createToken(TokenType.MAP, '@map'),
-        createToken(TokenType.IDENTIFIER, 'borderColor'),
-        createToken(TokenType.AT, 'at'),
-        createToken(TokenType.NUMBER, '$D020'),
+        // Lives constant
+        createToken(TokenType.CONST, 'const'),
+        createToken(TokenType.IDENTIFIER, 'INITIAL_LIVES'),
         createToken(TokenType.COLON, ':'),
         createToken(TokenType.BYTE, 'byte'),
+        createToken(TokenType.ASSIGN, '='),
+        createToken(TokenType.NUMBER, '3'),
         createToken(TokenType.SEMICOLON, ';'),
         createToken(TokenType.EOF, ''),
       ];
@@ -380,47 +406,13 @@ describe('Parser Integration', () => {
       const scoreVar = declarations[0] as VariableDecl;
       expect(scoreVar.getName()).toBe('score');
       expect(scoreVar.isExportedVariable()).toBe(true);
-      expect(scoreVar.getStorageClass()).toBe(TokenType.RAM);
 
-      const borderMap = declarations[1] as SimpleMapDecl;
-      expect(borderMap.getName()).toBe('borderColor');
-      expect((borderMap.getAddress() as LiteralExpression).getValue()).toBe(0xd020);
+      const livesConst = declarations[1] as VariableDecl;
+      expect(livesConst.getName()).toBe('INITIAL_LIVES');
+      expect(livesConst.isConst()).toBe(true);
     });
 
-    it('parses C64 SID register mapping', () => {
-      const tokens = [
-        createToken(TokenType.MODULE, 'module'),
-        createToken(TokenType.IDENTIFIER, 'Sound'),
-        createToken(TokenType.SEMICOLON, ';'),
-        // SID register struct
-        createToken(TokenType.MAP, '@map'),
-        createToken(TokenType.IDENTIFIER, 'sid'),
-        createToken(TokenType.AT, 'at'),
-        createToken(TokenType.NUMBER, '$D400'),
-        createToken(TokenType.TYPE, 'type'),
-        createToken(TokenType.LEFT_BRACE, '{'),
-        createToken(TokenType.IDENTIFIER, 'voice1Freq'),
-        createToken(TokenType.COLON, ':'),
-        createToken(TokenType.WORD, 'word'),
-        createToken(TokenType.COMMA, ','),
-        createToken(TokenType.IDENTIFIER, 'voice1Pulse'),
-        createToken(TokenType.COLON, ':'),
-        createToken(TokenType.WORD, 'word'),
-        createToken(TokenType.COMMA, ','),
-        createToken(TokenType.IDENTIFIER, 'voice1Control'),
-        createToken(TokenType.COLON, ':'),
-        createToken(TokenType.BYTE, 'byte'),
-        createToken(TokenType.RIGHT_BRACE, '}'),
-        createToken(TokenType.EOF, ''),
-      ];
-      parser = new Parser(tokens);
-
-      const program = parser.parse();
-      expect(program).toBeInstanceOf(Program);
-      expect(parser.hasErrors()).toBe(false);
-      expect(program.getModule().getFullName()).toBe('Sound');
-      expect(program.getDeclarations()).toHaveLength(1);
-    });
+    // V2: Removed "parses C64 SID register mapping" test - was all @map syntax
   });
 
   describe('Error Handling Integration', () => {

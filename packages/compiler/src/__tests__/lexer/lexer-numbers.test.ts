@@ -4,7 +4,8 @@ import { TokenType } from '../../lexer/types.js';
 
 /**
  * Lexer number literal tests
- * Split from original lexer.test.ts for better maintainability
+ *
+ * v2: No changes needed - these tests don't involve @map.
  */
 describe('Blend65Lexer - Numbers', () => {
   describe('Decimal Numbers', () => {

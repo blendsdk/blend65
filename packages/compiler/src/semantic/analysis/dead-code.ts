@@ -1,392 +1,493 @@
 /**
- * Dead Code Detection (Task 8.4)
+ * Dead Code Analyzer for Blend65 Compiler v2
  *
- * Analyzes code to detect:
- * - Unreachable statements (after return, in unreachable branches)
- * - Unreachable branches (constant if conditions)
- * - Dead stores (variable writes that are never read)
- * - Unused results (expression results that are discarded)
+ * Detects unreachable code in functions by analyzing control flow graphs.
+ * Dead code can indicate:
+ * - Accidental code placement after return/break/continue
+ * - Conditions that are always true/false
+ * - Incomplete refactoring
  *
- * **Algorithm:**
- * 1. Use Control Flow Graph (CFG) to detect unreachable statements
- * 2. Analyze constant branch conditions to find unreachable branches
- * 3. Track variable usage to find dead stores
- * 4. Find expression statements with unused results
- * 5. Set metadata for optimizer hints
- * 6. Emit warnings for removable dead code
+ * **Analysis Approach:**
+ * Uses the CFG built by ControlFlowAnalyzer to identify statements that
+ * cannot be reached from the function entry point.
  *
- * **Metadata Generated:**
- * - `DeadCodeUnreachable`: Statement is unreachable (boolean)
- * - `DeadCodeKind`: Type of dead code (DeadCodeKind enum)
- * - `DeadCodeReason`: Why this code is dead (string)
- * - `DeadCodeRemovable`: Can this code be safely removed? (boolean)
+ * **Types of Dead Code Detected:**
+ * - Code after return statements
+ * - Code after break statements in loops
+ * - Code after continue statements in loops
+ * - Code in unreachable branches (e.g., after infinite loops)
+ *
+ * **SFA Context:**
+ * Dead code doesn't affect correctness in Blend65, but it wastes
+ * precious ROM space on the 6502. Detecting it helps optimize binaries.
+ *
+ * @module semantic/analysis/dead-code
  */
 
-import type { Program, IfStatement, FunctionDecl } from '../../ast/nodes.js';
-import type { Statement } from '../../ast/base.js';
-import type { SymbolTable } from '../symbol-table.js';
+import type { SourceLocation, Statement } from '../../ast/index.js';
 import type { ControlFlowGraph, CFGNode } from '../control-flow.js';
-import type { Diagnostic } from '../../ast/diagnostics.js';
-import { DiagnosticSeverity, DiagnosticCode } from '../../ast/diagnostics.js';
-import { ASTWalker } from '../../ast/walker/base.js';
-import { OptimizationMetadataKey, DeadCodeKind } from './optimization-metadata-keys.js';
-import { isReturnStatement, isBreakStatement, isContinueStatement, isLiteralExpression } from '../../ast/type-guards.js';
+import { CFGNodeKind } from '../control-flow.js';
 
 /**
- * Dead code information
- *
- * Tracks details about detected dead code.
+ * Severity levels for dead code issues
  */
-interface DeadCodeInfo {
-  /** Type of dead code */
-  kind: DeadCodeKind;
+export enum DeadCodeSeverity {
+  /** Definite dead code - should be removed */
+  Warning = 'warning',
+  /** Potentially dead code - needs review */
+  Info = 'info',
+}
 
-  /** Reason why this code is dead */
-  reason: string;
+/**
+ * Types of dead code issues
+ */
+export enum DeadCodeIssueKind {
+  /** Code unreachable after return statement */
+  AfterReturn = 'after_return',
+  /** Code unreachable after break statement */
+  AfterBreak = 'after_break',
+  /** Code unreachable after continue statement */
+  AfterContinue = 'after_continue',
+  /** Code unreachable due to control flow (general) */
+  Unreachable = 'unreachable',
+  /** Unreachable branch in conditional */
+  UnreachableBranch = 'unreachable_branch',
+}
 
-  /** Can this code be safely removed? */
-  removable: boolean;
+/**
+ * A dead code issue
+ *
+ * Represents a location in the code that cannot be reached during execution.
+ */
+export interface DeadCodeIssue {
+  /** The kind of dead code */
+  kind: DeadCodeIssueKind;
 
-  /** Associated statement node */
+  /** The severity of this issue */
+  severity: DeadCodeSeverity;
+
+  /** The unreachable statement */
   statement: Statement;
+
+  /** Location of the unreachable code */
+  location: SourceLocation;
+
+  /** Human-readable message */
+  message: string;
+
+  /** Suggested fix */
+  suggestion: string;
+
+  /** The function containing this dead code */
+  functionName: string;
+
+  /** If caused by a terminating statement, what kind */
+  causedBy?: 'return' | 'break' | 'continue' | 'infinite_loop';
+}
+
+/**
+ * Result of dead code analysis
+ */
+export interface DeadCodeResult {
+  /** Whether any dead code was found */
+  hasIssues: boolean;
+
+  /** All dead code issues found */
+  issues: DeadCodeIssue[];
+
+  /** Statistics */
+  functionsAnalyzed: number;
+  totalStatements: number;
+  deadStatements: number;
+  deadCodePercentage: number;
+
+  /** Issues grouped by function */
+  issuesByFunction: Map<string, DeadCodeIssue[]>;
 }
 
 /**
  * Dead Code Analyzer
  *
- * Detects various forms of dead code:
- * 1. Unreachable statements (via CFG analysis)
- * 2. Unreachable branches (constant conditions)
- * 3. Dead stores (write-only variables)
- * 4. Unused expression results
+ * Analyzes control flow graphs to detect unreachable code.
  *
- * Sets metadata on AST nodes for optimizer consumption.
- *
- * @example
+ * **Usage:**
  * ```typescript
- * const analyzer = new DeadCodeAnalyzer(symbolTable, cfgs, typeSystem);
- * analyzer.analyze(ast);
- * const diagnostics = analyzer.getDiagnostics();
+ * const analyzer = new DeadCodeAnalyzer();
+ *
+ * // Analyze a single function's CFG
+ * analyzer.analyzeFunction(cfg, 'myFunction');
+ *
+ * // Get results
+ * const result = analyzer.getResult();
+ *
+ * if (result.hasIssues) {
+ *   for (const issue of result.issues) {
+ *     console.warn(`${issue.severity}: ${issue.message}`);
+ *   }
+ * }
  * ```
+ *
+ * **Integration:**
+ * This analyzer is typically used after CFG construction in the semantic
+ * analysis pipeline. It receives CFGs from ControlFlowAnalyzer.
+ *
+ * **How It Works:**
+ * 1. Takes a completed CFG with reachability computed
+ * 2. Finds all unreachable nodes with associated statements
+ * 3. Determines the cause (return, break, continue, etc.)
+ * 4. Reports issues with helpful context
  */
 export class DeadCodeAnalyzer {
-  /** Diagnostics collected during analysis */
-  protected diagnostics: Diagnostic[] = [];
+  /** Collected issues across all functions */
+  protected issues: DeadCodeIssue[];
 
-  /** Detected dead code entries */
-  protected deadCode: DeadCodeInfo[] = [];
+  /** Statistics tracking */
+  protected functionsAnalyzed: number;
+  protected totalStatements: number;
+  protected deadStatements: number;
 
-  /**
-   * Create dead code analyzer
-   *
-   * @param symbolTable - Symbol table from Pass 1
-   * @param cfgs - Control flow graphs from Pass 5
-   * @param typeSystem - Type system (for future constant evaluation)
-   */
-  constructor(
-    protected readonly symbolTable: SymbolTable,
-    protected readonly cfgs: Map<string, ControlFlowGraph>,
-    protected readonly typeSystem: any
-  ) {}
+  /** Issues grouped by function */
+  protected issuesByFunction: Map<string, DeadCodeIssue[]>;
 
   /**
-   * Run dead code analysis on entire program
-   *
-   * Detects all forms of dead code:
-   * - Unreachable statements
-   * - Unreachable branches
-   * - Dead stores
-   * - Unused results
-   *
-   * Sets metadata on statements for optimizer.
-   *
-   * @param ast - Program AST
+   * Create a new dead code analyzer
    */
-  public analyze(ast: Program): void {
-    // Step 1: Detect unreachable statements using CFG
-    this.detectUnreachableStatements();
-
-    // Step 2: Detect unreachable branches (constant conditions)
-    this.detectUnreachableBranches(ast);
-
-    // Step 3: Detect dead stores (write-only variables)
-    this.detectDeadStores(ast);
-
-    // Step 4: Set metadata on all detected dead code
-    this.setDeadCodeMetadata();
-
-    // Step 5: Generate warnings
-    this.generateDiagnostics();
+  constructor() {
+    this.issues = [];
+    this.functionsAnalyzed = 0;
+    this.totalStatements = 0;
+    this.deadStatements = 0;
+    this.issuesByFunction = new Map();
   }
 
   /**
-   * Detect unreachable statements using CFG
+   * Analyze a function's CFG for dead code
    *
-   * Uses control flow graph reachability analysis to find
-   * statements that can never be executed.
+   * The CFG must have reachability already computed.
    *
-   * **Strategy:**
-   * The CFG only tracks control flow statements (return, if, while, etc.),
-   * not variable declarations or expression statements. So we can't rely
-   * on CFG node.statement references to find ALL unreachable statements.
-   *
-   * Instead, we:
-   * 1. Walk function bodies to find control flow terminators (return, break, continue)
-   * 2. Mark ALL statements after terminators as unreachable
-   * 3. Use CFG to detect unreachable branches
-   *
-   * **Examples:**
-   * - Code after return statement
-   * - Code in unreachable branches
-   * - Disconnected code blocks
+   * @param cfg - The control flow graph to analyze
+   * @param functionName - Name of the function (for error messages)
    */
-  protected detectUnreachableStatements(): void {
-    for (const [funcName, cfg] of this.cfgs) {
-      // Ensure reachability is computed
-      cfg.computeReachability();
+  public analyzeFunction(cfg: ControlFlowGraph, functionName: string): void {
+    this.functionsAnalyzed++;
 
-      // Find the function declaration in the symbol table
-      const funcSymbol = this.symbolTable.lookup(funcName);
-      if (funcSymbol && funcSymbol.declaration) {
-        const funcDecl = funcSymbol.declaration as FunctionDecl;
-        const body = funcDecl.getBody();
+    // Get all statement nodes
+    const statementNodes = cfg.getStatementNodes();
+    this.totalStatements += statementNodes.length;
 
-        if (body) {
-          // Walk through function body statements
-          let foundUnreachable = false;
+    // Get unreachable nodes
+    const unreachableNodes = cfg.getUnreachableNodes();
 
-          for (const stmt of body) {
-            // If we've already found an unreachable point, this statement is unreachable
-            if (foundUnreachable) {
-              this.deadCode.push({
-                kind: DeadCodeKind.UnreachableStatement,
-                reason: 'Control flow never reaches this statement',
-                removable: true,
-                statement: stmt,
-              });
-            }
+    // Process each unreachable node
+    for (const node of unreachableNodes) {
+      if (node.statement) {
+        this.deadStatements++;
+        const issue = this.createIssue(node, functionName, cfg);
+        this.issues.push(issue);
 
-            // Check if this statement makes subsequent code unreachable
-            // Return statements always make subsequent code unreachable
-            if (isReturnStatement(stmt)) {
-              foundUnreachable = true;
-            }
-            // Break/continue also make subsequent code unreachable (in loop context)
-            else if (isBreakStatement(stmt) || isContinueStatement(stmt)) {
-              foundUnreachable = true;
-            }
-          }
+        // Group by function
+        const functionIssues = this.issuesByFunction.get(functionName) ?? [];
+        functionIssues.push(issue);
+        this.issuesByFunction.set(functionName, functionIssues);
+      }
+    }
+  }
+
+  /**
+   * Analyze multiple functions
+   *
+   * Convenience method for analyzing a map of CFGs.
+   *
+   * @param cfgs - Map of function names to their CFGs
+   */
+  public analyzeFunctions(cfgs: Map<string, ControlFlowGraph>): void {
+    for (const [functionName, cfg] of cfgs) {
+      this.analyzeFunction(cfg, functionName);
+    }
+  }
+
+  /**
+   * Create an issue for an unreachable node
+   *
+   * Determines the cause of unreachability and creates appropriate message.
+   *
+   * @param node - The unreachable CFG node
+   * @param functionName - Name of the containing function
+   * @param cfg - The control flow graph
+   * @returns The dead code issue
+   */
+  protected createIssue(
+    node: CFGNode,
+    functionName: string,
+    cfg: ControlFlowGraph
+  ): DeadCodeIssue {
+    const statement = node.statement!;
+    const location = statement.getLocation();
+
+    // Try to determine what caused this code to be unreachable
+    const cause = this.findCause(node, cfg);
+
+    // Create issue based on cause
+    switch (cause.kind) {
+      case 'return':
+        return {
+          kind: DeadCodeIssueKind.AfterReturn,
+          severity: DeadCodeSeverity.Warning,
+          statement,
+          location,
+          message: `Unreachable code after return statement in '${functionName}'`,
+          suggestion: 'Remove the unreachable code or move it before the return statement',
+          functionName,
+          causedBy: 'return',
+        };
+
+      case 'break':
+        return {
+          kind: DeadCodeIssueKind.AfterBreak,
+          severity: DeadCodeSeverity.Warning,
+          statement,
+          location,
+          message: `Unreachable code after break statement in '${functionName}'`,
+          suggestion: 'Remove the unreachable code or move it before the break statement',
+          functionName,
+          causedBy: 'break',
+        };
+
+      case 'continue':
+        return {
+          kind: DeadCodeIssueKind.AfterContinue,
+          severity: DeadCodeSeverity.Warning,
+          statement,
+          location,
+          message: `Unreachable code after continue statement in '${functionName}'`,
+          suggestion: 'Remove the unreachable code or move it before the continue statement',
+          functionName,
+          causedBy: 'continue',
+        };
+
+      case 'infinite_loop':
+        return {
+          kind: DeadCodeIssueKind.Unreachable,
+          severity: DeadCodeSeverity.Warning,
+          statement,
+          location,
+          message: `Unreachable code after infinite loop in '${functionName}'`,
+          suggestion: 'Add a break condition to the loop or remove the unreachable code',
+          functionName,
+          causedBy: 'infinite_loop',
+        };
+
+      default:
+        return {
+          kind: DeadCodeIssueKind.Unreachable,
+          severity: DeadCodeSeverity.Warning,
+          statement,
+          location,
+          message: `Unreachable code detected in '${functionName}'`,
+          suggestion: 'Review the control flow and remove or restructure the unreachable code',
+          functionName,
+        };
+    }
+  }
+
+  /**
+   * Find what caused a node to be unreachable
+   *
+   * Looks at predecessors and the overall CFG structure to determine
+   * the likely cause of unreachability.
+   *
+   * @param node - The unreachable node
+   * @param cfg - The control flow graph
+   * @returns The probable cause
+   */
+  protected findCause(
+    node: CFGNode,
+    cfg: ControlFlowGraph
+  ): { kind: 'return' | 'break' | 'continue' | 'infinite_loop' | 'unknown' } {
+    // Look for terminating nodes that might have caused this
+    // by examining nearby reachable nodes
+    for (const cfgNode of cfg.getNodes()) {
+      if (!cfgNode.reachable) continue;
+
+      // Check if this reachable node terminates control flow
+      if (cfgNode.kind === CFGNodeKind.Return) {
+        // Check if the unreachable node would logically follow
+        if (this.wouldFollow(cfgNode, node, cfg)) {
+          return { kind: 'return' };
+        }
+      }
+
+      if (cfgNode.kind === CFGNodeKind.Break) {
+        if (this.wouldFollow(cfgNode, node, cfg)) {
+          return { kind: 'break' };
+        }
+      }
+
+      if (cfgNode.kind === CFGNodeKind.Continue) {
+        if (this.wouldFollow(cfgNode, node, cfg)) {
+          return { kind: 'continue' };
         }
       }
     }
-  }
 
-  /**
-   * Get reason why a CFG node is unreachable
-   *
-   * Analyzes predecessors to determine why this node cannot be reached.
-   *
-   * @param node - Unreachable CFG node
-   * @returns Human-readable reason
-   */
-  protected getUnreachabilityReason(node: CFGNode): string {
-    // Check if there are no predecessors (disconnected code)
-    if (node.predecessors.length === 0) {
-      return 'Code is disconnected from function entry';
-    }
-
-    // Check if all predecessors are returns
-    const allPredecessorsReturn = node.predecessors.every(pred => pred.kind === 'Return');
-    if (allPredecessorsReturn) {
-      return 'Code follows return statement';
-    }
-
-    // Check if all predecessors are breaks
-    const allPredecessorsBreak = node.predecessors.every(pred => pred.kind === 'Break');
-    if (allPredecessorsBreak) {
-      return 'Code follows break statement';
-    }
-
-    // Generic unreachable
-    return 'Control flow never reaches this statement';
-  }
-
-  /**
-   * Detect unreachable branches in if statements
-   *
-   * Analyzes if statement conditions to find branches that
-   * can never execute due to constant conditions.
-   *
-   * **Example:**
-   * ```blend
-   * if false then
-   *   // This branch is unreachable
-   * end if
-   * ```
-   *
-   * **Note:** This is a placeholder for future constant evaluation.
-   * Full implementation requires Tier 2 constant propagation analysis.
-   */
-  protected detectUnreachableBranches(ast: Program): void {
-    // Walk AST to find if statements
-    const detector = new UnreachableBranchDetector(this.deadCode);
-    detector.walk(ast);
-  }
-
-  /**
-   * Detect dead stores (write-only variables)
-   *
-   * Finds variable assignments where the written value is
-   * never read before being overwritten or going out of scope.
-   *
-   * **Example:**
-   * ```blend
-   * let x: byte = 5;
-   * x = 10;  // Dead store if x is never read
-   * x = 20;
-   * ```
-   *
-   * **Note:** This uses metadata from Task 8.2 (Variable Usage Analysis).
-   * A write-only variable indicates all its stores are dead.
-   *
-   * **Current Status:** Dead store detection is not yet implemented.
-   * This will be completed in future enhancements when parent node
-   * traversal is available in the AST walker.
-   */
-  protected detectDeadStores(_ast: Program): void {
-    // TODO: Implement dead store detection
-    // Requires parent node tracking to find containing ExpressionStatement
-    // for AssignmentExpression nodes
-  }
-
-  /**
-   * Set metadata on all detected dead code
-   *
-   * For each dead code entry, sets:
-   * - DeadCodeUnreachable flag
-   * - DeadCodeKind classification
-   * - DeadCodeReason explanation
-   * - DeadCodeRemovable safety flag
-   */
-  protected setDeadCodeMetadata(): void {
-    for (const info of this.deadCode) {
-      const stmt = info.statement;
-
-      // Ensure metadata map exists
-      if (!stmt.metadata) {
-        stmt.metadata = new Map();
-      }
-
-      // Set dead code metadata
-      stmt.metadata.set(OptimizationMetadataKey.DeadCodeUnreachable, true);
-      stmt.metadata.set(OptimizationMetadataKey.DeadCodeKind, info.kind);
-      stmt.metadata.set(OptimizationMetadataKey.DeadCodeReason, info.reason);
-      stmt.metadata.set(OptimizationMetadataKey.DeadCodeRemovable, info.removable);
-    }
-  }
-
-  /**
-   * Generate diagnostics for dead code
-   *
-   * Emits WARNING diagnostics for:
-   * - Unreachable statements
-   * - Unreachable branches
-   * - Dead stores (optional, may be intentional)
-   *
-   * **Note:** Dead stores are currently not warned about
-   * as they may be intentional (e.g., clearing sensitive data).
-   */
-  protected generateDiagnostics(): void {
-    for (const info of this.deadCode) {
-      // Only warn about unreachable statements and branches
-      // Dead stores may be intentional, so we skip warnings for now
-      if (
-        info.kind === DeadCodeKind.UnreachableStatement ||
-        info.kind === DeadCodeKind.UnreachableBranch
-      ) {
-        this.diagnostics.push({
-          code: DiagnosticCode.TYPE_MISMATCH, // Generic semantic warning
-          severity: DiagnosticSeverity.WARNING,
-          message: `Unreachable code detected: ${info.reason}`,
-          location: info.statement.getLocation(),
-        });
-      }
-    }
-  }
-
-  /**
-   * Get all diagnostics from analysis
-   *
-   * @returns Array of diagnostics (warnings for dead code)
-   */
-  public getDiagnostics(): Diagnostic[] {
-    return [...this.diagnostics];
-  }
-}
-
-/**
- * Walker to detect unreachable branches
- *
- * Finds if statements with constant conditions where one branch
- * can never be reached.
- *
- * **Future Enhancement:** This currently only handles literal
- * boolean conditions. Full implementation requires constant
- * propagation from Tier 2.
- */
-class UnreachableBranchDetector extends ASTWalker {
-  /**
-   * Create unreachable branch detector
-   *
-   * @param deadCode - Array to populate with dead code entries
-   */
-  constructor(protected readonly deadCode: DeadCodeInfo[]) {
-    super();
-  }
-
-  /**
-   * Visit if statement
-   *
-   * Check if condition is a constant boolean literal.
-   * If so, one branch is unreachable.
-   */
-  public visitIfStatement(node: IfStatement): void {
-    // First traverse children (to mark nested dead code)
-    super.visitIfStatement(node);
-
-    // Check if condition is a constant boolean literal
-    const condition = node.getCondition();
-
-    // Handle literal boolean
-    if (isLiteralExpression(condition)) {
-      const value = condition.getValue();
-
-      // Check if the value is a boolean
-      if (typeof value === 'boolean' && value === false) {
-        // Then branch is unreachable - mark each statement
-        const thenBranch = node.getThenBranch();
-        for (const stmt of thenBranch) {
-          this.deadCode.push({
-            kind: DeadCodeKind.UnreachableBranch,
-            reason: 'If condition is always false',
-            removable: true,
-            statement: stmt,
-          });
-        }
-      } else if (typeof value === 'boolean' && value === true) {
-        // Else branch is unreachable (if it exists) - mark each statement
-        const elseBranch = node.getElseBranch();
-        if (elseBranch) {
-          for (const stmt of elseBranch) {
-            this.deadCode.push({
-              kind: DeadCodeKind.UnreachableBranch,
-              reason: 'If condition is always true',
-              removable: true,
-              statement: stmt,
-            });
-          }
+    // Check for infinite loops
+    // (A loop node that's reachable but doesn't connect to exit)
+    for (const cfgNode of cfg.getNodes()) {
+      if (cfgNode.kind === CFGNodeKind.Loop && cfgNode.reachable) {
+        // Check if this is an infinite loop (no path to node after it)
+        const loopSuccessorsReachable = cfgNode.successors.some(
+          s => s.reachable && s.kind !== CFGNodeKind.Loop
+        );
+        if (!loopSuccessorsReachable) {
+          return { kind: 'infinite_loop' };
         }
       }
     }
+
+    return { kind: 'unknown' };
+  }
+
+  /**
+   * Check if unreachable node would logically follow a terminating node
+   *
+   * Heuristic based on source locations.
+   *
+   * @param terminatingNode - The node that terminates control flow
+   * @param unreachableNode - The unreachable node
+   * @param cfg - The control flow graph
+   * @returns True if unreachable node likely follows terminating node
+   */
+  protected wouldFollow(
+    terminatingNode: CFGNode,
+    unreachableNode: CFGNode,
+    _cfg: ControlFlowGraph
+  ): boolean {
+    // Use source locations as heuristic
+    if (!terminatingNode.statement || !unreachableNode.statement) {
+      return false;
+    }
+
+    const termLoc = terminatingNode.statement.getLocation();
+    const unreachLoc = unreachableNode.statement.getLocation();
+
+    // Unreachable code is "after" if it appears on a later line
+    // or on the same line but after the terminating statement
+    if (unreachLoc.start.line > termLoc.end.line) {
+      return true;
+    }
+    if (
+      unreachLoc.start.line === termLoc.end.line &&
+      unreachLoc.start.column > termLoc.end.column
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get all issues found
+   *
+   * @returns Array of all dead code issues
+   */
+  public getIssues(): DeadCodeIssue[] {
+    return [...this.issues];
+  }
+
+  /**
+   * Get issues for a specific function
+   *
+   * @param functionName - Name of the function
+   * @returns Array of issues in that function
+   */
+  public getFunctionIssues(functionName: string): DeadCodeIssue[] {
+    return this.issuesByFunction.get(functionName) ?? [];
+  }
+
+  /**
+   * Get analysis result
+   *
+   * @returns Complete analysis result
+   */
+  public getResult(): DeadCodeResult {
+    const deadCodePercentage =
+      this.totalStatements > 0 ? (this.deadStatements / this.totalStatements) * 100 : 0;
+
+    return {
+      hasIssues: this.issues.length > 0,
+      issues: [...this.issues],
+      functionsAnalyzed: this.functionsAnalyzed,
+      totalStatements: this.totalStatements,
+      deadStatements: this.deadStatements,
+      deadCodePercentage,
+      issuesByFunction: new Map(this.issuesByFunction),
+    };
+  }
+
+  /**
+   * Check if any dead code was found
+   *
+   * @returns True if dead code was detected
+   */
+  public hasDeadCode(): boolean {
+    return this.issues.length > 0;
+  }
+
+  /**
+   * Get count of dead code issues
+   *
+   * @returns Number of dead code issues found
+   */
+  public getDeadCodeCount(): number {
+    return this.issues.length;
+  }
+
+  /**
+   * Format a human-readable report
+   *
+   * @returns Multi-line string with all issues
+   */
+  public formatReport(): string {
+    const result = this.getResult();
+
+    if (!result.hasIssues) {
+      return `Dead Code Analysis: No issues found (${result.functionsAnalyzed} functions, ${result.totalStatements} statements)`;
+    }
+
+    const lines: string[] = [
+      '=== Dead Code Analysis Report ===',
+      '',
+      'Statistics:',
+      `  Functions analyzed: ${result.functionsAnalyzed}`,
+      `  Total statements: ${result.totalStatements}`,
+      `  Dead statements: ${result.deadStatements}`,
+      `  Dead code: ${result.deadCodePercentage.toFixed(1)}%`,
+      '',
+      'Issues:',
+    ];
+
+    for (const issue of result.issues) {
+      const loc = issue.location;
+      lines.push('');
+      lines.push(`  ${issue.severity.toUpperCase()}: ${issue.message}`);
+      lines.push(`    at line ${loc.start.line}, column ${loc.start.column}`);
+      if (issue.causedBy) {
+        lines.push(`    caused by: ${issue.causedBy}`);
+      }
+      lines.push(`    suggestion: ${issue.suggestion}`);
+    }
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Reset analyzer state for reuse
+   */
+  public reset(): void {
+    this.issues = [];
+    this.functionsAnalyzed = 0;
+    this.totalStatements = 0;
+    this.deadStatements = 0;
+    this.issuesByFunction.clear();
   }
 }
