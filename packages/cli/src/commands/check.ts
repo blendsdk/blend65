@@ -19,7 +19,7 @@ import type { CommandModule, ArgumentsCamelCase } from 'yargs';
 import chalk from 'chalk';
 import { glob } from 'glob';
 
-import { Compiler, type Blend65Config } from '@blend65/compiler';
+import { Compiler, type Blend65Config } from '@blend65/compiler-v2';
 import { formatDiagnostics, formatSuccess, formatError } from '../output/formatter.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import type { GlobalOptions } from './types.js';

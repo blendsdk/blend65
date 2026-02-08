@@ -151,6 +151,9 @@ export * from './target/index.js';
 /** Library loader */
 export * from './library/index.js';
 
+/** Source registry for rich diagnostic output */
+export { SourceRegistry } from './utils/source-registry.js';
+
 // ── Pipeline & Compiler ────────────────────────────────────────────
 
 /** Pipeline types and phase wrappers */

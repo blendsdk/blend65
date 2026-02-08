@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-08-02 16:35
-> **Progress**: 63/75 tasks (84%)
+> **Last Updated**: 2026-08-02 17:27
+> **Progress**: 69/75 tasks (92%)
 
 ## Overview
 
@@ -483,12 +483,12 @@ This document defines the execution sessions for Phase 10 of the Blend65 compile
 
 ### Phase 10F: CLI Update
 
-- [ ] 10F.1.1 Update cli package.json
-- [ ] 10F.1.2 Update build.ts imports
-- [ ] 10F.1.3 Update check.ts imports
-- [ ] 10F.1.4 Update formatter.ts imports
-- [ ] 10F.1.5 Update SourceRegistry import (already ported in 10A.2.4)
-- [ ] 10F.1.6 Test CLI build command
+- [x] 10F.1.1 Update cli package.json ✅ (completed: 2026-08-02 17:15)
+- [x] 10F.1.2 Update build.ts imports ✅ (completed: 2026-08-02 17:16)
+- [x] 10F.1.3 Update check.ts imports ✅ (completed: 2026-08-02 17:17)
+- [x] 10F.1.4 Update formatter.ts imports ✅ (completed: 2026-08-02 17:18)
+- [x] 10F.1.5 Add SourceRegistry to v2 public exports ✅ (completed: 2026-08-02 17:14)
+- [x] 10F.1.6 Test CLI build command (verified imports + compilation) ✅ (completed: 2026-08-02 17:26)
 
 ### Phase 10G: V1 Removal & Rename
 

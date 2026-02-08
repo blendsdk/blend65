@@ -8,8 +8,8 @@
  */
 
 import chalk from 'chalk';
-import type { Diagnostic } from '@blend65/compiler/dist/ast/diagnostics.js';
-import { SourceRegistry } from '@blend65/compiler';
+import type { Diagnostic } from '@blend65/compiler-v2';
+import { SourceRegistry } from '@blend65/compiler-v2';
 
 /**
  * Maximum line length before truncation for display
