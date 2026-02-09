@@ -131,10 +131,39 @@ export function getDefaultOptions(): OptimizationOptions {
 // ============================================================================
 
 /**
- * Pass configuration for each optimization level.
+ * Program-level pass configuration for each optimization level.
  *
- * Maps optimization levels to their default pass sets.
- * This is the authoritative source of which passes run at each level.
+ * Maps optimization levels to their default program-level pass sets.
+ * Program passes run on the entire ILProgram before per-function passes.
+ * This is the authoritative source of which program passes run at each level.
+ *
+ * @internal
+ */
+const PROGRAM_LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
+  // No optimization - skip all passes
+  O0: [],
+
+  // Basic optimizations - dead function elimination and single-site inlining
+  O1: ['dead-function-elim', 'single-site-inline'],
+
+  // Standard optimizations - full inter-procedural
+  O2: ['dead-function-elim', 'dead-global-elim', 'function-inline'],
+
+  // Aggressive optimizations - full inter-procedural
+  O3: ['dead-function-elim', 'dead-global-elim', 'function-inline'],
+
+  // Size optimization - eliminate dead code, no inlining (increases size)
+  Os: ['dead-function-elim', 'dead-global-elim'],
+
+  // Minimum size - eliminate dead code, no inlining
+  Oz: ['dead-function-elim', 'dead-global-elim'],
+};
+
+/**
+ * Function-level pass configuration for each optimization level.
+ *
+ * Maps optimization levels to their default function-level pass sets.
+ * This is the authoritative source of which function passes run at each level.
  *
  * @internal
  */
@@ -267,6 +296,61 @@ export function resolveEnabledPasses(options: OptimizationOptions): string[] {
   const basePasses = options.enabledPasses ?? getPassesForLevel(options.level);
 
   // Remove disabled passes
+  const disabled = new Set(options.disabledPasses ?? []);
+  return basePasses.filter((pass) => !disabled.has(pass));
+}
+
+// ============================================================================
+// Program Pass Resolution
+// ============================================================================
+
+/**
+ * Get program-level passes enabled for a given optimization level.
+ *
+ * Returns the default set of program passes for the specified level.
+ * Does not consider disabledPasses overrides.
+ *
+ * @param level - Optimization level
+ * @returns Array of program pass names enabled for this level
+ *
+ * @example
+ * ```typescript
+ * const passes = getProgramPassesForLevel('O1');
+ * // ['dead-function-elim', 'single-site-inline']
+ * ```
+ */
+export function getProgramPassesForLevel(level: OptimizationLevel): string[] {
+  return [...PROGRAM_LEVEL_PASSES[level]]; // Return copy to prevent modification
+}
+
+/**
+ * Resolve the final set of enabled program-level passes based on options.
+ *
+ * Applies the following logic:
+ * 1. Start with level defaults from PROGRAM_LEVEL_PASSES
+ * 2. Remove any passes in disabledPasses
+ *
+ * Note: Unlike function passes, program passes do not support
+ * enabledPasses override — they always use level defaults.
+ * The disabledPasses list is shared between function and program passes.
+ *
+ * @param options - Optimization options
+ * @returns Final array of enabled program pass names
+ *
+ * @example
+ * ```typescript
+ * // O2 with dead-global-elim disabled
+ * const passes = resolveProgramPasses({
+ *   level: 'O2',
+ *   disabledPasses: ['dead-global-elim'],
+ * });
+ * // ['dead-function-elim', 'function-inline']
+ * ```
+ */
+export function resolveProgramPasses(options: OptimizationOptions): string[] {
+  const basePasses = getProgramPassesForLevel(options.level);
+
+  // Remove disabled passes (shared disable list with function passes)
   const disabled = new Set(options.disabledPasses ?? []);
   return basePasses.filter((pass) => !disabled.has(pass));
 }

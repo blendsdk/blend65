@@ -26,9 +26,9 @@
 
 import type { ILFunction, ILProgram } from '../il/structures.js';
 import type { OptimizationOptions } from './options.js';
-import { getDefaultOptions } from './options.js';
+import { getDefaultOptions, resolveProgramPasses } from './options.js';
 import { PassManager } from './pass-manager.js';
-import type { OptimizationResult } from './pass.js';
+import type { OptimizationResult, ProgramOptimizationPass, ProgramPassResult } from './pass.js';
 import { DCEPass } from './passes/dce.js';
 import { ConstantFoldPass } from './passes/constant-fold.js';
 import { ConstantPropPass } from './passes/constant-prop.js';
@@ -82,6 +82,22 @@ export class ILOptimizer {
    * Aggregated result across all functions in a program optimization.
    */
   protected programResult?: ProgramOptimizationResult;
+
+  /**
+   * Registered program-level optimization passes.
+   *
+   * Maps pass name to pass instance. Program passes operate on the
+   * entire ILProgram rather than individual functions.
+   */
+  protected programPasses: Map<string, ProgramOptimizationPass> = new Map();
+
+  /**
+   * Results from program-level pass execution.
+   *
+   * Stores results from each program pass run during the last
+   * optimizeProgram() call, for debugging and analysis.
+   */
+  protected programPassResults: ProgramPassResult[] = [];
 
   // ═══════════════════════════════════════════════════════════════════
   // Constructor
@@ -165,6 +181,104 @@ export class ILOptimizer {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // Program Pass Registration
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Register a program-level optimization pass.
+   *
+   * Program passes operate on the entire ILProgram (adding, removing,
+   * or modifying functions) and run before per-function passes.
+   *
+   * @param pass - The program optimization pass to register
+   * @throws Error if a pass with the same name is already registered
+   *
+   * @example
+   * ```typescript
+   * optimizer.registerProgramPass(new DeadFunctionElimPass());
+   * ```
+   */
+  registerProgramPass(pass: ProgramOptimizationPass): void {
+    if (this.programPasses.has(pass.name)) {
+      throw new Error(`Program pass '${pass.name}' is already registered`);
+    }
+    this.programPasses.set(pass.name, pass);
+  }
+
+  /**
+   * Check if a program pass is registered.
+   *
+   * @param name - Pass name to check
+   * @returns true if program pass is registered
+   */
+  hasProgramPass(name: string): boolean {
+    return this.programPasses.has(name);
+  }
+
+  /**
+   * Get all registered program pass names.
+   *
+   * @returns Array of registered program pass names
+   */
+  getRegisteredProgramPasses(): string[] {
+    return [...this.programPasses.keys()];
+  }
+
+  /**
+   * Get program passes ordered by dependencies for the current options.
+   *
+   * Resolves which program passes are enabled at the current optimization
+   * level and orders them respecting dependency constraints. Only returns
+   * passes that are both enabled and registered.
+   *
+   * @returns Array of program passes in dependency order
+   */
+  protected getOrderedProgramPasses(): ProgramOptimizationPass[] {
+    const options = this.passManager.getOptions();
+    const enabledNames = resolveProgramPasses(options);
+
+    // Filter to only registered passes
+    const available = enabledNames.filter((name) => this.programPasses.has(name));
+
+    // Topological sort by dependencies
+    const ordered: ProgramOptimizationPass[] = [];
+    const visited = new Set<string>();
+    const visiting = new Set<string>();
+
+    const visit = (name: string): void => {
+      if (visited.has(name)) return;
+      if (visiting.has(name)) {
+        throw new Error(`Circular dependency detected in program pass '${name}'`);
+      }
+
+      const pass = this.programPasses.get(name);
+      if (!pass) return;
+
+      visiting.add(name);
+
+      // Visit dependencies first
+      for (const dep of pass.dependencies) {
+        if (available.includes(dep) || this.programPasses.has(dep)) {
+          visit(dep);
+        }
+      }
+
+      visiting.delete(name);
+      visited.add(name);
+
+      if (available.includes(name)) {
+        ordered.push(pass);
+      }
+    };
+
+    for (const name of available) {
+      visit(name);
+    }
+
+    return ordered;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Function Optimization
   // ═══════════════════════════════════════════════════════════════════
 
@@ -194,7 +308,12 @@ export class ILOptimizer {
   /**
    * Optimize all functions in an IL program.
    *
-   * Runs optimization passes on each function in the program.
+   * Runs optimization in two phases:
+   * 1. **Program-level passes** — operate on the entire program
+   *    (dead function elimination, function inlining, etc.)
+   * 2. **Function-level passes** — optimize each function individually
+   *    (DCE, constant folding, peephole, etc.)
+   *
    * The program and its functions are modified in place.
    *
    * @param program - IL program to optimize
@@ -215,7 +334,41 @@ export class ILOptimizer {
     let totalRemoved = 0;
     let totalAdded = 0;
 
-    // Optimize each function
+    // Reset program pass results from previous run
+    this.programPassResults = [];
+
+    // ──────────────────────────────────────────────────────────────
+    // Phase 1: Program-level passes (dead function elim, inlining)
+    // ──────────────────────────────────────────────────────────────
+    const programPasses = this.getOrderedProgramPasses();
+    const options = this.passManager.getOptions();
+
+    for (const pass of programPasses) {
+      const result = pass.run(program, options);
+      this.programPassResults.push(result);
+
+      if (result.modified) {
+        totalModified = true;
+      }
+
+      // Debug output for program passes
+      if (options.debug) {
+        const status = result.modified ? '✓ modified' : '- no change';
+        console.log(
+          `[program:${pass.name}] ${status} ` +
+            `(${result.functionsRemoved} removed, ${result.functionsModified} modified)`
+        );
+        if (result.debugInfo) {
+          for (const info of result.debugInfo) {
+            console.log(`  ${info}`);
+          }
+        }
+      }
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Phase 2: Function-level passes (DCE, const fold, etc.)
+    // ──────────────────────────────────────────────────────────────
     for (const func of program.functions) {
       const result = this.passManager.optimize(func);
 
@@ -235,6 +388,7 @@ export class ILOptimizer {
     this.programResult = {
       modified: totalModified,
       functionResults,
+      programPassResults: this.programPassResults,
       totalInstructionsRemoved: totalRemoved,
       totalInstructionsAdded: totalAdded,
       totalDurationMs: performance.now() - startTime,
@@ -362,6 +516,15 @@ export interface ProgramOptimizationResult {
 
   /** Results for each function */
   functionResults: FunctionOptimizationResult[];
+
+  /**
+   * Results from program-level passes.
+   *
+   * Contains results from each program pass that ran (e.g., dead
+   * function elimination, function inlining). Empty array if no
+   * program passes were registered or enabled.
+   */
+  programPassResults: ProgramPassResult[];
 
   /** Total instructions removed across all functions */
   totalInstructionsRemoved: number;

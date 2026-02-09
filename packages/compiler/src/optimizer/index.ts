@@ -44,10 +44,12 @@ export type { OptimizationLevel, OptimizationOptions } from './options.js';
 export {
   getDefaultOptions,
   getPassesForLevel,
+  getProgramPassesForLevel,
   shouldIterate,
   isSizeOptimization,
   getIterationCount,
   resolveEnabledPasses,
+  resolveProgramPasses,
 } from './options.js';
 
 // ============================================================================
@@ -59,9 +61,17 @@ export type {
   OptimizationPass,
   PassStats,
   OptimizationResult,
+  ProgramPassResult,
+  ProgramOptimizationPass,
 } from './pass.js';
 
-export { createEmptyResult, createResult, mergeResults } from './pass.js';
+export {
+  createEmptyResult,
+  createResult,
+  mergeResults,
+  createEmptyProgramResult,
+  createProgramResult,
+} from './pass.js';
 
 // ============================================================================
 // Pass Manager

@@ -17,7 +17,7 @@
  * @module optimizer/pass
  */
 
-import type { ILFunction } from '../il/structures.js';
+import type { ILFunction, ILProgram } from '../il/structures.js';
 import type { OptimizationOptions } from './options.js';
 
 // ============================================================================
@@ -223,6 +223,184 @@ export interface OptimizationResult {
 
   /** Total optimization time in milliseconds */
   totalDurationMs: number;
+}
+
+// ============================================================================
+// Program-Level Pass Interface
+// ============================================================================
+
+/**
+ * Result returned by a program-level optimization pass.
+ *
+ * Contains statistics about whole-program transformations such as
+ * dead function elimination or function inlining.
+ *
+ * @example
+ * ```typescript
+ * const result: ProgramPassResult = {
+ *   modified: true,
+ *   functionsRemoved: 2,
+ *   functionsModified: 1,
+ *   debugInfo: ['Removed unreachable function: speedy'],
+ * };
+ * ```
+ */
+export interface ProgramPassResult {
+  /**
+   * Was any modification made to the program?
+   *
+   * true if the pass added, removed, or modified functions.
+   */
+  modified: boolean;
+
+  /**
+   * Number of functions removed by this pass.
+   *
+   * For example, dead function elimination removes unreachable functions.
+   * @default 0
+   */
+  functionsRemoved: number;
+
+  /**
+   * Number of functions modified by this pass.
+   *
+   * For example, function inlining modifies the caller function.
+   * @default 0
+   */
+  functionsModified: number;
+
+  /**
+   * Optional debug information.
+   *
+   * When options.debug is true, passes should populate this
+   * with human-readable descriptions of transformations.
+   */
+  debugInfo?: string[];
+}
+
+/**
+ * Interface for program-level optimization passes.
+ *
+ * Unlike {@link OptimizationPass} which operates on a single ILFunction,
+ * ProgramOptimizationPass operates on the entire ILProgram and can
+ * add, remove, or modify functions across the whole program.
+ *
+ * **Use Cases:**
+ * - Dead function elimination (remove unreachable functions)
+ * - Dead global elimination (remove unused global variables)
+ * - Function inlining (replace call sites with function bodies)
+ * - Inter-procedural constant propagation (future)
+ *
+ * **Execution Order:**
+ * Program passes run *before* per-function passes in the optimizer.
+ * This ensures that dead functions are removed before wasting time
+ * optimizing them, and inlined code benefits from per-function passes.
+ *
+ * @example
+ * ```typescript
+ * class DeadFunctionElimPass implements ProgramOptimizationPass {
+ *   name = 'dead-function-elim';
+ *   dependencies = [];
+ *
+ *   run(program: ILProgram, options: OptimizationOptions): ProgramPassResult {
+ *     const removed = this.removeUnreachableFunctions(program);
+ *     return {
+ *       modified: removed > 0,
+ *       functionsRemoved: removed,
+ *       functionsModified: 0,
+ *     };
+ *   }
+ * }
+ * ```
+ */
+export interface ProgramOptimizationPass {
+  /**
+   * Unique pass name.
+   *
+   * Must match the name used in PROGRAM_LEVEL_PASSES config.
+   * Used for dependency resolution and debugging.
+   */
+  readonly name: string;
+
+  /**
+   * Pass dependencies (other program pass names).
+   *
+   * List of program pass names that must run before this pass.
+   * Dependencies are resolved before execution.
+   *
+   * @example
+   * ```typescript
+   * // Function inlining should run after dead function elimination
+   * dependencies = ['dead-function-elim'];
+   * ```
+   */
+  readonly dependencies: string[];
+
+  /**
+   * Run the pass on the entire program.
+   *
+   * May modify program.functions in place (add, remove, or modify).
+   * Should respect options.debug for logging.
+   *
+   * @param program - The IL program to optimize (may be modified)
+   * @param options - Optimization options
+   * @returns Result with statistics and modification flag
+   */
+  run(program: ILProgram, options: OptimizationOptions): ProgramPassResult;
+}
+
+// ============================================================================
+// Program Pass Helper Functions
+// ============================================================================
+
+/**
+ * Create an empty ProgramPassResult indicating no modifications.
+ *
+ * Convenience function for program passes that don't modify anything.
+ *
+ * @returns ProgramPassResult with modified=false and zero counts
+ *
+ * @example
+ * ```typescript
+ * if (program.functions.length === 0) {
+ *   return createEmptyProgramResult();
+ * }
+ * ```
+ */
+export function createEmptyProgramResult(): ProgramPassResult {
+  return {
+    modified: false,
+    functionsRemoved: 0,
+    functionsModified: 0,
+  };
+}
+
+/**
+ * Create a ProgramPassResult for a transformation.
+ *
+ * Convenience function for creating result with modifications.
+ *
+ * @param functionsRemoved - Number of functions removed
+ * @param functionsModified - Number of functions modified
+ * @param debugInfo - Optional debug messages
+ * @returns ProgramPassResult with appropriate values
+ *
+ * @example
+ * ```typescript
+ * return createProgramResult(2, 0, ['Removed: speedy', 'Removed: unused']);
+ * ```
+ */
+export function createProgramResult(
+  functionsRemoved: number,
+  functionsModified: number,
+  debugInfo?: string[]
+): ProgramPassResult {
+  return {
+    modified: functionsRemoved > 0 || functionsModified > 0,
+    functionsRemoved,
+    functionsModified,
+    debugInfo,
+  };
 }
 
 // ============================================================================
