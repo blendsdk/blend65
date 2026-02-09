@@ -35,6 +35,7 @@ import { ConstantPropPass } from './passes/constant-prop.js';
 import { CopyPropPass } from './passes/copy-prop.js';
 import { ILPeepholePass } from './passes/il-peephole.js';
 import { DeadFunctionElimPass } from './passes/dead-function-elim.js';
+import { DeadGlobalElimPass } from './passes/dead-global-elim.js';
 
 // ============================================================================
 // IL Optimizer
@@ -176,6 +177,10 @@ export class ILOptimizer {
   protected registerDefaultProgramPasses(): void {
     // Dead function elimination — removes functions unreachable from entry point
     this.registerProgramPass(new DeadFunctionElimPass());
+
+    // Dead global elimination — removes unused global variable initializations
+    // Depends on dead-function-elim (runs after it via dependency ordering)
+    this.registerProgramPass(new DeadGlobalElimPass());
   }
 
   /**

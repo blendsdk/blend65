@@ -281,11 +281,12 @@ describe('ILOptimizer program pass registration', () => {
     optimizer.registerProgramPass(createNoOpProgramPass('pass-b'));
 
     const names = optimizer.getRegisteredProgramPasses();
-    // Includes auto-registered 'dead-function-elim' plus the two new ones
+    // Includes auto-registered 'dead-function-elim' and 'dead-global-elim' plus the two new ones
     expect(names).toContain('dead-function-elim');
+    expect(names).toContain('dead-global-elim');
     expect(names).toContain('pass-a');
     expect(names).toContain('pass-b');
-    expect(names).toHaveLength(3);
+    expect(names).toHaveLength(4);
   });
 
   it('throws on duplicate program pass registration', () => {
@@ -356,21 +357,18 @@ describe('ILOptimizer program pass execution', () => {
     const log: string[] = [];
     const optimizer = new ILOptimizer({ level: 'O2' });
 
-    // Register additional passes (dead-function-elim is already auto-registered)
-    // 'function-inline' depends on 'dead-function-elim' and is in O2 config
+    // Register 'function-inline' which is in O2 config but not auto-registered
+    // It depends on 'dead-function-elim' (already auto-registered)
+    // Note: 'dead-global-elim' is also auto-registered, so we don't re-register it
     optimizer.registerProgramPass(
       createLoggingProgramPass('function-inline', log, ['dead-function-elim'])
-    );
-    optimizer.registerProgramPass(
-      createLoggingProgramPass('dead-global-elim', log)
     );
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
 
-    // dead-global-elim and function-inline should have run
-    // function-inline comes after dead-function-elim due to dependency
-    expect(log).toContain('dead-global-elim');
+    // function-inline should have run (after dead-function-elim due to dependency)
+    // dead-global-elim also runs (auto-registered real pass, not in log)
     expect(log).toContain('function-inline');
   });
 
