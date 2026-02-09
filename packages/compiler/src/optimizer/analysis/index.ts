@@ -1,9 +1,9 @@
 /**
  * Optimizer Analysis Module
  *
- * Provides analysis infrastructure for inter-procedural optimization:
+ * Provides analysis infrastructure for optimization passes:
  * - CallGraph: Function call relationship analysis
- * - (Future) LoopTree: Loop nesting analysis
+ * - LoopTree: Loop nesting and hierarchy analysis
  *
  * Analysis passes compute information used by optimization passes
  * but do not modify the program themselves.
@@ -12,3 +12,5 @@
  */
 
 export { CallGraph } from './call-graph.js';
+export { LoopTree } from './loop-tree.js';
+export type { LoopInfo } from './loop-tree.js';

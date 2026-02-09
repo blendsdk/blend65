@@ -403,10 +403,10 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 3.2.3 Implement invalidation on writes and block boundaries ✅ (completed: 2026-09-02 19:00)
 - [x] 3.2.4 Register for O2+ ✅ (completed: 2026-09-02 19:00)
 - [x] 3.2.5 Write CSE tests (~17) ✅ (completed: 2026-09-02 19:00)
-- [ ] 3.3.1 Create CompareBranchPass
-- [ ] 3.3.2 Create IndexedAddrPass
-- [ ] 3.3.3 Register in pass-factory
-- [ ] 3.3.4 Write ASM pattern tests (~15)
+- [x] 3.3.1 Create CompareBranchPass ✅ (completed: 2026-09-02 19:44)
+- [x] 3.3.2 Create IndexedAddrPass ✅ (completed: 2026-09-02 19:44)
+- [x] 3.3.3 Register in pass-factory ✅ (completed: 2026-09-02 19:44)
+- [x] 3.3.4 Write ASM pattern tests (~30) ✅ (completed: 2026-09-02 19:44)
 
 ### Phase 4: Advanced Loop Optimizations
 
