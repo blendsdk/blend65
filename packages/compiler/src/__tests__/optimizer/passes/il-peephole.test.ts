@@ -118,6 +118,57 @@ function createShrByteInstr(count: number): ILInstruction {
   };
 }
 
+function createMulImmInstr(value: number): ILInstruction {
+  return {
+    opcode: ILOpcode.MUL_IMM,
+    operands: [createImmediateOperand(value, false)],
+    defUse: { defs: [], uses: [] },
+  };
+}
+
+function createMulByteInstr(slotName: string): ILInstruction {
+  const slot = createTestSlot(slotName);
+  return {
+    opcode: ILOpcode.MUL_BYTE,
+    operands: [createSlotOperand(slot)],
+    defUse: { defs: [], uses: [slotName] },
+  };
+}
+
+function createDivByteInstr(slotName: string): ILInstruction {
+  const slot = createTestSlot(slotName);
+  return {
+    opcode: ILOpcode.DIV_BYTE,
+    operands: [createSlotOperand(slot)],
+    defUse: { defs: [], uses: [slotName] },
+  };
+}
+
+function createLabelInstr(label: string): ILInstruction {
+  return {
+    opcode: ILOpcode.LABEL,
+    operands: [createLabelOperand(label)],
+    defUse: { defs: [], uses: [] },
+  };
+}
+
+function createCallInstr(): ILInstruction {
+  return {
+    opcode: ILOpcode.CALL,
+    operands: [],
+    defUse: { defs: [], uses: [] },
+  };
+}
+
+function createIncByteInstr(slotName: string): ILInstruction {
+  const slot = createTestSlot(slotName);
+  return {
+    opcode: ILOpcode.INC_BYTE,
+    operands: [createSlotOperand(slot)],
+    defUse: { defs: [slotName], uses: [slotName] },
+  };
+}
+
 function createReturnInstr(): ILInstruction {
   return {
     opcode: ILOpcode.RETURN,
@@ -510,6 +561,339 @@ describe('ILPeepholePass debug output', () => {
     const result = pass.run(func, { level: 'O2', debug: false });
 
     expect(result.debugInfo).toBeUndefined();
+  });
+});
+
+// ============================================================================
+// MUL/DIV Strength Reduction Tests
+// ============================================================================
+
+describe('ILPeepholePass MUL strength reduction — MUL_IMM (direct immediate)', () => {
+  it('should reduce MUL_IMM 2 to SHL_BYTE 1', () => {
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createMulImmInstr(2),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.SHL_BYTE);
+    expect(getImmValue(func.instructions[1])).toBe(1);
+  });
+
+  it('should reduce MUL_IMM 4 to SHL_BYTE 2', () => {
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createMulImmInstr(4),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[1].opcode).toBe(ILOpcode.SHL_BYTE);
+    expect(getImmValue(func.instructions[1])).toBe(2);
+  });
+
+  it('should reduce MUL_IMM for all byte-range powers of 2 (8,16,32,64,128)', () => {
+    // Test each power of 2 from 8 to 128
+    const powersAndShifts: [number, number][] = [
+      [8, 3], [16, 4], [32, 5], [64, 6], [128, 7],
+    ];
+
+    for (const [multiplier, expectedShift] of powersAndShifts) {
+      const func = createTestFunction([
+        createLoadByteInstr('x'),
+        createMulImmInstr(multiplier),
+        createReturnInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, { level: 'O2' });
+
+      expect(func.instructions[1].opcode).toBe(ILOpcode.SHL_BYTE);
+      expect(getImmValue(func.instructions[1])).toBe(expectedShift);
+    }
+  });
+
+  it('should reduce MUL_IMM 0 to LOAD_IMM 0', () => {
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createMulImmInstr(0),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(getImmValue(func.instructions[1])).toBe(0);
+  });
+
+  it('should remove MUL_IMM 1 (identity — x * 1 = x)', () => {
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createMulImmInstr(1),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    // MUL_IMM 1 removed, leaving LOAD_BYTE x + RETURN
+    expect(func.instructions).toHaveLength(2);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.LOAD_BYTE);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.RETURN);
+  });
+
+  it('should NOT reduce MUL_IMM with non-power-of-2 (e.g., 3, 5, 7)', () => {
+    for (const value of [3, 5, 7, 9, 10, 15]) {
+      const func = createTestFunction([
+        createLoadByteInstr('x'),
+        createMulImmInstr(value),
+        createReturnInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, { level: 'O2' });
+
+      // MUL_IMM should remain unchanged
+      expect(func.instructions[1].opcode).toBe(ILOpcode.MUL_IMM);
+      expect(getImmValue(func.instructions[1])).toBe(value);
+    }
+  });
+});
+
+describe('ILPeepholePass MUL strength reduction — MUL_BYTE (slot with backward scan)', () => {
+  it('should reduce MUL_BYTE when slot has known power-of-2 constant', () => {
+    // Pattern: LOAD_IMM 8; STORE_BYTE divisor; LOAD_BYTE x; MUL_BYTE divisor
+    const func = createTestFunction([
+      createLoadImmInstr(8),      // A = 8
+      createStoreByteInstr('k'),  // k = 8
+      createLoadByteInstr('x'),   // A = x
+      createMulByteInstr('k'),    // A = x * k = x * 8 → should become SHL 3
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.SHL_BYTE);
+    expect(getImmValue(func.instructions[3])).toBe(3);
+  });
+
+  it('should reduce MUL_BYTE when slot is 0 to LOAD_IMM 0', () => {
+    const func = createTestFunction([
+      createLoadImmInstr(0),
+      createStoreByteInstr('k'),
+      createLoadByteInstr('x'),
+      createMulByteInstr('k'),    // x * 0 = 0
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(getImmValue(func.instructions[3])).toBe(0);
+  });
+
+  it('should NOT reduce MUL_BYTE when slot value is unknown (no LOAD_IMM;STORE)', () => {
+    // Slot 'k' is loaded from another slot — value unknown
+    const func = createTestFunction([
+      createLoadByteInstr('y'),   // A = y (runtime value)
+      createStoreByteInstr('k'),  // k = y
+      createLoadByteInstr('x'),
+      createMulByteInstr('k'),    // x * k — unknown, no reduction
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    // MUL_BYTE should remain
+    expect(func.instructions[3].opcode).toBe(ILOpcode.MUL_BYTE);
+  });
+
+  it('should NOT reduce MUL_BYTE when label intervenes (control flow boundary)', () => {
+    const func = createTestFunction([
+      createLoadImmInstr(4),
+      createStoreByteInstr('k'),
+      createLabelInstr('.loop'),    // control flow boundary
+      createLoadByteInstr('x'),
+      createMulByteInstr('k'),      // k might have different value via jump
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[4].opcode).toBe(ILOpcode.MUL_BYTE);
+  });
+
+  it('should NOT reduce MUL_BYTE when CALL intervenes (callee may write slot)', () => {
+    const func = createTestFunction([
+      createLoadImmInstr(16),
+      createStoreByteInstr('k'),
+      createCallInstr(),             // callee might modify 'k'
+      createLoadByteInstr('x'),
+      createMulByteInstr('k'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[4].opcode).toBe(ILOpcode.MUL_BYTE);
+  });
+
+  it('should NOT reduce MUL_BYTE when INC_BYTE modifies the slot', () => {
+    const func = createTestFunction([
+      createLoadImmInstr(2),
+      createStoreByteInstr('k'),
+      createIncByteInstr('k'),       // k is now 3, not 2
+      createLoadByteInstr('x'),
+      createMulByteInstr('k'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[4].opcode).toBe(ILOpcode.MUL_BYTE);
+  });
+});
+
+describe('ILPeepholePass DIV strength reduction — DIV_BYTE (slot with backward scan)', () => {
+  it('should reduce DIV_BYTE by 2 to SHR_BYTE 1', () => {
+    const func = createTestFunction([
+      createLoadImmInstr(2),
+      createStoreByteInstr('d'),
+      createLoadByteInstr('x'),
+      createDivByteInstr('d'),      // x / 2 → x >> 1
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.SHR_BYTE);
+    expect(getImmValue(func.instructions[3])).toBe(1);
+  });
+
+  it('should reduce DIV_BYTE for powers of 2 (4,8,16,32,64,128)', () => {
+    const powersAndShifts: [number, number][] = [
+      [4, 2], [8, 3], [16, 4], [32, 5], [64, 6], [128, 7],
+    ];
+
+    for (const [divisor, expectedShift] of powersAndShifts) {
+      const func = createTestFunction([
+        createLoadImmInstr(divisor),
+        createStoreByteInstr('d'),
+        createLoadByteInstr('x'),
+        createDivByteInstr('d'),
+        createReturnInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, { level: 'O2' });
+
+      expect(func.instructions[3].opcode).toBe(ILOpcode.SHR_BYTE);
+      expect(getImmValue(func.instructions[3])).toBe(expectedShift);
+    }
+  });
+
+  it('should remove DIV_BYTE by 1 (identity — x / 1 = x)', () => {
+    const func = createTestFunction([
+      createLoadImmInstr(1),
+      createStoreByteInstr('d'),
+      createLoadByteInstr('x'),
+      createDivByteInstr('d'),      // x / 1 = x → remove
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    // DIV removed; remaining: LOAD_IMM 1, STORE d, LOAD_BYTE x, RETURN
+    // But identity elimination + load-store elimination may also kick in
+    // The key assertion: no DIV_BYTE remains
+    const hasDivByte = func.instructions.some(i => i.opcode === ILOpcode.DIV_BYTE);
+    expect(hasDivByte).toBe(false);
+  });
+
+  it('should NOT reduce DIV_BYTE with non-power-of-2 (e.g., 3, 5, 7)', () => {
+    for (const value of [3, 5, 7]) {
+      const func = createTestFunction([
+        createLoadImmInstr(value),
+        createStoreByteInstr('d'),
+        createLoadByteInstr('x'),
+        createDivByteInstr('d'),
+        createReturnInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, { level: 'O2' });
+
+      expect(func.instructions[3].opcode).toBe(ILOpcode.DIV_BYTE);
+    }
+  });
+
+  it('should NOT reduce DIV_BYTE when slot value is unknown', () => {
+    const func = createTestFunction([
+      createLoadByteInstr('y'),
+      createStoreByteInstr('d'),
+      createLoadByteInstr('x'),
+      createDivByteInstr('d'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[3].opcode).toBe(ILOpcode.DIV_BYTE);
+  });
+});
+
+describe('ILPeepholePass MUL/DIV debug output', () => {
+  it('should include debug info for MUL_IMM power-of-2 reduction', () => {
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createMulImmInstr(4),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2', debug: true });
+
+    expect(result.debugInfo).toBeDefined();
+    const mulDebug = result.debugInfo!.find(d => d.includes('Strength reduction'));
+    expect(mulDebug).toBeDefined();
+    expect(mulDebug).toContain('x * 4 = x << 2');
+  });
+
+  it('should include debug info for MUL_IMM 1 removal', () => {
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createMulImmInstr(1),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2', debug: true });
+
+    expect(result.debugInfo).toBeDefined();
+    const mulDebug = result.debugInfo!.find(d => d.includes('removed'));
+    expect(mulDebug).toBeDefined();
+    expect(mulDebug).toContain('x * 1 = x');
   });
 });
 

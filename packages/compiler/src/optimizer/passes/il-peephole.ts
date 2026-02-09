@@ -167,9 +167,12 @@ export class ILPeepholePass implements OptimizationPass {
    * Replace expensive operations with cheaper equivalents.
    *
    * Patterns:
-   * - MUL_BYTE by power of 2 → SHL_BYTE log2(n)
-   * - DIV_BYTE by power of 2 → SHR_BYTE log2(n)
-   * - MUL_BYTE 0 → LOAD_IMM 0 (x * 0 = 0)
+   * - MUL_IMM by power of 2 → SHL_BYTE log2(n)
+   * - MUL_BYTE slot (known power-of-2) → SHL_BYTE log2(n)
+   * - DIV_BYTE slot (known power-of-2) → SHR_BYTE log2(n)
+   * - MUL_IMM/MUL_BYTE 0 → LOAD_IMM 0 (x * 0 = 0)
+   * - MUL_IMM/MUL_BYTE 1 → remove (x * 1 = x)
+   * - DIV_BYTE 1 → remove (x / 1 = x)
    * - AND_IMM 0 → LOAD_IMM 0 (x & 0 = 0)
    * - OR_IMM 0xFF → LOAD_IMM 0xFF (x | 0xFF = 0xFF for byte)
    *
@@ -182,48 +185,90 @@ export class ILPeepholePass implements OptimizationPass {
     options: OptimizationOptions
   ): PassResult {
     const debugInfo: string[] = [];
+    const toRemove: number[] = [];
     let replaced = 0;
 
     for (let i = 0; i < func.instructions.length; i++) {
       const instr = func.instructions[i];
-      const replacement = this.tryStrengthReduce(instr, options);
+      const result = this.tryStrengthReduce(instr, i, func.instructions, options);
 
-      if (replacement) {
-        func.instructions[i] = replacement.instruction;
-        replaced++;
-
-        if (options.debug) {
-          debugInfo.push(
-            `Strength reduction at ${i}: ${ILOpcode[instr.opcode]} → ${ILOpcode[replacement.instruction.opcode]} (${replacement.reason})`
-          );
+      if (result) {
+        if (result.remove) {
+          // Mark for removal (e.g., multiply by 1 is a no-op)
+          toRemove.push(i);
+          if (options.debug) {
+            debugInfo.push(
+              `Strength reduction (removed) at ${i}: ${ILOpcode[instr.opcode]} (${result.reason})`
+            );
+          }
+        } else {
+          func.instructions[i] = result.instruction;
+          replaced++;
+          if (options.debug) {
+            debugInfo.push(
+              `Strength reduction at ${i}: ${ILOpcode[instr.opcode]} → ${ILOpcode[result.instruction.opcode]} (${result.reason})`
+            );
+          }
         }
       }
     }
 
-    return createResult(0, replaced, debugInfo.length > 0 ? debugInfo : undefined);
+    // Remove marked instructions (reverse order to preserve indices)
+    if (toRemove.length > 0) {
+      const removeSet = new Set(toRemove);
+      func.instructions = func.instructions.filter((_, i) => !removeSet.has(i));
+    }
+
+    return createResult(
+      toRemove.length,
+      replaced,
+      debugInfo.length > 0 ? debugInfo : undefined
+    );
   }
 
   /**
    * Attempt to strength-reduce an instruction.
    *
+   * Uses instruction context (index + surrounding instructions) to detect
+   * known constant values in slots for MUL_BYTE/DIV_BYTE patterns.
+   *
    * @param instr - Instruction to check
+   * @param index - Index of instruction in the instruction array
+   * @param instructions - Full instruction array for backward scanning
    * @param _options - Optimization options (unused, reserved for future)
    * @returns Replacement instruction and reason, or null
    */
   protected tryStrengthReduce(
     instr: ILInstruction,
+    index: number,
+    instructions: ILInstruction[],
     _options: OptimizationOptions
   ): StrengthReductionResult | null {
-    const value = this.getImmediateValue(instr);
-
     switch (instr.opcode) {
-      case ILOpcode.MUL_BYTE:
-        return this.tryReduceMultiply(instr, value);
+      // MUL_IMM has an immediate operand — direct value check
+      case ILOpcode.MUL_IMM:
+        return this.tryReduceMultiply(instr, this.getImmediateValue(instr));
 
-      case ILOpcode.DIV_BYTE:
-        return this.tryReduceDivide(instr, value);
+      // MUL_BYTE has a slot operand — backward scan for known constant
+      case ILOpcode.MUL_BYTE: {
+        const slotName = this.getSlotName(instr);
+        const knownValue = slotName !== null
+          ? this.findSlotConstant(slotName, index, instructions)
+          : null;
+        return this.tryReduceMultiply(instr, knownValue);
+      }
 
-      case ILOpcode.AND_IMM:
+      // DIV_BYTE has a slot operand — backward scan for known constant
+      case ILOpcode.DIV_BYTE: {
+        const slotName = this.getSlotName(instr);
+        const knownValue = slotName !== null
+          ? this.findSlotConstant(slotName, index, instructions)
+          : null;
+        return this.tryReduceDivide(instr, knownValue);
+      }
+
+      case ILOpcode.AND_IMM: {
+        const value = this.getImmediateValue(instr);
         if (value === 0) {
           return {
             instruction: this.createLoadImm(0, instr),
@@ -231,8 +276,10 @@ export class ILPeepholePass implements OptimizationPass {
           };
         }
         return null;
+      }
 
-      case ILOpcode.OR_IMM:
+      case ILOpcode.OR_IMM: {
+        const value = this.getImmediateValue(instr);
         if (value === 0xff) {
           return {
             instruction: this.createLoadImm(0xff, instr),
@@ -240,6 +287,7 @@ export class ILPeepholePass implements OptimizationPass {
           };
         }
         return null;
+      }
 
       default:
         return null;
@@ -249,36 +297,172 @@ export class ILPeepholePass implements OptimizationPass {
   /**
    * Try to reduce multiply to shift or constant.
    *
-   * @param _instr - MUL_BYTE instruction (unused, reserved for future)
-   * @param _value - Immediate value if slot has known constant (unused, reserved for future)
-   * @returns Reduction result or null
+   * Handles both MUL_IMM (direct immediate) and MUL_BYTE (slot with
+   * known constant from backward scan).
+   *
+   * **Reductions:**
+   * - ×0 → LOAD_IMM 0 (result is always 0)
+   * - ×1 → remove (identity, no-op)
+   * - ×(power-of-2) → SHL_BYTE log2(n)
+   *
+   * @param instr - MUL_BYTE or MUL_IMM instruction
+   * @param value - Known constant value (from immediate or backward scan), null if unknown
+   * @returns Reduction result or null if no reduction possible
    */
   protected tryReduceMultiply(
-    _instr: ILInstruction,
-    _value: number | null
+    instr: ILInstruction,
+    value: number | null
   ): StrengthReductionResult | null {
-    // Note: MUL_BYTE operates on slots, but we need to check for
-    // known constant values from constant propagation.
-    // For now, we can only handle MUL when combined with LOAD_IMM patterns.
-    // Full implementation would require value tracking from previous passes.
+    if (value === null) return null;
 
-    // Check if this is a multiply followed by known value pattern
-    // This is a simplified version - full impl needs data flow analysis
+    // x * 0 = 0 — replace with LOAD_IMM 0
+    if (value === 0) {
+      return {
+        instruction: this.createLoadImm(0, instr),
+        reason: 'x * 0 = 0',
+      };
+    }
+
+    // x * 1 = x — remove the multiply (identity operation)
+    if (value === 1) {
+      return {
+        instruction: instr, // unused when remove=true
+        reason: 'x * 1 = x',
+        remove: true,
+      };
+    }
+
+    // x * (power-of-2) → x << log2(n)
+    if (this.isPowerOfTwo(value)) {
+      const shift = this.log2(value);
+      return {
+        instruction: this.createShiftLeft(shift, instr),
+        reason: `x * ${value} = x << ${shift}`,
+      };
+    }
+
     return null;
   }
 
   /**
    * Try to reduce divide to shift.
    *
-   * @param _instr - DIV_BYTE instruction (unused, reserved for future)
-   * @param _value - Immediate value if slot has known constant (unused, reserved for future)
-   * @returns Reduction result or null
+   * Handles DIV_BYTE with slot operand when the slot contains a known
+   * constant from backward scan.
+   *
+   * **Reductions:**
+   * - ÷1 → remove (identity, no-op)
+   * - ÷(power-of-2) → SHR_BYTE log2(n)
+   *
+   * Note: ÷0 is undefined behavior — we do NOT optimize it.
+   *
+   * @param instr - DIV_BYTE instruction
+   * @param value - Known constant value from backward scan, null if unknown
+   * @returns Reduction result or null if no reduction possible
    */
   protected tryReduceDivide(
-    _instr: ILInstruction,
-    _value: number | null
+    instr: ILInstruction,
+    value: number | null
   ): StrengthReductionResult | null {
-    // Similar to multiply - needs data flow for full implementation
+    if (value === null) return null;
+
+    // x / 1 = x — remove the divide (identity operation)
+    if (value === 1) {
+      return {
+        instruction: instr, // unused when remove=true
+        reason: 'x / 1 = x',
+        remove: true,
+      };
+    }
+
+    // x / (power-of-2) → x >> log2(n) (unsigned division only)
+    if (this.isPowerOfTwo(value)) {
+      const shift = this.log2(value);
+      return {
+        instruction: this.createShiftRight(shift, instr),
+        reason: `x / ${value} = x >> ${shift}`,
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Scan backward from an instruction to find a known constant value
+   * stored in a slot.
+   *
+   * Looks for the pattern: `LOAD_IMM n; STORE_BYTE slot` preceding the
+   * current instruction, where the slot has not been overwritten between
+   * the store and the current instruction.
+   *
+   * Stops scanning at:
+   * - A write to the target slot (STORE_BYTE with same name)
+   * - A label (control flow boundary — value may differ)
+   * - A CALL (callee may modify memory)
+   * - Start of instruction array
+   * - Maximum scan distance (16 instructions) to bound complexity
+   *
+   * @param slotName - Name of the slot to find a constant for
+   * @param currentIndex - Index of the instruction that uses the slot
+   * @param instructions - Full instruction array
+   * @returns The constant value stored in the slot, or null if unknown
+   */
+  protected findSlotConstant(
+    slotName: string,
+    currentIndex: number,
+    instructions: ILInstruction[]
+  ): number | null {
+    // Maximum backward scan distance to bound peephole complexity
+    const MAX_SCAN_DISTANCE = 16;
+    const minIndex = Math.max(0, currentIndex - MAX_SCAN_DISTANCE);
+
+    for (let i = currentIndex - 1; i >= minIndex; i--) {
+      const prev = instructions[i];
+
+      // Stop at control flow boundaries — value may differ on different paths
+      if (prev.opcode === ILOpcode.LABEL || prev.opcode === ILOpcode.CALL) {
+        return null;
+      }
+
+      // Stop at jumps — execution may not flow linearly
+      if (
+        prev.opcode === ILOpcode.JUMP ||
+        prev.opcode === ILOpcode.JUMP_EQ ||
+        prev.opcode === ILOpcode.JUMP_NE ||
+        prev.opcode === ILOpcode.JUMP_LT ||
+        prev.opcode === ILOpcode.JUMP_LE ||
+        prev.opcode === ILOpcode.JUMP_GE ||
+        prev.opcode === ILOpcode.JUMP_GT
+      ) {
+        return null;
+      }
+
+      // Found a STORE_BYTE to our target slot — check preceding LOAD_IMM
+      if (prev.opcode === ILOpcode.STORE_BYTE) {
+        const storeSlot = this.getSlotName(prev);
+        if (storeSlot === slotName) {
+          // Look at the instruction before the STORE for a LOAD_IMM
+          if (i > 0) {
+            const beforeStore = instructions[i - 1];
+            if (beforeStore.opcode === ILOpcode.LOAD_IMM) {
+              return this.getImmediateValue(beforeStore);
+            }
+          }
+          // Slot was written but not from a LOAD_IMM — value unknown
+          return null;
+        }
+      }
+
+      // If another instruction writes to the same slot, value is unknown
+      if (prev.opcode === ILOpcode.INC_BYTE || prev.opcode === ILOpcode.DEC_BYTE) {
+        const modSlot = this.getSlotName(prev);
+        if (modSlot === slotName) {
+          return null;
+        }
+      }
+    }
+
+    // Reached scan limit without finding slot definition — value unknown
     return null;
   }
 
@@ -472,10 +656,15 @@ export class ILPeepholePass implements OptimizationPass {
 
 /**
  * Result of a strength reduction attempt.
+ *
+ * When `remove` is true, the instruction should be removed entirely
+ * (e.g., multiply by 1 is a no-op). In that case `instruction` is unused.
  */
 interface StrengthReductionResult {
-  /** The replacement instruction */
+  /** The replacement instruction (ignored when remove=true) */
   instruction: ILInstruction;
   /** Human-readable reason for the reduction */
   reason: string;
+  /** If true, remove the instruction instead of replacing it */
+  remove?: boolean;
 }

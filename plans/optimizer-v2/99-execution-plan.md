@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 13:54
-> **Progress**: 29/40 tasks (73%)
+> **Last Updated**: 2026-09-02 15:12
+> **Progress**: 32/40 tasks (80%)
 
 ## Overview
 
@@ -395,9 +395,9 @@ This document defines the execution phases and AI chat sessions for implementing
 
 ### Phase 3: IL & ASM Improvements
 
-- [ ] 3.1.1 Implement tryReduceMultiply()
-- [ ] 3.1.2 Implement tryReduceDivide()
-- [ ] 3.1.3 Write MUL/DIV tests (~15)
+- [x] 3.1.1 Implement tryReduceMultiply() ✅ (completed: 2026-09-02 15:10)
+- [x] 3.1.2 Implement tryReduceDivide() ✅ (completed: 2026-09-02 15:10)
+- [x] 3.1.3 Write MUL/DIV tests (~18) + findSlotConstant backward scan ✅ (completed: 2026-09-02 15:12)
 - [ ] 3.2.1 Create CSEPass
 - [ ] 3.2.2 Implement expression tracking
 - [ ] 3.2.3 Implement invalidation
