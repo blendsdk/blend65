@@ -244,6 +244,42 @@ export class FrameAllocator {
     callGraph: CallGraph,
     _symbolTable: SymbolTable
   ): FrameAllocationResult {
+    // Delegate to multi-program method with a single program
+    return this.allocateMultiplePrograms([program], callGraph, _symbolTable);
+  }
+
+  /**
+   * Allocate frames for functions across multiple programs (modules).
+   *
+   * Collects functions from ALL provided program ASTs and performs
+   * the complete SFA process for all of them together. This ensures
+   * functions defined in imported modules also receive frame allocations.
+   *
+   * **Why this is needed:**
+   * In multi-module compilation, functions may be defined in different
+   * modules. The IL generator needs frame allocations for ALL functions,
+   * not just the primary module's. Without this, cross-module function
+   * calls fail with "No frame for function" errors.
+   *
+   * @param programs - Array of program ASTs (from all modules)
+   * @param callGraph - Call graph for recursion detection
+   * @param symbolTable - Symbol table for type resolution
+   * @returns Allocation result with frameMap, stats, diagnostics
+   *
+   * @example
+   * ```typescript
+   * const result = allocator.allocateMultiplePrograms(
+   *   [primaryAst, utilsAst],
+   *   primaryCallGraph,
+   *   primarySymbolTable
+   * );
+   * ```
+   */
+  public allocateMultiplePrograms(
+    programs: Program[],
+    callGraph: CallGraph,
+    _symbolTable: SymbolTable
+  ): FrameAllocationResult {
     const diagnostics: FrameDiagnostic[] = [];
     const frameMap = new Map<string, Frame>();
 
@@ -261,8 +297,11 @@ export class FrameAllocator {
       };
     }
 
-    // Step 2: Collect all functions from program
-    const functions = this.collectFunctions(program);
+    // Step 2: Collect all functions from ALL programs (all modules)
+    const functions: FunctionDecl[] = [];
+    for (const program of programs) {
+      functions.push(...this.collectFunctions(program));
+    }
 
     // Step 3: Calculate frame sizes for each function
     for (const func of functions) {

@@ -58,11 +58,15 @@ export class FramePhase {
   }
 
   /**
-   * Run frame allocation on the primary module
+   * Run frame allocation on ALL modules
    *
-   * Finds the primary module (the one with `export function main()`),
-   * then runs the FrameAllocator on that module's program using
-   * its call graph and symbol table.
+   * Collects functions from ALL modules' program ASTs and allocates
+   * frames for all of them together. This ensures functions defined
+   * in imported modules also receive frame allocations, preventing
+   * "No frame for function" errors during IL generation.
+   *
+   * Uses the primary module's call graph for recursion detection
+   * and symbol table for type resolution.
    *
    * @param semanticResult - Result from semantic analysis
    * @param programs - Array of parsed Program ASTs
@@ -94,9 +98,14 @@ export class FramePhase {
     // Create frame allocator with platform config and symbol table
     const allocator = new FrameAllocator(this.platformConfig, moduleResult.symbolTable);
 
-    // Run frame allocation using program, call graph, and symbol table
-    const allocationResult = allocator.allocate(
-      moduleResult.ast,
+    // Collect program ASTs from ALL modules (not just the primary)
+    // This ensures functions in imported modules also get frame allocations
+    const allPrograms = this.collectAllModulePrograms(semanticResult);
+
+    // Run frame allocation across ALL module programs using
+    // the primary module's call graph for recursion detection
+    const allocationResult = allocator.allocateMultiplePrograms(
+      allPrograms,
       moduleResult.callGraph,
       moduleResult.symbolTable
     );
@@ -178,6 +187,28 @@ export class FramePhase {
     }
 
     return fullName;
+  }
+
+  /**
+   * Collect program ASTs from ALL modules in the semantic result.
+   *
+   * Iterates over every module's analysis result and collects
+   * their ASTs. This is used to ensure frame allocation covers
+   * functions from all modules, not just the primary.
+   *
+   * @param semanticResult - Multi-module analysis result
+   * @returns Array of all module Program ASTs
+   */
+  protected collectAllModulePrograms(
+    semanticResult: MultiModuleAnalysisResult
+  ): Program[] {
+    const programs: Program[] = [];
+
+    for (const [_moduleName, moduleResult] of semanticResult.modules) {
+      programs.push(moduleResult.ast);
+    }
+
+    return programs;
   }
 
   /**

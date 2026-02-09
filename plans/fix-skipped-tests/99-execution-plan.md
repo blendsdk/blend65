@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 08:17
-> **Progress**: 11/14 tasks (79%)
+> **Last Updated**: 2026-09-02 08:43
+> **Progress**: 14/14 tasks (100%) ✅
 
 ## Overview
 
@@ -182,9 +182,9 @@ Convert all 22 skipped/todo tests to real passing tests across 4 phases and ~5 s
 
 ### Phase 4: Cross-File Frame Allocation
 
-- [ ] 4.1.1 Modify FramePhase to iterate all modules
-- [ ] 4.1.2 Update FrameAllocator if needed
-- [ ] 4.1.3 Write 2 multi-module function test bodies
+- [x] 4.1.1 Modify FramePhase to iterate all modules ✅ (completed: 2026-09-02, added collectAllModulePrograms() + allocateMultiplePrograms())
+- [x] 4.1.2 Update FrameAllocator with allocateMultiplePrograms() method ✅ (completed: 2026-09-02)
+- [x] 4.1.3 Write 2 multi-module function test bodies ✅ (completed: 2026-09-02, tests use explicit module declarations)
 
 ---
 

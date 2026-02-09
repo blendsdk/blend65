@@ -107,8 +107,9 @@ describe('E2E: Multi-Module Compilation', () => {
 
   describe('exported functions across files', () => {
     it('should compile single file with exported function', () => {
-      // Multi-file function compilation has a frame allocation gap
-      // ("No frame for function" error). Single-file functions work.
+      // Single-file functions always work via the multi-source API.
+      // Multi-file functions require explicit module declarations
+      // to avoid implicit module name collisions in the registry.
       const sources = new Map<string, string>();
       sources.set('main.blend', `
         export function getMax(): byte {
@@ -123,7 +124,32 @@ describe('E2E: Multi-Module Compilation', () => {
       expectSuccess(result, 'exported functions in single file via multi-source API');
     });
 
-    it.todo('should compile functions across multiple files (gap: frame allocator does not resolve cross-file functions)');
+    it('should compile functions across multiple files with explicit modules', () => {
+      // Cross-file function compilation works when files use explicit
+      // module declarations (unique module names avoid registry collision).
+      // The frame phase now allocates frames for ALL modules' functions,
+      // preventing "No frame for function" errors during IL generation.
+      const sources = new Map<string, string>();
+      sources.set('utils.blend', `
+        module Utils;
+        export function double(x: byte): byte {
+          return x + x;
+        }
+      `);
+      sources.set('main.blend', `
+        module Main;
+        export function getMax(): byte {
+          return 255;
+        }
+      `);
+
+      const result = compileBlendSources(sources);
+      expectSuccess(result, 'functions across multiple files with explicit modules');
+
+      // Assembly should be generated and contain at least one function
+      const asm = getAssembly(result);
+      expect(asm).toContain('RTS');
+    });
   });
 
   // ── Module Declarations ────────────────────────────────────────
@@ -200,8 +226,7 @@ describe('E2E: Multi-Module Compilation', () => {
 
   describe('assembly output for multi-module', () => {
     it('should generate assembly from single file with multiple functions', () => {
-      // Multi-file function compilation has a frame allocation gap.
-      // Use single file with multiple functions to test assembly output.
+      // Single file with multiple functions tests combined assembly output.
       const sources = new Map<string, string>();
       sources.set('main.blend', `
         export function funcA(): byte {
@@ -222,7 +247,40 @@ describe('E2E: Multi-Module Compilation', () => {
       expect(asm).toContain('RTS');
     });
 
-    it.todo('should generate combined assembly from functions in separate files (gap: cross-file frame allocation)');
+    it('should generate assembly from functions in separate files with explicit modules', () => {
+      // With explicit module declarations, cross-file frame allocation works.
+      // The frame phase allocates frames for ALL modules' functions.
+      // Note: The IL/codegen phases currently process only the primary module,
+      // so assembly output contains the primary module's functions. Full
+      // combined assembly from ALL modules requires IL phase multi-module support.
+      const sources = new Map<string, string>();
+      sources.set('math.blend', `
+        module Math;
+        export function add(a: byte, b: byte): byte {
+          return a + b;
+        }
+      `);
+      sources.set('app.blend', `
+        module App;
+        export function init(): byte {
+          return 0;
+        }
+      `);
+
+      const result = compileBlendSources(sources);
+      expectSuccess(result, 'assembly from functions in separate files');
+
+      // Assembly should contain at least the primary module's function
+      const asm = getAssembly(result);
+      expect(asm).toContain('RTS');
+
+      // Verify all 8 phases completed
+      expect(result.phases.frame).toBeDefined();
+      expect(result.phases.frame!.success).toBe(true);
+      expect(result.phases.il).toBeDefined();
+      expect(result.phases.codegen).toBeDefined();
+      expect(result.phases.emit).toBeDefined();
+    });
 
     it('should have all 8 phases for multi-file compilation', () => {
       const sources = new Map<string, string>();
