@@ -120,8 +120,7 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
    */
   protected genLo(instr: ILInstruction): void {
     this.emitComment(instr);
-    // Low byte is already in A, nothing to do
-    this.asm.comment('; lo(word) - A already has low byte');
+    // Low byte is already in A from the word load — LO is a no-op
   }
 
   // ==========================================================================

@@ -146,7 +146,9 @@ describe('LOAD_IMM', () => {
       expect(countInstructions(elements, 'LDA')).toBe(0);
     });
 
-    it('emits comment when skipping redundant load', () => {
+    it('does not emit misleading comment when skipping redundant load', () => {
+      // BUG-003 fix: removed "A already has" comments because they can be
+      // misleading at branch convergence points. The optimization still works.
       const instr = createLoadImmInstr(42);
 
       // Pre-set A to have this immediate value
@@ -155,7 +157,9 @@ describe('LOAD_IMM', () => {
       generator.testGenLoadImm(instr);
 
       const elements = generator.getElements();
-      expect(hasCommentContaining(elements, 'A already has')).toBe(true);
+      expect(hasCommentContaining(elements, 'A already has')).toBe(false);
+      // Verify the optimization still works (no LDA emitted)
+      expect(countInstructions(elements, 'LDA')).toBe(0);
     });
 
     it('loads when A has different immediate', () => {

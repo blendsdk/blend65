@@ -43,14 +43,19 @@ describe('Accumulator Optimization', () => {
       expect(countInstructions(elements, 'LDA')).toBe(1);
     });
 
-    it('emits comment when skipping redundant slot load', () => {
+    it('does not emit misleading comment when skipping redundant slot load', () => {
+      // BUG-003 fix: removed "A already has" comments because they can be
+      // misleading at branch convergence points. The optimization (skipping
+      // the redundant LDA) still works — we just don't emit a comment.
       const slot = createZpSlot('counter', 0x50);
 
       generator.testGenLoadByte(createLoadByteInstr(slot));
       generator.testGenLoadByte(createLoadByteInstr(slot));
 
       const elements = generator.getElements();
-      expect(hasCommentContaining(elements, 'A already has')).toBe(true);
+      expect(hasCommentContaining(elements, 'A already has')).toBe(false);
+      // Verify the optimization still works (only 1 LDA emitted)
+      expect(countInstructions(elements, 'LDA')).toBe(1);
     });
 
     it('loads when different slot is needed', () => {
@@ -88,12 +93,16 @@ describe('Accumulator Optimization', () => {
       expect(countInstructions(elements, 'LDA')).toBe(1);
     });
 
-    it('emits comment when skipping redundant immediate load', () => {
+    it('does not emit misleading comment when skipping redundant immediate load', () => {
+      // BUG-003 fix: removed "A already has" comments because they can be
+      // misleading at branch convergence points. The optimization still works.
       generator.testGenLoadImm(createLoadImmInstr(42));
       generator.testGenLoadImm(createLoadImmInstr(42));
 
       const elements = generator.getElements();
-      expect(hasCommentContaining(elements, 'A already has')).toBe(true);
+      expect(hasCommentContaining(elements, 'A already has')).toBe(false);
+      // Verify the optimization still works (only 1 LDA emitted)
+      expect(countInstructions(elements, 'LDA')).toBe(1);
     });
 
     it('loads when different immediate is needed', () => {

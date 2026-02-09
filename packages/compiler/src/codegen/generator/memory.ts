@@ -63,9 +63,10 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
     const slot = this.getSlotOperand(instr.operands);
     const address = slot.slot.address;
 
-    // Skip if A already has this value
+    // Skip redundant load if A already holds this slot's value.
+    // No comment emitted — these tracking comments can be misleading
+    // at branch convergence points where A's actual state is uncertain.
     if (this.aHasSlot(address)) {
-      this.asm.comment(`; A already has $${address.toString(16).toUpperCase()}`);
       return;
     }
 
@@ -160,9 +161,10 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
     this.emitComment(instr);
     const imm = this.getImmediateOperand(instr.operands);
 
-    // Skip if A already has this value
+    // Skip redundant load if A already holds this immediate value.
+    // No comment emitted — these tracking comments can be misleading
+    // at branch convergence points where A's actual state is uncertain.
     if (this.aHasImmediate(imm.value)) {
-      this.asm.comment(`; A already has #${imm.value}`);
       return;
     }
 

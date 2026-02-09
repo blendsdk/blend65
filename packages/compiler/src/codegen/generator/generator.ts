@@ -37,9 +37,14 @@ export class CodeGenerator extends IntrinsicsOpsGenerator {
    *
    * Produces a complete, runnable C64 program with:
    * 1. BASIC SYS stub at $0801 (so LOAD+RUN works)
-   * 2. Startup code at $0810 that calls global init + main
-   * 3. Function code
-   * 4. Global init section (if needed)
+   * 2. Entry function (main) emitted first at $0810
+   * 3. Optional JSR __global_init before main code (if globals exist)
+   * 4. Remaining functions
+   * 5. Global init section (if needed)
+   *
+   * By emitting main() directly at the SYS entry point ($0810),
+   * we eliminate the need for a JMP main startup section, saving
+   * 3 bytes and avoiding an unnecessary jump on every program start.
    *
    * @param program - The IL program
    * @returns ASM-IL program output
@@ -53,12 +58,33 @@ export class CodeGenerator extends IntrinsicsOpsGenerator {
     // Generate BASIC SYS stub so the program can be loaded and run
     this.generateBasicStub();
 
-    // Generate startup code (calls __global_init then main, then returns to BASIC)
-    const hasGlobalInit = program.globalInit && program.globalInit.length > 0;
-    this.generateStartup(program, hasGlobalInit);
+    // Partition functions: entry point (main) first, others after.
+    // This places main() directly at the SYS target address ($0810),
+    // eliminating the need for a JMP main startup section.
+    const entryPoint = program.entryPoint || 'main';
+    const entryFunc = program.functions.find(f => f.name === entryPoint);
+    const otherFuncs = program.functions.filter(f => f.name !== entryPoint);
 
-    // Generate each function
-    for (const func of program.functions) {
+    // If global init exists, emit JSR to it before main's code.
+    // Execution will fall through into main() after the JSR returns.
+    const hasGlobalInit = program.globalInit && program.globalInit.length > 0;
+    if (hasGlobalInit) {
+      this.asm.section('startup');
+      this.asm.jsr('__global_init', 'Initialize global variables');
+    }
+
+    // Emit main (entry point) function first — directly at the SYS address.
+    // If the entry function wasn't found, fall back to emitting all functions
+    // in source order with a JMP startup (defensive handling).
+    if (entryFunc) {
+      this.generateFunction(entryFunc);
+    } else {
+      // Entry function not found — emit legacy JMP startup as fallback
+      this.generateStartup(program, hasGlobalInit);
+    }
+
+    // Emit remaining functions after main
+    for (const func of otherFuncs) {
       this.generateFunction(func);
     }
 

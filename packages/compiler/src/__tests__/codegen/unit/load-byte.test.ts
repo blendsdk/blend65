@@ -216,7 +216,9 @@ describe('LOAD_BYTE', () => {
       expect(countInstructions(elements, 'LDA')).toBe(0);
     });
 
-    it('emits comment when skipping redundant load', () => {
+    it('does not emit misleading comment when skipping redundant load', () => {
+      // BUG-003 fix: removed "A already has" comments because they can be
+      // misleading at branch convergence points. The optimization still works.
       const slot = createZpSlot('counter', 0x50);
       const instr = createLoadByteInstr(slot);
 
@@ -226,7 +228,9 @@ describe('LOAD_BYTE', () => {
       generator.testGenLoadByte(instr);
 
       const elements = generator.getElements();
-      expect(hasCommentContaining(elements, 'A already has')).toBe(true);
+      expect(hasCommentContaining(elements, 'A already has')).toBe(false);
+      // Verify the optimization still works (no LDA emitted)
+      expect(countInstructions(elements, 'LDA')).toBe(0);
     });
 
     it('loads when A has different slot', () => {
