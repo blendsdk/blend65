@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 09:35
-> **Progress**: 5/40 tasks (12.5%)
+> **Last Updated**: 2026-09-02 10:03
+> **Progress**: 11/40 tasks (27.5%)
 
 ## Overview
 
@@ -365,12 +365,12 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 1.1.3 Add resolveProgramPasses() to options.ts ✅ (completed: 2026-09-02 09:28)
 - [x] 1.1.4 Modify ILOptimizer for program passes ✅ (completed: 2026-09-02 09:30)
 - [x] 1.1.5 Write program pass tests (~15) ✅ (completed: 2026-09-02 09:33)
-- [ ] 1.2.1 Create optimizer/analysis/ directory
-- [ ] 1.2.2 Implement CallGraph.build()
-- [ ] 1.2.3 Implement reachability analysis
-- [ ] 1.2.4 Implement query methods
-- [ ] 1.2.5 Implement rebuild()
-- [ ] 1.2.6 Write call graph tests (~25)
+- [x] 1.2.1 Create optimizer/analysis/ directory ✅ (completed: 2026-09-02 09:53)
+- [x] 1.2.2 Implement CallGraph.build() ✅ (completed: 2026-09-02 09:53)
+- [x] 1.2.3 Implement reachability analysis ✅ (completed: 2026-09-02 09:53)
+- [x] 1.2.4 Implement query methods ✅ (completed: 2026-09-02 09:53)
+- [x] 1.2.5 Implement rebuild() ✅ (completed: 2026-09-02 09:53)
+- [x] 1.2.6 Write call graph tests (~25) ✅ (completed: 2026-09-02 10:00)
 
 ### Phase 2: Inter-Procedural Optimizations
 

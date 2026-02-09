@@ -108,3 +108,9 @@ export { CopyPropPass } from './passes/copy-prop.js';
 
 // Phase 6: IL Peephole
 export { ILPeepholePass } from './passes/il-peephole.js';
+
+// ============================================================================
+// Analysis
+// ============================================================================
+
+export { CallGraph } from './analysis/index.js';
