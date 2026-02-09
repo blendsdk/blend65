@@ -252,6 +252,109 @@ which is `undefined`, and iterating `undefined` throws `is not iterable`.
 
 ---
 
+## Optimizer Gaps (Missing Optimizations)
+
+### OPT-001: Dead Function Elimination missing — uncalled functions emitted in assembly
+
+**Severity**: High — wastes bytes in every program with unused functions
+**Component**: Optimizer (program-level DCE)
+**Discovered**: 2026-09-02 via `examples/border-cycle/main.blend` compiled with `-O1`
+
+The `speedy()` function is never called by any reachable code path, yet it is fully
+generated in the assembly output. With `-O1`, the optimizer should detect that `speedy()`
+is unreachable from `main()` and remove it entirely.
+
+**Root cause**: The current DCE pass (`optimizer/passes/dce.ts`) operates at the
+**instruction level within individual functions**. It removes dead stores and unreachable
+code within a function, but never asks: "Is this entire function unreachable?"
+
+The `ILOptimizer.optimizeProgram()` iterates over ALL functions and optimizes each
+individually — there is no program-level pass that can analyze cross-function relationships.
+
+**What's needed**: A `DeadFunctionElimination` program-level pass that:
+1. Builds a call graph (scan all CALL instructions across all functions)
+2. Finds the entry point (exported `main`)
+3. BFS/DFS from entry point to find all reachable functions
+4. Removes any `ILFunction` not in the reachable set from `program.functions`
+
+**Blocked by**: No program-level pass infrastructure (GAP-1) and no call graph analysis
+(GAP-2) in the optimizer. See `plans/optimizer-series/OPTIMIZER-ROADMAP.md` Known Gaps section.
+
+**Blend source:**
+```js
+// speedy() is NEVER called — should be eliminated
+function speedy(): void {
+    while (true) {
+        poke(BORDER_COLOR, peek(BORDER_COLOR)+1);
+    }
+}
+```
+
+**Generated assembly (should not exist):**
+```asm
+speedy:
+.while7
+  LDA $D020
+  CLC
+  ADC #$01
+  STA $D020
+  JMP .while7
+.endwhile8
+  RTS
+```
+
+---
+
+### OPT-002: Single-call-site function inlining missing — JSR/RTS overhead for functions called once
+
+**Severity**: High — wastes 12 cycles per call on 1 MHz 6502
+**Component**: Optimizer (function inlining)
+**Discovered**: 2026-09-02 via `examples/border-cycle/main.blend` compiled with `-O1`
+
+The `delay()` function is called from exactly **one place** (inside `main()`'s while loop).
+Instead of generating a separate `delay:` label with `JSR delay` / `RTS`, the function body
+should be inlined directly into the call site. This saves:
+- 6 cycles for `JSR` (3 bytes)
+- 6 cycles for `RTS` (1 byte)
+- = 12 cycles and 4 bytes per call
+
+Single-call-site inlining is **always profitable** because:
+- No code size increase (function body moves, doesn't duplicate)
+- Saves JSR/RTS overhead
+- Enables further optimizations (optimizer can see full loop context)
+
+**Blocked by**: No call graph analysis (GAP-2) in the optimizer. The optimizer needs to
+know how many times each function is called to make inlining decisions.
+See `plans/optimizer-series/OPTIMIZER-ROADMAP.md` Known Gaps section.
+
+**Current assembly (with JSR overhead):**
+```asm
+main:
+  ...
+  JSR delay        ; 6 cycles, 3 bytes
+  ...
+
+delay:
+  ...nested loops...
+  RTS              ; 6 cycles, 1 byte
+```
+
+**Expected assembly (inlined):**
+```asm
+main:
+  ...
+  ; --- delay body inlined here ---
+  LDA #$00
+  STA $03
+.for3
+  ...nested loops...
+.endfor4
+  ; --- end inlined delay ---
+  ...
+```
+
+---
+
 ## Design Issues (Not Bugs)
 
 ### DESIGN-001: Zero-page variable allocation uses unsafe addresses

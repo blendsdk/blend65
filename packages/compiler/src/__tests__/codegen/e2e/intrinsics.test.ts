@@ -2,15 +2,14 @@
  * Codegen E2E Tests: Intrinsics
  *
  * End-to-end tests that verify the complete pipeline from Blend source
- * code to ASM-IL output for intrinsic function calls (hi, lo, peek, poke).
+ * code to ASM-IL output for intrinsic function calls (hi, lo, peek, poke,
+ * peekw, pokew).
  *
  * Pipeline: Source → Lexer → Parser → Semantic → Frame → IL → CodeGen → ASM-IL
  *
- * **Known Gap:** The IL generator emits PEEK/POKE/PEEKW/POKEW without address
- * operands for source-level intrinsic calls (the address is dynamic from
- * expression generation). However, the code generator's genPeek/genPoke
- * expect address operands via getAddressOperand(). This causes a runtime error.
- * The hi/lo intrinsics work correctly since they don't require address operands.
+ * All intrinsics with constant addresses are fully supported. The IL generator's
+ * tryResolveConstantAddress() resolves constant address arguments to AddressOperand
+ * values, enabling the codegen to use absolute addressing mode.
  *
  * @module __tests__/codegen/e2e/intrinsics
  */
@@ -180,34 +179,66 @@ describe('E2E Codegen: hi/lo Combined', () => {
 
 describe('E2E Codegen: peek/poke Intrinsics', () => {
   /**
-   * Known gap: The IL generator emits PEEK/POKE without address operands
-   * for source-level calls, but the codegen expects address operands via
-   * getAddressOperand(). This is a pipeline integration issue that needs
-   * to be resolved in a future session (either in IL generator or codegen).
+   * These tests verify the complete pipeline from Blend source to ASM-IL
+   * for peek/poke/peekw/pokew intrinsics with constant addresses.
    *
-   * The unit tests (CGT7) and integration tests (CGT8) work correctly
-   * because they construct IL programs with proper address operands manually.
+   * The IL generator's tryResolveConstantAddress() resolves constant address
+   * arguments to AddressOperand values, which the codegen then uses for
+   * absolute addressing mode in the generated 6502 instructions.
    */
 
-  // IL generator gap: PEEK/POKE/PEEKW/POKEW are emitted without address operands.
-  // The codegen expects address operands via getAddressOperand().
-  // Unit/integration tests cover these with manually-constructed IL programs (CGT7, CGT8).
-  it.todo('should compile peek() reading from hardware register (IL generator gap: address operand)');
-  it.todo('should compile poke() writing to hardware register (IL generator gap: address operand)');
-  it.todo('should compile peekw() reading word from memory (IL generator gap: address operand)');
-  it.todo('should compile pokew() writing word to memory (IL generator gap: address operand)');
+  it('should compile peek() reading from hardware register', () => {
+    const source = `
+      module Test;
+      function main(): void {
+        let v: byte = peek($D020);
+      }
+    `;
+    const result = compileToAsm(source);
 
-  it('documents the known gap between IL generator and codegen for peek/poke', () => {
-    // This test documents the gap rather than testing functionality.
-    // The IL generator emits: LOAD_IMM $D020, PEEK (no address operand)
-    // The codegen expects:    PEEK with address operand
-    //
-    // Resolution options:
-    // 1. IL generator provides address operands when the arg is a literal
-    // 2. Codegen falls back to A-register addressing when no operand present
-    //
-    // Unit/integration tests cover PEEK/POKE with proper operands (CGT7, CGT8).
-    expect(true).toBe(true);
+    // peek() generates LDA with absolute address to read the hardware register
+    expect(countMnemonic(result, 'LDA')).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should compile poke() writing to hardware register', () => {
+    const source = `
+      module Test;
+      function main(): void {
+        poke($D020, 14);
+      }
+    `;
+    const result = compileToAsm(source);
+
+    // poke() generates STA with absolute address to write the hardware register
+    expect(countMnemonic(result, 'STA')).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should compile peekw() reading word from memory', () => {
+    const source = `
+      module Test;
+      function main(): void {
+        let v: word = peekw($00FB);
+      }
+    `;
+    const result = compileToAsm(source);
+
+    // peekw() generates LDA + LDX for reading the low and high bytes of a 16-bit value
+    expect(countMnemonic(result, 'LDA')).toBeGreaterThanOrEqual(1);
+    expect(countMnemonic(result, 'LDX')).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should compile pokew() writing word to memory', () => {
+    const source = `
+      module Test;
+      function main(): void {
+        pokew($00FB, $1234);
+      }
+    `;
+    const result = compileToAsm(source);
+
+    // pokew() generates STA + STX for writing the low and high bytes of a 16-bit value
+    expect(countMnemonic(result, 'STA')).toBeGreaterThanOrEqual(1);
+    expect(countMnemonic(result, 'STX')).toBeGreaterThanOrEqual(1);
   });
 });
 

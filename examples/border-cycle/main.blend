@@ -25,10 +25,9 @@ function delay(): void {
     }
 }
 
-/*
-export function main(): void {
+
+function speedy(): void {
     while (true) {
         poke(BORDER_COLOR, peek(BORDER_COLOR)+1);
     }
 }
-*/

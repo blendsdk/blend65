@@ -57,6 +57,47 @@ STA $50                     ; Store len
 
 ---
 
+## 🚨 Known Gaps — Missing Optimization Patterns
+
+> **Discovered**: 2026-09-02 via analysis of `examples/border-cycle/main.blend` compiled with `-O1`
+> **Root Cause**: The entire optimizer only operates at the **function level**. There is no concept of program-level optimization passes.
+
+### Architectural Gap: No Program-Level Passes
+
+The `PassManager.optimize()` takes a single `ILFunction`. The `ILOptimizer.optimizeProgram()` iterates over each function individually. The optimizer **cannot see relationships between functions** — it can't build call graphs, determine reachability, or inline functions.
+
+```typescript
+// Current: optimizes each function in isolation
+for (const func of program.functions) {
+  const result = this.passManager.optimize(func);  // function-scope only!
+}
+```
+
+### Missing Patterns by Level
+
+| # | Pattern | Should Be At | Description | Impact |
+|---|---------|-------------|-------------|--------|
+| GAP-1 | **Program-level pass infrastructure** | Phase 1 (Foundation) | `PassManager` needs a `ProgramPass` concept alongside `FunctionPass` | Blocks all inter-procedural opts |
+| GAP-2 | **Call graph analysis** | Phase 2 (Analysis) | Build who-calls-whom graph — needed for DCE, inlining, interprocedural opts | Blocks GAP-3, GAP-4, GAP-5 |
+| GAP-3 | **Dead Function Elimination** | -O1 (Phase 3) | Remove `speedy()` — never called from any reachable function | HIGH — wastes bytes |
+| GAP-4 | **Dead Global/Constant Elimination** | -O1 (Phase 3) | Remove module-level constants/variables that are never referenced | MEDIUM — wastes ZP/RAM |
+| GAP-5 | **Single-call-site Function Inlining** | -O1 (Phase 3) | Inline `delay()` body directly into `main()` — called from exactly 1 place | HIGH — saves 12 cycles/call on 6502 |
+| GAP-6 | **Small Function Inlining** | -O2 (Phase 5) | Inline small functions (≤ N instructions) to avoid JSR/RTS overhead | HIGH for 6502 |
+| GAP-7 | **Compare+Branch Simplification** | -O2 (Phase 5) | `CMP #$0F; BCC .x; BEQ .x` → `CMP #$10; BCC .x` (save 1 instruction) | MEDIUM |
+| GAP-8 | **Common Subexpression Elimination (CSE)** | -O2 (Phase 4) | Eliminate redundant computations — not planned in any phase | MEDIUM |
+
+### Integration Plan
+
+These gaps should be addressed by extending existing phases:
+
+- **Phase 1**: Add `ProgramPass` base class alongside existing `OptimizationPass` (function-level)
+- **Phase 2**: Add `CallGraphAnalysis` alongside existing use-def and liveness analysis
+- **Phase 3**: Add `DeadFunctionElimination`, `DeadGlobalElimination`, `SingleCallSiteInlining` as program-level passes
+- **Phase 4**: Add `CSE` as a function-level pass
+- **Phase 5**: Add `CompareBranchSimplification` and `SmallFunctionInlining` patterns
+
+---
+
 ## Phase Details
 
 ### Phase 1: Foundation (~4-6 sessions)

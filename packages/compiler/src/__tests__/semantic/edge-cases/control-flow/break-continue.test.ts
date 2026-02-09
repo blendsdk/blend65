@@ -19,6 +19,10 @@ import { DiagnosticSeverity } from '../../../../ast/diagnostics.js';
 
 /**
  * Helper function to analyze source code and get diagnostics.
+ * Merges both parser and semantic diagnostics, because module-level
+ * errors (like break/continue at module scope) are caught by the parser
+ * before the semantic analyzer ever sees them.
+ *
  * IMPORTANT: Always tokenize first, then parse!
  */
 function analyzeSource(source: string) {
@@ -28,7 +32,16 @@ function analyzeSource(source: string) {
   const program = parser.parse();
 
   const analyzer = new SemanticAnalyzer({ runAdvancedAnalysis: true });
-  return analyzer.analyze(program);
+  const result = analyzer.analyze(program);
+
+  // Merge parser diagnostics into the result so module-level errors are visible.
+  // Parser catches break/continue at module scope via validateModuleScopeItem().
+  const parserDiags = parser.getDiagnostics();
+  if (parserDiags.length > 0) {
+    result.diagnostics = [...parserDiags, ...result.diagnostics];
+  }
+
+  return result;
 }
 
 /**
@@ -71,11 +84,10 @@ function hasErrorContaining(source: string, substring: string): boolean {
 // =============================================================================
 
 describe('Break Outside Loop', () => {
-  it.skip('should error on break at module level (GAP: parser silently drops it)', () => {
-    // GAP: The parser silently drops break/continue at module level —
-    // no BreakStatement AST node is created and no parser error is reported.
-    // Fix requires: parser must recognize break/continue as invalid at module scope
-    // and either create an error node or report a diagnostic.
+  it('should error on break at module level', () => {
+    // The parser's validateModuleScopeItem() catches break at module scope
+    // and reports it as an invalid token. The error is merged from parser
+    // diagnostics in the analyzeSource() helper.
     const source = `
       break;
     `;
@@ -153,11 +165,10 @@ describe('Break Outside Loop', () => {
 // =============================================================================
 
 describe('Continue Outside Loop', () => {
-  it.skip('should error on continue at module level (GAP: parser silently drops it)', () => {
-    // GAP: The parser silently drops break/continue at module level —
-    // no ContinueStatement AST node is created and no parser error is reported.
-    // Fix requires: parser must recognize break/continue as invalid at module scope
-    // and either create an error node or report a diagnostic.
+  it('should error on continue at module level', () => {
+    // The parser's validateModuleScopeItem() catches continue at module scope
+    // and reports it as an invalid token. The error is merged from parser
+    // diagnostics in the analyzeSource() helper.
     const source = `
       continue;
     `;
