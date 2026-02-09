@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 19:16
-> **Progress**: 37/40 tasks (93%)
+> **Last Updated**: 2026-09-02 20:13
+> **Progress**: 42/40 tasks (100% of Phase 1-3, Phase 4.1 complete)
 
 ## Overview
 
@@ -410,11 +410,11 @@ This document defines the execution phases and AI chat sessions for implementing
 
 ### Phase 4: Advanced Loop Optimizations
 
-- [ ] 4.1.1 Create LoopTree class
-- [ ] 4.1.2 Implement query methods
-- [ ] 4.1.3 Implement getPreheaderIndex()
-- [ ] 4.1.4 Export from analysis/index.ts
-- [ ] 4.1.5 Write loop tree tests (~15)
+- [x] 4.1.1 Create LoopTree class ✅ (completed: 2026-09-02 20:10)
+- [x] 4.1.2 Implement query methods ✅ (completed: 2026-09-02 20:10)
+- [x] 4.1.3 Implement getPreheaderIndex() ✅ (completed: 2026-09-02 20:10)
+- [x] 4.1.4 Export from analysis/index.ts ✅ (completed: 2026-09-02 20:10)
+- [x] 4.1.5 Write loop tree tests (~31) ✅ (completed: 2026-09-02 20:11)
 - [ ] 4.2.1 Create LICMPass
 - [ ] 4.2.2 Implement isInvariant() and hasSideEffects()
 - [ ] 4.2.3 Implement hoistToPreheader()

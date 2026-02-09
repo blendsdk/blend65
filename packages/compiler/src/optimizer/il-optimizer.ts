@@ -35,6 +35,7 @@ import { ConstantPropPass } from './passes/constant-prop.js';
 import { CopyPropPass } from './passes/copy-prop.js';
 import { ILPeepholePass } from './passes/il-peephole.js';
 import { CSEPass } from './passes/cse/index.js';
+import { LICMPass } from './passes/licm/index.js';
 import { DeadFunctionElimPass } from './passes/dead-function-elim.js';
 import { DeadGlobalElimPass } from './passes/dead-global-elim.js';
 import { FunctionInliningPass } from './passes/function-inlining.js';
@@ -168,6 +169,9 @@ export class ILOptimizer {
 
     // Phase 7: Common Subexpression Elimination (O2+)
     this.passManager.registerPass(new CSEPass());
+
+    // Phase 8: Loop Invariant Code Motion (O2+)
+    this.passManager.registerPass(new LICMPass());
   }
 
   /**
