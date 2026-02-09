@@ -71,9 +71,11 @@ function hasErrorContaining(source: string, substring: string): boolean {
 // =============================================================================
 
 describe('Break Outside Loop', () => {
-  it.skip('should error on break at module level (GAP: not currently detected)', () => {
-    // GAP: Module-level break/continue is not currently detected as an error
-    // This test documents expected behavior that is not yet implemented
+  it.skip('should error on break at module level (GAP: parser silently drops it)', () => {
+    // GAP: The parser silently drops break/continue at module level —
+    // no BreakStatement AST node is created and no parser error is reported.
+    // Fix requires: parser must recognize break/continue as invalid at module scope
+    // and either create an error node or report a diagnostic.
     const source = `
       break;
     `;
@@ -151,9 +153,11 @@ describe('Break Outside Loop', () => {
 // =============================================================================
 
 describe('Continue Outside Loop', () => {
-  it.skip('should error on continue at module level (GAP: not currently detected)', () => {
-    // GAP: Module-level break/continue is not currently detected as an error
-    // This test documents expected behavior that is not yet implemented
+  it.skip('should error on continue at module level (GAP: parser silently drops it)', () => {
+    // GAP: The parser silently drops break/continue at module level —
+    // no ContinueStatement AST node is created and no parser error is reported.
+    // Fix requires: parser must recognize break/continue as invalid at module scope
+    // and either create an error node or report a diagnostic.
     const source = `
       continue;
     `;

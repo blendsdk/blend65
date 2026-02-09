@@ -318,31 +318,8 @@ describe('E2E Codegen: Bitwise Operations', () => {
   // Known gap: IL generator does not emit SHL_BYTE/SHR_BYTE for << / >>
   // expressions yet. The codegen handles them (see CGT5 unit tests),
   // but the IL generator expression layer falls through to the generic path.
-  it.skip('should compile shift left operation (IL generator gap)', () => {
-    const source = `
-      module Test;
-      function main(): void {
-        let a: byte = 1;
-        let shifted: byte = a << 1;
-      }
-    `;
-
-    const result = compileToAsm(source);
-    expect(countMnemonic(result, 'ASL')).toBeGreaterThanOrEqual(1);
-  });
-
-  it.skip('should compile shift right operation (IL generator gap)', () => {
-    const source = `
-      module Test;
-      function main(): void {
-        let a: byte = $80;
-        let shifted: byte = a >> 1;
-      }
-    `;
-
-    const result = compileToAsm(source);
-    expect(countMnemonic(result, 'LSR')).toBeGreaterThanOrEqual(1);
-  });
+  it.todo('should compile shift left operation (IL generator gap: SHL_BYTE not emitted)');
+  it.todo('should compile shift right operation (IL generator gap: SHR_BYTE not emitted)');
 });
 
 // ============================================================================

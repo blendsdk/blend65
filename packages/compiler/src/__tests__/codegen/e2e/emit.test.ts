@@ -226,16 +226,11 @@ describe('E2E Emit: Intrinsics', () => {
     expect(text).toContain('STA'); // Result stored to variable
   });
 
-  // Known gap: peek/poke IL generation doesn't provide address operands
-  it.skip('should emit STA for poke intrinsic (IL generator gap)', () => {
-    const text = compileToText(wrapMain('poke(53280, 0);'));
-    expect(text).toContain('STA $D020');
-  });
-
-  it.skip('should emit LDA for peek intrinsic (IL generator gap)', () => {
-    const text = compileToText(wrapMain('let x: byte = peek(53280);'));
-    expect(text).toContain('LDA $D020');
-  });
+  // Known gap: IL generator emits PEEK/POKE without address operands.
+  // Codegen expects address operands via getAddressOperand().
+  // Unit/integration tests cover these with manually-constructed IL programs.
+  it.todo('should emit STA for poke intrinsic (IL generator gap: address operand)');
+  it.todo('should emit LDA for peek intrinsic (IL generator gap: address operand)');
 });
 
 // ============================================================================

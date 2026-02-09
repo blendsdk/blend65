@@ -229,7 +229,21 @@ describe('E2E: Simple Programs', () => {
       expect(asm).toMatch(/CMP|BEQ|BNE|BCC|BCS|JMP/);
     });
 
-    it.todo('should compile for loop (parser gap: for-loop parsing in functions)');
+    it('should compile for loop in function', () => {
+      // For loops using "for (i = start to end)" syntax work through the full pipeline
+      const source = `
+        function test(): void {
+          for (i = 0 to 10) {
+            let x: byte = i;
+          }
+        }
+      `;
+      const result = compileBlend(source);
+      expectSuccess(result, 'for loop');
+      // Should contain comparison and backward branch for loop
+      const asm = getAssembly(result);
+      expect(asm).toMatch(/CMP|BEQ|BNE|BCC|BCS|JMP/);
+    });
   });
 
   // ── Functions ──────────────────────────────────────────────────

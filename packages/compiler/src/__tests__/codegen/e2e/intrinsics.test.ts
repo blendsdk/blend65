@@ -189,57 +189,13 @@ describe('E2E Codegen: peek/poke Intrinsics', () => {
    * because they construct IL programs with proper address operands manually.
    */
 
-  it.skip('should compile peek() reading from hardware register', () => {
-    // Skipped: IL generator emits PEEK without address operands for dynamic calls
-    const source = `
-      module Test;
-      function main(): void {
-        let border: byte = peek($D020);
-      }
-    `;
-
-    const result = compileToAsm(source);
-    expect(countMnemonic(result, 'LDA')).toBeGreaterThanOrEqual(1);
-  });
-
-  it.skip('should compile poke() writing to hardware register', () => {
-    // Skipped: IL generator emits POKE without address operands for dynamic calls
-    const source = `
-      module Test;
-      function main(): void {
-        poke($D020, 14);
-      }
-    `;
-
-    const result = compileToAsm(source);
-    expect(countMnemonic(result, 'STA')).toBeGreaterThanOrEqual(1);
-  });
-
-  it.skip('should compile peekw() reading word from memory', () => {
-    // Skipped: IL generator emits PEEKW without address operands for dynamic calls
-    const source = `
-      module Test;
-      function main(): void {
-        let timer: word = peekw($DC04);
-      }
-    `;
-
-    const result = compileToAsm(source);
-    expect(countMnemonic(result, 'LDA')).toBeGreaterThanOrEqual(1);
-  });
-
-  it.skip('should compile pokew() writing word to memory', () => {
-    // Skipped: IL generator emits POKEW without address operands for dynamic calls
-    const source = `
-      module Test;
-      function main(): void {
-        pokew($FB, $4000);
-      }
-    `;
-
-    const result = compileToAsm(source);
-    expect(countMnemonic(result, 'STA')).toBeGreaterThanOrEqual(1);
-  });
+  // IL generator gap: PEEK/POKE/PEEKW/POKEW are emitted without address operands.
+  // The codegen expects address operands via getAddressOperand().
+  // Unit/integration tests cover these with manually-constructed IL programs (CGT7, CGT8).
+  it.todo('should compile peek() reading from hardware register (IL generator gap: address operand)');
+  it.todo('should compile poke() writing to hardware register (IL generator gap: address operand)');
+  it.todo('should compile peekw() reading word from memory (IL generator gap: address operand)');
+  it.todo('should compile pokew() writing word to memory (IL generator gap: address operand)');
 
   it('documents the known gap between IL generator and codegen for peek/poke', () => {
     // This test documents the gap rather than testing functionality.
