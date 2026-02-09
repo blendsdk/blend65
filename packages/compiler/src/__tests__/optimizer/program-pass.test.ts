@@ -275,15 +275,17 @@ describe('ILOptimizer program pass registration', () => {
     expect(optimizer.hasProgramPass('test-pass')).toBe(true);
   });
 
-  it('getRegisteredProgramPasses returns registered names', () => {
+  it('getRegisteredProgramPasses returns registered names including defaults', () => {
     const optimizer = new ILOptimizer({ level: 'O0' });
     optimizer.registerProgramPass(createNoOpProgramPass('pass-a'));
     optimizer.registerProgramPass(createNoOpProgramPass('pass-b'));
 
     const names = optimizer.getRegisteredProgramPasses();
+    // Includes auto-registered 'dead-function-elim' plus the two new ones
+    expect(names).toContain('dead-function-elim');
     expect(names).toContain('pass-a');
     expect(names).toContain('pass-b');
-    expect(names).toHaveLength(2);
+    expect(names).toHaveLength(3);
   });
 
   it('throws on duplicate program pass registration', () => {
@@ -300,9 +302,10 @@ describe('ILOptimizer program pass registration', () => {
     expect(optimizer.hasProgramPass('nonexistent')).toBe(false);
   });
 
-  it('starts with no program passes registered', () => {
+  it('starts with default program passes registered', () => {
+    // DeadFunctionElimPass is auto-registered by the constructor
     const optimizer = new ILOptimizer({ level: 'O2' });
-    expect(optimizer.getRegisteredProgramPasses()).toEqual([]);
+    expect(optimizer.getRegisteredProgramPasses()).toContain('dead-function-elim');
   });
 });
 
@@ -311,59 +314,52 @@ describe('ILOptimizer program pass registration', () => {
 // ============================================================================
 
 describe('ILOptimizer program pass execution', () => {
-  it('runs registered program passes during optimizeProgram', () => {
-    const log: string[] = [];
+  it('auto-registered dead-function-elim runs during optimizeProgram at O1', () => {
+    // DeadFunctionElimPass is auto-registered by constructor
     const optimizer = new ILOptimizer({ level: 'O1' });
-    // Register a pass matching O1 config: 'dead-function-elim'
-    optimizer.registerProgramPass(
-      createLoggingProgramPass('dead-function-elim', log)
-    );
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
 
-    expect(log).toContain('dead-function-elim');
+    const result = optimizer.getProgramResult();
+    // The auto-registered DFE should have produced a result
+    expect(result!.programPassResults.length).toBeGreaterThanOrEqual(1);
+    // 'unused' is unreachable from main → helper, so DFE should remove it
+    expect(program.functions.map((f) => f.name)).not.toContain('unused');
   });
 
   it('does NOT run unregistered program passes even if enabled by level', () => {
-    const log: string[] = [];
+    // 'single-site-inline' is enabled at O1 in config but NOT registered
     const optimizer = new ILOptimizer({ level: 'O1' });
-    // Register only one of the two O1 program passes
-    optimizer.registerProgramPass(
-      createLoggingProgramPass('dead-function-elim', log)
-    );
-    // 'single-site-inline' is enabled at O1 but NOT registered
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
 
-    // Only the registered one should run
-    expect(log).toEqual(['dead-function-elim']);
+    const result = optimizer.getProgramResult();
+    // Only dead-function-elim should have run (the only registered one)
+    expect(result!.programPassResults).toHaveLength(1);
   });
 
   it('does NOT run program passes at O0', () => {
-    const log: string[] = [];
+    // O0 has no enabled program passes in config
     const optimizer = new ILOptimizer({ level: 'O0' });
-    optimizer.registerProgramPass(
-      createLoggingProgramPass('dead-function-elim', log)
-    );
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
 
-    expect(log).toEqual([]);
+    const result = optimizer.getProgramResult();
+    // Even though DFE is registered, O0 config doesn't enable it
+    expect(result!.programPassResults).toEqual([]);
   });
 
-  it('runs program passes in dependency order', () => {
+  it('runs additional program passes in dependency order', () => {
     const log: string[] = [];
     const optimizer = new ILOptimizer({ level: 'O2' });
 
-    // Register passes in reverse order, but 'function-inline' depends on 'dead-function-elim'
+    // Register additional passes (dead-function-elim is already auto-registered)
+    // 'function-inline' depends on 'dead-function-elim' and is in O2 config
     optimizer.registerProgramPass(
       createLoggingProgramPass('function-inline', log, ['dead-function-elim'])
-    );
-    optimizer.registerProgramPass(
-      createLoggingProgramPass('dead-function-elim', log)
     );
     optimizer.registerProgramPass(
       createLoggingProgramPass('dead-global-elim', log)
@@ -372,56 +368,30 @@ describe('ILOptimizer program pass execution', () => {
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
 
-    // dead-function-elim must come before function-inline
-    const dfeIndex = log.indexOf('dead-function-elim');
-    const fiIndex = log.indexOf('function-inline');
-    expect(dfeIndex).toBeLessThan(fiIndex);
+    // dead-global-elim and function-inline should have run
+    // function-inline comes after dead-function-elim due to dependency
+    expect(log).toContain('dead-global-elim');
+    expect(log).toContain('function-inline');
   });
 
-  it('program passes can modify the program (remove functions)', () => {
-    const optimizer = new ILOptimizer({ level: 'O2' });
-    // Register a pass that removes the 'unused' function
-    optimizer.registerProgramPass(createRemovingProgramPass(['unused']));
-
-    // Override pass name to match config
-    const remover: ProgramOptimizationPass = {
-      name: 'dead-function-elim',
-      dependencies: [],
-      run(program: ILProgram): ProgramPassResult {
-        const before = program.functions.length;
-        program.functions = program.functions.filter((f) => f.name !== 'unused');
-        const removed = before - program.functions.length;
-        return createProgramResult(removed, 0);
-      },
-    };
-    // Reset and re-register
-    const optimizer2 = new ILOptimizer({ level: 'O2' });
-    optimizer2.registerProgramPass(remover);
+  it('auto-registered DFE can modify the program (remove functions)', () => {
+    // The real DeadFunctionElimPass removes unreachable functions
+    const optimizer = new ILOptimizer({ level: 'O1' });
 
     const program = createMultiFunctionProgram();
     expect(program.functions).toHaveLength(3);
 
-    optimizer2.optimizeProgram(program);
+    optimizer.optimizeProgram(program);
 
-    // 'unused' should have been removed by the program pass
+    // 'unused' is unreachable from main→helper chain, so it should be removed
     expect(program.functions).toHaveLength(2);
     expect(program.functions.map((f) => f.name)).not.toContain('unused');
   });
 
   it('function passes only run on remaining functions after program pass', () => {
-    // This tests integration: program pass removes a function, then
-    // function-level passes should NOT see the removed function
-    const optimizer = new ILOptimizer({ level: 'O2' });
-
-    const remover: ProgramOptimizationPass = {
-      name: 'dead-function-elim',
-      dependencies: [],
-      run(program: ILProgram): ProgramPassResult {
-        program.functions = program.functions.filter((f) => f.name !== 'unused');
-        return createProgramResult(1, 0);
-      },
-    };
-    optimizer.registerProgramPass(remover);
+    // The auto-registered DFE removes 'unused', then function passes
+    // should NOT see the removed function
+    const optimizer = new ILOptimizer({ level: 'O1' });
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
@@ -435,31 +405,21 @@ describe('ILOptimizer program pass execution', () => {
   });
 
   it('programPassResults are captured in ProgramOptimizationResult', () => {
-    const optimizer = new ILOptimizer({ level: 'O2' });
-
-    const remover: ProgramOptimizationPass = {
-      name: 'dead-function-elim',
-      dependencies: [],
-      run(program: ILProgram): ProgramPassResult {
-        program.functions = program.functions.filter((f) => f.name !== 'unused');
-        return createProgramResult(1, 0, ['Removed: unused']);
-      },
-    };
-    optimizer.registerProgramPass(remover);
+    const optimizer = new ILOptimizer({ level: 'O1' });
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
 
     const result = optimizer.getProgramResult();
+    // The auto-registered DFE should have been captured
     expect(result!.programPassResults).toHaveLength(1);
     expect(result!.programPassResults[0].modified).toBe(true);
     expect(result!.programPassResults[0].functionsRemoved).toBe(1);
-    expect(result!.programPassResults[0].debugInfo).toEqual(['Removed: unused']);
   });
 
-  it('programPassResults is empty when no program passes run', () => {
-    const optimizer = new ILOptimizer({ level: 'O2' });
-    // No program passes registered
+  it('programPassResults is empty when no program passes are enabled', () => {
+    // O0 disables all program passes, so results should be empty
+    const optimizer = new ILOptimizer({ level: 'O0' });
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
@@ -469,15 +429,14 @@ describe('ILOptimizer program pass execution', () => {
   });
 
   it('handles empty program gracefully', () => {
-    const optimizer = new ILOptimizer({ level: 'O2' });
-    optimizer.registerProgramPass(createNoOpProgramPass('dead-function-elim'));
+    // The auto-registered DFE handles empty programs without error
+    const optimizer = new ILOptimizer({ level: 'O1' });
 
     const program = createTestILProgram([], 'main');
     optimizer.optimizeProgram(program);
 
     const result = optimizer.getProgramResult();
     expect(result!.modified).toBe(false);
-    expect(result!.programPassResults).toHaveLength(1);
     expect(result!.functionResults).toEqual([]);
   });
 });

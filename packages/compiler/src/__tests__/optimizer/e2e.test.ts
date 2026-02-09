@@ -21,6 +21,7 @@ import type { ILInstruction } from '../../il/instruction.js';
 import {
   createSlotOperand,
   createImmediateOperand,
+  createFunctionOperand,
   createILFunction,
   createILProgram,
 } from '../../il/factories.js';
@@ -100,6 +101,14 @@ function createReturnInstr(): ILInstruction {
   return {
     opcode: ILOpcode.RETURN,
     operands: [],
+    defUse: { defs: [], uses: [] },
+  };
+}
+
+function createCallInstr(target: string): ILInstruction {
+  return {
+    opcode: ILOpcode.CALL,
+    operands: [createFunctionOperand(target)],
     defUse: { defs: [], uses: [] },
   };
 }
@@ -233,6 +242,7 @@ describe('ILOptimizer E2E - Program', () => {
     const func1 = createTestILFunction('main', [
       createLoadImmInstr(1),
       createAddImmInstr(0), // Identity
+      createCallInstr('helper'), // Call helper to keep it reachable
       createReturnInstr(),
     ], true);
 
@@ -249,8 +259,9 @@ describe('ILOptimizer E2E - Program', () => {
 
     expect(result?.modified).toBe(true);
     expect(result?.functionResults.length).toBeGreaterThanOrEqual(1);
-    // Both functions should have ADD 0 removed
-    expect(program.functions[0].instructions).toHaveLength(2);
+    // main: LOAD_IMM 1, CALL helper, RETURN (ADD 0 removed) = 3
+    // helper: LOAD_IMM 2, RETURN (ADD 0 removed) = 2
+    expect(program.functions[0].instructions).toHaveLength(3);
     expect(program.functions[1].instructions).toHaveLength(2);
   });
 

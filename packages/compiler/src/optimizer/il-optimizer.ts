@@ -34,6 +34,7 @@ import { ConstantFoldPass } from './passes/constant-fold.js';
 import { ConstantPropPass } from './passes/constant-prop.js';
 import { CopyPropPass } from './passes/copy-prop.js';
 import { ILPeepholePass } from './passes/il-peephole.js';
+import { DeadFunctionElimPass } from './passes/dead-function-elim.js';
 
 // ============================================================================
 // IL Optimizer
@@ -126,6 +127,7 @@ export class ILOptimizer {
   constructor(options?: OptimizationOptions) {
     this.passManager = new PassManager(options ?? getDefaultOptions());
     this.registerDefaultPasses();
+    this.registerDefaultProgramPasses();
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -160,6 +162,20 @@ export class ILOptimizer {
 
     // Phase 6: IL Peephole
     this.passManager.registerPass(new ILPeepholePass());
+  }
+
+  /**
+   * Register default program-level optimization passes.
+   *
+   * Called automatically during construction.
+   * Override in subclass to customize program pass registration.
+   *
+   * Registers program passes:
+   * 1. DeadFunctionElimPass (no dependencies) — removes unreachable functions
+   */
+  protected registerDefaultProgramPasses(): void {
+    // Dead function elimination — removes functions unreachable from entry point
+    this.registerProgramPass(new DeadFunctionElimPass());
   }
 
   /**

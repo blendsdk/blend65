@@ -35,3 +35,9 @@ export { CopyPropPass } from './copy-prop.js';
 // ============================================================================
 
 export { ILPeepholePass } from './il-peephole.js';
+
+// ============================================================================
+// Program-Level Passes
+// ============================================================================
+
+export { DeadFunctionElimPass } from './dead-function-elim.js';
