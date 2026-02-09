@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 20:13
-> **Progress**: 42/40 tasks (100% of Phase 1-3, Phase 4.1 complete)
+> **Last Updated**: 2026-09-02 23:21
+> **Progress**: 47/52 tasks (Phase 1-3 complete, Phase 4.1-4.2 complete)
 
 ## Overview
 
@@ -415,11 +415,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 4.1.3 Implement getPreheaderIndex() ✅ (completed: 2026-09-02 20:10)
 - [x] 4.1.4 Export from analysis/index.ts ✅ (completed: 2026-09-02 20:10)
 - [x] 4.1.5 Write loop tree tests (~31) ✅ (completed: 2026-09-02 20:11)
-- [ ] 4.2.1 Create LICMPass
-- [ ] 4.2.2 Implement isInvariant() and hasSideEffects()
-- [ ] 4.2.3 Implement hoistToPreheader()
-- [ ] 4.2.4 Register for O2+
-- [ ] 4.2.5 Write LICM tests (~15)
+- [x] 4.2.1 Create LICMPass ✅ (completed: 2026-09-02 22:50)
+- [x] 4.2.2 Implement isInvariant() and hasSideEffects() ✅ (completed: 2026-09-02 22:50)
+- [x] 4.2.3 Implement hoistToPreheader() ✅ (completed: 2026-09-02 22:50)
+- [x] 4.2.4 Register for O2+ ✅ (completed: 2026-09-02 22:50)
+- [x] 4.2.5 Write LICM tests (~17) ✅ (completed: 2026-09-02 23:10)
 - [ ] 4.3.1 Create LoopUnrollPass
 - [ ] 4.3.2 Implement getIterationCount()
 - [ ] 4.3.3 Implement unrollLoop()

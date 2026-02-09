@@ -36,6 +36,7 @@ import { CopyPropPass } from './passes/copy-prop.js';
 import { ILPeepholePass } from './passes/il-peephole.js';
 import { CSEPass } from './passes/cse/index.js';
 import { LICMPass } from './passes/licm/index.js';
+import { LoopUnrollPass } from './passes/loop-unroll/index.js';
 import { DeadFunctionElimPass } from './passes/dead-function-elim.js';
 import { DeadGlobalElimPass } from './passes/dead-global-elim.js';
 import { FunctionInliningPass } from './passes/function-inlining.js';
@@ -172,6 +173,9 @@ export class ILOptimizer {
 
     // Phase 8: Loop Invariant Code Motion (O2+)
     this.passManager.registerPass(new LICMPass());
+
+    // Phase 9: Loop Unrolling (O2/O3 only, not Os/Oz)
+    this.passManager.registerPass(new LoopUnrollPass());
   }
 
   /**
