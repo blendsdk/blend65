@@ -8,8 +8,9 @@
  * **Strategies by optimization level:**
  * - O1: Single-call-site inlining — functions called exactly once are always
  *   inlined (saves 12 cycles and 4 bytes on 6502 — JSR=6cy/3B + RTS=6cy/1B)
- * - O2/O3: Small-function inlining — functions below a size threshold are
- *   inlined even with multiple call sites (Session 2.4, placeholder for now)
+ * - O2/O3: Small-function inlining — functions below a size threshold
+ *   (SMALL_FUNCTION_THRESHOLD) are inlined even with multiple call sites,
+ *   subject to a 20% code growth budget (MAX_SIZE_GROWTH_RATIO)
  * - Os/Oz: No inlining — size optimization avoids code duplication
  *
  * **Algorithm:**
@@ -42,6 +43,30 @@ import { createEmptyProgramResult, createProgramResult } from '../pass.js';
 import { CallGraph } from '../analysis/call-graph.js';
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/**
+ * Maximum function size (instruction count) for small-function inlining at O2+.
+ *
+ * Functions with this many or fewer instructions are inlined even when called
+ * from multiple sites. The threshold balances code size growth against call
+ * overhead elimination. On the 6502, 20 IL instructions typically translates
+ * to ~30-60 bytes of machine code, so the duplication cost is modest.
+ */
+export const SMALL_FUNCTION_THRESHOLD = 20;
+
+/**
+ * Maximum allowed code growth ratio for multi-site inlining (20%).
+ *
+ * When inlining a function at multiple call sites, the code is duplicated.
+ * This limit prevents excessive bloat by capping total growth at 20% of the
+ * original program size. Single-call-site inlining is exempt since it has
+ * zero net code growth (the callee is removed by dead function elimination).
+ */
+export const MAX_SIZE_GROWTH_RATIO = 0.20;
+
+// ============================================================================
 // Types
 // ============================================================================
 
@@ -61,6 +86,14 @@ export interface InlineCandidate {
 
   /** Index of the CALL instruction in caller.instructions */
   readonly callSiteIndex: number;
+
+  /**
+   * Strategy that selected this candidate.
+   *
+   * - 'single-site': Function called exactly once (O1+, always profitable)
+   * - 'small-function': Small function inlined at multiple sites (O2+, budget-limited)
+   */
+  readonly strategy: 'single-site' | 'small-function';
 }
 
 // ============================================================================
@@ -147,18 +180,63 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
     // This ensures correct multi-level inlining
     const sorted = this.sortBottomUp(candidates, callGraph);
 
-    // Step 4: Perform inlining for each candidate
+    // Step 4: Calculate size budget for multi-site inlining
+    // Single-site inlining is exempt (zero net growth after DFE removes callee).
+    // Small-function (multi-site) inlining duplicates code, so we cap total
+    // growth at MAX_SIZE_GROWTH_RATIO of the original program size.
+    const originalSize = this.calculateProgramSize(program);
+    // Use a floor of SMALL_FUNCTION_THRESHOLD so that even small programs
+    // can inline at least one small function fully. Without this floor,
+    // a tiny program's 20% budget might be too small to inline anything.
+    const maxGrowth = Math.max(
+      Math.floor(originalSize * MAX_SIZE_GROWTH_RATIO),
+      SMALL_FUNCTION_THRESHOLD
+    );
+    let cumulativeGrowth = 0;
+
+    // Step 5: Perform inlining for each candidate
     let functionsModified = 0;
     const debugInfo: string[] = [];
 
     for (const candidate of sorted) {
-      const success = this.inlineFunction(program, candidate);
+      // For multi-site candidates, enforce the size budget before inlining.
+      // Each inline replaces 1 CALL with N instructions → net growth = N - 1.
+      if (candidate.strategy === 'small-function') {
+        const netGrowth = candidate.callee.instructions.length - 1;
+        if (cumulativeGrowth + netGrowth > maxGrowth) {
+          if (options.debug) {
+            debugInfo.push(
+              `Skipped inlining '${candidate.callee.name}' into '${candidate.caller.name}' — ` +
+                `size budget exceeded (growth: ${cumulativeGrowth + netGrowth}, max: ${maxGrowth})`
+            );
+          }
+          continue;
+        }
+      }
+
+      // Re-find call site index for multi-site candidates because prior
+      // inlining in the same caller shifts instruction indices. For single-site
+      // candidates the stored index is still valid (each callee has exactly
+      // one caller), but re-finding is harmless and keeps the logic uniform.
+      const freshIndex = this.findCallSiteIndex(candidate.caller, candidate.callee.name);
+      if (freshIndex === -1) continue;
+
+      // Create a fresh candidate with the up-to-date call site index
+      const freshCandidate: InlineCandidate = { ...candidate, callSiteIndex: freshIndex };
+      const success = this.inlineFunction(program, freshCandidate);
+
       if (success) {
         functionsModified++;
+
+        // Track size growth for multi-site candidates
+        if (candidate.strategy === 'small-function') {
+          cumulativeGrowth += candidate.callee.instructions.length - 1;
+        }
+
         if (options.debug) {
           debugInfo.push(
             `Inlined '${candidate.callee.name}' into '${candidate.caller.name}' ` +
-              `at instruction index ${candidate.callSiteIndex}`
+              `at instruction index ${freshIndex} (${candidate.strategy})`
           );
         }
       }
@@ -202,7 +280,7 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
   protected findCandidates(
     program: ILProgram,
     callGraph: CallGraph,
-    _options: OptimizationOptions
+    options: OptimizationOptions
   ): InlineCandidate[] {
     const candidates: InlineCandidate[] = [];
 
@@ -211,6 +289,12 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
     for (const func of program.functions) {
       funcMap.set(func.name, func);
     }
+
+    // Determine if O2+ small-function inlining is allowed
+    // Only O2 and O3 enable multi-site inlining. Os/Oz optimize for size
+    // and avoid code duplication entirely.
+    const allowSmallFunctionInlining =
+      options.level === 'O2' || options.level === 'O3';
 
     for (const func of program.functions) {
       // Skip safety checks: entry point, exported, callback
@@ -227,7 +311,7 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
       // Get call count for this function
       const callCount = callGraph.getCallCount(func.name);
 
-      // Strategy: single-call-site inlining (O1+)
+      // Strategy 1: Single-call-site inlining (O1+)
       // Functions called exactly once are always profitable to inline
       if (callCount === 1) {
         const callers = callGraph.getCallers(func.name);
@@ -245,13 +329,43 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
               callee: func,
               caller,
               callSiteIndex,
+              strategy: 'single-site',
+            });
+          }
+        }
+        continue; // Already handled — skip to next function
+      }
+
+      // Strategy 2: Small-function inlining (O2+)
+      // Functions below the size threshold are inlined at every call site,
+      // even when called multiple times. A size budget in run() prevents
+      // excessive code growth.
+      if (
+        allowSmallFunctionInlining &&
+        callCount > 1 &&
+        func.instructions.length <= SMALL_FUNCTION_THRESHOLD
+      ) {
+        const callers = callGraph.getCallers(func.name);
+        for (const callerName of callers) {
+          const caller = funcMap.get(callerName);
+          if (!caller) continue;
+
+          // Skip if caller and callee are mutually recursive
+          if (callGraph.isMutuallyRecursive(callerName, func.name)) continue;
+
+          // Find ALL call sites for this callee in this caller
+          // (a caller may invoke the same function multiple times)
+          const callSiteIndices = this.findAllCallSiteIndices(caller, func.name);
+          for (const idx of callSiteIndices) {
+            candidates.push({
+              callee: func,
+              caller,
+              callSiteIndex: idx,
+              strategy: 'small-function',
             });
           }
         }
       }
-
-      // TODO (Session 2.4): Add small-function inlining at O2+
-      // if (options.level !== 'O1' && callCount > 1 && func.instructions.length <= threshold) { ... }
     }
 
     return candidates;
@@ -278,6 +392,31 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
       }
     }
     return -1;
+  }
+
+  /**
+   * Find ALL CALL instruction indices targeting the given function.
+   *
+   * Unlike findCallSiteIndex which returns only the first match, this
+   * returns every CALL to the target. Used for multi-site inlining at
+   * O2+ where a function may be called multiple times from the same caller.
+   *
+   * @param caller - The calling function to search in
+   * @param targetName - The name of the function being called
+   * @returns Array of CALL instruction indices (may be empty)
+   */
+  protected findAllCallSiteIndices(caller: ILFunction, targetName: string): number[] {
+    const indices: number[] = [];
+    for (let i = 0; i < caller.instructions.length; i++) {
+      const instr = caller.instructions[i];
+      if (instr.opcode === ILOpcode.CALL && instr.operands.length > 0) {
+        const operand = instr.operands[0];
+        if (operand.kind === 'function' && (operand as FunctionOperand).name === targetName) {
+          indices.push(i);
+        }
+      }
+    }
+    return indices;
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -488,6 +627,27 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
       }
       return instr;
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Size Calculation
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Calculate the total instruction count across all functions.
+   *
+   * Used to compute the size budget for multi-site inlining. The budget
+   * is a percentage of this value (MAX_SIZE_GROWTH_RATIO).
+   *
+   * @param program - The IL program
+   * @returns Total number of instructions across all functions
+   */
+  protected calculateProgramSize(program: ILProgram): number {
+    let total = 0;
+    for (const func of program.functions) {
+      total += func.instructions.length;
+    }
+    return total;
   }
 
   // ═══════════════════════════════════════════════════════════════════

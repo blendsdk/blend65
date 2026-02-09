@@ -9,7 +9,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { FunctionInliningPass } from '../../optimizer/passes/function-inlining.js';
+import {
+  FunctionInliningPass,
+  SMALL_FUNCTION_THRESHOLD,
+  MAX_SIZE_GROWTH_RATIO,
+} from '../../optimizer/passes/function-inlining.js';
 import { ILOptimizer } from '../../optimizer/il-optimizer.js';
 import { ILOpcode } from '../../il/enums.js';
 import type { ILInstruction } from '../../il/instruction.js';
@@ -566,5 +570,297 @@ describe('FunctionInliningPass — ILOptimizer integration', () => {
     const mainFunc = program.functions.find((f) => f.name === 'main')!;
     const hasCalls = mainFunc.instructions.some((i) => i.opcode === ILOpcode.CALL);
     expect(hasCalls).toBe(true);
+  });
+});
+
+// ============================================================================
+// O2 Small-Function Inlining Tests
+// ============================================================================
+
+describe('FunctionInliningPass — O2 small-function inlining', () => {
+  it('exports SMALL_FUNCTION_THRESHOLD constant', () => {
+    // Verify the threshold is defined and reasonable
+    expect(SMALL_FUNCTION_THRESHOLD).toBe(20);
+  });
+
+  it('exports MAX_SIZE_GROWTH_RATIO constant', () => {
+    expect(MAX_SIZE_GROWTH_RATIO).toBe(0.20);
+  });
+
+  it('inlines small function called twice at O2', () => {
+    const pass = new FunctionInliningPass();
+
+    // main calls helper twice — at O1 this wouldn't inline, but at O2 it should
+    const main = createTestILFunction('main', [
+      createCallInstr('small'),
+      createCallInstr('small'),
+      createReturnInstr(),
+    ], true);
+
+    // Small function (3 instructions, well under threshold of 20)
+    const small = createTestILFunction('small', [
+      createLoadImmInstr(42),
+      createStoreByteInstr('x'),
+      createReturnInstr(),
+    ]);
+
+    const program = createTestILProgram([main, small], 'main');
+    const result = pass.run(program, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    // Both call sites should be inlined
+    expect(result.functionsModified).toBe(2);
+
+    // No CALL instructions should remain in main
+    const mainFunc = program.functions.find((f) => f.name === 'main')!;
+    const calls = mainFunc.instructions.filter((i) => i.opcode === ILOpcode.CALL);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('does NOT inline small multi-call function at O1', () => {
+    const pass = new FunctionInliningPass();
+
+    // Same setup but at O1 — multi-call should NOT be inlined
+    const main = createTestILFunction('main', [
+      createCallInstr('small'),
+      createCallInstr('small'),
+      createReturnInstr(),
+    ], true);
+
+    const small = createTestILFunction('small', [
+      createLoadImmInstr(42),
+      createStoreByteInstr('x'),
+      createReturnInstr(),
+    ]);
+
+    const program = createTestILProgram([main, small], 'main');
+    const result = pass.run(program, { level: 'O1' });
+
+    // At O1, multi-call functions are NOT inlined
+    expect(result.modified).toBe(false);
+  });
+
+  it('does NOT inline function exceeding size threshold at O2', () => {
+    const pass = new FunctionInliningPass();
+
+    const main = createTestILFunction('main', [
+      createCallInstr('big'),
+      createCallInstr('big'),
+      createReturnInstr(),
+    ], true);
+
+    // Create a function that exceeds SMALL_FUNCTION_THRESHOLD (21 instructions)
+    const bigBody: ILInstruction[] = [];
+    for (let i = 0; i < SMALL_FUNCTION_THRESHOLD + 1; i++) {
+      bigBody.push(createLoadImmInstr(i % 256));
+    }
+    bigBody.push(createReturnInstr()); // Total: threshold + 2
+    const big = createTestILFunction('big', bigBody);
+
+    const program = createTestILProgram([main, big], 'main');
+    const result = pass.run(program, { level: 'O2' });
+
+    // Function exceeds threshold — should NOT be inlined
+    expect(result.modified).toBe(false);
+  });
+
+  it('inlines function at exactly the size threshold', () => {
+    const pass = new FunctionInliningPass();
+
+    const main = createTestILFunction('main', [
+      createCallInstr('exact'),
+      createCallInstr('exact'),
+      createReturnInstr(),
+    ], true);
+
+    // Create a function with exactly SMALL_FUNCTION_THRESHOLD instructions
+    const body: ILInstruction[] = [];
+    for (let i = 0; i < SMALL_FUNCTION_THRESHOLD - 1; i++) {
+      body.push(createLoadImmInstr(i % 256));
+    }
+    body.push(createReturnInstr()); // Total: exactly SMALL_FUNCTION_THRESHOLD
+    const exact = createTestILFunction('exact', body);
+
+    const program = createTestILProgram([main, exact], 'main');
+    const result = pass.run(program, { level: 'O2' });
+
+    // At exactly the threshold, the function IS a candidate for inlining.
+    // However, the size budget (floor = 20) limits how many sites are inlined:
+    // each inline of a 20-instr function adds 19 instructions of growth,
+    // so only the first site fits the budget (19 <= 20), the second does not (38 > 20).
+    expect(result.modified).toBe(true);
+    expect(result.functionsModified).toBeGreaterThanOrEqual(1);
+  });
+
+  it('inlines small function called from multiple callers', () => {
+    const pass = new FunctionInliningPass();
+
+    // Two callers (a and b) each call 'small' once
+    const main = createTestILFunction('main', [
+      createCallInstr('a'),
+      createCallInstr('b'),
+      createReturnInstr(),
+    ], true);
+
+    const a = createTestILFunction('a', [
+      createCallInstr('small'),
+      createReturnInstr(),
+    ]);
+
+    const b = createTestILFunction('b', [
+      createCallInstr('small'),
+      createReturnInstr(),
+    ]);
+
+    const small = createTestILFunction('small', [
+      createLoadImmInstr(99),
+      createReturnInstr(),
+    ]);
+
+    const program = createTestILProgram([main, a, b, small], 'main');
+    const result = pass.run(program, { level: 'O2' });
+
+    // 'small' is called twice (from a and b), so it's a small-function candidate
+    // a and b are called once each, so they are single-site candidates
+    // All should be inlined
+    expect(result.modified).toBe(true);
+    expect(result.functionsModified).toBeGreaterThanOrEqual(2);
+  });
+
+  it('enforces size budget (20% max growth)', () => {
+    const pass = new FunctionInliningPass();
+
+    // Create a main function with many calls to a moderate-size function.
+    // The total growth should eventually exceed 20% of the program size.
+    // Program: main (60 instrs) + heavy (15 instrs) = 75 total
+    // Budget: 75 * 0.20 = 15 instructions growth
+    // Each inline of 'heavy' grows by 14 (15 - 1 for replacing CALL)
+    // So after 1 inline: 14 growth (within budget)
+    // After 2 inlines: 28 growth (exceeds budget of 15)
+    const mainBody: ILInstruction[] = [];
+    // Add 55 padding instructions to make main large
+    for (let i = 0; i < 55; i++) {
+      mainBody.push(createLoadImmInstr(i % 256));
+    }
+    // Add 3 calls to heavy
+    mainBody.push(createCallInstr('heavy'));
+    mainBody.push(createCallInstr('heavy'));
+    mainBody.push(createCallInstr('heavy'));
+    mainBody.push(createReturnInstr());
+    // Total main: 55 + 3 + 1 = 59 instrs
+
+    const main = createTestILFunction('main', mainBody, true);
+
+    // heavy: 15 instructions (under threshold of 20)
+    const heavyBody: ILInstruction[] = [];
+    for (let i = 0; i < 14; i++) {
+      heavyBody.push(createLoadImmInstr(i % 256));
+    }
+    heavyBody.push(createReturnInstr()); // Total: 15
+    const heavy = createTestILFunction('heavy', heavyBody);
+
+    const program = createTestILProgram([main, heavy], 'main');
+    const result = pass.run(program, { level: 'O2' });
+
+    // Raw budget: (59 + 15) * 0.20 = 14.8 → floor = 14
+    // But budget floor = max(14, SMALL_FUNCTION_THRESHOLD=20) = 20
+    // Each inline grows by 14 instructions (15 callee - 1 CALL replaced)
+    // First inline: cumulative growth = 14 (14 <= 20 → within budget)
+    // Second inline: cumulative growth = 28 (28 > 20 → EXCEEDS budget)
+    // So only 1 of the 3 calls should be inlined
+    expect(result.modified).toBe(true);
+    expect(result.functionsModified).toBe(1);
+
+    // Remaining 2 calls should still be in main
+    const mainFunc = program.functions.find((f) => f.name === 'main')!;
+    const calls = mainFunc.instructions.filter(
+      (i) => i.opcode === ILOpcode.CALL &&
+        i.operands.length > 0 &&
+        i.operands[0].kind === 'function' &&
+        (i.operands[0] as FunctionOperand).name === 'heavy'
+    );
+    expect(calls).toHaveLength(2);
+  });
+
+  it('inlines at O3 same as O2 (small-function enabled)', () => {
+    const pass = new FunctionInliningPass();
+
+    const main = createTestILFunction('main', [
+      createCallInstr('tiny'),
+      createCallInstr('tiny'),
+      createReturnInstr(),
+    ], true);
+
+    const tiny = createTestILFunction('tiny', [
+      createLoadImmInstr(1),
+      createReturnInstr(),
+    ]);
+
+    const program = createTestILProgram([main, tiny], 'main');
+    const result = pass.run(program, { level: 'O3' });
+
+    // O3 enables small-function inlining just like O2
+    expect(result.modified).toBe(true);
+    expect(result.functionsModified).toBe(2);
+  });
+
+  it('generates debug info with strategy name for multi-site inlining', () => {
+    const pass = new FunctionInliningPass();
+
+    const main = createTestILFunction('main', [
+      createCallInstr('small'),
+      createCallInstr('small'),
+      createReturnInstr(),
+    ], true);
+
+    const small = createTestILFunction('small', [
+      createLoadImmInstr(1),
+      createReturnInstr(),
+    ]);
+
+    const program = createTestILProgram([main, small], 'main');
+    const result = pass.run(program, { level: 'O2', debug: true });
+
+    expect(result.debugInfo).toBeDefined();
+    expect(result.debugInfo!.length).toBe(2);
+    // Debug messages should include strategy name
+    expect(result.debugInfo![0]).toContain('small-function');
+    expect(result.debugInfo![1]).toContain('small-function');
+  });
+
+  it('uses unique label prefixes for each inlining of the same function', () => {
+    const pass = new FunctionInliningPass();
+
+    const main = createTestILFunction('main', [
+      createCallInstr('dup'),
+      createCallInstr('dup'),
+      createReturnInstr(),
+    ], true);
+
+    const dup = createTestILFunction('dup', [
+      createLabelInstr('inner'),
+      createLoadImmInstr(5),
+      createReturnInstr(),
+    ]);
+
+    const program = createTestILProgram([main, dup], 'main');
+    pass.run(program, { level: 'O2' });
+
+    // Each inlining should use a different counter prefix
+    const mainFunc = program.functions.find((f) => f.name === 'main')!;
+    const labels = mainFunc.instructions.filter((i) => i.opcode === ILOpcode.LABEL);
+
+    // Collect all unique inline prefixes
+    const prefixes = new Set<string>();
+    for (const label of labels) {
+      const name = (label.operands[0] as LabelOperand).name;
+      // Extract the counter part: _inline_dup_0_, _inline_dup_1_, etc.
+      const match = name.match(/_inline_dup_(\d+)_/);
+      if (match) {
+        prefixes.add(match[1]);
+      }
+    }
+    // Should have at least 2 different prefix counters (0 and 1)
+    expect(prefixes.size).toBeGreaterThanOrEqual(2);
   });
 });

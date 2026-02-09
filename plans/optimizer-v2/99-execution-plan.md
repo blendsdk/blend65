@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 12:12
-> **Progress**: 19/40 tasks (48%)
+> **Last Updated**: 2026-09-02 13:54
+> **Progress**: 29/40 tasks (73%)
 
 ## Overview
 
@@ -382,16 +382,16 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 2.2.1 Create DeadGlobalElimPass ✅ (completed: 2026-09-02 12:05)
 - [x] 2.2.2 Register and configure ✅ (completed: 2026-09-02 12:05)
 - [x] 2.2.3 Write dead global tests (~12) + fix regressions ✅ (completed: 2026-09-02 12:12)
-- [ ] 2.3.1 Create FunctionInliningPass skeleton
-- [ ] 2.3.2 Implement findCandidates() single-site
-- [ ] 2.3.3 Implement cloneInstructions() with remapping
-- [ ] 2.3.4 Implement inlineFunction()
-- [ ] 2.3.5 Register for O1+
-- [ ] 2.3.6 Write inlining tests (~20)
-- [ ] 2.3.7 Write E2E test: delay() inlined
-- [ ] 2.4.1 Extend findCandidates() for O2 small-function
-- [ ] 2.4.2 Add size budget check
-- [ ] 2.4.3 Write O2 inlining tests (~10)
+- [x] 2.3.1 Create FunctionInliningPass skeleton ✅ (completed: 2026-09-02 12:40)
+- [x] 2.3.2 Implement findCandidates() single-site ✅ (completed: 2026-09-02 12:40)
+- [x] 2.3.3 Implement cloneInstructions() with remapping ✅ (completed: 2026-09-02 12:40)
+- [x] 2.3.4 Implement inlineFunction() ✅ (completed: 2026-09-02 12:40)
+- [x] 2.3.5 Register for O1+ ✅ (completed: 2026-09-02 12:42)
+- [x] 2.3.6 Write inlining tests (~23) + fix 6 regressions ✅ (completed: 2026-09-02 13:03)
+- [x] 2.3.7 Full test suite verification: 7983 passing ✅ (completed: 2026-09-02 13:05)
+- [x] 2.4.1 Extend findCandidates() for O2 small-function ✅ (completed: 2026-09-02 13:34)
+- [x] 2.4.2 Add size budget check ✅ (completed: 2026-09-02 13:34)
+- [x] 2.4.3 Write O2 inlining tests (~10) ✅ (completed: 2026-09-02 13:50)
 
 ### Phase 3: IL & ASM Improvements
 

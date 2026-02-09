@@ -116,7 +116,11 @@ export { DeadFunctionElimPass } from './passes/dead-function-elim.js';
 export { DeadGlobalElimPass } from './passes/dead-global-elim.js';
 
 // Program-Level: Function Inlining
-export { FunctionInliningPass } from './passes/function-inlining.js';
+export {
+  FunctionInliningPass,
+  SMALL_FUNCTION_THRESHOLD,
+  MAX_SIZE_GROWTH_RATIO,
+} from './passes/function-inlining.js';
 export type { InlineCandidate } from './passes/function-inlining.js';
 
 // ============================================================================
