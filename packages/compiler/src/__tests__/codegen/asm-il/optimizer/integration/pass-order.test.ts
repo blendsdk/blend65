@@ -136,16 +136,18 @@ describe('Integration: Pass Ordering', () => {
   // ========================================================================
 
   describe('O2: Branch + Transfer interactions', () => {
-    it('should apply all 4 passes at O2 level', () => {
+    it('should apply all 6 passes at O2 level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
       const passes = optimizer.getPasses();
 
-      // O2 should have exactly 4 passes in order
-      expect(passes).toHaveLength(4);
+      // O2 should have exactly 6 passes in order
+      expect(passes).toHaveLength(6);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
     });
 
     it('should handle redundant transfer after flag cleanup', () => {
@@ -185,20 +187,22 @@ describe('Integration: Pass Ordering', () => {
   // ========================================================================
 
   describe('O3: Full pass set', () => {
-    it('should apply all 7 passes at O3 level', () => {
+    it('should apply all 9 passes at O3 level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O3 });
       const passes = optimizer.getPasses();
 
       // O3 = FlagPatterns + StoreLoad + BranchOpt + TransferOpt +
-      //       ZPPromotion + Strength6502 + StackOpt
-      expect(passes).toHaveLength(7);
+      //       CompareBranch + IndexedAddr + ZPPromotion + Strength6502 + StackOpt
+      expect(passes).toHaveLength(9);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
-      expect(passes[4].name).toBe('zp-promotion');
-      expect(passes[5].name).toBe('6502-strength');
-      expect(passes[6].name).toBe('stack-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('zp-promotion');
+      expect(passes[7].name).toBe('6502-strength');
+      expect(passes[8].name).toBe('stack-opt');
     });
 
     it('should apply stack optimization after flag patterns', () => {
@@ -232,28 +236,30 @@ describe('Integration: Pass Ordering', () => {
   // ========================================================================
 
   describe('Os/Oz: Size passes after standard', () => {
-    it('should apply 7 passes at Os level', () => {
+    it('should apply 9 passes at Os level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Os });
       const passes = optimizer.getPasses();
 
       // Os = FlagPatterns + StoreLoad + BranchOpt + TransferOpt +
-      //       ZPPromotion + StackOpt + SizeOpt
-      expect(passes).toHaveLength(7);
+      //       CompareBranch + IndexedAddr + ZPPromotion + StackOpt + SizeOpt
+      expect(passes).toHaveLength(9);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
-      expect(passes[4].name).toBe('zp-promotion');
-      expect(passes[5].name).toBe('stack-opt');
-      expect(passes[6].name).toBe('size-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('zp-promotion');
+      expect(passes[7].name).toBe('stack-opt');
+      expect(passes[8].name).toBe('size-opt');
     });
 
-    it('should apply 7 passes at Oz level', () => {
+    it('should apply 9 passes at Oz level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Oz });
       const passes = optimizer.getPasses();
 
-      expect(passes).toHaveLength(7);
-      expect(passes[6].name).toBe('size-opt');
+      expect(passes).toHaveLength(9);
+      expect(passes[8].name).toBe('size-opt');
     });
 
     it('should apply tail call optimization after branch optimization', () => {

@@ -14,6 +14,8 @@
  * StoreLoad              -   ✓   ✓   ✓   ✓   ✓
  * BranchOpt              -   -   ✓   ✓   ✓   ✓
  * TransferOpt            -   -   ✓   ✓   ✓   ✓
+ * CompareBranch          -   -   ✓   ✓   ✓   ✓
+ * IndexedAddr            -   -   ✓   ✓   ✓   ✓
  * ZPPromotion            -   -   -   ✓   ✓   ✓
  * Strength6502           -   -   -   ✓   -   -
  * StackOpt               -   -   -   ✓   ✓   ✓
@@ -44,6 +46,8 @@ import { StoreLoadPass } from './passes/store-load.js';
 // Phase 4: Standard Passes (O2)
 import { BranchOptPass } from './passes/branch-opt.js';
 import { TransferOptPass } from './passes/transfer-opt.js';
+import { CompareBranchPass } from './passes/compare-branch.js';
+import { IndexedAddrPass } from './passes/indexed-addr.js';
 
 // Phase 5: Advanced Passes (O3)
 import { ZPPromotionPass } from './passes/zp-promotion.js';
@@ -101,6 +105,8 @@ export function createPassesForLevel(
   if (level !== OptimizationLevel.O1) {
     passes.push(new BranchOptPass());
     passes.push(new TransferOptPass());
+    passes.push(new CompareBranchPass());
+    passes.push(new IndexedAddrPass());
   }
 
   // ── O3 passes: Aggressive optimization ─────────────────────────────────
@@ -160,9 +166,9 @@ export function getPlannedPassCounts(): Record<OptimizationLevel, number> {
   return {
     [OptimizationLevel.O0]: 0,
     [OptimizationLevel.O1]: 2,  // FlagPatterns + StoreLoad
-    [OptimizationLevel.O2]: 4,  // O1 + BranchOpt + TransferOpt
-    [OptimizationLevel.O3]: 7,  // O2 + ZPPromotion + Strength6502 + StackOpt
-    [OptimizationLevel.Os]: 7,  // O2 + ZPPromotion + StackOpt + SizeOpt
-    [OptimizationLevel.Oz]: 7,  // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive)
+    [OptimizationLevel.O2]: 6,  // O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr
+    [OptimizationLevel.O3]: 9,  // O2 + ZPPromotion + Strength6502 + StackOpt
+    [OptimizationLevel.Os]: 9,  // O2 + ZPPromotion + StackOpt + SizeOpt
+    [OptimizationLevel.Oz]: 9,  // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive)
   };
 }

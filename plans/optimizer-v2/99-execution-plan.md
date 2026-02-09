@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 15:12
-> **Progress**: 32/40 tasks (80%)
+> **Last Updated**: 2026-09-02 19:16
+> **Progress**: 37/40 tasks (93%)
 
 ## Overview
 
@@ -398,11 +398,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 3.1.1 Implement tryReduceMultiply() ✅ (completed: 2026-09-02 15:10)
 - [x] 3.1.2 Implement tryReduceDivide() ✅ (completed: 2026-09-02 15:10)
 - [x] 3.1.3 Write MUL/DIV tests (~18) + findSlotConstant backward scan ✅ (completed: 2026-09-02 15:12)
-- [ ] 3.2.1 Create CSEPass
-- [ ] 3.2.2 Implement expression tracking
-- [ ] 3.2.3 Implement invalidation
-- [ ] 3.2.4 Register for O2+
-- [ ] 3.2.5 Write CSE tests (~15)
+- [x] 3.2.1 Create CSEPass (inheritance chain: CSEBase→CSETracker→CSEPass) ✅ (completed: 2026-09-02 19:00)
+- [x] 3.2.2 Implement expression tracking within basic blocks ✅ (completed: 2026-09-02 19:00)
+- [x] 3.2.3 Implement invalidation on writes and block boundaries ✅ (completed: 2026-09-02 19:00)
+- [x] 3.2.4 Register for O2+ ✅ (completed: 2026-09-02 19:00)
+- [x] 3.2.5 Write CSE tests (~17) ✅ (completed: 2026-09-02 19:00)
 - [ ] 3.3.1 Create CompareBranchPass
 - [ ] 3.3.2 Create IndexedAddrPass
 - [ ] 3.3.3 Register in pass-factory

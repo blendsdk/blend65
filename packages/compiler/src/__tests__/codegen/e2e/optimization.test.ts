@@ -277,8 +277,8 @@ describe('E2E: ASM-IL Optimizer Pipeline', () => {
 
       const result = compileAndOptimize(source, OptimizationLevel.O2);
 
-      // O2 has 4 passes, so passStats should have 4 entries
-      expect(result.passStats.size).toBe(4);
+      // O2 has 6 passes, so passStats should have 6 entries
+      expect(result.passStats.size).toBe(6);
 
       // Each pass should have valid stat properties
       for (const [name, stats] of result.passStats) {

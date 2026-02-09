@@ -150,18 +150,20 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('O2: Standard optimization', () => {
-    it('should have exactly 4 passes', () => {
+    it('should have exactly 6 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
-      expect(optimizer.getPasses()).toHaveLength(4);
+      expect(optimizer.getPasses()).toHaveLength(6);
     });
 
-    it('should include O1 passes plus BranchOpt and TransferOpt', () => {
+    it('should include O1 passes plus BranchOpt, TransferOpt, CompareBranch, IndexedAddr', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
       const passes = optimizer.getPasses();
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
     });
 
     it('should have no ZP slots', () => {
@@ -185,9 +187,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('O3: Aggressive optimization', () => {
-    it('should have exactly 7 passes', () => {
+    it('should have exactly 9 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O3 });
-      expect(optimizer.getPasses()).toHaveLength(7);
+      expect(optimizer.getPasses()).toHaveLength(9);
     });
 
     it('should include O2 passes plus ZPPromotion, Strength6502, StackOpt', () => {
@@ -197,9 +199,11 @@ describe('Integration: Level Configurations', () => {
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
-      expect(passes[4].name).toBe('zp-promotion');
-      expect(passes[5].name).toBe('6502-strength');
-      expect(passes[6].name).toBe('stack-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('zp-promotion');
+      expect(passes[7].name).toBe('6502-strength');
+      expect(passes[8].name).toBe('stack-opt');
     });
 
     it('should have 8 ZP slots (0x50-0x57)', () => {
@@ -235,9 +239,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('Os: Size optimization', () => {
-    it('should have exactly 7 passes', () => {
+    it('should have exactly 9 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Os });
-      expect(optimizer.getPasses()).toHaveLength(7);
+      expect(optimizer.getPasses()).toHaveLength(9);
     });
 
     it('should include O2 passes plus ZPPromotion, StackOpt, SizeOpt', () => {
@@ -247,9 +251,11 @@ describe('Integration: Level Configurations', () => {
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
-      expect(passes[4].name).toBe('zp-promotion');
-      expect(passes[5].name).toBe('stack-opt');
-      expect(passes[6].name).toBe('size-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('zp-promotion');
+      expect(passes[7].name).toBe('stack-opt');
+      expect(passes[8].name).toBe('size-opt');
     });
 
     it('should have 4 ZP slots (0x50-0x53)', () => {
@@ -270,9 +276,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('Oz: Minimum size optimization', () => {
-    it('should have exactly 7 passes', () => {
+    it('should have exactly 9 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Oz });
-      expect(optimizer.getPasses()).toHaveLength(7);
+      expect(optimizer.getPasses()).toHaveLength(9);
     });
 
     it('should include same passes as Os', () => {
