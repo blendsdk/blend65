@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 11:06
-> **Progress**: 15/40 tasks (37.5%)
+> **Last Updated**: 2026-09-02 11:27
+> **Progress**: 16/40 tasks (40%)
 
 ## Overview
 
@@ -378,7 +378,7 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 2.1.2 Register in ILOptimizer ✅ (completed: 2026-09-02 10:45)
 - [x] 2.1.3 Add to PROGRAM_LEVEL_PASSES ✅ (completed: 2026-09-02 10:45)
 - [x] 2.1.4 Write dead function elim tests (~18) + fix regressions ✅ (completed: 2026-09-02 11:06)
-- [ ] 2.1.5 Write E2E test: border-cycle speedy() eliminated (deferred to next session)
+- [x] 2.1.5 Write E2E test: border-cycle speedy() eliminated ✅ (completed: 2026-09-02 11:27)
 - [ ] 2.2.1 Create DeadGlobalElimPass
 - [ ] 2.2.2 Register and configure
 - [ ] 2.2.3 Write dead global tests (~10)
