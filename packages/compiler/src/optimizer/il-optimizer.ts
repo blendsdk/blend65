@@ -36,6 +36,7 @@ import { CopyPropPass } from './passes/copy-prop.js';
 import { ILPeepholePass } from './passes/il-peephole.js';
 import { DeadFunctionElimPass } from './passes/dead-function-elim.js';
 import { DeadGlobalElimPass } from './passes/dead-global-elim.js';
+import { FunctionInliningPass } from './passes/function-inlining.js';
 
 // ============================================================================
 // IL Optimizer
@@ -181,6 +182,10 @@ export class ILOptimizer {
     // Dead global elimination — removes unused global variable initializations
     // Depends on dead-function-elim (runs after it via dependency ordering)
     this.registerProgramPass(new DeadGlobalElimPass());
+
+    // Function inlining — inlines callee bodies at call sites
+    // Depends on dead-function-elim (no point inlining dead functions)
+    this.registerProgramPass(new FunctionInliningPass());
   }
 
   /**

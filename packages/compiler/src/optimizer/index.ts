@@ -112,6 +112,13 @@ export { ILPeepholePass } from './passes/il-peephole.js';
 // Program-Level: Dead Function Elimination
 export { DeadFunctionElimPass } from './passes/dead-function-elim.js';
 
+// Program-Level: Dead Global Elimination
+export { DeadGlobalElimPass } from './passes/dead-global-elim.js';
+
+// Program-Level: Function Inlining
+export { FunctionInliningPass } from './passes/function-inlining.js';
+export type { InlineCandidate } from './passes/function-inlining.js';
+
 // ============================================================================
 // Analysis
 // ============================================================================

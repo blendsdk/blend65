@@ -143,8 +143,9 @@ const PROGRAM_LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   // No optimization - skip all passes
   O0: [],
 
-  // Basic optimizations - dead function elimination and single-site inlining
-  O1: ['dead-function-elim', 'single-site-inline'],
+  // Basic optimizations - dead function elimination and function inlining
+  // At O1, only single-call-site functions are inlined (always profitable)
+  O1: ['dead-function-elim', 'function-inline'],
 
   // Standard optimizations - full inter-procedural
   O2: ['dead-function-elim', 'dead-global-elim', 'function-inline'],

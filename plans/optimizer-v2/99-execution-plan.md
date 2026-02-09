@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 11:27
-> **Progress**: 16/40 tasks (40%)
+> **Last Updated**: 2026-09-02 12:12
+> **Progress**: 19/40 tasks (48%)
 
 ## Overview
 
@@ -379,9 +379,9 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 2.1.3 Add to PROGRAM_LEVEL_PASSES ✅ (completed: 2026-09-02 10:45)
 - [x] 2.1.4 Write dead function elim tests (~18) + fix regressions ✅ (completed: 2026-09-02 11:06)
 - [x] 2.1.5 Write E2E test: border-cycle speedy() eliminated ✅ (completed: 2026-09-02 11:27)
-- [ ] 2.2.1 Create DeadGlobalElimPass
-- [ ] 2.2.2 Register and configure
-- [ ] 2.2.3 Write dead global tests (~10)
+- [x] 2.2.1 Create DeadGlobalElimPass ✅ (completed: 2026-09-02 12:05)
+- [x] 2.2.2 Register and configure ✅ (completed: 2026-09-02 12:05)
+- [x] 2.2.3 Write dead global tests (~12) + fix regressions ✅ (completed: 2026-09-02 12:12)
 - [ ] 2.3.1 Create FunctionInliningPass skeleton
 - [ ] 2.3.2 Implement findCandidates() single-site
 - [ ] 2.3.3 Implement cloneInstructions() with remapping
