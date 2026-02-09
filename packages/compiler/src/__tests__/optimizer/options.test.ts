@@ -71,7 +71,8 @@ describe('getPassesForLevel', () => {
     expect(passes).toContain('constant-prop');
     expect(passes).toContain('copy-prop');
     expect(passes).toContain('il-peephole');
-    expect(passes).toHaveLength(5);
+    expect(passes).toContain('cse');
+    expect(passes).toHaveLength(6);
   });
 
   it('should return all passes for O3', () => {
@@ -81,7 +82,8 @@ describe('getPassesForLevel', () => {
     expect(passes).toContain('constant-prop');
     expect(passes).toContain('copy-prop');
     expect(passes).toContain('il-peephole');
-    expect(passes).toHaveLength(5);
+    expect(passes).toContain('cse');
+    expect(passes).toHaveLength(6);
   });
 
   it('should return all passes for Os', () => {
@@ -91,7 +93,8 @@ describe('getPassesForLevel', () => {
     expect(passes).toContain('constant-prop');
     expect(passes).toContain('copy-prop');
     expect(passes).toContain('il-peephole');
-    expect(passes).toHaveLength(5);
+    expect(passes).toContain('cse');
+    expect(passes).toHaveLength(6);
   });
 
   it('should return all passes for Oz', () => {
@@ -101,7 +104,8 @@ describe('getPassesForLevel', () => {
     expect(passes).toContain('constant-prop');
     expect(passes).toContain('copy-prop');
     expect(passes).toContain('il-peephole');
-    expect(passes).toHaveLength(5);
+    expect(passes).toContain('cse');
+    expect(passes).toHaveLength(6);
   });
 
   it('should return a copy (not original array)', () => {

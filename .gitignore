@@ -119,7 +119,6 @@ public
 .docusaurus
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo

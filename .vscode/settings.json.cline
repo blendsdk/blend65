@@ -1,0 +1,12 @@
+{
+  "cline.editor.skipDiffAnimation":true,
+  "editor.codeActionsOnSave": {
+  },
+  "[markdown]": {
+    "editor.formatOnType": false,
+    "editor.formatOnSave": false,
+    "editor.formatOnPaste": false
+  },
+  "diffEditor.renderSideBySide": false,
+  "diffEditor.maxFileSize": 0,
+}

@@ -1,0 +1,7 @@
+{
+  "cline.editor.skipDiffAnimation":true,
+  "editor.codeActionsOnSave": {
+    "source.removeUnusedImports": "always"
+  },
+  "editor.formatOnSave": true
+}

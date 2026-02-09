@@ -176,16 +176,16 @@ const LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   O1: ['dce', 'constant-fold'],
 
   // Standard optimizations - all passes, single iteration
-  O2: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole'],
+  O2: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse'],
 
   // Aggressive optimizations - all passes, multiple iterations
-  O3: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole'],
+  O3: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse'],
 
   // Size optimization - all passes tuned for code size
-  Os: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole'],
+  Os: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse'],
 
   // Minimum size - aggressive size reduction with iterations
-  Oz: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole'],
+  Oz: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse'],
 };
 
 /**
