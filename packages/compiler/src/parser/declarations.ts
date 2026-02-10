@@ -8,7 +8,8 @@
  * V2 Changes:
  * - No @map declarations (removed in v2)
  * - Memory-mapped I/O uses peek/poke intrinsics instead
- * - Simplified storage classes (no @zp, @ram, @data - handled by frame allocator)
+ * - Storage classes (@zp, @ram, @data) are parsed and passed through to
+ *   the frame allocator for memory placement decisions
  */
 
 import {
@@ -45,27 +46,43 @@ export abstract class DeclarationParser extends ExpressionParser {
   // ============================================
 
   /**
-   * Parses a variable declaration (v2 simplified)
+   * Parses a variable declaration with optional storage class
    *
-   * Grammar: [ export ] (let | const) Identifier : Type [ = Expression ] ;
+   * Grammar (per language spec v2 section 03-variables.md):
+   *   variable_decl = [ storage_class ] , [ "export" ] , mutability , identifier
+   *                 , [ ":" , type_expr ] , [ "=" , expression ] , ";" ;
+   *   storage_class = "@zp" | "@ram" | "@data" ;
+   *   mutability = "let" | "const" ;
    *
    * Examples:
    * - let counter: byte = 0;
    * - const MAX_SIZE: word = 256;
    * - export let buffer: byte;
+   * - @zp let playerX: byte = 10;
+   * - @data const spriteData: byte[] = [1, 2, 3];
+   * - @ram let largeBuffer: byte[1000];
    *
-   * Note: Storage classes (@zp, @ram, @data) are handled by the frame allocator
-   * in v2 and are no longer part of the variable declaration syntax.
+   * Storage classes control where the variable is placed in memory:
+   * - @zp: Zero page ($0000-$00FF) - fastest access
+   * - @ram: General RAM (default if no storage class)
+   * - @data: Initialized data section (ROM-able)
    *
    * @returns VariableDecl AST node
    */
   protected parseVariableDecl(): VariableDecl {
     const startToken = this.getCurrentToken();
 
+    // Parse optional storage class prefix (@zp, @ram, @data)
+    // Per language spec: storage_class = "@zp" | "@ram" | "@data"
+    let storageClass: TokenType | null = null;
+    if (this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA)) {
+      storageClass = this.advance().type;
+    }
+
     // Parse optional export modifier
     const isExport = this.parseExportModifier();
 
-    // Parse let/const (no storage classes in v2)
+    // Parse let/const mutability modifier
     let isConst = false;
     if (this.match(TokenType.CONST)) {
       isConst = true;
@@ -103,7 +120,7 @@ export abstract class DeclarationParser extends ExpressionParser {
       typeAnnotation,
       initializer,
       location,
-      null, // No storage class in v2 - handled by frame allocator
+      storageClass, // Storage class: '@zp', '@ram', '@data', or null (defaults to @ram)
       isConst,
       isExport
     );
