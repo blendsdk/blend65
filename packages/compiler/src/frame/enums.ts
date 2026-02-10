@@ -97,6 +97,7 @@ export enum SlotKind {
  * |-----------|--------------------|-----------------------------|
  * | `@zp`     | MUST be in ZP      | **Compile error**           |
  * | `@ram`    | MUST be in RAM     | N/A (never uses ZP)         |
+ * | `@data`   | Data segment const | N/A (read-only data)        |
  * | (none)    | Compiler decides   | Silent fallback to RAM      |
  */
 export enum ZpDirective {
@@ -108,6 +109,9 @@ export enum ZpDirective {
 
   /** @ram - MUST be in RAM, never allocate to ZP */
   Ram = 'ram',
+
+  /** @data - Placed in data segment as read-only initialized constant */
+  Data = 'data',
 }
 
 /**

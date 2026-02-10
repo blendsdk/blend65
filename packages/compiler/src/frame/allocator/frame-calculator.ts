@@ -424,6 +424,13 @@ export class FrameCalculator {
   /**
    * Converts storage class token to ZpDirective.
    *
+   * Maps the parser's TokenType storage class annotations to the
+   * frame system's ZpDirective enum:
+   * - @zp → ZpDirective.Zp (must be zero page)
+   * - @ram → ZpDirective.Ram (must be RAM)
+   * - @data → ZpDirective.Data (data segment constant)
+   * - (none) → ZpDirective.None (compiler decides)
+   *
    * @param storageClass - Storage class token from variable declaration
    * @returns Corresponding ZpDirective
    */
@@ -437,6 +444,8 @@ export class FrameCalculator {
         return ZpDirective.Zp;
       case TokenType.RAM:
         return ZpDirective.Ram;
+      case TokenType.DATA:
+        return ZpDirective.Data;
       default:
         return ZpDirective.None;
     }

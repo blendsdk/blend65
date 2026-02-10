@@ -70,6 +70,12 @@ export enum DiagnosticCode {
   INVALID_TYPE = 'S007',
   INVALID_ARRAY_SIZE = 'S008',
 
+  // Storage class errors (S010-S019)
+  /** @data requires const declaration */
+  DATA_REQUIRES_CONST = 'S010',
+  /** @data requires an initializer expression */
+  DATA_REQUIRES_INITIALIZER = 'S011',
+
   // Memory layout errors (S100-S199)
   ZERO_PAGE_OVERFLOW = 'S100',
   MEMORY_MAP_OVERLAP = 'S101',

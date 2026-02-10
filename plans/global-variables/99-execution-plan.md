@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-09 23:55
-> **Progress**: 0/55 tasks (0%)
+> **Last Updated**: 2026-10-02 03:14
+> **Progress**: 6/55 tasks (11%)
 
 ## Overview
 
@@ -334,12 +334,12 @@ This document defines the execution phases and AI chat sessions for implementing
 
 ### Phase 1: Foundation & Language Spec
 
-- [ ] 1.1.1 Add Data to ZpDirective enum
-- [ ] 1.1.2 Add GlobalSlot and GlobalAllocationResult types
-- [ ] 1.1.3 Update symbol-table-builder for all storage class metadata
-- [ ] 1.1.4 Add @data validation (const + initializer)
-- [ ] 1.1.5 Update getZpDirective() for @data
-- [ ] 1.1.6 Write foundation tests (~15)
+- [x] 1.1.1 Add Data to ZpDirective enum ✅ (completed: 2026-10-02 03:14)
+- [x] 1.1.2 Add GlobalSlot and GlobalAllocationResult types ✅ (completed: 2026-10-02 03:14)
+- [x] 1.1.3 Update symbol-table-builder for all storage class metadata ✅ (completed: 2026-10-02 03:14)
+- [x] 1.1.4 Add @data validation (const + initializer) ✅ (completed: 2026-10-02 03:14)
+- [x] 1.1.5 Update getZpDirective() for @data ✅ (completed: 2026-10-02 03:14)
+- [x] 1.1.6 Write foundation tests (~29 tests) ✅ (completed: 2026-10-02 03:14)
 - [ ] 1.2.1 Update 03-variables.md with storage class section
 - [ ] 1.2.2 Add @data rules and EBNF grammar
 - [ ] 1.2.3 Document module-level only restriction

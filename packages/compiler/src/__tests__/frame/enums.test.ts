@@ -190,9 +190,9 @@ describe('ZpDirective', () => {
   });
 
   describe('enum membership', () => {
-    it('should have exactly 3 members', () => {
+    it('should have exactly 4 members', () => {
       const values = Object.values(ZpDirective);
-      expect(values).toHaveLength(3);
+      expect(values).toHaveLength(4);
     });
 
     it('should contain all expected members', () => {
@@ -200,6 +200,7 @@ describe('ZpDirective', () => {
       expect(values).toContain('none');
       expect(values).toContain('zp');
       expect(values).toContain('ram');
+      expect(values).toContain('data');
     });
 
     it('should NOT have a "prefer" option (by design)', () => {

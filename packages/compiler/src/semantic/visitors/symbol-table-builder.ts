@@ -421,11 +421,40 @@ export class SymbolTableBuilder extends ASTWalker {
       );
     }
 
-    // Store @zp storage class in symbol metadata so the variable usage
-    // analyzer can detect ZP-directive variables. Underscore-prefixed variables
-    // that are @zp should still warn about being unused (ZP is precious).
-    if (result.symbol && node.getStorageClass() === TokenType.ZP) {
-      result.symbol.metadata?.set('zpDirective', true);
+    // Store storage class metadata so downstream phases (frame allocator,
+    // IL generator, variable usage analyzer) can detect storage-class-annotated
+    // variables. All storage classes are stored, not just @zp.
+    // - @zp variables: ZP is precious, unused ones should warn
+    // - @ram variables: explicitly RAM, no ZP scoring
+    // - @data variables: data segment constants, validated separately
+    if (result.symbol && node.getStorageClass()) {
+      const storageClass = node.getStorageClass()!;
+      result.symbol.metadata?.set('storageClass', storageClass);
+
+      // Keep backward-compatible zpDirective flag for existing usage analysis
+      if (storageClass === TokenType.ZP) {
+        result.symbol.metadata?.set('zpDirective', true);
+      }
+
+      // Validate @data storage class: must be const and must have initializer.
+      // @data variables are placed in the read-only data segment, so they
+      // must be compile-time constants with known initial values.
+      if (storageClass === TokenType.DATA) {
+        if (!isConst) {
+          this.addError(
+            DiagnosticCode.DATA_REQUIRES_CONST,
+            `@data variables must be declared with 'const'. Use '@data const' instead.`,
+            node.getLocation(),
+          );
+        }
+        if (!node.getInitializer()) {
+          this.addError(
+            DiagnosticCode.DATA_REQUIRES_INITIALIZER,
+            `@data variables must have an initializer.`,
+            node.getLocation(),
+          );
+        }
+      }
     }
 
     // Visit initializer if present (for nested declarations in expressions)

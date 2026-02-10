@@ -30,6 +30,9 @@ export * from './enums.js';
 // Types - Phase 1 Session 1.2
 export * from './types.js';
 
+// Global Variable Allocation Types
+export * from './types-global.js';
+
 // Platform Config - Phase 1 Session 1.3
 export * from './platform.js';
 
