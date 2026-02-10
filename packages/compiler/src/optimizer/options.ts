@@ -143,15 +143,21 @@ const PROGRAM_LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   // No optimization - skip all passes
   O0: [],
 
-  // Basic optimizations - dead function elimination and function inlining
-  // At O1, only single-call-site functions are inlined (always profitable)
-  O1: ['dead-function-elim', 'function-inline'],
+  // Basic optimizations - dead function elimination and function inlining.
+  // At O1, only single-call-site functions are inlined (always profitable).
+  // A second DFE pass runs AFTER inlining to remove functions that were
+  // fully inlined and are no longer referenced.
+  O1: ['dead-function-elim', 'function-inline', 'dead-function-elim'],
 
-  // Standard optimizations - full inter-procedural
-  O2: ['dead-function-elim', 'dead-global-elim', 'function-inline'],
+  // Standard optimizations - full inter-procedural.
+  // DFE runs before inlining to remove obviously dead functions, then
+  // inlining replaces call sites with inline code, then DFE runs again
+  // to clean up functions that were fully inlined.
+  O2: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
-  // Aggressive optimizations - full inter-procedural
-  O3: ['dead-function-elim', 'dead-global-elim', 'function-inline'],
+  // Aggressive optimizations - full inter-procedural.
+  // Same post-inlining cleanup as O2.
+  O3: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
   // Size optimization - eliminate dead code, no inlining (increases size)
   Os: ['dead-function-elim', 'dead-global-elim'],

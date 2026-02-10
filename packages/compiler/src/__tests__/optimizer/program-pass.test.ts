@@ -184,19 +184,28 @@ describe('PROGRAM_LEVEL_PASSES configuration', () => {
     expect(getProgramPassesForLevel('O0')).toEqual([]);
   });
 
-  it('O1 has dead-function-elim and function-inline', () => {
+  it('O1 has dead-function-elim, function-inline, and post-inline dead-function-elim', () => {
     const passes = getProgramPassesForLevel('O1');
     expect(passes).toContain('dead-function-elim');
     expect(passes).toContain('function-inline');
-    expect(passes).toHaveLength(2);
+    // DFE runs both before AND after inlining to clean up fully-inlined functions
+    expect(passes).toHaveLength(3);
+    expect(passes[0]).toBe('dead-function-elim');
+    expect(passes[1]).toBe('function-inline');
+    expect(passes[2]).toBe('dead-function-elim');
   });
 
-  it('O2 has dead-function-elim, dead-global-elim, function-inline', () => {
+  it('O2 has dead-function-elim, dead-global-elim, function-inline, and post-inline dead-function-elim', () => {
     const passes = getProgramPassesForLevel('O2');
     expect(passes).toContain('dead-function-elim');
     expect(passes).toContain('dead-global-elim');
     expect(passes).toContain('function-inline');
-    expect(passes).toHaveLength(3);
+    // DFE runs both before AND after inlining to clean up fully-inlined functions
+    expect(passes).toHaveLength(4);
+    expect(passes[0]).toBe('dead-function-elim');
+    expect(passes[1]).toBe('dead-global-elim');
+    expect(passes[2]).toBe('function-inline');
+    expect(passes[3]).toBe('dead-function-elim');
   });
 
   it('O3 matches O2 program passes', () => {

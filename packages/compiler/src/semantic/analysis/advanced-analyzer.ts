@@ -34,6 +34,10 @@ import type {
   IdentifierExpression,
   AssignmentExpression,
   ForStatement,
+  WhileStatement,
+  DoWhileStatement,
+  IfStatement,
+  BlockStatement,
   FunctionDecl,
 } from '../../ast/index.js';
 import { ASTWalker } from '../../ast/walker/index.js';
@@ -520,6 +524,70 @@ export class AdvancedAnalyzer {
       }
 
       /**
+       * Enters a child scope that was created for a specific AST node.
+       *
+       * Mirrors the TypeCheckerBase.enterChildScopeForNode() pattern.
+       * Searches currentScope.children for a child whose `node` property
+       * matches the given AST node (by reference equality).
+       *
+       * Used for while, do-while, for, and block statements, which each
+       * create exactly one child scope per node.
+       *
+       * @param node - The AST node that created the scope
+       */
+      protected enterChildScopeForNode(node: unknown): void {
+        if (!this.currentScope) return;
+
+        for (const childScope of this.currentScope.children) {
+          if (childScope.node === node) {
+            this.currentScope = childScope;
+            return;
+          }
+        }
+        // If no matching child scope found, stay in current scope.
+        // This is a graceful fallback — the symbol table builder may
+        // not have created a scope for this node (e.g., empty body).
+      }
+
+      /**
+       * Enters the Nth child scope created for a specific AST node.
+       *
+       * Mirrors the TypeCheckerBase.enterChildScopeByNodeIndex() pattern.
+       * Used for if statements, which create separate scopes for the
+       * then-branch (index 0) and else-branch (index 1), both referencing
+       * the same IfStatement node.
+       *
+       * @param node - The AST node that created the scopes
+       * @param index - Zero-based index of which matching scope to enter
+       */
+      protected enterChildScopeByNodeIndex(node: unknown, index: number): void {
+        if (!this.currentScope) return;
+
+        let matchCount = 0;
+        for (const childScope of this.currentScope.children) {
+          if (childScope.node === node) {
+            if (matchCount === index) {
+              this.currentScope = childScope;
+              return;
+            }
+            matchCount++;
+          }
+        }
+        // Graceful fallback if scope not found (stay in current scope)
+      }
+
+      /**
+       * Exits the current scope by moving to its parent.
+       *
+       * Mirrors the TypeCheckerBase.exitScope() pattern.
+       */
+      protected exitScope(): void {
+        if (this.currentScope?.parent) {
+          this.currentScope = this.currentScope.parent;
+        }
+      }
+
+      /**
        * Override visitFunctionDecl to track the function's scope.
        * This ensures symbols are looked up in the correct scope context.
        */
@@ -590,17 +658,168 @@ export class AdvancedAnalyzer {
         this.currentAssignment = prevAssignment;
       }
 
+      /**
+       * Override visitForStatement to enter the loop scope.
+       *
+       * The SymbolTableBuilder creates a loop scope for each for-statement
+       * body that contains the loop counter variable declaration. Without
+       * entering this scope, variables used inside the for-body are looked
+       * up in the parent scope, which may not find them or may find the
+       * wrong symbol — causing false "unused variable" warnings.
+       *
+       * Following the same pattern as StatementTypeChecker.visitForStatement:
+       * - Visit start/end expressions in the parent scope (before entering loop scope)
+       * - Enter the child loop scope
+       * - Visit the body statements
+       * - Exit the loop scope
+       */
       override visitForStatement(node: ForStatement): void {
+        // Visit start and end expressions in the PARENT scope
+        // (they are evaluated before the loop scope exists)
+        node.getStart().accept(this);
+        node.getEnd().accept(this);
+
+        // Enter the loop scope created by the symbol table builder
+        // This scope contains the loop counter variable
+        this.enterChildScopeForNode(node);
+
         // Mark loop counter as a loop counter (may be intentionally unused)
-        // Blend65 for loops have a 'variable' property, not an initializer
+        // Must look up AFTER entering the loop scope, because the counter
+        // is declared in the loop scope, not the parent scope
         const varName = node.getVariable();
         const symbol = this.lookupSymbol(varName);
         if (symbol) {
           this.usageAnalyzer.markAsLoopCounter(symbol);
         }
 
-        // Continue normal traversal
-        super.visitForStatement(node);
+        // Visit body statements in the loop scope
+        for (const stmt of node.getBody()) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+
+        // Exit the loop scope
+        this.exitScope();
+      }
+
+      /**
+       * Override visitWhileStatement to enter the loop scope.
+       *
+       * The SymbolTableBuilder creates a loop scope for each while-statement
+       * body. Without entering this scope, variables declared inside the
+       * while-body are not found during lookup — causing false "unused
+       * variable" warnings for variables used only within the loop.
+       *
+       * Following the same pattern as StatementTypeChecker.visitWhileStatement:
+       * - Visit condition in the parent scope
+       * - Enter the child loop scope
+       * - Visit the body statements
+       * - Exit the loop scope
+       */
+      override visitWhileStatement(node: WhileStatement): void {
+        // Visit condition in the PARENT scope
+        node.getCondition().accept(this);
+
+        // Enter the loop scope created by the symbol table builder
+        this.enterChildScopeForNode(node);
+
+        // Visit body statements in the loop scope
+        for (const stmt of node.getBody()) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+
+        // Exit the loop scope
+        this.exitScope();
+      }
+
+      /**
+       * Override visitDoWhileStatement to enter the loop scope.
+       *
+       * Following the same pattern as StatementTypeChecker.visitDoWhileStatement:
+       * - Enter the child loop scope
+       * - Visit the body statements
+       * - Exit the loop scope
+       * - Visit condition in the parent scope (condition is checked AFTER body)
+       */
+      override visitDoWhileStatement(node: DoWhileStatement): void {
+        // Enter the loop scope created by the symbol table builder
+        this.enterChildScopeForNode(node);
+
+        // Visit body statements in the loop scope (body executes first)
+        for (const stmt of node.getBody()) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+
+        // Exit the loop scope
+        this.exitScope();
+
+        // Visit condition in the PARENT scope (evaluated after body)
+        node.getCondition().accept(this);
+      }
+
+      /**
+       * Override visitIfStatement to enter then/else branch scopes.
+       *
+       * The SymbolTableBuilder creates separate block scopes for the
+       * then-branch (index 0) and else-branch (index 1), both using
+       * the same IfStatement node as the scope key. Without entering
+       * these scopes, variables declared inside if/else branches are
+       * not found during lookup.
+       *
+       * Following the same pattern as StatementTypeChecker.visitIfStatement:
+       * - Visit condition in the parent scope
+       * - Enter then-branch scope (index 0), visit then statements, exit
+       * - Enter else-branch scope (index 1), visit else statements, exit
+       */
+      override visitIfStatement(node: IfStatement): void {
+        const thenBranch = node.getThenBranch();
+        const elseBranch = node.getElseBranch();
+
+        // Visit condition in the PARENT scope
+        node.getCondition().accept(this);
+
+        // Visit then branch in its block scope (index 0)
+        this.enterChildScopeByNodeIndex(node, 0);
+        for (const stmt of thenBranch) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+        this.exitScope();
+
+        // Visit else branch in its block scope (index 1), if present
+        if (elseBranch) {
+          this.enterChildScopeByNodeIndex(node, 1);
+          for (const stmt of elseBranch) {
+            if (this.shouldStop) break;
+            stmt.accept(this);
+          }
+          this.exitScope();
+        }
+      }
+
+      /**
+       * Override visitBlockStatement to enter the block scope.
+       *
+       * The SymbolTableBuilder creates a block scope for standalone
+       * block statements. Without entering this scope, variables
+       * declared inside the block are not found during lookup.
+       *
+       * Following the same pattern as StatementTypeChecker.visitBlockStatement.
+       */
+      override visitBlockStatement(node: BlockStatement): void {
+        // Enter the block scope created by the symbol table builder
+        this.enterChildScopeForNode(node);
+
+        // Visit all statements in the block scope
+        for (const stmt of node.getStatements()) {
+          if (this.shouldStop) break;
+          stmt.accept(this);
+        }
+
+        // Exit the block scope
+        this.exitScope();
       }
     }
 
