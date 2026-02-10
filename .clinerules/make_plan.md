@@ -982,3 +982,75 @@ clear && scripts/agent.sh finished
 ```
 exec_plan [feature] → implement tasks → update plan → wrap up → /compact → exec_plan [feature]
 ```
+
+---
+
+## **Part 3: Split Content Recovery (`split_content`)**
+
+### **TRIGGER KEYWORD: `split_content`**
+
+### **What This Means**
+
+When the user types `split_content`, your **previous response silently failed** because you attempted to output more content than the AI model's output token limit allows. This error is **invisible to you** — you cannot see it, but the user can. This command is your signal to recover and continue.
+
+### **Recovery Protocol**
+
+#### Step 1: Acknowledge the Failure
+
+Recognize that your last attempt exceeded the output limit. Do NOT retry the same approach.
+
+#### Step 2: Assess What Was Being Created
+
+1. ✅ Identify the files/classes you were trying to create or write
+2. ✅ Estimate the size of each file (line count, token count)
+3. ✅ Identify which files are too large to output in a single response
+
+#### Step 3: Split the Content
+
+Apply these splitting strategies based on what you were creating:
+
+**For large files (>300 lines):**
+- Split into multiple smaller files grouped by logical concern
+- Create a shared `index.ts` barrel export to maintain the same public API
+- Each resulting file should be **200-300 lines maximum**
+
+**For large classes (>500 lines):**
+- Use the **multi-chain inheritance technique** (see `code.md` Rules 20-23)
+- Break into: `Base → Layer1 → Layer2 → ... → Concrete`
+- Each layer: **200-500 lines maximum**
+- Each layer adds one primary concern
+
+**For React components:**
+- Extract complex logic into custom hooks
+- Split sub-components into separate files
+- Use composition over monolithic components
+
+**For any content type:**
+- No single file should require **>30K tokens** to write
+- Aim for **15-20K tokens** per response to stay safely under the 60K output limit
+- Write one file per response if files are large
+
+#### Step 4: Resume — Don't Restart
+
+1. ✅ **Do NOT start over** — continue from where the failure occurred
+2. ✅ Write the split files **one at a time**, smallest first
+3. ✅ After each file is written successfully, proceed to the next
+4. ✅ Maintain all intended functionality — splitting is structural, not functional
+
+### **Size Guidelines**
+
+| Content | Max Per Response | Strategy |
+|---------|-----------------|----------|
+| Single file | 300 lines | Write in one response |
+| Large file (300-600 lines) | Split into 2-3 files | Group by concern |
+| Very large file (600+ lines) | Split into 3+ files | Inheritance chain or modules |
+| Multiple files | 2-3 small files | Write sequentially |
+| Large class | 500 lines per layer | Multi-chain inheritance |
+
+### **Key Reminder**
+
+```
+Max AI output: 60K tokens per response
+Max AI input: 200K tokens context window
+Target per file write: 15-20K tokens (safe margin)
+```
