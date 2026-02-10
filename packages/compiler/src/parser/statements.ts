@@ -74,6 +74,23 @@ export abstract class StatementParser extends ModuleParser {
    * @returns Statement AST node representing the parsed statement
    */
   protected parseStatement(): Statement {
+    // Check for storage class annotations inside function body — not allowed
+    // Storage classes (@zp, @ram, @data) are only valid at module scope
+    if (this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA)) {
+      const storageToken = this.advance();
+      // Map token type to human-readable name for error message
+      const storageClassName =
+        storageToken.type === TokenType.ZP ? '@zp' :
+        storageToken.type === TokenType.RAM ? '@ram' : '@data';
+      this.reportError(
+        DiagnosticCode.UNEXPECTED_TOKEN,
+        StatementParserErrors.storageClassInsideFunction(storageClassName)
+      );
+      // Continue parsing the variable declaration to recover gracefully
+      // (the storage class is consumed but ignored)
+      return this.parseLocalVariableDeclaration();
+    }
+
     // Function-local variable declarations
     if (this.check(TokenType.LET, TokenType.CONST)) {
       return this.parseLocalVariableDeclaration();

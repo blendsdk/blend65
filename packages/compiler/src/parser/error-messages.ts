@@ -309,6 +309,21 @@ export const StatementParserErrors = {
   // ============================================
 
   /**
+   * Storage class annotation used inside a function body.
+   *
+   * Storage classes (@zp, @ram, @data) are only valid at module scope
+   * for global variable declarations. They cannot be used for
+   * function-local variables.
+   *
+   * @param storageClass - The storage class that was used (e.g., "@zp")
+   * @returns Formatted error message
+   */
+  storageClassInsideFunction: (storageClass: string): string => {
+    return `Storage class '${storageClass}' is only allowed at module scope. ` +
+      `Function-local variables cannot use storage class annotations`;
+  },
+
+  /**
    * Invalid statement in current context
    *
    * @param statement - Description of statement
