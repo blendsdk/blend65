@@ -53,7 +53,6 @@
 - Type system definitions and behavior
 - Operator precedence and associativity
 - Statement vs expression rules
-- Memory-mapped variable syntax (@map forms)
 - Function declaration syntax
 - Module system behavior
 - Error handling specifications
@@ -797,7 +796,7 @@ EOF
 
 ❌ **Any variation of inline execution:**
 ```bash
-node -e "..." 
+node -e "..."
 node --eval "..."
 echo "..." | node
 node <<< "..."
@@ -818,11 +817,11 @@ node <<< "..."
    ```typescript
    // scripts/debug-lexer-tokens.ts
    import { Lexer } from '../packages/compiler/src/lexer/lexer.js';
-   
+
    const source = 'let x: byte = 5;';
    const lexer = new Lexer(source);
    const tokens = lexer.tokenize();
-   
+
    console.log('Tokens:', tokens);
    ```
 

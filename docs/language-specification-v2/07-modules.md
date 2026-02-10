@@ -141,6 +141,58 @@ export const MAX_SPRITES: byte = 8;
 export @zp let frameCounter: byte = 0;
 ```
 
+### Exporting Variables with Storage Classes
+
+Exported variables **preserve their storage class** across module boundaries. This is especially important for `@zp` variables, where the compiler ensures the same zero-page address is used in all modules that import the variable.
+
+```js
+// File: game/state.blend
+module game.state;
+
+// Exported @zp variable — gets a single ZP address shared across all importers
+export @zp let playerX: byte = 10;
+export @zp let playerY: byte = 10;
+
+// Exported @ram variable — gets a single RAM address shared across all importers
+export @ram let score: word = 0;
+
+// Exported @data constant — shared read-only data in the data segment
+export @data const sinTable: byte[4] = [0, 90, 127, 90];
+```
+
+```js
+// File: game/render.blend
+module game.render;
+
+import { playerX, playerY } from game.state;
+import { sinTable } from game.state;
+
+export function drawPlayer(): void {
+  // playerX and playerY use the SAME ZP addresses as in game.state
+  // The compiler generates ZP-mode instructions (faster, smaller code)
+  poke($0400 + playerY * 40 + playerX, 42);
+}
+```
+
+**Cross-Module `@zp` Sharing Rules:**
+
+| Rule | Description |
+|------|-------------|
+| **Single address** | An exported `@zp` variable is assigned one ZP address used by all modules |
+| **ZP-mode codegen** | All modules importing a `@zp` variable use ZP-mode 6502 instructions |
+| **Volatile semantics** | `@zp` globals are treated as volatile (not cached across statements) |
+| **Pool sharing** | Global `@zp` allocations reduce the ZP pool available for function locals |
+
+**ZP Pool Sharing**: When global `@zp` variables are allocated, they consume space from the zero-page pool. The remaining ZP space is then available for the SFA auto-scoring system to allocate performance-critical function locals. This means excessive `@zp` globals can reduce optimization opportunities for local variables.
+
+```
+ZP Pool ($02-$8F, ~142 bytes):
+┌──────────────────┬──────────────────────────┐
+│  Global @zp vars │  SFA auto-scored locals  │
+│  (allocated 1st) │  (remaining space)       │
+└──────────────────┴──────────────────────────┘
+```
+
 ### Exporting Types
 
 ```js

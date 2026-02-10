@@ -156,7 +156,25 @@ Allocates variable in **initialized data section** (ROM-able):
 - **Speed**: Standard read access (no writes)
 - **Use for**: Constant lookup tables, pre-initialized data
 
-**Typically used with const:**
+**Compile-Time Rules (enforced by the compiler):**
+
+1. **`@data` REQUIRES `const`** — using `@data` with `let` is a compile error:
+
+```js
+@data const table: byte[4] = [1, 2, 3, 4];    // ✅ OK
+@data let buffer: byte[4] = [1, 2, 3, 4];     // ❌ Error: DATA_REQUIRES_CONST (S010)
+```
+
+2. **`@data` REQUIRES an initializer** — `@data` without a value is a compile error:
+
+```js
+@data const table: byte[4] = [1, 2, 3, 4];    // ✅ OK
+@data const table: byte[4];                     // ❌ Error: DATA_REQUIRES_INITIALIZER (S011)
+```
+
+**Rationale**: `@data` represents pre-initialized, read-only data placed in the binary's data segment. Without `const`, the data could be accidentally modified at runtime. Without an initializer, there is nothing to place in the data segment.
+
+**Examples:**
 ```js
 @data const sinTable: byte[256] = [/* ... */];
 @data const spriteData: byte[64] = [/* ... */];
@@ -286,6 +304,32 @@ function calculate(): byte {
 
 // temp is not accessible here
 ```
+
+### Storage Classes Are Module-Level Only
+
+Storage class directives (`@zp`, `@ram`, `@data`) are **only allowed on module-level variable declarations**. Using a storage class inside a function body is a compile error:
+
+```js
+module Game.Main;
+
+// ✅ OK: Storage classes at module level
+@zp let globalCounter: byte = 0;
+@ram let globalBuffer: byte[256];
+@data const lookupTable: byte[4] = [1, 2, 3, 4];
+
+function update(): void {
+  // ❌ ERROR: Storage classes not allowed inside functions
+  @zp let localCounter: byte = 0;    // Compile error
+  @ram let localBuffer: byte[10];    // Compile error
+  @data const localTable: byte[2] = [1, 2]; // Compile error
+
+  // ✅ OK: Regular local variables (no storage class)
+  let temp: byte = 0;
+  const limit: byte = 10;
+}
+```
+
+**Rationale**: Function-local variables are managed by the compiler's **Static Frame Allocation (SFA)** system, which automatically assigns optimal memory locations (including zero-page promotion via auto-scoring). Storage classes are only meaningful for module-level globals where the programmer controls placement explicitly.
 
 ### No Block-Level Scope
 

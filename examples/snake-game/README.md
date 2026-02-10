@@ -9,7 +9,6 @@
 
 This is a complete, production-ready Snake game implementation written in Blend65, demonstrating the full capabilities of the language including:
 
-- Hardware register access via `@map`
 - Zero-page optimization for performance-critical variables
 - State machine architecture with enums
 - Modular design with multiple files

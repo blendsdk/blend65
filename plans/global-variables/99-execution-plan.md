@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-02 03:14
-> **Progress**: 6/55 tasks (11%)
+> **Last Updated**: 2026-10-02 06:55
+> **Progress**: 21/55 tasks (38%)
 
 ## Overview
 
@@ -340,24 +340,24 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 1.1.4 Add @data validation (const + initializer) ✅ (completed: 2026-10-02 03:14)
 - [x] 1.1.5 Update getZpDirective() for @data ✅ (completed: 2026-10-02 03:14)
 - [x] 1.1.6 Write foundation tests (~29 tests) ✅ (completed: 2026-10-02 03:14)
-- [ ] 1.2.1 Update 03-variables.md with storage class section
-- [ ] 1.2.2 Add @data rules and EBNF grammar
-- [ ] 1.2.3 Document module-level only restriction
-- [ ] 1.2.4 Add cross-module @zp docs to 07-modules.md
-- [ ] 1.2.5 Update README table of contents
+- [x] 1.2.1 Update 03-variables.md with storage class section ✅ (completed: 2026-10-02 06:44)
+- [x] 1.2.2 Add @data rules and EBNF grammar ✅ (completed: 2026-10-02 06:44)
+- [x] 1.2.3 Document module-level only restriction ✅ (completed: 2026-10-02 06:44)
+- [x] 1.2.4 Add cross-module @zp docs to 07-modules.md ✅ (completed: 2026-10-02 06:45)
+- [x] 1.2.5 Update README table of contents ✅ (completed: 2026-10-02 06:45 — already up to date)
 
 ### Phase 2: Global Allocator
 
-- [ ] 2.1.1 Create GlobalAllocator skeleton
-- [ ] 2.1.2 Implement collectGlobals()
-- [ ] 2.1.3 Implement categorizeByStorageClass()
-- [ ] 2.1.4 Implement allocateZpGlobals()
-- [ ] 2.1.5 Write core allocation tests (~15)
-- [ ] 2.2.1 Implement allocateRamGlobals()
-- [ ] 2.2.2 Implement allocateDataGlobals()
-- [ ] 2.2.3 Implement allocate() orchestration
-- [ ] 2.2.4 Add error handling and diagnostics
-- [ ] 2.2.5 Write RAM + data tests (~10)
+- [x] 2.1.1 Create GlobalAllocator skeleton ✅ (completed: 2026-10-02 06:50)
+- [x] 2.1.2 Implement collectGlobals() ✅ (completed: 2026-10-02 06:50)
+- [x] 2.1.3 Implement categorizeByStorageClass() ✅ (completed: 2026-10-02 06:50)
+- [x] 2.1.4 Implement allocateZpGlobals() ✅ (completed: 2026-10-02 06:50)
+- [x] 2.1.5 Write core allocation tests (26 tests) ✅ (completed: 2026-10-02 06:55)
+- [x] 2.2.1 Implement allocateRamGlobals() ✅ (completed: 2026-10-02 06:50 — included in initial implementation)
+- [x] 2.2.2 Implement allocateDataGlobals() ✅ (completed: 2026-10-02 06:50 — included in initial implementation)
+- [x] 2.2.3 Implement allocate() orchestration ✅ (completed: 2026-10-02 06:50 — included in initial implementation)
+- [x] 2.2.4 Add error handling and diagnostics ✅ (completed: 2026-10-02 06:50 — ZP overflow diagnostics)
+- [x] 2.2.5 Write RAM + data tests ✅ (completed: 2026-10-02 06:55 — included in 26-test suite)
 - [ ] 2.3.1 Modify FrameAllocator for pre-used ZP pool
 - [ ] 2.3.2 Update FramePhase.execute() for GlobalAllocator
 - [ ] 2.3.3 Pass GlobalAllocationResult through pipeline

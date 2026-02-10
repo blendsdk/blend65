@@ -32,7 +32,7 @@ When the user types "cap65", execute this comprehensive analysis to create a det
 - Read: `packages/compiler/src/lexer/types.ts`
 - Analyze: All token types, operators, keywords, literals
 - Document: Number formats, string handling, comment processing
-- Examine: Storage class tokenization (@zp, @ram, @data, @map)
+- Examine: Storage class tokenization (@zp, @ram, @data)
 
 **1.2 Parser Architecture Analysis**
 
@@ -117,7 +117,7 @@ let counter: byte = 0;
 - All operators (arithmetic, comparison, logical, bitwise, assignment)
 - All keywords and storage classes
 - All expression types (unary, binary, function calls, member access)
-- All declaration types (variables, @map, functions)
+- All declaration types (variables, functions)
 - Real-world C64 programming patterns
 
 ### **Analysis Depth Requirements**

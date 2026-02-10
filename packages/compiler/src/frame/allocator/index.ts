@@ -25,3 +25,6 @@ export * from './frame-allocator.js';
 
 // Session 3.1-3.4: Frame Coalescer
 export * from './coalescer.js';
+
+// Global Variable Allocator
+export * from './global-allocator.js';
