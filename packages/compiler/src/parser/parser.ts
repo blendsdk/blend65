@@ -151,7 +151,14 @@ export class Parser extends StatementParser {
       else if (this.check(TokenType.ENUM)) {
         declarations.push(this.parseEnumDecl());
       }
-      // Parse variable declaration (v2: no storage classes - handled by frame allocator)
+      // Parse variable declaration with optional storage class prefix
+      // Per language spec v2 section 03-variables.md:
+      // variable_decl = [ storage_class ] , mutability , identifier ...
+      // storage_class = "@zp" | "@ram" | "@data"
+      else if (this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA)) {
+        declarations.push(this.parseVariableDecl());
+      }
+      // Parse variable declaration (no storage class)
       else if (this.isLetOrConst()) {
         declarations.push(this.parseVariableDecl());
       } else {

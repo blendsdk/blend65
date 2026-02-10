@@ -432,7 +432,8 @@ export abstract class BaseParser {
     }
 
     // At module scope - only declarations allowed
-    // NOTE: v2 removes MAP, ZP, RAM, DATA from this list
+    // Storage classes (@zp, @ram, @data) are valid prefixes for variable declarations
+    // per language specification v2 section 03-variables.md
     const validModuleTokens = [
       TokenType.MODULE,
       TokenType.IMPORT,
@@ -443,6 +444,9 @@ export abstract class BaseParser {
       TokenType.CONST,
       TokenType.TYPE,
       TokenType.ENUM,
+      TokenType.ZP,   // Storage class: @zp (zero page)
+      TokenType.RAM,  // Storage class: @ram (general RAM)
+      TokenType.DATA, // Storage class: @data (initialized data section)
       TokenType.EOF,
       TokenType.NEWLINE,
       TokenType.LINE_COMMENT,

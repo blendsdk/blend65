@@ -1,12 +1,7 @@
 {
   "cline.editor.skipDiffAnimation":true,
   "editor.codeActionsOnSave": {
+    "source.removeUnusedImports": "always"
   },
-  "[markdown]": {
-    "editor.formatOnType": false,
-    "editor.formatOnSave": false,
-    "editor.formatOnPaste": false
-  },
-  "diffEditor.renderSideBySide": false,
-  "diffEditor.maxFileSize": 0,
+  "editor.formatOnSave": true
 }
