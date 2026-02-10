@@ -94,11 +94,14 @@ export class ILPhase {
       };
     }
 
-    // Create IL generator with frame map and symbol table
-    // The frame map provides resolved memory addresses for variables
+    // Create IL generator with frame map, symbol table, and global allocation
+    // The frame map provides resolved addresses for function-local variables
+    // The globalAllocation provides resolved addresses for module-level globals
+    const globalAllocation = frameResult.globalAllocation ?? null;
     const generator = new ILGenerator(
       frameResult.frameMap,
-      moduleResult.symbolTable
+      moduleResult.symbolTable,
+      globalAllocation
     );
 
     // Generate IL from the program AST

@@ -263,6 +263,11 @@ export class ILGenerator extends ILGeneratorControlFlow {
    * Global initializers are collected separately from function
    * instructions and executed at program startup.
    *
+   * Handles each storage class differently:
+   * - @data const: **SKIPPED** — data is embedded in binary, no runtime init needed
+   * - const (without @data): **SKIPPED** — compile-time constants, resolved inline
+   * - @zp / @ram / default: Generates LOAD + STORE instructions with allocated address
+   *
    * @param decl - Global variable declaration
    * @param globalInit - Array to add instructions to
    */
@@ -270,39 +275,58 @@ export class ILGenerator extends ILGeneratorControlFlow {
     decl: VariableDecl,
     globalInit: ILInstruction[]
   ): void {
-    // Skip const declarations - they are compile-time constants
-    // resolved during codegen (e.g., const BORDER: word = $D020
-    // is used inline, not stored at runtime)
+    // Skip const declarations — compile-time constants are resolved inline
+    // (e.g., const BORDER: word = $D020 is used as immediate, not stored)
     if (decl.isConst()) {
+      return;
+    }
+
+    // Skip @data declarations — data is embedded in binary at compile time,
+    // no runtime initialization IL is needed
+    const globalSlot = this.findGlobalSlot(decl.getName());
+    if (globalSlot && globalSlot.storageClass === 'data') {
       return;
     }
 
     const initializer = decl.getInitializer();
     if (!initializer) {
-      return; // No initialization needed
+      return; // No initialization needed (variable starts at whatever is in memory)
     }
 
-    // Save current state
+    // Save current builder state (global init uses a separate instruction stream)
     const savedInstructions = this.builder.getInstructions().slice();
     this.builder.clear();
 
-    // Generate initializer
+    // Generate the initializer expression — result will be in accumulator
     this.setLocation(decl.getLocation());
     this.generateExpression(initializer);
 
-    // Note: Global slot resolution needs special handling
-    // For now, we just collect the instructions
-    // Full global support will be added in Phase 7c
+    // Store the initialized value to the global variable's allocated address
+    // Resolve the variable to get its FrameSlot (with proper address from GlobalAllocator)
+    const slot = this.tryResolveModuleVariable(decl.getName());
+    if (slot) {
+      // Determine if this is a word-sized store
+      const isWord = slot.size === 2;
 
-    // Collect generated instructions
+      // Add volatile comment for @zp globals (optimization hint)
+      const volatileTag = globalSlot?.storageClass === 'zp' ? ' [volatile:zp]' : '';
+      const comment = `init global ${decl.getName()}${volatileTag}`;
+
+      if (isWord) {
+        this.builder.storeSlotWord(slot, comment);
+      } else {
+        this.builder.storeSlot(slot, comment);
+      }
+    }
+
+    // Collect the generated initialization instructions
     for (const instr of this.builder.getInstructions()) {
       globalInit.push(instr);
     }
 
-    // Restore state
+    // Restore builder to its previous state
     this.builder.clear();
     for (const instr of savedInstructions) {
-      // Re-emit saved instructions
       this.builder.emit(instr.opcode, instr.operands, instr.comment);
     }
 

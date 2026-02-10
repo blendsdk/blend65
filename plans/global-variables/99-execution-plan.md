@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-02 08:03
-> **Progress**: 26/55 tasks (47%)
+> **Last Updated**: 2026-10-02 10:35
+> **Progress**: 38/55 tasks (69%)
 
 ## Overview
 
@@ -366,18 +366,18 @@ This document defines the execution phases and AI chat sessions for implementing
 
 ### Phase 3: IL Generator (Phase 7c)
 
-- [ ] 3.1.1 Add globalSlots map to ILGenerator
-- [ ] 3.1.2 Implement global variable resolution
-- [ ] 3.1.3 Update ILPhase for GlobalAllocationResult
-- [ ] 3.1.4 Write global slot resolution tests (~10)
-- [ ] 3.2.1 Complete generateGlobalInit() for @zp/@ram
-- [ ] 3.2.2 Skip @data in generateGlobalInit
-- [ ] 3.2.3 Add volatile flag to @zp instructions
-- [ ] 3.2.4 Write global init IL tests (~10)
-- [ ] 3.3.1 Implement global load in expressions
-- [ ] 3.3.2 Implement global store in assignments
-- [ ] 3.3.3 Handle global in binary/conditions/args
-- [ ] 3.3.4 Write global access IL tests (~15)
+- [x] 3.1.1 Add globalSlots map to ILGenerator ✅ (completed: 2026-10-02 10:20)
+- [x] 3.1.2 Implement global variable resolution ✅ (completed: 2026-10-02 10:22)
+- [x] 3.1.3 Update ILPhase for GlobalAllocationResult ✅ (completed: 2026-10-02 10:23)
+- [x] 3.1.4 Write global slot resolution tests (8 tests) ✅ (completed: 2026-10-02 10:32)
+- [x] 3.2.1 Complete generateGlobalInit() for @zp/@ram ✅ (completed: 2026-10-02 10:25)
+- [x] 3.2.2 Skip @data in generateGlobalInit ✅ (completed: 2026-10-02 10:25)
+- [x] 3.2.3 Add volatile flag to @zp instructions ✅ (completed: 2026-10-02 10:25)
+- [x] 3.2.4 Write global init IL tests (7 tests) ✅ (completed: 2026-10-02 10:32)
+- [x] 3.3.1 Implement global load in expressions ✅ (completed: 2026-10-02 10:25 — uses existing resolution path)
+- [x] 3.3.2 Implement global store in assignments ✅ (completed: 2026-10-02 10:25 — uses existing resolution path)
+- [x] 3.3.3 Handle global in binary/conditions/args ✅ (completed: 2026-10-02 10:25 — uses existing resolution path)
+- [x] 3.3.4 Write global access IL tests (5 tests) + legacy tests (2 tests) ✅ (completed: 2026-10-02 10:32)
 
 ### Phase 4: Codegen & Data Segment
 

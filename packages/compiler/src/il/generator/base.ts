@@ -14,6 +14,7 @@ import { SourceLocation } from '../../ast/base.js';
 import { Frame } from '../../frame/allocator/frame-calculator.js';
 import { FrameSlot, createFrameSlot } from '../../frame/types.js';
 import { SlotKind, SlotLocation, ZpDirective } from '../../frame/enums.js';
+import type { GlobalSlot, GlobalAllocationResult } from '../../frame/types-global.js';
 import { SymbolTable } from '../../semantic/symbol-table.js';
 import { SymbolKind } from '../../semantic/symbol.js';
 import { TypeKind, BUILTIN_TYPES, TypeInfo } from '../../semantic/types.js';
@@ -65,14 +66,35 @@ export class ILGeneratorBase {
   protected maxLoopDepth: number = 0;
 
   /**
-   * Cache of module-level variable slots
+   * Global variable slots from the GlobalAllocator.
    *
+   * When provided (via GlobalAllocationResult), these slots contain
+   * properly allocated addresses for module-level variables.
+   * Key is the qualified name (e.g., "Game.score") or simple name.
+   *
+   * Takes priority over the legacy symbol-table-based module variable resolution.
+   */
+  protected globalSlots: Map<string, GlobalSlot>;
+
+  /**
+   * Cache of FrameSlot conversions from GlobalSlots.
+   *
+   * Since ILBuilder operates on FrameSlots, we convert GlobalSlots to
+   * FrameSlots on first access and cache the result.
+   * Key is the simple variable name (for current-module lookups).
+   */
+  protected globalFrameSlotCache: Map<string, FrameSlot> = new Map();
+
+  /**
+   * Cache of module-level variable slots (legacy fallback).
+   *
+   * Used when no GlobalAllocationResult is provided.
    * Module-level variables are allocated in the frame region after function frames.
    * This cache stores synthetic FrameSlot objects for these variables.
    */
   protected moduleVariableSlots: Map<string, FrameSlot> = new Map();
 
-  /** Next available address for module-level variables (starts after frame region functions) */
+  /** Next available address for module-level variables (legacy fallback, starts after frame region functions) */
   protected nextModuleVarAddress: number = 0;
 
   /**
@@ -80,11 +102,19 @@ export class ILGeneratorBase {
    *
    * @param frameMap - Frame map from SFA (function name → Frame)
    * @param symbolTable - Symbol table from semantic analysis
+   * @param globalAllocation - Optional result from GlobalAllocator with allocated global variable addresses
    */
-  constructor(frameMap: Map<string, Frame>, symbolTable: SymbolTable) {
+  constructor(
+    frameMap: Map<string, Frame>,
+    symbolTable: SymbolTable,
+    globalAllocation?: GlobalAllocationResult | null,
+  ) {
     this.builder = new ILBuilder();
     this.frameMap = frameMap;
     this.symbolTable = symbolTable;
+
+    // Use global slots from the allocator if available, otherwise empty
+    this.globalSlots = globalAllocation?.globals ?? new Map();
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -168,14 +198,164 @@ export class ILGeneratorBase {
   /**
    * Try to resolve a module-level variable.
    *
-   * Checks the symbol table for module-level (root scope) variables.
-   * If found, creates or returns a cached FrameSlot for the variable.
+   * Resolution strategy:
+   * 1. If GlobalAllocator provided slots (globalSlots is non-empty),
+   *    look up by simple name or qualified name from the GlobalSlot map.
+   *    This provides properly allocated addresses from the GlobalAllocator.
+   * 2. Otherwise, fall back to legacy symbol-table-based resolution
+   *    that creates synthetic FrameSlots with sequentially assigned addresses.
+   *
+   * @param name - Variable name to resolve (simple name, e.g., "score")
+   * @returns FrameSlot or undefined if not a module-level variable
+   */
+  protected tryResolveModuleVariable(name: string): FrameSlot | undefined {
+    // Strategy 1: Use properly allocated GlobalSlots when available
+    if (this.globalSlots.size > 0) {
+      return this.tryResolveGlobalSlot(name);
+    }
+
+    // Strategy 2: Legacy fallback (no GlobalAllocator)
+    return this.tryResolveLegacyModuleVariable(name);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Global Slot Resolution (New — uses GlobalAllocator results)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Try to resolve a variable name against the GlobalSlot map.
+   *
+   * Searches the globalSlots map by:
+   * 1. Check the FrameSlot cache first (for previously converted slots)
+   * 2. Try exact match by qualified name (e.g., "Game.score")
+   * 3. Try match by simple name across all modules
+   *
+   * Converts the found GlobalSlot to a FrameSlot and caches it.
+   *
+   * @param name - Variable name (simple or qualified)
+   * @returns FrameSlot or undefined if not found in global slots
+   */
+  protected tryResolveGlobalSlot(name: string): FrameSlot | undefined {
+    // Check the FrameSlot cache first (avoids repeated conversions)
+    if (this.globalFrameSlotCache.has(name)) {
+      return this.globalFrameSlotCache.get(name);
+    }
+
+    // Try exact match by qualified name (e.g., "Game.score")
+    const exactMatch = this.globalSlots.get(name);
+    if (exactMatch) {
+      return this.convertAndCacheGlobalSlot(name, exactMatch);
+    }
+
+    // Try match by simple name (search all global slots)
+    for (const globalSlot of this.globalSlots.values()) {
+      if (globalSlot.name === name) {
+        return this.convertAndCacheGlobalSlot(name, globalSlot);
+      }
+    }
+
+    // Not found in global slots — fall back to legacy resolution
+    // (handles symbols like constants that might not have been allocated globally)
+    return this.tryResolveLegacyModuleVariable(name);
+  }
+
+  /**
+   * Convert a GlobalSlot to a FrameSlot and cache the result.
+   *
+   * Maps storage class to SlotLocation:
+   * - 'zp' → SlotLocation.ZeroPage (fast 2-byte instructions)
+   * - 'ram' / 'default' → SlotLocation.FrameRegion (absolute 3-byte instructions)
+   * - 'data' → SlotLocation.FrameRegion (read-only, absolute addressing)
+   *
+   * Maps storage class to ZpDirective:
+   * - 'zp' → ZpDirective.Zp
+   * - 'ram' → ZpDirective.Ram
+   * - 'data' → ZpDirective.Data
+   * - 'default' → ZpDirective.None
+   *
+   * @param cacheKey - Key for the cache (simple variable name)
+   * @param globalSlot - The GlobalSlot to convert
+   * @returns The converted FrameSlot
+   */
+  protected convertAndCacheGlobalSlot(cacheKey: string, globalSlot: GlobalSlot): FrameSlot {
+    // Determine SlotLocation based on storage class
+    const location = globalSlot.storageClass === 'zp'
+      ? SlotLocation.ZeroPage
+      : SlotLocation.FrameRegion;
+
+    // Determine ZpDirective based on storage class
+    let zpDirective: ZpDirective;
+    switch (globalSlot.storageClass) {
+      case 'zp':
+        zpDirective = ZpDirective.Zp;
+        break;
+      case 'ram':
+        zpDirective = ZpDirective.Ram;
+        break;
+      case 'data':
+        zpDirective = ZpDirective.Data;
+        break;
+      default:
+        zpDirective = ZpDirective.None;
+        break;
+    }
+
+    // Create FrameSlot with the globally allocated address
+    const frameSlot = createFrameSlot(globalSlot.name, SlotKind.Local, globalSlot.type, {
+      zpDirective,
+      location,
+      address: globalSlot.address,
+      offset: 0,
+    });
+
+    // Cache for future lookups
+    this.globalFrameSlotCache.set(cacheKey, frameSlot);
+
+    return frameSlot;
+  }
+
+  /**
+   * Check if a variable name resolves to a GlobalSlot.
+   *
+   * Useful for checking storage class or const status of a global
+   * variable without creating a FrameSlot conversion.
+   *
+   * @param name - Variable name (simple or qualified)
+   * @returns The GlobalSlot or undefined if not found
+   */
+  protected findGlobalSlot(name: string): GlobalSlot | undefined {
+    // Try exact match by qualified name
+    const exactMatch = this.globalSlots.get(name);
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    // Try match by simple name
+    for (const globalSlot of this.globalSlots.values()) {
+      if (globalSlot.name === name) {
+        return globalSlot;
+      }
+    }
+
+    return undefined;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Legacy Module Variable Resolution (Fallback)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Legacy fallback: resolve a module-level variable via symbol table.
+   *
+   * Used when no GlobalAllocationResult is provided (backward compatibility).
+   * Creates synthetic FrameSlots with sequentially assigned addresses
+   * after function frames in the frame region.
    *
    * @param name - Variable name to resolve
    * @returns FrameSlot or undefined if not a module-level variable
    */
-  protected tryResolveModuleVariable(name: string): FrameSlot | undefined {
-    // Check cache first
+  protected tryResolveLegacyModuleVariable(name: string): FrameSlot | undefined {
+    // Check legacy cache first
     if (this.moduleVariableSlots.has(name)) {
       return this.moduleVariableSlots.get(name);
     }
@@ -220,7 +400,7 @@ export class ILGeneratorBase {
     const address = this.nextModuleVarAddress;
     this.nextModuleVarAddress += size;
 
-    // Create a synthetic FrameSlot for the module-level variable using createFrameSlot
+    // Create a synthetic FrameSlot for the module-level variable
     const slot = createFrameSlot(name, SlotKind.Local, typeInfo, {
       zpDirective: ZpDirective.None,
       location: SlotLocation.FrameRegion,
@@ -235,7 +415,7 @@ export class ILGeneratorBase {
   }
 
   /**
-   * Initialize the starting address for module-level variables.
+   * Initialize the starting address for legacy module-level variables.
    *
    * Module-level variables are placed after all function frames in the frame region.
    * This computes the next available address after the highest function frame.
