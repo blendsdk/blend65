@@ -27,6 +27,8 @@ import { FrameSlot } from '../types.js';
 import { PlatformConfig, C64_PLATFORM_CONFIG } from '../platform.js';
 import { Frame, FrameCalculator } from './frame-calculator.js';
 import { ZpAllocator, ZpAllocationSummary } from './zp-allocator.js';
+import type { ZpPool } from './zp-pool.js';
+import type { GlobalAllocationResult } from '../types-global.js';
 
 // ============================================================================
 // Types
@@ -142,6 +144,16 @@ export interface FrameAllocationResult {
 
   /** ZP allocation summary (if ZP allocation was performed) */
   readonly zpAllocationSummary?: ZpAllocationSummary;
+
+  /**
+   * Global variable allocation result (if global allocation was performed).
+   *
+   * Contains the map of all module-level variables with their assigned addresses,
+   * the shared ZP pool, and data/RAM segment sizes.
+   * This is set by FramePhase when it runs GlobalAllocator before function-local SFA.
+   * Downstream phases (IL, codegen) use this to resolve global variable references.
+   */
+  readonly globalAllocation?: GlobalAllocationResult;
 }
 
 // ============================================================================
@@ -187,6 +199,13 @@ export class FrameAllocator {
   /** Zero page allocator */
   protected readonly zpAllocator: ZpAllocator;
 
+  /**
+   * Whether the ZP pool was shared from an external source (e.g., GlobalAllocator).
+   * When true, the pool already has global @zp variables allocated and must NOT
+   * be reset before function-local allocation.
+   */
+  protected readonly usesSharedZpPool: boolean;
+
   // ========================================
   // Constructor
   // ========================================
@@ -194,18 +213,38 @@ export class FrameAllocator {
   /**
    * Create a new Frame Allocator.
    *
+   * When a `zpPool` is provided (from GlobalAllocator), it is used for ZP
+   * allocation instead of creating a fresh pool. This enables ZP pool sharing
+   * between global and function-local allocation — globals are allocated first,
+   * and the remaining ZP space is available for function-local variables.
+   *
    * @param config - Platform configuration (default: C64)
    * @param symbolTable - Optional symbol table for frame calculator
+   * @param zpPool - Optional pre-used ZP pool (e.g., from GlobalAllocator with @zp globals already allocated)
    *
    * @example
    * ```typescript
+   * // Standard usage (fresh ZP pool)
    * const allocator = new FrameAllocator(C64_PLATFORM_CONFIG);
+   *
+   * // With shared ZP pool from GlobalAllocator
+   * const globalResult = globalAllocator.allocate(programs);
+   * const allocator = new FrameAllocator(config, symbolTable, globalResult.zpPool);
    * ```
    */
-  constructor(config: PlatformConfig = C64_PLATFORM_CONFIG, symbolTable?: SymbolTable) {
+  constructor(config: PlatformConfig = C64_PLATFORM_CONFIG, symbolTable?: SymbolTable, zpPool?: ZpPool) {
     this.config = config;
     this.calculator = new FrameCalculator(symbolTable ?? new SymbolTable());
-    this.zpAllocator = new ZpAllocator(config);
+
+    // If a pre-used ZP pool is provided (e.g., from GlobalAllocator),
+    // use it to ensure function-local allocations don't conflict with global @zp variables
+    if (zpPool) {
+      this.zpAllocator = new ZpAllocator(zpPool);
+      this.usesSharedZpPool = true;
+    } else {
+      this.zpAllocator = new ZpAllocator(config);
+      this.usesSharedZpPool = false;
+    }
   }
 
   // ========================================
@@ -330,7 +369,12 @@ export class FrameAllocator {
     }
 
     // Step 5: Allocate ZP for all slots
-    this.zpAllocator.reset();
+    // Only reset if NOT using a shared ZP pool (from GlobalAllocator).
+    // When shared, the pool already has global @zp variables allocated
+    // and resetting would erase those allocations.
+    if (!this.usesSharedZpPool) {
+      this.zpAllocator.reset();
+    }
     const allSlots = this.collectAllSlots(frameMap);
     const zpSummary = this.zpAllocator.allocate(allSlots);
 

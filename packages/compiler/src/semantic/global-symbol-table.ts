@@ -20,6 +20,7 @@ import { ExportDecl } from '../ast/index.js';
 import { isExportDecl, isFunctionDecl, isVariableDecl } from '../ast/type-guards.js';
 import type { ModuleRegistry } from './module-registry.js';
 import type { TypeInfo } from './types.js';
+import type { GlobalSlot, GlobalAllocationResult } from '../frame/types-global.js';
 
 /**
  * A globally visible symbol (exported from a module)
@@ -472,6 +473,109 @@ export class GlobalSymbolTable {
     }
 
     return false;
+  }
+
+  // ========================================
+  // Global Allocation Integration
+  // ========================================
+
+  /**
+   * Map of global variable slots from the GlobalAllocator.
+   * Key is the qualified name (moduleName.variableName).
+   * Populated by applyGlobalAllocation() after the Frame Phase.
+   */
+  protected globalSlots: Map<string, GlobalSlot> = new Map();
+
+  /**
+   * Apply global allocation results to this symbol table.
+   *
+   * Stores the GlobalSlot map from the GlobalAllocator's result so that
+   * downstream phases (IL generator, codegen) can look up global variable
+   * addresses by qualified name.
+   *
+   * @param allocationResult - Result from GlobalAllocator.allocate()
+   *
+   * @example
+   * ```typescript
+   * // After frame phase completes:
+   * if (frameResult.data.globalAllocation) {
+   *   globalSymbolTable.applyGlobalAllocation(frameResult.data.globalAllocation);
+   * }
+   * ```
+   */
+  public applyGlobalAllocation(allocationResult: GlobalAllocationResult): void {
+    this.globalSlots = new Map(allocationResult.globals);
+  }
+
+  /**
+   * Get a global variable slot by qualified name.
+   *
+   * Used by IL generator and codegen to resolve global variable
+   * references to their allocated addresses.
+   *
+   * @param qualifiedName - Fully qualified name (moduleName.variableName)
+   * @returns The GlobalSlot, or undefined if not found
+   *
+   * @example
+   * ```typescript
+   * const slot = globalTable.getGlobalSlot('Game.score');
+   * if (slot) {
+   *   console.log(`score is at $${slot.address.toString(16)}`);
+   * }
+   * ```
+   */
+  public getGlobalSlot(qualifiedName: string): GlobalSlot | undefined {
+    return this.globalSlots.get(qualifiedName);
+  }
+
+  /**
+   * Get a global variable slot by module name and variable name.
+   *
+   * Convenience method that constructs the qualified name.
+   *
+   * @param moduleName - Module name
+   * @param variableName - Variable name
+   * @returns The GlobalSlot, or undefined if not found
+   */
+  public getGlobalSlotByName(moduleName: string, variableName: string): GlobalSlot | undefined {
+    const qualifiedName = this.makeQualifiedName(moduleName, variableName);
+    return this.globalSlots.get(qualifiedName);
+  }
+
+  /**
+   * Check if a variable name refers to a global variable.
+   *
+   * Searches all global slots for a matching variable name.
+   * Returns the first match (or undefined if no match).
+   *
+   * @param variableName - Simple variable name to check
+   * @returns The GlobalSlot if found, undefined otherwise
+   */
+  public findGlobalSlotBySimpleName(variableName: string): GlobalSlot | undefined {
+    for (const slot of this.globalSlots.values()) {
+      if (slot.name === variableName) {
+        return slot;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Get all global slots.
+   *
+   * @returns Map of qualified name → GlobalSlot
+   */
+  public getAllGlobalSlots(): Map<string, GlobalSlot> {
+    return new Map(this.globalSlots);
+  }
+
+  /**
+   * Check if any global slots have been allocated.
+   *
+   * @returns true if global allocation data is present
+   */
+  public hasGlobalSlots(): boolean {
+    return this.globalSlots.size > 0;
   }
 
   /**

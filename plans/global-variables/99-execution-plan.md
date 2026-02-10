@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-02 06:55
-> **Progress**: 21/55 tasks (38%)
+> **Last Updated**: 2026-10-02 08:03
+> **Progress**: 26/55 tasks (47%)
 
 ## Overview
 
@@ -358,11 +358,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 2.2.3 Implement allocate() orchestration ✅ (completed: 2026-10-02 06:50 — included in initial implementation)
 - [x] 2.2.4 Add error handling and diagnostics ✅ (completed: 2026-10-02 06:50 — ZP overflow diagnostics)
 - [x] 2.2.5 Write RAM + data tests ✅ (completed: 2026-10-02 06:55 — included in 26-test suite)
-- [ ] 2.3.1 Modify FrameAllocator for pre-used ZP pool
-- [ ] 2.3.2 Update FramePhase.execute() for GlobalAllocator
-- [ ] 2.3.3 Pass GlobalAllocationResult through pipeline
-- [ ] 2.3.4 Extend GlobalSymbolTable for allocated addresses
-- [ ] 2.3.5 Write pipeline integration tests (~10)
+- [x] 2.3.1 Modify FrameAllocator for pre-used ZP pool ✅ (completed: 2026-10-02 08:03)
+- [x] 2.3.2 Update FramePhase.execute() for GlobalAllocator ✅ (completed: 2026-10-02 08:03)
+- [x] 2.3.3 Pass GlobalAllocationResult through pipeline ✅ (completed: 2026-10-02 08:03)
+- [x] 2.3.4 Extend GlobalSymbolTable for allocated addresses ✅ (completed: 2026-10-02 08:03)
+- [x] 2.3.5 Write pipeline integration tests (11 tests) ✅ (completed: 2026-10-02 08:03)
 
 ### Phase 3: IL Generator (Phase 7c)
 

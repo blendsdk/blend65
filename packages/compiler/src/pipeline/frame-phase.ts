@@ -20,7 +20,9 @@
  */
 
 import { FrameAllocator, createEmptyAllocationStats, type FrameAllocationResult, type FrameDiagnostic } from '../frame/allocator/frame-allocator.js';
+import { GlobalAllocator } from '../frame/allocator/global-allocator.js';
 import { type PlatformConfig, C64_PLATFORM_CONFIG } from '../frame/platform.js';
+import type { GlobalAllocationResult } from '../frame/types-global.js';
 import type { MultiModuleAnalysisResult, AnalysisResult } from '../semantic/analyzer.js';
 import type { Program } from '../ast/program.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
@@ -95,15 +97,29 @@ export class FramePhase {
       };
     }
 
-    // Create frame allocator with platform config and symbol table
-    const allocator = new FrameAllocator(this.platformConfig, moduleResult.symbolTable);
-
     // Collect program ASTs from ALL modules (not just the primary)
-    // This ensures functions in imported modules also get frame allocations
+    // This ensures both global and function-local allocations cover all modules
     const allPrograms = this.collectAllModulePrograms(semanticResult);
 
-    // Run frame allocation across ALL module programs using
-    // the primary module's call graph for recursion detection
+    // Step 1: Run GlobalAllocator FIRST to allocate module-level variables.
+    // This assigns addresses to @zp, @ram, @data, and default globals.
+    // The resulting zpPool has @zp globals already allocated.
+    const globalAllocation = this.runGlobalAllocation(allPrograms, diagnostics);
+
+    // If global allocation had errors, we still continue with function-local
+    // allocation (to report as many errors as possible), but mark overall failure.
+    const globalSuccess = globalAllocation?.success ?? true;
+
+    // Step 2: Create frame allocator with shared ZP pool from GlobalAllocator.
+    // By passing the pre-used zpPool, function-local @zp variables won't
+    // conflict with global @zp addresses.
+    const allocator = new FrameAllocator(
+      this.platformConfig,
+      moduleResult.symbolTable,
+      globalAllocation?.zpPool, // shared ZP pool (may be undefined if no globals)
+    );
+
+    // Step 3: Run function-local frame allocation across ALL module programs
     const allocationResult = allocator.allocateMultiplePrograms(
       allPrograms,
       moduleResult.callGraph,
@@ -115,10 +131,16 @@ export class FramePhase {
       diagnostics.push(this.frameDiagnosticToStandard(frameDiag));
     }
 
+    // Build combined result with both global and function-local allocation data
+    const combinedResult: FrameAllocationResult = {
+      ...allocationResult,
+      globalAllocation: globalAllocation ?? undefined,
+    };
+
     return {
-      data: allocationResult,
+      data: combinedResult,
       diagnostics,
-      success: allocationResult.success,
+      success: allocationResult.success && globalSuccess,
       timeMs: performance.now() - startTime,
     };
   }
@@ -249,6 +271,65 @@ export class FramePhase {
         end: { line: 1, column: 1, offset: 0 },
       },
     };
+  }
+
+  /**
+   * Run global variable allocation on all programs.
+   *
+   * Creates a GlobalAllocator, runs it on all program ASTs, and converts
+   * any diagnostics to standard Diagnostic format. The resulting
+   * GlobalAllocationResult contains the shared ZP pool and address map.
+   *
+   * Returns null if allocation fails catastrophically (shouldn't happen
+   * in practice — GlobalAllocator always returns a result).
+   *
+   * @param allPrograms - All parsed Program ASTs from all modules
+   * @param diagnostics - Diagnostic array to append global allocation diagnostics to
+   * @returns GlobalAllocationResult, or null on catastrophic failure
+   */
+  protected runGlobalAllocation(
+    allPrograms: Program[],
+    diagnostics: Diagnostic[],
+  ): GlobalAllocationResult | null {
+    try {
+      const globalAllocator = new GlobalAllocator(this.platformConfig);
+      const globalResult = globalAllocator.allocate(allPrograms);
+
+      // Convert GlobalAllocationDiagnostics to standard Diagnostics
+      for (const globalDiag of globalResult.diagnostics) {
+        const severityStr = globalDiag.severity as unknown as string;
+        const severity = severityStr === 'error'
+          ? DiagnosticSeverity.ERROR
+          : severityStr === 'warning'
+            ? DiagnosticSeverity.WARNING
+            : DiagnosticSeverity.INFO;
+
+        let message = globalDiag.message;
+        if (globalDiag.variableName) {
+          message = `[global: ${globalDiag.variableName}] ${message}`;
+        }
+
+        diagnostics.push({
+          code: DiagnosticCode.TYPE_MISMATCH,
+          severity,
+          message,
+          location: {
+            source: globalDiag.moduleName ?? '<global-allocator>',
+            start: { line: 1, column: 1, offset: 0 },
+            end: { line: 1, column: 1, offset: 0 },
+          },
+        });
+      }
+
+      return globalResult;
+    } catch (error) {
+      // Catastrophic failure in global allocation — should not happen
+      const message = error instanceof Error ? error.message : String(error);
+      diagnostics.push(this.createInternalError(
+        `Global allocation failed: ${message}`
+      ));
+      return null;
+    }
   }
 
   /**
