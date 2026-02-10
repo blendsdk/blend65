@@ -30,6 +30,28 @@ import type { AsmInstruction } from '../../types.js';
 export type RegisterValue = number | string | undefined;
 
 /**
+ * Describes how a specific register (X or Y) is used within a code range.
+ *
+ * Used by the register promotion pass to determine whether a register
+ * is "free" for promotion — meaning it is neither read nor written
+ * anywhere in the range. If both `isRead` and `isWritten` are false,
+ * the register is available for use as a loop counter or index variable.
+ */
+export interface RegisterUsageInfo {
+  /** Whether the register is read (used as a source operand) */
+  isRead: boolean;
+
+  /** Whether the register is written (used as a destination) */
+  isWritten: boolean;
+
+  /** Instruction indices where the register is read */
+  readIndices: number[];
+
+  /** Instruction indices where the register is written */
+  writeIndices: number[];
+}
+
+/**
  * Represents the known state of the three 6502 general-purpose registers.
  *
  * Each register can hold:
@@ -231,5 +253,164 @@ export class RegisterTracker {
       x: undefined,
       y: undefined,
     };
+  }
+
+  /**
+   * Scan a range of instructions and determine how a specific register
+   * (X or Y) is used.
+   *
+   * This is used by the register promotion pass to check whether X or Y
+   * is "free" in a loop body. A register is free for promotion when it
+   * is neither read nor written anywhere in the instruction range.
+   *
+   * **What counts as "reading" X:**
+   * - TXA, TXS (X is the source register)
+   * - STX (stores X to memory)
+   * - CPX (compares X with a value)
+   * - Any instruction using AbsoluteX, ZeroPageX, IndexedIndirect mode
+   *
+   * **What counts as "writing" X:**
+   * - LDX (loads a new value into X)
+   * - TAX, TSX (transfers into X)
+   * - INX, DEX (modifies X)
+   *
+   * The same logic applies to Y with the corresponding mnemonics and modes.
+   *
+   * @param instructions - Array of instructions to scan
+   * @param register - Which register to check ('x' or 'y')
+   * @returns Usage information describing reads and writes
+   */
+  scanRegisterUsage(
+    instructions: AsmInstruction[],
+    register: 'x' | 'y'
+  ): RegisterUsageInfo {
+    const info: RegisterUsageInfo = {
+      isRead: false,
+      isWritten: false,
+      readIndices: [],
+      writeIndices: [],
+    };
+
+    for (let i = 0; i < instructions.length; i++) {
+      const instr = instructions[i];
+      const reads = register === 'x'
+        ? this.readsX(instr)
+        : this.readsY(instr);
+      const writes = register === 'x'
+        ? this.writesX(instr)
+        : this.writesY(instr);
+
+      if (reads) {
+        info.isRead = true;
+        info.readIndices.push(i);
+      }
+      if (writes) {
+        info.isWritten = true;
+        info.writeIndices.push(i);
+      }
+    }
+
+    return info;
+  }
+
+  /**
+   * Check whether an instruction reads the X register.
+   *
+   * An instruction "reads" X when X's current value affects the
+   * instruction's behavior — either as a direct source (TXA, STX, CPX)
+   * or as an index modifier (AbsoluteX, ZeroPageX, IndexedIndirect).
+   *
+   * @param instr - The instruction to check
+   * @returns true if the instruction reads X
+   */
+  protected readsX(instr: AsmInstruction): boolean {
+    // Direct reads from X register
+    const xReadMnemonics = ['TXA', 'TXS', 'STX', 'CPX'];
+    if (xReadMnemonics.includes(instr.mnemonic)) return true;
+
+    // Indexed addressing modes that use X as index
+    const xIndexedModes = [
+      AsmAddressingMode.ZeroPageX,
+      AsmAddressingMode.AbsoluteX,
+      AsmAddressingMode.IndexedIndirect, // (addr,X)
+    ];
+    if (xIndexedModes.includes(instr.mode)) return true;
+
+    return false;
+  }
+
+  /**
+   * Check whether an instruction writes to the X register.
+   *
+   * An instruction "writes" X when it modifies X's value — either
+   * by loading a new value (LDX), transferring from another register
+   * (TAX, TSX), or incrementing/decrementing (INX, DEX).
+   *
+   * @param instr - The instruction to check
+   * @returns true if the instruction writes X
+   */
+  protected writesX(instr: AsmInstruction): boolean {
+    const xWriteMnemonics = ['LDX', 'TAX', 'TSX', 'INX', 'DEX'];
+    return xWriteMnemonics.includes(instr.mnemonic);
+  }
+
+  /**
+   * Check whether an instruction reads the Y register.
+   *
+   * An instruction "reads" Y when Y's current value affects the
+   * instruction's behavior — either as a direct source (TYA, STY, CPY)
+   * or as an index modifier (AbsoluteY, ZeroPageY, IndirectIndexed).
+   *
+   * @param instr - The instruction to check
+   * @returns true if the instruction reads Y
+   */
+  protected readsY(instr: AsmInstruction): boolean {
+    // Direct reads from Y register
+    const yReadMnemonics = ['TYA', 'STY', 'CPY'];
+    if (yReadMnemonics.includes(instr.mnemonic)) return true;
+
+    // Indexed addressing modes that use Y as index
+    const yIndexedModes = [
+      AsmAddressingMode.ZeroPageY,
+      AsmAddressingMode.AbsoluteY,
+      AsmAddressingMode.IndirectIndexed, // (addr),Y
+    ];
+    if (yIndexedModes.includes(instr.mode)) return true;
+
+    return false;
+  }
+
+  /**
+   * Check whether an instruction writes to the Y register.
+   *
+   * An instruction "writes" Y when it modifies Y's value — either
+   * by loading a new value (LDY), transferring from another register
+   * (TAY), or incrementing/decrementing (INY, DEY).
+   *
+   * @param instr - The instruction to check
+   * @returns true if the instruction writes Y
+   */
+  protected writesY(instr: AsmInstruction): boolean {
+    const yWriteMnemonics = ['LDY', 'TAY', 'INY', 'DEY'];
+    return yWriteMnemonics.includes(instr.mnemonic);
+  }
+
+  /**
+   * Check if a register is completely free (not used at all) in a
+   * range of instructions.
+   *
+   * Convenience method that calls `scanRegisterUsage` and returns
+   * true only if the register is neither read nor written.
+   *
+   * @param instructions - Array of instructions to check
+   * @param register - Which register to check ('x' or 'y')
+   * @returns true if the register is not used at all
+   */
+  isRegisterFree(
+    instructions: AsmInstruction[],
+    register: 'x' | 'y'
+  ): boolean {
+    const usage = this.scanRegisterUsage(instructions, register);
+    return !usage.isRead && !usage.isWritten;
   }
 }

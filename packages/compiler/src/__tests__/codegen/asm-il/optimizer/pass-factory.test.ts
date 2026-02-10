@@ -68,57 +68,61 @@ describe('ASM-IL Pass Factory', () => {
       expect(passes[1].name).toBe('store-load');
     });
 
-    it('should return 6 passes for O2 (O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr)', () => {
+    it('should return 7 passes for O2 (O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr + RegisterPromote)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O2));
-      expect(passes).toHaveLength(6);
+      expect(passes).toHaveLength(7);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
       expect(passes[4].name).toBe('compare-branch');
       expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('register-promote');
     });
 
-    it('should return 9 passes for O3 (O2 + ZPPromotion + Strength6502 + StackOpt)', () => {
+    it('should return 10 passes for O3 (O2 + ZPPromotion + Strength6502 + StackOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O3));
-      expect(passes).toHaveLength(9);
+      expect(passes).toHaveLength(10);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
       expect(passes[4].name).toBe('compare-branch');
       expect(passes[5].name).toBe('indexed-addr');
-      expect(passes[6].name).toBe('zp-promotion');
-      expect(passes[7].name).toBe('6502-strength');
-      expect(passes[8].name).toBe('stack-opt');
+      expect(passes[6].name).toBe('register-promote');
+      expect(passes[7].name).toBe('zp-promotion');
+      expect(passes[8].name).toBe('6502-strength');
+      expect(passes[9].name).toBe('stack-opt');
     });
 
-    it('should return 9 passes for Os (O2 + ZPPromotion + StackOpt + SizeOpt)', () => {
+    it('should return 10 passes for Os (O2 + ZPPromotion + StackOpt + SizeOpt)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Os));
-      expect(passes).toHaveLength(9);
+      expect(passes).toHaveLength(10);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
       expect(passes[4].name).toBe('compare-branch');
       expect(passes[5].name).toBe('indexed-addr');
-      expect(passes[6].name).toBe('zp-promotion');
-      expect(passes[7].name).toBe('stack-opt');
-      expect(passes[8].name).toBe('size-opt');
+      expect(passes[6].name).toBe('register-promote');
+      expect(passes[7].name).toBe('zp-promotion');
+      expect(passes[8].name).toBe('stack-opt');
+      expect(passes[9].name).toBe('size-opt');
     });
 
-    it('should return 9 passes for Oz (O2 + ZPPromotion + StackOpt + SizeOpt-aggressive)', () => {
+    it('should return 10 passes for Oz (O2 + ZPPromotion + StackOpt + SizeOpt-aggressive)', () => {
       const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.Oz));
-      expect(passes).toHaveLength(9);
+      expect(passes).toHaveLength(10);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
       expect(passes[3].name).toBe('transfer-opt');
       expect(passes[4].name).toBe('compare-branch');
       expect(passes[5].name).toBe('indexed-addr');
-      expect(passes[6].name).toBe('zp-promotion');
-      expect(passes[7].name).toBe('stack-opt');
-      expect(passes[8].name).toBe('size-opt');
+      expect(passes[6].name).toBe('register-promote');
+      expect(passes[7].name).toBe('zp-promotion');
+      expect(passes[8].name).toBe('stack-opt');
+      expect(passes[9].name).toBe('size-opt');
     });
 
     it('should accept custom zpSlots in options', () => {
@@ -185,24 +189,24 @@ describe('ASM-IL Pass Factory', () => {
       expect(planned[OptimizationLevel.O1]).toBe(2);
     });
 
-    it('should plan 6 passes for O2 (O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr)', () => {
+    it('should plan 7 passes for O2 (O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr + RegisterPromote)', () => {
       const planned = getPlannedPassCounts();
-      expect(planned[OptimizationLevel.O2]).toBe(6);
+      expect(planned[OptimizationLevel.O2]).toBe(7);
     });
 
-    it('should plan 9 passes for O3 (O2 + ZP + Strength + Stack)', () => {
+    it('should plan 10 passes for O3 (O2 + ZP + Strength + Stack)', () => {
       const planned = getPlannedPassCounts();
-      expect(planned[OptimizationLevel.O3]).toBe(9);
+      expect(planned[OptimizationLevel.O3]).toBe(10);
     });
 
-    it('should plan 9 passes for Os (O2 + ZP + Stack + Size)', () => {
+    it('should plan 10 passes for Os (O2 + ZP + Stack + Size)', () => {
       const planned = getPlannedPassCounts();
-      expect(planned[OptimizationLevel.Os]).toBe(9);
+      expect(planned[OptimizationLevel.Os]).toBe(10);
     });
 
-    it('should plan 9 passes for Oz (O2 + ZP + Stack + Size-aggressive)', () => {
+    it('should plan 10 passes for Oz (O2 + ZP + Stack + Size-aggressive)', () => {
       const planned = getPlannedPassCounts();
-      expect(planned[OptimizationLevel.Oz]).toBe(9);
+      expect(planned[OptimizationLevel.Oz]).toBe(10);
     });
 
     it('should show O0 < O1 < O2 pass count progression', () => {

@@ -150,12 +150,12 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('O2: Standard optimization', () => {
-    it('should have exactly 6 passes', () => {
+    it('should have exactly 7 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
-      expect(optimizer.getPasses()).toHaveLength(6);
+      expect(optimizer.getPasses()).toHaveLength(7);
     });
 
-    it('should include O1 passes plus BranchOpt, TransferOpt, CompareBranch, IndexedAddr', () => {
+    it('should include O1 passes plus BranchOpt, TransferOpt, CompareBranch, IndexedAddr, RegisterPromote', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
       const passes = optimizer.getPasses();
       expect(passes[0].name).toBe('flag-patterns');
@@ -164,6 +164,7 @@ describe('Integration: Level Configurations', () => {
       expect(passes[3].name).toBe('transfer-opt');
       expect(passes[4].name).toBe('compare-branch');
       expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('register-promote');
     });
 
     it('should have no ZP slots', () => {
@@ -187,9 +188,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('O3: Aggressive optimization', () => {
-    it('should have exactly 9 passes', () => {
+    it('should have exactly 10 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O3 });
-      expect(optimizer.getPasses()).toHaveLength(9);
+      expect(optimizer.getPasses()).toHaveLength(10);
     });
 
     it('should include O2 passes plus ZPPromotion, Strength6502, StackOpt', () => {
@@ -201,9 +202,10 @@ describe('Integration: Level Configurations', () => {
       expect(passes[3].name).toBe('transfer-opt');
       expect(passes[4].name).toBe('compare-branch');
       expect(passes[5].name).toBe('indexed-addr');
-      expect(passes[6].name).toBe('zp-promotion');
-      expect(passes[7].name).toBe('6502-strength');
-      expect(passes[8].name).toBe('stack-opt');
+      expect(passes[6].name).toBe('register-promote');
+      expect(passes[7].name).toBe('zp-promotion');
+      expect(passes[8].name).toBe('6502-strength');
+      expect(passes[9].name).toBe('stack-opt');
     });
 
     it('should have 8 ZP slots (0x50-0x57)', () => {
@@ -239,9 +241,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('Os: Size optimization', () => {
-    it('should have exactly 9 passes', () => {
+    it('should have exactly 10 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Os });
-      expect(optimizer.getPasses()).toHaveLength(9);
+      expect(optimizer.getPasses()).toHaveLength(10);
     });
 
     it('should include O2 passes plus ZPPromotion, StackOpt, SizeOpt', () => {
@@ -253,9 +255,10 @@ describe('Integration: Level Configurations', () => {
       expect(passes[3].name).toBe('transfer-opt');
       expect(passes[4].name).toBe('compare-branch');
       expect(passes[5].name).toBe('indexed-addr');
-      expect(passes[6].name).toBe('zp-promotion');
-      expect(passes[7].name).toBe('stack-opt');
-      expect(passes[8].name).toBe('size-opt');
+      expect(passes[6].name).toBe('register-promote');
+      expect(passes[7].name).toBe('zp-promotion');
+      expect(passes[8].name).toBe('stack-opt');
+      expect(passes[9].name).toBe('size-opt');
     });
 
     it('should have 4 ZP slots (0x50-0x53)', () => {
@@ -276,9 +279,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('Oz: Minimum size optimization', () => {
-    it('should have exactly 9 passes', () => {
+    it('should have exactly 10 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Oz });
-      expect(optimizer.getPasses()).toHaveLength(9);
+      expect(optimizer.getPasses()).toHaveLength(10);
     });
 
     it('should include same passes as Os', () => {

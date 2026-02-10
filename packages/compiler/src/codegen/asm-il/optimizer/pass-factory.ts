@@ -16,6 +16,7 @@
  * TransferOpt            -   -   ✓   ✓   ✓   ✓
  * CompareBranch          -   -   ✓   ✓   ✓   ✓
  * IndexedAddr            -   -   ✓   ✓   ✓   ✓
+ * RegisterPromote        -   -   ✓   ✓   ✓   ✓
  * ZPPromotion            -   -   -   ✓   ✓   ✓
  * Strength6502           -   -   -   ✓   -   -
  * StackOpt               -   -   -   ✓   ✓   ✓
@@ -56,6 +57,9 @@ import { StackOptPass } from './passes/stack-opt.js';
 
 // Phase 6: Size Passes (Os/Oz)
 import { SizeOptPass } from './passes/size-opt.js';
+
+// Phase 7: Register Promotion (O2+)
+import { RegisterPromotePass } from './passes/register-promote.js';
 
 // ============================================================================
 // Pass Factory
@@ -107,6 +111,7 @@ export function createPassesForLevel(
     passes.push(new TransferOptPass());
     passes.push(new CompareBranchPass());
     passes.push(new IndexedAddrPass());
+    passes.push(new RegisterPromotePass());
   }
 
   // ── O3 passes: Aggressive optimization ─────────────────────────────────
@@ -166,9 +171,9 @@ export function getPlannedPassCounts(): Record<OptimizationLevel, number> {
   return {
     [OptimizationLevel.O0]: 0,
     [OptimizationLevel.O1]: 2,  // FlagPatterns + StoreLoad
-    [OptimizationLevel.O2]: 6,  // O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr
-    [OptimizationLevel.O3]: 9,  // O2 + ZPPromotion + Strength6502 + StackOpt
-    [OptimizationLevel.Os]: 9,  // O2 + ZPPromotion + StackOpt + SizeOpt
-    [OptimizationLevel.Oz]: 9,  // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive)
+    [OptimizationLevel.O2]: 7,  // O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr + RegisterPromote
+    [OptimizationLevel.O3]: 10, // O2 + ZPPromotion + Strength6502 + StackOpt
+    [OptimizationLevel.Os]: 10, // O2 + ZPPromotion + StackOpt + SizeOpt
+    [OptimizationLevel.Oz]: 10, // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive)
   };
 }

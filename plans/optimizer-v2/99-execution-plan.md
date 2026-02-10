@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-09-02 23:21
-> **Progress**: 47/52 tasks (Phase 1-3 complete, Phase 4.1-4.2 complete)
+> **Last Updated**: 2026-10-02 00:11
+> **Progress**: 52/57 tasks (Phase 1-3 complete, Phase 4.1-4.3 complete)
 
 ## Overview
 
@@ -420,11 +420,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 4.2.3 Implement hoistToPreheader() ✅ (completed: 2026-09-02 22:50)
 - [x] 4.2.4 Register for O2+ ✅ (completed: 2026-09-02 22:50)
 - [x] 4.2.5 Write LICM tests (~17) ✅ (completed: 2026-09-02 23:10)
-- [ ] 4.3.1 Create LoopUnrollPass
-- [ ] 4.3.2 Implement getIterationCount()
-- [ ] 4.3.3 Implement unrollLoop()
-- [ ] 4.3.4 Register for O2+ (not Os/Oz)
-- [ ] 4.3.5 Write loop unroll tests (~10)
+- [x] 4.3.1 Create LoopUnrollPass (3-layer: Base→Analysis→Pass) ✅ (completed: 2026-10-02 00:11)
+- [x] 4.3.2 Implement getIterationCount() ✅ (completed: 2026-10-02 00:11)
+- [x] 4.3.3 Implement unrollLoop() (full + partial) ✅ (completed: 2026-10-02 00:11)
+- [x] 4.3.4 Register for O2/O3 (not Os/Oz) ✅ (completed: 2026-10-02 00:11)
+- [x] 4.3.5 Write loop unroll tests (~17) ✅ (completed: 2026-10-02 00:11)
 - [ ] 4.4.1 Extend register-tracker for X/Y availability
 - [ ] 4.4.2 Create register promotion logic
 - [ ] 4.4.3 Register in ASM optimizer

@@ -16,7 +16,7 @@ export type { FlagState } from './flag-state.js';
 
 // Register tracking
 export { RegisterTracker } from './register-tracker.js';
-export type { RegisterState, RegisterValue } from './register-tracker.js';
+export type { RegisterState, RegisterValue, RegisterUsageInfo } from './register-tracker.js';
 
 // Address aliasing analysis
 export { AddressAnalyzer } from './address-analyzer.js';

@@ -25,3 +25,6 @@ export { StackOptPass } from './stack-opt.js';
 
 // Phase 6: Size Passes (Os/Oz)
 export { SizeOptPass } from './size-opt.js';
+
+// Phase 7: Register Promotion (O2+)
+export { RegisterPromotePass } from './register-promote.js';
