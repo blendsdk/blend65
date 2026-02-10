@@ -279,7 +279,8 @@ export class Compiler {
     }
 
     // Phase 6: Code Generation (IL → ASM-IL)
-    const codegenResult = this.codegenPhase.execute(optimizeResult.data);
+    // Pass frameResult.data so codegen can build the data segment for @data globals
+    const codegenResult = this.codegenPhase.execute(optimizeResult.data, frameResult.data);
     result.phases.codegen = codegenResult;
     result.diagnostics.push(...codegenResult.diagnostics);
     if (!codegenResult.success || stopAfterPhase === 'codegen') {

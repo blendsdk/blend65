@@ -176,4 +176,18 @@ export interface ILInstruction {
 
   /** Optimization hints */
   hints?: OptimizationHints;
+
+  /**
+   * Whether this instruction accesses volatile memory.
+   *
+   * Set to `true` for instructions that load from or store to @zp
+   * global variables. Volatile access means:
+   * - The value may change between reads (interrupt handlers can modify @zp)
+   * - Writes must not be eliminated (hardware or interrupts may observe them)
+   * - Optimizer must not cache reads across statements (CSE)
+   * - Optimizer must not hoist reads out of loops (LICM)
+   *
+   * @default undefined (treated as false)
+   */
+  isVolatile?: boolean;
 }

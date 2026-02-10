@@ -140,6 +140,16 @@ export class CSEPass extends CSETracker implements OptimizationPass {
 
       // Handle LOAD_BYTE/LOAD_IMM — update accumulator state
       if (instr.opcode === ILOpcode.LOAD_BYTE || instr.opcode === ILOpcode.LOAD_IMM) {
+        // VOLATILE PROTECTION: @zp global loads are volatile — the value
+        // may change between reads (e.g., interrupt handler modifies it).
+        // Do NOT track the accumulator state for volatile loads, which
+        // prevents CSE from forming expression keys that could reuse
+        // a stale cached value. @data globals are const and CAN be cached.
+        if (instr.isVolatile) {
+          this.accState = this.accUnknown();
+          this.pendingExpression = null;
+          continue;
+        }
         this.updateAccFromLoad(instr);
         continue;
       }

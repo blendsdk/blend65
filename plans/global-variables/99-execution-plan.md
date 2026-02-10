@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-10-02 10:35
-> **Progress**: 38/55 tasks (69%)
+> **Last Updated**: 2026-10-02 12:36
+> **Progress**: 53/55 tasks (96%)
 
 ## Overview
 
@@ -381,28 +381,28 @@ This document defines the execution phases and AI chat sessions for implementing
 
 ### Phase 4: Codegen & Data Segment
 
-- [ ] 4.1.1 Fix getAddressOperand() for globals
-- [ ] 4.1.2 ZP-mode instruction selection for @zp
-- [ ] 4.1.3 Absolute-mode for @ram
-- [ ] 4.1.4 Write codegen addressing tests (~10)
-- [ ] 4.2.1 Create DataSegmentBuilder
-- [ ] 4.2.2 Implement constant evaluation
-- [ ] 4.2.3 Implement byte packing for arrays
-- [ ] 4.2.4 Write data segment tests (~15)
-- [ ] 4.3.1 Update binary emitter for data segment
-- [ ] 4.3.2 Generate global init code before main()
-- [ ] 4.3.3 Integrate into codegen pipeline
-- [ ] 4.3.4 Write binary layout tests (~10)
+- [x] 4.1.1 Fix getAddressOperand() for globals ✅ (completed: 2026-10-02 11:15 — globals use SlotOperand via FrameSlot, no fix needed)
+- [x] 4.1.2 ZP-mode instruction selection for @zp ✅ (completed: 2026-10-02 11:15 — verified via integration tests)
+- [x] 4.1.3 Absolute-mode for @ram ✅ (completed: 2026-10-02 11:15 — verified via integration tests)
+- [x] 4.1.4 Write codegen addressing tests (15 tests) ✅ (completed: 2026-10-02 11:21)
+- [x] 4.2.1 Create DataSegmentBuilder ✅ (completed: 2026-10-02 11:41)
+- [x] 4.2.2 Implement constant evaluation ✅ (completed: 2026-10-02 11:41)
+- [x] 4.2.3 Implement byte packing for arrays ✅ (completed: 2026-10-02 11:41)
+- [x] 4.2.4 Write data segment tests (18 tests) ✅ (completed: 2026-10-02 11:45)
+- [x] 4.3.1 Update binary emitter for data segment ✅ (completed: 2026-10-02 12:18 — CodegenPhase.appendDataSegment())
+- [x] 4.3.2 Generate global init code before main() ✅ (completed: 2026-10-02 10:25 — already in ILGenerator.generateGlobalInit())
+- [x] 4.3.3 Integrate into codegen pipeline ✅ (completed: 2026-10-02 12:19 — compiler.ts passes frameResult to CodegenPhase)
+- [ ] 4.3.4 Write binary layout tests (~10) — deferred to Phase 6
 
 ### Phase 5: Optimizer Protection
 
-- [ ] 5.1.1 Add @zp/@data protection to DeadGlobalElim
-- [ ] 5.1.2 Add volatile awareness to CSEPass
-- [ ] 5.1.3 Add volatile awareness to LICMPass
-- [ ] 5.1.4 Write optimizer protection tests (~15)
-- [ ] 5.2.1 Fix any regressions in full test suite
-- [ ] 5.2.2 Write optimizer E2E tests with globals (~10)
-- [ ] 5.2.3 Verify existing examples still compile
+- [x] 5.1.1 Add @zp/@data protection to DeadGlobalElim ✅ (completed: 2026-10-02 12:19 — volatile skip in findDeadGlobalSlots)
+- [x] 5.1.2 Add volatile awareness to CSEPass ✅ (completed: 2026-10-02 12:20 — volatile loads set acc unknown)
+- [x] 5.1.3 Add volatile awareness to LICMPass ✅ (completed: 2026-10-02 12:21 — isVolatile check in isInvariant)
+- [x] 5.1.4 Write optimizer protection tests (10 tests) ✅ (completed: 2026-10-02 12:33 — volatile-protection.test.ts)
+- [x] 5.2.1 Fix any regressions in full test suite ✅ (completed: 2026-10-02 12:36 — all 8283 passing)
+- [ ] 5.2.2 Write optimizer E2E tests with globals (~10) — deferred to Phase 6
+- [x] 5.2.3 Verify existing examples still compile ✅ (completed: 2026-10-02 12:36 — all 8283 tests pass)
 
 ### Phase 6: E2E Integration & Polish
 

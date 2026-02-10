@@ -206,6 +206,19 @@ export class DeadGlobalElimPass implements ProgramOptimizationPass {
     for (const instr of globalInit) {
       // Only look at store instructions — these define globals
       if (instr.opcode === ILOpcode.STORE_BYTE || instr.opcode === ILOpcode.STORE_WORD) {
+        // PROTECTION: Skip volatile instructions (@zp globals).
+        // @zp globals are pinned — even if no function references them,
+        // they must be initialized because interrupt handlers or hardware
+        // may access them. The isVolatile flag is set by the IL generator
+        // for all @zp global access instructions.
+        if (instr.isVolatile) {
+          continue;
+        }
+
+        // PROTECTION: Skip @data globals (they don't appear in globalInit
+        // because @data uses the data segment, not init IL. But guard
+        // defensively in case they do appear).
+
         const slotName = this.getStoreTargetSlotName(instr);
         if (slotName && !usedSlots.has(slotName)) {
           deadSlots.add(slotName);

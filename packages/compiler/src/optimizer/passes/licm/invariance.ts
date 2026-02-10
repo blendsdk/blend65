@@ -145,6 +145,13 @@ export class LICMInvariance extends LICMBase {
     // Rule 4: NOP is not worth hoisting
     if (instr.opcode === ILOpcode.NOP) return false;
 
+    // Rule 6 (NEW): Volatile instructions must stay in the loop.
+    // @zp global loads are volatile because interrupt handlers can
+    // modify the value between iterations. Hoisting them would read
+    // a stale value. @data globals are const and CAN be hoisted
+    // (they don't have isVolatile set).
+    if (instr.isVolatile) return false;
+
     // Rule 5: Check all explicit slot uses
     // Each used slot must either NOT be loop-defined,
     // or be defined by an already-invariant instruction
