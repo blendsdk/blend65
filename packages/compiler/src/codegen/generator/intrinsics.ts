@@ -30,7 +30,9 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
     this.emitComment(instr);
     const addr = this.getAddressOperand(instr.operands);
     const mode = this.getAddressMode(addr);
-    this.asm.lda(addr.address, mode);
+    // LDA supports: zeroPage, zeroPageX, absolute, absoluteX, absoluteY
+    // (zeroPageY is not valid for LDA — only used for LDX)
+    this.asm.lda(addr.address, mode as Parameters<typeof this.asm.lda>[1]);
     this.invalidateA();
   }
 
@@ -50,7 +52,9 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
     this.emitComment(instr);
     const addr = this.getAddressOperand(instr.operands);
     const mode = this.getAddressMode(addr);
-    this.asm.sta(addr.address, mode);
+    // STA supports: zeroPage, zeroPageX, absolute, absoluteX, absoluteY
+    // (zeroPageY is not valid for STA on 6502)
+    this.asm.sta(addr.address, mode as Parameters<typeof this.asm.sta>[1]);
   }
 
   // ==========================================================================
@@ -67,7 +71,8 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
     this.emitComment(instr);
     const addr = this.getAddressOperand(instr.operands);
     const mode = this.getAddressMode(addr);
-    this.asm.lda(addr.address, mode);
+    // PEEKW only supports non-indexed addressing (zeroPage or absolute)
+    this.asm.lda(addr.address, mode as Parameters<typeof this.asm.lda>[1]);
     this.asm.ldx(addr.address + 1, mode === 'zeroPage' ? 'zeroPage' : 'absolute');
     this.invalidateA();
   }
@@ -88,7 +93,8 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
     this.emitComment(instr);
     const addr = this.getAddressOperand(instr.operands);
     const mode = this.getAddressMode(addr);
-    this.asm.sta(addr.address, mode);
+    // POKEW only supports non-indexed addressing (zeroPage or absolute)
+    this.asm.sta(addr.address, mode as Parameters<typeof this.asm.sta>[1]);
     this.asm.stx(addr.address + 1, mode === 'zeroPage' ? 'zeroPage' : 'absolute');
   }
 

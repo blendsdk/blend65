@@ -158,11 +158,20 @@ export interface AddressOperand {
   /** Discriminator for type narrowing */
   readonly kind: 'address';
 
-  /** The memory address */
+  /** The memory address (base address for indexed mode) */
   readonly address: number;
 
   /** Whether address is in zero page (0x00-0xFF) */
   readonly isZeroPage: boolean;
+
+  /**
+   * Optional index register for indexed addressing.
+   *
+   * When set, the codegen uses absolute indexed addressing (e.g., STA $3000,X).
+   * The index register must be loaded before the PEEK/POKE instruction.
+   * Used for the common pattern: poke(CONSTANT_BASE + variable_offset, value)
+   */
+  readonly indexRegister?: 'X' | 'Y';
 }
 
 // ============================================================================

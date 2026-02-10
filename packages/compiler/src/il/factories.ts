@@ -159,6 +159,35 @@ export function createAddressOperand(address: number, isZeroPage?: boolean): Add
   };
 }
 
+/**
+ * Create an indexed address operand for dynamic peek/poke.
+ *
+ * Used for the common pattern: poke(CONSTANT_BASE + variable_offset, value)
+ * The codegen will use absolute indexed addressing (e.g., STA $3000,X).
+ *
+ * @param address - The base memory address
+ * @param indexRegister - Which 6502 register holds the index ('X' or 'Y')
+ * @returns A new AddressOperand with indexRegister set
+ *
+ * @example
+ * ```typescript
+ * // poke($3000 + i, value) → STA $3000,X (after TAX)
+ * const indexed = createIndexedAddressOperand(0x3000, 'X');
+ * ```
+ */
+export function createIndexedAddressOperand(
+  address: number,
+  indexRegister: 'X' | 'Y',
+): AddressOperand {
+  return {
+    kind: 'address',
+    address,
+    // Indexed addressing with base > 0xFF always uses absolute mode
+    isZeroPage: address < 0x100,
+    indexRegister,
+  };
+}
+
 // ============================================================================
 // Instruction Factory Functions
 // ============================================================================

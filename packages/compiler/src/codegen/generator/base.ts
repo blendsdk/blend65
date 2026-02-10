@@ -311,10 +311,21 @@ export class CodeGeneratorBase {
   /**
    * Gets addressing mode for an address operand.
    *
+   * Supports indexed addressing when the operand has an indexRegister set.
+   * For indexed mode, returns absoluteX/absoluteY (or zeroPageX/zeroPageY for ZP).
+   *
    * @param addr - The address operand
-   * @returns 'zeroPage' or 'absolute'
+   * @returns The appropriate 6502 addressing mode string
    */
-  protected getAddressMode(addr: AddressOperand): 'zeroPage' | 'absolute' {
+  protected getAddressMode(
+    addr: AddressOperand,
+  ): 'zeroPage' | 'zeroPageX' | 'zeroPageY' | 'absolute' | 'absoluteX' | 'absoluteY' {
+    if (addr.indexRegister === 'X') {
+      return addr.isZeroPage ? 'zeroPageX' : 'absoluteX';
+    }
+    if (addr.indexRegister === 'Y') {
+      return addr.isZeroPage ? 'zeroPageY' : 'absoluteY';
+    }
     return addr.isZeroPage ? 'zeroPage' : 'absolute';
   }
 

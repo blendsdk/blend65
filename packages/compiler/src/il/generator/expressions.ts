@@ -37,7 +37,7 @@ import { TokenType } from '../../lexer/types.js';
 import { SlotLocation } from '../../frame/enums.js';
 import { FrameSlot } from '../../frame/types.js';
 import { ILOpcode } from '../enums.js';
-import { createImmediateOperand, createAddressOperand } from '../factories.js';
+import { createImmediateOperand, createAddressOperand, createIndexedAddressOperand } from '../factories.js';
 import { isAsmFunction, parseAsmFunctionName, addressingModeRequiresOperand } from '../asm-utils.js';
 import { AsmRawOperand } from '../operands.js';
 import { ILGeneratorBase } from './base.js';
@@ -876,6 +876,56 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   /**
+   * Try to decompose an address expression into constant_base + variable_offset.
+   *
+   * Detects the common pattern used in C64 programming:
+   *   poke(SPRITE_DATA_ADDR + i, value)
+   *
+   * Where SPRITE_DATA_ADDR is a compile-time constant and i is a runtime variable.
+   * Returns the constant base address and the variable offset expression so the
+   * IL generator can emit X-indexed addressing (e.g., STA $3000,X).
+   *
+   * Handles both orderings:
+   *   - constant + variable (most common)
+   *   - variable + constant (same semantics due to addition commutativity)
+   *
+   * @param expr - Address expression to decompose
+   * @returns Object with base address and offset expression, or undefined if pattern doesn't match
+   */
+  protected tryDecomposeIndexedAddress(
+    expr: Expression,
+  ): { base: number; offsetExpr: Expression } | undefined {
+    // Only binary addition expressions can be decomposed
+    if (!isBinaryExpression(expr)) {
+      return undefined;
+    }
+
+    const binExpr = expr as BinaryExpression;
+
+    // Must be addition operator
+    if (binExpr.getOperator() !== TokenType.PLUS) {
+      return undefined;
+    }
+
+    const left = binExpr.getLeft();
+    const right = binExpr.getRight();
+
+    // Try: constant + variable (e.g., SPRITE_DATA_ADDR + i)
+    const leftConst = this.tryResolveConstantAddress(left);
+    if (leftConst !== undefined) {
+      return { base: leftConst, offsetExpr: right };
+    }
+
+    // Try: variable + constant (e.g., i + SPRITE_DATA_ADDR)
+    const rightConst = this.tryResolveConstantAddress(right);
+    if (rightConst !== undefined) {
+      return { base: rightConst, offsetExpr: left };
+    }
+
+    return undefined;
+  }
+
+  /**
    * Generate IL for an intrinsic call.
    *
    * When the address argument can be resolved to a compile-time constant,
@@ -964,11 +1014,31 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         [createAddressOperand(constAddr)],
         `${label}($${constAddr.toString(16)})`
       );
-    } else {
-      // Dynamic address - stack-based fallback (known codegen gap for dynamic addresses)
-      this.generateExpression(addrExpr);
-      this.builder.emit(ILOpcode.PEEK, [], `${label}(addr)`);
+      return;
     }
+
+    // Try indexed pattern: peek(CONST_BASE + variable)
+    // Generates: load offset → TAX → LDA base,X
+    const indexed = this.tryDecomposeIndexedAddress(addrExpr);
+    if (indexed) {
+      // Generate the variable offset into A, then transfer to X register
+      this.generateExpression(indexed.offsetExpr);
+      this.builder.emit(ILOpcode.TRANSFER_AX, [], 'index → X');
+      // Emit PEEK with indexed address operand (codegen uses absoluteX)
+      this.builder.emit(
+        ILOpcode.PEEK,
+        [createIndexedAddressOperand(indexed.base, 'X')],
+        `${label}($${indexed.base.toString(16)},X)`
+      );
+      return;
+    }
+
+    // Fully dynamic address - unsupported (would need indirect addressing)
+    throw new Error(
+      `Dynamic peek address not supported: expression cannot be decomposed ` +
+      `into constant_base + variable_offset. Use a constant address or ` +
+      `the pattern peek(CONST + variable).`
+    );
   }
 
   /**
@@ -992,13 +1062,33 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         [createAddressOperand(constAddr)],
         `${label}($${constAddr.toString(16)}, value)`
       );
-    } else {
-      // Dynamic address - stack-based fallback (known codegen gap)
-      this.generateExpression(addrExpr);
-      this.builder.emit(ILOpcode.PUSH_A, [], `${label} addr`);
-      this.generateExpression(valueExpr);
-      this.builder.emit(ILOpcode.POKE, [], `${label}(addr, value)`);
+      return;
     }
+
+    // Try indexed pattern: poke(CONST_BASE + variable, value)
+    // Generates: load offset → TAX → generate value → STA base,X
+    const indexed = this.tryDecomposeIndexedAddress(addrExpr);
+    if (indexed) {
+      // Generate the variable offset into A, then transfer to X register
+      this.generateExpression(indexed.offsetExpr);
+      this.builder.emit(ILOpcode.TRANSFER_AX, [], 'index → X');
+      // Generate the value into A
+      this.generateExpression(valueExpr);
+      // Emit POKE with indexed address operand (codegen uses absoluteX)
+      this.builder.emit(
+        ILOpcode.POKE,
+        [createIndexedAddressOperand(indexed.base, 'X')],
+        `${label}($${indexed.base.toString(16)},X, value)`
+      );
+      return;
+    }
+
+    // Fully dynamic address - unsupported (would need indirect addressing)
+    throw new Error(
+      `Dynamic poke address not supported: expression cannot be decomposed ` +
+      `into constant_base + variable_offset. Use a constant address or ` +
+      `the pattern poke(CONST + variable, value).`
+    );
   }
 
   /**

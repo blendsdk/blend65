@@ -21,12 +21,14 @@ import { BUILTIN_TYPES } from '../../semantic/types.js';
 import {
   LiteralExpression,
   IdentifierExpression,
+  BinaryExpression,
   CallExpression,
 } from '../../ast/expressions.js';
 import { FunctionDecl, VariableDecl, Parameter } from '../../ast/declarations.js';
 import { ExpressionStatement, ReturnStatement } from '../../ast/statements.js';
 import { Program, ModuleDecl } from '../../ast/program.js';
 import { SourceLocation } from '../../ast/base.js';
+import { TokenType } from '../../lexer/types.js';
 
 // ============================================================================
 // Test Utilities
@@ -370,17 +372,23 @@ describe('ILGenerator - Intrinsics', () => {
       expect(peek!.operands[0].kind).toBe('address');
     });
 
-    it('should generate PEEK with variable address', () => {
+    it('should generate PEEK with indexed address (CONST + variable)', () => {
       const generator = new ILGenerator(frameMap, symbolTable);
       const loc = createTestLocation();
 
-      // Create call: peek(address)
-      const callee = new IdentifierExpression('peek', loc);
-      const addrVar = new IdentifierExpression('address', loc);
-      const callExpr = new CallExpression(callee, [addrVar], loc);
+      // Register a constant BASE_ADDR = $D000 in the symbol table
+      const initExpr = new LiteralExpression(0xD000, loc);
+      symbolTable.declareConstant('BASE_ADDR', loc, null, initExpr);
 
-      const addrSlot = createByteSlot('address', 0x0200);
-      frameMap.set('testFunc', createTestFrame('testFunc', [addrSlot]));
+      // Create call: peek(BASE_ADDR + offset) — indexed address pattern
+      const callee = new IdentifierExpression('peek', loc);
+      const baseIdent = new IdentifierExpression('BASE_ADDR', loc);
+      const offsetVar = new IdentifierExpression('offset', loc);
+      const addrExpr = new BinaryExpression(baseIdent, TokenType.PLUS, offsetVar, loc);
+      const callExpr = new CallExpression(callee, [addrExpr], loc);
+
+      const offsetSlot = createByteSlot('offset', 0x0200);
+      frameMap.set('testFunc', createTestFrame('testFunc', [offsetSlot]));
 
       const stmt = new ExpressionStatement(callExpr, loc);
       const funcDecl = new FunctionDecl(
@@ -397,12 +405,24 @@ describe('ILGenerator - Intrinsics', () => {
 
       const result = generator.generate(program);
       const instructions = result.functions[0].instructions;
-      
-      // Should have LOAD_BYTE for variable and PEEK
+
+      // Should have: LOAD_BYTE (offset), TRANSFER_AX (TAX), PEEK with indexed address
       const loadByte = instructions.find(i => i.opcode === ILOpcode.LOAD_BYTE);
+      const transferAX = instructions.find(i => i.opcode === ILOpcode.TRANSFER_AX);
       const peek = instructions.find(i => i.opcode === ILOpcode.PEEK);
       expect(loadByte).toBeDefined();
+      expect(transferAX).toBeDefined();
       expect(peek).toBeDefined();
+
+      // The PEEK should have an indexed address operand with base $D000
+      if (peek) {
+        const addrOp = peek.operands[0];
+        expect(addrOp.kind).toBe('address');
+        if (addrOp.kind === 'address') {
+          expect(addrOp.address).toBe(0xD000);
+          expect(addrOp.indexRegister).toBe('X');
+        }
+      }
     });
   });
 

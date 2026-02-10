@@ -56,6 +56,7 @@ export {
   createLabelOperand,
   createFunctionOperand,
   createAddressOperand,
+  createIndexedAddressOperand,
   // Instruction factories
   createInstruction,
   createInstructionCost,
