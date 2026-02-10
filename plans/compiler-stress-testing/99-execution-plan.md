@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-10-02 15:27
-> **Progress**: 9/30 tasks (30%)
+> **Last Updated**: 2025-10-02 21:52
+> **Progress**: 25/30 tasks (83%)
 
 ## Overview
 
@@ -244,11 +244,11 @@ This plan has two tracks that run in parallel:
 - [x] 1.1.6 Run semantic tests ✅ (completed: 2025-10-02 14:47 — 2644 pass, 0 fail)
 
 ### Phase 2: Dynamic Address POKE/PEEK
-- [ ] 2.1.1 Analyze current dynamic address IL emission
-- [ ] 2.1.2 Fix IL generator for dynamic addresses
-- [ ] 2.1.3 Fix codegen genPoke/genPeek
-- [ ] 2.1.4 Fix codegen genPokew/genPeekw
-- [ ] 2.1.5 Run IL + codegen tests
+- [x] 2.1.1 Analyze current dynamic address IL emission ✅ (completed: 2025-10-02 17:30)
+- [x] 2.1.2 Fix IL generator for dynamic addresses ✅ (completed: 2025-10-02 17:45 — added tryDecomposeIndexedAddress + indexed addressing)
+- [x] 2.1.3 Fix codegen genPoke/genPeek ✅ (completed: 2025-10-02 18:00 — updated getAddressMode for indexRegister)
+- [x] 2.1.4 Fix codegen genPokew/genPeekw ✅ (completed: 2025-10-02 18:00 — type assertions for LDA/STA modes)
+- [x] 2.1.5 Run IL + codegen tests ✅ (completed: 2025-10-02 19:30 — 8322 pass, 0 fail)
 
 ### Phase 3: DFE After Inlining
 - [x] 3.1.1 Implement post-inlining dead function removal ✅ (completed: 2025-10-02 15:25 — Option B: added post-inline DFE pass in options.ts)
@@ -256,17 +256,17 @@ This plan has two tracks that run in parallel:
 - [x] 3.1.3 Run optimizer tests ✅ (completed: 2025-10-02 15:27 — 1433 pass, 0 fail)
 
 ### Phase 4: Assembly Correctness (Bugs 4-6)
-- [ ] 4.1.1 Debug script: border-cycle at O0
-- [ ] 4.1.2 Debug script: border-cycle at O3
-- [ ] 4.1.3 Compare O0 vs O3 IL
-- [ ] 4.1.4 Root cause Bug 4 (missing +=)
-- [ ] 4.1.5 Root cause Bug 5 (wrong literal store)
-- [ ] 4.1.6 Root cause Bug 6 (re-init)
-- [ ] 4.2.1 Fix Bug 4
-- [ ] 4.2.2 Fix Bug 5
-- [ ] 4.2.3 Fix Bug 6
-- [ ] 4.2.4 Verify border-cycle at all opt levels
-- [ ] 4.2.5 Run full test suite
+- [x] 4.1.1 Debug script: border-cycle at O0 ✅ (completed: 2025-10-02 20:15 — created debug-border-cycle-o0-vs-o3.ts)
+- [x] 4.1.2 Debug script: border-cycle at O3 ✅ (completed: 2025-10-02 20:15 — combined O0+O3 in single script)
+- [x] 4.1.3 Compare O0 vs O3 IL ✅ (completed: 2025-10-02 20:30 — identified LICM hoisting as root cause)
+- [x] 4.1.4 Root cause Bug 4 (missing +=) ✅ (completed: 2025-10-02 21:40 — LICM hoisted ADD_IMM out of loop)
+- [x] 4.1.5 Root cause Bug 5 (wrong literal store) ✅ (completed: 2025-10-02 21:35 — LICM hoisted LOAD_IMM out of loop)
+- [x] 4.1.6 Root cause Bug 6 (re-init) ✅ (completed: 2025-10-02 21:35 — LICM hoisted LOAD_IMM for loop init)
+- [x] 4.2.1 Fix Bug 4 ✅ (completed: 2025-10-02 21:40 — excluded accumulator-only instructions from LICM hoisting)
+- [x] 4.2.2 Fix Bug 5 ✅ (completed: 2025-10-02 21:36 — added hasNoExplicitSlotReads check in isInvariant)
+- [x] 4.2.3 Fix Bug 6 ✅ (completed: 2025-10-02 21:36 — same fix as Bug 5)
+- [x] 4.2.4 Verify border-cycle at all opt levels ✅ (completed: 2025-10-02 21:41 — O3 IL now matches O0 structure)
+- [x] 4.2.5 Run full test suite ✅ (completed: 2025-10-02 21:52 — 8322 pass, 0 fail)
 
 ### Phase 5: E2E Tests 1-4
 - [ ] 5.1.1 Create real-world-stress.test.ts

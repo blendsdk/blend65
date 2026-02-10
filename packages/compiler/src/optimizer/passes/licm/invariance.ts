@@ -118,6 +118,17 @@ export class LICMInvariance extends LICMBase {
    *    b. Defined by an already-proven invariant instruction
    * 4. It is not a comparison (CMP) — comparisons affect flags used
    *    by branch instructions that must stay in the loop
+   * 5. It is NOT an immediate load (LOAD_IMM / LOAD_IMM_WORD)
+   *
+   * **Why LOAD_IMM is excluded (Rule 7):**
+   * In an accumulator-centric IL, LOAD_IMM writes to the implicit
+   * accumulator (A register). While the immediate value itself is
+   * loop-invariant, the accumulator is a shared resource modified by
+   * many instructions throughout the loop. Hoisting LOAD_IMM changes
+   * what A contains at the original instruction position, breaking the
+   * data flow from LOAD_IMM → STORE_BYTE. The instruction is very cheap
+   * (2 cycles, 2 bytes) so hoisting provides negligible benefit while
+   * causing severe correctness issues.
    *
    * @param instr - Instruction to check
    * @param loopDefs - All slot names defined inside the loop
@@ -145,12 +156,30 @@ export class LICMInvariance extends LICMBase {
     // Rule 4: NOP is not worth hoisting
     if (instr.opcode === ILOpcode.NOP) return false;
 
-    // Rule 6 (NEW): Volatile instructions must stay in the loop.
+    // Rule 6: Volatile instructions must stay in the loop.
     // @zp global loads are volatile because interrupt handlers can
     // modify the value between iterations. Hoisting them would read
     // a stale value. @data globals are const and CAN be hoisted
     // (they don't have isVolatile set).
     if (instr.isVolatile) return false;
+
+    // Rule 7: Instructions with no explicit slot reads must NOT be hoisted.
+    // In our accumulator-centric IL, many instructions (LOAD_IMM, ADD_IMM,
+    // SUB_IMM, AND_IMM, OR_IMM, XOR_IMM, SHL_BYTE, SHR_BYTE, NOT_BYTE,
+    // etc.) operate solely on the implicit accumulator (A register) without
+    // reading from any named slot. While their immediate operands are
+    // loop-invariant, the accumulator is a shared resource modified by many
+    // other instructions in the loop. Hoisting these instructions changes
+    // what A contains at the original position, breaking the data flow.
+    //
+    // Example: LOAD_IMM #$00 → STORE_BYTE color (sets color = 0)
+    // If LOAD_IMM is hoisted before the loop, the STORE_BYTE will store
+    // whatever A happens to contain at that point in the loop, not 0.
+    //
+    // We detect this by checking defUse.uses: if an instruction has no
+    // explicit slot reads, it depends entirely on the implicit accumulator
+    // state and cannot be safely hoisted.
+    if (this.hasNoExplicitSlotReads(instr)) return false;
 
     // Rule 5: Check all explicit slot uses
     // Each used slot must either NOT be loop-defined,
@@ -170,6 +199,31 @@ export class LICMInvariance extends LICMBase {
 
     // All checks passed — instruction is invariant
     return true;
+  }
+
+  /**
+   * Check if an instruction has no explicit slot reads.
+   *
+   * In the accumulator-centric IL, instructions that have no explicit
+   * slot reads depend entirely on the implicit accumulator (A register).
+   * Since A is a shared resource modified by many instructions in the
+   * loop, these instructions cannot be safely hoisted — doing so would
+   * change what A contains at the original execution point.
+   *
+   * This catches: LOAD_IMM, LOAD_IMM_WORD, ADD_IMM, SUB_IMM, AND_IMM,
+   * OR_IMM, XOR_IMM, SHL_BYTE, SHR_BYTE, NOT_BYTE, MUL_IMM, HI, LO,
+   * TRANSFER_*, and any other accumulator-only instruction.
+   *
+   * @param instr - Instruction to check
+   * @returns true if the instruction has no explicit slot reads
+   */
+  protected hasNoExplicitSlotReads(instr: ILInstruction): boolean {
+    // If defUse metadata is not populated, assume unsafe (no info)
+    if (!instr.defUse) return true;
+
+    // If uses array is empty, the instruction reads no named slots
+    // and depends entirely on the implicit accumulator state
+    return instr.defUse.uses.length === 0;
   }
 
   /**

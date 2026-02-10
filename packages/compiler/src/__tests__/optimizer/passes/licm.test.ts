@@ -189,8 +189,10 @@ describe('LICMPass', () => {
   // ──────────────────────────────────────────────────────────────
 
   describe('invariant detection', () => {
-    it('should hoist LOAD_IMM (constant) from loop body', () => {
-      // LOAD_IMM 42 inside loop — always produces the same value
+    it('should NOT hoist LOAD_IMM (accumulator-only, no slot reads)', () => {
+      // LOAD_IMM has no explicit slot reads — it writes to the implicit
+      // accumulator. Hoisting it would change what A contains at the
+      // original position, breaking LOAD_IMM → STORE_BYTE data flow.
       const func = createLoopFunction([
         createLoadImmInstr(42),
         createStoreByteInstr('x'),
@@ -202,13 +204,13 @@ describe('LICMPass', () => {
 
       licm.run(func, O2);
 
-      // LOAD_IMM should now be in preheader (before loop_header)
-      const preheader = getPreheaderOpcodes(func);
-      expect(preheader).toContain(ILOpcode.LOAD_IMM);
-
-      // And removed from loop body
+      // LOAD_IMM must stay in the loop body (not hoisted)
       const afterBody = getLoopBodyOpcodes(func);
-      expect(afterBody).not.toContain(ILOpcode.LOAD_IMM);
+      expect(afterBody).toContain(ILOpcode.LOAD_IMM);
+
+      // Nothing should be in the preheader
+      const preheader = getPreheaderOpcodes(func);
+      expect(preheader).not.toContain(ILOpcode.LOAD_IMM);
     });
 
     it('should hoist LOAD_BYTE of slot NOT modified in loop', () => {
@@ -245,8 +247,10 @@ describe('LICMPass', () => {
       expect(preheader).not.toContain(ILOpcode.LOAD_BYTE);
     });
 
-    it('should hoist ADD_IMM (no slot uses) from loop body', () => {
-      // ADD_IMM has no slot operands — its defUse.uses is empty
+    it('should NOT hoist ADD_IMM (accumulator-only, no slot reads)', () => {
+      // ADD_IMM has no slot operands — its defUse.uses is empty.
+      // It operates on the implicit accumulator, so hoisting it would
+      // change what A contains at the original position.
       const func = createLoopFunction([
         createAddImmInstr(5),
         createStoreByteInstr('x'),
@@ -255,8 +259,13 @@ describe('LICMPass', () => {
 
       licm.run(func, O2);
 
+      // ADD_IMM must stay in the loop body
+      const body = getLoopBodyOpcodes(func);
+      expect(body).toContain(ILOpcode.ADD_IMM);
+
+      // Nothing should be hoisted to preheader
       const preheader = getPreheaderOpcodes(func);
-      expect(preheader).toContain(ILOpcode.ADD_IMM);
+      expect(preheader).not.toContain(ILOpcode.ADD_IMM);
     });
   });
 
@@ -351,8 +360,9 @@ describe('LICMPass', () => {
   // ──────────────────────────────────────────────────────────────
 
   describe('multiple invariants', () => {
-    it('should hoist multiple invariants preserving relative order', () => {
-      // Two LOAD_IMMs inside loop — both should be hoisted
+    it('should NOT hoist multiple LOAD_IMMs (accumulator-only)', () => {
+      // Two LOAD_IMMs inside loop — neither should be hoisted because
+      // LOAD_IMM has no explicit slot reads (accumulator-only).
       const func = createLoopFunction([
         createLoadImmInstr(10),
         createStoreByteInstr('x'),
@@ -363,38 +373,40 @@ describe('LICMPass', () => {
 
       licm.run(func, O2);
 
+      // Neither LOAD_IMM should be hoisted to preheader
       const preheader = getPreheaderOpcodes(func);
-      // Both LOAD_IMMs should be in the preheader
       const loadImms = preheader.filter(op => op === ILOpcode.LOAD_IMM);
-      expect(loadImms.length).toBe(2);
+      expect(loadImms.length).toBe(0);
+
+      // Both LOAD_IMMs must stay in the loop body
+      const body = getLoopBodyOpcodes(func);
+      const bodyLoadImms = body.filter(op => op === ILOpcode.LOAD_IMM);
+      expect(bodyLoadImms.length).toBe(2);
     });
 
-    it('should hoist invariants but leave non-invariants in loop', () => {
+    it('should hoist LOAD_BYTE of invariant slot but keep LOAD_IMM in loop', () => {
+      // LOAD_BYTE of 'config' (not modified in loop) is hoistable.
+      // LOAD_IMM is not hoistable (no explicit slot reads).
       const func = createLoopFunction([
-        createLoadImmInstr(42),         // invariant — hoist
+        createLoadImmInstr(42),         // accumulator-only — keep in loop
         createStoreByteInstr('x'),      // side effect — keep
-        createLoadByteInstr('counter'), // loop-modified — keep
-        createCmpImmInstr(10),          // comparison — keep
-        createJumpNeInstr('loop_exit'), // control flow — keep
+        createLoadByteInstr('config'),  // invariant slot — hoist
+        createStoreByteInstr('y'),      // side effect — keep
         createIncByteInstr('counter'),  // side effect — keep
       ]);
 
-      const beforeCount = func.instructions.length;
       licm.run(func, O2);
 
-      // Total instruction count should be unchanged (moved, not removed)
-      expect(func.instructions.length).toBe(beforeCount);
-
-      // LOAD_IMM should be in preheader
+      // Only LOAD_BYTE should be in preheader
       const preheader = getPreheaderOpcodes(func);
-      expect(preheader).toContain(ILOpcode.LOAD_IMM);
+      expect(preheader).toContain(ILOpcode.LOAD_BYTE);
+      expect(preheader).not.toContain(ILOpcode.LOAD_IMM);
 
-      // All side-effect/control-flow instructions stay in body
+      // LOAD_IMM stays in loop body, all side effects stay too
       const body = getLoopBodyOpcodes(func);
+      expect(body).toContain(ILOpcode.LOAD_IMM);
       expect(body).toContain(ILOpcode.STORE_BYTE);
       expect(body).toContain(ILOpcode.INC_BYTE);
-      expect(body).toContain(ILOpcode.CMP_IMM);
-      expect(body).toContain(ILOpcode.JUMP_NE);
     });
   });
 
