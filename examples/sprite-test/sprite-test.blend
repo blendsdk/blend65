@@ -1,40 +1,129 @@
-// Pilot Program 006: Screen Fill
-// Fill screen and color RAM using constant addresses and helper functions.
-// Exercises: nested for-loops, function calls, poke with constants.
+// Category 1, Program 003: Starfield Simulation
+// Moving stars at different speeds using screen RAM pokes.
+// Stars are characters placed at screen positions, moving left each frame.
+// Exercises: arrays, for-to loop, while-loop, if-statement, poke, modulo.
 
-module Pilot.ScreenFill;
+module Cat01.StarfieldSimulation;
+
+const SCREEN_BASE: word = $0400;
+const COLOR_BASE: word = $D800;
+const STAR_CHAR: byte = 46;       // Period character as star
+const SPACE_CHAR: byte = 32;      // Space to erase star
+const SCREEN_WIDTH: byte = 40;
+const NUM_STARS: byte = 20;
+
+// Star positions: X and Y coordinates
+let starX: byte[20];
+let starY: byte[20];
+// Star speeds (1=slow, 2=medium, 3=fast)
+let starSpeed: byte[20];
 
 export function main(): void {
-    // Set border and background colors
-    poke($D020, 6);
-    poke($D021, 14);
+    // Clear screen
+    clearScreen();
 
-    // Write characters to specific constant screen positions
-    // First row
-    poke($0400, 160);
-    poke($0401, 160);
-    poke($0402, 160);
-    poke($0403, 160);
-    poke($0404, 160);
+    // Initialize stars at pseudo-random positions
+    initStars();
 
-    // Set colors on first row
-    poke($D800, 14);
-    poke($D801, 14);
-    poke($D802, 14);
-    poke($D803, 14);
-    poke($D804, 14);
+    // Main animation loop
+    while (true) {
+        eraseStars();
+        moveStars();
+        drawStars();
+        delay();
+    }
+}
 
-    // Second row (offset +40)a
-    poke($0428, 160);
-    poke($0429, 160);
-    poke($042A, 160);
-    poke($042B, 160);
-    poke($042C, 160);
+// Clear entire screen with spaces
+function clearScreen(): void {
+    for (let i: byte = 0 to 249) {
+        poke(SCREEN_BASE + i, SPACE_CHAR);
+        poke(SCREEN_BASE + 250 + i, SPACE_CHAR);
+        poke(SCREEN_BASE + 500 + i, SPACE_CHAR);
+        poke(SCREEN_BASE + 750 + i, SPACE_CHAR);
+    }
+    // Set border and background to black
+    poke($D020, 0);
+    poke($D021, 0);
+}
 
-    // Colors second row
-    poke($D828, 1);
-    poke($D829, 1);
-    poke($D82A, 1);
-    poke($D82B, 1);
-    poke($D82C, 1);
+// Initialize star positions using a simple deterministic pattern
+function initStars(): void {
+    let seedX: byte = 7;
+    let seedY: byte = 3;
+
+    for (let i: byte = 0 to 19) {
+        // Pseudo-random spread using multiply and mask
+        seedX = (seedX * 13 + 7) & 39;
+        seedY = (seedY * 11 + 3) & 31;
+
+        // Clamp Y to valid screen range
+        if (seedY > 24) {
+            seedY = seedY - 25;
+        }
+
+        starX[i] = seedX;
+        starY[i] = seedY;
+
+        // Assign speed based on index pattern (1, 2, or 3)
+        let speed: byte = (i % 3) + 1;
+        starSpeed[i] = speed;
+    }
+}
+
+// Erase all stars from their current positions
+function eraseStars(): void {
+    for (let i: byte = 0 to 19) {
+        // Read array values into locals first (avoid complex array-in-expr)
+        let y: byte = starY[i];
+        let x: byte = starX[i];
+        let offset: word = y * SCREEN_WIDTH + x;
+        poke(SCREEN_BASE + offset, SPACE_CHAR);
+    }
+}
+
+// Move all stars to the left by their speed
+function moveStars(): void {
+    for (let i: byte = 0 to 19) {
+        let speed: byte = starSpeed[i];
+        let x: byte = starX[i];
+
+        // Move star left
+        if (x >= speed) {
+            starX[i] = x - speed;
+        } else {
+            // Wrap to right edge
+            starX[i] = 39;
+        }
+    }
+}
+
+// Draw all stars at their current positions
+function drawStars(): void {
+    for (let i: byte = 0 to 19) {
+        // Read array values into locals first
+        let y: byte = starY[i];
+        let x: byte = starX[i];
+        let speed: byte = starSpeed[i];
+        let offset: word = y * SCREEN_WIDTH + x;
+
+        poke(SCREEN_BASE + offset, STAR_CHAR);
+
+        // Color based on speed: slow=dark grey, medium=grey, fast=white
+        let color: byte = 11;  // dark grey default
+        if (speed == 2) {
+            color = 15;  // light grey
+        }
+        if (speed == 3) {
+            color = 1;   // white
+        }
+        poke(COLOR_BASE + offset, color);
+    }
+}
+
+// Busy-wait delay
+function delay(): void {
+    for (let d: byte = 0 to 99) {
+        barrier();
+    }
 }
