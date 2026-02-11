@@ -160,6 +160,83 @@ export enum ILOpcode {
   DEC_BYTE = 'DEC_BYTE',
 
   // ══════════════════════════════════════════════════════════════════
+  // WORD (16-BIT) ARITHMETIC OPERATIONS
+  // All word operations use the A:X convention (low byte in A, high byte in X)
+  // ══════════════════════════════════════════════════════════════════
+
+  /**
+   * Add immediate word to A:X (full 16-bit add).
+   * Operands: [ImmediateOperand] (isWord: true)
+   * Effect: A:X ← A:X + imm16
+   * 6502: CLC / ADC #lo / PHA / TXA / ADC #hi / TAX / PLA
+   */
+  ADD_WORD_IMM = 'ADD_WORD_IMM',
+
+  /**
+   * Add immediate byte to A:X with carry propagation.
+   * Operands: [ImmediateOperand]
+   * Effect: A:X ← A:X + imm8 (zero-extended)
+   * 6502: CLC / ADC #byte / BCC +2 / INX
+   */
+  ADD_WORD_BYTE_IMM = 'ADD_WORD_BYTE_IMM',
+
+  /**
+   * Add word slot to A:X (full 16-bit add).
+   * Operands: [SlotOperand]
+   * Effect: A:X ← A:X + [slot16]
+   * 6502: CLC / ADC slot / PHA / TXA / ADC slot+1 / TAX / PLA
+   */
+  ADD_WORD_SLOT = 'ADD_WORD_SLOT',
+
+  /**
+   * Add byte slot to A:X with carry propagation (zero-extended).
+   * Operands: [SlotOperand]
+   * Effect: A:X ← A:X + [slot8]
+   * 6502: CLC / ADC slot / BCC +2 / INX
+   */
+  ADD_WORD_BYTE_SLOT = 'ADD_WORD_BYTE_SLOT',
+
+  /**
+   * Subtract immediate word from A:X (full 16-bit subtract).
+   * Operands: [ImmediateOperand] (isWord: true)
+   * Effect: A:X ← A:X - imm16
+   * 6502: SEC / SBC #lo / PHA / TXA / SBC #hi / TAX / PLA
+   */
+  SUB_WORD_IMM = 'SUB_WORD_IMM',
+
+  /**
+   * Subtract immediate byte from A:X with borrow propagation.
+   * Operands: [ImmediateOperand]
+   * Effect: A:X ← A:X - imm8 (zero-extended)
+   * 6502: SEC / SBC #byte / BCS +2 / DEX
+   */
+  SUB_WORD_BYTE_IMM = 'SUB_WORD_BYTE_IMM',
+
+  /**
+   * Subtract word slot from A:X (full 16-bit subtract).
+   * Operands: [SlotOperand]
+   * Effect: A:X ← A:X - [slot16]
+   * 6502: SEC / SBC slot / PHA / TXA / SBC slot+1 / TAX / PLA
+   */
+  SUB_WORD_SLOT = 'SUB_WORD_SLOT',
+
+  /**
+   * Subtract byte slot from A:X with borrow propagation (zero-extended).
+   * Operands: [SlotOperand]
+   * Effect: A:X ← A:X - [slot8]
+   * 6502: SEC / SBC slot / BCS +2 / DEX
+   */
+  SUB_WORD_BYTE_SLOT = 'SUB_WORD_BYTE_SLOT',
+
+  /**
+   * Promote byte in A to word in A:X (zero-extend).
+   * Operands: none
+   * Effect: X ← 0 (high byte = 0, unsigned extension)
+   * 6502: LDX #0
+   */
+  PROMOTE_BYTE_WORD = 'PROMOTE_BYTE_WORD',
+
+  // ══════════════════════════════════════════════════════════════════
   // BITWISE OPERATIONS
   // ══════════════════════════════════════════════════════════════════
 

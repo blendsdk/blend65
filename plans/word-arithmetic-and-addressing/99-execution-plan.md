@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-11 09:30
-> **Progress**: 0/28 tasks (0%)
+> **Last Updated**: 2026-11-02 17:26
+> **Progress**: 4/28 tasks (14%)
 
 ## Overview
 
@@ -249,10 +249,10 @@
 ## Task Checklist (All Phases)
 
 ### Phase 1: Word Arithmetic IL Opcodes
-- [ ] 1.1.1 Add word arithmetic opcodes to ILOpcode enum
-- [ ] 1.1.2 Add cost estimates for new opcodes
-- [ ] 1.1.3 Add builder methods for word arithmetic
-- [ ] 1.1.4 Add unit tests for builder methods
+- [x] 1.1.1 Add word arithmetic opcodes to ILOpcode enum ✅ (completed: 2026-11-02 13:41)
+- [x] 1.1.2 Add cost estimates for new opcodes ✅ (completed: 2026-11-02 13:42)
+- [x] 1.1.3 Add builder methods for word arithmetic ✅ (completed: 2026-11-02 13:43)
+- [x] 1.1.4 Add unit tests for builder methods ✅ (completed: 2026-11-02 13:46)
 - [ ] 1.2.1 Add CMP_WORD/INC_WORD/DEC_WORD opcodes
 - [ ] 1.2.2 Add cost estimates for cmp/inc/dec
 - [ ] 1.2.3 Add builder methods for cmp/inc/dec

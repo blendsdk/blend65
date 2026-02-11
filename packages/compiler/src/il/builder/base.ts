@@ -48,6 +48,18 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   [ILOpcode.INC_BYTE]: { cycles: 5, bytes: 3, memoryAccesses: 2 },
   [ILOpcode.DEC_BYTE]: { cycles: 5, bytes: 3, memoryAccesses: 2 },
 
+  // Word (16-bit) arithmetic operations
+  // Costs reflect multi-instruction 6502 sequences for 16-bit math
+  [ILOpcode.ADD_WORD_IMM]: { cycles: 15, bytes: 9, memoryAccesses: 0 }, // CLC/ADC#lo/PHA/TXA/ADC#hi/TAX/PLA
+  [ILOpcode.ADD_WORD_BYTE_IMM]: { cycles: 6, bytes: 5, memoryAccesses: 0 }, // CLC/ADC#byte/BCC+2/INX
+  [ILOpcode.ADD_WORD_SLOT]: { cycles: 17, bytes: 9, memoryAccesses: 2 }, // CLC/ADC slot/PHA/TXA/ADC slot+1/TAX/PLA
+  [ILOpcode.ADD_WORD_BYTE_SLOT]: { cycles: 8, bytes: 5, memoryAccesses: 1 }, // CLC/ADC slot/BCC+2/INX
+  [ILOpcode.SUB_WORD_IMM]: { cycles: 15, bytes: 9, memoryAccesses: 0 }, // SEC/SBC#lo/PHA/TXA/SBC#hi/TAX/PLA
+  [ILOpcode.SUB_WORD_BYTE_IMM]: { cycles: 6, bytes: 5, memoryAccesses: 0 }, // SEC/SBC#byte/BCS+2/DEX
+  [ILOpcode.SUB_WORD_SLOT]: { cycles: 17, bytes: 9, memoryAccesses: 2 }, // SEC/SBC slot/PHA/TXA/SBC slot+1/TAX/PLA
+  [ILOpcode.SUB_WORD_BYTE_SLOT]: { cycles: 8, bytes: 5, memoryAccesses: 1 }, // SEC/SBC slot/BCS+2/DEX
+  [ILOpcode.PROMOTE_BYTE_WORD]: { cycles: 2, bytes: 2, memoryAccesses: 0 }, // LDX #0
+
   // Bitwise operations
   [ILOpcode.AND_BYTE]: { cycles: 3, bytes: 2, memoryAccesses: 1 },
   [ILOpcode.OR_BYTE]: { cycles: 3, bytes: 2, memoryAccesses: 1 },
@@ -166,6 +178,11 @@ export function computeDefUse(instr: ILInstruction): DefUse {
         case ILOpcode.OR_BYTE:
         case ILOpcode.XOR_BYTE:
         case ILOpcode.CMP_BYTE:
+        // Word arithmetic slot opcodes read from the slot
+        case ILOpcode.ADD_WORD_SLOT:
+        case ILOpcode.ADD_WORD_BYTE_SLOT:
+        case ILOpcode.SUB_WORD_SLOT:
+        case ILOpcode.SUB_WORD_BYTE_SLOT:
           uses.push(slotName);
           break;
       }

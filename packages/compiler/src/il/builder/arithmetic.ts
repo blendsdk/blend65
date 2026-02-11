@@ -134,6 +134,142 @@ export class ILBuilderArithmetic extends ILBuilderMemory {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // Word (16-bit) Arithmetic with Immediates
+  // All word operations use A:X convention (low byte in A, high byte in X)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Add immediate word (16-bit) to A:X.
+   *
+   * Full 16-bit addition: A:X ← A:X + imm16.
+   * 6502: CLC / ADC #lo / PHA / TXA / ADC #hi / TAX / PLA
+   *
+   * @param value - Word value (0-65535)
+   * @param comment - Optional comment
+   */
+  addWordImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.ADD_WORD_IMM, [createImmediateOperand(value, true)], comment);
+  }
+
+  /**
+   * Add immediate byte to A:X with carry propagation.
+   *
+   * Optimized path when adding a small constant to a word:
+   * A:X ← A:X + imm8 (zero-extended).
+   * 6502: CLC / ADC #byte / BCC +2 / INX
+   *
+   * @param value - Byte value (0-255)
+   * @param comment - Optional comment
+   */
+  addWordByteImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.ADD_WORD_BYTE_IMM, [createImmediateOperand(value)], comment);
+  }
+
+  /**
+   * Subtract immediate word (16-bit) from A:X.
+   *
+   * Full 16-bit subtraction: A:X ← A:X - imm16.
+   * 6502: SEC / SBC #lo / PHA / TXA / SBC #hi / TAX / PLA
+   *
+   * @param value - Word value (0-65535)
+   * @param comment - Optional comment
+   */
+  subWordImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.SUB_WORD_IMM, [createImmediateOperand(value, true)], comment);
+  }
+
+  /**
+   * Subtract immediate byte from A:X with borrow propagation.
+   *
+   * Optimized path when subtracting a small constant from a word:
+   * A:X ← A:X - imm8 (zero-extended).
+   * 6502: SEC / SBC #byte / BCS +2 / DEX
+   *
+   * @param value - Byte value (0-255)
+   * @param comment - Optional comment
+   */
+  subWordByteImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.SUB_WORD_BYTE_IMM, [createImmediateOperand(value)], comment);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Word (16-bit) Arithmetic with Slots
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Add word slot (16-bit) to A:X.
+   *
+   * Full 16-bit addition from a word-sized slot:
+   * A:X ← A:X + [slot16].
+   * 6502: CLC / ADC slot / PHA / TXA / ADC slot+1 / TAX / PLA
+   *
+   * @param slot - Word-sized source slot
+   * @param comment - Optional comment
+   */
+  addWordSlot(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.ADD_WORD_SLOT, [createSlotOperand(slot)], comment);
+  }
+
+  /**
+   * Add byte slot to A:X with carry propagation (zero-extended).
+   *
+   * Common case: word + byte_variable (e.g., $0400 + i).
+   * A:X ← A:X + [slot8].
+   * 6502: CLC / ADC slot / BCC +2 / INX
+   *
+   * @param slot - Byte-sized source slot
+   * @param comment - Optional comment
+   */
+  addWordByteSlot(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.ADD_WORD_BYTE_SLOT, [createSlotOperand(slot)], comment);
+  }
+
+  /**
+   * Subtract word slot (16-bit) from A:X.
+   *
+   * Full 16-bit subtraction from a word-sized slot:
+   * A:X ← A:X - [slot16].
+   * 6502: SEC / SBC slot / PHA / TXA / SBC slot+1 / TAX / PLA
+   *
+   * @param slot - Word-sized source slot
+   * @param comment - Optional comment
+   */
+  subWordSlot(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.SUB_WORD_SLOT, [createSlotOperand(slot)], comment);
+  }
+
+  /**
+   * Subtract byte slot from A:X with borrow propagation (zero-extended).
+   *
+   * A:X ← A:X - [slot8].
+   * 6502: SEC / SBC slot / BCS +2 / DEX
+   *
+   * @param slot - Byte-sized source slot
+   * @param comment - Optional comment
+   */
+  subWordByteSlot(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.SUB_WORD_BYTE_SLOT, [createSlotOperand(slot)], comment);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Type Promotion
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Promote byte in A to word in A:X (zero-extend).
+   *
+   * Sets X to 0, making the byte value in A into a 16-bit
+   * unsigned word in A:X. Used when a byte participates in
+   * word arithmetic.
+   * 6502: LDX #0
+   *
+   * @param comment - Optional comment
+   */
+  promoteByteWord(comment?: string): void {
+    this.emit(ILOpcode.PROMOTE_BYTE_WORD, [], comment);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Bitwise Operations with Slots
   // ═══════════════════════════════════════════════════════════════════
 
