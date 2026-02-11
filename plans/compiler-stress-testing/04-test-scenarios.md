@@ -652,20 +652,779 @@ export function main(): void {
 
 ---
 
-## Scenarios 13-20: Additional Test Programs (Summary)
+## Scenario 13: Keyboard Scanner (Tests Classes 3, 7, 9)
 
-| # | Name | Primary Bug/Class Coverage | Key Pattern |
-|---|------|---------------------------|-------------|
-| 13 | **Keyboard Scanner** | Classes 3, 7, 9 | CIA read + bit test + switch-like if chains |
-| 14 | **Timer-Based Music** | Classes 6, 9, 10 | CIA timer + SID + function call sequences |
-| 15 | **Multiplexed Sprites** | Classes 1, 2, 7 | Word comparisons + raster sorting + bit manipulation |
-| 16 | **Screen Editor** | Classes 3, 4, 5 | Cursor movement + screen RAM + state management |
-| 17 | **High Score Table** | Classes 1, 4, 7 | Array operations + word comparison + sorting logic |
-| 18 | **Parallax Scroller** | Classes 2, 6, 9 | Multiple scroll registers + timing + volatile reads |
-| 19 | **Particle System** | Classes 1, 4, 10 | Array of structs pattern + word math + function calls |
-| 20 | **Boot Sequence** | All classes | Full game startup: charset + sprites + SID + screen init |
+**Real-world pattern:** Reading the C64 keyboard matrix via CIA#1 ports, testing bits for specific keys, and using switch-like if chains to dispatch actions.
 
-Each of scenarios 13-20 will be fully written out during implementation with the same level of detail as scenarios 1-12.
+```js
+module KeyScanner;
+
+const CIA1_PORTA: word = $DC00;
+const CIA1_PORTB: word = $DC01;
+const SCREEN_RAM: word = $0400;
+const BORDER: word = $D020;
+
+function selectRow(row: byte): void {
+    poke(CIA1_PORTA, ~(1 << row));
+}
+
+function readColumn(): byte {
+    return peek(CIA1_PORTB);
+}
+
+function scanKey(row: byte, colMask: byte): byte {
+    selectRow(row);
+    let cols: byte = readColumn();
+    if (cols & colMask) {
+        return 0;
+    }
+    return 1;
+}
+
+export function main(): void {
+    let lastKey: byte = 0;
+    let cursorPos: byte = 0;
+
+    while (true) {
+        let keyPressed: byte = 0;
+
+        if (scanKey(7, $04)) {
+            keyPressed = 1;
+            poke(BORDER, 1);
+        }
+        if (scanKey(1, $04)) {
+            keyPressed = 2;
+            poke(BORDER, 2);
+        }
+        if (scanKey(2, $01)) {
+            keyPressed = 3;
+            poke(BORDER, 6);
+        }
+        if (scanKey(0, $10)) {
+            keyPressed = 4;
+            poke(BORDER, 7);
+        }
+
+        if (keyPressed != lastKey) {
+            if (keyPressed > 0) {
+                poke(SCREEN_RAM + cursorPos, keyPressed + 64);
+                cursorPos += 1;
+                if (cursorPos > 39) {
+                    cursorPos = 0;
+                }
+            }
+            lastKey = keyPressed;
+        }
+
+        for (_debounce = 0 to 254) {
+            barrier();
+        }
+    }
+}
+```
+
+**Verifications:**
+- ✅ `peek(CIA1_PORTB)` reads CIA port (Class 9: intrinsic)
+- ✅ `cols & colMask` bitwise AND in if condition (Class 7: complex expression)
+- ✅ Multiple if-blocks in sequence — switch-like pattern (Class 3: control flow)
+- ✅ `keyPressed != lastKey` comparison and nested if (Class 3)
+- ✅ Function return value used in if condition (Class 10: return values)
+- ✅ `cursorPos += 1` compound assignment (Bug 4)
+- ✅ `cursorPos = 0` literal assignment in if-body (Bug 5)
+- ✅ `barrier()` preserved in delay loop (Class 9)
+- ✅ No false unused warnings (Bug 1)
+
+---
+
+## Scenario 14: Timer-Based Music (Tests Classes 6, 9, 10)
+
+**Real-world pattern:** Using CIA timer to pace SID music playback across a note sequence.
+
+```js
+module TimerMusic;
+
+const SID_V1_FREQ_LO: word = $D400;
+const SID_V1_FREQ_HI: word = $D401;
+const SID_V1_CONTROL: word = $D404;
+const SID_V1_AD: word = $D405;
+const SID_V1_SR: word = $D406;
+const SID_VOLUME: word = $D418;
+const CIA2_TIMER_A_LO: word = $DD04;
+const CIA2_TIMER_A_HI: word = $DD05;
+const CIA2_ICR: word = $DD0D;
+const CIA2_CRA: word = $DD0E;
+
+function initSID(): void {
+    poke(SID_VOLUME, 15);
+    poke(SID_V1_AD, $09);
+    poke(SID_V1_SR, $00);
+}
+
+function playFreq(freqHi: byte, freqLo: byte): void {
+    poke(SID_V1_FREQ_LO, freqLo);
+    poke(SID_V1_FREQ_HI, freqHi);
+    poke(SID_V1_CONTROL, $11);
+}
+
+function gateOff(): void {
+    poke(SID_V1_CONTROL, $10);
+}
+
+function startTimer(lo: byte, hi: byte): void {
+    poke(CIA2_CRA, 0);
+    poke(CIA2_TIMER_A_LO, lo);
+    poke(CIA2_TIMER_A_HI, hi);
+    poke(CIA2_ICR, $81);
+    poke(CIA2_CRA, $01);
+}
+
+function waitTimer(): void {
+    while ((peek(CIA2_ICR) & $01) == 0) {
+        barrier();
+    }
+}
+
+export function main(): void {
+    initSID();
+    startTimer($00, $40);
+
+    let noteIndex: byte = 0;
+    while (noteIndex < 16) {
+        let freq: byte = noteIndex * 8 + 16;
+        playFreq(freq, 0);
+        waitTimer();
+        gateOff();
+        waitTimer();
+        noteIndex += 1;
+    }
+    poke(SID_VOLUME, 0);
+}
+```
+
+**Verifications:**
+- ✅ Multiple sequential function calls (initSID, startTimer, playFreq, waitTimer, gateOff)
+- ✅ `peek(CIA2_ICR) & $01` bitwise AND in while condition (Class 9 + Class 7)
+- ✅ `barrier()` preserved in timer wait loop (Class 9)
+- ✅ `noteIndex * 8 + 16` compound expression (Class 7)
+- ✅ `noteIndex += 1` compound assignment (Bug 4)
+- ✅ `noteIndex < 16` while condition (Class 3)
+- ✅ At O3: small functions inlined, originals removed (Bug 3)
+- ✅ At O3: inlined loops re-init correctly (Bug 6)
+- ✅ Function parameters passed correctly across calls (Class 10)
+
+---
+
+## Scenario 15: Multiplexed Sprites (Tests Classes 1, 2, 7)
+
+**Real-world pattern:** Sorting sprites by Y-coordinate for raster multiplexing — a common C64 demo technique.
+
+```js
+module SpriteMux;
+
+const VIC_SPRITE_ENABLE: word = $D015;
+const VIC_SPRITE_X_BASE: word = $D000;
+const VIC_SPRITE_Y_BASE: word = $D001;
+const VIC_RASTER: word = $D012;
+const BORDER: word = $D020;
+
+function setSpriteY(num: byte, y: byte): void {
+    let regOffset: byte = num * 2;
+    poke(VIC_SPRITE_Y_BASE + regOffset, y);
+}
+
+function setSpriteX(num: byte, x: byte): void {
+    let regOffset: byte = num * 2;
+    poke(VIC_SPRITE_X_BASE + regOffset, x);
+}
+
+function enableSprite(num: byte): void {
+    let current: byte = peek(VIC_SPRITE_ENABLE);
+    let mask: byte = 1;
+    for (let i: byte = 0 to num - 1 step 1) {
+        mask = mask * 2;
+    }
+    let result: byte = current | mask;
+    poke(VIC_SPRITE_ENABLE, result);
+}
+
+function waitRasterLine(line: byte): void {
+    while (peek(VIC_RASTER) != line) {
+        barrier();
+    }
+}
+
+function sortAndDisplay(y0: byte, y1: byte, y2: byte, y3: byte): void {
+    if (y0 < y1) {
+        setSpriteY(0, y0);
+        setSpriteY(1, y1);
+    } else {
+        setSpriteY(0, y1);
+        setSpriteY(1, y0);
+    }
+    if (y2 < y3) {
+        setSpriteY(2, y2);
+        setSpriteY(3, y3);
+    } else {
+        setSpriteY(2, y3);
+        setSpriteY(3, y2);
+    }
+}
+
+export function main(): void {
+    enableSprite(0);
+    enableSprite(1);
+    enableSprite(2);
+    enableSprite(3);
+
+    let frame: byte = 0;
+    while (true) {
+        waitRasterLine(250);
+        let offset: byte = frame;
+        sortAndDisplay(50 + offset, 80 + offset, 120 + offset, 160 + offset);
+        setSpriteX(0, 50);
+        setSpriteX(1, 100);
+        setSpriteX(2, 150);
+        setSpriteX(3, 200);
+        frame += 1;
+        if (frame > 40) {
+            frame = 0;
+        }
+    }
+}
+```
+
+**Verifications:**
+- ✅ `num * 2` byte multiplication for register offsets (Class 7)
+- ✅ `peek(VIC_SPRITE_ENABLE) | mask` R-M-W with temp var (Class 9 + workaround)
+- ✅ `y0 < y1` comparisons for sorting (Class 1: byte comparison)
+- ✅ if-else blocks with function calls in both branches (Class 3)
+- ✅ `50 + offset` expressions as function arguments (Class 7)
+- ✅ `frame += 1` compound assignment (Bug 4)
+- ✅ `frame = 0` literal assignment (Bug 5)
+- ✅ `barrier()` in raster wait loop (Class 9)
+- ✅ 4-parameter function `sortAndDisplay` (Class 10)
+- ✅ Multiple enableSprite calls building up bitmask incrementally
+
+---
+
+## Scenario 16: Screen Editor (Tests Classes 3, 4, 5)
+
+**Real-world pattern:** Text cursor management with joystick movement, screen RAM character editing.
+
+**Module A: input.blend**
+```js
+module Input;
+
+const JOY2: word = $DC00;
+
+export function readJoy(): byte {
+    return peek(JOY2) & $1F;
+}
+
+export function joyUp(joy: byte): byte {
+    if (joy & $01) {
+        return 0;
+    }
+    return 1;
+}
+
+export function joyDown(joy: byte): byte {
+    if (joy & $02) {
+        return 0;
+    }
+    return 1;
+}
+
+export function joyLeft(joy: byte): byte {
+    if (joy & $04) {
+        return 0;
+    }
+    return 1;
+}
+
+export function joyRight(joy: byte): byte {
+    if (joy & $08) {
+        return 0;
+    }
+    return 1;
+}
+
+export function joyFire(joy: byte): byte {
+    if (joy & $10) {
+        return 0;
+    }
+    return 1;
+}
+```
+
+**Module B: editor.blend**
+```js
+module Editor;
+
+const SCREEN_RAM: word = $0400;
+const COLOR_RAM: word = $D800;
+const BORDER: word = $D020;
+
+export function main(): void {
+    let cursorX: byte = 0;
+    let cursorY: byte = 0;
+    let curChar: byte = 65;
+
+    while (true) {
+        let joy: byte = peek($DC00) & $1F;
+        let moved: byte = 0;
+
+        if ((joy & $01) == 0) {
+            if (cursorY > 0) {
+                cursorY -= 1;
+                moved = 1;
+            }
+        }
+        if ((joy & $02) == 0) {
+            if (cursorY < 24) {
+                cursorY += 1;
+                moved = 1;
+            }
+        }
+        if ((joy & $04) == 0) {
+            if (cursorX > 0) {
+                cursorX -= 1;
+                moved = 1;
+            }
+        }
+        if ((joy & $08) == 0) {
+            if (cursorX < 39) {
+                cursorX += 1;
+                moved = 1;
+            }
+        }
+
+        if ((joy & $10) == 0) {
+            let pos: word = cursorY * 40 + cursorX;
+            poke(SCREEN_RAM + pos, curChar);
+            curChar += 1;
+            if (curChar > 90) {
+                curChar = 65;
+            }
+        }
+
+        if (moved == 1) {
+            let cursorAddr: word = cursorY * 40 + cursorX;
+            poke(COLOR_RAM + cursorAddr, 1);
+            poke(BORDER, cursorX);
+        }
+
+        for (_delay = 0 to 254) {
+            barrier();
+        }
+    }
+}
+```
+
+**Verifications:**
+- ✅ Multi-module compilation: Input + Editor modules (Class 5)
+- ✅ `joy & $01`, `joy & $02`, etc. — bit testing patterns (Class 7)
+- ✅ Nested if-blocks with boundary checking (Class 3)
+- ✅ `cursorY * 40 + cursorX` address calculation (Class 7)
+- ✅ `cursorX += 1`, `cursorY -= 1` compound assignments (Bug 4)
+- ✅ `curChar = 65`, `cursorX = 0` literal assignments (Bug 5)
+- ✅ `moved == 1` flag-based conditional (Class 3)
+- ✅ Multiple variables in same scope (Class 4: memory layout)
+- ✅ `barrier()` in delay loop (Class 9)
+- ✅ Word computation `cursorY * 40 + cursorX` for screen position (Class 1)
+
+---
+
+## Scenario 17: High Score Table (Tests Classes 1, 4, 7)
+
+**Real-world pattern:** Managing high scores with word comparisons, bubble-sort logic, and screen display using multiple variables.
+
+```js
+module HighScore;
+
+const SCREEN_RAM: word = $0400;
+const COLOR_RAM: word = $D800;
+const BORDER: word = $D020;
+
+function displayDigit(pos: word, value: byte): void {
+    poke(SCREEN_RAM + pos, value + 48);
+    poke(COLOR_RAM + pos, 1);
+}
+
+function displayScore(row: byte, score: word): void {
+    let base: word = row * 40 + 10;
+    let thousands: byte = 0;
+    let hundreds: byte = 0;
+    let tens: byte = 0;
+    let remaining: word = score;
+
+    while (remaining >= 1000) {
+        thousands += 1;
+        remaining -= 1000;
+    }
+    while (remaining >= 100) {
+        hundreds += 1;
+        remaining -= 100;
+    }
+    while (remaining >= 10) {
+        tens += 1;
+        remaining -= 10;
+    }
+    let ones: byte = lo(remaining);
+
+    displayDigit(base, thousands);
+    displayDigit(base + 1, hundreds);
+    displayDigit(base + 2, tens);
+    displayDigit(base + 3, ones);
+}
+
+function sortScores(s0: word, s1: word, s2: word): void {
+    if (s0 < s1) {
+        displayScore(2, s1);
+        displayScore(4, s0);
+    } else {
+        displayScore(2, s0);
+        displayScore(4, s1);
+    }
+    displayScore(6, s2);
+}
+
+export function main(): void {
+    let score1: word = 1500;
+    let score2: word = 2300;
+    let score3: word = 800;
+    sortScores(score1, score2, score3);
+    poke(BORDER, 6);
+}
+```
+
+**Verifications:**
+- ✅ Word variables `score`, `remaining` with word comparisons (Class 1)
+- ✅ `remaining >= 1000`, `remaining >= 100` word comparisons in while (Class 1 + Class 3)
+- ✅ `remaining -= 1000`, `remaining -= 100` word compound assignments (Bug 4 + Class 1)
+- ✅ Multiple local variables in same function (Class 4: memory layout)
+- ✅ `row * 40 + 10` word address calculation (Class 7)
+- ✅ `lo(remaining)` byte extraction from word (Class 1: type coercion)
+- ✅ `s0 < s1` word comparison in if-else (Class 1 + Class 3)
+- ✅ `value + 48` expression as poke argument (Class 7)
+- ✅ No false unused warnings (Bug 1)
+
+---
+
+## Scenario 18: Parallax Scroller (Tests Classes 2, 6, 9)
+
+**Real-world pattern:** Multi-layer parallax scrolling using VIC-II scroll registers with different speeds per layer.
+
+```js
+module ParallaxScroll;
+
+const VIC_SCROLL_X: word = $D016;
+const VIC_RASTER: word = $D012;
+const BORDER: word = $D020;
+const SCREEN_RAM: word = $0400;
+
+function waitRaster(line: byte): void {
+    while (peek(VIC_RASTER) != line) {
+        barrier();
+    }
+}
+
+function setHScroll(offset: byte): void {
+    let reg: byte = peek(VIC_SCROLL_X) & $F8;
+    let masked: byte = offset & $07;
+    let combined: byte = reg | masked;
+    poke(VIC_SCROLL_X, combined);
+}
+
+function drawLayer(row: byte, offset: byte): void {
+    let base: word = row * 40;
+    for (let col: byte = 0 to 39 step 1) {
+        let charVal: byte = col + offset;
+        poke(SCREEN_RAM + base + col, charVal);
+    }
+}
+
+export function main(): void {
+    let fastScroll: byte = 0;
+    let medScroll: byte = 0;
+    let slowScroll: byte = 0;
+    let frameCount: byte = 0;
+
+    while (true) {
+        waitRaster(250);
+
+        // Fast layer — every frame
+        fastScroll += 1;
+        if (fastScroll > 7) {
+            fastScroll = 0;
+            drawLayer(0, frameCount);
+        }
+
+        // Medium layer — every 2nd frame
+        if (frameCount & $01) {
+            medScroll += 1;
+            if (medScroll > 7) {
+                medScroll = 0;
+                drawLayer(12, frameCount);
+            }
+        }
+
+        // Slow layer — every 4th frame
+        if (frameCount & $03) {
+            slowScroll += 1;
+            if (slowScroll > 7) {
+                slowScroll = 0;
+                drawLayer(22, frameCount);
+            }
+        }
+
+        setHScroll(fastScroll);
+        poke(BORDER, fastScroll);
+        frameCount += 1;
+    }
+}
+```
+
+**Verifications:**
+- ✅ `peek(VIC_SCROLL_X) & $F8` R-M-W with temp vars (Class 9 + workaround)
+- ✅ `peek(VIC_RASTER) != line` volatile hardware read in while (Class 9)
+- ✅ `barrier()` preserved in raster wait (Class 9)
+- ✅ `frameCount & $01`, `frameCount & $03` bitwise tests (Class 7)
+- ✅ Multiple compound assignments: `fastScroll += 1`, `medScroll += 1`, `slowScroll += 1` (Bug 4)
+- ✅ Multiple literal assignments: `fastScroll = 0`, `medScroll = 0`, etc. (Bug 5)
+- ✅ Nested if-blocks inside while loop (Class 3)
+- ✅ At O3: waitRaster, setHScroll, drawLayer inlined (Bug 3, Bug 6)
+- ✅ `col + offset` expression in poke value (Class 7)
+- ✅ `row * 40` address calculation (Class 7)
+
+---
+
+## Scenario 19: Particle System (Tests Classes 1, 4, 10)
+
+**Real-world pattern:** Simple particle effect using multiple parallel variables to track position and velocity of particles.
+
+```js
+module Particles;
+
+const SCREEN_RAM: word = $0400;
+const COLOR_RAM: word = $D800;
+const BORDER: word = $D020;
+
+function clearParticle(x: byte, y: byte): void {
+    let pos: word = y * 40 + x;
+    poke(SCREEN_RAM + pos, 32);
+}
+
+function drawParticle(x: byte, y: byte, char: byte): void {
+    let pos: word = y * 40 + x;
+    poke(SCREEN_RAM + pos, char);
+    poke(COLOR_RAM + pos, 1);
+}
+
+function updateVelocity(vel: byte, accel: byte): byte {
+    let newVel: byte = vel + accel;
+    if (newVel > 200) {
+        return 0;
+    }
+    return newVel;
+}
+
+function bounceCheck(pos: byte, limit: byte): byte {
+    if (pos >= limit) {
+        return 1;
+    }
+    return 0;
+}
+
+export function main(): void {
+    // Particle 0 state
+    let p0x: byte = 20;
+    let p0y: byte = 12;
+    let p0vx: byte = 1;
+    let p0vy: byte = 0;
+
+    // Particle 1 state
+    let p1x: byte = 10;
+    let p1y: byte = 5;
+    let p1vx: byte = 2;
+    let p1vy: byte = 1;
+
+    let frame: byte = 0;
+
+    while (true) {
+        // Clear old positions
+        clearParticle(p0x, p0y);
+        clearParticle(p1x, p1y);
+
+        // Update particle 0
+        p0vx = updateVelocity(p0vx, 0);
+        p0vy = updateVelocity(p0vy, 1);
+        p0x += p0vx;
+        p0y += p0vy;
+        if (bounceCheck(p0x, 39)) {
+            p0x = 39;
+            p0vx = 0;
+        }
+        if (bounceCheck(p0y, 24)) {
+            p0y = 24;
+            p0vy = 0;
+        }
+
+        // Update particle 1
+        p1vx = updateVelocity(p1vx, 0);
+        p1vy = updateVelocity(p1vy, 1);
+        p1x += p1vx;
+        p1y += p1vy;
+        if (bounceCheck(p1x, 39)) {
+            p1x = 39;
+            p1vx = 0;
+        }
+        if (bounceCheck(p1y, 24)) {
+            p1y = 24;
+            p1vy = 0;
+        }
+
+        // Draw new positions
+        drawParticle(p0x, p0y, 81);
+        drawParticle(p1x, p1y, 87);
+
+        poke(BORDER, frame & $0F);
+        frame += 1;
+
+        for (_delay = 0 to 254) {
+            barrier();
+        }
+    }
+}
+```
+
+**Verifications:**
+- ✅ Many local variables (p0x, p0y, p0vx, p0vy, p1x, p1y, ...) (Class 4: memory layout)
+- ✅ `y * 40 + x` word address calculation (Class 1 + Class 7)
+- ✅ `p0x += p0vx` compound assignment with variable (Bug 4)
+- ✅ `p0x = 39`, `p0vy = 0` literal assignments in if-body (Bug 5)
+- ✅ Function return values assigned to variables (Class 10)
+- ✅ Function return values used in if-conditions (Class 10)
+- ✅ `frame & $0F` bitwise expression in poke value (Class 7)
+- ✅ `newVel > 200` comparison with early return (Class 3)
+- ✅ `pos >= limit` parameterized comparison (Class 10)
+- ✅ No false unused warnings for any particle state variables (Bug 1)
+
+---
+
+## Scenario 20: Boot Sequence (Tests All Classes)
+
+**Real-world pattern:** Full game boot sequence initializing screen, SID, and sprites — the most comprehensive single-program stress test.
+
+```js
+module BootSequence;
+
+const SCREEN_RAM: word = $0400;
+const COLOR_RAM: word = $D800;
+const BORDER: word = $D020;
+const BG: word = $D021;
+const SID_VOLUME: word = $D418;
+const SID_V1_AD: word = $D405;
+const SID_V1_SR: word = $D406;
+const SID_V1_FREQ_LO: word = $D400;
+const SID_V1_FREQ_HI: word = $D401;
+const SID_V1_CONTROL: word = $D404;
+const VIC_SPRITE_ENABLE: word = $D015;
+const VIC_RASTER: word = $D012;
+const VIC_SPRITE_Y0: word = $D001;
+const VIC_SPRITE_X0: word = $D000;
+
+function clearScreen(): void {
+    for (let i: word = 0 to 999 step 1) {
+        poke(SCREEN_RAM + i, 32);
+        poke(COLOR_RAM + i, 14);
+    }
+}
+
+function initColors(): void {
+    poke(BORDER, 6);
+    poke(BG, 0);
+}
+
+function initSID(): void {
+    poke(SID_VOLUME, 15);
+    poke(SID_V1_AD, $09);
+    poke(SID_V1_SR, $00);
+}
+
+function playBootSound(): void {
+    poke(SID_V1_FREQ_LO, $00);
+    poke(SID_V1_FREQ_HI, $10);
+    poke(SID_V1_CONTROL, $11);
+    for (_d = 0 to 254) {
+        barrier();
+    }
+    poke(SID_V1_CONTROL, $10);
+}
+
+function initSprites(): void {
+    poke(VIC_SPRITE_ENABLE, $01);
+    poke(VIC_SPRITE_X0, 100);
+    poke(VIC_SPRITE_Y0, 100);
+}
+
+function drawTitle(row: byte): void {
+    let base: word = row * 40;
+    for (let i: byte = 0 to 9 step 1) {
+        poke(SCREEN_RAM + base + i, i + 1);
+    }
+}
+
+function waitRaster(line: byte): void {
+    while (peek(VIC_RASTER) != line) {
+        barrier();
+    }
+}
+
+export function main(): void {
+    // Phase 1: Screen init
+    clearScreen();
+    initColors();
+
+    // Phase 2: Sound init
+    initSID();
+    playBootSound();
+
+    // Phase 3: Sprite init
+    initSprites();
+
+    // Phase 4: Title screen
+    drawTitle(5);
+    drawTitle(7);
+
+    // Phase 5: Main loop
+    let frame: byte = 0;
+    while (true) {
+        waitRaster(250);
+        poke(BORDER, frame & $0F);
+        frame += 1;
+        if (frame > 15) {
+            frame = 0;
+        }
+    }
+}
+```
+
+**Verifications:**
+- ✅ Word loop 0 to 999 (Class 1: word counter)
+- ✅ Dynamic address poke in loops (Bug 2)
+- ✅ Multiple function calls in sequence (Class 10: calling convention)
+- ✅ `barrier()` preserved in delay and raster wait (Class 9)
+- ✅ `frame & $0F` bitwise expression (Class 7)
+- ✅ `frame += 1` compound assignment (Bug 4)
+- ✅ `frame = 0` literal assignment (Bug 5)
+- ✅ At O3: small functions inlined, originals removed (Bug 3, Bug 6)
+- ✅ Many I/O register constants and poke calls (Class 4)
+- ✅ `row * 40` address calculation (Class 7)
+- ✅ `i + 1` expression in loop body (Class 7)
+- ✅ `peek(VIC_RASTER) != line` hardware read comparison (Class 9)
+- ✅ No false unused warnings (Bug 1)
+- ✅ Exercises ALL bug classes and ALL feature classes in one program
 
 ---
 

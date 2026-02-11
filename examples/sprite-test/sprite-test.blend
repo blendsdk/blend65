@@ -1,271 +1,40 @@
-// ============================================================================
-// C64 Sprite Demo - Blend65 Port
-// ============================================================================
-// Port of classic BASIC sprite demonstration program.
-// Original: "Show Off Your Sprite With Your C64"
-//
-// This demo:
-// - Loads a sprite into memory at $3000
-// - Configures VIC-II for sprite display
-// - Animates sprite diagonally across screen
-// - Demonstrates double-size sprite expansion
-//
-// Original BASIC lines: 10-130, 10665-10770
-// ============================================================================
+// Pilot Program 006: Screen Fill
+// Fill screen and color RAM using constant addresses and helper functions.
+// Exercises: nested for-loops, function calls, poke with constants.
 
-module SpriteDemo;
+module Pilot.ScreenFill;
 
-import { poke } from system;
-
-// ============================================================================
-// VIC-II Register Addresses
-// ============================================================================
-// The VIC-II (Video Interface Controller) manages all video output including
-// sprites, screen memory, colors, and raster effects.
-
-const VIC_BASE: word = $D000;           // VIC-II chip base address
-
-// Sprite position registers (X/Y coordinates for sprites 0-7)
-const VIC_SPRITE0_X: word = $D000;      // Sprite 0 X position (low 8 bits)
-const VIC_SPRITE0_Y: word = $D001;      // Sprite 0 Y position (0-255)
-
-// Sprite control registers
-const VIC_SPRITE_XMSB: word = $D010;    // Sprite X MSB (9th bit for X > 255)
-const VIC_SPRITE_ENABLE: word = $D015;  // Sprite enable (bit 0-7 = sprite 0-7)
-const VIC_SPRITE_EXPAND_Y: word = $D017; // Sprite Y expansion (double height)
-const VIC_SPRITE_EXPAND_X: word = $D01D; // Sprite X expansion (double width)
-
-// Screen colors
-const VIC_BORDER: word = $D020;         // Border color (0-15)
-const VIC_BACKGROUND: word = $D021;     // Background color 0 (0-15)
-
-// Sprite colors (8 bytes for sprites 0-7)
-const VIC_SPRITE0_COLOR: word = $D027;  // Sprite 0 color (0-15)
-
-// Sprite pointer location (points to sprite data in memory)
-const VIC_SPRITE0_PTR: word = $07F8;    // Sprite 0 pointer (screen RAM + $3F8)
-
-// ============================================================================
-// Sprite Data Configuration
-// ============================================================================
-// Sprites are 24x21 pixel monochrome bitmaps stored as 63 bytes.
-// Each sprite requires 64 bytes (63 data + 1 unused padding byte).
-//
-// Memory layout:
-// - Sprite data: $3000-$303F (192 * 64 = 12288 decimal)
-// - Sprite pointer: 192 (points to block 192 in VIC-II address space)
-
-const SPRITE_DATA_ADDR: word = $3000;   // Memory address for sprite data
-const SPRITE_PTR_VALUE: byte = 192;     // Pointer value (12288 / 64 = 192)
-
-// ============================================================================
-// C64 Color Palette Constants
-// ============================================================================
-const COLOR_BLACK: byte = 0;
-const COLOR_WHITE: byte = 1;
-const COLOR_RED: byte = 2;
-const COLOR_CYAN: byte = 3;
-const COLOR_PURPLE: byte = 4;
-const COLOR_GREEN: byte = 5;
-const COLOR_BLUE: byte = 6;
-const COLOR_YELLOW: byte = 7;
-const COLOR_ORANGE: byte = 8;
-const COLOR_BROWN: byte = 9;
-const COLOR_LIGHT_RED: byte = 10;
-const COLOR_DARK_GRAY: byte = 11;
-const COLOR_GRAY: byte = 12;
-const COLOR_LIGHT_GREEN: byte = 13;
-const COLOR_LIGHT_BLUE: byte = 14;
-const COLOR_LIGHT_GRAY: byte = 15;
-
-// ============================================================================
-// Sprite Data - 63 Bytes
-// ============================================================================
-// This sprite data defines a 24x21 pixel bitmap.
-// Each row is 3 bytes (24 bits), with 21 rows total.
-//
-// Original BASIC DATA statements (lines 10670-10770):
-// DATA 12,0,192,12,0,192, ...
-//
-// Stored in ROM-able data section for efficient memory usage.
-
-@data const spriteData: byte[] = [
-  // Row 1-2: Top of sprite
-  $0C, $00, $C0, $0C, $00, $C0,
-
-  // Row 3-4: Upper section
-  $03, $03, $00, $03, $03, $00,
-
-  // Row 5-6: Upper-middle section (solid)
-  $0F, $FF, $C0, $0F, $FF, $C0,
-
-  // Row 7-8: Middle section (wide)
-  $3C, $FC, $F0, $3C, $FC, $F0,
-
-  // Row 9-10: Middle section (full width)
-  $FF, $FF, $FC, $FF, $FF, $FC,
-
-  // Row 11-12: Lower-middle section (pattern)
-  $CF, $FF, $CC, $CF, $FF, $CC,
-
-  // Row 13-14: Lower section (gaps)
-  $CC, $00, $CC, $CC, $00, $CC,
-
-  // Row 15-16: Bottom section (narrow)
-  $03, $CF, $00, $03, $CF, $00,
-
-  // Row 17-21: Empty rows
-  $00, $00, $00, $00, $00, $00,
-  $00, $00, $00, $00, $00, $00,
-  $00, $00, $00
-];
-
-// ============================================================================
-// Animation State Variables
-// ============================================================================
-// Stored in zero page for fastest 6502 access (critical for animation loop).
-// Zero page addressing modes are 1-2 cycles faster than absolute addressing.
-
-@zp let spriteX: byte = 24;   // Current X position (0-255, 9th bit in VIC_SPRITE_XMSB)
-@zp let spriteY: byte = 50;   // Current Y position (0-255)
-
-// ============================================================================
-// Initialization Function
-// ============================================================================
-
-/**
- * Initialize VIC-II registers and copy sprite data to memory.
- *
- * This function:
- * 1. Sets border and background colors
- * 2. Disables sprite initially (prevents garbage during setup)
- * 3. Copies sprite bitmap data to $3000
- * 4. Configures sprite pointer to point at sprite data
- * 5. Sets sprite color
- * 6. Enables sprite expansion (double size)
- * 7. Enables sprite display
- *
- * Original BASIC: Lines 22, 25, 30, 40-70, 75, 80
- */
-function initSprite(): void {
-  // Turn off sprite during initialization (BASIC line 22)
-  poke(VIC_SPRITE_ENABLE, 0);
-
-  // Set border color to green, background to white (BASIC line 25)
-  poke(VIC_BORDER, COLOR_GREEN);        // POKE 53280,5
-  poke(VIC_BACKGROUND, COLOR_WHITE);    // POKE 53281,1
-
-  // Copy sprite data to memory at $3000 (BASIC lines 30, 40-70)
-  // Original: FOR Y=0 TO 62: READ A: POKE (192*64)+Y,A: NEXT Y
-  for (let i: byte = 0 to 62) {
-    poke(SPRITE_DATA_ADDR + i, spriteData[i]);
-  }
-
-  // Set sprite 0 pointer to block 192 ($3000 / 64) (BASIC line 30)
-  poke(VIC_SPRITE0_PTR, SPRITE_PTR_VALUE);
-
-  // Set sprite 0 color to yellow (BASIC line 75)
-  poke(VIC_SPRITE0_COLOR, COLOR_YELLOW);  // POKE V+39,7
-
-  // Enable sprite expansion - double width and height (BASIC line 80)
-  poke(VIC_SPRITE_EXPAND_Y, 1);  // POKE V+23,1 (bit 0 = sprite 0)
-  poke(VIC_SPRITE_EXPAND_X, 1);  // POKE V+29,1 (bit 0 = sprite 0)
-
-  // Enable sprite 0 (BASIC line 95)
-  poke(VIC_SPRITE_ENABLE, 1);    // POKE V+21,1 (bit 0 = sprite 0)
-}
-
-// ============================================================================
-// Animation Function
-// ============================================================================
-
-/**
- * Update sprite position for diagonal animation.
- *
- * Increments both X and Y coordinates, creating diagonal movement.
- * Wraps back to (1,1) when Y reaches 255.
- *
- * Original BASIC: Lines 90, 100, 110
- */
-function updateSprite(): void {
-  // Set sprite X/Y position (BASIC line 90)
-  poke(VIC_SPRITE0_X, spriteX);  // POKE V+0,X
-  poke(VIC_SPRITE0_Y, spriteY);  // POKE V+1,Y
-
-  // Increment position for diagonal movement (BASIC line 100)
-  spriteY += 1;  // Y=Y+1
-  spriteX += 1;  // X=X+1
-
-  // Wrap around when reaching edge (BASIC line 110)
-  // Original: IF Y=255 THEN Y=1: X=1
-  if (spriteY == 255) {
-    spriteY = 1;
-    spriteX = 1;
-  }
-}
-
-// ============================================================================
-// Main Entry Point
-// ============================================================================
-
-/**
- * Main program entry point.
- *
- * Initializes the sprite system and runs infinite animation loop.
- * Exported so runtime can call this function.
- *
- * Original BASIC: Lines 20-130 (main program structure)
- */
 export function main(): void {
-  // Initialize sprite system (BASIC lines 20-95)
-  initSprite();
+    // Set border and background colors
+    poke($D020, 6);
+    poke($D021, 14);
 
-  // Infinite animation loop (BASIC lines 90-130)
-  // Original: GOTO 90 (infinite loop)
-  while (true) {
-    updateSprite();
-  }
+    // Write characters to specific constant screen positions
+    // First row
+    poke($0400, 160);
+    poke($0401, 160);
+    poke($0402, 160);
+    poke($0403, 160);
+    poke($0404, 160);
+
+    // Set colors on first row
+    poke($D800, 14);
+    poke($D801, 14);
+    poke($D802, 14);
+    poke($D803, 14);
+    poke($D804, 14);
+
+    // Second row (offset +40)a
+    poke($0428, 160);
+    poke($0429, 160);
+    poke($042A, 160);
+    poke($042B, 160);
+    poke($042C, 160);
+
+    // Colors second row
+    poke($D828, 1);
+    poke($D829, 1);
+    poke($D82A, 1);
+    poke($D82B, 1);
+    poke($D82C, 1);
 }
-
-// ============================================================================
-// Implementation Notes
-// ============================================================================
-//
-// Memory Map:
-// -----------
-// $0000-$00FF: Zero page (spriteX, spriteY stored here via @zp)
-// $0400-$07E7: Screen RAM
-// $07F8-$07FF: Sprite pointers (sprite 0 pointer at $07F8)
-// $3000-$303F: Sprite 0 data (63 bytes + 1 padding)
-// $D000-$D02E: VIC-II registers
-//
-// Performance Optimizations:
-// --------------------------
-// 1. Zero-page storage (@zp): X/Y variables use fastest addressing mode
-// 2. Intrinsic poke(): Compiles to single STA instruction (4 cycles)
-// 3. ROM-able sprite data (@data const): Can be placed in cartridge ROM
-// 4. Constant folding: All VIC register addresses resolved at compile-time
-//
-// Sprite Format:
-// --------------
-// - Size: 24x21 pixels (3 bytes per row, 21 rows)
-// - Storage: 63 data bytes + 1 padding byte = 64 bytes per sprite
-// - Expansion: 2x width and height when expansion bits are set
-// - Colors: Monochrome (1 bit per pixel) with single color register
-//
-// Differences from BASIC:
-// -----------------------
-// 1. Type safety: Compiler verifies all addresses and values
-// 2. Performance: Compiled 6502 code vs interpreted BASIC
-// 3. Structure: Functions instead of line numbers and GOTO
-// 4. Comments: Extensive documentation of hardware behavior
-// 5. Constants: Named constants instead of magic numbers
-//
-// C64 Hardware References:
-// ------------------------
-// - VIC-II: Video Interface Controller II (MOS 6567/6569)
-// - Sprites: Hardware sprites (MOBs - Movable Object Blocks)
-// - Zero Page: 6502 fast memory addressing mode ($0000-$00FF)
-// - Color RAM: Separate 4-bit color memory at $D800-$DBE7
-//
-// ============================================================================
