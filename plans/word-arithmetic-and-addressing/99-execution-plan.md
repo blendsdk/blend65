@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-02 17:26
-> **Progress**: 4/28 tasks (14%)
+> **Last Updated**: 2026-11-02 17:47
+> **Progress**: 8/28 tasks (29%)
 
 ## Overview
 
@@ -253,10 +253,10 @@
 - [x] 1.1.2 Add cost estimates for new opcodes ✅ (completed: 2026-11-02 13:42)
 - [x] 1.1.3 Add builder methods for word arithmetic ✅ (completed: 2026-11-02 13:43)
 - [x] 1.1.4 Add unit tests for builder methods ✅ (completed: 2026-11-02 13:46)
-- [ ] 1.2.1 Add CMP_WORD/INC_WORD/DEC_WORD opcodes
-- [ ] 1.2.2 Add cost estimates for cmp/inc/dec
-- [ ] 1.2.3 Add builder methods for cmp/inc/dec
-- [ ] 1.2.4 Add unit tests for cmp/inc/dec builders
+- [x] 1.2.1 Add CMP_WORD/INC_WORD/DEC_WORD opcodes ✅ (completed: 2026-11-02 17:37)
+- [x] 1.2.2 Add cost estimates for cmp/inc/dec ✅ (completed: 2026-11-02 17:39)
+- [x] 1.2.3 Add builder methods for cmp/inc/dec ✅ (completed: 2026-11-02 17:40)
+- [x] 1.2.4 Add unit tests for cmp/inc/dec builders ✅ (completed: 2026-11-02 17:42)
 
 ### Phase 2: Word Arithmetic Codegen
 - [ ] 2.1.1 genAddWordByteImm() codegen

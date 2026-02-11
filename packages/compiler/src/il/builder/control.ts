@@ -53,6 +53,34 @@ export class ILBuilderControl extends ILBuilderArithmetic {
     this.emit(ILOpcode.CMP_IMM, [createImmediateOperand(value)], comment);
   }
 
+  /**
+   * Compare A:X with immediate word (16-bit comparison).
+   *
+   * Compares the word in A:X with a 16-bit immediate value.
+   * Sets Z and C flags correctly for all conditional jumps.
+   * 6502: CPX #>word / BNE .done / CMP #<word / .done:
+   *
+   * @param value - Word value (0-65535)
+   * @param comment - Optional comment
+   */
+  cmpWordImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.CMP_WORD_IMM, [createImmediateOperand(value, true)], comment);
+  }
+
+  /**
+   * Compare A:X with word slot (16-bit comparison).
+   *
+   * Compares the word in A:X with a 16-bit value from a slot.
+   * Sets Z and C flags correctly for all conditional jumps.
+   * 6502: CPX slot+1 / BNE .done / CMP slot / .done:
+   *
+   * @param slot - Word-sized source slot
+   * @param comment - Optional comment
+   */
+  cmpWordSlot(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.CMP_WORD_SLOT, [createSlotOperand(slot)], comment);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Jump Operations
   // ═══════════════════════════════════════════════════════════════════

@@ -236,6 +236,22 @@ export enum ILOpcode {
    */
   PROMOTE_BYTE_WORD = 'PROMOTE_BYTE_WORD',
 
+  /**
+   * Increment word slot in place (16-bit).
+   * Operands: [SlotOperand]
+   * Effect: [slot16] ← [slot16] + 1
+   * 6502: INC slot / BNE +2 / INC slot+1
+   */
+  INC_WORD = 'INC_WORD',
+
+  /**
+   * Decrement word slot in place (16-bit).
+   * Operands: [SlotOperand]
+   * Effect: [slot16] ← [slot16] - 1
+   * 6502: LDA slot / BNE +2 / DEC slot+1 / DEC slot
+   */
+  DEC_WORD = 'DEC_WORD',
+
   // ══════════════════════════════════════════════════════════════════
   // BITWISE OPERATIONS
   // ══════════════════════════════════════════════════════════════════
@@ -331,6 +347,22 @@ export enum ILOpcode {
    * 6502: CMP #imm
    */
   CMP_IMM = 'CMP_IMM',
+
+  /**
+   * Compare A:X with immediate word (16-bit comparison).
+   * Operands: [ImmediateOperand] (isWord: true)
+   * Effect: flags ← A:X cmp imm16
+   * 6502: CPX #>word / BNE .done / CMP #<word / .done:
+   */
+  CMP_WORD_IMM = 'CMP_WORD_IMM',
+
+  /**
+   * Compare A:X with word slot (16-bit comparison).
+   * Operands: [SlotOperand]
+   * Effect: flags ← A:X cmp [slot16]
+   * 6502: CPX slot+1 / BNE .done / CMP slot / .done:
+   */
+  CMP_WORD_SLOT = 'CMP_WORD_SLOT',
 
   // ══════════════════════════════════════════════════════════════════
   // CONTROL FLOW

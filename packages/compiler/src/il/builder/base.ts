@@ -59,6 +59,8 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   [ILOpcode.SUB_WORD_SLOT]: { cycles: 17, bytes: 9, memoryAccesses: 2 }, // SEC/SBC slot/PHA/TXA/SBC slot+1/TAX/PLA
   [ILOpcode.SUB_WORD_BYTE_SLOT]: { cycles: 8, bytes: 5, memoryAccesses: 1 }, // SEC/SBC slot/BCS+2/DEX
   [ILOpcode.PROMOTE_BYTE_WORD]: { cycles: 2, bytes: 2, memoryAccesses: 0 }, // LDX #0
+  [ILOpcode.INC_WORD]: { cycles: 12, bytes: 8, memoryAccesses: 4 }, // INC slot/BNE+2/INC slot+1 (2 RMW ops)
+  [ILOpcode.DEC_WORD]: { cycles: 16, bytes: 11, memoryAccesses: 5 }, // LDA slot/BNE+2/DEC slot+1/DEC slot (read + 2 RMW ops)
 
   // Bitwise operations
   [ILOpcode.AND_BYTE]: { cycles: 3, bytes: 2, memoryAccesses: 1 },
@@ -74,6 +76,8 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   // Comparison operations
   [ILOpcode.CMP_BYTE]: { cycles: 3, bytes: 2, memoryAccesses: 1 },
   [ILOpcode.CMP_IMM]: { cycles: 2, bytes: 2, memoryAccesses: 0 },
+  [ILOpcode.CMP_WORD_IMM]: { cycles: 6, bytes: 6, memoryAccesses: 0 }, // CPX #>imm/BNE .done/CMP #<imm
+  [ILOpcode.CMP_WORD_SLOT]: { cycles: 10, bytes: 8, memoryAccesses: 2 }, // CPX slot+1/BNE .done/CMP slot
 
   // Control flow
   [ILOpcode.LABEL]: { cycles: 0, bytes: 0, memoryAccesses: 0 },
@@ -163,9 +167,17 @@ export function computeDefUse(instr: ILInstruction): DefUse {
         case ILOpcode.STORE_WORD:
         case ILOpcode.INC_BYTE:
         case ILOpcode.DEC_BYTE:
+        // Word increment/decrement also modify the slot in place
+        case ILOpcode.INC_WORD:
+        case ILOpcode.DEC_WORD:
           defs.push(slotName);
-          // INC/DEC also use the slot
-          if (instr.opcode === ILOpcode.INC_BYTE || instr.opcode === ILOpcode.DEC_BYTE) {
+          // INC/DEC (byte and word) also use the slot
+          if (
+            instr.opcode === ILOpcode.INC_BYTE ||
+            instr.opcode === ILOpcode.DEC_BYTE ||
+            instr.opcode === ILOpcode.INC_WORD ||
+            instr.opcode === ILOpcode.DEC_WORD
+          ) {
             uses.push(slotName);
           }
           break;
@@ -183,6 +195,8 @@ export function computeDefUse(instr: ILInstruction): DefUse {
         case ILOpcode.ADD_WORD_BYTE_SLOT:
         case ILOpcode.SUB_WORD_SLOT:
         case ILOpcode.SUB_WORD_BYTE_SLOT:
+        // Word comparison with slot reads from it
+        case ILOpcode.CMP_WORD_SLOT:
           uses.push(slotName);
           break;
       }

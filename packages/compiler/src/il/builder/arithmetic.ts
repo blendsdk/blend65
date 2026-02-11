@@ -133,6 +133,34 @@ export class ILBuilderArithmetic extends ILBuilderMemory {
     this.emit(ILOpcode.DEC_BYTE, [createSlotOperand(slot)], comment);
   }
 
+  /**
+   * Increment word slot in place (16-bit).
+   *
+   * Increments a 16-bit value stored at the slot address.
+   * Handles carry propagation from low byte to high byte.
+   * 6502: INC slot / BNE +2 / INC slot+1
+   *
+   * @param slot - Word-sized target slot
+   * @param comment - Optional comment
+   */
+  incWord(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.INC_WORD, [createSlotOperand(slot)], comment);
+  }
+
+  /**
+   * Decrement word slot in place (16-bit).
+   *
+   * Decrements a 16-bit value stored at the slot address.
+   * Handles borrow propagation from low byte to high byte.
+   * 6502: LDA slot / BNE +2 / DEC slot+1 / DEC slot
+   *
+   * @param slot - Word-sized target slot
+   * @param comment - Optional comment
+   */
+  decWord(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.DEC_WORD, [createSlotOperand(slot)], comment);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Word (16-bit) Arithmetic with Immediates
   // All word operations use A:X convention (low byte in A, high byte in X)

@@ -570,4 +570,210 @@ describe('computeDefUse', () => {
     expect(subByteDefUse.uses).toContain('i');
     expect(subByteDefUse.defs).not.toContain('i');
   });
+
+  it('should identify both def and use in word inc/dec operations', () => {
+    // INC_WORD modifies the slot in place (read-modify-write), so both def and use
+    const wordSlot = createFrameSlot('counter', SlotKind.Local, BUILTIN_TYPES.WORD);
+    const wordSlotOp = createSlotOperand(wordSlot);
+
+    const incWordInstr = createInstruction(ILOpcode.INC_WORD, [wordSlotOp]);
+    const incDefUse = computeDefUse(incWordInstr);
+    expect(incDefUse.defs).toContain('counter');
+    expect(incDefUse.uses).toContain('counter');
+
+    // DEC_WORD also modifies the slot in place
+    const decWordInstr = createInstruction(ILOpcode.DEC_WORD, [wordSlotOp]);
+    const decDefUse = computeDefUse(decWordInstr);
+    expect(decDefUse.defs).toContain('counter');
+    expect(decDefUse.uses).toContain('counter');
+  });
+
+  it('should identify uses in word comparison slot operations', () => {
+    // CMP_WORD_SLOT reads from the slot (use only, no def)
+    const wordSlot = createFrameSlot('limit', SlotKind.Local, BUILTIN_TYPES.WORD);
+    const wordSlotOp = createSlotOperand(wordSlot);
+
+    const cmpWordSlotInstr = createInstruction(ILOpcode.CMP_WORD_SLOT, [wordSlotOp]);
+    const cmpDefUse = computeDefUse(cmpWordSlotInstr);
+    expect(cmpDefUse.uses).toContain('limit');
+    expect(cmpDefUse.defs).not.toContain('limit');
+  });
+});
+
+describe('Word Comparison + Increment/Decrement Builder Methods', () => {
+  let builder: ILBuilder;
+
+  beforeEach(() => {
+    builder = new ILBuilder();
+  });
+
+  it('should emit cmpWordImm with word immediate operand', () => {
+    builder.cmpWordImm(0x0400, 'compare with $0400');
+    const instructions = builder.getInstructions();
+
+    expect(instructions).toHaveLength(1);
+    expect(instructions[0].opcode).toBe(ILOpcode.CMP_WORD_IMM);
+    expect(instructions[0].comment).toBe('compare with $0400');
+
+    // Verify operand is a word immediate
+    const op = instructions[0].operands[0] as { kind: string; value: number; isWord: boolean };
+    expect(op.value).toBe(0x0400);
+    expect(op.isWord).toBe(true);
+  });
+
+  it('should emit cmpWordSlot with slot operand', () => {
+    const slot = createFrameSlot('limit', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.Ram,
+      address: 0x0200,
+    });
+    builder.cmpWordSlot(slot, 'compare with limit');
+    const instructions = builder.getInstructions();
+
+    expect(instructions).toHaveLength(1);
+    expect(instructions[0].opcode).toBe(ILOpcode.CMP_WORD_SLOT);
+    expect(instructions[0].comment).toBe('compare with limit');
+    expect(isSlotOperand(instructions[0].operands[0])).toBe(true);
+  });
+
+  it('should emit incWord with slot operand', () => {
+    const slot = createFrameSlot('counter', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.Ram,
+      address: 0x0200,
+    });
+    builder.incWord(slot, 'increment word counter');
+    const instructions = builder.getInstructions();
+
+    expect(instructions).toHaveLength(1);
+    expect(instructions[0].opcode).toBe(ILOpcode.INC_WORD);
+    expect(instructions[0].comment).toBe('increment word counter');
+    expect(isSlotOperand(instructions[0].operands[0])).toBe(true);
+  });
+
+  it('should emit decWord with slot operand', () => {
+    const slot = createFrameSlot('countdown', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.Ram,
+      address: 0x0200,
+    });
+    builder.decWord(slot, 'decrement word countdown');
+    const instructions = builder.getInstructions();
+
+    expect(instructions).toHaveLength(1);
+    expect(instructions[0].opcode).toBe(ILOpcode.DEC_WORD);
+    expect(instructions[0].comment).toBe('decrement word countdown');
+    expect(isSlotOperand(instructions[0].operands[0])).toBe(true);
+  });
+
+  it('should produce a complete word for-loop pattern with cmp and inc', () => {
+    // Simulate: for (let i: word = 0; i < 1000; i++) { ... }
+    // Pattern: LOAD_IMM_WORD 0 → STORE_WORD i → (loop: LOAD_WORD i → CMP_WORD_IMM 1000 → JUMP_GE exit → ... → INC_WORD i → JUMP loop)
+    const slot = createFrameSlot('i', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.Ram,
+      address: 0x0200,
+    });
+
+    // Init: i = 0
+    builder.loadImmWord(0);
+    builder.storeSlotWord(slot);
+
+    // Loop header
+    const loopLabel = builder.newLabel('loop');
+    const exitLabel = builder.newLabel('exit');
+    builder.label(loopLabel);
+    builder.loadSlotWord(slot);
+    builder.cmpWordImm(1000);
+    builder.jumpGe(exitLabel);
+
+    // Loop body (placeholder)
+    builder.nop();
+
+    // Loop increment + back-edge
+    builder.incWord(slot);
+    builder.jump(loopLabel);
+
+    // Exit
+    builder.label(exitLabel);
+
+    const instructions = builder.getInstructions();
+    // LOAD_IMM_WORD, STORE_WORD, LABEL, LOAD_WORD, CMP_WORD_IMM, JUMP_GE, NOP, INC_WORD, JUMP, LABEL
+    expect(instructions).toHaveLength(10);
+    expect(instructions[4].opcode).toBe(ILOpcode.CMP_WORD_IMM);
+    expect(instructions[7].opcode).toBe(ILOpcode.INC_WORD);
+  });
+});
+
+describe('Word Comparison + Increment Cost Estimates', () => {
+  it('should return correct costs for word comparison immediate opcodes', () => {
+    // CMP_WORD_IMM: CPX #>imm / BNE .done / CMP #<imm (all immediate, no memory)
+    const cmpWordImm = createInstruction(ILOpcode.CMP_WORD_IMM);
+    const cmpImmCost = computeInstructionCost(cmpWordImm);
+    expect(cmpImmCost.cycles).toBe(6);
+    expect(cmpImmCost.bytes).toBe(6);
+    expect(cmpImmCost.memoryAccesses).toBe(0);
+  });
+
+  it('should return correct costs for word comparison slot opcodes', () => {
+    // Use explicit non-ZP address to avoid ZP cost optimization
+    const slot = createFrameSlot('limit', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.Ram,
+      address: 0x0200,
+    });
+    const slotOp = createSlotOperand(slot);
+
+    // CMP_WORD_SLOT: CPX slot+1 / BNE .done / CMP slot (2 memory reads)
+    const cmpWordSlot = createInstruction(ILOpcode.CMP_WORD_SLOT, [slotOp]);
+    const cmpSlotCost = computeInstructionCost(cmpWordSlot);
+    expect(cmpSlotCost.cycles).toBe(10);
+    expect(cmpSlotCost.bytes).toBe(8);
+    expect(cmpSlotCost.memoryAccesses).toBe(2);
+  });
+
+  it('should return correct costs for word increment/decrement opcodes', () => {
+    // Use explicit non-ZP address
+    const slot = createFrameSlot('counter', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.Ram,
+      address: 0x0200,
+    });
+    const slotOp = createSlotOperand(slot);
+
+    // INC_WORD: INC slot / BNE +2 / INC slot+1 (2 RMW operations)
+    const incWord = createInstruction(ILOpcode.INC_WORD, [slotOp]);
+    const incCost = computeInstructionCost(incWord);
+    expect(incCost.cycles).toBe(12);
+    expect(incCost.bytes).toBe(8);
+    expect(incCost.memoryAccesses).toBe(4);
+
+    // DEC_WORD: LDA slot / BNE +2 / DEC slot+1 / DEC slot (read + 2 RMW)
+    const decWord = createInstruction(ILOpcode.DEC_WORD, [slotOp]);
+    const decCost = computeInstructionCost(decWord);
+    expect(decCost.cycles).toBe(16);
+    expect(decCost.bytes).toBe(11);
+    expect(decCost.memoryAccesses).toBe(5);
+  });
+
+  it('should apply ZP cost optimization for word inc/dec/cmp slot opcodes', () => {
+    // Use explicit ZP address (< 0x100) to trigger ZP optimization
+    const zpSlot = createFrameSlot('zpCounter', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.ZeroPage,
+      address: 0x0050,
+    });
+    const zpSlotOp = createSlotOperand(zpSlot);
+
+    // INC_WORD with ZP: saves 1 cycle, 1 byte
+    const incWordZp = createInstruction(ILOpcode.INC_WORD, [zpSlotOp]);
+    const incZpCost = computeInstructionCost(incWordZp);
+    expect(incZpCost.cycles).toBe(11); // 12 - 1
+    expect(incZpCost.bytes).toBe(7); // 8 - 1
+
+    // DEC_WORD with ZP: saves 1 cycle, 1 byte
+    const decWordZp = createInstruction(ILOpcode.DEC_WORD, [zpSlotOp]);
+    const decZpCost = computeInstructionCost(decWordZp);
+    expect(decZpCost.cycles).toBe(15); // 16 - 1
+    expect(decZpCost.bytes).toBe(10); // 11 - 1
+
+    // CMP_WORD_SLOT with ZP: saves 1 cycle, 1 byte
+    const cmpWordZp = createInstruction(ILOpcode.CMP_WORD_SLOT, [zpSlotOp]);
+    const cmpZpCost = computeInstructionCost(cmpWordZp);
+    expect(cmpZpCost.cycles).toBe(9); // 10 - 1
+    expect(cmpZpCost.bytes).toBe(7); // 8 - 1
+  });
 });
