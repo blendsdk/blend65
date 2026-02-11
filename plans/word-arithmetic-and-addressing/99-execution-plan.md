@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-02 17:47
-> **Progress**: 8/28 tasks (29%)
+> **Last Updated**: 2026-11-02 21:10
+> **Progress**: 15/28 tasks (54%)
 
 ## Overview
 
@@ -259,13 +259,13 @@
 - [x] 1.2.4 Add unit tests for cmp/inc/dec builders ✅ (completed: 2026-11-02 17:42)
 
 ### Phase 2: Word Arithmetic Codegen
-- [ ] 2.1.1 genAddWordByteImm() codegen
-- [ ] 2.1.2 genAddWordImm() codegen
-- [ ] 2.1.3 genAddWordByteSlot() + genAddWordSlot()
-- [ ] 2.1.4 genSubWord variants
-- [ ] 2.1.5 genPromoteByteWord()
-- [ ] 2.1.6 Dispatch cases in generateInstruction()
-- [ ] 2.1.7 Codegen unit tests for word arithmetic
+- [x] 2.1.1 genAddWordByteImm() codegen ✅ (completed: 2026-11-02 21:00)
+- [x] 2.1.2 genAddWordImm() codegen ✅ (completed: 2026-11-02 21:00)
+- [x] 2.1.3 genAddWordByteSlot() + genAddWordSlot() ✅ (completed: 2026-11-02 21:00)
+- [x] 2.1.4 genSubWord variants ✅ (completed: 2026-11-02 21:00)
+- [x] 2.1.5 genPromoteByteWord() ✅ (completed: 2026-11-02 21:01)
+- [x] 2.1.6 Dispatch cases in generateInstruction() ✅ (completed: 2026-11-02 21:00)
+- [x] 2.1.7 Codegen unit tests for word arithmetic ✅ (completed: 2026-11-02 21:08)
 - [ ] 2.2.1 genCmpWordImm()
 - [ ] 2.2.2 genCmpWordSlot()
 - [ ] 2.2.3 genIncWord()

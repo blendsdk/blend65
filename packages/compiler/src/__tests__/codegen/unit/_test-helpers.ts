@@ -82,6 +82,13 @@ export class TestableMemoryOpsGenerator extends MemoryOpsGenerator {
   }
 
   /**
+   * Exposes genPromoteByteWord for direct testing.
+   */
+  public testGenPromoteByteWord(instr: ILInstruction): void {
+    this.genPromoteByteWord(instr);
+  }
+
+  /**
    * Gets the generated ASM-IL elements for inspection.
    */
   public getElements(): AsmILElement[] {
@@ -321,6 +328,19 @@ export function createLoadImmWordInstr(value: number): ILInstruction {
     opcode: ILOpcode.LOAD_IMM_WORD,
     operands: [createImmediateOp(value, true)] as ILOperand[],
     comment: `Load immediate word ${value}`,
+  };
+}
+
+/**
+ * Creates a PROMOTE_BYTE_WORD instruction.
+ *
+ * @returns IL instruction
+ */
+export function createPromoteByteWordInstr(): ILInstruction {
+  return {
+    opcode: ILOpcode.PROMOTE_BYTE_WORD,
+    operands: [] as ILOperand[],
+    comment: 'Promote byte to word',
   };
 }
 

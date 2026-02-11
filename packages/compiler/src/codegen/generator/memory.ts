@@ -4,6 +4,7 @@
  * Handles IL opcodes for memory operations:
  * - LOAD_BYTE, LOAD_WORD, LOAD_IMM, LOAD_IMM_WORD
  * - STORE_BYTE, STORE_WORD
+ * - PROMOTE_BYTE_WORD
  *
  * @module codegen/generator/memory
  */
@@ -196,6 +197,29 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
   }
 
   // ==========================================================================
+  // PROMOTE_BYTE_WORD - Zero-extend byte in A to word in A:X
+  // ==========================================================================
+
+  /**
+   * Generates code for PROMOTE_BYTE_WORD.
+   *
+   * Promotes a byte value in A to a 16-bit word in A:X by setting
+   * X to 0 (unsigned zero extension). A is preserved unchanged.
+   *
+   * IL: PROMOTE_BYTE_WORD
+   * 6502: LDX #0
+   *
+   * This is emitted by the IL generator when a byte value needs to
+   * participate in word arithmetic (e.g., `byte_var + word_var`).
+   */
+  protected genPromoteByteWord(instr: ILInstruction): void {
+    this.emitComment(instr);
+    // Zero-extend: high byte = 0, low byte (A) stays unchanged
+    this.asm.ldx(0, 'immediate', 'promote byte to word (high byte = 0)');
+    // A is unchanged — keep current accumulator state
+  }
+
+  // ==========================================================================
   // Dispatch Override
   // ==========================================================================
 
@@ -221,6 +245,9 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
         break;
       case ILOpcode.LOAD_IMM_WORD:
         this.genLoadImmWord(instr);
+        break;
+      case ILOpcode.PROMOTE_BYTE_WORD:
+        this.genPromoteByteWord(instr);
         break;
       default:
         // Pass to parent (will throw for unhandled)

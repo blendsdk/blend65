@@ -18,8 +18,11 @@ import { createSlotOp, createImmediateOp } from './_test-helpers.js';
 export {
   createZpSlot,
   createAbsSlot,
+  createZpWordSlot,
+  createAbsWordSlot,
   createSlotOp,
   createImmediateOp,
+  createPromoteByteWordInstr,
   getInstructions,
   getComments,
   findInstruction,
@@ -37,7 +40,7 @@ export {
  * Test subclass to expose protected arithmetic operation methods.
  *
  * Extends ArithmeticOpsGenerator to allow testing of:
- * - Individual arithmetic operation handlers
+ * - Individual arithmetic operation handlers (byte and word)
  * - Generated ASM-IL output
  */
 export class TestableArithmeticOpsGenerator extends ArithmeticOpsGenerator {
@@ -109,6 +112,78 @@ export class TestableArithmeticOpsGenerator extends ArithmeticOpsGenerator {
    */
   public testGenDecByte(instr: ILInstruction): void {
     this.genDecByte(instr);
+  }
+
+  // --- Word arithmetic test accessors ---
+
+  /**
+   * Exposes genAddWordByteImm for direct testing.
+   */
+  public testGenAddWordByteImm(instr: ILInstruction): void {
+    this.genAddWordByteImm(instr);
+  }
+
+  /**
+   * Exposes genAddWordImm for direct testing.
+   */
+  public testGenAddWordImm(instr: ILInstruction): void {
+    this.genAddWordImm(instr);
+  }
+
+  /**
+   * Exposes genAddWordByteSlot for direct testing.
+   */
+  public testGenAddWordByteSlot(instr: ILInstruction): void {
+    this.genAddWordByteSlot(instr);
+  }
+
+  /**
+   * Exposes genAddWordSlot for direct testing.
+   */
+  public testGenAddWordSlot(instr: ILInstruction): void {
+    this.genAddWordSlot(instr);
+  }
+
+  /**
+   * Exposes genSubWordByteImm for direct testing.
+   */
+  public testGenSubWordByteImm(instr: ILInstruction): void {
+    this.genSubWordByteImm(instr);
+  }
+
+  /**
+   * Exposes genSubWordImm for direct testing.
+   */
+  public testGenSubWordImm(instr: ILInstruction): void {
+    this.genSubWordImm(instr);
+  }
+
+  /**
+   * Exposes genSubWordByteSlot for direct testing.
+   */
+  public testGenSubWordByteSlot(instr: ILInstruction): void {
+    this.genSubWordByteSlot(instr);
+  }
+
+  /**
+   * Exposes genSubWordSlot for direct testing.
+   */
+  public testGenSubWordSlot(instr: ILInstruction): void {
+    this.genSubWordSlot(instr);
+  }
+
+  /**
+   * Exposes genIncWord for direct testing.
+   */
+  public testGenIncWord(instr: ILInstruction): void {
+    this.genIncWord(instr);
+  }
+
+  /**
+   * Exposes genDecWord for direct testing.
+   */
+  public testGenDecWord(instr: ILInstruction): void {
+    this.genDecWord(instr);
   }
 
   /**
@@ -295,5 +370,149 @@ export function createDecByteInstr(slot: FrameSlot): ILInstruction {
     opcode: ILOpcode.DEC_BYTE,
     operands: [createSlotOp(slot)] as ILOperand[],
     comment: `Dec ${slot.name}`,
+  };
+}
+
+// ============================================================================
+// Word Arithmetic IL Instruction Factories
+// ============================================================================
+
+/**
+ * Creates an ADD_WORD_BYTE_IMM instruction.
+ *
+ * @param value - Byte immediate to add to A:X
+ * @returns IL instruction
+ */
+export function createAddWordByteImmInstr(value: number): ILInstruction {
+  return {
+    opcode: ILOpcode.ADD_WORD_BYTE_IMM,
+    operands: [createImmediateOp(value)] as ILOperand[],
+    comment: `A:X += ${value} (byte imm)`,
+  };
+}
+
+/**
+ * Creates an ADD_WORD_IMM instruction.
+ *
+ * @param value - Word immediate to add to A:X
+ * @returns IL instruction
+ */
+export function createAddWordImmInstr(value: number): ILInstruction {
+  return {
+    opcode: ILOpcode.ADD_WORD_IMM,
+    operands: [createImmediateOp(value, true)] as ILOperand[],
+    comment: `A:X += ${value} (word imm)`,
+  };
+}
+
+/**
+ * Creates an ADD_WORD_BYTE_SLOT instruction.
+ *
+ * @param slot - Byte slot to add (zero-extended) to A:X
+ * @returns IL instruction
+ */
+export function createAddWordByteSlotInstr(slot: FrameSlot): ILInstruction {
+  return {
+    opcode: ILOpcode.ADD_WORD_BYTE_SLOT,
+    operands: [createSlotOp(slot)] as ILOperand[],
+    comment: `A:X += ${slot.name} (byte slot)`,
+  };
+}
+
+/**
+ * Creates an ADD_WORD_SLOT instruction.
+ *
+ * @param slot - Word slot to add to A:X
+ * @returns IL instruction
+ */
+export function createAddWordSlotInstr(slot: FrameSlot): ILInstruction {
+  return {
+    opcode: ILOpcode.ADD_WORD_SLOT,
+    operands: [createSlotOp(slot)] as ILOperand[],
+    comment: `A:X += ${slot.name} (word slot)`,
+  };
+}
+
+/**
+ * Creates a SUB_WORD_BYTE_IMM instruction.
+ *
+ * @param value - Byte immediate to subtract from A:X
+ * @returns IL instruction
+ */
+export function createSubWordByteImmInstr(value: number): ILInstruction {
+  return {
+    opcode: ILOpcode.SUB_WORD_BYTE_IMM,
+    operands: [createImmediateOp(value)] as ILOperand[],
+    comment: `A:X -= ${value} (byte imm)`,
+  };
+}
+
+/**
+ * Creates a SUB_WORD_IMM instruction.
+ *
+ * @param value - Word immediate to subtract from A:X
+ * @returns IL instruction
+ */
+export function createSubWordImmInstr(value: number): ILInstruction {
+  return {
+    opcode: ILOpcode.SUB_WORD_IMM,
+    operands: [createImmediateOp(value, true)] as ILOperand[],
+    comment: `A:X -= ${value} (word imm)`,
+  };
+}
+
+/**
+ * Creates a SUB_WORD_BYTE_SLOT instruction.
+ *
+ * @param slot - Byte slot to subtract (zero-extended) from A:X
+ * @returns IL instruction
+ */
+export function createSubWordByteSlotInstr(slot: FrameSlot): ILInstruction {
+  return {
+    opcode: ILOpcode.SUB_WORD_BYTE_SLOT,
+    operands: [createSlotOp(slot)] as ILOperand[],
+    comment: `A:X -= ${slot.name} (byte slot)`,
+  };
+}
+
+/**
+ * Creates a SUB_WORD_SLOT instruction.
+ *
+ * @param slot - Word slot to subtract from A:X
+ * @returns IL instruction
+ */
+export function createSubWordSlotInstr(slot: FrameSlot): ILInstruction {
+  return {
+    opcode: ILOpcode.SUB_WORD_SLOT,
+    operands: [createSlotOp(slot)] as ILOperand[],
+    comment: `A:X -= ${slot.name} (word slot)`,
+  };
+}
+
+/**
+ * Creates an INC_WORD instruction.
+ *
+ * @param slot - Word slot to increment
+ * @returns IL instruction
+ */
+export function createIncWordInstr(slot: FrameSlot): ILInstruction {
+  return {
+    opcode: ILOpcode.INC_WORD,
+    operands: [createSlotOp(slot)] as ILOperand[],
+    comment: `Inc word ${slot.name}`,
+  };
+}
+
+/**
+ * Creates a DEC_WORD instruction.
+ *
+ * @param slot - Word slot to decrement
+ * @returns IL instruction
+ */
+export function createDecWordInstr(slot: FrameSlot): ILInstruction {
+  return {
+    opcode: ILOpcode.DEC_WORD,
+    operands: [createSlotOp(slot)] as ILOperand[],
+    comment: `Dec word ${slot.name}`,
   };
 }
