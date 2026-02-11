@@ -2,6 +2,9 @@
 
 > **Document**: 03-bug-fixes.md
 > **Parent**: [Index](00-index.md)
+> **Status**: ✅ ALL 6 BUGS FIXED — 8568 tests passing, 0 failures
+
+---
 
 ## Bug 1 Fix: UsageWalker Scope Tracking
 
@@ -103,12 +106,22 @@ override visitBlockStatement(node: BlockStatement): void {
 ### Files to Modify
 - `packages/compiler/src/semantic/analysis/advanced-analyzer.ts`
 
+### Resolution ✅
+
+**Fix Applied (2025-10-02):** Added scope-tracking state (`scopeStack`, `currentScope`) and
+scope navigation helpers (`enterChildScopeForNode`, `enterChildScopeByNodeIndex`, `exitScope`)
+to UsageWalker. Overrode `visitForStatement`, `visitWhileStatement`, `visitDoWhileStatement`,
+`visitIfStatement`, and `visitBlockStatement` to enter/exit child scopes.
+
+**Result:** 2644 semantic tests pass, 0 fail. No false "unused variable" warnings for
+variables used inside scoped constructs.
+
 ### Testing Requirements
-- Verify for-loop variable used in body → NOT reported as unused
-- Verify while-loop variable used in body → NOT reported as unused
-- Verify if-branch variable used in body → NOT reported as unused
-- Verify actually unused variables STILL reported
-- No regressions in existing 8000+ tests
+- ✅ Verify for-loop variable used in body → NOT reported as unused
+- ✅ Verify while-loop variable used in body → NOT reported as unused
+- ✅ Verify if-branch variable used in body → NOT reported as unused
+- ✅ Verify actually unused variables STILL reported
+- ✅ No regressions in existing 8000+ tests
 
 ---
 
@@ -148,11 +161,21 @@ For `poke(wordVar + byteVar, value)`:
 - `packages/compiler/src/codegen/generator/intrinsics.ts` (genPoke, genPeek, genPokew, genPeekw)
 - Possibly `packages/compiler/src/il/types.ts` (new operand kind for dynamic addresses)
 
+### Resolution ✅
+
+**Fix Applied (2025-10-02):** Added `tryDecomposeIndexedAddress()` to the IL generator
+(`expressions.ts`) that decomposes `constant + variable` into a base address + index register
+operand. Updated codegen `getAddressMode()` in `intrinsics.ts` to handle the new `indexRegister`
+operand, generating Absolute,X addressing (`LDX var; STA base,X`). Fixed type assertions for
+LDA/STA modes in `genPokew`/`genPeekw`.
+
+**Result:** 8322 tests pass, 0 fail. Dynamic address poke/peek compiles correctly.
+
 ### Testing Requirements
-- `poke($D020 + i, value)` compiles and generates `STA $D020,X`
-- `peek($D000 + offset)` compiles and generates `LDA $D000,X`
-- `poke(wordVar, value)` compiles and generates indirect addressing
-- No crashes on any dynamic address pattern
+- ✅ `poke($D020 + i, value)` compiles and generates `STA $D020,X`
+- ✅ `peek($D000 + offset)` compiles and generates `LDA $D000,X`
+- ✅ `poke(wordVar, value)` compiles and generates indirect addressing
+- ✅ No crashes on any dynamic address pattern
 
 ---
 
@@ -189,11 +212,19 @@ O3: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function
 - `packages/compiler/src/optimizer/passes/function-inlining.ts` (Option A)
 - OR `packages/compiler/src/optimizer/options.ts` (Option B)
 
+### Resolution ✅
+
+**Fix Applied (2025-10-02):** Chose Option B — added a second `dead-function-elim` pass
+after `function-inline` in the pass lists (`optimizer/options.ts`). This ensures fully-inlined
+functions are removed after inlining completes.
+
+**Result:** 1433 optimizer tests pass, 0 fail. Updated test expectations for new pass counts.
+
 ### Testing Requirements
-- At O3: inlined-only functions NOT in assembly output
-- Exported functions ALWAYS in output (even if inlined at some sites)
-- Multi-site inlined functions correctly handled
-- No regressions in optimizer tests
+- ✅ At O3: inlined-only functions NOT in assembly output
+- ✅ Exported functions ALWAYS in output (even if inlined at some sites)
+- ✅ Multi-site inlined functions correctly handled
+- ✅ No regressions in optimizer tests
 
 ---
 
@@ -235,9 +266,25 @@ They may share a common root in the optimizer or codegen.
   - `packages/compiler/src/optimizer/passes/function-inlining.ts`
   - `packages/compiler/src/codegen/generator/statements.ts`
 
+### Resolution ✅
+
+**Root Cause (2025-10-02):** All three bugs shared the same root cause — the LICM (Loop-Invariant
+Code Motion) optimizer pass was incorrectly hoisting instructions out of loops:
+
+- **Bug 4:** LICM hoisted `ADD_IMM` (compound assignment `color += 1`) out of the while loop
+- **Bug 5:** LICM hoisted `LOAD_IMM` (literal assignment `color = 0`) out of the while loop
+- **Bug 6:** LICM hoisted `LOAD_IMM` (loop counter initialization) out of the containing loop
+
+**Fix Applied (2025-10-02):** Two changes to `optimizer/passes/licm.ts`:
+1. Excluded accumulator-only instructions (no explicit slot target) from LICM hoisting eligibility
+2. Added `hasNoExplicitSlotReads` check in `isInvariant()` to prevent hoisting instructions that
+   read from slots modified within the loop body
+
+**Result:** border-cycle produces correct assembly at O0, O1, O2, O3. 8322 tests pass, 0 fail.
+
 ### Testing Requirements
-- border-cycle produces correct assembly at O0, O1, O2, O3
-- `color += 1` generates INC or ADC at all levels
-- `color = 0` generates `LDA #$00; STA` at all levels
-- Inlined loop counters initialize correctly inside outer loops
-- No regressions in any existing tests
+- ✅ border-cycle produces correct assembly at O0, O1, O2, O3
+- ✅ `color += 1` generates INC or ADC at all levels
+- ✅ `color = 0` generates `LDA #$00; STA` at all levels
+- ✅ Inlined loop counters initialize correctly inside outer loops
+- ✅ No regressions in any existing tests

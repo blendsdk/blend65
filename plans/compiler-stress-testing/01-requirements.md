@@ -14,20 +14,20 @@ the interaction bugs between compiler phases that cause silent wrong code genera
 
 ### Must Have — Bug Fixes
 
-- [x] **Bug 1**: Fix UsageWalker scope tracking for all 7 scope-creating constructs
-- [ ] **Bug 2**: Fix dynamic-address POKE/PEEK (IL emission + codegen handling)
-- [ ] **Bug 3**: Fix post-inlining dead function elimination
-- [ ] **Bug 4**: Fix missing compound assignment (`+=`, `-=`, etc.) in assembly output
-- [ ] **Bug 5**: Fix literal assignment (`x = 0`) missing LDA before STA
-- [ ] **Bug 6**: Fix inlined loop counter re-initialization inside outer loops
+- [x] **Bug 1**: Fix UsageWalker scope tracking for all 7 scope-creating constructs ✅
+- [x] **Bug 2**: Fix dynamic-address POKE/PEEK (IL emission + codegen handling) ✅
+- [x] **Bug 3**: Fix post-inlining dead function elimination ✅
+- [x] **Bug 4**: Fix missing compound assignment (`+=`, `-=`, etc.) in assembly output ✅
+- [x] **Bug 5**: Fix literal assignment (`x = 0`) missing LDA before STA ✅
+- [x] **Bug 6**: Fix inlined loop counter re-initialization inside outer loops ✅
 
 ### Must Have — Real-World E2E Tests
 
-- [ ] 20 test scenarios representing real C64 programs
-- [ ] Every test exercises full pipeline (lexer → emitter)
-- [ ] Every test verifies assembly output patterns (not just "does it compile")
-- [ ] Every test runs at multiple optimization levels (O0, O1, O2, O3 minimum)
-- [ ] Tests cover ALL 10 bug classes identified
+- [x] 20 test scenarios representing real C64 programs ✅
+- [x] Every test exercises full pipeline (lexer → emitter) ✅
+- [x] Every test verifies assembly output patterns (not just "does it compile") ✅
+- [x] Every test runs at multiple optimization levels (O0, O1, O2, O3 minimum) ✅
+- [x] Tests cover ALL 10 bug classes identified ✅
 
 ### Must Have — Bug Class Coverage
 
@@ -67,10 +67,10 @@ the interaction bugs between compiler phases that cause silent wrong code genera
 
 ## Acceptance Criteria
 
-1. [ ] All 6 bugs fixed and verified
-2. [ ] 20 real-world E2E test scenarios passing
-3. [ ] sprite-test.blend compiles without warnings or errors
-4. [ ] border-cycle compiles correctly at O0 and O3
-5. [ ] Full test suite (8000+ tests) passes with 0 failures
-6. [ ] All 10 bug classes have at least 2 test scenarios each
-7. [ ] Assembly output verified at O0 and O3 for every scenario
+1. [x] All 6 bugs fixed and verified ✅
+2. [x] 20 real-world E2E test scenarios passing ✅
+3. [x] sprite-test.blend compiles without warnings or errors ✅
+4. [x] border-cycle compiles correctly at O0 and O3 ✅
+5. [x] Full test suite (8568 tests) passes with 0 failures ✅
+6. [x] All 10 bug classes have at least 2 test scenarios each ✅
+7. [x] Assembly output verified at O0 and O3 for every scenario ✅

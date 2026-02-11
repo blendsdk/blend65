@@ -1,10 +1,10 @@
 # Blend65 Compiler — Project Status
 
-> **Last Updated**: August 2, 2026
+> **Last Updated**: November 2, 2026
 > **Architecture**: Static Frame Allocation (SFA)
 > **Package**: `packages/compiler/`
 > **Language Spec**: `docs/language-specification-v2/`
-> **Test Status**: 7,858 tests — 7,835 passing, 0 failed, 23 skipped (compiler) + 10 CLI tests
+> **Test Status**: 8,568 tests — 8,568 passing, 0 failed, 0 skipped (compiler) + 10 CLI tests
 
 ---
 
@@ -48,9 +48,9 @@ Source → Lexer → Parser → Semantic Analyzer → Frame Allocator
 ## Test Summary
 
 ```
-Compiler: 7,858 tests (7,835 passing, 0 failed, 23 skipped)
+Compiler: 8,568 tests (8,568 passing, 0 failed, 0 skipped)
 CLI:      10 tests (10 passing, 0 failed)
-Total:    7,868 tests — 7,845 passing (99.7%)
+Total:    8,578 tests — 8,578 passing (100%)
 ```
 
 ---
@@ -87,6 +87,7 @@ Total:    7,868 tests — 7,845 passing (99.7%)
 ## Known Issues
 
 - ~~**Library auto-loading duplicate declarations**~~: ✅ **FIXED** — The `system` module no longer pre-registers intrinsics (it declares them itself), and explicit imports now correctly shadow auto-registered intrinsics.
+- ~~**6 compiler bugs (stress testing)**~~: ✅ **ALL FIXED** — UsageWalker scope tracking, dynamic address POKE/PEEK, DFE after inlining, LICM hoisting issues (compound/literal assignments, loop counter re-init). See `plans/compiler-stress-testing/03-bug-fixes.md`.
 - **Example programs**: The `examples/` directory needs updating for v2 syntax. Note: explicit `import { poke } from system;` now works correctly alongside auto-loaded intrinsics.
 
 ---
@@ -97,6 +98,8 @@ Total:    7,868 tests — 7,845 passing (99.7%)
 
 | Plan | Description | Status |
 |------|-------------|--------|
+| `plans/global-variables/` | Global variable allocation and data segment | 📋 Planned |
+| `plans/optimizer-v2/` | Program-level and inter-procedural optimizations | 📋 Planned |
 | `plans/dx-features/` | CLI improvements, VICE integration, source maps | 📋 Planned |
 | `plans/native-assembler/` | Direct .prg generation without ACME | 📋 Planning |
 | `plans/features/` | Inline assembly, interrupts, sprites | 📖 Research |
@@ -146,6 +149,9 @@ Total:    7,868 tests — 7,845 passing (99.7%)
 | **IL Optimizer** | `plans/compiler-v2/il-optimizer/99-execution-plan.md` | ✅ 100% Complete |
 | **65C02 Support** | `plans/compiler-v2/65c02-support/99-execution-plan.md` | ✅ 100% Complete |
 | **ASM-IL Optimizer** | `plans/compiler-v2/asm-il-optimizer/99-execution-plan.md` | ✅ 100% Complete |
+| **Stress Testing** | `plans/compiler-stress-testing/99-execution-plan.md` | ✅ 50/50 tasks (100%) |
+| **Global Variables** | `plans/global-variables/99-execution-plan.md` | 📋 Planned |
+| **Optimizer v2** | `plans/optimizer-v2/99-execution-plan.md` | 📋 Planned |
 | **DX Features** | `plans/dx-features/99-execution-plan.md` | 📋 Planned |
 
 ---
