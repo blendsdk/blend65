@@ -19,6 +19,8 @@ import { createSlotOp, createImmediateOp } from './_test-helpers.js';
 export {
   createZpSlot,
   createAbsSlot,
+  createZpWordSlot,
+  createAbsWordSlot,
   createSlotOp,
   createImmediateOp,
   getInstructions,
@@ -54,6 +56,20 @@ export class TestableComparisonOpsGenerator extends ComparisonOpsGenerator {
    */
   public testGenCmpImm(instr: ILInstruction): void {
     this.genCmpImm(instr);
+  }
+
+  /**
+   * Exposes genCmpWordImm for direct testing.
+   */
+  public testGenCmpWordImm(instr: ILInstruction): void {
+    this.genCmpWordImm(instr);
+  }
+
+  /**
+   * Exposes genCmpWordSlot for direct testing.
+   */
+  public testGenCmpWordSlot(instr: ILInstruction): void {
+    this.genCmpWordSlot(instr);
   }
 
   /**
@@ -128,5 +144,41 @@ export function createCmpImmInstr(value: number): ILInstruction {
     opcode: ILOpcode.CMP_IMM,
     operands: [createImmediateOp(value)] as ILOperand[],
     comment: `Compare with immediate ${value}`,
+  };
+}
+
+// ============================================================================
+// Word Comparison IL Instruction Factories
+// ============================================================================
+
+/**
+ * Creates a CMP_WORD_IMM instruction.
+ *
+ * Compares A:X with an immediate 16-bit word value.
+ *
+ * @param value - 16-bit immediate value to compare with
+ * @returns IL instruction
+ */
+export function createCmpWordImmInstr(value: number): ILInstruction {
+  return {
+    opcode: ILOpcode.CMP_WORD_IMM,
+    operands: [createImmediateOp(value, true)] as ILOperand[],
+    comment: `Compare A:X with word ${value}`,
+  };
+}
+
+/**
+ * Creates a CMP_WORD_SLOT instruction.
+ *
+ * Compares A:X with a word stored in a slot.
+ *
+ * @param slot - Word slot to compare with
+ * @returns IL instruction
+ */
+export function createCmpWordSlotInstr(slot: FrameSlot): ILInstruction {
+  return {
+    opcode: ILOpcode.CMP_WORD_SLOT,
+    operands: [createSlotOp(slot)] as ILOperand[],
+    comment: `Compare A:X with ${slot.name}`,
   };
 }

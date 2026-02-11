@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-02 21:10
-> **Progress**: 15/28 tasks (54%)
+> **Last Updated**: 2026-11-02 21:38
+> **Progress**: 20/28 tasks (71%)
 
 ## Overview
 
@@ -266,11 +266,11 @@
 - [x] 2.1.5 genPromoteByteWord() ✅ (completed: 2026-11-02 21:01)
 - [x] 2.1.6 Dispatch cases in generateInstruction() ✅ (completed: 2026-11-02 21:00)
 - [x] 2.1.7 Codegen unit tests for word arithmetic ✅ (completed: 2026-11-02 21:08)
-- [ ] 2.2.1 genCmpWordImm()
-- [ ] 2.2.2 genCmpWordSlot()
-- [ ] 2.2.3 genIncWord()
-- [ ] 2.2.4 genDecWord()
-- [ ] 2.2.5 Codegen unit tests for cmp/inc/dec
+- [x] 2.2.1 genCmpWordImm() ✅ (completed: 2026-11-02 21:22)
+- [x] 2.2.2 genCmpWordSlot() ✅ (completed: 2026-11-02 21:22)
+- [x] 2.2.3 genIncWord() ✅ (completed: 2026-11-02 21:00, done in session 2.1)
+- [x] 2.2.4 genDecWord() ✅ (completed: 2026-11-02 21:00, done in session 2.1)
+- [x] 2.2.5 Codegen unit tests for cmp/inc/dec ✅ (completed: 2026-11-02 21:32)
 
 ### Phase 3: Type-Aware Expression Generation
 - [ ] 3.1.1 isWordTyped() helper
