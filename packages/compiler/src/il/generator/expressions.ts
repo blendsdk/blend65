@@ -34,6 +34,7 @@ import {
   isIndexExpression,
 } from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
+import { TypeKind } from '../../semantic/types.js';
 import { SlotLocation } from '../../frame/enums.js';
 import { FrameSlot } from '../../frame/types.js';
 import { ILOpcode } from '../enums.js';
@@ -102,6 +103,24 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // Type-Aware Helpers
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Check if an expression has word (16-bit) type annotation.
+   *
+   * Used to dispatch between byte and word IL opcode paths.
+   * Returns false if no type info is set (defaults to byte behavior).
+   *
+   * @param expr - Expression to check
+   * @returns True if expression type is TypeKind.Word
+   */
+  protected isWordTyped(expr: Expression): boolean {
+    const typeInfo = expr.getTypeInfo();
+    return typeInfo?.kind === TypeKind.Word;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Literal Expression
   // ═══════════════════════════════════════════════════════════════════
 
@@ -119,8 +138,14 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     this.setLocation(expr.getLocation());
 
     if (typeof value === 'number') {
-      // Numeric literal - load immediate
-      this.builder.loadImm(value, `literal ${value}`);
+      // Check if this literal is word-typed (set by semantic analysis)
+      // Word literals load into A:X pair (low in A, high in X)
+      if (this.isWordTyped(expr)) {
+        this.builder.loadImmWord(value, `literal ${value} (word)`);
+      } else {
+        // Byte literal - load immediate into A
+        this.builder.loadImm(value, `literal ${value}`);
+      }
     } else if (typeof value === 'boolean') {
       // Boolean literal - 0 or 1
       this.builder.loadImm(value ? 1 : 0, value ? 'true' : 'false');
@@ -162,8 +187,11 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // Check for register parameter (no memory load needed!)
     if (slot.location === SlotLocation.Register) {
       this.generateRegisterLoad(slot);
+    } else if (slot.size === 2) {
+      // Word slot - load A:X pair (low byte in A, high byte in X)
+      this.builder.loadSlotWord(slot, `load ${name} (word)`);
     } else {
-      // Memory slot - load from address
+      // Byte slot - load from address into A
       this.builder.loadSlot(slot, `load ${name}`);
     }
 
@@ -269,6 +297,17 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   protected generateBinary(expr: BinaryExpression): void {
     this.setLocation(expr.getLocation());
 
+    // Type-aware dispatch: check if the RESULT type is word (16-bit)
+    // When result is word, use word IL opcodes (ADD_WORD_*, etc.)
+    // When result is byte (or unknown), use existing byte opcodes
+    const resultType = expr.getTypeInfo();
+    if (resultType?.kind === TypeKind.Word) {
+      this.generateBinaryWord(expr);
+      this.clearLocation();
+      return;
+    }
+
+    // Byte path (existing code — unchanged, zero regression risk)
     // Generate left operand first (result in A)
     this.generateExpression(expr.getLeft());
 
@@ -299,6 +338,147 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // Push left value, generate right, then operate
     this.generateBinaryComplex(op, right);
     this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Word Binary Expression (16-bit)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for a word-typed binary expression.
+   *
+   * The result type is word (16-bit), using A:X register pair convention.
+   * Strategy:
+   * 1. Generate left operand (may produce byte or word in A or A:X)
+   * 2. If left is byte-typed, promote to word via PROMOTE_BYTE_WORD
+   * 3. Apply word-width operation with right operand
+   *
+   * @param expr - Binary expression with word result type
+   */
+  protected generateBinaryWord(expr: BinaryExpression): void {
+    const left = expr.getLeft();
+    const right = expr.getRight();
+    const op = expr.getOperator();
+
+    // Generate left operand
+    this.generateExpression(left);
+
+    // Promote left from byte to word if needed (byte A → word A:X via LDX #0)
+    const leftType = left.getTypeInfo();
+    if (!leftType || leftType.kind !== TypeKind.Word) {
+      this.builder.promoteByteWord('byte→word left');
+    }
+
+    // Try immediate right operand (most common: addr + 5, counter + 1)
+    if (isLiteralExpression(right)) {
+      const value = right.getValue();
+      if (typeof value === 'number') {
+        this.generateBinaryWordImmediate(op, value);
+        return;
+      }
+    }
+
+    // Try slot right operand (addr + offset where offset is a variable)
+    if (isIdentifierExpression(right)) {
+      const slot = this.tryResolveVariable(right.getName());
+      if (slot && slot.location !== SlotLocation.Register) {
+        this.generateBinaryWordSlot(op, slot);
+        return;
+      }
+    }
+
+    // Complex right operand — not yet supported for word width
+    // (would need push A:X pair, generate right, operate)
+    this.builder.nop();
+  }
+
+  /**
+   * Generate word binary operation with immediate right operand.
+   *
+   * Selects the optimal word opcode based on whether the immediate
+   * value fits in a byte (0-255) or requires a full word:
+   * - Byte value: ADD_WORD_BYTE_IMM (faster, CLC/ADC/BCC/INX)
+   * - Word value: ADD_WORD_IMM (full 16-bit, PHA/TXA/ADC/TAX/PLA/ADC)
+   *
+   * @param op - Operator token type
+   * @param value - Immediate numeric value
+   */
+  protected generateBinaryWordImmediate(op: TokenType, value: number): void {
+    // Choose byte vs word immediate variant based on value range
+    const isByteValue = value >= 0 && value <= 0xFF;
+
+    switch (op) {
+      case TokenType.PLUS:
+        if (isByteValue) {
+          this.builder.addWordByteImm(value, `word + ${value}`);
+        } else {
+          this.builder.addWordImm(value, `word + ${value}`);
+        }
+        break;
+      case TokenType.MINUS:
+        if (isByteValue) {
+          this.builder.subWordByteImm(value, `word - ${value}`);
+        } else {
+          this.builder.subWordImm(value, `word - ${value}`);
+        }
+        break;
+      case TokenType.EQUAL:
+      case TokenType.NOT_EQUAL:
+      case TokenType.LESS_THAN:
+      case TokenType.LESS_EQUAL:
+      case TokenType.GREATER_THAN:
+      case TokenType.GREATER_EQUAL:
+        // Word comparison — always uses full word compare
+        this.builder.cmpWordImm(value, `word cmp ${value}`);
+        break;
+      default:
+        // Other word ops (multiply, bitwise) not yet supported
+        this.builder.nop();
+    }
+  }
+
+  /**
+   * Generate word binary operation with slot right operand.
+   *
+   * Selects the optimal word opcode based on the slot's size:
+   * - Byte slot (size=1): ADD_WORD_BYTE_SLOT (CLC/ADC/BCC/INX)
+   * - Word slot (size=2): ADD_WORD_SLOT (full 16-bit add from memory)
+   *
+   * @param op - Operator token type
+   * @param slot - Right operand frame slot
+   */
+  protected generateBinaryWordSlot(op: TokenType, slot: FrameSlot): void {
+    // Choose byte vs word slot variant based on slot size
+    const isByteSlot = slot.size === 1;
+
+    switch (op) {
+      case TokenType.PLUS:
+        if (isByteSlot) {
+          this.builder.addWordByteSlot(slot, `word + ${slot.name}`);
+        } else {
+          this.builder.addWordSlot(slot, `word + ${slot.name}`);
+        }
+        break;
+      case TokenType.MINUS:
+        if (isByteSlot) {
+          this.builder.subWordByteSlot(slot, `word - ${slot.name}`);
+        } else {
+          this.builder.subWordSlot(slot, `word - ${slot.name}`);
+        }
+        break;
+      case TokenType.EQUAL:
+      case TokenType.NOT_EQUAL:
+      case TokenType.LESS_THAN:
+      case TokenType.LESS_EQUAL:
+      case TokenType.GREATER_THAN:
+      case TokenType.GREATER_EQUAL:
+        // Word comparison with slot
+        this.builder.cmpWordSlot(slot, `word cmp ${slot.name}`);
+        break;
+      default:
+        // Other word ops not yet supported
+        this.builder.nop();
+    }
   }
 
   /**

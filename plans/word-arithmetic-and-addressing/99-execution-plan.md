@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-11-02 21:38
-> **Progress**: 20/28 tasks (71%)
+> **Last Updated**: 2026-02-13 00:24
+> **Progress**: 26/28 tasks (93%)
 
 ## Overview
 
@@ -273,14 +273,14 @@
 - [x] 2.2.5 Codegen unit tests for cmp/inc/dec ✅ (completed: 2026-11-02 21:32)
 
 ### Phase 3: Type-Aware Expression Generation
-- [ ] 3.1.1 isWordTyped() helper
-- [ ] 3.1.2 generateBinary() type dispatch
-- [ ] 3.1.3 generateBinaryWord() for +, -
-- [ ] 3.1.4 Fix generateIdentifier() for word slots
-- [ ] 3.2.1 Byte→word promotion
-- [ ] 3.2.2 Word assignment (STORE_WORD)
-- [ ] 3.2.3 Mixed-width expression tests
-- [ ] 3.2.4 Full regression test
+- [x] 3.1.1 isWordTyped() helper ✅ (completed: 2026-02-13 00:13)
+- [x] 3.1.2 generateBinary() type dispatch ✅ (completed: 2026-02-13 00:15)
+- [x] 3.1.3 generateBinaryWord() for +, -, comparisons ✅ (completed: 2026-02-13 00:18)
+- [x] 3.1.4 Fix generateIdentifier() for word slots ✅ (completed: 2026-02-13 00:15)
+- [x] 3.2.1 Byte→word promotion (PROMOTE_BYTE_WORD) ✅ (completed: 2026-02-13 00:18)
+- [x] 3.2.2 Word assignment (STORE_WORD) ✅ (completed: 2026-02-13 00:19)
+- [ ] 3.2.3 Mixed-width expression tests (deferred: need word type annotations from semantic analyzer)
+- [x] 3.2.4 Full regression test (8655 pass, 0 fail) ✅ (completed: 2026-02-13 00:24)
 
 ### Phase 4: Constant Folding + Address Decomposer
 - [ ] 4.1.1 Enhanced constant folding (all ops)

@@ -219,9 +219,13 @@ export class ILGenerator extends ILGeneratorControlFlow {
       // Generate initializer expression
       this.generateExpression(initializer);
 
-      // Store to slot
+      // Store to slot — use word store for 2-byte slots (A:X pair)
       const slot = this.resolveVariable(decl.getName());
-      this.builder.storeSlot(slot, `let ${decl.getName()}`);
+      if (slot.size === 2) {
+        this.builder.storeSlotWord(slot, `let ${decl.getName()} (word)`);
+      } else {
+        this.builder.storeSlot(slot, `let ${decl.getName()}`);
+      }
     }
     // If no initializer, the slot is uninitialized (value undefined)
 
