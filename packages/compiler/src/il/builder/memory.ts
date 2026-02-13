@@ -180,4 +180,31 @@ export class ILBuilderMemory extends ILBuilderBase {
   peekIndirect(comment?: string): void {
     this.emit(ILOpcode.PEEK_INDIRECT, [], comment ?? 'LDA ($FB),Y');
   }
+
+  /**
+   * Indirect pokew: store A:X (word) through the ZP pointer ($FB/$FC).
+   *
+   * Writes a 16-bit value through the zero-page pointer:
+   * - Low byte (A) at ($FB),Y with Y=0
+   * - High byte (X→A) at ($FB),Y with Y=1
+   *
+   * @param comment - Optional comment
+   */
+  pokewIndirect(comment?: string): void {
+    this.emit(ILOpcode.POKEW_INDIRECT, [], comment ?? 'STW ($FB) A:X');
+  }
+
+  /**
+   * Indirect peekw: load A:X (word) through the ZP pointer ($FB/$FC).
+   *
+   * Reads a 16-bit value through the zero-page pointer:
+   * - High byte at ($FB),Y=1 → X
+   * - Low byte at ($FB),Y=0 → A
+   * Result: low in A, high in X.
+   *
+   * @param comment - Optional comment
+   */
+  peekwIndirect(comment?: string): void {
+    this.emit(ILOpcode.PEEKW_INDIRECT, [], comment ?? 'LDW ($FB) → A:X');
+  }
 }

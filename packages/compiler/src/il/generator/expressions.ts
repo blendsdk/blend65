@@ -1291,19 +1291,86 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   // Intrinsic Helper Methods
   // ═══════════════════════════════════════════════════════════════════
 
+  // ═══════════════════════════════════════════════════════════════════
+  // Tier 3 Address Helper (shared by all intrinsics)
+  // ═══════════════════════════════════════════════════════════════════
+
   /**
-   * Generate IL for peek/volatile_read intrinsic.
+   * Compute a dynamic 16-bit address into A:X and store to ZP pointer ($FB/$FC).
    *
-   * When the address is a compile-time constant, emits PEEK with
-   * an address operand. Falls back to stack-based for dynamic addresses.
+   * Used by Tier 3 of the 3-tier intrinsic strategy when neither
+   * absolute nor indexed addressing is possible.
+   *
+   * Two sub-strategies:
+   * - **Optimized**: If all variable terms are simple identifiers with
+   *   resolvable slots and the expression is addition-only, loads the
+   *   folded constant base into A:X and adds each slot individually.
+   * - **General**: Otherwise generates the full address expression
+   *   and promotes to word if needed.
+   *
+   * After this method, $FB/$FC holds the computed 16-bit address.
+   *
+   * @param addrExpr - Original address expression (used for general fallback)
+   * @param decomp - Address decomposition result
+   */
+  protected generateTier3Address(
+    addrExpr: Expression,
+    decomp: { constantSum: number; variableTerms: Expression[]; isAdditionOnly: boolean },
+  ): void {
+    // Check if all variable terms are simple slot identifiers (optimized path)
+    const allSlotsResolvable = decomp.isAdditionOnly && decomp.variableTerms.every(term => {
+      if (!isIdentifierExpression(term)) return false;
+      const slot = this.tryResolveVariable((term as IdentifierExpression).getName());
+      return slot !== undefined && slot.location !== SlotLocation.Register;
+    });
+
+    if (allSlotsResolvable) {
+      // Optimized Tier 3: load folded constant base, add each slot individually
+      // This avoids runtime computation of constants and uses efficient slot-based adds
+      this.builder.loadImmWord(decomp.constantSum, 'addr base');
+      for (const term of decomp.variableTerms) {
+        const name = (term as IdentifierExpression).getName();
+        const slot = this.tryResolveVariable(name)!;
+        if (slot.size === 2) {
+          // Word slot: full 16-bit add (CLC/ADC lo/PHA/TXA/ADC hi/TAX/PLA)
+          this.builder.addWordSlot(slot, `+ ${name} (word)`);
+        } else {
+          // Byte slot: zero-extended add (CLC/ADC/BCC+2/INX)
+          this.builder.addWordByteSlot(slot, `+ ${name}`);
+        }
+      }
+    } else {
+      // General Tier 3: generate the full address expression
+      // This handles complex sub-expressions (e.g., row * 40 + col)
+      this.generateExpression(addrExpr);
+      // Ensure result is in A:X word format (promote if byte)
+      if (!this.isWordTyped(addrExpr)) {
+        this.builder.promoteByteWord('addr → word');
+      }
+    }
+
+    // Store computed 16-bit address to ZP pointer for indirect access
+    this.builder.storeZpPtr('addr → ($FB/$FC)');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // 3-Tier Intrinsic Generators
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for peek/volatile_read intrinsic using 3-tier strategy.
+   *
+   * Tier 1 (absolute): Address is a compile-time constant → LDA addr
+   * Tier 2 (indexed): Single byte variable + constant base → LDA base,X
+   * Tier 3 (indirect): Complex address → compute A:X, store ZP ptr, LDA ($FB),Y
    *
    * @param addrExpr - Address expression
    * @param label - Comment label (e.g., 'peek' or 'volatile_read')
    */
   protected generatePeekIntrinsic(addrExpr: Expression, label: string): void {
+    // Tier 1: Pure constant address → absolute addressing
     const constAddr = this.tryResolveConstantAddress(addrExpr);
     if (constAddr !== undefined) {
-      // Constant address - emit PEEK with address operand (codegen-compatible)
       this.builder.emit(
         ILOpcode.PEEK,
         [createAddressOperand(constAddr)],
@@ -1312,45 +1379,42 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       return;
     }
 
-    // Try indexed pattern: peek(CONST_BASE + variable)
-    // Generates: load offset → TAX → LDA base,X
-    const indexed = this.tryDecomposeIndexedAddress(addrExpr);
-    if (indexed) {
-      // Generate the variable offset into A, then transfer to X register
-      this.generateExpression(indexed.offsetExpr);
+    // Decompose address into constant base + variable offsets
+    const decomp = this.decomposeAddressExpression(addrExpr);
+
+    // Tier 2: Single byte-typed variable offset + addition only → X-indexed
+    if (decomp.isAdditionOnly && decomp.variableTerms.length === 1
+        && !this.isWordTyped(decomp.variableTerms[0])) {
+      this.generateExpression(decomp.variableTerms[0]);
       this.builder.emit(ILOpcode.TRANSFER_AX, [], 'index → X');
-      // Emit PEEK with indexed address operand (codegen uses absoluteX)
       this.builder.emit(
         ILOpcode.PEEK,
-        [createIndexedAddressOperand(indexed.base, 'X')],
-        `${label}($${indexed.base.toString(16)},X)`
+        [createIndexedAddressOperand(decomp.constantSum, 'X')],
+        `${label}($${decomp.constantSum.toString(16)},X)`
       );
       return;
     }
 
-    // Fully dynamic address - unsupported (would need indirect addressing)
-    throw new Error(
-      `Dynamic peek address not supported: expression cannot be decomposed ` +
-      `into constant_base + variable_offset. Use a constant address or ` +
-      `the pattern peek(CONST + variable).`
-    );
+    // Tier 3: General indirect addressing via ZP pointer
+    this.generateTier3Address(addrExpr, decomp);
+    this.builder.peekIndirect(`${label}(indirect)`);
   }
 
   /**
-   * Generate IL for poke/volatile_write intrinsic.
+   * Generate IL for poke/volatile_write intrinsic using 3-tier strategy.
    *
-   * When the address is a compile-time constant, emits the value
-   * expression followed by POKE with an address operand.
-   * Falls back to stack-based for dynamic addresses.
+   * Tier 1 (absolute): Address is a compile-time constant → STA addr
+   * Tier 2 (indexed): Single byte variable + constant base → STA base,X
+   * Tier 3 (indirect): Complex address → compute A:X, store ZP ptr, STA ($FB),Y
    *
    * @param addrExpr - Address expression
    * @param valueExpr - Value expression
    * @param label - Comment label (e.g., 'poke' or 'volatile_write')
    */
   protected generatePokeIntrinsic(addrExpr: Expression, valueExpr: Expression, label: string): void {
+    // Tier 1: Pure constant address → absolute addressing
     const constAddr = this.tryResolveConstantAddress(addrExpr);
     if (constAddr !== undefined) {
-      // Constant address - generate value, then POKE with address operand
       this.generateExpression(valueExpr);
       this.builder.emit(
         ILOpcode.POKE,
@@ -1360,39 +1424,48 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       return;
     }
 
-    // Try indexed pattern: poke(CONST_BASE + variable, value)
-    // Generates: load offset → TAX → generate value → STA base,X
-    const indexed = this.tryDecomposeIndexedAddress(addrExpr);
-    if (indexed) {
-      // Generate the variable offset into A, then transfer to X register
-      this.generateExpression(indexed.offsetExpr);
+    // Decompose address into constant base + variable offsets
+    const decomp = this.decomposeAddressExpression(addrExpr);
+
+    // Tier 2: Single byte-typed variable offset + addition only → X-indexed
+    if (decomp.isAdditionOnly && decomp.variableTerms.length === 1
+        && !this.isWordTyped(decomp.variableTerms[0])) {
+      // Generate offset into A, transfer to X, then generate value, use indexed poke
+      this.generateExpression(decomp.variableTerms[0]);
       this.builder.emit(ILOpcode.TRANSFER_AX, [], 'index → X');
-      // Generate the value into A
       this.generateExpression(valueExpr);
-      // Emit POKE with indexed address operand (codegen uses absoluteX)
       this.builder.emit(
         ILOpcode.POKE,
-        [createIndexedAddressOperand(indexed.base, 'X')],
-        `${label}($${indexed.base.toString(16)},X, value)`
+        [createIndexedAddressOperand(decomp.constantSum, 'X')],
+        `${label}($${decomp.constantSum.toString(16)},X, value)`
       );
       return;
     }
 
-    // Fully dynamic address - unsupported (would need indirect addressing)
-    throw new Error(
-      `Dynamic poke address not supported: expression cannot be decomposed ` +
-      `into constant_base + variable_offset. Use a constant address or ` +
-      `the pattern poke(CONST + variable, value).`
-    );
+    // Tier 3: General indirect addressing via ZP pointer
+    // Compute address first (before value), store to ZP pointer,
+    // then generate value and store via indirect
+    this.generateTier3Address(addrExpr, decomp);
+    this.generateExpression(valueExpr);
+    this.builder.pokeIndirect(`${label}(indirect)`);
   }
 
   /**
-   * Generate IL for peekw intrinsic (16-bit read).
+   * Generate IL for peekw intrinsic (16-bit read) using 3-tier strategy.
+   *
+   * Tier 1 (absolute): Address is compile-time constant → LDA addr / LDX addr+1
+   * Tier 2 (indexed): Not applicable for peekw (word reads need consecutive bytes)
+   * Tier 3 (indirect): Complex address → compute A:X, store ZP ptr, PEEKW_INDIRECT
+   *
+   * Note: Tier 2 (X-indexed) is skipped for peekw because reading two
+   * consecutive bytes at base+X and base+X+1 is not straightforward
+   * with 6502 indexed addressing. Tier 3 indirect handles this correctly.
    *
    * @param addrExpr - Address expression
    * @param label - Comment label
    */
   protected generatePeekwIntrinsic(addrExpr: Expression, label: string): void {
+    // Tier 1: Pure constant address → absolute PEEKW (LDA addr / LDX addr+1)
     const constAddr = this.tryResolveConstantAddress(addrExpr);
     if (constAddr !== undefined) {
       this.builder.emit(
@@ -1400,20 +1473,33 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         [createAddressOperand(constAddr)],
         `${label}($${constAddr.toString(16)})`
       );
-    } else {
-      this.generateExpression(addrExpr);
-      this.builder.emit(ILOpcode.PEEKW, [], `${label}(addr)`);
+      return;
     }
+
+    // Tier 3: General indirect addressing via ZP pointer
+    // (Tier 2 skipped — word reads need consecutive bytes, not easily X-indexed)
+    const decomp = this.decomposeAddressExpression(addrExpr);
+    this.generateTier3Address(addrExpr, decomp);
+    this.builder.peekwIndirect(`${label}(indirect)`);
   }
 
   /**
-   * Generate IL for pokew intrinsic (16-bit write).
+   * Generate IL for pokew intrinsic (16-bit write) using 3-tier strategy.
+   *
+   * Tier 1 (absolute): Address is compile-time constant → STA addr / STX addr+1
+   * Tier 2 (indexed): Not applicable for pokew (word writes need consecutive bytes)
+   * Tier 3 (indirect): Complex address → compute A:X, store ZP ptr, POKEW_INDIRECT
+   *
+   * Note: Tier 2 (X-indexed) is skipped for pokew because writing two
+   * consecutive bytes at base+X and base+X+1 is not straightforward
+   * with 6502 indexed addressing. Tier 3 indirect handles this correctly.
    *
    * @param addrExpr - Address expression
    * @param valueExpr - Value expression
    * @param label - Comment label
    */
   protected generatePokewIntrinsic(addrExpr: Expression, valueExpr: Expression, label: string): void {
+    // Tier 1: Pure constant address → absolute POKEW (STA addr / STX addr+1)
     const constAddr = this.tryResolveConstantAddress(addrExpr);
     if (constAddr !== undefined) {
       this.generateExpression(valueExpr);
@@ -1422,11 +1508,15 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         [createAddressOperand(constAddr)],
         `${label}($${constAddr.toString(16)}, value)`
       );
-    } else {
-      this.generateExpression(addrExpr);
-      this.builder.emit(ILOpcode.PUSH_A, [], `${label} addr`);
-      this.generateExpression(valueExpr);
-      this.builder.emit(ILOpcode.POKEW, [], `${label}(addr, value)`);
+      return;
     }
+
+    // Tier 3: General indirect addressing via ZP pointer
+    // (Tier 2 skipped — word writes need consecutive bytes, not easily X-indexed)
+    // Compute address first, store to ZP pointer, then generate value
+    const decomp = this.decomposeAddressExpression(addrExpr);
+    this.generateTier3Address(addrExpr, decomp);
+    this.generateExpression(valueExpr);
+    this.builder.pokewIndirect(`${label}(indirect)`);
   }
 }

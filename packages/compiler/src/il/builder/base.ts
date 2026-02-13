@@ -111,6 +111,8 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   [ILOpcode.STORE_ZP_PTR]: { cycles: 6, bytes: 4, memoryAccesses: 2 },    // STA $FB + STX $FC
   [ILOpcode.POKE_INDIRECT]: { cycles: 8, bytes: 4, memoryAccesses: 1 },   // LDY #0 + STA ($FB),Y
   [ILOpcode.PEEK_INDIRECT]: { cycles: 7, bytes: 4, memoryAccesses: 1 },   // LDY #0 + LDA ($FB),Y
+  [ILOpcode.POKEW_INDIRECT]: { cycles: 14, bytes: 8, memoryAccesses: 2 }, // LDY #0 + STA ($FB),Y + TXA + LDY #1 + STA ($FB),Y
+  [ILOpcode.PEEKW_INDIRECT]: { cycles: 14, bytes: 8, memoryAccesses: 2 }, // LDY #1 + LDA ($FB),Y + TAX + LDY #0 + LDA ($FB),Y
   [ILOpcode.HI]: { cycles: 2, bytes: 2, memoryAccesses: 0 },
   [ILOpcode.LO]: { cycles: 2, bytes: 2, memoryAccesses: 0 },
 

@@ -546,6 +546,33 @@ export enum ILOpcode {
   PEEK_INDIRECT = 'PEEK_INDIRECT',
 
   /**
+   * Indirect pokew: store A:X (word) through ZP pointer ($FB/$FC).
+   *
+   * Writes a 16-bit value through the zero-page pointer:
+   * - Low byte (A) via STA ($FB),Y with Y=0
+   * - High byte (X) via STX→A, STA ($FB),Y with Y=1
+   *
+   * Operands: none (value in A:X, pointer in $FB/$FC)
+   * Effect: ($FB),0 ← A, ($FB),1 ← X
+   * Cost: 14 cycles (LDY #0 + STA ($FB),Y + TXA + LDY #1 + STA ($FB),Y)
+   */
+  POKEW_INDIRECT = 'POKEW_INDIRECT',
+
+  /**
+   * Indirect peekw: load A:X (word) through ZP pointer ($FB/$FC).
+   *
+   * Reads a 16-bit value through the zero-page pointer:
+   * - High byte first: LDY #1, LDA ($FB),Y → TAX
+   * - Low byte second: LDY #0, LDA ($FB),Y
+   * Result: low in A, high in X.
+   *
+   * Operands: none (pointer in $FB/$FC)
+   * Effect: A ← ($FB),0, X ← ($FB),1
+   * Cost: 14 cycles (LDY #1 + LDA ($FB),Y + TAX + LDY #0 + LDA ($FB),Y)
+   */
+  PEEKW_INDIRECT = 'PEEKW_INDIRECT',
+
+  /**
    * hi(word) - Get high byte.
    * Operands: none (operates on AX)
    * Effect: A ← X (high byte)

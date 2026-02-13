@@ -430,20 +430,22 @@ describe('Address Decomposer (decomposeAddressExpression)', () => {
     });
   });
 
-  describe('Multi-variable addresses (future Tier 3 via decomposer)', () => {
-    it('should currently throw for CONST + var1 + var2 (no indirect yet)', () => {
-      // This will be supported in Phase 6 via the 3-tier refactor
-      // For now, CONST + var1 is decomposed, but then + var2 makes the
-      // offset expression complex (not a single variable)
+  describe('Multi-variable addresses (Tier 3 via decomposer + indirect)', () => {
+    it('should compile CONST + var1 + var2 using Tier 3 indirect addressing', () => {
+      // Phase 6 implemented: multi-variable addresses use the 3-tier strategy.
+      // The decomposer folds $0400 into constantSum, collects i and j as variable
+      // terms, then Tier 3 loads constant base into A:X, adds each slot,
+      // stores to ZP pointer, and uses POKE_INDIRECT.
       const source = wrapInProgram(`
         let i: byte = 0;
         let j: byte = 0;
         poke($0400 + i + j, 1);
       `);
 
-      // Currently this should throw because the offset (i + j) is complex
-      // The decomposer will fix this in Phase 6
-      expect(() => compileToIL(source)).toThrow();
+      // Should compile without error — Tier 3 indirect handles multi-variable addresses
+      const il = compileToIL(source);
+      expect(il).toBeDefined();
+      expect(il.functions.length).toBeGreaterThan(0);
     });
   });
 });

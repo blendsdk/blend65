@@ -281,6 +281,60 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
   }
 
   // ==========================================================================
+  // POKEW_INDIRECT - Write A:X (word) through ZP pointer ($FB/$FC)
+  // ==========================================================================
+
+  /**
+   * Generates code for POKEW_INDIRECT.
+   *
+   * Writes a 16-bit value (A:X) through the zero-page pointer:
+   * 1. Store low byte (A) at ($FB),Y with Y=0
+   * 2. Transfer high byte X→A via TXA
+   * 3. Store high byte at ($FB),Y with Y=1
+   *
+   * IL: POKEW_INDIRECT (no operands, value in A:X, address in $FB/$FC)
+   * 6502: LDY #0 / STA ($FB),Y / TXA / LDY #1 / STA ($FB),Y
+   */
+  protected genPokewIndirect(instr: ILInstruction): void {
+    this.emitComment(instr);
+    // Store low byte (A) at addr+0
+    this.asm.ldy(0, 'immediate');
+    this.asm.sta(0xFB, 'indirectY');
+    // Store high byte (X→A) at addr+1
+    this.asm.txa();
+    this.asm.ldy(1, 'immediate');
+    this.asm.sta(0xFB, 'indirectY');
+    this.invalidateA();
+  }
+
+  // ==========================================================================
+  // PEEKW_INDIRECT - Read A:X (word) through ZP pointer ($FB/$FC)
+  // ==========================================================================
+
+  /**
+   * Generates code for PEEKW_INDIRECT.
+   *
+   * Reads a 16-bit value through the zero-page pointer:
+   * 1. Load high byte at ($FB),Y with Y=1 → TAX
+   * 2. Load low byte at ($FB),Y with Y=0 → A
+   * Result: low in A, high in X (A:X convention).
+   *
+   * IL: PEEKW_INDIRECT (no operands, address in $FB/$FC)
+   * 6502: LDY #1 / LDA ($FB),Y / TAX / LDY #0 / LDA ($FB),Y
+   */
+  protected genPeekwIndirect(instr: ILInstruction): void {
+    this.emitComment(instr);
+    // Load high byte first (addr+1) → X
+    this.asm.ldy(1, 'immediate');
+    this.asm.lda(0xFB, 'indirectY');
+    this.asm.tax();
+    // Load low byte (addr+0) → A
+    this.asm.ldy(0, 'immediate');
+    this.asm.lda(0xFB, 'indirectY');
+    this.invalidateA();
+  }
+
+  // ==========================================================================
   // Dispatch Override
   // ==========================================================================
 
@@ -306,6 +360,12 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
         break;
       case ILOpcode.PEEK_INDIRECT:
         this.genPeekIndirect(instr);
+        break;
+      case ILOpcode.POKEW_INDIRECT:
+        this.genPokewIndirect(instr);
+        break;
+      case ILOpcode.PEEKW_INDIRECT:
+        this.genPeekwIndirect(instr);
         break;
       case ILOpcode.HI:
         this.genHi(instr);
