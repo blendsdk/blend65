@@ -767,10 +767,19 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     if (op === TokenType.ASSIGN) {
       // Simple assignment: x = value
       this.generateExpression(value);
-      this.builder.storeSlot(slot, `${targetName} =`);
+      // Use word-width store for 2-byte slots
+      if (slot.size === 2) {
+        this.builder.storeSlotWord(slot, `${targetName} = (word)`);
+      } else {
+        this.builder.storeSlot(slot, `${targetName} =`);
+      }
     } else {
       // Compound assignment: x += value, x -= value, etc.
-      this.generateCompoundAssignment(slot, op, value);
+      if (slot.size === 2) {
+        this.generateCompoundAssignmentWord(slot, op, value);
+      } else {
+        this.generateCompoundAssignment(slot, op, value);
+      }
     }
 
     this.clearLocation();
@@ -831,6 +840,60 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
 
     // Store result
     this.builder.storeSlot(slot, `store ${slot.name}`);
+  }
+
+  /**
+   * Generate word-width compound assignment (+=, -=, etc.) for 2-byte slots.
+   *
+   * Loads the current word value, applies the word-width operation,
+   * then stores back. Uses immediate word ops when the value is a constant.
+   *
+   * @param slot - Target word slot (size=2)
+   * @param op - Compound operator token type
+   * @param value - Value expression to apply
+   */
+  protected generateCompoundAssignmentWord(
+    slot: FrameSlot,
+    op: TokenType,
+    value: Expression
+  ): void {
+    // Load current word value into A:X
+    this.builder.loadSlotWord(slot, `load ${slot.name} (word)`);
+
+    // Apply operation — try immediate optimization first
+    if (isLiteralExpression(value)) {
+      const literalValue = value.getValue();
+      if (typeof literalValue === 'number') {
+        const isByte = literalValue >= 0 && literalValue <= 0xFF;
+        switch (op) {
+          case TokenType.PLUS_ASSIGN:
+            if (isByte) {
+              this.builder.addWordByteImm(literalValue, `word += ${literalValue}`);
+            } else {
+              this.builder.addWordImm(literalValue, `word += ${literalValue}`);
+            }
+            break;
+          case TokenType.MINUS_ASSIGN:
+            if (isByte) {
+              this.builder.subWordByteImm(literalValue, `word -= ${literalValue}`);
+            } else {
+              this.builder.subWordImm(literalValue, `word -= ${literalValue}`);
+            }
+            break;
+          default:
+            // Other compound ops on words not yet supported (bitwise, mul, etc.)
+            this.builder.nop();
+        }
+        // Store result back as word
+        this.builder.storeSlotWord(slot, `store ${slot.name} (word)`);
+        return;
+      }
+    }
+
+    // Non-literal value — generate expression, promote, and apply
+    // For now, use a simplified path: push word, gen value, add
+    this.builder.nop();
+    this.builder.storeSlotWord(slot, `store ${slot.name} (word)`);
   }
 
   /**

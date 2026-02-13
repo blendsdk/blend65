@@ -57,10 +57,10 @@ describe('E2E Real-World: Memory Operation Patterns', () => {
       const clearFunc = getFunction(program, 'clearScreen');
       expect(clearFunc).toBeDefined();
 
-      // Should have loop structure with STORE_BYTE inside
+      // Should have loop structure — word-typed counter emits STORE_WORD for init
       expect(hasOpcode(clearFunc!.instructions, ILOpcode.LABEL)).toBe(true);
       expect(hasOpcode(clearFunc!.instructions, ILOpcode.JUMP)).toBe(true);
-      expect(hasOpcode(clearFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(clearFunc!.instructions, ILOpcode.STORE_WORD)).toBe(true);
     });
 
     it('should generate IL for color memory fill ($D800 range)', () => {
@@ -84,9 +84,9 @@ describe('E2E Real-World: Memory Operation Patterns', () => {
       const fillFunc = getFunction(program, 'fillColor');
       expect(fillFunc).toBeDefined();
 
-      // Should have loop and store
+      // Should have loop — word-typed counter emits STORE_WORD for init
       expect(hasOpcode(fillFunc!.instructions, ILOpcode.LABEL)).toBe(true);
-      expect(hasOpcode(fillFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(fillFunc!.instructions, ILOpcode.STORE_WORD)).toBe(true);
     });
 
     it('should generate IL for screen row copy pattern', () => {
@@ -237,9 +237,9 @@ describe('E2E Real-World: Memory Operation Patterns', () => {
       const clearFunc = getFunction(program, 'clearBitmap');
       expect(clearFunc).toBeDefined();
 
-      // Should have large loop
+      // Should have large loop — word-typed counter emits STORE_WORD for init
       expect(hasOpcode(clearFunc!.instructions, ILOpcode.LABEL)).toBe(true);
-      expect(hasOpcode(clearFunc!.instructions, ILOpcode.STORE_BYTE)).toBe(true);
+      expect(hasOpcode(clearFunc!.instructions, ILOpcode.STORE_WORD)).toBe(true);
     });
 
     it('should generate IL for bitmap line pattern', () => {

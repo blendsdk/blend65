@@ -24,6 +24,7 @@ import {
 import { BinaryExpression, IdentifierExpression, LiteralExpression } from '../../ast/expressions.js';
 import { isBinaryExpression, isIdentifierExpression, isLiteralExpression } from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
+import type { FrameSlot } from '../../frame/types.js';
 import { createILLoop } from '../factories.js';
 import { ILGeneratorExpressions } from './expressions.js';
 
@@ -431,8 +432,13 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
     this.pushLoopLabels(exitLabel, headerLabel);
 
     // Initialize loop variable: i = start
+    // Use word-width store for 2-byte (word) counter slots
     this.generateExpression(stmt.getStart());
-    this.builder.storeSlot(counterSlot, `${stmt.getVariable()} = start`);
+    if (counterSlot.size === 2) {
+      this.builder.storeSlotWord(counterSlot, `${stmt.getVariable()} = start (word)`);
+    } else {
+      this.builder.storeSlot(counterSlot, `${stmt.getVariable()} = start`);
+    }
 
     // Header label
     this.builder.label(headerLabel);
@@ -481,14 +487,19 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
    */
   protected generateForCondition(
     stmt: ForStatement,
-    counterSlot: import('../../frame/types.js').FrameSlot,
+    counterSlot: FrameSlot,
     exitLabel: string,
     isAscending: boolean
   ): void {
     const endExpr = stmt.getEnd();
+    const isWord = counterSlot.size === 2;
 
-    // Load counter
-    this.builder.loadSlot(counterSlot, `load ${stmt.getVariable()}`);
+    // Load counter — use word load for 2-byte counters
+    if (isWord) {
+      this.builder.loadSlotWord(counterSlot, `load ${stmt.getVariable()} (word)`);
+    } else {
+      this.builder.loadSlot(counterSlot, `load ${stmt.getVariable()}`);
+    }
 
     // Try to optimize for constant bound
     const constEnd = this.tryGetConstantValue(endExpr);
@@ -497,24 +508,29 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
       // Constant bound optimization
       if (isAscending) {
         // for i = 0 to 9: exit when i > 9 (i.e., i >= 10)
-        this.builder.cmpImm(constEnd + 1, `cmp with end+1`);
+        if (isWord) {
+          // Word comparison: CMP_WORD_IMM sets flags for 16-bit compare
+          this.builder.cmpWordImm(constEnd + 1, `cmp word with end+1`);
+        } else {
+          this.builder.cmpImm(constEnd + 1, `cmp with end+1`);
+        }
         this.builder.jumpGe(exitLabel, 'exit if i > end');
       } else {
-        // for i = 9 downto 0: exit when i < 0 (unsigned: never, so check against end-1 or handle specially)
-        // Actually for unsigned: exit when i < end (but end=0 means we need special handling)
         if (constEnd === 0) {
-          // Special case: downto 0 - we check if we've gone below 0
-          // After decrement, if i becomes 255 (wrap-around), we need to exit
-          // Better approach: compare before decrement, exit when i == end, then decrement
-          // But simplest: generate body, decrement, compare with end-1 (255), exit if equal
-          // Actually, let's use a different approach: for downto 0, run while i >= 0
-          // Since i is unsigned byte, i >= 0 is always true until wrap
-          // We'll handle this in generateForIncrement by checking wrap-around
-          this.builder.cmpImm(constEnd, `cmp with end`);
+          // Special case: downto 0
+          if (isWord) {
+            this.builder.cmpWordImm(constEnd, `cmp word with end`);
+          } else {
+            this.builder.cmpImm(constEnd, `cmp with end`);
+          }
           this.builder.jumpLt(exitLabel, 'exit if i < end');
         } else {
           // Normal downto: exit when i < end
-          this.builder.cmpImm(constEnd, `cmp with end`);
+          if (isWord) {
+            this.builder.cmpWordImm(constEnd, `cmp word with end`);
+          } else {
+            this.builder.cmpImm(constEnd, `cmp with end`);
+          }
           this.builder.jumpLt(exitLabel, 'exit if i < end');
         }
       }
@@ -594,10 +610,11 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
    */
   protected generateForIncrement(
     stmt: ForStatement,
-    counterSlot: import('../../frame/types.js').FrameSlot,
+    counterSlot: FrameSlot,
     isAscending: boolean
   ): void {
     const step = stmt.getStep();
+    const isWord = counterSlot.size === 2;
 
     if (step) {
       // Custom step value
@@ -605,38 +622,22 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
 
       if (constStep !== undefined) {
         // Constant step - use optimized increment
-        if (isAscending) {
-          if (constStep === 1) {
-            this.builder.incSlot(counterSlot, `${stmt.getVariable()}++`);
-          } else {
-            this.builder.loadSlot(counterSlot);
-            this.builder.addImm(constStep, `add step ${constStep}`);
-            this.builder.storeSlot(counterSlot, `${stmt.getVariable()} += ${constStep}`);
-          }
+        if (isWord) {
+          // Word counter: use word-width load/add/store for custom steps
+          this.generateForIncrementWord(stmt, counterSlot, isAscending, constStep);
         } else {
-          if (constStep === 1) {
-            this.builder.decSlot(counterSlot, `${stmt.getVariable()}--`);
-          } else {
-            this.builder.loadSlot(counterSlot);
-            this.builder.subImm(constStep, `sub step ${constStep}`);
-            this.builder.storeSlot(counterSlot, `${stmt.getVariable()} -= ${constStep}`);
-          }
+          // Byte counter: existing byte-width operations
+          this.generateForIncrementByte(stmt, counterSlot, isAscending, constStep);
         }
       } else {
-        // Dynamic step - generate expression
+        // Dynamic step - generate expression (byte path only for now)
         this.builder.loadSlot(counterSlot);
         this.generateExpression(step);
 
         if (isAscending) {
-          // A has step, need to add to counter
-          // This requires: save step, load counter, add step
-          // Complex - for MVP just use stack
           this.builder.pushA('save step');
           this.builder.loadSlot(counterSlot);
           this.builder.popA('get step');
-          // Hmm, now step is in A, counter was in A but got overwritten
-          // This needs ADD_BYTE opcode or stack manipulation
-          // For now, use simplified pattern
           this.builder.addImm(1, 'fallback +1');
         } else {
           this.builder.subImm(1, 'fallback -1');
@@ -645,10 +646,99 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
       }
     } else {
       // Default step of 1
-      if (isAscending) {
+      if (isWord) {
+        // Word counter: INC_WORD for in-place 16-bit increment/decrement
+        if (isAscending) {
+          this.builder.incWord(counterSlot, `${stmt.getVariable()}++ (word)`);
+        } else {
+          this.builder.decWord(counterSlot, `${stmt.getVariable()}-- (word)`);
+        }
+      } else {
+        // Byte counter: INC_BYTE / DEC_BYTE
+        if (isAscending) {
+          this.builder.incSlot(counterSlot, `${stmt.getVariable()}++`);
+        } else {
+          this.builder.decSlot(counterSlot, `${stmt.getVariable()}--`);
+        }
+      }
+    }
+  }
+
+  /**
+   * Generate word-width increment for a for loop with constant step.
+   *
+   * For step=1, uses INC_WORD (in-place 16-bit increment).
+   * For step>1, loads word, adds word-byte-imm, stores word.
+   *
+   * @param stmt - For statement (for variable name in comments)
+   * @param counterSlot - Word counter slot (size=2)
+   * @param isAscending - True for 'to', false for 'downto'
+   * @param constStep - Constant step value
+   */
+  protected generateForIncrementWord(
+    stmt: ForStatement,
+    counterSlot: FrameSlot,
+    isAscending: boolean,
+    constStep: number
+  ): void {
+    if (isAscending) {
+      if (constStep === 1) {
+        this.builder.incWord(counterSlot, `${stmt.getVariable()}++ (word)`);
+      } else {
+        // Load word into A:X, add step, store back
+        this.builder.loadSlotWord(counterSlot, `load ${stmt.getVariable()} (word)`);
+        if (constStep <= 0xFF) {
+          this.builder.addWordByteImm(constStep, `word + step ${constStep}`);
+        } else {
+          this.builder.addWordImm(constStep, `word + step ${constStep}`);
+        }
+        this.builder.storeSlotWord(counterSlot, `${stmt.getVariable()} += ${constStep} (word)`);
+      }
+    } else {
+      if (constStep === 1) {
+        this.builder.decWord(counterSlot, `${stmt.getVariable()}-- (word)`);
+      } else {
+        // Load word into A:X, subtract step, store back
+        this.builder.loadSlotWord(counterSlot, `load ${stmt.getVariable()} (word)`);
+        if (constStep <= 0xFF) {
+          this.builder.subWordByteImm(constStep, `word - step ${constStep}`);
+        } else {
+          this.builder.subWordImm(constStep, `word - step ${constStep}`);
+        }
+        this.builder.storeSlotWord(counterSlot, `${stmt.getVariable()} -= ${constStep} (word)`);
+      }
+    }
+  }
+
+  /**
+   * Generate byte-width increment for a for loop with constant step.
+   *
+   * @param stmt - For statement (for variable name in comments)
+   * @param counterSlot - Byte counter slot (size=1)
+   * @param isAscending - True for 'to', false for 'downto'
+   * @param constStep - Constant step value
+   */
+  protected generateForIncrementByte(
+    stmt: ForStatement,
+    counterSlot: FrameSlot,
+    isAscending: boolean,
+    constStep: number
+  ): void {
+    if (isAscending) {
+      if (constStep === 1) {
         this.builder.incSlot(counterSlot, `${stmt.getVariable()}++`);
       } else {
+        this.builder.loadSlot(counterSlot);
+        this.builder.addImm(constStep, `add step ${constStep}`);
+        this.builder.storeSlot(counterSlot, `${stmt.getVariable()} += ${constStep}`);
+      }
+    } else {
+      if (constStep === 1) {
         this.builder.decSlot(counterSlot, `${stmt.getVariable()}--`);
+      } else {
+        this.builder.loadSlot(counterSlot);
+        this.builder.subImm(constStep, `sub step ${constStep}`);
+        this.builder.storeSlot(counterSlot, `${stmt.getVariable()} -= ${constStep}`);
       }
     }
   }

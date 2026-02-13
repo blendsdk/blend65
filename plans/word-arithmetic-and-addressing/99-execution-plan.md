@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-13 01:41
-> **Progress**: 30/32 tasks (94%)
+> **Last Updated**: 2026-02-13 21:20
+> **Progress**: 36/38 tasks (95%)
 
 ## Overview
 
@@ -297,12 +297,12 @@
 - [x] 5.1.6 Indirect addressing tests (build + IL tests pass) ✅ (completed: 2026-02-13 01:53)
 
 ### Phase 6: 3-Tier Intrinsic Refactor
-- [ ] 6.1.1 Refactor poke() 3-tier
-- [ ] 6.1.2 Refactor peek() 3-tier
-- [ ] 6.1.3 poke/peek integration tests
-- [ ] 6.2.1 Refactor pokew() 3-tier (fix broken fallback)
-- [ ] 6.2.2 Refactor peekw() 3-tier (fix broken fallback)
-- [ ] 6.2.3 pokew/peekw integration tests
+- [x] 6.1.1 Refactor poke() 3-tier ✅ (completed: 2026-02-13 19:30)
+- [x] 6.1.2 Refactor peek() 3-tier ✅ (completed: 2026-02-13 19:30)
+- [x] 6.1.3 poke/peek integration tests ✅ (completed: 2026-02-13 19:30)
+- [x] 6.2.1 Refactor pokew() 3-tier (fix broken fallback) ✅ (completed: 2026-02-13 20:00)
+- [x] 6.2.2 Refactor peekw() 3-tier (fix broken fallback) ✅ (completed: 2026-02-13 20:00)
+- [x] 6.2.3 pokew/peekw integration tests ✅ (completed: 2026-02-13 20:00)
 
 ### Phase 7: Word Comparisons + Loops
 - [ ] 7.1.1 Type-aware comparisons
