@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-13 23:23
-> **Progress**: 37/38 tasks (97%)
+> **Last Updated**: 2026-02-14 00:02
+> **Progress**: 40/41 tasks (98%)
 
 ## Overview
 
@@ -311,8 +311,8 @@
 - [x] 7.1.4 Word control flow tests ✅ (completed: 2026-02-13 23:23)
 
 ### Phase 8: Word Function Support
-- [ ] 8.1.1 Word argument passing via A:X
-- [ ] 8.1.2 Word parameter prologue
+- [x] 8.1.1 Word argument passing via A:X ✅ (completed: 2026-02-14 00:02)
+- [x] 8.1.2 Word parameter prologue ✅ (completed: 2026-02-14 00:02)
 - [ ] 8.1.3 Word return via A:X
 - [ ] 8.1.4 Word function tests
 

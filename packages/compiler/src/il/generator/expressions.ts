@@ -35,7 +35,7 @@ import {
 } from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
 import { TypeKind } from '../../semantic/types.js';
-import { SlotLocation } from '../../frame/enums.js';
+import { SlotKind, SlotLocation } from '../../frame/enums.js';
 import { FrameSlot } from '../../frame/types.js';
 import { ILOpcode } from '../enums.js';
 import { createImmediateOperand, createAddressOperand, createIndexedAddressOperand } from '../factories.js';
@@ -962,7 +962,16 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
    * Handles three categories of calls:
    * 1. asm_* functions → ASM_RAW IL instructions (raw 6502 assembly)
    * 2. Intrinsic functions → Dedicated IL opcodes (peek, poke, hi, lo, etc.)
-   * 3. Regular functions → CALL IL instruction
+   * 3. Regular functions → Argument passing + CALL IL instruction
+   *
+   * For regular function calls, the first argument is passed via:
+   * - A register for byte parameters
+   * - A:X register pair for word parameters (low byte in A, high byte in X)
+   *
+   * The 6502 calling convention is:
+   * 1. Caller evaluates first argument (result in A or A:X)
+   * 2. Caller executes JSR (via CALL opcode)
+   * 3. Callee prologue stores A or A:X to parameter's frame slot
    *
    * @param expr - Call expression
    */
@@ -987,11 +996,46 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         return;
       }
 
-      // Regular function call - placeholder
+      // Regular function call — generate first argument before CALL
+      // The 6502 convention passes the first arg in A (byte) or A:X (word)
+      this.generateCallArguments(funcName, expr.getArguments());
       this.builder.call(funcName, false, -1);
     }
 
     this.clearLocation();
+  }
+
+  /**
+   * Generate argument passing for a regular function call.
+   *
+   * Currently supports passing the first argument via A (byte) or A:X (word).
+   * If the callee's first parameter is word-typed but the argument expression
+   * produces a byte value, a PROMOTE_BYTE_WORD is emitted to widen A → A:X.
+   *
+   * Additional arguments beyond the first are not yet supported (would require
+   * stack-based passing on the 6502).
+   *
+   * @param funcName - Name of the function being called
+   * @param args - Call argument expressions
+   */
+  protected generateCallArguments(funcName: string, args: Expression[]): void {
+    if (args.length === 0) {
+      return; // No arguments to pass
+    }
+
+    // Generate the first argument expression — result lands in A (byte) or A:X (word)
+    this.generateExpression(args[0]);
+
+    // Check if the callee's first parameter is word-typed
+    // If so and the arg is byte-typed, promote A → A:X via PROMOTE_BYTE_WORD
+    const targetFrame = this.frameMap.get(funcName);
+    if (targetFrame) {
+      const firstParam = targetFrame.slots.find(s => s.kind === SlotKind.Parameter);
+      if (firstParam && firstParam.size === 2 && !this.isWordTyped(args[0])) {
+        // Callee expects word but arg is byte — promote to A:X (LDX #0)
+        this.builder.promoteByteWord(`arg byte→word for ${funcName}`);
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════

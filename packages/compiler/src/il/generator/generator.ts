@@ -36,6 +36,8 @@ import {
   ForStatement,
   ReturnStatement,
 } from '../../ast/statements.js';
+import { SlotKind, SlotLocation } from '../../frame/enums.js';
+import type { Frame } from '../../frame/allocator/frame-calculator.js';
 import { ILInstruction } from '../instruction.js';
 import { ILFunction, ILProgram } from '../structures.js';
 import { createILFunction, createILProgram } from '../factories.js';
@@ -123,6 +125,16 @@ export class ILGenerator extends ILGeneratorControlFlow {
   /**
    * Generate IL for a function.
    *
+   * Generates a complete function including:
+   * 1. Parameter prologue — stores incoming A (byte) or A:X (word) to first param slot
+   * 2. Function body — all statements
+   * 3. Implicit void return — ensures void functions end with RETURN
+   *
+   * The parameter prologue handles the 6502 calling convention:
+   * - First byte parameter arrives in A register → STORE_BYTE to slot
+   * - First word parameter arrives in A:X pair → STORE_WORD to slot
+   * - Register parameters (SlotLocation.Register) are skipped — read directly via TRANSFER_*A
+   *
    * @param func - Function declaration
    * @returns IL function with instructions
    */
@@ -132,6 +144,10 @@ export class ILGenerator extends ILGeneratorControlFlow {
 
     // Get the function's frame for slot context
     const frame = this.getCurrentFrame();
+
+    // Generate parameter prologue: store incoming A or A:X to first param's memory slot
+    // This implements the callee side of the 6502 calling convention
+    this.generateParameterPrologue(frame);
 
     // Generate function body
     const body = func.getBody();
@@ -155,6 +171,49 @@ export class ILGenerator extends ILGeneratorControlFlow {
       loops: result.loops,
       maxLoopDepth: result.maxLoopDepth,
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Parameter Prologue
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate parameter prologue for a function.
+   *
+   * On the 6502, the first argument is passed in registers:
+   * - Byte parameter: value in A register
+   * - Word parameter: low byte in A, high byte in X (A:X pair)
+   *
+   * The prologue stores these incoming register values to the parameter's
+   * memory slot so that the function body can access them by name.
+   *
+   * Register parameters (SlotLocation.Register) are skipped because they
+   * are read directly from their register via TRANSFER_*A instructions
+   * when the identifier is referenced in the function body.
+   *
+   * @param frame - The function's frame containing parameter slots
+   */
+  protected generateParameterPrologue(frame: Frame): void {
+    // Find the first parameter slot (parameters are first in slot order)
+    const firstParam = frame.slots.find(s => s.kind === SlotKind.Parameter);
+    if (!firstParam) {
+      return; // No parameters — no prologue needed
+    }
+
+    // Skip register parameters — they are read directly via TRANSFER_*A
+    // when the identifier is referenced in the function body
+    if (firstParam.location === SlotLocation.Register) {
+      return;
+    }
+
+    // Store incoming register value(s) to the parameter's memory slot
+    if (firstParam.size === 2) {
+      // Word parameter: A:X pair → STORE_WORD to 2-byte slot
+      this.builder.storeSlotWord(firstParam, `param ${firstParam.name} (word)`);
+    } else {
+      // Byte parameter: A → STORE_BYTE to 1-byte slot
+      this.builder.storeSlot(firstParam, `param ${firstParam.name}`);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════
