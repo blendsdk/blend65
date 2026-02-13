@@ -1051,6 +1051,45 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       }
     }
 
+    // Case 3: Binary expression between two constants (e.g., SCREEN + 40, BASE * 8)
+    // Supports: +, -, *, /, %, <<, >>, &, |, ^
+    if (isBinaryExpression(expr)) {
+      const binExpr = expr as BinaryExpression;
+      const left = this.tryResolveConstantAddress(binExpr.getLeft());
+      const right = this.tryResolveConstantAddress(binExpr.getRight());
+
+      if (left !== undefined && right !== undefined) {
+        // Both sides are constants — fold the operation at compile time
+        switch (binExpr.getOperator()) {
+          case TokenType.PLUS:
+            return (left + right) & 0xFFFF;
+          case TokenType.MINUS:
+            return (left - right) & 0xFFFF;
+          case TokenType.MULTIPLY:
+            return (left * right) & 0xFFFF;
+          case TokenType.DIVIDE:
+            // Guard against division by zero
+            return right !== 0 ? (Math.floor(left / right)) & 0xFFFF : undefined;
+          case TokenType.MODULO:
+            // Guard against modulo by zero
+            return right !== 0 ? (left % right) & 0xFFFF : undefined;
+          case TokenType.LEFT_SHIFT:
+            return (left << right) & 0xFFFF;
+          case TokenType.RIGHT_SHIFT:
+            return (left >>> right) & 0xFFFF;
+          case TokenType.BITWISE_AND:
+            return (left & right) & 0xFFFF;
+          case TokenType.BITWISE_OR:
+            return (left | right) & 0xFFFF;
+          case TokenType.BITWISE_XOR:
+            return (left ^ right) & 0xFFFF;
+          default:
+            // Operator not foldable (comparison, logical, etc.)
+            return undefined;
+        }
+      }
+    }
+
     // Cannot resolve to a constant address
     return undefined;
   }
@@ -1103,6 +1142,82 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     }
 
     return undefined;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Address Decomposer (for 3-tier intrinsic addressing)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Result of decomposing an address expression into constant and variable parts.
+   *
+   * Used by the 3-tier intrinsic strategy to determine optimal addressing mode:
+   * - Tier 1 (absolute): zero variable terms → use constantSum directly
+   * - Tier 2 (indexed): one byte-typed variable term + addition only → use X-indexed
+   * - Tier 3 (indirect): multiple terms or word variable → use ZP pointer indirect
+   */
+  protected static readonly DEFAULT_DECOMPOSITION = {
+    constantSum: 0,
+    variableTerms: [] as Expression[],
+    isAdditionOnly: true,
+  };
+
+  /**
+   * Decompose an address expression into a constant base and variable offsets.
+   *
+   * Walks the binary expression tree along `+` chains, folding all
+   * compile-time constants into a single sum and collecting all runtime
+   * variable sub-expressions separately.
+   *
+   * For non-`+` operators (*, -, <<, etc.), the entire sub-tree is
+   * treated as a single opaque variable term (cannot be decomposed further).
+   *
+   * Examples:
+   *   SCREEN + i + j     → { constantSum: 0x0400, variableTerms: [i, j], isAdditionOnly: true }
+   *   SCREEN + 40 + i    → { constantSum: 0x0428, variableTerms: [i],    isAdditionOnly: true }
+   *   $0400 + offset * 2 → { constantSum: 0x0400, variableTerms: [offset*2], isAdditionOnly: true }
+   *   i - j              → { constantSum: 0, variableTerms: [i-j], isAdditionOnly: false }
+   *
+   * @param expr - Address expression to decompose
+   * @returns Decomposition with constantSum, variableTerms, and isAdditionOnly flag
+   */
+  protected decomposeAddressExpression(expr: Expression): {
+    constantSum: number;
+    variableTerms: Expression[];
+    isAdditionOnly: boolean;
+  } {
+    // Leaf: pure constant — fold into constantSum
+    const constVal = this.tryResolveConstantAddress(expr);
+    if (constVal !== undefined) {
+      return { constantSum: constVal, variableTerms: [], isAdditionOnly: true };
+    }
+
+    // Leaf: non-binary expression (identifier, call, etc.) — treat as variable term
+    if (!isBinaryExpression(expr)) {
+      return { constantSum: 0, variableTerms: [expr], isAdditionOnly: true };
+    }
+
+    const binExpr = expr as BinaryExpression;
+    const op = binExpr.getOperator();
+
+    // Only decompose along `+` chains — non-addition operators are opaque
+    if (op !== TokenType.PLUS) {
+      // The entire sub-tree is one variable term
+      return { constantSum: 0, variableTerms: [expr], isAdditionOnly: false };
+    }
+
+    // Addition node: recursively decompose both sides and merge
+    const leftDecomp = this.decomposeAddressExpression(binExpr.getLeft());
+    const rightDecomp = this.decomposeAddressExpression(binExpr.getRight());
+
+    return {
+      // Fold constants from both sides (mask to 16 bits)
+      constantSum: (leftDecomp.constantSum + rightDecomp.constantSum) & 0xFFFF,
+      // Collect all variable terms from both sides
+      variableTerms: [...leftDecomp.variableTerms, ...rightDecomp.variableTerms],
+      // Addition-only if both sides are addition-only
+      isAdditionOnly: leftDecomp.isAdditionOnly && rightDecomp.isAdditionOnly,
+    };
   }
 
   /**

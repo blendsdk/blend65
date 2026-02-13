@@ -509,6 +509,43 @@ export enum ILOpcode {
   POKEW = 'POKEW',
 
   /**
+   * Store A:X word to zero-page pointer ($FB/$FC).
+   *
+   * Used for indirect addressing: computes a 16-bit address in A:X,
+   * then stores it to the ZP pointer location for subsequent
+   * POKE_INDIRECT / PEEK_INDIRECT operations.
+   *
+   * Operands: none (operates on A:X)
+   * Effect: $FB ← A (low byte), $FC ← X (high byte)
+   * Cost: 6 cycles (STA zp + STX zp = 3+3)
+   */
+  STORE_ZP_PTR = 'STORE_ZP_PTR',
+
+  /**
+   * Indirect poke: store A through ZP pointer ($FB/$FC).
+   *
+   * Writes the accumulator value through the zero-page pointer
+   * using 6502 indirect indexed addressing: STA ($FB),Y with Y=0.
+   *
+   * Operands: none (value in A, pointer in $FB/$FC)
+   * Effect: ($FB),Y ← A where Y=0
+   * Cost: 8 cycles (LDY #0 + STA ($FB),Y = 2+6)
+   */
+  POKE_INDIRECT = 'POKE_INDIRECT',
+
+  /**
+   * Indirect peek: load A through ZP pointer ($FB/$FC).
+   *
+   * Reads a byte through the zero-page pointer using 6502
+   * indirect indexed addressing: LDA ($FB),Y with Y=0.
+   *
+   * Operands: none (pointer in $FB/$FC)
+   * Effect: A ← ($FB),Y where Y=0
+   * Cost: 7 cycles (LDY #0 + LDA ($FB),Y = 2+5)
+   */
+  PEEK_INDIRECT = 'PEEK_INDIRECT',
+
+  /**
    * hi(word) - Get high byte.
    * Operands: none (operates on AX)
    * Effect: A ← X (high byte)

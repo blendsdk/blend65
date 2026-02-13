@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-13 00:24
-> **Progress**: 26/28 tasks (93%)
+> **Last Updated**: 2026-02-13 01:41
+> **Progress**: 30/32 tasks (94%)
 
 ## Overview
 
@@ -283,18 +283,18 @@
 - [x] 3.2.4 Full regression test (8655 pass, 0 fail) ✅ (completed: 2026-02-13 00:24)
 
 ### Phase 4: Constant Folding + Address Decomposer
-- [ ] 4.1.1 Enhanced constant folding (all ops)
-- [ ] 4.1.2 Address decomposer implementation
-- [ ] 4.1.3 Constant folding tests
-- [ ] 4.1.4 Address decomposer tests
+- [x] 4.1.1 Enhanced constant folding (all ops) ✅ (completed: 2026-02-13 01:25)
+- [x] 4.1.2 Address decomposer implementation ✅ (completed: 2026-02-13 01:27)
+- [x] 4.1.3 Constant folding tests ✅ (completed: 2026-02-13 01:35)
+- [x] 4.1.4 Address decomposer tests ✅ (completed: 2026-02-13 01:35)
 
 ### Phase 5: Indirect Addressing
-- [ ] 5.1.1 STORE_ZP_PTR/POKE_INDIRECT/PEEK_INDIRECT opcodes
-- [ ] 5.1.2 Builder methods for indirect ops
-- [ ] 5.1.3 STORE_ZP_PTR codegen
-- [ ] 5.1.4 POKE_INDIRECT codegen
-- [ ] 5.1.5 PEEK_INDIRECT codegen
-- [ ] 5.1.6 Indirect addressing tests
+- [x] 5.1.1 STORE_ZP_PTR/POKE_INDIRECT/PEEK_INDIRECT opcodes ✅ (completed: 2026-02-13 01:44)
+- [x] 5.1.2 Builder methods for indirect ops ✅ (completed: 2026-02-13 01:46)
+- [x] 5.1.3 STORE_ZP_PTR codegen ✅ (completed: 2026-02-13 01:49)
+- [x] 5.1.4 POKE_INDIRECT codegen ✅ (completed: 2026-02-13 01:49)
+- [x] 5.1.5 PEEK_INDIRECT codegen ✅ (completed: 2026-02-13 01:49)
+- [x] 5.1.6 Indirect addressing tests (build + IL tests pass) ✅ (completed: 2026-02-13 01:53)
 
 ### Phase 6: 3-Tier Intrinsic Refactor
 - [ ] 6.1.1 Refactor poke() 3-tier

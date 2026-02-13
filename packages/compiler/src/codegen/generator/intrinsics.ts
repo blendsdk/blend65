@@ -218,6 +218,69 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
   }
 
   // ==========================================================================
+  // STORE_ZP_PTR - Store A:X to zero-page pointer ($FB/$FC)
+  // ==========================================================================
+
+  /**
+   * Generates code for STORE_ZP_PTR.
+   *
+   * Stores the A:X 16-bit value into the zero-page pointer at $FB/$FC.
+   * This pointer is then used by POKE_INDIRECT / PEEK_INDIRECT.
+   *
+   * IL: STORE_ZP_PTR (no operands, operates on A:X)
+   * 6502: STA $FB / STX $FC
+   */
+  protected genStoreZpPtr(instr: ILInstruction): void {
+    this.emitComment(instr);
+    // Store low byte (A) to $FB, high byte (X) to $FC
+    this.asm.sta(0xFB, 'zeroPage');
+    this.asm.stx(0xFC, 'zeroPage');
+  }
+
+  // ==========================================================================
+  // POKE_INDIRECT - Write A through ZP pointer ($FB/$FC)
+  // ==========================================================================
+
+  /**
+   * Generates code for POKE_INDIRECT.
+   *
+   * Writes the accumulator through the zero-page pointer using
+   * 6502 indirect indexed addressing mode: STA ($FB),Y with Y=0.
+   *
+   * IL: POKE_INDIRECT (no operands, value in A, address in $FB/$FC)
+   * 6502: LDY #0 / STA ($FB),Y
+   */
+  protected genPokeIndirect(instr: ILInstruction): void {
+    this.emitComment(instr);
+    // Y=0 for indirect indexed with no offset
+    this.asm.ldy(0, 'immediate');
+    // STA ($FB),Y — store A through pointer
+    this.asm.sta(0xFB, 'indirectY');
+  }
+
+  // ==========================================================================
+  // PEEK_INDIRECT - Read A through ZP pointer ($FB/$FC)
+  // ==========================================================================
+
+  /**
+   * Generates code for PEEK_INDIRECT.
+   *
+   * Reads a byte through the zero-page pointer using 6502
+   * indirect indexed addressing mode: LDA ($FB),Y with Y=0.
+   *
+   * IL: PEEK_INDIRECT (no operands, address in $FB/$FC)
+   * 6502: LDY #0 / LDA ($FB),Y
+   */
+  protected genPeekIndirect(instr: ILInstruction): void {
+    this.emitComment(instr);
+    // Y=0 for indirect indexed with no offset
+    this.asm.ldy(0, 'immediate');
+    // LDA ($FB),Y — load through pointer
+    this.asm.lda(0xFB, 'indirectY');
+    this.invalidateA();
+  }
+
+  // ==========================================================================
   // Dispatch Override
   // ==========================================================================
 
@@ -234,6 +297,15 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
         break;
       case ILOpcode.POKEW:
         this.genPokew(instr);
+        break;
+      case ILOpcode.STORE_ZP_PTR:
+        this.genStoreZpPtr(instr);
+        break;
+      case ILOpcode.POKE_INDIRECT:
+        this.genPokeIndirect(instr);
+        break;
+      case ILOpcode.PEEK_INDIRECT:
+        this.genPeekIndirect(instr);
         break;
       case ILOpcode.HI:
         this.genHi(instr);

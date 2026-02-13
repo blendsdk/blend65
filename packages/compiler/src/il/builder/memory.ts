@@ -137,4 +137,47 @@ export class ILBuilderMemory extends ILBuilderBase {
     (operand as any).indexedByY = true;
     this.emit(ILOpcode.LOAD_BYTE, [operand], comment);
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Indirect Addressing (ZP pointer $FB/$FC)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Store A:X word to the zero-page pointer at $FB/$FC.
+   *
+   * Used for indirect addressing: after computing a 16-bit address
+   * in A:X, this stores it to the ZP pointer for subsequent
+   * POKE_INDIRECT or PEEK_INDIRECT operations.
+   *
+   * 6502: STA $FB / STX $FC
+   *
+   * @param comment - Optional comment
+   */
+  storeZpPtr(comment?: string): void {
+    this.emit(ILOpcode.STORE_ZP_PTR, [], comment ?? 'store A:X → ZP ptr');
+  }
+
+  /**
+   * Indirect poke: store A through the ZP pointer ($FB/$FC).
+   *
+   * Writes the accumulator through the zero-page pointer using
+   * 6502 indirect indexed addressing: LDY #0 / STA ($FB),Y.
+   *
+   * @param comment - Optional comment
+   */
+  pokeIndirect(comment?: string): void {
+    this.emit(ILOpcode.POKE_INDIRECT, [], comment ?? 'STA ($FB),Y');
+  }
+
+  /**
+   * Indirect peek: load A through the ZP pointer ($FB/$FC).
+   *
+   * Reads a byte through the zero-page pointer using 6502
+   * indirect indexed addressing: LDY #0 / LDA ($FB),Y.
+   *
+   * @param comment - Optional comment
+   */
+  peekIndirect(comment?: string): void {
+    this.emit(ILOpcode.PEEK_INDIRECT, [], comment ?? 'LDA ($FB),Y');
+  }
 }
