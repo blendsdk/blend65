@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-13 21:20
-> **Progress**: 36/38 tasks (95%)
+> **Last Updated**: 2026-02-13 23:23
+> **Progress**: 37/38 tasks (97%)
 
 ## Overview
 
@@ -305,10 +305,10 @@
 - [x] 6.2.3 pokew/peekw integration tests ✅ (completed: 2026-02-13 20:00)
 
 ### Phase 7: Word Comparisons + Loops
-- [ ] 7.1.1 Type-aware comparisons
-- [ ] 7.1.2 Type-aware for-loop increment
-- [ ] 7.1.3 Type-aware compound assignments
-- [ ] 7.1.4 Word control flow tests
+- [x] 7.1.1 Type-aware comparisons ✅ (completed: 2026-02-13 21:30)
+- [x] 7.1.2 Type-aware for-loop increment ✅ (completed: 2026-02-13 21:32)
+- [x] 7.1.3 Type-aware compound assignments ✅ (completed: 2026-02-13 21:38)
+- [x] 7.1.4 Word control flow tests ✅ (completed: 2026-02-13 23:23)
 
 ### Phase 8: Word Function Support
 - [ ] 8.1.1 Word argument passing via A:X
