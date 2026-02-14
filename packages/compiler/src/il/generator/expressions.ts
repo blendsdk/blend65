@@ -302,6 +302,70 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // Index Assignment (Array Element Write)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for array element assignment (arr[index] = value).
+   *
+   * Strategy mirrors generateIndex() but uses store instead of load:
+   * 1. Static index: compute base+offset at compile time, STA directly
+   * 2. Dynamic index: load index into Y, generate value into A,
+   *    then use Y-indexed store (STA base,Y)
+   *
+   * For dynamic index, the register management is:
+   *   - Generate index expression → A
+   *   - Transfer A → Y (TAY)
+   *   - Generate value expression → A
+   *   - Store A to base[Y] (STA base,Y)
+   *
+   * @param target - Index expression (e.g., arr[i])
+   * @param value - Value expression to store
+   */
+  protected generateIndexAssignment(target: IndexExpression, value: Expression): void {
+    const obj = target.getObject();
+    const index = target.getIndex();
+
+    if (!isIdentifierExpression(obj)) {
+      // Complex base expression (e.g., getArray()[i] = v) — not supported
+      this.generateExpression(value);
+      return;
+    }
+
+    const arrayName = obj.getName();
+    const arraySlot = this.tryResolveVariable(arrayName);
+
+    if (!arraySlot) {
+      // Array not found — emit value generation only (best effort)
+      this.generateExpression(value);
+      return;
+    }
+
+    // Check if index is a literal for optimization
+    if (isLiteralExpression(index)) {
+      const indexValue = index.getValue();
+      if (typeof indexValue === 'number') {
+        // Static index — compute address at compile time
+        // Generate value into A, then store to base+offset
+        this.generateExpression(value);
+        this.builder.storeIndexedImm(arraySlot, indexValue, `${arrayName}[${indexValue}] =`);
+        return;
+      }
+    }
+
+    // Dynamic index — need Y register for indexed addressing
+    // Step 1: Generate index expression into A, transfer to Y
+    this.generateExpression(index);
+    this.builder.transferAY();
+
+    // Step 2: Generate value expression into A
+    this.generateExpression(value);
+
+    // Step 3: Store A to base[Y] using Y-indexed addressing
+    this.builder.storeIndexedY(arraySlot, `${arrayName}[Y] =`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Binary Expression
   // ═══════════════════════════════════════════════════════════════════
 
@@ -794,9 +858,16 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     const op = expr.getOperator();
     const value = expr.getValue();
 
+    // Handle array element assignment: arr[index] = value
+    if (isIndexExpression(target)) {
+      this.generateIndexAssignment(target as IndexExpression, value);
+      this.clearLocation();
+      return;
+    }
+
     // Get target slot
     if (!isIdentifierExpression(target)) {
-      // Complex target (index, member) - TODO in Phase 7c
+      // Complex target (member access) - TODO in Phase 7c
       this.generateExpression(value);
       this.clearLocation();
       return;
@@ -1467,8 +1538,11 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         }
         break;
       case 'barrier':
-        // Optimization barrier - no IL generated, just a directive to the optimizer
-        // to prevent reordering code across this point (per spec 08-intrinsics.md)
+        // Optimization barrier — emits a BARRIER IL opcode that prevents the
+        // optimizer from reordering, merging, or eliminating instructions
+        // across this point (per spec 08-intrinsics.md). Generates no runtime
+        // code — the codegen emits only a comment.
+        this.builder.emit(ILOpcode.BARRIER, [], 'barrier()');
         break;
       case 'length':
         // length() is a compile-time intrinsic - resolved during semantic analysis

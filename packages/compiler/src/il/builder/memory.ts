@@ -138,6 +138,52 @@ export class ILBuilderMemory extends ILBuilderBase {
     this.emit(ILOpcode.LOAD_BYTE, [indexedOperand], comment);
   }
 
+  /**
+   * Store accumulator to array element at static offset.
+   *
+   * Creates a virtual slot at base + offset for the store.
+   * Used when the array index is a compile-time constant
+   * (e.g., `arr[3] = value`).
+   *
+   * @param arraySlot - Base array slot
+   * @param offset - Static index offset
+   * @param comment - Optional comment
+   */
+  storeIndexedImm(arraySlot: FrameSlot, offset: number, comment?: string): void {
+    // Create a modified slot with the computed address
+    const elementSlot: FrameSlot = {
+      ...arraySlot,
+      name: `${arraySlot.name}[${offset}]`,
+      address: (arraySlot.address ?? 0) + offset,
+      isArrayElement: true,
+    };
+    this.emit(ILOpcode.STORE_BYTE, [createSlotOperand(elementSlot)], comment);
+  }
+
+  /**
+   * Store accumulator to array element using Y register as index.
+   *
+   * Emits STORE_BYTE with an indexed slot operand.
+   * The code generator will use Y-indexed addressing (STA base,Y).
+   * Used when the array index is a runtime variable
+   * (e.g., `arr[i] = value`).
+   *
+   * @param arraySlot - Base array slot
+   * @param comment - Optional comment
+   */
+  storeIndexedY(arraySlot: FrameSlot, comment?: string): void {
+    // Create an indexed slot operand - the slot's base + Y
+    const indexedSlot: FrameSlot = {
+      ...arraySlot,
+      name: `${arraySlot.name}[Y]`,
+      isArrayElement: true,
+    };
+    const operand = createSlotOperand(indexedSlot);
+    // Mark this as Y-indexed addressing (property defined on SlotOperand)
+    const indexedOperand = { ...operand, indexedByY: true as const };
+    this.emit(ILOpcode.STORE_BYTE, [indexedOperand], comment);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Indirect Addressing (ZP pointer $FB/$FC)
   // ═══════════════════════════════════════════════════════════════════

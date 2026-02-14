@@ -613,6 +613,16 @@ export enum ILOpcode {
   NOP = 'NOP',
 
   /**
+   * Optimization barrier.
+   *
+   * Prevents the optimizer from reordering, merging, or eliminating
+   * instructions across this point. Emits no code at runtime.
+   * Used by the `barrier()` intrinsic to enforce instruction ordering
+   * for volatile hardware register accesses.
+   */
+  BARRIER = 'BARRIER',
+
+  /**
    * Push accumulator to stack.
    * Used for complex expressions.
    * 6502: PHA

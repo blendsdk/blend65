@@ -213,6 +213,11 @@ export class ControlFlowOpsGenerator extends ComparisonOpsGenerator {
       case ILOpcode.NOP:
         this.genNop(instr);
         break;
+      case ILOpcode.BARRIER:
+        // Optimization barrier — emits only a comment, no runtime code.
+        // The optimizer respects BARRIER as a fence preventing reordering.
+        this.emitComment(instr);
+        break;
       case ILOpcode.PUSH_A:
         this.genPushA(instr);
         break;
