@@ -49,6 +49,16 @@ export interface SlotOperand {
 
   /** Index variable slot (for dynamic array access) */
   readonly indexSlot?: FrameSlot;
+
+  /**
+   * Whether this slot uses Y-register indexed addressing.
+   *
+   * When true, the code generator should emit Y-indexed addressing modes
+   * (e.g., LDA base,Y / STA base,Y) instead of plain load/store.
+   * Set by the IL builder's `loadIndexedY()` and `storeIndexedY()` methods
+   * for dynamic array access where the Y register holds the index.
+   */
+  readonly indexedByY?: boolean;
 }
 
 // ============================================================================

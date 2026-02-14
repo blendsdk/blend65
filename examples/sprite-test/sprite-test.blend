@@ -123,7 +123,7 @@ function drawStars(): void {
 
 // Busy-wait delay
 function delay(): void {
-    for (let d: byte = 0 to 99) {
+    for (let _d: byte = 0 to 99) {
         barrier();
     }
 }

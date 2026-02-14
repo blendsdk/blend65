@@ -64,6 +64,19 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
     const slot = this.getSlotOperand(instr.operands);
     const address = slot.slot.address;
 
+    // Check for Y-indexed array access (set by IL builder's loadIndexedY).
+    // When indexedByY is true, emit LDA base,Y instead of plain LDA base.
+    // This is critical for array element reads: arr[i] must use the Y register
+    // as the dynamic index offset from the array's base address.
+    // NOTE: 6502 LDA does NOT support zeroPageY — only absoluteY is available
+    // for Y-indexed loads. Even for ZP base addresses, absoluteY mode is used.
+    if (slot.indexedByY) {
+      this.asm.lda(address, 'absoluteY');
+      // Y-indexed loads produce variable results, cannot track A state
+      this.invalidateA();
+      return;
+    }
+
     // Skip redundant load if A already holds this slot's value.
     // No comment emitted — these tracking comments can be misleading
     // at branch convergence points where A's actual state is uncertain.
@@ -90,6 +103,21 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
     this.emitComment(instr);
     const slot = this.getSlotOperand(instr.operands);
     const address = slot.slot.address;
+
+    // Check for Y-indexed array access (set by IL builder's storeIndexedY).
+    // When indexedByY is true, emit STA base,Y instead of plain STA base.
+    // This is critical for array element writes: arr[i] = value must use the
+    // Y register as the dynamic index offset from the array's base address.
+    // NOTE: 6502 STA does NOT support zeroPageY — only absoluteY is available
+    // for Y-indexed stores. Even for ZP base addresses, absoluteY mode is used.
+    if (slot.indexedByY) {
+      this.asm.sta(address, 'absoluteY');
+      // Y-indexed stores — A still holds the stored value but we can't
+      // associate it with a specific slot (it went to a dynamic location)
+      this.invalidateA();
+      return;
+    }
+
     const mode = this.getStoreMode(slot.slot);
     this.asm.sta(address, mode);
     // A still has the same value

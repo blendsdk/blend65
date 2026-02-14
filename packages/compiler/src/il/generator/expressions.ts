@@ -175,6 +175,27 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     const name = expr.getName();
     this.setLocation(expr.getLocation());
 
+    // Check if this identifier is a compile-time constant.
+    // Constants (e.g., const SPACE_CHAR: byte = 32) should resolve
+    // to immediate loads rather than slot loads. The constant's value
+    // is known at compile time via the symbol table's initializer.
+    // This must be checked BEFORE tryResolveVariable because constants
+    // may also have allocated slots — but loading from the slot is
+    // wasteful when we know the exact value at compile time.
+    const symbol = this.symbolTable.lookupGlobal(name);
+    if (symbol && symbol.isConst && symbol.initializer) {
+      const resolvedValue = this.tryResolveConstantAddress(symbol.initializer);
+      if (resolvedValue !== undefined) {
+        if (this.isWordTyped(expr)) {
+          this.builder.loadImmWord(resolvedValue, `const ${name}`);
+        } else {
+          this.builder.loadImm(resolvedValue & 0xff, `const ${name}`);
+        }
+        this.clearLocation();
+        return;
+      }
+    }
+
     const slot = this.tryResolveVariable(name);
 
     if (!slot) {

@@ -133,9 +133,9 @@ export class ILBuilderMemory extends ILBuilderBase {
       isArrayElement: true,
     };
     const operand = createSlotOperand(indexedSlot);
-    // Mark this as Y-indexed addressing
-    (operand as any).indexedByY = true;
-    this.emit(ILOpcode.LOAD_BYTE, [operand], comment);
+    // Mark this as Y-indexed addressing (property defined on SlotOperand)
+    const indexedOperand = { ...operand, indexedByY: true as const };
+    this.emit(ILOpcode.LOAD_BYTE, [indexedOperand], comment);
   }
 
   // ═══════════════════════════════════════════════════════════════════
