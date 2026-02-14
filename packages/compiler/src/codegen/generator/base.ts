@@ -106,6 +106,16 @@ export class CodeGeneratorBase {
   protected labelCounter: number = 0;
 
   /**
+   * Tracks which runtime math routines are needed by the generated code.
+   *
+   * The 6502 has no native multiply/divide instructions, so these operations
+   * use software subroutines (__mul8, __div8, __mod8). This set tracks which
+   * routines have been referenced so their implementations can be emitted
+   * at the end of the assembly output.
+   */
+  protected usedRuntimeRoutines: Set<string> = new Set();
+
+  /**
    * CPU instruction set strategy.
    *
    * Provides CPU-specific instruction emission methods.
@@ -146,6 +156,7 @@ export class CodeGeneratorBase {
     this.aState = createUnknownAState();
     this.currentFunction = null;
     this.labelCounter = 0;
+    this.usedRuntimeRoutines = new Set();
   }
 
   // ==========================================================================

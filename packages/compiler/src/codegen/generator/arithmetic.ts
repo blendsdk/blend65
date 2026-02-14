@@ -154,6 +154,7 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.lda(0xfe, 'zeroPage');
     // Call multiply routine
     this.asm.jsr('__mul8');
+    this.usedRuntimeRoutines.add('__mul8');
 
     this.invalidateA();
   }
@@ -181,6 +182,7 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.lda(0xfe, 'zeroPage');
     // Call multiply routine
     this.asm.jsr('__mul8');
+    this.usedRuntimeRoutines.add('__mul8');
 
     this.invalidateA();
   }
@@ -214,6 +216,7 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.lda(0xfe, 'zeroPage');
     // Call divide routine
     this.asm.jsr('__div8');
+    this.usedRuntimeRoutines.add('__div8');
 
     this.invalidateA();
   }
@@ -247,6 +250,7 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.lda(0xfe, 'zeroPage');
     // Call modulo routine
     this.asm.jsr('__mod8');
+    this.usedRuntimeRoutines.add('__mod8');
 
     this.invalidateA();
   }
@@ -277,6 +281,7 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.lda(0xfe, 'zeroPage');
     // Call divide routine
     this.asm.jsr('__div8');
+    this.usedRuntimeRoutines.add('__div8');
 
     this.invalidateA();
   }
@@ -307,6 +312,7 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.lda(0xfe, 'zeroPage');
     // Call modulo routine
     this.asm.jsr('__mod8');
+    this.usedRuntimeRoutines.add('__mod8');
 
     this.invalidateA();
   }

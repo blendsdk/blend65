@@ -93,6 +93,12 @@ export class CodeGenerator extends IntrinsicsOpsGenerator {
       this.generateGlobalInit(program);
     }
 
+    // Emit runtime math routines that were referenced during code generation.
+    // The 6502 has no native multiply/divide/modulo instructions, so these
+    // operations use software subroutines whose implementations must be
+    // appended to the assembly output.
+    this.generateRuntimeRoutines();
+
     return this.asm.build();
   }
 
@@ -231,6 +237,132 @@ export class CodeGenerator extends IntrinsicsOpsGenerator {
 
     this.asm.blank();
     this.currentFunction = null;
+  }
+
+  // ==========================================================================
+  // Global Init Generation
+  // ==========================================================================
+
+  // ==========================================================================
+  // Runtime Math Routines
+  // ==========================================================================
+
+  /**
+   * Emits runtime math subroutine implementations that were referenced
+   * during code generation.
+   *
+   * The 6502 has no native multiply, divide, or modulo instructions.
+   * When the code generator emits `JSR __mul8` (etc.), it tracks the
+   * routine name in `usedRuntimeRoutines`. This method emits the actual
+   * subroutine code for each referenced routine, so ACME can resolve
+   * the labels.
+   *
+   * **Routines:**
+   * - `__mul8`: 8-bit multiply using shift-and-add ($FE × $FF → A)
+   * - `__div8`: 8-bit divide using shift-and-subtract ($FE ÷ $FF → A quotient)
+   * - `__mod8`: 8-bit modulo using shift-and-subtract ($FE % $FF → A remainder)
+   *
+   * All routines use ZP addresses $FE (operand 1) and $FF (operand 2).
+   */
+  protected generateRuntimeRoutines(): void {
+    if (this.usedRuntimeRoutines.size === 0) {
+      return;
+    }
+
+    this.asm.section('runtime');
+    this.emitSectionHeader('Runtime Math Routines');
+
+    if (this.usedRuntimeRoutines.has('__mul8')) {
+      this.emitMul8Routine();
+    }
+    if (this.usedRuntimeRoutines.has('__div8')) {
+      this.emitDiv8Routine();
+    }
+    if (this.usedRuntimeRoutines.has('__mod8')) {
+      this.emitMod8Routine();
+    }
+  }
+
+  /**
+   * Emits the __mul8 routine: 8-bit unsigned multiply.
+   *
+   * Algorithm: shift-and-add.
+   * Input:  $FE = multiplicand, $FF = multiplier
+   * Output: A = low byte of product ($FE × $FF)
+   * Clobbers: A, X, $FE, $FF
+   */
+  protected emitMul8Routine(): void {
+    this.asm.comment('__mul8: 8-bit multiply ($FE * $FF → A)');
+    this.asm.label('__mul8');
+    this.asm.lda(0x00, 'immediate');           // LDA #$00 — clear accumulator (result)
+    this.asm.ldx(0x08, 'immediate');           // LDX #$08 — 8 bits to process
+    this.asm.label('.__mul8_loop');
+    this.asm.lsr(0xff, 'zeroPage');            // LSR $FF — shift multiplier right, bit 0 → carry
+    this.asm.bcc('.__mul8_noadd');             // BCC — skip add if bit was 0
+    this.asm.clc();                            // CLC — clear carry for addition
+    this.asm.adc(0xfe, 'zeroPage');            // ADC $FE — add multiplicand
+    this.asm.label('.__mul8_noadd');
+    this.asm.asl(0xfe, 'zeroPage');            // ASL $FE — shift multiplicand left
+    this.asm.dex();                            // DEX — decrement bit counter
+    this.asm.bne('.__mul8_loop');              // BNE — loop if bits remain
+    this.asm.rts();                            // RTS — return with result in A
+    this.asm.blank();
+  }
+
+  /**
+   * Emits the __div8 routine: 8-bit unsigned divide (quotient).
+   *
+   * Algorithm: shift-and-subtract (restoring division).
+   * Input:  $FE = dividend, $FF = divisor
+   * Output: A = quotient ($FE ÷ $FF)
+   * Clobbers: A, X, $FE
+   */
+  protected emitDiv8Routine(): void {
+    this.asm.comment('__div8: 8-bit divide ($FE / $FF → A quotient)');
+    this.asm.label('__div8');
+    this.asm.lda(0x00, 'immediate');     // LDA #$00 — clear remainder
+    this.asm.ldx(0x08, 'immediate');     // LDX #$08 — 8 bits
+    this.asm.asl(0xfe, 'zeroPage');      // ASL $FE — pre-shift dividend
+    this.asm.label('.__div8_loop');
+    this.asm.rol();                      // ROL A — rotate dividend bit into remainder
+    this.asm.cmp(0xff, 'zeroPage');      // CMP $FF — compare with divisor
+    this.asm.bcc('.__div8_nosub');       // BCC — skip if remainder < divisor
+    this.asm.sbc(0xff, 'zeroPage');      // SBC $FF — subtract divisor
+    this.asm.label('.__div8_nosub');
+    this.asm.rol(0xfe, 'zeroPage');      // ROL $FE — rotate result bit into quotient
+    this.asm.dex();                      // DEX — decrement bit counter
+    this.asm.bne('.__div8_loop');        // BNE — loop if bits remain
+    this.asm.lda(0xfe, 'zeroPage');      // LDA $FE — load quotient result
+    this.asm.rts();                      // RTS — return with quotient in A
+    this.asm.blank();
+  }
+
+  /**
+   * Emits the __mod8 routine: 8-bit unsigned modulo (remainder).
+   *
+   * Algorithm: shift-and-subtract (restoring division), returns remainder.
+   * Input:  $FE = dividend, $FF = divisor
+   * Output: A = remainder ($FE % $FF)
+   * Clobbers: A, X, $FE
+   */
+  protected emitMod8Routine(): void {
+    this.asm.comment('__mod8: 8-bit modulo ($FE % $FF → A remainder)');
+    this.asm.label('__mod8');
+    this.asm.lda(0x00, 'immediate');     // LDA #$00 — clear remainder
+    this.asm.ldx(0x08, 'immediate');     // LDX #$08 — 8 bits
+    this.asm.asl(0xfe, 'zeroPage');      // ASL $FE — pre-shift dividend
+    this.asm.label('.__mod8_loop');
+    this.asm.rol();                      // ROL A — rotate dividend bit into remainder
+    this.asm.cmp(0xff, 'zeroPage');      // CMP $FF — compare with divisor
+    this.asm.bcc('.__mod8_nosub');       // BCC — skip if remainder < divisor
+    this.asm.sbc(0xff, 'zeroPage');      // SBC $FF — subtract divisor
+    this.asm.label('.__mod8_nosub');
+    this.asm.rol(0xfe, 'zeroPage');      // ROL $FE — rotate result bit (keeps algorithm consistent)
+    this.asm.dex();                      // DEX — decrement bit counter
+    this.asm.bne('.__mod8_loop');        // BNE — loop if bits remain
+    // A already contains the remainder
+    this.asm.rts();                      // RTS — return with remainder in A
+    this.asm.blank();
   }
 
   // ==========================================================================
