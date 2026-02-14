@@ -10,13 +10,13 @@ const COLOR_BASE: word = $D800;
 const STAR_CHAR: byte = 46;       // Period character as star
 const SPACE_CHAR: byte = 32;      // Space to erase star
 const SCREEN_WIDTH: byte = 40;
-const NUM_STARS: byte = 20;
+const NUM_STARS: byte = 40;
 
 // Star positions: X and Y coordinates
-let starX: byte[20];
-let starY: byte[20];
+let starX: byte[40];
+let starY: byte[40];
 // Star speeds (1=slow, 2=medium, 3=fast)
-let starSpeed: byte[20];
+let starSpeed: byte[40];
 
 export function main(): void {
     // Clear screen
@@ -47,23 +47,22 @@ function clearScreen(): void {
     poke($D021, 0);
 }
 
-// Initialize star positions using a simple deterministic pattern
+// Initialize star positions using a full-period LCG
+// Uses a=5, c=odd for full period mod 256 (byte overflow),
+// then modulo to map into valid screen coordinate ranges.
 function initStars(): void {
     let seedX: byte = 7;
-    let seedY: byte = 3;
+    let seedY: byte = 13;
 
-    for (let i: byte = 0 to 19) {
-        // Pseudo-random spread using multiply and mask
-        seedX = (seedX * 13 + 7) & 39;
-        seedY = (seedY * 11 + 3) & 31;
+    for (let i: byte = 0 to 39) {
+        // Full-period LCG: a*x+c mod 256 (byte wrap)
+        // a=5 (4k+1), c=3 (odd) gives period 256
+        seedX = seedX * 5 + 3;
+        seedY = seedY * 5 + 7;
 
-        // Clamp Y to valid screen range
-        if (seedY > 24) {
-            seedY = seedY - 25;
-        }
-
-        starX[i] = seedX;
-        starY[i] = seedY;
+        // Map to valid screen coordinates via modulo
+        starX[i] = seedX % 40;   // columns 0-39
+        starY[i] = seedY % 25;   // rows 0-24
 
         // Assign speed based on index pattern (1, 2, or 3)
         let speed: byte = (i % 3) + 1;
@@ -73,7 +72,7 @@ function initStars(): void {
 
 // Erase all stars from their current positions
 function eraseStars(): void {
-    for (let i: byte = 0 to 19) {
+    for (let i: byte = 0 to 39) {
         // Read array values into locals first (avoid complex array-in-expr)
         let y: byte = starY[i];
         let x: byte = starX[i];
@@ -84,7 +83,7 @@ function eraseStars(): void {
 
 // Move all stars to the left by their speed
 function moveStars(): void {
-    for (let i: byte = 0 to 19) {
+    for (let i: byte = 0 to 39) {
         let speed: byte = starSpeed[i];
         let x: byte = starX[i];
 
@@ -100,7 +99,7 @@ function moveStars(): void {
 
 // Draw all stars at their current positions
 function drawStars(): void {
-    for (let i: byte = 0 to 19) {
+    for (let i: byte = 0 to 39) {
         // Read array values into locals first
         let y: byte = starY[i];
         let x: byte = starX[i];
