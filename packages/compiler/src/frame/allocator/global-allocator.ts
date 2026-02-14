@@ -498,6 +498,7 @@ export class GlobalAllocator {
         name: annotation,
         size: elementType.size * count,
         elementType,
+        elementCount: count,
       };
     }
 
