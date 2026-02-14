@@ -278,8 +278,11 @@ export class ILGeneratorBase {
    * @returns The converted FrameSlot
    */
   protected convertAndCacheGlobalSlot(cacheKey: string, globalSlot: GlobalSlot): FrameSlot {
-    // Determine SlotLocation based on storage class
-    const location = globalSlot.storageClass === 'zp'
+    // Determine SlotLocation based on storage class and actual address.
+    // Default globals allocated through ZpPool get ZP-range addresses (0-255)
+    // and should use SlotLocation.ZeroPage for fast 2-byte instructions.
+    // Only globals with addresses >= 256 use FrameRegion (3-byte absolute).
+    const location = (globalSlot.storageClass === 'zp' || (globalSlot.address >= 0 && globalSlot.address < 256))
       ? SlotLocation.ZeroPage
       : SlotLocation.FrameRegion;
 

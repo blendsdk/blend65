@@ -392,15 +392,20 @@ export class GlobalAllocator {
     defaultGlobals: CollectedGlobal[],
     globals: Map<string, GlobalSlot>,
   ): number {
-    // Combine @ram and default globals — both go to RAM region
-    const allRamGlobals = [...ramGlobals, ...defaultGlobals];
+    // Phase 2 Fix: Separate const globals (inlined, no address needed)
+    // from mutable globals (need real addresses).
+    //
+    // Const globals with resolvable literal initializers are purely
+    // compile-time values — the IL generator inlines them as immediates.
+    // They still get a GlobalSlot entry (so the IL generator can find
+    // their metadata) but with address = -1 to signal "no allocation."
 
+    // Step 1: Process @ram globals (explicit storage class — always allocate)
     // RAM region starts after the code segment.
     // The exact base address is determined during codegen when code size is known.
-    // For now, we assign relative offsets starting from 0.
-    let offset = 0;
+    let ramOffset = 0;
 
-    for (const global of allRamGlobals) {
+    for (const global of ramGlobals) {
       const slot = createGlobalSlot(
         global.name,
         global.moduleName,
@@ -414,14 +419,78 @@ export class GlobalAllocator {
         },
       );
 
-      // Address is a relative offset — will be rebased during codegen
-      slot.address = offset;
+      slot.address = ramOffset;
       globals.set(slot.qualifiedName, slot);
-
-      offset += global.size;
+      ramOffset += global.size;
     }
 
-    return offset;
+    // Step 2: Process default globals — skip inlinable consts,
+    // route mutable globals through ZpPool to prevent address overlap.
+    for (const global of defaultGlobals) {
+      // Check if this is a const with a resolvable initializer.
+      // These are inlined by the IL generator and need no runtime address.
+      if (global.isConst && global.node.getInitializer() !== null) {
+        const slot = createGlobalSlot(
+          global.name,
+          global.moduleName,
+          global.storageClass,
+          global.type,
+          global.size,
+          {
+            isExported: global.isExported,
+            isConst: true,
+            initializer: global.node.getInitializer() ?? undefined,
+          },
+        );
+        // Address -1 signals "inlined constant, no runtime allocation"
+        slot.address = -1;
+        globals.set(slot.qualifiedName, slot);
+        continue;
+      }
+
+      // Mutable default global — allocate through ZpPool to prevent
+      // address conflicts with SFA function-local variables.
+      // This is the same mechanism used for @zp globals.
+      const zpResult = this.zpPool.allocate(global.size);
+
+      const slot = createGlobalSlot(
+        global.name,
+        global.moduleName,
+        global.storageClass,
+        global.type,
+        global.size,
+        {
+          isExported: global.isExported,
+          isConst: global.isConst,
+          initializer: global.node.getInitializer() ?? undefined,
+        },
+      );
+
+      if (zpResult.success) {
+        // ZP allocation succeeded — use the pool-assigned address.
+        // The IL generator will detect ZP-range addresses and use
+        // SlotLocation.ZeroPage for fast 2-byte instructions.
+        slot.address = zpResult.address;
+      } else {
+        // ZP pool full — fall back to RAM region (relative offset).
+        // This handles very large programs with many globals.
+        slot.address = ramOffset;
+        ramOffset += global.size;
+
+        this.diagnostics.push({
+          severity: DiagnosticSeverity.Warning,
+          message:
+            `Default global "${global.name}" could not fit in ZP pool, ` +
+            `falling back to RAM region. ${zpResult.error ?? ''}`,
+          variableName: global.name,
+          moduleName: global.moduleName,
+        });
+      }
+
+      globals.set(slot.qualifiedName, slot);
+    }
+
+    return ramOffset;
   }
 
   // ========================================

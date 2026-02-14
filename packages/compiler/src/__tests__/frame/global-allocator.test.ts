@@ -329,16 +329,21 @@ describe('GlobalAllocator', () => {
       expect(result.ramRegionSize).toBe(3); // 1 + 2 bytes
     });
 
-    it('should include default globals in RAM region', () => {
+    it('should route default mutable globals through ZpPool', () => {
+      // Default mutable globals are allocated via ZpPool (not RAM region)
+      // to prevent address overlap with SFA function-local variables.
       const varDecl = createVarDecl('temp', 'byte');
       const program = createProgram('Test', [varDecl]);
 
       const allocator = new GlobalAllocator(C64_PLATFORM_CONFIG);
       const result = allocator.allocate([program]);
 
-      expect(result.ramRegionSize).toBe(1);
+      // RAM region size is 0 because default globals go through ZpPool
+      expect(result.ramRegionSize).toBe(0);
       const slot = result.globals.get('Test.temp')!;
-      expect(slot.address).toBe(0);
+      // Address should be in the ZP range (assigned by ZpPool, not 0-relative)
+      expect(slot.address).toBeGreaterThanOrEqual(0);
+      expect(slot.address).toBeLessThan(256);
     });
   });
 

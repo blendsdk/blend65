@@ -370,13 +370,39 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   // ═══════════════════════════════════════════════════════════════════
 
   /**
+   * Try to resolve an identifier expression to a compile-time constant value.
+   *
+   * Checks if the expression is an identifier that refers to a global const
+   * with a resolvable initializer (e.g., `const SCREEN_WIDTH: byte = 40`).
+   * Used by binary expression generation to emit immediate instructions
+   * instead of memory loads for constant operands.
+   *
+   * @param expr - Expression to check (must be an identifier)
+   * @returns The numeric constant value, or undefined if not a resolvable constant
+   */
+  protected tryResolveConstantIdentifier(expr: Expression): number | undefined {
+    if (!isIdentifierExpression(expr)) return undefined;
+
+    const name = (expr as IdentifierExpression).getName();
+    const symbol = this.symbolTable.lookupGlobal(name);
+
+    // Only resolve if the symbol is a const with a compile-time initializer
+    if (symbol && symbol.isConst && symbol.initializer) {
+      return this.tryResolveConstantAddress(symbol.initializer);
+    }
+
+    return undefined;
+  }
+
+  /**
    * Generate IL for a binary expression.
    *
    * Strategy:
    * 1. Generate left operand (result in A)
    * 2. If right is immediate: Use immediate instruction
-   * 3. If right is identifier: Use slot instruction
-   * 4. Otherwise: Push A, generate right, operate
+   * 3. If right is constant identifier: Use immediate instruction (inlined)
+   * 4. If right is identifier: Use slot instruction
+   * 5. Otherwise: Push A, generate right, operate
    *
    * @param expr - Binary expression
    */
@@ -410,7 +436,20 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       }
     }
 
-    // Optimization: Check for slot right operand
+    // Optimization: Check for constant identifier right operand.
+    // If the right operand is a const (e.g., SCREEN_WIDTH = 40),
+    // inline its value as an immediate instead of loading from a slot.
+    // This avoids unnecessary memory access for compile-time constants.
+    if (isIdentifierExpression(right)) {
+      const constValue = this.tryResolveConstantIdentifier(right);
+      if (constValue !== undefined) {
+        this.generateBinaryImmediate(op, constValue);
+        this.clearLocation();
+        return;
+      }
+    }
+
+    // Optimization: Check for slot right operand (mutable variable)
     if (isIdentifierExpression(right)) {
       const slot = this.tryResolveVariable(right.getName());
       if (slot && slot.location !== SlotLocation.Register) {
@@ -464,7 +503,17 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       }
     }
 
-    // Try slot right operand (addr + offset where offset is a variable)
+    // Try constant identifier right operand (e.g., addr + OFFSET where const OFFSET = 40).
+    // Inline the constant value as an immediate to avoid unnecessary memory loads.
+    if (isIdentifierExpression(right)) {
+      const constValue = this.tryResolveConstantIdentifier(right);
+      if (constValue !== undefined) {
+        this.generateBinaryWordImmediate(op, constValue);
+        return;
+      }
+    }
+
+    // Try slot right operand (addr + offset where offset is a mutable variable)
     if (isIdentifierExpression(right)) {
       const slot = this.tryResolveVariable(right.getName());
       if (slot && slot.location !== SlotLocation.Register) {
