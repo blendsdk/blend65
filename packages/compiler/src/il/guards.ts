@@ -183,6 +183,7 @@ export function isStoreInstruction(instr: ILInstruction): boolean {
  */
 export function isArithmeticInstruction(instr: ILInstruction): boolean {
   return (
+    // Byte arithmetic
     instr.opcode === ILOpcode.ADD_BYTE ||
     instr.opcode === ILOpcode.SUB_BYTE ||
     instr.opcode === ILOpcode.ADD_IMM ||
@@ -191,7 +192,19 @@ export function isArithmeticInstruction(instr: ILInstruction): boolean {
     instr.opcode === ILOpcode.DIV_BYTE ||
     instr.opcode === ILOpcode.MOD_BYTE ||
     instr.opcode === ILOpcode.INC_BYTE ||
-    instr.opcode === ILOpcode.DEC_BYTE
+    instr.opcode === ILOpcode.DEC_BYTE ||
+    // Word (16-bit) arithmetic
+    instr.opcode === ILOpcode.ADD_WORD_IMM ||
+    instr.opcode === ILOpcode.ADD_WORD_BYTE_IMM ||
+    instr.opcode === ILOpcode.ADD_WORD_SLOT ||
+    instr.opcode === ILOpcode.ADD_WORD_BYTE_SLOT ||
+    instr.opcode === ILOpcode.SUB_WORD_IMM ||
+    instr.opcode === ILOpcode.SUB_WORD_BYTE_IMM ||
+    instr.opcode === ILOpcode.SUB_WORD_SLOT ||
+    instr.opcode === ILOpcode.SUB_WORD_BYTE_SLOT ||
+    instr.opcode === ILOpcode.INC_WORD ||
+    instr.opcode === ILOpcode.DEC_WORD ||
+    instr.opcode === ILOpcode.PROMOTE_BYTE_WORD
   );
 }
 
@@ -222,7 +235,13 @@ export function isBitwiseInstruction(instr: ILInstruction): boolean {
  * @returns true if instruction compares values
  */
 export function isComparisonInstruction(instr: ILInstruction): boolean {
-  return instr.opcode === ILOpcode.CMP_BYTE || instr.opcode === ILOpcode.CMP_IMM;
+  return (
+    instr.opcode === ILOpcode.CMP_BYTE ||
+    instr.opcode === ILOpcode.CMP_IMM ||
+    // Word (16-bit) comparisons
+    instr.opcode === ILOpcode.CMP_WORD_IMM ||
+    instr.opcode === ILOpcode.CMP_WORD_SLOT
+  );
 }
 
 /**
@@ -309,7 +328,13 @@ export function isIntrinsicInstruction(instr: ILInstruction): boolean {
     instr.opcode === ILOpcode.PEEKW ||
     instr.opcode === ILOpcode.POKEW ||
     instr.opcode === ILOpcode.HI ||
-    instr.opcode === ILOpcode.LO
+    instr.opcode === ILOpcode.LO ||
+    // Indirect addressing intrinsics (word pointer via ZP)
+    instr.opcode === ILOpcode.STORE_ZP_PTR ||
+    instr.opcode === ILOpcode.POKE_INDIRECT ||
+    instr.opcode === ILOpcode.PEEK_INDIRECT ||
+    instr.opcode === ILOpcode.POKEW_INDIRECT ||
+    instr.opcode === ILOpcode.PEEKW_INDIRECT
   );
 }
 
@@ -341,6 +366,10 @@ export function hasSideEffects(instr: ILInstruction): boolean {
     instr.opcode === ILOpcode.CALL ||
     isStackInstruction(instr) ||
     instr.opcode === ILOpcode.POKE ||
-    instr.opcode === ILOpcode.POKEW
+    instr.opcode === ILOpcode.POKEW ||
+    // Indirect addressing side effects (write through ZP pointer)
+    instr.opcode === ILOpcode.STORE_ZP_PTR ||
+    instr.opcode === ILOpcode.POKE_INDIRECT ||
+    instr.opcode === ILOpcode.POKEW_INDIRECT
   );
 }

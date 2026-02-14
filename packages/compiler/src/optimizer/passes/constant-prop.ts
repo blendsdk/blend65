@@ -196,8 +196,11 @@ export class ConstantPropPass implements OptimizationPass {
     return (
       instr.opcode === ILOpcode.STORE_BYTE ||
       instr.opcode === ILOpcode.STORE_WORD ||
+      // Byte and word INC/DEC both modify their slot in place
       instr.opcode === ILOpcode.INC_BYTE ||
-      instr.opcode === ILOpcode.DEC_BYTE
+      instr.opcode === ILOpcode.DEC_BYTE ||
+      instr.opcode === ILOpcode.INC_WORD ||
+      instr.opcode === ILOpcode.DEC_WORD
     );
   }
 

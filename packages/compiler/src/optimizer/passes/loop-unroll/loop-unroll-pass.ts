@@ -351,9 +351,10 @@ export class LoopUnrollPass extends LoopUnrollAnalysis implements OptimizationPa
 
     for (let i = headerIdx + 1; i < exitIdx; i++) {
       const instr = func.instructions[i];
-      // INC_BYTE or DEC_BYTE on the counter slot
+      // INC_BYTE/DEC_BYTE or INC_WORD/DEC_WORD on the counter slot
       if (
-        (instr.opcode === ILOpcode.INC_BYTE || instr.opcode === ILOpcode.DEC_BYTE) &&
+        (instr.opcode === ILOpcode.INC_BYTE || instr.opcode === ILOpcode.DEC_BYTE ||
+         instr.opcode === ILOpcode.INC_WORD || instr.opcode === ILOpcode.DEC_WORD) &&
         instr.defUse &&
         instr.defUse.defs.includes(counterName)
       ) {

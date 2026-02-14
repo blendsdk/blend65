@@ -454,9 +454,21 @@ export class ILPeepholePass implements OptimizationPass {
       }
 
       // If another instruction writes to the same slot, value is unknown
-      if (prev.opcode === ILOpcode.INC_BYTE || prev.opcode === ILOpcode.DEC_BYTE) {
+      // (byte and word INC/DEC variants both modify their slot in place)
+      if (
+        prev.opcode === ILOpcode.INC_BYTE || prev.opcode === ILOpcode.DEC_BYTE ||
+        prev.opcode === ILOpcode.INC_WORD || prev.opcode === ILOpcode.DEC_WORD
+      ) {
         const modSlot = this.getSlotName(prev);
         if (modSlot === slotName) {
+          return null;
+        }
+      }
+
+      // STORE_WORD also writes to a slot — value becomes unknown
+      if (prev.opcode === ILOpcode.STORE_WORD) {
+        const storeSlot = this.getSlotName(prev);
+        if (storeSlot === slotName) {
           return null;
         }
       }

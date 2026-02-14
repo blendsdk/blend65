@@ -71,8 +71,11 @@ export class LICMBase {
         }
       }
 
-      // INC_BYTE and DEC_BYTE both read and write their operand
-      if (instr.opcode === ILOpcode.INC_BYTE || instr.opcode === ILOpcode.DEC_BYTE) {
+      // INC/DEC both read and write their operand (byte and word variants)
+      if (
+        instr.opcode === ILOpcode.INC_BYTE || instr.opcode === ILOpcode.DEC_BYTE ||
+        instr.opcode === ILOpcode.INC_WORD || instr.opcode === ILOpcode.DEC_WORD
+      ) {
         const slotName = this.getSlotName(instr);
         if (slotName !== null) {
           defs.add(slotName);
@@ -121,9 +124,17 @@ export class LICMBase {
       case ILOpcode.POP_A:
         return true;
 
-      // INC/DEC modify memory in place
+      // INC/DEC modify memory in place (byte and word variants)
       case ILOpcode.INC_BYTE:
       case ILOpcode.DEC_BYTE:
+      case ILOpcode.INC_WORD:
+      case ILOpcode.DEC_WORD:
+        return true;
+
+      // Indirect addressing — write through ZP pointer
+      case ILOpcode.STORE_ZP_PTR:
+      case ILOpcode.POKE_INDIRECT:
+      case ILOpcode.POKEW_INDIRECT:
         return true;
 
       // Raw assembly — unknown side effects

@@ -441,7 +441,32 @@ export class CSEPass extends CSETracker implements OptimizationPass {
       opcode === ILOpcode.PEEK ||
       opcode === ILOpcode.PEEKW ||
       opcode === ILOpcode.HI ||
-      opcode === ILOpcode.LO
+      opcode === ILOpcode.LO ||
+      // Indirect addressing intrinsics that load into A
+      opcode === ILOpcode.PEEK_INDIRECT ||
+      opcode === ILOpcode.PEEKW_INDIRECT
+    ) {
+      return true;
+    }
+
+    // Word arithmetic modifies A:X register pair
+    // (these completely change the accumulator state)
+    if (
+      opcode === ILOpcode.ADD_WORD_IMM ||
+      opcode === ILOpcode.ADD_WORD_BYTE_IMM ||
+      opcode === ILOpcode.ADD_WORD_SLOT ||
+      opcode === ILOpcode.ADD_WORD_BYTE_SLOT ||
+      opcode === ILOpcode.SUB_WORD_IMM ||
+      opcode === ILOpcode.SUB_WORD_BYTE_IMM ||
+      opcode === ILOpcode.SUB_WORD_SLOT ||
+      opcode === ILOpcode.SUB_WORD_BYTE_SLOT ||
+      opcode === ILOpcode.INC_WORD ||
+      opcode === ILOpcode.DEC_WORD ||
+      opcode === ILOpcode.CMP_WORD_IMM ||
+      opcode === ILOpcode.CMP_WORD_SLOT ||
+      opcode === ILOpcode.PROMOTE_BYTE_WORD ||
+      opcode === ILOpcode.LOAD_WORD ||
+      opcode === ILOpcode.LOAD_IMM_WORD
     ) {
       return true;
     }

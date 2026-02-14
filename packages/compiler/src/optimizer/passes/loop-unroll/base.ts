@@ -298,7 +298,10 @@ export class LoopUnrollBase {
   protected isComparison(instr: ILInstruction): boolean {
     return (
       instr.opcode === ILOpcode.CMP_BYTE ||
-      instr.opcode === ILOpcode.CMP_IMM
+      instr.opcode === ILOpcode.CMP_IMM ||
+      // Word (16-bit) comparisons
+      instr.opcode === ILOpcode.CMP_WORD_IMM ||
+      instr.opcode === ILOpcode.CMP_WORD_SLOT
     );
   }
 
