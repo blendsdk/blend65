@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-14 00:02
-> **Progress**: 40/41 tasks (98%)
+> **Last Updated**: 2026-02-14 02:17
+> **Progress**: 42/43 tasks (98%)
 
 ## Overview
 
@@ -313,8 +313,8 @@
 ### Phase 8: Word Function Support
 - [x] 8.1.1 Word argument passing via A:X ✅ (completed: 2026-02-14 00:02)
 - [x] 8.1.2 Word parameter prologue ✅ (completed: 2026-02-14 00:02)
-- [ ] 8.1.3 Word return via A:X
-- [ ] 8.1.4 Word function tests
+- [x] 8.1.3 Word return via A:X ✅ (completed: 2026-02-14 02:17)
+- [x] 8.1.4 Word function tests (11 new tests) ✅ (completed: 2026-02-14 02:17)
 
 ### Phase 9: Integration + E2E
 - [ ] 9.1.1 E2E word arithmetic + dynamic poke test

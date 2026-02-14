@@ -24,6 +24,7 @@ import {
 import { BinaryExpression, IdentifierExpression, LiteralExpression } from '../../ast/expressions.js';
 import { isBinaryExpression, isIdentifierExpression, isLiteralExpression } from '../../ast/type-guards.js';
 import { TokenType } from '../../lexer/types.js';
+import { SlotKind } from '../../frame/enums.js';
 import type { FrameSlot } from '../../frame/types.js';
 import { createILLoop } from '../factories.js';
 import { ILGeneratorExpressions } from './expressions.js';
@@ -815,16 +816,28 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
   /**
    * Generate IL for a return statement.
    *
-   * Pattern (with value):
+   * For byte returns:
    * ```
    *   [value]           ; result in A
    *   RETURN            ; return with value in A
+   * ```
+   *
+   * For word returns:
+   * ```
+   *   [value]           ; result in A:X (word) or A (byte needing promotion)
+   *   PROMOTE_BYTE_WORD ; (only if value is byte but function returns word)
+   *   RETURN            ; return with value in A:X
    * ```
    *
    * Pattern (void):
    * ```
    *   RETURN            ; return void
    * ```
+   *
+   * When a function returns word but the return expression is byte-typed,
+   * PROMOTE_BYTE_WORD (LDX #0) is emitted to ensure the high byte in X
+   * is zeroed. Without this, X would contain garbage from a previous
+   * operation and the caller would store an incorrect high byte.
    *
    * @param stmt - Return statement to generate
    */
@@ -833,8 +846,17 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
 
     const value = stmt.getValue();
     if (value) {
-      // Return with value - generate expression (result in A)
+      // Return with value - generate expression (result in A or A:X for word)
       this.generateExpression(value);
+
+      // If the function returns word but the expression is byte-typed,
+      // promote A → A:X (LDX #0) to ensure the high byte is zeroed.
+      // Word-typed expressions already produce A:X via LOAD_WORD or word arithmetic.
+      const frame = this.getCurrentFrame();
+      const returnSlot = frame.slots.find(s => s.kind === SlotKind.Return);
+      if (returnSlot && returnSlot.size === 2 && !this.isWordTyped(value)) {
+        this.builder.promoteByteWord('return byte→word');
+      }
     }
 
     // Emit return instruction
