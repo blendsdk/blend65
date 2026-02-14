@@ -20,7 +20,7 @@ import type { CpuTarget } from '../codegen/cpu/index.js';
 import { DEFAULT_CPU_TARGET } from '../codegen/cpu/index.js';
 import type { ILProgram } from '../il/structures.js';
 import type { AsmILProgram } from '../codegen/asm-il/types.js';
-import { createSection, createCommentElement, createBlankElement, createDirectiveElement } from '../codegen/asm-il/types.js';
+import { createSection, createCommentElement, createBlankElement, createDirectiveElement, createLabelElement } from '../codegen/asm-il/types.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../ast/diagnostics.js';
 import type { FrameAllocationResult } from '../frame/allocator/frame-allocator.js';
@@ -149,12 +149,22 @@ export class CodegenPhase {
       createCommentElement('============================================================')
     );
 
-    // Emit each data entry as labeled !byte directives
+    // Emit each data entry as labeled !byte directives.
+    // Each entry gets an ACME label (from GlobalSlot.dataLabel) so the
+    // code generator can reference the data by label rather than address.
     for (const entry of result.entries) {
       dataSection.elements.push(createBlankElement());
       dataSection.elements.push(
-        createCommentElement(`${entry.qualifiedName} (${entry.size} bytes at $${entry.address.toString(16).toUpperCase().padStart(4, '0')})`)
+        createCommentElement(`${entry.qualifiedName} (${entry.size} bytes)`)
       );
+
+      // Emit the ACME label before the byte data.
+      // The code generator references this label in LDA/STA instructions
+      // to correctly address @data const arrays/scalars.
+      const globalSlot = globalAllocation.globals.get(entry.qualifiedName);
+      if (globalSlot?.dataLabel) {
+        dataSection.elements.push(createLabelElement(globalSlot.dataLabel));
+      }
 
       // Emit bytes in chunks of 16 for readability
       const CHUNK_SIZE = 16;

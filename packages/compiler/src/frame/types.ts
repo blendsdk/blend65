@@ -162,6 +162,18 @@ export interface FrameSlot {
    * Undefined for non-array slots.
    */
   arraySize?: number;
+
+  /**
+   * ACME assembler label for @data const globals.
+   *
+   * Propagated from GlobalSlot.dataLabel when the IL builder creates
+   * a FrameSlot for a global variable with @data storage class.
+   * The code generator uses this label instead of the numeric address
+   * for memory operands (e.g., `LDA __data_Module_name,Y`).
+   *
+   * Only set for @data storage class globals.
+   */
+  dataLabel?: string;
 }
 
 /**

@@ -10,6 +10,7 @@
  */
 
 import { ILInstruction, ILOpcode } from '../../il/index.js';
+import { AsmAddressingMode } from '../asm-il/types.js';
 import { CodeGeneratorBase } from './base.js';
 
 /**
@@ -71,8 +72,22 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
     // NOTE: 6502 LDA does NOT support zeroPageY — only absoluteY is available
     // for Y-indexed loads. Even for ZP base addresses, absoluteY mode is used.
     if (slot.indexedByY) {
-      this.asm.lda(address, 'absoluteY');
+      // @data const arrays: use ACME label for correct addressing.
+      // The label resolves to the absolute address at assembly time,
+      // avoiding the broken relative-offset address (which would be 0).
+      if (slot.slot.dataLabel) {
+        this.asm.instruction('LDA', AsmAddressingMode.AbsoluteY, undefined, slot.slot.dataLabel);
+      } else {
+        this.asm.lda(address, 'absoluteY');
+      }
       // Y-indexed loads produce variable results, cannot track A state
+      this.invalidateA();
+      return;
+    }
+
+    // @data const scalars: use ACME label for correct addressing.
+    if (slot.slot.dataLabel) {
+      this.asm.instruction('LDA', AsmAddressingMode.Absolute, undefined, slot.slot.dataLabel);
       this.invalidateA();
       return;
     }
@@ -111,9 +126,23 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
     // NOTE: 6502 STA does NOT support zeroPageY — only absoluteY is available
     // for Y-indexed stores. Even for ZP base addresses, absoluteY mode is used.
     if (slot.indexedByY) {
-      this.asm.sta(address, 'absoluteY');
+      // @data const arrays: use ACME label for correct addressing (defensive).
+      // In practice, @data arrays are read-only, but if the IL ever emits
+      // a store to a @data slot, use the label for correct addressing.
+      if (slot.slot.dataLabel) {
+        this.asm.instruction('STA', AsmAddressingMode.AbsoluteY, undefined, slot.slot.dataLabel);
+      } else {
+        this.asm.sta(address, 'absoluteY');
+      }
       // Y-indexed stores — A still holds the stored value but we can't
       // associate it with a specific slot (it went to a dynamic location)
+      this.invalidateA();
+      return;
+    }
+
+    // @data const scalars: use ACME label for correct addressing (defensive).
+    if (slot.slot.dataLabel) {
+      this.asm.instruction('STA', AsmAddressingMode.Absolute, undefined, slot.slot.dataLabel);
       this.invalidateA();
       return;
     }

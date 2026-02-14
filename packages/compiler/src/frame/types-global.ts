@@ -95,6 +95,21 @@ export interface GlobalSlot {
    */
   address: number;
 
+  /**
+   * ACME assembler label for @data globals.
+   *
+   * When set, the code generator uses this label instead of the numeric
+   * address for memory operands. ACME resolves the label to the correct
+   * absolute address at assembly time, eliminating the need for address
+   * rebasing in the compiler.
+   *
+   * Format: `__data_<moduleName>_<variableName>`
+   * (dots in module names are replaced with underscores)
+   *
+   * Only set for @data storage class globals.
+   */
+  dataLabel?: string;
+
   /** Whether the variable is exported from its module */
   readonly isExported: boolean;
 
@@ -231,6 +246,7 @@ export function createGlobalSlot(
     isExported?: boolean;
     isConst?: boolean;
     initializer?: Expression;
+    dataLabel?: string;
   },
 ): GlobalSlot {
   return {
@@ -241,6 +257,7 @@ export function createGlobalSlot(
     type,
     size,
     address: 0,
+    dataLabel: options?.dataLabel,
     isExported: options?.isExported ?? false,
     isConst: options?.isConst ?? false,
     initializer: options?.initializer,

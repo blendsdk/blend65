@@ -512,10 +512,17 @@ export class GlobalAllocator {
     globals: Map<string, GlobalSlot>,
   ): number {
     // Data segment starts after the RAM region.
-    // Like RAM, addresses are relative offsets for now.
+    // Addresses are relative offsets (kept for size tracking).
+    // The code generator uses dataLabel (not address) for operands,
+    // so ACME resolves the correct absolute address at assembly time.
     let offset = 0;
 
     for (const global of dataGlobals) {
+      // Generate ACME-compatible label: __data_<module>_<name>
+      // Replace dots with underscores for ACME compatibility
+      const sanitizedModule = global.moduleName.replace(/\./g, '_');
+      const dataLabel = `__data_${sanitizedModule}_${global.name}`;
+
       const slot = createGlobalSlot(
         global.name,
         global.moduleName,
@@ -526,10 +533,12 @@ export class GlobalAllocator {
           isExported: global.isExported,
           isConst: global.isConst,
           initializer: global.node.getInitializer() ?? undefined,
+          dataLabel,
         },
       );
 
-      // Address is a relative offset — will be rebased during codegen
+      // Address is a relative offset for size tracking only.
+      // The dataLabel is used by the code generator for addressing.
       slot.address = offset;
       globals.set(slot.qualifiedName, slot);
 

@@ -1,0 +1,170 @@
+// ============================================================================
+// Balloon Sprite Example
+// ============================================================================
+// Displays a balloon-shaped sprite in the center of the C64 screen.
+//
+// This example demonstrates:
+//   - VIC-II sprite setup (data, pointer, position, color, enable)
+//   - Using @data const arrays for sprite pixel data
+//   - Using poke() to write sprite data to a 64-byte aligned address
+//   - Centering a sprite on the 320x200 visible screen area
+//
+// C64 Sprite Facts:
+//   - Each sprite is 24x21 pixels (3 bytes/row × 21 rows = 63 bytes)
+//   - Sprite data must live at a 64-byte aligned address
+//   - The VIC-II reads sprite pointers from screen RAM + $03F8
+//   - Pointer value = sprite_data_address / 64
+//
+// Module: BalloonSprite
+// Target: Commodore 64
+// ============================================================================
+
+module BalloonSprite;
+
+// ============================================================================
+// VIC-II Registers
+// ============================================================================
+
+const VIC_SPRITE0_X: word = $D000;       // Sprite 0 X position (low 8 bits)
+const VIC_SPRITE0_Y: word = $D001;       // Sprite 0 Y position
+const VIC_SPRITE_X_MSB: word = $D010;    // X position MSB for all sprites (bit 0 = sprite 0)
+const VIC_SPRITE_ENABLE: word = $D015;   // Sprite enable register (bit per sprite)
+const VIC_BORDER_COLOR: word = $D020;    // Border color
+const VIC_BG_COLOR: word = $D021;        // Background color
+const VIC_SPRITE0_COLOR: word = $D027;   // Sprite 0 individual color
+
+// ============================================================================
+// Sprite Configuration
+// ============================================================================
+
+// Address where we copy sprite data at runtime (must be 64-byte aligned)
+const SPRITE_DATA_ADDR: word = $2000;
+
+// Sprite pointer = SPRITE_DATA_ADDR / 64 = $2000 / 64 = 128
+const SPRITE_POINTER_VALUE: byte = 128;
+
+// Sprite 0 pointer location: default screen ($0400) + $03F8 + sprite number
+const SPRITE0_POINTER: word = $07F8;
+
+// Sprite data size: 63 bytes (3 bytes/row × 21 rows)
+const SPRITE_DATA_SIZE: byte = 63;
+
+// ============================================================================
+// Screen Position (center of visible area)
+// ============================================================================
+// VIC-II coordinate system:
+//   - Visible area starts at X=24, Y=50
+//   - Visible area is 320×200 pixels
+//   - Screen center: X = 24 + 160 = 184, Y = 50 + 100 = 150
+//   - Sprite center offset: 12px wide, 10px tall (half of 24×21)
+//   - Centered sprite: X = 184 - 12 = 172, Y = 150 - 10 = 140
+
+const SPRITE_CENTER_X: byte = 172;
+const SPRITE_CENTER_Y: byte = 140;
+
+// ============================================================================
+// C64 Colors
+// ============================================================================
+
+const COLOR_BLACK: byte = 0;
+const COLOR_RED: byte = 2;
+const COLOR_BLUE: byte = 6;
+
+// ============================================================================
+// Balloon Sprite Data (24×21 pixels = 63 bytes)
+// ============================================================================
+// Each row is 3 bytes (24 bits). An 'X' means pixel is ON.
+//
+// Row  0: ........XXXX........   $00 $3C $00
+// Row  1: ......XXXXXXXX......   $00 $FF $00
+// Row  2: .....XXXXXXXXXX.....   $01 $FF $80
+// Row  3: ....XXXXXXXXXXXX....   $03 $FF $C0
+// Row  4: ...XXXXXXXXXXXXXX...   $07 $FF $E0
+// Row  5: ...XXXXXXXXXXXXXX...   $07 $FF $E0
+// Row  6: ..XXXXXXXXXXXXXXXX..   $0F $FF $F0
+// Row  7: ..XXXXXXXXXXXXXXXX..   $0F $FF $F0
+// Row  8: ..XXXXXXXXXXXXXXXX..   $0F $FF $F0
+// Row  9: ..XXXXXXXXXXXXXXXX..   $0F $FF $F0
+// Row 10: ...XXXXXXXXXXXXXX...   $07 $FF $E0
+// Row 11: ...XXXXXXXXXXXXXX...   $07 $FF $E0
+// Row 12: ....XXXXXXXXXXXX....   $03 $FF $C0
+// Row 13: .....XXXXXXXXXX.....   $01 $FF $80
+// Row 14: ......XXXXXXXX......   $00 $FF $00
+// Row 15: ........XXXX........   $00 $3C $00
+// Row 16: .........XX.........   $00 $18 $00  (knot)
+// Row 17: .........XX.........   $00 $18 $00
+// Row 18: ........XXXX........   $00 $3C $00  (string bow)
+// Row 19: ........XXXX........   $00 $3C $00
+// Row 20: .........XX.........   $00 $18 $00  (string end)
+
+@data const balloonData: byte[] = [
+    $00, $3C, $00,
+    $00, $FF, $00,
+    $01, $FF, $80,
+    $03, $FF, $C0,
+    $07, $FF, $E0,
+    $07, $FF, $E0,
+    $0F, $FF, $F0,
+    $0F, $FF, $F0,
+    $0F, $FF, $F0,
+    $0F, $FF, $F0,
+    $07, $FF, $E0,
+    $07, $FF, $E0,
+    $03, $FF, $C0,
+    $01, $FF, $80,
+    $00, $FF, $00,
+    $00, $3C, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $3C, $00,
+    $00, $3C, $00,
+    $00, $18, $00
+];
+
+// ============================================================================
+// Main Entry Point
+// ============================================================================
+
+export function main(): void {
+    // Step 1: Set screen colors (dark blue background for contrast)
+    poke(VIC_BORDER_COLOR, COLOR_BLUE);
+    poke(VIC_BG_COLOR, COLOR_BLUE);
+
+    // Step 2: Copy balloon sprite data to the 64-byte aligned address ($2000)
+    copySpriteData();
+
+    // Step 3: Set sprite 0 pointer so VIC-II knows where the data lives
+    poke(SPRITE0_POINTER, SPRITE_POINTER_VALUE);
+
+    // Step 4: Position sprite 0 at center of screen
+    poke(VIC_SPRITE0_X, SPRITE_CENTER_X);
+    poke(VIC_SPRITE0_Y, SPRITE_CENTER_Y);
+
+    // Clear X MSB (bit 0) since X position fits in 8 bits (172 < 256)
+    poke(VIC_SPRITE_X_MSB, 0);
+
+    // Step 5: Set sprite 0 color to red
+    poke(VIC_SPRITE0_COLOR, COLOR_RED);
+
+    // Step 6: Enable sprite 0 (bit 0 = sprite 0)
+    poke(VIC_SPRITE_ENABLE, 1);
+
+    // Step 7: Keep program running so the sprite stays visible
+    while (true) {
+        barrier();
+    }
+}
+
+// ============================================================================
+// Helper: Copy sprite data to VIC-II accessible memory
+// ============================================================================
+
+// Copies the 63 bytes of balloon pixel data from the @data section
+// to the 64-byte aligned address at SPRITE_DATA_ADDR ($2000).
+// The VIC-II chip reads sprite graphics from this address.
+function copySpriteData(): void {
+    for (let i: byte = 0 to 62) {
+        let b: byte = balloonData[i];
+        poke(SPRITE_DATA_ADDR + i, b);
+    }
+}

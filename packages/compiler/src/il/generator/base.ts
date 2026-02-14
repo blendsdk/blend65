@@ -279,12 +279,20 @@ export class ILGeneratorBase {
    */
   protected convertAndCacheGlobalSlot(cacheKey: string, globalSlot: GlobalSlot): FrameSlot {
     // Determine SlotLocation based on storage class and actual address.
-    // Default globals allocated through ZpPool get ZP-range addresses (0-255)
-    // and should use SlotLocation.ZeroPage for fast 2-byte instructions.
-    // Only globals with addresses >= 256 use FrameRegion (3-byte absolute).
-    const location = (globalSlot.storageClass === 'zp' || (globalSlot.address >= 0 && globalSlot.address < 256))
-      ? SlotLocation.ZeroPage
-      : SlotLocation.FrameRegion;
+    // - @data slots always use FrameRegion (label-based addressing, not numeric)
+    // - Default globals allocated through ZpPool get ZP-range addresses (0-255)
+    //   and should use SlotLocation.ZeroPage for fast 2-byte instructions.
+    // - Only globals with addresses >= 256 use FrameRegion (3-byte absolute).
+    let location: SlotLocation;
+    if (globalSlot.storageClass === 'data') {
+      // @data globals use label-based addressing — always FrameRegion
+      // (the numeric address is just a relative offset for size tracking)
+      location = SlotLocation.FrameRegion;
+    } else if (globalSlot.storageClass === 'zp' || (globalSlot.address >= 0 && globalSlot.address < 256)) {
+      location = SlotLocation.ZeroPage;
+    } else {
+      location = SlotLocation.FrameRegion;
+    }
 
     // Determine ZpDirective based on storage class
     let zpDirective: ZpDirective;
@@ -303,12 +311,15 @@ export class ILGeneratorBase {
         break;
     }
 
-    // Create FrameSlot with the globally allocated address
+    // Create FrameSlot with the globally allocated address.
+    // For @data globals, also propagate the dataLabel so the code generator
+    // can emit ACME label-based operands instead of numeric addresses.
     const frameSlot = createFrameSlot(globalSlot.name, SlotKind.Local, globalSlot.type, {
       zpDirective,
       location,
       address: globalSlot.address,
       offset: 0,
+      dataLabel: globalSlot.dataLabel,
     });
 
     // Cache for future lookups
