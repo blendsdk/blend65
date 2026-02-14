@@ -316,9 +316,8 @@ describe('E2E Codegen: Bitwise Operations', () => {
   });
 
   it('should compile shift left operation', () => {
-    // The pipeline compiles shift left without error. The codegen uses
-    // a fallback path that emits an "unsupported" comment instead of ASL
-    // instructions — proper ASL codegen is a future enhancement.
+    // The pipeline compiles shift left with proper ASL unrolling.
+    // `x << 3` with a literal count emits SHL_BYTE IL → 3× ASL A in codegen.
     const source = `
       module Test;
       function main(): void {
@@ -331,15 +330,15 @@ describe('E2E Codegen: Bitwise Operations', () => {
     // Pipeline completes: source is loaded, shifted, and result stored
     expect(result).toBeDefined();
     expect(result.sections.length).toBeGreaterThan(0);
-    // The variable y gets stored even though the shift is a no-op fallback
+    // x is stored, then loaded, shifted, and y is stored
     expect(countMnemonic(result, 'STA')).toBeGreaterThanOrEqual(2);
-    expect(hasComment(result, 'op (unsupported)')).toBe(true);
+    // Shift left by 3 emits 3 ASL instructions (unrolled constant shift)
+    expect(countMnemonic(result, 'ASL')).toBeGreaterThanOrEqual(1);
   });
 
   it('should compile shift right operation', () => {
-    // The pipeline compiles shift right without error. The codegen uses
-    // a fallback path that emits an "unsupported" comment instead of LSR
-    // instructions — proper LSR codegen is a future enhancement.
+    // The pipeline compiles shift right with proper LSR unrolling.
+    // `x >> 2` with a literal count emits SHR_BYTE IL → 2× LSR A in codegen.
     const source = `
       module Test;
       function main(): void {
@@ -352,9 +351,10 @@ describe('E2E Codegen: Bitwise Operations', () => {
     // Pipeline completes: source is loaded, shifted, and result stored
     expect(result).toBeDefined();
     expect(result.sections.length).toBeGreaterThan(0);
-    // The variable y gets stored even though the shift is a no-op fallback
+    // x is stored, then loaded, shifted, and y is stored
     expect(countMnemonic(result, 'STA')).toBeGreaterThanOrEqual(2);
-    expect(hasComment(result, 'op (unsupported)')).toBe(true);
+    // Shift right by 2 emits 2 LSR instructions (unrolled constant shift)
+    expect(countMnemonic(result, 'LSR')).toBeGreaterThanOrEqual(1);
   });
 });
 

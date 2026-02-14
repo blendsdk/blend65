@@ -189,8 +189,11 @@ export function isArithmeticInstruction(instr: ILInstruction): boolean {
     instr.opcode === ILOpcode.ADD_IMM ||
     instr.opcode === ILOpcode.SUB_IMM ||
     instr.opcode === ILOpcode.MUL_BYTE ||
+    instr.opcode === ILOpcode.MUL_IMM ||
     instr.opcode === ILOpcode.DIV_BYTE ||
+    instr.opcode === ILOpcode.DIV_IMM ||
     instr.opcode === ILOpcode.MOD_BYTE ||
+    instr.opcode === ILOpcode.MOD_IMM ||
     instr.opcode === ILOpcode.INC_BYTE ||
     instr.opcode === ILOpcode.DEC_BYTE ||
     // Word (16-bit) arithmetic

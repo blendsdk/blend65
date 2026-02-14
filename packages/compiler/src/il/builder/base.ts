@@ -44,7 +44,9 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   [ILOpcode.MUL_BYTE]: { cycles: 20, bytes: 10, memoryAccesses: 2 }, // Software mult
   [ILOpcode.MUL_IMM]: { cycles: 18, bytes: 8, memoryAccesses: 1 }, // Software mult with imm
   [ILOpcode.DIV_BYTE]: { cycles: 40, bytes: 20, memoryAccesses: 4 }, // Software div
+  [ILOpcode.DIV_IMM]: { cycles: 38, bytes: 18, memoryAccesses: 3 }, // Software div with imm
   [ILOpcode.MOD_BYTE]: { cycles: 40, bytes: 20, memoryAccesses: 4 },
+  [ILOpcode.MOD_IMM]: { cycles: 38, bytes: 18, memoryAccesses: 3 }, // Software mod with imm
   [ILOpcode.INC_BYTE]: { cycles: 5, bytes: 3, memoryAccesses: 2 },
   [ILOpcode.DEC_BYTE]: { cycles: 5, bytes: 3, memoryAccesses: 2 },
 

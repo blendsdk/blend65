@@ -136,12 +136,28 @@ export enum ILOpcode {
   DIV_BYTE = 'DIV_BYTE',
 
   /**
+   * Divide by immediate (software implementation).
+   * Operands: [ImmediateOperand]
+   * Effect: A ← A / imm
+   * 6502: STA $FE / LDA #imm / STA $FF / LDA $FE / JSR __div8
+   */
+  DIV_IMM = 'DIV_IMM',
+
+  /**
    * Modulo (software implementation).
    * Operands: [SlotOperand]
    * Effect: A ← A % [slot.address]
    * 6502: JSR __mod8
    */
   MOD_BYTE = 'MOD_BYTE',
+
+  /**
+   * Modulo by immediate (software implementation).
+   * Operands: [ImmediateOperand]
+   * Effect: A ← A % imm
+   * 6502: STA $FE / LDA #imm / STA $FF / LDA $FE / JSR __mod8
+   */
+  MOD_IMM = 'MOD_IMM',
 
   /**
    * Increment slot value.

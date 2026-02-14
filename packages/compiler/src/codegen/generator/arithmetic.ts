@@ -252,6 +252,66 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
   }
 
   // ==========================================================================
+  // DIV_IMM - Divide A by immediate value (software)
+  // ==========================================================================
+
+  /**
+   * Generates code for DIV_IMM.
+   *
+   * Divides the accumulator (dividend) by an immediate byte value (divisor).
+   * Uses ZP temps $FE/$FF to set up operands for the __div8 runtime routine.
+   *
+   * IL: DIV_IMM value
+   * 6502: STA $FE / LDA #value / STA $FF / LDA $FE / JSR __div8
+   */
+  protected genDivImm(instr: ILInstruction): void {
+    this.emitComment(instr);
+    const imm = this.getImmediateOperand(instr.operands);
+
+    // Save A (dividend) to temp
+    this.asm.sta(0xfe, 'zeroPage', 'dividend');
+    // Load divisor immediate
+    this.asm.lda(imm.value, 'immediate', 'divisor');
+    this.asm.sta(0xff, 'zeroPage');
+    // Restore dividend
+    this.asm.lda(0xfe, 'zeroPage');
+    // Call divide routine
+    this.asm.jsr('__div8');
+
+    this.invalidateA();
+  }
+
+  // ==========================================================================
+  // MOD_IMM - Modulo A by immediate value (software)
+  // ==========================================================================
+
+  /**
+   * Generates code for MOD_IMM.
+   *
+   * Computes the remainder of accumulator (dividend) divided by an immediate
+   * byte value (divisor). Uses ZP temps $FE/$FF for the __mod8 runtime routine.
+   *
+   * IL: MOD_IMM value
+   * 6502: STA $FE / LDA #value / STA $FF / LDA $FE / JSR __mod8
+   */
+  protected genModImm(instr: ILInstruction): void {
+    this.emitComment(instr);
+    const imm = this.getImmediateOperand(instr.operands);
+
+    // Save A (dividend) to temp
+    this.asm.sta(0xfe, 'zeroPage', 'dividend');
+    // Load divisor immediate
+    this.asm.lda(imm.value, 'immediate', 'divisor');
+    this.asm.sta(0xff, 'zeroPage');
+    // Restore dividend
+    this.asm.lda(0xfe, 'zeroPage');
+    // Call modulo routine
+    this.asm.jsr('__mod8');
+
+    this.invalidateA();
+  }
+
+  // ==========================================================================
   // INC_BYTE - Increment memory
   // ==========================================================================
 
@@ -638,8 +698,14 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
       case ILOpcode.DIV_BYTE:
         this.genDivByte(instr);
         break;
+      case ILOpcode.DIV_IMM:
+        this.genDivImm(instr);
+        break;
       case ILOpcode.MOD_BYTE:
         this.genModByte(instr);
+        break;
+      case ILOpcode.MOD_IMM:
+        this.genModImm(instr);
         break;
       case ILOpcode.INC_BYTE:
         this.genIncByte(instr);

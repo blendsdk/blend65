@@ -36,7 +36,8 @@ import {
 import { TokenType } from '../../lexer/types.js';
 import { TypeKind } from '../../semantic/types.js';
 import { SlotKind, SlotLocation } from '../../frame/enums.js';
-import { FrameSlot } from '../../frame/types.js';
+import { FrameSlot, createFrameSlot } from '../../frame/types.js';
+import { BUILTIN_TYPES } from '../../semantic/types.js';
 import { ILOpcode } from '../enums.js';
 import { createImmediateOperand, createAddressOperand, createIndexedAddressOperand } from '../factories.js';
 import { isAsmFunction, parseAsmFunctionName, addressingModeRequiresOperand } from '../asm-utils.js';
@@ -482,6 +483,23 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   /**
+   * Create a synthetic FrameSlot pointing to ZP temp ($FE).
+   *
+   * Used by the complex binary path and compound assignment path
+   * to store intermediate values when the right operand is complex
+   * and needs to be temporarily saved before the operation.
+   *
+   * @returns FrameSlot pointing to zero-page address $FE
+   */
+  protected createZpTempSlot(): FrameSlot {
+    const slot = createFrameSlot('__zp_temp', SlotKind.Local, BUILTIN_TYPES.BYTE, {
+      location: SlotLocation.ZeroPage,
+      address: 0xfe,
+    });
+    return slot;
+  }
+
+  /**
    * Generate binary operation with immediate operand.
    *
    * @param op - Operator token type
@@ -506,6 +524,18 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         break;
       case TokenType.MULTIPLY:
         this.builder.mulImm(value);
+        break;
+      case TokenType.DIVIDE:
+        this.builder.divImm(value);
+        break;
+      case TokenType.MODULO:
+        this.builder.modImm(value);
+        break;
+      case TokenType.LEFT_SHIFT:
+        this.builder.shl(value, `<< ${value}`);
+        break;
+      case TokenType.RIGHT_SHIFT:
+        this.builder.shr(value, `>> ${value}`);
         break;
       case TokenType.EQUAL:
       case TokenType.NOT_EQUAL:
@@ -613,71 +643,61 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
    * @param op - Operator token type
    */
   protected generateBinaryComplexOp(op: TokenType): void {
+    // At entry: stack has left value, A has right value.
+    // Strategy: store right to ZP temp ($FE), pop left to A,
+    // then operate A with ZP temp using proper slot-based opcodes.
+    // This ensures all _BYTE opcodes receive valid slot operands.
+
+    const zpTemp = this.createZpTempSlot();
+
+    // Store right operand (in A) to ZP temp
+    this.builder.storeSlot(zpTemp, 'save right to temp');
+
+    // Pop left operand back into A
+    this.builder.emit(ILOpcode.POP_A, [], 'restore left');
+
+    // Now: A = left, $FE = right — use slot-based operations
     switch (op) {
-      // Commutative operations - right OP left = left OP right
       case TokenType.PLUS:
-        // right + left: ADD right with popped left
-        // Save right temp, pop left, add temp
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (add)');
-        this.builder.emit(ILOpcode.ADD_BYTE, [], 'add right'); // Uses stack
+        this.builder.addSlot(zpTemp, 'left + right');
         break;
-
-      case TokenType.BITWISE_AND:
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (and)');
-        this.builder.emit(ILOpcode.AND_BYTE, [], 'and right');
-        break;
-
-      case TokenType.BITWISE_OR:
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (or)');
-        this.builder.emit(ILOpcode.OR_BYTE, [], 'or right');
-        break;
-
-      case TokenType.BITWISE_XOR:
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (xor)');
-        this.builder.emit(ILOpcode.XOR_BYTE, [], 'xor right');
-        break;
-
-      case TokenType.MULTIPLY:
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (mul)');
-        this.builder.emit(ILOpcode.MUL_BYTE, [], 'mul right');
-        break;
-
-      // Non-commutative - need proper left OP right ordering
       case TokenType.MINUS:
-        // left - right: We have right in A, left on stack
-        // Need: A = left - right
-        // Swap: push right, pop left to A, sub with original right
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (sub)');
-        this.builder.emit(ILOpcode.SUB_BYTE, [], 'sub right');
+        this.builder.subSlot(zpTemp, 'left - right');
         break;
-
+      case TokenType.MULTIPLY:
+        this.builder.mulSlot(zpTemp, 'left * right');
+        break;
       case TokenType.DIVIDE:
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (div)');
-        this.builder.emit(ILOpcode.DIV_BYTE, [], 'div right');
+        this.builder.divSlot(zpTemp, 'left / right');
         break;
-
       case TokenType.MODULO:
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (mod)');
-        this.builder.emit(ILOpcode.MOD_BYTE, [], 'mod right');
+        this.builder.modSlot(zpTemp, 'left % right');
         break;
-
-      // Comparison operators
+      case TokenType.BITWISE_AND:
+        this.builder.andSlot(zpTemp, 'left & right');
+        break;
+      case TokenType.BITWISE_OR:
+        this.builder.orSlot(zpTemp, 'left | right');
+        break;
+      case TokenType.BITWISE_XOR:
+        this.builder.xorSlot(zpTemp, 'left ^ right');
+        break;
       case TokenType.EQUAL:
       case TokenType.NOT_EQUAL:
       case TokenType.LESS_THAN:
       case TokenType.LESS_EQUAL:
       case TokenType.GREATER_THAN:
       case TokenType.GREATER_EQUAL:
-        // Comparison: left CMP right
-        // We have right in A, left on stack
-        // For proper CMP, we need left in A, compare with right
-        this.builder.emit(ILOpcode.POP_A, [], 'get left (cmp)');
-        this.builder.emit(ILOpcode.CMP_BYTE, [], 'cmp right');
+        this.builder.cmpSlot(zpTemp, 'left cmp right');
         break;
-
+      case TokenType.LEFT_SHIFT:
+      case TokenType.RIGHT_SHIFT:
+        // Variable-count shifts require a runtime loop — not yet supported.
+        // A already has the left value after POP_A, so result is left (unshifted).
+        break;
       default:
-        // Fallback - just pop
-        this.builder.emit(ILOpcode.POP_A, [], 'op (unsupported)');
+        // Unsupported operator — A has the left value from POP_A
+        break;
     }
   }
 
@@ -820,6 +840,21 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
           case TokenType.BITWISE_XOR_ASSIGN:
             this.builder.xorImm(literalValue);
             break;
+          case TokenType.MULTIPLY_ASSIGN:
+            this.builder.mulImm(literalValue);
+            break;
+          case TokenType.DIVIDE_ASSIGN:
+            this.builder.divImm(literalValue);
+            break;
+          case TokenType.MODULO_ASSIGN:
+            this.builder.modImm(literalValue);
+            break;
+          case TokenType.LEFT_SHIFT_ASSIGN:
+            this.builder.shl(literalValue, `<<= ${literalValue}`);
+            break;
+          case TokenType.RIGHT_SHIFT_ASSIGN:
+            this.builder.shr(literalValue, `>>= ${literalValue}`);
+            break;
           default:
             // Other compound ops need full generation
             this.builder.emit(ILOpcode.PUSH_A, []);
@@ -902,21 +937,48 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
    * @param op - Compound operator token type
    */
   protected generateCompoundOperation(op: TokenType): void {
-    // Stack has old value, A has new value
-    // Similar to binary complex case
+    // At entry: stack has old (left) value, A has new (right) value.
+    // Strategy: store right to ZP temp ($FE), pop left to A,
+    // then operate A with ZP temp using proper slot-based opcodes.
+    // This mirrors generateBinaryComplexOp() but for compound operators.
+
+    const zpTemp = this.createZpTempSlot();
+
+    // Store right operand (in A) to ZP temp
+    this.builder.storeSlot(zpTemp, 'save compound rhs to temp');
+
+    // Pop old value (left operand) back into A
+    this.builder.emit(ILOpcode.POP_A, [], 'restore compound lhs');
+
+    // Now: A = old value, $FE = new value — apply compound operation
     switch (op) {
       case TokenType.PLUS_ASSIGN:
+        this.builder.addSlot(zpTemp, 'compound +=');
+        break;
       case TokenType.MINUS_ASSIGN:
+        this.builder.subSlot(zpTemp, 'compound -=');
+        break;
       case TokenType.MULTIPLY_ASSIGN:
+        this.builder.mulSlot(zpTemp, 'compound *=');
+        break;
       case TokenType.DIVIDE_ASSIGN:
+        this.builder.divSlot(zpTemp, 'compound /=');
+        break;
       case TokenType.MODULO_ASSIGN:
+        this.builder.modSlot(zpTemp, 'compound %=');
+        break;
       case TokenType.BITWISE_AND_ASSIGN:
+        this.builder.andSlot(zpTemp, 'compound &=');
+        break;
       case TokenType.BITWISE_OR_ASSIGN:
+        this.builder.orSlot(zpTemp, 'compound |=');
+        break;
       case TokenType.BITWISE_XOR_ASSIGN:
-        this.builder.emit(ILOpcode.POP_A, [], 'compound op');
+        this.builder.xorSlot(zpTemp, 'compound ^=');
         break;
       default:
-        this.builder.emit(ILOpcode.POP_A, []);
+        // Unsupported compound op — A has old value from POP_A
+        break;
     }
   }
 

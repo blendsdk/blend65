@@ -109,6 +109,32 @@ export class ILBuilderArithmetic extends ILBuilderMemory {
     this.emit(ILOpcode.MUL_IMM, [createImmediateOperand(value)], comment);
   }
 
+  /**
+   * Divide accumulator by immediate value.
+   *
+   * Uses ZP temp locations ($FE/$FF) to set up the division:
+   * saves dividend, loads divisor, then calls __div8 runtime.
+   *
+   * @param value - Byte value (0-255), the divisor
+   * @param comment - Optional comment
+   */
+  divImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.DIV_IMM, [createImmediateOperand(value)], comment);
+  }
+
+  /**
+   * Modulo accumulator by immediate value.
+   *
+   * Uses ZP temp locations ($FE/$FF) to set up the modulo:
+   * saves dividend, loads divisor, then calls __mod8 runtime.
+   *
+   * @param value - Byte value (0-255), the divisor
+   * @param comment - Optional comment
+   */
+  modImm(value: number, comment?: string): void {
+    this.emit(ILOpcode.MOD_IMM, [createImmediateOperand(value)], comment);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Increment/Decrement
   // ═══════════════════════════════════════════════════════════════════
