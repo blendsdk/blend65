@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-14 02:17
-> **Progress**: 42/43 tasks (98%)
+> **Last Updated**: 2026-02-14 02:46
+> **Progress**: 46/47 tasks (98%)
 
 ## Overview
 
@@ -317,10 +317,10 @@
 - [x] 8.1.4 Word function tests (11 new tests) ✅ (completed: 2026-02-14 02:17)
 
 ### Phase 9: Integration + E2E
-- [ ] 9.1.1 E2E word arithmetic + dynamic poke test
-- [ ] 9.1.2 Verify sprite-test.blend at all O levels
-- [ ] 9.1.3 E2E multi-module word function test
-- [ ] 9.1.4 Full regression test
+- [x] 9.1.1 E2E word arithmetic + dynamic poke test (48 new tests) ✅ (completed: 2026-02-14 02:44)
+- [x] 9.1.2 Verify C64 program at all O levels (O0-O3, 9 tests) ✅ (completed: 2026-02-14 02:44)
+- [x] 9.1.3 E2E multi-module word function test (4 tests) ✅ (completed: 2026-02-14 02:44)
+- [x] 9.1.4 Full regression test (8776 total, 0 failures) ✅ (completed: 2026-02-14 02:46)
 
 ### Phase 10: Optimizer + Final
 - [ ] 10.1.1 Add word opcodes to optimizer tables
