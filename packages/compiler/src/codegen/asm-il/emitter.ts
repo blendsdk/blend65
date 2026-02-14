@@ -272,9 +272,19 @@ export class AsmILEmitter {
         return this.formatHex(operand ?? 0);
 
       case AsmAddressingMode.AbsoluteX:
+        // Support label operands for indexed addressing (e.g., LDA __data_label,X)
+        if (labelOperand) {
+          return `${labelOperand},X`;
+        }
         return `${this.formatHex(operand ?? 0)},X`;
 
       case AsmAddressingMode.AbsoluteY:
+        // Support label operands for indexed addressing (e.g., LDA __data_label,Y)
+        // This is critical for @data const array access where the base address
+        // is an ACME label resolved at assembly time.
+        if (labelOperand) {
+          return `${labelOperand},Y`;
+        }
         return `${this.formatHex(operand ?? 0)},Y`;
 
       case AsmAddressingMode.Indirect:
