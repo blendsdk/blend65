@@ -308,7 +308,8 @@ export class DeadGlobalElimPass implements ProgramOptimizationPass {
     return (
       instr.opcode === ILOpcode.LOAD_IMM ||
       instr.opcode === ILOpcode.LOAD_IMM_WORD ||
-      instr.opcode === ILOpcode.LOAD_ADDRESS
+      instr.opcode === ILOpcode.LOAD_ADDRESS ||
+      instr.opcode === ILOpcode.LOAD_ADDRESS_EXPR // @var / N → byte in A
     );
   }
 }

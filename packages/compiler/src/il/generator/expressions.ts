@@ -409,6 +409,15 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   protected generateBinary(expr: BinaryExpression): void {
     this.setLocation(expr.getLocation());
 
+    // Assembly-time address expression optimization:
+    // Detect pattern: @variable / constant  or  @variable >> constant
+    // When left is address-of and right is a compile-time constant,
+    // emit LOAD_ADDRESS_EXPR which the assembler resolves at assembly time.
+    if (this.tryGenerateAddressExpr(expr)) {
+      this.clearLocation();
+      return;
+    }
+
     // Type-aware dispatch: check if the RESULT type is word (16-bit)
     // When result is word, use word IL opcodes (ADD_WORD_*, etc.)
     // When result is byte (or unknown), use existing byte opcodes
@@ -945,6 +954,79 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // whether to use an ACME label or a numeric address based on
     // whether slot.dataLabel is set.
     this.builder.loadAddress(slot, `@${name}`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Assembly-Time Address Expression (@variable / constant)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Try to generate an assembly-time address expression.
+   *
+   * Detects the pattern: `@variable / constant` or `@variable >> constant`
+   * where the left operand is an address-of unary expression and the
+   * right operand is a compile-time constant.
+   *
+   * If the pattern matches, emits LOAD_ADDRESS_EXPR (byte result in A).
+   * If the variable has a known numeric address (RAM/ZP), constant-folds
+   * to a LOAD_IMM instead.
+   * If the pattern doesn't match, returns false so normal binary
+   * generation proceeds.
+   *
+   * This is the key optimization for C64 sprite/charset pointer
+   * calculation: `@spriteData / 64` becomes `LDA #(label / 64)`
+   * which the assembler resolves at assembly time with zero runtime cost.
+   *
+   * @param expr - Binary expression to check
+   * @returns True if pattern was detected and IL emitted, false otherwise
+   */
+  protected tryGenerateAddressExpr(expr: BinaryExpression): boolean {
+    const op = expr.getOperator();
+
+    // Only / and >> are supported for address expressions
+    if (op !== TokenType.DIVIDE && op !== TokenType.RIGHT_SHIFT) {
+      return false;
+    }
+
+    // Left must be address-of: @variable (UnaryExpression with AT operator)
+    const left = expr.getLeft();
+    if (!isUnaryExpression(left)) return false;
+    const unary = left as UnaryExpression;
+    if (unary.getOperator() !== TokenType.AT) return false;
+    const operand = unary.getOperand();
+    if (!isIdentifierExpression(operand)) return false;
+
+    // Right must be a compile-time constant (literal or const identifier)
+    const right = expr.getRight();
+    const constValue = this.tryResolveConstantAddress(right);
+    // Guard: constant must exist and must not be zero (division by zero)
+    if (constValue === undefined || constValue === 0) return false;
+
+    // Resolve the variable to a frame slot
+    const varName = (operand as IdentifierExpression).getName();
+    const slot = this.tryResolveVariable(varName);
+    if (!slot) return false;
+
+    // For slots with known numeric addresses (RAM/ZP), constant-fold
+    // the entire expression to a single immediate byte value
+    if (slot.address !== undefined && !slot.dataLabel) {
+      const result = op === TokenType.DIVIDE
+        ? Math.floor(slot.address / constValue) & 0xFF
+        : (slot.address >>> constValue) & 0xFF;
+      this.builder.loadImm(result, `@${varName} ${op === TokenType.DIVIDE ? '/' : '>>'} ${constValue}`);
+      return true;
+    }
+
+    // Emit LOAD_ADDRESS_EXPR for label-based slots (@data, @sprite, etc.)
+    // The assembler will compute (label / N) or (label >> N) at assembly time
+    const isShift = op === TokenType.RIGHT_SHIFT;
+    this.builder.loadAddressExpr(
+      slot,
+      constValue,
+      isShift,
+      `@${varName} ${isShift ? '>>' : '/'} ${constValue}`
+    );
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════════════

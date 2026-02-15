@@ -468,7 +468,8 @@ export class CSEPass extends CSETracker implements OptimizationPass {
       opcode === ILOpcode.LOAD_WORD ||
       opcode === ILOpcode.LOAD_IMM_WORD ||
       // LOAD_ADDRESS loads a 16-bit address into A:X (address-of operator)
-      opcode === ILOpcode.LOAD_ADDRESS
+      opcode === ILOpcode.LOAD_ADDRESS ||
+      opcode === ILOpcode.LOAD_ADDRESS_EXPR // @var / N → byte in A
     ) {
       return true;
     }

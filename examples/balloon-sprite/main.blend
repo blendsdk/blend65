@@ -5,8 +5,8 @@
 //
 // This example demonstrates:
 //   - @sprite for 64-byte aligned sprite data in the data segment
-//   - @ address-of operator to get the runtime address of sprite data
-//   - hi() intrinsic to extract the high byte of a word
+//   - @ address-of operator with division for assembly-time sprite pointers
+//   - lo() intrinsic for word-to-byte narrowing
 //   - VIC-II sprite setup (pointer, position, color, enable)
 //   - No manual memory copying needed — VIC-II reads directly from @sprite data
 //
@@ -17,9 +17,9 @@
 //   - Pointer value = sprite_data_address / 64
 //
 // With @sprite, the compiler aligns the data automatically in the
-// data segment. The @ operator lets us compute the sprite pointer
-// at runtime: hi(@data) * 4  (equivalent to address / 64 for
-// 64-byte aligned addresses where the low 6 bits are always zero).
+// data segment. The @ operator combined with division lets us compute
+// the sprite pointer at assembly time: @data / 64. The assembler
+// resolves this to a single LDA #immediate — zero runtime cost.
 //
 // Module: BalloonSprite
 // Target: Commodore 64
@@ -120,14 +120,11 @@ export function main(): void {
     // Step 1: Compute sprite pointer from @sprite data address.
     //
     // The VIC-II sprite pointer = data_address / 64.
-    // Since @sprite guarantees 64-byte alignment, the low 6 bits
-    // of the address are always zero. This means:
-    //   address / 64  =  hi(address) * 4
-    //
-    // The @ operator loads the 16-bit address into A:X (lo:hi),
-    // and hi() extracts the high byte (X register).
-    let spritePtr: byte = hi(@balloonData) * 4;
-    poke(SPRITE0_POINTER, spritePtr);
+    // Since @sprite guarantees 64-byte alignment, we can directly
+    // divide the address by 64. The compiler emits this as an
+    // assembly-time expression: LDA #(label / 64) — zero runtime cost.
+    // lo() narrows the word result to byte for poke's argument type.
+    poke(SPRITE0_POINTER, lo(@balloonData / 64));
 
     // Step 2: Position sprite 0 at center of screen
     poke(VIC_SPRITE0_X, SPRITE_X);

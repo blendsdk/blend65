@@ -93,6 +93,30 @@ export enum ILOpcode {
    */
   LOAD_ADDRESS = 'LOAD_ADDRESS',
 
+  /**
+   * Load an assembly-time expression derived from a variable's address.
+   *
+   * Used when the address-of operator is combined with division or
+   * right-shift by a compile-time constant: `@variable / N` or `@variable >> N`.
+   *
+   * For variables with ACME data labels, the assembler computes the
+   * expression at assembly time (zero runtime cost):
+   *   6502: LDA #(label / N)   or   LDA #(label >> N)
+   *
+   * For variables with known numeric addresses, the compiler constant-folds:
+   *   6502: LDA #(address / N)  →  LDA #result
+   *
+   * Result: byte in A register (NOT word A:X like LOAD_ADDRESS).
+   *
+   * Operands: [SlotOperand, ImmediateOperand]
+   *   - SlotOperand: the variable whose address to use
+   *   - ImmediateOperand: the constant divisor/shift amount
+   *     The `isWord` field distinguishes the operator:
+   *     - isWord=false: division (label / N)
+   *     - isWord=true: right-shift (label >> N)
+   */
+  LOAD_ADDRESS_EXPR = 'LOAD_ADDRESS_EXPR',
+
   // ══════════════════════════════════════════════════════════════════
   // ARITHMETIC OPERATIONS
   // ══════════════════════════════════════════════════════════════════

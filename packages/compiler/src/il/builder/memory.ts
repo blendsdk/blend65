@@ -107,6 +107,26 @@ export class ILBuilderMemory extends ILBuilderBase {
     this.emit(ILOpcode.LOAD_ADDRESS, [createSlotOperand(slot)], comment);
   }
 
+  /**
+   * Load an assembly-time address expression into A (byte result).
+   *
+   * Emits LOAD_ADDRESS_EXPR for `@variable / N` or `@variable >> N`.
+   * The assembler resolves the label expression at assembly time,
+   * producing zero runtime cost.
+   *
+   * @param slot - Variable slot (provides the data label or numeric address)
+   * @param constant - The divisor (for /) or shift count (for >>)
+   * @param isShift - If true, uses >> operator; if false, uses / operator
+   * @param comment - Optional comment
+   */
+  loadAddressExpr(slot: FrameSlot, constant: number, isShift: boolean, comment?: string): void {
+    this.emit(
+      ILOpcode.LOAD_ADDRESS_EXPR,
+      [createSlotOperand(slot), createImmediateOperand(constant, isShift)],
+      comment
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Indexed Array Access
   // ═══════════════════════════════════════════════════════════════════

@@ -297,6 +297,58 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
   }
 
   // ==========================================================================
+  // LOAD_ADDRESS_EXPR - Assembly-time address expression into A (byte)
+  // ==========================================================================
+
+  /**
+   * Generates code for LOAD_ADDRESS_EXPR.
+   *
+   * Loads a byte result from an assembly-time address expression.
+   * Used for `@variable / N` and `@variable >> N` patterns.
+   *
+   * For @data/@sprite globals with ACME labels:
+   *   LDA #(label / N)   — ACME evaluates at assembly time
+   *   LDA #(label >> N)   — ACME evaluates at assembly time
+   *
+   * For RAM/ZP globals with known numeric addresses:
+   *   LDA #result         — compiler constant-folds at compile time
+   *
+   * The ImmediateOperand's isWord flag distinguishes the operator:
+   *   isWord=false → division (label / N)
+   *   isWord=true  → right-shift (label >> N)
+   *
+   * IL: LOAD_ADDRESS_EXPR slot, immediate
+   * 6502: LDA #(label / N)  OR  LDA #result
+   */
+  protected genLoadAddressExpr(instr: ILInstruction): void {
+    this.emitComment(instr);
+    const slotOp = this.getSlotOperand(instr.operands);
+    const immOp = this.getImmediateOperand(instr.operands, 1);
+
+    const slot = slotOp.slot;
+    const constant = immOp.value;
+    // Reuse isWord flag to distinguish / (false) vs >> (true)
+    const isShift = immOp.isWord;
+    const opSymbol = isShift ? '>>' : '/';
+
+    if (slot.dataLabel) {
+      // Label-based (@data/@sprite): emit assembly-time expression
+      // ACME resolves (label / N) or (label >> N) at assembly time
+      const labelExpr = `(${slot.dataLabel} ${opSymbol} ${constant})`;
+      this.asm.instruction('LDA', AsmAddressingMode.Immediate, undefined, labelExpr);
+    } else if (slot.address !== undefined) {
+      // Numeric address (RAM/ZP): constant-fold at compile time
+      const result = isShift
+        ? (slot.address >>> constant) & 0xFF
+        : Math.floor(slot.address / constant) & 0xFF;
+      this.asm.lda(result, 'immediate');
+    }
+
+    // Result is a byte in A — mark as unknown since it's expression-derived
+    this.invalidateA();
+  }
+
+  // ==========================================================================
   // PROMOTE_BYTE_WORD - Zero-extend byte in A to word in A:X
   // ==========================================================================
 
@@ -348,6 +400,9 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
         break;
       case ILOpcode.LOAD_ADDRESS:
         this.genLoadAddress(instr);
+        break;
+      case ILOpcode.LOAD_ADDRESS_EXPR:
+        this.genLoadAddressExpr(instr);
         break;
       case ILOpcode.PROMOTE_BYTE_WORD:
         this.genPromoteByteWord(instr);
