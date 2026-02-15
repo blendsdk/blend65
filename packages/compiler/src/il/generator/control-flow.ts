@@ -428,9 +428,25 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
     // Analyze for counted loop optimization
     const loopInfo = this.analyzeForLoop(stmt);
 
+    // Detect if this loop needs the post-body exit pattern.
+    // Byte counter ascending to 255 can't use CMP #(255+1) = CMP #256
+    // because 256 overflows an 8-bit immediate operand. Instead, the exit
+    // check is placed after the body but before the increment:
+    //   header: [body] → [exit check] → [increment] → JMP header
+    const constEnd = this.tryGetConstantValue(stmt.getEnd());
+    const isWord = counterSlot.size === 2;
+    const usesPostBodyExit = constEnd === 255 && !isWord && isAscending;
+
+    // For post-body exit, create a separate continue label that jumps to the
+    // exit check (before increment), not the header (which would skip both
+    // the check and the increment, causing an infinite loop on continue).
+    const continueLabel = usesPostBodyExit
+      ? this.builder.newLabel('for_cont')
+      : headerLabel;
+
     // Enter loop (tracking)
     this.enterLoop();
-    this.pushLoopLabels(exitLabel, headerLabel);
+    this.pushLoopLabels(exitLabel, continueLabel);
 
     // Initialize loop variable: i = start
     // Use word-width store for 2-byte (word) counter slots
@@ -444,12 +460,22 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
     // Header label
     this.builder.label(headerLabel);
 
-    // Generate termination condition
+    // Generate termination condition (skipped for post-body exit — returns early)
     this.generateForCondition(stmt, counterSlot, exitLabel, isAscending);
 
     // Generate body
     for (const s of stmt.getBody()) {
       this.generateStatementDispatch(s);
+    }
+
+    // Post-body exit check for byte counter ending at 255.
+    // After the body executes, check if the counter has reached a value where
+    // incrementing would overflow the byte: counter >= (256 - step).
+    // For step=1: CMP #255, exit if counter == 255 (last value processed).
+    // For step=N: CMP #(256-N), exit if incrementing would wrap past 0.
+    if (usesPostBodyExit) {
+      this.builder.label(continueLabel);
+      this.generateByte255ExitCheck(stmt, counterSlot, exitLabel);
     }
 
     // Increment/decrement loop variable
@@ -495,15 +521,23 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
     const endExpr = stmt.getEnd();
     const isWord = counterSlot.size === 2;
 
+    // Try to get constant end value early for special case detection
+    const constEnd = this.tryGetConstantValue(endExpr);
+
+    // Special case: byte counter ascending to 255 uses post-body exit pattern.
+    // CMP #(255+1) = CMP #256 overflows an 8-bit immediate operand, producing
+    // CMP #$00 which exits immediately. Instead, the exit check is emitted
+    // after the loop body in generateForStatement() using CMP #(256-step).
+    if (constEnd === 255 && !isWord && isAscending) {
+      return;
+    }
+
     // Load counter — use word load for 2-byte counters
     if (isWord) {
       this.builder.loadSlotWord(counterSlot, `load ${stmt.getVariable()} (word)`);
     } else {
       this.builder.loadSlot(counterSlot, `load ${stmt.getVariable()}`);
     }
-
-    // Try to optimize for constant bound
-    const constEnd = this.tryGetConstantValue(endExpr);
 
     if (constEnd !== undefined) {
       // Constant bound optimization
@@ -600,6 +634,46 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
         this.builder.jumpLt(exitLabel, 'exit');
       }
     }
+  }
+
+  /**
+   * Generate the post-body exit check for byte loops ending at 255.
+   *
+   * Instead of CMP #256 (which overflows an 8-bit immediate), this checks
+   * if the counter has reached a value where incrementing would overflow:
+   *   counter >= (256 - step)
+   *
+   * For step=1: CMP #255, BCS exit → exits when counter == 255
+   * For step=2: CMP #254, BCS exit → exits when counter >= 254
+   * For step=N: CMP #(256-N), BCS exit → exits when next increment overflows
+   *
+   * This is placed after the loop body but before the increment, so:
+   * - The body runs for the current counter value (including the last value)
+   * - The exit check prevents the counter from wrapping past 255
+   * - The increment only runs for values where it's safe
+   *
+   * @param stmt - For statement (for variable name and step)
+   * @param counterSlot - Loop counter slot (byte-sized)
+   * @param exitLabel - Label to jump to when loop is done
+   */
+  protected generateByte255ExitCheck(
+    stmt: ForStatement,
+    counterSlot: FrameSlot,
+    exitLabel: string
+  ): void {
+    const step = stmt.getStep();
+    const constStep = step ? this.tryGetConstantValue(step) : 1;
+
+    // Compute the exit threshold: the lowest counter value where
+    // incrementing by step would overflow a byte (wrap past 255).
+    // For step=1: threshold=255 (255+1=256 → overflow)
+    // For step=2: threshold=254 (254+2=256 → overflow)
+    // If step is dynamic (constStep undefined), default to 255 (step=1 assumption)
+    const threshold = 256 - (constStep ?? 1);
+
+    this.builder.loadSlot(counterSlot, `check ${stmt.getVariable()} before increment`);
+    this.builder.cmpImm(threshold, `exit threshold (256 - step)`);
+    this.builder.jumpGe(exitLabel, 'exit: incrementing would overflow byte');
   }
 
   /**
