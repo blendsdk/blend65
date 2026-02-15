@@ -121,6 +121,22 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     return typeInfo?.kind === TypeKind.Word;
   }
 
+  /**
+   * Check if an expression is a unary address-of (`@`) expression.
+   *
+   * Used to skip byte→word promotion for `@variable` arguments passed
+   * to word-typed function parameters. The `@` operator generates
+   * LOAD_ADDRESS which already produces a full A:X word pair (low byte
+   * in A, high byte in X). Applying PROMOTE_BYTE_WORD (LDX #$00) after
+   * LOAD_ADDRESS would destroy the high byte loaded by LOAD_ADDRESS.
+   *
+   * @param expr - Expression to check
+   * @returns True if expression is a UnaryExpression with AT operator
+   */
+  protected isAddressOfExpression(expr: Expression): boolean {
+    return expr instanceof UnaryExpression && expr.getOperator() === TokenType.AT;
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Literal Expression
   // ═══════════════════════════════════════════════════════════════════
@@ -1370,13 +1386,20 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     this.generateExpression(args[0]);
 
     // Check if the callee's first parameter is word-typed
-    // If so and the arg is byte-typed, promote A → A:X via PROMOTE_BYTE_WORD
+    // If so and the arg is byte-typed, promote A → A:X via PROMOTE_BYTE_WORD.
+    // IMPORTANT: Skip promotion for address-of (@) expressions because
+    // LOAD_ADDRESS already produces a full A:X word pair. Applying
+    // PROMOTE_BYTE_WORD after LOAD_ADDRESS would destroy the high byte
+    // (X register) by overwriting it with #$00.
     const targetFrame = this.frameMap.get(funcName);
     if (targetFrame) {
       const firstParam = targetFrame.slots.find(s => s.kind === SlotKind.Parameter);
       if (firstParam && firstParam.size === 2 && !this.isWordTyped(args[0])) {
-        // Callee expects word but arg is byte — promote to A:X (LDX #0)
-        this.builder.promoteByteWord(`arg byte→word for ${funcName}`);
+        // Only promote if the argument is NOT an address-of expression.
+        // @variable already loads a full 16-bit address into A:X via LOAD_ADDRESS.
+        if (!this.isAddressOfExpression(args[0])) {
+          this.builder.promoteByteWord(`arg byte→word for ${funcName}`);
+        }
       }
     }
   }

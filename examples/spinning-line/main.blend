@@ -1,0 +1,276 @@
+// ============================================================================
+// Spinning Line Sprite Animation
+// ============================================================================
+// Animates a sprite that cycles through 4 rotation frames: | / - \
+// creating the illusion of a spinning line.
+//
+// This example demonstrates:
+//   - Multiple @sprite declarations for animation frames
+//   - Assembly-time sprite pointer computation: lo(@spriteData / 64)
+//   - lo() intrinsic for word-to-byte narrowing
+//   - @ address-of operator to get sprite data addresses
+//   - Frame-based sprite animation using the VIC-II sprite pointer
+//
+// Animation sequence: | → / → - → \ → | → / → - → \ → ...
+//
+// C64 Sprite Facts:
+//   - Each sprite is 24×21 pixels (3 bytes/row × 21 rows = 63 bytes)
+//   - Sprite data must live at a 64-byte aligned address
+//   - The VIC-II reads sprite pointers from screen RAM + $03F8
+//   - Pointer value = sprite_data_address / 64
+//
+// Module: SpinningLine
+// Target: Commodore 64
+// ============================================================================
+
+module SpinningLine;
+
+// ============================================================================
+// VIC-II Registers
+// ============================================================================
+
+const VIC_SPRITE0_X: word = $D000;       // Sprite 0 X position (low 8 bits)
+const VIC_SPRITE0_Y: word = $D001;       // Sprite 0 Y position
+const VIC_SPRITE_X_MSB: word = $D010;    // X position MSB for all sprites
+const VIC_SPRITE_ENABLE: word = $D015;   // Sprite enable register
+const VIC_SPRITE0_COLOR: word = $D027;   // Sprite 0 individual color
+
+// Sprite 0 pointer: default screen ($0400) + $03F8 + sprite index
+const SPRITE0_POINTER: word = $07F8;
+
+// ============================================================================
+// Screen Position (center of visible area)
+// ============================================================================
+// VIC-II visible area starts at X=24, Y=50 and is 320×200 pixels.
+// Center = (24 + 160, 50 + 100) = (184, 150)
+// Sprite offset: 12px wide, 10px tall (half of 24×21)
+// Centered: X = 184 - 12 = 172, Y = 150 - 10 = 140
+
+const SPRITE_X: byte = 172;
+const SPRITE_Y: byte = 140;
+
+// ============================================================================
+// Animation Constants
+// ============================================================================
+
+const NUM_FRAMES: byte = 4;       // Total animation frames: | / - \
+const COLOR_WHITE: byte = 1;      // Sprite color
+
+// ============================================================================
+// Sprite Frame 0: Vertical Line "|"
+// ============================================================================
+// A 2-pixel wide vertical bar centered at columns 11-12.
+// All 21 rows are filled with the same pattern.
+//
+// Each row: ........XX..........  → $00, $18, $00
+//           (pixels 11-12 set in middle byte)
+
+@sprite const lineVertical: byte[] = [
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00
+];
+
+// ============================================================================
+// Sprite Frame 1: Forward Slash "/"
+// ============================================================================
+// A 2-pixel wide diagonal from bottom-left to top-right.
+// Row 0 (top) has pixels at rightmost position,
+// Row 20 (bottom) has pixels at leftmost position.
+//
+// Pixel position at row r: columns (21-r) and (22-r)
+// This creates a clean diagonal across the 24×21 sprite.
+
+@sprite const lineSlash: byte[] = [
+    $00, $00, $06,
+    $00, $00, $0C,
+    $00, $00, $18,
+    $00, $00, $30,
+    $00, $00, $60,
+    $00, $00, $C0,
+    $00, $01, $80,
+    $00, $03, $00,
+    $00, $06, $00,
+    $00, $0C, $00,
+    $00, $18, $00,
+    $00, $30, $00,
+    $00, $60, $00,
+    $00, $C0, $00,
+    $01, $80, $00,
+    $03, $00, $00,
+    $06, $00, $00,
+    $0C, $00, $00,
+    $18, $00, $00,
+    $30, $00, $00,
+    $60, $00, $00
+];
+
+// ============================================================================
+// Sprite Frame 2: Horizontal Line "-"
+// ============================================================================
+// A 3-pixel tall horizontal bar centered at rows 9-11.
+// Rows 9, 10, and 11 are fully lit (all 24 pixels on).
+// All other rows are empty.
+//
+// Active rows: XXXXXXXXXXXXXXXXXXXXXXXX → $FF, $FF, $FF
+
+@sprite const lineHorizontal: byte[] = [
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $FF, $FF, $FF,
+    $FF, $FF, $FF,
+    $FF, $FF, $FF,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00
+];
+
+// ============================================================================
+// Sprite Frame 3: Backslash "\"
+// ============================================================================
+// A 2-pixel wide diagonal from top-left to bottom-right.
+// Row 0 (top) has pixels at leftmost position,
+// Row 20 (bottom) has pixels at rightmost position.
+// This is the mirror of the forward slash — reversed row order.
+//
+// Pixel position at row r: columns (r+1) and (r+2)
+
+@sprite const lineBackslash: byte[] = [
+    $60, $00, $00,
+    $30, $00, $00,
+    $18, $00, $00,
+    $0C, $00, $00,
+    $06, $00, $00,
+    $03, $00, $00,
+    $01, $80, $00,
+    $00, $C0, $00,
+    $00, $60, $00,
+    $00, $30, $00,
+    $00, $18, $00,
+    $00, $0C, $00,
+    $00, $06, $00,
+    $00, $03, $00,
+    $00, $01, $80,
+    $00, $00, $C0,
+    $00, $00, $60,
+    $00, $00, $30,
+    $00, $00, $18,
+    $00, $00, $0C,
+    $00, $00, $06
+];
+
+
+// ============================================================================
+// Animation Frame Setter
+// ============================================================================
+// Selects the sprite frame based on the animation index (0-3)
+// and writes the corresponding VIC-II sprite pointer.
+//
+// Frame mapping:
+//   0 = | (vertical)
+//   1 = / (forward slash)
+//   2 = - (horizontal)
+//   3 = \ (backslash)
+//
+// @param frame - Animation frame index (0 to NUM_FRAMES-1)
+
+function setAnimationFrame(frame: byte): void {
+    if (frame == 0) {
+        poke(SPRITE0_POINTER, lo(@lineVertical / 64));
+    }
+    if (frame == 1) {
+        poke(SPRITE0_POINTER, lo(@lineSlash / 64));
+    }
+    if (frame == 2) {
+        poke(SPRITE0_POINTER, lo(@lineHorizontal / 64));
+    }
+    if (frame == 3) {
+        poke(SPRITE0_POINTER, lo(@lineBackslash / 64));
+    }
+}
+
+// ============================================================================
+// Delay Function
+// ============================================================================
+// Busy-wait loop to control animation speed.
+// Each iteration of the outer loop runs 255 barrier() calls,
+// providing a visible delay between animation frames.
+//
+// NOTE: The inner loop uses 0 to 254 (not 0 to 255) because the
+// compiler generates CMP #(end+1) as the loop exit condition.
+// When end=255, end+1=256 which overflows an 8-bit CMP immediate.
+
+function delay(): void {
+    for (let _i: byte = 0 to 5) {
+        for (let _j: byte = 0 to 254) {
+            barrier();
+        }
+    }
+}
+
+// ============================================================================
+// Main Entry Point
+// ============================================================================
+
+export function main(): void {
+    // Step 1: Position sprite 0 at center of screen
+    poke(VIC_SPRITE0_X, SPRITE_X);
+    poke(VIC_SPRITE0_Y, SPRITE_Y);
+
+    // Clear X MSB (bit 0) — X position 172 fits in 8 bits
+    poke(VIC_SPRITE_X_MSB, 0);
+
+    // Step 2: Set sprite 0 color to white
+    poke(VIC_SPRITE0_COLOR, COLOR_WHITE);
+
+    // Step 3: Enable sprite 0 (bit 0 of enable register)
+    poke(VIC_SPRITE_ENABLE, 1);
+
+    // Step 4: Set initial frame to vertical line
+    // Sprite pointer = data_address / 64 — resolved at assembly time
+    poke(SPRITE0_POINTER, lo(@lineVertical / 64));
+
+    // Step 5: Animation loop — cycle through | / - \ forever
+    let frame: byte = 0;
+    while (true) {
+        setAnimationFrame(frame);
+        delay();
+
+        // Advance to next frame, wrapping at NUM_FRAMES
+        frame = frame + 1;
+        if (frame == NUM_FRAMES) {
+            frame = 0;
+        }
+    }
+}
