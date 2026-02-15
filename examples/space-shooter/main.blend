@@ -1,0 +1,290 @@
+// ============================================================================
+// Space Shooter — Sprite Management Example
+// ============================================================================
+// Demonstrates the @sprite sugar and multi-frame sprite switching.
+//
+// NOTE: This example uses the PLANNED @sprite syntax (not yet implemented).
+//       It serves as a design reference for the data-alignment feature.
+//
+// Sprite Frame Layout (10 frames × 64 bytes = 640 bytes):
+//   Frames 0-1:   Player ship (2 thruster animation frames)
+//   Frames 2-3:   Player banking left (2 frames)
+//   Frames 4-5:   Player banking right (2 frames)
+//   Frames 6-7:   Enemy type A (2 animation frames)
+//   Frames 8-9:   Bullet + explosion
+//
+// Module: SpaceShooter
+// Target: Commodore 64
+// ============================================================================
+
+module SpaceShooter;
+
+// ============================================================================
+// VIC-II Registers
+// ============================================================================
+
+const SPRITE_PTRS: word = $07F8;
+const SPRITE_ENABLE: word = $D015;
+const SPRITE0_X: word = $D000;
+const SPRITE0_Y: word = $D001;
+const SPRITE_X_MSB: word = $D010;
+const SPRITE0_COLOR: word = $D027;
+const BORDER_COLOR: word = $D020;
+const BG_COLOR: word = $D021;
+
+// ============================================================================
+// C64 Colors
+// ============================================================================
+
+const COLOR_BLACK: byte = 0;
+const COLOR_WHITE: byte = 1;
+const COLOR_RED: byte = 2;
+const COLOR_CYAN: byte = 3;
+const COLOR_GREEN: byte = 5;
+const COLOR_YELLOW: byte = 7;
+
+// ============================================================================
+// Sprite Sheet — @sprite = @data(align: 64)
+// ============================================================================
+// The @sprite directive tells the compiler to:
+// 1. Place this data in the data segment (like @data)
+// 2. Align it to a 64-byte boundary (emits !align 63, 0 in ACME)
+// 3. Require const + initializer (same rules as @data)
+//
+// The VIC-II can read sprite data directly from here.
+// No runtime copying needed!
+// ============================================================================
+
+// FUTURE SYNTAX (when @sprite is implemented):
+// @sprite const spriteSheet: byte[] = [...]
+//
+// CURRENT EQUIVALENT:
+@data const spriteSheet: byte[] = [
+    // Frame 0: Player ship - normal (24×21 pixels)
+    $00, $18, $00,
+    $00, $3C, $00,
+    $00, $7E, $00,
+    $00, $FF, $00,
+    $01, $FF, $80,
+    $03, $FF, $C0,
+    $07, $FF, $E0,
+    $0F, $FF, $F0,
+    $1F, $FF, $F8,
+    $00, $FF, $00,
+    $00, $FF, $00,
+    $00, $42, $00,
+    $00, $42, $00,
+    $00, $24, $00,
+    $00, $24, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    // Pad to 64 bytes (63 data + 1 padding)
+
+    // Frame 1: Player ship - thruster on
+    $00, $18, $00,
+    $00, $3C, $00,
+    $00, $7E, $00,
+    $00, $FF, $00,
+    $01, $FF, $80,
+    $03, $FF, $C0,
+    $07, $FF, $E0,
+    $0F, $FF, $F0,
+    $1F, $FF, $F8,
+    $00, $FF, $00,
+    $00, $FF, $00,
+    $00, $42, $00,
+    $00, $42, $00,
+    $00, $24, $00,
+    $00, $24, $00,
+    $00, $18, $00,
+    $00, $3C, $00,
+    $00, $18, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+
+    // Frame 2: Enemy - open
+    $00, $3C, $00,
+    $00, $FF, $00,
+    $01, $FF, $80,
+    $03, $FF, $C0,
+    $07, $E7, $E0,
+    $0F, $C3, $F0,
+    $0F, $C3, $F0,
+    $07, $E7, $E0,
+    $03, $FF, $C0,
+    $01, $FF, $80,
+    $00, $FF, $00,
+    $01, $81, $80,
+    $03, $00, $C0,
+    $06, $00, $60,
+    $0C, $00, $30,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+
+    // Frame 3: Enemy - closed
+    $00, $3C, $00,
+    $00, $FF, $00,
+    $01, $FF, $80,
+    $03, $FF, $C0,
+    $07, $E7, $E0,
+    $0F, $C3, $F0,
+    $0F, $C3, $F0,
+    $07, $E7, $E0,
+    $03, $FF, $C0,
+    $01, $FF, $80,
+    $00, $FF, $00,
+    $00, $81, $00,
+    $01, $00, $80,
+    $02, $00, $40,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00,
+    $00, $00, $00
+];
+
+// ============================================================================
+// Frame Constants
+// ============================================================================
+
+const FRAME_PLAYER_NORMAL: byte = 0;
+const FRAME_PLAYER_THRUST: byte = 1;
+const FRAME_ENEMY_OPEN: byte = 2;
+const FRAME_ENEMY_CLOSED: byte = 3;
+
+// Sprite pointer base: address of spriteSheet / 64
+// FUTURE: const SPRITE_PTR_BASE: byte = @spriteSheet / 64;
+// CURRENT: Must be calculated manually based on where ACME places the data
+const SPRITE_DATA_ADDR: word = $2000;
+const SPRITE_PTR_BASE: byte = 128;
+
+// Hardware sprite assignments
+const SPR_PLAYER: byte = 0;
+const SPR_ENEMY_1: byte = 1;
+const SPR_ENEMY_2: byte = 2;
+const SPR_ENEMY_3: byte = 3;
+
+// ============================================================================
+// Game State
+// ============================================================================
+
+@zp let playerX: byte = 172;
+@zp let playerY: byte = 220;
+@zp let animFrame: byte = 0;
+@zp let frameCount: byte = 0;
+
+let enemyX: byte[3] = [80, 160, 240];
+let enemyY: byte[3] = [60, 80, 60];
+
+// ============================================================================
+// Sprite Helper Functions
+// ============================================================================
+
+// Switch a hardware sprite to show a specific frame from the sprite sheet.
+// With @sprite alignment, this compiles to just LDA #imm / STA $07F8+id
+function setSpriteFrame(spriteId: byte, frame: byte): void {
+    poke(SPRITE_PTRS + spriteId, SPRITE_PTR_BASE + frame);
+}
+
+// Position a hardware sprite on screen
+function setSpritePos(spriteId: byte, x: byte, y: byte): void {
+    poke(SPRITE0_X + spriteId * 2, x);
+    poke(SPRITE0_Y + spriteId * 2, y);
+}
+
+// Set a sprite's color
+function setSpriteColor(spriteId: byte, color: byte): void {
+    poke(SPRITE0_COLOR + spriteId, color);
+}
+
+// ============================================================================
+// Initialization
+// ============================================================================
+
+// Copy sprite data to VIC-visible memory
+// FUTURE: With @sprite, this function is NOT needed — VIC reads directly!
+function copySpriteData(): void {
+    for (let i: byte = 0 to 62) {
+        poke(SPRITE_DATA_ADDR + i, spriteSheet[i]);
+    }
+    // Copy remaining frames (simplified — just frame 0 for demo)
+}
+
+function setupSprites(): void {
+    // CURRENT: must copy data first
+    copySpriteData();
+
+    // Set up player
+    setSpriteFrame(SPR_PLAYER, FRAME_PLAYER_NORMAL);
+    setSpritePos(SPR_PLAYER, playerX, playerY);
+    setSpriteColor(SPR_PLAYER, COLOR_CYAN);
+
+    // Set up enemies
+    for (let i: byte = 0 to 2) {
+        setSpriteFrame(SPR_ENEMY_1 + i, FRAME_ENEMY_OPEN);
+        setSpritePos(SPR_ENEMY_1 + i, enemyX[i], enemyY[i]);
+        setSpriteColor(SPR_ENEMY_1 + i, COLOR_RED);
+    }
+
+    // Clear X MSB
+    poke(SPRITE_X_MSB, 0);
+
+    // Enable sprites 0-3
+    poke(SPRITE_ENABLE, $0F);
+}
+
+// ============================================================================
+// Animation
+// ============================================================================
+
+function animateSprites(): void {
+    frameCount += 1;
+
+    // Toggle player thruster every 8 frames
+    if ((frameCount & $07) == 0) {
+        animFrame = animFrame ^ 1;
+        setSpriteFrame(SPR_PLAYER, FRAME_PLAYER_NORMAL + animFrame);
+    }
+
+    // Toggle enemy animation every 16 frames
+    if ((frameCount & $0F) == 0) {
+        for (let i: byte = 0 to 2) {
+            let frame: byte = FRAME_ENEMY_OPEN + (animFrame & 1);
+            setSpriteFrame(SPR_ENEMY_1 + i, frame);
+        }
+    }
+}
+
+// ============================================================================
+// Main
+// ============================================================================
+
+export function main(): void {
+    poke(BORDER_COLOR, COLOR_BLACK);
+    poke(BG_COLOR, COLOR_BLACK);
+
+    setupSprites();
+
+    // Simple game loop
+    while (true) {
+        // Wait for raster line 255 (simple vsync)
+        while (peek($D012) != 255) {
+            barrier();
+        }
+
+        animateSprites();
+
+        barrier();
+    }
+}

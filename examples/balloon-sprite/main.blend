@@ -67,7 +67,7 @@ const SPRITE_CENTER_Y: byte = 140;
 // ============================================================================
 
 const COLOR_BLACK: byte = 0;
-const COLOR_RED: byte = 2;
+const COLOR_RED: byte = 4;
 const COLOR_BLUE: byte = 6;
 
 // ============================================================================
@@ -127,8 +127,8 @@ const COLOR_BLUE: byte = 6;
 
 export function main(): void {
     // Step 1: Set screen colors (dark blue background for contrast)
-    poke(VIC_BORDER_COLOR, COLOR_BLUE);
-    poke(VIC_BG_COLOR, COLOR_BLUE);
+    //poke(VIC_BORDER_COLOR, COLOR_BLUE);
+    //poke(VIC_BG_COLOR, COLOR_BLUE);
 
     // Step 2: Copy balloon sprite data to the 64-byte aligned address ($2000)
     copySpriteData();
@@ -150,9 +150,9 @@ export function main(): void {
     poke(VIC_SPRITE_ENABLE, 1);
 
     // Step 7: Keep program running so the sprite stays visible
-    while (true) {
-        barrier();
-    }
+    //while (true) {
+    //    barrier();
+    //}
 }
 
 // ============================================================================
