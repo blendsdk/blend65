@@ -35,6 +35,7 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   [ILOpcode.STORE_WORD]: { cycles: 6, bytes: 4, memoryAccesses: 2 },
   [ILOpcode.LOAD_IMM]: { cycles: 2, bytes: 2, memoryAccesses: 0 },
   [ILOpcode.LOAD_IMM_WORD]: { cycles: 4, bytes: 4, memoryAccesses: 0 },
+  [ILOpcode.LOAD_ADDRESS]: { cycles: 4, bytes: 4, memoryAccesses: 0 },
 
   // Arithmetic operations
   [ILOpcode.ADD_BYTE]: { cycles: 3, bytes: 2, memoryAccesses: 1 },

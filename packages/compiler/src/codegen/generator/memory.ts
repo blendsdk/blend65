@@ -254,6 +254,49 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
   }
 
   // ==========================================================================
+  // LOAD_ADDRESS - Load 16-bit address of a variable into A:X
+  // ==========================================================================
+
+  /**
+   * Generates code for LOAD_ADDRESS.
+   *
+   * Loads the 16-bit memory address of a variable into A (low) and X (high).
+   * Used by the address-of operator (`@variable`).
+   *
+   * For @data/@sprite globals with ACME labels:
+   *   LDA #<label   ; low byte of label address (resolved by ACME assembler)
+   *   LDX #>label   ; high byte of label address
+   *
+   * For RAM/ZP globals with known numeric addresses:
+   *   LDA #lo(addr)  ; low byte of numeric address
+   *   LDX #hi(addr)  ; high byte of numeric address
+   *
+   * IL: LOAD_ADDRESS slot
+   * 6502: LDA #<label / LDX #>label  OR  LDA #lo / LDX #hi
+   */
+  protected genLoadAddress(instr: ILInstruction): void {
+    this.emitComment(instr);
+    const slot = this.getSlotOperand(instr.operands);
+
+    if (slot.slot.dataLabel) {
+      // @data/@sprite variable — address resolved at assembly time via ACME label.
+      // ACME syntax: #<label = low byte, #>label = high byte
+      this.asm.instruction('LDA', AsmAddressingMode.Immediate, undefined, '<' + slot.slot.dataLabel);
+      this.asm.instruction('LDX', AsmAddressingMode.Immediate, undefined, '>' + slot.slot.dataLabel);
+    } else {
+      // RAM/ZP variable — address is a known numeric constant
+      const address = slot.slot.address ?? 0;
+      const lo = address & 0xff;
+      const hi = (address >> 8) & 0xff;
+      this.asm.lda(lo, 'immediate');
+      this.asm.ldx(hi, 'immediate');
+    }
+
+    // A:X now holds the address — cannot track A as a simple value
+    this.invalidateA();
+  }
+
+  // ==========================================================================
   // PROMOTE_BYTE_WORD - Zero-extend byte in A to word in A:X
   // ==========================================================================
 
@@ -302,6 +345,9 @@ export class MemoryOpsGenerator extends CodeGeneratorBase {
         break;
       case ILOpcode.LOAD_IMM_WORD:
         this.genLoadImmWord(instr);
+        break;
+      case ILOpcode.LOAD_ADDRESS:
+        this.genLoadAddress(instr);
         break;
       case ILOpcode.PROMOTE_BYTE_WORD:
         this.genPromoteByteWord(instr);

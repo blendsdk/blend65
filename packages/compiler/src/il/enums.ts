@@ -75,6 +75,24 @@ export enum ILOpcode {
    */
   LOAD_IMM_WORD = 'LOAD_IMM_WORD',
 
+  /**
+   * Load the 16-bit address of a variable into A:X.
+   *
+   * Used by the address-of operator (`@variable`).
+   * The result is a word (16-bit) with low byte in A, high byte in X.
+   *
+   * For @data/@sprite globals with ACME labels:
+   *   6502: LDA #<label / LDX #>label
+   *   (ACME resolves the label address at assembly time)
+   *
+   * For RAM/ZP globals with known numeric addresses:
+   *   6502: LDA #lo(addr) / LDX #hi(addr)
+   *
+   * Operands: [SlotOperand]
+   * Effect: A ← lo(slot.address), X ← hi(slot.address)
+   */
+  LOAD_ADDRESS = 'LOAD_ADDRESS',
+
   // ══════════════════════════════════════════════════════════════════
   // ARITHMETIC OPERATIONS
   // ══════════════════════════════════════════════════════════════════

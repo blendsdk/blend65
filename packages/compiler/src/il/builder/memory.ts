@@ -92,6 +92,21 @@ export class ILBuilderMemory extends ILBuilderBase {
     this.emit(ILOpcode.LOAD_IMM_WORD, [createImmediateOperand(value, true)], comment);
   }
 
+  /**
+   * Load the 16-bit address of a variable into A:X.
+   *
+   * Used by the address-of operator (`@variable`).
+   * Emits LOAD_ADDRESS with a SlotOperand so the codegen can resolve
+   * the address — either via an ACME label (`#<label / #>label`) for
+   * @data/@sprite globals, or as an immediate word for numeric addresses.
+   *
+   * @param slot - The variable's frame slot
+   * @param comment - Optional comment
+   */
+  loadAddress(slot: FrameSlot, comment?: string): void {
+    this.emit(ILOpcode.LOAD_ADDRESS, [createSlotOperand(slot)], comment);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Indexed Array Access
   // ═══════════════════════════════════════════════════════════════════

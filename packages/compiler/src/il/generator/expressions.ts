@@ -842,15 +842,27 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   /**
    * Generate IL for a unary expression.
    *
+   * Address-of (`@`) is handled specially because we need the variable's
+   * memory address, not its value. All other unary operators generate
+   * the operand value into A first, then apply the transformation.
+   *
    * @param expr - Unary expression
    */
   protected generateUnary(expr: UnaryExpression): void {
     this.setLocation(expr.getLocation());
 
-    // Generate operand (result in A)
-    this.generateExpression(expr.getOperand());
-
     const op = expr.getOperator();
+
+    // Address-of is special — we need the variable's address, not its value.
+    // Must be handled BEFORE generateExpression(operand) is called.
+    if (op === TokenType.AT) {
+      this.generateAddressOf(expr);
+      this.clearLocation();
+      return;
+    }
+
+    // Generate operand (result in A) for all other unary operators
+    this.generateExpression(expr.getOperand());
 
     switch (op) {
       case TokenType.MINUS:
@@ -887,6 +899,52 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     }
 
     this.clearLocation();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Address-Of Expression (@variable)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for the address-of operator (`@variable`).
+   *
+   * Resolves the operand to a FrameSlot and emits LOAD_ADDRESS,
+   * which loads the 16-bit memory address into A:X.
+   *
+   * For @data globals with ACME labels, the codegen will emit:
+   *   LDA #<label / LDX #>label (resolved at assembly time)
+   *
+   * For RAM/ZP globals with numeric addresses, the codegen will emit:
+   *   LDA #lo(addr) / LDX #hi(addr)
+   *
+   * The operand MUST be an identifier expression (variable name).
+   * Address-of on complex expressions (e.g., @arr[i]) is not supported.
+   *
+   * @param expr - The unary expression with AT operator
+   */
+  protected generateAddressOf(expr: UnaryExpression): void {
+    const operand = expr.getOperand();
+
+    // Address-of requires an identifier operand (variable name)
+    if (!isIdentifierExpression(operand)) {
+      // Address-of on non-identifier is not supported
+      this.builder.nop();
+      return;
+    }
+
+    const name = (operand as IdentifierExpression).getName();
+    const slot = this.tryResolveVariable(name);
+
+    if (!slot) {
+      // Variable not found — emit NOP as fallback
+      this.builder.nop();
+      return;
+    }
+
+    // Emit LOAD_ADDRESS with the slot — the codegen will determine
+    // whether to use an ACME label or a numeric address based on
+    // whether slot.dataLabel is set.
+    this.builder.loadAddress(slot, `@${name}`);
   }
 
   // ═══════════════════════════════════════════════════════════════════
