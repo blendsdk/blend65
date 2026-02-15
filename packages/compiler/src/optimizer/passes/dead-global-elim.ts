@@ -302,8 +302,13 @@ export class DeadGlobalElimPass implements ProgramOptimizationPass {
    * @returns true if the instruction is a pure value producer
    */
   protected isValueProducingInstruction(instr: ILInstruction): boolean {
-    // LOAD_IMM and LOAD_IMM_WORD are pure value producers
-    // They just load a constant into the accumulator with no side effects
-    return instr.opcode === ILOpcode.LOAD_IMM || instr.opcode === ILOpcode.LOAD_IMM_WORD;
+    // LOAD_IMM, LOAD_IMM_WORD, and LOAD_ADDRESS are pure value producers.
+    // They load a constant/address into the accumulator with no side effects.
+    // LOAD_ADDRESS loads the 16-bit address of a @data slot into A:X.
+    return (
+      instr.opcode === ILOpcode.LOAD_IMM ||
+      instr.opcode === ILOpcode.LOAD_IMM_WORD ||
+      instr.opcode === ILOpcode.LOAD_ADDRESS
+    );
   }
 }

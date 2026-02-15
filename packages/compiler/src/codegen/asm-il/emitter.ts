@@ -253,6 +253,12 @@ export class AsmILEmitter {
         return '';
 
       case AsmAddressingMode.Immediate:
+        // Support label operands for address-of expressions (e.g., LDA #<label / LDX #>label).
+        // The @ operator generates LOAD_ADDRESS which produces immediate label references
+        // that ACME resolves at assembly time to the actual address bytes.
+        if (labelOperand) {
+          return `#${labelOperand}`;
+        }
         return `#${this.formatHex(operand ?? 0)}`;
 
       case AsmAddressingMode.ZeroPage:
