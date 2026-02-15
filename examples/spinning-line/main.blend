@@ -5,17 +5,27 @@
 // creating the illusion of a spinning line.
 //
 // This example demonstrates:
-//   - Multiple @sprite declarations for animation frames
-//   - Assembly-time sprite pointer computation: lo(@spriteData / 64)
+//   - Single multi-frame @sprite declaration (4 frames × 64 bytes)
+//   - getSpriteFrame() library function for O(1) frame selection
+//   - @ address-of operator passed as word function argument (Bug #1 fix)
+//   - Word division inside functions: spriteAddr / 64 (Bug #2 fix)
+//   - For-loop with byte counter up to 255 (Bug #3 fix)
 //   - lo() intrinsic for word-to-byte narrowing
-//   - @ address-of operator to get sprite data addresses
-//   - Frame-based sprite animation using the VIC-II sprite pointer
+//   - VIC-II sprite pointer arithmetic
 //
 // Animation sequence: | → / → - → \ → | → / → - → \ → ...
 //
+// Multi-Frame Sprite Sheet:
+//   Each frame occupies exactly 64 bytes (63 data + 1 padding).
+//   The VIC-II reads sprites from 64-byte aligned blocks, so
+//   contiguous frames have consecutive pointer values:
+//     pointer_for_frame_N = (base_address / 64) + N
+//
+//   This matches the export format of SpritePad and Spritemate editors.
+//
 // C64 Sprite Facts:
 //   - Each sprite is 24×21 pixels (3 bytes/row × 21 rows = 63 bytes)
-//   - Sprite data must live at a 64-byte aligned address
+//   - Sprite data lives in 64-byte aligned blocks
 //   - The VIC-II reads sprite pointers from screen RAM + $03F8
 //   - Pointer value = sprite_data_address / 64
 //
@@ -57,183 +67,178 @@ const NUM_FRAMES: byte = 4;       // Total animation frames: | / - \
 const COLOR_WHITE: byte = 1;      // Sprite color
 
 // ============================================================================
-// Sprite Frame 0: Vertical Line "|"
+// Multi-Frame Sprite Sheet (4 frames × 64 bytes = 256 bytes)
 // ============================================================================
-// A 2-pixel wide vertical bar centered at columns 11-12.
-// All 21 rows are filled with the same pattern.
+// All 4 rotation frames stored contiguously in a single @sprite block.
+// Each frame is exactly 64 bytes: 63 bytes of pixel data + 1 padding byte.
 //
-// Each row: ........XX..........  → $00, $18, $00
-//           (pixels 11-12 set in middle byte)
+// This layout matches how sprite editors (SpritePad, Spritemate) export
+// multi-frame sprites. A single @sprite directive means only ONE alignment
+// gap, saving up to 189 bytes compared to 4 separate @sprite declarations.
+//
+// Memory layout:
+//   base+0:   Frame 0 (|)   — 64 bytes
+//   base+64:  Frame 1 (/)   — 64 bytes
+//   base+128: Frame 2 (-)   — 64 bytes
+//   base+192: Frame 3 (\)   — 64 bytes
+//
+// VIC-II pointer for frame N = (base / 64) + N
 
-@sprite const lineVertical: byte[] = [
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00,
-    $00, $18, $00
+@sprite const lineFrames: byte[] = [
+    // ================================================================
+    // Frame 0: Vertical Line "|" (64 bytes)
+    // ================================================================
+    // 2-pixel wide vertical bar centered at columns 11-12.
+    // All 21 rows: ........XX.......... → $00, $18, $00
+    $00, $18, $00,       // Row 0
+    $00, $18, $00,       // Row 1
+    $00, $18, $00,       // Row 2
+    $00, $18, $00,       // Row 3
+    $00, $18, $00,       // Row 4
+    $00, $18, $00,       // Row 5
+    $00, $18, $00,       // Row 6
+    $00, $18, $00,       // Row 7
+    $00, $18, $00,       // Row 8
+    $00, $18, $00,       // Row 9
+    $00, $18, $00,       // Row 10
+    $00, $18, $00,       // Row 11
+    $00, $18, $00,       // Row 12
+    $00, $18, $00,       // Row 13
+    $00, $18, $00,       // Row 14
+    $00, $18, $00,       // Row 15
+    $00, $18, $00,       // Row 16
+    $00, $18, $00,       // Row 17
+    $00, $18, $00,       // Row 18
+    $00, $18, $00,       // Row 19
+    $00, $18, $00,       // Row 20
+    $00,                 // Padding (64th byte)
+
+    // ================================================================
+    // Frame 1: Forward Slash "/" (64 bytes)
+    // ================================================================
+    // 2-pixel diagonal from bottom-left to top-right.
+    // Pixel position at row r: columns shift from right to left.
+    $00, $00, $06,       // Row 0
+    $00, $00, $0C,       // Row 1
+    $00, $00, $18,       // Row 2
+    $00, $00, $30,       // Row 3
+    $00, $00, $60,       // Row 4
+    $00, $00, $C0,       // Row 5
+    $00, $01, $80,       // Row 6
+    $00, $03, $00,       // Row 7
+    $00, $06, $00,       // Row 8
+    $00, $0C, $00,       // Row 9
+    $00, $18, $00,       // Row 10
+    $00, $30, $00,       // Row 11
+    $00, $60, $00,       // Row 12
+    $00, $C0, $00,       // Row 13
+    $01, $80, $00,       // Row 14
+    $03, $00, $00,       // Row 15
+    $06, $00, $00,       // Row 16
+    $0C, $00, $00,       // Row 17
+    $18, $00, $00,       // Row 18
+    $30, $00, $00,       // Row 19
+    $60, $00, $00,       // Row 20
+    $00,                 // Padding (64th byte)
+
+    // ================================================================
+    // Frame 2: Horizontal Line "-" (64 bytes)
+    // ================================================================
+    // 3-pixel tall horizontal bar centered at rows 9-11.
+    // Active rows: all 24 pixels on → $FF, $FF, $FF
+    $00, $00, $00,       // Row 0
+    $00, $00, $00,       // Row 1
+    $00, $00, $00,       // Row 2
+    $00, $00, $00,       // Row 3
+    $00, $00, $00,       // Row 4
+    $00, $00, $00,       // Row 5
+    $00, $00, $00,       // Row 6
+    $00, $00, $00,       // Row 7
+    $00, $00, $00,       // Row 8
+    $FF, $FF, $FF,       // Row 9
+    $FF, $FF, $FF,       // Row 10
+    $FF, $FF, $FF,       // Row 11
+    $00, $00, $00,       // Row 12
+    $00, $00, $00,       // Row 13
+    $00, $00, $00,       // Row 14
+    $00, $00, $00,       // Row 15
+    $00, $00, $00,       // Row 16
+    $00, $00, $00,       // Row 17
+    $00, $00, $00,       // Row 18
+    $00, $00, $00,       // Row 19
+    $00, $00, $00,       // Row 20
+    $00,                 // Padding (64th byte)
+
+    // ================================================================
+    // Frame 3: Backslash "\" (64 bytes)
+    // ================================================================
+    // 2-pixel diagonal from top-left to bottom-right.
+    // Mirror of forward slash — pixels shift from left to right.
+    $60, $00, $00,       // Row 0
+    $30, $00, $00,       // Row 1
+    $18, $00, $00,       // Row 2
+    $0C, $00, $00,       // Row 3
+    $06, $00, $00,       // Row 4
+    $03, $00, $00,       // Row 5
+    $01, $80, $00,       // Row 6
+    $00, $C0, $00,       // Row 7
+    $00, $60, $00,       // Row 8
+    $00, $30, $00,       // Row 9
+    $00, $18, $00,       // Row 10
+    $00, $0C, $00,       // Row 11
+    $00, $06, $00,       // Row 12
+    $00, $03, $00,       // Row 13
+    $00, $01, $80,       // Row 14
+    $00, $00, $C0,       // Row 15
+    $00, $00, $60,       // Row 16
+    $00, $00, $30,       // Row 17
+    $00, $00, $18,       // Row 18
+    $00, $00, $0C,       // Row 19
+    $00, $00, $06,       // Row 20
+    $00                  // Padding (64th byte)
 ];
 
 // ============================================================================
-// Sprite Frame 1: Forward Slash "/"
+// getSpriteFrame() — Sprite Sheet Frame Selector
 // ============================================================================
-// A 2-pixel wide diagonal from bottom-left to top-right.
-// Row 0 (top) has pixels at rightmost position,
-// Row 20 (bottom) has pixels at leftmost position.
+// Computes the VIC-II sprite pointer for a specific frame within a
+// multi-frame @sprite sheet. This is the idiomatic way to select
+// animation frames from contiguous sprite data.
 //
-// Pixel position at row r: columns (21-r) and (22-r)
-// This creates a clean diagonal across the 24×21 sprite.
-
-@sprite const lineSlash: byte[] = [
-    $00, $00, $06,
-    $00, $00, $0C,
-    $00, $00, $18,
-    $00, $00, $30,
-    $00, $00, $60,
-    $00, $00, $C0,
-    $00, $01, $80,
-    $00, $03, $00,
-    $00, $06, $00,
-    $00, $0C, $00,
-    $00, $18, $00,
-    $00, $30, $00,
-    $00, $60, $00,
-    $00, $C0, $00,
-    $01, $80, $00,
-    $03, $00, $00,
-    $06, $00, $00,
-    $0C, $00, $00,
-    $18, $00, $00,
-    $30, $00, $00,
-    $60, $00, $00
-];
-
-// ============================================================================
-// Sprite Frame 2: Horizontal Line "-"
-// ============================================================================
-// A 3-pixel tall horizontal bar centered at rows 9-11.
-// Rows 9, 10, and 11 are fully lit (all 24 pixels on).
-// All other rows are empty.
+// Math: pointer = (spriteAddr / 64) + frameIndex
 //
-// Active rows: XXXXXXXXXXXXXXXXXXXXXXXX → $FF, $FF, $FF
-
-@sprite const lineHorizontal: byte[] = [
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $FF, $FF, $FF,
-    $FF, $FF, $FF,
-    $FF, $FF, $FF,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00,
-    $00, $00, $00
-];
-
-// ============================================================================
-// Sprite Frame 3: Backslash "\"
-// ============================================================================
-// A 2-pixel wide diagonal from top-left to bottom-right.
-// Row 0 (top) has pixels at leftmost position,
-// Row 20 (bottom) has pixels at rightmost position.
-// This is the mirror of the forward slash — reversed row order.
+// Since @sprite guarantees 64-byte alignment, spriteAddr is always
+// divisible by 64. The division produces the base pointer, and adding
+// frameIndex selects the specific frame.
 //
-// Pixel position at row r: columns (r+1) and (r+2)
-
-@sprite const lineBackslash: byte[] = [
-    $60, $00, $00,
-    $30, $00, $00,
-    $18, $00, $00,
-    $0C, $00, $00,
-    $06, $00, $00,
-    $03, $00, $00,
-    $01, $80, $00,
-    $00, $C0, $00,
-    $00, $60, $00,
-    $00, $30, $00,
-    $00, $18, $00,
-    $00, $0C, $00,
-    $00, $06, $00,
-    $00, $03, $00,
-    $00, $01, $80,
-    $00, $00, $C0,
-    $00, $00, $60,
-    $00, $00, $30,
-    $00, $00, $18,
-    $00, $00, $0C,
-    $00, $00, $06
-];
-
-
-// ============================================================================
-// Animation Frame Setter
-// ============================================================================
-// Selects the sprite frame based on the animation index (0-3)
-// and writes the corresponding VIC-II sprite pointer.
+// This function exercises two key bug fixes:
+//   - Bug #1: @lineFrames is an address-of expression passed as word
+//     (must NOT be promoted from byte — it's already a 16-bit address)
+//   - Bug #2: spriteAddr / 64 is word division inside a function
+//     (must use SHR_WORD, not 8-bit __div8)
 //
-// Frame mapping:
-//   0 = | (vertical)
-//   1 = / (forward slash)
-//   2 = - (horizontal)
-//   3 = \ (backslash)
-//
-// @param frame - Animation frame index (0 to NUM_FRAMES-1)
+// @param spriteAddr - 16-bit address of the sprite sheet (from @variable)
+// @param frameIndex - Zero-based frame index (0 to numFrames-1)
+// @return VIC-II sprite pointer value (byte)
 
-function setAnimationFrame(frame: byte): void {
-    if (frame == 0) {
-        poke(SPRITE0_POINTER, lo(@lineVertical / 64));
-    }
-    if (frame == 1) {
-        poke(SPRITE0_POINTER, lo(@lineSlash / 64));
-    }
-    if (frame == 2) {
-        poke(SPRITE0_POINTER, lo(@lineHorizontal / 64));
-    }
-    if (frame == 3) {
-        poke(SPRITE0_POINTER, lo(@lineBackslash / 64));
-    }
+function getSpriteFrame(spriteAddr: word, frameIndex: byte): byte {
+    return lo(spriteAddr / 64) + frameIndex;
 }
 
 // ============================================================================
 // Delay Function
 // ============================================================================
 // Busy-wait loop to control animation speed.
-// Each iteration of the outer loop runs 255 barrier() calls,
-// providing a visible delay between animation frames.
+// Uses nested loops with barrier() to prevent the optimizer from
+// removing the empty iterations.
 //
-// NOTE: The inner loop uses 0 to 254 (not 0 to 255) because the
-// compiler generates CMP #(end+1) as the loop exit condition.
-// When end=255, end+1=256 which overflows an 8-bit CMP immediate.
+// The inner loop uses 0 to 255 — the full byte range. This exercises
+// Bug #3 fix: the compiler generates a post-body exit check instead
+// of CMP #256 (which would overflow an 8-bit immediate).
 
 function delay(): void {
     for (let _i: byte = 0 to 5) {
-        for (let _j: byte = 0 to 254) {
+        for (let _j: byte = 0 to 255) {
             barrier();
         }
     }
@@ -257,14 +262,18 @@ export function main(): void {
     // Step 3: Enable sprite 0 (bit 0 of enable register)
     poke(VIC_SPRITE_ENABLE, 1);
 
-    // Step 4: Set initial frame to vertical line
-    // Sprite pointer = data_address / 64 — resolved at assembly time
-    poke(SPRITE0_POINTER, lo(@lineVertical / 64));
+    // Step 4: Set initial frame to vertical line (frame 0)
+    // getSpriteFrame computes: lo(@lineFrames / 64) + 0
+    poke(SPRITE0_POINTER, getSpriteFrame(@lineFrames, 0));
 
     // Step 5: Animation loop — cycle through | / - \ forever
     let frame: byte = 0;
     while (true) {
-        setAnimationFrame(frame);
+        // Select current animation frame from the sprite sheet.
+        // getSpriteFrame(@lineFrames, frame) computes the VIC-II pointer:
+        //   pointer = (base_address / 64) + frame
+        // This is O(1) regardless of frame count — no if-else chain needed.
+        poke(SPRITE0_POINTER, getSpriteFrame(@lineFrames, frame));
         delay();
 
         // Advance to next frame, wrapping at NUM_FRAMES
