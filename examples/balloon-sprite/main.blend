@@ -4,19 +4,22 @@
 // Displays a balloon-shaped sprite in the center of the C64 screen.
 //
 // This example demonstrates:
-//   - VIC-II sprite setup (data, pointer, position, color, enable)
-//   - Using @sprite to declare 64-byte aligned sprite data
-//   - The VIC-II reads sprite data directly from aligned memory
-//   - Centering a sprite on the 320x200 visible screen area
+//   - @sprite for 64-byte aligned sprite data in the data segment
+//   - @ address-of operator to get the runtime address of sprite data
+//   - hi() intrinsic to extract the high byte of a word
+//   - VIC-II sprite setup (pointer, position, color, enable)
+//   - No manual memory copying needed — VIC-II reads directly from @sprite data
 //
 // C64 Sprite Facts:
-//   - Each sprite is 24x21 pixels (3 bytes/row × 21 rows = 63 bytes)
+//   - Each sprite is 24×21 pixels (3 bytes/row × 21 rows = 63 bytes)
 //   - Sprite data must live at a 64-byte aligned address
 //   - The VIC-II reads sprite pointers from screen RAM + $03F8
 //   - Pointer value = sprite_data_address / 64
 //
-// With @sprite, the compiler aligns the data automatically.
-// No manual copying to an aligned address is needed!
+// With @sprite, the compiler aligns the data automatically in the
+// data segment. The @ operator lets us compute the sprite pointer
+// at runtime: hi(@data) * 4  (equivalent to address / 64 for
+// 64-byte aligned addresses where the low 6 bits are always zero).
 //
 // Module: BalloonSprite
 // Target: Commodore 64
@@ -30,53 +33,38 @@ module BalloonSprite;
 
 const VIC_SPRITE0_X: word = $D000;       // Sprite 0 X position (low 8 bits)
 const VIC_SPRITE0_Y: word = $D001;       // Sprite 0 Y position
-const VIC_SPRITE_X_MSB: word = $D010;    // X position MSB for all sprites (bit 0 = sprite 0)
-const VIC_SPRITE_ENABLE: word = $D015;   // Sprite enable register (bit per sprite)
-const VIC_BORDER_COLOR: word = $D020;    // Border color
-const VIC_BG_COLOR: word = $D021;        // Background color
+const VIC_SPRITE_X_MSB: word = $D010;    // X position MSB for all sprites
+const VIC_SPRITE_ENABLE: word = $D015;   // Sprite enable register (1 bit per sprite)
 const VIC_SPRITE0_COLOR: word = $D027;   // Sprite 0 individual color
 
-// ============================================================================
-// Sprite Configuration
-// ============================================================================
-
-// Address where we copy sprite data at runtime (must be 64-byte aligned)
-const SPRITE_DATA_ADDR: word = $2000;
-
-// Sprite pointer = SPRITE_DATA_ADDR / 64 = $2000 / 64 = 128
-const SPRITE_POINTER_VALUE: byte = 128;
-
-// Sprite 0 pointer location: default screen ($0400) + $03F8 + sprite number
+// Sprite 0 pointer: default screen ($0400) + $03F8 + sprite number
 const SPRITE0_POINTER: word = $07F8;
-
-// Sprite data size: 63 bytes (3 bytes/row × 21 rows)
-const SPRITE_DATA_SIZE: byte = 63;
 
 // ============================================================================
 // Screen Position (center of visible area)
 // ============================================================================
-// VIC-II coordinate system:
-//   - Visible area starts at X=24, Y=50
-//   - Visible area is 320×200 pixels
-//   - Screen center: X = 24 + 160 = 184, Y = 50 + 100 = 150
-//   - Sprite center offset: 12px wide, 10px tall (half of 24×21)
-//   - Centered sprite: X = 184 - 12 = 172, Y = 150 - 10 = 140
+// VIC-II visible area starts at X=24, Y=50 and is 320×200 pixels.
+// Screen center = (24 + 160, 50 + 100) = (184, 150)
+// Sprite center offset: 12px wide, 10px tall (half of 24×21)
+// Centered sprite position: X = 184 - 12 = 172, Y = 150 - 10 = 140
 
-const SPRITE_CENTER_X: byte = 172;
-const SPRITE_CENTER_Y: byte = 140;
+const SPRITE_X: byte = 172;
+const SPRITE_Y: byte = 140;
 
 // ============================================================================
 // C64 Colors
 // ============================================================================
 
-const COLOR_BLACK: byte = 0;
-const COLOR_RED: byte = 4;
-const COLOR_BLUE: byte = 6;
+const COLOR_RED: byte = 2;
 
 // ============================================================================
 // Balloon Sprite Data (24×21 pixels = 63 bytes)
 // ============================================================================
-// Each row is 3 bytes (24 bits). An 'X' means pixel is ON.
+// @sprite ensures 64-byte alignment in the data segment.
+// The VIC-II reads sprite graphics directly from this address —
+// no manual copy to a fixed location is needed.
+//
+// Each row is 3 bytes (24 pixels). Pixel layout:
 //
 // Row  0: ........XXXX........   $00 $3C $00
 // Row  1: ......XXXXXXXX......   $00 $FF $00
@@ -100,9 +88,6 @@ const COLOR_BLUE: byte = 6;
 // Row 19: ........XXXX........   $00 $3C $00
 // Row 20: .........XX.........   $00 $18 $00  (string end)
 
-// @sprite ensures 64-byte alignment — the VIC-II can read this directly.
-// FUTURE: With the @ address-of operator, copySpriteData() won't be needed.
-//         const SPR_PTR: byte = @balloonData / 64;
 @sprite const balloonData: byte[] = [
     $00, $3C, $00,
     $00, $FF, $00,
@@ -132,45 +117,28 @@ const COLOR_BLUE: byte = 6;
 // ============================================================================
 
 export function main(): void {
-    // Step 1: Set screen colors (dark blue background for contrast)
-    //poke(VIC_BORDER_COLOR, COLOR_BLUE);
-    //poke(VIC_BG_COLOR, COLOR_BLUE);
+    // Step 1: Compute sprite pointer from @sprite data address.
+    //
+    // The VIC-II sprite pointer = data_address / 64.
+    // Since @sprite guarantees 64-byte alignment, the low 6 bits
+    // of the address are always zero. This means:
+    //   address / 64  =  hi(address) * 4
+    //
+    // The @ operator loads the 16-bit address into A:X (lo:hi),
+    // and hi() extracts the high byte (X register).
+    let spritePtr: byte = hi(@balloonData) * 4;
+    poke(SPRITE0_POINTER, spritePtr);
 
-    // Step 2: Copy balloon sprite data to the 64-byte aligned address ($2000)
-    copySpriteData();
+    // Step 2: Position sprite 0 at center of screen
+    poke(VIC_SPRITE0_X, SPRITE_X);
+    poke(VIC_SPRITE0_Y, SPRITE_Y);
 
-    // Step 3: Set sprite 0 pointer so VIC-II knows where the data lives
-    poke(SPRITE0_POINTER, SPRITE_POINTER_VALUE);
-
-    // Step 4: Position sprite 0 at center of screen
-    poke(VIC_SPRITE0_X, SPRITE_CENTER_X);
-    poke(VIC_SPRITE0_Y, SPRITE_CENTER_Y);
-
-    // Clear X MSB (bit 0) since X position fits in 8 bits (172 < 256)
+    // Clear X MSB (bit 0) — X position 172 fits in 8 bits
     poke(VIC_SPRITE_X_MSB, 0);
 
-    // Step 5: Set sprite 0 color to red
+    // Step 3: Set sprite 0 color to red
     poke(VIC_SPRITE0_COLOR, COLOR_RED);
 
-    // Step 6: Enable sprite 0 (bit 0 = sprite 0)
+    // Step 4: Enable sprite 0 (bit 0 of enable register)
     poke(VIC_SPRITE_ENABLE, 1);
-
-    // Step 7: Keep program running so the sprite stays visible
-    //while (true) {
-    //    barrier();
-    //}
-}
-
-// ============================================================================
-// Helper: Copy sprite data to VIC-II accessible memory
-// ============================================================================
-
-// Copies the 63 bytes of balloon pixel data from the @data section
-// to the 64-byte aligned address at SPRITE_DATA_ADDR ($2000).
-// The VIC-II chip reads sprite graphics from this address.
-function copySpriteData(): void {
-    for (let i: byte = 0 to 62) {
-        let b: byte = balloonData[i];
-        poke(SPRITE_DATA_ADDR + i, b);
-    }
 }
