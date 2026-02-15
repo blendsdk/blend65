@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-02-15 11:35
-> **Progress**: 10/12 tasks (83%)
+> **Last Updated**: 2025-02-15 12:12
+> **Progress**: 12/12 tasks (100%) ✅ COMPLETE
 
 ## Overview
 
@@ -152,9 +152,9 @@ This document defines the execution phases and AI chat sessions for fixing the `
 
 ### Phase 4: Testing & Verification
 
-- [ ] 4.1.1 Add IL generator tests for @ operator — deferred to next session
-- [ ] 4.1.2 Verify ACME assembly succeeds — deferred to next session
-- [ ] 4.1.3 Run full test suite — all pass — deferred to next session
+- [x] 4.1.1 Add IL generator tests for @ operator ✅ (completed: 2025-02-15 12:05) — 13 new tests in generator-address-of.test.ts, all pass
+- [x] 4.1.2 Verify ACME assembly succeeds ✅ (completed: 2025-02-15 12:10) — balloon.prg assembled (192 bytes), no ACME errors
+- [x] 4.1.3 Run full test suite — all pass ✅ (completed: 2025-02-15 12:12) — 8922/8923 pass (1 pre-existing parser failure)
 
 ---
 
