@@ -66,6 +66,12 @@ export const DeclarationDiagnosticCodes = {
 
   /** Const declaration requires initializer */
   CONST_REQUIRES_INITIALIZER: 'S038' as DiagnosticCode,
+
+  /** Alignment value is not a power of 2 */
+  ALIGNMENT_NOT_POWER_OF_TWO: 'S039' as DiagnosticCode,
+
+  /** Alignment value is outside the valid range (2–16384) */
+  ALIGNMENT_OUT_OF_RANGE: 'S040' as DiagnosticCode,
 } as const;
 
 /**
@@ -168,6 +174,14 @@ export abstract class DeclarationTypeChecker extends ExpressionTypeChecker {
       );
       this.exitNode(node);
       return;
+    }
+
+    // Validate alignment constraints if present
+    // Alignment must be a power-of-2 in the range 2–16384
+    // Set by @data(align: N), @ram(align: N), or sugar keywords (@sprite, @charset, etc.)
+    const alignment = node.getAlignment();
+    if (alignment !== undefined) {
+      this.validateAlignment(alignment, name, node.getLocation());
     }
 
     // Resolve the declared type
@@ -610,6 +624,50 @@ export abstract class DeclarationTypeChecker extends ExpressionTypeChecker {
     const symbol = this.lookupSymbol(name);
     if (symbol) {
       symbol.type = type;
+    }
+  }
+
+  // ============================================
+  // ALIGNMENT VALIDATION
+  // ============================================
+
+  /**
+   * Validates a variable's alignment value meets the constraints:
+   * 1. Must be a power of 2 (checked via bitwise trick: n > 0 && (n & (n-1)) === 0)
+   * 2. Must be in range 2–16384
+   *
+   * These constraints ensure valid alignment for ACME assembler's !align directive
+   * and VIC-II hardware requirements on the C64.
+   *
+   * @param alignment - The alignment value to validate
+   * @param variableName - Variable name for error messages
+   * @param location - Source location for error reporting
+   */
+  protected validateAlignment(alignment: number, variableName: string, location: SourceLocation): void {
+    // Check power-of-2: uses bitwise trick where a power-of-2 has exactly one bit set,
+    // so n & (n - 1) clears that single bit, resulting in 0.
+    // Also reject 0 and negative values.
+    if (alignment <= 0 || (alignment & (alignment - 1)) !== 0) {
+      this.reportError(
+        DeclarationDiagnosticCodes.ALIGNMENT_NOT_POWER_OF_TWO,
+        `Alignment value ${alignment} for '${variableName}' is not a power of 2`,
+        location,
+        'Alignment must be a power of 2 (e.g., 64, 256, 1024, 2048, 8192)'
+      );
+      return; // Skip range check if not power-of-2
+    }
+
+    // Check valid range: 2–16384
+    // Minimum 2 because alignment of 1 is meaningless (everything is 1-byte aligned).
+    // Maximum 16384 because the C64 address space is 64KB and larger alignments
+    // waste excessive memory.
+    if (alignment < 2 || alignment > 16384) {
+      this.reportError(
+        DeclarationDiagnosticCodes.ALIGNMENT_OUT_OF_RANGE,
+        `Alignment value ${alignment} for '${variableName}' is out of range (2–16384)`,
+        location,
+        'Valid alignment values: 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384'
+      );
     }
   }
 

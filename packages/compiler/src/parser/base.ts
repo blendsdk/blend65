@@ -447,6 +447,11 @@ export abstract class BaseParser {
       TokenType.ZP,   // Storage class: @zp (zero page)
       TokenType.RAM,  // Storage class: @ram (general RAM)
       TokenType.DATA, // Storage class: @data (initialized data section)
+      TokenType.SPRITE,  // Alignment sugar: @sprite → @data(align: 64)
+      TokenType.CHARSET, // Alignment sugar: @charset → @data(align: 2048)
+      TokenType.SCREEN,  // Alignment sugar: @screen → @data(align: 1024)
+      TokenType.BITMAP,  // Alignment sugar: @bitmap → @data(align: 8192)
+      TokenType.PAGE,    // Alignment sugar: @page → @data(align: 256)
       TokenType.EOF,
       TokenType.NEWLINE,
       TokenType.LINE_COMMENT,

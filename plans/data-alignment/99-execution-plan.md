@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-02-15 01:35
-> **Progress**: 6/18 tasks (33%)
+> **Last Updated**: 2025-02-15 01:58
+> **Progress**: 10/18 tasks (56%)
 
 ## Overview
 
@@ -137,22 +137,22 @@
 ## Task Checklist (All Phases)
 
 ### Phase 1: Lexer
-- [ ] 1.1.1 Add new token types (SPRITE, CHARSET, SCREEN, BITMAP, PAGE, ALIGN)
-- [ ] 1.1.2 Register @-prefixed keywords in lexer
-- [ ] 1.1.3 Write lexer tests
+- [x] 1.1.1 Add new token types (SPRITE, CHARSET, SCREEN, BITMAP, PAGE, ALIGN) ✅
+- [x] 1.1.2 Register @-prefixed keywords in lexer ✅
+- [x] 1.1.3 Write lexer tests ✅
 
 ### Phase 2: Parser
-- [ ] 2.1.1 Add alignment field to VariableDeclaration AST
-- [ ] 2.1.2 Parse @data(align: N) syntax
-- [ ] 2.1.3 Parse @ram(align: N) syntax
-- [ ] 2.1.4 Parse sugar keywords → alignment values
-- [ ] 2.1.5 Write parser tests
+- [x] 2.1.1 Add alignment field to VariableDeclaration AST ✅
+- [x] 2.1.2 Parse @data(align: N) syntax ✅
+- [x] 2.1.3 Parse @ram(align: N) syntax ✅
+- [x] 2.1.4 Parse sugar keywords → alignment values ✅
+- [x] 2.1.5 Write parser tests ✅
 
 ### Phase 3: Semantic
-- [ ] 3.1.1 Validate power-of-2 alignment
-- [ ] 3.1.2 Validate alignment range
-- [ ] 3.1.3 Sugar enforces const + initializer
-- [ ] 3.1.4 Write semantic tests
+- [x] 3.1.1 Validate power-of-2 alignment ✅
+- [x] 3.1.2 Validate alignment range ✅
+- [x] 3.1.3 Sugar enforces const + initializer ✅
+- [x] 3.1.4 Write semantic tests ✅
 
 ### Phase 4: Frame & Emitter
 - [ ] 4.1.1 Add alignment to GlobalSlot/FrameSlot
