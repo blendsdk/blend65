@@ -119,7 +119,19 @@ let    const
 @zp      @ram      @data
 ```
 
-See [Variables](03-variables.md) for details on storage classes.
+### Alignment Sugar Keywords (Prefixed)
+
+```
+@sprite    @charset    @screen    @bitmap    @page
+```
+
+### Alignment Parameter Keyword
+
+```
+align
+```
+
+See [Variables](03-variables.md) for details on storage classes and data alignment.
 
 ### Primitive Type Keywords
 
@@ -143,6 +155,8 @@ keyword = "module" | "import" | "export" | "from"
         | "type" | "enum"
         | "let" | "const"
         | "@zp" | "@ram" | "@data"
+        | "@sprite" | "@charset" | "@screen" | "@bitmap" | "@page"
+        | "align"
         | "byte" | "word" | "void" | "string" | "boolean" ;
 ```
 
@@ -405,7 +419,7 @@ Marks the end of the input stream.
 The lexer throws errors for:
 
 1. **Unexpected characters** - Characters that don't belong to any valid token
-2. **Invalid storage class** - Any `@` sequence not equal to `@zp`, `@ram`, or `@data`
+2. **Invalid storage class** - Any `@` sequence not matching a known storage class (`@zp`, `@ram`, `@data`) or alignment sugar keyword (`@sprite`, `@charset`, `@screen`, `@bitmap`, `@page`)
 3. **Invalid numeric literals** - Incomplete hex (`$`, `0x`) or binary (`0b`) prefixes with no digits
 4. **Unterminated strings** - Missing closing quote
 5. **Unterminated block comments** - Missing closing `*/`

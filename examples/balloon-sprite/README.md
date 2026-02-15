@@ -1,14 +1,13 @@
 # Balloon Sprite Example
 
-A simple Blend65 program that displays a red balloon sprite in the center of the C64 screen.
+A simple Blend65 program that displays a red balloon sprite in the center of the C64 screen. Demonstrates the `@sprite` storage class for 64-byte aligned sprite data.
 
 ## What It Does
 
-1. Sets the border and background to blue
-2. Copies a 24×21 pixel balloon sprite to VIC-II accessible memory at `$2000`
+1. Declares sprite data using `@sprite` — automatically 64-byte aligned by the assembler
+2. Copies the sprite data to VIC-II accessible memory at `$2000` (until `@` address-of is available)
 3. Configures sprite 0 (pointer, position, color)
 4. Enables sprite 0 — a red balloon appears centered on screen
-5. Loops forever to keep the display active
 
 ## C64 Sprite Concepts Demonstrated
 

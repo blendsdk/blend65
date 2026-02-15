@@ -3,7 +3,7 @@
 ## Overview
 
 This example demonstrates multi-frame sprite management on the C64:
-- 4 sprite frames in a `@data` sprite sheet
+- 4 sprite frames in an `@sprite` sheet (64-byte aligned)
 - Player ship with thruster animation (frame toggle)
 - 3 enemies with open/closed animation
 - Frame switching via sprite pointer changes (1 `poke` per switch)
@@ -29,17 +29,21 @@ poke($07F8, 128 + 2);  // pointer = base + frame offset
 
 This takes 4 CPU cycles — the same as hand-written assembly.
 
-## Future: @sprite Syntax
+## @sprite Alignment
 
-When the `@sprite` alignment directive is implemented, this example will use:
+This example uses `@sprite` to declare 64-byte aligned sprite data:
 
 ```js
 @sprite const spriteSheet: byte[] = [/* ... */];
-const SPRITE_PTR_BASE: byte = @spriteSheet / 64;
 ```
 
-This eliminates the `copySpriteData()` function entirely — the VIC-II reads
-directly from the aligned data segment. Zero runtime copying.
+**Future enhancement**: Once the `@` address-of operator is implemented, the
+manual `copySpriteData()` function can be eliminated entirely:
+
+```js
+const SPRITE_PTR_BASE: byte = @spriteSheet / 64;
+// VIC-II reads directly from aligned data — zero runtime copying
+```
 
 ## Build
 

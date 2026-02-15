@@ -14,10 +14,27 @@ variable_decl = [ storage_class ] , mutability , identifier
               , [ ":" , type_expr ]
               , [ "=" , expression ] , ";" ;
 
-storage_class = "@zp" | "@ram" | "@data" ;
+storage_class = simple_storage | aligned_storage | sugar_storage ;
+
+simple_storage = "@zp" | "@ram" | "@data" ;
+
+aligned_storage = ( "@data" | "@ram" ) , "(" , "align" , ":" , integer , ")" ;
+
+sugar_storage = "@sprite" | "@charset" | "@screen" | "@bitmap" | "@page" ;
+
 mutability = "let" | "const" ;
 type_expr = type_name | type_name , "[" , integer , "]" ;
 ```
+
+### Sugar Keyword Desugaring
+
+| Sugar Keyword | Desugars To | Alignment (bytes) |
+|---------------|-------------|-------------------|
+| `@sprite`     | `@data(align: 64)` | 64 |
+| `@page`       | `@data(align: 256)` | 256 |
+| `@screen`     | `@data(align: 1024)` | 1024 |
+| `@charset`    | `@data(align: 2048)` | 2048 |
+| `@bitmap`     | `@data(align: 8192)` | 8192 |
 
 ## Mutability Modifiers
 
@@ -179,6 +196,131 @@ Allocates variable in **initialized data section** (ROM-able):
 @data const sinTable: byte[256] = [/* ... */];
 @data const spriteData: byte[64] = [/* ... */];
 ```
+
+### Data Alignment
+
+Many C64 hardware chips (VIC-II, SID, REU) require data at specific memory boundaries. Blend65 provides **data alignment** to ensure data is placed at hardware-required addresses.
+
+#### Explicit Alignment: @data(align: N) and @ram(align: N)
+
+Add `(align: N)` after `@data` or `@ram` to request N-byte alignment:
+
+```js
+// Sprite data aligned to 64-byte boundary
+@data(align: 64) const spriteData: byte[] = [
+    $00, $3C, $00, $00, $FF, $00, /* ... 63 bytes total */
+];
+
+// Page-aligned lookup table for zero page-crossing penalty
+@data(align: 256) const sinTable: byte[256] = [/* ... */];
+
+// Mutable buffer aligned for REU DMA transfers
+@ram(align: 64) let dmaBuffer: byte[256];
+```
+
+The compiler emits an ACME `!align` directive before the data label to guarantee the required boundary. For example, `@data(align: 64)` emits `!align 63, 0` (the assembler pads with zero bytes until the address is 64-byte aligned).
+
+**Alignment constraints (enforced by the compiler):**
+
+- N must be a **power of 2** (2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384)
+- N must be in the range **2–16384**
+- `@data(align: N)` follows the same rules as `@data` — requires `const` and an initializer
+- `@ram(align: N)` follows the same rules as `@ram` — allows `let` or `const`
+
+```js
+@data(align: 64) const ok: byte[] = [1, 2, 3];       // ✅ OK
+@data(align: 7) const bad: byte[] = [1, 2, 3];       // ❌ Error: not power of 2
+@data(align: 64) let bad2: byte[] = [1, 2, 3];       // ❌ Error: @data requires const
+@ram(align: 256) let buffer: byte[256];                // ✅ OK — mutable aligned buffer
+```
+
+#### Sugar Keywords for Common Alignments
+
+Blend65 provides **sugar keywords** for the most common C64 alignment requirements. These are shorthand for `@data(align: N)` with the appropriate alignment value:
+
+##### @sprite — VIC-II Sprite Data (64-byte aligned)
+
+```js
+@sprite const playerShip: byte[] = [
+    $00, $18, $00, $00, $3C, $00, $00, $7E, $00,
+    /* ... 63 bytes of sprite pixel data */
+];
+// Equivalent to: @data(align: 64) const playerShip: byte[] = [...]
+```
+
+The VIC-II reads sprite data from 64-byte aligned addresses. Each sprite frame is 63 bytes (3 bytes/row × 21 rows). Using `@sprite` eliminates the need to manually copy sprite data to an aligned address at runtime.
+
+##### @page — Page-Aligned Lookup Table (256-byte aligned)
+
+```js
+@page const sinTable: byte[256] = [
+    128, 131, 134, 137, 140, 143, 146, 149,
+    /* ... 256 pre-computed sine values */
+];
+// Equivalent to: @data(align: 256) const sinTable: byte[] = [...]
+```
+
+Page alignment guarantees no page-crossing penalty on indexed reads. When the 6502 reads with absolute indexed addressing (`LDA table,X`), crossing a 256-byte page boundary adds an extra cycle. Page-aligning the table eliminates this penalty.
+
+##### @screen — VIC-II Screen Memory (1024-byte aligned)
+
+```js
+@screen const titleScreen: byte[1000] = [
+    // 40 columns × 25 rows of screen codes
+    $20, $20, $20, /* ... pre-built title screen layout */
+];
+// Equivalent to: @data(align: 1024) const titleScreen: byte[] = [...]
+```
+
+The VIC-II screen RAM pointer (`$D018`) addresses screen memory in 1024-byte increments.
+
+##### @charset — Custom Character Set (2048-byte aligned)
+
+```js
+@charset const gameFont: byte[2048] = [
+    // 256 characters × 8 bytes each = 2048 bytes
+    $3C, $66, $6E, $76, $66, $66, $3C, $00,  // char 0
+    /* ... 255 more characters */
+];
+// Equivalent to: @data(align: 2048) const gameFont: byte[] = [...]
+```
+
+The VIC-II character ROM pointer (`$D018`) addresses character sets in 2048-byte increments.
+
+##### @bitmap — VIC-II Bitmap Graphics (8192-byte aligned)
+
+```js
+@bitmap const splashImage: byte[8000] = [
+    // 320×200 hi-res bitmap data (8000 bytes)
+    /* ... exported from image converter */
+];
+// Equivalent to: @data(align: 8192) const splashImage: byte[] = [...]
+```
+
+The VIC-II bitmap mode pointer addresses bitmap memory in 8192-byte increments.
+
+#### Sugar Keyword Rules
+
+All sugar keywords (`@sprite`, `@page`, `@screen`, `@charset`, `@bitmap`) desugar to `@data(align: N)` and therefore follow the same compile-time rules as `@data`:
+
+1. **Require `const`** — sugar keywords with `let` are a compile error
+2. **Require an initializer** — sugar keywords without a value are a compile error
+
+```js
+@sprite const ok: byte[] = [/* ... */];    // ✅ OK
+@sprite let bad: byte[] = [/* ... */];     // ❌ Error: DATA_REQUIRES_CONST
+@sprite const bad2: byte[];                // ❌ Error: DATA_REQUIRES_INITIALIZER
+```
+
+#### Why Alignment Matters on C64
+
+Without alignment, sprite data might land at an arbitrary address like `$2003`. The VIC-II can only read sprites from addresses that are multiples of 64 (`$2000`, `$2040`, `$2080`, ...). Before alignment support, programmers had to:
+
+1. Manually choose an aligned address (e.g., `$2000`)
+2. Copy sprite data to that address at runtime using a loop
+3. Waste CPU cycles and code space on the copy routine
+
+With `@sprite`, the assembler places the data at the correct boundary automatically — **zero runtime cost, zero extra code**.
 
 ### Default Storage Class
 

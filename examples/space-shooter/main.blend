@@ -1,10 +1,10 @@
 // ============================================================================
 // Space Shooter — Sprite Management Example
 // ============================================================================
-// Demonstrates the @sprite sugar and multi-frame sprite switching.
+// Demonstrates the @sprite sugar keyword and multi-frame sprite switching.
 //
-// NOTE: This example uses the PLANNED @sprite syntax (not yet implemented).
-//       It serves as a design reference for the data-alignment feature.
+// @sprite ensures sprite data is 64-byte aligned in the data segment.
+// This is equivalent to @data(align: 64).
 //
 // Sprite Frame Layout (10 frames × 64 bytes = 640 bytes):
 //   Frames 0-1:   Player ship (2 thruster animation frames)
@@ -52,14 +52,10 @@ const COLOR_YELLOW: byte = 7;
 // 3. Require const + initializer (same rules as @data)
 //
 // The VIC-II can read sprite data directly from here.
-// No runtime copying needed!
+// No runtime copying needed (once @ address-of operator is available)!
 // ============================================================================
 
-// FUTURE SYNTAX (when @sprite is implemented):
-// @sprite const spriteSheet: byte[] = [...]
-//
-// CURRENT EQUIVALENT:
-@data const spriteSheet: byte[] = [
+@sprite const spriteSheet: byte[] = [
     // Frame 0: Player ship - normal (24×21 pixels)
     $00, $18, $00,
     $00, $3C, $00,

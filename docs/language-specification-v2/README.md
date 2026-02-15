@@ -55,6 +55,21 @@ callback    // Function pointer (word)
 let x: byte = 0;                 // Default: @ram
 ```
 
+### Data Alignment
+
+```js
+// Explicit alignment (power-of-2, range 2–16384)
+@data(align: 64) const sprData: byte[] = [...];  // 64-byte aligned
+@ram(align: 256) let buf: byte[256];              // Page-aligned buffer
+
+// Sugar keywords (desugar to @data with alignment)
+@sprite  const spr: byte[] = [...];  // @data(align: 64)   — VIC-II sprites
+@page    const tbl: byte[] = [...];  // @data(align: 256)  — Lookup tables
+@screen  const scr: byte[] = [...];  // @data(align: 1024) — Screen memory
+@charset const fnt: byte[] = [...];  // @data(align: 2048) — Character sets
+@bitmap  const bmp: byte[] = [...];  // @data(align: 8192) — Bitmap graphics
+```
+
 ### Intrinsics
 
 ```js

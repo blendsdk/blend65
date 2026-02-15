@@ -5,8 +5,8 @@
 //
 // This example demonstrates:
 //   - VIC-II sprite setup (data, pointer, position, color, enable)
-//   - Using @data const arrays for sprite pixel data
-//   - Using poke() to write sprite data to a 64-byte aligned address
+//   - Using @sprite to declare 64-byte aligned sprite data
+//   - The VIC-II reads sprite data directly from aligned memory
 //   - Centering a sprite on the 320x200 visible screen area
 //
 // C64 Sprite Facts:
@@ -14,6 +14,9 @@
 //   - Sprite data must live at a 64-byte aligned address
 //   - The VIC-II reads sprite pointers from screen RAM + $03F8
 //   - Pointer value = sprite_data_address / 64
+//
+// With @sprite, the compiler aligns the data automatically.
+// No manual copying to an aligned address is needed!
 //
 // Module: BalloonSprite
 // Target: Commodore 64
@@ -97,7 +100,10 @@ const COLOR_BLUE: byte = 6;
 // Row 19: ........XXXX........   $00 $3C $00
 // Row 20: .........XX.........   $00 $18 $00  (string end)
 
-@data const balloonData: byte[] = [
+// @sprite ensures 64-byte alignment — the VIC-II can read this directly.
+// FUTURE: With the @ address-of operator, copySpriteData() won't be needed.
+//         const SPR_PTR: byte = @balloonData / 64;
+@sprite const balloonData: byte[] = [
     $00, $3C, $00,
     $00, $FF, $00,
     $01, $FF, $80,
