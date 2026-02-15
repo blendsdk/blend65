@@ -825,21 +825,17 @@ Auto-commit is **MANDATORY** when ALL of these conditions are met:
 
 ### **Auto-Commit Protocol:**
 
-**After successful task completion and passing tests:**
+**After successful task completion and passing tests, use the `gitcm` protocol defined in `.clinerules/git-commands.md`.**
 
-```bash
-# 1. Stage all changes
-clear && git add .
+**⚠️ NEVER use inline `git commit -m "..."` commands — always use the `gitcm` or `gitcmp` protocol.**
 
-# 2. Create commit with descriptive message
-git commit -m "feat([component]): [task description]
+**Why:** Inline git commit messages can trigger shell expansion issues (e.g., zsh `!` history expansion). The `gitcm` protocol writes the commit message to a temporary file, avoiding these problems entirely.
 
-- [Specific change 1]
-- [Specific change 2]
-- Tests: [X] passing"
-```
+**Steps:**
+1. Stage all changes: `clear && git add .`
+2. Follow the `gitcm` protocol (write message to `/tmp/git_commit_msg.txt`, commit with `-F`)
 
-### **Commit Message Format:**
+**Commit Message Format (written to temp file):**
 
 ```
 feat([component]): [brief description of what was implemented]
@@ -852,30 +848,7 @@ Ref: plans/[feature-name]/99-execution-plan.md
 Task: [X.X.X]
 ```
 
-**Examples:**
-
-```
-feat(parser): implement binary expression parsing
-
-- Added precedence table for operators
-- Implemented Pratt parser for expressions
-- Tests: 45 passing, 0 failing
-
-Ref: plans/compiler-v2/99-execution-plan.md
-Task: 2.1.3
-```
-
-```
-feat(semantic): add type checking for variable declarations
-
-- Implemented type resolution for let/const
-- Added type compatibility checking
-- Fixed edge case for array types
-- Tests: 128 passing, 0 failing
-
-Ref: plans/compiler-v2/99-execution-plan.md
-Task: 3.2.1
-```
+**See `.clinerules/git-commands.md` for the complete `gitcm` and `gitcmp` protocols.**
 
 ### **When NOT to Auto-Commit:**
 
@@ -904,9 +877,10 @@ Task: 3.2.1
 # 1. Verify tests pass
 ./compiler-test
 
-# 2. If tests pass, commit changes
-git add .
-git commit -m "feat([component]): [description]"
+# 2. If tests pass, commit using gitcm protocol (see .clinerules/git-commands.md)
+# ⚠️ NEVER use inline git commit -m "..." — use gitcm protocol instead
+clear && git add .
+# Then follow gitcm: write message to /tmp/git_commit_msg.txt, commit with -F
 
 # 3. End agent settings
 clear && scripts/agent.sh finished

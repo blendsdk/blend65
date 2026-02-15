@@ -22,6 +22,20 @@ import { DeclarationParserErrors } from './error-messages.js';
 import { ExpressionParser } from './expressions.js';
 
 /**
+ * Mapping from alignment sugar token types to their alignment values.
+ * Each sugar keyword desugars to @data storage class with a specific alignment.
+ *
+ * Per language spec: @sprite → @data(align: 64), etc.
+ */
+const ALIGNMENT_SUGAR_MAP: Record<string, number> = {
+  [TokenType.SPRITE]: 64, // VIC-II sprite data (64-byte aligned)
+  [TokenType.CHARSET]: 2048, // VIC-II character set (2KB aligned)
+  [TokenType.SCREEN]: 1024, // VIC-II screen memory (1KB aligned)
+  [TokenType.BITMAP]: 8192, // VIC-II bitmap graphics (8KB aligned)
+  [TokenType.PAGE]: 256, // Page-aligned lookup tables (256-byte aligned)
+};
+
+/**
  * Declaration parser class - extends ExpressionParser with declaration parsing
  *
  * Handles all declaration parsing including variables and provides
@@ -72,11 +86,31 @@ export abstract class DeclarationParser extends ExpressionParser {
   protected parseVariableDecl(): VariableDecl {
     const startToken = this.getCurrentToken();
 
-    // Parse optional storage class prefix (@zp, @ram, @data)
-    // Per language spec: storage_class = "@zp" | "@ram" | "@data"
+    // Parse storage class and optional alignment
+    // Handles three cases:
+    // 1. Plain storage class: @zp, @ram, @data
+    // 2. Storage class with alignment: @data(align: N), @ram(align: N)
+    // 3. Alignment sugar: @sprite, @charset, @screen, @bitmap, @page
     let storageClass: TokenType | null = null;
-    if (this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA)) {
+    let alignment: number | undefined = undefined;
+
+    // Case 3: Alignment sugar keywords → desugar to @data + alignment
+    if (this.check(
+      TokenType.SPRITE, TokenType.CHARSET, TokenType.SCREEN,
+      TokenType.BITMAP, TokenType.PAGE
+    )) {
+      const sugarToken = this.advance();
+      storageClass = TokenType.DATA; // All sugar keywords desugar to @data
+      alignment = ALIGNMENT_SUGAR_MAP[sugarToken.type];
+    }
+    // Cases 1 & 2: Plain storage class, possibly with (align: N)
+    else if (this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA)) {
       storageClass = this.advance().type;
+
+      // Check for alignment parameter: @data(align: N) or @ram(align: N)
+      if (this.check(TokenType.LEFT_PAREN)) {
+        alignment = this.parseAlignmentParameter();
+      }
     }
 
     // Parse optional export modifier
@@ -122,8 +156,41 @@ export abstract class DeclarationParser extends ExpressionParser {
       location,
       storageClass, // Storage class: '@zp', '@ram', '@data', or null (defaults to @ram)
       isConst,
-      isExport
+      isExport,
+      alignment // Alignment in bytes (power-of-2), or undefined if none
     );
+  }
+
+  /**
+   * Parses the alignment parameter inside parentheses: (align: N)
+   *
+   * Grammar:
+   *   alignment_param = "(" "align" ":" number ")" ;
+   *
+   * Examples:
+   * - (align: 64)
+   * - (align: 2048)
+   *
+   * @returns The alignment value as a number
+   */
+  protected parseAlignmentParameter(): number {
+    // Consume '('
+    this.expect(TokenType.LEFT_PAREN, "Expected '(' for alignment parameter");
+
+    // Expect 'align' keyword
+    this.expect(TokenType.ALIGN, "Expected 'align' keyword");
+
+    // Expect ':'
+    this.expect(TokenType.COLON, "Expected ':' after 'align'");
+
+    // Parse alignment value (must be a number literal)
+    const valueToken = this.expect(TokenType.NUMBER, 'Expected alignment value (power-of-2 number)');
+    const alignmentValue = parseInt(valueToken.value, 10);
+
+    // Consume ')'
+    this.expect(TokenType.RIGHT_PAREN, "Expected ')' after alignment value");
+
+    return alignmentValue;
   }
 
   // ============================================

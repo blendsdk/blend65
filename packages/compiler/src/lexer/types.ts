@@ -53,6 +53,16 @@ export enum TokenType {
   RAM = 'RAM', // RAM storage
   DATA = 'DATA', // Initialized data
 
+  // Alignment sugar keywords — desugar to @data(align: N) at parse time
+  SPRITE = 'SPRITE', // @sprite → @data(align: 64) for VIC-II sprite data
+  CHARSET = 'CHARSET', // @charset → @data(align: 2048) for VIC-II character sets
+  SCREEN = 'SCREEN', // @screen → @data(align: 1024) for VIC-II screen memory
+  BITMAP = 'BITMAP', // @bitmap → @data(align: 8192) for VIC-II bitmap graphics
+  PAGE = 'PAGE', // @page → @data(align: 256) for page-aligned lookup tables
+
+  // Alignment keyword — used inside parentheses: @data(align: N)
+  ALIGN = 'ALIGN',
+
   // Primitive type keywords
   BYTE = 'BYTE',
   WORD = 'WORD',
@@ -230,6 +240,33 @@ export const eStorageClass = {
 };
 
 /**
+ * Alignment sugar keywords — semantic names for common alignment patterns
+ * These are @-prefixed keywords that desugar to @data(align: N) at parse time.
+ *
+ * Each sugar keyword maps to a specific VIC-II or 6502 hardware alignment:
+ * - @sprite → @data(align: 64)
+ * - @charset → @data(align: 2048)
+ * - @screen → @data(align: 1024)
+ * - @bitmap → @data(align: 8192)
+ * - @page → @data(align: 256)
+ */
+export const eAlignmentSugar = {
+  SPRITE: '@sprite',
+  CHARSET: '@charset',
+  SCREEN: '@screen',
+  BITMAP: '@bitmap',
+  PAGE: '@page',
+};
+
+/**
+ * Alignment keyword — used inside parentheses for explicit alignment: @data(align: N)
+ * Not @-prefixed; it is a regular keyword recognized inside alignment parameter syntax.
+ */
+export const eAlignmentKeyword = {
+  ALIGN: 'align',
+};
+
+/**
  * Primitive type keywords
  * Built-in data types supported by Blend65
  */
@@ -257,5 +294,7 @@ export const KEYWORDS = new Set([
   ...Object.values(eMutabilityModifier),
   ...Object.values(eControlFlowKeyword),
   ...Object.values(eStorageClass),
+  ...Object.values(eAlignmentSugar),
+  ...Object.values(eAlignmentKeyword),
   ...Object.values(ePrimitiveType),
 ]);

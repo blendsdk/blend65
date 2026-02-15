@@ -110,6 +110,8 @@ export class FunctionDecl extends Declaration {
  * - Mutability: let (mutable) or const (immutable)
  * - Optional initializer expression
  * - Optional export modifier
+ * - Optional alignment (power-of-2, e.g., 64 for sprites, 2048 for charsets)
+ *   Set by @data(align: N) or sugar keywords like @sprite, @charset, etc.
  */
 export class VariableDecl extends Declaration {
   /**
@@ -121,6 +123,9 @@ export class VariableDecl extends Declaration {
    * @param storageClass - Storage class (@zp, @ram, @data)
    * @param isConstant - True if const, false if let
    * @param isExported - True if exported
+   * @param alignment - Memory alignment in bytes (power-of-2, e.g., 64, 256, 2048).
+   *   Set by @data(align: N), @ram(align: N), or sugar keywords like @sprite.
+   *   Undefined means no alignment requirement.
    */
   constructor(
     protected readonly name: string,
@@ -129,7 +134,8 @@ export class VariableDecl extends Declaration {
     location: SourceLocation,
     protected readonly storageClass: TokenType | null = null,
     protected readonly isConstant: boolean = false,
-    protected readonly isExported: boolean = false
+    protected readonly isExported: boolean = false,
+    protected readonly alignment: number | undefined = undefined
   ) {
     super(ASTNodeType.VARIABLE_DECL, location);
   }
@@ -156,6 +162,14 @@ export class VariableDecl extends Declaration {
 
   public isExportedVariable(): boolean {
     return this.isExported;
+  }
+
+  /**
+   * Gets the memory alignment requirement for this variable.
+   * @returns Alignment in bytes (power-of-2), or undefined if no alignment required.
+   */
+  public getAlignment(): number | undefined {
+    return this.alignment;
   }
 
   public accept<R>(visitor: ASTVisitor<R>): R {

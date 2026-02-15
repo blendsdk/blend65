@@ -155,7 +155,12 @@ export class Parser extends StatementParser {
       // Per language spec v2 section 03-variables.md:
       // variable_decl = [ storage_class ] , mutability , identifier ...
       // storage_class = "@zp" | "@ram" | "@data"
-      else if (this.check(TokenType.ZP, TokenType.RAM, TokenType.DATA)) {
+      // Also handles alignment sugar: @sprite, @charset, @screen, @bitmap, @page
+      else if (this.check(
+        TokenType.ZP, TokenType.RAM, TokenType.DATA,
+        TokenType.SPRITE, TokenType.CHARSET, TokenType.SCREEN,
+        TokenType.BITMAP, TokenType.PAGE
+      )) {
         declarations.push(this.parseVariableDecl());
       }
       // Parse variable declaration (no storage class)

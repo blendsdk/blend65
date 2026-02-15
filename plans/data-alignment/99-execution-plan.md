@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-02-15 00:50
-> **Progress**: 0/18 tasks (0%)
+> **Last Updated**: 2025-02-15 01:35
+> **Progress**: 6/18 tasks (33%)
 
 ## Overview
 
@@ -184,10 +184,19 @@ clear && scripts/agent.sh start
 
 ### Ending a Session
 ```bash
+# 1. Verify tests pass
 ./compiler-test
+
+# 2. If tests pass, commit using gitcm protocol (see .clinerules/git-commands.md)
+# ⚠️ NEVER use inline git commit -m "..." — use gitcm protocol instead
+clear && git add .
+# Then follow gitcm: write message to /tmp/git_commit_msg.txt, commit with -F
+
+# 3. End agent settings
 clear && scripts/agent.sh finished
-# Call attempt_completion
-# /compact
+
+# 4. Call attempt_completion
+# 5. User runs /compact
 ```
 
 ## Dependencies

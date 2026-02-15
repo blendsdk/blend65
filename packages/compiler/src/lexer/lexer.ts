@@ -20,6 +20,8 @@ import {
   eDeclarationKeyword,
   eMutabilityModifier,
   eStorageClass,
+  eAlignmentSugar,
+  eAlignmentKeyword,
   ePrimitiveType,
 } from './types.js';
 
@@ -391,10 +393,11 @@ export class Lexer {
 
   /**
    * Reads keywords that start with '@' prefix
-   * Handles storage classes (@zp, @ram, @data) and the @address type
-   * For unknown keywords like @buffer, returns just the @ token
+   * Handles storage classes (@zp, @ram, @data), alignment sugar (@sprite, @charset,
+   * @screen, @bitmap, @page), and the @address type.
+   * For unknown keywords like @buffer, returns just the @ token.
    *
-   * NOTE: v2 removes @map - only @zp, @ram, @data, @address are recognized
+   * NOTE: v2 removes @map - only recognized @-keywords are returned as typed tokens.
    *
    * @returns Token representing an @ keyword or just AT token
    */
@@ -412,22 +415,28 @@ export class Lexer {
       pos++;
     }
 
-    // Check if it's a known @ keyword (v2: no @map!)
-    if (keyword === 'zp') {
-      // Consume the keyword and return the full token
+    // Map of known @-prefixed keywords to their token types
+    // This covers storage classes, alignment sugar, and the @address type
+    const atKeywordMap: Record<string, { type: TokenType; value: string }> = {
+      // Storage classes
+      zp: { type: TokenType.ZP, value: eStorageClass.ZP },
+      ram: { type: TokenType.RAM, value: eStorageClass.RAM },
+      data: { type: TokenType.DATA, value: eStorageClass.DATA },
+      // Alignment sugar keywords — desugar to @data(align: N) at parse time
+      sprite: { type: TokenType.SPRITE, value: eAlignmentSugar.SPRITE },
+      charset: { type: TokenType.CHARSET, value: eAlignmentSugar.CHARSET },
+      screen: { type: TokenType.SCREEN, value: eAlignmentSugar.SCREEN },
+      bitmap: { type: TokenType.BITMAP, value: eAlignmentSugar.BITMAP },
+      page: { type: TokenType.PAGE, value: eAlignmentSugar.PAGE },
+      // Special type keyword
+      address: { type: TokenType.ADDRESS, value: ePrimitiveType.ADDRESS },
+    };
+
+    const match = atKeywordMap[keyword];
+    if (match) {
       this.advance(keyword.length);
-      return this.createToken(TokenType.ZP, '@zp', start);
-    } else if (keyword === 'ram') {
-      this.advance(keyword.length);
-      return this.createToken(TokenType.RAM, '@ram', start);
-    } else if (keyword === 'data') {
-      this.advance(keyword.length);
-      return this.createToken(TokenType.DATA, '@data', start);
-    } else if (keyword === 'address') {
-      this.advance(keyword.length);
-      return this.createToken(TokenType.ADDRESS, '@address', start);
+      return this.createToken(match.type, match.value, start);
     }
-    // NOTE: @map is NOT handled in v2 - falls through to AT token
 
     // Unknown keyword after @, just return AT token
     // Don't consume the following identifier - let it be parsed separately
@@ -544,6 +553,9 @@ export class Lexer {
         return TokenType.BOOLEAN;
       case ePrimitiveType.ADDRESS:
         return TokenType.ADDRESS;
+      // Alignment keyword (used inside @data(align: N) syntax)
+      case eAlignmentKeyword.ALIGN:
+        return TokenType.ALIGN;
       default:
         return TokenType.IDENTIFIER;
     }
