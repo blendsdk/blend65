@@ -298,7 +298,7 @@ describe('Phase 3 Integration - Advanced Expressions in Statements', () => {
       let collision: boolean = !sprites[0] || getDistance(playerX, playerY, enemyX, enemyY) < 16;
 
       // Screen memory calculations - using address-of operator and variables
-      let screenAddr: word = @screen + playerY * 40 + playerX;
+      let screenAddr: word = @screenMem + playerY * 40 + playerX;
 
       // Color cycling - simple arithmetic
       let newColor: byte = (borderColor + 1) == 16;
