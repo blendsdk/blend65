@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-02-15 01:58
-> **Progress**: 10/18 tasks (56%)
+> **Last Updated**: 2025-02-15 02:25
+> **Progress**: 14/18 tasks (78%)
 
 ## Overview
 
@@ -155,10 +155,10 @@
 - [x] 3.1.4 Write semantic tests ✅
 
 ### Phase 4: Frame & Emitter
-- [ ] 4.1.1 Add alignment to GlobalSlot/FrameSlot
-- [ ] 4.1.2 Propagate alignment through allocator
-- [ ] 4.1.3 Emit !align directive in assembly
-- [ ] 4.1.4 Write emitter tests
+- [x] 4.1.1 Add alignment to GlobalSlot/FrameSlot ✅ (completed: 2025-02-15 02:08)
+- [x] 4.1.2 Propagate alignment through allocator ✅ (completed: 2025-02-15 02:11)
+- [x] 4.1.3 Emit !align directive in assembly ✅ (completed: 2025-02-15 02:12)
+- [x] 4.1.4 Write emitter tests (14 tests) ✅ (completed: 2025-02-15 02:19)
 
 ### Phase 5: Language Spec
 - [ ] 5.1.1 Update 03-variables.md

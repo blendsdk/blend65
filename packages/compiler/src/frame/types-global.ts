@@ -122,6 +122,20 @@ export interface GlobalSlot {
    * Optional for @zp/@ram/default variables (runtime init).
    */
   readonly initializer?: Expression;
+
+  /**
+   * Memory alignment requirement in bytes (power-of-2).
+   *
+   * Set by `@data(align: N)`, `@ram(align: N)`, or sugar keywords
+   * like `@sprite` (64), `@charset` (2048), `@screen` (1024), etc.
+   *
+   * When set, the code generator emits an ACME `!align` directive
+   * before the data label to ensure the data starts at an address
+   * that is a multiple of this value.
+   *
+   * Undefined means no alignment requirement.
+   */
+  readonly alignment?: number;
 }
 
 // ============================================================================
@@ -247,6 +261,7 @@ export function createGlobalSlot(
     isConst?: boolean;
     initializer?: Expression;
     dataLabel?: string;
+    alignment?: number;
   },
 ): GlobalSlot {
   return {
@@ -261,6 +276,7 @@ export function createGlobalSlot(
     isExported: options?.isExported ?? false,
     isConst: options?.isConst ?? false,
     initializer: options?.initializer,
+    alignment: options?.alignment,
   };
 }
 

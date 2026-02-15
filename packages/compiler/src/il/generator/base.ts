@@ -314,12 +314,14 @@ export class ILGeneratorBase {
     // Create FrameSlot with the globally allocated address.
     // For @data globals, also propagate the dataLabel so the code generator
     // can emit ACME label-based operands instead of numeric addresses.
+    // Alignment is also propagated so the codegen can emit !align directives.
     const frameSlot = createFrameSlot(globalSlot.name, SlotKind.Local, globalSlot.type, {
       zpDirective,
       location,
       address: globalSlot.address,
       offset: 0,
       dataLabel: globalSlot.dataLabel,
+      alignment: globalSlot.alignment,
     });
 
     // Cache for future lookups

@@ -158,10 +158,25 @@ export class CodegenPhase {
         createCommentElement(`${entry.qualifiedName} (${entry.size} bytes)`)
       );
 
+      // Look up the GlobalSlot for this entry to get dataLabel and alignment
+      const globalSlot = globalAllocation.globals.get(entry.qualifiedName);
+
+      // Emit ACME !align directive before the label if alignment is required.
+      // ACME syntax: !align <and_mask>, <fill_value>
+      // where and_mask = alignment - 1 (e.g., 64-byte alignment → mask 63).
+      // This pads the output with fill_value bytes until the program counter
+      // is aligned to the specified boundary.
+      if (globalSlot?.alignment) {
+        const andMask = globalSlot.alignment - 1;
+        dataSection.elements.push(
+          createDirectiveElement('!align', `${andMask}, 0`, undefined,
+            `align to ${globalSlot.alignment}-byte boundary`)
+        );
+      }
+
       // Emit the ACME label before the byte data.
       // The code generator references this label in LDA/STA instructions
       // to correctly address @data const arrays/scalars.
-      const globalSlot = globalAllocation.globals.get(entry.qualifiedName);
       if (globalSlot?.dataLabel) {
         dataSection.elements.push(createLabelElement(globalSlot.dataLabel));
       }

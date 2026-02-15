@@ -77,6 +77,13 @@ interface CollectedGlobal {
 
   /** The original AST node (for initializer access) */
   readonly node: VariableDecl;
+
+  /**
+   * Memory alignment requirement in bytes (power-of-2).
+   * Comes from @data(align: N), @ram(align: N), or sugar keywords.
+   * Undefined means no alignment requirement.
+   */
+  readonly alignment?: number;
 }
 
 /**
@@ -267,6 +274,7 @@ export class GlobalAllocator {
           isExported,
           isConst: varDecl.isConst(),
           node: varDecl,
+          alignment: varDecl.getAlignment(),
         });
       }
     }
@@ -416,6 +424,7 @@ export class GlobalAllocator {
           isExported: global.isExported,
           isConst: global.isConst,
           initializer: global.node.getInitializer() ?? undefined,
+          alignment: global.alignment,
         },
       );
 
@@ -534,6 +543,7 @@ export class GlobalAllocator {
           isConst: global.isConst,
           initializer: global.node.getInitializer() ?? undefined,
           dataLabel,
+          alignment: global.alignment,
         },
       );
 

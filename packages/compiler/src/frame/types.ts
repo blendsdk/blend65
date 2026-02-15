@@ -174,6 +174,18 @@ export interface FrameSlot {
    * Only set for @data storage class globals.
    */
   dataLabel?: string;
+
+  /**
+   * Memory alignment requirement in bytes (power-of-2).
+   *
+   * Propagated from GlobalSlot.alignment when the IL builder creates
+   * a FrameSlot for a global variable with alignment requirements.
+   * The code generator emits an ACME `!align` directive before the
+   * data label to ensure proper memory alignment.
+   *
+   * Undefined means no alignment requirement.
+   */
+  alignment?: number;
 }
 
 /**
