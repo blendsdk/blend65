@@ -3,7 +3,7 @@
  *
  * Handles IL opcodes for bitwise operations:
  * - AND_BYTE, AND_IMM, OR_BYTE, OR_IMM, XOR_BYTE, XOR_IMM
- * - NOT_BYTE, SHL_BYTE, SHR_BYTE
+ * - NOT_BYTE, SHL_BYTE, SHR_BYTE, SHR_WORD
  *
  * @module codegen/generator/bitwise
  */
@@ -146,6 +146,44 @@ export class BitwiseOpsGenerator extends ArithmeticOpsGenerator {
   }
 
   // ==========================================================================
+  // SHR_WORD - Logical shift right for A:X word (16-bit)
+  // ==========================================================================
+
+  /**
+   * Generates code for SHR_WORD (16-bit logical shift right of A:X).
+   *
+   * Used for word division by power-of-2 constants (e.g., spriteAddr / 64).
+   * Each shift iteration uses the 6502 pattern:
+   *   PHA       ; save low byte (A) to stack
+   *   TXA       ; move high byte (X) → A
+   *   LSR       ; shift high byte right, bit 0 → carry
+   *   TAX       ; store shifted high byte back to X
+   *   PLA       ; restore low byte to A
+   *   ROR       ; rotate low byte right, carry → bit 7
+   *
+   * This correctly propagates bits from the high byte into the low byte
+   * across each shift, implementing unsigned 16-bit right shift.
+   *
+   * IL: SHR_WORD count
+   * 6502: (PHA / TXA / LSR / TAX / PLA / ROR) × count
+   */
+  protected genShrWord(instr: ILInstruction): void {
+    this.emitComment(instr);
+    const imm = this.getImmediateOperand(instr.operands);
+    const count = imm.value;
+
+    for (let i = 0; i < count; i++) {
+      this.asm.pha('save low byte');
+      this.asm.txa('high byte → A');
+      this.asm.lsr(undefined, 'accumulator');
+      this.asm.tax('shifted high → X');
+      this.asm.pla('restore low byte');
+      this.asm.ror(undefined, 'accumulator');
+    }
+    this.invalidateA();
+  }
+
+  // ==========================================================================
   // Dispatch Override
   // ==========================================================================
 
@@ -177,6 +215,9 @@ export class BitwiseOpsGenerator extends ArithmeticOpsGenerator {
         break;
       case ILOpcode.SHR_BYTE:
         this.genShrByte(instr);
+        break;
+      case ILOpcode.SHR_WORD:
+        this.genShrWord(instr);
         break;
       default:
         super.generateInstruction(instr);

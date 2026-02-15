@@ -76,6 +76,7 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   [ILOpcode.NOT_BYTE]: { cycles: 2, bytes: 2, memoryAccesses: 0 },
   [ILOpcode.SHL_BYTE]: { cycles: 4, bytes: 2, memoryAccesses: 0 }, // Per shift
   [ILOpcode.SHR_BYTE]: { cycles: 4, bytes: 2, memoryAccesses: 0 },
+  [ILOpcode.SHR_WORD]: { cycles: 12, bytes: 6, memoryAccesses: 0 }, // Per shift: PHA/TXA/LSR/TAX/PLA/ROR
 
   // Comparison operations
   [ILOpcode.CMP_BYTE]: { cycles: 3, bytes: 2, memoryAccesses: 1 },

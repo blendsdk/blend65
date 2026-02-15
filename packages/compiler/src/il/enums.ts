@@ -386,6 +386,20 @@ export enum ILOpcode {
    */
   SHR_BYTE = 'SHR_BYTE',
 
+  /**
+   * Logical shift right for word (16-bit) in A:X.
+   *
+   * Shifts the A:X register pair right by count positions.
+   * Used for word division by power-of-2 constants (e.g., spriteAddr / 64).
+   *
+   * Operands: [ImmediateOperand] (count)
+   * Effect: A:X ← A:X >> count (logical/unsigned shift)
+   * 6502 per shift: PHA / TXA / LSR / TAX / PLA / ROR
+   *   - LSR on high byte (X→A): shifts right, bit 0 → carry
+   *   - ROR on low byte (A): shifts right, carry → bit 7
+   */
+  SHR_WORD = 'SHR_WORD',
+
   // ══════════════════════════════════════════════════════════════════
   // COMPARISON OPERATIONS
   // ══════════════════════════════════════════════════════════════════

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-02-15 16:48
-> **Progress**: 5/16 tasks (31%)
+> **Last Updated**: 2025-02-15 18:21
+> **Progress**: 13/16 tasks (81%)
 
 ## Overview
 
@@ -159,14 +159,14 @@ This document defines the execution phases and AI chat sessions for implementati
 
 ### Phase 2: Bug #2 — Word Division
 
-- [ ] 2.1.1 Read generateBinary() and generateBinaryWordImmediate() dispatch
-- [ ] 2.1.2 Check existing word-shift builder primitives
-- [ ] 2.1.3 Add inferWordWidthFromExpression() helper
-- [ ] 2.1.4 Add word-width inference fallback in generateBinary()
-- [ ] 2.1.5 Add DIVIDE case to generateBinaryWordImmediate()
-- [ ] 2.1.6 Add/verify lsrWord builder primitive
-- [ ] 2.1.7 Add unit tests for word division
-- [ ] 2.1.8 Run ./compiler-test il — verify pass
+- [x] 2.1.1 Read generateBinary() and generateBinaryWordImmediate() dispatch ✅ (completed: 2025-02-15 18:04)
+- [x] 2.1.2 Check existing word-shift builder primitives ✅ (completed: 2025-02-15 18:05)
+- [x] 2.1.3 Add inferWordWidthFromExpression() helper ✅ (completed: 2025-02-15 18:09)
+- [x] 2.1.4 Add word-width inference fallback in generateBinary() ✅ (completed: 2025-02-15 18:10)
+- [x] 2.1.5 Add DIVIDE case to generateBinaryWordImmediate() ✅ (completed: 2025-02-15 18:11)
+- [x] 2.1.6 Add SHR_WORD opcode + shrWord() builder + codegen handler ✅ (completed: 2025-02-15 18:08)
+- [x] 2.1.7 Fix promotion bug + restrict inference to supported ops ✅ (completed: 2025-02-15 18:17)
+- [x] 2.1.8 Run ./compiler-test il — 8916/8919 pass ✅ (completed: 2025-02-15 18:21)
 
 ### Phase 3: Bug #3 — For-Loop Overflow
 

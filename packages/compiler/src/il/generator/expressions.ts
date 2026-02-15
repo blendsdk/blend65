@@ -137,6 +137,47 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     return expr instanceof UnaryExpression && expr.getOperator() === TokenType.AT;
   }
 
+  /**
+   * Infer whether an expression produces a word-width (16-bit) value
+   * by examining the source slot size.
+   *
+   * This is a fallback for when `expr.getTypeInfo()` returns undefined
+   * (which is the common case in production, since `setTypeInfo()` is
+   * not called during compilation). It checks if the expression is an
+   * identifier that resolves to a word-sized slot (size === 2).
+   *
+   * Used in `generateBinary()` to correctly route word-typed variable
+   * operations (e.g., `wordParam / 64`) to the word binary path instead
+   * of the byte path.
+   *
+   * @param expr - Expression to check
+   * @returns True if expression is an identifier with a word-sized slot
+   */
+  protected inferWordWidthFromExpression(expr: Expression): boolean {
+    if (isIdentifierExpression(expr)) {
+      const slot = this.tryResolveVariable((expr as IdentifierExpression).getName());
+      return slot !== undefined && slot.size === 2;
+    }
+    return false;
+  }
+
+  /**
+   * Return log2(value) if value is a power of 2, otherwise undefined.
+   *
+   * Used to convert division by a power-of-2 constant into a right
+   * shift (e.g., `x / 64` → `x >> 6`). Returns undefined for
+   * non-power-of-2 values or zero.
+   *
+   * @param value - The divisor to check
+   * @returns log2(value) if power-of-2, undefined otherwise
+   */
+  protected log2IfPowerOf2(value: number): number | undefined {
+    if (value <= 0 || (value & (value - 1)) !== 0) {
+      return undefined;
+    }
+    return Math.log2(value);
+  }
+
   // ═══════════════════════════════════════════════════════════════════
   // Literal Expression
   // ═══════════════════════════════════════════════════════════════════
@@ -444,12 +485,36 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       return;
     }
 
+    // Fallback word-width inference: when type info is unavailable
+    // (which is the common case in production since setTypeInfo() is
+    // not called), check if the LEFT operand is an identifier that
+    // resolves to a word-sized slot. This correctly routes expressions
+    // like `wordParam / 64` to the word binary path instead of the
+    // byte path (which would use 8-bit __div8).
+    //
+    // IMPORTANT: Only trigger for operators that have word-path support
+    // (PLUS, MINUS, DIVIDE, RIGHT_SHIFT, comparisons). For operators
+    // without word support (MULTIPLY, MODULO, bitwise), the byte path
+    // gives a better result than a NOP placeholder.
+    const op = expr.getOperator();
+    const hasWordSupport = op === TokenType.PLUS || op === TokenType.MINUS
+      || op === TokenType.DIVIDE || op === TokenType.RIGHT_SHIFT
+      || op === TokenType.EQUAL || op === TokenType.NOT_EQUAL
+      || op === TokenType.LESS_THAN || op === TokenType.LESS_EQUAL
+      || op === TokenType.GREATER_THAN || op === TokenType.GREATER_EQUAL;
+
+    if (!resultType && hasWordSupport && this.inferWordWidthFromExpression(expr.getLeft())) {
+      this.generateBinaryWord(expr);
+      this.clearLocation();
+      return;
+    }
+
     // Byte path (existing code — unchanged, zero regression risk)
     // Generate left operand first (result in A)
     this.generateExpression(expr.getLeft());
 
     const right = expr.getRight();
-    const op = expr.getOperator();
+    // Note: `op` already declared above for word-support check
 
     // Optimization: Check for immediate right operand
     if (isLiteralExpression(right)) {
@@ -513,9 +578,14 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // Generate left operand
     this.generateExpression(left);
 
-    // Promote left from byte to word if needed (byte A → word A:X via LDX #0)
+    // Promote left from byte to word if needed (byte A → word A:X via LDX #0).
+    // Skip promotion when: (a) type info says it's already word, OR
+    // (b) inference shows the left is a word-sized slot (already loaded
+    //     via LOAD_WORD which produces A:X). Adding LDX #0 would destroy X.
     const leftType = left.getTypeInfo();
-    if (!leftType || leftType.kind !== TypeKind.Word) {
+    const leftAlreadyWord = (leftType?.kind === TypeKind.Word)
+      || this.inferWordWidthFromExpression(left);
+    if (!leftAlreadyWord) {
       this.builder.promoteByteWord('byte→word left');
     }
 
@@ -582,6 +652,28 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
           this.builder.subWordImm(value, `word - ${value}`);
         }
         break;
+      case TokenType.DIVIDE:
+      case TokenType.RIGHT_SHIFT: {
+        // Word division/shift by a power-of-2 immediate is converted to
+        // SHR_WORD (16-bit logical shift right). This is the key fix for
+        // expressions like `spriteAddr / 64` where spriteAddr is a word
+        // parameter — previously this fell to the byte path and used 8-bit
+        // __div8, corrupting the high byte.
+        //
+        // For non-power-of-2 divisors, a 16-bit software divide would be
+        // needed (not yet implemented), so we emit NOP as a placeholder.
+        const shiftCount = op === TokenType.RIGHT_SHIFT
+          ? value  // >> N shifts by exactly N
+          : this.log2IfPowerOf2(value);  // / N → log2(N) shifts if power-of-2
+
+        if (shiftCount !== undefined && shiftCount > 0) {
+          this.builder.shrWord(shiftCount, `word ${op === TokenType.RIGHT_SHIFT ? '>>' : '/'} ${value}`);
+        } else {
+          // Non-power-of-2 division — no 16-bit __div16 runtime yet
+          this.builder.nop();
+        }
+        break;
+      }
       case TokenType.EQUAL:
       case TokenType.NOT_EQUAL:
       case TokenType.LESS_THAN:

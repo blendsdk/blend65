@@ -423,4 +423,20 @@ export class ILBuilderArithmetic extends ILBuilderMemory {
   shr(count: number, comment?: string): void {
     this.emit(ILOpcode.SHR_BYTE, [createImmediateOperand(count)], comment);
   }
+
+  /**
+   * Shift A:X word right by count (16-bit logical shift right).
+   *
+   * Used for word division by power-of-2 constants (e.g., spriteAddr / 64).
+   * Each shift step uses the 6502 pattern:
+   *   PHA / TXA / LSR / TAX / PLA / ROR
+   * which shifts the high byte right (bit 0 → carry), then rotates
+   * carry into the low byte's bit 7.
+   *
+   * @param count - Number of positions to shift right
+   * @param comment - Optional comment
+   */
+  shrWord(count: number, comment?: string): void {
+    this.emit(ILOpcode.SHR_WORD, [createImmediateOperand(count)], comment);
+  }
 }
