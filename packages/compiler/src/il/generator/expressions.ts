@@ -1459,12 +1459,14 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   /**
    * Generate argument passing for a regular function call.
    *
-   * Currently supports passing the first argument via A (byte) or A:X (word).
+   * 6502 calling convention:
+   * - args[0]: Passed via A (byte) or A:X (word) — callee prologue stores it.
+   * - args[1..N]: Generated into A, then stored to the callee's parameter
+   *   slots BEFORE args[0] is generated, so that args[0] remains in A at
+   *   the moment of the CALL (JSR).
+   *
    * If the callee's first parameter is word-typed but the argument expression
    * produces a byte value, a PROMOTE_BYTE_WORD is emitted to widen A → A:X.
-   *
-   * Additional arguments beyond the first are not yet supported (would require
-   * stack-based passing on the 6502).
    *
    * @param funcName - Name of the function being called
    * @param args - Call argument expressions
@@ -1474,7 +1476,34 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       return; // No arguments to pass
     }
 
-    // Generate the first argument expression — result lands in A (byte) or A:X (word)
+    const targetFrame = this.frameMap.get(funcName);
+
+    // Collect callee parameter slots in declaration order.
+    // These correspond 1:1 with the argument positions.
+    const paramSlots = targetFrame
+      ? targetFrame.slots.filter(s => s.kind === SlotKind.Parameter)
+      : [];
+
+    // Generate args[1..N] BEFORE args[0].
+    // Why? Because args[0] must remain in A (or A:X) at the CALL site.
+    // If we generated args[0] first and then args[1], generating the
+    // second argument would clobber A. By storing args[1..N] to their
+    // parameter slots first, A is free for args[0] at call time.
+    for (let i = 1; i < args.length; i++) {
+      if (i < paramSlots.length) {
+        // Generate the argument expression — result lands in A (or A:X)
+        this.generateExpression(args[i]);
+
+        // Store the result to the callee's parameter slot
+        if (paramSlots[i].size === 2) {
+          this.builder.storeSlotWord(paramSlots[i], `arg${i} → ${paramSlots[i].name}`);
+        } else {
+          this.builder.storeSlot(paramSlots[i], `arg${i} → ${paramSlots[i].name}`);
+        }
+      }
+    }
+
+    // Generate args[0] last — result stays in A (or A:X) for the CALL
     this.generateExpression(args[0]);
 
     // Check if the callee's first parameter is word-typed
@@ -1483,9 +1512,8 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // LOAD_ADDRESS already produces a full A:X word pair. Applying
     // PROMOTE_BYTE_WORD after LOAD_ADDRESS would destroy the high byte
     // (X register) by overwriting it with #$00.
-    const targetFrame = this.frameMap.get(funcName);
     if (targetFrame) {
-      const firstParam = targetFrame.slots.find(s => s.kind === SlotKind.Parameter);
+      const firstParam = paramSlots.length > 0 ? paramSlots[0] : undefined;
       if (firstParam && firstParam.size === 2 && !this.isWordTyped(args[0])) {
         // Only promote if the argument is NOT an address-of expression.
         // @variable already loads a full 16-bit address into A:X via LOAD_ADDRESS.

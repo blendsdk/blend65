@@ -1,439 +1,403 @@
-# Blend65 Compiler — Bug List
+# Blend65 Compiler Bug Catalog — Spinning Line Analysis
 
-> **Source**: Analysis of `examples/border-cycle/main.blend` generated assembly
-> **Created**: 2025-08-02
-> **Fixed this session**: Startup tail-call optimization (JSR/RTS → JMP), @zp unused variable warnings
+> **Date**: 2025-02-15
+> **Source**: `examples/spinning-line/main.blend`
+> **Method**: Compiled at O0, O1, O2, O3, Os, Oz — each ASM file manually analyzed
+> **Files**: `build/spinning-line-O{0,1,2,3,s,z}.asm`
 
 ---
 
-## Compiler Bugs
+## Summary
 
-### BUG-001: Double CMP destroys comparison flags (CRITICAL)
+| Level | Lines | Status |
+|-------|-------|--------|
+| O0    | 207   | Compiles, 3 core bugs → broken runtime |
+| O1    | 243   | Compiles, 3 core bugs + inlining leaves dead code |
+| O2    | 347   | Compiles, 3 core bugs + corrupted loop unrolling + ghost instructions |
+| O3    | 626   | Compiles, 3 core bugs + catastrophic unrolling + duplicate labels (won't assemble!) |
+| Os    | 206   | Same as O0 (no size optimizations applied) |
+| Oz    | 206   | Same as O0 |
 
-**Severity**: Critical — generates incorrect code
-**Component**: Code Generator (if-statement emission)
+**Total unique bugs found: 12**
 
-The compiler emits two consecutive `CMP` instructions for an `if (color > 15)` check,
-where the second `CMP` overwrites the CPU flags set by the first. This makes the
-branch condition test the wrong thing entirely.
+---
 
-**Generated assembly (broken):**
+## Category 1: Core Codegen Bugs (ALL optimization levels)
+
+### Bug C1: Missing multi-argument passing
+
+**Severity**: 🔴 CRITICAL
+**Present in**: O0, O1, O2, O3, Os, Oz (ALL)
+
+`generateCallArguments()` in `il/generator/expressions.ts` only handles `args[0]`.
+Second and subsequent arguments are completely ignored — never stored to their
+parameter slots before the function call.
+
+**Example**: `getSpriteFrame(@lineFrames, frame)` — the second arg `frame` is never passed.
+
+**ASM evidence** (all levels):
 ```asm
-  CMP #$0F        ; compare color > 15
-  CMP #$00        ; ← OVERWRITES flags from above!
-  BEQ .else2      ; now tests A == 0 instead of color > 15
-  LDA #$00
-  STA $02
-.else2
+; Only A:X loaded with first arg (spriteAddr), no code for frameIndex:
+  LDA #<__data_SpinningLine_lineFrames
+  LDX #>__data_SpinningLine_lineFrames
+  JSR getSpriteFrame
 ```
 
-**Expected assembly:**
-```asm
-  CMP #$10        ; compare color >= 16 (i.e. > 15)
-  BCC .else2      ; branch if carry clear (color < 16)
-  LDA #$00
-  STA $02
-.else2
-```
+**Expected**: Before the JSR, the second argument should be stored to frameIndex's slot.
 
-**Blend source triggering the bug:**
-```js
-if (color > 15) {
-    color = 0;
-}
-```
-
----
-
-### BUG-002: Redundant variable initialization before for-loop
-
-**Severity**: Low — generates correct but wasteful code
-**Component**: Code Generator / IL Generator
-
-When `let x: byte = 0` is followed by `for x = 0 to N`, the compiler generates
-two identical `LDA #0 / STA x` sequences. The first init is immediately overwritten
-by the for-loop's initialization.
-
-**Generated assembly (wasteful):**
-```asm
-  LDA #$00        ; let x: byte = 0
-  STA $02
-  ; ...
-  LDA #$00        ; for x = 0 to N (loop init)
-  STA $02
-```
-
-**Optimization**: The IL optimizer or code generator should detect when a variable
-is initialized and then immediately overwritten by a for-loop init, eliminating
-the first store.
-
----
-
-### BUG-003: Misleading compiler-generated comments
-
-**Severity**: Low — cosmetic, affects debugging
-**Component**: Code Generator (comment emission)
-
-Comments like `; A already has $02` can be misleading when the actual register
-state depends on the execution path taken. The comment suggests A contains the
-value of zero-page address `$02`, but this may not hold true after branches or
-other instructions modify A.
-
----
-
-### BUG-004: Duplicate labels across functions — ACME assembler rejects output
-
-**Severity**: Critical — generated .asm fails to assemble
-**Component**: Code Generator (label emission)
-
-The code generator resets its internal label counter per function. When multiple
-functions use the same control-flow constructs (e.g., `while` loops), they produce
-identical local labels (`.while0`, `.endwhile1`, etc.). Since ACME assembler treats
-all `.`-prefixed local labels in the same zone (`<untitled>`), the duplicate labels
-cause assembly errors.
-
-**Reproduction:**
-```bash
-./packages/cli/bin/blend65.js build ./examples/border-cycle/main.blend \
-  && acme -o ./build/color.prg -f cbm ./build/main.asm
-```
-
-**ACME error output:**
-```
-Error - File ./build/main.asm, line 112 (Zone <untitled>): Symbol already defined.
-Error - File ./build/main.asm, line 121 (Zone <untitled>): Symbol already defined.
-```
-
-**Generated assembly (broken) — labels collide between `test1` and `main`:**
-```asm
-; Function: test1
-test1:
-  ...
-.while0          ; ← first definition
-  ...
-.endwhile1       ; ← first definition
-  RTS
-
-; Function: main
-main:
-.while0          ; ← ERROR: duplicate of test1's .while0
-  ...
-.endwhile1       ; ← ERROR: duplicate of test1's .endwhile1
-  RTS
-```
-
-**Possible fixes (pick one):**
-1. **Global counter** — never reset the label counter between functions, so labels
-   are unique across the entire module (`.while0` in test1, `.while3` in main)
-2. **Scoped label prefix** — emit labels as `.<module>_<function>_<label>`
-   (e.g., `.BorderCycle_test1_while0`, `.BorderCycle_main_while3`)
-
-**Blend source triggering the bug:**
-```js
-// Both test1 and main contain while loops, producing duplicate .while0 labels
-fn test1() {
-    let color: byte = 0;
-    while (true) { ... }
-}
-
-fn main() {
-    while (true) { ... }
-}
-```
-
----
-
-### BUG-005: CLI -O1 shorthand doesn't work — requires -O O1 instead
-
-**Severity**: Medium — CLI usability issue
-**Component**: CLI (build command option parsing)
-
-The help text advertises `-O1`, `-O2`, `-Os`, `-Oz` style flags (GCC convention),
-but they don't actually work. The yargs option is defined with `choices: ['O0', 'O1', ...]`
-— so when you type `-O1`, yargs parses it as flag `-O` with value `1`, which fails
-validation because `1` is not in the choices list (`O1` is). The workaround `-O O1`
-works because the value is literally the string `O1`.
-
-**Reproduction:**
-```bash
-# This FAILS:
-blend65 build main.blend -O1
-
-# This works (but is awkward):
-blend65 build main.blend -O O1
-```
-
-**Root cause** (in `packages/cli/src/commands/build.ts`):
+**Root cause**: `generateCallArguments()` method at line ~590 of `expressions.ts`:
 ```typescript
-.option('optimization', {
-  alias: 'O',
-  type: 'string',
-  choices: ['O0', 'O1', 'O2', 'O3', 'Os', 'Oz'],  // ← includes 'O' prefix
-  default: 'O0',
-})
-```
-
-**Fix**: Remove the `O` prefix from choices and accept only the level:
-```typescript
-.option('optimization', {
-  alias: 'O',
-  type: 'string',
-  choices: ['0', '1', '2', '3', 's', 'z'],  // ← just the level
-  default: '0',
-})
-```
-Then in `buildConfig`, prepend `O` when constructing the config:
-```typescript
-optimization: ('O' + (args.optimization || '0')) as 'O0' | 'O1' | ...
-```
-
-This makes all forms work naturally: `-O1`, `-O 1`, `-Os`, `--optimization 2`.
-
----
-
-### BUG-006: CLI help doesn't explain what each optimization level does
-
-**Severity**: Low — usability / documentation gap
-**Component**: CLI (build command help text)
-
-The `--optimization` / `-O` option lists the choices `O0, O1, O2, O3, Os, Oz` but
-provides no description of what each level actually does. Users have no way to know
-the difference between levels without reading compiler source code.
-
-**Current help output:**
-```
--O, --optimization  Optimization level  [choices: "O0", "O1", "O2", "O3", "Os", "Oz"] [default: "O0"]
-```
-
-**Expected**: Each level should have a brief description, e.g.:
-- `O0` — No optimization (default, fastest compile)
-- `O1` — Basic optimizations (dead code, constant folding)
-- `O2` — Standard optimizations (O1 + peephole, register hints)
-- `O3` — Aggressive optimizations (O2 + inlining, loop transforms)
-- `Os` — Optimize for size (minimize code bytes)
-- `Oz` — Optimize aggressively for size
-
-**Fix**: Add a `describe` section or epilog to the build command help explaining
-each optimization level, or use yargs' `.epilog()` to add a reference table.
-
----
-
-### BUG-007: Duplicate --optimization flag crashes compiler
-
-**Severity**: Medium — internal compiler error from invalid CLI input
-**Component**: CLI (argument parsing) + Compiler (optimizer)
-
-Passing `--optimization` twice causes an internal compiler crash instead of a
-helpful error message. Yargs converts duplicate flags into an array, which the
-optimizer doesn't handle.
-
-**Reproduction:**
-```bash
-./packages/cli/bin/blend65.js build --optimization O1 --optimization Oz ./examples/border-cycle/main.blend
-```
-
-**Error output:**
-```
-error: Internal compiler error: LEVEL_PASSES[level] is not iterable
-  --> <internal>:1:1
-
-✗ Build failed with 1 error(s)
-```
-
-**Root cause**: When `--optimization` is specified twice, yargs produces an array
-`['O1', 'Oz']` instead of a string. The `buildConfig` function passes this array
-as-is to the compiler config. The optimizer then does `LEVEL_PASSES[['O1', 'Oz']]`
-which is `undefined`, and iterating `undefined` throws `is not iterable`.
-
-**Fix (two options):**
-1. **Last-wins** (GCC behavior) — in `buildConfig`, if `args.optimization` is an
-   array, take the last element: `Array.isArray(opt) ? opt[opt.length - 1] : opt`
-2. **Reject duplicates** — add yargs validation to disallow repeated `--optimization`
-
----
-
-## Optimizer Gaps (Missing Optimizations)
-
-### OPT-001: Dead Function Elimination missing — uncalled functions emitted in assembly
-
-**Severity**: High — wastes bytes in every program with unused functions
-**Component**: Optimizer (program-level DCE)
-**Discovered**: 2026-09-02 via `examples/border-cycle/main.blend` compiled with `-O1`
-
-The `speedy()` function is never called by any reachable code path, yet it is fully
-generated in the assembly output. With `-O1`, the optimizer should detect that `speedy()`
-is unreachable from `main()` and remove it entirely.
-
-**Root cause**: The current DCE pass (`optimizer/passes/dce.ts`) operates at the
-**instruction level within individual functions**. It removes dead stores and unreachable
-code within a function, but never asks: "Is this entire function unreachable?"
-
-The `ILOptimizer.optimizeProgram()` iterates over ALL functions and optimizes each
-individually — there is no program-level pass that can analyze cross-function relationships.
-
-**What's needed**: A `DeadFunctionElimination` program-level pass that:
-1. Builds a call graph (scan all CALL instructions across all functions)
-2. Finds the entry point (exported `main`)
-3. BFS/DFS from entry point to find all reachable functions
-4. Removes any `ILFunction` not in the reachable set from `program.functions`
-
-**Blocked by**: No program-level pass infrastructure (GAP-1) and no call graph analysis
-(GAP-2) in the optimizer. See `plans/optimizer-series/OPTIMIZER-ROADMAP.md` Known Gaps section.
-
-**Blend source:**
-```js
-// speedy() is NEVER called — should be eliminated
-function speedy(): void {
-    while (true) {
-        poke(BORDER_COLOR, peek(BORDER_COLOR)+1);
-    }
+protected generateCallArguments(funcName: string, args: Expression[]): void {
+    if (args.length === 0) return;
+    this.generateExpression(args[0]);
+    // ... promotion logic for first param only
+    // MISSING: args[1], args[2], etc. are never processed!
 }
 ```
 
-**Generated assembly (should not exist):**
+---
+
+### Bug C2: Constant identifier not resolved in if-condition comparison
+
+**Severity**: 🔴 CRITICAL
+**Present in**: O0, O1, O2, O3, Os, Oz (ALL)
+
+When `if (frame == NUM_FRAMES)` is compiled, the condition handler
+(`generateConditionWithBranch()` in `control-flow.ts`) resolves the right-hand
+identifier `NUM_FRAMES` via `tryResolveVariable()` which returns a slot with
+address `$FFFF` instead of recognizing it as a compile-time constant with value 4.
+
+**ASM evidence** (all levels):
 ```asm
-speedy:
-.while7
-  LDA $D020
+; compare
+  CMP $FFFF       ; ← WRONG! Should be CMP #$04
+; skip if not equal
+  BNE .else7
+```
+
+`CMP $FFFF` reads from memory address $FFFF (ROM area on C64) instead of
+comparing with the immediate value 4. Frame never equals whatever is at $FFFF,
+so the reset `frame = 0` never executes — frame wraps 0→255 endlessly.
+
+**Expected**: `CMP #$04` (immediate comparison with const value)
+
+**Root cause**: `generateConditionWithBranch()` checks for literal right operands
+and slot right operands, but NEVER checks for constant identifiers (like
+`tryResolveConstantIdentifier()` does in `generateBinary()`). The constant
+resolution path is missing from the condition handler.
+
+---
+
+### Bug C3: Function reads wrong ZP address for second parameter
+
+**Severity**: 🔴 CRITICAL (consequence of C1)
+**Present in**: O0, O1, O2, O3, Os, Oz (ALL)
+
+Inside `getSpriteFrame()`, the `lo()` result is added via `ADC $02` — reading
+from zero-page address $02 which is the C64 processor I/O direction register,
+NOT the `frameIndex` parameter.
+
+**ASM evidence**:
+```asm
+; lo(value)
   CLC
-  ADC #$01
-  STA $D020
-  JMP .while7
-.endwhile8
+  ADC $02        ; ← Reads from ZP $02 (processor port!) not frameIndex
+; return value
   RTS
 ```
 
+The frame allocator assigned `frameIndex` to slot address $02, but since
+the caller never stores the argument there (Bug C1), $02 contains whatever
+the C64 boot sequence left there (typically $37 or $FF).
+
+**Impact**: `getSpriteFrame()` always returns the same value regardless of
+which frame is requested. The sprite never visually changes.
+
 ---
 
-### OPT-002: Single-call-site function inlining missing — JSR/RTS overhead for functions called once
+## Category 2: Inlining Bugs (O1, O2, O3)
 
-**Severity**: High — wastes 12 cycles per call on 1 MHz 6502
-**Component**: Optimizer (function inlining)
-**Discovered**: 2026-09-02 via `examples/border-cycle/main.blend` compiled with `-O1`
+### Bug I1: Inlined functions still emitted as dead code
 
-The `delay()` function is called from exactly **one place** (inside `main()`'s while loop).
-Instead of generating a separate `delay:` label with `JSR delay` / `RTS`, the function body
-should be inlined directly into the call site. This saves:
-- 6 cycles for `JSR` (3 bytes)
-- 6 cycles for `RTS` (1 byte)
-- = 12 cycles and 4 bytes per call
+**Severity**: 🟡 MEDIUM
+**Present in**: O1, O2, O3
 
-Single-call-site inlining is **always profitable** because:
-- No code size increase (function body moves, doesn't duplicate)
-- Saves JSR/RTS overhead
-- Enables further optimizations (optimizer can see full loop context)
+When a function is inlined at all call sites, the original function body is
+still emitted in the assembly output. On a memory-constrained C64 (64KB total),
+this wastes precious bytes.
 
-**Blocked by**: No call graph analysis (GAP-2) in the optimizer. The optimizer needs to
-know how many times each function is called to make inlining decisions.
-See `plans/optimizer-series/OPTIMIZER-ROADMAP.md` Known Gaps section.
-
-**Current assembly (with JSR overhead):**
+**ASM evidence** (O1 — delay inlined but original still present):
 ```asm
-main:
-  ...
-  JSR delay        ; 6 cycles, 3 bytes
-  ...
-
-delay:
-  ...nested loops...
-  RTS              ; 6 cycles, 1 byte
-```
-
-**Expected assembly (inlined):**
-```asm
-main:
-  ...
-  ; --- delay body inlined here ---
+; In main: [inlined from delay] ... (correct, inlined code)
+; ...
+; ALSO emitted:
+delay:                  ; ← Dead code! Never called.
   LDA #$00
-  STA $03
-.for3
-  ...nested loops...
-.endfor4
-  ; --- end inlined delay ---
+  STA $04
   ...
+  RTS
 ```
 
----
-
-## Design Issues (Not Bugs)
-
-### DESIGN-001: Zero-page variable allocation uses unsafe addresses
-
-**Severity**: Medium — can cause intermittent corruption on real C64
-**Component**: Frame Allocator / ZP allocation
-
-The compiler allocates `@zp` variables starting at addresses like `$02`, `$03`, `$04`.
-These are in the KERNAL/BASIC workspace area and may be clobbered by the default
-IRQ handler or ROM routines.
-
-**Recommendation**: Allocate user ZP variables from safer ranges like `$FB–$FE`
-(commonly free on stock C64) or allow configuration of the ZP allocation range.
+**Expected**: When a function is fully inlined at all call sites, the original
+function body should be eliminated (dead function elimination).
 
 ---
 
-### DESIGN-003: Unnecessary JMP main — emit main() first after BASIC stub
+### Bug I2: Redundant JMP to next instruction after inline return
 
-**Severity**: Low — wastes 3 bytes and 3 cycles
-**Component**: Code Generator (function ordering / startup emission)
+**Severity**: 🟢 LOW (wastes 3 bytes per inline site)
+**Present in**: O1, O2, O3
 
-The compiler emits all functions in source order, then generates a `JMP main`
-startup section to reach the entry point. This is unnecessary — if the compiler
-simply emits `main()` first (immediately after the BASIC stub), execution falls
-through naturally from `SYS 2064` into `main`'s first instruction.
+Inlined `return` statements generate a `JMP ._inline_XXX_cont` immediately
+before the continuation label, which is the very next instruction.
 
-**Current generated assembly (wasteful):**
+**ASM evidence**:
 ```asm
-  *= $0810 ; Code start
-
-; Program Startup
-  JMP main          ; ← 3 bytes wasted
-
-; Function: test1
-test1:
-  ...
-
-; Function: main
-main:               ; ← main is buried after other functions
-  ...
+; [inlined return → jump to continuation]
+  JMP ._inline_delay_0_cont      ; ← 3-byte JMP to next line
+._inline_delay_0_cont             ; ← literally the next instruction
 ```
 
-**Desired generated assembly:**
+**Expected**: The JMP should be elided when the continuation label immediately
+follows (peephole: `JMP label` where label is next instruction → NOP).
+
+---
+
+### Bug I3: Ghost instructions after getSpriteFrame inline
+
+**Severity**: 🟠 HIGH (corrupts accumulator)
+**Present in**: O2, O3
+
+After the first `getSpriteFrame` inline (the initial setup before the while
+loop), there are orphan `CLC; ADC $02` instructions that appear between the
+`STA $06` (let frame = 0) and the `.while5` label.
+
+**ASM evidence** (O2, O3):
 ```asm
-  *= $0810 ; Code start
-
-; Function: main
-main:               ; ← emitted FIRST, no jump needed
-  ...
-
-; Function: test1
-test1:
-  ...
+; let frame
+  STA $06
+  CLC                ; ← Ghost instruction! From where?
+  ADC $02            ; ← Ghost instruction! Corrupts A
+.while5
 ```
 
-**Fix**: In the code generator, detect which function is `main()` and emit it
-first in the code section. All other functions follow after. This eliminates the
-startup section entirely — the BASIC `SYS 2064` entry point lands directly on
-`main`'s first instruction.
+These instructions execute but their result is overwritten by the next
+load — so they're "harmless" in this case but indicate a serious inlining
+bug that could corrupt results in other programs.
+
+**Root cause**: Likely a second-argument generation that fires too late
+(after the inline has already completed), or duplicate IL instructions
+from the inline expansion.
 
 ---
 
-### DESIGN-002: Delay loop is CPU-speed dependent
+### Bug I4: Missing CLC in second getSpriteFrame inline
 
-**Severity**: Low — design limitation, not a bug
-**Component**: N/A (user code pattern)
+**Severity**: 🟠 HIGH (wrong arithmetic result)
+**Present in**: O2, O3
 
-Nested busy-loop delays are inherently tied to CPU clock speed and differ between
-PAL/NTSC C64 variants. This is a known limitation of the approach — proper timing
-should use the jiffy clock (`$A2`) or CIA timers.
+The second inline of `getSpriteFrame` (inside the while loop) drops the `CLC`
+instruction before the `ADC` in the `lo()` intrinsic. The comment is present
+but the instruction is optimized away.
 
-Not a compiler issue, but worth noting for future standard library design
-(e.g., a `delay_ms()` intrinsic using hardware timers).
+**ASM evidence** (O2):
+```asm
+; [inlined from getSpriteFrame] lo(value)
+; ← MISSING: CLC should be here!
+; [inlined return] ...
+  JMP ._inline_getSpriteFrame_1_cont
+```
+
+Without `CLC`, the `ADC` may add with carry from a previous operation,
+producing an off-by-one (or more) error in the sprite pointer.
+
+**Root cause**: An optimizer pass is removing the CLC, probably because it
+doesn't understand that the carry flag is significant before ADC.
 
 ---
 
-## Resolved Issues
+## Category 3: Loop Optimization Bugs (O2, O3)
 
-| ID | Description | Resolution | Date |
-|----|-------------|------------|------|
-| ~~FIX-001~~ | Startup uses JSR/RTS instead of JMP | Changed to `JMP main` | 2025-08-02 |
-| ~~FIX-002~~ | @zp unused variables not warned with `_` prefix | Added ZP metadata check | 2025-08-02 |
+### Bug L1: Corrupted loop unrolling — triple increment per iteration
+
+**Severity**: 🔴 CRITICAL
+**Present in**: O2 (delay function body), O3 (delay function body)
+
+The inner loop `for (_j = 0 to 255)` is partially unrolled but produces
+3 increments per logical iteration instead of 1:
+
+**ASM evidence** (O2 delay function):
+```asm
+._inline_delay_2_for2             ; or .for2 in dead code
+; barrier()
+.for_cont4
+; barrier()                        ; ← duplicate barrier
+.for_cont4                         ; ← duplicate label
+; check _j before increment
+  LDA $05
+  CMP #$FF
+; _j++
+  INC $05                          ; ← increment 1
+; _j++
+  INC $05                          ; ← increment 2 (WRONG!)
+; check _j before increment
+; exit threshold (256 - step)
+  CMP #$FF                         ; ← stale flags (from OLD CMP)
+  BCS .endfor3
+; _j++
+  INC $05                          ; ← increment 3 (WRONG!)
+  JMP .for2
+```
+
+**Impact**: Loop counter jumps by 3 each iteration (0, 3, 6, 9...) instead
+of by 1. Only ~85 iterations instead of 256. Delay is ~3x shorter than intended.
+
+The `BCS` check also uses stale flags — the CMP #$FF result is from the first
+check, but `INC $05` (which modifies N/Z flags) executes between the CMP and BCS.
+
+---
+
+### Bug L2: Duplicate labels from outer loop unrolling
+
+**Severity**: 🔴 CRITICAL (assembly won't assemble!)
+**Present in**: O3
+
+The outer for loop (i=0 to 5) is unrolled 6 times in O3. Each unrolled
+copy reuses the same labels (`.for2`, `.for_cont4`, `.endfor3`).
+
+**ASM evidence** (O3 delay function — labels appear 6+ times):
+```asm
+.for2         ; ← first occurrence
+; ...
+.for2         ; ← DUPLICATE! ACME will error
+; ...
+.for2         ; ← TRIPLE! 
+```
+
+**Impact**: The ACME assembler will refuse to assemble this code (duplicate
+label error), OR silently use the last definition, causing all `JMP .for2`
+instructions to jump to the wrong location (last copy only).
+
+---
+
+### Bug L3: Outer loop unrolled without exit conditions
+
+**Severity**: 🟠 HIGH
+**Present in**: O3
+
+The outer loop `for (_i = 0 to 5)` is unrolled into 6 sequential copies,
+but the exit conditions (`CMP #$06; BCS .endfor1`) are removed. The `CMP #$06`
+appears but has no following branch — the result is ignored.
+
+**ASM evidence** (O3):
+```asm
+; load _i (propagated constant)
+  LDA #$00
+; cmp with end+1
+  CMP #$06          ; ← result ignored! No BCS follows
+; _j = start
+  STA $05           ; ← falls straight through into inner loop
+```
+
+**Impact**: In this specific case, the 6 unrolled copies are exactly the right
+number of iterations, so the behavior is accidentally correct. But the missing
+exit branch means the unroller isn't correctly preserving loop semantics.
+
+---
+
+## Category 4: Optimizer Correctness Issues (O2, O3)
+
+### Bug O1: barrier() intrinsic not respected by loop unroller
+
+**Severity**: 🔴 CRITICAL
+**Present in**: O2, O3
+
+The `barrier()` intrinsic is documented to prevent optimization across its
+boundary. However, the loop unroller ignores `barrier()` and merges multiple
+iterations containing it.
+
+**ASM evidence** (O2 — barriers duplicated/merged):
+```asm
+; barrier()
+.for_cont4
+; barrier()            ; ← second barrier merged into same unrolled block
+.for_cont4
+```
+
+**Expected**: `barrier()` should prevent the unroller from combining loop
+iterations. The loop body is `{ barrier(); }` — the optimizer should leave
+this loop completely alone.
+
+---
+
+### Bug O2: INC clobbers CPU flags used by subsequent BCS
+
+**Severity**: 🔴 CRITICAL
+**Present in**: O2, O3
+
+In the unrolled loop, `INC $05` executes between `CMP #$FF` and `BCS .endfor3`.
+The `INC` instruction modifies the N and Z flags, overwriting the flags set by
+CMP. The `BCS` then checks the carry flag from CMP (which INC doesn't affect
+on 6502), so BCS still works correctly — BUT the intervening code suggests the
+optimizer doesn't understand 6502 flag semantics and is reordering dangerously.
+
+**ASM evidence**:
+```asm
+  CMP #$FF                ; sets C, N, Z flags
+; _j++
+  INC $05                  ; modifies N, Z (not C)
+; _j++
+  INC $05                  ; modifies N, Z (not C) 
+; exit threshold
+  CMP #$FF                 ; ← this CMP uses CURRENT A, not the value after INC!
+  BCS .endfor3             ; uses flags from second CMP, not first
+```
+
+The second `CMP #$FF` compares the OLD value of A (loaded before the INCs)
+against $FF. But `_j` has already been incremented twice, so the check is
+testing a stale value. The exit condition is wrong.
+
+---
+
+## Cross-Level Bug Matrix
+
+| Bug ID | Description | O0 | O1 | O2 | O3 | Os | Oz |
+|--------|-------------|:--:|:--:|:--:|:--:|:--:|:--:|
+| **C1** | Missing multi-arg passing | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **C2** | Const not resolved in if-condition | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **C3** | ADC reads wrong ZP (consequence of C1) | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| **I1** | Inlined functions not removed | — | ✗ | ✗ | ✗ | — | — |
+| **I2** | Redundant JMP to next instruction | — | ✗ | ✗ | ✗ | — | — |
+| **I3** | Ghost instructions after inline | — | — | ✗ | ✗ | — | — |
+| **I4** | Missing CLC in inlined code | — | — | ✗ | ✗ | — | — |
+| **L1** | Triple increment (corrupted unroll) | — | — | ✗ | ✗ | — | — |
+| **L2** | Duplicate labels from unrolling | — | — | — | ✗ | — | — |
+| **L3** | Outer loop unrolled without exits | — | — | — | ✗ | — | — |
+| **O1** | barrier() not respected by unroller | — | — | ✗ | ✗ | — | — |
+| **O2** | Stale CMP in reordered code | — | — | ✗ | ✗ | — | — |
+
+**Legend**: ✗ = bug present, — = not applicable
+
+---
+
+## Priority Order for Fixes
+
+### P0 — Core (fix first, affects ALL levels)
+1. **C1**: Multi-argument passing
+2. **C2**: Constant resolution in conditions
+3. **C3**: Resolves automatically when C1 is fixed
+
+### P1 — Optimizer Correctness (fix second, O2/O3 produce wrong code)
+4. **O1**: barrier() must block loop unrolling
+5. **L1**: Loop unrolling logic is fundamentally broken
+6. **O2**: Flag-aware instruction reordering
+
+### P2 — Inlining Correctness (fix third)
+7. **I3**: Ghost instructions from inlining
+8. **I4**: CLC dropped by optimizer
+9. **I1**: Dead function elimination after inlining
+
+### P3 — Code Quality (fix last)
+10. **I2**: Redundant JMP elimination
+11. **L2**: Unique label generation for unrolled loops
+12. **L3**: Exit condition preservation in unrolling

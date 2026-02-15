@@ -201,17 +201,26 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
             // Complex comparison needs CMP_BYTE
           }
         } else if (isIdentifierExpression(right)) {
-          // Identifier right operand — use slot comparison
-          const identRight = right as IdentifierExpression;
-          const slot = this.tryResolveVariable(identRight.getName());
-          if (slot) {
-            this.builder.cmpSlot(slot, 'compare');
+          // Check for constant identifier first (e.g., NUM_FRAMES = 4).
+          // Constants should resolve to immediate CMP, not slot CMP.
+          // This mirrors the pattern in generateBinary() where constant
+          // identifiers are inlined as immediates.
+          const constValue = this.tryResolveConstantIdentifier(right);
+          if (constValue !== undefined) {
+            this.builder.cmpImm(constValue, 'compare with const');
           } else {
-            // Variable not found — fallback to generic pattern
-            this.generateExpression(condition);
-            this.builder.cmpImm(0, 'condition (fallback)');
-            this.builder.jumpEq(skipLabel, 'skip if false');
-            return true;
+            // Mutable variable — use slot comparison
+            const identRight = right as IdentifierExpression;
+            const slot = this.tryResolveVariable(identRight.getName());
+            if (slot) {
+              this.builder.cmpSlot(slot, 'compare');
+            } else {
+              // Variable not found — fallback to generic pattern
+              this.generateExpression(condition);
+              this.builder.cmpImm(0, 'condition (fallback)');
+              this.builder.jumpEq(skipLabel, 'skip if false');
+              return true;
+            }
           }
         } else {
           // Complex right operand — fallback to generic pattern
