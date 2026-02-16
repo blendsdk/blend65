@@ -190,14 +190,16 @@ const LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   // No optimization - skip all passes
   O0: [],
 
-  // Basic optimizations - safe, fast, high-impact
-  O1: ['dce', 'constant-fold'],
+  // Basic optimizations - safe, fast, high-impact.
+  // il-peephole is included to clean up store/reload patterns after inlining
+  // (inlining happens at program level for O1, peephole cleans up per-function).
+  O1: ['dce', 'constant-fold', 'il-peephole'],
 
-  // Basic + size - same as O1 (no loop-unroll to remove at this level)
-  O1s: ['dce', 'constant-fold'],
+  // Basic + size - includes il-peephole for post-inline cleanup
+  O1s: ['dce', 'constant-fold', 'il-peephole'],
 
   // Basic + min-size - same passes as O1s but with iterations
-  O1z: ['dce', 'constant-fold'],
+  O1z: ['dce', 'constant-fold', 'il-peephole'],
 
   // Standard optimizations - all passes, single iteration
   O2: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm', 'loop-unroll'],

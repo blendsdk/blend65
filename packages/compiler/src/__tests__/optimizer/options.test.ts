@@ -61,7 +61,8 @@ describe('getPassesForLevel', () => {
     const passes = getPassesForLevel('O1');
     expect(passes).toContain('dce');
     expect(passes).toContain('constant-fold');
-    expect(passes).toHaveLength(2);
+    expect(passes).toContain('il-peephole');
+    expect(passes).toHaveLength(3);
   });
 
   it('should return all passes for O2', () => {
@@ -116,14 +117,16 @@ describe('getPassesForLevel', () => {
     const passes = getPassesForLevel('O1s');
     expect(passes).toContain('dce');
     expect(passes).toContain('constant-fold');
-    expect(passes).toHaveLength(2);
+    expect(passes).toContain('il-peephole');
+    expect(passes).toHaveLength(3);
   });
 
   it('should return basic passes for O1z (same as O1)', () => {
     const passes = getPassesForLevel('O1z');
     expect(passes).toContain('dce');
     expect(passes).toContain('constant-fold');
-    expect(passes).toHaveLength(2);
+    expect(passes).toContain('il-peephole');
+    expect(passes).toHaveLength(3);
   });
 
   it('should return O3-level passes minus loop-unroll for O3s', () => {
@@ -329,7 +332,7 @@ describe('resolveEnabledPasses', () => {
   it('should handle disabling all passes', () => {
     const passes = resolveEnabledPasses({
       level: 'O1',
-      disabledPasses: ['dce', 'constant-fold'],
+      disabledPasses: ['dce', 'constant-fold', 'il-peephole'],
     });
     expect(passes).toEqual([]);
   });

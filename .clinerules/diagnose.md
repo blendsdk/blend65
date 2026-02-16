@@ -118,6 +118,50 @@ Review the PRG sizes in the summary:
 - **Size of 0** → compilation or assembly failure
 - **All sizes identical** across O0–O3 → optimizer may not be running
 
+### **3.4 Detect Size Regressions (CRITICAL)**
+
+**🚨 An optimized level producing LARGER code than O0 is ALWAYS a bug.**
+
+Compare every level's PRG size against O0 (the unoptimized baseline):
+
+| Condition | Classification |
+|-----------|----------------|
+| O1/O2/O3 PRG > O0 PRG | **Size regression** — optimization made code larger |
+| Os/Oz PRG > O0 PRG | **Critical size regression** — size-focused level is LARGER than no-opt |
+| O3 PRG > O2 PRG | Possible over-inlining or failed constant folding |
+| Os PRG > O1 PRG | Pipeline gating issue — size level missing optimizations |
+
+**Example:** If O0 = 449 bytes but O2 = 513 bytes, that's a **64-byte size regression**. O2 is making the code WORSE. This typically means inlining duplicated expensive code without the follow-up optimization (e.g., constant folding, address-expr folding) that would shrink it.
+
+**Report every size regression as a `MISSOPT` or `REG` bug.**
+
+### **3.5 Build Cross-Level Behavior Summary Table**
+
+Create a table tracking WHAT each optimization level does differently. This is the most powerful diagnostic tool for understanding optimization pipeline issues.
+
+**Template:**
+
+```markdown
+| Level | PRG Size | Delta vs O0 | Inlined Functions | Key Optimizations Applied | Notable Behavior |
+|-------|----------|-------------|-------------------|---------------------------|------------------|
+| O0    | XXX B    | baseline    | none              | none                      | ... |
+| O1    | XXX B    | +/-N B     | func1             | ...                       | ... |
+| O2    | XXX B    | +/-N B     | func1, func2      | ...                       | ... |
+| O3    | XXX B    | +/-N B     | func1, func2      | const-fold, addr-expr     | ... |
+| Os    | XXX B    | +/-N B     | none              | modulo-bitmask            | ... |
+| Oz    | XXX B    | +/-N B     | none              | modulo-bitmask            | ... |
+```
+
+**How to fill this table:**
+1. Check for `[inlined from ...]` comments in assembly → which functions are inlined
+2. Check for `(address expr folded ...)` comments → address-expr folding applied
+3. Check for `AND #$XX` after increment → modulo bitmask optimization
+4. Check for `JSR` vs inline code → function call vs inlined
+5. Check for shift chains vs constant immediates → strength reduction applied
+6. Note any other optimization-specific assembly patterns
+
+**This table immediately reveals pipeline gating problems** — e.g., when Os/Oz should benefit from an optimization that only O3 applies.
+
 ---
 
 ## **Phase 4: Investigate Failures**
@@ -280,6 +324,138 @@ For each pattern found, report it as a separate bug with:
 - **Evidence**: The exact assembly snippet showing the redundancy
 - **Wasted Resources**: Bytes wasted + cycles wasted per occurrence
 - **Location in Hot Path**: Is this inside a loop? (affects real-world impact)
+
+### **4.6 Codegen Strategy Audit (MANDATORY)**
+
+**🚨 Beyond individual redundant patterns, audit the overall CODE GENERATION STRATEGY for each major operation.** A codegen strategy can be correct but grossly suboptimal — producing the right result with far more instructions than necessary.
+
+#### **16-Bit Shift Lowering (SHR_WORD)**
+
+The compiler generates `SHR_WORD(N)` for word division by power-of-2. Check the lowering strategy:
+
+**Current generic pattern (PHA/TXA/LSR/TAX/PLA/ROR × N):**
+```asm
+; SHR_WORD 6 — current: 36 bytes, ~90 cycles
+  PHA / TXA / LSR / TAX / PLA / ROR   ; ×6 rounds
+```
+
+**This is a `STRATEGY` bug when a better lowering exists.** For example:
+- **N ≥ 8**: Should use `TXA + LSR × (N-8)` (move high byte to A, shift remaining)
+- **N = 3-7 with LO applied**: Should use the **shift-left technique**: `lo(value >> N) = hi(value << (8-N))`, which costs only `2 + 2×(8-N)` instructions instead of `6×N`
+- **Constant address inputs**: Should fold to compile-time constant (e.g., `LDA #(addr >> 6)`)
+
+**Audit checklist for shift operations:**
+- [ ] Is the shift count known at compile time?
+- [ ] Is the input a constant or symbol address?
+- [ ] Is `lo()` applied after the shift? (enables shift-left optimization)
+- [ ] Could the result be folded to a single immediate load?
+- [ ] Is the shift-right count ≥ 8? (enables byte-move optimization)
+
+#### **Busy-Wait Loop Detection**
+
+Check for loop bodies with NO side effects (no memory stores, no I/O) used as delays:
+
+```asm
+; Busy-wait pattern — could use DEX/DEY canonical delay
+.loop:
+  LDA $05        ; load counter
+  CMP #$FF       ; compare
+  BCS .exit      ; exit if done
+  INC $05        ; increment
+  JMP .loop      ; loop back
+```
+
+**Canonical 6502 delay loops use `DEX/BNE` or `DEY/BNE`** — they are smaller (2-4 bytes per loop level vs 8-10 bytes) and faster per iteration. If a loop body contains only `barrier()` calls and no other side effects, classify this as a `MISSOPT` for delay canonicalization.
+
+#### **Constant Address Operations**
+
+When an operation takes a **compile-time symbol address** as input (e.g., `@spriteData`), the compiler should constant-fold the operation at compile time rather than emitting runtime computation:
+
+```asm
+; BAD: Runtime divide of constant address
+  LDA #<__data_label    ; load address low byte
+  LDX #>__data_label    ; load address high byte
+  ; ... 36 bytes of runtime shift code ...
+
+; GOOD: Compile-time fold
+  LDA #(__data_label >> 6)   ; single immediate — computed by assembler
+```
+
+**If a constant address is passed through a runtime operation that could be folded, report as `MISSOPT`.**
+
+### **4.7 Optimization Pipeline Gating Analysis**
+
+**🚨 When an optimization fires at one level but NOT at another where it should, investigate WHY.**
+
+This analysis identifies **pipeline gating problems** — situations where an optimization is blocked because a prerequisite pass doesn't run at certain levels.
+
+#### **Step 1: Read the Optimizer Configuration**
+
+```
+Read: packages/compiler/src/optimizer/options.ts
+```
+
+Review `PROGRAM_LEVEL_PASSES` and `LEVEL_PASSES` for each optimization level. Create a matrix:
+
+```markdown
+| Pass | O0 | O1 | O1s | O1z | O2 | Os | Oz | O3 | O3s | O3z |
+|------|----|----|-----|-----|----|----|----|----|----|-----|
+| dead-function-elim | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| function-inline | ❌ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| il-peephole | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ... | | | | | | | | | | |
+```
+
+#### **Step 2: Identify Gating Chains**
+
+Some optimizations depend on others running first. Common gating chains:
+
+```
+function-inline → address-expr-folding (in il-peephole)
+                  ↑ folding can only fire if LOAD_ADDRESS + SHR_WORD + LO
+                    appear in the same function (requires inlining first)
+
+function-inline → constant-prop → dead-code-elimination
+                  ↑ inlined constants can enable further propagation
+```
+
+**If a level has `il-peephole` but NOT `function-inline`, the address-expr folding pattern will never appear in the IL — the peephole pass will have nothing to fold.** This is a pipeline gating problem.
+
+#### **Step 3: Classify Gating Issues**
+
+| Gating Pattern | Impact | Fix Strategy |
+|----------------|--------|-------------|
+| Size level skips inlining → misses folding that REDUCES size | Size regression | Enable profitable-only inlining at size levels |
+| No constant-prop after inlining → missed constant elimination | Redundant code | Ensure constant-prop runs after inlining |
+| No DCE after constant-prop → dead stores remain | Wasted bytes | Add DCE pass after constant-prop |
+
+**Report each gating issue as a `MISSOPT` bug with the specific pipeline dependency that is broken.**
+
+### **4.8 Strength Reduction & Algebraic Rewrite Audit**
+
+**Check for algebraic simplifications the compiler should apply but doesn't.**
+
+#### **Common 6502 Algebraic Rewrites**
+
+| Pattern | Rewrite | Savings |
+|---------|---------|---------|
+| `x / 2^N` | `x >> N` | Avoids division subroutine |
+| `lo(addr >> N)` where addr is constant | `#(addr >> N)` | Eliminates runtime shift entirely |
+| `(base + 64*i) >> 6` | `(base >> 6) + i` | Distributive law — eliminates multiply |
+| `x % 2^N` | `x AND (2^N - 1)` | Bitmask instead of modulo |
+| `x * 2^N` | `x << N` | Shift instead of multiply |
+| `if (x == N) { x = 0; }` where N is power-of-2 | `x AND (N-1)` | Branchless wrap |
+| `x + 0` | `x` | Identity elimination |
+| `x * 1` | `x` | Identity elimination |
+
+#### **How to Audit**
+
+For each function in the assembly output:
+1. **Identify the high-level operation** from source/debug comments
+2. **Check if the compiler applied the best algebraic form**
+3. **Report missed rewrites** as `MISSOPT` with the before/after transformation
+
+**Example:** If source has `lo(spriteAddr / 64) + frameIndex` and the compiler emits a full 16-bit runtime divide instead of `LDA #(addr >> 6); ADC frameIndex`, that is a missed algebraic rewrite.
 
 ---
 
