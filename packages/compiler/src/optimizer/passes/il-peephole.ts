@@ -9,6 +9,7 @@
  * - Strength reduction: Replace expensive operations with cheaper ones
  * - Load-store elimination: Remove redundant load/store pairs
  * - Redundant jump elimination: Remove JUMP to immediately following LABEL
+ * - Modulo-to-bitmask: Replace counter-wrap-at-power-of-2 with AND
  *
  * @module optimizer/passes/il-peephole
  */
@@ -66,6 +67,7 @@ export class ILPeepholePass implements OptimizationPass {
    * 2. Strength reduction (replaces expensive ops with cheaper)
    * 3. Load-store elimination (removes redundant pairs)
    * 4. Redundant jump elimination (removes JUMP to next instruction)
+   * 5. Modulo-to-bitmask (replaces counter-wrap with AND)
    *
    * @param func - IL function to optimize (modified in place)
    * @param options - Optimization options
@@ -79,6 +81,7 @@ export class ILPeepholePass implements OptimizationPass {
     results.push(this.strengthReduction(func, options));
     results.push(this.loadStoreElimination(func, options));
     results.push(this.redundantJumpElimination(func, options));
+    results.push(this.moduloToBitmask(func, options));
 
     return mergeResults(results);
   }
@@ -675,6 +678,185 @@ export class ILPeepholePass implements OptimizationPass {
   }
 
   // ═══════════════════════════════════════════════════════════════════
+  // Pattern 5: Modulo-to-Bitmask (Counter Wrap Optimization)
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Replace counter-wrap-at-power-of-2 patterns with AND bitmask.
+   *
+   * Detects the 7-instruction "counter wrap" pattern commonly generated
+   * for circular buffer indices and animation frame counters:
+   *
+   * ```
+   * ADD_IMM 1            ; increment counter
+   * STORE_BYTE slot      ; store result
+   * CMP_IMM N            ; compare with limit N
+   * JUMP_NE skip_label   ; if counter != N, skip reset
+   * LOAD_IMM 0           ; load zero
+   * STORE_BYTE slot      ; reset counter to zero
+   * LABEL skip_label     ; continuation
+   * ```
+   *
+   * When N is a power of 2 (2, 4, 8, 16, 32, 64, 128), this is equivalent
+   * to a modulo operation: `counter = (counter + 1) % N`. The AND bitmask
+   * `(counter + 1) & (N - 1)` produces the same result because:
+   * - Values 0..N-2: `(x + 1) & (N-1) = x + 1` (no wrapping needed)
+   * - Value N-1: `(N-1 + 1) & (N-1) = N & (N-1) = 0` (wraps to 0)
+   *
+   * Replacement (3 instructions instead of 7):
+   * ```
+   * ADD_IMM 1            ; increment counter
+   * AND_IMM (N-1)        ; bitmask wraps value to 0..N-1
+   * STORE_BYTE slot      ; store wrapped result
+   * ```
+   *
+   * **Savings:** 4 instructions removed, eliminates branch and comparison.
+   * On 6502: saves ~8-12 bytes and ~10-15 cycles per iteration.
+   *
+   * @param func - Function to optimize
+   * @param options - Optimization options
+   * @returns Result with statistics
+   */
+  protected moduloToBitmask(
+    func: ILFunction,
+    options: OptimizationOptions
+  ): PassResult {
+    const debugInfo: string[] = [];
+    let removed = 0;
+    let replaced = 0;
+
+    // We need at least 7 instructions to match the pattern
+    // Scan from end to start so index manipulation doesn't shift future matches
+    for (let i = func.instructions.length - 7; i >= 0; i--) {
+      const match = this.matchCounterWrapPattern(func.instructions, i);
+      if (!match) continue;
+
+      // Safety: N must be a power of 2
+      if (!this.isPowerOfTwo(match.limit)) continue;
+
+      const bitmask = match.limit - 1;
+
+      // Build replacement: ADD_IMM 1, AND_IMM (N-1), STORE_BYTE slot
+      const addInstr = func.instructions[i]; // keep ADD_IMM 1 as-is
+      const andInstr = this.createAndImm(bitmask, func.instructions[i + 2]);
+      const storeInstr = func.instructions[i + 1]; // reuse original STORE_BYTE
+
+      // Replace the 7-instruction sequence with 3 instructions
+      func.instructions.splice(i, 7, addInstr, andInstr, storeInstr);
+
+      // 7 original - 3 replacement = 4 removed
+      removed += 4;
+      replaced += 1; // the AND_IMM is a new instruction
+
+      if (options.debug) {
+        debugInfo.push(
+          `Modulo-to-bitmask at ${i}: counter wrap mod ${match.limit} → AND #$${bitmask.toString(16).toUpperCase().padStart(2, '0')} (${match.slotName})`
+        );
+      }
+    }
+
+    return createResult(
+      removed,
+      replaced,
+      debugInfo.length > 0 ? debugInfo : undefined
+    );
+  }
+
+  /**
+   * Match a 7-instruction counter-wrap pattern starting at the given index.
+   *
+   * Verifies the exact sequence:
+   * - [i+0]: ADD_IMM 1
+   * - [i+1]: STORE_BYTE slot
+   * - [i+2]: CMP_IMM N (where N > 1)
+   * - [i+3]: JUMP_NE label
+   * - [i+4]: LOAD_IMM 0
+   * - [i+5]: STORE_BYTE slot (same slot as i+1)
+   * - [i+6]: LABEL label (same label as i+3)
+   *
+   * @param instrs - Instruction array to scan
+   * @param i - Starting index
+   * @returns Match details (slot name, limit N) or null if no match
+   */
+  protected matchCounterWrapPattern(
+    instrs: ILInstruction[],
+    i: number
+  ): CounterWrapMatch | null {
+    // Ensure enough instructions remain
+    if (i + 6 >= instrs.length) return null;
+
+    const i0 = instrs[i];     // ADD_IMM 1
+    const i1 = instrs[i + 1]; // STORE_BYTE slot
+    const i2 = instrs[i + 2]; // CMP_IMM N
+    const i3 = instrs[i + 3]; // JUMP_NE label
+    const i4 = instrs[i + 4]; // LOAD_IMM 0
+    const i5 = instrs[i + 5]; // STORE_BYTE slot
+    const i6 = instrs[i + 6]; // LABEL label
+
+    // Check opcode sequence
+    if (i0.opcode !== ILOpcode.ADD_IMM) return null;
+    if (i1.opcode !== ILOpcode.STORE_BYTE) return null;
+    if (i2.opcode !== ILOpcode.CMP_IMM) return null;
+    if (i3.opcode !== ILOpcode.JUMP_NE) return null;
+    if (i4.opcode !== ILOpcode.LOAD_IMM) return null;
+    if (i5.opcode !== ILOpcode.STORE_BYTE) return null;
+    if (i6.opcode !== ILOpcode.LABEL) return null;
+
+    // Verify ADD_IMM adds exactly 1
+    const addValue = this.getImmediateValue(i0);
+    if (addValue !== 1) return null;
+
+    // Verify LOAD_IMM loads exactly 0 (reset value)
+    const resetValue = this.getImmediateValue(i4);
+    if (resetValue !== 0) return null;
+
+    // Verify both STORE_BYTE target the same slot
+    const storeSlot1 = this.getSlotName(i1);
+    const storeSlot2 = this.getSlotName(i5);
+    if (!storeSlot1 || !storeSlot2 || storeSlot1 !== storeSlot2) return null;
+
+    // Verify CMP_IMM has a valid limit (> 1, since mod 1 is always 0)
+    const limit = this.getImmediateValue(i2);
+    if (limit === null || limit <= 1) return null;
+
+    // Verify JUMP_NE targets the LABEL at i+6
+    const jumpLabel = this.getLabelName(i3);
+    const labelName = this.getLabelName(i6);
+    if (!jumpLabel || !labelName || jumpLabel !== labelName) return null;
+
+    return { slotName: storeSlot1, limit };
+  }
+
+  /**
+   * Extract label name from a JUMP or LABEL instruction's operand.
+   *
+   * @param instr - Instruction with a label operand
+   * @returns Label name or null if no label operand
+   */
+  protected getLabelName(instr: ILInstruction): string | null {
+    if (instr.operands.length === 0) return null;
+    const op = instr.operands[0];
+    return isLabelOperand(op) ? op.name : null;
+  }
+
+  /**
+   * Create an AND_IMM instruction preserving source metadata.
+   *
+   * Used by moduloToBitmask to replace CMP/JUMP/LOAD/STORE with a
+   * single AND bitmask instruction.
+   *
+   * @param value - Bitmask value (N-1 for modulo N)
+   * @param original - Original instruction for location metadata
+   * @returns New AND_IMM instruction
+   */
+  protected createAndImm(value: number, original: ILInstruction): ILInstruction {
+    return createInstruction(ILOpcode.AND_IMM, [createImmediateOperand(value, false)], {
+      location: original.location,
+      comment: `Modulo bitmask (counter wrap)`,
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
   // Helper Methods
   // ═══════════════════════════════════════════════════════════════════
 
@@ -794,4 +976,18 @@ interface StrengthReductionResult {
   reason: string;
   /** If true, remove the instruction instead of replacing it */
   remove?: boolean;
+}
+
+/**
+ * Result of matching a counter-wrap pattern.
+ *
+ * Contains the slot name being wrapped and the modulo limit N.
+ * Used by `moduloToBitmask()` to verify the limit is a power of 2
+ * before applying the AND bitmask optimization.
+ */
+interface CounterWrapMatch {
+  /** Name of the slot being incremented and wrapped */
+  slotName: string;
+  /** The wrap limit N from the CMP_IMM instruction */
+  limit: number;
 }

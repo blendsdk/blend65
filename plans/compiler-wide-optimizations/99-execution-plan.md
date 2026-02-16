@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-16 16:45
-> **Progress**: 13/24 tasks (54%)
+> **Last Updated**: 2026-02-16 17:37
+> **Progress**: 17/24 tasks (71%)
 
 ## Overview
 
@@ -214,10 +214,10 @@ Implementation is organized by compiler stage (bottom-up) so each phase is indep
 - [x] 2.2.3 Fix or extend store-load pass ✅ (completed: 2026-02-16 16:34 — no fix needed, pass works)
 - [x] 2.2.4 Add unit tests for word-param store/load ✅ (completed: 2026-02-16 16:40 — 20 tests added)
 - [x] 2.2.5 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 16:45 — 9072 pass, 0 fail)
-- [ ] 2.3.1 Implement moduloToBitmask()
-- [ ] 2.3.2 Add positive tests (mod 2, 4, 8, 16)
-- [ ] 2.3.3 Add negative test (mod 5)
-- [ ] 2.3.4 Run compiler-test — zero regressions
+- [x] 2.3.1 Implement moduloToBitmask() ✅ (completed: 2026-02-16 17:25 — 7-instr counter-wrap → 3-instr AND bitmask)
+- [x] 2.3.2 Add positive tests (mod 2, 4, 8, 16, 32, 64, 128) ✅ (completed: 2026-02-16 17:33 — 23 tests added)
+- [x] 2.3.3 Add negative tests (mod 3, 5, 6, 7, 9, 10, 12, 15 + safety checks) ✅ (completed: 2026-02-16 17:33)
+- [x] 2.3.4 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 17:37 — 9095 pass, 0 fail)
 
 ### Phase 3: Address Expression Folding
 - [ ] 3.1.1 Analyze IL output of spinning-line post-inlining
