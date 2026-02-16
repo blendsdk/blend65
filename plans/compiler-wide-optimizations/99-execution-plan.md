@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-16 16:19
-> **Progress**: 8/24 tasks (33%)
+> **Last Updated**: 2026-02-16 16:45
+> **Progress**: 13/24 tasks (54%)
 
 ## Overview
 
@@ -209,11 +209,11 @@ Implementation is organized by compiler stage (bottom-up) so each phase is indep
 - [x] 2.1.2 Add STORE_WORD→LOAD_WORD elimination ✅ (completed: 2026-02-16 16:17)
 - [x] 2.1.3 Add unit tests for word store/reload ✅ (completed: 2026-02-16 16:18)
 - [x] 2.1.4 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 16:19 — 1458 optimizer pass)
-- [ ] 2.2.1 Read StoreLoadPass detection logic
-- [ ] 2.2.2 Determine if STX breaks STA/LDA pattern
-- [ ] 2.2.3 Fix or extend store-load pass
-- [ ] 2.2.4 Add unit tests for word-param store/load
-- [ ] 2.2.5 Run compiler-test — zero regressions
+- [x] 2.2.1 Read StoreLoadPass detection logic ✅ (completed: 2026-02-16 16:33)
+- [x] 2.2.2 Determine if STX breaks STA/LDA pattern ✅ (completed: 2026-02-16 16:34 — FINDING: pass already handles it correctly)
+- [x] 2.2.3 Fix or extend store-load pass ✅ (completed: 2026-02-16 16:34 — no fix needed, pass works)
+- [x] 2.2.4 Add unit tests for word-param store/load ✅ (completed: 2026-02-16 16:40 — 20 tests added)
+- [x] 2.2.5 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 16:45 — 9072 pass, 0 fail)
 - [ ] 2.3.1 Implement moduloToBitmask()
 - [ ] 2.3.2 Add positive tests (mod 2, 4, 8, 16)
 - [ ] 2.3.3 Add negative test (mod 5)
