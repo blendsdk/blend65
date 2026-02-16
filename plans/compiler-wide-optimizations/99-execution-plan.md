@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-16 16:14
-> **Progress**: 4/24 tasks (17%)
+> **Last Updated**: 2026-02-16 16:19
+> **Progress**: 8/24 tasks (33%)
 
 ## Overview
 
@@ -205,10 +205,10 @@ Implementation is organized by compiler stage (bottom-up) so each phase is indep
 - [x] 1.1.4 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 16:14 — 9047 pass, 0 fail)
 
 ### Phase 2: IL Peephole — Store/Reload & Modulo
-- [ ] 2.1.1 Analyze loadStoreElimination() for word support
-- [ ] 2.1.2 Add STORE_WORD→LOAD_WORD elimination
-- [ ] 2.1.3 Add unit tests for word store/reload
-- [ ] 2.1.4 Run compiler-test — zero regressions
+- [x] 2.1.1 Analyze loadStoreElimination() for word support ✅ (completed: 2026-02-16 16:16)
+- [x] 2.1.2 Add STORE_WORD→LOAD_WORD elimination ✅ (completed: 2026-02-16 16:17)
+- [x] 2.1.3 Add unit tests for word store/reload ✅ (completed: 2026-02-16 16:18)
+- [x] 2.1.4 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 16:19 — 1458 optimizer pass)
 - [ ] 2.2.1 Read StoreLoadPass detection logic
 - [ ] 2.2.2 Determine if STX breaks STA/LDA pattern
 - [ ] 2.2.3 Fix or extend store-load pass

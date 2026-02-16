@@ -548,6 +548,50 @@ export class ILPeepholePass implements OptimizationPass {
           }
         }
       }
+
+      // Pattern: LOAD_WORD x; STORE_WORD x → remove both (no-op)
+      // Loading a word from a slot and storing it right back does nothing.
+      if (
+        instr.opcode === ILOpcode.LOAD_WORD &&
+        next.opcode === ILOpcode.STORE_WORD
+      ) {
+        const loadSlot = this.getSlotName(instr);
+        const storeSlot = this.getSlotName(next);
+
+        if (loadSlot && storeSlot && loadSlot === storeSlot) {
+          toRemove.add(i);
+          toRemove.add(i + 1);
+
+          if (options.debug) {
+            debugInfo.push(
+              `Load-store elimination at ${i}-${i + 1}: LOAD_WORD ${loadSlot}; STORE_WORD ${storeSlot}`
+            );
+          }
+        }
+      }
+
+      // Pattern: STORE_WORD x; LOAD_WORD x (consecutive) → keep just STORE
+      // After STORE_WORD, the A:X word is still in registers, so the
+      // subsequent LOAD_WORD from the same slot is redundant. This pattern
+      // commonly emerges from function inlining where arguments are stored
+      // to parameter slots and the inlined body immediately reloads them.
+      if (
+        instr.opcode === ILOpcode.STORE_WORD &&
+        next.opcode === ILOpcode.LOAD_WORD
+      ) {
+        const storeSlot = this.getSlotName(instr);
+        const loadSlot = this.getSlotName(next);
+
+        if (storeSlot && loadSlot && storeSlot === loadSlot) {
+          toRemove.add(i + 1);
+
+          if (options.debug) {
+            debugInfo.push(
+              `Redundant load after store at ${i + 1}: LOAD_WORD ${loadSlot} (value already in A:X)`
+            );
+          }
+        }
+      }
     }
 
     // Remove marked instructions

@@ -169,6 +169,24 @@ function createIncByteInstr(slotName: string): ILInstruction {
   };
 }
 
+function createLoadWordInstr(slotName: string): ILInstruction {
+  const slot = createTestSlot(slotName);
+  return {
+    opcode: ILOpcode.LOAD_WORD,
+    operands: [createSlotOperand(slot)],
+    defUse: { defs: [], uses: [slotName] },
+  };
+}
+
+function createStoreWordInstr(slotName: string): ILInstruction {
+  const slot = createTestSlot(slotName);
+  return {
+    opcode: ILOpcode.STORE_WORD,
+    operands: [createSlotOperand(slot)],
+    defUse: { defs: [slotName], uses: [] },
+  };
+}
+
 function createJumpInstr(label: string): ILInstruction {
   return {
     opcode: ILOpcode.JUMP,
@@ -489,6 +507,116 @@ describe('ILPeepholePass load-store elimination', () => {
     expect(result.modified).toBe(true);
     expect(func.instructions).toHaveLength(1);
     expect(func.instructions[0].opcode).toBe(ILOpcode.RETURN);
+  });
+});
+
+// ============================================================================
+// Word Load-Store Elimination Tests
+// ============================================================================
+
+describe('ILPeepholePass word load-store elimination', () => {
+  it('should remove LOAD_WORD x; STORE_WORD x pair (no-op)', () => {
+    const func = createTestFunction([
+      createLoadWordInstr('addr'),
+      createStoreWordInstr('addr'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(func.instructions).toHaveLength(1);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.RETURN);
+  });
+
+  it('should NOT remove LOAD_WORD x; STORE_WORD y (different slots)', () => {
+    const func = createTestFunction([
+      createLoadWordInstr('addr1'),
+      createStoreWordInstr('addr2'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions).toHaveLength(3);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.LOAD_WORD);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.STORE_WORD);
+  });
+
+  it('should remove redundant LOAD_WORD after STORE_WORD (inliner pattern)', () => {
+    // This is the key pattern from function inlining:
+    // Caller stores argument → inlined body reloads it
+    // STORE_WORD spriteAddr; LOAD_WORD spriteAddr → just STORE_WORD
+    const func = createTestFunction([
+      createLoadImmInstr(0x40),        // some value loaded (address)
+      createStoreWordInstr('spriteAddr'),
+      createLoadWordInstr('spriteAddr'), // redundant — value still in A:X
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(func.instructions).toHaveLength(3);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.STORE_WORD);
+    expect(func.instructions[2].opcode).toBe(ILOpcode.RETURN);
+  });
+
+  it('should NOT remove LOAD_WORD after STORE_WORD to different slot', () => {
+    const func = createTestFunction([
+      createLoadImmInstr(0x40),
+      createStoreWordInstr('addr1'),
+      createLoadWordInstr('addr2'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions).toHaveLength(4);
+  });
+
+  it('should handle multiple word store/load pairs', () => {
+    // Two inlined calls, each with a redundant store→load pair
+    const func = createTestFunction([
+      createLoadImmInstr(0x40),
+      createStoreWordInstr('param1'),
+      createLoadWordInstr('param1'),  // redundant
+      createStoreWordInstr('param2'),
+      createLoadWordInstr('param2'),  // redundant
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    // Both LOAD_WORDs removed, keeping LOAD_IMM + STORE_WORD + STORE_WORD + RETURN
+    expect(func.instructions).toHaveLength(4);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.STORE_WORD);
+    expect(func.instructions[2].opcode).toBe(ILOpcode.STORE_WORD);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.RETURN);
+  });
+
+  it('should include debug info for word store/load elimination', () => {
+    const func = createTestFunction([
+      createStoreWordInstr('spriteAddr'),
+      createLoadWordInstr('spriteAddr'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2', debug: true });
+
+    expect(result.debugInfo).toBeDefined();
+    const wordDebug = result.debugInfo!.find(d => d.includes('LOAD_WORD'));
+    expect(wordDebug).toBeDefined();
+    expect(wordDebug).toContain('already in A:X');
   });
 });
 
