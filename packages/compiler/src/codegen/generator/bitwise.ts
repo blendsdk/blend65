@@ -153,32 +153,61 @@ export class BitwiseOpsGenerator extends ArithmeticOpsGenerator {
    * Generates code for SHR_WORD (16-bit logical shift right of A:X).
    *
    * Used for word division by power-of-2 constants (e.g., spriteAddr / 64).
-   * Each shift iteration uses the 6502 pattern:
-   *   PHA       ; save low byte (A) to stack
-   *   TXA       ; move high byte (X) → A
-   *   LSR       ; shift high byte right, bit 0 → carry
-   *   TAX       ; store shifted high byte back to X
-   *   PLA       ; restore low byte to A
-   *   ROR       ; rotate low byte right, carry → bit 7
    *
-   * This correctly propagates bits from the high byte into the low byte
-   * across each shift, implementing unsigned 16-bit right shift.
+   * Uses different strategies depending on shift count to minimize code size
+   * and cycle count:
+   *
+   * **Shift ≥ 8**: All low-byte bits are shifted out entirely. The result low
+   * byte comes from the high byte shifted right by (count - 8). The result
+   * high byte is always 0.
+   *   - `word >> 8`  → TXA / LDX #$00 (just move high to low)
+   *   - `word >> 10` → TXA / LSR / LSR / LDX #$00
+   *
+   * **Shift 1-7**: Uses the standard 6502 16-bit shift pattern that propagates
+   * bits from high byte into low byte through carry:
+   *   PHA / TXA / LSR / TAX / PLA / ROR  (per shift position)
+   *
+   * **Shift 0**: No-op (identity), no instructions emitted.
    *
    * IL: SHR_WORD count
-   * 6502: (PHA / TXA / LSR / TAX / PLA / ROR) × count
    */
   protected genShrWord(instr: ILInstruction): void {
     this.emitComment(instr);
     const imm = this.getImmediateOperand(instr.operands);
     const count = imm.value;
 
-    for (let i = 0; i < count; i++) {
-      this.asm.pha('save low byte');
-      this.asm.txa('high byte → A');
-      this.asm.lsr(undefined, 'accumulator');
-      this.asm.tax('shifted high → X');
-      this.asm.pla('restore low byte');
-      this.asm.ror(undefined, 'accumulator');
+    // No-op for shift by 0
+    if (count === 0) {
+      return;
+    }
+
+    if (count >= 8) {
+      // Shift ≥ 8: all low-byte bits are discarded. The high byte (X)
+      // becomes the new low byte, then we just LSR the remaining positions.
+      // This replaces N×6 instructions with 2 + (N-8) instructions.
+      this.asm.txa('high byte → A (shift ≥ 8: low byte fully shifted out)');
+
+      // Shift the remaining (count - 8) positions on the byte now in A
+      const remaining = count - 8;
+      for (let i = 0; i < remaining; i++) {
+        this.asm.lsr(undefined, 'accumulator');
+      }
+
+      // High byte of result is always 0 after shifting ≥ 8
+      this.asm.ldx(0, 'immediate', 'high byte = 0 after shift ≥ 8');
+    } else {
+      // Shift 1-7: standard 16-bit shift pattern.
+      // Each iteration shifts the high byte right (LSR), then rotates the
+      // carry bit into the top of the low byte (ROR), propagating bits
+      // from high to low across the 16-bit value.
+      for (let i = 0; i < count; i++) {
+        this.asm.pha('save low byte');
+        this.asm.txa('high byte → A');
+        this.asm.lsr(undefined, 'accumulator');
+        this.asm.tax('shifted high → X');
+        this.asm.pla('restore low byte');
+        this.asm.ror(undefined, 'accumulator');
+      }
     }
     this.invalidateA();
   }
