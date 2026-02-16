@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-16 21:15
-> **Progress**: 22/24 tasks (92%)
+> **Last Updated**: 2026-02-16 22:06
+> **Progress**: 24/24 tasks (100% of Phases 1-5)
 
 ## Overview
 
@@ -235,11 +235,11 @@ Implementation is organized by compiler stage (bottom-up) so each phase is indep
 - [x] 4.1.6 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 21:15 — 9126 pass, spinning-line all levels PASS)
 
 ### Phase 5: Test Programs
-- [ ] 5.1.1 Create counter-wrap example
-- [ ] 5.1.2 Create loop-patterns example
-- [ ] 5.1.3 Create multi-sprite example
-- [ ] 5.1.4 Run diag_app on new examples
-- [ ] 5.1.5 Final verification on spinning-line + balloon-sprite
+- [x] 5.1.1 Create counter-wrap example ✅ (completed: 2026-02-16 22:01 — Theme C modulo wrapping)
+- [x] 5.1.2 Create loop-patterns example ✅ (completed: 2026-02-16 22:01 — Theme H register promotion)
+- [x] 5.1.3 Create multi-sprite example ✅ (completed: 2026-02-16 22:02 — Themes A, C, F combined)
+- [x] 5.1.4 Run diag_app on new examples ✅ (completed: 2026-02-16 22:02 — all 3 programs × 10 levels = 30/30 PASS)
+- [x] 5.1.5 Final verification on spinning-line + balloon-sprite ✅ (completed: 2026-02-16 22:03 — both × 10 levels = 20/20 PASS)
 
 ### Phase 6: Should-Have
 - [ ] 6.1.1 Implement SHR_WORD+LO narrowing

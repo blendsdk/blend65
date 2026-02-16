@@ -1,0 +1,214 @@
+// ============================================================================
+// Multi-Sprite Animation — Combined Optimization Test
+// ============================================================================
+// Tests multiple optimization themes working together:
+//   - Theme A: Address expression folding (spriteAddr / 64 through inlining)
+//   - Theme C: Modulo wrapping (frame counters with different wrap values)
+//   - Theme F: Store/reload elimination (word parameters through inlining)
+//
+// Animates 3 sprites simultaneously, each with different frame counts
+// and animation speeds. Each sprite uses the shared getSpriteFrame()
+// function, which exercises:
+//   - @ address-of operator passed as word parameter (Theme F)
+//   - Word division spriteAddr / 64 (Theme A)
+//   - Frame counter wrapping at power-of-2 boundaries (Theme C)
+//
+// Module: MultiSprite
+// Target: Commodore 64
+// ============================================================================
+
+module MultiSprite;
+
+// ============================================================================
+// VIC-II Registers
+// ============================================================================
+
+const VIC_SPRITE0_X: word = $D000;       // Sprite 0 X position
+const VIC_SPRITE0_Y: word = $D001;       // Sprite 0 Y position
+const VIC_SPRITE1_X: word = $D002;       // Sprite 1 X position
+const VIC_SPRITE1_Y: word = $D003;       // Sprite 1 Y position
+const VIC_SPRITE2_X: word = $D004;       // Sprite 2 X position
+const VIC_SPRITE2_Y: word = $D005;       // Sprite 2 Y position
+const VIC_SPRITE_X_MSB: word = $D010;    // X position MSB for all sprites
+const VIC_SPRITE_ENABLE: word = $D015;   // Sprite enable register
+const VIC_SPRITE0_COLOR: word = $D027;   // Sprite 0 color
+const VIC_SPRITE1_COLOR: word = $D028;   // Sprite 1 color
+const VIC_SPRITE2_COLOR: word = $D029;   // Sprite 2 color
+
+// Sprite pointers: screen base ($0400) + $03F8 + sprite index
+const SPRITE0_POINTER: word = $07F8;
+const SPRITE1_POINTER: word = $07F9;
+const SPRITE2_POINTER: word = $07FA;
+
+// ============================================================================
+// Screen Positions
+// ============================================================================
+
+const SPRITE0_X: byte = 100;    // Left third
+const SPRITE1_X: byte = 172;    // Center
+const SPRITE2_X: byte = 220;    // Right third
+const SPRITE_Y: byte = 140;     // All at same Y (center)
+
+// ============================================================================
+// Animation Constants
+// ============================================================================
+
+// Frame counts — power-of-2 values for modulo optimization (Theme C)
+const FRAMES_SPRITE0: byte = 4;   // 4 frames (mod 4 → AND $03)
+const FRAMES_SPRITE1: byte = 2;   // 2 frames (mod 2 → AND $01)
+const FRAMES_SPRITE2: byte = 4;   // 4 frames (mod 4 → AND $03)
+
+// C64 Colors
+const COLOR_WHITE: byte = 1;
+const COLOR_RED: byte = 2;
+const COLOR_CYAN: byte = 3;
+const COLOR_GREEN: byte = 5;
+
+// ============================================================================
+// Sprite Data — 4 Frames (4 × 64 = 256 bytes)
+// ============================================================================
+// Spinning line frames: | / - \
+// Same data as spinning-line example, reused here for 3 sprites.
+
+@sprite const spriteSheet: byte[] = [
+    // Frame 0: Vertical Line "|"
+    $00, $18, $00,  $00, $18, $00,  $00, $18, $00,
+    $00, $18, $00,  $00, $18, $00,  $00, $18, $00,
+    $00, $18, $00,  $00, $18, $00,  $00, $18, $00,
+    $00, $18, $00,  $00, $18, $00,  $00, $18, $00,
+    $00, $18, $00,  $00, $18, $00,  $00, $18, $00,
+    $00, $18, $00,  $00, $18, $00,  $00, $18, $00,
+    $00, $18, $00,  $00, $18, $00,  $00, $18, $00,
+    $00,
+
+    // Frame 1: Forward Slash "/"
+    $00, $00, $06,  $00, $00, $0C,  $00, $00, $18,
+    $00, $00, $30,  $00, $00, $60,  $00, $00, $C0,
+    $00, $01, $80,  $00, $03, $00,  $00, $06, $00,
+    $00, $0C, $00,  $00, $18, $00,  $00, $30, $00,
+    $00, $60, $00,  $00, $C0, $00,  $01, $80, $00,
+    $03, $00, $00,  $06, $00, $00,  $0C, $00, $00,
+    $18, $00, $00,  $30, $00, $00,  $60, $00, $00,
+    $00,
+
+    // Frame 2: Horizontal Line "-"
+    $00, $00, $00,  $00, $00, $00,  $00, $00, $00,
+    $00, $00, $00,  $00, $00, $00,  $00, $00, $00,
+    $00, $00, $00,  $00, $00, $00,  $00, $00, $00,
+    $FF, $FF, $FF,  $FF, $FF, $FF,  $FF, $FF, $FF,
+    $00, $00, $00,  $00, $00, $00,  $00, $00, $00,
+    $00, $00, $00,  $00, $00, $00,  $00, $00, $00,
+    $00, $00, $00,  $00, $00, $00,  $00, $00, $00,
+    $00,
+
+    // Frame 3: Backslash "\"
+    $60, $00, $00,  $30, $00, $00,  $18, $00, $00,
+    $0C, $00, $00,  $06, $00, $00,  $03, $00, $00,
+    $01, $80, $00,  $00, $C0, $00,  $00, $60, $00,
+    $00, $30, $00,  $00, $18, $00,  $00, $0C, $00,
+    $00, $06, $00,  $00, $03, $00,  $00, $01, $80,
+    $00, $00, $C0,  $00, $00, $60,  $00, $00, $30,
+    $00, $00, $18,  $00, $00, $0C,  $00, $00, $06,
+    $00
+];
+
+// ============================================================================
+// getSpriteFrame() — Sprite Sheet Frame Selector
+// ============================================================================
+// Computes the VIC-II sprite pointer for a specific frame.
+// Exercises Theme A (address / 64 folding) and Theme F (word param inlining).
+//
+// @param spriteAddr - 16-bit address of sprite sheet (from @variable)
+// @param frameIndex - Zero-based frame index
+// @return VIC-II sprite pointer value (byte)
+
+function getSpriteFrame(spriteAddr: word, frameIndex: byte): byte {
+    return lo(spriteAddr / 64) + frameIndex;
+}
+
+// ============================================================================
+// Delay Function
+// ============================================================================
+
+function delay(): void {
+    for (let _i: byte = 0 to 2) {
+        for (let _j: byte = 0 to 255) {
+            barrier();
+        }
+    }
+}
+
+// ============================================================================
+// Main Entry Point
+// ============================================================================
+
+export function main(): void {
+    // Step 1: Position all 3 sprites
+    poke(VIC_SPRITE0_X, SPRITE0_X);
+    poke(VIC_SPRITE0_Y, SPRITE_Y);
+    poke(VIC_SPRITE1_X, SPRITE1_X);
+    poke(VIC_SPRITE1_Y, SPRITE_Y);
+    poke(VIC_SPRITE2_X, SPRITE2_X);
+    poke(VIC_SPRITE2_Y, SPRITE_Y);
+
+    // Clear X MSB — all X positions fit in 8 bits
+    poke(VIC_SPRITE_X_MSB, 0);
+
+    // Step 2: Set sprite colors
+    poke(VIC_SPRITE0_COLOR, COLOR_WHITE);
+    poke(VIC_SPRITE1_COLOR, COLOR_RED);
+    poke(VIC_SPRITE2_COLOR, COLOR_GREEN);
+
+    // Step 3: Enable sprites 0, 1, 2 (bits 0-2)
+    poke(VIC_SPRITE_ENABLE, 7);
+
+    // Step 4: Set initial frames — each call to getSpriteFrame exercises
+    // Theme A (address folding) and Theme F (word param store/reload).
+    poke(SPRITE0_POINTER, getSpriteFrame(@spriteSheet, 0));
+    poke(SPRITE1_POINTER, getSpriteFrame(@spriteSheet, 0));
+    poke(SPRITE2_POINTER, getSpriteFrame(@spriteSheet, 0));
+
+    // Step 5: Animation loop — each sprite advances at different rates
+    let frame0: byte = 0;
+    let frame1: byte = 0;
+    let frame2: byte = 0;
+    let tick: byte = 0;
+
+    while (true) {
+        // Update sprite 0 every tick (fastest)
+        // Frame wrapping at 4 exercises Theme C (mod 4 → AND $03)
+        poke(SPRITE0_POINTER, getSpriteFrame(@spriteSheet, frame0));
+        frame0 = frame0 + 1;
+        if (frame0 == FRAMES_SPRITE0) {
+            frame0 = 0;
+        }
+
+        // Update sprite 1 every 2 ticks (medium)
+        // Frame wrapping at 2 exercises Theme C (mod 2 → AND $01)
+        if (tick == 0) {
+            poke(SPRITE1_POINTER, getSpriteFrame(@spriteSheet, frame1));
+            frame1 = frame1 + 1;
+            if (frame1 == FRAMES_SPRITE1) {
+                frame1 = 0;
+            }
+        }
+
+        // Update sprite 2 every 4 ticks (slowest)
+        // Frame wrapping at 4 exercises Theme C (mod 4 → AND $03)
+        if (tick == 0) {
+            poke(SPRITE2_POINTER, getSpriteFrame(@spriteSheet, frame2));
+            frame2 = frame2 + 1;
+            if (frame2 == FRAMES_SPRITE2) {
+                frame2 = 0;
+            }
+        }
+
+        // Advance tick counter with mod-4 wrap (Theme C)
+        tick = tick + 1;
+        if (tick == 4) {
+            tick = 0;
+        }
+
+        delay();
+    }
+}

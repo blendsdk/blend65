@@ -1,0 +1,131 @@
+// ============================================================================
+// Counter Wrap — Modulo Optimization Test
+// ============================================================================
+// Tests the modulo-to-bitmask optimization (Theme C).
+//
+// The IL optimizer should convert power-of-2 modulo wrapping patterns into
+// AND bitmask operations. For example:
+//   counter % 4  →  counter & 0x03
+//   counter % 8  →  counter & 0x07
+//   counter % 16 →  counter & 0x0F
+//
+// This saves ~4 instructions per modulo: the increment-compare-jump-reset
+// pattern (7 instructions) becomes a simple ADD + AND + STORE (3 instructions).
+//
+// This example also includes a mod-5 case as a NEGATIVE test — the optimizer
+// must NOT apply the bitmask optimization for non-power-of-2 values.
+//
+// Demonstrates:
+//   - Power-of-2 modulo wrapping (mod 2, 4, 8, 16)
+//   - Non-power-of-2 modulo (mod 5) as a safety check
+//   - VIC-II border/background color cycling
+//   - For-loop counters with barrier()
+//
+// Module: CounterWrap
+// Target: Commodore 64
+// ============================================================================
+
+module CounterWrap;
+
+// ============================================================================
+// VIC-II Registers
+// ============================================================================
+
+const VIC_BORDER: word = $D020;      // Border color register
+const VIC_BACKGROUND: word = $D021;  // Background color register
+
+// ============================================================================
+// Animation Constants
+// ============================================================================
+
+// Power-of-2 wrap values — optimizer SHOULD convert to AND bitmask
+const WRAP_2: byte = 2;
+const WRAP_4: byte = 4;
+const WRAP_8: byte = 8;
+const WRAP_16: byte = 16;
+
+// Non-power-of-2 — optimizer MUST NOT convert to AND bitmask
+const WRAP_5: byte = 5;
+
+// ============================================================================
+// Delay Function
+// ============================================================================
+// Busy-wait loop for visible animation speed.
+
+function delay(): void {
+    for (let _i: byte = 0 to 3) {
+        for (let _j: byte = 0 to 255) {
+            barrier();
+        }
+    }
+}
+
+// ============================================================================
+// Wrap Functions — Exercise Modulo Optimization
+// ============================================================================
+
+// Power-of-2 wrap: counter % 2 → should become counter & 0x01
+function wrapMod2(counter: byte): byte {
+    let next: byte = counter + 1;
+    if (next == WRAP_2) {
+        next = 0;
+    }
+    return next;
+}
+
+// Power-of-2 wrap: counter % 4 → should become counter & 0x03
+function wrapMod4(counter: byte): byte {
+    let next: byte = counter + 1;
+    if (next == WRAP_4) {
+        next = 0;
+    }
+    return next;
+}
+
+// Power-of-2 wrap: counter % 8 → should become counter & 0x07
+function wrapMod8(counter: byte): byte {
+    let next: byte = counter + 1;
+    if (next == WRAP_8) {
+        next = 0;
+    }
+    return next;
+}
+
+// Power-of-2 wrap: counter % 16 → should become counter & 0x0F
+function wrapMod16(counter: byte): byte {
+    let next: byte = counter + 1;
+    if (next == WRAP_16) {
+        next = 0;
+    }
+    return next;
+}
+
+// Non-power-of-2 wrap: counter % 5 → must NOT be optimized to AND
+function wrapMod5(counter: byte): byte {
+    let next: byte = counter + 1;
+    if (next == WRAP_5) {
+        next = 0;
+    }
+    return next;
+}
+
+// ============================================================================
+// Main Entry Point
+// ============================================================================
+
+export function main(): void {
+    let borderColor: byte = 0;
+    let bgColor: byte = 0;
+
+    while (true) {
+        // Cycle border through 2 colors (mod 2 optimization)
+        borderColor = wrapMod2(borderColor);
+        poke(VIC_BORDER, borderColor);
+
+        // Cycle background through 4 colors (mod 4 optimization)
+        bgColor = wrapMod4(bgColor);
+        poke(VIC_BACKGROUND, bgColor);
+
+        delay();
+    }
+}

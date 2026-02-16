@@ -1,0 +1,154 @@
+// ============================================================================
+// Loop Patterns — Register Promotion Test
+// ============================================================================
+// Tests the ASM register promotion optimization (Theme H).
+//
+// The RegisterPromotePass should convert memory-based for-loop counters
+// into register operations when possible:
+//   INC $addr → INX/INY
+//   DEC $addr → DEX/DEY
+//   LDA $addr + CMP #N → CPX/CPY #N
+//
+// This eliminates memory read/write cycles in tight loops, saving ~4-6
+// cycles per iteration on the 6502.
+//
+// Demonstrates:
+//   - Simple byte count-up loops (promotable to X or Y register)
+//   - Nested loops (inner loop promoted, outer may use other register)
+//   - Loops with function calls in body (blocks promotion due to JSR)
+//   - Loops with barrier() only (should still be promotable)
+//   - Full-range byte loop (0 to 255)
+//
+// Module: LoopPatterns
+// Target: Commodore 64
+// ============================================================================
+
+module LoopPatterns;
+
+// ============================================================================
+// VIC-II Registers
+// ============================================================================
+
+const VIC_BORDER: word = $D020;      // Border color register
+const VIC_BACKGROUND: word = $D021;  // Background color register
+
+// ============================================================================
+// RAM Locations for Visible Output
+// ============================================================================
+
+const SCREEN_BASE: word = $0400;     // Default screen RAM base
+
+// ============================================================================
+// Simple Count-Up Loop — Should Be Register-Promoted
+// ============================================================================
+// A basic for-loop with only barrier() in the body.
+// The counter is the only variable in play, so it should be promoted
+// to X or Y register: INC $addr → INX, CMP #N → CPX #N.
+
+function simpleCountUp(): void {
+    for (let i: byte = 0 to 99) {
+        barrier();
+    }
+}
+
+// ============================================================================
+// Full-Range Byte Loop (0 to 255) — Should Be Register-Promoted
+// ============================================================================
+// Tests the edge case where the counter spans the full byte range.
+// The compiler uses a post-body exit check to avoid CMP #256 overflow.
+
+function fullRangeLoop(): void {
+    for (let i: byte = 0 to 255) {
+        barrier();
+    }
+}
+
+// ============================================================================
+// Nested Loops — Both Should Be Register-Promoted
+// ============================================================================
+// When two loops are nested and neither uses X/Y for other purposes,
+// the inner loop can use X and the outer loop can use Y (or vice versa).
+
+function nestedLoops(): void {
+    for (let outer: byte = 0 to 9) {
+        for (let inner: byte = 0 to 49) {
+            barrier();
+        }
+    }
+}
+
+// ============================================================================
+// Loop With Poke — May Block Promotion
+// ============================================================================
+// Writing to a VIC-II register inside the loop body may use the
+// accumulator but should not affect X/Y register promotion of the
+// counter if the poke doesn't touch X or Y.
+
+function loopWithPoke(): void {
+    for (let i: byte = 0 to 15) {
+        poke(VIC_BORDER, i);
+    }
+}
+
+// ============================================================================
+// Loop With Function Call — Blocks Register Promotion
+// ============================================================================
+// A JSR instruction in the loop body means the called function might
+// clobber X and Y registers. The RegisterPromotePass should detect
+// the JSR and skip promotion for this loop.
+
+function helperFunction(): void {
+    barrier();
+}
+
+function loopWithCall(): void {
+    for (let i: byte = 0 to 19) {
+        helperFunction();
+    }
+}
+
+// ============================================================================
+// Delay Using Nested Loops — Both Promoted
+// ============================================================================
+// Classic C64 delay pattern: nested empty loops with barrier().
+// Both counters should be promoted since the body only has barrier().
+
+function delay(): void {
+    for (let _i: byte = 0 to 5) {
+        for (let _j: byte = 0 to 255) {
+            barrier();
+        }
+    }
+}
+
+// ============================================================================
+// Main Entry Point
+// ============================================================================
+
+export function main(): void {
+    // Test 1: Simple count-up (promotable)
+    simpleCountUp();
+
+    // Test 2: Full-range byte loop (promotable, edge case)
+    fullRangeLoop();
+
+    // Test 3: Nested loops (both promotable)
+    nestedLoops();
+
+    // Test 4: Loop with poke (counter still promotable)
+    loopWithPoke();
+
+    // Test 5: Loop with function call (NOT promotable due to JSR)
+    loopWithCall();
+
+    // Infinite animation loop using delay
+    let color: byte = 0;
+    while (true) {
+        poke(VIC_BORDER, color);
+        delay();
+        color += 1;
+        if (color > 15) {
+            color = 0;
+        }
+    }
+}
