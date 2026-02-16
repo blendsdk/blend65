@@ -263,57 +263,41 @@ export class ILOptimizer {
   }
 
   /**
-   * Get program passes ordered by dependencies for the current options.
+   * Get program passes in the order specified by the config.
    *
-   * Resolves which program passes are enabled at the current optimization
-   * level and orders them respecting dependency constraints. Only returns
-   * passes that are both enabled and registered.
+   * The pass list from PROGRAM_LEVEL_PASSES is treated as an ordered
+   * sequence where the SAME pass may appear MULTIPLE times. This is
+   * critical for patterns like:
+   *   ['dead-function-elim', 'function-inline', 'dead-function-elim']
+   * where DFE must run both BEFORE inlining (to remove unreachable code)
+   * AND AFTER inlining (to remove fully-inlined functions that are now
+   * unreachable). The previous topological-sort approach deduplicated by
+   * name, so the second DFE was silently dropped — leaving dead inlined
+   * functions in the output.
    *
-   * @returns Array of program passes in dependency order
+   * Dependencies are implicitly satisfied by the config ordering — the
+   * PROGRAM_LEVEL_PASSES config is manually authored to respect deps.
+   *
+   * @returns Array of pass instances in config-specified order (may contain duplicates)
    */
   protected getOrderedProgramPasses(): ProgramOptimizationPass[] {
     const options = this.passManager.getOptions();
     const enabledNames = resolveProgramPasses(options);
 
-    // Filter to only registered passes
-    const available = enabledNames.filter((name) => this.programPasses.has(name));
-
-    // Topological sort by dependencies
-    const ordered: ProgramOptimizationPass[] = [];
-    const visited = new Set<string>();
-    const visiting = new Set<string>();
-
-    const visit = (name: string): void => {
-      if (visited.has(name)) return;
-      if (visiting.has(name)) {
-        throw new Error(`Circular dependency detected in program pass '${name}'`);
-      }
-
+    // Map each pass name to its registered instance, preserving the
+    // config-specified order INCLUDING duplicates. This allows the same
+    // pass (e.g., dead-function-elim) to run multiple times — once before
+    // inlining to clean up dead code, and again after inlining to remove
+    // functions that were fully inlined and are now unreachable.
+    const passes: ProgramOptimizationPass[] = [];
+    for (const name of enabledNames) {
       const pass = this.programPasses.get(name);
-      if (!pass) return;
-
-      visiting.add(name);
-
-      // Visit dependencies first
-      for (const dep of pass.dependencies) {
-        if (available.includes(dep) || this.programPasses.has(dep)) {
-          visit(dep);
-        }
+      if (pass) {
+        passes.push(pass);
       }
-
-      visiting.delete(name);
-      visited.add(name);
-
-      if (available.includes(name)) {
-        ordered.push(pass);
-      }
-    };
-
-    for (const name of available) {
-      visit(name);
     }
 
-    return ordered;
+    return passes;
   }
 
   // ═══════════════════════════════════════════════════════════════════

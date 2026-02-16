@@ -169,6 +169,14 @@ function createIncByteInstr(slotName: string): ILInstruction {
   };
 }
 
+function createJumpInstr(label: string): ILInstruction {
+  return {
+    opcode: ILOpcode.JUMP,
+    operands: [createLabelOperand(label)],
+    defUse: { defs: [], uses: [] },
+  };
+}
+
 function createReturnInstr(): ILInstruction {
   return {
     opcode: ILOpcode.RETURN,
@@ -894,6 +902,134 @@ describe('ILPeepholePass MUL/DIV debug output', () => {
     const mulDebug = result.debugInfo!.find(d => d.includes('removed'));
     expect(mulDebug).toBeDefined();
     expect(mulDebug).toContain('x * 1 = x');
+  });
+});
+
+// ============================================================================
+// Redundant Jump Elimination Tests
+// ============================================================================
+
+describe('ILPeepholePass redundant jump elimination', () => {
+  it('should remove JUMP label followed by same LABEL', () => {
+    // Pattern: JUMP .cont; LABEL .cont → just LABEL .cont
+    const func = createTestFunction([
+      createLoadImmInstr(1),
+      createJumpInstr('.cont'),
+      createLabelInstr('.cont'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(func.instructions).toHaveLength(3);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.LABEL);
+    expect(func.instructions[2].opcode).toBe(ILOpcode.RETURN);
+  });
+
+  it('should NOT remove JUMP label when followed by different LABEL', () => {
+    // JUMP .other; LABEL .loop — different labels, JUMP is NOT redundant
+    const func = createTestFunction([
+      createJumpInstr('.other'),
+      createLabelInstr('.loop'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    // All instructions should remain — JUMP targets a different label
+    expect(func.instructions).toHaveLength(3);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.JUMP);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.LABEL);
+  });
+
+  it('should NOT remove JUMP when not followed by LABEL', () => {
+    // JUMP .target followed by LOAD_IMM — not a LABEL, so JUMP stays
+    const func = createTestFunction([
+      createJumpInstr('.target'),
+      createLoadImmInstr(0),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[0].opcode).toBe(ILOpcode.JUMP);
+  });
+
+  it('should remove multiple redundant JUMPs (e.g., from multi-site inlining)', () => {
+    // Two inline continuation points, both with redundant JUMPs
+    const func = createTestFunction([
+      createLoadImmInstr(1),
+      createJumpInstr('._inline_fn_0_cont'),
+      createLabelInstr('._inline_fn_0_cont'),
+      createLoadImmInstr(2),
+      createJumpInstr('._inline_fn_1_cont'),
+      createLabelInstr('._inline_fn_1_cont'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    // Both JUMPs removed, labels and other instructions remain
+    expect(func.instructions).toHaveLength(5);
+    expect(func.instructions[0].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.LABEL);
+    expect(func.instructions[2].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LABEL);
+    expect(func.instructions[4].opcode).toBe(ILOpcode.RETURN);
+  });
+
+  it('should include debug info when debug=true', () => {
+    const func = createTestFunction([
+      createJumpInstr('.cont'),
+      createLabelInstr('.cont'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2', debug: true });
+
+    expect(result.debugInfo).toBeDefined();
+    const jumpDebug = result.debugInfo!.find(d => d.includes('Redundant jump'));
+    expect(jumpDebug).toBeDefined();
+    expect(jumpDebug).toContain('.cont');
+  });
+
+  it('should NOT include debug info when debug=false', () => {
+    const func = createTestFunction([
+      createJumpInstr('.cont'),
+      createLabelInstr('.cont'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new ILPeepholePass();
+    const result = pass.run(func, { level: 'O2', debug: false });
+
+    // No debug info for the jump elimination (other passes also produce none)
+    // Just verify the optimization still happens
+    expect(result.modified).toBe(true);
+    expect(func.instructions).toHaveLength(2);
+  });
+
+  it('should handle JUMP as last instruction (no next instruction)', () => {
+    // Edge case: JUMP at end of function — no following instruction to compare
+    const func = createTestFunction([
+      createLoadImmInstr(1),
+      createJumpInstr('.target'),
+    ]);
+
+    const pass = new ILPeepholePass();
+    pass.run(func, { level: 'O2' });
+
+    // JUMP should remain — no following LABEL to match
+    expect(func.instructions).toHaveLength(2);
+    expect(func.instructions[1].opcode).toBe(ILOpcode.JUMP);
   });
 });
 

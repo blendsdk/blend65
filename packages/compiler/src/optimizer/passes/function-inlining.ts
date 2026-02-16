@@ -41,6 +41,7 @@ import type { OptimizationOptions } from '../options.js';
 import type { ProgramOptimizationPass, ProgramPassResult } from '../pass.js';
 import { createEmptyProgramResult, createProgramResult } from '../pass.js';
 import { CallGraph } from '../analysis/call-graph.js';
+import { SlotKind } from '../../frame/enums.js';
 
 // ============================================================================
 // Constants
@@ -424,11 +425,20 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
   // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Clone a callee's instructions with remapped labels and slots.
+   * Clone a callee's instructions with remapped labels and local slots.
    *
-   * To avoid name collisions when inlining, all labels and slot references
+   * To avoid name collisions when inlining, labels and LOCAL slot references
    * in the cloned instructions are prefixed with a unique identifier based
    * on the callee name and an incrementing counter.
+   *
+   * **CRITICAL**: Parameter slots are NOT remapped. The caller stores
+   * arguments to parameter slots before the CALL instruction. When the
+   * CALL is replaced by the inlined body, the body must read from the
+   * SAME parameter slots that the caller wrote to. Remapping parameter
+   * slots would break this def-use chain, causing DCE to remove the
+   * caller's argument stores as "dead" and the inlined body to read
+   * from never-written remapped slots — producing ghost instructions
+   * or missing code.
    *
    * The prefix format is: `_inline_{calleeName}_{counter}_`
    *
@@ -448,32 +458,46 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
       }
     }
 
-    // Clone each instruction with remapped operands
+    // Collect parameter slot names from the callee's frame.
+    // Parameter slots must NOT be remapped because the caller stores
+    // arguments to these exact slot names before the CALL instruction.
+    // When inlined, the body must read from the same slots the caller wrote to.
+    const paramSlotNames = new Set<string>();
+    for (const slot of callee.frame.slots) {
+      if (slot.kind === SlotKind.Parameter) {
+        paramSlotNames.add(slot.name);
+      }
+    }
+
+    // Clone each instruction with remapped operands (excluding param slots)
     const cloned: ILInstruction[] = [];
     for (const instr of callee.instructions) {
-      cloned.push(this.cloneInstruction(instr, prefix, calleeLabels));
+      cloned.push(this.cloneInstruction(instr, prefix, calleeLabels, paramSlotNames));
     }
 
     return cloned;
   }
 
   /**
-   * Clone a single instruction with remapped labels and slots.
+   * Clone a single instruction with remapped labels and local slots.
    *
    * Creates a deep copy of the instruction with:
    * - Label operands prefixed (if they reference callee-local labels)
-   * - Slot operands prefixed (to avoid name collisions with caller slots)
+   * - LOCAL slot operands prefixed (to avoid name collisions with caller slots)
+   * - Parameter slot operands left unchanged (to preserve caller arg-store chain)
    * - All other operands copied as-is
    *
    * @param instr - The instruction to clone
    * @param prefix - Unique prefix for label/slot names
    * @param calleeLabels - Set of label names defined within the callee
+   * @param paramSlotNames - Set of parameter slot names that must NOT be remapped
    * @returns Cloned instruction with remapped names
    */
   protected cloneInstruction(
     instr: ILInstruction,
     prefix: string,
-    calleeLabels: Set<string>
+    calleeLabels: Set<string>,
+    paramSlotNames: Set<string>
   ): ILInstruction {
     // Remap operands
     const remappedOperands = instr.operands.map((op) => {
@@ -486,9 +510,18 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
         return op;
       }
 
-      // Remap slot operands to avoid name collisions with caller
+      // Remap LOCAL slot operands to avoid name collisions with caller.
+      // Parameter slots are NOT remapped — the caller stores arguments
+      // to these exact slot names before the CALL, and the inlined body
+      // must read from the same slots to preserve the def-use chain.
       if (op.kind === 'slot') {
         const slotOp = op as SlotOperand;
+
+        // Skip remapping for parameter slots — they are the caller/callee interface
+        if (paramSlotNames.has(slotOp.slot.name)) {
+          return op;
+        }
+
         const remappedSlot = {
           ...slotOp.slot,
           name: prefix + slotOp.slot.name,
@@ -497,8 +530,8 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
           ...slotOp,
           slot: remappedSlot,
         };
-        // Also remap indexSlot if present
-        if (slotOp.indexSlot) {
+        // Also remap indexSlot if present (and not a parameter)
+        if (slotOp.indexSlot && !paramSlotNames.has(slotOp.indexSlot.name)) {
           (result as { indexSlot: typeof slotOp.indexSlot }).indexSlot = {
             ...slotOp.indexSlot,
             name: prefix + slotOp.indexSlot.name,
@@ -512,11 +545,11 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
       return op;
     });
 
-    // Remap defUse slot names
+    // Remap defUse slot names (skip parameter slots to keep def-use chain intact)
     const remappedDefUse = instr.defUse
       ? {
-          defs: instr.defUse.defs.map((d) => prefix + d),
-          uses: instr.defUse.uses.map((u) => prefix + u),
+          defs: instr.defUse.defs.map((d) => (paramSlotNames.has(d) ? d : prefix + d)),
+          uses: instr.defUse.uses.map((u) => (paramSlotNames.has(u) ? u : prefix + u)),
         }
       : undefined;
 

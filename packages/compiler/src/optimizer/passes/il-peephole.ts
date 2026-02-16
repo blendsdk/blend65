@@ -8,6 +8,7 @@
  * - Identity elimination: Remove operations that have no effect
  * - Strength reduction: Replace expensive operations with cheaper ones
  * - Load-store elimination: Remove redundant load/store pairs
+ * - Redundant jump elimination: Remove JUMP to immediately following LABEL
  *
  * @module optimizer/passes/il-peephole
  */
@@ -15,7 +16,7 @@
 import type { ILFunction } from '../../il/structures.js';
 import type { ILInstruction } from '../../il/instruction.js';
 import { ILOpcode } from '../../il/enums.js';
-import { isImmediateOperand, isSlotOperand } from '../../il/guards.js';
+import { isImmediateOperand, isSlotOperand, isLabelOperand } from '../../il/guards.js';
 import { createInstruction, createImmediateOperand } from '../../il/factories.js';
 import type { OptimizationOptions } from '../options.js';
 import type { OptimizationPass, PassResult } from '../pass.js';
@@ -64,6 +65,7 @@ export class ILPeepholePass implements OptimizationPass {
    * 1. Identity elimination (removes no-op instructions)
    * 2. Strength reduction (replaces expensive ops with cheaper)
    * 3. Load-store elimination (removes redundant pairs)
+   * 4. Redundant jump elimination (removes JUMP to next instruction)
    *
    * @param func - IL function to optimize (modified in place)
    * @param options - Optimization options
@@ -76,6 +78,7 @@ export class ILPeepholePass implements OptimizationPass {
     results.push(this.identityElimination(func, options));
     results.push(this.strengthReduction(func, options));
     results.push(this.loadStoreElimination(func, options));
+    results.push(this.redundantJumpElimination(func, options));
 
     return mergeResults(results);
   }
@@ -557,6 +560,74 @@ export class ILPeepholePass implements OptimizationPass {
       0,
       debugInfo.length > 0 ? debugInfo : undefined
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Pattern 4: Redundant Jump Elimination
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Remove JUMP instructions that target the immediately following LABEL.
+   *
+   * This pattern commonly emerges after function inlining, where RETURN
+   * is replaced with `JUMP contLabel` followed by `LABEL contLabel`.
+   * When the RETURN was the last instruction in the inlined body, the
+   * JUMP targets the very next instruction — a no-op that wastes cycles.
+   *
+   * **Pattern:**
+   * ```
+   * JUMP label_X    ← removed (redundant)
+   * LABEL label_X   ← kept
+   * ```
+   *
+   * @param func - Function to optimize
+   * @param options - Optimization options
+   * @returns Result with statistics
+   */
+  protected redundantJumpElimination(
+    func: ILFunction,
+    options: OptimizationOptions
+  ): PassResult {
+    const toRemove: number[] = [];
+    const debugInfo: string[] = [];
+
+    for (let i = 0; i < func.instructions.length - 1; i++) {
+      const instr = func.instructions[i];
+      const next = func.instructions[i + 1];
+
+      // Pattern: JUMP label followed by LABEL with the same name
+      if (
+        instr.opcode === ILOpcode.JUMP &&
+        next.opcode === ILOpcode.LABEL
+      ) {
+        // Extract label names from both instructions' operands
+        const jumpTarget = instr.operands.length > 0 && isLabelOperand(instr.operands[0])
+          ? instr.operands[0].name
+          : null;
+        const labelName = next.operands.length > 0 && isLabelOperand(next.operands[0])
+          ? next.operands[0].name
+          : null;
+
+        // If the JUMP targets the immediately following LABEL, it's redundant
+        if (jumpTarget !== null && jumpTarget === labelName) {
+          toRemove.push(i);
+
+          if (options.debug) {
+            debugInfo.push(
+              `Redundant jump elimination at ${i}: JUMP ${jumpTarget} → next is LABEL ${labelName}`
+            );
+          }
+        }
+      }
+    }
+
+    // Remove marked instructions
+    if (toRemove.length > 0) {
+      const removeSet = new Set(toRemove);
+      func.instructions = func.instructions.filter((_, idx) => !removeSet.has(idx));
+    }
+
+    return createResult(toRemove.length, 0, debugInfo.length > 0 ? debugInfo : undefined);
   }
 
   // ═══════════════════════════════════════════════════════════════════

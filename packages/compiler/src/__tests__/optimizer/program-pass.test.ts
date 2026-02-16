@@ -349,8 +349,10 @@ describe('ILOptimizer program pass execution', () => {
     optimizer.optimizeProgram(program);
 
     const result = optimizer.getProgramResult();
-    // At O1: dead-function-elim and function-inline both run (both auto-registered)
-    expect(result!.programPassResults).toHaveLength(2);
+    // At O1: dead-function-elim, function-inline, dead-function-elim (DFE runs twice:
+    // once before inlining to remove unreachable code, once after to remove
+    // fully-inlined functions that are now unreachable)
+    expect(result!.programPassResults).toHaveLength(3);
     // Verify no more than the enabled+registered passes ran
     expect(result!.programPassResults.length).toBeLessThanOrEqual(
       getProgramPassesForLevel('O1').length
@@ -387,13 +389,18 @@ describe('ILOptimizer program pass execution', () => {
     optimizer.optimizeProgram(program);
 
     const result = optimizer.getProgramResult();
-    // O2 has: dead-function-elim, dead-global-elim, function-inline (all auto-registered)
+    // O2 has: dead-function-elim, dead-global-elim, function-inline, dead-function-elim
+    // (DFE runs twice: before and after inlining). All are auto-registered.
     // 'test-custom-pass' is registered but not in PROGRAM_LEVEL_PASSES, so it doesn't run
-    expect(result!.programPassResults.length).toBe(3);
+    expect(result!.programPassResults.length).toBe(4);
   });
 
   it('auto-registered DFE can modify the program (remove functions)', () => {
-    // The real DeadFunctionElimPass removes unreachable functions
+    // The real DeadFunctionElimPass removes unreachable functions.
+    // At O1, the pipeline is: DFE → inline → DFE.
+    // First DFE removes 'unused' (unreachable from main→helper).
+    // Inlining inlines 'helper' into 'main' (single-call-site).
+    // Second DFE removes 'helper' (no longer called after inlining).
     const optimizer = new ILOptimizer({ level: 'O1' });
 
     const program = createMultiFunctionProgram();
@@ -401,25 +408,28 @@ describe('ILOptimizer program pass execution', () => {
 
     optimizer.optimizeProgram(program);
 
-    // 'unused' is unreachable from main→helper chain, so it should be removed
-    expect(program.functions).toHaveLength(2);
+    // Both 'unused' and 'helper' are removed — only 'main' remains
+    expect(program.functions).toHaveLength(1);
     expect(program.functions.map((f) => f.name)).not.toContain('unused');
+    expect(program.functions.map((f) => f.name)).not.toContain('helper');
+    expect(program.functions.map((f) => f.name)).toContain('main');
   });
 
   it('function passes only run on remaining functions after program pass', () => {
-    // The auto-registered DFE removes 'unused', then function passes
-    // should NOT see the removed function
+    // At O1: DFE removes 'unused', inline replaces 'helper' call,
+    // second DFE removes 'helper'. Function-level passes only see 'main'.
     const optimizer = new ILOptimizer({ level: 'O1' });
 
     const program = createMultiFunctionProgram();
     optimizer.optimizeProgram(program);
 
     const result = optimizer.getProgramResult();
-    // Function results should only contain main and helper (not unused)
+    // Function results should only contain main (unused removed by DFE,
+    // helper removed after inlining by second DFE)
     const funcNames = result!.functionResults.map((r) => r.functionName);
     expect(funcNames).toContain('main');
-    expect(funcNames).toContain('helper');
     expect(funcNames).not.toContain('unused');
+    expect(funcNames).not.toContain('helper');
   });
 
   it('programPassResults are captured in ProgramOptimizationResult', () => {
@@ -429,8 +439,8 @@ describe('ILOptimizer program pass execution', () => {
     optimizer.optimizeProgram(program);
 
     const result = optimizer.getProgramResult();
-    // At O1: dead-function-elim and function-inline both run
-    expect(result!.programPassResults).toHaveLength(2);
+    // At O1: dead-function-elim, function-inline, dead-function-elim (3 passes)
+    expect(result!.programPassResults).toHaveLength(3);
     // First result is from dead-function-elim (removes 'unused')
     expect(result!.programPassResults[0].modified).toBe(true);
     expect(result!.programPassResults[0].functionsRemoved).toBe(1);

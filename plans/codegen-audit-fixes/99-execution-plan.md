@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-02-16 09:01
-> **Progress**: 11/12 tasks (92%)
+> **Last Updated**: 2025-02-16 09:57
+> **Progress**: 12/12 tasks (100%)
 
 ## Overview
 
@@ -162,19 +162,19 @@ all 12 code generation bugs discovered by the spinning-line assembly audit.
 
 ### Phase 3: Inlining Verification & Fixes
 
-- [ ] 3.1.1 Check I3 (ghost instructions) status after Phase 1+2
-- [ ] 3.1.2 Fix I3 if still present
-- [ ] 3.1.3 Check I4 (missing CLC) status after Phase 1+2
-- [ ] 3.1.4 Fix I4 if still present
-- [ ] 3.1.5 Investigate dead-function-elim for I1
-- [ ] 3.1.6 Fix DFE for fully-inlined function removal
-- [ ] 3.1.7 Run full test suite
+- [x] 3.1.1 Check I3 (ghost instructions) status after Phase 1+2 ✅ (completed: 2025-02-16 09:20 — I3 persisted, root cause: param slot remapping)
+- [x] 3.1.2 Fix I3 — excluded param slots from remapping in function-inlining.ts ✅ (completed: 2025-02-16 09:25)
+- [x] 3.1.3 Check I4 (missing CLC) status after Phase 1+2 ✅ (completed: 2025-02-16 09:20 — I4 same root cause as I3)
+- [x] 3.1.4 Fix I4 — resolved by param slot remapping fix ✅ (completed: 2025-02-16 09:25)
+- [x] 3.1.5 Investigate dead-function-elim for I1 ✅ (completed: 2025-02-16 09:30 — pass deduplication in topological sort)
+- [x] 3.1.6 Fix DFE — preserved duplicate passes in getOrderedProgramPasses() ✅ (completed: 2025-02-16 09:35)
+- [x] 3.1.7 Run full test suite ✅ (completed: 2025-02-16 09:40 — 8931 pass, 0 fail)
 
 ### Phase 4: Code Quality
 
-- [ ] 4.1.1 Add redundant JMP peephole rule
-- [ ] 4.1.2 Run full test suite
-- [ ] 4.1.3 Final all-levels verification
+- [x] 4.1.1 Add redundant JMP peephole rule ✅ (completed: 2025-02-16 09:52)
+- [x] 4.1.2 Run full test suite ✅ (completed: 2025-02-16 09:57 — 8948 pass, 0 fail)
+- [x] 4.1.3 Final all-levels verification ✅ (completed: 2025-02-16 09:57 — all 6 levels compile, redundant JMPs eliminated)
 
 ---
 
