@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-16 17:37
-> **Progress**: 17/24 tasks (71%)
+> **Last Updated**: 2026-02-16 21:15
+> **Progress**: 22/24 tasks (92%)
 
 ## Overview
 
@@ -220,19 +220,19 @@ Implementation is organized by compiler stage (bottom-up) so each phase is indep
 - [x] 2.3.4 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 17:37 — 9095 pass, 0 fail)
 
 ### Phase 3: Address Expression Folding
-- [ ] 3.1.1 Analyze IL output of spinning-line post-inlining
-- [ ] 3.1.2 Implement addressExprFolding()
-- [ ] 3.1.3 Handle STORE_WORD/LOAD_WORD gap
-- [ ] 3.1.4 Add unit tests
-- [ ] 3.1.5 Run compiler-test + diag_app
+- [x] 3.1.1 Analyze IL output of spinning-line post-inlining ✅ (completed: prior session)
+- [x] 3.1.2 Implement addressExprFolding() ✅ (completed: prior session)
+- [x] 3.1.3 Handle STORE_WORD/LOAD_WORD gap ✅ (completed: prior session)
+- [x] 3.1.4 Add unit tests ✅ (completed: 2026-02-16 — 35 tests, commit ef71bc5)
+- [x] 3.1.5 Run compiler-test + diag_app ✅ (completed: 2026-02-16 20:49 — 9120 pass, spinning-line all 10 levels PASS)
 
 ### Phase 4: ASM Register Promotion
-- [ ] 4.1.1 Read RegisterPromotePass implementation
-- [ ] 4.1.2 Check barrier() impact
-- [ ] 4.1.3 Check count-up vs count-down
-- [ ] 4.1.4 Implement fix
-- [ ] 4.1.5 Add tests
-- [ ] 4.1.6 Run compiler-test — zero regressions
+- [x] 4.1.1 Read RegisterPromotePass implementation ✅ (completed: 2026-02-16 20:52 — identified 3 root causes)
+- [x] 4.1.2 Check barrier() impact ✅ (completed: 2026-02-16 20:52 — NOT an issue, barrier=label only)
+- [x] 4.1.3 Check count-up vs count-down ✅ (completed: 2026-02-16 20:52 — CMP#imm not matched)
+- [x] 4.1.4 Implement fix ✅ (completed: 2026-02-16 21:03 — JMP detection + LDA+CMP#imm pattern)
+- [x] 4.1.5 Add tests ✅ (completed: 2026-02-16 21:14 — 6 new tests for JMP loops + imm compare)
+- [x] 4.1.6 Run compiler-test — zero regressions ✅ (completed: 2026-02-16 21:15 — 9126 pass, spinning-line all levels PASS)
 
 ### Phase 5: Test Programs
 - [ ] 5.1.1 Create counter-wrap example

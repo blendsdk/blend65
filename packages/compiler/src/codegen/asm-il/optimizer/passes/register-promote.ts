@@ -51,7 +51,7 @@ import type {
 } from '../types.js';
 import { createEmptyTransformStats, createUnchangedPassResult } from '../types.js';
 import type { AsmILProgram, AsmILSection, AsmILElement, AsmInstruction } from '../../types.js';
-import { AsmAddressingMode, isInstructionElement, isLabelElement } from '../../types.js';
+import { AsmAddressingMode, isInstructionElement, isLabelElement, createCommentElement } from '../../types.js';
 import { RegisterTracker } from '../analysis/register-tracker.js';
 
 // ============================================================================
@@ -82,6 +82,21 @@ interface DetectedLoop {
 }
 
 /**
+ * Represents a paired LDA counter + CMP #imm pattern in a loop.
+ *
+ * Blend for-loops emit: LDA counter, CMP #limit, BCS .exit
+ * After promotion, the LDA is removed and CMP becomes CPX/CPY #limit.
+ * This differs from memory-mode CMP which only changes the mnemonic.
+ */
+interface ImmediateComparePattern {
+  /** Element index of the LDA counter instruction (to be removed) */
+  loadElementIndex: number;
+
+  /** Element index of the CMP #imm instruction (to become CPX/CPY #imm) */
+  compareElementIndex: number;
+}
+
+/**
  * A candidate for register promotion: a memory address used as a
  * loop counter (INC/DEC) that can be moved to X or Y.
  */
@@ -101,8 +116,15 @@ interface PromotionCandidate {
   /** Element indices of LDA addr instructions to replace with TXA/TYA */
   loadElementIndices: number[];
 
-  /** Element indices of CMP addr instructions to replace with CPX/CPY */
+  /** Element indices of CMP addr instructions to replace with CPX/CPY (memory mode) */
   compareElementIndices: number[];
+
+  /**
+   * Paired LDA counter + CMP #imm patterns found in the loop.
+   * The LDA is removed entirely, and CMP becomes CPX/CPY keeping the
+   * immediate operand. These are the typical Blend for-loop comparison patterns.
+   */
+  immediateComparePatterns: ImmediateComparePattern[];
 }
 
 // ============================================================================
@@ -243,8 +265,13 @@ export class RegisterPromotePass implements AsmOptimizationPass {
       }
     }
 
-    // Find backward branches that target known labels
-    const branchMnemonics = new Set(['BNE', 'BEQ', 'BCC', 'BCS', 'BPL', 'BMI']);
+    // Find backward branches that target known labels.
+    // Includes both conditional branches (BNE, BEQ, etc.) and unconditional
+    // JMP — Blend for-loops use JMP for the backward jump with a forward
+    // conditional exit (BCS .endfor) at the top of the loop body.
+    const branchMnemonics = new Set([
+      'BNE', 'BEQ', 'BCC', 'BCS', 'BPL', 'BMI', 'JMP',
+    ]);
 
     for (let i = 0; i < elements.length; i++) {
       const el = elements[i];
@@ -328,10 +355,28 @@ export class RegisterPromotePass implements AsmOptimizationPass {
     // Use the first INC/DEC candidate (one counter per loop for safety)
     const first = incDecCandidates[0];
 
-    // Find LDA and CMP instructions referencing the same address
-    const loadIndices = this.findLoadsForAddress(
+    // Find paired LDA counter + CMP #imm patterns (typical Blend for-loop comparison).
+    // These are handled specially: LDA is removed, CMP becomes CPX/CPY #imm.
+    const immComparePatterns = this.findImmediateComparePatterns(
       loop, elements, first.address
     );
+
+    // Collect LDA element indices that are part of immediate compare patterns
+    // so they can be excluded from the TXA replacement list
+    const pairedLoadIndices = new Set(
+      immComparePatterns.map(p => p.loadElementIndex)
+    );
+
+    // Find remaining LDA instructions (not paired with CMP #imm) — these
+    // become TXA/TYA since they load the counter for computation use
+    const allLoadIndices = this.findLoadsForAddress(
+      loop, elements, first.address
+    );
+    const loadIndices = allLoadIndices.filter(
+      idx => !pairedLoadIndices.has(idx)
+    );
+
+    // Find CMP instructions using memory-mode comparison to the counter address
     const compareIndices = this.findComparesForAddress(
       loop, elements, first.address
     );
@@ -343,6 +388,7 @@ export class RegisterPromotePass implements AsmOptimizationPass {
       targetRegister,
       loadElementIndices: loadIndices,
       compareElementIndices: compareIndices,
+      immediateComparePatterns: immComparePatterns,
     };
   }
 
@@ -477,6 +523,63 @@ export class RegisterPromotePass implements AsmOptimizationPass {
     return indices;
   }
 
+  /**
+   * Find paired LDA counter + CMP #imm patterns in the loop body.
+   *
+   * Blend for-loops generate a comparison pattern where:
+   * 1. LDA counter_addr  — load counter from memory into A
+   * 2. CMP #limit        — compare A with immediate limit value
+   * 3. BCS .endfor        — exit if counter >= limit
+   *
+   * After promotion, the LDA is unnecessary (counter is in X/Y) and the
+   * CMP becomes CPX/CPY keeping the same immediate operand.
+   *
+   * Only pairs where the CMP immediately follows the LDA (in instruction
+   * order, ignoring labels/comments) are matched.
+   *
+   * @param loop - The detected loop
+   * @param elements - All section elements
+   * @param address - The counter memory address
+   * @returns Array of paired LDA+CMP#imm patterns found
+   */
+  protected findImmediateComparePatterns(
+    loop: DetectedLoop,
+    elements: readonly AsmILElement[],
+    address: number
+  ): ImmediateComparePattern[] {
+    const patterns: ImmediateComparePattern[] = [];
+    const validLoadModes = new Set([
+      AsmAddressingMode.ZeroPage,
+      AsmAddressingMode.Absolute,
+    ]);
+
+    // Iterate consecutive instruction pairs in the body
+    for (let k = 0; k < loop.bodyInstructionIndices.length - 1; k++) {
+      const ldaIdx = loop.bodyInstructionIndices[k];
+      const ldaEl = elements[ldaIdx];
+      if (!isInstructionElement(ldaEl)) continue;
+
+      // Check: is this an LDA from the counter address?
+      if (ldaEl.instruction.mnemonic !== 'LDA') continue;
+      if (!validLoadModes.has(ldaEl.instruction.mode)) continue;
+      if (ldaEl.instruction.operand !== address) continue;
+
+      // Check: is the next instruction a CMP with immediate mode?
+      const cmpIdx = loop.bodyInstructionIndices[k + 1];
+      const cmpEl = elements[cmpIdx];
+      if (!isInstructionElement(cmpEl)) continue;
+      if (cmpEl.instruction.mnemonic !== 'CMP') continue;
+      if (cmpEl.instruction.mode !== AsmAddressingMode.Immediate) continue;
+
+      patterns.push({
+        loadElementIndex: ldaIdx,
+        compareElementIndex: cmpIdx,
+      });
+    }
+
+    return patterns;
+  }
+
   // ==========================================================================
   // Promotion Application
   // ==========================================================================
@@ -560,7 +663,7 @@ export class RegisterPromotePass implements AsmOptimizationPass {
       stats.estimatedBytesSaved += 1;
     }
 
-    // 4. Replace CMP addr → CPX/CPY (counter compares — only for memory-mode CMP)
+    // 4a. Replace CMP addr → CPX/CPY (counter compares — only for memory-mode CMP)
     const cmpRegMnemonic = reg === 'x' ? 'CPX' : 'CPY';
     for (const cmpIdx of candidate.compareElementIndices) {
       const origEl = elements[cmpIdx];
@@ -572,6 +675,37 @@ export class RegisterPromotePass implements AsmOptimizationPass {
             mode: origEl.instruction.mode,
             operand: origEl.instruction.operand,
             comment: `register-promote: CMP → ${cmpRegMnemonic}`,
+          },
+        };
+        stats.patternsMatched++;
+      }
+    }
+
+    // 4b. Handle paired LDA counter + CMP #imm patterns (Blend for-loop comparison).
+    // The LDA is replaced with a comment (counter is already in register),
+    // and the CMP #imm becomes CPX/CPY #imm.
+    for (const pattern of candidate.immediateComparePatterns) {
+      // Remove the LDA by replacing it with a comment element
+      result[pattern.loadElementIndex + offset] = createCommentElement(
+        `register-promote: removed LDA (counter in ${reg.toUpperCase()})`
+      );
+      stats.patternsMatched++;
+      stats.instructionsRemoved++;
+      // LDA addr = 3-4 cycles saved entirely (no replacement instruction needed)
+      stats.estimatedCyclesSaved += 3;
+      // LDA addr = 2 bytes saved entirely
+      stats.estimatedBytesSaved += 2;
+
+      // Replace CMP #imm → CPX/CPY #imm (keep the immediate operand)
+      const origCmpEl = elements[pattern.compareElementIndex];
+      if (isInstructionElement(origCmpEl)) {
+        result[pattern.compareElementIndex + offset] = {
+          kind: 'instruction',
+          instruction: {
+            mnemonic: cmpRegMnemonic,
+            mode: AsmAddressingMode.Immediate,
+            operand: origCmpEl.instruction.operand,
+            comment: `register-promote: CMP #imm → ${cmpRegMnemonic} #imm`,
           },
         };
         stats.patternsMatched++;

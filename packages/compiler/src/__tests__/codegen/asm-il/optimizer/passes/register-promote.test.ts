@@ -315,6 +315,178 @@ describe('RegisterPromotePass', () => {
   });
 
   // ========================================================================
+  // JMP-based Loop Detection (Blend for-loop pattern)
+  // ========================================================================
+
+  describe('JMP-based loop detection', () => {
+    it('should detect and promote loops using JMP backward branch', () => {
+      // Blend for-loop pattern: LDA counter, CMP #limit, BCS .exit, ..., INC counter, JMP .loop
+      const program = createTestProgram([
+        createLabelElement('.for0', true),
+        instr('LDA', AsmAddressingMode.ZeroPage, 0x05),     // load counter
+        instr('CMP', AsmAddressingMode.Immediate, 0x06),     // compare with limit
+        instr('BCS', AsmAddressingMode.Relative, undefined, '.endfor1'), // exit
+        instr('INC', AsmAddressingMode.ZeroPage, 0x05),      // counter++
+        instr('JMP', AsmAddressingMode.Absolute, undefined, '.for0'), // backward jump
+        createLabelElement('.endfor1', true),
+      ]);
+
+      const result = pass.run(program);
+      expect(result.changed).toBe(true);
+
+      const instrs = getInstructions(result.program);
+      const mnemonics = instrs.map(i => i.mnemonic);
+
+      // Should have LDX before loop, CPX #imm, INX, STX after loop
+      expect(mnemonics).toContain('LDX');
+      expect(mnemonics).toContain('INX');
+      expect(mnemonics).toContain('STX');
+
+      // INC $05 should be replaced with INX
+      expect(countMnemonic(result.program, 'INC')).toBe(0);
+
+      // CMP #$06 should become CPX #$06 (immediate compare pattern)
+      const cpx = instrs.find(i => i.mnemonic === 'CPX');
+      expect(cpx).toBeDefined();
+      expect(cpx?.mode).toBe(AsmAddressingMode.Immediate);
+      expect(cpx?.operand).toBe(0x06);
+    });
+
+    it('should handle inner for-loop with barrier label', () => {
+      // Pattern from delay() inner loop: barrier label + LDA + CMP + BCS + INC + JMP
+      const program = createTestProgram([
+        createLabelElement('.for2', true),
+        createLabelElement('.for_cont4', true), // barrier label
+        instr('LDA', AsmAddressingMode.ZeroPage, 0x05),
+        instr('CMP', AsmAddressingMode.Immediate, 0xFF),
+        instr('BCS', AsmAddressingMode.Relative, undefined, '.endfor3'),
+        instr('INC', AsmAddressingMode.ZeroPage, 0x05),
+        instr('JMP', AsmAddressingMode.Absolute, undefined, '.for2'),
+        createLabelElement('.endfor3', true),
+      ]);
+
+      const result = pass.run(program);
+      expect(result.changed).toBe(true);
+
+      const instrs = getInstructions(result.program);
+
+      // LDA $05 before CMP should be removed (counter in X)
+      // CMP #$FF → CPX #$FF
+      const cpx = instrs.find(i => i.mnemonic === 'CPX');
+      expect(cpx).toBeDefined();
+      expect(cpx?.operand).toBe(0xFF);
+
+      // INX should replace INC
+      expect(countMnemonic(result.program, 'INX')).toBe(1);
+      expect(countMnemonic(result.program, 'INC')).toBe(0);
+    });
+
+    it('should NOT promote JMP loop with JSR in body', () => {
+      const program = createTestProgram([
+        createLabelElement('.loop', true),
+        instr('LDA', AsmAddressingMode.ZeroPage, 0x05),
+        instr('CMP', AsmAddressingMode.Immediate, 0x06),
+        instr('BCS', AsmAddressingMode.Relative, undefined, '.end'),
+        instr('JSR', AsmAddressingMode.Absolute, 0x1000, 'subroutine'),
+        instr('INC', AsmAddressingMode.ZeroPage, 0x05),
+        instr('JMP', AsmAddressingMode.Absolute, undefined, '.loop'),
+        createLabelElement('.end', true),
+      ]);
+
+      const result = pass.run(program);
+      expect(result.changed).toBe(false);
+    });
+  });
+
+  // ========================================================================
+  // Immediate Compare Pattern (LDA counter + CMP #imm)
+  // ========================================================================
+
+  describe('LDA counter + CMP #imm pattern', () => {
+    it('should remove LDA and replace CMP with CPX for immediate compare', () => {
+      // BNE-based loop with LDA+CMP#imm at the end
+      const program = createTestProgram([
+        createLabelElement('.loop', true),
+        instr('NOP'),  // some body work
+        instr('LDA', AsmAddressingMode.ZeroPage, 0x50),      // load counter
+        instr('CMP', AsmAddressingMode.Immediate, 0x0A),     // compare #10
+        instr('INC', AsmAddressingMode.ZeroPage, 0x50),
+        instr('BNE', AsmAddressingMode.Relative, undefined, '.loop'),
+      ]);
+
+      const result = pass.run(program);
+      expect(result.changed).toBe(true);
+
+      const instrs = getInstructions(result.program);
+
+      // LDA $50 should be removed (not converted to TXA — it was paired with CMP)
+      const ldaToAddr = instrs.filter(
+        i => i.mnemonic === 'LDA' && i.operand === 0x50
+      );
+      expect(ldaToAddr.length).toBe(0);
+
+      // CMP #$0A → CPX #$0A
+      const cpx = instrs.find(i => i.mnemonic === 'CPX');
+      expect(cpx).toBeDefined();
+      expect(cpx?.mode).toBe(AsmAddressingMode.Immediate);
+      expect(cpx?.operand).toBe(0x0A);
+
+      // No TXA should be generated (LDA was paired with CMP, not a standalone load)
+      expect(countMnemonic(result.program, 'TXA')).toBe(0);
+    });
+
+    it('should handle both standalone LDA and paired LDA+CMP in same loop', () => {
+      // Loop with: LDA for use (→TXA) + LDA+CMP#imm (→remove+CPX)
+      const program = createTestProgram([
+        createLabelElement('.loop', true),
+        instr('LDA', AsmAddressingMode.ZeroPage, 0x50),      // standalone load → TXA
+        instr('STA', AsmAddressingMode.Absolute, 0xD020),    // use value
+        instr('LDA', AsmAddressingMode.ZeroPage, 0x50),      // paired with CMP → remove
+        instr('CMP', AsmAddressingMode.Immediate, 0x10),     // → CPX #$10
+        instr('INC', AsmAddressingMode.ZeroPage, 0x50),
+        instr('BNE', AsmAddressingMode.Relative, undefined, '.loop'),
+      ]);
+
+      const result = pass.run(program);
+      expect(result.changed).toBe(true);
+
+      const instrs = getInstructions(result.program);
+
+      // First LDA $50 → TXA (standalone load for use)
+      expect(countMnemonic(result.program, 'TXA')).toBe(1);
+
+      // Second LDA $50 removed, CMP → CPX
+      const cpx = instrs.find(i => i.mnemonic === 'CPX');
+      expect(cpx).toBeDefined();
+      expect(cpx?.operand).toBe(0x10);
+    });
+
+    it('should report correct stats for immediate compare pattern', () => {
+      const program = createTestProgram([
+        createLabelElement('.for0', true),
+        instr('LDA', AsmAddressingMode.ZeroPage, 0x05),
+        instr('CMP', AsmAddressingMode.Immediate, 0x06),
+        instr('BCS', AsmAddressingMode.Relative, undefined, '.end'),
+        instr('INC', AsmAddressingMode.ZeroPage, 0x05),
+        instr('JMP', AsmAddressingMode.Absolute, undefined, '.for0'),
+        createLabelElement('.end', true),
+      ]);
+
+      const result = pass.run(program);
+      expect(result.changed).toBe(true);
+
+      // Patterns: INC→INX (1) + LDA removal (1) + CMP→CPX (1) = 3
+      expect(result.stats.patternsMatched).toBe(3);
+      // LDX + STX = 2 added
+      expect(result.stats.instructionsAdded).toBe(2);
+      // LDA removed = 1
+      expect(result.stats.instructionsRemoved).toBe(1);
+      expect(result.stats.estimatedCyclesSaved).toBeGreaterThan(0);
+      expect(result.stats.estimatedBytesSaved).toBeGreaterThan(0);
+    });
+  });
+
+  // ========================================================================
   // Statistics
   // ========================================================================
 
