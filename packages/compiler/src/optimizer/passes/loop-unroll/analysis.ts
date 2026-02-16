@@ -17,6 +17,7 @@
  * @module optimizer/passes/loop-unroll/analysis
  */
 
+import { ILOpcode } from '../../../il/enums.js';
 import type { ILFunction, ILLoop } from '../../../il/structures.js';
 import type { LoopInfo } from '../../analysis/loop-tree.js';
 import type { OptimizationOptions } from '../../options.js';
@@ -123,6 +124,18 @@ export class LoopUnrollAnalysis extends LoopUnrollBase {
     }
 
     const bodyInstructions = this.extractBodyInstructions(func, headerIdx, exitIdx);
+
+    // Safety guard: Reject loops containing BARRIER — the barrier() intrinsic
+    // explicitly prevents optimization across its boundary. Unrolling a loop
+    // with barrier() would duplicate the barrier semantics incorrectly and
+    // produce corrupt code at O2/O3.
+    const containsBarrier = bodyInstructions.some(
+      instr => instr.opcode === ILOpcode.BARRIER
+    );
+    if (containsBarrier) {
+      return null;
+    }
+
     const maxBodySize = this.getMaxBodySize(options);
     if (bodyInstructions.length > maxBodySize || bodyInstructions.length === 0) {
       return null;

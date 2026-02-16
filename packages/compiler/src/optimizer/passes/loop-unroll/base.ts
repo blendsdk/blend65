@@ -13,6 +13,7 @@
  * @module optimizer/passes/loop-unroll/base
  */
 
+import type { FrameSlot } from '../../../frame/types.js';
 import { ILOpcode } from '../../../il/enums.js';
 import { isLabelOperand } from '../../../il/guards.js';
 import type { ILInstruction } from '../../../il/instruction.js';
@@ -134,22 +135,34 @@ export class LoopUnrollBase {
    * These are the instructions that represent the actual loop work
    * and should be duplicated during unrolling.
    *
+   * When `counterSlot` is provided, also excludes:
+   * - Counter increment/decrement instructions (INC/DEC on the counter)
+   * - Termination check instructions (LOAD counter + CMP bound)
+   *
+   * This prevents the bug where counter modifications are duplicated
+   * both inside the extracted body AND separately by the partial
+   * unroller, leading to triple-increments per iteration (bug L1).
+   *
    * @param func - IL function containing the loop
    * @param headerIdx - Index of the loop header LABEL instruction
    * @param exitIdx - Index of the loop exit LABEL instruction
+   * @param counterSlot - Optional counter slot to exclude counter ops from body
    * @returns Array of body instructions suitable for duplication
    */
   protected extractBodyInstructions(
     func: ILFunction,
     headerIdx: number,
-    exitIdx: number
+    exitIdx: number,
+    counterSlot?: FrameSlot
   ): ILInstruction[] {
     const body: ILInstruction[] = [];
+    const counterName = counterSlot?.name;
 
     // Walk from after header to before exit, skipping:
     // - The header LABEL itself
     // - The back-edge JUMP (last instruction before exit)
     // - Control flow to exit label (CMP + conditional jump)
+    // - Counter modifications and termination checks (when counterSlot provided)
     for (let i = headerIdx + 1; i < exitIdx; i++) {
       const instr = func.instructions[i];
 
@@ -160,6 +173,19 @@ export class LoopUnrollBase {
 
       // Skip conditional jumps to the exit label (loop termination)
       if (this.isExitBranch(instr, func, exitIdx)) {
+        continue;
+      }
+
+      // Skip counter increment/decrement (handled separately by partial unroll)
+      // This prevents the triple-increment bug where the body already contains
+      // the INC and the partial unroller adds another copy per unrolled iteration.
+      if (counterName && this.isCounterModification(instr, counterName)) {
+        continue;
+      }
+
+      // Skip termination check instructions (LOAD counter + CMP bound)
+      // These are loop overhead, not actual work instructions.
+      if (counterName && this.isTerminationCheck(instr, counterName)) {
         continue;
       }
 
@@ -255,14 +281,61 @@ export class LoopUnrollBase {
   /**
    * Clone an array of instructions for loop body duplication.
    *
-   * Each instruction is independently cloned so modifications
-   * to the copies don't affect the originals.
+   * When `copyIndex` is provided, all labels defined within the
+   * instruction set are remapped with a `_u{copyIndex}` suffix to
+   * ensure uniqueness across multiple unrolled copies. Without this,
+   * full unrolling produces duplicate label names that cause assembler
+   * errors (bug L2).
+   *
+   * When `copyIndex` is undefined, instructions are cloned without
+   * any label remapping (backward-compatible behavior).
    *
    * @param instructions - Instructions to clone
-   * @returns Array of cloned instructions
+   * @param copyIndex - Optional copy index for unique label suffixes
+   * @returns Array of cloned instructions with optionally remapped labels
    */
-  protected cloneInstructions(instructions: ILInstruction[]): ILInstruction[] {
-    return instructions.map(instr => this.cloneInstruction(instr));
+  protected cloneInstructions(instructions: ILInstruction[], copyIndex?: number): ILInstruction[] {
+    if (copyIndex === undefined) {
+      // No remapping needed (single copy or legacy callers)
+      return instructions.map(instr => this.cloneInstruction(instr));
+    }
+
+    // Collect all labels defined in this instruction set so we only
+    // remap references to locally-defined labels (not external targets)
+    const definedLabels = new Set<string>();
+    for (const instr of instructions) {
+      if (instr.opcode === ILOpcode.LABEL && instr.operands.length > 0) {
+        const labelOp = instr.operands[0];
+        if (isLabelOperand(labelOp)) {
+          definedLabels.add(labelOp.name);
+        }
+      }
+    }
+
+    // Clone with label remapping — append `_u{copyIndex}` to all
+    // operands that reference locally-defined labels
+    const suffix = `_u${copyIndex}`;
+    return instructions.map(instr => {
+      // Remap label operands that reference locally-defined labels.
+      // We build the remapped operands first, then create the cloned
+      // instruction with them (since operands is read-only).
+      const remappedOperands = instr.operands.map(op => {
+        if (isLabelOperand(op) && definedLabels.has(op.name)) {
+          return { ...op, name: op.name + suffix };
+        }
+        return op;
+      });
+
+      return {
+        opcode: instr.opcode,
+        operands: remappedOperands,
+        location: instr.location,
+        comment: instr.comment,
+        defUse: instr.defUse
+          ? { defs: [...instr.defUse.defs], uses: [...instr.defUse.uses] }
+          : undefined,
+      };
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════════
@@ -303,6 +376,60 @@ export class LoopUnrollBase {
       instr.opcode === ILOpcode.CMP_WORD_IMM ||
       instr.opcode === ILOpcode.CMP_WORD_SLOT
     );
+  }
+
+  /**
+   * Check if an instruction is a counter increment or decrement.
+   *
+   * Counter modifications (INC_BYTE, DEC_BYTE, INC_WORD, DEC_WORD)
+   * that define (write to) the named counter slot are loop overhead.
+   * They must be excluded from the body to prevent the partial unroller
+   * from duplicating them (since it already handles counter increments
+   * separately via `findCounterIncrements()`).
+   *
+   * @param instr - Instruction to check
+   * @param counterName - Name of the counter slot variable
+   * @returns true if this instruction modifies the loop counter
+   */
+  protected isCounterModification(instr: ILInstruction, counterName: string): boolean {
+    // Only INC/DEC opcodes can be counter modifications
+    if (
+      instr.opcode !== ILOpcode.INC_BYTE &&
+      instr.opcode !== ILOpcode.DEC_BYTE &&
+      instr.opcode !== ILOpcode.INC_WORD &&
+      instr.opcode !== ILOpcode.DEC_WORD
+    ) {
+      return false;
+    }
+
+    // Check if this instruction defines (writes to) the counter slot
+    return instr.defUse?.defs.includes(counterName) ?? false;
+  }
+
+  /**
+   * Check if an instruction is part of the loop termination check.
+   *
+   * The termination check is typically a LOAD of the counter slot
+   * followed by a CMP instruction. These are loop overhead that
+   * should not be duplicated in the unrolled body — the loop
+   * structure retains its own termination check.
+   *
+   * @param instr - Instruction to check
+   * @param counterName - Name of the counter slot variable
+   * @returns true if this instruction is part of the termination check
+   */
+  protected isTerminationCheck(instr: ILInstruction, counterName: string): boolean {
+    // LOAD_BYTE of the counter (loading counter value for comparison)
+    if (instr.opcode === ILOpcode.LOAD_BYTE && instr.defUse?.uses.includes(counterName)) {
+      return true;
+    }
+
+    // CMP instruction that uses the counter (comparing counter to bound)
+    if (this.isComparison(instr) && instr.defUse?.uses.includes(counterName)) {
+      return true;
+    }
+
+    return false;
   }
 
   // ═══════════════════════════════════════════════════════════════════

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2025-02-16 00:29
-> **Progress**: 3/12 tasks (25%)
+> **Last Updated**: 2025-02-16 09:01
+> **Progress**: 11/12 tasks (92%)
 
 ## Overview
 
@@ -148,17 +148,17 @@ all 12 code generation bugs discovered by the spinning-line assembly audit.
 - [x] 1.1.1 Fix `generateCallArguments()` for multi-arg passing ✅ (completed: 2025-02-16 00:26)
 - [x] 1.1.2 Fix `generateConditionWithBranch()` for const resolution ✅ (completed: 2025-02-16 00:27)
 - [x] 1.1.3 Run full test suite ✅ (completed: 2025-02-16 00:29 — 8941 pass, 0 fail)
-- [ ] 1.1.4 Verify spinning-line O0 output
+- [x] 1.1.4 Verify spinning-line O0 output ✅ (completed: 2025-02-16 01:36 — all 6 levels compile, C1+C2 confirmed fixed)
 
 ### Phase 2: Loop Unroller Fixes
 
-- [ ] 2.1.1 Add BARRIER guard in analyzeCandidate()
-- [ ] 2.1.2 Fix extractBodyInstructions() to exclude counter ops
-- [ ] 2.1.3 Update performFullUnroll/performPartialUnroll callers
-- [ ] 2.1.4 Fix cloneInstructions() for unique label remapping
-- [ ] 2.1.5 Update full/partial unroll to pass copy index
-- [ ] 2.1.6 Run full test suite
-- [ ] 2.1.7 Verify spinning-line O2/O3 output
+- [x] 2.1.1 Add BARRIER guard in analyzeCandidate() ✅ (completed: 2025-02-16 08:53)
+- [x] 2.1.2 Fix extractBodyInstructions() to exclude counter ops ✅ (completed: 2025-02-16 08:55)
+- [x] 2.1.3 Update performFullUnroll/performPartialUnroll callers ✅ (completed: 2025-02-16 08:57)
+- [x] 2.1.4 Fix cloneInstructions() for unique label remapping ✅ (completed: 2025-02-16 08:56)
+- [x] 2.1.5 Update full/partial unroll to pass copy index ✅ (completed: 2025-02-16 08:57)
+- [x] 2.1.6 Run full test suite ✅ (completed: 2025-02-16 09:00 — 8941 pass, 0 fail)
+- [x] 2.1.7 Verify spinning-line O2/O3 output ✅ (completed: 2025-02-16 09:01 — O3 630→342 lines, no duplicate labels)
 
 ### Phase 3: Inlining Verification & Fixes
 

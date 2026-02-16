@@ -187,16 +187,22 @@ export class LoopUnrollPass extends LoopUnrollAnalysis implements OptimizationPa
       return null;
     }
 
-    // Extract the effective body (work instructions only)
-    const bodyInstructions = this.extractBodyInstructions(func, headerIdx, exitIdx);
+    // Extract the effective body (work instructions only).
+    // Pass counterSlot so counter increments and termination checks
+    // are excluded — full unrolling doesn't need them since the loop
+    // structure is eliminated entirely.
+    const counterSlot = candidate.loop.loop.counterSlot;
+    const bodyInstructions = this.extractBodyInstructions(func, headerIdx, exitIdx, counterSlot);
     if (bodyInstructions.length === 0) {
       return null;
     }
 
-    // Build the unrolled sequence: N copies of the body
+    // Build the unrolled sequence: N copies of the body.
+    // Each copy gets a unique label suffix (_u0, _u1, ...) to prevent
+    // duplicate label names in the assembled output (bug L2).
     const unrolledBody: ILInstruction[] = [];
     for (let i = 0; i < candidate.iterationCount; i++) {
-      const cloned = this.cloneInstructions(bodyInstructions);
+      const cloned = this.cloneInstructions(bodyInstructions, i);
       unrolledBody.push(...cloned);
     }
 
@@ -267,8 +273,13 @@ export class LoopUnrollPass extends LoopUnrollAnalysis implements OptimizationPa
       return null;
     }
 
-    // Extract the effective body (work instructions only)
-    const bodyInstructions = this.extractBodyInstructions(func, headerIdx, exitIdx);
+    // Extract the effective body (work instructions only).
+    // Pass counterSlot so counter increments and termination checks are
+    // excluded from the body — the partial unroller handles counter
+    // increments separately via findCounterIncrements(), preventing the
+    // triple-increment bug (L1).
+    const counterSlot = candidate.loop.loop.counterSlot;
+    const bodyInstructions = this.extractBodyInstructions(func, headerIdx, exitIdx, counterSlot);
     if (bodyInstructions.length === 0) {
       return null;
     }
@@ -285,11 +296,13 @@ export class LoopUnrollPass extends LoopUnrollAnalysis implements OptimizationPa
     const counterIncrements = this.findCounterIncrements(func, headerIdx, exitIdx, loop);
 
     // Build duplicated copies (factor - 1 additional copies)
-    // because the original body already provides 1 copy
+    // because the original body already provides 1 copy.
+    // Each copy gets a unique label suffix (_u1, _u2, ...) to prevent
+    // duplicate label names (bug L2).
     const additionalCopies: ILInstruction[] = [];
     for (let i = 1; i < candidate.unrollFactor; i++) {
-      // Clone the body instructions
-      const cloned = this.cloneInstructions(bodyInstructions);
+      // Clone the body instructions with unique label remapping
+      const cloned = this.cloneInstructions(bodyInstructions, i);
       additionalCopies.push(...cloned);
 
       // Clone counter increment instructions if they exist
