@@ -31,7 +31,7 @@
  * options.level = 'O2'; // Standard optimization
  * ```
  */
-export type OptimizationLevel = 'O0' | 'O1' | 'O2' | 'O3' | 'Os' | 'Oz';
+export type OptimizationLevel = 'O0' | 'O1' | 'O1s' | 'O1z' | 'O2' | 'Os' | 'Oz' | 'O3' | 'O3s' | 'O3z';
 
 // ============================================================================
 // Optimization Options Interface
@@ -149,21 +149,33 @@ const PROGRAM_LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   // fully inlined and are no longer referenced.
   O1: ['dead-function-elim', 'function-inline', 'dead-function-elim'],
 
+  // Basic + size - no inlining (increases size), add dead-global-elim for size reduction
+  O1s: ['dead-function-elim', 'dead-global-elim'],
+
+  // Basic + min-size - same passes as O1s but with iterations
+  O1z: ['dead-function-elim', 'dead-global-elim'],
+
   // Standard optimizations - full inter-procedural.
   // DFE runs before inlining to remove obviously dead functions, then
   // inlining replaces call sites with inline code, then DFE runs again
   // to clean up functions that were fully inlined.
   O2: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
-  // Aggressive optimizations - full inter-procedural.
-  // Same post-inlining cleanup as O2.
-  O3: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
-
   // Size optimization - eliminate dead code, no inlining (increases size)
   Os: ['dead-function-elim', 'dead-global-elim'],
 
   // Minimum size - eliminate dead code, no inlining
   Oz: ['dead-function-elim', 'dead-global-elim'],
+
+  // Aggressive optimizations - full inter-procedural.
+  // Same post-inlining cleanup as O2.
+  O3: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
+
+  // Aggressive + size - no inlining (size goal)
+  O3s: ['dead-function-elim', 'dead-global-elim'],
+
+  // Aggressive + min-size - no inlining, with iterations
+  O3z: ['dead-function-elim', 'dead-global-elim'],
 };
 
 /**
@@ -181,17 +193,29 @@ const LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   // Basic optimizations - safe, fast, high-impact
   O1: ['dce', 'constant-fold'],
 
+  // Basic + size - same as O1 (no loop-unroll to remove at this level)
+  O1s: ['dce', 'constant-fold'],
+
+  // Basic + min-size - same passes as O1s but with iterations
+  O1z: ['dce', 'constant-fold'],
+
   // Standard optimizations - all passes, single iteration
   O2: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm', 'loop-unroll'],
+
+  // Size optimization - all passes tuned for code size (no loop-unroll)
+  Os: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm'],
+
+  // Minimum size - aggressive size reduction with iterations (no loop-unroll)
+  Oz: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm'],
 
   // Aggressive optimizations - all passes, multiple iterations
   O3: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm', 'loop-unroll'],
 
-  // Size optimization - all passes tuned for code size
-  Os: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm'],
+  // Aggressive + size - O3 passes minus loop-unroll
+  O3s: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm'],
 
-  // Minimum size - aggressive size reduction with iterations
-  Oz: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm'],
+  // Aggressive + min-size - O3 passes minus loop-unroll, with iterations
+  O3z: ['dce', 'constant-fold', 'constant-prop', 'copy-prop', 'il-peephole', 'cse', 'licm'],
 };
 
 /**
@@ -234,7 +258,7 @@ export function getPassesForLevel(level: OptimizationLevel): string[] {
  * ```
  */
 export function shouldIterate(level: OptimizationLevel): boolean {
-  return level === 'O3' || level === 'Oz';
+  return level === 'O3' || level === 'Oz' || level === 'O1z' || level === 'O3z';
 }
 
 /**
@@ -254,7 +278,9 @@ export function shouldIterate(level: OptimizationLevel): boolean {
  * ```
  */
 export function isSizeOptimization(level: OptimizationLevel): boolean {
-  return level === 'Os' || level === 'Oz';
+  return level === 'Os' || level === 'Oz' ||
+         level === 'O1s' || level === 'O1z' ||
+         level === 'O3s' || level === 'O3z';
 }
 
 /**

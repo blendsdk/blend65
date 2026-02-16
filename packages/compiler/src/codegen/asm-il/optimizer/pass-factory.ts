@@ -106,7 +106,11 @@ export function createPassesForLevel(
 
   // ── O2+ passes: Standard patterns ──────────────────────────────────────
   // Additional optimizations that handle control flow and register usage.
-  if (level !== OptimizationLevel.O1) {
+  // Includes: O2, Os, Oz, O3, O3s, O3z (NOT O1, O1s, O1z)
+  const isO2Plus = level !== OptimizationLevel.O1 &&
+                   level !== OptimizationLevel.O1s &&
+                   level !== OptimizationLevel.O1z;
+  if (isO2Plus) {
     passes.push(new BranchOptPass());
     passes.push(new TransferOptPass());
     passes.push(new CompareBranchPass());
@@ -114,7 +118,7 @@ export function createPassesForLevel(
     passes.push(new RegisterPromotePass());
   }
 
-  // ── O3 passes: Aggressive optimization ─────────────────────────────────
+  // ── O3 speed passes: Aggressive optimization ───────────────────────────
   // Uses zero-page slots, strength reduction, and stack optimization.
   // May increase code size in exchange for speed.
   if (level === OptimizationLevel.O3) {
@@ -123,13 +127,21 @@ export function createPassesForLevel(
     passes.push(new StackOptPass());
   }
 
-  // ── Os/Oz passes: Size optimization ────────────────────────────────────
+  // ── Size-focused levels: ZP promotion + StackOpt + SizeOpt ─────────────
   // Prioritizes smaller code output. Includes ZP promotion (smaller
   // instructions) and stack optimization (fewer save/restore pairs).
-  if (level === OptimizationLevel.Os || level === OptimizationLevel.Oz) {
+  // Applies to: O1s, O1z, Os, Oz, O3s, O3z
+  const isSizeLevel = level === OptimizationLevel.Os || level === OptimizationLevel.Oz ||
+                      level === OptimizationLevel.O1s || level === OptimizationLevel.O1z ||
+                      level === OptimizationLevel.O3s || level === OptimizationLevel.O3z;
+  if (isSizeLevel) {
     passes.push(new ZPPromotionPass(options.zpSlots));
     passes.push(new StackOptPass());
-    passes.push(new SizeOptPass(level === OptimizationLevel.Oz));
+    // z suffix = aggressive SizeOpt
+    const isAggressive = level === OptimizationLevel.Oz ||
+                         level === OptimizationLevel.O1z ||
+                         level === OptimizationLevel.O3z;
+    passes.push(new SizeOptPass(isAggressive));
   }
 
   return passes;
@@ -170,10 +182,14 @@ export function getPassCountForLevel(level: OptimizationLevel): number {
 export function getPlannedPassCounts(): Record<OptimizationLevel, number> {
   return {
     [OptimizationLevel.O0]: 0,
-    [OptimizationLevel.O1]: 2,  // FlagPatterns + StoreLoad
-    [OptimizationLevel.O2]: 7,  // O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr + RegisterPromote
-    [OptimizationLevel.O3]: 10, // O2 + ZPPromotion + Strength6502 + StackOpt
-    [OptimizationLevel.Os]: 10, // O2 + ZPPromotion + StackOpt + SizeOpt
-    [OptimizationLevel.Oz]: 10, // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive)
+    [OptimizationLevel.O1]: 2,   // FlagPatterns + StoreLoad
+    [OptimizationLevel.O1s]: 5,  // O1(2) + ZPPromotion + StackOpt + SizeOpt
+    [OptimizationLevel.O1z]: 5,  // Same passes as O1s, more iterations
+    [OptimizationLevel.O2]: 7,   // O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr + RegisterPromote
+    [OptimizationLevel.Os]: 10,  // O2 + ZPPromotion + StackOpt + SizeOpt
+    [OptimizationLevel.Oz]: 10,  // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive)
+    [OptimizationLevel.O3]: 10,  // O2 + ZPPromotion + Strength6502 + StackOpt
+    [OptimizationLevel.O3s]: 10, // O2(7) + ZPPromotion + StackOpt + SizeOpt
+    [OptimizationLevel.O3z]: 10, // Same passes as O3s, more iterations
   };
 }

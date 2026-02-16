@@ -397,14 +397,20 @@ describe('Integration: Level Configurations', () => {
       }
     });
 
-    it('should ensure size-opt is Os/Oz-exclusive', () => {
+    it('should ensure size-opt is only in size-focused levels', () => {
+      // Size-focused levels are all levels with 's' or 'z' suffix
+      const sizeLevels = new Set([
+        OptimizationLevel.Os, OptimizationLevel.Oz,
+        OptimizationLevel.O1s, OptimizationLevel.O1z,
+        OptimizationLevel.O3s, OptimizationLevel.O3z,
+      ]);
       const levels = getAllLevels();
 
       for (const level of levels) {
         const optimizer = new AsmILOptimizer({ level });
         const passNames = optimizer.getPasses().map(p => p.name);
 
-        if (level === OptimizationLevel.Os || level === OptimizationLevel.Oz) {
+        if (sizeLevels.has(level)) {
           expect(passNames).toContain('size-opt');
         } else {
           expect(passNames).not.toContain('size-opt');

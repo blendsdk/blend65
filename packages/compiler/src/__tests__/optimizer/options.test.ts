@@ -112,6 +112,46 @@ describe('getPassesForLevel', () => {
     expect(passes).toHaveLength(7);
   });
 
+  it('should return basic passes for O1s (same as O1)', () => {
+    const passes = getPassesForLevel('O1s');
+    expect(passes).toContain('dce');
+    expect(passes).toContain('constant-fold');
+    expect(passes).toHaveLength(2);
+  });
+
+  it('should return basic passes for O1z (same as O1)', () => {
+    const passes = getPassesForLevel('O1z');
+    expect(passes).toContain('dce');
+    expect(passes).toContain('constant-fold');
+    expect(passes).toHaveLength(2);
+  });
+
+  it('should return O3-level passes minus loop-unroll for O3s', () => {
+    const passes = getPassesForLevel('O3s');
+    expect(passes).toContain('dce');
+    expect(passes).toContain('constant-fold');
+    expect(passes).toContain('constant-prop');
+    expect(passes).toContain('copy-prop');
+    expect(passes).toContain('il-peephole');
+    expect(passes).toContain('cse');
+    expect(passes).toContain('licm');
+    expect(passes).not.toContain('loop-unroll');
+    expect(passes).toHaveLength(7);
+  });
+
+  it('should return O3-level passes minus loop-unroll for O3z', () => {
+    const passes = getPassesForLevel('O3z');
+    expect(passes).toContain('dce');
+    expect(passes).toContain('constant-fold');
+    expect(passes).toContain('constant-prop');
+    expect(passes).toContain('copy-prop');
+    expect(passes).toContain('il-peephole');
+    expect(passes).toContain('cse');
+    expect(passes).toContain('licm');
+    expect(passes).not.toContain('loop-unroll');
+    expect(passes).toHaveLength(7);
+  });
+
   it('should return a copy (not original array)', () => {
     const passes1 = getPassesForLevel('O2');
     const passes2 = getPassesForLevel('O2');
@@ -147,6 +187,22 @@ describe('shouldIterate', () => {
 
   it('should return true for Oz', () => {
     expect(shouldIterate('Oz')).toBe(true);
+  });
+
+  it('should return false for O1s', () => {
+    expect(shouldIterate('O1s')).toBe(false);
+  });
+
+  it('should return true for O1z (z = multi-iteration)', () => {
+    expect(shouldIterate('O1z')).toBe(true);
+  });
+
+  it('should return false for O3s', () => {
+    expect(shouldIterate('O3s')).toBe(false);
+  });
+
+  it('should return true for O3z (z = multi-iteration)', () => {
+    expect(shouldIterate('O3z')).toBe(true);
   });
 });
 
@@ -284,9 +340,9 @@ describe('resolveEnabledPasses', () => {
 // ============================================================================
 
 describe('OptimizationLevel type', () => {
-  it('should accept all valid levels', () => {
-    const levels: OptimizationLevel[] = ['O0', 'O1', 'O2', 'O3', 'Os', 'Oz'];
-    expect(levels).toHaveLength(6);
+  it('should accept all 10 valid levels', () => {
+    const levels: OptimizationLevel[] = ['O0', 'O1', 'O1s', 'O1z', 'O2', 'Os', 'Oz', 'O3', 'O3s', 'O3z'];
+    expect(levels).toHaveLength(10);
   });
 });
 

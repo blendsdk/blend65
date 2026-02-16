@@ -32,10 +32,10 @@ describe('ASM-IL Optimizer Options', () => {
       expect(OptimizationLevel.Oz).toBe('Oz');
     });
 
-    it('should have exactly 6 values', () => {
+    it('should have exactly 10 values', () => {
       // Filter out reverse mappings (numeric keys) from TS enums
       const values = Object.values(OptimizationLevel);
-      expect(values).toHaveLength(6);
+      expect(values).toHaveLength(10);
     });
   });
 
@@ -287,20 +287,18 @@ describe('ASM-IL Optimizer Options', () => {
   // ========================================================================
 
   describe('getAllLevels', () => {
-    it('should return all 6 levels', () => {
+    it('should return all 10 levels', () => {
       const levels = getAllLevels();
-      expect(levels).toHaveLength(6);
+      expect(levels).toHaveLength(10);
     });
 
-    it('should return levels in order (O0, O1, O2, O3, Os, Oz)', () => {
+    it('should return levels in order', () => {
       const levels = getAllLevels();
       expect(levels).toEqual([
         OptimizationLevel.O0,
-        OptimizationLevel.O1,
-        OptimizationLevel.O2,
-        OptimizationLevel.O3,
-        OptimizationLevel.Os,
-        OptimizationLevel.Oz,
+        OptimizationLevel.O1, OptimizationLevel.O1s, OptimizationLevel.O1z,
+        OptimizationLevel.O2, OptimizationLevel.Os, OptimizationLevel.Oz,
+        OptimizationLevel.O3, OptimizationLevel.O3s, OptimizationLevel.O3z,
       ]);
     });
 

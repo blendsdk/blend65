@@ -48,7 +48,7 @@ set -euo pipefail
 # Constants
 # ---------------------------------------------------------------------------
 
-LEVELS=("O0" "O1" "O2" "O3" "Os" "Oz")
+LEVELS=("O0" "O1" "O1s" "O1z" "O2" "Os" "Oz" "O3" "O3s" "O3z")
 ACME_BIN="/usr/local/bin/acme"
 ACME_FLAGS="--cpu 6510 --format cbm"
 BLEND65_BIN="./packages/cli/bin/blend65.js"

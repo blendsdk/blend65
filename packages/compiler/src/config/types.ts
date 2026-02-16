@@ -34,18 +34,116 @@ export type TargetPlatform = 'c64' | 'c128' | 'x16';
 /**
  * Optimization level identifiers
  *
- * String literals that map to `OptimizationLevel` enum values.
- * Used in JSON configuration files for human-readable level selection.
+ * Two-dimensional model: base aggressiveness + optional size modifier.
  *
- * **Levels:**
- * - 'O0': No optimization (default)
- * - 'O1': Basic optimizations
- * - 'O2': Standard optimizations
- * - 'O3': Aggressive optimizations
- * - 'Os': Size optimization
- * - 'Oz': Minimum size optimization
+ * **Base Levels (aggressiveness):**
+ * - 'O0': No optimization
+ * - 'O1': Basic optimizations (DCE, constant folding)
+ * - 'O2': Standard optimizations (all passes, single iteration)
+ * - 'O3': Aggressive optimizations (ZP promotion, strength reduction, multi-pass)
+ *
+ * **Size Modifiers (append to base):**
+ * - 's': Optimize for size (disables inlining/unrolling, adds SizeOpt)
+ * - 'z': Optimize for minimum size (like 's' + multi-pass iterations)
+ *
+ * **Composite Levels:**
+ * - 'O1s': Basic + size optimization
+ * - 'O1z': Basic + minimum size
+ * - 'Os': Standard + size (alias for O2s)
+ * - 'Oz': Standard + minimum size (alias for O2z)
+ * - 'O3s': Aggressive + size optimization
+ * - 'O3z': Aggressive + minimum size
+ *
+ * **Invalid:** O0s, O0z (no optimization + size is contradictory)
  */
-export type OptimizationLevelId = 'O0' | 'O1' | 'O2' | 'O3' | 'Os' | 'Oz';
+export type OptimizationLevelId =
+  | 'O0'
+  | 'O1' | 'O1s' | 'O1z'
+  | 'O2' | 'Os' | 'Oz'     // Os = O2s alias, Oz = O2z alias
+  | 'O3' | 'O3s' | 'O3z';
+
+// ============================================================================
+// Optimization Level Helpers
+// ============================================================================
+
+/**
+ * All valid optimization level IDs (canonical forms).
+ * Used for validation and iteration.
+ */
+export const ALL_OPTIMIZATION_LEVELS: readonly OptimizationLevelId[] = Object.freeze([
+  'O0', 'O1', 'O1s', 'O1z', 'O2', 'Os', 'Oz', 'O3', 'O3s', 'O3z',
+]);
+
+/**
+ * Normalize and validate an optimization level string.
+ *
+ * - Converts aliases: 'O2s' → 'Os', 'O2z' → 'Oz'
+ * - Rejects invalid combos: 'O0s', 'O0z'
+ * - Returns the canonical OptimizationLevelId
+ *
+ * @param input - Raw optimization level string from CLI or config
+ * @returns Normalized OptimizationLevelId
+ * @throws Error if input is invalid
+ */
+export function normalizeOptimizationLevel(input: string): OptimizationLevelId {
+  // Handle aliases — O2s and O2z are the long forms of Os and Oz
+  if (input === 'O2s') return 'Os';
+  if (input === 'O2z') return 'Oz';
+
+  // Reject invalid combinations — size optimization requires at least O1
+  if (input === 'O0s' || input === 'O0z') {
+    throw new Error(
+      `Invalid optimization level '${input}': size optimization requires at least O1. ` +
+      `Use O1s, Os, or O3s instead.`
+    );
+  }
+
+  // Validate against known levels
+  if (!ALL_OPTIMIZATION_LEVELS.includes(input as OptimizationLevelId)) {
+    throw new Error(
+      `Unknown optimization level '${input}'. ` +
+      `Valid levels: ${ALL_OPTIMIZATION_LEVELS.join(', ')}`
+    );
+  }
+
+  return input as OptimizationLevelId;
+}
+
+/**
+ * Check if a level uses size optimization.
+ *
+ * @param level - Optimization level
+ * @returns true if level targets code size
+ */
+export function isSizeLevel(level: OptimizationLevelId): boolean {
+  return level === 'Os' || level === 'Oz' ||
+         level === 'O1s' || level === 'O1z' ||
+         level === 'O3s' || level === 'O3z';
+}
+
+/**
+ * Check if a level uses minimum-size (z) optimization with iterations.
+ *
+ * @param level - Optimization level
+ * @returns true if level targets minimum code size
+ */
+export function isMinSizeLevel(level: OptimizationLevelId): boolean {
+  return level === 'Oz' || level === 'O1z' || level === 'O3z';
+}
+
+/**
+ * Get the base aggressiveness level (stripping size modifier).
+ *
+ * @param level - Optimization level
+ * @returns Base level: 'O0', 'O1', 'O2', or 'O3'
+ */
+export function getBaseLevel(level: OptimizationLevelId): 'O0' | 'O1' | 'O2' | 'O3' {
+  if (level === 'O0') return 'O0';
+  if (level === 'O1' || level === 'O1s' || level === 'O1z') return 'O1';
+  if (level === 'O2' || level === 'Os' || level === 'Oz') return 'O2';
+  // O3, O3s, O3z
+  return 'O3';
+}
 
 /**
  * Debug information generation mode

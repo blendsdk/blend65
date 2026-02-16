@@ -29,3 +29,15 @@ export type {
   ConfigValidationError,
   ConfigLoadOptions,
 } from './types.js';
+
+// =============================================================================
+// Value Exports (constants and functions)
+// =============================================================================
+
+export {
+  ALL_OPTIMIZATION_LEVELS,
+  normalizeOptimizationLevel,
+  isSizeLevel,
+  isMinSizeLevel,
+  getBaseLevel,
+} from './types.js';

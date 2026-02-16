@@ -19,7 +19,7 @@ import type { CommandModule, ArgumentsCamelCase } from 'yargs';
 import chalk from 'chalk';
 import { glob } from 'glob';
 
-import { Compiler, type Blend65Config } from '@blend65/compiler';
+import { Compiler, normalizeOptimizationLevel, type Blend65Config, type OptimizationLevelId } from '@blend65/compiler';
 import { formatDiagnostics, formatSuccess, formatError } from '../output/formatter.js';
 import { ExitCode } from '../utils/exit-codes.js';
 import type { GlobalOptions } from './types.js';
@@ -75,7 +75,7 @@ export const buildCommand: CommandModule<GlobalOptions, BuildOptions> = {
         alias: 'O',
         type: 'string',
         description: 'Optimization level',
-        choices: ['0', '1', '2', '3', 's', 'z'] as const,
+        choices: ['0', '1', '1s', '1z', '2', 's', 'z', '3', '3s', '3z'] as const,
         default: '0',
       })
       .option('debug', {
@@ -104,17 +104,25 @@ export const buildCommand: CommandModule<GlobalOptions, BuildOptions> = {
       .example('$0 build src/**/*.blend', 'Build multiple files')
       .example('$0 build -O2', 'Standard optimization')
       .example('$0 build -Os', 'Optimize for size')
+      .example('$0 build -O3z', 'Aggressive minimum size')
       .example('$0 build -t c64 -O2 -o dist/', 'Full build options')
       .example('$0 build --libraries=sid,sprites', 'Build with optional libraries')
       .epilog(
         [
           'Optimization Levels:',
-          '  0   No optimization (default)',
-          '  1   Basic optimizations (dead code, constant folding)',
-          '  2   Standard optimizations (+ peephole, register reuse)',
-          '  3   Aggressive optimizations (+ inlining, loop unrolling)',
-          '  s   Optimize for code size',
-          '  z   Minimum size (aggressive size reduction)',
+          '',
+          '  Base Levels (aggressiveness):',
+          '    0     No optimization (default)',
+          '    1     Basic (DCE, constant folding, inlining)',
+          '    2     Standard (all analysis passes)',
+          '    3     Aggressive (ZP promotion, strength reduction, multi-pass)',
+          '',
+          '  Size Modifiers (append s or z to base level):',
+          '    +s    Optimize for size (disables inlining/unrolling, adds SizeOpt)',
+          '    +z    Minimum size (like s + multiple iterations)',
+          '',
+          '  Examples:  -O1  -O1s  -O3z  -Os (same as -O2s)',
+          '  All levels: 0, 1, 1s, 1z, 2, s(=2s), z(=2z), 3, 3s, 3z',
         ].join('\n'),
       );
   },
@@ -285,13 +293,14 @@ function parseLibraries(librariesArg: string | undefined): string[] {
  * @param opt - Raw optimization value from yargs (string or string[] if duplicated)
  * @returns Valid OptimizationLevelId for the compiler (e.g., 'O0', 'O2', 'Os')
  */
-function resolveOptimizationLevel(opt: unknown): 'O0' | 'O1' | 'O2' | 'O3' | 'Os' | 'Oz' {
+function resolveOptimizationLevel(opt: unknown): OptimizationLevelId {
   // BUG-007: Handle duplicate flags — yargs may pass an array when flag is repeated
   const raw = Array.isArray(opt) ? opt[opt.length - 1] : opt;
   const level = typeof raw === 'string' ? raw : '0';
 
-  // Prepend 'O' to convert CLI value ('0','1','s','z') to compiler format ('O0','O1','Os','Oz')
-  return `O${level}` as 'O0' | 'O1' | 'O2' | 'O3' | 'Os' | 'Oz';
+  // Prepend 'O' and normalize via the canonical validation function.
+  // This handles aliases (O2s→Os, O2z→Oz) and rejects invalid combos (O0s, O0z).
+  return normalizeOptimizationLevel(`O${level}`);
 }
 
 /**

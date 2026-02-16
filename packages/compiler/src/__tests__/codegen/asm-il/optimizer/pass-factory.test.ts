@@ -125,6 +125,56 @@ describe('ASM-IL Pass Factory', () => {
       expect(passes[9].name).toBe('size-opt');
     });
 
+    it('should return 5 passes for O1s (O1 + ZPPromotion + StackOpt + SizeOpt)', () => {
+      const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O1s));
+      expect(passes).toHaveLength(5);
+      expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('zp-promotion');
+      expect(passes[3].name).toBe('stack-opt');
+      expect(passes[4].name).toBe('size-opt');
+    });
+
+    it('should return 5 passes for O1z (same as O1s, more iterations)', () => {
+      const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O1z));
+      expect(passes).toHaveLength(5);
+      expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('zp-promotion');
+      expect(passes[3].name).toBe('stack-opt');
+      expect(passes[4].name).toBe('size-opt');
+    });
+
+    it('should return 10 passes for O3s (O2 + ZPPromotion + StackOpt + SizeOpt)', () => {
+      const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O3s));
+      expect(passes).toHaveLength(10);
+      expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('branch-opt');
+      expect(passes[3].name).toBe('transfer-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('register-promote');
+      expect(passes[7].name).toBe('zp-promotion');
+      expect(passes[8].name).toBe('stack-opt');
+      expect(passes[9].name).toBe('size-opt');
+    });
+
+    it('should return 10 passes for O3z (same passes as O3s, more iterations)', () => {
+      const passes = createPassesForLevel(optionsForLevel(OptimizationLevel.O3z));
+      expect(passes).toHaveLength(10);
+      expect(passes[0].name).toBe('flag-patterns');
+      expect(passes[1].name).toBe('store-load');
+      expect(passes[2].name).toBe('branch-opt');
+      expect(passes[3].name).toBe('transfer-opt');
+      expect(passes[4].name).toBe('compare-branch');
+      expect(passes[5].name).toBe('indexed-addr');
+      expect(passes[6].name).toBe('register-promote');
+      expect(passes[7].name).toBe('zp-promotion');
+      expect(passes[8].name).toBe('stack-opt');
+      expect(passes[9].name).toBe('size-opt');
+    });
+
     it('should accept custom zpSlots in options', () => {
       // Verify the factory doesn't crash with custom zpSlots
       const options = resolveOptions({

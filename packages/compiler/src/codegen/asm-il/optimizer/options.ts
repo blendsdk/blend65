@@ -42,17 +42,29 @@ export enum OptimizationLevel {
   /** Basic optimization — flag patterns, store-load elimination */
   O1 = 'O1',
 
+  /** Basic + size — O1 passes + ZP promotion, SizeOpt */
+  O1s = 'O1s',
+
+  /** Basic + min-size — like O1s but multi-iteration */
+  O1z = 'O1z',
+
   /** Standard optimization — O1 + branch optimization, transfer patterns */
   O2 = 'O2',
-
-  /** Aggressive optimization — O2 + ZP promotion, strength reduction, stack */
-  O3 = 'O3',
 
   /** Size-optimized — O2 + ZP promotion, stack, size-specific passes */
   Os = 'Os',
 
   /** Minimum size — Os + aggressive size reduction, more iterations */
   Oz = 'Oz',
+
+  /** Aggressive optimization — O2 + ZP promotion, strength reduction, stack */
+  O3 = 'O3',
+
+  /** Aggressive + size — O3 passes + ZP promotion, SizeOpt, no Strength6502 */
+  O3s = 'O3s',
+
+  /** Aggressive + min-size — like O3s but multi-iteration */
+  O3z = 'O3z',
 }
 
 // ============================================================================
@@ -132,6 +144,22 @@ export const DEFAULT_OPTIONS: Record<OptimizationLevel, AsmOptimizerOptions> = {
     maxIterations: 1,
   },
 
+  // O1s: Basic + size — SizeOpt, ZP promotion, single pass
+  [OptimizationLevel.O1s]: {
+    level: OptimizationLevel.O1s,
+    debug: false,
+    zpSlots: [0x50, 0x51, 0x52, 0x53],
+    maxIterations: 1,
+  },
+
+  // O1z: Basic + min-size — like O1s but multi-iteration
+  [OptimizationLevel.O1z]: {
+    level: OptimizationLevel.O1z,
+    debug: false,
+    zpSlots: [0x50, 0x51, 0x52, 0x53],
+    maxIterations: 5,
+  },
+
   // O2: Standard patterns — single pass, no ZP slots
   [OptimizationLevel.O2]: {
     level: OptimizationLevel.O2,
@@ -159,6 +187,22 @@ export const DEFAULT_OPTIONS: Record<OptimizationLevel, AsmOptimizerOptions> = {
   // Oz: Minimum size — multiple iterations, 4 ZP slots
   [OptimizationLevel.Oz]: {
     level: OptimizationLevel.Oz,
+    debug: false,
+    zpSlots: [0x50, 0x51, 0x52, 0x53],
+    maxIterations: 5,
+  },
+
+  // O3s: Aggressive + size — ZP promotion, SizeOpt, no Strength6502, single pass
+  [OptimizationLevel.O3s]: {
+    level: OptimizationLevel.O3s,
+    debug: false,
+    zpSlots: [0x50, 0x51, 0x52, 0x53],
+    maxIterations: 1,
+  },
+
+  // O3z: Aggressive + min-size — like O3s but multi-iteration
+  [OptimizationLevel.O3z]: {
+    level: OptimizationLevel.O3z,
     debug: false,
     zpSlots: [0x50, 0x51, 0x52, 0x53],
     maxIterations: 5,
@@ -231,10 +275,8 @@ export function isOptimizationEnabled(level: OptimizationLevel): boolean {
 export function getAllLevels(): OptimizationLevel[] {
   return [
     OptimizationLevel.O0,
-    OptimizationLevel.O1,
-    OptimizationLevel.O2,
-    OptimizationLevel.O3,
-    OptimizationLevel.Os,
-    OptimizationLevel.Oz,
+    OptimizationLevel.O1, OptimizationLevel.O1s, OptimizationLevel.O1z,
+    OptimizationLevel.O2, OptimizationLevel.Os, OptimizationLevel.Oz,
+    OptimizationLevel.O3, OptimizationLevel.O3s, OptimizationLevel.O3z,
   ];
 }
