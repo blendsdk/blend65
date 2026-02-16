@@ -11,6 +11,7 @@
  * - Redundant jump elimination: Remove JUMP to immediately following LABEL
  * - Modulo-to-bitmask: Replace counter-wrap-at-power-of-2 with AND
  * - Address expression folding: Fold LOAD_ADDRESS+SHR_WORD+LO into LOAD_ADDRESS_EXPR
+ * - SHR_WORD+LO narrowing: Replace 16-bit shift+narrow with HI+SHR_BYTE for N≥8
  *
  * @module optimizer/passes/il-peephole
  */
@@ -70,6 +71,7 @@ export class ILPeepholePass implements OptimizationPass {
    * 4. Redundant jump elimination (removes JUMP to next instruction)
    * 5. Modulo-to-bitmask (replaces counter-wrap with AND)
    * 6. Address expression folding (folds LOAD_ADDRESS+SHR_WORD+LO)
+   * 7. SHR_WORD+LO narrowing (replaces 16-bit shift+narrow with HI+SHR_BYTE)
    *
    * @param func - IL function to optimize (modified in place)
    * @param options - Optimization options
@@ -84,7 +86,11 @@ export class ILPeepholePass implements OptimizationPass {
     results.push(this.loadStoreElimination(func, options));
     results.push(this.redundantJumpElimination(func, options));
     results.push(this.moduloToBitmask(func, options));
+    // Address expr folding runs BEFORE shrWordLo narrowing so that
+    // LOAD_ADDRESS+SHR_WORD+LO patterns are folded into LOAD_ADDRESS_EXPR first.
+    // Only remaining standalone SHR_WORD+LO patterns are then narrowed.
     results.push(this.addressExprFolding(func, options));
+    results.push(this.shrWordLoNarrowing(func, options));
 
     return mergeResults(results);
   }
@@ -1056,6 +1062,122 @@ export class ILPeepholePass implements OptimizationPass {
     if (loInstr.opcode !== ILOpcode.LO) return null;
 
     return shiftCount;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Pattern 7: SHR_WORD + LO Narrowing
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Replace SHR_WORD N + LO with HI + SHR_BYTE (N-8) when N ≥ 8.
+   *
+   * When a 16-bit right shift is immediately followed by LO (take low byte),
+   * and the shift count is ≥ 8, the result's low byte comes entirely from
+   * the original high byte. This means we can:
+   *
+   * 1. Use HI (TXA) to move the high byte into A
+   * 2. Apply the remaining shift as an 8-bit SHR_BYTE (N-8)
+   *
+   * **Pattern detected:**
+   * ```
+   * SHR_WORD N    ; 16-bit shift right (expensive: loop or multi-byte sequence)
+   * LO            ; narrow to low byte (no-op in codegen)
+   * ```
+   *
+   * **Replacement for N ≥ 8:**
+   * ```
+   * HI            ; TXA — move high byte to A (2 bytes, 2 cycles)
+   * SHR_BYTE N-8  ; LSR × (N-8) times (only if N > 8)
+   * ```
+   *
+   * **Replacement for N = 8 specifically:**
+   * ```
+   * HI            ; TXA — just take the high byte (2 bytes, 2 cycles)
+   * ```
+   *
+   * **Why N < 8 is NOT optimized:**
+   * For N < 8, bits from both the original low and high bytes contribute
+   * to the result's low byte, so the full 16-bit shift is required.
+   *
+   * **Why this runs AFTER addressExprFolding:**
+   * The addressExprFolding pass already handles LOAD_ADDRESS + SHR_WORD + LO
+   * by folding into LOAD_ADDRESS_EXPR. This pass catches remaining standalone
+   * SHR_WORD + LO patterns that weren't part of an address expression.
+   *
+   * **Savings for SHR_WORD 8 + LO:**
+   * Before: ~18 bytes, ~20 cycles (16-bit shift loop)
+   * After: 2 bytes, 2 cycles (just TXA)
+   *
+   * @param func - Function to optimize
+   * @param options - Optimization options
+   * @returns Result with statistics
+   */
+  protected shrWordLoNarrowing(
+    func: ILFunction,
+    options: OptimizationOptions
+  ): PassResult {
+    const debugInfo: string[] = [];
+    let removed = 0;
+    let replaced = 0;
+
+    // Scan from end to start so splice doesn't invalidate future indices
+    for (let i = func.instructions.length - 2; i >= 0; i--) {
+      const shrInstr = func.instructions[i];
+      const loInstr = func.instructions[i + 1];
+
+      // Must be SHR_WORD followed by LO
+      if (shrInstr.opcode !== ILOpcode.SHR_WORD) continue;
+      if (loInstr.opcode !== ILOpcode.LO) continue;
+
+      // Get the shift count — must be an immediate value ≥ 8
+      const shiftCount = this.getImmediateValue(shrInstr);
+      if (shiftCount === null || shiftCount < 8) continue;
+
+      // Build replacement instructions:
+      // HI (TXA) — moves the high byte of the word into A
+      const hiInstr = createInstruction(ILOpcode.HI, [], {
+        location: shrInstr.location,
+        comment: `Narrowed from SHR_WORD ${shiftCount} + LO (high byte → A)`,
+      });
+
+      const remainder = shiftCount - 8;
+
+      if (remainder === 0) {
+        // SHR_WORD 8 + LO → just HI (TXA)
+        // Replace 2 instructions with 1
+        func.instructions.splice(i, 2, hiInstr);
+        removed += 1; // 2 original - 1 replacement
+        replaced += 1;
+      } else {
+        // SHR_WORD N + LO (N > 8) → HI + SHR_BYTE (N-8)
+        // Replace 2 instructions with 2 (net zero removal, but much cheaper)
+        const shrByteInstr = createInstruction(
+          ILOpcode.SHR_BYTE,
+          [createImmediateOperand(remainder, false)],
+          {
+            location: shrInstr.location,
+            comment: `Remaining ${remainder} shifts after HI narrowing`,
+          }
+        );
+        func.instructions.splice(i, 2, hiInstr, shrByteInstr);
+        replaced += 2;
+      }
+
+      if (options.debug) {
+        const replacement = remainder === 0
+          ? 'HI (TXA only)'
+          : `HI + SHR_BYTE ${remainder}`;
+        debugInfo.push(
+          `SHR_WORD+LO narrowing at ${i}: SHR_WORD ${shiftCount} + LO → ${replacement}`
+        );
+      }
+    }
+
+    return createResult(
+      removed,
+      replaced,
+      debugInfo.length > 0 ? debugInfo : undefined
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════
