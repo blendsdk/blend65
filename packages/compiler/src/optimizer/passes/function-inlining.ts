@@ -622,6 +622,23 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
     // Replace RETURN instructions with JUMP to continuation label
     const processedBody = this.replaceReturnsWithJump(clonedBody, contLabel);
 
+    // Optimization: If the last instruction is a JUMP to contLabel, remove it.
+    // Since the continuation label immediately follows the inlined body,
+    // a trailing JMP to it is a JMP-to-next-instruction (wasted 3 bytes + 3 cycles).
+    // This only applies to the FINAL return — non-final returns in multi-return
+    // functions still need their JMPs to skip remaining inlined code.
+    if (processedBody.length > 0) {
+      const lastInstr = processedBody[processedBody.length - 1];
+      if (
+        lastInstr.opcode === ILOpcode.JUMP &&
+        lastInstr.operands.length > 0 &&
+        lastInstr.operands[0].kind === 'label' &&
+        (lastInstr.operands[0] as LabelOperand).name === contLabel
+      ) {
+        processedBody.pop();
+      }
+    }
+
     // Build the replacement sequence:
     // [cloned body with RETURNs→JUMPs] + [continuation LABEL]
     const replacement = [...processedBody, contLabelInstr];

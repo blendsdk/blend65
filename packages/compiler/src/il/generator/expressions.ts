@@ -1450,7 +1450,18 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       // Regular function call — generate first argument before CALL
       // The 6502 convention passes the first arg in A (byte) or A:X (word)
       this.generateCallArguments(funcName, expr.getArguments());
-      this.builder.call(funcName, false, -1);
+
+      // Collect callee parameter slot names so the CALL instruction declares
+      // them as uses. This prevents DCE from removing the preceding stores
+      // that pass arguments to the callee via its parameter slots.
+      const calleeFrame = this.frameMap.get(funcName);
+      const paramUses = calleeFrame
+        ? calleeFrame.slots
+            .filter(s => s.kind === SlotKind.Parameter)
+            .map(s => s.name)
+        : [];
+
+      this.builder.call(funcName, false, -1, undefined, paramUses);
     }
 
     this.clearLocation();

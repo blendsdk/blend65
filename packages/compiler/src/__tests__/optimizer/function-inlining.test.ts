@@ -79,11 +79,14 @@ describe('FunctionInliningPass — single-call-site inlining', () => {
     const hasCall = mainInstrs.some((i) => i.opcode === ILOpcode.CALL);
     expect(hasCall).toBe(false);
 
-    // Should have a continuation LABEL and a JUMP (from inlined RETURN)
+    // Should have a continuation LABEL.
+    // The trailing JUMP is removed by the JMP-to-next optimization because
+    // the single RETURN at the end of the callee becomes a JUMP immediately
+    // before the continuation label — a JMP-to-next-instruction.
     const labels = mainInstrs.filter((i) => i.opcode === ILOpcode.LABEL);
     const jumps = mainInstrs.filter((i) => i.opcode === ILOpcode.JUMP);
     expect(labels.length).toBeGreaterThanOrEqual(1);
-    expect(jumps.length).toBeGreaterThanOrEqual(1);
+    expect(jumps.length).toBe(0);
   });
 
   it('does NOT inline a function called multiple times', () => {
@@ -340,13 +343,16 @@ describe('FunctionInliningPass — RETURN→JUMP transformation', () => {
 
     const mainInstrs = program.functions[0].instructions;
 
-    // Both RETURNs should become JUMPs to the same continuation label
+    // The early RETURN becomes a JUMP to cont (must skip remaining code).
+    // The final RETURN also becomes a JUMP to cont, but the JMP-to-next
+    // optimization removes it because the continuation label immediately follows.
+    // So only 1 JUMP to cont should remain.
     const jumpsToContLabel = mainInstrs.filter(
       (i) => i.opcode === ILOpcode.JUMP &&
         i.operands.length > 0 &&
         (i.operands[0] as LabelOperand).name.includes('_cont')
     );
-    expect(jumpsToContLabel.length).toBe(2);
+    expect(jumpsToContLabel.length).toBe(1);
   });
 });
 

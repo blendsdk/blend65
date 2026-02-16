@@ -106,7 +106,7 @@ When the user types "cap65", execute this comprehensive analysis to create a det
 ```js
 // Blend code example here
 let counter: byte = 0;
-@map borderColor at $D020: byte;
+@zp let fastVar: byte = 0;
 ```
 ````
 
@@ -135,7 +135,7 @@ let counter: byte = 0;
 **2. Parser Analysis Coverage:**
 - Program structure parsing (modules, declarations)
 - Variable declaration parsing (all storage classes, export modifiers)
-- Memory-mapped declaration parsing (all 4 @map forms)
+- Storage class parsing (@zp, @ram, @data, @sprite, @charset, @screen, @bitmap, @page)
 - Expression parsing (complete Pratt parser analysis)
 - Function declaration parsing (parameters, modifiers)
 - Error recovery and diagnostics

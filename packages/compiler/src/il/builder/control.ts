@@ -162,13 +162,39 @@ export class ILBuilderControl extends ILBuilderArithmetic {
   /**
    * Call a function.
    *
+   * When parameterUses is provided, the CALL instruction's defUse.uses
+   * is patched to include those slot names. This tells liveness analysis
+   * that the CALL reads from these parameter slots, preventing DCE from
+   * removing the preceding stores that set them up.
+   *
    * @param name - Function name
    * @param isCallback - Whether this is a callback/ISR (default: false)
    * @param coalesceGroup - Callee's coalesce group (default: -1)
    * @param comment - Optional comment
+   * @param parameterUses - Callee parameter slot names consumed by this call
    */
-  call(name: string, isCallback: boolean = false, coalesceGroup: number = -1, comment?: string): void {
+  call(
+    name: string,
+    isCallback: boolean = false,
+    coalesceGroup: number = -1,
+    comment?: string,
+    parameterUses?: string[],
+  ): void {
     this.emit(ILOpcode.CALL, [createFunctionOperand(name, isCallback, coalesceGroup)], comment);
+
+    // Patch defUse to include callee parameter slot names as uses.
+    // Without this, liveness analysis doesn't see that CALL reads from
+    // parameter slots, and DCE incorrectly removes the preceding stores.
+    if (parameterUses && parameterUses.length > 0) {
+      const lastInstr = this.instructions[this.instructions.length - 1];
+      if (lastInstr.defUse) {
+        // DefUse is readonly, so replace the entire object
+        lastInstr.defUse = {
+          defs: lastInstr.defUse.defs,
+          uses: [...lastInstr.defUse.uses, ...parameterUses],
+        };
+      }
+    }
   }
 
   /**
