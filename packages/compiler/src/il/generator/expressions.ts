@@ -509,27 +509,10 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       return;
     }
 
-    // Type-aware dispatch: check if the RESULT type is word (16-bit)
-    // When result is word, use word IL opcodes (ADD_WORD_*, etc.)
-    // When result is byte (or unknown), use existing byte opcodes
-    const resultType = expr.getTypeInfo();
-    if (resultType?.kind === TypeKind.Word) {
-      this.generateBinaryWord(expr);
-      this.clearLocation();
-      return;
-    }
-
-    // Fallback word-width inference: when type info is unavailable
-    // (which is the common case in production since setTypeInfo() is
-    // not called), check if the LEFT operand is an identifier that
-    // resolves to a word-sized slot. This correctly routes expressions
-    // like `wordParam / 64` to the word binary path instead of the
-    // byte path (which would use 8-bit __div8).
-    //
-    // IMPORTANT: Only trigger for operators that have word-path support
-    // (PLUS, MINUS, DIVIDE, RIGHT_SHIFT, comparisons). For operators
-    // without word support (MULTIPLY, MODULO, bitwise), the byte path
-    // gives a better result than a NOP placeholder.
+    // Determine which operators have dedicated word-path IL support.
+    // Operators NOT in this list (MULTIPLY, MODULO, bitwise) must use the
+    // byte path even when the result type is word, because the word path
+    // would produce a NOP placeholder instead of correct code.
     const op = expr.getOperator();
     const hasWordSupport = op === TokenType.PLUS || op === TokenType.MINUS
       || op === TokenType.DIVIDE || op === TokenType.RIGHT_SHIFT
@@ -537,6 +520,23 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       || op === TokenType.LESS_THAN || op === TokenType.LESS_EQUAL
       || op === TokenType.GREATER_THAN || op === TokenType.GREATER_EQUAL;
 
+    // Type-aware dispatch: check if the RESULT type is word (16-bit)
+    // AND the operator has a dedicated word-path implementation.
+    // When both conditions hold, use word IL opcodes (ADD_WORD_*, etc.)
+    // When result is byte, unknown, or operator lacks word support,
+    // fall through to the byte path.
+    const resultType = expr.getTypeInfo();
+    if (resultType?.kind === TypeKind.Word && hasWordSupport) {
+      this.generateBinaryWord(expr);
+      this.clearLocation();
+      return;
+    }
+
+    // Fallback word-width inference: when type info is unavailable,
+    // check if the LEFT operand is an identifier that resolves to a
+    // word-sized slot. This correctly routes expressions like
+    // `wordParam / 64` to the word binary path instead of the byte
+    // path (which would use 8-bit __div8).
     if (!resultType && hasWordSupport && this.inferWordWidthFromExpression(expr.getLeft())) {
       this.generateBinaryWord(expr);
       this.clearLocation();

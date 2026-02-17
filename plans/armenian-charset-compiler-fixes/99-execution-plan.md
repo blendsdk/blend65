@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-17 23:02
-> **Progress**: 15/48 tasks (31%)
+> **Last Updated**: 2026-02-17 23:57
+> **Progress**: 29/48 tasks (60%)
 
 ## Overview
 
@@ -426,21 +426,21 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 1.3.5 Write tests: dynamic-bound still uses generic template ✅ (completed: 2026-02-17 23:02)
 
 ### Phase 2: Type Info Propagation (D)
-- [ ] 2.1.1 Read AST expression getTypeInfo/setTypeInfo
-- [ ] 2.1.2 Read semantic analyzer type checking
-- [ ] 2.1.3 Identify all expression types needing type info
-- [ ] 2.1.4 Design propagation strategy
-- [ ] 2.1.5 Create implementation plan
-- [ ] 2.2.1 Implement type propagation for literals
-- [ ] 2.2.2 Implement for identifiers
-- [ ] 2.2.3 Implement for unary expressions
-- [ ] 2.2.4 Implement for binary expressions
-- [ ] 2.2.5 Implement for function calls
-- [ ] 2.2.6 Write type propagation tests
-- [ ] 2.3.1 Update generateBinary to use getTypeInfo
-- [ ] 2.3.2 Keep inferWordWidthFromExpression as fallback
-- [ ] 2.3.3 Update generateTier3Address to use getTypeInfo
-- [ ] 2.3.4 Run full test suite
+- [x] 2.1.1 Read AST expression getTypeInfo/setTypeInfo ✅ (completed: 2026-02-17 23:34)
+- [x] 2.1.2 Read semantic analyzer type checking ✅ (completed: 2026-02-17 23:34)
+- [x] 2.1.3 Identify all expression types needing type info ✅ (completed: 2026-02-17 23:34)
+- [x] 2.1.4 Design propagation strategy ✅ (completed: 2026-02-17 23:34)
+- [x] 2.1.5 Create implementation plan ✅ (completed: 2026-02-17 23:34)
+- [x] 2.2.1 Implement type propagation for ALL expressions via setExpressionType() ✅ (completed: 2026-02-17 23:37)
+- [x] 2.2.2 (merged with 2.2.1 — single-line fix in setExpressionType covers all) ✅ (completed: 2026-02-17 23:37)
+- [x] 2.2.3 (merged with 2.2.1) ✅ (completed: 2026-02-17 23:37)
+- [x] 2.2.4 (merged with 2.2.1) ✅ (completed: 2026-02-17 23:37)
+- [x] 2.2.5 (merged with 2.2.1) ✅ (completed: 2026-02-17 23:37)
+- [ ] 2.2.6 Write type propagation tests (deferred — next session)
+- [x] 2.3.1 Update generateBinary to use getTypeInfo + hasWordSupport guard ✅ (completed: 2026-02-17 23:52)
+- [x] 2.3.2 Keep inferWordWidthFromExpression as fallback ✅ (completed: 2026-02-17 23:52)
+- [x] 2.3.3 generateTier3Address already uses isWordTyped() → getTypeInfo() ✅ (completed: 2026-02-17 23:52)
+- [x] 2.3.4 Run full test suite (9234/9234 pass, 0 failures) ✅ (completed: 2026-02-17 23:57)
 
 ### Phase 3: Codegen Improvements (E, F)
 - [ ] 3.1.1 Analyze Tier 2 indexed addressing path

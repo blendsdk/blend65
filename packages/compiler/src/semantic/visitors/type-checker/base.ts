@@ -233,6 +233,15 @@ export abstract class TypeCheckerBase extends ASTWalker {
       isConstant,
       constantValue,
     });
+
+    // Propagate resolved type info onto the AST expression node.
+    // This enables downstream passes (e.g., IL generator) to query
+    // expr.getTypeInfo() directly instead of relying on heuristics
+    // like inferWordWidthFromExpression(). (Item D fix)
+    if (type) {
+      expr.setTypeInfo(type);
+    }
+
     this.expressionsChecked++;
   }
 
