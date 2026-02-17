@@ -19,7 +19,7 @@
 import type { ILFunction } from '../../il/structures.js';
 import type { ILInstruction } from '../../il/instruction.js';
 import { ILOpcode } from '../../il/enums.js';
-import { isImmediateOperand, isSlotOperand, isLabelOperand } from '../../il/guards.js';
+import { isImmediateOperand, isSlotOperand, isLabelOperand, isInlineContinuationLabel } from '../../il/guards.js';
 import { createInstruction, createImmediateOperand } from '../../il/factories.js';
 import type { OptimizationOptions } from '../options.js';
 import type { OptimizationPass, PassResult } from '../pass.js';
@@ -604,6 +604,65 @@ export class ILPeepholePass implements OptimizationPass {
           }
         }
       }
+
+      // Pattern: STORE_WORD x; LABEL _inline_*_cont; LOAD_WORD x → remove LOAD_WORD
+      // After inlining, inline continuation labels sit between a STORE and its
+      // immediately-following LOAD. The STORE value is still in A:X after the
+      // LABEL (which is a sequencing-only marker), so the LOAD is redundant.
+      if (
+        i + 2 < func.instructions.length &&
+        instr.opcode === ILOpcode.STORE_WORD
+      ) {
+        const mid = func.instructions[i + 1];
+        const afterLabel = func.instructions[i + 2];
+
+        if (
+          mid.opcode === ILOpcode.LABEL &&
+          isInlineContinuationLabel(mid) &&
+          afterLabel.opcode === ILOpcode.LOAD_WORD
+        ) {
+          const storeSlot = this.getSlotName(instr);
+          const loadSlot = this.getSlotName(afterLabel);
+          if (storeSlot && loadSlot && storeSlot === loadSlot) {
+            toRemove.add(i + 2);
+
+            if (options.debug) {
+              debugInfo.push(
+                `Redundant load after store (inline label gap) at ${i + 2}: LOAD_WORD ${loadSlot} (value still in A:X across inline label)`
+              );
+            }
+          }
+        }
+      }
+
+      // Pattern: STORE_BYTE x; LABEL _inline_*_cont; LOAD_BYTE x → remove LOAD_BYTE
+      // Same as above but for byte-width operations. The accumulator still holds
+      // the stored value across the inline continuation label.
+      if (
+        i + 2 < func.instructions.length &&
+        instr.opcode === ILOpcode.STORE_BYTE
+      ) {
+        const mid = func.instructions[i + 1];
+        const afterLabel = func.instructions[i + 2];
+
+        if (
+          mid.opcode === ILOpcode.LABEL &&
+          isInlineContinuationLabel(mid) &&
+          afterLabel.opcode === ILOpcode.LOAD_BYTE
+        ) {
+          const storeSlot = this.getSlotName(instr);
+          const loadSlot = this.getSlotName(afterLabel);
+          if (storeSlot && loadSlot && storeSlot === loadSlot) {
+            toRemove.add(i + 2);
+
+            if (options.debug) {
+              debugInfo.push(
+                `Redundant load after store (inline label gap) at ${i + 2}: LOAD_BYTE ${loadSlot} (value still in A across inline label)`
+              );
+            }
+          }
+        }
+      }
     }
 
     // Remove marked instructions
@@ -1010,6 +1069,28 @@ export class ILPeepholePass implements OptimizationPass {
       }
     }
 
+    // Try store-gap pattern: LOAD_ADDRESS, STORE_WORD(dead), SHR_WORD, LO
+    // This pattern emerges when loadStoreElimination removes LOAD_WORD but
+    // leaves behind a dead STORE_WORD between LOAD_ADDRESS and SHR_WORD.
+    if (i + 3 < instrs.length) {
+      const storeInstr = instrs[i + 1];
+      if (storeInstr.opcode === ILOpcode.STORE_WORD) {
+        const storeSlot = this.getSlotName(storeInstr);
+        const shrLoMatch = this.matchShrWordLo(instrs, i + 2);
+        if (storeSlot && shrLoMatch !== null) {
+          // Verify the STORE_WORD target is dead (no subsequent LOAD_WORD)
+          if (this.isWordSlotDeadAfter(storeSlot, i + 4, instrs)) {
+            return {
+              slotName,
+              shiftCount: shrLoMatch,
+              patternLength: 4,
+              patternType: 'with-dead-store-gap',
+            };
+          }
+        }
+      }
+    }
+
     // Try gap pattern: LOAD_ADDRESS, STORE_WORD, LOAD_WORD, SHR_WORD, LO
     if (i + 4 < instrs.length) {
       const storeInstr = instrs[i + 1];
@@ -1213,6 +1294,32 @@ export class ILPeepholePass implements OptimizationPass {
   // ═══════════════════════════════════════════════════════════════════
 
   /**
+   * Check if a word slot has no subsequent LOAD_WORD readers after a given index.
+   *
+   * Used to verify a STORE_WORD is dead before removing it in addressExprFolding.
+   * Scans forward from startIndex to end of function looking for any LOAD_WORD
+   * that references the same slot. If found, the store is still live.
+   *
+   * @param slotName - Name of the slot to check for liveness
+   * @param startIndex - Index to start scanning from (exclusive of the STORE itself)
+   * @param instructions - Full instruction array to scan
+   * @returns true if no LOAD_WORD for this slot is found (slot is dead)
+   */
+  protected isWordSlotDeadAfter(
+    slotName: string,
+    startIndex: number,
+    instructions: ILInstruction[]
+  ): boolean {
+    for (let j = startIndex; j < instructions.length; j++) {
+      if (instructions[j].opcode === ILOpcode.LOAD_WORD) {
+        const loadSlot = this.getSlotName(instructions[j]);
+        if (loadSlot === slotName) return false; // Slot is read later — not dead
+      }
+    }
+    return true; // No readers found — slot is dead
+  }
+
+  /**
    * Extract immediate value from instruction operand.
    *
    * @param instr - Instruction to examine
@@ -1359,5 +1466,5 @@ interface AddressExprMatch {
   /** Total number of instructions matched (3 for direct, 5 for gap) */
   patternLength: number;
   /** Which variant of the pattern was matched */
-  patternType: 'direct' | 'with-store-reload-gap';
+  patternType: 'direct' | 'with-store-reload-gap' | 'with-dead-store-gap';
 }

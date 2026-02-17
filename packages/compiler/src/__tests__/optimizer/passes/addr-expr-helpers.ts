@@ -16,6 +16,7 @@ import type { ILInstruction } from '../../../il/instruction.js';
 import {
   createSlotOperand,
   createImmediateOperand,
+  createLabelOperand,
 } from '../../../il/factories.js';
 import { SlotKind, SlotLocation, ZpDirective } from '../../../frame/enums.js';
 import type { FrameSlot } from '../../../frame/types.js';
@@ -176,6 +177,20 @@ export function createAddImmInstr(value: number): ILInstruction {
     operands: [createImmediateOperand(value, false)],
     defUse: { defs: [], uses: [] },
   };
+}
+
+/** Create LABEL instruction with given name */
+export function createLabelInstr(name: string): ILInstruction {
+  return {
+    opcode: ILOpcode.LABEL,
+    operands: [createLabelOperand(name)],
+    defUse: { defs: [], uses: [] },
+  };
+}
+
+/** Create an inline continuation LABEL (matches _inline_*_cont pattern) */
+export function createInlineContinuationLabelInstr(calleeName: string, counter: number): ILInstruction {
+  return createLabelInstr(`_inline_${calleeName}_${counter}_cont`);
 }
 
 // ============================================================================
