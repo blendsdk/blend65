@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-17 22:24
-> **Progress**: 10/48 tasks (21%)
+> **Last Updated**: 2026-02-17 23:02
+> **Progress**: 15/48 tasks (31%)
 
 ## Overview
 
@@ -96,10 +96,10 @@ This document defines the execution phases and AI chat sessions for implementing
 | 1.3.5 | Write tests: dynamic-bound for-loop still uses generic template | `__tests__/il/` or `__tests__/codegen/` |
 
 **Deliverables**:
-- [ ] Constant-bound detection works
-- [ ] Simplified template emitted for constant bounds
-- [ ] Dynamic bounds still handled correctly
-- [ ] Tests pass
+- [x] Constant-bound detection works ✅ (completed: 2026-02-17 23:00)
+- [x] Simplified template emitted for constant bounds ✅ (completed: 2026-02-17 23:00)
+- [x] Dynamic bounds still handled correctly ✅ (completed: 2026-02-17 23:02)
+- [x] Tests pass (9234/9234) ✅ (completed: 2026-02-17 23:02)
 
 **Verify**: `./compiler-test` (full)
 
@@ -419,11 +419,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 1.2.3 Fix: remove extra PLA or add matching PHA ✅ (completed: 2026-02-17 22:03)
 - [x] 1.2.4 Write test: stack preservation across for-loop ✅ (completed: 2026-02-17 22:11)
 - [x] 1.2.5 Verify all for-loop tests pass (9220/9220) ✅ (completed: 2026-02-17 22:24)
-- [ ] 1.3.1 Analyze generateForCondition dynamic-bound template
-- [ ] 1.3.2 Add constant-bound detection
-- [ ] 1.3.3 Implement constant-bound template
-- [ ] 1.3.4 Write tests: constant-bound for-loop simplified prologue
-- [ ] 1.3.5 Write tests: dynamic-bound still uses generic template
+- [x] 1.3.1 Analyze generateForCondition dynamic-bound template ✅ (completed: 2026-02-17 23:00)
+- [x] 1.3.2 Add constant-bound detection ✅ (completed: 2026-02-17 23:00)
+- [x] 1.3.3 Implement constant-bound template ✅ (completed: 2026-02-17 23:00)
+- [x] 1.3.4 Write tests: constant-bound for-loop simplified prologue ✅ (completed: 2026-02-17 23:02)
+- [x] 1.3.5 Write tests: dynamic-bound still uses generic template ✅ (completed: 2026-02-17 23:02)
 
 ### Phase 2: Type Info Propagation (D)
 - [ ] 2.1.1 Read AST expression getTypeInfo/setTypeInfo

@@ -516,6 +516,11 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
   /**
    * Generate the termination condition for a for loop.
    *
+   * Routes to either the constant-bound or dynamic-bound condition generator.
+   * These are architecturally separated to prevent dynamic-bound logic
+   * (PHA/PLA, ZP temp slots) from leaking into the simpler constant-bound
+   * path, and vice versa.
+   *
    * @param stmt - For statement
    * @param counterSlot - Loop counter slot
    * @param exitLabel - Label to jump to when loop ends
@@ -529,8 +534,6 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
   ): void {
     const endExpr = stmt.getEnd();
     const isWord = counterSlot.size === 2;
-
-    // Try to get constant end value early for special case detection
     const constEnd = this.tryGetConstantValue(endExpr);
 
     // Special case: byte counter ascending to 255 uses post-body exit pattern.
@@ -541,6 +544,52 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
       return;
     }
 
+    // Route to specialized generators based on whether the end bound
+    // is a compile-time constant or a dynamic expression.
+    if (constEnd !== undefined) {
+      this.generateForConditionConstant(stmt, counterSlot, exitLabel, isAscending, constEnd, isWord);
+    } else {
+      this.generateForConditionDynamic(stmt, counterSlot, exitLabel, isAscending, isWord);
+    }
+  }
+
+  /**
+   * Generate the termination condition for a constant-bound for loop.
+   *
+   * When the loop end is a compile-time constant, we can emit a simple
+   * `LOAD counter / CMP #immediate / JUMP` sequence with no stack
+   * operations (PHA/PLA) and no ZP temp slots. This produces cleaner
+   * IL and smaller/faster 6502 code.
+   *
+   * Ascending pattern (for i = 0 to 9):
+   * ```
+   *   LOAD i            ; load counter
+   *   CMP_IMM 10        ; compare with end+1
+   *   JUMP_GE exit      ; exit if i >= end+1 (i.e., i > end)
+   * ```
+   *
+   * Descending pattern (for i = 9 downto 0):
+   * ```
+   *   LOAD i            ; load counter
+   *   CMP_IMM 0         ; compare with end
+   *   JUMP_LT exit      ; exit if i < end
+   * ```
+   *
+   * @param stmt - For statement (for variable name in comments)
+   * @param counterSlot - Loop counter slot
+   * @param exitLabel - Label to jump to when loop ends
+   * @param isAscending - True for 'to', false for 'downto'
+   * @param constEnd - The constant end value (guaranteed defined)
+   * @param isWord - True if counter is word-sized (2 bytes)
+   */
+  protected generateForConditionConstant(
+    stmt: ForStatement,
+    counterSlot: FrameSlot,
+    exitLabel: string,
+    isAscending: boolean,
+    constEnd: number,
+    isWord: boolean
+  ): void {
     // Load counter — use word load for 2-byte counters
     if (isWord) {
       this.builder.loadSlotWord(counterSlot, `load ${stmt.getVariable()} (word)`);
@@ -548,63 +597,96 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
       this.builder.loadSlot(counterSlot, `load ${stmt.getVariable()}`);
     }
 
-    if (constEnd !== undefined) {
-      // Constant bound optimization
-      if (isAscending) {
-        // for i = 0 to 9: exit when i > 9 (i.e., i >= 10)
-        if (isWord) {
-          // Word comparison: CMP_WORD_IMM sets flags for 16-bit compare
-          this.builder.cmpWordImm(constEnd + 1, `cmp word with end+1`);
-        } else {
-          this.builder.cmpImm(constEnd + 1, `cmp with end+1`);
-        }
-        this.builder.jumpGe(exitLabel, 'exit if i > end');
+    if (isAscending) {
+      // for i = 0 to 9: exit when i > 9 (i.e., i >= 10)
+      if (isWord) {
+        this.builder.cmpWordImm(constEnd + 1, `cmp word with end+1`);
       } else {
-        if (constEnd === 0) {
-          // Special case: downto 0
-          if (isWord) {
-            this.builder.cmpWordImm(constEnd, `cmp word with end`);
-          } else {
-            this.builder.cmpImm(constEnd, `cmp with end`);
-          }
-          this.builder.jumpLt(exitLabel, 'exit if i < end');
-        } else {
-          // Normal downto: exit when i < end
-          if (isWord) {
-            this.builder.cmpWordImm(constEnd, `cmp word with end`);
-          } else {
-            this.builder.cmpImm(constEnd, `cmp with end`);
-          }
-          this.builder.jumpLt(exitLabel, 'exit if i < end');
-        }
+        this.builder.cmpImm(constEnd + 1, `cmp with end+1`);
       }
+      this.builder.jumpGe(exitLabel, 'exit if i > end');
     } else {
-      // Dynamic bound - generate expression and compare.
-      // Strategy: save counter to stack, generate end expression into A,
-      // store end to a ZP temp slot, restore counter from stack, then
-      // CMP counter with the stored end value. This gives balanced PHA/PLA
-      // (exactly 1 push, 1 pop) and avoids the cmpImm(255) fallback.
-      this.builder.pushA('save counter');
-      this.generateExpression(endExpr);
-
-      // Store end value to ZP temp so we can compare counter with it.
-      // createZpTempSlot() is inherited from ILGeneratorExpressions.
-      const zpTemp = this.createZpTempSlot();
-      this.builder.storeSlot(zpTemp, 'save end bound');
-
-      // Restore counter from stack — balanced PLA matching the PHA above.
-      this.builder.popA('restore counter');
-
-      // Compare counter with stored end value
-      this.builder.cmpSlot(zpTemp, 'counter cmp end');
-
-      if (isAscending) {
-        // Ascending: exit when counter > end (all iterations including end are done)
-        this.builder.jumpGt(exitLabel, 'exit if counter > end');
+      // Descending: exit when i < end
+      if (isWord) {
+        this.builder.cmpWordImm(constEnd, `cmp word with end`);
       } else {
-        // Descending: exit when counter < end
-        this.builder.jumpLt(exitLabel, 'exit if counter < end');
+        this.builder.cmpImm(constEnd, `cmp with end`);
       }
+      this.builder.jumpLt(exitLabel, 'exit if i < end');
+    }
+  }
+
+  /**
+   * Generate the termination condition for a dynamic-bound for loop.
+   *
+   * When the loop end is a runtime expression (variable, function call, etc.),
+   * we must:
+   * 1. Save the current counter value (PHA)
+   * 2. Evaluate the end expression (result in A)
+   * 3. Store end value to a ZP temp slot
+   * 4. Restore the counter (PLA — balanced with the PHA in step 1)
+   * 5. Compare counter with the stored end value (CMP slot)
+   * 6. Branch based on comparison result
+   *
+   * This ensures exactly one PHA/PLA pair per condition check (balanced stack).
+   *
+   * Ascending pattern:
+   * ```
+   *   LOAD counter      ; load counter
+   *   PUSH_A            ; save counter on stack
+   *   [generate end]    ; evaluate end expression → A
+   *   STORE zpTemp      ; save end to ZP temp slot
+   *   POP_A             ; restore counter (balanced PLA)
+   *   CMP zpTemp        ; compare counter with stored end
+   *   JUMP_GT exit      ; exit if counter > end
+   * ```
+   *
+   * @param stmt - For statement
+   * @param counterSlot - Loop counter slot
+   * @param exitLabel - Label to jump to when loop ends
+   * @param isAscending - True for 'to', false for 'downto'
+   * @param isWord - True if counter is word-sized (2 bytes)
+   */
+  protected generateForConditionDynamic(
+    stmt: ForStatement,
+    counterSlot: FrameSlot,
+    exitLabel: string,
+    isAscending: boolean,
+    isWord: boolean
+  ): void {
+    const endExpr = stmt.getEnd();
+
+    // Load counter — use word load for 2-byte counters
+    if (isWord) {
+      this.builder.loadSlotWord(counterSlot, `load ${stmt.getVariable()} (word)`);
+    } else {
+      this.builder.loadSlot(counterSlot, `load ${stmt.getVariable()}`);
+    }
+
+    // Dynamic bound strategy: save counter to stack, generate end expression
+    // into A, store end to a ZP temp slot, restore counter from stack, then
+    // CMP counter with the stored end value. This gives balanced PHA/PLA
+    // (exactly 1 push, 1 pop) and avoids the cmpImm(255) fallback.
+    this.builder.pushA('save counter');
+    this.generateExpression(endExpr);
+
+    // Store end value to ZP temp so we can compare counter with it.
+    // createZpTempSlot() is inherited from ILGeneratorExpressions.
+    const zpTemp = this.createZpTempSlot();
+    this.builder.storeSlot(zpTemp, 'save end bound');
+
+    // Restore counter from stack — balanced PLA matching the PHA above.
+    this.builder.popA('restore counter');
+
+    // Compare counter with stored end value
+    this.builder.cmpSlot(zpTemp, 'counter cmp end');
+
+    if (isAscending) {
+      // Ascending: exit when counter > end (all iterations including end are done)
+      this.builder.jumpGt(exitLabel, 'exit if counter > end');
+    } else {
+      // Descending: exit when counter < end
+      this.builder.jumpLt(exitLabel, 'exit if counter < end');
     }
   }
 
