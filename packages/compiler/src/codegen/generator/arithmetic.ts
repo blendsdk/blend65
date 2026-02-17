@@ -384,9 +384,9 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.clc();
     this.asm.adc(imm.value, 'immediate');
     // If no carry from low byte addition, skip high byte increment
-    this.asm.bcc(skipLabel);
+    this.asm.bcc(this.localLabel(skipLabel));
     this.asm.inx('propagate carry to high byte');
-    this.asm.label(skipLabel, true);
+    this.asm.label(this.localLabel(skipLabel), true);
 
     this.invalidateA();
   }
@@ -444,9 +444,9 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.clc();
     this.asm.adc(address, mode);
     // If no carry from low byte addition, skip high byte increment
-    this.asm.bcc(skipLabel);
+    this.asm.bcc(this.localLabel(skipLabel));
     this.asm.inx('propagate carry to high byte');
-    this.asm.label(skipLabel, true);
+    this.asm.label(this.localLabel(skipLabel), true);
 
     this.invalidateA();
   }
@@ -504,9 +504,9 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.sec();
     this.asm.sbc(imm.value, 'immediate');
     // If no borrow from low byte subtraction, skip high byte decrement
-    this.asm.bcs(skipLabel);
+    this.asm.bcs(this.localLabel(skipLabel));
     this.asm.dex('propagate borrow to high byte');
-    this.asm.label(skipLabel, true);
+    this.asm.label(this.localLabel(skipLabel), true);
 
     this.invalidateA();
   }
@@ -563,9 +563,9 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     this.asm.sec();
     this.asm.sbc(address, mode);
     // If no borrow from low byte subtraction, skip high byte decrement
-    this.asm.bcs(skipLabel);
+    this.asm.bcs(this.localLabel(skipLabel));
     this.asm.dex('propagate borrow to high byte');
-    this.asm.label(skipLabel, true);
+    this.asm.label(this.localLabel(skipLabel), true);
 
     this.invalidateA();
   }
@@ -625,10 +625,10 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
     // Increment low byte
     this.asm.inc(address, mode);
     // If low byte didn't wrap to 0, we're done (no carry needed)
-    this.asm.bne(skipLabel);
+    this.asm.bne(this.localLabel(skipLabel));
     // Low byte wrapped to 0 — propagate carry to high byte
     this.asm.inc(address + 1, hiMode, 'carry to high byte');
-    this.asm.label(skipLabel, true);
+    this.asm.label(this.localLabel(skipLabel), true);
 
     // Invalidate A if it held this address (memory changed)
     if (this.aHasSlot(address)) {
@@ -663,10 +663,10 @@ export class ArithmeticOpsGenerator extends MemoryOpsGenerator {
 
     // Check if low byte is 0 (will need borrow)
     this.asm.lda(address, mode, 'check low byte for borrow');
-    this.asm.bne(skipLabel);
+    this.asm.bne(this.localLabel(skipLabel));
     // Low byte is 0 — decrement high byte first (borrow)
     this.asm.dec(address + 1, hiMode, 'borrow from high byte');
-    this.asm.label(skipLabel, true);
+    this.asm.label(this.localLabel(skipLabel), true);
     // Always decrement low byte
     this.asm.dec(address, mode);
 

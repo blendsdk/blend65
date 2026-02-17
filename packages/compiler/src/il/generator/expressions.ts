@@ -139,25 +139,59 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
 
   /**
    * Infer whether an expression produces a word-width (16-bit) value
-   * by examining the source slot size.
+   * by examining the source expression structure.
    *
    * This is a fallback for when `expr.getTypeInfo()` returns undefined
    * (which is the common case in production, since `setTypeInfo()` is
-   * not called during compilation). It checks if the expression is an
-   * identifier that resolves to a word-sized slot (size === 2).
+   * not called during compilation).
    *
-   * Used in `generateBinary()` to correctly route word-typed variable
-   * operations (e.g., `wordParam / 64`) to the word binary path instead
-   * of the byte path.
+   * Handles three cases:
+   * 1. **Identifier**: resolves to a word-sized slot (size === 2)
+   * 2. **Address-of (`@`)**: always produces a 16-bit address (LOAD_ADDRESS
+   *    emits LDA #<label / LDX #>label, giving a full A:X word pair)
+   * 3. **Binary expression**: if the left operand is word-typed AND the
+   *    operator has word-path support, then `generateBinary()` routes to
+   *    `generateBinaryWord()` which produces a word result in A:X
+   *
+   * Used in `generateBinary()` to correctly route word-typed expressions
+   * to the word binary path, and in `generateTier3Address()` to avoid
+   * applying PROMOTE_BYTE_WORD on expressions that already produce A:X.
    *
    * @param expr - Expression to check
-   * @returns True if expression is an identifier with a word-sized slot
+   * @returns True if expression produces a word-width (16-bit) result
    */
   protected inferWordWidthFromExpression(expr: Expression): boolean {
+    // Case 1: Identifier that resolves to a word-sized slot
     if (isIdentifierExpression(expr)) {
       const slot = this.tryResolveVariable((expr as IdentifierExpression).getName());
       return slot !== undefined && slot.size === 2;
     }
+
+    // Case 2: Address-of expression (@variable) — always produces 16-bit address.
+    // LOAD_ADDRESS emits LDA #<label / LDX #>label, which is inherently word-width.
+    if (this.isAddressOfExpression(expr)) {
+      return true;
+    }
+
+    // Case 3: Binary expression where the word path is triggered.
+    // When generateBinary() dispatches to generateBinaryWord() (because the left
+    // operand is word-typed and the operator has word support), the result is a
+    // proper A:X word pair. This check mirrors the dispatch logic in generateBinary()
+    // so that downstream consumers (e.g., generateTier3Address) know the result is word.
+    if (isBinaryExpression(expr)) {
+      const binExpr = expr as BinaryExpression;
+      const op = binExpr.getOperator();
+      const hasWordSupport = op === TokenType.PLUS || op === TokenType.MINUS
+        || op === TokenType.DIVIDE || op === TokenType.RIGHT_SHIFT
+        || op === TokenType.EQUAL || op === TokenType.NOT_EQUAL
+        || op === TokenType.LESS_THAN || op === TokenType.LESS_EQUAL
+        || op === TokenType.GREATER_THAN || op === TokenType.GREATER_EQUAL;
+      if (hasWordSupport) {
+        const left = binExpr.getLeft();
+        return this.isWordTyped(left) || this.inferWordWidthFromExpression(left);
+      }
+    }
+
     return false;
   }
 
@@ -1950,8 +1984,15 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       // General Tier 3: generate the full address expression
       // This handles complex sub-expressions (e.g., row * 40 + col)
       this.generateExpression(addrExpr);
-      // Ensure result is in A:X word format (promote if byte)
-      if (!this.isWordTyped(addrExpr)) {
+      // Ensure result is in A:X word format (promote if byte).
+      // Guard: skip promotion when either:
+      //   (a) type info says the expression is word (semantic analysis set it), OR
+      //   (b) inference detects the expression produces a word result
+      //       (e.g., `@dataVar + i` → binary with address-of left operand
+      //        routes through generateBinaryWord → already in A:X)
+      // Without this guard, PROMOTE_BYTE_WORD (LDX #$00) would destroy
+      // the valid high byte in X that generateBinaryWord produced.
+      if (!this.isWordTyped(addrExpr) && !this.inferWordWidthFromExpression(addrExpr)) {
         this.builder.promoteByteWord('addr → word');
       }
     }

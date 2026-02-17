@@ -81,10 +81,10 @@ export class ComparisonOpsGenerator extends BitwiseOpsGenerator {
     // Compare high bytes first (X vs immediate high byte)
     this.asm.cpx(hi, 'immediate', 'compare high bytes');
     // If high bytes differ, flags already reflect the comparison result
-    this.asm.bne(doneLabel);
+    this.asm.bne(this.localLabel(doneLabel));
     // High bytes are equal — compare low bytes to determine final result
     this.asm.cmp(lo, 'immediate', 'compare low bytes');
-    this.asm.label(doneLabel, true);
+    this.asm.label(this.localLabel(doneLabel), true);
 
     // A and X are unchanged by CPX/CMP
   }
@@ -116,10 +116,10 @@ export class ComparisonOpsGenerator extends BitwiseOpsGenerator {
     // Compare high bytes first (X vs slot high byte at addr+1)
     this.asm.cpx(address + 1, hiMode, 'compare high bytes');
     // If high bytes differ, flags already reflect the comparison result
-    this.asm.bne(doneLabel);
+    this.asm.bne(this.localLabel(doneLabel));
     // High bytes are equal — compare low bytes to determine final result
     this.asm.cmp(address, mode, 'compare low bytes');
-    this.asm.label(doneLabel, true);
+    this.asm.label(this.localLabel(doneLabel), true);
 
     // A and X are unchanged by CPX/CMP
   }
