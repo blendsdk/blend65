@@ -214,16 +214,20 @@ describe('PROGRAM_LEVEL_PASSES configuration', () => {
     expect(o3).toEqual(o2);
   });
 
-  it('Os has dead-function-elim and dead-global-elim but no inlining', () => {
+  it('Os has dead-function-elim, dead-global-elim, function-inline, and post-inline dead-function-elim', () => {
     const passes = getProgramPassesForLevel('Os');
     expect(passes).toContain('dead-function-elim');
     expect(passes).toContain('dead-global-elim');
-    expect(passes).not.toContain('function-inline');
-    expect(passes).not.toContain('single-site-inline');
-    expect(passes).toHaveLength(2);
+    expect(passes).toContain('function-inline');
+    // DFE runs both before AND after inlining (same as O2/O3)
+    expect(passes).toHaveLength(4);
+    expect(passes[0]).toBe('dead-function-elim');
+    expect(passes[1]).toBe('dead-global-elim');
+    expect(passes[2]).toBe('function-inline');
+    expect(passes[3]).toBe('dead-function-elim');
   });
 
-  it('Oz matches Os program passes (no inlining for size)', () => {
+  it('Oz matches Os program passes (profitable-only inlining)', () => {
     const os = getProgramPassesForLevel('Os');
     const oz = getProgramPassesForLevel('Oz');
     expect(oz).toEqual(os);

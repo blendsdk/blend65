@@ -11,7 +11,8 @@
  * - O2/O3: Small-function inlining — functions below a size threshold
  *   (SMALL_FUNCTION_THRESHOLD) are inlined even with multiple call sites,
  *   subject to a 20% code growth budget (MAX_SIZE_GROWTH_RATIO)
- * - Os/Oz: No inlining — size optimization avoids code duplication
+ * - Os/Oz/O1s/O1z/O3s/O3z: Profitable-only inlining — single-call-site always,
+ *   plus tiny multi-call-site functions ≤ SIZE_PROFITABLE_THRESHOLD
  *
  * **Algorithm:**
  * 1. Build call graph from the ILProgram
@@ -28,7 +29,7 @@
  * - Exported and callback functions are NOT inlined (must remain callable)
  * - Intrinsic/asm functions are NOT inlined
  *
- * **Enabled at:** O1+ (via 'function-inline' in PROGRAM_LEVEL_PASSES)
+ * **Enabled at:** O1+ (via 'function-inline' in PROGRAM_LEVEL_PASSES, all levels)
  *
  * @module optimizer/passes/function-inlining
  */
@@ -37,6 +38,7 @@ import { ILOpcode } from '../../il/enums.js';
 import type { FunctionOperand, LabelOperand, SlotOperand } from '../../il/operands.js';
 import type { ILInstruction } from '../../il/instruction.js';
 import type { ILFunction, ILProgram } from '../../il/structures.js';
+import { isSizeOptimization } from '../options.js';
 import type { OptimizationOptions } from '../options.js';
 import type { ProgramOptimizationPass, ProgramPassResult } from '../pass.js';
 import { createEmptyProgramResult, createProgramResult } from '../pass.js';
@@ -66,6 +68,17 @@ export const SMALL_FUNCTION_THRESHOLD = 20;
  * zero net code growth (the callee is removed by dead function elimination).
  */
 export const MAX_SIZE_GROWTH_RATIO = 0.20;
+
+/**
+ * Maximum function size (instruction count) for profitable inlining at size levels.
+ *
+ * At Os/Oz/O1s/O1z/O3s/O3z, multi-call-site functions are only inlined if they
+ * have this many or fewer instructions. This is very conservative: 4 instructions
+ * roughly equals the JSR+RTS overhead (3B+1B = 4B), so duplicating the body at
+ * multiple sites costs roughly the same as keeping the function. Single-call-site
+ * functions are always inlined regardless of size (always profitable).
+ */
+export const SIZE_PROFITABLE_THRESHOLD = 4;
 
 // ============================================================================
 // Types
@@ -264,7 +277,8 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
    * Find functions that are candidates for inlining.
    *
    * At O1: only single-call-site functions (called exactly once).
-   * At O2+: also small functions below a size threshold (Session 2.4).
+   * At O2/O3: also small functions below SMALL_FUNCTION_THRESHOLD.
+   * At Os/Oz/O1s/O1z/O3s/O3z: also tiny functions ≤ SIZE_PROFITABLE_THRESHOLD.
    *
    * Candidates are filtered by safety checks:
    * - Not recursive (direct or mutual)
@@ -291,11 +305,13 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
       funcMap.set(func.name, func);
     }
 
-    // Determine if O2+ small-function inlining is allowed
-    // Only O2 and O3 enable multi-site inlining. Os/Oz optimize for size
-    // and avoid code duplication entirely.
+    // Determine multi-site inlining strategy based on level:
+    // O2/O3: aggressive multi-site inlining below SMALL_FUNCTION_THRESHOLD
+    // Size levels (Os/Oz/O1s/O1z/O3s/O3z): conservative multi-site inlining
+    //   below SIZE_PROFITABLE_THRESHOLD only
     const allowSmallFunctionInlining =
       options.level === 'O2' || options.level === 'O3';
+    const sizeOptimizing = isSizeOptimization(options.level);
 
     for (const func of program.functions) {
       // Skip safety checks: entry point, exported, callback
@@ -337,7 +353,7 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
         continue; // Already handled — skip to next function
       }
 
-      // Strategy 2: Small-function inlining (O2+)
+      // Strategy 2: Small-function inlining (O2/O3)
       // Functions below the size threshold are inlined at every call site,
       // even when called multiple times. A size budget in run() prevents
       // excessive code growth.
@@ -346,26 +362,20 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
         callCount > 1 &&
         func.instructions.length <= SMALL_FUNCTION_THRESHOLD
       ) {
-        const callers = callGraph.getCallers(func.name);
-        for (const callerName of callers) {
-          const caller = funcMap.get(callerName);
-          if (!caller) continue;
+        this.addMultiSiteCandidates(func, callGraph, funcMap, candidates);
+        continue;
+      }
 
-          // Skip if caller and callee are mutually recursive
-          if (callGraph.isMutuallyRecursive(callerName, func.name)) continue;
-
-          // Find ALL call sites for this callee in this caller
-          // (a caller may invoke the same function multiple times)
-          const callSiteIndices = this.findAllCallSiteIndices(caller, func.name);
-          for (const idx of callSiteIndices) {
-            candidates.push({
-              callee: func,
-              caller,
-              callSiteIndex: idx,
-              strategy: 'small-function',
-            });
-          }
-        }
+      // Strategy 3: Size-profitable multi-site inlining (Os/Oz/O1s/O1z/O3s/O3z)
+      // Very conservative: only inline tiny functions (≤ SIZE_PROFITABLE_THRESHOLD
+      // instructions) at multiple call sites. These are small enough that
+      // duplicating the body costs roughly the same as keeping JSR+RTS overhead.
+      if (
+        sizeOptimizing &&
+        callCount > 1 &&
+        func.instructions.length <= SIZE_PROFITABLE_THRESHOLD
+      ) {
+        this.addMultiSiteCandidates(func, callGraph, funcMap, candidates);
       }
     }
 
@@ -418,6 +428,49 @@ export class FunctionInliningPass implements ProgramOptimizationPass {
       }
     }
     return indices;
+  }
+
+  /**
+   * Add multi-site inlining candidates for a function called from multiple sites.
+   *
+   * Iterates over all callers in the call graph and creates an InlineCandidate
+   * for every CALL instruction targeting the given function. Skips mutually
+   * recursive caller/callee pairs.
+   *
+   * Used by both Strategy 2 (small-function at O2/O3) and Strategy 3
+   * (size-profitable at Os/Oz) to avoid code duplication between strategies.
+   *
+   * @param func - The callee function to inline at multiple sites
+   * @param callGraph - Pre-built call graph
+   * @param funcMap - Map of function name → ILFunction
+   * @param candidates - Array to push candidates into (mutated)
+   */
+  protected addMultiSiteCandidates(
+    func: ILFunction,
+    callGraph: CallGraph,
+    funcMap: Map<string, ILFunction>,
+    candidates: InlineCandidate[]
+  ): void {
+    const callers = callGraph.getCallers(func.name);
+    for (const callerName of callers) {
+      const caller = funcMap.get(callerName);
+      if (!caller) continue;
+
+      // Skip if caller and callee are mutually recursive
+      if (callGraph.isMutuallyRecursive(callerName, func.name)) continue;
+
+      // Find ALL call sites for this callee in this caller
+      // (a caller may invoke the same function multiple times)
+      const callSiteIndices = this.findAllCallSiteIndices(caller, func.name);
+      for (const idx of callSiteIndices) {
+        candidates.push({
+          callee: func,
+          caller,
+          callSiteIndex: idx,
+          strategy: 'small-function',
+        });
+      }
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════════

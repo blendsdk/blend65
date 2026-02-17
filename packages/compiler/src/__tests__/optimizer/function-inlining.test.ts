@@ -530,7 +530,7 @@ describe('FunctionInliningPass — ILOptimizer integration', () => {
     expect(hasCalls).toBe(true);
   });
 
-  it('does NOT run at Os (size optimization avoids inlining)', () => {
+  it('inlines single-call-site functions at Os (profitable-only inlining)', () => {
     const optimizer = new ILOptimizer({ level: 'Os' });
 
     const main = createTestILFunction('main', [
@@ -546,11 +546,13 @@ describe('FunctionInliningPass — ILOptimizer integration', () => {
     const program = createTestILProgram([main, helper], 'main');
     optimizer.optimizeProgram(program);
 
-    // At Os, function-inline is NOT in PROGRAM_LEVEL_PASSES
-    // but DFE may remove unused. Helper IS reachable so should remain
+    // At Os, function-inline IS now in PROGRAM_LEVEL_PASSES with
+    // profitable-only strategy. Single-call-site functions are always
+    // inlined (saves JSR 3B + RTS 1B = 4B). The CALL should be replaced
+    // with the inlined body, and DFE removes the fully-inlined helper.
     const mainFunc = program.functions.find((f) => f.name === 'main')!;
     const hasCalls = mainFunc.instructions.some((i) => i.opcode === ILOpcode.CALL);
-    expect(hasCalls).toBe(true);
+    expect(hasCalls).toBe(false);
   });
 
   it('can be disabled via disabledPasses', () => {

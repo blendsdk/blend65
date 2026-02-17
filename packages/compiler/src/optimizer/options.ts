@@ -149,11 +149,12 @@ const PROGRAM_LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   // fully inlined and are no longer referenced.
   O1: ['dead-function-elim', 'function-inline', 'dead-function-elim'],
 
-  // Basic + size - no inlining (increases size), add dead-global-elim for size reduction
-  O1s: ['dead-function-elim', 'dead-global-elim'],
+  // Basic + size - includes profitable-only inlining (single-call-site always wins).
+  // A second DFE pass runs AFTER inlining to remove fully-inlined functions.
+  O1s: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
   // Basic + min-size - same passes as O1s but with iterations
-  O1z: ['dead-function-elim', 'dead-global-elim'],
+  O1z: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
   // Standard optimizations - full inter-procedural.
   // DFE runs before inlining to remove obviously dead functions, then
@@ -161,21 +162,24 @@ const PROGRAM_LEVEL_PASSES: Record<OptimizationLevel, string[]> = {
   // to clean up functions that were fully inlined.
   O2: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
-  // Size optimization - eliminate dead code, no inlining (increases size)
-  Os: ['dead-function-elim', 'dead-global-elim'],
+  // Size optimization - includes profitable-only inlining (single-call-site always wins,
+  // tiny multi-call-site functions ≤ SIZE_PROFITABLE_THRESHOLD are also inlined).
+  // A second DFE pass runs AFTER inlining to remove fully-inlined functions.
+  Os: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
-  // Minimum size - eliminate dead code, no inlining
-  Oz: ['dead-function-elim', 'dead-global-elim'],
+  // Minimum size - same as Os but with iterations
+  Oz: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
   // Aggressive optimizations - full inter-procedural.
   // Same post-inlining cleanup as O2.
   O3: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
-  // Aggressive + size - no inlining (size goal)
-  O3s: ['dead-function-elim', 'dead-global-elim'],
+  // Aggressive + size - includes profitable-only inlining (same strategy as Os/Oz).
+  // A second DFE pass runs AFTER inlining to remove fully-inlined functions.
+  O3s: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 
-  // Aggressive + min-size - no inlining, with iterations
-  O3z: ['dead-function-elim', 'dead-global-elim'],
+  // Aggressive + min-size - same as O3s but with iterations
+  O3z: ['dead-function-elim', 'dead-global-elim', 'function-inline', 'dead-function-elim'],
 };
 
 /**

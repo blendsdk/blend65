@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-17 00:48
-> **Progress**: 6/24 tasks (25%)
+> **Last Updated**: 2026-02-17 01:20
+> **Progress**: 11/24 tasks (46%)
 
 ## Overview
 
@@ -114,9 +114,9 @@ Before ANY fixes, run a fresh diagnostic to capture the current state. This prov
 | 2.1.5 | Verify spinning-line Os/Oz now has LOAD_ADDRESS_EXPR in output | `scripts/` |
 
 **Deliverables**:
-- [ ] Inlining enabled at size levels with conservative strategy
-- [ ] Os/Oz PRG sizes improved (≤ O1)
-- [ ] All tests passing
+- [x] Inlining enabled at size levels with conservative strategy ✅ (completed: 2026-02-17 01:06)
+- [x] Os/Oz improved — `delay` inlined (single-call-site), ASM 207→196 lines ✅ (completed: 2026-02-17 01:20)
+- [x] All tests passing (9154 tests, 0 failures) ✅ (completed: 2026-02-17 01:20)
 
 **Verify**: `./compiler-test`
 
@@ -241,11 +241,11 @@ Before ANY fixes, run a fresh diagnostic to capture the current state. This prov
 - [x] 1.1.4 Verify spinning-line O1 store/reload eliminated ✅ (completed: 2026-02-17 00:46)
 
 ### Phase 2: Fix 2 — Profitable Inlining at Os/Oz
-- [ ] 2.1.1 Add function-inline to size-level PROGRAM_LEVEL_PASSES
-- [ ] 2.1.2 Add SIZE_PROFITABLE_THRESHOLD and size-level strategy
-- [ ] 2.1.3 Import isSizeOptimization
-- [ ] 2.1.4 Run compiler-test — zero regressions
-- [ ] 2.1.5 Verify spinning-line Os/Oz has LOAD_ADDRESS_EXPR
+- [x] 2.1.1 Add function-inline to size-level PROGRAM_LEVEL_PASSES ✅ (completed: 2026-02-17 01:04)
+- [x] 2.1.2 Add SIZE_PROFITABLE_THRESHOLD and size-level strategy ✅ (completed: 2026-02-17 01:06)
+- [x] 2.1.3 Import isSizeOptimization ✅ (completed: 2026-02-17 01:04)
+- [x] 2.1.4 Run compiler-test — zero regressions ✅ (completed: 2026-02-17 01:20)
+- [x] 2.1.5 Verify spinning-line Os/Oz inlining behavior ✅ (completed: 2026-02-17 01:20)
 
 ### Phase 3: Fix 1 — SHR_WORD_LO
 - [ ] 3.1.1 Add SHR_WORD_LO to ILOpcode enum + cost table
