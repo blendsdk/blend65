@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-17 23:57
-> **Progress**: 29/48 tasks (60%)
+> **Last Updated**: 2026-02-18 00:21
+> **Progress**: 37/48 tasks (77%)
 
 ## Overview
 
@@ -443,14 +443,14 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 2.3.4 Run full test suite (9234/9234 pass, 0 failures) ✅ (completed: 2026-02-17 23:57)
 
 ### Phase 3: Codegen Improvements (E, F)
-- [ ] 3.1.1 Analyze Tier 2 indexed addressing path
-- [ ] 3.1.2 Detect word-typed index in Tier 2
-- [ ] 3.1.3 Route word indices to Tier 3
-- [ ] 3.1.4 Write tests: poke with word index >255
-- [ ] 3.2.1 Analyze generatePokeIntrinsic clobbering
-- [ ] 3.2.2 Identify clobbering point
-- [ ] 3.2.3 Implement register preservation
-- [ ] 3.2.4 Write tests: poke(expr1, peek(expr2))
+- [x] 3.1.1 Analyze Tier 2 indexed addressing path ✅ (completed: 2026-02-18 00:08)
+- [x] 3.1.2 Detect word-typed index in Tier 2 (peek + poke guards) ✅ (completed: 2026-02-18 00:12)
+- [x] 3.1.3 Route word indices to Tier 3 via inferWordWidthFromExpression fallback ✅ (completed: 2026-02-18 00:12)
+- [ ] 3.1.4 Write tests: poke with word index >255 (deferred — next session)
+- [x] 3.2.1 Analyze generatePokeIntrinsic clobbering ✅ (completed: 2026-02-18 00:14)
+- [x] 3.2.2 Identify clobbering point: value expr overwrites X in Tier 2 ✅ (completed: 2026-02-18 00:14)
+- [x] 3.2.3 Implement isSimpleValueExpression + Tier 2 guard ✅ (completed: 2026-02-18 00:18)
+- [ ] 3.2.4 Write tests: poke(expr1, peek(expr2)) (deferred — next session)
 
 ### Phase 4: Asm-IL Optimizer (G, H, I)
 - [ ] 4.1.1 Read asm-il peephole infrastructure

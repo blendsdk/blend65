@@ -138,6 +138,62 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   /**
+   * Check if a value expression is "simple" — i.e., it will NOT clobber
+   * the X register when generated.
+   *
+   * Used by the poke Tier 2 path (Item F fix) to decide whether the
+   * value expression can safely be generated after TRANSFER_AX sets X
+   * to the destination offset. If the value is complex (contains peek,
+   * function calls, binary expressions with word operands, etc.), it
+   * may internally use A:X, destroying the offset in X.
+   *
+   * Simple expressions:
+   * - Numeric/boolean literals (LDA #imm — no register clobber)
+   * - Byte-sized identifiers (LDA slot — no X involvement)
+   * - Constant identifiers (resolved to LDA #imm at compile time)
+   *
+   * NOT simple (will clobber X):
+   * - Function calls (callee may use X)
+   * - Intrinsic calls like peek() (Tier 2/3 uses TRANSFER_AX or LOAD_ADDRESS)
+   * - Binary expressions (may trigger word path using A:X)
+   * - Unary address-of (@) (LOAD_ADDRESS writes X)
+   * - Ternary expressions (may contain complex sub-expressions)
+   *
+   * @param expr - Value expression to check
+   * @returns True if the expression is safe for Tier 2 poke (won't clobber X)
+   */
+  protected isSimpleValueExpression(expr: Expression): boolean {
+    // Literal values are always simple — just LDA #imm
+    if (isLiteralExpression(expr)) {
+      return true;
+    }
+
+    // Identifier: simple if it's a byte-sized slot or a constant
+    if (isIdentifierExpression(expr)) {
+      // Check if it's a compile-time constant (will become LDA #imm)
+      const constVal = this.tryResolveConstantIdentifier(expr);
+      if (constVal !== undefined) {
+        return true;
+      }
+
+      // Check if it's a byte-sized slot (LDA slot — no X involvement)
+      const name = (expr as IdentifierExpression).getName();
+      const slot = this.tryResolveVariable(name);
+      if (slot && slot.size === 1 && slot.location !== SlotLocation.Register) {
+        return true;
+      }
+
+      // Word slots use LOAD_WORD which writes A:X — NOT simple
+      // Register slots use transfer instructions — potentially clobber X
+      return false;
+    }
+
+    // All other expression types (binary, unary, call, ternary, index)
+    // may use X internally — NOT simple
+    return false;
+  }
+
+  /**
    * Infer whether an expression produces a word-width (16-bit) value
    * by examining the source expression structure.
    *
@@ -2030,9 +2086,18 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // Decompose address into constant base + variable offsets
     const decomp = this.decomposeAddressExpression(addrExpr);
 
-    // Tier 2: Single byte-typed variable offset + addition only → X-indexed
+    // Tier 2: Single byte-typed variable offset + addition only → X-indexed.
+    // Guard: the offset variable must be byte-typed (X register is 8-bit).
+    // Check both type info (from semantic analysis) AND inference fallback
+    // (from slot size). Without the inference check, a word variable like
+    // `i: word` ranging 0-999 would pass the guard when getTypeInfo()
+    // returns null, causing Tier 2 to truncate the index to its low byte.
+    // (Item E fix: prevents >255 index truncation)
+    const peekOffsetIsWord = decomp.variableTerms.length === 1
+      && (this.isWordTyped(decomp.variableTerms[0])
+        || this.inferWordWidthFromExpression(decomp.variableTerms[0]));
     if (decomp.isAdditionOnly && decomp.variableTerms.length === 1
-        && !this.isWordTyped(decomp.variableTerms[0])) {
+        && !peekOffsetIsWord) {
       this.generateExpression(decomp.variableTerms[0]);
       this.builder.emit(ILOpcode.TRANSFER_AX, [], 'index → X');
       this.builder.emit(
@@ -2075,9 +2140,23 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     // Decompose address into constant base + variable offsets
     const decomp = this.decomposeAddressExpression(addrExpr);
 
-    // Tier 2: Single byte-typed variable offset + addition only → X-indexed
+    // Tier 2: Single byte-typed variable offset + addition only → X-indexed.
+    // Guard 1 (Item E): the offset variable must be byte-typed (X register is 8-bit).
+    // Check both type info AND inference fallback to prevent word indices (>255)
+    // from being truncated to their low byte via TRANSFER_AX.
+    // Guard 2 (Item F): the value expression must be "simple" (literal or byte
+    // identifier) to avoid clobbering X. Complex value expressions (peek, function
+    // calls, binary ops with word operands) may use A:X internally, destroying
+    // the X register that holds the destination offset computed in step 1.
+    // When the value is complex, we skip Tier 2 and fall through to Tier 3
+    // (indirect) which is always safe — it stores the address to a ZP pointer
+    // before generating the value expression.
+    const pokeOffsetIsWord = decomp.variableTerms.length === 1
+      && (this.isWordTyped(decomp.variableTerms[0])
+        || this.inferWordWidthFromExpression(decomp.variableTerms[0]));
+    const valueIsSimple = this.isSimpleValueExpression(valueExpr);
     if (decomp.isAdditionOnly && decomp.variableTerms.length === 1
-        && !this.isWordTyped(decomp.variableTerms[0])) {
+        && !pokeOffsetIsWord && valueIsSimple) {
       // Generate offset into A, transfer to X, then generate value, use indexed poke
       this.generateExpression(decomp.variableTerms[0]);
       this.builder.emit(ILOpcode.TRANSFER_AX, [], 'index → X');
