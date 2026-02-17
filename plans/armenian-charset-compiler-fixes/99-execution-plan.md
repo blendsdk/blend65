@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-17 21:53
-> **Progress**: 5/48 tasks (10%)
+> **Last Updated**: 2026-02-17 22:24
+> **Progress**: 10/48 tasks (21%)
 
 ## Overview
 
@@ -414,11 +414,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 1.1.3 Fix generateTier3Address promotion check ✅ (completed: 2026-02-17 21:47)
 - [x] 1.1.4 Write unit tests: word binary with address-of (8/8 pass) ✅ (completed: 2026-02-17 21:52)
 - [x] 1.1.5 Verify armenian-charset via diag_app (all 10 levels PASS) ✅ (completed: 2026-02-17 21:52)
-- [ ] 1.2.1 Analyze generateForStatement/generateForCondition PHA/PLA
-- [ ] 1.2.2 Trace double PLA emission path
-- [ ] 1.2.3 Fix: remove extra PLA or add matching PHA
-- [ ] 1.2.4 Write test: stack preservation across for-loop
-- [ ] 1.2.5 Verify all for-loop tests pass
+- [x] 1.2.1 Analyze generateForStatement/generateForCondition PHA/PLA ✅ (completed: 2026-02-17 22:00)
+- [x] 1.2.2 Trace double PLA emission path ✅ (completed: 2026-02-17 22:00)
+- [x] 1.2.3 Fix: remove extra PLA or add matching PHA ✅ (completed: 2026-02-17 22:03)
+- [x] 1.2.4 Write test: stack preservation across for-loop ✅ (completed: 2026-02-17 22:11)
+- [x] 1.2.5 Verify all for-loop tests pass (9220/9220) ✅ (completed: 2026-02-17 22:24)
 - [ ] 1.3.1 Analyze generateForCondition dynamic-bound template
 - [ ] 1.3.2 Add constant-bound detection
 - [ ] 1.3.3 Implement constant-bound template

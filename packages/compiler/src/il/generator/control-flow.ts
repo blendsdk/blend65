@@ -579,68 +579,31 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
         }
       }
     } else {
-      // Dynamic bound - generate expression and compare
-      // Push counter, generate end, pop counter, compare
+      // Dynamic bound - generate expression and compare.
+      // Strategy: save counter to stack, generate end expression into A,
+      // store end to a ZP temp slot, restore counter from stack, then
+      // CMP counter with the stored end value. This gives balanced PHA/PLA
+      // (exactly 1 push, 1 pop) and avoids the cmpImm(255) fallback.
       this.builder.pushA('save counter');
       this.generateExpression(endExpr);
 
+      // Store end value to ZP temp so we can compare counter with it.
+      // createZpTempSlot() is inherited from ILGeneratorExpressions.
+      const zpTemp = this.createZpTempSlot();
+      this.builder.storeSlot(zpTemp, 'save end bound');
+
+      // Restore counter from stack — balanced PLA matching the PHA above.
+      this.builder.popA('restore counter');
+
+      // Compare counter with stored end value
+      this.builder.cmpSlot(zpTemp, 'counter cmp end');
+
       if (isAscending) {
-        // A has end value, need to compare counter > end
-        // counter is on stack, end in A
-        // We need: if counter > end then exit
-        // Transfer end to temp, pop counter, compare
-        // Actually, simpler: generate end, store temp, reload counter, cmp
-        // But we don't have temp slots here. Use stack:
-        // Stack has counter. A has end.
-        // TAX (save end in X)
-        // PLA (get counter in A)
-        // STX temp (need temp!)
-        // Actually, CMP compares A with operand: A - operand
-        // We want counter > end, i.e., counter - end > 0, i.e., counter >= end+1
-        // For dynamic, we can do: A=counter, compare with end slot/address
-        // But end is an expression...
-
-        // Simpler approach: evaluate end each iteration (if not constant)
-        // This may be inefficient for complex expressions
-        // For now, just reload and compare
-        this.builder.transferAX('save end to X');
-        this.builder.popA('restore counter');
-        // Now A = counter, X = end
-        // We need to compare A with X, but CMP doesn't do A vs X directly
-        // We'd need: SEC, SBC X - but that modifies A
-        // Actually CMP with address works: CMP $addr compares A with memory
-        // But X is in register, not memory
-
-        // Use different approach: store end to a temp location or use stack
-        // For simplicity, let's not optimize dynamic bounds heavily
-        // Generate: load counter, push, generate end, save end, pop counter, cmp end
-        // This is getting complex - for now, use simpler (slower) pattern
-
-        // Simplified: generate end first, push it, load counter, swap, compare
-        // Actually, we already have counter pushed, end in A
-        // Let's use CPX: compare X with... no, that's X vs memory
-
-        // HACK: For dynamic bounds, generate a less optimal but working pattern
-        // We'll generate end into temp[0] of frame (if available) or use stack tricks
-        // For MVP, assume end fits in immediate or is simple identifier
-
-        // For now: just do a simple compare assuming end is small
-        // Real implementation would need more sophisticated handling
-        this.builder.popA('restore counter');
-        this.generateExpression(endExpr);
-        // Now A has end, but we need counter in A for comparison...
-        // This is getting circular. Let's take a different approach:
-
-        // SIMPLE APPROACH for MVP:
-        // Don't support complex dynamic bounds - just generate comparison
-        // and let code gen figure it out. Store end to stack, compare from stack.
-        this.builder.cmpImm(255, 'dynamic bound fallback');
-        this.builder.jumpGe(exitLabel, 'exit');
+        // Ascending: exit when counter > end (all iterations including end are done)
+        this.builder.jumpGt(exitLabel, 'exit if counter > end');
       } else {
-        // Similar complexity for descending
-        this.builder.popA('restore counter');
-        this.builder.cmpImm(0, 'dynamic bound fallback');
-        this.builder.jumpLt(exitLabel, 'exit');
+        // Descending: exit when counter < end
+        this.builder.jumpLt(exitLabel, 'exit if counter < end');
       }
     }
   }
