@@ -11,7 +11,7 @@
  * - Redundant jump elimination: Remove JUMP to immediately following LABEL
  * - Modulo-to-bitmask: Replace counter-wrap-at-power-of-2 with AND
  * - Address expression folding: Fold LOAD_ADDRESS+SHR_WORD+LO into LOAD_ADDRESS_EXPR
- * - SHR_WORD+LO narrowing: Replace 16-bit shift+narrow with HI+SHR_BYTE for N≥8
+ * - SHR_WORD+LO narrowing: Replace 16-bit shift+narrow with SHR_WORD_LO for N=3-7, HI+SHR_BYTE for N≥8
  *
  * @module optimizer/passes/il-peephole
  */
@@ -1069,44 +1069,46 @@ export class ILPeepholePass implements OptimizationPass {
   // ═══════════════════════════════════════════════════════════════════
 
   /**
-   * Replace SHR_WORD N + LO with HI + SHR_BYTE (N-8) when N ≥ 8.
+   * Replace SHR_WORD N + LO with more efficient forms based on shift count.
    *
    * When a 16-bit right shift is immediately followed by LO (take low byte),
-   * and the shift count is ≥ 8, the result's low byte comes entirely from
-   * the original high byte. This means we can:
+   * the full 16-bit shift is often wasteful. This method applies two
+   * optimizations depending on the shift count:
    *
-   * 1. Use HI (TXA) to move the high byte into A
-   * 2. Apply the remaining shift as an 8-bit SHR_BYTE (N-8)
+   * **For N ≥ 8:** Replace with HI + SHR_BYTE(N-8).
+   * The result's low byte comes entirely from the original high byte,
+   * so we just take the high byte and shift it further if needed.
+   *
+   * **For N = 3-7:** Replace with SHR_WORD_LO(N).
+   * Uses the shift-left identity: `lo(word >> N) = hi(word << (8-N))`.
+   * Codegen emits: STA tmp / TXA / [ASL tmp / ROL A] × (8-N).
+   * This is much cheaper than the generic SHR_WORD loop (6N bytes).
+   *
+   * **For N = 1-2:** No optimization (not profitable).
+   * The shift-left technique for N=1 requires 7 rounds (8-1=7), which
+   * is more expensive than the generic 1-2 shift approach.
    *
    * **Pattern detected:**
    * ```
-   * SHR_WORD N    ; 16-bit shift right (expensive: loop or multi-byte sequence)
-   * LO            ; narrow to low byte (no-op in codegen)
+   * SHR_WORD N    ; 16-bit shift right (expensive for N≥3)
+   * LO            ; narrow to low byte
    * ```
    *
    * **Replacement for N ≥ 8:**
    * ```
-   * HI            ; TXA — move high byte to A (2 bytes, 2 cycles)
+   * HI            ; TXA — move high byte to A
    * SHR_BYTE N-8  ; LSR × (N-8) times (only if N > 8)
    * ```
    *
-   * **Replacement for N = 8 specifically:**
+   * **Replacement for N = 3-7:**
    * ```
-   * HI            ; TXA — just take the high byte (2 bytes, 2 cycles)
+   * SHR_WORD_LO N ; fused shift-right + low-byte using shift-left technique
    * ```
-   *
-   * **Why N < 8 is NOT optimized:**
-   * For N < 8, bits from both the original low and high bytes contribute
-   * to the result's low byte, so the full 16-bit shift is required.
    *
    * **Why this runs AFTER addressExprFolding:**
    * The addressExprFolding pass already handles LOAD_ADDRESS + SHR_WORD + LO
    * by folding into LOAD_ADDRESS_EXPR. This pass catches remaining standalone
    * SHR_WORD + LO patterns that weren't part of an address expression.
-   *
-   * **Savings for SHR_WORD 8 + LO:**
-   * Before: ~18 bytes, ~20 cycles (16-bit shift loop)
-   * After: 2 bytes, 2 cycles (just TXA)
    *
    * @param func - Function to optimize
    * @param options - Optimization options
@@ -1120,6 +1122,10 @@ export class ILPeepholePass implements OptimizationPass {
     let removed = 0;
     let replaced = 0;
 
+    // Minimum shift count for the shift-left technique to be profitable.
+    // N=3 uses 5 rounds (8-3), N=2 would use 6 rounds — not better than generic.
+    const MIN_SHIFT_LEFT_COUNT = 3;
+
     // Scan from end to start so splice doesn't invalidate future indices
     for (let i = func.instructions.length - 2; i >= 0; i--) {
       const shrInstr = func.instructions[i];
@@ -1129,47 +1135,69 @@ export class ILPeepholePass implements OptimizationPass {
       if (shrInstr.opcode !== ILOpcode.SHR_WORD) continue;
       if (loInstr.opcode !== ILOpcode.LO) continue;
 
-      // Get the shift count — must be an immediate value ≥ 8
+      // Get the shift count — must be a valid immediate value
       const shiftCount = this.getImmediateValue(shrInstr);
-      if (shiftCount === null || shiftCount < 8) continue;
+      if (shiftCount === null || shiftCount < MIN_SHIFT_LEFT_COUNT) continue;
 
-      // Build replacement instructions:
-      // HI (TXA) — moves the high byte of the word into A
-      const hiInstr = createInstruction(ILOpcode.HI, [], {
-        location: shrInstr.location,
-        comment: `Narrowed from SHR_WORD ${shiftCount} + LO (high byte → A)`,
-      });
+      if (shiftCount >= 8) {
+        // ── N ≥ 8: HI + SHR_BYTE(N-8) ──
+        // The result's low byte comes entirely from the original high byte.
+        const hiInstr = createInstruction(ILOpcode.HI, [], {
+          location: shrInstr.location,
+          comment: `Narrowed from SHR_WORD ${shiftCount} + LO (high byte → A)`,
+        });
 
-      const remainder = shiftCount - 8;
+        const remainder = shiftCount - 8;
 
-      if (remainder === 0) {
-        // SHR_WORD 8 + LO → just HI (TXA)
-        // Replace 2 instructions with 1
-        func.instructions.splice(i, 2, hiInstr);
-        removed += 1; // 2 original - 1 replacement
-        replaced += 1;
+        if (remainder === 0) {
+          // SHR_WORD 8 + LO → just HI (TXA)
+          func.instructions.splice(i, 2, hiInstr);
+          removed += 1; // 2 original → 1 replacement
+          replaced += 1;
+        } else {
+          // SHR_WORD N + LO (N > 8) → HI + SHR_BYTE (N-8)
+          const shrByteInstr = createInstruction(
+            ILOpcode.SHR_BYTE,
+            [createImmediateOperand(remainder, false)],
+            {
+              location: shrInstr.location,
+              comment: `Remaining ${remainder} shifts after HI narrowing`,
+            }
+          );
+          func.instructions.splice(i, 2, hiInstr, shrByteInstr);
+          replaced += 2;
+        }
+
+        if (options.debug) {
+          const replacement = remainder === 0
+            ? 'HI (TXA only)'
+            : `HI + SHR_BYTE ${remainder}`;
+          debugInfo.push(
+            `SHR_WORD+LO narrowing at ${i}: SHR_WORD ${shiftCount} + LO → ${replacement}`
+          );
+        }
       } else {
-        // SHR_WORD N + LO (N > 8) → HI + SHR_BYTE (N-8)
-        // Replace 2 instructions with 2 (net zero removal, but much cheaper)
-        const shrByteInstr = createInstruction(
-          ILOpcode.SHR_BYTE,
-          [createImmediateOperand(remainder, false)],
+        // ── N = 3-7: SHR_WORD_LO(N) using shift-left technique ──
+        // lo(word >> N) = hi(word << (8-N)), emits (8-N) ASL/ROL rounds.
+        const shrWordLoInstr = createInstruction(
+          ILOpcode.SHR_WORD_LO,
+          [createImmediateOperand(shiftCount, false)],
           {
             location: shrInstr.location,
-            comment: `Remaining ${remainder} shifts after HI narrowing`,
+            comment: `Fused SHR_WORD ${shiftCount} + LO → shift-left technique (${8 - shiftCount} rounds)`,
           }
         );
-        func.instructions.splice(i, 2, hiInstr, shrByteInstr);
-        replaced += 2;
-      }
 
-      if (options.debug) {
-        const replacement = remainder === 0
-          ? 'HI (TXA only)'
-          : `HI + SHR_BYTE ${remainder}`;
-        debugInfo.push(
-          `SHR_WORD+LO narrowing at ${i}: SHR_WORD ${shiftCount} + LO → ${replacement}`
-        );
+        // Replace 2 instructions (SHR_WORD + LO) with 1 (SHR_WORD_LO)
+        func.instructions.splice(i, 2, shrWordLoInstr);
+        removed += 1; // 2 original → 1 replacement
+        replaced += 1;
+
+        if (options.debug) {
+          debugInfo.push(
+            `SHR_WORD+LO narrowing at ${i}: SHR_WORD ${shiftCount} + LO → SHR_WORD_LO ${shiftCount} (${8 - shiftCount} ASL/ROL rounds)`
+          );
+        }
       }
     }
 

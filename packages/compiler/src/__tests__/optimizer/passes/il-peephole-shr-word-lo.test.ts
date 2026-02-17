@@ -1,11 +1,10 @@
 /**
  * Tests for IL Peephole SHR_WORD+LO Narrowing Optimization
  *
- * Tests the pattern where a 16-bit right shift followed by a LO (take low byte)
- * is narrowed to HI + SHR_BYTE when the shift count is ≥ 8.
- *
- * Pattern: SHR_WORD N + LO → HI + SHR_BYTE (N-8) for N ≥ 8
- * For N = 8: SHR_WORD 8 + LO → HI (just TXA)
+ * Tests two optimization paths:
+ * - N ≥ 8: SHR_WORD N + LO → HI + SHR_BYTE(N-8)
+ * - N = 3-7: SHR_WORD N + LO → SHR_WORD_LO N (shift-left technique)
+ * - N = 1-2: No optimization (not profitable)
  *
  * @module __tests__/optimizer/passes/il-peephole-shr-word-lo.test
  */
@@ -84,15 +83,25 @@ function createTestFunction(instructions: ILInstruction[]): ILFunction {
   };
 }
 
+/**
+ * Helper to extract immediate value from an instruction's first operand.
+ * Returns null if the operand is not an ImmediateOperand.
+ */
+function getImmValue(instr: ILInstruction): number | null {
+  if (instr.operands.length === 0) return null;
+  const op = instr.operands[0];
+  return isImmediateOperand(op) ? op.value : null;
+}
+
 /** Default optimization options for testing (O2 enables il-peephole) */
 const testOptions = { level: 'O2' as const, debug: false };
 
 // ============================================================================
-// Tests: SHR_WORD + LO Narrowing — Positive Cases (N ≥ 8)
+// Tests: SHR_WORD + LO Narrowing — N ≥ 8 (HI + SHR_BYTE path)
 // ============================================================================
 
 describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
-  describe('Positive cases (N ≥ 8 — should narrow)', () => {
+  describe('N ≥ 8 — should narrow to HI + SHR_BYTE(N-8)', () => {
     it('should replace SHR_WORD 8 + LO with HI only (TXA)', () => {
       // SHR_WORD 8 + LO → HI (just take the high byte)
       const func = createTestFunction([
@@ -110,7 +119,6 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
     });
 
     it('should replace SHR_WORD 9 + LO with HI + SHR_BYTE 1', () => {
-      // SHR_WORD 9 + LO → HI + SHR_BYTE 1
       const func = createTestFunction([
         createShrWordInstr(9),
         createLoInstr(),
@@ -122,13 +130,7 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(func.instructions).toHaveLength(2);
       expect(func.instructions[0].opcode).toBe(ILOpcode.HI);
       expect(func.instructions[1].opcode).toBe(ILOpcode.SHR_BYTE);
-
-      // Verify the SHR_BYTE has shift count of 1 (= 9 - 8)
-      const shrByteOp = func.instructions[1].operands[0];
-      expect(isImmediateOperand(shrByteOp)).toBe(true);
-      if (isImmediateOperand(shrByteOp)) {
-        expect(shrByteOp.value).toBe(1);
-      }
+      expect(getImmValue(func.instructions[1])).toBe(1);
     });
 
     it('should replace SHR_WORD 10 + LO with HI + SHR_BYTE 2', () => {
@@ -143,12 +145,7 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(func.instructions).toHaveLength(2);
       expect(func.instructions[0].opcode).toBe(ILOpcode.HI);
       expect(func.instructions[1].opcode).toBe(ILOpcode.SHR_BYTE);
-
-      const shrByteOp = func.instructions[1].operands[0];
-      expect(isImmediateOperand(shrByteOp)).toBe(true);
-      if (isImmediateOperand(shrByteOp)) {
-        expect(shrByteOp.value).toBe(2);
-      }
+      expect(getImmValue(func.instructions[1])).toBe(2);
     });
 
     it('should replace SHR_WORD 12 + LO with HI + SHR_BYTE 4', () => {
@@ -163,12 +160,7 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(func.instructions).toHaveLength(2);
       expect(func.instructions[0].opcode).toBe(ILOpcode.HI);
       expect(func.instructions[1].opcode).toBe(ILOpcode.SHR_BYTE);
-
-      const shrByteOp = func.instructions[1].operands[0];
-      expect(isImmediateOperand(shrByteOp)).toBe(true);
-      if (isImmediateOperand(shrByteOp)) {
-        expect(shrByteOp.value).toBe(4);
-      }
+      expect(getImmValue(func.instructions[1])).toBe(4);
     });
 
     it('should replace SHR_WORD 15 + LO with HI + SHR_BYTE 7', () => {
@@ -184,36 +176,61 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(func.instructions).toHaveLength(2);
       expect(func.instructions[0].opcode).toBe(ILOpcode.HI);
       expect(func.instructions[1].opcode).toBe(ILOpcode.SHR_BYTE);
-
-      const shrByteOp = func.instructions[1].operands[0];
-      expect(isImmediateOperand(shrByteOp)).toBe(true);
-      if (isImmediateOperand(shrByteOp)) {
-        expect(shrByteOp.value).toBe(7);
-      }
+      expect(getImmValue(func.instructions[1])).toBe(7);
     });
   });
 
   // ============================================================================
-  // Negative Cases (N < 8 — should NOT narrow)
+  // N = 3-7 — should narrow to SHR_WORD_LO (shift-left technique)
   // ============================================================================
 
-  describe('Negative cases (N < 8 — should NOT narrow)', () => {
-    it('should NOT narrow SHR_WORD 1 + LO (bits cross byte boundary)', () => {
+  describe('N = 3-7 — should narrow to SHR_WORD_LO', () => {
+    it('should replace SHR_WORD 3 + LO with SHR_WORD_LO 3 (5 ASL/ROL rounds)', () => {
       const func = createTestFunction([
-        createShrWordInstr(1),
+        createShrWordInstr(3),
         createLoInstr(),
       ]);
 
       const pass = new ILPeepholePass();
       const result = pass.run(func, testOptions);
 
-      // SHR_WORD and LO should remain unchanged
-      expect(func.instructions).toHaveLength(2);
-      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD);
-      expect(func.instructions[1].opcode).toBe(ILOpcode.LO);
+      expect(result.modified).toBe(true);
+      // 2 instructions → 1 (SHR_WORD_LO)
+      expect(func.instructions).toHaveLength(1);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD_LO);
+      expect(getImmValue(func.instructions[0])).toBe(3);
     });
 
-    it('should NOT narrow SHR_WORD 6 + LO (common sprite calc shift)', () => {
+    it('should replace SHR_WORD 4 + LO with SHR_WORD_LO 4 (4 ASL/ROL rounds)', () => {
+      const func = createTestFunction([
+        createShrWordInstr(4),
+        createLoInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      expect(func.instructions).toHaveLength(1);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD_LO);
+      expect(getImmValue(func.instructions[0])).toBe(4);
+    });
+
+    it('should replace SHR_WORD 5 + LO with SHR_WORD_LO 5 (3 ASL/ROL rounds)', () => {
+      const func = createTestFunction([
+        createShrWordInstr(5),
+        createLoInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      expect(func.instructions).toHaveLength(1);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD_LO);
+      expect(getImmValue(func.instructions[0])).toBe(5);
+    });
+
+    it('should replace SHR_WORD 6 + LO with SHR_WORD_LO 6 (2 ASL/ROL rounds — common sprite calc)', () => {
+      // This is the most common case: lo(spriteAddr / 64) = lo(spriteAddr >> 6)
       const func = createTestFunction([
         createShrWordInstr(6),
         createLoInstr(),
@@ -222,13 +239,12 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       const pass = new ILPeepholePass();
       pass.run(func, testOptions);
 
-      // Should remain as SHR_WORD 6 + LO (not narrowable)
-      expect(func.instructions).toHaveLength(2);
-      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD);
-      expect(func.instructions[1].opcode).toBe(ILOpcode.LO);
+      expect(func.instructions).toHaveLength(1);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD_LO);
+      expect(getImmValue(func.instructions[0])).toBe(6);
     });
 
-    it('should NOT narrow SHR_WORD 7 + LO (just below threshold)', () => {
+    it('should replace SHR_WORD 7 + LO with SHR_WORD_LO 7 (1 ASL/ROL round)', () => {
       const func = createTestFunction([
         createShrWordInstr(7),
         createLoInstr(),
@@ -237,6 +253,42 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       const pass = new ILPeepholePass();
       pass.run(func, testOptions);
 
+      expect(func.instructions).toHaveLength(1);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD_LO);
+      expect(getImmValue(func.instructions[0])).toBe(7);
+    });
+  });
+
+  // ============================================================================
+  // N = 1-2 — should NOT narrow (not profitable)
+  // ============================================================================
+
+  describe('N = 1-2 — should NOT narrow (not profitable)', () => {
+    it('should NOT narrow SHR_WORD 1 + LO (7 rounds too expensive)', () => {
+      const func = createTestFunction([
+        createShrWordInstr(1),
+        createLoInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      // SHR_WORD and LO should remain unchanged
+      expect(func.instructions).toHaveLength(2);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD);
+      expect(func.instructions[1].opcode).toBe(ILOpcode.LO);
+    });
+
+    it('should NOT narrow SHR_WORD 2 + LO (6 rounds too expensive)', () => {
+      const func = createTestFunction([
+        createShrWordInstr(2),
+        createLoInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      // SHR_WORD and LO should remain unchanged
       expect(func.instructions).toHaveLength(2);
       expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD);
       expect(func.instructions[1].opcode).toBe(ILOpcode.LO);
@@ -289,6 +341,19 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(func.instructions[0].opcode).toBe(ILOpcode.HI);
       expect(func.instructions[1].opcode).toBe(ILOpcode.LO);
     });
+
+    it('should NOT narrow SHR_WORD 6 without following LO (full word result needed)', () => {
+      // SHR_WORD 6 alone — even though N=3-7, without LO there is no narrowing
+      const func = createTestFunction([
+        createShrWordInstr(6),
+        createStoreByteInstr(), // Not LO
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD);
+    });
   });
 
   // ============================================================================
@@ -333,6 +398,25 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(func.instructions[3].opcode).toBe(ILOpcode.STORE_BYTE);
     });
 
+    it('should preserve instructions around SHR_WORD 6 + LO (SHR_WORD_LO path)', () => {
+      const func = createTestFunction([
+        createLoadImmInstr(0xAB),  // before: stays
+        createShrWordInstr(6),     // matched → SHR_WORD_LO 6
+        createLoInstr(),           // matched (consumed)
+        createStoreByteInstr(),    // after: stays
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      // Should be: LOAD_IMM, SHR_WORD_LO 6, STORE_BYTE (3 instructions)
+      expect(func.instructions).toHaveLength(3);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.LOAD_IMM);
+      expect(func.instructions[1].opcode).toBe(ILOpcode.SHR_WORD_LO);
+      expect(getImmValue(func.instructions[1])).toBe(6);
+      expect(func.instructions[2].opcode).toBe(ILOpcode.STORE_BYTE);
+    });
+
     it('should handle multiple SHR_WORD+LO patterns in same function', () => {
       const func = createTestFunction([
         createShrWordInstr(8),     // first match → HI
@@ -351,6 +435,26 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(func.instructions[1].opcode).toBe(ILOpcode.LOAD_IMM);
       expect(func.instructions[2].opcode).toBe(ILOpcode.HI);
       expect(func.instructions[3].opcode).toBe(ILOpcode.SHR_BYTE);
+    });
+
+    it('should handle mixed N≥8 and N=3-7 patterns in same function', () => {
+      const func = createTestFunction([
+        createShrWordInstr(6),     // first match → SHR_WORD_LO 6
+        createLoInstr(),
+        createLoadImmInstr(0xFF),  // separator
+        createShrWordInstr(8),     // second match → HI
+        createLoInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      // Should be: SHR_WORD_LO 6, LOAD_IMM, HI (3 instructions)
+      expect(func.instructions).toHaveLength(3);
+      expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD_LO);
+      expect(getImmValue(func.instructions[0])).toBe(6);
+      expect(func.instructions[1].opcode).toBe(ILOpcode.LOAD_IMM);
+      expect(func.instructions[2].opcode).toBe(ILOpcode.HI);
     });
   });
 
@@ -386,17 +490,30 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       expect(result.modified).toBe(true);
     });
 
-    it('should report not modified when no patterns match', () => {
+    it('should report 1 removed for SHR_WORD 6 + LO → SHR_WORD_LO 6', () => {
       const func = createTestFunction([
-        createShrWordInstr(6),  // N < 8, won't narrow
+        createShrWordInstr(6),
         createLoInstr(),
       ]);
 
       const pass = new ILPeepholePass();
       const result = pass.run(func, testOptions);
 
-      // No narrowing happened (N < 8)
-      // Note: other patterns in the peephole may still report no change
+      // 2 → 1 instruction = 1 removed
+      expect(result.modified).toBe(true);
+      expect(result.instructionsRemoved).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should report not modified when N=1 (below threshold)', () => {
+      const func = createTestFunction([
+        createShrWordInstr(1),  // N < 3, won't narrow
+        createLoInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      pass.run(func, testOptions);
+
+      // No narrowing happened (N < 3)
       expect(func.instructions).toHaveLength(2);
       expect(func.instructions[0].opcode).toBe(ILOpcode.SHR_WORD);
     });
@@ -407,7 +524,7 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
   // ============================================================================
 
   describe('Debug output', () => {
-    it('should produce debug info when debug=true', () => {
+    it('should produce debug info for N≥8 narrowing when debug=true', () => {
       const func = createTestFunction([
         createShrWordInstr(8),
         createLoInstr(),
@@ -416,13 +533,30 @@ describe('IL Peephole: SHR_WORD+LO Narrowing', () => {
       const pass = new ILPeepholePass();
       const result = pass.run(func, { ...testOptions, debug: true });
 
-      // Should have debug info mentioning the narrowing
       expect(result.debugInfo).toBeDefined();
       expect(result.debugInfo!.length).toBeGreaterThan(0);
       const hasNarrowingDebug = result.debugInfo!.some(
         (info) => info.includes('SHR_WORD') && info.includes('narrowing')
       );
       expect(hasNarrowingDebug).toBe(true);
+    });
+
+    it('should produce debug info for N=3-7 narrowing when debug=true', () => {
+      const func = createTestFunction([
+        createShrWordInstr(6),
+        createLoInstr(),
+      ]);
+
+      const pass = new ILPeepholePass();
+      const result = pass.run(func, { ...testOptions, debug: true });
+
+      expect(result.debugInfo).toBeDefined();
+      expect(result.debugInfo!.length).toBeGreaterThan(0);
+      // Should mention SHR_WORD_LO and ASL/ROL rounds
+      const hasShrWordLoDebug = result.debugInfo!.some(
+        (info) => info.includes('SHR_WORD_LO') && info.includes('ASL/ROL')
+      );
+      expect(hasShrWordLoDebug).toBe(true);
     });
   });
 });

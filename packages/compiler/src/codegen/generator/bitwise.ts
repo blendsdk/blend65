@@ -3,7 +3,7 @@
  *
  * Handles IL opcodes for bitwise operations:
  * - AND_BYTE, AND_IMM, OR_BYTE, OR_IMM, XOR_BYTE, XOR_IMM
- * - NOT_BYTE, SHL_BYTE, SHR_BYTE, SHR_WORD
+ * - NOT_BYTE, SHL_BYTE, SHR_BYTE, SHR_WORD, SHR_WORD_LO
  *
  * @module codegen/generator/bitwise
  */
@@ -213,6 +213,69 @@ export class BitwiseOpsGenerator extends ArithmeticOpsGenerator {
   }
 
   // ==========================================================================
+  // SHR_WORD_LO - Optimized lo(word >> N) using shift-left technique
+  // ==========================================================================
+
+  /**
+   * Compiler scratch ZP address for temporary storage.
+   *
+   * Uses $FB — the first byte of the 4-byte compiler scratch region ($FB-$FE)
+   * reserved by the platform config. This is separate from the runtime math
+   * routines which use $FE/$FF, so there's no conflict.
+   */
+  protected static readonly CODEGEN_SCRATCH_ZP = 0xfb;
+
+  /**
+   * Generates code for SHR_WORD_LO — optimized `lo(word >> N)` for N=3-7.
+   *
+   * Exploits the identity `lo(word >> N) = hi(word << (8-N))` to avoid the
+   * expensive full 16-bit SHR_WORD loop. Instead of shifting right N times
+   * (6 instructions each = 6N total), we shift left (8-N) times using a
+   * temporary ZP location for the low byte.
+   *
+   * **Algorithm:**
+   * 1. Store original low byte (A) to scratch ZP
+   * 2. Move high byte (X) into A via TXA
+   * 3. Repeat (8-N) times: ASL scratch / ROL A
+   *    - ASL shifts the scratch byte left, pushing MSB into carry
+   *    - ROL rotates carry into A from the right
+   * 4. After (8-N) rounds, A = hi(word << (8-N)) = lo(word >> N)
+   *
+   * **Cost comparison for N=6 (sprite pointer /64):**
+   * - SHR_WORD(6) + LO: 36 instructions, ~36 bytes
+   * - SHR_WORD_LO(6):    6 instructions, ~9 bytes (75% reduction)
+   *
+   * IL: SHR_WORD_LO count (where count is 3-7)
+   * 6502: STA $FB / TXA / [ASL $FB / ROL A] × (8-N)
+   *
+   * @param instr - IL instruction with immediate operand (shift count N)
+   */
+  protected genShrWordLo(instr: ILInstruction): void {
+    this.emitComment(instr);
+    const imm = this.getImmediateOperand(instr.operands);
+    const count = imm.value;
+    const rounds = 8 - count;
+    const scratchAddr = BitwiseOpsGenerator.CODEGEN_SCRATCH_ZP;
+
+    // Step 1: Save original low byte to scratch ZP
+    this.asm.sta(scratchAddr, 'zeroPage', 'save low byte to scratch');
+
+    // Step 2: Move high byte into A
+    this.asm.txa('high byte → A for shift-left technique');
+
+    // Step 3: Shift left (8-N) times, propagating bits from low→high
+    // Each round: ASL scratch pushes MSB of low byte into carry,
+    // then ROL A rotates that carry bit into A from the right.
+    for (let i = 0; i < rounds; i++) {
+      this.asm.asl(scratchAddr, 'zeroPage');
+      this.asm.rol(undefined, 'accumulator');
+    }
+
+    // A now contains lo(word >> N) — no further LO needed
+    this.invalidateA();
+  }
+
+  // ==========================================================================
   // Dispatch Override
   // ==========================================================================
 
@@ -247,6 +310,9 @@ export class BitwiseOpsGenerator extends ArithmeticOpsGenerator {
         break;
       case ILOpcode.SHR_WORD:
         this.genShrWord(instr);
+        break;
+      case ILOpcode.SHR_WORD_LO:
+        this.genShrWordLo(instr);
         break;
       default:
         super.generateInstruction(instr);

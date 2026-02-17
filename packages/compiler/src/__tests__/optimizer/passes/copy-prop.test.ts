@@ -299,6 +299,185 @@ describe('CopyPropPass debug output', () => {
 });
 
 // ============================================================================
+// Inline Continuation Label Transparency Tests
+// ============================================================================
+
+describe('CopyPropPass inline continuation label transparency', () => {
+  it('should propagate copy THROUGH inline continuation label', () => {
+    // y = x;
+    // LABEL _inline_getSpriteFrame_0_cont  ← inline continuation label
+    // use y;  ← should be replaced with use x
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createStoreByteInstr('y'),
+      createLabelInstr('_inline_getSpriteFrame_0_cont'),
+      createLoadByteInstr('y'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    const result = pass.run(func, { level: 'O2' });
+
+    // Copy SHOULD propagate through inline continuation label
+    expect(result.modified).toBe(true);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LOAD_BYTE);
+    expect(getSlotName(func.instructions[3])).toBe('x');
+  });
+
+  it('should propagate multiple copies through inline continuation label', () => {
+    // y = x; z = w;
+    // LABEL _inline_fn_0_cont
+    // use y; use z;
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createStoreByteInstr('y'),
+      createLoadByteInstr('w'),
+      createStoreByteInstr('z'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLoadByteInstr('y'),
+      createLoadByteInstr('z'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(result.instructionsAdded).toBe(2);
+    expect(getSlotName(func.instructions[5])).toBe('x');
+    expect(getSlotName(func.instructions[6])).toBe('w');
+  });
+
+  it('should propagate through multiple inline continuation labels', () => {
+    // y = x;
+    // LABEL _inline_fn_0_cont
+    // LABEL _inline_fn_1_cont
+    // use y;
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createStoreByteInstr('y'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLabelInstr('_inline_fn_1_cont'),
+      createLoadByteInstr('y'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    pass.run(func, { level: 'O2' });
+
+    expect(func.instructions[4].opcode).toBe(ILOpcode.LOAD_BYTE);
+    expect(getSlotName(func.instructions[4])).toBe('x');
+  });
+
+  it('should still KILL copies at regular labels (safety)', () => {
+    // y = x;
+    // LABEL loop_start  ← regular label, NOT inline continuation
+    // use y;  ← should NOT be replaced
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createStoreByteInstr('y'),
+      createLabelInstr('loop_start'),
+      createLoadByteInstr('y'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    const result = pass.run(func, { level: 'O2' });
+
+    // Regular label MUST kill copy state
+    expect(result.modified).toBe(false);
+    expect(getSlotName(func.instructions[3])).toBe('y');
+  });
+
+  it('should NOT propagate through inline ENTRY labels (only _cont)', () => {
+    // y = x;
+    // LABEL _inline_fn_0_entry  ← inline entry label, NOT continuation
+    // use y;
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createStoreByteInstr('y'),
+      createLabelInstr('_inline_fn_0_entry'),
+      createLoadByteInstr('y'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    const result = pass.run(func, { level: 'O2' });
+
+    // Entry labels are NOT continuation labels — must kill state
+    expect(result.modified).toBe(false);
+    expect(getSlotName(func.instructions[3])).toBe('y');
+  });
+
+  it('should handle mixed inline and regular labels correctly', () => {
+    // y = x;
+    // LABEL _inline_fn_0_cont   ← transparent
+    // use y;                     ← should use x
+    // LABEL regular_label        ← kills state
+    // use y;                     ← should stay y
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createStoreByteInstr('y'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLoadByteInstr('y'), // index 3 - should propagate
+      createLabelInstr('regular_label'),
+      createLoadByteInstr('y'), // index 5 - should NOT propagate
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(result.instructionsAdded).toBe(1);
+    // After inline cont label: propagation works
+    expect(getSlotName(func.instructions[3])).toBe('x');
+    // After regular label: propagation killed
+    expect(getSlotName(func.instructions[5])).toBe('y');
+  });
+
+  it('should track new copies AFTER inline continuation label', () => {
+    // y = x;
+    // LABEL _inline_fn_0_cont
+    // z = w;
+    // use z;  ← should use w (tracked after the label)
+    const func = createTestFunction([
+      createLoadByteInstr('x'),
+      createStoreByteInstr('y'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLoadByteInstr('w'),
+      createStoreByteInstr('z'),
+      createLoadByteInstr('z'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    pass.run(func, { level: 'O2' });
+
+    expect(getSlotName(func.instructions[5])).toBe('w');
+  });
+
+  it('should propagate param slot through inline continuation (real-world pattern)', () => {
+    // Simulates: LOAD_BYTE frame → STORE_BYTE $02 → LABEL _inline_fn_0_cont → LOAD_BYTE $02
+    // After copy-prop: LOAD_BYTE $02 → LOAD_BYTE frame
+    const func = createTestFunction([
+      createLoadByteInstr('frame'),
+      createStoreByteInstr('$02'),
+      createLabelInstr('_inline_getSpriteFrame_0_cont'),
+      createLoadByteInstr('$02'),
+      createReturnInstr(),
+    ]);
+
+    const pass = new CopyPropPass();
+    const result = pass.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    // $02 should be replaced with frame (the original)
+    expect(getSlotName(func.instructions[3])).toBe('frame');
+  });
+});
+
+// ============================================================================
 // Integration Tests
 // ============================================================================
 

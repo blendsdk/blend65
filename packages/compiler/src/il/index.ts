@@ -93,6 +93,7 @@ export {
   isStackInstruction,
   isIntrinsicInstruction,
   isLabelInstruction,
+  isInlineContinuationLabel,
   hasSideEffects,
 } from './guards.js';
 

@@ -352,6 +352,39 @@ export function isLabelInstruction(instr: ILInstruction): boolean {
 }
 
 /**
+ * Check if a LABEL instruction is an inline continuation label.
+ *
+ * Inline continuation labels are placed after inlined function bodies
+ * by the function-inlining pass. They follow the naming pattern
+ * `_inline_{calleeName}_{counter}_cont`. These labels are sequencing-only —
+ * no code from outside the inlined body jumps to them — so they are NOT
+ * real control-flow merge points. Optimization passes (constant-prop,
+ * copy-prop) can safely propagate state through these labels.
+ *
+ * @param instr - Instruction to check (must be a LABEL opcode)
+ * @returns true if this is an inline continuation label
+ *
+ * @example
+ * ```typescript
+ * if (instr.opcode === ILOpcode.LABEL && isInlineContinuationLabel(instr)) {
+ *   // Don't kill propagation state — this is not a real merge point
+ * }
+ * ```
+ */
+export function isInlineContinuationLabel(instr: ILInstruction): boolean {
+  // Only applies to LABEL instructions
+  if (instr.opcode !== ILOpcode.LABEL) return false;
+  if (instr.operands.length === 0) return false;
+
+  const op = instr.operands[0];
+  if (!isLabelOperand(op)) return false;
+
+  // Inline continuation labels follow the pattern: _inline_{name}_{counter}_cont
+  // They start with '_inline_' and end with '_cont'
+  return op.name.startsWith('_inline_') && op.name.endsWith('_cont');
+}
+
+/**
  * Check if instruction has side effects.
  *
  * Instructions with side effects:

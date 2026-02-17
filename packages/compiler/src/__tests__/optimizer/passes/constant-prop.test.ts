@@ -547,6 +547,188 @@ describe('ConstantPropPass debug output', () => {
 });
 
 // ============================================================================
+// Inline Continuation Label Transparency Tests
+// ============================================================================
+
+describe('ConstantPropPass inline continuation label transparency', () => {
+  it('should propagate constant THROUGH inline continuation label', () => {
+    // x = 5;
+    // LABEL _inline_getSpriteFrame_0_cont  ← inline continuation label
+    // use x;  ← should still see x = 5
+    const func = createTestFunction([
+      createLoadImmInstr(5),
+      createStoreByteInstr('x'),
+      createLabelInstr('_inline_getSpriteFrame_0_cont'),
+      createLoadByteInstr('x'),
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    const result = prop.run(func, { level: 'O2' });
+
+    // Constant SHOULD propagate through inline continuation label
+    expect(result.modified).toBe(true);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(getImmValue(func.instructions[3])).toBe(5);
+  });
+
+  it('should propagate zero constant through inline continuation label', () => {
+    // x = 0;
+    // LABEL _inline_fn_1_cont
+    // use x;
+    const func = createTestFunction([
+      createLoadImmInstr(0),
+      createStoreByteInstr('x'),
+      createLabelInstr('_inline_fn_1_cont'),
+      createLoadByteInstr('x'),
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    prop.run(func, { level: 'O2' });
+
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(getImmValue(func.instructions[3])).toBe(0);
+  });
+
+  it('should propagate multiple constants through inline continuation label', () => {
+    // x = 5; y = 10;
+    // LABEL _inline_fn_0_cont
+    // use x; use y;
+    const func = createTestFunction([
+      createLoadImmInstr(5),
+      createStoreByteInstr('x'),
+      createLoadImmInstr(10),
+      createStoreByteInstr('y'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLoadByteInstr('x'),
+      createLoadByteInstr('y'),
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    const result = prop.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(result.instructionsAdded).toBe(2);
+    expect(getImmValue(func.instructions[5])).toBe(5);
+    expect(getImmValue(func.instructions[6])).toBe(10);
+  });
+
+  it('should propagate through multiple inline continuation labels', () => {
+    // x = 42;
+    // LABEL _inline_fn_0_cont
+    // LABEL _inline_fn_1_cont
+    // use x;
+    const func = createTestFunction([
+      createLoadImmInstr(42),
+      createStoreByteInstr('x'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLabelInstr('_inline_fn_1_cont'),
+      createLoadByteInstr('x'),
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    prop.run(func, { level: 'O2' });
+
+    expect(func.instructions[4].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(getImmValue(func.instructions[4])).toBe(42);
+  });
+
+  it('should still KILL constants at regular labels (safety)', () => {
+    // x = 5;
+    // LABEL loop_start  ← regular label, NOT inline continuation
+    // use x;  ← should NOT see x = 5
+    const func = createTestFunction([
+      createLoadImmInstr(5),
+      createStoreByteInstr('x'),
+      createLabelInstr('loop_start'),
+      createLoadByteInstr('x'),
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    const result = prop.run(func, { level: 'O2' });
+
+    // Regular label MUST kill constant state
+    expect(result.modified).toBe(false);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LOAD_BYTE);
+  });
+
+  it('should NOT propagate through inline ENTRY labels (only _cont)', () => {
+    // Entry labels could be branch targets — only _cont labels are safe
+    // x = 5;
+    // LABEL _inline_fn_0_entry  ← inline entry label, NOT continuation
+    // use x;
+    const func = createTestFunction([
+      createLoadImmInstr(5),
+      createStoreByteInstr('x'),
+      createLabelInstr('_inline_fn_0_entry'),
+      createLoadByteInstr('x'),
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    const result = prop.run(func, { level: 'O2' });
+
+    // Entry labels are NOT continuation labels — must kill state
+    expect(result.modified).toBe(false);
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LOAD_BYTE);
+  });
+
+  it('should handle mixed inline and regular labels correctly', () => {
+    // x = 5;
+    // LABEL _inline_fn_0_cont   ← transparent
+    // use x;                     ← should see x = 5
+    // LABEL regular_label        ← kills state
+    // use x;                     ← should NOT see x = 5
+    const func = createTestFunction([
+      createLoadImmInstr(5),
+      createStoreByteInstr('x'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLoadByteInstr('x'), // index 3 - should propagate
+      createLabelInstr('regular_label'),
+      createLoadByteInstr('x'), // index 5 - should NOT propagate
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    const result = prop.run(func, { level: 'O2' });
+
+    expect(result.modified).toBe(true);
+    expect(result.instructionsAdded).toBe(1);
+    // After inline cont label: propagation works
+    expect(func.instructions[3].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(getImmValue(func.instructions[3])).toBe(5);
+    // After regular label: propagation killed
+    expect(func.instructions[5].opcode).toBe(ILOpcode.LOAD_BYTE);
+  });
+
+  it('should track new constants AFTER inline continuation label', () => {
+    // x = 5;
+    // LABEL _inline_fn_0_cont
+    // y = 10;
+    // use y;  ← should see y = 10 (tracked after the label)
+    const func = createTestFunction([
+      createLoadImmInstr(5),
+      createStoreByteInstr('x'),
+      createLabelInstr('_inline_fn_0_cont'),
+      createLoadImmInstr(10),
+      createStoreByteInstr('y'),
+      createLoadByteInstr('y'),
+      createReturnInstr(),
+    ]);
+
+    const prop = new ConstantPropPass();
+    prop.run(func, { level: 'O2' });
+
+    expect(func.instructions[5].opcode).toBe(ILOpcode.LOAD_IMM);
+    expect(getImmValue(func.instructions[5])).toBe(10);
+  });
+});
+
+// ============================================================================
 // Integration Tests
 // ============================================================================
 

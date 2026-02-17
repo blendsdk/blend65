@@ -112,6 +112,13 @@ export class TestableBitwiseOpsGenerator extends BitwiseOpsGenerator {
   }
 
   /**
+   * Exposes genShrWordLo for direct testing.
+   */
+  public testGenShrWordLo(instr: ILInstruction): void {
+    this.genShrWordLo(instr);
+  }
+
+  /**
    * Gets the generated ASM-IL elements for inspection.
    */
   public getElements(): AsmILElement[] {
@@ -294,5 +301,21 @@ export function createShrWordInstr(count: number): ILInstruction {
     opcode: ILOpcode.SHR_WORD,
     operands: [createImmediateOp(count)] as ILOperand[],
     comment: `Shift right word ${count}`,
+  };
+}
+
+/**
+ * Creates a SHR_WORD_LO instruction (optimized lo(word >> N) for N=3-7).
+ *
+ * Uses the shift-left technique: lo(word >> N) = hi(word << (8-N)).
+ *
+ * @param count - Shift count (typically 3-7)
+ * @returns IL instruction
+ */
+export function createShrWordLoInstr(count: number): ILInstruction {
+  return {
+    opcode: ILOpcode.SHR_WORD_LO,
+    operands: [createImmediateOp(count)] as ILOperand[],
+    comment: `SHR_WORD_LO ${count} (shift-left technique)`,
   };
 }

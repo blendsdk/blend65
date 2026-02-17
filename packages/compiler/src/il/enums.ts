@@ -400,6 +400,22 @@ export enum ILOpcode {
    */
   SHR_WORD = 'SHR_WORD',
 
+  /**
+   * Shift word right by N, take low byte only (fused SHR_WORD + LO).
+   *
+   * Produced by the IL peephole pass when it detects SHR_WORD N + LO
+   * with N in range 3-7. Uses the shift-left technique:
+   *   lo(word >> N) = hi(word << (8-N))
+   *
+   * This avoids the expensive full 16-bit shift-right loop (6N bytes)
+   * and instead uses (8-N) ASL/ROL rounds through a temp byte.
+   *
+   * Operands: [ImmediateOperand] (shift count N, range 3-7)
+   * Effect: A ← lo(A:X >> N) — result is a byte in A
+   * 6502: STA tmp / TXA / [ASL tmp / ROL A] × (8-N)
+   */
+  SHR_WORD_LO = 'SHR_WORD_LO',
+
   // ══════════════════════════════════════════════════════════════════
   // COMPARISON OPERATIONS
   // ══════════════════════════════════════════════════════════════════
