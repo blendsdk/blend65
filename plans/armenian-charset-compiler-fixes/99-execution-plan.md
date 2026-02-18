@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-18 08:29
-> **Progress**: 52/59 tasks (88%) — Phases 1-4 complete, Phase 5-6 remaining
+> **Last Updated**: 2026-02-18 09:57
+> **Progress**: 59/63 tasks (94%) — Phases 1-4, 6 complete + Phase 5 research & Item K done
 
 ## Overview
 
@@ -471,17 +471,17 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 4.4.5 Constant folding tests — ALREADY EXIST in optimizer test suite ✅ (pre-existing)
 
 ### Phase 5: Future Enhancements (J, K)
-- [ ] 5.1.1 Document memcpy pattern
-- [ ] 5.1.2 Design pattern matching
-- [ ] 5.1.3 Design canonical 6502 memcpy lowering
-- [ ] 5.1.4 Decision: pattern matching vs intrinsic
-- [ ] 5.2.1 Implement pattern detection
-- [ ] 5.2.2 Implement canonical memcpy lowering
-- [ ] 5.2.3 Write memcpy tests
-- [ ] 5.3.1 Document VIC bank memory map
-- [ ] 5.3.2 Design region conflict detection
-- [ ] 5.3.3 Implement ROM shadow warning
-- [ ] 5.3.4 Write ROM shadow tests
+- [x] 5.1.1 Document memcpy pattern ✅ (completed: 2026-02-18 09:33)
+- [x] 5.1.2 Design pattern matching — Decision: memcpy() intrinsic (Option A) ✅ (completed: 2026-02-18 09:33)
+- [x] 5.1.3 Design canonical 6502 memcpy lowering (page-based + medium + tiny) ✅ (completed: 2026-02-18 09:33)
+- [x] 5.1.4 Decision: memcpy() intrinsic over pattern recognition ✅ (completed: 2026-02-18 09:33)
+- [ ] 5.2.1 Implement memcpy() intrinsic (IL opcode + IL generator) — NEXT SESSION
+- [ ] 5.2.2 Implement canonical memcpy codegen (page-based 6502 copy) — NEXT SESSION
+- [ ] 5.2.3 Write memcpy tests — NEXT SESSION
+- [x] 5.3.1 Document VIC bank memory map (ROM shadow $1000-$1FFF Bank 0) ✅ (completed: 2026-02-18 09:38)
+- [x] 5.3.2 Design region conflict detection (ACME !if/!warn guards) ✅ (completed: 2026-02-18 09:38)
+- [x] 5.3.3 Implement ROM shadow warning in codegen-phase.ts ✅ (completed: 2026-02-18 09:45)
+- [x] 5.3.4 Write ROM shadow tests (17/17 pass) ✅ (completed: 2026-02-18 09:52)
 
 ### Phase 6: Diagnostic Tooling (L)
 - [x] 6.1.1 Add Phase 3.6: Cross-Level ASM Metrics Table ✅ (completed: 2026-02-18 08:45)

@@ -19,7 +19,7 @@ import { DataSegmentBuilder } from '../codegen/data-segment.js';
 import type { CpuTarget } from '../codegen/cpu/index.js';
 import { DEFAULT_CPU_TARGET } from '../codegen/cpu/index.js';
 import type { ILProgram } from '../il/structures.js';
-import type { AsmILProgram } from '../codegen/asm-il/types.js';
+import type { AsmILProgram, AsmILSection } from '../codegen/asm-il/types.js';
 import { createSection, createCommentElement, createBlankElement, createDirectiveElement, createLabelElement } from '../codegen/asm-il/types.js';
 import type { Diagnostic } from '../ast/diagnostics.js';
 import { DiagnosticSeverity, DiagnosticCode } from '../ast/diagnostics.js';
@@ -181,6 +181,16 @@ export class CodegenPhase {
         dataSection.elements.push(createLabelElement(globalSlot.dataLabel));
       }
 
+      // Emit VIC-II ROM shadow guard for aligned data entries.
+      // Data with alignment >= 64 is VIC-II hardware-relevant (@sprite, @charset,
+      // @screen, @bitmap, @page). These may land in the $1000-$1FFF ROM shadow
+      // region (VIC Bank 0) where the VIC-II reads Character ROM instead of RAM.
+      // ACME resolves the label address at assembly time, so we use an ACME !if
+      // conditional to check and emit a warning if the data falls in the shadow.
+      if (globalSlot?.alignment && globalSlot.alignment >= 64 && globalSlot?.dataLabel) {
+        this.emitRomShadowGuard(dataSection, globalSlot.dataLabel, globalSlot.qualifiedName, globalSlot.alignment);
+      }
+
       // Emit bytes in chunks of 16 for readability
       const CHUNK_SIZE = 16;
       for (let offset = 0; offset < entry.bytes.length; offset += CHUNK_SIZE) {
@@ -194,5 +204,83 @@ export class CodegenPhase {
     }
 
     asmProgram.sections.push(dataSection);
+  }
+
+  /**
+   * Emits ACME assembly-time guard directives to detect when aligned
+   * VIC-II data lands in the Character ROM shadow region ($1000-$1FFF
+   * in VIC Bank 0).
+   *
+   * The VIC-II video chip reads Character ROM (not RAM) at offsets
+   * $1000-$1FFF within its active bank. If @charset, @sprite, @screen,
+   * or @bitmap data is placed there by the assembler, the VIC-II will
+   * not see the custom data — it will read the built-in C64 font instead.
+   *
+   * Since final addresses are resolved by ACME at assembly time (not
+   * compile time), we emit ACME `!if` / `!warn` conditionals that check
+   * the resolved label address and print a warning if it falls in the
+   * ROM shadow range. This has zero runtime cost.
+   *
+   * @param section - The data section to append guard elements to
+   * @param dataLabel - The ACME label name for the data entry
+   * @param qualifiedName - The Blend source-level qualified variable name
+   * @param alignment - The alignment in bytes (e.g., 64 for @sprite, 2048 for @charset)
+   */
+  protected emitRomShadowGuard(
+    section: AsmILSection,
+    dataLabel: string,
+    qualifiedName: string,
+    alignment: number
+  ): void {
+    // Determine a human-readable storage class name from alignment value.
+    // These are the VIC-II hardware alignment values that correspond to
+    // the sugar keywords defined in the language specification.
+    const storageLabel = this.getStorageLabelFromAlignment(alignment);
+
+    // Emit comment explaining the guard purpose
+    section.elements.push(
+      createCommentElement(`VIC-II ROM shadow guard for ${storageLabel} '${qualifiedName}'`)
+    );
+
+    // Emit ACME !if conditional: check if label address falls in $1000-$1FFF (Bank 0).
+    // ACME evaluates this at assembly time when the label address is known.
+    // Using !warn (not !error) so assembly still produces a binary — the programmer
+    // may intentionally place data in the shadow (e.g., CPU reads it, copies elsewhere).
+    section.elements.push(
+      createDirectiveElement('!if', `(${dataLabel} >= $1000) AND (${dataLabel} < $2000) {`)
+    );
+    section.elements.push(
+      createDirectiveElement(
+        '!warn',
+        `"VIC-II ROM shadow: ${storageLabel} '${qualifiedName}' may be at $1000-$1FFF (Bank 0)."`
+      )
+    );
+    section.elements.push(
+      createDirectiveElement(
+        '!warn',
+        `"  VIC-II reads Character ROM here, not RAM. Data won't be visible to VIC-II."`
+      )
+    );
+    section.elements.push(
+      createDirectiveElement('}')
+    );
+  }
+
+  /**
+   * Maps an alignment value to a human-readable storage class label
+   * for use in ROM shadow warning messages.
+   *
+   * @param alignment - Alignment in bytes
+   * @returns Human-readable storage label (e.g., "@charset", "@sprite")
+   */
+  protected getStorageLabelFromAlignment(alignment: number): string {
+    switch (alignment) {
+      case 64: return '@sprite';
+      case 256: return '@page';
+      case 1024: return '@screen';
+      case 2048: return '@charset';
+      case 8192: return '@bitmap';
+      default: return `@data(align: ${alignment})`;
+    }
   }
 }
