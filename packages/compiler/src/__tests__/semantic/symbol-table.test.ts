@@ -66,9 +66,9 @@ describe('SymbolTable', () => {
     it('should start with intrinsics pre-registered', () => {
       const symbolTable = new SymbolTable();
       
-      // 10 intrinsics are pre-registered per language spec (08-intrinsics.md):
-      // peek, poke, peekw, pokew, hi, lo, length, barrier, volatile_read, volatile_write
-      expect(symbolTable.getTotalSymbolCount()).toBe(10);
+      // 11 intrinsics are pre-registered per language spec (08-intrinsics.md):
+      // peek, poke, peekw, pokew, hi, lo, length, barrier, volatile_read, volatile_write, memcpy
+      expect(symbolTable.getTotalSymbolCount()).toBe(11);
     });
   });
 
@@ -570,8 +570,8 @@ describe('SymbolTable', () => {
 
         const symbols = symbolTable.getCurrentScopeSymbols();
 
-        // 10 intrinsics + 2 declared variables = 12
-        expect(symbols.size).toBe(12);
+        // 11 intrinsics + 2 declared variables = 13
+        expect(symbols.size).toBe(13);
         expect(symbols.has('x')).toBe(true);
         expect(symbols.has('y')).toBe(true);
       });
@@ -596,8 +596,8 @@ describe('SymbolTable', () => {
 
         const symbols = symbolTable.getAllVisibleSymbols();
 
-        // 10 intrinsics + x + y = 12
-        expect(symbols.size).toBe(12);
+        // 11 intrinsics + x + y = 13
+        expect(symbols.size).toBe(13);
         expect(symbols.has('x')).toBe(true);
         expect(symbols.has('y')).toBe(true);
       });
@@ -609,8 +609,8 @@ describe('SymbolTable', () => {
 
         const symbols = symbolTable.getAllVisibleSymbols();
 
-        // 10 intrinsics + 1 shadowed x = 11
-        expect(symbols.size).toBe(11);
+        // 11 intrinsics + 1 shadowed x = 12
+        expect(symbols.size).toBe(12);
         expect(symbols.get('x')?.type).toBe(BUILTIN_TYPES.WORD);
       });
     });
@@ -706,8 +706,8 @@ describe('SymbolTable', () => {
         symbolTable.enterBlockScope();
         symbolTable.declareVariable('z', location);
 
-        // 10 intrinsics + 3 declared variables = 13
-        expect(symbolTable.getTotalSymbolCount()).toBe(13);
+        // 11 intrinsics + 3 declared variables = 14
+        expect(symbolTable.getTotalSymbolCount()).toBe(14);
       });
     });
 

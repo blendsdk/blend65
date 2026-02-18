@@ -9,7 +9,7 @@ Intrinsics are built-in functions that the compiler handles specially. They eith
 - Generate optimized inline code (no function call overhead)
 - Evaluate at compile-time (no runtime cost)
 
-Blend65 provides **10 core intrinsic functions** for memory access, byte extraction, compile-time operations, and optimizer control.
+Blend65 provides **11 core intrinsic functions** for memory access, byte extraction, compile-time operations, block operations, and optimizer control.
 
 CPU control operations (sei, cli, nop, brk) and stack operations (pha, pla, php, plp) are available as `asm_*()` functions - see [ASM Functions](09-asm-functions.md).
 
@@ -208,6 +208,35 @@ volatile_write($DC0D, $7F);
 
 **Code Generation:** Forced `STA` instruction, never optimized away.
 
+## Memory Block Intrinsics
+
+### memcpy
+
+Copy a block of bytes from source to destination address.
+
+```js
+function memcpy(dest: word, src: word, count: word): void;
+```
+
+**Usage:**
+```js
+// Copy 2048 bytes of charset data to VIC bank
+memcpy($3800, @armenianFont, 2048);
+
+// Copy sprite frame data (64 bytes)
+memcpy(SPRITE_DATA_ADDR, @spriteFrames, 64);
+
+// Copy screen memory (1000 bytes)
+memcpy($0400, @savedScreen, 1000);
+```
+
+**Code Generation:** Generates an optimized page-based 6502 memory copy loop using zero-page indirect addressing. For large copies (256+ bytes), uses nested page/byte loops. For small copies (< 256 bytes), uses a single byte loop.
+
+**Important:**
+- `count` must be a compile-time constant (known at compile time)
+- Source and destination may overlap only if `dest < src`
+- Uses zero-page pointers $FB/$FC (source) and $FD/$FE (destination)
+
 ## CPU and Stack Operations
 
 The following CPU control and stack operations are NOT intrinsics - they are available as `asm_*()` functions:
@@ -239,3 +268,4 @@ See [ASM Functions](09-asm-functions.md) for the complete list of all 56 6502 in
 | `barrier` | Opt barrier | 0 cycles |
 | `volatile_read` | Forced read | 4 cycles |
 | `volatile_write` | Forced write | 4 cycles |
+| `memcpy` | Block copy | ~11 cycles/byte |

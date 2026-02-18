@@ -1707,6 +1707,7 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       'lo',
       'barrier',
       'length',
+      'memcpy',
     ];
     return intrinsics.includes(name);
   }
@@ -1981,6 +1982,12 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
         // length() is a compile-time intrinsic - resolved during semantic analysis
         // No runtime IL needed (per spec 08-intrinsics.md)
         break;
+      case 'memcpy':
+        // memcpy(dest, src, count) — block memory copy
+        if (args.length >= 3) {
+          this.generateMemcpyIntrinsic(args[0], args[1], args[2]);
+        }
+        break;
     }
   }
 
@@ -2245,5 +2252,83 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
     this.generateTier3Address(addrExpr, decomp);
     this.generateExpression(valueExpr);
     this.builder.pokewIndirect(`${label}(indirect)`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // memcpy Intrinsic
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate IL for memcpy(dest, src, count) intrinsic.
+   *
+   * Sets up two ZP pointer pairs for the page-based copy loop:
+   * - $FB/$FC: source address
+   * - $FD/$FE: destination address
+   *
+   * IL sequence:
+   * 1. Generate dest expression → A:X
+   * 2. Store lo byte (A) to $FD, hi byte (X→A) to $FE via POKE
+   * 3. Generate src expression → A:X
+   * 4. STORE_ZP_PTR → stores A:X to $FB/$FC (source pointer)
+   * 5. MEMCPY(count) — emits the page-based copy loop
+   *
+   * The count MUST be a compile-time constant. If it cannot be
+   * resolved, an error comment is emitted and no MEMCPY is generated.
+   *
+   * @param destExpr - Destination address expression
+   * @param srcExpr - Source address expression
+   * @param countExpr - Byte count expression (must be compile-time constant)
+   */
+  protected generateMemcpyIntrinsic(
+    destExpr: Expression,
+    srcExpr: Expression,
+    countExpr: Expression,
+  ): void {
+    // Count MUST be a compile-time constant (per spec 08-intrinsics.md)
+    const count = this.tryResolveConstantAddress(countExpr);
+    if (count === undefined || count <= 0) {
+      // Cannot resolve count — emit a NOP and comment
+      this.builder.nop();
+      return;
+    }
+
+    // Step 1: Generate dest address → A:X
+    this.generateExpression(destExpr);
+    // Promote to word if dest expression is byte-typed (ensures A:X pair)
+    if (!this.isWordTyped(destExpr) && !this.inferWordWidthFromExpression(destExpr)) {
+      this.builder.promoteByteWord('dest → word');
+    }
+
+    // Step 2: Store dest A:X to $FD/$FE (dest ZP pointer pair)
+    // STA $FD (low byte of dest)
+    this.builder.emit(
+      ILOpcode.POKE,
+      [createAddressOperand(0xFD)],
+      'memcpy dest lo → $FD'
+    );
+    // Transfer X → A (high byte of dest), then STA $FE
+    this.builder.emit(ILOpcode.TRANSFER_XA, [], 'dest hi → A');
+    this.builder.emit(
+      ILOpcode.POKE,
+      [createAddressOperand(0xFE)],
+      'memcpy dest hi → $FE'
+    );
+
+    // Step 3: Generate src address → A:X
+    this.generateExpression(srcExpr);
+    // Promote to word if src expression is byte-typed
+    if (!this.isWordTyped(srcExpr) && !this.inferWordWidthFromExpression(srcExpr)) {
+      this.builder.promoteByteWord('src → word');
+    }
+
+    // Step 4: Store src A:X to $FB/$FC (source ZP pointer pair)
+    this.builder.storeZpPtr('memcpy src → ($FB/$FC)');
+
+    // Step 5: Emit MEMCPY with compile-time constant count
+    this.builder.emit(
+      ILOpcode.MEMCPY,
+      [createImmediateOperand(count, true)],
+      `memcpy(dest, src, ${count})`
+    );
   }
 }

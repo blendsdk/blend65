@@ -732,6 +732,35 @@ export enum ILOpcode {
    * Used by asm_*() function calls (e.g., asm_lda_imm, asm_sei).
    */
   ASM_RAW = 'ASM_RAW',
+
+  // ══════════════════════════════════════════════════════════════════
+  // BLOCK MEMORY OPERATIONS
+  // ══════════════════════════════════════════════════════════════════
+
+  /**
+   * Block memory copy: memcpy(dest, src, count).
+   *
+   * Copies `count` bytes from source address to destination address
+   * using an optimized page-based 6502 copy loop with ZP indirect
+   * addressing ($FB/$FC for source, $FD/$FE for destination).
+   *
+   * The count must be a compile-time constant (known at IL generation time).
+   * The dest and src addresses are evaluated at runtime via IL instructions
+   * that precede the MEMCPY opcode.
+   *
+   * For large copies (256+ bytes): nested page/byte loop (~27 bytes code).
+   * For small copies (< 256 bytes): single Y-indexed loop (~17 bytes code).
+   *
+   * Operands: [ImmediateOperand(count)]
+   *   - count: number of bytes to copy (compile-time constant, 1-65535)
+   *
+   * Precondition: Source address stored in $FB/$FC, dest address in $FD/$FE
+   *   (set up by preceding STORE_ZP_PTR-like instructions).
+   *
+   * Effect: Copies count bytes from ($FB/$FC) to ($FD/$FE).
+   * Clobbers: A, X, Y registers and ZP pointers $FB-$FE.
+   */
+  MEMCPY = 'MEMCPY',
 }
 
 /**

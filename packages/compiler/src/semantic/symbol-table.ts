@@ -265,6 +265,15 @@ export class SymbolTable {
     );
     const volatileWriteSymbol = createIntrinsicSymbol('volatile_write', volatileWriteType);
     scopeDeclareSymbol(this.rootScope, volatileWriteSymbol);
+
+    // memcpy(dest: word, src: word, count: word): void
+    // Block memory copy — copies count bytes from source to destination
+    const memcpyType = createFunctionType(
+      [BUILTIN_TYPES.WORD, BUILTIN_TYPES.WORD, BUILTIN_TYPES.WORD],
+      BUILTIN_TYPES.VOID,
+    );
+    const memcpySymbol = createIntrinsicSymbol('memcpy', memcpyType);
+    scopeDeclareSymbol(this.rootScope, memcpySymbol);
   }
 
   // ============================================================

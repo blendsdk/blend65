@@ -129,6 +129,10 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   // ASM_RAW costs vary per instruction; use average 6502 instruction cost
   [ILOpcode.DELAY_LOOP]: { cycles: 5, bytes: 5, memoryAccesses: 0 },
   [ILOpcode.ASM_RAW]: { cycles: 3, bytes: 2, memoryAccesses: 1 },
+
+  // Block memory operations
+  // MEMCPY: setup ~16 bytes + loop ~11 bytes = ~27 bytes; cycles vary with count
+  [ILOpcode.MEMCPY]: { cycles: 30, bytes: 27, memoryAccesses: 256 },
 };
 
 /**

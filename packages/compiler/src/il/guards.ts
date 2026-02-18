@@ -337,7 +337,9 @@ export function isIntrinsicInstruction(instr: ILInstruction): boolean {
     instr.opcode === ILOpcode.POKE_INDIRECT ||
     instr.opcode === ILOpcode.PEEK_INDIRECT ||
     instr.opcode === ILOpcode.POKEW_INDIRECT ||
-    instr.opcode === ILOpcode.PEEKW_INDIRECT
+    instr.opcode === ILOpcode.PEEKW_INDIRECT ||
+    // Block memory operations
+    instr.opcode === ILOpcode.MEMCPY
   );
 }
 
@@ -406,6 +408,8 @@ export function hasSideEffects(instr: ILInstruction): boolean {
     // Indirect addressing side effects (write through ZP pointer)
     instr.opcode === ILOpcode.STORE_ZP_PTR ||
     instr.opcode === ILOpcode.POKE_INDIRECT ||
-    instr.opcode === ILOpcode.POKEW_INDIRECT
+    instr.opcode === ILOpcode.POKEW_INDIRECT ||
+    // Block memory operations (reads AND writes memory)
+    instr.opcode === ILOpcode.MEMCPY
   );
 }

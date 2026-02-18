@@ -376,8 +376,109 @@ export class IntrinsicsOpsGenerator extends FunctionOpsGenerator {
       case ILOpcode.ASM_RAW:
         this.genAsmRaw(instr);
         break;
+      case ILOpcode.MEMCPY:
+        this.genMemcpy(instr);
+        break;
       default:
         super.generateInstruction(instr);
     }
+  }
+
+  // ==========================================================================
+  // MEMCPY - Block Memory Copy via ZP Indirect Addressing
+  // ==========================================================================
+
+  /**
+   * Generates optimized page-based 6502 memory copy code.
+   *
+   * Precondition: Source address in $FB/$FC, dest address in $FD/$FE.
+   * These are set up by the preceding IL instructions (POKE to $FD/$FE
+   * and STORE_ZP_PTR to $FB/$FC).
+   *
+   * Strategy:
+   * - For count < 256: single Y-indexed loop (LDY #0, loop: LDA ($FB),Y / STA ($FD),Y / INY / CPY #count / BNE loop)
+   * - For count >= 256: outer page loop (X = pages) + inner byte loop (Y = 0..255) + remainder byte loop
+   *
+   * The page-based approach copies 256 bytes per page, then increments
+   * the high bytes of both ZP pointers to advance to the next page.
+   * Any remaining bytes (count % 256) are copied in a final byte loop.
+   *
+   * IL: MEMCPY [ImmediateOperand(count)]
+   *
+   * @param instr - MEMCPY instruction with count operand
+   */
+  protected genMemcpy(instr: ILInstruction): void {
+    this.emitComment(instr);
+
+    const imm = this.getImmediateOperand(instr.operands);
+    const count = imm.value;
+
+    // Total pages (full 256-byte blocks) and remainder bytes
+    const fullPages = Math.floor(count / 256);
+    const remainder = count % 256;
+
+    if (fullPages === 0) {
+      // Small copy (< 256 bytes): single Y-indexed loop
+      // LDY #0
+      // .loop: LDA ($FB),Y / STA ($FD),Y / INY / CPY #remainder / BNE .loop
+      const loopLabel = this.uniqueLabel('mcpy');
+
+      this.asm.ldy(0, 'immediate');
+      this.asm.label(this.localLabel(loopLabel));
+      this.asm.lda(0xFB, 'indirectY');   // LDA ($FB),Y — read src byte
+      this.asm.sta(0xFD, 'indirectY');   // STA ($FD),Y — write dst byte
+      this.asm.iny();                     // INY — next byte
+      this.asm.cpy(remainder, 'immediate');  // CPY #remainder
+      this.asm.bne(this.localLabel(loopLabel));  // BNE .loop
+    } else {
+      // Large copy (>= 256 bytes): page-based loop
+      // Outer loop: X = number of full pages
+      // Inner loop: Y = 0..255 (one full page)
+      // After all pages: remainder loop if remainder > 0
+      const pageLabel = this.uniqueLabel('mcpg');
+      const byteLabel = this.uniqueLabel('mcby');
+
+      // LDX #fullPages — page counter
+      this.asm.ldx(fullPages, 'immediate');
+
+      // Outer page loop
+      this.asm.label(this.localLabel(pageLabel));
+      // LDY #0 — reset byte counter for each page
+      this.asm.ldy(0, 'immediate');
+
+      // Inner byte loop (copies 256 bytes per page)
+      this.asm.label(this.localLabel(byteLabel));
+      this.asm.lda(0xFB, 'indirectY');   // LDA ($FB),Y — read src
+      this.asm.sta(0xFD, 'indirectY');   // STA ($FD),Y — write dst
+      this.asm.iny();                     // INY
+      this.asm.bne(this.localLabel(byteLabel));  // BNE .byteLoop (Y wraps 0)
+
+      // After 256 bytes: increment high bytes of both ZP pointers
+      // to advance to next page
+      this.asm.inc(0xFC, 'zeroPage');     // INC $FC (src high byte)
+      this.asm.inc(0xFE, 'zeroPage');     // INC $FE (dst high byte)
+
+      // DEX / BNE — decrement page counter and loop
+      this.asm.dex();
+      this.asm.bne(this.localLabel(pageLabel));
+
+      // Remainder: copy remaining bytes (count % 256)
+      if (remainder > 0) {
+        const remLabel = this.uniqueLabel('mcrem');
+
+        // LDY #0 already set from the last inner loop wrap
+        // But be safe: Y is 0 after INY wrapped from 255→0 and BNE fell through
+        this.asm.ldy(0, 'immediate');
+        this.asm.label(this.localLabel(remLabel));
+        this.asm.lda(0xFB, 'indirectY');   // LDA ($FB),Y
+        this.asm.sta(0xFD, 'indirectY');   // STA ($FD),Y
+        this.asm.iny();
+        this.asm.cpy(remainder, 'immediate');
+        this.asm.bne(this.localLabel(remLabel));
+      }
+    }
+
+    // All registers (A, X, Y) are clobbered by memcpy
+    this.invalidateA();
   }
 }

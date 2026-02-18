@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-18 09:57
-> **Progress**: 59/63 tasks (94%) — Phases 1-4, 6 complete + Phase 5 research & Item K done
+> **Last Updated**: 2026-02-18 11:57
+> **Progress**: 62/63 tasks (98%) — Phases 1-6 complete + memcpy intrinsic done
 
 ## Overview
 
@@ -475,9 +475,9 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 5.1.2 Design pattern matching — Decision: memcpy() intrinsic (Option A) ✅ (completed: 2026-02-18 09:33)
 - [x] 5.1.3 Design canonical 6502 memcpy lowering (page-based + medium + tiny) ✅ (completed: 2026-02-18 09:33)
 - [x] 5.1.4 Decision: memcpy() intrinsic over pattern recognition ✅ (completed: 2026-02-18 09:33)
-- [ ] 5.2.1 Implement memcpy() intrinsic (IL opcode + IL generator) — NEXT SESSION
-- [ ] 5.2.2 Implement canonical memcpy codegen (page-based 6502 copy) — NEXT SESSION
-- [ ] 5.2.3 Write memcpy tests — NEXT SESSION
+- [x] 5.2.1 Implement memcpy() intrinsic (IL opcode + IL generator + codegen) ✅ (completed: 2026-02-18 10:30)
+- [x] 5.2.2 Implement canonical memcpy codegen (page-based + remainder 6502 copy) ✅ (completed: 2026-02-18 10:30)
+- [x] 5.2.3 Write memcpy E2E tests (13/13 pass, full suite 9330/9330) ✅ (completed: 2026-02-18 11:57)
 - [x] 5.3.1 Document VIC bank memory map (ROM shadow $1000-$1FFF Bank 0) ✅ (completed: 2026-02-18 09:38)
 - [x] 5.3.2 Design region conflict detection (ACME !if/!warn guards) ✅ (completed: 2026-02-18 09:38)
 - [x] 5.3.3 Implement ROM shadow warning in codegen-phase.ts ✅ (completed: 2026-02-18 09:45)
