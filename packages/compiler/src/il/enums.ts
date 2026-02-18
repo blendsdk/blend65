@@ -712,6 +712,20 @@ export enum ILOpcode {
   // ══════════════════════════════════════════════════════════════════
 
   /**
+   * Canonical delay loop using 6502 register-based countdown.
+   *
+   * Produced by the IL peephole optimizer when it detects a loop whose
+   * body contains only BARRIER instructions (no side effects beyond timing).
+   * Replaces the entire generic loop structure with a compact countdown.
+   *
+   * Operands: [ImmediateOperand] (iteration count, 1-255)
+   * Effect: Delays for N iterations using DEX/BNE loop
+   * 6502: LDX #N / .loop: DEX / BNE .loop
+   * Cost: 5 bytes, N×5 cycles (DEX=2 + BNE=3 per iteration)
+   */
+  DELAY_LOOP = 'DELAY_LOOP',
+
+  /**
    * Raw 6502 assembly instruction.
    * Operands: [AsmRawOperand] + optional [ImmediateOperand | AddressOperand]
    * Maps to exactly one 6502 instruction.

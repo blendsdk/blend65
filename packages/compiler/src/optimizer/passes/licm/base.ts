@@ -139,6 +139,7 @@ export class LICMBase {
 
       // Raw assembly — unknown side effects
       case ILOpcode.ASM_RAW:
+      case ILOpcode.DELAY_LOOP:
         return true;
 
       default:

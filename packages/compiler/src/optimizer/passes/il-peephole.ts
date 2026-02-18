@@ -97,6 +97,8 @@ export class ILPeepholePass implements OptimizationPass {
     // Only remaining standalone SHR_WORD+LO patterns are then narrowed.
     results.push(this.addressExprFolding(func, options));
     results.push(this.shrWordLoNarrowing(func, options));
+    // Delay loop canonicalization runs last — it rewrites entire loops
+    results.push(this.delayLoopCanonicalization(func, options));
 
     return mergeResults(results);
   }
@@ -1019,6 +1021,7 @@ export class ILPeepholePass implements OptimizationPass {
       case ILOpcode.LABEL:
       case ILOpcode.NOP:
       case ILOpcode.BARRIER:
+      case ILOpcode.DELAY_LOOP:
       case ILOpcode.JUMP:
       case ILOpcode.JUMP_EQ:
       case ILOpcode.JUMP_NE:
@@ -1581,6 +1584,192 @@ export class ILPeepholePass implements OptimizationPass {
       replaced,
       debugInfo.length > 0 ? debugInfo : undefined
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Pattern 10: Delay Loop Canonicalization
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Replace barrier-only loops with canonical DEX/BNE delay loops.
+   *
+   * Detects counted for-loops whose body contains only BARRIER instructions
+   * (no side effects beyond timing). These loops exist solely for delay
+   * purposes and can be replaced with the compact 6502 idiom:
+   *   `LDX #N / .loop: DEX / BNE .loop`  (5 bytes, N×5 cycles)
+   *
+   * Instead of the generic loop codegen which may use 15-20+ bytes.
+   *
+   * **Detection uses func.loops metadata** (populated by IL generator):
+   * - Loop must be counted (`isCountedLoop === true`)
+   * - Bound must be statically known (`boundValue` in 1-255)
+   * - Loop body (between header and exit labels) must contain ONLY:
+   *   - BARRIER instructions (the delay body)
+   *   - Loop control: LOAD_BYTE counter, CMP_IMM, conditional jumps,
+   *     INC_BYTE/DEC_BYTE counter, unconditional JUMP back to header
+   *   - LABEL (structural markers)
+   *
+   * **Replacement:** The entire loop (header through exit label) is replaced
+   * with a single DELAY_LOOP instruction. The counter init code before the
+   * header becomes dead and will be cleaned by subsequent DCE passes.
+   *
+   * @param func - Function to optimize
+   * @param options - Optimization options
+   * @returns Result with statistics
+   */
+  protected delayLoopCanonicalization(
+    func: ILFunction,
+    options: OptimizationOptions
+  ): PassResult {
+    const debugInfo: string[] = [];
+    let removed = 0;
+    let replaced = 0;
+
+    // Guard: if no loop metadata is available, nothing to canonicalize
+    if (!func.loops || func.loops.length === 0) {
+      return createResult(0, 0);
+    }
+
+    // Process loops in reverse order so splice indices stay valid
+    for (let loopIdx = func.loops.length - 1; loopIdx >= 0; loopIdx--) {
+      const loop = func.loops[loopIdx];
+
+      // Must be a counted loop with known bound in byte range
+      if (!loop.isCountedLoop) continue;
+      if (loop.boundValue === undefined || loop.boundValue < 1 || loop.boundValue > 255) continue;
+
+      // Find header and exit label indices in instruction array
+      const headerIdx = this.findLabelIndex(func.instructions, loop.headerLabel);
+      const exitIdx = this.findLabelIndex(func.instructions, loop.exitLabel);
+      if (headerIdx === -1 || exitIdx === -1 || exitIdx <= headerIdx) continue;
+
+      // Get counter slot name for matching loop control instructions
+      const counterSlotName = loop.counterSlot?.name ?? null;
+
+      // Check if loop body is barrier-only (no side effects beyond timing)
+      if (!this.isBarrierOnlyLoop(func.instructions, headerIdx, exitIdx, counterSlotName)) {
+        continue;
+      }
+
+      // Create the replacement DELAY_LOOP instruction
+      const delayInstr = createInstruction(
+        ILOpcode.DELAY_LOOP,
+        [createImmediateOperand(loop.boundValue, false)],
+        {
+          location: func.instructions[headerIdx].location,
+          comment: `Canonical delay loop: ${loop.boundValue} iterations (was barrier-only for loop)`,
+        }
+      );
+
+      // Replace header..exit (inclusive of exit label) with DELAY_LOOP + exit label
+      // Keep the exit label so any code after the loop can still reference it
+      const exitLabelInstr = func.instructions[exitIdx];
+      const seqLength = exitIdx - headerIdx + 1; // header through exit label inclusive
+      func.instructions.splice(headerIdx, seqLength, delayInstr, exitLabelInstr);
+
+      // Statistics: replaced seqLength instructions with 2 (DELAY_LOOP + exit label)
+      removed += seqLength - 2;
+      replaced += 1;
+
+      if (options.debug) {
+        debugInfo.push(
+          `Delay loop canonicalization: ${loop.headerLabel}..${loop.exitLabel} (${loop.boundValue} iters) → DELAY_LOOP ${loop.boundValue}`
+        );
+      }
+    }
+
+    return createResult(
+      removed,
+      replaced,
+      debugInfo.length > 0 ? debugInfo : undefined
+    );
+  }
+
+  /**
+   * Find the index of a LABEL instruction with the given name.
+   *
+   * @param instructions - Instruction array to search
+   * @param labelName - Label name to find
+   * @returns Index of the LABEL instruction, or -1 if not found
+   */
+  protected findLabelIndex(instructions: ILInstruction[], labelName: string): number {
+    for (let i = 0; i < instructions.length; i++) {
+      if (instructions[i].opcode === ILOpcode.LABEL) {
+        const name = this.getLabelName(instructions[i]);
+        if (name === labelName) return i;
+      }
+    }
+    return -1;
+  }
+
+  /**
+   * Check if a loop body contains only BARRIER instructions and loop control.
+   *
+   * Scans instructions from headerIdx+1 to exitIdx-1 (exclusive of both
+   * the header label and exit label). Each instruction must be one of:
+   * - BARRIER (the delay body — acceptable)
+   * - LABEL (structural marker — acceptable)
+   * - LOAD_BYTE of counterSlot (loop control — reading counter)
+   * - CMP_IMM or CMP_BYTE (loop control — bound check)
+   * - JUMP_GE, JUMP_NE, JUMP_LT, etc. (loop control — conditional exit)
+   * - INC_BYTE or DEC_BYTE of counterSlot (loop control — counter update)
+   * - JUMP (loop control — back-edge to header)
+   *
+   * Any other instruction means the loop has side effects and cannot
+   * be replaced with a simple delay loop.
+   *
+   * @param instructions - Full instruction array
+   * @param headerIdx - Index of the header LABEL
+   * @param exitIdx - Index of the exit LABEL
+   * @param counterSlotName - Name of the loop counter slot (null if unknown)
+   * @returns true if the loop body is barrier-only
+   */
+  protected isBarrierOnlyLoop(
+    instructions: ILInstruction[],
+    headerIdx: number,
+    exitIdx: number,
+    counterSlotName: string | null
+  ): boolean {
+    // Scan all instructions in the loop body (between header and exit labels)
+    for (let i = headerIdx + 1; i < exitIdx; i++) {
+      const instr = instructions[i];
+
+      switch (instr.opcode) {
+        // Acceptable: delay body
+        case ILOpcode.BARRIER:
+        // Acceptable: structural markers
+        case ILOpcode.LABEL:
+        // Acceptable: loop control — conditional branches
+        case ILOpcode.JUMP_EQ:
+        case ILOpcode.JUMP_NE:
+        case ILOpcode.JUMP_LT:
+        case ILOpcode.JUMP_LE:
+        case ILOpcode.JUMP_GE:
+        case ILOpcode.JUMP_GT:
+        // Acceptable: loop control — back-edge
+        case ILOpcode.JUMP:
+        // Acceptable: loop control — bound comparison
+        case ILOpcode.CMP_IMM:
+        case ILOpcode.CMP_BYTE:
+          break;
+
+        // Acceptable IF it's the counter slot
+        case ILOpcode.LOAD_BYTE:
+        case ILOpcode.INC_BYTE:
+        case ILOpcode.DEC_BYTE: {
+          if (counterSlotName === null) return false;
+          const slotName = this.getSlotName(instr);
+          if (slotName !== counterSlotName) return false;
+          break;
+        }
+
+        // Anything else is a side effect — not a pure delay loop
+        default:
+          return false;
+      }
+    }
+
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════════════

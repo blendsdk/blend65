@@ -127,6 +127,7 @@ const BASE_COST_TABLE: Record<ILOpcode, InstructionCost> = {
   // BARRIER is a pseudo-instruction: no runtime code, zero cost
   [ILOpcode.BARRIER]: { cycles: 0, bytes: 0, memoryAccesses: 0 },
   // ASM_RAW costs vary per instruction; use average 6502 instruction cost
+  [ILOpcode.DELAY_LOOP]: { cycles: 5, bytes: 5, memoryAccesses: 0 },
   [ILOpcode.ASM_RAW]: { cycles: 3, bytes: 2, memoryAccesses: 1 },
 };
 

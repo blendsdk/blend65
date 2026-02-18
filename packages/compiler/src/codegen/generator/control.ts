@@ -181,6 +181,47 @@ export class ControlFlowOpsGenerator extends ComparisonOpsGenerator {
   }
 
   // ==========================================================================
+  // DELAY_LOOP - Canonical delay using DEX/BNE
+  // ==========================================================================
+
+  /**
+   * Generates a canonical 6502 delay loop using the X register.
+   *
+   * Emits the compact 5-byte delay idiom:
+   *   LDX #N        ; load iteration count
+   *   .delay_XX:    ; loop label (unique per occurrence)
+   *   DEX           ; decrement X
+   *   BNE .delay_XX ; branch back while X != 0
+   *
+   * Total: 5 bytes, N × 5 cycles (LDX=2 once, DEX=2 + BNE=3 per iteration).
+   * This replaces the generic loop codegen which uses 15-20+ bytes.
+   *
+   * IL: DELAY_LOOP N (operand: ImmediateOperand, 1-255)
+   *
+   * @param instr - DELAY_LOOP instruction with immediate operand
+   */
+  protected genDelayLoop(instr: ILInstruction): void {
+    this.emitComment(instr);
+    const imm = this.getImmediateOperand(instr.operands);
+    const loopLabel = this.uniqueLabel('delay');
+
+    // LDX #N — load iteration count into X register
+    this.asm.ldx(imm.value, 'immediate');
+
+    // .delay_XX: — loop target label
+    this.asm.label(this.localLabel(loopLabel));
+
+    // DEX — decrement X (sets Z flag when X reaches 0)
+    this.asm.dex();
+
+    // BNE .delay_XX — branch back while X != 0
+    this.asm.bne(this.localLabel(loopLabel));
+
+    // X register is now clobbered (value = 0).
+    // A register is preserved — DELAY_LOOP does not modify A.
+  }
+
+  // ==========================================================================
   // Dispatch Override
   // ==========================================================================
 
@@ -217,6 +258,9 @@ export class ControlFlowOpsGenerator extends ComparisonOpsGenerator {
         // Optimization barrier — emits only a comment, no runtime code.
         // The optimizer respects BARRIER as a fence preventing reordering.
         this.emitComment(instr);
+        break;
+      case ILOpcode.DELAY_LOOP:
+        this.genDelayLoop(instr);
         break;
       case ILOpcode.PUSH_A:
         this.genPushA(instr);

@@ -162,6 +162,56 @@ Create a table tracking WHAT each optimization level does differently. This is t
 
 **This table immediately reveals pipeline gating problems** — e.g., when Os/Oz should benefit from an optimization that only O3 applies.
 
+### **3.6 Cross-Level ASM Metrics Table**
+
+**🚨 MANDATORY for every diagnostic run.** Create a quantitative metrics table comparing all optimization levels.
+
+**Read the assembly output at every level and count:**
+
+```
+Read: build/diag/<app-name>/O0/output.asm
+Read: build/diag/<app-name>/O1/output.asm
+Read: build/diag/<app-name>/O2/output.asm
+Read: build/diag/<app-name>/O3/output.asm
+Read: build/diag/<app-name>/Os/output.asm
+Read: build/diag/<app-name>/Oz/output.asm
+```
+
+**Metrics to collect per level:**
+
+| Metric | How to Count |
+|--------|-------------|
+| **Total ASM lines** | `wc -l output.asm` (excluding comments/blanks) |
+| **JSR count** | Count `JSR` instructions — function call overhead |
+| **JMP count** | Count `JMP` instructions — unconditional jumps |
+| **LDA #imm count** | Count `LDA #` — immediate loads |
+| **PHA/PLA count** | Count `PHA` + `PLA` — stack operations |
+| **STA/LDA pair count** | Count adjacent `STA $xx / LDA $xx` — store-reload redundancy |
+| **Data segment bytes** | Size of `!byte` / `!word` data sections |
+
+**Template:**
+
+```markdown
+| Metric | O0 | O1 | O2 | O3 | Os | Oz |
+|--------|----|----|----|----|----|----|
+| ASM lines | | | | | | |
+| PRG bytes | | | | | | |
+| JSR calls | | | | | | |
+| JMP instrs | | | | | | |
+| LDA #imm | | | | | | |
+| PHA+PLA | | | | | | |
+| STA/LDA pairs | | | | | | |
+| Data bytes | | | | | | |
+```
+
+**What this reveals:**
+- **JSR count dropping** from O0→O1/O2 indicates function inlining is working
+- **PHA/PLA not decreasing** at higher levels indicates missed push/pop elimination
+- **STA/LDA pairs persisting** indicates missed store-reload elimination
+- **Os/Oz having MORE instructions than O2** indicates size regression
+
+**Report anomalies as `REDUN` or `MISSOPT` bugs with the specific metrics.**
+
 ---
 
 ## **Phase 4: Investigate Failures**
@@ -457,6 +507,86 @@ For each function in the assembly output:
 
 **Example:** If source has `lo(spriteAddr / 64) + frameIndex` and the compiler emits a full 16-bit runtime divide instead of `LDA #(addr >> 6); ADC frameIndex`, that is a missed algebraic rewrite.
 
+### **4.9 Stack Discipline Audit (PHA/PLA Balance)**
+
+**🚨 MANDATORY audit for every diagnostic run.** Stack imbalance is one of the most dangerous 6502 bugs — it silently corrupts return addresses and causes random crashes.
+
+**For each function in the assembly output, verify:**
+
+1. **Every PHA has a matching PLA** — Count PHA and PLA instructions per function. They must be equal on every execution path.
+2. **Stack is balanced across loop iterations** — A loop body must have net stack delta = 0. Check that each iteration pushes the same number as it pops.
+3. **No stack leak in error paths** — If conditional branches skip PLA instructions, the stack leaks.
+
+**Audit procedure:**
+
+```
+For each function in output.asm:
+  1. Count all PHA instructions
+  2. Count all PLA instructions
+  3. If PHA_count ≠ PLA_count → BUG: Stack imbalance
+  4. For each loop body:
+     a. Count PHA inside loop body
+     b. Count PLA inside loop body
+     c. If they differ → BUG: Stack leak per iteration
+  5. Check for PHA before conditional branch without matching PLA on taken path
+```
+
+**Template:**
+
+```markdown
+| Function | PHA Count | PLA Count | Balanced? | Loop Delta | Notes |
+|----------|-----------|-----------|-----------|------------|-------|
+| main | 2 | 2 | ✅ | 0 | Clean |
+| copyData | 3 | 2 | ❌ | N/A | Missing PLA on early exit |
+| delay | 1 | 1 | ✅ | 0 | OK |
+```
+
+**Common stack discipline bugs:**
+
+| Pattern | Bug | Impact |
+|---------|-----|--------|
+| `PHA` in loop prologue, no `PLA` on byte-255 exit path | Stack leak per overflow exit | Corrupts return address over time |
+| Inlined function leaves extra `PHA` | Net +1 per inlined call | Stack grows unbounded |
+| `PLA` without preceding `PHA` | Stack underflow | Pops return address bytes |
+| Conditional branch skips `PLA` | Stack leak on taken path | Gradual corruption |
+
+**Report each stack imbalance as a `CG` (Code Generation) bug with Critical severity.**
+
+### **4.10 Canonical 6502 Lowering Comparison**
+
+**For key operations, compare the compiler's output against the known-optimal 6502 lowering.** This reveals cases where the codegen produces correct but suboptimal code.
+
+**Delay Loops:**
+
+| Pattern | Compiler Output | Optimal 6502 | Savings |
+|---------|----------------|--------------|---------|
+| `for i=0 to N { barrier() }` | Full for-loop codegen (10-15 bytes) | `LDX #N / .l: DEX / BNE .l` (5 bytes) | 5-10 bytes |
+
+**Expected after DELAY_LOOP canonicalization:** The compiler should emit the compact `LDX #N / DEX / BNE` form for barrier-only loops. If the generic for-loop form appears at O2+ levels, report as `MISSOPT`.
+
+**Memory Copy:**
+
+| Pattern | Compiler Output | Optimal 6502 | Savings |
+|---------|----------------|--------------|---------|
+| `for i=0 to N { poke(dst+i, peek(src+i)) }` | Indirect load + store per byte | `LDA (src),Y / STA (dst),Y / INY / BNE` | 50%+ reduction |
+
+**Constant Arithmetic:**
+
+| Pattern | Compiler Output | Optimal 6502 | Savings |
+|---------|----------------|--------------|---------|
+| `addr / 64` (constant addr) | Runtime 16-bit shift | `LDA #(addr >> 6)` (2 bytes) | 30+ bytes |
+| `x % 8` | Runtime modulo | `AND #$07` (2 bytes) | 10+ bytes |
+
+**How to use this table:**
+
+1. For each major operation in the source code, find the corresponding assembly
+2. Compare against the "Optimal 6502" column
+3. If the compiler output doesn't match, report as `MISSOPT` with:
+   - The source pattern
+   - What the compiler emitted (bytes + cycles)
+   - What it should emit (bytes + cycles)
+   - Byte/cycle savings available
+
 ---
 
 ## **Phase 5: Source Code Analysis**
@@ -732,6 +862,53 @@ Based on the diagnosis:
 3. Suggest re-running `diag_app` to verify the fix resolved the issue
 
 **For compiler bugs:** Ask the user if they want to `make_plan` for the fix.
+
+### **8.1 Regression Test Suggestions**
+
+**After diagnosing any bug, ALWAYS suggest specific regression tests** to prevent the bug from recurring. This ensures each diagnostic produces lasting value beyond the immediate fix.
+
+**For each bug found, suggest tests in this format:**
+
+```markdown
+### Suggested Regression Tests
+
+| # | Test Description | Test Type | Component | Input Pattern |
+|---|------------------|-----------|-----------|---------------|
+| 1 | Verify `@data + word_index` uses word addressing | Unit | IL Generator | `poke(@arr + wordVar, value)` |
+| 2 | Stack balanced after byte for-loop 0 to 255 | E2E | Codegen | `for i = 0 to 255 { barrier() }` |
+| 3 | DELAY_LOOP emitted for barrier-only loop | Unit | Optimizer | Counted loop with BARRIER body |
+```
+
+**Test suggestion guidelines:**
+
+| Bug Category | Test Type to Suggest |
+|--------------|---------------------|
+| `SRC` | No compiler test needed — suggest source code fix verification via `diag_app` |
+| `FE` | Parser/lexer unit test with the specific syntax pattern |
+| `IL` | IL generator test verifying correct opcode sequence |
+| `OPT` | Optimizer pass test with before/after IL comparison |
+| `CG` | Codegen test verifying correct 6502 assembly output |
+| `EMIT` | E2E test compiling through ACME successfully |
+| `REG` | E2E test at the specific optimization level that regressed |
+| `REDUN` | Optimizer test verifying the redundant pattern is eliminated |
+| `MISSOPT` | Optimizer test verifying the optimization fires on the pattern |
+
+**What makes a good regression test:**
+- ✅ **Minimal** — Tests exactly the bug pattern, nothing extra
+- ✅ **Reproducible** — Uses a simple, self-contained Blend source snippet
+- ✅ **Specific** — Checks for the exact fix (not just "compiles OK")
+- ✅ **Named clearly** — Test name describes the bug it prevents
+
+**Example regression test suggestion:**
+```
+Bug: PHA/PLA imbalance in byte for-loop with bound=255
+Category: CG (Code Generation)
+Suggested Test:
+  - Source: `for i = 0 to 255 { barrier() }`
+  - Verify: PHA count == PLA count in generated assembly
+  - Verify: Stack pointer unchanged after loop completes
+  - File: `__tests__/codegen/for-loop-stack-balance.test.ts`
+```
 
 ---
 
