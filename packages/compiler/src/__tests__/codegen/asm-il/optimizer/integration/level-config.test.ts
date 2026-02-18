@@ -103,9 +103,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('O1: Basic optimization', () => {
-    it('should have exactly 2 passes', () => {
+    it('should have exactly 3 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O1 });
-      expect(optimizer.getPasses()).toHaveLength(2);
+      expect(optimizer.getPasses()).toHaveLength(3);
     });
 
     it('should include FlagPatterns and StoreLoad in order', () => {
@@ -150,9 +150,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('O2: Standard optimization', () => {
-    it('should have exactly 7 passes', () => {
+    it('should have exactly 8 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
-      expect(optimizer.getPasses()).toHaveLength(7);
+      expect(optimizer.getPasses()).toHaveLength(8);
     });
 
     it('should include O1 passes plus BranchOpt, TransferOpt, CompareBranch, IndexedAddr, RegisterPromote', () => {
@@ -188,9 +188,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('O3: Aggressive optimization', () => {
-    it('should have exactly 10 passes', () => {
+    it('should have exactly 11 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O3 });
-      expect(optimizer.getPasses()).toHaveLength(10);
+      expect(optimizer.getPasses()).toHaveLength(11);
     });
 
     it('should include O2 passes plus ZPPromotion, Strength6502, StackOpt', () => {
@@ -241,9 +241,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('Os: Size optimization', () => {
-    it('should have exactly 10 passes', () => {
+    it('should have exactly 11 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Os });
-      expect(optimizer.getPasses()).toHaveLength(10);
+      expect(optimizer.getPasses()).toHaveLength(11);
     });
 
     it('should include O2 passes plus ZPPromotion, StackOpt, SizeOpt', () => {
@@ -279,9 +279,9 @@ describe('Integration: Level Configurations', () => {
   // ========================================================================
 
   describe('Oz: Minimum size optimization', () => {
-    it('should have exactly 10 passes', () => {
+    it('should have exactly 11 passes', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Oz });
-      expect(optimizer.getPasses()).toHaveLength(10);
+      expect(optimizer.getPasses()).toHaveLength(11);
     });
 
     it('should include same passes as Os', () => {

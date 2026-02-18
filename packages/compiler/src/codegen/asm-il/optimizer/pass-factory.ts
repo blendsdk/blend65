@@ -61,6 +61,9 @@ import { SizeOptPass } from './passes/size-opt.js';
 // Phase 7: Register Promotion (O2+)
 import { RegisterPromotePass } from './passes/register-promote.js';
 
+// Phase 8: Safety Passes (O1+ — runs last)
+import { LongBranchExpansionPass } from './passes/long-branch-expansion.js';
+
 // ============================================================================
 // Pass Factory
 // ============================================================================
@@ -144,6 +147,12 @@ export function createPassesForLevel(
     passes.push(new SizeOptPass(isAggressive));
   }
 
+  // ── Safety pass: Long-branch expansion (ALL O1+ levels) ────────────────
+  // MUST run LAST — after all other passes (especially branch-opt which
+  // does the inverse transformation). Ensures no conditional branch targets
+  // exceed the 6502's ±127 byte range by expanding them to JMP-based patterns.
+  passes.push(new LongBranchExpansionPass());
+
   return passes;
 }
 
@@ -182,14 +191,14 @@ export function getPassCountForLevel(level: OptimizationLevel): number {
 export function getPlannedPassCounts(): Record<OptimizationLevel, number> {
   return {
     [OptimizationLevel.O0]: 0,
-    [OptimizationLevel.O1]: 2,   // FlagPatterns + StoreLoad
-    [OptimizationLevel.O1s]: 5,  // O1(2) + ZPPromotion + StackOpt + SizeOpt
-    [OptimizationLevel.O1z]: 5,  // Same passes as O1s, more iterations
-    [OptimizationLevel.O2]: 7,   // O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr + RegisterPromote
-    [OptimizationLevel.Os]: 10,  // O2 + ZPPromotion + StackOpt + SizeOpt
-    [OptimizationLevel.Oz]: 10,  // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive)
-    [OptimizationLevel.O3]: 10,  // O2 + ZPPromotion + Strength6502 + StackOpt
-    [OptimizationLevel.O3s]: 10, // O2(7) + ZPPromotion + StackOpt + SizeOpt
-    [OptimizationLevel.O3z]: 10, // Same passes as O3s, more iterations
+    [OptimizationLevel.O1]: 3,   // FlagPatterns + StoreLoad + LongBranchExpansion
+    [OptimizationLevel.O1s]: 6,  // O1(2) + ZPPromotion + StackOpt + SizeOpt + LongBranchExpansion
+    [OptimizationLevel.O1z]: 6,  // Same passes as O1s, more iterations
+    [OptimizationLevel.O2]: 8,   // O1 + BranchOpt + TransferOpt + CompareBranch + IndexedAddr + RegisterPromote + LongBranchExpansion
+    [OptimizationLevel.Os]: 11,  // O2 + ZPPromotion + StackOpt + SizeOpt + LongBranchExpansion
+    [OptimizationLevel.Oz]: 11,  // O2 + ZPPromotion + StackOpt + SizeOpt(aggressive) + LongBranchExpansion
+    [OptimizationLevel.O3]: 11,  // O2 + ZPPromotion + Strength6502 + StackOpt + LongBranchExpansion
+    [OptimizationLevel.O3s]: 11, // O2(7) + ZPPromotion + StackOpt + SizeOpt + LongBranchExpansion
+    [OptimizationLevel.O3z]: 11, // Same passes as O3s, more iterations
   };
 }

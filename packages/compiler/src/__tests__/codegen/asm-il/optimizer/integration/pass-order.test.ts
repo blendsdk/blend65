@@ -136,12 +136,12 @@ describe('Integration: Pass Ordering', () => {
   // ========================================================================
 
   describe('O2: Branch + Transfer interactions', () => {
-    it('should apply all 7 passes at O2 level', () => {
+    it('should apply all 8 passes at O2 level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O2 });
       const passes = optimizer.getPasses();
 
-      // O2 should have exactly 7 passes in order
-      expect(passes).toHaveLength(7);
+      // O2 should have exactly 8 passes in order
+      expect(passes).toHaveLength(8);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
@@ -188,13 +188,13 @@ describe('Integration: Pass Ordering', () => {
   // ========================================================================
 
   describe('O3: Full pass set', () => {
-    it('should apply all 10 passes at O3 level', () => {
+    it('should apply all 11 passes at O3 level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.O3 });
       const passes = optimizer.getPasses();
 
       // O3 = FlagPatterns + StoreLoad + BranchOpt + TransferOpt +
       //       CompareBranch + IndexedAddr + RegisterPromote + ZPPromotion + Strength6502 + StackOpt
-      expect(passes).toHaveLength(10);
+      expect(passes).toHaveLength(11);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
@@ -238,13 +238,13 @@ describe('Integration: Pass Ordering', () => {
   // ========================================================================
 
   describe('Os/Oz: Size passes after standard', () => {
-    it('should apply 10 passes at Os level', () => {
+    it('should apply 11 passes at Os level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Os });
       const passes = optimizer.getPasses();
 
       // Os = FlagPatterns + StoreLoad + BranchOpt + TransferOpt +
       //       CompareBranch + IndexedAddr + RegisterPromote + ZPPromotion + StackOpt + SizeOpt
-      expect(passes).toHaveLength(10);
+      expect(passes).toHaveLength(11);
       expect(passes[0].name).toBe('flag-patterns');
       expect(passes[1].name).toBe('store-load');
       expect(passes[2].name).toBe('branch-opt');
@@ -257,11 +257,11 @@ describe('Integration: Pass Ordering', () => {
       expect(passes[9].name).toBe('size-opt');
     });
 
-    it('should apply 10 passes at Oz level', () => {
+    it('should apply 11 passes at Oz level', () => {
       const optimizer = new AsmILOptimizer({ level: OptimizationLevel.Oz });
       const passes = optimizer.getPasses();
 
-      expect(passes).toHaveLength(10);
+      expect(passes).toHaveLength(11);
       expect(passes[9].name).toBe('size-opt');
     });
 

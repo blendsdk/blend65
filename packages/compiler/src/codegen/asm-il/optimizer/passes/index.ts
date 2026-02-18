@@ -28,3 +28,6 @@ export { SizeOptPass } from './size-opt.js';
 
 // Phase 7: Register Promotion (O2+)
 export { RegisterPromotePass } from './register-promote.js';
+
+// Phase 8: Safety Passes (O1+ — runs last)
+export { LongBranchExpansionPass } from './long-branch-expansion.js';
