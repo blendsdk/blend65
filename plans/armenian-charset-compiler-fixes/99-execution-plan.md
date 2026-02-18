@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-18 00:21
-> **Progress**: 37/48 tasks (77%)
+> **Last Updated**: 2026-02-18 01:21
+> **Progress**: 41/48 tasks (85%)
 
 ## Overview
 
@@ -453,22 +453,22 @@ This document defines the execution phases and AI chat sessions for implementing
 - [ ] 3.2.4 Write tests: poke(expr1, peek(expr2)) (deferred — next session)
 
 ### Phase 4: Asm-IL Optimizer (G, H, I)
-- [ ] 4.1.1 Read asm-il peephole infrastructure
-- [ ] 4.1.2 Implement store-reload elimination
-- [ ] 4.1.3 Implement dead jump elimination
-- [ ] 4.1.4 Write tests for both patterns
-- [ ] 4.2.1 Implement PHA/PLA pair elimination
-- [ ] 4.2.2 Implement redundant load elimination
-- [ ] 4.2.3 Write tests for both patterns
+- [x] 4.1.1 Read asm-il peephole infrastructure ✅ (completed: 2026-02-18 01:00)
+- [x] 4.1.2 Store-reload elimination — ALREADY EXISTS in loadStoreElimination ✅ (pre-existing)
+- [x] 4.1.3 Dead jump elimination — ALREADY EXISTS in redundantJumpElimination ✅ (pre-existing)
+- [x] 4.1.4 Tests for both patterns — ALREADY EXIST in optimizer test suite ✅ (pre-existing)
+- [x] 4.2.1 Implement PHA/PLA pair elimination (pushPopElimination) ✅ (completed: 2026-02-18 01:18)
+- [x] 4.2.2 Implement redundant load elimination (redundantImmLoadElimination) ✅ (completed: 2026-02-18 01:18)
+- [ ] 4.2.3 Write tests for both new patterns (deferred — next session)
 - [ ] 4.3.1 Design delay loop detection
 - [ ] 4.3.2 Implement delay loop detection
 - [ ] 4.3.3 Implement canonical DEX/BNE rewrite
 - [ ] 4.3.4 Write delay loop tests
-- [ ] 4.4.1 Analyze where constants survive to ASM
-- [ ] 4.4.2 Determine best folding location
-- [ ] 4.4.3 Implement LDA/SEC/SBC constant folding
-- [ ] 4.4.4 Extend to ADD/AND/OR/XOR/shifts
-- [ ] 4.4.5 Write constant folding tests
+- [x] 4.4.1 Analyze where constants survive to ASM ✅ (completed: 2026-02-18 01:00)
+- [x] 4.4.2 Determine best folding location — ALREADY in ConstantFoldPass ✅ (completed: 2026-02-18 01:00)
+- [x] 4.4.3 Constant folding LOAD_IMM+arithmetic — ALREADY EXISTS in constant-fold.ts ✅ (pre-existing)
+- [x] 4.4.4 All arithmetic ops (ADD/SUB/AND/OR/XOR/SHL/SHR) — ALREADY in ConstantFoldPass ✅ (pre-existing)
+- [x] 4.4.5 Constant folding tests — ALREADY EXIST in optimizer test suite ✅ (pre-existing)
 
 ### Phase 5: Future Enhancements (J, K)
 - [ ] 5.1.1 Document memcpy pattern

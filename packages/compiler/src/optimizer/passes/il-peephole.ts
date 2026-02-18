@@ -9,6 +9,8 @@
  * - Strength reduction: Replace expensive operations with cheaper ones
  * - Load-store elimination: Remove redundant load/store pairs
  * - Redundant jump elimination: Remove JUMP to immediately following LABEL
+ * - PUSH_A/POP_A pair elimination: Remove consecutive push/pop with no stack use
+ * - Redundant immediate load elimination: Remove duplicate LOAD_IMM when A unchanged
  * - Modulo-to-bitmask: Replace counter-wrap-at-power-of-2 with AND
  * - Address expression folding: Fold LOAD_ADDRESS+SHR_WORD+LO into LOAD_ADDRESS_EXPR
  * - SHR_WORD+LO narrowing: Replace 16-bit shift+narrow with SHR_WORD_LO for N=3-7, HI+SHR_BYTE for N≥8
@@ -69,9 +71,11 @@ export class ILPeepholePass implements OptimizationPass {
    * 2. Strength reduction (replaces expensive ops with cheaper)
    * 3. Load-store elimination (removes redundant pairs)
    * 4. Redundant jump elimination (removes JUMP to next instruction)
-   * 5. Modulo-to-bitmask (replaces counter-wrap with AND)
-   * 6. Address expression folding (folds LOAD_ADDRESS+SHR_WORD+LO)
-   * 7. SHR_WORD+LO narrowing (replaces 16-bit shift+narrow with HI+SHR_BYTE)
+   * 5. PUSH_A/POP_A pair elimination (removes redundant push/pop)
+   * 6. Redundant immediate load elimination (removes duplicate LOAD_IMM)
+   * 7. Modulo-to-bitmask (replaces counter-wrap with AND)
+   * 8. Address expression folding (folds LOAD_ADDRESS+SHR_WORD+LO)
+   * 9. SHR_WORD+LO narrowing (replaces 16-bit shift+narrow with HI+SHR_BYTE)
    *
    * @param func - IL function to optimize (modified in place)
    * @param options - Optimization options
@@ -85,6 +89,8 @@ export class ILPeepholePass implements OptimizationPass {
     results.push(this.strengthReduction(func, options));
     results.push(this.loadStoreElimination(func, options));
     results.push(this.redundantJumpElimination(func, options));
+    results.push(this.pushPopElimination(func, options));
+    results.push(this.redundantImmLoadElimination(func, options));
     results.push(this.moduloToBitmask(func, options));
     // Address expr folding runs BEFORE shrWordLo narrowing so that
     // LOAD_ADDRESS+SHR_WORD+LO patterns are folded into LOAD_ADDRESS_EXPR first.
@@ -746,7 +752,289 @@ export class ILPeepholePass implements OptimizationPass {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  // Pattern 5: Modulo-to-Bitmask (Counter Wrap Optimization)
+  // Pattern 5: PUSH_A / POP_A Pair Elimination
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Remove PUSH_A / POP_A pairs where A is not modified between them.
+   *
+   * When the accumulator is pushed to the stack and then popped back
+   * without any intervening instruction that modifies A or uses the stack,
+   * both instructions are redundant — A already holds the value that
+   * POP_A would restore.
+   *
+   * **Pattern:**
+   * ```
+   * PUSH_A              ; save A to stack
+   * STORE_BYTE slot     ; (example: A-preserving instruction)
+   * CMP_IMM 5           ; (example: A-preserving instruction)
+   * POP_A               ; restore A — but A wasn't modified, so redundant
+   * ```
+   *
+   * **Safety conditions:**
+   * - No instruction between PUSH_A and POP_A modifies A
+   * - No instruction between PUSH_A and POP_A uses the stack
+   *   (PUSH_A, POP_A, CALL, RETURN)
+   * - Maximum scan distance of 8 instructions to bound complexity
+   *
+   * **Savings:** 2 bytes + 7 cycles (PHA=3 + PLA=4) on 6502.
+   *
+   * @param func - Function to optimize
+   * @param options - Optimization options
+   * @returns Result with statistics
+   */
+  protected pushPopElimination(
+    func: ILFunction,
+    options: OptimizationOptions
+  ): PassResult {
+    const toRemove = new Set<number>();
+    const debugInfo: string[] = [];
+
+    // Maximum forward scan distance from PUSH_A to POP_A
+    const MAX_SCAN = 8;
+
+    for (let i = 0; i < func.instructions.length; i++) {
+      if (toRemove.has(i)) continue;
+
+      const instr = func.instructions[i];
+      if (instr.opcode !== ILOpcode.PUSH_A) continue;
+
+      // Scan forward for matching POP_A
+      let safe = true;
+      let popIndex = -1;
+
+      for (let j = i + 1; j < func.instructions.length && j <= i + MAX_SCAN; j++) {
+        const between = func.instructions[j];
+
+        // Found the matching POP_A
+        if (between.opcode === ILOpcode.POP_A) {
+          popIndex = j;
+          break;
+        }
+
+        // Stack operations invalidate the match — nested push/pop or calls
+        if (
+          between.opcode === ILOpcode.PUSH_A ||
+          between.opcode === ILOpcode.CALL ||
+          between.opcode === ILOpcode.RETURN
+        ) {
+          safe = false;
+          break;
+        }
+
+        // If any instruction between PUSH_A and POP_A modifies A,
+        // the POP_A is needed to restore the original value
+        if (this.modifiesAccumulator(between.opcode)) {
+          safe = false;
+          break;
+        }
+
+        // Control flow boundaries make the analysis unsound
+        if (between.opcode === ILOpcode.LABEL) {
+          safe = false;
+          break;
+        }
+      }
+
+      // If we found a safe PUSH_A/POP_A pair, remove both
+      if (safe && popIndex !== -1 && !toRemove.has(popIndex)) {
+        toRemove.add(i);
+        toRemove.add(popIndex);
+
+        if (options.debug) {
+          debugInfo.push(
+            `PUSH_A/POP_A pair elimination at ${i}-${popIndex}: A not modified between push/pop`
+          );
+        }
+      }
+    }
+
+    // Remove marked instructions
+    if (toRemove.size > 0) {
+      func.instructions = func.instructions.filter((_, idx) => !toRemove.has(idx));
+    }
+
+    return createResult(
+      toRemove.size,
+      0,
+      debugInfo.length > 0 ? debugInfo : undefined
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Pattern 6: Redundant Immediate Load Elimination
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Remove redundant LOAD_IMM instructions when the accumulator already
+   * holds the same value.
+   *
+   * When a LOAD_IMM is followed by instructions that don't modify A
+   * (e.g., STORE_BYTE, CMP_IMM), and then another LOAD_IMM with the
+   * same value appears, the second load is redundant.
+   *
+   * **Pattern:**
+   * ```
+   * LOAD_IMM 0           ; A = 0
+   * STORE_BYTE slot      ; (doesn't modify A)
+   * LOAD_IMM 0           ; A already = 0 — redundant!
+   * ```
+   *
+   * **Safety conditions:**
+   * - Both LOAD_IMM instructions load the exact same immediate value
+   * - No instruction between them modifies A
+   * - No control flow boundary (LABEL, JUMP) between them
+   * - Maximum scan distance of 8 instructions
+   *
+   * **Savings:** 2 bytes + 2 cycles per eliminated LDA #imm on 6502.
+   *
+   * @param func - Function to optimize
+   * @param options - Optimization options
+   * @returns Result with statistics
+   */
+  protected redundantImmLoadElimination(
+    func: ILFunction,
+    options: OptimizationOptions
+  ): PassResult {
+    const toRemove = new Set<number>();
+    const debugInfo: string[] = [];
+
+    // Maximum forward scan distance to look for duplicate LOAD_IMM
+    const MAX_SCAN = 8;
+
+    for (let i = 0; i < func.instructions.length; i++) {
+      if (toRemove.has(i)) continue;
+
+      const instr = func.instructions[i];
+      if (instr.opcode !== ILOpcode.LOAD_IMM) continue;
+
+      const value = this.getImmediateValue(instr);
+      if (value === null) continue;
+
+      // Scan forward to find another LOAD_IMM with the same value
+      for (let j = i + 1; j < func.instructions.length && j <= i + MAX_SCAN; j++) {
+        if (toRemove.has(j)) continue;
+
+        const next = func.instructions[j];
+
+        // Found another LOAD_IMM with the same value — remove it
+        if (next.opcode === ILOpcode.LOAD_IMM) {
+          const nextValue = this.getImmediateValue(next);
+          if (nextValue === value) {
+            toRemove.add(j);
+
+            if (options.debug) {
+              debugInfo.push(
+                `Redundant LOAD_IMM elimination at ${j}: LOAD_IMM ${value} (value already in A from ${i})`
+              );
+            }
+          }
+          // Whether same value or different, A now has a new known value.
+          // Stop scanning from index i — the new LOAD_IMM at j becomes
+          // the new "source of truth" for forward scanning.
+          break;
+        }
+
+        // If instruction modifies A, we can't eliminate future LOAD_IMMs
+        if (this.modifiesAccumulator(next.opcode)) {
+          break;
+        }
+
+        // Control flow boundaries make the analysis unsound
+        if (
+          next.opcode === ILOpcode.LABEL ||
+          next.opcode === ILOpcode.JUMP ||
+          next.opcode === ILOpcode.JUMP_EQ ||
+          next.opcode === ILOpcode.JUMP_NE ||
+          next.opcode === ILOpcode.JUMP_LT ||
+          next.opcode === ILOpcode.JUMP_LE ||
+          next.opcode === ILOpcode.JUMP_GE ||
+          next.opcode === ILOpcode.JUMP_GT
+        ) {
+          break;
+        }
+      }
+    }
+
+    // Remove marked instructions
+    if (toRemove.size > 0) {
+      func.instructions = func.instructions.filter((_, idx) => !toRemove.has(idx));
+    }
+
+    return createResult(
+      toRemove.size,
+      0,
+      debugInfo.length > 0 ? debugInfo : undefined
+    );
+  }
+
+  /**
+   * Check if an IL opcode modifies the accumulator (A register).
+   *
+   * Used by pushPopElimination and redundantImmLoadElimination to
+   * determine if the A register value is preserved between instructions.
+   *
+   * Opcodes that do NOT modify A:
+   * - STORE_BYTE, STORE_WORD (stores A but doesn't change it)
+   * - POKE, POKEW, POKE_INDIRECT, POKEW_INDIRECT (writes value, doesn't change A)
+   * - STORE_ZP_PTR (stores A:X to ZP pointer, A unchanged)
+   * - INC_BYTE, DEC_BYTE, INC_WORD, DEC_WORD (in-place modify, doesn't use A)
+   * - CMP_BYTE, CMP_IMM, CMP_WORD_IMM, CMP_WORD_SLOT (flags only)
+   * - TRANSFER_AX, TRANSFER_AY (reads A, doesn't modify it)
+   * - PUSH_A (saves A, doesn't modify it)
+   * - PROMOTE_BYTE_WORD (only sets X=0, A unchanged)
+   * - LABEL, NOP, BARRIER, JUMP variants (no register effect)
+   *
+   * @param opcode - IL opcode to check
+   * @returns true if the opcode may modify the accumulator
+   */
+  protected modifiesAccumulator(opcode: ILOpcode): boolean {
+    switch (opcode) {
+      // ── A-preserving opcodes ──
+      case ILOpcode.STORE_BYTE:
+      case ILOpcode.STORE_WORD:
+      case ILOpcode.STORE_ZP_PTR:
+      case ILOpcode.POKE:
+      case ILOpcode.POKEW:
+      case ILOpcode.POKE_INDIRECT:
+      case ILOpcode.POKEW_INDIRECT:
+      case ILOpcode.INC_BYTE:
+      case ILOpcode.DEC_BYTE:
+      case ILOpcode.INC_WORD:
+      case ILOpcode.DEC_WORD:
+      case ILOpcode.CMP_BYTE:
+      case ILOpcode.CMP_IMM:
+      case ILOpcode.CMP_WORD_IMM:
+      case ILOpcode.CMP_WORD_SLOT:
+      case ILOpcode.TRANSFER_AX:
+      case ILOpcode.TRANSFER_AY:
+      case ILOpcode.PUSH_A:
+      case ILOpcode.PROMOTE_BYTE_WORD:
+      case ILOpcode.LABEL:
+      case ILOpcode.NOP:
+      case ILOpcode.BARRIER:
+      case ILOpcode.JUMP:
+      case ILOpcode.JUMP_EQ:
+      case ILOpcode.JUMP_NE:
+      case ILOpcode.JUMP_LT:
+      case ILOpcode.JUMP_LE:
+      case ILOpcode.JUMP_GE:
+      case ILOpcode.JUMP_GT:
+        return false;
+
+      // ── Everything else modifies A ──
+      // LOAD_IMM, LOAD_BYTE, LOAD_WORD, LOAD_ADDRESS, LOAD_ADDRESS_EXPR,
+      // ADD_*, SUB_*, MUL_*, DIV_*, MOD_*, AND_*, OR_*, XOR_*, NOT_BYTE,
+      // SHL_BYTE, SHR_BYTE, SHR_WORD, SHR_WORD_LO, HI, LO,
+      // PEEK, PEEK_INDIRECT, PEEKW, PEEKW_INDIRECT,
+      // TRANSFER_XA, TRANSFER_YA, POP_A, CALL, RETURN, ASM_RAW
+      default:
+        return true;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Pattern 7: Modulo-to-Bitmask (Counter Wrap Optimization)
   // ═══════════════════════════════════════════════════════════════════
 
   /**
