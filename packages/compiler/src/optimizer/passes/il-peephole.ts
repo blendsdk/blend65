@@ -917,10 +917,14 @@ export class ILPeepholePass implements OptimizationPass {
 
         const next = func.instructions[j];
 
-        // Found another LOAD_IMM with the same value — remove it
+        // Found another LOAD_IMM — check if it's the same value
         if (next.opcode === ILOpcode.LOAD_IMM) {
           const nextValue = this.getImmediateValue(next);
           if (nextValue === value) {
+            // Same value — A already holds this, so this LOAD_IMM is redundant.
+            // Mark for removal and CONTINUE scanning, because further LOAD_IMMs
+            // of the same value may also be redundant (the removed instruction
+            // won't act as a "source" in the main loop since toRemove skips it).
             toRemove.add(j);
 
             if (options.debug) {
@@ -928,8 +932,10 @@ export class ILPeepholePass implements OptimizationPass {
                 `Redundant LOAD_IMM elimination at ${j}: LOAD_IMM ${value} (value already in A from ${i})`
               );
             }
+            // Continue scanning — more same-value loads may follow
+            continue;
           }
-          // Whether same value or different, A now has a new known value.
+          // Different value — A now has a new known value.
           // Stop scanning from index i — the new LOAD_IMM at j becomes
           // the new "source of truth" for forward scanning.
           break;

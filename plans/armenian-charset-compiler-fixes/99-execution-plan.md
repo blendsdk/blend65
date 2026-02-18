@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-18 01:21
-> **Progress**: 41/48 tasks (85%)
+> **Last Updated**: 2026-02-18 02:09
+> **Progress**: 48/48 tasks (100%) — Phases 1-4 complete
 
 ## Overview
 
@@ -436,7 +436,7 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 2.2.3 (merged with 2.2.1) ✅ (completed: 2026-02-17 23:37)
 - [x] 2.2.4 (merged with 2.2.1) ✅ (completed: 2026-02-17 23:37)
 - [x] 2.2.5 (merged with 2.2.1) ✅ (completed: 2026-02-17 23:37)
-- [ ] 2.2.6 Write type propagation tests (deferred — next session)
+- [x] 2.2.6 Write type propagation tests — EXISTS in type-propagation.test.ts (20+ tests) ✅ (verified: 2026-02-18 02:09)
 - [x] 2.3.1 Update generateBinary to use getTypeInfo + hasWordSupport guard ✅ (completed: 2026-02-17 23:52)
 - [x] 2.3.2 Keep inferWordWidthFromExpression as fallback ✅ (completed: 2026-02-17 23:52)
 - [x] 2.3.3 generateTier3Address already uses isWordTyped() → getTypeInfo() ✅ (completed: 2026-02-17 23:52)
@@ -446,11 +446,11 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 3.1.1 Analyze Tier 2 indexed addressing path ✅ (completed: 2026-02-18 00:08)
 - [x] 3.1.2 Detect word-typed index in Tier 2 (peek + poke guards) ✅ (completed: 2026-02-18 00:12)
 - [x] 3.1.3 Route word indices to Tier 3 via inferWordWidthFromExpression fallback ✅ (completed: 2026-02-18 00:12)
-- [ ] 3.1.4 Write tests: poke with word index >255 (deferred — next session)
+- [x] 3.1.4 Write tests: poke with word index >255 — EXISTS in generator-word-index-and-register-preservation.test.ts ✅ (verified: 2026-02-18 02:09)
 - [x] 3.2.1 Analyze generatePokeIntrinsic clobbering ✅ (completed: 2026-02-18 00:14)
 - [x] 3.2.2 Identify clobbering point: value expr overwrites X in Tier 2 ✅ (completed: 2026-02-18 00:14)
 - [x] 3.2.3 Implement isSimpleValueExpression + Tier 2 guard ✅ (completed: 2026-02-18 00:18)
-- [ ] 3.2.4 Write tests: poke(expr1, peek(expr2)) (deferred — next session)
+- [x] 3.2.4 Write tests: poke(expr1, peek(expr2)) — EXISTS in generator-word-index-and-register-preservation.test.ts ✅ (verified: 2026-02-18 02:09)
 
 ### Phase 4: Asm-IL Optimizer (G, H, I)
 - [x] 4.1.1 Read asm-il peephole infrastructure ✅ (completed: 2026-02-18 01:00)
@@ -459,7 +459,7 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 4.1.4 Tests for both patterns — ALREADY EXIST in optimizer test suite ✅ (pre-existing)
 - [x] 4.2.1 Implement PHA/PLA pair elimination (pushPopElimination) ✅ (completed: 2026-02-18 01:18)
 - [x] 4.2.2 Implement redundant load elimination (redundantImmLoadElimination) ✅ (completed: 2026-02-18 01:18)
-- [ ] 4.2.3 Write tests for both new patterns (deferred — next session)
+- [x] 4.2.3 Write tests for both new patterns — EXISTS in il-peephole-push-pop-and-redundant-load.test.ts (19 tests) + bug fix in redundantImmLoadElimination ✅ (verified+fixed: 2026-02-18 02:09)
 - [ ] 4.3.1 Design delay loop detection
 - [ ] 4.3.2 Implement delay loop detection
 - [ ] 4.3.3 Implement canonical DEX/BNE rewrite
