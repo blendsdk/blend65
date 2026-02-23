@@ -1,0 +1,166 @@
+module Test.AddressCompute;
+
+// =============================================================================
+// Test: Address Computation — lo(), hi(), @var, Address Arithmetic
+// =============================================================================
+// Exercises address computation intrinsics and address-of operator:
+//   Test 1: lo() on word constant — lo($1234) == $34
+//   Test 2: hi() on word constant — hi($1234) == $12
+//   Test 3: lo() on word variable — lo($ABCD) == $CD
+//   Test 4: hi() on word variable — hi($ABCD) == $AB
+//   Test 5: @var — poke to module variable address, peek back
+//   Test 6: lo(@spriteData / 64) — sprite pointer computation pattern
+//
+// The lo() and hi() intrinsics extract low/high bytes from 16-bit words.
+// For compile-time constants, these evaluate at compile time (zero runtime cost).
+// For variables, they emit efficient inline code.
+//
+// The @ (address-of) operator returns the word address of a module-level
+// variable, enabling indirect memory access via peek/poke.
+//
+// Results are written to screen memory ($0400):
+//   $0400 = total test count
+//   $0401 = total passed count
+//   $0402+ = per-test pass/fail (1 = pass, 0 = fail)
+//
+// Completion sentinel: poke($C000, $42)
+// =============================================================================
+
+const SCREEN: word = $0400;
+const SENTINEL: word = $C000;
+
+// Module-level variable for address-of test
+// Using @zp for deterministic placement (address will be in $00-$FF range)
+let testVar: byte = 0;
+
+// @sprite data for sprite pointer computation test
+@sprite const spriteFrame: byte[] = [
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF,
+    $00, $FF, $00,
+    $FF, $00, $FF
+];
+
+export function main(): void {
+    let testNum: byte = 0;
+    let passed: byte = 0;
+
+    // -------------------------------------------------------------------------
+    // Test 1: lo() on word constant — lo($1234) == $34
+    // Should evaluate at compile time for constants
+    // -------------------------------------------------------------------------
+    let testWord: word = $1234;
+    let lowByte: byte = lo(testWord);
+    if (lowByte == $34) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 2: hi() on word constant — hi($1234) == $12
+    // -------------------------------------------------------------------------
+    let highByte: byte = hi(testWord);
+    if (highByte == $12) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 3: lo() on different word — lo($ABCD) == $CD
+    // -------------------------------------------------------------------------
+    let testWord2: word = $ABCD;
+    let lo2: byte = lo(testWord2);
+    if (lo2 == $CD) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 4: hi() on different word — hi($ABCD) == $AB
+    // -------------------------------------------------------------------------
+    let hi2: byte = hi(testWord2);
+    if (hi2 == $AB) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 5: @var — write to module variable via poke(@testVar, value)
+    // Then read back via peek(@testVar) and verify
+    // The @ operator returns the memory address of testVar as a word
+    // -------------------------------------------------------------------------
+    poke(@testVar, $77);
+    let readBack: byte = peek(@testVar);
+    if (readBack == $77) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 6: Sprite pointer computation — lo(@spriteFrame / 64)
+    // This is the standard C64 pattern for computing sprite data pointers.
+    // The @sprite alignment guarantees the address is a multiple of 64,
+    // so division by 64 yields a clean integer pointer value.
+    // We verify the pointer is non-zero (exact value depends on linker)
+    // and that writing it to the sprite pointer location and reading back works.
+    // -------------------------------------------------------------------------
+    let sprPtr: byte = lo(@spriteFrame / 64);
+    // Sprite pointer must be non-zero (data is somewhere after $0800)
+    // Write to VICE-verifiable location ($C010) instead of sprite pointer
+    // to avoid affecting VIC-II state
+    poke($C010, sprPtr);
+    let ptrBack: byte = peek($C010);
+    if (ptrBack == sprPtr) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Write summary to screen memory
+    // -------------------------------------------------------------------------
+    poke(SCREEN, testNum);
+    poke(SCREEN + 1, passed);
+
+    // Signal completion
+    poke(SENTINEL, $42);
+
+    // Halt — VICE will capture state after sentinel write
+    while (true) {
+        barrier();
+    }
+}

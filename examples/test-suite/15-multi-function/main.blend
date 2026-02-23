@@ -1,0 +1,209 @@
+module Test.MultiFunction;
+
+// =============================================================================
+// Test: Multi-Function Integration — Chained Calls, Globals, Composition
+// =============================================================================
+// Exercises advanced function interaction patterns beyond basic call/return:
+//   Test 1: Function chain — f(g(x)) where both modify result
+//   Test 2: Two functions with global side effects, verify both applied
+//   Test 3: Function result used as argument to another function
+//   Test 4: Helper function called from two different wrapper functions
+//   Test 5: Function computing result from multiple helper calls
+//   Test 6: Conditional call — different function called based on condition
+//
+// These tests verify that:
+//   - Parameter passing works correctly across call chains
+//   - Global variable modifications persist across function boundaries
+//   - Return values are correctly propagated through call chains
+//   - Multiple function calls in a single expression evaluate correctly
+//
+// Results are written to screen memory ($0400):
+//   $0400 = total test count
+//   $0401 = total passed count
+//   $0402+ = per-test pass/fail (1 = pass, 0 = fail)
+//
+// Completion sentinel: poke($C000, $42)
+// =============================================================================
+
+const SCREEN: word = $0400;
+const SENTINEL: word = $C000;
+
+// Global variables for side-effect tests
+let globalA: byte = 0;
+let globalB: byte = 0;
+
+// ---------------------------------------------------------------------------
+// Helper functions
+// ---------------------------------------------------------------------------
+
+// Adds 10 to input
+function addTen(x: byte): byte {
+    return x + 10;
+}
+
+// Doubles input
+function doubleVal(x: byte): byte {
+    return x + x;
+}
+
+// Sets globalA to the given value
+function setA(val: byte): void {
+    globalA = val;
+}
+
+// Sets globalB to the given value
+function setB(val: byte): void {
+    globalB = val;
+}
+
+// Returns the sum of two bytes (shared helper)
+function sumTwo(a: byte, b: byte): byte {
+    return a + b;
+}
+
+// Wrapper 1: calls sumTwo with (x, 5)
+function addFive(x: byte): byte {
+    return sumTwo(x, 5);
+}
+
+// Wrapper 2: calls sumTwo with (x, 20)
+function addTwenty(x: byte): byte {
+    return sumTwo(x, 20);
+}
+
+// Returns 1 if input > 100, else returns 0
+function isAbove100(val: byte): byte {
+    if (val > 100) {
+        return 1;
+    }
+    return 0;
+}
+
+// Returns 1 if input <= 100, else returns 0
+function isBelow101(val: byte): byte {
+    if (val > 100) {
+        return 0;
+    }
+    return 1;
+}
+
+export function main(): void {
+    let testNum: byte = 0;
+    let passed: byte = 0;
+
+    // -------------------------------------------------------------------------
+    // Test 1: Function chain — doubleVal(addTen(5))
+    // addTen(5) = 15, doubleVal(15) = 30
+    // Verifies return value from inner call is correctly passed as argument
+    // -------------------------------------------------------------------------
+    let chainResult: byte = doubleVal(addTen(5));
+    if (chainResult == 30) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 2: Two functions with global side effects
+    // setA(42) then setB(99) — verify both globals are set correctly
+    // Tests that calling setB doesn't corrupt globalA (separate slot storage)
+    // -------------------------------------------------------------------------
+    globalA = 0;
+    globalB = 0;
+    setA(42);
+    setB(99);
+    if (globalA == 42) {
+        if (globalB == 99) {
+            poke(SCREEN + 2 + testNum, 1);
+            passed = passed + 1;
+        } else {
+            poke(SCREEN + 2 + testNum, 0);
+        }
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 3: Function result used as argument — addTen(addTen(addTen(0)))
+    // 0 → 10 → 20 → 30 — triple chain of same function
+    // Verifies the return register is properly loaded before each call
+    // -------------------------------------------------------------------------
+    let tripleAdd: byte = addTen(addTen(addTen(0)));
+    if (tripleAdd == 30) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 4: Shared helper called from two different wrappers
+    // addFive(10) = sumTwo(10,5) = 15
+    // addTwenty(10) = sumTwo(10,20) = 30
+    // sum of results = 15 + 30 = 45
+    // Verifies sumTwo's parameter slots aren't corrupted between calls
+    // -------------------------------------------------------------------------
+    let r1: byte = addFive(10);
+    let r2: byte = addTwenty(10);
+    let combined: byte = r1 + r2;
+    if (combined == 45) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 5: Function computing from multiple helper calls
+    // doubleVal(5) = 10, addTen(3) = 13, sum = 23
+    // Verifies that two independent function call results can be summed
+    // -------------------------------------------------------------------------
+    let part1: byte = doubleVal(5);
+    let part2: byte = addTen(3);
+    let total: byte = part1 + part2;
+    if (total == 23) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 6: Conditional call — choose function based on input value
+    // isAbove100(150) should return 1, isBelow101(150) should return 0
+    // Verifies correct function dispatch and return value handling
+    // -------------------------------------------------------------------------
+    let above: byte = isAbove100(150);
+    let below: byte = isBelow101(150);
+    if (above == 1) {
+        if (below == 0) {
+            poke(SCREEN + 2 + testNum, 1);
+            passed = passed + 1;
+        } else {
+            poke(SCREEN + 2 + testNum, 0);
+        }
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Write summary to screen memory
+    // -------------------------------------------------------------------------
+    poke(SCREEN, testNum);
+    poke(SCREEN + 1, passed);
+
+    // Signal completion
+    poke(SENTINEL, $42);
+
+    // Halt — VICE will capture state after sentinel write
+    while (true) {
+        barrier();
+    }
+}

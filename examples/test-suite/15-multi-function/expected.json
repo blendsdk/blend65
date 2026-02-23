@@ -1,0 +1,71 @@
+{
+  "description": "Multi-function integration — chained calls, globals, composition, conditional dispatch",
+  "cycles": 10000000,
+  "completion_sentinel": {
+    "address": "C000",
+    "value": "42",
+    "description": "Program completed all 6 tests"
+  },
+  "memory_checks": [
+    {
+      "address": "0400",
+      "expected": "06",
+      "description": "6 tests run",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0401",
+      "expected": "06",
+      "description": "6 tests passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0402",
+      "expected": "01",
+      "description": "Test 1: doubleVal(addTen(5)) = 30 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0403",
+      "expected": "01",
+      "description": "Test 2: setA(42) + setB(99) globals correct passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0404",
+      "expected": "01",
+      "description": "Test 3: addTen(addTen(addTen(0))) = 30 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0405",
+      "expected": "01",
+      "description": "Test 4: addFive(10) + addTwenty(10) = 45 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0406",
+      "expected": "01",
+      "description": "Test 5: doubleVal(5) + addTen(3) = 23 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0407",
+      "expected": "01",
+      "description": "Test 6: isAbove100(150)=1, isBelow101(150)=0 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    }
+  ],
+  "stack_check": {
+    "sp_min": "F0",
+    "description": "Stack pointer near top — no stack leak from function calls"
+  }
+}

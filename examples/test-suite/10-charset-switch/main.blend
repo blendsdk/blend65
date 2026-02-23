@@ -1,0 +1,137 @@
+module Test.CharsetSwitch;
+
+// =============================================================================
+// Test: VIC-II Charset Switching via $D018
+// =============================================================================
+// Exercises VIC-II memory setup register $D018 for charset pointer control,
+// and @data array access via address-of operator:
+//   Test 1: Read $D018 screen bits (bits 4-7) — should be $10 for screen at $0400
+//   Test 2: Switch charset bits to point to $2000 (bits 1-3 = %100 = $08)
+//   Test 3: Switch charset bits to point to $3800 (bits 1-3 = %111 = $0E)
+//   Test 4: Restore charset bits to default $04 (charset at $1000)
+//   Test 5: @data array — read first element via peek(@array)
+//   Test 6: @data array — read element at offset 3 via peek(@array + 3)
+//
+// VIC-II $D018 layout:
+//   Bits 4-7: Screen memory address / $0400
+//   Bits 1-3: Character generator address / $0800
+//   Bit 0: Unused (reads as 1 on some hardware)
+//
+// Results are written to screen memory ($0400):
+//   $0400 = total test count
+//   $0401 = total passed count
+//   $0402+ = per-test pass/fail (1 = pass, 0 = fail)
+//
+// Completion sentinel: poke($C000, $42)
+// =============================================================================
+
+const SCREEN: word = $0400;
+const SENTINEL: word = $C000;
+const VIC_MEMORY_SETUP: word = $D018;
+
+// Small @data array to verify data segment access via address-of operator
+@data const testData: byte[] = [$AA, $55, $F0, $0F, $12, $34];
+
+export function main(): void {
+    let testNum: byte = 0;
+    let passed: byte = 0;
+
+    // -------------------------------------------------------------------------
+    // Test 1: Read $D018 screen bits (bits 4-7) — should be $10 for $0400
+    // -------------------------------------------------------------------------
+    // After C64 BASIC boot, screen is at $0400.
+    // Screen bits = ($0400 / $0400) << 4 = 1 << 4 = $10.
+    let d018val: byte = peek(VIC_MEMORY_SETUP);
+    let screenBits: byte = d018val & $F0;
+    if (screenBits == $10) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 2: Switch charset bits to point to $2000
+    // Charset bank = $2000 / $0800 = 4, shifted left 1 = $08 in bits 1-3
+    // Preserve screen bits (high nibble), set charset bits
+    // -------------------------------------------------------------------------
+    let savedHigh: byte = peek(VIC_MEMORY_SETUP) & $F0;
+    poke(VIC_MEMORY_SETUP, savedHigh | $08);
+    let readBack: byte = peek(VIC_MEMORY_SETUP) & $0E;
+    if (readBack == $08) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 3: Switch charset bits to point to $3800
+    // Charset bank = $3800 / $0800 = 7, shifted left 1 = $0E in bits 1-3
+    // -------------------------------------------------------------------------
+    poke(VIC_MEMORY_SETUP, savedHigh | $0E);
+    readBack = peek(VIC_MEMORY_SETUP) & $0E;
+    if (readBack == $0E) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 4: Restore charset bits to default ($04 = charset at $1000)
+    // Charset bank = $1000 / $0800 = 2, shifted left 1 = $04 in bits 1-3
+    // -------------------------------------------------------------------------
+    poke(VIC_MEMORY_SETUP, savedHigh | $04);
+    readBack = peek(VIC_MEMORY_SETUP) & $0E;
+    if (readBack == $04) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 5: @data array — read first element via peek(@testData)
+    // testData[0] = $AA
+    // -------------------------------------------------------------------------
+    let dataVal: byte = peek(@testData);
+    if (dataVal == $AA) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 6: @data array — read element at offset 3 via peek(@testData + 3)
+    // testData[3] = $0F
+    // -------------------------------------------------------------------------
+    let dataVal2: byte = peek(@testData + 3);
+    if (dataVal2 == $0F) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Write summary to screen memory
+    // -------------------------------------------------------------------------
+    poke(SCREEN, testNum);
+    poke(SCREEN + 1, passed);
+
+    // Signal completion
+    poke(SENTINEL, $42);
+
+    // Halt — VICE will capture state after sentinel write
+    while (true) {
+        barrier();
+    }
+}

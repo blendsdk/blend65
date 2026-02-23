@@ -10,12 +10,28 @@ When the user types `diag_app <path-to-blend-file>`, execute this comprehensive 
 
 This protocol automates the full diagnostic pipeline:
 
-1. **Compile** a Blend application at all 6 optimization levels (O0–Oz)
+1. **Compile** a Blend application at all 10 optimization levels (O0, O1, O1s, O1z, O2, Os, Oz, O3, O3s, O3z)
 2. **Assemble** each output with ACME to produce `.prg` binaries
-3. **Diff** assembly output across optimization levels
-4. **Analyze** all compiler/assembler logs and generated assembly
-5. **Diagnose** the root cause and classify the bug
-6. **Report** findings with evidence and recommended next steps
+3. **Validate** ACME label files (charset alignment, address ranges) and PRG binaries (load address, BASIC SYS stub)
+4. **Diff** assembly output across optimization levels
+5. **Analyze** assembly metrics, stack balance, redundancies, and size regressions (automated via `diag_analyze_asm.sh`)
+6. **Verify** runtime behavior in VICE emulator against `expected.json` (automated via `diag_vice.sh`)
+7. **Diagnose** the root cause and classify the bug (AI analysis)
+8. **Report** findings with evidence and recommended next steps
+
+### **Automated vs AI-Assisted Steps**
+
+| Step | Tool | Automated? |
+|------|------|------------|
+| Compile + Assemble | `diag_app.sh` | ✅ Fully automated |
+| Label + PRG validation | `diag_app.sh` | ✅ Fully automated |
+| Assembly metrics + analysis | `diag_analyze_asm.sh` | ✅ Fully automated |
+| VICE runtime verification | `diag_vice.sh` | ✅ Fully automated (requires expected.json) |
+| Batch execution | `diag_batch.sh` | ✅ Fully automated |
+| Assembly quality audit | AI | 🧠 Manual AI analysis |
+| Codegen strategy audit | AI | 🧠 Manual AI analysis |
+| Source code analysis | AI | 🧠 Manual AI analysis |
+| Bug classification | AI | 🧠 Manual AI analysis |
 
 ---
 
@@ -34,13 +50,17 @@ clear && ./scripts/diag_app.sh <path-to-blend-file>
 clear && ./scripts/diag_app.sh examples/spinning-line/main.blend
 ```
 
-The script will:
-- Build the compiler (`yarn build`)
-- Compile at O0, O1, O2, O3, Os, Oz
-- Run ACME on each `.asm` output to produce `.prg` files
-- Generate an O0-debug build with inline source comments
-- Create diffs between O0 and all other optimization levels
-- Produce a `summary.txt` with pass/fail results and file sizes
+The script automatically performs **8 steps**:
+
+1. **Collect sources** — copies all `.blend` files for reference
+2. **Build compiler** — runs `yarn build` (skippable with `BLEND65_SKIP_BUILD=1`)
+3. **Compile at all 10 levels** — O0, O1, O1s, O1z, O2, Os, Oz, O3, O3s, O3z + O0-debug build
+4. **Assemble with ACME** — produces `.prg` binaries and `.labels` symbol files
+5. **Generate diffs** — unified diffs between O0 and all other levels
+6. **Validate labels + PRG** — checks charset alignment, address ranges, load address, BASIC SYS stub
+7. **Assembly analysis** — cross-level metrics, stack balance (PHA/PLA), redundancy detection, size regressions (via `diag_analyze_asm.sh`)
+8. **VICE runtime verification** — if `expected.json` exists alongside the source, runs each PRG in VICE and verifies memory state (via `diag_vice.sh`)
+9. **Generate summary** — comprehensive `summary.txt` with all results
 
 ### **1.2 Note the Output Directory**
 
@@ -916,37 +936,66 @@ Suggested Test:
 
 ### Script Usage
 ```bash
-# Default output directory
+# Single-program diagnostic (default output)
 ./scripts/diag_app.sh examples/spinning-line/main.blend
 
-# Custom output directory
+# Single-program diagnostic (custom output)
 ./scripts/diag_app.sh examples/balloon-sprite/main.blend build/diag/balloon
+
+# Batch diagnostic (all test programs)
+./scripts/diag_batch.sh examples/test-suite/
+
+# Batch diagnostic (all examples)
+./scripts/diag_batch.sh examples/
+
+# Standalone VICE verification
+./scripts/diag_vice.sh build/diag/test/O0/output.prg examples/test/expected.json
 ```
 
 ### Output Structure
 ```
 build/diag/<app-name>/
-├── sources/              # .blend source files
+├── sources/                # .blend source files
 ├── O0/
-│   ├── output.asm        # Assembly (no optimization)
-│   ├── output-debug.asm  # Assembly with source comments
-│   ├── output.prg        # ACME binary
-│   ├── blend65.log       # Compiler log
-│   └── acme.log          # Assembler log
-├── O1/ ... O2/ ... O3/ ... Os/ ... Oz/
+│   ├── output.asm          # Assembly (no optimization)
+│   ├── output-debug.asm    # Assembly with source comments (O0 only)
+│   ├── output.prg          # ACME binary
+│   ├── output.labels       # ACME symbol/label file
+│   ├── blend65.log         # Blend compiler stdout+stderr
+│   ├── acme.log            # ACME assembler stdout+stderr
+│   ├── vice/               # VICE verification output (if expected.json exists)
+│   │   ├── dump_screen.bin # Screen memory dump ($0400-$07FF)
+│   │   ├── dump_vic.bin    # VIC-II register dump ($D000-$D3FF)
+│   │   ├── dump_zeropage.bin # Zero page dump ($00-$FF)
+│   │   ├── vice.log        # VICE emulator log
+│   │   └── vice-summary.txt # VICE verification results
+│   └── vice-run.log        # VICE runner log
+├── O1/ O1s/ O1z/ O2/ Os/ Oz/ O3/ O3s/ O3z/
+│   └── ... (same structure per level)
+├── analysis/
+│   ├── O0-metrics.txt      # Per-level assembly metrics
+│   ├── O1-metrics.txt ... O3-metrics.txt ...
+│   ├── size-regressions.txt # Size regression report
+│   ├── stack-balance-O0.txt # PHA/PLA balance check
+│   └── redundancies-O0.txt # Redundancy pattern detection
 ├── diffs/
-│   ├── O0-vs-O1.diff
+│   ├── O0-vs-O1.diff       # Assembly diffs (O0 as baseline)
 │   ├── O0-vs-O2.diff
 │   └── ...
-└── summary.txt
+├── label-map.txt            # ACME label addresses (O0)
+├── prg-validation.txt       # PRG binary validation results
+└── summary.txt              # Comprehensive summary with all results
 ```
 
 ### Key Files to Read (in order)
-1. `summary.txt` — Overall pass/fail and sizes
+1. `summary.txt` — Overall pass/fail, sizes, metrics, stack balance, redundancies
 2. Failed `blend65.log` or `acme.log` — Error details
 3. `diffs/O0-vs-<level>.diff` — What the optimizer changed
 4. `O0/output-debug.asm` — Source-to-assembly mapping
 5. `sources/*.blend` — Original source code
+6. `O0/vice/vice-summary.txt` — VICE runtime verification results (if available)
+7. `analysis/size-regressions.txt` — Optimized levels larger than O0
+8. `analysis/stack-balance-O0.txt` — PHA/PLA imbalance detection
 
 ---
 
@@ -967,6 +1016,151 @@ This diagnostic protocol:
 |---------|----------|
 | `diag_app <file>` | Full diagnostic (this protocol) |
 | `diag_app <file> <output-dir>` | Full diagnostic with custom output directory |
+
+---
+
+## **VICE Runtime Verification (expected.json)**
+
+### **What It Does**
+
+When an `expected.json` file exists alongside the source `.blend` file, `diag_app.sh` automatically runs each PRG in the VICE C64 emulator and verifies that runtime memory/register state matches expected values. This catches **semantic bugs** that static analysis cannot detect.
+
+### **How It Works**
+
+1. VICE launches in warp mode with `-limitcycles` (default 10M = ~10 sec at 1MHz)
+2. A monitor script dumps standard C64 memory regions after execution
+3. `diag_vice.sh` compares dump contents against `expected.json` checks
+4. Results appear in `vice-summary.txt` per optimization level
+
+### **VICE Memory Regions Dumped**
+
+| Region | Address Range | Dump File | Description |
+|--------|--------------|-----------|-------------|
+| Zero page | `$0000-$00FF` | `dump_zeropage.bin` | Compiler temp vars |
+| Screen | `$0400-$07FF` | `dump_screen.bin` | 40x25 character grid |
+| Color RAM | `$D800-$DBFF` | `dump_colorram.bin` | Per-cell color nybbles |
+| VIC-II | `$D000-$D3FF` | `dump_vic.bin` | Video chip registers |
+| SID | `$D400-$D7FF` | `dump_sid.bin` | Sound chip registers |
+| Sprite ptrs | `$07F8-$07FF` | `dump_sprite_ptrs.bin` | Default sprite pointers |
+| CIA1 | `$DC00-$DCFF` | `dump_cia1.bin` | Keyboard, joystick |
+| CIA2 | `$DD00-$DDFF` | `dump_cia2.bin` | Serial, VIC bank |
+
+**⚠️ NOTE:** All dump files include a 2-byte load address header. Offset formula: `file_offset = (addr - region_start) + 2`
+
+**⚠️ NOTE:** VIC-II color registers ($D020-$D02E) have undefined upper nibble on readback. Always mask with `& $0F`.
+
+### **expected.json Format**
+
+```json
+{
+  "description": "What this test verifies",
+  "cycles": 10000000,
+  "memory_checks": [
+    {
+      "address": "0400",
+      "expected": "08",
+      "description": "Number of tests",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0401",
+      "expected": "08",
+      "description": "Number of passed tests",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    }
+  ],
+  "stack_check": {
+    "sp_min": "F0",
+    "description": "Stack pointer near top — no leak"
+  }
+}
+```
+
+**Key fields:**
+- `address` — Absolute C64 address to check (hex, no `$` prefix)
+- `expected` — Expected byte value (hex, 2 chars)
+- `source` — Which dump file contains this address
+- `region_start` — Base address of the dump region (for offset calc)
+- `cycles` — How many cycles to run before dumping (default: 10M)
+- `stack_check.sp_min` — Minimum acceptable stack pointer value
+
+### **Test Suite Pattern**
+
+Test programs in `examples/test-suite/` use a standard pattern:
+- Write test results to screen memory: `$0400` = test count, `$0401` = pass count, `$0402+` = per-test pass/fail (`$01`=pass, `$00`=fail)
+- Signal completion with `poke($C000, $42)` sentinel
+- Halt with `while(true) { barrier(); }` to let VICE dump memory
+
+### **Test Suite Programs (18 total)**
+
+| # | Test | Focus | Sub-tests |
+|---|------|-------|-----------|
+| 01 | byte-arithmetic | Addition, subtraction, multiply, divide, modulo, shifts | 8 |
+| 02 | word-arithmetic | Word add, subtract, lo/hi extraction | 6 |
+| 03 | bitwise-ops | AND, OR, XOR, NOT, shifts, combined | 8 |
+| 04 | control-flow | While loops, if/else, nested while, boolean conditions | 6 |
+| 05 | function-calls | Params, return values, multi-param, nested calls | 6 |
+| 06 | memory-ops | poke/peek, scratch memory, boundary addresses | 6 |
+| 07 | vic-border-bg | VIC-II border/background color registers | 6 |
+| 08 | screen-fill | Screen memory fill patterns | 6 |
+| 09 | color-ram | Color RAM write/read patterns | 6 |
+| 10 | charset-switch | VIC-II charset pointer ($D018) | 3 |
+| 11 | sprite-enable | VIC-II sprite registers ($D015, $D000-$D00F) | 6 |
+| 12 | data-arrays | @data storage class array access | 6 |
+| 13 | large-data | Large @data arrays (32+ elements) | 6 |
+| 14 | address-compute | Address-of (@) operator, pokew/peekw | 6 |
+| 15 | multi-function | Multi-function calls, recursive factorial, chaining | 6 |
+| 16 | loop-memory | While loops writing to scratch memory | 6 |
+| 17 | word-index-array | Word-sized pokew/peekw, word addressing | 6 |
+| 18 | full-pipeline | Integration: functions+loops+@data+control-flow+word | 6 |
+
+---
+
+## **Batch Mode (diag_batch.sh)**
+
+### **Usage**
+
+```bash
+# Run all test programs in the test suite
+clear && ./scripts/diag_batch.sh examples/test-suite/
+
+# Run all examples (including non-test programs)
+clear && ./scripts/diag_batch.sh examples/
+
+# Custom output directory
+clear && ./scripts/diag_batch.sh examples/test-suite/ build/diag/batch-test
+```
+
+### **What It Does**
+
+1. **Discovers** test programs (folders containing `main.blend`)
+2. **Builds** compiler once (shared across all tests)
+3. **Runs** `diag_app.sh` for each test (with `BLEND65_SKIP_BUILD=1`)
+4. **Runs** `diag_vice.sh` for tests with `expected.json`
+5. **Generates** central `batch-report.md` with summary table
+6. **Analyzes** cross-program patterns (common warnings, failure categories)
+
+### **Output**
+
+```
+build/diag/batch/
+├── <test-name>/           # Per-test diag_app.sh output
+│   ├── summary.txt
+│   ├── O0/ O1/ ...
+│   └── ...
+├── batch-report.md        # Central markdown report with summary table
+└── batch-summary.txt      # Plain-text summary
+```
+
+### **Batch Report Contents**
+
+The `batch-report.md` includes:
+- Per-test pass/fail table (compile + ACME + VICE per level)
+- VICE verification results (checks passed/failed per test)
+- Cross-program analysis (common warnings, failure patterns)
+- PRG size comparison across tests
 
 ---
 

@@ -1,0 +1,173 @@
+module Test.SpriteEnable;
+
+// =============================================================================
+// Test: VIC-II Sprite System — Enable, Position, Color, Pointer
+// =============================================================================
+// Exercises VIC-II sprite registers and @sprite data alignment:
+//   Test 1: Enable sprite 0 via $D015, read back enable register
+//   Test 2: Set sprite 0 X position, verify readback
+//   Test 3: Set sprite 0 Y position, verify readback
+//   Test 4: Set sprite 0 color (mask $0F on read), verify readback
+//   Test 5: Write sprite pointer to $07F8, verify readback
+//   Test 6: @sprite data accessible — peek first byte of sprite data
+//
+// VIC-II Sprite Registers:
+//   $D000 = Sprite 0 X position (low 8 bits)
+//   $D001 = Sprite 0 Y position
+//   $D010 = X position MSB for all sprites (bit 0 = sprite 0)
+//   $D015 = Sprite enable register (bit 0 = sprite 0)
+//   $D027 = Sprite 0 individual color (low nibble only)
+//   $07F8 = Sprite 0 data pointer (screen $0400 + $03F8)
+//
+// Results are written to screen memory ($0400):
+//   $0400 = total test count
+//   $0401 = total passed count
+//   $0402+ = per-test pass/fail (1 = pass, 0 = fail)
+//
+// Completion sentinel: poke($C000, $42)
+// =============================================================================
+
+const SCREEN: word = $0400;
+const SENTINEL: word = $C000;
+
+// VIC-II sprite registers
+const VIC_SPRITE0_X: word = $D000;
+const VIC_SPRITE0_Y: word = $D001;
+const VIC_SPRITE_X_MSB: word = $D010;
+const VIC_SPRITE_ENABLE: word = $D015;
+const VIC_SPRITE0_COLOR: word = $D027;
+const SPRITE0_POINTER: word = $07F8;
+
+// @sprite — 64-byte aligned cross pattern (21 rows × 3 bytes = 63 bytes)
+// First byte is $00, rows 9-10 have $03/$FF/$C0 cross bar
+@sprite const crossSprite: byte[] = [
+    $00, $00, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $03, $FF, $C0,
+    $03, $FF, $C0,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $18, $00,
+    $00, $00, $00
+];
+
+export function main(): void {
+    let testNum: byte = 0;
+    let passed: byte = 0;
+
+    // -------------------------------------------------------------------------
+    // Test 1: Enable sprite 0 — write bit 0 to $D015, read back
+    // -------------------------------------------------------------------------
+    poke(VIC_SPRITE_ENABLE, 1);
+    let enableVal: byte = peek(VIC_SPRITE_ENABLE);
+    if (enableVal == 1) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 2: Set sprite 0 X position to 172, read back
+    // -------------------------------------------------------------------------
+    poke(VIC_SPRITE0_X, 172);
+    // Clear X MSB (bit 0) since 172 < 256
+    poke(VIC_SPRITE_X_MSB, 0);
+    let xVal: byte = peek(VIC_SPRITE0_X);
+    if (xVal == 172) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 3: Set sprite 0 Y position to 140, read back
+    // -------------------------------------------------------------------------
+    poke(VIC_SPRITE0_Y, 140);
+    let yVal: byte = peek(VIC_SPRITE0_Y);
+    if (yVal == 140) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 4: Set sprite 0 color to 2 (red), read back masked with $0F
+    // VIC color registers only use low nibble; upper bits undefined on read
+    // -------------------------------------------------------------------------
+    poke(VIC_SPRITE0_COLOR, 2);
+    let colorVal: byte = peek(VIC_SPRITE0_COLOR) & $0F;
+    if (colorVal == 2) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 5: Compute and write sprite pointer to $07F8
+    // Sprite pointer = address-of-data / 64
+    // lo() narrows the word result to byte for poke
+    // -------------------------------------------------------------------------
+    let sprPtr: byte = lo(@crossSprite / 64);
+    poke(SPRITE0_POINTER, sprPtr);
+    let ptrBack: byte = peek(SPRITE0_POINTER);
+    if (ptrBack == sprPtr) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 6: @sprite data accessible — peek byte at row 9 (cross bar start)
+    // Row 9 starts at offset 9*3 = 27, value should be $03
+    // -------------------------------------------------------------------------
+    let sprByte: byte = peek(@crossSprite + 27);
+    if (sprByte == $03) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Cleanup: disable sprite 0 to leave VIC-II in clean state
+    // -------------------------------------------------------------------------
+    poke(VIC_SPRITE_ENABLE, 0);
+
+    // -------------------------------------------------------------------------
+    // Write summary to screen memory
+    // -------------------------------------------------------------------------
+    poke(SCREEN, testNum);
+    poke(SCREEN + 1, passed);
+
+    // Signal completion
+    poke(SENTINEL, $42);
+
+    // Halt — VICE will capture state after sentinel write
+    while (true) {
+        barrier();
+    }
+}

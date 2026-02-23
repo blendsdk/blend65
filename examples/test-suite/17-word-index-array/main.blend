@@ -1,0 +1,170 @@
+module Test.WordIndexArray;
+
+// =============================================================================
+// Test: Word-Sized Index and Address Computation
+// =============================================================================
+// Exercises word (16-bit) variables for memory addressing and computation:
+//   Test 1: Word variable as poke/peek address — pokew + peekw roundtrip
+//   Test 2: Word variable as computed offset — SCRATCH + word offset
+//   Test 3: Word addition — two word constants summed, verify with lo/hi
+//   Test 4: Word loop counter — count to 300, verify final value
+//   Test 5: Word used as base address for sequential byte writes
+//   Test 6: pokew writes two bytes — verify lo and hi bytes separately
+//
+// These tests verify that:
+//   - Word variables correctly hold 16-bit values
+//   - Word arithmetic produces correct results
+//   - pokew/peekw correctly handle 16-bit read/write
+//   - lo()/hi() correctly extract bytes from word values
+//   - Word variables work as addresses in poke/peek calls
+//
+// Results are written to screen memory ($0400):
+//   $0400 = total test count
+//   $0401 = total passed count
+//   $0402+ = per-test pass/fail (1 = pass, 0 = fail)
+//
+// Scratch memory: $C010-$C03F (free RAM, avoids sentinel at $C000)
+// Completion sentinel: poke($C000, $42)
+// =============================================================================
+
+const SCREEN: word = $0400;
+const SENTINEL: word = $C000;
+const SCRATCH: word = $C010;
+
+export function main(): void {
+    let testNum: byte = 0;
+    let passed: byte = 0;
+
+    // -------------------------------------------------------------------------
+    // Test 1: pokew + peekw roundtrip with word value $CAFE
+    // pokew writes low byte first (little-endian), peekw reads it back
+    // -------------------------------------------------------------------------
+    pokew(SCRATCH, $CAFE);
+    let readBack: word = peekw(SCRATCH);
+    if (readBack == $CAFE) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 2: Word variable as computed address offset
+    // Store byte at SCRATCH+4 via word address computation
+    // -------------------------------------------------------------------------
+    let addr: word = SCRATCH + 4;
+    poke(addr, $55);
+    let val: byte = peek(addr);
+    if (val == $55) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 3: Word addition — $0100 + $0234 = $0334
+    // Verify result via lo() and hi() extraction
+    // lo($0334) = $34, hi($0334) = $03
+    // -------------------------------------------------------------------------
+    let w1: word = $0100;
+    let w2: word = $0234;
+    let wsum: word = w1 + w2;
+    let sumLo: byte = lo(wsum);
+    let sumHi: byte = hi(wsum);
+    if (sumLo == $34) {
+        if (sumHi == $03) {
+            poke(SCREEN + 2 + testNum, 1);
+            passed = passed + 1;
+        } else {
+            poke(SCREEN + 2 + testNum, 0);
+        }
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 4: Word assignment and lo/hi extraction — $012C = 300 decimal
+    // Assign a word constant, extract lo and hi bytes, verify both
+    // 300 = $012C → lo=$2C, hi=$01
+    // -------------------------------------------------------------------------
+    let counter: word = 300;
+    let cLo: byte = lo(counter);
+    let cHi: byte = hi(counter);
+    if (cLo == $2C) {
+        if (cHi == $01) {
+            poke(SCREEN + 2 + testNum, 1);
+            passed = passed + 1;
+        } else {
+            poke(SCREEN + 2 + testNum, 0);
+        }
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 5: Word used as base address for sequential byte writes
+    // Write values 10,20,30 to base+0, base+1, base+2
+    // Then read back and verify
+    // -------------------------------------------------------------------------
+    let base: word = SCRATCH + 8;
+    poke(base, 10);
+    poke(base + 1, 20);
+    poke(base + 2, 30);
+    let v1: byte = peek(base);
+    let v2: byte = peek(base + 1);
+    let v3: byte = peek(base + 2);
+    if (v1 == 10) {
+        if (v2 == 20) {
+            if (v3 == 30) {
+                poke(SCREEN + 2 + testNum, 1);
+                passed = passed + 1;
+            } else {
+                poke(SCREEN + 2 + testNum, 0);
+            }
+        } else {
+            poke(SCREEN + 2 + testNum, 0);
+        }
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 6: pokew writes two bytes — verify lo and hi bytes separately
+    // pokew(SCRATCH+16, $ABCD) should write $CD at SCRATCH+16, $AB at SCRATCH+17
+    // (little-endian: low byte at lower address)
+    // -------------------------------------------------------------------------
+    pokew(SCRATCH + 16, $ABCD);
+    let lowByte: byte = peek(SCRATCH + 16);
+    let highByte: byte = peek(SCRATCH + 17);
+    if (lowByte == $CD) {
+        if (highByte == $AB) {
+            poke(SCREEN + 2 + testNum, 1);
+            passed = passed + 1;
+        } else {
+            poke(SCREEN + 2 + testNum, 0);
+        }
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Write summary to screen memory
+    // -------------------------------------------------------------------------
+    poke(SCREEN, testNum);
+    poke(SCREEN + 1, passed);
+
+    // Signal completion
+    poke(SENTINEL, $42);
+
+    // Halt — VICE will capture state after sentinel write
+    while (true) {
+        barrier();
+    }
+}

@@ -1,0 +1,71 @@
+{
+  "description": "VIC-II sprite system tests — enable, position, color, pointer, @sprite data",
+  "cycles": 5000000,
+  "completion_sentinel": {
+    "address": "C000",
+    "value": "42",
+    "description": "Program completed all 6 sprite tests"
+  },
+  "memory_checks": [
+    {
+      "address": "0400",
+      "expected": "06",
+      "description": "6 tests run",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0401",
+      "expected": "06",
+      "description": "6 tests passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0402",
+      "expected": "01",
+      "description": "Test 1: sprite 0 enabled via $D015 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0403",
+      "expected": "01",
+      "description": "Test 2: sprite 0 X position 172 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0404",
+      "expected": "01",
+      "description": "Test 3: sprite 0 Y position 140 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0405",
+      "expected": "01",
+      "description": "Test 4: sprite 0 color 2 (red) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0406",
+      "expected": "01",
+      "description": "Test 5: sprite pointer written/read at $07F8 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0407",
+      "expected": "01",
+      "description": "Test 6: @sprite data byte at row 9 offset ($03) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    }
+  ],
+  "stack_check": {
+    "sp_min": "F0",
+    "description": "Stack pointer near top — no stack leak"
+  }
+}
