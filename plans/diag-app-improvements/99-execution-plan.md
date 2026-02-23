@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-02-23 01:00
-> **Progress**: 24/38 tasks (63%)
+> **Last Updated**: 2026-02-23 11:14
+> **Progress**: 37/38 tasks (97%)
 
 ## Overview
 
@@ -330,23 +330,23 @@ This document defines the execution phases and AI chat sessions for implementing
 - [x] 4.1.7 Test with border-cycle + expected.json — ALL 4/4 CHECKS PASSED ✅ (completed: 2026-02-23 00:58)
 
 ### Phase 5: Batch Mode
-- [ ] 5.1.1 Create diag_batch.sh scaffold
-- [ ] 5.1.2 Add test discovery
-- [ ] 5.1.3 Add per-test execution loop
-- [ ] 5.1.4 Add central report generation
-- [ ] 5.1.5 Add cross-program analysis
-- [ ] 5.1.6 Test with existing examples
+- [x] 5.1.1 Create diag_batch.sh scaffold ✅ (completed: 2026-02-23 01:30)
+- [x] 5.1.2 Add test discovery ✅ (completed: 2026-02-23 01:30)
+- [x] 5.1.3 Add per-test execution loop ✅ (completed: 2026-02-23 01:30)
+- [x] 5.1.4 Add central report generation ✅ (completed: 2026-02-23 01:30)
+- [x] 5.1.5 Add cross-program analysis ✅ (completed: 2026-02-23 01:30)
+- [x] 5.1.6 Test with existing examples ✅ (completed: 2026-02-23 10:38)
 
 ### Phase 6: Test Programs Wave 1
-- [ ] 6.1.1 Create test-suite README
-- [ ] 6.1.2 Create 01-byte-arithmetic
-- [ ] 6.1.3 Create 02-word-arithmetic
-- [ ] 6.1.4 Create 03-bitwise-ops
-- [ ] 6.1.5 Verify Wave 1a (3 tests)
-- [ ] 6.2.1 Create 04-control-flow
-- [ ] 6.2.2 Create 05-function-calls
-- [ ] 6.2.3 Create 06-memory-ops
-- [ ] 6.2.4 Verify all Wave 1 (6 tests)
+- [x] 6.1.1 Create test-suite README ✅ (completed: 2026-02-23 02:00)
+- [x] 6.1.2 Create 01-byte-arithmetic ✅ (completed: 2026-02-23 02:00)
+- [x] 6.1.3 Create 02-word-arithmetic ✅ (completed: 2026-02-23 02:00)
+- [x] 6.1.4 Create 03-bitwise-ops ✅ (completed: 2026-02-23 02:00)
+- [x] 6.1.5 Verify Wave 1a (3 tests) ✅ (completed: 2026-02-23 10:38)
+- [x] 6.2.1 Create 04-control-flow ✅ (completed: 2026-02-23 11:12 — simplified to while-only, C-style for/break/continue triggers parse cascade)
+- [x] 6.2.2 Create 05-function-calls ✅ (completed: 2026-02-23 11:14 — replaced makeWord with getWordConst due to word-shift codegen bug)
+- [x] 6.2.3 Create 06-memory-ops ✅ (completed: 2026-02-23 10:42)
+- [ ] 6.2.4 Verify all Wave 1 (6 tests) — needs batch re-run in next session
 
 ### Phase 7: Test Programs Wave 2
 - [ ] 7.1.1 Create 07-vic-border-bg
