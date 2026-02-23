@@ -105,10 +105,14 @@ const CONTROL_FLOW_MNEMONICS = new Set([
 ]);
 
 /**
- * Counter for generating unique subroutine names during sequence factoring.
- * Reset per pass invocation to keep names deterministic.
+ * Minimum byte savings required for sequence factoring to be worthwhile.
+ * Avoids marginal/break-even factoring that wastes cycles (JSR/RTS = 12
+ * cycle overhead per call site) for zero or near-zero byte savings.
+ * A threshold of 2 ensures meaningful size reduction before accepting
+ * the runtime cost.
  */
-let factorCounter = 0;
+const MIN_FACTORING_SAVINGS = 2;
+
 
 // ============================================================================
 // SizeOptPass
@@ -138,11 +142,13 @@ export class SizeOptPass implements AsmOptimizationPass {
   readonly isTransform = true;
 
   /**
-   * Create a new SizeOptPass.
-   *
-   * @param aggressive - When true, enables sequence factoring (Oz level).
-   *   When false, only applies tail call optimization (Os level).
+   * Counter for generating unique factored subroutine names.
+   * Persists across run() calls so multi-iteration optimization
+   * (z-levels with maxIterations > 1) produces unique labels.
+   * Resets naturally when a new SizeOptPass instance is created.
    */
+  protected factorCounter = 0;
+
   constructor(protected readonly aggressive: boolean) {}
 
   /**
@@ -152,8 +158,6 @@ export class SizeOptPass implements AsmOptimizationPass {
    * @returns Result with optimized program and statistics
    */
   run(program: AsmILProgram): AsmOptimizationPassResult {
-    // Reset the factor counter for deterministic naming
-    factorCounter = 0;
 
     const stats = createEmptyTransformStats();
     let anyChanged = false;
@@ -256,7 +260,39 @@ export class SizeOptPass implements AsmOptimizationPass {
         const rtsIndex = this.findNextRTS(elements, i + 1);
 
         if (rtsIndex !== -1) {
-          // Replace JSR with JMP
+          // Before converting JSR→JMP, check if the JMP target is the
+          // immediately following label after the RTS. If so, the JMP
+          // would be redundant (execution falls through naturally), so
+          // we remove both JSR and RTS entirely — saving 4 bytes instead
+          // of the normal 1 byte from tail call optimization.
+          const nextSignificant = this.findNextLabelOrInstruction(
+            elements,
+            rtsIndex + 1
+          );
+          const jsrTarget = el.instruction.labelOperand;
+          if (
+            jsrTarget !== undefined &&
+            nextSignificant !== -1 &&
+            elements[nextSignificant].kind === 'label' &&
+            (elements[nextSignificant] as { kind: 'label'; label: { name: string } }).label.name === jsrTarget
+          ) {
+            // JMP target is the very next label — remove both JSR and RTS.
+            // Execution falls through to the target label naturally.
+            // Copy any comments/blanks between JSR and RTS (they may be useful).
+            for (let k = i + 1; k < rtsIndex; k++) {
+              newElements.push(elements[k]);
+            }
+            i = rtsIndex + 1;
+            changed = true;
+
+            stats.patternsMatched++;
+            stats.instructionsRemoved += 2; // JSR + RTS both removed
+            stats.estimatedBytesSaved += 4; // JSR (3 bytes) + RTS (1 byte)
+            stats.estimatedCyclesSaved += TAIL_CALL_CYCLES_SAVED;
+            continue;
+          }
+
+          // Replace JSR with JMP (standard tail call optimization)
           const jmpElement = createInstructionElement(
             'JMP',
             el.instruction.mode,
@@ -328,6 +364,35 @@ export class SizeOptPass implements AsmOptimizationPass {
     return -1;
   }
 
+  /**
+   * Find the next label or instruction element after startIndex,
+   * skipping comments and blanks.
+   *
+   * Used by tail call optimization to detect JMP-to-next patterns:
+   * when `JSR target / RTS` is followed by the target label, the
+   * JMP is redundant because execution falls through naturally.
+   *
+   * @param elements - All elements in the section
+   * @param startIndex - Index to start scanning from
+   * @returns Index of the next label or instruction, or -1 if not found
+   */
+  protected findNextLabelOrInstruction(
+    elements: readonly AsmILElement[],
+    startIndex: number
+  ): number {
+    for (let i = startIndex; i < elements.length; i++) {
+      const el = elements[i];
+
+      // Comments and blanks are transparent — skip them
+      if (el.kind === 'comment' || el.kind === 'blank') continue;
+
+      // Found a label or instruction — return its index
+      return i;
+    }
+
+    return -1;
+  }
+
   // ==========================================================================
   // Sequence Factoring (Oz only)
   // ==========================================================================
@@ -354,9 +419,10 @@ export class SizeOptPass implements AsmOptimizationPass {
       return sections;
     }
 
-    // Step 2: Filter to sequences that actually save space
+    // Step 2: Filter to sequences that actually save space using
+    // actual byte sizes (not estimates) for accurate profitability
     const profitable = candidates.filter(c =>
-      this.isFactoringProfitable(c.instructionCount, c.occurrences)
+      this.isFactoringProfitable(c.actualByteSize, c.occurrences)
     );
 
     if (profitable.length === 0) {
@@ -376,13 +442,54 @@ export class SizeOptPass implements AsmOptimizationPass {
       stats
     );
 
-    // Step 4: Append generated subroutines as a new section
+    // Step 4: Merge generated subroutines into existing _factored_routines
+    // section, or create a new one if this is the first factored sequence.
+    // This is critical for multi-iteration (z-levels): iteration 1 creates
+    // the section, subsequent iterations merge into it instead of creating
+    // duplicate sections with conflicting labels.
+    //
+    // IMPORTANT: The factored routines section must be placed BEFORE any
+    // section containing alignment directives (typically the 'data' section).
+    // If placed after alignment, the alignment padding absorbs all inline
+    // code savings (net zero), while the factored routines at the end are
+    // pure overhead — causing a size regression. By placing them before
+    // alignment, both the inline savings and the routine additions are in
+    // the same pre-alignment region, and the alignment padding adjusts
+    // to absorb the net change (which is typically neutral or positive).
     if (subroutineElements.length > 0) {
-      const subroutineSection: AsmILSection = {
-        name: '_factored_routines',
-        elements: subroutineElements,
-      };
-      newSections = [...newSections, subroutineSection];
+      const existingIdx = newSections.findIndex(s => s.name === '_factored_routines');
+      if (existingIdx !== -1) {
+        // Merge new elements into existing section
+        const existing = newSections[existingIdx];
+        const merged: AsmILSection = {
+          name: '_factored_routines',
+          elements: [...existing.elements, ...subroutineElements],
+        };
+        newSections = [
+          ...newSections.slice(0, existingIdx),
+          merged,
+          ...newSections.slice(existingIdx + 1),
+        ];
+      } else {
+        // First factored routine — create new section.
+        // Insert before the 'data' section (which may contain !align
+        // directives) to avoid alignment-induced size regression.
+        // If no 'data' section exists, append at the end.
+        const subroutineSection: AsmILSection = {
+          name: '_factored_routines',
+          elements: subroutineElements,
+        };
+        const dataIdx = newSections.findIndex(s => s.name === 'data');
+        if (dataIdx !== -1) {
+          newSections = [
+            ...newSections.slice(0, dataIdx),
+            subroutineSection,
+            ...newSections.slice(dataIdx),
+          ];
+        } else {
+          newSections = [...newSections, subroutineSection];
+        }
+      }
     }
 
     return newSections;
@@ -422,6 +529,13 @@ export class SizeOptPass implements AsmOptimizationPass {
           // Skip sequences containing control flow
           if (this.containsControlFlow(slice.map(s => s.element))) continue;
 
+          // Skip sequences whose element range contains labels.
+          // The range [startElementIndex..endElementIndex] may span non-instruction
+          // elements (comments, labels, blanks). Labels in this range may be branch
+          // targets from OUTSIDE the range — splicing them out during factoring
+          // would create "Value not defined" assembler errors.
+          if (this.rangeContainsLabels(elements, slice[0].index, slice[slice.length - 1].index)) continue;
+
           const fingerprint = this.computeFingerprint(slice.map(s => s.element));
           const occurrence: SequenceOccurrence = {
             sectionIndex: sIdx,
@@ -446,20 +560,32 @@ export class SizeOptPass implements AsmOptimizationPass {
         // Filter out overlapping occurrences
         const nonOverlapping = this.removeOverlaps(occurrences);
         if (nonOverlapping.length >= MIN_OCCURRENCES) {
+          // Compute actual byte size from the first occurrence's elements.
+          // All occurrences have the same fingerprint so same byte size.
+          const firstOcc = nonOverlapping[0];
+          const firstElements = sections[firstOcc.sectionIndex].elements;
+          const seqElements: AsmILElement[] = [];
+          for (let ei = firstOcc.startElementIndex; ei <= firstOcc.endElementIndex; ei++) {
+            seqElements.push(firstElements[ei]);
+          }
+          const actualByteSize = this.computeSequenceByteSize(seqElements);
+
           candidates.push({
             fingerprint,
             occurrences: nonOverlapping.length,
             instructionCount: this.countInstructionsInFingerprint(fingerprint),
+            actualByteSize,
             locations: nonOverlapping,
           });
         }
       }
     }
 
-    // Sort by savings potential (more occurrences × longer sequences first)
+    // Sort by actual byte savings potential (higher savings first).
+    // Uses the profitability formula: N(K-1) - 3K - 1 for ranking.
     candidates.sort((a, b) => {
-      const savingsA = a.occurrences * a.instructionCount;
-      const savingsB = b.occurrences * b.instructionCount;
+      const savingsA = a.actualByteSize * (a.occurrences - 1) - 3 * a.occurrences - 1;
+      const savingsB = b.actualByteSize * (b.occurrences - 1) - 3 * b.occurrences - 1;
       return savingsB - savingsA;
     });
 
@@ -482,6 +608,33 @@ export class SizeOptPass implements AsmOptimizationPass {
         if (CONTROL_FLOW_MNEMONICS.has(el.instruction.mnemonic)) {
           return true;
         }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if the element range [startIndex..endIndex] contains any label elements.
+   *
+   * When the sequence factoring sliding window picks instructions at non-contiguous
+   * element indices (e.g., instructions at indices 5, 7, 9 with labels at 6 and 8),
+   * the splice in factorSequence() would destroy those labels. Labels may be branch
+   * targets from outside the range, so removing them causes assembler "Value not
+   * defined" errors.
+   *
+   * @param elements - The section's element array
+   * @param startIndex - First element index in the range (inclusive)
+   * @param endIndex - Last element index in the range (inclusive)
+   * @returns True if any element in the range is a label
+   */
+  protected rangeContainsLabels(
+    elements: readonly AsmILElement[],
+    startIndex: number,
+    endIndex: number
+  ): boolean {
+    for (let i = startIndex; i <= endIndex; i++) {
+      if (elements[i].kind === 'label') {
+        return true;
       }
     }
     return false;
@@ -557,15 +710,76 @@ export class SizeOptPass implements AsmOptimizationPass {
   }
 
   /**
-   * Check if factoring a sequence of given length with given occurrences
-   * is profitable (saves bytes).
+   * Compute the actual byte size of a single 6502 instruction based on
+   * its addressing mode. This is deterministic — each addressing mode
+   * has a fixed instruction size.
+   *
+   * - 1-byte: Implied (RTS, CLC, PHA, TXA, etc.), Accumulator (ASL A)
+   * - 2-byte: Immediate, ZeroPage, ZeroPage,X/Y, IndirectIndexed, Relative
+   * - 3-byte: Absolute, Absolute,X/Y, Indirect
+   *
+   * @param element - An instruction element
+   * @returns The instruction byte size (1, 2, or 3)
+   */
+  protected getInstructionByteSize(element: AsmILElement): number {
+    if (!isInstructionElement(element)) return 0;
+
+    switch (element.instruction.mode) {
+      // 1-byte instructions: opcode only
+      case AsmAddressingMode.Implied:
+      case AsmAddressingMode.Accumulator:
+        return 1;
+
+      // 2-byte instructions: opcode + 1-byte operand
+      case AsmAddressingMode.Immediate:
+      case AsmAddressingMode.ZeroPage:
+      case AsmAddressingMode.ZeroPageX:
+      case AsmAddressingMode.ZeroPageY:
+      case AsmAddressingMode.IndirectIndexed:
+      case AsmAddressingMode.Relative:
+        return 2;
+
+      // 3-byte instructions: opcode + 2-byte operand
+      case AsmAddressingMode.Absolute:
+      case AsmAddressingMode.AbsoluteX:
+      case AsmAddressingMode.AbsoluteY:
+      case AsmAddressingMode.Indirect:
+        return 3;
+
+      default:
+        // Conservative fallback: assume 3 bytes (won't over-estimate savings)
+        return 3;
+    }
+  }
+
+  /**
+   * Compute the total byte size of a sequence of instruction elements.
+   *
+   * Sums the actual byte size of each instruction based on its addressing
+   * mode. Non-instruction elements (comments, labels, blanks) contribute
+   * 0 bytes.
+   *
+   * @param elements - Array of elements (only instructions contribute)
+   * @returns Total byte size of all instructions in the sequence
+   */
+  protected computeSequenceByteSize(elements: readonly AsmILElement[]): number {
+    let total = 0;
+    for (const el of elements) {
+      total += this.getInstructionByteSize(el);
+    }
+    return total;
+  }
+
+  /**
+   * Check if factoring a sequence with a given byte size and occurrence
+   * count is profitable (saves bytes).
    *
    * Cost of factoring:
-   * - Subroutine: N instruction bytes + 1 byte (RTS) + label overhead
+   * - Subroutine: N bytes (instructions) + 1 byte (RTS)
    * - Each call site: 3 bytes (JSR)
    *
    * Original cost:
-   * - N instruction bytes × K occurrences
+   * - N bytes × K occurrences
    *
    * Savings = (N × K) - (N + 1 + 3×K)
    *         = N×K - N - 1 - 3K
@@ -573,21 +787,26 @@ export class SizeOptPass implements AsmOptimizationPass {
    *
    * For this to be positive: N(K-1) > 3K + 1
    *
-   * We estimate instruction bytes conservatively as 2 bytes per instruction
-   * (mix of 1-byte implied and 2-3 byte addressed).
+   * Uses ACTUAL byte sizes computed from instruction addressing modes
+   * (not estimates). Also requires a minimum savings threshold of 2 bytes
+   * to avoid marginal/break-even factoring that wastes cycles for no
+   * meaningful size benefit.
    *
-   * @param instructionCount - Number of instructions in the sequence
+   * @param actualByteSize - Actual byte size of the instruction sequence
    * @param occurrences - Number of times the sequence appears
-   * @returns True if factoring saves bytes
+   * @returns True if factoring saves at least MIN_FACTORING_SAVINGS bytes
    */
   protected isFactoringProfitable(
-    instructionCount: number,
+    actualByteSize: number,
     occurrences: number
   ): boolean {
-    // Estimate bytes per instruction (conservative average)
-    const estimatedBytes = instructionCount * 2;
-    const savings = estimatedBytes * (occurrences - 1) - 3 * occurrences - 1;
-    return savings > 0;
+    // Savings formula: N(K-1) - 3K - 1
+    // where N = actual byte size, K = occurrences
+    const savings = actualByteSize * (occurrences - 1) - 3 * occurrences - 1;
+    // Require minimum savings threshold to avoid marginal factoring
+    // that wastes cycles (JSR/RTS = 12 cycle overhead per call) for
+    // zero or near-zero byte savings
+    return savings >= MIN_FACTORING_SAVINGS;
   }
 
   /**
@@ -606,8 +825,9 @@ export class SizeOptPass implements AsmOptimizationPass {
     subroutineElements: AsmILElement[],
     stats: AsmPassTransformStats
   ): AsmILSection[] {
-    // Generate subroutine name
-    const subName = `.factored_${factorCounter++}`;
+    // Generate subroutine name — uses instance counter to ensure
+    // unique labels across multi-iteration fixed-point optimization
+    const subName = `.factored_${this.factorCounter++}`;
 
     // Build the subroutine: label + instructions + RTS
     subroutineElements.push(
@@ -668,9 +888,8 @@ export class SizeOptPass implements AsmOptimizationPass {
         // Instructions removed = original count, instructions added = 1 (JSR)
         stats.instructionsRemoved += candidate.instructionCount;
         stats.instructionsAdded += 1;
-        // Estimate bytes saved per replacement site
-        const estimatedOriginalBytes = candidate.instructionCount * 2;
-        stats.estimatedBytesSaved += estimatedOriginalBytes - 3; // JSR = 3 bytes
+        // Actual bytes saved per replacement site: original bytes minus JSR (3 bytes)
+        stats.estimatedBytesSaved += candidate.actualByteSize - 3;
       }
 
       return { ...section, elements: newElements };
@@ -679,8 +898,8 @@ export class SizeOptPass implements AsmOptimizationPass {
     // Account for the subroutine itself (added instructions)
     // The subroutine has instructionCount + 1 (RTS) instructions
     stats.instructionsAdded += candidate.instructionCount + 1;
-    // The subroutine costs instructionCount*2 + 1 (RTS) bytes
-    stats.estimatedBytesSaved -= (candidate.instructionCount * 2 + 1);
+    // The subroutine costs actualByteSize + 1 (RTS) bytes
+    stats.estimatedBytesSaved -= (candidate.actualByteSize + 1);
 
     return newSections;
   }
@@ -716,6 +935,13 @@ interface SequenceCandidate {
 
   /** Number of instructions in the sequence */
   instructionCount: number;
+
+  /**
+   * Actual byte size of the instruction sequence, computed from
+   * addressing modes. Used for accurate profitability calculation
+   * instead of the old 2-byte-per-instruction estimate.
+   */
+  actualByteSize: number;
 
   /** Locations of each occurrence */
   locations: SequenceOccurrence[];

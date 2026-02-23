@@ -375,8 +375,58 @@ testing a stale value. The exit condition is wrong.
 | **L3** | Outer loop unrolled without exits | — | — | — | ✗ | — | — |
 | **O1** | barrier() not respected by unroller | — | — | ✗ | ✗ | — | — |
 | **O2** | Stale CMP in reordered code | — | — | ✗ | ✗ | — | — |
+| **W1** | Word comparison emits 16-bit CMP imm | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 **Legend**: ✗ = bug present, — = not applicable
+
+---
+
+---
+
+## Category 5: Word Comparison Codegen Bug
+
+### Bug W1: Word comparison emits 16-bit CMP immediate (ACME error) — ✅ FIXED
+
+**Severity**: 🔴 CRITICAL → ✅ FIXED (2025-02-23)
+**Present in**: O0, O1, O2, O3, Os, Oz (ALL) → **Fixed at all levels**
+**Discovered by**: `examples/test-suite/02-word-arithmetic` diagnostic test
+
+When comparing a word variable against a word literal (e.g., `if (wresult == 3000)`),
+the compiler emits `CMP #$0BB8` — a 16-bit immediate operand. The 6502 CMP
+instruction only supports 8-bit immediates. ACME assembler rejects this with
+"Number out of range" error.
+
+**ASM evidence** (O0, line 66):
+```asm
+; load wresult (word)
+  LDA $0A
+  LDX $0B
+; compare
+  CMP #$0BB8       ; ← WRONG! 6502 CMP only takes 8-bit immediate
+; skip if not equal
+  BNE .else0
+```
+
+**Expected**: 16-bit comparison must be lowered to two 8-bit comparisons:
+```asm
+; compare low byte
+  CMP #<$0BB8      ; CMP #$B8
+  BNE .else0
+; compare high byte
+  TXA               ; or CPX #>$0BB8
+  CMP #>$0BB8      ; CMP #$0B
+  BNE .else0
+```
+
+**Impact**: ANY program that compares a word variable against a word literal
+will fail to assemble. This blocks the entire `02-word-arithmetic` test suite.
+
+**Root cause**: The condition/comparison codegen path doesn't check operand
+type width. When the right-hand operand is a word-sized literal, it emits
+`CMP #value` without splitting into two 8-bit comparisons.
+
+**Affected files**: Likely `packages/compiler/src/codegen/` — the comparison
+instruction emitter needs a word-comparison lowering path.
 
 ---
 
@@ -385,7 +435,8 @@ testing a stale value. The exit condition is wrong.
 ### P0 — Core (fix first, affects ALL levels)
 1. **C1**: Multi-argument passing
 2. **C2**: Constant resolution in conditions
-3. **C3**: Resolves automatically when C1 is fixed
+3. **W1**: Word comparison lowering to two 8-bit comparisons
+4. **C3**: Resolves automatically when C1 is fixed
 
 ### P1 — Optimizer Correctness (fix second, O2/O3 produce wrong code)
 4. **O1**: barrier() must block loop unrolling

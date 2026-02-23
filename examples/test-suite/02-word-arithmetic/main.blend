@@ -1,0 +1,150 @@
+module Test.WordArithmetic;
+
+// =============================================================================
+// Test: Word Arithmetic Operations
+// =============================================================================
+// Exercises 16-bit unsigned (word) arithmetic and byte extraction:
+//   Test 1: Word addition (1000 + 2000 = 3000)
+//   Test 2: Word subtraction (5000 - 1234 = 3766)
+//   Test 3: Word multiplication (100 * 200 = 20000)
+//   Test 4: Word overflow wrapping (65530 + 10 = 4, wraps at 65536)
+//   Test 5: lo() extraction — lo($1234) = $34
+//   Test 6: hi() extraction — hi($1234) = $12
+//   Test 7: Word comparison greater — 1000 > 500
+//   Test 8: Word comparison equal — 4096 == $1000
+//
+// Results are written to screen memory ($0400):
+//   $0400 = total test count
+//   $0401 = total passed count
+//   $0402+ = per-test pass/fail (1 = pass, 0 = fail)
+//
+// Completion sentinel: poke($C000, $42)
+// =============================================================================
+
+const SCREEN: word = $0400;
+const SENTINEL: word = $C000;
+
+export function main(): void {
+    let testNum: byte = 0;
+    let passed: byte = 0;
+
+    // -------------------------------------------------------------------------
+    // Test 1: Word addition — 1000 + 2000 = 3000
+    // -------------------------------------------------------------------------
+    let wa: word = 1000;
+    let wb: word = 2000;
+    let wresult: word = wa + wb;
+    if (wresult == 3000) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 2: Word subtraction — 5000 - 1234 = 3766
+    // -------------------------------------------------------------------------
+    wa = 5000;
+    wb = 1234;
+    wresult = wa - wb;
+    if (wresult == 3766) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 3: Word multiplication — 100 * 200 = 20000
+    // -------------------------------------------------------------------------
+    wa = 100;
+    wb = 200;
+    wresult = wa * wb;
+    if (wresult == 20000) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 4: Word overflow wrapping — 65530 + 10 = 4 (wraps at 65536)
+    // -------------------------------------------------------------------------
+    wa = 65530;
+    wb = 10;
+    wresult = wa + wb;
+    if (wresult == 4) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 5: lo() extraction — lo($1234) = $34
+    // -------------------------------------------------------------------------
+    let addr: word = $1234;
+    let low: byte = lo(addr);
+    if (low == $34) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 6: hi() extraction — hi($1234) = $12
+    // -------------------------------------------------------------------------
+    let high: byte = hi(addr);
+    if (high == $12) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 7: Word comparison greater — 1000 > 500 is true
+    // -------------------------------------------------------------------------
+    wa = 1000;
+    wb = 500;
+    if (wa > wb) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Test 8: Word comparison equal — 4096 == $1000
+    // -------------------------------------------------------------------------
+    wa = 4096;
+    if (wa == $1000) {
+        poke(SCREEN + 2 + testNum, 1);
+        passed = passed + 1;
+    } else {
+        poke(SCREEN + 2 + testNum, 0);
+    }
+    testNum = testNum + 1;
+
+    // -------------------------------------------------------------------------
+    // Write summary to screen memory
+    // -------------------------------------------------------------------------
+    poke(SCREEN, testNum);
+    poke(SCREEN + 1, passed);
+
+    // Signal completion
+    poke(SENTINEL, $42);
+
+    // Halt — VICE will capture state after sentinel write
+    while (true) {
+        barrier();
+    }
+}

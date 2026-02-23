@@ -183,18 +183,28 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
       const op = binExpr.getOperator();
 
       if (this.isComparisonOperator(op)) {
-        // Generate left operand (result in A)
-        this.generateExpression(binExpr.getLeft());
+        // Generate left operand (result in A for byte, A:X for word)
+        const left = binExpr.getLeft();
+        this.generateExpression(left);
 
-        // Generate the CMP with the right operand
-        // We reuse the same logic as generateBinaryImmediate/Slot/Complex
-        // but only emit the CMP, not the generic boolean check
+        // Detect if the left operand is word-typed (16-bit).
+        // When word-typed, we must use CMP_WORD_IMM / CMP_WORD_SLOT
+        // instead of byte-width CMP_IMM / CMP_SLOT. This mirrors the
+        // same detection pattern used in generateBinary() in expressions.ts.
+        const isWordLeft = this.isWordTyped(left) || this.inferWordWidthFromExpression(left);
+
+        // Generate the CMP with the right operand.
+        // Branch on isWordLeft to select byte or word comparison opcode.
         const right = binExpr.getRight();
 
         if (isLiteralExpression(right)) {
           const rightVal = (right as LiteralExpression).getValue();
           if (typeof rightVal === 'number') {
-            this.builder.cmpImm(rightVal, 'compare');
+            if (isWordLeft) {
+              this.builder.cmpWordImm(rightVal, 'compare word');
+            } else {
+              this.builder.cmpImm(rightVal, 'compare');
+            }
           } else {
             // Non-numeric literal — fallback
             this.generateExpression(right);
@@ -207,13 +217,33 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
           // identifiers are inlined as immediates.
           const constValue = this.tryResolveConstantIdentifier(right);
           if (constValue !== undefined) {
-            this.builder.cmpImm(constValue, 'compare with const');
+            if (isWordLeft) {
+              this.builder.cmpWordImm(constValue, 'compare word with const');
+            } else {
+              this.builder.cmpImm(constValue, 'compare with const');
+            }
           } else {
             // Mutable variable — use slot comparison
             const identRight = right as IdentifierExpression;
             const slot = this.tryResolveVariable(identRight.getName());
             if (slot) {
-              this.builder.cmpSlot(slot, 'compare');
+              if (isWordLeft) {
+                // Word-typed left — need word comparison
+                if (slot.size === 2) {
+                  // Both sides are word — use CMP_WORD_SLOT
+                  this.builder.cmpWordSlot(slot, 'compare word');
+                } else {
+                  // Left is word, right is byte — mixed-type fallback.
+                  // The expression path's generateBinaryWord() handles
+                  // proper promotion, so delegate to the generic pattern.
+                  this.generateExpression(condition);
+                  this.builder.cmpImm(0, 'condition (word/byte fallback)');
+                  this.builder.jumpEq(skipLabel, 'skip if false');
+                  return true;
+                }
+              } else {
+                this.builder.cmpSlot(slot, 'compare');
+              }
             } else {
               // Variable not found — fallback to generic pattern
               this.generateExpression(condition);
@@ -458,9 +488,16 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
     this.pushLoopLabels(exitLabel, continueLabel);
 
     // Initialize loop variable: i = start
-    // Use word-width store for 2-byte (word) counter slots
+    // Use word-width store for 2-byte (word) counter slots.
+    // CRITICAL: When the start expression is byte-typed (e.g., literal 0),
+    // generateExpression only loads A — X (high byte) is left as garbage.
+    // We must promote byte→word (LDX #0) before the word-width store,
+    // otherwise the high byte of the counter will be uninitialized.
     this.generateExpression(stmt.getStart());
     if (counterSlot.size === 2) {
+      if (!this.isWordTyped(stmt.getStart())) {
+        this.builder.promoteByteWord(`${stmt.getVariable()} start byte→word`);
+      }
       this.builder.storeSlotWord(counterSlot, `${stmt.getVariable()} = start (word)`);
     } else {
       this.builder.storeSlot(counterSlot, `${stmt.getVariable()} = start`);
@@ -656,37 +693,83 @@ export class ILGeneratorControlFlow extends ILGeneratorExpressions {
   ): void {
     const endExpr = stmt.getEnd();
 
-    // Load counter — use word load for 2-byte counters
     if (isWord) {
+      // === WORD PATH ===
+      // For word counters, we must save/restore the full 16-bit A:X pair
+      // and use word-width comparison against a word-sized ZP temp slot.
+
+      // Load word counter into A:X (low byte in A, high byte in X)
       this.builder.loadSlotWord(counterSlot, `load ${stmt.getVariable()} (word)`);
+
+      // Save both bytes to stack: push A (low) first, then X (high).
+      // Stack order: A pushed first → X pushed second → X popped first → A popped last.
+      this.builder.pushA('save counter low');
+      this.builder.transferXA('X→A for push');
+      this.builder.pushA('save counter high');
+
+      // Evaluate dynamic end expression (clobbers A:X)
+      this.generateExpression(endExpr);
+
+      // If end expression is byte-typed, promote to word (LDX #0)
+      // so we store a full 16-bit value to the temp slot.
+      if (!this.isWordTyped(endExpr) && !this.inferWordWidthFromExpression(endExpr)) {
+        this.builder.promoteByteWord('end bound byte→word');
+      }
+
+      // Store end value to a word-sized ZP temp slot ($FD-$FE).
+      // Uses storeSlotWord which stores A to low byte, X to high byte.
+      const zpTempWord = this.createZpTempWordSlot();
+      this.builder.storeSlotWord(zpTempWord, 'save end bound (word)');
+
+      // Restore counter from stack (reverse order: pop high first, then low).
+      this.builder.popA('restore counter high');
+      this.builder.transferAX('A→X restore high');
+      this.builder.popA('restore counter low');
+
+      // Compare counter (A:X) with stored end value using word comparison.
+      // cmpWordSlot does a full 16-bit compare (high bytes first, then low).
+      this.builder.cmpWordSlot(zpTempWord, 'counter cmp end (word)');
+
+      if (isAscending) {
+        // Ascending: exit when counter > end (all iterations including end are done)
+        this.builder.jumpGt(exitLabel, 'exit if counter > end');
+      } else {
+        // Descending: exit when counter < end
+        this.builder.jumpLt(exitLabel, 'exit if counter < end');
+      }
     } else {
+      // === BYTE PATH (existing, unchanged) ===
+      // For byte counters, save/restore a single byte via PHA/PLA
+      // and use byte-width comparison.
+
+      // Load byte counter
       this.builder.loadSlot(counterSlot, `load ${stmt.getVariable()}`);
-    }
 
-    // Dynamic bound strategy: save counter to stack, generate end expression
-    // into A, store end to a ZP temp slot, restore counter from stack, then
-    // CMP counter with the stored end value. This gives balanced PHA/PLA
-    // (exactly 1 push, 1 pop) and avoids the cmpImm(255) fallback.
-    this.builder.pushA('save counter');
-    this.generateExpression(endExpr);
+      // Dynamic bound strategy: save counter to stack, generate end expression
+      // into A, store end to a ZP temp slot, restore counter from stack, then
+      // CMP counter with the stored end value. This gives balanced PHA/PLA
+      // (exactly 1 push, 1 pop) and avoids the cmpImm(255) fallback.
+      this.builder.pushA('save counter');
+      this.generateExpression(endExpr);
 
-    // Store end value to ZP temp so we can compare counter with it.
-    // createZpTempSlot() is inherited from ILGeneratorExpressions.
-    const zpTemp = this.createZpTempSlot();
-    this.builder.storeSlot(zpTemp, 'save end bound');
+      // Store end value to ZP temp so we can compare counter with it.
+      // createZpTempSlot() is inherited from ILGeneratorExpressions.
+      const zpTemp = this.createZpTempSlot();
+      this.builder.storeSlot(zpTemp, 'save end bound');
 
-    // Restore counter from stack — balanced PLA matching the PHA above.
-    this.builder.popA('restore counter');
+      // Restore counter from stack — balanced PLA matching the PHA above.
+      this.builder.popA('restore counter');
 
-    // Compare counter with stored end value
-    this.builder.cmpSlot(zpTemp, 'counter cmp end');
+      // Compare counter with stored end value
+      this.builder.cmpSlot(zpTemp, 'counter cmp end');
 
-    if (isAscending) {
-      // Ascending: exit when counter > end (all iterations including end are done)
-      this.builder.jumpGt(exitLabel, 'exit if counter > end');
-    } else {
-      // Descending: exit when counter < end
-      this.builder.jumpLt(exitLabel, 'exit if counter < end');
+      if (isAscending) {
+        // Ascending: exit when counter > end (all iterations including end are done)
+        this.builder.jumpGt(exitLabel, 'exit if counter > end');
+      } else {
+        // Descending: exit when counter < end
+        this.builder.jumpLt(exitLabel, 'exit if counter < end');
+      }
     }
   }
 

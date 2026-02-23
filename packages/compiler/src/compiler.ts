@@ -289,7 +289,9 @@ export class Compiler {
     }
 
     // Phase 7: ASM-IL Optimization
-    const asmOptResult = this.asmOptPhase.execute(codegenResult.data);
+    // Pass the optimization level so the ASM-IL optimizer creates
+    // the correct set of passes (including long-branch expansion).
+    const asmOptResult = this.asmOptPhase.execute(codegenResult.data, optLevel);
     result.phases.asmOpt = asmOptResult;
     result.diagnostics.push(...asmOptResult.diagnostics);
     if (!asmOptResult.success || stopAfterPhase === 'asmOpt') {

@@ -95,49 +95,53 @@ const HELLO_LENGTH: byte = 12;
 // Armenian Font — 2048-byte Character Set (38 letters + space + padding)
 // ============================================================================
 // @charset ensures 2048-byte alignment for VIC-II character generator.
-// Characters 0-37: Armenian uppercase letters (A-F)
+// Characters 0-37: Armenian uppercase letters (Ա-Ֆ) in traditional forms
 // Character 38: Space
 // Characters 39-255: Blank (zeros)
+//
+// Each Armenian letter is designed as 8x8 pixel art approximating the
+// actual uppercase Armenian letterforms. Armenian script has distinctive
+// shapes — descenders, hooks, and rounded forms — that differ from Latin.
 
 @charset const armenianFont: byte[2048] = [
-    $30,$48,$84,$84,$FC,$84,$84,$00,  // 0:  A (Ayb)
-    $F8,$84,$84,$F8,$84,$84,$F8,$00,  // 1:  B (Ben)
-    $42,$42,$42,$42,$42,$3C,$08,$10,  // 2:  G (Gim)
-    $7C,$44,$44,$44,$44,$44,$C6,$00,  // 3:  D (Da)
-    $FC,$80,$80,$F8,$80,$80,$FC,$00,  // 4:  E (Yech)
-    $30,$30,$48,$48,$84,$84,$78,$10,  // 5:  Z (Za)
-    $FC,$80,$80,$F0,$80,$80,$80,$00,  // 6:  E (E)
-    $78,$84,$02,$3C,$40,$84,$78,$00,  // 7:  Et
-    $78,$84,$84,$84,$78,$30,$30,$00,  // 8:  To
-    $92,$92,$54,$38,$38,$54,$92,$00,  // 9:  Zhe
-    $40,$40,$40,$40,$40,$44,$38,$00,  // 10: Ini
-    $40,$40,$40,$40,$40,$40,$7E,$00,  // 11: Lyun
-    $84,$48,$30,$30,$48,$84,$84,$00,  // 12: Khe
-    $78,$84,$80,$80,$80,$84,$78,$10,  // 13: Tsa
-    $84,$88,$90,$E0,$90,$88,$84,$00,  // 14: Ken
-    $80,$80,$F8,$84,$84,$84,$78,$00,  // 15: Ho
-    $30,$48,$84,$84,$48,$30,$10,$20,  // 16: Dza
-    $84,$84,$84,$84,$78,$04,$08,$00,  // 17: Ghat
-    $30,$48,$84,$FC,$84,$48,$30,$00,  // 18: Tche
-    $84,$CC,$B4,$B4,$84,$84,$84,$00,  // 19: Men
-    $84,$48,$30,$20,$20,$20,$20,$00,  // 20: Yi
-    $84,$C4,$A4,$94,$8C,$84,$84,$00,  // 21: Nu
-    $92,$92,$92,$92,$92,$92,$7E,$00,  // 22: Sha
-    $78,$84,$84,$84,$84,$84,$78,$00,  // 23: Vo
-    $30,$30,$78,$84,$84,$84,$78,$00,  // 24: Cha
-    $FC,$84,$84,$84,$84,$84,$84,$00,  // 25: Pe
-    $30,$48,$84,$84,$48,$30,$30,$60,  // 26: Jhe
-    $F8,$84,$84,$F8,$90,$88,$84,$00,  // 27: Ra
-    $78,$84,$80,$78,$04,$84,$78,$00,  // 28: Se
-    $84,$84,$84,$48,$48,$30,$30,$00,  // 29: Vev
-    $FC,$30,$30,$30,$30,$30,$30,$00,  // 30: Tiwn
-    $40,$40,$40,$40,$44,$48,$30,$00,  // 31: Re
-    $84,$84,$84,$48,$30,$20,$40,$00,  // 32: Co
-    $84,$84,$84,$84,$84,$84,$FC,$00,  // 33: Yiwn
-    $78,$84,$84,$FC,$84,$84,$78,$00,  // 34: Piwr
-    $84,$88,$90,$E0,$90,$88,$84,$20,  // 35: Ke
-    $38,$44,$82,$82,$82,$44,$38,$00,  // 36: O
-    $30,$30,$78,$30,$30,$30,$30,$00,  // 37: Fe
+    $44,$44,$44,$28,$28,$10,$10,$00,  // 0:  Ա (Ayb)   — two legs converging down
+    $40,$40,$78,$44,$44,$44,$78,$00,  // 1:  Բ (Ben)   — vertical + right bump
+    $7C,$04,$04,$04,$04,$24,$38,$00,  // 2:  Գ (Gim)   — top bar + hook down
+    $44,$44,$44,$44,$44,$7C,$10,$00,  // 3:  Դ (Da)    — two strokes joined at base
+    $38,$44,$40,$70,$40,$44,$38,$00,  // 4:  Ե (Yech)  — rounded E-like
+    $7C,$04,$08,$10,$20,$40,$7C,$10,  // 5:  Զ (Za)    — zigzag + descender
+    $40,$40,$40,$78,$40,$40,$40,$00,  // 6:  Է (E)     — vertical + right bar mid
+    $04,$04,$44,$44,$44,$44,$38,$00,  // 7:  Ը (Et')   — U with top-right ext.
+    $38,$44,$44,$44,$44,$38,$10,$00,  // 8:  Թ (T'o)   — circle + descender
+    $10,$54,$38,$10,$38,$54,$10,$00,  // 9:  Ժ (Zhe)   — asterisk / cross
+    $78,$40,$40,$40,$40,$40,$40,$00,  // 10: Ի (Ini)   — top-right bar + down
+    $40,$40,$40,$40,$40,$40,$7C,$00,  // 11: Լ (Lyun)  — vertical + bottom bar
+    $44,$28,$10,$28,$44,$44,$00,$00,  // 12: Խ (Khe)   — X crossing strokes
+    $38,$44,$40,$40,$44,$38,$08,$04,  // 13: Ծ (Tsa)   — C + right descender
+    $44,$48,$50,$60,$50,$48,$44,$00,  // 14: Կ (Ken)   — angular K-like
+    $40,$40,$78,$44,$44,$44,$38,$00,  // 15: Հ (Ho)    — hook loops right
+    $38,$44,$44,$44,$38,$10,$20,$00,  // 16: Ձ (Dza)   — circle + left descender
+    $44,$44,$44,$44,$38,$04,$08,$00,  // 17: Ղ (Ghat') — U + right descender
+    $10,$28,$44,$7C,$44,$28,$10,$00,  // 18: Ճ (Tche)  — diamond shape
+    $44,$6C,$54,$54,$44,$44,$44,$00,  // 19: Մ (Men)   — wide M two peaks
+    $44,$28,$10,$10,$10,$10,$10,$00,  // 20: Յ (Yi)    — Y converging down
+    $40,$40,$78,$44,$44,$44,$44,$00,  // 21: Ն (Nu)    — vertical + n shape
+    $54,$54,$54,$54,$54,$54,$38,$00,  // 22: Շ (Sha)   — three-prong comb
+    $44,$44,$44,$44,$44,$44,$38,$00,  // 23: Ո (Vo)    — U open top
+    $38,$44,$44,$44,$44,$38,$20,$40,  // 24: Չ (Cha)   — circle + left desc.
+    $7C,$44,$44,$44,$44,$44,$44,$00,  // 25: Պ (Pe)    — pi-like top bar
+    $38,$44,$44,$44,$38,$10,$38,$00,  // 26: Ջ (Jhe)   — circle + cross desc.
+    $78,$44,$44,$78,$50,$48,$44,$00,  // 27: Ռ (Ra)    — bold R-like
+    $38,$44,$40,$38,$04,$44,$38,$00,  // 28: Ս (Se)    — S-curve
+    $44,$44,$44,$28,$28,$10,$10,$00,  // 29: Վ (Vev)   — V converging down
+    $7C,$10,$10,$10,$10,$10,$10,$00,  // 30: Տ (Tiwn)  — T wide top bar
+    $40,$40,$48,$50,$60,$40,$40,$00,  // 31: Ր (Re)    — vertical + left hook
+    $38,$44,$40,$40,$44,$38,$04,$00,  // 32: Ց (Co)    — C + right descender
+    $44,$44,$44,$44,$44,$44,$7C,$00,  // 33: Ւ (Hiwn)  — U + bottom bar
+    $38,$54,$54,$54,$54,$38,$10,$00,  // 34: Փ (P'iwr) — phi circle + bar
+    $44,$48,$50,$60,$50,$48,$44,$20,  // 35: Ք (K'e)   — K + descender
+    $38,$44,$44,$44,$44,$44,$38,$00,  // 36: Օ (O)     — full circle
+    $10,$7C,$10,$10,$10,$10,$10,$00,  // 37: Ֆ (Fe)    — cross top + vertical
     $00,$00,$00,$00,$00,$00,$00,$00,  // 38: Space
     // Characters 39-255: blank padding (217 chars x 8 bytes = 1736 zeros)
     $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,
@@ -254,9 +258,19 @@ const HELLO_LENGTH: byte = 12;
 // ============================================================================
 // plotChar() — Place a Character on Screen with Color
 // ============================================================================
+// NOTE: Uses repeated addition instead of multiplication because the
+// compiler's __mul8 routine returns only 8 bits. For y >= 7 the product
+// y * 40 exceeds 255, so the high byte would be lost. Repeated word
+// addition avoids this overflow.
 
 function plotChar(x: byte, y: byte, ch: byte, color: byte): void {
-    let offset: word = y * SCREEN_WIDTH + x;
+    let offset: word = 0;
+    let row: byte = y;
+    while (row > 0) {
+        offset = offset + SCREEN_WIDTH;
+        row = row - 1;
+    }
+    offset = offset + x;
     poke(SCREEN_BASE + offset, ch);
     poke(COLOR_BASE + offset, color);
 }

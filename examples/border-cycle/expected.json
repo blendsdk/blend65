@@ -1,0 +1,29 @@
+{
+  "description": "Border cycle — cycles border color 0-15 in a loop with delay",
+  "cycles": 10000000,
+  "break_address": "0810",
+  "memory_checks": [
+    {
+      "address": "D020",
+      "expected": "0E",
+      "description": "Border color = light blue (C64 default at main entry)",
+      "source": "dump_vic.bin",
+      "region_start": "D000"
+    },
+    {
+      "address": "D021",
+      "expected": "06",
+      "description": "Background color = blue (C64 default at main entry)",
+      "source": "dump_vic.bin",
+      "region_start": "D000"
+    }
+  ],
+  "stack_check": {
+    "sp_min": "F0",
+    "description": "Stack pointer near top at main entry (no leak)"
+  },
+  "register_checks": {
+    "pc_range": ["0800", "0900"],
+    "description": "PC should be at main entry point ($0810)"
+  }
+}

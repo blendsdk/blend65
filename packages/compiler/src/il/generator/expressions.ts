@@ -841,6 +841,24 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
   }
 
   /**
+   * Create a synthetic word-sized FrameSlot pointing to ZP temp ($FD-$FE).
+   *
+   * Used by the dynamic word for-loop condition path to store a 16-bit
+   * end bound value. The slot occupies two zero-page bytes: $FD (low)
+   * and $FE (high), matching the contiguous word layout expected by
+   * `storeSlotWord()` / `loadSlotWord()` / `cmpWordSlot()`.
+   *
+   * @returns FrameSlot pointing to zero-page address $FD with size=2
+   */
+  protected createZpTempWordSlot(): FrameSlot {
+    const slot = createFrameSlot('__zp_temp_w', SlotKind.Local, BUILTIN_TYPES.WORD, {
+      location: SlotLocation.ZeroPage,
+      address: 0xfd,
+    });
+    return slot;
+  }
+
+  /**
    * Generate binary operation with immediate operand.
    *
    * @param op - Operator token type
@@ -2176,11 +2194,26 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       return;
     }
 
-    // Tier 3: General indirect addressing via ZP pointer
-    // Compute address first (before value), store to ZP pointer,
-    // then generate value and store via indirect
-    this.generateTier3Address(addrExpr, decomp);
+    // Tier 3: General indirect addressing via ZP pointer.
+    //
+    // CRITICAL: Generate the VALUE expression FIRST, push to stack,
+    // then compute the destination address into $FB/$FC.
+    //
+    // Why: If the value expression contains a peek() with a dynamic address
+    // (e.g., poke(dest + i, peek(src + i))), the inner peek's Tier 3 path
+    // also uses $FB/$FC for its source address. If we computed the poke
+    // destination first and stored it in $FB/$FC, the inner peek would
+    // overwrite $FB/$FC with its own source pointer, causing the poke to
+    // write back to the source instead of the destination.
+    //
+    // By generating value first → push → compute dest → pop → poke,
+    // the inner peek freely uses $FB/$FC for its own addressing, and
+    // the poke destination is computed AFTER peek is done, so $FB/$FC
+    // correctly holds the destination at the point of the indirect write.
     this.generateExpression(valueExpr);
+    this.builder.emit(ILOpcode.PUSH_A, [], 'save poke value');
+    this.generateTier3Address(addrExpr, decomp);
+    this.builder.emit(ILOpcode.POP_A, [], 'restore poke value');
     this.builder.pokeIndirect(`${label}(indirect)`);
   }
 
@@ -2245,12 +2278,26 @@ export class ILGeneratorExpressions extends ILGeneratorBase {
       return;
     }
 
-    // Tier 3: General indirect addressing via ZP pointer
+    // Tier 3: General indirect addressing via ZP pointer.
     // (Tier 2 skipped — word writes need consecutive bytes, not easily X-indexed)
-    // Compute address first, store to ZP pointer, then generate value
+    //
+    // CRITICAL: Generate the VALUE expression FIRST, push A:X to stack,
+    // then compute the destination address into $FB/$FC.
+    //
+    // Same $FB/$FC clobbering issue as poke Tier 3 — if the value expression
+    // contains a peek/peekw with a dynamic address, its Tier 3 path would
+    // overwrite $FB/$FC with its source pointer.
+    //
+    // For word values we save both A (low) and X (high) to the stack.
     const decomp = this.decomposeAddressExpression(addrExpr);
-    this.generateTier3Address(addrExpr, decomp);
     this.generateExpression(valueExpr);
+    this.builder.emit(ILOpcode.PUSH_A, [], 'save pokew value lo');
+    this.builder.emit(ILOpcode.TRANSFER_XA, [], 'pokew value hi → A');
+    this.builder.emit(ILOpcode.PUSH_A, [], 'save pokew value hi');
+    this.generateTier3Address(addrExpr, decomp);
+    this.builder.emit(ILOpcode.POP_A, [], 'restore pokew value hi');
+    this.builder.emit(ILOpcode.TRANSFER_AX, [], 'pokew value hi → X');
+    this.builder.emit(ILOpcode.POP_A, [], 'restore pokew value lo');
     this.builder.pokewIndirect(`${label}(indirect)`);
   }
 

@@ -1,0 +1,85 @@
+{
+  "description": "Word arithmetic operations — 16-bit addition, subtraction, multiplication, overflow, hi/lo extraction, comparisons",
+  "cycles": 10000000,
+  "completion_sentinel": {
+    "address": "C000",
+    "value": "42",
+    "description": "Program completed all 8 tests"
+  },
+  "memory_checks": [
+    {
+      "address": "0400",
+      "expected": "08",
+      "description": "8 tests run",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0401",
+      "expected": "08",
+      "description": "8 tests passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0402",
+      "expected": "01",
+      "description": "Test 1: word addition (1000 + 2000 = 3000) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0403",
+      "expected": "01",
+      "description": "Test 2: word subtraction (5000 - 1234 = 3766) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0404",
+      "expected": "01",
+      "description": "Test 3: word multiplication (100 * 200 = 20000) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0405",
+      "expected": "01",
+      "description": "Test 4: word overflow wrap (65530 + 10 = 4) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0406",
+      "expected": "01",
+      "description": "Test 5: lo($1234) = $34 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0407",
+      "expected": "01",
+      "description": "Test 6: hi($1234) = $12 passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0408",
+      "expected": "01",
+      "description": "Test 7: word comparison greater (1000 > 500) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    },
+    {
+      "address": "0409",
+      "expected": "01",
+      "description": "Test 8: word comparison equal (4096 == $1000) passed",
+      "source": "dump_screen.bin",
+      "region_start": "0400"
+    }
+  ],
+  "stack_check": {
+    "sp_min": "F0",
+    "description": "Stack pointer near top — no stack leak"
+  }
+}
