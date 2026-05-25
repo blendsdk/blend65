@@ -143,9 +143,11 @@ If `break` or `continue` appears in a switch that is **not** inside a loop, it p
 
 | Type | Allowed | Notes |
 |------|---------|-------|
-| `byte` | ✅ | Most common — 8-bit comparison, compact codegen |
-| `word` | ✅ | 16-bit comparison — more expensive (see codegen) |
-| Enum | ✅ | Compared by underlying type (byte or word) |
+| `byte` | ✅ | Most common — 8-bit unsigned comparison, compact codegen |
+| `sbyte` | ✅ | 8-bit signed comparison (F010) |
+| `word` | ✅ | 16-bit unsigned comparison — more expensive (see codegen) |
+| `sword` | ✅ | 16-bit signed comparison (F010) |
+| Enum | ✅ | Compared by underlying type (byte) |
 | `boolean` | ❌ | Use `if/else` — E10075 |
 | Arrays, structs | ❌ | Not comparable — E10075 |
 | `void` | ❌ | No value — E10075 |
@@ -328,7 +330,7 @@ The developer does not control this selection — the compiler optimizes automat
 | 7 | SW-7 | `break`/`continue` inside switch | **Pass through to enclosing loop**. Switch is transparent to loop control. E10063 if no enclosing loop. |
 | 8 | SW-8 | `fallthrough` in last case/default | **E10073** — nothing to fall through to. Always detectable at compile time. |
 | 9 | SW-9 | `fallthrough` position | Must be **last statement at top level** of case body. Cannot be inside `if`/`while`/`for`. Cannot have statements after it. E10074. |
-| 10 | SW-10 | Switch expression types | **`byte`, `word`, enum**. Boolean excluded (use `if/else`). Arrays, structs, void excluded. E10075. |
+| 10 | SW-10 | Switch expression types | **`byte`, `sbyte`, `word`, `sword`, enum**. Boolean excluded (use `if/else`). Arrays, structs, void excluded. E10075. |
 | 11 | SW-11 | Empty case body | **Allowed** — acts as a no-op for that case value. Compiler generates the comparison and an empty block (`JMP .switch_end`). |
 | 12 | SW-12 | Nested switches | **Allowed**. Each switch is independent. Inner switch is just code inside the outer case body. |
 | 13 | SW-13 | Switch inside loops | `break`/`continue` target the loop, not the switch (see SW-7). The switch is transparent. |
@@ -509,7 +511,7 @@ function movePlayer(direction: byte, speed: byte): void {
 | E10072 | Case type mismatch | `Case value type '<case_type>' does not match switch expression type '<switch_type>'` |
 | E10073 | `fallthrough` in last case/default | `'fallthrough' has no effect — this is the last case in the switch` |
 | E10074 | `fallthrough` not last statement | `'fallthrough' must be the last statement in a case body — it cannot be inside an if/while/for block, and no statements may follow it` |
-| E10075 | Invalid switch expression type | `Cannot switch on type '<type>' — switch expression must be 'byte', 'word', or an enum type` |
+| E10075 | Invalid switch expression type | `Cannot switch on type '<type>' — switch expression must be 'byte', 'sbyte', 'word', 'sword', or an enum type` |
 | E10076 | Multiple default clauses | `Only one 'default' clause is allowed per switch statement` |
 
 ## Warnings

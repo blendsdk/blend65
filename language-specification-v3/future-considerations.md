@@ -157,6 +157,82 @@ switch (score) {
 
 ---
 
+### FUT-008: Const struct parameters
+
+> **Source**: F011 (Structs), Rule SR-3  
+> **Deferred from**: v3  
+> **Priority**: Medium
+
+**What**: Allow `function display(e: const Enemy): void` — a `const` qualifier on struct parameters that makes the parameter read-only inside the function, enabling const structs to be passed without copying.
+
+**Why deferred**: Adds a new parameter qualifier keyword and const-checking rules to semantic analysis. In v3, const structs must be copied to a mutable variable before passing to functions. This is explicit and simple (Language Guard L4).
+
+**Reconsideration criteria**:
+- Real-world code frequently needs read-only struct access in functions
+- A clean `const` parameter qualifier is designed that doesn't conflict with existing `const` declaration syntax
+- The semantic analysis can propagate const-ness through field access and nested calls
+
+---
+
+### FUT-009: Address-of on struct fields
+
+> **Source**: F011 (Structs), Ambiguity SR-A5  
+> **Deferred from**: v3  
+> **Priority**: Medium
+
+**What**: Allow `&player.hp` to return the address of a specific struct field. For module-level structs, the address is compile-time constant. For by-reference parameters, requires runtime address calculation.
+
+**Why deferred**: Overlaps with FUT-001. For by-reference struct parameters, computing `&(param.field)` requires runtime pointer arithmetic. In v3, developers can use `&struct + offset` with `sizeof` for manual calculation.
+
+**Reconsideration criteria**:
+- FUT-001 is implemented (address-of on sub-expressions)
+- Common enough pattern in real-world code to justify compiler support
+- Runtime address calculation cost is documented and acceptable
+
+---
+
+### FUT-010: Struct return values
+
+> **Source**: F011 (Structs), Rule SR-2  
+> **Deferred from**: v3  
+> **Priority**: Low
+
+**What**: Allow functions to return struct types: `function createEnemy(): Enemy`. The compiler would copy the struct from the function's frame to the caller's destination.
+
+**Why deferred**: Requires hidden byte copying from callee frame to caller, which has non-transparent cost (violates H2 and A4). The by-reference parameter pattern achieves the same result explicitly.
+
+**Reconsideration criteria**:
+- A syntax is designed that makes the copy cost explicit (e.g., `let e: Enemy = createEnemy();` clearly assigns)
+- The compiler can optimize out the copy in common cases (return value optimization / RVO)
+- Community feedback indicates the by-reference parameter pattern is too verbose
+
+---
+
+### FUT-011: External assembly linking (`extern function`)
+
+> **Source**: F012 (CPU Control Intrinsics), Ambiguity CC-A9  
+> **Deferred from**: v3  
+> **Priority**: Low
+
+**What**: Allow declaring functions implemented in external assembly files, enabling Blend65 programs to call hand-written assembly routines:
+
+```blend65
+extern function fastClear(addr: word, count: byte): void;
+extern function rasterEffect(): void;
+```
+
+The assembly is written in a real assembler (KickAssembler, ca65, DASM) and linked with the Blend65 compiler output.
+
+**Why deferred**: Requires a linker, a defined binary/object format, a calling convention specification, and external tool dependency. The curated `asm_*()` intrinsics + language features + memory intrinsics cover all game development needs without external assembly. The only use cases that genuinely require hand-written assembly are demo-scene effects (FLD, VSP, AGSP, FLI) — cycle-counted techniques not used in commercial games.
+
+**Reconsideration criteria**:
+- Real-world Blend65 users need cycle-counted assembly sequences (demo scene, advanced raster effects)
+- A simple object format and calling convention can be defined
+- A linker can be implemented without excessive complexity
+- The feature passes the full Language Guard evaluation
+
+---
+
 ## Summary Table
 
 | ID | Description | Priority | Depends On |
@@ -168,3 +244,7 @@ switch (score) {
 | FUT-005 | Type-safe interrupt installation | Medium | FUT-003 |
 | FUT-006 | Labeled `break` for nested loops | Low | — |
 | FUT-007 | Range cases in switch statements | Low | — |
+| FUT-008 | Const struct parameters | Medium | F011 |
+| FUT-009 | Address-of on struct fields | Medium | FUT-001, F011 |
+| FUT-010 | Struct return values | Low | F011 |
+| FUT-011 | External assembly linking (`extern function`) | Low | F012 |

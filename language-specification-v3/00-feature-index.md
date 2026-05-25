@@ -33,6 +33,10 @@ These are foundational decisions — not features. They are **givens** that all 
 | F007 | Interrupt functions | ✅ Accepted | Pass | [features/F007-interrupt-functions.md](features/F007-interrupt-functions.md) |
 | F008 | For loop | ✅ Accepted | Pass | [features/F008-for-loop.md](features/F008-for-loop.md) |
 | F009 | Switch statement | ✅ Accepted | Pass | [features/F009-switch-statement.md](features/F009-switch-statement.md) |
+| F010 | Signed types (`sbyte`, `sword`) | ✅ Accepted | Pass | [features/F010-signed-types.md](features/F010-signed-types.md) |
+| F011 | Structs | ✅ Accepted | Pass | [features/F011-structs.md](features/F011-structs.md) |
+| F012 | CPU control intrinsics | ✅ Accepted | Pass | [features/F012-cpu-control-intrinsics.md](features/F012-cpu-control-intrinsics.md) |
+| F013 | Control flow (if/else, while, do-while, block scoping) | ✅ Accepted | Pass | [features/F013-control-flow.md](features/F013-control-flow.md) |
 
 ---
 
@@ -40,7 +44,7 @@ These are foundational decisions — not features. They are **givens** that all 
 
 | Document | Description |
 |----------|-------------|
-| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-007) |
+| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-011) |
 | [../\.clinerules/language-guard.md](../.clinerules/language-guard.md) | Language Guard — 23 rules, 5 escape hatch tiers |
 
 ---
@@ -78,8 +82,25 @@ All error codes use a 5-digit format starting at 10000.
 | E10072 | F009 | Case value type `<case_type>` does not match switch expression type `<switch_type>` |
 | E10073 | F009 | `fallthrough` has no effect — this is the last case in the switch |
 | E10074 | F009 | `fallthrough` must be the last statement in a case body — it cannot be inside an if/while/for block, and no statements may follow it |
-| E10075 | F009 | Cannot switch on type `<type>` — switch expression must be `byte`, `word`, or an enum type |
+| E10075 | F009 | Cannot switch on type `<type>` — switch expression must be `byte`, `sbyte`, `word`, `sword`, or an enum type |
 | E10076 | F009 | Only one `default` clause is allowed per switch statement |
+| E10080 | F010 | Cannot implicitly convert `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
+| E10081 | F010 | Cannot mix signed type `<type_a>` with unsigned type `<type_b>` in expression — cast one operand |
+| E10082 | F010 | Cannot implicitly narrow `<from_type>` to `<to_type>` — use explicit cast: `<to_type>(<expr>)` |
+| E10083 | F010 | Cannot negate unsigned type `<type>` — use `sbyte`/`sword` for signed arithmetic |
+| E10084 | F010 | Value `<value>` out of range for type `<type>` (range: `<min>` to `<max>`) |
+| E10085 | F010 | Array index must be unsigned type (`byte` or `word`) — found `<type>` |
+| E10086 | F010 | Cannot cast `<from_type>` to `<to_type>` — boolean is not convertible to/from integer types |
+| E10090 | F011 | Struct `<name>` must have at least one field |
+| E10091 | F011 | Struct `<name>` cannot contain a field of its own type — self-referencing structs are not allowed |
+| E10092 | F011 | Circular struct dependency: `<struct_a>` contains `<struct_b>` which contains `<struct_a>` |
+| E10093 | F011 | Cannot return struct type `<name>` from function — pass a struct parameter instead |
+| E10094 | F011 | Cannot pass `const` struct `<name>` as function parameter — copy to a mutable variable first |
+| E10095 | F011 | Cannot compare structs with `<op>` — compare individual fields instead |
+| E10096 | F011 | Struct literal must initialize all fields — missing field `<field>` |
+| E10097 | F011 | Struct literal fields must be in declaration order — expected `<expected>`, found `<found>` |
+| E10100 | F013 | Condition must be type `boolean` — found `<type>`. Use an explicit comparison (e.g., `<expr> != 0`) |
+| E10101 | F013 | Variable `<name>` shadows declaration in enclosing scope (line `<N>`) — use a different name |
 
 ### Warning Codes
 
@@ -88,3 +109,9 @@ All error codes use a 5-digit format starting at 10000.
 | W10030 | F005 | Zero-page usage is `<N>`/`<M>` bytes (`<percent>`%) for platform `<platform>` — consider moving less critical variables to RAM |
 | W10060 | F008 | Loop counter `<name>` uses `word` but range fits in `byte` — use `byte` for faster loop execution (6-7 cycles/iteration vs 15-20) |
 | W10070 | F009 | Switch expression is `word` but all case values fit in `byte` — consider using a `byte` variable for more efficient comparison (4 bytes/case vs 8 bytes/case) |
+| W10100 | F010 | Signed overflow in constant expression — result wraps to `<value>` |
+| W10101 | F010 | Narrowing cast from `<from_type>` to `<to_type>` truncates value `<value>` to `<result>` |
+| W10110 | F011 | Struct `<name>` in zeropage uses `<N>` bytes — consider moving large structs to RAM |
+| W10111 | F011 | Array of structs indexed by variable: struct size `<N>` is not a power of 2 — indexing requires multiply |
+| W10112 | F011 | Possible aliasing: parameter `<a>` and `<b>` may refer to the same struct |
+| W10120 | F012 | `asm_sed()` enables BCD decimal mode — Blend65 arithmetic operators (+, -) will produce BCD results. Call `asm_cld()` before resuming normal arithmetic |
