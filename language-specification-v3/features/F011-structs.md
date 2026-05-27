@@ -3,7 +3,7 @@
 > **Status**: ✅ ACCEPTED  
 > **Stability**: stable  
 > **Depends on**: F003 (module contents), F005 (memory placement), F010 (signed types)  
-> **Interacts with**: F006 (address-of), F008 (for loop), F009 (switch)
+> **Interacts with**: F006 (address-of), F008 (for loop), F009 (switch), F014 (arrays, const params)
 
 ---
 
@@ -175,19 +175,31 @@ initEnemy(boss, 100, 50);
 
 **Rationale**: Returning a struct would require copying all bytes from the function's frame to the caller. By-reference parameter avoids this copy entirely.
 
-### SR-3: Const Structs Cannot Be Passed as Parameters
+### SR-3: Const Safety for By-Reference Parameters
 
-Since all struct parameters are by-reference and functions can modify them, passing a `const` struct would risk writing to ROM.
+> **Updated by F014.** Const parameters are now supported — use `const` qualifier on parameters to accept const structs safely.
+
+Since struct parameters are by-reference, passing a `const` struct to a mutable parameter would risk writing to ROM. Use the `const` parameter qualifier to declare read-only access:
 
 ```blend65
 const DEFAULT_ENEMY: Enemy = { x: 0, y: 0, hp: 100, enemyType: 0, frame: 0 };
 
-damage(DEFAULT_ENEMY, 5);  // ❌ E10094: Cannot pass const struct as parameter
+// ✅ Use const parameter for read-only access
+function display(e: const Enemy): void {
+    let hp: byte = e.hp;     // ✅ Read OK
+    e.hp = 0;                // ❌ E10123: cannot modify const parameter
+}
+display(DEFAULT_ENEMY);       // ✅ const → const param
 
-// ✅ Copy to mutable variable first
+// ❌ Cannot pass const to mutable parameter
+damage(DEFAULT_ENEMY, 5);     // ❌ E10122: cannot pass const to mutable parameter
+
+// ✅ Copy to mutable variable if mutation is needed
 let temp: Enemy = DEFAULT_ENEMY;
 damage(temp, 5);
 ```
+
+See F014 Part 5 (Const Parameters) for the complete rules (CP-1 through CP-5).
 
 ### SR-4: No Struct Equality
 
@@ -564,7 +576,7 @@ struct InternalState { ... }                     // Module-private
 | E10091 | Struct `<name>` cannot contain a field of its own type — self-referencing structs are not allowed |
 | E10092 | Circular struct dependency: `<struct_a>` contains `<struct_b>` which contains `<struct_a>` |
 | E10093 | Cannot return struct type `<name>` from function — pass a struct parameter instead |
-| E10094 | Cannot pass `const` struct `<name>` as function parameter — copy to a mutable variable first |
+| E10094 | Cannot pass `const` struct `<name>` to mutable parameter — add `const` to parameter or copy to a mutable variable (see also F014 E10122) |
 | E10095 | Cannot compare structs with `<op>` — compare individual fields instead |
 | E10096 | Struct literal must initialize all fields — missing field `<field>` |
 | E10097 | Struct literal fields must be in declaration order — expected `<expected>`, found `<found>` |
@@ -591,7 +603,7 @@ struct InternalState { ... }                     // Module-private
 | F009 Switch | Structs not valid as switch expression type (E10075) |
 | F010 Signed types | Signed fields (`sbyte`, `sword`) fully supported in structs |
 | Enums | Enum fields valid in structs. Enum values valid in struct literals |
-| Arrays | Arrays of structs supported. Fixed-size arrays as struct fields supported |
+| F014 Arrays | Fixed-size arrays as struct fields supported. Const parameters (F014 CP-1..CP-5) replace previous SR-3 restriction. Arrays of structs deferred |
 | Type aliases | `type` aliases for struct types work normally |
 
 ---
@@ -794,7 +806,7 @@ function insertScore(name0: byte, name1: byte, name2: byte, score: word): void {
 
 | Rule | Status | Notes |
 |------|--------|-------|
-| F1 Extensible | ✅ | Future: const params, &field access, methods (if ever desired) |
+| F1 Extensible | ✅ | Const params implemented (F014). Future: &field access, methods (if ever desired) |
 | F2 Platform-profile ready | ✅ | No platform-specific behavior |
 | F3 Optimizer-friendly | ✅ | Constant index elimination, strength reduction for struct size multiply |
 | F4 Stability classification | ✅ | Classified as **stable** |

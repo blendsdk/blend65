@@ -37,6 +37,11 @@ These are foundational decisions — not features. They are **givens** that all 
 | F011 | Structs | ✅ Accepted | Pass | [features/F011-structs.md](features/F011-structs.md) |
 | F012 | CPU control intrinsics | ✅ Accepted | Pass | [features/F012-cpu-control-intrinsics.md](features/F012-cpu-control-intrinsics.md) |
 | F013 | Control flow (if/else, while, do-while, block scoping) | ✅ Accepted | Pass | [features/F013-control-flow.md](features/F013-control-flow.md) |
+| F014 | Arrays, strings, char literals, const params | ✅ Accepted | Pass | [features/F014-arrays.md](features/F014-arrays.md) |
+| F015 | Data inclusion (asset embedding) | ✅ Accepted | Pass | [features/F015-data-inclusion.md](features/F015-data-inclusion.md) |
+| F016 | Type system rules | ✅ Accepted | Pass | [features/F016-type-system.md](features/F016-type-system.md) |
+| F017 | Arithmetic, bitwise, logical, and comparison operators | ✅ Accepted | Pass | [features/F017-operators.md](features/F017-operators.md) |
+| F018 | Functions (declaration, calling, SFA frames, recursion prohibition) | ✅ Accepted | Pass | [features/F018-functions.md](features/F018-functions.md) |
 
 ---
 
@@ -44,7 +49,7 @@ These are foundational decisions — not features. They are **givens** that all 
 
 | Document | Description |
 |----------|-------------|
-| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-011) |
+| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-016; FUT-008 resolved) |
 | [../\.clinerules/language-guard.md](../.clinerules/language-guard.md) | Language Guard — 23 rules, 5 escape hatch tiers |
 
 ---
@@ -101,6 +106,54 @@ All error codes use a 5-digit format starting at 10000.
 | E10097 | F011 | Struct literal fields must be in declaration order — expected `<expected>`, found `<found>` |
 | E10100 | F013 | Condition must be type `boolean` — found `<type>`. Use an explicit comparison (e.g., `<expr> != 0`) |
 | E10101 | F013 | Variable `<name>` shadows declaration in enclosing scope (line `<N>`) — use a different name |
+| E10102 | F013 | Not all code paths return a value in function `<name>` — add a return statement or ensure all branches return |
+| E10110 | F014 | Array size must be a compile-time constant expression — found `<expr>` |
+| E10111 | F014 | Array size must be at least 1 — found `<size>` |
+| E10112 | F014 | Array initializer has `<N>` elements but array size is `<M>` |
+| E10113 | F014 | Const array must be fully initialized — `<N>` elements provided for size `<M>`. Use fill syntax: `[values; fill]` |
+| E10114 | F014 | Fill syntax `[...; fill]` requires explicit array size — use `type[N] = [values; fill]` |
+| E10115 | F014 | Fill value must be a single element — found string or array |
+| E10116 | F014 | Cannot mix string literals with value elements in array initializer |
+| E10117 | F014 | Array `<name>` (≤256 bytes) requires `byte` index — found `<type>` |
+| E10118 | F014 | Array `<name>` (>256 bytes) requires `word` index — found `<type>` |
+| E10119 | F014 | Cannot assign whole array — copy elements individually using a loop |
+| E10120 | F014 | Cannot return array type from function — use an array parameter instead |
+| E10121 | F014 | Cannot compare arrays with `<op>` — compare individual elements |
+| E10122 | F014 | Cannot pass const `<name>` to mutable parameter `<param>` — add `const` to parameter or copy to mutable variable |
+| E10123 | F014 | Cannot modify const parameter `<name>` — parameter is declared `const` |
+| E10124 | F014 | String literal (`<N>` bytes) exceeds array size (`<M>`) |
+| E10125 | F014 | Unknown encoding `<name>` for platform `<platform>` — available: `<list>` |
+| E10130 | F015 | File not found: `<path>` (searched: `<search_paths>`) |
+| E10131 | F015 | Embedded file `<path>` is empty (0 bytes) |
+| E10132 | F015 | Format `<format>` (`<ext>`) requires a selector |
+| E10133 | F015 | Unknown selector `<selector>` for format `<format>` (`<ext>`) — available: `<list>` |
+| E10134 | F015 | `embed()` can only initialize `const` declarations — found `let` |
+| E10135 | F015 | `embed()` can only be used at module level |
+| E10136 | F015 | `embed()` path must be a string literal |
+| E10137 | F015 | No format handler registered for extension `<ext>` and selector `<selector>` specified |
+| E10138 | F015 | Offset `<offset>` exceeds file size (`<file_size>` bytes) |
+| E10139 | F015 | Offset `<offset>` + size `<size>` exceeds file size (`<file_size>` bytes) |
+| E10140 | F015 | Embedded data size mismatch: expected `<expected>` bytes, got `<actual>` bytes |
+| E10141 | F015 | `offset` parameter cannot be used with format-aware selectors |
+| E10142 | F015 | Cannot use array selector in expression context — array selectors can only initialize `const` declarations |
+| E10143 | F015 | Alignment conflict: `<data>` requires `<align>`-byte alignment but placement failed |
+| E10144 | F015 | Type mismatch: selector `<selector>` returns `<expected>`, declaration type is `<actual>` |
+| E10150 | F016 | Type annotation required — use `let <name>: <type> = <expr>` |
+| E10151 | F016 | Cannot use `boolean` in arithmetic/bitwise expression — boolean is a logical type, not numeric |
+| E10152 | F016 | Cannot cast to or from `void` |
+| E10153 | F016 | Cannot cast struct or array types — only integer types (`byte`, `sbyte`, `word`, `sword`) support casts |
+| E10154 | F017 | Cannot apply `<op>` to `boolean` — ordered comparisons (`<`, `>`, `<=`, `>=`) are not valid for boolean operands |
+| E10160 | F017 | Division by zero in constant expression |
+| E10161 | F017 | Shift amount must be unsigned type (`byte` or `word`) — found `<type>` |
+| E10170 | F018 | Return type required — use `function <name>(): void` for functions that return nothing |
+| E10171 | F018 | Wrong argument count — `<name>()` expects `<N>` parameters, got `<M>` |
+| E10172 | F018 | Argument type mismatch — parameter `<param>` of `<name>()` expects `<expected>`, found `<actual>` |
+| E10173 | F018 | Cannot return a value from void function `<name>` — remove the expression or change the return type |
+| E10174 | F018 | Missing return value — function `<name>` returns `<type>` but `return` has no expression |
+| E10175 | F018 | `<name>` is not a function — cannot call `<type>` value as a function |
+| E10176 | F018 | Cannot define function inside function `<outer>` — move `<inner>` to module level |
+| E10180 | F018 | Direct recursion — function `<name>` calls itself. Blend65 uses static frame allocation which does not support recursion |
+| E10181 | F018 | Indirect recursion detected — cycle: `<fn1>` → `<fn2>` → ... → `<fn1>` |
 
 ### Warning Codes
 
@@ -115,3 +168,20 @@ All error codes use a 5-digit format starting at 10000.
 | W10111 | F011 | Array of structs indexed by variable: struct size `<N>` is not a power of 2 — indexing requires multiply |
 | W10112 | F011 | Possible aliasing: parameter `<a>` and `<b>` may refer to the same struct |
 | W10120 | F012 | `asm_sed()` enables BCD decimal mode — Blend65 arithmetic operators (+, -) will produce BCD results. Call `asm_cld()` before resuming normal arithmetic |
+| W10130 | F013 | Condition is always false — code block will never execute |
+| W10131 | F013 | Unreachable code — statements after `<keyword>` will never execute |
+| W10140 | F014 | Partially initialized array `<name>` — `<N>` of `<M>` elements initialized, remaining are indeterminate |
+| W10141 | F014 | Uninitialized array `<name>` — all `<N>` elements are indeterminate |
+| W10142 | F014 | Array `<name>` (`<N>` bytes) uses indirect addressing — access is slower than direct indexed arrays (≤256 bytes) |
+| W10143 | F014 | Large array `<name>` (`<N>` bytes) on platform `<platform>` — consider total RAM budget |
+| W10150 | F015 | Embedded data (`<N>` bytes) uses `<percent>`% of platform `<platform>` data budget |
+| W10151 | F015 | File `<path>` is embedded `<N>` times — each creates a separate copy in the binary |
+| W10160 | F016 | `<narrow_type>` arithmetic may overflow before widening to `<wide_type>` — use `<wide_type>(a) <op> <wide_type>(b)` for wider arithmetic |
+| W10161 | F016 | Constant expression overflow — `<expr>` wraps to `<value>` at `<type>` width before widening |
+| W10170 | F017 | Runtime multiply generates subroutine call (~`<N>` cycles for `<width>`-bit) |
+| W10171 | F017 | Runtime divide/modulo generates subroutine call (~`<N>` cycles for `<width>`-bit) |
+| W10172 | F017 | Multiply by `<N>` generates shift-and-add sequence (~`<M>` cycles) — consider power-of-2 stride for faster access |
+| W10173 | F017 | Possible division by zero — divisor `<name>` may be 0 at runtime |
+| W10174 | F017 | Shift amount `<N>` >= type width (`<W>` bits) — result is always 0 |
+| W10180 | F018 | Maximum stack depth is `<N>` bytes (`<levels>` call levels) on platform `<platform>` — stack budget is `<budget>` bytes |
+| W10181 | F018 | Function `<name>` is never called and not exported — consider removing or adding `export` |

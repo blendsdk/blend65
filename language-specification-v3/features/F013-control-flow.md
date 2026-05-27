@@ -12,9 +12,9 @@ This feature formalizes the core control flow statements and block scoping rules
 1. **If/else** — conditional branching
 2. **While** — condition-tested loop (0 or more iterations)
 3. **Do-while** — body-first loop (1 or more iterations)
-4. **Block scoping** — variable lifetime rules for all block constructs, including bare blocks
+4. **Block scoping** — variable lifetime rules for all block constructs
 
-These are foundational constructs that every program uses. The design enforces **mandatory braces** (preventing the entire class of dangling-statement bugs), **strict boolean conditions** (A4: explicit over implicit), and **formal scoping rules** that integrate with SFA frame allocation for memory reuse.
+These are foundational constructs that every program uses. The design enforces **mandatory braces** (preventing the entire class of dangling-statement bugs), **strict boolean conditions** (A4: explicit over implicit), and **formal scoping rules** that integrate with SFA frame allocation.
 
 ---
 
@@ -97,35 +97,6 @@ do {
 } while (choice != EXIT);
 ```
 
-### Bare Blocks
-
-```ebnf
-bare_block = block ;
-```
-
-Standalone blocks with no control flow keyword. Used for explicit scoping to enable SFA frame slot reuse:
-
-```blend65
-function complexInit(): void {
-    // Block 1: initialize sprites
-    {
-        let temp: word = SPRITE_BASE;
-        for (let i: byte = 0 to 8) {
-            poke(temp, 0);
-            temp = temp + 64;
-        }
-    }
-    // Block 2: initialize sound — 'temp' reuses the same frame slot
-    {
-        let temp: word = SID_BASE;
-        for (let reg: byte = 0 to 25) {
-            poke(temp, 0);
-            temp = temp + 1;
-        }
-    }
-}
-```
-
 ---
 
 ## Rules
@@ -191,7 +162,6 @@ Block scoping applies to all block constructs:
 - While body
 - Do-while body
 - For-loop body (already defined in F008)
-- Bare blocks
 
 ```blend65
 function example(): void {
@@ -202,15 +172,10 @@ function example(): void {
         process(x, y);
     }
     // y is OUT OF SCOPE here — cannot be accessed
-    
-    {
-        let z: byte = 30;     // z scoped to bare block
-    }
-    // z is OUT OF SCOPE here
 }
 ```
 
-**SFA Integration:** Block-scoped variables are part of the enclosing function's static frame. Variables in non-overlapping blocks can **share** the same frame bytes, reducing memory usage:
+**SFA Integration:** Block-scoped variables are part of the enclosing function's static frame. The compiler's SFA analysis uses block scope boundaries to determine variable lifetimes. Variables in non-overlapping blocks can **share** the same frame bytes, reducing memory usage:
 
 ```blend65
 function update(): void {
@@ -228,35 +193,34 @@ function update(): void {
 
 ### CF-4: No Variable Shadowing
 
-An inner scope **cannot** declare a variable with the same name as a variable in any enclosing scope. This prevents accidental name collision bugs that are nearly impossible to debug on 6502.
+An inner scope **cannot** declare a variable with the same name as a variable in any enclosing scope. This includes module-level variables. This prevents accidental name collision bugs that are nearly impossible to debug on 6502.
 
 ```blend65
+let score: word = 0;              // module-level
+
 function example(): void {
+    let score: word = 100;        // ❌ E10101: shadows 'score' from module scope
+    
     let x: byte = 10;
-    
     if (condition) {
-        let x: byte = 20;    // ❌ E10101: shadows 'x' from enclosing scope
+        let x: byte = 20;        // ❌ E10101: shadows 'x' from enclosing scope
     }
-    
-    while (running) {
-        let x: byte = 30;    // ❌ E10101: shadows 'x' from enclosing scope
-        {
-            let x: byte = 40;    // ❌ E10101: shadows 'x' from two levels up
-        }
-    }
+}
+
+function update(score: byte): void {
+    // ❌ E10101: parameter 'score' shadows module-level 'score'
 }
 ```
 
 This rule generalizes F008's FOR-13 (no shadowing of for-loop variables in nested loops). The for-loop specific error E10062 is a specialization of the general shadowing rule E10101.
 
 **Scope nesting hierarchy (innermost to outermost):**
-1. Bare block scope
-2. If/else body scope, while body scope, do-while body scope, for-loop body scope
-3. Function parameter scope
-4. Function body scope (outermost local scope)
-5. Module scope (module-level variables)
+1. If/else body scope, while body scope, do-while body scope, for-loop body scope
+2. Function parameter scope
+3. Function body scope (outermost local scope)
+4. Module scope (module-level variables)
 
-Shadowing is prohibited across **all** scope boundaries. A local variable cannot shadow a module-level variable, and a block-scoped variable cannot shadow a function-level variable.
+Shadowing is prohibited across **all** scope boundaries. This is stricter than C (which allows local-over-global shadowing) but forces clear, unambiguous naming and prevents a class of bugs that are catastrophic on 6502.
 
 ### CF-5: Variable Name Reuse in Sequential Scopes
 
@@ -264,17 +228,16 @@ Variables in **non-overlapping** scopes (sequential blocks at the same nesting l
 
 ```blend65
 function example(): void {
-    // Block 1
-    {
-        let temp: byte = 0;
-        process(temp);
+    // Sequential if-blocks — non-overlapping
+    if (phase == 1) {
+        let result: byte = computeA();
+        store(result);
     }
-    // temp is out of scope
+    // result is out of scope
     
-    // Block 2 — reuses 'temp', shares frame slot
-    {
-        let temp: byte = 0;   // ✅ OK — previous temp is out of scope
-        compute(temp);
+    if (phase == 2) {
+        let result: byte = computeB();   // ✅ OK — previous result is out of scope
+        store(result);
     }
     
     // Sequential for-loops (already established in F008)
@@ -283,9 +246,9 @@ function example(): void {
     
     // If/else branches — non-overlapping
     if (x > 0) {
-        let result: byte = computeA();
+        let temp: byte = computeA();
     } else {
-        let result: byte = computeB();    // ✅ OK — if and else bodies don't overlap
+        let temp: byte = computeB();    // ✅ OK — if and else bodies don't overlap
     }
 }
 ```
@@ -327,7 +290,7 @@ do {
     retryCount = retryCount + 1;
 } while (retryCount < MAX_RETRIES);
 
-// continue in do-while — jumps to condition
+// continue in do-while — jumps to condition at bottom
 do {
     let ch: byte = readChar();
     if (ch == SPACE) {
@@ -375,7 +338,50 @@ This is the **only** block-containing statement that requires a trailing semicol
 | `do { } while (cond);` | **Yes** | Ends with `)`, not `}` |
 | `for (... to ...) { }` | No | Self-terminating with `}` |
 | `switch (expr) { }` | No | Self-terminating with `}` |
-| `{ }` (bare block) | No | Self-terminating with `}` |
+
+### CF-8: Return Path Completeness
+
+Every non-void function must return a value on **all** possible execution paths. The compiler performs control flow analysis to verify this.
+
+```blend65
+// ✅ All paths return
+function getState(): byte {
+    if (health > 0) {
+        return STATE_ALIVE;
+    } else {
+        return STATE_DEAD;
+    }
+}
+
+// ✅ Return after if-else chain covers all paths
+function classify(score: byte): byte {
+    if (score > 100) {
+        return RANK_A;
+    } else if (score > 50) {
+        return RANK_B;
+    }
+    return RANK_C;    // catches all remaining cases
+}
+
+// ✅ Infinite loop — never exits, no return needed after
+function gameLoop(): void {
+    while (true) {
+        update();
+        render();
+    }
+    // no return needed — while(true) never exits
+}
+
+// ❌ E10102 — missing return on the else path
+function getState(): byte {
+    if (health > 0) {
+        return STATE_ALIVE;
+    }
+    // falls off end without returning!
+}
+```
+
+**Rationale:** On 6502, falling off the end of a function executes whatever random bytes follow in memory. There is no operating system to catch this. This is one of the most dangerous bugs possible on the platform. The compiler must prevent it.
 
 ---
 
@@ -575,18 +581,19 @@ do {
 | 1 | CF-A1 | Should conditions accept numeric types (truthy) or require boolean? | **Boolean only** (E10100). Consistent with A4 (explicit over implicit) and F010 (no implicit conversions). `x != 0` compiles to identical 6502 code as a truthy check would. |
 | 2 | CF-A2 | Should braceless if/while be allowed? | **No — mandatory braces**. Eliminates dangling-statement bugs. On 6502, these bugs cause silent corruption with zero diagnostics. Consistent with A1 (C-like syntax with curly braces). |
 | 3 | CF-A3 | Include do-while in v3 or defer? | **Include**. Do-while is the most natural loop form on 6502 (body + backward branch, no initial JMP). Deferring it would force `while (true) { ...; if (!cond) { break; } }` workarounds. |
-| 4 | CF-A4 | Allow standalone bare blocks? | **Yes**. Bare blocks enable explicit SFA frame slot reuse for non-overlapping variable lifetimes. Zero runtime cost. Follows naturally from block scoping rules. |
-| 5 | CF-A5 | Allow variable shadowing in nested blocks? | **No** (E10101). Prevents accidental name collisions that are nearly impossible to debug on 6502. Generalizes F008's FOR-13 rule to all scope boundaries. |
-| 6 | CF-A6 | Allow name reuse in sequential non-overlapping blocks? | **Yes**. Sequential blocks at the same level can reuse names — the earlier variable is out of scope. Enables SFA frame slot sharing. Already established for sequential for-loops in F008. |
-| 7 | CF-A7 | How is `else if` parsed? | **Composed**: `else` followed by `if_stmt`. No special grammar production. Naturally supports arbitrary chain depth. The `else if` form is NOT syntactic sugar — it's just the `else` clause containing an `if` statement. |
-| 8 | CF-A8 | What does `continue` do in do-while? | **Jumps to the condition check** at the bottom of the loop. Standard C/Java/TypeScript behavior. Body is skipped from the `continue` point, but the condition is always re-evaluated before deciding to iterate. |
-| 9 | CF-A9 | How do break/continue interact with switch-inside-loop? | **Switch is transparent** to break/continue (established in F009). `break` inside a switch-inside-a-loop exits the **loop**. `continue` inside a switch-inside-a-loop continues the **loop**. |
-| 10 | CF-A10 | Are parentheses required around conditions? | **Yes**. Consistent with A1 (C-like syntax) and familiar to C/TypeScript/JavaScript developers (L3). Syntax: `if (expr)`, not `if expr`. |
-| 11 | CF-A11 | Are empty block bodies allowed? | **Yes**, no error or warning. Empty bodies are useful during development (stubs) and in some patterns (busy-wait: `while (!ready) { }`). A future linter could optionally flag them. |
-| 12 | CF-A12 | Should `while (true)` produce a warning? | **No**. Infinite loops are intentional and fundamental in game programming (main game loop). The compiler recognizes `while (true)` and optimizes away the condition check entirely (emits `JMP` instead of condition + branch). |
-| 13 | CF-A13 | Does block scoping interact with SFA? | **Yes — beneficially**. Variables in non-overlapping blocks share frame bytes. The compiler's SFA analysis uses block scope boundaries to determine variable lifetimes and maximize frame slot reuse. This is a key advantage of formal block scoping. |
-| 14 | CF-A14 | Can `if`/`while`/`do-while` appear inside all contexts? | **Yes**, wherever a statement is valid: function bodies, loop bodies, other if/else bodies, switch case bodies. **Not** at module level (E10010). Nesting depth is unlimited by the language, though deeply nested code may exhaust stack during compilation — the compiler should handle this gracefully. |
-| 15 | CF-A15 | How does the no-shadowing rule interact with module-level variables? | **Module-level variables are in scope inside all functions in that module.** A function-local variable cannot shadow a module-level variable. An if-body variable cannot shadow either. This is stricter than C (which allows local-over-global shadowing) but prevents a class of bugs. |
+| 4 | CF-A4 | Allow variable shadowing in nested blocks? | **No** (E10101). No shadowing at any level — including module-level variables. Prevents accidental name collisions that are nearly impossible to debug on 6502. Generalizes F008's FOR-13 rule to all scope boundaries. Stricter than C but forces better naming discipline. |
+| 5 | CF-A5 | Allow name reuse in sequential non-overlapping blocks? | **Yes**. Sequential blocks at the same level can reuse names — the earlier variable is out of scope. Enables SFA frame slot sharing. Already established for sequential for-loops in F008. |
+| 6 | CF-A6 | How is `else if` parsed? | **Composed**: `else` followed by `if_stmt`. No special grammar production. Naturally supports arbitrary chain depth. The `else if` form is NOT syntactic sugar — it's just the `else` clause containing an `if` statement. |
+| 7 | CF-A7 | What does `continue` do in do-while? | **Jumps to the condition check** at the bottom of the loop. Standard C/Java/TypeScript behavior. Body is skipped from the `continue` point, but the condition is always re-evaluated before deciding to iterate. |
+| 8 | CF-A8 | How do break/continue interact with switch-inside-loop? | **Switch is transparent** to break/continue (established in F009). `break` inside a switch-inside-a-loop exits the **loop**. `continue` inside a switch-inside-a-loop continues the **loop**. |
+| 9 | CF-A9 | Are parentheses required around conditions? | **Yes**. Consistent with A1 (C-like syntax) and familiar to C/TypeScript/JavaScript developers (L3). Syntax: `if (expr)`, not `if expr`. |
+| 10 | CF-A10 | Are empty block bodies allowed? | **Yes**, no error or warning. Empty bodies are useful during development (stubs) and in some patterns (busy-wait: `while (!ready) { }`). A future linter could optionally flag them. |
+| 11 | CF-A11 | Should `while (true)` produce a warning? | **No**. Infinite loops are intentional and fundamental in game programming (main game loop). The compiler recognizes `while (true)` and optimizes away the condition check entirely (emits `JMP` instead of condition + branch). |
+| 12 | CF-A12 | Should always-false conditions produce a warning? | **Yes** (W10130). `if (false)` and `while (false)` mean the body never executes — this is almost certainly a bug, not intentional. The asymmetry with `while (true)` is correct: always-false = probable bug, always-true = intentional pattern. |
+| 13 | CF-A13 | Should unreachable code produce a warning? | **Yes** (W10131). Statements after `break`, `continue`, or `return` in the same block can never execute. This catches leftover code from refactoring. |
+| 14 | CF-A14 | Should the compiler verify all paths return a value? | **Yes** (E10102). On 6502, falling off the end of a function executes random memory. This is catastrophic. The compiler must verify that every non-void function returns a value on all execution paths. `while (true)` is recognized as "never exits" — no return needed after it. |
+| 15 | CF-A15 | Can `if`/`while`/`do-while` appear inside all contexts? | **Yes**, wherever a statement is valid: function bodies, loop bodies, other if/else bodies, switch case bodies. **Not** at module level (E10010). |
+| 16 | CF-A16 | How does the no-shadowing rule interact with module-level variables? | **Module-level variables are in scope inside all functions in that module.** A function-local variable cannot shadow a module-level variable. A function parameter cannot shadow a module-level variable. This is stricter than C but prevents a class of bugs and forces better code design. |
 
 ---
 
@@ -597,31 +604,31 @@ do {
 ```blend65
 module Game;
 
-let state: byte = STATE_MENU;
+let gameState: byte = STATE_MENU;
 let running: boolean = true;
 
 function main(): void {
     while (running) {
-        if (state == STATE_MENU) {
+        if (gameState == STATE_MENU) {
             drawMenu();
             let choice: byte = getMenuChoice();
             if (choice == CHOICE_PLAY) {
-                state = STATE_PLAYING;
+                gameState = STATE_PLAYING;
             } else if (choice == CHOICE_QUIT) {
                 running = false;
             }
-        } else if (state == STATE_PLAYING) {
+        } else if (gameState == STATE_PLAYING) {
             updateGame();
             renderGame();
             if (isGameOver()) {
-                state = STATE_GAMEOVER;
+                gameState = STATE_GAMEOVER;
             }
-        } else if (state == STATE_GAMEOVER) {
+        } else if (gameState == STATE_GAMEOVER) {
             drawGameOver();
             do {
                 let key: byte = readKey();
             } while (key == 0);
-            state = STATE_MENU;
+            gameState = STATE_MENU;
         }
         waitVBlank();
     }
@@ -643,35 +650,14 @@ function waitForKey(): byte {
 
 function confirmChoice(): boolean {
     let confirmed: boolean = false;
+    let key: byte = 0;
     do {
-        let key: byte = waitForKey();
+        key = waitForKey();
         if (key == KEY_Y) {
             confirmed = true;
         }
     } while (key != KEY_Y && key != KEY_N);
     return confirmed;
-}
-```
-
-### Pattern: SFA Frame Reuse with Bare Blocks
-
-```blend65
-module Graphics;
-
-function initLevel(): void {
-    // Phase 1: Decompress map data (needs 256-byte buffer)
-    {
-        let decompBuffer: byte[256];
-        decompressMap(decompBuffer);
-        copyToScreen(decompBuffer);
-    }
-    // Phase 2: Set up color data (reuses same 256 bytes in frame)
-    {
-        let colorBuffer: byte[256];
-        loadColors(colorBuffer);
-        copyToColorRAM(colorBuffer);
-    }
-    // Function frame = 256 bytes, not 512
 }
 ```
 
@@ -725,6 +711,43 @@ function processGrid(): void {
 }
 ```
 
+### Edge Case: Return Path Completeness
+
+```blend65
+module Logic;
+
+// ✅ All paths covered
+function classify(val: byte): byte {
+    if (val > 200) {
+        return TIER_HIGH;
+    } else if (val > 100) {
+        return TIER_MID;
+    } else {
+        return TIER_LOW;
+    }
+}
+
+// ✅ Default return after partial if
+function maybeProcess(flag: boolean): byte {
+    if (flag) {
+        doWork();
+        return RESULT_OK;
+    }
+    return RESULT_SKIP;    // covers the !flag path
+}
+
+// ✅ while(true) recognized as never-exiting
+function mainLoop(): byte {
+    while (true) {
+        update();
+        if (shouldQuit()) {
+            return 0;
+        }
+    }
+    // No return needed here — while(true) never falls through
+}
+```
+
 ---
 
 ## Errors
@@ -733,6 +756,7 @@ function processGrid(): void {
 |------|-----------|---------|
 | E10100 | Numeric type used in condition | `Condition must be type 'boolean' — found '<type>'. Use an explicit comparison (e.g., '<expr> != 0')` |
 | E10101 | Variable shadows outer scope | `Variable '<name>' shadows declaration in enclosing scope (line <N>) — use a different name` |
+| E10102 | Missing return on some paths | `Not all code paths return a value in function '<name>' — add a return statement or ensure all branches return` |
 
 **Existing errors that apply to this feature:**
 
@@ -741,13 +765,22 @@ function processGrid(): void {
 | E10010 | F003 | If/while/do-while at module level → error (executable code must be inside functions) |
 | E10063 | F008 | `break`/`continue` outside any loop body (for, while, or do-while) |
 
+## Warnings
+
+| Code | Condition | Message |
+|------|-----------|---------|
+| W10130 | Condition is always false | `Condition is always false — code block will never execute` |
+| W10131 | Code after break/continue/return | `Unreachable code — statements after '<keyword>' will never execute` |
+
+**No warning for `while (true)` or `do { } while (true)` — these are intentional infinite loops, fundamental to game programming.**
+
 ---
 
 ## Feature Interaction Summary (L8)
 
 | Feature | Interaction |
 |---------|-------------|
-| F003 (Module contents) | If/while/do-while cannot appear at module level (E10010). Control flow must be inside functions. Bare blocks at module level are also prohibited. |
+| F003 (Module contents) | If/while/do-while cannot appear at module level (E10010). Control flow must be inside functions. |
 | F005 (Memory placement) | Block-scoped variables live in the function's SFA frame, not in zero-page or global RAM. `zeropage` declarations are module-level only. |
 | F006 (Address-of) | `&` on block-scoped variables follows F006 rules. The address is a compile-time constant (SFA frame location). Valid only while the variable is in scope. |
 | F007 (Interrupt functions) | If/while/do-while can appear in interrupt handlers. Each interrupt function has its own SFA frame, so block scoping works identically. |
@@ -764,25 +797,25 @@ function processGrid(): void {
 - **P1 Cross-platform compilable** ✅ — If/else, while, do-while compile to standard branch/jump instructions available on all 6502 variants across all target platforms.
 - **P2 Platform-meaningful** ✅ — Conditional logic and loops are fundamental to every program on every platform. Game loops, state machines, input polling, collision detection — all require these constructs.
 - **P3 No platform assumptions** ✅ — No hardware addresses, chip names, or platform-specific details anywhere in this feature. All examples use abstract names.
-- **P4 Resource-scalable** ✅ — Control flow overhead is minimal and predictable (2–3 bytes per branch, 3 bytes per JMP). Block scoping with SFA integration helps conserve RAM on constrained platforms through frame slot reuse.
+- **P4 Resource-scalable** ✅ — Control flow overhead is minimal and predictable (2–3 bytes per branch, 3 bytes per JMP). Block scoping with SFA integration helps conserve RAM through frame slot reuse.
 - **H1 6502 implementable** ✅ — Maps directly to BEQ/BNE/BCC/BCS/JMP instructions. All 6502 variants support these. Do-while maps to the most natural 6502 loop pattern (backward branch).
 - **H2 Cost transparency** ✅ — Every construct has documented codegen patterns with byte counts and cycle costs. If: 6–8 bytes overhead. While: 3 bytes initial JMP + 2 bytes branch per iteration. Do-while: 2 bytes branch per iteration. Break/continue: 2–3 bytes each.
 - **H3 SFA compatible** ✅ — Block-scoped variables are part of the function's static frame. Non-overlapping block scopes share frame memory. No dynamic allocation. No stack growth from nesting (nesting only affects codegen structure, not runtime stack).
-- **H4 Memory footprint documented** ✅ — RAM: block-scoped variables share frame slots (non-overlapping lifetimes save RAM). ROM: 2–8 bytes overhead per control flow construct. ZP: none required by control flow itself (condition temporaries may use ZP if allocated).
-- **H5 Fully deterministic** ✅ — Every construct has defined behavior for all inputs. `while (false)`: zero iterations. `while (true)`: infinite loop (intentional). Empty bodies: valid. Boolean-only conditions prevent "is 0 false?" ambiguity.
+- **H4 Memory footprint documented** ✅ — RAM: block-scoped variables share frame slots (non-overlapping lifetimes save RAM). ROM: 2–8 bytes overhead per control flow construct. ZP: none required by control flow itself.
+- **H5 Fully deterministic** ✅ — Every construct has defined behavior for all inputs. `while (false)`: zero iterations. `while (true)`: infinite loop (intentional). Empty bodies: valid. Boolean-only conditions prevent "is 0 false?" ambiguity. Return path completeness (E10102) prevents undefined function exit.
 - **L1 Unambiguous syntax** ✅ — EBNF grammar is LL(k) parseable. Mandatory braces eliminate dangling-else ambiguity entirely. `else if` composes naturally. Do-while semicolon is explicit.
 - **L2 Consistent with existing** ✅ — Block syntax `{ }` matches for-loop and switch. Condition parentheses match C conventions. `break`/`continue` follow F008 rules. Boolean-only conditions follow F010's "no implicit conversions" principle.
 - **L3 Beginner-friendly** ✅ — Any C/TypeScript/JavaScript developer can read and understand if/else, while, and do-while immediately. Only difference from C: no braceless forms and no truthy conditions. Both are easily learned.
-- **L4 Minimal feature** ✅ — Three constructs (if/else, while, do-while) cover all branching and looping needs. No `loop` keyword (use `while (true)`), no `unless` (use `if (!cond)`), no ternary operator (deferred). Bare blocks add no syntax — just `{ }`.
+- **L4 Minimal feature** ✅ — Three constructs (if/else, while, do-while) cover all branching and looping needs. No `loop` keyword (use `while (true)`), no `unless` (use `if (!cond)`), no ternary operator (deferred).
 - **L5 No redundancy** ✅ — Each construct serves a distinct purpose: if/else = branching, while = 0+ iteration loop, do-while = 1+ iteration loop. For-loop (F008) = counted iteration. Switch (F009) = multi-value branching. No overlap.
-- **L6 Error messages defined** ✅ — E10100 (condition type), E10101 (shadowing). Plus existing E10010 (module-level), E10063 (break/continue outside loop). Each has specific message, trigger condition, and fix guidance.
-- **L7 Compile-time failure preferred** ✅ — E10100 and E10101 are both compile-time errors. All condition type checking happens during semantic analysis. No runtime failures from control flow mechanics.
+- **L6 Error messages defined** ✅ — E10100 (condition type), E10101 (shadowing), E10102 (return paths). W10130 (dead code), W10131 (unreachable code). Plus existing E10010 (module-level), E10063 (break/continue outside loop). Each has specific message, trigger condition, and fix guidance.
+- **L7 Compile-time failure preferred** ✅ — All errors (E10100, E10101, E10102) and warnings (W10130, W10131) are compile-time. No runtime failures from control flow mechanics.
 - **L8 Feature interaction documented** ✅ — Interactions with all 12 existing features explicitly documented above.
-- **L9 Documentable with examples** ✅ — Prose description, basic usage, 5 pattern examples (game state machine, input polling, SFA reuse, search with early exit, nested control flow), edge cases all provided.
+- **L9 Documentable with examples** ✅ — Prose description, basic usage, 4 pattern examples (game state machine, input polling, search with early exit, nested control flow), edge cases for return path completeness.
 - **C1 Lexer/parser implementable** ✅ — `KW_IF`, `KW_ELSE`, `KW_WHILE`, `KW_DO` are straightforward keywords. Grammar is LL(k) with no ambiguity. Mandatory braces make parsing trivial — no lookahead needed for dangling else.
-- **C2 Semantic analysis defined** ✅ — Condition must be boolean (type check). Block scoping creates/destroys scope entries. Shadowing check against all enclosing scopes. Break/continue validity check against loop nesting stack.
+- **C2 Semantic analysis defined** ✅ — Condition must be boolean (type check). Block scoping creates/destroys scope entries. Shadowing check against all enclosing scopes. Break/continue validity check against loop nesting stack. Return path analysis for non-void functions.
 - **C3 Code generation strategy** ✅ — Documented 6502 patterns for: if (no else), if-else, if-else if-else chain, while, while(true), do-while, break, continue in while, continue in do-while. All use standard branch/jump instructions.
-- **C4 Unit testable** ✅ — Lexer: keyword tokens. Parser: if-stmt, while-stmt, do-while-stmt AST nodes. Semantic: boolean condition check, shadowing check. Codegen: branch patterns for each construct. All boundary conditions enumerable.
+- **C4 Unit testable** ✅ — Lexer: keyword tokens. Parser: if-stmt, while-stmt, do-while-stmt AST nodes. Semantic: boolean condition check, shadowing check, return path analysis. Codegen: branch patterns for each construct. All boundary conditions enumerable.
 - **C5 Runtime verifiable** ✅ — Compile control flow programs, run in emulator, verify execution paths via memory writes at known addresses. Test: if-branch taken/not-taken, while iteration counts, do-while minimum-once semantics, break/continue targets.
 - **F1 Extensible** ✅ — Future additions possible without breaking changes: ternary operator (`cond ? a : b`), `loop` keyword, pattern matching, guard clauses. None require syntax changes to existing if/while/do-while.
 - **F2 Platform-profile ready** ✅ — No platform-specific behavior. All codegen uses standard 6502 instructions. No platform profile interaction needed.
