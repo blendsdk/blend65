@@ -99,7 +99,7 @@ Identifiers name variables, constants, functions, struct types, enum types, modu
 3. Are case-sensitive (`myVar` ≠ `MyVar` ≠ `MYVAR`).
 4. Cannot be a keyword (§5).
 5. Cannot be a reserved built-in identifier (§5.3) — enforced by the semantic analyzer, not the lexer.
-6. No maximum length limit imposed by the language (the compiler may impose a practical limit, e.g., 255 characters).
+6. There is no maximum identifier length. Identifiers of any length are valid (Blend65 is developed on modern host machines; identifier length is not a target-platform constraint).
 
 ```ebnf
 identifier  = ( letter | "_" ) , { letter | digit | "_" } ;
@@ -184,6 +184,18 @@ keyword = "module" | "import" | "export" | "from"
         | "true" | "false"
         | "enum" | "type" ;
 ```
+
+### 5.1.1 Contextual Keywords
+
+The for-loop range form (→ Ch 05, §7) uses four words — `until`, `to`, `downto`, and `step` — that are **contextual keywords**, not reserved words. The lexer produces ordinary `IDENTIFIER` tokens for them; the **parser** recognizes their special meaning only in the for-header position (between the loop bounds). Everywhere else they are valid identifiers.
+
+```blend65
+for (let i: byte = 0 until 10 step 2) { ... }  // 'until' and 'step' act as range keywords here
+let to: byte = 5;                              // ✅ 'to' is a normal identifier
+let step: word = readStep();                   // ✅ 'step' is a normal identifier
+```
+
+**Rationale:** Keeping these as contextual keywords avoids reserving four common English words across the whole language. The for-header is the only grammatical position where they carry special meaning, and the parser can resolve them there without lexer or symbol-table assistance (no context-sensitivity in the lexer — L1/C1).
 
 ### 5.2 Boolean Literals as Keywords
 

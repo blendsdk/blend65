@@ -203,30 +203,57 @@ do {
 
 ### 7.1 Syntax
 
-Blend65 v3 uses only the `to`/`downto` form. The C-style `for (init; cond; update)` is not supported.
+Blend65 v3 uses only the `until`/`to`/`downto` range form. The C-style `for (init; cond; update)` is not supported.
 
 ```ebnf
 for_stmt = "for" , "(" , "let" , identifier , ":" , type , "=" , expression
-         , ( "to" | "downto" ) , expression
+         , ( "until" | "to" | "downto" ) , expression
          , [ "step" , const_expression ]
          , ")" , block ;
 ```
 
 ### 7.2 Direction and Bounds
 
+Blend65 follows the Kotlin model: each range keyword means exactly what it reads in English. `until` excludes its end bound; `to` and `downto` include it.
+
 | Keyword | Direction | End Bound | Meaning |
 |---------|-----------|-----------|---------|
-| `to` | Ascending | **Exclusive** | Loop visits start..(end-1) |
-| `downto` | Descending | **Inclusive** | Loop visits start..end (reaching end) |
+| `until` | Ascending | **Exclusive** | Loop visits start..(end−1) — end is *not* reached |
+| `to` | Ascending | **Inclusive** | Loop visits start..end — end *is* reached |
+| `downto` | Descending | **Inclusive** | Loop visits start..end — end *is* reached |
 
 ```blend65
-for (let i: byte = 0 to 10) { ... }          // visits 0,1,2,...,9 (10 iterations)
+for (let i: byte = 0 until 10) { ... }       // visits 0,1,2,...,9 (10 iterations)
+for (let i: byte = 1 to 8) { ... }           // visits 1,2,3,...,8 (8 iterations)
 for (let i: byte = 9 downto 0) { ... }       // visits 9,8,7,...,0 (10 iterations)
-for (let i: byte = 0 to 100 step 2) { ... }  // visits 0,2,4,...,98 (50 iterations)
-for (let i: byte = 0 to 256) { ... }         // full byte range: 0..255 (256 iterations)
+for (let i: byte = 0 until 100 step 2) { ... } // visits 0,2,4,...,98 (50 iterations)
+for (let i: byte = 0 to 255) { ... }         // full byte range: 0..255 (256 iterations)
 ```
 
-**Empty ranges** (e.g., `10 to 5` or `5 downto 10`) execute **zero iterations**.
+**Choosing the right keyword:**
+- Use `until` for array iteration — `for (let i: byte = 0 until length(arr))` visits exactly the valid indices `[0, N)`.
+- Use `to` when the end value itself must be visited — e.g. `1 to 8`, or the full type range `0 to 255`.
+- There is no exclusive-descending keyword in v3; for descending exclusion, adjust the bound (e.g. `9 downto 0` visits 0; to stop at 1, write `9 downto 1`). See `future-considerations.md` (FUT-019).
+
+**Empty ranges** (e.g., `10 until 5`, `5 to 4`, or `5 downto 10`) execute **zero iterations**.
+
+#### 7.2.1 End-Bound Range Rule (CF-FOR-1 / E10064)
+
+The end bound determines how far the counter must reach. Because an **inclusive** `to` loop over the full type range must compare past the largest representable value, the valid range of the end bound depends on the keyword:
+
+| Keyword | Valid end-bound range (for a counter of type T) |
+|---------|--------------------------------------------------|
+| `until` | `type_min(T)` … `type_max(T)` (exclusive bound; the counter never holds it) |
+| `to` | `type_min(T)` … `type_max(T)` (inclusive bound; the counter does hold it) |
+| `downto` | `type_min(T)` … `type_max(T)` (inclusive bound) |
+
+A **constant** end bound outside `[type_min(T), type_max(T)]` produces **E10064**. This makes the impossible v2-era case `0 to 256` on a `byte` a compile-time error rather than a silent infinite loop — the full byte range is written `0 to 255`.
+
+```blend65
+for (let i: byte = 0 to 255) { ... }   // ✅ 256 iterations — uses INX/BNE-wrap codegen
+for (let i: byte = 0 to 256) { ... }   // ❌ E10064: end bound 256 out of range for 'byte' (0–255)
+for (let i: byte = 0 until 256) { ... } // ❌ E10064: end bound 256 out of range for 'byte' (0–255)
+```
 
 ### 7.3 Step
 
@@ -254,8 +281,12 @@ for (let i: byte = 0 to 256) { ... }         // full byte range: 0..255 (256 ite
 
 ### 7.7 6502 Code Generation
 
+The compiler selects one of two patterns depending on the keyword and whether the end bound equals the counter type's maximum.
+
+**Pattern A — compare-and-branch (`until`, and `to`/`downto` whose bound is *not* the type maximum):**
+
 ```blend65
-for (let i: byte = 0 to 10) {
+for (let i: byte = 0 until 10) {
     poke($0400 + i, 1);
 }
 ```
@@ -271,6 +302,29 @@ for (let i: byte = 0 to 10) {
     JMP .loop
 .end:
 ; ~8 cycles/iteration overhead + body
+```
+
+For an inclusive `to` bound below the type maximum, the compiler compares against `bound + 1` (e.g. `1 to 8` compares against `9`), which is representable and uses the same `CPX`/`BCS` pattern.
+
+**Pattern B — wrap termination (`to` whose bound *is* the type maximum, e.g. `0 to 255`):**
+
+Comparing against `256` is impossible in 8 bits, so the compiler relies on the natural `INX` wrap from `255`→`0`, terminating when the counter wraps back to the start value:
+
+```blend65
+for (let i: byte = 0 to 255) {
+    poke($0400 + i, 1);
+}
+```
+
+```asm
+    LDX #$00            ; i = 0
+.loop:
+    LDA #$01
+    STA $0400,X         ; poke($0400 + i, 1)
+    INX                 ; i++ — wraps 255 -> 0 after the final iteration
+    BNE .loop           ; continue until the counter wraps back to 0
+.end:
+; exactly 256 iterations; ~5 cycles/iteration overhead + body
 ```
 
 For `byte` loops with small ranges, the compiler uses X or Y register as the loop counter when possible (~6–7 cycles/iteration). For `word` loops, the counter is a ZP pair (~15–20 cycles/iteration).
@@ -396,7 +450,7 @@ The compiler generates a compare-and-branch chain for small switch statements an
 `break` exits the innermost enclosing loop (`for`, `while`, `do-while`) immediately. Using `break` outside a loop produces **E10063**.
 
 ```blend65
-for (let i: byte = 0 to 100) {
+for (let i: byte = 0 until 100) {
     if (arr[i] == target) {
         found = true;
         break;             // exit the for loop
@@ -454,6 +508,7 @@ Errors canonically owned by this chapter:
 | E10061 | Step value must not be zero — this would create an infinite loop |
 | E10062 | Variable `<name>` already declared in enclosing for-loop — use a different name |
 | E10063 | `<keyword>` can only be used inside a loop body |
+| E10064 | For-loop end bound `<value>` is out of range for counter type `<type>` (`<min>`–`<max>`) |
 | E10070 | Duplicate case value `<value>` — already used at line `<N>` |
 | E10071 | Case value must be a compile-time constant |
 | E10072 | Case value type `<case_type>` does not match switch expression type `<switch_type>` |

@@ -15,7 +15,7 @@ This chapter is the **canonical registry** of all compiler diagnostics. Every er
 
 ```
 error[E10042]: '<name>()' expects 2 arguments — found 3
-  --> player.blend65:42:5
+  --> player.blend:42:5
    |
 42 |     poke($D020, 0, 1);
    |     ^^^^^^^^^^^^^^^^^ extra argument
@@ -116,6 +116,7 @@ Warnings can be promoted to errors via `--warn-as-error` or suppressed via `--su
 
 | Code | Condition | Message |
 |------|-----------|---------|
+| E10064 | For-loop end bound out of range | `For-loop end bound <value> is out of range for counter type '<type>' (<min>–<max>)` |
 | E10130 | Break outside loop/switch | `'break' can only be used inside a loop or switch` |
 | E10131 | Continue outside loop | `'continue' can only be used inside a loop` |
 | E10132 | Duplicate case value | `Duplicate case value <N> in switch` |
@@ -137,6 +138,7 @@ Warnings can be promoted to errors via `--warn-as-error` or suppressed via `--su
 | E10191 | Assignment to const | `Cannot assign to const '<name>' — constants cannot be reassigned` |
 | E10192 | Const without initializer | `Const '<name>' must have an initializer — constants require a compile-time value` |
 | E10193 | Non-constant initializer | `Initializer for const '<name>' is not a compile-time constant expression` |
+| E10194 | Circular module-level initializer | `Circular initializer detected — '<name>' depends on itself (directly or indirectly) through module-level initialization order` |
 
 ### E102xx — Data Inclusion (→ Ch 13)
 

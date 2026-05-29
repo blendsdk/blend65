@@ -174,8 +174,8 @@
 | `if ... else if ... else` | 05 §If | RETAINED | Ch 05 §3 | Unchanged |
 | `while (cond) { ... }` | 05 §While | RETAINED | Ch 05 §4 | Unchanged |
 | `do { ... } while (cond);` | 05 §DoWhile | RETAINED | Ch 05 §5 | Unchanged |
-| `for i in 0 to 10 { ... }` | 05 §For | **REVISED** | Ch 05 §7 | v3 retains `to`/`downto` range-for but with `let` declaration and parenthesized header: `for (let i: byte = 0 to 10) { }` |
-| `for i in 10 downto 0 { ... }` | 05 §For | **REVISED** | Ch 05 §7 | v3: `for (let i: byte = 10 downto 0) { }` — `in` keyword removed; `let` + type annotation required |
+| `for i in 0 to 10 { ... }` | 05 §For | **REVISED** | Ch 05 §7 | v3 retains range-for but with `let` declaration and parenthesized header. New `until` keyword added for exclusive ascending ranges: `for (let i: byte = 0 until 10) { }` (visits 0..9). `to` is inclusive: `for (let i: byte = 0 to 10) { }` (visits 0..10) |
+| `for i in 10 downto 0 { ... }` | 05 §For | **REVISED** | Ch 05 §7 | v3: `for (let i: byte = 10 downto 0) { }` — `in` keyword removed; `let` + type annotation required. `until`/`to`/`downto`/`step` are contextual keywords (Ch 01 §5.1.1) |
 | `for ... step N` | 05 §For | **REVISED** | Ch 05 §7 | v3: `step` is optional compile-time constant: `for (let i: byte = 0 to 100 step 2) { }` |
 | `switch (expr) { case V: ... }` | 05 §Switch | **REVISED** | Ch 05 §7 | v3: implicit break per case; `fallthrough` keyword for explicit fall-through |
 | `fallthrough` in switch | 05 §Switch | RETAINED | Ch 05 §7 | Unchanged |
@@ -268,7 +268,7 @@
 | v2 Construct | v2 Location | Disposition | v3 Location | Notes |
 |---|---|---|---|---|
 | Single-pass compilation model | 10 §Phases | **REVISED** | Ch 00 §3 | v3 defines multi-pass pipeline: lex → parse → semantic → IL → codegen |
-| `.b65` file extension | 10 §Files | RETAINED | Ch 10 §1 | Unchanged |
+| `.b65` file extension | 10 §Files | **REVISED** | Ch 01 §2.1 | v3 source files use the `.blend` extension |
 | `--platform` flag | 10 §CLI | RETAINED | Ch 15 | Selects platform profile |
 | `--output` flag | 10 §CLI | RETAINED | Ch 15 | Output binary path |
 | Error reporting | 10 §Diagnostics | **REVISED** | Ch 14 | v3 defines canonical error registry with ~50 error codes and ~8 warning codes |

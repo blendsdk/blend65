@@ -418,6 +418,28 @@ lives = lives - 1;
 
 ---
 
+### FUT-019: Exclusive-descending range keyword for `for` loops
+
+> **Source**: F013/F008 (Statements & Control Flow), Ch 05 §7.2  
+> **Deferred from**: v3  
+> **Priority**: Low
+
+**What**: A range keyword that descends while **excluding** its end bound — the descending mirror of `until`. v3 provides three range keywords: `until` (ascending, exclusive end), `to` (ascending, inclusive end), and `downto` (descending, inclusive end). There is no exclusive-descending form.
+
+```blend65
+// Hypothetical future syntax (name TBD — e.g. "downuntil"):
+for (let i: byte = 9 downuntil 0) { ... }   // would visit 9,8,...,1 (excludes 0)
+```
+
+**Why deferred**: The case is fully covered today by adjusting the bound — `for (let i: byte = 9 downto 1)` visits `9..1` and stops at 1, achieving the same result. Adding a fourth range keyword for a bound-adjustment that the developer can already express adds keyword surface and a naming problem (`downuntil`? `downtil`?) for marginal ergonomic gain (Language Guard L4, L5). Keeping three keywords keeps the for-header grammar minimal.
+
+**Reconsideration criteria**:
+- Real-world Blend65 code frequently writes descending loops whose natural lower bound is exclusive (e.g. iterating `N-1 .. 0` inclusive but wanting `N-1 .. 1`)
+- A clear, unambiguous keyword name is agreed that reads correctly in English
+- The codegen reuses the existing descending compare-and-branch pattern with no new cost
+
+---
+
 ## Summary Table
 
 | ID | Description | Priority | Depends On |
@@ -440,6 +462,7 @@ lives = lives - 1;
 | FUT-016 | Stack-free calling convention (`--no-stack-calls`) | Medium | F018 |
 | FUT-017 | Optimization barrier intrinsic (`barrier()`) | Low | F020 |
 | FUT-018 | Separate volatile memory intrinsics | Low | F020 |
+| FUT-019 | Exclusive-descending range keyword for `for` loops | Low | F013 |
 
 ---
 

@@ -190,13 +190,39 @@ function main(): void {
 
 Note: The startup routine falls through directly into `main()`'s body — there is no `JSR main` / `RTS`. This saves 2 bytes of stack and avoids the 12-cycle JSR/RTS overhead.
 
+### 5.4 Module Initialization Order
+
+Module-level variables with initializers are initialized by the compiler-generated startup routine (§5.3, step 3) **before** `main()` runs. Because Blend65 has no module body and initializers are evaluated at startup, the order is defined deterministically:
+
+| Rule | Decision |
+|------|----------|
+| Are initializers run before `main()`? | **Yes** — all module-level `let`/`const` initializers run during startup, before `main()`'s first instruction. |
+| What determines initialization order? | **Dependency order.** If variable `A`'s initializer reads variable `B`, then `B` is initialized first. The compiler builds an initialization dependency graph and emits initializers in topological order. |
+| What about independent variables? | Variables with no inter-dependencies are initialized in **declaration order** within a module, and modules are ordered by their dependency edges (imports). |
+| Constant initializers (`const`) | Fully compile-time evaluated — they never participate in runtime ordering. |
+| Circular initializer dependency | **Compile-time error E10194.** If `A`'s initializer depends on `B` and `B`'s depends on `A` (directly or transitively), no valid order exists. |
+
+```blend65
+module Game;
+let base: word = 100;
+let derived: word = base + 50;   // ✅ 'base' initialized first (dependency order)
+```
+
+```blend65
+module Bad;
+let a: word = b + 1;             // ❌ E10194: circular initializer
+let b: word = a + 1;             //    'a' depends on 'b' and 'b' depends on 'a'
+```
+
+**Rationale**: Dependency-ordered initialization makes startup deterministic (Axiom A3) without requiring the developer to manually order declarations. Circular dependencies have no valid evaluation order and are rejected at compile time rather than producing an unspecified value.
+
 ---
 
 ## 6. Multi-File Compilation
 
 ### 6.1 Rules
 
-- The compiler accepts one or more `.blend65` source files
+- The compiler accepts one or more `.blend` source files
 - All files are compiled together into a single output binary
 - File names and directory structure have **no semantic meaning**
 - Cross-file references are resolved via the module/import system
@@ -205,9 +231,9 @@ Note: The startup routine falls through directly into `main()`'s body — there 
 ### 6.2 Compilation Model
 
 ```
-game.blend65 ──┐
-math.blend65 ──┤──→ Compiler ──→ Single binary (e.g., game.prg)
-gfx.blend65  ──┘
+game.blend ──┐
+math.blend ──┤──→ Compiler ──→ Single binary (e.g., game.prg)
+gfx.blend  ──┘
 ```
 
 The compiler processes all files in a multi-pass model:
@@ -230,6 +256,7 @@ The compiler processes all files in a multi-pass model:
 | E10020 | No main function | `No 'main' function found — every program needs 'function main(): void'` |
 | E10021 | Multiple main functions | `Multiple 'main' functions found — in modules '<A>' and '<B>'. Only one is allowed.` |
 | E10023 | Calling main directly | `Cannot call 'main()' directly — it is the program entry point, not a callable function` |
+| E10194 | Circular module-level initializer | `Circular initializer detected — '<name>' depends on itself (directly or indirectly) through module-level initialization order` |
 
 ---
 
@@ -251,7 +278,7 @@ The compiler processes all files in a multi-pass model:
 ### 9.1 Multi-Module Game
 
 ```blend65
-// file: main.blend65
+// file: main.blend
 module Game;
 import { init, update, render } from Engine;
 
@@ -267,7 +294,7 @@ function main(): void {
 ```
 
 ```blend65
-// file: engine.blend65
+// file: engine.blend
 module Engine;
 import { clearScreen, drawSprites } from Graphics;
 import { readInput } from Input;
@@ -286,7 +313,7 @@ export function render(): void {
 ```
 
 ```blend65
-// file: graphics.blend65
+// file: graphics.blend
 module Graphics;
 
 export function clearScreen(): void { /* ... */ }
@@ -296,7 +323,7 @@ export function drawSprites(): void { /* ... */ }
 ### 9.2 Shared Types Across Modules
 
 ```blend65
-// file: types.blend65
+// file: types.blend
 module Types;
 
 export struct Position { x: word; y: word; }
@@ -305,7 +332,7 @@ export enum Direction { UP, DOWN, LEFT, RIGHT }
 ```
 
 ```blend65
-// file: player.blend65
+// file: player.blend
 module Player;
 import { Position, Velocity, Direction } from Types;
 

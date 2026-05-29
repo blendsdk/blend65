@@ -178,10 +178,16 @@ lvalue_suffix   = "[" , expression , "]"         (* array index *)
 
 ```ebnf
 expression_stmt = call_expression , ";" ;
+
+call_expression = postfix_expr ;   (* must end in a call postfix_op — see note *)
 ```
 
-**Note:** Only function/intrinsic calls are valid expression statements. The semantic
-pass rejects pure expression statements that produce unused values (→ W10131).
+**Note:** Only function/intrinsic calls are valid expression statements — a
+`call_expression` is a `postfix_expr` (§6.4) whose outermost `postfix_op` is a call
+(`"(" [ arg_list ] ")"`). The parser parses a full `postfix_expr`; the semantic pass
+rejects any expression statement that is not a call, or whose call produces an unused
+value (→ W10131). Bare assignments are **not** expression statements — they are
+`assignment_stmt` (§5.3). Assignment is a statement, never an expression (see §6.2).
 
 ### 5.5 Block
 
@@ -217,14 +223,15 @@ do_while_stmt   = "do" , block , "while" , "(" , expression , ")" , ";" ;
 ```ebnf
 for_stmt        = "for" , "(" , "let" , identifier , ":" , type
                 , "=" , expression
-                , ( "to" | "downto" ) , expression
+                , ( "until" | "to" | "downto" ) , expression
                 , [ "step" , const_expression ]
                 , ")" , block ;
 ```
 
-**Parsing note:** `to` and `downto` are contextual keywords — they are only reserved
-inside the for-loop header parentheses, not in general expression context. The parser
-recognizes them after the initializer expression.
+**Parsing note:** `until`, `to`, and `downto` are contextual keywords — they are only
+reserved inside the for-loop header parentheses, not in general expression context. The
+parser recognizes them after the initializer expression. `until` gives an exclusive end
+bound; `to`/`downto` give an inclusive end bound (→ Ch 05, §7.2).
 
 ### 5.10 Switch (→ Ch 05, §8)
 
@@ -265,12 +272,14 @@ defines the *behavior*.
 ### 6.2 Expression (Entry Point)
 
 ```ebnf
-expression      = assignment_expr ;
+expression      = conditional_expr ;
 
-(* Assignment: level 1, right-associative *)
-assignment_expr = conditional_expr , [ assign_op , assignment_expr ] ;
+(* Assignment is NOT an expression in Blend65. It is a statement (§5.3,
+   assignment_stmt). This eliminates assignment-in-condition bugs such as
+   `if (x = 0)` and keeps `expression` side-effect-light. The expression
+   hierarchy therefore begins at the conditional (ternary) level. *)
 
-(* Logical OR: level 2, left-associative *)
+(* Conditional (ternary): level 1, right-associative *)
 conditional_expr = logical_or_expr , [ "?" , expression , ":" , conditional_expr ] ;
 
 (* NOTE: The ternary is right-associative: a ? b : c ? d : e = a ? b : (c ? d : e) *)
@@ -447,11 +456,11 @@ keyword         = "module" | "import" | "export" | "from"
 ### 9.3 Contextual Keywords
 
 ```ebnf
-contextual_keyword = "to" | "downto" | "step" | "as" ;
+contextual_keyword = "until" | "to" | "downto" | "step" | "as" ;
 ```
 
 These are keywords only in specific syntactic positions:
-- `to`, `downto`, `step` — inside for-loop headers
+- `until`, `to`, `downto`, `step` — inside for-loop headers
 - `as` — in cast expressions
 
 They are valid identifiers in all other contexts.
@@ -534,8 +543,8 @@ All grammar productions listed alphabetically for quick reference:
 | `array_literal` | §6.7 | `[1, 2, 3]` or `[0; 256]` |
 | `array_type` | §4 | `byte[10]`, `word[N]` |
 | `assign_op` | §5.3 | `=`, `+=`, `-=`, etc. |
-| `assignment_expr` | §6.2 | Top of expression hierarchy |
 | `assignment_stmt` | §5.3 | `x = 5;` |
+| `call_expression` | §5.4 | Call used as a statement |
 | `base_array_type` | §4 | Element type of an array |
 | `bin_digit` | §9.5 | `0` or `1` |
 | `bin_literal` | §9.5 | `0b11110000` |
@@ -551,11 +560,11 @@ All grammar productions listed alphabetically for quick reference:
 | `cast_expr` | §6.3 | `expr as type` |
 | `char_literal` | §9.6 | `'x'` |
 | `compile_time_intrinsic` | §7.3 | `sizeof`, `offsetof`, `length`, `encode` |
-| `conditional_expr` | §6.2 | `? :` ternary |
+| `conditional_expr` | §6.2 | `? :` ternary (top of expression hierarchy) |
 | `const_decl_local` | §5.2 | Local `const` |
 | `const_decl_stmt` | §3.1 | Top-level `const` |
 | `const_expression` | §6.8 | Compile-time evaluable expression |
-| `contextual_keyword` | §9.3 | `to`, `downto`, `step`, `as` |
+| `contextual_keyword` | §9.3 | `until`, `to`, `downto`, `step`, `as` |
 | `continue_stmt` | §5.11 | `continue;` |
 | `cpu_intrinsic` | §7.1 | `asm_sei()`, etc. |
 | `cpu_intrinsic_name` | §7.1 | Names of CPU intrinsics |
@@ -573,7 +582,7 @@ All grammar productions listed alphabetically for quick reference:
 | `expression` | §6.2 | Entry point for expressions |
 | `expression_stmt` | §5.4 | `doSomething();` |
 | `field_init` | §6.6 | `field: value` |
-| `for_stmt` | §5.9 | `for (let i: byte = 0 to 10) { }` |
+| `for_stmt` | §5.9 | `for (let i: byte = 0 until 10) { }` |
 | `function_decl` | §3.2 | `function name() { }` |
 | `hex_digit` | §9.5 | `0`…`F` |
 | `hex_literal` | §9.5 | `$FF`, `0xFF` |
@@ -649,7 +658,7 @@ expressions:
 | `&` address-of vs `&` bitwise AND | Position: unary prefix = address-of; binary infix = bitwise AND |
 | `identifier "{"` struct literal vs block | Context: in expression position = struct literal; at statement position = error (structs are not statements) |
 | `'x'` char literal vs `'hello'` string literal | Length: 1 char = char literal (`byte`); 2+ chars = string literal (`const byte[]`) |
-| `to`/`downto`/`step` keyword vs identifier | Context: only treated as keywords inside `for (...)` after the initializer expression |
+| `until`/`to`/`downto`/`step` keyword vs identifier | Context: only treated as keywords inside `for (...)` after the initializer expression |
 | `as` keyword vs identifier | Context: only treated as keyword after a postfix expression |
 
 ### 11.3 Lookahead Requirements
@@ -660,7 +669,7 @@ expressions:
 | Expression vs assignment | LL(1) | Parse as expression; if `=`/`+=`/etc. follows, treat as assignment |
 | Struct literal | LL(2) | `identifier` followed by `{` in expression context |
 | Export + declaration | LL(2) | `export` followed by `function`/`let`/`const`/`struct`/`enum`/`interrupt` |
-| For-loop header | LL(1) | After `=` expression, check for `to`/`downto` |
+| For-loop header | LL(1) | After `=` expression, check for `until`/`to`/`downto` |
 
 ### 11.4 No Context-Sensitive Parsing
 
@@ -670,7 +679,7 @@ are made with fixed rules:
 - `$` followed by hex digit → hex literal
 - `0x`/`0b` → hex/binary literal prefix
 - Keywords are recognized by string matching against the keyword table
-- `to`, `downto`, `step`, `as` are tokenized as identifiers; the parser promotes them
+- `until`, `to`, `downto`, `step`, `as` are tokenized as identifiers; the parser promotes them
   to keywords in context
 
 ---
@@ -682,6 +691,6 @@ are made with fixed rules:
 | Every language construct has a production | ✅ 85 productions covering all Ch 01–13 constructs |
 | Provably LL(k) / recursive-descent + Pratt | ✅ Max LL(2); Pratt for expressions; no backtracking |
 | Dangling-else resolved | ✅ Mandatory braces (CF-1) — no bare statements after `if`/`while`/`for` |
-| No tokenization ambiguities | ✅ `&`/`to`/`downto`/`step`/`as` disambiguated by position/context |
+| No tokenization ambiguities | ✅ `&`/`until`/`to`/`downto`/`step`/`as` disambiguated by position/context |
 
 **Gate G4: PASSED**
