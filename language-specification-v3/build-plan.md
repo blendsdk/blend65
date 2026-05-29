@@ -115,7 +115,7 @@ F019✓(03) F020✓(04) F021✓(01) F022✓(02,09) F024✓(04). **All 23 mapped.
 
 - ✅ **P0** — this plan.
 - ✅ **P1** — archive (`features/` → `evaluations/`) + REJ-002 confirmed (already covers both `asm { }` blocks and `asm_*()` functions).
-- ⬜ P2 — chapters 00–15.
+- 🔄 P2 — chapters 00–15. (5/16 written: 00, 01, 02, 04, 05)
 - ⬜ P3 — migration + v2 deletion (gated).
 - ⬜ P4 — platform appendixes (gated).
 - ⬜ P5 — master EBNF (gated).
