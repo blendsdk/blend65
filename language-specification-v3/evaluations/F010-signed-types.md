@@ -634,7 +634,7 @@ let sw: sword = sword(b);     // ✅ Explicit cast: zero-extend to 16-bit, label
 | F009 Switch | `sbyte`/`sword` valid as switch expression type. Case values can be negative |
 | Enums | Enums remain unsigned (`byte`-backed). No signed enums |
 | Arrays | Signed element types valid. Array index must be unsigned |
-| Type aliases | `type Velocity = sbyte;` — valid, works like all type aliases |
+| Type aliases | Not available — type aliases were rejected (REJ-001). Refer to signed types by their real names (`sbyte`, `sword`) |
 
 ---
 

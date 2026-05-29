@@ -15,7 +15,6 @@ A module can contain **declarations only** — no loose runnable code. All execu
 | Functions | `function update(): void { ... }` | ✅ Yes |
 | Constants | `const MAX_SPEED: byte = 5;` | ✅ Yes |
 | Variables | `let score: word = 0;` | ✅ Yes |
-| Type aliases | `type SpriteId = byte;` | ✅ Yes |
 | Enums | `enum GameState { MENU, PLAYING }` | ✅ Yes |
 | Structs | `struct Player { x: byte; y: byte; }` | ✅ Yes |
 | Zeropage block | `zeropage { x: byte; }` | ✅ Yes (per-variable) |

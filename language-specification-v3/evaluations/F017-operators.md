@@ -104,7 +104,7 @@ The following operators are **not** included in Blend65 v3:
 | `typeof` | All types are known at compile time. No runtime type system |
 | `instanceof` | No classes, no inheritance, no polymorphism |
 | `,` | Comma operator — confusing, rarely useful, creates parsing ambiguity |
-| `? :` | Ternary conditional — deferred to FUT-003. Use `if/else` instead |
+
 
 **Rationale for excluding `++`/`--`:**
 
@@ -134,9 +134,13 @@ Operators are evaluated according to this precedence table (highest to lowest):
 | 8 | `^` | Left-to-right | Bitwise XOR |
 | 9 | `\|` | Left-to-right | Bitwise OR |
 | 10 | `&&` | Left-to-right | Logical AND |
-| 11 (lowest) | `\|\|` | Left-to-right | Logical OR |
+| 11 | `\|\|` | Left-to-right | Logical OR |
+| 12 (lowest) | `? :` | Right-to-left | Conditional (ternary) — see F024 |
+
+**Conditional operator** `? :` is the lowest-precedence expression operator and is **right-associative** (so `a ? b : c ? d : e` parses as `a ? b : (c ? d : e)`). Its full semantics, type-unification rules, and codegen are defined in **F024**.
 
 **Assignment operators** (`=`, `+=`, `-=`, etc.) are statements, not expressions. They do not participate in the precedence table.
+
 
 **Parentheses** `( )` override precedence as expected:
 
@@ -942,6 +946,8 @@ This is consistent with C and TypeScript (where chaining compiles but produces w
 | F013 Control flow | Conditions use comparison and logical operators. Result must be `boolean` (F013 CF-2) |
 | F014 Arrays | Array indexing uses `+` internally (base + offset). No operators on whole arrays |
 | F016 Type system | All operator type rules defined in F016. F017 specifies codegen and precedence |
+| F024 Conditional operator | The ternary `? :` is the lowest-precedence expression operator (Part 3). Its semantics, type unification, and codegen are defined in F024 |
+
 
 ---
 
@@ -1085,7 +1091,7 @@ function updatePhysics(): void {
 | **L1** Unambiguous syntax | ✅ | Standard operator syntax. Precedence table resolves all parsing ambiguity. No `++`/`--` eliminates expression-vs-statement ambiguity |
 | **L2** Consistent with existing | ✅ | Same operators as C/TypeScript (minus excluded set). Precedence matches C |
 | **L3** Beginner-friendly | ✅ | Every C/TS developer knows these operators. Short-circuit is expected. Warnings explain costs |
-| **L4** Minimal feature | ✅ | Only operators that map naturally to 6502. No unnecessary operators (ternary deferred, no comma, no `++`) |
+| **L4** Minimal feature | ✅ | Only operators that map naturally to 6502. No unnecessary operators (no comma, no `++`). The conditional `? :` is a distinct expression operator defined in F024 |
 | **L5** No redundancy | ✅ | Each operator serves a distinct purpose. No overlapping functionality |
 | **L6** Error messages defined | ✅ | 3 new error codes (E10154, E10160, E10161), 5 new warnings (W10170-W10174) |
 | **L7** Compile-time failure preferred | ✅ | Type errors at compile time. Division by zero in constants at compile time. Only runtime div-by-zero has defined runtime behavior |
@@ -1096,7 +1102,7 @@ function updatePhysics(): void {
 | **C3** Code generation strategy | ✅ | Complete codegen patterns for every operator at every width (Parts 5-10) |
 | **C4** Unit testable | ✅ | Each operator × type combination is a test case. Each codegen tier is independently testable |
 | **C5** Runtime verifiable | ✅ | All operations produce deterministic results verifiable in emulator |
-| **F1** Extensible | ✅ | Ternary can be added later (FUT-003). New operators don't require changing existing ones |
+| **F1** Extensible | ✅ | The conditional `? :` is defined in F024. New operators don't require changing existing ones |
 | **F2** Platform-profile ready | ✅ | Runtime subroutines can be platform-optimized (e.g., CX16's faster CPU might have different cycle counts in documentation) |
 | **F3** Optimizer-friendly | ✅ | Constant folding, strength reduction, and peephole optimization all applicable. `+= 1` → `INC` is a standard optimization |
 | **F4** Stability classification | ✅ | **Stable** — standard operators with decades of precedent |

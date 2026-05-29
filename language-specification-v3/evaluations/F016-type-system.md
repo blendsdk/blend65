@@ -46,8 +46,8 @@ Blend65 v3 has exactly six types:
 |-------------|---------|------------|
 | Array | `byte[256]`, `sword[10]` | F014 |
 | Struct | `struct Player { x: byte, y: byte }` | F011 |
-| Enum | `enum Direction { UP, DOWN, LEFT, RIGHT }` | v2 §2 (byte-backed) |
-| Type alias | `type SpriteId = byte;` | v2 §2 |
+| Enum | `enum Direction { UP, DOWN, LEFT, RIGHT }` | F022 (byte-backed nominal) |
+
 
 ---
 
@@ -449,18 +449,10 @@ let d: word = a + c + b;       // (byte + word) = word(1100), then word + byte =
 
 **Note:** `a + b + c` and `a + c + b` may produce different results due to intermediate overflow when `a + b` overflows at byte width!
 
-### TS-A6: How do type aliases interact with type rules?
+### TS-A6: Does Blend65 have type aliases?
 
-Type aliases are transparent — they are replaced with their underlying type during semantic analysis:
+**No.** Type aliases (`type Name = ExistingType;`) were evaluated and **rejected** — see `future-considerations.md` → REJ-001. Blend65 has no type aliasing; refer to every type by its real name. Use a well-named declaration (e.g. `spriteIndex: byte`) to convey intent. The `type` keyword remains reserved (F021 LS-9) but is unusable in v3.
 
-```blend65
-type SpriteId = byte;
-type Velocity = sbyte;
-
-let id: SpriteId = 5;
-let vel: Velocity = -3;
-let result = id + vel;          // ❌ E10081: byte + sbyte (aliases resolved first)
-```
 
 ### TS-A7: Can you cast between enum and integer types?
 

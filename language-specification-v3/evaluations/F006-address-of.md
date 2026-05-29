@@ -3,13 +3,13 @@
 > **Status**: ✅ Accepted  
 > **Stability**: Stable  
 > **Guard**: Pass (all 23 rules)  
-> **Replaces v2**: `@variable` (address-of operator), `@address` (type alias)
+> **Replaces v2**: `@variable` (address-of operator), `@address` (built-in address type)
 
 ## Description
 
 The `&` operator returns the compile-time memory address of a variable or function as a `word` value. This replaces v2's `@variable` syntax, which conflicted with storage class prefixes (`@zp`) and the type alias (`@address`).
 
-The v2 `@address` built-in type alias is removed. Addresses are simply `word` values. Developers who want self-documenting code can define their own type alias: `type Address = word;`.
+The v2 `@address` built-in type is removed. Addresses are simply `word` values. (Type aliases such as `type Address = word;` were evaluated and **rejected** — see `future-considerations.md` → REJ-001 — so use the `word` type directly and choose a self-documenting variable name.)
 
 ## Syntax
 

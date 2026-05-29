@@ -555,7 +555,7 @@ struct B { a: A; }
 
 ### SR-A9: Struct type aliases?
 
-**Allowed.** `type Sprite = Enemy;` works like any type alias — fully interchangeable.
+**Not available.** Type aliases (`type Sprite = Enemy;`) were evaluated and **rejected** (REJ-001). Refer to a struct type by its declared name everywhere. To share a struct type across modules, `export` it and `import` it under the name you want (optionally with `import { Enemy as Sprite }`).
 
 ### SR-A10: Export visibility?
 
@@ -604,7 +604,7 @@ struct InternalState { ... }                     // Module-private
 | F010 Signed types | Signed fields (`sbyte`, `sword`) fully supported in structs |
 | Enums | Enum fields valid in structs. Enum values valid in struct literals |
 | F014 Arrays | Fixed-size arrays as struct fields supported. Const parameters (F014 CP-1..CP-5) replace previous SR-3 restriction. Arrays of structs deferred |
-| Type aliases | `type` aliases for struct types work normally |
+| Type aliases | Not available (REJ-001) — refer to struct types by their declared name; use `import { X as Y }` to rename across modules |
 
 ---
 

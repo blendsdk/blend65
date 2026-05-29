@@ -256,7 +256,7 @@ Functions can only be defined at module level (F003). Defining a function inside
 
 ```blend65
 function outer(): void {
-    function inner(): void { ... }   // ❌ E10177: cannot define function inside function
+    function inner(): void { ... }   // ❌ E10176: cannot define function inside function
 }
 ```
 
@@ -579,9 +579,7 @@ Frame memory is shared between functions with non-overlapping lifetimes (frame c
 
 ### FN-A3: Can parameters shadow module-level variables?
 
-**Yes**, but the compiler emits **E10101** (defined in F013) if the parameter name shadows a variable in an enclosing scope. Parameters are in the function's scope, which is nested inside the module scope.
-
-Actually — **No**. E10101 prohibits all shadowing. A parameter name that matches a module-level variable is an error:
+**No.** E10101 (defined in F013) prohibits all shadowing. A parameter name that matches a module-level variable is an error — parameters live in the function's scope, which is nested inside the module scope, and Blend65 forbids a nested-scope name from shadowing an enclosing-scope name:
 
 ```blend65
 let score: word = 0;

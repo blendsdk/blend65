@@ -378,6 +378,46 @@ _foo:
 
 ---
 
+### FUT-017: Optimization barrier intrinsic (`barrier()`)
+
+> **Source**: F020 (Memory Intrinsics), Ambiguity MI-A2  
+> **Deferred from**: v3  
+> **Priority**: Low
+
+**What**: A `barrier()` intrinsic that prevents the optimizer from reordering regular variable operations across the barrier point. Unlike peek/poke (which are always side-effectful by MI-1), variable access is optimizable — `barrier()` would be the mechanism to selectively prevent this.
+
+```blend65
+score = score + 10;
+barrier();           // Optimizer must not move operations across this point
+lives = lives - 1;
+```
+
+**Why deferred**: In v3, peek/poke ordering is guaranteed by MI-1, and asm_*() calls act as implicit barriers (F012 CC-3). Barrier for regular variable reordering is only needed when the optimizer performs cross-statement reordering — a feature that doesn't exist yet. The stub optimizer does nothing, so barrier() would be a no-op.
+
+**Reconsideration criteria**:
+- The optimizer implements cross-statement reordering or instruction scheduling
+- Real-world code needs to enforce variable operation ordering for correctness
+- Can be added as a simple parameterless void function following the F012 pattern (zero grammar changes)
+
+---
+
+### FUT-018: Separate volatile memory intrinsics
+
+> **Source**: F020 (Memory Intrinsics), Ambiguity MI-A1  
+> **Deferred from**: v3  
+> **Priority**: Low
+
+**What**: Separate `volatile_read(addr)` and `volatile_write(addr, val)` functions that are guaranteed side-effectful, alongside potentially optimizable `peek()`/`poke()` variants.
+
+**Why deferred**: In v3, ALL peek/poke are side-effectful by design (MI-1). On 6502, the compiler cannot distinguish RAM from I/O hardware registers — any address could be either. Making all peek/poke volatile is the safe, simple default. Separate volatile variants would only be useful if a future optimizer could prove certain peek/poke addresses are pure RAM, allowing elimination of redundant reads. This requires sophisticated address analysis that doesn't exist.
+
+**Reconsideration criteria**:
+- The optimizer can prove address ranges are pure RAM (e.g., via platform profile memory maps)
+- Profiling shows peek/poke volatility prevents meaningful optimizations
+- A clean `volatile` qualifier or attribute syntax exists without adding API surface
+
+---
+
 ## Summary Table
 
 | ID | Description | Priority | Depends On |
@@ -398,3 +438,102 @@ _foo:
 | FUT-014 | Manual alignment attribute | Medium | F015 |
 | FUT-015 | Common image format conversion | Low | F015 |
 | FUT-016 | Stack-free calling convention (`--no-stack-calls`) | Medium | F018 |
+| FUT-017 | Optimization barrier intrinsic (`barrier()`) | Low | F020 |
+| FUT-018 | Separate volatile memory intrinsics | Low | F020 |
+
+---
+
+## Rejected Features
+
+> Items in this section were evaluated and **consciously rejected** — they are NOT pending or deferred.
+> A rejected feature has a permanent decision record. It will only be revisited if its explicit
+> reconsideration bar is met. Rejected feature IDs are **retired** and never reused.
+
+### REJ-001: Type aliases (`type Name = ExistingType;`)
+
+> **Status**: ❌ REJECTED  
+> **Source**: F023 evaluation (never formalized into a feature file)  
+> **Rejected from**: v3  
+> **Retired feature ID**: F023
+
+**What it was**: A declaration that gives an existing type a second name, e.g.
+`type SpriteId = byte;` or `type ScreenBuffer = byte[1000];`. The alias would be
+**transparent** — `SpriteId` and `byte` would be fully interchangeable, with the alias
+erased to its underlying type during semantic analysis (as sketched in F016 TS-A6 and v2 §2).
+
+**Why rejected**:
+1. **No type safety.** Transparent aliases enforce nothing — a raw `byte`, a literal, or any
+   other alias of `byte` is accepted anywhere a `SpriteId` is expected. It looks like a type
+   but provides zero checking.
+2. **Conflicts with the nominal-typing stance.** F022 enums were deliberately made *nominal*
+   (a distinct type requiring an explicit cast). A transparent alias is the opposite philosophy
+   and would sit awkwardly beside enums.
+3. **Obscures cost on constrained platforms.** The most-wanted case, `type Buffer = byte[1000]`,
+   hides a large allocation behind a friendly name — working against F016's "the type IS the
+   design decision" thesis and the Language Guard's cost-transparency rules (H2, H4). On a 4KB
+   Atari 7800 this is actively harmful.
+4. **Redundant with good naming.** A well-named declaration (`spriteIndex: byte`) communicates
+   the same intent without adding a language feature, a declaration form, and new error codes.
+5. **Audience.** Blend65 targets close-to-the-hardware developers on deliberately constrained
+   platforms. They name things precisely and do not need synonym sugar (Language Guard L4, L5).
+
+**Status of the `type` keyword**: The `type` keyword **remains reserved** (F021 LS-9). It is
+retained to protect future type-related syntax. Using `type` as an identifier is a syntax error.
+
+**Reconsideration bar** (high): Only revisit if v3 later gains complex composite types — for
+example function-pointer types or fixed-string types — where aliasing earns real ergonomic value.
+Even then, prefer a **nominal newtype** (a distinct type, like enums) over a transparent alias.
+
+---
+
+### REJ-002: Inline assembly (`asm { }` blocks and the full 6502 `asm_*()` opcode API)
+
+> **Status**: ❌ REJECTED  
+> **Source**: F012 (CPU Control Intrinsics), Ambiguities CC-A1 and CC-A2  
+> **Rejected from**: v3  
+> **Escape hatch**: External assembly linking — see FUT-011
+
+**What it was**: Two related ways of exposing raw 6502 assembly to Blend65 programmers,
+both inherited from / sketched in v2:
+
+1. **`asm { }` blocks** — an embedded-assembly construct allowing arbitrary 6502 source
+   inside a Blend65 function body (as in v2's "ASM Functions" concept taken to its block form).
+2. **The full `asm_*()` opcode API** — the v2 approach of exposing all ~150 opcode/addressing-mode
+   combinations as individual intrinsic functions (`asm_lda_imm`, `asm_sta_abx`, `asm_beq_rel`, …).
+
+**Why rejected**:
+
+1. **`asm { }` blocks demand an embedded assembler.** They require a lexer mode switch (assembly
+   uses `#` for immediates, `:` for labels, `;` for comments), a separate parser, a symbol-table
+   bridge so assembly can reference Blend65 variables, register-ownership negotiation (clobber lists,
+   save/restore contracts), and label-scoping rules. This is enormous compiler complexity with
+   treacherous design interactions (Language Guard C1, C2, L8).
+2. **The full opcode API can't actually write tight assembly.** Branch intrinsics like
+   `asm_beq_rel(offset)` need the developer to hand-calculate byte offsets, which is impossible
+   without knowing assembled code sizes — so the one thing raw assembly is *for* (cycle-counted
+   loops) still doesn't work.
+3. **Register interference.** `asm_lda_imm(42)` loads A, but the compiler's codegen for the next
+   Blend65 statement may clobber A immediately. There is no register-ownership contract between
+   `asm_*()` calls and compiled code.
+4. **The language already covers 95%+ of it.** Load/store → variables + peek/poke. Arithmetic →
+   `+ - & | ^ << >>`. Comparisons → `== != < >`. Control flow → `if`/`while`/`for`/`switch`.
+   Increment/decrement → `+= 1` / `-= 1`. A 150-function API is a huge API + test surface for
+   incomplete coverage of things the language expresses better (Language Guard L4, L5).
+
+**Chosen alternative**: The 13 curated **CPU control intrinsics** in F012 (`asm_sei`, `asm_cli`,
+`asm_pha`, `asm_pla`, `asm_php`, `asm_plp`, `asm_clc`, `asm_sec`, `asm_cld`, `asm_sed`, `asm_clv`,
+`asm_nop`, `asm_brk`). These cover exactly the operations the language *cannot* express, each
+compiling to a single opcode with full cost transparency. Validated against three demanding C64
+game architectures (The Last Ninja, Commando, Giana Sisters) — no game technique required
+cycle-counted inline assembly.
+
+**Escape hatch for the 1%**: The genuinely cycle-counted cases (demo-scene effects such as FLD,
+VSP, AGSP, FLI, and self-modifying code) are served by **FUT-011 (external assembly linking via
+`extern function`)** — hand-written assembly in a real assembler, linked with the compiler output.
+That is the sanctioned path; this rejection is *not* a dead end.
+
+**Reconsideration bar** (high): Only revisit if real-world Blend65 code repeatedly needs
+cycle-counted assembly sequences that FUT-011 external linking cannot satisfy, AND a design exists
+that resolves the register-ownership and label-scoping problems above without an embedded assembler.
+
+

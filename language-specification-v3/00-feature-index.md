@@ -2,7 +2,7 @@
 
 > **Created**: May 25, 2026  
 > **Purpose**: Central index tracking every language feature, design decision, and error code.  
-> **Usage**: Each feature has its own file in `features/`. This index provides the overview and the canonical error code registry.
+> **Usage**: Each feature has its own evaluation file in `evaluations/`. This index provides the overview and the canonical error code registry.
 
 ---
 
@@ -24,33 +24,45 @@ These are foundational decisions — not features. They are **givens** that all 
 
 | ID | Feature | Status | Guard | File |
 |----|---------|--------|-------|------|
-| F001 | Multi-file compilation | ✅ Accepted | Pass | [features/F001-multi-file.md](features/F001-multi-file.md) |
-| F002 | Module declarations | ✅ Accepted | Pass | [features/F002-modules.md](features/F002-modules.md) |
-| F003 | Module contents & visibility | ✅ Accepted | Pass | [features/F003-module-contents.md](features/F003-module-contents.md) |
-| F004 | Program entry point | ✅ Accepted | Pass | [features/F004-entry-point.md](features/F004-entry-point.md) |
-| F005 | Memory placement | ✅ Accepted | Pass | [features/F005-memory-placement.md](features/F005-memory-placement.md) |
-| F006 | Address-of operator (`&`) | ✅ Accepted | Pass | [features/F006-address-of.md](features/F006-address-of.md) |
-| F007 | Interrupt functions | ✅ Accepted | Pass | [features/F007-interrupt-functions.md](features/F007-interrupt-functions.md) |
-| F008 | For loop | ✅ Accepted | Pass | [features/F008-for-loop.md](features/F008-for-loop.md) |
-| F009 | Switch statement | ✅ Accepted | Pass | [features/F009-switch-statement.md](features/F009-switch-statement.md) |
-| F010 | Signed types (`sbyte`, `sword`) | ✅ Accepted | Pass | [features/F010-signed-types.md](features/F010-signed-types.md) |
-| F011 | Structs | ✅ Accepted | Pass | [features/F011-structs.md](features/F011-structs.md) |
-| F012 | CPU control intrinsics | ✅ Accepted | Pass | [features/F012-cpu-control-intrinsics.md](features/F012-cpu-control-intrinsics.md) |
-| F013 | Control flow (if/else, while, do-while, block scoping) | ✅ Accepted | Pass | [features/F013-control-flow.md](features/F013-control-flow.md) |
-| F014 | Arrays, strings, char literals, const params | ✅ Accepted | Pass | [features/F014-arrays.md](features/F014-arrays.md) |
-| F015 | Data inclusion (asset embedding) | ✅ Accepted | Pass | [features/F015-data-inclusion.md](features/F015-data-inclusion.md) |
-| F016 | Type system rules | ✅ Accepted | Pass | [features/F016-type-system.md](features/F016-type-system.md) |
-| F017 | Arithmetic, bitwise, logical, and comparison operators | ✅ Accepted | Pass | [features/F017-operators.md](features/F017-operators.md) |
-| F018 | Functions (declaration, calling, SFA frames, recursion prohibition) | ✅ Accepted | Pass | [features/F018-functions.md](features/F018-functions.md) |
+| F001 | Multi-file compilation | ✅ Accepted | Pass | [evaluations/F001-multi-file.md](evaluations/F001-multi-file.md) |
+| F002 | Module declarations | ✅ Accepted | Pass | [evaluations/F002-modules.md](evaluations/F002-modules.md) |
+| F003 | Module contents & visibility | ✅ Accepted | Pass | [evaluations/F003-module-contents.md](evaluations/F003-module-contents.md) |
+| F004 | Program entry point | ✅ Accepted | Pass | [evaluations/F004-entry-point.md](evaluations/F004-entry-point.md) |
+| F005 | Memory placement | ✅ Accepted | Pass | [evaluations/F005-memory-placement.md](evaluations/F005-memory-placement.md) |
+| F006 | Address-of operator (`&`) | ✅ Accepted | Pass | [evaluations/F006-address-of.md](evaluations/F006-address-of.md) |
+| F007 | Interrupt functions | ✅ Accepted | Pass | [evaluations/F007-interrupt-functions.md](evaluations/F007-interrupt-functions.md) |
+| F008 | For loop | ✅ Accepted | Pass | [evaluations/F008-for-loop.md](evaluations/F008-for-loop.md) |
+| F009 | Switch statement | ✅ Accepted | Pass | [evaluations/F009-switch-statement.md](evaluations/F009-switch-statement.md) |
+| F010 | Signed types (`sbyte`, `sword`) | ✅ Accepted | Pass | [evaluations/F010-signed-types.md](evaluations/F010-signed-types.md) |
+| F011 | Structs | ✅ Accepted | Pass | [evaluations/F011-structs.md](evaluations/F011-structs.md) |
+| F012 | CPU control intrinsics | ✅ Accepted | Pass | [evaluations/F012-cpu-control-intrinsics.md](evaluations/F012-cpu-control-intrinsics.md) |
+| F013 | Control flow (if/else, while, do-while, block scoping) | ✅ Accepted | Pass | [evaluations/F013-control-flow.md](evaluations/F013-control-flow.md) |
+| F014 | Arrays, strings, char literals, const params | ✅ Accepted | Pass | [evaluations/F014-arrays.md](evaluations/F014-arrays.md) |
+| F015 | Data inclusion (asset embedding) | ✅ Accepted | Pass | [evaluations/F015-data-inclusion.md](evaluations/F015-data-inclusion.md) |
+| F016 | Type system rules | ✅ Accepted | Pass | [evaluations/F016-type-system.md](evaluations/F016-type-system.md) |
+| F017 | Arithmetic, bitwise, logical, and comparison operators | ✅ Accepted | Pass | [evaluations/F017-operators.md](evaluations/F017-operators.md) |
+| F018 | Functions (declaration, calling, SFA frames, recursion prohibition) | ✅ Accepted | Pass | [evaluations/F018-functions.md](evaluations/F018-functions.md) |
+| F019 | Variables & constants (let/const, initialization, startup sequence) | ✅ Accepted | Pass | [evaluations/F019-variables.md](evaluations/F019-variables.md) |
+| F020 | Memory intrinsics (peek/poke, lo/hi, sizeof/offsetof/length) | ✅ Accepted | Pass | [evaluations/F020-memory-intrinsics.md](evaluations/F020-memory-intrinsics.md) |
+| F021 | Lexical structure (tokens, keywords, literals, operators, comments) | ✅ Accepted | Pass | [evaluations/F021-lexical-structure.md](evaluations/F021-lexical-structure.md) |
+| F022 | Enums (byte-backed nominal type, asymmetric conversion) | ✅ Accepted | Pass | [evaluations/F022-enums.md](evaluations/F022-enums.md) |
+| F024 | Conditional (ternary) operator (`cond ? a : b`) | ✅ Accepted | Pass | [evaluations/F024-conditional-operator.md](evaluations/F024-conditional-operator.md) |
 
 ---
+
 
 ## Related Documents
 
 | Document | Description |
 |----------|-------------|
-| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-016; FUT-008 resolved) |
+| [future-considerations.md](future-considerations.md) | Deferred features (FUT-001 through FUT-018; FUT-008 resolved) and rejected features (REJ-001 type aliases, REJ-002 inline assembly) |
 | [../\.clinerules/language-guard.md](../.clinerules/language-guard.md) | Language Guard — 23 rules, 5 escape hatch tiers |
+
+> **Note**: Feature ID **F023** (type aliases) was consciously **rejected** and its ID is **retired** — it is never reused. See `future-considerations.md` → REJ-001 for the full decision record. The `type` keyword remains reserved (F021 LS-9).
+>
+> **Note**: Inline assembly — `asm { }` blocks and the full v2-style `asm_*()` opcode API — was consciously **rejected**. See `future-considerations.md` → REJ-002 for the full decision record. What Blend65 *does* provide is the 13 curated CPU-control intrinsics (F012); the sanctioned escape hatch for cycle-counted code is external assembly linking (FUT-011).
+
+
 
 ---
 
@@ -68,6 +80,7 @@ All error codes use a 5-digit format starting at 10000.
 | E10020 | F004 | No entry point found — define a `function main(): void` in any module |
 | E10021 | F004 | Multiple entry points found — `main` is defined in module `<A>` and module `<B>`. Only one is allowed |
 | E10022 | F004 | Entry point `main` must have signature `function main(): void` — found `<actual signature>` |
+| E10023 | F004 | Cannot call `main()` — it is the program entry point, not a callable function |
 | E10030 | F005 | Only one `zeropage` block is allowed per module — combine all zero-page declarations into a single block |
 | E10031 | F005 | Constants are not allowed in `zeropage` — zero page is for mutable runtime data. Use module-level `const` instead |
 | E10032 | F005 | Zero-page budget exceeded — used `<N>` bytes, platform `<platform>` allows `<M>` bytes (range `<start>`–`<end>`) |
@@ -145,6 +158,7 @@ All error codes use a 5-digit format starting at 10000.
 | E10154 | F017 | Cannot apply `<op>` to `boolean` — ordered comparisons (`<`, `>`, `<=`, `>=`) are not valid for boolean operands |
 | E10160 | F017 | Division by zero in constant expression |
 | E10161 | F017 | Shift amount must be unsigned type (`byte` or `word`) — found `<type>` |
+| E10162 | F024 | Conditional operator arms have incompatible types `<type_a>` and `<type_b>` — both arms must yield the same type (or compatible integer types) |
 | E10170 | F018 | Return type required — use `function <name>(): void` for functions that return nothing |
 | E10171 | F018 | Wrong argument count — `<name>()` expects `<N>` parameters, got `<M>` |
 | E10172 | F018 | Argument type mismatch — parameter `<param>` of `<name>()` expects `<expected>`, found `<actual>` |
@@ -154,6 +168,35 @@ All error codes use a 5-digit format starting at 10000.
 | E10176 | F018 | Cannot define function inside function `<outer>` — move `<inner>` to module level |
 | E10180 | F018 | Direct recursion — function `<name>` calls itself. Blend65 uses static frame allocation which does not support recursion |
 | E10181 | F018 | Indirect recursion detected — cycle: `<fn1>` → `<fn2>` → ... → `<fn1>` |
+| E10190 | F019 | `const` declaration requires an initializer — constants must be initialized at declaration |
+| E10191 | F019 | `const` initializer must be a compile-time constant expression — found `<expr>` |
+| E10192 | F019 | Cannot assign to `const` variable `<name>` |
+| E10200 | F020 | `sizeof` requires a type name — found `<expr>`. Use `sizeof(<TypeName>)` with a type like `byte`, `word`, or a struct name |
+| E10201 | F020 | `offsetof` requires a struct type — found `<type>`. Only struct types have field offsets |
+| E10202 | F020 | Field `<field>` not found in struct `<type>` — available fields: `<list>` |
+| E10203 | F020 | `length` requires an array — found `<type>`. Use `sizeof(<TypeName>)` for type sizes |
+| E10210 | F021 | Unexpected character `<char>` (U+`<codepoint>`) — only ASCII characters are valid in Blend65 source code |
+| E10211 | F021 | Unterminated block comment — expected `*/` before end of file |
+| E10212 | F021 | Cannot redeclare reserved built-in `<name>` — this identifier is a built-in function/constant |
+| E10213 | F021 | Invalid underscore in numeric literal — underscores must appear between digits only (no leading, trailing, or consecutive underscores) |
+| E10214 | F021 | Invalid hexadecimal literal — expected hex digit (`0`–`9`, `A`–`F`) after `<prefix>` |
+| E10215 | F021 | Invalid binary literal — expected binary digit (`0` or `1`) after `0b` |
+| E10216 | F021 | Numeric literal value `<value>` exceeds maximum (65535) — no Blend65 type can hold values larger than 16 bits |
+| E10217 | F021 | Newline in string literal — strings must be on a single line. Use `\n` for newline characters |
+| E10218 | F021 | Unterminated string literal — expected closing `"` before end of line |
+| E10219 | F021 | Unknown escape sequence `\<char>` — valid escapes are: `\\`, `\"`, `\'`, `\n`, `\r`, `\t`, `\0`, `\xNN` |
+| E10220 | F021 | Incomplete hex escape `\x<char>` — `\x` requires exactly two hex digits (e.g., `\x41`) |
+| E10221 | F021 | Empty character literal — char literals must contain exactly one character or escape sequence |
+| E10222 | F021 | Multi-character literal `<literal>` — char literals must contain exactly one character. Use a string literal for multiple characters |
+| E10223 | F021 | Unterminated character literal — expected closing `'` |
+| E10224 | F021 | `<keyword>` is reserved for a future Blend65 version and cannot be used yet |
+| E10230 | F022 | Enum member value must be a compile-time `byte` constant — found `<expr>` |
+| E10231 | F022 | Enum member `<member>` references an unknown enum `<name>` — did you mean `<suggestion>`? |
+| E10232 | F022 | Duplicate enum member name `<member>` in enum `<name>` |
+| E10233 | F022 | Enum member value `<value>` out of range — enum members must be 0–255 (enums are byte-backed) |
+| E10234 | F022 | Empty enum `<name>` — an enum must declare at least one member |
+| E10235 | F022 | Cannot assign `<type>` to enum `<name>` — use an explicit cast `<name>(<expr>)` to convert a byte to this enum |
+| E10236 | F022 | Cannot compare enum `<a>` with enum `<b>` — different enum types. Cast one to `byte` to compare underlying values |
 
 ### Warning Codes
 
@@ -185,3 +228,5 @@ All error codes use a 5-digit format starting at 10000.
 | W10174 | F017 | Shift amount `<N>` >= type width (`<W>` bits) — result is always 0 |
 | W10180 | F018 | Maximum stack depth is `<N>` bytes (`<levels>` call levels) on platform `<platform>` — stack budget is `<budget>` bytes |
 | W10181 | F018 | Function `<name>` is never called and not exported — consider removing or adding `export` |
+| W10190 | F019 | Variable `<name>` may be used before initialization — value is indeterminate |
+| W10210 | F021 | Numeric literal has leading zeros: `<literal>` — Blend65 does not have octal literals; this is decimal `<value>` |

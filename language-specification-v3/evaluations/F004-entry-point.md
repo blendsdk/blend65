@@ -17,6 +17,8 @@ The entry point of a Blend65 program is a function named `main`. There must be e
 | Can `main` be in any module? | **Yes** — the compiler searches all modules |
 | Must `main` be exported? | **No** — `main` is implicitly the entry point regardless of `export` |
 | How many `main` functions? | **Exactly one** across the entire program |
+| Can other functions call `main()`? | **No** — `main` is the entry point, not a callable function (E10023) |
+| How is `main()` entered? | The startup sequence falls through directly into `main()`'s body — no JSR, no JMP (see F019) |
 | Library builds | When compiling with `--library`, no `main` is required |
 
 ## Errors
@@ -26,6 +28,7 @@ The entry point of a Blend65 program is a function named `main`. There must be e
 | E10020 | No `main` function found | `No entry point found — define a 'function main(): void' in any module` |
 | E10021 | Multiple `main` functions | `Multiple entry points found — 'main' is defined in module '<A>' and module '<B>'. Only one is allowed` |
 | E10022 | Wrong `main` signature | `Entry point 'main' must have signature 'function main(): void' — found '<actual signature>'` |
+| E10023 | Another function calls `main()` | `Cannot call 'main()' — it is the program entry point, not a callable function` |
 
 ## Examples
 
@@ -61,9 +64,9 @@ blend65c --library --platform c64 utils.blend math.blend
 ## Language Guard Verdict
 
 - **P1–P4** ✅ — Entry point is platform-independent; the compiler generates platform-specific startup code
-- **H1** ✅ — `main` compiles to a JSR/JMP to the function's static frame
-- **H3** ✅ — `main` has a static frame like any other function
+- **H1** ✅ — Startup sequence falls through directly into `main`'s body — zero call overhead
+- **H3** ✅ — `main` has a static frame like any other function (parameters/locals at fixed addresses)
 - **L1** ✅ — No syntax ambiguity — `main` is just a function name with special linker meaning
 - **L3** ✅ — Every C/TypeScript developer understands `main()`
-- **C3** ✅ — Codegen: platform startup code jumps to `main`'s address
+- **C3** ✅ — Codegen: startup sequence (CPU init → variable init) falls through into `main`'s body (F019)
 
