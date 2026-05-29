@@ -115,7 +115,7 @@ F019✓(03) F020✓(04) F021✓(01) F022✓(02,09) F024✓(04). **All 23 mapped.
 
 - ✅ **P0** — this plan.
 - ✅ **P1** — archive (`features/` → `evaluations/`) + REJ-002 confirmed (already covers both `asm { }` blocks and `asm_*()` functions).
-- 🔄 P2 — chapters 00–15. (5/16 written: 00, 01, 02, 04, 05)
-- ⬜ P3 — migration + v2 deletion (gated).
-- ⬜ P4 — platform appendixes (gated).
-- ⬜ P5 — master EBNF (gated).
+- ✅ **P2** — chapters 00–15. All 16 written: 00, 01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15.
+- ✅ **P3** — `v2-to-v3-migration.md` written (140 rows, 0 gaps → Gate G2 PASSED); `language-specification-v2/` deleted via `git rm -r`.
+- ✅ **P4** — 5 platform appendixes written (c64, c64u, cx16, a800xl, a7800). All profile slots filled → Gate G3 PASSED.
+- ✅ **P5** — master EBNF grammar written (`grammar.ebnf.md`): 85 productions, LL(2) max, Pratt for expressions, all constructs covered → Gate G4 PASSED.
