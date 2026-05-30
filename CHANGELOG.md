@@ -7,7 +7,34 @@ and the project follows a major-version contract: breaking changes to a
 
 ---
 
+## [Unreleased] — Compiler Discovery
+
+### Discovery closed — Zero-Ambiguity Gate PASSED (2026-05-30)
+
+The compiler requirements discovery phase is complete. All ambiguity-register
+threads (**AR-1..AR-93**) are resolved and the **Zero-Ambiguity Gate is PASSED**,
+unblocking RD (requirements document) authoring against the frozen `spec-v3.0`.
+
+- **Preflight protocol** added (`requirements/01-preflight-checklist.md`): a
+  repeatable five-gate audit (spec-hygiene, spec-contradiction, AR-coverage,
+  RD-traceability, MVP-reachability). First run recorded as PASS.
+- **AR-86**: VIC-20 accepted as the 6th and final target platform (after
+  `c64 → c64u → cx16 → a7800 → a800xl`); rides the c64 toolchain with zero
+  core-language impact — spec row, appendix, and profile variants deferred to the
+  final platform phase.
+- **AR-87..AR-93**: preflight gap sweep surfaced a class of *under-specified
+  algorithms* in Ch 11 ("the compiler computes X from the static call graph" with
+  no algorithm). Registered as delegation entries owned by RD-05 (frame coloring,
+  interrupt frames, ZP allocation, frame-region peak) and RD-04 (module-init
+  topological sort), with FN-A9 raw-vector escape declared out-of-scope and a
+  FUT-003 (typed function pointers) "escape-set" forward-insurance note. Soundness
+  rests on the **provably complete v3 call graph** (FN-12: functions are not
+  values; no indirect calls; recursion forbidden).
+
+---
+
 ## [spec-v3.0] — 2026-05-30 — Frozen Baseline
+
 
 The first frozen baseline of the Blend65 v3 language specification. This tag is
 the **stable reference** against which compiler implementation begins. No further
