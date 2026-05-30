@@ -405,9 +405,10 @@ When a feature **cannot** pass all 23 rules, apply the appropriate escape hatch:
 
 ## Feature Evaluation Template
 
-Every language feature must be evaluated using this template before being included in the v3 specification. Completed evaluations are stored in `language-specification-v3/evaluations/`.
+Every language feature must be evaluated using this template before being included in the v3 specification. Completed evaluations are stored in `spec/evaluations/`.
 
 ```markdown
+
 # Feature Evaluation: [Feature Name]
 
 > **Date**: [Date]  

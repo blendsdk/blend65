@@ -13,9 +13,10 @@ The Zero-Ambiguity Gate claims "every decision in every RD traces to a resolved 
 `00-ambiguity-register.md`." This protocol is the **evidence** for that claim. It is run,
 its results recorded here, and only then is the gate marked PASSED.
 
-It complements — does **not** replace — `language-specification-v3/preflight-report.md`,
+It complements — does **not** replace — `spec/preflight-report.md`,
 which audits the *spec* for contradictions. This protocol audits the *compiler
 requirements* for unresolved implementation ambiguity.
+
 
 ---
 
@@ -23,11 +24,12 @@ requirements* for unresolved implementation ambiguity.
 
 | # | Gate | Question | How verified |
 |---|------|----------|--------------|
-| G1 | **Spec-hygiene** | Does the spec contain unresolved incompleteness markers? | Full-text grep over `language-specification-v3/` for `TODO`, `FIXME`, `implementation-defined`, `open question`, `to be decided`, `unspecified`, `TBD` |
-| G2 | **Spec-contradiction** | Are there self-contradictions / dangling refs in the spec? | `language-specification-v3/preflight-report.md` (spec-level audit) is complete with all SEVERE/blocking items ✅ Fixed |
+| G1 | **Spec-hygiene** | Does the spec contain unresolved incompleteness markers? | Full-text grep over `spec/` for `TODO`, `FIXME`, `implementation-defined`, `open question`, `to be decided`, `unspecified`, `TBD` |
+| G2 | **Spec-contradiction** | Are there self-contradictions / dangling refs in the spec? | `spec/preflight-report.md` (spec-level audit) is complete with all SEVERE/blocking items ✅ Fixed |
 | G3 | **AR-coverage** | Does every "the compiler computes/decides X" in the spec map to a resolved or explicitly-delegated AR? | Read Ch 10/11/12/15; cross-check each algorithmic clause against the register |
 | G4 | **RD-traceability** | Does every RD (RD-01..RD-17) have its inputs traceable to ARs? | Cross-check the README RD index "Depends On" + the per-AR "Feeds RD-NN" footers |
 | G5 | **MVP-reachability** | Does the Phase-A gate slice depend on zero unresolved items? | Trace AR-43 (poke-a-constant) dependencies; confirm SFA/ZP not required until slice 2 |
+
 
 A run **PASSES** only when all five gates pass.
 

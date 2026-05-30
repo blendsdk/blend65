@@ -872,12 +872,13 @@ These were surfaced by a **dedicated preflight protocol** (recorded in
 `requirements/01-preflight-checklist.md`) run before passing the Zero-Ambiguity Gate.
 The full-spec hygiene grep is clean (zero `TODO`/`FIXME`/`implementation-defined`/
 `open question`/`to be decided`), and the spec-level contradictions were already fixed
-by `language-specification-v3/preflight-report.md`. What this sweep caught is a distinct
+by `spec/preflight-report.md`. What this sweep caught is a distinct
 class: places where Ch 11 says *"the compiler computes X from the static call graph"*
 but gives **no algorithm**. None are spec defects or soundness holes — they are
 legitimate implementation latitude (Guard **C2/F2**). They are registered here as
 **delegation** entries so the audit trail can distinguish "deliberately deferred to a
 named RD" from "never noticed."
+
 
 The load-bearing fact that makes all of this safe was verified directly against Ch 06
 and the F006/F007 evaluations:
@@ -996,11 +997,12 @@ Threads resolved so far:
 **✅ GATE PASSED — DISCOVERY CLOSED 2026-05-30 (AR-1..AR-93).** No threads remain open.
 A dedicated **preflight protocol** (`requirements/01-preflight-checklist.md`) was run and
 recorded: spec-hygiene grep clean, spec contradictions already fixed
-(`language-specification-v3/preflight-report.md`), every "the compiler computes X"
+(`spec/preflight-report.md`), every "the compiler computes X"
 under-specification mapped to a resolved-or-delegated AR, and MVP reachability confirmed
 (the AR-43 gate slice depends on zero unresolved items). The **Zero-Ambiguity Gate is
 PASSED**; RD authoring is the active phase (MVP-first per the implementation order in
 `requirements/README.md`).
+
 
 > **Note (AR-86):** VIC-20 was subsequently accepted as a sixth target platform,
 > sequenced **last** (after `a800xl`). It rides the c64 toolchain (6502 codegen,
