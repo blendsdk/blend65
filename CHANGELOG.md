@@ -9,7 +9,15 @@ and the project follows a major-version contract: breaking changes to a
 
 ## [Unreleased] — Compiler Discovery
 
+### Repository layout
+
+- **Renamed `language-specification-v3/` → `spec/`** (per AR-19), via `git mv` so
+  full file history is preserved. Live path references in `requirements/` and
+  `.clinerules/` were updated; the historical "renamed from" notes were kept
+  intentionally.
+
 ### Discovery closed — Zero-Ambiguity Gate PASSED (2026-05-30)
+
 
 The compiler requirements discovery phase is complete. All ambiguity-register
 threads (**AR-1..AR-93**) are resolved and the **Zero-Ambiguity Gate is PASSED**,
