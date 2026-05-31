@@ -171,6 +171,90 @@ and the project follows a major-version contract: breaking changes to a
   budget warnings via severity layer (AR-85). 49 requirements (R1–R49), 21 acceptance
   criteria (AC-01–AC-21). Traces to Ch 14, AR-70–AR-85.
   Status set to 🟢 Authored in the RD index.
+- **Authored RD-13 — Non-Functional Requirements**
+  (`requirements/RD-13-non-functional-requirements.md`). Specifies the cross-cutting
+  quality attributes that constrain all functional RDs: compile-time performance targets
+  (< 2s full build for 10 KLOC, < 250ms LSP reparse per AR-41), Node.js portability
+  (Windows/macOS/Linux, Node 22+, zero native addons, no OS-specific APIs), error UX
+  quality bar (every diagnostic actionable with code/location/fix, jargon-free per L3,
+  conditional color per AR-17), compiler determinism (same input → identical .asm +
+  diagnostics + report, enforced by golden snapshots), reliability (no crashes on
+  malformed input, atomic build artifacts, graceful ICE degradation), maintainability
+  (TS strict mode, ESLint+Prettier, zero-dep core pipeline, JSDoc on all exports,
+  enforced package boundaries per AR-20), testability (three-tier taxonomy per AR-22,
+  ≥ 90% critical-path coverage, every diagnostic code tested), and security (no eval,
+  no network, scoped FS, JSONC-only config). 38 requirements (R1–R38), 15 acceptance
+  criteria (AC-01–AC-15). Traces to Language Guard H2/H4/H5/L3/L6/L7, AR-1–AR-3,
+  AR-10, AR-13, AR-15–AR-17, AR-20, AR-22, AR-27, AR-38, AR-40–AR-41, AR-58, AR-62–
+  AR-63, AR-68, AR-70, AR-73–AR-74, AR-77–AR-78.
+  Status set to 🟢 Authored in the RD index.
+- **Authored RD-17 — Intrinsic Functions & Runtime-Routine ABI**
+  (`requirements/RD-17-intrinsics-runtime-abi.md`). Specifies the intrinsic function
+  system and the runtime-routine ABI — the final RD (17 of 17). Four-tier taxonomy
+  (AR-28): T1 opcode (one 6502 instruction, CPU-conditioned), T2 inline/compile-time
+  (peek/poke/lo/hi/sizeof/offsetof/length), T3 core runtime (mul/div/mod `.asm`
+  modules, JSR-linked, dead-stripped on 4KB 7800), T4 platform (contributed by plugins,
+  explicit import required). Typed `IntrinsicDescriptor` registry (AR-29): signature,
+  availability predicate keyed on CPU/platform, lowering strategy (opcode/inline/fold/
+  call), cost metadata (cycles/bytes/ZP), per-routine clobber list; platform packages
+  contribute T4 entries. Hybrid body strategy (AR-30): TS Instr-emit for T1/T2,
+  hand-written `.asm` for T3/T4, never Blend65 source. Import boundary (AR-31): T1–T3
+  ambient, T4 imported; all names reserved (shadowing = compile-time error). CPU/
+  platform conditioning (AR-32): calling unavailable intrinsic = compile-time error
+  naming required CPU/platform. Runtime-routine ABI (AR-33): ≤3 scalar bytes in
+  A/X/Y registers, overflow in ZP arg-block (≥4 bytes guaranteed floor, AR-34),
+  pointers as ZP pairs for `(ptr),Y`, return byte→A word→A/X, per-routine clobber
+  declaration; compiler-marshalled SFA→ABI at call sites. "Crazy asm" = registered
+  routine only (AR-35); end-user `extern function` deferred to FUT-011 (AR-36),
+  same ABI. Complete Ch 12 catalog (18 core intrinsics). 38 requirements (R1–R38),
+  18 acceptance criteria (AC-01–AC-18). Traces to Ch 12, AR-28–AR-36, AR-18.
+  Status set to 🟢 Authored in the RD index.
+- **Authored RD-16 — Compiler Configuration (`blend65.json`)**
+  (`requirements/RD-16-compiler-configuration.md`). Specifies the `@blend65/config`
+  package and the `blend65.json` JSONC project configuration file (AR-13). Covers
+  `tsconfig.json`-style discovery (walk up from cwd), full schema (`platform` AR-37,
+  `include`/`exclude` globs AR-39, `outDir`/`outName`, `acmePath` AR-62, `maxErrors`
+  AR-73, `warnAsError`/`suppressWarnings` AR-75, `diagnosticsFormat` AR-76, `optimize`
+  AR-38, `quiet` AR-83, `startup` AR-69), schema validation (unknown keys warn,
+  invalid types error, invalid platform lists available platforms), merge order
+  `defaults ← blend65.json ← CLI flags ← programmatic API`, synchronous `loadConfig()`
+  returning typed `BlendConfig` result, example configurations for C64/CX16. 28
+  requirements (R1–R28), 14 acceptance criteria (AC-01–AC-14). Traces to AR-13,
+  AR-37–AR-39, AR-62, AR-69, AR-73, AR-75–AR-77, AR-83.
+  Status set to 🟢 Authored in the RD index.
+- **Authored RD-15 — Programmatic & CLI API**
+  (`requirements/RD-15-programmatic-cli-api.md`). Specifies the two public invocation
+  surfaces: `@blend65/compiler` (library-first programmatic API, AR-77) and `@blend65/cli`
+  (`blendc` command, AR-3). Programmatic API: `compile()` (frontend-only, used by LSP),
+  `build()` (full pipeline), `emitAsm()` (AR-60), `emitIl()` (AR-51); injectable
+  `CompilerHost` (AR-40); structured result types (`CompileResult`/`BuildResult`/
+  `EmitResult`), never throws (AR-15). CLI: yargs (AR-16), `build`/`check` subcommands,
+  complete flag set (`--platform`/`--out-dir`/`--emit-asm`/`--emit-il`/`--emit-report`/
+  `--max-errors`/`--warn-as-error`/`--suppress-warning`/`--diagnostics-format`/
+  `--acme-path`/`--optimize`/`--quiet`/`--no-color`/`--report=json`/`--help`/`--version`),
+  conditional chalk color (AR-17), diagnostics→stderr / summary→stdout separation,
+  exit codes 0/1/2/3, `DiskCompilerHost` file discovery (AR-39). 44 requirements
+  (R1–R44), 19 acceptance criteria (AC-01–AC-19). Traces to AR-3, AR-15–AR-17,
+  AR-39–AR-40, AR-51, AR-60, AR-62–AR-63, AR-68, AR-73, AR-75–AR-77, AR-82–AR-83.
+  Status set to 🟢 Authored in the RD index.
+- **Authored RD-14 — VS Code Extension & Language Server**
+  (`requirements/RD-14-vscode-language-server.md`). Specifies the two-package VS Code
+  integration: `@blend65/vscode` (extension client) and `@blend65/language-server` (LSP
+  server, AR-20 load-bearing boundary: depends on frontend+core only, never codegen).
+  TextMate grammar for syntax highlighting covering all Ch 01 lexical categories (32
+  keywords, contextual keywords, literals, comments, escape sequences). Full LSP
+  capabilities (AR-14, non-negotiable): real-time diagnostics via debounced whole-program
+  reparse (AR-41, ~200ms configurable), completion (scope chain, keywords, type names,
+  module-qualified, intrinsics T1–T4 per AR-31, signature help), hover (types, intrinsic
+  docs from AR-29 registry, enum values, const values, Markdown format), go-to-definition
+  (variables, functions, structs, enums, imports, cross-file via Ch 10 §2; intrinsics
+  return no location), document symbols (outline). `CompilerHost` LSP implementation
+  with open-buffer overlay + disk fallback (AR-40). `SourceSpan` byte-offset → LSP
+  Position UTF-16 conversion via `LineMap.getUtf16Column()` (AR-72). Extension
+  configuration settings (`acmePath`, `maxErrors`, `debounceMs`). 45 requirements
+  (R1–R45), 16 acceptance criteria (AC-01–AC-16). Traces to Ch 01, Ch 14, AR-14,
+  AR-15, AR-20, AR-29, AR-31, AR-39–AR-41, AR-62, AR-70–AR-73, AR-77–AR-78.
+  Status set to 🟢 Authored in the RD index.
 - **Authored RD-12 — Test Harness & Emulator Verification**
   (`requirements/RD-12-test-harness.md`). Specifies the three-tier testing taxonomy
   (unit / golden-snapshot / emulator-runtime, AR-22) and the `@blend65/test-harness`
