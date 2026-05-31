@@ -1,0 +1,5 @@
+module Main;
+
+function main(): void {
+    poke(0xD020, 5);   // VIC-II border color; literal lives in the example, not core (P3)
+}
