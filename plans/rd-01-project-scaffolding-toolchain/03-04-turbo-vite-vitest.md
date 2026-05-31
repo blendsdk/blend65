@@ -28,8 +28,7 @@ align with AR-P1.
     },
     "lint": {},
     "test": {
-      "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "dependsOn": ["^build"]
     }
   }
 }
@@ -38,7 +37,10 @@ align with AR-P1.
 - `^build` means "build my dependencies first" — Turbo walks the same graph the tsconfig
   references describe, so build order is automatic.
 - `typecheck` and `test` depend on `^build` so consumers see fresh `.d.ts` from deps.
-- Outputs are cached; re-running with no source changes is a cache hit.
+- Build outputs are cached; re-running with no source changes is a cache hit.
+- The `test` task declares **no `outputs`** at scaffold stage (no coverage is produced
+  yet); adding `outputs: ["coverage/**"]` with no coverage emitted triggers Turbo
+  "no output files found" warnings (AR-P8). Re-add it when coverage lands in a later RD.
 
 ## Vite (per-package — only `cli` and `vscode`)
 
@@ -80,7 +82,30 @@ export default defineConfig({
 > `*.spec.test.ts`. This is the **unit tier only** — golden/emulator tiers (AR-25/AR-26)
 > are out of scope (RD-12).
 
-Root `vitest.config.ts` (workspace mode) discovers tests across all packages:
+> ⚠️ **Corrected by AR-P8 (2026-06-01).** A single root `vitest.config.ts` is **not
+> sufficient** for `turbo run test`. Turbo fans out to each package's `vitest run`, and
+> Vitest loads the **nearest** config — the root one — whose root-relative `include` globs
+> match nothing from inside a package dir, so every package reports "No test files found"
+> and exits 1 under `passWithNoTests: false`. The fix is two layers of config (below).
+
+**Layer 1 — per-package `vitest.config.ts`** (one in each of the ten packages); this is
+what `turbo run test` / a package's own `vitest run` uses:
+
+```ts
+// packages/<pkg>/vitest.config.ts
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    include: ["src/**/*.spec.test.ts"],
+    environment: "node",
+    passWithNoTests: false,
+  },
+});
+```
+
+**Layer 2 — root `vitest.config.ts`** for a single whole-workspace `yarn vitest` run
+(also discovers the root-level boundary test):
 
 ```ts
 // vitest.config.ts (repo root)
@@ -95,12 +120,14 @@ export default defineConfig({
 });
 ```
 
-- `packages/*/src/**/*.spec.test.ts` → the ten per-package smoke tests (03-02).
-- `test/**/*.spec.test.ts` → the root-level `boundary.spec.test.ts` (R15 test, 07).
-- `passWithNoTests: false` keeps the suite honest (an empty run is a failure).
+- Per-package config `src/**/*.spec.test.ts` → that package's smoke test (03-02), resolved
+  relative to the package dir so `turbo run test` works.
+- Root config `packages/*/...` + `test/**/...` → all ten smoke tests + the root-level
+  `boundary.spec.test.ts` (R15 test, 07) in one process.
+- `passWithNoTests: false` keeps both suites honest (an empty run is a failure).
 
-`turbo run test` fans out to each package's `vitest run`; the root `yarn test` can also run
-the whole workspace in one Vitest process. Both paths are wired.
+`turbo run test` fans out to each package's `vitest run` (Layer 1); the root `yarn test`
+can also run the whole workspace in one Vitest process (Layer 2). Both paths are wired.
 
 ## Code Examples
 

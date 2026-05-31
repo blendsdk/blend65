@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-01 Project Scaffolding & Toolchain (Plan Level)
 
-> **Status**: ✅ GATE PASSED — 6 plan-level items resolved (2026-05-31); +1 runtime item AR-P7 resolved (2026-06-01)
+> **Status**: ✅ GATE PASSED — 6 plan-level items resolved (2026-05-31); +2 runtime items AR-P7, AR-P8 resolved (2026-06-01)
 > **Last Updated**: 2026-06-01
 
 > **Source RD**: [RD-01](../../requirements/RD-01-project-scaffolding-toolchain.md)
@@ -32,6 +32,7 @@ Every plan-level entry is prefixed `AR-P` to distinguish it from the upstream
 | AR-P5 | Technical | ESLint config style — RD-01 §4.1 shows legacy `.eslintrc.cjs`, which collides with the ESM + Node 22 choice (ESLint v9 default = flat config) | flat `eslint.config.mjs` / legacy `.eslintrc.cjs` | **ESLint v9 flat config `eslint.config.mjs` (supersedes the illustrative `.eslintrc.cjs`); Prettier as `.prettierrc.json`** | ✅ Resolved |
 | AR-P6 | Architecture | R15 frontend/backend boundary enforcement mechanism ("compile error, not a convention") | both (tsc refs + ESLint) / tsc only / ESLint only | **Both layers** — _superseded by AR-P7._ Original decision named tsc `references` the authoritative layer; AR-P7 demotes tsc to build-ordering only and promotes ESLint to authoritative. tsconfig `references` still omit `codegen` from `frontend`/`language-server` (correct dependency graph), and the ESLint `no-restricted-imports` ban is retained — but now as the **enforcing** gate, not merely "friendly". | ✅ Resolved (amended by AR-P7) |
 | AR-P7 (runtime) | Architecture | **AR-P6's "authoritative" tsc-references layer does NOT fire.** Phase 3 verification: injecting `import { VERSION } from "@blend65/codegen"` into `frontend` builds with **EXIT=0** — no `TS6307`. Cause: Yarn classic hoists every workspace into the root `node_modules/@blend65/*`, so NodeNext module resolution resolves `codegen`'s built `dist/*.d.ts` directly; tsc's project-`references` list only governs which referenced projects are rebuilt/redirected, it does **not** forbid resolving non-referenced packages via `node_modules`. Therefore omitting `codegen` from `references` is necessary but **not sufficient** to make the R15 violation a compile error. | (1) ESLint `no-restricted-imports`=error as authoritative gate, `boundary.spec.test.ts` asserts ESLint exits non-zero, CI lint = hard gate / (2) dependency-cruiser or eslint-plugin-boundaries / (3) tsc `paths` stub hack / (4) custom grep scanner | **Option 1** — ESLint `no-restricted-imports` (error) on `@blend65/codegen` in `frontend`+`language-server` is the **authoritative** R15 gate; `boundary.spec.test.ts` asserts a violating fixture makes `eslint .` exit non-zero; CI runs lint as a hard gate. tsc `references` retained for correct build ordering (necessary, not sufficient). **dependency-cruiser noted as the F1/F3 future upgrade** for transitive/dynamic-import enforcement. | ✅ Resolved |
+| AR-P8 (runtime) | Technical | **Phase 4: a single root `vitest.config.ts` cannot satisfy per-package `turbo run test` fan-out.** The plan (03-04) assumed one root config plus Turbo's per-package `vitest run` would both work. At runtime each package's `vitest run` loads the nearest config — the root one — whose root-relative `include` globs (`packages/*/src/**/*.spec.test.ts`) match nothing from inside a package dir, so Vitest reports "No test files found" and exits 1 under `passWithNoTests: false`. Build was green (10/10); test failed at `@blend65/platforms`. | (1) per-package `vitest.config.ts` (`include: src/**/*.spec.test.ts`) + keep root config for whole-workspace runs / (2) single root Vitest run, drop per-package `test` from scripts+turbo / (3) `vitest.workspace.ts` project model | **Option 1** — add a tiny `vitest.config.ts` to each of the 10 packages (`include: ["src/**/*.spec.test.ts"]`, node env, `passWithNoTests: false`); retain the root `vitest.config.ts` for whole-workspace `yarn vitest`. Preserves Turbo per-package test caching/parallelism (standard monorepo approach). `turbo run build` + `turbo run test` both green (17/17). Also dropped the unused `outputs: ["coverage/**"]` from the `test` task (no coverage at scaffold stage → removed "no output files" warnings). | ✅ Resolved |
 
 
 
@@ -96,6 +97,19 @@ with the rule firing, then removes the fixture. CI runs `lint` as a hard gate (P
 **dependency-cruiser** (or `eslint-plugin-boundaries`) is recorded as the future upgrade
 (F1/F3) if/when transitive or dynamic-import enforcement becomes necessary; it is
 intentionally **not** added in RD-01 to keep the scaffold minimal (L4).
+
+**AR-P8:** Phase 4 verification surfaced that Turbo's `test` task fans out to each
+package's `vitest run`, and Vitest resolves the **nearest** config — the root one — when a
+package has none. The root config's `include` globs are root-relative, so from inside
+`packages/<pkg>` they match nothing and `passWithNoTests: false` turns the empty run into a
+failure (first hit: `@blend65/platforms`). Resolution: each package gets its own minimal
+`vitest.config.ts` with `include: ["src/**/*.spec.test.ts"]`; the root `vitest.config.ts`
+is kept so a single `yarn vitest` at the root still discovers every package plus the
+root-level `test/boundary.spec.test.ts`. This is the conventional Turbo+Vitest monorepo
+layout and preserves per-package test caching/parallelism. After the change,
+`yarn turbo run build` and `yarn turbo run test` are both green (17/17 tasks). The unused
+`outputs: ["coverage/**"]` entry on the `test` task was also removed (no coverage is
+produced at scaffold stage), eliminating Turbo "no output files found" warnings.
 
 ---
 
