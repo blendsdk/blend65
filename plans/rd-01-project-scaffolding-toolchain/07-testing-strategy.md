@@ -45,47 +45,54 @@ package's entry point builds and exports the baseline constant.
 
 ### Root boundary test (`test/boundary.spec.test.ts`) — the load-bearing one
 
-| ID      | Assertion                                                                                      | Trace               |
-| ------- | ---------------------------------------------------------------------------------------------- | ------------------- |
-| ST-R15a | With a `@blend65/codegen` import injected into `packages/frontend/src`, `tsc --build` exits ≠ 0 | R15, AR-20, AR-P6   |
-| ST-R15b | With the same import in `packages/language-server/src`, `tsc --build` exits ≠ 0                 | R15, AR-20, AR-P6   |
-| ST-R15c | The clean tree (no injected import) builds with `tsc --build` exit 0                            | §6.2, §6.3          |
+> ⚠️ **Corrected by AR-P7.** ST-R15a/b originally asserted that the injected import made
+> **`tsc --build`** fail. Phase 3 proved that false (Yarn-classic hoisting → resolves via
+> `node_modules` → `tsc --build` exits 0). The authoritative gate is **ESLint**
+> `no-restricted-imports`, so the test now runs **`eslint`** on the violating fixture and
+> asserts a **non-zero** exit.
+
+| ID      | Assertion                                                                                            | Trace               |
+| ------- | ---------------------------------------------------------------------------------------------------- | ------------------- |
+| ST-R15a | With a `@blend65/codegen` import injected into `packages/frontend/src`, `eslint` exits ≠ 0            | R15, AR-20, AR-P7   |
+| ST-R15b | With the same import in `packages/language-server/src`, `eslint` exits ≠ 0                            | R15, AR-20, AR-P7   |
+| ST-R15c | The clean tree (no injected import) lints with `eslint` exit 0 **and** builds with `tsc --build` exit 0 | §6.2, §6.3, §6.4 |
 
 **Mechanism:** the test writes a temporary `__boundary_violation__.ts` into the target
-package, runs `tsc --build` as a child process, captures the exit code, then deletes the
-temp file. A non-zero exit (with the expected `TS6307`/unresolved-module diagnostic) passes
-the test; a zero exit **fails** it (meaning the boundary leaked).
+package, runs **`eslint`** on that file as a child process, captures the exit code, then
+deletes the temp file. A non-zero exit (the `no-restricted-imports` rule firing) passes the
+test; a zero exit **fails** it (meaning the boundary leaked).
 
 ```ts
-// test/boundary.spec.test.ts (shape)
-import { afterEach, describe, expect, it } from "vitest";
+// test/boundary.spec.test.ts (shape — AR-P7: ESLint is the authoritative gate)
+import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { writeFileSync, rmSync } from "node:fs";
 
 const violation = `import { VERSION } from "@blend65/codegen";\nexport const x = VERSION;\n`;
 
-function buildFails(pkgDir: string): boolean {
+function lintFails(pkgDir: string): boolean {
   const f = `packages/${pkgDir}/src/__boundary_violation__.ts`;
   writeFileSync(f, violation);
   try {
-    execFileSync("yarn", ["tsc", "--build", "tsconfig.json"], { stdio: "pipe" });
-    return false; // built OK → boundary leaked → test should fail
+    execFileSync("yarn", ["eslint", f], { stdio: "pipe" });
+    return false; // lint passed → boundary leaked → test should fail
   } catch {
-    return true; // build failed → boundary enforced → good
+    return true; // lint failed (no-restricted-imports) → boundary enforced → good
   } finally {
     rmSync(f, { force: true });
   }
 }
 
-describe("R15 frontend/backend boundary (AR-20)", () => {
+describe("R15 frontend/backend boundary (AR-20, AR-P7)", () => {
   it("ST-R15a: frontend cannot import @blend65/codegen", () => {
-    expect(buildFails("frontend")).toBe(true);
+    expect(lintFails("frontend")).toBe(true);
   });
   it("ST-R15b: language-server cannot import @blend65/codegen", () => {
-    expect(buildFails("language-server")).toBe(true);
+    expect(lintFails("language-server")).toBe(true);
   });
 });
 ```
+
 
 ### Pipeline / structural spec checks (CI-asserted)
 
@@ -98,7 +105,8 @@ describe("R15 frontend/backend boundary (AR-20)", () => {
 | ST-TST | `yarn turbo run test` runs ST-1..ST-10 + ST-R15* green                          | §6.5             |
 | ST-CI  | CI workflow valid, Node 22, 5 ordered steps, **no** emulator job                | §6.6, AR-11, AR-27 |
 | ST-LAY | Top-level layout matches §4.1 (`spec docs plans requirements research examples packages`) | §6.7, AR-19 |
-| ST-ESL | `no-restricted-imports` fires on a `codegen` import in frontend                 | AR-P6            |
+| ST-ESL | `no-restricted-imports` fires on a `codegen` import in frontend (authoritative R15 gate) | AR-P7   |
+
 
 ## Coverage Goals
 

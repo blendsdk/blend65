@@ -6,8 +6,10 @@
 ## Overview
 
 Defines lint/format configuration (ESLint v9 flat config + Prettier, per AR-12/AR-P5) and
-the GitHub Actions CI pipeline (AR-11). ESLint also carries the **secondary** R15 boundary
-guard (`no-restricted-imports`) per AR-P6.
+the GitHub Actions CI pipeline (AR-11). ESLint also carries the **authoritative** R15
+boundary guard (`no-restricted-imports`) per AR-P7 (this supersedes AR-P6, which had named
+the tsc project-reference layer authoritative — see note below).
+
 
 ## ESLint (flat config `eslint.config.mjs`)
 
@@ -24,8 +26,10 @@ export default tseslint.config(
   { ignores: ["**/dist/**", "**/*.tsbuildinfo", "**/coverage/**"] },
   ...tseslint.configs.recommended,
 
-  // R15 secondary guard (AR-P6): friendly early ban of @blend65/codegen
-  // inside the frontend and language-server packages.
+  // R15 AUTHORITATIVE guard (AR-P7): hard ban of @blend65/codegen inside the
+  // frontend and language-server packages. `eslint .` exits non-zero on violation,
+  // wired into CI as a hard gate. (tsc references alone do NOT block this — AR-P7.)
+
   {
     files: ["packages/frontend/**/*.ts", "packages/language-server/**/*.ts"],
     rules: {
@@ -48,8 +52,14 @@ export default tseslint.config(
 );
 ```
 
-> The tsconfig project-reference layer (03-03) remains the **authoritative**, spec-mandated
-> enforcement (compile error). This ESLint rule is the friendlier, earlier signal.
+> ⚠️ **AR-P7 correction.** The tsconfig project-reference layer (03-03) does **not**
+> block a `@blend65/codegen` import in `frontend`/`language-server` — under Yarn-classic
+> hoisting it resolves via `node_modules`, so `tsc --build` succeeds. This ESLint
+> `no-restricted-imports` rule is therefore the **authoritative** R15 gate (hard error,
+> CI-enforced). The `references` graph is retained only for build ordering and an accurate
+> dependency model. dependency-cruiser is the documented future upgrade for transitive
+> enforcement.
+
 
 ## Prettier (`.prettierrc.json`)
 
@@ -137,15 +147,19 @@ import { x } from "@blend65/codegen";
 
 | Error Case                                       | Handling Strategy                                                | AR Ref       |
 | ------------------------------------------------ | ---------------------------------------------------------------- | ------------ |
-| `codegen` import in frontend/language-server     | ESLint `no-restricted-imports` error (+ tsc compile error)       | AR-P6, AR-20 |
+| `codegen` import in frontend/language-server     | ESLint `no-restricted-imports` error (authoritative; tsc does NOT catch it — AR-P7) | AR-P7, AR-20 |
 | Formatting drift                                 | `prettier --check` fails CI; `prettier --write` fixes locally    | AR-12        |
 | Lockfile out of date in CI                       | `yarn install --frozen-lockfile` fails fast                      | §4.8         |
 | Wrong Node version on runner                     | `setup-node` pins `22`; `engines` floor in manifests             | AR-10        |
 | Lint rules conflict with Prettier                | `eslint-config-prettier` last in config disables formatting rules | AR-P5       |
+
 
 ## Testing Requirements
 
 - ST-lint: `turbo run lint` exits 0 on the clean scaffold.
 - ST-ci: the workflow file is valid YAML, pins Node 22, uses frozen lockfile, runs the
   five steps in order, and contains **no** emulator/golden job (AR-27 negative check).
-- ST-R15-eslint: a `codegen` import in `frontend` produces a `no-restricted-imports` error.
+- ST-R15-eslint (authoritative, AR-P7): a `codegen` import in `frontend`/`language-server`
+  makes `eslint .` exit non-zero with the `no-restricted-imports` rule firing. This is the
+  spec-enforcing R15 check asserted by `boundary.spec.test.ts`.
+

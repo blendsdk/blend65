@@ -7,8 +7,19 @@
 
 Defines the TypeScript build: a shared `tsconfig.base.json`, a root solution
 `tsconfig.json` that references every package, and per-package `tsconfig.json` files whose
-`references` arrays **are** the enforced dependency graph. The reference graph is the
-**authoritative** mechanism for the R15 frontend/backend boundary (AR-P6).
+`references` arrays model the dependency graph and drive `composite` build ordering.
+
+> ⚠️ **Corrected by AR-P7 (2026-06-01).** This document originally claimed the tsc
+> `references` graph was the **authoritative** R15 enforcement mechanism. Phase 3
+> verification disproved that: under Yarn-classic workspace hoisting, a non-referenced
+> `@blend65/codegen` import in `frontend`/`language-server` still resolves via
+> `node_modules/@blend65/codegen/dist/*.d.ts`, so `tsc --build` does **not** fail. The
+> reference graph is **necessary but not sufficient** for R15. The **authoritative** R15
+> gate is now the ESLint `no-restricted-imports` rule (see `03-05-eslint-prettier-ci.md`
+> and AR-P7). The `references` arrays below are still required for correct build ordering
+> and an accurate dependency model, and `frontend`/`language-server` still correctly omit
+> `codegen`.
+
 
 ## Architecture
 
@@ -142,15 +153,31 @@ Complete reference map (mirrors 03-02):
 | vscode            | language-server                                     |
 | test-harness      | core                                                |
 
-### Why this enforces R15 (AR-P6, authoritative layer)
+### R15 enforcement: `references` model the graph, ESLint enforces the boundary (AR-P7)
 
-Under `composite` project-reference builds, a package can only resolve `@blend65/X`
-types/declarations if `X` is in its `references`. Because `frontend` and `language-server`
-do **not** reference `codegen`, any `import ... from "@blend65/codegen"` inside them fails
-`tsc --build` with `TS6307` ("File is not listed within the file list of project … It is
-not part of the project because …") / unresolved-module errors — i.e. a **compile error,
-not a convention** (RD-01 §4.2). The secondary ESLint guard (03-05) catches it earlier
-with a friendlier message.
+> ⚠️ **Corrected by AR-P7.** The original theory here was that, under `composite`
+> project-reference builds, a package could only resolve `@blend65/X` if `X` was in its
+> `references`, so a `codegen` import in `frontend`/`language-server` would fail
+> `tsc --build` with `TS6307`. **This does not hold in a Yarn-classic workspace.** Every
+> workspace is symlinked into the root `node_modules/@blend65/*`, so NodeNext module
+> resolution finds `@blend65/codegen`'s built `dist/*.d.ts` directly. tsc's `references`
+> list only governs build ordering and which referenced projects are redirected to source
+> — it never *forbids* resolving a non-referenced package through `node_modules`. Phase 3
+> empirically confirmed the illegal import builds with `EXIT=0`.
+
+What the `references` arrays still give us (and why they remain mandatory):
+
+- correct `composite` **build ordering** for the whole graph via `tsc --build`,
+- an accurate, machine-checked **dependency model** (each package declares only its direct
+  `@blend65` deps), and
+- `frontend`/`language-server` correctly omit `codegen`, keeping the model truthful.
+
+The **authoritative** R15 gate is the ESLint `no-restricted-imports` rule (severity
+`error`) defined in `03-05-eslint-prettier-ci.md`: it bans `@blend65/codegen` (and deep
+paths) in `frontend` and `language-server`, making `eslint .` exit non-zero — a real CI
+gate (Phase 7). `boundary.spec.test.ts` asserts that lint failure. dependency-cruiser is
+the documented future upgrade (AR-P7) if transitive/dynamic-import enforcement is needed.
+
 
 ## Code Examples
 
@@ -165,7 +192,7 @@ yarn tsc --build tsconfig.json --clean  # removes dist + tsbuildinfo
 
 | Error Case                                       | TS Behavior / Code                                                | AR Ref       |
 | ------------------------------------------------ | ----------------------------------------------------------------- | ------------ |
-| `codegen` import inside `frontend`/`language-server` | `tsc --build` fails (unresolved project ref / `TS6307`)        | AR-20, AR-P6 |
+| `codegen` import inside `frontend`/`language-server` | **Not** caught by tsc (resolves via `node_modules` — AR-P7). Caught by ESLint `no-restricted-imports` (`eslint .` exit ≠ 0). | AR-20, AR-P7 |
 | Missing `composite: true` on a referenced project | `TS6306` "Referenced project must have composite: true"           | §4.3         |
 | Relative import without `.js` (NodeNext)         | `TS2835` "relative import paths need explicit file extensions"     | AR-P1        |
 | Cyclic project references                        | `tsc` reports a reference cycle; graph in 03-02 is acyclic by design | AR-20      |
@@ -173,5 +200,8 @@ yarn tsc --build tsconfig.json --clean  # removes dist + tsbuildinfo
 ## Testing Requirements
 
 - ST-build: `tsc --build` of the solution succeeds and emits `dist/` for all ten.
-- ST-R15 (`boundary.spec.test.ts`): injecting a `codegen` import into `frontend` makes
-  `tsc --build` exit non-zero (asserted by the test harness; see `07-testing-strategy.md`).
+- ST-R15 (`boundary.spec.test.ts`, corrected per AR-P7): injecting a `codegen` import into
+  `frontend` makes **`eslint .` exit non-zero** (the authoritative gate), asserted by the
+  test harness; see `07-testing-strategy.md`. tsc `--build` is **not** expected to fail on
+  this violation.
+

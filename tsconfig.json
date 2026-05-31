@@ -1,0 +1,15 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/frontend" },
+    { "path": "packages/codegen" },
+    { "path": "packages/platforms" },
+    { "path": "packages/config" },
+    { "path": "packages/compiler" },
+    { "path": "packages/cli" },
+    { "path": "packages/language-server" },
+    { "path": "packages/vscode" },
+    { "path": "packages/test-harness" }
+  ]
+}
