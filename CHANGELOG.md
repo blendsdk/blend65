@@ -9,6 +9,39 @@ and the project follows a major-version contract: breaking changes to a
 
 ## [Unreleased] — Compiler Discovery
 
+### RD authoring (MVP-first)
+
+- **Added a uniform RD template** (`requirements/RD-TEMPLATE.md`): a shared structure
+  for all 17 Requirements Documents — purpose, scope, AR-traceable decisions table,
+  design detail, RD interactions, acceptance criteria, and a Surface-During-Authoring
+  open-questions guard.
+- **Authored RD-01 — Project scaffolding & toolchain**
+  (`requirements/RD-01-project-scaffolding-toolchain.md`), the root of the RD dependency
+  graph. Specifies the Yarn-classic + Turborepo monorepo, the ten `@blend65/*` package
+  skeletons with their dependency edges (incl. the load-bearing frontend/backend boundary
+  that forbids `frontend`/`language-server` → `codegen`), `tsc` project references,
+  Vite/Vitest/ESLint+Prettier wiring, and the GitHub Actions CI (unit+golden tiers; no
+  emulator tier per AR-27). Every decision traces to AR-1, AR-4..AR-12, AR-19..AR-21,
+  AR-24, AR-27, AR-38. Status set to 🟢 Authored in the RD index.
+- **Authored RD-02 — Lexer** (`requirements/RD-02-lexer.md`). Specifies the tokenizer
+  in `@blend65/frontend` implementing Ch 01 (Lexical Structure): 76+ token types, 32
+  keywords, contextual keywords (`until`/`to`/`downto`/`step` → `IDENTIFIER`), decimal/
+  hex (`$`+`0x`)/binary (`0b`) literals with underscore separators, string/char literals
+  with escape validation, maximal-munch operator scanning, `LineMap` construction, and
+  the error-tolerant recovery strategy (never throws, appends to `DiagnosticBag`, always
+  produces a complete stream ending in `EOF`). Traces to Ch 01, F021, AR-15, AR-20,
+  AR-40, AR-72, AR-73, AR-74. Status set to 🟢 Authored in the RD index.
+- **Authored RD-03 — Parser & AST** (`requirements/RD-03-parser-ast.md`). Specifies the
+  recursive-descent + Pratt parser in `@blend65/frontend` and the complete AST node model
+  (51 node kinds) in `@blend65/core`. Covers all 85 grammar productions, 14-level Pratt
+  operator precedence with binding-power table, error-tolerant recovery (error-sentinel
+  nodes `ErrorExpr`/`ErrorStmt`/`ErrorType`, context-specific sync points, cascade
+  suppression), the `AstVisitor<R>` contract with `walkNode`/`walkChildren`, type/operator
+  enums (`AssignOp`/`BinaryOp`/`UnaryOp`/`IntrinsicKind`), struct-literal disambiguation,
+  contextual keyword recognition, 17 parser diagnostic codes (E103xx band), and the public
+  `parse()` API. Traces to grammar.ebnf.md, Ch 02–13, F001–F006/F008–F009/F011–F019/
+  F022/F024, AR-15, AR-38, AR-72, AR-73, AR-74. Status set to 🟢 Authored in the RD index.
+
 ### Repository layout
 
 - **Renamed `language-specification-v3/` → `spec/`** (per AR-19), via `git mv` so

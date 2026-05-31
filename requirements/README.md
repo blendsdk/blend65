@@ -87,9 +87,9 @@ blend65/  (repo root — Yarn workspaces + turbo.json)
 
 | # | Document | Description | Depends On | MVP Phase | Status |
 |---|----------|-------------|------------|-----------|--------|
-| RD-01 | Project scaffolding & toolchain | Monorepo setup (Yarn+Turbo), `@blend65/*` packages, Node 22, Vitest, ESLint+Prettier, GH Actions, Vite | — | A | 🟡 Candidate |
-| RD-02 | Lexer | Tokenizer incl. contextual keywords; **error-tolerant (AR-15)** | RD-01 | A | 🟡 Candidate |
-| RD-03 | Parser & AST | Recursive-descent + Pratt; AST node model; **error-recovering, partial AST (AR-15)** | RD-02 | A | 🟡 Candidate |
+| RD-01 | [Project scaffolding & toolchain](RD-01-project-scaffolding-toolchain.md) | Monorepo setup (Yarn+Turbo), `@blend65/*` packages, Node 22, Vitest, ESLint+Prettier, GH Actions, Vite | — | A | 🟢 Authored |
+| RD-02 | [Lexer](RD-02-lexer.md) | Tokenizer incl. contextual keywords; **error-tolerant (AR-15)** | RD-01 | A | 🟢 Authored |
+| RD-03 | [Parser & AST](RD-03-parser-ast.md) | Recursive-descent + Pratt; AST node model (51 node kinds); **error-recovering, partial AST (AR-15)**; Pratt 14-level precedence; visitor contract | RD-02 | A | 🟢 Authored |
 | RD-04 | Semantic analysis & type system | Type checking, scope, validators, diagnostics; **library-first (AR-15)**; intrinsics typing; string encoding via platform | RD-03 | A | 🟡 Candidate |
 | RD-05 | SFA frame planner & zero-page allocator | Call graph, recursion check, frame overlay, ZP budget | RD-04 | A | 🟡 Candidate |
 | RD-06 | IL & IL optimizer | IL design; Optimizer 1 (passthrough v1) | RD-05 | A | 🟡 Candidate |
@@ -256,5 +256,7 @@ Each RD is designed to feed the `make_plan` protocol:
 4. Run `exec_plan [feature-name]`
 5. Implement iteratively
 
-> **Note:** No RD below is authored yet. Authoring begins only after the Zero-Ambiguity
-> Gate (`00-ambiguity-register.md`) is fully resolved and confirmed.
+> **Note:** Authoring began after the Zero-Ambiguity Gate (`00-ambiguity-register.md`)
+> passed. RD authoring proceeds **MVP-first** (RD-01 is the root everything depends on).
+> A uniform structure for all RDs is defined in `RD-TEMPLATE.md`. Status of each RD is
+> tracked in the RD Index table above.
