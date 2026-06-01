@@ -64,7 +64,7 @@ blend65/                          (repo root — Yarn workspaces + turbo.json)
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
-    "test": "turbo run test"
+    "test": "turbo run test && vitest run test/"
   },
   "devDependencies": {
     "turbo": "^2",
@@ -82,6 +82,12 @@ blend65/                          (repo root — Yarn workspaces + turbo.json)
 
 > Exact minor/patch versions are pinned by the generated `yarn.lock` at install time.
 > Versions above are floors known to be ESM/Node-22 compatible.
+
+> **AR-P10 (runtime):** `test` is `turbo run test && vitest run test/`. Turbo's `test`
+> task only fans out to the 10 per-package suites (each scoped to `src/**` per AR-P8), so a
+> second root Vitest pass is appended to run the root `test/` tier (the load-bearing
+> `boundary.spec.test.ts`, and future cross-package integration specs). CI runs `yarn test`,
+> making ST-R15* a hard gate.
 
 ### `.nvmrc`
 

@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-01 Project Scaffolding & Toolchain (Plan Level)
 
-> **Status**: ✅ GATE PASSED — 6 plan-level items resolved (2026-05-31); +3 runtime items AR-P7, AR-P8, AR-P9 resolved (2026-06-01)
+> **Status**: ✅ GATE PASSED — 6 plan-level items resolved (2026-05-31); +4 runtime items AR-P7, AR-P8, AR-P9, AR-P10 resolved (2026-06-01)
 > **Last Updated**: 2026-06-01
 
 > **Source RD**: [RD-01](../../requirements/RD-01-project-scaffolding-toolchain.md)
@@ -34,6 +34,7 @@ Every plan-level entry is prefixed `AR-P` to distinguish it from the upstream
 | AR-P7 (runtime) | Architecture | **AR-P6's "authoritative" tsc-references layer does NOT fire.** Phase 3 verification: injecting `import { VERSION } from "@blend65/codegen"` into `frontend` builds with **EXIT=0** — no `TS6307`. Cause: Yarn classic hoists every workspace into the root `node_modules/@blend65/*`, so NodeNext module resolution resolves `codegen`'s built `dist/*.d.ts` directly; tsc's project-`references` list only governs which referenced projects are rebuilt/redirected, it does **not** forbid resolving non-referenced packages via `node_modules`. Therefore omitting `codegen` from `references` is necessary but **not sufficient** to make the R15 violation a compile error. | (1) ESLint `no-restricted-imports`=error as authoritative gate, `boundary.spec.test.ts` asserts ESLint exits non-zero, CI lint = hard gate / (2) dependency-cruiser or eslint-plugin-boundaries / (3) tsc `paths` stub hack / (4) custom grep scanner | **Option 1** — ESLint `no-restricted-imports` (error) on `@blend65/codegen` in `frontend`+`language-server` is the **authoritative** R15 gate; `boundary.spec.test.ts` asserts a violating fixture makes `eslint .` exit non-zero; CI runs lint as a hard gate. tsc `references` retained for correct build ordering (necessary, not sufficient). **dependency-cruiser noted as the F1/F3 future upgrade** for transitive/dynamic-import enforcement. | ✅ Resolved |
 | AR-P8 (runtime) | Technical | **Phase 4: a single root `vitest.config.ts` cannot satisfy per-package `turbo run test` fan-out.** The plan (03-04) assumed one root config plus Turbo's per-package `vitest run` would both work. At runtime each package's `vitest run` loads the nearest config — the root one — whose root-relative `include` globs (`packages/*/src/**/*.spec.test.ts`) match nothing from inside a package dir, so Vitest reports "No test files found" and exits 1 under `passWithNoTests: false`. Build was green (10/10); test failed at `@blend65/platforms`. | (1) per-package `vitest.config.ts` (`include: src/**/*.spec.test.ts`) + keep root config for whole-workspace runs / (2) single root Vitest run, drop per-package `test` from scripts+turbo / (3) `vitest.workspace.ts` project model | **Option 1** — add a tiny `vitest.config.ts` to each of the 10 packages (`include: ["src/**/*.spec.test.ts"]`, node env, `passWithNoTests: false`); retain the root `vitest.config.ts` for whole-workspace `yarn vitest`. Preserves Turbo per-package test caching/parallelism (standard monorepo approach). `turbo run build` + `turbo run test` both green (17/17). Also dropped the unused `outputs: ["coverage/**"]` from the `test` task (no coverage at scaffold stage → removed "no output files" warnings). | ✅ Resolved |
 | AR-P9 (runtime) | Technical | **Phase 5: `prettier --check .` scope vs the "spec/ untouched" constraint.** 03-05 specifies a repo-wide `prettier --check .` formatting gate but its `.prettierignore` only excluded build output. At runtime the gate flagged **99 pre-existing files** — almost all hand-authored prose (`spec/`, `requirements/`, `research/`, `plans/`, `.clinerules/`, root `*.md`, `CHANGELOG.md`) plus our 11 `package.json`s. Running `prettier --write` repo-wide would reformat `spec/`, violating the Phase 8 acceptance constraint that `spec/` stay byte-for-byte untouched. | (A) restrict Prettier to code/config we own — ignore the authored-docs trees + `**/*.md`, format only `packages/**` + root `*.json`/`*.mjs`/`*.ts` / (B) repo-wide `prettier --write` on everything (reformats `spec/`, relaxes the constraint) / (C) ignore all `**/*.md` only | **Option A** — extend `.prettierignore` to exclude `spec/`, `requirements/`, `research/`, `plans/`, `.clinerules/`, and `**/*.md`; Prettier governs only the toolchain-owned code/config. Honors the spec-untouched constraint, keeps `package.json` files (ours) in scope. After `prettier --write`, only the 11 `package.json`s changed; `prettier --check .` green, `turbo run lint` green (10/10), `spec/` untouched. | ✅ Resolved |
+| AR-P10 (runtime) | Technical | **Phase 6: `turbo run test` does not execute the root-level `test/boundary.spec.test.ts`.** The root `test` script was `turbo run test`, which fans out only to the 10 per-package vitest configs (each globbing `src/**/*.spec.test.ts` per AR-P8). The load-bearing boundary test lives at repo-root `test/` — outside every workspace package — so Turbo never runs it; it was only green via a direct `yarn vitest` invocation. This contradicts **ST-TST / §6.5** ("`turbo run test` runs ST-1..ST-10 **+ ST-R15***") and would let the R15 gate silently drop out of CI (Phase 7). | (A) root `test` script = `turbo run test && vitest run test/` (turbo for packages + a root vitest tier for boundary/integration tests; CI runs `yarn test`) / (B) promote root `test/` to a real workspace package with its own vitest config so turbo runs it natively / (C) move `boundary.spec.test.ts` into the existing `@blend65/test-harness` package | **Option A** — root `test` script is now `turbo run test && vitest run test/`: Turbo runs the 10 per-package suites (cached/parallel), then a root Vitest pass runs the root `test/` tier (the boundary spec, and future integration specs). CI invokes `yarn test`, so ST-R15* is a hard gate. After the change `yarn test` is green: 17/17 turbo tasks + 3/3 boundary tests; prettier/lint green; `spec/` untouched. | ✅ Resolved |
 
 
 
@@ -124,6 +125,22 @@ and `**/*.md`; Prettier governs `packages/**` source and root `*.json`/`*.mjs`/`
 11 `package.json` files changed; `prettier --check .` is green, `turbo run lint` is green
 (10/10), and `spec/` is untouched. dependency-cruiser-style prose linting is out of scope.
 The CI `format:check`/`lint` step (Phase 7) therefore stays green on the authored docs.
+
+**AR-P10:** Phase 6 added the load-bearing `test/boundary.spec.test.ts` at the repo root
+(per AR-P4 it is intentionally a root-level integration tier, not a package-internal test).
+But the root `test` script was `turbo run test`, and Turbo's `test` task only fans out to
+the 10 per-package `vitest run`s (each scoped to `src/**` per AR-P8) — so the root `test/`
+directory was never executed by the command CI would run, even though `yarn vitest` ran it
+green. That silently violates ST-TST / §6.5 (which require `turbo run test` to cover
+ST-R15*) and would drop the R15 gate out of CI. Resolution (Option A): the root `test`
+script is now `turbo run test && vitest run test/` — Turbo runs the per-package suites
+(cached/parallel), then a single root Vitest pass runs the root `test/` tier (today the
+boundary spec; tomorrow cross-package integration specs). CI calls `yarn test`, making
+ST-R15* a hard gate. Verified green: 17/17 Turbo tasks + 3/3 boundary tests, lint/prettier
+green, `spec/` untouched. The boundary test itself is ESLint-driven (AR-P7): it writes a
+`@blend65/codegen` fixture into `frontend`/`language-server` and asserts `eslint` exits
+non-zero (ST-R15a/b), plus a legal `@blend65/core` import that must lint clean (ST-R15c),
+proving the guard is precise; the transient fixture is always removed (AR-P4).
 
 ---
 

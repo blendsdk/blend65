@@ -74,7 +74,8 @@ fail meaningfully (the boundary test, the smoke tests), then make them pass. The
 **Goal:** the load-bearing R15 spec test exists and passes; AR-43 example seeded.
 
 - [ ] Create `test/boundary.spec.test.ts` (ST-R15a/b/c) — `07`
-- [ ] `yarn turbo run test` (or root `yarn test`) → boundary test green
+- [ ] Wire the root tier into CI's test command (AR-P10): root `test` script = `turbo run test && vitest run test/` so the root `test/` dir actually runs (Turbo's `test` task only fans out to per-package `src/**`)
+- [ ] `yarn test` → per-package suites + boundary test green
 - [ ] Create `examples/gate/main.blend` (AR-43 gate program, static asset) — `03-01`
 - **Checkpoint:** ST-R15* green — the frontend/backend boundary is a tested invariant.
 
@@ -115,7 +116,7 @@ fail meaningfully (the boundary test, the smoke tests), then make them pass. The
 | 2 | `turbo run build` builds all 10 via project references               | ST-BLD / P3      |
 | 3 | `typecheck` passes; codegen import in frontend/LS **fails** build     | ST-TYP, ST-R15* / P3,P6 |
 | 4 | `turbo run lint` passes (ESLint + Prettier)                          | ST-LNT, ST-ESL / P5 |
-| 5 | `turbo run test` runs smoke + boundary tests green                   | ST-TST / P4,P6   |
+| 5 | `yarn test` (`turbo run test` + root `vitest run test/`, AR-P10) runs smoke + boundary tests green | ST-TST / P4,P6 |
 | 6 | CI green on Node 22, no emulator tier                                | ST-CI / P7       |
 | 7 | Top-level layout matches §4.1                                        | ST-LAY / P1      |
 | 8 | All 10 packages exist with no compiler logic                        | ST-1..ST-10 / P2 |

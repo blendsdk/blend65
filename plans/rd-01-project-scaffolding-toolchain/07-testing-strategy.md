@@ -102,7 +102,7 @@ describe("R15 frontend/backend boundary (AR-20, AR-P7)", () => {
 | ST-BLD | `yarn turbo run build` builds all 10 via `tsc --build`, exit 0                  | §6.2             |
 | ST-TYP | `yarn turbo run typecheck` exits 0 on clean tree                                | §6.3             |
 | ST-LNT | `yarn turbo run lint` (ESLint + Prettier) exits 0                               | §6.4, AR-12      |
-| ST-TST | `yarn turbo run test` runs ST-1..ST-10 + ST-R15* green                          | §6.5             |
+| ST-TST | `yarn test` (= `turbo run test` + root `vitest run test/`, AR-P10) runs ST-1..ST-10 + ST-R15* green | §6.5    |
 | ST-CI  | CI workflow valid, Node 22, 5 ordered steps, **no** emulator job                | §6.6, AR-11, AR-27 |
 | ST-LAY | Top-level layout matches §4.1 (`spec docs plans requirements research examples packages`) | §6.7, AR-19 |
 | ST-ESL | `no-restricted-imports` fires on a `codegen` import in frontend (authoritative R15 gate) | AR-P7   |
