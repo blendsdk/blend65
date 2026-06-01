@@ -9,7 +9,42 @@ and the project follows a major-version contract: breaking changes to a
 
 ## [Unreleased] — Compiler Discovery
 
+### RD-01 implementation — Project scaffolding & toolchain (empty but wired)
+
+- **Stood up the Blend65 monorepo skeleton** per RD-01: a Yarn-classic (v1) workspace
+  driven by Turborepo, ten `@blend65/*` packages (`core`, `frontend`, `codegen`,
+  `platforms`, `config`, `compiler`, `cli`, `language-server`, `vscode`, `test-harness`),
+  each shipping a single `VERSION = "0.1.0"` export and a `*.spec.test.ts` smoke test
+  (ST-1..ST-10). Infrastructure only — no lexer/parser/semantic/codegen logic (RD-02+).
+- **TypeScript build graph**: `tsconfig.base.json` (`strict`, `composite`, `declaration`,
+  ESM/NodeNext/ES2023) + a solution `tsconfig.json` and ten per-package `tsconfig.json`
+  files whose `references` mirror the §4.2 dependency edges. `tsc --build` builds all ten.
+- **R15 frontend/backend boundary** (load-bearing, AR-20): `frontend` and
+  `language-server` must never import `@blend65/codegen`. Enforced **authoritatively by
+  ESLint `no-restricted-imports`** (AR-P7 — tsc references alone do not fail under
+  Yarn-classic hoisting) and spec-tested by `test/boundary.spec.test.ts` (ST-R15a/b/c).
+- **Task & test wiring**: `turbo.json` (v2 `tasks` schema), per-package + root Vitest
+  configs (AR-P8), Vite placeholders for `cli`/`vscode`. Root `yarn test` runs both tiers
+  — `turbo run test` (per-package unit) **then** `vitest run test/` (root R15 boundary) —
+  per AR-P10.
+- **Lint/format**: ESLint v9 flat config (`eslint.config.mjs`) + Prettier
+  (`.prettierrc.json`); `.prettierignore` scopes formatting to toolchain-owned files and
+  excludes the authored-docs trees so the frozen `spec/` stays byte-for-byte untouched
+  (AR-P9, decision D3).
+- **CI**: `.github/workflows/ci.yml` on Node 22 — install (frozen lockfile) → typecheck →
+  lint → build → test (`yarn test`, both tiers). **No emulator tier** (AR-27; emulator/
+  golden tiers arrive with RD-12).
+- **Runtime ambiguities** surfaced during implementation were logged, resolved with the
+  user, and back-propagated into the plan docs: AR-P7 (ESLint is the authoritative R15
+  gate), AR-P8 (per-package + root Vitest configs), AR-P9 (Prettier scope vs. frozen
+  spec), AR-P10 (root `test` = `turbo run test && vitest run test/`).
+- **Verified green**: `yarn install --frozen-lockfile`, `turbo run build/typecheck/lint`,
+  and `yarn test` (17/17 turbo tasks + 3/3 boundary tests) all pass; `git status
+  --porcelain spec/` is empty. Generated `.clinerules/project.md` from the now-real
+  toolchain. **RD-01 complete; RD-02 (Lexer) can begin against a green skeleton.**
+
 ### RD authoring (MVP-first)
+
 
 - **Added a uniform RD template** (`requirements/RD-TEMPLATE.md`): a shared structure
   for all 17 Requirements Documents — purpose, scope, AR-traceable decisions table,

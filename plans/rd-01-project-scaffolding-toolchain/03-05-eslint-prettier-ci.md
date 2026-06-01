@@ -144,11 +144,18 @@ jobs:
       - name: Build
         run: yarn turbo run build
 
-      - name: Test (unit tier)
-        run: yarn turbo run test
+      # Runs both test tiers (AR-P10): turbo per-package unit suites
+      # (ST-1..ST-10) followed by the root `vitest run test/` tier, which
+      # executes the authoritative R15 boundary spec (ST-R15a/b/c).
+      - name: Test
+        run: yarn test
 ```
 
 Order is install → typecheck → lint → build → test, matching the §6 acceptance criteria.
+The `test` step invokes `yarn test`, which per **AR-P10** runs `turbo run test`
+(per-package unit tier ST-1..ST-10) **and then** `vitest run test/` (root tier, the
+authoritative R15 boundary spec ST-R15a/b/c). Using `yarn turbo run test` alone would skip
+the root `test/` tier and silently drop the R15 gate from CI.
 No emulator/golden steps (AR-27); those are added by RD-12.
 
 ## Code Examples

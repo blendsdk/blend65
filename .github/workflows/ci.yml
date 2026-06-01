@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+
+      - name: Enable Corepack (Yarn classic)
+        run: corepack enable
+
+      - name: Install (frozen lockfile)
+        run: yarn install --frozen-lockfile
+
+      - name: Typecheck
+        run: yarn turbo run typecheck
+
+      - name: Lint
+        run: yarn turbo run lint
+
+      - name: Build
+        run: yarn turbo run build
+
+      # Runs both test tiers (AR-P10): turbo per-package unit suites
+      # (ST-1..ST-10) followed by the root `vitest run test/` tier, which
+      # executes the authoritative R15 boundary spec (ST-R15a/b/c).
+      - name: Test
+        run: yarn test
