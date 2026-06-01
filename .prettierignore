@@ -1,6 +1,17 @@
+# Build output and caches (formatting not applicable)
+**/dist/
+**/coverage/
+**/*.tsbuildinfo
 node_modules/
-dist/
-coverage/
-.turbo/
-*.tsbuildinfo
 yarn.lock
+
+# Authored documentation trees — hand-written prose, NOT policed by the code
+# formatter (AR-P9). spec/ in particular must remain byte-for-byte untouched
+# (Phase 8 acceptance constraint). Prettier governs only the code/config the
+# toolchain owns (packages/** source, root *.json / *.mjs / *.ts).
+spec/
+requirements/
+research/
+plans/
+.clinerules/
+**/*.md

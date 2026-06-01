@@ -75,8 +75,34 @@ export default tseslint.config(
 }
 ```
 
-`prettier --check .` runs as part of `lint` (or a dedicated `format:check` script). A
-`.prettierignore` excludes `dist/`, `coverage/`, and `*.tsbuildinfo`.
+`prettier --check .` runs as part of `lint` (or a dedicated `format:check` script).
+
+> ⚠️ **Corrected by AR-P9 (Phase 5).** Prettier is scoped to **only the code/config the
+> toolchain owns**, not the hand-authored prose already in the repo. A repo-wide
+> `prettier --write` would reformat `spec/` and break the Phase 8 "spec/ untouched"
+> acceptance constraint (it flagged ~99 pre-existing doc files at runtime). Therefore
+> `.prettierignore` excludes — in addition to build output — the authored-docs trees and
+> all markdown:
+>
+> ```gitignore
+> # build output / caches
+> **/dist/
+> **/coverage/
+> **/*.tsbuildinfo
+> node_modules/
+> yarn.lock
+> # authored documentation — not policed by the code formatter (AR-P9)
+> spec/
+> requirements/
+> research/
+> plans/
+> .clinerules/
+> **/*.md
+> ```
+>
+> Prettier governs `packages/**` source and the root `*.json` / `*.mjs` / `*.ts` configs;
+> the 11 `package.json` files stay in scope (they are ours). After `prettier --write`,
+> only those 11 manifests changed; `prettier --check .` is green and `spec/` is untouched.
 
 ## GitHub Actions CI (`.github/workflows/ci.yml`)
 

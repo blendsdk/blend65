@@ -4,8 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "packageManager": "yarn@1.22.22",
-  "engines": { "node": ">=22 <23" },
-  "workspaces": ["packages/*"],
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",

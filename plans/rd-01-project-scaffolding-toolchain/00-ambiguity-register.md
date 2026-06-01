@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-01 Project Scaffolding & Toolchain (Plan Level)
 
-> **Status**: ✅ GATE PASSED — 6 plan-level items resolved (2026-05-31); +2 runtime items AR-P7, AR-P8 resolved (2026-06-01)
+> **Status**: ✅ GATE PASSED — 6 plan-level items resolved (2026-05-31); +3 runtime items AR-P7, AR-P8, AR-P9 resolved (2026-06-01)
 > **Last Updated**: 2026-06-01
 
 > **Source RD**: [RD-01](../../requirements/RD-01-project-scaffolding-toolchain.md)
@@ -33,6 +33,7 @@ Every plan-level entry is prefixed `AR-P` to distinguish it from the upstream
 | AR-P6 | Architecture | R15 frontend/backend boundary enforcement mechanism ("compile error, not a convention") | both (tsc refs + ESLint) / tsc only / ESLint only | **Both layers** — _superseded by AR-P7._ Original decision named tsc `references` the authoritative layer; AR-P7 demotes tsc to build-ordering only and promotes ESLint to authoritative. tsconfig `references` still omit `codegen` from `frontend`/`language-server` (correct dependency graph), and the ESLint `no-restricted-imports` ban is retained — but now as the **enforcing** gate, not merely "friendly". | ✅ Resolved (amended by AR-P7) |
 | AR-P7 (runtime) | Architecture | **AR-P6's "authoritative" tsc-references layer does NOT fire.** Phase 3 verification: injecting `import { VERSION } from "@blend65/codegen"` into `frontend` builds with **EXIT=0** — no `TS6307`. Cause: Yarn classic hoists every workspace into the root `node_modules/@blend65/*`, so NodeNext module resolution resolves `codegen`'s built `dist/*.d.ts` directly; tsc's project-`references` list only governs which referenced projects are rebuilt/redirected, it does **not** forbid resolving non-referenced packages via `node_modules`. Therefore omitting `codegen` from `references` is necessary but **not sufficient** to make the R15 violation a compile error. | (1) ESLint `no-restricted-imports`=error as authoritative gate, `boundary.spec.test.ts` asserts ESLint exits non-zero, CI lint = hard gate / (2) dependency-cruiser or eslint-plugin-boundaries / (3) tsc `paths` stub hack / (4) custom grep scanner | **Option 1** — ESLint `no-restricted-imports` (error) on `@blend65/codegen` in `frontend`+`language-server` is the **authoritative** R15 gate; `boundary.spec.test.ts` asserts a violating fixture makes `eslint .` exit non-zero; CI runs lint as a hard gate. tsc `references` retained for correct build ordering (necessary, not sufficient). **dependency-cruiser noted as the F1/F3 future upgrade** for transitive/dynamic-import enforcement. | ✅ Resolved |
 | AR-P8 (runtime) | Technical | **Phase 4: a single root `vitest.config.ts` cannot satisfy per-package `turbo run test` fan-out.** The plan (03-04) assumed one root config plus Turbo's per-package `vitest run` would both work. At runtime each package's `vitest run` loads the nearest config — the root one — whose root-relative `include` globs (`packages/*/src/**/*.spec.test.ts`) match nothing from inside a package dir, so Vitest reports "No test files found" and exits 1 under `passWithNoTests: false`. Build was green (10/10); test failed at `@blend65/platforms`. | (1) per-package `vitest.config.ts` (`include: src/**/*.spec.test.ts`) + keep root config for whole-workspace runs / (2) single root Vitest run, drop per-package `test` from scripts+turbo / (3) `vitest.workspace.ts` project model | **Option 1** — add a tiny `vitest.config.ts` to each of the 10 packages (`include: ["src/**/*.spec.test.ts"]`, node env, `passWithNoTests: false`); retain the root `vitest.config.ts` for whole-workspace `yarn vitest`. Preserves Turbo per-package test caching/parallelism (standard monorepo approach). `turbo run build` + `turbo run test` both green (17/17). Also dropped the unused `outputs: ["coverage/**"]` from the `test` task (no coverage at scaffold stage → removed "no output files" warnings). | ✅ Resolved |
+| AR-P9 (runtime) | Technical | **Phase 5: `prettier --check .` scope vs the "spec/ untouched" constraint.** 03-05 specifies a repo-wide `prettier --check .` formatting gate but its `.prettierignore` only excluded build output. At runtime the gate flagged **99 pre-existing files** — almost all hand-authored prose (`spec/`, `requirements/`, `research/`, `plans/`, `.clinerules/`, root `*.md`, `CHANGELOG.md`) plus our 11 `package.json`s. Running `prettier --write` repo-wide would reformat `spec/`, violating the Phase 8 acceptance constraint that `spec/` stay byte-for-byte untouched. | (A) restrict Prettier to code/config we own — ignore the authored-docs trees + `**/*.md`, format only `packages/**` + root `*.json`/`*.mjs`/`*.ts` / (B) repo-wide `prettier --write` on everything (reformats `spec/`, relaxes the constraint) / (C) ignore all `**/*.md` only | **Option A** — extend `.prettierignore` to exclude `spec/`, `requirements/`, `research/`, `plans/`, `.clinerules/`, and `**/*.md`; Prettier governs only the toolchain-owned code/config. Honors the spec-untouched constraint, keeps `package.json` files (ours) in scope. After `prettier --write`, only the 11 `package.json`s changed; `prettier --check .` green, `turbo run lint` green (10/10), `spec/` untouched. | ✅ Resolved |
 
 
 
@@ -110,6 +111,19 @@ layout and preserves per-package test caching/parallelism. After the change,
 `yarn turbo run build` and `yarn turbo run test` are both green (17/17 tasks). The unused
 `outputs: ["coverage/**"]` entry on the `test` task was also removed (no coverage is
 produced at scaffold stage), eliminating Turbo "no output files found" warnings.
+
+**AR-P9:** Phase 5 wired the Prettier formatting gate. 03-05 called for a repo-wide
+`prettier --check .`, but the repo already contains ~99 hand-authored prose files
+(`spec/`, `requirements/`, `research/`, `plans/`, `.clinerules/`, root `*.md`,
+`CHANGELOG.md`) that Prettier flagged. A repo-wide `prettier --write` would reformat
+`spec/`, directly violating the Phase 8 acceptance constraint that `spec/` remain
+byte-for-byte untouched. Resolution (Option A): a code formatter should police only the
+code/config the toolchain owns, so `.prettierignore` now excludes the authored-docs trees
+and `**/*.md`; Prettier governs `packages/**` source and root `*.json`/`*.mjs`/`*.ts`
+(the 11 `package.json`s stay in scope — they are ours). After `prettier --write`, only the
+11 `package.json` files changed; `prettier --check .` is green, `turbo run lint` is green
+(10/10), and `spec/` is untouched. dependency-cruiser-style prose linting is out of scope.
+The CI `format:check`/`lint` step (Phase 7) therefore stays green on the authored docs.
 
 ---
 
