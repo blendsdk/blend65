@@ -182,15 +182,24 @@ export interface ConstDeclNode extends AstNode {
   initialiser: ExprNode;
 }
 
-/** A single `name: type;` field inside a `zeropage` block. */
+/**
+ * A single `name: type [= constExpr];` field inside a `zeropage` block.
+ *
+ * The initialiser is **optional** (spec Ch03 §2.3, FR-22): an uninitialised
+ * zeropage variable (`initialiser: null`) emits no startup code — its memory
+ * retains whatever was there before (spec §5.1/§6.3), leaving initialisation to
+ * the developer. When present, the startup routine emits the stores (RD-07+).
+ */
 export interface ZeropageFieldNode extends AstNode {
   kind: "ZeropageField";
   name: string;
   nameSpan: SourceSpan;
   fieldType: TypeNode;
+  initialiser: ExprNode | null;
 }
 
 /** A `zeropage { field; field; }` block reserving zero-page storage. */
+
 export interface ZeropageBlockNode extends AstNode {
   kind: "ZeropageBlock";
   fields: ZeropageFieldNode[];

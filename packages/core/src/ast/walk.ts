@@ -229,8 +229,10 @@ export function walkChildren(node: AstNode, visitor: AstVisitor<void>): void {
     case "ZeropageField": {
       const n = node as import("./nodes.js").ZeropageFieldNode;
       walkNode(n.fieldType, visitor);
+      visitOptional(n.initialiser, visitor);
       return;
     }
+
     case "Parameter": {
       const n = node as import("./nodes.js").ParameterNode;
       walkNode(n.paramType, visitor);

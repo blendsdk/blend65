@@ -3,7 +3,8 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Commit mode**: `--no-commit` — implement, verify, update this plan; the user performs all git operations (AR-7).
-> **Progress**: 1/6 phases complete (17%)
+> **Progress**: 3/6 phases complete (50%)
+
 > **Last Updated**: 2026-06-02
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-02/RD-11a)
 
@@ -169,21 +170,37 @@ walk all ACs; mark plan complete.
 - [x] 1.8 Run verify (phase gate) ✅ (2026-06-02)
 
 ### Phase 2 — Parser skeleton + source structure
-- [ ] 2.1 Spec tests first (ST-P4, P5–P8, smoke)
-- [ ] 2.2 Verify red
-- [ ] 2.3 Create `parser/cursor.ts`
-- [ ] 2.4 Create `parser/parser.ts` (parse, module/import, dispatch, emit/panic/sync)
-- [ ] 2.5 Create `parser/index.ts` + wire frontend barrel
-- [ ] 2.6 Verify green
-- [ ] 2.7 Run verify (phase gate)
+- [x] 2.1 Spec tests first (ST-P4, P5–P8, smoke) ✅ (2026-06-02)
+- [x] 2.2 Verify red ✅ (2026-06-02)
+- [x] 2.3 Create `parser/cursor.ts` (incl. `lexeme()` — AR-8) ✅ (2026-06-02)
+- [x] 2.4 Create `parser/parser.ts` (parse, `ParseInput`, module/import, dispatch, emit/panic/sync) ✅ (2026-06-02)
+- [x] 2.5 Create `parser/index.ts` + wire frontend barrel ✅ (2026-06-02)
+- [x] 2.6 Verify green ✅ (2026-06-02)
+- [x] 2.7 Run verify (phase gate): build+typecheck+lint 30/30; frontend 61 tests; R15 green; spec clean ✅ (2026-06-02)
+
+> **AR-8 (runtime) surfaced + resolved during Phase 2:** parser takes a `ParseInput`
+> object `{ tokens, source, sourceId, bag }`; lexeme text recovered via the single
+> `cursor.lexeme()` site (frozen RD-02 untouched). See `00-ambiguity-register.md`.
 
 ### Phase 3 — Declarations
-- [ ] 3.1 Spec/impl tests first (ST-P14–P19, P28)
-- [ ] 3.2 Verify red
-- [ ] 3.3 Implement declaration + type parse functions
-- [ ] 3.4 Emit E10303/E10311/E10314/E10315/E10316 + E10224
-- [ ] 3.5 Verify green
-- [ ] 3.6 Run verify (phase gate)
+- [x] 3.1 Spec/impl tests first (ST-P14–P19, P28) ✅ (2026-06-02)
+- [x] 3.2 Verify red (16 fail / 1 pass — `type` already from Phase 2) ✅ (2026-06-02)
+- [x] 3.3 Implement declaration + type parse functions (split: `state.ts`, `parse-expr.ts`, `parse-type.ts`, `parse-decl.ts`; parser.ts wires dispatch) ✅ (2026-06-02)
+- [x] 3.4 Emit E10303/E10311/E10314/E10315/E10316 + E10224 ✅ (2026-06-02)
+- [x] 3.5 Verify green (17/17 declaration tests) ✅ (2026-06-02)
+- [x] 3.6 Run verify (phase gate): build+typecheck+lint 30/30; frontend 78 tests (6 files); R15 green; spec clean ✅ (2026-06-02)
+
+> **AR-9 (runtime) surfaced + resolved during Phase 3:** the frozen Phase-1 core
+> `ZeropageFieldNode` omitted the spec-mandated optional `initialiser` (Ch03 §2.3 / FR-22 /
+> ST-P19). Resolved additively (FR-11): added `initialiser: ExprNode | null` to the node +
+> `walkChildren` traversal. Uninitialised = `null` = zero startup code (§5.1/§6.3), per the
+> user. See `00-ambiguity-register.md`.
+>
+> **Note:** A minimal primary-expression parser (`parse-expr.ts`) and an empty-body
+> `parseBlock` (`parse-decl.ts`) were introduced to satisfy declaration initialisers / enum
+> values / function bodies. Phase 5 (Pratt) and Phase 4 (statements) **extend** these entry
+> points additively (FR-11) — they do not replace the Phase-3 code.
+
 
 ### Phase 4 — Statements
 - [ ] 4.1 Spec/impl tests first (ST-P20–P22 + block/jump)

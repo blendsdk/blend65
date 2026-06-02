@@ -22,7 +22,7 @@ module is pure logic.
 | `cursor.ts`   | Token cursor: `peek/peekKind/advance/check/expect/atEnd`, panic-mode state     |
 | `pratt.ts`    | Binding-power tables + `parseExpression(minBP)`, prefix/infix/postfix dispatch |
 | `parser.ts`   | `parse()`, source/declaration/statement/type parse functions, recovery        |
-| `index.ts`    | Barrel: `export { parse }`, `export type { ParseResult }`                       |
+| `index.ts`    | Barrel: `export { parse }`, `export type { ParseResult, ParseInput }`           |
 
 > `parser.ts` is the largest unit. If it exceeds ~500 lines it is split into
 > `parse-decl.ts`, `parse-stmt.ts`, `parse-type.ts` (each taking the shared cursor), with
@@ -38,6 +38,7 @@ export interface Cursor {
   check(kind: TokenKindValue): boolean;    // peek().kind === kind
   expect(kind: TokenKindValue, code: DiagCodeValue, ctx: string): Token | null;
   atEnd(): boolean;                        // peek().kind === "Eof"
+  lexeme(token: Token): string;            // the ONLY source.slice site (AR-8)
 }
 ```
 - Backed by a position index `i`; the token array is never mutated (FR-3).
@@ -46,22 +47,36 @@ export interface Cursor {
   (unless suppressed by panic mode, FR-7), returns `null`, and does **not** advance.
 - Panic-mode flag lives on the parser state object (see recovery, 03-03), consulted by the
   diagnostic-emit helper so suppression is centralized.
+- **`lexeme(token)` (AR-8):** returns `source.slice(token.span.start, token.span.end)`. This is
+  the **single** site that recovers lexeme text from the source — the frozen RD-02 `Token`
+  stores none (only `span`; identifier/keyword `value` is `undefined`). Every AST string field
+  (`ModuleDecl.name`, `IdentExpr.name`, `NamedType.name`, parameter/field/member names, …) is
+  filled through it. The cursor closes over the `source` string handed to `parse()`.
+
 
 ### `parse()` (`parser.ts`)
 
 ```typescript
+/**
+ * Everything the parser needs for one source file (AR-8). An object — not
+ * positional params — so future phases (RD-14 LSP incremental re-parse, RD-15
+ * programmatic CLI) can add OPTIONAL fields with no breaking signature change.
+ */
+export interface ParseInput {
+  readonly tokens: readonly Token[];
+  readonly source: string;       // the full source text; the cursor's `lexeme()` slices it
+  readonly sourceId: SourceId;
+  readonly bag: DiagnosticBag;
+}
 export interface ParseResult {
   readonly ast: ProgramNode;
   readonly hasErrors: boolean;
 }
-export function parse(
-  tokens: readonly Token[],
-  sourceId: SourceId,
-  bag: DiagnosticBag,
-): ParseResult;
+export function parse(input: ParseInput): ParseResult;
 ```
 Steps (FR-47):
-1. Build the cursor + parser state `{ cursor, sourceId, bag, panicMode: false }`.
+1. Build the cursor (closing over `source` for `lexeme()`) + parser state
+   `{ cursor, sourceId, bag, panicMode: false }`.
 2. Parse the module declaration (FR-13): if the first significant token is not `KwModule`,
    emit **E10001** and synthesize a `ModuleDecl` with a zero-width span; else parse
    `module dotted.name;`. A *second* `module` later → **E10002**.

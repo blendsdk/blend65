@@ -41,8 +41,8 @@
 
 | #      | Input / Scenario                                              | Expected Output / Behavior                                              | Source            |
 | ------ | ------------------------------------------------------------ | ---------------------------------------------------------------------- | ----------------- |
-| ST-P4  | Cursor over `[KwModule, Identifier, Semicolon, Eof]`         | `peek/advance/check` correct; `peek` past end clamps to `Eof`; `expect` mismatch emits + returns null, no advance | FR-3 |
-| ST-P5  | `module Main;` only                                          | `ProgramNode` with `moduleDecl.name === "Main"`, `items: []`, `hasErrors === false` | FR-12/13, AC-11 |
+| ST-P4  | Cursor over `[KwModule, Identifier, Semicolon, Eof]`         | `peek/advance/check` correct; `peek` past end clamps to `Eof`; `expect` mismatch emits + returns null, no advance; `lexeme(token)` slices the source text (AR-8) | FR-3, AR-8 |
+| ST-P5  | `module Main;` only (via `parse({ tokens, source, sourceId, bag })`, AR-8) | `ProgramNode` with `moduleDecl.name === "Main"`, `items: []`, `hasErrors === false` | FR-12/13, AC-11, AR-8 |
 | ST-P6  | source with **no** `module`                                  | `E10001`; `ProgramNode` still returned (synthetic `ModuleDecl`)        | FR-13, AC-08      |
 | ST-P7  | two `module` declarations                                    | `E10002` on the second; one `ProgramNode`                              | FR-13, AC-08      |
 | ST-P8  | `import { a, b } from Foo.Bar;`                              | `ImportStmtNode` with `symbols=[a,b]`, `modulePath="Foo.Bar"`          | FR-14, AC-01      |
@@ -117,7 +117,7 @@
 
 | Test                  | Components            | Description                                  |
 | --------------------- | -------------------- | -------------------------------------------- |
-| lex→parse round-trip  | lexer + parser       | `parse(lex(src).tokens, id, bag)` end-to-end |
+| lex→parse round-trip  | lexer + parser       | `parse({ tokens: lex(...).tokens, source, sourceId, bag })` end-to-end |
 | R15 boundary          | frontend / codegen   | ST-R15a/b/c remain green every phase         |
 
 ## Test Data
