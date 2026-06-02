@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Commit mode**: `--no-commit` — implement, verify, update this plan; the user performs all git operations (AR-7).
-> **Progress**: 0/6 phases complete (0%)
+> **Progress**: 1/6 phases complete (17%)
 > **Last Updated**: 2026-06-02
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-02/RD-11a)
 
@@ -159,14 +159,14 @@ walk all ACs; mark plan complete.
 > 5. **Never batch updates** — update immediately after each task.
 
 ### Phase 1 — AST catalogue & parser codes (core) + req fix
-- [ ] 1.1 Spec tests first (ST-P1, P2, P2b, P3)
-- [ ] 1.2 Verify red
-- [ ] 1.3 Create `ast/` module (node-kind, nodes, visitor, walk, reserved-builtins, index)
-- [ ] 1.4 Wire core barrel
-- [ ] 1.5 Add E10072 + E10300–E10316 to `DiagCode`
-- [ ] 1.6 Edit `requirements/RD-03-parser-ast.md` (remove asm — AR-1)
-- [ ] 1.7 Verify green
-- [ ] 1.8 Run verify (phase gate)
+- [x] 1.1 Spec tests first (ST-P1, P2, P2b, P3) ✅ (2026-06-02)
+- [x] 1.2 Verify red ✅ (2026-06-02)
+- [x] 1.3 Create `ast/` module (node-kind, nodes, visitor, walk, reserved-builtins, index) ✅ (2026-06-02)
+- [x] 1.4 Wire core barrel ✅ (2026-06-02)
+- [x] 1.5 Add E10072 + E10300–E10316 to `DiagCode` ✅ (2026-06-02)
+- [x] 1.6 Edit `requirements/RD-03-parser-ast.md` (remove asm — AR-1) ✅ (2026-06-02)
+- [x] 1.7 Verify green ✅ (2026-06-02)
+- [x] 1.8 Run verify (phase gate) ✅ (2026-06-02)
 
 ### Phase 2 — Parser skeleton + source structure
 - [ ] 2.1 Spec tests first (ST-P4, P5–P8, smoke)

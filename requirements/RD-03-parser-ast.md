@@ -32,7 +32,7 @@ target catalogue** — the implementation plan will add nodes incrementally.
 
 - Recursive-descent parser for source structure, declarations, and statements.
 - Pratt expression parser with 14 precedence levels.
-- Complete AST node type catalogue (51 node kinds matching the 85 grammar productions).
+- Complete AST node type catalogue (50 node kinds matching the 85 grammar productions).
 - Error-sentinel nodes (`ErrorExpr`, `ErrorStmt`, `ErrorType`) and context-specific
   sync-point recovery.
 - Cascade-suppression logic for error-tolerant parsing.
@@ -100,7 +100,6 @@ target catalogue** — the implementation plan will add nodes incrementally.
 | R33 | `FallthroughStmtNode`: `fallthrough ;`. Contextual keyword (R29). Parser accepts it in any statement position; restriction to switch case bodies is a semantic check (RD-04). | F009, Ch 05 §6 |
 | R34 | `ReturnStmtNode` (`return [expr];`), `BreakStmtNode` (`break;`), `ContinueStmtNode` (`continue;`). | Ch 05 §7–§9 |
 | R35 | `ExpressionStmtNode`: expr `;`. Parser accepts any expression; semantic analysis restricts to assignments and calls (RD-04). | Ch 05 §10 |
-| R36 | `AsmBlockNode`: `asm {` content `}`. Content is a single opaque `ASM_BODY` token from the lexer (RD-02). Parser stores the raw text string. | F012, Ch 12 §2 |
 | | **Expressions** | |
 | R37 | `AssignExprNode`: target `=` expr, target `op=` expr. 11 operators (`= += -= *= /= %= &= \|= ^= <<= >>=`). Right-associative, lowest expression precedence. Lvalue validation is semantic (RD-04). | Ch 04, F017 |
 | R38 | `ConditionalExprNode`: condition `?` thenExpr `:` elseExpr. Right-associative, one level above assignment. | F024, Ch 04 |
@@ -159,11 +158,11 @@ type NodeKind =
   | "LetDecl"      | "ConstDecl"
   | "ZeropageBlock" | "ZeropageField"
   | "Parameter"
-  // Statements (14)
+  // Statements (13)
   | "Block" | "IfStmt" | "WhileStmt" | "DoWhileStmt" | "ForStmt"
   | "SwitchStmt" | "CaseClause" | "DefaultClause"
   | "ReturnStmt" | "BreakStmt" | "ContinueStmt" | "FallthroughStmt"
-  | "ExpressionStmt" | "AsmBlock"
+  | "ExpressionStmt"
   // Expressions (17)
   | "AssignExpr" | "ConditionalExpr" | "BinaryExpr"
   | "UnaryExpr"  | "CastExpr"
@@ -178,7 +177,7 @@ type NodeKind =
   | "ErrorExpr" | "ErrorStmt" | "ErrorType";
 ```
 
-**Total: 51 node kinds** (3 source + 11 declaration + 14 statement + 17 expression +
+**Total: 50 node kinds** (3 source + 11 declaration + 13 statement + 17 expression +
 3 type + 3 error sentinel). Parenthesised expressions `(expr)` do not produce a
 dedicated node — the parser returns the inner expression with its span extended to
 include the parentheses.
@@ -381,16 +380,11 @@ interface ExpressionStmtNode extends AstNode {
   expression: ExprNode;
 }
 
-interface AsmBlockNode extends AstNode {
-  kind: "AsmBlock";
-  content: string;              // raw assembly text (from ASM_BODY token)
-}
-
 type StmtNode =
   | BlockNode | IfStmtNode | WhileStmtNode | DoWhileStmtNode
   | ForStmtNode | SwitchStmtNode
   | ReturnStmtNode | BreakStmtNode | ContinueStmtNode | FallthroughStmtNode
-  | ExpressionStmtNode | AsmBlockNode
+  | ExpressionStmtNode
   | LetDeclNode | ConstDeclNode   // local declarations
   | ErrorStmtNode;
 ```
@@ -639,7 +633,7 @@ positions in the loop.
 | Context | Sync tokens | Action |
 |---------|-------------|--------|
 | Top-level | `function`, `interrupt`, `struct`, `enum`, `let`, `const`, `zeropage`, `import`, `export`, `EOF` | Skip tokens; insert `ErrorStmt` spanning skipped region |
-| Statement list | `;`, `}`, `if`, `while`, `do`, `for`, `switch`, `return`, `break`, `continue`, `let`, `const`, `asm` | Skip to sync; if `;`, consume it; insert `ErrorStmt` |
+| Statement list | `;`, `}`, `if`, `while`, `do`, `for`, `switch`, `return`, `break`, `continue`, `let`, `const` | Skip to sync; if `;`, consume it; insert `ErrorStmt` |
 | Expression | `;`, `)`, `]`, `}`, `,` | Insert `ErrorExpr`; stop sub-expression parse |
 | Parameter list | `,`, `)` | Insert error parameter with `ErrorType`; skip to sync |
 | Struct fields | `;`, `}` | Skip to sync; resume field parsing |
@@ -686,7 +680,6 @@ interface AstVisitor<R = void> {
   visitContinueStmt(node: ContinueStmtNode): R;
   visitFallthroughStmt(node: FallthroughStmtNode): R;
   visitExpressionStmt(node: ExpressionStmtNode): R;
-  visitAsmBlock(node: AsmBlockNode): R;
   // Expressions
   visitAssignExpr(node: AssignExprNode): R;
   visitConditionalExpr(node: ConditionalExprNode): R;
@@ -791,7 +784,7 @@ The `parse()` function:
 | RD | Interface point | Direction |
 |----|----------------|-----------|
 | RD-01 | Package layout: AST types in `@blend65/core`; parser in `@blend65/frontend`. | Upstream |
-| RD-02 | Consumes `Token[]` + `SourceId` from `lex()`. Reuses `Span` and `SourceId` types. Expects `ASM_BODY` token for asm blocks. | Upstream |
+| RD-02 | Consumes `Token[]` + `SourceId` from `lex()`. Reuses `Span` and `SourceId` types. | Upstream |
 | RD-04 | Produces `ProgramNode` consumed by semantic analysis. Semantic layer traverses AST via the visitor contract. | Downstream |
 | RD-05 | SFA reads `FunctionDeclNode`, `CallExprNode`, `LetDeclNode` from AST to build call graph and allocate frames. | Downstream |
 | RD-07 | Codegen walks AST (or IL derived from it) using the visitor contract. | Downstream |
@@ -816,7 +809,7 @@ The `parse()` function:
 | AC-10 | **Struct literal disambiguation**: struct literal after `=` parses correctly; `{` after control-flow keyword parses as block. |
 | AC-11 | **Minimal program**: `module Main;` alone produces a valid `ProgramNode` with an empty items array. |
 | AC-12 | **Export modifier**: all supported declaration types with `export` are tested; `export interrupt` and `export zeropage` produce E10311. |
-| AC-13 | **Node kind exhaustiveness**: every `NodeKind` value (51 kinds) is produced by at least one test. |
+| AC-13 | **Node kind exhaustiveness**: every `NodeKind` value (50 kinds) is produced by at least one test. |
 | AC-14 | **No-throw guarantee**: fuzz test — feed 1,000 random token sequences to `parse()`; it never throws and always returns a `ParseResult`. |
 | AC-15 | **Span correctness**: for a set of known source files, every AST node's span extracts the expected source text via `source.slice(span.start, span.end)`. |
 | AC-16 | **Determinism**: parsing the same token array twice produces byte-identical serialised ASTs. |
@@ -826,11 +819,11 @@ The `parse()` function:
 
 ## 7. Open Questions (Surface-During-Authoring Guard)
 
-1. **Asm-block token contract**: RD-02 must provide an `ASM_BODY` token (or equivalent)
-   for inline assembly content. Verify this is specified in the lexer's `TokenKind` enum
-   (RD-02 §4.1). If not, a cross-RD amendment is needed.
+> **Note (AR-1):** Inline `asm { }` blocks do **not** exist in Blend65 v3 (spec Ch 12 §1).
+> The former `AsmBlockNode` / `ASM_BODY` open question has been removed; the `asm_*`
+> identifiers are CPU-control *intrinsics* (`IntrinsicCallExprNode`), not asm blocks.
 
-2. **Unsized array `type[]` contexts**: The spec allows unsized array types in restricted
+1. **Unsized array `type[]` contexts**: The spec allows unsized array types in restricted
    positions (e.g., parameter types for arrays passed by reference). The exact set of
    valid positions needs confirmation against Ch 02 and Ch 08 to determine whether the
    parser rejects unsized arrays in illegal positions or defers that check to semantic

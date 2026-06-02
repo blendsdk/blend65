@@ -72,6 +72,43 @@ describe("Lexer diagnostic codes (ST-L2)", () => {
   });
 });
 
+describe("Parser diagnostic codes (ST-P2b)", () => {
+  // Source: plans/rd-03-parser-ast/03-03-error-recovery.md (RD-03, spec Ch 14).
+  // RD-03 adds the parser band by addition (AR-6). These assertions pin each new
+  // name to its exact code string. E10001/E10002/E10224 are reused (already
+  // asserted above), not re-added.
+  it("maps E10072 (missing default clause)", () => {
+    expect(DiagCode.MissingDefaultClause).toBe("E10072");
+  });
+
+  it("maps the E10300–E10316 parser band to its exact code strings", () => {
+    expect(DiagCode.UnexpectedToken).toBe("E10300");
+    expect(DiagCode.ExpectedExpression).toBe("E10301");
+    expect(DiagCode.ExpectedStatement).toBe("E10302");
+    expect(DiagCode.ExpectedTypeAnnotation).toBe("E10303");
+    expect(DiagCode.ExpectedIdentifier).toBe("E10304");
+    expect(DiagCode.MissingSemicolon).toBe("E10305");
+    expect(DiagCode.MissingCloseBrace).toBe("E10306");
+    expect(DiagCode.MissingCloseParen).toBe("E10307");
+    expect(DiagCode.MissingCloseBracket).toBe("E10308");
+    expect(DiagCode.ExpectedToOrDownto).toBe("E10309");
+    expect(DiagCode.InvalidTopLevelDeclaration).toBe("E10310");
+    expect(DiagCode.ExportNotAllowed).toBe("E10311");
+    expect(DiagCode.ExpectedBlock).toBe("E10312");
+    expect(DiagCode.ExpectedColon).toBe("E10313");
+    expect(DiagCode.MissingConstInitialiser).toBe("E10314");
+    expect(DiagCode.EmptyEnumDeclaration).toBe("E10315");
+    expect(DiagCode.EmptyStructDeclaration).toBe("E10316");
+  });
+
+  it("keeps the parser empty-struct/enum codes distinct from the semantic ones", () => {
+    // Parser E10316/E10315 (declaration syntax) must not collide with the
+    // semantic E10163 EmptyStruct / E10140 EmptyEnum (RD-04 band).
+    expect(DiagCode.EmptyStructDeclaration).not.toBe(DiagCode.EmptyStruct);
+    expect(DiagCode.EmptyEnumDeclaration).not.toBe(DiagCode.EmptyEnum);
+  });
+});
+
 describe("isIceCode / IceCode band (ST-14)", () => {
   it("classifies an ICE code as in-band", () => {
     expect(isIceCode("E90001")).toBe(true);

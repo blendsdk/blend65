@@ -72,11 +72,15 @@ export const DiagCode = {
   RecursionDetected: "E10174",
   TooManyParameters: "E10175",
   // Control flow
+  // E10072 (MissingDefaultClause) is emitted by the parser (RD-03); it lives in
+  // this band per Ch 14 but is raised during parsing, not semantic analysis.
+  MissingDefaultClause: "E10072",
   ForEndBoundOutOfRange: "E10064",
   BreakOutsideLoopSwitch: "E10130",
   ContinueOutsideLoop: "E10131",
   DuplicateCaseValue: "E10132",
   NonExhaustiveSwitch: "E10133",
+
   // Enums
   EmptyEnum: "E10140",
   TooManyEnumMembers: "E10141",
@@ -118,8 +122,32 @@ export const DiagCode = {
   UnterminatedCharLiteral: "E10223",
   ReservedKeyword: "E10224",
 
+  // Parser (RD-03, spec Ch 14)
+  // Added by addition (AR-6). E10001/E10002/E10224 are reused from the bands
+  // above; E10072 (MissingDefaultClause) sits in the control-flow group above.
+  // The E10300–E10316 band below is the parser's own syntactic-error range and
+  // is distinct from the semantic E10163/E10140 empty-struct/enum codes.
+  UnexpectedToken: "E10300",
+  ExpectedExpression: "E10301",
+  ExpectedStatement: "E10302",
+  ExpectedTypeAnnotation: "E10303",
+  ExpectedIdentifier: "E10304",
+  MissingSemicolon: "E10305",
+  MissingCloseBrace: "E10306",
+  MissingCloseParen: "E10307",
+  MissingCloseBracket: "E10308",
+  ExpectedToOrDownto: "E10309",
+  InvalidTopLevelDeclaration: "E10310",
+  ExportNotAllowed: "E10311",
+  ExpectedBlock: "E10312",
+  ExpectedColon: "E10313",
+  MissingConstInitialiser: "E10314",
+  EmptyEnumDeclaration: "E10315",
+  EmptyStructDeclaration: "E10316",
+
   // Warnings (Ch 14 §3)
   // Lexer warning (RD-02, spec Ch 01 §14): decimal literal with leading zeros.
+
   NumericLeadingZeros: "W10210",
   LargeZpAllocation: "W10030",
   RamNearingLimit: "W10033",
