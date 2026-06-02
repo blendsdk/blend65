@@ -24,7 +24,7 @@ list requires readable golden token-list snapshots, and string values produce st
  * diagnostics core. The names are the canonical Ch 01 §12 identifiers.
  */
 export const TokenKind = {
-  // ----- Literals (4 — boolean literals are keywords) -----
+  // ----- Literals (3 — boolean literals are keywords) -----
   Number: "Number", // decimal, $hex, 0xhex, 0bbinary
   String: "String", // "…"
   Char: "Char", // '…'
@@ -66,7 +66,7 @@ export const TokenKind = {
   KwEnum: "KwEnum",
   KwType: "KwType",
 
-  // ----- Operators (29, incl. Question per §9.6) -----
+  // ----- Operators (32, incl. Question per §9.6) -----
   Plus: "Plus",
   Minus: "Minus",
   Star: "Star",
@@ -122,24 +122,25 @@ export type TokenKindValue = (typeof TokenKind)[keyof typeof TokenKind];
 
 ### Member count reconciliation (FR-2)
 
-Ch 01 §12 says "76 token types"; RD-02 §4.1's note clarifies the canonical *set* counts to
-**77** because `Question` is listed under operators (§9.6) and `Colon` under punctuation
-(§10). This plan carries exactly the set above:
+The canonical authority is the **enumerated token-name list** in spec Ch 01 §12, not the
+parenthetical counts in its sub-section headers. Counting the enumerated names there (and
+in the `TokenKind` above) yields **79** members:
 
 | Category | Count |
 |----------|-------|
 | Literals | 3 (`Number`, `String`, `Char`) |
 | Identifier | 1 |
 | Keywords | 32 |
-| Operators (incl. `Question`) | 29 |
+| Operators (incl. `Question`) | 32 |
 | Punctuation (incl. `Colon`) | 10 |
 | Special | 1 (`Eof`) |
-| **Total** | **76 distinct + the boolean note** → enumerated members = **77** |
+| **Total** | **79** |
 
-> The literal *category* in §12 lists 3 concrete kinds (boolean literals are keywords), so
-> "4 literal" in RD-02 counts the boolean-literal concept. The enumerated `TokenKind` has
-> **77 members** as listed; a test (ST-L1) asserts the exact member set so the count is
-> pinned and cannot drift.
+> **Known spec slip (frozen, not edited — D3):** the §12 header reads "Operators (29)", but
+> the names enumerated beneath it (`PLUS`…`QUESTION`) total **32**; likewise the chapter's
+> "76 token types" prose under-counts for the same reason. The enumerated names are
+> authoritative. `TokenKind` mirrors them exactly at **79 members**, and a test (ST-L1)
+> pins both the total (79) and the operator block (32) so the count cannot drift.
 
 ## 2. `Token` — embeds a `SourceSpan` (AR-L3)
 

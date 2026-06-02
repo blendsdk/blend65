@@ -1,0 +1,44 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`lexer — Phase 6 behavioral spec & golden snapshots > ST-L40: golden token list (representative program) > tokenizes a small well-formed program to a canonical snapshot 1`] = `
+"KwModule 0..6
+Identifier 7..11
+Semicolon 11..12
+KwFunction 14..22
+Identifier 23..27
+LParen 27..28
+RParen 28..29
+Colon 29..30
+KwVoid 31..35
+LBrace 36..37
+Identifier 40..44
+LParen 44..45
+Number 45..51 53280
+Comma 51..52
+Number 53..54 5
+RParen 54..55
+Semicolon 55..56
+RBrace 74..75
+Eof 76..76"
+`;
+
+exports[`lexer — Phase 6 behavioral spec & golden snapshots > ST-L41: golden tokens + ordered diagnostics (error-bearing) > snapshots the ordered diagnostic list (pins recovery + ordering) 1`] = `
+"E10214 error 8..9 Invalid hexadecimal literal — expected hex digit (0–9, A–F) after '$'
+E10216 error 12..17 Numeric literal value 99999 exceeds maximum (65535) — no Blend65 type can hold values larger than 16 bits
+E10218 error 27..32 Unterminated string literal — expected closing '"' before end of line"
+`;
+
+exports[`lexer — Phase 6 behavioral spec & golden snapshots > ST-L41: golden tokens + ordered diagnostics (error-bearing) > snapshots the recovered token stream 1`] = `
+"KwLet 0..3
+Identifier 4..5
+Equal 6..7
+Number 8..9 0
+Plus 10..11
+Number 12..17 65535
+Semicolon 17..18
+KwLet 19..22
+Identifier 23..24
+Equal 25..26
+String 27..32 "oops"
+Eof 32..32"
+`;

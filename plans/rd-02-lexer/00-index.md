@@ -3,7 +3,7 @@
 > **Feature**: Build the **lexer** (tokenizer) — the first compiler pipeline stage — in
 > `@blend65/frontend`, on top of the frozen RD-11a diagnostics core. Implements `spec-v3.0`
 > Chapter 01 (Lexical Structure), evaluation F021.
-> **Status**: Planned (documents authored; implementation pending)
+> **Status**: Implemented (all 6 phases complete; FR-1..FR-39 & AC-1..AC-16 satisfied; suite green)
 > **Created**: 2026-06-02
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-11a)
 > **Source**: [RD-02](../../requirements/RD-02-lexer.md) · [spec Ch 01](../../spec/01-lexical-structure.md)

@@ -99,7 +99,28 @@ export const DiagCode = {
   ConstDivisionByZero: "E10082",
   ShiftAmountOutOfRange: "E10083",
 
+  // Lexer (RD-02, spec Ch 01 §14)
+  // E10212 (redeclare reserved built-in) is owned by RD-04 — NOT added here.
+  // E10224 (ReservedKeyword) is emitted by the parser (RD-03); it lives here so
+  // the one-registry rule holds — the lexer itself never raises it.
+  UnexpectedCharacter: "E10210",
+  UnterminatedBlockComment: "E10211",
+  InvalidNumericUnderscore: "E10213",
+  InvalidHexLiteral: "E10214",
+  InvalidBinaryLiteral: "E10215",
+  NumericLiteralOverflow: "E10216",
+  NewlineInString: "E10217",
+  UnterminatedString: "E10218",
+  UnknownEscapeSequence: "E10219",
+  IncompleteHexEscape: "E10220",
+  EmptyCharLiteral: "E10221",
+  MultiCharLiteral: "E10222",
+  UnterminatedCharLiteral: "E10223",
+  ReservedKeyword: "E10224",
+
   // Warnings (Ch 14 §3)
+  // Lexer warning (RD-02, spec Ch 01 §14): decimal literal with leading zeros.
+  NumericLeadingZeros: "W10210",
   LargeZpAllocation: "W10030",
   RamNearingLimit: "W10033",
   DecimalModeWithoutCld: "W10120",
