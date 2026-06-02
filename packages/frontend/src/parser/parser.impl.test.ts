@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from "vitest";
 import { DiagCode, createDiagnosticBag } from "@blend65/core";
-import type { DiagnosticBag, TopLevelItem } from "@blend65/core";
+import type { DiagnosticBag, StmtNode, TopLevelItem } from "@blend65/core";
 import { lex, parse } from "../index.js";
 
 const SRC = 1;
@@ -200,5 +200,199 @@ describe("declarations — type position (E10303)", () => {
     const bag = createDiagnosticBag();
     firstItem("let x: 123 = 0;", bag);
     expect(hasCode(bag, DiagCode.ExpectedTypeAnnotation)).toBe(true);
+  });
+});
+
+/**
+ * Parses `module M;\nfunction f(): void { <body> }` and returns the function
+ * body's statement list — the harness for the Phase 4 statement layer (ST-P20..
+ * P22 plus block/jump/loop cases).
+ */
+function bodyStmts(body: string, bag: DiagnosticBag): StmtNode[] {
+  const item = firstItem(`function f(): void { ${body} }`, bag);
+  if (item.kind !== "FunctionDecl") throw new Error("expected FunctionDecl");
+  return item.body.statements;
+}
+
+/** The single statement produced by `body`; fails if there is not exactly one. */
+function onlyStmt(body: string, bag: DiagnosticBag): StmtNode {
+  const stmts = bodyStmts(body, bag);
+  expect(stmts).toHaveLength(1);
+  const s = stmts[0];
+  if (s === undefined) throw new Error("expected one statement");
+  return s;
+}
+
+describe("statements — block (FR-24)", () => {
+  it("empty block body → zero statements, no diagnostics", () => {
+    const bag = createDiagnosticBag();
+    expect(bodyStmts("", bag)).toEqual([]);
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("nested `{ }` block parses as a BlockNode statement", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("{ }", bag);
+    expect(s.kind).toBe("Block");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("multiple statements are collected in order", () => {
+    const bag = createDiagnosticBag();
+    const stmts = bodyStmts("break; continue;", bag);
+    expect(stmts.map((s) => s.kind)).toEqual(["BreakStmt", "ContinueStmt"]);
+    expect(bag.getAll()).toHaveLength(0);
+  });
+});
+
+describe("statements — if / else (ST-P20, FR-25)", () => {
+  it("ST-P20: `if (c) { } else if (d) { } else { }` → composed else-if", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("if (c) { } else if (d) { } else { }", bag);
+    expect(s.kind).toBe("IfStmt");
+    if (s.kind !== "IfStmt") throw new Error("expected IfStmt");
+    expect(s.condition.kind).toBe("IdentExpr");
+    expect(s.thenBlock.kind).toBe("Block");
+    // else clause holds the nested `else if` as an IfStmt
+    const elseClause = s.elseClause;
+    expect(elseClause).not.toBeNull();
+    if (elseClause === null || elseClause.kind !== "IfStmt") {
+      throw new Error("expected else-if IfStmt");
+    }
+    // ...whose own else clause is the trailing `else { }` block
+    expect(elseClause.elseClause?.kind).toBe("Block");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`if (c) { }` with no else → elseClause null", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("if (c) { }", bag);
+    if (s.kind !== "IfStmt") throw new Error("expected IfStmt");
+    expect(s.elseClause).toBeNull();
+    expect(bag.getAll()).toHaveLength(0);
+  });
+});
+
+describe("statements — while / do-while (FR-26, FR-27)", () => {
+  it("`while (c) { }` → WhileStmtNode", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("while (c) { }", bag);
+    expect(s.kind).toBe("WhileStmt");
+    if (s.kind !== "WhileStmt") throw new Error("expected WhileStmt");
+    expect(s.body.kind).toBe("Block");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`do { } while (c);` → DoWhileStmtNode", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("do { } while (c);", bag);
+    expect(s.kind).toBe("DoWhileStmt");
+    if (s.kind !== "DoWhileStmt") throw new Error("expected DoWhileStmt");
+    expect(s.body.kind).toBe("Block");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`do { } while (c)` without trailing `;` → E10305", () => {
+    const bag = createDiagnosticBag();
+    bodyStmts("do { } while (c)", bag);
+    expect(hasCode(bag, DiagCode.MissingSemicolon)).toBe(true);
+  });
+});
+
+describe("statements — for (ST-P21, FR-28/29)", () => {
+  it("ST-P21: `for (let i: byte = 0 to 10 step 2) { }` → ForStmtNode", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("for (let i: byte = 0 to 10 step 2) { }", bag);
+    expect(s.kind).toBe("ForStmt");
+    if (s.kind !== "ForStmt") throw new Error("expected ForStmt");
+    expect(s.varName).toBe("i");
+    expect(s.varType?.kind).toBe("PrimitiveType");
+    expect(s.direction).toBe("to");
+    expect(s.init.kind).toBe("NumericLitExpr");
+    expect(s.bound.kind).toBe("NumericLitExpr");
+    expect(s.step).not.toBeNull();
+    expect(s.body.kind).toBe("Block");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`for (let i: byte = 10 downto 0) { }` → direction downto, no step", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("for (let i: byte = 10 downto 0) { }", bag);
+    if (s.kind !== "ForStmt") throw new Error("expected ForStmt");
+    expect(s.direction).toBe("downto");
+    expect(s.step).toBeNull();
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`for (let i: byte = 0 until 10) { }` → E10309 (not to/downto)", () => {
+    const bag = createDiagnosticBag();
+    bodyStmts("for (let i: byte = 0 until 10) { }", bag);
+    expect(hasCode(bag, DiagCode.ExpectedToOrDownto)).toBe(true);
+  });
+});
+
+describe("statements — switch (ST-P22, FR-30/31/32)", () => {
+  it("ST-P22: `switch (x) { case 1, 2: break; default: break; }`", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("switch (x) { case 1, 2: break; default: break; }", bag);
+    expect(s.kind).toBe("SwitchStmt");
+    if (s.kind !== "SwitchStmt") throw new Error("expected SwitchStmt");
+    expect(s.discriminant.kind).toBe("IdentExpr");
+    expect(s.cases).toHaveLength(1);
+    expect(s.cases[0]!.values).toHaveLength(2);
+    expect(s.cases[0]!.body.map((b) => b.kind)).toEqual(["BreakStmt"]);
+    expect(s.defaultClause.body.map((b) => b.kind)).toEqual(["BreakStmt"]);
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`switch (x) { case 1: break; }` with no default → E10072", () => {
+    const bag = createDiagnosticBag();
+    bodyStmts("switch (x) { case 1: break; }", bag);
+    expect(hasCode(bag, DiagCode.MissingDefaultClause)).toBe(true);
+  });
+});
+
+describe("statements — jumps & fallthrough (FR-33/34)", () => {
+  it("`return;` and `return x;` → ReturnStmtNode (value null / set)", () => {
+    const bag = createDiagnosticBag();
+    const stmts = bodyStmts("return; return x;", bag);
+    expect(stmts.map((s) => s.kind)).toEqual(["ReturnStmt", "ReturnStmt"]);
+    if (stmts[0]!.kind !== "ReturnStmt" || stmts[1]!.kind !== "ReturnStmt") {
+      throw new Error("expected ReturnStmts");
+    }
+    expect(stmts[0]!.value).toBeNull();
+    expect(stmts[1]!.value).not.toBeNull();
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`break;` / `continue;` / `fallthrough;` → matching jump nodes", () => {
+    const bag = createDiagnosticBag();
+    const stmts = bodyStmts("break; continue; fallthrough;", bag);
+    expect(stmts.map((s) => s.kind)).toEqual(["BreakStmt", "ContinueStmt", "FallthroughStmt"]);
+    expect(bag.getAll()).toHaveLength(0);
+  });
+});
+
+describe("statements — expression & local declarations (FR-35)", () => {
+  it("`x;` → ExpressionStmtNode", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("x;", bag);
+    expect(s.kind).toBe("ExpressionStmt");
+    if (s.kind !== "ExpressionStmt") throw new Error("expected ExpressionStmt");
+    expect(s.expression.kind).toBe("IdentExpr");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("local `let n: byte = 1;` parses as a LetDecl statement", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("let n: byte = 1;", bag);
+    expect(s.kind).toBe("LetDecl");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`type` in statement position → E10224 (AR-2)", () => {
+    const bag = createDiagnosticBag();
+    bodyStmts("type T = byte;", bag);
+    expect(hasCode(bag, DiagCode.ReservedKeyword)).toBe(true);
   });
 });

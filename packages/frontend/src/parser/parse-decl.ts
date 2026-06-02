@@ -8,15 +8,14 @@
  * to the shared bag via {@link ParserState.emit} and keeps the tree structurally
  * complete; it never throws (FR-4).
  *
- * The function/interrupt body is parsed by {@link parseBlock}, which for Phase 3
- * accepts an (empty) `{ ... }`. The real statement layer is added in Phase 4 by
- * filling the block's statement loop — an additive change (FR-11) that does not
- * alter the declaration parsers here.
+ * The function/interrupt body is parsed by {@link parseBlock}, which lives in
+ * `parse-stmt.ts` (the statement layer, Phase 4). Phase 3 shipped a local
+ * empty-body stub; wiring in the real block parser is an additive change (FR-11)
+ * that leaves the declaration parsers below untouched.
  */
 
 import { DiagCode, TokenKind, makeSpan } from "@blend65/core";
 import type {
-  BlockNode,
   ConstDeclNode,
   EnumDeclNode,
   EnumMemberNode,
@@ -35,38 +34,7 @@ import type {
 import type { ParserState } from "./state.js";
 import { parseType } from "./parse-type.js";
 import { parsePrimaryExpr } from "./parse-expr.js";
-
-/**
- * Parses a `{ ... }` block (FR-24). Phase 3 supports the empty body required by
- * function/interrupt declarations; statement parsing is added in Phase 4. Until
- * then, any tokens between the braces are skipped (brace-depth aware) so a body
- * that happens to contain statements still yields a structurally valid block.
- */
-export function parseBlock(state: ParserState): BlockNode {
-  const { cursor, sourceId } = state;
-  const open = cursor.expect(TokenKind.LBrace, DiagCode.ExpectedBlock, "'{' to open block");
-  const start = open !== null ? open.span.start : state.here().start;
-
-  // Phase 3: no statement parser yet — skip to the matching close brace,
-  // tracking nesting so inner `{ }` pairs do not end the block early.
-  let depth = 1;
-  let end = start;
-  while (!cursor.atEnd() && depth > 0) {
-    const k = cursor.peekKind();
-    if (k === TokenKind.LBrace) {
-      depth += 1;
-    } else if (k === TokenKind.RBrace) {
-      depth -= 1;
-      if (depth === 0) {
-        end = cursor.advance().span.end;
-        break;
-      }
-    }
-    end = cursor.advance().span.end;
-  }
-
-  return { kind: "Block", statements: [], span: makeSpan(sourceId, start, end) };
-}
+import { parseBlock } from "./parse-stmt.js";
 
 /** Parses a single `name: type` parameter (FR-17). */
 function parseParameter(state: ParserState): ParameterNode {

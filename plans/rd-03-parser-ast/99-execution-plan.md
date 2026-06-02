@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Commit mode**: `--no-commit` — implement, verify, update this plan; the user performs all git operations (AR-7).
-> **Progress**: 3/6 phases complete (50%)
+> **Progress**: 4/6 phases complete (67%)
 
 > **Last Updated**: 2026-06-02
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-02/RD-11a)
@@ -203,11 +203,17 @@ walk all ACs; mark plan complete.
 
 
 ### Phase 4 — Statements
-- [ ] 4.1 Spec/impl tests first (ST-P20–P22 + block/jump)
-- [ ] 4.2 Verify red
-- [ ] 4.3 Implement statement parse functions (+ E10305/E10309/E10072)
-- [ ] 4.4 Verify green
-- [ ] 4.5 Run verify (phase gate)
+- [x] 4.1 Spec/impl tests first (ST-P20–P22 + block/jump/loop/expr/type) ✅ (2026-06-02)
+- [x] 4.2 Verify red (17 statement tests fail — stub `parseBlock` skipped bodies) ✅ (2026-06-02)
+- [x] 4.3 Implement statement parse functions in `parse-stmt.ts` (block/if/while/do-while/for/switch/jumps/fallthrough/expr + local let/const + `type`→E10224; E10305/E10309/E10072); wired real `parseBlock` into `parse-decl.ts` ✅ (2026-06-02)
+- [x] 4.4 Verify green (35/35 declaration+statement tests) ✅ (2026-06-02)
+- [x] 4.5 Run verify (phase gate): build+typecheck+lint 30/30; frontend 96 tests (6 files); R15 green; spec clean ✅ (2026-06-02)
+
+> **Note:** `parse-stmt.ts` now owns the real `parseBlock`; `parse-decl.ts` imports
+> it (removing the Phase-3 empty-body stub) — an additive change (FR-11) leaving the
+> declaration parsers untouched. Conditions/bounds/case-values use `parsePrimaryExpr`;
+> Phase 5 swaps in the full Pratt parser at that same entry point (FR-11). No new
+> runtime ambiguity surfaced during Phase 4.
 
 ### Phase 5 — Expressions (Pratt) + intrinsics + struct literals
 - [ ] 5.1 Spec/impl tests first (ST-P10–P13, P29, P33)
