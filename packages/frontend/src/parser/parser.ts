@@ -22,6 +22,7 @@ import { DiagCode, TokenKind, makeSpan } from "@blend65/core";
 import type {
   DiagCodeValue,
   DiagnosticBag,
+  ErrorStmtNode,
   ImportStmtNode,
   ModuleDeclNode,
   ProgramNode,
@@ -242,18 +243,23 @@ export function parse(input: ParseInput): ParseResult {
 
   /**
    * Skips to the next top-level synchronisation point after a dispatch error
-   * (FR-6). Always consumes at least the offending token so the loop makes
-   * progress, then halts before the next sync keyword (or `Eof`) and clears
-   * panic so the next declaration reports its own first error.
+   * (FR-6; 03-03 recovery table, "Top-level" row). Always consumes at least the
+   * offending token so the loop makes progress, then halts before the next sync
+   * keyword (or `Eof`) and clears panic so the next declaration reports its own
+   * first error. Returns an {@link ErrorStmtNode} spanning the skipped region so
+   * the tree stays structurally complete (FR-5).
    */
-  function recoverTopLevel(): void {
+  function recoverTopLevel(): ErrorStmtNode {
+    const start = here().start;
+    let end = here().end;
     if (!cursor.atEnd()) {
-      cursor.advance();
+      end = cursor.advance().span.end;
     }
     while (!cursor.atEnd() && !TOP_LEVEL_SYNC.has(cursor.peekKind())) {
-      cursor.advance();
+      end = cursor.advance().span.end;
     }
     state.clearPanic();
+    return { kind: "ErrorStmt", span: makeSpan(sourceId, start, end) };
   }
 
   // ── parse() body ──────────────────────────────────────────────────────────
@@ -297,18 +303,18 @@ export function parse(input: ParseInput): ParseResult {
         here(),
         "Unexpected second 'module' declaration — only one is allowed, and it must be first",
       );
-      recoverTopLevel();
+      items.push(recoverTopLevel());
       continue;
     }
     if (kind === TokenKind.KwType) {
       // AR-2: `type` is reserved for future use; no declaration semantics.
       state.emit(DiagCode.ReservedKeyword, here(), "'type' is reserved for future use");
-      recoverTopLevel();
+      items.push(recoverTopLevel());
       continue;
     }
 
     state.emit(DiagCode.InvalidTopLevelDeclaration, here(), "Invalid top-level declaration");
-    recoverTopLevel();
+    items.push(recoverTopLevel());
   }
 
   const ast: ProgramNode = {

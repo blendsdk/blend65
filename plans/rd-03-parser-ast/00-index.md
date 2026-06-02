@@ -5,7 +5,8 @@
 > AST node types + visitor live in `@blend65/core`; the parser lives in `@blend65/frontend`.
 > Implements `spec-v3.0` Ch 02–13 + `grammar.ebnf.md`; evaluations F001–F006, F008–F009,
 > F011–F019, F022, F024.
-> **Status**: Planning Complete
+> **Status**: Implemented
+
 > **Created**: 2026-06-02
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-02/RD-11a)
 > **Source**: [RD-03](../../requirements/RD-03-parser-ast.md) · [grammar](../../spec/grammar.ebnf.md) · spec Ch 02–13

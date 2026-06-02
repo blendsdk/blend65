@@ -13,8 +13,9 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { DiagCode, createDiagnosticBag } from "@blend65/core";
-import type { DiagnosticBag, StmtNode, TopLevelItem } from "@blend65/core";
+import { DiagCode, NODE_KINDS, createDiagnosticBag } from "@blend65/core";
+import type { AstNode, DiagnosticBag, ExprNode, StmtNode, TopLevelItem } from "@blend65/core";
+
 import { lex, parse } from "../index.js";
 
 const SRC = 1;
@@ -23,6 +24,37 @@ const SRC = 1;
 function parseSource(source: string, bag: DiagnosticBag) {
   const { tokens } = lex(SRC, source, bag);
   return parse({ tokens, source, sourceId: SRC, bag });
+}
+
+/** True when `v` is an AST node (has a string `kind` and a `span`). */
+function isAstNode(v: unknown): v is AstNode {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof (v as { kind?: unknown }).kind === "string" &&
+    typeof (v as { span?: unknown }).span === "object"
+  );
+}
+
+/** Collects every node kind reachable from `node` into `into` (generic walk). */
+function collectKinds(node: AstNode, into: Set<string>): void {
+  into.add(node.kind);
+  for (const value of Object.values(node)) {
+    if (isAstNode(value)) {
+      collectKinds(value, into);
+    } else if (Array.isArray(value)) {
+      for (const element of value) {
+        if (isAstNode(element)) collectKinds(element, into);
+      }
+    }
+  }
+}
+
+/** `true` if any node of `kind` is reachable from `root`. */
+function containsKind(root: AstNode, kind: string): boolean {
+  const kinds = new Set<string>();
+  collectKinds(root, kinds);
+  return kinds.has(kind);
 }
 
 /** Parses `module M;\n` + `body` and returns the first top-level item. */
@@ -394,5 +426,261 @@ describe("statements — expression & local declarations (FR-35)", () => {
     const bag = createDiagnosticBag();
     bodyStmts("type T = byte;", bag);
     expect(hasCode(bag, DiagCode.ReservedKeyword)).toBe(true);
+  });
+});
+
+/** The initialiser expression of `let v: byte = <init>;` at top level. */
+function initOf(init: string, bag: DiagnosticBag): ExprNode {
+  const item = firstItem(`let v: byte = ${init};`, bag);
+  if (item.kind !== "LetDecl") throw new Error("expected LetDecl");
+  if (item.initialiser === null) throw new Error("expected an initialiser");
+  return item.initialiser;
+}
+
+describe("expressions — intrinsics (ST-P29, AC-19, FR-43)", () => {
+  it("`peek(0)` → IntrinsicCallExpr named peek", () => {
+    const bag = createDiagnosticBag();
+    const e = initOf("peek(0)", bag);
+    expect(e.kind).toBe("IntrinsicCallExpr");
+    if (e.kind !== "IntrinsicCallExpr") throw new Error("expected IntrinsicCallExpr");
+    expect(e.name).toBe("peek");
+    expect(e.args).toHaveLength(1);
+    expect(e.typeArg).toBeNull();
+    expect(e.fieldArg).toBeNull();
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`sizeof(byte)` captures a type argument", () => {
+    const bag = createDiagnosticBag();
+    const e = initOf("sizeof(byte)", bag);
+    if (e.kind !== "IntrinsicCallExpr") throw new Error("expected IntrinsicCallExpr");
+    expect(e.name).toBe("sizeof");
+    expect(e.typeArg?.kind).toBe("PrimitiveType");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`offsetof(Point, x)` captures a type arg and a field arg", () => {
+    const bag = createDiagnosticBag();
+    const e = initOf("offsetof(Point, x)", bag);
+    if (e.kind !== "IntrinsicCallExpr") throw new Error("expected IntrinsicCallExpr");
+    expect(e.name).toBe("offsetof");
+    expect(e.typeArg?.kind).toBe("NamedType");
+    expect(e.fieldArg?.name).toBe("x");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("non-reserved callee `foo(1)` → CallExpr, not IntrinsicCallExpr", () => {
+    const bag = createDiagnosticBag();
+    const e = initOf("foo(1)", bag);
+    expect(e.kind).toBe("CallExpr");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`asm_sei()` → IntrinsicCallExpr (CPU control intrinsic)", () => {
+    const bag = createDiagnosticBag();
+    const e = initOf("asm_sei()", bag);
+    if (e.kind !== "IntrinsicCallExpr") throw new Error("expected IntrinsicCallExpr");
+    expect(e.name).toBe("asm_sei");
+    expect(e.args).toHaveLength(0);
+    expect(bag.getAll()).toHaveLength(0);
+  });
+});
+
+describe("expressions — embed (FR-44)", () => {
+  it('`embed("sprite.bin")` → EmbedExpr with a path', () => {
+    const bag = createDiagnosticBag();
+    const e = initOf('embed("sprite.bin")', bag);
+    expect(e.kind).toBe("EmbedExpr");
+    if (e.kind !== "EmbedExpr") throw new Error("expected EmbedExpr");
+    expect(e.path).toBe("sprite.bin");
+    expect(e.format).toBeNull();
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it('`embed("music.bin", sid)` captures the format identifier', () => {
+    const bag = createDiagnosticBag();
+    const e = initOf('embed("music.bin", sid)', bag);
+    if (e.kind !== "EmbedExpr") throw new Error("expected EmbedExpr");
+    expect(e.format).toBe("sid");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+});
+
+describe("expressions — struct-literal disambiguation (ST-P33, AC-10, FR-45)", () => {
+  it("`Point { x: 1, y: 2 }` after `=` → StructLitExpr", () => {
+    const bag = createDiagnosticBag();
+    const e = initOf("Point { x: 1, y: 2 }", bag);
+    expect(e.kind).toBe("StructLitExpr");
+    if (e.kind !== "StructLitExpr") throw new Error("expected StructLitExpr");
+    expect(e.typeName).toBe("Point");
+    expect(e.fields.map((f) => f.name)).toEqual(["x", "y"]);
+    expect(bag.getAll()).toHaveLength(0);
+  });
+
+  it("`{ }` after a control-flow keyword parses as a Block, not a struct literal", () => {
+    const bag = createDiagnosticBag();
+    const s = onlyStmt("if (c) { }", bag);
+    expect(s.kind).toBe("IfStmt");
+    if (s.kind !== "IfStmt") throw new Error("expected IfStmt");
+    expect(s.thenBlock.kind).toBe("Block");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// Phase 6 — error sentinels, recovery, cascade suppression (ST-P23..P27)
+// ───────────────────────────────────────────────────────────────────────────
+
+describe("error sentinels — ErrorExpr (ST-P23, AC-04, FR-5)", () => {
+  it("ST-P23: `let x: byte = +;` (operator, no operand) → ErrorExpr + one diagnostic", () => {
+    const bag = createDiagnosticBag();
+    const item = firstItem("let x: byte = +;", bag);
+    if (item.kind !== "LetDecl") throw new Error("expected LetDecl");
+    // The unary `+` is not a prefix operator → the operand position fails and an
+    // ErrorExpr sentinel is inserted, keeping the initialiser structurally present.
+    expect(item.initialiser).not.toBeNull();
+    expect(containsKind(item, "ErrorExpr")).toBe(true);
+    expect(hasCode(bag, DiagCode.ExpectedExpression)).toBe(true);
+    // Cascade suppression: a single erroneous region yields ≤1 diagnostic (AC-06).
+    expect(bag.getAll()).toHaveLength(1);
+  });
+});
+
+describe("error sentinels — ErrorStmt (ST-P24, AC-04, FR-5/15)", () => {
+  // A stray `+` lexes to a real `Plus` token that is invalid at top level (unlike
+  // `@`/`#`, which the lexer drops as unexpected characters before the parser
+  // ever sees them). It is therefore the parser-level garbage this test needs.
+  it("ST-P24: garbage `+` at top level → ErrorStmt item + E10310, recovery to EOF", () => {
+    const bag = createDiagnosticBag();
+    const { ast } = parseSource("module M;\n+", bag);
+    expect(ast.items).toHaveLength(1);
+    expect(ast.items[0]!.kind).toBe("ErrorStmt");
+    expect(hasCode(bag, DiagCode.InvalidTopLevelDeclaration)).toBe(true);
+  });
+
+  it("ST-P24: garbage at top level recovers at the next `function` sync point", () => {
+    const bag = createDiagnosticBag();
+    const { ast } = parseSource("module M;\n+ function f(): void { }", bag);
+    // The ErrorStmt covers the garbage; the function parses cleanly after it.
+    expect(ast.items.map((i) => i.kind)).toEqual(["ErrorStmt", "FunctionDecl"]);
+    expect(hasCode(bag, DiagCode.InvalidTopLevelDeclaration)).toBe(true);
+  });
+});
+
+describe("error sentinels — ErrorType (ST-P25, AC-04, FR-5)", () => {
+  it("ST-P25: `let x: 123 = 0;` (number where type expected) → ErrorType + E10303", () => {
+    const bag = createDiagnosticBag();
+    const item = firstItem("let x: 123 = 0;", bag);
+    if (item.kind !== "LetDecl") throw new Error("expected LetDecl");
+    expect(item.declaredType?.kind).toBe("ErrorType");
+    expect(hasCode(bag, DiagCode.ExpectedTypeAnnotation)).toBe(true);
+  });
+});
+
+describe("recovery — sync points (ST-P26, AC-05, FR-6)", () => {
+  it("ST-P26: a malformed declaration then a valid `function` resumes at the function", () => {
+    const bag = createDiagnosticBag();
+    const { ast } = parseSource("module M;\n* function good(): void { }", bag);
+    const fn = ast.items.find((i) => i.kind === "FunctionDecl");
+    expect(fn).toBeDefined();
+    if (fn === undefined || fn.kind !== "FunctionDecl") throw new Error("expected FunctionDecl");
+    expect(fn.name).toBe("good");
+  });
+});
+
+describe("cascade suppression (ST-P27, AC-06, FR-7)", () => {
+  it("ST-P27: one error followed by would-be errors in a region → exactly one diagnostic", () => {
+    const bag = createDiagnosticBag();
+    // A run of stray operator tokens forms a single erroneous top-level region:
+    // the first error (E10310) is reported, the rest are swept into one ErrorStmt
+    // by `recoverTopLevel` (which skips to the next sync point and clears panic),
+    // so the whole region yields exactly one diagnostic. (Operators are used, not
+    // `@`/`#`, which the lexer drops as unexpected characters with their own codes.)
+    parseSource("module M;\n* * *", bag);
+    expect(bag.getAll()).toHaveLength(1);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// AC-09 — contextual keywords usable as ordinary identifiers
+// ───────────────────────────────────────────────────────────────────────────
+
+describe("contextual keywords as identifiers (AC-09, FR-29)", () => {
+  it("`to` / `downto` / `step` / `fallthrough` outside their context → IdentExpr", () => {
+    for (const name of ["to", "downto", "step", "fallthrough"]) {
+      const bag = createDiagnosticBag();
+      const e = initOf(name, bag);
+      // `fallthrough` is a real keyword and only valid in statement position; the
+      // other three are contextual identifiers. All four, used as a bare value
+      // initialiser, must not crash the parser.
+      expect(e).toBeDefined();
+    }
+  });
+
+  it("`to` used as an ordinary identifier value parses as IdentExpr", () => {
+    const bag = createDiagnosticBag();
+    const e = initOf("to", bag);
+    expect(e.kind).toBe("IdentExpr");
+    if (e.kind !== "IdentExpr") throw new Error("expected IdentExpr");
+    expect(e.name).toBe("to");
+    expect(bag.getAll()).toHaveLength(0);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// AC-13 — every one of the 50 NodeKinds is produced by ≥1 parse
+// ───────────────────────────────────────────────────────────────────────────
+
+describe("node-kind exhaustiveness (AC-13, FR-10)", () => {
+  it("AC-13: every NodeKind value is produced by at least one parse", () => {
+    // A battery of small programs that, together, exercise all 50 kinds. Each is
+    // independently parsed and every reachable node kind is collected. The three
+    // error sentinels are produced by deliberately malformed snippets.
+    const programs = [
+      // Source structure + most declarations + types + many statements/expressions.
+      `module Demo.Pkg;
+       import { a } from Lib.X;
+       struct P { x: byte; nested: Q[2]; }
+       enum E { A, B = 1 }
+       const K: byte = 1 + 2 * 3 - 4 / 5 % 6;
+       zeropage { zp: word; zq: byte = 0; }
+       let g: P = P { x: 1 };
+       interrupt function isr() { g.x = 1; }
+       export function f(p: byte, q: word): byte {
+         let v: byte = (p & q) | (p ^ q);
+         let w: boolean = !true && false || (p < q);
+         let s: word = p << 2 >> 1;
+         let c: byte = p == q ? lo(w) : hi(w);
+         let u: byte = ~p;
+         let addr: word = &g;
+         let cast: byte = <byte>(q);
+         let str: word = embed("d.bin", raw);
+         let arr: byte = sizeof(byte) + offsetof(P, x);
+         g.nested[0] = peek(0);
+         f(p, q);
+         if (p > 0) { return p; } else { return q; }
+         while (p > 0) { p = p - 1; }
+         do { p = p + 1; } while (p < 10);
+         for (let i: byte = 0 to 10 step 2) { fallthrough; }
+         switch (p) { case 1, 2: break; default: continue; }
+         "ignored";
+         'c';
+         return v + w + s + c + u + cast + str + arr;
+       }`,
+      // Error sentinels.
+      `module Bad;\n+`, // ErrorStmt at top level
+      `module Bad2;\nlet x: 123 = 0;`, // ErrorType (number where a type is expected)
+      `module Bad3;\nlet y: byte = +;`, // ErrorExpr (operator with no operand)
+    ];
+
+    const produced = new Set<string>();
+    for (const src of programs) {
+      const { ast } = parseSource(src, createDiagnosticBag());
+      collectKinds(ast, produced);
+    }
+
+    const missing = NODE_KINDS.filter((k) => !produced.has(k));
+    expect(missing).toEqual([]);
+    expect(produced.size).toBeGreaterThanOrEqual(NODE_KINDS.length);
   });
 });

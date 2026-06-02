@@ -33,8 +33,22 @@ import type {
 } from "@blend65/core";
 import type { ParserState } from "./state.js";
 import { parseType } from "./parse-type.js";
-import { parsePrimaryExpr } from "./parse-expr.js";
+import { parseExpression, parsePrimaryExpr } from "./parse-expr.js";
 import { parseBlock } from "./parse-stmt.js";
+
+/**
+ * Guarantees forward progress inside an item-list loop (FR-4): if the most recent
+ * iteration consumed no token (a stuck error state), skip exactly one so the loop
+ * cannot spin forever. `before` is the start offset captured before the iteration.
+ * The lexer guarantees monotonically-increasing spans, so an unchanged start means
+ * nothing was consumed. Mirrors the guard already used by `parseBlock` (FR-5/6).
+ */
+function ensureProgress(state: ParserState, before: number): void {
+  const { cursor } = state;
+  if (cursor.peek().span.start === before && !cursor.atEnd() && !cursor.check(TokenKind.RBrace)) {
+    cursor.advance();
+  }
+}
 
 /** Parses a single `name: type` parameter (FR-17). */
 function parseParameter(state: ParserState): ParameterNode {
@@ -73,7 +87,9 @@ function parseParameterList(state: ParserState): ParameterNode[] {
       break;
     }
   }
+
   cursor.expect(TokenKind.RParen, DiagCode.MissingCloseParen, "')' to close parameter list");
+
   return params;
 }
 
@@ -187,9 +203,12 @@ export function parseStructDecl(
 
   const fields: StructFieldNode[] = [];
   while (!cursor.atEnd() && !cursor.check(TokenKind.RBrace)) {
+    const before = cursor.peek().span.start;
     fields.push(parseStructField(state));
+    ensureProgress(state, before);
   }
   const close = cursor.expect(TokenKind.RBrace, DiagCode.MissingCloseBrace, "'}' to close struct");
+
   const end = close !== null ? close.span.end : state.here().start;
 
   if (fields.length === 0) {
@@ -245,13 +264,18 @@ export function parseEnumDecl(
 
   const members: EnumMemberNode[] = [];
   while (!cursor.atEnd() && !cursor.check(TokenKind.RBrace)) {
+    const before = cursor.peek().span.start;
     members.push(parseEnumMember(state));
     if (cursor.check(TokenKind.Comma)) {
       cursor.advance(); // trailing comma allowed: loop re-checks for '}'
       continue;
     }
+    // A member with neither a trailing comma nor any consumed token is a stuck
+    // error state — stop so the `}` recovery can run (FR-4).
+    if (cursor.peek().span.start === before) break;
     break;
   }
+
   const close = cursor.expect(TokenKind.RBrace, DiagCode.MissingCloseBrace, "'}' to close enum");
   const end = close !== null ? close.span.end : state.here().start;
 
@@ -288,9 +312,11 @@ export function parseLetDecl(state: ParserState, exported: boolean, startTok: nu
   let initialiser: ExprNode | null = null;
   if (cursor.check(TokenKind.Equal)) {
     cursor.advance();
-    initialiser = parsePrimaryExpr(state);
+    // Initialiser context (after `=`): struct literals are allowed (FR-45).
+    initialiser = parseExpression(state, 0, true);
   }
   let end = initialiser !== null ? initialiser.span.end : declaredType.span.end;
+
   const semi = cursor.expect(
     TokenKind.Semicolon,
     DiagCode.MissingSemicolon,
@@ -403,13 +429,16 @@ export function parseZeropageBlock(state: ParserState, startTok: number): Zeropa
 
   const fields: ZeropageFieldNode[] = [];
   while (!cursor.atEnd() && !cursor.check(TokenKind.RBrace)) {
+    const before = cursor.peek().span.start;
     fields.push(parseZeropageField(state));
+    ensureProgress(state, before);
   }
   const close = cursor.expect(
     TokenKind.RBrace,
     DiagCode.MissingCloseBrace,
     "'}' to close zeropage block",
   );
+
   const end = close !== null ? close.span.end : state.here().start;
   return { kind: "ZeropageBlock", fields, span: makeSpan(sourceId, startTok, end) };
 }

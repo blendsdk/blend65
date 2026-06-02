@@ -1,0 +1,605 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`golden AST snapshots (ST-P30/P31, AC-07) > ST-P30: a representative valid program → committed AST snapshot, no errors 1`] = `
+{
+  "items": [
+    {
+      "kind": "ImportStmt",
+      "modulePath": "Std.Mem",
+      "symbols": [
+        {
+          "name": "clear",
+          "span": {
+            "end": 34,
+            "sourceId": 1,
+            "start": 29,
+          },
+        },
+      ],
+    },
+    {
+      "declaredType": {
+        "kind": "PrimitiveType",
+        "name": "byte",
+      },
+      "exported": false,
+      "initialiser": {
+        "kind": "NumericLitExpr",
+        "raw": "40",
+        "value": 40,
+      },
+      "kind": "ConstDecl",
+      "name": "WIDTH",
+    },
+    {
+      "exported": false,
+      "fields": [
+        {
+          "fieldType": {
+            "kind": "PrimitiveType",
+            "name": "byte",
+          },
+          "kind": "StructField",
+          "name": "x",
+        },
+        {
+          "fieldType": {
+            "kind": "PrimitiveType",
+            "name": "byte",
+          },
+          "kind": "StructField",
+          "name": "y",
+        },
+      ],
+      "kind": "StructDecl",
+      "name": "Point",
+    },
+    {
+      "exported": false,
+      "kind": "EnumDecl",
+      "members": [
+        {
+          "kind": "EnumMember",
+          "name": "Up",
+          "value": null,
+        },
+        {
+          "kind": "EnumMember",
+          "name": "Down",
+          "value": {
+            "kind": "NumericLitExpr",
+            "raw": "2",
+            "value": 2,
+          },
+        },
+        {
+          "kind": "EnumMember",
+          "name": "Left",
+          "value": null,
+        },
+        {
+          "kind": "EnumMember",
+          "name": "Right",
+          "value": null,
+        },
+      ],
+      "name": "Dir",
+    },
+    {
+      "fields": [
+        {
+          "fieldType": {
+            "kind": "PrimitiveType",
+            "name": "word",
+          },
+          "initialiser": null,
+          "kind": "ZeropageField",
+          "name": "cursor",
+        },
+        {
+          "fieldType": {
+            "kind": "PrimitiveType",
+            "name": "byte",
+          },
+          "initialiser": {
+            "kind": "NumericLitExpr",
+            "raw": "0",
+            "value": 0,
+          },
+          "kind": "ZeropageField",
+          "name": "flags",
+        },
+      ],
+      "kind": "ZeropageBlock",
+    },
+    {
+      "declaredType": {
+        "kind": "NamedType",
+        "name": "Point",
+      },
+      "exported": false,
+      "initialiser": {
+        "fields": [
+          {
+            "kind": "StructLitField",
+            "name": "x",
+            "value": {
+              "kind": "NumericLitExpr",
+              "raw": "1",
+              "value": 1,
+            },
+          },
+          {
+            "kind": "StructLitField",
+            "name": "y",
+            "value": {
+              "kind": "NumericLitExpr",
+              "raw": "2",
+              "value": 2,
+            },
+          },
+        ],
+        "kind": "StructLitExpr",
+        "typeName": "Point",
+      },
+      "kind": "LetDecl",
+      "name": "origin",
+    },
+    {
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "expression": {
+              "kind": "AssignExpr",
+              "op": "=",
+              "target": {
+                "kind": "IdentExpr",
+                "name": "flags",
+              },
+              "value": {
+                "kind": "BinaryExpr",
+                "left": {
+                  "kind": "IdentExpr",
+                  "name": "flags",
+                },
+                "op": "+",
+                "right": {
+                  "kind": "NumericLitExpr",
+                  "raw": "1",
+                  "value": 1,
+                },
+              },
+            },
+            "kind": "ExpressionStmt",
+          },
+        ],
+      },
+      "exported": false,
+      "kind": "InterruptDecl",
+      "name": "isr",
+    },
+    {
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "declaredType": {
+              "kind": "PrimitiveType",
+              "name": "byte",
+            },
+            "exported": false,
+            "initialiser": {
+              "kind": "NumericLitExpr",
+              "raw": "0",
+              "value": 0,
+            },
+            "kind": "LetDecl",
+            "name": "total",
+          },
+          {
+            "body": {
+              "kind": "Block",
+              "statements": [
+                {
+                  "condition": {
+                    "kind": "BinaryExpr",
+                    "left": {
+                      "kind": "IdentExpr",
+                      "name": "i",
+                    },
+                    "op": "<",
+                    "right": {
+                      "kind": "IdentExpr",
+                      "name": "WIDTH",
+                    },
+                  },
+                  "elseClause": {
+                    "kind": "Block",
+                    "statements": [
+                      {
+                        "expression": {
+                          "kind": "AssignExpr",
+                          "op": "=",
+                          "target": {
+                            "kind": "IdentExpr",
+                            "name": "total",
+                          },
+                          "value": {
+                            "kind": "BinaryExpr",
+                            "left": {
+                              "kind": "IdentExpr",
+                              "name": "total",
+                            },
+                            "op": "+",
+                            "right": {
+                              "kind": "CastExpr",
+                              "operand": {
+                                "kind": "IdentExpr",
+                                "name": "i",
+                              },
+                              "targetType": {
+                                "kind": "PrimitiveType",
+                                "name": "byte",
+                              },
+                            },
+                          },
+                        },
+                        "kind": "ExpressionStmt",
+                      },
+                    ],
+                  },
+                  "kind": "IfStmt",
+                  "thenBlock": {
+                    "kind": "Block",
+                    "statements": [
+                      {
+                        "expression": {
+                          "kind": "AssignExpr",
+                          "op": "=",
+                          "target": {
+                            "kind": "IdentExpr",
+                            "name": "total",
+                          },
+                          "value": {
+                            "kind": "BinaryExpr",
+                            "left": {
+                              "kind": "BinaryExpr",
+                              "left": {
+                                "kind": "IdentExpr",
+                                "name": "total",
+                              },
+                              "op": "+",
+                              "right": {
+                                "kind": "BinaryExpr",
+                                "left": {
+                                  "field": "x",
+                                  "kind": "FieldAccessExpr",
+                                  "object": {
+                                    "kind": "IdentExpr",
+                                    "name": "p",
+                                  },
+                                },
+                                "op": "*",
+                                "right": {
+                                  "kind": "NumericLitExpr",
+                                  "raw": "2",
+                                  "value": 2,
+                                },
+                              },
+                            },
+                            "op": "-",
+                            "right": {
+                              "args": [
+                                {
+                                  "kind": "NumericLitExpr",
+                                  "raw": "$D020",
+                                  "value": 53280,
+                                },
+                              ],
+                              "fieldArg": null,
+                              "kind": "IntrinsicCallExpr",
+                              "name": "peek",
+                              "typeArg": null,
+                            },
+                          },
+                        },
+                        "kind": "ExpressionStmt",
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+            "bound": {
+              "kind": "IdentExpr",
+              "name": "n",
+            },
+            "direction": "to",
+            "init": {
+              "kind": "NumericLitExpr",
+              "raw": "0",
+              "value": 0,
+            },
+            "kind": "ForStmt",
+            "step": {
+              "kind": "NumericLitExpr",
+              "raw": "2",
+              "value": 2,
+            },
+            "varName": "i",
+            "varType": {
+              "kind": "PrimitiveType",
+              "name": "byte",
+            },
+          },
+          {
+            "body": {
+              "kind": "Block",
+              "statements": [
+                {
+                  "expression": {
+                    "kind": "AssignExpr",
+                    "op": "=",
+                    "target": {
+                      "kind": "IdentExpr",
+                      "name": "total",
+                    },
+                    "value": {
+                      "kind": "BinaryExpr",
+                      "left": {
+                        "kind": "IdentExpr",
+                        "name": "total",
+                      },
+                      "op": "-",
+                      "right": {
+                        "kind": "NumericLitExpr",
+                        "raw": "1",
+                        "value": 1,
+                      },
+                    },
+                  },
+                  "kind": "ExpressionStmt",
+                },
+              ],
+            },
+            "condition": {
+              "kind": "BinaryExpr",
+              "left": {
+                "kind": "IdentExpr",
+                "name": "total",
+              },
+              "op": ">",
+              "right": {
+                "kind": "NumericLitExpr",
+                "raw": "0",
+                "value": 0,
+              },
+            },
+            "kind": "WhileStmt",
+          },
+          {
+            "cases": [
+              {
+                "body": [
+                  {
+                    "expression": {
+                      "kind": "AssignExpr",
+                      "op": "=",
+                      "target": {
+                        "kind": "IdentExpr",
+                        "name": "total",
+                      },
+                      "value": {
+                        "args": [],
+                        "fieldArg": null,
+                        "kind": "IntrinsicCallExpr",
+                        "name": "sizeof",
+                        "typeArg": {
+                          "kind": "NamedType",
+                          "name": "Point",
+                        },
+                      },
+                    },
+                    "kind": "ExpressionStmt",
+                  },
+                  {
+                    "kind": "BreakStmt",
+                  },
+                ],
+                "kind": "CaseClause",
+                "values": [
+                  {
+                    "kind": "NumericLitExpr",
+                    "raw": "1",
+                    "value": 1,
+                  },
+                  {
+                    "kind": "NumericLitExpr",
+                    "raw": "2",
+                    "value": 2,
+                  },
+                ],
+              },
+            ],
+            "defaultClause": {
+              "body": [
+                {
+                  "expression": {
+                    "kind": "AssignExpr",
+                    "op": "=",
+                    "target": {
+                      "kind": "IdentExpr",
+                      "name": "total",
+                    },
+                    "value": {
+                      "kind": "NumericLitExpr",
+                      "raw": "0",
+                      "value": 0,
+                    },
+                  },
+                  "kind": "ExpressionStmt",
+                },
+              ],
+              "kind": "DefaultClause",
+            },
+            "discriminant": {
+              "kind": "IdentExpr",
+              "name": "n",
+            },
+            "kind": "SwitchStmt",
+          },
+          {
+            "kind": "ReturnStmt",
+            "value": {
+              "kind": "IdentExpr",
+              "name": "total",
+            },
+          },
+        ],
+      },
+      "exported": true,
+      "kind": "FunctionDecl",
+      "name": "step",
+      "params": [
+        {
+          "kind": "Parameter",
+          "name": "p",
+          "paramType": {
+            "kind": "NamedType",
+            "name": "Point",
+          },
+        },
+        {
+          "kind": "Parameter",
+          "name": "n",
+          "paramType": {
+            "kind": "PrimitiveType",
+            "name": "byte",
+          },
+        },
+      ],
+      "returnType": {
+        "kind": "PrimitiveType",
+        "name": "byte",
+      },
+    },
+  ],
+  "kind": "Program",
+  "moduleDecl": {
+    "kind": "ModuleDecl",
+    "name": "Game.Engine",
+  },
+}
+`;
+
+exports[`golden AST snapshots (ST-P30/P31, AC-07) > ST-P31: a representative invalid program → AST (with sentinels) + ordered diagnostics 1`] = `
+{
+  "items": [
+    {
+      "kind": "ErrorStmt",
+    },
+    {
+      "exported": false,
+      "fields": [],
+      "kind": "StructDecl",
+      "name": "E",
+    },
+    {
+      "exported": false,
+      "kind": "EnumDecl",
+      "members": [],
+      "name": "Z",
+    },
+    {
+      "declaredType": {
+        "kind": "PrimitiveType",
+        "name": "byte",
+      },
+      "exported": false,
+      "initialiser": {
+        "kind": "ErrorExpr",
+      },
+      "kind": "ConstDecl",
+      "name": "k",
+    },
+    {
+      "body": {
+        "kind": "Block",
+        "statements": [
+          {
+            "declaredType": {
+              "kind": "ErrorType",
+            },
+            "exported": false,
+            "initialiser": null,
+            "kind": "LetDecl",
+            "name": "x",
+          },
+          {
+            "expression": {
+              "kind": "AssignExpr",
+              "op": "=",
+              "target": {
+                "kind": "NumericLitExpr",
+                "raw": "123",
+                "value": 123,
+              },
+              "value": {
+                "kind": "NumericLitExpr",
+                "raw": "0",
+                "value": 0,
+              },
+            },
+            "kind": "ExpressionStmt",
+          },
+          {
+            "declaredType": {
+              "kind": "PrimitiveType",
+              "name": "byte",
+            },
+            "exported": false,
+            "initialiser": {
+              "kind": "BinaryExpr",
+              "left": {
+                "kind": "ErrorExpr",
+              },
+              "op": "+",
+              "right": {
+                "kind": "ErrorExpr",
+              },
+            },
+            "kind": "LetDecl",
+            "name": "y",
+          },
+        ],
+      },
+      "exported": false,
+      "kind": "FunctionDecl",
+      "name": "good",
+      "params": [],
+      "returnType": {
+        "kind": "PrimitiveType",
+        "name": "void",
+      },
+    },
+  ],
+  "kind": "Program",
+  "moduleDecl": {
+    "kind": "ModuleDecl",
+    "name": "Broken",
+  },
+}
+`;
+
+exports[`golden AST snapshots (ST-P30/P31, AC-07) > ST-P31: a representative invalid program → AST (with sentinels) + ordered diagnostics 2`] = `
+[
+  "E10310",
+  "E10316",
+  "E10315",
+  "E10314",
+  "E10303",
+  "E10305",
+  "E10301",
+]
+`;

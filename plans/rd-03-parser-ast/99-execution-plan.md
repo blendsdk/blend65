@@ -3,7 +3,9 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Commit mode**: `--no-commit` — implement, verify, update this plan; the user performs all git operations (AR-7).
-> **Progress**: 4/6 phases complete (67%)
+> **Progress**: 6/6 phases complete (100%)
+
+
 
 > **Last Updated**: 2026-06-02
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-02/RD-11a)
@@ -216,20 +218,38 @@ walk all ACs; mark plan complete.
 > runtime ambiguity surfaced during Phase 4.
 
 ### Phase 5 — Expressions (Pratt) + intrinsics + struct literals
-- [ ] 5.1 Spec/impl tests first (ST-P10–P13, P29, P33)
-- [ ] 5.2 Verify red
-- [ ] 5.3 Implement `pratt.ts` (BP tables, prefix/infix/postfix, intrinsics)
-- [ ] 5.4 Struct-literal context flag, embed, primaries
-- [ ] 5.5 Verify green
-- [ ] 5.6 Run verify (phase gate)
+- [x] 5.1 Spec/impl tests first (ST-P10–P13 in `pratt.impl.test.ts`; ST-P29 intrinsics, embed FR-44, ST-P33 struct-lit in `parser.impl.test.ts`) ✅ (2026-06-02)
+- [x] 5.2 Verify red (25 expression tests fail against the primary-only stub) ✅ (2026-06-02)
+- [x] 5.3 Implement `pratt.ts` (14-level BP tables; assignment/ternary right-assoc; binary; prefix unary + `<T>` cast; postfix `.`/`[]`/`()`; intrinsics via `RESERVED_BUILTINS`) ✅ (2026-06-02)
+- [x] 5.4 Struct-literal context flag (FR-45), `embed(...)` (FR-44), primaries + parenthesised `(expr)`; `parse-expr.ts` re-exports the Pratt entry points; let/zeropage initialisers pass `allowStructLiteral` ✅ (2026-06-02)
+- [x] 5.5 Verify green (frontend parser 78 tests; pratt.impl 17 + parser.impl 44) ✅ (2026-06-02)
+- [x] 5.6 Run verify (phase gate): build+typecheck+lint 30/30; frontend 122 tests (7 files); R15 green; spec clean ✅ (2026-06-02)
+
+> **Note:** Phase 5 replaced the Phase-3 primary-only `parse-expr.ts` with the full
+> Pratt parser in `pratt.ts`; `parse-expr.ts` now re-exports `parseExpression` +
+> `parsePrimaryExpr`, so the declaration/type/statement call sites are unchanged and
+> transparently gain the operator grammar (FR-11 additive). `parsePrimaryExpr` =
+> `parseExpression(state, 0, false)` (struct literals off) — used by conditions, loop
+> bounds, array sizes, enum/const values; let/zeropage `= …` initialisers call
+> `parseExpression(state, 0, true)` (FR-45). No new runtime ambiguity surfaced.
+
 
 ### Phase 6 — Recovery, golden, fuzz, acceptance & closeout
-- [ ] 6.1 Spec tests (ST-P23–P27, P30–P35)
-- [ ] 6.2 Implement remaining recovery; generate + review golden `.snap`
-- [ ] 6.3 Verify green
-- [ ] 6.4 Tick AC-01..AC-19 + FR-1..FR-49; Index → "Implemented"
-- [ ] 6.5 Confirm spec untouched + R15 green
-- [ ] 6.6 Final verify; STOP for user commit
+- [x] 6.1 Spec tests (ST-P23–P27 sentinels/recovery/cascade, ST-P30–P35 golden/span/determinism/fuzz/perf) + AC-09 contextual-keyword & AC-13 node-kind exhaustiveness ✅ (2026-06-02)
+- [x] 6.2 Recovery wiring: top-level `recoverTopLevel` now returns an `ErrorStmt` sentinel; added `ensureProgress` forward-progress guards to struct/enum/zeropage field loops (the fuzz tier caught the missing guards → infinite loop). Generated + reviewed golden `.snap` (valid AST + invalid AST + ordered diagnostic codes E10310/E10316/E10315/E10314/E10303/E10305/E10301) against spec ✅ (2026-06-02)
+- [x] 6.3 Verify green (frontend parser 93 tests; full frontend 137) ✅ (2026-06-02)
+- [x] 6.4 Ticked AC-01..AC-19 + FR-1..FR-49 in `01-requirements.md`; Index → "Implemented" ✅ (2026-06-02)
+- [x] 6.5 Confirmed `git status --porcelain spec/` empty + R15 boundary green (ST-R15a/b/c) ✅ (2026-06-02)
+- [x] 6.6 Final verify: build+typecheck+lint 30/30; `yarn test` frontend 137 + root R15 3/3; spec clean. STOP — hand off to user for commit (`--no-commit`) ✅ (2026-06-02)
+
+> **Note:** Phase 6 surfaced no new runtime ambiguity, but the no-throw fuzz tier
+> (ST-P34/AC-14) exposed a latent non-termination bug: the Phase-3 struct/enum/zeropage
+> field loops lacked the forward-progress guard `parseBlock` already had, so a stuck
+> error state spun forever (OOM). Fixed additively (FR-11) with a shared `ensureProgress`
+> helper — no parser shape changed. Lexer-dropped characters (`@`/`#` → E10210, no token)
+> meant the top-level garbage tests use stray operator tokens (`+`, `*`) instead, which
+> reach the parser as real `Plus`/`Star` tokens.
+
 
 ---
 
