@@ -3,8 +3,11 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Commit mode**: `--no-commit` — implement, verify, update this plan; the user performs all git operations (D12).
-> **Progress**: 0/3 phases complete (0%)
-> **Last Updated**: 2026-06-03
+> **Progress**: 3/3 phases complete (100%) — Phase 1 ✅ · Phase 2 ✅ · Phase 3 ✅ — awaiting user commit (`--no-commit`)
+> **Last Updated**: 2026-06-04
+
+
+
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-02/RD-03/RD-11a)
 
 ## Overview
@@ -26,7 +29,12 @@ yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typeche
 
 ## Pre-flight (confirmed before execution)
 
-- **D1–D12** ([00-ambiguity-register](00-ambiguity-register.md)) confirmed with the user.
+- **D1–D15** ([00-ambiguity-register](00-ambiguity-register.md)) confirmed with the user.
+  (D13/D14 added by the preflight audit: `bitWidth`/`byteSize` contract, and the lint
+  mechanism for stub seams. **D15** added during Phase 1 execution — supersedes D14 — when the
+  verify gate revealed the seams fail `tsc --noUnusedParameters` before ESLint: resolved with
+  `_`-prefixed params + root-ESLint `argsIgnorePattern: "^_"`.)
+
 - No open micro-decisions. If a runtime ambiguity surfaces, STOP and log it as the next `D-N`
   (runtime), resolve with the user, back-propagate, resume.
 
@@ -51,10 +59,12 @@ dependency-free.
 
 | #   | Task | File |
 | --- | ---- | ---- |
+| 1.0 | **Preflight verification (F4):** confirm the core AST barrel exports `AstNode`, `ExprNode`, `StructDeclNode`, `EnumDeclNode` before authoring `semantics/` imports (e.g. `grep -nE "AstNode\|ExprNode\|StructDeclNode\|EnumDeclNode" packages/core/src/ast/index.ts`). Confirmed at preflight 2026-06-03; re-confirm here. | `packages/core/src/ast/index.ts` (read-only) |
 | 1.1 | Write spec tests **first**: ST-S1–S20 (type union, utils, profile stub, scope/symbol/callgraph/model) | `packages/core/src/semantics/{type,type-utils,platform-profile,semantic-model}.spec.test.ts` |
 | 1.2 | Verify 1.1 tests FAIL (red phase) | — |
 | 1.3 | Create `semantics/type.ts` (`Type` union + `ERROR_TYPE`/`primitive`) and `semantics/platform-profile.ts` (stub + `DEFAULT_PROFILE`) | `packages/core/src/semantics/type.ts`, `platform-profile.ts` |
-| 1.4 | Create `semantics/type-utils.ts`: implement `isInteger/isSigned/isUnsigned/bitWidth/byteSize/isError/typeName`; stub `isAssignableTo`/`commonType` with `// DEFERRED(RD-04-checker)` markers (D10) | `packages/core/src/semantics/type-utils.ts` |
+| 1.4 | Create `semantics/type-utils.ts`: implement `isInteger/isSigned/isUnsigned/bitWidth/byteSize/isError/typeName` (per D13 contract); stub `isAssignableTo`/`commonType` with `// DEFERRED(RD-04-checker)` markers + `_`-prefixed unused params (D10/D15) | `packages/core/src/semantics/type-utils.ts` |
+
 | 1.5 | Create `semantics/scope.ts`, `symbol.ts`, `const-value.ts`, `call-graph.ts` (`emptyCallGraph`), `semantic-model.ts` (`createEmptyModel`) | `packages/core/src/semantics/*` |
 | 1.6 | Create `semantics/index.ts`; wire `export * from "./semantics/index.js";` into core barrel | `packages/core/src/semantics/index.ts`, `packages/core/src/index.ts` |
 | 1.7 | Verify 1.1 tests PASS (green phase); write impl tests (type-utils edge cases, scope wiring) | `packages/core/src/semantics/{type-utils,scope}.impl.test.ts` |
@@ -108,32 +118,38 @@ acceptance criteria; mark plan complete.
 > 4. **This checklist MUST exist** — reconstruct it from the phase tables if missing.
 > 5. **Never batch updates** — update immediately after each task.
 
-### Phase 1 — Core semantic vocabulary
-- [ ] 1.1 Spec tests first (ST-S1–S20)
-- [ ] 1.2 Verify red
-- [ ] 1.3 Create `type.ts` + `platform-profile.ts`
-- [ ] 1.4 Create `type-utils.ts` (pure impl + DEFERRED policy stubs)
-- [ ] 1.5 Create `scope.ts`/`symbol.ts`/`const-value.ts`/`call-graph.ts`/`semantic-model.ts`
-- [ ] 1.6 Create `semantics/index.ts` + wire core barrel
-- [ ] 1.7 Verify green + impl tests
-- [ ] 1.8 Run verify (phase gate)
+### Phase 1 — Core semantic vocabulary ✅
+- [x] 1.0 Preflight verification (F4): AST barrel exports `AstNode`/`ExprNode`/`StructDeclNode`/`EnumDeclNode` ✅ (completed: 2026-06-04 08:27)
+- [x] 1.1 Spec tests first (ST-S1–S20) ✅ (completed: 2026-06-04 08:30)
+- [x] 1.2 Verify red ✅ (completed: 2026-06-04 08:31 — 20 new spec tests failed as expected)
+- [x] 1.3 Create `type.ts` + `platform-profile.ts` ✅ (completed: 2026-06-04 08:31)
+- [x] 1.4 Create `type-utils.ts` (pure impl + DEFERRED policy stubs, D13/D15) ✅ (completed: 2026-06-04 08:44)
+- [x] 1.5 Create `scope.ts`/`symbol.ts`/`const-value.ts`/`call-graph.ts`/`semantic-model.ts` ✅ (completed: 2026-06-04 08:34)
+- [x] 1.6 Create `semantics/index.ts` + wire core barrel ✅ (completed: 2026-06-04 08:35)
+- [x] 1.7 Verify green + impl tests ✅ (completed: 2026-06-04 08:37 — 124 core tests pass)
+- [x] 1.8 Run verify (phase gate) ✅ (completed: 2026-06-04 08:45 — full verify green across all 10 packages; D15 surfaced+resolved; `spec/` clean)
 
-### Phase 2 — Frontend passthrough analyze
-- [ ] 2.1 Spec tests first (ST-S21–S26)
-- [ ] 2.2 Verify red
-- [ ] 2.3 Create `passes.ts` (four DEFERRED seams)
-- [ ] 2.4 Create `analyze.ts` (`AnalyzeInput` + passthrough `analyze`)
-- [ ] 2.5 Create `semantics/index.ts` + wire frontend barrel
-- [ ] 2.6 Verify green
-- [ ] 2.7 Run verify (phase gate)
 
-### Phase 3 — Deferral docs + acceptance & closeout
-- [ ] 3.1 Confirm in-code `// DEFERRED(RD-04-checker)` markers at every stub site
-- [ ] 3.2 Confirm ledger covers R1–R121 + AC-01..AC-20
-- [ ] 3.3 Add `SEMANTICS-DEFERRED` banner to requirements doc
-- [ ] 3.4 Tick AC-S/FR-S in `01-requirements.md`; Index → "Implemented"
-- [ ] 3.5 Confirm spec clean + R15 boundary green
-- [ ] 3.6 Final verify; STOP — hand off to user for commit (`--no-commit`)
+### Phase 2 — Frontend passthrough analyze ✅
+- [x] 2.1 Spec tests first (ST-S21–S26) ✅ (completed: 2026-06-04 08:51)
+- [x] 2.2 Verify red ✅ (completed: 2026-06-04 08:51 — 6 new spec tests failed as expected)
+- [x] 2.3 Create `passes.ts` (four DEFERRED seams, `_`-prefixed params per D15) ✅ (completed: 2026-06-04 08:52)
+- [x] 2.4 Create `analyze.ts` (`AnalyzeInput` + passthrough `analyze`) ✅ (completed: 2026-06-04 08:52)
+- [x] 2.5 Create `semantics/index.ts` + wire frontend barrel ✅ (completed: 2026-06-04 08:53)
+- [x] 2.6 Verify green ✅ (completed: 2026-06-04 08:54 — frontend spec+impl tests pass)
+- [x] 2.7 Run verify (phase gate) ✅ (completed: 2026-06-04 08:54 — full verify green; R15 tier ST-R15a/b/c green; `spec/` clean)
+
+
+### Phase 3 — Deferral docs + acceptance & closeout ✅
+- [x] 3.1 Confirm in-code `// DEFERRED(RD-04-checker)` markers at every stub site ✅ (completed: 2026-06-04 08:55 — grep confirmed markers in call-graph/type-utils/semantic-model + 4 pass seams)
+- [x] 3.2 Confirm ledger covers R1–R121 + AC-01..AC-20 ✅ (completed: 2026-06-04 08:56 — reconciled against as-built code)
+- [x] 3.3 Add `SEMANTICS-DEFERRED` banner to requirements doc ✅ (completed: 2026-06-04 08:56)
+- [x] 3.4 Tick AC-S/FR-S in `01-requirements.md`; Index → "Implemented" ✅ (completed: 2026-06-04 08:59)
+- [x] 3.5 Confirm spec clean + R15 boundary green ✅ (completed: 2026-06-04 09:00 — `git status --porcelain spec/` empty; ST-R15a/b/c green)
+- [x] 3.6 Final verify; STOP — hand off to user for commit (`--no-commit`) ✅ (completed: 2026-06-04 09:00 — canonical `install --frozen-lockfile && build && typecheck && lint && test` all green)
+
+> **Final verify result (Phase 3.6):** `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` — **ALL GREEN** (build 10/10, typecheck 17/17, lint 10/10, test 17/17 + root R15 boundary tier ST-R15a/b/c). `git status --porcelain spec/` empty. **Plan complete — awaiting user commit (`--no-commit`, D12).**
+
 
 ---
 

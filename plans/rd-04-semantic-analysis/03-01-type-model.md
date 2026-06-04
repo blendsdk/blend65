@@ -98,11 +98,21 @@ export function isSigned(t: Type): boolean;
 /** byte | word. */
 export function isUnsigned(t: Type): boolean;
 
-/** 8 for byte/sbyte/boolean/enum; 16 for word/sword. (Caller handles struct/array/void/error.) */
-export function bitWidth(t: Type): 8 | 16;
+/**
+ * Bit width of a width-bearing primitive (D13): 8 for byte/sbyte/boolean; 16 for word/sword.
+ * NOTE: typed to accept only `PrimitiveType` — `void` carries no width, and struct/array/error
+ * are not primitives, so they are rejected at COMPILE TIME (callers must narrow first). This
+ * makes the function total over its (narrowed) domain and removes the void/error ambiguity.
+ */
+export function bitWidth(t: PrimitiveType): 8 | 16;
 
-/** 1 for byte/sbyte/boolean/enum; 2 for word/sword; struct.byteSize; array element*size. */
+/**
+ * Total byte size over the whole `Type` union (D13) — never throws:
+ *   byte/sbyte/boolean → 1 · word/sword → 2 · void/error → 0 ·
+ *   struct → struct.byteSize · array → byteSize(element) * size.
+ */
 export function byteSize(t: Type): number;
+
 
 /** ErrorType check (R29). */
 export function isError(t: Type): boolean;
@@ -133,8 +143,16 @@ export function isAssignableTo(source: Type, target: Type): boolean;
 export function commonType(a: Type, b: Type): Type | null;
 ```
 
-> The stubs reference both parameters in a documented no-op (or accept `_`-prefixed names) so
-> `noUnusedParameters` is satisfied without pretending to implement policy.
+> **Lint (D15, supersedes D14):** these two policy stubs leave their parameters unused, which
+> trips **two** gates — `tsc --noUnusedParameters` (TS6133) *and* ESLint's
+> `@typescript-eslint/no-unused-vars`. The canonical fix (D15) is to `_`-prefix the params
+> (`_source`/`_target`/`_a`/`_b`) — which `tsc` honours natively — and to add
+> `argsIgnorePattern: "^_"` to the root `eslint.config.mjs` `no-unused-vars` rule so ESLint
+> agrees. (D14's scoped `eslint-disable` is **not** used: an `eslint-disable` cannot suppress
+> the `tsc` error that fires first.) Same mechanism as the four pass seams. See
+> [AR D15](00-ambiguity-register.md).
+
+
 
 ### New Interface (`semantics/platform-profile.ts`)
 
@@ -191,10 +209,12 @@ commonType(primitive("byte"), primitive("word"));     // null (placeholder — c
 | Error Case | Handling Strategy | AR Ref |
 | ---------- | ----------------- | ------ |
 | All type-checking diagnostics (E10150–E10155, E10080–E10083) | **DEFERRED** — emitted by the future checker, not here | D1 |
-| `bitWidth`/`byteSize` called on `void`/`error`/unsized array | Documented defined behavior (e.g. `byteSize(void)===0`, throws-free); recorded in ledger | D2 |
+| `bitWidth` called on `void`/`error`/`struct`/`array` | **Compile-time rejection** — `bitWidth` accepts only `PrimitiveType`; non-width types never reach it (D13) | D13 |
+| `byteSize` called on `void`/`error` | Total & throws-free: `byteSize(void)===0`, `byteSize(error)===0` (D13) | D13 |
 
 > **Traceability:** Every design choice references the [Ambiguity Register](00-ambiguity-register.md)
-> (D1, D4, D5, D7, D10). Deferred behavior is enumerated in
+> (D1, D4, D5, D7, D10, D13). Deferred behavior is enumerated in
+
 > [08-deferred-semantics-ledger.md](08-deferred-semantics-ledger.md).
 
 ## Testing Requirements

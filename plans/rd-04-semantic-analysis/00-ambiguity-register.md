@@ -2,8 +2,10 @@
 
 > **Document**: 00-ambiguity-register.md
 > **Parent**: [Index](00-index.md)
-> **Status**: ✅ GATE PASSED — all 12 items resolved (D1–D12, all confirmed by user 2026-06-03)
-> **Last Updated**: 2026-06-03
+> **Status**: ✅ GATE PASSED — 12 items resolved at planning (D1–D12) / 2 added during preflight (D13–D14) / 1 added during execution (D15, supersedes D14), all confirmed by user
+> **Last Updated**: 2026-06-04
+
+
 
 > **Purpose**: Plan-level Zero-Ambiguity Gate. Every decision in the RD-04 plan that is
 > *not* already fixed by the frozen `spec/` or by `requirements/RD-04-semantic-analysis.md`
@@ -24,7 +26,14 @@ against a stable `SemanticModel`; but `analyze()` enforces **none** of the R30�
 yet. A first-class **Deferred Semantics Ledger** ([08](08-deferred-semantics-ledger.md))
 records exactly what is stubbed so the real checker can be built later from a precise map.
 
-All twelve items below were reviewed with the user and confirmed before authoring.
+The first twelve items (D1–D12) were reviewed with the user and confirmed before authoring.
+Two further items (D13–D14) were surfaced by the **preflight audit** and confirmed by the user
+on 2026-06-03 before the plan was marked execution-ready. A fifteenth item (D15) was surfaced
+during **execution** when the Phase 1 gate revealed that D14 had addressed only the ESLint gate
+and missed the prior `tsc --noUnusedParameters` gate; D15 supersedes D14 with a mechanism that
+satisfies both, confirmed by the user on 2026-06-04.
+
+
 
 ---
 
@@ -42,8 +51,13 @@ All twelve items below were reviewed with the user and confirmed before authorin
 | D10 | Technical | Type-utility functions (`isInteger`, `commonType`, `isAssignableTo`, …) — implement now or stub? | A: implement the trivially-pure, checker-independent ones (`isInteger`, `isSigned`, `isUnsigned`, `bitWidth`, `byteSize`, `isError`, `typeName`); stub the policy ones (`isAssignableTo`, `commonType`) with a `// DEFERRED` marker · B: stub all | **A** — implement the pure structural utils, defer the type-policy ones | ✅ Resolved |
 | D11 | Scope | RD-04 §7 open questions (recursive-struct depth, embed path resolution, for-loop shadowing, fallthrough-in-default code). | A: defer all four with the checker (they are checker behavior; none needed for passthrough) · B: resolve now | **A** — parked in the ledger for the future checker | ✅ Resolved |
 | D12 | Process | Commit mode for execution. | ask / no-commit / auto-commit | **no-commit** (identical to RD-01/02/03/11a) | ✅ Resolved |
+| D13 (preflight) | Technical | `bitWidth`/`byteSize` contract on `void`/`error`/`struct`/`array` — the `8 \| 16` return type contradicts the doc's "throws-free" claim. | A: throw on non-width types · B: narrow `bitWidth` to `PrimitiveType` + make `byteSize` total with documented sentinels (`void`/`error`→0) · C: defer to runtime | **B** — narrow `bitWidth(t: PrimitiveType)`; `byteSize(t: Type)` total & never throws | ✅ Resolved |
+| D14 (preflight) | Technical | Lint approach for the 4 pass-seam + 2 policy-stub unused params (`eslint.config.mjs` has no `argsIgnorePattern`, so `_`-prefix fails lint). | A: `_`-prefix only (FAILS lint) · B: scoped `eslint-disable @typescript-eslint/no-unused-vars` + rationale · C: drop params, re-add with checker | **B** — scoped `eslint-disable` with rationale (drop-params is documented fallback) | ⛔ Superseded by D15 |
+| D15 (runtime) | Technical | D14 missed that `tsconfig.base.json` sets `noUnusedParameters: true`, so the stub seams fail **`tsc` (TS6133)** before ESLint — and an `eslint-disable` cannot suppress a tsc error. The seams must pass BOTH gates. | A: `_`-prefix params + add `argsIgnorePattern: "^_"` to root ESLint (canonical, reusable) · B: `_`-prefix + keep scoped `eslint-disable` (two mechanisms) · C: `void param;` statements in each body | **A** — `_`-prefix (satisfies tsc) + root-ESLint `argsIgnorePattern: "^_"` (satisfies ESLint); removes the D14 scoped disable | ✅ Resolved |
 
 ---
+
+
 
 ## Resolution Notes
 
@@ -160,7 +174,69 @@ when the real checker is planned. (Item 4 will likely need a new diagnostic code
 The agent implements, verifies, and updates the execution plan, but performs **no** git
 operations. The user handles all commits. Identical to RD-01/02/03/11a.
 
+### D13 — `bitWidth`/`byteSize` contract (preflight)
+
+Surfaced during the preflight audit: `03-01` typed `bitWidth(t: Type): 8 | 16` while its
+error-handling table claimed throws-free defined behavior for `void`/`error`/`struct`/`array`
+— which `8 | 16` cannot express. Resolved by **narrowing**:
+- `bitWidth(t: PrimitiveType): 8 | 16` — defined only for primitives (8 for
+  `byte`/`sbyte`/`boolean`; 16 for `word`/`sword`; `void` is not a width-bearing primitive, so
+  callers must not pass it — enforced by the parameter type, a compile-time guard, L7).
+- `byteSize(t: Type): number` — **total** over the whole union with documented values:
+  `byte`/`sbyte`/`boolean` → `1`; `word`/`sword` → `2`; `void`/`error` → `0`; `struct` →
+  `struct.byteSize`; `array` → `byteSize(element) * size`. Never throws.
+
+This keeps both utilities pure structural facts (D10) with fully-defined, total behavior
+(H5-style determinism) and no runtime guesswork.
+
+### D14 — Lint approach for the stub seams (preflight) — ⛔ SUPERSEDED BY D15
+
+> **Superseded.** D14 analysed only the ESLint gate and concluded a scoped
+> `eslint-disable` was required. Execution (Phase 1 gate) revealed D14 was based on an
+> incomplete picture — see D15. The scoped-`eslint-disable` mechanism is **not** used in the
+> as-built code; the `_`-prefix + `argsIgnorePattern` mechanism of D15 is. The original
+> analysis is retained below for the decision record.
+
+The as-built root `eslint.config.mjs` is `tseslint.configs.recommended` + prettier with **no**
+`argsIgnorePattern`. Therefore a `_`-prefix on an unused parameter does **not** silence
+`@typescript-eslint/no-unused-vars` — it still errors, failing the `yarn lint` phase gate. The
+four pass-seam functions (`collectDeclarations`/`resolveTypes`/`checkBodies`/`postCheck`) and
+the two type-policy stubs (`isAssignableTo`/`commonType`) intentionally keep their parameters
+to document the future checker's signature. Resolution: wrap each stub body / file region in a
+**scoped `eslint-disable @typescript-eslint/no-unused-vars`** carrying a rationale comment that
+references this register and the code.md rule-4 planned-seam exception. The `_`-prefix-only
+option is rejected (it fails lint); dropping the params is the documented fallback only if a
+future lint-config change makes the scoped disable itself unused.
+
+### D15 — Unused-parameter seams must pass BOTH tsc and ESLint (runtime)
+
+Surfaced during execution at the **Phase 1 verify gate**. D14 reasoned only about ESLint and
+prescribed a scoped `eslint-disable @typescript-eslint/no-unused-vars`. But the verify pipeline
+runs `tsc` (build + typecheck) **before** ESLint, and `tsconfig.base.json` sets
+`noUnusedParameters: true`. So the stub seams failed first with **`tsc` error TS6133**
+(`'source' is declared but its value is never read`, etc.) — and an `eslint-disable` directive
+**cannot** suppress a TypeScript compiler error. D14's mechanism was therefore unworkable as
+written.
+
+Two independent gates must pass: **tsc** (`noUnusedParameters`) and **ESLint**
+(`@typescript-eslint/no-unused-vars`). `tsc` honours the leading-`_` convention natively;
+ESLint does not unless told. **Resolution (Option A):**
+- Rename every intentionally-unused deferred-seam parameter to a `_`-prefixed name
+  (`_source`/`_target`/`_a`/`_b` in `type-utils.ts`; `_input`/`_model` in the four frontend
+  pass seams). This satisfies `tsc --noUnusedParameters`.
+- Add a single root-level ESLint rule override:
+  `"@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern:
+  "^_", caughtErrorsIgnorePattern: "^_" }]`. This satisfies ESLint and makes the `_`-prefix the
+  **single canonical mechanism** for an intentionally-unused binding across the whole repo
+  (aligning ESLint with `tsc` and with code.md rule 4's TypeScript convention).
+
+The D14 scoped `eslint-disable` regions are removed. This mechanism is reusable for every future
+deferred seam (e.g. RD-05+), so it is preferred over a localized per-file disable. Verified: the
+full `build && typecheck && lint && test` gate passes across all 10 packages with `spec/` clean.
+
+
 ---
+
 
 ## Surface-during-authoring rule
 

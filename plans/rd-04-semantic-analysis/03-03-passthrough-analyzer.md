@@ -79,8 +79,9 @@ export function analyze(input: AnalyzeInput): SemanticModel {
 import type { SemanticModel } from "@blend65/core";
 import type { AnalyzeInput } from "./analyze.js";
 
-/* eslint-disable @typescript-eslint/no-unused-vars -- DEFERRED seams: params document the
-   future checker's inputs; intentionally unused in the passthrough (code.md rule-4 exception). */
+// The four pass seams take `AnalyzeInput`/`SemanticModel` to document the future checker's
+// signature, but the passthrough uses neither. Params are `_`-prefixed (D15) so they satisfy
+// both `tsc --noUnusedParameters` and ESLint (root `argsIgnorePattern: "^_"`).
 
 /**
  * Pass 1 — Declaration Collection (RD-04 R2, §4.1).
@@ -119,15 +120,20 @@ export function postCheck(_input: AnalyzeInput, _model: SemanticModel): void {
 }
 ```
 
-> **Lint approach for the unused params:** the four pass functions take `AnalyzeInput`/
-> `SemanticModel` to document the checker's eventual signature, but the passthrough uses
-> neither. We satisfy `noUnusedParameters`/ESLint via `_`-prefixed names plus a scoped
-> `eslint-disable` with a rationale comment (code.md rule-4 exception for planned seams). The
-> execution phase will pick whichever of (`_`-prefix) / (scoped disable) the as-built ESLint
-> config accepts cleanly — this is a lint-mechanics detail, not a behavioral choice. If the
-> config rejects both, the fallback is to drop the params from the stubs and re-add them with
-> the checker (the seams stay named either way). No new ambiguity: the *contract* (four named
-> no-op seams) is fixed.
+
+> **Lint approach for the unused params (D15, supersedes D14):** the four pass functions take
+> `AnalyzeInput`/`SemanticModel` to document the checker's eventual signature, but the
+> passthrough uses neither. Two gates flag this: `tsc --noUnusedParameters` (TS6133, from
+> `tsconfig.base.json`) runs **first** in the verify pipeline, and ESLint's
+> `@typescript-eslint/no-unused-vars` runs after. D14 prescribed a scoped `eslint-disable`, but
+> that cannot suppress the `tsc` error that fires first — so D15 supersedes it. The canonical
+> mechanism: `_`-prefix the params (`_input`/`_model`) — which `tsc` honours natively — and add
+> `argsIgnorePattern: "^_"` to the root `eslint.config.mjs` `no-unused-vars` rule so ESLint
+> agrees. This makes the `_`-prefix the single repo-wide convention for an intentionally-unused
+> binding (reusable by every future deferred seam). The future checker renames the params and
+> adds the real logic. See [AR D15](00-ambiguity-register.md).
+
+
 
 ### `semantics/index.ts` (barrel)
 
@@ -156,8 +162,9 @@ export * from "./semantics/index.js";
 ### Example 1: End-to-end passthrough (AC-01)
 
 ```typescript
-const bag = new DiagnosticBag();
+const bag = createDiagnosticBag();
 const { ast } = parse({ tokens, source, sourceId, bag });
+
 const model = analyze({ programs: [ast], bag, profile: DEFAULT_PROFILE });
 
 model.hasErrors;       // false (passthrough — D3)
@@ -182,7 +189,9 @@ model.hasErrors;       // false (passthrough does not inspect sentinels — D3)
 | Malformed / error-sentinel AST input | Accepted; `analyze()` returns the empty model without throwing | D2/AC-01 |
 | Empty `programs` array | Returns the empty model (valid) | D2 |
 
-> **Traceability:** [Ambiguity Register](00-ambiguity-register.md) D1, D2, D3, D6, D7, D14(FR-S14).
+> **Traceability:** [Ambiguity Register](00-ambiguity-register.md) D1, D2, D3, D6, D7, D15 (FR-S14; D15 supersedes D14).
+
+
 > Deferred map: [08-deferred-semantics-ledger.md](08-deferred-semantics-ledger.md).
 
 ## Testing Requirements

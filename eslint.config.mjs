@@ -15,6 +15,23 @@ export default tseslint.config(
   { ignores: ["**/dist/**", "**/*.tsbuildinfo", "**/coverage/**"] },
   ...tseslint.configs.recommended,
 
+  // Intentionally-unused-binding convention (RD-04 D15). The TypeScript convention
+  // for a deliberately unused parameter is the leading-underscore name (code.md
+  // rule 4). `tsc --noUnusedParameters` already honours that convention, but
+  // typescript-eslint's `no-unused-vars` does NOT by default — so deferred-seam
+  // signatures (e.g. RD-04's passthrough pass functions and policy stubs, whose
+  // params document a future checker's API) would fail `yarn lint`. Aligning
+  // ESLint with tsc via `argsIgnorePattern: "^_"` makes the `_`-prefix the single,
+  // canonical mechanism for an intentionally-unused parameter across both gates.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_", caughtErrorsIgnorePattern: "^_" },
+      ],
+    },
+  },
+
   // R15 AUTHORITATIVE guard (AR-P7): hard ban of @blend65/codegen inside the
   // frontend and language-server packages. `eslint .` exits non-zero on violation,
   // wired into CI as a hard gate. (tsc references alone do NOT block this — AR-P7.)

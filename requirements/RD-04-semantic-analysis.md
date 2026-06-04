@@ -8,11 +8,46 @@
 > **Owning package(s)**: `@blend65/core` (type representation, symbol table, scope model),
 >   `@blend65/frontend` (semantic analysis passes)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-06-04
 
 ---
 
+> ## ⚠️ SEMANTICS-DEFERRED — Implemented as a Passthrough Skeleton
+>
+> **This requirements document specifies the FULL semantic analyzer, but the first
+> implementation (plan `plans/rd-04-semantic-analysis/`, decision D1) deliberately ships a
+> PASSTHROUGH SKELETON only.** Per the project's research strategy ("working compiler first;
+> correct before fast; build incrementally"), the real four-pass type/scope/control-flow
+> checker is **deferred to a future RD** (provisionally `RD-04b-semantic-checker`).
+>
+> **In scope NOW (implemented):**
+> - **R1** (four-pass architecture — as named seam functions), **R7–R8** (scope/symbol shapes),
+>   **R24–R29** (the `Type` union + `ErrorType`), **R94** (`ConstValue` shape),
+>   **R113** (never throws — trivially, the analyzer is a no-op),
+>   **R118–R121** (the `analyze()` API + `PlatformProfile` stub + empty `SemanticModel`).
+> - **AC-01** (accepts an AST, returns a model, never throws).
+> - The pure structural type utilities (`isInteger`/`isSigned`/`isUnsigned`/`bitWidth`/
+>   `byteSize`/`isError`/`typeName`).
+>
+> **DEFERRED (no behavior yet):**
+> - **R2–R6, R9–R23, R30–R117** — all declaration collection, name/module resolution, type
+>   checking, cast rules, expression typing, declaration/statement validation, call-graph &
+>   recursion detection, const evaluation, intrinsic validation, array/embed validation,
+>   warnings, and poison-type propagation.
+> - **AC-02 … AC-20** — every behavioral acceptance criterion beyond AC-01.
+> - The type-policy utilities `isAssignableTo` (returns `true`) and `commonType` (returns
+>   `null`) ship as documented placeholders.
+>
+> `analyze()` therefore returns a structurally-valid **empty** `SemanticModel`
+> (`hasErrors === false`, `mainFunction === null`, a lone global scope, empty maps) and emits
+> **no** diagnostics. No requirement text below is deleted — only this banner annotates status —
+> so the future checker inherits the full specification intact. The authoritative,
+> per-requirement deferral map (with the diagnostic code each deferred check must emit and which
+> of the four passes owns it) is
+> **[plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md](../plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md)**.
+
 ## 1. Purpose
+
 
 This document specifies the **semantic analysis** phase of the Blend65 compiler — the
 phase that transforms a raw AST (produced by the parser, RD-03) into a fully validated,

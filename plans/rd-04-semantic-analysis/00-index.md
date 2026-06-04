@@ -7,7 +7,8 @@
 > working compiler first). Data types live in `@blend65/core`; `analyze()` lives in
 > `@blend65/frontend`. Implements RD-04 §3.5/§3.17 + §4 *shapes only*; defers §3.6–§3.16
 > *behavior*.
-> **Status**: Planning Complete
+> **Status**: Implemented (2026-06-04) — passthrough skeleton; all FR-S/AC-S met; full verify green; checker behavior deferred per the Ledger
+
 
 > **Created**: 2026-06-03
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01/RD-02/RD-03/RD-11a)

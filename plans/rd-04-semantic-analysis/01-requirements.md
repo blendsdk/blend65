@@ -27,60 +27,62 @@ future RD per the project strategy (research: working compiler first). See
 
 ### Must Have (in scope — interfaces + passthrough)
 
-- [ ] **FR-S1** — Define the `Type` discriminated union in `@blend65/core` with variants
+- [x] **FR-S1** — Define the `Type` discriminated union in `@blend65/core` with variants
   `PrimitiveType`, `ArrayType`, `StructType`, `EnumType`, `ErrorType` (RD-04 R24–R29, §4.4).
-- [ ] **FR-S2** — `PrimitiveType.name` uses the six-name union `"byte" | "sbyte" | "word" |
+- [x] **FR-S2** — `PrimitiveType.name` uses the six-name union `"byte" | "sbyte" | "word" |
   "sword" | "boolean" | "void"` matching the frozen AST (D5; RD-04 R25 superseded spelling).
-- [ ] **FR-S3** — Implement the **pure structural** type utilities: `isInteger`, `isSigned`,
+- [x] **FR-S3** — Implement the **pure structural** type utilities: `isInteger`, `isSigned`,
   `isUnsigned`, `bitWidth`, `byteSize`, `isError`, `typeName` (RD-04 §4.4; D10).
-- [ ] **FR-S4** — Provide **stubbed** `isAssignableTo` and `commonType` with documented
+- [x] **FR-S4** — Provide **stubbed** `isAssignableTo` and `commonType` with documented
   placeholder behavior + `// DEFERRED(RD-04-checker)` markers (RD-04 R31/R36, §4.6; D10).
-- [ ] **FR-S5** — Define `ScopeKind` and the `Scope` interface (tree: kind, parent, children,
+- [x] **FR-S5** — Define `ScopeKind` and the `Scope` interface (tree: kind, parent, children,
   symbols map, owning node) in `@blend65/core` (RD-04 R7–R8, §4.2).
-- [ ] **FR-S6** — Define `SymbolKind` and the `Symbol` interface (name, kind, type, decl, scope,
+- [x] **FR-S6** — Define `SymbolKind` and the `Symbol` interface (name, kind, type, decl, scope,
   exported, mutable, optional `constValue`, `byRef`) in `@blend65/core` (RD-04 §4.3).
-- [ ] **FR-S7** — Define the `CallGraph` interface (functions set, edges map, `findCycles()`)
+- [x] **FR-S7** — Define the `CallGraph` interface (functions set, edges map, `findCycles()`)
   in `@blend65/core` (RD-04 R84–R86, §4.8). `findCycles()` has a passthrough body returning
   `[]` (no edges in the empty model), `// DEFERRED` marked.
-- [ ] **FR-S8** — Define `ConstValue` (`{ type, value }`) in `@blend65/core` (RD-04 R94, §4.7).
-- [ ] **FR-S9** — Define a minimal `PlatformProfile` **stub** interface in `@blend65/core`
+- [x] **FR-S8** — Define `ConstValue` (`{ type, value }`) in `@blend65/core` (RD-04 R94, §4.7).
+- [x] **FR-S9** — Define a minimal `PlatformProfile` **stub** interface in `@blend65/core`
   (placeholder fields for char encoding / intrinsic availability / resource limits; RD-10
   supersedes) so `analyze()` carries its R118 signature (RD-04 R120; D4).
-- [ ] **FR-S10** — Define the `SemanticModel` interface in `@blend65/core` exactly per RD-04
+- [x] **FR-S10** — Define the `SemanticModel` interface in `@blend65/core` exactly per RD-04
   §4.10 (globalScope, typeMap, symbolMap, callGraph, initOrder, constValues, structTypes,
   enumTypes, mainFunction, hasErrors + query helpers `typeOf`/`symbolOf`/`scopeOf`) (RD-04
   R121, §4.10).
-- [ ] **FR-S11** — Define `AnalyzeInput = { programs, bag, profile }` and the
+- [x] **FR-S11** — Define `AnalyzeInput = { programs, bag, profile }` and the
   `analyze(input: AnalyzeInput): SemanticModel` signature in `@blend65/frontend` (RD-04
   R118–R119; D6).
-- [ ] **FR-S12** — Implement `analyze()` as a **passthrough**: construct one root `global`
+- [x] **FR-S12** — Implement `analyze()` as a **passthrough**: construct one root `global`
   `Scope`, return a `SemanticModel` with `hasErrors === false`, `mainFunction === null`, and
   all maps/collections empty; perform **no** AST traversal; add **nothing** to the bag (D2/D3).
-- [ ] **FR-S13** — `SemanticModel` query helpers return defined safe values in the passthrough:
+- [x] **FR-S13** — `SemanticModel` query helpers return defined safe values in the passthrough:
   `typeOf` → `ErrorType`, `symbolOf` → `null`, `scopeOf` → the global scope (D2).
-- [ ] **FR-S14** — Provide four **stubbed** pass functions (`collectDeclarations`,
+- [x] **FR-S14** — Provide four **stubbed** pass functions (`collectDeclarations`,
   `resolveTypes`, `checkBodies`, `postCheck`) as no-ops with `// DEFERRED(RD-04-checker)`
   markers, so the four-pass architecture (RD-04 R1–R6, §4.1) has named, traceable seams for
   the future checker.
-- [ ] **FR-S15** — `analyze()` **never throws** for any input, including programs containing
+- [x] **FR-S15** — `analyze()` **never throws** for any input, including programs containing
   parser error-sentinels (`ErrorExpr`/`ErrorStmt`/`ErrorType`) (RD-04 AC-01; AR-15).
-- [ ] **FR-S16** — Wire `semantics/` barrels into `@blend65/core` and `@blend65/frontend`
+- [x] **FR-S16** — Wire `semantics/` barrels into `@blend65/core` and `@blend65/frontend`
   `index.ts` (additive).
+
 
 ### Must Have (documentation of deferral — D8)
 
-- [ ] **FR-S17** — Author [08-deferred-semantics-ledger.md](08-deferred-semantics-ledger.md):
+- [x] **FR-S17** — Author [08-deferred-semantics-ledger.md](08-deferred-semantics-ledger.md):
   every RD-04 requirement R1–R121 and AC-01..AC-20 mapped to status + diagnostic code(s) +
   parked §7 open questions.
-- [ ] **FR-S18** — Every stub site carries an in-code `// DEFERRED(RD-04-checker): Rxx — <what>`
+- [x] **FR-S18** — Every stub site carries an in-code `// DEFERRED(RD-04-checker): Rxx — <what>`
   marker referencing the ledger.
-- [ ] **FR-S19** — Annotate `requirements/RD-04-semantic-analysis.md` with a `SEMANTICS-DEFERRED`
+- [x] **FR-S19** — Annotate `requirements/RD-04-semantic-analysis.md` with a `SEMANTICS-DEFERRED`
   banner marking R30–R117 + AC-02..AC-20 as deferred (D9). No requirement text deleted.
 
 ### Should Have
 
-- [ ] **FR-S20** — `SemanticModel` and `analyze()` JSDoc explicitly state the passthrough
+- [x] **FR-S20** — `SemanticModel` and `analyze()` JSDoc explicitly state the passthrough
   contract and point at the ledger (D8 layer 3).
+
 
 ### Won't Have (Out of Scope — DEFERRED to the future semantic-checker RD)
 
@@ -143,23 +145,24 @@ future RD per the project strategy (research: working compiler first). See
 > Only **AC-01** of RD-04 is in scope as a *behavioral* criterion; the remainder are
 > deferred (ledgered). The criteria below are this plan's gate.
 
-1. [ ] **AC-S1 (= RD-04 AC-01):** `analyze()` accepts a `ProgramNode[]` produced by `parse()`
+1. [x] **AC-S1 (= RD-04 AC-01):** `analyze()` accepts a `ProgramNode[]` produced by `parse()`
    and returns a `SemanticModel` **without throwing**, including for programs that contain
    parser error-sentinels. The returned model has `hasErrors === false`, `mainFunction === null`,
-   a non-null global `Scope`, and empty maps/collections.
-2. [ ] **AC-S2:** Every RD-04 §4 interface (`Type` + variants, `Scope`, `Symbol`, `CallGraph`,
+   a non-null global `Scope`, and empty maps/collections. *(ST-S21..S26 green)*
+2. [x] **AC-S2:** Every RD-04 §4 interface (`Type` + variants, `Scope`, `Symbol`, `CallGraph`,
    `ConstValue`, `PlatformProfile`, `SemanticModel`, `AnalyzeInput`) exists, is exported, and
-   is constructible in a test.
-3. [ ] **AC-S3:** The pure structural type utilities return correct values for representative
+   is constructible in a test. *(ST-S1, S13–S15, S25 green)*
+3. [x] **AC-S3:** The pure structural type utilities return correct values for representative
    inputs (e.g. `isInteger(byte)===true`, `bitWidth(word)===16`, `byteSize(byte)===1`,
-   `isError(ErrorType)===true`, `typeName(...)` human-readable).
-4. [ ] **AC-S4:** `isAssignableTo`/`commonType` exist with documented placeholder behavior and
-   `// DEFERRED` markers (no checker semantics asserted).
-5. [ ] **AC-S5:** The [Deferred Semantics Ledger](08-deferred-semantics-ledger.md) exists and
+   `isError(ErrorType)===true`, `typeName(...)` human-readable). *(ST-S3..S9 + impl tests green)*
+4. [x] **AC-S4:** `isAssignableTo`/`commonType` exist with documented placeholder behavior and
+   `// DEFERRED` markers (no checker semantics asserted). *(ST-S10/S11 green)*
+5. [x] **AC-S5:** The [Deferred Semantics Ledger](08-deferred-semantics-ledger.md) exists and
    covers **every** RD-04 requirement R1–R121 and AC-01..AC-20 with a status.
-6. [ ] **AC-S6:** `requirements/RD-04-semantic-analysis.md` carries the `SEMANTICS-DEFERRED`
+6. [x] **AC-S6:** `requirements/RD-04-semantic-analysis.md` carries the `SEMANTICS-DEFERRED`
    banner (D9).
-7. [ ] **AC-S7:** All verification passes (`yarn install --frozen-lockfile && yarn turbo run
+7. [x] **AC-S7:** All verification passes (`yarn install --frozen-lockfile && yarn turbo run
    build typecheck lint && yarn test`); R15 boundary green; `git status --porcelain spec/` empty.
-8. [ ] **AC-S8:** No dead code — stub functions/params are either used or carry the documented
+8. [x] **AC-S8:** No dead code — stub functions/params are either used or carry the documented
    `// DEFERRED` rationale (code.md rule 4 exception for planned seams).
+

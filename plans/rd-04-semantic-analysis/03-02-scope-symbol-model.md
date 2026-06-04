@@ -154,7 +154,8 @@ export interface SemanticModel {
   readonly mainFunction: Symbol | null;
   readonly hasErrors: boolean;
 
-  // Query helpers (R121). Passthrough returns defined safe values (D2/D13).
+  // Query helpers (R121). Passthrough returns defined safe values (D2).
+
   typeOf(expr: ExprNode): Type;          // passthrough: ERROR_TYPE
   symbolOf(node: AstNode): Symbol | null; // passthrough: null
   scopeOf(node: AstNode): Scope;          // passthrough: globalScope
@@ -229,9 +230,10 @@ export * from "./semantics/index.js";
 | Error Case | Handling Strategy | AR Ref |
 | ---------- | ----------------- | ------ |
 | All scope/symbol/recursion/model-population diagnostics | **DEFERRED** to the checker | D1 |
-| Query helper called on an unknown node | Returns the documented safe value (`ERROR_TYPE`/`null`/`globalScope`); never throws | D2/D13 |
+| Query helper called on an unknown node | Returns the documented safe value (`ERROR_TYPE`/`null`/`globalScope`); never throws | D2 |
 
-> **Traceability:** [Ambiguity Register](00-ambiguity-register.md) D1, D2, D7, D13(FR-S13).
+> **Traceability:** [Ambiguity Register](00-ambiguity-register.md) D1, D2, D7 (FR-S13).
+
 > Deferred behavior: [08-deferred-semantics-ledger.md](08-deferred-semantics-ledger.md).
 
 ## Testing Requirements
