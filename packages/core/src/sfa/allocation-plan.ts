@@ -1,0 +1,183 @@
+/**
+ * The SFA planner's **output record** — the immutable {@link AllocationPlan} and
+ * its sub-records (RD-05 §4.5–§4.12, R19–R59; spec Ch 11 §3.5/§4/§5/§7, AR-66).
+ *
+ * `planAllocation()` (frontend `sfa/plan-allocation.ts`) assembles an
+ * `AllocationPlan` from the frame, interference/coloring, module-var-layout,
+ * zero-page, stack-analysis, budget, and symbol passes. Every downstream phase
+ * (RD-06 IL, RD-07 codegen, RD-09 ACME emitter) only *reads* the plan, so all
+ * fields are `readonly` and the assembled plan is frozen (R59).
+ *
+ * Pure data — lives in `@blend65/core`, shared without importing codegen
+ * (R15/AR-20). See plans/rd-05-sfa-frame-planner/03-03-zp-and-layout.md,
+ * 03-04-stack-and-budgets.md, and 03-05-allocation-plan-and-api.md.
+ */
+
+import type { Type } from "../semantics/type.js";
+import type { FunctionFrame } from "./frame.js";
+
+/**
+ * A placed module-level `let` variable in RAM (RD-05 §4.5, R24).
+ *
+ * Module variables occupy `[ramStart, ramStart + totalSize)`; the frame region
+ * follows. `address` is provisional (authoritative placement is finalized at emit
+ * time via the ACME label file, AR-67); the pre-ACME budget check needs only the
+ * sum of sizes.
+ */
+export interface ModuleVariableAllocation {
+  /** The owning module's name. */
+  readonly moduleName: string;
+  /** The variable's name. */
+  readonly variableName: string;
+  /** Provisional absolute RAM address (`ramStart + offset`). */
+  readonly address: number;
+  /** Offset within the module-variable region. */
+  readonly offset: number;
+  /** Size in bytes. */
+  readonly size: number;
+  /** The resolved semantic type. */
+  readonly type: Type;
+}
+
+/**
+ * A placed zero-page byte-run (RD-05 §4.7, R28–R36).
+ *
+ * The ZP allocator places categories in a fixed priority order: the deferred
+ * runtime-ABI `arg-block` (interim floor 0, D8), then user `zeropage` variables,
+ * then struct/array pointers, then main expression temps, then IRQ temps.
+ */
+export interface ZpAllocation {
+  /** The user var name, or a generated name (`__zp_ptr_N`/`__zp_tmp_N`/`__zp_irq_tmp_N`). */
+  readonly name: string;
+  /** The placed zero-page address ($00–$FF). */
+  readonly address: number;
+  /** Size in bytes (1 for scalars/temps, 2 for pointers). */
+  readonly size: number;
+  /** The ZP category, fixing this run's place in the priority order. */
+  readonly category: "user" | "pointer" | "temp" | "irq-temp" | "arg-block";
+}
+
+/**
+ * Worst-case hardware-stack analysis (RD-05 §4.9, R37–R40; Ch 06 §7.8).
+ *
+ * Each JSR consumes 2 bytes (return address). The worst case is the longest call
+ * chain from `main` (×2 bytes), plus a one-time interrupt overhead (6 bytes: 3 CPU
+ * push + 3 register save) when any interrupt handler exists, plus the deepest IRQ
+ * call chain (×2 bytes).
+ */
+export interface StackAnalysis {
+  /** Longest call chain from `main`, in call levels. */
+  readonly maxMainDepth: number;
+  /** `maxMainDepth × 2` bytes. */
+  readonly maxMainStackBytes: number;
+  /** Deepest call chain within any interrupt handler, in call levels. */
+  readonly maxIrqDepth: number;
+  /** `maxIrqDepth × 2` bytes. */
+  readonly maxIrqStackBytes: number;
+  /** 6 bytes if any interrupt handler exists, else 0. */
+  readonly irqOverhead: number;
+  /** `maxMainStackBytes + irqOverhead + maxIrqStackBytes`. */
+  readonly totalWorstCase: number;
+  /** The platform's usable hardware-stack budget (`profile.stackBudget`). */
+  readonly platformBudget: number;
+  /** `true` once `totalWorstCase ≥ platformBudget × stackWarnThreshold` (W10180). */
+  readonly exceedsWarningThreshold: boolean;
+}
+
+/**
+ * A placed function frame within the shared frame region (RD-05 §4.6, R19–R23).
+ *
+ * The coloring pass assigns each reachable function an `offset` within the frame
+ * region such that interfering functions never overlap; `absoluteAddress` is
+ * `frameRegionBase + offset`.
+ */
+export interface FrameAllocation {
+  /** Fully-qualified function name. */
+  readonly functionName: string;
+  /** The function's computed frame (slots + total size). */
+  readonly frame: FunctionFrame;
+  /** Offset within the frame region (from coloring). */
+  readonly offset: number;
+  /** `frameRegionBase + offset`. */
+  readonly absoluteAddress: number;
+}
+
+/**
+ * One ACME symbol definition emitted into the `.asm` header (RD-05 §4.11, R47/R50).
+ *
+ * Names use the `__`-prefixed, sanitized scheme (`__frame_*`, `__var_*`, `__zp_*`,
+ * …) so they never collide with user labels; values are absolute addresses.
+ */
+export interface SymbolDefinition {
+  /** The ACME symbol name (e.g. `"__frame_Game_update"`). */
+  readonly name: string;
+  /** The symbol's address value. */
+  readonly value: number;
+}
+
+/**
+ * Aggregate resource-usage data for the build summary (RD-05 §4.10, R56/AC-18).
+ *
+ * Carries the frame-region, zero-page, RAM, and stack used-vs-budget figures the
+ * compiler reports after planning. `frameRegionPeak === frameRegionBytes` (the
+ * region size *is* the peak simultaneous footprint, AR-92).
+ */
+export interface SfaResourceData {
+  /** Total frame-region size in bytes. */
+  readonly frameRegionBytes: number;
+  /** Peak simultaneous frame footprint (= `frameRegionBytes`, AR-92). */
+  readonly frameRegionPeak: number;
+  /** Bytes saved by frame sharing: Σ frame sizes − region size (R56). */
+  readonly frameSharingSaved: number;
+  /** Zero-page bytes used. */
+  readonly zpUsed: number;
+  /** Zero-page budget (`zpEnd − zpStart + 1`, inclusive). */
+  readonly zpBudget: number;
+  /** RAM bytes used (`moduleVariablesSize + frameRegionSize`). */
+  readonly ramUsed: number;
+  /** RAM budget (`ramEnd − ramStart`, half-open). */
+  readonly ramBudget: number;
+  /** Worst-case stack bytes. */
+  readonly stackWorstCase: number;
+  /** Hardware-stack budget. */
+  readonly stackBudget: number;
+}
+
+/**
+ * The complete, immutable Static Frame Allocation result (RD-05 §4.10, R51–R59).
+ *
+ * Assembled by `planAllocation()` and frozen (R59). Carries the placed frames, the
+ * frame-region geometry, the zero-page and module-variable allocations, the stack
+ * analysis, the ACME symbol definitions, the aggregate resource data, and a
+ * `hasErrors` flag (set when a ZP or RAM budget error was emitted, R51/R59).
+ */
+export interface AllocationPlan {
+  /** Placed frames, keyed by fully-qualified function name. */
+  readonly frames: ReadonlyMap<string, FrameAllocation>;
+  /** Absolute base address of the frame region (`ramStart + moduleVariablesSize`). */
+  readonly frameRegionBase: number;
+  /** Total frame-region size (peak simultaneous footprint). */
+  readonly frameRegionSize: number;
+  /** Peak simultaneous frame footprint (= `frameRegionSize`, AR-92). */
+  readonly peakSimultaneous: number;
+  /** Bytes saved by frame sharing (Σ frame sizes − region size, R56). */
+  readonly sharingSaved: number;
+  /** Placed zero-page allocations, in allocation order. */
+  readonly zpAllocations: readonly ZpAllocation[];
+  /** Zero-page bytes used. */
+  readonly zpUsed: number;
+  /** Zero-page budget (inclusive). */
+  readonly zpBudget: number;
+  /** Placed module-level variables, in layout order. */
+  readonly moduleVariables: readonly ModuleVariableAllocation[];
+  /** Total module-variable region size in bytes. */
+  readonly moduleVariablesSize: number;
+  /** Worst-case stack analysis. */
+  readonly stackAnalysis: StackAnalysis;
+  /** ACME symbol definitions for the `.asm` header, in deterministic order. */
+  readonly symbolDefinitions: readonly SymbolDefinition[];
+  /** Aggregate resource-usage data for the build summary. */
+  readonly resourceData: SfaResourceData;
+  /** `true` if a ZP (E10032) or RAM (E10033) budget error was emitted (R51/R59). */
+  readonly hasErrors: boolean;
+}

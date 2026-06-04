@@ -9,9 +9,23 @@
 > **Owning package(s)**: `@blend65/frontend` (SFA planner, ZP allocator, stack-depth
 >   analyzer — last stage of the error-tolerant front-end pipeline)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-06-04
 
 ---
+
+> **🧭 Implementation status (2026-06-04, RD-05 plan executed):** the SFA algorithms
+> are **fully implemented and fixture-tested** (D1) — frame computation, interference
+> graph, greedy chordal coloring, module-variable layout, priority zero-page allocation
+> with pointer sharing, stack-depth analysis, pre-ACME budget diagnostics, and ACME
+> symbol generation — exposed via `planAllocation(input, profile, bag)` in
+> `@blend65/frontend`'s new `sfa/` module, over shared `sfa/` records in `@blend65/core`.
+> The **only deferred seam** is the live `analyze()` -> `planAllocation()` wiring:
+> `modelToFunctionInfo(model)` returns `[]` while RD-04 ships an empty passthrough
+> `SemanticModel`, and lights up unchanged when the RD-04b checker populates the model
+> (D1/D3/D5). Interim `PlatformProfile` budget fields were added additively (D2; RD-10
+> supersedes); the ZP `"arg-block"` category is plumbed with an interim floor of **0**
+> (D8; RD-17 owns the real ABI floor); the entry point takes a `PlanInput` object rather
+> than the illustrative `model` parameter (D9). See `plans/rd-05-sfa-frame-planner/`.
 
 ## 1. Purpose
 

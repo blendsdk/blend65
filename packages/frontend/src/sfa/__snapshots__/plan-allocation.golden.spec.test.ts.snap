@@ -1,0 +1,210 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Specification: planAllocation Ch 11 §3.4 golden (ST-P2 / AC-07 / AC-21) > should produce a deterministic AllocationPlan snapshot for the §3.4 program 1`] = `
+{
+  "frameRegionBase": 2048,
+  "frameRegionSize": 2,
+  "frames": [
+    {
+      "absoluteAddress": 2048,
+      "name": "drawBackground",
+      "offset": 0,
+      "totalSize": 1,
+    },
+    {
+      "absoluteAddress": 2048,
+      "name": "drawSprites",
+      "offset": 0,
+      "totalSize": 1,
+    },
+    {
+      "absoluteAddress": 2048,
+      "name": "handleInput",
+      "offset": 0,
+      "totalSize": 1,
+    },
+    {
+      "absoluteAddress": 2048,
+      "name": "init",
+      "offset": 0,
+      "totalSize": 1,
+    },
+    {
+      "absoluteAddress": 2048,
+      "name": "main",
+      "offset": 0,
+      "totalSize": 0,
+    },
+    {
+      "absoluteAddress": 2048,
+      "name": "moveEnemies",
+      "offset": 0,
+      "totalSize": 1,
+    },
+    {
+      "absoluteAddress": 2049,
+      "name": "render",
+      "offset": 1,
+      "totalSize": 1,
+    },
+    {
+      "absoluteAddress": 2049,
+      "name": "update",
+      "offset": 1,
+      "totalSize": 1,
+    },
+  ],
+  "hasErrors": false,
+  "moduleVariables": [],
+  "moduleVariablesSize": 0,
+  "peakSimultaneous": 2,
+  "resourceData": {
+    "frameRegionBytes": 2,
+    "frameRegionPeak": 2,
+    "frameSharingSaved": 5,
+    "ramBudget": 38912,
+    "ramUsed": 2,
+    "stackBudget": 230,
+    "stackWorstCase": 6,
+    "zpBudget": 46,
+    "zpUsed": 6,
+  },
+  "sharingSaved": 5,
+  "stackAnalysis": {
+    "exceedsWarningThreshold": false,
+    "irqOverhead": 0,
+    "maxIrqDepth": 0,
+    "maxIrqStackBytes": 0,
+    "maxMainDepth": 3,
+    "maxMainStackBytes": 6,
+    "platformBudget": 230,
+    "totalWorstCase": 6,
+  },
+  "symbolDefinitions": [
+    {
+      "name": "__frame_drawBackground",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_drawBackground_col",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_drawSprites",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_drawSprites_spr",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_handleInput",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_handleInput_key",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_init",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_init_i",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_main",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_moveEnemies",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_moveEnemies_n",
+      "value": 2048,
+    },
+    {
+      "name": "__frame_render",
+      "value": 2049,
+    },
+    {
+      "name": "__frame_render_y",
+      "value": 2049,
+    },
+    {
+      "name": "__frame_update",
+      "value": 2049,
+    },
+    {
+      "name": "__frame_update_dt",
+      "value": 2049,
+    },
+    {
+      "name": "__zp_tmp_0",
+      "value": 2,
+    },
+    {
+      "name": "__zp_tmp_1",
+      "value": 3,
+    },
+    {
+      "name": "__zp_tmp_2",
+      "value": 4,
+    },
+    {
+      "name": "__zp_tmp_3",
+      "value": 5,
+    },
+    {
+      "name": "__zp_irq_tmp_0",
+      "value": 6,
+    },
+    {
+      "name": "__zp_irq_tmp_1",
+      "value": 7,
+    },
+  ],
+  "zpAllocations": [
+    {
+      "address": 2,
+      "category": "temp",
+      "name": "__zp_tmp_0",
+      "size": 1,
+    },
+    {
+      "address": 3,
+      "category": "temp",
+      "name": "__zp_tmp_1",
+      "size": 1,
+    },
+    {
+      "address": 4,
+      "category": "temp",
+      "name": "__zp_tmp_2",
+      "size": 1,
+    },
+    {
+      "address": 5,
+      "category": "temp",
+      "name": "__zp_tmp_3",
+      "size": 1,
+    },
+    {
+      "address": 6,
+      "category": "irq-temp",
+      "name": "__zp_irq_tmp_0",
+      "size": 1,
+    },
+    {
+      "address": 7,
+      "category": "irq-temp",
+      "name": "__zp_irq_tmp_1",
+      "size": 1,
+    },
+  ],
+  "zpBudget": 46,
+  "zpUsed": 6,
+}
+`;
