@@ -1,6 +1,18 @@
 # RD-07: 6502 Code Generation & Structured Instr Model
 
-> **Status**: 🟢 Authored
+> **🔱 07a/07b SPLIT (decision D1, plan `rd-07a-instr-model`):** RD-07 is implemented in
+> two parts to isolate the stable core from the consumer-coupled remainder (the AR-38
+> pattern already used for RD-04→RD-04b and RD-11→RD-11a). **RD-07a** (implemented) ships
+> the *stable, zero-throwaway core*: the `Instr` model (R1–R13), the NMOS-6502 CPU
+> validation table + validator with gated 65C02 extensions (R14–R16), and the canonical
+> ACME serializer `printInstr` (R52–R54), all in `@blend65/codegen/src/instr/`, taking only
+> a `cpuVariant` primitive (not a `PlatformProfile`, decision D2). **RD-07b** (pending) adds
+> the *consumer-coupled* remainder once RD-10 (`PlatformProfile`) and RD-06's full lowering
+> land: IL→`Instr` translation (R17–R39), register binding (R40–R45), platform hooks
+> (R46–R49), `InstrProgram` assembly + `generateInstr` (R55–R58), and source-span
+> propagation (R50–R51). See `plans/rd-07a-instr-model/` for the full split rationale.
+
+> **Status**: 🟡 Partially implemented (RD-07a done; RD-07b pending)
 > **MVP Phase**: A
 > **Depends On**: RD-06, RD-10
 > **Implements**: `spec-v3.0` Ch 04 §3–§9 (codegen cost tables), Ch 05 §7.7 (for-loop
