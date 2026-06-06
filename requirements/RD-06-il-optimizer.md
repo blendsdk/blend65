@@ -1,6 +1,6 @@
 # RD-06: Intermediate Language (IL) & IL Optimizer
 
-> **Status**: 🟢 Authored
+> **Status**: 🟢 Implemented (walking-skeleton slice scope — see Implementation Note)
 > **MVP Phase**: A
 > **Depends On**: RD-05
 > **Implements**: `spec-v3.0` Ch 02–06, Ch 08–09, Ch 11–13 (all language constructs
@@ -8,9 +8,28 @@
 > **Owning package(s)**: `@blend65/codegen` (IL representation, AST→IL lowering,
 >   IL optimizer passes)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-06-05
 
 ---
+
+> **Implementation Note (2026-06-05, plan `plans/rd-06-il-optimizer/`):** RD-06 was
+> implemented under the **walking-skeleton slice scope** (plan register D1). The **full IL
+> data model**, the **deterministic textual printer** (`printIL`), and the **passthrough
+> optimizer pipeline** (`optimizeIL`) are complete; **AST→IL lowering** is implemented for
+> the **gate + slice-2 surface** (`let`/assign/return/`poke`/`peek`/same-width binary/ident/
+> literals) behind an extensible visitor whose default raises an `E90001` ICE (D6/R69) — every
+> other AST node kind is a documented, tested slice boundary, not a silent gap. Lowering is
+> **fixture-tested** today (D5); the only deferred piece is the live compiler-façade wiring
+> (`analyze()`→`planAllocation()`→`lowerToIL()`), which lights up unchanged when RD-04b
+> populates the `SemanticModel`. Two runtime decisions refined the textual surface: **D8** —
+> function-header params render verbatim from their `AllocationPlan` frame-slot `Location`
+> symbols (`__frame_Math_add_a: i8u`); **D9** — the `poke`/`peek` address lowers to a symbolic
+> `location` (`$D020`), keeping addresses symbolic through the IL (AR-52). See the plan's
+> `00-ambiguity-register.md` (D1–D9). **Node-kind count:** RD-03 ships **50** node kinds
+> (AR-1 removed `AsmBlock`); references to "51 kinds" below predate that and should read 50.
+
+---
+
 
 ## 1. Purpose
 
