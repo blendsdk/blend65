@@ -3,7 +3,8 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-06-08
-> **Progress**: 12/21 tasks (57%) — 🟢 Phases 1–2 complete
+> **Progress**: 17/21 tasks (81%) — 🟢 Phases 1–3 complete
+
 
 
 
@@ -172,11 +173,12 @@ Each feature follows **spec-tests-first** ordering (write spec tests → verify 
 
 
 ### Phase 3: `InstrProgram` + `generateInstr`
-- [ ] 3.1.1 Spec tests ST-P1..P7
-- [ ] 3.1.2 Verify spec tests FAIL (red)
-- [ ] 3.1.3 `instr-program.ts` (`InstrProgram` + `generateInstr` + `programByteSize`)
-- [ ] 3.1.4 Export from `instr/index.ts`
-- [ ] 3.1.5 Verify green; program impl tests
+- [x] 3.1.1 Spec tests ST-P1..P7 ✅ (completed: 2026-06-08 00:34)
+- [x] 3.1.2 Verify spec tests FAIL (red) ✅ (completed: 2026-06-08 00:34)
+- [x] 3.1.3 `instr-program.ts` (`InstrProgram` + `generateInstr` + `programByteSize`) ✅ (completed: 2026-06-08 00:34)
+- [x] 3.1.4 Export from `instr/index.ts` ✅ (completed: 2026-06-08 00:35)
+- [x] 3.1.5 Verify green; program impl tests ✅ (completed: 2026-06-08 00:35)
+
 
 ### Phase 4: Goldens & closeout
 - [ ] 4.1.1 Golden snapshots ST-G1..G3 (real-IL end-to-end)

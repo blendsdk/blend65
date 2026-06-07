@@ -48,3 +48,8 @@ export { isLegalMode, validateStream } from "./validate.js";
 
 // Canonical ACME serializer + byte sizing (§3.8 / Ch 11 §6)
 export { printInstr, instrByteSize } from "./print-instr.js";
+
+// IL→Instr translation entry point + program container (RD-07b, §4.3/§4.7)
+export type { InstrProgram } from "./instr-program.js";
+export { generateInstr, programByteSize } from "./instr-program.js";
+
