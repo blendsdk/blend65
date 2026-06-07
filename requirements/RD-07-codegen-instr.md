@@ -6,13 +6,20 @@
 > the *stable, zero-throwaway core*: the `Instr` model (R1–R13), the NMOS-6502 CPU
 > validation table + validator with gated 65C02 extensions (R14–R16), and the canonical
 > ACME serializer `printInstr` (R52–R54), all in `@blend65/codegen/src/instr/`, taking only
-> a `cpuVariant` primitive (not a `PlatformProfile`, decision D2). **RD-07b** (pending) adds
-> the *consumer-coupled* remainder once RD-10 (`PlatformProfile`) and RD-06's full lowering
-> land: IL→`Instr` translation (R17–R39), register binding (R40–R45), platform hooks
-> (R46–R49), `InstrProgram` assembly + `generateInstr` (R55–R58), and source-span
-> propagation (R50–R51). See `plans/rd-07a-instr-model/` for the full split rationale.
+> a `cpuVariant` primitive (not a `PlatformProfile`, decision D2). **RD-07b** (slice
+> implemented, plan `rd-07b-il-to-instr`) adds the *consumer-coupled* remainder for the
+> **RD-06 live op set**: IL→`Instr` translation over `load`/`store`/`const`,
+> arithmetic/bitwise/shift/comparison binary ops, `mul`/`div`/`mod` call-sites and `ret`
+> (R17–R28/R32, both widths), register binding (R40–R45), `InstrProgram` assembly +
+> `generateInstr` taking `cpuVariant` (R55–R61), and source-span propagation (R50–R51).
+> The genuinely-blocked remainder — platform hooks (R46–R49, blocked on RD-10), the IL ops
+> no live lowering emits, multi-block CFG, and the `InstrProgram` preamble — is deferred to
+> **RD-07c** (same AR-38 slice discipline). See `plans/rd-07b-il-to-instr/` for the slice
+> rationale and the D1–D10 decision log. See `plans/rd-07a-instr-model/` for the split
+> rationale.
 
-> **Status**: 🟡 Partially implemented (RD-07a done; RD-07b pending)
+> **Status**: 🟡 Partially implemented (RD-07a done; RD-07b live-op-set slice done; RD-07c pending)
+
 > **MVP Phase**: A
 > **Depends On**: RD-06, RD-10
 > **Implements**: `spec-v3.0` Ch 04 §3–§9 (codegen cost tables), Ch 05 §7.7 (for-loop
@@ -435,25 +442,30 @@ function validateInstr(instr: StreamEntry, cpu: CpuTable, bag: DiagnosticBag): v
 
 ## 6. Acceptance Criteria
 
-- [ ] AC-01: `generateInstr()` accepts an `ILProgram` + `PlatformProfile` and returns an `InstrProgram`
-- [ ] AC-02: Every IL instruction kind has a defined `Instr` translation (no unimplemented ops)
-- [ ] AC-03: Each `Instr` record uses typed `Opcode` and `AddressingMode` enums (no strings)
-- [ ] AC-04: All operands are symbolic — no hard-coded `$xxxx` addresses in core codegen
-- [ ] AC-05: Labels and directives are first-class `StreamEntry` values in the stream
-- [ ] AC-06: Every generated `Instr` passes CPU validation against the active platform's opcode table
-- [ ] AC-07: The calling convention (parameter store → JSR → return extraction) matches Ch 06 §5.4
-- [ ] AC-08: Interrupt functions generate the correct PHA/TXA/PHA/TYA/PHA prologue and PLA/TAY/PLA/TAX/PLA/RTI epilogue
-- [ ] AC-09: For-loop Pattern A and Pattern B are correctly selected based on bound vs type max
-- [ ] AC-10: Multiply generates constant-fold / shift-and-add / software-call per Ch 04 §3.2, with appropriate warnings
-- [ ] AC-11: The `byteSelect` modifier produces correct ACME `<sym`/`>sym` syntax for pointer setup
-- [ ] AC-12: Source spans propagate from IL through to `Instr.sourceSpan`
-- [ ] AC-13: The `InstrProgram` is deterministic: same IL → same output
-- [ ] AC-14: Platform codegen hooks are called at defined extension points (startup, format, origin)
-- [ ] AC-15: Functions with no IL (error tolerance) produce no `InstrStream`
-- [ ] AC-16: Cost warnings (W10170/W10171/W10172) are emitted for expensive operations
-- [ ] AC-17: Unit tests cover Instr translation for all IL instruction kinds (AR-22 tier 1)
-- [ ] AC-18: Golden-snapshot tests assert `Instr` text output for representative programs (AR-22 tier 2)
-- [ ] AC-19: All decisions trace to an `AR-NN` or a frozen spec section
+> **RD-07b slice progress (plan `rd-07b-il-to-instr`):** the items below are ticked for the
+> **RD-06 live op set** (the AR-38 slice). Items scoped to deferred ops, platform hooks,
+> calling convention, interrupt prologue/epilogue, or for-loops are carried by **RD-07c**.
+
+- [x] AC-01: `generateInstr()` returns an `InstrProgram` — takes a `cpuVariant` primitive (D2), not a `PlatformProfile` (the real profile is threaded by the RD-15 driver when RD-10 lands)
+- [~] AC-02: Every **live** IL instruction kind has a defined `Instr` translation; deferred ops reach a documented `E90001` ICE boundary (RD-07c)
+- [x] AC-03: Each `Instr` record uses typed `Opcode` and `AddressingMode` enums (no strings)
+- [x] AC-04: All operands are symbolic — no hard-coded `$xxxx` addresses in core codegen
+- [x] AC-05: Labels and directives are first-class `StreamEntry` values in the stream
+- [x] AC-06: Every generated `Instr` passes CPU validation (`generateInstr` runs `validateStream`)
+- [ ] AC-07: The calling convention (parameter store → JSR → return extraction) matches Ch 06 §5.4 — RD-07c (no `call` lowered yet)
+- [ ] AC-08: Interrupt prologue/epilogue — RD-07c (the `RTS`→`RTI` swap is in; the save/restore body awaits a lowered interrupt body)
+- [ ] AC-09: For-loop Pattern A/B selection — RD-07c (no multi-block CFG lowered yet)
+- [x] AC-10: Multiply generates constant-fold / shift-and-add / software-call per Ch 04 §3.2, with W10172/W10170 warnings
+- [x] AC-11: The `byteSelect` modifier produces correct ACME `<sym`/`>sym` syntax (RD-07a; consumed by 07b word const/load)
+- [x] AC-12: Source spans propagate from IL (`source_span`) through to `Instr.sourceSpan` (lead instr, R50)
+- [x] AC-13: The `InstrProgram` is deterministic: same IL → same output
+- [ ] AC-14: Platform codegen hooks — RD-07c + RD-10 (preamble is empty in the slice)
+- [x] AC-15: Functions with no IL (error tolerance) produce no `InstrStream`
+- [x] AC-16: Cost warnings (W10170/W10171/W10172) are emitted for expensive operations
+- [x] AC-17: Unit tests cover Instr translation for the **live** IL instruction kinds (AR-22 tier 1)
+- [x] AC-18: Golden-snapshot tests assert end-to-end `Instr` text for representative programs (AR-22 tier 2; ST-G1..G3)
+- [x] AC-19: All decisions trace to an `AR-NN`/`D-N` or a frozen spec section
+
 
 ---
 

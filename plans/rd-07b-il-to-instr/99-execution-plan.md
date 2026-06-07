@@ -3,7 +3,8 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-06-08
-> **Progress**: 17/21 tasks (81%) — 🟢 Phases 1–3 complete
+> **Progress**: 21/21 tasks (100%) — ✅ COMPLETE (all phases)
+
 
 
 
@@ -181,10 +182,11 @@ Each feature follows **spec-tests-first** ordering (write spec tests → verify 
 
 
 ### Phase 4: Goldens & closeout
-- [ ] 4.1.1 Golden snapshots ST-G1..G3 (real-IL end-to-end)
-- [ ] 4.1.2 Confirm R15 boundary tier green
-- [ ] 4.1.3 Annotate `requirements/RD-07-codegen-instr.md` (07b done; RD-07c remainder)
-- [ ] 4.1.4 Tick AC-*/FR-*; Index → Implemented; final verify; `spec/` clean
+- [x] 4.1.1 Golden snapshots ST-G1..G3 (real-IL end-to-end) ✅ (completed: 2026-06-08 00:38)
+- [x] 4.1.2 Confirm R15 boundary tier green ✅ (completed: 2026-06-08 00:39)
+- [x] 4.1.3 Annotate `requirements/RD-07-codegen-instr.md` (07b done; RD-07c remainder) ✅ (completed: 2026-06-08 00:39)
+- [x] 4.1.4 Tick AC-*/FR-*; Index → Implemented; final verify; `spec/` clean ✅ (completed: 2026-06-08 00:40)
+
 
 ---
 

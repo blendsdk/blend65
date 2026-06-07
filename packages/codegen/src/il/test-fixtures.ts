@@ -238,10 +238,36 @@ export const addFixture: LoweringFixture = fixture(
 );
 
 /**
+ * RD-06 comparison function: `module Math; function eq(a: byte, b: byte): byte {
+ * return a == b; }`. Lowers to two loads, an `eq` (IL_BYTE 0/1 result), and
+ * `ret %2`. Used by the RD-07b end-to-end golden ST-G3.
+ */
+export const eqFixture: LoweringFixture = fixture(
+  programOf(
+    "Math",
+    fnDecl("eq", [param("a", prim("byte")), param("b", prim("byte"))], prim("byte"), block([
+      returnStmt(binary("==", ident("a"), ident("b"))),
+    ])),
+  ),
+  planWith(
+    new Map([
+      [
+        "Math.eq",
+        frameAlloc("Math.eq", [
+          slot("a", "parameter", primitive("byte"), 0),
+          slot("b", "parameter", primitive("byte"), 1),
+        ]),
+      ],
+    ]),
+  ),
+);
+
+/**
  * A `let` without an initialiser: `function main(): void { let c: byte; }`.
  * Emits NO IL for the declaration — just the void fall-through `ret`.
  */
 export const letNoInitFixture: LoweringFixture = fixture(
+
   programOf("Main", fnDecl("main", [], prim("void"), block([letDecl("c", prim("byte"), null)]))),
   planWith(new Map([["Main.main", frameAlloc("Main.main", [slot("c", "local", primitive("byte"), 0)])]])),
 );
