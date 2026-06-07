@@ -146,7 +146,9 @@ test/                # repo-root cross-package tier (boundary.spec.test.ts)
 - Runtime-ambiguity protocol: if an implementation decision is undetermined, STOP, log
   it in the active plan's Ambiguity Register as the next AR-PN (runtime), resolve with
   the user, then resume and back-propagate the resolution into the affected plan docs.
-- v1 scaffold is "empty but wired": no lexer/parser/semantic/codegen logic until RD-02+.
+- Compiler logic implementation is underway (RD-02+). `@blend65/codegen` now ships the
+  RD-07a stable core (Instr model, CPU validator, canonical ACME serializer) under
+  `packages/codegen/src/instr/`; RD-07b (IL→Instr translation) is the next codegen step.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
 ```
 
