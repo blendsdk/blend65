@@ -149,7 +149,13 @@ export const DiagCode = {
   // Lexer warning (RD-02, spec Ch 01 §14): decimal literal with leading zeros.
 
   NumericLeadingZeros: "W10210",
+  // Codegen cost warnings (RD-07 R60/AC-16, spec Ch 14 §3 / 00-feature-index F017).
+  // Emitted during instruction selection (RD-07b) for expensive arithmetic.
+  RuntimeMultiply: "W10170",
+  RuntimeDivide: "W10171",
+  ShiftAndAddMultiply: "W10172",
   LargeZpAllocation: "W10030",
+
   RamNearingLimit: "W10033",
   DecimalModeWithoutCld: "W10120",
   BrkInRelease: "W10121",

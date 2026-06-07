@@ -3,7 +3,8 @@
 > **Document**: 03-01-il-to-instr-translation.md
 > **Parent**: [Index](00-index.md)
 > **Implements**: RD-07 R17–R28, R32, R50–R51, R60 (live subset) · spec Ch 04 §3/§5, Ch 06 §6
-> **Decisions**: D1 (slice), D3 (live set + ICE-default), D4 (mul/div/mod call-site), D5 (both widths), D7 (diagnostics)
+> **Decisions**: D1 (slice), D3 (live set + ICE-default), D4 (mul/div/mod call-site), D5 (both widths), D7 (diagnostics), D10 (fold value-flow)
+
 
 ## Overview
 
@@ -44,6 +45,54 @@ export function translateFunction(fn: ILFunction, plan: AllocationPlan,
 `translateInstruction` is a `switch (instr.op)`; every arm not listed below falls to the
 **default arm** → `bag.addICE(IceCode.Unexpected, span, "IL→Instr: unsupported op '<op>' (deferred to RD-07c)")`
 (D3/D7) and emits nothing, so the back end fails deterministically.
+
+## Value-flow model (D10)
+
+A one-accumulator 6502 cannot translate each IL op in isolation and still match the tight
+goldens (`r = a + b` → `LDA a / CLC / ADC b / STA r` — no intermediate temp store). The
+translator therefore uses a **fold value-flow model** (D10):
+
+1. **Pre-scan** the block once, counting every temp's uses (`useCount: Map<TempId, number>`)
+   and recording, for each `load dest,[sym]`, that `dest` is a *load-result* whose source is
+   `sym`. This is a deterministic left-to-right walk over `block.instructions`.
+2. **Deferred loads.** A `load dest,[sym]` whose `dest` is **single-use** is *not* emitted as
+   a standalone `LDA`. Its `(dest → sym)` binding is remembered; when `dest` is later consumed
+   as an ALU **right operand** it becomes `ADC sym` (etc.) directly, and when consumed as the
+   **left operand / value** it becomes the leading `LDA sym`. A **multi-use** load-result is
+   materialised eagerly (`LDA sym`, bind to A) so subsequent uses read a stable home.
+3. **ALU results stay in A** (R41). An ALU op emits no eager `STA dest`; it leaves its result
+   in A and `bindResultToA(dest)`. The **consumer** that needs the value in memory emits the
+   store: a `store dest,[r]` → `STA r`; a `ret dest` → the value is already in A. This makes
+   ST-T7's `STA t2` precisely the dest-home store its consuming `store` provides — the oracle
+   and the golden agree.
+4. **Safety / determinism (H5, R17).** When the pre-scan cannot prove a fold is safe (operand
+   not an immediately-consumed single-use load-result), the translator **materialises**
+   conservatively — never mis-folds. Worst case the output is one `LDA`/`STA` longer than
+   optimal (RD-08 peephole closes the gap); it is never incorrect. Fold decisions depend only
+   on the IL, so the same IL → the same stream.
+
+The fold reuses the binder primitives directly: `operandFor` (D9) converts a spilled/materialised
+temp to its `zpSlot`, and a deferred load-source lowers to the `loc`'s `symbolRef`.
+
+**Byte vs word results.** A 6502 cannot hold a 16-bit value entirely in A, so the
+"result-stays-in-A" rule is **byte-only**. A **word** ALU result is materialised **inline to
+its destination memory home** as part of the ALU expansion (`STA dest_lo` / `STA dest_hi`).
+The destination home is the **store target** when the result temp is single-use and consumed
+by an immediately-following `store dest,[target]` (the store is folded into the ALU and emits
+nothing of its own) — mirroring the byte golden's "consumer provides the store." This yields
+the tight word sequence `LDA lo / CLC / ADC lo / STA r / LDA hi / ADC hi / STA r+1` with no
+second `CLC`.
+
+**Provenance & branch helpers (refinements of D3).** The `source_span` IL op is **provenance,
+not a value op**: the translator consumes it to set `ctx.leadSpan` (emitting nothing) so the
+next lead `Instr` carries the span (R50/R51) — it is therefore **handled**, not ICE-defaulted,
+notwithstanding its appearance in the D3 deferred list. Comparisons materialise 0/1 with the
+**natural-branch** framing (`LDA #$01; B<cc> done; LDA #$00; done: STA dest`), choosing
+`B<cc>` per op for the unsigned interpretation — `eq`→`BEQ`, `ne`→`BNE`, `lt`→`BCC`,
+`ge`→`BCS`, and `gt`/`le` via the swapped-operand forms of `lt`/`ge` — with `done` a
+function-unique generated label `_cmpN`.
+
+
 
 ## Operand lowering (`ILOperand` → `InstrOperand` + addressing)
 

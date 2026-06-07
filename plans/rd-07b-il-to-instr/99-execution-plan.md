@@ -2,8 +2,9 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-06-07
-> **Progress**: 4/21 tasks (19%) — 🟢 Phase 1 complete
+> **Last Updated**: 2026-06-08
+> **Progress**: 12/21 tasks (57%) — 🟢 Phases 1–2 complete
+
 
 
 > **CodeOps Version**: (unstamped — consistent with RD-01..RD-07a)
@@ -160,14 +161,15 @@ Each feature follows **spec-tests-first** ordering (write spec tests → verify 
 
 
 ### Phase 2: IL→Instr translator
-- [ ] 2.1.1 Spec tests ST-T1..T12, T20..T25 (memory/arith/ret/deferred/span)
-- [ ] 2.1.2 Verify spec tests FAIL (red)
-- [ ] 2.1.3 `translate.ts` — operand lowering + memory/arith/bitwise/shift/ret + ICE default
-- [ ] 2.1.4 Verify spec tests PASS (green)
-- [ ] 2.2.1 Spec tests ST-T13..T19 (comparison + mul/div/mod + cost warnings)
-- [ ] 2.2.2 Verify new spec tests FAIL (red)
-- [ ] 2.2.3 `translate.ts` — comparison + mul/div/mod call-site + W10170/71/72
-- [ ] 2.2.4 Verify green; translator impl tests
+- [x] 2.1.1 Spec tests ST-T1..T12, T20..T25 (memory/arith/ret/deferred/span) ✅ (completed: 2026-06-08 00:17)
+- [x] 2.1.2 Verify spec tests FAIL (red) ✅ (completed: 2026-06-08 00:18)
+- [x] 2.1.3 `translate.ts` — operand lowering + memory/arith/bitwise/shift/ret + ICE default ✅ (completed: 2026-06-08 00:24)
+- [x] 2.1.4 Verify spec tests PASS (green) ✅ (completed: 2026-06-08 00:24)
+- [x] 2.2.1 Spec tests ST-T13..T19 (comparison + mul/div/mod + cost warnings) ✅ (completed: 2026-06-08 00:27)
+- [x] 2.2.2 Verify new spec tests FAIL (red) ✅ (completed: 2026-06-08 00:27)
+- [x] 2.2.3 `translate.ts` — comparison + mul/div/mod call-site + W10170/71/72 ✅ (completed: 2026-06-08 00:28)
+- [x] 2.2.4 Verify green; translator impl tests ✅ (completed: 2026-06-08 00:31)
+
 
 ### Phase 3: `InstrProgram` + `generateInstr`
 - [ ] 3.1.1 Spec tests ST-P1..P7

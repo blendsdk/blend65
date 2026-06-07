@@ -2,7 +2,9 @@
 
 > **Document**: 00-ambiguity-register.md
 > **Parent**: [Index](00-index.md)
-> **Status**: ✅ GATE PASSED — D1–D8 resolved at planning (2026-06-06) / D9 added during execution (2026-06-07)
+> **Status**: ✅ GATE PASSED — D1–D8 resolved at planning (2026-06-06) / D9 resolved during execution (2026-06-07) / D10 resolved during execution (2026-06-07 — Phase 2)
+
+
 > **Last Updated**: 2026-06-07
 
 
@@ -60,8 +62,10 @@ delegated the sub-scoping to the planner's recommendation. The gate is **PASSED*
 | D7 | Process / Diagnostics | Unsupported (deferred) IL op during translation, and a translation that produced an illegal opcode+mode. Which diagnostics? | A: **reuse `IceCode.Unexpected` (`E90001`)** for both the deferred-op default arm (mirrors RD-06 D6 / RD-07a D6) and post-translation validation (run RD-07a `validateStream` over each emitted `InstrStream`). Cost warnings use the existing user-band W10170/W10171/W10172 (R60). No new diagnostic codes · B: add dedicated `E9xxxx`/`W10xxx` codes now | **A** — reuse `IceCode.Unexpected` + existing W-codes | ✅ Resolved |
 | D8 | Process | Commit mode for execution. | ask / no-commit / auto-commit | **no-commit** (consistent with RD-01..RD-06/RD-07a/RD-11a) | ✅ Resolved |
 | D9 | API / Binder (runtime) | The binder's `locationOf(temp)` was spec'd to return `InstrOperand`, but A/X/Y registers are **not** expressible as an `InstrOperand` (the union is `none`/`immediate`/`symbolRef`/`labelRef`/`zpSlot` — a register is *implied* by the opcode, never an operand). ST-R3 (⇒A) / ST-R4 (⇒X) / ST-R5 (⇒zp) cannot be satisfied by an `InstrOperand` return. | A: **minimal honest `TempLocation` union** `{kind:"reg"; reg:"A"\|"X"\|"Y"} \| {kind:"zp"; slot:string}`; `locationOf` returns it; a separate `operandFor(temp): InstrOperand` converts a `zp` location to `zpSlot(name)` for ALU-source use and ICEs if asked to use a reg temp as a memory source · B: keep `InstrOperand`, return `none()` for reg temps + a side `regOf()` accessor · C: bare untagged union | **A** — minimal honest `TempLocation` union + `operandFor` converter (user-selected) | ✅ Resolved (runtime, user-selected) |
+| D10 | Translator / value-flow (runtime) | The authored ST oracles are inconsistent under any *fixed per-op* translation: ST-T1 (`load`→eager `LDA sym`) + ST-T7 (`add`→`LDA;CLC;ADC;STA t2`, result materialised) vs the ST-G1/G2/G3 goldens (`r=a+b` → `LDA a / CLC / ADC b / STA r` — **no** zp temp, **no** `STA t2`), which demand right-operand **load-source folding** and **ALU-result-stays-in-A** propagation. RD-06's `ILFunction` exposes only `tempCount`, not per-temp use counts, so the fold the goldens assume is not free. | A: **conservative materialise** (every `load`→`LDA`+`STA temp-home`, every ALU→`STA dest-home`; RD-08 peephole tightens later) — simpler, but ST-G1/G2/G3 must be re-derived to longer forms · B: **fold model matching the goldens** — a one-pass single-use scan over the block defers/folds the right-operand `load` into the ALU operand and keeps ALU results in A so the consuming `store`/`ret`/next-ALU provides the only `STA`; produces the exact tight goldens and honours every ST-T/ST-G oracle · C: user specifies a different value-flow contract | **B** — fold model matching the goldens (user-selected) | ✅ Resolved (runtime, user-selected) |
 
 ---
+
 
 
 ## Resolution Notes
@@ -193,10 +197,46 @@ type TempLocation =
 This is additive to the RD-07a model (no `InstrOperand` change) and the rest of the binder
 seam (`ensureInA`/`bindResultToA`/`bindResultToX`/`reset`/`spill`) is unaffected.
 
+### D10 — Fold value-flow model matching the goldens (runtime, user-selected)
+
+Surfaced while preparing the Phase-2 translator spec tests: the authored ST oracles cannot
+all hold under a *fixed per-op* translation. ST-T1 wants a bare `load` to emit `LDA sym`
+eagerly; ST-T7 wants `add t2,t0,t1` to materialise its result (`LDA t0; CLC; ADC t1; STA t2`);
+but the ST-G1/G2/G3 **goldens** for the very same shapes (`r = a + b` → `LDA a / CLC / ADC b /
+STA r`) show **no** intermediate `STA t2` and **no** ZP temp — the second `load` is folded into
+the `ADC` operand and the `add` result stays in A until the consuming `store` provides the
+single `STA`. On a one-accumulator 6502 these are different machines; the design doc
+(`03-02` §"Redundant-load suppression") already flags the fold as conditional on single-use
+information that RD-06's `ILFunction` does not directly expose (only `tempCount`).
+
+**Resolution (user-selected Option B):** the translator implements the **fold model** the
+goldens assume.
+- A **one-pass pre-scan** over the (single) block counts each temp's uses, so the translator
+  knows which temps are single-use load-results eligible to fold.
+- A `load dest,[sym]` whose `dest` is **single-use and consumed by the immediately following
+  ALU/store** is **deferred**: it is not emitted as a standalone `LDA`; instead its source
+  symbol becomes the ALU's right operand (`ADC sym`) or, when it is the value of a `store`,
+  the `LDA sym` that precedes the `STA`. A **multi-use** load-result, or one not immediately
+  consumed, is materialised conservatively (emit `LDA`, bind to A; spill if pressure).
+- **ALU results stay in A** (R41) — no eager `STA dest`. The consumer that needs the value in
+  memory (`store`, the next ALU's left operand if it must be reloaded, or `ret`) emits the
+  store. This yields the exact tight goldens and honours ST-T7's materialised form too: when
+  an `add`'s `dest` *is* consumed by a following `store t2,[r]`, the `STA r` is that store's
+  emission — the ST-T7 oracle's `STA t2` is the dest-home store the consumer provides.
+- The model degrades safely: if the fold pre-scan is ever uncertain it **materialises** (never
+  mis-folds), so the result is at worst one `LDA`/`STA` longer than optimal — RD-08 peephole
+  closes any residual gap — and **never incorrect** (H5).
+
+This is internal to `translate.ts` (no model or binder-seam change); the binder's
+redundant-load suppression (R44) and `operandFor` (D9) are exactly the primitives the fold
+uses. Determinism (R17) is preserved: the pre-scan is a deterministic left-to-right walk and
+fold decisions depend only on the IL.
+
 ---
 
 
 ## Surface-during-authoring rule
+
 
 If authoring or implementation surfaces a *new* ambiguity, **STOP**, add it here as the next
 `D-N` (tagged `(runtime)` if found during execution), resolve it with the user,
