@@ -14,6 +14,9 @@
   "dependencies": {
     "@blend65/core": "0.1.0"
   },
+  "devDependencies": {
+    "@blend65/codegen": "0.1.0"
+  },
   "scripts": {
     "build": "tsc --build",
     "typecheck": "tsc --noEmit",

@@ -1,6 +1,6 @@
 # RD-10: Platform Plugin System
 
-> **Status**: 🟢 Authored
+> **Status**: 🔵 Implemented (slice — see Implementation Status below)
 > **MVP Phase**: A
 > **Depends On**: RD-01
 > **Implements**: `spec-v3.0` Ch 15 (Platform Profile Contract), all 5 platform
@@ -8,7 +8,31 @@
 > **Owning package(s)**: `@blend65/platforms` (plugin implementations),
 >   `@blend65/core` (plugin interface + profile types)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-06-09
+
+---
+
+## Implementation Status (2026-06-09)
+
+The RD-10 **slice** is implemented per `plans/rd-10-platform-plugin-system/` (decision
+D1). **Delivered:**
+
+- `@blend65/core/platform` subpath: canonical `PlatformProfile`/`PlatformPlugin` + hook
+  types, `validateProfileFields`, and the relocated pure-data Instr/stream model (D6/D7/D8).
+- `@blend65/platforms`: the full `c64` plugin with bespoke, golden-tested codegen hooks
+  (preamble/shim/output-directive/PETSCII encode/termination/validate), the static
+  `PLATFORM_REGISTRY` + `loadPlatform` + `DEFAULT_PLATFORM`, and the four remaining
+  platform profiles (`c64u`, `cx16`, `a800xl`, `a7800`) with profile data + `validateProfile`,
+  whose codegen hooks delegate to the shared C64-style bodies (D4).
+
+**Deferred (carried by later RDs):**
+
+- Intrinsic descriptors ship as `intrinsics: []` and the `.asm` runtime bodies are
+  metadata-only — RD-17 (D1).
+- Bespoke non-MVP codegen bodies (ATASCII/ASCII encoders, XEX/`.a78` preambles) — they
+  currently reuse the shared C64-style default (D4).
+- Driver wiring of `loadPlatform`/profile budgets/output directives — RD-15/16/09 (D1).
+
 
 ---
 
@@ -507,26 +531,26 @@ __startup:
 
 ## 6. Acceptance Criteria
 
-- [ ] AC-01: `PlatformPlugin` interface is defined in `@blend65/core` with all required methods and properties
-- [ ] AC-02: `PlatformProfile` type includes all Ch 15 §3.1 required fields
-- [ ] AC-03: The `c64` plugin is implemented with all profile values from appendix-c64
-- [ ] AC-04: `emitPreamble()` produces a valid BASIC stub + startup shim for C64
-- [ ] AC-05: All three startup-shim variants (terminating/non-terminating/bare) are implemented for C64
-- [ ] AC-06: `encodeString()` correctly encodes PETSCII for C64 (A-Z, a-z, 0-9, space, newline)
-- [ ] AC-07: `getOutputDirective()` produces `!to "<name>.prg", cbm` for C64
-- [ ] AC-08: `getMainTerminationPolicy()` returns `canReturn: true` for C64
-- [ ] AC-09: `validateProfile()` catches inconsistent profile fields (e.g., `zpStart > zpEnd`)
-- [ ] AC-10: The plugin registry maps platform IDs to plugin instances
-- [ ] AC-11: Unknown platform ID produces an actionable error listing available platforms
-- [ ] AC-12: CPU variant from the profile is used by RD-07 for opcode validation
-- [ ] AC-13: The `c64u` plugin extends C64 with additional capabilities
-- [ ] AC-14: The `cx16` plugin sets `cpu: '65c02'`
-- [ ] AC-15: The `a7800` plugin sets `canReturn: false` for main termination
-- [ ] AC-16: T4 intrinsic descriptors from the plugin are merged into the intrinsic registry
-- [ ] AC-17: Runtime `.asm` modules are discoverable for JSR-linking and dead-stripping
-- [ ] AC-18: No platform-specific address, chip name, or encoding appears in core compiler code (P3)
-- [ ] AC-19: Unit tests validate profile data for all 5 built-in platforms (AR-22 tier 1)
-- [ ] AC-20: All decisions trace to an `AR-NN` or a frozen spec section
+- [x] AC-01: `PlatformPlugin` interface is defined in `@blend65/core` with all required methods and properties
+- [x] AC-02: `PlatformProfile` type includes all Ch 15 §3.1 required fields
+- [x] AC-03: The `c64` plugin is implemented with all profile values from appendix-c64
+- [x] AC-04: `emitPreamble()` produces a valid BASIC stub + startup shim for C64
+- [x] AC-05: All three startup-shim variants (terminating/non-terminating/bare) are implemented for C64
+- [x] AC-06: `encodeString()` correctly encodes PETSCII for C64 (A-Z, a-z, 0-9, space, newline)
+- [x] AC-07: `getOutputDirective()` produces `!to "<name>.prg", cbm` for C64
+- [x] AC-08: `getMainTerminationPolicy()` returns `canReturn: true` for C64
+- [x] AC-09: `validateProfile()` catches inconsistent profile fields (e.g., `zpStart > zpEnd`)
+- [x] AC-10: The plugin registry maps platform IDs to plugin instances
+- [x] AC-11: Unknown platform ID produces an actionable error listing available platforms
+- [ ] AC-12: CPU variant from the profile is used by RD-07 for opcode validation — DEFERRED (RD-07 driver wiring)
+- [x] AC-13: The `c64u` plugin extends C64 with additional capabilities
+- [x] AC-14: The `cx16` plugin sets `cpu: '65c02'` (canonical spelling `wdc65c02`, D2)
+- [x] AC-15: The `a7800` plugin sets `canReturn: false` for main termination
+- [ ] AC-16: T4 intrinsic descriptors from the plugin are merged into the intrinsic registry — DEFERRED (RD-17; `intrinsics: []`)
+- [ ] AC-17: Runtime `.asm` modules are discoverable for JSR-linking and dead-stripping — DEFERRED (RD-17; metadata only)
+- [x] AC-18: No platform-specific address, chip name, or encoding appears in core compiler code (P3)
+- [x] AC-19: Unit tests validate profile data for all 5 built-in platforms (AR-22 tier 1)
+- [x] AC-20: All decisions trace to an `AR-NN` or a frozen spec section
 
 ---
 

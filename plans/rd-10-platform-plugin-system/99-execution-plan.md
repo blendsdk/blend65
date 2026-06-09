@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-06-09 22:32
-> **Progress**: 8/19 tasks (42%)
+> **Last Updated**: 2026-06-09 23:17
+> **Progress**: 19/19 tasks (100%) — COMPLETE
 
 
 > **CodeOps Version**: (unstamped — no `codeops-mcp` dependency in this repo; consistent with RD-01..RD-07b)
@@ -116,19 +116,19 @@ Spec-tests-first throughout. No git operations (D5) — the user commits.
 
 
 ### Phase 2: C64 plugin + hooks
-- [ ] 2.1.1 Write ST-C64-1..10 spec tests (goldens from spec + printInstr)
-- [ ] 2.1.2 Verify ST-C64-1..10 RED
-- [ ] 2.1.3 Implement `c64.ts` (profile + 6 hooks + metadata)
-- [ ] 2.1.4 Verify ST-C64-1..10 GREEN + full verify
-- [ ] 2.1.5 Write C64 impl tests
+- [x] 2.1.1 Write ST-C64-1..10 spec tests (goldens from spec + printInstr) ✅ (completed: 2026-06-09 23:05) — `c64.spec.test.ts` (11 cases); codegen added as devDependency + tsconfig ref (test-only `printInstr` import; R15 unaffected)
+- [x] 2.1.2 Verify ST-C64-1..10 RED ✅ (completed: 2026-06-09 23:07) — suite fails to load (no `c64.js`)
+- [x] 2.1.3 Implement `c64.ts` (profile + 6 hooks + metadata) ✅ (completed: 2026-06-09 23:07) — `$01` port via verbatim `symbolRef("$01")`; BASIC stub per §4.5 (no new ambiguity)
+- [x] 2.1.4 Verify ST-C64-1..10 GREEN + full verify ✅ (completed: 2026-06-09 23:09) — 11/11 green; 40/40 turbo tasks; R15 3/3; spec/ clean
+- [x] 2.1.5 Write C64 impl tests ✅ (completed: 2026-06-09 23:09) — `c64.impl.test.ts` (7 cases); vitest glob widened to `{spec,impl}`
 
 ### Phase 3: Registry + built-in profiles + closeout
-- [ ] 3.1.1 Write ST-REG1..4 + ST-PROF1..6 spec tests
-- [ ] 3.1.2 Verify RED
-- [ ] 3.1.3 Implement c64u/cx16/a800xl/a7800 profiles (from appendices)
-- [ ] 3.1.4 Implement registry/loader + index exports
-- [ ] 3.1.5 Verify GREEN + R15 boundary + spec/ clean
-- [ ] 3.1.6 Annotate RD-10 requirements status banner + tick ACs
+- [x] 3.1.1 Write ST-REG1..4 + ST-PROF1..6 spec tests ✅ (completed: 2026-06-09 23:12) — `registry.spec.test.ts` (4) + `profiles.spec.test.ts` (6)
+- [x] 3.1.2 Verify RED ✅ (completed: 2026-06-09 23:12) — both suites fail to load (no registry/profile modules)
+- [x] 3.1.3 Implement c64u/cx16/a800xl/a7800 profiles (from appendices) ✅ (completed: 2026-06-09 23:15) — profiles transcribed from frozen §10 blocks; hooks delegate via `shared-hooks.ts` (D4); a7800 canReturn=false (AC-15)
+- [x] 3.1.4 Implement registry/loader + index exports ✅ (completed: 2026-06-09 23:15) — `registry.ts` + rewritten `index.ts`; smoke test updated off removed `VERSION`
+- [x] 3.1.5 Verify GREEN + R15 boundary + spec/ clean ✅ (completed: 2026-06-09 23:16) — platforms 30 tests; 40/40 turbo tasks; R15 3/3; spec/ clean
+- [x] 3.1.6 Annotate RD-10 requirements status banner + tick ACs ✅ (completed: 2026-06-09 23:17) — status 🔵 Implemented (slice); AC-01..11/13/14/15/18/19/20 ticked; AC-12/16/17 deferred (RD-07/RD-17)
 
 ---
 
