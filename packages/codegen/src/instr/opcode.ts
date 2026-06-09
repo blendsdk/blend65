@@ -1,51 +1,12 @@
 /**
- * The 6502 opcode (mnemonic) set — RD-07 §4.1, R3.
+ * Re-export shim — the 6502 opcode model now lives in `@blend65/core` (RD-10
+ * D7/D8). This file preserves the historical `./opcode.js` import path used
+ * across `instr/` so RD-07a/07b code and tests resolve unchanged **by value**.
  *
- * Opcodes are declared as `as const` value tuples (mirroring the IL's `IL_OPS`)
- * so the {@link Opcode} string union is *generated* from the runtime value set
- * and can never drift from it. The NMOS and 65C02 subsets are exported
- * separately so the CPU legality table (03-02) can partition legality by
- * variant: NMOS targets reject the 65C02-only mnemonics entirely (R16).
- *
- * This module is pure data — no behavior. Validation lives in `validate.ts`,
- * serialization in `print-instr.ts`.
+ * The definitions moved to `@blend65/core/instr-model/opcode.ts` (surfaced via
+ * the `@blend65/core/platform` subpath) so the platform plugin interface, which
+ * lives in core, can reference the model without a core→codegen dependency.
  */
 
-/**
- * The 56 NMOS 6502 mnemonics (R3), in canonical alphabetical order.
- *
- * This is the universal instruction set available on every 6502 target. Any
- * opcode outside this set is a 65C02 extension and is gated behind
- * `cpuVariant === "wdc65c02"` by the CPU table (R16).
- */
-export const NMOS_OPCODES = [
-  "ADC", "AND", "ASL", "BCC", "BCS", "BEQ", "BIT", "BMI", "BNE", "BPL",
-  "BRK", "BVC", "BVS", "CLC", "CLD", "CLI", "CLV", "CMP", "CPX", "CPY",
-  "DEC", "DEX", "DEY", "EOR", "INC", "INX", "INY", "JMP", "JSR", "LDA",
-  "LDX", "LDY", "LSR", "NOP", "ORA", "PHA", "PHP", "PLA", "PLP", "ROL",
-  "ROR", "RTI", "RTS", "SBC", "SEC", "SED", "SEI", "STA", "STX", "STY",
-  "TAX", "TAY", "TSX", "TXA", "TXS", "TYA",
-] as const;
-
-/**
- * The 8 65C02-only mnemonics (R3) — legal only when `cpuVariant === "wdc65c02"`.
- *
- * These are the WDC 65C02 additions Blend65 models (push/pull X/Y, branch-always,
- * store-zero, test-and-reset/set bits). On an NMOS target they are illegal and
- * the validator raises an ICE if codegen ever emits one (R16).
- */
-export const W65C02_OPCODES = [
-  "BRA", "PHX", "PHY", "PLX", "PLY", "STZ", "TRB", "TSB",
-] as const;
-
-/**
- * Every opcode the model can represent (NMOS ∪ 65C02).
- *
- * The full union the {@link Opcode} type is derived from. Variant gating is a
- * *legality* concern (the CPU table), not a *representability* concern: the model
- * can hold any opcode; the validator decides whether it is legal on the target.
- */
-export const OPCODES = [...NMOS_OPCODES, ...W65C02_OPCODES] as const;
-
-/** The typed union of all 6502 mnemonics (R3). */
-export type Opcode = (typeof OPCODES)[number];
+export type { Opcode } from "@blend65/core/platform";
+export { OPCODES, NMOS_OPCODES, W65C02_OPCODES } from "@blend65/core/platform";

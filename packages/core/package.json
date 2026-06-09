@@ -9,8 +9,13 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./platform": {
+      "types": "./dist/platform/index.d.ts",
+      "default": "./dist/platform/index.js"
     }
   },
+
   "scripts": {
     "build": "tsc --build",
     "typecheck": "tsc --noEmit",
