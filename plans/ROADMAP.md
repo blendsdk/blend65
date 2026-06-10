@@ -5,18 +5,18 @@
 > `requirements/README.md` (the RD index) and `spec/build-plan.md` (the spec build plan,
 > already complete).
 >
-> **This file is authoritative for implementation status.** It is governed by the
-> mandatory rule `.clinerules/roadmap.md` — read it at the start of every task and update
-> it whenever an RD reaches 100%.
+> **This file lives at `plans/ROADMAP.md` and is authoritative for implementation status.**
+> It is governed by the mandatory rule `.clinerules/roadmap.md` — read it at the start of
+> every task and update it whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-06-09
+> **Last Updated**: 2026-06-10
 
 ---
 
 ## Current Position
 
-- **Last completed**: RD-10 (Platform plugin system — slice; uncommitted pending user `git`).
-- **Next up**: **RD-07c** (codegen remainder) — begin with its preflight.
+- **Last completed**: RD-07c (codegen platform preamble — Half A; uncommitted pending user `git`).
+- **Next up**: **RD-09** (ACME emitter & assembler integration) — needs `make_plan`, then preflight.
 
 ---
 
@@ -53,6 +53,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 | RD-06 | IL & IL optimizer (walking-skeleton slice) | `plans/rd-06-il-optimizer/` | ✅ COMPLETE |
 | RD-07a | Structured `Instr` model | `plans/rd-07a-instr-model/` | ✅ COMPLETE |
 | RD-07b | IL→Instr live-op-set slice | `plans/rd-07b-il-to-instr/` | ✅ COMPLETE |
+| RD-07c | Codegen platform preamble (Half A) | `plans/rd-07c-codegen-platform-preamble/` | ✅ COMPLETE (uncommitted) |
 | RD-10 | Platform plugin system (slice) | `plans/rd-10-platform-plugin-system/` | ✅ COMPLETE (uncommitted) |
 | RD-11a | Diagnostics core | `plans/rd-11a-diagnostics-core/` | ✅ COMPLETE |
 
@@ -65,16 +66,15 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-07c | Codegen remainder (platform hooks, multi-block CFG, calling convention, interrupts, for-loops, InstrProgram preamble) | RD-07b, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 2 | RD-09 | ACME emitter & assembler integration | RD-07, RD-08, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 3 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 4 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 5 | RD-15 | Programmatic + CLI API | RD-01 (+ pipeline) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 6 | RD-12 | Test harness & emulator verification | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 7 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a | ❌ needs `make_plan` | A | ⬜ Not started |
-| 8 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
-| 9 | RD-08 | Peephole optimizer | RD-07 | ❌ needs `make_plan` | B | ⬜ Not started |
-| 10 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
+| 1 | RD-09 | ACME emitter & assembler integration | RD-07, RD-08, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 2 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 3 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 4 | RD-15 | Programmatic + CLI API | RD-01 (+ pipeline) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 5 | RD-12 | Test harness & emulator verification | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 6 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a | ❌ needs `make_plan` | A | ⬜ Not started |
+| 7 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
+| 8 | RD-08 | Peephole optimizer | RD-07 | ❌ needs `make_plan` | B | ⬜ Not started |
+| 9 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
 > **MVP gate (AR-43/44):** the Phase-A chain (through RD-12) exists to compile the gate
 > program — `poke` a constant on c64 → `.prg` → VICE asserts the result — and prove a

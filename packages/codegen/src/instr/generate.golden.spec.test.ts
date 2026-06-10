@@ -37,7 +37,7 @@ describe("Specification: RD-07b end-to-end goldens (ST-G1..G3)", () => {
     const { text, bag } = pipeline(addFixture);
     expect(text).toBe(
       [
-        "Math.add:",
+        "Math_add:",
         "    LDA __frame_Math_add_a",
         "    CLC",
         "    ADC __frame_Math_add_b",
@@ -52,7 +52,7 @@ describe("Specification: RD-07b end-to-end goldens (ST-G1..G3)", () => {
     const { text, bag } = pipeline(slice2Fixture);
     expect(text).toBe(
       [
-        "Main.main:",
+        "_main:",
         "    LDA #$05",
         "    STA __frame_Main_main_c",
         "    LDA __frame_Main_main_c",
@@ -68,7 +68,7 @@ describe("Specification: RD-07b end-to-end goldens (ST-G1..G3)", () => {
     const { text, bag } = pipeline(eqFixture);
     expect(text).toBe(
       [
-        "Math.eq:",
+        "Math_eq:",
         "    LDA __frame_Math_eq_a",
         "    CMP __frame_Math_eq_b",
         "    LDA #$01",

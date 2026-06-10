@@ -5,14 +5,14 @@
 > **Status**: Mandatory — applies to every task in this repository, alongside the CodeOps
 > rules (`.clinerules/project.md`) and the Language Guard (`.clinerules/language-guard.md`).
 
-The repository has a single living implementation tracker: **`ROADMAP.md`** at the repo
-root. It is authoritative for *implementation status* (what is done, what is next).
+The repository has a single living implementation tracker: **`plans/ROADMAP.md`**. It is
+authoritative for *implementation status* (what is done, what is next).
 
 ---
 
 ## Rule 1 — Read the roadmap first
 
-At the **start of every task**, read `ROADMAP.md` to determine:
+At the **start of every task**, read `plans/ROADMAP.md` to determine:
 
 - the **Current Position** (last completed RD + next up),
 - which RD the work belongs to, and
@@ -43,10 +43,10 @@ preflight  →  make_plan  →  preflight  →  exec_plan
 
 ## Rule 3 — Keep the roadmap updated (never let it drift)
 
-`ROADMAP.md` MUST stay in sync with the plan headers. As part of the same change set:
+`plans/ROADMAP.md` MUST stay in sync with the plan headers. As part of the same change set:
 
 - When an RD's `plans/<rd-slug>/99-execution-plan.md` reaches **100%**, move its row from
-  **Pending** to **Done** in `ROADMAP.md`.
+  **Pending** to **Done** in `plans/ROADMAP.md`.
 - Update the **Current Position** block (last completed + next up).
 - When `make_plan` creates a new plan directory, update that RD's "Plan dir" cell.
 - Bump **Last Updated**.
@@ -58,7 +58,7 @@ finishing the work. A task that completes an RD but leaves the roadmap stale is 
 
 ## Rule 4 — Ownership boundaries
 
-- `ROADMAP.md` owns **status** (done / pending / current position).
+- `plans/ROADMAP.md` owns **status** (done / pending / current position).
 - `requirements/README.md` owns **dependencies and RD scope**.
 - If the two diverge, reconcile in favor of `requirements/README.md` for dependencies, and
-  fix `ROADMAP.md` status to match the real plan headers.
+  fix `plans/ROADMAP.md` status to match the real plan headers.

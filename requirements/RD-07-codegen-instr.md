@@ -12,13 +12,18 @@
 > arithmetic/bitwise/shift/comparison binary ops, `mul`/`div`/`mod` call-sites and `ret`
 > (R17–R28/R32, both widths), register binding (R40–R45), `InstrProgram` assembly +
 > `generateInstr` taking `cpuVariant` (R55–R61), and source-span propagation (R50–R51).
-> The genuinely-blocked remainder — platform hooks (R46–R49, blocked on RD-10), the IL ops
-> no live lowering emits, multi-block CFG, and the `InstrProgram` preamble — is deferred to
-> **RD-07c** (same AR-38 slice discipline). See `plans/rd-07b-il-to-instr/` for the slice
-> rationale and the D1–D10 decision log. See `plans/rd-07a-instr-model/` for the split
-> rationale.
+> **RD-07c** (slice implemented, plan `rd-07c-codegen-platform-preamble`) ships **Half A**:
+> the additive `assembleProgram(ilProgram, plugin, bag)` wrapper that fills the
+> `InstrProgram.preamble` from the RD-10 plugin's `emitPreamble` hook (R46–R49/R55), plus the
+> entry-function `_main` label + `.`→`_` sanitization of all other function labels (R47). The
+> genuinely-blocked remainder — **Half B**: the IL ops no live lowering emits, multi-block
+> CFG, the calling convention, interrupt prologue/epilogue, for-loop patterns A/B, and the
+> `JSR _main` fall-through optimization — stays deferred until RD-06 widens its lowering.
+> See `plans/rd-07c-codegen-platform-preamble/` for the Half-A/B split and the D1–D10
+> decision log; `plans/rd-07b-il-to-instr/` for the live-op-set slice; `plans/rd-07a-instr-model/`
+> for the original split rationale.
 
-> **Status**: 🟡 Partially implemented (RD-07a done; RD-07b live-op-set slice done; RD-07c pending)
+> **Status**: 🟡 Partially implemented (RD-07a done; RD-07b live-op-set slice done; RD-07c Half A done; RD-07c Half B — deferred IL ops/multi-block CFG/calling convention/interrupts/for-loops/fall-through — pending RD-06 widening)
 
 > **MVP Phase**: A
 > **Depends On**: RD-06, RD-10
@@ -28,7 +33,7 @@
 > **Owning package(s)**: `@blend65/codegen` (IL→Instr translation, Instr model,
 >   register allocator, CPU validation)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-06-10
 
 ---
 
@@ -459,7 +464,7 @@ function validateInstr(instr: StreamEntry, cpu: CpuTable, bag: DiagnosticBag): v
 - [x] AC-11: The `byteSelect` modifier produces correct ACME `<sym`/`>sym` syntax (RD-07a; consumed by 07b word const/load)
 - [x] AC-12: Source spans propagate from IL (`source_span`) through to `Instr.sourceSpan` (lead instr, R50)
 - [x] AC-13: The `InstrProgram` is deterministic: same IL → same output
-- [ ] AC-14: Platform codegen hooks — RD-07c + RD-10 (preamble is empty in the slice)
+- [x] AC-14: Platform codegen hooks — RD-07c Half A: `assembleProgram` fills `InstrProgram.preamble` from the RD-10 plugin's `emitPreamble` hook (origin/`!to`/startup shim); the entry function is labelled `_main` and other labels sanitized (R46–R49/R55/R47). Startup-shim *variant analysis* (R49) uses the Half-A rule (single-block entry ⇒ terminating); real CFG termination + fall-through is Half B
 - [x] AC-15: Functions with no IL (error tolerance) produce no `InstrStream`
 - [x] AC-16: Cost warnings (W10170/W10171/W10172) are emitted for expensive operations
 - [x] AC-17: Unit tests cover Instr translation for the **live** IL instruction kinds (AR-22 tier 1)

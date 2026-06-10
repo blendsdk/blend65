@@ -741,10 +741,46 @@ function readOperands(ins: ILInstruction): readonly ILOperand[] {
   }
 }
 
-/** Sanitize a fully-qualified function name into an ACME label (`Module.fn`). */
-function sanitize(name: string): string {
-  return name;
+/** The unqualified entry-point function name (spec Ch 10 — exactly one `main`). */
+const ENTRY_FUNCTION = "main";
+
+/** The special ACME label for the program entry point (RD-09 R15/R19, RD-10 §4.6). */
+const ENTRY_LABEL = "_main";
+
+/**
+ * The ACME-legal label for a function stream (R47/R15, RD-07c D4):
+ *   - the unique entry function (fqName whose bare name is `main`) → `_main`,
+ *     resolving the c64 startup shim's `JSR _main`;
+ *   - every other `Module.function` → `Module_function` (`.`→`_`).
+ *
+ * Only `[A-Za-z0-9_]` survive the `.`→`_` rewrite, so the result is always a legal
+ * ACME label; the `__` prefix stays reserved for compiler-generated symbols (frame
+ * homes, startup) and is never produced here.
+ *
+ * @param fqName The fully-qualified function name (`"Module.function"`).
+ * @returns The sanitized ACME label.
+ */
+function sanitize(fqName: string): string {
+  if (isEntryFunction(fqName)) {
+    return ENTRY_LABEL;
+  }
+  return fqName.replaceAll(".", "_");
 }
+
+/**
+ * True when `fqName` names the program entry point — its bare (unqualified) name
+ * is `main` (RD-07c D4). Multiple/zero `main` functions are a semantic error caught
+ * upstream in RD-04 (E10020/E10021); this maps purely by bare name.
+ *
+ * @param fqName The fully-qualified function name (`"Module.function"`).
+ * @returns `true` when the bare name is `main`.
+ */
+function isEntryFunction(fqName: string): boolean {
+  const dot = fqName.lastIndexOf(".");
+  const bare = dot >= 0 ? fqName.slice(dot + 1) : fqName;
+  return bare === ENTRY_FUNCTION;
+}
+
 
 /**
  * The exact base-2 logarithm of `n` when `n` is a power of two (≥ 1), else

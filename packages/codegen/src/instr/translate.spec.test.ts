@@ -113,7 +113,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
       { kind: "ret", value: temp(0, IL_BYTE) },
       { returnType: IL_BYTE },
     );
-    expect(text).toBe(["M.f:", "    LDA V", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA V", "    RTS"].join("\n"));
     expect(bag.hasErrors()).toBe(false);
   });
 
@@ -126,7 +126,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
       ],
       { kind: "ret" },
     );
-    expect(text).toBe(["M.f:", "    LDA #$42", "    STA V", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA #$42", "    STA V", "    RTS"].join("\n"));
   });
 
   // ST-T3 — load t0,[V] (word) → LDA V + LDX V+1.
@@ -136,7 +136,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
       { kind: "ret", value: temp(0, IL_WORD) },
       { returnType: IL_WORD },
     );
-    expect(text).toBe(["M.f:", "    LDA V", "    LDX V+1", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA V", "    LDX V+1", "    RTS"].join("\n"));
   });
 
   // ST-T4 — store v,[V] (word) → STA V + STX V+1.
@@ -149,7 +149,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M.f:", "    LDA #$01", "    LDX #$08", "    STA V", "    STX V+1", "    RTS"].join("\n"),
+      ["M_f:", "    LDA #$01", "    LDX #$08", "    STA V", "    STX V+1", "    RTS"].join("\n"),
     );
   });
 
@@ -160,7 +160,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
       { kind: "ret", value: temp(0, IL_BYTE) },
       { returnType: IL_BYTE },
     );
-    expect(text).toBe(["M.f:", "    LDA #$42", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA #$42", "    RTS"].join("\n"));
   });
 
   // ST-T6 — const t0, imm(0x0801:word) → LDA #$01 + LDX #$08 (lo/hi bytes).
@@ -170,7 +170,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
       { kind: "ret", value: temp(0, IL_WORD) },
       { returnType: IL_WORD },
     );
-    expect(text).toBe(["M.f:", "    LDA #$01", "    LDX #$08", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA #$01", "    LDX #$08", "    RTS"].join("\n"));
   });
 });
 
@@ -187,7 +187,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M.f:", "    LDA a", "    CLC", "    ADC b", "    STA r", "    RTS"].join("\n"),
+      ["M_f:", "    LDA a", "    CLC", "    ADC b", "    STA r", "    RTS"].join("\n"),
     );
     expect(bag.hasErrors()).toBe(false);
   });
@@ -204,7 +204,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M.f:", "    LDA a", "    SEC", "    SBC b", "    STA r", "    RTS"].join("\n"),
+      ["M_f:", "    LDA a", "    SEC", "    SBC b", "    STA r", "    RTS"].join("\n"),
     );
   });
 
@@ -221,7 +221,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
     );
     expect(text).toBe(
       [
-        "M.f:",
+        "M_f:",
         "    LDA a",
         "    CLC",
         "    ADC b",
@@ -250,7 +250,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M.f:", "    LDA a", `    ${opcode} b`, "    STA r", "    RTS"].join("\n"),
+      ["M_f:", "    LDA a", `    ${opcode} b`, "    STA r", "    RTS"].join("\n"),
     );
   });
 
@@ -265,7 +265,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M.f:", "    LDA a", "    ASL A", "    ASL A", "    STA r", "    RTS"].join("\n"),
+      ["M_f:", "    LDA a", "    ASL A", "    ASL A", "    STA r", "    RTS"].join("\n"),
     );
   });
 });
@@ -311,7 +311,7 @@ describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
   // ST-T20 — ret (void) → RTS.
   it("translates a void ret into RTS (ST-T20)", () => {
     const { text } = render([], { kind: "ret" });
-    expect(text).toBe(["M.f:", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    RTS"].join("\n"));
   });
 
   // ST-T21 — ret v (byte) → LDA v + RTS.
@@ -321,7 +321,7 @@ describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
       { kind: "ret", value: temp(0, IL_BYTE) },
       { returnType: IL_BYTE },
     );
-    expect(text).toBe(["M.f:", "    LDA #$07", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA #$07", "    RTS"].join("\n"));
   });
 
   // ST-T22 — ret v (word) → LDA v_lo + LDX v_hi + RTS.
@@ -331,13 +331,13 @@ describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
       { kind: "ret", value: temp(0, IL_WORD) },
       { returnType: IL_WORD },
     );
-    expect(text).toBe(["M.f:", "    LDA v", "    LDX v+1", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA v", "    LDX v+1", "    RTS"].join("\n"));
   });
 
   // ST-T23 — ret in an isInterrupt function → RTI, not RTS.
   it("translates a ret in an interrupt handler into RTI (ST-T23)", () => {
     const { text } = render([], { kind: "ret" }, { isInterrupt: true });
-    expect(text).toBe(["M.f:", "    RTI"].join("\n"));
+    expect(text).toBe(["M_f:", "    RTI"].join("\n"));
   });
 });
 
@@ -400,7 +400,7 @@ describe("Specification: translator — comparison 0/1 materialisation (ST-T13, 
     );
     expect(text).toBe(
       [
-        "M.f:",
+        "M_f:",
         "    LDA a",
         "    CMP b",
         "    LDA #$01",
@@ -438,7 +438,7 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
       ],
       { kind: "ret" },
     );
-    expect(text).toBe(["M.f:", "    LDA #$0C", "    STA r", "    RTS"].join("\n"));
+    expect(text).toBe(["M_f:", "    LDA #$0C", "    STA r", "    RTS"].join("\n"));
     expect(bag.getWarnings()).toHaveLength(0);
     expect(bag.hasErrors()).toBe(false);
   });
@@ -454,7 +454,7 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M.f:", "    LDA a", "    ASL A", "    ASL A", "    ASL A", "    STA r", "    RTS"].join("\n"),
+      ["M_f:", "    LDA a", "    ASL A", "    ASL A", "    ASL A", "    STA r", "    RTS"].join("\n"),
     );
     expect(bag.getWarnings().map((w) => w.code)).toContain(DiagCode.ShiftAndAddMultiply);
   });

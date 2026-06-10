@@ -50,6 +50,7 @@ export { isLegalMode, validateStream } from "./validate.js";
 export { printInstr, instrByteSize } from "./print-instr.js";
 
 // IL→Instr translation entry point + program container (RD-07b, §4.3/§4.7)
+// + the RD-07c platform-preamble assembler wrapper (Half A).
 export type { InstrProgram } from "./instr-program.js";
-export { generateInstr, programByteSize } from "./instr-program.js";
+export { generateInstr, assembleProgram, programByteSize } from "./instr-program.js";
 

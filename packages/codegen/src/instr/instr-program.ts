@@ -18,6 +18,7 @@
 
 import type { DiagnosticBag } from "@blend65/core";
 import type { AllocationPlan } from "@blend65/core";
+import type { PlatformPlugin, PreambleOptions } from "@blend65/core/platform";
 
 import type { ILProgram } from "../il/cfg.js";
 import type { CpuVariant, InstrStream, StreamEntry } from "./stream.js";
@@ -85,6 +86,67 @@ export function generateInstr(
     streams: Object.freeze(streams),
     allocationPlan: plan,
   });
+}
+
+/**
+ * Assemble a complete, platform-prefixed program: run {@link generateInstr} for the
+ * plugin's CPU variant, then populate the preamble from the plugin's `emitPreamble`
+ * hook (RD-07c D2; R46/R47/R55). `generateInstr` is **unchanged** — this wrapper is
+ * the additive seam RD-07b documented, so the existing RD-08/RD-09 consumers of
+ * `generateInstr` are untouched.
+ *
+ * The wrapper derives the CPU variant from `plugin.profile.cpu` (the canonical
+ * {@link CpuVariant} shared by the validation tables and the platform profiles) and
+ * the {@link PreambleOptions} from the IL program (see {@link derivePreambleOptions},
+ * D3). It does not alter the function streams or the allocation plan — only the
+ * preamble is added.
+ *
+ * @param ilProgram The (optimized) IL program (RD-06) — carries its `AllocationPlan`.
+ * @param plugin The active platform plugin (RD-10) — supplies the CPU variant + preamble.
+ * @param bag Diagnostic sink (cost warnings + ICEs from translation).
+ * @returns A frozen {@link InstrProgram} with a populated `preamble`.
+ */
+export function assembleProgram(
+  ilProgram: ILProgram,
+  plugin: PlatformPlugin,
+  bag: DiagnosticBag,
+): InstrProgram {
+  // Reuse the unchanged back end for the function streams + validation (D2).
+  const program = generateInstr(ilProgram, plugin.profile.cpu, bag);
+  // Derive the shim/data options (D3) and ask the plugin for the preamble (RD-10).
+  const options = derivePreambleOptions(ilProgram);
+  const preamble = plugin.emitPreamble(options);
+  return Object.freeze({
+    preamble: Object.freeze([...preamble]),
+    streams: program.streams,
+    allocationPlan: program.allocationPlan,
+  });
+}
+
+/**
+ * Derive {@link PreambleOptions} from the IL program (RD-07c D3, the Half-A rule).
+ *
+ * SEAM (Half B): real `main`-termination + block-layout analysis is deferred — it
+ * needs the multi-block CFG that RD-06 does not yet lower. The Half-A rule below is
+ * correct for every program the live single-block lowering can currently produce:
+ *   - `shimVariant` = `"terminating"` — the entry function's single block ends in
+ *     `ret`, so the platform's terminating shim (restore + return) is always safe.
+ *   - `needsBssZero` = `false` — the live `AllocationPlan` does not yet expose a
+ *     distinct mutable/BSS region to key off, and the gate program has none.
+ *   - `needsDataInit` = whether the program carries const/initialised data to copy.
+ * When CFG lowering lands, the fall-through optimization (D8) and true termination
+ * analysis replace this rule.
+ *
+ * @param ilProgram The IL program to derive options from.
+ * @returns The preamble generation options for this slice.
+ */
+function derivePreambleOptions(ilProgram: ILProgram): PreambleOptions {
+  return {
+    projectName: "main", // FR-3: the RD-15 driver overrides this; no live driver yet.
+    shimVariant: "terminating", // FR-4: Half-A rule (single-block entry ends in ret).
+    needsBssZero: false, // FR-5: no distinct BSS region in the live plan/gate.
+    needsDataInit: ilProgram.constData.length > 0, // FR-5: copy const data when present.
+  };
 }
 
 /**
