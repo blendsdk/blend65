@@ -2,7 +2,12 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.spec.test.ts"],
+    // Discover both the spec tier (*.spec.test.ts) and the logic tier
+    // (*.impl.test.ts). RD-09 introduces the first compiler *.impl.test.ts
+    // (the acme/ process-layer tests), so the glob is widened here, mirroring the
+    // core package (AR-P8). The brace pattern is disjoint by filename suffix, so
+    // spec tests are not double-counted.
+    include: ["src/**/*.{spec,impl}.test.ts"],
     environment: "node",
     passWithNoTests: false,
   },

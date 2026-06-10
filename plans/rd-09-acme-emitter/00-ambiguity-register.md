@@ -1,6 +1,6 @@
 # Ambiguity Register: RD-09 ACME Emitter & Assembler Integration
 
-> **Status**: ✅ GATE PASSED — 1 item added during planning (AR-94) / 1 item added during execution-preflight (AR-95)
+> **Status**: ✅ GATE PASSED — 1 item added during planning (AR-94) / 2 items added during execution (AR-95, AR-96)
 > **Last Updated**: 2026-06-10
 > **Parent**: [Index](00-index.md)
 
@@ -31,6 +31,7 @@ fixed a behavior on them.
 |---|----------|----------------|-------------------|---------------|--------|
 | 94 | Technical (runtime) | RD §4.2 reads `allocationPlan.zpSymbols/frameSymbols/moduleVarSymbols` and `stream.segment === 'bss'`; the live `AllocationPlan` exposes a single flat `symbolDefinitions[]` and `InstrStream.segment` is `"code" \| "data" \| "zp"` (no `bss`). How should the serializer source symbol defs and order segments? | **1A** verbatim `symbolDefinitions` under one header / **1B** reconstruct 3 groups / **1C** prefix-sniff group comments · **2A** `code→data`, skip `zp`, no `bss` / **2B** empty BSS placeholder now | **1A + 2A** — least coupling to RD-05 naming internals, purely-additive BSS extension path, no future refactor debt | ✅ Resolved |
 | 95 | Testing (runtime) | ST-S8 requires `serializeToAcme`'s gate output to be **byte-identical** to the existing RD-07c golden **ST-AG1** (`packages/compiler/src/assemble.golden.spec.test.ts`). But ST-AG1 hand-composes `printInstr` and has **no** `; --- symbol definitions ---` header and **no** `; --- function: _main ---` comment, while `serializeToAcme` (R10, ST-S3, ST-S4, RD §4.8) **always** emits both. Two immutable oracles disagree. | **A** canonical = header-bearing (§4.8); migrate ST-AG1 to call `serializeToAcme`, +2 comment lines / **B** keep ST-AG1 frozen, drop the "equals ST-AG1" claim from ST-S8 (two independent goldens) / **C** strip section comments so `serializeToAcme` matches ST-AG1 (violates R10/ST-S3/ST-S4) | **A** — one canonical serializer (RD-09's charter, AR-60/AR-63/D4); only A satisfies R10+ST-S3+ST-S4+ST-S8 together; ST-AG1 migration is faithful (every instruction/preamble byte unchanged, +2 comment lines) and spec-aligned (§4.8 shows the header form) | ✅ Resolved |
+| 96 | Testing (runtime) | RD-09 widens `packages/codegen/vitest.config.ts` to the `{spec,impl}` glob so RD-09's own `serialize-acme.impl.test.ts` actually runs (mirroring the core package, AR-P8). This exposed **3 dormant pre-existing failures** in `translate.impl.test.ts` (RD-07b) that the spec-only glob had never executed: they assert the function label `M.f:`, but the shipped + spec-tested `sanitize()` (RD-07c D4) renders it `M_f:` (`.`→`_`, the same rule that produces `_main`). Is the test or the code wrong? | **1** fix the 3 stale expectations to `M_f:` / **2** keep codegen config spec-only (leave RD-09 impl tests un-run) / **3** change `sanitize` (would break the green ST-AG1 `_main` golden) | **1** — the code is correct and spec-tested; the dormant tests were stale oracles describing a label form that predates the RD-07c sanitize rule. Widening the glob is required so RD-09's impl tier runs | ✅ Resolved |
 
 ### Resolution Notes
 

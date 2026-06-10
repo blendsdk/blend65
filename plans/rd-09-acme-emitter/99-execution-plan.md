@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-06-10 14:29
-> **Progress**: 8/25 tasks (32%)
+> **Last Updated**: 2026-06-10 15:39
+> **Progress**: 25/25 tasks (100%)
 
 ## Overview
 
@@ -152,35 +152,35 @@ Phases 2–6 build the ACME process layer in `@blend65/compiler`. Each phase: wr
 - [x] 1.1.8 Full verification (incl. migrated ST-AG1 + boundary tier) ✅ (completed: 2026-06-10 14:29)
 
 ### Phase 2: ACME Discovery + diagnostic code
-- [ ] 2.1.1 Add `DiagCode.AcmeNotFound` + uniqueness assert
-- [ ] 2.1.2 Write spec tests ST-D1..D3
-- [ ] 2.1.3 Run spec tests — verify FAIL (red)
-- [ ] 2.1.4 Implement `discoverAcme`
-- [ ] 2.1.5 Verify PASS (green) + impl tests
+- [x] 2.1.1 Add `DiagCode.AcmeNotFound` + uniqueness assert ✅ (completed: 2026-06-10 15:03)
+- [x] 2.1.2 Write spec tests ST-D1..D3 ✅ (completed: 2026-06-10 15:04)
+- [x] 2.1.3 Run spec tests — verify FAIL (red) ✅ (completed: 2026-06-10 15:04)
+- [x] 2.1.4 Implement `discoverAcme` ✅ (completed: 2026-06-10 15:05)
+- [x] 2.1.5 Verify PASS (green) + impl tests ✅ (completed: 2026-06-10 15:06)
 
 ### Phase 3: Label-File Parser
-- [ ] 3.1.1 Write spec tests ST-L1..L3
-- [ ] 3.1.2 Run spec tests — verify FAIL (red)
-- [ ] 3.1.3 Implement `parseLabelFile`
-- [ ] 3.1.4 Verify PASS (green) + impl tests
+- [x] 3.1.1 Write spec tests ST-L1..L3 ✅ (completed: 2026-06-10 15:07)
+- [x] 3.1.2 Run spec tests — verify FAIL (red) ✅ (completed: 2026-06-10 15:07)
+- [x] 3.1.3 Implement `parseLabelFile` ✅ (completed: 2026-06-10 15:08)
+- [x] 3.1.4 Verify PASS (green) + impl tests ✅ (completed: 2026-06-10 15:08)
 
 ### Phase 4: ACME Invocation
-- [ ] 4.1.1 Write spec tests ST-I1..I3 (mock child_process)
-- [ ] 4.1.2 Run spec tests — verify FAIL (red)
-- [ ] 4.1.3 Implement `invokeAcme`
-- [ ] 4.1.4 Verify PASS (green) + impl tests
+- [x] 4.1.1 Write spec tests ST-I1..I3 (mock child_process) ✅ (completed: 2026-06-10 15:09)
+- [x] 4.1.2 Run spec tests — verify FAIL (red) ✅ (completed: 2026-06-10 15:09)
+- [x] 4.1.3 Implement `invokeAcme` ✅ (completed: 2026-06-10 15:10)
+- [x] 4.1.4 Verify PASS (green) + impl tests ✅ (completed: 2026-06-10 15:10)
 
 ### Phase 5: Emit Orchestration
-- [ ] 5.1.1 Write spec tests ST-E1, ST-E2 (mock invoke/fs)
-- [ ] 5.1.2 Run spec tests — verify FAIL (red)
-- [ ] 5.1.3 Implement `emitBinary`
-- [ ] 5.1.4 Verify PASS (green)
+- [x] 5.1.1 Write spec tests ST-E1, ST-E2 (mock invoke/fs) ✅ (completed: 2026-06-10 15:11)
+- [x] 5.1.2 Run spec tests — verify FAIL (red) ✅ (completed: 2026-06-10 15:13)
+- [x] 5.1.3 Implement `emitBinary` ✅ (completed: 2026-06-10 15:12)
+- [x] 5.1.4 Verify PASS (green) ✅ (completed: 2026-06-10 15:39)
 
 ### Phase 6: Budget Check + Artifacts
-- [ ] 6.1.1 Write spec test ST-E3 (budget `E10034`)
-- [ ] 6.1.2 Implement budget check; wire compiler barrel
-- [ ] 6.1.3 Verify PASS (green) + impl tests
-- [ ] 6.1.4 Full verification + ST-AG1/boundary intact
+- [x] 6.1.1 Write spec test ST-E3 (budget `E10034`) ✅ (completed: 2026-06-10 15:11)
+- [x] 6.1.2 Implement budget check; wire compiler barrel ✅ (completed: 2026-06-10 15:12)
+- [x] 6.1.3 Verify PASS (green) + impl tests ✅ (completed: 2026-06-10 15:39)
+- [x] 6.1.4 Full verification + ST-AG1/boundary intact ✅ (completed: 2026-06-10 15:39)
 
 ---
 

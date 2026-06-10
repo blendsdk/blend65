@@ -99,7 +99,7 @@ describe("translator — 16-bit sub borrow chain", () => {
     );
     expect(text).toBe(
       [
-        "M.f:",
+        "M_f:",
         "    LDA a",
         "    SEC",
         "    SBC b",
@@ -189,7 +189,7 @@ describe("translator — constant-fold multiply edge values", () => {
       "nmos6502",
       bag,
     );
-    expect(printInstr(stream)).toBe(["M.f:", "    LDA #$00", "    STA r", "    RTS"].join("\n"));
+    expect(printInstr(stream)).toBe(["M_f:", "    LDA #$00", "    STA r", "    RTS"].join("\n"));
     expect(bag.getWarnings()).toHaveLength(0);
   });
 
@@ -207,6 +207,6 @@ describe("translator — constant-fold multiply edge values", () => {
       "nmos6502",
       bag,
     );
-    expect(printInstr(stream)).toBe(["M.f:", "    LDA #$90", "    STA r", "    RTS"].join("\n"));
+    expect(printInstr(stream)).toBe(["M_f:", "    LDA #$90", "    STA r", "    RTS"].join("\n"));
   });
 });

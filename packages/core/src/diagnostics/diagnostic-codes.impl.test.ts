@@ -109,6 +109,24 @@ describe("Parser diagnostic codes (ST-P2b)", () => {
   });
 });
 
+describe("Tooling diagnostic codes (RD-09, AR-62)", () => {
+  // Source: plans/rd-09-acme-emitter/03-02-acme-process-layer.md Gap 4.
+  // RD-09 adds the single tooling code E10035 (ACME not found) as the next free
+  // code after the E10034 resource limit. Pin it and guard uniqueness.
+  it("maps AcmeNotFound to the next free resource/tooling code E10035", () => {
+    expect(DiagCode.AcmeNotFound).toBe("E10035");
+  });
+
+  it("keeps E10035 distinct from the E10034 binary-too-large code", () => {
+    expect(DiagCode.AcmeNotFound).not.toBe(DiagCode.BinaryTooLarge);
+  });
+
+  it("does not duplicate E10035 anywhere in the registry", () => {
+    const codes = Object.values(DiagCode);
+    expect(codes.filter((c) => c === "E10035")).toHaveLength(1);
+  });
+});
+
 describe("isIceCode / IceCode band (ST-14)", () => {
   it("classifies an ICE code as in-band", () => {
     expect(isIceCode("E90001")).toBe(true);

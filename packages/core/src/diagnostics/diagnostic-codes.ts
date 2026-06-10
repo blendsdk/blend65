@@ -38,6 +38,11 @@ export const DiagCode = {
   ZpBudgetExceeded: "E10032",
   RamBudgetExceeded: "E10033",
   BinaryTooLarge: "E10034",
+  // Tooling (RD-09, AR-62): ACME assembler not discoverable. Ch 14 leaves the
+  // resource/tooling band open after E10034; RD-09 claims the next free code
+  // E10035 for the actionable "ACME not found" build error (the single additive
+  // core change RD-09 introduces; 03-02-acme-process-layer.md Gap 4).
+  AcmeNotFound: "E10035",
   // Intrinsics
   ArgsToParameterlessIntrinsic: "E10040",
   WrongIntrinsicArgCount: "E10041",

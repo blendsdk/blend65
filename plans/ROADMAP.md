@@ -9,7 +9,7 @@
 > It is governed by the mandatory rule `.clinerules/roadmap.md` — read it at the start of
 > every task and update it whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-06-10 14:17
+> **Last Updated**: 2026-06-10 15:39
 
 
 ---
@@ -17,14 +17,16 @@
 ## Current Position
 
 
-- **Last completed**: RD-08 (peephole optimizer — passthrough v1, AR-38). Plan preflight ✅ PASS,
-  executed to 100% (`plans/rd-08-peephole-optimizer/99-execution-plan.md`): `optimizeInstr` +
-  `validateProgramStructure` + the `PeepholeRule` contract shipped in `@blend65/codegen`, ST-1..ST-12
-  spec tests + impl tests green, full verify passing.
-- **In progress**: **RD-09** (ACME emitter & assembler integration) — declared dependencies RD-07,
-  RD-08 (✅), RD-10 (✅). Plan preflight ✅ PASS (2026-06-10, AR-95 runtime resolved: option A —
-  `serializeToAcme` is the single canonical output, ST-AG1 migrated to call it). Now **executing**
-  `plans/rd-09-acme-emitter/` (6 phases, 25 tasks) — Phase 1 (`serializeToAcme`) in progress.
+- **Last completed**: **RD-09** (ACME emitter & assembler integration). Plan preflight ✅ PASS
+  (2026-06-10; AR-95 + AR-96 runtime resolved), executed to 100%
+  (`plans/rd-09-acme-emitter/99-execution-plan.md`, 25/25 tasks): `serializeToAcme` (the single
+  canonical whole-program serializer, `@blend65/codegen`) + the `@blend65/compiler` ACME process
+  layer (`discoverAcme`, `parseLabelFile`, `invokeAcme`, `emitBinary` with the post-ACME
+  `E10034` budget check), new `DiagCode.AcmeNotFound` (E10035), ST-AG1 migrated to the canonical
+  serializer (AR-95/A), all spec + impl tiers green, full verify passing.
+- **Next up**: **RD-17** (intrinsics & runtime ABI) — declared dependencies RD-04 (✅), RD-10 (✅);
+  the MVP gate `poke` lives here. Needs `make_plan`. Workflow: preflight → make_plan → preflight →
+  exec_plan.
 
 
 
@@ -70,6 +72,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 | RD-10 | Platform plugin system (slice) | `plans/_archive/rd-10-platform-plugin-system/` | ✅ COMPLETE (uncommitted) |
 | RD-11a | Diagnostics core | `plans/_archive/rd-11a-diagnostics-core/` | ✅ COMPLETE |
 | RD-08 | Peephole optimizer (passthrough v1, AR-38) | `plans/rd-08-peephole-optimizer/` | ✅ COMPLETE (uncommitted) |
+| RD-09 | ACME emitter & assembler integration | `plans/rd-09-acme-emitter/` | ✅ COMPLETE (Phase 1 committed; Phases 2-6 uncommitted) |
 
 ---
 
@@ -81,20 +84,19 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-09 | ACME emitter & assembler integration | RD-07, RD-08, RD-10 | `plans/rd-09-acme-emitter/` | A | 🔄 Executing |
-| 2 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 3 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 4 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 5 | RD-12 | Test harness & emulator verification | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 6 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 7 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
-| 8 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
+| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 2 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 3 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 4 | RD-12 | Test harness & emulator verification | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 5 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 6 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
+| 7 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
 
-> **Why RD-09 leads now:** RD-08 (peephole passthrough v1) is ✅ done, completing the `Instr`
-> pipeline. `requirements/README.md` declares RD-09's dependencies as `RD-07, RD-08, RD-10`
-> (all ✅), so the ACME emitter can now consume the `Instr` stream. RD-08's full 11-rule
-> optimization catalog remains genuine Phase-B work to be layered in later.
+> **Why RD-17 leads now:** RD-09 (ACME emitter) is ✅ done, so the `Instr` stream now reaches a
+> runnable binary. RD-17 (intrinsics & runtime ABI) is next on the MVP critical path — the gate
+> program's `poke` intrinsic lives here, and its declared dependencies RD-04/RD-10 are both ✅.
+> RD-08's full 11-rule optimization catalog remains genuine Phase-B work to be layered in later.
 >
 > **MVP gate (AR-43/44):** the Phase-A chain (through RD-12) exists to compile the gate
 > program — `poke` a constant on c64 → `.prg` → VICE asserts the result — and prove a
