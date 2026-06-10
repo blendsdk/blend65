@@ -43,19 +43,22 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 ## Status — Done
 
+> Completed plans are archived under `plans/_archive/` to keep the active `plans/`
+> directory clean. The `Plan dir` paths below point at their archived locations.
+
 | RD | Title | Plan dir | Status |
 |----|-------|----------|--------|
-| RD-01 | Project scaffolding & toolchain | `plans/rd-01-project-scaffolding-toolchain/` | ✅ COMPLETE |
-| RD-02 | Lexer | `plans/rd-02-lexer/` | ✅ COMPLETE |
-| RD-03 | Parser & AST | `plans/rd-03-parser-ast/` | ✅ COMPLETE |
-| RD-04 | Semantic analysis & type system | `plans/rd-04-semantic-analysis/` | ✅ COMPLETE |
-| RD-05 | SFA frame planner & ZP allocator | `plans/rd-05-sfa-frame-planner/` | ✅ COMPLETE |
-| RD-06 | IL & IL optimizer (walking-skeleton slice) | `plans/rd-06-il-optimizer/` | ✅ COMPLETE |
-| RD-07a | Structured `Instr` model | `plans/rd-07a-instr-model/` | ✅ COMPLETE |
-| RD-07b | IL→Instr live-op-set slice | `plans/rd-07b-il-to-instr/` | ✅ COMPLETE |
-| RD-07c | Codegen platform preamble (Half A) | `plans/rd-07c-codegen-platform-preamble/` | ✅ COMPLETE (uncommitted) |
-| RD-10 | Platform plugin system (slice) | `plans/rd-10-platform-plugin-system/` | ✅ COMPLETE (uncommitted) |
-| RD-11a | Diagnostics core | `plans/rd-11a-diagnostics-core/` | ✅ COMPLETE |
+| RD-01 | Project scaffolding & toolchain | `plans/_archive/rd-01-project-scaffolding-toolchain/` | ✅ COMPLETE |
+| RD-02 | Lexer | `plans/_archive/rd-02-lexer/` | ✅ COMPLETE |
+| RD-03 | Parser & AST | `plans/_archive/rd-03-parser-ast/` | ✅ COMPLETE |
+| RD-04 | Semantic analysis & type system | `plans/_archive/rd-04-semantic-analysis/` | ✅ COMPLETE |
+| RD-05 | SFA frame planner & ZP allocator | `plans/_archive/rd-05-sfa-frame-planner/` | ✅ COMPLETE |
+| RD-06 | IL & IL optimizer (walking-skeleton slice) | `plans/_archive/rd-06-il-optimizer/` | ✅ COMPLETE |
+| RD-07a | Structured `Instr` model | `plans/_archive/rd-07a-instr-model/` | ✅ COMPLETE |
+| RD-07b | IL→Instr live-op-set slice | `plans/_archive/rd-07b-il-to-instr/` | ✅ COMPLETE |
+| RD-07c | Codegen platform preamble (Half A) | `plans/_archive/rd-07c-codegen-platform-preamble/` | ✅ COMPLETE (uncommitted) |
+| RD-10 | Platform plugin system (slice) | `plans/_archive/rd-10-platform-plugin-system/` | ✅ COMPLETE (uncommitted) |
+| RD-11a | Diagnostics core | `plans/_archive/rd-11a-diagnostics-core/` | ✅ COMPLETE |
 
 ---
 
