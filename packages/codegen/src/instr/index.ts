@@ -54,3 +54,7 @@ export { printInstr, instrByteSize } from "./print-instr.js";
 export type { InstrProgram } from "./instr-program.js";
 export { generateInstr, assembleProgram, programByteSize } from "./instr-program.js";
 
+// Peephole optimizer (RD-08, passthrough v1)
+export type { PeepholeRule, PeepholeOptions, InstrEntry } from "./peephole.js";
+export { optimizeInstr, validateProgramStructure, V1_RULES } from "./peephole.js";
+

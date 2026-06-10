@@ -1,17 +1,39 @@
 # RD-08: Peephole Optimizer
 
 > **Status**: 🟢 Authored
-> **MVP Phase**: B
+> **MVP Phase**: B (passthrough seam pulled into Phase A per `plans/ROADMAP.md`; the rule
+>   catalog remains Phase B) — preflight resolution PF-008
 > **Depends On**: RD-07
+
 > **Implements**: Language Guard F3 (optimizer-friendly); pipeline position per
 >   `README.md` §Compiler Pipeline ("Optimizer 2: peephole on Instr list, passthrough v1")
 > **Owning package(s)**: `@blend65/codegen`
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-06-10 (preflight iteration 2 — codebase-alignment corrections)
 
 ---
 
+> **📌 Preflight alignment note (2026-06-10).** RD-08 was authored 2026-05-31, before the
+> RD-07b/07c back end shipped. The preflight (`requirements/00-preflight-report.md`,
+> PF-001..PF-009) realigned this RD with the shipped `Instr` model. The load-bearing
+> corrections:
+> - **v1 scope is THIN PASSTHROUGH** (keystone): v1 returns the program structurally
+>   unchanged after a structural well-formedness check. The sliding-window **scanner**
+>   (§4.3), its iteration limit + ICE (R18/R31), and rule plumbing are **NOT built in v1** —
+>   they land with the first real rule (rules milestone). §4.3/§4.5/§4.6 are therefore
+>   **Phase-B (rules-milestone) material**, retained here as forward design only.
+> - **Public signature** (PF-001/003): `optimizeInstr(program, cpuVariant: CpuVariant, bag,
+>   options?)` — a bare `CpuVariant` primitive (NOT a `PlatformProfile`), mirroring
+>   `generateInstr`/`validateStream`. `rules` is an internal constant `V1_RULES = []`.
+> - **CpuVariant** (PF-002): import the canonical `"nmos6502" | "wdc65c02"` from
+>   `@blend65/core`; the 65C02 value is `"wdc65c02"` (NOT `'65c02'`).
+> - **Preamble** (PF-004): `preamble` + `allocationPlan` pass through **verbatim**; only
+>   `streams[].entries` are ever eligible.
+> Where the detailed §4 text below still shows the pre-correction shapes, the banner and the
+> inline ✅ notes are authoritative.
+
 ## 1. Purpose
+
 
 This document specifies the **peephole optimizer** — the compiler stage that rewrites
 short windows of the `Instr` stream into semantically equivalent but cheaper instruction
@@ -169,6 +191,12 @@ type CpuVariant = 'nmos6502' | '65c02';
 type InstrEntry = Extract<StreamEntry, { type: 'instr' }>;
 ```
 
+> **✅ PF-002 correction:** do NOT redefine `CpuVariant` here, and the 65C02 spelling is
+> wrong. Import the canonical type from `@blend65/core`:
+> `import type { CpuVariant } from "@blend65/core";` — its members are
+> `"nmos6502" | "wdc65c02"`. All `cpuCompat` comparisons are against this single type.
+
+
 ### 4.2 Optimizer Engine
 
 ```typescript
@@ -282,7 +310,38 @@ function optimizeInstr(program, profile, rules, options, bag): InstrProgram {
 }
 ```
 
+> **✅ PF-004 / PF-006 / THIN-PASSTHROUGH correction (authoritative v1 shape):**
+> v1 does NOT invoke the sliding-window scanner (§4.3). It validates structure and returns
+> the program with `preamble` and `allocationPlan` carried through **verbatim** — only
+> `streams[].entries` are ever eligible for future rewriting (PF-004):
+> ```typescript
+> const V1_RULES: PeepholeRule[] = []; // internal — no scanner is run while empty (PF-001)
+>
+> export function optimizeInstr(
+>   program: InstrProgram,
+>   cpuVariant: CpuVariant,
+>   bag: DiagnosticBag,
+>   options?: PeepholeOptions,
+> ): InstrProgram {
+>   if (options && options.enabled === false) return program; // guaranteed passthrough (R27)
+>   validateProgramStructure(program, bag); // R6 — see structural predicates below
+>   return program; // verbatim: preamble + streams + allocationPlan unchanged (PF-004, R25)
+> }
+> ```
+> **PF-006 structural predicates** (`validateProgramStructure`, the concrete R6 contract):
+> 1. `program.streams` is a present, non-null array;
+> 2. each `StreamEntry` is a valid discriminated union — exactly one of `isInstr` /
+>    `isLabel` / `isDirective` (`@blend65/core`) holds;
+> 3. no `null` / `undefined` entries.
+> Opcode/addressing legality is NOT re-checked here — that remains `validateStream`'s job
+> (R22), already run inside `generateInstr`. Any structural violation is an ICE (`E90001`),
+> never a user-band diagnostic (R30).
+>
+> **PF-005 / PF-009 (deferred):** the iteration limit + its ICE and `maxWindowSize` belong to
+> the scanner and are NOT built in v1; they land with the first real rule.
+
 ### 4.5 Planned Future Rules (v2+)
+
 
 The following rules are specified for future implementation. They are **not** part of v1
 but guide the design of the rule interface and window scanner.
@@ -350,7 +409,22 @@ function optimizeInstr(
 ): InstrProgram;
 ```
 
+> **✅ PF-001/PF-003 correction (authoritative signature):** the second parameter is a bare
+> `CpuVariant` primitive, NOT a `PlatformProfile` — mirroring `generateInstr(ilProgram,
+> cpuVariant, bag)` and `validateStream(stream, cpuVariant, bag)`:
+> ```typescript
+> function optimizeInstr(
+>   program: InstrProgram,
+>   cpuVariant: CpuVariant,   // bare primitive (PF-003); a driver passes plugin.profile.cpu
+>   bag: DiagnosticBag,
+>   options?: PeepholeOptions
+> ): InstrProgram;
+> ```
+> `rules` is NOT a parameter — v1 uses an internal `const V1_RULES: PeepholeRule[] = []`
+> (PF-001).
+
 This function lives in `@blend65/codegen`, alongside the IL optimizer and code generator.
+
 
 ### 4.8 Optimization Statistics
 
