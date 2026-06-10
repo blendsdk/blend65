@@ -47,7 +47,10 @@ export { NMOS_6502_TABLE, W65C02_TABLE, cpuTableFor } from "./cpu-table.js";
 export { isLegalMode, validateStream } from "./validate.js";
 
 // Canonical ACME serializer + byte sizing (§3.8 / Ch 11 §6)
-export { printInstr, instrByteSize } from "./print-instr.js";
+export { printInstr, instrByteSize, hex16 } from "./print-instr.js";
+
+// Whole-program ACME serializer (RD-09, §4.1/§4.2)
+export { serializeToAcme } from "./serialize-acme.js";
 
 // IL→Instr translation entry point + program container (RD-07b, §4.3/§4.7)
 // + the RD-07c platform-preamble assembler wrapper (Half A).

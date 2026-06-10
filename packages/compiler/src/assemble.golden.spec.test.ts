@@ -9,12 +9,23 @@
  *
  * This test drives a hand-built gate IL (`module Main; function main(): void {
  * let c: byte = 5; poke(0xD020, c); }`) through `assembleProgram(c64Plugin)` and
- * `printInstr`, asserting the exact ACME text.
+ * the RD-09 whole-program serializer `serializeToAcme`, asserting the exact ACME
+ * text.
  *
  * IMMUTABLE ORACLE RULE (testing.md Rule 10): the expected text is composed from the
  * frozen c64 `emitPreamble` output (ST-C64-2, green in `@blend65/platforms`) + the
- * RD-07b ST-G2 body with the entry function relabelled `_main` (D4). It is NOT
- * derived by running `assembleProgram`.
+ * RD-07b ST-G2 body with the entry function relabelled `_main` (D4), wrapped in the
+ * RD-09 canonical whole-program structure (`!to` hoist, `; --- symbol definitions ---`
+ * header, `; --- function: <symbol> ---` comment) per AR-95/A. It is NOT derived by
+ * running `serializeToAcme`.
+ *
+ * AR-95/A: this golden was migrated from a hand-composed `printInstr` concatenation
+ * to a single `serializeToAcme(program)` call, so there is exactly one whole-program
+ * rendering path (`--emit-asm` and the build feed can never drift). The expected text
+ * gains only the symbol-definitions header (empty for the gate) and the per-function
+ * comment; every preamble/instruction byte is unchanged from the prior golden. The
+ * identical text is asserted against a hand-built fixture in the serializer's own
+ * ST-S8 (`@blend65/codegen/src/instr/serialize-acme.spec.test.ts`).
  */
 
 import { describe, expect, it } from "vitest";
@@ -26,7 +37,7 @@ import {
   assembleProgram,
   imm,
   loc,
-  printInstr,
+  serializeToAcme,
   temp,
   type ILFunction,
   type ILProgram,
@@ -109,25 +120,23 @@ function gateProgram(): ILProgram {
 }
 
 describe("Specification: RD-07c end-to-end gate golden with real c64Plugin (ST-AG1)", () => {
-  // ST-AG1 — c64 preamble (ST-C64-2) + `_main` body (ST-G2 relabelled) = exact ACME.
-  it("assembles the gate program to the full preamble + `_main` body (ST-AG1)", () => {
+  // ST-AG1 — c64 preamble (ST-C64-2) + `_main` body (ST-G2 relabelled), serialized by
+  // the RD-09 canonical `serializeToAcme` (AR-95/A) = exact header-bearing ACME.
+  it("assembles the gate program to the canonical preamble + `_main` body (ST-AG1)", () => {
     // Arrange
     const bag = createDiagnosticBag();
 
-    // Act — assemble with the real c64 plugin, render preamble + entry body.
+    // Act — assemble with the real c64 plugin, then serialize the whole program with
+    // the single canonical RD-09 serializer (AR-95/A).
     const program = assembleProgram(gateProgram(), c64Plugin, bag);
-    const preambleText = printInstr({
-      symbol: "_pre",
-      segment: "code",
-      entries: [...program.preamble],
-    });
-    const bodyText = program.streams.map(printInstr).join("\n");
-    const text = [preambleText, bodyText].join("\n");
+    const text = serializeToAcme(program);
 
-    // Assert — the exact composed golden (c64 preamble + `_main` body).
+    // Assert — the exact canonical golden: `!to` hoisted, empty symbol-definitions
+    // header, the c64 preamble, then the `; --- function: Main.main ---` body.
     expect(text).toBe(
       [
         '!to "main.prg", cbm',
+        "; --- symbol definitions ---",
         "* = $0801",
         "    !word $080B",
         "    !word $000A",
@@ -142,12 +151,14 @@ describe("Specification: RD-07c end-to-end gate golden with real c64Plugin (ST-A
         "    LDA #$37",
         "    STA $01",
         "    RTS",
+        "; --- function: Main.main ---",
         "_main:",
         "    LDA #$05",
         "    STA __frame_Main_main_c",
         "    LDA __frame_Main_main_c",
         "    STA $D020",
         "    RTS",
+        "",
       ].join("\n"),
     );
     expect(bag.hasErrors()).toBe(false);

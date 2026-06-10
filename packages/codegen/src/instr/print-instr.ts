@@ -37,10 +37,14 @@ function hex8(value: number): string {
  * Format a word value as ACME 4-digit uppercase hex (`$0801`). Values are masked
  * to 16 bits for deterministic rendering.
  *
+ * Exported so the RD-09 whole-program serializer (`serialize-acme.ts`) renders
+ * symbol-definition values with the exact same format — one hex implementation,
+ * no duplication (code.md DRY; AR-94/1A).
+ *
  * @param value The numeric value to format.
  * @returns The `$XXXX` hex string.
  */
-function hex16(value: number): string {
+export function hex16(value: number): string {
   return `$${(value & 0xffff).toString(16).toUpperCase().padStart(4, "0")}`;
 }
 

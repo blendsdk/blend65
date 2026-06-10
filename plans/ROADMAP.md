@@ -9,7 +9,7 @@
 > It is governed by the mandatory rule `.clinerules/roadmap.md` — read it at the start of
 > every task and update it whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-06-10 13:11
+> **Last Updated**: 2026-06-10 14:17
 
 
 ---
@@ -21,9 +21,10 @@
   executed to 100% (`plans/rd-08-peephole-optimizer/99-execution-plan.md`): `optimizeInstr` +
   `validateProgramStructure` + the `PeepholeRule` contract shipped in `@blend65/codegen`, ST-1..ST-12
   spec tests + impl tests green, full verify passing.
-- **Next up**: **RD-09** (ACME emitter & assembler integration) — declared dependencies RD-07,
-  RD-08 (now ✅), RD-10 (✅). Needs `make_plan`. Next workflow step: preflight the RD, then
-  `make_plan`. It consumes the `Instr` stream the peephole stage now completes.
+- **In progress**: **RD-09** (ACME emitter & assembler integration) — declared dependencies RD-07,
+  RD-08 (✅), RD-10 (✅). Plan preflight ✅ PASS (2026-06-10, AR-95 runtime resolved: option A —
+  `serializeToAcme` is the single canonical output, ST-AG1 migrated to call it). Now **executing**
+  `plans/rd-09-acme-emitter/` (6 phases, 25 tasks) — Phase 1 (`serializeToAcme`) in progress.
 
 
 
@@ -80,7 +81,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-09 | ACME emitter & assembler integration | RD-07, RD-08, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 1 | RD-09 | ACME emitter & assembler integration | RD-07, RD-08, RD-10 | `plans/rd-09-acme-emitter/` | A | 🔄 Executing |
 | 2 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
