@@ -9,14 +9,18 @@
 > It is governed by the mandatory rule `.clinerules/roadmap.md` — read it at the start of
 > every task and update it whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-06-10
+> **Last Updated**: 2026-06-10 12:18
 
 ---
 
 ## Current Position
 
-- **Last completed**: RD-07c (codegen platform preamble — Half A; uncommitted pending user `git`).
-- **Next up**: **RD-09** (ACME emitter & assembler integration) — needs `make_plan`, then preflight.
+
+- **Last completed**: RD-07c (codegen platform preamble — Half A).
+- **Next up**: **RD-08** (peephole optimizer — passthrough v1, AR-38) — needs `make_plan`, then
+  preflight. It is a near-trivial no-op stage that completes the `Instr` pipeline and unblocks
+  RD-09 (whose declared dependencies include RD-08).
+
 
 ---
 
@@ -69,19 +73,26 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-09 | ACME emitter & assembler integration | RD-07, RD-08, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 2 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 3 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 4 | RD-15 | Programmatic + CLI API | RD-01 (+ pipeline) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 5 | RD-12 | Test harness & emulator verification | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 6 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a | ❌ needs `make_plan` | A | ⬜ Not started |
-| 7 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
-| 8 | RD-08 | Peephole optimizer | RD-07 | ❌ needs `make_plan` | B | ⬜ Not started |
+| 1 | RD-08 | Peephole optimizer (passthrough v1, AR-38) | RD-07 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 2 | RD-09 | ACME emitter & assembler integration | RD-07, RD-08, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 3 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 4 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 5 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 6 | RD-12 | Test harness & emulator verification | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 7 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 8 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 9 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
+> **Why RD-08 leads:** `requirements/README.md` declares RD-09's dependencies as
+> `RD-07, RD-08, RD-10`, so the peephole stage must exist before the ACME emitter consumes
+> the `Instr` stream. Only the **passthrough v1 (empty rule set, AR-38)** is pulled into
+> Phase A as an MVP pipeline prerequisite; RD-08's full 11-rule optimization catalog remains
+> genuine Phase-B work to be layered in later.
+>
 > **MVP gate (AR-43/44):** the Phase-A chain (through RD-12) exists to compile the gate
 > program — `poke` a constant on c64 → `.prg` → VICE asserts the result — and prove a
 > terminating `main`. Slice 2 brings a local `byte` online (SFA + ZP allocator already done).
+
 
 ---
 
@@ -89,14 +100,16 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 ```
 RD-07c (finish codegen; consumes RD-10 plugins)
-   └── RD-09 (Instr stream → ACME .asm → binary)
-         └── RD-17 (intrinsics/runtime ABI — the gate `poke` lives here)
-               └── RD-16 + RD-15 (config + CLI/programmatic API to drive the pipeline)
-                     └── RD-12 (emulator verification — proves the gate program runs)
-                           └── RD-11b (resource reporter / build summary)
-                                 └── RD-13 (non-functional sweep)
-Phase B: RD-08 (peephole), RD-14 (LSP), additional platforms.
+   └── RD-08 (peephole passthrough v1 — completes the Instr pipeline)
+         └── RD-09 (Instr stream → ACME .asm → binary)
+               └── RD-17 (intrinsics/runtime ABI — the gate `poke` lives here)
+                     └── RD-16 + RD-15 (config + CLI/programmatic API to drive the pipeline)
+                           └── RD-12 (emulator verification — proves the gate program runs)
+                                 └── RD-11b (resource reporter / build summary)
+                                       └── RD-13 (non-functional sweep)
+Phase B: RD-08 rule catalog (real peephole rules), RD-14 (LSP), additional platforms.
 ```
+
 
 ---
 
