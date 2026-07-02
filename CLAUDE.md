@@ -69,15 +69,24 @@ TODO: no `clean` script is defined (root, packages, or turbo.json). Clean manual
 
 ```
 .github/workflows/   # CI (install → typecheck → lint → build → test; Node 22; no emulator tier)
+codeops/             # CodeOps nested layout (marker + portfolio roadmap; see below)
 docs/
 examples/            # examples/gate/main.blend (AR-43 gate program; not yet consumed)
 packages/            # 10 @blend65/* packages
-plans/               # implementation plans + ROADMAP.md (e.g. rd-01-project-scaffolding-toolchain/)
-requirements/        # RD-01..RD-17 requirements documents
 research/
 scripts/             # repo tooling / helper scripts
 spec/                # frozen spec-v3.0 — DO NOT MODIFY during compiler implementation (D3)
 test/                # repo-root cross-package tier (boundary.spec.test.ts)
+```
+
+CodeOps artifacts live under the nested `codeops/` layout (marker `codeops/.codeops.yml`):
+
+```
+codeops/00-roadmap.md                          # portfolio roadmap
+codeops/features/blend65-ri/00-roadmap.md      # feature roadmap (implementation status)
+codeops/features/blend65-ri/requirements/      # RD-01..RD-17 requirements documents
+codeops/features/blend65-ri/plans/<rd-slug>/   # implementation plans (rd-08, rd-09, …)
+codeops/_archive/<rd-slug>/                     # completed/archived plans
 ```
 
 ### The 10 packages and their dependency edges (R15 boundary is load-bearing)
@@ -188,11 +197,13 @@ test/                # repo-root cross-package tier (boundary.spec.test.ts)
   `serializeToAcme`; `@blend65/compiler` ships the RD-09 ACME process layer (`discoverAcme`,
   `parseLabelFile`, `invokeAcme`, `emitBinary`). The `Instr` stream now reaches a runnable
   binary. **Next up: RD-17** (intrinsics & runtime ABI — the MVP gate `poke` lives here);
-  see `plans/ROADMAP.md` for authoritative status.
+  see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
-- This repository keeps a living implementation tracker at `plans/ROADMAP.md`. Read it at
-  the start of a task to determine the current position, and update it at every lifecycle
-  stage transition (RD done, plan created, etc.). The `roadmap` skill drives this.
+- This repository keeps a living implementation tracker at
+  `codeops/features/blend65-ri/00-roadmap.md` (rolled up into the portfolio roadmap
+  `codeops/00-roadmap.md`). Read it at the start of a task to determine the current position,
+  and update it at every lifecycle stage transition (RD done, plan created, etc.). The
+  `roadmap` skill drives this.
 
 <!-- migrated from .clinerules/project.md on 2026-07-02 -->
 <!-- analyze_project: refreshed Toolchain/Commands/Project-structure/Git against the live repo on 2026-07-02 — corrected clean command (none defined), main branch (master, not main), added scripts/ dir, added Grounded-Options pointer -->
