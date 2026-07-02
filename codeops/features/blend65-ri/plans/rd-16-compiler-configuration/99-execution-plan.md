@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-02
-> **Progress**: 8/36 tasks (22%)
+> **Progress**: 17/36 tasks (47%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -227,15 +227,15 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 - [x] 1.2.4 Package typecheck + lint ✅ (completed: 2026-07-02 10:21 — both clean)
 
 ### Phase 2: Discovery & JSONC parse
-- [ ] 2.1.1 Write discovery spec tests (ST-5)
-- [ ] 2.1.2 Write parse spec tests (ST-6..ST-9)
-- [ ] 2.1.3 Red phase: verify both fail
-- [ ] 2.2.1 Implement `discovery.ts`
-- [ ] 2.2.2 Implement `parse.ts` (+ offset converter; line/col via `LineMap`)
-- [ ] 2.2.3 Green phase: spec tests pass
-- [ ] 2.3.1 Discovery impl tests
-- [ ] 2.3.2 Parse impl tests
-- [ ] 2.3.3 Package verify
+- [x] 2.1.1 Write discovery spec tests (ST-5) ✅ (completed: 2026-07-02 10:24)
+- [x] 2.1.2 Write parse spec tests (ST-6..ST-9, parse-level column only) ✅ (completed: 2026-07-02 10:24)
+- [x] 2.1.3 Red phase: verify both fail ✅ (completed: 2026-07-02 10:25 — both files fail: target modules do not exist)
+- [x] 2.2.1 Implement `discovery.ts` ✅ (completed: 2026-07-02 10:28)
+- [x] 2.2.2 Implement `parse.ts` (+ offset converter; byte-offset conversion of parse errors — PF-017) ✅ (completed: 2026-07-02 10:28)
+- [x] 2.2.3 Green phase: spec tests pass ✅ (completed: 2026-07-02 10:29 — 11/11 config tests green)
+- [x] 2.3.1 Discovery impl tests ✅ (completed: 2026-07-02 10:35)
+- [x] 2.3.2 Parse impl tests (incl. AR-P10 BOM strip — see register; `JsoncParseResult.text` added so consumers share the normalized offset base) ✅ (completed: 2026-07-02 10:36)
+- [x] 2.3.3 Package verify ✅ (completed: 2026-07-02 10:37 — 24/24 tests, typecheck + lint clean; vitest include widened to the impl tier per the core RD-11a precedent)
 
 ### Phase 3: Validation & merge
 - [ ] 3.1.1 Write validate spec tests (ST-10..ST-24)

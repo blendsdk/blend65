@@ -1,8 +1,9 @@
 # Ambiguity Register: RD-16 — Compiler Configuration (`blend65.json`)
 
-> **Status**: ✅ GATE PASSED — all 9 items resolved (AR-P1..P8 at gate time; AR-P9 added
-> via plan-preflight finding PF-022 — user accepted all recommendations 2026-07-02)
-> **Last Updated**: 2026-07-02 (plan preflight PF-015..PF-022 applied)
+> **Status**: ✅ GATE PASSED — 10 items resolved (AR-P1..P8 at gate time; AR-P9 added
+> via plan-preflight finding PF-022 — user accepted all recommendations 2026-07-02;
+> AR-P10 added during execution — provisionally resolved, ⚠️ awaiting user review)
+> **Last Updated**: 2026-07-02 (AR-P10 added during plan execution)
 >
 > **Context**: RD-16 was requirements-preflighted the same day (14 findings PF-001..PF-014
 > resolved and applied — see `requirements/00-preflight-report.md`), so all *contract-level*
@@ -28,6 +29,7 @@
 | AR-P7 | Technical unknowns | Test strategy for fs-touching paths — repo precedent is real temp dirs (`mkdtempSync`, e.g. `packages/compiler/src/runtime-asm.spec.test.ts:37`), no fs mocking | A: real temp-dir fixtures for `loadConfig()`/discovery integration; pure helpers (walk-up, validation, merge) unit-tested directly / B: inject an fs-adapter abstraction (hermetic but new, deviates from precedent) | **A** — real temp dirs for integration; pure helpers (walk-up takes an `existsSync`-like predicate) unit-tested hermetically (accepted recommendation, 2026-07-02) | ✅ Resolved |
 | AR-P8 | Scope ambiguities | Plan target & slug confirmation — nested layout, feature `blend65-ri`, plan dir `codeops/features/blend65-ri/plans/rd-16-compiler-configuration/`; scope exactly RD-16 §2 (loader only — no glob expansion, no CLI flags, no severity-policy application) | A: confirm as stated / B: adjust (user specifies) | **A** — confirmed as stated (accepted recommendation, 2026-07-02) | ✅ Resolved |
 | AR-P9 | Behavioral gaps | Post-error field values in the always-populated `BlendConfig` (plan-preflight PF-022) — what `platform` holds after E10245; whether an out-of-range `maxErrors` or an E10246-offending pattern survives into the returned config | A: values stay **as-merged** (no post-hoc mutation), `platform` = `""` when still unset, consumers gate on `hasErrors` / B: per-key fallback to the §4.1 default on semantic failure | **A** — as-merged + `platform: ""`; errored configs are populated but untrusted (accepted recommendation via preflight PF-022, 2026-07-02) | ✅ Resolved |
+| AR-P10 | Edge cases (runtime) | UTF-8 BOM handling — the 2.3.2 hardening task lists "UTF-8 BOM" without pinning behavior; `jsonc-parser` reports a leading BOM as an `InvalidSymbol` parse error (verified at 3.3.1), which would emit a spurious E10241 for every BOM'd config file | A: strip a leading BOM in `parseJsoncFile` before parsing; result exposes the normalized `text` all offsets refer to / B: pass through and let BOM'd files emit E10241 | **A** — provisionally resolved by the executing agent (user AFK at decision time, 2026-07-02); grounded in R2's tolerance intent and core FR-20's "lexer skips the BOM" precedent. ⚠️ Flagged for user review | ✅ Resolved (provisional) |
 
 ### Resolution Notes
 
