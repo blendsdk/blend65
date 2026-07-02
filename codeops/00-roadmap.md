@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | migrated from flat layout | — | 🔄 | 2026-07-02 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | Codegen pipeline complete through RD-09; next RD-17 (intrinsics & runtime ABI) | 13/20 | 🔄 | 2026-07-02 |
 
 ## Archived
 
@@ -23,5 +23,7 @@
 
 ## Notes
 
-- 2026-07-02: migrated from the flat layout via setup_codeops; run /update_roadmap to refine the
-  feature's stage summary and progress from disk.
+- 2026-07-02: migrated from the flat layout via setup_codeops.
+- 2026-07-02: update_roadmap synced the blend65-ri feature from disk — 13/20 items done (codegen
+  complete through RD-09), next up RD-17 (intrinsics & runtime ABI); repointed all internal plan
+  paths to the nested layout.
