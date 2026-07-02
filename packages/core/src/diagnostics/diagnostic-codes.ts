@@ -158,6 +158,19 @@ export const DiagCode = {
   EmptyEnumDeclaration: "E10315",
   EmptyStructDeclaration: "E10316",
 
+  // Configuration (RD-16, AR-P3): blend65.json loading. Ch 14 leaves the
+  // E10240 decade unclaimed (E10230–E10236 are the frozen enum codes,
+  // spec/09-enums.md); RD-16 claims E10240–E10246 — one code per config
+  // failure class — following the RD-09/E10035 additive precedent. The
+  // matching W10240/W10241 warnings sit in the warnings band below.
+  ConfigFileNotFound: "E10240",
+  ConfigParseError: "E10241",
+  ConfigNotAnObject: "E10242",
+  ConfigInvalidValue: "E10243",
+  ConfigUnknownPlatform: "E10244",
+  ConfigMissingPlatform: "E10245",
+  ConfigPatternEscapesRoot: "E10246",
+
   // Warnings (Ch 14 §3)
   // Lexer warning (RD-02, spec Ch 01 §14): decimal literal with leading zeros.
 
@@ -176,6 +189,10 @@ export const DiagCode = {
   UseBeforeInit: "W10190",
   UnusedVariable: "W10191",
   UnreachableCode: "W10130",
+  // Configuration warnings (RD-16, AR-P3): unknown blend65.json key (R19) and
+  // a warning code both promoted (warnAsError) and suppressed (R30).
+  ConfigUnknownKey: "W10240",
+  ConfigPromoteSuppressOverlap: "W10241",
 } as const;
 
 /** The union of all canonical {@link DiagCode} string values. */

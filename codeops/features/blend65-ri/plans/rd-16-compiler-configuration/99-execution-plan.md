@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-02
-> **Progress**: 0/36 tasks (0%)
+> **Progress**: 4/36 tasks (11%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -209,10 +209,10 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 > Failure to maintain this checklist means progress is invisible after crashes, context resets, or session handoffs.
 
 ### Phase 1: Foundations
-- [ ] 1.1.1 Write ST-32 spec test for the 9 config diag codes
-- [ ] 1.1.2 Red phase: verify ST-32 fails
-- [ ] 1.1.3 Add E10240–E10246 + W10240/W10241 to `DiagCode`
-- [ ] 1.1.4 Green phase: ST-32 passes; core suite regression-free
+- [x] 1.1.1 Write ST-32 spec test for the 9 config diag codes ✅ (completed: 2026-07-02 10:05)
+- [x] 1.1.2 Red phase: verify ST-32 fails ✅ (completed: 2026-07-02 10:06 — 2/2 tests fail, codes undefined)
+- [x] 1.1.3 Add E10240–E10246 + W10240/W10241 to `DiagCode` ✅ (completed: 2026-07-02 10:08)
+- [x] 1.1.4 Green phase: ST-32 passes; core suite regression-free ✅ (completed: 2026-07-02 10:09 — 178/178 core tests green)
 - [ ] 1.2.1 Add `jsonc-parser` dep; NodeNext import checkpoint
 - [ ] 1.2.2 Create `types.ts` (incl. `CONFIG_SOURCE_ID`)
 - [ ] 1.2.3 Create `defaults.ts` (`CONFIG_DEFAULTS` + `CONFIG_SCHEMA`)
