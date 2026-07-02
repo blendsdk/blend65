@@ -192,11 +192,16 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   it in the active plan's Ambiguity Register as the next AR-PN (runtime), resolve with
   the user, then resume and back-propagate the resolution into the affected plan docs.
 - Compiler logic implementation is underway (RD-02+). The codegen pipeline is complete
-  through **RD-09**: `@blend65/codegen` ships the RD-07a Instr core, the RD-07b IL→Instr
-  slice, RD-07c platform preamble, RD-08 peephole (passthrough v1), and RD-09's
-  `serializeToAcme`; `@blend65/compiler` ships the RD-09 ACME process layer (`discoverAcme`,
-  `parseLabelFile`, `invokeAcme`, `emitBinary`). The `Instr` stream now reaches a runnable
-  binary. **Next up: RD-17** (intrinsics & runtime ABI — the MVP gate `poke` lives here);
+  through **RD-17**: `@blend65/codegen` ships the RD-07a Instr core, the RD-07b IL→Instr
+  slice, RD-07c platform preamble, RD-08 peephole (passthrough v1), RD-09's
+  `serializeToAcme`, and RD-17's runtime embedding (`src/runtime/embed.ts` + the four
+  `runtime/*.asm` T3 routines, functionally verified); `@blend65/compiler` ships the RD-09
+  ACME process layer (`discoverAcme`, `parseLabelFile`, `invokeAcme`, `emitBinary`).
+  `@blend65/core/intrinsics` carries the RD-17 descriptor registry/catalog, and the
+  frontend runs its first real semantic pass (intrinsic validation + the T4 import
+  boundary). The MVP gate `poke` compiles and assembles. **Next up: RD-16** (compiler
+  configuration, `blend65.json`), then RD-15 (CLI/programmatic driver) and RD-12
+  (emulator tier — includes RD-17's deferred AC-14);
   see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
 - This repository keeps a living implementation tracker at
