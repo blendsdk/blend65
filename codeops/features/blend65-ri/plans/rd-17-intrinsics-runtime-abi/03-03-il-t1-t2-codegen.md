@@ -23,8 +23,8 @@ address ICE with E10045.
 
 | Strategy | Lowering |
 |----------|----------|
-| `'fold'` | Evaluate at lower time → `Immediate` operand (`lo`/`hi` of constants; `sizeof`/`offsetof`/`length` from the AR-P13 type table carried on the `SemanticModel`) |
-| `'inline'` | `peek`/`poke` → `load`/`store` (unchanged); `peekw`/`pokew` → two-byte `load`/`store` pairs (little-endian, `addr`/`addr+1` per Ch 12 §3.1); non-constant `lo`/`hi` → existing IL arithmetic (`AND #$FF` / shift pattern per RD-17 §4.3) |
+| `'fold'` | Evaluate at lower time → `Immediate` operand (`sizeof`/`offsetof`/`length` from the AR-P13 type table carried on the `SemanticModel`) |
+| `'inline'` | `peek`/`poke` → `load`/`store` (unchanged); `peekw`/`pokew` → two-byte `load`/`store` pairs (little-endian, `addr`/`addr+1` per Ch 12 §3.1); `lo`/`hi` — constant operands fold to `Immediate` inside the emitter, non-constant → existing IL arithmetic (`AND #$FF` / shift pattern per RD-17 §4.3). Descriptors carry exactly `'inline'` (PF-021) |
 | `'opcode'` | Emit IL `intrinsic` op carrying the descriptor (translate emits the opcode) |
 | `'call'` | (T3/T4 — 03-04/03-05 handle translate-side; IL `intrinsic` op with descriptor) |
 
@@ -44,12 +44,21 @@ address ICE with E10045.
 - `sizeof(type)` → byte size from the type table (primitives fixed; structs `byteSize`).
 - `offsetof(type, field)` → field offset.
 - `length(array)` → element count; result type `byte` if ≤255 else `word`.
+  **Deliberate spec deviation (AR-P15, PF-023):** frozen Ch 08 §9 says "`byte` for arrays
+  ≤256 elements", but 256 is unrepresentable in a `byte` (the spec's own example stores
+  256 in a `byte` const — a frozen-spec self-contradiction). This plan draws the boundary
+  at ≤255; the exact-256 case is spec-tested (ST-34: 256-element array → `word` 256).
 - Folds produce **no runtime code** (AC-09) — pure `Immediate` operands.
 
 ## Integration Points
 - Consumes: registry/descriptors (03-01), type table on `SemanticModel` (03-02).
 - Produces: IL consumed by translate; `intrinsic` ops consumed by 03-04's call path.
-- `generateInstr`/`assembleProgram` signatures unchanged (plugin injection stays the RD-07c seam).
+- Signatures change **additively only** (PF-016): `generateInstr` gains an optional
+  trailing `opts?: { zpArgBlockSize?: number }` (threaded by `assembleProgram` from
+  `plugin.profile.zpArgBlockSize` — the documented E10044-carrying path);
+  `serializeToAcme` gains an optional `opts?: { runtimeSection?: string }` so the
+  serializer stays pure (embedding text is computed by `embed.ts`, 03-04). All existing
+  RD-08/RD-09 call sites compile unchanged.
 
 ## Error Handling
 

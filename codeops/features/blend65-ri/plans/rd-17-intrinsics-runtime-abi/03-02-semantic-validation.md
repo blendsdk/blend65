@@ -26,9 +26,18 @@ frontend/src/semantics/
 └── intrinsic-validation.ts   # NEW — the checks below
 ```
 
-`AnalyzeInput.registry?: IntrinsicRegistry` — when absent, `createIntrinsicRegistry()`
-(core-only) is constructed internally, so existing callers/tests are unaffected
-(non-breaking, per `analyze.ts` F1-Extensible design).
+`AnalyzeInput` gains **two** optional fields (additive per the `analyze.ts` F1-Extensible
+design; existing callers/tests unaffected):
+
+- `registry?: IntrinsicRegistry` — when absent, `createIntrinsicRegistry()` (core-only)
+  is constructed internally (non-breaking).
+- `targetProfile?: PlatformProfile` — the **canonical** RD-10 profile (type imported from
+  `@blend65/core/platform`), carrying `cpu`, `platformId` (new field — PF-015), and
+  `zpArgBlockSize`. The interim `profile` field cannot drive availability checks (it has
+  no `cpu`/identity — PF-014); descriptor predicates and the E10043 message renderer
+  ("requires <requirement>, but the target is <actual>") consume `targetProfile`. When
+  `targetProfile` is absent, the availability checks (V4, V6b) are **skipped** — all
+  profile-independent checks (V1/V2/V3/V5/V6a/V7/V8) still run.
 
 ## Implementation Details
 
@@ -77,6 +86,7 @@ checks that need no types (V1/V2/V4/V5/V6/V8) still apply fully.
 |------------|-------------------|--------|
 | Unknown intrinsic-looking call (in `RESERVED_BUILTINS` but somehow not in registry) | ICE `E90001` — catalog/reserved-set drift is a compiler bug | AC-01 |
 | Registry absent in `AnalyzeInput` | Construct core-only registry internally | AR-P3 |
+| `targetProfile` absent in `AnalyzeInput` | Skip V4/V6b (availability); run all other checks | PF-014 |
 | `offsetof` on a non-struct type / missing field | E10171 with field/type named | Ch 12 §3.3, AR-P11 style |
 
 ## Testing Requirements

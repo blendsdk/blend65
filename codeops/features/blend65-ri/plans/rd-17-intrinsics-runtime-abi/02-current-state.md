@@ -31,18 +31,20 @@ see `../../requirements/00-preflight-report.md` Codebase Context Summary).
 | `core/src/diagnostics/diagnostic-codes.ts` | Diag registry | +E10043/44/45; retire E10212 comment |
 | `core/src/ast/reserved-builtins.ts` | Reserved names | +`asm_wai` (22→23) |
 | `core/src/instr-model/opcode.ts` | Opcode sets | +`WAI` to `W65C02_OPCODES` |
-| `core/src/platform/platform-plugin.ts` | Plugin contract | `IntrinsicDescriptor = unknown` → real type |
-| `core/src/platform/validate-profile.ts` | Profile checks | +`zpArgBlockSize >= 4` floor |
-| `core/src/semantics/platform-profile.ts` | Interim profile | `zpArgBlockMin` default 0→4 (AR-P10) |
-| `frontend/src/semantics/analyze.ts`, `passes.ts` | Analyzer | +optional `registry`; wire validation pass |
+| `core/src/platform/platform-plugin.ts` | Plugin contract | `IntrinsicDescriptor = unknown` → real type; `RuntimeModule` +`baseUrl` (PF-017) |
+| `core/src/platform/platform-profile.ts` | Canonical profile | +`readonly platformId: string` (PF-015) |
+| `core/src/platform/validate-profile.ts` | Profile checks | +`zpArgBlockSize >= 4` floor; +`platformId` consistency (PF-015) |
+| `core/src/semantics/platform-profile.ts` | Interim profile | `zpArgBlockMin` default 0→4 (AR-P10; update locked `core/src/sfa/records.impl.test.ts:31` — PF-020) |
+| `frontend/src/semantics/analyze.ts`, `passes.ts` | Analyzer | +optional `registry` + `targetProfile` (canonical — PF-014); wire validation pass |
 | `frontend/src/semantics/intrinsic-validation.ts` (new) | The pass | Create |
 | `codegen/src/il/intrinsic-descriptor.ts` | Placeholder | Re-export core type; migrate `tier` |
 | `codegen/src/il/lower.ts` | IL lowering | Descriptor-driven dispatch; folds; E10045 |
 | `codegen/src/instr/translate.ts` | Instr emission | T1 opcodes; T2 inline; marshalling rewrite |
+| `codegen/src/instr/instr-program.ts` | Entry points | `generateInstr` +optional `opts?: { zpArgBlockSize? }`, threaded by `assembleProgram` (PF-016) |
 | `codegen/runtime/*.asm` (new) | T3 bodies | Create ×4 |
 | `codegen/src/runtime/embed.ts` (new) | Embedding + dead-strip | Create |
-| `codegen/src/instr/serialize-acme.ts` | Serializer | Append embedded runtime section |
-| `platforms/src/*.ts` (×5) | Plugins | `runtimeModules` migration; fixture in tests |
+| `codegen/src/instr/serialize-acme.ts` | Serializer | +optional `opts?: { runtimeSection? }` appended as a discrete section (PF-016) |
+| `platforms/src/*.ts` (×5) | Plugins | `runtimeModules` migration; profiles +`platformId` (PF-015); fixture in tests |
 
 ## Gaps Identified
 

@@ -1,6 +1,7 @@
 # Ambiguity Register: RD-17 — Intrinsic Functions & Runtime-Routine ABI
 
-> **Status**: ✅ GATE PASSED — all 14 items resolved (AR-P14 surfaced during authoring)
+> **Status**: ✅ GATE PASSED — all 16 items resolved (AR-P14 surfaced during authoring;
+> AR-P15/AR-P16 surfaced during the plan preflight of 2026-07-02, PF-014..PF-024)
 > **Last Updated**: 2026-07-02
 > **Feature**: blend65-ri · **Implements**: blend65-ri/RD-17
 
@@ -10,13 +11,16 @@
 > (`../../requirements/00-preflight-report.md`, PF-001..PF-013) which logged runtime
 > entries **AR-97..AR-101** (T4 import form, fused div/mod ABI, asm_stp dropped,
 > textual inlining, non-constant-address deferral). This register covers the
-> **planning-level** decisions that remained. Items below are numbered **AR-P1..AR-P13**
+> **planning-level** decisions that remained. Items below are numbered **AR-P1..AR-P16**
 > to avoid colliding with the global AR-NN sequence.
 >
-> All 13 recommendations were presented with alternatives and accepted by the user on
-> 2026-07-02: *"if you think those are the best possible recommendations to go forward
-> then i accept"* — recorded per item below after the agent confirmed convergence
-> (hardening layers run; no reflexive changes).
+> The original 13 recommendations were presented with alternatives and accepted by the
+> user on 2026-07-02: *"if you think those are the best possible recommendations to go
+> forward then i accept"* — recorded per item below after the agent confirmed convergence
+> (hardening layers run; no reflexive changes). AR-P14 surfaced during authoring;
+> AR-P15/AR-P16 surfaced during the plan preflight (see `00-preflight-report.md`
+> PF-023/PF-022) and were accepted by the user on 2026-07-02 ("apply all per your
+> recommendations").
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
 |---|----------|-----------------|-------------------|---------------|--------|
@@ -34,6 +38,8 @@
 | AR-P12 | Scope | W10121 (`asm_brk` in release) needs a build mode that doesn't exist | W10120 now + defer W10121 to RD-16 / invent `buildMode` now | **Implement W10120 now; defer W10121 to RD-16** (debug/release is a configuration concept — RD-16 scope) | ✅ Resolved |
 | AR-P13 | Technical | `sizeof`/`offsetof`/`length` folding needs type info the passthrough analyzer doesn't build | Minimal declaration-collection pass / primitives-only folding | **Minimal declaration-collection step (structs/enums → `StructType` with offsets/byteSize) reusing `core/semantics/type-utils`**, sufficient for folding. Flagged as the plan's riskiest area | ✅ Resolved |
 | AR-P14 | Behavioral | Diagnostic code for the T4 import boundary (AC-05) vs wrong platform (AC-06) — surfaced during 03-02 authoring | A: E10043 for wrong-platform + new E10046 `IntrinsicNotImported` for unimported / B: E10043 for both | **Option A** — wrong-platform is availability (R25 keys the predicate on `platformId`) → E10043; unimported-but-right-platform → **E10046 `IntrinsicNotImported`**, message `"'<name>' requires 'import { <name> } from <platform>;'"` | ✅ Resolved |
+| AR-P15 | Behavioral | `length()` byte/word boundary: frozen Ch 08 §9 says `byte` for arrays **≤256** elements, but 256 is unrepresentable in a `byte` (the spec's own example stores 256 in a `byte` const) — surfaced by plan preflight PF-023 | Deviate to ≤255 / follow ≤256 verbatim (256 wraps to 0) | **Deliberate spec deviation: ≤255 → `byte`, >255 → `word`** — verbatim conformance produces a wrong program; boundary spec-tested (ST-34: 256-element array → `word` 256) | ✅ Resolved |
+| AR-P16 | Scope | Signed `*`/`/`/`%`: spec Ch 04 §3.2 defines signed division (truncate toward zero) but RD-17's routines are unsigned-only; deferral was undocumented — surfaced by plan preflight PF-022 | Document deferral / design signed routines now | **Explicitly deferred** — `__rt_sdiv*`/signed semantics belong to a future arithmetic slice; recorded in 01-requirements Won't-Have; AC-19 covers unsigned operands only | ✅ Resolved |
 
 ### Resolution Notes
 

@@ -2,7 +2,7 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 15:20
+> **Last Updated**: 2026-07-02 (preflight PF-014..PF-024 amendments applied)
 > **Progress**: 0/47 tasks (0%)
 > **CodeOps Skills Version**: 3.1.0
 
@@ -52,7 +52,7 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 |---|------|------|
 | 1.2.1 | Descriptor types + registry (`createIntrinsicRegistry`, duplicate-throw AR-P9) | `core/src/intrinsics/{descriptor,registry}.ts` |
 | 1.2.2 | Full catalog: 23 user-visible + 4 `__rt_*` T3 descriptors, costs/descriptions | `core/src/intrinsics/catalog.ts` |
-| 1.2.3 | Core deltas: E10043/44/45/46; `asm_wai`→RESERVED_BUILTINS (+locked tests); `WAI`→W65C02_OPCODES; `zpArgBlockSize>=4` floor; `zpArgBlockMin` 0→4; plugin `IntrinsicDescriptor` placeholder → real type; barrel exports | per [03-01 table](03-01-core-registry.md) |
+| 1.2.3 | Core deltas: E10043/44/45/46; `asm_wai`→RESERVED_BUILTINS (+locked tests); `WAI`→W65C02_OPCODES; `zpArgBlockSize>=4` floor; `zpArgBlockMin` 0→4 (+locked `records.impl.test.ts:31` & `DEFAULT_PROFILE` assertion sweep — PF-020); canonical profile +`platformId` (5 plugins + fixtures, `validateProfile` consistency check — PF-015); plugin `IntrinsicDescriptor` placeholder → real type; barrel exports (`RuntimeModule.baseUrl` lands in Phase 5 — PF-017) | per [03-01 table](03-01-core-registry.md) |
 | 1.2.4 | Run spec tests — verify PASS (green); fix implementation, never tests | — |
 
 ### Session 1.3: Impl tests & hardening
@@ -79,7 +79,7 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 | # | Task | File |
 |---|------|------|
 | 2.2.1 | Minimal declaration collection (structs/enums/vars/imports — AR-P13) | `frontend/src/semantics/declaration-collection.ts` |
-| 2.2.2 | `AnalyzeInput.registry?` + internal default (AR-P3); wire pass seams | `frontend/src/semantics/{analyze,passes}.ts` |
+| 2.2.2 | `AnalyzeInput.registry?` + internal default (AR-P3) and `AnalyzeInput.targetProfile?` (canonical profile; V4/V6b skipped when absent — PF-014); wire pass seams | `frontend/src/semantics/{analyze,passes}.ts` |
 | 2.2.3 | Checks V1–V8 (E10040/41, E10171 literal, E10043, E10101, E10046, W10120 — AR-P6/P14) | `frontend/src/semantics/intrinsic-validation.ts` |
 | 2.2.4 | Green phase (ST-8..14, ST-17) | — |
 
@@ -96,7 +96,7 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 ### Session 3.1: Spec tests (03-03)
 | # | Task | File |
 |---|------|------|
-| 3.1.1 | Write lowering/emission spec tests ST-18..ST-23 | `codegen/src/il/lower-intrinsics.spec.test.ts`, `codegen/src/instr/translate-t1.spec.test.ts` |
+| 3.1.1 | Write lowering/emission spec tests ST-18..ST-23 + ST-34 (length boundary, AR-P15) | `codegen/src/il/lower-intrinsics.spec.test.ts`, `codegen/src/instr/translate-t1.spec.test.ts` |
 | 3.1.2 | Red phase | — |
 
 ### Session 3.2: Implementation
@@ -121,23 +121,23 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 | # | Task | File |
 |---|------|------|
 | 4.1.1 | Write marshalling + embedding spec tests ST-24..ST-29 | `codegen/src/instr/marshalling.spec.test.ts`, `codegen/src/runtime/embed.spec.test.ts` |
-| 4.1.2 | Write ACME syntax-check spec test ST-30 (skip-if-no-ACME) | `compiler/src/runtime-asm.spec.test.ts` |
+| 4.1.2 | Write ACME syntax-check spec test ST-30 (skip-if-no-ACME; harness prepends the `__zp_arg_0/1` prelude for word routines — PF-019) | `compiler/src/runtime-asm.spec.test.ts` |
 | 4.1.3 | Red phase | — |
 
 ### Session 4.2: Implementation
 | # | Task | File |
 |---|------|------|
 | 4.2.1 | Author the four `.asm` modules per §4.6 convention + AR-P7 ABI (reference algorithms) | `codegen/runtime/{mul8,mul16,div8,div16}.asm` |
-| 4.2.2 | `embed.ts`: referenced-symbol collection (post-peephole), module loading with path guard, `__rt_arg` symbol defs | `codegen/src/runtime/embed.ts` |
-| 4.2.3 | Serializer: append referenced-modules section (goldens for no-runtime programs unchanged — ST-29) | `codegen/src/instr/serialize-acme.ts` |
-| 4.2.4 | Marshalling rewrite (`marshalAndCall`): both operands, word→ZP block, mod-remainder binding, E10044 check | `codegen/src/instr/translate.ts` |
+| 4.2.2 | `embed.ts`: referenced-symbol collection (post-peephole), module loading with path guard; reuse allocator `__zp_arg_N` symbols — no new symbol defs (PF-018) | `codegen/src/runtime/embed.ts` |
+| 4.2.3 | Serializer: optional `opts?: { runtimeSection? }` appended as a discrete section (PF-016; goldens for no-runtime programs unchanged — ST-29) | `codegen/src/instr/serialize-acme.ts` |
+| 4.2.4 | Marshalling rewrite (`marshalAndCall`): both operands, word→ZP block, mod-remainder binding, E10044 via `generateInstr` `opts.zpArgBlockSize` threaded by `assembleProgram` (PF-016) | `codegen/src/instr/translate.ts`, `codegen/src/instr/instr-program.ts` |
 | 4.2.5 | Remove mul/div `runtimeModules` stubs from 5 plugins (+locked tests) — AR-98 | `platforms/src/*.ts` |
 | 4.2.6 | Green phase | — |
 
 ### Session 4.3: Impl tests & hardening
 | # | Task | File |
 |---|------|------|
-| 4.3.1 | Impl tests: symbol collection, path guard, `__rt_arg` emission | `codegen/src/runtime/embed.impl.test.ts` |
+| 4.3.1 | Impl tests: symbol collection, path guard, `__zp_arg_N` reference correctness (PF-018) | `codegen/src/runtime/embed.impl.test.ts` |
 | 4.3.2 | Full verify | — |
 
 ---
@@ -153,7 +153,7 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 ### Session 5.2: Implementation
 | # | Task | File |
 |---|------|------|
-| 5.2.1 | Registry merge with id-stamped availability (AC-15/16); T4 embedding via plugin package root | `core/src/intrinsics/registry.ts`, `codegen/src/runtime/embed.ts` |
+| 5.2.1 | Registry merge with `platformId`-keyed availability wrapper (AC-15/16 — PF-015); add `RuntimeModule.baseUrl` field (PF-017 — deferred from Phase 1) + T4 embedding with package-root traversal guard | `core/src/platform/platform-plugin.ts`, `core/src/intrinsics/registry.ts`, `codegen/src/runtime/embed.ts` |
 | 5.2.2 | Validation pass covers `CallExprNode` T4 path (E10046/E10043 — AR-P14) | `frontend/src/semantics/intrinsic-validation.ts` |
 | 5.2.3 | Green phase | — |
 

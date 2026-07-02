@@ -49,6 +49,12 @@ RD-04 R95–R100, R19, R59).
 - W10121 `asm_brk`-in-release (needs build modes — RD-16, AR-P12)
 - Real T4 intrinsic content (petscii etc. — undesigned; fixture only, AR-P2)
 - `compile()`/`build()` orchestration (RD-15 — registry threading via parameters, AR-P3)
+- **Signed `*` / `/` / `%` runtime routines** (AR-P16, PF-022): frozen spec Ch 04 §3.2
+  defines signed division ("truncated toward zero — for both signed and unsigned
+  operands"), but RD-17's four routines are unsigned-only per the RD §4.3 internal
+  table (two's-complement multiply is width-safe; division is not). `__rt_sdiv*` /
+  signed semantics are explicitly deferred to a future arithmetic slice — this RD's
+  AC-19 covers unsigned `byte`/`word` operands only.
 
 ## Technical Requirements
 

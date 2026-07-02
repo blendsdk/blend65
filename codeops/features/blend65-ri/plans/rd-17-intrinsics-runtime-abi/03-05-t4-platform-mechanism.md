@@ -21,12 +21,25 @@ enforces the import boundary — proven end-to-end with a **test fixture** plugi
 - `platform-plugin.ts` re-exports the real core type (03-01). Compiles unchanged for
   all five plugins (`[]` satisfies the typed array).
 - Merge: `createIntrinsicRegistry(plugin.intrinsics)` — core catalog first, then the
-  active plugin's T4 entries; duplicates throw (AR-P9). The plugin's `id` is stamped
-  onto each contributed descriptor at merge time (wrapped availability predicate:
-  `profile → contributed-by === activePlugin.id && descriptor.availability(profile)`),
-  giving V6b its platform-identity check without a new descriptor field.
-- T4 `.asm` modules ride the same `RuntimeModule`/embedding path as T3 (03-04), with
-  `asmPath` resolved against the **plugin package** root.
+  active plugin's T4 entries; duplicates throw (AR-P9). The contributing plugin's `id`
+  is captured at merge time in a wrapped availability predicate:
+  `profile → profile.platformId === <contributing plugin id> && descriptor.availability(profile)`
+  — valid because the canonical profile now carries `platformId` (PF-015, 03-01), so
+  the predicate stays a pure `profile → boolean` uniform with the R24 CPU check.
+  **Documented limitation:** production compiles merge only the active plugin's
+  descriptors, so a wrong-platform T4 name is absent from the registry and falls to
+  RD-04b name resolution (deferred — no diagnostic today). AC-06/ST-16 is verified via
+  the fixture registry evaluated against an `a7800` target profile; a collision-safe
+  global merge is future work outside RD-17.
+- T4 `.asm` modules ride the same `RuntimeModule`/embedding path as T3 (03-04), located
+  via the new `RuntimeModule.baseUrl` field (PF-017): the owning plugin sets
+  `import.meta.url`, and `embed.ts` resolves `new URL(asmPath, baseUrl)` — codegen has
+  no dependency on `@blend65/platforms`, so self-locating URLs are the only mechanism
+  that works (and it is the same one AR-P8 chose for codegen's own T3 assets). The
+  path-traversal guard is concrete: the canonicalized resolved path must stay under the
+  directory containing the owning package's `package.json`. Plugin assets must resolve
+  identically from `src/` (vitest) and `dist/` (tsc builds) — place them at the package
+  root (e.g. `runtime/`) like codegen's T3 modules.
 
 ### Fixture (test-only, AR-P2)
 `platforms/src/__fixtures__/fixture-plugin.ts` (or test-local factory): a copy of the

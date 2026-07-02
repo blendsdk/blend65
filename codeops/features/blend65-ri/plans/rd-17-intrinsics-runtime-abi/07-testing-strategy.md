@@ -51,7 +51,8 @@
 | ST-19 | `poke($D020, 5)` / `peek($D021)` | Inline `store`/`load` → `STA`/`LDA abs`; NO `JSR` in output | AC-08, AR-49 |
 | ST-20 | `pokew($0314, $1234)` | Two byte stores: `$34`→`$0314`, `$12`→`$0315` (little-endian) | Ch 12 §3.1 |
 | ST-21 | `sizeof(Sprite)` (struct: `x: byte, y: byte, addr: word`) | Folds to `Immediate 4`; zero runtime instructions emitted for the fold | AC-09, AR-P13 |
-| ST-22 | `length(arr)` for `arr: byte[300]` | Folds to 300 with result type `word` (≤255 → `byte`) | Ch 12 §3.3, PF-005 |
+| ST-22 | `length(arr)` for `arr: byte[300]` | Folds to 300 with result type `word` (≤255 → `byte`; deliberate deviation from Ch 08 §9's "≤256" — AR-P15/PF-023) | Ch 12 §3.3, PF-005, AR-P15 |
+| ST-34 | `length(arr)` for `arr: byte[256]` (exact boundary) | Folds to 256 with result type `word` (256 unrepresentable in `byte` — AR-P15) | Ch 08 §9, AR-P15, PF-023 |
 | ST-23 | `poke(v, 5)` where `v` is a variable | E10045 (AR-P11 message); NO ICE; compilation continues | R39, AR-P5, AR-101 |
 
 ### T3 runtime & marshalling (03-04)
@@ -59,12 +60,12 @@
 | # | Input / Scenario | Expected Output / Behavior | Source |
 |------|------------------|----------------------------|--------|
 | ST-24 | `let r: word = a * b;` (bytes) | `LDA <a>` / `LDX <b>` / `JSR __rt_mul8` / result bound A(lo)/X(hi) | AC-10, AR-33 |
-| ST-25 | `let q: word = a / b;` (words) | `a`→A/X; `b` bytes stored to `__rt_arg0`/`__rt_arg1`; `JSR __rt_div16` | AR-P7, AR-98 |
+| ST-25 | `let q: word = a / b;` (words) | `a`→A/X; `b` bytes stored to the allocator's `__zp_arg_0`/`__zp_arg_1` symbols (PF-018); `JSR __rt_div16` | AR-P7, AR-98 |
 | ST-26 | `let m: byte = a % b;` (bytes) | `JSR __rt_div8` then remainder (X) bound as result; NO `__rt_mod8` symbol anywhere | AR-98 |
 | ST-27 | Fixture T3 descriptor needing 6 ZP bytes, profile `zpArgBlockSize: 4` | E10044 (AR-P11 message), statement poisoned | R35, AC-13 |
 | ST-28 | Program using `*` (bytes) → `serializeToAcme` | Output contains the `mul8.asm` body exactly once, in the runtime section; assembles | R15, AR-100 |
 | ST-29 | Gate program (no `*`/`/`/`%`) → `serializeToAcme` | NO runtime section; byte-identical to pre-RD-17 golden | R16, AC-11 |
-| ST-30 | Each `runtime/*.asm` file through ACME standalone (skip-if-no-ACME) | Assembles with zero errors | RD-17 §4.6, AR-P4 |
+| ST-30 | Each `runtime/*.asm` file through ACME (skip-if-no-ACME); harness prepends a 2-line prelude defining `__zp_arg_0/1` for the word routines (PF-019) | Assembles with zero errors | RD-17 §4.6, AR-P4 |
 
 ### T4 mechanism (03-05)
 
@@ -94,7 +95,7 @@
 | `frontend/src/semantics/intrinsic-validation.spec.test.ts` | ST-8..ST-14, ST-17 | 03-02 |
 | `frontend/src/semantics/intrinsic-validation.t4.spec.test.ts` | ST-15, ST-16 | 03-02/03-05 |
 | `codegen/src/instr/translate-t1.spec.test.ts` | ST-18 | 03-03 |
-| `codegen/src/il/lower-intrinsics.spec.test.ts` | ST-19..ST-23 | 03-03 |
+| `codegen/src/il/lower-intrinsics.spec.test.ts` | ST-19..ST-23, ST-34 | 03-03 |
 | `codegen/src/instr/marshalling.spec.test.ts` | ST-24..ST-27 | 03-04 |
 | `codegen/src/runtime/embed.spec.test.ts` | ST-28, ST-29 | 03-04 |
 | `compiler/src/runtime-asm.spec.test.ts` | ST-30 | 03-04 |

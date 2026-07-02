@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-02 15:25
+> **Last Updated**: 2026-07-02 17:10
 
 
 ---
@@ -28,9 +28,11 @@
 - **Next up**: **RD-17** (intrinsics & runtime ABI) — declared dependencies RD-04 (✅), RD-10 (✅);
   the MVP gate `poke` lives here. **RD preflight ✅ PASSED 2026-07-02** (13 findings resolved,
   runtime AR-97..AR-101). **Plan created 2026-07-02**
-  (`codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/`, 6 phases / 47 tasks,
-  gate register AR-P1..P14 passed). Workflow position:
-  ~~preflight~~ → ~~make_plan~~ → **preflight (plan)** → exec_plan.
+  (`codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/`, 6 phases / 47 tasks).
+  **Plan preflight ✅ PASSED 2026-07-02** (iteration 2: PF-014..PF-024 — 1 critical / 3 major /
+  6 minor / 1 observation, all resolved & applied; register grew to AR-P1..P16; see the plan's
+  `00-preflight-report.md`). Workflow position:
+  ~~preflight~~ → ~~make_plan~~ → ~~preflight (plan)~~ → **exec_plan**.
 
 
 
@@ -89,7 +91,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | A | 📋 Plan created (2026-07-02) |
+| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | A | 🔬 Plan preflighted (2026-07-02) — ready for exec_plan |
 | 2 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-12 | Test harness & emulator verification | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |

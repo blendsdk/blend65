@@ -45,22 +45,28 @@ deferred).
 | `__rt_div8`  | a→A, b→X | quotient→A, remainder→X | A, X, status |
 | `__rt_div16` | a→A(lo)/X(hi), b→ZP arg[0..1] | quotient→A(lo)/X(hi), remainder→ZP arg[0..1] (overwrites b — AR-P7) | A, X, Y, status |
 
-ZP arg-block base address: the first byte of the profile's ZP arg-block region. The
-allocator already reserves `zpArgBlockSize` bytes (RD-05/RD-10); `embed.ts` emits the
-`__rt_arg0`/`__rt_arg1` symbol definitions into the serializer's symbol-def header so
-routines and marshalling code share them symbolically (no hardcoded addresses).
+ZP arg-block symbols: the SFA allocator **already** reserves the arg-block bytes as
+named allocations `__zp_arg_0`, `__zp_arg_1`, … (`frontend/src/sfa/zp-allocator.ts:189-192`),
+and every ZP allocation already flows into `AllocationPlan.symbolDefinitions` and thus
+into the `.asm` symbol header (`frontend/src/sfa/symbols.ts:84-85`). Routine bodies and
+marshalling code reference these **existing** `__zp_arg_N` symbols directly — no new
+`__rt_arg*` symbols are minted and `embed.ts` emits no symbol definitions (PF-018;
+symbolic, no hardcoded addresses).
 
 ### Marshalling rewrite (`translate.ts`)
 `emitRuntimeCall` → `marshalAndCall(descriptor, left, right, ctx)`:
 1. Byte ops: `left`→A (LDA from SFA slot/immediate), `right`→X (LDX). Both operands
    now marshalled (fixes the `void right` stub; AC-10).
-2. Word ops: `left`→A/X, `right`→`STA/STX`-free path: load each byte and `STA __rt_arg0/__rt_arg1`.
+2. Word ops: `left`→A/X, `right`→`STA/STX`-free path: load each byte and `STA __zp_arg_0/__zp_arg_1`.
 3. Emit `JSR __rt_<name>`; bind result A (byte) or A/X (word); `%` (mod): after
-   `JSR __rt_div8` bind X (remainder→result via `TXA`); word `%`: copy `__rt_arg0/1`
+   `JSR __rt_div8` bind X (remainder→result via `TXA`); word `%`: copy `__zp_arg_0/1`
    to the destination slots (AR-98).
 4. Before emission, compute the call's ZP arg-block requirement from the descriptor
-   (`costMetadata.zpBytes`); if it exceeds `profile.zpArgBlockSize` → **E10044**
-   (AR-P11 message) and poison the statement (R35, AC-13).
+   (`costMetadata.zpBytes`); if it exceeds the target's `zpArgBlockSize` — received via
+   `generateInstr`'s new optional `opts` param, threaded from `plugin.profile` by
+   `assembleProgram` (PF-016) — → **E10044** (AR-P11 message) and poison the statement
+   (R35, AC-13). When the option is absent (bare `generateInstr` callers), the check is
+   skipped; ST-27 exercises the `assembleProgram` path.
 
 ### Embedding + dead-strip (`embed.ts`, AR-100)
 - `collectReferencedRoutines(program): Set<string>` — walk the final Instr streams for
@@ -69,10 +75,12 @@ routines and marshalling code share them symbolically (no hardcoded addresses).
 - `loadRuntimeModule(descriptor): string` — resolve `asmModulePath` against the owning
   package root via `import.meta.url`; canonicalize and reject any resolution escaping
   the package root (path-traversal guard, security requirement).
-- `serializeToAcme` gains a final discrete section:
-  `; --- runtime routines (referenced only) ---` + each referenced module's text
-  verbatim. Unreferenced modules are simply not embedded (R16, AC-11). Existing golden
-  outputs are unchanged for programs that reference no routines.
+- `serializeToAcme` gains an optional `opts?: { runtimeSection?: string }` param
+  (PF-016) — `embed.ts` computes the section text (`; --- runtime routines (referenced
+  only) ---` + each referenced module's text verbatim) and the caller passes it in, so
+  the serializer's "pure and deterministic" contract (R5) is preserved. Unreferenced
+  modules are simply not embedded (R16, AC-11). Existing golden outputs are unchanged
+  for programs that reference no routines (no option → no section).
 
 ### Platform stub migration (AR-98)
 The five plugins' `runtimeModules` entries for mul8/mul16/div8/div16 are **removed**
@@ -89,5 +97,5 @@ are updated deliberately in the same phase.
 | Referenced symbol with no registered module | ICE — catalog drift | AC-19 |
 
 ## Testing Requirements
-- Spec: marshalling Instr shapes per routine (byte/word × mul/div/mod); E10044 with a shrunken fixture profile; embedding includes exactly the referenced modules; dead-strip case; `.asm` files assemble standalone under ACME (syntax check via existing invoke pattern).
-- Impl: symbol collection post-peephole, path-guard cases, `__rt_arg` symbol emission, mod-remainder binding.
+- Spec: marshalling Instr shapes per routine (byte/word × mul/div/mod); E10044 with a shrunken fixture profile; embedding includes exactly the referenced modules; dead-strip case; `.asm` files assemble under ACME via a harness that prepends a 2-line prelude defining `__zp_arg_0/1` for the word routines (PF-019 — the symbols live in the program header, not the module files; the syntax-check intent is preserved).
+- Impl: symbol collection post-peephole, path-guard cases, `__zp_arg_N` reference correctness, mod-remainder binding.

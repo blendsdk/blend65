@@ -54,8 +54,13 @@ export interface IntrinsicDescriptor {
 ```
 
 `PlatformProfile` here is the **canonical** RD-10 profile (`core/platform/platform-profile.ts`)
-— availability predicates key on `profile.cpu` (`asm_wai`: `cpu === "wdc65c02"`). T4
-platform-identity conditioning uses the plugin id captured at merge time (see 03-05).
+— availability predicates key on `profile.cpu` (`asm_wai`: `cpu === "wdc65c02"`). The
+canonical profile gains a `readonly platformId: string` field (PF-015 — R25 requires it,
+and every frozen platform appendix lists "Platform ID" as the first profile-table row;
+the TS type simply omitted it). T4 platform-identity conditioning compares
+`profile.platformId` against the contributing plugin id captured at merge time (see
+03-05). The analyzer receives this profile via `AnalyzeInput.targetProfile` (PF-014,
+03-02).
 
 ### Registry (RD-17 §4.2; AR-P3, AR-P9)
 
@@ -82,6 +87,10 @@ are not language identifiers (RD-17 §4.3 internal table).
 
 - 9 memory T2 + 13 CPU-control T1 + `asm_wai` per the RD-17 §4.3 table (signatures,
   Ch 12 cost figures, `description` strings for RD-14 hover).
+- `lo`/`hi` descriptors carry `loweringStrategy: 'inline'`; their inline emitter folds
+  compile-time-constant operands as an optimization (PF-021 — mirrors RD-17 §4.3
+  "fold or `AND #$FF`"; the `'fold'` strategy is reserved for the always-fold
+  `sizeof`/`offsetof`/`length`).
 - `RT_ROUTINES`: `__rt_mul8`, `__rt_mul16`, `__rt_div8`, `__rt_div16` — tier T3,
   `loweringStrategy: 'call'`, `asmModulePath: 'runtime/<name>.asm'`, clobber
   `[A, X, status]` (+`Y` where the algorithm needs it), div ZP usage in `costMetadata.zpBytes`.
@@ -95,8 +104,10 @@ are not language identifiers (RD-17 §4.3 internal table).
 | +`asm_wai` | `ast/reserved-builtins.ts` | Set 22→23; update size-locked tests deliberately |
 | +`WAI` | `instr-model/opcode.ts` | `W65C02_OPCODES` += `WAI` (Implied mode) |
 | Floor check | `platform/validate-profile.ts` | `zpArgBlockSize >= 4` → validation error (R34/AC-12) |
-| Interim floor | `semantics/platform-profile.ts` | `DEFAULT_PROFILE.zpArgBlockMin` 0→4 (AR-P10) |
+| Interim floor | `semantics/platform-profile.ts` | `DEFAULT_PROFILE.zpArgBlockMin` 0→4 (AR-P10); update the locked `core/src/sfa/records.impl.test.ts:31` assertion + sweep for other `DEFAULT_PROFILE` assertions deliberately (PF-020) |
 | Real plugin type | `platform/platform-plugin.ts` | `export type IntrinsicDescriptor = unknown` → re-export of the real type |
+| +`platformId` | `platform/platform-profile.ts` + all 5 plugin profiles (+ profile test fixtures) | Canonical profile gains `readonly platformId: string` (PF-015); each plugin's `validateProfile()` additionally checks `profile.platformId === plugin.id` (reuses the R22 machinery) |
+| +`baseUrl` | `platform/platform-plugin.ts` (`RuntimeModule`) | `readonly baseUrl: string` — the owning plugin sets `import.meta.url`, giving `embed.ts` a resolvable base for plugin-relative `asmPath` (PF-017). **Applied in Phase 5** (not this phase): after the Phase-4 runtimeModules migration removes the 5 plugins' mul/div stub entries, only the T4 fixture sets it — avoids churning the spec-locked plugin tests twice |
 
 ## Integration Points
 - Frontend (03-02) consumes the registry via `AnalyzeInput.registry` (AR-P3).

@@ -29,7 +29,8 @@ a test fixture. After this RD, no individual intrinsic name is special-cased any
 
 | #   | Document                                            | Description                                     |
 | --- | --------------------------------------------------- | ----------------------------------------------- |
-| AR  | [Ambiguity Register](00-ambiguity-register.md)      | Zero-Ambiguity Gate decisions AR-P1..P13        |
+| AR  | [Ambiguity Register](00-ambiguity-register.md)      | Zero-Ambiguity Gate decisions AR-P1..P16        |
+| PF  | [Preflight Report](00-preflight-report.md)          | Plan preflight PF-014..PF-024 (all resolved)    |
 | 00  | [Index](00-index.md)                                | This document — overview and navigation         |
 | 01  | [Requirements](01-requirements.md)                  | Requirements and scope (from RD-17)             |
 | 02  | [Current State](02-current-state.md)                | What exists / gaps (preflight-grounded)         |
@@ -80,6 +81,12 @@ import { fix_probe } from c64;     // without the import: compile-time error
 | Word marshalling | a→A/X, b→ZP block; div16 remainder overwrites b | AR-P7 |
 | Layout & names | `core/src/intrinsics/`, `codegen/runtime/*.asm` | AR-P8 |
 | sizeof folding | Minimal declaration-collection pass | AR-P13 |
+| Analyzer target threading | `AnalyzeInput.targetProfile?` (canonical) | PF-014 |
+| T4 platform identity | Canonical profile gains `platformId` | PF-015 |
+| Codegen threading | Optional `opts` on `generateInstr`/`serializeToAcme` | PF-016 |
+| T4 asset resolution | `RuntimeModule.baseUrl` (`import.meta.url`) | PF-017 |
+| `length` boundary | ≤255 → `byte` (deliberate spec deviation) | AR-P15 |
+| Signed `*`//`%` | Explicitly deferred (unsigned-only routines) | AR-P16 |
 
 ## Related Files
 
@@ -87,7 +94,10 @@ import { fix_probe } from c64;     // without the import: compile-time error
 `packages/codegen/runtime/{mul8,mul16,div8,div16}.asm`, `packages/codegen/src/runtime/embed.ts`,
 `packages/frontend/src/semantics/intrinsic-validation.ts` (+ test files per tier).
 **Modified:** `core/src/diagnostics/diagnostic-codes.ts`, `core/src/ast/reserved-builtins.ts`,
-`core/src/instr-model/opcode.ts`, `core/src/platform/platform-plugin.ts` (placeholder → real type),
+`core/src/instr-model/opcode.ts`, `core/src/platform/platform-plugin.ts` (placeholder → real type;
+`RuntimeModule` +`baseUrl`), `core/src/platform/platform-profile.ts` (+`platformId`),
 `core/src/platform/validate-profile.ts`, `core/src/semantics/platform-profile.ts` (`zpArgBlockMin` 0→4),
-`frontend/src/semantics/{analyze,passes}.ts`, `codegen/src/il/{lower,intrinsic-descriptor}.ts`,
-`codegen/src/instr/{translate,serialize-acme}.ts`, `platforms/src/*.ts` (runtimeModules migration).
+`frontend/src/semantics/{analyze,passes}.ts` (+`registry`/`targetProfile`),
+`codegen/src/il/{lower,intrinsic-descriptor}.ts`,
+`codegen/src/instr/{translate,instr-program,serialize-acme}.ts` (optional `opts` threading),
+`platforms/src/*.ts` (runtimeModules migration; profiles +`platformId`).
