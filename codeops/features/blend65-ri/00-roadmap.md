@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-02 17:10
+> **Last Updated**: 2026-07-02 (RD-17 complete)
 
 
 ---
@@ -18,21 +18,18 @@
 ## Current Position
 
 
-- **Last completed**: **RD-09** (ACME emitter & assembler integration). Plan preflight ✅ PASS
-  (2026-06-10; AR-95 + AR-96 runtime resolved), executed to 100%
-  (`codeops/features/blend65-ri/plans/rd-09-acme-emitter/99-execution-plan.md`, 25/25 tasks): `serializeToAcme` (the single
-  canonical whole-program serializer, `@blend65/codegen`) + the `@blend65/compiler` ACME process
-  layer (`discoverAcme`, `parseLabelFile`, `invokeAcme`, `emitBinary` with the post-ACME
-  `E10034` budget check), new `DiagCode.AcmeNotFound` (E10035), ST-AG1 migrated to the canonical
-  serializer (AR-95/A), all spec + impl tiers green, full verify passing.
-- **Next up**: **RD-17** (intrinsics & runtime ABI) — declared dependencies RD-04 (✅), RD-10 (✅);
-  the MVP gate `poke` lives here. **RD preflight ✅ PASSED 2026-07-02** (13 findings resolved,
-  runtime AR-97..AR-101). **Plan created 2026-07-02**
-  (`codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/`, 6 phases / 47 tasks).
-  **Plan preflight ✅ PASSED 2026-07-02** (iteration 2: PF-014..PF-024 — 1 critical / 3 major /
-  6 minor / 1 observation, all resolved & applied; register grew to AR-P1..P16; see the plan's
-  `00-preflight-report.md`). Workflow position:
-  ~~preflight~~ → ~~make_plan~~ → ~~preflight (plan)~~ → **exec_plan**.
+- **Last completed**: **RD-17** (intrinsics & runtime ABI), executed to 100% on 2026-07-02
+  (`codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/99-execution-plan.md`, 47/47 tasks,
+  6 phases): typed `IntrinsicDescriptor` registry + full Ch 12 catalog (`@blend65/core/intrinsics`),
+  the first real semantic validation pass (V1–V8 + T4 import boundary, E10040/41/43/44/45/46),
+  descriptor-driven T1/T2 lowering (opcode map / inline emitters / compile-time folds), the four
+  hand-written T3 routines (`__rt_mul8/mul16/div8/div16`) with full AR-33 marshalling, embedding +
+  dead-strip into the RD-09 serializer, and the T4 platform contribution mechanism (registry merge,
+  `RuntimeModule.baseUrl`, fixture-proven — AR-P2). **The routines' math is functionally verified**
+  via an in-process 6502 interpreter harness (AR-P17); AC-14's emulator tier remains RD-12's.
+  AC-17 audit PASS; AC-19 golden assembles `*`/`/`/`%` to a real `.prg`.
+- **Next up**: **RD-16** (compiler configuration, `blend65.json`) — dependency RD-01 (✅). No plan
+  directory yet. Workflow position: **preflight** → make_plan → preflight (plan) → exec_plan.
 
 
 
@@ -80,6 +77,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 | RD-11a | Diagnostics core | `codeops/_archive/rd-11a-diagnostics-core/` | ✅ COMPLETE |
 | RD-08 | Peephole optimizer (passthrough v1, AR-38) | `codeops/features/blend65-ri/plans/rd-08-peephole-optimizer/` | ✅ COMPLETE |
 | RD-09 | ACME emitter & assembler integration | `codeops/features/blend65-ri/plans/rd-09-acme-emitter/` | ✅ COMPLETE |
+| RD-17 | Intrinsics & runtime ABI (all four tiers; AC-14 emulator tier → RD-12, AR-P4/AR-P17) | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | ✅ COMPLETE |
 
 ---
 
@@ -91,19 +89,19 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | A | 🔄 Executing (2026-07-02) — Phase 5/6 complete (42/47 tasks): all four tiers live (T1/T2/T3/T4); closeout (E2E golden + AC audit) remains |
-| 2 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
-| 3 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 4 | RD-12 | Test harness & emulator verification | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 5 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 6 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
-| 7 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
+| 1 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 2 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 3 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 4 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 5 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
+| 6 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
 
-> **Why RD-17 leads now:** RD-09 (ACME emitter) is ✅ done, so the `Instr` stream now reaches a
-> runnable binary. RD-17 (intrinsics & runtime ABI) is next on the MVP critical path — the gate
-> program's `poke` intrinsic lives here, and its declared dependencies RD-04/RD-10 are both ✅.
-> RD-08's full 11-rule optimization catalog remains genuine Phase-B work to be layered in later.
+> **Why RD-16 leads now:** RD-17 is ✅ done — the gate `poke` (and the full intrinsic model)
+> compiles and assembles. What is missing between here and the MVP gate is the *driver*:
+> RD-16 (config) then RD-15 (programmatic + CLI API) turn the pipeline into a runnable
+> `blendc` build, and RD-12 then proves the gate program in VICE (including RD-17's deferred
+> AC-14 emulator tier — AR-P4). RD-08's full 11-rule optimization catalog remains Phase-B work.
 >
 > **MVP gate (AR-43/44):** the Phase-A chain (through RD-12) exists to compile the gate
 > program — `poke` a constant on c64 → `.prg` → VICE asserts the result — and prove a

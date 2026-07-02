@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 (Phase 5 complete — full verify green; T4 mechanism proven end-to-end)
-> **Progress**: 42/47 tasks (89%)
+> **Last Updated**: 2026-07-02 (PLAN COMPLETE — all 6 phases executed, full verify green)
+> **Progress**: 47/47 tasks (100%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -247,11 +247,11 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 - [x] 5.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green; frontend 255 (ST-15/16 todos now live), platforms 40, compiler 41, codegen 329)
 
 ### Phase 6: End-to-end & closeout
-- [ ] 6.1.1 AC-19 golden E2E
-- [ ] 6.1.2 AC-17 no-special-casing audit
-- [ ] 6.1.3 Full verify
-- [ ] 6.2.1 RD-17 AC checkoff (AC-14 deferred note)
-- [ ] 6.2.2 Roadmap update
+- [x] 6.1.1 AC-19 golden E2E ✅ (completed: 2026-07-02 — ST-33: byte `*` + word `/` + byte `%` → assembleProgram(c64) → embed → ACME → main.prg produced, zero unresolved symbols; mul16 dead-stripped)
+- [x] 6.1.2 AC-17 no-special-casing audit ✅ (completed: 2026-07-02 — **AUDIT RESULT: PASS.** Grep-sweep over all production `packages/*/src` for intrinsic-name string switches/comparisons found 4 hits, all in sanctioned categories: (1) `parser/pratt.ts:399-401` — grammar-level: `sizeof`/`offsetof` take a *type* argument, a syntactic node-shape distinction owned by RD-03's grammar, not semantic dispatch; (2) `intrinsic-validation.ts` V8 — the `asm_sed`/`asm_cld` pairing rule (W10120) is itself specified over those two names; (3) `translate.ts:668/691` — `RT_BY_NAME` keyed-map lookups selecting the routine symbol by IL op width (map construction/ABI selection, explicitly allowed). All lowering/validation/emission dispatch is descriptor-driven: strategy dispatch in `lower.ts`, `T1_OPCODES`/`INLINE_EMITTERS`/`RT_BY_NAME` keyed maps, registry-driven T4 recognition.)
+- [x] 6.1.3 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green)
+- [x] 6.2.1 RD-17 AC checkoff (AC-14 deferred note) ✅ (completed: 2026-07-02 — 18/19 ACs checked with ST evidence; AC-14 marked ⏸️ deferred→RD-12 (AR-P4) with the AR-P17 interim functional harness noted; RD status header → IMPLEMENTED)
+- [x] 6.2.2 Roadmap update ✅ (completed: 2026-07-02 — RD-17 moved to Done, Current Position → RD-16, RD-12 row carries the AC-14 emulator-tier note, portfolio cascaded)
 
 ---
 

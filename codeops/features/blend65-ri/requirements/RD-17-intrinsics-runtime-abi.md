@@ -1,6 +1,6 @@
 # RD-17: Intrinsic Functions & Runtime-Routine ABI
 
-> **Status**: 🟢 Authored — ✅ Preflighted 2026-07-02 (13 findings resolved; see `00-preflight-report.md`)
+> **Status**: ✅ IMPLEMENTED 2026-07-02 — plan executed to 47/47 (`codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/99-execution-plan.md`); AC-14's emulator tier deferred to RD-12 (AR-P4) with interim functional verification via an in-process 6502 interpreter harness (AR-P17)
 > **MVP Phase**: A
 > **Depends On**: RD-04, RD-10
 > **Implements**: `spec-v3.0` Ch 12 (Intrinsic Functions); AR-28..AR-36, AR-97..AR-101 (runtime, preflight 2026-07-02); plus RD-04's deferred intrinsic rules R95–R100/R19/R59
@@ -402,25 +402,25 @@ Each `.asm` file:
 
 ## 6. Acceptance Criteria
 
-- [ ] AC-01: Every Ch 12 intrinsic has an `IntrinsicDescriptor` in the registry with correct tier, signature, availability, and cost
-- [ ] AC-02: The frontend type-checks intrinsic calls against the descriptor signature — wrong arg count/type produces `E10040`/`E10041`
-- [ ] AC-03: A user-defined function shadowing a reserved intrinsic name produces a compile-time error (`E10101`)
-- [ ] AC-04: Calling `asm_wai` on an NMOS 6502 target produces `E10043` naming the required CPU
-- [ ] AC-05: T4 intrinsics are unavailable without an explicit import — using `petscii()` without `import` is an error
-- [ ] AC-06: T4 intrinsics from a different platform are unavailable — `petscii()` on `a7800` is an error
-- [ ] AC-07: T1 opcodes lower to exactly one `Instr` with the correct opcode
-- [ ] AC-08: T2 `peek`/`poke` lower to inline `LDA`/`STA` sequences (not `JSR`) for compile-time-constant addresses; a non-constant address produces `E10045` (R39), not an ICE
-- [ ] AC-09: T2 `sizeof`/`offsetof`/`length` fold to compile-time constants (no runtime code)
-- [ ] AC-10: `*` on bytes lowers to `JSR __rt_mul8` with ABI-correct marshalling (both operands, per AR-33 — replacing the shipped left-only stub)
-- [ ] AC-11: Unreferenced T3/T4 `.asm` modules are NOT included in the output
-- [ ] AC-12: The ZP arg-block minimum floor (≥ 4 bytes) is enforced across all platform profiles
-- [ ] AC-13: Exceeding the ZP arg-block capacity produces `E10044`
-- [ ] AC-14: Hand-written `.asm` runtime modules pass emulator-tier tests verifying correct results
-- [ ] AC-15: The descriptor registry is populated from core + platform contributions before semantic analysis runs
-- [ ] AC-16: Platform plugins can contribute T4 descriptors via the `PlatformPlugin` interface
-- [ ] AC-17: No individual intrinsic name is special-cased in the compiler — all dispatch through the registry
-- [ ] AC-18: All decisions trace to an `AR-NN` or a frozen spec section
-- [ ] AC-19: Every runtime-routine symbol shipped codegen emits (`__rt_mul8`, `__rt_mul16`, `__rt_div8`, `__rt_div16`) has a corresponding `.asm` module body — a program using `*`, `/`, or `%` on byte and word operands assembles with no unresolved symbols
+- [x] AC-01: Every Ch 12 intrinsic has an `IntrinsicDescriptor` in the registry with correct tier, signature, availability, and cost — ✅ (ST-1..5: 23 user-visible + 4 internal T3)
+- [x] AC-02: The frontend type-checks intrinsic calls against the descriptor signature — wrong arg count/type produces `E10040`/`E10041` — ✅ (ST-8/ST-9)
+- [x] AC-03: A user-defined function shadowing a reserved intrinsic name produces a compile-time error (`E10101`) — ✅ (ST-12)
+- [x] AC-04: Calling `asm_wai` on an NMOS 6502 target produces `E10043` naming the required CPU — ✅ (ST-11)
+- [x] AC-05: T4 intrinsics are unavailable without an explicit import — using `petscii()` without `import` is an error — ✅ (ST-15/ST-32 via the `fix_probe` fixture — AR-P2)
+- [x] AC-06: T4 intrinsics from a different platform are unavailable — `petscii()` on `a7800` is an error — ✅ (ST-16 via the fixture on a7800 — AR-P2)
+- [x] AC-07: T1 opcodes lower to exactly one `Instr` with the correct opcode — ✅ (ST-18)
+- [x] AC-08: T2 `peek`/`poke` lower to inline `LDA`/`STA` sequences (not `JSR`) for compile-time-constant addresses; a non-constant address produces `E10045` (R39), not an ICE — ✅ (ST-19/ST-23)
+- [x] AC-09: T2 `sizeof`/`offsetof`/`length` fold to compile-time constants (no runtime code) — ✅ (ST-20..22, ST-34)
+- [x] AC-10: `*` on bytes lowers to `JSR __rt_mul8` with ABI-correct marshalling (both operands, per AR-33 — replacing the shipped left-only stub) — ✅ (ST-24)
+- [x] AC-11: Unreferenced T3/T4 `.asm` modules are NOT included in the output — ✅ (ST-28/ST-29 + plugin-module dead-strip)
+- [x] AC-12: The ZP arg-block minimum floor (≥ 4 bytes) is enforced across all platform profiles — ✅ (ST-6/ST-7)
+- [x] AC-13: Exceeding the ZP arg-block capacity produces `E10044` — ✅ (ST-27)
+- [ ] AC-14: Hand-written `.asm` runtime modules pass emulator-tier tests verifying correct results — ⏸️ DEFERRED to RD-12 (AR-P4 — emulator tier); interim functional verification SHIPPED: AR-P17 in-process 6502 interpreter runs the ACME-assembled routines against edge crosses + seeded random vectors (compiler/src/runtime-asm.impl.test.ts)
+- [x] AC-15: The descriptor registry is populated from core + platform contributions before semantic analysis runs — ✅ (ST-31: registry fully populated at construction)
+- [x] AC-16: Platform plugins can contribute T4 descriptors via the `PlatformPlugin` interface — ✅ (ST-31/ST-32)
+- [x] AC-17: No individual intrinsic name is special-cased in the compiler — all dispatch through the registry — ✅ (audit PASS 2026-07-02 — see 99-execution-plan.md task 6.1.2)
+- [x] AC-18: All decisions trace to an `AR-NN` or a frozen spec section — ✅ (ambiguity register AR-P1..P17)
+- [x] AC-19: Every runtime-routine symbol shipped codegen emits (`__rt_mul8`, `__rt_mul16`, `__rt_div8`, `__rt_div16`) has a corresponding `.asm` module body — a program using `*`, `/`, or `%` on byte and word operands assembles with no unresolved symbols — ✅ (ST-33 golden: byte *, word /, byte % → ACME → main.prg, zero unresolved symbols)
 
 ---
 
