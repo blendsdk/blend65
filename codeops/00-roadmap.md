@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | Codegen pipeline complete through RD-09; RD-17 (intrinsics & runtime ABI) preflighted ✅, next make_plan | 13/20 | 🔄 | 2026-07-02 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | Codegen complete through RD-09; RD-17 plan created 📋 (6 phases/47 tasks), next plan preflight → exec_plan | 13/20 | 🔄 | 2026-07-02 |
 
 ## Archived
 

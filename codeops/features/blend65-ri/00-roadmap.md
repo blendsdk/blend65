@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-02 14:55
+> **Last Updated**: 2026-07-02 15:25
 
 
 ---
@@ -26,10 +26,11 @@
   `E10034` budget check), new `DiagCode.AcmeNotFound` (E10035), ST-AG1 migrated to the canonical
   serializer (AR-95/A), all spec + impl tiers green, full verify passing.
 - **Next up**: **RD-17** (intrinsics & runtime ABI) — declared dependencies RD-04 (✅), RD-10 (✅);
-  the MVP gate `poke` lives here. **RD preflight ✅ PASSED 2026-07-02** (13 findings resolved —
-  scope now includes RD-04's deferred intrinsic validation rules; runtime AR-97..AR-101 logged;
-  see `requirements/00-preflight-report.md`). Needs `make_plan`. Workflow position:
-  ~~preflight~~ → **make_plan** → preflight → exec_plan.
+  the MVP gate `poke` lives here. **RD preflight ✅ PASSED 2026-07-02** (13 findings resolved,
+  runtime AR-97..AR-101). **Plan created 2026-07-02**
+  (`codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/`, 6 phases / 47 tasks,
+  gate register AR-P1..P14 passed). Workflow position:
+  ~~preflight~~ → ~~make_plan~~ → **preflight (plan)** → exec_plan.
 
 
 
@@ -88,7 +89,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-02) |
+| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | A | 📋 Plan created (2026-07-02) |
 | 2 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-12 | Test harness & emulator verification | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
