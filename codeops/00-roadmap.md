@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | Codegen complete through RD-09; RD-17 executing 🔄 — Phase 4/6 done (T3 runtime routines functionally verified, marshalling, embedding; 35/47 tasks) | 13/20 | 🔄 | 2026-07-02 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | Codegen complete through RD-09; RD-17 executing 🔄 — Phase 5/6 done (all four intrinsic tiers live; 42/47 tasks) | 13/20 | 🔄 | 2026-07-02 |
 
 ## Archived
 

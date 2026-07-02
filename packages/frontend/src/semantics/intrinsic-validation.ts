@@ -20,6 +20,7 @@ import { DiagCode, IceCode, RESERVED_BUILTINS, walkChildren, walkNode } from "@b
 import type {
   AstNode,
   AstVisitor,
+  CallExprNode,
   DiagnosticBag,
   IntrinsicCallExprNode,
   IntrinsicDescriptor,
@@ -66,6 +67,14 @@ export function validateIntrinsics(
     // V1–V4/V7: validate every intrinsic call site anywhere in the program.
     for (const call of collectIntrinsicCalls(program)) {
       validateCall(call, ctx);
+    }
+    // V6a/V6b: T4 platform intrinsics parse as ordinary CallExprNodes (their
+    // names are not in the parser's RESERVED_BUILTINS) and are recognized
+    // semantically via the registry (AC-17). Check availability (E10043, R25)
+    // and the import boundary (E10046, AR-97/AR-P14).
+    const imports = collectImports(program);
+    for (const call of collectPlainCalls(program)) {
+      validateT4Call(call, imports, ctx);
     }
     // V8: per-function decimal-mode balance (asm_sed without asm_cld).
     for (const item of program.items) {
@@ -207,6 +216,74 @@ function checkTypeArg(node: IntrinsicCallExprNode, ctx: ValidationContext): void
   }
 }
 
+/**
+ * V6a/V6b — validate a plain call whose callee names a registered T4 intrinsic
+ * (AR-P14): wrong platform → E10043 (availability, R25); right platform but not
+ * imported from the owning pseudo-module → E10046 with the exact import hint
+ * (AR-97). Arity/literal checks then mirror `validateCall` (uniform dispatch,
+ * AC-17). Calls whose callee is not a registry name are user function calls —
+ * out of scope here (RD-04b name resolution).
+ */
+function validateT4Call(
+  node: CallExprNode,
+  imports: ReadonlyMap<string, string>,
+  ctx: ValidationContext,
+): void {
+  if (node.callee.kind !== "IdentExpr") {
+    return;
+  }
+  const name = node.callee.name;
+  const descriptor = ctx.registry.get(name);
+  // Only platform-contributed descriptors reach the CallExpr path (core names
+  // parse as IntrinsicCallExpr); anything else is a user call.
+  if (descriptor === undefined || descriptor.platformId === undefined) {
+    return;
+  }
+
+  // V6b — wrong platform: availability is keyed on platformId (R25, AC-06).
+  if (ctx.targetProfile !== undefined && !descriptor.availability(ctx.targetProfile)) {
+    ctx.bag.addError(
+      DiagCode.IntrinsicUnavailable,
+      node.callee.span,
+      `'${name}' requires platform '${descriptor.platformId}', but the target is '${ctx.targetProfile.platformId}'`,
+    );
+    return;
+  }
+
+  // V6a — the import boundary: visible only via the platform pseudo-module (AR-97).
+  if (imports.get(name) !== descriptor.platformId) {
+    ctx.bag.addError(
+      DiagCode.IntrinsicNotImported,
+      node.callee.span,
+      `'${name}' requires 'import { ${name} } from ${descriptor.platformId};'`,
+    );
+    return;
+  }
+
+  // Arity (uniform with V1/V2).
+  const paramCount = descriptor.signature.params.length;
+  if (node.args.length !== paramCount) {
+    ctx.bag.addError(
+      DiagCode.WrongIntrinsicArgCount,
+      node.callee.span,
+      `'${name}' expects ${paramCount} argument(s) but ${node.args.length} were supplied`,
+    );
+  }
+}
+
+/** The program's imported symbols: name → source module path (AR-97). */
+function collectImports(program: ProgramNode): ReadonlyMap<string, string> {
+  const imports = new Map<string, string>();
+  for (const item of program.items) {
+    if (item.kind === "ImportStmt") {
+      for (const symbol of item.symbols) {
+        imports.set(symbol.name, item.modulePath);
+      }
+    }
+  }
+  return imports;
+}
+
 /** V8 — a function using `asm_sed` without a matching `asm_cld` warns (W10120). */
 function checkDecimalMode(item: TopLevelItem, ctx: ValidationContext): void {
   const calls = collectIntrinsicCalls(item);
@@ -274,6 +351,20 @@ function collectIntrinsicCalls(root: AstNode): IntrinsicCallExprNode[] {
   const visit = (node: AstNode): void => {
     if (node.kind === "IntrinsicCallExpr") {
       found.push(node as IntrinsicCallExprNode);
+    }
+    walkChildren(node, visitor);
+  };
+  const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
+  walkNode(root, visitor);
+  return found;
+}
+
+/** Collect every plain {@link CallExprNode} in a subtree (the T4 path, 03-05). */
+function collectPlainCalls(root: AstNode): CallExprNode[] {
+  const found: CallExprNode[] = [];
+  const visit = (node: AstNode): void => {
+    if (node.kind === "CallExpr") {
+      found.push(node as CallExprNode);
     }
     walkChildren(node, visitor);
   };

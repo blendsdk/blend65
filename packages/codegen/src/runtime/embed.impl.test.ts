@@ -15,6 +15,7 @@ import {
   RUNTIME_SECTION_HEADER,
   buildRuntimeSection,
   collectReferencedRoutines,
+  loadPluginRuntimeModule,
   loadRuntimeModule,
 } from "./embed.js";
 
@@ -150,6 +151,65 @@ describe("runtime modules — __zp_arg_N reference correctness (PF-018)", () => 
       const expected = d.name.endsWith("16") ? 2 : 0;
       expect(d.costMetadata.zpBytes, `${d.name} declared arg bytes`).toBe(expected);
     }
+  });
+});
+
+describe("loadPluginRuntimeModule — baseUrl resolution + guard (PF-017)", () => {
+  it("loads an in-package module via its baseUrl", () => {
+    // Self-referential fixture: this test module's own package root carries
+    // the T3 modules, so `../../runtime/mul8.asm` resolves inside the package.
+    const text = loadPluginRuntimeModule({
+      name: "probe",
+      asmPath: "../../runtime/mul8.asm",
+      exports: ["__rt_mul8"],
+      baseUrl: import.meta.url,
+    });
+    expect(text).toContain("__rt_mul8:");
+  });
+
+  it("throws when baseUrl is missing", () => {
+    expect(() =>
+      loadPluginRuntimeModule({ name: "p", asmPath: "runtime/x.asm", exports: [] }),
+    ).toThrow(/baseUrl/);
+  });
+
+  it("throws when the resolution escapes the owning package root", () => {
+    expect(() =>
+      loadPluginRuntimeModule({
+        name: "p",
+        asmPath: "../../../core/package.json",
+        exports: [],
+        baseUrl: import.meta.url,
+      }),
+    ).toThrow(/escapes/);
+  });
+});
+
+describe("buildRuntimeSection — plugin modules (T4 path, 03-05)", () => {
+  it("appends a referenced plugin module after the T3 modules", () => {
+    const pluginModule = {
+      name: "probe",
+      asmPath: "../../runtime/div8.asm", // stands in for a T4 module body
+      exports: ["fix_probe"],
+      baseUrl: import.meta.url,
+    };
+    const referenced = new Set(["__rt_mul8", "fix_probe"]);
+    const section = buildRuntimeSection(referenced, RT_ROUTINES, [pluginModule]);
+    expect(section).not.toBeNull();
+    const mulAt = section?.indexOf("__rt_mul8:") ?? -1;
+    const probeAt = section?.indexOf("__rt_div8:") ?? -1; // the stand-in body
+    expect(mulAt).toBeGreaterThanOrEqual(0);
+    expect(probeAt).toBeGreaterThan(mulAt); // T3 first, plugin modules after
+  });
+
+  it("an unreferenced plugin module is dead-stripped", () => {
+    const pluginModule = {
+      name: "probe",
+      asmPath: "../../runtime/div8.asm",
+      exports: ["fix_probe"],
+      baseUrl: import.meta.url,
+    };
+    expect(buildRuntimeSection(new Set(), RT_ROUTINES, [pluginModule])).toBeNull();
   });
 });
 

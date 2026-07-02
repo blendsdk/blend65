@@ -103,14 +103,23 @@ class IntrinsicRegistryImpl implements IntrinsicRegistry {
 /**
  * Create a registry pre-populated with the core catalog and, optionally, a
  * platform's T4 descriptors (R11, AR-P3). The core catalog is registered first
- * (user-visible T1/T2 then internal T3 routines), then any platform descriptors.
+ * (user-visible T1/T2 then internal T3 routines), then any platform descriptors
+ * — so the registry is fully populated before `analyze()` runs (AC-15/AC-16).
+ *
+ * When `platformId` is given, each platform descriptor is merged with a wrapped
+ * availability predicate keyed on the contributing platform (R25/PF-015):
+ * `profile → profile.platformId === platformId && original(profile)` — and the
+ * id is stamped on the descriptor for diagnostic rendering (AR-P11/AR-P14).
  *
  * @param platformDescriptors Optional T4 descriptors contributed by the active
  *   platform plugin; merged into the registry at compile start (AC-15/AC-16).
+ * @param platformId The contributing plugin's id — enables the platform-keyed
+ *   availability wrapper. Omitted → descriptors register unwrapped (test use).
  * @returns A fresh registry.
  */
 export function createIntrinsicRegistry(
   platformDescriptors?: readonly IntrinsicDescriptor[],
+  platformId?: string,
 ): IntrinsicRegistry {
   const registry = new IntrinsicRegistryImpl();
   for (const descriptor of CORE_INTRINSICS) {
@@ -121,8 +130,32 @@ export function createIntrinsicRegistry(
   }
   if (platformDescriptors) {
     for (const descriptor of platformDescriptors) {
-      registry.register(descriptor);
+      registry.register(
+        platformId === undefined ? descriptor : wrapForPlatform(descriptor, platformId),
+      );
     }
   }
   return registry;
+}
+
+/**
+ * Wrap a T4 descriptor for its contributing platform (R25/PF-015): availability
+ * additionally requires the target profile's `platformId` to match, and the id
+ * is stamped for diagnostic rendering. Pure — the original descriptor is
+ * untouched.
+ *
+ * @param descriptor The plugin-authored descriptor.
+ * @param platformId The contributing plugin's id.
+ * @returns The merged descriptor registered into the registry.
+ */
+function wrapForPlatform(
+  descriptor: IntrinsicDescriptor,
+  platformId: string,
+): IntrinsicDescriptor {
+  return {
+    ...descriptor,
+    platformId,
+    availability: (profile: PlatformProfile) =>
+      profile.platformId === platformId && descriptor.availability(profile),
+  };
 }

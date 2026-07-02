@@ -23,10 +23,11 @@
  * language-server).
  */
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { isAbsolute, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, resolve, sep } from "node:path";
 import type { IntrinsicDescriptor } from "@blend65/core";
+import type { RuntimeModule } from "@blend65/core/platform";
 
 import type { InstrProgram } from "../instr/instr-program.js";
 import { isInstr } from "../instr/stream.js";
@@ -50,13 +51,21 @@ const PACKAGE_ROOT = fileURLToPath(new URL("../../", import.meta.url));
  *
  * @param program The final instruction program (RD-08 output).
  * @param descriptors The registered T3/T4 routine descriptors (with `asmModulePath`).
+ * @param pluginModules The active plugin's T4 runtime modules (RD-17 03-05) —
+ *   their `exports` extend the known-symbol set.
  * @returns The set of referenced routine names, iteration-ordered by first use.
  */
 export function collectReferencedRoutines(
   program: InstrProgram,
   descriptors: readonly IntrinsicDescriptor[],
+  pluginModules?: readonly RuntimeModule[],
 ): ReadonlySet<string> {
   const known = new Set(descriptors.filter((d) => d.asmModulePath !== undefined).map((d) => d.name));
+  for (const module of pluginModules ?? []) {
+    for (const symbol of module.exports) {
+      known.add(symbol);
+    }
+  }
   const referenced = new Set<string>();
   for (const stream of program.streams) {
     for (const entry of stream.entries) {
@@ -104,28 +113,87 @@ export function loadRuntimeModule(descriptor: IntrinsicDescriptor): string {
 }
 
 /**
+ * Load a plugin-contributed T4 runtime module's verbatim `.asm` text (RD-17
+ * 03-05, PF-017).
+ *
+ * The module's `asmPath` is resolved against its self-locating `baseUrl`
+ * (`import.meta.url` of the declaring plugin module). Security guard: the
+ * canonical resolved path must stay under the owning package's root — the
+ * directory containing the nearest `package.json` above `baseUrl` — otherwise
+ * this is a packaging bug and throws (surfaced as an ICE by the compiler layer).
+ *
+ * @param module The plugin's runtime-module entry (must carry `baseUrl`).
+ * @returns The module's `.asm` source text, exactly as authored.
+ * @throws {Error} When `baseUrl` is missing, no owning `package.json` is found,
+ *   or the resolution escapes the owning package root.
+ */
+export function loadPluginRuntimeModule(module: RuntimeModule): string {
+  if (module.baseUrl === undefined) {
+    throw new Error(`runtime module: plugin module '${module.name}' has no baseUrl (PF-017)`);
+  }
+  const full = fileURLToPath(new URL(module.asmPath, module.baseUrl));
+  const packageRoot = findPackageRoot(dirname(fileURLToPath(module.baseUrl)));
+  if (packageRoot === null) {
+    throw new Error(`runtime module: no package.json above '${module.baseUrl}'`);
+  }
+  if (!resolve(full).startsWith(resolve(packageRoot) + sep)) {
+    throw new Error(
+      `runtime module: asmPath '${module.asmPath}' escapes the owning package root`,
+    );
+  }
+  return readFileSync(full, "utf8");
+}
+
+/**
+ * The nearest directory at or above `dir` containing a `package.json`, or
+ * `null` when the filesystem root is reached without one.
+ */
+function findPackageRoot(dir: string): string | null {
+  let current = resolve(dir);
+  for (;;) {
+    if (existsSync(join(current, "package.json"))) {
+      return current;
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      return null;
+    }
+    current = parent;
+  }
+}
+
+/**
  * Compose the discrete runtime section for the serializer (PF-016, AR-100).
  *
- * Embeds exactly the referenced modules, verbatim, in the descriptors' catalog
- * order (deterministic output, R5). Returns `null` when nothing is referenced —
- * the caller then passes no `runtimeSection` option and the serialized output
- * stays byte-identical to the pre-RD-17 shape (R16, AC-11).
+ * Embeds exactly the referenced modules, verbatim: codegen-owned T3 modules
+ * first in the descriptors' catalog order, then plugin T4 modules in their
+ * declared order (deterministic output, R5). Returns `null` when nothing is
+ * referenced — the caller then passes no `runtimeSection` option and the
+ * serialized output stays byte-identical to the pre-RD-17 shape (R16, AC-11).
  *
  * @param referenced The routine names in use (from {@link collectReferencedRoutines}).
- * @param descriptors The registered routine descriptors (defines embedding order).
+ * @param descriptors The registered routine descriptors (defines T3 embedding order).
+ * @param pluginModules The active plugin's T4 runtime modules (loaded via `baseUrl`).
  * @returns The section text (header + module bodies), or `null` when empty.
  */
 export function buildRuntimeSection(
   referenced: ReadonlySet<string>,
   descriptors: readonly IntrinsicDescriptor[],
+  pluginModules?: readonly RuntimeModule[],
 ): string | null {
   const used = descriptors.filter((d) => referenced.has(d.name) && d.asmModulePath !== undefined);
-  if (used.length === 0) {
+  const usedPlugin = (pluginModules ?? []).filter((m) =>
+    m.exports.some((symbol) => referenced.has(symbol)),
+  );
+  if (used.length === 0 && usedPlugin.length === 0) {
     return null;
   }
   const parts = [RUNTIME_SECTION_HEADER];
   for (const d of used) {
     parts.push(loadRuntimeModule(d).trimEnd());
+  }
+  for (const m of usedPlugin) {
+    parts.push(loadPluginRuntimeModule(m).trimEnd());
   }
   return parts.join("\n");
 }

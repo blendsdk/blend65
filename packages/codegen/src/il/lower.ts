@@ -25,6 +25,7 @@ import type {
   BinaryExprNode,
   BinaryOp,
   BlockNode,
+  CallExprNode,
   DiagnosticBag,
   ExprNode,
   FunctionDeclNode,
@@ -231,9 +232,29 @@ function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
       return lowerAssign(expr, ctx);
     case "IntrinsicCallExpr":
       return lowerIntrinsic(expr, ctx);
+    case "CallExpr":
+      return lowerCall(expr, ctx);
     default:
       return iceUnsupported(expr, ctx, "expression");
   }
+}
+
+/**
+ * Lower a plain call expression. A call whose callee names a registered
+ * `'call'`-strategy intrinsic is a T4 platform intrinsic (RD-17 03-05 — T4
+ * names parse as ordinary `CallExprNode` and are recognized semantically via
+ * the registry, AC-17): it lowers to the IL `intrinsic` op exactly like a T3
+ * routine. Anything else (user function calls) is deferred (RD-06 slice) → ICE.
+ */
+function lowerCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
+  if (expr.callee.kind === "IdentExpr") {
+    const descriptor = ctx.registry.get(expr.callee.name);
+    if (descriptor !== undefined && descriptor.loweringStrategy === "call") {
+      emitIntrinsicOp(expr.callee.name, descriptor, ctx);
+      return imm(0, IL_BYTE); // void result, discarded by the ExpressionStmt
+    }
+  }
+  return iceUnsupported(expr, ctx, "call expression (user functions are deferred)");
 }
 
 /** A numeric literal folds directly to an immediate operand (R28/R45). */

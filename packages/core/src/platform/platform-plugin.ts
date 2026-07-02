@@ -63,6 +63,14 @@ export interface RuntimeModule {
   readonly asmPath: string;
   /** Exported symbols (for dead-stripping/link), e.g. `["__rt_mul8"]`. */
   readonly exports: readonly string[];
+  /**
+   * Self-locating base URL (`import.meta.url` of the declaring module) that
+   * T4 embedding resolves `asmPath` against (RD-17 PF-017). Required for a
+   * module to be loadable — codegen has no dependency on the plugin packages,
+   * so a self-located URL is the only mechanism that resolves identically from
+   * `src/` (vitest) and `dist/` (built).
+   */
+  readonly baseUrl?: string;
 }
 
 /**

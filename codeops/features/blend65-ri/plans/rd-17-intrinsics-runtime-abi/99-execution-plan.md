@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 (Phase 4 complete — full verify green; AR-P17 functional math harness added)
-> **Progress**: 35/47 tasks (74%)
+> **Last Updated**: 2026-07-02 (Phase 5 complete — full verify green; T4 mechanism proven end-to-end)
+> **Progress**: 42/47 tasks (89%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -238,13 +238,13 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 - [x] 4.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green)
 
 ### Phase 5: T4 platform mechanism
-- [ ] 5.1.1 Fixture + T4 spec tests (ST-31/32; ST-15/16 live)
-- [ ] 5.1.2 Red phase
-- [ ] 5.2.1 Registry merge + T4 embedding
-- [ ] 5.2.2 T4 validation path (E10046/E10043)
-- [ ] 5.2.3 Green phase
-- [ ] 5.3.1 T4 impl tests
-- [ ] 5.3.2 Full verify
+- [x] 5.1.1 Fixture + T4 spec tests (ST-31/32; ST-15/16 live) ✅ (completed: 2026-07-02 — fixture plugin in platforms/src/__fixtures__ (AR-P2, not in barrel); ST-32 placed in @blend65/compiler per the D10 package-boundary rule (platforms depends on core only); frontend/compiler use test-local descriptor factories (plan-sanctioned))
+- [x] 5.1.2 Red phase ✅ (completed: 2026-07-02 — 5 failures across 3 packages: no wrapper, no E10043/E10046 T4 path, plugin modules unknown to embed)
+- [x] 5.2.1 Registry merge + T4 embedding ✅ (completed: 2026-07-02 — createIntrinsicRegistry(descriptors, platformId) with id-stamped availability wrapper (descriptor gains optional platformId, PF-015); RuntimeModule.baseUrl (PF-017) + loadPluginRuntimeModule with nearest-package.json traversal guard; lower.ts CallExpr→registry 'call' path added for the T4 pipeline (AC-17))
+- [x] 5.2.2 T4 validation path (E10046/E10043) ✅ (completed: 2026-07-02 — validateT4Call on plain CallExprNodes: V6b wrong-platform E10043 (platformId-keyed), V6a unimported E10046 with exact AR-P14 hint, arity mirror; collectImports per program (AR-97))
+- [x] 5.2.3 Green phase ✅ (completed: 2026-07-02 — 9/9 Phase 5 spec tests across frontend/platforms/compiler)
+- [x] 5.3.1 T4 impl tests ✅ (completed: 2026-07-02 — 12/12: wrapper stamping/no-mutation/AND-composition, []-plugin neutrality, fixture barrel isolation, baseUrl guard + plugin-module dead-strip)
+- [x] 5.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green; frontend 255 (ST-15/16 todos now live), platforms 40, compiler 41, codegen 329)
 
 ### Phase 6: End-to-end & closeout
 - [ ] 6.1.1 AC-19 golden E2E

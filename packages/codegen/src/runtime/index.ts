@@ -6,5 +6,6 @@ export {
   RUNTIME_SECTION_HEADER,
   buildRuntimeSection,
   collectReferencedRoutines,
+  loadPluginRuntimeModule,
   loadRuntimeModule,
 } from "./embed.js";

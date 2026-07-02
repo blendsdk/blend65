@@ -104,4 +104,12 @@ export interface IntrinsicDescriptor {
    * `undefined` (emitted inline by codegen).
    */
   readonly asmModulePath?: string;
+
+  /**
+   * The contributing platform's id, stamped by the registry merge for T4
+   * descriptors (R25/PF-015). Core T1–T3 descriptors carry `undefined`. Drives
+   * the E10043 "requires platform X" and E10046 import-hint messages (AR-P11/
+   * AR-P14) without special-casing any name.
+   */
+  readonly platformId?: string;
 }
