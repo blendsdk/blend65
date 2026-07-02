@@ -245,6 +245,11 @@ into exactly one tier, each with a defined "where the body lives":
   `JSR <symbol>` or via a platform codegen hook; platform-conditioned; **explicit
   import** (`import { … } from <platform>.<lib>`).
 
+> *Amended 2026-07-02 (RD-17 preflight):* `asm_stp` is dropped from the T1 examples —
+> it has no frozen-spec basis (**AR-99**); the T4 import form `<platform>.<lib>` is not
+> expressible in the frozen import grammar and is corrected to a single platform
+> pseudo-module, `import { … } from c64;` (**AR-97**).
+
 **AR-29:** **Intrinsic descriptor registry.** Each intrinsic is a typed descriptor:
 name, signature (params + return), tier, availability predicate, lowering strategy,
 cost metadata (cycles / bytes / ZP), and clobber list. The frontend type-checks calls
@@ -1017,6 +1022,53 @@ PASSED**; RD authoring is the active phase (MVP-first per the implementation ord
 > topo-sort), with FN-A9 declared out-of-scope and a FUT-003 "escape-set" insurance note.
 > Soundness rests on the **provably complete v3 call graph** (FN-12: functions are not
 > values; no indirect calls; recursion forbidden), verified against Ch 06 + F006/F007.
+
+---
+
+### RD-17 Preflight Runtime Resolutions (2026-07-02) — AR-97..AR-101
+
+> Logged per the runtime-ambiguity protocol during the RD-17 requirements preflight
+> (`00-preflight-report.md`, findings PF-002/PF-004/PF-006/PF-007/PF-012). AR-94..AR-96
+> were consumed by plan-level runtime entries (rd-08/rd-09 plans). All five were
+> resolved with the user on 2026-07-02 ("accept all recommendations").
+
+**AR-97 (runtime):** **T4 platform import = one pseudo-module per platform.** The frozen
+import grammar (`grammar.ebnf.md` §import_stmt) permits only a single identifier after
+`from` — dotted paths (`c64.encoding`, `c64.system`) are not expressible. T4 intrinsics
+are imported from a single platform pseudo-module: `import { petscii } from c64;`.
+Amends the AR-28 T4 example; corrects RD-17 R19 and RD-10 R24. The module resolver
+recognizes the active platform's id as an importable pseudo-module. *(PF-006)*
+
+**AR-98 (runtime):** **T3 runtime-routine set = fused div/mod, matching shipped
+codegen.** The core T3 library is exactly `__rt_mul8`, `__rt_mul16`, `__rt_div8`,
+`__rt_div16` — the call sites RD-07b codegen already emits. There are **no separate
+`mod` routines**: division produces the remainder for free, and `%` consumes it.
+Return convention (extends AR-33): `__rt_div8` quotient→A, remainder→X; `__rt_div16`
+quotient→A(lo)/X(hi), remainder→first 2 bytes of the ZP arg-block. The per-platform
+`runtimeModules` stubs (mul8/mul16/div8/div16 in all five plugins) migrate to
+codegen-owned T3 modules per AR-28/RD-17 R4. *(PF-004)*
+
+**AR-99 (runtime):** **`asm_stp` dropped from v3; `asm_wai` retained.** `asm_stp`
+appears nowhere in the frozen spec (grep-verified) — adding it would invent a language
+feature under the spec freeze (D3). `asm_wai` is retained: it is spec-traceable via
+`grammar.ebnf.md` ("65C02 only — platform-gated"), `appendix-cx16.md`, and
+`v2-to-v3-migration.md`. Implementation deltas: `asm_wai` joins `RESERVED_BUILTINS`
+(size-locked tests grow to 23) and `WAI` joins `W65C02_OPCODES`. Amends the AR-28 T1
+example list. *(PF-007)*
+
+**AR-100 (runtime):** **Runtime-module inclusion = textual inlining, not `!source`.**
+The emitter reads each *referenced* T3/T4 module's `.asm` text and embeds it into the
+single generated `.asm` file, preserving RD-09 R4's single-file contract (no
+multi-file output, no include-path plumbing in `invokeAcme`). Dead-stripping (AR-30)
+falls out naturally: unreferenced modules are simply not embedded. Refines AR-30's
+"the ACME emitter includes referenced runtime modules" mechanism. *(PF-002)*
+
+**AR-101 (runtime):** **Non-constant T2 addresses deferred with a diagnostic.** A
+non-compile-time-constant address argument to `peek`/`poke`/`peekw`/`pokew` produces
+`E10045` (NonConstantIntrinsicAddress) — a proper user diagnostic replacing today's
+ICE. Indirect `(zp),Y` lowering for runtime-computed addresses is deferred to a later
+slice (it is genuinely new codegen surface beyond the MVP gate's constant `poke`).
+*(PF-012)*
 
 
 

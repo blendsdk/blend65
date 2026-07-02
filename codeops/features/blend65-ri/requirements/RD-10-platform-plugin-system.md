@@ -129,7 +129,7 @@ all platform-specific decisions to it.
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
 | R23 | Platform plugins contribute T4 intrinsic descriptor entries | Each plugin provides a list of `IntrinsicDescriptor` records for its platform-specific intrinsics. These are merged into the compiler's intrinsic registry during plugin loading | AR-28, AR-29 |
-| R24 | T4 intrinsics are accessed via explicit import | `import { setIRQ } from c64.system;` — T4 intrinsics are not ambient. The module path includes the platform name | AR-31 |
+| R24 | T4 intrinsics are accessed via explicit import | `import { setIRQ } from c64;` — T4 intrinsics are not ambient. One pseudo-module per platform, named by the platform's single identifier (dotted paths like `c64.system` are not expressible in the frozen import grammar — corrected by AR-97, RD-17 preflight 2026-07-02) | AR-31, AR-97 |
 | R25 | T4 intrinsic descriptors follow the same format as T1–T3 | Name, signature (params + return type), tier (T4), availability predicate (platform + CPU), clobber declaration, cost estimate | AR-29 |
 | R26 | Each plugin ships hand-written `.asm` runtime modules | T3/T4 runtime routines are implemented as hand-written ACME-syntax `.asm` files bundled with the plugin. They are `JSR`-linked and dead-stripped per AR-30 | AR-30 |
 | R27 | Runtime `.asm` modules follow the ABI from AR-33 | Arguments passed via registers (≤3 bytes) and ZP arg-block (rest). Return in A (byte) or A/X (word). Clobber declared per routine | AR-33 |
