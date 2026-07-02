@@ -8,7 +8,7 @@
 > **Owning package(s)**: `@blend65/core` (diagnostics engine, span model, severity
 >   policy, renderers, resource reporter)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-07-02 (RD-16 preflight cross-doc fix PF-012: R50 promote/suppress precedence)
 
 ---
 
@@ -132,6 +132,7 @@ their program fits on constrained 6502 platforms (AR-83).
 | R29 | `--warn-as-error=Wxxxxx` promotes a specific warning | Selective promotion. Multiple flags may be specified | AR-75 |
 | R30 | `--suppress-warning=Wxxxxx` suppresses a specific warning | The warning is removed from the output. Multiple flags may be specified | AR-75 |
 | R31 | Severity policy is applied exactly once, after all diagnostics are collected | The policy is a post-processing step, not per-emission. This ensures consistent behavior regardless of emission order | AR-75 |
+| R50 | Suppression wins over promotion | When the same warning code is both promoted (`--warn-as-error=Wxxxxx` / config `warnAsError`) and suppressed (`--suppress-warning=Wxxxxx` / config `suppressWarnings`), suppression takes precedence — an explicitly silenced code stays silent. The config loader warns on the overlap at load time (RD-16 R30). Added by RD-16 preflight PF-012 | AR-75 + Design |
 
 ### 3.7 Diagnostic Rendering
 
@@ -313,6 +314,8 @@ interface SeverityPolicy {
 /**
  * Apply severity policy to a diagnostic list.
  * Called once after all diagnostics are collected.
+ * Precedence: suppression wins over promotion (R50) — a code present in both
+ * suppressWarnings and promoteWarnings (or covered by warnAsError) is suppressed.
  */
 function applySeverityPolicy(
   diagnostics: Diagnostic[],

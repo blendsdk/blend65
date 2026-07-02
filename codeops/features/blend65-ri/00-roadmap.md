@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-02 (RD-17 complete)
+> **Last Updated**: 2026-07-02 (RD-16 plan preflighted — PF-015..PF-022 resolved & applied, next: exec_plan)
 
 
 ---
@@ -28,8 +28,13 @@
   `RuntimeModule.baseUrl`, fixture-proven — AR-P2). **The routines' math is functionally verified**
   via an in-process 6502 interpreter harness (AR-P17); AC-14's emulator tier remains RD-12's.
   AC-17 audit PASS; AC-19 golden assembles `*`/`/`/`%` to a real `.prg`.
-- **Next up**: **RD-16** (compiler configuration, `blend65.json`) — dependency RD-01 (✅). No plan
-  directory yet. Workflow position: **preflight** → make_plan → preflight (plan) → exec_plan.
+- **Next up**: **RD-16** (compiler configuration, `blend65.json`) — dependency RD-01 (✅). Plan
+  authored 2026-07-02 at `codeops/features/blend65-ri/plans/rd-16-compiler-configuration/`
+  (gate passed — AR-P1..P9: `jsonc-parser` dep, synthetic spans + `CONFIG_SOURCE_ID`,
+  E10240–E10246/W10240–41 band, best-effort parse recovery; 36 tasks / 4 phases). Plan
+  preflighted the same day: 8 findings PF-015..PF-022 (1 major — Phase-2 spec-test scoping —
+  6 minor, 1 observation) all resolved & applied; report in the plan's `00-preflight-report.md`.
+  Workflow position: preflight ✅ → make_plan ✅ → preflight (plan) ✅ → **exec_plan**.
 
 
 
@@ -89,7 +94,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
+| 1 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | `codeops/features/blend65-ri/plans/rd-16-compiler-configuration/` | A | 🔬 Plan preflighted (2026-07-02 — PF-015..PF-022: 1 major + 6 minor + 1 observation, all resolved & applied; AR-P9 added; 36 tasks / 4 phases; next: exec_plan) |
 | 2 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |

@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-17 ✅ complete (all four intrinsic tiers; runtime math functionally verified) — next up RD-16 (config) on the MVP driver path | 14/20 | 🔄 | 2026-07-02 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-17 ✅ complete — RD-16 (config) 🔬 plan preflighted (PF-015..PF-022 resolved & applied); next: exec_plan | 14/20 | 🔄 | 2026-07-02 |
 
 ## Archived
 
@@ -34,3 +34,11 @@
   validation, T1/T2 lowering, T3 runtime routines (math functionally verified via the AR-P17
   in-process 6502 interpreter harness), marshalling+embedding, T4 platform mechanism, AC-19
   E2E golden + AC-17 audit PASS. AC-14 emulator tier deferred to RD-12 (AR-P4). Next: RD-16.
+- 2026-07-02: RD-16 implementation plan created at
+  `features/blend65-ri/plans/rd-16-compiler-configuration/` — Zero-Ambiguity Gate passed
+  (8 AR-P items, challenger-hardened), 36 tasks / 4 phases; next step: plan preflight.
+- 2026-07-02: RD-16 plan preflight ✅ PASSED — 8 findings PF-015..PF-022 (1 major: Phase-2
+  parse spec tests asserted loader-level behavior; 6 minor incl. UTF-16→byte offset
+  conversion, LineMap reuse, synthetic-span dedup scheme, hasErrors emission tracking;
+  1 observation → AR-P9 post-error values), all resolved & fixes applied across the plan
+  docs; RD-16 advanced to "Plan preflighted", next step exec_plan.

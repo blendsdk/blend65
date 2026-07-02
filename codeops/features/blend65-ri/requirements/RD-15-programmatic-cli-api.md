@@ -7,7 +7,7 @@
 >   AR-39, AR-40, AR-62, AR-75, AR-76, AR-77, AR-82, AR-83
 > **Owning package(s)**: `@blend65/compiler` (programmatic API), `@blend65/cli` (CLI)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-07-02 (RD-16 preflight cross-doc fixes: PF-003 `--config`/`--startup` flag rows R45/R46; PF-004 `CompilerOptions` covers all overridable config properties; PF-010 deterministic `outName` derivation)
 
 ---
 
@@ -69,7 +69,7 @@ argument parsing (yargs, AR-16) and terminal rendering (conditional chalk, AR-17
 | R6 | `build()` runs the full pipeline | `build(options)` → `BuildResult`: runs the full pipeline (compile + IL + codegen + peephole + ACME emit + ACME invoke). Returns diagnostics + artifacts (`.asm`, `.prg`, symbol map, resource report) | AR-77 |
 | R7 | `emitAsm()` runs everything except ACME | `emitAsm(options)` → `EmitResult`: runs compile + IL + codegen + peephole + ACME serialization. Returns the `.asm` text without invoking ACME. For `--emit-asm` use cases and golden tests | AR-60, AR-63 |
 | R8 | `emitIl()` runs through IL lowering | `emitIl(options)` → `EmitResult`: runs compile + IL lowering. Returns the IL text for `--emit-il` use cases and golden tests | AR-51 |
-| R9 | Options are passed as a structured object | `CompilerOptions { platform, sourceFiles?, configPath?, acmePath?, maxErrors?, warnAsError?, suppressWarnings?, optimize? }`. No string parsing in the library | AR-77 |
+| R9 | Options are passed as a structured object | `CompilerOptions { platform, sourceFiles?, configPath?, include?, exclude?, outDir?, outName?, acmePath?, maxErrors?, warnAsError?, suppressWarnings?, diagnosticsFormat?, optimize?, quiet?, startup? }` — covers every overridable `BlendConfig` property (RD-16 R24). No string parsing in the library | AR-77 |
 | R10 | `CompilerHost` is injectable | All API functions accept an optional `CompilerHost` parameter. If omitted, a default disk-based host is used. The LSP injects its buffer-overlay host (AR-40) | AR-40 |
 | R11 | Results never throw | All API functions return a result object, never throw. Errors are in the `diagnostics` array. The caller checks `result.hasErrors` | AR-15, AR-77 |
 
@@ -96,7 +96,9 @@ argument parsing (yargs, AR-16) and terminal rendering (conditional chalk, AR-17
 |---|-------------|---------------------|--------|
 | R19 | `--platform <name>` — target platform | Selects the platform plugin (e.g., `c64`, `cx16`, `a7800`). Overrides `blend65.json`. Required if no config file | AR-37 |
 | R20 | `--out-dir <path>` — output directory | Where to write build artifacts (`.prg`, `.asm`, reports). Default: `./build/` | Design |
-| R21 | `--out-name <name>` — output file name | Base name for output files. Default: derived from the first source file or project name | Design |
+| R21 | `--out-name <name>` — output file name | Base name for output files. Default: `outName` from `blend65.json`; when that is `""` (auto, RD-16 R10), derived from the first file — in lexicographically sorted order, for determinism (RD-13) — of the discovered source list | Design |
+| R45 | `--config <path>` — explicit config file path | Overrides `blend65.json` discovery (RD-16 R4). Maps to `CompilerOptions.configPath`. Added by RD-16 preflight PF-003 | AR-13 + Design |
+| R46 | `--startup <variant>` — startup shim variant | `auto` (default) \| `terminating` \| `minimal` \| `bare`. Overrides the `startup` config key (RD-16 R18, AR-69). Added by RD-16 preflight PF-003 | AR-69 |
 
 ### 3.6 CLI — Emit Flags
 
@@ -170,13 +172,17 @@ export interface CompilerOptions {
   /** Path to blend65.json (default: auto-discover from cwd) */
   configPath?: string;
 
+  /** Source file globs (override blend65.json include/exclude — RD-16 R7/R8) */
+  include?: string[];
+  exclude?: string[];
+
   /** Explicit path to ACME executable */
   acmePath?: string;
 
   /** Output directory (default: "./build/") */
   outDir?: string;
 
-  /** Output base name (default: derived from first source file) */
+  /** Output base name (default: "" = derived from the first file, lexicographically sorted, of the discovered source list — RD-16 R10) */
   outName?: string;
 
   /** Maximum errors before stopping (default: 20) */
@@ -186,8 +192,17 @@ export interface CompilerOptions {
   warnAsError?: boolean | string[];
   suppressWarnings?: string[];
 
+  /** Diagnostic output format (default: "terminal" — RD-16 R15) */
+  diagnosticsFormat?: 'terminal' | 'json';
+
   /** Enable peephole optimizer (default: true) */
   optimize?: boolean;
+
+  /** Suppress the build summary (default: false — RD-16 R17) */
+  quiet?: boolean;
+
+  /** Startup shim variant (default: "auto" — RD-16 R18, AR-69) */
+  startup?: 'auto' | 'terminating' | 'minimal' | 'bare';
 }
 
 /** Result of compile() — frontend only */

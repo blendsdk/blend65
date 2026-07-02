@@ -7,7 +7,7 @@
 >   AR-10, AR-15, AR-17, AR-22, AR-27, AR-38, AR-41, AR-73, AR-74, AR-77, AR-78
 > **Owning package(s)**: Cross-cutting — applies to all `@blend65/*` packages
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-05-31
+> **Last Updated**: 2026-07-02 (RD-16 preflight cross-doc fix PF-013: R35 acmePath trust-model qualification)
 
 ---
 
@@ -119,7 +119,7 @@ compiler tool itself), **error UX** (quality of diagnostics and developer experi
 
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
-| R35 | No arbitrary code execution from source files | The compiler reads `.blend` source files as text. It never `eval()`s, `import()`s, or executes any content from source files. The only executed external process is ACME (an assembler, not user-controlled code) | Design |
+| R35 | No arbitrary code execution from source files | The compiler reads `.blend` source files as text. It never `eval()`s, `import()`s, or executes any content from source files. The only executed external process is ACME — not user-controlled code *beyond the configured `acmePath`*: whoever controls a discovered `blend65.json` (including one in an ancestor directory, RD-16 R4) chooses which executable runs, the same trust model as `tsconfig.json`/npm scripts (RD-16 R11) | Design |
 | R36 | Dependency hygiene | npm dependencies are minimized. Direct runtime dependencies are audited. `npm audit` is part of CI. No dependency is added without justification | Design |
 | R37 | File-system access is scoped | The compiler reads from the project directory (source files, `blend65.json`) and writes to the output directory (`.asm`, `.prg`, reports). It never writes outside the project/output directory. No network access | AR-40 |
 | R38 | `blend65.json` is data, not code | The config file is JSONC (data only). It is never `require()`d or `import()`ed — it is parsed by a JSON parser. Config values are validated against a schema | AR-13 |
