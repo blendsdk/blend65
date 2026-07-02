@@ -27,7 +27,7 @@
  */
 
 import { DiagCode, IceCode } from "@blend65/core";
-import type { AllocationPlan, DiagnosticBag, SourceSpan } from "@blend65/core";
+import type { AllocationPlan, DiagnosticBag, IntrinsicDescriptor, SourceSpan } from "@blend65/core";
 
 import type { ILType } from "../il/il-type.js";
 import { isImmediate, isLocation, isTemp } from "../il/operand.js";
@@ -82,6 +82,30 @@ export function translateFunction(
   const tr = new FunctionTranslator(fn, plan, bag);
   return tr.run();
 }
+
+/**
+ * The T1 opcode-intrinsic name → 6502 mnemonic map (RD-17 §4.3, AC-07). A single
+ * keyed table built at module load — not a scattered per-name switch — so the
+ * AC-17 "no intrinsic special-casing" audit passes. Each entry lowers to exactly
+ * one Implied-mode instruction. `asm_wai`→`WAI` is 65C02-gated (availability is
+ * enforced by the analyzer; legality by `validateStream`).
+ */
+const T1_OPCODES: ReadonlyMap<string, Opcode> = new Map<string, Opcode>([
+  ["asm_sei", "SEI"],
+  ["asm_cli", "CLI"],
+  ["asm_pha", "PHA"],
+  ["asm_pla", "PLA"],
+  ["asm_php", "PHP"],
+  ["asm_plp", "PLP"],
+  ["asm_clc", "CLC"],
+  ["asm_sec", "SEC"],
+  ["asm_cld", "CLD"],
+  ["asm_sed", "SED"],
+  ["asm_clv", "CLV"],
+  ["asm_nop", "NOP"],
+  ["asm_brk", "BRK"],
+  ["asm_wai", "WAI"],
+]);
 
 
 /** Per-function translation state (R17). One instance per `translateFunction`. */
@@ -200,10 +224,41 @@ class FunctionTranslator {
       case "mod":
         this.translateDivMod(ins.op, ins.dest, ins.left, ins.right, ins.type, index, all);
         return;
+      case "intrinsic":
+        this.translateIntrinsic(ins.name, ins.descriptor);
+        return;
       default:
         this.iceUnsupported(ins.op);
 
     }
+  }
+
+  /**
+   * Translate an IL `intrinsic` op. The T1 `'opcode'` strategy emits exactly one
+   * Implied-mode instruction from the {@link T1_OPCODES} map (AC-07); the T3/T4
+   * `'call'` strategy is handled by the marshalling path (03-04/03-05). Any other
+   * strategy reaching translate is a lowering bug (folds/inline never emit an
+   * `intrinsic` op) → ICE.
+   *
+   * @param name The intrinsic name (used only as the opcode-map key).
+   * @param descriptor The descriptor carried on the IL op (dispatch on strategy).
+   */
+  private translateIntrinsic(name: string, descriptor: IntrinsicDescriptor): void {
+    if (descriptor.loweringStrategy === "opcode") {
+      const opcode = T1_OPCODES.get(name);
+      if (opcode === undefined) {
+        // Reserved-set/opcode-map drift is a compiler bug (should be unreachable).
+        this.iceUnsupported(`intrinsic '${name}' (no T1 opcode)`);
+        return;
+      }
+      this.emit(opcode, "Implied", none());
+      // The opcode may touch A/X/status; drop the fold mirror conservatively.
+      this.clearRegs();
+      return;
+    }
+    // 'call'/'fold'/'inline' never reach translate as an `intrinsic` op in this
+    // slice — 'call' marshalling arrives in 03-04/03-05.
+    this.iceUnsupported(`intrinsic '${name}' strategy '${descriptor.loweringStrategy}'`);
   }
 
   private translateTerminator(term: ILTerminator): void {

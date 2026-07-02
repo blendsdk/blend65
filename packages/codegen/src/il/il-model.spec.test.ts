@@ -14,7 +14,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { makeSpan, primitive } from "@blend65/core";
+import { createIntrinsicRegistry, makeSpan, primitive } from "@blend65/core";
 import type {
   AllocationPlan,
   ArrayType,
@@ -207,7 +207,8 @@ describe("Specification: RD-06 IL instructions & terminators (§4.3)", () => {
         op: "intrinsic",
         name: "poke",
         args: [x, y],
-        descriptor: { name: "poke" },
+        // RD-17 (PF-010): the descriptor is now the canonical core type.
+        descriptor: createIntrinsicRegistry().get("poke")!,
       },
       { op: "source_span", span: SPAN },
     ];

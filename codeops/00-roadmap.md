@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | Codegen complete through RD-09; RD-17 executing 🔄 — Phase 2/6 done (registry, catalog, semantic validation; 16/47 tasks) | 13/20 | 🔄 | 2026-07-02 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | Codegen complete through RD-09; RD-17 executing 🔄 — Phase 3/6 done (registry, validation, T1/T2 IL lowering; 24/47 tasks) | 13/20 | 🔄 | 2026-07-02 |
 
 ## Archived
 
