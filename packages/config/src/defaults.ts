@@ -21,8 +21,8 @@ export const W_CODE_PATTERN = /^W\d{5}$/;
 /**
  * The RD-16 §4.1 defaults table, verbatim. Excludes the two computed fields
  * (`configPath`, `projectRoot`) and `platform` (no default — R31).
- * Array values are shared frozen templates: consumers (mergeConfig) must
- * copy them, never hand them out mutable.
+ * Array values are shared templates: consumers (mergeConfig) must copy
+ * them, never hand them out mutable.
  */
 export const CONFIG_DEFAULTS: Readonly<
   Omit<BlendConfig, "configPath" | "projectRoot" | "platform">
@@ -42,8 +42,17 @@ export const CONFIG_DEFAULTS: Readonly<
 };
 
 /**
- * Per-key schema entry: default value + shape validator + optional value
- * rules. `valueRule` covers scalar-valued rules (range, enum literal set);
+ * Per-key schema entry: default value, expected-shape text, a typed
+ * shape-check-and-assign, and optional value rules.
+ *
+ * `apply` both narrows AND assigns: it writes `value` onto `target` iff the
+ * value has the key's expected runtime shape, returning `false` on mismatch
+ * (→ E10243, key falls back to its default). Combining the check and the
+ * assignment keeps the runtime type guard and the TypeScript-visible
+ * assignment in one place, so no cast is ever needed to build a
+ * `Partial<BlendConfig>` from parsed JSON.
+ *
+ * `valueRule` covers scalar-valued rules (range, enum literal set);
  * `entryRule` covers per-entry rules on array-valued keys (warning-code
  * format), so each offending entry gets its own diagnostic with a
  * dedup-distinct per-entry synthetic span (PF-019).
@@ -53,8 +62,8 @@ export interface SchemaEntry {
   readonly defaultValue: unknown;
   /** Human-readable expected shape for E10243 messages, e.g. `'boolean|string[]'`. */
   readonly expected: string;
-  /** Type-shape check (E10243 when false; the key falls back to its default). */
-  readonly check: (value: unknown) => boolean;
+  /** Shape-checks `value` and assigns it onto `target`; `false` = wrong type. */
+  readonly apply: (target: Partial<BlendConfig>, value: unknown) => boolean;
   /** Scalar value rule (range/enum); returns the expected-detail text or null when valid. */
   readonly valueRule?: (value: unknown) => string | null;
   /** Per-entry rule for array-valued keys; returns the expected-detail text or null when valid. */
@@ -78,7 +87,7 @@ function isStringArray(value: unknown): value is string[] {
 
 /** Enum-literal rule factory: value must be one of `literals`. */
 function oneOf(literals: readonly string[]): (value: unknown) => string | null {
-  const detail = `one of ${literals.map((l) => `"${l}"`).join(", ")}`;
+  const detail = `one of ${literals.map((literal) => `"${literal}"`).join(", ")}`;
   return (value) => (literals.includes(value as string) ? null : detail);
 }
 
@@ -93,22 +102,101 @@ function wCodeRule(entry: unknown): string | null {
  * The 13 user-facing `blend65.json` keys in RD-16 §4.1 declaration order.
  * Map insertion order is load-bearing: it defines each key's stable ordinal
  * for the synthetic-span scheme (AR-P2/PF-019) — never reorder entries.
+ *
+ * The enum-typed keys (`diagnosticsFormat`, `startup`) shape-check as plain
+ * strings and enforce their literal sets via `valueRule` (E10243 naming the
+ * literals, R15/R18); per AR-P9 an errored config carries the invalid string
+ * as-merged, so their `apply` narrows through the string check only — the
+ * literal-type assignment is the one sanctioned widening, gated at runtime
+ * by `valueRule` + the caller's `hasErrors` contract.
  */
 export const CONFIG_SCHEMA: ReadonlyMap<string, SchemaEntry> = new Map<string, SchemaEntry>([
-  ["platform", { defaultValue: undefined, expected: "string", check: isString }],
-  ["include", { defaultValue: CONFIG_DEFAULTS.include, expected: "string[]", check: isStringArray }],
-  ["exclude", { defaultValue: CONFIG_DEFAULTS.exclude, expected: "string[]", check: isStringArray }],
-  ["outDir", { defaultValue: CONFIG_DEFAULTS.outDir, expected: "string", check: isString }],
-  ["outName", { defaultValue: CONFIG_DEFAULTS.outName, expected: "string", check: isString }],
-  ["acmePath", { defaultValue: CONFIG_DEFAULTS.acmePath, expected: "string", check: isString }],
+  [
+    "platform",
+    {
+      defaultValue: undefined,
+      expected: "string",
+      apply: (target, value) => {
+        if (!isString(value)) return false;
+        target.platform = value;
+        return true;
+      },
+    },
+  ],
+  [
+    "include",
+    {
+      defaultValue: CONFIG_DEFAULTS.include,
+      expected: "string[]",
+      apply: (target, value) => {
+        if (!isStringArray(value)) return false;
+        target.include = value;
+        return true;
+      },
+    },
+  ],
+  [
+    "exclude",
+    {
+      defaultValue: CONFIG_DEFAULTS.exclude,
+      expected: "string[]",
+      apply: (target, value) => {
+        if (!isStringArray(value)) return false;
+        target.exclude = value;
+        return true;
+      },
+    },
+  ],
+  [
+    "outDir",
+    {
+      defaultValue: CONFIG_DEFAULTS.outDir,
+      expected: "string",
+      apply: (target, value) => {
+        if (!isString(value)) return false;
+        target.outDir = value;
+        return true;
+      },
+    },
+  ],
+  [
+    "outName",
+    {
+      defaultValue: CONFIG_DEFAULTS.outName,
+      expected: "string",
+      apply: (target, value) => {
+        if (!isString(value)) return false;
+        target.outName = value;
+        return true;
+      },
+    },
+  ],
+  [
+    "acmePath",
+    {
+      defaultValue: CONFIG_DEFAULTS.acmePath,
+      expected: "string",
+      apply: (target, value) => {
+        if (!isString(value)) return false;
+        target.acmePath = value;
+        return true;
+      },
+    },
+  ],
   [
     "maxErrors",
     {
       defaultValue: CONFIG_DEFAULTS.maxErrors,
       expected: "number",
-      check: (value) => typeof value === "number",
+      apply: (target, value) => {
+        if (typeof value !== "number") return false;
+        target.maxErrors = value;
+        return true;
+      },
       valueRule: (value) =>
-        Number.isInteger(value) && (value as number) >= 1 ? null : "an integer >= 1",
+        typeof value === "number" && Number.isInteger(value) && value >= 1
+          ? null
+          : "an integer >= 1",
     },
   ],
   [
@@ -116,7 +204,11 @@ export const CONFIG_SCHEMA: ReadonlyMap<string, SchemaEntry> = new Map<string, S
     {
       defaultValue: CONFIG_DEFAULTS.warnAsError,
       expected: "boolean|string[]",
-      check: (value) => isBoolean(value) || isStringArray(value),
+      apply: (target, value) => {
+        if (!isBoolean(value) && !isStringArray(value)) return false;
+        target.warnAsError = value;
+        return true;
+      },
       entryRule: wCodeRule,
     },
   ],
@@ -125,7 +217,11 @@ export const CONFIG_SCHEMA: ReadonlyMap<string, SchemaEntry> = new Map<string, S
     {
       defaultValue: CONFIG_DEFAULTS.suppressWarnings,
       expected: "string[]",
-      check: isStringArray,
+      apply: (target, value) => {
+        if (!isStringArray(value)) return false;
+        target.suppressWarnings = value;
+        return true;
+      },
       entryRule: wCodeRule,
     },
   ],
@@ -134,18 +230,51 @@ export const CONFIG_SCHEMA: ReadonlyMap<string, SchemaEntry> = new Map<string, S
     {
       defaultValue: CONFIG_DEFAULTS.diagnosticsFormat,
       expected: "string",
-      check: isString,
+      apply: (target, value) => {
+        if (!isString(value)) return false;
+        // AR-P9 widening: an invalid literal (e.g. "xml") stays as-merged and
+        // is rejected by valueRule (E10243) — see the CONFIG_SCHEMA doc comment.
+        target.diagnosticsFormat = value as BlendConfig["diagnosticsFormat"];
+        return true;
+      },
       valueRule: oneOf(["terminal", "json"]),
     },
   ],
-  ["optimize", { defaultValue: CONFIG_DEFAULTS.optimize, expected: "boolean", check: isBoolean }],
-  ["quiet", { defaultValue: CONFIG_DEFAULTS.quiet, expected: "boolean", check: isBoolean }],
+  [
+    "optimize",
+    {
+      defaultValue: CONFIG_DEFAULTS.optimize,
+      expected: "boolean",
+      apply: (target, value) => {
+        if (!isBoolean(value)) return false;
+        target.optimize = value;
+        return true;
+      },
+    },
+  ],
+  [
+    "quiet",
+    {
+      defaultValue: CONFIG_DEFAULTS.quiet,
+      expected: "boolean",
+      apply: (target, value) => {
+        if (!isBoolean(value)) return false;
+        target.quiet = value;
+        return true;
+      },
+    },
+  ],
   [
     "startup",
     {
       defaultValue: CONFIG_DEFAULTS.startup,
       expected: "string",
-      check: isString,
+      apply: (target, value) => {
+        if (!isString(value)) return false;
+        // AR-P9 widening — same contract as diagnosticsFormat above.
+        target.startup = value as BlendConfig["startup"];
+        return true;
+      },
       valueRule: oneOf(["auto", "terminating", "minimal", "bare"]),
     },
   ],

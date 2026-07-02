@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-02
-> **Progress**: 17/36 tasks (47%)
+> **Progress**: 25/36 tasks (69%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -238,14 +238,14 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 - [x] 2.3.3 Package verify ✅ (completed: 2026-07-02 10:37 — 24/24 tests, typecheck + lint clean; vitest include widened to the impl tier per the core RD-11a precedent)
 
 ### Phase 3: Validation & merge
-- [ ] 3.1.1 Write validate spec tests (ST-10..ST-24)
-- [ ] 3.1.2 Write merge spec tests (ST-25..ST-27)
-- [ ] 3.1.3 Red phase: verify both fail
-- [ ] 3.2.1 Implement `validate.ts` (shape + semantics + AR-P5 rule)
-- [ ] 3.2.2 Implement `merge.ts`
-- [ ] 3.2.3 Green phase: spec tests pass
-- [ ] 3.3.1 Validate impl tests
-- [ ] 3.3.2 Package verify
+- [x] 3.1.1 Write validate spec tests (ST-10..ST-24) ✅ (completed: 2026-07-02 10:42)
+- [x] 3.1.2 Write merge spec tests (ST-25..ST-27) ✅ (completed: 2026-07-02 10:42)
+- [x] 3.1.3 Red phase: verify both fail ✅ (completed: 2026-07-02 10:43 — both fail: `./validate.js`/`./merge.js` do not exist)
+- [x] 3.2.1 Implement `validate.ts` (shape + semantics + AR-P5 rule; `SchemaEntry.check` became `apply` (narrow-and-assign) to stay cast-free; `SemanticContext` gains `overrides` for PF-019 span-origin decisions; `ConfigOverrides` type added for R25 explicit-undefined under exactOptionalPropertyTypes) ✅ (completed: 2026-07-02 10:55)
+- [x] 3.2.2 Implement `merge.ts` ✅ (completed: 2026-07-02 10:55)
+- [x] 3.2.3 Green phase: spec tests pass ✅ (completed: 2026-07-02 10:56 — 48/48; one spec-test API-name fix (`span`→`primarySpan`, not an expectation change))
+- [x] 3.3.1 Validate impl tests ✅ (completed: 2026-07-02 11:02)
+- [x] 3.3.2 Package verify ✅ (completed: 2026-07-02 11:03 — 69/69 tests, typecheck + lint clean)
 
 ### Phase 4: `loadConfig()`, E2E & closeout
 - [ ] 4.1.1 Write loader spec tests (ST-1..ST-4, ST-7..ST-9, ST-28..ST-31)

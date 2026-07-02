@@ -62,6 +62,14 @@ export interface BlendConfig {
   startup: "auto" | "terminating" | "minimal" | "bare";
 }
 
+/**
+ * Invocation overrides: `Partial<BlendConfig>` where explicitly-`undefined`
+ * values are legal and mean "not set" (R25 — they never override). The
+ * explicit `| undefined` is required under `exactOptionalPropertyTypes`,
+ * because RD-15's flag translation naturally produces undefined-valued keys.
+ */
+export type ConfigOverrides = { [K in keyof BlendConfig]?: BlendConfig[K] | undefined };
+
 /** Options for `loadConfig()` (RD-16 §4.2 + AR-P2 `sourceId`). */
 export interface LoadConfigOptions {
   /**
@@ -73,13 +81,13 @@ export interface LoadConfigOptions {
   readonly bag: DiagnosticBag;
 
   /** Explicit config file path (overrides discovery) */
-  configPath?: string;
+  configPath?: string | undefined;
 
   /** Working directory for discovery (default: process.cwd()) */
-  cwd?: string;
+  cwd?: string | undefined;
 
   /** Invocation overrides (CLI flags or programmatic CompilerOptions) — merged on top of the config file */
-  overrides?: Partial<BlendConfig>;
+  overrides?: ConfigOverrides | undefined;
 
   /**
    * Registered platform names for semantic validation (R21). The caller
@@ -87,13 +95,13 @@ export interface LoadConfigOptions {
    * @blend65/config itself never depends on @blend65/platforms (AR-20).
    * When omitted, the platform-name check is skipped (deferred to loadPlatform()).
    */
-  knownPlatforms?: readonly string[];
+  knownPlatforms?: readonly string[] | undefined;
 
   /**
    * Real SourceId for blend65.json when the caller has one (RD-11b/LSP);
    * defaults to {@link CONFIG_SOURCE_ID}. Per AR-P2.
    */
-  sourceId?: number;
+  sourceId?: number | undefined;
 }
 
 /** Result of loadConfig() — mirrors the parser's { ast, hasErrors } shape */
