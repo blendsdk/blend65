@@ -199,9 +199,12 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   ACME process layer (`discoverAcme`, `parseLabelFile`, `invokeAcme`, `emitBinary`).
   `@blend65/core/intrinsics` carries the RD-17 descriptor registry/catalog, and the
   frontend runs its first real semantic pass (intrinsic validation + the T4 import
-  boundary). The MVP gate `poke` compiles and assembles. **Next up: RD-16** (compiler
-  configuration, `blend65.json`), then RD-15 (CLI/programmatic driver) and RD-12
-  (emulator tier — includes RD-17's deferred AC-14);
+  boundary). The MVP gate `poke` compiles and assembles. RD-16 is complete:
+  `@blend65/config` ships `loadConfig()` (walk-up discovery, tolerant JSONC via
+  `jsonc-parser` — the workspace's only external runtime dependency — schema/semantic
+  validation over the E10240–E10246/W10240–41 band, defaults←file←overrides merge).
+  **Next up: RD-15** (CLI/programmatic driver), then RD-12 (emulator tier — includes
+  RD-17's deferred AC-14);
   see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
 - This repository keeps a living implementation tracker at
