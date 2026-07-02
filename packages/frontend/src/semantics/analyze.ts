@@ -6,62 +6,87 @@
  * {@link SemanticModel} that SFA frame planning (RD-05), IL lowering (RD-06),
  * codegen (RD-07), and the language server (RD-14) all consume.
  *
- * 🚧 PASSTHROUGH (RD-04 plan, D1/D2/D3): this implementation performs NO semantic
- * checking. It returns a structurally-valid **empty** `SemanticModel`
- * (`hasErrors === false`, `mainFunction === null`, a lone global scope, empty
- * maps), emits **no** diagnostics, and **never throws** (AC-01) — even on an AST
- * full of parser error-sentinels. The real four-pass type/scope/control-flow
- * analyzer is DEFERRED; see
- * plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md for the full map
- * of what is not yet implemented and which diagnostic codes each deferred check
- * will emit.
+ * RD-17 wires the FIRST real semantic checking into this skeleton: minimal
+ * declaration collection (structs/enums → the resolved type tables) and the
+ * intrinsic-validation pass (arity, literal-arg ranges, availability, reserved-name
+ * shadowing, sizeof/offsetof resolution, W10120). The remaining RD-04 passes
+ * (full type resolution, control flow, name resolution) stay deferred. The
+ * passthrough contract for intrinsic-free programs is preserved (no diagnostics,
+ * empty maps, never throws — AC-01).
  *
- * This module lives in `@blend65/frontend` and imports `@blend65/core` only —
- * never `@blend65/codegen` (R15/AR-20).
+ * This module lives in `@blend65/frontend` and imports `@blend65/core` (+ its
+ * `/platform` subpath) only — never `@blend65/codegen` (R15/AR-20).
  */
 
-import type { DiagnosticBag, PlatformProfile, ProgramNode, SemanticModel } from "@blend65/core";
-import { createEmptyModel } from "@blend65/core";
+import type {
+  DiagnosticBag,
+  IntrinsicRegistry,
+  PlatformProfile,
+  ProgramNode,
+  SemanticModel,
+} from "@blend65/core";
+import { createEmptyModel, createIntrinsicRegistry } from "@blend65/core";
+import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 
 /**
  * Everything the semantic analyzer needs (RD-04 R118–R119, D6).
  *
  * An object — not positional parameters — mirroring RD-03's `ParseInput` (AR-8),
- * so the future checker can add **optional** fields (options, a cancellation
- * token for the LSP) without a breaking signature change (F1-Extensible).
+ * so the analyzer can add **optional** fields without a breaking signature change
+ * (F1-Extensible). RD-17 adds `registry` and `targetProfile` this way.
  */
 export interface AnalyzeInput {
   /** Parsed ASTs from all source files (one `ProgramNode` per file). */
   readonly programs: readonly ProgramNode[];
-  /** The shared diagnostic accumulator. PASSTHROUGH: nothing is added (D3). */
+  /** The shared diagnostic accumulator. */
   readonly bag: DiagnosticBag;
-  /** The platform profile (RD-04 R120). PASSTHROUGH: accepted but not read (D4). */
+  /** The interim platform profile (RD-04 R120). Not used for intrinsic checks. */
   readonly profile: PlatformProfile;
+  /**
+   * The intrinsic registry (RD-17 AR-P3). When absent, a core-only registry is
+   * constructed internally (non-breaking) so existing callers keep working.
+   */
+  readonly registry?: IntrinsicRegistry;
+  /**
+   * The canonical RD-10 target profile (carries `cpu`/`platformId`/`zpArgBlockSize`).
+   * Availability checks (V4) run only when it is present (PF-014).
+   */
+  readonly targetProfile?: CanonicalPlatformProfile;
 }
 
 /**
  * Runs semantic analysis over the parsed programs (RD-04 R118). Never throws.
  *
- * In the passthrough skeleton this builds and returns the empty model, calling
- * each of the four pass seams once (in order) purely for traceability — they are
- * no-ops here. The returned model satisfies AC-01: a valid `SemanticModel` with
- * `hasErrors === false`, regardless of the input's contents.
+ * Pass 1 (declaration collection) and Pass 3 (body checking → intrinsic validation)
+ * carry RD-17's real logic; Pass 2 (type resolution) and Pass 4 (post-check) remain
+ * deferred no-op seams. The returned model exposes the resolved struct/enum tables
+ * and an `hasErrors` flag reflecting errors the analyzer itself recorded.
  *
- * @param input The programs, diagnostic bag, and platform profile (D6).
- * @returns A structurally-valid, semantically-empty {@link SemanticModel} (D2).
+ * @param input The programs, diagnostic bag, profile, and optional registry/target.
+ * @returns The {@link SemanticModel} (populated struct/enum tables; other maps empty).
  */
 export function analyze(input: AnalyzeInput): SemanticModel {
-  const model = createEmptyModel();
+  // Pass 1 — declaration collection (RD-17 AR-P13): resolve struct/enum tables.
+  const tables = collectDeclarations(input);
 
-  // The four-pass architecture (RD-04 R1–R6) is represented by named seams. In
-  // the passthrough these are no-ops; the future checker fills them in order.
-  // Called for traceability only — they neither read the input nor mutate the
-  // model in this skeleton.
-  collectDeclarations(input, model); // Pass 1 — DEFERRED(RD-04-checker): R2
-  resolveTypes(input, model); // Pass 2 — DEFERRED(RD-04-checker): R3
-  checkBodies(input, model); // Pass 3 — DEFERRED(RD-04-checker): R4
-  postCheck(input, model); // Pass 4 — DEFERRED(RD-04-checker): R5
+  // Pass 3 — body checking: the intrinsic-validation pass (RD-17 03-02).
+  const registry = input.registry ?? createIntrinsicRegistry();
+  const errorsBefore = input.bag.getErrors().length;
+  checkBodies(input, tables, registry);
+  const analyzerRecordedError = input.bag.getErrors().length > errorsBefore;
+
+  // Build the model with the resolved type tables; other maps stay empty (deferred).
+  const model: SemanticModel = {
+    ...createEmptyModel(),
+    structTypes: tables.structTypes,
+    enumTypes: tables.enumTypes,
+    hasErrors: analyzerRecordedError,
+  };
+
+  // Pass 2 / Pass 4 — DEFERRED(RD-04-checker) no-op seams, called for traceability.
+  resolveTypes(input, model);
+  postCheck(input, model);
 
   return model;
 }

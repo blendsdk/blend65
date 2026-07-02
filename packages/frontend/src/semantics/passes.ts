@@ -1,64 +1,73 @@
 /**
  * The four semantic-analysis pass seams (RD-04 §4.1, R1–R6).
  *
- * The real RD-04 analyzer is a four-pass pipeline: declaration collection, type
- * resolution, body checking, and post-check validation. In this **passthrough
- * skeleton** each pass is a documented no-op — the seams exist so the future
- * checker has named, traceable insertion points and `analyze()` already calls
- * them in the correct order. None of R30–R117 is enforced here; see
+ * The RD-04 analyzer is a four-pass pipeline: declaration collection, type
+ * resolution, body checking, and post-check validation. RD-17 fills in the two
+ * passes its intrinsic work needs — Pass 1 (`collectDeclarations`) resolves the
+ * minimal struct/enum tables (AR-P13) and Pass 3 (`checkBodies`) runs the
+ * intrinsic-validation checks (03-02). Pass 2 (`resolveTypes`) and Pass 4
+ * (`postCheck`) remain deferred no-op seams; see
  * plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md.
- *
- * The pass functions take `AnalyzeInput`/`SemanticModel` to document the future
- * checker's signature, but the passthrough uses neither. Parameters are
- * `_`-prefixed (D15) so they satisfy both `tsc --noUnusedParameters` and ESLint
- * (root `argsIgnorePattern: "^_"`) — the single canonical mechanism for an
- * intentionally-unused deferred-seam parameter. The future checker renames them
- * and fills in the body.
  */
 
-import type { SemanticModel } from "@blend65/core";
+import type { IntrinsicRegistry, SemanticModel } from "@blend65/core";
 import type { AnalyzeInput } from "./analyze.js";
+import { collectDeclarationTables } from "./declaration-collection.js";
+import type { DeclarationTables } from "./declaration-collection.js";
+import { validateIntrinsics } from "./intrinsic-validation.js";
 
 /**
- * Pass 1 — Declaration Collection (RD-04 R2, §4.1).
+ * Pass 1 — Declaration Collection (RD-04 R2, §4.1; RD-17 AR-P13).
  *
- * DEFERRED(RD-04-checker): register modules + top-level declarations + struct
- * fields + enum members + export visibility + intrinsic symbols. Emits E10003 on
- * duplicate declarations.
+ * Resolves the top-level struct/enum declarations into the type tables that body
+ * checking (V7) and codegen folding consume. The remaining RD-04 Pass-1 duties
+ * (module registration, export visibility, duplicate-decl E10003) stay deferred.
  *
- * @param _input The analyzer input (unused in the passthrough).
- * @param _model The model under construction (unused in the passthrough).
+ * @param input The analyzer input.
+ * @returns The resolved struct/enum type tables.
  */
-export function collectDeclarations(_input: AnalyzeInput, _model: SemanticModel): void {
-  // no-op (passthrough)
+export function collectDeclarations(input: AnalyzeInput): DeclarationTables {
+  return collectDeclarationTables(input.programs);
 }
 
 /**
  * Pass 2 — Type Resolution (RD-04 R3, §4.1).
  *
  * DEFERRED(RD-04-checker): resolve named types, validate struct fields (no
- * recursion), compute struct sizeof, validate enum backing values. Emits
- * E10151/E10142/E10143/E10163.
+ * recursion), validate enum backing values. Emits E10151/E10142/E10143/E10163.
  *
- * @param _input The analyzer input (unused in the passthrough).
- * @param _model The model under construction (unused in the passthrough).
+ * @param _input The analyzer input (unused in the skeleton).
+ * @param _model The model under construction (unused in the skeleton).
  */
 export function resolveTypes(_input: AnalyzeInput, _model: SemanticModel): void {
-  // no-op (passthrough)
+  // no-op (deferred)
 }
 
 /**
- * Pass 3 — Body Checking (RD-04 R4, §4.1).
+ * Pass 3 — Body Checking (RD-04 R4, §4.1; RD-17 03-02).
  *
- * DEFERRED(RD-04-checker): type-check expressions, validate statements,
- * const-eval, intrinsic validation, build the call graph, resolve identifiers.
- * Emits the bulk of the E10xxx surface.
+ * Runs the intrinsic-validation pass: arity, literal-arg ranges, availability,
+ * reserved-name shadowing, sizeof/offsetof resolution, and W10120. The broader
+ * RD-04 body checking (general expression typing, const-eval, call graph) stays
+ * deferred.
  *
- * @param _input The analyzer input (unused in the passthrough).
- * @param _model The model under construction (unused in the passthrough).
+ * @param input The analyzer input (programs, bag, optional target profile).
+ * @param tables The resolved struct/enum type tables from Pass 1.
+ * @param registry The populated intrinsic registry.
  */
-export function checkBodies(_input: AnalyzeInput, _model: SemanticModel): void {
-  // no-op (passthrough)
+export function checkBodies(
+  input: AnalyzeInput,
+  tables: DeclarationTables,
+  registry: IntrinsicRegistry,
+): void {
+  validateIntrinsics(input.programs, {
+    registry,
+    tables,
+    bag: input.bag,
+    // `exactOptionalPropertyTypes`: omit the field entirely when there is no
+    // target profile rather than passing `undefined`.
+    ...(input.targetProfile !== undefined ? { targetProfile: input.targetProfile } : {}),
+  });
 }
 
 /**
@@ -68,9 +77,9 @@ export function checkBodies(_input: AnalyzeInput, _model: SemanticModel): void {
  * module init order, flag unused variables and unreachable code. Emits
  * E10020/E10021/E10174/W10130/W10191/E10194.
  *
- * @param _input The analyzer input (unused in the passthrough).
- * @param _model The model under construction (unused in the passthrough).
+ * @param _input The analyzer input (unused in the skeleton).
+ * @param _model The model under construction (unused in the skeleton).
  */
 export function postCheck(_input: AnalyzeInput, _model: SemanticModel): void {
-  // no-op (passthrough)
+  // no-op (deferred)
 }

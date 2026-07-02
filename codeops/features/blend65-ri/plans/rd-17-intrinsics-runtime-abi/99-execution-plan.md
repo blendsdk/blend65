@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 (Phase 1 complete — full verify green)
-> **Progress**: 8/47 tasks (17%)
+> **Last Updated**: 2026-07-02 (Phase 2 complete — full verify green)
+> **Progress**: 16/47 tasks (34%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -205,14 +205,14 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 - [x] 1.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green)
 
 ### Phase 2: Semantic validation pass
-- [ ] 2.1.1 Validation spec tests (ST-8..14, ST-17; ST-15/16 `.todo`)
-- [ ] 2.1.2 Red phase
-- [ ] 2.2.1 Declaration collection (AR-P13)
-- [ ] 2.2.2 `AnalyzeInput.registry` + pass wiring
-- [ ] 2.2.3 Checks V1–V8
-- [ ] 2.2.4 Green phase
-- [ ] 2.3.1 Validation impl tests
-- [ ] 2.3.2 Full verify
+- [x] 2.1.1 Validation spec tests (ST-8..14, ST-17; ST-15/16 `.todo`) ✅ (completed: 2026-07-02)
+- [x] 2.1.2 Red phase ✅ (completed: 2026-07-02 — 7 checks red, clean-path + todos as expected)
+- [x] 2.2.1 Declaration collection (AR-P13) ✅ (completed: 2026-07-02 — structs/enums; vars/imports deferred to their consuming phases to avoid dead tables)
+- [x] 2.2.2 `AnalyzeInput.registry` + pass wiring ✅ (completed: 2026-07-02 — +registry/targetProfile; functional model construction, no ReadonlyMap mutation)
+- [x] 2.2.3 Checks V1–V8 ✅ (completed: 2026-07-02 — E10043 requirement rendered via generic CPU-probe, no name special-casing; V6a/V6b T4 deferred to Phase 5)
+- [x] 2.2.4 Green phase ✅ (completed: 2026-07-02 — 9/9 specs; RD-04 passthrough oracle preserved)
+- [x] 2.3.1 Validation impl tests ✅ (completed: 2026-07-02 — 19/19: type-table edges, boundaries, multi-program, no-throw)
+- [x] 2.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green)
 
 ### Phase 3: IL lowering & T1/T2 emission
 - [ ] 3.1.1 Lowering/emission spec tests (ST-18..23)

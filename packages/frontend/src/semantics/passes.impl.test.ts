@@ -1,25 +1,29 @@
 /**
- * Implementation tests for the RD-04 pass seams (skeleton).
+ * Implementation tests for the semantic-analysis pass seams.
  *
- * Where `analyze.spec.test.ts` pins the end-to-end passthrough contract, these
- * tests verify the four internal pass functions exist and are callable no-ops
- * (seam existence, FR-S14 / §4.1). They import directly from `passes.ts` (the
- * seams are intentionally NOT re-exported from the package barrel).
- *
- * Written AFTER implementation; filed as `*.impl.test.ts` (testing.md Rule 10).
+ * RD-17 fills in Pass 1 (`collectDeclarations` → struct/enum tables) and Pass 3
+ * (`checkBodies` → intrinsic validation); Pass 2/4 remain deferred no-ops. These
+ * tests verify the four seams exist, are callable, and stay silent on empty input.
+ * They import directly from `passes.ts` (the seams are not re-exported from the
+ * package barrel).
  */
 
 import { describe, expect, it } from "vitest";
-import { createDiagnosticBag, createEmptyModel, DEFAULT_PROFILE } from "@blend65/core";
+import {
+  createDiagnosticBag,
+  createEmptyModel,
+  createIntrinsicRegistry,
+  DEFAULT_PROFILE,
+} from "@blend65/core";
 import type { AnalyzeInput } from "./analyze.js";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 
-/** A minimal `AnalyzeInput` with no programs (the seams ignore it anyway). */
+/** A minimal `AnalyzeInput` with no programs. */
 function makeInput(): AnalyzeInput {
   return { programs: [], bag: createDiagnosticBag(), profile: DEFAULT_PROFILE };
 }
 
-describe("pass seams — existence and no-op behavior (§4.1)", () => {
+describe("pass seams — existence and empty-input behavior (§4.1)", () => {
   it("should export all four pass functions", () => {
     expect(typeof collectDeclarations).toBe("function");
     expect(typeof resolveTypes).toBe("function");
@@ -27,26 +31,25 @@ describe("pass seams — existence and no-op behavior (§4.1)", () => {
     expect(typeof postCheck).toBe("function");
   });
 
-  it("should run each pass as a no-op without throwing", () => {
-    const input = makeInput();
-    const model = createEmptyModel();
-    expect(() => collectDeclarations(input, model)).not.toThrow();
-    expect(() => resolveTypes(input, model)).not.toThrow();
-    expect(() => checkBodies(input, model)).not.toThrow();
-    expect(() => postCheck(input, model)).not.toThrow();
+  it("collectDeclarations returns empty tables for empty input", () => {
+    const tables = collectDeclarations(makeInput());
+    expect(tables.structTypes.size).toBe(0);
+    expect(tables.enumTypes.size).toBe(0);
   });
 
-  it("should not observably mutate the model (passthrough)", () => {
+  it("checkBodies adds no diagnostics for empty input", () => {
+    const input = makeInput();
+    const tables = collectDeclarations(input);
+    expect(() => checkBodies(input, tables, createIntrinsicRegistry())).not.toThrow();
+    expect(input.bag.count()).toBe(0);
+  });
+
+  it("resolveTypes / postCheck run as no-ops without throwing", () => {
     const input = makeInput();
     const model = createEmptyModel();
-    collectDeclarations(input, model);
-    resolveTypes(input, model);
-    checkBodies(input, model);
-    postCheck(input, model);
-    // The empty model's observable shape is unchanged by the no-op passes.
+    expect(() => resolveTypes(input, model)).not.toThrow();
+    expect(() => postCheck(input, model)).not.toThrow();
     expect(model.hasErrors).toBe(false);
-    expect(model.mainFunction).toBeNull();
     expect(model.typeMap.size).toBe(0);
-    expect(model.symbolMap.size).toBe(0);
   });
 });
