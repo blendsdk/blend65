@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-02
-> **Progress**: 4/36 tasks (11%)
+> **Progress**: 8/36 tasks (22%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -213,10 +213,18 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 - [x] 1.1.2 Red phase: verify ST-32 fails ✅ (completed: 2026-07-02 10:06 — 2/2 tests fail, codes undefined)
 - [x] 1.1.3 Add E10240–E10246 + W10240/W10241 to `DiagCode` ✅ (completed: 2026-07-02 10:08)
 - [x] 1.1.4 Green phase: ST-32 passes; core suite regression-free ✅ (completed: 2026-07-02 10:09 — 178/178 core tests green)
-- [ ] 1.2.1 Add `jsonc-parser` dep; NodeNext import checkpoint
-- [ ] 1.2.2 Create `types.ts` (incl. `CONFIG_SOURCE_ID`)
-- [ ] 1.2.3 Create `defaults.ts` (`CONFIG_DEFAULTS` + `CONFIG_SCHEMA`)
-- [ ] 1.2.4 Package typecheck + lint
+- [x] 1.2.1 Add `jsonc-parser` dep; NodeNext import checkpoint ✅ (completed: 2026-07-02 10:15)
+  > **Checkpoint notes (AR-P1):** `jsonc-parser@3.3.1` pinned exact. (a) Named ESM
+  > imports (`import { parseTree, visit, type Node, type ParseError } from "jsonc-parser"`)
+  > typecheck under NodeNext AND resolve at runtime (`node --input-type=module` smoke) —
+  > no namespace-import fallback needed; the package has no `exports` field, so NodeNext
+  > falls back to `main` (UMD/CJS) whose named exports Node's CJS interop detects fine.
+  > (b) Offset semantics CONFIRMED as UTF-16 code-unit string indices: for
+  > `{"a☕b": }` (9 code units / 11 UTF-8 bytes) the ParseError offset is 8 — the string
+  > index of `}` — not the byte offset 10. PF-017 code-unit→byte conversion is required.
+- [x] 1.2.2 Create `types.ts` (incl. `CONFIG_SOURCE_ID`, `SYNTHETIC_SPAN_STRIDE`) ✅ (completed: 2026-07-02 10:18)
+- [x] 1.2.3 Create `defaults.ts` (`CONFIG_DEFAULTS` + `CONFIG_SCHEMA`; `entryRule` added to `SchemaEntry` for per-entry W-code checks — within AR-P6/PF-019 intent) ✅ (completed: 2026-07-02 10:20)
+- [x] 1.2.4 Package typecheck + lint ✅ (completed: 2026-07-02 10:21 — both clean)
 
 ### Phase 2: Discovery & JSONC parse
 - [ ] 2.1.1 Write discovery spec tests (ST-5)

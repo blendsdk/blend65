@@ -12,7 +12,8 @@
     }
   },
   "dependencies": {
-    "@blend65/core": "0.1.0"
+    "@blend65/core": "0.1.0",
+    "jsonc-parser": "3.3.1"
   },
   "scripts": {
     "build": "tsc --build",
