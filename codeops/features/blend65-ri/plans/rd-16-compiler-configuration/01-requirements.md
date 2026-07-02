@@ -45,7 +45,7 @@ scope boundaries. Plan-level decisions carry `AR-P#` references to
 - [ ] **F7 — Diagnostic codes & spans**: claim E10240–E10246 + W10240/W10241 in
   `@blend65/core`'s `DiagCode` registry (AR-P3); file-anchored diagnostics carry
   synthetic `SourceSpan`s with byte offsets and `CONFIG_SOURCE_ID` (AR-P2).
-- [ ] **F8 — Carried-verbatim pattern contract** (AC-10): validated `include`/`exclude`
+- [x] **F8 — Carried-verbatim pattern contract** (AC-10): validated `include`/`exclude`
   arrays land in `BlendConfig` unchanged for the RD-15/RD-14 discovery tier to expand.
 
 ### Should Have
@@ -112,19 +112,19 @@ scope boundaries. Plan-level decisions carry `AR-P#` references to
 
 Mirrors RD-16 §6 (AC-01..AC-14), concretized by this plan:
 
-1. [ ] AC-01: JSONC comments + trailing commas parse (ST-6)
-2. [ ] AC-02: discovery walks up and finds the nearest file (ST-1, ST-5)
-3. [ ] AC-03: missing config file → defaults, no error (ST-2)
-4. [ ] AC-04: all schema properties typed and validated at load time (ST-10..ST-17)
-5. [ ] AC-05: unknown keys warn (W10240), never error (ST-10, ST-11)
-6. [ ] AC-06: invalid value types → E10243 with expected type (ST-12)
-7. [ ] AC-07: unknown platform errors (E10244) only when `knownPlatforms` provided (ST-18, ST-19)
-8. [ ] AC-08: invocation overrides beat config file values (ST-25..ST-27)
-9. [ ] AC-09: missing platform (E10245), root-escape (E10246), `maxErrors` range, overlap warning all behave per the §4.3 edge table (ST-13, ST-20, ST-21, ST-24)
-10. [ ] AC-10: `include`/`exclude` validated and carried verbatim (ST-21, ST-22)
-11. [ ] AC-11: `{ config, hasErrors }` with fully populated config; all diagnostics in the supplied bag; never throws (ST-28..ST-31)
-12. [ ] AC-12: minimal `{ "platform": "c64" }` works end-to-end (ST-28)
-13. [ ] AC-13: config is never executed — no `require`/dynamic `import` in the package (audit task 4.3.2 + impl-tier data-only assertion, 07 §Security)
-14. [ ] AC-14: every decision traces to AR-NN / spec / `Design` / AR-P# (plan audit task)
+1. [x] AC-01: JSONC comments + trailing commas parse (ST-6)
+2. [x] AC-02: discovery walks up and finds the nearest file (ST-1, ST-5)
+3. [x] AC-03: missing config file → defaults, no error (ST-2)
+4. [x] AC-04: all schema properties typed and validated at load time (ST-10..ST-17)
+5. [x] AC-05: unknown keys warn (W10240), never error (ST-10, ST-11)
+6. [x] AC-06: invalid value types → E10243 with expected type (ST-12)
+7. [x] AC-07: unknown platform errors (E10244) only when `knownPlatforms` provided (ST-18, ST-19)
+8. [x] AC-08: invocation overrides beat config file values (ST-25..ST-27)
+9. [x] AC-09: missing platform (E10245), root-escape (E10246), `maxErrors` range, overlap warning all behave per the §4.3 edge table (ST-13, ST-20, ST-21, ST-24)
+10. [x] AC-10: `include`/`exclude` validated and carried verbatim (ST-21, ST-22)
+11. [x] AC-11: `{ config, hasErrors }` with fully populated config; all diagnostics in the supplied bag; never throws (ST-28..ST-31)
+12. [x] AC-12: minimal `{ "platform": "c64" }` works end-to-end (ST-28)
+13. [x] AC-13: config is never executed — no `require`/dynamic `import` in the package (audit task 4.3.2 + impl-tier data-only assertion, 07 §Security)
+14. [x] AC-14: every decision traces to AR-NN / spec / `Design` / AR-P# (plan audit task)
 15. [ ] All tests pass; full verify green (`yarn install --frozen-lockfile && yarn turbo run build typecheck lint && yarn test`)
 16. [ ] Roadmap updated (plan → executed transitions per the roadmap skill)

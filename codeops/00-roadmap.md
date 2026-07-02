@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-17 ✅ complete — RD-16 (config) 🔬 plan preflighted (PF-015..PF-022 resolved & applied); next: exec_plan | 14/20 | 🔄 | 2026-07-02 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-16 ✅ complete (`@blend65/config` ships `loadConfig()`, 36/36 tasks) — next: RD-15 (programmatic + CLI API) preflight → make_plan | 15/20 | 🔄 | 2026-07-02 |
 
 ## Archived
 
@@ -42,3 +42,9 @@
   conversion, LineMap reuse, synthetic-span dedup scheme, hasErrors emission tracking;
   1 observation → AR-P9 post-error values), all resolved & fixes applied across the plan
   docs; RD-16 advanced to "Plan preflighted", next step exec_plan.
+- 2026-07-02: RD-16 ✅ COMPLETE — plan executed 36/36 (4 phases): config diagnostic band
+  E10240–E10246/W10240–41, `jsonc-parser@3.3.1` (first external runtime dep, AR-P1),
+  discovery/parse/validate/merge/loadConfig modules (AR-P6), synthetic-span dedup scheme
+  (AR-P2/PF-019), PF-020 hasErrors tracking; AC-01..AC-14 ticked, AC-13 data-only audit
+  PASS, full workspace verify green. Runtime AR-P10 (BOM strip) provisionally resolved —
+  flagged for user review. Next: RD-15.

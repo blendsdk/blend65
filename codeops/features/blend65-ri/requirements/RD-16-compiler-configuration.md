@@ -368,20 +368,20 @@ loading itself — it configures the downstream compilation pipeline's bag.
 
 ## 6. Acceptance Criteria
 
-- [ ] AC-01: `blend65.json` is parsed as JSONC (comments and trailing commas work)
-- [ ] AC-02: Config discovery walks up from cwd and finds the nearest `blend65.json`
-- [ ] AC-03: Missing config file is not an error — defaults are used
-- [ ] AC-04: All schema properties are typed and validated at load time
-- [ ] AC-05: Unknown keys produce a warning, not an error
-- [ ] AC-06: Invalid value types produce a specific error with expected type
-- [ ] AC-07: When `knownPlatforms` is provided, an invalid platform name produces an error listing the available platforms; when omitted, the check is skipped (R21)
-- [ ] AC-08: Invocation overrides (CLI flags / programmatic `CompilerOptions`) override config file values (R24/R25)
-- [ ] AC-09: Missing `platform` after merging produces the "no platform specified" error; `include`/`exclude` root-escape, `maxErrors` range, and promote/suppress-overlap validations behave per the §4.3 edge table (R29–R31)
-- [ ] AC-10: The `include`/`exclude` values are validated (arrays of relative, root-scoped glob strings) and carried into `BlendConfig` verbatim for the RD-15/RD-14 discovery tier to expand
-- [ ] AC-11: `loadConfig()` returns `{ config, hasErrors }` with a fully populated `BlendConfig` (defaults applied) and all diagnostics appended to the supplied `DiagnosticBag`
-- [ ] AC-12: The minimal config `{ "platform": "c64" }` works end-to-end
-- [ ] AC-13: `blend65.json` is never `require()`d or `import()`ed
-- [ ] AC-14: All decisions trace to an `AR-NN`, a frozen spec section, or an explicit `Design` mark (per the §2 traceability rule)
+- [x] AC-01: `blend65.json` is parsed as JSONC (comments and trailing commas work)
+- [x] AC-02: Config discovery walks up from cwd and finds the nearest `blend65.json`
+- [x] AC-03: Missing config file is not an error — defaults are used
+- [x] AC-04: All schema properties are typed and validated at load time
+- [x] AC-05: Unknown keys produce a warning, not an error
+- [x] AC-06: Invalid value types produce a specific error with expected type
+- [x] AC-07: When `knownPlatforms` is provided, an invalid platform name produces an error listing the available platforms; when omitted, the check is skipped (R21)
+- [x] AC-08: Invocation overrides (CLI flags / programmatic `CompilerOptions`) override config file values (R24/R25)
+- [x] AC-09: Missing `platform` after merging produces the "no platform specified" error; `include`/`exclude` root-escape, `maxErrors` range, and promote/suppress-overlap validations behave per the §4.3 edge table (R29–R31)
+- [x] AC-10: The `include`/`exclude` values are validated (arrays of relative, root-scoped glob strings) and carried into `BlendConfig` verbatim for the RD-15/RD-14 discovery tier to expand
+- [x] AC-11: `loadConfig()` returns `{ config, hasErrors }` with a fully populated `BlendConfig` (defaults applied) and all diagnostics appended to the supplied `DiagnosticBag`
+- [x] AC-12: The minimal config `{ "platform": "c64" }` works end-to-end
+- [x] AC-13: `blend65.json` is never `require()`d or `import()`ed
+- [x] AC-14: All decisions trace to an `AR-NN`, a frozen spec section, or an explicit `Design` mark (per the §2 traceability rule)
 
 ---
 

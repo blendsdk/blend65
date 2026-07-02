@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-02
-> **Progress**: 25/36 tasks (69%)
+> **Progress**: 36/36 tasks (100%) — ✅ PLAN COMPLETE
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -48,7 +48,7 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 | 1.1.4 | Run spec test — verify it PASSES (green); run the core package suite for regressions | — |
 
 **Deliverables**:
-- [ ] 9 codes registered, ST-32 green, no core regressions
+- [x] 9 codes registered, ST-32 green, no core regressions ✅
 
 **Verify**: `yarn workspace @blend65/core test` (targeted; full verify at 4.3.3)
 
@@ -67,7 +67,7 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 | 1.2.4 | Typecheck + lint the package | — |
 
 **Deliverables**:
-- [ ] Dependency resolves; foundations compile clean
+- [x] Dependency resolves; foundations compile clean ✅
 
 **Verify**: `yarn workspace @blend65/config typecheck && yarn workspace @blend65/config lint`
 
@@ -187,7 +187,7 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 | 4.3.5 | Roadmap update: RD-16 → exec complete in the feature roadmap + portfolio rollup (roadmap skill Update Protocol) | `codeops/features/blend65-ri/00-roadmap.md`, `codeops/00-roadmap.md` |
 
 **Deliverables**:
-- [ ] All 32 ST cases green; impl tiers green; full verify green; roadmap synced
+- [x] All 32 ST cases green; impl tiers green; full verify green; roadmap synced ✅
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
@@ -248,17 +248,17 @@ commit mode; the frozen `spec/` directory is never touched (D3).
 - [x] 3.3.2 Package verify ✅ (completed: 2026-07-02 11:03 — 69/69 tests, typecheck + lint clean)
 
 ### Phase 4: `loadConfig()`, E2E & closeout
-- [ ] 4.1.1 Write loader spec tests (ST-1..ST-4, ST-7..ST-9, ST-28..ST-31)
-- [ ] 4.1.2 Replace stub `index.spec.test.ts` with public-API surface test
-- [ ] 4.1.3 Red phase: verify both fail
-- [ ] 4.2.1 Implement `load-config.ts`
-- [ ] 4.2.2 Implement `index.ts` public entry
-- [ ] 4.2.3 Green phase: spec tests pass
-- [ ] 4.3.1 Loader impl tests
-- [ ] 4.3.2 AC-13 data-only audit + security checklist
-- [ ] 4.3.3 Full workspace verify + `spec/` untouched check
-- [ ] 4.3.4 AC-01..AC-14 audit
-- [ ] 4.3.5 Roadmap update (feature + portfolio)
+- [x] 4.1.1 Write loader spec tests (ST-1..ST-4, ST-7..ST-9, ST-28..ST-31 + §4.4 full/cx16 E2E) ✅ (completed: 2026-07-02 11:10)
+- [x] 4.1.2 Replace stub `index.spec.test.ts` with public-API surface test ✅ (completed: 2026-07-02 11:10)
+- [x] 4.1.3 Red phase: verify both fail ✅ (completed: 2026-07-02 11:11 — loader file missing; index lacks the public API)
+- [x] 4.2.1 Implement `load-config.ts` (PF-020 tracking facade, all 6 §4.3 steps) ✅ (completed: 2026-07-02 11:16)
+- [x] 4.2.2 Implement `index.ts` public entry (`VERSION` stub deleted) ✅ (completed: 2026-07-02 11:16)
+- [x] 4.2.3 Green phase: spec tests pass ✅ (completed: 2026-07-02 11:17 — 88/88 config tests green)
+- [x] 4.3.1 Loader impl tests ✅ (completed: 2026-07-02 11:22 — 96/96; PF-020 at-cap matrix, chmod-000 I/O path, PF-019 override spans, AR-P9 values)
+- [x] 4.3.2 AC-13 data-only audit + security checklist ✅ (completed: 2026-07-02 11:24 — no `require(`/dynamic `import(`/`eval`/`new Function`/`child_process`/`vm` anywhere in src; fs writes only in tests; traversal suite (ST-21 + win32/UNC impl tier) green; input-validation suite ST-10..ST-17 green)
+- [x] 4.3.3 Full workspace verify + `spec/` untouched check ✅ (completed: 2026-07-02 11:30 — install/build/typecheck/lint green; 17/17 turbo test tasks + R15 boundary tier pass; `git status --porcelain spec/` empty)
+- [x] 4.3.4 AC-01..AC-14 audit ✅ (completed: 2026-07-02 11:33 — all 14 ticked with ST evidence in plan 01-requirements.md AND RD-16 §6)
+- [x] 4.3.5 Roadmap update (feature + portfolio) ✅ (completed: 2026-07-02 11:38 — RD-16 → Done in the feature roadmap, RD-15 promoted to next-up, portfolio row cascaded to 15/20)
 
 ---
 
