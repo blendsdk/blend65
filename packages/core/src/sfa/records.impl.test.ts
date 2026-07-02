@@ -26,9 +26,9 @@ describe("DEFAULT_PROFILE interim SFA budget invariants", () => {
     expect(ramBudget).toBeGreaterThan(0);
   });
 
-  it("should default the deferred arg-block floor to 0 (D8)", () => {
-    // The "arg-block" category stays plumbed but contributes 0 bytes until RD-17.
-    expect(DEFAULT_PROFILE.zpArgBlockMin).toBe(0);
+  it("should default the arg-block floor to 4 (RD-17 AR-P10 raised it from 0)", () => {
+    // RD-17 reconciles the interim floor to the R34 core-ABI minimum of 4 bytes.
+    expect(DEFAULT_PROFILE.zpArgBlockMin).toBe(4);
   });
 
   it("should keep all warn thresholds in the (0, 1] fraction range", () => {

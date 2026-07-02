@@ -36,16 +36,18 @@ import {
 } from "./stream.js";
 
 describe("Specification: Instr model — opcode/mode tuples (ST-M1..M3)", () => {
-  // Source: RD-07 R3 / 03-01 — OPCODES = 56 NMOS + 8 65C02, no duplicates
-  it("should expose 64 unique opcodes (56 NMOS + 8 65C02) (ST-M1)", () => {
-    expect(OPCODES).toHaveLength(64);
-    expect(new Set(OPCODES).size).toBe(64);
+  // Source: RD-07 R3 / 03-01 — OPCODES = 56 NMOS + 9 65C02, no duplicates.
+  // RD-17 R2 added `WAI` to the 65C02 set (65 total; was 64/8 pre-RD-17).
+  it("should expose 65 unique opcodes (56 NMOS + 9 65C02) (ST-M1)", () => {
+    expect(OPCODES).toHaveLength(65);
+    expect(new Set(OPCODES).size).toBe(65);
   });
 
-  // Source: RD-07 R3 / AR D3 — partitions are 56/8, disjoint; STZ/BRA gated
-  it("should partition opcodes into disjoint 56/8 NMOS/65C02 sets (ST-M2)", () => {
+  // Source: RD-07 R3 / AR D3 — partitions are 56/9, disjoint; STZ/BRA gated.
+  // RD-17 R2 grew the 65C02 partition from 8 to 9 (WAI).
+  it("should partition opcodes into disjoint 56/9 NMOS/65C02 sets (ST-M2)", () => {
     expect(NMOS_OPCODES).toHaveLength(56);
-    expect(W65C02_OPCODES).toHaveLength(8);
+    expect(W65C02_OPCODES).toHaveLength(9);
 
     // Disjoint: no opcode appears in both sets.
     const nmos = new Set<string>(NMOS_OPCODES);

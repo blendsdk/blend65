@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 (preflight PF-014..PF-024 amendments applied)
-> **Progress**: 0/47 tasks (0%)
+> **Last Updated**: 2026-07-02 (Phase 1 complete — full verify green)
+> **Progress**: 8/47 tasks (17%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -195,14 +195,14 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 > 5. **Never batch updates**
 
 ### Phase 1: Core registry, catalog & core deltas
-- [ ] 1.1.1 Registry/catalog/floor spec tests (ST-1..7)
-- [ ] 1.1.2 Red phase
-- [ ] 1.2.1 Descriptor types + registry
-- [ ] 1.2.2 Full catalog
-- [ ] 1.2.3 Core deltas (diag codes, reserved set, WAI, floors, plugin type)
-- [ ] 1.2.4 Green phase
-- [ ] 1.3.1 Registry impl tests
-- [ ] 1.3.2 Full verify
+- [x] 1.1.1 Registry/catalog/floor spec tests (ST-1..7) ✅ (completed: 2026-07-02)
+- [x] 1.1.2 Red phase ✅ (completed: 2026-07-02 — 2 files unresolved, ST-6 fails as expected)
+- [x] 1.2.1 Descriptor types + registry ✅ (completed: 2026-07-02)
+- [x] 1.2.2 Full catalog ✅ (completed: 2026-07-02)
+- [x] 1.2.3 Core deltas (diag codes, reserved set, WAI, floors, plugin type) ✅ (completed: 2026-07-02 — WAI legality row added to cpu-table for opcode/table consistency)
+- [x] 1.2.4 Green phase ✅ (completed: 2026-07-02 — 11/11 Phase 1 spec tests pass)
+- [x] 1.3.1 Registry impl tests ✅ (completed: 2026-07-02 — 11/11 pass)
+- [x] 1.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green)
 
 ### Phase 2: Semantic validation pass
 - [ ] 2.1.1 Validation spec tests (ST-8..14, ST-17; ST-15/16 `.todo`)

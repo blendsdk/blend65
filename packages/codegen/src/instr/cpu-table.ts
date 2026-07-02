@@ -124,7 +124,8 @@ const ZP_INDIRECT_CAPABLE: readonly Opcode[] = [
 /**
  * The 65C02-only opcode rows layered on top of the NMOS table (R16/D3).
  *
- * Branch-always, push/pull X/Y, store-zero, and test-and-reset/set bits.
+ * Branch-always, push/pull X/Y, store-zero, test-and-reset/set bits, and (RD-17
+ * R2) wait-for-interrupt — `WAI`, Implied mode, backing the `asm_wai` intrinsic.
  */
 const W65C02_EXTRA_ROWS: readonly (readonly [Opcode, readonly AddressingMode[]])[] = [
   ["BRA", ["Relative"]],
@@ -135,6 +136,7 @@ const W65C02_EXTRA_ROWS: readonly (readonly [Opcode, readonly AddressingMode[]])
   ["PLY", ["Implied"]],
   ["TRB", ["ZeroPage", "Absolute"]],
   ["TSB", ["ZeroPage", "Absolute"]],
+  ["WAI", ["Implied"]],
 ];
 
 /**

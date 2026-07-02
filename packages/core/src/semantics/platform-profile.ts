@@ -42,9 +42,10 @@ export interface PlatformProfile {
   /** Usable hardware-stack bytes (256 − platform reserve) (R39). */
   readonly stackBudget: number;
   /**
-   * Reserved runtime-ABI zero-page arg-block floor (AR-34). Interim default **0**
-   * (D8) — the `"arg-block"` ZP category is plumbed but contributes zero bytes
-   * until RD-17 sets a real floor (an additive change the allocator already honours).
+   * Reserved runtime-ABI zero-page arg-block floor (AR-34). RD-17 (AR-P10) raises
+   * the interim default from 0 to **4** to match the R34 core-ABI floor now that
+   * marshalling consumes the `"arg-block"` ZP category (an additive change the
+   * allocator already honours).
    */
   readonly zpArgBlockMin: number;
   /** Default zero-page main-expression-temp bytes (R33, default 4). */
@@ -75,7 +76,7 @@ export const DEFAULT_PROFILE: PlatformProfile = {
   zpStart: 0x02,
   zpEnd: 0x2f,
   stackBudget: 230,
-  zpArgBlockMin: 0,
+  zpArgBlockMin: 4,
   mainTempBytes: 4,
   irqTempBytes: 2,
   zpWarnThreshold: 0.8,

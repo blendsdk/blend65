@@ -34,6 +34,7 @@ import {
  * `maxZp` (142) `=== zpEnd − zpStart + 1`.
  */
 const c64uProfile: PlatformProfile = {
+  platformId: "c64u",
   codeStart: 0x0801,
   codeEnd: 0xcfff,
   dataStart: 0x0801,
@@ -100,6 +101,6 @@ export const c64uPlugin: PlatformPlugin = {
   },
 
   validateProfile(): ValidationError[] {
-    return validateProfileVia(c64uProfile);
+    return validateProfileVia(c64uProfile, "c64u");
   },
 };

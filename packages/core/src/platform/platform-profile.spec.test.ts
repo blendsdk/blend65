@@ -27,6 +27,7 @@ import {
  * the mutation base for ST-CP3..CP5.
  */
 const C64_PROFILE: PlatformProfile = {
+  platformId: "c64",
   codeStart: 0x0801,
   codeEnd: 0xcfff,
   dataStart: 0xc000,

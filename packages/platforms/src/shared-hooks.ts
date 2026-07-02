@@ -131,12 +131,26 @@ export function c64StylePreamble(
 }
 
 /**
- * Validate a profile via the shared core helper (R22/FR-21). A thin delegate so
- * each plugin's `validateProfile()` reads uniformly.
+ * Validate a profile via the shared core helper (R22/FR-21), plus the RD-17
+ * (PF-015) platform-identity consistency check: the profile's `platformId` must
+ * equal the owning plugin's `id`. A thin delegate so each plugin's
+ * `validateProfile()` reads uniformly.
  *
  * @param profile The profile to validate.
+ * @param expectedPlatformId The owning plugin's `id`; the profile's `platformId`
+ *   must match it (RD-17 R25 keys T4 availability on this identity).
  * @returns The list of inconsistencies (empty when consistent).
  */
-export function validateProfileVia(profile: PlatformProfile): ValidationError[] {
-  return validateProfileFields(profile);
+export function validateProfileVia(
+  profile: PlatformProfile,
+  expectedPlatformId: string,
+): ValidationError[] {
+  const errors = validateProfileFields(profile);
+  if (profile.platformId !== expectedPlatformId) {
+    errors.push({
+      field: "platformId",
+      message: `platformId ("${profile.platformId}") must equal the plugin id ("${expectedPlatformId}")`,
+    });
+  }
+  return errors;
 }

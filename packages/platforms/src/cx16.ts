@@ -33,6 +33,7 @@ import {
  * zpStart + 1` (`0x7F − 0x22 + 1`).
  */
 const cx16Profile: PlatformProfile = {
+  platformId: "cx16",
   codeStart: 0x0800,
   codeEnd: 0x9eff,
   dataStart: 0x0800,
@@ -99,6 +100,6 @@ export const cx16Plugin: PlatformPlugin = {
   },
 
   validateProfile(): ValidationError[] {
-    return validateProfileVia(cx16Profile);
+    return validateProfileVia(cx16Profile, "cx16");
   },
 };

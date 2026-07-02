@@ -17,6 +17,7 @@ import { validateProfileFields } from "./validate-profile.js";
  * `zpEnd(0x8F) - zpStart(0x02) + 1`.
  */
 const BASE: PlatformProfile = {
+  platformId: "c64",
   codeStart: 0x0801,
   codeEnd: 0xcfff,
   dataStart: 0xc000,

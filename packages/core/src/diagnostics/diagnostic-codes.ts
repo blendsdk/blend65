@@ -47,6 +47,12 @@ export const DiagCode = {
   ArgsToParameterlessIntrinsic: "E10040",
   WrongIntrinsicArgCount: "E10041",
   AddressOfElementDeferred: "E10042",
+  // RD-17 (AR-P8/P11/P14): availability, ZP arg-block overflow, non-constant T2
+  // address (replaces the shipped `lower.ts` ICE), and the T4 import boundary.
+  IntrinsicUnavailable: "E10043",
+  ZpArgBlockExceeded: "E10044",
+  NonConstantIntrinsicAddress: "E10045",
+  IntrinsicNotImported: "E10046",
   // Scoping & names
   UndeclaredIdentifier: "E10100",
   NameShadows: "E10101",
@@ -109,7 +115,9 @@ export const DiagCode = {
   ShiftAmountOutOfRange: "E10083",
 
   // Lexer (RD-02, spec Ch 01 §14)
-  // E10212 (redeclare reserved built-in) is owned by RD-04 — NOT added here.
+  // RD-17 R21: the provisional E10212 reservation is retired — reserved-name
+  // shadowing of an intrinsic is reported as E10101 (NameShadows), not a distinct
+  // "redeclare reserved built-in" code.
   // E10224 (ReservedKeyword) is emitted by the parser (RD-03); it lives here so
   // the one-registry rule holds — the lexer itself never raises it.
   UnexpectedCharacter: "E10210",

@@ -32,14 +32,16 @@ export const NMOS_OPCODES = [
 ] as const;
 
 /**
- * The 8 65C02-only mnemonics (R3) — legal only when `cpuVariant === "wdc65c02"`.
+ * The 9 65C02-only mnemonics (R3) — legal only when `cpuVariant === "wdc65c02"`.
  *
  * These are the WDC 65C02 additions Blend65 models (push/pull X/Y, branch-always,
- * store-zero, test-and-reset/set bits). On an NMOS target they are illegal and
- * the validator raises an ICE if codegen ever emits one (R16).
+ * store-zero, test-and-reset/set bits, and wait-for-interrupt). On an NMOS target
+ * they are illegal and the validator raises an ICE if codegen ever emits one (R16).
+ *
+ * `WAI` is added by RD-17 (R2) to back the 65C02-gated `asm_wai` intrinsic.
  */
 export const W65C02_OPCODES = [
-  "BRA", "PHX", "PHY", "PLX", "PLY", "STZ", "TRB", "TSB",
+  "BRA", "PHX", "PHY", "PLX", "PLY", "STZ", "TRB", "TSB", "WAI",
 ] as const;
 
 /**

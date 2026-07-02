@@ -39,6 +39,7 @@ import {
  * zpEnd − zpStart + 1` (`0x7F − 0x40 + 1`).
  */
 const a7800Profile: PlatformProfile = {
+  platformId: "a7800",
   codeStart: 0x8000,
   codeEnd: 0xfff7,
   dataStart: 0x1800,
@@ -110,6 +111,6 @@ export const a7800Plugin: PlatformPlugin = {
   },
 
   validateProfile(): ValidationError[] {
-    return validateProfileVia(a7800Profile);
+    return validateProfileVia(a7800Profile, "a7800");
   },
 };

@@ -27,6 +27,9 @@ function hex(value: number): string {
  * - `zpStart <= zpEnd` — the zero-page window must be non-empty and ordered.
  * - `codeStart < codeEnd` — the code segment must be a non-empty range.
  * - `maxZp === zpEnd - zpStart + 1` — the budget must match the ZP window size.
+ * - `zpArgBlockSize >= 4` — the core ABI floor (RD-17 R34/AC-12): every platform
+ *   must guarantee at least 4 ZP arg-block bytes so routine authors can rely on it
+ *   without checking the profile.
  *
  * @param profile The profile to validate.
  * @returns The list of inconsistencies (empty when the profile is consistent).
@@ -35,6 +38,15 @@ export function validateProfileFields(
   profile: PlatformProfile,
 ): ValidationError[] {
   const errors: ValidationError[] = [];
+
+  // RD-17 R34/AC-12: the ZP arg-block minimum floor is 4 bytes on every platform.
+  const ZP_ARG_BLOCK_FLOOR = 4;
+  if (profile.zpArgBlockSize < ZP_ARG_BLOCK_FLOOR) {
+    errors.push({
+      field: "zpArgBlockSize",
+      message: `zpArgBlockSize (${profile.zpArgBlockSize}) must be >= ${ZP_ARG_BLOCK_FLOOR} (the core runtime-ABI floor)`,
+    });
+  }
 
   if (profile.zpStart > profile.zpEnd) {
     errors.push({

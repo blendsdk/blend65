@@ -5,3 +5,4 @@ export * from "./tokens/index.js";
 export * from "./ast/index.js";
 export * from "./semantics/index.js";
 export * from "./sfa/index.js";
+export * from "./intrinsics/index.js";

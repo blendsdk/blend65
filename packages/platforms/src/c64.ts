@@ -39,6 +39,8 @@ import {
  * own consistency check (FR-12 / R22).
  */
 const c64Profile: PlatformProfile = {
+  // identity
+  platformId: "c64",
   // memory map
   codeStart: 0x0801,
   codeEnd: 0xcfff,
@@ -112,6 +114,6 @@ export const c64Plugin: PlatformPlugin = {
   },
 
   validateProfile(): ValidationError[] {
-    return validateProfileVia(c64Profile);
+    return validateProfileVia(c64Profile, "c64");
   },
 };

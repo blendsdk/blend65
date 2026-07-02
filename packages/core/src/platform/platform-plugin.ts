@@ -10,7 +10,10 @@
  */
 
 import type { AcmeDirective, StreamEntry } from "../instr-model/index.js";
+import type { IntrinsicDescriptor } from "../intrinsics/descriptor.js";
 import type { PlatformProfile } from "./platform-profile.js";
+
+export type { IntrinsicDescriptor } from "../intrinsics/descriptor.js";
 
 /**
  * Which startup-shim a preamble wraps the program entry point in (R17).
@@ -72,13 +75,6 @@ export interface ValidationError {
   /** A human-readable description of the inconsistency. */
   readonly message: string;
 }
-
-/**
- * Intrinsic descriptors are RD-17's type (AR-29). Until RD-17 lands the plugins
- * ship an empty list; this alias keeps the interface field present without a
- * fabricated shape (D1). DEFERRED(RD-17).
- */
-export type IntrinsicDescriptor = unknown;
 
 /**
  * The contract every target platform satisfies (R1) — profile *data* plus

@@ -44,6 +44,15 @@ export type CharEncoding = "petscii" | "atascii" | "ascii";
  * informational clock/frame metadata.
  */
 export interface PlatformProfile {
+  // --- Platform identity (required, RD-17 R25 / PF-015) ---
+  /**
+   * Stable platform id, e.g. `"c64"` — the first row of every frozen platform
+   * appendix's profile table. T4 intrinsic availability predicates compare this
+   * against the contributing plugin's id (RD-17 R25); each plugin's
+   * `validateProfile()` checks it equals the plugin's own `id`.
+   */
+  readonly platformId: string;
+
   // --- Memory map (required, Ch 15 §3.1) ---
   /** First address of the code segment. */
   readonly codeStart: number;
