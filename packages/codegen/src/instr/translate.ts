@@ -26,7 +26,7 @@
  * (R15/AR-20).
  */
 
-import { DiagCode, IceCode } from "@blend65/core";
+import { DiagCode, IceCode, RT_ROUTINES } from "@blend65/core";
 import type { AllocationPlan, DiagnosticBag, IntrinsicDescriptor, SourceSpan } from "@blend65/core";
 
 import type { ILType } from "../il/il-type.js";
@@ -57,6 +57,21 @@ interface MemHome {
 }
 
 /**
+ * Optional per-target translation options (RD-17, PF-016).
+ *
+ * `zpArgBlockSize` enables the runtime-call ZP arg-block check (E10044, R35):
+ * when absent (bare `generateInstr` callers) the check is skipped;
+ * `assembleProgram` threads it from `plugin.profile`. `platformId` names the
+ * platform in the E10044 message (AR-P11).
+ */
+export interface TranslateOptions {
+  /** The target profile's ZP arg-block size in bytes (enables E10044). */
+  readonly zpArgBlockSize?: number;
+  /** The target platform id, for the E10044 message. */
+  readonly platformId?: string;
+}
+
+/**
  * Translate one {@link ILFunction} into one {@link InstrStream} (R17, FR-1).
  *
  * Emits the function's entry label, then each instruction of its single live
@@ -71,6 +86,8 @@ interface MemHome {
  *   addressing modes become selectable. `generateInstr` validates the emitted
  *   stream against the variant, so an illegal pair would still be caught.
  * @param bag Diagnostic sink: deferred-op ICEs (D7) + cost warnings (R60).
+ * @param opts Optional target options (RD-17): ZP arg-block size + platform id
+ *   for the E10044 runtime-call check.
  * @returns The function's instruction stream (`segment: "code"`).
  */
 export function translateFunction(
@@ -78,10 +95,20 @@ export function translateFunction(
   plan: AllocationPlan,
   _cpuVariant: CpuVariant,
   bag: DiagnosticBag,
+  opts?: TranslateOptions,
 ): InstrStream {
-  const tr = new FunctionTranslator(fn, plan, bag);
+  const tr = new FunctionTranslator(fn, plan, bag, opts);
   return tr.run();
 }
+
+/**
+ * The operator-backing T3 routine catalog keyed by symbol (AR-98) — a single
+ * keyed table (AC-17: no per-name special-casing), consulted by the `mul`/
+ * `div`/`mod` call sites for the routine's descriptor (ABI + ZP requirement).
+ */
+const RT_BY_NAME: ReadonlyMap<string, IntrinsicDescriptor> = new Map(
+  RT_ROUTINES.map((d) => [d.name, d]),
+);
 
 /**
  * The T1 opcode-intrinsic name → 6502 mnemonic map (RD-17 §4.3, AC-07). A single
@@ -133,6 +160,7 @@ class FunctionTranslator {
     private readonly fn: ILFunction,
     plan: AllocationPlan,
     private readonly bag: DiagnosticBag,
+    private readonly opts?: TranslateOptions,
   ) {
     this.binder = createRegisterBinder(plan, bag);
   }
@@ -256,8 +284,20 @@ class FunctionTranslator {
       this.clearRegs();
       return;
     }
-    // 'call'/'fold'/'inline' never reach translate as an `intrinsic` op in this
-    // slice — 'call' marshalling arrives in 03-04/03-05.
+    if (descriptor.loweringStrategy === "call") {
+      // T3/T4 runtime-routine call (03-04). The ZP arg-block requirement is
+      // checked first (E10044 → poison, R35/AC-13). Per-signature argument
+      // marshalling for user-visible T4 calls follows in 03-05; the internal
+      // operator-backing routines marshal via `marshalAndCall` (mul/div/mod).
+      if (!this.checkZpArgBlock(descriptor)) {
+        return;
+      }
+      this.emit("JSR", "Absolute", labelRef(descriptor.name));
+      this.clearRegs();
+      return;
+    }
+    // 'fold'/'inline' never reach translate as an `intrinsic` op — the lowering
+    // resolves them (03-03); reaching here is a lowering bug.
     this.iceUnsupported(`intrinsic '${name}' strategy '${descriptor.loweringStrategy}'`);
   }
 
@@ -624,13 +664,15 @@ class FunctionTranslator {
         return;
       }
     }
-    // (3) Runtime multiply → JSR __rt_mul8/16 (marshalling ABI is RD-17 AR-33).
-    this.emitRuntimeCall(type.width === 16 ? "__rt_mul16" : "__rt_mul8", left, right, dest);
-    this.bag.addWarning(
-      DiagCode.RuntimeMultiply,
-      null,
-      `runtime multiply generates a subroutine call (~80-150 cycles for ${type.width}-bit)`,
-    );
+    // (3) Runtime multiply → JSR __rt_mul8/16 with full AR-33 marshalling.
+    const routine = RT_BY_NAME.get(type.width === 16 ? "__rt_mul16" : "__rt_mul8");
+    if (routine !== undefined && this.marshalAndCall(routine, left, right, dest, "value", type.width)) {
+      this.bag.addWarning(
+        DiagCode.RuntimeMultiply,
+        null,
+        `runtime multiply generates a subroutine call (~80-150 cycles for ${type.width}-bit)`,
+      );
+    }
     void index;
     void all;
   }
@@ -645,37 +687,119 @@ class FunctionTranslator {
     all: readonly ILInstruction[],
   ): void {
     // div takes the quotient return, mod the remainder return; both call the same
-    // runtime routine (R22). The exact return-register split is RD-17 AR-33.
-    this.emitRuntimeCall(type.width === 16 ? "__rt_div16" : "__rt_div8", left, right, dest);
-    this.bag.addWarning(
-      DiagCode.RuntimeDivide,
-      null,
-      `runtime ${op === "mod" ? "modulo" : "divide"} generates a subroutine call ` +
-        `(~150-200 cycles for ${type.width}-bit)`,
-    );
+    // runtime routine (AR-98: no __rt_mod* symbols exist). ABI split is AR-33/AR-P7.
+    const routine = RT_BY_NAME.get(type.width === 16 ? "__rt_div16" : "__rt_div8");
+    const result = op === "mod" ? "remainder" : "value";
+    if (routine !== undefined && this.marshalAndCall(routine, left, right, dest, result, type.width)) {
+      this.bag.addWarning(
+        DiagCode.RuntimeDivide,
+        null,
+        `runtime ${op === "mod" ? "modulo" : "divide"} generates a subroutine call ` +
+          `(~150-200 cycles for ${type.width}-bit)`,
+      );
+    }
     void index;
     void all;
   }
 
   /**
-   * Emit the minimal runtime-routine call site (D4): bring the operands into A
-   * (and the binder's view), then `JSR` the symbolic routine name. The detailed
-   * argument-marshalling ABI (which bytes go in A/X/Y vs a ZP arg-block) is RD-17
-   * AR-33; this slice emits the call and binds the result to A so a following
-   * `store`/`ret` consumes it.
+   * Verify the routine's ZP arg-block requirement against the target profile
+   * (R35, AC-13). When the requirement exceeds `opts.zpArgBlockSize`, emits
+   * E10044 (AR-P11 message) and returns `false` — the caller poisons the
+   * statement (skips emission). When no size was threaded (bare
+   * `generateInstr` callers, PF-016) the check is skipped.
+   *
+   * @param descriptor The routine descriptor (carries `costMetadata.zpBytes`).
+   * @returns Whether emission may proceed.
    */
-  private emitRuntimeCall(
-    routine: string,
+  private checkZpArgBlock(descriptor: IntrinsicDescriptor): boolean {
+    const size = this.opts?.zpArgBlockSize;
+    if (size === undefined) {
+      return true;
+    }
+    const need = descriptor.costMetadata.zpBytes;
+    if (need <= size) {
+      return true;
+    }
+    this.bag.addError(
+      DiagCode.ZpArgBlockExceeded,
+      null,
+      `runtime routine '${descriptor.name}' needs ${need} ZP argument bytes, ` +
+        `but the '${this.opts?.platformId ?? "target"}' profile provides ${size}`,
+    );
+    return false;
+  }
+
+  /**
+   * Emit a fully-marshalled operator-backing runtime call (RD-17 AR-33/AR-P7;
+   * AC-10 — both operands are marshalled, replacing the RD-07b left-only stub).
+   *
+   * Byte ops: `left`→A, `right`→X. Word ops: `right`→`__zp_arg_0/1` (the SFA
+   * allocator's existing arg-block symbols, PF-018) first — the loads clobber
+   * A — then `left`→A(lo)/X(hi) via direct LDA/LDX so the registers hold the
+   * first operand at the call. Results: the routine's return register(s) bind
+   * to `dest` (`word` returns in A/X, `byte` in A); `result: "remainder"`
+   * selects the modulo return instead — X→A for `__rt_div8`, `__zp_arg_0/1`
+   * for `__rt_div16` (AR-98).
+   *
+   * @param descriptor The T3 routine descriptor (name, ABI, ZP requirement).
+   * @param left The first operand (register-passed).
+   * @param right The second operand (register or ZP arg-block).
+   * @param dest The IL destination temp the result binds to.
+   * @param result Which return value binds: the primary value or the remainder.
+   * @param width The operation width (8 or 16).
+   * @returns Whether the call was emitted (`false` → E10044 poison, R35).
+   */
+  private marshalAndCall(
+    descriptor: IntrinsicDescriptor,
     left: ILOperand,
     right: ILOperand,
     dest: ILOperand,
-  ): void {
-    // Marshal the left operand into A (the documented minimal entry); the right
-    // operand's placement is the routine's ABI concern (RD-17).
-    this.leftIntoA(left);
-    void right;
-    this.emit("JSR", "Absolute", labelRef(routine));
-    this.bindA(asTempId(dest));
+    result: "value" | "remainder",
+    width: 8 | 16,
+  ): boolean {
+    if (!this.checkZpArgBlock(descriptor)) {
+      return false; // poisoned: statement dropped, compilation continues (AC-13)
+    }
+    if (width === 8) {
+      this.leftIntoA(left);
+      const r = this.rightSource(right, 0);
+      this.emit("LDX", r.mode, r.operand);
+      this.emit("JSR", "Absolute", labelRef(descriptor.name));
+      this.clearRegs();
+      if (result === "remainder") {
+        this.emit("TXA", "Implied", none()); // remainder returns in X (AR-33)
+        this.bindA(asTempId(dest));
+      } else if (descriptor.signature.returnType === "word") {
+        this.bindA(asTempId(dest)); // product lo→A, hi→X (AR-33)
+        this.bindX(asTempId(dest));
+      } else {
+        this.bindA(asTempId(dest)); // quotient→A
+      }
+      return true;
+    }
+    // Word: second operand through the ZP arg-block FIRST (the loads clobber A).
+    this.clearRegs();
+    for (const i of [0, 1] as const) {
+      const r = this.rightSource(right, i);
+      this.emit("LDA", r.mode, r.operand);
+      this.emit("STA", "Absolute", symbolRef(`__zp_arg_${i}`));
+    }
+    // First operand into A(lo)/X(hi) — direct loads, X is not otherwise needed.
+    const hi = this.rightSource(left, 1);
+    this.emit("LDX", hi.mode, hi.operand);
+    const lo = this.rightSource(left, 0);
+    this.emit("LDA", lo.mode, lo.operand);
+    this.emit("JSR", "Absolute", labelRef(descriptor.name));
+    this.clearRegs();
+    if (result === "remainder") {
+      // div16 leaves the remainder in the arg-block (overwriting b — AR-P7).
+      this.emit("LDA", "Absolute", symbolRef("__zp_arg_0"));
+      this.emit("LDX", "Absolute", symbolRef("__zp_arg_1"));
+    }
+    this.bindA(asTempId(dest)); // word result lo→A, hi→X
+    this.bindX(asTempId(dest));
+    return true;
   }
 
   // ── Register-state mirror (the binder is the RD-07c allocation seam) ──────────

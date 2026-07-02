@@ -14,3 +14,4 @@ export const VERSION = "0.1.0";
 
 export * from "./il/index.js";
 export * from "./instr/index.js";
+export * from "./runtime/index.js";

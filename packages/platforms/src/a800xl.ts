@@ -68,12 +68,9 @@ export const a800xlPlugin: PlatformPlugin = {
   displayName: "Atari 800XL",
   profile: a800xlProfile,
   intrinsics: [], // RD-17 (D1)
-  runtimeModules: [
-    { name: "mul8", asmPath: "runtime/mul8.asm", exports: ["__rt_mul8"] },
-    { name: "mul16", asmPath: "runtime/mul16.asm", exports: ["__rt_mul16"] },
-    { name: "div8", asmPath: "runtime/div8.asm", exports: ["__rt_div8"] },
-    { name: "div16", asmPath: "runtime/div16.asm", exports: ["__rt_div16"] },
-  ],
+  // The mul/div operator-backing routines are codegen-owned T3 modules
+  // (RD-17 AR-98), not platform contributions; genuine T4 modules go here.
+  runtimeModules: [],
 
   emitPreamble(options: PreambleOptions): StreamEntry[] {
     return c64StylePreamble(options.projectName, options.shimVariant);

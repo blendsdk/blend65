@@ -72,10 +72,20 @@ function renderPreambleBlock(entries: readonly StreamEntry[]): string | null {
  * and segment order follow AR-94 (1A verbatim `symbolDefinitions`; 2A
  * `code → data`, `zp` skipped, no `bss`).
  *
+ * RD-17 (PF-016): an optional pre-composed `runtimeSection` (from
+ * `runtime/embed.js`) is appended verbatim as the final discrete section. The
+ * serializer stays pure — it never reads files itself — and with no option the
+ * output is byte-identical to the pre-RD-17 shape (R16, AC-11).
+ *
  * @param program The InstrProgram from codegen/peephole (RD-07/08).
+ * @param opts Optional additions: `runtimeSection` — the embedded runtime
+ *   routines section text (header + module bodies), appended last.
  * @returns The complete `.asm` file content (newline-terminated).
  */
-export function serializeToAcme(program: InstrProgram): string {
+export function serializeToAcme(
+  program: InstrProgram,
+  opts?: { readonly runtimeSection?: string },
+): string {
   const lines: string[] = [];
 
   // 1. `!to` output-file directive — hoisted to the very top from the preamble.
@@ -114,6 +124,12 @@ export function serializeToAcme(program: InstrProgram): string {
       lines.push(`; --- const data: ${stream.symbol} ---`);
       lines.push(printInstr(stream));
     }
+  }
+
+  // 6. Embedded runtime routines (RD-17, PF-016) — the final discrete section.
+  //    Absent option → byte-identical pre-RD-17 output (R16/AC-11).
+  if (opts?.runtimeSection !== undefined && opts.runtimeSection.length > 0) {
+    lines.push(opts.runtimeSection);
   }
 
   return lines.join("\n") + "\n";

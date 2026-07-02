@@ -91,7 +91,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | A | 🔄 Executing (2026-07-02) — Phase 3/6 complete (24/47 tasks): registry+catalog, validation, T1/T2 IL lowering & emission |
+| 1 | RD-17 | Intrinsics & runtime ABI | RD-04, RD-10 | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | A | 🔄 Executing (2026-07-02) — Phase 4/6 complete (35/47 tasks): registry, validation, T1/T2 lowering, T3 runtime .asm (functionally verified — AR-P17) + marshalling + embedding |
 | 2 | RD-16 | Compiler configuration (`blend65.json`) | RD-01 | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-12 | Test harness & emulator verification | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |

@@ -25,6 +25,7 @@ import type { CpuVariant, InstrStream, StreamEntry } from "./stream.js";
 import { instrByteSize } from "./print-instr.js";
 import { validateStream } from "./validate.js";
 import { translateFunction } from "./translate.js";
+import type { TranslateOptions } from "./translate.js";
 
 /**
  * The assembled instruction program — the back end's output (R55–R57).
@@ -55,15 +56,21 @@ export interface InstrProgram {
  * follows `ilProgram.functions` (deterministic, R17/AC-06). The returned program is
  * frozen.
  *
+ * RD-17 (PF-016): the optional `opts` carries the target's ZP arg-block size
+ * (+ platform id) enabling the runtime-call E10044 check; bare callers omit it
+ * and the check is skipped. `assembleProgram` threads it from `plugin.profile`.
+ *
  * @param ilProgram The IL program (RD-06) — carries its own `AllocationPlan` (D2).
  * @param cpuVariant The CPU target primitive selecting the RD-07a validation table.
  * @param bag Diagnostic sink: cost warnings (R60) + ICEs (R61).
+ * @param opts Optional target options for the runtime-call ZP check (RD-17).
  * @returns The frozen {@link InstrProgram}.
  */
 export function generateInstr(
   ilProgram: ILProgram,
   cpuVariant: CpuVariant,
   bag: DiagnosticBag,
+  opts?: TranslateOptions,
 ): InstrProgram {
   const plan = ilProgram.allocationPlan;
   const streams: InstrStream[] = [];
@@ -74,7 +81,7 @@ export function generateInstr(
     if (!hasBody) {
       continue;
     }
-    const stream = translateFunction(fn, plan, cpuVariant, bag);
+    const stream = translateFunction(fn, plan, cpuVariant, bag, opts);
     // Post-translation validation: every emitted opcode+mode must be CPU-legal
     // for the variant; an illegal pair is an E90001 codegen bug (R61/FR-22).
     validateStream(stream, cpuVariant, bag);
@@ -112,7 +119,12 @@ export function assembleProgram(
   bag: DiagnosticBag,
 ): InstrProgram {
   // Reuse the unchanged back end for the function streams + validation (D2).
-  const program = generateInstr(ilProgram, plugin.profile.cpu, bag);
+  // RD-17 (PF-016): thread the profile's ZP arg-block size + platform id so
+  // runtime calls are checked against the real target (E10044, R35).
+  const program = generateInstr(ilProgram, plugin.profile.cpu, bag, {
+    zpArgBlockSize: plugin.profile.zpArgBlockSize,
+    platformId: plugin.profile.platformId,
+  });
   // Derive the shim/data options (D3) and ask the plugin for the preamble (RD-10).
   const options = derivePreambleOptions(ilProgram);
   const preamble = plugin.emitPreamble(options);

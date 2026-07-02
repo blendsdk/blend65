@@ -150,16 +150,15 @@ describe("C64 plugin — profile fields (ST-C64-9)", () => {
 });
 
 describe("C64 plugin — intrinsics / runtimeModules (ST-C64-10)", () => {
-  it("intrinsics is empty (RD-17 deferred)", () => {
+  it("intrinsics is empty (T4 contributions arrive with future platform work)", () => {
     expect(c64Plugin.intrinsics).toEqual([]);
   });
 
-  it("runtimeModules lists mul8/mul16/div8/div16 with __rt_* exports", () => {
-    expect(c64Plugin.runtimeModules).toEqual([
-      { name: "mul8", asmPath: "runtime/mul8.asm", exports: ["__rt_mul8"] },
-      { name: "mul16", asmPath: "runtime/mul16.asm", exports: ["__rt_mul16"] },
-      { name: "div8", asmPath: "runtime/div8.asm", exports: ["__rt_div8"] },
-      { name: "div16", asmPath: "runtime/div16.asm", exports: ["__rt_div16"] },
-    ]);
+  // DELIBERATE ORACLE UPDATE (RD-17 Phase 4, AR-98): the mul/div operator-backing
+  // routines migrated to codegen-owned T3 modules (`@blend65/codegen/runtime/*.asm`)
+  // — they were never platform contributions. `runtimeModules` now carries only
+  // genuine T4 platform modules, of which the c64 has none yet.
+  it("runtimeModules is empty (mul/div are codegen-owned T3 — AR-98)", () => {
+    expect(c64Plugin.runtimeModules).toEqual([]);
   });
 });

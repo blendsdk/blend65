@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-02 (Phase 3 complete — full verify green)
-> **Progress**: 24/47 tasks (51%)
+> **Last Updated**: 2026-07-02 (Phase 4 complete — full verify green; AR-P17 functional math harness added)
+> **Progress**: 35/47 tasks (74%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -225,17 +225,17 @@ is DEFERRED to RD-12. This plan verifies assembly-level correctness (ST-30, ST-3
 - [x] 3.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green, 0 regressions)
 
 ### Phase 4: T3 runtime, embedding & marshalling
-- [ ] 4.1.1 Marshalling/embedding spec tests (ST-24..29)
-- [ ] 4.1.2 ACME syntax spec test (ST-30)
-- [ ] 4.1.3 Red phase
-- [ ] 4.2.1 Four `.asm` modules
-- [ ] 4.2.2 `embed.ts`
-- [ ] 4.2.3 Serializer runtime section
-- [ ] 4.2.4 Marshalling rewrite + E10044
-- [ ] 4.2.5 Plugin runtimeModules migration
-- [ ] 4.2.6 Green phase
-- [ ] 4.3.1 Embed impl tests
-- [ ] 4.3.2 Full verify
+- [x] 4.1.1 Marshalling/embedding spec tests (ST-24..29) ✅ (completed: 2026-07-02 — oracle: RD-17 §4.5/§4.6, AR-33/AR-98/AR-P7/AR-100 + plan ABI table)
+- [x] 4.1.2 ACME syntax spec test (ST-30) ✅ (completed: 2026-07-02 — skip-if-no-ACME; PF-019 prelude defines __zp_arg_0..3; ACME 0.97 present locally)
+- [x] 4.1.3 Red phase ✅ (completed: 2026-07-02 — 4 failures: missing embed module, left-only stub, no E10044, no TXA remainder binding)
+- [x] 4.2.1 Four `.asm` modules ✅ (completed: 2026-07-02 — mul16 is self-contained via internal `__rt_mul16_core` (three 8x8 partials), NOT a cross-module call (§4.6); byte routines use arg-block scratch within the R35 floor, Y preserved; all 4 assemble under ACME 0.97)
+- [x] 4.2.2 `embed.ts` ✅ (completed: 2026-07-02 — collect/load/buildRuntimeSection; path-traversal guard; catalog-order determinism)
+- [x] 4.2.3 Serializer runtime section ✅ (completed: 2026-07-02 — optional `opts.runtimeSection`, serializer stays pure; no option → byte-identical output)
+- [x] 4.2.4 Marshalling rewrite + E10044 ✅ (completed: 2026-07-02 — `marshalAndCall` both operands (AC-10), word b→__zp_arg_0/1 then a→A/X, mod binds remainder (TXA / arg-block reload), E10044+poison via `TranslateOptions` threaded by `assembleProgram` from `plugin.profile`)
+- [x] 4.2.5 Plugin runtimeModules migration ✅ (completed: 2026-07-02 — 5 plugins → `[]`; c64 ST-C64-10 oracle deliberately updated per AR-98)
+- [x] 4.2.6 Green phase ✅ (completed: 2026-07-02 — 12/12 Phase 4 spec tests; codegen 314 + platforms 30, 0 regressions)
+- [x] 4.3.1 Embed impl tests ✅ (completed: 2026-07-02 — 10/10 embed internals + **AR-P17 functional harness**: in-process 6502 interpreter runs ACME-assembled routines against edge crosses + 500 seeded randoms each — all four routines' math PROVEN (4/4); AR-P4's emulator-tier deferral to RD-12 stands)
+- [x] 4.3.2 Full verify ✅ (completed: 2026-07-02 — build+typecheck+lint+test all green)
 
 ### Phase 5: T4 platform mechanism
 - [ ] 5.1.1 Fixture + T4 spec tests (ST-31/32; ST-15/16 live)
