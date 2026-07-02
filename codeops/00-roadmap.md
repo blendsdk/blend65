@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-16 ✅ complete (`@blend65/config` ships `loadConfig()`, 36/36 tasks) — next: RD-15 (programmatic + CLI API) preflight → make_plan | 15/20 | 🔄 | 2026-07-02 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 requirements preflighted ✅ (10 findings resolved); PF-001 reordered RD-11b ahead — next: RD-11b (diagnostics remainder & resource reporter) preflight → make_plan | 15/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -48,3 +48,9 @@
   (AR-P2/PF-019), PF-020 hasErrors tracking; AC-01..AC-14 ticked, AC-13 data-only audit
   PASS, full workspace verify green. Runtime AR-P10 (BOM strip) provisionally resolved —
   flagged for user review. Next: RD-15.
+- 2026-07-03: RD-15 requirements preflight ✅ PASSED — 10 findings (1 major PF-001, 7 minor,
+  2 observations), all recommendations accepted, fixes applied to RD-15 (deps header, R47–R51,
+  AC-18/19/20, §4 refresh), RD-09 (`EmitBinaryResult` rename note), both roadmaps, and
+  `requirements/README.md`. PF-001: RD-15 consumes six unimplemented RD-11-remainder
+  deliverables → **RD-11b reordered ahead of RD-15**; new pending order
+  RD-11b → RD-15 → RD-12 → RD-13 → RD-14. Next: RD-11b preflight → make_plan.

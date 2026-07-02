@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-02 (RD-16 executed to 100% — `@blend65/config` ships `loadConfig()`; next: RD-15 `make_plan`)
+> **Last Updated**: 2026-07-03 (RD-15 requirements preflight ✅ PASSED — 10 findings resolved; PF-001 reordered RD-11b ahead of RD-15; next: RD-11b `preflight → make_plan`)
 
 
 ---
@@ -27,8 +27,16 @@
   defaults←file←overrides merge (R23–R25), and PF-020 local `hasErrors` tracking. AC-01..AC-14
   all ticked with ST evidence; AC-13 data-only audit PASS; 96 config tests + full workspace
   verify green. One runtime register entry: AR-P10 (BOM strip, provisional — flagged for review).
-- **Next up**: **RD-15** (programmatic + CLI API) — dependencies RD-01 (✅), RD-09 (✅),
-  RD-16 (✅) all met. Workflow position: **preflight → make_plan** (no plan directory yet).
+- **Preflighted**: **RD-15** (programmatic + CLI API) requirements preflight ✅ PASSED
+  2026-07-03 — 10 findings (1 major, 7 minor, 2 observations), all recommendations accepted
+  and fixes applied (see `requirements/00-preflight-report.md`). PF-001 exposed that RD-15
+  consumes six RD-11-remainder deliverables (severity policy, renderers, `SourceMap`,
+  `ResourceReport`) that don't exist yet → **RD-11b reordered ahead of RD-15**.
+- **Next up**: **RD-11b** (diagnostics remainder & resource reporter) — dependencies
+  RD-11a (✅), RD-09 (✅) all met; its aggregator inputs (`AllocationPlan`, ACME label
+  file, profile budgets) are all shipped. Workflow position: **preflight → make_plan**
+  (no plan directory yet). RD-15 follows at **make_plan** (requirements already
+  preflighted).
 
 
 
@@ -89,19 +97,22 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-15 | Programmatic + CLI API | RD-01 (+ RD-09, RD-16) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 2 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 3 | RD-11b | Resource reporter (RD-11 remainder) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 1 | RD-11b | Diagnostics remainder & resource reporter (severity policy, renderers, `SourceMap`, `ResourceReport`) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 2 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
+| 3 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 5 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
 
-> **Why RD-15 leads now:** RD-16 is ✅ done — `loadConfig()` reads/validates `blend65.json`
-> and every pipeline stage through ACME emission exists. RD-15 (programmatic + CLI API) is
-> the last piece that turns the pipeline into a runnable `blendc` build (consuming RD-16's
-> config + RD-09's process layer), and RD-12 then proves the gate program in VICE (including
-> RD-17's deferred AC-14 emulator tier — AR-P4). RD-08's full 11-rule optimization catalog
-> remains Phase-B work.
+> **Why RD-11b leads now (RD-15 preflight PF-001, 2026-07-03):** RD-15's own text consumes
+> six RD-11-remainder deliverables that don't exist yet — `SeverityPolicy`, `renderTerminal`,
+> `renderJson`, `renderReportTerminal`, `ResourceReport`, and the `SourceMap` registry
+> (`core/src/diagnostics/source-span.ts:16` defers it to RD-11b) — and AR-83/AR-84 pin the
+> default build summary to the MVP gate, so RD-15 cannot ship without them. RD-11b is
+> unblocked today (RD-11a ✅, RD-09 ✅). RD-15 then wires finished pieces into a runnable
+> `blendc` (consuming RD-16's config + RD-09's process layer), and RD-12 proves the gate
+> program in VICE (including RD-17's deferred AC-14 emulator tier — AR-P4). RD-08's full
+> 11-rule optimization catalog remains Phase-B work.
 >
 > **MVP gate (AR-43/44):** the Phase-A chain (through RD-12) exists to compile the gate
 > program — `poke` a constant on c64 → `.prg` → VICE asserts the result — and prove a
@@ -117,9 +128,9 @@ RD-07c (finish codegen; consumes RD-10 plugins)
    └── RD-08 (peephole passthrough v1 — completes the Instr pipeline)
          └── RD-09 (Instr stream → ACME .asm → binary)
                └── RD-17 (intrinsics/runtime ABI — the gate `poke` lives here)
-                     └── RD-16 + RD-15 (config + CLI/programmatic API to drive the pipeline)
-                           └── RD-12 (emulator verification — proves the gate program runs)
-                                 └── RD-11b (resource reporter / build summary)
+                     └── RD-16 (config) → RD-11b (severity policy, renderers, resource reporter)
+                           └── RD-15 (CLI/programmatic API to drive the pipeline)
+                                 └── RD-12 (emulator verification — proves the gate program runs)
                                        └── RD-13 (non-functional sweep)
 Phase B: RD-08 rule catalog (real peephole rules), RD-14 (LSP), additional platforms.
 ```

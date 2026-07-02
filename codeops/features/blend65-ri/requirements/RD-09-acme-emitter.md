@@ -405,6 +405,10 @@ function parseLabelFile(content: string): Map<string, number> {
 
 ### 4.7 Build Result
 
+> **Naming note (RD-15 preflight PF-002):** this aggregate is `emitBinary`'s *internal*
+> result. When RD-15 lands, it is renamed `EmitBinaryResult` (and `symbols` maps to the
+> public `symbolMap`) so that RD-15's public API owns the `BuildResult` name.
+
 ```typescript
 interface BuildResult {
   /** Whether the build succeeded */

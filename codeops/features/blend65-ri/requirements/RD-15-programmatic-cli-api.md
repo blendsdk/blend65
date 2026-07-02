@@ -2,12 +2,13 @@
 
 > **Status**: 🟢 Authored
 > **MVP Phase**: A
-> **Depends On**: RD-01
+> **Depends On**: RD-01, RD-09, RD-10, RD-11, RD-16 (RD-11's remainder — severity policy,
+>   renderers, `SourceMap`, `ResourceReport` — must land before this RD; preflight PF-001)
 > **Implements**: `spec-v3.0` Ch 14 §4 (diagnostic flags); AR-3, AR-15, AR-16, AR-17,
 >   AR-39, AR-40, AR-62, AR-75, AR-76, AR-77, AR-82, AR-83
 > **Owning package(s)**: `@blend65/compiler` (programmatic API), `@blend65/cli` (CLI)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-07-02 (RD-16 preflight cross-doc fixes: PF-003 `--config`/`--startup` flag rows R45/R46; PF-004 `CompilerOptions` covers all overridable config properties; PF-010 deterministic `outName` derivation)
+> **Last Updated**: 2026-07-03 (RD-15 preflight fixes applied: PF-001 deps header + RD-11b ordering, PF-002 `BuildResult` ownership, PF-003 `Design` marks sanctioned, PF-004 R47 glob expansion, PF-005 R50 exit-code classification, PF-006 R48/R49 + E10250 band claim, PF-007 R51 resolved config in results, PF-008 AC-20, PF-009 §4.3 sketch refresh, PF-010 AC-18 compile-path scope)
 
 ---
 
@@ -45,8 +46,11 @@ argument parsing (yargs, AR-16) and terminal rendering (conditional chalk, AR-17
 - Test harness CLI → RD-12
 
 > **Traceability rule:** Every decision below must cite the Ambiguity Register entry
-> (`AR-NN`, in `00-ambiguity-register.md`) that resolved it, or the frozen spec section
-> it implements. No decision may be invented here — discovery is closed.
+> (`AR-NN`, in `00-ambiguity-register.md`) that resolved it, the frozen spec section
+> it implements, or be explicitly marked **`Design`** — an uncontroversial default
+> settled during authoring (e.g., `outDir: "./build/"`) that raises no genuine ambiguity
+> and therefore needs no register entry (preflight PF-003, mirroring RD-16's PF-006 fix).
+> No *ambiguous* decision may be invented here — discovery is closed.
 
 ---
 
@@ -59,19 +63,20 @@ argument parsing (yargs, AR-16) and terminal rendering (conditional chalk, AR-17
 | R1 | Library-first: the compiler is a callable library | `@blend65/compiler` exports a programmatic API that returns structured results (`CompileResult` / `BuildResult`). No side effects (no printing, no process.exit). The CLI is one consumer | AR-77 |
 | R2 | `@blend65/compiler` is a thin facade | It wires `@blend65/frontend`, `@blend65/codegen`, `@blend65/platforms`, and `@blend65/config` into a pipeline. It owns no compiler logic itself | AR-20 |
 | R3 | `@blend65/cli` depends on `@blend65/compiler` | The CLI imports the compiler facade and calls its API. It adds argument parsing, rendering, and process lifecycle | AR-20 |
-| R4 | `@blend65/cli` is the only package that prints to stdout/stderr | All terminal output (diagnostics, build summary, errors) originates in `@blend65/cli`. No other package uses `console.log`/`process.stdout` | AR-77 |
+| R4 | `@blend65/cli` is the only package in the `blendc` compile path that prints to stdout/stderr | All terminal output (diagnostics, build summary, errors) originates in `@blend65/cli`. No compile-path package (`core`, `frontend`, `codegen`, `platforms`, `config`, `compiler`) uses `console.log`/`process.stdout`. (`@blend65/test-harness`'s RD-12 runner has its own output surface — preflight PF-010) | AR-77 |
 
 ### 3.2 Programmatic API
 
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
 | R5 | `compile()` runs the frontend only | `compile(options)` → `CompileResult`: runs lex → parse → semantic → SFA. Returns diagnostics + `SemanticModel` + `AllocationPlan`. Does NOT invoke codegen or ACME. This is the API the LSP will use | AR-77, AR-78 |
-| R6 | `build()` runs the full pipeline | `build(options)` → `BuildResult`: runs the full pipeline (compile + IL + codegen + peephole + ACME emit + ACME invoke). Returns diagnostics + artifacts (`.asm`, `.prg`, symbol map, resource report) | AR-77 |
+| R6 | `build()` runs the full pipeline | `build(options)` → `BuildResult`: runs the full pipeline (compile + IL + codegen + peephole + ACME emit + ACME invoke). The emit/invoke stages wrap RD-09's `emitBinary` orchestration; its internal result type is renamed `EmitBinaryResult` so RD-15's `BuildResult` owns the public name, and its `symbols` field maps to `symbolMap` (preflight PF-002). Returns diagnostics + artifacts (`.asm`, `.prg`, symbol map, resource report) | AR-77 |
 | R7 | `emitAsm()` runs everything except ACME | `emitAsm(options)` → `EmitResult`: runs compile + IL + codegen + peephole + ACME serialization. Returns the `.asm` text without invoking ACME. For `--emit-asm` use cases and golden tests | AR-60, AR-63 |
 | R8 | `emitIl()` runs through IL lowering | `emitIl(options)` → `EmitResult`: runs compile + IL lowering. Returns the IL text for `--emit-il` use cases and golden tests | AR-51 |
 | R9 | Options are passed as a structured object | `CompilerOptions { platform, sourceFiles?, configPath?, include?, exclude?, outDir?, outName?, acmePath?, maxErrors?, warnAsError?, suppressWarnings?, diagnosticsFormat?, optimize?, quiet?, startup? }` — covers every overridable `BlendConfig` property (RD-16 R24). No string parsing in the library | AR-77 |
 | R10 | `CompilerHost` is injectable | All API functions accept an optional `CompilerHost` parameter. If omitted, a default disk-based host is used. The LSP injects its buffer-overlay host (AR-40) | AR-40 |
 | R11 | Results never throw | All API functions return a result object, never throw. Errors are in the `diagnostics` array. The caller checks `result.hasErrors` | AR-15, AR-77 |
+| R51 | Results expose the resolved config | Every result carries `config: BlendConfig` — the merged `defaults ← blend65.json ← overrides` outcome computed inside the facade (RD-16 R24/R25). Consumers (CLI, LSP) read effective settings (`quiet`, `diagnosticsFormat`, `outDir`, …) from it instead of re-loading or re-merging. Added by preflight PF-007 | RD-16 R24/R25 + Design |
 
 ### 3.3 CompilerHost — Disk Implementation
 
@@ -80,6 +85,9 @@ argument parsing (yargs, AR-16) and terminal rendering (conditional chalk, AR-17
 | R12 | CLI `CompilerHost` reads from disk | `DiskCompilerHost` reads source files via `node:fs` and resolves paths via `node:path`. It is the default host when no custom host is provided | AR-40 |
 | R13 | File discovery follows the three-tier strategy | (1) Explicit CLI file list overrides; (2) `blend65.json` `include` globs; (3) default `**/*.blend` from project root | AR-39 |
 | R14 | `CompilerHost` interface is minimal | `listSourceFiles(): string[]`, `readFile(path: string): string | undefined`, `resolvePath(path: string): string`. No more, no less | AR-40 |
+| R47 | `DiskCompilerHost.listSourceFiles()` owns glob expansion | Expansion order: `include` globs → minus `exclude` globs → root-scope filter (every result must resolve within `projectRoot`, RD-13 R37; `@blend65/config` validates only the *patterns*, RD-16 R29). Mechanism: a small audited glob dependency (e.g. `tinyglobby`) is preferred over hand-rolling; the exact package is finalized at the plan's dependency checkpoint (RD-16 AR-P1 precedent). Added by preflight PF-004 | AR-39 + RD-13 R37 + Design |
+| R48 | Explicit source file not found is a configuration error | An explicitly listed file (CLI `[files...]` or `sourceFiles`) that does not exist emits an error diagnostic and exits with code 2 (R43 class — the invocation is wrong, not the source). Added by preflight PF-006 | Design |
+| R49 | Empty discovered file set is a configuration error | If discovery (all three tiers) yields zero `.blend` files, emit an error and exit 2 — never a silent no-op (this also guarantees R21's `outName` derivation always sees a non-empty list). RD-15 claims the diagnostic band `E10250+` for these driver errors; exact codes finalized at plan time (RD-16 AR-P3 precedent). Added by preflight PF-006 | Design |
 
 ### 3.4 CLI — Command & Flags
 
@@ -152,6 +160,7 @@ argument parsing (yargs, AR-16) and terminal rendering (conditional chalk, AR-17
 | R42 | Exit code 1 on compilation errors | One or more errors were found. Diagnostics printed to stderr | Design |
 | R43 | Exit code 2 on configuration errors | Invalid `blend65.json`, missing platform, or invalid flags | Design |
 | R44 | Exit code 3 on ACME errors (ICE) | ACME invocation failed. This is an internal compiler error (AR-68). The `.asm` file is retained | AR-68 |
+| R50 | Exit-code classification rule | Exit 2 iff `loadConfig().hasErrors` is true (config band E10240+, incl. missing platform) or yargs rejects the invocation (a custom `.fail()` handler is required — yargs' default exit-1 behavior is overridden). Config errors short-circuit before compilation (RD-16 R22), so mixed config+compile error runs cannot occur. Otherwise: any error diagnostics → 1; ACME ICE → 3 (R44); else 0. Added by preflight PF-005 | RD-16 R22 + Design |
 
 ---
 
@@ -213,6 +222,9 @@ export interface CompileResult {
   /** All diagnostics (errors + warnings) */
   diagnostics: Diagnostic[];
 
+  /** Resolved configuration: defaults ← blend65.json ← overrides (RD-16 R24/R25; R51) */
+  config: BlendConfig;
+
   /** Source map for span resolution */
   sourceMap: SourceMap;
 
@@ -223,7 +235,12 @@ export interface CompileResult {
   allocationPlan?: AllocationPlan;
 }
 
-/** Result of build() — full pipeline */
+/**
+ * Result of build() — full pipeline. Owns the public `BuildResult` name: the
+ * RD-09 internal aggregate in `acme/emit-binary.ts` is renamed `EmitBinaryResult`,
+ * and `build()` wraps it (`symbols` → `symbolMap`; `binary` is read back from
+ * disk after a successful ACME run) — preflight PF-002.
+ */
 export interface BuildResult extends CompileResult {
   /** Generated ACME assembly source text */
   asmText?: string;
@@ -317,19 +334,24 @@ const argv = yargs(hideBin(process.argv))
     y.positional('files', { type: 'string', array: true })
   )
   .option('platform', { type: 'string', describe: 'Target platform' })
+  .option('config', { type: 'string', describe: 'Path to blend65.json (R45)' })
+  .option('startup', { choices: ['auto', 'terminating', 'minimal', 'bare'], default: 'auto' })
   .option('out-dir', { type: 'string', default: './build/' })
   .option('out-name', { type: 'string' })
   .option('emit-asm', { type: 'boolean', describe: 'Emit ACME assembly' })
   .option('emit-il', { type: 'boolean', describe: 'Emit IL text' })
   .option('emit-report', { type: 'boolean', describe: 'Write report JSON' })
   .option('max-errors', { type: 'number', default: 20 })
-  .option('warn-as-error', { type: 'string', describe: 'Promote warnings' })
+  // Bare `--warn-as-error` parses as `""` — coerced to `true` (R26); repeated
+  // `--warn-as-error=Wxxxxx` accumulate via array (R27). (PF-009)
+  .option('warn-as-error', { type: 'string', array: true, describe: 'Promote warnings' })
   .option('suppress-warning', { type: 'string', array: true })
   .option('diagnostics-format', { choices: ['terminal', 'json'], default: 'terminal' })
   .option('acme-path', { type: 'string', describe: 'Path to ACME' })
   .option('optimize', { type: 'boolean', default: true })
   .option('quiet', { alias: 'q', type: 'boolean' })
-  .option('no-color', { type: 'boolean' })
+  // yargs boolean-negation idiom: `--no-color` sets `color: false` (R35, PF-009)
+  .option('color', { type: 'boolean', default: true })
   .option('report', { choices: ['json'], describe: 'Report format' })
   .help()
   .version()
@@ -387,7 +409,7 @@ Chalk's built-in `NO_COLOR` support handles most of this automatically. The
 | RD-01 | **Package structure**: `@blend65/compiler` and `@blend65/cli` are two of the 10 packages |
 | RD-02..RD-09 | **Wired by**: `@blend65/compiler` wires the full pipeline from these RDs |
 | RD-10 | **Consumer**: the compiler facade loads the platform plugin based on `--platform` |
-| RD-11 | **Consumer**: diagnostics come from `DiagnosticBag`; renderers (`renderTerminal`, `renderJson`, `renderReportTerminal`) are called by the CLI |
+| RD-11 | **Consumer**: diagnostics come from `DiagnosticBag`; renderers (`renderTerminal`, `renderJson`, `renderReportTerminal`) are called by the CLI. **Hard prerequisite**: the RD-11 remainder (severity policy, renderers, `SourceMap`, `ResourceReport`) must be implemented before RD-15 — RD-11b is reordered ahead of it (preflight PF-001) |
 | RD-13 | **Constrained by**: exit codes, conditional color, `--help`/`--version`, determinism |
 | RD-14 | **Boundary**: the LSP calls `compile()` (not `build()`), injecting its own `CompilerHost`. The CLI and LSP are two consumers of the same API |
 | RD-16 | **Consumer**: `blend65.json` is loaded by `@blend65/config` and merged with CLI flags |
@@ -414,8 +436,9 @@ Chalk's built-in `NO_COLOR` support handles most of this automatically. The
 - [ ] AC-15: Color output respects `NO_COLOR`, `--no-color`, and TTY detection
 - [ ] AC-16: Exit codes: 0 success, 1 errors, 2 config errors, 3 ACME ICE
 - [ ] AC-17: Diagnostics print to stderr; build summary and JSON report to stdout
-- [ ] AC-18: No package other than `@blend65/cli` prints to stdout/stderr
-- [ ] AC-19: All decisions trace to an `AR-NN` or a frozen spec section
+- [ ] AC-18: No compile-path package (`core`, `frontend`, `codegen`, `platforms`, `config`, `compiler`) prints to stdout/stderr — all terminal output originates in `@blend65/cli`
+- [ ] AC-19: All decisions trace to an `AR-NN`, a frozen spec section, or an explicit `Design` mark (per the §2 traceability rule)
+- [ ] AC-20: `--config`, `--startup`, `--acme-path`, and `--optimize`/`--no-optimize` override their config/default counterparts correctly
 
 ---
 
