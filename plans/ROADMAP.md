@@ -9,7 +9,7 @@
 > It is governed by the mandatory rule `.clinerules/roadmap.md` — read it at the start of
 > every task and update it whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-06-10 15:39
+> **Last Updated**: 2026-07-02 14:17
 
 
 ---
@@ -68,11 +68,11 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 | RD-06 | IL & IL optimizer (walking-skeleton slice) | `plans/_archive/rd-06-il-optimizer/` | ✅ COMPLETE |
 | RD-07a | Structured `Instr` model | `plans/_archive/rd-07a-instr-model/` | ✅ COMPLETE |
 | RD-07b | IL→Instr live-op-set slice | `plans/_archive/rd-07b-il-to-instr/` | ✅ COMPLETE |
-| RD-07c | Codegen platform preamble (Half A) | `plans/_archive/rd-07c-codegen-platform-preamble/` | ✅ COMPLETE (uncommitted) |
-| RD-10 | Platform plugin system (slice) | `plans/_archive/rd-10-platform-plugin-system/` | ✅ COMPLETE (uncommitted) |
+| RD-07c | Codegen platform preamble (Half A) | `plans/_archive/rd-07c-codegen-platform-preamble/` | ✅ COMPLETE |
+| RD-10 | Platform plugin system (slice) | `plans/_archive/rd-10-platform-plugin-system/` | ✅ COMPLETE |
 | RD-11a | Diagnostics core | `plans/_archive/rd-11a-diagnostics-core/` | ✅ COMPLETE |
-| RD-08 | Peephole optimizer (passthrough v1, AR-38) | `plans/rd-08-peephole-optimizer/` | ✅ COMPLETE (uncommitted) |
-| RD-09 | ACME emitter & assembler integration | `plans/rd-09-acme-emitter/` | ✅ COMPLETE (Phase 1 committed; Phases 2-6 uncommitted) |
+| RD-08 | Peephole optimizer (passthrough v1, AR-38) | `plans/rd-08-peephole-optimizer/` | ✅ COMPLETE |
+| RD-09 | ACME emitter & assembler integration | `plans/rd-09-acme-emitter/` | ✅ COMPLETE |
 
 ---
 
