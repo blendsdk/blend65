@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-03 19:22
-> **Progress**: 17/44 tasks (39%)
+> **Last Updated**: 2026-07-03 19:38
+> **Progress**: 29/44 tasks (66%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -127,8 +127,8 @@ CI (AR-27) and must be **run green locally on VICE 3.10** before the covered ACs
 | 2.3.2 | Full verify (CI tiers) + local VICE run of the integration suites green                            | —                                      |
 
 **Deliverables**:
-- [ ] Strategies (timeout-guarded), assertions, registry, fixture complete; ST-14..ST-23/28 green
-- [ ] All verification passing (CI) + local VICE green
+- [x] Strategies (timeout-guarded), assertions, registry, fixture complete; ST-14..ST-23/28 green
+- [x] All verification passing (CI) + local VICE green
 
 **Verify**: full workspace verify + local `@blend65/test-harness` run with VICE.
 
@@ -204,18 +204,23 @@ CI (AR-27) and must be **run green locally on VICE 3.10** before the covered ACs
 - [x] 1.3.3 Full verify + local VICE driver suite green — 2026-07-03 19:22
 
 ### Phase 2: Run Strategies, Assertions, Registry & Fixture
-- [ ] 2.1.1 Strategy spec tests (timeout guard CI + integration skipIf-VICE)
-- [ ] 2.1.2 Assertion spec tests (ST-16/17/18)
-- [ ] 2.1.3 Registry spec test (ST-19)
-- [ ] 2.1.4 Fixture spec tests (ST-23/28)
-- [ ] 2.1.5 Run — verify FAIL (red)
-- [ ] 2.2.1 Implement strategies + mandatory timeout guard
-- [ ] 2.2.2 Implement assertions (numeric + symbolic)
-- [ ] 2.2.3 Implement R7a registry
-- [ ] 2.2.4 Implement `setupEmulator` + `hasVice`
-- [ ] 2.2.5 Run — verify PASS (green; integration green locally)
-- [ ] 2.3.1 Strategy/assertion impl tests
-- [ ] 2.3.2 Full verify + local VICE integration green
+- [x] 2.1.1 Strategy spec tests (timeout guard CI + integration skipIf-VICE) — 2026-07-03 19:28
+- [x] 2.1.2 Assertion spec tests (ST-16/17/18) — 2026-07-03 19:28
+- [x] 2.1.3 Registry spec test (ST-19) — 2026-07-03 19:29
+- [x] 2.1.4 Fixture spec tests (ST-23/28) — 2026-07-03 19:29
+- [x] 2.1.5 Run — verify FAIL (red) — 2026-07-03 19:30
+- [x] 2.2.1 Implement strategies + mandatory timeout guard — 2026-07-03 19:31
+- [x] 2.2.2 Implement assertions (numeric + symbolic) — 2026-07-03 19:31
+- [x] 2.2.3 Implement R7a registry — 2026-07-03 19:32
+- [x] 2.2.4 Implement `setupEmulator` + `hasVice`/`hasAcme` — 2026-07-03 19:33
+- [x] 2.2.5 Run — verify PASS (green; integration green locally on VICE) — 2026-07-03 19:36
+- [x] 2.3.1 Strategy/assertion impl tests — 2026-07-03 19:37
+- [x] 2.3.2 Full verify + local VICE integration green — 2026-07-03 19:38
+
+> **Runtime findings this phase:** AR-H18 (added `advanceInstructions` as a 10th
+> `EmulatorDriver` method — the RD §4.1 sketch had no step primitive; user-selected)
+> and AR-H19 (`$D020` reads back `0xF5`, not `0x05` — VIC-II unused upper nibble; the
+> plan's AR-H9 literal value corrected to real hardware per PF-004).
 
 ### Phase 3: Golden, Package & Runtime Verification
 - [ ] 3.1.1 `assertGolden` spec tests (ST-24/25/26)

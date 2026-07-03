@@ -17,6 +17,7 @@ import net from "node:net";
 import type { BreakReason, EmulatorDriver, LaunchOptions, Registers } from "../driver.js";
 import { encodePng } from "./png.js";
 import {
+  advanceInstructionsBody,
   CMD,
   decodeResponses,
   displayGetBody,
@@ -204,6 +205,10 @@ export class ViceDriver implements EmulatorDriver {
     this.socket?.destroy();
     this.socket = undefined;
     this.child = undefined;
+  }
+
+  async advanceInstructions(count: number): Promise<void> {
+    await this.send(CMD.ADVANCE_INSTRUCTIONS, advanceInstructionsBody(count));
   }
 
   /** Run the EXECUTE_UNTIL_RETURN command (used by the RD-17 routine vectors). */

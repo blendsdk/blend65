@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔄 Executing (2026-07-03 — Phase 1 COMPLETE 17/44: DEF-2 fix + `EmulatorDriver`/`ViceDriver`/pure VICE codec/zero-dep PNG; codec CI-green, driver green on real VICE 3.10. Next: Phase 2 strategies/fixture) | 17/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔄 Executing (2026-07-03 — Phase 2 COMPLETE 29/44: DEF-2 fix + driver/codec/PNG (P1) + the 3 timeout-guarded strategies, register/memory assertions, R7a registry & `setupEmulator` fixture (P2); ST-03..23/28 green on real VICE 3.10. Runtime: +`advanceInstructions` (AR-H18), `$D020` reads `0xF5` (AR-H19). Next: Phase 3 golden/barrel/gate/RD-17 vectors) | 17/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 

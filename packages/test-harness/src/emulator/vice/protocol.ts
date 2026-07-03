@@ -198,6 +198,16 @@ export function registersSetBody(items: Array<{ id: number; value: number }>): U
   return new Uint8Array(b);
 }
 
+/**
+ * `ADVANCE_INSTRUCTIONS` body: step-over-subroutines(1 bool), count(2 LE). Advances
+ * the CPU by `count` instructions, then re-stops (validated live against VICE 3.10).
+ */
+export function advanceInstructionsBody(count: number, stepOverSubroutines = false): Uint8Array {
+  const b: number[] = [stepOverSubroutines ? 0x01 : 0x00];
+  putU16(b, count);
+  return new Uint8Array(b);
+}
+
 /** `EXECUTE_UNTIL_RETURN` body: empty. */
 export function executeUntilReturnBody(): Uint8Array {
   return new Uint8Array(0);

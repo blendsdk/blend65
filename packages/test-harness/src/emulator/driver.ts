@@ -26,6 +26,12 @@ export interface EmulatorDriver {
   setBreakpoint(address: number): Promise<void>;
   /** Resume execution, resolving with why the machine next stopped. */
   resume(): Promise<BreakReason>;
+  /**
+   * Advance the CPU by `count` instructions, then re-stop. The incremental-step
+   * primitive `runUntilMemory`/`runFrames` poll between (runtime AR-H18 — the RD
+   * §4.1 sketch omitted it, but `resume()` alone cannot poll a running machine).
+   */
+  advanceInstructions(count: number): Promise<void>;
   /** Read the current CPU registers. */
   readRegisters(): Promise<Registers>;
   /** Read `length` bytes of memory starting at `start`. */
