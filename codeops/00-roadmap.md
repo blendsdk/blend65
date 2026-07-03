@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 executing 🔄 (2026-07-03, Phase 1/4 complete — host abstraction, driver codes, PF-002 rename; 11/50 tasks) | 16/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 executing 🔄 (2026-07-03, Phases 1–2/4 complete — host + driver codes + PF-002 rename, then the full compile/emit/build facade; 26/50 tasks) | 16/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 

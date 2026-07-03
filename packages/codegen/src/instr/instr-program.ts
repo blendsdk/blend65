@@ -111,12 +111,18 @@ export function generateInstr(
  * @param ilProgram The (optimized) IL program (RD-06) — carries its `AllocationPlan`.
  * @param plugin The active platform plugin (RD-10) — supplies the CPU variant + preamble.
  * @param bag Diagnostic sink (cost warnings + ICEs from translation).
+ * @param overrides RD-15 driver seam (PF-001): the effective `projectName`
+ *   (`--out-name` → the `!to` directive) and `shimVariant` (`--startup`), each
+ *   merged over {@link derivePreambleOptions} only when defined. Omitting it (or
+ *   leaving a field undefined) keeps the Half-A defaults, so the RD-08/RD-09
+ *   consumers of the 3-arg form are untouched (additive).
  * @returns A frozen {@link InstrProgram} with a populated `preamble`.
  */
 export function assembleProgram(
   ilProgram: ILProgram,
   plugin: PlatformPlugin,
   bag: DiagnosticBag,
+  overrides?: Partial<Pick<PreambleOptions, "projectName" | "shimVariant">>,
 ): InstrProgram {
   // Reuse the unchanged back end for the function streams + validation (D2).
   // RD-17 (PF-016): thread the profile's ZP arg-block size + platform id so
@@ -125,8 +131,13 @@ export function assembleProgram(
     zpArgBlockSize: plugin.profile.zpArgBlockSize,
     platformId: plugin.profile.platformId,
   });
-  // Derive the shim/data options (D3) and ask the plugin for the preamble (RD-10).
-  const options = derivePreambleOptions(ilProgram);
+  // Derive the shim/data options (D3), then apply the RD-15 driver overrides for
+  // any field the driver set (PF-001), and ask the plugin for the preamble (RD-10).
+  const options: PreambleOptions = {
+    ...derivePreambleOptions(ilProgram),
+    ...(overrides?.projectName !== undefined ? { projectName: overrides.projectName } : {}),
+    ...(overrides?.shimVariant !== undefined ? { shimVariant: overrides.shimVariant } : {}),
+  };
   const preamble = plugin.emitPreamble(options);
   return Object.freeze({
     preamble: Object.freeze([...preamble]),

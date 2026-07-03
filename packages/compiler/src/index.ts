@@ -31,6 +31,9 @@ export { parseLabelFile } from "./acme/label-file.js";
 
 // RD-15 disk-backed CompilerHost (R12/R47).
 export * from "./host/index.js";
+
+// RD-15 programmatic API (facade): compile/build/emitAsm/emitIl (R1–R11, R51).
+export * from "./api/index.js";
 export {
   emitBinary,
   defaultEmitDeps,

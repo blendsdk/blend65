@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-03
-> **Progress**: 11/50 tasks (22%) — Phase 1 COMPLETE
+> **Progress**: 26/50 tasks (52%) — Phases 1 & 2 COMPLETE; Phase 3 next
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -198,21 +198,21 @@ acceptance bookkeeping. Specification-first ordering inside every phase.
 - [x] 1.3.2 Full verify ✅ (completed: 2026-07-03) — frozen install + build(10/10) + typecheck(17/17) + lint(0 errors; 3 pre-existing core warnings) green. Full test tier: one KNOWN-FLAKY frontend perf test (`elapsedMs < 50`, timing-dependent under parallel load) failed then passed 255/255 in isolation; not RD-15-related (frontend untouched).
 
 ### Phase 2: Programmatic API
-- [ ] 2.1.1 Shared fixtures
-- [ ] 2.1.2 Spec tests ST-5/6, ST-8..ST-21
-- [ ] 2.1.3 Red run recorded
-- [ ] 2.2.1 options.ts
-- [ ] 2.2.2 results.ts
-- [ ] 2.2.3 run-frontend.ts
-- [ ] 2.2.4 compile.ts
-- [ ] 2.2.5 Partial green (ST-5/6, ST-8..ST-14)
-- [ ] 2.3.1 emit.ts
-- [ ] 2.3.2 build.ts (+ BuildDeps, checkBinaryBudget, read-back)
-- [ ] 2.3.3 Barrels
-- [ ] 2.3.4 Green run (all Phase-2 STs)
-- [ ] 2.4.1 options impl tests
-- [ ] 2.4.2 build impl tests
-- [ ] 2.4.3 Full verify
+- [x] 2.1.1 Shared fixtures ✅ (completed: 2026-07-03) — api/test-fixtures.ts: GATE_SRC (verbatim), memHost, fakeBuildDeps (in-mem fs + scripted ACME; failureCode seam for ST-43)
+- [x] 2.1.2 Spec tests ST-5/6, ST-8..ST-21 ✅ (completed: 2026-07-03) — discovery.spec (ST-5/6), compile.spec (ST-8..14), emit.spec (ST-15/16/41/42), build.spec (ST-17..21)
+- [x] 2.1.3 Red run recorded ✅ (completed: 2026-07-03) — 4 api spec files fail: `./compile.js`/`./emit.js`/`./build.js` unresolved (modules not yet created)
+- [x] 2.2.1 options.ts ✅ (completed: 2026-07-03) — CompilerOptions (incl. cwd) + optionsToOverrides
+- [x] 2.2.2 results.ts ✅ (completed: 2026-07-03) — CompileResult/EmitResult/BuildResult (config carries effective outName)
+- [x] 2.2.3 run-frontend.ts ✅ (completed: 2026-07-03) — normative sequence; outName derived once; two-bag; three-tier discovery. **Deviation:** `planAllocation` receives interim `DEFAULT_PROFILE` (type-forced; plan doc said `plugin.profile` — the SFA/semantics `PlatformProfile` type differs from the canonical RD-10 profile; functionally equivalent for the empty-adapter gate slice; canonical `maxBinarySize` reaches the budget check via build.ts).
+- [x] 2.2.4 compile.ts ✅ (completed: 2026-07-03) — compile() + shared finalizeRun/assembleCompileResult (policy once, config-first merge)
+- [x] 2.2.5 Partial green (ST-5/6, ST-8..ST-14) ✅ (completed: 2026-07-03) — subsumed by 2.3.4 full green
+- [x] 2.3.1 emit.ts ✅ (completed: 2026-07-03) — emitIl/emitAsm + toShimVariant; codegen PF-001 seam added to assembleProgram (additive 4th param, defined-only merge)
+- [x] 2.3.2 build.ts (+ BuildDeps, checkBinaryBudget, read-back) ✅ (completed: 2026-07-03) — full pipeline; binarySize threaded; canonical E10034; binary read-back; defaultBuildDeps
+- [x] 2.3.3 Barrels ✅ (completed: 2026-07-03) — api/index.ts + package barrel (facade only; internals private)
+- [x] 2.3.4 Green run (all Phase-2 STs) ✅ (completed: 2026-07-03) — 18/18 api spec tests green (ST-5/6, ST-8..21, ST-41/42)
+- [x] 2.4.1 options impl tests ✅ (completed: 2026-07-03) — options.impl.test.ts (3 tests): routing-keys-excluded, explicit-undefined, full mapping table
+- [x] 2.4.2 build impl tests ✅ (completed: 2026-07-03) — build.impl.test.ts (6 tests): outName edges, read-back on failure/over-budget, report absence pre-stage
+- [x] 2.4.3 Full verify ✅ (completed: 2026-07-03) — build 10/10, typecheck 17/17, lint 0 errors; full test tier green (frontend 255, compiler 79, codegen 329, root 3; no flake this run)
 
 ### Phase 3: CLI
 - [ ] 3.1.1 cli package.json (bin, yargs, core dep)
