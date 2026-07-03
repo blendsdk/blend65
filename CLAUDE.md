@@ -203,10 +203,12 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   `@blend65/config` ships `loadConfig()` (walk-up discovery, tolerant JSONC via
   `jsonc-parser` — the workspace's only external runtime dependency — schema/semantic
   validation over the E10240–E10246/W10240–41 band, defaults←file←overrides merge).
-  RD-15's requirements are preflighted (2026-07-03; its PF-001 reordered RD-11b ahead of it).
-  **Next up: RD-11b** (severity policy, diagnostic/report renderers, `SourceMap`,
-  `ResourceReport`), then RD-15 (CLI/programmatic driver), then RD-12 (emulator tier —
-  includes RD-17's deferred AC-14);
+  RD-11's and RD-15's requirements are both preflighted (2026-07-03; RD-15's PF-001
+  reordered RD-11b ahead of it; RD-11's preflight rebuilt `ResourceReport` on the shipped
+  `SfaResourceData` and pinned the Ch 11 §6 build-summary layout — runtime AR-102).
+  **Next up: RD-11b** at `make_plan` (severity policy, diagnostic/report renderers,
+  `SourceMap`, `ResourceReport`), then RD-15 (CLI/programmatic driver), then RD-12
+  (emulator tier — includes RD-17's deferred AC-14);
   see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
 - This repository keeps a living implementation tracker at

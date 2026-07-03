@@ -1,233 +1,309 @@
-# Preflight Report: RD-15 — Programmatic & CLI API
+# Preflight Report: RD-11 — Diagnostics Engine & Resource Reporting
 
-> **Status**: ✅ PASSED — all 10 findings resolved (0 critical, 1 major, 7 minor, 2 observations); user accepted all recommendations 2026-07-03; **fixes applied 2026-07-03** to RD-15 (PF-001 deps header, PF-002 R6/§4.1 `BuildResult` ownership, PF-003 §2+AC-19 `Design` marks, PF-004 R47, PF-005 R50, PF-006 R48/R49 + E10250 band, PF-007 R51 + `CompileResult.config`, PF-008 AC-20, PF-009 §4.3 sketch, PF-010 R4+AC-18 scope), RD-09 (§4.7 `EmitBinaryResult` rename note), the feature + portfolio roadmaps (PF-001 reorder: RD-11b → RD-15 → RD-12; RD-15 → 🔎 RD preflighted; MVP critical-path redrawn), `requirements/README.md` (RD-15 deps/counts + graph annotation), and CLAUDE.md (status paragraph)
+> **Status**: ✅ PREFLIGHT PASSED — all 14 findings resolved (0 critical, 3 major, 7 minor, 4 observations); user accepted all recommendations 2026-07-03; **fixes applied 2026-07-03** to RD-11 (PF-001 R46+AC-19, PF-002 §4.6/§4.8 rebuilt on `SfaResourceData`, PF-003 R43/§4.7/AC-18 → Ch 11 §6 layout, PF-004 header+R20, PF-005 §4.4 `createSeverityPolicy`+R31, PF-006 R14/R35, PF-007+PF-013 R33, PF-008 R1+§5, PF-009 R51, PF-010 R52, PF-011 R50, PF-012 §4.7, PF-014 R31), RD-15 §4.4 (illustration cascade), the ambiguity register (runtime AR-102), both roadmaps, and CLAUDE.md
 > **Iteration**: 1 (first scan)
-> **Artifact**: Requirement document at `codeops/features/blend65-ri/requirements/RD-15-programmatic-cli-api.md`
-> **Codebase Grounded**: ✅ ~18 source files examined across compiler/cli/core/config/codegen/frontend/platforms + 4 sibling RDs + the ambiguity register + both roadmaps; ~40 references verified
+> **Artifact**: Requirement document at `codeops/features/blend65-ri/requirements/RD-11-diagnostics-reporting.md`
+> **Codebase Grounded**: ✅ shipped RD-11a code read in full (`packages/core/src/diagnostics/*`), plus `core/src/sfa/allocation-plan.ts`, `core/src/platform/platform-profile.ts`, `frontend/src/sfa/*`, `frontend/src/lexer/lexer.ts`, `config/src/{types,defaults,validate,load-config}.ts`, `compiler/src/acme/emit-binary.ts`, `codegen` producer sweep; frozen `spec/14-diagnostics.md` + `spec/11-memory-model.md` §6 quoted verbatim; sibling RDs 05/08/15/16, the archived RD-11a plan, and the ambiguity register (AR-70..85, AR-92, AR-97..101) cross-checked
 > **Last Updated**: 2026-07-03
 >
 > Note: per convention this path holds the latest requirements-level audit. The previous
-> RD-16 audit (PF-001..PF-014, PASSED 2026-07-02) is preserved in git history. PF numbering
+> RD-15 audit (PF-001..PF-010, PASSED 2026-07-03) is preserved in git history. PF numbering
 > restarts per artifact.
 >
-> Same-agent note: RD-15 was authored 2026-05-31 in a prior session — this is NOT a
-> same-session review (the RD-16-preflight cross-doc fixes to RD-15 also landed in a prior
-> session). The single MAJOR finding was hardened with an independent challenger (blind to
-> the auditor's pick) per `_shared/recommendation-hardening.md`; the challenger converged on
-> the same resolution and contributed the AR-83/AR-84 grounding and the README/critical-path
-> knock-on edits.
-
-### Codebase Context Summary
-
-**Tech Stack:** TypeScript (ESM/NodeNext, strict), Yarn v1 workspaces + Turborepo, Vitest,
-Node 22. Workspace's only external runtime dep: `jsonc-parser@3.3.1` (config).
-**Architecture:** AOT compiler pipeline, 10 packages. `@blend65/cli` is a stub
-(`src/index.ts` = VERSION only; deps: compiler + config — matches R3). `@blend65/compiler`
-ships the RD-09 ACME process layer (`discoverAcme`, `invokeAcme`, `parseLabelFile`,
-`emitBinary`) plus RD-17 runtime embedding; it does NOT yet ship any facade
-(`compile`/`build`/`emitAsm`/`emitIl`). RD-16's `loadConfig()` is live in `@blend65/config`.
-
-**Key files examined:**
-- `packages/compiler/src/index.ts` — public barrel; exports RD-09 layer incl. `type BuildResult` (line 36).
-- `packages/compiler/src/acme/emit-binary.ts:34-62` — `EmitOptions` + the shipped `BuildResult { success, diagnostics, binaryPath?, asmPath?, symbols?, binarySize? }`; `invoke` seam is async.
-- `packages/compiler/src/acme/invoke-acme.ts:111` — `invokeAcme` is `async` → RD-15's `build(): Promise<BuildResult>` is feasible; `compile`/`emitAsm`/`emitIl` sync is feasible (serializer is pure).
-- `packages/core/src/diagnostics/` — diagnostic.ts, diagnostic-bag.ts (default cap 20 ✓ R25), diagnostic-codes.ts, line-map.ts, source-span.ts. **No renderers, no SeverityPolicy, no SourceMap, no ResourceReport anywhere in the workspace** (grep-verified).
-- `packages/core/src/diagnostics/source-span.ts:16` — "assigned by the (deferred, RD-11b) SourceMap registry".
-- `packages/cli/package.json` — no yargs/chalk yet (RD-15 adds them; AR-16/AR-17 sanction both).
-- `packages/config/src/types.ts:55-62` — `warnAsError: boolean | string[]`, `diagnosticsFormat: "terminal" | "json"`, `startup: "auto" | "terminating" | "minimal" | "bare"` — all match `CompilerOptions` (R9) exactly.
-- `packages/config/src/load-config.ts:72` — `loadConfig({...}) → { config, hasErrors }`; config-error band E10240–E10246 gives the CLI a classification hook for exit code 2.
-- Sibling RDs: RD-11 (renderer signatures §4.5, R50 suppression-wins, 11a/11b split), RD-16 (R4/R10/R18/R24/R25 — all consistent with RD-15 R45/R21/R46/R9), RD-13 (R14/R15/R17 color/help/determinism), RD-12 (harness CLI).
-- Ambiguity register: AR-3, 15, 16, 17, 39, 40, 51, 60, 62, 63, 68, 69, 73, 75, 76, 77, 78, 82, 83 — all read in full; **every RD-15 citation is faithful to its register entry**.
-- Roadmaps: feature pending order RD-15 → RD-12 → RD-11b → RD-13 → RD-14; MVP critical-path diagram.
-
-**Reference Verification:** ~40 references mapped — verified faithful: all 19 AR citations,
-RD-16 cross-refs (R45↔R4, R21↔R10, R46↔R18, R9↔R24), maxErrors default 20, exit-3 ICE
-semantics (emit-binary retains `.asm` ✓), `--optimize` passthrough (RD-08 v1). Unverifiable
-against code (they don't exist yet — see PF-001): `renderTerminal`, `renderJson`,
-`renderReportTerminal`, `SeverityPolicy`, `ResourceReport`, `SourceMap`.
-
-### Summary by Dimension
-
-| # | Dimension | Findings | Highest Severity |
-|---|-----------|----------|-----------------|
-| 1 | Ambiguities | contributes to PF-005, PF-006 | 🟡 |
-| 2 | Implicit Assumptions | 2 (PF-004, PF-007) | 🟡 |
-| 3 | Logical Contradictions | 1 (PF-003) | 🟡 |
-| 4 | Completeness Gaps | 3 (PF-006, PF-007, PF-008) | 🟡 |
-| 5 | Dependency Issues | 2 (PF-001, PF-004) | 🟠 |
-| 6 | Feasibility Concerns | contributes to PF-001, PF-002 | 🟠 |
-| 7 | Testability | 1 (PF-008) | 🟡 |
-| 8 | Security Blind Spots | 0 (acmePath trust covered by RD-16 R11/RD-13 R35; glob root-scoping folded into PF-004) | — |
-| 9 | Edge Cases | 2 (PF-005, PF-006) | 🟡 |
-| 10 | Scope Creep | 0 | — |
-| 11 | Ordering & Sequencing | 1 (PF-001) | 🟠 |
-| 12 | Consistency | 3 (PF-002, PF-003, PF-009) | 🟡 |
-| 13 | Codebase Alignment | 3 (PF-001, PF-002, PF-007) | 🟠 |
-
-### Summary by Severity
-
-| Severity | Count | Status |
-|----------|-------|--------|
-| CRITICAL | 0 | — |
-| MAJOR | 1 | ✅ resolved |
-| MINOR | 7 | ✅ all resolved |
-| OBSERVATION | 2 | ✅ all resolved |
+> Same-agent note: RD-11 was authored 2026-05-31 in a prior session — this is NOT a
+> same-session review. All three MAJOR findings were hardened with an independent
+> challenger (blind to the original reasoning, instructed to refute); all three were
+> CONFIRMED and the challenger's evidence corrections are folded into the write-ups below.
 
 ---
 
-### PF-001: RD-15 consumes six RD-11b deliverables that do not exist — and RD-11b is scheduled AFTER it 🟠 MAJOR
+## Context
 
-**Dimension:** Dependency Issues / Ordering & Sequencing / Codebase Alignment (Phantom References)
-**Location:** RD-15 header (`Depends On: RD-01`), R26 (`SeverityPolicy`), R29 + §4.3 (`renderTerminal`, `renderJson`), R24/R36/R38 + §4.1 (`ResourceReport`, `renderReportTerminal`), §4.1 (`CompileResult.sourceMap: SourceMap`)
-**Codebase Evidence:** grep across `packages/*/src` finds zero implementations of `renderTerminal`, `renderJson`, `renderReportTerminal`, `SeverityPolicy`, `ResourceReport`, or `SourceMap`. `packages/core/src/diagnostics/` holds only bag/codes/diagnostic/line-map/source-span; `source-span.ts:16` explicitly defers the SourceMap registry to RD-11b. Feature roadmap pending order: RD-15 (1) → RD-12 (2) → RD-11b (3).
-**The Problem:** RD-15's own text hard-requires six deliverables owned by the RD-11 remainder (RD-11b), which is ordered two slots after it. Executing RD-15 first stalls immediately: the CLI cannot render diagnostics (R29/AC-13), cannot apply severity policy (R26–R28/AC-12), cannot print the AR-83-mandated default build summary (R38/AC-14), and `CompileResult.sourceMap` is a phantom type. The `Depends On: RD-01` header is wrong even ignoring RD-11 — R2 wires frontend/codegen/platforms/config, and the roadmap itself parenthesizes "(+ RD-09, RD-16)".
+RD-11 is **split**: **RD-11a (diagnostics core) shipped and is archived**
+(`codeops/_archive/rd-11a-diagnostics-core/`, AR-Q1 split: R1–R15, R17–R22, AC-01..07/10/21).
+This preflight gates **RD-11b** (severity policy, 4 renderers, `SourceMap`, `ResourceReport`)
+before its `make_plan`. Dimension 13 therefore audits the RD against *both* the shipped
+11a code and the shipped upstream data sources (RD-05 SFA, RD-09 ACME, RD-10 profiles,
+RD-16 config) the 11b remainder consumes.
 
-**Options:**
+## Codebase Context Summary
 
-| Option | Description | Pros | Cons |
-|--------|-------------|------|------|
-| A | Reorder: RD-11b → RD-15 → RD-12; fix RD-15 `Depends On` to RD-01, RD-09, RD-10, RD-11, RD-16; redraw the roadmap MVP critical-path diagram; reconcile `requirements/README.md` dependency graph | RD-11b is unblocked TODAY (deps RD-11a ✅, RD-09 ✅; aggregator inputs — AllocationPlan, label file, profile budgets — all shipped); RD-15 then wires finished pieces; RD-12's golden CLI-output tests capture the final format once, no rework wave | MVP gate slips by one RD's worth of work (mitigated: RD-11 R47/R48 lets RD-11b's plan scope to the AR-84 MVP columns) |
-| B | Fold the needed RD-11 deliverables into RD-15's plan | Single plan, gate reached in one push | RD-11b is RD-sized (severity policy + 4 renderers + aggregator + SourceMap ≈ 10+ of RD-11's ACs); mega-plan wrecks per-RD workflow, AC bookkeeping, and traceability; stretches the RD-16 "pull tiny pre-work" precedent (a handful of code declarations) far past breaking |
-| C | Trim RD-15 (defer summary/report flags, ship minimal diagnostics printing), rework after RD-11b | Fastest to a raw blendc | Violates ratified AR-83 (summary prints by default) and effectively AR-75/76/82; AR-84 pins the reporter to the walking-skeleton gate; reopens closed discovery; RD-12 goldens would bake in throwaway output then break |
+- **Shipped and matching the RD**: `Diagnostic`/`DiagnosticOptions` (`diagnostic.ts`),
+  `DiagnosticBag` with dedup/(code,sourceId,start), deterministic sort, max-errors cap
+  (`diagnostic-bag.ts`), `SourceSpan`/`SourceId`/`LabeledSpan`/`makeSpan` (`source-span.ts`),
+  `LineMap` with byte + UTF-16 conversion (`line-map.ts`), the code registry
+  (`diagnostic-codes.ts`). §4.1–§4.3 interfaces match shipped code near-verbatim.
+- **Confirmed absent (RD-11b scope)**: `SourceMap`, `SeverityPolicy`/`applySeverityPolicy`,
+  `renderTerminal`, `renderJson`, `ResourceReport`, `renderReportTerminal`,
+  `renderReportJson` — zero hits in `packages/*/src` (grep-verified).
+- **R37 upheld today**: zero `console.`/`process.stdout|stderr` hits in core/frontend/
+  codegen/compiler/config `src/`.
+- **Producers already live**: lexer, parser, semantics, config (E10240–46/W10240–41),
+  IL lowering, instr translate/peephole (ICEs + W10170–72), SFA budgets
+  (E10032/E10033/W10030/W10033), `emit-binary.ts:128` (E10034). Budget-timing split (R42)
+  is already implemented by RD-05/RD-09.
+- **Flag spellings**: all RD-11 flag names match RD-15 §3.7/§3.9 and frozen Ch 14 §4 exactly.
+- **Aggregator inputs shipped**: `SfaResourceData` (`core/src/sfa/allocation-plan.ts:125`),
+  profile budgets `maxBinarySize`/`maxRam`/`maxZp`/`stackBudget`
+  (`core/src/platform/platform-profile.ts:78-84`), ACME label-file parsing (RD-09).
 
-**Recommendation:** Option A — this is a plain topological-sort error, not a judgment call. RD-11b is implementable standalone right now; RD-15 cannot pass its own ACs without it; AR-83/AR-84 make option C a non-starter without reopening discovery.
-**Confidence:** High. **Hardening:** independent challenger (blind) converged on Option A and independently rejected B/C/split-RD-11b on the same grounds; also contributed knock-on edits (README.md graph, critical-path diagram).
+## Summary by Dimension
 
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
+| # | Dimension | Findings |
+|---|-----------|----------|
+| 1 | Ambiguities | PF-007, PF-013 |
+| 2 | Implicit Assumptions | PF-005 |
+| 3 | Logical Contradictions | PF-001, PF-003, PF-006 |
+| 4 | Completeness Gaps | PF-002 (peak field), PF-009, PF-014 |
+| 5 | Dependency Issues | PF-004 (Depends On), PF-002 (layering) |
+| 6 | Feasibility Concerns | PF-007, PF-012 |
+| 7 | Testability | PF-001 (AC-19), PF-003 (AC-18) |
+| 8 | Security Blind Spots | PF-010 |
+| 9 | Edge Cases | PF-009, PF-011, PF-014 |
+| 10 | Scope Creep Indicators | — clean |
+| 11 | Ordering & Sequencing | — clean (RD-11b unblocked; deps all shipped) |
+| 12 | Consistency | PF-004, PF-008 |
+| 13 | Codebase Alignment | PF-002, PF-004, PF-005, PF-006, PF-008, PF-011 |
 
----
+## Summary by Severity
 
-### PF-002: `BuildResult` name collision — RD-15 §4.1 redefines a type `@blend65/compiler` already exports publicly 🟡 MINOR
-
-**Dimension:** Codebase Alignment (Stale Assumptions) / Consistency
-**Location:** RD-15 §4.1 `BuildResult extends CompileResult`; R6
-**Codebase Evidence:** `packages/compiler/src/acme/emit-binary.ts:47` exports `BuildResult { success, diagnostics, binaryPath?, asmPath?, symbols?, binarySize? }`, re-exported by the public barrel `packages/compiler/src/index.ts:36`. RD-15's `BuildResult` has a different shape (`asmText?`, `binary?`, `symbolMap?`, `resourceReport?`, extends `CompileResult`). One package cannot export both under one name. Field drift too: RD-09 `symbols` vs RD-15 `symbolMap`; RD-15 adds `binary: Uint8Array` which `emitBinary` never reads back from disk; RD-15 §4 never mentions `emitBinary` although R6's "ACME emit + ACME invoke" is exactly what it does.
-**The Problem:** The plan would hit an immediate public-API conflict, and the doc leaves the integration point (facade ↔ `emitBinary`) undefined, inviting a parallel reimplementation.
-
-**Options:**
-
-| Option | Description | Pros | Cons |
-|--------|-------------|------|------|
-| A | RD-15's `BuildResult` becomes THE public type; rename the RD-09 internal aggregate (e.g. `EmitBinaryResult`) and state in §4.1 that `build()` wraps `emitBinary`, mapping `symbols`→`symbolMap` (pick one name) and reading the binary back for `binary` | Public API matches the RD; internal rename is cheap (pre-1.0, consumers are in-repo tests) | Small mechanical rename + test touch-ups |
-| B | Reuse RD-09's `BuildResult` shape as-is and drop RD-15's extension | No rename | Loses `CompileResult` inheritance (diagnostics/hasErrors contract, R11) and `resourceReport`; worse public API |
-
-**Recommendation:** Option A — the RD-15 shape is the deliberate public contract (AR-77); the RD-09 type was an internal aggregate that landed first. Also settle `symbolMap` vs `symbols` (recommend `symbolMap`, matching the RD).
-**Confidence:** High. **Hardening:** in-context reframing only (MINOR).
-
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
-
----
-
-### PF-003: Traceability contract contradicts the document's own contents (9 `Design` rows vs "No decision may be invented here") 🟡 MINOR
-
-**Dimension:** Logical Contradictions / Consistency
-**Location:** RD-15 §2 traceability rule; §6 AC-19; rows R20, R21, R33, R39–R43, R45 ("AR-13 + Design")
-**Codebase Evidence:** RD-16 had the identical defect, found as its PF-006 and fixed by legitimizing explicit `Design` marks (RD-16 line 47: "…or be explicitly marked **`Design`** — an uncontroversial default"; RD-16 AC-14 amended to match). The fix was never propagated to RD-15.
-**The Problem:** As written, AC-19 ("All decisions trace to an AR-NN or a frozen spec section") fails against 9 of the document's own rows.
-
-**Recommendation (single viable path):** Apply the RD-16 PF-006 fix verbatim — amend §2's traceability rule and AC-19 to allow explicit `Design` marks for uncontroversial defaults. Considered and dropped: retro-fitting AR numbers onto the 9 rows (manufactures fake register history for trivialities like `--version`).
-**Confidence:** High.
-
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
-
----
-
-### PF-004: Glob expansion — mechanism, owner, and dependency are unspecified 🟡 MINOR
-
-**Dimension:** Implicit Assumptions / Dependency Issues (+ the root-scoping security angle)
-**Location:** R13 (three-tier discovery), R14 (`listSourceFiles()`), §3.3
-**Codebase Evidence:** No glob library exists anywhere in the workspace (`jsonc-parser` is the only external runtime dep — a deliberate, register-logged decision in RD-16's plan, AR-P1). RD-16's PF-009 resolution explicitly pushed glob *expansion* out of `@blend65/config` (it carries patterns only) — i.e., onto RD-15's `DiskCompilerHost` — but RD-15 never picks it up: no row says who expands `include`/`exclude`/`**/*.blend`, with what (external dep such as `tinyglobby`/`fast-glob`, Node 22's experimental `fs.globSync`, or a hand-rolled matcher), or how expansion enforces project-root scoping (RD-13 R37; RD-16 R29 validates *patterns* but symlink/traversal enforcement at expansion time is unowned).
-**The Problem:** The workspace treats new external runtime deps as register-worthy decisions; leaving this to the plan invites an undocumented dependency or an under-tested hand-rolled globber.
-
-**Options:**
-
-| Option | Description | Pros | Cons |
-|--------|-------------|------|------|
-| A | Add a requirement row: `DiskCompilerHost.listSourceFiles()` owns expansion (include → exclude → root-scope filter); name the mechanism, preferring a small audited dep (e.g. `tinyglobby`) over hand-rolling; expansion results must resolve within `projectRoot` (RD-13 R37) | Decision lands where the precedent says it must; security enforcement gets an owner | Commits to a dep at RD level (can still carry an "or equivalent, finalized at plan AR-P1-style checkpoint" clause) |
-| B | Add the row but defer the library choice to the plan's ambiguity register | Keeps RD stable | Defers exactly the part that needs the decision |
-
-**Recommendation:** Option A with the "finalize exact package at the plan's dependency checkpoint" clause — mirrors how RD-16 handled `jsonc-parser` (named in the RD, verified at plan AR-P1).
-**Confidence:** Medium-high (library landscape changes; the ownership/scoping part is unambiguous).
-
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
+| Severity | Count | IDs |
+|---|---|---|
+| 🔴 CRITICAL | 0 | — |
+| 🟠 MAJOR | 3 | PF-001, PF-002, PF-003 |
+| 🟡 MINOR | 7 | PF-004..PF-010 |
+| 🔵 OBSERVATION | 4 | PF-011..PF-014 |
 
 ---
 
-### PF-005: Exit-code classification is undefined — what makes an error a "configuration error" (2) vs a "compilation error" (1)? 🟡 MINOR
+## 🟠 MAJOR
 
-**Dimension:** Ambiguities / Edge Cases
-**Location:** R41–R44, §3.11
-**Codebase Evidence:** `packages/config/src/load-config.ts:72` returns `{ config, hasErrors }`, and config errors occupy a dedicated band (E10240–E10246) — two ready-made classification hooks. RD-16 R22/R31 already lean on "exit code 2 (RD-15 R43)".
-**The Problem:** Three unspecified cases: (1) the classification rule itself; (2) precedence when a run has both config and compile errors; (3) "invalid flags" — yargs `.strict()` failures exit 1 by default with usage text, so hitting R43's exit-2 contract requires a custom `.fail()` handler, which the doc never mentions.
+### PF-001: R46/AC-19 contradict RD-15 on what `--report=json` does 🟠
 
-**Recommendation (single viable path):** Add a decision row: exit 2 iff `loadConfig().hasErrors` is true or yargs rejects the invocation (via a `.fail()` handler); config errors short-circuit before compilation, so mixed runs cannot occur (load-then-compile ordering, RD-16 R22); everything else with errors → 1; ACME ICE → 3. Considered and dropped: classifying by inspecting diagnostic-code bands post-hoc (fragile; the boolean already exists).
-**Confidence:** High.
+- **Dimension**: 3 (Contradiction), 7 (Testability)
+- **Location**: RD-11 R46 (§3.10), AC-19
+- **Codebase Evidence**: RD-15 R24 — `--emit-report` writes `<outName>.report.json` to the
+  out-dir; RD-15 R36 — `--report=json` prints the report JSON **to stdout** (implies
+  `--quiet` for the table); RD-15 R39 routes diagnostics to stderr *specifically* so the
+  stdout JSON stays clean; RD-15 AC-17 pins stdout. RD-11 R46 says both flags "write the
+  report to a JSON file".
+- **Problem**: Normative text vs normative text. RD-11b lands *before* RD-15, so AC-19 as
+  written is undischargeable in-slice (the flags won't exist) and its stated semantics are
+  wrong; implementing file-writing in core would also violate RD-15 R4 (only `@blend65/cli`
+  prints/writes). AR-82 does not protect R46 — it explicitly marked the flag names as
+  working names "fixed at RD authoring", and RD-15 is where they were fixed.
+- **Recommendation**: Amend R46 to: JSON report rendering is opt-in; RD-11's deliverable is
+  `renderReportJson()`; flag surfacing per RD-15 R24 (file) / R36 (stdout). Reword AC-19
+  AC-13-symmetric: "`renderReportJson` produces parseable report JSON (flag surfacing per
+  RD-15 R24/R36)".
+- **Considered and dropped**: changing RD-15 to match RD-11 (file for both) — RD-15's
+  stdout/stderr split is load-bearing and was preflighted clean yesterday.
+- **Confidence**: High. **Hardening**: independent challenger CONFIRMED at MAJOR; its
+  AC-19 nuance (vague, not self-contradictory) folded in.
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
+### PF-002: §4.6 `ResourceReport` contradicts the shipped, RD-blessed `SfaResourceData` — and RD-11's own R40 🟠
+
+- **Dimension**: 13 (Stale Assumptions), 4, 5
+- **Location**: RD-11 §4.6, R40, R48
+- **Codebase Evidence**: `packages/core/src/sfa/allocation-plan.ts:125-144` ships
+  `SfaResourceData { frameRegionBytes, frameRegionPeak, frameSharingSaved, zpUsed, zpBudget,
+  ramUsed, ramBudget, stackWorstCase, stackBudget }`, populated at
+  `frontend/src/sfa/plan-allocation.ts:174-184`. RD-05 R58/AC-18 *require* it to "feed
+  RD-11's aggregator" with "all numbers needed by the `ResourceReport` SFA-owned columns".
+- **Problem**: §4.6 (authored before RD-05 shipped) uses `stackDepth` (shipped:
+  `stackWorstCase`) and has **no field for frame-region peak** — yet R40 says the SFA owns
+  "frame-region peak", and spec §6 renders it (`[peak: 10 bytes simultaneous]`,
+  `spec/11-memory-model.md:213`). Under AR-84's no-reshape rule ("shape defined in full
+  now; later slices only populate"), freezing §4.6 as written makes the fix forbidden later.
+  Also: `peepholeStats?` references RD-08 §4.8's `PeepholeStats`, which lives in
+  `@blend65/codegen` — core cannot import codegen (R15/AR-20 direction), so the type must
+  be core-resident; population is deferred to RD-08 Phase B per its AR-P7.
+- **Recommendation**: Amend §4.6 to **embed** the SFA-owned block structurally —
+  `sfa: SfaResourceData` — beside ACME-owned/plugin-owned fields (realizes R41's
+  one-owner-per-number structurally; both types live in core, no boundary issue). Define
+  `PeepholeStats` core-resident (mirroring RD-08 §4.8), population Phase-B. Note that under
+  AR-92 the rendered peak equals `frameRegionBytes` (spec §6's 47-vs-10 figures are
+  pre-AR-92 illustration).
+- **Considered and dropped**: flat-copy with renamed fields (passes but drift-prone);
+  keep-§4.6-plus-adapter (AR-84 forbids the later reshape).
+- **Confidence**: High. **Hardening**: challenger CONFIRMED at MAJOR and *strengthened*
+  (requirements-vs-requirements, not just code); its embed-over-copy refinement and
+  PeepholeStats provenance correction adopted.
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
+
+### PF-003: R43 mandates the Ch 11 §6 layout; §4.7's own example is a different table 🟠
+
+- **Dimension**: 3 (Contradiction), 13, 7
+- **Location**: RD-11 R43, §4.7 example, AC-18
+- **Codebase Evidence**: `spec/11-memory-model.md:205-230` — `=== Blend65 Build Summary ===`
+  free-form layout: segment lines with `$addr` ranges + peak annotation, ZP category
+  breakdown, hardware-stack block, startup line, total. RD-11 §4.7 example — a compact
+  box-drawn `Resource/Used/Budget/%` 4-row grid. Not subset-compatible.
+- **Problem**: R43 and resolved AR-82 both pin "the Ch 11 §6 layout"; the RD's own example
+  contradicts them. AR-84's MVP staging is about which *lines are populated*, not a second
+  geometry — it explicitly says the gate reporter must "render the §6 table". The renderer
+  is RD-11b's headline deliverable and gets golden-locked immediately; locking the wrong
+  format forces a renderer rewrite + full golden regeneration across RD-15/RD-12.
+  Cascades: RD-15 §4.4 reproduces the same compact grid in its CLI illustration; RD-11
+  AC-18 ("used/budget/percentage for **all** categories") is derived from the compact grid
+  — in §6 only the ZP and stack blocks show `used / budget (%)`.
+- **Recommendation**: Make the Ch 11 §6 layout normative; replace the §4.7 example with the
+  §6 form; reword AC-18 to match §6 (ZP + stack blocks show used/budget/%; segment lines
+  show bytes + ranges); fix RD-15 §4.4's illustration in the same pass; and explicitly
+  decide unpopulated-line policy — recommend **render-as-zero** (not omit) so slice-2
+  golden diffs are value-only, recorded as a runtime AR.
+- **Considered and dropped**: compact grid as v1 normative — refuted by AR-84's own text
+  and AR-82; would re-litigate two resolved ARs.
+- **Confidence**: High. **Hardening**: challenger CONFIRMED at MAJOR; its AC-18 and
+  RD-15-cascade additions adopted.
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
 ---
 
-### PF-006: Missing-source-file and empty-file-set behavior unspecified; RD-15 claims no diagnostic codes 🟡 MINOR
+## 🟡 MINOR
 
-**Dimension:** Completeness Gaps / Edge Cases
-**Location:** R13, R14 (`readFile(): string | undefined`), §3.3
-**Codebase Evidence:** `diagnostic-codes.ts` has no "source file not found" or "no source files" code (the only file-level code is E10240 ConfigFileNotFound, config-band). R14's `readFile` returning `undefined` is a contract with no specified consumer behavior.
-**The Problem:** Unanswered: explicit CLI file doesn't exist → which E-code, exit 1 or 2? Discovery yields zero `.blend` files → error or silent no-op, and what does `outName` derivation (R21 "first file of the discovered source list") do on an empty list? RD-16 set the precedent that an RD claims its diagnostic band up front (AR-P3: E10240–E10246); RD-15 defines none.
+### PF-004: RD text not aligned with shipped RD-11a reality (split, deps, cap semantics) 🟡
 
-**Recommendation (single viable path):** Add rows: explicit-file-not-found → error (config/invocation class, exit 2); empty discovered set → error (nothing to compile, exit 2); claim the next free error-code band for these (E10250+ suggested, after the config band) with exact codes finalized at plan time. Considered and dropped: silent success on empty set (hides misconfigured `include` and breaks R21's derivation).
-**Confidence:** Medium-high (band placement is a suggestion; the behavioral gap is unambiguous).
+- **Dimension**: 12, 13, 5
+- **Evidence**: Header says `Depends On: RD-01` only; the 11b remainder consumes RD-05
+  (`SfaResourceData`), RD-09 (label file/binary size), RD-10 (budgets), RD-16 (policy
+  inputs) — the roadmap already records "RD-11a (+ RD-09)". The RD nowhere records the
+  AR-Q1 11a/11b split. Shipped deviations undocumented: ICEs are **exempt from the
+  max-errors cap** (`diagnostic-bag.ts:186-194`) — R20 says errors stop being accepted;
+  the truncation sentinel carries reserved code **E10000** (`diagnostic-codes.ts:27`),
+  which R20 doesn't name; `LineMap` shipped as a class with `makeSpan` helper (§4.8 lists
+  neither).
+- **Recommendation**: Add an implementation-status note under the header recording the
+  AR-Q1 split (11a shipped: R1–R15, R17–R22 / AC-01..07, 10, 21); update `Depends On` to
+  RD-01, RD-05, RD-09, RD-10 (+RD-16 policy inputs); amend R20 to record the ICE
+  exemption + E10000 sentinel; refresh §4.8 exports (`makeSpan`, `LineMap` class).
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
+### PF-005: `BlendConfig → SeverityPolicy` adapter has no owner; post-policy failure check unstated 🟡
+
+- **Dimension**: 2, 13
+- **Evidence**: Shipped `BlendConfig` (`config/src/types.ts:53-57`):
+  `warnAsError: boolean | string[]`, `suppressWarnings: string[]`. RD-11 §4.4
+  `SeverityPolicy`: `warnAsError: boolean`, `promoteWarnings: Set<string>`,
+  `suppressWarnings: Set<string>` — requires a union-split + array→Set adapter neither
+  RD-11 nor RD-15 assigns. Also: after `applySeverityPolicy`, build failure must be derived
+  from the returned array (bag.hasErrors() is pre-policy and misses promoted warnings) —
+  unstated.
+- **Recommendation**: Core owns the adapter (AR-75: policy in exactly one place) — export
+  `createSeverityPolicy(input: { warnAsError: boolean | string[]; suppressWarnings: string[] })`;
+  add a sentence to R31/§4.4 that consumers derive success/failure from the
+  policy-applied array.
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
+
+### PF-006: Who builds/caches `LineMap` — R14/R35 say the lexer, §4.2 says `SourceMap` 🟡
+
+- **Dimension**: 3, 13
+- **Evidence**: R14/R35: "built by the lexer"/"the LineMap from the lexer". §4.2:
+  `SourceMap.getLineMap(id)` "Get or build". Today the lexer builds its own
+  (`frontend/src/lexer/lexer.ts:605`) *and* config builds its own
+  (`config/src/load-config.ts:106`, `validate.ts:186,236`).
+- **Recommendation**: `SourceMap.getLineMap` builds + caches lazily from interned content;
+  the lexer's copy stays internal to lexing. Amend R14/R35 to say renderers resolve
+  line/column via `SourceMap.getLineMap`, not "from the lexer". (O(n) rebuild is cheap;
+  correctness of caching by `SourceId` is what matters.)
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
+
+### PF-007: `renderTerminal` color: implementation unspecified against core's zero-dependency posture 🟡
+
+- **Dimension**: 1, 6
+- **Evidence**: R33 cites AR-17 (chalk, CLI-side); the §4.5 signature puts colorization
+  inside core (`options: { color: boolean }`). `@blend65/core` has **zero** runtime deps
+  (package.json) and `line-map.ts:8` documents staying platform-free; CLAUDE.md records
+  `jsonc-parser` as the workspace's only external runtime dependency.
+- **Recommendation**: Core hand-rolls the ~4 ANSI SGR constants it needs behind the
+  `color` flag (no dependency; deterministic goldens run `color: false`); chalk remains
+  CLI-only for CLI chrome. Record this in R33.
+- **Considered and dropped**: chalk in core (breaks the zero-dep posture); colorize in the
+  CLI (splits caret layout across packages, makes the `color` option meaningless).
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
+
+### PF-008: R1's "codes defined in Ch 14" is no longer letter-true; §5 table stale 🟡
+
+- **Dimension**: 12, 13
+- **Evidence**: W10170/W10171/W10172 are **not in Ch 14** — they live in
+  `spec/04-expressions-operators.md:494-496` (+ feature index), yet RD-11 §5 (RD-07 row)
+  and R49's neighborhood treat Ch 14 as the registry. Additive shipped codes not in frozen
+  Ch 14: E10000 (sentinel), E10035 (RD-09), E10043–46 (RD-17/AR-101), E10240–46 +
+  W10240–41 (RD-16). §5 lists RD-16 as "config surface" only — it is also a *producer*
+  (shipped); RD-17 (producer of E10040–46) has no row.
+- **Recommendation**: Soften R1 to "Ch 14 is the canonical base registry; additive codes
+  follow the RD-09/RD-16 precedent and are recorded in `diagnostic-codes.ts`, the single
+  in-code registry (spec frozen per D3)". Refresh §5: RD-16 → producer + config surface;
+  add RD-17 producer row.
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
+
+### PF-009: Renderer behavior undefined for spans it cannot resolve (sentinel/unknown `SourceId`) 🟡
+
+- **Dimension**: 9, 4
+- **Evidence**: Config diagnostics carry a sentinel `CONFIG_SOURCE_ID` (overridable)
+  (`config/src/load-config.ts:73`) plus synthetic spans; a `SourceId` may not be interned
+  in the `SourceMap` handed to `renderTerminal`. RD-11 never defines the fallback.
+- **Recommendation**: Add a requirement: for an unresolvable `sourceId` the terminal
+  renderer degrades to code+severity+message (no `-->` line, no excerpt) and never throws;
+  JSON renderer emits the raw span. Spec-test it.
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
+
+### PF-010: Terminal renderer echoes raw source lines — control-character/ANSI injection 🟡
+
+- **Dimension**: 8 (Security)
+- **Evidence**: Ch 14 §1 format echoes the source line via `LineMap.getLineText`
+  (`line-map.ts:220-234` returns raw text). A hostile `.blend` (or config) file containing
+  escape sequences would be replayed into the developer's terminal (CWE-150 class).
+- **Recommendation**: Require `renderTerminal` to sanitize C0/C1 control characters
+  (except tab, which needs defined caret-width handling — see PF-013) in echoed excerpts;
+  add a security test per the testing standards.
+- **User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
 ---
 
-### PF-007: Results never expose the resolved (merged) config — the CLI can't learn effective `quiet`/`diagnosticsFormat`/`outDir` set in `blend65.json` 🟡 MINOR
+## 🔵 OBSERVATIONS
 
-**Dimension:** Completeness Gaps / Implicit Assumptions / Codebase Alignment
-**Location:** §4.1 (`CompileResult`/`BuildResult` fields), R9
-**Codebase Evidence:** `loadConfig()` produces the merged `BlendConfig` (`packages/config/src/load-config.ts:160`), and RD-16 R24/R25 route CLI flags into the facade as overrides — so the facade, not the CLI, holds the post-merge truth. But `CompileResult`/`BuildResult` (§4.1) carry no config field. A `blend65.json` with `"quiet": true` or `"diagnosticsFormat": "json"` would be merged inside `build()` and then invisible to the CLI, which must make exactly those rendering decisions (R29, R34, R38).
-**The Problem:** As specified, the CLI would have to re-run `loadConfig()` itself (duplicate load, drift risk) or ignore file-set rendering keys (violates RD-16 R25 merge semantics).
+### PF-011: W10241 overlap warning fires only for array-form `warnAsError` 🔵
 
-**Recommendation (single viable path):** Add `config: BlendConfig` (the resolved, merged config) to `CompileResult` — one field, one source of truth, LSP gets it for free. Considered and dropped: CLI-side re-load (two loads of the same file with divergence risk); CLI-side merging (relocates RD-16 R24's merge into a consumer).
-**Confidence:** High.
+`config/src/validate.ts:324-337` warns only when `warnAsError` is an array; blanket
+`warnAsError: true` + a suppressed code emits no W10241 (matches RD-16 R30's letter).
+R50's final sentence reads broader. Suggest qualifying R50: "…warns on the overlap of the
+two explicit lists at load time (RD-16 R30)". Suppression-wins precedence itself is
+unaffected (§4.4 already covers the blanket case).
+**User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
+### PF-012: `Map`-typed report fields don't survive `JSON.stringify` 🔵
 
----
+§4.6 `frameSizes?: Map<string, number>` serializes to `{}`. If PF-002's embed is accepted
+this largely dissolves (AllocationPlan exposes `frames: ReadonlyMap<string, FrameAllocation>`
+— the JSON emitter must still convert). Suggest requiring `renderReportJson` to emit plain
+objects/arrays, or shaping report fields as arrays of entries.
+**User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
-### PF-008: Flags added by the RD-16 preflight (R45 `--config`, R46 `--startup`) — and `--acme-path`/`--optimize` — have no acceptance criteria 🟡 MINOR
+### PF-013: Multi-line-span caret rendering unspecified 🔵
 
-**Dimension:** Testability / Completeness Gaps
-**Location:** §6 (AC-09 covers only `--platform`/`--out-dir`/`--out-name`)
-**Codebase Evidence:** N/A (document-internal; R45/R46 were added 2026-07-02 by RD-16 preflight PF-003 without touching §6).
-**The Problem:** Four flag rows have no AC to gate them; the plan's spec-test derivation works from ACs.
+Ch 14 §1's example is single-line; R33 doesn't say what the caret format does when
+`primarySpan` crosses lines (or contains tabs). Suggest the plan decide (convention:
+underline to end of first line) and golden-lock it.
+**User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
-**Recommendation (single viable path):** Add AC-20: "`--config`, `--startup`, `--acme-path`, and `--optimize`/`--no-optimize` override their config/default counterparts correctly." Considered and dropped: widening AC-09's wording (buries four behaviors in one unrelated line).
-**Confidence:** High.
+### PF-014: Promoted warnings bypass `--max-errors` 🔵
 
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
-
----
-
-### PF-009: §4.3 yargs sketch drift — `warn-as-error` typing, `no-color` idiom, missing R45/R46 flags 🔵 OBSERVATION
-
-**Dimension:** Consistency
-**Location:** §4.3 CLI entry-point sketch
-**The Problem:** The illustrative sketch (a) types `warn-as-error` as plain `string` although R26 allows bare boolean use and R27 says "multiple allowed" (needs array + boolean coercion; bare `--warn-as-error` in yargs yields `""`); (b) declares `no-color` as its own option where the yargs idiom is boolean-negation of a `color` option; (c) predates R45/R46 — `--config` and `--startup` are absent. Sketch is non-normative, so observation only.
-
-**Recommendation:** Refresh the sketch when applying the other fixes (add the two options, note the coercion), or leave with an "illustrative, plan refines" caveat.
-
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
+The cap applies at emission (bag), promotion happens once post-collection (R31) — so
+`--warn-as-error` over 100 warnings yields 100 errors regardless of `--max-errors 20`.
+Deterministic, but worth one sentence in R31 documenting it as intended (Ch 14 §4's
+"stop after N errors" reads on natural errors).
+**User Decision**: ✅ Accepted — recommendation applied 2026-07-03
 
 ---
 
-### PF-010: AC-18's absolute "no package other than `@blend65/cli` prints" will collide with RD-12's test-harness CLI 🔵 OBSERVATION
+## Adversarial self-check (pre-conclusion)
 
-**Dimension:** Consistency (forward-looking)
-**Location:** R4, AC-18
-**Codebase Evidence:** `@blend65/test-harness` is a published package (CLAUDE.md package table) whose RD-12 harness runner will print to the terminal.
-**The Problem:** AC-18 as a workspace-wide absolute becomes false the moment RD-12 lands. Not RD-15's defect to fix in code — its assertion just needs scoping.
-
-**Recommendation:** Scope R4/AC-18 to "no package in the `blendc` compile path (core/frontend/codegen/platforms/config/compiler)" — keeps the R15-style boundary testable and future-proof.
-
-**User Decision:** Resolved — user accepted the recommendation ("fix per your recommendations", 2026-07-03); fix applied
+- Standards cited from source, not memory: Ch 14 §1/§4 and Ch 11 §6 quoted verbatim from
+  `spec/`; all shipped-code claims carry file:line.
+- Findings I chose **not** to raise: R22 "thread-safe" vagueness (design constraint,
+  already implemented, no consumer risk); §4.8 type-vs-value export pseudocode (folded
+  into PF-004); `Instr.sourceSpan` survival (R16 — verified present in the instr model);
+  RD-11b ordering (verified unblocked — deps all shipped).
+- Clean dimensions (10, 11) are genuinely clean, not unexamined.

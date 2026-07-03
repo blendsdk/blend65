@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-03 (RD-15 requirements preflight ✅ PASSED — 10 findings resolved; PF-001 reordered RD-11b ahead of RD-15; next: RD-11b `preflight → make_plan`)
+> **Last Updated**: 2026-07-03 (RD-11 requirements preflight ✅ PASSED — 14 findings resolved, fixes applied, runtime AR-102 logged; next: RD-11b `make_plan`)
 
 
 ---
@@ -27,16 +27,20 @@
   defaults←file←overrides merge (R23–R25), and PF-020 local `hasErrors` tracking. AC-01..AC-14
   all ticked with ST evidence; AC-13 data-only audit PASS; 96 config tests + full workspace
   verify green. One runtime register entry: AR-P10 (BOM strip, provisional — flagged for review).
-- **Preflighted**: **RD-15** (programmatic + CLI API) requirements preflight ✅ PASSED
-  2026-07-03 — 10 findings (1 major, 7 minor, 2 observations), all recommendations accepted
-  and fixes applied (see `requirements/00-preflight-report.md`). PF-001 exposed that RD-15
-  consumes six RD-11-remainder deliverables (severity policy, renderers, `SourceMap`,
-  `ResourceReport`) that don't exist yet → **RD-11b reordered ahead of RD-15**.
+- **Preflighted**: **RD-11** (diagnostics & resource reporting) requirements preflight
+  ✅ PASSED 2026-07-03 — 14 findings (3 major, 7 minor, 4 observations), all
+  recommendations accepted and fixes applied (see `requirements/00-preflight-report.md`).
+  Highlights: `--report=json` semantics deferred to RD-15 (PF-001); `ResourceReport`
+  rebuilt on the shipped `SfaResourceData` with `PeepholeStats` core-resident (PF-002);
+  the Ch 11 §6 build-summary layout made normative with render-as-zero staging — runtime
+  **AR-102** (PF-003, incl. an RD-15 §4.4 cascade fix); RD-11a/11b split + true deps now
+  recorded in the RD header. RD-15's requirements preflight passed earlier the same day
+  (10 findings; its PF-001 reordered RD-11b ahead of RD-15).
 - **Next up**: **RD-11b** (diagnostics remainder & resource reporter) — dependencies
   RD-11a (✅), RD-09 (✅) all met; its aggregator inputs (`AllocationPlan`, ACME label
-  file, profile budgets) are all shipped. Workflow position: **preflight → make_plan**
-  (no plan directory yet). RD-15 follows at **make_plan** (requirements already
-  preflighted).
+  file, profile budgets) are all shipped. Workflow position: **make_plan** (requirements
+  preflighted; no plan directory yet). RD-15 follows at **make_plan** (requirements
+  already preflighted).
 
 
 
@@ -97,7 +101,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-11b | Diagnostics remainder & resource reporter (severity policy, renderers, `SourceMap`, `ResourceReport`) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 1 | RD-11b | Diagnostics remainder & resource reporter (severity policy, renderers, `SourceMap`, `ResourceReport`) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
 | 2 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
 | 3 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |

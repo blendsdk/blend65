@@ -1,14 +1,21 @@
 # RD-11: Diagnostics Engine & Resource Reporting
 
-> **Status**: 🟢 Authored
+> **Status**: 🟢 Authored — partially implemented (RD-11a shipped ✅; RD-11b pending)
 > **MVP Phase**: A
-> **Depends On**: RD-01
+> **Depends On**: RD-01; RD-05, RD-09, RD-10 (resource-report data sources); RD-16 (severity-policy inputs)
 > **Implements**: `spec-v3.0` Ch 14 (Diagnostics: Error & Warning Registry); diagnostics
 >   architecture per AR-70..AR-78; resource reporting per AR-79..AR-85
 > **Owning package(s)**: `@blend65/core` (diagnostics engine, span model, severity
 >   policy, renderers, resource reporter)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-07-02 (RD-16 preflight cross-doc fix PF-012: R50 promote/suppress precedence)
+> **Last Updated**: 2026-07-03 (requirements preflight PF-001..PF-014 fixes applied — see `00-preflight-report.md`)
+
+> **Implementation status (2026-07-03):** RD-11 is implemented in two slices per the
+> RD-11a plan's AR-Q1 split. **RD-11a — shipped ✅** (archived at
+> `codeops/_archive/rd-11a-diagnostics-core/`): R1–R15, R17–R22; AC-01..AC-07, AC-10,
+> AC-21. **RD-11b — pending**: `SourceMap` registry (§4.2), severity policy (§3.6/§4.4),
+> diagnostic renderers (§3.7/§4.5), resource report + renderers (§3.9–§3.11/§4.6–§4.7),
+> and the remaining acceptance criteria.
 
 ---
 
@@ -76,7 +83,7 @@ their program fits on constrained 6502 platforms (AR-83).
 
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
-| R1 | User diagnostics use `E10xxx` (errors) and `W10xxx` (warnings) | These are the codes defined in Ch 14 — every user-facing diagnostic has a code in this range. They are stable across compiler versions | AR-70, Ch 14 |
+| R1 | User diagnostics use `E10xxx` (errors) and `W10xxx` (warnings) | Ch 14 is the canonical base registry — every user-facing diagnostic has a code in this range, stable across compiler versions. Additive codes claimed since the freeze (the E10000 truncation sentinel, RD-09's E10035, RD-17's E10043–46, RD-16's E10240–46/W10240–41) follow the RD-09/RD-16 precedent and are recorded in `diagnostic-codes.ts`, the single in-code registry (spec frozen per D3). Amended by preflight PF-008 | AR-70, Ch 14 |
 | R2 | Internal compiler errors use `E9xxxx` | ICE codes are in a separate band that can never collide with user codes. ICEs indicate compiler bugs, not user mistakes | AR-70 |
 | R3 | Diagnostic codes are unique and permanent | Once assigned, a code is never reused for a different condition. Codes may be deprecated but not reassigned | Ch 14 |
 
@@ -99,7 +106,7 @@ their program fits on constrained 6502 platforms (AR-83).
 |---|-------------|---------------------|--------|
 | R12 | Spans use interned `SourceId` + byte offsets | `{ sourceId: SourceId, start: number, end: number }`. Byte offsets into the UTF-8 source text. Multi-file aware | AR-72 |
 | R13 | `SourceId` is an interned identifier for a source file | Maps to the file path via a `SourceMap` registry. Interning avoids storing full paths in every span | AR-72, AR-39 |
-| R14 | Line/column computed on demand | `LineMap` (built by the lexer, RD-02) converts byte offsets to `{ line, column }` on demand. Never stored in the `Diagnostic` | AR-72 |
+| R14 | Line/column computed on demand | `LineMap` converts byte offsets to `{ line, column }` on demand; never stored in the `Diagnostic`. The `SourceMap` registry builds and caches one `LineMap` per `SourceId` (`getLineMap`); the lexer's own instance (RD-02) stays internal to tokenization. Amended by preflight PF-006 | AR-72 |
 | R15 | UTF-16 columns computed on demand for LSP | LSP uses UTF-16 code units for column positions. A conversion layer computes UTF-16 columns from byte offsets when needed | AR-72 |
 | R16 | Spans survive lowering through IL to `Instr` | `Instr.sourceSpan?` (AR-54) carries spans so codegen/resource diagnostics point back to source | AR-72 |
 
@@ -110,7 +117,7 @@ their program fits on constrained 6502 platforms (AR-83).
 | R17 | `DiagnosticBag` accumulates diagnostics without throwing | Every compiler phase appends to the bag. No phase aborts on a single error — this is the mechanism behind error-tolerant compilation (AR-15) | AR-73 |
 | R18 | Ordering is deterministic | Diagnostics are ordered by source file (SourceId), then by byte offset, then by code. Same input → same diagnostic order | AR-73, H5 |
 | R19 | Duplicate diagnostics are suppressed | If the same `(code, sourceId, start)` triple appears twice, the second is silently dropped | AR-73 |
-| R20 | `--max-errors` limits the number of errors reported | Default: 20. After reaching the limit, the bag stops accepting new error-severity diagnostics (warnings still accepted). A final diagnostic announces truncation | AR-73 |
+| R20 | `--max-errors` limits the number of errors reported | Default: 20. After reaching the limit, the bag stops accepting new user-facing errors (warnings still accepted; ICEs are exempt from the cap — a suppressed compiler-bug report is worse than noise). A single truncation diagnostic with reserved code `E10000` announces the cutoff. Amended by preflight PF-004 to record shipped RD-11a behavior | AR-73 |
 | R21 | The bag provides query methods | `hasErrors(): boolean`, `getAll(): Diagnostic[]`, `getErrors(): Diagnostic[]`, `getWarnings(): Diagnostic[]`, `count(): number` | Design |
 | R22 | The bag is thread-safe (single-threaded, but re-entrant safe) | The bag must be safe to use across async boundaries (e.g., the compiler facade may be called from an async context). In practice, Node.js is single-threaded, so this is a design constraint on the API surface, not a concurrency requirement | Design |
 
@@ -131,17 +138,19 @@ their program fits on constrained 6502 platforms (AR-83).
 | R28 | `--warn-as-error` promotes all warnings to errors | If set, any warning causes the build to fail | AR-75, Ch 14 §4 |
 | R29 | `--warn-as-error=Wxxxxx` promotes a specific warning | Selective promotion. Multiple flags may be specified | AR-75 |
 | R30 | `--suppress-warning=Wxxxxx` suppresses a specific warning | The warning is removed from the output. Multiple flags may be specified | AR-75 |
-| R31 | Severity policy is applied exactly once, after all diagnostics are collected | The policy is a post-processing step, not per-emission. This ensures consistent behavior regardless of emission order | AR-75 |
-| R50 | Suppression wins over promotion | When the same warning code is both promoted (`--warn-as-error=Wxxxxx` / config `warnAsError`) and suppressed (`--suppress-warning=Wxxxxx` / config `suppressWarnings`), suppression takes precedence — an explicitly silenced code stays silent. The config loader warns on the overlap at load time (RD-16 R30). Added by RD-16 preflight PF-012 | AR-75 + Design |
+| R31 | Severity policy is applied exactly once, after all diagnostics are collected | The policy is a post-processing step, not per-emission. This ensures consistent behavior regardless of emission order. Promoted warnings are deliberately not subject to `--max-errors` — the cap applies to naturally-emitted errors at the bag (PF-014). Consumers derive build success from the policy-applied array (any `severity === 'error'`), never from `bag.hasErrors()`, which is pre-policy (PF-005) | AR-75 |
+| R50 | Suppression wins over promotion | When the same warning code is both promoted (`--warn-as-error=Wxxxxx` / config `warnAsError`) and suppressed (`--suppress-warning=Wxxxxx` / config `suppressWarnings`), suppression takes precedence — an explicitly silenced code stays silent. The config loader warns on the overlap of the two explicit lists at load time (RD-16 R30; the blanket `warnAsError: true` form emits no overlap warning — suppression still wins, PF-011). Added by RD-16 preflight PF-012 | AR-75 + Design |
 
 ### 3.7 Diagnostic Rendering
 
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
 | R32 | Multiple renderers consume the same `Diagnostic[]` | Renderers never re-derive meaning — they only format structured data | AR-76 |
-| R33 | Terminal renderer produces the Ch 14 caret format | The format from Ch 14 §1: code + message + file:line:col + source excerpt with caret. Respects AR-17 conditional color | AR-76, AR-17 |
+| R33 | Terminal renderer produces the Ch 14 caret format | The format from Ch 14 §1: code + message + file:line:col + source excerpt with caret. Respects AR-17 conditional color — implemented as hand-rolled ANSI SGR constants in core (no chalk in core, preserving its zero-dependency posture; chalk stays CLI-only). Multi-line spans underline from the span start to the end of the first line; tabs render literally with byte-column caret math (golden-locked). Amended by preflight PF-007/PF-013 | AR-76, AR-17 |
 | R34 | JSON emitter produces machine-readable output | `--diagnostics-format=json` outputs JSON for tooling/CI/LSP consumption. Each diagnostic is a JSON object | AR-76 |
-| R35 | Renderers use `LineMap` for line/column resolution | Source excerpts and caret positioning require the `LineMap` from the lexer | AR-72 |
+| R35 | Renderers use `LineMap` for line/column resolution | Source excerpts and caret positioning resolve line/column via `SourceMap.getLineMap` (PF-006) | AR-72 |
+| R51 | Renderer degrades gracefully for unresolvable spans | A `sourceId` not interned in the `SourceMap` (e.g. the RD-16 config sentinel source id) renders as code + severity + message only — no `-->` line, no source excerpt — and never throws. The JSON renderer emits the raw span verbatim. Added by preflight PF-009 | Design |
+| R52 | Echoed source excerpts are sanitized | `renderTerminal` strips C0/C1 control characters (tab excepted — see R33) from echoed source lines so a hostile source file cannot inject terminal escape sequences. Covered by a mandatory security test. Added by preflight PF-010 | Design |
 
 ### 3.8 Library-First API
 
@@ -164,17 +173,17 @@ their program fits on constrained 6502 platforms (AR-83).
 
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
-| R43 | Multi-renderer: terminal table + JSON | The terminal renderer produces the Ch 11 §6 build-summary table. JSON via `--report=json` for CI/tooling | AR-82 |
+| R43 | Multi-renderer: terminal + JSON | The terminal renderer produces the Ch 11 §6 build-summary **layout** (the `=== Blend65 Build Summary ===` form — see §4.7). Lines whose data source is not yet online render with zero values rather than being omitted (AR-102), so later slices change values only, never geometry. JSON via `renderReportJson` (flag surfacing per RD-15). Amended by preflight PF-003 | AR-82, AR-84, AR-102 |
 | R44 | The build summary prints by default on successful builds | This is a core DX promise for constrained platforms — developers always see how much headroom they have | AR-83 |
 | R45 | A quiet flag suppresses the summary | `--quiet` or `-q` suppresses the build summary. Diagnostics (errors/warnings) are still shown | AR-83 |
-| R46 | JSON report is opt-in | `--emit-report` or `--report=json` writes the report to a JSON file | AR-82 |
+| R46 | JSON report is opt-in | RD-11 delivers `renderReportJson()`; the CLI surfaces it via `--emit-report` (writes `<outName>.report.json` to the out-dir, RD-15 R24) and `--report=json` (prints to stdout, implies `--quiet` for the table, RD-15 R36). Fixed by preflight PF-001 | AR-82, RD-15 R24/R36 |
 
 ### 3.11 Resource Report — MVP Scope
 
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
 | R47 | MVP gate: code size + binary size + budget comparisons | The minimal report shows code bytes, binary bytes, and budget headroom (ZP, RAM, binary). Full columns (per-function frame sizes, ZP breakdown) come in slice 2 | AR-84 |
-| R48 | Report shape is defined now, data populated per slice | The `ResourceReport` type is complete from v1. Fields that don't have data yet are null/zero. This prevents later reshaping | AR-84 |
+| R48 | Report shape is defined now, data populated per slice | The `ResourceReport` type is complete from v1, built on the shipped `SfaResourceData` (RD-05 R58 — see §4.6, PF-002). Fields that don't have data yet are zero/undefined. This prevents later reshaping | AR-84 |
 | R49 | Warnings from the report use the AR-75 severity layer | Budget warnings (W10030 frame size, W10033 RAM, W10180 stack depth) are emitted through the `DiagnosticBag` and respect severity policy | AR-85 |
 
 ---
@@ -321,6 +330,17 @@ function applySeverityPolicy(
   diagnostics: Diagnostic[],
   policy: SeverityPolicy
 ): Diagnostic[];
+
+/**
+ * Build a SeverityPolicy from configuration/CLI inputs (RD-16 `BlendConfig` /
+ * RD-15 `CompilerOptions`): splits the `warnAsError: boolean | string[]` union
+ * into the blanket flag + promoteWarnings set and converts arrays to Sets.
+ * Core owns this adapter — the policy lives in exactly one place (AR-75, PF-005).
+ */
+function createSeverityPolicy(input: {
+  warnAsError: boolean | string[];
+  suppressWarnings: string[];
+}): SeverityPolicy;
 ```
 
 ### 4.5 Diagnostic Renderers
@@ -353,28 +373,21 @@ error[E10042]: 'poke()' expects 2 arguments — found 3
 ### 4.6 Resource Report
 
 ```typescript
+/**
+ * The aggregated resource report (AR-79). The SFA-owned block is embedded
+ * verbatim from the shipped `AllocationPlan.resourceData` (RD-05 R58,
+ * `@blend65/core/sfa`) — one owner per number, structurally (R41, PF-002).
+ */
 interface ResourceReport {
-  // --- SFA-owned (pre-ACME) ---
-  /** Total ZP bytes allocated */
-  zpUsed: number;
-  /** ZP budget from profile */
-  zpBudget: number;
-
-  /** Total RAM bytes for frames + module vars */
-  ramUsed: number;
-  /** RAM budget from profile */
-  ramBudget: number;
-
-  /** Maximum stack depth (bytes) */
-  stackDepth: number;
-  /** Stack budget from profile */
-  stackBudget: number;
-
-  /** Per-function frame sizes (slice 2+) */
-  frameSizes?: Map<string, number>;
-
-  /** ZP allocation breakdown (slice 2+) */
-  zpAllocations?: ZpAllocationEntry[];
+  // --- SFA-owned (pre-ACME) — embedded, not copied (PF-002) ---
+  /**
+   * `SfaResourceData` from the frozen `AllocationPlan`: frameRegionBytes,
+   * frameRegionPeak, frameSharingSaved, zpUsed/zpBudget, ramUsed/ramBudget,
+   * stackWorstCase/stackBudget. Note: under AR-92 the rendered peak equals
+   * `frameRegionBytes` (the spec §6 example's 47-vs-10 figures are pre-AR-92
+   * illustration).
+   */
+  sfa: SfaResourceData;
 
   // --- ACME-owned (post-ACME) ---
   /** Code segment size in bytes (from label file) */
@@ -383,25 +396,28 @@ interface ResourceReport {
   dataSize?: number;
   /** Total binary size (excluding load header) */
   binarySize?: number;
-  /** Binary budget from profile */
+  /** Binary budget from profile (`maxBinarySize`) */
   binaryBudget: number;
 
-  // --- Plugin-owned ---
+  // --- Plugin-owned (AR-80: startup size/cycles from the plugin shim) ---
   /** Startup shim size in bytes */
   startupSize?: number;
+  /** Startup shim cost in cycles */
+  startupCycles?: number;
 
-  // --- Peephole (post-v1) ---
-  /** Optimization statistics */
+  // --- Peephole (populated in RD-08 Phase B per its AR-P7) ---
+  /**
+   * Optimization statistics. The type mirrors RD-08 §4.8 but is defined
+   * core-resident, because core cannot import codegen (R15/AR-20, PF-002).
+   */
   peepholeStats?: PeepholeStats;
 }
-
-interface ZpAllocationEntry {
-  name: string;
-  address: number;
-  size: number;
-  owner: string;  // function name or "module"
-}
 ```
+
+> **Slice-2 breakdowns reuse shipped types (PF-002):** the ZP allocation breakdown is
+> the shipped `ZpAllocation[]` (`@blend65/core/sfa` — name/address/size/category) and
+> per-function frame sizes derive from `AllocationPlan.frames` — no duplicate
+> `ZpAllocationEntry` type is introduced.
 
 ### 4.7 Resource Report Renderers
 
@@ -413,39 +429,62 @@ function renderReportTerminal(report: ResourceReport): string;
 
 /**
  * Render resource report as JSON.
+ * Emits plain objects/arrays only — Map-valued data is converted to arrays of
+ * entries, since JSON.stringify silently drops Map contents (PF-012).
  */
 function renderReportJson(report: ResourceReport): string;
 ```
 
-**Terminal table example:**
+**Terminal output — the Ch 11 §6 layout (normative per R43/AR-82; values illustrative;
+fixed by preflight PF-003):**
 ```
-╭──────────────────────────────────────────────╮
-│           Build Summary (c64)                │
-├──────────────┬──────────┬──────────┬─────────┤
-│ Resource     │ Used     │ Budget   │ %       │
-├──────────────┼──────────┼──────────┼─────────┤
-│ Binary       │ 47 bytes │ 26623    │ 0.2%    │
-│ Zero Page    │ 2 bytes  │ 142      │ 1.4%    │
-│ RAM (frames) │ 0 bytes  │ 26623    │ 0.0%    │
-│ Stack depth  │ 4 bytes  │ 230      │ 1.7%    │
-╰──────────────┴──────────┴──────────┴─────────╯
+=== Blend65 Build Summary ===
+Platform: c64
+Target: game.prg
+
+Code segment:    1,247 bytes ($0801–$0CE0)
+Data segment:      312 bytes ($0CE1–$0E18)  [const arrays, strings, embed data]
+RAM variables:      89 bytes ($0E19–$0E71)
+SFA frames:         47 bytes ($0E72–$0EA0)  [peak: 47 bytes simultaneous]
+
+Zero page:
+  User variables:   6 bytes
+  Compiler temps:   4 bytes
+  Struct pointers:  4 bytes
+  IRQ temps:        2 bytes
+  Total:           16 / 30 bytes (53%)
+
+Hardware stack:
+  Max call depth:   4 levels (8 bytes)
+  IRQ overhead:     6 bytes
+  Total peak:      14 / 230 bytes (6%)
+
+Startup routine:   42 bytes, 68 cycles
+
+Total binary:    1,695 bytes
 ```
+
+> Lines whose data source has not yet come online render with **zero values** rather
+> than being omitted (AR-102), so later slices change values only — never geometry.
 
 ### 4.8 Public API
 
 ```typescript
 // @blend65/core exports:
 
-// Diagnostics
-export { Diagnostic, LabeledSpan, SourceSpan, SourceId };
+// Diagnostics — shipped (RD-11a)
+export { Diagnostic, LabeledSpan, SourceSpan, SourceId, makeSpan };
 export { DiagnosticBag, createDiagnosticBag };
+export { LineMap };  // shipped as a class
+
+// Diagnostics — RD-11b
 export { SourceMap, createSourceMap };
-export { LineMap };
-export { SeverityPolicy, applySeverityPolicy };
+export { SeverityPolicy, applySeverityPolicy, createSeverityPolicy };
 export { renderTerminal, renderJson };
 
-// Resource reporting
-export { ResourceReport, ZpAllocationEntry };
+// Resource reporting — RD-11b (ZP/frame breakdowns reuse ZpAllocation /
+// AllocationPlan.frames from @blend65/core/sfa — no ZpAllocationEntry, PF-002)
+export { ResourceReport, PeepholeStats };
 export { renderReportTerminal, renderReportJson };
 ```
 
@@ -461,13 +500,14 @@ export { renderReportTerminal, renderReportJson };
 | RD-04 | **Producer**: semantic analysis appends `E10xxx`/`W10xxx` diagnostics (45+ codes); uses poison-type cascade suppression |
 | RD-05 | **Producer**: SFA planner appends budget diagnostics (E10032/E10033, W10030/W10033/W10180); contributes SFA-owned data to `ResourceReport` |
 | RD-06 | **Producer**: IL lowering may append ICE diagnostics for unimplemented lowering paths |
-| RD-07 | **Producer**: codegen appends cost warnings (W10170/W10171/W10172) and ICE for illegal opcode+mode |
+| RD-07 | **Producer**: codegen appends cost warnings (W10170/W10171/W10172 — defined in spec Ch 04; Ch 14 omits them, PF-008) and ICE for illegal opcode+mode |
 | RD-08 | **Producer**: peephole optimizer appends ICE on invariant violation; contributes `PeepholeStats` to report |
 | RD-09 | **Producer**: ACME integration appends ICE on ACME failure; contributes binary/code/data sizes post-ACME; appends E10034 on binary-size budget exceed |
 | RD-10 | **Data contributor**: platform profile provides budget values for the resource report |
 | RD-14 | **Consumer**: future LSP will consume `Diagnostic[]` + `SourceSpan` + UTF-16 column conversion |
 | RD-15 | **Consumer**: CLI renders diagnostics via `renderTerminal()` and report via `renderReportTerminal()` |
-| RD-16 | **Config surface**: diagnostic settings (max-errors, warn-as-error, suppress) in `blend65.json` |
+| RD-16 | **Producer + config surface**: the config loader appends E10240–E10246 / W10240–W10241 diagnostics (shipped); `blend65.json` supplies the diagnostic settings (max-errors, warn-as-error, suppress) that feed the severity policy via `createSeverityPolicy` (PF-008) |
+| RD-17 | **Producer**: intrinsic validation appends E10040–E10046 (incl. E10045 non-constant intrinsic address per AR-101) (PF-008) |
 
 ---
 
@@ -490,8 +530,8 @@ export { renderReportTerminal, renderReportJson };
 - [ ] AC-15: `ResourceReport` aggregates ZP/RAM/stack/binary data from correct owners
 - [ ] AC-16: Build summary prints by default on success; `--quiet` suppresses it
 - [ ] AC-17: Budget diagnostics fire at correct timing (ZP/RAM pre-ACME, binary post-ACME)
-- [ ] AC-18: Terminal report table shows used/budget/percentage for all resource categories
-- [ ] AC-19: JSON report is available via `--emit-report` / `--report=json`
+- [ ] AC-18: Terminal report renders the Ch 11 §6 layout — ZP and hardware-stack blocks show used / budget (%); segment lines show byte counts (plus address ranges when available) (PF-003)
+- [ ] AC-19: `renderReportJson` produces parseable report JSON (flag surfacing per RD-15 R24/R36) (PF-001)
 - [ ] AC-20: Unit tests cover diagnostic ordering, dedup, max-errors, severity policy (AR-22 tier 1)
 - [ ] AC-21: All decisions trace to an `AR-NN` or a frozen spec section
 

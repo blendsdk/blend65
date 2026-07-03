@@ -375,11 +375,11 @@ blendc build game.blend --platform c64
   │       --> player.blend:42:5
   │
   ├── Build Summary → stdout (unless --quiet)
-  │     ╭──────────────────────────────────────────────╮
-  │     │           Build Summary (c64)                │
-  │     ├──────────────┬──────────┬──────────┬─────────┤
-  │     │ Resource     │ Used     │ Budget   │ %       │
-  │     ...
+  │     === Blend65 Build Summary ===
+  │     Platform: c64
+  │     Target: game.prg
+  │     Code segment:    ... bytes ($0801–$....)
+  │     ...   (the Ch 11 §6 layout — normative per RD-11 R43/§4.7; RD-11 preflight PF-003)
   │
   └── Artifacts → ./build/
         ├── game.asm        (ACME source)

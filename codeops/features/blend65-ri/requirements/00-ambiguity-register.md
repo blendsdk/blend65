@@ -2,7 +2,7 @@
 
 > **Status**: ✅ GATE PASSED — discovery closed 2026-05-30; all AR-1..AR-93 resolved; preflight protocol run & recorded (see `01-preflight-checklist.md`); RD authoring unblocked
 
-> **Last Updated**: 2026-05-30
+> **Last Updated**: 2026-07-03 (runtime AR-102 — RD-11 preflight)
 
 
 > **Purpose**: Audit trail — every decision in every RD traces to an entry here.
@@ -1069,6 +1069,22 @@ non-compile-time-constant address argument to `peek`/`poke`/`peekw`/`pokew` prod
 ICE. Indirect `(zp),Y` lowering for runtime-computed addresses is deferred to a later
 slice (it is genuinely new codegen surface beyond the MVP gate's constant `poke`).
 *(PF-012)*
+
+---
+
+### RD-11 Preflight Runtime Resolution (2026-07-03) — AR-102
+
+> Logged per the runtime-ambiguity protocol during the RD-11 requirements preflight
+> (`00-preflight-report.md`, finding PF-003). Resolved with the user on 2026-07-03
+> ("accept all recommendations").
+
+**AR-102 (runtime):** **Unpopulated build-summary lines render as zero, never omitted.**
+The terminal resource-report renderer produces the full Ch 11 §6 layout from v1; lines
+whose data source has not yet come online (per the AR-84 staging) render with zero
+values rather than being dropped, so golden snapshots change values only — never line
+geometry — as slices bring SFA/ACME/plugin data online. Ratifies that the Ch 11 §6
+layout (not RD-11 §4.7's former compact grid) is the normative terminal form, upholding
+AR-82 and AR-84. *(PF-003)*
 
 
 

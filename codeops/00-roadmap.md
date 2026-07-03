@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 requirements preflighted ✅ (10 findings resolved); PF-001 reordered RD-11b ahead — next: RD-11b (diagnostics remainder & resource reporter) preflight → make_plan | 15/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-11 requirements preflighted ✅ (14 findings resolved; runtime AR-102) — next: RD-11b (diagnostics remainder & resource reporter) make_plan, then RD-15 | 15/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -54,3 +54,10 @@
   `requirements/README.md`. PF-001: RD-15 consumes six unimplemented RD-11-remainder
   deliverables → **RD-11b reordered ahead of RD-15**; new pending order
   RD-11b → RD-15 → RD-12 → RD-13 → RD-14. Next: RD-11b preflight → make_plan.
+- 2026-07-03: RD-11 requirements preflight ✅ PASSED — 14 findings (3 major: `--report=json`
+  file-vs-stdout deferred to RD-15; `ResourceReport` rebuilt on shipped `SfaResourceData`
+  (+ `PeepholeStats` core-resident); Ch 11 §6 build-summary layout made normative with
+  render-as-zero staging → runtime AR-102; 7 minor incl. `createSeverityPolicy` adapter,
+  `SourceMap.getLineMap` ownership, ANSI-in-core, unresolvable-span fallback R51, excerpt
+  sanitization R52; 4 observations), all fixes applied to RD-11, RD-15 §4.4, and the
+  register. RD-11b advanced to "RD preflighted", next step make_plan.
