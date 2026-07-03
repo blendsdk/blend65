@@ -53,5 +53,46 @@ export default tseslint.config(
     },
   },
 
+  // AC-18 AUTHORITATIVE no-print guard (RD-15 R4, AR-V18): the compile-path
+  // packages MUST NOT print — they return structured diagnostics; only
+  // @blend65/cli prints. `no-console` bans console.*, and `no-restricted-properties`
+  // bans `process.stdout`/`process.stderr` (writing to the process streams).
+  // Test + test-support files are excluded (they legitimately spy on the streams).
+  // A root-tier spec test (test/no-print.spec.test.ts, ST-39) is the second witness.
+  {
+    files: [
+      "packages/core/**/*.ts",
+      "packages/frontend/**/*.ts",
+      "packages/codegen/**/*.ts",
+      "packages/platforms/**/*.ts",
+      "packages/config/**/*.ts",
+      "packages/compiler/**/*.ts",
+    ],
+    ignores: [
+      "**/*.test.ts",
+      "**/test-fixtures.ts",
+      "**/test-fixtures/**",
+      "**/testing/**",
+    ],
+    rules: {
+      "no-console": "error",
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "process",
+          property: "stdout",
+          message:
+            "AC-18/R4: compile-path packages must not print — return diagnostics; the CLI prints.",
+        },
+        {
+          object: "process",
+          property: "stderr",
+          message:
+            "AC-18/R4: compile-path packages must not print — return diagnostics; the CLI prints.",
+        },
+      ],
+    },
+  },
+
   prettier,
 );

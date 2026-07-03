@@ -82,16 +82,23 @@ export interface AcmeRunner {
 }
 
 /**
- * Build the ACME argv (R31/R32): output to `binaryPath`, dump VICE labels to
- * `labelPath`, write the report to `reportPath`, assemble `asmPath`.
+ * Build the ACME argv (R31/R32): dump VICE labels to `labelPath`, write the
+ * report to `reportPath`, assemble `asmPath`.
+ *
+ * The binary output is driven by the serializer's `!to "<name>.prg", cbm`
+ * directive — NOT a `-o` command-line flag (RD-15 AR-V23 / DEF-1). Passing `-o`
+ * makes ACME warn "Output file already chosen" and fall back to its **plain**
+ * (headerless) format, dropping the 2-byte c64 load-address header that
+ * `LOAD"*",8` requires; the `!to ...,cbm` path produces a proper header-bearing
+ * PRG (the RD-09 golden test `assemble-rt.golden.spec.test.ts` proves this). The
+ * `!to` filename is a basename, resolved against ACME's `cwd` (`inv.cwd` =
+ * the emit `outDir`), so it lands at `inv.binaryPath` (`<outDir>/<name>.prg`).
  *
  * @param inv The invocation descriptor.
  * @returns The argv array passed to ACME (no shell interpolation).
  */
 function acmeArgv(inv: AcmeInvocation): string[] {
   return [
-    "-o",
-    inv.binaryPath,
     "-l",
     inv.labelPath,
     "--report",

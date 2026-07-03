@@ -40,10 +40,12 @@ describe("invokeAcme — argv & process shape", () => {
     const [exe, argv, cwd] = run.mock.calls[0];
     expect(exe).toBe("/usr/bin/acme");
     expect(cwd).toBe("/build");
-    // argv is an array (injection-safe), and carries -o, -l, --report, and the .asm.
+    // argv is an array (injection-safe), and carries -l, --report, and the .asm.
+    // Note (AR-V23 / DEF-1): the binary output is driven by the serializer's
+    // `!to "<name>.prg", cbm` directive, NOT `-o` — passing `-o` makes ACME emit
+    // headerless "plain" output, dropping the c64 PRG load-address header.
     expect(Array.isArray(argv)).toBe(true);
-    expect(argv).toContain("-o");
-    expect(argv).toContain("/build/main.prg");
+    expect(argv).not.toContain("-o");
     expect(argv).toContain("-l");
     expect(argv).toContain("/build/main.lbl");
     expect(argv).toContain("--report");

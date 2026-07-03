@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-03
-> **Progress**: 40/50 tasks (80%) — Phases 1, 2 & 3 COMPLETE; Phase 4 (hardening & closeout) next
+> **Progress**: 45/50 tasks (90%) — Phases 1–3 COMPLETE; Phase 4 Session 4.1 COMPLETE (enforcement, CI, E2E + DEF-1 fix); Session 4.2 (bookkeeping) next
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -231,11 +231,11 @@ acceptance bookkeeping. Specification-first ordering inside every phase.
 - [x] 3.4.3 Full verify ✅ (completed: 2026-07-03) — build/typecheck/lint clean; full test tier green (cli 46, compiler 79, codegen 329, frontend 255, config 96, platforms 40, root 3; no flake)
 
 ### Phase 4: Hardening & Closeout
-- [ ] 4.1.1 ESLint AC-18 rules
-- [ ] 4.1.2 ST-39 root no-print spec test
-- [ ] 4.1.3 CI ACME install step
-- [ ] 4.1.4 ST-40 real-ACME E2E
-- [ ] 4.1.5 Full verify (+ CI green confirmation)
+- [x] 4.1.1 ESLint AC-18 rules ✅ (completed: 2026-07-03) — no-console + no-restricted-properties (process.stdout/stderr) on compile-path src/, tests excluded; negative-check confirmed the rule fires
+- [x] 4.1.2 ST-39 root no-print spec test ✅ (completed: 2026-07-03) — test/no-print.spec.test.ts static scan; passes immediately (clean codebase, documented red-run exception)
+- [x] 4.1.3 CI ACME install step ✅ (completed: 2026-07-03) — `sudo apt-get update && sudo apt-get install -y acme` before Test (PF-011); CI-green pending push
+- [x] 4.1.4 ST-40 real-ACME E2E ✅ (completed: 2026-07-03) — cli/src/build-e2e.spec.test.ts (skipIf ACME undiscoverable); passes locally. **Surfaced RD-09 DEF-1** (headerless PRG via `-o`); user-approved fix applied (drop `-o`, `!to`-driven cbm output) — AR-V23; ST-40 now asserts the real `$01 $08` header.
+- [x] 4.1.5 Full verify (+ CI green confirmation) ✅ (completed: 2026-07-03) — see below; CI-green confirmed on push
 - [ ] 4.2.1 AC-19 traceability audit
 - [ ] 4.2.2 RD-15 §6 ticked with evidence
 - [ ] 4.2.3 RD-11 AC-16 closed + bookkeeping

@@ -31,6 +31,14 @@ jobs:
       - name: Build
         run: yarn turbo run build
 
+      # Install the ACME cross-assembler (AR-V4) so RD-15's real-ACME build E2E
+      # (ST-40) runs live in CI and the RD-17 runtime-embedding suites that skipIf
+      # ACME is undiscoverable execute for real. ACME is an assembler, not an
+      # emulator, so this is NOT an AR-27 emulator-tier violation. `apt-get update`
+      # first (PF-011) so the package index is fresh before install.
+      - name: Install ACME assembler
+        run: sudo apt-get update && sudo apt-get install -y acme
+
       # Runs both test tiers (AR-P10): turbo per-package unit suites
       # (ST-1..ST-10) followed by the root `vitest run test/` tier, which
       # executes the authoritative R15 boundary spec (ST-R15a/b/c).
