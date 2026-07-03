@@ -25,7 +25,7 @@ function invocation(): AcmeInvocation {
 }
 
 describe("invokeAcme — argv & process shape", () => {
-  it("passes an explicit argv array (no shell) including label and report flags", async () => {
+  it("passes an explicit argv array (no shell) including vicelabels and report flags", async () => {
     const bag = createDiagnosticBag();
     const run = vi.fn(
       async (_exe: string, _argv: readonly string[], _cwd: string) => ({
@@ -40,13 +40,17 @@ describe("invokeAcme — argv & process shape", () => {
     const [exe, argv, cwd] = run.mock.calls[0];
     expect(exe).toBe("/usr/bin/acme");
     expect(cwd).toBe("/build");
-    // argv is an array (injection-safe), and carries -l, --report, and the .asm.
+    // argv is an array (injection-safe), and carries --vicelabels, --report, and
+    // the .asm. Note (DEF-2 / AR-H7): the label flag is `--vicelabels`, NOT `-l` —
+    // ACME's `-l`/`--symbollist` writes a native format `parseLabelFile` cannot
+    // read, leaving `symbolMap` empty for every real build.
     // Note (AR-V23 / DEF-1): the binary output is driven by the serializer's
     // `!to "<name>.prg", cbm` directive, NOT `-o` — passing `-o` makes ACME emit
     // headerless "plain" output, dropping the c64 PRG load-address header.
     expect(Array.isArray(argv)).toBe(true);
     expect(argv).not.toContain("-o");
-    expect(argv).toContain("-l");
+    expect(argv).not.toContain("-l");
+    expect(argv).toContain("--vicelabels");
     expect(argv).toContain("/build/main.lbl");
     expect(argv).toContain("--report");
     expect(argv).toContain("/build/main.report");

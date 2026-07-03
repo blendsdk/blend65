@@ -2,9 +2,11 @@
  * RD-09 VICE label-file parser — `parseLabelFile`
  * (`plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, R45–R47; §4.6, AR-67).
  *
- * ACME's `-l`/`--labeldump` output is a VICE-format symbol file: one line per
+ * ACME's `--vicelabels` output is a VICE-format symbol file: one line per
  * symbol, `al C:xxxx .label_name`, where `C:` is the VICE "compute" address-space
- * prefix and `xxxx` is the 4-digit hex address. This parser turns that text into a
+ * prefix and `xxxx` is the 4-digit hex address. (ACME's `-l`/`--symbollist`, by
+ * contrast, writes a native `<name> = $<addr>` format this parser cannot read —
+ * DEF-2/AR-H7, why `invokeAcme` uses `--vicelabels`.) This parser turns that text into a
  * `Map<string, number>` (symbol → address) used downstream by the resource report
  * (RD-11) and the test harness's `runUntilLabel` (RD-12).
  *
@@ -30,7 +32,7 @@ const LABEL_LINE = /^al\s+C:([0-9a-fA-F]{4})\s+\.(.+)$/;
 /**
  * Parse a VICE label file into a symbol→address map (R45–R47).
  *
- * @param content The raw label-file text (as produced by ACME's `-l` output).
+ * @param content The raw label-file text (as produced by ACME's `--vicelabels` output).
  * @returns A map from label name to its absolute address. Unparseable lines are
  *   skipped (R47); empty input yields an empty map.
  */

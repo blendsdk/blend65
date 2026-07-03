@@ -10,7 +10,23 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-03 (**RD-12 RD-Preflighted 🔎** — requirements preflight iteration 1: 0 critical / 0 major / 6 minor / 2 observations, all applied to the RD-12 doc; both initially-MAJOR findings knocked down by a blind challenger (the interim `mos6502-interpreter.ts` self-declares "RD-12 supersedes this" & is ACME-gated, not an AR-27 violation; RD-12 has its own AC-14 distinct from RD-17's inherited one). RD-12 now cross-references the interim interpreter, discharges RD-17's AC-14 (§5), binds R27/R28 to RD-15 `BuildResult`, pins R19 keys to `parseLabelFile`, adds R7a platform→emulator registry. Ready for `make_plan`. Earlier same day: **RD-15 ✅ COMPLETE** — exec_plan 50/50 tasks, 4 phases, full workspace verify + CI green. Phase 4: AC-18 no-print enforcement (ESLint no-console/no-restricted-properties + ST-39 root witness), CI ACME install, the ST-40 real-ACME build E2E (header-bearing c64 PRG), AC-01..20 ticked with ST evidence + the AC-19 traceability audit, and RD-11 AC-16/AC-10/AC-21 closed. Surfaced & fixed a latent RD-09 defect (DEF-1/AR-V23): `invokeAcme` dropped `-o` so the `!to ...,cbm` directive drives a loadable header-bearing PRG. Phase 3: `@blend65/cli` ships the full `blendc` command — yargs@17 parsing (default-build alias, `check`, PF-009 help/version routing), zero-dependency color (AR-V2), stderr/stdout split, `--emit-*` writes, and the R50 exit ladder. Phase 2: `@blend65/compiler` now ships the `api/` facade — `compile` (frontend-only, the LSP path), `emitIl`/`emitAsm` (partial pipelines with the PF-001 `assembleProgram` override seam threading `--out-name`/`--startup`), and `build` (full ACME pipeline: injectable `BuildDeps`, canonical `checkBinaryBudget` E10034, binary read-back) — all over one `runFrontend` core with two-bag config/pipeline diagnostics and a single R21 `outName` derivation. Full workspace verify green. Earlier Phase 1/4: `@blend65/core` ships the `CompilerHost` interface + host barrel; `@blend65/compiler` ships `DiskCompilerHost` (tinyglobby R47 globs + projectRoot containment + lexicographic sort); driver codes E10250/E10251 added; PF-002 `BuildResult`→`EmitBinaryResult` rename landed with the AR-V5 cross-ref; AR-V2/V20/V21/V22 back-propagated to the requirements register as AR-106..109. Full workspace verify green. Earlier: RD-15 plan **preflighted** 🔬 — iteration 1: 13 findings (3 major/7 minor/3 observation) all resolved on the recommended option & applied to the plan docs; register grew to 22 items (V20 `cwd`, V21 exit-3 ICE band, V22 caret deferral); next: exec_plan. Earlier same day: RD-15 plan created — 4 phases / 13 sessions / 50 tasks, gate PASSED with 19 items. Earlier same day: RD-11b ✅ COMPLETE — exec_plan 39/39 tasks, 4 phases: `SourceMap` registry, severity policy, terminal/JSON diagnostic renderers (Ch 14 §1 goldens + R52 security tier), `ResourceReport` builder + `checkBinaryBudget` + Ch 11 §6 build-summary renderers; RD-11 §6 boxes AC-08/09/11–15/17–20 closed, AC-16 flag half → RD-15; full workspace verify green, core 237 tests; next: RD-15 make_plan)
+> **Last Updated**: 2026-07-03 (**RD-12 Plan Preflighted 🔬** — plan preflight iteration 1:
+> 0 critical / 0 major / 2 minor / 2 observation; all 4 findings fixed & applied to the plan
+> docs. An independent challenger lowered the top finding (undeclared `@blend65/codegen`
+> test-scope dep + omitted tsconfig refs + AR-H11/dep-table inaccuracy) from MAJOR to MINOR by
+> refuting "build-blocking" — Yarn-classic hoisting resolves the import (`eslint.config.mjs`
+> is the real R15 gate). Also fixed: gate/RD-17 suites now `skipIf(!hasVice() || !hasAcme())`
+> since they compile via ACME (PF-002); ST-02's exact `$0819`/`$080d` moved to a
+> build-sensitive impl smoke test, ST-01 keeps the immutable DEF-2 oracle (PF-003); `runFrames`
+> frame-approximation documented (PF-004). DEF-2 independently re-verified live (`acme
+> --vicelabels` emits `al C:0002 .__zp_arg_0` — 4-hex-digit ZP, regex matches). Report at
+> `plans/rd-12-test-harness/00-preflight-report.md`. Next: exec_plan. Earlier same day:
+> **RD-12 Plan Created 📋** — `make_plan` produced
+> `plans/rd-12-test-harness/`: 4 phases / 10 sessions / 44 tasks, gate PASSED (17 items,
+> AR-H1..H17). Full-RD scope. Grounding surfaced blocking RD-09 defect **DEF-2** (empty
+> `symbolMap` — `-l` vs `--vicelabels`), fixed as Phase 0 with a regression oracle. VICE 3.10
+> + ACME present locally. Next: plan preflight → exec_plan. Earlier same day: **RD-12
+> RD-Preflighted 🔎** — requirements preflight iteration 1: 0 critical / 0 major / 6 minor / 2 observations, all applied to the RD-12 doc; both initially-MAJOR findings knocked down by a blind challenger (the interim `mos6502-interpreter.ts` self-declares "RD-12 supersedes this" & is ACME-gated, not an AR-27 violation; RD-12 has its own AC-14 distinct from RD-17's inherited one). RD-12 now cross-references the interim interpreter, discharges RD-17's AC-14 (§5), binds R27/R28 to RD-15 `BuildResult`, pins R19 keys to `parseLabelFile`, adds R7a platform→emulator registry. Ready for `make_plan`. Earlier same day: **RD-15 ✅ COMPLETE** — exec_plan 50/50 tasks, 4 phases, full workspace verify + CI green. Phase 4: AC-18 no-print enforcement (ESLint no-console/no-restricted-properties + ST-39 root witness), CI ACME install, the ST-40 real-ACME build E2E (header-bearing c64 PRG), AC-01..20 ticked with ST evidence + the AC-19 traceability audit, and RD-11 AC-16/AC-10/AC-21 closed. Surfaced & fixed a latent RD-09 defect (DEF-1/AR-V23): `invokeAcme` dropped `-o` so the `!to ...,cbm` directive drives a loadable header-bearing PRG. Phase 3: `@blend65/cli` ships the full `blendc` command — yargs@17 parsing (default-build alias, `check`, PF-009 help/version routing), zero-dependency color (AR-V2), stderr/stdout split, `--emit-*` writes, and the R50 exit ladder. Phase 2: `@blend65/compiler` now ships the `api/` facade — `compile` (frontend-only, the LSP path), `emitIl`/`emitAsm` (partial pipelines with the PF-001 `assembleProgram` override seam threading `--out-name`/`--startup`), and `build` (full ACME pipeline: injectable `BuildDeps`, canonical `checkBinaryBudget` E10034, binary read-back) — all over one `runFrontend` core with two-bag config/pipeline diagnostics and a single R21 `outName` derivation. Full workspace verify green. Earlier Phase 1/4: `@blend65/core` ships the `CompilerHost` interface + host barrel; `@blend65/compiler` ships `DiskCompilerHost` (tinyglobby R47 globs + projectRoot containment + lexicographic sort); driver codes E10250/E10251 added; PF-002 `BuildResult`→`EmitBinaryResult` rename landed with the AR-V5 cross-ref; AR-V2/V20/V21/V22 back-propagated to the requirements register as AR-106..109. Full workspace verify green. Earlier: RD-15 plan **preflighted** 🔬 — iteration 1: 13 findings (3 major/7 minor/3 observation) all resolved on the recommended option & applied to the plan docs; register grew to 22 items (V20 `cwd`, V21 exit-3 ICE band, V22 caret deferral); next: exec_plan. Earlier same day: RD-15 plan created — 4 phases / 13 sessions / 50 tasks, gate PASSED with 19 items. Earlier same day: RD-11b ✅ COMPLETE — exec_plan 39/39 tasks, 4 phases: `SourceMap` registry, severity policy, terminal/JSON diagnostic renderers (Ch 14 §1 goldens + R52 security tier), `ResourceReport` builder + `checkBinaryBudget` + Ch 11 §6 build-summary renderers; RD-11 §6 boxes AC-08/09/11–15/17–20 closed, AC-16 flag half → RD-15; full workspace verify green, core 237 tests; next: RD-15 make_plan)
 
 
 ---
@@ -60,17 +76,20 @@
   recorded in the RD header. RD-15's requirements preflight passed earlier the same day
   (10 findings; its PF-001 reordered RD-11b ahead of RD-15).
 - **Next up**: **RD-12** (test harness & emulator verification) — workflow position:
-  **RD Preflighted 🔎 (2026-07-03), ready for `make_plan`**. Requirements preflight
-  iteration 1 found 0 critical / 0 major / 6 minor / 2 observations — all applied to the
-  RD-12 doc (`requirements/00-preflight-report.md`). Both findings initially rated MAJOR
-  (the in-process interpreter allegedly making the taxonomy stale; the AC-14 gap) were
-  knocked down by a blind challenger: the interim `mos6502-interpreter.ts` self-declares
-  "RD-12 supersedes this," is ACME-gated (not an AR-27 emulator-tier violation), and RD-12
-  has its *own* AC-14 distinct from RD-17's inherited one. Doc now cross-references the
-  interim interpreter (§3.1), discharges RD-17's inherited AC-14 (§5), binds R27/R28 to
-  RD-15's `BuildResult`, pins R19 symbol keys to `parseLabelFile`, and adds a harness-
-  internal platform→emulator registry (R7a). RD-12 is unblocked (RD-09/RD-15 + CI ACME +
-  the DEF-1 header fix all landed). Next: `make_plan` → plan preflight → exec_plan.
+  **Plan Created 📋 (2026-07-03), ready for plan preflight**. Plan at
+  `codeops/features/blend65-ri/plans/rd-12-test-harness/` — 4 phases / 10 sessions / 44
+  tasks, Zero-Ambiguity Gate PASSED with 17 items (AR-H1..H17). Scope: full RD (all 16 ACs),
+  phased. Locked decisions: depend on `@blend65/compiler` and reuse `parseLabelFile` +
+  `BuildResult` (H2); prove emulator/RD-17 tests green **locally on VICE 3.10** while
+  `skipIf` keeps CI green (H3); hand-rolled zero-dep PNG screenshots (H4); bounded RD-17
+  AC-14 vectors (H5); relaunch VICE per binary (H6). **Grounding surfaced a blocking latent
+  RD-09 defect — DEF-2:** `invokeAcme` passes `-l` (ACME-native `name = $addr`) instead of
+  `--vicelabels`, so `parseLabelFile` yields an **empty `symbolMap`** for every real build
+  (verified: gate build → `symbolMap.size === 0`); RD-12's label sync + symbolic
+  `assertMemory` need it, so the plan fixes it as **Phase 0** with a regression oracle
+  (verified live: `--vicelabels` → `al C:0819 ._main`, `al C:080d .__startup`). Real gate
+  symbols pinned: `_main=$0819`, `__startup=$080d`, `__zp_arg_0..3=$02..$05`. VICE 3.10 +
+  ACME both installed locally → every tier buildable now. Next: plan preflight → exec_plan.
 
 
 
@@ -133,7 +152,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
 | 1 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` | A | ✅ COMPLETE (2026-07-03 — 50/50 tasks, 4 phases: host + driver codes + PF-002 rename; the full compile/emitIl/emitAsm/build facade (PF-001 codegen seam); the full `blendc` CLI (yargs, zero-dep color, R50 exit codes); AC-18 no-print enforcement + ST-39; CI ACME + ST-40 real-ACME E2E. AC-01..20 ticked; RD-11 AC-16/10/21 closed. Fixed RD-09 DEF-1 (headerless PRG → `!to`-driven cbm). Full verify + CI green.) |
-| 2 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01, RD-09, RD-10, RD-15, RD-17 | `requirements/00-preflight-report.md` | A | 🔎 RD Preflighted (2026-07-03 — iteration 1: 0 crit / 0 major / 6 minor / 2 obs, all applied; two initially-MAJOR findings knocked down by a blind challenger. Needs `make_plan` next.) |
+| 2 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01, RD-09, RD-10, RD-15, RD-17 | `codeops/features/blend65-ri/plans/rd-12-test-harness/` | A | 🔄 Executing (2026-07-03 — Phase 0 COMPLETE 6/44: DEF-2 fixed — `invokeAcme` now emits `--vicelabels` so real builds populate `symbolMap`; regression oracle (ST-01/ST-02) + build-sensitive smoke green; full workspace verify green, no RD-09/RD-15 regression. Next: Phase 1 driver & VICE protocol. Earlier: 🔬 Plan Preflighted — preflight iteration 1: 0 critical / 0 major / 2 minor / 2 observation, all 4 fixed & applied; report `plans/rd-12-test-harness/00-preflight-report.md`. Top finding lowered MAJOR→MINOR by a challenger (undeclared `@blend65/codegen` test-scope dep + tsconfig refs — not build-blocking under Yarn hoisting). Also: gate/RD-17 suites skipIf VICE+ACME (PF-002); ST-02 exact addrs → impl smoke, ST-01 keeps DEF-2 oracle (PF-003); runFrames approximation documented (PF-004). DEF-2 re-verified live. Earlier: 📋 Plan Created — 4 phases / 10 sessions / 44 tasks; gate PASSED with 17 items (AR-H1..H17); DEF-2 fixed as Phase 0. Next: exec_plan.) |
 | 3 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 

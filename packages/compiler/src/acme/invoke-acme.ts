@@ -38,7 +38,7 @@ export interface AcmeInvocation {
   readonly asmPath: string;
   /** Desired output binary path (e.g. `<out>/main.prg`). */
   readonly binaryPath: string;
-  /** Desired VICE label-file path (ACME `-l`). */
+  /** Desired VICE label-file path (ACME `--vicelabels`). */
   readonly labelPath: string;
   /** ACME `--report` file path (diagnostic capture). */
   readonly reportPath: string;
@@ -98,8 +98,12 @@ export interface AcmeRunner {
  * @returns The argv array passed to ACME (no shell interpolation).
  */
 function acmeArgv(inv: AcmeInvocation): string[] {
+  // --vicelabels (NOT -l/--symbollist): ACME's -l writes its native
+  // `<name> = $<addr>` format, which `parseLabelFile` cannot read, leaving the
+  // symbol map empty for every real build (DEF-2, RD-12 AR-H7). --vicelabels emits
+  // `al C:xxxx .name` — exactly the VICE format `parseLabelFile` parses.
   return [
-    "-l",
+    "--vicelabels",
     inv.labelPath,
     "--report",
     inv.reportPath,

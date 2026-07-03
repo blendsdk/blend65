@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔎 RD-Preflighted (0 crit/0 major/6 minor/2 obs, all applied; 2 MAJORs knocked down by a blind challenger) — ready for make_plan | 17/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔄 Executing (2026-07-03 — Phase 0 COMPLETE 6/44: DEF-2 fixed, `invokeAcme` emits `--vicelabels` → real builds populate `symbolMap`; regression oracle green, full verify green. Next: Phase 1 driver & VICE protocol) | 17/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -23,6 +23,15 @@
 
 ## Notes
 
+- 2026-07-03: **RD-12 📋 Plan Created** — `make_plan` produced
+  `features/blend65-ri/plans/rd-12-test-harness/` (4 phases / 10 sessions / 44 tasks;
+  Zero-Ambiguity Gate PASSED, 17 items AR-H1..H17). Full-RD scope. Locked: depend on
+  `@blend65/compiler` + reuse `parseLabelFile`/`BuildResult`; prove emulator/RD-17 tests green
+  locally on VICE 3.10 (skipIf keeps CI green); hand-rolled zero-dep PNG; bounded RD-17 AC-14
+  vectors; relaunch VICE per binary. **Grounding surfaced a blocking latent RD-09 defect
+  (DEF-2):** `invokeAcme` uses `-l` not `--vicelabels`, so every real build returns an empty
+  `symbolMap` — fixed as Phase 0 with a regression oracle (verified live). Real gate symbols
+  pinned (`_main=$0819`, `__startup=$080d`). Next: plan preflight → exec_plan.
 - 2026-07-03: **RD-12 🔎 RD-Preflighted** — requirements preflight iteration 1: 0 critical /
   0 major / 6 minor / 2 observations, all applied to the RD-12 doc. Both initially-MAJOR
   findings were knocked down by an independent blind challenger (the interim in-process 6502
