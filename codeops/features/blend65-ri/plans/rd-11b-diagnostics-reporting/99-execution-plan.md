@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-03
-> **Progress**: 7/39 tasks (18%)
+> **Progress**: 13/39 tasks (33%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -172,12 +172,12 @@ Commits reference **/gitcm** per the exec_plan skill's commit mode; scope
 - [x] 1.3.2 Full verify green ✅ (completed: 2026-07-03 — install/build/typecheck/lint/test all pass)
 
 ### Phase 2: Severity policy
-- [ ] 2.1.1 ST-6..ST-11 spec tests written
-- [ ] 2.1.2 Red phase verified & recorded
-- [ ] 2.2.1 `severity-policy.ts` implemented
-- [ ] 2.2.2 Barrel export + green phase verified
-- [ ] 2.3.1 Impl tests written
-- [ ] 2.3.2 Full verify green
+- [x] 2.1.1 ST-6..ST-11 spec tests written ✅ (completed: 2026-07-03)
+- [x] 2.1.2 Red phase verified & recorded ✅ (completed: 2026-07-03 — suite fails: `Failed to load url ./severity-policy.js`, module not implemented)
+- [x] 2.2.1 `severity-policy.ts` implemented ✅ (completed: 2026-07-03)
+- [x] 2.2.2 Barrel export + green phase verified ✅ (completed: 2026-07-03 — 6/6 pass unmodified)
+- [x] 2.3.1 Impl tests written ✅ (completed: 2026-07-03)
+- [x] 2.3.2 Full verify green ✅ (completed: 2026-07-03 — note: one flaky `frontend/parser.spec.test.ts` failure in the first parallel run, green on re-run and in isolation; unrelated to RD-11b)
 
 ### Phase 3: Diagnostic renderers
 - [ ] 3.1.1 ST-12..ST-17, ST-19 spec tests written

@@ -18,6 +18,9 @@ export { createSourceMap } from "./source-map.js";
 
 export type { Severity, Diagnostic, DiagnosticOptions } from "./diagnostic.js";
 
+export type { SeverityPolicy } from "./severity-policy.js";
+export { createSeverityPolicy, applySeverityPolicy } from "./severity-policy.js";
+
 export type { DiagCodeValue, IceCodeValue } from "./diagnostic-codes.js";
 export { DiagCode, IceCode, isIceCode } from "./diagnostic-codes.js";
 
