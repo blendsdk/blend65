@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks — the compile/emit/build facade + the full blendc CLI + AC-18 enforcement + real-ACME E2E; fixed RD-09 DEF-1 headerless-PRG). Next: RD-12 (emulator tier) needs make_plan | 17/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔎 RD-Preflighted (0 crit/0 major/6 minor/2 obs, all applied; 2 MAJORs knocked down by a blind challenger) — ready for make_plan | 17/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -23,6 +23,14 @@
 
 ## Notes
 
+- 2026-07-03: **RD-12 🔎 RD-Preflighted** — requirements preflight iteration 1: 0 critical /
+  0 major / 6 minor / 2 observations, all applied to the RD-12 doc. Both initially-MAJOR
+  findings were knocked down by an independent blind challenger (the interim in-process 6502
+  interpreter self-declares "RD-12 supersedes this" and is ACME-gated — not an AR-27
+  emulator-tier violation; RD-12 has its own AC-14 distinct from RD-17's inherited one). The
+  doc now cross-references the interim interpreter, discharges RD-17's AC-14 (§5), binds
+  R27/R28 to RD-15's `BuildResult`, pins R19 symbol keys to `parseLabelFile`, and adds a
+  harness-internal platform→emulator registry (R7a). Ready for `make_plan`.
 - 2026-07-03: **RD-15 ✅ COMPLETE** — exec_plan 50/50 tasks, 4 phases. `@blend65/compiler`
   ships the `compile`/`emitIl`/`emitAsm`/`build` facade (+ `CompilerHost`/`DiskCompilerHost`,
   driver codes E10250/E10251, the PF-001 codegen seam, PF-002 `EmitBinaryResult` rename);

@@ -1,8 +1,9 @@
 # RD-12: Test Harness & Emulator Verification
 
-> **Status**: 🟢 Authored
+> **Status**: 🔎 Preflighted (2026-07-03 — iteration 1: 0 critical, 0 major, 6 minor, 2
+>   observations; all applied. See `00-preflight-report.md`.)
 > **MVP Phase**: A
-> **Depends On**: RD-01
+> **Depends On**: RD-01, RD-09, RD-10, RD-15, RD-17
 > **Implements**: Testing architecture per AR-22..AR-27; Language Guard C4 (unit
 >   testable) and C5 (runtime verifiable)
 > **Owning package(s)**: `@blend65/test-harness` (published pkg, AR-24)
@@ -66,7 +67,18 @@ compiler tests.
 | R2 | **Tier 2: Golden-snapshot tests** | Compile a `.blend` source file, capture deterministic output (tokens, AST JSON, IL text, `.asm` text), compare to a committed golden file. Detect regressions in any compiler stage | AR-22 |
 | R3 | **Tier 3: Emulator-runtime tests** | Compile to binary, load in an emulator, run to a defined sync point, assert register/memory values. This is the C5 verification | AR-22 |
 | R4 | Unit and golden tests run in CI | GitHub Actions runs tier 1+2 on every push/PR. No emulator needed | AR-27 |
-| R5 | Emulator tests are local-only for now | No VICE/display on GitHub Actions runners. Emulator tests run locally and on a future self-hosted build server with headless VICE | AR-27 |
+| R5 | Emulator tests are local-only for now | No VICE/display on GitHub Actions runners. Emulator tests run locally and on a future self-hosted build server with headless VICE. **Note:** this gates the *VICE/display* tier only — an ACME-gated in-process routine executor legitimately runs in CI (see the interim-interpreter note below); ACME is an assembler, not an emulator (no AR-27 conflict) | AR-27 |
+
+> **Interim in-process interpreter (AR-P17 → this RD supersedes it).** RD-17 shipped a
+> minimal, *test-support-only* NMOS-6502 interpreter (`packages/compiler/src/testing/
+> mos6502-interpreter.ts`, `runRoutine(bin, input): CpuState`) to functionally verify its
+> hand-written runtime multiply/divide routines *before this emulator tier existed* — its
+> own header states "RD-12 supersedes this with the real test-harness/emulator tier." It
+> is routine-scoped (RTS-terminated, raw binary loaded at `$8000`, only the opcodes the
+> routines use), ACME-gated (`skipIf` when ACME is absent), and NOT a public API. RD-12
+> **leaves it in place** as a compiler-internal test for now; its role is subsumed by the
+> Tier-3 emulator tests (which discharge RD-17's AC-14 — see §5). A future harness-side
+> routine-level driver MAY absorb it, but that is not required by this RD.
 
 ### 3.2 EmulatorDriver Abstraction
 
@@ -76,6 +88,7 @@ compiler tests.
 | R7 | The MVP driver is `ViceDriver` (VICE x64sc binary monitor) | VICE's x64sc has a binary monitor protocol on a TCP port. The driver connects, sends commands, and reads responses | AR-23 |
 | R8 | The driver supports headless and GUI modes | Headless: VICE runs without display (for CI/scripting). GUI: VICE shows a window (for debugging). Both use the same binary-monitor protocol | AR-24 |
 | R9 | Future drivers can be added for other emulators | x16emu (CX16), Altirra (Atari), Stella/7800 (Atari 7800). The interface is designed to accommodate these | AR-23 |
+| R7a | Platform→emulator mapping lives in a harness-internal registry | Since RD-10 profiles carry no emulator config (PF-006), a small harness-owned table maps `platform` → `{ driver, executable-name, default launch args }`. MVP: only the `c64` → VICE `x64sc` entry is populated; other platforms register as their drivers land. A future RD MAY migrate this into the platform profile | Design (PF-006) |
 
 ### 3.3 VICE Binary Monitor Protocol
 
@@ -95,7 +108,7 @@ compiler tests.
 |---|-------------|---------------------|--------|
 | R17 | Registers and memory are the primary assertion surface | Tests assert specific register values (A, X, Y) and memory contents at specific addresses after program execution reaches a sync point. These are deterministic and binary-comparable | AR-25 |
 | R18 | Screenshots are failure artifacts, not golden assertions | Screenshots are captured on test failure for human debugging. They are NOT compared to golden images (avoids flaky pixel diffs across emulator versions) | AR-25 |
-| R19 | Assertions use symbolic names where possible | Instead of raw addresses, tests use label names from the VICE label file (RD-09 AR-67): `assertMemory('_main.score', 42)` resolves the label to an address | AR-25, AR-67 |
+| R19 | Assertions use symbolic names where possible | Instead of raw addresses, tests use label names from the VICE label file (RD-09 AR-67). Keys match exactly what `parseLabelFile` (`compiler/src/acme/label-file.ts`) emits: the **raw label with the leading `.` and `C:` prefix stripped** (e.g. `assertMemory('score', 42)`, not `.score`/`C:score`). The exact spelling of a given symbol (e.g. mangling of `main`-scoped locals) follows the codegen label-naming convention — the plan MUST pin the concrete form against real ACME output, not assume a `_main.score` shape | AR-25, AR-67 |
 
 ### 3.5 Run Strategies
 
@@ -113,8 +126,9 @@ compiler tests.
 |---|-------------|---------------------|--------|
 | R25 | The harness is usable from Vitest test files | Tests import from `@blend65/test-harness` and use the API within `describe`/`it` blocks. The harness manages emulator lifecycle | AR-24 |
 | R26 | The harness handles emulator lifecycle | `beforeAll`: launch VICE, connect to binary monitor. `afterAll`: shut down VICE. `beforeEach`: reset state, load new binary. This is encapsulated in a test fixture | AR-24 |
-| R27 | The harness accepts a `BuildResult` or binary path | Tests can either compile a program inline (using the compiler API) and pass the result, or load a pre-compiled binary by path | AR-24 |
-| R28 | The harness loads the label file automatically | When given a `BuildResult`, the harness uses the symbol map for label-based breakpoints and assertions. When given a binary path, the harness looks for a `.lbl` file alongside | AR-67 |
+| R27 | The harness accepts a `BuildResult` or binary path | Tests can either compile a program inline (using the RD-15 compiler API `build()`) and pass its `BuildResult`, or load a pre-compiled binary by path. The concrete type is `@blend65/compiler`'s facade **`BuildResult`** (`compiler/src/api/results.ts`) — fields `binaryPath?`, `binary?: Uint8Array`, `symbolMap?: Map<string, number>`. **NB:** the ACME-layer aggregate `EmitBinaryResult` (RD-09/RD-15 PF-002) is a different, lower-level type — the harness binds to the facade `BuildResult`, not `EmitBinaryResult` | AR-24, RD-15 |
+| R28 | The harness loads the label file automatically | When given a `BuildResult`, the harness uses its `symbolMap` for label-based breakpoints and assertions. When given a binary path, the harness looks for a `.lbl` file alongside and parses it via RD-09's `parseLabelFile` shape | AR-67 |
+| R28a | Tier artifacts have different shapes | **Note (PF-008):** the VICE tier loads a **header-bearing** c64 `.prg` (the DEF-1/AR-V23 fix ensures the `$01 $08` load header exists), whereas the interim in-process interpreter loads a **headerless** raw binary at `$8000`. The plan must wire each tier to the correct artifact form — a VICE tier fed a headerless blob (or an interpreter fed a PRG header) will misbehave | Design (PF-008) |
 
 ### 3.7 Golden-Snapshot Testing
 
@@ -123,7 +137,7 @@ compiler tests.
 | R29 | Golden files are committed to the repository | Each golden test has a `.blend` input and one or more `.golden` output files (e.g., `.tokens.golden`, `.ast.golden`, `.il.golden`, `.asm.golden`) | AR-22 |
 | R30 | Golden comparison is exact (byte-for-byte) | The test compiles the `.blend` file, captures the output at the relevant stage, and compares to the golden file. Any difference is a failure | H5 |
 | R31 | Golden files are updated with a `--update-golden` flag | When the compiler output intentionally changes, running tests with `--update-golden` overwrites the golden files. This is a manual developer action | Design |
-| R32 | Golden test helper utilities are provided | `assertGolden(actual: string, goldenPath: string)` — compares and reports diff on failure. Lives in `@blend65/test-harness` or a test-utils module | Design |
+| R32 | Golden test helper utilities are provided | `assertGolden(actual: string, goldenPath: string)` — compares and reports diff on failure. Lives in `@blend65/test-harness` or a test-utils module. **Note (PF-007):** this committed-`.golden`-file helper is **net-new** — the 7 existing `*.golden.spec.test.ts` suites use inline expected strings and are NOT required to migrate; the helper is for new golden tests | Design |
 
 ### 3.8 Published Package
 
@@ -316,9 +330,10 @@ async function setupEmulator(options: {
 |----|--------------|
 | RD-01 | Package structure: `@blend65/test-harness` is a published package in the monorepo |
 | RD-09 | **Artifact provider**: the VICE label file (symbol map) enables `runUntilLabel` and symbolic `assertMemory` |
-| RD-10 | **Consumer**: platform profile determines which emulator to launch and how to configure it |
+| RD-10 | **Consumer**: the `platform` selects which emulator + launch args to use. **NB:** RD-10 profiles do **not** currently carry emulator config (executable, monitor port, ROMs) — so for the MVP the platform→emulator mapping lives in a **harness-internal registry** (see R7a), not the profile. Extending the platform profile with an emulator descriptor is a future enhancement |
 | RD-11 | **Consumer**: test failures may reference diagnostic codes for expected-error tests |
-| RD-15 | **Consumer**: compiler API enables compile-and-test workflows within test files |
+| RD-15 | **Consumer**: compiler API `BuildResult` (`symbolMap`/`binaryPath`/`binary`) drives compile-and-test workflows (R27/R28) |
+| RD-17 | **Discharges RD-17's deferred AC-14** (AR-P4): RD-17's runtime multiply/divide routines are verified only assemble-level + by an interim in-process interpreter (AR-P17); RD-12's Tier-3 emulator tests MUST include vectors that verify those `__rt_*` routines on a real emulator, closing RD-17's inherited AC-14. **NB:** this inherited AC-14 is distinct from RD-12's own AC-14 (§6, "publishable package"). |
 
 ---
 
