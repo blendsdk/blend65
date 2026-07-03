@@ -13,6 +13,9 @@ export { makeSpan } from "./source-span.js";
 
 export { LineMap } from "./line-map.js";
 
+export type { SourceMap } from "./source-map.js";
+export { createSourceMap } from "./source-map.js";
+
 export type { Severity, Diagnostic, DiagnosticOptions } from "./diagnostic.js";
 
 export type { DiagCodeValue, IceCodeValue } from "./diagnostic-codes.js";
