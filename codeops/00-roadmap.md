@@ -1,7 +1,7 @@
 # Portfolio Roadmap: blend65.ri
 
 > **Status**: Active
-> **Last Updated**: 2026-07-02
+> **Last Updated**: 2026-07-03
 > **Features**: 0 / 1 done
 > **CodeOps Skills Version**: 3.0.0
 
@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-11 requirements preflighted ✅ (14 findings resolved; runtime AR-102) — next: RD-11b (diagnostics remainder & resource reporter) make_plan, then RD-15 | 15/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-11b executing 🔄 (exec_plan started 2026-07-03; Phase 1 SourceMap underway) — then RD-15 | 15/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -61,3 +61,20 @@
   `SourceMap.getLineMap` ownership, ANSI-in-core, unresolvable-span fallback R51, excerpt
   sanitization R52; 4 observations), all fixes applied to RD-11, RD-15 §4.4, and the
   register. RD-11b advanced to "RD preflighted", next step make_plan.
+- 2026-07-03: RD-11b implementation plan created via make_plan at
+  `features/blend65-ri/plans/rd-11b-diagnostics-reporting/` (4 phases / 12 sessions /
+  39 tasks). Zero-Ambiguity Gate PASSED — 16 items; one independent challenger run on
+  the ResourceReport cluster (converged ×3, diverged ×1 → adopted + user-ratified).
+  Plan-gate amendments back-propagated into RD-11 as runtime AR-103 (ResourceReport
+  completion + core aggregator + checkBinaryBudget), AR-104 (SourceMap semantics +
+  has()), AR-105 (renderer presentation contract). Next: RD-11b plan preflight.
+- 2026-07-03: RD-11b plan preflight ✅ PASSED WITH NOTES — 6 findings (0 critical/major;
+  4 minor, all resolved per recommendation: ST-12 caret-span vs Ch 14 §1 golden mismatch,
+  export-surface bookkeeping incl. missing `BuildResourceReportInputs`, RD R51
+  degraded-path wording amendment (notes/help render — AR-105 addendum), gutter-width
+  pinning (per-excerpt width + fixed 3-space degraded indent); 2 observations left
+  open-optional: `-->` path sanitization, `checkBinaryBudget` cap/dedup JSDoc). All 31
+  codebase references verified — zero phantom/stale. Report:
+  `features/blend65-ri/plans/rd-11b-diagnostics-reporting/00-preflight-report.md`.
+  RD-11b advanced to "Plan preflighted"; the four resolved fixes applied same day
+  (plan docs + RD-11 R51 amendment + AR-105 addendum in the register). Next: exec_plan.

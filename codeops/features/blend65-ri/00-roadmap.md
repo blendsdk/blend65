@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-03 (RD-11 requirements preflight ✅ PASSED — 14 findings resolved, fixes applied, runtime AR-102 logged; next: RD-11b `make_plan`)
+> **Last Updated**: 2026-07-03 (RD-11b plan preflight ✅ PASSED WITH NOTES — 6 findings: 4 minor resolved & fixes applied (incl. the RD-11 R51 wording amendment, AR-105 addendum), 2 observations open-optional; `plans/rd-11b-diagnostics-reporting/00-preflight-report.md`; next: exec_plan)
 
 
 ---
@@ -38,9 +38,16 @@
   (10 findings; its PF-001 reordered RD-11b ahead of RD-15).
 - **Next up**: **RD-11b** (diagnostics remainder & resource reporter) — dependencies
   RD-11a (✅), RD-09 (✅) all met; its aggregator inputs (`AllocationPlan`, ACME label
-  file, profile budgets) are all shipped. Workflow position: **make_plan** (requirements
-  preflighted; no plan directory yet). RD-15 follows at **make_plan** (requirements
-  already preflighted).
+  file, profile budgets) are all shipped. Workflow position: **exec_plan** — the
+  implementation plan (created 2026-07-03 at
+  `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/`, 4 phases /
+  12 sessions / 39 tasks; Zero-Ambiguity Gate PASSED with 16 items; plan-gate
+  amendments AR-103..AR-105 back-propagated into RD-11 §4.2/§4.6–§4.8) passed its
+  plan preflight ✅ WITH NOTES the same day (6 findings: 4 minor resolved per
+  recommendation and fixes applied — ST-12 caret span, export-list bookkeeping,
+  RD R51 degraded-path wording amendment (AR-105 addendum), gutter-width pinning;
+  2 open-optional observations — see `00-preflight-report.md`). RD-15 follows at
+  **make_plan** (requirements already preflighted).
 
 
 
@@ -101,7 +108,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-11b | Diagnostics remainder & resource reporter (severity policy, renderers, `SourceMap`, `ResourceReport`) | RD-11a (+ RD-09) | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
+| 1 | RD-11b | Diagnostics remainder & resource reporter (severity policy, renderers, `SourceMap`, `ResourceReport`) | RD-11a (+ RD-09) | `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/` | A | 🔄 Executing (started 2026-07-03) |
 | 2 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
 | 3 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |

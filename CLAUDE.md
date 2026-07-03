@@ -206,9 +206,14 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   RD-11's and RD-15's requirements are both preflighted (2026-07-03; RD-15's PF-001
   reordered RD-11b ahead of it; RD-11's preflight rebuilt `ResourceReport` on the shipped
   `SfaResourceData` and pinned the Ch 11 §6 build-summary layout — runtime AR-102).
-  **Next up: RD-11b** at `make_plan` (severity policy, diagnostic/report renderers,
-  `SourceMap`, `ResourceReport`), then RD-15 (CLI/programmatic driver), then RD-12
-  (emulator tier — includes RD-17's deferred AC-14);
+  **Next up: RD-11b** at exec_plan — plan authored 2026-07-03 at
+  `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/` (severity policy,
+  diagnostic/report renderers, `SourceMap`, `ResourceReport`; plan-gate amendments
+  AR-103..AR-105 back-propagated into RD-11) and plan-preflighted ✅ WITH NOTES the
+  same day (4 minor findings resolved & fixes applied — incl. the RD-11 R51 wording
+  amendment recorded as an AR-105 addendum; 2 open-optional observations — see the
+  plan's `00-preflight-report.md`) — then RD-15 (CLI/programmatic driver),
+  then RD-12 (emulator tier — includes RD-17's deferred AC-14);
   see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
 - This repository keeps a living implementation tracker at

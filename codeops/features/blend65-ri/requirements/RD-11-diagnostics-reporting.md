@@ -8,7 +8,7 @@
 > **Owning package(s)**: `@blend65/core` (diagnostics engine, span model, severity
 >   policy, renderers, resource reporter)
 > **Created**: 2026-05-31
-> **Last Updated**: 2026-07-03 (requirements preflight PF-001..PF-014 fixes applied — see `00-preflight-report.md`)
+> **Last Updated**: 2026-07-03 (R51 degraded-path wording amended per the RD-11b plan preflight — AR-105 addendum; earlier same day: RD-11b plan-gate amendments AR-103..AR-105 applied — see `00-ambiguity-register.md`; requirements preflight PF-001..PF-014 fixes — see `00-preflight-report.md`)
 
 > **Implementation status (2026-07-03):** RD-11 is implemented in two slices per the
 > RD-11a plan's AR-Q1 split. **RD-11a — shipped ✅** (archived at
@@ -146,10 +146,10 @@ their program fits on constrained 6502 platforms (AR-83).
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
 | R32 | Multiple renderers consume the same `Diagnostic[]` | Renderers never re-derive meaning — they only format structured data | AR-76 |
-| R33 | Terminal renderer produces the Ch 14 caret format | The format from Ch 14 §1: code + message + file:line:col + source excerpt with caret. Respects AR-17 conditional color — implemented as hand-rolled ANSI SGR constants in core (no chalk in core, preserving its zero-dependency posture; chalk stays CLI-only). Multi-line spans underline from the span start to the end of the first line; tabs render literally with byte-column caret math (golden-locked). Amended by preflight PF-007/PF-013 | AR-76, AR-17 |
+| R33 | Terminal renderer produces the Ch 14 caret format | The format from Ch 14 §1: code + message + file:line:col + source excerpt with caret. Respects AR-17 conditional color — implemented as hand-rolled ANSI SGR constants in core (no chalk in core, preserving its zero-dependency posture; chalk stays CLI-only). Multi-line spans underline from the span start to the end of the first line; tabs render literally with byte-column caret math (golden-locked). The primary caret line renders carets only — no trailing label (the §1 example's "extra argument" annotation has no `Diagnostic` field; producers use notes/secondary spans, AR-105). Amended by preflight PF-007/PF-013 | AR-76, AR-17, AR-105 |
 | R34 | JSON emitter produces machine-readable output | `--diagnostics-format=json` outputs JSON for tooling/CI/LSP consumption. Each diagnostic is a JSON object | AR-76 |
 | R35 | Renderers use `LineMap` for line/column resolution | Source excerpts and caret positioning resolve line/column via `SourceMap.getLineMap` (PF-006) | AR-72 |
-| R51 | Renderer degrades gracefully for unresolvable spans | A `sourceId` not interned in the `SourceMap` (e.g. the RD-16 config sentinel source id) renders as code + severity + message only — no `-->` line, no source excerpt — and never throws. The JSON renderer emits the raw span verbatim. Added by preflight PF-009 | Design |
+| R51 | Renderer degrades gracefully for unresolvable spans | A `sourceId` not interned in the `SourceMap` (e.g. the RD-16 config sentinel source id) renders as code + severity + message, plus any `notes[]`/`help` lines (compiler-authored, never source-echoed) — no `-->` line, no source excerpt — and never throws. The JSON renderer emits the raw span verbatim. Added by preflight PF-009; degraded-path notes/help retention pinned by the RD-11b plan preflight (AR-105 addendum) | Design |
 | R52 | Echoed source excerpts are sanitized | `renderTerminal` strips C0/C1 control characters (tab excepted — see R33) from echoed source lines so a hostile source file cannot inject terminal escape sequences. Covered by a mandatory security test. Added by preflight PF-010 | Design |
 
 ### 3.8 Library-First API
@@ -183,7 +183,7 @@ their program fits on constrained 6502 platforms (AR-83).
 | # | Requirement | Decision / Behavior | Source |
 |---|-------------|---------------------|--------|
 | R47 | MVP gate: code size + binary size + budget comparisons | The minimal report shows code bytes, binary bytes, and budget headroom (ZP, RAM, binary). Full columns (per-function frame sizes, ZP breakdown) come in slice 2 | AR-84 |
-| R48 | Report shape is defined now, data populated per slice | The `ResourceReport` type is complete from v1, built on the shipped `SfaResourceData` (RD-05 R58 — see §4.6, PF-002). Fields that don't have data yet are zero/undefined. This prevents later reshaping | AR-84 |
+| R48 | Report shape is defined now, data populated per slice | The `ResourceReport` type is complete from v1, built on the shipped `SfaResourceData` (RD-05 R58 — see §4.6, PF-002) and completed against the frozen Ch 11 §6 layout: `platformName`/`targetName`, optional `SegmentRange` fields, `zpAllocations?` and `stackAnalysis?` embeds (AR-103). Fields that don't have data yet are zero/undefined. This prevents later reshaping | AR-84, AR-103 |
 | R49 | Warnings from the report use the AR-75 severity layer | Budget warnings (W10030 frame size, W10033 RAM, W10180 stack depth) are emitted through the `DiagnosticBag` and respect severity policy | AR-85 |
 
 ---
@@ -240,16 +240,23 @@ interface SourceSpan {
 type SourceId = number;  // index into SourceMap
 
 interface SourceMap {
-  /** Intern a source file, returning its SourceId */
+  /**
+   * Intern a source file, returning its SourceId. Path-keyed (AR-104): same
+   * path + same content → same id (no-op); same path + new content → same id,
+   * content replaced, cached LineMap invalidated. Ids are sequential from 0.
+   */
   intern(path: string, content: string): SourceId;
 
-  /** Get path for a SourceId */
+  /** True iff `id` was interned — the renderers' non-throwing R51 probe (AR-104) */
+  has(id: SourceId): boolean;
+
+  /** Get path for a SourceId (throws on unknown id — AR-104) */
   getPath(id: SourceId): string;
 
-  /** Get content for a SourceId */
+  /** Get content for a SourceId (throws on unknown id) */
   getContent(id: SourceId): string;
 
-  /** Get or build the LineMap for a source */
+  /** Get or build the cached LineMap for a source (throws on unknown id) */
   getLineMap(id: SourceId): LineMap;
 }
 
@@ -378,7 +385,18 @@ error[E10042]: 'poke()' expects 2 arguments — found 3
  * verbatim from the shipped `AllocationPlan.resourceData` (RD-05 R58,
  * `@blend65/core/sfa`) — one owner per number, structurally (R41, PF-002).
  */
+/** Inclusive byte addresses, matching the §4.7 display form ($0801–$0CE0). AR-103 */
+interface SegmentRange {
+  start: number;
+  end: number;
+}
+
 interface ResourceReport {
+  // --- Build identity (AR-103: in the type, not renderer options — JSON parity;
+  //     both renderers are single-arg) ---
+  platformName: string;
+  targetName: string;
+
   // --- SFA-owned (pre-ACME) — embedded, not copied (PF-002) ---
   /**
    * `SfaResourceData` from the frozen `AllocationPlan`: frameRegionBytes,
@@ -389,6 +407,20 @@ interface ResourceReport {
    */
   sfa: SfaResourceData;
 
+  /**
+   * ZP breakdown — the shipped `ZpAllocation[]` embedded verbatim (AR-103;
+   * `arg-block` folds into the "Compiler temps" line). Undefined → the ZP
+   * category lines render zeros (AR-102).
+   */
+  zpAllocations?: readonly ZpAllocation[];
+
+  /**
+   * Stack breakdown — the shipped `StackAnalysis` embedded verbatim (AR-103;
+   * the layout's depth/overhead lines have no `SfaResourceData` source).
+   * Undefined → those lines render zeros (AR-102).
+   */
+  stackAnalysis?: StackAnalysis;
+
   // --- ACME-owned (post-ACME) ---
   /** Code segment size in bytes (from label file) */
   codeSize?: number;
@@ -398,6 +430,11 @@ interface ResourceReport {
   binarySize?: number;
   /** Binary budget from profile (`maxBinarySize`) */
   binaryBudget: number;
+  /** Segment address ranges (AR-103); undefined → `($0000–$0000)` placeholder (AR-105) */
+  codeRange?: SegmentRange;
+  dataRange?: SegmentRange;
+  ramRange?: SegmentRange;
+  framesRange?: SegmentRange;
 
   // --- Plugin-owned (AR-80: startup size/cycles from the plugin shim) ---
   /** Startup shim size in bytes */
@@ -414,23 +451,43 @@ interface ResourceReport {
 }
 ```
 
-> **Slice-2 breakdowns reuse shipped types (PF-002):** the ZP allocation breakdown is
-> the shipped `ZpAllocation[]` (`@blend65/core/sfa` — name/address/size/category) and
-> per-function frame sizes derive from `AllocationPlan.frames` — no duplicate
-> `ZpAllocationEntry` type is introduced.
+> **Breakdowns reuse shipped types (PF-002, AR-103):** the ZP allocation breakdown is
+> the shipped `ZpAllocation[]` and the stack breakdown the shipped `StackAnalysis`
+> (both `@blend65/core` SFA records, embedded verbatim — in v1 per AR-103, since R48's
+> anti-reshaping rule outweighs R47's original slice-2 deferral now that the sources
+> shipped with RD-05). Per-function frame sizes still derive from `AllocationPlan.frames`
+> in slice 2 — no duplicate `ZpAllocationEntry` type is introduced.
 
 ### 4.7 Resource Report Renderers
 
 ```typescript
 /**
- * Render resource report as a terminal table (Ch 11 §6 format).
+ * Assemble a ResourceReport from its owners (AR-103): the frozen AllocationPlan
+ * (resourceData/zpAllocations/stackAnalysis embed verbatim) plus pre-extracted
+ * ACME/plugin numbers. Pure — no I/O, no label parsing (the serializer emits no
+ * segment boundary labels; absent inputs render as zeros per AR-102).
+ */
+function buildResourceReport(inputs: BuildResourceReportInputs): ResourceReport;
+
+/**
+ * Post-ACME half of the budget-timing split (R42, AR-103): emits E10034 via the
+ * bag when report.binarySize > report.binaryBudget; no-op when binarySize is
+ * undefined. RD-15 calls this after emitBinary.
+ */
+function checkBinaryBudget(report: ResourceReport, bag: DiagnosticBag): void;
+
+/**
+ * Render resource report as a terminal table (Ch 11 §6 format). Uncolored.
+ * Unpopulated ranges print the ($0000–$0000) placeholder (AR-105) so geometry
+ * never changes across slices (AR-102).
  */
 function renderReportTerminal(report: ResourceReport): string;
 
 /**
  * Render resource report as JSON.
  * Emits plain objects/arrays only — Map-valued data is converted to arrays of
- * entries, since JSON.stringify silently drops Map contents (PF-012).
+ * entries, since JSON.stringify silently drops Map contents (PF-012);
+ * `ruleHits` entries are name-sorted (AR-105).
  */
 function renderReportJson(report: ResourceReport): string;
 ```
@@ -482,9 +539,10 @@ export { SourceMap, createSourceMap };
 export { SeverityPolicy, applySeverityPolicy, createSeverityPolicy };
 export { renderTerminal, renderJson };
 
-// Resource reporting — RD-11b (ZP/frame breakdowns reuse ZpAllocation /
-// AllocationPlan.frames from @blend65/core/sfa — no ZpAllocationEntry, PF-002)
-export { ResourceReport, PeepholeStats };
+// Resource reporting — RD-11b (breakdowns reuse ZpAllocation / StackAnalysis /
+// AllocationPlan.frames from @blend65/core — no ZpAllocationEntry, PF-002/AR-103)
+export { ResourceReport, PeepholeStats, SegmentRange };
+export { buildResourceReport, BuildResourceReportInputs, checkBinaryBudget };
 export { renderReportTerminal, renderReportJson };
 ```
 

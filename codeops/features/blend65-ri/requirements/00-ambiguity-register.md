@@ -2,7 +2,7 @@
 
 > **Status**: ✅ GATE PASSED — discovery closed 2026-05-30; all AR-1..AR-93 resolved; preflight protocol run & recorded (see `01-preflight-checklist.md`); RD authoring unblocked
 
-> **Last Updated**: 2026-07-03 (runtime AR-102 — RD-11 preflight)
+> **Last Updated**: 2026-07-03 (runtime AR-103..AR-105 — RD-11b plan gate; AR-105 addendum — RD-11b plan preflight PF-003; AR-102 — RD-11 preflight)
 
 
 > **Purpose**: Audit trail — every decision in every RD traces to an entry here.
@@ -1085,6 +1085,61 @@ values rather than being dropped, so golden snapshots change values only — nev
 geometry — as slices bring SFA/ACME/plugin data online. Ratifies that the Ch 11 §6
 layout (not RD-11 §4.7's former compact grid) is the normative terminal form, upholding
 AR-82 and AR-84. *(PF-003)*
+
+---
+
+### RD-11b Plan-Gate Resolutions (2026-07-03) — AR-103..AR-105
+
+> Logged per the runtime-ambiguity protocol during the RD-11b `make_plan`
+> Zero-Ambiguity Gate (`plans/rd-11b-diagnostics-reporting/00-ambiguity-register.md`,
+> items Q3–Q11, Q14–Q16). Resolved with the user on 2026-07-03 ("all as
+> recommended" + three explicit per-item selections). One independent challenger
+> was run on the AR-103 cluster (converged on assembly/fields; diverged on the ZP
+> breakdown — its position was adopted and user-ratified).
+
+**AR-103 (runtime):** **`ResourceReport` completed against the frozen layout; core
+ships the aggregator.** §4.6 gains `platformName`/`targetName` (required — JSON
+parity: both renderers are single-arg), optional per-segment `SegmentRange` fields,
+`zpAllocations?: readonly ZpAllocation[]` (breakdown moved into v1 — R48's
+anti-reshaping rule outweighs R47's slice-2 deferral since the source shipped in
+RD-05; `arg-block` folds into the "Compiler temps" line, which has no layout row of
+its own), and `stackAnalysis?: StackAnalysis` (same embed-shipped-type pattern —
+the layout's depth/overhead lines have no `SfaResourceData` source). §4.8 gains a
+pure `buildResourceReport(inputs)` (embeds `AllocationPlan` sub-records verbatim;
+no I/O or label parsing — the serializer emits no segment boundary labels, so
+ACME-owned fields stay undefined → render zero per AR-102) and
+`checkBinaryBudget(report, bag)` (the post-ACME E10034 half of AC-17; RD-15 calls
+it after `emitBinary`). *(plan AR-Q3/Q4/Q5/Q6/Q15)*
+
+**AR-104 (runtime):** **`SourceMap` semantics fixed.** Interning is path-keyed:
+same path + same content → same id (no-op); same path + new content → same id,
+content replaced, cached `LineMap` invalidated (LSP keep-ready, AR-78). Getters
+throw on unknown ids; an additive `has(id): boolean` probe joins §4.2 so renderers
+implement R51 degradation without throwing (the RD-16 `CONFIG_SOURCE_ID = -2`
+sentinel is the concrete case). Ids are sequential from 0 in intern order.
+*(plan AR-Q7)*
+
+**AR-105 (runtime):** **Renderer presentation contract fixed (golden-locked).**
+Primary caret line renders carets only — no trailing label (the shipped RD-11a
+`Diagnostic` record stays frozen; producers use `notes[]`/secondary spans).
+Composition: one blank line between blocks, no summary footer (RD-15's), `= note:`
+/ `= help:` gutter-aligned, secondary spans as own mini-blocks with labels;
+promoted warnings keep their `W` code (`error[W10xxx]`). Color: bold red/yellow
+severity+code, severity-colored carets, cyan gutter, hand-rolled SGR. JSON:
+`renderJson` emits a top-level array mirroring the record with raw spans;
+`renderReportJson` one mirror object with `ruleHits` as name-sorted entries.
+Build-summary numbers: hand-rolled comma grouping, `Math.round` percentages (0%
+on zero budget), §4.7 geometry transcribed verbatim, unpopulated ranges print the
+`($0000–$0000)` placeholder (AC-18's "when available" = real values when
+available; geometry never changes, upholding AR-102), `peepholeStats` absent from
+the terminal form. *(plan AR-Q8/Q9/Q10/Q11/Q14/Q16)*
+
+> **AR-105 addendum (2026-07-03, RD-11b plan preflight PF-003):** degraded (R51)
+> blocks render the header **plus `notes[]`/`help` lines** — these are
+> compiler-authored, never source-echoed — with no `-->` location line and no
+> excerpt. R51's former "code + severity + message only" wording is amended
+> accordingly (the "only" excluded location/excerpt, not notes/help; the concrete
+> R51 consumers — RD-16 config diagnostics — carry their actionability in `help`).
 
 
 
