@@ -1172,6 +1172,71 @@ rejects (id ≥ 0 required) → header-only rendering (no caret). Accepted for v
 `@blend65/config` surface is out of scope (RD-16 shipped); the AR-P2 `sourceId` seam
 (`config/src/validate.ts:47`) is the follow-up. *(plan AR-V22 / plan preflight PF-008)*
 
+---
+
+### RD-18 Add-Requirement Resolutions (2026-07-03) — AR-110..AR-114
+
+> Logged during the `add_requirement` Zero-Ambiguity Gate for **RD-18 — Codegen
+> Language-Feature Completion** (a thin vertical-slice rollout RD). Resolved with the
+> user on 2026-07-03: two structural choices via explicit selection (AR-110/AR-111),
+> then a re-check that ran the recommendation-hardening protocol — self-second-guessing
+> plus one independent adversarial challenger — which converged on the same structure
+> and produced five strengthening adjustments (folded into AR-112..AR-114). Context:
+> the compiler is a deliberate walking skeleton at "slice 2" — parser ~complete, but
+> the semantic middle-end (RD-04 Passes 2/4) is a no-op, starving the built SFA, so
+> nothing past the constant-`poke` gate assembles; see memory `codegen-expansion-rd18`.
+
+**AR-110 (runtime):** **RD-18 = thin, reference-only rollout RD.** The full language
+is already specified in RD-04 (121 reqs), RD-06 ("all 51 node kinds"), RD-07 ("all
+ops") and frozen in `spec/`; the gap is sliced *execution*, not missing requirements.
+RD-18 therefore restates **no** language rule — it references those RDs + `spec/`
+chapters + the `_archive/rd-04-.../08-deferred-semantics-ledger.md` backlog — and only
+defines the rollout: a dependency-ordered sequence of vertical slices. A restatement
+was rejected (duplicates 250+ reqs, risks spec drift); no-RD-plans-only was rejected
+(a vertical slice crossing RD-04→05→06→07 has no single owning RD for its `make_plan`
+input — the rd-07a/b/c precedent was *horizontal*, all under one RD). *(user-selected)*
+
+**AR-111 (runtime):** **The two optimizers are excluded from RD-18 (Phase B).** RD-18
+delivers 100% working *unoptimized* code for the whole language; the IL-optimizer
+passes (RD-06 Phase B, `optimizeIL` = `[]`) and the 11 peephole rules (RD-08 Phase B,
+`V1_RULES = []`) stay under their existing RDs and are tackled *after* full lowering.
+Matches the standing "correctness first, then optimizers" strategy; both seams are
+correctness-preserving passthroughs, so deferral changes no semantics, and RD-11's
+`checkBinaryBudget`/E10034 catches unoptimized bloat loudly. *(user-selected)*
+
+**AR-112 (runtime):** **Six vertical slices; the keystone (Slice 3) is split 3a/3b.**
+Ordering 3a → 3b → 4 (control flow) → 5 (user functions & modules) → 6 (full
+expressions & mixed width) → 7 (aggregates) → 8 (hardware & advanced). Each grows
+semantic analysis → `modelToFunctionInfo` → IL lowering → IL→Instr translation in
+lockstep for one surface. Slice 3 is split because its semantic work is the *tent-pole*
+(~20 RD-04 reqs across Passes 1/3/4), not "adapter plumbing": **3a** wires
+`modelToFunctionInfo` (`sfa/model-adapter.ts:34`) so the *existing* gate re-assembles
+through the real populated-model path (proves model→SFA→`__frame_*`→ACME→PRG→VICE);
+**3b** builds the scalar type/scope engine. Module-level globals + init order and the
+const evaluator get explicit homes (3b/Slice 7); cross-module name resolution → Slice 5.
+*(re-check adjustment; challenger-confirmed)*
+
+**AR-113 (runtime):** **Per-slice acceptance = assemble-clean (CI) + golden snapshot
+(CI) + VICE runtime (local).** "Assemble-clean + local VICE" alone proves runtime
+correctness only once on the author's machine — CI cannot run VICE (AR-27), so after
+merge CI would only re-prove *assembly*, leaving a codegen-behavior regression hole
+that compounds across six slices. Fix (already shipped in RD-12): each slice also
+commits a CI-runnable golden of emitted IL (`--emit-il`) / ASM (`--emit-asm`) / PRG
+bytes (`assertGolden`); byte-identical output ⇒ identical runtime, so the CI golden
+tier re-guards behavior every run while local VICE proves it once per golden mint.
+*(re-check adjustment — top finding; challenger-confirmed)*
+
+**AR-114 (runtime):** **RD-18 supersedes the phantom `RD-04b` + the ledger's
+horizontal order, and reconciles records.** `08-deferred-semantics-ledger.md:298`
+provisions an `RD-04b-semantic-checker` with a horizontal "implement pass-by-pass"
+resume order (line 18) that contradicts vertical slicing. RD-18 is the sole vertical
+plan of record: it retires RD-04b, consumes the ledger as its itemized backlog (⛔
+rows → slices), inherits the four parked ledger questions into the owning slice's gate
+(Q3/Q4→new `E10134` → Slice 4; Q1 → Slice 7; Q2 → Slice 8), drives RD-04 AC-02..20 /
+RD-06 AC-02 / RD-07 AC-07..09 to closure as slices land, and re-annotates the roadmap's
+misleading "✅ COMPLETE" on RD-04/RD-06 as "slice-scoped; full scope driven by RD-18".
+*(re-check adjustment; challenger-surfaced, file-verified)*
+
 
 
 
