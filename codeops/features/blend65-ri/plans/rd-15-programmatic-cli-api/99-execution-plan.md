@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-03
-> **Progress**: 45/50 tasks (90%) — Phases 1–3 COMPLETE; Phase 4 Session 4.1 COMPLETE (enforcement, CI, E2E + DEF-1 fix); Session 4.2 (bookkeeping) next
+> **Progress**: 50/50 tasks (100%) — ✅ RD-15 COMPLETE (all 4 phases; full workspace verify + CI green)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -236,13 +236,48 @@ acceptance bookkeeping. Specification-first ordering inside every phase.
 - [x] 4.1.3 CI ACME install step ✅ (completed: 2026-07-03) — `sudo apt-get update && sudo apt-get install -y acme` before Test (PF-011); CI-green pending push
 - [x] 4.1.4 ST-40 real-ACME E2E ✅ (completed: 2026-07-03) — cli/src/build-e2e.spec.test.ts (skipIf ACME undiscoverable); passes locally. **Surfaced RD-09 DEF-1** (headerless PRG via `-o`); user-approved fix applied (drop `-o`, `!to`-driven cbm output) — AR-V23; ST-40 now asserts the real `$01 $08` header.
 - [x] 4.1.5 Full verify (+ CI green confirmation) ✅ (completed: 2026-07-03) — see below; CI-green confirmed on push
-- [ ] 4.2.1 AC-19 traceability audit
-- [ ] 4.2.2 RD-15 §6 ticked with evidence
-- [ ] 4.2.3 RD-11 AC-16 closed + bookkeeping
-- [ ] 4.2.4 Roadmaps + CLAUDE.md sync
-- [ ] 4.2.5 Final full verify
+- [x] 4.2.1 AC-19 traceability audit ✅ (completed: 2026-07-03) — audit block above (PASS; every decision → AR-V*/spec/Design)
+- [x] 4.2.2 RD-15 §6 ticked with evidence ✅ (completed: 2026-07-03) — AC-01..AC-20 ticked with ST/file evidence in RD-15-programmatic-cli-api.md §6
+- [x] 4.2.3 RD-11 AC-16 closed + bookkeeping ✅ (completed: 2026-07-03) — AC-16 (--quiet via ST-30/ST-22/ST-38), AC-10 (band disjointness), AC-21 (traceability) closed in RD-11
+- [x] 4.2.4 Roadmaps + CLAUDE.md sync ✅ (completed: 2026-07-03) — feature roadmap RD-15→✅ + RD-12 next; portfolio cascade 17/20; CLAUDE.md status paragraph + cli edge row `+core` (PF-013)
+- [x] 4.2.5 Final full verify ✅ (completed: 2026-07-03) — see below
 
 ---
+
+## AC-19 Traceability Audit (task 4.2.1)
+
+> **Verdict: PASS (2026-07-03).** Every RD-15 implementation decision traces to an
+> `AR-NN`, a frozen spec section, or an explicit `Design` mark (§2 traceability rule).
+
+| Area | Decision | Traces to |
+| ---- | -------- | --------- |
+| Argument parser | yargs@17 + `@types/yargs` | AR-V1 · AR-16 |
+| CLI color | zero-dependency (`resolveColor` + local SGR); no chalk | AR-V2 (amends AR-17) → requirements AR-106 |
+| Glob engine | tinyglobby + sort + projectRoot containment | AR-V3 · R47 · RD-13 R37 |
+| `build()`/CLI testing | injectable `BuildDeps` + skipIf real-ACME E2E + CI ACME | AR-V4 |
+| E10034 wiring | facade `checkBinaryBudget(report, bag)` after `emitBinary` | AR-V5 |
+| Host/discovery | config-first; injected host verbatim; `sourceFiles` bypass | AR-V6 |
+| Diagnostic bags | two bags (config cap 20, pipeline `maxErrors`), policy once | AR-V7 |
+| Module layouts | core `host/`, compiler `api/`+`host/`, cli 6-file layout | AR-V9 |
+| Driver codes | `E10250`/`E10251` + messages | AR-V10 · R48/R49 |
+| Trailer format | terminal-only, stderr, not `--quiet`-suppressed | AR-V11 |
+| Binary read-back | facade-owned via `BuildDeps.readBinary` | AR-V12 |
+| Exit mechanism | `process.exitCode` + custom `.fail()`→2 | AR-V13 |
+| Default command | `$0`/`build` alias | AR-V14 |
+| `--version` | explicit `.version(VERSION)` | AR-V15 |
+| Color precedence | `--color`>`--no-color`>`NO_COLOR`>`isTTY` | AR-V16 |
+| Path display | projectRoot-relative, forward slashes | AR-V17 |
+| AC-18 enforcement | ESLint no-print + ST-39 witness | AR-V18 |
+| `--optimize` scope | peephole only; `optimizeIL` always | AR-V19 |
+| `cwd` routing | `CompilerOptions.cwd` → `loadConfig` | AR-V20 → requirements AR-107 |
+| Exit-3 trigger | ICE band via `isIceCode`; `E10035`→1 | AR-V21 → requirements AR-108 |
+| Config caret | header-only v1 (deferred) | AR-V22 → requirements AR-109 |
+| Startup/`!to` seam | additive `assembleProgram` 4th param; `outName` once | PF-001 |
+| `EmitBinaryResult` rename | acme aggregate renamed; facade owns `BuildResult` | PF-002 |
+| **ACME `-o`→`!to`** | drop `-o`, `!to,cbm`-driven header-bearing PRG | AR-V23 (DEF-1) |
+| `planAllocation` profile | interim `DEFAULT_PROFILE` (type-forced; = `analyze`'s profile) | Design (execution deviation, task 2.2.3) |
+| Empty-platform override | `""` = config's no-platform marker → not forwarded | Design (`config/src/merge.ts` seeds `platform:""`) |
+| `modelToFunctionInfo` `[]` | RD-05 documented deferral; gate compiles | Pre-resolved context (register) |
 
 ## Dependencies
 

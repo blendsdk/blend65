@@ -431,26 +431,29 @@ Otherwise                         → No color
 
 ## 6. Acceptance Criteria
 
-- [ ] AC-01: `compile()` returns `CompileResult` with diagnostics and no side effects
-- [ ] AC-02: `build()` returns `BuildResult` with binary, `.asm`, symbol map, and report
-- [ ] AC-03: `emitAsm()` returns assembly text without invoking ACME
-- [ ] AC-04: `emitIl()` returns IL text without invoking codegen
-- [ ] AC-05: All API functions accept an injectable `CompilerHost`
-- [ ] AC-06: No API function throws — errors are in the `diagnostics` array
-- [ ] AC-07: `blendc build` produces a `.prg` on the C64 platform
-- [ ] AC-08: `blendc check` reports diagnostics without producing a binary
-- [ ] AC-09: `--platform`, `--out-dir`, `--out-name` flags work correctly
-- [ ] AC-10: `--emit-asm` writes `.asm` and exits without invoking ACME
-- [ ] AC-11: `--emit-il` writes IL text and exits without invoking codegen
-- [ ] AC-12: `--max-errors`, `--warn-as-error`, `--suppress-warning` apply correctly
-- [ ] AC-13: `--diagnostics-format=json` outputs JSON diagnostics
-- [ ] AC-14: `--quiet` suppresses the build summary; `--report=json` outputs JSON report
-- [ ] AC-15: Color output respects `NO_COLOR`, `--no-color`, and TTY detection
-- [ ] AC-16: Exit codes: 0 success, 1 errors, 2 config errors, 3 ACME ICE
-- [ ] AC-17: Diagnostics print to stderr; build summary and JSON report to stdout
-- [ ] AC-18: No compile-path package (`core`, `frontend`, `codegen`, `platforms`, `config`, `compiler`) prints to stdout/stderr — all terminal output originates in `@blend65/cli`
-- [ ] AC-19: All decisions trace to an `AR-NN`, a frozen spec section, or an explicit `Design` mark (per the §2 traceability rule)
-- [ ] AC-20: `--config`, `--startup`, `--acme-path`, and `--optimize`/`--no-optimize` override their config/default counterparts correctly
+> **Verified 2026-07-03 (RD-15 exec_plan complete, 50/50 tasks).** ST evidence cites
+> the spec-test case + file. All green under the full workspace verify.
+
+- [x] AC-01: `compile()` returns `CompileResult` with diagnostics and no side effects — ST-8 + ST-10 (zero stdout/stderr/console) · `compiler/src/api/compile.spec.test.ts`
+- [x] AC-02: `build()` returns `BuildResult` with binary, `.asm`, symbol map, and report — ST-17 · `compiler/src/api/build.spec.test.ts`
+- [x] AC-03: `emitAsm()` returns assembly text without invoking ACME — ST-16 · `compiler/src/api/emit.spec.test.ts`
+- [x] AC-04: `emitIl()` returns IL text without invoking codegen — ST-15 · `compiler/src/api/emit.spec.test.ts`
+- [x] AC-05: All API functions accept an injectable `CompilerHost` — ST-11 (injected host used verbatim); every facade fn signature is `(options, host?)` · `compiler/src/api/{compile,emit,build}.ts`
+- [x] AC-06: No API function throws — errors are in the `diagnostics` array — ST-9 (garbage input returns, no throw) · `compiler/src/api/compile.spec.test.ts`
+- [x] AC-07: `blendc build` produces a `.prg` on the C64 platform — ST-22 (fake ACME) + ST-40 (real-ACME E2E, header-bearing PRG) · `cli/src/main.spec.test.ts`, `cli/src/build-e2e.spec.test.ts`
+- [x] AC-08: `blendc check` reports diagnostics without producing a binary — ST-23 · `cli/src/main.spec.test.ts`
+- [x] AC-09: `--platform`, `--out-dir`, `--out-name` flags work correctly — ST-37 · `cli/src/emit-flags.spec.test.ts`
+- [x] AC-10: `--emit-asm` writes `.asm` and exits without invoking ACME — ST-27 (asserts `deps.calls.invoke === 0`) · `cli/src/emit-flags.spec.test.ts`
+- [x] AC-11: `--emit-il` writes IL text and exits without invoking codegen — ST-28 · `cli/src/emit-flags.spec.test.ts`
+- [x] AC-12: `--max-errors`, `--warn-as-error`, `--suppress-warning` apply correctly — ST-21 (cap), ST-13/14 (warn-as-error/suppress), args.impl coercion matrix · `compiler/src/api/build.spec.test.ts`, `compile.spec.test.ts`, `cli/src/args.impl.test.ts`
+- [x] AC-13: `--diagnostics-format=json` outputs JSON diagnostics — ST-32 · `cli/src/diagnostics-output.spec.test.ts`
+- [x] AC-14: `--quiet` suppresses the build summary; `--report=json` outputs JSON report — ST-30, ST-31 · `cli/src/emit-flags.spec.test.ts`
+- [x] AC-15: Color output respects `NO_COLOR`, `--no-color`, and TTY detection — ST-33 (a/b/c/d matrix) · `cli/src/diagnostics-output.spec.test.ts`
+- [x] AC-16: Exit codes: 0 success, 1 errors, 2 config errors, 3 ACME ICE — ST-22(0)/ST-24(1)/ST-25(2)/ST-26(3)/ST-43(E10035→1, AR-108) · `cli/src/main.spec.test.ts`
+- [x] AC-17: Diagnostics print to stderr; build summary and JSON report to stdout — ST-22 (summary→stdout, stderr empty), ST-24 (diag→stderr, stdout empty) · `cli/src/main.spec.test.ts`, `diagnostics-output.spec.test.ts`
+- [x] AC-18: No compile-path package prints to stdout/stderr — ST-39 static scan + authoritative ESLint `no-console`/`no-restricted-properties` · `test/no-print.spec.test.ts`, `eslint.config.mjs`
+- [x] AC-19: All decisions trace to an `AR-NN`, a frozen spec section, or an explicit `Design` mark — traceability audit block in `plans/rd-15-programmatic-cli-api/99-execution-plan.md` (task 4.2.1); AR-V1..V23 register + AR-106..109 requirements amendments
+- [x] AC-20: `--config`, `--startup`, `--acme-path`, and `--optimize`/`--no-optimize` override their config/default counterparts correctly — ST-42 (`--startup` reaches codegen), ST-38 (config-vs-flag precedence), AR-V19 (`--optimize` gates peephole only), options/args mapping tables · `compiler/src/api/emit.spec.test.ts`, `cli/src/emit-flags.spec.test.ts`, `args.impl.test.ts`
 
 ---
 

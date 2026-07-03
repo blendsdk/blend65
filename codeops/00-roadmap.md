@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 executing 🔄 (2026-07-03, Phases 1–3/4 complete — host + driver codes + rename, the compile/emit/build facade, and the full blendc CLI; 40/50 tasks) | 16/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks — the compile/emit/build facade + the full blendc CLI + AC-18 enforcement + real-ACME E2E; fixed RD-09 DEF-1 headerless-PRG). Next: RD-12 (emulator tier) needs make_plan | 17/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -23,6 +23,14 @@
 
 ## Notes
 
+- 2026-07-03: **RD-15 ✅ COMPLETE** — exec_plan 50/50 tasks, 4 phases. `@blend65/compiler`
+  ships the `compile`/`emitIl`/`emitAsm`/`build` facade (+ `CompilerHost`/`DiskCompilerHost`,
+  driver codes E10250/E10251, the PF-001 codegen seam, PF-002 `EmitBinaryResult` rename);
+  `@blend65/cli` ships the full `blendc` command (yargs@17, zero-dep color, R50 exit codes,
+  emit/report flags). AC-18 no-print enforced (ESLint + ST-39); CI installs ACME so the ST-40
+  real-ACME E2E runs live. Discharged the deferred RD-11 items (AC-16/AC-10/AC-21). Surfaced &
+  fixed a latent RD-09 defect (DEF-1/AR-V23 — headerless PRG via `-o`; now `!to,cbm`-driven).
+  Full workspace verify + CI green. Feature 17/20; next RD-12 (emulator tier) needs make_plan.
 - 2026-07-02: migrated from the flat layout via setup_codeops.
 - 2026-07-02: update_roadmap synced the blend65-ri feature from disk — 13/20 items done (codegen
   complete through RD-09), next up RD-17 (intrinsics & runtime ABI); repointed all internal plan

@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-03 (RD-15 **exec_plan Phases 1–3/4 COMPLETE** 🔄 — 40/50 tasks. Phase 3: `@blend65/cli` now ships the full `blendc` command — yargs@17 parsing (default-build alias, `check`, the full flag table with no config-flag defaults, PF-009 help/version routing through the injectable `CliIo`), zero-dependency color (`resolveColor` + local SGR, AR-V2), diagnostics/trailer → stderr + summary/JSON report → stdout, `--emit-asm/-il/-report` artifact writes, and the R50 exit-code ladder (0/1/2/3, ICE band via `isIceCode`, ACME-not-found→1). Phase 2: `@blend65/compiler` now ships the `api/` facade — `compile` (frontend-only, the LSP path), `emitIl`/`emitAsm` (partial pipelines with the PF-001 `assembleProgram` override seam threading `--out-name`/`--startup`), and `build` (full ACME pipeline: injectable `BuildDeps`, canonical `checkBinaryBudget` E10034, binary read-back) — all over one `runFrontend` core with two-bag config/pipeline diagnostics and a single R21 `outName` derivation. Full workspace verify green. Earlier Phase 1/4: `@blend65/core` ships the `CompilerHost` interface + host barrel; `@blend65/compiler` ships `DiskCompilerHost` (tinyglobby R47 globs + projectRoot containment + lexicographic sort); driver codes E10250/E10251 added; PF-002 `BuildResult`→`EmitBinaryResult` rename landed with the AR-V5 cross-ref; AR-V2/V20/V21/V22 back-propagated to the requirements register as AR-106..109. Full workspace verify green. Earlier: RD-15 plan **preflighted** 🔬 — iteration 1: 13 findings (3 major/7 minor/3 observation) all resolved on the recommended option & applied to the plan docs; register grew to 22 items (V20 `cwd`, V21 exit-3 ICE band, V22 caret deferral); next: exec_plan. Earlier same day: RD-15 plan created — 4 phases / 13 sessions / 50 tasks, gate PASSED with 19 items. Earlier same day: RD-11b ✅ COMPLETE — exec_plan 39/39 tasks, 4 phases: `SourceMap` registry, severity policy, terminal/JSON diagnostic renderers (Ch 14 §1 goldens + R52 security tier), `ResourceReport` builder + `checkBinaryBudget` + Ch 11 §6 build-summary renderers; RD-11 §6 boxes AC-08/09/11–15/17–20 closed, AC-16 flag half → RD-15; full workspace verify green, core 237 tests; next: RD-15 make_plan)
+> **Last Updated**: 2026-07-03 (**RD-15 ✅ COMPLETE** — exec_plan 50/50 tasks, 4 phases, full workspace verify + CI green. Phase 4: AC-18 no-print enforcement (ESLint no-console/no-restricted-properties + ST-39 root witness), CI ACME install, the ST-40 real-ACME build E2E (header-bearing c64 PRG), AC-01..20 ticked with ST evidence + the AC-19 traceability audit, and RD-11 AC-16/AC-10/AC-21 closed. Surfaced & fixed a latent RD-09 defect (DEF-1/AR-V23): `invokeAcme` dropped `-o` so the `!to ...,cbm` directive drives a loadable header-bearing PRG. Phase 3: `@blend65/cli` ships the full `blendc` command — yargs@17 parsing (default-build alias, `check`, PF-009 help/version routing), zero-dependency color (AR-V2), stderr/stdout split, `--emit-*` writes, and the R50 exit ladder. Phase 2: `@blend65/compiler` now ships the `api/` facade — `compile` (frontend-only, the LSP path), `emitIl`/`emitAsm` (partial pipelines with the PF-001 `assembleProgram` override seam threading `--out-name`/`--startup`), and `build` (full ACME pipeline: injectable `BuildDeps`, canonical `checkBinaryBudget` E10034, binary read-back) — all over one `runFrontend` core with two-bag config/pipeline diagnostics and a single R21 `outName` derivation. Full workspace verify green. Earlier Phase 1/4: `@blend65/core` ships the `CompilerHost` interface + host barrel; `@blend65/compiler` ships `DiskCompilerHost` (tinyglobby R47 globs + projectRoot containment + lexicographic sort); driver codes E10250/E10251 added; PF-002 `BuildResult`→`EmitBinaryResult` rename landed with the AR-V5 cross-ref; AR-V2/V20/V21/V22 back-propagated to the requirements register as AR-106..109. Full workspace verify green. Earlier: RD-15 plan **preflighted** 🔬 — iteration 1: 13 findings (3 major/7 minor/3 observation) all resolved on the recommended option & applied to the plan docs; register grew to 22 items (V20 `cwd`, V21 exit-3 ICE band, V22 caret deferral); next: exec_plan. Earlier same day: RD-15 plan created — 4 phases / 13 sessions / 50 tasks, gate PASSED with 19 items. Earlier same day: RD-11b ✅ COMPLETE — exec_plan 39/39 tasks, 4 phases: `SourceMap` registry, severity policy, terminal/JSON diagnostic renderers (Ch 14 §1 goldens + R52 security tier), `ResourceReport` builder + `checkBinaryBudget` + Ch 11 §6 build-summary renderers; RD-11 §6 boxes AC-08/09/11–15/17–20 closed, AC-16 flag half → RD-15; full workspace verify green, core 237 tests; next: RD-15 make_plan)
 
 
 ---
@@ -18,8 +18,23 @@
 ## Current Position
 
 
-- **Last completed**: **RD-11b** (diagnostics remainder & resource reporter), executed to
-  100% on 2026-07-03
+- **Last completed**: **RD-15** (programmatic + CLI API), executed to 100% on 2026-07-03
+  (`codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/99-execution-plan.md`,
+  50/50 tasks, 4 phases). `@blend65/compiler` ships the `api/` facade — `compile`
+  (frontend-only, the LSP path), `emitIl`/`emitAsm` (partial pipelines with the PF-001
+  `assembleProgram` override seam for `--out-name`/`--startup`), and `build` (full ACME
+  pipeline: injectable `BuildDeps`, canonical `checkBinaryBudget` E10034, binary
+  read-back) over one `runFrontend` core (two-bag config/pipeline diagnostics, single R21
+  `outName` derivation) — plus the core `CompilerHost` + compiler `DiskCompilerHost`
+  (tinyglobby R47 globs + projectRoot containment) and driver codes E10250/E10251.
+  `@blend65/cli` ships the full `blendc` command (yargs@17, zero-dependency color per AR-V2,
+  stderr/stdout split, `--emit-*` writes, the R50 exit ladder). AC-18 no-print is
+  ESLint-enforced + ST-39-witnessed; CI installs ACME so the ST-40 real-ACME build E2E runs
+  live. Discharged the deferred RD-11 items (AC-16 `--quiet` half via ST-30; AC-10/AC-21
+  bookkeeping) and the PF-002 `EmitBinaryResult` rename. **Fixed a latent RD-09 defect
+  (DEF-1/AR-V23):** `invokeAcme` dropped `-o` so the `!to ...,cbm` directive drives a
+  header-bearing, loadable c64 PRG. Full workspace verify + CI green.
+- **Previously**: **RD-11b** (diagnostics remainder & resource reporter), 100% on 2026-07-03
   (`codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/99-execution-plan.md`,
   39/39 tasks, 4 phases): `@blend65/core` ships the `SourceMap` registry (path-keyed intern,
   cached `LineMap`s, AR-104 `has()`), the R50-precedence severity policy
@@ -44,23 +59,14 @@
   **AR-102** (PF-003, incl. an RD-15 §4.4 cascade fix); RD-11a/11b split + true deps now
   recorded in the RD header. RD-15's requirements preflight passed earlier the same day
   (10 findings; its PF-001 reordered RD-11b ahead of RD-15).
-- **Next up**: **RD-15** (programmatic + CLI API) — workflow position: **plan
-  preflighted ✅ — ready for `exec_plan`** (2026-07-03: preflight iteration 1 found
-  13 findings — 3 major, 7 minor, 3 observation — all resolved on the recommended
-  option and applied to the plan docs; see `plans/rd-15-programmatic-cli-api/00-preflight-report.md`.
-  Notable: codegen `assembleProgram` override seam wired for `--startup`/`--out-name`
-  (PF-001); `cwd` added to `CompilerOptions` (AR-V20); exit-3 keyed on the `isIceCode`
-  band with ACME-not-found→exit 1 (AR-V21)). The implementation plan was created via
-  make_plan on 2026-07-03 at
-  `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` (4 phases / 13
-  sessions / 50 tasks; Zero-Ambiguity Gate PASSED — 19 items V1–V19, one independent
-  challenger on the high-stakes cluster, user-ratified). Key gate outcomes: yargs@17
-  (no v18 types exist), **zero-dependency CLI color amending requirements AR-17**
-  (back-propagation is execution task 1.1.1), tinyglobby for R47 globs, injectable
-  `BuildDeps` + skipIf real-ACME E2E + **ACME added to CI**, E10034 via core
-  `checkBinaryBudget`, driver codes E10250/E10251. RD-15 also owns the deferred RD-11
-  AC-16 flag half (`--quiet`) and the PF-002 `EmitBinaryResult` rename. RD-12
-  (emulator tier) follows.
+- **Next up**: **RD-12** (test harness & emulator verification) — workflow position:
+  **needs `make_plan`** (❌ no plan directory yet). Scope: the emulator tier (VICE/x16emu/
+  Altirra/Stella-7800) + golden/E2E verification, **including RD-17's deferred AC-14**
+  (emulator tier — AR-P4). RD-12 is now unblocked: RD-09 (ACME), RD-15 (the `blendc`
+  build path that produces a real `.prg`), and the newly-added CI ACME step (RD-15 AR-V4)
+  all land ahead of it. Note the RD-09 DEF-1 header fix (AR-V23) means the PRG now carries
+  the c64 load header a real emulator LOAD needs. First step per the mandatory sequence:
+  requirements preflight → make_plan → plan preflight → exec_plan.
 
 
 
@@ -122,8 +128,8 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` | A | 🔄 Executing (2026-07-03 — Phases 1–3/4 COMPLETE: 40/50 tasks; host + driver codes + PF-002 rename, the full compile/emitIl/emitAsm/build facade with the PF-001 codegen seam, and the full `blendc` CLI (yargs, zero-dep color, R50 exit codes, emit/report flags) — all shipped & verified) |
-| 2 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 1 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` | A | ✅ COMPLETE (2026-07-03 — 50/50 tasks, 4 phases: host + driver codes + PF-002 rename; the full compile/emitIl/emitAsm/build facade (PF-001 codegen seam); the full `blendc` CLI (yargs, zero-dep color, R50 exit codes); AC-18 no-print enforcement + ST-39; CI ACME + ST-40 real-ACME E2E. AC-01..20 ticked; RD-11 AC-16/10/21 closed. Fixed RD-09 DEF-1 (headerless PRG → `!to`-driven cbm). Full verify + CI green.) |
+| 2 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started — **now unblocked** (RD-09/RD-15 + CI ACME landed 2026-07-03; RD-09 DEF-1 header fix means a loadable PRG) |
 | 3 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 

@@ -99,7 +99,7 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
 | `@blend65/platforms`       | core                                        | private  |
 | `@blend65/config`          | core                                        | private  |
 | `@blend65/compiler`        | core, frontend, codegen, platforms, config  | public   |
-| `@blend65/cli`             | compiler, config                            | public   |
+| `@blend65/cli`             | compiler, config, core                      | public   |
 | `@blend65/language-server` | core, frontend  (**NEVER codegen** — R15)   | public   |
 | `@blend65/vscode`          | language-server                             | public   |
 | `@blend65/test-harness`    | core                                        | public   |
@@ -212,14 +212,26 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   and the new `report/` module (`ResourceReport` on the shipped `SfaResourceData`,
   `buildResourceReport`, post-ACME `checkBinaryBudget` E10034, the Ch 11 §6
   `renderReportTerminal` build summary with AR-102 zero-staging, and
-  `renderReportJson`). RD-11 §6 acceptance is closed except AC-16's `--quiet`
-  flag half (→ RD-15) and AC-10/AC-21 bookkeeping.
-  **Next up: RD-15** (CLI/programmatic driver) at **plan preflight** — its
-  implementation plan was created 2026-07-03 at
-  `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` (4 phases,
-  13 sessions, 50 tasks; Zero-Ambiguity Gate PASSED, 19 items) — then RD-12
-  (emulator tier — includes RD-17's deferred AC-14);
-  see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
+  `renderReportJson`). RD-11 §6 acceptance is fully closed (AC-16's `--quiet`
+  flag half + AC-10/AC-21 closed by RD-15, 2026-07-03).
+  RD-15 is complete (2026-07-03, 50/50 tasks): `@blend65/compiler` ships the
+  programmatic facade `api/` — `compile` (frontend-only, the LSP path), `emitIl`/
+  `emitAsm` (partial pipelines, with the PF-001 `assembleProgram` override seam
+  threading `--out-name`/`--startup`), and `build` (full ACME pipeline: injectable
+  `BuildDeps`, canonical `checkBinaryBudget` E10034, binary read-back) over one
+  `runFrontend` core with two-bag config/pipeline diagnostics and a single R21
+  `outName` derivation; plus the core `CompilerHost` abstraction + compiler
+  `DiskCompilerHost` (tinyglobby R47 globs + projectRoot containment) and driver
+  codes E10250/E10251. `@blend65/cli` ships the full `blendc` command — yargs@17
+  parsing, zero-dependency color (AR-V2, no chalk), diagnostics/trailer → stderr +
+  summary/JSON report → stdout, `--emit-asm/-il/-report` artifact writes, and the
+  R50 exit ladder (0/1/2/3; ICE band via `isIceCode`, ACME-not-found→1). AC-18
+  no-print is ESLint-enforced + ST-39-witnessed; CI installs ACME so the ST-40
+  real-ACME build E2E runs live. RD-15 also fixed a latent RD-09 defect (DEF-1/
+  AR-V23): `invokeAcme` dropped `-o` so the `!to ...,cbm` directive drives a
+  header-bearing, loadable c64 PRG.
+  **Next up: RD-12** (test harness & emulator tier — includes RD-17's deferred
+  AC-14); see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
 - This repository keeps a living implementation tracker at
   `codeops/features/blend65-ri/00-roadmap.md` (rolled up into the portfolio roadmap
