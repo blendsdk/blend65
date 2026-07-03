@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-03 18:52
-> **Progress**: 6/44 tasks (14%)
+> **Last Updated**: 2026-07-03 19:22
+> **Progress**: 17/44 tasks (39%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -87,9 +87,9 @@ CI (AR-27) and must be **run green locally on VICE 3.10** before the covered ACs
 | 1.3.3 | Full verify (CI tiers) + local VICE run of the driver suite green                                 | —                                             |
 
 **Deliverables**:
-- [ ] `EmulatorDriver` + `ViceDriver` + codec + PNG complete; ST-03..ST-13 green
-- [ ] Codec tests green in CI; driver tests green locally on VICE 3.10
-- [ ] All verification passing
+- [x] `EmulatorDriver` + `ViceDriver` + codec + PNG complete; ST-03..ST-13 green
+- [x] Codec tests green in CI; driver tests green locally on VICE 3.10
+- [x] All verification passing
 
 **Verify**: full workspace verify (above) + `yarn workspace @blend65/test-harness test` locally with VICE on PATH.
 
@@ -191,17 +191,17 @@ CI (AR-27) and must be **run green locally on VICE 3.10** before the covered ACs
 - [x] 0.1.6 Full workspace verify (no RD-09/RD-15 regression) — 2026-07-03 18:52
 
 ### Phase 1: Emulator Driver & VICE Protocol
-- [ ] 1.1.1 Scaffold (compiler dep + codegen devDep + tsconfig refs, PF-001) + `EmulatorDriver` interface & types
-- [ ] 1.1.2 Protocol-codec spec tests (ST-03..08)
-- [ ] 1.1.3 `ViceDriver` integration spec tests (ST-09..13, skipIf-VICE)
-- [ ] 1.1.4 Run — verify FAIL (red)
-- [ ] 1.2.1 Implement protocol codec
-- [ ] 1.2.2 Implement `ViceDriver`
-- [ ] 1.2.3 Implement zero-dep PNG encoder
-- [ ] 1.2.4 Run — verify PASS (green; driver green locally on VICE)
-- [ ] 1.3.1 Codec impl tests
-- [ ] 1.3.2 PNG impl tests
-- [ ] 1.3.3 Full verify + local VICE driver suite green
+- [x] 1.1.1 Scaffold (compiler dep + codegen devDep + tsconfig refs, PF-001) + `EmulatorDriver` interface & types — 2026-07-03 19:05
+- [x] 1.1.2 Protocol-codec spec tests (ST-03..08) — 2026-07-03 19:06
+- [x] 1.1.3 `ViceDriver` integration spec tests (ST-09..13, skipIf-VICE) — 2026-07-03 19:07
+- [x] 1.1.4 Run — verify FAIL (red) — 2026-07-03 19:08
+- [x] 1.2.1 Implement protocol codec — 2026-07-03 19:12
+- [x] 1.2.2 Implement `ViceDriver` — 2026-07-03 19:14
+- [x] 1.2.3 Implement zero-dep PNG encoder — 2026-07-03 19:13
+- [x] 1.2.4 Run — verify PASS (green; driver green locally on VICE) — 2026-07-03 19:16
+- [x] 1.3.1 Codec impl tests — 2026-07-03 19:18
+- [x] 1.3.2 PNG impl tests — 2026-07-03 19:19
+- [x] 1.3.3 Full verify + local VICE driver suite green — 2026-07-03 19:22
 
 ### Phase 2: Run Strategies, Assertions, Registry & Fixture
 - [ ] 2.1.1 Strategy spec tests (timeout guard CI + integration skipIf-VICE)

@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔄 Executing (2026-07-03 — Phase 0 COMPLETE 6/44: DEF-2 fixed, `invokeAcme` emits `--vicelabels` → real builds populate `symbolMap`; regression oracle green, full verify green. Next: Phase 1 driver & VICE protocol) | 17/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔄 Executing (2026-07-03 — Phase 1 COMPLETE 17/44: DEF-2 fix + `EmulatorDriver`/`ViceDriver`/pure VICE codec/zero-dep PNG; codec CI-green, driver green on real VICE 3.10. Next: Phase 2 strategies/fixture) | 17/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
