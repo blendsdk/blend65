@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-03
-> **Progress**: 26/50 tasks (52%) — Phases 1 & 2 COMPLETE; Phase 3 next
+> **Progress**: 40/50 tasks (80%) — Phases 1, 2 & 3 COMPLETE; Phase 4 (hardening & closeout) next
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -215,20 +215,20 @@ acceptance bookkeeping. Specification-first ordering inside every phase.
 - [x] 2.4.3 Full verify ✅ (completed: 2026-07-03) — build 10/10, typecheck 17/17, lint 0 errors; full test tier green (frontend 255, compiler 79, codegen 329, root 3; no flake this run)
 
 ### Phase 3: CLI
-- [ ] 3.1.1 cli package.json (bin, yargs, core dep)
-- [ ] 3.1.2 Spec tests ST-22..ST-26, ST-34..ST-36
-- [ ] 3.1.3 Spec tests ST-27..ST-31, ST-37, ST-38
-- [ ] 3.1.4 Spec tests ST-24, ST-32, ST-33
-- [ ] 3.1.5 Red run recorded
-- [ ] 3.2.1 color.ts
-- [ ] 3.2.2 args.ts
-- [ ] 3.2.3 render.ts
-- [ ] 3.3.1 main.ts (runCli + R50)
-- [ ] 3.3.2 bin.ts + index.ts
-- [ ] 3.3.3 Green run (all Phase-3 STs)
-- [ ] 3.4.1 args impl tests
-- [ ] 3.4.2 render impl tests
-- [ ] 3.4.3 Full verify
+- [x] 3.1.1 cli package.json (bin, yargs, core dep) ✅ (completed: 2026-07-03) — bin blendc, yargs@^17.7.2 (17.7.3), @types/yargs devDep, @blend65/core dep + tsconfig ref; vitest include widened to {spec,impl} (PF-005)
+- [x] 3.1.2 Spec tests ST-22..ST-26, ST-34..ST-36, ST-43 ✅ (completed: 2026-07-03) — main.spec.test.ts + fakeIo/fakeCliBuildDeps fixtures (real-fs fake ACME)
+- [x] 3.1.3 Spec tests ST-27..ST-31, ST-37, ST-38 ✅ (completed: 2026-07-03) — emit-flags.spec.test.ts
+- [x] 3.1.4 Spec tests ST-24, ST-32, ST-33 ✅ (completed: 2026-07-03) — diagnostics-output.spec.test.ts (color matrix, JSON format, trailer)
+- [x] 3.1.5 Red run recorded ✅ (completed: 2026-07-03) — all new cli spec files fail `runCli is not a function` (main/args/render not yet implemented)
+- [x] 3.2.1 color.ts ✅ (completed: 2026-07-03) — resolveColor (AR-V16 precedence) + zero-dep SGR errorAccent/warningAccent
+- [x] 3.2.2 args.ts ✅ (completed: 2026-07-03) — full flag table, no config-flag defaults, .fail() capture + parse-callback (PF-009), warn-as-error coercion; ParseOutcome discriminant. (VERSION extracted to version.ts to avoid an index↔args cycle; CliIo extracted to io.ts.)
+- [x] 3.2.3 render.ts ✅ (completed: 2026-07-03) — renderDiagnostics (+ AR-V11 trailer), renderBuildSummary, renderJsonReport, writeTextArtifact
+- [x] 3.3.1 main.ts (runCli + R50) ✅ (completed: 2026-07-03) — dispatch (build/check/emit-il/emit-asm), R50 classify (config/driver→2, ICE→3, error→1), io.cwd→options.cwd, artifact-write try/catch→2
+- [x] 3.3.2 bin.ts + index.ts ✅ (completed: 2026-07-03) — bin.ts (shebang, realIo, process.exitCode); index.ts exports runCli/CliIo/VERSION
+- [x] 3.3.3 Green run (all Phase-3 STs) ✅ (completed: 2026-07-03) — 23/23 cli tests green (ST-22..38, ST-43) first run
+- [x] 3.4.1 args impl tests ✅ (completed: 2026-07-03) — args.impl.test.ts (12 tests): warn-as-error coercion, command resolution, flag→option mapping, --no-quiet, fail/help outcomes
+- [x] 3.4.2 render impl tests ✅ (completed: 2026-07-03) — render.impl.test.ts (11 tests): pluralization matrix, color matrix, JSON-no-trailer, write-failure path
+- [x] 3.4.3 Full verify ✅ (completed: 2026-07-03) — build/typecheck/lint clean; full test tier green (cli 46, compiler 79, codegen 329, frontend 255, config 96, platforms 40, root 3; no flake)
 
 ### Phase 4: Hardening & Closeout
 - [ ] 4.1.1 ESLint AC-18 rules

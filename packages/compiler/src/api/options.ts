@@ -79,7 +79,11 @@ export interface CompilerOptions {
  */
 export function optionsToOverrides(options: CompilerOptions): ConfigOverrides {
   return {
-    platform: options.platform,
+    // Empty `platform` is the config's own "no-platform" marker (`config/src/merge.ts`
+    // seeds `platform: ""`), so an empty override must NOT clobber a config-file
+    // platform — forward it only when non-empty. This lets the CLI pass
+    // `parsed.platform ?? ""` and still honour a `blend65.json` platform.
+    platform: options.platform !== "" ? options.platform : undefined,
     include: options.include,
     exclude: options.exclude,
     outDir: options.outDir,

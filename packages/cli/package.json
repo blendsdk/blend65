@@ -4,6 +4,9 @@
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "blendc": "./dist/bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,7 +18,12 @@
   },
   "dependencies": {
     "@blend65/compiler": "0.1.0",
-    "@blend65/config": "0.1.0"
+    "@blend65/config": "0.1.0",
+    "@blend65/core": "0.1.0",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/yargs": "^17.0.33"
   },
   "scripts": {
     "build": "tsc --build",
