@@ -171,6 +171,14 @@ export const DiagCode = {
   ConfigMissingPlatform: "E10245",
   ConfigPatternEscapesRoot: "E10246",
 
+  // Driver / file discovery (RD-15, AR-V10): the compiler driver's own errors,
+  // raised before lexing when the source-file set cannot be established. Ch 14
+  // leaves E10250+ open after the RD-16 config band (E10240–E10246); RD-15 claims
+  // E10250/E10251 (additive precedent, RD-09/E10035). Both emit with a `null`
+  // span (no source to point into → R51 header-only) and classify exit-2.
+  DriverSourceFileNotFound: "E10250", // R48 — explicit file missing
+  DriverNoSourceFiles: "E10251", // R49 — discovery yielded zero files
+
   // Warnings (Ch 14 §3)
   // Lexer warning (RD-02, spec Ch 01 §14): decimal literal with leading zeros.
 

@@ -7,3 +7,4 @@ export * from "./semantics/index.js";
 export * from "./sfa/index.js";
 export * from "./report/index.js";
 export * from "./intrinsics/index.js";
+export * from "./host/index.js";

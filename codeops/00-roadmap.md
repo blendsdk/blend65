@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-11b ✅ COMPLETE (2026-07-03, 39/39 tasks — SourceMap, severity policy, diagnostic renderers, ResourceReport + build summary) — next: RD-15 make_plan | 16/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 executing 🔄 (2026-07-03, Phase 1/4 complete — host abstraction, driver codes, PF-002 rename; 11/50 tasks) | 16/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -89,3 +89,27 @@
   AR-102 zero-staging, PF-012 sorted-entries JSON). RD-11 §6: AC-11..13/15/18/19/20
   ST-evidenced; AC-08/09/14/17 audit-closed (AR-Q12); AC-16 flag half → RD-15.
   Full workspace verify green (core 237 tests). Next: RD-15 make_plan.
+- 2026-07-03: RD-15 implementation plan created via make_plan at
+  `features/blend65-ri/plans/rd-15-programmatic-cli-api/` (4 phases / 13 sessions /
+  50 tasks). Zero-Ambiguity Gate PASSED — 19 items (V1–V19); one independent
+  challenger run on the high-stakes cluster (deps, color, E10034 wiring, testing
+  strategy) — converged on 4/5, supplied the decisive yargs-typing evidence on the
+  fifth; user-ratified. Notables: yargs@17 + tinyglobby as the only new runtime deps
+  (**chalk rejected — AR-V2 runtime-amends requirements AR-17 to zero-dep color**,
+  back-propagation is task 1.1.1); E10250/E10251 driver band; injectable BuildDeps +
+  skipIf real-ACME E2E + ACME added to CI (AC-07 CI-verified); E10034 via core
+  checkBinaryBudget; PF-002 EmitBinaryResult rename. Next: RD-15 plan preflight.
+- 2026-07-03: RD-15 plan preflight ✅ PASSED — iteration 1: 13 findings (0 critical,
+  3 major, 7 minor, 3 observation), every one resolved on the recommended option
+  (user "apply all as recommended") and applied to the plan docs same day. ~60 codebase
+  references verified by four parallel recon agents; one independent challenger
+  stress-tested the majors (converged; recalibrated the ST-40 finding major→minor).
+  Majors: PF-001 — `--startup`/`--out-name` were inert (the emitted `.asm`'s `!to`
+  always said `main.prg`); wired the additive `assembleProgram` override seam the
+  codegen `FR-3` comment reserved + one-place `outName` derivation in `runFrontend`.
+  PF-002 — added `cwd?` to `CompilerOptions` (AR-V20), the base dir the CLI temp-dir
+  tests and RD-14 discovery need (`CliIo.cwd` was a dead seam). PF-003 — exit-3 rule
+  rested on a non-existent ACME ICE code; re-keyed on the `isIceCode` band, with
+  ACME-not-found (E10035) → exit 1 (AR-V21). Register grew to 22 items (V20/V21/V22).
+  Report: `features/blend65-ri/plans/rd-15-programmatic-cli-api/00-preflight-report.md`.
+  Next: RD-15 exec_plan.

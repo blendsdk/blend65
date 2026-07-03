@@ -214,9 +214,11 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   `renderReportTerminal` build summary with AR-102 zero-staging, and
   `renderReportJson`). RD-11 §6 acceptance is closed except AC-16's `--quiet`
   flag half (→ RD-15) and AC-10/AC-21 bookkeeping.
-  **Next up: RD-15** (CLI/programmatic driver) at make_plan — its requirements
-  were preflighted 2026-07-03 and every consumable it needs is now shipped —
-  then RD-12 (emulator tier — includes RD-17's deferred AC-14);
+  **Next up: RD-15** (CLI/programmatic driver) at **plan preflight** — its
+  implementation plan was created 2026-07-03 at
+  `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` (4 phases,
+  13 sessions, 50 tasks; Zero-Ambiguity Gate PASSED, 19 items) — then RD-12
+  (emulator tier — includes RD-17's deferred AC-14);
   see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
 - This repository keeps a living implementation tracker at

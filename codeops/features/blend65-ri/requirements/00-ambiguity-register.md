@@ -1141,6 +1141,37 @@ the terminal form. *(plan AR-Q8/Q9/Q10/Q11/Q14/Q16)*
 > accordingly (the "only" excluded location/excerpt, not notes/help; the concrete
 > R51 consumers — RD-16 config diagnostics — carry their actionability in `help`).
 
+**AR-106 (runtime):** **CLI color is zero-dependency; requirements AR-17 amended.**
+The RD-15 chalk references (R35/R37/§4.5) are superseded: `@blend65/core` already
+hand-rolls ANSI (`core/src/diagnostics/ansi.ts`) and `renderTerminal` takes an
+explicit `{ color: boolean }`, so the CLI must own color detection regardless.
+The CLI computes one `color: boolean` (explicit `--color` ON > `--no-color` OFF >
+`NO_COLOR` env OFF > `isTTY` decides), passes it to `renderTerminal`, and paints
+its own accents with local SGR helpers. Chalk is **not** a dependency (avoids a
+second color oracle that could disagree, e.g. `FORCE_COLOR` on a pipe). RD-15
+R35/R37/§4.5 back-propagated. *(plan AR-V2; user-ratified 2026-07-03)*
+
+**AR-107 (runtime):** **`CompilerOptions.cwd?` added as a routing option.**
+`loadConfig` needs a base directory for walk-up discovery and the `projectRoot`
+fallback (`config/src/load-config.ts:80,144`), and CLI temp-dir tests cannot bind
+it otherwise. `cwd?: string` joins RD-15 §4.1 as a **routing** option (not a
+config override): the facade threads it to `loadConfig`; the CLI maps `io.cwd`;
+defaults to `process.cwd()`. *(plan AR-V20 / plan preflight PF-002)*
+
+**AR-108 (runtime):** **Exit 3 = ICE band via `isIceCode`; `E10035` → exit 1.**
+There is no ACME-specific ICE code — `E90001` is generic (6+ emitters) and an ACME
+assembler failure is reported as `IceCode.Unexpected`. Exit 3 therefore keys on the
+ICE band (`isIceCode(code)`, `/^E9\d{4}/`), matching R44's "internal compiler error"
+rationale with zero shipped-code change. ACME-not-found (`E10035`, a normal
+user-actionable error emitted by `discoverAcme`) falls through to **exit 1**. R44/R50
+wording clarified. *(plan AR-V21 / plan preflight PF-003)*
+
+**AR-109 (runtime):** **Config-file diagnostics render header-only for v1.**
+Config diagnostics carry `CONFIG_SOURCE_ID = -2` spans, which `SourceMap.has()`
+rejects (id ≥ 0 required) → header-only rendering (no caret). Accepted for v1 — the
+`@blend65/config` surface is out of scope (RD-16 shipped); the AR-P2 `sourceId` seam
+(`config/src/validate.ts:47`) is the follow-up. *(plan AR-V22 / plan preflight PF-008)*
+
 
 
 

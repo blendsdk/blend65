@@ -13,7 +13,7 @@
  *   5. Parse the VICE label file into a symbol map (R45–R47).
  *   6. Post-ACME budget check: a binary larger than the platform's
  *      `maxBinarySize` emits `E10034` (R43, AC-14).
- *   7. Aggregate the {@link BuildResult} (binary/asm/label paths, symbol map, size).
+ *   7. Aggregate the {@link EmitBinaryResult} (binary/asm/label paths, symbol map, size).
  *
  * Filesystem, discovery, and invocation are injected via {@link EmitDeps} so the
  * orchestration is unit-testable without real I/O or a real ACME binary (AR-27).
@@ -44,7 +44,7 @@ export interface EmitOptions {
 }
 
 /** The aggregated outcome of a build emit (RD §4.7). */
-export interface BuildResult {
+export interface EmitBinaryResult {
   /** Whether the emit succeeded end-to-end. */
   readonly success: boolean;
   /** All diagnostics accumulated during the emit. */
@@ -80,20 +80,20 @@ export interface EmitDeps {
 
 /**
  * Write the serialized ACME text to disk and drive ACME to a platform binary,
- * aggregating the artifacts into a {@link BuildResult} (R34, R39–R44).
+ * aggregating the artifacts into a {@link EmitBinaryResult} (R34, R39–R44).
  *
  * @param asmText The serialized ACME source (from `serializeToAcme`).
  * @param opts The emit options (output dir, project name, flags, budget).
  * @param bag Diagnostic sink — receives ACME/budget diagnostics.
  * @param deps Injected I/O seam (defaults to {@link defaultEmitDeps}).
- * @returns The aggregated {@link BuildResult}.
+ * @returns The aggregated {@link EmitBinaryResult}.
  */
 export async function emitBinary(
   asmText: string,
   opts: EmitOptions,
   bag: DiagnosticBag,
   deps: EmitDeps = defaultEmitDeps,
-): Promise<BuildResult> {
+): Promise<EmitBinaryResult> {
   // 1. Ensure the output dir exists and write `<projectName>.asm` (R39/R42).
   deps.ensureDir(opts.outDir);
   const asmPath = join(opts.outDir, `${opts.projectName}.asm`);
@@ -122,6 +122,14 @@ export async function emitBinary(
   const symbols = parseLabelFile(deps.readFile(labelPath));
 
   // 6. Post-ACME budget check: a too-large binary emits `E10034` (R43, AC-14).
+  //
+  // AR-V5 cross-reference: this inline check fires ONLY when a caller opts in by
+  // passing `maxBinarySize`. RD-09's immutable spec tests opt in explicitly. The
+  // RD-15 facade path deliberately does NOT pass it — the facade instead calls the
+  // canonical `checkBinaryBudget(report, bag)` (core `report/build-resource-report.ts`)
+  // after assembling the resource report, so the platform-named E10034 message wins.
+  // The two emitters are kept in sync by this cross-reference (see the facade's
+  // `build.ts` for the mirror comment).
   const binarySize = acme.binarySize ?? 0;
   if (opts.maxBinarySize !== undefined && binarySize > opts.maxBinarySize) {
     bag.addError(

@@ -18,7 +18,8 @@
     "@blend65/frontend": "0.1.0",
     "@blend65/codegen": "0.1.0",
     "@blend65/platforms": "0.1.0",
-    "@blend65/config": "0.1.0"
+    "@blend65/config": "0.1.0",
+    "tinyglobby": "^0.2.10"
   },
   "scripts": {
     "build": "tsc --build",

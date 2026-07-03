@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-03 (RD-11b ✅ COMPLETE — exec_plan 39/39 tasks, 4 phases: `SourceMap` registry, severity policy, terminal/JSON diagnostic renderers (Ch 14 §1 goldens + R52 security tier), `ResourceReport` builder + `checkBinaryBudget` + Ch 11 §6 build-summary renderers; RD-11 §6 boxes AC-08/09/11–15/17–20 closed, AC-16 flag half → RD-15; full workspace verify green, core 237 tests; next: RD-15 make_plan)
+> **Last Updated**: 2026-07-03 (RD-15 **exec_plan Phase 1/4 COMPLETE** 🔄 — 11/50 tasks: `@blend65/core` ships the `CompilerHost` interface + host barrel; `@blend65/compiler` ships `DiskCompilerHost` (tinyglobby R47 globs + projectRoot containment + lexicographic sort); driver codes E10250/E10251 added; PF-002 `BuildResult`→`EmitBinaryResult` rename landed with the AR-V5 cross-ref; AR-V2/V20/V21/V22 back-propagated to the requirements register as AR-106..109. Full workspace verify green. Earlier: RD-15 plan **preflighted** 🔬 — iteration 1: 13 findings (3 major/7 minor/3 observation) all resolved on the recommended option & applied to the plan docs; register grew to 22 items (V20 `cwd`, V21 exit-3 ICE band, V22 caret deferral); next: exec_plan. Earlier same day: RD-15 plan created — 4 phases / 13 sessions / 50 tasks, gate PASSED with 19 items. Earlier same day: RD-11b ✅ COMPLETE — exec_plan 39/39 tasks, 4 phases: `SourceMap` registry, severity policy, terminal/JSON diagnostic renderers (Ch 14 §1 goldens + R52 security tier), `ResourceReport` builder + `checkBinaryBudget` + Ch 11 §6 build-summary renderers; RD-11 §6 boxes AC-08/09/11–15/17–20 closed, AC-16 flag half → RD-15; full workspace verify green, core 237 tests; next: RD-15 make_plan)
 
 
 ---
@@ -44,13 +44,23 @@
   **AR-102** (PF-003, incl. an RD-15 §4.4 cascade fix); RD-11a/11b split + true deps now
   recorded in the RD header. RD-15's requirements preflight passed earlier the same day
   (10 findings; its PF-001 reordered RD-11b ahead of RD-15).
-- **Next up**: **RD-15** (programmatic + CLI API) — workflow position: **make_plan**
-  (its requirements preflight PASSED 2026-07-03 with 10 findings fixed). Every RD-15
-  consumable is now shipped: RD-16's `loadConfig()`, RD-09's ACME process layer, and
-  RD-11b's `SeverityPolicy`/`renderTerminal`/`renderJson`/`SourceMap`/`ResourceReport`/
-  `renderReportTerminal` (the six deliverables its preflight PF-001 was waiting on).
-  RD-15 also owns the deferred RD-11 AC-16 flag half (`--quiet`) and E10034 wiring
-  after `emitBinary`. RD-12 (emulator tier) follows.
+- **Next up**: **RD-15** (programmatic + CLI API) — workflow position: **plan
+  preflighted ✅ — ready for `exec_plan`** (2026-07-03: preflight iteration 1 found
+  13 findings — 3 major, 7 minor, 3 observation — all resolved on the recommended
+  option and applied to the plan docs; see `plans/rd-15-programmatic-cli-api/00-preflight-report.md`.
+  Notable: codegen `assembleProgram` override seam wired for `--startup`/`--out-name`
+  (PF-001); `cwd` added to `CompilerOptions` (AR-V20); exit-3 keyed on the `isIceCode`
+  band with ACME-not-found→exit 1 (AR-V21)). The implementation plan was created via
+  make_plan on 2026-07-03 at
+  `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` (4 phases / 13
+  sessions / 50 tasks; Zero-Ambiguity Gate PASSED — 19 items V1–V19, one independent
+  challenger on the high-stakes cluster, user-ratified). Key gate outcomes: yargs@17
+  (no v18 types exist), **zero-dependency CLI color amending requirements AR-17**
+  (back-propagation is execution task 1.1.1), tinyglobby for R47 globs, injectable
+  `BuildDeps` + skipIf real-ACME E2E + **ACME added to CI**, E10034 via core
+  `checkBinaryBudget`, driver codes E10250/E10251. RD-15 also owns the deferred RD-11
+  AC-16 flag half (`--quiet`) and the PF-002 `EmitBinaryResult` rename. RD-12
+  (emulator tier) follows.
 
 
 
@@ -112,7 +122,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
+| 1 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` | A | 🔄 Executing (2026-07-03 — Phase 1/4 COMPLETE: 11/50 tasks; core `CompilerHost` + `DiskCompilerHost` + E10250/E10251 + PF-002 `EmitBinaryResult` rename shipped & verified) |
 | 2 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 4 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |

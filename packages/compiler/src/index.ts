@@ -28,10 +28,15 @@ export {
   type AcmeRunOutput,
 } from "./acme/invoke-acme.js";
 export { parseLabelFile } from "./acme/label-file.js";
+
+// RD-15 disk-backed CompilerHost (R12/R47).
+export * from "./host/index.js";
 export {
   emitBinary,
   defaultEmitDeps,
   type EmitOptions,
   type EmitDeps,
-  type BuildResult,
+  // PF-002: the acme-layer aggregate is `EmitBinaryResult`; the `BuildResult`
+  // name is owned by the RD-15 facade result type (exported from `./api/`).
+  type EmitBinaryResult,
 } from "./acme/emit-binary.js";
