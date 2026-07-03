@@ -1,0 +1,31 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$05
+    STA $D020
+    RTS

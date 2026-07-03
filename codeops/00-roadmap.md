@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-15 ✅ COMPLETE (2026-07-03, 50/50 tasks). RD-12 (emulator tier) 🔄 Executing (2026-07-03 — Phase 2 COMPLETE 29/44: DEF-2 fix + driver/codec/PNG (P1) + the 3 timeout-guarded strategies, register/memory assertions, R7a registry & `setupEmulator` fixture (P2); ST-03..23/28 green on real VICE 3.10. Runtime: +`advanceInstructions` (AR-H18), `$D020` reads `0xF5` (AR-H19). Next: Phase 3 golden/barrel/gate/RD-17 vectors) | 17/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-12 ✅ COMPLETE (2026-07-03, 44/44 tasks) — `@blend65/test-harness`: `EmulatorDriver`+VICE codec/driver+PNG, 3 timeout-guarded strategies, register/memory assertions, R7a registry, `setupEmulator` fixture, `assertGolden`; all 16 own ACs + RD-17 inherited AC-14 discharged on real VICE 3.10; DEF-2 closed. Full verify green (harness 71 tests). Earlier: RD-15 ✅ COMPLETE (50/50). Next: RD-13 (needs make_plan) | 18/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -23,6 +23,16 @@
 
 ## Notes
 
+- 2026-07-03: **RD-12 ✅ COMPLETE** — exec_plan 44/44 tasks, 4 phases. `@blend65/test-harness`
+  ships the runtime-verification framework: abstract `EmulatorDriver` (+`advanceInstructions`,
+  AR-H18) + the pure VICE binary-monitor codec (CI byte-exact) + `ViceDriver` on real VICE 3.10 +
+  zero-dep PNG; the three timeout-guarded run strategies; register/memory assertions; the R7a
+  registry; the `setupEmulator` fixture (+`hasVice`/`hasAcme`); and `assertGolden`. All 16 own ACs
+  ticked with ST evidence, **RD-17 inherited AC-14 discharged on real silicon** (ST-30..33 `__rt_*`
+  math on VICE), the MVP gate program pokes $D020 on real VICE (ST-29), DEF-2 closed as Phase 0
+  (`--vicelabels` → populated `symbolMap`). Runtime finding AR-H19 ($D020 reads 0xF5, unused
+  VIC-II nibble). Full workspace verify green (17/17 turbo, harness 71 tests); Local emulator
+  suites `skipIf` in CI, run sequentially. Feature 18/20; next RD-13 (needs make_plan).
 - 2026-07-03: **RD-12 📋 Plan Created** — `make_plan` produced
   `features/blend65-ri/plans/rd-12-test-harness/` (4 phases / 10 sessions / 44 tasks;
   Zero-Ambiguity Gate PASSED, 17 items AR-H1..H17). Full-RD scope. Locked: depend on

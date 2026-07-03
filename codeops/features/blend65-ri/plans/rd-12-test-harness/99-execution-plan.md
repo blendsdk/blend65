@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-03 19:38
-> **Progress**: 29/44 tasks (66%)
+> **Last Updated**: 2026-07-03 19:52
+> **Progress**: 44/44 tasks (100%) ✅ COMPLETE
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -169,9 +169,9 @@ CI (AR-27) and must be **run green locally on VICE 3.10** before the covered ACs
 | 3.3.5 | Full workspace verify + local VICE run of ALL emulator/RD-17 suites green                          | —                                                |
 
 **Deliverables**:
-- [ ] `assertGolden` + publishable barrel + gate test + RD-17 vectors complete; ST-24..ST-33 green
-- [ ] CLAUDE.md dep table + roadmap updated; RD-17 AC-14 ticked
-- [ ] Full verification passing; emulator suites proven green locally on VICE 3.10
+- [x] `assertGolden` + publishable barrel + gate test + RD-17 vectors complete; ST-24..ST-33 green
+- [x] CLAUDE.md dep table + roadmap updated; RD-17 AC-14 ticked
+- [x] Full verification passing; emulator suites proven green locally on VICE 3.10
 
 **Verify**: full workspace verify + local `@blend65/test-harness` run with VICE (all suites).
 
@@ -223,21 +223,21 @@ CI (AR-27) and must be **run green locally on VICE 3.10** before the covered ACs
 > plan's AR-H9 literal value corrected to real hardware per PF-004).
 
 ### Phase 3: Golden, Package & Runtime Verification
-- [ ] 3.1.1 `assertGolden` spec tests (ST-24/25/26)
-- [ ] 3.1.2 Public-barrel spec test (ST-27)
-- [ ] 3.1.3 Gate emulator spec test (ST-29, skipIf VICE+ACME, PF-002)
-- [ ] 3.1.4 RD-17 routine-vector spec tests (ST-30..33, skipIf VICE+ACME, PF-002)
-- [ ] 3.1.5 Run — verify FAIL (red)
-- [ ] 3.2.1 Implement `assertGolden`
-- [ ] 3.2.2 Public barrel (stable API, no leak)
-- [ ] 3.2.3 Wire gate test + commit `gate.asm.golden`
-- [ ] 3.2.4 Wire RD-17 vectors (in-session injection)
-- [ ] 3.2.5 Run — verify PASS (green; gate + RD-17 green locally)
-- [ ] 3.3.1 Golden impl tests
-- [ ] 3.3.2 Update CLAUDE.md dep table (AR-H17)
-- [ ] 3.3.3 Acceptance audit + tick RD-17 inherited AC-14
-- [ ] 3.3.4 Update feature + portfolio roadmap
-- [ ] 3.3.5 Full verify + local VICE ALL suites green
+- [x] 3.1.1 `assertGolden` spec tests (ST-24/25/26) — 2026-07-03 19:43
+- [x] 3.1.2 Public-barrel spec test (ST-27) — 2026-07-03 19:44
+- [x] 3.1.3 Gate emulator spec test (ST-29, skipIf VICE+ACME, PF-002) — 2026-07-03 19:44
+- [x] 3.1.4 RD-17 routine-vector spec tests (ST-30..33, skipIf VICE+ACME, PF-002) — 2026-07-03 19:45
+- [x] 3.1.5 Run — verify FAIL (red) — 2026-07-03 19:45
+- [x] 3.2.1 Implement `assertGolden` — 2026-07-03 19:46
+- [x] 3.2.2 Public barrel (stable API, no leak) — 2026-07-03 19:46
+- [x] 3.2.3 Wire gate test + commit `gate.asm.golden` — 2026-07-03 19:47
+- [x] 3.2.4 Wire RD-17 vectors (in-session injection) — 2026-07-03 19:48
+- [x] 3.2.5 Run — verify PASS (green; gate + RD-17 green locally) — 2026-07-03 19:48
+- [x] 3.3.1 Golden impl tests — 2026-07-03 19:49
+- [x] 3.3.2 Update CLAUDE.md dep table (AR-H17) — 2026-07-03 19:50
+- [x] 3.3.3 Acceptance audit + tick RD-17 inherited AC-14 — 2026-07-03 19:52
+- [x] 3.3.4 Update feature + portfolio roadmap — 2026-07-03 19:53
+- [x] 3.3.5 Full verify + local VICE ALL suites green (fileParallelism:false) — 2026-07-03 19:51
 
 ---
 

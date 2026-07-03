@@ -1,8 +1,80 @@
-import { describe, expect, it } from "vitest";
-import { VERSION } from "./index.js";
+/**
+ * Specification test for the public package barrel (ST-27).
+ *
+ * Derived EXCLUSIVELY from RD-12 §3 R33–R35 / AC-14 and the plan's documented
+ * public surface (03-04) — never from reading the implementation (IMMUTABLE ORACLE
+ * RULE). The barrel exports exactly the stable API; internal VICE protocol / socket
+ * plumbing and test-only helpers must NOT leak (R34).
+ */
 
-describe("@blend65/test-harness smoke", () => {
-  it("exposes VERSION 0.1.0", () => {
-    expect(VERSION).toBe("0.1.0");
+import { describe, expect, it } from "vitest";
+import * as harness from "./index.js";
+// Type-only imports: fail to compile if the barrel stops exporting these types.
+import type {
+  BreakReason,
+  EmulatorDriver,
+  LaunchOptions,
+  Registers,
+} from "./index.js";
+
+/** The stable VALUE exports the barrel must expose (03-04 documented surface). */
+const PUBLIC_VALUE_EXPORTS = [
+  "ViceDriver",
+  "runUntilLabel",
+  "runFrames",
+  "runUntilMemory",
+  "DEFAULT_TIMEOUT_MS",
+  "TimeoutError",
+  "assertRegister",
+  "assertMemory",
+  "AssertionError",
+  "assertGolden",
+  "setupEmulator",
+  "hasVice",
+  "hasAcme",
+  "EMULATOR_REGISTRY",
+  "emulatorFor",
+];
+
+/** Internal symbols that must stay OFF the public surface (R34). */
+const INTERNAL_SYMBOLS = [
+  "encodeCommand",
+  "decodeResponses",
+  "CMD",
+  "parseMemoryGet",
+  "parseRegistersAvailable",
+  "encodePng",
+  "FakeDriver",
+  "buildGate",
+  "GATE_SRC",
+  "VERSION",
+];
+
+describe("Specification: public package barrel (ST-27)", () => {
+  it("ST-27: exports every documented stable value symbol", () => {
+    for (const name of PUBLIC_VALUE_EXPORTS) {
+      expect(harness, `missing export: ${name}`).toHaveProperty(name);
+    }
+  });
+
+  it("ST-27: does NOT leak internal protocol / socket / test-only symbols", () => {
+    const keys = Object.keys(harness);
+    for (const name of INTERNAL_SYMBOLS) {
+      expect(keys, `internal symbol leaked: ${name}`).not.toContain(name);
+    }
+  });
+
+  it("ST-27: exposes no unexpected extra value exports beyond the documented surface", () => {
+    // The barrel's value surface is exactly the documented set (types are erased).
+    expect(Object.keys(harness).sort()).toEqual([...PUBLIC_VALUE_EXPORTS].sort());
+  });
+
+  it("ST-27: the exported types are usable (compile-time surface)", () => {
+    // A no-op that only type-checks if the types are exported from the barrel.
+    const _driver: EmulatorDriver | undefined = undefined;
+    const _opts: LaunchOptions | undefined = undefined;
+    const _regs: Registers | undefined = undefined;
+    const _reason: BreakReason | undefined = undefined;
+    expect([_driver, _opts, _regs, _reason].every((v) => v === undefined)).toBe(true);
   });
 });

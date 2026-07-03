@@ -119,22 +119,22 @@ runtime math routines, AR-P4) on real VICE.
 
 Mirrors RD-12 §6 (AC-01..AC-16). Traced in `07-testing-strategy.md` and the execution plan:
 
-1. [ ] AC-01 `EmulatorDriver` interface defined (launch/load/breakpoint/resume/read/write/screenshot/shutdown).
-2. [ ] AC-02 `ViceDriver` implements the interface via VICE's binary-monitor protocol.
-3. [ ] AC-03 `runUntilLabel()` breakpoints at a label address, returns registers on break.
-4. [ ] AC-04 `runFrames()` runs N frames.
-5. [ ] AC-05 `runUntilMemory()` polls until a memory value matches.
-6. [ ] AC-06 All run strategies enforce a mandatory timeout guard.
-7. [ ] AC-07 `assertRegister()` validates register values.
-8. [ ] AC-08 `assertMemory()` validates memory (numeric address or symbolic label).
-9. [ ] AC-09 Screenshots captured on failure as artifacts (not golden-matched).
-10. [ ] AC-10 `assertGolden()` compares to committed goldens with `UPDATE_GOLDEN` support.
-11. [ ] AC-11 The fixture manages emulator lifecycle (launch/load/shutdown).
-12. [ ] AC-12 Unit + golden (+ protocol codec) tests run in GitHub Actions CI.
-13. [ ] AC-13 Emulator tests skip gracefully when VICE is absent.
-14. [ ] AC-14 (own) `@blend65/test-harness` is a publishable package with a stable API.
-15. [ ] AC-15 The harness works with any binary + label file (not Blend65-specific).
-16. [ ] AC-16 All decisions trace to an `AR-NN`/`AR-H##` or a frozen spec section.
-17. [ ] **RD-17 inherited AC-14**: `__rt_*` routines verified on real VICE (AR-P4, AR-H5).
-18. [ ] **DEF-2**: real `build()` yields a non-empty `symbolMap` (`_main`/`__startup`).
-19. [ ] Full workspace verify passes; emulator/RD-17 suites proven green locally on VICE 3.10.
+1. [x] AC-01 `EmulatorDriver` interface defined (launch/load/breakpoint/resume/read/write/screenshot/shutdown; +`advanceInstructions` AR-H18) — `emulator/driver.ts`, exercised via `ViceDriver` (ST-09..13).
+2. [x] AC-02 `ViceDriver` implements the interface via VICE's binary-monitor protocol — ST-09..13 green on VICE 3.10.
+3. [x] AC-03 `runUntilLabel()` breakpoints at a label address, returns registers on break — ST-21/ST-29 (regs.pc === `_main`).
+4. [x] AC-04 `runFrames()` runs N frames (approximate, PF-004) — ST-22 (advances within the guard).
+5. [x] AC-05 `runUntilMemory()` polls until a memory value matches — ST-20/ST-29 ($D020 → 0xF5).
+6. [x] AC-06 All run strategies enforce a mandatory timeout guard — ST-14/ST-15 (`TimeoutError`, fake driver, CI).
+7. [x] AC-07 `assertRegister()` validates register values — ST-16 (hex diff).
+8. [x] AC-08 `assertMemory()` validates memory (numeric address or symbolic label) — ST-17/ST-18/ST-29.
+9. [x] AC-09 Screenshots captured on failure as artifacts (not golden-matched) — ST-12 (PNG sig/IHDR) + `png.impl`.
+10. [x] AC-10 `assertGolden()` compares to committed goldens with `UPDATE_GOLDEN` support — ST-24/25/26 + `golden.impl` + committed `test/golden/gate.asm.golden`.
+11. [x] AC-11 The fixture manages emulator lifecycle (launch/load/shutdown) — ST-23 (`setupEmulator`).
+12. [x] AC-12 Unit + golden (+ protocol codec) tests run in GitHub Actions CI — codec/assertion/registry/golden/PNG tiers are unguarded (no skipIf); run live in CI.
+13. [x] AC-13 Emulator tests skip gracefully when VICE is absent — every emulator suite `describe.skipIf(!hasVice()[ || !hasAcme()])`.
+14. [x] AC-14 (own) `@blend65/test-harness` is a publishable package with a stable API — ST-27 (barrel surface, no internal leak); `publishConfig.access: public`.
+15. [x] AC-15 The harness works with any binary + label file (not Blend65-specific) — ST-28 (hand-authored PRG + `.lbl`).
+16. [x] AC-16 All decisions trace to an `AR-NN`/`AR-H##` or a frozen spec section — traceability comments throughout; AR-H1..H19 register.
+17. [x] **RD-17 inherited AC-14**: `__rt_*` routines verified on real VICE (AR-P4, AR-H5) — ST-30..33 green on VICE 3.10 (edge crosses + 25 seeded/routine).
+18. [x] **DEF-2**: real `build()` yields a non-empty `symbolMap` (`_main`/`__startup`) — ST-01/ST-02 (Phase 0 oracle).
+19. [x] Full workspace verify passes; emulator/RD-17 suites proven green locally on VICE 3.10 — 17/17 turbo tasks green; test-harness 71 tests (Local suites run sequentially, `fileParallelism:false`).

@@ -10,5 +10,11 @@ export default defineConfig({
     include: ["src/**/*.{spec,impl}.test.ts"],
     environment: "node",
     passWithNoTests: false,
+    // Run test FILES sequentially: the Local emulator suites each spawn a real
+    // VICE `x64sc`, and several full C64 emulators running concurrently contend
+    // (a VICE can crash → "monitor socket closed"). Sequential files keep at most
+    // one VICE alive at a time. In CI (no VICE) these suites skip, so the only
+    // cost is a slightly slower CI-tier run of small files. (AR-H6 lifecycle.)
+    fileParallelism: false,
   },
 });

@@ -36,6 +36,7 @@ import {
   checkpointSetBody,
   registersAvailableBody,
   registersGetBody,
+  registersSetBody,
   RESP,
   type ResponseFrame,
 } from "./protocol.js";
@@ -209,6 +210,28 @@ export class ViceDriver implements EmulatorDriver {
 
   async advanceInstructions(count: number): Promise<void> {
     await this.send(CMD.ADVANCE_INSTRUCTIONS, advanceInstructionsBody(count));
+  }
+
+  /**
+   * Write CPU registers by name (a/x/y/sp/pc) via REGISTERS_SET, resolving ids
+   * through the REGISTERS_AVAILABLE map. A driver-specific extension beyond the
+   * {@link EmulatorDriver} contract — used by the RD-17 routine vectors to seed a
+   * routine's ABI inputs and entry PC (not part of the published API).
+   */
+  async writeRegisters(values: Partial<Record<"a" | "x" | "y" | "sp" | "pc", number>>): Promise<void> {
+    const nameForKey: Record<string, string> = { a: "A", x: "X", y: "Y", sp: "SP", pc: "PC" };
+    const items: Array<{ id: number; value: number }> = [];
+    for (const [key, value] of Object.entries(values)) {
+      if (value === undefined) continue;
+      const id = this.registerIds.get(nameForKey[key]);
+      if (id === undefined) {
+        throw new Error(`writeRegisters: register '${key}' is not available on this VICE`);
+      }
+      items.push({ id, value });
+    }
+    if (items.length > 0) {
+      await this.send(CMD.REGISTERS_SET, registersSetBody(items));
+    }
   }
 
   /** Run the EXECUTE_UNTIL_RETURN command (used by the RD-17 routine vectors). */

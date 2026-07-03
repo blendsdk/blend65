@@ -98,5 +98,5 @@ RD-04 R95–R100, R19, R59).
 RD-17 §6 AC-01..AC-19 apply verbatim, with two dispositions decided at the gate:
 
 1. [ ] AC-01..AC-13, AC-15..AC-19 — verified by this plan's test tiers (see 07-testing-strategy.md)
-2. [ ] **AC-14 — DEFERRED to RD-12** (emulator tier; AR-P4). The plan documents the deferral; the RD row stays open until RD-12 verifies it.
+2. [x] **AC-14 — DISCHARGED by RD-12** (emulator tier; AR-P4). RD-12's `runtime-routines.spec.test.ts` (ST-30..33) verifies `__rt_mul8/div8/mul16/div16` on real VICE 3.10 (edge crosses + 25 seeded vectors/routine, AR-H5) — green 2026-07-03. The interim in-process interpreter (AR-P17) retains the exhaustive 500-sample coverage.
 3. [ ] Full verify passes (`yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`)

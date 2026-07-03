@@ -102,7 +102,7 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
 | `@blend65/cli`             | compiler, config, core                      | public   |
 | `@blend65/language-server` | core, frontend  (**NEVER codegen** — R15)   | public   |
 | `@blend65/vscode`          | language-server                             | public   |
-| `@blend65/test-harness`    | core                                        | public   |
+| `@blend65/test-harness`    | core, compiler (+ codegen **dev-only**)     | public   |
 
 > **R15 / AR-20 (load-bearing):** `frontend` and `language-server` MUST NOT import
 > `@blend65/codegen`. Enforced authoritatively by ESLint `no-restricted-imports`
@@ -230,9 +230,21 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   real-ACME build E2E runs live. RD-15 also fixed a latent RD-09 defect (DEF-1/
   AR-V23): `invokeAcme` dropped `-o` so the `!to ...,cbm` directive drives a
   header-bearing, loadable c64 PRG.
-  **Next up: RD-12** (test harness & emulator tier — includes RD-17's deferred
-  AC-14); see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
-- CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.
+  RD-12 is complete: `@blend65/test-harness` ships the emulator-verification
+  framework — the abstract `EmulatorDriver` (+`advanceInstructions`), the pure VICE
+  binary-monitor codec (CI byte-exact) + `ViceDriver` (real VICE 3.10) + zero-dep PNG,
+  three timeout-guarded run strategies, register/memory assertions, the R7a
+  platform→emulator registry, the `setupEmulator` fixture (+`hasVice`/`hasAcme`), and
+  `assertGolden`. All 16 own ACs are ticked; RD-17's inherited AC-14 is discharged on
+  real VICE (the `__rt_*` math vectors), and DEF-2 was fixed as Phase 0 (`invokeAcme`
+  now emits `--vicelabels`, so real builds populate `symbolMap`).
+  **Next up: RD-13** (non-functional requirements sweep — needs `make_plan`); see
+  `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
+- CI still has NO emulator tier (AR-27): the RD-12 emulator/RD-17 suites are
+  `describe.skipIf(!hasVice()[||!hasAcme()])` — they skip in CI and are proven green
+  locally on VICE 3.10. The codec/assertion/registry/golden/PNG tiers DO run in CI.
+  Local emulator suites run sequentially (`fileParallelism:false`) so concurrent
+  `x64sc` instances don't contend.
 - This repository keeps a living implementation tracker at
   `codeops/features/blend65-ri/00-roadmap.md` (rolled up into the portfolio roadmap
   `codeops/00-roadmap.md`). Read it at the start of a task to determine the current position,
