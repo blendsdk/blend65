@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-03
-> **Progress**: 24/39 tasks (62%)
+> **Progress**: 39/39 tasks (100%) — ✅ PLAN COMPLETE
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -149,6 +149,29 @@ Commits reference **/gitcm** per the exec_plan skill's commit mode; scope
 | 4.3.4 | Tick RD-11 acceptance-criteria boxes owned by this plan (RD-11 §6) with ST evidence | `requirements/RD-11-diagnostics-reporting.md` |
 | 4.3.5 | Full verify + roadmap/CLAUDE.md status sync (per exec_plan closeout) | — |
 
+> **AC audit record (task 4.3.3, 2026-07-03 — AR-Q12 close-by-audit):**
+>
+> - **AC-08 (error sentinels carry spans)** ✅ — `ErrorExprNode`/`ErrorStmtNode`/`ErrorTypeNode`
+>   defined at `packages/core/src/ast/nodes.ts:506-518`, each extending `AstNode`
+>   (`packages/core/src/ast/nodes.ts:19-23`) whose `span: SourceSpan` is mandatory; kinds
+>   registered at `packages/core/src/ast/node-kind.ts:75-77` (RD-03).
+> - **AC-09 (poison-type cascade suppression)** ✅ — `ErrorType` poison type and the shared
+>   `ERROR_TYPE` singleton at `packages/core/src/semantics/type.ts:64-75` ("once a
+>   sub-expression fails to type-check, it is assigned `ErrorType` so dependent expressions
+>   don't re-report", R29/R114; RD-04). R16 span-propagation surface: `Instr.sourceSpan`
+>   at `packages/core/src/instr-model/stream.ts:60` (RD-07a).
+> - **AC-14 (no printing in core)** ✅ — data-only sweep
+>   `grep -rn "console\.|process\.stdout|process\.stderr" packages/core/src packages/frontend/src`
+>   (non-test files): **zero hits**. Both renderers return strings
+>   (`render-terminal.ts` `renderTerminal(...): string`, `render-json.ts` `renderJson(...): string`);
+>   nothing in the compiler pipeline invokes them (chain test `diagnostics/pipeline.impl.test.ts`
+>   exercises consumer-side rendering). CLI-side printing lands with RD-15.
+> - **AC-17 pre-ACME half (ZP/RAM budget timing)** ✅ — shipped in the SFA planner:
+>   E10033 emitted at `packages/frontend/src/sfa/budgets.ts:67` (`DiagCode.RamBudgetExceeded`),
+>   E10032 owned by the ZP allocator (`packages/frontend/src/sfa/budgets.ts:15` documents the
+>   split; `zp-allocator.ts` emits at overflow point) — both pre-ACME. Post-ACME half:
+>   `checkBinaryBudget` (`packages/core/src/report/build-resource-report.ts:96-110`, ST-23).
+
 ---
 
 ## 🚨 Master Progress Checklist (All Phases) — MANDATORY
@@ -193,21 +216,21 @@ Commits reference **/gitcm** per the exec_plan skill's commit mode; scope
 - [x] 3.3.3 Full verify green ✅ (completed: 2026-07-03 — install/build/typecheck/lint/test all pass; core 220 tests)
 
 ### Phase 4: Resource report + closeout
-- [ ] 4.1.1 ST-22..ST-23 spec tests written
-- [ ] 4.1.2 ST-24..ST-26 golden spec tests written
-- [ ] 4.1.3 ST-27 spec test written
-- [ ] 4.1.4 ST-28 export-surface spec extended
-- [ ] 4.1.5 Red phase verified & recorded
-- [ ] 4.2.1 `resource-report.ts` types implemented
-- [ ] 4.2.2 Builder + `checkBinaryBudget` implemented
-- [ ] 4.2.3 `render-report-terminal.ts` implemented
-- [ ] 4.2.4 `render-report-json.ts` implemented
-- [ ] 4.2.5 Barrels + green phase verified (incl. ST-28)
-- [ ] 4.3.1 Report impl tests written
-- [ ] 4.3.2 Integration chain test written
-- [ ] 4.3.3 AC-08/09/14/17(pre) audits recorded with evidence
-- [ ] 4.3.4 RD-11 §6 acceptance boxes ticked with ST evidence
-- [ ] 4.3.5 Full verify + roadmap/CLAUDE.md sync
+- [x] 4.1.1 ST-22..ST-23 spec tests written ✅ (completed: 2026-07-03)
+- [x] 4.1.2 ST-24..ST-26 golden spec tests written ✅ (completed: 2026-07-03)
+- [x] 4.1.3 ST-27 spec test written ✅ (completed: 2026-07-03)
+- [x] 4.1.4 ST-28 export-surface spec extended ✅ (completed: 2026-07-03)
+- [x] 4.1.5 Red phase verified & recorded ✅ (completed: 2026-07-03 — 3 report suites fail to load `./build-resource-report.js`/renderers; ST-28's 2 tests fail on missing root-barrel exports)
+- [x] 4.2.1 `resource-report.ts` types implemented ✅ (completed: 2026-07-03)
+- [x] 4.2.2 Builder + `checkBinaryBudget` implemented ✅ (completed: 2026-07-03)
+- [x] 4.2.3 `render-report-terminal.ts` implemented ✅ (completed: 2026-07-03)
+- [x] 4.2.4 `render-report-json.ts` implemented ✅ (completed: 2026-07-03)
+- [x] 4.2.5 Barrels + green phase verified (incl. ST-28) ✅ (completed: 2026-07-03 — 11/11 pass unmodified)
+- [x] 4.3.1 Report impl tests written ✅ (completed: 2026-07-03)
+- [x] 4.3.2 Integration chain test written ✅ (completed: 2026-07-03)
+- [x] 4.3.3 AC-08/09/14/17(pre) audits recorded with evidence ✅ (completed: 2026-07-03 — see audit record above)
+- [x] 4.3.4 RD-11 §6 acceptance boxes ticked with ST evidence ✅ (completed: 2026-07-03 — AC-08/09/11/12/13/14/15/17/18/19/20 ticked; AC-16 core-side noted, flag evidence → RD-15)
+- [x] 4.3.5 Full verify + roadmap/CLAUDE.md sync ✅ (completed: 2026-07-03 — full workspace verify green, core 237 tests; feature + portfolio roadmaps set to RD-11b COMPLETE; CLAUDE.md status paragraph refreshed)
 
 ---
 

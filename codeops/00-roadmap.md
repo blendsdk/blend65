@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-11b executing 🔄 (exec_plan started 2026-07-03; Phase 1 SourceMap underway) — then RD-15 | 15/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-11b ✅ COMPLETE (2026-07-03, 39/39 tasks — SourceMap, severity policy, diagnostic renderers, ResourceReport + build summary) — next: RD-15 make_plan | 16/20 | 🔄 | 2026-07-03 |
 
 ## Archived
 
@@ -78,3 +78,14 @@
   `features/blend65-ri/plans/rd-11b-diagnostics-reporting/00-preflight-report.md`.
   RD-11b advanced to "Plan preflighted"; the four resolved fixes applied same day
   (plan docs + RD-11 R51 amendment + AR-105 addendum in the register). Next: exec_plan.
+- 2026-07-03: RD-11b executed to ✅ COMPLETE via exec_plan — 39/39 tasks, 4 phases,
+  spec-first throughout (every phase red-run recorded, goldens pass unmodified).
+  `@blend65/core` gains `diagnostics/source-map.ts` (SourceMap registry, AR-104),
+  `severity-policy.ts` (R50 precedence, PF-014 cap exemption), `render-terminal.ts` +
+  `render-json.ts` (Ch 14 §1 caret format, R52 sanitize-then-caret security tier,
+  AR-Q9 hand-rolled ANSI; verbatim-span JSON) and the new `report/` module
+  (`ResourceReport` per AR-103, `buildResourceReport` by-reference embedding,
+  post-ACME `checkBinaryBudget` E10034, Ch 11 §6 build-summary terminal golden with
+  AR-102 zero-staging, PF-012 sorted-entries JSON). RD-11 §6: AC-11..13/15/18/19/20
+  ST-evidenced; AC-08/09/14/17 audit-closed (AR-Q12); AC-16 flag half → RD-15.
+  Full workspace verify green (core 237 tests). Next: RD-15 make_plan.

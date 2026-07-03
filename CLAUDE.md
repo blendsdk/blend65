@@ -203,16 +203,19 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   `@blend65/config` ships `loadConfig()` (walk-up discovery, tolerant JSONC via
   `jsonc-parser` — the workspace's only external runtime dependency — schema/semantic
   validation over the E10240–E10246/W10240–41 band, defaults←file←overrides merge).
-  RD-11's and RD-15's requirements are both preflighted (2026-07-03; RD-15's PF-001
-  reordered RD-11b ahead of it; RD-11's preflight rebuilt `ResourceReport` on the shipped
-  `SfaResourceData` and pinned the Ch 11 §6 build-summary layout — runtime AR-102).
-  **Next up: RD-11b** at exec_plan — plan authored 2026-07-03 at
-  `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/` (severity policy,
-  diagnostic/report renderers, `SourceMap`, `ResourceReport`; plan-gate amendments
-  AR-103..AR-105 back-propagated into RD-11) and plan-preflighted ✅ WITH NOTES the
-  same day (4 minor findings resolved & fixes applied — incl. the RD-11 R51 wording
-  amendment recorded as an AR-105 addendum; 2 open-optional observations — see the
-  plan's `00-preflight-report.md`) — then RD-15 (CLI/programmatic driver),
+  RD-11b is complete (2026-07-03, 39/39 tasks): `@blend65/core` ships the full
+  diagnostics remainder — the `SourceMap` registry (path-keyed intern, cached
+  `LineMap`s, AR-104 `has()`), the severity policy (`createSeverityPolicy`/
+  `applySeverityPolicy`, R50 suppression-wins, W-code preserved on promotion),
+  the Ch 14 §1 terminal renderer (byte-column carets, R51 degradation, R52
+  excerpt sanitization, hand-rolled ANSI) with a verbatim-span JSON renderer,
+  and the new `report/` module (`ResourceReport` on the shipped `SfaResourceData`,
+  `buildResourceReport`, post-ACME `checkBinaryBudget` E10034, the Ch 11 §6
+  `renderReportTerminal` build summary with AR-102 zero-staging, and
+  `renderReportJson`). RD-11 §6 acceptance is closed except AC-16's `--quiet`
+  flag half (→ RD-15) and AC-10/AC-21 bookkeeping.
+  **Next up: RD-15** (CLI/programmatic driver) at make_plan — its requirements
+  were preflighted 2026-07-03 and every consumable it needs is now shipped —
   then RD-12 (emulator tier — includes RD-17's deferred AC-14);
   see `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI has NO emulator tier (AR-27); emulator/golden tiers arrive with RD-12.

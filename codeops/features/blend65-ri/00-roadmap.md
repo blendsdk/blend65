@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-03 (RD-11b plan preflight ✅ PASSED WITH NOTES — 6 findings: 4 minor resolved & fixes applied (incl. the RD-11 R51 wording amendment, AR-105 addendum), 2 observations open-optional; `plans/rd-11b-diagnostics-reporting/00-preflight-report.md`; next: exec_plan)
+> **Last Updated**: 2026-07-03 (RD-11b ✅ COMPLETE — exec_plan 39/39 tasks, 4 phases: `SourceMap` registry, severity policy, terminal/JSON diagnostic renderers (Ch 14 §1 goldens + R52 security tier), `ResourceReport` builder + `checkBinaryBudget` + Ch 11 §6 build-summary renderers; RD-11 §6 boxes AC-08/09/11–15/17–20 closed, AC-16 flag half → RD-15; full workspace verify green, core 237 tests; next: RD-15 make_plan)
 
 
 ---
@@ -18,15 +18,23 @@
 ## Current Position
 
 
-- **Last completed**: **RD-16** (compiler configuration, `blend65.json`), executed to 100% on
-  2026-07-02 (`codeops/features/blend65-ri/plans/rd-16-compiler-configuration/99-execution-plan.md`,
-  36/36 tasks, 4 phases): `@blend65/config` ships `loadConfig()` — walk-up discovery (R4),
-  tolerant JSONC parsing via the workspace's first external runtime dep `jsonc-parser@3.3.1`
-  (AR-P1, byte-offset conversion PF-017), schema shape + semantic validation over the
-  E10240–E10246/W10240–41 band (AR-P3) with synthetic-span dedup survival (AR-P2/PF-019),
-  defaults←file←overrides merge (R23–R25), and PF-020 local `hasErrors` tracking. AC-01..AC-14
-  all ticked with ST evidence; AC-13 data-only audit PASS; 96 config tests + full workspace
-  verify green. One runtime register entry: AR-P10 (BOM strip, provisional — flagged for review).
+- **Last completed**: **RD-11b** (diagnostics remainder & resource reporter), executed to
+  100% on 2026-07-03
+  (`codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/99-execution-plan.md`,
+  39/39 tasks, 4 phases): `@blend65/core` ships the `SourceMap` registry (path-keyed intern,
+  cached `LineMap`s, AR-104 `has()`), the R50-precedence severity policy
+  (`createSeverityPolicy`/`applySeverityPolicy`, W-code preserved on promotion per AR-Q8),
+  the Ch 14 §1 terminal renderer (per-excerpt gutters PF-004, byte-column carets, R51
+  degradation, R52 sanitize-then-caret security tier ST-18, AR-Q9 hand-rolled ANSI) +
+  verbatim-span JSON renderer, and the `report/` module (`ResourceReport` on the shipped
+  `SfaResourceData` per AR-103/PF-002, `buildResourceReport` with by-reference embedding,
+  post-ACME `checkBinaryBudget` E10034, Ch 11 §6 build-summary goldens with AR-102
+  zero-staging, PF-012 sorted-entries JSON). RD-11 §6: AC-11..13/15/18/19/20 ticked with ST
+  evidence, AC-08/09/14/17 audit-closed (AR-Q12), AC-16 core half noted (flag → RD-15).
+  Full workspace verify green (core 237 tests).
+- **Previously**: **RD-16** (compiler configuration) 100% on 2026-07-02 — `@blend65/config`
+  ships `loadConfig()` (walk-up discovery, tolerant JSONC via `jsonc-parser`, E10240–E10246/
+  W10240–41 validation, defaults←file←overrides merge); AC-01..AC-14 ticked.
 - **Preflighted**: **RD-11** (diagnostics & resource reporting) requirements preflight
   ✅ PASSED 2026-07-03 — 14 findings (3 major, 7 minor, 4 observations), all
   recommendations accepted and fixes applied (see `requirements/00-preflight-report.md`).
@@ -36,18 +44,13 @@
   **AR-102** (PF-003, incl. an RD-15 §4.4 cascade fix); RD-11a/11b split + true deps now
   recorded in the RD header. RD-15's requirements preflight passed earlier the same day
   (10 findings; its PF-001 reordered RD-11b ahead of RD-15).
-- **Next up**: **RD-11b** (diagnostics remainder & resource reporter) — dependencies
-  RD-11a (✅), RD-09 (✅) all met; its aggregator inputs (`AllocationPlan`, ACME label
-  file, profile budgets) are all shipped. Workflow position: **exec_plan** — the
-  implementation plan (created 2026-07-03 at
-  `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/`, 4 phases /
-  12 sessions / 39 tasks; Zero-Ambiguity Gate PASSED with 16 items; plan-gate
-  amendments AR-103..AR-105 back-propagated into RD-11 §4.2/§4.6–§4.8) passed its
-  plan preflight ✅ WITH NOTES the same day (6 findings: 4 minor resolved per
-  recommendation and fixes applied — ST-12 caret span, export-list bookkeeping,
-  RD R51 degraded-path wording amendment (AR-105 addendum), gutter-width pinning;
-  2 open-optional observations — see `00-preflight-report.md`). RD-15 follows at
-  **make_plan** (requirements already preflighted).
+- **Next up**: **RD-15** (programmatic + CLI API) — workflow position: **make_plan**
+  (its requirements preflight PASSED 2026-07-03 with 10 findings fixed). Every RD-15
+  consumable is now shipped: RD-16's `loadConfig()`, RD-09's ACME process layer, and
+  RD-11b's `SeverityPolicy`/`renderTerminal`/`renderJson`/`SourceMap`/`ResourceReport`/
+  `renderReportTerminal` (the six deliverables its preflight PF-001 was waiting on).
+  RD-15 also owns the deferred RD-11 AC-16 flag half (`--quiet`) and E10034 wiring
+  after `emitBinary`. RD-12 (emulator tier) follows.
 
 
 
@@ -97,6 +100,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 | RD-09 | ACME emitter & assembler integration | `codeops/features/blend65-ri/plans/rd-09-acme-emitter/` | ✅ COMPLETE |
 | RD-17 | Intrinsics & runtime ABI (all four tiers; AC-14 emulator tier → RD-12, AR-P4/AR-P17) | `codeops/features/blend65-ri/plans/rd-17-intrinsics-runtime-abi/` | ✅ COMPLETE |
 | RD-16 | Compiler configuration (`blend65.json` loader) | `codeops/features/blend65-ri/plans/rd-16-compiler-configuration/` | ✅ COMPLETE |
+| RD-11b | Diagnostics remainder & resource reporter (`SourceMap`, severity policy, renderers, `ResourceReport`) | `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/` | ✅ COMPLETE |
 
 ---
 
@@ -108,11 +112,10 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-11b | Diagnostics remainder & resource reporter (severity policy, renderers, `SourceMap`, `ResourceReport`) | RD-11a (+ RD-09) | `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/` | A | 🔄 Executing (started 2026-07-03) |
-| 2 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
-| 3 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
-| 4 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
-| 5 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
+| 1 | RD-15 | Programmatic + CLI API | RD-01, RD-09, RD-10, RD-11, RD-16 | ❌ needs `make_plan` | A | 🔎 RD preflighted (2026-07-03) |
+| 2 | RD-12 | Test harness & emulator verification (incl. RD-17 AC-14 emulator tier — AR-P4) | RD-01 (+ RD-09, RD-15) | ❌ needs `make_plan` | A | ⬜ Not started |
+| 3 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
+| 4 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
 
 > **Why RD-11b leads now (RD-15 preflight PF-001, 2026-07-03):** RD-15's own text consumes

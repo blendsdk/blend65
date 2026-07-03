@@ -578,19 +578,19 @@ export { renderReportTerminal, renderReportJson };
 - [ ] AC-05: Diagnostic ordering is deterministic: same input → same order (golden snapshot)
 - [ ] AC-06: Duplicate diagnostics (same code + location) are suppressed
 - [ ] AC-07: `--max-errors` limits error count with a truncation message
-- [ ] AC-08: Error-sentinel nodes (`ErrorExpr`/`ErrorStmt`/`ErrorType`) exist and carry spans
-- [ ] AC-09: Poison-type cascade suppression prevents derived diagnostics from error nodes
+- [x] AC-08: Error-sentinel nodes (`ErrorExpr`/`ErrorStmt`/`ErrorType`) exist and carry spans — audit-closed 2026-07-03 per AR-Q12 (`core/src/ast/nodes.ts:506-518` extending the span-carrying `AstNode`; kinds at `node-kind.ts:75-77`)
+- [x] AC-09: Poison-type cascade suppression prevents derived diagnostics from error nodes — audit-closed 2026-07-03 per AR-Q12 (`core/src/semantics/type.ts:64-75` `ErrorType`/`ERROR_TYPE`; R16 surface `instr-model/stream.ts:60`)
 - [ ] AC-10: User codes use `E10xxx`/`W10xxx`; ICE codes use `E9xxxx` — no overlap
-- [ ] AC-11: `SeverityPolicy` correctly promotes and suppresses warnings
-- [ ] AC-12: Terminal renderer produces Ch 14 caret format with conditional color
-- [ ] AC-13: JSON renderer produces parseable diagnostic JSON
-- [ ] AC-14: No diagnostic is printed inside the compiler core — all rendering is in consumers
-- [ ] AC-15: `ResourceReport` aggregates ZP/RAM/stack/binary data from correct owners
-- [ ] AC-16: Build summary prints by default on success; `--quiet` suppresses it
-- [ ] AC-17: Budget diagnostics fire at correct timing (ZP/RAM pre-ACME, binary post-ACME)
-- [ ] AC-18: Terminal report renders the Ch 11 §6 layout — ZP and hardware-stack blocks show used / budget (%); segment lines show byte counts (plus address ranges when available) (PF-003)
-- [ ] AC-19: `renderReportJson` produces parseable report JSON (flag surfacing per RD-15 R24/R36) (PF-001)
-- [ ] AC-20: Unit tests cover diagnostic ordering, dedup, max-errors, severity policy (AR-22 tier 1)
+- [x] AC-11: `SeverityPolicy` correctly promotes and suppresses warnings — ST-6..ST-11 (`core/src/diagnostics/severity-policy.spec.test.ts`, 2026-07-03)
+- [x] AC-12: Terminal renderer produces Ch 14 caret format with conditional color — ST-12..ST-19 (`core/src/diagnostics/render-terminal.spec.test.ts` + `.security.spec.test.ts`, 2026-07-03)
+- [x] AC-13: JSON renderer produces parseable diagnostic JSON — ST-20..ST-21 (`core/src/diagnostics/render-json.spec.test.ts`, 2026-07-03)
+- [x] AC-14: No diagnostic is printed inside the compiler core — all rendering is in consumers — audit-closed 2026-07-03 (zero `console.*`/`process.stdout|stderr` hits in `core/src` + `frontend/src` non-test files; renderers are pure string functions; chain test `diagnostics/pipeline.impl.test.ts`)
+- [x] AC-15: `ResourceReport` aggregates ZP/RAM/stack/binary data from correct owners — ST-22 (`core/src/report/resource-report.spec.test.ts`, 2026-07-03; plan sub-records embedded by reference)
+- [ ] AC-16: Build summary prints by default on success; `--quiet` suppresses it — core-side renderers complete (ST-24..ST-27); default-print/`--quiet` flag evidence lands with RD-15
+- [x] AC-17: Budget diagnostics fire at correct timing (ZP/RAM pre-ACME, binary post-ACME) — pre-ACME half shipped (`frontend/src/sfa/budgets.ts:67` E10033, ZP allocator E10032); post-ACME half ST-23 (`checkBinaryBudget`, 2026-07-03)
+- [x] AC-18: Terminal report renders the Ch 11 §6 layout — ZP and hardware-stack blocks show used / budget (%); segment lines show byte counts (plus address ranges when available) (PF-003) — ST-24..ST-26 goldens (`core/src/report/render-report-terminal.golden.spec.test.ts`, 2026-07-03)
+- [x] AC-19: `renderReportJson` produces parseable report JSON (flag surfacing per RD-15 R24/R36) (PF-001) — ST-27 (`core/src/report/render-report-json.spec.test.ts`, 2026-07-03)
+- [x] AC-20: Unit tests cover diagnostic ordering, dedup, max-errors, severity policy (AR-22 tier 1) — RD-11a suites + ST-6..ST-11 and the `*.impl.test.ts` tiers across `diagnostics/` and `report/` (2026-07-03)
 - [ ] AC-21: All decisions trace to an `AR-NN` or a frozen spec section
 
 ---
