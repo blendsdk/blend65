@@ -7,10 +7,13 @@ import type { SourceId } from "./source-span.js";
  * so `@blend65/core` stays free of any runtime/platform dependency and works in
  * browser-hosted tooling (e.g. the language server) as well as Node.
  *
+ * Exported for package-internal byte-column math (the RD-11b terminal
+ * renderer's caret alignment); not part of the public barrel surface.
+ *
  * @param codePoint A Unicode scalar value (0..0x10FFFF).
  * @returns 1, 2, 3, or 4 — the UTF-8 byte length of that code point.
  */
-function utf8ByteLength(codePoint: number): number {
+export function utf8ByteLength(codePoint: number): number {
   if (codePoint <= 0x7f) return 1;
   if (codePoint <= 0x7ff) return 2;
   if (codePoint <= 0xffff) return 3;

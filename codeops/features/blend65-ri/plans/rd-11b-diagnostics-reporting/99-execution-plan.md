@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-03
-> **Progress**: 13/39 tasks (33%)
+> **Progress**: 24/39 tasks (62%)
 > **CodeOps Skills Version**: 3.1.0
 
 ## Overview
@@ -180,17 +180,17 @@ Commits reference **/gitcm** per the exec_plan skill's commit mode; scope
 - [x] 2.3.2 Full verify green ✅ (completed: 2026-07-03 — note: one flaky `frontend/parser.spec.test.ts` failure in the first parallel run, green on re-run and in isolation; unrelated to RD-11b)
 
 ### Phase 3: Diagnostic renderers
-- [ ] 3.1.1 ST-12..ST-17, ST-19 spec tests written
-- [ ] 3.1.2 ST-18 security spec test written
-- [ ] 3.1.3 ST-20..ST-21 spec tests written
-- [ ] 3.1.4 Red phase verified & recorded
-- [ ] 3.2.1 `ansi.ts` implemented
-- [ ] 3.2.2 `render-terminal.ts` implemented
-- [ ] 3.2.3 `render-json.ts` implemented
-- [ ] 3.2.4 Barrel exports + green phase verified
-- [ ] 3.3.1 Terminal impl tests written
-- [ ] 3.3.2 JSON impl tests written
-- [ ] 3.3.3 Full verify green
+- [x] 3.1.1 ST-12..ST-17, ST-19 spec tests written ✅ (completed: 2026-07-03)
+- [x] 3.1.2 ST-18 security spec test written ✅ (completed: 2026-07-03)
+- [x] 3.1.3 ST-20..ST-21 spec tests written ✅ (completed: 2026-07-03)
+- [x] 3.1.4 Red phase verified & recorded ✅ (completed: 2026-07-03 — all 3 suites fail: `Failed to load url ./render-terminal.js` / `./render-json.js`, modules not implemented)
+- [x] 3.2.1 `ansi.ts` implemented ✅ (completed: 2026-07-03 — internal, not barrel-exported; also exported `utf8ByteLength` from `line-map.ts` for byte-column caret math, no behavior change)
+- [x] 3.2.2 `render-terminal.ts` implemented ✅ (completed: 2026-07-03)
+- [x] 3.2.3 `render-json.ts` implemented ✅ (completed: 2026-07-03)
+- [x] 3.2.4 Barrel exports + green phase verified ✅ (completed: 2026-07-03 — 11/11 pass unmodified)
+- [x] 3.3.1 Terminal impl tests written ✅ (completed: 2026-07-03)
+- [x] 3.3.2 JSON impl tests written ✅ (completed: 2026-07-03)
+- [x] 3.3.3 Full verify green ✅ (completed: 2026-07-03 — install/build/typecheck/lint/test all pass; core 220 tests)
 
 ### Phase 4: Resource report + closeout
 - [ ] 4.1.1 ST-22..ST-23 spec tests written

@@ -21,6 +21,10 @@ export type { Severity, Diagnostic, DiagnosticOptions } from "./diagnostic.js";
 export type { SeverityPolicy } from "./severity-policy.js";
 export { createSeverityPolicy, applySeverityPolicy } from "./severity-policy.js";
 
+export type { RenderTerminalOptions } from "./render-terminal.js";
+export { renderTerminal } from "./render-terminal.js";
+export { renderJson } from "./render-json.js";
+
 export type { DiagCodeValue, IceCodeValue } from "./diagnostic-codes.js";
 export { DiagCode, IceCode, isIceCode } from "./diagnostic-codes.js";
 
