@@ -238,7 +238,21 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   `assertGolden`. All 16 own ACs are ticked; RD-17's inherited AC-14 is discharged on
   real VICE (the `__rt_*` math vectors), and DEF-2 was fixed as Phase 0 (`invokeAcme`
   now emits `--vicelabels`, so real builds populate `symbolMap`).
-  **Next up: RD-13** (non-functional requirements sweep — needs `make_plan`); see
+  RD-18 (codegen language-feature completion) is a thin per-slice vertical rollout;
+  **Slice 3a is complete (2026-07-05, 21/21 tasks)**: the `modelToFunctionInfo` seam is
+  closed — `@blend65/frontend` ships `semantics/function-collection.ts` (a Pass-1
+  collector building a per-module `Scope` + function symbols declared in it + ordered
+  locals in body scopes + `mainFunction`), `analyze()` invokes it alongside
+  `collectDeclarations` (`passes.ts` untouched), and `sfa/model-adapter.ts` projects a
+  populated model into real `FunctionInfo[]` (`name="Module.function"`; FQN module read
+  from `fn.scope.node.name`). A one-local-`byte` program (`examples/slice3a/main.blend`)
+  now assembles through the real populated-model path to a loadable PRG
+  (`__frame_Main_main_x`) and drives `$D020==0xF5` on real VICE 3.10. Each slice is gated
+  by the 3-part bar (CI assemble-clean + CI golden + local VICE). Parent ACs advanced:
+  RD-05 AC-22 superseded (empty model still `[]`), RD-04 deferred-ledger R7/R8 real scope
+  construction begun, RD-18 AC-1 ✅. **Next: RD-18 Slice 3b** (scalar type/scope engine —
+  extends `function-collection.ts` with real Passes 1/3/4; needs `make_plan`). RD-13
+  (non-functional sweep) / RD-14 (VS Code/LSP) remain queued. See
   `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI still has NO emulator tier (AR-27): the RD-12 emulator/RD-17 suites are
   `describe.skipIf(!hasVice()[||!hasAcme()])` — they skip in CI and are proven green
