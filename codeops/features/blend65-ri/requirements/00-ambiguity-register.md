@@ -1212,9 +1212,11 @@ lockstep for one surface. Slice 3 is split because its semantic work is the *ten
 (~20 RD-04 reqs across Passes 1/3/4), not "adapter plumbing": **3a** wires
 `modelToFunctionInfo` (`sfa/model-adapter.ts:34`) so the *existing* gate re-assembles
 through the real populated-model path (proves model→SFA→`__frame_*`→ACME→PRG→VICE);
-**3b** builds the scalar type/scope engine. Module-level globals + init order and the
-const evaluator get explicit homes (3b/Slice 7); cross-module name resolution → Slice 5.
-*(re-check adjustment; challenger-confirmed)*
+**3b** builds the scalar type/scope engine. Module-level globals get a home in 3b and the
+const evaluator in Slice 7; **cross-module init order (E10194) lands with Slice 5's module
+work** (a cycle only exists once multiple modules do — see RD-18 Slice-5 row); cross-module
+name resolution → Slice 5. *(re-check adjustment; challenger-confirmed; init-order placement
+reconciled with the RD-18 Slice Map per preflight PF-006.)*
 
 **AR-113 (runtime):** **Per-slice acceptance = assemble-clean (CI) + golden snapshot
 (CI) + VICE runtime (local).** "Assemble-clean + local VICE" alone proves runtime
@@ -1232,10 +1234,30 @@ provisions an `RD-04b-semantic-checker` with a horizontal "implement pass-by-pas
 resume order (line 18) that contradicts vertical slicing. RD-18 is the sole vertical
 plan of record: it retires RD-04b, consumes the ledger as its itemized backlog (⛔
 rows → slices), inherits the four parked ledger questions into the owning slice's gate
-(Q3/Q4→new `E10134` → Slice 4; Q1 → Slice 7; Q2 → Slice 8), drives RD-04 AC-02..20 /
+(Q3/Q4→a new fallthrough diagnostic code → Slice 4; Q1 → Slice 7; Q2 → Slice 8; see AR-115
+for where new codes live), drives RD-04 AC-02..20 /
 RD-06 AC-02 / RD-07 AC-07..09 to closure as slices land, and re-annotates the roadmap's
 misleading "✅ COMPLETE" on RD-04/RD-06 as "slice-scoped; full scope driven by RD-18".
 *(re-check adjustment; challenger-surfaced, file-verified)*
+
+**AR-115 (runtime):** **New diagnostic codes go to the code registry only; `spec/` stays
+frozen.** Preflight (PF-001/PF-002, 2026-07-04) found RD-18 had drawn its control-flow/function
+diagnostic codes from the **stale pre-consolidation** numbering (`spec/00-feature-index.md`, the
+`F0xx` evaluations, chapters 05/06) rather than the **canonical** registry the compiler actually
+implements (`spec/14-diagnostics.md` + `packages/core/src/diagnostics/diagnostic-codes.ts`).
+Corrections: recursion → the canonical unified **`E10174`** (not `E10180`/`E10181`, which exist
+only in the stale scheme; also matches RD-04 R86/AC-07). Three Slice-4 checks have **no canonical
+code at all** — non-boolean condition (`E10100` canonically = *Undeclared identifier*), all-paths-
+return completeness (`E10102` absent from the canonical registry), and `fallthrough`-in-`default`
+(`E10134` already spent on `embed()`/F015) — so each needs a **new** code. Because D3 freezes
+`spec/` (`git status --porcelain spec/` must stay empty), the resolution is: **new codes are added
+to `@blend65/core`'s `diagnostic-codes.ts` only**, allocated + Language-Guard-checked at the owning
+slice's Zero-Ambiguity Gate, with the resulting drift from the `spec/14-diagnostics.md` canonical
+registry recorded here as an **accepted, temporary deviation** to be reconciled in a future
+post-freeze spec pass. The alternative — treating the diagnostics chapter as a D3 carve-out so
+`spec/14-diagnostics.md` may grow — was considered and **not** chosen: D3's frozen-spec guarantee
+is load-bearing across the project (CLAUDE.md) and outweighs keeping a single registry in the
+interim. *(preflight resolution; user-selected Option A, 2026-07-04.)*
 
 
 

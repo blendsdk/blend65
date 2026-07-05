@@ -1,7 +1,7 @@
 # Portfolio Roadmap: blend65.ri
 
 > **Status**: Active
-> **Last Updated**: 2026-07-03
+> **Last Updated**: 2026-07-05
 > **Features**: 0 / 1 done
 > **CodeOps Skills Version**: 3.0.0
 
@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-12 ✅ COMPLETE (2026-07-03, 44/44 tasks) — `@blend65/test-harness`: `EmulatorDriver`+VICE codec/driver+PNG, 3 timeout-guarded strategies, register/memory assertions, R7a registry, `setupEmulator` fixture, `assertGolden`; all 16 own ACs + RD-17 inherited AC-14 discharged on real VICE 3.10; DEF-2 closed. Full verify green (harness 71 tests). Earlier: RD-15 ✅ COMPLETE (50/50). Next: RD-13 (needs make_plan) | 18/20 | 🔄 | 2026-07-03 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-18 Slice 3a 🔄 Executing (2026-07-05) — exec_plan started (`--auto-commit`); Phase 1 (model seam: `function-collection.ts` + `analyze()` wiring + `modelToFunctionInfo`) underway. Prior: 🔬 Plan Preflighted 0C/1M/2m/3obs all resolved; MAJOR (AR-13) FQN module-carrier gap closed by a per-module `Scope`. Earlier: RD-12 ✅ COMPLETE (2026-07-03, 44/44) — `@blend65/test-harness` (EmulatorDriver+VICE codec/driver+PNG, strategies, assertions, R7a registry, `setupEmulator`, `assertGolden`); RD-15 ✅ COMPLETE (50/50). Next: land Slice 3a Phase 1 | 18/20 | 🔄 | 2026-07-05 |
 
 ## Archived
 
@@ -42,6 +42,36 @@
   (DEF-2):** `invokeAcme` uses `-l` not `--vicelabels`, so every real build returns an empty
   `symbolMap` — fixed as Phase 0 with a regression oracle (verified live). Real gate symbols
   pinned (`_main=$0819`, `__startup=$080d`). Next: plan preflight → exec_plan.
+- 2026-07-05: **RD-18 Slice 3a 🔄 Executing** — exec_plan started (`--auto-commit`). Phase 1 (the
+  model seam) underway: new `function-collection.ts` populates a minimal real `SemanticModel`
+  (per-module `Scope` + function symbols + ordered locals + `mainFunction`), `analyze()` is wired to
+  invoke it alongside `collectDeclarations`, and `modelToFunctionInfo` projects it to real
+  `FunctionInfo[]`. Specification-first per-task loop.
+- 2026-07-05: **RD-18 Slice 3a 🔬 Plan Preflighted** — plan preflight: 0 critical / 1 major /
+  2 minor / 3 observation, all 6 resolved & applied (iteration 2). MAJOR (AR-13): the adapter could
+  not recover a function's module for the FQN from a `SemanticModel` → closed by building a per-module
+  `Scope` and reading `fn.scope.node.name` (model-only, no `@blend65/core` change, honors AR-4,
+  reusable by 3b; hardened by an independent refutation challenger). Also PF-002 (`analyze()`
+  orchestrates both Pass-1 collectors), PF-003 (red-vs-green-guard spec tests), + 3 doc-clarity
+  observations. Report `plans/rd-18-slice-3a-model-seam/00-preflight-report.md`. Next: exec_plan.
+- 2026-07-05: **RD-18 Slice 3a 📋 Plan Created** — `make_plan` produced
+  `plans/rd-18-slice-3a-model-seam/`: 3 phases / 21 tasks, Zero-Ambiguity Gate PASSED (AR-1..13).
+  Scope = the keystone model-seam proof only: populate a minimal real `SemanticModel` (`main` + one
+  local `byte`), implement `modelToFunctionInfo`, 3-part acceptance (CI assemble-clean + CI golden +
+  local VICE `$D020==0xF5`). Two-agent codebase recon confirmed the entire downstream
+  (SFA→symbols→ACME→PRG→VICE) is already wired — the sole stub is `modelToFunctionInfo`
+  (`model-adapter.ts:34`) + the empty-model `analyze()`; IL lowering is name-and-frame-keyed
+  (`lower.ts:206,268`), so the local-byte fixture lowers with no new codegen. Locked: 3a only;
+  use-the-local fixture; adapter reads the populated model not the AST; population = reusable RD-04
+  Pass-1 slice in new `function-collection.ts` (3b extends); `FunctionInfo.name="Main.main"`; gate
+  golden intentionally re-minted + VICE re-verified. Next: preflight the plan → exec_plan.
+- 2026-07-04: **RD-18 🔎 RD-Preflighted** — requirements preflight: 0 critical / 2 major / 4 minor,
+  all 6 resolved & applied. Both majors were diagnostic-code mis-citations (RD-18 pulled control-
+  flow/function codes from the stale `00-feature-index.md`/F0xx numbering, not the canonical
+  `spec/14-diagnostics.md` the compiler implements): recursion → unified `E10174`; three code-less
+  Slice-4 checks (non-boolean-condition, all-paths-return, `fallthrough`) routed to the slice gate
+  as new `diagnostic-codes.ts` entries with `spec/` frozen (AR-115, Option A). One independent
+  challenger confirmed the batch. Next: `make_plan` for Slice 3a.
 - 2026-07-03: **RD-12 🔎 RD-Preflighted** — requirements preflight iteration 1: 0 critical /
   0 major / 6 minor / 2 observations, all applied to the RD-12 doc. Both initially-MAJOR
   findings were knocked down by an independent blind challenger (the interim in-process 6502
