@@ -1,0 +1,70 @@
+/**
+ * Specification tests for the RD-18 Slice 3a acceptance bar (parts 1 & 3): the
+ * local-`byte` fixture assembles clean through the real populated-model path, and
+ * on real VICE the local's frame slot drives the VIC-II border register.
+ *
+ * Derived EXCLUSIVELY from `01-requirements.md` FR-3/FR-5, `03-03-acceptance-fixtures.md`,
+ * and the Ambiguity Register (AR-2/AR-11) — never from reading the implementation
+ * (IMMUTABLE ORACLE RULE). This proves `__frame_Main_main_x` resolves in a real
+ * `load`, not merely appears in the symbol header.
+ *
+ * The assemble-clean suite compiles via ACME (`skipIf(!hasAcme())`, CI installs
+ * ACME); the runtime suite additionally runs on VICE (`skipIf(!(hasVice && hasAcme))`,
+ * skipped in CI — the golden tier guards regression there).
+ */
+
+import { afterAll, describe, expect, it } from "vitest";
+import { buildSlice3a, emitAsmSlice3a, type BuiltSlice3a } from "./testing/slice3a.js";
+import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
+import { assertMemory, runUntilMemory } from "./index.js";
+import type { EmulatorDriver } from "./emulator/driver.js";
+
+const BORDER = 0xd020;
+/** $D020 read-back after `poke(0xD020, 5)` — VIC-II unused upper nibble reads 1s (AR-11/AR-H19). */
+const BORDER_READBACK = 0xf5;
+const LOCAL_TEST_TIMEOUT = 30000;
+
+describe.skipIf(!hasAcme())("Specification: Slice 3a assemble-clean (ST-5)", () => {
+  let built: BuiltSlice3a | undefined;
+
+  afterAll(() => built?.cleanup());
+
+  it("compiles the local-byte fixture to a loadable c64 PRG with the frame symbols", async () => {
+    built = await buildSlice3a();
+
+    // Loadable PRG, zero error diagnostics (ACME rejects any undefined __frame_* ref).
+    expect(built.result.hasErrors).toBe(false);
+    expect(built.result.binary).toBeInstanceOf(Uint8Array);
+
+    // The real populated-model path emits both the frame base and the slot symbol.
+    const asm = emitAsmSlice3a();
+    expect(asm.text).toContain("__frame_Main_main");
+    expect(asm.text).toContain("__frame_Main_main_x");
+  });
+});
+
+describe.skipIf(!(hasVice("c64") && hasAcme()))(
+  "Specification: Slice 3a on VICE (ST-7)",
+  () => {
+    let built: BuiltSlice3a | undefined;
+    let driver: EmulatorDriver | undefined;
+
+    afterAll(async () => {
+      if (driver !== undefined) await driver.shutdown();
+      built?.cleanup();
+    });
+
+    it(
+      "drives $D020 to 0xF5 via the local's frame slot on real VICE",
+      async () => {
+        built = await buildSlice3a();
+        const env = await setupEmulator({ build: built.result, platform: "c64" });
+        driver = env.driver;
+
+        await runUntilMemory(driver, BORDER, BORDER_READBACK);
+        await assertMemory(driver, BORDER, BORDER_READBACK);
+      },
+      LOCAL_TEST_TIMEOUT,
+    );
+  },
+);

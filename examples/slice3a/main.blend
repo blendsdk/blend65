@@ -1,0 +1,6 @@
+module Main;
+
+function main(): void {
+    let x: byte = 5;
+    poke(0xD020, x);   // read the local's frame slot into the VIC-II border register
+}
