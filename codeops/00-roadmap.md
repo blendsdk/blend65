@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-18 Slice 3a 🔄 Executing (2026-07-05) — exec_plan started (`--auto-commit`); Phase 1 (model seam: `function-collection.ts` + `analyze()` wiring + `modelToFunctionInfo`) underway. Prior: 🔬 Plan Preflighted 0C/1M/2m/3obs all resolved; MAJOR (AR-13) FQN module-carrier gap closed by a per-module `Scope`. Earlier: RD-12 ✅ COMPLETE (2026-07-03, 44/44) — `@blend65/test-harness` (EmulatorDriver+VICE codec/driver+PNG, strategies, assertions, R7a registry, `setupEmulator`, `assertGolden`); RD-15 ✅ COMPLETE (50/50). Next: land Slice 3a Phase 1 | 18/20 | 🔄 | 2026-07-05 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-18 Slice 3a ✅ COMPLETE (2026-07-05) — exec_plan 21/21 tasks, 3 phases; the `modelToFunctionInfo` seam is closed (new `function-collection.ts` populates a minimal real `SemanticModel`; `analyze()` wired; adapter projects real `FunctionInfo[]`). 3-part acceptance bar green: CI assemble-clean + CI golden + local VICE `$D020==0xF5` (real 3.10). Parent ACs ticked (RD-05 AC-22 superseded; RD-04 R7/R8; RD-18 AC-1); gate golden re-minted +1 line (AR-8). Earlier: RD-12 ✅ COMPLETE (2026-07-03, 44/44) — `@blend65/test-harness` (EmulatorDriver+VICE codec/driver+PNG, strategies, assertions, R7a registry, `setupEmulator`, `assertGolden`); RD-15 ✅ COMPLETE (50/50). Next: Slice 3b (scalar type engine) needs `make_plan` | 18/20 | 🔄 | 2026-07-05 |
 
 ## Archived
 
@@ -42,11 +42,17 @@
   (DEF-2):** `invokeAcme` uses `-l` not `--vicelabels`, so every real build returns an empty
   `symbolMap` — fixed as Phase 0 with a regression oracle (verified live). Real gate symbols
   pinned (`_main=$0819`, `__startup=$080d`). Next: plan preflight → exec_plan.
-- 2026-07-05: **RD-18 Slice 3a 🔄 Executing** — exec_plan started (`--auto-commit`). Phase 1 (the
-  model seam) underway: new `function-collection.ts` populates a minimal real `SemanticModel`
-  (per-module `Scope` + function symbols + ordered locals + `mainFunction`), `analyze()` is wired to
-  invoke it alongside `collectDeclarations`, and `modelToFunctionInfo` projects it to real
-  `FunctionInfo[]`. Specification-first per-task loop.
+- 2026-07-05: **RD-18 Slice 3a ✅ COMPLETE** — exec_plan 21/21 tasks across 3 phases (`--auto-commit`),
+  full workspace verify green. The `modelToFunctionInfo` seam is closed: new `function-collection.ts`
+  populates a minimal real `SemanticModel` (per-module `Scope` + function symbols declared in it +
+  ordered locals in body scopes + `mainFunction`); `analyze()` invokes it alongside
+  `collectDeclarations` (`passes.ts` untouched, PF-002); `modelToFunctionInfo` projects real
+  `FunctionInfo[]` (`name="Main.main"` with the FQN module read from `fn.scope.node.name`, AR-13). The
+  3-part acceptance bar passes: CI assemble-clean + CI golden (`__frame_Main_main_x = $0800`) + local
+  VICE `$D020==0xF5` on real 3.10 (plus gate ST-8 non-regression). Parent ACs ticked (RD-05 AC-22
+  superseded — empty model still `[]`; RD-04 deferred-ledger R7/R8 real scope construction begun;
+  RD-18 AC-1 ✅); gate golden re-minted +1 line (AR-8, VICE re-verified); SR-2 delta recorded
+  (+6 code / +1 frame RAM / 0 ZP). `spec/` clean. Next: Slice 3b (scalar type engine) needs `make_plan`.
 - 2026-07-05: **RD-18 Slice 3a 🔬 Plan Preflighted** — plan preflight: 0 critical / 1 major /
   2 minor / 3 observation, all 6 resolved & applied (iteration 2). MAJOR (AR-13): the adapter could
   not recover a function's module for the FQN from a `SemanticModel` → closed by building a per-module

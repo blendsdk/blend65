@@ -54,8 +54,8 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R7 | Four-level scope tree | ✅ IMPLEMENTED (interface) — `ScopeKind`, `Scope` | 1 (build) | — |
-| R8 | Each scope owns `Map<string,Symbol>` | ✅ IMPLEMENTED (interface) | 1 | — |
+| R7 | Four-level scope tree | ✅ IMPLEMENTED (interface) — `ScopeKind`, `Scope`; **real per-module + function scope construction begun by RD-18 Slice 3a** (2026-07-05, `frontend/semantics/function-collection.ts`) — global→module→function levels; block scopes remain Slice 3b | 1 (build) | — |
+| R8 | Each scope owns `Map<string,Symbol>` | ✅ IMPLEMENTED (interface); **module/function scopes now populated** with function + local-variable symbols by RD-18 Slice 3a | 1 | — |
 | R9 | Duplicate decl in scope | ⛔ DEFERRED | 1 | E10003 |
 | R10 | No shadowing | ⛔ DEFERRED | 1/3 | E10101 |
 | R11 | For-loop counter block scope | ⛔ DEFERRED | 3 | — |

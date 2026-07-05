@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-05 20:12
-> **Progress**: 17/21 tasks (81%) — Phases 1 & 2 complete & green (ST-5/6/7/8 pass, both VICE tiers on real 3.10); Phase 3 bookkeeping remains
+> **Last Updated**: 2026-07-05 20:20
+> **Progress**: 21/21 tasks (100%) — ✅ COMPLETE. All 3 phases green; acceptance bar passes (CI assemble-clean + CI golden + local VICE `$D020==0xF5`); parent ACs ticked; `spec/` clean
 > **CodeOps Skills Version**: 3.2.0
 
 ## Overview
@@ -121,7 +121,7 @@ hardware; the existing gate golden is re-minted without regression.
 | 3.1.4 | Confirm `git status --porcelain spec/` is empty (FR-7/D3); final full verify | — |
 
 **Deliverables**:
-- [ ] Parent ACs ticked; roadmap annotated; `spec/` clean; resource delta recorded
+- [x] Parent ACs ticked; roadmap annotated; `spec/` clean; resource delta recorded
 
 **Verify**: `git status --porcelain spec/` empty **and** `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
@@ -155,10 +155,10 @@ hardware; the existing gate golden is re-minted without regression.
 - [x] 2.3.2 VICE green (ST-7 `$D020==0xF5`) + gate non-regression (ST-8) — ✅ completed: 2026-07-05 20:12 (both on real VICE 3.10: slice3a 754ms, gate ST-29 1526ms)
 
 ### Phase 3: Bookkeeping
-- [ ] 3.1.1 Tick RD-05 AC-22 + RD-04 scope AC
-- [ ] 3.1.2 Tick RD-18 AC-1; annotate roadmap rows
-- [ ] 3.1.3 Record ResourceReport delta (SR-2)
-- [ ] 3.1.4 `spec/` clean + final full verify
+- [x] 3.1.1 Tick RD-05 AC-22 + RD-04 scope AC — ✅ completed: 2026-07-05 20:20 (RD-05 AC-22 superseded; RD-04 ledger R7/R8 real-construction annotated)
+- [x] 3.1.2 Tick RD-18 AC-1; annotate roadmap RD-04/RD-05 rows — ✅ completed: 2026-07-05 20:20
+- [x] 3.1.3 Record ResourceReport delta (SR-2) — ✅ completed: 2026-07-05 20:20 (see Closeout Notes: +6 code / +1 frame RAM / 0 ZP)
+- [x] 3.1.4 `spec/` clean + final full verify — ✅ completed: 2026-07-05 20:20 (spec/ empty; full verify green — all 10 pkgs + root boundary tier)
 
 ---
 
@@ -189,3 +189,31 @@ are complete; ACME + VICE 3.10 are installed locally.
 6. ✅ The three-part acceptance bar passes: CI assemble-clean + CI golden + local VICE (`$D020==0xF5`)
 7. ✅ `git status --porcelain spec/` empty (D3); parent ACs ticked; roadmap annotated
 8. ✅ Post-completion project re-analysis (handled by the exec_plan skill)
+
+---
+
+## Closeout Notes
+
+### SR-2 — Resource delta: the local `byte` vs the constant gate (2026-07-05)
+
+Measured from the two deterministic ASM goldens (`gate.asm.golden` vs `slice3a.asm.golden`):
+
+| Dimension | Constant gate | Slice 3a (one local `byte`) | Delta |
+| --------- | ------------- | --------------------------- | ----- |
+| `_main` code | `LDA #$05; STA $D020; RTS` = 6 bytes | `LDA #$05; STA __frame_Main_main_x; LDA __frame_Main_main_x; STA $D020; RTS` = 12 bytes | **+6 bytes** |
+| Frame RAM (`__frame_*`) | 0 bytes (base only, no slots) | 1 byte — `__frame_Main_main_x` @ `$0800` | **+1 byte** |
+| Zero page | identical `__zp_arg/__zp_tmp/__zp_irq_tmp` block | same | **0 bytes** |
+| PRG binary | — | startup/BASIC-stub identical; only `_main` grew | **+6 bytes** |
+
+The +6 code bytes are the unoptimized store-to-slot + load-from-slot round-trip the local
+introduces (`STA`/`LDA __frame_Main_main_x`); the constant gate wrote the literal straight to
+`$D020`. This is expected for the "100% working **unoptimized** codegen" target — the RD-06 IL
+passes / RD-08 peephole (RD-18 Phase B) would later fold the redundant load. The local costs 1 byte
+of frame RAM; ZP is untouched (a local is a frame slot, not a ZP allocation).
+
+### Gate golden re-mint (AR-8, task 2.2.2 pulled forward)
+
+The Phase-1 seam makes `main` a real `FunctionInfo`, so the gate gains a `__frame_Main_main = $0800`
+base symbol. `git diff` of `gate.asm.golden` = exactly one inserted line (no code drift); gate VICE
+non-regression (ST-8/ST-29) re-verified green on real VICE 3.10. Re-minted at Phase-1 green because
+the failing golden would otherwise block the Phase-1 full-verify gate.

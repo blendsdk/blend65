@@ -259,11 +259,13 @@ land against a stable, fully-lowered IL/Instr contract.
 Each criterion is met when its slice's three-part bar (assemble-clean + CI golden + local VICE)
 passes and the parent-RD ACs it advances are ticked.
 
-1. [ ] **Slice 3a**: the existing gate + one local `byte` program assembles through the **real**
-       populated-model path (not the empty-model stub) to a loadable c64 PRG with zero undefined
-       symbols; `modelToFunctionInfo` returns real `FunctionInfo[]`; the emitted symbol-definitions
-       block contains the local's `__frame_*` address; VICE asserts the poked value. RD-04 AC(scope)
-       + RD-05 adapter proven.
+1. [x] **Slice 3a** ✅ **(2026-07-05, exec_plan `plans/rd-18-slice-3a-model-seam/`)**: the existing
+       gate + one local `byte` program assembles through the **real** populated-model path (not the
+       empty-model stub) to a loadable c64 PRG with zero undefined symbols; `modelToFunctionInfo`
+       returns real `FunctionInfo[]`; the emitted symbol-definitions block contains the local's
+       `__frame_*` address (`__frame_Main_main_x = $0800`); VICE asserts the poked value
+       (`$D020 == 0xF5` on real VICE 3.10). RD-04 AC(scope) [ledger R7/R8 real construction begun]
+       + RD-05 AC-22 supersession ticked.
 2. [ ] **Slice 3b**: a program using local + module-level scalars, same-width `+ - * / %`, `=`, and
        `peek`/`poke(w)` compiles and VICE-verifies a computed result (e.g. `(a*b + c) mod 256`
        poked to an observable address); mixed-signedness (E10081) programs are **rejected** with

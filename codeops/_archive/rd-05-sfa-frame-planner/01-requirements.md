@@ -168,5 +168,5 @@ now; their live behavior activates with the `modelToFunctionInfo` adapter under 
 19. [ ] **AC-19** All decisions trace to an AR or frozen spec section
 20. [ ] **AC-20** Unit tests cover frame computation, interference, coloring, ZP, stack, budgets
 21. [ ] **AC-21** Golden-snapshot tests assert deterministic `AllocationPlan` output
-22. [ ] **AC-22 (plan-local)** `modelToFunctionInfo` returns `[]` under passthrough; documented `// DEFERRED` seam (D1/D3/D5)
+22. [x] **AC-22 (plan-local)** `modelToFunctionInfo` returns `[]` under passthrough; documented `// DEFERRED` seam (D1/D3/D5) — **superseded by RD-18 Slice 3a (2026-07-05):** the seam is now *implemented* for **populated** models (frontend `sfa/model-adapter.ts` → real `FunctionInfo[]`); the empty passthrough model still yields `[]` (contract preserved, spec-tested). See `plans/rd-18-slice-3a-model-seam/`.
 23. [ ] All verification passing (`build`/`typecheck`/`lint`/`test`); `spec/` clean; R15 boundary green
