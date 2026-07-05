@@ -15,7 +15,13 @@
 
 import { describe, expect, it } from "vitest";
 import { createDiagnosticBag, DEFAULT_PROFILE } from "@blend65/core";
-import type { DiagnosticBag, ProgramNode } from "@blend65/core";
+import type {
+  AstNode,
+  DiagnosticBag,
+  FunctionDeclNode,
+  ModuleDeclNode,
+  ProgramNode,
+} from "@blend65/core";
 import { lex, parse, analyze } from "../index.js";
 
 /** The synthetic source id used by every parse in this file. */
@@ -35,17 +41,22 @@ function parseSource(source: string, bag: DiagnosticBag): ProgramNode {
 }
 
 describe("Specification: RD-04 passthrough analyze() (AC-01)", () => {
-  // ST-S21 — parse a valid program then analyze: empty, error-free model.
-  it("should return an empty error-free model for a valid program (ST-S21)", () => {
+  // ST-S21 — parse a valid program then analyze. RD-18 Slice 3a intentionally
+  // populates the function surface (main + call graph) for a program with a
+  // `main`, superseding the empty-population passthrough for this input (AR-9);
+  // the type/symbol maps still stay empty (scalar lowering doesn't consult them,
+  // D5) and the analyzer stays error-free.
+  it("should populate the function surface yet keep type/symbol maps empty (ST-S21, AR-9)", () => {
     const bag = createDiagnosticBag();
     const ast = parseSource(VALID_SOURCE, bag);
 
     const model = analyze({ programs: [ast], bag, profile: DEFAULT_PROFILE });
 
     expect(model.hasErrors).toBe(false);
-    expect(model.mainFunction).toBeNull();
+    expect(model.mainFunction?.name).toBe("main"); // 3a populates the entry (was: toBeNull)
+    expect(model.callGraph.functions.size).toBe(1);
     expect(model.globalScope.kind).toBe("global");
-    expect(model.typeMap.size).toBe(0);
+    expect(model.typeMap.size).toBe(0); // D5 — scalar lowering doesn't consult typeMap
     expect(model.symbolMap.size).toBe(0);
   });
 
@@ -96,5 +107,71 @@ describe("Specification: RD-04 passthrough analyze() (AC-01)", () => {
   // ST-S26 — analyze is re-exported from the @blend65/frontend public entry.
   it("should re-export analyze from the frontend public barrel (ST-S26)", () => {
     expect(typeof analyze).toBe("function");
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// RD-18 Slice 3a — the populated-model wiring (FR-1; AR-9/10/13)
+// ───────────────────────────────────────────────────────────────────────────
+
+/** The Slice 3a fixture: one `main` with a single local `byte`. */
+const SLICE3A_SOURCE = `module Main;\nfunction main(): void { let x: byte = 5; poke(0xD020, x); }\n`;
+
+/** A function-free, intrinsic-free program (a lone struct declaration). */
+const FUNCTION_FREE_SOURCE = `module Data;\nstruct Point { x: byte; y: byte; }\n`;
+
+/** Narrows a scope's introducing node to a {@link ModuleDeclNode}. */
+function isModuleDecl(node: AstNode | null): node is ModuleDeclNode {
+  return node !== null && node.kind === "ModuleDecl";
+}
+
+/** The `main` `FunctionDecl` in a parsed program. */
+function mainDeclOf(program: ProgramNode): FunctionDeclNode {
+  const decl = program.items.find(
+    (item): item is FunctionDeclNode => item.kind === "FunctionDecl" && item.name === "main",
+  );
+  if (decl === undefined) throw new Error("test fixture must declare main");
+  return decl;
+}
+
+describe("Specification: RD-18 Slice 3a analyze() population (FR-1)", () => {
+  // ST-3 — analyze() on the 3a fixture returns a populated model.
+  it("should populate main, mainFunction, module scope, and the body scope (ST-3)", () => {
+    const bag = createDiagnosticBag();
+    const program = parseSource(SLICE3A_SOURCE, bag);
+
+    const model = analyze({ programs: [program], bag, profile: DEFAULT_PROFILE });
+
+    // main ∈ callGraph.functions and mainFunction is set to it.
+    expect(model.callGraph.functions.size).toBe(1);
+    const main = [...model.callGraph.functions][0];
+    expect(main?.name).toBe("main");
+    expect(model.mainFunction).toBe(main);
+
+    // main.scope is the module scope whose node.name === "Main" (AR-13).
+    expect(main?.scope.kind).toBe("module");
+    const modNode = main?.scope.node ?? null;
+    expect(isModuleDecl(modNode) ? modNode.name : null).toBe("Main");
+
+    // scopeOf(mainDecl) → the body scope containing the local `x` (AR-10).
+    const bodyScope = model.scopeOf(mainDeclOf(program));
+    expect(bodyScope.kind).toBe("function");
+    expect(bodyScope.symbols.get("x")?.kind).toBe("variable");
+  });
+
+  // ST-4 — a function-free, intrinsic-free program keeps the empty passthrough.
+  it("should keep the empty passthrough for a function-free program (ST-4 / AR-9)", () => {
+    const bag = createDiagnosticBag();
+    const program = parseSource(FUNCTION_FREE_SOURCE, bag);
+    const before = bag.count();
+
+    let model!: ReturnType<typeof analyze>;
+    expect(() => {
+      model = analyze({ programs: [program], bag, profile: DEFAULT_PROFILE });
+    }).not.toThrow();
+
+    expect(model.callGraph.functions.size).toBe(0);
+    expect(model.mainFunction).toBeNull();
+    expect(bag.count()).toBe(before); // no diagnostics from population
   });
 });

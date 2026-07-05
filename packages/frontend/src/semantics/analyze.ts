@@ -28,6 +28,7 @@ import type {
 import { createEmptyModel, createIntrinsicRegistry } from "@blend65/core";
 import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
+import { collectFunctions } from "./function-collection.js";
 
 /**
  * Everything the semantic analyzer needs (RD-04 R118–R119, D6).
@@ -67,8 +68,16 @@ export interface AnalyzeInput {
  * @returns The {@link SemanticModel} (populated struct/enum tables; other maps empty).
  */
 export function analyze(input: AnalyzeInput): SemanticModel {
-  // Pass 1 — declaration collection (RD-17 AR-P13): resolve struct/enum tables.
+  // The empty model owns the lone global scope that Pass-1 collection populates.
+  // A single instance is kept so `collectFunctions` builds the module scopes into
+  // the very `globalScope` the returned model exposes (and `scopeOf` falls back to).
+  const empty = createEmptyModel();
+
+  // Pass 1 — declaration collection (RD-17 AR-P13): resolve struct/enum tables, and
+  // (RD-18 Slice 3a) the function/local collection into the model's scope tree. Each
+  // Pass-1 collector stays single-responsibility; `passes.ts` is untouched (PF-002).
   const tables = collectDeclarations(input);
+  const functionTables = collectFunctions(input.programs, empty.globalScope);
 
   // Pass 3 — body checking: the intrinsic-validation pass (RD-17 03-02).
   const registry = input.registry ?? createIntrinsicRegistry();
@@ -76,11 +85,21 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   checkBodies(input, tables, registry);
   const analyzerRecordedError = input.bag.getErrors().length > errorsBefore;
 
-  // Build the model with the resolved type tables; other maps stay empty (deferred).
+  // Build the populated model: struct/enum tables, the call graph over the collected
+  // functions (no edges — user calls arrive in Slice 5), `mainFunction`, and a
+  // `scopeOf` that resolves a function decl → its body scope. `symbolMap`/`typeMap`
+  // stay empty — scalar lowering does not consult them (D5); Slice 3b populates them.
   const model: SemanticModel = {
-    ...createEmptyModel(),
+    ...empty,
     structTypes: tables.structTypes,
     enumTypes: tables.enumTypes,
+    callGraph: {
+      functions: functionTables.functions,
+      edges: new Map(),
+      findCycles: () => [],
+    },
+    mainFunction: functionTables.mainFunction,
+    scopeOf: (node) => functionTables.scopeByNode.get(node) ?? empty.globalScope,
     hasErrors: analyzerRecordedError,
   };
 
