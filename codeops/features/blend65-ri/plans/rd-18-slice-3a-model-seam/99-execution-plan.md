@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-05 20:03
-> **Progress**: 10/21 tasks (48%) — Phase 1 complete & green; gate golden re-mint (2.2.2) pulled forward (AR-8)
+> **Last Updated**: 2026-07-05 20:12
+> **Progress**: 17/21 tasks (81%) — Phases 1 & 2 complete & green (ST-5/6/7/8 pass, both VICE tiers on real 3.10); Phase 3 bookkeeping remains
 > **CodeOps Skills Version**: 3.2.0
 
 ## Overview
@@ -101,8 +101,8 @@ hardware; the existing gate golden is re-minted without regression.
 | 2.3.2 | **VICE (local)** — ST-7 asserts `$D020 == 0xF5`; re-run `gate.spec.test.ts` for non-regression (ST-8) on real VICE 3.10 | — |
 
 **Deliverables**:
-- [ ] Fixture assembles to a loadable PRG with `__frame_*` symbols; CI golden committed; VICE green
-- [ ] Gate golden re-minted (diff = one line) with gate VICE non-regression
+- [x] Fixture assembles to a loadable PRG with `__frame_*` symbols; CI golden committed; VICE green
+- [x] Gate golden re-minted (diff = one line) with gate VICE non-regression
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (VICE tiers proven locally; `skipIf` in CI)
 
@@ -145,14 +145,14 @@ hardware; the existing gate golden is re-minted without regression.
 - [x] 1.3.3 R15 boundary check (ST-9) — ✅ completed: 2026-07-05 20:03 (ESLint clean; boundary tier green — core-only imports)
 
 ### Phase 2: Acceptance
-- [ ] 2.1.1 Fixture `examples/slice3a/main.blend`
-- [ ] 2.1.2 Assemble-clean + VICE spec tests (ST-5/7)
-- [ ] 2.1.3 Golden spec test (ST-6)
-- [ ] 2.1.4 Red verification (assemble/golden fail)
-- [ ] 2.2.1 Mint `slice3a.asm.golden`
+- [x] 2.1.1 Fixture `examples/slice3a/main.blend` — ✅ completed: 2026-07-05 20:12
+- [x] 2.1.2 Assemble-clean + VICE spec tests (ST-5/7) + `testing/slice3a.ts` helper — ✅ completed: 2026-07-05 20:12
+- [x] 2.1.3 Golden spec test (ST-6) — ✅ completed: 2026-07-05 20:12
+- [x] 2.1.4 Red verification — ✅ completed: 2026-07-05 20:12 (ST-6 red = golden-not-found; ST-5 assemble + ST-7 VICE already green since Phase-1 impl landed — acceptance-tier, not new impl)
+- [x] 2.2.1 Mint `slice3a.asm.golden` — ✅ completed: 2026-07-05 20:12 (contains `__frame_Main_main = $0800` + `__frame_Main_main_x = $0800`; `_main` stores then loads the slot → `STA $D020`)
 - [x] 2.2.2 Re-mint gate golden (diff = one line, AR-8) — ✅ completed: 2026-07-05 20:03 (pulled forward: the Phase-1 seam adds `__frame_Main_main = $0800`; `git diff` = exactly one inserted line, no code drift; gate VICE non-regression ST-8 discharged in Phase 2's VICE tier)
-- [ ] 2.3.1 Green — CI tiers (assemble + goldens)
-- [ ] 2.3.2 VICE green (ST-7) + gate non-regression (ST-8)
+- [x] 2.3.1 Green — CI tiers (assemble + goldens) — ✅ completed: 2026-07-05 20:12
+- [x] 2.3.2 VICE green (ST-7 `$D020==0xF5`) + gate non-regression (ST-8) — ✅ completed: 2026-07-05 20:12 (both on real VICE 3.10: slice3a 754ms, gate ST-29 1526ms)
 
 ### Phase 3: Bookkeeping
 - [ ] 3.1.1 Tick RD-05 AC-22 + RD-04 scope AC
