@@ -13,7 +13,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-18 Slice 3a ✅ COMPLETE (2026-07-05) — exec_plan 21/21 tasks, 3 phases; the `modelToFunctionInfo` seam is closed (new `function-collection.ts` populates a minimal real `SemanticModel`; `analyze()` wired; adapter projects real `FunctionInfo[]`). 3-part acceptance bar green: CI assemble-clean + CI golden + local VICE `$D020==0xF5` (real 3.10). Parent ACs ticked (RD-05 AC-22 superseded; RD-04 R7/R8; RD-18 AC-1); gate golden re-minted +1 line (AR-8). Earlier: RD-12 ✅ COMPLETE (2026-07-03, 44/44) — `@blend65/test-harness` (EmulatorDriver+VICE codec/driver+PNG, strategies, assertions, R7a registry, `setupEmulator`, `assertGolden`); RD-15 ✅ COMPLETE (50/50). Next: Slice 3b (scalar type engine) needs `make_plan` | 18/20 | 🔄 | 2026-07-05 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | RD-18 Slice 3b 🔄 Executing (2026-07-06) — **Phase 1 (scalar type engine) ✅ COMPLETE (16/45)**: real RD-04 Pass 3 (`type-check/*` typing → populated `typeMap`/`symbolMap`, same-type `isAssignableTo`/`commonType`, poison) + Pass 4 `post-check.ts` (`main()` E10020/E10021/E10022, wired into `passes.ts`) + minimal `const-eval`; `analyze.ts` invokes both; emits E10081/E10080/E10084/E10100/E10152/E10153/E10154/E10173/E10191 (+ registered E10084/E10022, AR-11). Full workspace verify green (core 240, frontend semantics 64, golden-gate/slice3a unchanged, R15 boundary green). Runtime AR-12 (ST-S21 empty-maps assertion superseded; Pass-4 gated on ≥1 function) + AR-13 (E10150 parser-owned; ST-7 reframed) resolved. Next: Phase 2 (module-level scalars). Prior: 🔬 Plan Preflighted (2026-07-05) — `plans/rd-18-slice-3b-scalar-type-engine/`: 5 phases / 45 tasks, Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-11); **preflight 2 crit / 3 major / 4 minor / 1 obs, all 10 resolved & applied (iter 2)** — root cause diagnostic-code drift (codes taken from stale frozen-spec §5.3 + false "all codes exist" claim), fixed by **AR-11 code-reconciliation** (register E10084 + E10022 per RD-18 AR-115; realign boolean-arith→E10080 / narrowing→E10154 / cross-sign→E10153 / boolean-assign→E10152; drop E10086); structural build verified sound; report `00-preflight-report.md`. The scalar **type engine**: real RD-04 Pass 3 (expression/literal typing → `typeMap`/`symbolMap`, real `isAssignableTo`/`commonType`, poison) + Pass 4 (`main()`) + minimal const-eval; module-level scalar allocation (`__var_*`); width-aware lowering (thread `typeMap` → `__rt_mul16`). Recon (3 agents): codegen already lowers the surface — the build is semantics + wiring. Gate: same-type only (AR-3), module-var initializers deferred (AR-2), `$0800` region within the 13-byte BASIC-stub shadow (`>13-byte` collision = documented deferred fix, AR-1). Next: exec_plan. Prior: Slice 3a ✅ COMPLETE (2026-07-05, 21/21) — `modelToFunctionInfo` seam closed, VICE `$D020==0xF5`. Earlier: RD-12 ✅ COMPLETE (44/44); RD-15 ✅ COMPLETE (50/50) | 18/20 | 🔄 | 2026-07-06 |
 
 ## Archived
 
@@ -42,6 +42,44 @@
   (DEF-2):** `invokeAcme` uses `-l` not `--vicelabels`, so every real build returns an empty
   `symbolMap` — fixed as Phase 0 with a regression oracle (verified live). Real gate symbols
   pinned (`_main=$0819`, `__startup=$080d`). Next: plan preflight → exec_plan.
+- 2026-07-06: **RD-18 Slice 3b 🔄 Executing — Phase 1 ✅ (scalar type engine, 16/45)** — exec_plan
+  Phase 1 landed the real RD-04 Pass 3 + Pass 4 type engine over the model seam Slice 3a proved.
+  New frontend `semantics/type-check/` (context, name-resolution, type-resolution, expression-typing,
+  statement-typing) + `const-eval.ts` + `post-check.ts`; core `type-utils.ts` gains the real same-type
+  `isAssignableTo`/`commonType` (stubs replaced); `passes.ts postCheck` + `analyze.ts` wired so
+  `typeOf`/`symbolOf` read populated maps. Diagnostics: E10081/E10080/E10084/E10100/E10152/E10153/
+  E10154/E10173/E10191 (+ additive registrations E10084 `ValueOutOfRange` / E10022 `InvalidMainSignature`
+  per AR-11). Spec-first: 4 spec files red→green (core type-utils 3, frontend 12) + 2 impl files (14).
+  Full workspace verify green (build/typecheck/lint + core 240 / frontend semantics 64 / test-harness 74 /
+  root R15 boundary; golden-gate & golden-slice3a unchanged). Two runtime ambiguities resolved & recorded:
+  **AR-12** (the Slice-3a empty-`typeMap`/`symbolMap` assertion ST-S21 is superseded by 3b population;
+  Pass-4 `main`-existence gated on ≥1 collected function so junk/empty/function-free inputs stay silent)
+  and **AR-13** (E10150 is unreachable from source — missing type annotation is parser-owned E10313/E10303;
+  ST-7 reframed, no dead analyzer check). `spec/` untouched (D3). Next: Phase 2 (module-level scalars).
+- 2026-07-05: **RD-18 Slice 3b 🔬 Plan Preflighted** — codebase-grounded audit (4 recon agents + 1
+  refutation challenger): 2 critical / 3 major / 4 minor / 1 observation, **all 10 resolved & applied
+  (iter 2)**. Root cause: diagnostic-code drift — the plan transcribed codes from the **stale frozen
+  spec Ch 02 §5.3** (E10082/E10080/E10086) that collide with the authoritative `diagnostic-codes.ts`
+  registry, and falsely claimed all codes exist. Resolved by **AR-11 code-reconciliation**: register
+  E10084 + E10022 additively (per RD-18 AR-115, Language-Guard); realign boolean-arith→E10080,
+  narrowing→E10154, cross-sign→E10153, boolean-assign→E10152; drop E10086 (casts are Slice 6). The
+  structural build (type engine, module-var SFA feed, width-aware lowering, VICE fixture) was verified
+  sound — every `file:line` cite true, both `__var_*`/`__frame_*` symbol formats exact. Task count
+  44→45. Report `plans/rd-18-slice-3b-scalar-type-engine/00-preflight-report.md`. Next: exec_plan.
+- 2026-07-05: **RD-18 Slice 3b 📋 Plan Created** — `make_plan` produced `plans/rd-18-slice-3b-scalar-type-engine/`
+  (5 phases / 44 tasks), Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-10). Slice 3b is the RD-18 tent-pole:
+  the scalar **type engine** — real RD-04 Pass 3 (expression/literal typing → populate `typeMap`/`symbolMap`,
+  real `isAssignableTo`/`commonType`, poison propagation) + Pass 4 (`main()` validity) + minimal const-eval;
+  module-level scalar declaration/allocation (`__var_*`, the existing SFA infra now fed); width-aware
+  lowering (thread the model `typeMap` into codegen so word literals reach `IL_WORD`/`__rt_mul16`). Three
+  parallel codebase-recon agents established the surface already lowers/translates end-to-end (let/`=`/return/
+  same-type `+ - * / %`/peek/poke(w)) — the build is **semantics + wiring**, not a codegen rebuild. Four
+  interactive gate decisions: (AR-1) keep the SFA `$0800` variable region within the 13-byte dead-BASIC-stub
+  shadow, deferring the general `>13-byte` variable/code collision fix; (AR-2) defer module-var initializers
+  (declare + assign in body, spec VAR-2); (AR-3) same-type only (widening/casts/promotion → Slice 6, which
+  needs `zext`/`sext` that translate ICEs on); (AR-4) byte+word fixture poked to plain RAM for exact VICE
+  assertions + an E10081 mixed-sign negative. No new diagnostic codes; `spec/` frozen. Next: preflight the
+  plan → exec_plan.
 - 2026-07-05: **RD-18 Slice 3a ✅ COMPLETE** — exec_plan 21/21 tasks across 3 phases (`--auto-commit`),
   full workspace verify green. The `modelToFunctionInfo` seam is closed: new `function-collection.ts`
   populates a minimal real `SemanticModel` (per-module `Scope` + function symbols declared in it +

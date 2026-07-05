@@ -15,6 +15,7 @@ import type { AnalyzeInput } from "./analyze.js";
 import { collectDeclarationTables } from "./declaration-collection.js";
 import type { DeclarationTables } from "./declaration-collection.js";
 import { validateIntrinsics } from "./intrinsic-validation.js";
+import { checkMainValidity } from "./post-check.js";
 
 /**
  * Pass 1 — Declaration Collection (RD-04 R2, §4.1; RD-17 AR-P13).
@@ -71,15 +72,17 @@ export function checkBodies(
 }
 
 /**
- * Pass 4 — Post-Check Validation (RD-04 R5, §4.1).
+ * Pass 4 — Post-Check Validation (RD-04 R5, §4.1; RD-18 Slice 3b FR-5).
  *
- * DEFERRED(RD-04-checker): verify main() signature, detect recursion, compute
- * module init order, flag unused variables and unreachable code. Emits
- * E10020/E10021/E10174/W10130/W10191/E10194.
+ * Slice 3b fills the entry-point half of this seam: `main()` validity
+ * (E10020/E10021/E10022) via {@link checkMainValidity} over `input.programs`. The
+ * remaining RD-04 Pass-4 duties (recursion detection, module init order, unused
+ * variables, unreachable code) stay deferred. The model is not consulted (the
+ * entry-point check reads the programs directly).
  *
- * @param _input The analyzer input (unused in the skeleton).
- * @param _model The model under construction (unused in the skeleton).
+ * @param input The analyzer input (programs + diagnostic bag).
+ * @param _model The model under construction (unused — entry-point check reads programs).
  */
-export function postCheck(_input: AnalyzeInput, _model: SemanticModel): void {
-  // no-op (deferred)
+export function postCheck(input: AnalyzeInput, _model: SemanticModel): void {
+  checkMainValidity(input.programs, input.bag);
 }

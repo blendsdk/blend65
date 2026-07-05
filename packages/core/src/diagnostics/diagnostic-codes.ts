@@ -33,6 +33,13 @@ export const DiagCode = {
   ImportNonExported: "E10012",
   NoMainFunction: "E10020",
   MultipleMainFunctions: "E10021",
+  // RD-18 Slice 3b (AR-11): the `main` entry point must have signature
+  // `function main(): void` (spec Ch 06 / F004; `00-feature-index.md:82`,
+  // `F004-entry-point.md:30`). E10022 is spec-designated but was absent from
+  // both this registry and `spec/14-diagnostics.md`; registered additively per
+  // RD-18 AR-115 (Language-Guard-approved). `spec/` stays frozen (D3) — a future
+  // post-freeze spec reconciliation closes the Ch-14 drift.
+  InvalidMainSignature: "E10022",
   CallingMainDirectly: "E10023",
   // Resource limits
   ZpBudgetExceeded: "E10032",
@@ -113,6 +120,12 @@ export const DiagCode = {
   MixedSignedUnsignedOperands: "E10081",
   ConstDivisionByZero: "E10082",
   ShiftAmountOutOfRange: "E10083",
+  // RD-18 Slice 3b (AR-11): a literal / constant value that does not fit its
+  // target integer type (spec Ch 02 §5.3 / F010; `02-type-system.md:486`,
+  // `00-feature-index.md:109`). E10084 is spec-designated but was absent from
+  // both this registry and `spec/14-diagnostics.md`; registered additively per
+  // RD-18 AR-115 (Language-Guard-approved). `spec/` stays frozen (D3).
+  ValueOutOfRange: "E10084",
 
   // Lexer (RD-02, spec Ch 01 §14)
   // RD-17 R21: the provisional E10212 reservation is retired — reserved-name

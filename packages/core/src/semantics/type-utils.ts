@@ -19,6 +19,7 @@
  */
 
 import type { Type, PrimitiveType } from "./type.js";
+import { ERROR_TYPE } from "./type.js";
 
 /**
  * Reports whether `t` is one of the four integer primitives (R24/§4.4):
@@ -144,42 +145,52 @@ export function typeName(t: Type): string {
 }
 
 /**
- * DEFERRED(RD-04-checker): R36/§4.6 — assignment compatibility (widening,
- * narrowing, signedness, enum<->byte cast rules). See
- * plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md.
+ * Assignment compatibility (RD-04 R36/§4.6) — **Slice 3b: same-type only** (AR-3).
  *
- * Passthrough placeholder: returns `true` (permissive) so no caller is blocked
- * while the checker is unimplemented. The real rules emit E10152/E10153/E10154.
+ * In Slice 3b the type engine is same-type-only: a value is assignable to a
+ * target iff their type names are identical. Implicit widening (`byte`→`word`),
+ * cross-sign, narrowing, and `as` casts are all rejected here — the *caller*
+ * (statement typing) inspects *why* the assignment failed to pick the right
+ * diagnostic (E10154 narrowing / E10153 cross-sign / E10152 boolean↔integer).
+ * Widening/casts arrive with Slice 6 (they need `zext`/`sext`/`trunc` IL ops).
  *
- * The parameters are `_`-prefixed (D15) to mark them intentionally unused: the
- * signature documents the future checker's API, but the passthrough reads
- * neither. The `_`-prefix satisfies both `tsc --noUnusedParameters` and ESLint
- * (root config's `argsIgnorePattern: "^_"`), the single canonical mechanism for
- * a deferred-seam parameter (code.md rule 4). The future checker renames the
- * params and adds the real logic.
+ * {@link ErrorType} poisons permissively (R114): if either side is poison the
+ * assignment is treated as compatible so no cascade diagnostic is emitted at the
+ * root-cause's dependents.
  *
- * @param _source The type being assigned from (unused in the skeleton).
- * @param _target The type being assigned to (unused in the skeleton).
- * @returns Always `true` in the skeleton.
+ * @param source The type being assigned from.
+ * @param target The type being assigned to.
+ * @returns `true` iff `source` is same-type-assignable to `target` (or either is poison).
  */
-export function isAssignableTo(_source: Type, _target: Type): boolean {
-  return true;
+export function isAssignableTo(source: Type, target: Type): boolean {
+  if (isError(source) || isError(target)) return true; // R114 poison suppression
+  return typeName(source) === typeName(target); // strict same-type (3b)
 }
 
 /**
- * DEFERRED(RD-04-checker): R31/§4.6 — widening promotion (byte->word,
- * sbyte->sword) and mixed-signedness rejection. See
- * plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md.
+ * The common result type of a binary operator's two operands (RD-04 R31/§4.6) —
+ * **Slice 3b: same-type only** (AR-3).
  *
- * Passthrough placeholder: returns `null` (no common type computed). The real
- * logic emits E10153 on mixed signedness and returns the promoted common type
- * otherwise. Parameters are `_`-prefixed as intentionally unused (D15).
+ * Returns the shared type when both operands are the same primitive type
+ * (`T OP T → T`, spec TS-3); returns `null` when they are not combinable in 3b
+ * (different width — widening deferred to Slice 6; different signedness; a
+ * `boolean` operand). The caller distinguishes the `null` reason to emit E10081
+ * (mixed sign) or E10080 (boolean operand). {@link ErrorType} poisons to
+ * {@link ERROR_TYPE} (R114) so no follow-on diagnostic is produced.
  *
- * @param _a The first operand type (unused in the skeleton).
- * @param _b The second operand type (unused in the skeleton).
- * @returns Always `null` in the skeleton.
+ * `isPrimitive` is deliberately not used (it is not a core helper); the
+ * `kind === "primitive"` guard plus a `typeName` equality check is the same test
+ * over the scalar grammar 3b types.
+ *
+ * @param a The first operand's type.
+ * @param b The second operand's type.
+ * @returns The shared primitive type, {@link ERROR_TYPE} on poison, or `null`.
  */
-export function commonType(_a: Type, _b: Type): Type | null {
-  return null;
+export function commonType(a: Type, b: Type): Type | null {
+  if (isError(a) || isError(b)) return ERROR_TYPE; // R114 poison
+  if (a.kind === "primitive" && b.kind === "primitive" && typeName(a) === typeName(b)) {
+    return a; // T OP T → T (same-type)
+  }
+  return null; // widening/mixed-sign/boolean → caller decides the diagnostic
 }
 

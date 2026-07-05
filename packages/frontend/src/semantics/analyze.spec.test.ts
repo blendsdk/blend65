@@ -41,12 +41,13 @@ function parseSource(source: string, bag: DiagnosticBag): ProgramNode {
 }
 
 describe("Specification: RD-04 passthrough analyze() (AC-01)", () => {
-  // ST-S21 — parse a valid program then analyze. RD-18 Slice 3a intentionally
-  // populates the function surface (main + call graph) for a program with a
-  // `main`, superseding the empty-population passthrough for this input (AR-9);
-  // the type/symbol maps still stay empty (scalar lowering doesn't consult them,
-  // D5) and the analyzer stays error-free.
-  it("should populate the function surface yet keep type/symbol maps empty (ST-S21, AR-9)", () => {
+  // ST-S21 — parse a valid program then analyze. RD-18 Slice 3a populated the
+  // function surface (main + call graph) for a program with a `main`; RD-18
+  // Slice 3b now also populates the type map (poke's literal args are typed),
+  // superseding the 3a empty-maps passthrough (D5→populated, AR-12) — parallel to
+  // the 3a `mainFunction` edit below. `symbolMap` stays empty here only because
+  // VALID_SOURCE contains no identifier references. The analyzer stays error-free.
+  it("should populate the function surface and the type map (ST-S21, AR-9/AR-12)", () => {
     const bag = createDiagnosticBag();
     const ast = parseSource(VALID_SOURCE, bag);
 
@@ -56,8 +57,8 @@ describe("Specification: RD-04 passthrough analyze() (AC-01)", () => {
     expect(model.mainFunction?.name).toBe("main"); // 3a populates the entry (was: toBeNull)
     expect(model.callGraph.functions.size).toBe(1);
     expect(model.globalScope.kind).toBe("global");
-    expect(model.typeMap.size).toBe(0); // D5 — scalar lowering doesn't consult typeMap
-    expect(model.symbolMap.size).toBe(0);
+    expect(model.typeMap.size).toBeGreaterThan(0); // 3b — poke's literal args are typed
+    expect(model.symbolMap.size).toBe(0); // VALID_SOURCE has no identifier references
   });
 
   // ST-S22 — analyze an AST containing parser error-sentinels: no throw.

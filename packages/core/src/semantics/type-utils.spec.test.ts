@@ -72,16 +72,49 @@ describe("Specification: RD-04 type utilities — structural facts", () => {
   });
 });
 
-describe("Specification: RD-04 type utilities — policy stubs (DEFERRED)", () => {
-  // ST-S10 — isAssignableTo exists and returns the permissive placeholder.
-  it("should expose isAssignableTo returning the placeholder true (ST-S10, D10)", () => {
-    expect(typeof isAssignableTo).toBe("function");
-    expect(isAssignableTo(primitive("byte"), primitive("word"))).toBe(true);
+// RD-18 Slice 3b (task 1.1.1) replaces the RD-04 DEFERRED-stub oracle
+// (`isAssignableTo`→true / `commonType`→null placeholders, ST-S10/S11) with the
+// real *same-type* policy (AR-3): assignment is same-type-only in 3b (widening /
+// cross-sign / narrowing are Slice 6), and `commonType` is the same-type binary
+// result. `ErrorType` poisons permissively (R114). Oracle: spec 02 TS-3/TS-5 +
+// AR-3 + R114 — NOT implementation logic. This supersedes ST-S10/S11 (the
+// deferred placeholders those asserted no longer exist).
+describe("Specification: RD-18 Slice 3b type policy — same-type rules (AR-3)", () => {
+  // ST-3 basis — isAssignableTo is same-type-only in 3b.
+  it("should accept same-type and reject widening/narrowing/cross-sign (ST-3/ST-8, AR-3)", () => {
+    // same type → assignable
+    expect(isAssignableTo(primitive("byte"), primitive("byte"))).toBe(true);
+    expect(isAssignableTo(primitive("word"), primitive("word"))).toBe(true);
+    expect(isAssignableTo(primitive("sbyte"), primitive("sbyte"))).toBe(true);
+    // widening (byte→word) — deferred to Slice 6 → NOT assignable in 3b
+    expect(isAssignableTo(primitive("byte"), primitive("word"))).toBe(false);
+    // narrowing (word→byte) → NOT assignable (E10154 at the call site)
+    expect(isAssignableTo(primitive("word"), primitive("byte"))).toBe(false);
+    // cross-sign (sbyte→byte) → NOT assignable (E10153 at the call site)
+    expect(isAssignableTo(primitive("sbyte"), primitive("byte"))).toBe(false);
   });
 
-  // ST-S11 — commonType exists and returns the placeholder null.
-  it("should expose commonType returning the placeholder null (ST-S11, D10)", () => {
-    expect(typeof commonType).toBe("function");
+  // R114 — ErrorType poisons permissively (no cascade).
+  it("should treat ErrorType as assignable in either position (R114 poison)", () => {
+    expect(isAssignableTo(ERROR_TYPE, primitive("byte"))).toBe(true);
+    expect(isAssignableTo(primitive("byte"), ERROR_TYPE)).toBe(true);
+  });
+
+  // ST-3 — commonType of same-type operands is that type; mixed is null.
+  it("should return the shared type for same-type operands, null otherwise (ST-3)", () => {
+    expect(commonType(primitive("byte"), primitive("byte"))).toEqual(primitive("byte"));
+    expect(commonType(primitive("word"), primitive("word"))).toEqual(primitive("word"));
+    // widening (same sign, different width) — deferred → null (caller decides)
     expect(commonType(primitive("byte"), primitive("word"))).toBeNull();
+    // mixed signedness → null (caller emits E10081)
+    expect(commonType(primitive("byte"), primitive("sbyte"))).toBeNull();
+    // boolean operand → null (caller emits E10080)
+    expect(commonType(primitive("byte"), primitive("boolean"))).toBeNull();
+  });
+
+  // R114 — commonType poisons to ErrorType (no follow-on diagnostic).
+  it("should return ErrorType when either operand is poisoned (R114)", () => {
+    expect(commonType(ERROR_TYPE, primitive("byte"))).toEqual(ERROR_TYPE);
+    expect(commonType(primitive("word"), ERROR_TYPE)).toEqual(ERROR_TYPE);
   });
 });

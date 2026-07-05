@@ -19,16 +19,21 @@
  */
 
 import type {
+  AstNode,
   DiagnosticBag,
+  ExprNode,
   IntrinsicRegistry,
   PlatformProfile,
   ProgramNode,
   SemanticModel,
+  Symbol,
+  Type,
 } from "@blend65/core";
-import { createEmptyModel, createIntrinsicRegistry } from "@blend65/core";
+import { createEmptyModel, createIntrinsicRegistry, ERROR_TYPE } from "@blend65/core";
 import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 import { collectFunctions } from "./function-collection.js";
+import { typeCheckPrograms } from "./type-check/statement-typing.js";
 
 /**
  * Everything the semantic analyzer needs (RD-04 R118–R119, D6).
@@ -79,20 +84,33 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   const tables = collectDeclarations(input);
   const functionTables = collectFunctions(input.programs, empty.globalScope);
 
-  // Pass 3 — body checking: the intrinsic-validation pass (RD-17 03-02).
-  const registry = input.registry ?? createIntrinsicRegistry();
+  // The error delta spans every analyzer pass that follows (intrinsic checks +
+  // Slice-3b typing + post-check), so `hasErrors` reflects them all.
   const errorsBefore = input.bag.getErrors().length;
+
+  // Pass 3 — body checking: the intrinsic-validation pass (RD-17 03-02) plus the
+  // RD-18 Slice 3b expression/statement type engine, which populates the maps.
+  const registry = input.registry ?? createIntrinsicRegistry();
   checkBodies(input, tables, registry);
-  const analyzerRecordedError = input.bag.getErrors().length > errorsBefore;
+
+  const typeMap = new Map<ExprNode, Type>();
+  const symbolMap = new Map<AstNode, Symbol>();
+  typeCheckPrograms(input.programs, functionTables.scopeByNode, {
+    bag: input.bag,
+    typeMap,
+    symbolMap,
+  });
 
   // Build the populated model: struct/enum tables, the call graph over the collected
-  // functions (no edges — user calls arrive in Slice 5), `mainFunction`, and a
-  // `scopeOf` that resolves a function decl → its body scope. `symbolMap`/`typeMap`
-  // stay empty — scalar lowering does not consult them (D5); Slice 3b populates them.
+  // functions (no edges — user calls arrive in Slice 5), `mainFunction`, `scopeOf`
+  // resolving a decl → its body scope, and the now-real `typeMap`/`symbolMap` with
+  // `typeOf`/`symbolOf` reading them (superseding the Slice-3a empty passthrough, AR-12).
   const model: SemanticModel = {
     ...empty,
     structTypes: tables.structTypes,
     enumTypes: tables.enumTypes,
+    typeMap,
+    symbolMap,
     callGraph: {
       functions: functionTables.functions,
       edges: new Map(),
@@ -100,12 +118,15 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     },
     mainFunction: functionTables.mainFunction,
     scopeOf: (node) => functionTables.scopeByNode.get(node) ?? empty.globalScope,
-    hasErrors: analyzerRecordedError,
+    typeOf: (expr) => typeMap.get(expr) ?? ERROR_TYPE,
+    symbolOf: (node) => symbolMap.get(node) ?? null,
+    hasErrors: false, // set below once the full error delta is known
   };
 
-  // Pass 2 / Pass 4 — DEFERRED(RD-04-checker) no-op seams, called for traceability.
+  // Pass 2 — DEFERRED no-op seam (no struct/enum sizing needed for scalars).
   resolveTypes(input, model);
+  // Pass 4 — post-check: `main()` validity (RD-18 Slice 3b), wired into passes.ts.
   postCheck(input, model);
 
-  return model;
+  return { ...model, hasErrors: input.bag.getErrors().length > errorsBefore };
 }
