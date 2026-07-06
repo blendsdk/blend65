@@ -266,12 +266,17 @@ passes and the parent-RD ACs it advances are ticked.
        `__frame_*` address (`__frame_Main_main_x = $0800`); VICE asserts the poked value
        (`$D020 == 0xF5` on real VICE 3.10). RD-04 AC(scope) [ledger R7/R8 real construction begun]
        + RD-05 AC-22 supersession ticked.
-2. [ ] **Slice 3b**: a program using local + module-level scalars, same-width `+ - * / %`, `=`, and
-       `peek`/`poke(w)` compiles and VICE-verifies a computed result (e.g. `(a*b + c) mod 256`
-       poked to an observable address); mixed-signedness (E10081) programs are **rejected** with
-       the exact code; a golden of the emitted ASM is committed. RD-04 Pass 1/3/4 (scalar scope)
-       closed. *(The non-boolean-condition check moves to Slice 4, where control flow — and its
-       new diagnostic code — lands.)*
+2. [x] **Slice 3b** ✅ **(2026-07-06, exec_plan `plans/rd-18-slice-3b-scalar-type-engine/`, 45/45)**: a
+       program using local + module-level scalars, same-width `+ - * / %`, `=`, and `peek`/`poke(w)`
+       compiles and VICE-verifies a computed result — `examples/slice3b/main.blend` computes
+       `accB = a*b+c` = `$11` and `accW = x*y` = `$0258`, asserted on **real VICE 3.10** at
+       `$C000==$11`/`$C001==$58`/`$C002==$02`; mixed-signedness `byte + sbyte` is **rejected with
+       E10081** (via `compile()`, no binary); a byte-exact ASM golden is committed. RD-04 Pass 1/3/4
+       (scalar scope) closed — real `type-check/*` typing + `post-check.ts` `main()` validity +
+       `module-variable-collection.ts` + width-aware lowering (`__var_*`, word literals → `__rt_mul16`).
+       Registered **E10084**/**E10022** additively (AR-11). Runtime AR-12 (ST-S21 superseded; Pass-4
+       gated on ≥1 function) + AR-13 (E10150 parser-owned) resolved. *(The non-boolean-condition check
+       moves to Slice 4, where control flow — and its new diagnostic code — lands.)*
 3. [ ] **Slice 4**: `if`/`while`/`do-while`/`for`(to/downto/step)/`switch` programs VICE-verify
        (loop-sum + switch-select fixtures); a `fallthrough` in `default`, a non-boolean condition,
        and a non-returning path in a non-void function are each rejected with a diagnostic — these

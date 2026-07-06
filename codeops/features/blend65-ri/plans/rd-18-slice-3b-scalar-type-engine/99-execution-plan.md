@@ -2,8 +2,8 @@
 
 > **Plan**: [Index](00-index.md) · **Implements**: blend65-ri/RD-18 (Slice 3b)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-06 (exec_plan — Phases 1–4 ✅ complete)
-> **Progress**: 41/45 tasks (91%) — Phases 1–4 ✅ (type engine + module scalars + width-aware lowering + **3-part acceptance bar green on real VICE**); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05. Runtime AR-12/AR-13 added at exec.
+> **Last Updated**: 2026-07-06 (exec_plan — **Slice 3b COMPLETE, 45/45**)
+> **Progress**: **45/45 tasks (100%) ✅** — Phases 1–5 all complete (type engine + module scalars + width-aware lowering + 3-part acceptance bar green on real VICE + rollout bookkeeping); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05. Runtime AR-12/AR-13 added at exec.
 >
 > **Exec ordering note:** task **1.2.1** (register `E10084`/`E10022` constants) is done **before** the
 > 1.1.x spec tests — it is pure additive vocabulary already decided in AR-11, and the spec tests must
@@ -119,12 +119,32 @@ Design: [03-04](03-04-acceptance-fixtures.md). Fixture + assemble-clean + golden
 
 ## Phase 5 — Rollout bookkeeping
 
-- [ ] 5.1.1 Tick RD-04 AC-02/AC-03/AC-06/AC-08 (+ AC-14 scalar subset) and annotate the deferred-ledger rows R7–R16, R30/R31, R36, R44–R49, R54, R61, R63, R66, R80–R81, R114 as advanced by Slice 3b. **PF-004: correct RD-04 AC-04/AC-05 before ticking** — AC-05 says `byte + sbyte` → E10153 (wrong; the arithmetic case is **E10081** per spec TS-5 + Ch 14 + R49); AC-04 word→byte narrowing is **E10154** (already correct). Fix AC-05 (and reconcile ledger R33 vs R49) with a one-line note citing AR-11; do **not** tick AC-05 as-worded.
-- [ ] 5.1.2 Tick **RD-18 AC-2** in `RD-18-codegen-language-completion.md`; annotate roadmap RD-04 row
-- [ ] 5.1.3 SR-2 resource-report delta (module-var bytes + `__rt_*` sites vs Slice 3a) + **SR-3** the AR-1 `>13-byte` collision ceiling — both in this closeout
-- [ ] 5.1.4 Roadmap sync (feature + portfolio cascade) → Slice 3b ✅; `git status --porcelain spec/` empty; final full verify
+- [x] 5.1.1 Ticked RD-04 AC-02/AC-03/**AC-04**/AC-06/AC-08/**AC-13**/AC-14 (scalar subset) in the deferred ledger + added a Slice-3b advancement banner (R7/R8, R14–R16/R61, R30–R34/R36, R44–R49, R54, R63, R66, R80/R81, R114). **PF-004 applied: AC-05 corrected** — `byte + sbyte` arithmetic = **E10081** (R49), *not* E10153 (which is the assignment cross-sign case, R33); not ticked as-worded, corrected with an AR-11 note.
+- [x] 5.1.2 Ticked **RD-18 AC-2** (Slice 3b) in `RD-18-codegen-language-completion.md` with VICE evidence; roadmap RD-04 row annotation cascaded (below).
+- [x] 5.1.3 SR-2 / SR-3 closeout recorded (below).
+- [x] 5.1.4 Roadmap sync (feature + portfolio cascade) → Slice 3b ✅; `git status --porcelain spec/` empty; final full verify green.
 
 **Deliverables**: parent ACs advanced; roadmap Done; deferred ceiling documented; `spec/` clean.
+
+---
+
+## Closeout — SR-2 resource delta / SR-3 collision ceiling
+
+**SR-2 (resource-report delta vs Slice 3a).** From the committed `slice3b.asm.golden`:
+- **RAM (vars):** module scalars `__var_Main_accB` = `$0800` (1B) + `__var_Main_accW` = `$0801` (2B) = **3B**
+  at `$0800–$0802`; frame region `$0803–$0809` (`a,b,c:byte` + `x,y:word`) = **7B**. Total var footprint
+  **10 bytes** (`$0800–$0809`). Slice 3a was 1 frame byte, 0 module vars.
+- **Code:** two runtime routines now embedded — **`__rt_mul8`** (byte `a*b`) + **`__rt_mul16`** (word `x*y`);
+  Slice 3a embedded none. ZP: 0 (unchanged).
+
+**SR-3 (AR-1 collision ceiling — documented deferred limitation).** SFA emits `__var_*`/`__frame_*` as
+leading absolute equates from `ramStart = $0800`; the c64 PRG loads code at `$0801` with `__startup` at
+`$080D` (after the 12-byte BASIC stub `$0801–$080C`). So `$0800–$080C` (**13 bytes**) is a dead-stub shadow
+a variable region may safely occupy — `__startup` overwrites it after the SYS hand-off. Slice 3b's fixture
+uses **10 bytes** (`$0800–$0809`), within the shadow — VICE-verified correct. **Ceiling: a fixture whose
+total variable footprint exceeds 13 bytes would collide with live code at `$080D+`.** The general fix
+(relocate the var region / post-code serializer emission) is **deferred** to a future memory-layout slice
+(RD-13 candidate); no profile or serializer change is made in Slice 3b (AR-1).
 
 ---
 
@@ -134,7 +154,7 @@ Design: [03-04](03-04-acceptance-fixtures.md). Fixture + assemble-clean + golden
 - [x] **Phase 2** — Module scalars (2.1.1–2.3.2, 9 tasks) ✅ 2026-07-06
 - [x] **Phase 3** — Width-aware lowering (3.1.1–3.3.2, 8 tasks) ✅ 2026-07-06
 - [x] **Phase 4** — Acceptance (4.1.1–4.3.3, 8 tasks) ✅ 2026-07-06 (3-part bar green on real VICE)
-- [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)
+- [x] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks) ✅ 2026-07-06 (parent ACs advanced, PF-004 AC-05 corrected, SR-2/SR-3 closeout)
 
 > Task count: **45** granular steps across 5 phases; the counter is updated live during exec_plan.
 

@@ -3,7 +3,21 @@
 > **Document**: 08-deferred-semantics-ledger.md
 > **Parent**: [Index](00-index.md)
 > **Status**: AUTHORITATIVE — the single map of what the passthrough skeleton does NOT implement
-> **Last Updated**: 2026-06-03
+> **Last Updated**: 2026-07-06 (RD-18 Slice 3b advancement annotated)
+
+> **🟢 RD-18 Slice 3b (2026-07-06) advanced the scalar subset of this ledger.** The real Pass 3
+> (expression/literal typing, name resolution, same-type/signedness enforcement, poison) + Pass 4
+> (`main()` validity) now ship — see `codeops/features/blend65-ri/plans/rd-18-slice-3b-scalar-type-engine/`.
+> **Rows advanced (scalar scope):** name resolution R14–R16/R61 (E10100); expression/assignment typing
+> R30/R31→same-type, R32/R33→E10154/E10153 (assignment), R34→E10080, R36, R44–R49 (R49 mixed-sign
+> arithmetic = **E10081**), R54 (literal range E10084); scope construction R7/R8 (module + function +
+> body scopes, extended from Slice 3a); Pass 4 R66 (E10020/E10021 + `main` signature E10022); poison
+> R114 (single-diagnostic cascade suppression); const-eval R63 (minimal — `lo`/`hi`, literal fold,
+> div-by-zero E10082); void-return R80/R81 (E10173, minimal). **Still deferred:** control flow (Slice 4),
+> calls/recursion R66-calls/R174 (Slice 5), mixed-width promotion + casts (Slice 6), aggregates R-struct/
+> array/enum (Slice 7). Diagnostic codes reconciled to the canonical registry per **AR-11** (the earlier
+> ledger codes E10082-for-narrowing etc. came from the stale frozen-spec §5.3 — see the plan's AR-11 table).
+> The AC-coverage table below is updated; per-row status text is left as-was except where corrected.
 
 ## Purpose
 
@@ -252,19 +266,19 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | AC | Criterion (abbrev.) | Status |
 |----|---------------------|--------|
 | AC-01 | `analyze()` accepts AST, returns model, never throws | ✅ IMPLEMENTED (this plan, AC-S1) |
-| AC-02 | gate program → `hasErrors=false` + resolved `main` + poke typing | ⛔ DEFERRED (passthrough returns `mainFunction=null`, no typing) |
-| AC-03 | undeclared identifier → E10100 | ⛔ DEFERRED |
-| AC-04 | word→byte without cast → E10154 | ⛔ DEFERRED |
-| AC-05 | byte + sbyte → E10153 | ⛔ DEFERRED |
-| AC-06 | `let x: bool = 5` → E10152 | ⛔ DEFERRED |
-| AC-07 | indirect recursion → E10174 (both) | ⛔ DEFERRED |
-| AC-08 | no/two `main()` → E10020/E10021 | ⛔ DEFERRED |
+| AC-02 | gate program → `hasErrors=false` + resolved `main` + poke typing | ✅ **RD-18 Slice 3b** (scalar) — `main` resolved + `typeMap` populated; gate/slice3a clean |
+| AC-03 | undeclared identifier → E10100 | ✅ **RD-18 Slice 3b** (ST-6) |
+| AC-04 | word→byte without cast → E10154 | ✅ **RD-18 Slice 3b** (ST-8 narrowing; code correct) |
+| AC-05 | ~~byte + sbyte → E10153~~ **CORRECTED (PF-004/AR-11):** mixed-sign **arithmetic operands** `byte + sbyte` → **E10081** (ledger R49; the fixture/AC-4 headline); **E10153** is the *assignment* cross-sign case (R33). | ✅ **RD-18 Slice 3b** (arithmetic E10081 = ST-4; assignment E10153 = ST-8). *Original "byte + sbyte → E10153" wording was wrong — not ticked as-worded.* |
+| AC-06 | `let x: bool = 5` → E10152 | ✅ **RD-18 Slice 3b** (boolean↔integer assignment; impl-tested) |
+| AC-07 | indirect recursion → E10174 (both) | ⛔ DEFERRED (calls → Slice 5) |
+| AC-08 | no/two `main()` → E10020/E10021 | ✅ **RD-18 Slice 3b** (ST-10; Pass 4 `post-check.ts`) |
 | AC-09 | non-const const initializer → E10193 | ⛔ DEFERRED |
 | AC-10 | struct literal missing/extra field → E10161/E10162 | ⛔ DEFERRED |
 | AC-11 | enum dup/over-256 → E10142/E10141 | ⛔ DEFERRED |
 | AC-12 | break/continue context → E10130/E10131 | ⛔ DEFERRED |
-| AC-13 | poison-type cascade suppression (one diagnostic) | ⛔ DEFERRED |
-| AC-14 | `typeMap` correctness | ⛔ DEFERRED |
+| AC-13 | poison-type cascade suppression (one diagnostic) | ✅ **RD-18 Slice 3b** (ST-9; R114) |
+| AC-14 | `typeMap` correctness | ✅ **RD-18 Slice 3b** (scalar subset: literals/idents/same-type binary — ST-1/ST-3; aggregates → Slice 7) |
 | AC-15 | `callGraph` + `findCycles()` correctness | ⛔ DEFERRED |
 | AC-16 | module-init cycle → E10194 | ⛔ DEFERRED |
 | AC-17 | non-bool if condition → E10080 | ⛔ DEFERRED |
