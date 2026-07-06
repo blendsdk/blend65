@@ -17,6 +17,7 @@
  * plans/rd-18-slice-3a-model-seam/03-02-model-adapter.md.
  */
 
+import { byteSize } from "@blend65/core";
 import type {
   AstNode,
   FrameVar,
@@ -26,6 +27,7 @@ import type {
   SemanticModel,
   Symbol,
 } from "@blend65/core";
+import type { ModuleVarInput } from "./zp-allocator.js";
 
 /**
  * Projects a populated {@link SemanticModel} into the planner's
@@ -53,6 +55,37 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
       isReachable: true, // call-graph reachability is Slice 5; main is reachable
       callees: [], // no calls in 3a
     });
+  }
+  return result;
+}
+
+/**
+ * Projects the module-scope scalar `variable` symbols of a populated
+ * {@link SemanticModel} into the planner's {@link ModuleVarInput}[] (RD-18 Slice
+ * 3b, FR-4/AR-9). One entry per `kind: "variable"` symbol in each module scope
+ * (`globalScope.children`), carrying its module name, variable name, resolved
+ * type, and `byteSize`. Functions and constants are excluded (only RAM-backed
+ * variables get a `__var_*` slot). Deterministic order = module order ×
+ * declaration order. Returns `[]` for the empty passthrough model.
+ *
+ * @param model The semantic model to project.
+ * @returns The module variables as planner inputs (`[]` when there are none).
+ */
+export function modelToModuleVars(model: SemanticModel): ModuleVarInput[] {
+  const result: ModuleVarInput[] = [];
+  for (const moduleScope of model.globalScope.children) {
+    if (moduleScope.kind !== "module") continue;
+    const modNode = moduleScope.node;
+    const moduleName = isModuleDecl(modNode) ? modNode.name : "";
+    for (const sym of moduleScope.symbols.values()) {
+      if (sym.kind !== "variable") continue; // functions / constants are not RAM-backed
+      result.push({
+        moduleName,
+        variableName: sym.name,
+        type: sym.type,
+        size: byteSize(sym.type),
+      });
+    }
   }
   return result;
 }

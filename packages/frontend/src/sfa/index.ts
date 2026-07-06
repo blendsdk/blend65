@@ -19,4 +19,4 @@
 export { planAllocation } from "./plan-allocation.js";
 export type { PlanInput, ModuleVarInput, ZpUserVar } from "./plan-allocation.js";
 
-export { modelToFunctionInfo } from "./model-adapter.js";
+export { modelToFunctionInfo, modelToModuleVars } from "./model-adapter.js";

@@ -34,7 +34,7 @@ import type {
   SourceSpan,
   Symbol,
 } from "@blend65/core";
-import { modelToFunctionInfo } from "./model-adapter.js";
+import { modelToFunctionInfo, modelToModuleVars } from "./model-adapter.js";
 
 /** A zero-width span for the synthetic decl nodes in these fixtures. */
 const SPAN: SourceSpan = { sourceId: 0, start: 0, end: 0 };
@@ -54,7 +54,11 @@ interface LocalSpec {
  * @param locals The function's locals, in declaration order.
  * @returns A populated model whose `callGraph.functions` holds `main`.
  */
-function buildModel(moduleName: string, locals: readonly LocalSpec[]): SemanticModel {
+function buildModel(
+  moduleName: string,
+  locals: readonly LocalSpec[],
+  moduleVars: readonly LocalSpec[] = [],
+): SemanticModel {
   const empty = createEmptyModel();
 
   const moduleDecl: ModuleDeclNode = {
@@ -65,6 +69,29 @@ function buildModel(moduleName: string, locals: readonly LocalSpec[]): SemanticM
   };
   const moduleScope = createScope("module", empty.globalScope, moduleDecl);
   empty.globalScope.children.push(moduleScope);
+
+  // Module-level scalar `variable` symbols (Slice 3b) — declared in the module scope.
+  for (const mv of moduleVars) {
+    const letDecl: LetDeclNode = {
+      kind: "LetDecl",
+      exported: false,
+      name: mv.name,
+      nameSpan: SPAN,
+      declaredType: { kind: "PrimitiveType", name: mv.typeName, span: SPAN },
+      initialiser: null,
+      span: SPAN,
+    };
+    moduleScope.symbols.set(mv.name, {
+      name: mv.name,
+      kind: "variable",
+      type: primitive(mv.typeName),
+      decl: letDecl,
+      scope: moduleScope,
+      exported: false,
+      mutable: true,
+      byRef: false,
+    });
+  }
 
   const fnDecl: FunctionDeclNode = {
     kind: "FunctionDecl",
@@ -162,5 +189,45 @@ describe("Specification: modelToFunctionInfo (RD-18 Slice 3a, FR-2)", () => {
       { name: "a", type: primitive("byte"), byRef: false },
       { name: "b", type: primitive("word"), byRef: false },
     ]);
+  });
+});
+
+describe("Specification: modelToModuleVars (RD-18 Slice 3b, FR-4/AR-9)", () => {
+  // ST-11 — a module-scope `variable` symbol projects to a ModuleVarInput with its
+  // module name, variable name, type, and byteSize.
+  it("should project a module-scope variable to a ModuleVarInput (ST-11)", () => {
+    const model = buildModel("Main", [], [{ name: "g", typeName: "byte" }]);
+
+    expect(modelToModuleVars(model)).toEqual([
+      { moduleName: "Main", variableName: "g", type: primitive("byte"), size: 1 },
+    ]);
+  });
+
+  // ST-11b — byteSize is per scalar (word → 2), preserving declaration order.
+  it("should project multiple module vars with per-type byteSize in order (ST-11b)", () => {
+    const model = buildModel(
+      "Main",
+      [],
+      [
+        { name: "accB", typeName: "byte" },
+        { name: "accW", typeName: "word" },
+      ],
+    );
+
+    expect(modelToModuleVars(model)).toEqual([
+      { moduleName: "Main", variableName: "accB", type: primitive("byte"), size: 1 },
+      { moduleName: "Main", variableName: "accW", type: primitive("word"), size: 2 },
+    ]);
+  });
+
+  // ST-11c — functions in the module scope are excluded (only `variable` symbols).
+  it("should exclude function symbols from the module-var projection (ST-11c)", () => {
+    const model = buildModel("Main", [{ name: "x", typeName: "byte" }]); // main only, no module vars
+    expect(modelToModuleVars(model)).toEqual([]);
+  });
+
+  // ST-11d — the empty passthrough model yields [] (no module scopes).
+  it("should return [] for the empty passthrough model (ST-11d)", () => {
+    expect(modelToModuleVars(createEmptyModel())).toEqual([]);
   });
 });

@@ -2,8 +2,8 @@
 
 > **Plan**: [Index](00-index.md) · **Implements**: blend65-ri/RD-18 (Slice 3b)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-06 (exec_plan — Phase 1 ✅ complete)
-> **Progress**: 16/45 tasks (36%) — Phase 1 ✅ (type engine green); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05 (code-reconciliation applied, see `00-preflight-report.md`). Runtime AR-12/AR-13 added at exec.
+> **Last Updated**: 2026-07-06 (exec_plan — Phases 1–2 ✅ complete)
+> **Progress**: 25/45 tasks (56%) — Phase 1 ✅ (type engine) + Phase 2 ✅ (module scalars); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05. Runtime AR-12/AR-13 added at exec.
 >
 > **Exec ordering note:** task **1.2.1** (register `E10084`/`E10022` constants) is done **before** the
 > 1.1.x spec tests — it is pure additive vocabulary already decided in AR-11, and the spec tests must
@@ -57,19 +57,19 @@ registry codes per AR-11); never throws; existing frontend suites green.
 Collect top-level `let` into module scopes; project + feed SFA. Design: [03-02](03-02-module-scalars.md).
 
 ### 2.1 Spec tests (red)
-- [ ] 2.1.1 Module-var collection spec: ST-11 (module-scope `variable` symbol), ST-12 (E10003 duplicate) — `module-variable-collection.spec.test.ts`
-- [ ] 2.1.2 `modelToModuleVars` spec: ST-11 projection (module-scope var → `ModuleVarInput`) — `sfa/model-adapter.spec.test.ts` (extend)
-- [ ] 2.1.3 **Verify red**
+- [x] 2.1.1 Module-var collection spec: ST-11 (module-scope `variable` symbol + body resolves), ST-12 (E10003 duplicate) — `module-variable-collection.spec.test.ts`
+- [x] 2.1.2 `modelToModuleVars` spec: ST-11/11b/11c/11d projection — `sfa/model-adapter.spec.test.ts` (extended `buildModel` with module vars)
+- [x] 2.1.3 **Verify red** — 2026-07-06: collection spec 2/2 red
 
 ### 2.2 Implementation (green)
-- [ ] 2.2.1 Collect top-level `let`/`const` into module scopes (extend `function-collection.ts` or new `module-variable-collection.ts`); E10003 on duplicate; name-resolution reaches module scope
-- [ ] 2.2.2 `modelToModuleVars(model)` in `sfa/model-adapter.ts` (AR-9)
-- [ ] 2.2.3 Wire `run-frontend.ts:158` — `moduleVars: modelToModuleVars(semanticModel)`
-- [ ] 2.2.4 **Verify green** — 2.1.x pass; `__var_*` symbols appear in a built plan
+- [x] 2.2.1 New `module-variable-collection.ts` (sibling, AR-10) — collects top-level `let`→`variable`/`const`→`constant` into the module scope `collectFunctions` built (matched by `ModuleDeclNode`); E10003 on duplicate; wired into `analyze.ts` before typing (so refs resolve, E10003 counted in `hasErrors`).
+- [x] 2.2.2 `modelToModuleVars(model)` in `sfa/model-adapter.ts` (AR-9; walks module scopes, `kind:"variable"` only, `byteSize`); barrel-exported from `sfa/index.ts`.
+- [x] 2.2.3 Wired `run-frontend.ts` — `moduleVars: modelToModuleVars(semanticModel)` (was `[]`).
+- [x] 2.2.4 **Verify green** — 2026-07-06: frontend semantics+adapter 87/87; compiler 82/82; goldens unchanged.
 
 ### 2.3 Impl tests & hardening
-- [ ] 2.3.1 `*.impl.test.ts` — ordering (module × declaration order), byteSize per scalar, mixed local+module resolution
-- [ ] 2.3.2 Full workspace verify green
+- [x] 2.3.1 `module-variable-collection.impl.test.ts` (4) — declaration-order + per-scalar byteSize via full `analyze`→`modelToModuleVars`, mixed local+module resolution, module-`const` assignment **E10191** (now reachable), const excluded from RAM projection.
+- [x] 2.3.2 **Full workspace verify green** — 2026-07-06: build+typecheck+lint clean; all package tests + R15 boundary; golden-gate/slice3a unchanged.
 
 **Deliverables**: module scalars allocated (`__var_*`), read/written cross-scope; SFA fed real module vars.
 
@@ -131,7 +131,7 @@ Design: [03-04](03-04-acceptance-fixtures.md). Fixture + assemble-clean + golden
 ## Master Progress Checklist
 
 - [x] **Phase 1** — Type engine (1.1.1–1.3.2, 16 tasks; incl. 1.2.1 code-reconciliation) ✅ 2026-07-06
-- [ ] **Phase 2** — Module scalars (2.1.1–2.3.2, 9 tasks)
+- [x] **Phase 2** — Module scalars (2.1.1–2.3.2, 9 tasks) ✅ 2026-07-06
 - [ ] **Phase 3** — Width-aware lowering (3.1.1–3.3.2, 8 tasks)
 - [ ] **Phase 4** — Acceptance (4.1.1–4.3.3, 8 tasks)
 - [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)

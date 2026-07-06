@@ -27,7 +27,14 @@ import {
 import type { PlatformPlugin } from "@blend65/core/platform";
 import { loadConfig, type BlendConfig } from "@blend65/config";
 import { PLATFORM_REGISTRY, loadPlatform } from "@blend65/platforms";
-import { analyze, lex, modelToFunctionInfo, parse, planAllocation } from "@blend65/frontend";
+import {
+  analyze,
+  lex,
+  modelToFunctionInfo,
+  modelToModuleVars,
+  parse,
+  planAllocation,
+} from "@blend65/frontend";
 import { basename, extname, relative, sep } from "node:path";
 import { createDiskCompilerHost } from "../host/index.js";
 import { optionsToOverrides, type CompilerOptions } from "./options.js";
@@ -155,7 +162,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
   const allocationPlan = planAllocation(
     {
       functions: modelToFunctionInfo(semanticModel),
-      moduleVars: [],
+      moduleVars: modelToModuleVars(semanticModel), // RD-18 Slice 3b — real module scalars
       zpUserVars: [],
       upstreamErrors: bag.hasErrors(),
     },

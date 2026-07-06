@@ -33,6 +33,7 @@ import { createEmptyModel, createIntrinsicRegistry, ERROR_TYPE } from "@blend65/
 import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 import { collectFunctions } from "./function-collection.js";
+import { collectModuleVariables } from "./module-variable-collection.js";
 import { typeCheckPrograms } from "./type-check/statement-typing.js";
 
 /**
@@ -84,9 +85,14 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   const tables = collectDeclarations(input);
   const functionTables = collectFunctions(input.programs, empty.globalScope);
 
-  // The error delta spans every analyzer pass that follows (intrinsic checks +
-  // Slice-3b typing + post-check), so `hasErrors` reflects them all.
+  // The error delta spans every analyzer pass that follows (module-var collection +
+  // intrinsic checks + Slice-3b typing + post-check), so `hasErrors` reflects them all.
   const errorsBefore = input.bag.getErrors().length;
+
+  // Pass 1 (cont.) — collect module-level scalars into their module scopes (Slice 3b),
+  // so body references resolve to them and SFA can lay out `__var_*`. E10003 on a
+  // duplicate top-level declaration.
+  collectModuleVariables(input.programs, empty.globalScope, input.bag);
 
   // Pass 3 — body checking: the intrinsic-validation pass (RD-17 03-02) plus the
   // RD-18 Slice 3b expression/statement type engine, which populates the maps.
