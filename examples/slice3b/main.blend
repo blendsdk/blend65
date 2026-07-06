@@ -1,0 +1,17 @@
+module Main;
+
+let accB: byte;              // module-level scalar (no init — spec VAR-2, AR-2) → __var_Main_accB
+let accW: word;              // module-level scalar → __var_Main_accW
+
+function main(): void {
+    let a: byte = 5;
+    let b: byte = 3;
+    let c: byte = 2;
+    accB = a * b + c;        // byte: (5*3)+2 = 17 = $11  (a*b via __rt_mul8)
+    poke(0xC000, accB);      // observable: $C000 == $11
+
+    let x: word = 300;       // word literal (>255 → i16u, the width fix)
+    let y: word = 2;
+    accW = x * y;            // word: 300*2 = 600 = $0258  (via __rt_mul16)
+    pokew(0xC001, accW);     // observable: $C001 == $58, $C002 == $02  (little-endian)
+}

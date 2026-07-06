@@ -2,8 +2,8 @@
 
 > **Plan**: [Index](00-index.md) · **Implements**: blend65-ri/RD-18 (Slice 3b)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-06 (exec_plan — Phases 1–3 ✅ complete)
-> **Progress**: 33/45 tasks (73%) — Phase 1 ✅ (type engine) + Phase 2 ✅ (module scalars) + Phase 3 ✅ (width-aware lowering); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05. Runtime AR-12/AR-13 added at exec.
+> **Last Updated**: 2026-07-06 (exec_plan — Phases 1–4 ✅ complete)
+> **Progress**: 41/45 tasks (91%) — Phases 1–4 ✅ (type engine + module scalars + width-aware lowering + **3-part acceptance bar green on real VICE**); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05. Runtime AR-12/AR-13 added at exec.
 >
 > **Exec ordering note:** task **1.2.1** (register `E10084`/`E10022` constants) is done **before** the
 > 1.1.x spec tests — it is pure additive vocabulary already decided in AR-11, and the spec tests must
@@ -102,16 +102,16 @@ Thread `typeMap`; width-aware literals/binaries; module-var load/store. Design: 
 Design: [03-04](03-04-acceptance-fixtures.md). Fixture + assemble-clean + golden + VICE + E10081 negative.
 
 ### 4.1 Fixture + spec tests (red)
-- [ ] 4.1.1 `examples/slice3b/main.blend` (AR-6) + `testing/slice3b.ts` (`buildSlice3b`/`emitAsmSlice3b`)
-- [ ] 4.1.2 `slice3b.spec.test.ts` (ST-16 assemble-clean + ST-18 VICE) and `golden-slice3b.spec.test.ts` (ST-17)
-- [ ] 4.1.3 Mixed-sign negative `…mixed-sign.spec.test.ts` (ST-19, frontend `compile()`)
-- [ ] 4.1.4 **Verify red** — golden missing; ST-19 already green once Phase 1 landed
-- [ ] 4.2.1 Mint `test/golden/slice3b.asm.golden` (`UPDATE_GOLDEN=1`); confirm `__var_Main_accB/accW`, `__rt_mul8`, `__rt_mul16` present; inspect layout ≤13-byte shadow (AR-1)
+- [x] 4.1.1 `examples/slice3b/main.blend` (AR-6) + `testing/slice3b.ts` (`buildSlice3b`/`emitAsmSlice3b`, mirror slice3a).
+- [x] 4.1.2 `slice3b.spec.test.ts` (ST-16 assemble-clean + ST-18 VICE) + `golden-slice3b.spec.test.ts` (ST-17).
+- [x] 4.1.3 `slice3b-mixed-sign.spec.test.ts` (ST-19) — `compile()` frontend-only: E10081 + `hasErrors` + no binary + no throw.
+- [x] 4.1.4 **Verify red / green split** — 2026-07-06: assemble-clean + VICE + mixed-sign green immediately (Phases 1–3 landed); golden minted next.
+- [x] 4.2.1 Minted `packages/test-harness/test/golden/slice3b.asm.golden` (`UPDATE_GOLDEN=1`) — contains `__var_Main_accB=$0800`/`accW=$0801`, `__rt_mul8`, `__rt_mul16`. Layout $0800–$0809 (10 bytes) ≤ 13-byte shadow; `__startup` clears it (AR-1 ✓).
 
 ### 4.3 Green
-- [ ] 4.3.1 CI tiers green (assemble-clean + golden + mixed-sign negative)
-- [ ] 4.3.2 VICE (local): ST-18 `$C000==$11`, `$C001==$58`, `$C002==$02` on real VICE 3.10
-- [ ] 4.3.3 Re-check gate/slice3a goldens (ST-20) — unchanged, or re-minted only if width-threading re-proves output on VICE (AR-8 discipline)
+- [x] 4.3.1 CI tiers green — assemble-clean (real ACME) + golden (byte-exact) + mixed-sign negative.
+- [x] 4.3.2 **VICE (local, real 3.10)** — ST-18 `$C000==$11`, `$C001==$58`, `$C002==$02` ✅ on real VICE (x64sc).
+- [x] 4.3.3 ST-20 — gate/slice3a goldens **unchanged** (width-threading left the byte-only fixtures byte-exact; no re-mint).
 
 **Deliverables**: fixture assembles → golden → VICE-verified computed result; E10081 negative green.
 
@@ -133,7 +133,7 @@ Design: [03-04](03-04-acceptance-fixtures.md). Fixture + assemble-clean + golden
 - [x] **Phase 1** — Type engine (1.1.1–1.3.2, 16 tasks; incl. 1.2.1 code-reconciliation) ✅ 2026-07-06
 - [x] **Phase 2** — Module scalars (2.1.1–2.3.2, 9 tasks) ✅ 2026-07-06
 - [x] **Phase 3** — Width-aware lowering (3.1.1–3.3.2, 8 tasks) ✅ 2026-07-06
-- [ ] **Phase 4** — Acceptance (4.1.1–4.3.3, 8 tasks)
+- [x] **Phase 4** — Acceptance (4.1.1–4.3.3, 8 tasks) ✅ 2026-07-06 (3-part bar green on real VICE)
 - [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)
 
 > Task count: **45** granular steps across 5 phases; the counter is updated live during exec_plan.

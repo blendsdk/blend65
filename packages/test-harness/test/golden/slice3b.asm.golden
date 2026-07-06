@@ -1,0 +1,173 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_main = $0803
+__frame_Main_main_a = $0803
+__frame_Main_main_b = $0804
+__frame_Main_main_c = $0805
+__frame_Main_main_x = $0806
+__frame_Main_main_y = $0808
+__var_Main_accB = $0800
+__var_Main_accW = $0801
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$05
+    STA __frame_Main_main_a
+    LDA #$03
+    STA __frame_Main_main_b
+    LDA #$02
+    STA __frame_Main_main_c
+    LDA __frame_Main_main_a
+    LDX __frame_Main_main_b
+    JSR __rt_mul8
+    CLC
+    ADC __frame_Main_main_c
+    STA __var_Main_accB
+    LDA __var_Main_accB
+    STA $C000
+    LDA #$2C
+    LDX #$01
+    STA __frame_Main_main_x
+    STX __frame_Main_main_x+1
+    LDA #$02
+    LDX #$00
+    STA __frame_Main_main_y
+    STX __frame_Main_main_y+1
+    LDA __frame_Main_main_y
+    STA __zp_arg_0
+    LDA __frame_Main_main_y+1
+    STA __zp_arg_1
+    LDX __frame_Main_main_x+1
+    LDA __frame_Main_main_x
+    JSR __rt_mul16
+    STA __var_Main_accW
+    STX __var_Main_accW+1
+    LDA __var_Main_accW
+    LDX __var_Main_accW+1
+    STA $C001
+    STX $C001+1
+    RTS
+; --- runtime routines (referenced only) ---
+; ============================================================================
+; __rt_mul8 — unsigned 8-bit multiply, 16-bit product (RD-17 §4.6, AR-98)
+;
+; Params  : a -> A, b -> X                       (register-passed, AR-33)
+; Returns : product lo -> A, hi -> X
+; Clobbers: A, X, status                          (Y preserved)
+; ZP      : __zp_arg_0/__zp_arg_1 as scratch — the runtime arg-block is
+;           caller-volatile by definition (AR-34) and the validated profile
+;           floor guarantees 4 bytes (R35), so 2 scratch bytes always exist.
+; Cost    : ~130-180 cycles (data-dependent)
+;
+; Algorithm: canonical LSB-first shift-and-add. The multiplier sits in
+; __zp_arg_0 and is consumed bit-by-bit from the bottom while product-low bits
+; rotate in from the top, so one byte serves both roles; A accumulates the
+; product high byte.
+; ============================================================================
+__rt_mul8:
+	sta __zp_arg_0		; multiplier (becomes product lo)
+	stx __zp_arg_1		; multiplicand
+	lda #$00		; product hi accumulator
+	ldx #$08		; 8 bits
+	lsr __zp_arg_0		; multiplier bit 0 -> carry
+__rt_mul8_loop:
+	bcc __rt_mul8_skip	; bit clear -> no add
+	clc
+	adc __zp_arg_1		; add multiplicand into the hi byte
+__rt_mul8_skip:
+	ror			; hi >>= 1, bit 16 (ADC carry) in, bit -> carry
+	ror __zp_arg_0		; product-lo bit in, next multiplier bit -> carry
+	dex
+	bne __rt_mul8_loop
+	tax			; hi -> X
+	lda __zp_arg_0		; lo -> A
+	rts
+; ============================================================================
+; __rt_mul16 — unsigned 16-bit multiply, low 16 bits of the product
+;              (RD-17 §4.6, AR-98; result width per RD-17 §4.3)
+;
+; Params  : a -> A (lo) / X (hi), b -> __zp_arg_0 (lo) / __zp_arg_1 (hi)
+;           (word second operand travels through the ZP arg-block — AR-P7)
+; Returns : product lo -> A, hi -> X
+; Clobbers: A, X, Y, status
+; ZP      : __zp_arg_0..3 — arg passing (0/1) plus scratch (2/3); the runtime
+;           arg-block is caller-volatile (AR-34) and the validated profile
+;           floor guarantees 4 bytes (R35).
+; Cost    : ~450-550 cycles (data-dependent)
+;
+; Algorithm: three 8x8 partial products (self-contained — §4.6 forbids
+; cross-module calls, so the 8x8 core is an internal subroutine, AR-100):
+;   (a*b) mod 2^16 = a_lo*b_lo + ((a_lo*b_hi + a_hi*b_lo) << 8)
+; The high bytes of a_lo*b_hi and a_hi*b_lo contribute only >= 2^16 and are
+; discarded.
+; ============================================================================
+__rt_mul16:
+	tay			; Y = a_lo (persists across the core calls)
+	; ---- P2 = a_hi * b_lo (low byte only) ----
+	stx __zp_arg_2		; core multiplier = a_hi
+	lda __zp_arg_0
+	sta __zp_arg_3		; core multiplicand = b_lo
+	jsr __rt_mul16_core	; __zp_arg_2 = P2 lo
+	lda __zp_arg_2
+	pha			; save P2 lo
+	; ---- P1 = a_lo * b_hi (low byte only) ----
+	sty __zp_arg_2		; core multiplier = a_lo
+	lda __zp_arg_1
+	sta __zp_arg_3		; core multiplicand = b_hi
+	jsr __rt_mul16_core	; __zp_arg_2 = P1 lo
+	pla			; P2 lo
+	clc
+	adc __zp_arg_2		; hi contribution = P1 lo + P2 lo (mod 256)
+	pha			; save the hi contribution
+	; ---- P0 = a_lo * b_lo (full 16 bits) ----
+	sty __zp_arg_2		; core multiplier = a_lo
+	lda __zp_arg_0
+	sta __zp_arg_3		; core multiplicand = b_lo
+	jsr __rt_mul16_core	; A = P0 hi, __zp_arg_2 = P0 lo
+	sta __zp_arg_3		; reuse arg3: P0 hi (multiplicand is dead)
+	pla			; hi contribution
+	clc
+	adc __zp_arg_3		; product hi = P0 hi + contribution
+	tax			; hi -> X
+	lda __zp_arg_2		; lo -> A
+	rts
+
+; ---- internal 8x8 core: __zp_arg_2 * __zp_arg_3 -> A (hi) / __zp_arg_2 (lo).
+;      Destroys X; preserves Y. Same rotate-down scheme as __rt_mul8.
+__rt_mul16_core:
+	lda #$00		; product hi accumulator
+	ldx #$08		; 8 bits
+	lsr __zp_arg_2		; multiplier bit 0 -> carry
+__rt_mul16_core_loop:
+	bcc __rt_mul16_core_skip
+	clc
+	adc __zp_arg_3		; add multiplicand into the hi byte
+__rt_mul16_core_skip:
+	ror			; hi >>= 1, bit 16 in, bit -> carry
+	ror __zp_arg_2		; product-lo bit in, next multiplier bit -> carry
+	dex
+	bne __rt_mul16_core_loop
+	rts
