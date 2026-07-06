@@ -21,7 +21,15 @@ import type {
   SourceSpan,
   StmtNode,
 } from "@blend65/core";
-import { createEmptyModel } from "@blend65/core";
+import { createEmptyModel, DEFAULT_PROFILE } from "@blend65/core";
+import {
+  analyze,
+  lex,
+  modelToFunctionInfo,
+  modelToModuleVars,
+  parse,
+  planAllocation,
+} from "@blend65/frontend";
 
 import { printIL } from "./print-il.js";
 import { lowerToIL } from "./lower.js";
@@ -204,5 +212,62 @@ describe("lowerToIL — uses primitive() for type provenance (smoke)", () => {
   it("should treat byte as IL_BYTE in the type mapping", () => {
     // Guards the lower.ts import of primitive() against accidental removal.
     expect(primitive("byte")).toEqual({ kind: "primitive", name: "byte" });
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// RD-18 Slice 3b — width-aware lowering edge cases (via the real frontend)
+// ───────────────────────────────────────────────────────────────────────────
+
+/** Lowers `source` end-to-end through the real frontend; returns printed IL + bag flag. */
+function lowerReal(source: string): { text: string; hasErrors: boolean } {
+  const bag = createDiagnosticBag();
+  const { tokens } = lex(1, source, bag);
+  const { ast }: { ast: ProgramNode } = parse({ tokens, source, sourceId: 1, bag });
+  const model = analyze({ programs: [ast], bag, profile: DEFAULT_PROFILE });
+  const plan = planAllocation(
+    {
+      functions: modelToFunctionInfo(model),
+      moduleVars: modelToModuleVars(model),
+      zpUserVars: [],
+      upstreamErrors: bag.hasErrors(),
+    },
+    DEFAULT_PROFILE,
+    bag,
+  );
+  return { text: printIL(lowerToIL({ program: [ast], model, plan }, bag)), hasErrors: bag.hasErrors() };
+}
+
+describe("lowerToIL — RD-18 Slice 3b width awareness", () => {
+  it("keeps the byte path at i8u (regression)", () => {
+    const { text, hasErrors } = lowerReal(
+      "module Main;\nfunction main(): void { let a: byte = 5; poke(0xC000, a); }\n",
+    );
+    expect(hasErrors).toBe(false);
+    expect(text).toContain("const i8u 5");
+    expect(text).toContain("load i8u __frame_Main_main_a");
+  });
+
+  it("round-trips a word local at i16u (const + load)", () => {
+    const { text, hasErrors } = lowerReal(
+      "module Main;\nfunction main(): void { let x: word = 300; pokew(0xC000, x); }\n",
+    );
+    expect(hasErrors).toBe(false);
+    expect(text).toContain("const i16u 300");
+    expect(text).toContain("load i16u __frame_Main_main_x");
+  });
+
+  it("falls back to i8u on a poisoned binary without throwing", () => {
+    // Mixed-sign `a + s` → E10081, model.typeOf(a+s) = ErrorType. Lowering must
+    // not throw and must fall back to IL_BYTE (i8u) for the poisoned result.
+    let result!: { text: string; hasErrors: boolean };
+    expect(() => {
+      result = lowerReal(
+        "module Main;\nfunction main(): void {" +
+          " let a: byte = 5; let s: sbyte = -1; let r: byte = a + s; poke(0xC000, r); }\n",
+      );
+    }).not.toThrow();
+    expect(result.hasErrors).toBe(true); // E10081 recorded
+    expect(result.text).toContain("add i8u"); // poisoned result → IL_BYTE fallback
   });
 });

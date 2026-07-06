@@ -13,7 +13,16 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { createDiagnosticBag, IceCode } from "@blend65/core";
+import { createDiagnosticBag, DEFAULT_PROFILE, IceCode } from "@blend65/core";
+import type { ProgramNode } from "@blend65/core";
+import {
+  analyze,
+  lex,
+  modelToFunctionInfo,
+  modelToModuleVars,
+  parse,
+  planAllocation,
+} from "@blend65/frontend";
 
 import { printIL } from "./print-il.js";
 import { lowerToIL } from "./lower.js";
@@ -146,5 +155,67 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     );
     expect(program.allocationPlan).toBe(gateFixture.plan);
     expect(Array.isArray(program.functions)).toBe(true);
+  });
+});
+
+// ───────────────────────────────────────────────────────────────────────────
+// RD-18 Slice 3b — width-aware lowering + module-var access (FR-7; AR-8)
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Lowers `source` end-to-end through the REAL frontend (lex → parse → analyze →
+ * planAllocation) so the model carries a populated `typeMap`/`symbolMap` and the
+ * plan carries real frames + module vars — the conditions width-aware lowering
+ * and module-var access depend on. Returns the printed IL + the bag.
+ */
+function lowerRealSource(source: string): { text: string; hasErrors: boolean } {
+  const bag = createDiagnosticBag();
+  const { tokens } = lex(1, source, bag);
+  const { ast }: { ast: ProgramNode } = parse({ tokens, source, sourceId: 1, bag });
+  const model = analyze({ programs: [ast], bag, profile: DEFAULT_PROFILE });
+  const plan = planAllocation(
+    {
+      functions: modelToFunctionInfo(model),
+      moduleVars: modelToModuleVars(model),
+      zpUserVars: [],
+      upstreamErrors: bag.hasErrors(),
+    },
+    DEFAULT_PROFILE,
+    bag,
+  );
+  const il = lowerToIL({ program: [ast], model, plan }, bag);
+  return { text: printIL(il), hasErrors: bag.hasErrors() };
+}
+
+describe("Specification: RD-18 Slice 3b width-aware lowering (FR-7)", () => {
+  // ST-13 — a word literal lowers to an i16u immediate (not i8u).
+  it("should lower a word literal to an i16u immediate (ST-13, AR-8)", () => {
+    const { text, hasErrors } = lowerRealSource(
+      "module Main;\nfunction main(): void { let x: word = 300; pokew(0xC000, x); }\n",
+    );
+    expect(hasErrors).toBe(false);
+    expect(text).toContain("const i16u 300"); // was byte-hardcoded before the fix
+  });
+
+  // ST-14 — a word * word binary result is i16u (translate maps i16u mul → __rt_mul16).
+  it("should type a word*word multiply result as i16u (ST-14)", () => {
+    const { text, hasErrors } = lowerRealSource(
+      "module Main;\nlet accW: word;\nfunction main(): void {" +
+        " let x: word = 300; let y: word = 2; accW = x * y; }\n",
+    );
+    expect(hasErrors).toBe(false);
+    expect(text).toContain("mul i16u");
+  });
+
+  // ST-15 — a module-scope variable lowers to load/store against its __var_* symbol.
+  it("should lower a module variable to load/store __var_* (ST-15)", () => {
+    const { text, hasErrors } = lowerRealSource(
+      "module Main;\nlet accB: byte;\nfunction main(): void {" +
+        " let a: byte = 5; accB = a; poke(0xC000, accB); }\n",
+    );
+    expect(hasErrors).toBe(false);
+    expect(text).toContain("store %"); // rhs materialised then stored
+    expect(text).toContain("__var_Main_accB"); // module-var symbol (store + load)
+    expect(text).toContain("load i8u __var_Main_accB");
   });
 });

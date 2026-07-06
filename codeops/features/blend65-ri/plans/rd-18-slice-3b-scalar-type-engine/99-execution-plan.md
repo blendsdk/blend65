@@ -2,8 +2,8 @@
 
 > **Plan**: [Index](00-index.md) · **Implements**: blend65-ri/RD-18 (Slice 3b)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-06 (exec_plan — Phases 1–2 ✅ complete)
-> **Progress**: 25/45 tasks (56%) — Phase 1 ✅ (type engine) + Phase 2 ✅ (module scalars); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05. Runtime AR-12/AR-13 added at exec.
+> **Last Updated**: 2026-07-06 (exec_plan — Phases 1–3 ✅ complete)
+> **Progress**: 33/45 tasks (73%) — Phase 1 ✅ (type engine) + Phase 2 ✅ (module scalars) + Phase 3 ✅ (width-aware lowering); Zero-Ambiguity Gate ✅ PASSED (AR-1..AR-13); Preflight ✅ PASSED 2026-07-05. Runtime AR-12/AR-13 added at exec.
 >
 > **Exec ordering note:** task **1.2.1** (register `E10084`/`E10022` constants) is done **before** the
 > 1.1.x spec tests — it is pure additive vocabulary already decided in AR-11, and the spec tests must
@@ -80,18 +80,18 @@ Collect top-level `let` into module scopes; project + feed SFA. Design: [03-02](
 Thread `typeMap`; width-aware literals/binaries; module-var load/store. Design: [03-03](03-03-width-aware-lowering.md).
 
 ### 3.1 Spec tests (red)
-- [ ] 3.1.1 Lowering spec: ST-13 (word literal → `IL_WORD`), ST-14 (`word*word` result `IL_WORD` → `__rt_mul16`), ST-15 (`__var_*` load/store) — `codegen/src/il/lower.spec.test.ts` (extend)
-- [ ] 3.1.2 **Verify red**
+- [x] 3.1.1 Lowering spec: ST-13 (word literal → `i16u`), ST-14 (`word*word` result `i16u`), ST-15 (`__var_*` load/store) — `codegen/src/il/lower.spec.test.ts` (extended; real-frontend `lowerRealSource` helper — codegen depends on frontend).
+- [x] 3.1.2 **Verify red** — 2026-07-06: ST-13/ST-15 red (ST-14 green-guard: operand-driven i16u already worked).
 
 ### 3.2 Implementation (green)
-- [ ] 3.2.1 Add `typeOf` to `LowerCtx` + the lowering input type; thread the model's `typeOf` from the compiler IL-stage seam (R15-safe: core types only)
-- [ ] 3.2.2 Width-aware `lowerNumericLit`/`lowerBinary` + `ilTypeOf` helper (replace `IL_BYTE` hardcode)
-- [ ] 3.2.3 `moduleVarSymbol` + module-vs-frame resolution in `lowerIdent`/`lowerAssign`; build the module-var lookup in `lowerToIL`
-- [ ] 3.2.4 **Verify green** — 3.1.x pass
+- [x] 3.2.1 **No new plumbing (PF-008)** — `LowerCtx`/`LowerInput` already carry `model`; consume `ctx.model.typeOf(expr)`.
+- [x] 3.2.2 Width-aware `lowerNumericLit` (`ilTypeOfType(ctx.model.typeOf(expr))`, IL_BYTE fallback) + `lowerBinary` result type from the model; **reuse existing `ilTypeOfType`** (PF-007), no new helper.
+- [x] 3.2.3 `moduleVarSymbol` (exact `sanitize` match to SFA) + `moduleVarOf` (via `model.symbolOf` → `scope.kind==="module"`) branching in `lowerIdent`/`lowerAssign`. No plan-lookup needed (symbolMap-driven).
+- [x] 3.2.4 **Verify green** — 2026-07-06: codegen lower spec 13/13.
 
 ### 3.3 Impl tests & hardening
-- [ ] 3.3.1 `*.impl.test.ts` — byte path unchanged (regression), word round-trip, poisoned-type fallback to `IL_BYTE`
-- [ ] 3.3.2 Full workspace verify green
+- [x] 3.3.1 `lower.impl.test.ts` (+3) — byte path i8u (regression), word round-trip i16u, poisoned-binary → i8u fallback without throwing.
+- [x] 3.3.2 **Full workspace verify green** — 2026-07-06: build+typecheck+lint clean; all package tests + R15 boundary; **gate/slice3a goldens unchanged** (byte path preserved).
 
 **Deliverables**: word scalars/literals propagate to `__rt_mul16`; module vars lower to `__var_*`.
 
@@ -132,7 +132,7 @@ Design: [03-04](03-04-acceptance-fixtures.md). Fixture + assemble-clean + golden
 
 - [x] **Phase 1** — Type engine (1.1.1–1.3.2, 16 tasks; incl. 1.2.1 code-reconciliation) ✅ 2026-07-06
 - [x] **Phase 2** — Module scalars (2.1.1–2.3.2, 9 tasks) ✅ 2026-07-06
-- [ ] **Phase 3** — Width-aware lowering (3.1.1–3.3.2, 8 tasks)
+- [x] **Phase 3** — Width-aware lowering (3.1.1–3.3.2, 8 tasks) ✅ 2026-07-06
 - [ ] **Phase 4** — Acceptance (4.1.1–4.3.3, 8 tasks)
 - [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)
 

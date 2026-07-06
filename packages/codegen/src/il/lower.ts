@@ -37,6 +37,7 @@ import type {
   IntrinsicRegistry,
   LetDeclNode,
   AssignExprNode,
+  ModuleDeclNode,
   NumericLitExprNode,
   PrimitiveName,
   ProgramNode,
@@ -221,7 +222,7 @@ function lowerReturn(stmt: ReturnStmtNode, ctx: LowerCtx): void {
 function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
   switch (expr.kind) {
     case "NumericLitExpr":
-      return lowerNumericLit(expr);
+      return lowerNumericLit(expr, ctx);
     case "BoolLitExpr":
       return imm(expr.value ? 1 : 0, IL_BYTE);
     case "IdentExpr":
@@ -257,15 +258,29 @@ function lowerCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
   return iceUnsupported(expr, ctx, "call expression (user functions are deferred)");
 }
 
-/** A numeric literal folds directly to an immediate operand (R28/R45). */
-function lowerNumericLit(expr: NumericLitExprNode): ILOperand {
-  // No live typed model yet (D5): the slice is byte-typed, so IL_BYTE is the
-  // documented default; the wider type matrix arrives with RD-04b (D1).
-  return imm(expr.value, IL_BYTE);
+/**
+ * A numeric literal folds directly to an immediate operand (R28/R45). Its IL
+ * width comes from the model's resolved type (RD-18 Slice 3b, AR-8) so a word
+ * literal is `IL_WORD` — replacing the old byte hardcode. An `ErrorType`/absent
+ * type falls back to `IL_BYTE` via `ilTypeOfType` (an errored program does not
+ * reach a clean build).
+ */
+function lowerNumericLit(expr: NumericLitExprNode, ctx: LowerCtx): ILOperand {
+  return imm(expr.value, ilTypeOfType(ctx.model.typeOf(expr)));
 }
 
-/** A variable read loads its frame slot into a fresh temp (R22). */
+/**
+ * A variable read loads its storage location into a fresh temp (R22). A module-
+ * scope variable resolves to its `__var_*` symbol (RD-18 Slice 3b); a local/param
+ * resolves to its `__frame_*` slot (existing path).
+ */
 function lowerIdent(expr: IdentExprNode, ctx: LowerCtx): ILOperand {
+  const moduleVar = moduleVarOf(expr, ctx);
+  if (moduleVar !== null) {
+    const dest = ctx.builder.newTemp(moduleVar.type);
+    ctx.builder.emit({ op: "load", a: dest, b: loc(moduleVar.symbol, moduleVar.type) });
+    return dest;
+  }
   const type = slotIlType(ctx.frame, expr.name);
   const dest = ctx.builder.newTemp(type);
   ctx.builder.emit({ op: "load", a: dest, b: loc(frameSymbol(ctx.fqName, expr.name), type) });
@@ -280,7 +295,12 @@ function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
   }
   const left = lowerExpr(expr.left, ctx); // left-first (FN-10)
   const right = lowerExpr(expr.right, ctx);
-  const type: ILType = COMPARISON_RESULT_OPS.has(op) ? IL_BYTE : operandType(left);
+  // Result width from the model's resolved type (RD-18 Slice 3b, AR-8) so
+  // `word OP word → i16u` reaches `__rt_mul16`/`__rt_div16`; comparisons are
+  // always the i8u 0/1 flag (R20). ErrorType falls back to IL_BYTE.
+  const type: ILType = COMPARISON_RESULT_OPS.has(op)
+    ? IL_BYTE
+    : ilTypeOfType(ctx.model.typeOf(expr));
   const dest = ctx.builder.newTemp(type);
   // The opcode is one of the binary arithmetic/bitwise/comparison families, all
   // of which share the `{dest,left,right,type}` shape.
@@ -294,12 +314,12 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
     return iceUnsupported(expr, ctx, "assignment");
   }
   const value = materialise(lowerExpr(expr.value, ctx), ctx);
-  const name = expr.target.name;
-  ctx.builder.emit({
-    op: "store",
-    a: value,
-    b: loc(frameSymbol(ctx.fqName, name), slotIlType(ctx.frame, name)),
-  });
+  const moduleVar = moduleVarOf(expr.target, ctx);
+  const target =
+    moduleVar !== null
+      ? loc(moduleVar.symbol, moduleVar.type) // module scalar → __var_* (Slice 3b)
+      : loc(frameSymbol(ctx.fqName, expr.target.name), slotIlType(ctx.frame, expr.target.name));
+  ctx.builder.emit({ op: "store", a: value, b: target });
   return value;
 }
 
@@ -537,6 +557,39 @@ function iceUnsupported(node: AstNode, ctx: LowerCtx, what: string): ILOperand {
 /** The sanitized frame-slot symbol for a variable (`__frame_<Module_fn>_<var>`). */
 function frameSymbol(fqName: string, varName: string): string {
   return `__frame_${fqName.replaceAll(".", "_")}_${varName}`;
+}
+
+/** Narrows a scope's introducing node to a {@link ModuleDeclNode}. */
+function isModuleDecl(node: AstNode | null): node is ModuleDeclNode {
+  return node !== null && node.kind === "ModuleDecl";
+}
+
+/**
+ * The module-variable symbol (`__var_<Module>_<var>`), matching SFA's
+ * `symbols.ts` emission (`sanitize` = non-`[A-Za-z0-9_]` → `_`) exactly, so the
+ * emitted `load`/`store` target resolves at ACME (RD-18 Slice 3b).
+ */
+function moduleVarSymbol(moduleName: string, varName: string): string {
+  const sanitize = (n: string): string => n.replace(/[^A-Za-z0-9_]/g, "_");
+  return `__var_${sanitize(moduleName)}_${sanitize(varName)}`;
+}
+
+/**
+ * If `expr` resolves (via the model's `symbolMap`) to a **module-scope**
+ * `variable`, returns its `__var_*` symbol and IL type; otherwise `null` (a
+ * local/param, handled by the frame path). The module name is read from the
+ * symbol's declaring module scope node (AR-13). This is the discriminator between
+ * the `__var_*` and `__frame_*` storage paths (RD-18 Slice 3b, AR-9).
+ */
+function moduleVarOf(
+  expr: IdentExprNode,
+  ctx: LowerCtx,
+): { symbol: string; type: ILType } | null {
+  const sym = ctx.model.symbolOf(expr);
+  if (sym === null || sym.kind !== "variable" || sym.scope.kind !== "module") return null;
+  const modNode = sym.scope.node;
+  const moduleName = isModuleDecl(modNode) ? modNode.name : "";
+  return { symbol: moduleVarSymbol(moduleName, expr.name), type: ilTypeOfType(sym.type) };
 }
 
 /** The IL type of a named frame slot, defaulting to `IL_BYTE` when absent. */
