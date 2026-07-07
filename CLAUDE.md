@@ -238,20 +238,34 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   `assertGolden`. All 16 own ACs are ticked; RD-17's inherited AC-14 is discharged on
   real VICE (the `__rt_*` math vectors), and DEF-2 was fixed as Phase 0 (`invokeAcme`
   now emits `--vicelabels`, so real builds populate `symbolMap`).
-  RD-18 (codegen language-feature completion) is a thin per-slice vertical rollout;
-  **Slice 3a is complete (2026-07-05, 21/21 tasks)**: the `modelToFunctionInfo` seam is
-  closed — `@blend65/frontend` ships `semantics/function-collection.ts` (a Pass-1
-  collector building a per-module `Scope` + function symbols declared in it + ordered
-  locals in body scopes + `mainFunction`), `analyze()` invokes it alongside
-  `collectDeclarations` (`passes.ts` untouched), and `sfa/model-adapter.ts` projects a
-  populated model into real `FunctionInfo[]` (`name="Module.function"`; FQN module read
-  from `fn.scope.node.name`). A one-local-`byte` program (`examples/slice3a/main.blend`)
-  now assembles through the real populated-model path to a loadable PRG
-  (`__frame_Main_main_x`) and drives `$D020==0xF5` on real VICE 3.10. Each slice is gated
-  by the 3-part bar (CI assemble-clean + CI golden + local VICE). Parent ACs advanced:
-  RD-05 AC-22 superseded (empty model still `[]`), RD-04 deferred-ledger R7/R8 real scope
-  construction begun, RD-18 AC-1 ✅. **Next: RD-18 Slice 3b** (scalar type/scope engine —
-  extends `function-collection.ts` with real Passes 1/3/4; needs `make_plan`). RD-13
+  RD-18 (codegen language-feature completion) is a thin per-slice vertical rollout, each
+  slice gated by the 3-part bar (CI assemble-clean + CI golden + local VICE). **Slice 3a
+  (2026-07-05, 21/21)** closed the `modelToFunctionInfo` seam: `@blend65/frontend`'s
+  `semantics/function-collection.ts` builds a per-module `Scope` + function symbols +
+  ordered locals + `mainFunction`, and `sfa/model-adapter.ts` projects a populated model
+  into real `FunctionInfo[]` (`name="Module.function"`, FQN from `fn.scope.node.name`).
+  **Slice 3b (2026-07-06, 45/45)** shipped the scalar type/scope engine end-to-end — real
+  RD-04 Pass 3 (`type-check/*` expression/literal typing → `typeMap`/`symbolMap`, real
+  `isAssignableTo`/`commonType`, poison) + Pass 4 (`post-check.ts` `main()` validity) +
+  `module-variable-collection.ts` (`__var_*`) + width-aware lowering (word literals →
+  `__rt_mul16`); `examples/slice3b/main.blend` VICE-verifies `$C000==$11`/`$C001==$58`/
+  `$C002==$02`; mixed-sign `byte+sbyte`→E10081. **Slice 4a is complete (2026-07-07, 35/35
+  + DEF-1)**: conditionals + loops + the first **multi-block CFG codegen keystone**.
+  `function-collection.ts` recurses into control-flow bodies (flat body-local + for-counter
+  collection); `type-check/statement-typing.ts` gains `loopDepth` + `typeCondition`
+  (E10134) + if/while/do-while/for/break/continue + `typeFor` (E10065/E10064/E10061);
+  `post-check.ts` `checkAllPathsReturn` (E10102). `@blend65/codegen`'s `il/lower.ts` gains a
+  loop-context stack + `lowerIf/While/DoWhile/For`(Pattern A)/`Break/Continue`, and
+  `instr/translate.ts` `run()` now loops **all** `fn.blocks` with `prescanAll()` + per-block
+  `resetBlockState()` + block labels (`br`→JMP, `brcond`→conditional, `unreachable`→∅).
+  `examples/slice4a/main.blend` (for-loop with `break`/`continue` + a while + a two-armed
+  if/else) computes `21` on real VICE (`$C000==$15`, `$C001==$01`); a non-void function
+  missing a return path → E10102. New codes **E10134/E10061/E10065/E10102** minted
+  additively; `break`/`continue` outside a loop → E10130/E10131. A latent RD-07b comparison
+  bug was fixed as **DEF-1/AR-16** (`translateComparison` clobbered the Z flag → `eq`/`ne`
+  always 0; fixed eq/ne only). Parent ACs advanced: RD-04 ledger R71–R74/R77/R78/R80/R11 +
+  AC-12/AC-17; RD-18 AC-3 annotated "4a partial ✅; closes at 4b". **Next: RD-18 Slice 4b**
+  (`switch`/`case`/`default`/`fallthrough`; needs `make_plan`), then slices 5→8. RD-13
   (non-functional sweep) / RD-14 (VS Code/LSP) remain queued. See
   `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI still has NO emulator tier (AR-27): the RD-12 emulator/RD-17 suites are
