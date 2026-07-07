@@ -4,12 +4,12 @@ import { makeSpan, type LabeledSpan, type SourceSpan } from "./source-span.js";
 /**
  * Implementation tests for the span & source model.
  *
- * Covers FR-1..FR-3 (07-testing-strategy ST-1, plus boundary/internal cases).
- * The span model is pure data, so these tests focus on the one behavioural
- * helper (`makeSpan` clamping) and the structural shape of the value objects.
+ * Covers the span model's boundary/internal cases beyond the specification
+ * tests. The span model is pure data, so these tests focus on the one
+ * behavioural helper (`makeSpan` clamping) and the structural shape of the
+ * value objects.
  */
 describe("makeSpan", () => {
-  // Source: 07-testing-strategy.md — ST-1 (FR-2)
   // The headline spec case: an inverted (end < start) range must clamp `end`
   // up to `start` so the resulting span can never invert.
   it("should clamp end to start when end precedes start (ST-1)", () => {

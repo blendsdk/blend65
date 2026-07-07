@@ -1,15 +1,15 @@
 /**
- * An in-memory {@link EmulatorDriver} for the CI-tier strategy/assertion tests
- * (07 §Mock Requirements). A REAL object implementing the interface — not a mock
- * framework — so the timeout guard, assertions, and symbolic resolution are
- * exercised with no emulator (the true external, VICE, is covered by the Local
- * tier). Test-only support: NOT re-exported from the package barrel (mirrors the
- * compiler `test-fixtures.ts` precedent).
+ * An in-memory {@link EmulatorDriver} for the CI-tier strategy/assertion tests.
+ * A REAL object implementing the interface — not a mock framework — so the
+ * timeout guard, assertions, and symbolic resolution are exercised with no
+ * emulator (the true external, VICE, is covered by the Local tier). Test-only
+ * support: NOT re-exported from the package barrel (mirrors the compiler
+ * `test-fixtures.ts` precedent).
  */
 
 import type { BreakReason, EmulatorDriver, LaunchOptions, Registers } from "../emulator/driver.js";
 
-/** A promise that never resolves — models a driver that "never breaks" (ST-14/15). */
+/** A promise that never resolves — models a driver that "never breaks". */
 const NEVER = new Promise<never>(() => {});
 
 /** Zeroed default registers for the fake. */

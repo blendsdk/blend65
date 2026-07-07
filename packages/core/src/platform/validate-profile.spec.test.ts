@@ -1,10 +1,9 @@
 /**
- * Specification test for the RD-17 ZP arg-block floor check (ST-6).
+ * Specification test for the ZP arg-block floor check.
  *
- * Derived EXCLUSIVELY from RD-17 R34 / AC-12 (the core ABI guarantees a ≥4-byte ZP
- * arg-block on every platform, enforced in profile validation) — never from reading
- * the implementation (IMMUTABLE ORACLE RULE). Written BEFORE the floor check is
- * added to `validate-profile.ts` (red phase).
+ * Derived exclusively from the requirement that the core ABI guarantees a
+ * ≥4-byte ZP arg-block on every platform, enforced in profile validation —
+ * never from reading the implementation.
  */
 
 import { describe, expect, it } from "vitest";
@@ -14,7 +13,7 @@ import { validateProfileFields } from "./validate-profile.js";
 
 /**
  * A minimal internally-consistent C64 profile whose `zpArgBlockSize` is below the
- * R34 floor of 4. Every other field is consistent so the ONLY flagged problem is
+ * floor of 4. Every other field is consistent so the ONLY flagged problem is
  * the arg-block floor.
  */
 const UNDERSIZED_PROFILE: PlatformProfile = {

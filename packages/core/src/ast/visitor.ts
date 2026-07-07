@@ -1,15 +1,15 @@
 /**
- * The AST visitor contract for Blend65 (RD-03 §4.11, AR-5).
+ * The AST visitor contract for Blend65.
  *
  * {@link AstVisitor} declares exactly one `visit*` method per node kind (50 in
- * total — AR-1 removed `visitAsmBlock`). Implementations choose the return type
- * via the `R` type parameter (defaulting to `void`). The companion
+ * total). Implementations choose the return type via the `R` type parameter
+ * (defaulting to `void`). The companion
  * {@link walkNode} helper dispatches a node to the matching method; its
  * exhaustive `switch` guarantees — at compile time — that every kind is handled.
  *
  * The visitor lives in `@blend65/core` alongside the node interfaces so both
  * `frontend` and `language-server` can traverse the AST without depending on
- * `codegen` (R15/AR-20).
+ * `codegen`.
  */
 
 import type {
@@ -89,7 +89,7 @@ export interface AstVisitor<R = void> {
   visitZeropageField(node: ZeropageFieldNode): R;
   visitParameter(node: ParameterNode): R;
 
-  // Statements (13 — no visitAsmBlock, AR-1)
+  // Statements (13)
   visitBlock(node: BlockNode): R;
   visitIfStmt(node: IfStmtNode): R;
   visitWhileStmt(node: WhileStmtNode): R;

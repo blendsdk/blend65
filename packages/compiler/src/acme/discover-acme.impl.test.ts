@@ -1,7 +1,7 @@
 /**
- * Implementation tests for RD-09 ACME discovery (`discoverAcme`). Written AFTER
- * the implementation — these cover internals and edge cases beyond the ST-D*
- * spec oracles: the non-executable explicit-path message, the no-silent-fallback
+ * Implementation tests for ACME discovery (`discoverAcme`). Written after the
+ * implementation — these cover internals and edge cases beyond the spec-level
+ * oracles: the non-executable explicit-path message, the no-silent-fallback
  * rule, and the injected-probe call shape.
  */
 

@@ -6,16 +6,14 @@
  * units the lexer produces while scanning bytes — and deliberately carry no
  * line/column information. Line/column (and UTF-16) positions are derived on
  * demand by {@link LineMap}, so spans stay cheap, immutable, and shareable.
- *
- * Covers RD-11 §4.2 (FR-1..FR-3) · AR-Q7 (`SourceId = number`).
  */
 
 /**
  * Index identifying a source file.
  *
- * A plain number assigned by the (deferred, RD-11b) SourceMap registry. Using a
- * numeric id keeps spans tiny and comparable, and lets the eventual registry map
- * the id back to a filename/contents pair without spans needing a back-pointer.
+ * A plain number assigned by the SourceMap registry. Using a numeric id keeps
+ * spans tiny and comparable, and lets the registry map the id back to a
+ * filename/contents pair without spans needing a back-pointer.
  */
 export type SourceId = number;
 
@@ -23,9 +21,9 @@ export type SourceId = number;
  * A half-open byte range within a single source file.
  *
  * `start` is inclusive and `end` is exclusive; both are UTF-8 byte offsets. No
- * line/column is stored — those are derived on demand via {@link LineMap}
- * (RD-11 AC-02). All fields are `readonly`: spans are value objects and may be
- * freely shared without defensive copying.
+ * line/column is stored — those are derived on demand via {@link LineMap}.
+ * All fields are `readonly`: spans are value objects and may be freely
+ * shared without defensive copying.
  */
 export interface SourceSpan {
   /** The file this span points into. */
@@ -40,8 +38,8 @@ export interface SourceSpan {
  * A secondary span carrying an explanatory label.
  *
  * Used by multi-span diagnostics (e.g. "defined here" / "used here") to attach
- * human-readable context to a related location. The renderer (RD-11b) decides
- * how to present the label; the core only stores it.
+ * human-readable context to a related location. The renderer decides how to
+ * present the label; the core only stores it.
  */
 export interface LabeledSpan {
   /** The location being annotated. */

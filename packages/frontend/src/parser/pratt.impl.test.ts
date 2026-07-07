@@ -1,12 +1,12 @@
 /**
- * Pratt expression-parser tests — RD-03 Phase 5 (ST-P10..P13).
+ * Pratt expression-parser tests.
  *
- * These exercise the 14-level binding-power parser: operator precedence
- * (ST-P10), left-associativity (ST-P11), right-associativity of assignment and
- * the conditional operator (ST-P12), and the prefix-vs-infix disambiguation of
- * `<` (cast vs less-than) and `&` (address-of vs bitwise-and) plus unary, cast,
- * and the postfix `.`/`[]`/`()` chain (ST-P13). Inputs are derived from the spec
- * and RD-03 — never from implementation output (testing.md Rule 10).
+ * These exercise the 14-level binding-power parser: operator precedence,
+ * left-associativity, right-associativity of assignment and the conditional
+ * operator, and the prefix-vs-infix disambiguation of `<` (cast vs less-than)
+ * and `&` (address-of vs bitwise-and) plus unary, cast, and the postfix
+ * `.`/`[]`/`()` chain. Inputs are derived from the spec grammar — never from
+ * implementation output (testing.md Rule 10).
  *
  * Each expression is embedded in `function f(): void { return <expr>; }` and the
  * `ReturnStmt`'s value is the node under test. `return` parses its value with

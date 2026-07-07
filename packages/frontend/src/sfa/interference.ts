@@ -1,23 +1,22 @@
 /**
- * The SFA interference-graph pass (RD-05 §4.3, R10–R17; spec Ch 11 §3.4).
+ * The SFA interference-graph pass (spec Ch 11 §3.4).
  *
  * Builds the undirected interference graph that drives frame sharing: two
  * functions interfere when they may be simultaneously live on the call stack, so
  * their frames must occupy disjoint memory. Two sources of interference:
  *
- *   1. **Ancestor-descendant** (R10/R11): if `F` can reach `D` along call edges,
- *      `F` and `D` are both live when `D` runs, so they interfere. Equivalently,
- *      every ancestor-descendant pair on a call chain interferes.
- *   2. **Always-live** (R13/R14/R15): interrupt handlers (fire asynchronously),
- *      escaped/address-taken functions (conservative), and `main` (the root)
- *      interfere with *every* other node.
+ *   1. **Ancestor-descendant**: if `F` can reach `D` along call edges, `F` and `D`
+ *      are both live when `D` runs, so they interfere. Equivalently, every
+ *      ancestor-descendant pair on a call chain interferes.
+ *   2. **Always-live**: interrupt handlers (fire asynchronously), escaped/
+ *      address-taken functions (conservative), and `main` (the root) interfere
+ *      with *every* other node.
  *
- * Unreachable functions are excluded entirely (R17). The call graph is a DAG
- * (recursion is rejected upstream by RD-04, R8); the descendant DFS uses a visited
- * set so a malformed cyclic input can never loop forever (defensive, R8/R61).
+ * Unreachable functions are excluded entirely. The call graph is a DAG (recursion
+ * is rejected upstream by the semantic analyzer); the descendant DFS uses a
+ * visited set so a malformed cyclic input can never loop forever (defensive).
  *
- * Imports `@blend65/core` only — never `@blend65/codegen` (R15/AR-20). Pure and
- * deterministic. See plans/rd-05-sfa-frame-planner/03-02-interference-and-coloring.md.
+ * Imports `@blend65/core` only — never `@blend65/codegen`. Pure and deterministic.
  */
 
 import type { FunctionInfo, InterferenceGraph } from "@blend65/core";
@@ -27,8 +26,8 @@ import type { FunctionInfo, InterferenceGraph } from "@blend65/core";
  *
  * A function is `main` if its (possibly fully-qualified) name is exactly `"main"`
  * or ends with `".main"` (i.e. `module.main`). Recorded so coloring is
- * deterministic regardless of module naming; the live RD-04b adapter will mark the
- * resolved entry point explicitly later.
+ * deterministic regardless of module naming; a future semantic-analysis pass will
+ * mark the resolved entry point explicitly.
  *
  * @param name A fully-qualified function name.
  * @returns `true` iff `name` is the entry point.
@@ -38,13 +37,13 @@ function isMain(name: string): boolean {
 }
 
 /**
- * Builds the interference graph for a set of functions (R10–R17).
+ * Builds the interference graph for a set of functions.
  *
  * @param fns The functions to analyze (each carries its `callees` and flags).
  * @returns The symmetric interference graph over the reachable functions.
  */
 export function buildInterferenceGraph(fns: readonly FunctionInfo[]): InterferenceGraph {
-  // Step 0 — reachable set only (R17): unreachable functions get no node.
+  // Step 0 — reachable set only: unreachable functions get no node.
   const reachable = fns.filter((f) => f.isReachable);
   const nodes = new Set(reachable.map((f) => f.name));
   const byName = new Map(reachable.map((f) => [f.name, f]));
@@ -58,7 +57,7 @@ export function buildInterferenceGraph(fns: readonly FunctionInfo[]): Interferen
   /** Adds a symmetric, idempotent edge between two distinct reachable nodes. */
   function addEdge(a: string, b: string): void {
     if (a === b || !nodes.has(a) || !nodes.has(b)) {
-      return; // self-loops and dangling endpoints are ignored (R61).
+      return; // self-loops and dangling endpoints are ignored.
     }
     edges.get(a)?.add(b);
     edges.get(b)?.add(a);
@@ -79,7 +78,7 @@ export function buildInterferenceGraph(fns: readonly FunctionInfo[]): Interferen
         continue;
       }
       for (const callee of fn.callees) {
-        // Only reachable callees participate; dangling names are ignored (R61).
+        // Only reachable callees participate; dangling names are ignored.
         if (!nodes.has(callee) || visited.has(callee)) {
           continue;
         }
@@ -91,14 +90,14 @@ export function buildInterferenceGraph(fns: readonly FunctionInfo[]): Interferen
     return out;
   }
 
-  // Step 1 — ancestor-descendant edges (R10/R11).
+  // Step 1 — ancestor-descendant edges.
   for (const f of reachable) {
     for (const d of descendantsOf(f.name)) {
       addEdge(f.name, d);
     }
   }
 
-  // Step 2 — always-live nodes interfere with all others (R13/R14/R15).
+  // Step 2 — always-live nodes interfere with all others.
   const alwaysLive = reachable.filter(
     (f) => f.isInterrupt || f.isEscaped || isMain(f.name),
   );

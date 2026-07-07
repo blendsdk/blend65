@@ -1,14 +1,15 @@
 /**
- * Golden-snapshot tests for the RD-07a canonical ACME serializer (ST-G1..G3).
+ * Golden-snapshot tests for the canonical ACME serializer.
  *
- * Pins the byte-exact `printInstr` output of the three canonical streams from
- * 03-01/03-03 (the 8-bit add, the pointer-setup + branch, and the palette data
- * block) as Vitest inline snapshots (AR-22 tier 2 / RD-07 AC-18). Any unintended
- * change to the serializer is caught as a snapshot diff; a deliberate change
- * requires an intentional snapshot update (R53 determinism).
+ * Pins the byte-exact `printInstr` output of three canonical streams (the
+ * 8-bit add, the pointer-setup + branch, and the palette data block) as
+ * Vitest inline snapshots. Any unintended change to the serializer is caught
+ * as a snapshot diff; a deliberate change requires an intentional snapshot
+ * update — the output must stay deterministic.
  *
  * The fixtures are validated clean before serialization — this is the
- * "model → validate → serialize" mini-pipeline RD-07b will drive from real IL.
+ * "model → validate → serialize" mini-pipeline later stages will drive from
+ * real IL.
  */
 
 import { describe, expect, it } from "vitest";

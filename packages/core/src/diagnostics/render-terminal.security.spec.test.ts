@@ -1,11 +1,10 @@
 /**
- * Security specification test for the terminal renderer (RD-11b Phase 3).
+ * Security specification test for the terminal renderer.
  *
- * ST-18 — R52 (MANDATORY): echoed source excerpts must strip C0 controls
- * (except TAB) and C1 controls so a hostile source file cannot inject terminal
- * escape sequences, and caret columns must be computed against the sanitized
- * line so alignment survives the strip (PF-010). Transcribed from RD-11 R52;
- * see plans/rd-11b-diagnostics-reporting/07-testing-strategy.md.
+ * Echoed source excerpts must strip C0 controls (except TAB) and C1 controls
+ * so a hostile source file cannot inject terminal escape sequences, and caret
+ * columns must be computed against the sanitized line so alignment survives
+ * the strip.
  * IMMUTABLE ORACLE: derived from the requirement, never from implementation.
  */
 

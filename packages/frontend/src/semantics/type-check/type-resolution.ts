@@ -1,12 +1,12 @@
 /**
  * Type-node → semantic {@link Type} resolution + integer-range facts for the
- * RD-18 Slice 3b scalar type engine (FR-2).
+ * scalar type engine.
  *
- * Slice 3b works over the five scalar primitives; a declared `TypeNode` resolves
- * to its `primitive(name)`, and anything outside the scalar surface (named /
- * array types, or an unparsed `null`/`ErrorType`) resolves to {@link ERROR_TYPE}
- * (the SFA planner sizes an error slot defensively, so nothing crashes). Named /
- * array typing arrives with Slices 6/7.
+ * The engine currently works over the five scalar primitives; a declared
+ * `TypeNode` resolves to its `primitive(name)`, and anything outside the
+ * scalar surface (named / array types, or an unparsed `null`/`ErrorType`)
+ * resolves to {@link ERROR_TYPE} (the SFA planner sizes an error slot
+ * defensively, so nothing crashes). Named / array typing is not yet supported.
  */
 
 import { ERROR_TYPE, primitive } from "@blend65/core";

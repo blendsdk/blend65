@@ -1,14 +1,12 @@
 /**
- * Specification tests for the RD-07b register binder (ST-R1..R8).
+ * Specification tests for the register binder.
  *
- * Derived EXCLUSIVELY from `requirements/RD-07-codegen-instr.md` (R40–R45), the
- * component spec `plans/rd-07b-il-to-instr/03-02-register-binding.md`, and the
- * Ambiguity Register (D2/D7/D9). These are immutable oracles (testing.md Rule
- * 10): if the implementation disagrees, the implementation is wrong.
+ * These are immutable oracles: if the implementation disagrees, the
+ * implementation is wrong.
  *
  * The binder maps IL virtual temps onto the 6502's A/X/Y registers plus ZP
  * scratch slots (`category: "temp"` runs) drawn from the carried `AllocationPlan`.
- * Per D9 a temp's location is a `TempLocation` union (`reg` | `zp`) — a register
+ * A temp's location is a `TempLocation` union (`reg` | `zp`) — a register
  * is implied by the opcode and is never expressible as an `InstrOperand`.
  */
 
@@ -82,7 +80,7 @@ function collector(): { out: StreamEntry[]; emit: (e: StreamEntry) => void } {
 }
 
 describe("Specification: register binder — redundant-load suppression (ST-R1, ST-R2)", () => {
-  // Source: RD-07 R44 / FR-16 — A already holds the temp, so ensureInA is a no-op.
+  // A already holds the temp, so ensureInA is a no-op.
   it("should emit no LDA when A already holds the temp (ST-R1)", () => {
     const bag = createDiagnosticBag();
     const binder = createRegisterBinder(makePlan(["__zp_tmp_0"]), bag);
@@ -96,7 +94,7 @@ describe("Specification: register binder — redundant-load suppression (ST-R1, 
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // Source: RD-07 R44 — A holds another temp; ensureInA loads t from its home.
+  // A holds another temp; ensureInA loads t from its home.
   it("should emit LDA from the temp's home when A holds another temp (ST-R2)", () => {
     const bag = createDiagnosticBag();
     const binder = createRegisterBinder(makePlan(["__zp_tmp_0"]), bag);
@@ -124,7 +122,7 @@ describe("Specification: register binder — redundant-load suppression (ST-R1, 
 });
 
 describe("Specification: register binder — A/X roles (ST-R3, ST-R4)", () => {
-  // Source: RD-07 R41 — bindResultToA records the temp in A; locationOf ⇒ A.
+  // bindResultToA records the temp in A; locationOf ⇒ A.
   it("should report a temp bound to A as a reg/A location (ST-R3)", () => {
     const bag = createDiagnosticBag();
     const binder = createRegisterBinder(makePlan([]), bag);
@@ -136,7 +134,7 @@ describe("Specification: register binder — A/X roles (ST-R3, ST-R4)", () => {
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // Source: RD-07 R42 / FR-14 / D5 — a word value's high byte lives in X.
+  // A word value's high byte lives in X.
   it("should report a word's high byte bound to X as a reg/X location (ST-R4)", () => {
     const bag = createDiagnosticBag();
     const binder = createRegisterBinder(makePlan([]), bag);
@@ -152,7 +150,7 @@ describe("Specification: register binder — A/X roles (ST-R3, ST-R4)", () => {
 });
 
 describe("Specification: register binder — spills (ST-R5, ST-R6, ST-R7)", () => {
-  // Source: RD-07 R43 / FR-15 — spilling a register temp emits STA to a ZP slot
+  // Spilling a register temp emits STA to a ZP slot
   // and relocates the temp's home to that slot.
   it("should spill an A-resident temp to the first ZP temp slot (ST-R5)", () => {
     const bag = createDiagnosticBag();
@@ -173,7 +171,7 @@ describe("Specification: register binder — spills (ST-R5, ST-R6, ST-R7)", () =
     expect(binder.locationOf(t0)).toEqual({ kind: "zp", slot: "__zp_tmp_0" });
   });
 
-  // Source: RD-07 R43 / R17 / AC-06 — spill selection is deterministic: the same
+  // Spill selection is deterministic: the same
   // script over a fresh binder yields byte-identical emissions.
   it("should produce identical emissions for an identical spill script (ST-R6)", () => {
     const script = (): StreamEntry[] => {
@@ -192,7 +190,7 @@ describe("Specification: register binder — spills (ST-R5, ST-R6, ST-R7)", () =
     expect(script()).toEqual(script());
   });
 
-  // Source: AR D7 / H5 — spill demand exceeding the plan's "temp" ZP runs is a
+  // Spill demand exceeding the plan's "temp" ZP runs is a
   // codegen/planner contract violation → E90001 ICE, never silent corruption.
   it("should raise an E90001 ICE when spill demand exceeds the ZP temp runs (ST-R7)", () => {
     const bag = createDiagnosticBag();
@@ -212,7 +210,7 @@ describe("Specification: register binder — spills (ST-R5, ST-R6, ST-R7)", () =
 });
 
 describe("Specification: register binder — block-boundary reset (ST-R8)", () => {
-  // Source: RD-07 R45 / R69 / FR-17 — reset() clears register knowledge so the
+  // reset() clears register knowledge so the
   // next ensureInA reloads from the temp's (surviving) memory home.
   it("should clear register state on reset so the next ensureInA reloads (ST-R8)", () => {
     const bag = createDiagnosticBag();

@@ -1,13 +1,13 @@
 /**
- * Specification tests for the pure VICE binary-monitor codec (ST-03..ST-08).
+ * Specification tests for the pure VICE binary-monitor codec.
  *
- * Derived EXCLUSIVELY from RD-12 §4.5, the VICE 3.7+ binary-monitor frame spec,
- * and the body layouts pinned LIVE against VICE 3.10 this session (AR-H14/PF-004)
- * — never from reading the implementation (IMMUTABLE ORACLE RULE). The codec is a
- * pure `Uint8Array`↔structured-command transform with no I/O, so these run in CI
+ * These tests are derived directly from the VICE 3.7+ binary-monitor frame
+ * spec and the body layouts pinned LIVE against real VICE 3.10, not from
+ * reading the implementation. The codec is a pure
+ * `Uint8Array`↔structured-command transform with no I/O, so these run in CI
  * with no emulator.
  *
- * Frame headers (RD §4.5):
+ * Frame headers:
  *   command  : STX(0x02), api(0x02), bodylen(u32 LE), reqid(u32 LE), type(u8), body
  *   response : STX(0x02), api(0x02), bodylen(u32 LE), type(u8), errcode(u8),
  *              reqid(u32 LE), body

@@ -1,8 +1,7 @@
 /**
- * Implementation tests for `loadConfig()` internals (execution plan task
- * 4.3.1): the PF-020 pre-populated-bag `hasErrors` matrix including the
- * at-cap case, the unreadable-file I/O path, override-sourced synthetic
- * spans (PF-019), and AR-P9 post-error field values.
+ * Implementation tests for `loadConfig()` internals: the pre-populated-bag
+ * `hasErrors` matrix including the at-cap case, the unreadable-file I/O
+ * path, override-sourced synthetic spans, and post-error field values.
  */
 
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -137,6 +136,6 @@ describe("post-error field values (AR-P9)", () => {
     expect(hasErrors).toBe(true);
     expect(config.maxErrors).toBe(0); // E10243, value survives
     expect(config.include).toEqual(["../escape/**"]); // E10246, value survives
-    expect(config.startup).toBe("fast"); // E10243 enum, value survives (AR-P9 widening)
+    expect(config.startup).toBe("fast"); // E10243 enum, value survives (widening)
   });
 });

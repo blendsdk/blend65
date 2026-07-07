@@ -2,12 +2,9 @@
  * Builder and post-ACME budget check for the {@link ResourceReport}.
  *
  * `buildResourceReport` assembles the report from its owners with ownership
- * encoded in the input signature (AR-Q3); `checkBinaryBudget` is the post-ACME
- * half of the R42 budget-timing split (AR-103) — the pre-ACME half (ZP/RAM/
- * stack budgets) already ships in the SFA planner's `budgets` pass.
- *
- * Covers RD-11 §4.7 (builder/check signatures) · R40–R42 · AC-17 (post-ACME
- * half) · AR-Q3/Q4, PF-002.
+ * encoded in the input signature; `checkBinaryBudget` is the post-ACME half of
+ * the budget-timing split — the pre-ACME half (ZP/RAM/stack budgets) already
+ * ships in the SFA planner's `budgets` pass.
  */
 
 import type { AllocationPlan } from "../sfa/index.js";
@@ -16,9 +13,9 @@ import { DiagCode } from "../diagnostics/index.js";
 import type { PeepholeStats, ResourceReport, SegmentRange } from "./resource-report.js";
 
 /**
- * Inputs for {@link buildResourceReport} — one field group per owner
- * (R40/R41): the frozen SFA plan, pre-extracted ACME numbers, the profile's
- * binary budget, and the plugin's startup figures.
+ * Inputs for {@link buildResourceReport} — one field group per owner: the
+ * frozen SFA plan, pre-extracted ACME numbers, the profile's binary budget,
+ * and the plugin's startup figures.
  */
 export interface BuildResourceReportInputs {
   /** Platform name (e.g. `"c64"`). */
@@ -47,18 +44,18 @@ export interface BuildResourceReportInputs {
   readonly startupSize?: number;
   /** Plugin-owned: startup routine cost in cycles. */
   readonly startupCycles?: number;
-  /** RD-08 Phase B: optimizer statistics. */
+  /** Optimizer (peephole pass) statistics. */
   readonly peepholeStats?: PeepholeStats;
 }
 
 /**
- * Assembles a {@link ResourceReport} from its owners (AR-103).
+ * Assembles a {@link ResourceReport} from its owners.
  *
  * Pure restructuring: the plan's `resourceData`, `zpAllocations`, and
  * `stackAnalysis` are embedded **by reference** (one owner per number,
- * structurally — PF-002); every other input copies through. No I/O, no label
- * parsing (the ACME serializer emits no segment boundary labels — AR-Q3);
- * absent inputs stay absent and render as zeros per AR-102.
+ * structurally); every other input copies through. No I/O, no label parsing
+ * (the ACME serializer emits no segment boundary labels); absent inputs stay
+ * absent and render as zeros.
  *
  * @param inputs The per-owner report inputs.
  * @returns The assembled report.
@@ -85,12 +82,12 @@ export function buildResourceReport(inputs: BuildResourceReportInputs): Resource
 }
 
 /**
- * The post-ACME half of the binary-budget check (R42, AR-103).
+ * The post-ACME half of the binary-budget check.
  *
- * No-op when `report.binarySize` is undefined (pre-wiring builds, AR-Q4).
- * When `binarySize > binaryBudget`, emits exactly one E10034 through the bag
- * with a `null` span and the Ch 14 message. A size exactly at the budget
- * passes. RD-15 calls this after `emitBinary`.
+ * No-op when `report.binarySize` is undefined (pre-wiring builds). When
+ * `binarySize > binaryBudget`, emits exactly one E10034 through the bag with
+ * a `null` span and the Ch 14 message. A size exactly at the budget passes.
+ * The build driver calls this after `emitBinary`.
  *
  * @param report The assembled report carrying `binarySize`/`binaryBudget`.
  * @param bag The bag receiving the E10034 diagnostic (side effect).

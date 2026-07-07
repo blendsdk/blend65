@@ -1,6 +1,6 @@
 /**
- * Implementation tests for RD-18 Slice 3b module-level scalar collection +
- * projection, exercised through the full `analyze()` → `modelToModuleVars` path.
+ * Implementation tests for module-level scalar collection + projection,
+ * exercised through the full `analyze()` → `modelToModuleVars` path.
  * Covers declaration ordering, per-scalar byteSize, mixed local+module name
  * resolution, and assignment to a module `const` (E10191, now reachable once
  * module constants are collected).

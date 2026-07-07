@@ -1,8 +1,7 @@
 /**
- * Implementation tests for RD-18 Slice 4a CFG lowering (07-testing-strategy P2):
- * nested loops, `else if` chains, `downto` (ge/sub), and the Pattern-B full-range
- * guard (records an ICE for `0 to 255`, never throws — AR-6). Internals/edges the
- * ST-11..15 spec cases do not pin.
+ * Implementation tests for CFG lowering: nested loops, `else if` chains,
+ * `downto` (ge/sub), and the Pattern-B full-range guard (records an ICE for
+ * `0 to 255`, never throws). Covers internals/edges the spec cases do not pin.
  */
 
 import { describe, expect, it } from "vitest";

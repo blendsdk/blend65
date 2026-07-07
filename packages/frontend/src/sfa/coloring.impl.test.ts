@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the SFA frame-coloring pass (RD-05 §4.4).
+ * Implementation tests for the SFA frame-coloring pass (§4.4).
  *
  * These exercise gap-fitting edge cases and determinism over larger inputs —
  * internal behavior of `colorFrames`/`smallestFittingOffset`, derived from the

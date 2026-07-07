@@ -1,25 +1,23 @@
 /**
- * RD-09 emit orchestration — `emitBinary`
- * (`plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, R34, R39–R44;
- * AR-63/AR-67/AR-81).
+ * Emit orchestration — `emitBinary`.
  *
  * The top-level driver that turns serialized ACME text into build artifacts:
  *
- *   1. Ensure the output directory exists and write `<projectName>.asm` (R39/R42).
- *   2. If `--emit-asm` is set, stop here — no ACME, no binary (R34, AC-03).
- *   3. Discover ACME (`discoverAcme`); a missing assembler fails the build (R28/R29).
+ *   1. Ensure the output directory exists and write `<projectName>.asm`.
+ *   2. If `--emit-asm` is set, stop here — no ACME, no binary.
+ *   3. Discover ACME (`discoverAcme`); a missing assembler fails the build.
  *   4. Invoke ACME (`invokeAcme`); a non-zero exit is an ICE and the `.asm` is
- *      retained (R35/R36).
- *   5. Parse the VICE label file into a symbol map (R45–R47).
+ *      retained.
+ *   5. Parse the VICE label file into a symbol map.
  *   6. Post-ACME budget check: a binary larger than the platform's
- *      `maxBinarySize` emits `E10034` (R43, AC-14).
+ *      `maxBinarySize` emits `E10034`.
  *   7. Aggregate the {@link EmitBinaryResult} (binary/asm/label paths, symbol map, size).
  *
  * Filesystem, discovery, and invocation are injected via {@link EmitDeps} so the
- * orchestration is unit-testable without real I/O or a real ACME binary (AR-27).
+ * orchestration is unit-testable without real I/O or a real ACME binary.
  * {@link defaultEmitDeps} wires the real implementations.
  *
- * Lives in `@blend65/compiler` (R15/AR-20).
+ * Lives in `@blend65/compiler`.
  */
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -29,21 +27,21 @@ import { discoverAcme } from "./discover-acme.js";
 import { invokeAcme, type AcmeResult } from "./invoke-acme.js";
 import { parseLabelFile } from "./label-file.js";
 
-/** Options controlling a build emit (R34, R40–R43). */
+/** Options controlling a build emit. */
 export interface EmitOptions {
-  /** Output directory; created if missing (default `./build`, R42). */
+  /** Output directory; created if missing (default `./build`). */
   readonly outDir: string;
-  /** Base name for the binary/asm/label artifacts (R40). */
+  /** Base name for the binary/asm/label artifacts. */
   readonly projectName: string;
-  /** `--emit-asm`: write the `.asm` and stop, no ACME (R34). */
+  /** `--emit-asm`: write the `.asm` and stop, no ACME. */
   readonly emitAsmOnly: boolean;
   /** Explicit ACME path (discovery tier 1). */
   readonly acmePath?: string;
-  /** Platform binary budget; exceeding it emits `E10034` (R43). */
+  /** Platform binary budget; exceeding it emits `E10034`. */
   readonly maxBinarySize?: number;
 }
 
-/** The aggregated outcome of a build emit (RD §4.7). */
+/** The aggregated outcome of a build emit. */
 export interface EmitBinaryResult {
   /** Whether the emit succeeded end-to-end. */
   readonly success: boolean;
@@ -51,7 +49,7 @@ export interface EmitBinaryResult {
   readonly diagnostics: Diagnostic[];
   /** Path to the binary output (present on a successful ACME run). */
   readonly binaryPath?: string | undefined;
-  /** Path to the written `.asm` (always set once written, even on failure, R36). */
+  /** Path to the written `.asm` (always set once written, even on failure). */
   readonly asmPath?: string | undefined;
   /** Symbol→address map from the VICE label file (present on success). */
   readonly symbols?: Map<string, number> | undefined;
@@ -80,7 +78,7 @@ export interface EmitDeps {
 
 /**
  * Write the serialized ACME text to disk and drive ACME to a platform binary,
- * aggregating the artifacts into a {@link EmitBinaryResult} (R34, R39–R44).
+ * aggregating the artifacts into a {@link EmitBinaryResult}.
  *
  * @param asmText The serialized ACME source (from `serializeToAcme`).
  * @param opts The emit options (output dir, project name, flags, budget).
@@ -94,18 +92,18 @@ export async function emitBinary(
   bag: DiagnosticBag,
   deps: EmitDeps = defaultEmitDeps,
 ): Promise<EmitBinaryResult> {
-  // 1. Ensure the output dir exists and write `<projectName>.asm` (R39/R42).
+  // 1. Ensure the output dir exists and write `<projectName>.asm`.
   deps.ensureDir(opts.outDir);
   const asmPath = join(opts.outDir, `${opts.projectName}.asm`);
   deps.writeFile(asmPath, asmText);
 
-  // 2. `--emit-asm`: write and stop, no ACME (R34, AC-03).
+  // 2. `--emit-asm`: write and stop, no ACME.
   if (opts.emitAsmOnly) {
     return { success: true, diagnostics: bag.getAll(), asmPath };
   }
 
   // 3+4. Discover + invoke ACME. A discovery failure / ICE is recorded on `bag`;
-  //      the `.asm` file is already on disk and is retained (R36).
+  //      the `.asm` file is already on disk and is retained.
   const binaryPath = join(opts.outDir, `${opts.projectName}.prg`);
   const labelPath = join(opts.outDir, `${opts.projectName}.lbl`);
   const reportPath = join(opts.outDir, `${opts.projectName}.report`);
@@ -118,18 +116,19 @@ export async function emitBinary(
     return { success: false, diagnostics: bag.getAll(), asmPath };
   }
 
-  // 5. Parse the VICE label file into a symbol map (R45–R47).
+  // 5. Parse the VICE label file into a symbol map.
   const symbols = parseLabelFile(deps.readFile(labelPath));
 
-  // 6. Post-ACME budget check: a too-large binary emits `E10034` (R43, AC-14).
+  // 6. Post-ACME budget check: a too-large binary emits `E10034`.
   //
-  // AR-V5 cross-reference: this inline check fires ONLY when a caller opts in by
-  // passing `maxBinarySize`. RD-09's immutable spec tests opt in explicitly. The
-  // RD-15 facade path deliberately does NOT pass it — the facade instead calls the
-  // canonical `checkBinaryBudget(report, bag)` (core `report/build-resource-report.ts`)
-  // after assembling the resource report, so the platform-named E10034 message wins.
-  // The two emitters are kept in sync by this cross-reference (see the facade's
-  // `build.ts` for the mirror comment).
+  // This inline check fires ONLY when a caller opts in by passing
+  // `maxBinarySize`. This package's own immutable spec tests opt in
+  // explicitly. The facade path deliberately does NOT pass it — the facade
+  // instead calls the canonical `checkBinaryBudget(report, bag)` (core
+  // `report/build-resource-report.ts`) after assembling the resource report,
+  // so the platform-named E10034 message wins. The two emitters are kept in
+  // sync by this cross-reference (see the facade's `build.ts` for the mirror
+  // comment).
   const binarySize = acme.binarySize ?? 0;
   if (opts.maxBinarySize !== undefined && binarySize > opts.maxBinarySize) {
     bag.addError(
@@ -148,7 +147,7 @@ export async function emitBinary(
     };
   }
 
-  // 7. Aggregate the successful result (R39, AC-16).
+  // 7. Aggregate the successful result.
   return {
     success: true,
     diagnostics: bag.getAll(),

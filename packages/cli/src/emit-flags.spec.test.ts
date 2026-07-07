@@ -1,8 +1,7 @@
 /**
- * Specification tests for `runCli` emit/output flags (ST-27..31, ST-37, ST-38).
+ * Specification tests for `runCli` emit/output flags.
  *
- * Derived EXCLUSIVELY from RD-15 R20/R21/R22/R23/R24/R34/R36 and the plan (03-03,
- * §4.4; RD-16 R24). Immutable oracles: `--emit-asm`/`--emit-il`/`--emit-report`
+ * Immutable oracles: `--emit-asm`/`--emit-il`/`--emit-report`
  * artifact writes, `--quiet`/`--report=json` table suppression, `--out-dir`/
  * `--out-name` placement, and config-vs-flag `quiet` precedence.
  */

@@ -1,5 +1,5 @@
 /**
- * Declaration parsers (RD-03 §4.13; grammar §3; FR-16..FR-23).
+ * Declaration parsers (grammar §3; FR-16..FR-23).
  *
  * Top-level (and, for let/const, local) declarations: function, interrupt,
  * struct, enum, let, const, zeropage — plus the `export` modifier rules
@@ -384,7 +384,7 @@ export function parseConstDecl(
   };
 }
 
-/** Parses a single `name: type [= constExpr];` zeropage field (FR-22, AR-9). */
+/** Parses a single `name: type [= constExpr];` zeropage field (FR-22). */
 function parseZeropageField(state: ParserState): ZeropageFieldNode {
   const { cursor, sourceId } = state;
   const nameTok = cursor.expect(

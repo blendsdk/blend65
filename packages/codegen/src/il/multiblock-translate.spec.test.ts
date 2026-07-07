@@ -1,14 +1,13 @@
 /**
- * Specification tests for RD-18 Slice 4a multi-block IL→Instr translation
- * (`translate.ts`; ST-16..ST-18).
+ * Specification tests for multi-block IL→Instr translation (`translate.ts`).
  *
- * Expectations derive EXCLUSIVELY from the plan (03-03-multiblock-translate.md
- * §1/§2, FR-9) + the Ambiguity Register (AR-11/AR-13) — NEVER from reading the
- * implementation (immutable oracle). Each program is lowered end-to-end through
- * the REAL frontend, then run `lowerToIL → generateInstr → printInstr` (the same
- * back-end pipeline as `generate.golden.spec.test.ts`, without the compiler
- * facade) to render ACME text. Byte-exact goldens live in Phase 4; here the ASM is
- * inspected structurally. Spec-tests-first: `br`/`brcond` ICE today — RED first.
+ * Expectations derive exclusively from the documented block-label/branch
+ * shapes — never from reading the implementation (immutable oracle). Each
+ * program is lowered end-to-end through the real frontend, then run
+ * `lowerToIL → generateInstr → printInstr` (the same back-end pipeline as
+ * `generate.golden.spec.test.ts`, without the compiler facade) to render ACME
+ * text. A separate byte-exact golden covers the exact output; here the ASM is
+ * inspected structurally. Spec-tests-first: `br`/`brcond` ICE today — red first.
  */
 
 import { describe, expect, it } from "vitest";
@@ -47,7 +46,7 @@ function hasConditionalBranch(text: string): boolean {
 }
 
 describe("Specification: RD-18 Slice 4a multi-block translate (FR-9)", () => {
-  // ST-16 — the if/else program → ≥2 block labels + a JMP (br) + a conditional branch.
+  // The if/else program → ≥2 block labels + a JMP (br) + a conditional branch.
   it("should translate if/else to block labels + JMP + a branch (ST-16, §1/§2)", () => {
     const { text, hasErrors } = asmRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
@@ -60,7 +59,7 @@ describe("Specification: RD-18 Slice 4a multi-block translate (FR-9)", () => {
     expect(hasConditionalBranch(text)).toBe(true); // brcond → conditional branch
   });
 
-  // ST-17 — the while program → a back-edge JMP to the cond label + a conditional branch.
+  // The while program → a back-edge JMP to the cond label + a conditional branch.
   it("should translate while to a back-edge JMP + a branch (ST-17, §2)", () => {
     const { text, hasErrors } = asmRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
@@ -72,7 +71,7 @@ describe("Specification: RD-18 Slice 4a multi-block translate (FR-9)", () => {
     expect(hasConditionalBranch(text)).toBe(true);
   });
 
-  // ST-18 — a straight-line function is byte-identical to the pre-4a single-block
+  // A straight-line function is byte-identical to the prior single-block
   // output (the multi-block loop degenerates for a single `_entry` block).
   it("should keep straight-line output byte-identical (ST-18, §5 / AR-13)", () => {
     const bag = createDiagnosticBag();

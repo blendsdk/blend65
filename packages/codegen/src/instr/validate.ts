@@ -1,14 +1,14 @@
 /**
- * CPU instruction validation — RD-07 §4.8, R14–R16/R61 (+ D6).
+ * CPU instruction validation.
  *
  * Answers one question for every `Instr`: *is this opcode legal in this
  * addressing mode on the active CPU?* A violation means codegen produced an
  * instruction the target CPU cannot execute — a **compiler bug**, never a user
- * error (R15). It is therefore reported as an `E90001` internal compiler error
- * (D6) through the {@link DiagnosticBag}; the validator never throws (H5).
+ * error. It is therefore reported as an `E90001` internal compiler error
+ * through the {@link DiagnosticBag}; the validator never throws.
  *
  * This module makes "no undefined behavior" and "NMOS never emits 65C02-only
- * modes" (R16) *tested properties* of 07a rather than promises deferred to 07b.
+ * modes" tested properties rather than promises deferred to later work.
  */
 
 import { IceCode } from "@blend65/core";
@@ -19,12 +19,12 @@ import type { CpuVariant, InstrStream } from "./stream.js";
 import { cpuTableFor } from "./cpu-table.js";
 
 /**
- * Returns whether `opcode` is legal in `mode` on `cpuVariant` (§4.8).
+ * Returns whether `opcode` is legal in `mode` on `cpuVariant`.
  *
  * Pure, total predicate: an opcode absent from the variant's table (e.g. a
  * 65C02-only opcode on NMOS) yields `false` rather than throwing. Used by the
- * validator and, later, by RD-07b/RD-08 to check a candidate instruction before
- * emitting it.
+ * validator and, later, by the IL→Instr translator and peephole optimizer to
+ * check a candidate instruction before emitting it.
  *
  * @param opcode The mnemonic to check.
  * @param mode The addressing mode to check.
@@ -42,13 +42,13 @@ export function isLegalMode(
 
 /**
  * Validates every instruction entry in `stream` against the active CPU's
- * legality table (R14–R16).
+ * legality table.
  *
- * Each illegal opcode+mode pair is recorded as an `E90001` ICE (D6) whose
- * message names the offending opcode, mode, and variant (R61), carrying the
- * instruction's `sourceSpan` when present (R50). Labels and directives have no
- * opcode and are skipped (R5/R6). The validator is total and never throws — all
- * failure surfaces as a recorded diagnostic the build can inspect (H5).
+ * Each illegal opcode+mode pair is recorded as an `E90001` ICE whose message
+ * names the offending opcode, mode, and variant, carrying the instruction's
+ * `sourceSpan` when present. Labels and directives have no opcode and are
+ * skipped. The validator is total and never throws — all failure surfaces as
+ * a recorded diagnostic the build can inspect.
  *
  * @param stream The instruction stream to validate.
  * @param cpuVariant The target CPU variant.

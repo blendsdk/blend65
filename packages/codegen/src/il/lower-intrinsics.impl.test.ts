@@ -1,5 +1,5 @@
 /**
- * Implementation tests for RD-17 T2 lowering (03-03).
+ * Implementation tests for intrinsic lowering.
  *
  * Edges/internals not pinned by the spec oracle: poison-statement recovery across
  * multiple statements, little-endian byte ordering for `pokew`, `offsetof`/primitive

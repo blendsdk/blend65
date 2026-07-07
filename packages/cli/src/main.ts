@@ -1,10 +1,10 @@
 /**
- * `runCli` — the testable `blendc` entry point (RD-15 §4.3/§4.4, R17/R18/R50).
+ * `runCli` — the testable `blendc` entry point.
  *
  * Parses argv, dispatches to the `@blend65/compiler` facade (`build`/`compile`/
  * `emitAsm`/`emitIl`), renders results through {@link CliIo} (diagnostics + trailer
  * → stderr, summary/report → stdout), writes `--emit-*` artifacts, and returns the
- * R50 exit code. Never calls `process.exit` (bin.ts owns the lifecycle, AR-V13).
+ * process exit code. Never calls `process.exit` (bin.ts owns the lifecycle).
  */
 
 import {
@@ -28,7 +28,7 @@ import {
 } from "./render.js";
 import type { CliIo } from "./io.js";
 
-/** Config-band + driver diagnostic codes that classify a run as exit 2 (R50). */
+/** Config-band + driver diagnostic codes that classify a run as exit 2. */
 const EXIT2_CODES: ReadonlySet<string> = new Set<string>([
   DiagCode.ConfigFileNotFound,
   DiagCode.ConfigParseError,
@@ -42,21 +42,21 @@ const EXIT2_CODES: ReadonlySet<string> = new Set<string>([
 ]);
 
 /**
- * Run the CLI end-to-end (R17/R18/R50).
+ * Run the CLI end-to-end.
  *
  * @param argv The argument vector (already `hideBin`-stripped).
  * @param io The injectable process surface.
- * @returns The R50 exit code (0 success / 1 compile errors / 2 config / 3 ICE).
+ * @returns The exit code (0 success / 1 compile errors / 2 config / 3 ICE).
  */
 export async function runCli(argv: string[], io: CliIo): Promise<number> {
   const outcome = parseArgs(argv);
   if (outcome.kind === "fail") {
-    // Usage/flag error → stderr, exit 2 (R50, AR-V13).
+    // Usage/flag error → stderr, exit 2.
     io.writeErr(ensureTrailingNewline(`blendc: ${outcome.text}`));
     return 2;
   }
   if (outcome.kind === "help") {
-    // --help/--version text → stdout, exit 0 (routed through CliIo, PF-009).
+    // --help/--version text → stdout, exit 0 (routed through CliIo).
     io.writeOut(ensureTrailingNewline(outcome.text));
     return 0;
   }
@@ -83,7 +83,7 @@ export async function runCli(argv: string[], io: CliIo): Promise<number> {
   }
 }
 
-/** `check`: render diagnostics, no artifacts, no summary (R18). */
+/** `check`: render diagnostics, no artifacts, no summary. */
 function finishCompile(io: CliIo, result: CompileResult, color: boolean): number {
   renderDiagnostics(io, result.diagnostics, result.sourceMap, result.config.diagnosticsFormat, color);
   return classifyExit(result.diagnostics);
@@ -103,16 +103,16 @@ function finishEmit(
   return classifyExit(result.diagnostics);
 }
 
-/** Full `build`: diagnostics, then summary/report/emit-report on success (R38/R36/R24). */
+/** Full `build`: diagnostics, then summary/report/emit-report on success. */
 function finishBuild(io: CliIo, result: BuildResult, parsed: ParsedArgs, color: boolean): number {
   renderDiagnostics(io, result.diagnostics, result.sourceMap, result.config.diagnosticsFormat, color);
   const exit = classifyExit(result.diagnostics);
 
   if (exit === 0 && result.resourceReport !== undefined) {
     if (parsed.report === "json") {
-      renderJsonReport(io, result.resourceReport); // implies table suppression (R36)
+      renderJsonReport(io, result.resourceReport); // implies table suppression
     } else if (!result.config.quiet) {
-      renderBuildSummary(io, result.resourceReport); // R38, suppressed by --quiet (R34)
+      renderBuildSummary(io, result.resourceReport); // suppressed by --quiet
     }
     if (parsed.emitReport === true) {
       writeTextArtifact(
@@ -126,7 +126,7 @@ function finishBuild(io: CliIo, result: BuildResult, parsed: ParsedArgs, color: 
 }
 
 /**
- * Classify the exit code from the final diagnostics (R50, AR-V21). Order:
+ * Classify the exit code from the final diagnostics. Order:
  * config-band/driver → 2; any ICE-band code → 3; any error → 1; else 0.
  */
 function classifyExit(diagnostics: readonly Diagnostic[]): number {
@@ -142,7 +142,7 @@ function classifyExit(diagnostics: readonly Diagnostic[]): number {
   return 0;
 }
 
-/** Map {@link ParsedArgs} + cwd to {@link CompilerOptions} (R9; PF-002 cwd routing). */
+/** Map {@link ParsedArgs} + cwd to {@link CompilerOptions} (cwd routing). */
 function toOptions(parsed: ParsedArgs, cwd: string): CompilerOptions {
   return {
     // Empty when --platform is absent → config supplies it (or E10245). See

@@ -1,15 +1,15 @@
 /**
- * DEF-2 build-sensitive smoke check (impl tier, PF-003).
+ * Build-sensitive smoke check pinning exact symbol addresses.
  *
- * Written AFTER the fix; complements the immutable `vice-label.spec.test.ts`
- * oracle. It pins the EXACT addresses the current gate build emits
- * (`_main`=$0819, `__startup`=$080d, verified live against real ACME) — a useful
- * regression signal, but MUTABLE: any RD-07c/allocator change legitimately shifts
- * `_main` (it is a function of the BASIC stub + `__startup` body length + ZP
- * allocation), so this is an impl test that is fine to update when codegen moves,
- * NOT an immutable spec oracle.
+ * Written after a prior label-file-format fix; complements the immutable
+ * `vice-label.spec.test.ts` oracle. It pins the EXACT addresses the current
+ * gate build emits (`_main`=$0819, `__startup`=$080d, verified live against
+ * real ACME) — a useful regression signal, but MUTABLE: any codegen/allocator
+ * change legitimately shifts `_main` (it is a function of the BASIC stub +
+ * `__startup` body length + ZP allocation), so this is an impl test that is
+ * fine to update when codegen moves, NOT an immutable spec oracle.
  *
- * Skip-if-no-ACME: same convention as the oracle (AR-27).
+ * Skip-if-no-ACME: same convention as the oracle.
  */
 
 import { describe, expect, it } from "vitest";
@@ -21,7 +21,7 @@ import { build } from "./../api/build.js";
 import { discoverAcme } from "./discover-acme.js";
 import { GATE_SRC } from "./../api/test-fixtures.js";
 
-/** Whether a real ACME is discoverable (drives the skipIf guard, AR-27). */
+/** Whether a real ACME is discoverable (drives the skipIf guard). */
 const ACME_AVAILABLE = discoverAcme({}, createDiagnosticBag()) !== null;
 
 describe.skipIf(!ACME_AVAILABLE)("DEF-2 exact-address smoke (build-sensitive, PF-003)", () => {
@@ -36,7 +36,7 @@ describe.skipIf(!ACME_AVAILABLE)("DEF-2 exact-address smoke (build-sensitive, PF
         outDir: join(cwd, "out"),
       });
 
-      // Live-pinned this session; update if codegen/allocation shifts them (PF-003).
+      // Live-pinned this session; update if codegen/allocation shifts them.
       expect(result.symbolMap!.get("__startup")).toBe(0x080d);
       expect(result.symbolMap!.get("_main")).toBe(0x0819);
     } finally {

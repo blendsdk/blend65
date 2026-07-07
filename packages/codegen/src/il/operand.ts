@@ -1,23 +1,22 @@
 /**
- * IL operands — the three value sources every IL instruction reads or writes
- * (RD-06 §4.2, R7–R11).
+ * IL operands — the three value sources every IL instruction reads or writes.
  *
  * An operand is one of:
- * - **immediate** — a compile-time constant value (R8)
- * - **temp** — a virtual register (`%N`); the unit of TAC dataflow (R9)
+ * - **immediate** — a compile-time constant value
+ * - **temp** — a virtual register (`%N`); the unit of TAC dataflow
  * - **location** — a symbolic memory address from the `AllocationPlan`
  *   (`__frame_*` / `__var_* `/ `__zp_*`) or a function/code label, with an
- *   optional byte `offset` into a struct/array (R10/R11)
+ *   optional byte `offset` into a struct/array
  *
- * Addresses stay *symbolic* all the way through the IL (AR-52): concrete numeric
- * placement is resolved later by the ACME emitter (RD-09). Pure data + trivial
+ * Addresses stay *symbolic* all the way through the IL: concrete numeric
+ * placement is resolved later by the ACME emitter. Pure data + trivial
  * constructors/guards — no behavior beyond shaping records.
  */
 
 import type { ILType } from "./il-type.js";
 
 /**
- * A value source for an IL instruction (§4.2). A discriminated union keyed on
+ * A value source for an IL instruction. A discriminated union keyed on
  * `kind`; every variant carries its erased {@link ILType}.
  */
 export type ILOperand =
@@ -31,7 +30,7 @@ export type ILOperand =
     };
 
 /**
- * Construct an immediate (compile-time constant) operand (R8).
+ * Construct an immediate (compile-time constant) operand.
  *
  * @param value The constant numeric value.
  * @param type The operand's IL type.
@@ -42,7 +41,7 @@ export function imm(value: number, type: ILType): ILOperand {
 }
 
 /**
- * Construct a virtual-temp operand `%id` (R9).
+ * Construct a virtual-temp operand `%id`.
  *
  * @param id The temp's index, unique within its function.
  * @param type The operand's IL type.
@@ -53,7 +52,7 @@ export function temp(id: number, type: ILType): ILOperand {
 }
 
 /**
- * Construct a symbolic-location operand (R10/R11).
+ * Construct a symbolic-location operand.
  *
  * `symbol` references an `AllocationPlan` name or a code label; `offset`, when
  * present, is a byte displacement into an aggregate. The `offset` is only added
@@ -66,14 +65,14 @@ export function temp(id: number, type: ILType): ILOperand {
  */
 export function loc(symbol: string, type: ILType, offset?: number): ILOperand {
   // Only attach `offset` when supplied so the bare form has no `offset` key —
-  // keeps `toEqual` comparisons and printed output stable (§4.6).
+  // keeps `toEqual` comparisons and printed output stable.
   return offset === undefined
     ? { kind: "location", symbol, type }
     : { kind: "location", symbol, offset, type };
 }
 
 /**
- * Type guard: is this operand an immediate? (R7)
+ * Type guard: is this operand an immediate?
  *
  * @param o The operand to classify.
  * @returns `true` and narrows to the `immediate` variant when matched.
@@ -85,7 +84,7 @@ export function isImmediate(
 }
 
 /**
- * Type guard: is this operand a virtual temp? (R7)
+ * Type guard: is this operand a virtual temp?
  *
  * @param o The operand to classify.
  * @returns `true` and narrows to the `temp` variant when matched.
@@ -95,7 +94,7 @@ export function isTemp(o: ILOperand): o is Extract<ILOperand, { kind: "temp" }> 
 }
 
 /**
- * Type guard: is this operand a symbolic location? (R7)
+ * Type guard: is this operand a symbolic location?
  *
  * @param o The operand to classify.
  * @returns `true` and narrows to the `location` variant when matched.

@@ -1,15 +1,12 @@
 /**
  * The terminal build-summary renderer — the Ch 11 §6 table.
  *
- * Geometry is the RD-11 §4.7 template transcribed verbatim (normative per
- * R43/AR-82, fixed by preflight PF-003): numbers right-align within the
- * template's field widths and wider values extend rightward. Every line always
- * prints (AR-102) — data sources that are not yet online stage as zeros and
- * `($0000–$0000)` placeholders (AR-Q16), so later slices change values only,
- * never geometry. Uncolored by design: the summary is a table, not a
- * diagnostic (§4.7 signature has no color option).
- *
- * Covers RD-11 R43–R49 · AC-18 · AR-Q6/Q11/Q15/Q16, AR-102, PF-003.
+ * Geometry is the frozen spec's template transcribed verbatim: numbers
+ * right-align within the template's field widths and wider values extend
+ * rightward. Every line always prints — data sources that are not yet online
+ * stage as zeros and `($0000–$0000)` placeholders, so later work changes
+ * values only, never geometry. Uncolored by design: the summary is a table,
+ * not a diagnostic (the spec's signature has no color option).
  */
 
 import type { ResourceReport, SegmentRange } from "./resource-report.js";
@@ -17,7 +14,7 @@ import type { ResourceReport, SegmentRange } from "./resource-report.js";
 /**
  * Formats an integer with hand-rolled thousands grouping (`1247 → "1,247"`).
  * Deliberately not `toLocaleString` — output must be locale-independent (H5
- * determinism, AR-Q11).
+ * determinism).
  */
 function group(value: number): string {
   const digits = String(value);
@@ -32,7 +29,7 @@ function group(value: number): string {
   return out;
 }
 
-/** `Math.round(used / budget × 100)`; a zero budget renders `0%` (AR-Q11). */
+/** `Math.round(used / budget × 100)`; a zero budget renders `0%`. */
 function pct(used: number, budget: number): number {
   return budget === 0 ? 0 : Math.round((used / budget) * 100);
 }
@@ -44,7 +41,7 @@ function hex(address: number): string {
 
 /**
  * A range as `($HHHH–$HHHH)` (U+2013 en dash); undefined ranges render the
- * `($0000–$0000)` placeholder (AR-Q16).
+ * `($0000–$0000)` placeholder.
  */
 function range(segment: SegmentRange | undefined): string {
   const start = segment?.start ?? 0;
@@ -64,21 +61,21 @@ function zpSum(report: ResourceReport, ...categories: string[]): number {
 }
 
 /**
- * Renders the resource report as the Ch 11 §6 terminal build summary (AC-18).
+ * Renders the resource report as the Ch 11 §6 terminal build summary.
  *
  * @param report The assembled report (see `buildResourceReport`).
  * @returns The uncolored table text with a trailing newline (pure — never
  *   prints). `peepholeStats` is deliberately not rendered — Ch 11 §6 has no
- *   optimization line (AR-Q11); it appears only in the JSON mirror.
+ *   optimization line; it appears only in the JSON mirror.
  */
 export function renderReportTerminal(report: ResourceReport): string {
   const sfa = report.sfa;
   const stack = report.stackAnalysis;
 
-  // RAM variables = module vars only; the frame region is its own line (R41).
+  // RAM variables = module vars only; the frame region is its own line.
   const ramVariables = sfa.ramUsed - sfa.frameRegionBytes;
 
-  // AR-Q6: arg-block bytes fold into Compiler temps — no layout line of their own.
+  // Arg-block bytes fold into Compiler temps — no layout line of their own.
   const zpUser = zpSum(report, "user");
   const zpTemps = zpSum(report, "temp", "arg-block");
   const zpPointers = zpSum(report, "pointer");

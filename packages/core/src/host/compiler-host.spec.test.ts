@@ -1,8 +1,7 @@
 /**
- * Specification test for the RD-15 `CompilerHost` interface shape — ST-1.
+ * Specification test for the `CompilerHost` interface shape.
  *
- * Derived EXCLUSIVELY from RD-15 R14/§4.2 and the plan (03-01-compiler-host.md,
- * AR-V9). Immutable oracle: the interface has exactly three members —
+ * Immutable oracle: the interface has exactly three members —
  * `listSourceFiles(): string[]`, `readFile(path): string | undefined`,
  * `resolvePath(path): string` — re-exported from the `@blend65/core` root barrel.
  */

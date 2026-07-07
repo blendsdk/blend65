@@ -1,9 +1,10 @@
 /**
- * Shared test support for the RD-18 Slice 4a fixture (conditionals + loops + the
+ * Shared test support for the Slice 4a fixture (conditionals + loops + the
  * multi-block CFG codegen keystone). Builds `examples/slice4a/main.blend` (inlined
- * verbatim, mirroring `testing/slice3b.ts`) to a real c64 `.prg` via the RD-15
- * `build()` facade + real ACME, and emits its ACME source via `emitAsm` for the
- * golden tier. Test-only: NOT re-exported from the package barrel.
+ * verbatim, mirroring `testing/slice3b.ts`) to a real c64 `.prg` via the
+ * compiler's `build()` facade + real ACME, and emits its ACME source via
+ * `emitAsm` for the golden tier. Test-only: NOT re-exported from the package
+ * barrel.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -11,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
 
-/** The Slice 4a source — verbatim `examples/slice4a/main.blend` (AR-13). */
+/** The Slice 4a source — verbatim `examples/slice4a/main.blend`. */
 export const SLICE4A_SRC = `module Main;
 
 let result: byte;               // module scalar → __var_Main_result

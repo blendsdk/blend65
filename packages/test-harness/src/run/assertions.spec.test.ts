@@ -1,9 +1,10 @@
 /**
- * Specification tests for the assertion helpers (ST-16, ST-17, ST-18).
+ * Specification tests for the assertion helpers.
  *
- * Derived EXCLUSIVELY from RD-12 §4.3 and R17/R19 / AC-07/08 — never from reading
- * the implementation (IMMUTABLE ORACLE RULE). All logic is unit-testable against a
- * fake driver / literal Registers, so these run in CI with no emulator.
+ * These tests are derived directly from the assertion helpers' documented
+ * behavior, not from reading the implementation. All logic is unit-testable
+ * against a fake driver / literal Registers, so these run in CI with no
+ * emulator.
  */
 
 import { describe, expect, it } from "vitest";

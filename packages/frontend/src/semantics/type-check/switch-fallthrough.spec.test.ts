@@ -1,15 +1,12 @@
 /**
- * Specification tests for RD-18 Slice 4b `fallthrough` validation — position
- * (E10074: must be the last statement of a case body, never nested in an inner
- * block) and no-effect (E10073 warning: a `fallthrough` in the last clause has
- * nothing to fall into).
+ * Specification tests for `fallthrough` validation — position (E10074: must be
+ * the last statement of a case body, never nested in an inner block) and
+ * no-effect (E10073 warning: a `fallthrough` in the last clause has nothing
+ * to fall into).
  *
- * Expectations derive EXCLUSIVELY from the frozen spec Ch 05 §8.3 + `F009`, the
- * requirements (FR-6/FR-7), and the Ambiguity Register (AR-3/AR-7) — NEVER from
- * reading the implementation (immutable oracle). Exercised through the REAL public
- * path (`lex`→`parse`→`analyze`).
- *
- * Traces: ST-6 (FR-6), ST-7 (FR-6), ST-8 (FR-7 — a *warning*, not an error).
+ * Expectations derive EXCLUSIVELY from the frozen spec Ch 05 §8.3 + `F009` —
+ * NEVER from reading the implementation (immutable oracle). Exercised through
+ * the REAL public path (`lex`→`parse`→`analyze`).
  */
 
 import { describe, expect, it } from "vitest";
@@ -30,7 +27,7 @@ function analyzeDiagnostics(source: string): Diagnostic[] {
 }
 
 describe("Specification: RD-18 Slice 4b fallthrough position (FR-6)", () => {
-  // ST-6 — `fallthrough` that is not the last statement of a case body → E10074.
+  // `fallthrough` that is not the last statement of a case body → E10074.
   it("should reject a fallthrough followed by another statement with E10074 (ST-6)", () => {
     const src =
       "module Main;\n" +
@@ -49,7 +46,7 @@ describe("Specification: RD-18 Slice 4b fallthrough position (FR-6)", () => {
     );
   });
 
-  // ST-7 — `fallthrough` nested inside an `if` within a case body → E10074.
+  // `fallthrough` nested inside an `if` within a case body → E10074.
   it("should reject a fallthrough nested in an inner block with E10074 (ST-7)", () => {
     const src =
       "module Main;\n" +
@@ -71,7 +68,7 @@ describe("Specification: RD-18 Slice 4b fallthrough position (FR-6)", () => {
 });
 
 describe("Specification: RD-18 Slice 4b fallthrough no-effect (FR-7)", () => {
-  // ST-8 — `fallthrough` as the last statement of the `default` (last) clause →
+  // `fallthrough` as the last statement of the `default` (last) clause →
   // E10073, emitted at WARNING severity (not an error).
   it("should warn (E10073, warning severity) on a fallthrough in the default clause (ST-8)", () => {
     const src =

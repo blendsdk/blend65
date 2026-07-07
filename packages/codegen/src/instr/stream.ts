@@ -1,8 +1,8 @@
 /**
  * Re-export shim — the instruction-stream model (`CpuVariant`, `AcmeDirective`,
  * `StreamEntry`, `InstrStream` + constructors/guards) now lives in
- * `@blend65/core` (RD-10 D7/D8). Preserves the historical `./stream.js` import
- * path used throughout `instr/` so RD-07a/07b code and tests resolve unchanged
+ * `@blend65/core`. Preserves the historical `./stream.js` import path used
+ * throughout `instr/` so existing code and tests resolve unchanged
  * **by value** — only the definition site moved.
  *
  * Definitions moved to `@blend65/core/instr-model/{cpu-variant,stream}.ts`

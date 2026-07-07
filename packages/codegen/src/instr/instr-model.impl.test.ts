@@ -1,11 +1,11 @@
 /**
- * Implementation tests for the RD-07a Instr model.
+ * Implementation tests for the Instr model.
  *
  * These cover edge cases and internal invariants beyond the specification
  * oracles (instr-model.spec.test.ts): constructor optional-field omission,
- * tuple uniqueness/disjointness, and guard totality across every kind. Derived
- * from the implementation surface (code.md Rule 31: impl tests may consult the
- * code), they harden the model against silent regressions.
+ * tuple uniqueness/disjointness, and guard totality across every kind. Unlike
+ * the specification tests, these are allowed to consult the implementation
+ * itself, and they harden the model against silent regressions.
  */
 
 import { describe, expect, it } from "vitest";

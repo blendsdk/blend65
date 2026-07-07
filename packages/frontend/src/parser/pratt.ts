@@ -1,6 +1,6 @@
 /**
- * The Pratt (top-down operator-precedence) expression parser (RD-03 §4.9;
- * grammar §6; FR-2/37..45).
+ * The Pratt (top-down operator-precedence) expression parser (grammar §6;
+ * FR-2/37..45).
  *
  * {@link parseExpression} implements the 14 binding-power levels of the Blend65
  * grammar. Left/right binding powers (LBP/RBP) encode precedence and
@@ -13,7 +13,7 @@
  * `<type>(expr)` cast (never a comparison), and `&` is address-of (never bitwise
  * AND). The postfix chain `.field` / `[index]` / `(args)` binds tightest and is
  * left-associative. An identifier immediately followed by `(` is an
- * {@link IntrinsicCallExprNode} when its name is in `RESERVED_BUILTINS` (AR-3),
+ * {@link IntrinsicCallExprNode} when its name is in `RESERVED_BUILTINS`,
  * the data-inclusion {@link EmbedExprNode} for `embed(...)`, otherwise a
  * {@link CallExprNode}. A `{` after an identifier is a {@link StructLitExprNode}
  * only in initialiser context (`allowStructLiteral`, FR-45) — everywhere else `{`
@@ -50,7 +50,7 @@ import type { ParserState } from "./state.js";
 import { parseType } from "./parse-type.js";
 
 // ───────────────────────────────────────────────────────────────────────────
-// Binding-power tables (RD-03 §4.9). Lower BP = lower precedence.
+// Binding-power tables (grammar §6). Lower BP = lower precedence.
 // ───────────────────────────────────────────────────────────────────────────
 
 /** Level 1 — assignment (right-associative): LBP 2, RBP 1. */
@@ -380,7 +380,7 @@ function parseEmbed(state: ParserState, nameTok: Token): EmbedExprNode {
 }
 
 /**
- * Parses an intrinsic call `name( … )` (AR-3, FR-43). `sizeof`/`offsetof` take a
+ * Parses an intrinsic call `name( … )` (FR-43). `sizeof`/`offsetof` take a
  * type as the first argument; `offsetof` additionally takes a field identifier.
  * All others take comma-separated expression arguments.
  */

@@ -1,8 +1,8 @@
 /**
- * Implementation tests for the RD-09 VICE label-file parser (`parseLabelFile`).
- * Written AFTER the implementation — these cover internals and edge cases beyond
- * the ST-L* spec oracles: whitespace tolerance, leading/trailing blank lines, the
- * 4-hex-digit boundary, uppercase hex, and a trailing newline.
+ * Implementation tests for the VICE label-file parser (`parseLabelFile`).
+ * Written after the implementation — these cover internals and edge cases
+ * beyond the spec-level oracles: whitespace tolerance, leading/trailing blank
+ * lines, the 4-hex-digit boundary, uppercase hex, and a trailing newline.
  */
 
 import { describe, expect, it } from "vitest";

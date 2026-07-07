@@ -1,16 +1,17 @@
 /**
- * Specification tests for `ViceDriver` (ST-09..ST-13) — integration against a real
- * VICE `x64sc` (Local tier, `describe.skipIf(!hasVice())`).
+ * Specification tests for `ViceDriver` — integration against a real VICE
+ * `x64sc` (Local tier, `describe.skipIf(!hasVice())`).
  *
- * Derived EXCLUSIVELY from RD-12 §4.1/§4.5 and R7/R8/R12/R13/R14/R15/R16 — never
- * from reading the implementation (IMMUTABLE ORACLE RULE). CI has no emulator tier
- * (AR-27), so these skip cleanly there and are proven green locally on VICE 3.10
- * (AR-H3).
+ * These tests are derived directly from the VICE binary-monitor protocol's
+ * documented behavior, not from reading the implementation. CI has no
+ * emulator tier, so these skip cleanly there and are proven green locally on
+ * real VICE 3.10.
  *
- * ST-11 sets its breakpoint at the KERNAL IRQ entry `$EA31` — executed ~60×/second
- * by the CIA-timer IRQ regardless of any loaded program — so the breakpoint/resume/
- * register capability (R12/R13/R15) is proven WITHOUT an ACME build. The gate
- * program's `_main` breakpoint is the Phase-3 ST-29 suite (VICE + ACME).
+ * One test sets its breakpoint at the KERNAL IRQ entry `$EA31` — executed
+ * ~60×/second by the CIA-timer IRQ regardless of any loaded program — so the
+ * breakpoint/resume/register capability is proven WITHOUT an ACME build. The
+ * gate program's `_main` breakpoint is proven separately, in the suite that
+ * builds via VICE + ACME.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -18,7 +19,7 @@ import { execFileSync } from "node:child_process";
 import net from "node:net";
 import { ViceDriver } from "./vice-driver.js";
 
-/** Resolve `x64sc` on PATH → null when absent (drives the skipIf guard, AR-27). */
+/** Resolve `x64sc` on PATH → null when absent (drives the skipIf guard). */
 function findVice(): string | null {
   try {
     const out = execFileSync("which", ["x64sc"], { encoding: "utf8" }).trim();
@@ -44,7 +45,7 @@ function freePort(): Promise<number> {
 const VICE = findVice();
 /** The C64 KERNAL IRQ handler entry — hit every frame regardless of program. */
 const KERNAL_IRQ = 0xea31;
-/** Free RAM — a full-byte memory round-trip target (ST-10). ($D020 reads its
+/** Free RAM — a full-byte memory round-trip target. ($D020 reads its
  *  top 4 bits back as 1s, so it is not a clean round-trip target.) */
 const FREE_RAM = 0xc000;
 

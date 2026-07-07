@@ -1,17 +1,16 @@
 /**
- * The Commodore 64 platform plugin — RD-10 R16–R22, R26, R33, R37; spec Ch 15 §4
- * + appendix-c64; decisions D1/D3/D4.
+ * The Commodore 64 platform plugin; spec Ch 15 §4 + appendix-c64.
  *
- * The C64 is the MVP platform (R33) and the reference for the four non-MVP
- * plugins, which delegate to the shared hook bodies in `shared-hooks.ts` (D4).
+ * The C64 is the MVP platform and the reference for the four non-MVP
+ * plugins, which delegate to the shared hook bodies in `shared-hooks.ts`.
  * It implements the full {@link PlatformPlugin} contract: the profile *data*
  * (transcribed from the frozen appendix-c64) plus the six codegen *hooks*. Every
  * hook output is pure {@link StreamEntry}/{@link AcmeDirective} data the shipped
  * `printInstr` (`@blend65/codegen`) renders to deterministic ACME text, so the
  * goldens verify real serialized output.
  *
- * Per D1 the `.asm` runtime bodies and the intrinsic descriptors are deferred to
- * RD-17 — only their metadata is declared here.
+ * The `.asm` runtime bodies and the intrinsic descriptors live elsewhere (in
+ * the codegen runtime layer) — only their metadata is declared here.
  */
 
 import type {
@@ -81,9 +80,9 @@ export const c64Plugin: PlatformPlugin = {
   id: "c64",
   displayName: "Commodore 64",
   profile: c64Profile,
-  intrinsics: [], // RD-17 populates (D1)
-  // The mul/div operator-backing routines are codegen-owned T3 modules
-  // (RD-17 AR-98), not platform contributions; genuine T4 modules go here.
+  intrinsics: [], // populated once the runtime intrinsics are wired up
+  // The mul/div operator-backing routines are codegen-owned T3 modules,
+  // not platform contributions; genuine T4 modules go here.
   runtimeModules: [],
 
   emitPreamble(options: PreambleOptions): StreamEntry[] {
@@ -107,7 +106,7 @@ export const c64Plugin: PlatformPlugin = {
   },
 
   getMainTerminationPolicy(): MainTerminationPolicy {
-    return { canReturn: true }; // C64 main can return (restore BASIC) — AC-08
+    return { canReturn: true }; // C64 main can return (restore BASIC)
   },
 
   validateProfile(): ValidationError[] {

@@ -1,14 +1,15 @@
 /**
- * Specification test for the MVP gate program on real VICE (ST-29, AR-H9/AR-43/44).
+ * Specification test for the MVP gate program on real VICE.
  *
- * Derived EXCLUSIVELY from RD-12 AR-H9 and the gate program (`examples/gate/main.blend`)
- * — never from reading the implementation (IMMUTABLE ORACLE RULE). Proves a real
- * Blend65 program compiled through ACME pokes the VIC-II border register on real
- * VICE — the whole point of RD-12 (C5 runtime verification).
+ * This test is derived directly from the gate program's documented behavior
+ * (`examples/gate/main.blend`), not from reading the implementation. Proves a
+ * real Blend65 program compiled through ACME pokes the VIC-II border register
+ * on real VICE — the whole point of this suite (runtime verification on real
+ * hardware/emulation).
  *
  * The suite compiles via ACME AND runs on VICE, so it gates on
- * `skipIf(!hasVice() || !hasAcme())` (PF-002). Register/memory are the assertion
- * surface (AR-25).
+ * `skipIf(!hasVice() || !hasAcme())`. Register/memory are the assertion
+ * surface.
  */
 
 import { afterAll, describe, expect, it } from "vitest";
@@ -18,7 +19,7 @@ import { assertMemory, runUntilLabel, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
 const BORDER = 0xd020;
-/** $D020 read-back after `poke(0xD020, 5)` — VIC-II unused upper nibble reads 1s (AR-H19). */
+/** $D020 read-back after `poke(0xD020, 5)` — VIC-II unused upper nibble reads 1s. */
 const BORDER_READBACK = 0xf5;
 /** `_main`'s first opcode is `LDA #$05` = $A9 (symbolic assertMemory proof). */
 const LDA_IMM = 0xa9;
@@ -40,13 +41,13 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: gate program on 
       const env = await setupEmulator({ build: gate.result, platform: "c64" });
       driver = env.driver;
 
-      // Primary proof (AR-H9): run until the border register holds the poked colour.
+      // Primary proof: run until the border register holds the poked colour.
       await runUntilMemory(driver, BORDER, BORDER_READBACK);
-      await assertMemory(driver, BORDER, BORDER_READBACK); // numeric (AC-08)
-      // Symbolic path (AC-08): _main's first opcode is LDA #$05 = $A9.
+      await assertMemory(driver, BORDER, BORDER_READBACK); // numeric address
+      // Symbolic path: _main's first opcode is LDA #$05 = $A9.
       await assertMemory(driver, "_main", LDA_IMM, env.symbols);
 
-      // Exercise the label breakpoint strategy on a fresh session (AC-03).
+      // Exercise the label breakpoint strategy on a fresh session.
       await driver.shutdown();
       const env2 = await setupEmulator({ build: gate.result, platform: "c64" });
       driver = env2.driver;

@@ -1,12 +1,12 @@
 /**
- * The Commodore 64 Ultimate platform plugin — RD-10 R35/R38; spec Ch 15 §2 +
- * appendix-c64u; decision D4.
+ * The Commodore 64 Ultimate platform plugin; spec Ch 15 §2 + appendix-c64u.
  *
  * The C64 Ultimate is a hardware-enhanced C64: its base profile is identical to
  * the C64's (appendix-c64u §10), differing only in optional REU/turbo hardware
  * exposed through platform libraries (not the core profile). In this slice the
- * codegen hooks delegate to the shared C64-style bodies (D4); only the profile
- * data is carried here. REU intrinsics are RD-17 (`intrinsics: []`).
+ * codegen hooks delegate to the shared C64-style bodies; only the profile
+ * data is carried here. REU intrinsics are populated once that runtime
+ * support is wired up (`intrinsics: []`).
  */
 
 import type {
@@ -68,9 +68,9 @@ export const c64uPlugin: PlatformPlugin = {
   id: "c64u",
   displayName: "Commodore 64 Ultimate",
   profile: c64uProfile,
-  intrinsics: [], // REU intrinsics are RD-17 (D1)
-  // The mul/div operator-backing routines are codegen-owned T3 modules
-  // (RD-17 AR-98), not platform contributions; genuine T4 modules go here.
+  intrinsics: [], // REU intrinsics are populated once that runtime support is wired up
+  // The mul/div operator-backing routines are codegen-owned T3 modules,
+  // not platform contributions; genuine T4 modules go here.
   runtimeModules: [],
 
   emitPreamble(options: PreambleOptions): StreamEntry[] {

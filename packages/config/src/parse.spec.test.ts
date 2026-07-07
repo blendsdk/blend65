@@ -1,12 +1,11 @@
 /**
- * Specification tests for JSONC parsing — parse-level column only (ST-6..ST-9).
+ * Specification tests for JSONC parsing — parse-level only.
  *
- * Traceability: RD-16 R2 (JSONC tolerance) and AR-P4 (best-effort recovery)
- * via 07-testing-strategy.md ST-6..ST-9. Per the PF-015 two-level split, this
- * file asserts only what is observable from `parseJsoncFile` alone; the
- * loader-level expectations (E10241/E10242 emission, CONFIG_SOURCE_ID spans,
- * dedup survival) live in `load-config.spec.test.ts` (Phase 4). Expectations
- * derive from the RD and the ST table only, never from the implementation.
+ * This file asserts only what is observable from `parseJsoncFile` alone
+ * (JSONC tolerance and best-effort recovery on malformed input); the
+ * loader-level expectations (E10241/E10242 emission, CONFIG_SOURCE_ID
+ * spans, dedup survival) live in `load-config.spec.test.ts`. Expectations
+ * derive from the JSONC contract only, never from the implementation.
  */
 
 import { describe, expect, it } from "vitest";

@@ -1,12 +1,11 @@
 /**
- * Specification tests for the C64 platform plugin — ST-C64-1..10
- * (07-testing-strategy.md, derived from 03-02-c64-plugin-and-hooks.md + the
- * frozen appendix-c64 + the verified `printInstr` rendering rules).
+ * Specification tests for the C64 platform plugin, derived from the frozen
+ * appendix-c64 and the verified `printInstr` rendering rules.
  *
- * 🚨 IMMUTABLE ORACLE RULE (testing.md Rule 10): the golden ACME strings below
- * are derived **purely** from each hook's documented `StreamEntry`/`AcmeDirective`
- * values (03-02) + `printInstr`'s documented rendering — NOT by running
- * `emitPreamble`. Written BEFORE `c64.ts` exists; verified RED first.
+ * 🚨 IMMUTABLE ORACLE RULE: the golden ACME strings below are derived
+ * **purely** from each hook's documented `StreamEntry`/`AcmeDirective` values
+ * plus `printInstr`'s documented rendering — NOT by running `emitPreamble`.
+ * Written BEFORE `c64.ts` exists; verified RED first.
  */
 
 import { describe, expect, it } from "vitest";
@@ -154,10 +153,10 @@ describe("C64 plugin — intrinsics / runtimeModules (ST-C64-10)", () => {
     expect(c64Plugin.intrinsics).toEqual([]);
   });
 
-  // DELIBERATE ORACLE UPDATE (RD-17 Phase 4, AR-98): the mul/div operator-backing
-  // routines migrated to codegen-owned T3 modules (`@blend65/codegen/runtime/*.asm`)
-  // — they were never platform contributions. `runtimeModules` now carries only
-  // genuine T4 platform modules, of which the c64 has none yet.
+  // The mul/div operator-backing routines are codegen-owned T3 modules
+  // (`@blend65/codegen/runtime/*.asm`) — they were never platform contributions.
+  // `runtimeModules` now carries only genuine T4 platform modules, of which
+  // the c64 has none yet.
   it("runtimeModules is empty (mul/div are codegen-owned T3 — AR-98)", () => {
     expect(c64Plugin.runtimeModules).toEqual([]);
   });

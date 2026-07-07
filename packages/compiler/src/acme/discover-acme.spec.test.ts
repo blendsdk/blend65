@@ -1,14 +1,12 @@
 /**
- * Specification tests for RD-09 ACME discovery (`discoverAcme`) — ST-D1..ST-D3.
+ * Specification tests for ACME discovery (`discoverAcme`).
  *
- * Derived EXCLUSIVELY from `requirements/RD-09-acme-emitter.md` (R28/R29, AC-10),
- * the component spec `plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, and
- * the testing strategy `07-testing-strategy.md` (ST-D1..D3). Immutable oracles
- * (testing.md Rule 10): the three-tier behaviour and the R29 actionable message
- * are pinned from the RD, not from the implementation.
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: the three-tier behaviour and the actionable not-found message are
+ * pinned from the requirement, not from the implementation.
  *
  * The filesystem/PATH are injected via {@link AcmeProbes} so these tests never
- * touch the real environment and never require a real ACME binary (AR-27).
+ * touch the real environment and never require a real ACME binary.
  */
 
 import { describe, expect, it } from "vitest";

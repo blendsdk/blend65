@@ -1,10 +1,10 @@
 /**
- * Specification tests for the `setupEmulator` fixture (ST-23, ST-28).
+ * Specification tests for the `setupEmulator` fixture.
  *
- * Derived EXCLUSIVELY from RD-12 §4.4 and R25..R28 / R35 / AC-11/AC-15 — never
- * from reading the implementation (IMMUTABLE ORACLE RULE). Local tier
- * (skipIf-VICE); ST-23 additionally needs ACME to build the gate (PF-002), while
- * ST-28 (any pre-built binary) needs only VICE.
+ * These tests are derived directly from the fixture's documented behavior, not
+ * from reading the implementation. Local tier (skipIf-VICE); the BuildResult
+ * path additionally needs ACME to build the gate, while the any-pre-built-binary
+ * path needs only VICE.
  */
 
 import { afterEach, describe, expect, it } from "vitest";

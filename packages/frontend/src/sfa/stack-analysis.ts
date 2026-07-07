@@ -1,6 +1,5 @@
 /**
- * The SFA stack-depth analysis pass (RD-05 §4.9, R37–R40; spec Ch 11 §5,
- * Ch 06 §7.8).
+ * The SFA stack-depth analysis pass (spec Ch 11 §5, Ch 06 §7.8).
  *
  * Estimates the worst-case hardware-stack usage. Each `JSR` pushes a 2-byte return
  * address, so a call chain of N levels consumes `N × 2` bytes. The worst case is:
@@ -10,13 +9,12 @@
  *     any interrupt handler exists, plus
  *   - the deepest call chain within any interrupt handler (`maxIrqStackBytes`).
  *
- * The call graph is a DAG (recursion rejected upstream, R8); the longest path is
+ * The call graph is a DAG (recursion is rejected upstream); the longest path is
  * found by memoized DFS bounded by a visited set, so malformed cyclic input cannot
- * loop forever. With no entry point the main depth is 0 and a valid record is still
- * returned (error tolerance, R60).
+ * loop forever. With no entry point the main depth is 0 and a valid record is
+ * still returned (error tolerance).
  *
- * Imports `@blend65/core` only — never `@blend65/codegen` (R15/AR-20).
- * See plans/rd-05-sfa-frame-planner/03-04-stack-and-budgets.md.
+ * Imports `@blend65/core` only — never `@blend65/codegen`.
  */
 
 import type { FunctionInfo, StackAnalysis, PlatformProfile } from "@blend65/core";
@@ -55,7 +53,7 @@ function longestPathFrom(
     }
     const fn = byName.get(name);
     if (!fn) {
-      return 0; // dangling callee — contributes no depth (R61).
+      return 0; // dangling callee — contributes no depth.
     }
     let deepestCallee = 0;
     onPath.add(name);
@@ -74,7 +72,7 @@ function longestPathFrom(
 }
 
 /**
- * Analyzes worst-case hardware-stack usage (R37–R40, §4.9).
+ * Analyzes worst-case hardware-stack usage (§4.9).
  *
  * @param fns The functions (each carrying its callees and the interrupt flag).
  * @param profile The platform profile (supplies `stackBudget`/`stackWarnThreshold`).

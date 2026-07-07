@@ -1,8 +1,7 @@
 /**
- * Public entry point for `@blend65/platforms` — the built-in platform plugins
- * (RD-10). Surfaces the registry + loader and the five platform plugins so the
- * compiler driver (RD-15/16) can resolve a `--platform` flag to a
- * `PlatformPlugin`.
+ * Public entry point for `@blend65/platforms` — the built-in platform plugins.
+ * Surfaces the registry + loader and the five platform plugins so the
+ * compiler driver can resolve a `--platform` flag to a `PlatformPlugin`.
  */
 
 export { PLATFORM_REGISTRY, DEFAULT_PLATFORM, loadPlatform } from "./registry.js";

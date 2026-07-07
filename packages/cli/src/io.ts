@@ -1,5 +1,5 @@
 /**
- * The injectable process surface for `blendc` (RD-15 §4.3, AR-V13/V16).
+ * The injectable process surface for `blendc`.
  *
  * `runCli` takes a {@link CliIo} instead of touching `process` directly, so tests
  * capture stdout/stderr and pin `isTTY`/`env`/`cwd` (and inject fake build deps).
@@ -8,7 +8,7 @@
 
 import type { BuildDeps } from "@blend65/compiler";
 
-/** The process I/O surface the CLI writes through (the AR-V13/V16 test seam). */
+/** The process I/O surface the CLI writes through (the test seam). */
 export interface CliIo {
   /** Write to stdout (build summary / JSON report). */
   writeOut(text: string): void;

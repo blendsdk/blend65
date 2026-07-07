@@ -1,11 +1,9 @@
 /**
- * Specification tests for `runCli` — commands & exit codes (ST-22..26, ST-34..36,
- * ST-43).
+ * Specification tests for `runCli` — commands & exit codes.
  *
- * Derived EXCLUSIVELY from RD-15 R17/R18/R32/R33/R38/R41–R44/R48/R50 and the plan
- * (03-03, AR-V13/V14/V15; PF-003). Immutable oracles: the R50 exit-code ladder
- * (0/1/2/3), the default-command aliasing, and help/version routing through CliIo.
- * ACME is faked (AR-V4); artifacts land under an absolute `--out-dir` temp path.
+ * Immutable oracles: the exit-code ladder (0/1/2/3), the default-command
+ * aliasing, and help/version routing through CliIo. ACME is faked; artifacts
+ * land under an absolute `--out-dir` temp path.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

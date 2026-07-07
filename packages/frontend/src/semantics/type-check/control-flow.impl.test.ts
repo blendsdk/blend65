@@ -1,7 +1,7 @@
 /**
- * Implementation tests for RD-18 Slice 4a control-flow semantics — loop-context
- * depth tracking and const-vs-non-const for-bound handling (07-testing-strategy
- * P1). These cover internals/edges the ST spec cases do not pin.
+ * Implementation tests for control-flow semantics — loop-context depth
+ * tracking and const-vs-non-const for-bound handling. These cover
+ * internals/edges the specification test cases do not pin.
  */
 
 import { describe, expect, it } from "vitest";

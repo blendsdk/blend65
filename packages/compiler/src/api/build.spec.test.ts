@@ -1,11 +1,10 @@
 /**
- * Specification tests for `build()` — ST-17..ST-21.
+ * Specification tests for `build()`.
  *
- * Derived EXCLUSIVELY from RD-15 R6/R25, RD-16 R21/R22, RD-11 AC-17, and the plan
- * (03-02, AR-V5/V7). Immutable oracles: the full-pipeline result shape (ST-17),
- * the platform-named E10034 via `checkBinaryBudget` (ST-18), unknown-platform
- * config abort (ST-19), config-first two-bag merge (ST-20), and the maxErrors
- * cap (ST-21). ACME is faked (AR-V4).
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: the full-pipeline result shape, the platform-named E10034 via
+ * `checkBinaryBudget`, unknown-platform config abort, config-first two-bag
+ * merge, and the maxErrors cap. ACME is faked.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

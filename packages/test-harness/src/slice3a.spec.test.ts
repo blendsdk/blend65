@@ -1,12 +1,11 @@
 /**
- * Specification tests for the RD-18 Slice 3a acceptance bar (parts 1 & 3): the
- * local-`byte` fixture assembles clean through the real populated-model path, and
- * on real VICE the local's frame slot drives the VIC-II border register.
+ * Specification tests for the Slice 3a acceptance bar: the local-`byte` fixture
+ * assembles clean through the real populated-model path, and on real VICE the
+ * local's frame slot drives the VIC-II border register.
  *
- * Derived EXCLUSIVELY from `01-requirements.md` FR-3/FR-5, `03-03-acceptance-fixtures.md`,
- * and the Ambiguity Register (AR-2/AR-11) — never from reading the implementation
- * (IMMUTABLE ORACLE RULE). This proves `__frame_Main_main_x` resolves in a real
- * `load`, not merely appears in the symbol header.
+ * These tests are derived directly from the fixture's documented behavior, not
+ * from reading the implementation. This proves `__frame_Main_main_x` resolves
+ * in a real `load`, not merely appears in the symbol header.
  *
  * The assemble-clean suite compiles via ACME (`skipIf(!hasAcme())`, CI installs
  * ACME); the runtime suite additionally runs on VICE (`skipIf(!(hasVice && hasAcme))`,
@@ -20,7 +19,7 @@ import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
 const BORDER = 0xd020;
-/** $D020 read-back after `poke(0xD020, 5)` — VIC-II unused upper nibble reads 1s (AR-11/AR-H19). */
+/** $D020 read-back after `poke(0xD020, 5)` — VIC-II unused upper nibble reads 1s. */
 const BORDER_READBACK = 0xf5;
 const LOCAL_TEST_TIMEOUT = 30000;
 

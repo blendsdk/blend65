@@ -1,12 +1,12 @@
 /**
- * The shared frontend pipeline core (RD-15 §4, 03-02).
+ * The shared frontend pipeline core.
  *
  * One internal function — `runFrontend` — drives config → host → discovery →
  * lex/parse → analyze → SFA, accumulating diagnostics into two bags (config +
- * pipeline, AR-V7) and deriving the effective `outName` exactly once (R21,
- * PF-001/PF-010). Both `compile()` and the emit/build paths consume its
- * {@link FrontendRun}. Thin wiring only (R2) — every stage is a shipped entry point.
- * Not exported from the package barrel.
+ * pipeline) and deriving the effective `outName` exactly once. Both
+ * `compile()` and the emit/build paths consume its {@link FrontendRun}. Thin
+ * wiring only — every stage is a shipped entry point. Not exported from the
+ * package barrel.
  */
 
 import {
@@ -39,11 +39,11 @@ import { basename, extname, relative, sep } from "node:path";
 import { createDiskCompilerHost } from "../host/index.js";
 import { optionsToOverrides, type CompilerOptions } from "./options.js";
 
-/** The accumulated result of the shared frontend pipeline (03-02). */
+/** The accumulated result of the shared frontend pipeline. */
 export interface FrontendRun {
   /** The resolved configuration (defaults ← file ← overrides). */
   config: BlendConfig;
-  /** Diagnostics from the config bag (rendered first — AR-V7). */
+  /** Diagnostics from the config bag (rendered first). */
   configDiagnostics: Diagnostic[];
   /** The source map (empty when aborted before interning). */
   sourceMap: SourceMap;
@@ -59,22 +59,24 @@ export interface FrontendRun {
   semanticModel?: SemanticModel;
   /** The SFA allocation plan — absent when the frontend did not reach planning. */
   allocationPlan?: AllocationPlan;
-  /** The R21-derived effective output base name (PF-001/PF-010). */
+  /** The derived effective output base name. */
   outName: string;
   /** `true` when a config or discovery error aborted the pipeline before lexing. */
   aborted: boolean;
 }
 
 /**
- * Run the shared frontend pipeline over `options` (03-02 normative sequence).
+ * Run the shared frontend pipeline over `options` (the normative pipeline
+ * sequence).
  *
  * @param options The caller's compiler options.
- * @param host An optional injected host (R10); the LSP's file set is used verbatim.
- *   When absent, a {@link createDiskCompilerHost | disk host} is built from config.
- * @returns The {@link FrontendRun} — never throws (R11).
+ * @param host An optional injected host; the language server's file set is
+ *   used verbatim. When absent, a {@link createDiskCompilerHost | disk host}
+ *   is built from config.
+ * @returns The {@link FrontendRun} — never throws.
  */
 export function runFrontend(options: CompilerOptions, host?: CompilerHost): FrontendRun {
-  // 1. Config (bootstrap bag at the default cap 20 — AR-V7).
+  // 1. Config (bootstrap bag at the default cap 20).
   const configBag = createDiagnosticBag();
   const { config, hasErrors: configFailed } = loadConfig({
     bag: configBag,
@@ -85,11 +87,11 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
   });
   const configDiagnostics = configBag.getAll();
 
-  // 2. Pipeline bag at the config's `maxErrors` (AR-V7).
+  // 2. Pipeline bag at the config's `maxErrors`.
   const bag = createDiagnosticBag({ maxErrors: config.maxErrors });
   const sourceMap = createSourceMap();
 
-  // Config error short-circuits before the pipeline (RD-16 R22; exit-2 class).
+  // Config error short-circuits before the pipeline (exit-2 class).
   if (configFailed) {
     return {
       config,
@@ -101,7 +103,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     };
   }
 
-  // 3. Host: injected verbatim (R10), else a disk host from resolved config (AR-V6).
+  // 3. Host: injected verbatim, else a disk host from resolved config.
   const activeHost =
     host ??
     createDiskCompilerHost({
@@ -110,7 +112,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
       exclude: config.exclude,
     });
 
-  // 4. File set (three-tier discovery, R13) + one-time `outName` derivation (R21).
+  // 4. File set (three-tier discovery) + one-time `outName` derivation.
   const files = discoverFiles(options, activeHost, config, bag);
   if (files === null) {
     return {
@@ -144,7 +146,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     programs.push(ast);
   }
 
-  // 8. Semantic analysis (RD-17 call shape).
+  // 8. Semantic analysis.
   const semanticModel = analyze({
     programs,
     bag,
@@ -153,16 +155,17 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     targetProfile: plugin.profile,
   });
 
-  // 9. SFA (empty adapter inputs are correct for the gate slice — RD-05 deferral).
-  // `planAllocation` consumes the interim semantics `PlatformProfile` (the same
-  // `DEFAULT_PROFILE` `analyze` receives), not the canonical RD-10 `plugin.profile`
-  // — the two `PlatformProfile` types differ, and per-platform semantics profiles
-  // are a later RD. For the empty-adapter gate slice the frame set is empty either
-  // way; the canonical `maxBinarySize` reaches the budget check via `build.ts`.
+  // 9. SFA (empty adapter inputs are correct for the gate slice; the full
+  // adapter wiring is deferred). `planAllocation` consumes the interim
+  // semantics `PlatformProfile` (the same `DEFAULT_PROFILE` `analyze`
+  // receives), not the canonical `plugin.profile` — the two `PlatformProfile`
+  // types differ, and per-platform semantics profiles land later. For the
+  // empty-adapter gate slice the frame set is empty either way; the canonical
+  // `maxBinarySize` reaches the budget check via `build.ts`.
   const allocationPlan = planAllocation(
     {
       functions: modelToFunctionInfo(semanticModel),
-      moduleVars: modelToModuleVars(semanticModel), // RD-18 Slice 3b — real module scalars
+      moduleVars: modelToModuleVars(semanticModel), // real module scalars
       zpUserVars: [],
       upstreamErrors: bag.hasErrors(),
     },
@@ -186,7 +189,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
 }
 
 /**
- * Resolve the source-file set via the three-tier strategy (R13, AR-V6), emitting
+ * Resolve the source-file set via the three-tier strategy, emitting
  * E10250/E10251 on failure.
  *
  * @returns The absolute file paths, or `null` when discovery failed (abort).
@@ -204,7 +207,7 @@ function discoverFiles(
     for (const given of options.sourceFiles) {
       const abs = host.resolvePath(given);
       if (host.readFile(abs) === undefined) {
-        // The path AS GIVEN by the user (R48, AR-V10).
+        // The path AS GIVEN by the user.
         bag.addError(DiagCode.DriverSourceFileNotFound, null, `Source file not found: '${given}'`);
         anyMissing = true;
       } else {
@@ -228,7 +231,7 @@ function discoverFiles(
 }
 
 /**
- * Derive the effective output base name exactly once (R21, AR-V6).
+ * Derive the effective output base name exactly once.
  *
  * @returns `config.outName` when non-empty, else the basename (minus extension)
  *   of the lexicographically-first discovered file.
@@ -241,7 +244,7 @@ function deriveOutName(config: BlendConfig, files: string[]): string {
   return basename(first, extname(first));
 }
 
-/** Relativize an absolute path to `projectRoot` with forward slashes (AR-V17). */
+/** Relativize an absolute path to `projectRoot` with forward slashes. */
 function toDisplayPath(projectRoot: string, path: string): string {
   const rel = relative(projectRoot, path);
   return sep === "/" ? rel : rel.split(sep).join("/");

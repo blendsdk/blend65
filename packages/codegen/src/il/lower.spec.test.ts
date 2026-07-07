@@ -1,15 +1,13 @@
 /**
- * Specification tests for RD-06 AST→IL lowering (ST-L1..L10).
+ * Specification tests for AST→IL lowering.
  *
- * Derived EXCLUSIVELY from plans/rd-06-il-optimizer/07-testing-strategy.md
- * (ST-L1..L10), 03-02-lowering.md (the gate/slice-2/§4.7 goldens, as corrected
- * by registers D8 — verbatim header params — and D9 — poke/peek address lowers
- * to a symbolic `location`), and RD-06 R29/R42/R46/R68/R69 — NOT from
- * implementation logic.
+ * Derived exclusively from the documented gate/slice-2/add-function goldens
+ * (verbatim header params for frame-slot symbols; poke/peek address lowers to
+ * a symbolic `location`) — not from implementation logic.
  *
- * Spec-tests-first (testing.md Rule 10): authored before `lower.ts`/`builder.ts`
- * exist, expected to FAIL first (red), then PASS (green). Immutable oracle — a
- * post-implementation failure means the implementation is wrong, not this test.
+ * Spec-tests-first: authored before `lower.ts`/`builder.ts` exist, expected to
+ * fail first (red), then pass (green). Immutable oracle — a post-implementation
+ * failure means the implementation is wrong, not this test.
  */
 
 import { describe, expect, it } from "vitest";
@@ -35,7 +33,7 @@ import {
   unsupportedFixture,
 } from "./test-fixtures.js";
 
-/** The exact gate golden (03-02; D9 — address is a symbolic location `$D020`). */
+/** The exact gate golden (the address is a symbolic location `$D020`). */
 const GATE_GOLDEN = [
   "function Main.main(): void {",
   "_entry:",
@@ -56,7 +54,7 @@ const SLICE2_GOLDEN = [
   "}",
 ].join("\n");
 
-/** The exact §4.7 golden (03-02; D8 — verbatim frame-slot param symbols). */
+/** The exact add-function golden (verbatim frame-slot param symbols). */
 const ADD_GOLDEN = [
   "function Math.add(__frame_Math_add_a: i8u, __frame_Math_add_b: i8u): i8u {",
   "_entry:",
@@ -68,7 +66,7 @@ const ADD_GOLDEN = [
 ].join("\n");
 
 describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
-  // ST-L1 — gate program → gate golden.
+  // Gate program → gate golden.
   it("should lower the gate program to the gate golden (ST-L1, R46/AC-11)", () => {
     const bag = createDiagnosticBag();
     const program = lowerToIL(gateFixture, bag);
@@ -76,7 +74,7 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ST-L2 — slice-2 program → slice-2 golden.
+  // Slice-2 program → slice-2 golden.
   it("should lower the slice-2 program to the slice-2 golden (ST-L2, R29/R46)", () => {
     const bag = createDiagnosticBag();
     const program = lowerToIL(slice2Fixture, bag);
@@ -84,7 +82,7 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ST-L3 — §4.7 add function → §4.7 golden.
+  // Add function → the add-function golden.
   it("should lower add(a,b) to the §4.7 golden (ST-L3, R18/R33/R42/§4.7)", () => {
     const bag = createDiagnosticBag();
     const program = lowerToIL(addFixture, bag);
@@ -92,7 +90,7 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ST-L4 — LetDecl without initialiser emits no IL for the declaration.
+  // LetDecl without initialiser emits no IL for the declaration.
   it("should emit no IL for an initialiser-less let (ST-L4, R30)", () => {
     const bag = createDiagnosticBag();
     const program = lowerToIL(letNoInitFixture, bag);
@@ -102,7 +100,7 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ST-L5 — an unsupported node (fallthrough — a switch-only statement that, bare
+  // An unsupported node (fallthrough — a switch-only statement that, bare
   // and out of any switch, is not lowered) → exactly one E90001 ICE; never throws.
   it("should record exactly one E90001 ICE for an unsupported node (ST-L5, R69/D6)", () => {
     const bag = createDiagnosticBag();
@@ -111,14 +109,14 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(ices).toHaveLength(1);
   });
 
-  // ST-L6 — a function carrying ErrorType is skipped (absent from functions).
+  // A function carrying ErrorType is skipped (absent from functions).
   it("should skip an ErrorType-carrying function (ST-L6, R68)", () => {
     const bag = createDiagnosticBag();
     const program = lowerToIL(errorFixture, bag);
     expect(program.functions).toHaveLength(0);
   });
 
-  // ST-L7 — empty program → empty ILProgram.
+  // Empty program → empty ILProgram.
   it("should lower an empty program to an empty ILProgram (ST-L7, D5)", () => {
     const bag = createDiagnosticBag();
     const program = lowerToIL(
@@ -130,7 +128,7 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(program.constData).toEqual([]);
   });
 
-  // ST-L8 — BinaryExpr evaluates left before right (instruction order).
+  // BinaryExpr evaluates left before right (instruction order).
   it("should lower BinaryExpr left-operand before right-operand (ST-L8, R33/FN-10)", () => {
     const bag = createDiagnosticBag();
     const text = printIL(lowerToIL(addFixture, bag));
@@ -140,14 +138,14 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(rightIdx).toBeGreaterThan(leftIdx);
   });
 
-  // ST-L9 — lowering the same fixture twice is byte-identical (determinism).
+  // Lowering the same fixture twice is byte-identical (determinism).
   it("should be deterministic across repeated lowerings (ST-L9, R53/R61)", () => {
     const a = printIL(lowerToIL(slice2Fixture, createDiagnosticBag()));
     const b = printIL(lowerToIL(slice2Fixture, createDiagnosticBag()));
     expect(a).toBe(b);
   });
 
-  // ST-L10 — signature: accepts LowerInput {program,model,plan}, returns ILProgram.
+  // Signature: accepts LowerInput {program,model,plan}, returns ILProgram.
   it("should accept a LowerInput and return an ILProgram (ST-L10, AC-01/D4)", () => {
     const bag = createDiagnosticBag();
     const program = lowerToIL(
@@ -160,11 +158,11 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
-// RD-18 Slice 3b — width-aware lowering + module-var access (FR-7; AR-8)
+// Width-aware lowering + module-var access
 // ───────────────────────────────────────────────────────────────────────────
 
 /**
- * Lowers `source` end-to-end through the REAL frontend (lex → parse → analyze →
+ * Lowers `source` end-to-end through the real frontend (lex → parse → analyze →
  * planAllocation) so the model carries a populated `typeMap`/`symbolMap` and the
  * plan carries real frames + module vars — the conditions width-aware lowering
  * and module-var access depend on. Returns the printed IL + the bag.
@@ -189,7 +187,7 @@ function lowerRealSource(source: string): { text: string; hasErrors: boolean } {
 }
 
 describe("Specification: RD-18 Slice 3b width-aware lowering (FR-7)", () => {
-  // ST-13 — a word literal lowers to an i16u immediate (not i8u).
+  // A word literal lowers to an i16u immediate (not i8u).
   it("should lower a word literal to an i16u immediate (ST-13, AR-8)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let x: word = 300; pokew(0xC000, x); }\n",
@@ -198,7 +196,7 @@ describe("Specification: RD-18 Slice 3b width-aware lowering (FR-7)", () => {
     expect(text).toContain("const i16u 300"); // was byte-hardcoded before the fix
   });
 
-  // ST-14 — a word * word binary result is i16u (translate maps i16u mul → __rt_mul16).
+  // A word * word binary result is i16u (translate maps i16u mul → __rt_mul16).
   it("should type a word*word multiply result as i16u (ST-14)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nlet accW: word;\nfunction main(): void {" +
@@ -208,7 +206,7 @@ describe("Specification: RD-18 Slice 3b width-aware lowering (FR-7)", () => {
     expect(text).toContain("mul i16u");
   });
 
-  // ST-15 — a module-scope variable lowers to load/store against its __var_* symbol.
+  // A module-scope variable lowers to load/store against its __var_* symbol.
   it("should lower a module variable to load/store __var_* (ST-15)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nlet accB: byte;\nfunction main(): void {" +

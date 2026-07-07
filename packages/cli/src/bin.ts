@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
- * The `blendc` executable (RD-15 §4.3, AR-V13).
+ * The `blendc` executable.
  *
  * Wires the real process surface into {@link runCli} and assigns the returned code
  * to `process.exitCode` — never `process.exit()`, so stdout/stderr flush before the
- * process ends (AR-V13). This is the ONLY compile-path-adjacent file that touches
- * `process.stdout`/`stderr`; `@blend65/cli` is exempt from the AC-18 no-print rule
- * (it is THE package that prints, R4).
+ * process ends. This is the ONLY compile-path-adjacent file that touches
+ * `process.stdout`/`stderr`; `@blend65/cli` is exempt from the no-print rule that
+ * applies to the compile-path packages (it is THE package that prints).
  */
 
 import { hideBin } from "yargs/helpers";

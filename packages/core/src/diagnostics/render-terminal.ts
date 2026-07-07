@@ -1,15 +1,12 @@
 /**
  * The terminal diagnostic renderer — the Ch 14 §1 caret format.
  *
- * A pure function over a policy-applied `Diagnostic[]` (R32 — renderers never
+ * A pure function over a policy-applied `Diagnostic[]` (renderers never
  * re-derive meaning): resolves spans through the {@link SourceMap}, echoes
  * sanitized source excerpts with byte-column caret runs, and optionally paints
- * hand-rolled ANSI color (AR-Q9/AR-17). Rendering lives in core but is invoked
- * only by consumers (CLI/LSP) — nothing in the compiler pipeline calls this
- * (R37/AC-14), and core itself never prints.
- *
- * Covers RD-11 R32–R35, R51, R52 · §3.7/§4.5 · AC-12 · AR-105 presentation
- * contract (AR-Q8/Q9/Q14, PF-004/PF-007/PF-009/PF-010/PF-013).
+ * hand-rolled ANSI color. Rendering lives in core but is invoked only by
+ * consumers (CLI/LSP) — nothing in the compiler pipeline calls this, and core
+ * itself never prints.
  */
 
 import type { Diagnostic, Severity } from "./diagnostic.js";
@@ -20,20 +17,20 @@ import { BOLD, CYAN, RED, YELLOW, paint } from "./ansi.js";
 
 /** Options accepted by {@link renderTerminal}. */
 export interface RenderTerminalOptions {
-  /** Apply ANSI color (AR-Q9 map). `false` yields byte-identical plain text. */
+  /** Apply ANSI color. `false` yields byte-identical plain text. */
   readonly color: boolean;
 }
 
-/** Fixed indent for `= note:`/`= help:` when there is no excerpt (PF-004). */
+/** Fixed indent for `= note:`/`= help:` when there is no excerpt. */
 const DEGRADED_INDENT = "   ";
 
-/** Severity → SGR foreground code (AR-Q9). */
+/** Severity → SGR foreground code. */
 function severityColor(severity: Severity): number {
   return severity === "error" ? RED : YELLOW;
 }
 
 /**
- * Result of sanitizing one echoed source line against R52 while re-anchoring a
+ * Result of sanitizing one echoed source line while re-anchoring a
  * raw byte range into sanitized-byte coordinates.
  */
 interface SanitizedLine {
@@ -46,7 +43,7 @@ interface SanitizedLine {
 }
 
 /**
- * Strips control characters from an echoed source line (R52/PF-010) and maps
+ * Strips control characters from an echoed source line and maps
  * the raw caret byte range `[rawStart, rawEnd)` to sanitized coordinates.
  *
  * C0 controls other than TAB (`0x09`) and all C1 controls (`0x80–0x9F`) are
@@ -54,7 +51,7 @@ interface SanitizedLine {
  * are computed against the sanitized text: stripped bytes before the span do
  * not count toward the caret indent, keeping alignment correct. A range end
  * past the line clamps to the sanitized line end (multi-line spans underline
- * only the first line, R33/PF-013).
+ * only the first line).
  */
 function sanitizeLine(raw: string, rawStart: number, rawEnd: number): SanitizedLine {
   let text = "";
@@ -97,11 +94,11 @@ function sanitizeLine(raw: string, rawStart: number, rawEnd: number): SanitizedL
  * `  --> ` location line, bare gutter, sanitized excerpt, and caret line.
  *
  * The gutter width is derived from THIS excerpt's line number — widths are
- * never shared across sub-blocks (PF-004).
+ * never shared across sub-blocks.
  *
  * @param span A span whose `sourceId` is known to be interned.
- * @param label Caret-line label (secondary spans only, AR-Q8); `null` renders
- *   carets alone (AR-Q14 — the primary span has no label).
+ * @param label Caret-line label (secondary spans only); `null` renders
+ *   carets alone (the primary span has no label).
  * @returns The sub-block's lines plus its gutter width (the primary's width
  *   anchors the `= note:`/`= help:` alignment).
  */
@@ -154,14 +151,14 @@ function renderBlock(diagnostic: Diagnostic, sourceMap: SourceMap, color: boolea
     : headerPrefix;
   lines.push(`${painted}: ${diagnostic.message}`);
 
-  // R51 degradation: a null primary span (span-less ICE) or an id the map
-  // cannot resolve (e.g. the RD-16 config sentinel -2) drops every location
-  // element — header, notes, and help only. Never throw.
+  // Degradation: a null primary span (span-less ICE) or an id the map
+  // cannot resolve (e.g. the reserved config-sentinel id -2) drops every
+  // location element — header, notes, and help only. Never throw.
   const primary = diagnostic.primarySpan;
   const resolvable = primary !== null && sourceMap.has(primary.sourceId);
 
   // With no excerpt there is no gutter: notes/help use the fixed 3-space
-  // indent (PF-004); with one, they align to the PRIMARY excerpt's gutter.
+  // indent; with one, they align to the PRIMARY excerpt's gutter.
   let markerIndent = DEGRADED_INDENT;
 
   if (resolvable) {
@@ -170,7 +167,7 @@ function renderBlock(diagnostic: Diagnostic, sourceMap: SourceMap, color: boolea
     markerIndent = `${" ".repeat(primaryBlock.gutterWidth)} `;
 
     for (const secondary of diagnostic.secondarySpans) {
-      // R51 applies per-span: unresolvable secondary ids degrade to nothing.
+      // Degradation applies per-span: unresolvable secondary ids degrade to nothing.
       if (!sourceMap.has(secondary.span.sourceId)) {
         continue;
       }
@@ -193,17 +190,17 @@ function renderBlock(diagnostic: Diagnostic, sourceMap: SourceMap, color: boolea
 }
 
 /**
- * Renders diagnostics in the Ch 14 §1 terminal caret format (AC-12).
+ * Renders diagnostics in the Ch 14 §1 terminal caret format.
  *
  * Blocks are joined by one blank line and the output ends with a trailing
  * newline; an empty input renders as the empty string. No summary footer is
- * emitted — the "N errors, M warnings" line belongs to the CLI (RD-15, AR-Q8).
- * Total over hostile input: unresolvable ids and null spans degrade per R51,
- * and echoed excerpts are sanitized per R52.
+ * emitted — the "N errors, M warnings" line belongs to the caller (e.g. the
+ * CLI). Robust over hostile input: unresolvable ids and null spans degrade
+ * gracefully, and echoed excerpts are sanitized.
  *
- * @param diagnostics The policy-applied diagnostics, in final order (R18).
- * @param sourceMap The registry used to resolve span source ids (R35).
- * @param options `color: true` paints the AR-Q9 ANSI map; `false` is plain.
+ * @param diagnostics The policy-applied diagnostics, in final order.
+ * @param sourceMap The registry used to resolve span source ids.
+ * @param options `color: true` paints the ANSI color map; `false` is plain.
  * @returns The rendered text (pure — this function never prints).
  */
 export function renderTerminal(

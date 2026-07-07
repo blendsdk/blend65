@@ -1,18 +1,14 @@
 /**
- * Specification tests for the RD-07b IL→Instr translator — Session 2.1
- * (ST-T1..T12, ST-T20..T25: memory, arithmetic/bitwise/shift, `ret`,
- * deferred-op ICE, source-span propagation).
+ * Specification tests for the IL→Instr translator (memory, arithmetic/
+ * bitwise/shift, `ret`, deferred-op ICE, source-span propagation).
  *
- * Derived EXCLUSIVELY from `requirements/RD-07-codegen-instr.md` (R17–R28, R32,
- * R50/R51), the component spec `plans/rd-07b-il-to-instr/03-01-il-to-instr-translation.md`,
- * and the Ambiguity Register (D3/D5/D7/D10). These are immutable oracles
- * (testing.md Rule 10): the expected ACME text is derived from the spec + ACME
- * syntax, NOT by running the translator.
+ * These are immutable oracles: the expected ACME text is derived from the
+ * spec + ACME syntax, NOT by running the translator.
  *
- * The translator lowers one single-block `ILFunction` (the RD-06 live shape) into
- * one `InstrStream`, using the D10 fold value-flow model: single-use load results
- * are folded into the consuming ALU/store operand, ALU byte results stay in A
- * until the consumer stores them.
+ * The translator lowers one single-block `ILFunction` into one `InstrStream`,
+ * using a fold value-flow model: single-use load results are folded into
+ * the consuming ALU/store operand, ALU byte results stay in A until the
+ * consumer stores them.
  */
 
 import { describe, expect, it } from "vitest";
@@ -106,7 +102,7 @@ function render(
 }
 
 describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
-  // ST-T1 — load t0,[V] (byte); the load result, returned, materialises LDA V.
+  // load t0,[V] (byte); the load result, returned, materialises LDA V.
   it("translates a byte load into LDA (ST-T1)", () => {
     const { text, bag } = render(
       [{ op: "load", a: temp(0, IL_BYTE), b: loc("V", IL_BYTE) }],
@@ -117,7 +113,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // ST-T2 — store v,[V] (byte, v in A) → STA V.
+  // store v,[V] (byte, v in A) → STA V.
   it("translates a byte store into STA (ST-T2)", () => {
     const { text } = render(
       [
@@ -129,7 +125,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
     expect(text).toBe(["M_f:", "    LDA #$42", "    STA V", "    RTS"].join("\n"));
   });
 
-  // ST-T3 — load t0,[V] (word) → LDA V + LDX V+1.
+  // load t0,[V] (word) → LDA V + LDX V+1.
   it("translates a word load into LDA + LDX hi (ST-T3)", () => {
     const { text } = render(
       [{ op: "load", a: temp(0, IL_WORD), b: loc("V", IL_WORD) }],
@@ -139,7 +135,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
     expect(text).toBe(["M_f:", "    LDA V", "    LDX V+1", "    RTS"].join("\n"));
   });
 
-  // ST-T4 — store v,[V] (word) → STA V + STX V+1.
+  // store v,[V] (word) → STA V + STX V+1.
   it("translates a word store into STA + STX hi (ST-T4)", () => {
     const { text } = render(
       [
@@ -153,7 +149,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
     );
   });
 
-  // ST-T5 — const t0, imm(0x42:byte) → LDA #$42.
+  // const t0, imm(0x42:byte) → LDA #$42.
   it("translates a byte const into LDA immediate (ST-T5)", () => {
     const { text } = render(
       [{ op: "const", dest: temp(0, IL_BYTE), src: imm(0x42, IL_BYTE) }],
@@ -163,7 +159,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
     expect(text).toBe(["M_f:", "    LDA #$42", "    RTS"].join("\n"));
   });
 
-  // ST-T6 — const t0, imm(0x0801:word) → LDA #$01 + LDX #$08 (lo/hi bytes).
+  // const t0, imm(0x0801:word) → LDA #$01 + LDX #$08 (lo/hi bytes).
   it("translates a word const into LDA lo + LDX hi (ST-T6)", () => {
     const { text } = render(
       [{ op: "const", dest: temp(0, IL_WORD), src: imm(0x0801, IL_WORD) }],
@@ -175,7 +171,7 @@ describe("Specification: translator — load/store/const (ST-T1..T6)", () => {
 });
 
 describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () => {
-  // ST-T7 — add t2,t0,t1 (byte): LDA a / CLC / ADC b / STA r (folded loads+store).
+  // add t2,t0,t1 (byte): LDA a / CLC / ADC b / STA r (folded loads+store).
   it("translates a byte add with folded loads and store (ST-T7)", () => {
     const { text, bag } = render(
       [
@@ -192,7 +188,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // ST-T8 — sub t2,t0,t1 (byte): LDA a / SEC / SBC b / STA r.
+  // sub t2,t0,t1 (byte): LDA a / SEC / SBC b / STA r.
   it("translates a byte sub with SEC/SBC (ST-T8)", () => {
     const { text } = render(
       [
@@ -208,7 +204,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
     );
   });
 
-  // ST-T9 — add t2,t0,t1 (word): lo CLC/ADC then hi ADC (no second CLC).
+  // add t2,t0,t1 (word): lo CLC/ADC then hi ADC (no second CLC).
   it("translates a word add with a single CLC and hi-byte carry (ST-T9)", () => {
     const { text } = render(
       [
@@ -234,7 +230,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
     );
   });
 
-  // ST-T10 — and/or/xor t2,t0,t1 (byte) → LDA a / AND|ORA|EOR b / STA r.
+  // and/or/xor t2,t0,t1 (byte) → LDA a / AND|ORA|EOR b / STA r.
   it.each([
     ["and", "AND"],
     ["or", "ORA"],
@@ -254,7 +250,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
     );
   });
 
-  // ST-T11 — shl t1,t0,imm(2) (const count) → two ASL A.
+  // shl t1,t0,imm(2) (const count) → two ASL A.
   it("translates a constant-count shl into repeated ASL (ST-T11)", () => {
     const { text } = render(
       [
@@ -271,7 +267,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
 });
 
 describe("Specification: translator — deferred-op ICEs (ST-T12, ST-T24)", () => {
-  // ST-T12 — shl with a non-constant count is deferred to RD-07c → E90001.
+  // shl with a non-constant count is deferred → E90001.
   it("ICEs on a non-constant shift count (ST-T12)", () => {
     const { bag } = render(
       [
@@ -285,7 +281,7 @@ describe("Specification: translator — deferred-op ICEs (ST-T12, ST-T24)", () =
     expect(bag.getErrors()[0].code).toBe(IceCode.Unexpected);
   });
 
-  // ST-T24 — each deferred IL op raises E90001 and emits no instruction entries.
+  // each deferred IL op raises E90001 and emits no instruction entries.
   it.each([
     { op: "neg", dest: temp(1, IL_BYTE), src: temp(0, IL_BYTE), type: IL_BYTE },
     { op: "not", dest: temp(1, IL_BYTE), src: temp(0, IL_BYTE), type: IL_BYTE },
@@ -308,13 +304,13 @@ describe("Specification: translator — deferred-op ICEs (ST-T12, ST-T24)", () =
 });
 
 describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
-  // ST-T20 — ret (void) → RTS.
+  // ret (void) → RTS.
   it("translates a void ret into RTS (ST-T20)", () => {
     const { text } = render([], { kind: "ret" });
     expect(text).toBe(["M_f:", "    RTS"].join("\n"));
   });
 
-  // ST-T21 — ret v (byte) → LDA v + RTS.
+  // ret v (byte) → LDA v + RTS.
   it("translates a byte ret into LDA + RTS (ST-T21)", () => {
     const { text } = render(
       [{ op: "const", dest: temp(0, IL_BYTE), src: imm(0x07, IL_BYTE) }],
@@ -324,7 +320,7 @@ describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
     expect(text).toBe(["M_f:", "    LDA #$07", "    RTS"].join("\n"));
   });
 
-  // ST-T22 — ret v (word) → LDA v_lo + LDX v_hi + RTS.
+  // ret v (word) → LDA v_lo + LDX v_hi + RTS.
   it("translates a word ret into LDA lo + LDX hi + RTS (ST-T22)", () => {
     const { text } = render(
       [{ op: "load", a: temp(0, IL_WORD), b: loc("v", IL_WORD) }],
@@ -334,7 +330,7 @@ describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
     expect(text).toBe(["M_f:", "    LDA v", "    LDX v+1", "    RTS"].join("\n"));
   });
 
-  // ST-T23 — ret in an isInterrupt function → RTI, not RTS.
+  // ret in an isInterrupt function → RTI, not RTS.
   it("translates a ret in an interrupt handler into RTI (ST-T23)", () => {
     const { text } = render([], { kind: "ret" }, { isInterrupt: true });
     expect(text).toBe(["M_f:", "    RTI"].join("\n"));
@@ -342,7 +338,7 @@ describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
 });
 
 describe("Specification: translator — source-span propagation (ST-T25)", () => {
-  // ST-T25 — a source_span op attaches its span to the next lead Instr only.
+  // a source_span op attaches its span to the next lead Instr only.
   it("attaches the carried span to the lead instruction (ST-T25)", () => {
     const span: SourceSpan = { sourceId: 0, start: 5, end: 9 };
     const bag = createDiagnosticBag();
@@ -365,7 +361,7 @@ describe("Specification: translator — source-span propagation (ST-T25)", () =>
     const lead = instrs[0];
     expect(isInstr(lead) && lead.opcode).toBe("LDA");
     expect(isInstr(lead) ? lead.sourceSpan : undefined).toEqual(span);
-    // Following instructions in the sequence omit the span (R50).
+    // Following instructions in the sequence omit the span.
     for (const e of instrs.slice(1)) {
       expect(isInstr(e) ? e.sourceSpan : "x").toBeUndefined();
     }
@@ -373,8 +369,7 @@ describe("Specification: translator — source-span propagation (ST-T25)", () =>
   });
 });
 
-// ─────────────────────────── Session 2.2 ───────────────────────────
-// ST-T13..T19 — comparison materialisation + mul/div/mod call-site codegen.
+// Comparison materialisation + mul/div/mod call-site codegen.
 
 /** Opcodes emitted, in order, for a rendered function. */
 function opcodesOf(
@@ -387,8 +382,8 @@ function opcodesOf(
 }
 
 describe("Specification: translator — comparison 0/1 materialisation (ST-T13, ST-T14)", () => {
-  // ST-T13 — eq t2,t0,t1 → CMP-based 0/1. The Z-based branch MUST come directly
-  // after CMP (an LDA between CMP and the branch clobbers Z) — DEF-1/AR-16: the
+  // eq t2,t0,t1 → CMP-based 0/1. The Z-based branch MUST come directly
+  // after CMP (an LDA between CMP and the branch clobbers Z) — the
   // earlier `LDA #$01; BEQ` form always evaluated to 0 (verified wrong on real
   // VICE). Corrected form: branch-first, then materialise 0 (fall-through) / 1.
   it("translates eq into a CMP + BEQ 0/1 materialisation (ST-T13)", () => {
@@ -418,7 +413,7 @@ describe("Specification: translator — comparison 0/1 materialisation (ST-T13, 
     );
   });
 
-  // ST-T14 — lt t2,t0,t1 (unsigned) → CMP-based, BCC branch form.
+  // lt t2,t0,t1 (unsigned) → CMP-based, BCC branch form.
   it("translates unsigned lt into a CMP + BCC form (ST-T14)", () => {
     const { ops } = opcodesOf(
       [
@@ -434,7 +429,7 @@ describe("Specification: translator — comparison 0/1 materialisation (ST-T13, 
 });
 
 describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
-  // ST-T15 — mul of two constants folds to a const; no JSR, no warning.
+  // mul of two constants folds to a const; no JSR, no warning.
   it("constant-folds a mul of two immediates (ST-T15)", () => {
     const { text, bag } = render(
       [
@@ -448,7 +443,7 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // ST-T16 — mul by a constant power-of-two → shift sequence; W10172 emitted.
+  // mul by a constant power-of-two → shift sequence; W10172 emitted.
   it("translates mul by a power of two into shifts and warns W10172 (ST-T16)", () => {
     const { text, bag } = render(
       [
@@ -464,7 +459,7 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
     expect(bag.getWarnings().map((w) => w.code)).toContain(DiagCode.ShiftAndAddMultiply);
   });
 
-  // ST-T17 — runtime mul (both operands variable) → JSR __rt_mul8; W10170 emitted.
+  // runtime mul (both operands variable) → JSR __rt_mul8; W10170 emitted.
   it("translates a runtime mul into JSR __rt_mul8 and warns W10170 (ST-T17)", () => {
     const bag = createDiagnosticBag();
     const stream = translateFunction(
@@ -489,7 +484,7 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
 });
 
 describe("Specification: translator — div/mod (ST-T18, ST-T19)", () => {
-  // ST-T18 — div → JSR __rt_div8; W10171 emitted.
+  // div → JSR __rt_div8; W10171 emitted.
   it("translates div into JSR __rt_div8 and warns W10171 (ST-T18)", () => {
     const bag = createDiagnosticBag();
     const stream = translateFunction(
@@ -511,7 +506,7 @@ describe("Specification: translator — div/mod (ST-T18, ST-T19)", () => {
     expect(bag.getWarnings().map((w) => w.code)).toContain(DiagCode.RuntimeDivide);
   });
 
-  // ST-T19 — mod → JSR __rt_div8 (remainder return); W10171 emitted.
+  // mod → JSR __rt_div8 (remainder return); W10171 emitted.
   it("translates mod into JSR __rt_div8 and warns W10171 (ST-T19)", () => {
     const bag = createDiagnosticBag();
     const stream = translateFunction(

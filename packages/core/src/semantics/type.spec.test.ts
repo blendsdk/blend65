@@ -1,22 +1,22 @@
 /**
- * Specification tests for the RD-04 semantic `Type` union (skeleton).
+ * Specification tests for the semantic `Type` union (skeleton).
  *
- * Derived exclusively from plans/rd-04-semantic-analysis/07-testing-strategy.md
- * (ST-S1, ST-S2, ST-S8) and 03-01-type-model.md — NOT from implementation logic.
- * These verify that every RD-04 §4.4 type variant is constructible, that the
- * `primitive` helper spells `"boolean"` (D5, not `'bool'`), and that the shared
- * `ERROR_TYPE` poison singleton exists. Behavioral checking is DEFERRED.
+ * Derived exclusively from the testing strategy and type-model specification
+ * documents — NOT from implementation logic. These verify that every type
+ * variant is constructible, that the `primitive` helper spells `"boolean"`
+ * (not `'bool'`), and that the shared `ERROR_TYPE` poison singleton exists.
+ * Behavioral checking is not implemented yet.
  *
- * Spec-tests-first (testing.md Rule 10): authored before the implementation and
- * expected to FAIL first (red), then PASS (green). Immutable oracle — a failure
- * after implementation means the implementation is wrong, not this test.
+ * Spec-tests-first: authored before the implementation and expected to FAIL
+ * first (red), then PASS (green). Immutable oracle — a failure after
+ * implementation means the implementation is wrong, not this test.
  */
 
 import { describe, expect, it } from "vitest";
 import { makeSpan } from "../index.js";
 import type { SourceSpan, StructDeclNode, EnumDeclNode } from "../index.js";
 // Imported through the package PUBLIC barrel (`@blend65/core` -> ../index.js) so
-// this tier also pins that the semantics vocabulary is re-exported (FR-S1).
+// this tier also pins that the semantics vocabulary is re-exported.
 import { ERROR_TYPE, primitive } from "../index.js";
 import type {
   Type,
@@ -51,7 +51,7 @@ const ENUM_DECL: EnumDeclNode = {
 };
 
 describe("Specification: RD-04 Type union (skeleton)", () => {
-  // ST-S1 — every §4.4 variant builds and is accepted by the `Type` union.
+  // Every type variant builds and is accepted by the `Type` union.
   it("should construct all five Type variants when given valid shapes (ST-S1)", () => {
     const prim: PrimitiveType = { kind: "primitive", name: "byte" };
     const arr: ArrayType = { kind: "array", element: prim, size: 4 };
@@ -81,12 +81,12 @@ describe("Specification: RD-04 Type union (skeleton)", () => {
     ]);
   });
 
-  // ST-S2 — `primitive("boolean")` yields the D5 spelling.
+  // `primitive("boolean")` yields the canonical spelling.
   it('should spell the boolean primitive "boolean" not "bool" (ST-S2, D5)', () => {
     expect(primitive("boolean")).toEqual({ kind: "primitive", name: "boolean" });
   });
 
-  // ST-S8 — the shared poison singleton has `kind: "error"`.
+  // The shared poison singleton has `kind: "error"`.
   it("should expose ERROR_TYPE as the shared poison singleton (ST-S8)", () => {
     expect(ERROR_TYPE.kind).toBe("error");
   });

@@ -1,12 +1,11 @@
 /**
- * Specification tests for RD-17 T2 lowering — folds + inline load/store (03-03).
+ * Specification tests for intrinsic lowering — folds + inline load/store.
  *
- * Cases ST-19..ST-23 and ST-34, derived EXCLUSIVELY from RD-17 (§4.3, R39),
- * frozen spec Ch 12 §3, and the ambiguity register (AR-P5/AR-P13/AR-P15) — never
- * from reading the implementation (IMMUTABLE ORACLE RULE). Inspects the lowered IL
- * structurally: fold intrinsics become `immediate` operands with no runtime
- * instructions; `peek`/`poke` become inline `load`/`store` (no `intrinsic`/`call`);
- * a non-constant address becomes E10045 (not an ICE).
+ * Derived exclusively from the frozen spec and documented intrinsic semantics —
+ * never from reading the implementation (immutable oracle rule). Inspects the
+ * lowered IL structurally: fold intrinsics become `immediate` operands with no
+ * runtime instructions; `peek`/`poke` become inline `load`/`store` (no
+ * `intrinsic`/`call`); a non-constant address becomes E10045 (not an ICE).
  */
 
 import { describe, expect, it } from "vitest";

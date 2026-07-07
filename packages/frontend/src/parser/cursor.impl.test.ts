@@ -8,7 +8,7 @@ const SRC = 1;
 
 /**
  * Builds a token list for `module Main;` over the real source text so the
- * cursor's `lexeme()` (AR-8) can be exercised against genuine spans.
+ * cursor's `lexeme()` can be exercised against genuine spans.
  *
  * Layout (byte offsets):
  *   `module Main;`

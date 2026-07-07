@@ -1,13 +1,12 @@
 /**
- * RD-18 Slice 3b statement typing + the Pass-3 driver (FR-2/FR-5).
+ * Statement typing + the Pass-3 driver.
  *
- * `typeCheckPrograms` walks every function/interrupt body and types the
- * Slice-3b statement surface: `let` declarations (type the initialiser in its
+ * `typeCheckPrograms` walks every function/interrupt body and types every
+ * statement it contains: `let` declarations (type the initialiser in its
  * declared-type context; range-check constants → E10084/E10082; assignment
  * compatibility → E10152/E10153/E10154), expression statements (assignments,
- * `poke`/`pokew`, …), and `return`. Control-flow statements (if/while/for/switch)
- * are out of the Slice-3b surface (Slice 4) and are skipped — a program using
- * them is not 3b-lowerable anyway. Never throws (FR-9).
+ * `poke`/`pokew`, …), `return`, and control-flow statements (if/while/for/switch,
+ * handled by `typeStmt` below). Never throws.
  */
 
 import { DiagCode, isError, isInteger, primitive, typeName } from "@blend65/core";
@@ -32,8 +31,8 @@ import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
 
 /**
- * Runs Pass-3 type checking over every function/interrupt body in all programs
- * (FR-2). The body scopes (with their ordered locals) come from the Slice-3a
+ * Runs Pass-3 type checking over every function/interrupt body in all programs.
+ * The body scopes (with their ordered locals) come from the earlier
  * `collectFunctions` pass via `scopeByNode`. Never throws.
  *
  * @param programs The parsed program ASTs.
@@ -63,9 +62,9 @@ export function typeCheckPrograms(
 }
 
 /**
- * Types every statement in a body block, reusing the enclosing (flat) scope
- * (AR-9). `loopDepth` records how many enclosing loops the block sits in, so
- * `break`/`continue` outside any loop are caught (FR-5).
+ * Types every statement in a body block, reusing the enclosing (flat) scope.
+ * `loopDepth` records how many enclosing loops the block sits in, so
+ * `break`/`continue` outside any loop are caught.
  */
 function typeBody(
   body: BlockNode,
@@ -77,7 +76,7 @@ function typeBody(
   for (const stmt of body.statements) typeStmt(stmt, scope, returnType, ctx, loopDepth);
 }
 
-/** Types a single statement (RD-18 Slice 4a surface). Never throws. */
+/** Types a single statement. Never throws. */
 function typeStmt(
   stmt: StmtNode,
   scope: Scope,
@@ -96,7 +95,7 @@ function typeStmt(
       typeReturn(stmt, scope, returnType, ctx);
       return;
     case "Block":
-      // Flat model (AR-9): reuse the enclosing scope; carry the loop depth.
+      // Flat scope model: reuse the enclosing scope; carry the loop depth.
       typeBody(stmt, scope, returnType, ctx, loopDepth);
       return;
     case "IfStmt": {
@@ -142,21 +141,22 @@ function typeStmt(
       }
       return;
     default:
-      // const/error — out of the 4a/4b surface; skipped (never throws).
+      // const/error — outside the handled statement kinds; skipped (never throws).
       return;
   }
 }
 
 /**
- * Types a `switch (disc) { case ...: ...  default: ... }` (RD-18 Slice 4b, spec
- * Ch 05 §8). In order: (1) the discriminant must be an integer type
- * (`byte`/`sbyte`/`word`/`sword`) — anything else (notably `boolean`) → E10075 and
- * poison (skip the dt-dependent case-value checks; AR-2/AR-11); (2) each case value
- * is validated in precedence order E10071 → E10084 → E10077 with cross-clause
- * duplicate detection (E10132); (3) `fallthrough` placement is checked
- * (E10074 misplaced / E10073 no-effect warning); (4) every clause body is typed
- * (`break`/`continue` keep the enclosing `loopDepth` — switch is transparent,
- * AR-6). `defaultClause` is always present (parser-synthesized). Never throws.
+ * Types a `switch (disc) { case ...: ...  default: ... }`. In order: (1) the
+ * discriminant must be an integer type (`byte`/`sbyte`/`word`/`sword`) —
+ * anything else (notably `boolean`) → E10075 and poison (skip the
+ * dt-dependent case-value checks); (2) each case value is validated in
+ * precedence order E10071 → E10084 → E10077 with cross-clause duplicate
+ * detection (E10132); (3) `fallthrough` placement is checked (E10074
+ * misplaced / E10073 no-effect warning); (4) every clause body is typed
+ * (`break`/`continue` keep the enclosing `loopDepth` — switch is transparent
+ * to loop context). `defaultClause` is always present (parser-synthesized).
+ * Never throws.
  */
 function typeSwitch(
   stmt: SwitchStmtNode,
@@ -167,7 +167,8 @@ function typeSwitch(
 ): void {
   // (1) Discriminant operand-type (E10075). `integerRange(dt) === null` covers
   // boolean/void/error/aggregate; a poisoned (ERROR_TYPE) discriminant stays
-  // silent (cascade suppression, 3b R114) but still poisons the case checks.
+  // silent (cascade suppression — an already-reported error shouldn't cause a
+  // second, misleading diagnostic) but still poisons the case checks.
   const dt = typeOfExpr(stmt.discriminant, scope, ctx);
   const range = integerRange(dt);
   if (range === null) {
@@ -205,18 +206,18 @@ function typeSwitch(
 }
 
 /**
- * Validates one case value against the discriminant type `dt` (FR-2/FR-3/FR-3a/
- * FR-4), in precedence order — the first failing check emits and returns (no
- * cascade). Typing the value in `dt`'s context memoises its adapted type into
- * `typeMap` (so lowering emits a discriminant-width immediate).
+ * Validates one case value against the discriminant type `dt`, in precedence
+ * order — the first failing check emits and returns (no cascade). Typing the
+ * value in `dt`'s context memoises its adapted type into `typeMap` (so
+ * lowering emits a discriminant-width immediate).
  *
  * (a) not an integer constant (non-const/identifier/bool) → E10071;
  * (b) an integer constant out of `dt`'s range → E10084 (a *range* error);
  * (c) a folded constant whose type is a genuinely different, non-adapting (non-
  *     integer) primitive vs `dt` → E10077 (bespoke — not the assignment path).
  *     Integer literals adapt to `dt` and integer constants are range-validated in
- *     (b), so (c) is unreachable in the integer-only 4b surface; it becomes live
- *     with the enum/other-primitive constants of Slice 7 (PF-002).
+ *     (b), so (c) is unreachable while case values are integer-only; it becomes
+ *     live once enum/other-primitive constants are supported as case values.
  * (d) a value equal to one already used across any clause → E10132.
  */
 function typeCaseValue(
@@ -256,7 +257,7 @@ function typeCaseValue(
   }
   if (!isError(vt) && !isInteger(vt) && typeName(vt) !== typeName(dt)) {
     ctx.bag.addError(
-      DiagCode.CaseValueTypeMismatch, // E10077 (bespoke; rarely reachable in 4b)
+      DiagCode.CaseValueTypeMismatch, // E10077 (bespoke; rarely reachable — most mismatches are caught earlier)
       value.span,
       `Case value type '${typeName(vt)}' does not match switch expression type ` +
         `'${typeName(dt)}'`,
@@ -354,10 +355,10 @@ function firstNestedFallthrough(stmts: readonly StmtNode[]): FallthroughStmtNode
 }
 
 /**
- * Types a control-flow condition (FR-1, spec Ch 05 §3). The condition must be
- * `boolean`; a non-boolean, non-poison type emits E10134 (AR-7). A poison
- * (`ERROR_TYPE`) condition stays silent — cascade suppression (3b R114). The
- * condition is recorded in `typeMap` by `typeOfExpr`.
+ * Types a control-flow condition. The condition must be `boolean`; a
+ * non-boolean, non-poison type emits E10134. A poison (`ERROR_TYPE`) condition
+ * stays silent to avoid cascading a diagnostic that already fired on the
+ * expression itself. The condition is recorded in `typeMap` by `typeOfExpr`.
  */
 function typeCondition(expr: ExprNode, scope: Scope, ctx: TypeCheckContext): void {
   const t = typeOfExpr(expr, scope, ctx);
@@ -371,14 +372,14 @@ function typeCondition(expr: ExprNode, scope: Scope, ctx: TypeCheckContext): voi
 }
 
 /**
- * Types a `for (let i: T = init to|downto bound [step s]) body` (FR-3/FR-4, spec
- * Ch 05 §7). In order (§D): (1) the counter type must be an integer type —
- * `integerRange(T) === null` (a missing/non-integer annotation) emits E10065 and
- * poisons the counter (AR-15); (2) init + bound adapt to the counter type; (3) a
- * const end bound outside the counter's range emits E10064 (AR-10 — a non-const
- * bound is allowed and simply skips the check); (4) a `step`, if present, must
- * `evalConst` to an integer ≥ 1 else E10061 (AR-8). The body is always typed with
- * the counter in scope and the loop depth incremented.
+ * Types a `for (let i: T = init to|downto bound [step s]) body`. In order:
+ * (1) the counter type must be an integer type — `integerRange(T) === null`
+ * (a missing/non-integer annotation) emits E10065 and poisons the counter;
+ * (2) init + bound adapt to the counter type; (3) a const end bound outside
+ * the counter's range emits E10064 (a non-const bound is allowed and simply
+ * skips the check); (4) a `step`, if present, must `evalConst` to an integer
+ * ≥ 1 else E10061. The body is always typed with the counter in scope and the
+ * loop depth incremented.
  */
 function typeFor(
   stmt: ForStmtNode,
@@ -393,7 +394,7 @@ function typeFor(
   if (range === null) {
     // Covers both the omitted-annotation (`varType === null` → ERROR_TYPE) and the
     // non-integer-annotation (boolean/void) cases — do NOT rely on cascade
-    // suppression, which would silently mis-lower (AR-15). Poison + type the body.
+    // suppression, which would silently mis-lower. Poison + type the body.
     ctx.bag.addError(
       DiagCode.ForCounterTypeNotInteger, // E10065
       stmt.varNameSpan,
@@ -407,7 +408,7 @@ function typeFor(
   typeOfExpr(stmt.init, scope, ctx, counterType);
   typeOfExpr(stmt.bound, scope, ctx, counterType);
 
-  // (3) const end-bound range check (E10064); a non-const bound is allowed (AR-10).
+  // (3) const end-bound range check (E10064); a non-const bound is allowed.
   const bound = evalConst(stmt.bound);
   if (bound.kind === "value" && typeof bound.value === "number") {
     if (bound.value < range.min || bound.value > range.max) {
@@ -464,7 +465,7 @@ function typeLetDecl(decl: LetDeclNode, scope: Scope, ctx: TypeCheckContext): vo
 /**
  * Types a `return [expr];`. In a `void` function, `return expr;` is invalid
  * (E10173). The value is typed regardless (populating `typeMap`). Full
- * all-paths-return analysis (R80) is Slice 4.
+ * all-paths-return analysis is handled by a separate post-check pass.
  */
 function typeReturn(
   stmt: ReturnStmtNode,

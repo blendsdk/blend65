@@ -1,14 +1,12 @@
 /**
- * Specification tests for RD-09 ACME invocation (`invokeAcme`) — ST-I1..ST-I3.
+ * Specification tests for ACME invocation (`invokeAcme`).
  *
- * Derived EXCLUSIVELY from `requirements/RD-09-acme-emitter.md` (R30–R33, R35–R38,
- * AC-11/12/13), the component spec
- * `plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, and the testing strategy
- * `07-testing-strategy.md` (ST-I1..I3). Immutable oracles (testing.md Rule 10):
- * the success/failure contract and the ICE-on-non-zero-exit rule come from the RD.
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: the success/failure contract and the ICE-on-non-zero-exit rule.
  *
- * The child process and filesystem are injected via {@link AcmeRunner} so no test
- * spawns a real ACME binary (AR-27; CI has no ACME tier until RD-12).
+ * The child process and filesystem are injected via {@link AcmeRunner} so no
+ * test spawns a real ACME binary (CI has no ACME tier at the time this test
+ * was written).
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -79,7 +77,7 @@ describe("Specification: invokeAcme — success & failure (ST-I1..I3)", () => {
       deleteFile: deleteAsm,
     };
     await invokeAcme(invocation(), bag, r);
-    // Retention (R36): the runner's optional delete hook must never be called.
+    // Retention: the runner's optional delete hook must never be called.
     expect(deleteAsm).not.toHaveBeenCalled();
   });
 });

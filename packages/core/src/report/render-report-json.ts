@@ -3,17 +3,15 @@
  *
  * Emits one object mirroring {@link ResourceReport}. Plain objects/arrays
  * only: `peepholeStats.ruleHits` is a Map, and `JSON.stringify` silently
- * drops Map contents to `{}` (PF-012), so it converts to a **name-sorted**
- * entries array (AR-105 — sorted for H5 determinism regardless of insertion
- * order). Undefined optionals are omitted via native `JSON.stringify`
- * behavior. Serialization is exclusively via `JSON.stringify`.
- *
- * Covers RD-11 §4.7 · AC-19 · AR-Q10/Q11, PF-012.
+ * drops Map contents to `{}`, so it converts to a **name-sorted** entries
+ * array (sorted for H5 determinism regardless of insertion order). Undefined
+ * optionals are omitted via native `JSON.stringify` behavior. Serialization
+ * is exclusively via `JSON.stringify`.
  */
 
 import type { PeepholeStats, ResourceReport } from "./resource-report.js";
 
-/** `peepholeStats` with `ruleHits` as name-sorted plain entries (PF-012). */
+/** `peepholeStats` with `ruleHits` as name-sorted plain entries. */
 function mirrorPeepholeStats(stats: PeepholeStats): Record<string, unknown> {
   const entries = [...stats.ruleHits.entries()].sort(([a], [b]) =>
     a < b ? -1 : a > b ? 1 : 0,
@@ -27,7 +25,7 @@ function mirrorPeepholeStats(stats: PeepholeStats): Record<string, unknown> {
 }
 
 /**
- * Renders the resource report as JSON (AC-19).
+ * Renders the resource report as JSON.
  *
  * @param report The assembled report (see `buildResourceReport`).
  * @returns `JSON.stringify(mirror, null, 2)` plus a trailing newline (pure —

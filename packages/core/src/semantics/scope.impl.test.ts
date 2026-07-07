@@ -1,12 +1,13 @@
 /**
- * Implementation tests for the RD-04 scope tree (skeleton).
+ * Implementation tests for the scope tree (skeleton).
  *
- * Where `semantic-model.spec.test.ts` pins the empty-global-scope contract
- * (ST-S13), these tests exercise `createScope` internals: nesting scopes,
- * wiring parent/child links, and populating the symbol map — the mechanics the
+ * Where `semantic-model.spec.test.ts` pins the empty-global-scope contract,
+ * these tests exercise `createScope` internals: nesting scopes, wiring
+ * parent/child links, and populating the symbol map — the mechanics the
  * future checker relies on.
  *
- * Written AFTER implementation; filed as `*.impl.test.ts` (testing.md Rule 10).
+ * Written after implementation, filed as `*.impl.test.ts` per the project's
+ * spec-vs-impl test convention.
  */
 
 import { describe, expect, it } from "vitest";

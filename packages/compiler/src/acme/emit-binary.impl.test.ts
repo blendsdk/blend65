@@ -1,8 +1,9 @@
 /**
- * Implementation tests for RD-09 emit orchestration (`emitBinary`). Written AFTER
- * the implementation — these cover internals beyond the ST-E* spec oracles: output
- * directory creation, the `.asm` path being retained on an ACME failure (R36), the
- * no-budget-check path, and the at-limit boundary of the budget check.
+ * Implementation tests for emit orchestration (`emitBinary`). Written after
+ * the implementation — these cover internals beyond the spec-level oracles:
+ * output directory creation, the `.asm` path being retained on an ACME
+ * failure, the no-budget-check path, and the at-limit boundary of the budget
+ * check.
  */
 
 import { describe, expect, it, vi } from "vitest";

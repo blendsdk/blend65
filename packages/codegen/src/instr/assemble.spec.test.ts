@@ -1,14 +1,12 @@
 /**
- * RD-07c specification tests — entry-label `_main` + non-entry sanitization
- * (ST-A6/A7/A8) and the `assembleProgram` preamble/shape contract (ST-A1..A5).
+ * Specification tests — entry-label `_main` + non-entry sanitization, and the
+ * `assembleProgram` preamble/shape contract.
  *
- * IMMUTABLE ORACLE RULE (testing.md Rule 10): every expectation below is derived
- * exclusively from `01-requirements.md`, `03-01-platform-preamble-and-assemble.md`,
- * and the Ambiguity Register (D2/D3/D4/D10) — NEVER by running `assembleProgram` or
- * reading its body. If a test fails after implementation, the implementation is
- * wrong, not the test.
+ * Every expectation below is derived exclusively from the specification —
+ * NEVER by running `assembleProgram` or reading its body. If a test fails
+ * after implementation, the implementation is wrong, not the test.
  *
- * D10 (package-boundary rule): `@blend65/codegen` tests use only codegen's own
+ * Package-boundary rule: `@blend65/codegen` tests use only codegen's own
  * dependency closure (`@blend65/core`, `@blend65/frontend`). The `PlatformPlugin`
  * *type* lives in `@blend65/core`, so these tests drive `assembleProgram` with a
  * minimal **inline fake plugin** — no edge to `@blend65/platforms` (which would form
@@ -36,7 +34,7 @@ import { printInstr } from "./print-instr.js";
 import { assembleProgram, generateInstr } from "./instr-program.js";
 
 /**
- * A minimal in-package fake `PlatformPlugin` (D10): NMOS CPU + a deterministic,
+ * A minimal in-package fake `PlatformPlugin`: NMOS CPU + a deterministic,
  * distinctive two-entry preamble (`!to` directive + a `__startup:` label). Only the
  * fields `assembleProgram` reads (`profile.cpu`, `emitPreamble`) carry meaningful
  * data; the rest satisfy the interface. This keeps codegen tests free of any
@@ -74,8 +72,8 @@ const fakePlugin: PlatformPlugin = {
 };
 
 describe("Specification: RD-07c entry label & sanitization (ST-A6..A8)", () => {
-  // ST-A6 — the gate program's entry function (`Main.main`) is labelled `_main`,
-  // not `Main.main` (FR-6, AC-02, D4).
+  // The gate program's entry function (`Main.main`) is labelled `_main`,
+  // not `Main.main`.
   it("labels the entry function stream `_main` (ST-A6)", () => {
     // Arrange
     const bag = createDiagnosticBag();
@@ -93,8 +91,7 @@ describe("Specification: RD-07c entry label & sanitization (ST-A6..A8)", () => {
     }
   });
 
-  // ST-A7 — a non-entry function `Math.add` is relabelled `Math_add` (`.`→`_`)
-  // (FR-7, AC-02, D4).
+  // A non-entry function `Math.add` is relabelled `Math_add` (`.`→`_`).
   it("sanitizes a non-entry function label `Math.add` → `Math_add` (ST-A7)", () => {
     // Arrange
     const bag = createDiagnosticBag();
@@ -111,8 +108,7 @@ describe("Specification: RD-07c entry label & sanitization (ST-A6..A8)", () => {
     }
   });
 
-  // ST-A8 — `printInstr` of the gate entry stream renders `_main:` as its first
-  // line (FR-6, FR-10, D4).
+  // `printInstr` of the gate entry stream renders `_main:` as its first line.
   it("renders the gate entry stream's first line as `_main:` (ST-A8)", () => {
     // Arrange
     const bag = createDiagnosticBag();
@@ -130,8 +126,8 @@ describe("Specification: RD-07c entry label & sanitization (ST-A6..A8)", () => {
 });
 
 describe("Specification: RD-07c assembleProgram preamble & shape (ST-A1..A5)", () => {
-  // ST-A1 — `assembleProgram` populates `.preamble` with exactly the plugin's
-  // `emitPreamble` output (FR-1/2/4/5, AC-01).
+  // `assembleProgram` populates `.preamble` with exactly the plugin's
+  // `emitPreamble` output.
   it("populates the preamble from the plugin's emitPreamble hook (ST-A1)", () => {
     // Arrange
     const bag = createDiagnosticBag();
@@ -145,8 +141,8 @@ describe("Specification: RD-07c assembleProgram preamble & shape (ST-A1..A5)", (
     expect([...program.preamble]).toEqual(fakePreamble());
   });
 
-  // ST-A2 — the wrapper does not alter the function streams: they are identical to
-  // `generateInstr`'s streams for the same IL + CPU variant (FR-1, AC-05).
+  // The wrapper does not alter the function streams: they are identical to
+  // `generateInstr`'s streams for the same IL + CPU variant.
   it("leaves the function streams unchanged vs generateInstr (ST-A2)", () => {
     // Arrange
     const bag = createDiagnosticBag();
@@ -160,8 +156,8 @@ describe("Specification: RD-07c assembleProgram preamble & shape (ST-A1..A5)", (
     expect(assembled.streams).toEqual(direct.streams);
   });
 
-  // ST-A3 — the allocation plan is carried through unchanged (same reference as the
-  // IL program's plan) (FR-1).
+  // The allocation plan is carried through unchanged (same reference as the
+  // IL program's plan).
   it("carries the allocation plan through unchanged (ST-A3)", () => {
     // Arrange
     const bag = createDiagnosticBag();
@@ -174,8 +170,8 @@ describe("Specification: RD-07c assembleProgram preamble & shape (ST-A1..A5)", (
     expect(program.allocationPlan).toBe(il.allocationPlan);
   });
 
-  // ST-A4 — assembling the same IL + plugin twice renders byte-identical ACME
-  // (determinism) (FR-8, AC-03).
+  // Assembling the same IL + plugin twice renders byte-identical ACME output
+  // (determinism).
   it("is deterministic across two assembles (ST-A4)", () => {
     // Arrange
     const il = lowerToIL(gateFixture, createDiagnosticBag());
@@ -193,8 +189,8 @@ describe("Specification: RD-07c assembleProgram preamble & shape (ST-A1..A5)", (
     expect(render(a)).toBe(render(b));
   });
 
-  // ST-A5 — assembling the gate program raises no diagnostics errors (live ops
-  // only; no ICE) (FR-1, AC-01).
+  // Assembling the gate program raises no diagnostics errors (live ops
+  // only; no ICE).
   it("raises no errors assembling the gate program (ST-A5)", () => {
     // Arrange
     const bag = createDiagnosticBag();

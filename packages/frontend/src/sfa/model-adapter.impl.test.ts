@@ -1,11 +1,11 @@
 /**
- * Implementation tests for `modelToFunctionInfo` (RD-18 Slice 3a) — edge cases
- * beyond the ST-* spec oracles: an interrupt handler projects `isInterrupt`, a
- * function with no locals still projects (so its `__frame_*` base is emitted), and
- * a `scopeOf` miss degrades to no locals without throwing (AR-10).
+ * Implementation tests for `modelToFunctionInfo` — edge cases beyond the spec
+ * oracles: an interrupt handler projects `isInterrupt`, a function with no locals
+ * still projects (so its `__frame_*` base is emitted), and a `scopeOf` miss
+ * degrades to no locals without throwing.
  *
  * Models are constructed directly (fixture-style) so each behavior is exercised in
- * isolation. Imports `@blend65/core` only (R15/AR-20).
+ * isolation. Imports `@blend65/core` only.
  */
 
 import { describe, expect, it } from "vitest";
@@ -33,7 +33,7 @@ interface ModelOpts {
   readonly name: string;
   readonly kind: Extract<SymbolKind, "function" | "interrupt">;
   readonly locals?: readonly { name: string; typeName: PrimitiveName }[];
-  /** When `false`, the body scope is NOT registered → `scopeOf` misses (AR-10). */
+  /** When `false`, the body scope is NOT registered → `scopeOf` misses. */
   readonly registerScope?: boolean;
 }
 

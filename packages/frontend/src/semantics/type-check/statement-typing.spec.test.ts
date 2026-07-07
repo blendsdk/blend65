@@ -1,11 +1,10 @@
 /**
- * Specification tests for RD-18 Slice 3b statement typing + assignment
- * compatibility (Pass 3, FR-2).
+ * Specification tests for statement typing + assignment compatibility (Pass 3).
  *
  * Expectations derive exclusively from the **frozen spec** (Ch 02 §5.3 assignment
- * compatibility, TS-2 literal range) + the AR-11 canonical diagnostic-code table
- * + AR-13 (parser-owned missing-annotation) — NOT from implementation logic.
- * Immutable oracle. Exercised through the REAL public path (`lex`→`parse`→`analyze`).
+ * compatibility, TS-2 literal range) and the canonical diagnostic-code table —
+ * NOT from implementation logic. Immutable oracle. Exercised through the REAL
+ * public path (`lex`→`parse`→`analyze`).
  */
 
 import { describe, expect, it } from "vitest";
@@ -29,7 +28,7 @@ function errorCodes(bag: DiagnosticBag): string[] {
 }
 
 describe("Specification: RD-18 Slice 3b statement typing (FR-2)", () => {
-  // ST-2 — an out-of-range literal in a typed context → E10084 (TS-2, spec 02:96).
+  // An out-of-range literal in a typed context → E10084 (TS-2, spec 02:96).
   it("should reject an out-of-range literal with E10084 (ST-2, TS-2)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -41,10 +40,10 @@ describe("Specification: RD-18 Slice 3b statement typing (FR-2)", () => {
     expect(errorCodes(bag)).toContain(DiagCode.ValueOutOfRange); // E10084
   });
 
-  // ST-7 (reframed, AR-13) — an annotation-less `let` IS rejected, but by the
-  // frozen RD-03 parser (E10313 ExpectedColon + E10303 ExpectedTypeAnnotation),
-  // not the analyzer's E10150 (which is unreachable from source). The spec AC
-  // "annotation-less let is a compile error" is satisfied; the analyzer never
+  // An annotation-less `let` IS rejected, but by the frozen parser (E10313
+  // ExpectedColon + E10303 ExpectedTypeAnnotation), not the analyzer's E10150
+  // (which is unreachable from source). The spec's requirement that an
+  // annotation-less let is a compile error is satisfied; the analyzer never
   // throws and adds no cascading error of its own.
   it("should reject an annotation-less let via the parser, never throwing (ST-7, AR-13)", () => {
     const bag = createDiagnosticBag();
@@ -53,7 +52,7 @@ describe("Specification: RD-18 Slice 3b statement typing (FR-2)", () => {
       program = parseSource("module Main;\nfunction main(): void { let x = 5; }\n", bag);
     }).not.toThrow();
 
-    // Parser owns the rejection (frozen RD-03).
+    // Parser owns the rejection.
     const codes = errorCodes(bag);
     expect(codes).toContain(DiagCode.ExpectedColon); // E10313
     expect(codes).toContain(DiagCode.ExpectedTypeAnnotation); // E10303
@@ -66,7 +65,7 @@ describe("Specification: RD-18 Slice 3b statement typing (FR-2)", () => {
     expect(bag.hasErrors()).toBe(true);
   });
 
-  // ST-8 — assignment compatibility (AR-11 canonical codes; the stale spec §5.3
+  // Assignment compatibility (the canonical diagnostic codes; the stale spec §5.3
   // numbers E10082/E10080 collide with div-by-zero/operand-type):
   //   narrowing word→byte   → E10154 (WidthNarrowingNoCast)
   //   cross-sign sbyte→byte → E10153 (SignedUnsignedMismatch)

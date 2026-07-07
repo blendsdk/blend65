@@ -1,10 +1,8 @@
 /**
- * Specification tests for the SFA budget-diagnostics pass (RD-05 §4.13,
- * R41–R46, R62; spec Ch 11 §8, Ch 14).
+ * Specification tests for the SFA budget-diagnostics pass (spec Ch 11 §8, Ch 14).
  *
- * Expectations derive exclusively from plans/rd-05-sfa-frame-planner/
- * 07-testing-strategy.md (ST-S4..ST-S6, ST-Z7) and 03-04-stack-and-budgets.md —
- * NOT from implementation logic. Immutable oracle.
+ * Expectations derive exclusively from the language specification — NOT from
+ * implementation logic. Immutable oracle.
  *
  * Spec-tests-first: authored before `budgets.ts`; verified to FAIL (red).
  * `checkBudgets` owns E10033 + the three warnings (W10030/W10033/W10180); E10032
@@ -35,7 +33,7 @@ function codes(bag: ReturnType<typeof createDiagnosticBag>): string[] {
 }
 
 describe("Specification: SFA budget diagnostics (R41–R46, §4.13)", () => {
-  // ST-S4 — RAM used > budget → E10033 (pre-ACME).
+  // RAM used > budget → E10033 (pre-ACME).
   it("should emit E10033 when RAM usage exceeds the budget (ST-S4 / AC-12)", () => {
     const bag = createDiagnosticBag();
     checkBudgets(
@@ -54,7 +52,7 @@ describe("Specification: SFA budget diagnostics (R41–R46, §4.13)", () => {
     expect(codes(bag)).toContain(DiagCode.RamBudgetExceeded);
   });
 
-  // ST-S5 — RAM used ≥ 90% budget (not over) → W10033.
+  // RAM used ≥ 90% budget (not over) → W10033.
   it("should emit W10033 when RAM usage is in the warning band (ST-S5 / R44)", () => {
     const bag = createDiagnosticBag();
     const ramBudget = 0x9800;
@@ -75,7 +73,7 @@ describe("Specification: SFA budget diagnostics (R41–R46, §4.13)", () => {
     expect(codes(bag)).not.toContain(DiagCode.RamBudgetExceeded);
   });
 
-  // ST-Z7 — ZP usage ≥ 80% budget, not overflowed → W10030.
+  // ZP usage ≥ 80% budget, not overflowed → W10030.
   it("should emit W10030 when ZP usage is large but not overflowed (ST-Z7 / R43)", () => {
     const bag = createDiagnosticBag();
     const zpBudget = 46;
@@ -115,7 +113,7 @@ describe("Specification: SFA budget diagnostics (R41–R46, §4.13)", () => {
     expect(codes(bag)).not.toContain(DiagCode.LargeZpAllocation);
   });
 
-  // ST-S3 wiring — stack analysis above threshold → W10180.
+  // Stack analysis above threshold → W10180.
   it("should emit W10180 when the stack analysis exceeds its threshold (AC-13)", () => {
     const bag = createDiagnosticBag();
     const hotStack: StackAnalysis = { ...QUIET_STACK, exceedsWarningThreshold: true };
@@ -135,7 +133,7 @@ describe("Specification: SFA budget diagnostics (R41–R46, §4.13)", () => {
     expect(codes(bag)).toContain(DiagCode.StackDepthNearLimit);
   });
 
-  // ST-S6 — upstreamErrors true → no budget diagnostics at all (cascade, R62).
+  // upstreamErrors true → no budget diagnostics at all (cascade suppression).
   it("should suppress ALL budget diagnostics when upstreamErrors is true (ST-S6 / R62)", () => {
     const bag = createDiagnosticBag();
     const hotStack: StackAnalysis = { ...QUIET_STACK, exceedsWarningThreshold: true };

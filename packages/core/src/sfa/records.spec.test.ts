@@ -1,22 +1,21 @@
 /**
- * Specification tests for the RD-05 core SFA record vocabulary (Phase 1).
+ * Specification tests for the core SFA record vocabulary.
  *
- * Derived exclusively from the RD-05 plan specs — NOT from implementation logic:
- *   - 03-01-frame-model.md          (`FunctionInfo`, `FrameVar`, `FunctionFrame`, `FrameSlot`)
- *   - 03-02-interference-and-coloring.md (`InterferenceGraph`)
- *   - 03-03-zp-and-layout.md        (`ModuleVariableAllocation`, `ZpAllocation`, profile budgets)
- *   - 03-04-stack-and-budgets.md    (`StackAnalysis`)
- *   - 03-05-allocation-plan-and-api.md (`AllocationPlan`, `FrameAllocation`,
- *                                       `SymbolDefinition`, `SfaResourceData`)
- *   - 00-ambiguity-register.md      (D2 interim budget fields, D8 zpArgBlockMin default 0)
+ * Derived exclusively from the documented record contracts — NOT from
+ * implementation logic — covering the input records (`FunctionInfo`, `FrameVar`),
+ * the frame records (`FunctionFrame`, `FrameSlot`, `InterferenceGraph`), the
+ * zero-page and layout records (`ModuleVariableAllocation`, `ZpAllocation`,
+ * profile budgets), the stack-analysis record (`StackAnalysis`), and the
+ * allocation-plan records (`AllocationPlan`, `FrameAllocation`,
+ * `SymbolDefinition`, `SfaResourceData`).
  *
  * These are *shape/contract* spec tests: they construct each record from the
  * documented field set and assert the field values round-trip, and they assert
- * the interim `PlatformProfile` budget fields (D2) exist and are typed `number`.
- * The expectations come from the specification, not the code (immutable oracle).
+ * the interim `PlatformProfile` budget fields exist and are typed `number`. The
+ * expectations come from the specification, not the code (immutable oracle).
  *
- * Spec-tests-first (testing.md Rule 10): authored before the implementation;
- * verified to FAIL (red) before the records exist.
+ * Spec-tests-first: authored before the implementation; verified to FAIL (red)
+ * before the records exist.
  */
 
 import { describe, expect, it } from "vitest";
@@ -38,7 +37,7 @@ import type {
 } from "../index.js";
 
 describe("Specification: RD-05 core SFA records", () => {
-  // Source: 03-01-frame-model.md — FrameVar / FunctionInfo
+  // FrameVar / FunctionInfo
   it("should construct a FunctionInfo with FrameVar parameters/locals and flags", () => {
     const dx: FrameVar = { name: "dx", type: primitive("sword"), byRef: false };
     const i: FrameVar = { name: "i", type: primitive("byte"), byRef: false };
@@ -60,7 +59,7 @@ describe("Specification: RD-05 core SFA records", () => {
     expect(fn.callees).toEqual(["Game.moveEnemies"]);
   });
 
-  // Source: 03-01-frame-model.md — FrameSlot / FunctionFrame
+  // FrameSlot / FunctionFrame
   it("should construct a FunctionFrame with ordered FrameSlots and totalSize", () => {
     const slot0: FrameSlot = {
       name: "dx",
@@ -91,7 +90,7 @@ describe("Specification: RD-05 core SFA records", () => {
     expect(frame.totalSize).toBe(3);
   });
 
-  // Source: 03-02-interference-and-coloring.md — InterferenceGraph
+  // InterferenceGraph
   it("should construct an InterferenceGraph with nodes and symmetric edges", () => {
     const graph: InterferenceGraph = {
       nodes: new Set(["a", "b"]),
@@ -105,7 +104,7 @@ describe("Specification: RD-05 core SFA records", () => {
     expect(graph.edges.get("a")?.has("b")).toBe(true);
   });
 
-  // Source: 03-03-zp-and-layout.md — ModuleVariableAllocation / ZpAllocation
+  // ModuleVariableAllocation / ZpAllocation
   it("should construct a ModuleVariableAllocation", () => {
     const mv: ModuleVariableAllocation = {
       moduleName: "Game",
@@ -142,11 +141,11 @@ describe("Specification: RD-05 core SFA records", () => {
 
     expect(user.category).toBe("user");
     expect(ptr.category).toBe("pointer");
-    // D8: the "arg-block" category stays plumbed even though the interim floor is 0.
+    // the "arg-block" category stays plumbed even though the interim floor is 0.
     expect(argBlock.category).toBe("arg-block");
   });
 
-  // Source: 03-04-stack-and-budgets.md — StackAnalysis
+  // StackAnalysis
   it("should construct a StackAnalysis record", () => {
     const stack: StackAnalysis = {
       maxMainDepth: 3,
@@ -163,7 +162,7 @@ describe("Specification: RD-05 core SFA records", () => {
     expect(stack.exceedsWarningThreshold).toBe(false);
   });
 
-  // Source: 03-05-allocation-plan-and-api.md — FrameAllocation / SymbolDefinition / SfaResourceData
+  // FrameAllocation / SymbolDefinition / SfaResourceData
   it("should construct a FrameAllocation", () => {
     const slot: FrameSlot = {
       name: "x",
@@ -258,10 +257,9 @@ describe("Specification: RD-05 core SFA records", () => {
 });
 
 describe("Specification: RD-05 interim PlatformProfile budget fields (D2/D8)", () => {
-  // Source: 03-03-zp-and-layout.md — interim budget fields; the C64 fixture values
-  // listed there: ramStart 0x0800, ramEnd 0xA000, zpStart 0x02, zpEnd 0x2F,
-  // stackBudget 230, zpArgBlockMin 0 (D8), mainTempBytes 4, irqTempBytes 2,
-  // thresholds 0.80/0.90/0.75.
+  // Interim budget fields; the C64 fixture values used here: ramStart 0x0800,
+  // ramEnd 0xA000, zpStart 0x02, zpEnd 0x2F, stackBudget 230, zpArgBlockMin 0,
+  // mainTempBytes 4, irqTempBytes 2, thresholds 0.80/0.90/0.75.
   it("should expose all interim SFA budget fields on PlatformProfile", () => {
     const profile: PlatformProfile = {
       name: "c64",
@@ -279,10 +277,11 @@ describe("Specification: RD-05 interim PlatformProfile budget fields (D2/D8)", (
       stackWarnThreshold: 0.75,
     };
 
-    // Budget convention (03-03): zpBudget is inclusive, ramBudget is half-open.
+    // Budget convention: zpBudget is inclusive, ramBudget is half-open.
     expect(profile.zpEnd - profile.zpStart + 1).toBe(46);
     expect(profile.ramEnd - profile.ramStart).toBe(0x9800);
-    // D8: interim arg-block floor is 0 (RD-17 owns the real floor).
+    // This spec fixture's arg-block floor is 0, distinct from the shipped
+    // production default.
     expect(profile.zpArgBlockMin).toBe(0);
     expect(profile.mainTempBytes).toBe(4);
     expect(profile.irqTempBytes).toBe(2);

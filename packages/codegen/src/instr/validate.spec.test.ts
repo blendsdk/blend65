@@ -1,13 +1,11 @@
 /**
- * Specification tests for the RD-07a CPU validator (ST-V1..V10).
+ * Specification tests for the CPU validator.
  *
- * Derived EXCLUSIVELY from `requirements/RD-07-codegen-instr.md` (R14–R16, R61),
- * the component spec `03-02-cpu-table-and-validation.md`, spec §4.8, and the
- * Ambiguity Register (D3/D6/D8). These are immutable oracles (testing.md Rule
- * 10): if the implementation disagrees, the implementation is wrong.
+ * These are immutable oracles: if the implementation disagrees, the
+ * implementation is wrong.
  *
  * The expected legal/illegal pairs are transcribed from the canonical NMOS 6502
- * opcode matrix as documented in 03-02; the ICE code/message are fixed by D6/R61.
+ * opcode matrix; the ICE code/message are fixed accordingly.
  */
 
 import { describe, expect, it } from "vitest";
@@ -24,7 +22,7 @@ function streamOf(entries: InstrStream["entries"]): InstrStream {
 }
 
 describe("Specification: validateStream — legal NMOS streams (ST-V1, ST-V6)", () => {
-  // Source: RD-07 R14 / AC-04 — the canonical 8-bit add validates clean on NMOS
+  // the canonical 8-bit add validates clean on NMOS
   it("should accept the LDA/CLC/ADC/STA add sequence on nmos6502 (ST-V1)", () => {
     const bag = createDiagnosticBag();
     validateStream(
@@ -40,7 +38,7 @@ describe("Specification: validateStream — legal NMOS streams (ST-V1, ST-V6)", 
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // Source: RD-07 R5/R6 — non-instr entries have no opcode and are skipped
+  // non-instr entries have no opcode and are skipped
   it("should emit no diagnostics for a labels+directives-only stream (ST-V6)", () => {
     const bag = createDiagnosticBag();
     validateStream(
@@ -60,7 +58,7 @@ describe("Specification: validateStream — legal NMOS streams (ST-V1, ST-V6)", 
 });
 
 describe("Specification: validateStream — illegal pairs raise E90001 (ST-V2..V4)", () => {
-  // Source: RD-07 R15/R61 / D6 — illegal opcode+mode is an E90001 ICE with a named message
+  // illegal opcode+mode is an E90001 ICE with a named message
   it("should raise E90001 with a descriptive message for JSR ZeroPage (ST-V2)", () => {
     const bag = createDiagnosticBag();
     validateStream(
@@ -74,7 +72,7 @@ describe("Specification: validateStream — illegal pairs raise E90001 (ST-V2..V
     expect(errors[0].message).toBe("illegal opcode+mode for nmos6502: JSR ZeroPage");
   });
 
-  // Source: RD-07 R14/R15 — LDA has no Implied mode
+  // LDA has no Implied mode
   it("should raise an E90001 ICE for LDA Implied (ST-V3)", () => {
     const bag = createDiagnosticBag();
     validateStream(streamOf([instr("LDA", "Implied", none())]), "nmos6502", bag);
@@ -82,7 +80,7 @@ describe("Specification: validateStream — illegal pairs raise E90001 (ST-V2..V
     expect(bag.getErrors()[0].code).toBe(IceCode.Unexpected);
   });
 
-  // Source: RD-07 R16 — STZ is a 65C02-only opcode, illegal on NMOS
+  // STZ is a 65C02-only opcode, illegal on NMOS
   it("should raise an E90001 ICE for STZ Absolute on nmos6502 (ST-V4)", () => {
     const bag = createDiagnosticBag();
     validateStream(streamOf([instr("STZ", "Absolute", symbolRef("scr"))]), "nmos6502", bag);
@@ -92,14 +90,14 @@ describe("Specification: validateStream — illegal pairs raise E90001 (ST-V2..V
 });
 
 describe("Specification: validateStream — variant gating & span (ST-V5, ST-V7)", () => {
-  // Source: RD-07 R16 / D3 — STZ is legal on 65C02
+  // STZ is legal on 65C02
   it("should accept STZ Absolute on wdc65c02 (ST-V5)", () => {
     const bag = createDiagnosticBag();
     validateStream(streamOf([instr("STZ", "Absolute", symbolRef("scr"))]), "wdc65c02", bag);
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // Source: RD-07 R50 — the ICE carries the offending instruction's source span
+  // the ICE carries the offending instruction's source span
   it("should attach the instruction's sourceSpan to the emitted ICE (ST-V7)", () => {
     const span = makeSpan(0, 4, 8);
     const bag = createDiagnosticBag();
@@ -113,19 +111,19 @@ describe("Specification: validateStream — variant gating & span (ST-V5, ST-V7)
 });
 
 describe("Specification: isLegalMode predicate (ST-V8..V10)", () => {
-  // Source: spec §4.8 — legal/illegal pair predicate
+  // legal/illegal pair predicate
   it("should classify LDA Immediate legal and JSR ZeroPage illegal on NMOS (ST-V8)", () => {
     expect(isLegalMode("LDA", "Immediate", "nmos6502")).toBe(true);
     expect(isLegalMode("JSR", "ZeroPage", "nmos6502")).toBe(false);
   });
 
-  // Source: RD-07 R16 / D3 — BRA is 65C02-only
+  // BRA is 65C02-only
   it("should gate BRA Relative to wdc65c02 (ST-V9)", () => {
     expect(isLegalMode("BRA", "Relative", "nmos6502")).toBe(false);
     expect(isLegalMode("BRA", "Relative", "wdc65c02")).toBe(true);
   });
 
-  // Source: RD-07 R16 / D8 — the 65C02 (zp) ZeroPageIndirect mode is gated
+  // the 65C02 (zp) ZeroPageIndirect mode is gated
   it("should gate LDA ZeroPageIndirect to wdc65c02 (ST-V10)", () => {
     expect(isLegalMode("LDA", "ZeroPageIndirect", "nmos6502")).toBe(false);
     expect(isLegalMode("LDA", "ZeroPageIndirect", "wdc65c02")).toBe(true);

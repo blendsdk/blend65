@@ -1,5 +1,5 @@
 /**
- * The RD-17 T4 test fixture plugin (AR-P2) — TEST SUPPORT ONLY.
+ * The T4 test fixture plugin — TEST SUPPORT ONLY.
  *
  * A copy of the c64 plugin contributing one T4 intrinsic (`fix_probe(): void`,
  * `'call'` lowering) plus its runtime module, so the *mechanism* (registry
@@ -7,8 +7,8 @@
  * inventing production platform intrinsics (the language guard owns those).
  *
  * NEVER exported from the package barrel (`src/index.ts`) — consumed only by
- * this package's own tests. Other packages build their own test-local fixtures
- * (AR-P2 allows a test-local factory) to respect package boundaries.
+ * this package's own tests. Other packages build their own test-local
+ * fixtures to respect package boundaries.
  */
 
 import type { IntrinsicDescriptor, PlatformPlugin } from "@blend65/core/platform";
@@ -29,7 +29,7 @@ export const FIX_PROBE: IntrinsicDescriptor = {
 /**
  * The fixture plugin: the real c64 plugin with the T4 contribution attached.
  * `baseUrl` self-locates the module so embedding resolves it from `src/`
- * (vitest) and `dist/` (built) identically (PF-017).
+ * (vitest) and `dist/` (built) identically.
  */
 export const fixturePlugin: PlatformPlugin = {
   ...c64Plugin,

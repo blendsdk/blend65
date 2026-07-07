@@ -1,14 +1,14 @@
 /**
- * Specification tests for the RD-18 Slice 4a acceptance bar (parts 1 & 3): the
- * conditionals + loops fixture assembles clean through the real multi-block CFG
- * path, and on real VICE the computed byte result (a for-loop with break/continue
- * plus a while-loop, then a two-armed if/else) settles into observable RAM.
+ * Specification tests for the Slice 4a acceptance bar: the conditionals + loops
+ * fixture assembles clean through the real multi-block CFG path, and on real
+ * VICE the computed byte result (a for-loop with break/continue plus a
+ * while-loop, then a two-armed if/else) settles into observable RAM.
  *
- * Derived EXCLUSIVELY from `03-04-acceptance-fixtures.md` (ST-19/ST-21) + the
- * Ambiguity Register (AR-13) — never from reading the implementation (IMMUTABLE
- * ORACLE). The assemble-clean suite compiles via ACME (`skipIf(!hasAcme())`); the
- * runtime suite additionally runs on VICE (`skipIf(!(hasVice && hasAcme))`, skipped
- * in CI — the golden tier guards there).
+ * These tests are derived directly from the fixture's documented behavior, not
+ * from reading the implementation. The assemble-clean suite compiles via ACME
+ * (`skipIf(!hasAcme())`); the runtime suite additionally runs on VICE
+ * (`skipIf(!(hasVice && hasAcme))`, skipped in CI — the golden tier guards
+ * there).
  */
 
 import { afterAll, describe, expect, it } from "vitest";

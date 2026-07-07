@@ -1,15 +1,14 @@
 /**
- * Shared test fixtures for the RD-05 SFA planner passes.
+ * Shared test fixtures for the SFA planner passes.
  *
- * Provides the C64-shaped interim `PlatformProfile` (the budget values listed in
- * plans/rd-05-sfa-frame-planner/03-03-zp-and-layout.md) and small builders for
+ * Provides the C64-shaped interim `PlatformProfile` and small builders for
  * `FunctionInfo` / `FrameVar` / struct & array `Type`s, so the frame-computation,
  * interference, coloring, ZP, stack, budget, symbol, and plan-assembly suites all
- * construct inputs the same way (DRY — code.md §1).
+ * construct inputs the same way (DRY).
  *
  * This is test-support data only (no compiler logic); it is **not** re-exported
  * from the package barrel. It imports `@blend65/core` only — never
- * `@blend65/codegen` (R15/AR-20).
+ * `@blend65/codegen`.
  */
 
 import type {
@@ -25,12 +24,12 @@ import type {
 import { primitive } from "@blend65/core";
 
 /**
- * A C64-shaped interim platform profile for SFA tests (RD-05 D2/D8).
+ * A C64-shaped interim platform profile for SFA tests.
  *
- * Values from 03-03-zp-and-layout.md: RAM `[0x0800, 0xA000)` (38 912 bytes), ZP
- * `[0x02, 0x2F]` (46 inclusive bytes), `stackBudget` 230, `zpArgBlockMin` 0 (D8 —
- * the arg-block floor is deferred to RD-17), `mainTempBytes` 4, `irqTempBytes` 2,
- * and the 0.80/0.90/0.75 warn thresholds.
+ * RAM `[0x0800, 0xA000)` (38 912 bytes), ZP `[0x02, 0x2F]` (46 inclusive bytes),
+ * `stackBudget` 230, `zpArgBlockMin` 0 (the arg-block floor is deferred until the
+ * runtime ABI is finalized), `mainTempBytes` 4, `irqTempBytes` 2, and the
+ * 0.80/0.90/0.75 warn thresholds.
  */
 export const C64_FIXTURE_PROFILE: PlatformProfile = {
   name: "c64",

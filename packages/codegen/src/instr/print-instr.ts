@@ -1,13 +1,12 @@
 /**
- * Canonical ACME serializer — `printInstr` (RD-07 §3.8, R52–R54) + `instrByteSize`
- * (Ch 11 §6, R58 support).
+ * Canonical ACME serializer — `printInstr` + `instrByteSize`.
  *
- * Renders an {@link InstrStream} to **canonical ACME-syntax assembly text**. Per
- * decision D4 / AR-60 this is the **single** serializer in the toolchain:
- * `--emit-asm` output and the text fed to ACME (RD-09) both come from this exact
- * function, so they can never drift. RD-09 imports and reuses `printInstr`.
+ * Renders an {@link InstrStream} to **canonical ACME-syntax assembly text**. This
+ * is the **single** serializer in the toolchain: `--emit-asm` output and the text
+ * fed to ACME both come from this exact function, so they can never drift. The
+ * whole-program ACME serializer imports and reuses `printInstr`.
  *
- * The serializer is **pure and deterministic** (R53): identical input → identical
+ * The serializer is **pure and deterministic**: identical input → identical
  * output, byte-for-byte. No `Map`/`Set` iteration whose order could vary, no
  * timestamps, no locale-dependent formatting; line endings are always `\n` and
  * hex uses a fixed uppercase format. This determinism is what makes golden
@@ -37,9 +36,9 @@ function hex8(value: number): string {
  * Format a word value as ACME 4-digit uppercase hex (`$0801`). Values are masked
  * to 16 bits for deterministic rendering.
  *
- * Exported so the RD-09 whole-program serializer (`serialize-acme.ts`) renders
+ * Exported so the whole-program serializer (`serialize-acme.ts`) renders
  * symbol-definition values with the exact same format — one hex implementation,
- * no duplication (code.md DRY; AR-94/1A).
+ * no duplication.
  *
  * @param value The numeric value to format.
  * @returns The `$XXXX` hex string.
@@ -51,7 +50,7 @@ export function hex16(value: number): string {
 /**
  * Render the *symbol text* for a `symbolRef`/`zpSlot`/`labelRef` operand — the
  * bare identifier, plus a `+offset` suffix and `<`/`>` byte-select prefix when
- * present (R10/R13). Immediates and `none` are handled by {@link operandText}.
+ * present. Immediates and `none` are handled by {@link operandText}.
  *
  * @param o The operand to render the name portion of.
  * @returns The symbolic name text (without any `#` immediate prefix).
@@ -92,10 +91,10 @@ function operandText(o: InstrOperand): string {
 
 /**
  * Render the full operand text for an instruction, applying the addressing-mode
- * decoration (R54): `#` for immediate, `,X`/`,Y` indexing, `(...)` indirection.
+ * decoration: `#` for immediate, `,X`/`,Y` indexing, `(...)` indirection.
  *
  * One rendering path per mode — the `never` default arm makes the switch
- * exhaustive at compile time (H5: no runtime fall-through).
+ * exhaustive at compile time (no runtime fall-through).
  *
  * @param mode The addressing mode.
  * @param operand The instruction operand.
@@ -135,7 +134,7 @@ function modeOperandText(mode: AddressingMode, operand: InstrOperand): string {
 }
 
 /**
- * Render an ACME directive to its pseudo-op text (R6). Origin and output-file
+ * Render an ACME directive to its pseudo-op text. Origin and output-file
  * directives sit at column 0; the rest are indented (handled by {@link renderEntry}).
  *
  * One rendering path per directive kind; the `never` default arm enforces
@@ -179,7 +178,7 @@ function isColumnZeroDirective(d: AcmeDirective): boolean {
 }
 
 /**
- * Render a single stream entry to one text line (R54).
+ * Render a single stream entry to one text line.
  *
  * Instructions render at {@link INDENT}; labels at column 0 with a `:`;
  * directives at indent except origin/symbolDef/output-file which sit at column 0.
@@ -208,12 +207,12 @@ function renderEntry(entry: StreamEntry): string {
 }
 
 /**
- * Render an instruction stream to canonical ACME-syntax assembly text (R52–R54).
+ * Render an instruction stream to canonical ACME-syntax assembly text.
  *
- * Deterministic (R53): identical input → identical output. This is the single
- * serializer shared by `--emit-asm` and the RD-09 ACME emitter (D4/AR-60) — RD-09
- * reuses this function rather than re-implementing rendering. An empty stream
- * renders to the empty string.
+ * Deterministic: identical input → identical output. This is the single
+ * serializer shared by `--emit-asm` and the whole-program ACME emitter — the
+ * emitter reuses this function rather than re-implementing rendering. An empty
+ * stream renders to the empty string.
  *
  * @param stream The instruction stream to serialize.
  * @returns The ACME assembly text (newline-separated, no trailing newline).
@@ -223,7 +222,7 @@ export function printInstr(stream: InstrStream): string {
 }
 
 /**
- * Assembled byte size of a single stream entry (R58 support, Ch 11 §6).
+ * Assembled byte size of a single stream entry.
  *
  * - **instr**: 1 byte (opcode) + operand bytes by addressing mode —
  *   Implied/Accumulator = 0; Absolute modes + Indirect = 2; everything else = 1.
@@ -286,7 +285,7 @@ function operandByteCount(mode: AddressingMode): number {
 }
 
 /**
- * The assembled byte size of a directive's payload (Ch 11 §6).
+ * The assembled byte size of a directive's payload.
  *
  * @param d The directive.
  * @returns The byte count the directive contributes to the binary.

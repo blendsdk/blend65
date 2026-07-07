@@ -1,8 +1,8 @@
 /**
- * Implementation tests for RD-18 Slice 4b switch semantics — internals and edge
- * cases beyond the specification oracle: check precedence (E10071 → E10084 →
- * E10077), literal adaptation for a `word` discriminant, poison (cascade)
- * suppression, multi-value lists, and empty case bodies.
+ * Implementation tests for switch semantics — internals and edge cases beyond
+ * the specification oracle: check precedence (E10071 → E10084 → E10077),
+ * literal adaptation for a `word` discriminant, poison (cascade) suppression,
+ * multi-value lists, and empty case bodies.
  *
  * These probe the implementation's behavior (not a frozen-spec contract), so they
  * live in the `.impl` tier. Exercised through the REAL public path

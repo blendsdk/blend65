@@ -1,21 +1,20 @@
 /**
- * AST→IL lowering for the RD-06 gate/slice-2 surface (R29–R52 subset, R68/R69,
- * §3.5/§4.7/§4.12; registers D1/D5/D8/D9).
+ * AST→IL lowering for the currently supported language surface.
  *
- * `lowerToIL` walks the validated AST and emits an {@link ILProgram}. Per D1 only
- * the **gate + slice-2 surface** is lowered; every other AST node kind reaches a
- * visitor **default arm** that raises an `E90001` ICE (D6/R69) and returns a
+ * `lowerToIL` walks the validated AST and emits an {@link ILProgram}. Only
+ * the currently supported surface is lowered; every other AST node kind reaches
+ * a visitor **default arm** that raises an `E90001` ICE and returns a
  * poison operand so the walk continues deterministically — it **never throws**.
- * Per D5 the lowering is real and fixture-tested today; only the live façade
+ * The lowering itself is real and fixture-tested today; only the live façade
  * wiring (a populated `SemanticModel`) is deferred, so under the live passthrough
  * the program is empty and this returns an empty `ILProgram`.
  *
- * Two register decisions shape the textual surface:
- * - **D8** — function-header params are the plan-backed frame-slot `Location`
+ * Two design decisions shape the textual surface:
+ * - Function-header params are the plan-backed frame-slot `Location`
  *   operands, rendered verbatim (`__frame_Math_add_a: i8u`).
- * - **D9** — the `poke`/`peek` address lowers to a **symbolic `location`**
+ * - The `poke`/`peek` address lowers to a **symbolic `location`**
  *   (`$D020`), not a decimal immediate, keeping addresses symbolic until the
- *   ACME emitter (AR-52) and matching the printer with no change.
+ *   ACME emitter resolves them, matching the printer with no change.
  */
 
 import { byteSize, createIntrinsicRegistry, DiagCode, IceCode, primitive, walkChildren, walkNode } from "@blend65/core";
@@ -63,19 +62,19 @@ import type { ILFunction, ILProgram } from "./cfg.js";
 import { IlFunctionBuilder } from "./builder.js";
 
 /**
- * The lowering entry point's input (§4.12, D4): the AST roots plus the RD-04
- * model and RD-05 plan that resolve types and addresses.
+ * The lowering entry point's input: the AST roots plus the semantic model
+ * and allocation plan that resolve types and addresses.
  */
 export interface LowerInput {
-  /** RD-03 AST roots. */
+  /** AST roots. */
   readonly program: readonly ProgramNode[];
-  /** RD-04 semantic model (typed AST, symbols, const values, struct/enum tables). */
+  /** Semantic model (typed AST, symbols, const values, struct/enum tables). */
   readonly model: SemanticModel;
-  /** RD-05 allocation plan (frame/zp/symbol addresses). */
+  /** Allocation plan (frame/zp/symbol addresses). */
   readonly plan: AllocationPlan;
   /**
-   * The intrinsic registry (RD-17). When absent, a core-only registry is built
-   * internally so existing RD-06 callers/tests keep working (non-breaking).
+   * The intrinsic registry. When absent, a core-only registry is built
+   * internally so existing callers/tests keep working (non-breaking).
    */
   readonly registry?: IntrinsicRegistry;
 }
@@ -100,10 +99,10 @@ const BINARY_OP_TO_IL: Partial<Record<BinaryOp, ILInstruction["op"]>> = {
   ">=": "ge",
 };
 
-/** IL opcodes whose result is always an `IL_BYTE` 0/1 (R20). */
+/** IL opcodes whose result is always an `IL_BYTE` 0/1. */
 const COMPARISON_RESULT_OPS = new Set(["eq", "ne", "lt", "le", "gt", "ge"]);
 
-/** A loop's branch targets for `break`/`continue` lowering (RD-18 Slice 4a, AR-12). */
+/** A loop's branch targets for `break`/`continue` lowering. */
 interface LoopContext {
   /** The label `break` branches to (the loop's end block). */
   readonly breakTarget: string;
@@ -117,19 +116,18 @@ interface LowerCtx {
   readonly fqName: string;
   readonly frame: FunctionFrame | undefined;
   readonly bag: DiagnosticBag;
-  /** RD-17: the semantic model (struct/enum tables for sizeof/offsetof folds). */
+  /** The semantic model (struct/enum tables for sizeof/offsetof folds). */
   readonly model: SemanticModel;
-  /** RD-17: the intrinsic registry (descriptor lookup for strategy dispatch). */
+  /** The intrinsic registry (descriptor lookup for strategy dispatch). */
   readonly registry: IntrinsicRegistry;
-  /** RD-18 Slice 4a: the enclosing-loop stack for `break`/`continue` (AR-12). */
+  /** The enclosing-loop stack for `break`/`continue`. */
   readonly loopStack: LoopContext[];
 }
 
 /**
- * Lower the validated AST + model + plan to IL (D4). Never throws (R69): user
+ * Lower the validated AST + model + plan to IL. Never throws: user
  * errors are caught upstream; this emits only `E90001` ICEs for AST shapes it
- * does not yet handle. Functions carrying an `ErrorType`/error node are skipped
- * (R68).
+ * does not yet handle. Functions carrying an `ErrorType`/error node are skipped.
  *
  * @param input The AST roots, semantic model, and allocation plan.
  * @param bag The diagnostic sink for ICEs.
@@ -143,7 +141,7 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
     for (const item of program.items) {
       if (item.kind === "FunctionDecl" || item.kind === "InterruptDecl") {
         if (hasErrorNode(item)) {
-          continue; // R68 — skip functions tainted by an ErrorType/error node
+          continue; // skip functions tainted by an ErrorType/error node
         }
         functions.push(lowerFunction(item, moduleName, input.plan, input.model, registry, bag));
       }
@@ -181,13 +179,13 @@ function lowerFunction(
 
   lowerBlock(fn.body, ctx);
 
-  // Fall-through end of a function closes the entry block with `ret()` (R42).
+  // Fall-through end of a function closes the entry block with `ret()`.
   return builder.finish({ kind: "ret" });
 }
 
 /**
  * Lower a block's statements in order into the current block. Stops emitting once
- * the current block is terminated (RD-18 Slice 4a, 03-02 §3): statements after a
+ * the current block is terminated: statements after a
  * `return`/`break`/`continue` are unreachable and must not append to a terminated
  * block (keeps every block single-terminator).
  */
@@ -198,7 +196,7 @@ function lowerBlock(blockNode: BlockNode, ctx: LowerCtx): void {
   }
 }
 
-/** Lower a single statement (gate/slice-2 + Slice-4a control flow); ICE default. */
+/** Lower a single statement; unsupported statement kinds fall to the ICE default. */
 function lowerStmt(stmt: StmtNode, ctx: LowerCtx): void {
   switch (stmt.kind) {
     case "Block":
@@ -240,17 +238,17 @@ function lowerStmt(stmt: StmtNode, ctx: LowerCtx): void {
   }
 }
 
-/** `let v = init;` → materialise init into a value, then store it to v's slot (R29/R30). */
+/** `let v = init;` → materialise init into a value, then store it to v's slot. */
 function lowerLetDecl(decl: LetDeclNode, ctx: LowerCtx): void {
   if (decl.initialiser === null) {
-    return; // R30 — no IL for an initialiser-less declaration
+    return; // no IL for an initialiser-less declaration
   }
   const value = materialise(lowerExpr(decl.initialiser, ctx), ctx);
   const target = loc(frameSymbol(ctx.fqName, decl.name), slotIlType(ctx.frame, decl.name));
   ctx.builder.emit({ op: "store", a: value, b: target });
 }
 
-/** `return [expr];` → terminate the block with `ret(value?)` (R42). */
+/** `return [expr];` → terminate the block with `ret(value?)`. */
 function lowerReturn(stmt: ReturnStmtNode, ctx: LowerCtx): void {
   if (stmt.value === null) {
     ctx.builder.terminate({ kind: "ret" });
@@ -260,10 +258,10 @@ function lowerReturn(stmt: ReturnStmtNode, ctx: LowerCtx): void {
   ctx.builder.terminate({ kind: "ret", value });
 }
 
-// ── Control-flow lowering (RD-18 Slice 4a — the multi-block CFG keystone) ─────
+// ── Control-flow lowering — the multi-block CFG keystone ─────
 
 /**
- * Lower `if (cond) then [else]` into a multi-block CFG (FR-7 §2.1). The condition
+ * Lower `if (cond) then [else]` into a multi-block CFG. The condition
  * lowers to a boolean operand; a `brcond` selects the `then`/`else` (or `end`)
  * block; each arm falls through to a shared `end` block via `br` unless it already
  * terminated (a `return`/`break`/`continue`). `else if` chains nest the same shape.
@@ -294,7 +292,7 @@ function lowerIf(stmt: IfStmtNode, ctx: LowerCtx): void {
 }
 
 /**
- * Lower `while (cond) body` (FR-7 §2.2): entry → `cond`; `cond` branches to `body`
+ * Lower `while (cond) body`: entry → `cond`; `cond` branches to `body`
  * or `end`; `body` back-edges to `cond`. `break`→`end`, `continue`→`cond`.
  */
 function lowerWhile(stmt: WhileStmtNode, ctx: LowerCtx): void {
@@ -317,7 +315,7 @@ function lowerWhile(stmt: WhileStmtNode, ctx: LowerCtx): void {
 }
 
 /**
- * Lower `do body while (cond)` (FR-7 §2.3): entry → `body`; `body` → `cond`;
+ * Lower `do body while (cond)`: entry → `body`; `body` → `cond`;
  * `cond` branches back to `body` or on to `end`. `break`→`end`, `continue`→`cond`
  * (re-evaluate the condition, correct for do-while).
  */
@@ -341,15 +339,15 @@ function lowerDoWhile(stmt: DoWhileStmtNode, ctx: LowerCtx): void {
 }
 
 /**
- * Lower `for (let i: T = init to|downto bound [step s]) body` (Pattern A, FR-7
- * §2.4, AR-6). The counter is a frame local (allocated in §B of 03-01):
- * `init` stores it; `cond` compares it against `bound` (`le` for `to`, `ge` for
- * `downto`) via `brcond`; `body` falls to `incr`; `incr` adds/subtracts the const
- * step and back-edges to `cond`. `break`→`end`, `continue`→`incr`.
+ * Lower `for (let i: T = init to|downto bound [step s]) body` (Pattern A).
+ * The counter is a frame local: `init` stores it; `cond` compares it against
+ * `bound` (`le` for `to`, `ge` for `downto`) via `brcond`; `body` falls to
+ * `incr`; `incr` adds/subtracts the const step and back-edges to `cond`.
+ * `break`→`end`, `continue`→`incr`.
  *
- * Full-range guard (AR-6): a `to <type-max>` inclusive bound is the Pattern-B wrap
- * case — its `counter <= max` predicate can never go false — so it records an ICE
- * (Pattern B deferred) rather than lower a non-terminating loop. 4a fixtures avoid it.
+ * Full-range guard: a `to <type-max>` inclusive bound is the Pattern-B wrap
+ * case — its `counter <= max` predicate can never go false — so it records an
+ * ICE (Pattern B deferred) rather than lower a non-terminating loop.
  */
 function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
   const counterType = slotIlType(ctx.frame, stmt.varName);
@@ -373,7 +371,7 @@ function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
     stmt.bound.kind === "NumericLitExpr" &&
     stmt.bound.value === ilTypeMax(counterType)
   ) {
-    // Pattern-B wrap (full-range `to <type-max>`) is deferred (AR-6): a compare
+    // Pattern-B wrap (full-range `to <type-max>`) is deferred: a compare
     // `counter <= max` never falls through. Record the ICE; the emitted compare is
     // never assembled (hasErrors), but keeps the block well-formed.
     iceUnsupported(stmt, ctx, "for-loop full-range 'to <type-max>' (Pattern B deferred)");
@@ -398,22 +396,21 @@ function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
 
 /**
  * Lower `switch (D) { case v...: B ... default: Bd }` into a `brcond` compare-chain
- * over the multi-block CFG keystone (RD-18 Slice 4b, FR-10/FR-11, AR-1/AR-8/AR-9;
- * 03-02 §1/§2). No jump table, no new IL terminator (deferred to Phase B).
+ * over the multi-block CFG keystone. No jump table, no new IL terminator (a
+ * jump-table lowering is deferred to a later pass).
  *
  * Shape: one dispatch **test block** per case value emits `eq(disc, value)` +
  * `brcond(→ shared body, else next test)`; multi-value cases point every true-edge
- * at the same body block (AR-8). After the last test the unmatched discriminant
- * falls unconditionally to the (always-present, AR-5) `default` body. Each clause
+ * at the same body block. After the last test the unmatched discriminant
+ * falls unconditionally to the (always-present) `default` body. Each clause
  * body is its own block: without a trailing `fallthrough` it ends `br(join)`
- * (auto-break); with one it ends `br(<next clause body>)` (AR-9). `break`/`continue`
- * inside a body resolve to the enclosing `LoopContext` — switch pushes nothing
- * (AR-6).
+ * (auto-break); with one it ends `br(<next clause body>)`. `break`/`continue`
+ * inside a body resolve to the enclosing `LoopContext` — switch pushes nothing.
  *
  * The discriminant is re-lowered **fresh in each test block** (a single-use temp
  * the block's `eq` consumes) rather than materialised once and reused: a temp
  * cannot live across a basic-block boundary in `translate.ts` (block-local
- * fold/register state), so this mirrors the 4a for-loop counter reload.
+ * fold/register state), so this mirrors the for-loop counter reload.
  */
 function lowerSwitch(stmt: SwitchStmtNode, ctx: LowerCtx): void {
   const join = ctx.builder.reserveLabel();
@@ -461,7 +458,7 @@ function lowerSwitch(stmt: SwitchStmtNode, ctx: LowerCtx): void {
 }
 
 /**
- * Lower one switch clause body into the current block (RD-18 Slice 4b, AR-9). A
+ * Lower one switch clause body into the current block. A
  * trailing `fallthrough` (guaranteed last by semantics E10074) terminates the body
  * with `br(nextBodyL)`; otherwise the body auto-breaks with `br(join)`. A body that
  * already terminated (a `break`/`continue`/`return`) is left as-is (isTerminated
@@ -499,7 +496,7 @@ function compareCounter(
   ctx.builder.emit({ op: "load", a: current, b: counterLoc });
   const result = ctx.builder.newTemp(IL_BYTE);
   const op: ILInstruction["op"] = direction === "to" ? "le" : "ge";
-  // Comparison result is the i8u 0/1 flag (R20) — mirrors `lowerBinary`.
+  // Comparison result is the i8u 0/1 flag — mirrors `lowerBinary`.
   ctx.builder.emit({ op, dest: result, left: current, right: bound, type: IL_BYTE } as ILInstruction);
   return result;
 }
@@ -539,7 +536,7 @@ function constStep(step: ExprNode | null, ctx: LowerCtx): number {
   return 1;
 }
 
-/** Lower `break;` → an unconditional branch to the enclosing loop's end (FR-8). */
+/** Lower `break;` → an unconditional branch to the enclosing loop's end. */
 function lowerBreak(stmt: StmtNode, ctx: LowerCtx): void {
   const top = ctx.loopStack[ctx.loopStack.length - 1];
   if (top === undefined) {
@@ -549,7 +546,7 @@ function lowerBreak(stmt: StmtNode, ctx: LowerCtx): void {
   ctx.builder.terminate({ kind: "br", target: top.breakTarget });
 }
 
-/** Lower `continue;` → an unconditional branch to the enclosing loop's cond/incr (FR-8). */
+/** Lower `continue;` → an unconditional branch to the enclosing loop's cond/incr. */
 function lowerContinue(stmt: StmtNode, ctx: LowerCtx): void {
   const top = ctx.loopStack[ctx.loopStack.length - 1];
   if (top === undefined) {
@@ -559,13 +556,13 @@ function lowerContinue(stmt: StmtNode, ctx: LowerCtx): void {
   ctx.builder.terminate({ kind: "br", target: top.continueTarget });
 }
 
-/** The inclusive maximum value representable by an IL integer type (for AR-6's guard). */
+/** The inclusive maximum value representable by an IL integer type (used by the full-range guard). */
 function ilTypeMax(t: ILType): number {
   if (t.signed) return t.width === 8 ? 127 : 32767;
   return t.width === 8 ? 255 : 65535;
 }
 
-/** Lower a single expression to an operand (gate/slice-2 surface); ICE default. */
+/** Lower a single expression to an operand; ICE default for unsupported expression kinds. */
 function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
   switch (expr.kind) {
     case "NumericLitExpr":
@@ -589,10 +586,10 @@ function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
 
 /**
  * Lower a plain call expression. A call whose callee names a registered
- * `'call'`-strategy intrinsic is a T4 platform intrinsic (RD-17 03-05 — T4
+ * `'call'`-strategy intrinsic is a T4 platform intrinsic — T4
  * names parse as ordinary `CallExprNode` and are recognized semantically via
- * the registry, AC-17): it lowers to the IL `intrinsic` op exactly like a T3
- * routine. Anything else (user function calls) is deferred (RD-06 slice) → ICE.
+ * the registry: it lowers to the IL `intrinsic` op exactly like a T3
+ * routine. Anything else (user function calls) is deferred for now → ICE.
  */
 function lowerCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
   if (expr.callee.kind === "IdentExpr") {
@@ -606,9 +603,9 @@ function lowerCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
 }
 
 /**
- * A numeric literal folds directly to an immediate operand (R28/R45). Its IL
- * width comes from the model's resolved type (RD-18 Slice 3b, AR-8) so a word
- * literal is `IL_WORD` — replacing the old byte hardcode. An `ErrorType`/absent
+ * A numeric literal folds directly to an immediate operand. Its IL
+ * width comes from the model's resolved type, so a word
+ * literal is `IL_WORD`. An `ErrorType`/absent
  * type falls back to `IL_BYTE` via `ilTypeOfType` (an errored program does not
  * reach a clean build).
  */
@@ -617,8 +614,8 @@ function lowerNumericLit(expr: NumericLitExprNode, ctx: LowerCtx): ILOperand {
 }
 
 /**
- * A variable read loads its storage location into a fresh temp (R22). A module-
- * scope variable resolves to its `__var_*` symbol (RD-18 Slice 3b); a local/param
+ * A variable read loads its storage location into a fresh temp. A module-
+ * scope variable resolves to its `__var_*` symbol; a local/param
  * resolves to its `__frame_*` slot (existing path).
  */
 function lowerIdent(expr: IdentExprNode, ctx: LowerCtx): ILOperand {
@@ -634,7 +631,7 @@ function lowerIdent(expr: IdentExprNode, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
-/** A same-width binary expression: evaluate left, then right, then the op (R18/R19/R33). */
+/** A same-width binary expression: evaluate left, then right, then the op. */
 function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
   const op = BINARY_OP_TO_IL[expr.op];
   if (op === undefined) {
@@ -642,9 +639,9 @@ function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
   }
   const left = lowerExpr(expr.left, ctx); // left-first (FN-10)
   const right = lowerExpr(expr.right, ctx);
-  // Result width from the model's resolved type (RD-18 Slice 3b, AR-8) so
+  // Result width comes from the model's resolved type, so
   // `word OP word → i16u` reaches `__rt_mul16`/`__rt_div16`; comparisons are
-  // always the i8u 0/1 flag (R20). ErrorType falls back to IL_BYTE.
+  // always the i8u 0/1 flag. ErrorType falls back to IL_BYTE.
   const type: ILType = COMPARISON_RESULT_OPS.has(op)
     ? IL_BYTE
     : ilTypeOfType(ctx.model.typeOf(expr));
@@ -655,7 +652,7 @@ function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
-/** `target = rhs` → materialise rhs and store it to the target's slot (R31). */
+/** `target = rhs` → materialise rhs and store it to the target's slot. */
 function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   if (expr.op !== "=" || expr.target.kind !== "IdentExpr") {
     return iceUnsupported(expr, ctx, "assignment");
@@ -664,7 +661,7 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   const moduleVar = moduleVarOf(expr.target, ctx);
   const target =
     moduleVar !== null
-      ? loc(moduleVar.symbol, moduleVar.type) // module scalar → __var_* (Slice 3b)
+      ? loc(moduleVar.symbol, moduleVar.type) // module scalar → __var_*
       : loc(frameSymbol(ctx.fqName, expr.target.name), slotIlType(ctx.frame, expr.target.name));
   ctx.builder.emit({ op: "store", a: value, b: target });
   return value;
@@ -672,7 +669,7 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
 
 /**
  * Lower an intrinsic call by dispatching on its descriptor's `loweringStrategy`
- * (R17, AR-49) — never on the intrinsic name (AC-17). `'fold'` evaluates to an
+ * — never on the intrinsic name. `'fold'` evaluates to an
  * immediate, `'inline'` selects an emitter from {@link INLINE_EMITTERS}, and
  * `'opcode'`/`'call'` emit an IL `intrinsic` op carrying the descriptor for
  * translate to finish (T1 opcode / T3-T4 marshalling).
@@ -705,9 +702,9 @@ function emitIntrinsicOp(name: string, descriptor: IntrinsicDescriptor, ctx: Low
 // ── T2 folds (sizeof/offsetof/length — Ch 12 §3.3) ───────────────────────────
 
 /**
- * Fold a `'fold'`-strategy intrinsic to an immediate (AC-09; no runtime code).
+ * Fold a `'fold'`-strategy intrinsic to an immediate (no runtime code).
  * Dispatch is by NODE SHAPE, not name: `offsetof` carries a `fieldArg`, `sizeof`
- * carries a `typeArg`, and `length` carries a value argument. The analyzer (V7)
+ * carries a `typeArg`, and `length` carries a value argument. The analyzer
  * has already resolved the type/field, so failures here are defensive zeros.
  */
 function foldIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
@@ -717,7 +714,7 @@ function foldIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   if (expr.typeArg !== null) {
     return imm(sizeOfType(expr.typeArg, ctx), IL_BYTE);
   }
-  // length(array): ≤255 → `byte`, else `word` (AR-P15 — deliberate spec deviation).
+  // length(array): ≤255 → `byte`, else `word` (a deliberate spec deviation).
   const count = lengthOfArray(expr.args[0], ctx);
   return imm(count, count <= 255 ? IL_BYTE : IL_WORD);
 }
@@ -765,7 +762,7 @@ function lengthOfArray(arg: ExprNode | undefined, ctx: LowerCtx): number {
 /** An inline T2 emitter: lowers the call to IL load/store/immediate operands. */
 type InlineEmitter = (expr: IntrinsicCallExprNode, ctx: LowerCtx) => ILOperand;
 
-/** Dispatch a `'inline'`-strategy intrinsic through the keyed emitter map (AC-17). */
+/** Dispatch a `'inline'`-strategy intrinsic through the keyed emitter map. */
 function inlineIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const emitter = INLINE_EMITTERS.get(expr.name);
   if (emitter === undefined) {
@@ -774,7 +771,7 @@ function inlineIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand 
   return emitter(expr, ctx);
 }
 
-/** `peek(addr)` → one byte `load` from the constant address (AC-08). */
+/** `peek(addr)` → one byte `load` from the constant address. */
 function emitPeek(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const base = constAddress(expr.args[0], "peek", ctx);
   if (base === null) return imm(0, IL_BYTE);
@@ -783,7 +780,7 @@ function emitPeek(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
-/** `poke(addr, val)` → one byte `store` to the constant address (AC-08). */
+/** `poke(addr, val)` → one byte `store` to the constant address. */
 function emitPoke(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const base = constAddress(expr.args[0], "poke", ctx);
   if (base === null) return imm(0, IL_BYTE);
@@ -839,7 +836,7 @@ function emitHi(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   return iceUnsupported(expr, ctx, "hi() of a non-constant value");
 }
 
-/** The inline T2 emitter table — keyed once, not a per-name switch (AC-17). */
+/** The inline T2 emitter table — keyed once, not a per-name switch. */
 const INLINE_EMITTERS: ReadonlyMap<string, InlineEmitter> = new Map<string, InlineEmitter>([
   ["peek", emitPeek],
   ["poke", emitPoke],
@@ -851,7 +848,7 @@ const INLINE_EMITTERS: ReadonlyMap<string, InlineEmitter> = new Map<string, Inli
 
 /**
  * Resolve a compile-time-constant intrinsic address. A numeric literal yields its
- * value; anything else emits **E10045** (R39, AR-P5) and returns `null` so the
+ * value; anything else emits **E10045** and returns `null` so the
  * caller poisons the statement — NOT an ICE.
  */
 function constAddress(arg: ExprNode | undefined, name: string, ctx: LowerCtx): number | null {
@@ -866,7 +863,7 @@ function constAddress(arg: ExprNode | undefined, name: string, ctx: LowerCtx): n
   return null;
 }
 
-/** Render a numeric address as the `$HEX` symbol kept symbolic through the IL (AR-52). */
+/** Render a numeric address as the `$HEX` symbol kept symbolic through the IL. */
 function hexAddr(value: number): string {
   return `$${value.toString(16).toUpperCase()}`;
 }
@@ -879,7 +876,7 @@ function errorExpr(): ExprNode {
 /** The zero source span used for synthesized/placeholder nodes. */
 const ZERO_SPAN = { sourceId: 0, start: 0, end: 0 } as const;
 
-/** Wrap a non-temp value in a `const` temp so it can flow into a `store` (R28). */
+/** Wrap a non-temp value in a `const` temp so it can flow into a `store`. */
 function materialise(value: ILOperand, ctx: LowerCtx): ILOperand {
   if (isTemp(value)) {
     return value;
@@ -889,7 +886,7 @@ function materialise(value: ILOperand, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
-/** Emit the R69 ICE for an unsupported node and return a deterministic poison operand. */
+/** Emit an ICE for an unsupported node and return a deterministic poison operand. */
 function iceUnsupported(node: AstNode, ctx: LowerCtx, what: string): ILOperand {
   ctx.bag.addICE(
     IceCode.Unexpected,
@@ -914,7 +911,7 @@ function isModuleDecl(node: AstNode | null): node is ModuleDeclNode {
 /**
  * The module-variable symbol (`__var_<Module>_<var>`), matching SFA's
  * `symbols.ts` emission (`sanitize` = non-`[A-Za-z0-9_]` → `_`) exactly, so the
- * emitted `load`/`store` target resolves at ACME (RD-18 Slice 3b).
+ * emitted `load`/`store` target resolves at ACME.
  */
 function moduleVarSymbol(moduleName: string, varName: string): string {
   const sanitize = (n: string): string => n.replace(/[^A-Za-z0-9_]/g, "_");
@@ -925,8 +922,8 @@ function moduleVarSymbol(moduleName: string, varName: string): string {
  * If `expr` resolves (via the model's `symbolMap`) to a **module-scope**
  * `variable`, returns its `__var_*` symbol and IL type; otherwise `null` (a
  * local/param, handled by the frame path). The module name is read from the
- * symbol's declaring module scope node (AR-13). This is the discriminator between
- * the `__var_*` and `__frame_*` storage paths (RD-18 Slice 3b, AR-9).
+ * symbol's declaring module scope node. This is the discriminator between
+ * the `__var_*` and `__frame_*` storage paths.
  */
 function moduleVarOf(
   expr: IdentExprNode,
@@ -964,7 +961,7 @@ function typeNodeToIl(node: TypeNode): ILType | "void" {
 
 /**
  * Deep-scan a declaration subtree for any error sentinel (`ErrorExpr`/
- * `ErrorStmt`/`ErrorType`) — the R68 "carries an ErrorType" test. Uses the core
+ * `ErrorStmt`/`ErrorType`) — the "carries an ErrorType" test. Uses the core
  * traversal helpers with a uniform visitor so no node kind is missed.
  */
 function hasErrorNode(root: AstNode): boolean {

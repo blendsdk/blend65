@@ -1,9 +1,8 @@
 /**
  * Specification test for the `@blend65/config` public API surface.
  *
- * Traceability: RD-16 §4.2 (exported contract) + AR-P6 (index.ts re-exports
- * only: `loadConfig`, the types, `CONFIG_SOURCE_ID`, `CONFIG_DEFAULTS`).
- * Replaces the RD-01 scaffolding smoke test (execution plan task 4.1.2).
+ * `index.ts` re-exports only: `loadConfig`, the types, `CONFIG_SOURCE_ID`,
+ * and `CONFIG_DEFAULTS` — everything else in the package stays internal.
  */
 
 import { describe, expect, it } from "vitest";

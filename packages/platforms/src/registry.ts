@@ -1,7 +1,7 @@
 /**
- * The static platform registry + loader — RD-10 R28–R33; spec Ch 15 §2;
- * decision D4. Wires the five built-in plugins into a deterministic map with a
- * by-id loader; no dynamic plugin loading in v1.
+ * The static platform registry + loader; spec Ch 15 §2. Wires the five
+ * built-in plugins into a deterministic map with a by-id loader; no dynamic
+ * plugin loading in v1.
  */
 
 import type { PlatformPlugin } from "@blend65/core/platform";
@@ -29,11 +29,11 @@ export const PLATFORM_REGISTRY: ReadonlyMap<string, PlatformPlugin> = new Map([
 export const DEFAULT_PLATFORM = "c64";
 
 /**
- * Load a platform plugin by ID (R29/R30).
+ * Load a platform plugin by ID.
  *
  * Throws a plain {@link Error} (not a compiler diagnostic — wiring the message
- * into the diagnostics engine is RD-15/16's job) listing the available platform
- * IDs in registry order when `id` is unknown.
+ * into the diagnostics engine is the compiler driver's job) listing the
+ * available platform IDs in registry order when `id` is unknown.
  *
  * @param id The platform ID, e.g. `"c64"`.
  * @returns The matching {@link PlatformPlugin}.

@@ -1,13 +1,14 @@
 /**
- * Specification tests for the RD-18 Slice 4b acceptance-bar negatives (ST-22/ST-23/
- * ST-24, FR-13): three invalid switches must be rejected through the frontend-only
- * `compile()` facade — set `hasErrors`, emit the code, produce NO binary, and never
- * throw. CI-runnable (no ACME).
+ * Specification tests for the Slice 4b acceptance-bar negatives: three invalid
+ * switches must be rejected through the frontend-only `compile()` facade — set
+ * `hasErrors`, emit the code, produce NO binary, and never throw. CI-runnable
+ * (no ACME).
  *
- * Derived EXCLUSIVELY from `03-03-acceptance-fixtures.md §3` + the requirements
- * (FR-13) — never from reading the implementation (IMMUTABLE ORACLE). Each fixture
- * carries a `default` so the parser's E10072/MissingDefaultClause (AR-5) does not
- * mask the code under test, and uses locals only (params are Slice 5).
+ * These tests are derived directly from the switch fixture's documented
+ * behavior, not from reading the implementation. Each fixture carries a
+ * `default` so the parser's E10072/MissingDefaultClause diagnostic does not
+ * mask the code under test, and uses locals only (parameters are not yet
+ * supported).
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -33,7 +34,7 @@ function compileSource(src: string): ReturnType<typeof compile> {
 }
 
 describe("Specification: Slice 4b negatives via compile() (FR-13)", () => {
-  // ST-22 — a non-const case value (a runtime var) → E10071, no binary.
+  // A non-const case value (a runtime var) → E10071, no binary.
   it("rejects a non-const case value with E10071 and no binary (ST-22)", () => {
     const result = compileSource(
       "module Main;\nfunction main(): void {\n" +
@@ -46,7 +47,7 @@ describe("Specification: Slice 4b negatives via compile() (FR-13)", () => {
     expect(result).not.toHaveProperty("binary");
   });
 
-  // ST-23 — a duplicate case value → E10132, no binary.
+  // A duplicate case value → E10132, no binary.
   it("rejects a duplicate case value with E10132 and no binary (ST-23)", () => {
     const result = compileSource(
       "module Main;\nfunction main(): void {\n" +
@@ -59,7 +60,7 @@ describe("Specification: Slice 4b negatives via compile() (FR-13)", () => {
     expect(result).not.toHaveProperty("binary");
   });
 
-  // ST-24 — a boolean switch discriminant → E10075, no binary.
+  // A boolean switch discriminant → E10075, no binary.
   it("rejects a boolean switch operand with E10075 and no binary (ST-24)", () => {
     const result = compileSource(
       "module Main;\nfunction main(): void {\n" +

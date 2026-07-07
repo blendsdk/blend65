@@ -1,16 +1,17 @@
 /**
- * Minimal top-level declaration collection (RD-17 AR-P13).
+ * Minimal top-level declaration collection.
  *
- * NOT the full RD-04 Pass-1/Pass-2 checker: this walks only the top-level struct
+ * NOT the full Pass-1/Pass-2 checker: this walks only the top-level struct
  * and enum declarations and resolves them into the `StructType`/`EnumType` tables
- * the intrinsic-validation pass (V7) and codegen folding (`sizeof`/`offsetof`,
- * 03-03) consume. It computes C-style field offsets (no padding on 6502) and each
+ * the intrinsic-validation pass and codegen folding (`sizeof`/`offsetof`)
+ * consume. It computes C-style field offsets (no padding on 6502) and each
  * struct's `byteSize`. No expression inference, no control-flow analysis, no scope
  * tree beyond module level. Variable and import collection are deferred to the
- * phases whose checks first consume them (length folding — 03-03; the T4 import
- * boundary — 03-05) to avoid tables no consumer reads yet.
+ * phases whose checks first consume them (length folding; the T4 import
+ * boundary) to avoid tables no consumer reads yet.
  *
- * This module lives in `@blend65/frontend` and imports `@blend65/core` only (R15).
+ * This module lives in `@blend65/frontend` and imports `@blend65/core` only —
+ * never `@blend65/codegen`.
  */
 
 import { byteSize, ERROR_TYPE, primitive } from "@blend65/core";
@@ -26,7 +27,7 @@ import type {
 
 /**
  * The resolved top-level type tables produced by declaration collection. Keyed by
- * declared name (module-qualification is deferred with the rest of RD-04).
+ * declared name (module-qualification is deferred with the rest of the checker).
  */
 export interface DeclarationTables {
   /** Struct name → resolved {@link StructType} (fields with offsets + `byteSize`). */
@@ -37,8 +38,8 @@ export interface DeclarationTables {
 
 /**
  * Collect and resolve the top-level struct/enum declarations across all programs
- * into type tables (AR-P13). On-demand resolution handles forward references; a
- * recursive struct (an RD-04 error, deferred) is broken with {@link ERROR_TYPE}
+ * into type tables. On-demand resolution handles forward references; a
+ * recursive struct (an error case, deferred) is broken with {@link ERROR_TYPE}
  * rather than looping.
  *
  * @param programs The parsed program ASTs (one per source file).
@@ -93,7 +94,7 @@ export function collectDeclarationTables(
     if (cached !== undefined) return cached;
     const decl = structDecls.get(name);
     if (decl === undefined || inProgress.has(name)) {
-      // Unknown or recursive (RD-04 error, deferred) — a zero-size placeholder.
+      // Unknown or recursive (an error case, deferred) — a zero-size placeholder.
       return { kind: "struct", name, decl: decl ?? emptyStructDecl(name), fields: new Map(), byteSize: 0 };
     }
     inProgress.add(name);

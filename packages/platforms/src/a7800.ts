@@ -1,14 +1,13 @@
 /**
- * The Atari 7800 platform plugin — RD-10 R41; spec Ch 15 §2 + appendix-a7800;
- * decisions D4 + AR-69.
+ * The Atari 7800 platform plugin; spec Ch 15 §2 + appendix-a7800.
  *
  * Profile transcribed from appendix-a7800 §10 (`cpu: "nmos6502"`, ROM/cart-based
  * with code at `$8000`, 4 KB RAM at `$1800–$27FF`, `outputFormat: "a78"`,
  * `defaultEncoding: "ascii"`). Crucially `getMainTerminationPolicy().canReturn`
- * is **false** (AC-15 / AR-69): the 7800 game loop is non-terminating — there is
+ * is **false**: the 7800 game loop is non-terminating — there is
  * no OS to return to.
  *
- * Per D4 the codegen hooks delegate to the shared C64-style bodies in this slice
+ * The codegen hooks delegate to the shared C64-style bodies in this slice
  * (the bespoke `.a78` cartridge-header preamble and the ASCII encoder are
  * deferred); only the profile, `getMainTerminationPolicy`, and `validateProfile`
  * carry the platform's own data.
@@ -66,17 +65,17 @@ const a7800Profile: PlatformProfile = {
 };
 
 /**
- * The Atari 7800 plugin (R41). Hooks delegate to the shared C64-style bodies
- * (D4); the `.a78` cartridge preamble is deferred. `main` may NOT return
- * (AC-15 / AR-69).
+ * The Atari 7800 plugin. Hooks delegate to the shared C64-style bodies; the
+ * `.a78` cartridge preamble is deferred. `main` may NOT return: the game loop
+ * is non-terminating and there is no OS to return to.
  */
 export const a7800Plugin: PlatformPlugin = {
   id: "a7800",
   displayName: "Atari 7800",
   profile: a7800Profile,
-  intrinsics: [], // RD-17 (D1)
-  // The mul/div operator-backing routines are codegen-owned T3 modules
-  // (RD-17 AR-98), not platform contributions; genuine T4 modules go here.
+  intrinsics: [], // populated once the runtime intrinsics are wired up
+  // The mul/div operator-backing routines are codegen-owned T3 modules,
+  // not platform contributions; genuine T4 modules go here.
   runtimeModules: [],
 
   emitPreamble(options: PreambleOptions): StreamEntry[] {

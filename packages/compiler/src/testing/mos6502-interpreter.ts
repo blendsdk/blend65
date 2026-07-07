@@ -1,10 +1,10 @@
 /**
- * Minimal NMOS 6502 interpreter — TEST SUPPORT ONLY (RD-17 AR-P17).
+ * Minimal NMOS 6502 interpreter — test support only.
  *
  * Executes assembled runtime-routine binaries against arithmetic test vectors
- * so the hand-written `runtime/*.asm` modules are functionally verified before
- * the RD-12 emulator tier exists (AR-P4 defers *emulator* verification; this
- * closes the interim functional gap — see the RD-17 ambiguity register).
+ * so the hand-written `runtime/*.asm` modules are functionally verified ahead
+ * of full emulator-based verification (this closes the interim functional
+ * gap until that tier is available).
  *
  * Scope: exactly the documented/legal opcode+mode pairs the runtime routines
  * and their call sites use (loads/stores, transfers, stack, ALU, shifts,
@@ -13,7 +13,7 @@
  * silent skip. Decimal mode and cycle counting are intentionally out of scope.
  *
  * NOT part of the public `@blend65/compiler` API (not exported from `index.ts`);
- * RD-12 supersedes this with the real test-harness/emulator tier.
+ * the real test-harness/emulator tier supersedes this.
  */
 
 /** The observable machine state after a {@link runRoutine} call. */
@@ -52,7 +52,7 @@ export interface RoutineInput {
   readonly zp?: Readonly<Record<number, number>>;
 }
 
-/** Where routine binaries are loaded (matches the ST-30 harness prelude). */
+/** Where routine binaries are loaded (matches the ACME-validity harness prelude). */
 export const ROUTINE_ORG = 0x8000;
 
 /** Step budget — generous for the slowest routine (div16 ≈ 1k cycles). */

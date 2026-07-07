@@ -1,13 +1,13 @@
 /**
- * Implementation tests for the RD-06 IL data model.
+ * Implementation tests for the IL data model.
  *
  * These cover edge cases and internals NOT pinned by the spec oracle
  * (il-model.spec.test.ts): the `ilTypeOfType` mapping for every `Type` variant
  * including the documented `ErrorType`/`void` safe defaults, `ilTypeEquals`
  * across all four canonical constants, and the `loc()` optional-offset shape.
  *
- * Written AFTER the implementation (testing.md Rule 6/10) — they probe the code
- * as built, complementing (never replacing) the immutable spec tests.
+ * Written after the implementation — they probe the code as built,
+ * complementing (never replacing) the immutable spec tests.
  */
 
 import { describe, expect, it } from "vitest";

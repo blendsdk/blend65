@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { existsSync, rmSync, writeFileSync } from "node:fs";
 
-// ST-R15a/b/c — the load-bearing R15 frontend/backend boundary test.
+// The load-bearing frontend/backend boundary test — frontend and language-server
+// must never import `@blend65/codegen`.
 //
-// AR-P7: ESLint `no-restricted-imports` is the AUTHORITATIVE gate, NOT `tsc`.
-// Phase 3 proved that under Yarn-classic hoisting an illegal `@blend65/codegen`
-// import in `frontend` still resolves via `node_modules/.../dist/*.d.ts`, so
-// `tsc --build` exits 0. The real invariant is enforced by ESLint, so this test
-// drives `eslint` against an injected violation fixture and asserts the rule fires.
+// ESLint `no-restricted-imports` is the AUTHORITATIVE gate, NOT `tsc`. Under
+// Yarn-classic hoisting an illegal `@blend65/codegen` import in `frontend` can
+// still resolve via `node_modules/.../dist/*.d.ts`, so `tsc --build` exits 0.
+// The real invariant is enforced by ESLint, so this test drives `eslint` against
+// an injected violation fixture and asserts the rule fires.
 
 const VIOLATION = `import { VERSION } from "@blend65/codegen";\nexport const x = VERSION;\n`;
 const ALLOWED = `import { VERSION } from "@blend65/core";\nexport const x = VERSION;\n`;
@@ -28,7 +29,7 @@ function eslintFails(pkgDir: string, source: string): boolean {
     return true; // non-zero exit → no-restricted-imports fired → boundary enforced
   } finally {
     rmSync(fixture, { force: true });
-    // AR-P4: prove the transient fixture never lingers in the tree.
+    // Prove the transient fixture never lingers in the tree.
     expect(existsSync(fixture)).toBe(false);
   }
 }

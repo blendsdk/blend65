@@ -1,19 +1,20 @@
 /**
- * Implementation tests for the RD-17 runtime routines — FUNCTIONAL verification
- * (AR-P17, user-approved interim harness).
+ * Implementation tests for the runtime routines — functional verification
+ * using an interim in-process harness, ahead of full emulator-based
+ * verification.
  *
- * Each `runtime/*.asm` module is assembled with the real ACME (skip-if-no-ACME,
- * AR-27) and executed on the in-process test interpreter against arithmetic
- * vectors: full edge-value crosses plus seeded pseudo-random samples. This
- * proves the *math* of the hand-written 6502 (mul8/mul16/div8/div16) that
- * AR-P4 otherwise defers to the RD-12 emulator tier.
+ * Each `runtime/*.asm` module is assembled with the real ACME (skipped when
+ * ACME is not on PATH) and executed on the in-process test interpreter against
+ * arithmetic vectors: full edge-value crosses plus seeded pseudo-random
+ * samples. This proves the *math* of the hand-written 6502 (mul8/mul16/div8/
+ * div16).
  *
- * ABI under test (AR-33/AR-P7):
+ * ABI under test:
  *   __rt_mul8 : a→A, b→X            → product lo→A, hi→X       (Y preserved)
  *   __rt_div8 : a→A, b→X            → quotient→A, remainder→X  (Y preserved)
  *   __rt_mul16: a→A/X, b→zp[2..3]   → product lo→A, hi→X
  *   __rt_div16: a→A/X, b→zp[2..3]   → quotient→A/X, remainder→zp[2..3]
- * (ZP addresses per the ST-30 prelude: __zp_arg_0=$02 .. __zp_arg_3=$05.)
+ * (ZP addresses per the shared prelude below: __zp_arg_0=$02 .. __zp_arg_3=$05.)
  */
 
 import { execFileSync } from "node:child_process";
@@ -25,7 +26,7 @@ import { RT_ROUTINES } from "@blend65/core";
 import { loadRuntimeModule } from "@blend65/codegen";
 import { runRoutine } from "./testing/mos6502-interpreter.js";
 
-/** Resolve ACME from PATH (null → tests are skipped, AR-27). */
+/** Resolve ACME from PATH (null → tests are skipped). */
 function findAcme(): string | null {
   try {
     const out = execFileSync("which", ["acme"], { encoding: "utf8" }).trim();
@@ -42,7 +43,7 @@ afterAll(() => {
   rmSync(WORK_DIR, { recursive: true, force: true });
 });
 
-/** Same prelude as ST-30: origin + the program-header `__zp_arg_N` symbols. */
+/** Same prelude as the ACME-validity spec test: origin + the program-header `__zp_arg_N` symbols. */
 const PRELUDE = [
   "* = $8000",
   "__zp_arg_0 = $02",

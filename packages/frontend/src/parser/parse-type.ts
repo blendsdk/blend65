@@ -1,14 +1,15 @@
 /**
- * Type-expression parser (RD-03 §4.13; grammar §4; FR-16/19/21/22).
+ * Type-expression parser (grammar §4; FR-16/19/21/22).
  *
  * Parses a `type` production: a primitive keyword (`byte`/`sbyte`/`word`/`sword`/
  * `boolean`/`void`) → {@link PrimitiveTypeNode}; an identifier → {@link NamedTypeNode}
- * (a struct or enum name — resolved later by RD-04, grammar §4 parsing note); with
- * a trailing `[ constExpr ]` (sized) or `[]` (unsized) suffix → {@link ArrayTypeNode}.
+ * (a struct or enum name — resolved later by semantic analysis, grammar §4 parsing
+ * note); with a trailing `[ constExpr ]` (sized) or `[]` (unsized) suffix →
+ * {@link ArrayTypeNode}.
  *
  * On a non-type token it emits **E10303** and returns an {@link ErrorTypeNode}
  * **without** consuming the offending token, so the caller's recovery sees it
- * (03-03 recovery table, "Type position" row; FR-5).
+ * (FR-5).
  */
 
 import { DiagCode, TokenKind, makeSpan } from "@blend65/core";

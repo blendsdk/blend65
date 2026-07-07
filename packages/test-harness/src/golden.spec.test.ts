@@ -1,9 +1,9 @@
 /**
- * Specification tests for `assertGolden` (ST-24, ST-25, ST-26).
+ * Specification tests for `assertGolden`.
  *
- * Derived EXCLUSIVELY from RD-12 §4.3 and R29–R32 / AC-10 / AR-H10 — never from
- * reading the implementation (IMMUTABLE ORACLE RULE). Pure file compare/write,
- * runs in CI (no emulator).
+ * These tests are derived directly from the documented golden-compare/write
+ * behavior, not from reading the implementation. Pure file compare/write, runs
+ * in CI (no emulator).
  */
 
 import { afterEach, describe, expect, it } from "vitest";

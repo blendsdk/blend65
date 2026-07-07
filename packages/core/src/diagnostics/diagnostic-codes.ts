@@ -1,31 +1,31 @@
 /**
  * The single source of truth for every Blend65 diagnostic code.
  *
- * Codes are transcribed verbatim from Chapter 14 (the canonical registry) and
- * grouped by area. User-facing errors occupy the `E10xxx` band and warnings the
- * `W10xxx` band; internal compiler errors (ICEs) live in the separate `E9xxxx`
- * band (RD-11 R1–R3). Call sites reference codes by name — `DiagCode.MissingModuleDecl`
- * — so the numeric value lives in exactly one place and never drifts.
- *
- * Covers RD-11 §3.1 (FR-17) · Ch 14.
+ * Codes are transcribed verbatim from the language specification's canonical
+ * diagnostic registry and grouped by area. User-facing errors occupy the
+ * `E10xxx` band and warnings the `W10xxx` band; internal compiler errors
+ * (ICEs) live in the separate `E9xxxx` band. Call sites reference codes by
+ * name — `DiagCode.MissingModuleDecl` — so the numeric value lives in exactly
+ * one place and never drifts.
  */
 
 /**
- * Canonical diagnostic codes (Ch 14).
+ * Canonical diagnostic codes.
  *
- * Each constant maps a descriptive name to its frozen Ch 14 code string. When a
- * future requirement (e.g. RD-02's lexer) needs a code, it is added here — the
- * one registry — rather than scattered across producers.
+ * Each constant maps a descriptive name to its frozen code string from the
+ * language specification. When a new compiler stage needs a code, it is
+ * added here — the one registry — rather than scattered across producers.
  */
 export const DiagCode = {
-  // Reserved sentinels (not assigned to a producer in Ch 14)
+  // Reserved sentinels (not assigned to a producer in the spec)
   /**
    * Emitted once by {@link DiagnosticBag} when the `--max-errors` cap is
-   * exceeded (MD-1). Ch 14 leaves the truncation message code-less; Blend65
-   * reserves `E10000` for it so the message carries a stable, greppable code.
+   * exceeded. The specification leaves the truncation message code-less;
+   * Blend65 reserves `E10000` for it so the message carries a stable,
+   * greppable code.
    */
   TooManyErrors: "E10000",
-  // Module & program structure (Ch 14 §2 E100xx → Ch 10)
+  // Module & program structure
   MissingModuleDecl: "E10001",
   ModuleDeclNotFirst: "E10002",
   DuplicateDecl: "E10003",
@@ -33,29 +33,27 @@ export const DiagCode = {
   ImportNonExported: "E10012",
   NoMainFunction: "E10020",
   MultipleMainFunctions: "E10021",
-  // RD-18 Slice 3b (AR-11): the `main` entry point must have signature
-  // `function main(): void` (spec Ch 06 / F004; `00-feature-index.md:82`,
-  // `F004-entry-point.md:30`). E10022 is spec-designated but was absent from
-  // both this registry and `spec/14-diagnostics.md`; registered additively per
-  // RD-18 AR-115 (Language-Guard-approved). `spec/` stays frozen (D3) — a future
-  // post-freeze spec reconciliation closes the Ch-14 drift.
+  // The `main` entry point must have signature `function main(): void`.
+  // E10022 is spec-designated but was absent from this registry and from the
+  // spec's own diagnostics table; registered additively (Language-Guard
+  // approved). `spec/` stays frozen — a future post-freeze spec reconciliation
+  // closes this drift.
   InvalidMainSignature: "E10022",
   CallingMainDirectly: "E10023",
   // Resource limits
   ZpBudgetExceeded: "E10032",
   RamBudgetExceeded: "E10033",
   BinaryTooLarge: "E10034",
-  // Tooling (RD-09, AR-62): ACME assembler not discoverable. Ch 14 leaves the
-  // resource/tooling band open after E10034; RD-09 claims the next free code
-  // E10035 for the actionable "ACME not found" build error (the single additive
-  // core change RD-09 introduces; 03-02-acme-process-layer.md Gap 4).
+  // Tooling: ACME assembler not discoverable. The spec leaves the
+  // resource/tooling band open after E10034, so the next free code E10035 is
+  // claimed for the actionable "ACME not found" build error.
   AcmeNotFound: "E10035",
   // Intrinsics
   ArgsToParameterlessIntrinsic: "E10040",
   WrongIntrinsicArgCount: "E10041",
   AddressOfElementDeferred: "E10042",
-  // RD-17 (AR-P8/P11/P14): availability, ZP arg-block overflow, non-constant T2
-  // address (replaces the shipped `lower.ts` ICE), and the T4 import boundary.
+  // Availability, ZP arg-block overflow, non-constant intrinsic-address
+  // argument (replaces the shipped `lower.ts` ICE), and the import boundary.
   IntrinsicUnavailable: "E10043",
   ZpArgBlockExceeded: "E10044",
   NonConstantIntrinsicAddress: "E10045",
@@ -89,58 +87,58 @@ export const DiagCode = {
   VoidFunctionReturnsValue: "E10173",
   RecursionDetected: "E10174",
   TooManyParameters: "E10175",
-  // RD-18 Slice 4a (AR-4): a non-void function that does not return a value on
-  // every control-flow path (spec Ch 05 §4.2). E10102 is the exact Ch-05 number
-  // for this check; it was free in this registry (0 occurrences) and carries no
-  // Ch-14 collision, so it is reused here to reduce registry↔Ch-05 drift. Distinct
-  // from E10172 (`return` present but value missing) and E10173 (void returns a
-  // value). `spec/` stays frozen (D3).
+  // A non-void function that does not return a value on every control-flow
+  // path. E10102 is the spec's own number for this check; it was free in
+  // this registry and carries no collision, so it is reused here to reduce
+  // drift between the registry and the spec. Distinct from E10172 (`return`
+  // present but value missing) and E10173 (void returns a value).
   NotAllPathsReturn: "E10102",
   // Control flow
-  // E10072 (MissingDefaultClause) is emitted by the parser (RD-03); it lives in
-  // this band per Ch 14 but is raised during parsing, not semantic analysis.
+  // E10072 (MissingDefaultClause) is emitted by the parser; it lives in this
+  // band per the spec's grouping but is raised during parsing, not semantic
+  // analysis.
   MissingDefaultClause: "E10072",
   ForEndBoundOutOfRange: "E10064",
   BreakOutsideLoopSwitch: "E10130",
   ContinueOutsideLoop: "E10131",
   DuplicateCaseValue: "E10132",
   NonExhaustiveSwitch: "E10133",
-  // RD-18 Slice 4a control-flow codes (additive; inherited AR-11 precedent).
-  // - E10134 (AR-7): a non-boolean `if`/`else if`/`while`/`do-while` condition.
-  //   Ch 05's condition code E10100 is already taken by `UndeclaredIdentifier`
-  //   (3b), so the boolean-condition check uses the next free control-flow code
-  //   E10134 (E10130–E10133 → E10134), adjacent to the loop-context codes.
-  // - E10061 (AR-8): a for-loop `step` that is not a positive compile-time
-  //   constant (zero / negative / non-const). Ch-05 number, free in this registry.
-  // - E10065 (AR-15): a for-loop counter whose type is missing or non-integer
-  //   (`integerRange(counterType) === null`). The counter annotation is optional
-  //   in the parser (`parse-stmt.ts`), so a null/boolean/void counter type is
-  //   guarded loudly rather than degenerating to a silent `ERROR_TYPE` codegen.
-  //   Free in registry/spec/code; adjacent to the for-loop code E10064; no Ch-05
-  //   collision (the spec table gaps E10064→E10070, delegating §7.4's "must be an
-  //   integer type" rule to the type system) — accepted Ch-14-over-Ch-05 drift.
-  // `spec/` stays frozen (D3).
+  // Control-flow codes registered additively:
+  // - E10134: a non-boolean `if`/`else if`/`while`/`do-while` condition. The
+  //   spec's own condition code E10100 is already taken by
+  //   `UndeclaredIdentifier`, so the boolean-condition check uses the next
+  //   free control-flow code, adjacent to the loop-context codes.
+  // - E10061: a for-loop `step` that is not a positive compile-time constant
+  //   (zero / negative / non-const). Free in this registry.
+  // - E10065: a for-loop counter whose type is missing or non-integer
+  //   (`integerRange(counterType) === null`). The counter annotation is
+  //   optional in the parser (`parse-stmt.ts`), so a null/boolean/void
+  //   counter type is guarded loudly rather than degenerating to a silent
+  //   `ERROR_TYPE` codegen. Free in registry/spec/code; adjacent to the
+  //   for-loop code E10064; the spec leaves this range open, delegating the
+  //   "must be an integer type" rule to the type system.
+  // `spec/` stays frozen.
   StepValueNotPositive: "E10061",
   ForCounterTypeNotInteger: "E10065",
   NonBooleanCondition: "E10134",
-  // RD-18 Slice 4b (AR-4/AR-7, PF-001/PF-002/PF-004): the `switch` sub-machine's
-  // semantic validators. Five codes registered additively (inherited AR-11/AR-115
-  // precedent; `spec/` frozen, D3). Four carry their spec-Ch-05 §8 numbers
+  // The `switch` sub-machine's semantic validators. Five codes registered
+  // additively (`spec/` frozen). Four carry their spec-assigned numbers
   // (E10071/E10073/E10074/E10075 — all free in this registry and absent from
-  // `spec/14-diagnostics.md`, so reused to reduce drift), and one is a NEW mint:
-  // - E10077 (CaseValueTypeMismatch, AR-4): spec §8.6 assigns this check E10072,
-  //   but E10072 is taken by the parser's `MissingDefaultClause` (RD-03), so a
-  //   dedicated code is minted in the free switch band (E10070–E10079). In the
-  //   integer-only 4b surface its emission is rarely reachable (case literals adapt
-  //   to the discriminant; out-of-range constants → E10084) — it becomes live with
-  //   the enum/other-primitive constants of Slice 7 (PF-002).
-  // - E10076 (duplicate `default`) is deliberately NOT registered: the parser keeps
-  //   `defaultClause` in a single slot and silently overwrites a duplicate
-  //   (last-wins), so a semantics-side check is unreachable — deferred parser-owned
-  //   (PF-001).
+  // the spec's own diagnostics table, so reused to reduce drift), and one is
+  // a new mint:
+  // - E10077 (CaseValueTypeMismatch): the spec assigns this check E10072, but
+  //   E10072 is taken by the parser's `MissingDefaultClause`, so a dedicated
+  //   code is minted in the free switch band (E10070–E10079). In the
+  //   integer-only surface its emission is rarely reachable (case literals
+  //   adapt to the discriminant; out-of-range constants → E10084) — it
+  //   becomes live once other primitive/enum constants are supported.
+  // - E10076 (duplicate `default`) is deliberately NOT registered: the parser
+  //   keeps `defaultClause` in a single slot and silently overwrites a
+  //   duplicate (last-wins), so a semantics-side check is unreachable —
+  //   deferred as parser-owned.
   // `E10132` (DuplicateCaseValue) already exists above (wired, not minted here).
   CaseValueNotConstant: "E10071",
-  FallthroughNoEffect: "E10073", // WARNING severity (spec §8.3 / F009:110)
+  FallthroughNoEffect: "E10073", // WARNING severity
   FallthroughNotLast: "E10074",
   InvalidSwitchOperandType: "E10075",
   CaseValueTypeMismatch: "E10077",
@@ -166,19 +164,18 @@ export const DiagCode = {
   MixedSignedUnsignedOperands: "E10081",
   ConstDivisionByZero: "E10082",
   ShiftAmountOutOfRange: "E10083",
-  // RD-18 Slice 3b (AR-11): a literal / constant value that does not fit its
-  // target integer type (spec Ch 02 §5.3 / F010; `02-type-system.md:486`,
-  // `00-feature-index.md:109`). E10084 is spec-designated but was absent from
-  // both this registry and `spec/14-diagnostics.md`; registered additively per
-  // RD-18 AR-115 (Language-Guard-approved). `spec/` stays frozen (D3).
+  // A literal / constant value that does not fit its target integer type.
+  // E10084 is spec-designated but was absent from both this registry and the
+  // spec's own diagnostics table; registered additively (Language-Guard
+  // approved). `spec/` stays frozen.
   ValueOutOfRange: "E10084",
 
-  // Lexer (RD-02, spec Ch 01 §14)
-  // RD-17 R21: the provisional E10212 reservation is retired — reserved-name
-  // shadowing of an intrinsic is reported as E10101 (NameShadows), not a distinct
+  // Lexer
+  // The provisional E10212 reservation is retired — reserved-name shadowing
+  // of an intrinsic is reported as E10101 (NameShadows), not a distinct
   // "redeclare reserved built-in" code.
-  // E10224 (ReservedKeyword) is emitted by the parser (RD-03); it lives here so
-  // the one-registry rule holds — the lexer itself never raises it.
+  // E10224 (ReservedKeyword) is emitted by the parser; it lives here so the
+  // one-registry rule holds — the lexer itself never raises it.
   UnexpectedCharacter: "E10210",
   UnterminatedBlockComment: "E10211",
   InvalidNumericUnderscore: "E10213",
@@ -194,10 +191,10 @@ export const DiagCode = {
   UnterminatedCharLiteral: "E10223",
   ReservedKeyword: "E10224",
 
-  // Parser (RD-03, spec Ch 14)
-  // Added by addition (AR-6). E10001/E10002/E10224 are reused from the bands
-  // above; E10072 (MissingDefaultClause) sits in the control-flow group above.
-  // The E10300–E10316 band below is the parser's own syntactic-error range and
+  // Parser
+  // E10001/E10002/E10224 are reused from the bands above; E10072
+  // (MissingDefaultClause) sits in the control-flow group above. The
+  // E10300–E10316 band below is the parser's own syntactic-error range and
   // is distinct from the semantic E10163/E10140 empty-struct/enum codes.
   UnexpectedToken: "E10300",
   ExpectedExpression: "E10301",
@@ -217,11 +214,11 @@ export const DiagCode = {
   EmptyEnumDeclaration: "E10315",
   EmptyStructDeclaration: "E10316",
 
-  // Configuration (RD-16, AR-P3): blend65.json loading. Ch 14 leaves the
-  // E10240 decade unclaimed (E10230–E10236 are the frozen enum codes,
-  // spec/09-enums.md); RD-16 claims E10240–E10246 — one code per config
-  // failure class — following the RD-09/E10035 additive precedent. The
-  // matching W10240/W10241 warnings sit in the warnings band below.
+  // Configuration: blend65.json loading. The spec leaves the E10240 decade
+  // unclaimed (E10230–E10236 are the frozen enum codes), so E10240–E10246
+  // are claimed here — one code per config failure class — following the
+  // same additive precedent as E10035. The matching W10240/W10241 warnings
+  // sit in the warnings band below.
   ConfigFileNotFound: "E10240",
   ConfigParseError: "E10241",
   ConfigNotAnObject: "E10242",
@@ -230,20 +227,21 @@ export const DiagCode = {
   ConfigMissingPlatform: "E10245",
   ConfigPatternEscapesRoot: "E10246",
 
-  // Driver / file discovery (RD-15, AR-V10): the compiler driver's own errors,
-  // raised before lexing when the source-file set cannot be established. Ch 14
-  // leaves E10250+ open after the RD-16 config band (E10240–E10246); RD-15 claims
-  // E10250/E10251 (additive precedent, RD-09/E10035). Both emit with a `null`
-  // span (no source to point into → R51 header-only) and classify exit-2.
-  DriverSourceFileNotFound: "E10250", // R48 — explicit file missing
-  DriverNoSourceFiles: "E10251", // R49 — discovery yielded zero files
+  // Driver / file discovery: the compiler driver's own errors, raised before
+  // lexing when the source-file set cannot be established. The spec leaves
+  // E10250+ open after the config band (E10240–E10246); E10250/E10251 are
+  // claimed here (same additive precedent as E10035). Both emit with a
+  // `null` span (no source to point into → header-only rendering) and
+  // classify exit-2.
+  DriverSourceFileNotFound: "E10250", // explicit file missing
+  DriverNoSourceFiles: "E10251", // discovery yielded zero files
 
-  // Warnings (Ch 14 §3)
-  // Lexer warning (RD-02, spec Ch 01 §14): decimal literal with leading zeros.
+  // Warnings
+  // Lexer warning: decimal literal with leading zeros.
 
   NumericLeadingZeros: "W10210",
-  // Codegen cost warnings (RD-07 R60/AC-16, spec Ch 14 §3 / 00-feature-index F017).
-  // Emitted during instruction selection (RD-07b) for expensive arithmetic.
+  // Codegen cost warnings, emitted during instruction selection for
+  // expensive arithmetic.
   RuntimeMultiply: "W10170",
   RuntimeDivide: "W10171",
   ShiftAndAddMultiply: "W10172",
@@ -256,8 +254,8 @@ export const DiagCode = {
   UseBeforeInit: "W10190",
   UnusedVariable: "W10191",
   UnreachableCode: "W10130",
-  // Configuration warnings (RD-16, AR-P3): unknown blend65.json key (R19) and
-  // a warning code both promoted (warnAsError) and suppressed (R30).
+  // Configuration warnings: an unknown blend65.json key, and a warning code
+  // both promoted (warnAsError) and suppressed at the same time.
   ConfigUnknownKey: "W10240",
   ConfigPromoteSuppressOverlap: "W10241",
 } as const;
@@ -266,7 +264,7 @@ export const DiagCode = {
 export type DiagCodeValue = (typeof DiagCode)[keyof typeof DiagCode];
 
 /**
- * Internal compiler errors — the `E9xxxx` band (RD-11 R2).
+ * Internal compiler errors — the `E9xxxx` band.
  *
  * ICEs report compiler bugs rather than user mistakes. They are kept in a band
  * disjoint from {@link DiagCode} so they can never collide with a user-facing

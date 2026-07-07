@@ -1,11 +1,11 @@
 /**
  * Implementation tests for the semantic-analysis pass seams.
  *
- * RD-17 fills in Pass 1 (`collectDeclarations` → struct/enum tables) and Pass 3
- * (`checkBodies` → intrinsic validation); Pass 2/4 remain deferred no-ops. These
- * tests verify the four seams exist, are callable, and stay silent on empty input.
- * They import directly from `passes.ts` (the seams are not re-exported from the
- * package barrel).
+ * Pass 1 (`collectDeclarations` → struct/enum tables) and Pass 3
+ * (`checkBodies` → intrinsic validation) are filled in; Pass 2/4 remain
+ * deferred no-ops. These tests verify the four seams exist, are callable, and
+ * stay silent on empty input. They import directly from `passes.ts` (the
+ * seams are not re-exported from the package barrel).
  */
 
 import { describe, expect, it } from "vitest";

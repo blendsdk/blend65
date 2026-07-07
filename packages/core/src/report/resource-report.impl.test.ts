@@ -1,7 +1,7 @@
 /**
- * Implementation tests for the resource-report module (RD-11b Phase 4).
+ * Implementation tests for the resource-report module.
  *
- * Covers internals and edge cases beyond the ST-22..ST-27 specification tier:
+ * Covers internals and edge cases beyond the specification tier:
  * thousands-grouping and percentage boundaries, the arg-block-only fold,
  * builder reference identity, and field-width overflow.
  */

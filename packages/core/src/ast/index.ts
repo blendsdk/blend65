@@ -1,5 +1,5 @@
 /**
- * Public barrel for the Blend65 AST vocabulary (RD-03).
+ * Public barrel for the Blend65 AST vocabulary.
  *
  * Re-exports the node-kind discriminant, every node interface and group union,
  * the visitor contract, the traversal helpers, and the reserved-intrinsic set.

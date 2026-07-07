@@ -1,5 +1,5 @@
 /**
- * Shared test fixtures for the `@blend65/cli` spec/impl tiers (07 §Shared fixtures).
+ * Shared test fixtures for the `@blend65/cli` spec/impl tiers.
  *
  * Test-only support — not re-exported from the package barrel. Provides
  * {@link fakeIo} (a capturing {@link CliIo}) and {@link fakeCliBuildDeps} (a
@@ -13,8 +13,8 @@ import type { BuildDeps } from "@blend65/compiler";
 import type { CliIo } from "./index.js";
 
 /**
- * The MVP gate source — the verbatim content of `examples/gate/main.blend`
- * (PF-007). Transcribed here so CLI tests can plant a real `.blend` on disk.
+ * The MVP gate source — the verbatim content of `examples/gate/main.blend`.
+ * Transcribed here so CLI tests can plant a real `.blend` on disk.
  */
 export const GATE_SRC = `module Main;
 
@@ -32,7 +32,7 @@ export interface FakeIo extends CliIo {
 }
 
 /**
- * Build a capturing {@link CliIo} (07 fixture). Defaults: non-TTY, empty env,
+ * Build a capturing {@link CliIo}. Defaults: non-TTY, empty env,
  * `process.cwd()`. Override any field (e.g. `isTTY`, `env`, `cwd`, `buildDeps`).
  *
  * @param overrides Fields to override on the default IO.
@@ -77,7 +77,7 @@ export interface FakeCliDeps extends BuildDeps {
 
 /**
  * Build a fake {@link BuildDeps} with a scripted ACME invocation and a REAL
- * filesystem (07 fixture). On success the fake writes a 3-byte PRG (`$01 $08 …`)
+ * filesystem. On success the fake writes a 3-byte PRG (`$01 $08 …`)
  * and an empty label file to the paths `emitBinary` chose, so `readBinary` and
  * the label parse work against real files in the temp `--out-dir`.
  *

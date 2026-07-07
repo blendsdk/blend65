@@ -1,8 +1,8 @@
 /**
- * Implementation tests for the RD-07b register binder (edge cases & internals).
+ * Implementation tests for the register binder (edge cases & internals).
  *
- * Written AFTER the implementation (testing.md Rule 10): these exercise internal
- * behavior the ST-cases do not pin — multi-slot spill sequencing, reset
+ * Written AFTER the implementation: these exercise internal behavior the
+ * specification cases do not pin — multi-slot spill sequencing, reset
  * idempotence, the `operandFor` reg-as-memory ICE, and `TXA`/`TYA` reloads from
  * the X/Y registers. They complement `register-binding.spec.test.ts`.
  */

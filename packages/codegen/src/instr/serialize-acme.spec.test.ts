@@ -1,17 +1,13 @@
 /**
- * Specification tests for the RD-09 whole-program ACME serializer
- * (`serializeToAcme`) — ST-S1..ST-S8.
+ * Specification tests for the whole-program ACME serializer (`serializeToAcme`).
  *
- * Derived EXCLUSIVELY from `requirements/RD-09-acme-emitter.md` (R3–R17, R22–R27,
- * §4.8 worked example), the component spec
- * `plans/rd-09-acme-emitter/03-01-serializer.md`, the testing strategy
- * `plans/rd-09-acme-emitter/07-testing-strategy.md` (ST-S1..S8), and the
- * Ambiguity Register `00-ambiguity-register.md` (AR-94 1A+2A, AR-95 A).
+ * Derived exclusively from the ACME emitter requirements and worked example,
+ * and the live `printInstr` format.
  *
- * These are immutable oracles (testing.md Rule 10): the expected text is the ACME
- * rendering documented in the RD §4.8 worked example + the live `printInstr`
- * format — NOT whatever `serializeToAcme` happens to produce. Per AR-95/A the
- * canonical output carries the `; --- symbol definitions ---` header and a
+ * These are immutable oracles: the expected text is the ACME rendering
+ * documented in the worked example plus the live `printInstr` format — NOT
+ * whatever `serializeToAcme` happens to produce. The canonical output carries
+ * the `; --- symbol definitions ---` header and a
  * `; --- function: <symbol> ---` comment before each code stream.
  */
 
@@ -25,7 +21,7 @@ import { serializeToAcme } from "./serialize-acme.js";
 
 /**
  * A minimal {@link AllocationPlan} carrying only the `symbolDefinitions` the
- * serializer reads (AR-94/1A); every other field is a benign zero/empty value.
+ * serializer reads; every other field is a benign zero/empty value.
  */
 function planWith(symbolDefinitions: readonly SymbolDefinition[]): AllocationPlan {
   return {
@@ -184,8 +180,8 @@ describe("Specification: serializeToAcme — determinism (ST-S7)", () => {
 describe("Specification: serializeToAcme — full gate program golden (ST-S8)", () => {
   it("should render the c64 gate program to the header-bearing §4.8 golden (ST-S8)", () => {
     // Hand-built fixture mirroring the real c64 preamble + `_main` body. The
-    // identical text is asserted against the REAL plugin in the migrated ST-AG1
-    // (`@blend65/compiler/src/assemble.golden.spec.test.ts`) per AR-95/A.
+    // identical text is asserted against the REAL plugin in the migrated golden
+    // test (`@blend65/compiler/src/assemble.golden.spec.test.ts`).
     const preamble: StreamEntry[] = [
       directive({ kind: "outputFile", name: "main.prg", format: "cbm" }),
       directive({ kind: "origin", address: 0x0801 }),

@@ -1,7 +1,7 @@
 /**
- * Implementation tests for the RD-09 whole-program ACME serializer
+ * Implementation tests for the whole-program ACME serializer
  * (`serializeToAcme`). Written AFTER the implementation — these cover edge cases,
- * internals, and boundary conditions that the ST-* spec oracles
+ * internals, and boundary conditions that the spec oracles
  * (`serialize-acme.spec.test.ts`) do not pin: preamble-only programs, data-only
  * programs, multi-stream ordering, hex padding/masking, and ordering stability
  * regardless of input stream order.

@@ -1,29 +1,27 @@
 /**
- * RD-09 ACME invocation — `invokeAcme`
- * (`plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, R30–R33, R35–R38;
- * AR-67/AR-68).
+ * ACME invocation — `invokeAcme`.
  *
  * Runs the discovered ACME executable on a written `.asm` file to produce the
  * platform binary + VICE label file, then reports the outcome:
  *
- *   - **Exit 0** → success: the binary and label paths are returned along with the
- *     binary size (excluding the 2-byte PRG load header, R44).
- *   - **Non-zero exit** → an **internal compiler error** (`E90001` ICE, R35/R37):
- *     because every `Instr` is CPU-validated (AR-58), every address is
- *     compiler-assigned (AR-66), and the emitter produces valid ACME (R2), an ACME
- *     failure is by definition a compiler bug, never a user error. The full ACME
- *     stderr is embedded in the ICE so the bug can be reported with context. The
- *     `.asm` file is **retained** on failure for inspection (R36) — this function
- *     never deletes it.
+ *   - **Exit 0** → success: the binary and label paths are returned along with
+ *     the binary size (excluding the 2-byte PRG load header).
+ *   - **Non-zero exit** → an **internal compiler error** (`E90001` ICE):
+ *     because every `Instr` is CPU-validated, every address is
+ *     compiler-assigned, and the emitter produces valid ACME, an ACME failure
+ *     is by definition a compiler bug, never a user error. The full ACME
+ *     stderr is embedded in the ICE so the bug can be reported with context.
+ *     The `.asm` file is **retained** on failure for inspection — this
+ *     function never deletes it.
  *
  * The child process and filesystem are injected through {@link AcmeRunner} so the
- * orchestration is unit-testable without spawning a real ACME binary (AR-27).
+ * orchestration is unit-testable without spawning a real ACME binary.
  * {@link defaultAcmeRunner} provides the real `node:child_process` /`node:fs`
  * implementation.
  *
- * Security (code.md r32-34): the real runner spawns ACME with an **explicit argv
- * array** (no shell string interpolation), so paths/filenames can never be used
- * for command injection. Lives in `@blend65/compiler` (R15/AR-20).
+ * Security: the real runner spawns ACME with an **explicit argv array** (no
+ * shell string interpolation), so paths/filenames can never be used for
+ * command injection. Lives in `@blend65/compiler`.
  */
 
 import { execFile } from "node:child_process";
@@ -46,7 +44,7 @@ export interface AcmeInvocation {
   readonly cwd: string;
 }
 
-/** The outcome of running ACME (R35/R44, AC-11/12). */
+/** The outcome of running ACME. */
 export interface AcmeResult {
   /** Whether ACME exited 0. */
   readonly success: boolean;
@@ -75,24 +73,24 @@ export interface AcmeRunOutput {
 export interface AcmeRunner {
   /** Spawn ACME (explicit argv, no shell) and resolve with its exit/stderr. */
   readonly run: (exe: string, argv: readonly string[], cwd: string) => Promise<AcmeRunOutput>;
-  /** Size of the produced binary in bytes, excluding the PRG load header (R44). */
+  /** Size of the produced binary in bytes, excluding the PRG load header. */
   readonly binarySize: (binaryPath: string) => number;
-  /** Optional file-delete hook. Intentionally never called on failure (R36). */
+  /** Optional file-delete hook. Intentionally never called on failure. */
   readonly deleteFile?: (path: string) => void;
 }
 
 /**
- * Build the ACME argv (R31/R32): dump VICE labels to `labelPath`, write the
- * report to `reportPath`, assemble `asmPath`.
+ * Build the ACME argv: dump VICE labels to `labelPath`, write the report to
+ * `reportPath`, assemble `asmPath`.
  *
  * The binary output is driven by the serializer's `!to "<name>.prg", cbm`
- * directive — NOT a `-o` command-line flag (RD-15 AR-V23 / DEF-1). Passing `-o`
- * makes ACME warn "Output file already chosen" and fall back to its **plain**
- * (headerless) format, dropping the 2-byte c64 load-address header that
- * `LOAD"*",8` requires; the `!to ...,cbm` path produces a proper header-bearing
- * PRG (the RD-09 golden test `assemble-rt.golden.spec.test.ts` proves this). The
- * `!to` filename is a basename, resolved against ACME's `cwd` (`inv.cwd` =
- * the emit `outDir`), so it lands at `inv.binaryPath` (`<outDir>/<name>.prg`).
+ * directive — NOT a `-o` command-line flag. Passing `-o` makes ACME warn
+ * "Output file already chosen" and fall back to its **plain** (headerless)
+ * format, dropping the 2-byte c64 load-address header that `LOAD"*",8`
+ * requires; the `!to ...,cbm` path produces a proper header-bearing PRG (the
+ * golden test `assemble-rt.golden.spec.test.ts` proves this). The `!to`
+ * filename is a basename, resolved against ACME's `cwd` (`inv.cwd` = the
+ * emit `outDir`), so it lands at `inv.binaryPath` (`<outDir>/<name>.prg`).
  *
  * @param inv The invocation descriptor.
  * @returns The argv array passed to ACME (no shell interpolation).
@@ -100,7 +98,7 @@ export interface AcmeRunner {
 function acmeArgv(inv: AcmeInvocation): string[] {
   // --vicelabels (NOT -l/--symbollist): ACME's -l writes its native
   // `<name> = $<addr>` format, which `parseLabelFile` cannot read, leaving the
-  // symbol map empty for every real build (DEF-2, RD-12 AR-H7). --vicelabels emits
+  // symbol map empty for every real build. --vicelabels emits
   // `al C:xxxx .name` — exactly the VICE format `parseLabelFile` parses.
   return [
     "--vicelabels",
@@ -112,12 +110,12 @@ function acmeArgv(inv: AcmeInvocation): string[] {
 }
 
 /**
- * Run ACME on the written `.asm` file and classify the outcome (R30–R38).
+ * Run ACME on the written `.asm` file and classify the outcome.
  *
  * @param inv The invocation descriptor (executable, inputs, outputs, cwd).
  * @param bag Diagnostic sink — receives an `E90001` ICE on a non-zero exit.
  * @param runner Injected process/FS runner (defaults to {@link defaultAcmeRunner}).
- * @returns The {@link AcmeResult}. On failure the `.asm` is retained (R36).
+ * @returns The {@link AcmeResult}. On failure the `.asm` is retained.
  */
 export async function invokeAcme(
   inv: AcmeInvocation,
@@ -127,9 +125,9 @@ export async function invokeAcme(
   const { exitCode, stderr } = await runner.run(inv.acmeExe, acmeArgv(inv), inv.cwd);
 
   if (exitCode !== 0) {
-    // R35/R37: a non-zero exit is a compiler bug → ICE with the ACME stderr
-    // embedded. R36: the `.asm` file is left on disk (we never delete it) so the
-    // developer can inspect the exact assembler input.
+    // A non-zero exit is a compiler bug → ICE with the ACME stderr embedded.
+    // The `.asm` file is left on disk (we never delete it) so the developer
+    // can inspect the exact assembler input.
     bag.addICE(
       IceCode.Unexpected,
       null,
@@ -154,8 +152,8 @@ const PRG_LOAD_HEADER_BYTES = 2;
 
 /**
  * Production {@link AcmeRunner}: spawns ACME via `execFile` (explicit argv, no
- * shell — injection-safe, code.md r32-34) and sizes the binary via `node:fs`,
- * excluding the 2-byte PRG load header (R44).
+ * shell — injection-safe) and sizes the binary via `node:fs`, excluding the
+ * 2-byte PRG load header.
  */
 export const defaultAcmeRunner: AcmeRunner = {
   run(exe: string, argv: readonly string[], cwd: string): Promise<AcmeRunOutput> {
@@ -174,7 +172,7 @@ export const defaultAcmeRunner: AcmeRunner = {
   },
   binarySize(binaryPath: string): number {
     const total = statSync(binaryPath).size;
-    // Exclude the 2-byte PRG load header so the figure is the content size (R44).
+    // Exclude the 2-byte PRG load header so the figure is the content size.
     return Math.max(0, total - PRG_LOAD_HEADER_BYTES);
   },
 };

@@ -1,14 +1,13 @@
 /**
- * Specification tests for RD-18 Slice 4b switch IL lowering (`lower.ts`
- * `lowerSwitch`; ST-12..ST-16).
+ * Specification tests for switch IL lowering (`lower.ts` `lowerSwitch`).
  *
- * Expectations derive EXCLUSIVELY from the plan (03-02-switch-lowering.md §1/§2
- * block shapes, FR-10/FR-11) + the Ambiguity Register (AR-1/AR-8/AR-9) — NEVER from
- * reading the implementation (immutable oracle). Each program lowers end-to-end
- * through the REAL frontend so the discriminant/case values carry real types +
- * frames; the resulting `ILFunction` block graph is inspected structurally (the
- * byte-exact golden lives in Phase 3). Spec-tests-first: authored while `lower.ts`
- * still ICEs on `SwitchStmt` — RED first, then GREEN.
+ * Expectations derive exclusively from the documented block shapes for
+ * dispatch chains, fallthrough, and the default clause — never from reading
+ * the implementation (immutable oracle). Each program lowers end-to-end
+ * through the real frontend so the discriminant/case values carry real types +
+ * frames; the resulting `ILFunction` block graph is inspected structurally (a
+ * separate byte-exact golden covers the exact output). Spec-tests-first:
+ * authored while `lower.ts` still ICEs on `SwitchStmt` — red first, then green.
  */
 
 import { describe, expect, it } from "vitest";
@@ -59,7 +58,7 @@ function retBlock(fn: ILFunction): BasicBlock | undefined {
 }
 
 describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () => {
-  // ST-12 — a 2-case + default switch lowers to a multi-block CFG: ≥2 `brcond`
+  // A 2-case + default switch lowers to a multi-block CFG: ≥2 `brcond`
   // dispatch tests (one per case value), `eq` compares, and a join (`ret`) block.
   it("should lower a 2-case switch to a brcond dispatch chain + join (ST-12)", () => {
     const { fn, hasErrors } = lowerMain(
@@ -75,8 +74,8 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
     expect(retBlock(fn!)).toBeDefined(); // the join
   });
 
-  // ST-13 — a multi-value `case 2, 3:` emits two `eq`+`brcond` tests whose true
-  // edges point at the SAME shared body block (AR-8).
+  // A multi-value `case 2, 3:` emits two `eq`+`brcond` tests whose true
+  // edges point at the same shared body block.
   it("should point both multi-value tests at one shared body block (ST-13)", () => {
     const { fn, hasErrors } = lowerMain(
       "module Main;\nfunction main(): void {\n" +
@@ -90,8 +89,8 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
     expect(bc[0].trueTarget).toBe(bc[1].trueTarget); // value 2 and value 3 share one body
   });
 
-  // ST-14 — a case body ending in `fallthrough` terminates with `br(<next clause
-  // body>)`, NOT `br(join)` (AR-9).
+  // A case body ending in `fallthrough` terminates with `br(<next clause
+  // body>)`, not `br(join)`.
   it("should fall through to the next clause body, not the join (ST-14)", () => {
     const { fn, hasErrors } = lowerMain(
       "module Main;\nfunction main(): void {\n" +
@@ -107,7 +106,7 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
     expect(case1?.terminator).not.toMatchObject({ target: retBlock(fn!)!.label }); // not join
   });
 
-  // ST-15 — a case body without `fallthrough` terminates with `br(join)` (auto-break).
+  // A case body without `fallthrough` terminates with `br(join)` (auto-break).
   it("should auto-break a fallthrough-less case body to the join (ST-15)", () => {
     const { fn, hasErrors } = lowerMain(
       "module Main;\nfunction main(): void {\n" +
@@ -120,8 +119,8 @@ describe("Specification: RD-18 Slice 4b switch IL lowering (FR-10/FR-11)", () =>
     expect(case1?.terminator).toMatchObject({ kind: "br", target: retBlock(fn!)!.label });
   });
 
-  // ST-16 — the dispatch chain's final false edge is an unconditional `br(<default
-  // body>)`: an empty tail block branching straight to the default body (AR-5).
+  // The dispatch chain's final false edge is an unconditional `br(<default
+  // body>)`: an empty tail block branching straight to the default body.
   it("should route the dispatch tail unconditionally to the default body (ST-16)", () => {
     const { fn, hasErrors } = lowerMain(
       "module Main;\nfunction main(): void {\n" +

@@ -1,7 +1,7 @@
 /**
- * Implementation tests for config-file discovery: boundary cases the ST-5
- * spec tier does not pin — root-dir starts, deep nesting, and trailing
- * separators (execution plan task 2.3.1).
+ * Implementation tests for config-file discovery: boundary cases the
+ * specification tests do not pin — root-dir starts, deep nesting, and
+ * trailing separators.
  */
 
 import { describe, expect, it } from "vitest";

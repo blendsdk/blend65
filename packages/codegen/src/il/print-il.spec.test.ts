@@ -1,14 +1,12 @@
 /**
- * Specification tests for the RD-06 IL textual form (`printIL`, ST-P1..P5).
+ * Specification tests for the IL textual form (`printIL`).
  *
- * Derived EXCLUSIVELY from plans/rd-06-il-optimizer/07-testing-strategy.md
- * (ST-P1..P5), 03-03-textual-and-optimizer.md Part A (the §4.6 format rules),
- * 03-02-lowering.md (the §4.7 golden, as corrected by register D8 — params
- * render verbatim from their Location symbols), and RD-06 R53–R55 — NOT from
+ * Derived exclusively from the documented format rules and the add-function
+ * golden (params render verbatim from their Location symbols) — not from
  * implementation logic.
  *
- * Spec-tests-first (testing.md Rule 10): authored before `print-il.ts` exists,
- * expected to FAIL first (red), then PASS (green). Immutable oracle.
+ * Spec-tests-first: authored before `print-il.ts` exists, expected to fail
+ * first (red), then pass (green). Immutable oracle.
  */
 
 import { describe, expect, it } from "vitest";
@@ -62,8 +60,8 @@ function program(fn: ILFunction): ILProgram {
 }
 
 /**
- * The RD-06 §4.7 `add(a,b)` function, built by hand (D8: params render verbatim
- * from their frame-slot Location symbols).
+ * The `add(a,b)` function, built by hand (params render verbatim from their
+ * frame-slot Location symbols).
  */
 const ADD_FN: ILFunction = {
   name: "Math.add",
@@ -84,7 +82,7 @@ const ADD_FN: ILFunction = {
   isInterrupt: false,
 };
 
-/** The exact §4.7 golden text (03-02, corrected by D8). */
+/** The exact add-function golden text. */
 const ADD_GOLDEN = [
   "function Math.add(__frame_Math_add_a: i8u, __frame_Math_add_b: i8u): i8u {",
   "_entry:",
@@ -96,18 +94,18 @@ const ADD_GOLDEN = [
 ].join("\n");
 
 describe("Specification: RD-06 printIL (§4.6/§4.7)", () => {
-  // ST-P1 — printIL of the §4.7 program is byte-exact against the golden.
+  // printIL of the add-function program is byte-exact against the golden.
   it("should print the §4.7 add function byte-exactly (ST-P1, R53–R55)", () => {
     expect(printIL(program(ADD_FN))).toBe(ADD_GOLDEN);
   });
 
-  // ST-P2 — determinism: two calls on the same program yield identical strings.
+  // Determinism: two calls on the same program yield identical strings.
   it("should be deterministic across repeated calls (ST-P2, R53/H5)", () => {
     const p = program(ADD_FN);
     expect(printIL(p)).toBe(printIL(p));
   });
 
-  // ST-P3 — the four ILTypes map to their canonical type tags.
+  // The four ILTypes map to their canonical type tags.
   it("should map the four ILTypes to i8u/i8s/i16u/i16s (ST-P3, §4.6)", () => {
     expect(ilTypeTag(IL_BYTE)).toBe("i8u");
     expect(ilTypeTag(IL_SBYTE)).toBe("i8s");
@@ -115,7 +113,7 @@ describe("Specification: RD-06 printIL (§4.6/§4.7)", () => {
     expect(ilTypeTag(IL_SWORD)).toBe("i16s");
   });
 
-  // ST-P4 — a Location with an offset renders `symbol+offset`.
+  // A Location with an offset renders `symbol+offset`.
   it("should render a location offset as sym+offset (ST-P4, §4.2/§4.6)", () => {
     const fn: ILFunction = {
       name: "M.f",
@@ -135,7 +133,7 @@ describe("Specification: RD-06 printIL (§4.6/§4.7)", () => {
     expect(printIL(program(fn))).toContain("store %0, s+2");
   });
 
-  // ST-P5 — a multi-block function prints its blocks entry-first, in array order.
+  // A multi-block function prints its blocks entry-first, in array order.
   it("should print blocks entry-first in order (ST-P5, R16/§4.6)", () => {
     const entry: BasicBlock = {
       label: "_entry",

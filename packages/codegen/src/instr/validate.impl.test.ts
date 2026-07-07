@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the RD-07a CPU table + validator.
+ * Implementation tests for the CPU table + validator.
  *
  * These cover internal invariants beyond the specification oracles
  * (validate.spec.test.ts): table completeness (every NMOS opcode has a non-empty

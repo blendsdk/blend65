@@ -1,10 +1,10 @@
 /**
- * Public barrel for the RD-15 programmatic API (`api/`).
+ * Public barrel for the programmatic API (`api/`).
  *
  * The four facade functions over one shared pipeline core, plus their option and
  * result types and the `build()` injection seam. The pipeline internals
  * (`run-frontend`, result assembly, the asm helper) are intentionally NOT
- * re-exported — the facade is the public surface (R1/R2).
+ * re-exported — the facade is the public surface.
  */
 
 export type { CompilerOptions } from "./options.js";

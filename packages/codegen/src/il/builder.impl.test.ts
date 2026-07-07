@@ -1,10 +1,10 @@
 /**
- * Implementation tests for `IlFunctionBuilder` (RD-06 §4.4).
+ * Implementation tests for `IlFunctionBuilder`.
  *
  * Edge cases and internals NOT pinned by a spec oracle: monotonic temp ids,
  * sequential block labels, the frozen/immutable output, `tempCount`, and the
- * fallback-terminator behaviour. Written AFTER the implementation (testing.md
- * Rule 6/10).
+ * fallback-terminator behaviour. Written after the implementation, since these
+ * are implementation-detail tests rather than externally observable behavior.
  */
 
 import { describe, expect, it } from "vitest";

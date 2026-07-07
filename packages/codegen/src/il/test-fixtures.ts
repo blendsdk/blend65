@@ -1,16 +1,16 @@
 /**
- * Hand-built lowering fixtures for the RD-06 gate/slice-2 surface (D5).
+ * Hand-built lowering fixtures for the currently supported lowering surface.
  *
  * These are **test support**, NOT part of the public IL API — they are never
- * re-exported from the `il/` barrel (07-testing-strategy.md). Each fixture is a
- * trio of real records the deferred RD-04b checker would otherwise produce:
+ * re-exported from the `il/` barrel. Each fixture is a
+ * trio of real records the deferred semantic checker would otherwise produce:
  * a parsed AST ({@link ProgramNode}), a {@link SemanticModel} (the empty
- * passthrough model is sufficient — slice lowering reads types from the plan's
- * frame slots, D5), and an {@link AllocationPlan} carrying the frame slots whose
+ * passthrough model is sufficient — lowering reads types from the plan's
+ * frame slots), and an {@link AllocationPlan} carrying the frame slots whose
  * symbols/types the lowering resolves.
  *
- * The fixtures cover every ST-L scenario: the gate program (`poke`), the slice-2
- * program (`let` + `poke`), the §4.7 `add(a,b)` function, a `let` without an
+ * The fixtures cover each supported lowering scenario: the gate program (`poke`),
+ * a program combining `let` + `poke`, the `add(a,b)` function, a `let` without an
  * initialiser, an unsupported-node body (`if`), and an error-carrying function.
  */
 
@@ -184,7 +184,7 @@ function fixture(program: ProgramNode, plan: AllocationPlan): LoweringFixture {
 
 /**
  * Gate program: `module Main; function main(): void { poke(0xD020, 5); }`.
- * No frame slots — `poke` uses a literal address (→ symbolic location, D9) and a
+ * No frame slots — `poke` uses a literal address (→ symbolic location) and a
  * literal value (→ immediate). Lowers to `store 5, $D020` + `ret`.
  */
 export const gateFixture: LoweringFixture = fixture(
@@ -193,9 +193,9 @@ export const gateFixture: LoweringFixture = fixture(
 );
 
 /**
- * Slice-2 program: `let c: byte = 5; poke(0xD020, c);`. The `let` materialises
- * the literal into `%0 = const i8u 5` then stores it; the `poke` loads `c` and
- * stores it to the symbolic address.
+ * A program combining `let` and `poke`: `let c: byte = 5; poke(0xD020, c);`.
+ * The `let` materialises the literal into `%0 = const i8u 5` then stores it;
+ * the `poke` loads `c` and stores it to the symbolic address.
  */
 export const slice2Fixture: LoweringFixture = fixture(
   programOf(
@@ -209,7 +209,7 @@ export const slice2Fixture: LoweringFixture = fixture(
 );
 
 /**
- * RD-06 §4.7 function: `module Math; function add(a: byte, b: byte): byte {
+ * Function: `module Math; function add(a: byte, b: byte): byte {
  * return a + b; }`. Lowers to two loads, an `add`, and `ret %2` (left-first).
  */
 export const addFixture: LoweringFixture = fixture(
@@ -233,9 +233,9 @@ export const addFixture: LoweringFixture = fixture(
 );
 
 /**
- * RD-06 comparison function: `module Math; function eq(a: byte, b: byte): byte {
+ * Comparison function: `module Math; function eq(a: byte, b: byte): byte {
  * return a == b; }`. Lowers to two loads, an `eq` (IL_BYTE 0/1 result), and
- * `ret %2`. Used by the RD-07b end-to-end golden ST-G3.
+ * `ret %2`. Used by an end-to-end golden test.
  */
 export const eqFixture: LoweringFixture = fixture(
   programOf(
@@ -269,9 +269,8 @@ export const letNoInitFixture: LoweringFixture = fixture(
 
 /**
  * A function whose body holds an unsupported node (`fallthrough` — a switch-only
- * statement, deferred to Slice 4b): the `lowerStmt` default fires exactly one
- * `E90001` ICE and never throws. (Updated from `if`, which RD-18 Slice 4a now
- * lowers; the R69 "unsupported node → one ICE" oracle is unchanged.)
+ * statement used outside a switch): the `lowerStmt` default fires exactly one
+ * `E90001` ICE and never throws.
  */
 export const unsupportedFixture: LoweringFixture = fixture(
   programOf("Main", fnDecl("main", [], prim("void"), block([fallthroughStmt()]))),
@@ -279,7 +278,7 @@ export const unsupportedFixture: LoweringFixture = fixture(
 );
 
 /**
- * A function carrying an `ErrorType` in its signature — skipped entirely (R68),
+ * A function carrying an `ErrorType` in its signature — skipped entirely,
  * so it is absent from `ILProgram.functions`.
  */
 export const errorFixture: LoweringFixture = fixture(

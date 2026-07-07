@@ -2,16 +2,17 @@
  * Public barrel for `@blend65/compiler` — the integration layer that drives the
  * compiler pipeline to a platform binary.
  *
- * RD-09 ships the ACME emitter/assembler-integration process layer (the `acme/`
- * module): ACME discovery, invocation, VICE label-file parsing, and the top-level
- * `emitBinary` orchestration with the post-ACME binary-size budget check. The pure
- * whole-program serializer (`serializeToAcme`) lives in `@blend65/codegen`; this
- * package owns the filesystem/process I/O (R15/AR-20).
+ * This package ships the ACME emitter/assembler-integration process layer (the
+ * `acme/` module): ACME discovery, invocation, VICE label-file parsing, and the
+ * top-level `emitBinary` orchestration with the post-ACME binary-size budget
+ * check. The pure whole-program serializer (`serializeToAcme`) lives in
+ * `@blend65/codegen`; this package owns the filesystem/process I/O, keeping
+ * that boundary out of the frontend and language-server packages.
  */
 
 export const VERSION = "0.1.0";
 
-// RD-09 ACME process layer.
+// The ACME process layer.
 export {
   discoverAcme,
   defaultAcmeProbes,
@@ -29,17 +30,17 @@ export {
 } from "./acme/invoke-acme.js";
 export { parseLabelFile } from "./acme/label-file.js";
 
-// RD-15 disk-backed CompilerHost (R12/R47).
+// The disk-backed CompilerHost.
 export * from "./host/index.js";
 
-// RD-15 programmatic API (facade): compile/build/emitAsm/emitIl (R1–R11, R51).
+// The programmatic API (facade): compile/build/emitAsm/emitIl.
 export * from "./api/index.js";
 export {
   emitBinary,
   defaultEmitDeps,
   type EmitOptions,
   type EmitDeps,
-  // PF-002: the acme-layer aggregate is `EmitBinaryResult`; the `BuildResult`
-  // name is owned by the RD-15 facade result type (exported from `./api/`).
+  // The acme-layer aggregate is named `EmitBinaryResult`; `BuildResult` is
+  // reserved for the facade result type (exported from `./api/`).
   type EmitBinaryResult,
 } from "./acme/emit-binary.js";

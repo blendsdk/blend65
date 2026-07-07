@@ -1,5 +1,5 @@
 /**
- * The parser's token {@link Cursor} (RD-03 §4.13, FR-3; AR-8).
+ * The parser's token {@link Cursor} (FR-3).
  *
  * A position-indexed reader over the lexer's `readonly Token[]`. The token array
  * is never mutated (FR-3); the cursor only moves an internal index `i`. Reading
@@ -7,10 +7,10 @@
  * parse functions never bounds-check.
  *
  * The cursor is also the **single site** that recovers lexeme text from the
- * source (AR-8): the frozen RD-02 `Token` stores only a `span`, never the text,
- * so {@link Cursor.lexeme} slices the `source` string the cursor closes over.
+ * source: the `Token` type stores only a `span`, never the text, so
+ * {@link Cursor.lexeme} slices the `source` string the cursor closes over.
  * Every AST string field (`ModuleDecl.name`, `IdentExpr.name`, …) is filled
- * through it — keeping the frozen lexer untouched and the slicing logic in one
+ * through it — keeping the lexer untouched and the slicing logic in one
  * tested place.
  */
 
@@ -37,7 +37,7 @@ export interface Cursor {
   expect(kind: TokenKindValue, code: DiagCodeValue, ctx: string): Token | null;
   /** `true` when the current token is the `Eof` terminator. */
   atEnd(): boolean;
-  /** Recovers a token's source text: `source.slice(span.start, span.end)` (AR-8). */
+  /** Recovers a token's source text: `source.slice(span.start, span.end)`. */
   lexeme(token: Token): string;
 }
 
@@ -45,7 +45,7 @@ export interface Cursor {
  * Builds a {@link Cursor} over `tokens`, closing over `source` for `lexeme()`.
  *
  * @param tokens   The lexer's token stream (non-empty, ends in exactly one `Eof`).
- * @param source   The full source text these tokens span (for `lexeme()`, AR-8).
+ * @param source   The full source text these tokens span (for `lexeme()`).
  * @param sourceId The interned source identifier (for diagnostic spans).
  * @param bag      The shared diagnostic bag `expect` failures are appended to.
  */

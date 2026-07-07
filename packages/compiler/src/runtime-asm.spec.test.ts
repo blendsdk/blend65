@@ -1,18 +1,19 @@
 /**
- * Specification test for RD-17 runtime-module ACME validity (ST-30).
+ * Specification test for runtime-module ACME validity.
  *
- * Derived EXCLUSIVELY from RD-17 §4.6 and AR-P4 — never from reading the
- * implementation (IMMUTABLE ORACLE RULE): every shipped `runtime/*.asm` module
- * must assemble under ACME with zero errors, standalone.
+ * Written from the requirement that every shipped `runtime/*.asm` module must
+ * assemble under ACME with zero errors, standalone — never derived from
+ * reading the implementation.
  *
- * Harness note (PF-019): the word routines reference the allocator's
- * `__zp_arg_N` symbols, which live in the *program* symbol header at build time —
- * the modules themselves define no addresses. The harness therefore prepends a
+ * Harness note: the word routines reference the allocator's `__zp_arg_N`
+ * symbols, which live in the *program* symbol header at build time — the
+ * modules themselves define no addresses. The harness therefore prepends a
  * short prelude (an origin + the `__zp_arg_0..3` definitions) so each module can
  * be syntax-checked in isolation; the module text itself is assembled verbatim.
  *
- * Skip-if-no-ACME: mirrors the RD-09 process-layer convention (AR-27 — CI has no
- * emulator/assembler tier yet); locally the test runs against the real ACME.
+ * Skip-if-no-ACME: mirrors the ACME process-layer convention elsewhere in this
+ * package (CI has no emulator/assembler tier yet); locally the test runs
+ * against the real ACME.
  */
 
 import { execFileSync } from "node:child_process";
@@ -23,7 +24,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { RT_ROUTINES } from "@blend65/core";
 import { loadRuntimeModule } from "@blend65/codegen";
 
-/** Resolve ACME from PATH (returns null → tests are skipped, AR-27). */
+/** Resolve ACME from PATH (returns null → tests are skipped). */
 function findAcme(): string | null {
   try {
     const out = execFileSync("which", ["acme"], { encoding: "utf8" }).trim();
@@ -41,7 +42,7 @@ afterAll(() => {
 });
 
 /**
- * The 2-line-spirit prelude (PF-019): an origin so ACME can place code, and the
+ * A minimal two-line prelude: an origin so ACME can place code, and the
  * `__zp_arg_0..3` symbols the program header normally provides.
  */
 const PRELUDE = [
@@ -62,7 +63,7 @@ describe.skipIf(ACME === null)("Specification: RD-17 runtime .asm modules assemb
       const binPath = join(WORK_DIR, `${name}.bin`);
       writeFileSync(asmPath, PRELUDE + moduleText, "utf8");
 
-      // Explicit argv, no shell (mirrors the RD-09 invocation convention).
+      // Explicit argv, no shell (mirrors the ACME invocation convention elsewhere in this package).
       execFileSync(ACME!, ["-f", "plain", "-o", binPath, asmPath], {
         encoding: "utf8",
       });

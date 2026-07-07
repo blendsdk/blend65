@@ -1,10 +1,10 @@
 /**
- * Shared test support for the RD-18 Slice 3b fixture (module + local scalars,
+ * Shared test support for the Slice 3b fixture (module + local scalars,
  * same-type byte/word arithmetic, `poke`/`pokew` to plain RAM). Builds
  * `examples/slice3b/main.blend` (inlined verbatim, mirroring `testing/slice3a.ts`)
- * to a real c64 `.prg` via the RD-15 `build()` facade + real ACME, and emits its
- * ACME source via `emitAsm` for the golden tier. Test-only: NOT re-exported from
- * the package barrel.
+ * to a real c64 `.prg` via the compiler's `build()` facade + real ACME, and
+ * emits its ACME source via `emitAsm` for the golden tier. Test-only: NOT
+ * re-exported from the package barrel.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -12,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
 
-/** The Slice 3b source — verbatim `examples/slice3b/main.blend` (AR-6). */
+/** The Slice 3b source — verbatim `examples/slice3b/main.blend`. */
 export const SLICE3B_SRC = `module Main;
 
 let accB: byte;

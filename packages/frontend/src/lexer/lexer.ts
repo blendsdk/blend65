@@ -7,14 +7,14 @@ import { KEYWORD_MAP } from "./keyword-map.js";
  * The result of tokenizing one source file.
  *
  * The token stream is always non-empty and always ends with exactly one `Eof`
- * token (FR-33), so consumers (the parser, RD-03) can rely on a terminator
- * without bounds-checking. The `lineMap` is built once over the raw source and
- * lets consumers convert any `token.span` offset to a line/column on demand.
+ * token (FR-33), so consumers (the parser) can rely on a terminator without
+ * bounds-checking. The `lineMap` is built once over the raw source and lets
+ * consumers convert any `token.span` offset to a line/column on demand.
  */
 export interface LexResult {
   /** The complete token stream — always non-empty, always ends with one `Eof`. */
   readonly tokens: readonly Token[];
-  /** Line-start map for the source, built once (AR-L1/L2). */
+  /** Line-start map for the source, built once. */
   readonly lineMap: LineMap;
 }
 
@@ -63,7 +63,7 @@ const MAX_NUMERIC = 0xffff;
  * Never throws (FR-32): malformed input appends diagnostics to `bag` and yields
  * recovery tokens, so the returned stream is always complete and ends in `Eof`.
  *
- * @param sourceId Interned source identifier (read by the CompilerHost, AR-40).
+ * @param sourceId Interned source identifier (read by the CompilerHost).
  * @param text     The full UTF-8 source text.
  * @param bag      Accumulating diagnostic bag; lexer diagnostics are appended here.
  * @returns        The token stream plus the source's `LineMap`.
@@ -73,8 +73,8 @@ export function lex(sourceId: SourceId, text: string, bag: DiagnosticBag): LexRe
   const tokens: Token[] = [];
 
   // Single forward cursor over `text`. All token-significant characters are
-  // ASCII (Ch 01 §1), so one UTF-16 code unit equals one byte for them and
-  // `pos` doubles as a byte offset for every emitted span (AR-72).
+  // ASCII, so one UTF-16 code unit equals one byte for them and `pos` doubles
+  // as a byte offset for every emitted span.
   let pos = 0;
 
   /** Returns the code unit `k` positions ahead, or `undefined` past the end. */
@@ -362,8 +362,9 @@ export function lex(sourceId: SourceId, text: string, bag: DiagnosticBag): LexRe
    * Validates one escape sequence shared by strings and chars (FR-19; §7.2).
    * `pos` is at the backslash on entry. The raw `\…` text is left in place (the
    * caller captures it via `text.slice`); only validation diagnostics are
-   * emitted — byte resolution is RD-04's job. `\?` → E10219, short `\x` → E10220;
-   * neither terminates the literal (the caller keeps scanning to the delimiter).
+   * emitted — byte resolution happens later, in semantic analysis. `\?` →
+   * E10219, short `\x` → E10220; neither terminates the literal (the caller
+   * keeps scanning to the delimiter).
    */
   function validateEscape(): void {
     const escPos = pos;
@@ -396,9 +397,10 @@ export function lex(sourceId: SourceId, text: string, bag: DiagnosticBag): LexRe
 
   /**
    * Scans a double-quoted string literal (FR-17; §7). `Token.value` holds the raw
-   * content between the quotes with escapes kept literally (resolved later by
-   * RD-04). A literal newline ends the string with E10217; EOF before the closing
-   * quote ends it with E10218 — either way a `String` token is still produced.
+   * content between the quotes with escapes kept literally (resolved later during
+   * semantic analysis). A literal newline ends the string with E10217; EOF before
+   * the closing quote ends it with E10218 — either way a `String` token is still
+   * produced.
    */
   function scanString(): Token {
     const start = pos;

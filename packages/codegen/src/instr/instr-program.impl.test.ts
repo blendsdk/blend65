@@ -1,9 +1,9 @@
 /**
- * Implementation tests for RD-07b `instr-program.ts` (edge cases & internals).
+ * Implementation tests for `instr-program.ts` (edge cases & internals).
  *
- * Written AFTER the implementation (testing.md Rule 10): empty IL program →
- * empty `streams`; frozen output; multi-function ordering with byte sizing;
- * preamble emptiness. They complement `instr-program.spec.test.ts`.
+ * Written after the implementation, unlike the specification tests: empty IL
+ * program → empty `streams`; frozen output; multi-function ordering with byte
+ * sizing; preamble emptiness. They complement `instr-program.spec.test.ts`.
  */
 
 import { describe, expect, it } from "vitest";

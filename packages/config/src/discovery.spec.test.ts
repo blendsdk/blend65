@@ -1,11 +1,10 @@
 /**
- * Specification tests for config-file discovery (ST-5).
+ * Specification tests for config-file discovery: the upward walk for
+ * `blend65.json`, nearest file wins.
  *
- * Traceability: RD-16 R4 (walk-up discovery) via 07-testing-strategy.md ST-5,
- * resolved by AR-P7 — `findConfigUpwards` is a pure helper taking an injected
- * `fileExists` predicate, so these tests are hermetic (no real filesystem).
- * Expectations derive from the RD and the ST table only, never from the
- * implementation (immutable-oracle rule).
+ * `findConfigUpwards` is a pure helper taking an injected `fileExists`
+ * predicate, so these tests are hermetic (no real filesystem). Expectations
+ * derive from the discovery contract only, never from the implementation.
  */
 
 import { describe, expect, it } from "vitest";

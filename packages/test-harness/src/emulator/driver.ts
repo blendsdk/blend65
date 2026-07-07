@@ -1,5 +1,5 @@
 /**
- * Abstract emulator-driver contract (RD-12 §4.1, AC-01, AR-23/AR-H16).
+ * Abstract emulator-driver contract.
  *
  * The published interface every concrete driver implements. A driver loads a
  * binary into an emulated 6502 platform, runs it, and reports register/memory
@@ -8,13 +8,13 @@
  * implementation is `ViceDriver` (`vice/vice-driver.ts`), speaking VICE's
  * binary-monitor protocol.
  *
- * Transcribes the RD §4.1 contract verbatim, including the reserved-word
- * work-around `Registers.flags.break_` (AR-H16) — no divergence from the
- * published shape.
+ * Uses the reserved-word work-around `Registers.flags.break_` for the Break
+ * flag, since `break` is a reserved word — no divergence from the published
+ * shape otherwise.
  */
 
 /**
- * A driver over an emulated 6502 platform (AR-23). Any emulator that can load a
+ * A driver over an emulated 6502 platform. Any emulator that can load a
  * binary, run it, and report register/memory state implements this.
  */
 export interface EmulatorDriver {
@@ -28,8 +28,8 @@ export interface EmulatorDriver {
   resume(): Promise<BreakReason>;
   /**
    * Advance the CPU by `count` instructions, then re-stop. The incremental-step
-   * primitive `runUntilMemory`/`runFrames` poll between (runtime AR-H18 — the RD
-   * §4.1 sketch omitted it, but `resume()` alone cannot poll a running machine).
+   * primitive `runUntilMemory`/`runFrames` poll between calls, since `resume()`
+   * alone cannot poll a running machine.
    */
   advanceInstructions(count: number): Promise<void>;
   /** Read the current CPU registers. */
@@ -38,7 +38,7 @@ export interface EmulatorDriver {
   readMemory(start: number, length: number): Promise<Uint8Array>;
   /** Write `data` to memory starting at `address`. */
   writeMemory(address: number, data: Uint8Array): Promise<void>;
-  /** Capture the current display as a PNG buffer (failure artifact only — AC-09). */
+  /** Capture the current display as a PNG buffer (failure artifact only). */
   captureScreenshot(): Promise<Buffer>;
   /** Shut the emulator down and release its resources. */
   shutdown(): Promise<void>;
@@ -48,9 +48,9 @@ export interface EmulatorDriver {
 export interface LaunchOptions {
   /** Absolute path to the emulator executable (e.g. VICE's `x64sc`). */
   executablePath: string;
-  /** Control-channel TCP port; defaults to 6502, bound to 127.0.0.1 only (AR-H8). */
+  /** Control-channel TCP port; defaults to 6502, bound to 127.0.0.1 only. */
   monitorPort?: number;
-  /** Show the emulator GUI window; defaults to false (headless) (R8). */
+  /** Show the emulator GUI window; defaults to false (headless). */
   gui?: boolean;
   /** Extra emulator CLI arguments, appended verbatim. */
   extraArgs?: string[];
@@ -78,7 +78,7 @@ export interface Registers {
     interrupt: boolean;
     /** Decimal (D). */
     decimal: boolean;
-    /** Break (B) — spelled `break_` per RD §4.1 (`break` is reserved, AR-H16). */
+    /** Break (B) — spelled `break_` since `break` is a reserved word. */
     break_: boolean;
     /** Overflow (V). */
     overflow: boolean;

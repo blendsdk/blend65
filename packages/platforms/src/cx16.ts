@@ -1,11 +1,10 @@
 /**
- * The Commander X16 platform plugin — RD-10 R36/R39; spec Ch 15 §2 +
- * appendix-cx16; decision D4.
+ * The Commander X16 platform plugin; spec Ch 15 §2 + appendix-cx16.
  *
- * The CX16 is a modern WDC 65C02 platform (`cpu: "wdc65c02"` — AC-14, enabling
+ * The CX16 is a modern WDC 65C02 platform (`cpu: "wdc65c02"`, enabling
  * 65C02 opcodes/modes via the shared `CpuVariant`). Profile transcribed from
  * appendix-cx16 §10. In this slice the codegen hooks delegate to the shared
- * C64-style bodies (D4 — the CX16 uses the same PRG/BASIC-stub loader). Banked
+ * C64-style bodies (the CX16 uses the same PRG/BASIC-stub loader). Banked
  * RAM / VERA specifics are platform libraries, not the core profile.
  */
 
@@ -67,9 +66,9 @@ export const cx16Plugin: PlatformPlugin = {
   id: "cx16",
   displayName: "Commander X16",
   profile: cx16Profile,
-  intrinsics: [], // asm_wai() etc. are RD-17 (D1)
-  // The mul/div operator-backing routines are codegen-owned T3 modules
-  // (RD-17 AR-98), not platform contributions; genuine T4 modules go here.
+  intrinsics: [], // asm_wai() etc. are populated once that runtime support is wired up
+  // The mul/div operator-backing routines are codegen-owned T3 modules,
+  // not platform contributions; genuine T4 modules go here.
   runtimeModules: [],
 
   emitPreamble(options: PreambleOptions): StreamEntry[] {

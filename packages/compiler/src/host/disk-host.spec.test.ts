@@ -1,11 +1,11 @@
 /**
- * Specification tests for the RD-15 `DiskCompilerHost` — ST-2..ST-4.
+ * Specification tests for `DiskCompilerHost`.
  *
- * Derived EXCLUSIVELY from RD-15 R12/R14/R47, RD-13 R37, and the plan
- * (03-01-compiler-host.md, AR-V3/V6). Immutable oracles:
- *   ST-2 — `readFile` returns content / `undefined` (never throws).
- *   ST-3 — `listSourceFiles()` expands `include` minus `exclude`, absolute + sorted.
- *   ST-4 — a `../`-escaping include pattern must not leak files outside `projectRoot`.
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles:
+ *   - `readFile` returns content / `undefined` (never throws).
+ *   - `listSourceFiles()` expands `include` minus `exclude`, absolute + sorted.
+ *   - a `../`-escaping include pattern must not leak files outside `projectRoot`.
  *
  * The host IS the filesystem boundary, so these run against real temp dirs.
  */

@@ -1,12 +1,12 @@
 /**
- * `emitIl` / `emitAsm` — the partial-pipeline facade entry points (RD-15 R7/R8,
- * AR-V19; PF-001 startup/out-name seam).
+ * `emitIl` / `emitAsm` — the partial-pipeline facade entry points.
  *
- * `emitIl` runs the frontend → IL lowering → IL optimizer (always, AR-V19) →
- * `printIL`. `emitAsm` continues into `assembleProgram` (with the PF-001 overrides
- * threading the effective `outName` and `startup`), the peephole optimizer (only
- * when `config.optimize`, AR-V19), runtime-section embedding, and `serializeToAcme`.
- * Neither invokes ACME nor writes files (R7/R8) — the CLI writes the artifact.
+ * `emitIl` runs the frontend → IL lowering → IL optimizer (always runs) →
+ * `printIL`. `emitAsm` continues into `assembleProgram` (with overrides
+ * threading the effective `outName` and `startup`), the peephole optimizer
+ * (only when `config.optimize`), runtime-section embedding, and
+ * `serializeToAcme`. Neither invokes ACME nor writes files — the CLI writes
+ * the artifact.
  */
 
 import { RT_ROUTINES, type CompilerHost } from "@blend65/core";
@@ -28,9 +28,9 @@ import { assembleCompileResult } from "./compile.js";
 import { runFrontend, type FrontendRun } from "./run-frontend.js";
 
 /**
- * Map the config `startup` value to core's {@link ShimVariant} (RD-16 R18, AR-69):
+ * Map the config `startup` value to core's {@link ShimVariant}:
  * `terminating`→`"terminating"`, `minimal`→`"non-terminating"`, `bare`→`"bare"`,
- * `auto`→`undefined` (falls through to the codegen Half-A default).
+ * `auto`→`undefined` (falls through to the codegen's default).
  *
  * @param startup The resolved `config.startup`.
  * @returns The shim variant, or `undefined` for `"auto"`.
@@ -51,7 +51,7 @@ export function toShimVariant(
 }
 
 /**
- * Emit IL text for the program (R8/AC-04). No codegen.
+ * Emit IL text for the program. No codegen.
  *
  * @param options The compiler options.
  * @param host An optional injected {@link CompilerHost}.
@@ -65,7 +65,7 @@ export function emitIl(options: CompilerOptions, host?: CompilerHost): EmitResul
 }
 
 /**
- * Emit ACME assembly text for the program (R7/AC-03). No ACME invocation, no
+ * Emit ACME assembly text for the program. No ACME invocation, no
  * file writes.
  *
  * @param options The compiler options.
@@ -81,7 +81,7 @@ export function emitAsm(options: CompilerOptions, host?: CompilerHost): EmitResu
 
 /**
  * Lower + IL-optimize the run's programs, or `undefined` when a pre-emit error
- * makes codegen unsafe (aborted run or any pipeline error, R11). Mutates `run.bag`.
+ * makes codegen unsafe (aborted run or any pipeline error). Mutates `run.bag`.
  */
 function lowerProgram(run: FrontendRun): ILProgram | undefined {
   if (
@@ -103,7 +103,7 @@ function lowerProgram(run: FrontendRun): ILProgram | undefined {
     },
     run.bag,
   );
-  // The IL optimizer always runs (AR-V19); v1 ships no passes → identity.
+  // The IL optimizer always runs; v1 ships no passes → identity.
   return optimizeIL(il, [], run.bag);
 }
 
@@ -118,14 +118,14 @@ export function assembleAsmText(run: FrontendRun): string | undefined {
     return undefined;
   }
   const plugin = run.plugin;
-  // PF-001: thread the effective out-name and startup shim into the preamble.
-  // `auto` maps to undefined → keep the codegen Half-A default (omit the key).
+  // Thread the effective out-name and startup shim into the preamble.
+  // `auto` maps to undefined → keep the codegen's default (omit the key).
   const shim = toShimVariant(run.config.startup);
   const program = assembleProgram(il, plugin, run.bag, {
     projectName: run.outName,
     ...(shim !== undefined ? { shimVariant: shim } : {}),
   });
-  // Peephole runs only under --optimize (AR-V19); otherwise the program is verbatim.
+  // Peephole runs only under --optimize; otherwise the program is verbatim.
   const optimized = run.config.optimize
     ? optimizeInstr(program, plugin.profile.cpu, run.bag)
     : program;

@@ -1,14 +1,13 @@
 /**
- * The canonical RD-10 `PlatformProfile` data type + its value enums — spec Ch 15 §3,
- * RD-10 R6–R15 (§4.2); decisions D2/D6.
+ * The canonical `PlatformProfile` data type + its value enums — spec Ch 15 §3.
  *
- * This is a **new** type (D6), distinct from the interim `PlatformProfile` in
- * `core/src/semantics/platform-profile.ts` (RD-04/RD-05), which is left untouched
- * until a later migration. The canonical profile is exported only from the
+ * This is a distinct type from the interim `PlatformProfile` in
+ * `core/src/semantics/platform-profile.ts`, which is left untouched until a
+ * later migration. The canonical profile is exported only from the
  * `@blend65/core/platform` subpath barrel — never the root barrel.
  *
  * A profile is pure compile-time data: every field is `readonly`. The `cpu` field
- * uses the shared canonical {@link CpuVariant} (D2) so codegen's CPU-validation
+ * uses the shared canonical {@link CpuVariant} so codegen's CPU-validation
  * tables and the platform profiles agree on exactly one type.
  */
 
@@ -35,21 +34,21 @@ export type OutputFormat = "prg" | "bin" | "rom" | "xex" | "a78";
 export type CharEncoding = "petscii" | "atascii" | "ascii";
 
 /**
- * The canonical RD-10 platform profile (spec Ch 15 §3) — the data half of a
+ * The canonical platform profile (spec Ch 15 §3) — the data half of a
  * {@link PlatformPlugin}. Pure compile-time constant data.
  *
  * Required fields cover the memory map (§3.1), resource budgets, output format,
- * CPU variant, and the ZP arg-block size (AR-34). Optional fields cover character
+ * CPU variant, and the ZP arg-block size. Optional fields cover character
  * encodings (§3.2), embed-format handlers, platform warning thresholds, and
  * informational clock/frame metadata.
  */
 export interface PlatformProfile {
-  // --- Platform identity (required, RD-17 R25 / PF-015) ---
+  // --- Platform identity (required) ---
   /**
    * Stable platform id, e.g. `"c64"` — the first row of every frozen platform
-   * appendix's profile table. T4 intrinsic availability predicates compare this
-   * against the contributing plugin's id (RD-17 R25); each plugin's
-   * `validateProfile()` checks it equals the plugin's own `id`.
+   * appendix's profile table. Intrinsic availability predicates compare this
+   * against the contributing plugin's id; each plugin's `validateProfile()`
+   * checks it equals the plugin's own `id`.
    */
   readonly platformId: string;
 
@@ -93,7 +92,7 @@ export interface PlatformProfile {
   /** The CPU instruction-set variant (shared canonical type, D2). */
   readonly cpu: CpuVariant;
 
-  // --- ZP arg-block (required, AR-34) ---
+  // --- ZP arg-block (required) ---
   /** Zero-page bytes reserved for the cross-function argument block. */
   readonly zpArgBlockSize: number;
 

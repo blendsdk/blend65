@@ -1,6 +1,5 @@
 /**
- * RD-09 ACME executable discovery — `discoverAcme`
- * (`plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, R28/R29; AR-62).
+ * ACME executable discovery — `discoverAcme`.
  *
  * Resolves the path to the external ACME assembler using a fixed three-tier
  * strategy:
@@ -9,23 +8,23 @@
  *      and executable, it wins; if set but not executable, that is a hard error
  *      (no silent fallback to PATH).
  *   2. **PATH probe** — search `PATH` for an `acme` executable.
- *   3. **Hard error** — neither resolves → emit `E10035` (`AcmeNotFound`) with the
- *      R29 actionable message and return `null`.
+ *   3. **Hard error** — neither resolves → emit `E10035` (`AcmeNotFound`) with an
+ *      actionable message and return `null`.
  *
  * Filesystem and PATH access are injected through {@link AcmeProbes} so the logic
  * is pure and unit-testable without touching the real environment (no real ACME
- * binary is ever required — AR-27). {@link defaultAcmeProbes} supplies the real
+ * binary is ever required). {@link defaultAcmeProbes} supplies the real
  * `node:fs` / `node:child_process`-free implementations for production use.
  *
- * Lives in `@blend65/compiler` — the integration layer that owns process/FS I/O
- * (R15/AR-20 keeps this out of `codegen`/`frontend`).
+ * Lives in `@blend65/compiler` — the integration layer that owns process/FS I/O,
+ * keeping it out of `codegen`/`frontend`.
  */
 
 import { accessSync, constants } from "node:fs";
 import { delimiter, join } from "node:path";
 import { DiagCode, type DiagnosticBag } from "@blend65/core";
 
-/** The R29 actionable message emitted when ACME cannot be located (AR-62). */
+/** The actionable message emitted when ACME cannot be located. */
 export const ACME_NOT_FOUND_MESSAGE =
   "ACME assembler not found — install ACME and ensure it is on your PATH, " +
   "or set --acme-path / acmePath in blend65.json";
@@ -48,7 +47,7 @@ export interface AcmeProbes {
 }
 
 /**
- * Resolve the ACME executable via the three-tier strategy (R28/R29, AR-62).
+ * Resolve the ACME executable via the three-tier strategy.
  *
  * @param d The discovery configuration (explicit path tier).
  * @param bag Diagnostic sink — receives `AcmeNotFound` (E10035) on failure.
@@ -62,7 +61,7 @@ export function discoverAcme(
   probes: AcmeProbes = defaultAcmeProbes,
 ): string | null {
   // Tier 1: explicit path. If set, it is authoritative — a non-executable
-  // explicit path is a hard error, never a silent fall-through to PATH (R28).
+  // explicit path is a hard error, never a silent fall-through to PATH.
   if (d.acmePath !== undefined) {
     if (probes.isExecutable(d.acmePath)) {
       return d.acmePath;
@@ -81,7 +80,7 @@ export function discoverAcme(
     return onPath;
   }
 
-  // Tier 3: hard error — no silent fallback (R29).
+  // Tier 3: hard error — no silent fallback.
   bag.addError(DiagCode.AcmeNotFound, null, ACME_NOT_FOUND_MESSAGE);
   return null;
 }

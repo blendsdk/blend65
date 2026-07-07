@@ -1,22 +1,22 @@
 /**
- * The universal intrinsic names reserved across every Blend65 platform (AR-3).
+ * The universal intrinsic names reserved across every Blend65 platform.
  *
  * Spec Ch 12 defines two groups of intrinsics that exist on all targets: 13 CPU
- * control intrinsics (§2) and 9 memory intrinsics (§3). RD-17 (R2) adds the
- * 65C02-gated `asm_wai` as the 23rd reserved name — reserved on every target
- * (availability gating happens in semantic analysis, not here). The
+ * control intrinsics (§2) and 9 memory intrinsics (§3). The 65C02-gated
+ * `asm_wai` is also reserved on every target as the 23rd name (availability
+ * gating happens in semantic analysis, not here). The
  * parser uses this set to decide whether an `Identifier` immediately followed by
  * `(` is an {@link IntrinsicCallExprNode} (a hit) or an ordinary `CallExpr`
  * (a miss). Platform encoders (Ch 15) are *not* universal and are deliberately
  * excluded — they resolve to normal calls and are validated by later phases.
  *
- * Arity and argument-type checking belong to semantic analysis (RD-04); this set
+ * Arity and argument-type checking belong to semantic analysis; this set
  * only governs the syntactic intrinsic-vs-call decision.
  */
 
 /**
  * The 23 universal intrinsic names (13 CPU control + `asm_wai` + 9 memory) from
- * spec Ch 12 (+ RD-17 R2's 65C02-gated `asm_wai`).
+ * spec Ch 12.
  */
 export const RESERVED_BUILTINS: ReadonlySet<string> = new Set([
   // CPU control (13) — spec Ch 12 §2
@@ -33,7 +33,7 @@ export const RESERVED_BUILTINS: ReadonlySet<string> = new Set([
   "asm_clv",
   "asm_nop",
   "asm_brk",
-  // CPU control — 65C02-gated (RD-17 R2)
+  // CPU control — 65C02-gated
   "asm_wai",
   // Memory (9) — spec Ch 12 §3
   "peek",

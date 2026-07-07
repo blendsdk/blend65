@@ -1,12 +1,12 @@
 /**
- * The `PlatformPlugin` interface + its hook types — RD-10 R1–R3, R16–R22
- * (§4.1/§4.3). Lives in `@blend65/core` (R2/AR-20) so both `frontend` budget
- * checks and `codegen` hooks consume it without a circular dependency.
+ * The `PlatformPlugin` interface + its hook types. Lives in `@blend65/core`
+ * so both `frontend` budget checks and `codegen` hooks consume it without a
+ * circular dependency.
  *
  * The codegen hooks (`emitPreamble`/`emitStartupShim`/`getOutputDirective`)
  * return the core-resident Instr/stream model types (`StreamEntry`/`AcmeDirective`),
- * which were promoted to `@blend65/core` by D7 precisely so this interface can
- * reference them without core depending on codegen.
+ * which live in `@blend65/core` precisely so this interface can reference them
+ * without core depending on codegen.
  */
 
 import type { AcmeDirective, StreamEntry } from "../instr-model/index.js";
@@ -16,7 +16,7 @@ import type { PlatformProfile } from "./platform-profile.js";
 export type { IntrinsicDescriptor } from "../intrinsics/descriptor.js";
 
 /**
- * Which startup-shim a preamble wraps the program entry point in (R17).
+ * Which startup-shim a preamble wraps the program entry point in.
  *
  * - `"terminating"` — `main` may return; the shim restores state and returns to
  *   the OS/BASIC.
@@ -27,7 +27,7 @@ export type { IntrinsicDescriptor } from "../intrinsics/descriptor.js";
 export type ShimVariant = "terminating" | "non-terminating" | "bare";
 
 /**
- * Options controlling preamble generation (R17/§4.3).
+ * Options controlling preamble generation.
  */
 export interface PreambleOptions {
   /** The program/output base name (drives the `!to` directive). */
@@ -41,7 +41,7 @@ export interface PreambleOptions {
 }
 
 /**
- * Whether `main` is allowed to return on this platform, and any warning (R18).
+ * Whether `main` is allowed to return on this platform, and any warning.
  */
 export interface MainTerminationPolicy {
   /** `true` if returning from `main` is well-defined on this platform. */
@@ -51,10 +51,11 @@ export interface MainTerminationPolicy {
 }
 
 /**
- * Metadata for a hand-written runtime `.asm` module a plugin provides (R26/R27).
+ * Metadata for a hand-written runtime `.asm` module a plugin provides.
  *
- * Only the *metadata* is declared in this RD-10 slice (D1); the `.asm` bodies are
- * RD-17/AR-30. The `exports` list drives dead-stripping and linking (RD-09).
+ * Only the *metadata* is declared here; the `.asm` bodies are provided
+ * separately by each platform plugin. The `exports` list drives
+ * dead-stripping and linking.
  */
 export interface RuntimeModule {
   /** Logical module name, e.g. `"mul8"`. */
@@ -65,7 +66,7 @@ export interface RuntimeModule {
   readonly exports: readonly string[];
   /**
    * Self-locating base URL (`import.meta.url` of the declaring module) that
-   * T4 embedding resolves `asmPath` against (RD-17 PF-017). Required for a
+   * runtime-module embedding resolves `asmPath` against. Required for a
    * module to be loadable — codegen has no dependency on the plugin packages,
    * so a self-located URL is the only mechanism that resolves identically from
    * `src/` (vitest) and `dist/` (built).
@@ -74,8 +75,9 @@ export interface RuntimeModule {
 }
 
 /**
- * A single profile-consistency problem reported by `validateProfile` (R22).
- * Non-throwing data so callers (RD-15/16 driver) can surface all problems.
+ * A single profile-consistency problem reported by `validateProfile`.
+ * Non-throwing data so callers (e.g. the compiler driver) can surface all
+ * problems at once.
  */
 export interface ValidationError {
   /** The profile field the problem concerns, e.g. `"zpStart"`. */
@@ -85,26 +87,26 @@ export interface ValidationError {
 }
 
 /**
- * The contract every target platform satisfies (R1) — profile *data* plus
+ * The contract every target platform satisfies — profile *data* plus
  * codegen-strategy *hooks*. The core compiler never names a memory address,
  * hardware chip, character encoding, or binary format; the active plugin
- * provides them (Language Guard P3).
+ * provides them (per the Blend65 Language Guard).
  */
 export interface PlatformPlugin {
   /** Stable platform id used by the registry/loader, e.g. `"c64"`. */
   readonly id: string;
   /** Human-facing platform name, e.g. `"Commodore 64"`. */
   readonly displayName: string;
-  /** The platform's profile data (Ch 15 §3). */
+  /** The platform's profile data. */
   readonly profile: PlatformProfile;
-  /** Intrinsic descriptors — `[]` until RD-17 (D1). */
+  /** Intrinsic descriptors — `[]` for platforms with none defined yet. */
   readonly intrinsics: readonly IntrinsicDescriptor[];
-  /** Hand-written runtime `.asm` module metadata (bodies are RD-17). */
+  /** Hand-written runtime `.asm` module metadata. */
   readonly runtimeModules: readonly RuntimeModule[];
 
   /**
    * Emit the program preamble (load directive, origin, optional startup shim)
-   * as a stream of {@link StreamEntry} the serializer renders to ACME (R17).
+   * as a stream of {@link StreamEntry} the serializer renders to ACME.
    *
    * @param options Preamble generation options.
    * @returns The preamble stream entries.
@@ -112,7 +114,7 @@ export interface PlatformPlugin {
   emitPreamble(options: PreambleOptions): StreamEntry[];
 
   /**
-   * Emit just the startup shim for the given variant (R17).
+   * Emit just the startup shim for the given variant.
    *
    * @param variant The shim variant to emit.
    * @returns The shim stream entries (empty for `"bare"`).
@@ -120,7 +122,7 @@ export interface PlatformPlugin {
   emitStartupShim(variant: ShimVariant): StreamEntry[];
 
   /**
-   * The ACME output-file directive for this platform (R20), e.g.
+   * The ACME output-file directive for this platform, e.g.
    * `{ kind: "outputFile", name: "main.prg", format: "cbm" }`.
    *
    * @param projectName The output base name.
@@ -129,7 +131,7 @@ export interface PlatformPlugin {
   getOutputDirective(projectName: string): AcmeDirective;
 
   /**
-   * Encode a string literal to this platform's character set (R19).
+   * Encode a string literal to this platform's character set.
    *
    * @param text The source string.
    * @returns The encoded byte values.
@@ -137,7 +139,7 @@ export interface PlatformPlugin {
   encodeString(text: string): number[];
 
   /**
-   * Encode a single character to this platform's character set (R19).
+   * Encode a single character to this platform's character set.
    *
    * @param char A single-character string.
    * @returns The encoded byte value.
@@ -145,14 +147,14 @@ export interface PlatformPlugin {
   encodeChar(char: string): number;
 
   /**
-   * The platform's `main`-termination policy (R18).
+   * The platform's `main`-termination policy.
    *
    * @returns Whether `main` may return, plus any warning.
    */
   getMainTerminationPolicy(): MainTerminationPolicy;
 
   /**
-   * Validate the plugin's own profile for internal consistency (R22).
+   * Validate the plugin's own profile for internal consistency.
    *
    * @returns The list of problems (empty when the profile is consistent).
    */

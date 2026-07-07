@@ -1,19 +1,19 @@
 /**
- * The RD-17 intrinsic-validation pass (03-02) — the first real semantic checking.
+ * The intrinsic-validation pass — the first real semantic checking.
  *
- * Implements RD-04's deferred intrinsic rules (R59/R100) plus RD-17's availability,
- * import-boundary, and decimal-mode checks. Everything dispatches on the descriptor
- * looked up in the registry — no individual intrinsic name is special-cased (AC-17).
- * The pass never throws; every problem is a diagnostic on the bag.
+ * Implements the deferred intrinsic rules plus availability, import-boundary,
+ * and decimal-mode checks. Everything dispatches on the descriptor looked up
+ * in the registry — no individual intrinsic name is special-cased. The pass
+ * never throws; every problem is a diagnostic on the bag.
  *
- * Checks (03-02): V1 E10040 (args to parameterless), V2 E10041 (arg count),
+ * Checks: V1 E10040 (args to parameterless), V2 E10041 (arg count),
  * V3 E10171 (literal arg range), V4 E10043 (availability), V5 E10101 (reserved-name
  * shadowing), V7 E10171 (sizeof/offsetof type/field resolves), V8 W10120 (asm_sed
  * without asm_cld). The T4 import-boundary checks (V6a E10046 / V6b E10043) are
- * wired in Phase 5.
+ * also wired in here.
  *
  * This module lives in `@blend65/frontend` and imports `@blend65/core` (+ its
- * `/platform` subpath) only — never `@blend65/codegen` (R15/AR-20).
+ * `/platform` subpath) only — never `@blend65/codegen`.
  */
 
 import { DiagCode, IceCode, RESERVED_BUILTINS, walkChildren, walkNode } from "@blend65/core";
@@ -70,8 +70,8 @@ export function validateIntrinsics(
     }
     // V6a/V6b: T4 platform intrinsics parse as ordinary CallExprNodes (their
     // names are not in the parser's RESERVED_BUILTINS) and are recognized
-    // semantically via the registry (AC-17). Check availability (E10043, R25)
-    // and the import boundary (E10046, AR-97/AR-P14).
+    // semantically via the registry. Check availability (E10043) and the
+    // import boundary (E10046).
     const imports = collectImports(program);
     for (const call of collectPlainCalls(program)) {
       validateT4Call(call, imports, ctx);
@@ -117,7 +117,7 @@ function checkShadowing(item: TopLevelItem, ctx: ValidationContext): void {
 function validateCall(node: IntrinsicCallExprNode, ctx: ValidationContext): void {
   const descriptor = ctx.registry.get(node.name);
   if (descriptor === undefined) {
-    // Catalog/reserved-set drift is a compiler bug, not a user error (AC-01).
+    // Catalog/reserved-set drift is a compiler bug, not a user error.
     if (RESERVED_BUILTINS.has(node.name)) {
       ctx.bag.addICE(
         IceCode.Unexpected,
@@ -217,12 +217,12 @@ function checkTypeArg(node: IntrinsicCallExprNode, ctx: ValidationContext): void
 }
 
 /**
- * V6a/V6b — validate a plain call whose callee names a registered T4 intrinsic
- * (AR-P14): wrong platform → E10043 (availability, R25); right platform but not
- * imported from the owning pseudo-module → E10046 with the exact import hint
- * (AR-97). Arity/literal checks then mirror `validateCall` (uniform dispatch,
- * AC-17). Calls whose callee is not a registry name are user function calls —
- * out of scope here (RD-04b name resolution).
+ * V6a/V6b — validate a plain call whose callee names a registered T4 intrinsic:
+ * wrong platform → E10043 (availability); right platform but not imported from
+ * the owning pseudo-module → E10046 with the exact import hint. Arity/literal
+ * checks then mirror `validateCall` (uniform dispatch). Calls whose callee is
+ * not a registry name are user function calls — out of scope here (that's
+ * general name resolution).
  */
 function validateT4Call(
   node: CallExprNode,
@@ -240,7 +240,7 @@ function validateT4Call(
     return;
   }
 
-  // V6b — wrong platform: availability is keyed on platformId (R25, AC-06).
+  // V6b — wrong platform: availability is keyed on platformId.
   if (ctx.targetProfile !== undefined && !descriptor.availability(ctx.targetProfile)) {
     ctx.bag.addError(
       DiagCode.IntrinsicUnavailable,
@@ -250,7 +250,7 @@ function validateT4Call(
     return;
   }
 
-  // V6a — the import boundary: visible only via the platform pseudo-module (AR-97).
+  // V6a — the import boundary: visible only via the platform pseudo-module.
   if (imports.get(name) !== descriptor.platformId) {
     ctx.bag.addError(
       DiagCode.IntrinsicNotImported,
@@ -271,7 +271,7 @@ function validateT4Call(
   }
 }
 
-/** The program's imported symbols: name → source module path (AR-97). */
+/** The program's imported symbols: name → source module path. */
 function collectImports(program: ProgramNode): ReadonlyMap<string, string> {
   const imports = new Map<string, string>();
   for (const item of program.items) {
@@ -299,9 +299,9 @@ function checkDecimalMode(item: TopLevelItem, ctx: ValidationContext): void {
 }
 
 /**
- * Render the E10043 message (AR-P11). The required CPU is discovered generically by
+ * Render the E10043 message. The required CPU is discovered generically by
  * probing which {@link CPU_VARIANTS} would satisfy the descriptor's availability —
- * no intrinsic name is special-cased (AC-17).
+ * no intrinsic name is special-cased.
  */
 function renderUnavailable(descriptor: IntrinsicDescriptor, profile: PlatformProfile): string {
   const requiredCpus = CPU_VARIANTS.filter((cpu) => descriptor.availability({ ...profile, cpu }));
@@ -359,7 +359,7 @@ function collectIntrinsicCalls(root: AstNode): IntrinsicCallExprNode[] {
   return found;
 }
 
-/** Collect every plain {@link CallExprNode} in a subtree (the T4 path, 03-05). */
+/** Collect every plain {@link CallExprNode} in a subtree (the T4 path). */
 function collectPlainCalls(root: AstNode): CallExprNode[] {
   const found: CallExprNode[] = [];
   const visit = (node: AstNode): void => {

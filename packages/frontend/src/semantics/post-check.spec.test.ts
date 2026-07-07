@@ -1,14 +1,15 @@
 /**
- * Specification tests for RD-18 Slice 3b Pass 4 — `main()` validity (FR-5).
+ * Specification tests for Pass 4 — `main()` validity.
  *
  * Expectations derive exclusively from the **frozen spec** (Ch 06 entry point /
- * F004) + RD-04 R66 + the AR-11/AR-12 code decisions — NOT from implementation
- * logic. Immutable oracle. Exercised through the REAL public path
- * (`lex`→`parse`→`analyze`); assertions read the diagnostic bag.
+ * F004) and the entry-point rule — NOT from implementation logic. Immutable
+ * oracle. Exercised through the REAL public path (`lex`→`parse`→`analyze`);
+ * assertions read the diagnostic bag.
  *
- * Gating (AR-12): E10020 (no `main`) fires only when ≥1 function was collected,
+ * Gating: E10020 (no `main`) fires only when ≥1 function was collected,
  * no `main` exists, and there are no upstream parse errors — so empty /
- * unparseable / function-free inputs stay silent (AC-01 preserved).
+ * unparseable / function-free inputs stay silent (the passthrough contract
+ * preserved).
  */
 
 import { describe, expect, it } from "vitest";
@@ -33,7 +34,7 @@ function errorCodes(bag: DiagnosticBag): string[] {
 }
 
 describe("Specification: RD-18 Slice 3b post-check — main() validity (FR-5)", () => {
-  // ST-10a — a program with functions but no `main` → E10020.
+  // A program with functions but no `main` → E10020.
   it("should report a missing main with E10020 (ST-10, R66)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource("module Main;\nfunction foo(): void { }\n", bag);
@@ -42,7 +43,7 @@ describe("Specification: RD-18 Slice 3b post-check — main() validity (FR-5)", 
     expect(errorCodes(bag)).toContain(DiagCode.NoMainFunction); // E10020
   });
 
-  // ST-10b — two `main` functions (across modules) → E10021.
+  // Two `main` functions (across modules) → E10021.
   it("should report multiple main with E10021 (ST-10, R66)", () => {
     const bag = createDiagnosticBag();
     const a = parseSource("module A;\nfunction main(): void { }\n", bag);
@@ -52,7 +53,7 @@ describe("Specification: RD-18 Slice 3b post-check — main() validity (FR-5)", 
     expect(errorCodes(bag)).toContain(DiagCode.MultipleMainFunctions); // E10021
   });
 
-  // main signature — `main` must be `(): void`; a parameter → E10022 (AR-11:
+  // main signature — `main` must be `(): void`; a parameter → E10022 (a
   // spec-designated F004 code, registered additively).
   it("should reject a main with parameters via E10022 (F004, AR-11)", () => {
     const bag = createDiagnosticBag();
@@ -85,7 +86,7 @@ describe("Specification: RD-18 Slice 3b post-check — main() validity (FR-5)", 
 });
 
 describe("Specification: RD-18 Slice 4a all-paths-return (FR-6, ST-8)", () => {
-  // ST-8 — a non-void function returning on only one path → E10102.
+  // A non-void function returning on only one path → E10102.
   it("should report a missing return path with E10102 (ST-8, spec Ch05 §4.2)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -97,7 +98,7 @@ describe("Specification: RD-18 Slice 4a all-paths-return (FR-6, ST-8)", () => {
     expect(errorCodes(bag)).toContain(DiagCode.NotAllPathsReturn); // E10102
   });
 
-  // ST-8 (negative) — a trailing unconditional return closes every path → no E10102.
+  // Negative case — a trailing unconditional return closes every path → no E10102.
   it("should accept a non-void function with a trailing return (ST-8)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -109,7 +110,7 @@ describe("Specification: RD-18 Slice 4a all-paths-return (FR-6, ST-8)", () => {
     expect(errorCodes(bag)).not.toContain(DiagCode.NotAllPathsReturn);
   });
 
-  // ST-8 (negative) — an if/else where both arms return closes every path → no E10102.
+  // Negative case — an if/else where both arms return closes every path → no E10102.
   it("should accept a non-void function whose if/else both return (ST-8)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(

@@ -1,5 +1,5 @@
 /**
- * The 6502 CPU legality table — RD-07 §4.8, R3/R14/R16 (+ D3/D8).
+ * The 6502 CPU legality table.
  *
  * Maps each {@link Opcode} to the set of {@link AddressingMode}s legal for it on
  * a given CPU. Two tables are exported:
@@ -9,8 +9,8 @@
  *   and every assembler encode).
  * - {@link W65C02_TABLE} — the NMOS table **plus** the 65C02 extension opcodes
  *   and the extra `ZeroPageIndirect` (`(zp)`) capability on the 8 `(zp)`-capable
- *   opcodes (D8). It is built by cloning the NMOS table and layering extensions,
- *   so the two can never drift (R16).
+ *   opcodes. It is built by cloning the NMOS table and layering extensions, so
+ *   the two can never drift.
  *
  * Pure static data + a selector. Validation logic lives in `validate.ts`.
  */
@@ -20,8 +20,8 @@ import type { AddressingMode } from "./addressing-mode.js";
 import type { CpuVariant } from "./stream.js";
 
 /**
- * Maps each opcode to the set of addressing modes legal for it on a given CPU
- * (§4.8). A `ReadonlyMap` of `ReadonlySet`s — lookups are O(1) and the data is
+ * Maps each opcode to the set of addressing modes legal for it on a given CPU.
+ * A `ReadonlyMap` of `ReadonlySet`s — lookups are O(1) and the data is
  * immutable.
  */
 export type CpuTable = ReadonlyMap<Opcode, ReadonlySet<AddressingMode>>;
@@ -102,7 +102,7 @@ const NMOS_ROWS: readonly (readonly [Opcode, readonly AddressingMode[]])[] = [
 ];
 
 /**
- * The authoritative NMOS 6502 legality table (R14).
+ * The authoritative NMOS 6502 legality table.
  *
  * Built once from {@link NMOS_ROWS}. Any opcode outside this map (i.e. a 65C02
  * extension) is illegal on NMOS targets — `isLegalMode` returns `false` for it.
@@ -112,20 +112,20 @@ export const NMOS_6502_TABLE: CpuTable = new Map(
 );
 
 /**
- * The opcodes that gain the 65C02 `(zp)` indirect mode (`ZeroPageIndirect`, D8).
+ * The opcodes that gain the 65C02 `(zp)` indirect mode (`ZeroPageIndirect`).
  *
  * On the 65C02 these eight ALU/load/store opcodes can use `($zp)` indirect
- * addressing without an index register — a mode absent on NMOS (R16/D8).
+ * addressing without an index register — a mode absent on NMOS.
  */
 const ZP_INDIRECT_CAPABLE: readonly Opcode[] = [
   "ADC", "AND", "CMP", "EOR", "LDA", "ORA", "SBC", "STA",
 ];
 
 /**
- * The 65C02-only opcode rows layered on top of the NMOS table (R16/D3).
+ * The 65C02-only opcode rows layered on top of the NMOS table.
  *
- * Branch-always, push/pull X/Y, store-zero, test-and-reset/set bits, and (RD-17
- * R2) wait-for-interrupt — `WAI`, Implied mode, backing the `asm_wai` intrinsic.
+ * Branch-always, push/pull X/Y, store-zero, test-and-reset/set bits, and
+ * wait-for-interrupt — `WAI`, Implied mode, backing the `asm_wai` intrinsic.
  */
 const W65C02_EXTRA_ROWS: readonly (readonly [Opcode, readonly AddressingMode[]])[] = [
   ["BRA", ["Relative"]],
@@ -140,11 +140,11 @@ const W65C02_EXTRA_ROWS: readonly (readonly [Opcode, readonly AddressingMode[]])
 ];
 
 /**
- * Build the 65C02 table by cloning the NMOS table and layering extensions (D8).
+ * Build the 65C02 table by cloning the NMOS table and layering extensions.
  *
  * Cloning (not re-authoring) guarantees the 65C02 table is a strict superset of
  * the NMOS table: every NMOS legal pair stays legal, and we only *add* the
- * `(zp)` mode and the extension opcodes (R16). This keeps the two tables from
+ * `(zp)` mode and the extension opcodes. This keeps the two tables from
  * ever drifting apart.
  *
  * @returns The fully-built 65C02 legality table.
@@ -155,7 +155,7 @@ function buildW65C02Table(): CpuTable {
   for (const [opcode, modes] of NMOS_6502_TABLE) {
     table.set(opcode, new Set(modes));
   }
-  // Add the 65C02 (zp) ZeroPageIndirect mode to the capable opcodes (D8).
+  // Add the 65C02 (zp) ZeroPageIndirect mode to the capable opcodes.
   for (const opcode of ZP_INDIRECT_CAPABLE) {
     table.get(opcode)?.add("ZeroPageIndirect");
   }
@@ -167,12 +167,12 @@ function buildW65C02Table(): CpuTable {
 }
 
 /**
- * The 65C02 legality table — the NMOS table plus 65C02 extensions (R16/D3/D8).
+ * The 65C02 legality table — the NMOS table plus 65C02 extensions.
  */
 export const W65C02_TABLE: CpuTable = buildW65C02Table();
 
 /**
- * Select the legality table for a CPU variant (R14/R16).
+ * Select the legality table for a CPU variant.
  *
  * @param cpuVariant The target CPU variant.
  * @returns The {@link CpuTable} for that variant.

@@ -1,9 +1,9 @@
 /**
- * The minimal compile-time constant evaluator for RD-18 Slice 3b (FR-6).
+ * The minimal compile-time constant evaluator.
  *
- * Slice 3b needs just enough const evaluation to (1) range-check a constant
- * initialiser against its declared type (feeding E10084) and (2) catch a
- * constant division / remainder by zero (feeding E10082) rather than letting it
+ * Just enough const evaluation to (1) range-check a constant initialiser
+ * against its declared type (feeding E10084) and (2) catch a constant
+ * division / remainder by zero (feeding E10082) rather than letting it
  * become a JS `NaN`/`Infinity`. It folds numeric/boolean literals, unary `+`/`-`,
  * the five integer arithmetic operators on constant operands, and `lo`/`hi` on a
  * constant. Anything else (identifiers, calls, casts, non-constant subtrees)
@@ -11,8 +11,8 @@
  *
  * The evaluator is **pure and never throws**: it reports a division by zero as a
  * structured result (the caller emits E10082) instead of dividing in JS. Full
- * const evaluation (enum members, `sizeof`/`offsetof`, arrays) arrives with the
- * later slices; this module stays deliberately small.
+ * const evaluation (enum members, `sizeof`/`offsetof`, arrays) arrives later;
+ * this module stays deliberately small.
  */
 
 import type { ExprNode, SourceSpan } from "@blend65/core";
@@ -29,7 +29,7 @@ function numberResult(value: number): ConstEvalResult {
 }
 
 /**
- * Evaluates `expr` as a compile-time constant (FR-6). Never throws.
+ * Evaluates `expr` as a compile-time constant. Never throws.
  *
  * @param expr The expression to fold.
  * @returns A `value` result, a `divByZero` result (caller emits E10082), or
@@ -89,7 +89,7 @@ function evalBinary(
       if (r.value === 0) return { kind: "divByZero", span };
       return numberResult(l.value % r.value);
     default:
-      return { kind: "nonConst" }; // bitwise/shift/comparison — not folded in 3b
+      return { kind: "nonConst" }; // bitwise/shift/comparison — not folded yet
   }
 }
 

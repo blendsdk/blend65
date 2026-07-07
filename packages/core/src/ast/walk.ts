@@ -1,5 +1,5 @@
 /**
- * AST traversal helpers for Blend65 (RD-03 §4.11, FR-48).
+ * AST traversal helpers for Blend65.
  *
  * {@link walkNode} dispatches a single node to the matching `visit*` method on an
  * {@link AstVisitor}. Its `switch (node.kind)` is exhaustive: the `never`-typed
@@ -10,7 +10,7 @@
  * child node of a given node (it does not recurse into grandchildren — callers
  * compose recursion by re-invoking `walkChildren` from their visitor methods).
  * Both helpers live in `@blend65/core` so every consumer traverses the AST the
- * same way without depending on `codegen` (R15/AR-20).
+ * same way without depending on `codegen`.
  */
 
 import type { AstNode, ExprNode, StmtNode, TypeNode } from "./nodes.js";

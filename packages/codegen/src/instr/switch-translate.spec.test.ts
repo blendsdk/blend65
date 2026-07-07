@@ -1,14 +1,14 @@
 /**
- * Specification test for RD-18 Slice 4b switch IL→Instr translation (ST-17).
+ * Specification test for switch IL→Instr translation.
  *
- * A lowered `switch` (a `brcond` compare-chain over the 4a multi-block CFG
+ * A lowered `switch` (a `brcond` compare-chain over the multi-block CFG
  * keystone) must translate through the EXISTING `translate.ts` with **zero** new
- * terminator kinds and **zero** new translate work (AR-1): `br`→`JMP`,
- * `brcond`→`BNE`/`JMP`, and each `eq` compare uses the DEF-1-corrected form
+ * terminator kinds and **zero** new translate work: `br`→`JMP`,
+ * `brcond`→`BNE`/`JMP`, and each `eq` compare uses the corrected form
  * (branch on the fresh `CMP` flag before materialising 0/1).
  *
- * Derived EXCLUSIVELY from the plan (03-02-switch-lowering.md §3, AR-1/AR-13) +
- * the DEF-1/AR-16 fix — NEVER from reading the implementation (immutable oracle).
+ * Derived exclusively from the switch/case/default/fallthrough semantics —
+ * never from reading the implementation under test (immutable oracle).
  * Lowered end-to-end through the REAL frontend, then `lowerToIL → generateInstr →
  * printInstr`. Spec-tests-first: `SwitchStmt` ICEs today — RED first, then GREEN.
  */
@@ -54,13 +54,13 @@ describe("Specification: RD-18 Slice 4b switch translate (ST-17, AR-1/AR-13)", (
         "  }\n" +
         "}\n",
     );
-    // No ICE — the existing terminator set (br/brcond) suffices (AR-1).
+    // No ICE — the existing terminator set (br/brcond) suffices.
     expect(hasErrors).toBe(false);
     // Function-unique, ASM-safe dispatch/body block labels.
     expect((text.match(/^Main_main_L\d+:/gm) ?? []).length).toBeGreaterThanOrEqual(2);
     // The discriminant is compared per case value.
     expect(text).toContain("CMP");
-    // eq's DEF-1 form: branch on the fresh compare flag (BEQ) before materialising.
+    // eq's corrected form: branch on the fresh compare flag (BEQ) before materialising.
     expect(text).toContain("BEQ");
     // brcond → BNE (true target) + JMP (false target / br).
     expect(text).toContain("BNE");

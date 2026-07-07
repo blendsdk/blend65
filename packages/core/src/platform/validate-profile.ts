@@ -1,10 +1,11 @@
 /**
- * Shared `PlatformProfile` consistency checks — RD-10 FR-21/R22 (and R31).
+ * Shared `PlatformProfile` consistency checks.
  *
  * Each plugin's `validateProfile()` delegates here so the field invariants live
  * in exactly one place. Checks are **non-throwing**: every problem is collected
- * into a {@link ValidationError}[] so the driver (RD-15/16) can surface all of
- * them at once. An empty array means the profile is internally consistent.
+ * into a {@link ValidationError}[] so the driver (e.g. the compiler driver) can
+ * surface all of them at once. An empty array means the profile is internally
+ * consistent.
  */
 
 import type { PlatformProfile } from "./platform-profile.js";
@@ -27,9 +28,9 @@ function hex(value: number): string {
  * - `zpStart <= zpEnd` — the zero-page window must be non-empty and ordered.
  * - `codeStart < codeEnd` — the code segment must be a non-empty range.
  * - `maxZp === zpEnd - zpStart + 1` — the budget must match the ZP window size.
- * - `zpArgBlockSize >= 4` — the core ABI floor (RD-17 R34/AC-12): every platform
- *   must guarantee at least 4 ZP arg-block bytes so routine authors can rely on it
- *   without checking the profile.
+ * - `zpArgBlockSize >= 4` — the core ABI floor: every platform must guarantee
+ *   at least 4 ZP arg-block bytes so routine authors can rely on it without
+ *   checking the profile.
  *
  * @param profile The profile to validate.
  * @returns The list of inconsistencies (empty when the profile is consistent).
@@ -39,7 +40,7 @@ export function validateProfileFields(
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  // RD-17 R34/AC-12: the ZP arg-block minimum floor is 4 bytes on every platform.
+  // The ZP arg-block minimum floor is 4 bytes on every platform.
   const ZP_ARG_BLOCK_FLOOR = 4;
   if (profile.zpArgBlockSize < ZP_ARG_BLOCK_FLOOR) {
     errors.push({

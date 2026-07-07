@@ -1,13 +1,13 @@
 /**
- * `@blend65/test-harness` — the public API (RD-12 §3 R33–R35, AC-14).
+ * `@blend65/test-harness` — the public API.
  *
  * The three-tier testing framework and runtime-verification toolkit: an abstract
  * {@link EmulatorDriver}, the VICE `x64sc` {@link ViceDriver}, timeout-guarded run
  * strategies, register/memory assertions, an `assertGolden` snapshot helper, and
  * the {@link setupEmulator} Vitest fixture. Works with any binary + VICE label file,
- * not just Blend65 output (AC-15).
+ * not just Blend65 output.
  *
- * This barrel is the STABLE surface (R34): the internal VICE binary-monitor codec,
+ * This barrel is the STABLE surface: the internal VICE binary-monitor codec,
  * socket plumbing, PNG encoder, and test-only helpers are deliberately NOT exported.
  *
  * @example
@@ -31,7 +31,7 @@
 export type { EmulatorDriver, LaunchOptions, Registers, BreakReason } from "./emulator/driver.js";
 export { ViceDriver } from "./emulator/vice/vice-driver.js";
 
-// Platform → emulator registry (R7a).
+// Platform → emulator registry.
 export { EMULATOR_REGISTRY, emulatorFor, type EmulatorEntry } from "./emulator/registry.js";
 
 // Run strategies (timeout-guarded).

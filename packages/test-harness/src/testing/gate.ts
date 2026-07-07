@@ -1,8 +1,9 @@
 /**
- * Shared test support for the MVP gate program (AR-43/44). Builds
- * `examples/gate/main.blend` (inlined verbatim, PF-007) to a real c64 `.prg` via
- * the RD-15 `build()` facade + real ACME, for the Local-tier integration suites
- * (strategies, fixture, gate). Test-only: NOT re-exported from the package barrel.
+ * Shared test support for the MVP gate program. Builds
+ * `examples/gate/main.blend` (inlined verbatim) to a real c64 `.prg` via the
+ * compiler's `build()` facade + real ACME, for the Local-tier integration
+ * suites (strategies, fixture, gate). Test-only: NOT re-exported from the
+ * package barrel.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -10,7 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, type BuildResult } from "@blend65/compiler";
 
-/** The MVP gate source — verbatim `examples/gate/main.blend` (PF-007). */
+/** The MVP gate source — verbatim `examples/gate/main.blend`. */
 export const GATE_SRC = `module Main;
 
 function main(): void {
@@ -26,7 +27,7 @@ export interface BuiltGate {
 
 /**
  * Build the gate program to a real c64 `.prg` (absolute outDir so ACME's cwd
- * resolves consistently — see the DEF-2 oracle). Requires real ACME.
+ * resolves consistently). Requires real ACME.
  *
  * @returns The {@link BuildResult} and a `cleanup()` that removes the temp dir.
  */

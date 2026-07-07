@@ -1,10 +1,9 @@
 /**
- * Specification test for the JSON resource-report renderer (RD-11b Phase 4).
+ * Specification test for the JSON resource-report renderer.
  *
- * ST-27 — transcribed from RD-11 AC-19, PF-012 (Maps stringify to `{}`, so
- * `ruleHits` must convert to name-sorted entries), and AR-Q10/Q11; see
- * plans/rd-11b-diagnostics-reporting/07-testing-strategy.md.
- * IMMUTABLE ORACLE: derived from the requirements, never from implementation.
+ * Transcribed from the requirement that `Map` values stringify to `{}`, so
+ * `ruleHits` must convert to name-sorted entries. Derived from the
+ * requirements, never from the implementation.
  */
 
 import { describe, expect, it } from "vitest";
@@ -115,7 +114,7 @@ describe("renderReportJson (AC-19 / PF-012 / AR-Q10)", () => {
     expect(output).toBe(`${JSON.stringify(parsed, null, 2)}\n`);
 
     // peepholeStats never renders in the TERMINAL summary (Ch 11 §6 has no
-    // optimization line — AR-Q11).
+    // optimization line).
     const terminal = renderReportTerminal(report);
     expect(terminal).not.toContain("peephole");
     expect(terminal).not.toContain("aa-dead-store");

@@ -1,27 +1,26 @@
 /**
  * The SFA planner's **output record** — the immutable {@link AllocationPlan} and
- * its sub-records (RD-05 §4.5–§4.12, R19–R59; spec Ch 11 §3.5/§4/§5/§7, AR-66).
+ * its sub-records.
  *
  * `planAllocation()` (frontend `sfa/plan-allocation.ts`) assembles an
  * `AllocationPlan` from the frame, interference/coloring, module-var-layout,
  * zero-page, stack-analysis, budget, and symbol passes. Every downstream phase
- * (RD-06 IL, RD-07 codegen, RD-09 ACME emitter) only *reads* the plan, so all
- * fields are `readonly` and the assembled plan is frozen (R59).
+ * (IL generation, codegen, the ACME emitter) only *reads* the plan, so all
+ * fields are `readonly` and the assembled plan is frozen.
  *
- * Pure data — lives in `@blend65/core`, shared without importing codegen
- * (R15/AR-20). See plans/rd-05-sfa-frame-planner/03-03-zp-and-layout.md,
- * 03-04-stack-and-budgets.md, and 03-05-allocation-plan-and-api.md.
+ * Pure data — lives in `@blend65/core`, shared without importing codegen, so
+ * `frontend` and `language-server` can consume the same allocation model.
  */
 
 import type { Type } from "../semantics/type.js";
 import type { FunctionFrame } from "./frame.js";
 
 /**
- * A placed module-level `let` variable in RAM (RD-05 §4.5, R24).
+ * A placed module-level `let` variable in RAM.
  *
  * Module variables occupy `[ramStart, ramStart + totalSize)`; the frame region
- * follows. `address` is provisional (authoritative placement is finalized at emit
- * time via the ACME label file, AR-67); the pre-ACME budget check needs only the
+ * follows. `address` is provisional — authoritative placement is finalized at
+ * emit time via the ACME label file; the pre-ACME budget check needs only the
  * sum of sizes.
  */
 export interface ModuleVariableAllocation {
@@ -40,11 +39,12 @@ export interface ModuleVariableAllocation {
 }
 
 /**
- * A placed zero-page byte-run (RD-05 §4.7, R28–R36).
+ * A placed zero-page byte-run.
  *
  * The ZP allocator places categories in a fixed priority order: the deferred
- * runtime-ABI `arg-block` (interim floor 0, D8), then user `zeropage` variables,
- * then struct/array pointers, then main expression temps, then IRQ temps.
+ * runtime-ABI `arg-block` (the platform profile's floor — 4 bytes on the default
+ * profile), then user `zeropage` variables, then struct/array pointers, then
+ * main expression temps, then IRQ temps.
  */
 export interface ZpAllocation {
   /** The user var name, or a generated name (`__zp_ptr_N`/`__zp_tmp_N`/`__zp_irq_tmp_N`). */
@@ -58,7 +58,7 @@ export interface ZpAllocation {
 }
 
 /**
- * Worst-case hardware-stack analysis (RD-05 §4.9, R37–R40; Ch 06 §7.8).
+ * Worst-case hardware-stack analysis.
  *
  * Each JSR consumes 2 bytes (return address). The worst case is the longest call
  * chain from `main` (×2 bytes), plus a one-time interrupt overhead (6 bytes: 3 CPU
@@ -85,7 +85,7 @@ export interface StackAnalysis {
 }
 
 /**
- * A placed function frame within the shared frame region (RD-05 §4.6, R19–R23).
+ * A placed function frame within the shared frame region.
  *
  * The coloring pass assigns each reachable function an `offset` within the frame
  * region such that interfering functions never overlap; `absoluteAddress` is
@@ -103,7 +103,7 @@ export interface FrameAllocation {
 }
 
 /**
- * One ACME symbol definition emitted into the `.asm` header (RD-05 §4.11, R47/R50).
+ * One ACME symbol definition emitted into the `.asm` header.
  *
  * Names use the `__`-prefixed, sanitized scheme (`__frame_*`, `__var_*`, `__zp_*`,
  * …) so they never collide with user labels; values are absolute addresses.
@@ -116,18 +116,18 @@ export interface SymbolDefinition {
 }
 
 /**
- * Aggregate resource-usage data for the build summary (RD-05 §4.10, R56/AC-18).
+ * Aggregate resource-usage data for the build summary.
  *
  * Carries the frame-region, zero-page, RAM, and stack used-vs-budget figures the
- * compiler reports after planning. `frameRegionPeak === frameRegionBytes` (the
- * region size *is* the peak simultaneous footprint, AR-92).
+ * compiler reports after planning. `frameRegionPeak === frameRegionBytes` — the
+ * region size *is* the peak simultaneous footprint.
  */
 export interface SfaResourceData {
   /** Total frame-region size in bytes. */
   readonly frameRegionBytes: number;
-  /** Peak simultaneous frame footprint (= `frameRegionBytes`, AR-92). */
+  /** Peak simultaneous frame footprint (= `frameRegionBytes`). */
   readonly frameRegionPeak: number;
-  /** Bytes saved by frame sharing: Σ frame sizes − region size (R56). */
+  /** Bytes saved by frame sharing: Σ frame sizes − region size. */
   readonly frameSharingSaved: number;
   /** Zero-page bytes used. */
   readonly zpUsed: number;
@@ -144,12 +144,12 @@ export interface SfaResourceData {
 }
 
 /**
- * The complete, immutable Static Frame Allocation result (RD-05 §4.10, R51–R59).
+ * The complete, immutable Static Frame Allocation result.
  *
- * Assembled by `planAllocation()` and frozen (R59). Carries the placed frames, the
+ * Assembled by `planAllocation()` and frozen. Carries the placed frames, the
  * frame-region geometry, the zero-page and module-variable allocations, the stack
  * analysis, the ACME symbol definitions, the aggregate resource data, and a
- * `hasErrors` flag (set when a ZP or RAM budget error was emitted, R51/R59).
+ * `hasErrors` flag (set when a ZP or RAM budget error was emitted).
  */
 export interface AllocationPlan {
   /** Placed frames, keyed by fully-qualified function name. */
@@ -158,9 +158,9 @@ export interface AllocationPlan {
   readonly frameRegionBase: number;
   /** Total frame-region size (peak simultaneous footprint). */
   readonly frameRegionSize: number;
-  /** Peak simultaneous frame footprint (= `frameRegionSize`, AR-92). */
+  /** Peak simultaneous frame footprint (= `frameRegionSize`). */
   readonly peakSimultaneous: number;
-  /** Bytes saved by frame sharing (Σ frame sizes − region size, R56). */
+  /** Bytes saved by frame sharing (Σ frame sizes − region size). */
   readonly sharingSaved: number;
   /** Placed zero-page allocations, in allocation order. */
   readonly zpAllocations: readonly ZpAllocation[];
@@ -178,6 +178,6 @@ export interface AllocationPlan {
   readonly symbolDefinitions: readonly SymbolDefinition[];
   /** Aggregate resource-usage data for the build summary. */
   readonly resourceData: SfaResourceData;
-  /** `true` if a ZP (E10032) or RAM (E10033) budget error was emitted (R51/R59). */
+  /** `true` if a ZP (E10032) or RAM (E10033) budget error was emitted. */
   readonly hasErrors: boolean;
 }

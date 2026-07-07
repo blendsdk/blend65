@@ -1,12 +1,12 @@
 /**
- * The shared context for RD-18 Slice 3b Pass-3 type checking (FR-2, FR-3).
+ * The shared context for Pass-3 type checking.
  *
  * A single {@link TypeCheckContext} threads the diagnostic bag and the two
  * mutable maps that Pass 3 fills — expression → resolved {@link Type}
  * (`typeMap`) and name-node → resolved {@link Symbol} (`symbolMap`) — through the
  * expression / statement typers. `analyze()` freezes these maps into the model's
- * `typeOf`/`symbolOf` query helpers (superseding the Slice-3a empty passthrough,
- * AR-12). This module holds only the context shape (no logic) so every typer
+ * `typeOf`/`symbolOf` query helpers (superseding the earlier empty passthrough).
+ * This module holds only the context shape (no logic) so every typer
  * imports it without a cycle.
  */
 

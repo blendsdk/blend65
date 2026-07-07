@@ -1,15 +1,15 @@
 /**
- * The AST node interfaces for Blend65 (RD-03 §4.2–§4.8, adjusted by AR-1/AR-3/AR-4).
+ * The AST node interfaces for Blend65.
  *
  * Every node extends {@link AstNode} (a `kind` discriminant + a {@link SourceSpan}).
  * Node shapes are pure data: no parser logic lives here, so the whole catalogue
  * sits in `@blend65/core` and is shared by `frontend` and `language-server`
- * without either importing `codegen` (R15/AR-20). Spans use the as-built core
- * {@link SourceSpan} (`{ sourceId, start, end }`) per AR-4.
+ * without either importing `codegen`. Spans use the as-built core
+ * {@link SourceSpan} (`{ sourceId, start, end }`).
  *
  * The four group unions — {@link TopLevelItem}, {@link StmtNode}, {@link ExprNode},
  * {@link TypeNode} — are the vocabulary the parser produces and downstream phases
- * consume. There are 50 node kinds (AR-1 removed `AsmBlock`).
+ * consume. There are 50 node kinds.
  */
 
 import type { SourceSpan } from "../diagnostics/index.js";
@@ -188,7 +188,7 @@ export interface ConstDeclNode extends AstNode {
  * The initialiser is **optional** (spec Ch03 §2.3, FR-22): an uninitialised
  * zeropage variable (`initialiser: null`) emits no startup code — its memory
  * retains whatever was there before (spec §5.1/§6.3), leaving initialisation to
- * the developer. When present, the startup routine emits the stores (RD-07+).
+ * the developer. When present, the startup routine emits the stores.
  */
 export interface ZeropageFieldNode extends AstNode {
   kind: "ZeropageField";
@@ -206,7 +206,7 @@ export interface ZeropageBlockNode extends AstNode {
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// Statements (13 — no AsmBlock, AR-1)
+// Statements (13)
 // ───────────────────────────────────────────────────────────────────────────
 
 /** A `{ ... }` block of statements. */
@@ -381,7 +381,7 @@ export interface CallExprNode extends AstNode {
 }
 
 /**
- * A call to a universal intrinsic (AR-3).
+ * A call to a universal intrinsic.
  *
  * The intrinsic is identified by `name` (a member of `RESERVED_BUILTINS`), not a
  * frozen enum. `sizeof`/`offsetof` accept a type as their first argument (stored

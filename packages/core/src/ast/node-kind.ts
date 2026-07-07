@@ -1,11 +1,10 @@
 /**
- * The AST node-kind vocabulary for Blend65 (RD-03 §4.1, AR-1).
+ * The AST node-kind vocabulary for Blend65.
  *
  * Every AST node carries a `kind` discriminant drawn from this closed set. The
  * names mirror the `TokenKind`/`DiagCode` string-literal convention so golden AST
  * snapshots stay human-readable and a rename is caught immediately. There are
- * exactly **50** kinds — AR-1 removed the v2 `AsmBlock` kind because Blend65 v3
- * has no `asm { }` blocks (spec Ch 12 §1).
+ * exactly **50** kinds; Blend65 v3 has no `asm { }` blocks (spec Ch 12 §1).
  *
  * The runtime tuple {@link NODE_KINDS} is the single source of truth; the
  * {@link NodeKind} union type is derived from it so the type and the runtime list
@@ -35,7 +34,7 @@ export const NODE_KINDS = [
   "ZeropageBlock",
   "ZeropageField",
   "Parameter",
-  // Statements (13 — was 14; AsmBlock removed per AR-1)
+  // Statements (13)
   "Block",
   "IfStmt",
   "WhileStmt",

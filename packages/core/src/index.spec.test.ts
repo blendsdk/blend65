@@ -27,8 +27,7 @@ describe("@blend65/core smoke", () => {
 });
 
 describe("@blend65/core RD-11b export surface (ST-28)", () => {
-  // ST-28 · RD-11 §4.8 (AR-103/104), plan preflight PF-002 — all nine new
-  // value exports are reachable from the root barrel.
+  // All nine new value exports are reachable from the root barrel.
   it("re-exports the nine RD-11b value exports", () => {
     expect(typeof createSourceMap).toBe("function");
     expect(typeof applySeverityPolicy).toBe("function");
@@ -43,7 +42,7 @@ describe("@blend65/core RD-11b export surface (ST-28)", () => {
 
   it("re-exports the six RD-11b types (compile-time surface)", () => {
     // These bindings only need to type-check; referencing them keeps the
-    // imports live and documents the public type surface (§4.8).
+    // imports live and documents the public type surface.
     const sourceMap: SourceMap = createSourceMap();
     const policy: SeverityPolicy = createSeverityPolicy({
       warnAsError: false,

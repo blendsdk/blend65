@@ -1,10 +1,9 @@
 /**
- * Unit tests for the {@link DiagnosticBag} (FR-11..FR-16, FR-18).
+ * Unit tests for the {@link DiagnosticBag}.
  *
- * Covers spec cases ST-15..ST-27 from
- * plans/rd-11a-diagnostics-core/07-testing-strategy.md, exercising accumulation,
- * deterministic ordering, deduplication, the `--max-errors` cap with its single
- * truncation diagnostic, uncapped ICEs, and the never-throws contract.
+ * Exercises accumulation, deterministic ordering, deduplication, the
+ * `--max-errors` cap with its single truncation diagnostic, uncapped ICEs,
+ * and the never-throws contract.
  */
 
 import { describe, expect, it } from "vitest";

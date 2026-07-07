@@ -1,18 +1,18 @@
 /**
- * RD-18 Slice 3b expression + literal typing (Pass 3, FR-2/FR-3).
+ * Expression and literal typing (Pass 3).
  *
  * `typeOfExpr` walks an expression, assigns every node a semantic {@link Type}
  * (memoised into `ctx.typeMap`), resolves identifiers (recording `ctx.symbolMap`
  * and emitting E10100 on a miss), and enforces the same-type arithmetic rule
  * (E10081 mixed-sign / E10080 boolean operand). Assignment expressions check
  * l-value mutability (E10191) and assignment compatibility. Every failure emits a
- * diagnostic and **poisons** with {@link ERROR_TYPE} (R114) — it never throws.
+ * diagnostic and **poisons** with {@link ERROR_TYPE} instead of throwing.
  *
- * Scope is same-type only (AR-3): implicit widening, casts, and non-arithmetic
- * operators (comparison / logical / shift) are out of the Slice-3b surface and
+ * Scope is same-type only: implicit widening, casts, and non-arithmetic
+ * operators (comparison / logical / shift) are out of this module's surface and
  * are typed defensively (operands still walked to populate `typeMap`) without a
  * result-type guarantee. This module lives in `@blend65/frontend` and imports
- * `@blend65/core` only (R15/AR-20).
+ * `@blend65/core` only, keeping the frontend independent of codegen.
  */
 
 import {
@@ -41,7 +41,7 @@ import { resolveName } from "./name-resolution.js";
 import { integerRange } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
 
-/** The arithmetic operators Slice 3b types with the same-type rule (spec TS-3). */
+/** The arithmetic operators, typed with the same-type rule (spec TS-3). */
 const ARITHMETIC_OPS: ReadonlySet<string> = new Set(["+", "-", "*", "/", "%"]);
 
 /**
@@ -87,8 +87,8 @@ function computeType(
     case "IntrinsicCallExpr":
       return typeIntrinsicCall(expr, scope, ctx);
     default:
-      // Member / index / call / cast / unary / struct-lit / etc. are out of the
-      // Slice-3b surface (owned by later slices); poison without a diagnostic.
+      // Member / index / call / cast / unary / struct-lit / etc. are not yet
+      // handled here; poison without a diagnostic.
       return ERROR_TYPE;
   }
 }
@@ -130,7 +130,7 @@ function typeBinary(expr: BinaryExprNode, scope: Scope, ctx: TypeCheckContext): 
   let lt = typeOfExpr(expr.left, scope, ctx);
   let rt = typeOfExpr(expr.right, scope, ctx);
 
-  if (!ARITHMETIC_OPS.has(expr.op)) return ERROR_TYPE; // comparison/logical/shift → Slice 4+/6
+  if (!ARITHMETIC_OPS.has(expr.op)) return ERROR_TYPE; // comparison/logical/shift not yet typed
 
   // Literal adaptation in expressions (spec TS-2): a bare numeric-literal operand
   // adopts the other operand's integer type so `wordVar + 1` types as word.
@@ -145,7 +145,7 @@ function typeBinary(expr: BinaryExprNode, scope: Scope, ctx: TypeCheckContext): 
   const combined = commonType(lt, rt);
   if (combined !== null) return combined; // same-type (or poison → ERROR_TYPE)
 
-  // Not combinable in 3b — pick the diagnostic (both operands are non-poison here,
+  // Not combinable — pick the diagnostic (both operands are non-poison here,
   // since a poisoned operand yields ERROR_TYPE from commonType, not null).
   emitBinaryOperandError(expr, lt, rt, ctx);
   return ERROR_TYPE;
@@ -164,7 +164,7 @@ function emitBinaryOperandError(
   if (leftBool || rightBool) {
     const offending = leftBool ? lt : rt;
     ctx.bag.addError(
-      DiagCode.InvalidOperandType, // E10080 (ledger R34)
+      DiagCode.InvalidOperandType, // E10080
       expr.span,
       `Operator '${expr.op}' cannot be applied to type '${typeName(offending)}'`,
     );
@@ -172,21 +172,21 @@ function emitBinaryOperandError(
   }
   if (isInteger(lt) && isInteger(rt) && isSigned(lt) !== isSigned(rt)) {
     ctx.bag.addError(
-      DiagCode.MixedSignedUnsignedOperands, // E10081 (AC-2/AC-4 headline)
+      DiagCode.MixedSignedUnsignedOperands, // E10081
       expr.span,
       `Cannot mix signed and unsigned types in '${expr.op}' — use an explicit cast`,
     );
     return;
   }
-  // Same-sign different-width (widening) and non-primitive operands are out of the
-  // Slice-3b surface (deferred to Slice 6); the result already poisoned to
-  // ERROR_TYPE. No 3b diagnostic code is designated, so none is emitted.
+  // Same-sign different-width (widening) and non-primitive operands are not yet
+  // supported here; the result is already poisoned to ERROR_TYPE, and no
+  // diagnostic code is designated for this case, so none is emitted.
 }
 
 /**
  * Assignment typing: the target must be a mutable l-value (a `variable`; a
  * `constant` → E10191), and the value must be assignment-compatible with it
- * (same-type in 3b; otherwise E10152/E10153/E10154). Result = the target type.
+ * (same-type currently; otherwise E10152/E10153/E10154). Result = the target type.
  */
 function typeAssign(expr: AssignExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   const targetType = typeOfExpr(expr.target, scope, ctx);
@@ -233,16 +233,16 @@ function typeIntrinsicCall(
     case "pokew":
       return primitive("void");
     default:
-      return ERROR_TYPE; // sizeof/offsetof/embed/etc. — out of the 3b scalar surface
+      return ERROR_TYPE; // sizeof/offsetof/embed/etc. — not yet supported here
   }
 }
 
 /**
  * Emits the assignment-compatibility diagnostic when `valueType` is not
- * assignable to `targetType` (AR-11 canonical codes). Same-type / poison → no
- * diagnostic. Widening (same-sign different-width) is also rejected in 3b
- * (deferred to Slice 6) and reported through the width code — no fixture reaches
- * it, so the (narrowing-worded) message never surfaces in the supported surface.
+ * assignable to `targetType`. Same-type / poison → no diagnostic. Widening
+ * (same-sign different-width) is also rejected here and reported through the
+ * width code — no fixture reaches it, so the (narrowing-worded) message never
+ * surfaces in the supported surface.
  *
  * @param valueType The type of the value being assigned.
  * @param targetType The declared/target type.
@@ -272,7 +272,7 @@ function assignmentMismatchCode(value: Type, target: Type): string {
   if (valueBool || targetBool) return DiagCode.TypeMismatchAssignment; // E10152 boolean↔int
   if (isInteger(value) && isInteger(target)) {
     if (isSigned(value) !== isSigned(target)) return DiagCode.SignedUnsignedMismatch; // E10153
-    return DiagCode.WidthNarrowingNoCast; // E10154 (narrowing; widening deferred to Slice 6)
+    return DiagCode.WidthNarrowingNoCast; // E10154 (narrowing; widening isn't distinguished yet)
   }
   return DiagCode.TypeMismatchAssignment; // E10152 — generic mismatch fallback
 }

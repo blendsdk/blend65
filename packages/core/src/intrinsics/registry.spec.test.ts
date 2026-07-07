@@ -1,11 +1,10 @@
 /**
- * Specification tests for the RD-17 intrinsic registry (ST-1..ST-4).
+ * Specification tests for the intrinsic registry.
  *
- * Derived EXCLUSIVELY from RD-17 (§4.1/§4.2/§4.3), the Ambiguity Register (AR-P9),
- * and the plan's 07-testing-strategy.md — never from reading the implementation
- * (IMMUTABLE ORACLE RULE). Written BEFORE `registry.ts`/`catalog.ts` exist (red
- * phase). If the implementation disagrees with a case here, the implementation is
- * wrong.
+ * Derived EXCLUSIVELY from the frozen specification — never from reading the
+ * implementation (IMMUTABLE ORACLE RULE). Written BEFORE `registry.ts`/
+ * `catalog.ts` exist (red phase). If the implementation disagrees with a case
+ * here, the implementation is wrong.
  */
 
 import { describe, expect, it } from "vitest";
@@ -44,7 +43,7 @@ const C64_PROFILE: PlatformProfile = {
 
 /**
  * A minimal Commander X16 profile (WDC 65C02). `asm_wai` must be AVAILABLE here
- * (65C02 target, R24). Same memory-map skeleton; only `cpu`/`platformId` differ.
+ * (65C02 target). Same memory-map skeleton; only `cpu`/`platformId` differ.
  */
 const CX16_PROFILE: PlatformProfile = {
   ...C64_PROFILE,

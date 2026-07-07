@@ -1,23 +1,22 @@
 /**
- * The resolved semantic type representation for Blend65 (RD-04 §4.4, R24–R29).
+ * The resolved semantic type representation for Blend65.
  *
  * Where the AST `TypeNode` union is *syntactic* (what the parser produced from
  * source text), the `Type` union here is *semantic* (the resolved type a name or
  * expression denotes after analysis). It is pure data — no checker logic — so it
  * lives in `@blend65/core` and is shared by `frontend` and `language-server`
- * without either importing `codegen` (R15/AR-20).
+ * without either importing `codegen`.
  *
- * PASSTHROUGH NOTE (RD-04 plan, D2): the analyzer skeleton never *produces* these
- * types (it returns an empty model), but the vocabulary must exist so the model
- * contract, the type utilities, and the future checker all have a shared
- * representation. See plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md.
+ * The analyzer never *produces* these types yet (it returns an empty model),
+ * but the vocabulary must exist so the model contract, the type utilities, and
+ * the future checker all have a shared representation.
  */
 
 import type { StructDeclNode, EnumDeclNode } from "../ast/index.js";
 
 /**
  * The six primitive type names. Reuses the AST's `PrimitiveTypeName` spelling
- * verbatim (D5) — note `"boolean"` (not `'bool'`) and the inclusion of `"void"`.
+ * verbatim — note `"boolean"` (not `'bool'`) and the inclusion of `"void"`.
  */
 export type PrimitiveName = "byte" | "sbyte" | "word" | "sword" | "boolean" | "void";
 
@@ -27,7 +26,7 @@ export interface PrimitiveType {
   readonly name: PrimitiveName;
 }
 
-/** A fixed-size array type `element[size]` (RD-04 §4.4). */
+/** A fixed-size array type `element[size]`. */
 export interface ArrayType {
   readonly kind: "array";
   readonly element: Type;
@@ -56,10 +55,10 @@ export interface EnumType {
 }
 
 /**
- * The poison type used for cascade suppression (R29/R114): once a sub-expression
- * fails to type-check, it is assigned `ErrorType` so dependent expressions don't
+ * The poison type used for cascade suppression: once a sub-expression fails
+ * to type-check, it is assigned `ErrorType` so dependent expressions don't
  * report a flood of follow-on errors. The *interface* is in scope now; the
- * *propagation behavior* is DEFERRED(RD-04-checker).
+ * *propagation behavior* is not implemented yet.
  */
 export interface ErrorType {
   readonly kind: "error";
@@ -69,7 +68,7 @@ export interface ErrorType {
 export type Type = PrimitiveType | ArrayType | StructType | EnumType | ErrorType;
 
 /**
- * The shared poison-type singleton (R29). Using one frozen instance lets the
+ * The shared poison-type singleton. Using one frozen instance lets the
  * model's `typeOf()` passthrough and the future checker compare by reference.
  */
 export const ERROR_TYPE: ErrorType = { kind: "error" };
@@ -77,7 +76,7 @@ export const ERROR_TYPE: ErrorType = { kind: "error" };
 /**
  * Constructs a {@link PrimitiveType} for the given name.
  *
- * @param name One of the six primitive names (D5 spelling — `"boolean"`).
+ * @param name One of the six primitive names (spelled `"boolean"`).
  * @returns A primitive type record.
  */
 export function primitive(name: PrimitiveName): PrimitiveType {

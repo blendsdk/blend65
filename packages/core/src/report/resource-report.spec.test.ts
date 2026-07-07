@@ -1,11 +1,8 @@
 /**
- * Specification tests for the resource-report builder and budget check
- * (RD-11b Phase 4).
+ * Specification tests for the resource-report builder and budget check.
  *
- * ST-22..ST-23 — transcribed from RD-11 R40/R41/R42, AC-17 (post-ACME half),
- * Ch 14 E10034, and AR-Q3/Q4/Q6/Q15 (PF-002); see
- * plans/rd-11b-diagnostics-reporting/07-testing-strategy.md.
- * IMMUTABLE ORACLE: derived from the requirements, never from implementation.
+ * Transcribed from the requirement that the post-ACME budget check emits
+ * Ch 14 E10034. Derived from the requirements, never from the implementation.
  */
 
 import { describe, expect, it } from "vitest";
@@ -67,7 +64,7 @@ function makePlan(): AllocationPlan {
 }
 
 describe("buildResourceReport (R40/R41 / AR-Q3)", () => {
-  // ST-22 · R40/R41/PF-002, AR-Q3/Q6/Q15 — SFA sub-records embed by reference.
+  // SFA sub-records embed by reference.
   it("ST-22: embeds the plan's resourceData/zpAllocations/stackAnalysis verbatim and copies scalars through", () => {
     const plan = makePlan();
 
@@ -84,7 +81,7 @@ describe("buildResourceReport (R40/R41 / AR-Q3)", () => {
       startupCycles: 68,
     });
 
-    // Embedded, not copied (one owner per number, structurally — PF-002).
+    // Embedded, not copied (one owner per number, structurally).
     expect(report.sfa).toBe(plan.resourceData);
     expect(report.zpAllocations).toBe(plan.zpAllocations);
     expect(report.stackAnalysis).toBe(plan.stackAnalysis);
@@ -103,7 +100,7 @@ describe("buildResourceReport (R40/R41 / AR-Q3)", () => {
 });
 
 describe("checkBinaryBudget (R42 / AC-17 post-ACME half / AR-Q4)", () => {
-  // ST-23 · R42, Ch 14 E10034 — the over/equal/undefined boundary trio.
+  // The over/equal/undefined boundary trio.
   it("ST-23a: over budget emits exactly one E10034 with a null span and the Ch 14 message", () => {
     const plan = makePlan();
     const report = buildResourceReport({

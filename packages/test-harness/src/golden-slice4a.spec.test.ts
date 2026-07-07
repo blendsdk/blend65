@@ -1,13 +1,12 @@
 /**
- * CI golden test for the RD-18 Slice 4a fixture (acceptance bar part 2): emits the
- * fixture's ACME source via `emitAsm` and `assertGolden`s it against the committed
+ * CI golden test for the Slice 4a fixture: emits the fixture's ACME source via
+ * `emitAsm` and `assertGolden`s it against the committed
  * `test/golden/slice4a.asm.golden`, proving the multi-block loop labels, the
  * Pattern-A compare/increment, the break/continue branches, and the two-armed
  * if/else stay byte-exact. Runs in CI (no emulator, no ACME — `emitAsm` stops
  * before the assembler).
  *
- * Derived from `03-04-acceptance-fixtures.md` (ST-20). The golden pins the exact
- * bytes; the assertion is byte-exact equality.
+ * The golden pins the exact bytes; the assertion is byte-exact equality.
  *
  * Regenerate after an intentional codegen change (inspect the diff first):
  *   UPDATE_GOLDEN=1 yarn workspace @blend65/test-harness test golden-slice4a

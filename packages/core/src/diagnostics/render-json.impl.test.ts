@@ -1,8 +1,8 @@
 /**
- * Implementation tests for the JSON renderer (RD-11b Phase 3).
+ * Implementation tests for the JSON renderer.
  *
- * Covers edge cases beyond the ST-20..ST-21 specification tier: the empty
- * array and deep field fidelity across every record shape.
+ * Covers edge cases beyond the specification tier: the empty array and deep
+ * field fidelity across every record shape.
  */
 
 import { describe, expect, it } from "vitest";

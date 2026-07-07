@@ -1,12 +1,11 @@
 /**
- * Innermost-first name resolution for the RD-18 Slice 3b scalar type engine
- * (FR-2; RD-04 §4.2 R14–R16).
+ * Innermost-first name resolution for the scalar type engine.
  *
  * A reference resolves against the lexical scope chain from the innermost scope
- * outward: function-body scope → enclosing module scope → global scope (R15
- * boundary — the walk stays inside `@blend65/core` scope objects). The lookup is
- * pure; the caller decides what to do with a miss (Pass 3 emits E10100 and
- * poisons the reference).
+ * outward: function-body scope → enclosing module scope → global scope. The
+ * walk stays inside `@blend65/core` scope objects, keeping the frontend
+ * independent of codegen. The lookup is pure; the caller decides what to do
+ * with a miss (Pass 3 emits E10100 and poisons the reference).
  */
 
 import type { Scope, Symbol } from "@blend65/core";

@@ -2,12 +2,10 @@
  * The {@link SourceMap} — the process-wide registry mapping interned
  * {@link SourceId}s back to file paths and contents.
  *
- * RD-11a deliberately kept spans as tiny numeric triples with no back-pointer
- * to their file (see `source-span.ts`); this registry closes that loop. It is
- * also the owner of the per-source {@link LineMap} cache (R14, PF-006), so
- * consumers never rebuild line tables for a file they have already resolved.
- *
- * Covers RD-11 §4.2 as amended by AR-104 (adds `has`) · R13/R14 · AR-Q7.
+ * Spans are kept as tiny numeric triples with no back-pointer to their file
+ * (see `source-span.ts`); this registry closes that loop. It is also the
+ * owner of the per-source {@link LineMap} cache, so consumers never rebuild
+ * line tables for a file they have already resolved.
  */
 
 import type { SourceId } from "./source-span.js";
@@ -18,10 +16,10 @@ import { LineMap } from "./line-map.js";
  *
  * Obtain an instance via {@link createSourceMap}. Interning is path-keyed:
  * the same path always yields the same id, and re-interning with changed
- * content replaces the stored content in place (the LSP re-edit path, AR-78).
+ * content replaces the stored content in place (the LSP re-edit path).
  * The throwing getters are for ids the caller *knows* are interned; renderers
- * facing untrusted ids (e.g. the RD-16 config sentinel `-2`) must probe with
- * {@link SourceMap.has} first and degrade (R51).
+ * facing untrusted ids (e.g. a reserved config sentinel like `-2`) must probe
+ * with {@link SourceMap.has} first and degrade gracefully.
  */
 export interface SourceMap {
   /**
@@ -39,7 +37,7 @@ export interface SourceMap {
   intern(path: string, content: string): SourceId;
   /**
    * `true` iff `id` was returned by a previous {@link SourceMap.intern} call.
-   * A non-throwing probe (R51) — safe for negatives, fractions, any number.
+   * A non-throwing probe — safe for negatives, fractions, any number.
    */
   has(id: SourceId): boolean;
   /** Path for an interned id. Throws on an unknown id (programmer error). */
@@ -47,7 +45,7 @@ export interface SourceMap {
   /** Content for an interned id. Throws on an unknown id (programmer error). */
   getContent(id: SourceId): string;
   /**
-   * Get-or-build the cached {@link LineMap} for an interned id (R14).
+   * Get-or-build the cached {@link LineMap} for an interned id.
    * Throws on an unknown id (programmer error).
    */
   getLineMap(id: SourceId): LineMap;
@@ -76,7 +74,7 @@ export function createSourceMap(): SourceMap {
   // Path → id lookup for the path-keyed intern semantics.
   const idByPath = new Map<string, SourceId>();
 
-  /** Returns the entry for `id`, or throws the AR-Q7 programmer error. */
+  /** Returns the entry for `id`, or throws the unknown-id programmer error. */
   function requireEntry(id: SourceId): SourceEntry {
     // Integer check guards against fractional ids indexing into the array
     // (e.g. entries[0.5] is undefined, but entries[0] would wrongly match 0.0
@@ -94,7 +92,7 @@ export function createSourceMap(): SourceMap {
       const entry = entries[existing];
       if (entry.content !== content) {
         // Re-edit: replace in place and drop the stale LineMap so the next
-        // getLineMap() rebuilds against the new content (AR-Q7, AR-78).
+        // getLineMap() rebuilds against the new content.
         entry.content = content;
         entry.lineMap = null;
       }

@@ -1,14 +1,12 @@
 /**
- * Specification tests for RD-18 Slice 4a for-loop bound/step/counter safety —
- * end-bound range (E10064), step positivity (E10061), and counter-type integrity
+ * Specification tests for for-loop bound/step/counter safety — end-bound
+ * range (E10064), step positivity (E10061), and counter-type integrity
  * (E10065).
  *
  * Expectations derive EXCLUSIVELY from the frozen spec Ch 05 (§7.2.1 end-bound,
- * §7.3 step, §7.4 counter type), the requirements (FR-3/FR-4), and the Ambiguity
- * Register (AR-8/AR-10/AR-15) — NEVER from reading the implementation (immutable
- * oracle). Exercised through the REAL public path (`lex`→`parse`→`analyze`).
- *
- * Traces: ST-6 (§7.2.1), ST-7 (§7.3), ST-24 (§7.4 / AR-15).
+ * §7.3 step, §7.4 counter type) — NEVER from reading the implementation
+ * (immutable oracle). Exercised through the REAL public path
+ * (`lex`→`parse`→`analyze`).
  */
 
 import { describe, expect, it } from "vitest";
@@ -29,7 +27,7 @@ function analyzeSource(source: string): string[] {
 }
 
 describe("Specification: RD-18 Slice 4a for-loop end-bound range (FR-4, ST-6)", () => {
-  // ST-6 — a const end-bound out of the counter type's range → E10064.
+  // A const end-bound out of the counter type's range → E10064.
   it("should reject a byte for-loop whose end bound is 300 with E10064", () => {
     expect(
       analyzeSource("module Main;\nfunction main(): void { for (let i: byte = 0 to 300) {} }\n"),
@@ -43,7 +41,7 @@ describe("Specification: RD-18 Slice 4a for-loop end-bound range (FR-4, ST-6)", 
 });
 
 describe("Specification: RD-18 Slice 4a for-loop step positivity (FR-4, ST-7)", () => {
-  // ST-7 — a zero step → E10061; a positive const step → none; a non-const step → E10061.
+  // A zero step → E10061; a positive const step → none; a non-const step → E10061.
   it("should reject a zero step with E10061", () => {
     expect(
       analyzeSource(
@@ -68,7 +66,7 @@ describe("Specification: RD-18 Slice 4a for-loop step positivity (FR-4, ST-7)", 
 });
 
 describe("Specification: RD-18 Slice 4a for-counter type (FR-3, ST-24 / AR-15)", () => {
-  // ST-24 — a missing OR non-integer counter type → E10065 (no throw, no silent pass).
+  // A missing OR non-integer counter type → E10065 (no throw, no silent pass).
   it("should reject a for-counter with no type annotation with E10065", () => {
     expect(
       analyzeSource("module Main;\nfunction main(): void { for (let i = 0 to 5) {} }\n"),

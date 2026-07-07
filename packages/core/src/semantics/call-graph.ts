@@ -1,13 +1,12 @@
 /**
- * The static call graph for Blend65 semantic analysis (RD-04 §4.8, R84–R86).
+ * The static call graph for Blend65 semantic analysis.
  *
  * A {@link CallGraph} records which functions call which — the `functions` set
  * of all function symbols and the `edges` map from each caller to its callees.
- * It is consumed by SFA frame planning (RD-05) and by recursion detection.
+ * It is consumed by SFA frame planning and by recursion detection.
  *
- * PASSTHROUGH NOTE (RD-04 plan, D2): the skeleton builds only the empty graph
- * (via {@link emptyCallGraph}); real edge construction and cycle detection are
- * DEFERRED(RD-04-checker).
+ * Only the empty graph is currently built (via {@link emptyCallGraph}); real
+ * edge construction and cycle detection are not implemented yet.
  */
 
 import type { Symbol } from "./symbol.js";
@@ -21,8 +20,9 @@ export interface CallGraph {
   /**
    * Returns the recursion cycles in the graph, each as a list of symbols.
    *
-   * DEFERRED(RD-04-checker): R86 — cycle (recursion) detection emitting E10174.
-   * Passthrough: returns `[]` (the empty graph has no cycles).
+   * Cycle (recursion) detection is not implemented yet; this always returns no
+   * cycles, and E10174 is not emitted. Passthrough: returns `[]` (the empty
+   * graph has no cycles).
    */
   findCycles(): Symbol[][];
 }
@@ -37,6 +37,6 @@ export function emptyCallGraph(): CallGraph {
   return {
     functions: new Set(),
     edges: new Map(),
-    findCycles: () => [], // DEFERRED(RD-04-checker): R86 recursion detection
+    findCycles: () => [], // Recursion detection is not implemented yet
   };
 }

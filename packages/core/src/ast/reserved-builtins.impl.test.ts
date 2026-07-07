@@ -1,10 +1,9 @@
 /**
- * Unit tests for {@link RESERVED_BUILTINS} (RD-03 FR-49, AR-3).
+ * Unit tests for {@link RESERVED_BUILTINS}.
  *
- * Covers spec case ST-P2 from plans/rd-03-parser-ast/07-testing-strategy.md: the
- * set holds exactly the 23 universal intrinsic names — 13 CPU control (Ch 12 §2) +
- * the 65C02-gated `asm_wai` (RD-17 R2) + 9 memory (§3) — and excludes platform
- * encoders (Ch 15), which are not universal and parse as ordinary calls.
+ * Verifies the set holds exactly the 23 universal intrinsic names — 13 CPU
+ * control (Ch 12 §2) + the 65C02-gated `asm_wai` + 9 memory (§3) — and excludes
+ * platform encoders (Ch 15), which are not universal and parse as ordinary calls.
  */
 
 import { describe, expect, it } from "vitest";
@@ -27,7 +26,7 @@ describe("RESERVED_BUILTINS (ST-P2)", () => {
     "asm_brk",
   ];
   const memory = ["peek", "poke", "peekw", "pokew", "lo", "hi", "sizeof", "offsetof", "length"];
-  // RD-17 R2: the 65C02-gated `asm_wai` is the 23rd reserved name.
+  // The 65C02-gated `asm_wai` is the 23rd reserved name.
   const gated = ["asm_wai"];
 
   it("contains exactly 23 names (13 CPU control + asm_wai + 9 memory)", () => {

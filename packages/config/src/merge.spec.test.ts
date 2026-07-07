@@ -1,10 +1,8 @@
 /**
- * Specification tests for config merging (ST-25..ST-27).
- *
- * Traceability: RD-16 R23/R24/R25, AC-08, via 07-testing-strategy.md — the
- * precedence chain is defaults ← file ← overrides; only explicitly-set
- * (non-`undefined`) override values apply; arrays replace, never concatenate.
- * Written before the implementation exists (immutable-oracle rule).
+ * Specification tests for config merging: the precedence chain is
+ * defaults ← file ← overrides; only explicitly-set (non-`undefined`)
+ * override values apply; arrays replace, never concatenate. Written
+ * before the implementation exists.
  */
 
 import { describe, expect, it } from "vitest";

@@ -1,21 +1,20 @@
 /**
- * The lexical scope tree for Blend65 semantic analysis (RD-04 §4.2, R7–R8).
+ * The lexical scope tree for Blend65 semantic analysis.
  *
  * A {@link Scope} is a node in a tree of name environments: the global scope at
  * the root, then module/function/block scopes nested beneath it. Each scope owns
  * a `Map` of the symbols declared directly in it and a link to its parent for
  * lexical name resolution.
  *
- * PASSTHROUGH NOTE (RD-04 plan, D2): the skeleton builds only the lone empty
- * global scope (via {@link createScope}); the real nested-scope construction is
- * DEFERRED(RD-04-checker). The shape is defined here so the model and the future
- * checker share one representation.
+ * Only the lone empty global scope is currently built (via {@link createScope});
+ * real nested-scope construction is not implemented yet. The shape is defined
+ * here so the model and the future checker share one representation.
  */
 
 import type { AstNode } from "../ast/index.js";
 import type { Symbol } from "./symbol.js";
 
-/** The four kinds of lexical scope (RD-04 §4.2). */
+/** The four kinds of lexical scope. */
 export type ScopeKind = "global" | "module" | "function" | "block";
 
 /** A node in the lexical scope tree. */

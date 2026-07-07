@@ -1,18 +1,16 @@
 /**
- * Specification tests for the RD-06 IL optimizer pipeline (ST-O1..O5).
+ * Specification tests for the IL optimizer pipeline.
  *
- * Derived EXCLUSIVELY from plans/rd-06-il-optimizer/07-testing-strategy.md
- * (ST-O1..O5), 03-03-textual-and-optimizer.md Part B (the §4.11 pipeline
- * contract), and RD-06 R56/R57/R61 — NOT from implementation logic.
+ * Derived exclusively from the documented pipeline contract — not from
+ * implementation logic.
  *
- * v1 ships ZERO real passes (D1): the pipeline is an architectural seam. These
+ * v1 ships zero real passes: the pipeline is an architectural seam. These
  * tests pin (a) the identity passthrough when `passes = []`, (b) that supplied
  * passes run in array order, and (c) that the passthrough emits no diagnostics
- * (D2 — no W10130 in v1).
+ * (no W10130 in v1).
  *
- * Spec-tests-first (testing.md Rule 10): authored before `optimize-il.ts`/
- * `pass.ts` exist, expected to FAIL first (red), then PASS (green). Immutable
- * oracle.
+ * Spec-tests-first: authored before `optimize-il.ts`/`pass.ts` exist, expected
+ * to fail first (red), then pass (green). Immutable oracle.
  */
 
 import { describe, expect, it } from "vitest";
@@ -115,7 +113,7 @@ function tagPass(tag: string, log: string[]): ILPass {
 }
 
 describe("Specification: RD-06 optimizeIL (§4.11)", () => {
-  // ST-O1 — empty pass list → input returned unchanged (identity passthrough).
+  // Empty pass list → input returned unchanged (identity passthrough).
   it("should return the program unchanged with no passes (ST-O1, R57/AC-14)", () => {
     const bag = createDiagnosticBag();
     const out = optimizeIL(PROGRAM, [], bag);
@@ -123,7 +121,7 @@ describe("Specification: RD-06 optimizeIL (§4.11)", () => {
     expect(printIL(out)).toBe(printIL(PROGRAM));
   });
 
-  // ST-O2 — a single identity pass runs and yields text-identical output.
+  // A single identity pass runs and yields text-identical output.
   it("should invoke a single pass and preserve the text (ST-O2, R56/AC-14)", () => {
     const bag = createDiagnosticBag();
     const log: string[] = [];
@@ -132,7 +130,7 @@ describe("Specification: RD-06 optimizeIL (§4.11)", () => {
     expect(printIL(out)).toBe(printIL(PROGRAM));
   });
 
-  // ST-O3 — multiple passes run in array order (tagA before tagB).
+  // Multiple passes run in array order (tagA before tagB).
   it("should run passes in array order (ST-O3, R56/§4.11)", () => {
     const bag = createDiagnosticBag();
     const log: string[] = [];
@@ -140,14 +138,14 @@ describe("Specification: RD-06 optimizeIL (§4.11)", () => {
     expect(log).toEqual(["A", "B"]);
   });
 
-  // ST-O4 — an empty program passes through unchanged.
+  // An empty program passes through unchanged.
   it("should pass an empty program through unchanged (ST-O4, R57)", () => {
     const bag = createDiagnosticBag();
     const out = optimizeIL(EMPTY_PROGRAM, [], bag);
     expect(out).toBe(EMPTY_PROGRAM);
   });
 
-  // ST-O5 — the passthrough emits no diagnostics (no W10130 in v1).
+  // The passthrough emits no diagnostics (no W10130 in v1).
   it("should emit no diagnostics on passthrough (ST-O5, D2/R57)", () => {
     const bag = createDiagnosticBag();
     optimizeIL(PROGRAM, [], bag);

@@ -1,8 +1,8 @@
 /**
- * Specification tests for the RD-17 core intrinsic catalog (ST-5, ST-7).
+ * Specification tests for the core intrinsic catalog.
  *
- * Derived EXCLUSIVELY from RD-17 §4.3 (the catalog table + internal T3 table),
- * frozen spec Ch 12, and R2/AR-98/AR-99 — never from reading the implementation
+ * Derived EXCLUSIVELY from the frozen specification (the catalog table +
+ * internal T3 table) and Ch 12 — never from reading the implementation
  * (IMMUTABLE ORACLE RULE). Written BEFORE `catalog.ts` exists (red phase).
  */
 
@@ -35,7 +35,7 @@ const MEMORY = ["peek", "poke", "peekw", "pokew", "lo", "hi", "sizeof", "offseto
 /** The full user-visible catalog: 22 Ch 12 names + the 65C02-gated `asm_wai`. */
 const USER_VISIBLE = [...CPU_CONTROL, ...MEMORY, "asm_wai"];
 
-/** The four internal operator-backing T3 routine symbols (AR-98). */
+/** The four internal operator-backing T3 routine symbols. */
 const RT_SYMBOLS = ["__rt_mul8", "__rt_mul16", "__rt_div8", "__rt_div16"];
 
 describe("Specification: RD-17 core intrinsic catalog (ST-5)", () => {
@@ -47,7 +47,7 @@ describe("Specification: RD-17 core intrinsic catalog (ST-5)", () => {
   it("ST-5: RT_ROUTINES is exactly the four __rt_* operator-backing symbols (AR-98)", () => {
     const names = RT_ROUTINES.map((d) => d.name).sort();
     expect(names).toEqual([...RT_SYMBOLS].sort());
-    // No separate mod routine exists — `%` consumes the div remainder (AR-98).
+    // No separate mod routine exists — `%` consumes the div remainder.
     expect(names).not.toContain("__rt_mod8");
     expect(names).not.toContain("__rt_mod16");
   });

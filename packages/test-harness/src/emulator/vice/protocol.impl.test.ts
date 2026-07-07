@@ -1,7 +1,7 @@
 /**
  * Implementation tests for the VICE protocol codec — body-layout edges, error-code
  * frames, and malformed-frame handling. Written AFTER the codec; these cover
- * internals beyond the ST-03..ST-08 oracles.
+ * internals beyond the specification tests.
  */
 
 import { describe, expect, it } from "vitest";

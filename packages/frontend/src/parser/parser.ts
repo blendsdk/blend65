@@ -1,21 +1,21 @@
 /**
- * The Blend65 parser entry point and source-structure layer (RD-03 §4.9, §4.13;
- * FR-12..FR-15, FR-47; AR-8).
+ * The Blend65 parser entry point and source-structure layer (FR-12..FR-15,
+ * FR-47).
  *
  * `parse()` turns the lexer's `Token[]` into a `ProgramNode`. It is recursive
- * descent for source structure / declarations / statements (Pratt for
- * expressions arrives in Phase 5). It **never throws** (FR-4): syntax errors are
+ * descent for source structure / declarations / statements, with a Pratt
+ * parser for expressions. It **never throws** (FR-4): syntax errors are
  * appended to the shared {@link DiagnosticBag} and the tree is kept structurally
  * complete with error sentinels.
  *
  * This slice implements the module declaration (FR-13), `import` statements
  * (FR-14), the top-level declaration dispatch (FR-15) into the declaration
  * parsers (`parse-decl.ts`), and the panic-aware `emit` + top-level recovery
- * skeleton. Statements and full expressions are added in later phases by
- * extending the dispatch — never by changing what is here (FR-11).
+ * skeleton. Statements and full expressions are added by extending the
+ * dispatch — never by changing what is here (FR-11).
  *
- * Lexeme text is recovered through the cursor's single `lexeme()` site (AR-8);
- * the frozen RD-02 lexer is untouched.
+ * Lexeme text is recovered through the cursor's single `lexeme()` site; the
+ * lexer is untouched.
  */
 
 import { DiagCode, TokenKind, makeSpan } from "@blend65/core";
@@ -37,11 +37,11 @@ import type { ParserState } from "./state.js";
 import { parseDeclByKeyword, parseExportedDecl } from "./parse-decl.js";
 
 /**
- * Everything the parser needs for one source file (AR-8).
+ * Everything the parser needs for one source file.
  *
- * An object — not positional parameters — so future phases (RD-14 language
- * server incremental re-parse, RD-15 programmatic CLI) can add **optional**
- * fields without a breaking signature change (F1-extensible).
+ * An object — not positional parameters — so future work (language-server
+ * incremental re-parse, a programmatic CLI entry) can add **optional**
+ * fields without a breaking signature change.
  */
 export interface ParseInput {
   /** The lexer's token stream (non-empty, terminated by exactly one `Eof`). */
@@ -62,7 +62,7 @@ export interface ParseResult {
   readonly hasErrors: boolean;
 }
 
-/** Top-level synchronisation tokens (FR-6; 03-03 recovery table, AR-1: no `asm`). */
+/** Top-level synchronisation tokens (FR-6; `asm` is deliberately excluded). */
 const TOP_LEVEL_SYNC: ReadonlySet<string> = new Set([
   TokenKind.KwFunction,
   TokenKind.KwInterrupt,
@@ -89,7 +89,7 @@ const DECL_KEYWORDS: ReadonlySet<string> = new Set([
 /**
  * Parses one source file into a {@link ParseResult} (FR-47). Never throws.
  *
- * @param input The tokens, source text, source id, and diagnostic bag (AR-8).
+ * @param input The tokens, source text, source id, and diagnostic bag.
  * @returns The AST root plus whether any errors were recorded.
  */
 export function parse(input: ParseInput): ParseResult {
@@ -243,11 +243,11 @@ export function parse(input: ParseInput): ParseResult {
 
   /**
    * Skips to the next top-level synchronisation point after a dispatch error
-   * (FR-6; 03-03 recovery table, "Top-level" row). Always consumes at least the
-   * offending token so the loop makes progress, then halts before the next sync
-   * keyword (or `Eof`) and clears panic so the next declaration reports its own
-   * first error. Returns an {@link ErrorStmtNode} spanning the skipped region so
-   * the tree stays structurally complete (FR-5).
+   * (FR-6). Always consumes at least the offending token so the loop makes
+   * progress, then halts before the next sync keyword (or `Eof`) and clears
+   * panic so the next declaration reports its own first error. Returns an
+   * {@link ErrorStmtNode} spanning the skipped region so the tree stays
+   * structurally complete (FR-5).
    */
   function recoverTopLevel(): ErrorStmtNode {
     const start = here().start;
@@ -307,7 +307,7 @@ export function parse(input: ParseInput): ParseResult {
       continue;
     }
     if (kind === TokenKind.KwType) {
-      // AR-2: `type` is reserved for future use; no declaration semantics.
+      // `type` is reserved for future use; no declaration semantics.
       state.emit(DiagCode.ReservedKeyword, here(), "'type' is reserved for future use");
       items.push(recoverTopLevel());
       continue;

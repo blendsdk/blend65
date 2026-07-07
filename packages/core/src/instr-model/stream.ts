@@ -1,19 +1,19 @@
 /**
- * Instruction-stream records — RD-07 §4.3, R2/R5–R7 (+ D2/D9).
+ * Instruction-stream records.
  *
- * Defines the inline ACME `AcmeDirective` union (R6), the `StreamEntry`
- * discriminated union (instr | label | directive, R5/R6), and the per-function
- * `InstrStream` container (R7), plus trivial constructors and type guards.
+ * Defines the inline ACME `AcmeDirective` union, the `StreamEntry`
+ * discriminated union (instr | label | directive), and the per-function
+ * `InstrStream` container, plus trivial constructors and type guards.
  *
- * `StreamEntry.instr` uses the field names `opcode`/`mode` per spec §4.3 (D9).
- * Pure data + trivial constructors/guards — validation lives in `validate.ts`,
+ * `StreamEntry.instr` uses the field names `opcode`/`mode`. Pure data +
+ * trivial constructors/guards — validation lives in `validate.ts`,
  * serialization in `print-instr.ts` (both in `@blend65/codegen`).
  *
- * Relocated to `@blend65/core` (`instr-model/`) by RD-10 D7/D8 so the platform
- * plugin interface (`PlatformPlugin`, in core) can reference `StreamEntry` /
- * `AcmeDirective` without a core→codegen dependency; `@blend65/codegen`
- * re-exports it unchanged. `CpuVariant` now lives in `./cpu-variant.ts` and is
- * re-exported here for import-path compatibility.
+ * Lives in `@blend65/core` (`instr-model/`) so the platform plugin interface
+ * (`PlatformPlugin`, in core) can reference `StreamEntry` / `AcmeDirective`
+ * without a core→codegen dependency; `@blend65/codegen` re-exports it
+ * unchanged. `CpuVariant` lives in `./cpu-variant.ts` and is re-exported here
+ * for import-path compatibility.
  */
 
 import type { SourceSpan } from "../diagnostics/index.js";
@@ -21,18 +21,18 @@ import type { Opcode } from "./opcode.js";
 import type { AddressingMode } from "./addressing-mode.js";
 import type { InstrOperand } from "./operand.js";
 
-// Re-export the canonical CpuVariant (D2) so the historical `./stream.js`
-// import path — used by codegen's cpu-table/validate/translate/instr-program —
+// Re-export the canonical CpuVariant so the historical `./stream.js` import
+// path — used by codegen's cpu-table/validate/translate/instr-program —
 // keeps resolving `CpuVariant` from here unchanged.
 export type { CpuVariant } from "./cpu-variant.js";
 
 /**
- * An ACME assembler directive that appears inline in a stream (R6).
+ * An ACME assembler directive that appears inline in a stream.
  *
  * These model the ACME pseudo-ops Blend65 emits: origin (`* =`), symbol
  * definitions, raw `!byte`/`!word` data, `!text` strings, `!fill` runs, and the
  * `!to` output-file directive. They are pure data; the serializer renders each
- * to its ACME syntax (03-03).
+ * to its ACME syntax.
  */
 export type AcmeDirective =
   | { readonly kind: "origin"; readonly address: number } // * = $0801
@@ -45,11 +45,11 @@ export type AcmeDirective =
 
 /**
  * One entry in an instruction stream — a real instruction, an inline label, or
- * an inline directive (R5/R6).
+ * an inline directive.
  *
- * The `instr` variant uses `opcode`/`mode` field names per spec §4.3 (D9) and
- * carries an optional `sourceSpan` (model surface; span *propagation* from IL is
- * RD-07b's job, R50/R51).
+ * The `instr` variant uses `opcode`/`mode` field names and carries an optional
+ * `sourceSpan` (model surface; span *propagation* from IL happens downstream
+ * in codegen).
  */
 export type StreamEntry =
   | {
@@ -57,13 +57,13 @@ export type StreamEntry =
       readonly opcode: Opcode;
       readonly mode: AddressingMode;
       readonly operand: InstrOperand;
-      readonly sourceSpan?: SourceSpan; // model surface; propagation is RD-07b (R50/R51)
+      readonly sourceSpan?: SourceSpan; // model surface; propagation happens downstream in codegen
     }
   | { readonly type: "label"; readonly name: string }
   | { readonly type: "directive"; readonly directive: AcmeDirective };
 
 /**
- * A per-function (or per-data-block) instruction stream (R7).
+ * A per-function (or per-data-block) instruction stream.
  *
  * `symbol` is the function or data label; `segment` classifies where the stream
  * is placed (code / initialised data / zero page); `entries` are the ordered
@@ -76,7 +76,7 @@ export interface InstrStream {
 }
 
 /**
- * Construct an `instr` stream entry (R2/§4.3, D9).
+ * Construct an `instr` stream entry.
  *
  * `sourceSpan` is attached **only** when supplied, so two otherwise-identical
  * instructions compare equal under `toEqual` and serialize identically
@@ -85,7 +85,7 @@ export interface InstrStream {
  * @param opcode The 6502 mnemonic.
  * @param mode The addressing mode.
  * @param operand The symbolic operand.
- * @param sourceSpan Optional originating source span (RD-07b propagates these).
+ * @param sourceSpan Optional originating source span (propagated from IL downstream in codegen).
  * @returns An `instr` {@link StreamEntry}.
  */
 export function instr(
@@ -100,7 +100,7 @@ export function instr(
 }
 
 /**
- * Construct a `label` stream entry (R5).
+ * Construct a `label` stream entry.
  *
  * @param name The label name (rendered at column 0 as `name:`).
  * @returns A `label` {@link StreamEntry}.
@@ -110,7 +110,7 @@ export function label(name: string): StreamEntry {
 }
 
 /**
- * Construct a `directive` stream entry (R6).
+ * Construct a `directive` stream entry.
  *
  * @param d The ACME directive to wrap.
  * @returns A `directive` {@link StreamEntry}.
@@ -120,7 +120,7 @@ export function directive(d: AcmeDirective): StreamEntry {
 }
 
 /**
- * Type guard: is this entry an instruction? (R5)
+ * Type guard: is this entry an instruction?
  *
  * @param e The stream entry to classify.
  * @returns `true` and narrows to the `instr` variant when matched.
@@ -132,7 +132,7 @@ export function isInstr(
 }
 
 /**
- * Type guard: is this entry a label? (R5)
+ * Type guard: is this entry a label?
  *
  * @param e The stream entry to classify.
  * @returns `true` and narrows to the `label` variant when matched.
@@ -144,7 +144,7 @@ export function isLabel(
 }
 
 /**
- * Type guard: is this entry a directive? (R6)
+ * Type guard: is this entry a directive?
  *
  * @param e The stream entry to classify.
  * @returns `true` and narrows to the `directive` variant when matched.

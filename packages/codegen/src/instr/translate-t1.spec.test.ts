@@ -1,10 +1,10 @@
 /**
- * Specification test for RD-17 T1 opcode-intrinsic translation (ST-18).
+ * Specification test for T1 opcode-intrinsic translation.
  *
- * Derived EXCLUSIVELY from RD-17 §4.3 (the T1 catalog + opcode column), R2, and
- * AC-07 — never from reading the implementation (IMMUTABLE ORACLE RULE). Each T1
- * intrinsic must translate to EXACTLY ONE Implied-mode `Instr` with the matching
- * 6502 mnemonic. `asm_wai` is 65C02-gated, so it is exercised on `wdc65c02`.
+ * Derived EXCLUSIVELY from the T1 catalog + opcode column — never from reading
+ * the implementation (IMMUTABLE ORACLE RULE). Each T1 intrinsic must translate
+ * to EXACTLY ONE Implied-mode `Instr` with the matching 6502 mnemonic. `asm_wai`
+ * is 65C02-gated, so it is exercised on `wdc65c02`.
  */
 
 import { describe, expect, it } from "vitest";
@@ -70,7 +70,7 @@ function fnWithIntrinsic(name: string): ILFunction {
   };
 }
 
-/** The 13 ambient T1 names and their expected 6502 mnemonics (RD-17 §4.3). */
+/** The 13 ambient T1 names and their expected 6502 mnemonics. */
 const T1_CASES: ReadonlyArray<readonly [string, string]> = [
   ["asm_sei", "SEI"],
   ["asm_cli", "CLI"],
@@ -93,7 +93,7 @@ describe("Specification: RD-17 T1 opcode translation (ST-18, AC-07)", () => {
     (name, opcode) => {
       const bag = createDiagnosticBag();
       const stream = translateFunction(fnWithIntrinsic(name), EMPTY_PLAN, "nmos6502", bag);
-      // Exclude the function's own `RTS` terminator — ST-18 is about the T1 op.
+      // Exclude the function's own `RTS` terminator — only the T1 op is checked here.
       const opInstrs = stream.entries.filter(isInstr).filter((e) => e.opcode !== "RTS");
       expect(opInstrs).toHaveLength(1);
       expect(opInstrs[0]?.opcode).toBe(opcode);

@@ -1,26 +1,25 @@
 /**
- * Config defaults and the schema descriptor table (RD-16 §4.1, AR-P6).
+ * Config defaults and the schema descriptor table.
  *
  * One table — {@link CONFIG_SCHEMA} — drives default filling, type-shape
  * checks (E10243 "wrong type"), and value rules (range / enum / warning-code
  * format), so validation never degenerates into per-key `if` ladders (DRY).
  * `platform` deliberately has NO default: the platform registry's
- * `DEFAULT_PLATFORM` is never consulted (RD-16 R31).
+ * `DEFAULT_PLATFORM` is never consulted.
  */
 
 import type { BlendConfig } from "./types.js";
 
 /**
  * Warning-code format accepted by `warnAsError` (array form) and
- * `suppressWarnings` entries: `W` + exactly five digits — the concrete
- * reading of RD-16's "match the W10xxx pattern", matching every shipped
- * W-code in `@blend65/core`'s registry.
+ * `suppressWarnings` entries: `W` + exactly five digits, matching every
+ * shipped W-code in `@blend65/core`'s registry.
  */
 export const W_CODE_PATTERN = /^W\d{5}$/;
 
 /**
- * The RD-16 §4.1 defaults table, verbatim. Excludes the two computed fields
- * (`configPath`, `projectRoot`) and `platform` (no default — R31).
+ * The defaults table for every user-facing config key. Excludes the two
+ * computed fields (`configPath`, `projectRoot`) and `platform` (no default).
  * Array values are shared templates: consumers (mergeConfig) must copy
  * them, never hand them out mutable.
  */
@@ -55,10 +54,10 @@ export const CONFIG_DEFAULTS: Readonly<
  * `valueRule` covers scalar-valued rules (range, enum literal set);
  * `entryRule` covers per-entry rules on array-valued keys (warning-code
  * format), so each offending entry gets its own diagnostic with a
- * dedup-distinct per-entry synthetic span (PF-019).
+ * dedup-distinct per-entry synthetic span.
  */
 export interface SchemaEntry {
-  /** The §4.1 default, or `undefined` for `platform` (no default — R31). */
+  /** The schema default, or `undefined` for `platform` (no default). */
   readonly defaultValue: unknown;
   /** Human-readable expected shape for E10243 messages, e.g. `'boolean|string[]'`. */
   readonly expected: string;
@@ -99,16 +98,16 @@ function wCodeRule(entry: unknown): string | null {
 }
 
 /**
- * The 13 user-facing `blend65.json` keys in RD-16 §4.1 declaration order.
- * Map insertion order is load-bearing: it defines each key's stable ordinal
- * for the synthetic-span scheme (AR-P2/PF-019) — never reorder entries.
+ * The 13 user-facing `blend65.json` keys, in declaration order. Map
+ * insertion order is load-bearing: it defines each key's stable ordinal
+ * for the synthetic-span scheme — never reorder entries.
  *
  * The enum-typed keys (`diagnosticsFormat`, `startup`) shape-check as plain
  * strings and enforce their literal sets via `valueRule` (E10243 naming the
- * literals, R15/R18); per AR-P9 an errored config carries the invalid string
- * as-merged, so their `apply` narrows through the string check only — the
- * literal-type assignment is the one sanctioned widening, gated at runtime
- * by `valueRule` + the caller's `hasErrors` contract.
+ * literals); an errored config carries the invalid string as-merged, so
+ * their `apply` narrows through the string check only — the literal-type
+ * assignment is the one sanctioned widening, gated at runtime by
+ * `valueRule` + the caller's `hasErrors` contract.
  */
 export const CONFIG_SCHEMA: ReadonlyMap<string, SchemaEntry> = new Map<string, SchemaEntry>([
   [
@@ -232,7 +231,7 @@ export const CONFIG_SCHEMA: ReadonlyMap<string, SchemaEntry> = new Map<string, S
       expected: "string",
       apply: (target, value) => {
         if (!isString(value)) return false;
-        // AR-P9 widening: an invalid literal (e.g. "xml") stays as-merged and
+        // Widening: an invalid literal (e.g. "xml") stays as-merged and
         // is rejected by valueRule (E10243) — see the CONFIG_SCHEMA doc comment.
         target.diagnosticsFormat = value as BlendConfig["diagnosticsFormat"];
         return true;
@@ -271,7 +270,7 @@ export const CONFIG_SCHEMA: ReadonlyMap<string, SchemaEntry> = new Map<string, S
       expected: "string",
       apply: (target, value) => {
         if (!isString(value)) return false;
-        // AR-P9 widening — same contract as diagnosticsFormat above.
+        // Widening — same contract as diagnosticsFormat above.
         target.startup = value as BlendConfig["startup"];
         return true;
       },

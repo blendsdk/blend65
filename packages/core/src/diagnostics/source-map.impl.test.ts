@@ -1,7 +1,7 @@
 /**
- * Implementation tests for the SourceMap registry (RD-11b Phase 1).
+ * Implementation tests for the SourceMap registry.
  *
- * Covers internals and edge cases beyond the ST-1..ST-5 specification tier:
+ * Covers internals and edge cases beyond the specification tests:
  * LineMap cache identity/invalidation details, empty content, long id
  * sequences, and `has()` over fractional/negative probe values.
  */

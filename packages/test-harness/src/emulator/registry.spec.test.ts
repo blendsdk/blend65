@@ -1,8 +1,8 @@
 /**
- * Specification test for the platform→emulator registry (ST-19).
+ * Specification test for the platform→emulator registry.
  *
- * Derived EXCLUSIVELY from RD-12 R7a — never from reading the implementation
- * (IMMUTABLE ORACLE RULE). Pure lookup logic, runs in CI.
+ * This test is derived directly from the registry's documented behavior, not
+ * from reading the implementation. Pure lookup logic, runs in CI.
  */
 
 import { describe, expect, it } from "vitest";

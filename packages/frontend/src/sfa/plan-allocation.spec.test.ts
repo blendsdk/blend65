@@ -1,12 +1,10 @@
 /**
  * Specification tests for the `planAllocation` 9-step pipeline and the deferred
- * `modelToFunctionInfo` adapter seam (RD-05 §4.1/§4.10/§4.12, R51–R59; AC-01,
- * AC-12, AC-17, AC-18, AC-22; D1/D3/D5/D9).
+ * `modelToFunctionInfo` adapter seam.
  *
- * Expectations derive exclusively from plans/rd-05-sfa-frame-planner/
- * 07-testing-strategy.md (ST-P1, ST-P3..ST-P6) and 03-05-allocation-plan-and-api.md
- * — NOT from implementation logic. Immutable oracle. ST-P2 (the Ch 11 §3.4 golden
- * snapshot) is authored in Phase 3.
+ * Expectations derive exclusively from the language specification — NOT from
+ * implementation logic. Immutable oracle. The Ch 11 §3.4 golden snapshot is
+ * covered separately.
  *
  * Spec-tests-first: authored before `plan-allocation.ts`/`model-adapter.ts`;
  * verified to FAIL (red).
@@ -19,7 +17,7 @@ import { modelToFunctionInfo } from "./model-adapter.js";
 import { C64_FIXTURE_PROFILE, makeFn } from "./test-fixtures.js";
 
 describe("Specification: planAllocation pipeline (R51–R59, §4.1)", () => {
-  // ST-P1 — minimal: one empty `main` → regionSize 0, valid plan, __frame_main present.
+  // Minimal: one empty `main` → regionSize 0, valid plan, __frame_main present.
   it("should produce a valid minimal plan for an empty main (ST-P1 / AC-01)", () => {
     const bag = createDiagnosticBag();
     const plan = planAllocation(
@@ -33,7 +31,7 @@ describe("Specification: planAllocation pipeline (R51–R59, §4.1)", () => {
     expect(plan.symbolDefinitions.some((s) => s.name === "__frame_main")).toBe(true);
   });
 
-  // ST-P3 — resourceData carries zp/ram/frame/stack used + budget figures.
+  // resourceData carries zp/ram/frame/stack used + budget figures.
   it("should populate resourceData with used and budget figures (ST-P3 / AC-18)", () => {
     const bag = createDiagnosticBag();
     const plan = planAllocation(
@@ -51,7 +49,7 @@ describe("Specification: planAllocation pipeline (R51–R59, §4.1)", () => {
     expect(rd.frameRegionPeak).toBe(rd.frameRegionBytes);
   });
 
-  // ST-P4 — RAM overflow → hasErrors true and E10033 in the bag.
+  // RAM overflow → hasErrors true and E10033 in the bag.
   it("should set hasErrors and emit E10033 on RAM overflow (ST-P4 / AC-12)", () => {
     const bag = createDiagnosticBag();
     // A tiny RAM window forces overflow once the frame region is placed.
@@ -71,7 +69,7 @@ describe("Specification: planAllocation pipeline (R51–R59, §4.1)", () => {
     expect(bag.getAll().some((d) => d.code === DiagCode.RamBudgetExceeded)).toBe(true);
   });
 
-  // ST-P5 — never throws on empty/partial input; returns a valid plan.
+  // Never throws on empty/partial input; returns a valid plan.
   it("should never throw on empty input and return a valid plan (ST-P5 / AC-17)", () => {
     const bag = createDiagnosticBag();
     expect(() =>
@@ -91,7 +89,7 @@ describe("Specification: planAllocation pipeline (R51–R59, §4.1)", () => {
     expect(plan.hasErrors).toBe(false);
   });
 
-  // R62 — upstreamErrors suppresses budget diagnostics but still assembles a plan.
+  // upstreamErrors suppresses budget diagnostics but still assembles a plan.
   it("should suppress budget diagnostics under upstreamErrors but still assemble", () => {
     const bag = createDiagnosticBag();
     const plan = planAllocation(
@@ -107,7 +105,7 @@ describe("Specification: planAllocation pipeline (R51–R59, §4.1)", () => {
 });
 
 describe("Specification: modelToFunctionInfo deferred seam (AC-22, D1/D3/D5)", () => {
-  // ST-P6 — under the RD-04 passthrough the empty model yields no functions.
+  // Under the semantic-model passthrough the empty model yields no functions.
   it("should return [] for the empty passthrough SemanticModel (ST-P6 / AC-22)", () => {
     const model = createEmptyModel();
     expect(modelToFunctionInfo(model)).toEqual([]);

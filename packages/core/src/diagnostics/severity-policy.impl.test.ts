@@ -1,7 +1,7 @@
 /**
- * Implementation tests for the severity policy (RD-11b Phase 2).
+ * Implementation tests for the severity policy.
  *
- * Covers internals and edge cases beyond the ST-6..ST-11 specification tier:
+ * Covers internals and edge cases beyond the specification tests:
  * empty/all-suppressed inputs, non-mutation, promoted-copy field integrity,
  * and idempotence of a second application.
  */

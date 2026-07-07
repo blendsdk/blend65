@@ -1,7 +1,7 @@
 /**
- * Implementation tests for the terminal renderer (RD-11b Phase 3).
+ * Implementation tests for the terminal renderer.
  *
- * Covers internals and edge cases beyond the ST-12..ST-19 specification tier:
+ * Covers internals and edge cases beyond the specification tests:
  * 3-digit gutter widths, EOF and empty-span carets, CRLF sources, multi-byte
  * UTF-8 byte-column math, and the color/no-color byte relationship.
  */
@@ -109,7 +109,7 @@ describe("renderTerminal implementation details", () => {
         "  --> utf8.blend:1:6",
         "  |",
         "1 | é€x = 1;",
-        // Byte-column math (R33/PF-007): 5 padding bytes before the caret.
+        // Byte-column math: 5 padding bytes before the caret.
         "  | " + " ".repeat(5) + "^",
       ].join("\n") + "\n",
     );

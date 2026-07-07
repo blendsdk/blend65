@@ -1,10 +1,9 @@
 /**
- * Implementation tests for `validateProfileFields` — RD-10 R22 edge cases.
+ * Implementation tests for `validateProfileFields` edge cases.
  *
- * Written AFTER the implementation (07-testing-strategy.md "Implementation Tests"):
- * these probe internal behavior the spec tests do not pin — multiple simultaneous
- * errors and the `zpStart === zpEnd` boundary — rather than re-asserting the
- * specification oracle.
+ * Written after the implementation: these probe internal behavior the spec
+ * tests do not pin — multiple simultaneous errors and the `zpStart === zpEnd`
+ * boundary — rather than re-asserting the specification oracle.
  */
 
 import { describe, expect, it } from "vitest";

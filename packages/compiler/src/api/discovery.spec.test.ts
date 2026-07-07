@@ -1,8 +1,8 @@
 /**
- * Specification tests for facade file-discovery errors — ST-5, ST-6.
+ * Specification tests for facade file-discovery errors.
  *
- * Derived EXCLUSIVELY from RD-15 R48/R49 and the plan (03-01/03-02, AR-V10).
- * Immutable oracles: a missing explicit file emits `E10250`
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: a missing explicit file emits `E10250`
  * (`Source file not found: '<path>'`), and an empty discovery set emits `E10251`
  * (`No .blend source files found (project root: '<root>')`). Both abort before
  * lexing (no other diagnostics), null span.

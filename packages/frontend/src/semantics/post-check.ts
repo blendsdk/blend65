@@ -1,13 +1,13 @@
 /**
- * RD-18 Slice 3b Pass 4 — `main()` validity (FR-5; RD-04 R66, AR-7).
+ * Pass 4 — `main()` validity.
  *
  * Over all programs this verifies the entry point: no `main` → E10020, multiple
  * `main` → E10021, and the single `main` must have signature `function main():
- * void` (no parameters, `void` return) → E10022 (AR-11: spec-designated F004
- * code, registered additively). Gating (AR-12): E10020 fires only when ≥1
- * function was collected — so empty / unparseable / function-free inputs stay
- * silent (preserving the RD-04 passthrough AC-01). Calling `main` directly
- * (E10023) is deferred to Slice 5 (no call sites exist yet). Never throws.
+ * void` (no parameters, `void` return) → E10022 (a spec-designated F004 code,
+ * registered additively). Gating: E10020 fires only when ≥1 function was
+ * collected — so empty / unparseable / function-free inputs stay silent
+ * (preserving the analyzer's passthrough contract). Calling `main` directly
+ * (E10023) is deferred until call sites exist. Never throws.
  *
  * This is the real body wired into the `passes.ts` Pass-4 seam.
  */
@@ -22,7 +22,7 @@ import type {
 } from "@blend65/core";
 
 /**
- * Validates the program entry point (FR-5). Emits E10020/E10021/E10022 as
+ * Validates the program entry point. Emits E10020/E10021/E10022 as
  * appropriate; silent when valid or when no function was collected.
  *
  * @param programs The parsed program ASTs.
@@ -40,7 +40,7 @@ export function checkMainValidity(programs: readonly ProgramNode[], bag: Diagnos
   }
 
   if (mains.length === 0) {
-    // AR-12 gate: only report a missing entry point when functions exist (so a
+    // Only report a missing entry point when functions exist (so a
     // pure data / library module — or empty / unparseable input — stays silent).
     if (functionCount >= 1) {
       bag.addError(
@@ -64,7 +64,7 @@ export function checkMainValidity(programs: readonly ProgramNode[], bag: Diagnos
   const main = mains[0];
   if (!isValidMainSignature(main)) {
     bag.addError(
-      DiagCode.InvalidMainSignature, // E10022 (F004, AR-11)
+      DiagCode.InvalidMainSignature, // E10022 (F004)
       main.nameSpan,
       "Entry point 'main' must have signature 'function main(): void'",
     );
@@ -81,11 +81,11 @@ function isValidMainSignature(fn: FunctionDeclNode): boolean {
 }
 
 /**
- * All-paths-return validation (RD-18 Slice 4a FR-6, spec Ch 05 §4.2, AR-4). Every
- * non-void `function` whose body does not return a value on **all** control-flow
- * paths emits E10102. Interrupts (always void) and void functions carry no
- * obligation. The analysis is a conservative structural reachability check
- * ({@link definitelyReturns}); it never throws.
+ * All-paths-return validation. Every non-void `function` whose body does not
+ * return a value on **all** control-flow paths emits E10102. Interrupts
+ * (always void) and void functions carry no obligation. The analysis is a
+ * conservative structural reachability check ({@link definitelyReturns}); it
+ * never throws.
  *
  * @param programs The parsed program ASTs.
  * @param bag The shared diagnostic accumulator.
@@ -112,7 +112,7 @@ function isVoidReturn(fn: FunctionDeclNode): boolean {
 }
 
 /**
- * Structural "definitely returns on every path" over a block (AR-4). A block
+ * Structural "definitely returns on every path" over a block. A block
  * definitely returns if any statement in sequence definitely returns (a `return`
  * makes the rest unreachable):
  * - `ReturnStmt` → the block returns from here on;

@@ -1,11 +1,11 @@
 /**
- * The `setupEmulator` Vitest fixture (RD-12 §4.4, R25–R28, AC-11).
+ * The `setupEmulator` Vitest fixture.
  *
- * Owns the emulator lifecycle (AR-24): resolves a binary + symbol map from either
- * an RD-15 `BuildResult` (R27) or a bare binary path + label file (R28/AC-15 —
- * works with ANY `.prg`, not just Blend65 output), launches a fresh `ViceDriver`
- * with `-autostart <binary>` (relaunch-per-binary, AR-H6), and returns the driver
- * + symbols. Callers own `describe.skipIf(no VICE)` at suite level (AC-13); the
+ * Owns the emulator lifecycle: resolves a binary + symbol map from either a
+ * compiler `BuildResult` or a bare binary path + label file (works with ANY
+ * `.prg`, not just Blend65 output), launches a fresh `ViceDriver` with
+ * `-autostart <binary>` (a fresh relaunch per binary), and returns the driver
+ * + symbols. Callers own `describe.skipIf(no VICE)` at suite level; the
  * exported {@link hasVice}/{@link hasAcme} guards make that clean.
  */
 
@@ -20,13 +20,13 @@ import { emulatorFor } from "./emulator/registry.js";
 
 /** Options for {@link setupEmulator}. */
 export interface SetupEmulatorOptions {
-  /** An RD-15 facade result (symbolMap/binaryPath/binary) — the preferred source (R27, AR-H2). */
+  /** A compiler build-facade result (symbolMap/binaryPath/binary) — the preferred source. */
   build?: BuildResult;
-  /** A pre-compiled binary path (R28); its sibling `.lbl` is parsed unless `labelFile` is set. */
+  /** A pre-compiled binary path; its sibling `.lbl` is parsed unless `labelFile` is set. */
   binary?: string;
   /** Explicit VICE label-file path (overrides the sibling `.lbl`). */
   labelFile?: string;
-  /** Target platform; default `"c64"` → registry lookup (R7a). */
+  /** Target platform; default `"c64"` → registry lookup. */
   platform?: string;
   /** Show the emulator GUI window (default headless). */
   gui?: boolean;
@@ -38,7 +38,7 @@ export interface EmulatorEnv {
   symbols: Map<string, number>;
 }
 
-/** Resolve an executable name on `PATH`, or null when absent (discovery style, RD-09). */
+/** Resolve an executable name on `PATH`, or null when absent. */
 function resolveOnPath(name: string): string | null {
   try {
     const out = execFileSync("which", [name], { encoding: "utf8" }).trim();
@@ -50,7 +50,7 @@ function resolveOnPath(name: string): string | null {
 
 /**
  * Whether the emulator for `platform` is installed (drives suite-level
- * `describe.skipIf`, AC-13). Returns false for an unregistered platform.
+ * `describe.skipIf`). Returns false for an unregistered platform.
  */
 export function hasVice(platform = "c64"): boolean {
   try {
@@ -60,7 +60,7 @@ export function hasVice(platform = "c64"): boolean {
   }
 }
 
-/** Whether ACME is installed (compile-bearing suites gate on this too, PF-002). */
+/** Whether ACME is installed (compile-bearing suites gate on this too). */
 export function hasAcme(): boolean {
   return resolveOnPath("acme") !== null;
 }
@@ -95,7 +95,7 @@ function resolveBinaryPath(options: SetupEmulatorOptions): string {
   throw new Error("setupEmulator: no binary — provide `build` (with binaryPath/binary) or `binary`");
 }
 
-/** Resolve the symbol map: prefer `build.symbolMap`, else parse the label file (R28). */
+/** Resolve the symbol map: prefer `build.symbolMap`, else parse the label file. */
 function resolveSymbols(options: SetupEmulatorOptions, binaryPath: string): Map<string, number> {
   if (options.build?.symbolMap !== undefined) {
     return options.build.symbolMap;
@@ -108,8 +108,8 @@ function resolveSymbols(options: SetupEmulatorOptions, binaryPath: string): Map<
 }
 
 /**
- * Launch an emulator for the given build/binary and bind its symbol map (R25–R28,
- * AC-11). The caller owns `driver.shutdown()` (typically in `afterAll`/`afterEach`).
+ * Launch an emulator for the given build/binary and bind its symbol map. The
+ * caller owns `driver.shutdown()` (typically in `afterAll`/`afterEach`).
  *
  * @param options The build/binary source, optional label file, and platform.
  * @returns The launched {@link EmulatorEnv}.

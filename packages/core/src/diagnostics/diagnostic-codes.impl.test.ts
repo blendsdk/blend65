@@ -1,9 +1,8 @@
 /**
- * Unit tests for the diagnostic code namespace (FR-17).
+ * Unit tests for the diagnostic code namespace.
  *
- * Covers spec cases ST-13 (every DiagCode value is a well-formed Ch 14 code) and
- * ST-14 (the ICE band is disjoint from the user-facing band). See
- * plans/rd-11a-diagnostics-core/07-testing-strategy.md.
+ * Covers that every DiagCode value is a well-formed diagnostic code, and
+ * that the ICE band is disjoint from the user-facing band.
  */
 
 import { describe, expect, it } from "vitest";
@@ -28,7 +27,7 @@ describe("DiagCode namespace (ST-13)", () => {
   });
 
   it("transcribes representative Ch 14 codes verbatim", () => {
-    // Spot-check one code per severity band against Ch 14.
+    // Spot-check one code per severity band against the specification.
     expect(DiagCode.MissingModuleDecl).toBe("E10001");
     expect(DiagCode.WrongIntrinsicArgCount).toBe("E10041");
     expect(DiagCode.ForEndBoundOutOfRange).toBe("E10064");
@@ -40,8 +39,7 @@ describe("DiagCode namespace (ST-13)", () => {
 });
 
 describe("Lexer diagnostic codes (ST-L2)", () => {
-  // Source: plans/rd-02-lexer/03-03-error-recovery.md §1 (Ch 01 §14).
-  // RD-02 adds the lexer band to the one registry; these assertions pin each
+  // The lexer band was added to the one registry; these assertions pin each
   // new name to its exact frozen code string and guard the E10212 exclusion.
   it("maps each new lexer code to its exact Ch 01 §14 string", () => {
     expect(DiagCode.UnexpectedCharacter).toBe("E10210");
@@ -66,15 +64,14 @@ describe("Lexer diagnostic codes (ST-L2)", () => {
 
   it("does NOT add E10212 — RD-04 owns the reserved-built-in code (AR-L5)", () => {
     // E10212 belongs to the semantic analyzer (redeclare reserved built-in);
-    // RD-02 must not introduce it. Assert no registry value claims that code.
+    // the lexer must not introduce it. Assert no registry value claims that code.
     const codes = Object.values(DiagCode);
     expect(codes).not.toContain("E10212");
   });
 });
 
 describe("Parser diagnostic codes (ST-P2b)", () => {
-  // Source: plans/rd-03-parser-ast/03-03-error-recovery.md (RD-03, spec Ch 14).
-  // RD-03 adds the parser band by addition (AR-6). These assertions pin each new
+  // The parser band was added by addition. These assertions pin each new
   // name to its exact code string. E10001/E10002/E10224 are reused (already
   // asserted above), not re-added.
   it("maps E10072 (missing default clause)", () => {
@@ -103,16 +100,16 @@ describe("Parser diagnostic codes (ST-P2b)", () => {
 
   it("keeps the parser empty-struct/enum codes distinct from the semantic ones", () => {
     // Parser E10316/E10315 (declaration syntax) must not collide with the
-    // semantic E10163 EmptyStruct / E10140 EmptyEnum (RD-04 band).
+    // semantic E10163 EmptyStruct / E10140 EmptyEnum codes.
     expect(DiagCode.EmptyStructDeclaration).not.toBe(DiagCode.EmptyStruct);
     expect(DiagCode.EmptyEnumDeclaration).not.toBe(DiagCode.EmptyEnum);
   });
 });
 
 describe("Tooling diagnostic codes (RD-09, AR-62)", () => {
-  // Source: plans/rd-09-acme-emitter/03-02-acme-process-layer.md Gap 4.
-  // RD-09 adds the single tooling code E10035 (ACME not found) as the next free
-  // code after the E10034 resource limit. Pin it and guard uniqueness.
+  // The tooling band adds the single code E10035 (ACME not found) as the
+  // next free code after the E10034 resource limit. Pin it and guard
+  // uniqueness.
   it("maps AcmeNotFound to the next free resource/tooling code E10035", () => {
     expect(DiagCode.AcmeNotFound).toBe("E10035");
   });
@@ -128,7 +125,6 @@ describe("Tooling diagnostic codes (RD-09, AR-62)", () => {
 });
 
 describe("RD-18 Slice 4a control-flow diagnostic codes (AR-4/AR-7/AR-8/AR-15)", () => {
-  // Source: plans/rd-18-slice-4a-conditionals-loops/03-01-control-flow-semantics.md §A.
   // The four additive codes are pinned to their exact strings; global uniqueness +
   // shape are already covered above, these are presence spot-checks.
   it("maps the four new Slice-4a codes to their exact strings", () => {
@@ -145,8 +141,7 @@ describe("RD-18 Slice 4a control-flow diagnostic codes (AR-4/AR-7/AR-8/AR-15)", 
 });
 
 describe("RD-18 Slice 4b switch diagnostic codes (AR-4/AR-7, PF-001/PF-002/PF-004)", () => {
-  // Source: plans/rd-18-slice-4b-switch/03-01-switch-semantics.md §1. Five codes
-  // registered additively — four spec-Ch-05 §8 numbered + one new mint (E10077).
+  // Five codes registered additively — four spec-numbered + one new mint (E10077).
   it("maps the five new Slice-4b switch codes to their exact strings", () => {
     expect(DiagCode.CaseValueNotConstant).toBe("E10071");
     expect(DiagCode.FallthroughNoEffect).toBe("E10073");

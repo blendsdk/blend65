@@ -1,38 +1,37 @@
 /**
- * Intrinsic descriptor types — RD-17 §4.1 (AR-29, R6–R10, R17).
+ * Intrinsic descriptor types.
  *
  * The single typed contract the compiler consults for every built-in/platform
- * callable operation. It replaces two shipped placeholders (PF-010): the
+ * callable operation. It replaces two earlier placeholders: the
  * `type IntrinsicDescriptor = unknown` in `platform/platform-plugin.ts` and the
  * `{ name, tier?, clobbers? }` shape in `codegen/src/il/intrinsic-descriptor.ts`.
  * The compiler never special-cases an individual intrinsic name — it looks the
- * descriptor up in the {@link IntrinsicRegistry} and dispatches on its fields
- * (AC-17).
+ * descriptor up in the {@link IntrinsicRegistry} and dispatches on its fields.
  */
 
 import type { PlatformProfile } from "../platform/platform-profile.js";
 
 /**
- * The four-tier taxonomy (R1): T1 opcode, T2 inline/compile-time, T3 core runtime
+ * The four-tier taxonomy: T1 opcode, T2 inline/compile-time, T3 core runtime
  * routine, T4 platform runtime routine. No intrinsic spans tiers.
  */
 export type IntrinsicTier = "T1" | "T2" | "T3" | "T4";
 
 /**
- * How IL→Instr lowering handles the intrinsic (R17). Tier mapping: T1→`'opcode'`,
+ * How IL→Instr lowering handles the intrinsic. Tier mapping: T1→`'opcode'`,
  * T2→`'inline'` or `'fold'`, T3/T4→`'call'`.
  */
 export type LoweringStrategy = "opcode" | "inline" | "fold" | "call";
 
-/** A register/status side effect a routine destroys (R10). */
+/** A register/status side effect a routine destroys. */
 export type ClobberEntry = "A" | "X" | "Y" | "status";
 
 /**
- * A type reference in an intrinsic signature (RD-17 §4.1).
+ * A type reference in an intrinsic signature.
  *
  * `'boolean'` matches the semantic type system's spelling (`PrimitiveName` in
  * `core/semantics/type.ts`). The `'pointer'` kind is the ABI-level marshalling
- * view (R29) only — the frontend type-checks calls against semantic array/struct
+ * view only — the frontend type-checks calls against semantic array/struct
  * types; no user-facing pointer type exists in the language.
  */
 export type TypeRef =
@@ -45,7 +44,7 @@ export type TypeRef =
   | { kind: "pointer"; elementType: TypeRef }
   | { kind: "array"; elementType: TypeRef };
 
-/** A single intrinsic parameter (R7). */
+/** A single intrinsic parameter. */
 export interface IntrinsicParam {
   /** Parameter name (documentation/hover). */
   readonly name: string;
@@ -53,7 +52,7 @@ export interface IntrinsicParam {
   readonly type: TypeRef;
 }
 
-/** An intrinsic's parameter list and return type (R7). */
+/** An intrinsic's parameter list and return type. */
 export interface IntrinsicSignature {
   /** Ordered parameter list. */
   readonly params: readonly IntrinsicParam[];
@@ -63,7 +62,7 @@ export interface IntrinsicSignature {
 
 /**
  * Cycle/byte/ZP cost metadata for hover documentation and build-summary
- * annotations (R9). `'varies'` marks routines with data-dependent paths.
+ * annotations. `'varies'` marks routines with data-dependent paths.
  */
 export interface CostMetadata {
   /** Cycle count, or `'varies'` for data-dependent paths. */
@@ -75,27 +74,27 @@ export interface CostMetadata {
 }
 
 /**
- * The typed descriptor for one intrinsic (R6). The compiler consults this rather
+ * The typed descriptor for one intrinsic. The compiler consults this rather
  * than special-casing the name.
  */
 export interface IntrinsicDescriptor {
   /** Intrinsic name, e.g. `"peek"`, `"asm_sei"`, `"__rt_mul8"`. */
   readonly name: string;
-  /** Tier classification (R1). */
+  /** Tier classification. */
   readonly tier: IntrinsicTier;
-  /** Parameter and return types (R7). */
+  /** Parameter and return types. */
   readonly signature: IntrinsicSignature;
   /**
-   * Availability predicate keyed on `profile.cpu` and/or `profile.platformId`
-   * (R8/R24/R25). `false` for the active target ⇒ calling it is a compile-time
-   * error (E10043).
+   * Availability predicate keyed on `profile.cpu` and/or `profile.platformId`.
+   * `false` for the active target ⇒ calling it is a compile-time error
+   * (E10043).
    */
   readonly availability: (profile: PlatformProfile) => boolean;
-  /** How to lower this intrinsic (R17). */
+  /** How to lower this intrinsic. */
   readonly loweringStrategy: LoweringStrategy;
-  /** Cycle/byte/ZP cost metadata (R9). */
+  /** Cycle/byte/ZP cost metadata. */
   readonly costMetadata: CostMetadata;
-  /** Registers/status this intrinsic clobbers (R10). */
+  /** Registers/status this intrinsic clobbers. */
   readonly clobberList: readonly ClobberEntry[];
   /** Human-readable description for hover/docs. */
   readonly description: string;
@@ -107,9 +106,9 @@ export interface IntrinsicDescriptor {
 
   /**
    * The contributing platform's id, stamped by the registry merge for T4
-   * descriptors (R25/PF-015). Core T1–T3 descriptors carry `undefined`. Drives
-   * the E10043 "requires platform X" and E10046 import-hint messages (AR-P11/
-   * AR-P14) without special-casing any name.
+   * descriptors. Core T1–T3 descriptors carry `undefined`. Drives the E10043
+   * "requires platform X" and E10046 import-hint messages without
+   * special-casing any name.
    */
   readonly platformId?: string;
 }

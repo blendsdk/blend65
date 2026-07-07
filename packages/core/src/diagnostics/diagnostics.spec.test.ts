@@ -1,13 +1,12 @@
 /**
- * Behavioral spec for the diagnostics core (AC-1..AC-8 end-to-end).
+ * Behavioral spec for the diagnostics core, end-to-end.
  *
  * Where the `*.impl.test.ts` tiers unit-test each module in isolation, this spec
  * exercises the public surface re-exported from `@blend65/core` through a single
- * realistic producer sequence, asserting the RD-11 acceptance criteria hold as a
- * whole: the diagnostic shape (AC-1), the span/line model (AC-2/AC-3),
- * accumulation (AC-4), deterministic ordering (AC-5), dedup (AC-6), the
- * max-errors cap (AC-7), and the code bands (AC-8). It also pins the export
- * surface itself (ST-28 / FR-19).
+ * realistic producer sequence, asserting the whole diagnostics contract holds
+ * together: the diagnostic shape, the span/line model, accumulation,
+ * deterministic ordering, dedup, the max-errors cap, and the code bands. It
+ * also pins the export surface itself.
  */
 
 import { describe, expect, it } from "vitest";
@@ -43,7 +42,7 @@ describe("@blend65/core diagnostics export surface (ST-28)", () => {
 
   it("re-exports the diagnostics types (compile-time surface)", () => {
     // These bindings only need to type-check; referencing them keeps the
-    // imports live and documents the public type surface (FR-19).
+    // imports live and documents the public type surface.
     const span: SourceSpan = makeSpan(0, 0, 1);
     const id: SourceId = span.sourceId;
     const labeled: LabeledSpan = { span, label: "here" };
@@ -72,22 +71,22 @@ describe("diagnostics end-to-end (AC-1..AC-8)", () => {
     // 4th distinct error exceeds maxErrors=3 → suppressed + truncation sentinel.
     bag.addError(DiagCode.NameShadows, makeSpan(0, 40, 44), "shadow");
 
-    expect(bag.hasErrors()).toBe(true); // AC-4
-    expect(bag.isErrorLimitReached()).toBe(true); // AC-7
+    expect(bag.hasErrors()).toBe(true); // accumulation is reflected
+    expect(bag.isErrorLimitReached()).toBe(true); // the cap was hit
 
     const all = bag.getAll();
 
-    // AC-6: the duplicate TypeMismatchAssignment collapsed.
+    // The duplicate TypeMismatchAssignment collapsed.
     const typeMismatches = all.filter((d) => d.code === DiagCode.TypeMismatchAssignment);
     expect(typeMismatches).toHaveLength(1);
 
-    // AC-7: exactly one truncation sentinel, span-less, severity error.
+    // Exactly one truncation sentinel, span-less, severity error.
     const truncation = all.filter((d) => d.code === DiagCode.TooManyErrors);
     expect(truncation).toHaveLength(1);
     expect(truncation[0].primarySpan).toBeNull();
     expect(truncation[0].severity).toBe("error");
 
-    // AC-5: deterministic ordering — file 0 spans first (by start), then file 1,
+    // Deterministic ordering — file 0 spans first (by start), then file 1,
     // then the null-span truncation last. Repeated calls match.
     const layout = all.map((d) => [d.primarySpan?.sourceId ?? null, d.primarySpan?.start ?? null]);
     expect(layout).toEqual([
@@ -99,7 +98,7 @@ describe("diagnostics end-to-end (AC-1..AC-8)", () => {
     ]);
     expect(bag.getAll()).toEqual(all);
 
-    // AC-1: every diagnostic has the documented shape.
+    // Every diagnostic has the documented shape.
     for (const d of all) {
       expect(typeof d.code).toBe("string");
       expect(["error", "warning"]).toContain(d.severity);
@@ -108,7 +107,7 @@ describe("diagnostics end-to-end (AC-1..AC-8)", () => {
       expect(Array.isArray(d.notes)).toBe(true);
     }
 
-    // AC-8: bands are disjoint — no user-facing code lands in the ICE band.
+    // Bands are disjoint — no user-facing code lands in the ICE band.
     for (const d of all) {
       expect(isIceCode(d.code)).toBe(false);
     }

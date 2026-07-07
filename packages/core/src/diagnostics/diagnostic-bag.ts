@@ -7,17 +7,15 @@
  * individual producers don't have to:
  *
  * 1. **Deduplication** — a diagnostic with the same `(code, sourceId, start)` as
- *    one already accepted is silently dropped (FR-14).
+ *    one already accepted is silently dropped.
  * 2. **Max-errors cap** — once `maxErrors` user-facing errors have been accepted,
- *    further errors are suppressed and a single truncation diagnostic is emitted
- *    (FR-15). Warnings and ICEs are never capped.
+ *    further errors are suppressed and a single truncation diagnostic is emitted.
+ *    Warnings and ICEs are never capped.
  * 3. **Deterministic ordering** — {@link DiagnosticBag.getAll} returns a sorted
- *    copy so output is reproducible regardless of insertion order (FR-13).
+ *    copy so output is reproducible regardless of insertion order.
  *
- * The `add*` methods never throw (FR-18): on a 6502 target there is no runtime to
+ * The `add*` methods never throw: on a 6502 target there is no runtime to
  * recover, so a diagnostics sink that could itself fail would be a liability.
- *
- * Covers RD-11 §4.3 (FR-11..FR-16, FR-18) · Ch 14 §4 · AR-Q6.
  */
 
 import type { SourceSpan } from "./source-span.js";
@@ -52,8 +50,8 @@ export interface DiagnosticBag {
     options?: DiagnosticOptions,
   ): void;
   /**
-   * Records an internal compiler error, subject to dedup but never capped
-   * (FR-16): a suppressed compiler-bug report is worse than noise. ICEs use the
+   * Records an internal compiler error, subject to dedup but never capped: a
+   * suppressed compiler-bug report is worse than noise. ICEs use the
    * `"error"` severity so {@link DiagnosticBag.hasErrors} reflects them.
    */
   addICE(code: string, span: SourceSpan | null, message: string): void;
@@ -71,7 +69,7 @@ export interface DiagnosticBag {
   isErrorLimitReached(): boolean;
 }
 
-/** Default `--max-errors` value when the caller supplies none (Ch 14 §4). */
+/** Default `--max-errors` value when the caller supplies none. */
 const DEFAULT_MAX_ERRORS = 20;
 
 /** Sort key for null/span-less diagnostics — they sort after every real source. */
@@ -133,7 +131,7 @@ export function createDiagnosticBag(options?: { maxErrors?: number }): Diagnosti
     });
   }
 
-  /** Appends the single truncation sentinel (FR-15) if not already emitted. */
+  /** Appends the single truncation sentinel if not already emitted. */
   function emitTruncation(): void {
     if (truncationEmitted) {
       return;
@@ -184,7 +182,7 @@ export function createDiagnosticBag(options?: { maxErrors?: number }): Diagnosti
   }
 
   function addICE(code: string, span: SourceSpan | null, message: string): void {
-    // ICEs bypass the cap (FR-16) but still dedup.
+    // ICEs bypass the cap but still dedup.
     const key = dedupKey(code, span);
     if (seen.has(key)) {
       return;
@@ -205,7 +203,7 @@ export function createDiagnosticBag(options?: { maxErrors?: number }): Diagnosti
 
   function getAll(): Diagnostic[] {
     // Array.prototype.sort is stable (ES2019+), so equal keys keep insertion
-    // order, making the result fully deterministic (FR-13).
+    // order, making the result fully deterministic.
     return [...diagnostics].sort((a, b) => {
       const bySource = sortSourceId(a) - sortSourceId(b);
       if (bySource !== 0) {

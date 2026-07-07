@@ -1,56 +1,54 @@
 /**
- * Minimal `PlatformProfile` stub (RD-04 D4) extended with the interim SFA budget
- * fields RD-05 needs (RD-05 D2).
+ * Minimal `PlatformProfile` stub extended with interim SFA budget fields.
  *
  * The full platform-profile system — memory map, zero-page ranges, output binary
- * format, intrinsic registry, character encodings — is RD-10's domain. The two
- * original fields (`name`, `charEncoding`) exist so `analyze()` can carry its
- * R118/R120 signature; the RD-04 passthrough accepts a profile but never reads it.
+ * format, intrinsic registry, character encodings — is not implemented yet. The
+ * two original fields (`name`, `charEncoding`) exist so `analyze()` can carry its
+ * signature; the current passthrough accepts a profile but never reads it.
  *
- * RD-05 additively defines the RAM/ZP/stack budget fields its planner requires so
- * the SFA passes can compile and be fixture-tested today (D2). RD-10 later
- * supersedes/extends this with the canonical profile — an additive change with no
- * breaking impact (F2 platform-profile-ready). A C64-shaped test fixture supplies
- * concrete values (see the frontend `sfa` test fixtures).
+ * The RAM/ZP/stack budget fields let the SFA passes compile and be
+ * fixture-tested today; a canonical profile with real platform semantics will
+ * later supersede/extend this as an additive, non-breaking change. A
+ * C64-shaped test fixture supplies concrete values (see the frontend `sfa`
+ * test fixtures).
  *
- * DEFERRED(RD-10): the complete profile shape and its platform library.
+ * The complete profile shape and its platform library are not implemented yet.
  */
 
 /**
- * A placeholder platform profile (RD-04 R120) plus the interim SFA budget fields
- * (RD-05 D2). RD-10 supersedes this with the canonical profile definition.
+ * A placeholder platform profile plus interim SFA budget fields. A canonical
+ * profile definition will supersede this.
  */
 export interface PlatformProfile {
-  /** Platform identifier, e.g. "c64" (placeholder — RD-10 defines the canonical set). */
+  /** Platform identifier, e.g. "c64" (placeholder; the canonical set is not defined yet). */
   readonly name: string;
-  /** Character-encoding name for char/string literals (R47/R120), e.g. "petscii". */
+  /** Character-encoding name for char/string literals, e.g. "petscii". */
   readonly charEncoding: string;
 
-  // --- interim SFA budget fields (RD-05 D2; superseded by RD-10) ---
+  // --- interim SFA budget fields (to be superseded by a canonical profile) ---
 
-  /** RAM segment start — module vars are placed first, then the frame region (R24). */
+  /** RAM segment start — module vars are placed first, then the frame region. */
   readonly ramStart: number;
   /** RAM segment end, **exclusive**: `ramBudget = ramEnd − ramStart` (half-open). */
   readonly ramEnd: number;
-  /** First usable zero-page byte (R28). */
+  /** First usable zero-page byte. */
   readonly zpStart: number;
   /**
    * Last usable zero-page byte, **inclusive**: `zpBudget = zpEnd − zpStart + 1`.
    * The inclusive ZP convention deliberately differs from the half-open RAM one.
    */
   readonly zpEnd: number;
-  /** Usable hardware-stack bytes (256 − platform reserve) (R39). */
+  /** Usable hardware-stack bytes (256 − platform reserve). */
   readonly stackBudget: number;
   /**
-   * Reserved runtime-ABI zero-page arg-block floor (AR-34). RD-17 (AR-P10) raises
-   * the interim default from 0 to **4** to match the R34 core-ABI floor now that
-   * marshalling consumes the `"arg-block"` ZP category (an additive change the
-   * allocator already honours).
+   * Reserved runtime-ABI zero-page arg-block floor. The interim default is
+   * **4** bytes, matching the core-ABI floor now that marshalling consumes the
+   * `"arg-block"` ZP category (the allocator already honours this).
    */
   readonly zpArgBlockMin: number;
-  /** Default zero-page main-expression-temp bytes (R33, default 4). */
+  /** Default zero-page main-expression-temp bytes (default 4). */
   readonly mainTempBytes: number;
-  /** Default zero-page IRQ-temp bytes (R34, default 2). */
+  /** Default zero-page IRQ-temp bytes (default 2). */
   readonly irqTempBytes: number;
   /** ZP usage fraction (0..1) at/above which W10030 is emitted (default 0.80). */
   readonly zpWarnThreshold: number;
@@ -62,15 +60,15 @@ export interface PlatformProfile {
 
 /**
  * A neutral default profile so callers and tests have something to pass. The
- * RD-04 passthrough ignores it. The interim SFA budget fields carry small, safe
- * placeholder values (no real platform semantics, D4); real budget values come
- * from a platform fixture or, later, RD-10's canonical profiles.
+ * current passthrough ignores it. The interim SFA budget fields carry small,
+ * safe placeholder values (no real platform semantics); real budget values
+ * come from a platform fixture or, later, a canonical profile.
  */
 export const DEFAULT_PROFILE: PlatformProfile = {
   name: "none",
   charEncoding: "ascii",
   // Neutral, internally-consistent budgets (zpEnd ≥ zpStart, ramEnd > ramStart).
-  // Real targets override these (D2/RD-10).
+  // Real targets override these.
   ramStart: 0x0800,
   ramEnd: 0xa000,
   zpStart: 0x02,

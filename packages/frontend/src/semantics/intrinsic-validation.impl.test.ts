@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the RD-17 intrinsic-validation pass.
+ * Implementation tests for the intrinsic-validation pass.
  *
  * Unlike the spec tier, these MAY read the implementation. They cover internals and
  * edges: type-table resolution (nested/forward struct refs, enums), literal-range

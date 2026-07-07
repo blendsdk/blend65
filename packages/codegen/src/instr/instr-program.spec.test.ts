@@ -1,9 +1,8 @@
 /**
- * Specification tests for RD-07b `InstrProgram` + `generateInstr` (ST-P1..P7).
+ * Specification tests for `InstrProgram` + `generateInstr`.
  *
- * Derived EXCLUSIVELY from `requirements/RD-07-codegen-instr.md` (R55–R61), the
- * component spec `plans/rd-07b-il-to-instr/03-03-instr-program-and-generate.md`,
- * and the Ambiguity Register (D2/D7). Immutable oracles (testing.md Rule 10).
+ * Derived exclusively from the specification. Immutable oracles: if the
+ * implementation disagrees, the implementation is wrong — not these tests.
  *
  * `generateInstr(ilProgram, cpuVariant, bag)` drives per-function translation,
  * validates each emitted stream against the CPU table, and assembles a frozen
@@ -128,7 +127,7 @@ describe("Specification: generateInstr — skip IL-less functions (ST-P2)", () =
 describe("Specification: generateInstr — error surfacing (ST-P3)", () => {
   it("surfaces an E90001 when a function carries an untranslatable op (ST-P3)", () => {
     // A deferred IL op reaches the translator's ICE default arm; generateInstr
-    // surfaces the E90001 while still translating the clean function (R59/R61/D7).
+    // surfaces the E90001 while still translating the clean function.
     const bad = fn(
       "M.bad",
       [{ op: "neg", dest: temp(1, IL_BYTE), src: temp(0, IL_BYTE), type: IL_BYTE } as ILInstruction],

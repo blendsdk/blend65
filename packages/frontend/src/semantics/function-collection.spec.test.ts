@@ -1,18 +1,17 @@
 /**
- * Specification tests for `collectFunctions` — the RD-18 Slice 3a Pass-1 function
- * + local collector (FR-1; AR-5, AR-6, AR-13).
+ * Specification tests for `collectFunctions` — the Pass-1 function + local
+ * collector.
  *
- * Expectations derive exclusively from `01-requirements.md` FR-1, the component
- * spec `03-01-model-population.md`, the `Scope`/`Symbol` contracts in
- * `@blend65/core`, and the Ambiguity Register (AR-5/6/13) — NOT from
+ * Expectations derive exclusively from the requirements, the component spec,
+ * and the `Scope`/`Symbol` contracts in `@blend65/core` — NOT from
  * implementation logic. Immutable oracle.
  *
  * The programs are lexed + parsed through the real frontend entry points (prefer
  * real objects); `collectFunctions` is exercised directly with a fresh global
  * scope.
  *
- * Red-vs-green-guard (07 §PF-003): ST-2 is **expected-red** (the collector does
- * not exist yet); ST-4b is a **green-guard** invariant (a body-less-of-locals
+ * Red-vs-green-guard: one case is **expected-red** (the collector does not
+ * exist yet); another is a **green-guard** invariant (a body-less-of-locals
  * function still registers with zero variable symbols).
  */
 
@@ -32,10 +31,10 @@ import { collectFunctions } from "./function-collection.js";
 /** The synthetic source id used by every parse in this file. */
 const SRC = 1;
 
-/** The Slice 3a fixture: one `main` with a single local `byte`. */
+/** Fixture: one `main` with a single local `byte`. */
 const FIXTURE_SOURCE = `module Main;\nfunction main(): void { let x: byte = 5; poke(0xD020, x); }\n`;
 
-/** A `main` with a body but no locals (ST-4b). */
+/** A `main` with a body but no locals. */
 const NO_LOCALS_SOURCE = `module Main;\nfunction main(): void { poke(0xD020, 5); }\n`;
 
 /** Lexes + parses `source` through the public entry points, returning the AST. */
@@ -60,7 +59,7 @@ function mainDeclOf(program: ProgramNode): FunctionDeclNode {
 }
 
 describe("Specification: collectFunctions (RD-18 Slice 3a, FR-1)", () => {
-  // ST-2 — the 3a fixture yields the FunctionTables shape: main in a module scope,
+  // The fixture yields the FunctionTables shape: main in a module scope,
   // mainFunction set, and the body scope holding `x` as an ordered variable symbol.
   it("should collect main (module Main) with the ordered local x (ST-2)", () => {
     const bag = createDiagnosticBag();
@@ -76,7 +75,7 @@ describe("Specification: collectFunctions (RD-18 Slice 3a, FR-1)", () => {
     expect(main?.kind).toBe("function");
     expect(tables.mainFunction).toBe(main);
 
-    // main.scope is a kind:"module" scope whose node.name === "Main" (AR-13)
+    // main.scope is a kind:"module" scope whose node.name === "Main"
     expect(main?.scope.kind).toBe("module");
     const modNode = main?.scope.node ?? null;
     expect(isModuleDecl(modNode) ? modNode.name : null).toBe("Main");
@@ -87,11 +86,11 @@ describe("Specification: collectFunctions (RD-18 Slice 3a, FR-1)", () => {
     const xSym = bodyScope?.symbols.get("x");
     expect(xSym?.kind).toBe("variable");
     expect(xSym?.type).toEqual({ kind: "primitive", name: "byte" });
-    // insertion order == declaration order (AR-6): x is the sole, first variable
+    // insertion order == declaration order: x is the sole, first variable
     expect([...(bodyScope?.symbols.values() ?? [])].map((s) => s.name)).toEqual(["x"]);
   });
 
-  // ST-4b — a function with a body but no locals still registers with zero variables.
+  // A function with a body but no locals still registers with zero variables.
   it("should register a body-with-no-locals main with an empty variable set (ST-4b)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(NO_LOCALS_SOURCE, bag);

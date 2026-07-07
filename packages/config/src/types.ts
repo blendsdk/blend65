@@ -1,19 +1,18 @@
 /**
- * Public types for the `@blend65/config` loader (RD-16 §4.2).
+ * Public types for the `@blend65/config` loader.
  *
- * `BlendConfig`, `LoadConfigOptions`, and `LoadConfigResult` are transcribed
- * verbatim from RD-16 §4.2 (the preflighted contract), plus the two AR-P2
- * additions: the {@link CONFIG_SOURCE_ID} sentinel and the optional
- * `LoadConfigOptions.sourceId` override.
+ * `BlendConfig`, `LoadConfigOptions`, and `LoadConfigResult` mirror the
+ * loader's contract, plus two additions: the {@link CONFIG_SOURCE_ID}
+ * sentinel and the optional `LoadConfigOptions.sourceId` override.
  */
 
 import type { DiagnosticBag } from "@blend65/core";
 
 /**
- * Sentinel `SourceId` for spans pointing into `blend65.json` until RD-11b's
+ * Sentinel `SourceId` for spans pointing into `blend65.json` until the
  * SourceMap can register the file for real. `-1` is the diagnostic bag's
  * null-span dedup marker, so the sentinel is `-2`. It sorts before all real
- * sources in `getAll()` (config diagnostics render first). Per AR-P2.
+ * sources in `getAll()` (config diagnostics render first).
  */
 export const CONFIG_SOURCE_ID = -2;
 
@@ -26,7 +25,7 @@ export const CONFIG_SOURCE_ID = -2;
  * array-valued keys (0 otherwise). Negative starts occupy a coordinate space
  * disjoint from real byte offsets (≥ 0), so same-code diagnostics for
  * different keys/entries all survive the bag's `(code, sourceId, start)`
- * dedup (AR-P2, PF-019).
+ * dedup.
  */
 export const SYNTHETIC_SPAN_STRIDE = 64;
 
@@ -64,13 +63,13 @@ export interface BlendConfig {
 
 /**
  * Invocation overrides: `Partial<BlendConfig>` where explicitly-`undefined`
- * values are legal and mean "not set" (R25 — they never override). The
- * explicit `| undefined` is required under `exactOptionalPropertyTypes`,
- * because RD-15's flag translation naturally produces undefined-valued keys.
+ * values are legal and mean "not set" — they never override. The explicit
+ * `| undefined` is required under `exactOptionalPropertyTypes`, because CLI
+ * flag translation naturally produces undefined-valued keys.
  */
 export type ConfigOverrides = { [K in keyof BlendConfig]?: BlendConfig[K] | undefined };
 
-/** Options for `loadConfig()` (RD-16 §4.2 + AR-P2 `sourceId`). */
+/** Options for `loadConfig()`. */
 export interface LoadConfigOptions {
   /**
    * Shared diagnostic accumulator (from @blend65/core). Created by the caller
@@ -90,16 +89,18 @@ export interface LoadConfigOptions {
   overrides?: ConfigOverrides | undefined;
 
   /**
-   * Registered platform names for semantic validation (R21). The caller
+   * Registered platform names for semantic validation. The caller
    * (@blend65/compiler or the CLI) passes [...PLATFORM_REGISTRY.keys()];
-   * @blend65/config itself never depends on @blend65/platforms (AR-20).
-   * When omitted, the platform-name check is skipped (deferred to loadPlatform()).
+   * @blend65/config itself never depends on @blend65/platforms, so the
+   * caller must supply this list rather than the config loader looking it
+   * up itself. When omitted, the platform-name check is skipped (deferred
+   * to loadPlatform()).
    */
   knownPlatforms?: readonly string[] | undefined;
 
   /**
-   * Real SourceId for blend65.json when the caller has one (RD-11b/LSP);
-   * defaults to {@link CONFIG_SOURCE_ID}. Per AR-P2.
+   * Real SourceId for blend65.json when the caller has one (e.g. the
+   * language server); defaults to {@link CONFIG_SOURCE_ID}.
    */
   sourceId?: number | undefined;
 }
@@ -109,6 +110,6 @@ export interface LoadConfigResult {
   /** The merged, validated configuration (defaults applied) */
   config: BlendConfig;
 
-  /** True if any error-severity diagnostic was emitted during loading (→ exit code 2, RD-15 R43) */
+  /** True if any error-severity diagnostic was emitted during loading (→ exit code 2) */
   hasErrors: boolean;
 }

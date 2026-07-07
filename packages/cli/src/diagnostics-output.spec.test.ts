@@ -1,8 +1,6 @@
 /**
- * Specification tests for `runCli` diagnostics output — formats, trailer, color
- * (ST-24, ST-32, ST-33).
+ * Specification tests for `runCli` diagnostics output — formats, trailer, color.
  *
- * Derived EXCLUSIVELY from RD-15 R29/R35/R37/R42 and the plan (03-03, AR-V11/V16).
  * Immutable oracles: diagnostics + trailer route to stderr (terminal format);
  * `--diagnostics-format=json` emits a JSON array with NO trailer; the color
  * precedence table (explicit flag > NO_COLOR > isTTY).

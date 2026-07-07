@@ -1,15 +1,15 @@
 /**
  * `ViceDriver` — the MVP {@link EmulatorDriver} over VICE `x64sc`'s binary-monitor
- * protocol (RD-12 §4.5, AC-02, AR-H8/H11/H15).
+ * protocol.
  *
  * Composes the pure {@link ./protocol.js codec} with a loopback `net.Socket` and a
- * spawned `x64sc` child process. Security (`01-requirements.md`): the monitor binds
- * `127.0.0.1` only (AR-H8), VICE is spawned via an argv ARRAY (no shell string —
- * injection-safe), and the only runtime deps are Node built-ins (`net`,
- * `child_process`, `zlib` via `png.ts`) (AR-H11).
+ * spawned `x64sc` child process. Security: the monitor binds `127.0.0.1` only,
+ * VICE is spawned via an argv ARRAY (no shell string — injection-safe), and
+ * the only runtime deps are Node built-ins (`net`, `child_process`, `zlib` via
+ * `png.ts`).
  *
  * Register ids are resolved dynamically from `REGISTERS_AVAILABLE` at connect
- * (AR-H15) rather than hardcoded — robust across VICE versions.
+ * rather than hardcoded — robust across VICE versions.
  */
 
 import { type ChildProcess, spawn } from "node:child_process";
@@ -41,7 +41,7 @@ import {
   type ResponseFrame,
 } from "./protocol.js";
 
-/** Default monitor port (RD R10, AR-H8) — overridable via {@link LaunchOptions}. */
+/** Default monitor port — overridable via {@link LaunchOptions}. */
 const DEFAULT_MONITOR_PORT = 6502;
 /** Bounded connect-retry window while VICE binds its monitor socket. */
 const CONNECT_MAX_ATTEMPTS = 60;
@@ -72,7 +72,7 @@ export class ViceDriver implements EmulatorDriver {
   private accumulator: Uint8Array = new Uint8Array(0);
   private readonly pending = new Map<number, Pending>();
   private nextRequestId = 1;
-  /** VICE register name → numeric id, from `REGISTERS_AVAILABLE` (AR-H15). */
+  /** VICE register name → numeric id, from `REGISTERS_AVAILABLE`. */
   private registerIds = new Map<string, number>();
 
   /** The active `resume()` waiter and whether a checkpoint was hit since resuming. */
@@ -113,7 +113,7 @@ export class ViceDriver implements EmulatorDriver {
       /* close handler performs the rejection */
     });
 
-    // Resolve register ids up-front (AR-H15); fail fast if the core set is absent.
+    // Resolve register ids up-front; fail fast if the core set is absent.
     const frame = await this.send(CMD.REGISTERS_AVAILABLE, registersAvailableBody());
     this.registerIds = parseRegistersAvailable(frame.body);
     for (const name of ["A", "X", "Y", "SP", "PC", "FL"]) {
@@ -127,7 +127,7 @@ export class ViceDriver implements EmulatorDriver {
   }
 
   async loadBinary(_binaryPath: string): Promise<void> {
-    // MVP relaunch-per-binary lifecycle (AR-H6): the binary is autostarted at
+    // MVP relaunch-per-binary lifecycle: the binary is autostarted at
     // launch via `extraArgs`, so there is nothing to load mid-session.
     return;
   }
@@ -215,8 +215,8 @@ export class ViceDriver implements EmulatorDriver {
   /**
    * Write CPU registers by name (a/x/y/sp/pc) via REGISTERS_SET, resolving ids
    * through the REGISTERS_AVAILABLE map. A driver-specific extension beyond the
-   * {@link EmulatorDriver} contract — used by the RD-17 routine vectors to seed a
-   * routine's ABI inputs and entry PC (not part of the published API).
+   * {@link EmulatorDriver} contract — used by the runtime routine vectors to
+   * seed a routine's ABI inputs and entry PC (not part of the published API).
    */
   async writeRegisters(values: Partial<Record<"a" | "x" | "y" | "sp" | "pc", number>>): Promise<void> {
     const nameForKey: Record<string, string> = { a: "A", x: "X", y: "Y", sp: "SP", pc: "PC" };
@@ -234,7 +234,7 @@ export class ViceDriver implements EmulatorDriver {
     }
   }
 
-  /** Run the EXECUTE_UNTIL_RETURN command (used by the RD-17 routine vectors). */
+  /** Run the EXECUTE_UNTIL_RETURN command (used by the runtime routine vectors). */
   async executeUntilReturn(): Promise<void> {
     await this.send(CMD.EXECUTE_UNTIL_RETURN, executeUntilReturnBody());
   }

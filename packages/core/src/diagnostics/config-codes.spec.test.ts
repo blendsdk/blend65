@@ -1,11 +1,9 @@
 /**
- * Specification test for the RD-16 config diagnostic band (ST-32).
+ * Specification test for the config diagnostic band.
  *
- * Traceability: RD-16 §4.3 diagnostic codes, resolved by AR-P3 (plan
- * `rd-16-compiler-configuration`, 00-ambiguity-register.md) — the config
- * loader claims the unclaimed E10240–E10246 decade plus W10240/W10241, one
- * code per failure class. Expectations are transcribed from
- * 07-testing-strategy.md ST-32 verbatim; they are NOT derived from the
+ * The config loader claims the unclaimed E10240–E10246 decade plus
+ * W10240/W10241, one code per failure class. Expectations are transcribed
+ * verbatim from the specification tests rather than derived from the
  * implementation (immutable-oracle rule).
  */
 

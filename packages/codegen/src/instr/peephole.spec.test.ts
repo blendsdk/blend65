@@ -1,11 +1,9 @@
 /**
- * Specification tests for RD-08 peephole optimizer (passthrough v1) — ST-1..ST-12.
+ * Specification tests for the peephole optimizer (passthrough v1).
  *
- * Derived EXCLUSIVELY from `plans/rd-08-peephole-optimizer/01-requirements.md`,
- * `03-01-peephole-passthrough.md`, `07-testing-strategy.md`,
- * `requirements/RD-08-peephole-optimizer.md`, and the preflight resolutions
- * (PF-001..PF-009). These are IMMUTABLE ORACLES (testing.md Rule 10) — if the
- * implementation disagrees, the implementation is wrong, not the test.
+ * Every expectation below is derived exclusively from the specification,
+ * never from reading the implementation. These are immutable oracles — if
+ * the implementation disagrees, the implementation is wrong, not the test.
  *
  * v1 contract: `optimizeInstr(program, cpuVariant, bag, options?)` validates the
  * program's structure and returns it unchanged (preamble/streams/allocationPlan
@@ -42,8 +40,8 @@ import {
 } from "./peephole.js";
 
 // ---------------------------------------------------------------------------
-// Fixtures — build a real InstrProgram via generateInstr (reusing the RD-07b
-// spec-test shape; testing.md Rule 7: use existing patterns).
+// Fixtures — build a real InstrProgram via generateInstr (reusing the
+// existing spec-test shape and patterns).
 // ---------------------------------------------------------------------------
 
 function makePlan(): AllocationPlan {
@@ -142,7 +140,6 @@ function serializeProgram(program: InstrProgram): string {
 // ---------------------------------------------------------------------------
 
 describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", () => {
-  // Source: 07-testing-strategy.md ST-1 — FR-1/FR-3, AC-01/AC-02/AC-10
   it("returns an InstrProgram with identical stream count and byte size (ST-1)", () => {
     const program = buildProgram("M.f");
     const bag = createDiagnosticBag();
@@ -153,7 +150,6 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
     expect(programByteSize(result)).toBe(programByteSize(program));
   });
 
-  // Source: 07-testing-strategy.md ST-2 — FR-3, AC-16
   it("produces byte-identical serialized output (ST-2)", () => {
     const program = buildProgram("M.f", "M.g");
     const bag = createDiagnosticBag();
@@ -163,7 +159,6 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
     expect(serializeProgram(result)).toBe(serializeProgram(program));
   });
 
-  // Source: 07-testing-strategy.md ST-3 — FR-4, AC-03
   it("returns the SAME reference and runs no validation when disabled (ST-3)", () => {
     const program = buildProgram("M.f");
     const bag = createDiagnosticBag();
@@ -174,7 +169,6 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
     expect(bag.count()).toBe(0);
   });
 
-  // Source: 07-testing-strategy.md ST-4 — FR-5, AC-04
   it("runs the validate-then-return path when enabled explicitly or omitted (ST-4)", () => {
     const program = buildProgram("M.f");
     const bagExplicit = createDiagnosticBag();
@@ -188,7 +182,6 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
     expect(bagOmitted.count()).toBe(0);
   });
 
-  // Source: 07-testing-strategy.md ST-5 — FR-3, AC-PA (PF-004)
   it("passes preamble and allocationPlan through verbatim (ST-5)", () => {
     const base = buildProgram("M.f");
     // A program with a non-empty preamble (modeled directly; assembleProgram would
@@ -206,7 +199,6 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
     expect(result.allocationPlan).toBe(withPreamble.allocationPlan);
   });
 
-  // Source: 07-testing-strategy.md ST-6 — FR-6, AC-05
   it("exposes the PeepholeRule contract and an empty V1_RULES (ST-6)", () => {
     const sampleRule: PeepholeRule = {
       name: "noop",
@@ -226,7 +218,6 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
     expect(V1_RULES).toHaveLength(0);
   });
 
-  // Source: 07-testing-strategy.md ST-7 — FR-3, AC-13
   it("is deterministic: same input yields structurally identical output (ST-7)", () => {
     const program = buildProgram("M.f", "M.g");
     const bag1 = createDiagnosticBag();
@@ -238,7 +229,6 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
     expect(serializeProgram(first)).toBe(serializeProgram(second));
   });
 
-  // Source: 07-testing-strategy.md ST-8 — FR-3, AC-08/AC-09
   it("preserves label and directive entries in place (ST-8)", () => {
     const base = buildProgram("M.f");
     const dataStream = {
@@ -261,11 +251,10 @@ describe("Specification: optimizeInstr — passthrough contract (ST-1..ST-8)", (
 });
 
 // ---------------------------------------------------------------------------
-// Feature: validateProgramStructure (structural well-formedness, R6/PF-006)
+// Feature: validateProgramStructure (structural well-formedness)
 // ---------------------------------------------------------------------------
 
 describe("Specification: validateProgramStructure (ST-9..ST-12)", () => {
-  // Source: 07-testing-strategy.md ST-9 — FR-5, AC-SV
   it("records zero diagnostics for a well-formed program (ST-9)", () => {
     const program = buildProgram("M.f");
     const bag = createDiagnosticBag();
@@ -275,7 +264,6 @@ describe("Specification: validateProgramStructure (ST-9..ST-12)", () => {
     expect(bag.count()).toBe(0);
   });
 
-  // Source: 07-testing-strategy.md ST-10 — FR-8, AC-SV (PF-006, RD R30)
   it("records an E90001 ICE for a null entry, no user-band diagnostic (ST-10)", () => {
     const base = buildProgram("M.f");
     const malformed: InstrProgram = {
@@ -299,7 +287,6 @@ describe("Specification: validateProgramStructure (ST-9..ST-12)", () => {
     expect(all.every((d) => d.code === IceCode.Unexpected)).toBe(true);
   });
 
-  // Source: 07-testing-strategy.md ST-11 — FR-8, AC-SV
   it("records an E90001 ICE when streams is not an array, without throwing (ST-11)", () => {
     const base = buildProgram("M.f");
     const malformed: InstrProgram = {
@@ -313,7 +300,6 @@ describe("Specification: validateProgramStructure (ST-9..ST-12)", () => {
     expect(bag.getAll().some((d) => d.code === IceCode.Unexpected)).toBe(true);
   });
 
-  // Source: 07-testing-strategy.md ST-12 — FR-5/FR-8, AC-SV
   it("surfaces the structural ICE through optimizeInstr default options (ST-12)", () => {
     const base = buildProgram("M.f");
     const malformed: InstrProgram = {

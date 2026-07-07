@@ -1,9 +1,8 @@
 /**
- * The `loadConfig()` orchestrator — RD-16 §4.3, all six steps:
- * resolve path → read + parse → shape validation → merge → semantic
- * validation → result. Synchronous (R28); never throws (R26/AR-73) — every
- * failure degrades to diagnostics in the caller's bag plus a fully-populated
- * default-backed config (AC-11).
+ * The `loadConfig()` orchestrator, in six steps: resolve path → read +
+ * parse → shape validation → merge → semantic validation → result.
+ * Synchronous; never throws — every failure degrades to diagnostics in
+ * the caller's bag plus a fully-populated default-backed config.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -25,11 +24,11 @@ import {
 } from "./validate.js";
 
 /**
- * Wraps `bag` so every error-severity emission ALSO invokes `onError`
- * (PF-020). `hasErrors` must mean "this call emitted an error", which a
- * before/after `getErrors().length` comparison gets wrong when the caller's
- * bag is pre-populated, deduping, or already at its cap (where suppressed
- * adds change nothing observable in the bag).
+ * Wraps `bag` so every error-severity emission ALSO invokes `onError`.
+ * `hasErrors` must mean "this call emitted an error", which a before/after
+ * `getErrors().length` comparison gets wrong when the caller's bag is
+ * pre-populated, deduping, or already at its cap (where suppressed adds
+ * change nothing observable in the bag).
  */
 function withErrorTracking(bag: DiagnosticBag, onError: () => void): DiagnosticBag {
   return {
@@ -59,12 +58,12 @@ function isPlainObject(value: unknown): boolean {
 }
 
 /**
- * Loads and validates `blend65.json` (RD-16 §4.2/§4.3).
+ * Loads and validates `blend65.json`.
  *
- * All diagnostics are appended to `options.bag` (accumulate, never throw —
- * AR-73/R26). The returned config is always fully populated (AC-11); when
- * `hasErrors` is true its values are as-merged and untrusted (AR-P9) —
- * consumers gate on `hasErrors` before reading it.
+ * All diagnostics are appended to `options.bag` (accumulate, never throw).
+ * The returned config is always fully populated; when `hasErrors` is true
+ * its values are as-merged and untrusted — consumers gate on `hasErrors`
+ * before reading it.
  *
  * @param options See {@link LoadConfigOptions}.
  * @returns The merged config plus whether THIS call emitted any error.
@@ -76,14 +75,14 @@ export function loadConfig(options: LoadConfigOptions): LoadConfigResult {
     hadError = true;
   });
 
-  // Step 1 — resolve the config path (explicit beats discovery — R4).
+  // Step 1 — resolve the config path (explicit beats discovery).
   const cwd = resolve(options.cwd ?? process.cwd());
   const explicitPath = options.configPath !== undefined ? resolve(options.configPath) : null;
   let configPath = explicitPath ?? findConfigUpwards(cwd, existsSync);
 
   // Step 2 — read + parse. A read failure (missing explicit path, or an
-  // existing file that cannot be read) is E10240; a discovery miss is not an
-  // error (R3) and simply leaves `text` null.
+  // existing file that cannot be read) is E10240; a discovery miss is not
+  // an error and simply leaves `text` null.
   let text: string | null = null;
   if (configPath !== null) {
     try {
@@ -102,7 +101,7 @@ export function loadConfig(options: LoadConfigOptions): LoadConfigResult {
   const parsed = text !== null ? parseJsoncFile(text) : null;
   const toByteOffset = parsed !== null ? createOffsetConverter(parsed.text) : undefined;
   if (parsed !== null && configPath !== null) {
-    // Report ALL parse errors (AR-P4); offsets are already bytes (PF-017).
+    // Report ALL parse errors; offsets are already bytes.
     const lineMap = new LineMap(sourceId, parsed.text);
     for (const parseError of parsed.parseErrors) {
       const { line, column } = lineMap.getLineCol(parseError.offset);
@@ -138,7 +137,7 @@ export function loadConfig(options: LoadConfigOptions): LoadConfigResult {
         })
       : {};
 
-  // Steps 4 + 5 — defaults, file values, then overrides (PF-021 origin).
+  // Steps 4 + 5 — defaults, file values, then overrides, plus origin.
   const config = mergeConfig(fileValues, options.overrides, {
     configPath,
     projectRoot: configPath !== null ? dirname(configPath) : cwd,
@@ -156,6 +155,6 @@ export function loadConfig(options: LoadConfigOptions): LoadConfigResult {
     knownPlatforms: options.knownPlatforms,
   });
 
-  // Step 7 — hasErrors = THIS call emitted an error (PF-020).
+  // Step 7 — hasErrors = THIS call emitted an error.
   return { config, hasErrors: hadError };
 }

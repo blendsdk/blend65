@@ -1,10 +1,10 @@
 /**
- * Hand-built `InstrStream` fixtures for RD-07a tests (07-testing-strategy.md).
+ * Hand-built `InstrStream` fixtures for the Instr model's tests.
  *
- * These model the canonical translation targets RD-07b will *generate* from real
- * IL; in 07a we build them by hand to validate (03-02) and serialize (03-03) the
- * model end-to-end. They are **test-only** and intentionally NOT re-exported from
- * `index.ts` (mirroring `il/test-fixtures.ts`).
+ * These model the canonical translation targets the IL→Instr translator generates
+ * from real IL; here they are built by hand so the model can be validated and
+ * serialized end-to-end independently of the translator. They are **test-only** and
+ * intentionally NOT re-exported from `index.ts` (mirroring `il/test-fixtures.ts`).
  */
 
 import type { InstrStream } from "./stream.js";
@@ -12,17 +12,17 @@ import { instr, label, directive } from "./stream.js";
 import { none, symbolRef, labelRef, zpSlot } from "./operand.js";
 
 /**
- * The canonical 8-bit add sequence: `LDA a / CLC / ADC b / STA dest` (03-01 Ex.1).
+ * The canonical 8-bit add sequence: `LDA a / CLC / ADC b / STA dest`.
  *
- * Used by validator ST-V1 (clean NMOS validation) and golden ST-G1.
+ * Used by the clean-NMOS-validation and golden-stream tests.
  */
 export const add8Stream: InstrStream = {
   symbol: "add",
   segment: "code",
   entries: [
-    // Leading `add:` label per 03-03 Ex.1 (printInstr renders entries, not the
-    // stream `symbol`, so the label is an explicit entry — consistent with Ex.2
-    // which has no leading symbol label).
+    // Leading `add:` label: printInstr renders entries, not the stream `symbol`,
+    // so the label must be an explicit entry — consistent with the pointer-setup
+    // fixture below, which has no leading symbol label.
     label("add"),
     instr("LDA", "Absolute", symbolRef("a")),
     instr("CLC", "Implied", none()),
@@ -32,10 +32,10 @@ export const add8Stream: InstrStream = {
 };
 
 /**
- * Pointer setup with byte-select + indirect-indexed load + branch (03-01 Ex.2).
+ * Pointer setup with byte-select + indirect-indexed load + branch.
  *
- * Exercises `#<sym`/`#>sym` byte-select (R13), a ZP slot with `+1`, a label, and
- * `LDA (ptr),Y` / `BNE loop`. Used by golden ST-G2.
+ * Exercises `#<sym`/`#>sym` byte-select, a ZP slot with `+1`, a label, and
+ * `LDA (ptr),Y` / `BNE loop`. Used by the golden-stream tests.
  */
 export const ptrSetupStream: InstrStream = {
   symbol: "ptrSetup",
@@ -52,9 +52,10 @@ export const ptrSetupStream: InstrStream = {
 };
 
 /**
- * A const-data block: a label followed by a `!byte` directive (03-01 Ex.3).
+ * A const-data block: a label followed by a `!byte` directive.
  *
- * Used by golden ST-G3 and validator ST-V6 (non-instr entries skipped).
+ * Used by the golden-stream tests and by the validator test that checks
+ * non-instr entries are skipped.
  */
 export const paletteStream: InstrStream = {
   symbol: "palette",
@@ -66,7 +67,7 @@ export const paletteStream: InstrStream = {
 };
 
 /**
- * An illegal NMOS stream: `JSR ZeroPage` (JSR is Absolute-only). For ST-V2.
+ * An illegal NMOS stream: `JSR ZeroPage` (JSR is Absolute-only).
  */
 export const illegalJsrStream: InstrStream = {
   symbol: "bug",
@@ -75,7 +76,7 @@ export const illegalJsrStream: InstrStream = {
 };
 
 /**
- * A `STZ Absolute` stream — illegal on NMOS, legal on 65C02 (R16). For ST-V4/V5.
+ * A `STZ Absolute` stream — illegal on NMOS, legal on 65C02.
  */
 export const stzStream: InstrStream = {
   symbol: "clear",

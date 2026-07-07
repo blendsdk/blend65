@@ -1,6 +1,6 @@
 /**
  * Implementation tests for the assertion helpers — diff/message formatting edge
- * cases beyond the ST-16/17/18 oracles. CI tier (fake driver).
+ * cases beyond the specification tests. CI tier (fake driver).
  */
 
 import { describe, expect, it } from "vitest";

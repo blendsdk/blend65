@@ -1,11 +1,10 @@
 /**
- * Specification tests for the RD-17 intrinsic-validation pass (ST-8..ST-14, ST-17).
+ * Specification tests for the intrinsic-validation pass.
  *
- * Derived EXCLUSIVELY from RD-17 (R2/R19–R25/R39/R40), RD-04's deferred rule rows
- * (R59/R100), frozen spec Ch 12, and the plan's 03-02/07 docs — never from reading
- * the implementation (IMMUTABLE ORACLE RULE). Written BEFORE the pass exists (red
- * phase). Each case composes the REAL lexer + parser + analyzer through the public
- * barrels (prefer real objects).
+ * Derived EXCLUSIVELY from the frozen spec Ch 12 and the deferred rule set —
+ * never from reading the implementation (IMMUTABLE ORACLE RULE). Written
+ * BEFORE the pass exists (red phase). Each case composes the REAL lexer +
+ * parser + analyzer through the public barrels (prefer real objects).
  */
 
 import { describe, expect, it } from "vitest";
@@ -93,7 +92,7 @@ describe("Specification: RD-17 intrinsic validation (ST-8..ST-14, ST-17)", () =>
     const diag = bag.getAll().find((d) => d.code === "E10043");
     expect(diag, "expected an E10043 diagnostic").toBeDefined();
     expect(diag?.message).toContain("asm_wai");
-    // Names the required CPU (wdc65c02) and the actual target CPU (nmos6502) — R23.
+    // Names the required CPU (wdc65c02) and the actual target CPU (nmos6502).
     expect(diag?.message).toContain("wdc65c02");
     expect(diag?.message).toContain("nmos6502");
   });

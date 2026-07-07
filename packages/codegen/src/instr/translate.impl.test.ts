@@ -1,8 +1,8 @@
 /**
- * Implementation tests for the RD-07b IL→Instr translator (edge cases & internals).
+ * Implementation tests for the IL→Instr translator (edge cases & internals).
  *
- * Written AFTER the implementation (testing.md Rule 10): these exercise behaviour
- * the ST oracles do not pin — the 16-bit `sub` borrow chain, the swapped-operand
+ * Written after the implementation: these exercise behaviour that the
+ * specification oracles do not pin — the 16-bit `sub` borrow chain, the swapped-operand
  * comparison forms (`gt`/`le`), determinism, generated-label uniqueness across two
  * comparisons, and constant-fold edge values. They complement
  * `translate.spec.test.ts`.
@@ -157,7 +157,7 @@ describe("translator — swapped-operand comparison forms (gt/le)", () => {
     expect(text).toContain("_cmp1:");
   });
 
-  // DEF-1/AR-16 regression: a Z-based comparison MUST branch directly after CMP —
+  // Regression guard: a Z-based comparison MUST branch directly after CMP —
   // no flag-clobbering LDA between CMP and BEQ/BNE (the earlier form always
   // evaluated to 0, proven wrong on real VICE). Guards both eq and ne.
   it("emits the Z-branch directly after CMP for eq/ne (no LDA clobbering Z)", () => {

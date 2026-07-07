@@ -1,10 +1,10 @@
 /**
- * Specification tests for `compile()` — ST-8..ST-14.
+ * Specification tests for `compile()`.
  *
- * Derived EXCLUSIVELY from RD-15 R5/R10/R11/R25/R26/R28/R51, RD-16 R24/R25, and
- * the plan (03-02, AR-V6/V7). Immutable oracles: never throws, never prints,
- * returns the resolved config (R51), injected host used verbatim (R10), two-bag
- * merge + severity policy (R26/R28), and override-wins config merge (RD-16).
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: never throws, never prints, returns the resolved config, injected
+ * host used verbatim, two-bag merge + severity policy, and override-wins
+ * config merge.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

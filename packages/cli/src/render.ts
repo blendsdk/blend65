@@ -1,10 +1,10 @@
 /**
- * Output orchestration for `blendc` (RD-15 §4.4, R38/R39/R42; AR-V11).
+ * Output orchestration for `blendc`.
  *
  * Owns every write the CLI performs: diagnostics + count trailer to stderr, the
  * build summary / JSON report to stdout, and the `--emit-*` artifact files. Pure
  * routing over the shipped core renderers — no compiler logic. Diagnostics and
- * summary never mix streams (diagnostics → stderr, machine output → stdout, R39).
+ * summary never mix streams (diagnostics → stderr, machine output → stdout).
  */
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -22,11 +22,11 @@ import { errorAccent, warningAccent } from "./color.js";
 import type { CliIo } from "./io.js";
 
 /**
- * Render diagnostics + the count trailer to stderr (R39, AR-V11).
+ * Render diagnostics + the count trailer to stderr.
  *
  * Terminal format: the caret blocks then the `error:`/`warning:` trailer (severity
- * word accented per AR-Q9). JSON format: the diagnostics array only, NO trailer
- * (AR-V11). An empty diagnostic set writes nothing.
+ * word accented when color is enabled). JSON format: the diagnostics array only,
+ * with NO trailer. An empty diagnostic set writes nothing.
  *
  * @param io The CLI IO surface.
  * @param diagnostics The final, severity-policy-applied diagnostics.
@@ -59,7 +59,7 @@ export function renderDiagnostics(
 }
 
 /**
- * Build the count trailer (AR-V11): errors present →
+ * Build the count trailer: errors present →
  * `error: <N> error[s][, <M> warning[s]] emitted`; else warnings present →
  * `warning: <M> warning[s] emitted`; else `null`.
  */
@@ -83,7 +83,7 @@ function plural(count: number, word: string): string {
 }
 
 /**
- * Render the terminal build summary to stdout (R38 — uncolored by design, RD-11 §4.7).
+ * Render the terminal build summary to stdout (uncolored by design).
  *
  * @param io The CLI IO surface.
  * @param report The resource report.
@@ -93,7 +93,7 @@ export function renderBuildSummary(io: CliIo, report: ResourceReport): void {
 }
 
 /**
- * Render the JSON resource report to stdout (R36).
+ * Render the JSON resource report to stdout.
  *
  * @param io The CLI IO surface.
  * @param report The resource report.
@@ -104,7 +104,7 @@ export function renderJsonReport(io: CliIo, report: ResourceReport): void {
 
 /**
  * Write a text artifact under `dir` (creating it if needed) — the `--emit-*`
- * CLI-side writes (R22/R23/R24). Throws on an fs error; `main.ts` maps that to a
+ * CLI-side writes. Throws on an fs error; `main.ts` maps that to a
  * `blendc: <message>` stderr line + exit 2.
  *
  * @param dir The output directory.

@@ -1,14 +1,14 @@
 /**
- * The IL optimizer pipeline runner (RD-06 §4.11, R57/R61).
+ * The IL optimizer pipeline runner.
  *
  * `optimizeIL` folds a sequence of {@link ILPass}es over an {@link ILProgram},
  * threading each pass's output into the next. **v1 callers pass `[]`** — the
  * loop body never runs and the original program reference is returned unchanged
- * (identity passthrough, R57), so `printIL(optimizeIL(p, [], bag)) === printIL(p)`.
+ * (identity passthrough), so `printIL(optimizeIL(p, [], bag)) === printIL(p)`.
  *
  * The runner is generic over any `ILPass[]`, so the real optimizers (constant
  * folding, DCE, strength reduction) and tests' identity/tagging passes slot in
- * without restructuring (AR-38). Determinism (R61): the result depends only on
+ * without restructuring. It is deterministic: the result depends only on
  * `(program, passes)` — there is no hidden ordering, clock, or randomness.
  */
 
@@ -17,7 +17,7 @@ import type { ILProgram } from "../cfg.js";
 import type { ILPass } from "./pass.js";
 
 /**
- * Run the IL optimizer pipeline (§4.11).
+ * Run the IL optimizer pipeline.
  *
  * @param program The IL program to optimize.
  * @param passes The ordered passes to apply; `[]` is an identity passthrough.

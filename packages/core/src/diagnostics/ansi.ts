@@ -2,8 +2,9 @@
  * Internal hand-rolled SGR (ANSI color) helpers for the terminal renderer.
  *
  * Deliberately minimal and NOT exported from the diagnostics barrel: core keeps
- * zero runtime dependencies (PF-007 — no chalk in core; chalk stays CLI-only),
- * and no other module needs color. Covers the AR-Q9 color map's raw codes.
+ * zero runtime dependencies (no chalk in core; chalk stays CLI-only), and no
+ * other module needs color. Provides the raw SGR codes used by the terminal
+ * renderer's color map.
  */
 
 /** SGR parameter: bold. */

@@ -1,9 +1,8 @@
 /**
- * RD-07c implementation tests — edge cases & internals for `assembleProgram` +
+ * Implementation tests — edge cases & internals for `assembleProgram` +
  * the entry-label/sanitize mapping. These complement the spec tests
  * (`assemble.spec.test.ts`): they are derived from the implementation's documented
- * internals (07-testing-strategy "Implementation Tests" tier), not from the spec
- * oracles.
+ * internals, not from the spec oracles.
  *
  *   - `programByteSize` counts the populated preamble (not just the streams).
  *   - `derivePreambleOptions` sets `needsDataInit` true iff the program has const
@@ -11,7 +10,7 @@
  *   - a multi-function program sanitizes every non-entry function label.
  *   - a function literally named `main` in a NON-`Main` module still maps to `_main`.
  *
- * D10: codegen tests use only codegen's dependency closure — the `PlatformPlugin`
+ * Codegen tests use only codegen's dependency closure — the `PlatformPlugin`
  * here is a minimal inline fake (the type lives in `@blend65/core`), never the real
  * `@blend65/platforms` plugin (which would form a build cycle).
  */

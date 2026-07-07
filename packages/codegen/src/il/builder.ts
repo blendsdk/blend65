@@ -1,13 +1,12 @@
 /**
- * `IlFunctionBuilder` — the deterministic per-function IL assembler (RD-06
- * §4.4, R15/R16).
+ * `IlFunctionBuilder` — the deterministic per-function IL assembler.
  *
  * Lowering (`lower.ts`) drives a builder per function: it opens the `_entry`
  * block, appends instructions as it walks the body, mints virtual temps with
  * monotonically increasing ids (`%0`, `%1`, …), opens further blocks (`_L0`,
  * `_L1`, …) as control flow demands, and finally `finish`es into a frozen
  * {@link ILFunction}. Temp ids and block labels are assigned strictly in call
- * order, so a given AST always yields byte-identical IL (H5/R53).
+ * order, so a given AST always yields byte-identical IL.
  *
  * The builder owns **no** lowering policy — it is a dumb, ordered accumulator;
  * all "what to emit" decisions live in `lower.ts`. Pure, synchronous, no I/O.

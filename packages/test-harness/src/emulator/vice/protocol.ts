@@ -1,10 +1,10 @@
 /**
- * Pure VICE binary-monitor protocol codec (RD-12 §4.5, AR-H14).
+ * Pure VICE binary-monitor protocol codec.
  *
  * A `Uint8Array`↔structured-command transform with NO I/O — the socket transport
  * lives in `vice-driver.ts`. Splitting the codec out lets its byte-exact framing
- * tests run in CI with no emulator (AR-H14). Every body layout here was validated
- * LIVE against VICE 3.10 this session (PF-004), not inferred from a spec alone.
+ * tests run in CI with no emulator. Every body layout here was validated
+ * LIVE against real VICE 3.10, not inferred from a spec alone.
  *
  * Frame layout (VICE 3.7+ binary monitor):
  *   command  : STX(0x02) api(0x02) bodylen(u32 LE) reqid(u32 LE) type(u8) body
@@ -21,8 +21,8 @@ const CMD_HEADER = 11;
 const RESP_HEADER = 12;
 
 /**
- * Binary-monitor command types (RD §4.5). Values are the wire opcodes; validated
- * live against VICE 3.10.
+ * Binary-monitor command types. Values are the wire opcodes; validated
+ * live against real VICE 3.10.
  */
 export const CMD = {
   MEMORY_GET: 0x01,
@@ -42,7 +42,7 @@ export const CMD = {
 } as const;
 
 /**
- * Unsolicited event / response types the driver must recognise (RD §4.5). Events
+ * Unsolicited event / response types the driver must recognise. Events
  * carry the request id `0xffffffff`.
  */
 export const RESP = {
@@ -68,7 +68,7 @@ export interface ResponseFrame {
 }
 
 /**
- * Encode one command frame (RD §4.5). `requestId` is supplied by the caller
+ * Encode one command frame. `requestId` is supplied by the caller
  * (monotonic per driver).
  *
  * @param type One of {@link CMD}.
@@ -89,9 +89,9 @@ export function encodeCommand(type: number, requestId: number, body: Uint8Array)
 }
 
 /**
- * Decode zero or more COMPLETE response frames from a socket-read accumulator
- * (RD §4.5, AR-H14). A trailing partial frame is left for the next read: the
- * returned `consumed` count is the number of bytes the caller should drop.
+ * Decode zero or more COMPLETE response frames from a socket-read accumulator.
+ * A trailing partial frame is left for the next read: the returned `consumed`
+ * count is the number of bytes the caller should drop.
  *
  * @param buffer The accumulated socket bytes.
  * @returns The complete frames and the number of leading bytes consumed.
@@ -256,7 +256,7 @@ export function parseRegistersGet(body: Uint8Array): Map<number, number> {
 }
 
 /**
- * Parse a `REGISTERS_AVAILABLE` response body into a NAME→id map (AR-H15). Layout:
+ * Parse a `REGISTERS_AVAILABLE` response body into a NAME→id map. Layout:
  * count(2), then per item item-size(1), id(1), bits(1), name-len(1), name.
  */
 export function parseRegistersAvailable(body: Uint8Array): Map<string, number> {

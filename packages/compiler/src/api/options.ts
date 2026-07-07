@@ -1,6 +1,5 @@
 /**
- * `CompilerOptions` and its mapping to `@blend65/config`'s `ConfigOverrides`
- * (RD-15 §4.1, R9; AR-V20/PF-002).
+ * `CompilerOptions` and its mapping to `@blend65/config`'s `ConfigOverrides`.
  *
  * `CompilerOptions` is the single input type for every facade function. Most of
  * its fields are `BlendConfig` overrides (mapped by {@link optionsToOverrides});
@@ -13,8 +12,7 @@ import type { ConfigOverrides } from "@blend65/config";
 
 /**
  * Options for the programmatic API (`compile`/`build`/`emitAsm`/`emitIl`).
- * Transcribed from RD-15 §4.1 (the preflighted contract). `platform` is required;
- * every other field is optional.
+ * `platform` is required; every other field is optional.
  */
 export interface CompilerOptions {
   /** Target platform name (e.g. `"c64"`, `"cx16"`). */
@@ -28,7 +26,7 @@ export interface CompilerOptions {
 
   /**
    * Base directory for config walk-up discovery, the `projectRoot` fallback, and
-   * relative-path resolution (AR-V20/PF-002). A routing option, NOT a config
+   * relative-path resolution. A routing option, NOT a config
    * override. Default: `process.cwd()`.
    */
   cwd?: string;
@@ -67,8 +65,8 @@ export interface CompilerOptions {
 }
 
 /**
- * Map {@link CompilerOptions} to `@blend65/config`'s {@link ConfigOverrides} (R9 →
- * RD-16 R24). Every overridable `BlendConfig` key is copied through; an explicitly
+ * Map {@link CompilerOptions} to `@blend65/config`'s {@link ConfigOverrides}.
+ * Every overridable `BlendConfig` key is copied through; an explicitly
  * `undefined` value is legal and means "not set" (never overrides — see
  * `config/src/types.ts`). `configPath`, `sourceFiles`, and `cwd` are deliberately
  * excluded — they route to `loadConfig` options / tier-1 discovery / the

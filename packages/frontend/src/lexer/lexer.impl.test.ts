@@ -26,7 +26,7 @@ function one(text: string): { token: Token; bag: DiagnosticBag } {
 
 
 describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators)", () => {
-  // ----- ST-L3: empty input -----
+  // ----- empty input -----
   it("ST-L3: empty input yields [Eof] with no diagnostics", () => {
     const { tokens, bag } = run("");
     expect(tokens).toHaveLength(1);
@@ -34,7 +34,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ----- ST-L4: whitespace-only & comment-only -----
+  // ----- whitespace-only & comment-only -----
   it("ST-L4: whitespace-only and comment-only inputs yield [Eof], no diagnostics", () => {
     for (const src of ["   \t\n\r\n  ", "// just a comment", "/* a block */"]) {
       const { tokens, bag } = run(src);
@@ -43,7 +43,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     }
   });
 
-  // ----- ST-L5: every keyword lexes to its Kw* kind -----
+  // ----- every keyword lexes to its Kw* kind -----
   it("ST-L5: each of the 32 keywords lexes to its Kw* kind", () => {
     const cases: ReadonlyArray<[string, string]> = [
       ["module", TokenKind.KwModule],
@@ -87,14 +87,14 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     }
   });
 
-  // ----- ST-L6: case-sensitive keyword miss -----
+  // ----- case-sensitive keyword miss -----
   it("ST-L6: Break / BYTE / iff are Identifiers (case-sensitive miss)", () => {
     for (const src of ["Break", "BYTE", "iff"]) {
       expect(kinds(src)).toEqual([TokenKind.Identifier, TokenKind.Eof]);
     }
   });
 
-  // ----- ST-L7: contextual keywords are Identifiers -----
+  // ----- contextual keywords are Identifiers -----
   it("ST-L7: until to downto step lex to four Identifier tokens", () => {
     expect(kinds("until to downto step")).toEqual([
       TokenKind.Identifier,
@@ -105,7 +105,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     ]);
   });
 
-  // ----- ST-L8: true/false/type -----
+  // ----- true/false/type -----
   it("ST-L8: true/false map to KwTrue/KwFalse; type maps to KwType (no diagnostic)", () => {
     const { tokens, bag } = run("true false type");
     expect(tokens.map((t) => t.kind)).toEqual([
@@ -117,7 +117,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ----- ST-L9: reserved built-ins are plain Identifiers -----
+  // ----- reserved built-ins are plain Identifiers -----
   it("ST-L9: peek main encode lex to Identifiers (no lexer special-casing)", () => {
     expect(kinds("peek main encode")).toEqual([
       TokenKind.Identifier,
@@ -127,7 +127,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     ]);
   });
 
-  // ----- ST-L10: identifier span round-trips -----
+  // ----- identifier span round-trips -----
   it("ST-L10: identifier span round-trips via text.slice", () => {
     const text = "playerScore";
     const { tokens } = run(text);
@@ -137,7 +137,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(text.slice(span!.start, span!.end)).toBe("playerScore");
   });
 
-  // ----- ST-L26: line comment -----
+  // ----- line comment -----
   it("ST-L26: line comment is discarded; trailing identifier survives", () => {
     const { tokens, bag } = run("// comment\nx");
     expect(tokens.map((t) => t.kind)).toEqual([TokenKind.Identifier, TokenKind.Eof]);
@@ -145,7 +145,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ----- ST-L27: block comments + unterminated cascade -----
+  // ----- block comments + unterminated cascade -----
   it("ST-L27: block comments are discarded; unterminated emits E10211 then only Eof", () => {
     const closed = run("/* a */ x");
     expect(closed.tokens.map((t) => t.kind)).toEqual([TokenKind.Identifier, TokenKind.Eof]);
@@ -166,7 +166,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(errs[0]?.code).toBe(DiagCode.UnterminatedBlockComment);
   });
 
-  // ----- ST-L28: every operator lexeme -> its kind -----
+  // ----- every operator lexeme -> its kind -----
   it("ST-L28: every operator lexeme lexes to its kind", () => {
     const cases: ReadonlyArray<[string, string]> = [
       ["+", TokenKind.Plus],
@@ -210,7 +210,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     }
   });
 
-  // ----- ST-L29: every punctuation lexeme -> its kind -----
+  // ----- every punctuation lexeme -> its kind -----
   it("ST-L29: every punctuation lexeme lexes to its kind", () => {
     const cases: ReadonlyArray<[string, string]> = [
       ["(", TokenKind.LParen],
@@ -230,7 +230,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     }
   });
 
-  // ----- ST-L30: maximal munch -----
+  // ----- maximal munch -----
   it("ST-L30: maximal munch prefers the longest operator", () => {
     expect(kinds("<<=")).toEqual([TokenKind.ShiftLeftEqual, TokenKind.Eof]);
     expect(kinds(">>=")).toEqual([TokenKind.ShiftRightEqual, TokenKind.Eof]);
@@ -243,7 +243,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(kinds("<< =")).toEqual([TokenKind.ShiftLeft, TokenKind.Equal, TokenKind.Eof]);
   });
 
-  // ----- ST-L31: disambiguation of &, ?, :, and lone / -----
+  // ----- disambiguation of &, ?, :, and lone / -----
   it("ST-L31: &x, a?b:c, and lone / disambiguate correctly", () => {
     expect(kinds("&x")).toEqual([TokenKind.Ampersand, TokenKind.Identifier, TokenKind.Eof]);
     expect(kinds("a?b:c")).toEqual([
@@ -262,7 +262,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     ]);
   });
 
-  // ----- ST-L32: multi-token spans are correct half-open byte offsets -----
+  // ----- multi-token spans are correct half-open byte offsets -----
   it("ST-L32: each token's span is a correct half-open byte range that round-trips", () => {
     const src = "let x = y";
     const { tokens } = run(src);
@@ -282,7 +282,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(tokens[4]?.span.end).toBe(src.length);
   });
 
-  // ----- ST-L33: BOM is skipped, first token starts at offset 1 -----
+  // ----- BOM is skipped, first token starts at offset 1 -----
   it("ST-L33: a leading BOM is skipped and excluded from the first token's span", () => {
     const src = "\uFEFFx";
     const { tokens, bag } = run(src);
@@ -292,7 +292,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ----- ST-L34: line map across LF, CRLF, bare-CR -----
+  // ----- line map across LF, CRLF, bare-CR -----
   it("ST-L34: lineMap.getLineCol resolves token positions across LF, CRLF, bare CR", () => {
     for (const nl of ["\n", "\r\n", "\r"]) {
       const src = `a${nl}b`;
@@ -308,7 +308,7 @@ describe("lexer — Phase 2 skeleton (identifiers, keywords, comments, operators
 });
 
 describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
-  // ----- ST-L11: plain decimal -----
+  // ----- plain decimal -----
   it("ST-L11: decimal literals produce Number with the parsed value", () => {
     for (const [src, value] of [
       ["0", 0],
@@ -322,7 +322,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L12: hex via $ and 0x -----
+  // ----- hex via $ and 0x -----
   it("ST-L12: $hex and 0x hex literals parse, prefix excluded from value", () => {
     for (const [src, value] of [
       ["$0400", 0x0400],
@@ -337,7 +337,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L13: binary -----
+  // ----- binary -----
   it("ST-L13: 0b binary literals parse to their value", () => {
     for (const [src, value] of [
       ["0b1010", 10],
@@ -350,7 +350,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L14: underscores are digit separators -----
+  // ----- underscores are digit separators -----
   it("ST-L14: valid underscores are stripped from the parsed value", () => {
     for (const [src, value] of [
       ["1_000", 1000],
@@ -364,7 +364,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L15: misplaced underscores -> E10213 -----
+  // ----- misplaced underscores -> E10213 -----
   it("ST-L15: leading/trailing/consecutive underscores emit E10213 but still produce a Number", () => {
     for (const src of ["$_FF", "$FF_", "$F__F"]) {
       const { token, bag } = one(src);
@@ -375,7 +375,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L16: bare prefixes -> E10214 / E10215, value 0 -----
+  // ----- bare prefixes -> E10214 / E10215, value 0 -----
   it("ST-L16: $/0x without a hex digit emit E10214; 0b without a binary digit emits E10215; value 0", () => {
     for (const src of ["$", "0x", "$G"]) {
       const { token, bag } = one(src);
@@ -391,7 +391,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L17: overflow saturates at 65535 -> E10216 -----
+  // ----- overflow saturates at 65535 -> E10216 -----
   it("ST-L17: values over 65535 emit E10216 and saturate to 65535", () => {
     for (const src of ["65536", "$1FFFF", "99999"]) {
       const { token, bag } = one(src);
@@ -403,7 +403,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L18: leading zeros -> W10210 -----
+  // ----- leading zeros -> W10210 -----
   it("ST-L18: decimal leading zeros emit W10210 but still produce the Number", () => {
     for (const [src, value] of [
       ["007", 7],
@@ -418,7 +418,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
     }
   });
 
-  // ----- ST-L19: `0bytes` -> binary attempt rejected -----
+  // ----- `0bytes` -> binary attempt rejected -----
   it("ST-L19: 0bytes scans 0b then a non-binary digit, emitting E10215", () => {
     const { tokens, bag } = run("0bytes");
     // `0b` is a bare binary prefix (value 0); `ytes` follows as an identifier.
@@ -434,7 +434,7 @@ describe("lexer — Phase 3 numeric literals (decimal, hex, binary)", () => {
 });
 
 describe("lexer — Phase 4 strings, characters, escapes", () => {
-  // ----- ST-L20: well-formed strings -----
+  // ----- well-formed strings -----
   it("ST-L20: string literals capture their raw content as the value", () => {
     for (const [src, value] of [
       ['"HELLO WORLD"', "HELLO WORLD"],
@@ -451,7 +451,7 @@ describe("lexer — Phase 4 strings, characters, escapes", () => {
     }
   });
 
-  // ----- ST-L21: well-formed char literals -----
+  // ----- well-formed char literals -----
   it("ST-L21: char literals capture the single char/escape as the value", () => {
     for (const [src, value] of [
       ["'A'", "A"],
@@ -467,7 +467,7 @@ describe("lexer — Phase 4 strings, characters, escapes", () => {
     }
   });
 
-  // ----- ST-L22: newline & EOF in string -----
+  // ----- newline & EOF in string -----
   it("ST-L22: a newline in a string emits E10217; EOF before close emits E10218", () => {
     const nl = run('"abc\ndef"');
     expect(nl.tokens[0]?.kind).toBe(TokenKind.String);
@@ -487,7 +487,7 @@ describe("lexer — Phase 4 strings, characters, escapes", () => {
     expect(eof.bag.getAll()[0]?.code).toBe(DiagCode.UnterminatedString);
   });
 
-  // ----- ST-L23: escape validation -----
+  // ----- escape validation -----
   it("ST-L23: unknown escapes emit E10219 and short \\x emit E10220, literal kept raw", () => {
     const unknown = run('"a\\qb"');
     expect(unknown.tokens[0]?.kind).toBe(TokenKind.String);
@@ -500,7 +500,7 @@ describe("lexer — Phase 4 strings, characters, escapes", () => {
     expect(shortHex.bag.getAll()[0]?.code).toBe(DiagCode.IncompleteHexEscape);
   });
 
-  // ----- ST-L24: empty & multi-char literals -----
+  // ----- empty & multi-char literals -----
   it("ST-L24: empty char emits E10221; multi-char emits E10222 keeping the first unit", () => {
     const empty = one("''");
     expect(empty.token.kind).toBe(TokenKind.Char);
@@ -513,7 +513,7 @@ describe("lexer — Phase 4 strings, characters, escapes", () => {
     expect(multi.bag.getAll()[0]?.code).toBe(DiagCode.MultiCharLiteral);
   });
 
-  // ----- ST-L25: unterminated char literal -----
+  // ----- unterminated char literal -----
   it("ST-L25: a char literal with no closing quote emits E10223", () => {
     const eof = run("'A");
     expect(eof.tokens.map((t) => t.kind)).toEqual([TokenKind.Char, TokenKind.Eof]);
@@ -531,7 +531,7 @@ describe("lexer — Phase 4 strings, characters, escapes", () => {
 });
 
 describe("lexer — Phase 5 error tolerance, unexpected chars, determinism", () => {
-  // ----- ST-L35: unexpected character -> E10210, skip one unit -----
+  // ----- unexpected character -> E10210, skip one unit -----
   it("ST-L35: an unexpected character emits E10210 and scanning resumes after it", () => {
     const { tokens, bag } = run("a € b");
     // The non-ASCII '€' is reported once and skipped; the identifiers survive.
@@ -545,7 +545,7 @@ describe("lexer — Phase 5 error tolerance, unexpected chars, determinism", () 
     expect(errs[0]?.code).toBe(DiagCode.UnexpectedCharacter);
   });
 
-  // ----- ST-L36: mixed errors are all tolerated; stream still completes -----
+  // ----- mixed errors are all tolerated; stream still completes -----
   it("ST-L36: multiple independent errors are each reported; the stream still ends in Eof", () => {
     const { tokens, bag } = run('$ 0b "oops');
     // bare `$` (E10214), bare `0b` (E10215), unterminated string at EOF (E10218).
@@ -557,7 +557,7 @@ describe("lexer — Phase 5 error tolerance, unexpected chars, determinism", () 
   });
 
 
-  // ----- ST-L37: determinism — identical input yields identical output twice -----
+  // ----- determinism — identical input yields identical output twice -----
   it("ST-L37: lexing the same source twice yields deep-equal tokens and diagnostics", () => {
     const src = 'let x: byte = $FF; "hi\\n" 0b1010 // c\n €';
     const first = run(src);
@@ -566,7 +566,7 @@ describe("lexer — Phase 5 error tolerance, unexpected chars, determinism", () 
     expect(first.bag.getAll()).toEqual(second.bag.getAll());
   });
 
-  // ----- ST-L38: no-hang — pathological inputs always terminate with one Eof -----
+  // ----- no-hang — pathological inputs always terminate with one Eof -----
   it("ST-L38: pathological inputs terminate and always end in exactly one Eof", () => {
     for (const src of ["€€€€", "''''", '""""', "\\\\\\", "$$$", "0b0b0b", "/*/"]) {
       const { tokens } = run(src);

@@ -1,9 +1,8 @@
 /**
- * The Atari 800XL platform plugin — RD-10 R40; spec Ch 15 §2 + appendix-a800xl;
- * decision D4.
+ * The Atari 800XL platform plugin; spec Ch 15 §2 + appendix-a800xl.
  *
  * Profile transcribed from appendix-a800xl §10 (`cpu: "nmos6502"`, `outputFormat:
- * "xex"`, `defaultEncoding: "atascii"`). Per D4 the codegen hooks delegate to the
+ * "xex"`, `defaultEncoding: "atascii"`). The codegen hooks delegate to the
  * shared C64-style bodies in this slice — the bespoke ATASCII encoder and XEX
  * preamble are deferred (the slice ships the shared default); only the profile,
  * `getMainTerminationPolicy`, and `validateProfile` carry the platform's own data.
@@ -67,9 +66,9 @@ export const a800xlPlugin: PlatformPlugin = {
   id: "a800xl",
   displayName: "Atari 800XL",
   profile: a800xlProfile,
-  intrinsics: [], // RD-17 (D1)
-  // The mul/div operator-backing routines are codegen-owned T3 modules
-  // (RD-17 AR-98), not platform contributions; genuine T4 modules go here.
+  intrinsics: [], // populated once the runtime intrinsics are wired up
+  // The mul/div operator-backing routines are codegen-owned T3 modules,
+  // not platform contributions; genuine T4 modules go here.
   runtimeModules: [],
 
   emitPreamble(options: PreambleOptions): StreamEntry[] {

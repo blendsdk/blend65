@@ -1,6 +1,5 @@
 /**
- * Specification tests for the platform registry + loader — ST-REG1..4
- * (07-testing-strategy.md, derived from 03-03 + RD-10 R28–R33).
+ * Specification tests for the platform registry + loader.
  *
  * Written BEFORE `registry.ts`; verified RED first.
  */

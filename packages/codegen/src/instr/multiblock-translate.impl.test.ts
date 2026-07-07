@@ -1,9 +1,9 @@
 /**
- * Implementation tests for RD-18 Slice 4a multi-block translation (07-testing
- * P3): cross-function block-label uniqueness, the `unreachable` terminator, and
- * the 03-03 §1a per-block state-reset correctness (PF-001) — the `skipIndex` reset
- * (a word-ALU store-fold in one block must not drop the next block's instruction)
- * and prescan coverage of non-entry blocks (no dropped consumer).
+ * Implementation tests for multi-block translation: cross-function block-label
+ * uniqueness, the `unreachable` terminator, and per-block state-reset
+ * correctness — the `skipIndex` reset (a word-ALU store-fold in one block
+ * must not drop the next block's instruction) and prescan coverage of
+ * non-entry blocks (no dropped consumer).
  *
  * These build multi-block `ILFunction`s by hand (the lowering never emits a
  * twice-read temp, so the guards are exercised at the translator boundary).
@@ -105,7 +105,7 @@ describe("RD-18 Slice 4a multi-block translation internals (P3)", () => {
     // _entry: word `add %0 = A + B` immediately followed by `store %0 -> W` folds
     // the store into the ALU and sets skipIndex = 1. _L0's instruction at index 1
     // (`STA X`) must NOT be dropped — resetBlockState clears skipIndex at the block
-    // boundary (03-03 §1a). Without the reset, `STA X` silently vanishes.
+    // boundary. Without the reset, `STA X` silently vanishes.
     const fn = makeFn("M.f", [
       {
         label: "_entry",

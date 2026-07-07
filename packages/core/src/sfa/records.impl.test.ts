@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the RD-05 core SFA vocabulary (Phase 1).
+ * Implementation tests for the core SFA vocabulary.
  *
  * Where the `*.spec.test.ts` suite asserts the documented record *contract*, this
  * suite exercises internal/edge properties of the concrete artifacts the core
@@ -7,7 +7,7 @@
  * invariants it must satisfy so the planner's budget arithmetic is well-defined.
  *
  * These are derived from the implementation (the shipped `DEFAULT_PROFILE`
- * constant), per the code.md / testing.md spec-vs-impl separation.
+ * constant), keeping specification and implementation tests separate.
  */
 
 import { describe, expect, it } from "vitest";
@@ -27,7 +27,7 @@ describe("DEFAULT_PROFILE interim SFA budget invariants", () => {
   });
 
   it("should default the arg-block floor to 4 (RD-17 AR-P10 raised it from 0)", () => {
-    // RD-17 reconciles the interim floor to the R34 core-ABI minimum of 4 bytes.
+    // The arg-block floor is 4 bytes, the core-ABI minimum.
     expect(DEFAULT_PROFILE.zpArgBlockMin).toBe(4);
   });
 

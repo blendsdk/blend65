@@ -1,13 +1,14 @@
 /**
- * Specification golden for RD-17 end-to-end runtime assembly (ST-33, AC-19).
+ * Specification golden for end-to-end runtime assembly.
  *
- * Derived EXCLUSIVELY from AC-19 — never from implementation (IMMUTABLE ORACLE
- * RULE): a program exercising a byte `*`, a word `/`, and a byte `%` assembles
- * through the real ACME to a binary with ZERO unresolved symbols (ACME fails on
- * any unresolved reference, so a successful exit IS the oracle), with all three
+ * Written from the requirement, never from the implementation: a program
+ * exercising a byte `*`, a word `/`, and a byte `%` assembles through the real
+ * ACME to a binary with zero unresolved symbols (ACME fails on any unresolved
+ * reference, so a successful exit is itself the oracle), with all three
  * referenced runtime routines embedded and the unreferenced one dead-stripped.
  *
- * Skip-if-no-ACME mirrors the RD-09 process-layer convention (AR-27).
+ * Skip-if-no-ACME mirrors the ACME process-layer convention used elsewhere in
+ * this package.
  */
 
 import { execFileSync } from "node:child_process";
@@ -31,7 +32,7 @@ import {
 } from "@blend65/codegen";
 import { c64Plugin } from "@blend65/platforms";
 
-/** Resolve ACME from PATH (null → tests are skipped, AR-27). */
+/** Resolve ACME from PATH (null → tests are skipped). */
 function findAcme(): string | null {
   try {
     const out = execFileSync("which", ["acme"], { encoding: "utf8" }).trim();
@@ -144,9 +145,9 @@ describe.skipIf(ACME === null)("Specification: RD-17 E2E runtime assembly (ST-33
 
     const section = buildRuntimeSection(referenced, RT_ROUTINES);
     const text = serializeToAcme(program, { runtimeSection: section ?? "" });
-    expect(text).not.toContain("__rt_mul16:"); // dead-strip (R16)
+    expect(text).not.toContain("__rt_mul16:"); // dead-strip: unreferenced routines are not embedded
 
-    // Assemble for real: ACME exits non-zero on ANY unresolved symbol (AC-19).
+    // Assemble for real: ACME exits non-zero on any unresolved symbol.
     const asmPath = join(WORK_DIR, "rt-golden.asm");
     writeFileSync(asmPath, text, "utf8");
     execFileSync(ACME ?? "acme", [asmPath], { cwd: WORK_DIR, encoding: "utf8" });

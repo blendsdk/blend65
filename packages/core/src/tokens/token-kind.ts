@@ -5,10 +5,8 @@
  * and to match the `DiagCode`/`Severity` convention already established in the
  * diagnostics core. The names are the canonical Ch 01 §12 identifiers.
  *
- * The enumerated member set is pinned by a unit test (ST-L1) so the count and
- * names cannot silently drift. See plans/rd-02-lexer/03-01-token-model.md.
- *
- * Covers RD-02 FR-1, FR-2 · AR-L6 · spec Ch 01 §12.
+ * The enumerated member set is pinned by a unit test so the count and names
+ * cannot silently drift.
  */
 export const TokenKind = {
   // ----- Literals (3 — boolean literals are keywords, see §12 note) -----
@@ -104,7 +102,7 @@ export const TokenKind = {
   Dot: "Dot",
 
   // ----- Special (1) -----
-  /** The synthetic end-of-file marker; always the final token (FR-33). */
+  /** The synthetic end-of-file marker; always the final token. */
   Eof: "Eof",
 } as const;
 

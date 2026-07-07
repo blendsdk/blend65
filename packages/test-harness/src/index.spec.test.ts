@@ -1,10 +1,10 @@
 /**
- * Specification test for the public package barrel (ST-27).
+ * Specification test for the public package barrel.
  *
- * Derived EXCLUSIVELY from RD-12 §3 R33–R35 / AC-14 and the plan's documented
- * public surface (03-04) — never from reading the implementation (IMMUTABLE ORACLE
- * RULE). The barrel exports exactly the stable API; internal VICE protocol / socket
- * plumbing and test-only helpers must NOT leak (R34).
+ * These tests are derived directly from the package's documented public
+ * surface, not from reading the implementation. The barrel exports exactly the
+ * stable API; internal VICE protocol / socket plumbing and test-only helpers
+ * must NOT leak.
  */
 
 import { describe, expect, it } from "vitest";
@@ -17,7 +17,7 @@ import type {
   Registers,
 } from "./index.js";
 
-/** The stable VALUE exports the barrel must expose (03-04 documented surface). */
+/** The stable VALUE exports the barrel must expose. */
 const PUBLIC_VALUE_EXPORTS = [
   "ViceDriver",
   "runUntilLabel",
@@ -36,7 +36,7 @@ const PUBLIC_VALUE_EXPORTS = [
   "emulatorFor",
 ];
 
-/** Internal symbols that must stay OFF the public surface (R34). */
+/** Internal symbols that must stay OFF the public surface. */
 const INTERNAL_SYMBOLS = [
   "encodeCommand",
   "decodeResponses",

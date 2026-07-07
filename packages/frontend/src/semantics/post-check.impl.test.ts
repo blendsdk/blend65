@@ -1,8 +1,8 @@
 /**
- * Implementation tests for RD-18 Slice 4a all-paths-return analysis (FR-6, AR-4;
- * 07-testing-strategy P1). Covers the structural `definitelyReturns` edge cases
- * the ST-8 spec case does not exhaust: one-armed `if`, both-arms-return, trailing
- * return, nested if/else chains, and loops (which never guarantee a return).
+ * Implementation tests for all-paths-return analysis. Covers the structural
+ * `definitelyReturns` edge cases the spec case does not exhaust: one-armed
+ * `if`, both-arms-return, trailing return, nested if/else chains, and loops
+ * (which never guarantee a return).
  */
 
 import { describe, expect, it } from "vitest";

@@ -1,13 +1,13 @@
 /**
- * Argument parsing for `blendc` (RD-15 §4.3, R15–R36; AR-V1/V13/V14/V15, PF-009).
+ * Argument parsing for `blendc`.
  *
  * Isolates ALL yargs interaction: {@link parseArgs} configures the parser (the
  * normative flag table), parses via the callback form so help/version/usage text
- * routes through {@link CliIo} rather than yargs' own console binding (PF-009), and
+ * routes through {@link CliIo} rather than yargs' own console binding, and
  * returns a discriminated {@link ParseOutcome} — clean `ParsedArgs`, help/version
  * text, or a usage failure. Config-backed flags carry NO yargs defaults (defaults
  * live in `CONFIG_DEFAULTS` — a yargs default would masquerade as an explicit
- * override, RD-16 R24).
+ * override).
  */
 
 import yargs from "yargs";
@@ -75,7 +75,7 @@ interface RawArgv {
 }
 
 /**
- * Parse `argv` into a {@link ParseOutcome} (PF-009 callback routing).
+ * Parse `argv` into a {@link ParseOutcome} (callback routing).
  *
  * @param argv The argument vector (already `hideBin`-stripped in `bin.ts`).
  * @returns The parse outcome — args, help/version text, or a usage failure.
@@ -153,7 +153,7 @@ export function parseArgs(argv: string[]): ParseOutcome {
   });
 
   if (failMsg !== undefined) {
-    // Include yargs' usage text when it captured any (PF-009).
+    // Include yargs' usage text when it captured any.
     return { kind: "fail", text: output && output.length > 0 ? `${failMsg}\n${output}` : failMsg };
   }
   // --help/--version: yargs produced output and set the flag; nothing else to do.
@@ -213,7 +213,7 @@ function assign<K extends keyof ParsedArgs>(
 }
 
 /**
- * Coerce the repeatable `--warn-as-error` occurrences (R26/R27): a bare flag
+ * Coerce the repeatable `--warn-as-error` occurrences: a bare flag
  * (empty-string occurrence) is blanket promotion (`true`); code-valued
  * occurrences accumulate into the code list.
  */

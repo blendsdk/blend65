@@ -1,14 +1,13 @@
 /**
- * Specification test for the RD-18 Slice 4a all-paths-return negative (acceptance
- * bar part 4, ST-22, FR-13). A non-void function that returns on only one path
- * must be rejected with **E10102**, set `hasErrors`, emit **no binary**, and never
- * throw — asserted through the frontend-only `compile()` facade (CI-runnable, no
- * ACME).
+ * Specification test for the Slice 4a all-paths-return negative case. A
+ * non-void function that returns on only one path must be rejected with
+ * **E10102**, set `hasErrors`, emit **no binary**, and never throw — asserted
+ * through the frontend-only `compile()` facade (CI-runnable, no ACME).
  *
- * Derived EXCLUSIVELY from `03-04-acceptance-fixtures.md` (ST-22) + the AR-4 code
- * decision (all-paths-return = E10102) — never from reading the implementation
- * (IMMUTABLE ORACLE). Uses a local `x` (not a parameter — params are not yet in
- * scope until Slice 5, so a param reference would raise a spurious E10100).
+ * This is derived directly from the documented all-paths-return code decision
+ * (missing a return path = E10102), not from reading the implementation. Uses
+ * a local `x` (not a parameter — params are not yet supported, so a param
+ * reference would raise a spurious E10100).
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -18,7 +17,7 @@ import { describe, expect, it } from "vitest";
 import { DiagCode } from "@blend65/core";
 import { compile } from "@blend65/compiler";
 
-/** The missing-return negative fixture (03-04 §4). */
+/** The missing-return negative fixture. */
 const MISSING_RETURN_SRC = `module Main;
 function f(): byte {
     let x: byte = 5;

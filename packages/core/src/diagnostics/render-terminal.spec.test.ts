@@ -1,11 +1,9 @@
 /**
- * Specification tests for the terminal diagnostic renderer (RD-11b Phase 3).
+ * Specification tests for the terminal diagnostic renderer.
  *
- * ST-12..ST-17, ST-19 — golden blocks transcribed from spec Ch 14 §1 and the
- * AR-105 presentation contract (R33/R35/R51, AR-Q8/Q9/Q14, PF-004/PF-013);
- * see plans/rd-11b-diagnostics-reporting/07-testing-strategy.md.
- * IMMUTABLE ORACLE: these expectations derive from the spec/RD/ARs, never from
- * the implementation. ST-18 (R52 security) lives in
+ * Golden blocks transcribed from spec Ch 14 §1 and its presentation contract.
+ * IMMUTABLE ORACLE: these expectations derive from the spec, never from
+ * the implementation. Security-related sanitization tests live in
  * `render-terminal.security.spec.test.ts`.
  */
 
@@ -81,13 +79,13 @@ const CH14_GOLDEN =
   ].join("\n") + "\n";
 
 describe("renderTerminal (Ch 14 §1 / AR-105)", () => {
-  // ST-12 · Ch 14 §1, R33, AR-Q14 — the canonical uncolored block.
+  // The canonical uncolored block.
   it("ST-12: renders the Ch 14 §1 block exactly (uncolored, 17 carets, no caret label)", () => {
     const { diagnostic, sourceMap } = ch14Fixture();
     expect(renderTerminal([diagnostic], sourceMap, { color: false })).toBe(CH14_GOLDEN);
   });
 
-  // ST-13 · AR-Q9/AR-17 — SGR variant; stripping yields ST-12 byte-for-byte.
+  // SGR variant; stripping yields the byte-for-byte uncolored golden.
   it("ST-13: colored output strips back to the uncolored golden and uses the AR-Q9 map", () => {
     const { diagnostic, sourceMap } = ch14Fixture();
     const colored = renderTerminal([diagnostic], sourceMap, { color: true });
@@ -103,7 +101,7 @@ describe("renderTerminal (Ch 14 §1 / AR-105)", () => {
     expect(caretCodes).not.toEqual(expect.arrayContaining(["1"]));
   });
 
-  // ST-14 · R51/PF-009, PF-004 — span-less ICE degrades to header + notes/help.
+  // A span-less ICE degrades to header + notes/help.
   it("ST-14: a null-span ICE renders header, notes, and help only at the fixed 3-space indent", () => {
     const sourceMap = createSourceMap();
     const ice = diag({
@@ -124,7 +122,7 @@ describe("renderTerminal (Ch 14 §1 / AR-105)", () => {
     );
   });
 
-  // ST-15 · R51/PF-009, RD-16 AR-P2 — un-interned sentinel id degrades identically.
+  // An un-interned sentinel id degrades identically.
   it("ST-15: a diagnostic on the -2 config sentinel degrades like a span-less ICE without throwing", () => {
     const sourceMap = createSourceMap(); // -2 never interned
     const configDiag = diag({
@@ -144,7 +142,7 @@ describe("renderTerminal (Ch 14 §1 / AR-105)", () => {
     );
   });
 
-  // ST-16 · R33/PF-013 — a multi-line span underlines only the first line.
+  // A multi-line span underlines only the first line.
   it("ST-16: a span crossing a line break carets from span start to the end of the first line only", () => {
     const sourceMap = createSourceMap();
     // Line 1 is `let a = b +` (11 bytes); the span [8, 13) runs past the break.
@@ -169,7 +167,7 @@ describe("renderTerminal (Ch 14 §1 / AR-105)", () => {
     );
   });
 
-  // ST-17 · R33/PF-007 — TABs render literally and count 1 byte in caret math.
+  // TABs render literally and count 1 byte in caret math.
   it("ST-17: a TAB before the span is rendered literally and counted as 1 byte of caret indent", () => {
     const sourceMap = createSourceMap();
     const id = sourceMap.intern("tabs.blend", "\tpoke(1);\n");
@@ -192,12 +190,12 @@ describe("renderTerminal (Ch 14 §1 / AR-105)", () => {
     );
   });
 
-  // ST-19 · R9–R11, AR-Q8, PF-004 — secondary mini-block, notes/help alignment,
-  // per-excerpt gutter widths, blank-line block separation, no footer.
+  // Secondary mini-block, notes/help alignment, per-excerpt gutter widths,
+  // blank-line block separation, no footer.
   it("ST-19: renders secondary mini-blocks with their own gutter width, primary-aligned notes/help, and blank-line separation", () => {
     const sourceMap = createSourceMap();
     // Primary: line 42 (2-digit gutter). Secondary: line 7 of another file
-    // (1-digit gutter) — widths must NOT be shared across sub-blocks (PF-004).
+    // (1-digit gutter) — widths must NOT be shared across sub-blocks.
     const mainId = sourceMap.intern("main.blend", "\n".repeat(41) + "    call foo();\n");
     const otherId = sourceMap.intern("other.blend", "\n".repeat(6) + "fn foo() {}\n");
 
@@ -240,7 +238,7 @@ describe("renderTerminal (Ch 14 §1 / AR-105)", () => {
     expect(output).toBe(`${firstBlock}\n\n${secondBlock}\n`);
   });
 
-  // Composition edge from AR-Q8: empty input renders as the empty string.
+  // Composition edge: empty input renders as the empty string.
   it("renders an empty diagnostics array as the empty string", () => {
     expect(renderTerminal([], createSourceMap(), { color: false })).toBe("");
   });

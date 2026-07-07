@@ -1,16 +1,15 @@
 /**
- * Specification tests for the RD-06 IL data model (ST-M1..M11).
+ * Specification tests for the IL data model.
  *
- * Derived EXCLUSIVELY from plans/rd-06-il-optimizer/07-testing-strategy.md
- * (ST-M1..M11), 03-01-il-data-model.md, and RD-06 §4.1–§4.5 — NOT from
- * implementation logic. These pin the §4.1 type-mapping table, the operand
+ * Derived exclusively from the documented type-mapping table, the operand
  * constructors/guards, the instruction/terminator construction, that an
- * `ILProgram` carries the `AllocationPlan`, and `ilTypeEquals`.
+ * `ILProgram` carries the `AllocationPlan`, and `ilTypeEquals` — not from
+ * implementation logic.
  *
- * Spec-tests-first (testing.md Rule 10): authored before the implementation and
- * expected to FAIL first (red — the `il/` modules do not exist yet), then PASS
- * (green). Immutable oracle — a post-implementation failure means the
- * implementation is wrong, not this test.
+ * Spec-tests-first: authored before the implementation and expected to fail
+ * first (red — the `il/` modules do not exist yet), then pass (green).
+ * Immutable oracle — a post-implementation failure means the implementation
+ * is wrong, not this test.
  */
 
 import { describe, expect, it } from "vitest";
@@ -61,9 +60,9 @@ const ENUM_DECL: EnumDeclNode = {
 };
 
 /**
- * A minimal, fully-typed empty `AllocationPlan` (RD-05 §4.10). Used by ST-M10 to
- * verify the plan is carried by reference through `ILProgram`. All figures are
- * zero — the only property under test is identity preservation.
+ * A minimal, fully-typed empty `AllocationPlan`. Used below to verify the plan
+ * is carried by reference through `ILProgram`. All figures are zero — the only
+ * property under test is identity preservation.
  */
 const EMPTY_PLAN: AllocationPlan = {
   frames: new Map(),
@@ -102,36 +101,36 @@ const EMPTY_PLAN: AllocationPlan = {
 };
 
 describe("Specification: RD-06 IL type mapping (§4.1)", () => {
-  // ST-M1 — byte → IL_BYTE {8,false}
+  // byte → IL_BYTE {8,false}
   it("should map primitive byte to IL_BYTE (ST-M1, R3/§4.1)", () => {
     expect(ilTypeOfType(primitive("byte"))).toEqual({ width: 8, signed: false });
     expect(ilTypeOfType(primitive("byte"))).toEqual(IL_BYTE);
   });
 
-  // ST-M2 — sbyte → IL_SBYTE {8,true}
+  // sbyte → IL_SBYTE {8,true}
   it("should map primitive sbyte to IL_SBYTE (ST-M2, §4.1)", () => {
     expect(ilTypeOfType(primitive("sbyte"))).toEqual({ width: 8, signed: true });
     expect(ilTypeOfType(primitive("sbyte"))).toEqual(IL_SBYTE);
   });
 
-  // ST-M3 — word → IL_WORD {16,false}
+  // word → IL_WORD {16,false}
   it("should map primitive word to IL_WORD (ST-M3, §4.1)", () => {
     expect(ilTypeOfType(primitive("word"))).toEqual({ width: 16, signed: false });
     expect(ilTypeOfType(primitive("word"))).toEqual(IL_WORD);
   });
 
-  // ST-M4 — sword → IL_SWORD {16,true}
+  // sword → IL_SWORD {16,true}
   it("should map primitive sword to IL_SWORD (ST-M4, §4.1)", () => {
     expect(ilTypeOfType(primitive("sword"))).toEqual({ width: 16, signed: true });
     expect(ilTypeOfType(primitive("sword"))).toEqual(IL_SWORD);
   });
 
-  // ST-M5 — boolean is erased to IL_BYTE (values 0/1)
+  // boolean is erased to IL_BYTE (values 0/1)
   it("should erase boolean to IL_BYTE (ST-M5, R5/§4.1)", () => {
     expect(ilTypeOfType(primitive("boolean"))).toEqual(IL_BYTE);
   });
 
-  // ST-M6 — enum identity is erased to IL_BYTE
+  // enum identity is erased to IL_BYTE
   it("should erase enum identity to IL_BYTE (ST-M6, R6/§4.1)", () => {
     const en: EnumType = {
       kind: "enum",
@@ -142,7 +141,7 @@ describe("Specification: RD-06 IL type mapping (§4.1)", () => {
     expect(ilTypeOfType(en)).toEqual(IL_BYTE);
   });
 
-  // ST-M7 — struct/array are passed by-ref → IL_WORD (16-bit base address)
+  // struct/array are passed by-ref → IL_WORD (16-bit base address)
   it("should map struct and array (by-ref) to IL_WORD (ST-M7, §4.1)", () => {
     const struct: StructType = {
       kind: "struct",
@@ -158,7 +157,7 @@ describe("Specification: RD-06 IL type mapping (§4.1)", () => {
 });
 
 describe("Specification: RD-06 IL operands (§4.2)", () => {
-  // ST-M8 — constructors build the correct discriminated operands; guards classify each.
+  // constructors build the correct discriminated operands; guards classify each.
   it("should build immediate/temp/location operands and classify them (ST-M8, R7–R11)", () => {
     const i = imm(42, IL_BYTE);
     const t = temp(0, IL_WORD);
@@ -182,7 +181,7 @@ describe("Specification: RD-06 IL operands (§4.2)", () => {
 });
 
 describe("Specification: RD-06 IL instructions & terminators (§4.3)", () => {
-  // ST-M9 — one representative of each instruction family + each terminator builds
+  // One representative of each instruction family + each terminator builds
   // a well-typed record carrying its `op` / `kind` discriminant.
   it("should construct one of each instruction family and terminator (ST-M9, R17–R28)", () => {
     const d = temp(0, IL_BYTE);
@@ -207,7 +206,7 @@ describe("Specification: RD-06 IL instructions & terminators (§4.3)", () => {
         op: "intrinsic",
         name: "poke",
         args: [x, y],
-        // RD-17 (PF-010): the descriptor is now the canonical core type.
+        // The descriptor is the canonical core type.
         descriptor: createIntrinsicRegistry().get("poke")!,
       },
       { op: "source_span", span: SPAN },
@@ -243,7 +242,7 @@ describe("Specification: RD-06 IL instructions & terminators (§4.3)", () => {
 });
 
 describe("Specification: RD-06 CFG records (§4.4–§4.5)", () => {
-  // ST-M10 — an `ILProgram` carries the `AllocationPlan` it was built with (by reference).
+  // An `ILProgram` carries the `AllocationPlan` it was built with (by reference).
   it("should carry the AllocationPlan on the ILProgram (ST-M10, R66)", () => {
     const entry: BasicBlock = {
       label: "_entry",
@@ -271,7 +270,7 @@ describe("Specification: RD-06 CFG records (§4.4–§4.5)", () => {
 });
 
 describe("Specification: RD-06 ilTypeEquals (§4.1)", () => {
-  // ST-M11 — structural equality on ILType.
+  // Structural equality on ILType.
   it("should compare ILTypes structurally (ST-M11, R3)", () => {
     expect(ilTypeEquals(IL_BYTE, IL_BYTE)).toBe(true);
     expect(ilTypeEquals(IL_BYTE, IL_WORD)).toBe(false);

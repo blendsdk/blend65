@@ -1,13 +1,12 @@
 /**
- * Specification tests for the RD-17 inherited AC-14 — the `__rt_mul8/mul16/div8/
- * div16` runtime routines verified on REAL VICE silicon (ST-30..ST-33, AR-P4/AR-H5).
+ * Specification tests for the `__rt_mul8/mul16/div8/div16` runtime routines,
+ * verified on REAL VICE silicon.
  *
- * Derived EXCLUSIVELY from the RD-17 runtime ABI (AR-33/AR-P7, mirrored from
- * `compiler/src/runtime-asm.impl.test.ts`) and reference integer math — never from
- * reading the harness implementation (IMMUTABLE ORACLE RULE). Discharges RD-17's
- * INHERITED AC-14 on real silicon (distinct from RD-12's own AC-14 = publishable
- * package). The interim in-process interpreter test retains the exhaustive 500-sample
- * coverage; this is the bounded real-silicon parity check (AR-H5).
+ * Derived directly from the runtime ABI (mirrored from
+ * `compiler/src/runtime-asm.impl.test.ts`) and reference integer math — never
+ * from reading the harness implementation. This is the bounded real-silicon
+ * parity check; a separate in-process interpreter test retains the exhaustive
+ * 500-sample coverage.
  *
  * ABI (a→A, b→X for 8-bit; a→A/X, b→zp[2..3] for 16-bit):
  *   __rt_mul8 : a→A, b→X          → product lo→A, hi→X   (Y preserved)
@@ -15,9 +14,9 @@
  *   __rt_mul16: a→A/X, b→zp[2..3] → product lo→A, hi→X
  *   __rt_div16: a→A/X, b→zp[2..3] → quotient→A/X, remainder→zp[2..3]
  *
- * Assembles via ACME AND runs on VICE → gates on `skipIf(!hasVice() || !hasAcme())`
- * (PF-002). Each vector injects in-session via a `JSR <routine>` trampoline +
- * breakpoint (no relaunch between vectors, AR-H6).
+ * Assembles via ACME AND runs on VICE → gates on `skipIf(!hasVice() || !hasAcme())`.
+ * Each vector injects in-session via a `JSR <routine>` trampoline + breakpoint
+ * (no relaunch between vectors).
  */
 
 import { execFileSync } from "node:child_process";
@@ -35,7 +34,7 @@ import net from "node:net";
 const ROUTINE_ORIGIN = 0x8000;
 const TRAMPOLINE = 0xc000;
 const RETURN_ADDR = 0xc003; // instruction after `JSR $8000`
-/** ZP arg slots (__zp_arg_0..3 = $02..$05 per the RD-17 prelude). */
+/** ZP arg slots (__zp_arg_0..3 = $02..$05 per the runtime prelude). */
 const ZP_ARG0 = 0x02;
 
 const LOCAL_TEST_TIMEOUT = 120000;
@@ -75,7 +74,7 @@ function freePort(): Promise<number> {
 
 const EDGE8 = [0, 1, 2, 3, 127, 128, 129, 254, 255] as const;
 const EDGE16 = [0, 1, 2, 255, 256, 257, 32767, 32768, 65534, 65535] as const;
-const RANDOM_SAMPLES = 25; // bounded subset (AR-H5); the interpreter keeps 500
+const RANDOM_SAMPLES = 25; // bounded subset; the interpreter test keeps 500
 
 describe.skipIf(!RUN)("Specification: RD-17 runtime routines on real VICE (ST-30..ST-33)", () => {
   let driver: ViceDriver;
@@ -112,7 +111,7 @@ describe.skipIf(!RUN)("Specification: RD-17 runtime routines on real VICE (ST-30
     return new Uint8Array(readFileSync(binPath));
   }
 
-  /** Load a routine's bytes at the origin (relaunch-free, AR-H6). */
+  /** Load a routine's bytes at the origin (no relaunch needed between vectors). */
   async function loadRoutine(name: string): Promise<void> {
     await driver.writeMemory(ROUTINE_ORIGIN, assembleRoutine(name));
   }

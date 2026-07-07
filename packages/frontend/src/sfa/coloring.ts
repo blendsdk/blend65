@@ -1,21 +1,20 @@
 /**
- * The SFA frame-coloring pass (RD-05 §4.4, R12/R16/R18, R21/R22; spec Ch 11 §3.4).
+ * The SFA frame-coloring pass (spec Ch 11 §3.4).
  *
  * Assigns each reachable function a byte offset within a single shared *frame
  * region* such that interfering functions never overlap, while non-interfering
  * functions may share the same bytes. Because the interference graph derived from
  * a call tree is **chordal**, greedy coloring in a fixed order is optimal — so we
  * process functions in a deterministic order (frame size descending, then name
- * ascending, R18) and place each in the lowest offset that clears its already-
- * placed interfering neighbors.
+ * ascending) and place each in the lowest offset that clears its already-placed
+ * interfering neighbors.
  *
  * Unlike classic graph coloring (one color per node), frames have *sizes*, so we
  * color **intervals**: each function occupies `[offset, offset + totalSize)`. The
- * resulting `frameRegionSize` is the peak simultaneous footprint (R21/R22) — the
- * maximum of `offset + size` over all functions — NOT the sum of all frame sizes.
+ * resulting `frameRegionSize` is the peak simultaneous footprint — the maximum of
+ * `offset + size` over all functions — NOT the sum of all frame sizes.
  *
- * Imports `@blend65/core` only — never `@blend65/codegen` (R15/AR-20). Pure and
- * deterministic. See plans/rd-05-sfa-frame-planner/03-02-interference-and-coloring.md.
+ * Imports `@blend65/core` only — never `@blend65/codegen`. Pure and deterministic.
  */
 
 import type { FunctionFrame, InterferenceGraph } from "@blend65/core";
@@ -24,7 +23,7 @@ import type { FunctionFrame, InterferenceGraph } from "@blend65/core";
 export interface ColoringResult {
   /** Function name → assigned byte offset within the frame region. */
   readonly offsets: ReadonlyMap<string, number>;
-  /** `max(offset + size)` over all functions, or 0 when empty (the peak, R21/R22). */
+  /** `max(offset + size)` over all functions, or 0 when empty (the peak). */
   readonly frameRegionSize: number;
 }
 
@@ -65,7 +64,7 @@ function smallestFittingOffset(occupied: readonly Interval[], size: number): num
 }
 
 /**
- * Colors the frames against the interference graph (R12/R16/R18).
+ * Colors the frames against the interference graph.
  *
  * Only functions present in `graph.nodes` are colored (unreachable functions were
  * already excluded when the graph was built). Functions absent from `frames` are
@@ -82,7 +81,7 @@ export function colorFrames(
   /** The frame size for a node, defaulting to 0 if no frame was computed. */
   const sizeOf = (name: string): number => frames.get(name)?.totalSize ?? 0;
 
-  // Step 1 — deterministic processing order: size DESC, then name ASC (R18).
+  // Step 1 — deterministic processing order: size DESC, then name ASC.
   const order = [...graph.nodes].sort((a, b) => {
     const bySize = sizeOf(b) - sizeOf(a);
     return bySize !== 0 ? bySize : a < b ? -1 : a > b ? 1 : 0;

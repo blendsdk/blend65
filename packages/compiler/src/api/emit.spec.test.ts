@@ -1,11 +1,10 @@
 /**
- * Specification tests for `emitIl` / `emitAsm` — ST-15, ST-16, ST-41, ST-42.
+ * Specification tests for `emitIl` / `emitAsm`.
  *
- * Derived EXCLUSIVELY from RD-15 R7/R8/R21/R46, RD-16 R18, and the plan (03-02,
- * PF-001). Immutable oracles: `emitIl` yields IL text (no `.asm`), `emitAsm`
- * yields ACME text with the c64 `!to` directive and no printing/writes; the
- * PF-001 seam threads `outName` into `!to` (ST-41) and `startup` into the shim
- * (ST-42).
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: `emitIl` yields IL text (no `.asm`), `emitAsm` yields ACME text with
+ * the c64 `!to` directive and no printing/writes; the startup/out-name seam
+ * threads `outName` into `!to` and `startup` into the shim.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

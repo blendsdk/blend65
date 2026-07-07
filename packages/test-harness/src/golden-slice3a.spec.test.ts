@@ -1,11 +1,10 @@
 /**
- * CI golden test for the RD-18 Slice 3a fixture (acceptance bar part 2): emits the
- * fixture's ACME source via `emitAsm` and `assertGolden`s it against the committed
+ * CI golden test for the Slice 3a fixture: emits the fixture's ACME source via
+ * `emitAsm` and `assertGolden`s it against the committed
  * `test/golden/slice3a.asm.golden`, proving the `__frame_Main_main` /
  * `__frame_Main_main_x` addresses stay byte-exact. Runs in CI (no emulator, no
  * ACME — `emitAsm` stops before the assembler).
  *
- * Derived from `01-requirements.md` FR-4 / `03-03-acceptance-fixtures.md` (ST-6).
  * The golden pins the exact bytes; the spec assertion is byte-exact equality.
  *
  * Regenerate after an intentional codegen change (inspect the diff first):

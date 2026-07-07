@@ -4,10 +4,8 @@
  *
  * A {@link Diagnostic} is renderer-agnostic: it carries the data describing a
  * single error or warning (code, severity, message, locations, notes) but says
- * nothing about how that data is presented. Terminal/JSON renderers (deferred to
- * RD-11b) consume this record; the core only produces and stores it.
- *
- * Covers RD-11 §4.1 (FR-9, R4–R11) · §4.3 (FR-10).
+ * nothing about how that data is presented. Terminal/JSON renderers consume
+ * this record; the core only produces and stores it.
  */
 
 import type { SourceSpan, LabeledSpan } from "./source-span.js";
@@ -31,13 +29,13 @@ export type Severity = "error" | "warning";
  * to branch on `undefined`; only `help` stays optional.
  */
 export interface Diagnostic {
-  /** Canonical Ch 14 code, e.g. `"E10001"`, `"W10191"`, or an ICE `"E90001"`. */
+  /** Canonical diagnostic code, e.g. `"E10001"`, `"W10191"`, or an ICE `"E90001"`. */
   readonly code: string;
   /** Whether this diagnostic fails the build (`"error"`) or merely informs (`"warning"`). */
   readonly severity: Severity;
   /** Human-readable, actionable description of the problem. */
   readonly message: string;
-  /** The primary location; `null` only for span-less ICEs (RD-11 R8). */
+  /** The primary location; `null` only for span-less ICEs. */
   readonly primarySpan: SourceSpan | null;
   /** Related locations with explanatory labels (empty when none). */
   readonly secondarySpans: readonly LabeledSpan[];

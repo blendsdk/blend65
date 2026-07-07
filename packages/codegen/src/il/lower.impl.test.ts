@@ -1,11 +1,11 @@
 /**
- * Implementation tests for `lowerToIL` (RD-06 §3.5/§4.7).
+ * Implementation tests for `lowerToIL`.
  *
  * Edge cases and internals NOT pinned by the spec oracle (lower.spec.test.ts):
  * nested `Block` flattening, a bare `return` → `ret()`, the ICE default for an
  * unsupported *statement*, an interrupt declaration → void single block, and the
- * carried allocation plan. Written AFTER the implementation (testing.md Rule 6/10),
- * built from the same fixture helpers as the spec layer.
+ * carried allocation plan. Written after the implementation, built from the same
+ * fixture helpers as the spec layer.
  */
 
 import { describe, expect, it } from "vitest";
@@ -216,7 +216,7 @@ describe("lowerToIL — uses primitive() for type provenance (smoke)", () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
-// RD-18 Slice 3b — width-aware lowering edge cases (via the real frontend)
+// Width-aware lowering edge cases (via the real frontend)
 // ───────────────────────────────────────────────────────────────────────────
 
 /** Lowers `source` end-to-end through the real frontend; returns printed IL + bag flag. */

@@ -1,24 +1,22 @@
 /**
- * The SFA module-variable layout and zero-page allocator (RD-05 §4.5/§4.7/§4.8,
- * R24–R36; spec Ch 11 §4/§7).
+ * The SFA module-variable layout and zero-page allocator (spec Ch 11 §4/§7).
  *
  * Three responsibilities:
  *
  *   1. {@link layoutModuleVariables} — places module-level `let` variables
- *      sequentially in RAM starting at `ramStart` (sum-of-sizes layout, R24).
+ *      sequentially in RAM starting at `ramStart` (sum-of-sizes layout).
  *   2. {@link computePeakPointers} — counts the peak number of simultaneously-live
  *      struct/array by-reference pointers, so non-overlapping functions share
- *      pointer slots while nested ones accumulate them (R31/R32).
+ *      pointer slots while nested ones accumulate them.
  *   3. {@link allocateZeroPage} — places zero-page bytes in the fixed priority
- *      order arg-block → user → pointer → temp → irq-temp (R28–R36). On overflow it
- *      emits **E10032** exactly once, sets `overflowed`, and stops (no partial
- *      garbage). The arg-block category is plumbed but its interim floor is 0 (D8 —
- *      RD-17 owns the real ABI floor; raising it is a pure profile change).
+ *      order arg-block → user → pointer → temp → irq-temp. On overflow it emits
+ *      **E10032** exactly once, sets `overflowed`, and stops (no partial garbage).
+ *      The arg-block category is plumbed but its interim floor is 0 until the
+ *      runtime ABI's real floor is finalized; raising it later is a pure profile
+ *      change.
  *
- * Imports `@blend65/core` only — never `@blend65/codegen` (R15/AR-20). The ZP
- * allocator is the single emitter of E10032; `checkBudgets` never re-emits it.
- *
- * See plans/rd-05-sfa-frame-planner/03-03-zp-and-layout.md.
+ * Imports `@blend65/core` only — never `@blend65/codegen`. The ZP allocator is the
+ * single emitter of E10032; `checkBudgets` never re-emits it.
  */
 
 import type {
@@ -41,12 +39,12 @@ export interface ModuleVarInput {
 }
 
 /**
- * Lays out module-level variables sequentially in RAM (R24, §4.5).
+ * Lays out module-level variables sequentially in RAM (§4.5).
  *
  * Variables occupy `[ramStart, ramStart + totalSize)` in the given order, each at
  * a running byte offset. The absolute `address` is provisional (`ramStart + offset`);
- * authoritative placement is finalized at emit time (AR-67). The pre-ACME budget
- * check needs only the `totalSize`.
+ * authoritative placement is finalized at emit time. The pre-ACME budget check
+ * needs only the `totalSize`.
  *
  * @param vars Module variables in module-init then declaration order.
  * @param ramStart The RAM segment start (defaults to 0 when laying out offsets only).
@@ -84,8 +82,7 @@ function byRefParamCount(fn: FunctionInfo): number {
 }
 
 /**
- * Computes the peak number of simultaneously-live struct/array pointers (R31/R32,
- * §4.7).
+ * Computes the peak number of simultaneously-live struct/array pointers (§4.7).
  *
  * Each by-reference parameter needs one pointer slot while its function is live.
  * Sequential (non-interfering) functions reuse the same slots; nested (interfering)
@@ -134,18 +131,18 @@ export interface ZpInput {
   readonly mainTemps: number;
   /** IRQ temp bytes (`profile.irqTempBytes`). */
   readonly irqTemps: number;
-  /** Reserved runtime-ABI arg-block floor (`profile.zpArgBlockMin`; interim 0, D8). */
+  /** Reserved runtime-ABI arg-block floor (`profile.zpArgBlockMin`; interim 0). */
   readonly argBlockMin: number;
 }
 
 /**
- * Allocates zero-page bytes in the fixed priority order (R28–R36, §4.7).
+ * Allocates zero-page bytes in the fixed priority order (§4.7).
  *
- * Order: arg-block (deferred, interim floor 0 — D8) → user `zeropage` vars →
+ * Order: arg-block (deferred, interim floor 0) → user `zeropage` vars →
  * struct/array pointers (`__zp_ptr_N`, 2 bytes each) → main temps (`__zp_tmp_N`) →
  * IRQ temps (`__zp_irq_tmp_N`). The first placement that would push the cursor past
  * `zpEnd` emits **E10032** once, sets `overflowed`, and stops — no partial garbage.
- * Names and order are deterministic (R36).
+ * Names and order are deterministic.
  *
  * @param input The category sizes and user vars.
  * @param profile The platform profile (supplies `zpStart`/`zpEnd`/`name`).
@@ -186,32 +183,32 @@ export function allocateZeroPage(
     return true;
   }
 
-  // Reserve runtime-ABI arg-block first (AR-34); interim floor 0 (D8 → RD-17). The
-  // loop is plumbed so RD-17 lights it up additively with no code change.
+  // Reserve runtime-ABI arg-block first; interim floor 0. The loop is plumbed so
+  // the real floor can light it up additively with no code change.
   for (let i = 0; i < input.argBlockMin; i++) {
     if (!place(`__zp_arg_${i}`, 1, "arg-block")) {
       return finish();
     }
   }
-  // Priority 1: user zeropage variables (R30), declaration order.
+  // Priority 1: user zeropage variables, declaration order.
   for (const v of input.userVars) {
     if (!place(v.name, v.size, "user")) {
       return finish();
     }
   }
-  // Priority 2: struct/array pointer slots (R31/R32), 2 bytes each.
+  // Priority 2: struct/array pointer slots, 2 bytes each.
   for (let n = 0; n < input.peakPointers; n++) {
     if (!place(`__zp_ptr_${n}`, 2, "pointer")) {
       return finish();
     }
   }
-  // Priority 3: main expression temps (R33).
+  // Priority 3: main expression temps.
   for (let n = 0; n < input.mainTemps; n++) {
     if (!place(`__zp_tmp_${n}`, 1, "temp")) {
       return finish();
     }
   }
-  // Priority 4: IRQ temps (R34, separate pool).
+  // Priority 4: IRQ temps (separate pool).
   for (let n = 0; n < input.irqTemps; n++) {
     if (!place(`__zp_irq_tmp_${n}`, 1, "irq-temp")) {
       return finish();

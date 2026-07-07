@@ -1,15 +1,15 @@
 /**
- * IL textual form — `printIL` (RD-06 §4.6, R53–R55).
+ * IL textual form — `printIL`.
  *
  * Renders an {@link ILProgram} to a **stable, deterministic, human-readable**
- * string: the surface for `--emit-il` (wired by RD-15) and for golden-snapshot
- * testing. Same input → identical output, character-for-character (H5). It is a
+ * string: the surface for `--emit-il` and for golden-snapshot
+ * testing. Same input → identical output, character-for-character. It is a
  * pure function of the program — no clock, no random, no map/set iteration, no
  * locale-dependent formatting; line endings are always `\n`.
  *
  * The printer is intentionally "dumb": every operand renders verbatim from its
  * own fields (a `Location`'s `symbol` is printed as-is, including frame-slot
- * names like `__frame_Math_add_a` — register D8), so there is exactly one
+ * names like `__frame_Math_add_a`), so there is exactly one
  * rendering path per operand kind and no hidden lookups.
  */
 
@@ -19,7 +19,7 @@ import type { ILInstruction, ILTerminator } from "./instruction.js";
 import type { BasicBlock, ILFunction, ILProgram } from "./cfg.js";
 
 /**
- * Map an {@link ILType} to its textual tag (§4.6). The **single** place this
+ * Map an {@link ILType} to its textual tag. The **single** place this
  * mapping lives — width + signedness → `i8u` / `i8s` / `i16u` / `i16s`.
  *
  * @param t The IL type.
@@ -31,9 +31,9 @@ export function ilTypeTag(t: ILType): string {
 }
 
 /**
- * Render a single operand (§4.2/§4.6):
+ * Render a single operand:
  * - immediate → bare decimal number (v1 prints decimal; the operand carries only
- *   a `number`, not its source radix — keeps output source-independent, D-watch)
+ *   a `number`, not its source radix — keeps output source-independent)
  * - temp → `%N`
  * - location → `symbol` (+ `+offset` when an offset is present)
  *
@@ -57,7 +57,7 @@ function renderOperand(o: ILOperand): string {
  * Instructions with a destination render `<dest> = <op> <type?> <operands>`;
  * destination-less instructions (`store`, `source_span`, void `call`/`intrinsic`)
  * render `<op> <operands>`. The type tag is printed for the typed arithmetic/
- * bitwise/comparison forms and for `load` (matching the §4.7 golden); `copy`/
+ * bitwise/comparison forms and for `load`; `copy`/
  * `const`/conversion forms print their operands without a redundant tag.
  *
  * @param ins The instruction.
@@ -96,7 +96,7 @@ function renderInstruction(ins: ILInstruction): string {
     case "sext":
     case "trunc":
       return `${renderOperand(ins.dest)} = ${ins.op} ${renderOperand(ins.src)}`;
-    // Direct memory: `load` writes a dest temp (typed, per §4.7); `store` has no dest.
+    // Direct memory: `load` writes a dest temp (typed); `store` has no dest.
     case "load":
       return `${renderOperand(ins.a)} = load ${ilTypeTag(ins.a.type)} ${renderOperand(ins.b)}`;
     case "store":
@@ -131,7 +131,7 @@ function renderInstruction(ins: ILInstruction): string {
 
 /**
  * Render the value side of a `copy`/`const` instruction. `const` of an immediate
- * prints `<type> <value>` (matching the slice-2 golden `%0 = const i8u 5`);
+ * prints `<type> <value>` (e.g. `%0 = const i8u 5`);
  * everything else prints the source operand bare.
  *
  * @param ins A `copy` or `const` instruction.
@@ -166,7 +166,7 @@ function renderCallLike(
 }
 
 /**
- * Render a block's terminator line body (§4.6): `br`, `brcond`, `ret`, or
+ * Render a block's terminator line body: `br`, `brcond`, `ret`, or
  * `unreachable`.
  *
  * @param term The terminator.
@@ -202,7 +202,7 @@ function renderBlock(block: BasicBlock): string {
 }
 
 /**
- * Render a function header parameter (§4.6, D8): the param operand verbatim,
+ * Render a function header parameter: the param operand verbatim,
  * annotated with its IL type tag (`__frame_Math_add_a: i8u`).
  *
  * @param p The parameter operand (a `Location` from the AllocationPlan).
@@ -214,7 +214,7 @@ function renderParam(p: ILOperand): string {
 
 /**
  * Render one function: the `function <name>(<params>): <ret> {` header, each
- * block (entry first, in array order, R16), then the closing `}`.
+ * block (entry first, in array order), then the closing `}`.
  *
  * @param fn The IL function.
  * @returns The function's textual form (no trailing newline).
@@ -231,7 +231,7 @@ function renderFunction(fn: ILFunction): string {
 }
 
 /**
- * Render an entire {@link ILProgram} to deterministic IL text (R53–R55).
+ * Render an entire {@link ILProgram} to deterministic IL text.
  *
  * Functions are printed in `program.functions` order, separated by a blank line.
  * `initCode`/`constData` are empty in v1 and contribute nothing. The result has

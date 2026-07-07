@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the SFA stack-depth analysis pass (RD-05 §4.9).
+ * Implementation tests for the SFA stack-depth analysis pass (§4.9).
  *
  * Edge cases and internals derived from the implementation (testing.md Rule 10
  * impl tier): multiple interrupts, diamond call graphs, no-main, and the

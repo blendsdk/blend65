@@ -1,12 +1,12 @@
 /**
- * ST-40 — real-ACME build E2E (skipIf ACME undiscoverable).
+ * Real-ACME build E2E (skipIf ACME undiscoverable).
  *
- * Derived from RD-15 AC-07 and AR-V4: the full `blendc build` path drives the
- * gate program through REAL ACME to a real `.prg`. Structural assertions only
- * (file exists, non-empty, PRG load address) — not byte-golden — so a differing
- * Ubuntu ACME build does not flake (02 Risks). Lives in `@blend65/cli` because
- * `runCli` does (a compiler-side file importing `runCli` would be a compiler→cli
- * cycle, PF-004). Skipped locally when ACME is absent; live in CI (AR-V4 workflow).
+ * The full `blendc build` path drives the gate program through REAL ACME to a
+ * real `.prg`. Structural assertions only (file exists, non-empty, PRG load
+ * address) — not byte-golden — so a differing Ubuntu ACME build does not flake.
+ * Lives in `@blend65/cli` because `runCli` does (a compiler-side file importing
+ * `runCli` would be a compiler→cli cycle). Skipped locally when ACME is absent;
+ * live in CI.
  */
 
 import { describe, expect, it } from "vitest";

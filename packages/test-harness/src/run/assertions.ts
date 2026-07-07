@@ -1,15 +1,15 @@
 /**
- * Register/memory assertion helpers (RD-12 §4.3, R17–R19, AC-07/08).
+ * Register/memory assertion helpers.
  *
- * Register and memory are the DETERMINISTIC assertion surface (AR-25); screenshots
+ * Register and memory are the DETERMINISTIC assertion surface; screenshots
  * are failure-only artifacts, never asserted. `assertMemory` accepts a numeric
  * address OR a symbolic label resolved via a `symbolMap` keyed per `parseLabelFile`
- * (raw label, no leading `.`/`C:` — verified live, PF-004).
+ * (raw label, no leading `.`/`C:` — verified live against real VICE).
  */
 
 import type { EmulatorDriver, Registers } from "../emulator/driver.js";
 
-/** Thrown by the assertion helpers on a mismatch (R17). */
+/** Thrown by the assertion helpers on a mismatch. */
 export class AssertionError extends Error {
   constructor(message: string) {
     super(message);
@@ -23,7 +23,7 @@ function hex(value: number): string {
 }
 
 /**
- * Assert a register value (R17, AC-07).
+ * Assert a register value.
  *
  * @throws {AssertionError} On mismatch, reporting expected vs actual in hex.
  */
@@ -46,9 +46,9 @@ function sampleKeys(symbols: Map<string, number>): string {
 }
 
 /**
- * Assert memory content (R17/R19, AC-08). `address` is a numeric address OR a
- * symbolic label resolved via `symbols`; `expected` is a single byte or a byte
- * sequence (all compared).
+ * Assert memory content. `address` is a numeric address OR a symbolic label
+ * resolved via `symbols`; `expected` is a single byte or a byte sequence (all
+ * compared).
  *
  * @throws {AssertionError} On a byte mismatch (reports symbolic + numeric address).
  * @throws {Error} If a symbolic label is not in `symbols` (lists available keys).

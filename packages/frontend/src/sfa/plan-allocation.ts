@@ -1,28 +1,28 @@
 /**
- * The SFA planner entry point — `planAllocation`, the 9-step pipeline (RD-05
- * §4.1/§4.10/§4.12, R51–R59; spec Ch 11).
+ * The SFA planner entry point — `planAllocation`, the 9-step pipeline (spec
+ * Ch 11).
  *
  * Orchestrates every SFA pass to turn a {@link PlanInput} into the immutable
- * {@link AllocationPlan} downstream phases (RD-06/RD-07/RD-09) consume:
+ * {@link AllocationPlan} downstream phases consume:
  *
- *   1. computeFrames           — per-function frame sizes (03-01)
- *   2. buildInterferenceGraph  — which functions are simultaneously live (03-02)
- *   3. colorFrames             — share frame memory → offsets + region size (03-02)
- *   4. layoutModuleVariables   — place module `let` vars in RAM (03-03)
+ *   1. computeFrames           — per-function frame sizes
+ *   2. buildInterferenceGraph  — which functions are simultaneously live
+ *   3. colorFrames             — share frame memory → offsets + region size
+ *   4. layoutModuleVariables   — place module `let` vars in RAM
  *   5. frame-region placement  — frameRegionBase + per-function absolute addresses
- *   6. computePeakPointers + allocateZeroPage — zero-page layout (03-03)
- *   7. analyzeStack            — worst-case hardware-stack usage (03-04)
- *   8. checkBudgets            — pre-ACME RAM/ZP/stack diagnostics (03-04)
- *   9. generateSymbolDefinitions + assemble the frozen AllocationPlan (03-05)
+ *   6. computePeakPointers + allocateZeroPage — zero-page layout
+ *   7. analyzeStack            — worst-case hardware-stack usage
+ *   8. checkBudgets            — pre-ACME RAM/ZP/stack diagnostics
+ *   9. generateSymbolDefinitions + assemble the frozen AllocationPlan
  *
- * The signature is `planAllocation(input, profile, bag)` (D9) — an explicit input
- * object mirroring RD-03's `parse(ParseInput)` and RD-04's `analyze(AnalyzeInput)`.
- * The `input.functions` are supplied by fixtures today and by the deferred
- * `modelToFunctionInfo` adapter once RD-04b populates the semantic model.
+ * The signature is `planAllocation(input, profile, bag)` — an explicit input
+ * object mirroring the parser's `parse(ParseInput)` and the analyzer's
+ * `analyze(AnalyzeInput)`. The `input.functions` are supplied by fixtures today
+ * and by the deferred `modelToFunctionInfo` adapter once the semantic model is
+ * fully populated.
  *
- * Never throws (R60/AC-17): on empty or partial input it returns a valid, empty
- * plan. Imports `@blend65/core` only — never `@blend65/codegen` (R15/AR-20).
- * See plans/rd-05-sfa-frame-planner/03-05-allocation-plan-and-api.md.
+ * Never throws: on empty or partial input it returns a valid, empty plan. Imports
+ * `@blend65/core` only — never `@blend65/codegen`.
  */
 
 import type {
@@ -73,7 +73,7 @@ export type { ModuleVarInput };
 export type { Type };
 
 /**
- * Runs the full Static Frame Allocation pipeline (R51–R59, §4.1).
+ * Runs the full Static Frame Allocation pipeline (§4.1).
  *
  * @param input The functions, module/ZP variables, and the upstream-error flag.
  * @param profile The platform profile (budgets, ZP/RAM ranges, thresholds).
@@ -185,6 +185,6 @@ export function planAllocation(
     hasErrors,
   };
 
-  // Freeze the top-level plan so downstream phases can only read it (R59).
+  // Freeze the top-level plan so downstream phases can only read it.
   return Object.freeze(plan);
 }

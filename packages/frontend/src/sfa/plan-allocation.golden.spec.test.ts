@@ -1,14 +1,14 @@
 /**
- * Golden-snapshot specification test for `planAllocation` (ST-P2 / AC-07 / AC-21).
+ * Golden-snapshot specification test for `planAllocation`.
  *
  * Serializes the full `AllocationPlan` for the Ch 11 §3.4 worked program to a
- * stable JSON snapshot, asserting the planner is deterministic (AC-21) and that
- * the §3.4 frame-sharing result (AC-07) is reproduced end-to-end. The snapshot is
- * the immutable oracle: if it changes, the implementation changed — re-run with
- * `--update` only after a deliberate, reviewed behaviour change.
+ * stable JSON snapshot, asserting the planner is deterministic and that the §3.4
+ * frame-sharing result is reproduced end-to-end. The snapshot is the immutable
+ * oracle: if it changes, the implementation changed — re-run with `--update` only
+ * after a deliberate, reviewed behaviour change.
  *
- * The expected sharing structure is derived from 03-02-interference-and-coloring.md
- * (the §3.4 example), NOT from the implementation. Spec-tests-first / Rule 10.
+ * The expected sharing structure is derived from the language specification (the
+ * §3.4 example), NOT from the implementation. Spec-tests-first.
  */
 
 import { describe, expect, it } from "vitest";
@@ -47,7 +47,7 @@ function serializePlan(plan: AllocationPlan): unknown {
   };
 }
 
-/** The Ch 11 §3.4 worked program (call graph from 03-02). */
+/** The Ch 11 §3.4 worked program. */
 function ch11Section34Program() {
   return [
     makeFn("main", { callees: ["init", "update", "render"] }),
@@ -73,7 +73,7 @@ describe("Specification: planAllocation Ch 11 §3.4 golden (ST-P2 / AC-07 / AC-2
     // No diagnostics for this small, well-formed program.
     expect(bag.getAll()).toHaveLength(0);
     // The §3.4 sharing result: the region is far smaller than the 8 unshared
-    // 1-byte frames would need, proving sharing occurred (AC-07).
+    // 1-byte frames would need, proving sharing occurred.
     expect(plan.sharingSaved).toBeGreaterThan(0);
 
     expect(serializePlan(plan)).toMatchSnapshot();

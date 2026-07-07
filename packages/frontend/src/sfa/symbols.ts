@@ -1,11 +1,11 @@
 /**
- * The SFA ACME symbol generator (RD-05 §4.11, R47/R50; spec Ch 11 §3.5, AR-66).
+ * The SFA ACME symbol generator (spec Ch 11 §3.5).
  *
  * Produces the `__`-prefixed, address-valued {@link SymbolDefinition}s the ACME
- * emitter (RD-09) writes into the `.asm` header so generated code can reference
- * frame bases, frame slots, module variables, and zero-page slots by name. The
- * `__` prefix and `[A-Za-z0-9_]`-only sanitization guarantee these never collide
- * with user labels.
+ * emitter writes into the `.asm` header so generated code can reference frame
+ * bases, frame slots, module variables, and zero-page slots by name. The `__`
+ * prefix and `[A-Za-z0-9_]`-only sanitization guarantee these never collide with
+ * user labels.
  *
  * Naming scheme:
  *   - `__frame_<Module>_<function>`        — frame base (= `absoluteAddress`)
@@ -15,10 +15,9 @@
  *
  * Emission order is deterministic — frames (by name), then module variables (in
  * layout order), then ZP allocations (in allocation order) — so the emitted header
- * is stable for golden snapshots (R50/AR-66).
+ * is stable for golden snapshots.
  *
- * Imports `@blend65/core` only — never `@blend65/codegen` (R15/AR-20).
- * See plans/rd-05-sfa-frame-planner/03-05-allocation-plan-and-api.md.
+ * Imports `@blend65/core` only — never `@blend65/codegen`.
  */
 
 import type {
@@ -47,7 +46,7 @@ function sanitize(name: string): string {
 }
 
 /**
- * Generates the deterministic ACME symbol definitions for a plan (R47/R50).
+ * Generates the deterministic ACME symbol definitions for a plan.
  *
  * @param sources The placed frames, module variables, and ZP allocations.
  * @returns Symbol definitions in the stable frames → vars → ZP order.

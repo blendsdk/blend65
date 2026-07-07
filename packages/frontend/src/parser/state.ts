@@ -1,5 +1,5 @@
 /**
- * Shared parser state (RD-03 §4.13, FR-7; AR-8).
+ * Shared parser state (FR-7).
  *
  * `parse()` builds one {@link ParserState} and threads it through the
  * declaration / type / (later) statement and expression parse functions, which
@@ -15,7 +15,7 @@ import type { Cursor } from "./cursor.js";
 
 /** The mutable context shared by every parse function for one source file. */
 export interface ParserState {
-  /** The token cursor (also the single `lexeme()` site, AR-8). */
+  /** The token cursor (also the single `lexeme()` site). */
   readonly cursor: Cursor;
   /** The source id embedded in every constructed node span. */
   readonly sourceId: SourceId;

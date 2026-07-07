@@ -1,10 +1,8 @@
 /**
- * Specification tests for the SFA frame-coloring pass (RD-05 §4.4, R12/R16/R18,
- * R21/R22; spec Ch 11 §3.4 / AC-07).
+ * Specification tests for the SFA frame-coloring pass (spec Ch 11 §3.4).
  *
- * Expectations derive exclusively from plans/rd-05-sfa-frame-planner/
- * 07-testing-strategy.md (ST-C1..ST-C6) and 03-02-interference-and-coloring.md —
- * NOT from implementation logic. Immutable oracle.
+ * Expectations derive exclusively from the language specification — NOT from
+ * implementation logic. Immutable oracle.
  *
  * Spec-tests-first: authored before `coloring.ts`; verified to FAIL (red). The
  * coloring suite builds `FunctionFrame`/`InterferenceGraph` inputs directly so it
@@ -50,7 +48,7 @@ function frameMap(frames: readonly FunctionFrame[]): Map<string, FunctionFrame> 
 }
 
 describe("Specification: SFA frame coloring (R12/R16/R18, §3.4)", () => {
-  // ST-C1 — two non-interfering frames of size 2 share offset 0; region size 2.
+  // Two non-interfering frames of size 2 share offset 0; region size 2.
   it("should overlap two non-interfering frames at offset 0 (ST-C1)", () => {
     const frames = frameMap([frame("f", 2), frame("g", 2)]);
     const g = graph(["f", "g"], []);
@@ -61,7 +59,7 @@ describe("Specification: SFA frame coloring (R12/R16/R18, §3.4)", () => {
     expect(result.frameRegionSize).toBe(2);
   });
 
-  // ST-C2 — two interfering frames of size 2 get offsets 0 and 2; region size 4.
+  // Two interfering frames of size 2 get offsets 0 and 2; region size 4.
   it("should separate two interfering frames (ST-C2)", () => {
     const frames = frameMap([frame("f", 2), frame("g", 2)]);
     const g = graph(["f", "g"], [["f", "g"]]);
@@ -72,7 +70,7 @@ describe("Specification: SFA frame coloring (R12/R16/R18, §3.4)", () => {
     expect(result.frameRegionSize).toBe(4);
   });
 
-  // ST-C3 — interfering sizes [3,1] ordered size-desc: 3@0, 1@3; region 4.
+  // Interfering sizes [3,1] ordered size-desc: 3@0, 1@3; region 4.
   it("should place the larger interfering frame first (ST-C3)", () => {
     const frames = frameMap([frame("big", 3), frame("small", 1)]);
     const g = graph(["big", "small"], [["big", "small"]]);
@@ -83,7 +81,7 @@ describe("Specification: SFA frame coloring (R12/R16/R18, §3.4)", () => {
     expect(result.frameRegionSize).toBe(4);
   });
 
-  // ST-C4 — running coloring twice on the same input is identical (determinism).
+  // Running coloring twice on the same input is identical (determinism).
   it("should be deterministic across runs (ST-C4)", () => {
     const frames = frameMap([frame("a", 2), frame("b", 3), frame("c", 1)]);
     const g = graph(["a", "b", "c"], [["a", "b"], ["b", "c"]]);
@@ -94,7 +92,7 @@ describe("Specification: SFA frame coloring (R12/R16/R18, §3.4)", () => {
     expect(r1.frameRegionSize).toBe(r2.frameRegionSize);
   });
 
-  // ST-C5 — a zero-size frame gets offset 0 and does not grow the region.
+  // A zero-size frame gets offset 0 and does not grow the region.
   it("should not grow the region for a zero-size frame (ST-C5)", () => {
     const frames = frameMap([frame("real", 2), frame("zero", 0)]);
     const g = graph(["real", "zero"], [["real", "zero"]]);
@@ -104,15 +102,15 @@ describe("Specification: SFA frame coloring (R12/R16/R18, §3.4)", () => {
     expect(result.frameRegionSize).toBe(2);
   });
 
-  // ST-C6 — Ch 11 §3.4 example (AC-07). The spec guarantees two things for this
-  // call graph: (a) SOUNDNESS — interfering frames never overlap; and (b) the
-  // frameRegionSize equals the PEAK simultaneous footprint (R21/R22): the deepest
-  // call chain is 3 levels (e.g. main→update→handleInput) × 2 bytes = 6, far below
-  // the 16 bytes the eight frames would need without sharing. The spec describes
-  // which functions MAY share (init/update/render; handleInput/drawSprites;
-  // moveEnemies/drawBackground), proven here by region 6 < 16 — but greedy
-  // name-ordered coloring may realize sharing via different concrete offsets, so we
-  // assert the guaranteed properties (soundness + peak region), not exact slots.
+  // Ch 11 §3.4 example. The spec guarantees two things for this call graph: (a)
+  // SOUNDNESS — interfering frames never overlap; and (b) the frameRegionSize
+  // equals the PEAK simultaneous footprint: the deepest call chain is 3 levels
+  // (e.g. main→update→handleInput) × 2 bytes = 6, far below the 16 bytes the eight
+  // frames would need without sharing. The spec describes which functions MAY
+  // share (init/update/render; handleInput/drawSprites; moveEnemies/
+  // drawBackground), proven here by region 6 < 16 — but greedy name-ordered
+  // coloring may realize sharing via different concrete offsets, so we assert the
+  // guaranteed properties (soundness + peak region), not exact slots.
   it("should minimize the frame region via sharing for the Ch 11 §3.4 example (ST-C6 / AC-07)", () => {
     const names = [
       "main",
@@ -149,7 +147,7 @@ describe("Specification: SFA frame coloring (R12/R16/R18, §3.4)", () => {
       expect(off(a)).not.toBe(off(b));
     }
 
-    // (b) Peak region: deepest chain is 3 levels × 2 bytes = 6 (R21/R22), and
+    // (b) Peak region: deepest chain is 3 levels × 2 bytes = 6, and
     // sharing demonstrably occurred (6 < the 16 bytes eight unshared frames need).
     expect(result.frameRegionSize).toBe(6);
     expect(result.frameRegionSize).toBeLessThan(16);

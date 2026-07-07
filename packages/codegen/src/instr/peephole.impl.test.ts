@@ -1,7 +1,7 @@
 /**
- * Implementation/edge-case tests for RD-08 peephole optimizer (passthrough v1).
+ * Implementation/edge-case tests for the peephole optimizer (passthrough v1).
  *
- * Written AFTER the spec tests (`peephole.spec.test.ts`) and the implementation —
+ * Written after the spec tests (`peephole.spec.test.ts`) and the implementation —
  * these probe internals, boundaries, and edge cases the spec oracles do not pin
  * down: empty programs, single/multi-stream ordering, mixed entry kinds, the
  * explicit-`enabled` equivalence, and CPU-variant invariance in v1.

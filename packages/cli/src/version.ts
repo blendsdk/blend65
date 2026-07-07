@@ -1,5 +1,5 @@
 /**
- * The `blendc` version string (AR-V15).
+ * The `blendc` version string.
  *
  * Kept in its own module so `args.ts` (the yargs `.version()` source) and the
  * package barrel both reference one constant without an import cycle. Synced to

@@ -1,10 +1,10 @@
 /**
- * Shared test fixtures for the RD-15 facade spec/impl tiers (07 §Shared fixtures).
+ * Shared test fixtures for the facade spec/impl tiers.
  *
  * Test-only support — intentionally NOT re-exported from the package barrel
  * (mirrors the codegen `test-fixtures.ts` precedent). Provides:
- *   - {@link GATE_SRC} — the verbatim MVP gate source (single source of truth, PF-007).
- *   - {@link memHost} — an in-memory {@link CompilerHost} built from the R14 contract.
+ *   - {@link GATE_SRC} — the verbatim MVP gate source (single source of truth).
+ *   - {@link memHost} — an in-memory {@link CompilerHost} built from the host contract.
  *   - {@link fakeBuildDeps} — a {@link BuildDeps} with an in-memory fs + fake ACME.
  */
 
@@ -13,7 +13,7 @@ import type { BuildDeps } from "./build.js";
 
 /**
  * The MVP gate source — the verbatim content of `examples/gate/main.blend`
- * (PF-007; capital `Main`, hex `0xD020`, value `5`). Single source of truth for
+ * (capital `Main`, hex `0xD020`, value `5`). Single source of truth for
  * every facade/CLI test that needs a clean-compiling program.
  */
 export const GATE_SRC = `module Main;
@@ -24,9 +24,9 @@ function main(): void {
 `;
 
 /**
- * Build an in-memory {@link CompilerHost} from a path→content map (07 fixture).
+ * Build an in-memory {@link CompilerHost} from a path→content map.
  *
- * Spec-legal: constructed from the R14 interface contract only. `resolvePath` is
+ * Constructed from the `CompilerHost` interface contract only. `resolvePath` is
  * identity (the map keys ARE the paths), `listSourceFiles` returns the keys sorted,
  * `readFile` returns the mapped content or `undefined`.
  *
@@ -56,7 +56,7 @@ export interface FakeBuildDepsOptions {
   /**
    * Diagnostic code to record on ACME failure. Default: `IceCode.Unexpected`
    * (an ICE → exit 3). Pass `DiagCode.AcmeNotFound` to model ACME-not-found
-   * (a normal error → exit 1, PF-003/ST-43).
+   * (a normal error → exit 1).
    */
   readonly failureCode?: string;
   /** Records every file write (path → content) the emit performs. */
@@ -65,8 +65,8 @@ export interface FakeBuildDepsOptions {
 
 /**
  * Build a fake {@link BuildDeps} with an in-memory filesystem and a scripted ACME
- * invocation (07 fixture; mirrors the `emit-binary.spec.test.ts` fake pattern).
- * No real files are written and no real ACME is spawned.
+ * invocation (mirrors the `emit-binary.spec.test.ts` fake pattern). No real
+ * files are written and no real ACME is spawned.
  *
  * @param options Outcome knobs (success/size/failure code/write recorder).
  * @returns A {@link BuildDeps} for injection into `build()`.
@@ -90,7 +90,7 @@ export function fakeBuildDeps(options: FakeBuildDepsOptions = {}): BuildDeps {
       },
       async invoke(_asmPath, opts, bag) {
         if (!succeed) {
-          // Record the scripted diagnostic (ICE by default; E10035 for ST-43).
+          // Record the scripted diagnostic (ICE by default; E10035 for the ACME-not-found case).
           const code = options.failureCode ?? IceCode.Unexpected;
           if (code === DiagCode.AcmeNotFound) {
             bag.addError(code, null, "ACME assembler not found");

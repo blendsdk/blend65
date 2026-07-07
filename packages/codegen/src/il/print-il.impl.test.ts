@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the RD-06 IL textual printer.
+ * Implementation tests for the IL textual printer.
  *
  * Cover internals and edge cases NOT pinned by the spec oracle
  * (print-il.spec.test.ts): the no-dest `store` form, the slice-2 `const i8u 5`

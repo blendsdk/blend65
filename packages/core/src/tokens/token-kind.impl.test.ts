@@ -1,10 +1,10 @@
 /**
- * Unit tests for the {@link TokenKind} vocabulary (RD-02 FR-1, FR-2).
+ * Unit tests for the {@link TokenKind} vocabulary.
  *
- * Covers spec case ST-L1 from plans/rd-02-lexer/07-testing-strategy.md: the
- * enumerated member set is pinned (exactly 79 members), every value equals its
- * key (the string-valued convention, AR-L6), and a representative member from
- * each §12 category is spot-checked so a rename is caught immediately.
+ * The enumerated member set is pinned (exactly 79 members), every value equals
+ * its key (the string-valued convention), and a representative member from
+ * each spec Ch 01 §12 category is spot-checked so a rename is caught
+ * immediately.
  */
 
 import { describe, expect, it } from "vitest";
@@ -14,8 +14,8 @@ describe("TokenKind vocabulary (ST-L1)", () => {
   const entries = Object.entries(TokenKind);
 
   it("enumerates exactly 79 members", () => {
-    // Pins the canonical Ch 01 §12 set so the count cannot silently drift
-    // (FR-2): 3 literals + 1 identifier + 32 keywords + 32 operators +
+    // Pins the canonical Ch 01 §12 set so the count cannot silently drift:
+    // 3 literals + 1 identifier + 32 keywords + 32 operators +
     // 10 punctuation + 1 special = 79. NB: the spec §12 prose header labels
     // the operator block "(29)", but the enumerated names beneath it list 32
     // (PLUS…QUESTION). The enumerated names are authoritative; the header

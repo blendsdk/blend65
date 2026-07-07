@@ -1,5 +1,5 @@
 /**
- * Implementation tests for RD-18 Slice 4b switch IL lowering edge cases: an empty
+ * Implementation tests for switch IL lowering edge cases: an empty
  * default body, a single-case switch, `fallthrough` into the default clause, and a
  * case body that already terminates (`break`/`return`) — no double-terminate.
  *

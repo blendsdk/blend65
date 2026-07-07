@@ -1,7 +1,7 @@
 /**
- * Implementation tests for `collectFunctions` (RD-18 Slice 3a) — internals and
- * edge cases beyond the ST-* spec oracles: multi-local declaration order, an
- * empty body, a function-free program, and an interrupt declaration.
+ * Implementation tests for `collectFunctions` — internals and edge cases
+ * beyond the spec oracles: multi-local declaration order, an empty body, a
+ * function-free program, and an interrupt declaration.
  *
  * Programs are lexed + parsed through the real frontend entry points (prefer real
  * objects). These import `collectFunctions` directly (it is internal to `analyze`

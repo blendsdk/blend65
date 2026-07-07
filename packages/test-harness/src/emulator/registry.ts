@@ -1,11 +1,11 @@
 /**
- * Harness-internal platform→emulator registry (RD-12 R7a).
+ * Harness-internal platform→emulator registry.
  *
  * Maps a platform name to the emulator that runs it. MVP: only `c64` → VICE
  * `x64sc`. Other platforms (cx16→x16emu, atari→Altirra, 7800→Stella) register as
- * their drivers land; a future RD may migrate this table into the RD-10 platform
- * profile (PF-006). The interface accommodates them today (R9); populating them is
- * out of scope (R-Won't-Have).
+ * their drivers land; a future revision may migrate this table into the shared
+ * platform profile. The interface accommodates them today; populating them is
+ * out of scope for now (R-Won't-Have).
  */
 
 import type { EmulatorDriver } from "./driver.js";
@@ -21,7 +21,7 @@ export interface EmulatorEntry {
   defaultArgs: string[];
 }
 
-/** The R7a table. MVP: `c64` → VICE `x64sc`. */
+/** The platform→emulator table. MVP: `c64` → VICE `x64sc`. */
 export const EMULATOR_REGISTRY: Record<string, EmulatorEntry> = {
   c64: {
     createDriver: (): EmulatorDriver => new ViceDriver(),
@@ -31,7 +31,7 @@ export const EMULATOR_REGISTRY: Record<string, EmulatorEntry> = {
 };
 
 /**
- * Look up the emulator entry for `platform` (R7a).
+ * Look up the emulator entry for `platform`.
  *
  * @throws If no emulator is registered for `platform`.
  */

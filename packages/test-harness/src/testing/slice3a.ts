@@ -1,9 +1,10 @@
 /**
- * Shared test support for the RD-18 Slice 3a fixture (a `main` with one local
+ * Shared test support for the Slice 3a fixture (a `main` with one local
  * `byte` poked into the VIC-II border register). Builds `examples/slice3a/main.blend`
- * (inlined verbatim, mirroring `testing/gate.ts` / PF-007) to a real c64 `.prg` via
- * the RD-15 `build()` facade + real ACME, and emits its ACME source via `emitAsm`
- * for the golden tier. Test-only: NOT re-exported from the package barrel.
+ * (inlined verbatim, mirroring `testing/gate.ts`) to a real c64 `.prg` via the
+ * compiler's `build()` facade + real ACME, and emits its ACME source via
+ * `emitAsm` for the golden tier. Test-only: NOT re-exported from the package
+ * barrel.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -11,7 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
 
-/** The Slice 3a source — verbatim `examples/slice3a/main.blend` (AR-2/SR-1). */
+/** The Slice 3a source — verbatim `examples/slice3a/main.blend`. */
 export const SLICE3A_SRC = `module Main;
 
 function main(): void {

@@ -1,8 +1,8 @@
 /**
- * Implementation tests for the RD-18 Slice 3b minimal const evaluator
- * (`const-eval.ts`). These cover the folding branches + the never-throw
- * div-by-zero path (a security/robustness requirement — a constant `/ 0` must
- * become a structured `divByZero` result, not a JS `Infinity`/throw).
+ * Implementation tests for the minimal const evaluator (`const-eval.ts`).
+ * These cover the folding branches + the never-throw div-by-zero path (a
+ * security/robustness requirement — a constant `/ 0` must become a structured
+ * `divByZero` result, not a JS `Infinity`/throw).
  *
  * Nodes are obtained from the REAL parser (prefer real objects); the evaluator is
  * exercised directly on the parsed initialiser expressions.

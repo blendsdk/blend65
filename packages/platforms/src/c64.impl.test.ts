@@ -4,7 +4,8 @@
  * Covers behaviour beyond the spec-test oracle: PETSCII encode edge cases
  * (empty string, boundary letters/digits, non-table pass-through, upper-range
  * lower-case) and the `needsBssZero`/`needsDataInit` preamble flags (which are
- * the RD-09 seam — they must not alter the emitted stream in this slice).
+ * a forward-compatibility seam — they must not alter the emitted stream in
+ * this slice).
  */
 
 import { describe, expect, it } from "vitest";

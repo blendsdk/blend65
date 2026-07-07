@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the SFA zero-page allocator (RD-05 §4.7).
+ * Implementation tests for the SFA zero-page allocator (§4.7).
  *
  * Edge cases and internals derived from the implementation (testing.md Rule 10
  * impl tier): exact-fit boundary, multi-byte user vars, the deferred arg-block

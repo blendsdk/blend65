@@ -1,17 +1,17 @@
 /**
- * Specification test for the RD-17 T4 clean path through the pipeline (ST-32).
+ * Specification test for the T4 (import pseudo-module) clean path through the
+ * pipeline.
  *
- * Derived EXCLUSIVELY from RD-17 R19 (AR-97 import pseudo-module), AC-05 (clean
- * path), and AC-16 — never from implementation (IMMUTABLE ORACLE RULE):
+ * Written from the requirement, never from the implementation:
  * `import { fix_probe } from c64;` + `fix_probe();` analyzes clean, lowers and
  * translates to a `JSR fix_probe`, and the fixture's `.asm` module is embedded
  * (exactly once) in the serialized runtime section.
  *
- * Placement: this pipeline test lives in `@blend65/compiler` per the D10
+ * Placement: this pipeline test lives in `@blend65/compiler` per the
  * package-boundary rule (the integration layer that already depends on
- * frontend + codegen + platforms). The fixture is compiler-local (AR-P2 allows
- * a test-local factory); `baseUrl` points at this test module so the module
- * resolves from `src/` and `dist/` identically (PF-017).
+ * frontend + codegen + platforms). The fixture is compiler-local (test-local
+ * factories are allowed here); `baseUrl` points at this test module so the
+ * module resolves from `src/` and `dist/` identically.
  */
 
 import { describe, expect, it } from "vitest";
@@ -35,7 +35,7 @@ import { c64Plugin } from "@blend65/platforms";
 
 const SRC = 1;
 
-/** Compiler-local T4 fixture descriptor (AR-P2 test-local factory). */
+/** Compiler-local T4 fixture descriptor (a test-local factory). */
 const FIX_PROBE: IntrinsicDescriptor = {
   name: "fix_probe",
   tier: "T4",
@@ -44,10 +44,10 @@ const FIX_PROBE: IntrinsicDescriptor = {
   loweringStrategy: "call",
   costMetadata: { cycles: "varies", bytes: "varies", zpBytes: 0 },
   clobberList: ["A", "status"],
-  description: "test fixture (AR-P2)",
+  description: "test fixture",
 };
 
-/** The compiler-local fixture plugin: c64 + the T4 contribution (PF-017 baseUrl). */
+/** The compiler-local fixture plugin: c64 + the T4 contribution (resolved via `baseUrl`). */
 const fixturePlugin: PlatformPlugin = {
   ...c64Plugin,
   intrinsics: [FIX_PROBE],

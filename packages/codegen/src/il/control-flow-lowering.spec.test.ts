@@ -1,14 +1,13 @@
 /**
- * Specification tests for RD-18 Slice 4a multi-block CFG lowering (`lower.ts`;
- * ST-11..ST-15).
+ * Specification tests for multi-block CFG lowering (`lower.ts`).
  *
- * Expectations derive EXCLUSIVELY from the plan (03-02-cfg-lowering.md §2 shapes,
- * FR-7/FR-8) + the Ambiguity Register (AR-6/AR-11/AR-12) — NEVER from reading the
+ * Expectations derive exclusively from the documented shapes for if/else,
+ * while, do-while, for, and break/continue lowering — never from reading the
  * implementation (immutable oracle). Each program is lowered end-to-end through
- * the REAL frontend (`lowerRealSource`) so conditions/counters carry real types +
- * frames; the printed IL is inspected structurally (the byte-exact golden lives in
- * Phase 4). Spec-tests-first: authored before `lower.ts`'s control-flow cases
- * exist (they ICE today) — RED first, then GREEN.
+ * the real frontend (`lowerRealSource`) so conditions/counters carry real types +
+ * frames; the printed IL is inspected structurally (a separate byte-exact golden
+ * covers the exact output). Spec-tests-first: authored before `lower.ts`'s
+ * control-flow cases exist (they ICE today) — red first, then green.
  */
 
 import { describe, expect, it } from "vitest";
@@ -44,7 +43,7 @@ function countBrToLabel(text: string): number {
 }
 
 describe("Specification: RD-18 Slice 4a CFG lowering (FR-7/FR-8)", () => {
-  // ST-11 — if/else lowers to ≥3 blocks, a brcond, and two br to the join label.
+  // if/else lowers to ≥3 blocks, a brcond, and two br to the join label.
   it("should lower if/else to blocks + brcond + two joins (ST-11, §2.1)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
@@ -58,7 +57,7 @@ describe("Specification: RD-18 Slice 4a CFG lowering (FR-7/FR-8)", () => {
     expect((text.match(/^_L\d+:/gm) ?? []).length).toBeGreaterThanOrEqual(3);
   });
 
-  // ST-12 — while lowers a cond block with a brcond and a body back-edge to cond.
+  // while lowers a cond block with a brcond and a body back-edge to cond.
   it("should lower while to a cond brcond + a body back-edge (ST-12, §2.2)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
@@ -71,7 +70,7 @@ describe("Specification: RD-18 Slice 4a CFG lowering (FR-7/FR-8)", () => {
     expect(countBrToLabel(text)).toBeGreaterThanOrEqual(2);
   });
 
-  // ST-13 — do-while lowers the body block BEFORE the cond block; cond ends brcond.
+  // do-while lowers the body block before the cond block; cond ends brcond.
   it("should lower do-while with the body preceding the cond (ST-13, §2.3)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +
@@ -86,7 +85,7 @@ describe("Specification: RD-18 Slice 4a CFG lowering (FR-7/FR-8)", () => {
     expect(brcondIdx).toBeGreaterThan(bodyIdx);
   });
 
-  // ST-14 — for (Pattern A): init store, cond compare (le) via brcond, incr add, br to cond.
+  // for (Pattern A): init store, cond compare (le) via brcond, incr add, br to cond.
   it("should lower for(to) with Pattern-A compare + increment (ST-14, §2.4)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nlet sum: byte;\nfunction main(): void {" +
@@ -103,7 +102,7 @@ describe("Specification: RD-18 Slice 4a CFG lowering (FR-7/FR-8)", () => {
     expect(countBrToLabel(text)).toBeGreaterThanOrEqual(2);
   });
 
-  // ST-15 — break branches to the loop-end; continue branches to the cond/incr label.
+  // break branches to the loop-end; continue branches to the cond/incr label.
   it("should lower break/continue to loop-target branches (ST-15, §2.5)", () => {
     const { text, hasErrors } = lowerRealSource(
       "module Main;\nfunction main(): void { let n: byte = 1;" +

@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the RD-07a canonical serializer.
+ * Implementation tests for the canonical serializer.
  *
  * These cover edge cases and internals beyond the specification oracles
  * (print-instr.spec.test.ts): the empty stream, labels/directives-only streams,
@@ -59,7 +59,7 @@ describe("printInstr edge cases", () => {
 });
 
 describe("instrByteSize across all modes", () => {
-  // Documented operand-byte counts per mode (03-03 / Ch 11 §6); total = 1 + this.
+  // Documented operand-byte counts per mode; total = 1 + this.
   const expectedTotal: Record<AddressingMode, number> = {
     Implied: 1,
     Accumulator: 1,

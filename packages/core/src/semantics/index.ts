@@ -1,16 +1,14 @@
 /**
- * Public barrel for the Blend65 semantic vocabulary (RD-04 §4).
+ * Public barrel for the Blend65 semantic vocabulary.
  *
  * Re-exports the resolved type union and its utilities, the platform-profile
  * stub, the scope/symbol/const-value/call-graph shapes, and the `SemanticModel`
  * contract plus its empty-model factory. This is pure data + pure functions (no
  * checker logic), so it lives in `@blend65/core` and is shared by `frontend` and
- * `language-server` without either importing `@blend65/codegen` (R15/AR-20).
+ * `language-server` without either importing `@blend65/codegen`.
  *
- * PASSTHROUGH NOTE (RD-04 plan, D1/D2): the analyzer skeleton only *constructs*
- * the empty model; the behavior that would populate these shapes is
- * DEFERRED(RD-04-checker). See
- * plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md.
+ * Only the empty model is currently constructed; the behavior that would
+ * populate these shapes with real analysis results is not implemented yet.
  */
 
 export type {

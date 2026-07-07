@@ -1,7 +1,7 @@
 /**
- * Implementation tests for RD-17 runtime embedding internals (03-04, 4.3.1):
- * symbol collection edges, the path-traversal guard, `__zp_arg_N` reference
- * correctness (PF-018), and deterministic section ordering.
+ * Implementation tests for runtime embedding internals: symbol collection
+ * edges, the path-traversal guard, `__zp_arg_N` reference correctness, and
+ * deterministic section ordering.
  */
 
 import { describe, expect, it } from "vitest";
@@ -132,7 +132,7 @@ describe("runtime modules — __zp_arg_N reference correctness (PF-018)", () => 
     for (const d of RT_ROUTINES) {
       const text = loadRuntimeModule(d);
       const refs = [...text.matchAll(/__zp_arg_(\d+)/g)].map((m) => Number(m[1]));
-      // Only the validated floor (R35: zpArgBlockSize >= 4) is ever referenced.
+      // Only the validated floor (zpArgBlockSize >= 4) is ever referenced.
       for (const n of refs) {
         expect(n, `${d.name} references __zp_arg_${n}`).toBeLessThanOrEqual(3);
       }

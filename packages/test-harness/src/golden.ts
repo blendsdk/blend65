@@ -1,11 +1,11 @@
 /**
- * Golden-snapshot helper (RD-12 §4.3, R29–R32, AC-10, AR-H10).
+ * Golden-snapshot helper.
  *
  * Byte-exact comparison of `actual` against a committed golden file. In update
- * mode — explicit `updateMode` arg OR a truthy `process.env.UPDATE_GOLDEN`
- * (AR-H10) — it writes `actual` to `goldenPath` instead of asserting (R31, a manual
- * developer action). Reads/writes ONLY the caller-supplied path; update mode is an
- * explicit opt-in (Security, `01-requirements.md`).
+ * mode — explicit `updateMode` arg OR a truthy `process.env.UPDATE_GOLDEN` — it
+ * writes `actual` to `goldenPath` instead of asserting (a manual developer
+ * action). Reads/writes ONLY the caller-supplied path; update mode is an
+ * explicit opt-in.
  */
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -15,7 +15,7 @@ import { AssertionError } from "./run/assertions.js";
 /** How many context lines to show around the first divergence in a mismatch. */
 const DIFF_CONTEXT = 2;
 
-/** Whether update mode is active (explicit arg wins; else the env var, AR-H10). */
+/** Whether update mode is active (explicit arg wins; else the env var). */
 function isUpdateMode(updateMode: boolean | undefined): boolean {
   if (updateMode !== undefined) return updateMode;
   const env = process.env.UPDATE_GOLDEN;
@@ -46,12 +46,12 @@ function diffExcerpt(actual: string, expected: string): string {
 }
 
 /**
- * Assert `actual` matches the golden file at `goldenPath` (R30), or write it in
- * update mode (R31).
+ * Assert `actual` matches the golden file at `goldenPath`, or write it in
+ * update mode.
  *
  * @param actual The content produced by the code under test.
  * @param goldenPath Path to the committed golden file.
- * @param updateMode Force update mode; defaults to the `UPDATE_GOLDEN` env var (AR-H10).
+ * @param updateMode Force update mode; defaults to the `UPDATE_GOLDEN` env var.
  * @throws {AssertionError} On a byte mismatch (compare mode) or a missing golden file.
  */
 export function assertGolden(actual: string, goldenPath: string, updateMode?: boolean): void {

@@ -1,11 +1,11 @@
 /**
- * Shared test support for the RD-18 Slice 4b fixture (the `switch` sub-machine — a
- * `brcond` compare-chain over the 4a multi-block CFG keystone, with a multi-value
- * case, an explicit `fallthrough`, an auto-break case, and a `default`). Builds
- * `examples/slice4b/main.blend` (inlined verbatim, mirroring `testing/slice4a.ts`)
- * to a real c64 `.prg` via the RD-15 `build()` facade + real ACME, and emits its
- * ACME source via `emitAsm` for the golden tier. Test-only: NOT re-exported from
- * the package barrel.
+ * Shared test support for the Slice 4b fixture (the `switch` sub-machine — a
+ * `brcond` compare-chain over the Slice 4a multi-block CFG keystone, with a
+ * multi-value case, an explicit `fallthrough`, an auto-break case, and a
+ * `default`). Builds `examples/slice4b/main.blend` (inlined verbatim, mirroring
+ * `testing/slice4a.ts`) to a real c64 `.prg` via the compiler's `build()`
+ * facade + real ACME, and emits its ACME source via `emitAsm` for the golden
+ * tier. Test-only: NOT re-exported from the package barrel.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -13,7 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
 
-/** The Slice 4b source — verbatim `examples/slice4b/main.blend` (AR-13). */
+/** The Slice 4b source — verbatim `examples/slice4b/main.blend`. */
 export const SLICE4B_SRC = `module Main;
 
 let out1: byte;                 // module scalar → __var_Main_out1

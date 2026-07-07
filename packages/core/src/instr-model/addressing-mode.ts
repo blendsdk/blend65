@@ -1,24 +1,24 @@
 /**
- * The 6502 addressing-mode set — RD-07 §4.1, R4 (+ D8).
+ * The 6502 addressing-mode set.
  *
  * Like the opcode set, modes are declared as an `as const` value tuple so the
  * {@link AddressingMode} string union is generated from the runtime value set
  * and cannot drift. The order is fixed and meaningful: it is the canonical
- * documented order (03-01) that spec test ST-M3 pins.
+ * documented order, pinned by a specification test.
  *
  * Pure data — no behavior. Which (opcode, mode) pairs are *legal* is the CPU
- * table's job (03-02); this module only enumerates the representable modes.
+ * table's job; this module only enumerates the representable modes.
  *
- * Relocated to `@blend65/core` (`instr-model/`) by RD-10 D7/D8; `@blend65/codegen`
- * re-exports it unchanged.
+ * Lives in `@blend65/core` (`instr-model/`); `@blend65/codegen` re-exports it
+ * unchanged.
  */
 
 /**
- * The 14 addressing modes the model represents (R4 + D8).
+ * The 14 addressing modes the model represents.
  *
  * Modes 0–12 are the classic NMOS 6502 addressing modes. The 14th,
- * `ZeroPageIndirect` (`(zp)`), is the 65C02 indirect-without-index mode (D8);
- * it is representable here but gated to `wdc65c02` by the CPU table. It is kept
+ * `ZeroPageIndirect` (`(zp)`), is the 65C02 indirect-without-index mode; it is
+ * representable here but gated to `wdc65c02` by the CPU table. It is kept
  * distinct from `Indirect` (`JMP ($FFFC)`), which is a 3-byte absolute indirect.
  */
 export const ADDRESSING_MODES = [
@@ -38,5 +38,5 @@ export const ADDRESSING_MODES = [
   "ZeroPageIndirect", // LDA ($02)  — 65C02 (zp), 8-bit indirect (2 bytes); gated (D8)
 ] as const;
 
-/** The typed union of all addressing modes (R4 + D8). */
+/** The typed union of all addressing modes. */
 export type AddressingMode = (typeof ADDRESSING_MODES)[number];

@@ -1,12 +1,13 @@
 /**
- * Implementation tests for the RD-04 semantic type utilities (skeleton).
+ * Implementation tests for the semantic type utilities (skeleton).
  *
- * Where `type-utils.spec.test.ts` pins the specification contract (ST-S3..S11),
- * these tests exercise edge cases and internals of the structural utilities
- * across the WHOLE `Type` union — array/struct/enum/void/error variants — to
- * confirm `byteSize`/`bitWidth`/`typeName` are total and never throw (D13).
+ * Where `type-utils.spec.test.ts` pins the specification contract, these tests
+ * exercise edge cases and internals of the structural utilities across the
+ * WHOLE `Type` union — array/struct/enum/void/error variants — to confirm
+ * `byteSize`/`bitWidth`/`typeName` are total and never throw.
  *
- * Written AFTER implementation; filed as `*.impl.test.ts` (testing.md Rule 10).
+ * Written after implementation, filed as `*.impl.test.ts` per the project's
+ * spec-vs-impl test convention.
  */
 
 import { describe, expect, it } from "vitest";

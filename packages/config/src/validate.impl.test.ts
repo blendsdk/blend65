@@ -1,8 +1,7 @@
 /**
- * Implementation tests for validation internals (execution plan task 3.3.1):
- * synthetic-span scheme stability (PF-019), the AR-P5 pattern rule's `\`
- * normalization and win32 absolute/UNC forms (security tier — R29), and
- * boolean-vs-array `warnAsError` narrowing.
+ * Implementation tests for validation internals: synthetic-span scheme
+ * stability, the pattern-containment rule's `\` normalization and win32
+ * absolute/UNC forms, and boolean-vs-array `warnAsError` narrowing.
  */
 
 import { createDiagnosticBag } from "@blend65/core";

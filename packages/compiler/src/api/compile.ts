@@ -1,10 +1,10 @@
 /**
- * `compile()` — the frontend-only facade entry point (RD-15 R5), plus the shared
+ * `compile()` — the frontend-only facade entry point, plus the shared
  * result-assembly the emit/build paths reuse.
  *
  * `compile` runs the shared frontend and assembles a {@link CompileResult}. The
  * severity policy is applied exactly **once**, over the config-first merged
- * diagnostic array (R31/AR-V7). Sync, never throws, never prints (R5/R11/R4).
+ * diagnostic array. Sync, never throws, never prints.
  */
 
 import {
@@ -19,24 +19,25 @@ import type { CompileResult } from "./results.js";
 import { runFrontend, type FrontendRun } from "./run-frontend.js";
 
 /**
- * Compile the frontend only — the LSP's API (R5). Runs config → discovery →
- * lex/parse → analyze → SFA and returns a structured {@link CompileResult}.
+ * Compile the frontend only — the language server's API. Runs config →
+ * discovery → lex/parse → analyze → SFA and returns a structured
+ * {@link CompileResult}.
  *
  * @param options The compiler options (`platform` required).
- * @param host An optional injected {@link CompilerHost} (R10).
- * @returns The compile result — never throws (R11), never prints (R4).
+ * @param host An optional injected {@link CompilerHost}.
+ * @returns The compile result — never throws, never prints.
  */
 export function compile(options: CompilerOptions, host?: CompilerHost): CompileResult {
   return assembleCompileResult(runFrontend(options, host));
 }
 
 /**
- * Apply the severity policy once over the config-first merged diagnostics (AR-V7)
+ * Apply the severity policy once over the config-first merged diagnostics
  * and return the final diagnostics + the effective config.
  *
- * Shared by `compile`/`emitIl`/`emitAsm`/`build` so the policy runs exactly once
- * per invocation (R31/PF-005). The returned `config` carries the R21-derived
- * effective `outName` (PF-001/PF-010).
+ * Shared by `compile`/`emitIl`/`emitAsm`/`build` so the policy runs exactly
+ * once per invocation. The returned `config` carries the derived effective
+ * `outName`.
  *
  * @param run The completed {@link FrontendRun}.
  * @returns The final diagnostics, the `hasErrors` flag, and the effective config.
@@ -50,10 +51,10 @@ export function finalizeRun(run: FrontendRun): {
     warnAsError: run.config.warnAsError,
     suppressWarnings: run.config.suppressWarnings,
   });
-  // Config diagnostics first, then pipeline diagnostics (AR-V7).
+  // Config diagnostics first, then pipeline diagnostics.
   const diagnostics = applySeverityPolicy([...run.configDiagnostics, ...run.bag.getAll()], policy);
   const hasErrors = diagnostics.some((d) => d.severity === "error");
-  // Surface the effective (never-empty) output name on the returned config (R51).
+  // Surface the effective (never-empty) output name on the returned config.
   const config: BlendConfig = { ...run.config, outName: run.outName };
   return { diagnostics, hasErrors, config };
 }

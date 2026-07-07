@@ -1,28 +1,27 @@
 /**
- * RD-07b register binder — IL virtual temps → 6502 A/X/Y registers + ZP scratch
- * (RD-07 R40–R45; `plans/rd-07b-il-to-instr/03-02-register-binding.md`).
+ * The register binder — IL virtual temps → 6502 A/X/Y registers + ZP scratch.
  *
  * The binder is the single owner of "where does temp `tN` live right now?" It
  * tracks which temp occupies each of A/X/Y, suppresses redundant `LDA`s when the
- * accumulator already holds the wanted temp (R44), and spills least-recently-used
+ * accumulator already holds the wanted temp, and spills least-recently-used
  * temps to the `category: "temp"` zero-page runs (`__zp_tmp_N`) drawn from the
- * carried `AllocationPlan` when a register is needed (R43). State is cleared at
- * every block boundary via {@link RegisterBinder.reset} (R45).
+ * carried `AllocationPlan` when a register is needed. State is cleared at
+ * every block boundary via {@link RegisterBinder.reset}.
  *
- * Per AR D9 a temp's location is a {@link TempLocation} union — a `reg` (A/X/Y,
+ * A temp's location is a {@link TempLocation} union — a `reg` (A/X/Y,
  * implied by the opcode, never an `InstrOperand`) or a `zp` spill slot. The
  * separate {@link RegisterBinder.operandFor} converts a `zp` location to a
  * `zpSlot` operand for ALU-source use, and ICEs if asked to address a register
- * as memory (a codegen bug — H5, no undefined behavior).
+ * as memory (a codegen bug — no undefined behavior).
  *
- * Determinism (R17/AC-06): register preference is fixed (A, then X) and ZP slots
+ * Deterministic: register preference is fixed (A, then X) and ZP slots
  * are handed out in allocation order, so the same IL + same plan yields
  * byte-identical emissions every run. The translator names the temp to spill
  * explicitly (the caller owns liveness), so the binder needs no internal LRU.
 
  *
- * Consumes the `il/` operand model and the RD-07a `instr/` stream/operand model
- * read-only (D6); lives in `@blend65/codegen` (R15/AR-20: never imported by the
+ * Consumes the `il/` operand model and the `instr/` stream/operand model
+ * read-only; lives in `@blend65/codegen` (never imported by the
  * frontend/language-server).
  */
 
@@ -37,7 +36,7 @@ import type { StreamEntry } from "./stream.js";
 import { instr } from "./stream.js";
 
 /**
- * Where an IL temp currently lives (AR D9).
+ * Where an IL temp currently lives.
  *
  * A `reg` location names one of the three 6502 registers — implied by the opcode,
  * never expressible as an `InstrOperand`. A `zp` location names a zero-page spill
@@ -48,14 +47,14 @@ export type TempLocation =
   | { readonly kind: "zp"; readonly slot: string };
 
 /**
- * The binder seam the translator (03-01) drives. The translator owns the
+ * The binder seam the translator drives. The translator owns the
  * `StreamEntry[]`; the binder emits spill/reload instructions through the passed
  * `emit` callback so they land in the correct stream position.
  */
 export interface RegisterBinder {
   /**
    * Ensure `temp` is in the accumulator, emitting an `LDA` from its home only
-   * when A does not already hold it (redundant-load suppression, R44).
+   * when A does not already hold it (redundant-load suppression).
    *
    * @param temp The temp operand to bring into A.
    * @param emit Sink for any emitted `LDA`.
@@ -63,7 +62,7 @@ export interface RegisterBinder {
   ensureInA(temp: ILOperand, emit: (e: StreamEntry) => void): void;
 
   /**
-   * Report where `temp` currently lives (AR D9).
+   * Report where `temp` currently lives.
    *
    * @param temp The temp operand to locate.
    * @returns The temp's {@link TempLocation} (`reg` or `zp`).
@@ -71,8 +70,8 @@ export interface RegisterBinder {
   locationOf(temp: ILOperand): TempLocation;
 
   /**
-   * Convert a temp's location to an addressable operand for ALU-source use
-   * (AR D9): a `zp` location → `zpSlot`; a `reg` location → an `E90001` ICE.
+   * Convert a temp's location to an addressable operand for ALU-source use:
+   * a `zp` location → `zpSlot`; a `reg` location → an `E90001` ICE.
    *
    * @param temp The temp operand to address.
    * @returns The addressable {@link InstrOperand} (a `zpSlot`).
@@ -80,15 +79,14 @@ export interface RegisterBinder {
   operandFor(temp: ILOperand): InstrOperand;
 
   /**
-   * Record that an emitted instruction has just produced `temp` in A (R41).
+   * Record that an emitted instruction has just produced `temp` in A.
    *
    * @param temp The temp now resident in the accumulator.
    */
   bindResultToA(temp: ILOperand): void;
 
   /**
-   * Record that `temp` (typically a word value's high byte) now lives in X
-   * (R42/D5).
+   * Record that `temp` (typically a word value's high byte) now lives in X.
    *
    * @param temp The temp now resident in X.
    */
@@ -96,9 +94,9 @@ export interface RegisterBinder {
 
   /**
    * Spill `temp` from its register to a fresh `category: "temp"` ZP slot, emitting
-   * the `STA` and relocating the temp's home (R43). Raises an `E90001` ICE if the
-   * plan provides no remaining temp slot (a planner/codegen contract violation —
-   * H5, never silent corruption).
+   * the `STA` and relocating the temp's home. Raises an `E90001` ICE if the
+   * plan provides no remaining temp slot (a planner/codegen contract violation,
+   * never silent corruption).
    *
    * @param temp The register-resident temp to spill.
    * @param emit Sink for the emitted `STA`.
@@ -106,13 +104,13 @@ export interface RegisterBinder {
   spill(temp: ILOperand, emit: (e: StreamEntry) => void): void;
 
   /**
-   * Clear all register knowledge at a block boundary (R45). Memory homes survive;
+   * Clear all register knowledge at a block boundary. Memory homes survive;
    * only the A/X/Y occupancy is forgotten, so the next {@link ensureInA} reloads.
    */
   reset(): void;
 }
 
-/** Internal mutable register-occupancy state (R44). */
+/** Internal mutable register-occupancy state. */
 interface RegisterState {
   a: number | null;
   x: number | null;
@@ -123,15 +121,15 @@ interface RegisterState {
  * Construct a {@link RegisterBinder} over the given allocation plan.
  *
  * The binder reads only the plan's `category: "temp"` ZP runs (the spill scratch
- * area, R43); every other plan field is owned by other phases. Diagnostics (the
- * over-budget ICE, D7) are written to `bag`.
+ * area); every other plan field is owned by other phases. Diagnostics (the
+ * over-budget ICE) are written to `bag`.
  *
- * @param plan The carried allocation plan (`ilProgram.allocationPlan`, D2).
- * @param bag The diagnostic sink for the over-budget ICE (D7).
+ * @param plan The carried allocation plan (`ilProgram.allocationPlan`).
+ * @param bag The diagnostic sink for the over-budget ICE.
  * @returns A fresh, function-local register binder.
  */
 export function createRegisterBinder(plan: AllocationPlan, bag: DiagnosticBag): RegisterBinder {
-  // The ZP scratch slots available for spilling, in allocation order (R43).
+  // The ZP scratch slots available for spilling, in allocation order.
   const tempSlots: readonly string[] = plan.zpAllocations
     .filter((z) => z.category === "temp")
     .map((z) => z.name);
@@ -162,7 +160,7 @@ export function createRegisterBinder(plan: AllocationPlan, bag: DiagnosticBag): 
     const home = homes.get(id);
     if (home !== undefined) return { kind: "zp", slot: home };
     // No known location: treat as accumulator-resident default (the producing
-    // instruction is expected to have bound it). Conservative, total (H5).
+    // instruction is expected to have bound it). Conservative, total.
     return { kind: "reg", reg: "A" };
   }
 
@@ -175,14 +173,14 @@ export function createRegisterBinder(plan: AllocationPlan, bag: DiagnosticBag): 
       `register binder: cannot address register ${loc.reg} as memory`,
     );
 
-    // Total fallback (H5): an inert slot reference; the ICE already failed the build.
+    // Total fallback: an inert slot reference; the ICE already failed the build.
     return zpSlot("__zp_invalid");
   }
 
   function ensureInA(op: ILOperand, emit: (e: StreamEntry) => void): void {
     const id = tempId(op);
     if (state.a === id) {
-      return; // redundant-load suppression (R44)
+      return; // redundant-load suppression
     }
     const loc = locationOf(op);
     if (loc.kind === "zp") {

@@ -1,5 +1,5 @@
 /**
- * Implementation tests for RD-18 Slice 3b expression/statement typing edge cases
+ * Implementation tests for expression/statement typing edge cases
  * (`expression-typing.ts` + `statement-typing.ts`), exercised through the real
  * `analyze()` path. These cover literal adaptation, poison-cascade suppression,
  * the assignment-compat branches, const-folded range/div-by-zero, and the

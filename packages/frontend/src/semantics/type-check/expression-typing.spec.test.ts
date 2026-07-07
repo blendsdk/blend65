@@ -1,10 +1,10 @@
 /**
- * Specification tests for RD-18 Slice 3b expression/literal typing (Pass 3, FR-2).
+ * Specification tests for expression and literal typing (Pass 3).
  *
  * Expectations derive exclusively from the **frozen spec** (Ch 02 type system:
  * TS-2 literal typing, TS-3 same-type ops, TS-5 mixed-signedness §5.1) and the
- * plan's testing strategy (ST-1, ST-3, ST-4, ST-5, ST-6, ST-9) + the AR-11
- * diagnostic-code table — NOT from implementation logic. Immutable oracle.
+ * canonical diagnostic-code table — NOT from implementation logic. Immutable
+ * oracle.
  *
  * The type engine is exercised through the REAL public path (`lex` → `parse` →
  * `analyze`); assertions read `model.typeOf(expr)` and the diagnostic bag.
@@ -69,7 +69,7 @@ function errorCodes(bag: DiagnosticBag): string[] {
 }
 
 describe("Specification: RD-18 Slice 3b expression typing (FR-2)", () => {
-  // ST-1 — literal typing (TS-2): value/context default type recorded in typeMap.
+  // Literal typing (TS-2): value/context default type recorded in typeMap.
   it("should type numeric literals by value + context (ST-1, TS-2)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -84,7 +84,7 @@ describe("Specification: RD-18 Slice 3b expression typing (FR-2)", () => {
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // ST-3 — same-type arithmetic (TS-3): T OP T → T.
+  // Same-type arithmetic (TS-3): T OP T → T.
   it("should type same-type binary arithmetic as that type (ST-3, TS-3)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -100,7 +100,7 @@ describe("Specification: RD-18 Slice 3b expression typing (FR-2)", () => {
     expect(bag.hasErrors()).toBe(false);
   });
 
-  // ST-4 — mixed signedness (TS-5, §5.1) → E10081 + poison; never throws (AC-2/AC-4).
+  // Mixed signedness (TS-5, §5.1) → E10081 + poison; never throws.
   it("should reject byte + sbyte with E10081 and not throw (ST-4, AC-4)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -120,8 +120,8 @@ describe("Specification: RD-18 Slice 3b expression typing (FR-2)", () => {
     expect(model.typeOf(asBinary(initOf(letInMain(program, "r")))).kind).toBe("error");
   });
 
-  // ST-5 — a boolean operand in arithmetic → E10080 (InvalidOperandType, ledger
-  // R34 / AR-11; NOT E10151 = UnknownType).
+  // A boolean operand in arithmetic → E10080 (InvalidOperandType;
+  // NOT E10151 = UnknownType).
   it("should reject a boolean operand in arithmetic with E10080 (ST-5, AR-11)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -135,7 +135,7 @@ describe("Specification: RD-18 Slice 3b expression typing (FR-2)", () => {
     expect(errorCodes(bag)).not.toContain(DiagCode.UnknownType); // NOT E10151
   });
 
-  // ST-6 — an undeclared identifier reference → E10100 + poison.
+  // An undeclared identifier reference → E10100 + poison.
   it("should report an undeclared identifier with E10100 (ST-6)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(
@@ -147,7 +147,7 @@ describe("Specification: RD-18 Slice 3b expression typing (FR-2)", () => {
     expect(errorCodes(bag)).toContain(DiagCode.UndeclaredIdentifier); // E10100
   });
 
-  // ST-9 — poison suppression (R114/AC-13): `undef + b` emits EXACTLY ONE
+  // Poison suppression: `undef + b` emits EXACTLY ONE
   // diagnostic (E10100), no cascade from the poisoned `+`.
   it("should emit exactly one diagnostic for a poisoned expression (ST-9, R114)", () => {
     const bag = createDiagnosticBag();

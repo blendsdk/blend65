@@ -1,9 +1,8 @@
 /**
- * Unit tests for the {@link NodeKind} AST vocabulary (RD-03 FR-1, FR-49).
+ * Unit tests for the {@link NodeKind} AST vocabulary.
  *
- * Covers spec case ST-P1 from plans/rd-03-parser-ast/07-testing-strategy.md: the
- * enumerated node-kind set is pinned (exactly 50 kinds — AR-1 removed `AsmBlock`),
- * every value equals its key (the string-valued convention mirroring `TokenKind`),
+ * Verifies the enumerated node-kind set is pinned at exactly 50 kinds, every
+ * value equals its key (the string-valued convention mirroring `TokenKind`),
  * no duplicates, and the per-group counts (3 + 11 + 13 + 17 + 3 + 3) are guarded so
  * a category can never silently drift.
  */

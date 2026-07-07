@@ -1,15 +1,12 @@
 /**
- * Specification tests for RD-09 emit orchestration (`emitBinary`) — ST-E1..ST-E3.
+ * Specification tests for emit orchestration (`emitBinary`).
  *
- * Derived EXCLUSIVELY from `requirements/RD-09-acme-emitter.md` (R34, R39–R44,
- * AC-03/14/16), the component spec
- * `plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, and the testing strategy
- * `07-testing-strategy.md` (ST-E1..E3). Immutable oracles (testing.md Rule 10):
- * the emit-asm-only short-circuit, the success aggregation, and the post-ACME
- * budget check (`E10034`) come from the RD.
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: the emit-asm-only short-circuit, the success aggregation, and the
+ * post-ACME budget check (`E10034`).
  *
  * Filesystem and ACME invocation are injected via {@link EmitDeps} so no test
- * writes real files or spawns a real ACME binary (AR-27).
+ * writes real files or spawns a real ACME binary.
  */
 
 import { describe, expect, it, vi } from "vitest";

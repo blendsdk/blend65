@@ -1,7 +1,6 @@
 /**
- * Implementation tests for `build()` edges (03-02 "Testing Requirements"):
- * outName derivation, binary read-back on failure/over-budget, and report absence
- * on a pre-emit abort.
+ * Implementation tests for `build()` edges: outName derivation, binary
+ * read-back on failure/over-budget, and report absence on a pre-emit abort.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -62,7 +61,7 @@ describe("build(): binary read-back", () => {
 
     expect(result.binary).toBeUndefined();
     expect(result.binaryPath).toBeUndefined();
-    expect(result.asmPath).toBeDefined(); // retained on failure (R36)
+    expect(result.asmPath).toBeDefined(); // retained on failure
     expect(result.hasErrors).toBe(true);
   });
 

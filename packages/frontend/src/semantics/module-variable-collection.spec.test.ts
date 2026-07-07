@@ -1,9 +1,9 @@
 /**
- * Specification tests for RD-18 Slice 3b module-level scalar collection (Pass 1,
- * FR-4; AR-9). Expectations derive from the plan's testing strategy (ST-11,
- * ST-12), spec Ch 03 (module-level `let`), and RD-04 R9/R20 (duplicate decl) —
- * NOT from implementation logic. Immutable oracle. Exercised through the REAL
- * `analyze()` path; assertions read the model's module scope and the bag.
+ * Specification tests for module-level scalar collection (Pass 1).
+ * Expectations derive from spec Ch 03 (module-level `let`) and the duplicate-
+ * declaration rule — NOT from implementation logic. Immutable oracle.
+ * Exercised through the REAL `analyze()` path; assertions read the model's
+ * module scope and the bag.
  */
 
 import { describe, expect, it } from "vitest";
@@ -31,7 +31,7 @@ function errorCodes(bag: DiagnosticBag): string[] {
 }
 
 describe("Specification: RD-18 Slice 3b module-variable collection (FR-4)", () => {
-  // ST-11 — a top-level `let` becomes a `variable` symbol in the module scope, and
+  // A top-level `let` becomes a `variable` symbol in the module scope, and
   // a function body reference resolves to it (no E10100).
   it("should collect a top-level let as a module-scope variable symbol (ST-11)", () => {
     const bag = createDiagnosticBag();
@@ -50,7 +50,7 @@ describe("Specification: RD-18 Slice 3b module-variable collection (FR-4)", () =
     expect(errorCodes(bag)).not.toContain(DiagCode.UndeclaredIdentifier);
   });
 
-  // ST-12 — a duplicate top-level declaration → E10003 (R9/R20).
+  // A duplicate top-level declaration → E10003.
   it("should report a duplicate top-level let with E10003 (ST-12)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource("module Main;\nlet g: byte;\nlet g: word;\n", bag);

@@ -7,13 +7,11 @@ import type { TokenKindValue } from "./token-kind.js";
  * The lexeme text is NOT stored — it is recovered lazily from the source via
  * `text.slice(token.span.start, token.span.end)`, keeping token creation
  * allocation-free for the common case (operators, punctuation, keywords).
- *
- * Covers RD-02 FR-3, FR-4 · AR-L3 · spec Ch 01 §11.4.
  */
 export interface Token {
   /** The token's kind (spec Ch 01 §12). */
   readonly kind: TokenKindValue;
-  /** Half-open byte-offset span into the owning source (AR-72). */
+  /** Half-open byte-offset span into the owning source. */
   readonly span: SourceSpan;
   /**
    * Semantic value, set only for value-bearing tokens:

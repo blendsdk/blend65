@@ -1,5 +1,5 @@
 /**
- * `runtime/` barrel — RD-17 runtime-module embedding (03-04).
+ * `runtime/` barrel — runtime-module embedding.
  */
 
 export {

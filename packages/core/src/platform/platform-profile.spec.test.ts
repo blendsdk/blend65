@@ -1,18 +1,15 @@
 /**
- * Specification tests for the RD-10 core platform types (ST-CP1..CP7).
+ * Specification tests for the core platform types.
  *
- * Derived from `07-testing-strategy.md` (ST-CP1..CP7), `03-01-profile-and-plugin-interface.md`,
- * the frozen spec Ch 15 §3, and the ambiguity register (D2/D6). Written BEFORE the
- * `platform-profile.ts` / `platform-plugin.ts` / `validate-profile.ts` implementations exist
- * (red phase) and verifying them against the specification — never derived from running the
- * implementation (IMMUTABLE ORACLE RULE).
+ * Derived from the frozen spec Ch 15 §3 and verified against the
+ * specification — never derived from running the implementation.
  */
 
 import { describe, expect, it } from "vitest";
 
-// Canonical RD-10 types under test — surfaced via the new `@blend65/core/platform`
-// subpath barrel (D6/D8). The root `@blend65/core` barrel still exports the interim
-// profile (ST-CP7), which is asserted separately below.
+// Canonical platform types under test — surfaced via the `@blend65/core/platform`
+// subpath barrel. The root `@blend65/core` barrel still exports the interim
+// profile, which is asserted separately below.
 import {
   type CpuVariant,
   type PlatformProfile,
@@ -23,8 +20,8 @@ import {
 /**
  * A minimal internally-consistent profile using the C64 memory-map values
  * (appendix-c64): `zpStart=0x02`, `zpEnd=0x8F` → `maxZp = 0x8F - 0x02 + 1 = 142`;
- * `codeStart=0x0801 < codeEnd`. Used as the consistent baseline for ST-CP2 and as
- * the mutation base for ST-CP3..CP5.
+ * `codeStart=0x0801 < codeEnd`. Used as the consistent baseline below, and as
+ * the base profile that later cases mutate one field at a time.
  */
 const C64_PROFILE: PlatformProfile = {
   platformId: "c64",

@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the `planAllocation` pipeline (RD-05 §4.1).
+ * Implementation tests for the `planAllocation` pipeline (§4.1).
  *
  * Internals and integration derived from the implementation (testing.md Rule 10
  * impl tier): frame sharing across the pipeline, module-variable placement and the

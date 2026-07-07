@@ -1,5 +1,5 @@
 /**
- * The semantic model — the output of `analyze()` (RD-04 §4.10, R121).
+ * The semantic model — the output of `analyze()`.
  *
  * A {@link SemanticModel} is the record every downstream phase (SFA frame
  * planning, IL lowering, codegen, the language server) consumes: the global
@@ -7,12 +7,10 @@
  * order, constant values, the resolved struct/enum type tables, the entry-point
  * function, and an aggregate error flag — plus three query helpers.
  *
- * PASSTHROUGH CONTRACT (RD-04 plan, D2): in this skeleton, `analyze()` returns a
- * model whose maps/collections are all empty, `mainFunction` is `null`,
- * `hasErrors` is `false`, and `globalScope` is a lone empty global scope. The
- * query helpers return documented safe values. The real four-pass checker
- * (DEFERRED) populates these. See
- * plans/rd-04-semantic-analysis/08-deferred-semantics-ledger.md.
+ * In this skeleton, `analyze()` returns a model whose maps/collections are all
+ * empty, `mainFunction` is `null`, `hasErrors` is `false`, and `globalScope` is
+ * a lone empty global scope. The query helpers return documented safe values.
+ * The real four-pass checker, not yet implemented, will populate these.
  */
 
 import type { ExprNode, AstNode } from "../ast/index.js";
@@ -25,7 +23,7 @@ import type { ConstValue } from "./const-value.js";
 import type { CallGraph } from "./call-graph.js";
 import { emptyCallGraph } from "./call-graph.js";
 
-/** The resolved semantic information for a whole program (RD-04 §4.10). */
+/** The resolved semantic information for a whole program. */
 export interface SemanticModel {
   readonly globalScope: Scope;
   /** Resolved type of every typed expression. */
@@ -33,17 +31,17 @@ export interface SemanticModel {
   /** Resolved symbol for every name-introducing or name-referencing node. */
   readonly symbolMap: ReadonlyMap<AstNode, Symbol>;
   readonly callGraph: CallGraph;
-  /** Module/global initialiser execution order (R-init). */
+  /** Module/global initialiser execution order. */
   readonly initOrder: ReadonlyArray<Symbol>;
   readonly constValues: ReadonlyMap<Symbol, ConstValue>;
   readonly structTypes: ReadonlyMap<string, StructType>;
   readonly enumTypes: ReadonlyMap<string, EnumType>;
   /** The resolved entry-point function, or `null` if none. */
   readonly mainFunction: Symbol | null;
-  /** `true` if analysis recorded any error. Passthrough: always `false` (D3). */
+  /** `true` if analysis recorded any error. Passthrough: always `false`. */
   readonly hasErrors: boolean;
 
-  // Query helpers (R121). Passthrough returns defined safe values (D2).
+  // Query helpers. Passthrough returns defined safe values.
 
   /** Resolved type of `expr`. Passthrough: {@link ERROR_TYPE}. */
   typeOf(expr: ExprNode): Type;
@@ -54,12 +52,12 @@ export interface SemanticModel {
 }
 
 /**
- * Builds the empty passthrough {@link SemanticModel} (D2). The lone global scope
- * is created here, and the query helpers close over it so `scopeOf` can return
- * it by reference.
+ * Builds the empty passthrough {@link SemanticModel}. The lone global scope is
+ * created here, and the query helpers close over it so `scopeOf` can return it
+ * by reference.
  *
- * DEFERRED(RD-04-checker): the real model is produced by the four-pass analyzer
- * (declaration collection, type resolution, body checking, post-check).
+ * The real model, produced by the four-pass analyzer (declaration collection,
+ * type resolution, body checking, post-check), is not implemented yet.
  *
  * @returns A structurally valid, semantically empty model.
  */
@@ -76,8 +74,8 @@ export function createEmptyModel(): SemanticModel {
     enumTypes: new Map(),
     mainFunction: null,
     hasErrors: false,
-    typeOf: () => ERROR_TYPE, // DEFERRED(RD-04-checker): R44 expression typing
-    symbolOf: () => null, // DEFERRED(RD-04-checker): R14–R19 name resolution
-    scopeOf: () => globalScope, // DEFERRED(RD-04-checker): R7 scope assignment
+    typeOf: () => ERROR_TYPE, // Expression typing is not implemented yet
+    symbolOf: () => null, // Name resolution is not implemented yet
+    scopeOf: () => globalScope, // Scope assignment is not implemented yet
   };
 }

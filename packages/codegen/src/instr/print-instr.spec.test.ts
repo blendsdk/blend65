@@ -1,17 +1,15 @@
 /**
- * Specification tests for the RD-07a canonical ACME serializer (ST-S1..S23).
+ * Specification tests for the canonical ACME serializer.
  *
- * Derived EXCLUSIVELY from `requirements/RD-07-codegen-instr.md` (R52–R54, R58,
- * R13), the component spec `03-03-serializer.md`, ACME syntax conventions, and
- * the Ambiguity Register (D8). These are immutable oracles (testing.md Rule 10):
- * the expected text is the ACME rendering documented in 03-03, NOT whatever the
- * serializer happens to produce.
+ * Derived EXCLUSIVELY from the ACME syntax conventions. These are immutable
+ * oracles: the expected text is the documented ACME rendering, NOT whatever
+ * the serializer happens to produce.
  *
- * Per 03-03: instruction lines render `<MNEMONIC>` or `<MNEMONIC> <operand-text>`;
+ * Instruction lines render `<MNEMONIC>` or `<MNEMONIC> <operand-text>`;
  * labels sit at column 0 as `name:`. These tests assert the documented *operand
- * text* (the `.trim()`med line) per ST case, and separately assert the column-0
- * vs indented distinction (ST-S13). Exact byte-for-byte indentation is pinned by
- * the Phase-4 golden snapshots.
+ * text* (the `.trim()`med line) per case, and separately assert the column-0
+ * vs indented distinction. Exact byte-for-byte indentation is pinned by
+ * the golden snapshots.
  */
 
 import { describe, expect, it } from "vitest";

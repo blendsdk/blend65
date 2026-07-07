@@ -1,13 +1,12 @@
 /**
- * Specification tests for RD-17 runtime-module embedding + dead-strip
- * (ST-28, ST-29).
+ * Specification tests for runtime-module embedding + dead-strip.
  *
- * Derived EXCLUSIVELY from RD-17 §4.6/R15/R16, AC-11, and AR-100 — never from
- * reading the implementation (IMMUTABLE ORACLE RULE):
- *  - ST-28: a program using `*` (bytes) serializes with the `mul8.asm` body
- *    embedded EXACTLY ONCE, in a discrete runtime section (R15, AR-100).
- *  - ST-29: the gate program (no `*`/`/`/`%`) serializes with NO runtime section —
- *    byte-identical to the pre-RD-17 output (R16, AC-11).
+ * These are immutable oracles — never derived from reading the
+ * implementation:
+ *  - a program using `*` (bytes) serializes with the `mul8.asm` body
+ *    embedded EXACTLY ONCE, in a discrete runtime section.
+ *  - the gate program (no `*`/`/`/`%`) serializes with NO runtime section —
+ *    byte-identical to the output from before runtime-module embedding existed.
  */
 
 import { describe, expect, it } from "vitest";
@@ -105,15 +104,15 @@ describe("Specification: RD-17 runtime embedding (ST-28, R15, AR-100)", () => {
     const text = serializeToAcme(program, { runtimeSection: section ?? "" });
 
     // The module body appears exactly once: one definition of the entry label
-    // (internal labels share the `__rt_mul8_` prefix per AR-100 — exclude them).
+    // (internal labels share the `__rt_mul8_` prefix — exclude them).
     const defs = text.split("\n").filter((line) => line.startsWith("__rt_mul8:"));
     expect(defs).toHaveLength(1);
-    // ...and it is the verbatim module text (AR-100: single-file composition).
+    // ...and it is the verbatim module text (single-file composition).
     const mul8 = loadRuntimeModule(RT_ROUTINES.find((d) => d.name === "__rt_mul8")!);
     expect(text).toContain(mul8.trimEnd());
     // Discrete section: a runtime-section marker separates it from the code.
     expect(text).toContain("runtime routines");
-    // Unreferenced modules are dead-stripped (R16): no div/mul16 bodies.
+    // Unreferenced modules are dead-stripped: no div/mul16 bodies.
     for (const absent of ["__rt_mul16", "__rt_div8", "__rt_div16"]) {
       expect(text).not.toContain(`${absent}\n`);
       expect(text.split("\n").some((line) => line.startsWith(absent))).toBe(false);
@@ -130,8 +129,9 @@ describe("Specification: RD-17 dead-strip / golden preservation (ST-29, R16, AC-
     expect(referenced.size).toBe(0);
     expect(buildRuntimeSection(referenced, RT_ROUTINES)).toBeNull();
 
-    // No option → byte-identical to the pre-RD-17 serializer output (the RD-09
-    // golden shape): no runtime section, no trailing additions.
+    // No option → byte-identical to the serializer output from before runtime
+    // embedding existed (the golden shape): no runtime section, no trailing
+    // additions.
     const withoutOption = serializeToAcme(program);
     expect(withoutOption).not.toContain("runtime routines");
     expect(withoutOption.endsWith("\n")).toBe(true);
@@ -140,11 +140,11 @@ describe("Specification: RD-17 dead-strip / golden preservation (ST-29, R16, AC-
   it("every catalog T3 routine loads and follows the §4.6 module convention", () => {
     for (const d of RT_ROUTINES) {
       const text = loadRuntimeModule(d);
-      // Single entry label named after the routine, ending in RTS (§4.6).
+      // Single entry label named after the routine, ending in RTS.
       expect(text.split("\n").some((line) => line.startsWith(d.name))).toBe(true);
       expect(text.toUpperCase()).toContain("RTS");
-      // Internal labels carry the module prefix (AR-100 collision rule): every
-      // label definition at column 0 starts with the routine's own prefix.
+      // Internal labels carry the module prefix (a collision-avoidance rule):
+      // every label definition at column 0 starts with the routine's own prefix.
       const labelDefs = text
         .split("\n")
         .filter((line) => /^[A-Za-z_]/.test(line) && !line.startsWith(";"));

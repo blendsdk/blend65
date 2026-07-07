@@ -1,12 +1,12 @@
 /**
- * Specification test for the RD-18 Slice 3b mixed-signedness negative (acceptance
- * bar — the AC-2/AC-4 headline, ST-19). A `byte + sbyte` expression must be
- * rejected with **E10081**, set `hasErrors`, emit **no binary**, and never throw —
- * asserted through the frontend-only `compile()` facade (CI-runnable, no ACME).
+ * Specification test for the Slice 3b mixed-signedness negative case. A
+ * `byte + sbyte` expression must be rejected with **E10081**, set `hasErrors`,
+ * emit **no binary**, and never throw — asserted through the frontend-only
+ * `compile()` facade (CI-runnable, no ACME).
  *
- * Derived EXCLUSIVELY from `03-04-acceptance-fixtures.md` (ST-19) + AR-6 + the
- * AR-11 code table (mixed-sign arithmetic operands = E10081) — never from reading
- * the implementation (IMMUTABLE ORACLE).
+ * This is derived directly from the documented mixed-sign arithmetic rule
+ * (mixed-sign operands reject with E10081), not from reading the
+ * implementation.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 import { DiagCode } from "@blend65/core";
 import { compile } from "@blend65/compiler";
 
-/** The mixed-sign negative fixture (AR-6). */
+/** The mixed-sign negative fixture. */
 const MIXED_SIGN_SRC = `module Main;
 function main(): void {
     let a: byte = 5;

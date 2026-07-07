@@ -1,11 +1,10 @@
 /**
- * Unit tests for the AST traversal helpers (RD-03 FR-48).
+ * Unit tests for the AST traversal helpers.
  *
- * Covers spec case ST-P3 from plans/rd-03-parser-ast/07-testing-strategy.md:
- * `walkNode` dispatches each node to its matching `visit*` method, and
- * `walkChildren` performs a depth-first visit of every child of a hand-built
- * tree. The visitor contract is otherwise enforced statically by the type
- * checker (exhaustive `switch` with a `never` default arm).
+ * Verifies that `walkNode` dispatches each node to its matching `visit*`
+ * method, and that `walkChildren` performs a depth-first visit of every child
+ * of a hand-built tree. The visitor contract is otherwise enforced statically
+ * by the type checker (exhaustive `switch` with a `never` default arm).
  */
 
 import { describe, expect, it } from "vitest";

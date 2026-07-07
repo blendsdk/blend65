@@ -1,26 +1,26 @@
 /**
- * The 6502 opcode (mnemonic) set — RD-07 §4.1, R3.
+ * The 6502 opcode (mnemonic) set.
  *
  * Opcodes are declared as `as const` value tuples (mirroring the IL's `IL_OPS`)
  * so the {@link Opcode} string union is *generated* from the runtime value set
  * and can never drift from it. The NMOS and 65C02 subsets are exported
- * separately so the CPU legality table (03-02) can partition legality by
- * variant: NMOS targets reject the 65C02-only mnemonics entirely (R16).
+ * separately so the CPU legality table can partition legality by variant:
+ * NMOS targets reject the 65C02-only mnemonics entirely.
  *
  * This module is pure data — no behavior. Validation lives in `validate.ts`,
  * serialization in `print-instr.ts`.
  *
- * Relocated to `@blend65/core` (`instr-model/`) by RD-10 D7/D8 so the platform
- * plugin interface (which lives in core) can reference the stream model without a
+ * Lives in `@blend65/core` (`instr-model/`) so the platform plugin interface
+ * (which lives in core) can reference the stream model without a
  * core→codegen dependency; `@blend65/codegen` re-exports it unchanged.
  */
 
 /**
- * The 56 NMOS 6502 mnemonics (R3), in canonical alphabetical order.
+ * The 56 NMOS 6502 mnemonics, in canonical alphabetical order.
  *
  * This is the universal instruction set available on every 6502 target. Any
  * opcode outside this set is a 65C02 extension and is gated behind
- * `cpuVariant === "wdc65c02"` by the CPU table (R16).
+ * `cpuVariant === "wdc65c02"` by the CPU table.
  */
 export const NMOS_OPCODES = [
   "ADC", "AND", "ASL", "BCC", "BCS", "BEQ", "BIT", "BMI", "BNE", "BPL",
@@ -32,13 +32,13 @@ export const NMOS_OPCODES = [
 ] as const;
 
 /**
- * The 9 65C02-only mnemonics (R3) — legal only when `cpuVariant === "wdc65c02"`.
+ * The 9 65C02-only mnemonics — legal only when `cpuVariant === "wdc65c02"`.
  *
  * These are the WDC 65C02 additions Blend65 models (push/pull X/Y, branch-always,
  * store-zero, test-and-reset/set bits, and wait-for-interrupt). On an NMOS target
- * they are illegal and the validator raises an ICE if codegen ever emits one (R16).
+ * they are illegal and the validator raises an ICE if codegen ever emits one.
  *
- * `WAI` is added by RD-17 (R2) to back the 65C02-gated `asm_wai` intrinsic.
+ * `WAI` is included to back the 65C02-gated `asm_wai` intrinsic.
  */
 export const W65C02_OPCODES = [
   "BRA", "PHX", "PHY", "PLX", "PLY", "STZ", "TRB", "TSB", "WAI",
@@ -53,5 +53,5 @@ export const W65C02_OPCODES = [
  */
 export const OPCODES = [...NMOS_OPCODES, ...W65C02_OPCODES] as const;
 
-/** The typed union of all 6502 mnemonics (R3). */
+/** The typed union of all 6502 mnemonics. */
 export type Opcode = (typeof OPCODES)[number];

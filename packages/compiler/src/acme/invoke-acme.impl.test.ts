@@ -1,8 +1,8 @@
 /**
- * Implementation tests for RD-09 ACME invocation (`invokeAcme`). Written AFTER the
- * implementation — these cover internals beyond the ST-I* spec oracles: the argv
- * array shape (no shell), the presence of the label-dump and report flags, the
- * working directory, and the PRG-header-excluding binary size.
+ * Implementation tests for ACME invocation (`invokeAcme`). Written after the
+ * implementation — these cover internals beyond the spec-level oracles: the
+ * argv array shape (no shell), the presence of the label-dump and report
+ * flags, the working directory, and the PRG-header-excluding binary size.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -41,12 +41,12 @@ describe("invokeAcme — argv & process shape", () => {
     expect(exe).toBe("/usr/bin/acme");
     expect(cwd).toBe("/build");
     // argv is an array (injection-safe), and carries --vicelabels, --report, and
-    // the .asm. Note (DEF-2 / AR-H7): the label flag is `--vicelabels`, NOT `-l` —
-    // ACME's `-l`/`--symbollist` writes a native format `parseLabelFile` cannot
+    // the .asm. The label flag is `--vicelabels`, NOT `-l` — ACME's
+    // `-l`/`--symbollist` writes a native format `parseLabelFile` cannot
     // read, leaving `symbolMap` empty for every real build.
-    // Note (AR-V23 / DEF-1): the binary output is driven by the serializer's
-    // `!to "<name>.prg", cbm` directive, NOT `-o` — passing `-o` makes ACME emit
-    // headerless "plain" output, dropping the c64 PRG load-address header.
+    // The binary output is driven by the serializer's `!to "<name>.prg", cbm`
+    // directive, NOT `-o` — passing `-o` makes ACME emit headerless "plain"
+    // output, dropping the c64 PRG load-address header.
     expect(Array.isArray(argv)).toBe(true);
     expect(argv).not.toContain("-o");
     expect(argv).not.toContain("-l");

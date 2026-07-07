@@ -3,7 +3,7 @@ import { DiagCode, TokenKind, createDiagnosticBag, makeSpan } from "@blend65/cor
 import type { AstNode, DiagnosticBag, SourceId, Token, TokenKindValue } from "@blend65/core";
 import { lex } from "../index.js";
 // Import through the package PUBLIC entry so this tier also pins that `parse`
-// is re-exported from `@blend65/frontend` (FR-47, AC-01).
+// is re-exported from `@blend65/frontend` (FR-47).
 import { parse } from "../index.js";
 
 /** The synthetic source id used by every parse in this file. */
@@ -11,7 +11,7 @@ const SRC = 1;
 
 /**
  * Lexes `source` then parses it through the public `parse()` entry, threading
- * the source text into the `ParseInput` object (AR-8) so identifier lexemes
+ * the source text into the `ParseInput` object so identifier lexemes
  * resolve via the cursor's single `lexeme()` site.
  */
 function parseSource(source: string, bag: DiagnosticBag) {
@@ -31,10 +31,10 @@ function isAstNode(v: unknown): v is AstNode {
 
 /**
  * Serialises an AST into a stable, span-free plain-object tree for golden
- * snapshots (AC-07): `kind` first, then every child node / array of nodes and
+ * snapshots: `kind` first, then every child node / array of nodes and
  * scalar field, with `span`/`*Span` fields omitted so the snapshot captures
  * *shape*, not byte offsets. Deterministic key order (insertion order of the
- * node interfaces) makes the output byte-identical across runs (AC-16).
+ * node interfaces) makes the output byte-identical across runs.
  */
 function serialize(value: unknown): unknown {
   if (isAstNode(value)) {
@@ -70,7 +70,7 @@ describe("parser public contract — Phase 2 (ST-P5..P8)", () => {
     expect(typeof parse).toBe("function");
   });
 
-  // ----- ST-P5: minimal program (FR-12/13, AC-11) -----
+  // ----- Minimal program (FR-12/13) -----
   it("ST-P5: `module Main;` → ProgramNode, name 'Main', no items, no errors", () => {
     const bag = createDiagnosticBag();
     const { ast, hasErrors } = parseSource("module Main;", bag);
@@ -89,7 +89,7 @@ describe("parser public contract — Phase 2 (ST-P5..P8)", () => {
     expect(hasErrors).toBe(false);
   });
 
-  // ----- ST-P6: missing module (FR-13, AC-08) -----
+  // ----- Missing module (FR-13) -----
   it("ST-P6: source with no `module` → E10001, ProgramNode still returned", () => {
     const bag = createDiagnosticBag();
     const { ast, hasErrors } = parseSource("function main(): void { }", bag);
@@ -99,7 +99,7 @@ describe("parser public contract — Phase 2 (ST-P5..P8)", () => {
     expect(bag.getAll().some((d) => d.code === DiagCode.MissingModuleDecl)).toBe(true);
   });
 
-  // ----- ST-P7: second module (FR-13, AC-08) -----
+  // ----- Second module (FR-13) -----
   it("ST-P7: two `module` declarations → E10002 on the second; one ProgramNode", () => {
     const bag = createDiagnosticBag();
     const { ast } = parseSource("module A;\nmodule B;", bag);
@@ -108,7 +108,7 @@ describe("parser public contract — Phase 2 (ST-P5..P8)", () => {
     expect(bag.getAll().some((d) => d.code === DiagCode.ModuleDeclNotFirst)).toBe(true);
   });
 
-  // ----- ST-P8: import (FR-14, AC-01) -----
+  // ----- Import (FR-14) -----
   it("ST-P8: `import { a, b } from Foo.Bar;` → ImportStmtNode with symbols + path", () => {
     const bag = createDiagnosticBag();
     const { ast, hasErrors } = parseSource("module M;\nimport { a, b } from Foo.Bar;", bag);
@@ -123,7 +123,7 @@ describe("parser public contract — Phase 2 (ST-P5..P8)", () => {
     expect(imp.modulePath).toBe("Foo.Bar");
   });
 
-  // ----- Determinism (AC-16, foreshadow ST-P9) -----
+  // ----- Determinism -----
   it("parse() never throws and always returns a ParseResult", () => {
     const bag = createDiagnosticBag();
     expect(() => parseSource("module M;", bag)).not.toThrow();
@@ -272,7 +272,7 @@ describe("no-throw fuzz (ST-P34, AC-14, FR-4)", () => {
   /**
    * Builds a random token array (always Eof-terminated) over a fixed buffer.
    * Token **kinds** are random — that is what we fuzz — but their spans are
-   * monotonically increasing, exactly as the real lexer guarantees (AR-72). The
+   * monotonically increasing, exactly as the real lexer guarantees. The
    * parser's forward-progress guards rely on that monotonicity; feeding random,
    * non-monotonic spans would model an impossible lexer output, so we don't.
    */
@@ -321,7 +321,7 @@ describe("performance (ST-P35, AC-17)", () => {
   // GitHub CI runners (observed 54–58 ms under CPU contention — runner noise, not
   // slowness). The budget is set to 250 ms: >4× headroom over observed CI noise,
   // yet a real quadratic blow-up on 10k+ tokens would take seconds and still trip
-  // it. RD-03 AC-17 amended accordingly.
+  // it.
   const PARSE_BUDGET_MS = 250;
 
   it(`ST-P35: a 10,000-token file parses within ${PARSE_BUDGET_MS} ms`, () => {

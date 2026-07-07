@@ -1,6 +1,6 @@
 /**
  * Implementation tests for the run strategies — the timeout guard's halting
- * behaviour and per-call custom timeouts (R24). Written AFTER the strategies;
+ * behaviour and per-call custom timeouts. Written AFTER the strategies;
  * these run in CI against the fake driver (no emulator).
  */
 

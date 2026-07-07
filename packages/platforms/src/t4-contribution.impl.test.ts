@@ -1,7 +1,7 @@
 /**
- * Implementation tests for the RD-17 T4 contribution internals (03-05, 5.3.1):
- * the id-stamped availability wrapper, `[]`-plugin neutrality, and fixture
- * isolation (AR-P2 — never in the package barrel).
+ * Implementation tests for the T4 contribution internals: the id-stamped
+ * availability wrapper, `[]`-plugin neutrality, and fixture isolation (the
+ * fixture plugin must never be exported from the package barrel).
  */
 
 import { describe, expect, it } from "vitest";

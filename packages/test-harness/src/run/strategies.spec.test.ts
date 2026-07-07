@@ -1,13 +1,13 @@
 /**
- * Specification tests for the run strategies (ST-14, ST-15, ST-20..ST-22).
+ * Specification tests for the run strategies.
  *
- * Derived EXCLUSIVELY from RD-12 §4.2 and R20..R24 / AC-03/04/05/06 — never from
- * reading the implementation (IMMUTABLE ORACLE RULE). The mandatory timeout guard
- * (R23/AC-06) is unit-tested against a FAKE driver in CI (ST-14/15); the three
- * strategies are proven against the real gate program on VICE (ST-20..22, Local).
+ * These tests are derived directly from the strategies' documented behavior,
+ * not from reading the implementation. The mandatory timeout guard is
+ * unit-tested against a FAKE driver in CI; the three strategies are proven
+ * against the real gate program on VICE (Local).
  *
- * The gate/strategy integration suite compiles the gate via ACME, so it gates on
- * `skipIf(!hasVice() || !hasAcme())` (PF-002).
+ * The gate/strategy integration suite compiles the gate via ACME, so it gates
+ * on `skipIf(!hasVice() || !hasAcme())`.
  */
 
 import { afterAll, describe, expect, it } from "vitest";
@@ -22,8 +22,7 @@ const BORDER = 0xd020;
 /**
  * The read-back byte at $D020 after `poke(0xD020, 5)`. The VIC-II border register
  * has only 4 usable bits; its unused upper nibble reads back as 1s, so the byte is
- * 0xF5 (colour 5 in the low nibble), NOT 0x05 — pinned live against VICE 3.10
- * (PF-004; corrects the plan's literal AR-H9 value, see AR-H19).
+ * 0xF5 (colour 5 in the low nibble), NOT 0x05 — pinned live against real VICE 3.10.
  */
 const BORDER_READBACK = 0xf5;
 /** Generous per-test budget for suites that build + launch VICE. */
@@ -84,7 +83,7 @@ describe.skipIf(!VICE_ACME)("Specification: run strategies on the gate program (
   it(
     "ST-21: runUntilLabel resolves with registers at the _main breakpoint",
     async () => {
-      // Relaunch a clean session for the label sync (relaunch-per-binary, AR-H6).
+      // Relaunch a clean session for the label sync (a fresh relaunch per binary).
       if (driver !== undefined) await driver.shutdown();
       const env = await setupEmulator({ build: gate!.result, platform: "c64" });
       driver = env.driver;

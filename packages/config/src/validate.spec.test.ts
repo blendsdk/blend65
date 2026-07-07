@@ -1,13 +1,11 @@
 /**
- * Specification tests for config validation (ST-10..ST-24).
+ * Specification tests for config validation.
  *
- * Traceability: RD-16 R13/R15/R18/R19/R20/R21/R29/R30/R31, §4.3 steps 3+6 and
- * its edge table, AC-05..AC-10, via 07-testing-strategy.md. Shape tests cover
- * unknown keys and wrong types (validateShape); semantic tests cover the
- * post-merge value rules (validateSemantics). Assertions target diagnostic
- * code + severity + salient substrings and span distinctness only — never
- * full message prose. Written before the implementation exists
- * (immutable-oracle rule).
+ * Shape tests cover unknown keys and wrong types (validateShape); semantic
+ * tests cover the post-merge value rules (validateSemantics). Assertions
+ * target diagnostic code + severity + salient substrings and span
+ * distinctness only — never full message prose. Written before the
+ * implementation exists.
  */
 
 import { createDiagnosticBag, type DiagnosticBag } from "@blend65/core";
@@ -32,7 +30,7 @@ function runShape(text: string): { bag: DiagnosticBag; values: Partial<BlendConf
   return { bag, values };
 }
 
-/** Runs shape → merge → semantics over a JSONC text (the §4.3 pipeline). */
+/** Runs shape → merge → semantics over a JSONC text (the full validation pipeline). */
 function runPipeline(
   text: string,
   options?: {

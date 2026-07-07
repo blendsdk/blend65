@@ -1,13 +1,11 @@
 /**
- * Golden specification tests for the terminal build summary (RD-11b Phase 4).
+ * Golden specification tests for the terminal build summary.
  *
- * ST-24..ST-26 — the layout is transcribed VERBATIM from RD-11 §4.7 (the
- * Ch 11 §6 `=== Blend65 Build Summary ===` form, normative per R43/AR-82,
- * fixed by preflight PF-003) with AR-Q11 formatting (hand-rolled thousands
- * grouping, Math.round percentages, `($HHHH–$HHHH)` ranges) and AR-102/AR-Q16
- * zero/placeholder staging; see
- * plans/rd-11b-diagnostics-reporting/07-testing-strategy.md.
- * IMMUTABLE ORACLE: derived from the RD/ARs, never from implementation.
+ * The layout is transcribed VERBATIM from the frozen spec (the Ch 11 §6
+ * `=== Blend65 Build Summary ===` form) with hand-rolled thousands grouping,
+ * Math.round percentages, `($HHHH–$HHHH)` ranges, and zero/placeholder
+ * staging for values not yet wired up. Derived from the requirements, never
+ * from the implementation.
  */
 
 import { describe, expect, it } from "vitest";
@@ -70,7 +68,7 @@ function makePlan(overrides?: {
 }
 
 describe("renderReportTerminal (Ch 11 §6 / RD-11 §4.7 golden)", () => {
-  // ST-24 · AC-18/PF-003, AR-Q11 — the fully-populated normative layout.
+  // The fully-populated normative layout.
   it("ST-24: renders the complete §4.7 layout with grouping, percentages, and ranges", () => {
     const report = buildResourceReport({
       platformName: "c64",
@@ -118,7 +116,7 @@ describe("renderReportTerminal (Ch 11 §6 / RD-11 §4.7 golden)", () => {
     );
   });
 
-  // ST-25 · AR-102, AR-Q16/Q11 — minimal report: same geometry, zeros/placeholders.
+  // Minimal report: same geometry, zeros/placeholders.
   it("ST-25: a minimal report renders the identical line set with zeros, placeholder ranges, and 0% for zero budgets", () => {
     const zeroed = makePlan({
       resourceData: {
@@ -185,7 +183,7 @@ describe("renderReportTerminal (Ch 11 §6 / RD-11 §4.7 golden)", () => {
     );
   });
 
-  // ST-26 · AR-Q6 — the arg-block fold and the zpUsed-sourced ZP total.
+  // The arg-block fold and the zpUsed-sourced ZP total.
   it("ST-26: folds arg-block bytes into Compiler temps and takes the ZP total from zpUsed/zpBudget, not the category sum", () => {
     const report = buildResourceReport({
       platformName: "c64",

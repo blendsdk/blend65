@@ -1,8 +1,7 @@
 /**
- * Implementation tests for JSONC parsing internals (execution plan task
- * 2.3.2): UTF-8 BOM handling (AR-P10), empty files, code-unit→byte offset
- * conversion on non-ASCII content (PF-017), and an F9 message-format smoke
- * check building line/col via core's `LineMap` (PF-018).
+ * Implementation tests for JSONC parsing internals: UTF-8 BOM handling,
+ * empty files, code-unit→byte offset conversion on non-ASCII content, and
+ * a message-format smoke check building line/col via core's `LineMap`.
  */
 
 import { Buffer } from "node:buffer";

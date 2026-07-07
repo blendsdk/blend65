@@ -1,6 +1,5 @@
 /**
- * The SFA budget-diagnostics pass (RD-05 §4.13, R41–R46, R62; spec Ch 11 §8,
- * Ch 14).
+ * The SFA budget-diagnostics pass (spec Ch 11 §8, Ch 14).
  *
  * Checks the planner's RAM, zero-page, and stack usage against the platform
  * profile and emits the Ch 14 budget diagnostics through the shared
@@ -12,14 +11,13 @@
  *     did NOT already overflow (E10032 supersedes the warning).
  *   - **W10180** (stack depth near limit) — owned here, driven by the precomputed
  *     {@link StackAnalysis.exceedsWarningThreshold}.
- *   - **E10032** (ZP over budget) — emitted by the ZP allocator (03-03), NEVER
- *     re-emitted here, so it appears exactly once with a precise span.
+ *   - **E10032** (ZP over budget) — emitted by the ZP allocator, NEVER re-emitted
+ *     here, so it appears exactly once with a precise span.
  *
  * When `upstreamErrors` is true the numbers are unreliable, so this pass emits
- * **nothing** at all (cascade suppression, R62).
+ * **nothing** at all (cascade suppression).
  *
- * Imports `@blend65/core` only — never `@blend65/codegen` (R15/AR-20).
- * See plans/rd-05-sfa-frame-planner/03-04-stack-and-budgets.md.
+ * Imports `@blend65/core` only — never `@blend65/codegen`.
  */
 
 import type { StackAnalysis, PlatformProfile, DiagnosticBag } from "@blend65/core";
@@ -39,12 +37,12 @@ export interface BudgetInputs {
   readonly zpOverflowed: boolean;
   /** The precomputed stack analysis (drives W10180). */
   readonly stack: StackAnalysis;
-  /** `true` to suppress ALL budget diagnostics (cascade, R62). */
+  /** `true` to suppress ALL budget diagnostics (cascade). */
   readonly upstreamErrors: boolean;
 }
 
 /**
- * Checks the RAM/ZP/stack budgets and emits the Ch 14 diagnostics (R41–R46, R62).
+ * Checks the RAM/ZP/stack budgets and emits the Ch 14 diagnostics.
  *
  * @param inputs The used-vs-budget figures and the stack analysis.
  * @param profile The platform profile (supplies `name`/thresholds).
@@ -55,13 +53,13 @@ export function checkBudgets(
   profile: PlatformProfile,
   bag: DiagnosticBag,
 ): void {
-  // R62 — cascade suppression: with upstream errors the numbers are meaningless,
-  // so emit nothing.
+  // Cascade suppression: with upstream errors the numbers are meaningless, so
+  // emit nothing.
   if (inputs.upstreamErrors) {
     return;
   }
 
-  // RAM (R42 / FR-29): error if over budget, else warn in the band.
+  // RAM: error if over budget, else warn in the band.
   if (inputs.ramUsed > inputs.ramBudget) {
     bag.addError(
       DiagCode.RamBudgetExceeded,
@@ -77,8 +75,8 @@ export function checkBudgets(
     );
   }
 
-  // ZP (R43 / FR-30): E10032 is emitted by the allocator at the overflow point;
-  // here we only add the large-ZP warning when NOT overflowed.
+  // ZP: E10032 is emitted by the allocator at the overflow point; here we only
+  // add the large-ZP warning when NOT overflowed.
   if (!inputs.zpOverflowed && inputs.zpUsed >= inputs.zpBudget * profile.zpWarnThreshold) {
     bag.addWarning(
       DiagCode.LargeZpAllocation,
@@ -87,7 +85,7 @@ export function checkBudgets(
     );
   }
 
-  // Stack (R40/R45 / FR-27): warn when the precomputed analysis crosses threshold.
+  // Stack: warn when the precomputed analysis crosses threshold.
   if (inputs.stack.exceedsWarningThreshold) {
     bag.addWarning(
       DiagCode.StackDepthNearLimit,

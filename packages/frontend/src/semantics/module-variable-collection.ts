@@ -1,17 +1,18 @@
 /**
- * Pass-1 module-level scalar collection for RD-18 Slice 3b (FR-4; RD-04 §4.2
- * R9/R20). Sibling to `function-collection.ts` (kept separate by concern, AR-10).
+ * Pass-1 module-level scalar collection. Sibling to `function-collection.ts`
+ * (kept separate by concern).
  *
  * `collectModuleVariables` registers each top-level `let`/`const` declaration as a
  * `variable`/`constant` `Symbol` in the program's **module** scope — the very
  * scope `collectFunctions` created for that module — so a function body reference
  * resolves to it (innermost-first: body → module → global). A name already
  * declared in the module scope (a function or an earlier variable) is a duplicate
- * declaration → E10003. Module-level `let` initialisers are deferred (spec VAR-2 /
- * AR-2): they are collected but not executed in Slice 3b.
+ * declaration → E10003. Module-level `let` initialisers are deferred (spec VAR-2):
+ * they are collected but not executed yet.
  *
  * Emit-diagnostic-never-throw: a program without a matching module scope simply
- * contributes no module variables. Imports `@blend65/core` only (R15/AR-20).
+ * contributes no module variables. Imports `@blend65/core` only — never
+ * `@blend65/codegen`.
  */
 
 import { DiagCode } from "@blend65/core";
@@ -19,7 +20,7 @@ import type { DiagnosticBag, ProgramNode, Scope, Symbol } from "@blend65/core";
 import { resolveTypeNode } from "./type-check/type-resolution.js";
 
 /**
- * Collects top-level `let`/`const` declarations into their module scopes (FR-4).
+ * Collects top-level `let`/`const` declarations into their module scopes.
  * Must run **after** `collectFunctions` (which builds the module scopes) and
  * **before** type checking (which resolves references to these symbols). Never
  * throws.
@@ -35,7 +36,7 @@ export function collectModuleVariables(
 ): void {
   for (const program of programs) {
     // The module scope `collectFunctions` created for this program (matched by the
-    // very `ModuleDeclNode` it was built from — AR-13).
+    // very `ModuleDeclNode` it was built from).
     const moduleNode = program.moduleDecl ?? null;
     const moduleScope = globalScope.children.find((s) => s.node === moduleNode);
     if (moduleScope === undefined) continue; // malformed/module-less program — skip
@@ -44,7 +45,7 @@ export function collectModuleVariables(
       if (item.kind !== "LetDecl" && item.kind !== "ConstDecl") continue;
 
       // Duplicate top-level declaration (a function or an earlier variable/constant
-      // of the same name already occupies the module scope) → E10003 (R9/R20).
+      // of the same name already occupies the module scope) → E10003.
       if (moduleScope.symbols.has(item.name)) {
         bag.addError(
           DiagCode.DuplicateDecl,

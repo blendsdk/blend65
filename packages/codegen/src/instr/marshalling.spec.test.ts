@@ -1,15 +1,14 @@
 /**
- * Specification tests for RD-17 T3 call-site marshalling (ST-24..ST-27).
+ * Specification tests for T3 call-site marshalling.
  *
- * Derived EXCLUSIVELY from RD-17 §4.5 (the runtime ABI), AR-33/AR-98/AR-P7, R35,
- * AC-10/AC-13, and the plan's ABI table (03-04) — never from reading the
- * implementation (IMMUTABLE ORACLE RULE).
+ * Derived exclusively from the runtime ABI documented in the specification —
+ * never from reading the implementation (immutable oracle rule).
  *
- * ABI oracle (AR-33/AR-P7):
+ * ABI oracle:
  *   __rt_mul8 : a→A, b→X          → product lo→A, hi→X
  *   __rt_div16: a→A(lo)/X(hi), b→ZP arg-block (__zp_arg_0/1) → quotient A/X
  *   __rt_div8 : a→A, b→X          → quotient→A, remainder→X (mod binds remainder)
- *   E10044    : routine ZP requirement > profile zpArgBlockSize → poison (R35/AC-13)
+ *   E10044    : routine ZP requirement > profile zpArgBlockSize → poison
  */
 
 import { describe, expect, it } from "vitest";
@@ -118,7 +117,7 @@ describe("Specification: RD-17 byte multiply marshalling (ST-24, AC-10, AR-33)",
     );
     const call = jsrIndex(instrs, "__rt_mul8");
     const before = instrs.slice(0, call);
-    // Both operands are marshalled (the RD-07b left-only stub is gone — AC-10):
+    // Both operands are marshalled (the old left-only stub is gone):
     // a → A and b → X, each reading its own home.
     expect(before.some((i) => i.opcode === "LDA" && symOf(i) === "a")).toBe(true);
     expect(before.some((i) => i.opcode === "LDX" && symOf(i) === "b")).toBe(true);
@@ -146,7 +145,7 @@ describe("Specification: RD-17 word divide marshalling (ST-25, AR-P7, AR-98)", (
     const call = jsrIndex(instrs, "__rt_div16");
     const before = instrs.slice(0, call);
     // The second word operand travels through the allocator's existing ZP
-    // arg-block symbols (PF-018) — one STA per byte.
+    // arg-block symbols — one STA per byte.
     const argStores = before.filter((i) => i.opcode === "STA" && symOf(i)?.startsWith("__zp_arg_") === true);
     expect(argStores.map(symOf)).toEqual(["__zp_arg_0", "__zp_arg_1"]);
     // At the call, A/X hold the first operand: the LAST loads before JSR read `a`.
@@ -169,7 +168,7 @@ describe("Specification: RD-17 byte modulo marshalling (ST-26, AR-98)", () => {
       bag,
     );
     const call = jsrIndex(instrs, "__rt_div8");
-    // NO __rt_mod8 symbol exists anywhere (mod shares the divide routine — AR-98).
+    // NO __rt_mod8 symbol exists anywhere (mod shares the divide routine).
     expect(instrs.some((i) => symOf(i) === "__rt_mod8")).toBe(false);
     // The remainder returns in X; binding it as the byte result requires a TXA
     // before the store reads A.
@@ -210,7 +209,7 @@ describe("Specification: RD-17 ZP arg-block overflow (ST-27, R35, AC-13)", () =>
       zpArgBlockSize: 4,
       platformId: "fixture",
     });
-    // E10044 with the AR-P11 message shape: routine, requirement, platform, actual.
+    // E10044 message includes: routine, requirement, platform, actual.
     const err = bag.getAll().find((d) => d.code === DiagCode.ZpArgBlockExceeded);
     expect(err).toBeDefined();
     expect(err?.message).toContain("__rt_fix_hungry");
@@ -226,7 +225,7 @@ describe("Specification: RD-17 ZP arg-block overflow (ST-27, R35, AC-13)", () =>
   it("the four catalog routines fit any valid profile (floor 4): no E10044 at size 4", () => {
     const bag = createDiagnosticBag();
     const registry = createIntrinsicRegistry();
-    // mul16/div16 declare zpBytes 2 — within the validated floor of 4 (R35).
+    // mul16/div16 declare zpBytes 2 — within the validated floor of 4.
     for (const name of ["__rt_mul16", "__rt_div16"]) {
       expect(registry.get(name)?.costMetadata.zpBytes).toBeLessThanOrEqual(4);
     }

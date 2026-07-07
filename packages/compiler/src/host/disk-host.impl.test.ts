@@ -1,7 +1,7 @@
 /**
  * Implementation tests for {@link createDiskCompilerHost} — edge cases beyond the
- * ST-2..ST-4 spec oracles (03-01 "Testing Requirements"): nested excludes, empty
- * include, tinyglobby dotfile defaults, and the TOCTOU read path.
+ * spec-level oracles: nested excludes, empty include, tinyglobby dotfile
+ * defaults, and the TOCTOU read path.
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

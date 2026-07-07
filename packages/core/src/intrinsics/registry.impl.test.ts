@@ -1,5 +1,5 @@
 /**
- * Implementation tests for the RD-17 intrinsic registry & catalog.
+ * Implementation tests for the intrinsic registry & catalog.
  *
  * Unlike the spec tier, these MAY read the implementation. They cover internals:
  * `getAvailable` filtering across all five real platform CPU variants, TypeRef
@@ -37,7 +37,7 @@ const BASE_PROFILE: PlatformProfile = {
   zpArgBlockSize: 8,
 };
 
-/** The five shipped platforms by (id, cpu) — only cx16 is a 65C02 (R24). */
+/** The five shipped platforms by (id, cpu) — only cx16 is a 65C02. */
 const REAL_PROFILES: readonly PlatformProfile[] = [
   { ...BASE_PROFILE, platformId: "c64", cpu: "nmos6502" },
   { ...BASE_PROFILE, platformId: "c64u", cpu: "nmos6502" },
@@ -152,7 +152,7 @@ describe("IntrinsicDescriptor — TypeRef shapes in the catalog", () => {
       if (typeof d.signature.returnType === "string") seen.add(d.signature.returnType);
     }
     // The catalog uses these scalar spellings; 'boolean' matches the semantic type
-    // system (RD-17 §4.1).
+    // system.
     expect(seen.has("byte")).toBe(true);
     expect(seen.has("word")).toBe(true);
     expect(seen.has("void")).toBe(true);

@@ -7,8 +7,8 @@ import type { SourceId } from "./source-span.js";
  * so `@blend65/core` stays free of any runtime/platform dependency and works in
  * browser-hosted tooling (e.g. the language server) as well as Node.
  *
- * Exported for package-internal byte-column math (the RD-11b terminal
- * renderer's caret alignment); not part of the public barrel surface.
+ * Exported for package-internal byte-column math (the terminal renderer's
+ * caret alignment); not part of the public barrel surface.
  *
  * @param codePoint A Unicode scalar value (0..0x10FFFF).
  * @returns 1, 2, 3, or 4 — the UTF-8 byte length of that code point.
@@ -33,8 +33,6 @@ export function utf8ByteLength(codePoint: number): number {
  *  - **byte column** — 1-based column counted in bytes ({@link getLineCol}).
  *  - **UTF-16 code-unit column** — 0-based, what LSP `Position.character`
  *    expects ({@link getUtf16Column}).
- *
- * Covers RD-11 §4.2 (FR-4..FR-8, FR-20) · AR-Q3/Q4/Q5.
  */
 export class LineMap {
   /** The file this map describes. */
@@ -42,8 +40,8 @@ export class LineMap {
 
   /**
    * The raw source text, exactly as provided (including any leading BOM).
-   * `protected` rather than `private` per project coding standard (code.md
-   * Rule 13): internal to the class hierarchy, never part of the public API.
+   * `protected` rather than `private`: internal to the class hierarchy, never
+   * part of the public API.
    */
   protected readonly text: string;
 
@@ -67,11 +65,10 @@ export class LineMap {
    * Builds the line-start tables in a single pass over the source.
    *
    * The walk advances a byte cursor and a UTF-16 code-unit cursor in lock-step,
-   * recognising the three line terminators required by FR-8: `\n` (LF),
-   * `\r\n` (CRLF, consumed as a single break), and bare `\r` (CR). A leading
-   * BOM (FR-20) is treated as ordinary content of line 1 — the map never
-   * crashes or miscounts on it; the lexer is responsible for skipping the BOM
-   * during tokenisation.
+   * recognising the three line terminators: `\n` (LF), `\r\n` (CRLF, consumed
+   * as a single break), and bare `\r` (CR). A leading BOM is treated as
+   * ordinary content of line 1 — the map never crashes or miscounts on it;
+   * the lexer is responsible for skipping the BOM during tokenisation.
    *
    * @param sourceId The id of the file this map describes.
    * @param text The full source text, including any BOM and terminators.
@@ -131,7 +128,7 @@ export class LineMap {
    *
    * Out-of-range offsets are clamped rather than rejected so position queries
    * are total (never throw) — a hard requirement for diagnostics that may point
-   * at synthesized or recovered locations (FR-5).
+   * at synthesized or recovered locations.
    */
   protected clamp(offset: number): number {
     if (offset < 0) return 0;
@@ -184,10 +181,10 @@ export class LineMap {
    * Returns the **0-based** UTF-16 code-unit column of a byte offset.
    *
    * LSP `Position.character` is a 0-based count of UTF-16 code units from the
-   * line start, so an offset at the start of a line returns 0. The RD-14 LSP
-   * adapter pairs this with `getLineCol().line - 1` to form a full 0-based LSP
+   * line start, so an offset at the start of a line returns 0. The language
+   * server pairs this with `getLineCol().line - 1` to form a full 0-based LSP
    * position. The conversion walks only the scalars between the line start and
-   * `offset`, accumulating UTF-16 lengths (FR-6, AR-Q4).
+   * `offset`, accumulating UTF-16 lengths.
    *
    * @param offset A UTF-8 byte offset (clamped to `[0, byteLength]`).
    * @returns The 0-based UTF-16 column within the offset's line.
@@ -215,7 +212,7 @@ export class LineMap {
    *
    * The trailing `\n`, `\r\n`, or `\r` (if any) is removed so callers receive
    * just the line's visible content — useful for rendering a caret underneath a
-   * diagnostic span (FR-7, AR-Q5). Offsets are clamped, so this never throws.
+   * diagnostic span. Offsets are clamped, so this never throws.
    *
    * @param offset A UTF-8 byte offset (clamped to `[0, byteLength]`).
    * @returns The line text without its line terminator.

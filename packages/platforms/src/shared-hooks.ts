@@ -1,11 +1,11 @@
 /**
- * Shared codegen-hook bodies reused across the built-in plugins — RD-10 D4.
+ * Shared codegen-hook bodies reused across the built-in plugins.
  *
  * In this slice the four non-MVP platforms (`c64u`, `cx16`, `a800xl`, `a7800`)
  * delegate their codegen hooks to the C64 implementations rather than shipping
- * bespoke bodies (D4). Those bodies are factored out here as small reusable
+ * bespoke bodies. Those bodies are factored out here as small reusable
  * functions so the delegation is expressed by *importing* them — never by
- * duplicating code (code.md DRY).
+ * duplicating code.
  *
  * The C64-specific BASIC-stub / `$01`-banking preamble lives in `c64.ts`; this
  * module holds only the platform-neutral pieces: the PRG/PETSCII helpers the
@@ -119,7 +119,7 @@ export function c64StylePreamble(
   return [
     directive(prgOutputDirective(projectName)),
     directive({ kind: "origin", address: 0x0801 }),
-    // BASIC stub: 10 SYS 2061 (per RD-10 §4.5)
+    // BASIC stub: 10 SYS 2061
     directive({ kind: "word", values: [0x080b] }), // pointer to next BASIC line
     directive({ kind: "word", values: [0x000a] }), // line number 10
     directive({ kind: "byte", values: [0x9e] }), // SYS token
@@ -131,14 +131,14 @@ export function c64StylePreamble(
 }
 
 /**
- * Validate a profile via the shared core helper (R22/FR-21), plus the RD-17
- * (PF-015) platform-identity consistency check: the profile's `platformId` must
- * equal the owning plugin's `id`. A thin delegate so each plugin's
- * `validateProfile()` reads uniformly.
+ * Validate a profile via the shared core helper, plus the platform-identity
+ * consistency check: the profile's `platformId` must equal the owning
+ * plugin's `id`. A thin delegate so each plugin's `validateProfile()` reads
+ * uniformly.
  *
  * @param profile The profile to validate.
  * @param expectedPlatformId The owning plugin's `id`; the profile's `platformId`
- *   must match it (RD-17 R25 keys T4 availability on this identity).
+ *   must match it, since T4 intrinsic availability is keyed on this identity.
  * @returns The list of inconsistencies (empty when consistent).
  */
 export function validateProfileVia(

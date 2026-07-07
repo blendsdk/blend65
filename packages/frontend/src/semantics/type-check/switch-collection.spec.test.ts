@@ -1,14 +1,12 @@
 /**
- * Specification tests for RD-18 Slice 4b switch body handling — case/default body
- * locals collected flat into the enclosing function scope (E10100 absence), and
- * `break`/`continue` transparency (a `break` inside a switch targets the enclosing
- * loop, not the switch — Swift model, spec §9).
+ * Specification tests for switch body handling — case/default body locals
+ * collected flat into the enclosing function scope (E10100 absence), and
+ * `break`/`continue` transparency (a `break` inside a switch targets the
+ * enclosing loop, not the switch — Swift model, spec §9).
  *
- * Expectations derive EXCLUSIVELY from the requirements (FR-8/FR-9) + the Ambiguity
- * Register (AR-6/AR-12) — NEVER from reading the implementation (immutable oracle).
- * Exercised through the REAL public path (`lex`→`parse`→`analyze`).
- *
- * Traces: ST-9 (FR-8/AR-12), ST-10 (FR-9/AR-6).
+ * Expectations derive EXCLUSIVELY from the frozen spec — NEVER from reading
+ * the implementation (immutable oracle). Exercised through the REAL public
+ * path (`lex`→`parse`→`analyze`).
  */
 
 import { describe, expect, it } from "vitest";
@@ -29,10 +27,10 @@ function analyzeAll(source: string): string[] {
 }
 
 describe("Specification: RD-18 Slice 4b case-body locals (FR-8/AR-12)", () => {
-  // ST-9 — a `let z` declared in a case body is collected flat into the function
-  // scope, so a reference to it AFTER the switch resolves (no E10100). Before the
-  // collector recurses switch bodies, `z` is uncollected → the later ref is
-  // undeclared (E10100); the collection recursion closes that.
+  // A `let z` declared in a case body is collected flat into the function
+  // scope, so a reference to it AFTER the switch resolves (no E10100). Before
+  // the collector recurses switch bodies, `z` is uncollected → the later ref
+  // is undeclared (E10100); the collection recursion closes that.
   it("should collect a case-body local into the function scope (ST-9)", () => {
     const src =
       "module Main;\n" +
@@ -52,7 +50,7 @@ describe("Specification: RD-18 Slice 4b case-body locals (FR-8/AR-12)", () => {
 });
 
 describe("Specification: RD-18 Slice 4b break/continue transparency (FR-9/AR-6)", () => {
-  // ST-10 — a `break` inside a `switch` inside a `while` is accepted: it targets the
+  // A `break` inside a `switch` inside a `while` is accepted: it targets the
   // enclosing loop (the switch does not raise the loop depth), so no E10130.
   it("should accept a break inside a switch inside a while (ST-10)", () => {
     const src =

@@ -1,10 +1,10 @@
 /**
- * Statement parsers (RD-03 §4.13; grammar §3; FR-24..FR-36).
+ * Statement parsers (grammar §3; FR-24..FR-36).
  *
  * The statement layer: blocks, `if`/`else` (composed else-if), `while`,
  * `do`/`while`, `for` (`to`/`downto`/`step`), `switch`/`case`/`default`,
  * `return`/`break`/`continue`/`fallthrough`, local `let`/`const` declarations,
- * the `type` reservation (E10224, AR-2), and the catch-all expression statement.
+ * the `type` reservation (E10224), and the catch-all expression statement.
  *
  * This module owns the real {@link parseBlock} (Phase 3 shipped an
  * empty-body stub in `parse-decl.ts`); wiring it here is an additive change
@@ -370,7 +370,7 @@ function parseFallthrough(state: ParserState): FallthroughStmtNode {
   return { kind: "FallthroughStmt", span: makeSpan(sourceId, tok.span.start, end) };
 }
 
-/** Parses `expr;` (FR-35). Lvalue/call restriction is semantic (RD-04). */
+/** Parses `expr;` (FR-35). Lvalue/call restriction is enforced later, during semantic analysis. */
 function parseExpressionStmt(state: ParserState): ExpressionStmtNode {
   const { cursor, sourceId } = state;
   const start = cursor.peek().span.start;
@@ -401,7 +401,7 @@ function skipToSemicolon(state: ParserState): number {
 
 /**
  * Parses a single statement (FR-24..FR-36). Dispatches on the leading token;
- * `KwType` is reserved (E10224, AR-2); anything else is an expression statement.
+ * `KwType` is reserved (E10224); anything else is an expression statement.
  */
 export function parseStatement(state: ParserState): StmtNode {
   const { cursor, sourceId } = state;
@@ -434,7 +434,7 @@ export function parseStatement(state: ParserState): StmtNode {
     case TokenKind.KwConst:
       return parseConstDecl(state, false, start);
     case TokenKind.KwType: {
-      // AR-2: `type` is reserved for future use; no statement semantics.
+      // `type` is reserved for future use; no statement semantics.
       state.emit(DiagCode.ReservedKeyword, state.here(), "'type' is reserved for future use");
       const end = skipToSemicolon(state);
       const node: ErrorStmtNode = { kind: "ErrorStmt", span: makeSpan(sourceId, start, end) };

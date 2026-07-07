@@ -1,14 +1,14 @@
 /**
  * IL control-flow-graph records — basic blocks, functions, and the whole
- * program (RD-06 §4.4–§4.5, R12/R15/R16/R64–R67).
+ * program.
  *
  * The IL is organized as a per-function CFG: an {@link ILFunction} owns an
  * ordered list of {@link BasicBlock}s, each a straight-line run of
  * {@link ILInstruction}s ending in exactly one {@link ILTerminator}. The
  * {@link ILProgram} aggregates all functions plus module-init code, constant
- * data, and the carried {@link AllocationPlan} that codegen (RD-07) consumes.
+ * data, and the carried {@link AllocationPlan} that codegen consumes.
  *
- * Every record is `readonly` — immutability is a contract (R67): the optimizer
+ * Every record is `readonly` — immutability is a contract: the optimizer
  * reads, codegen reads, nobody mutates in place. Pure data, no behavior.
  */
 
@@ -18,11 +18,11 @@ import type { ILOperand } from "./operand.js";
 import type { ILType } from "./il-type.js";
 
 /**
- * A straight-line run of instructions ending in one terminator (§4.4, R12).
+ * A straight-line run of instructions ending in one terminator.
  *
  * Blocks have no fall-through: control leaves a block only via its
  * {@link ILTerminator}. Labels are unique within the owning function and are
- * generated deterministically by the builder (`_entry`, `_L0`, `_L1`, …; R15).
+ * generated deterministically by the builder (`_entry`, `_L0`, `_L1`, …).
  */
 export interface BasicBlock {
   /** Unique label within the function (`"_entry"`, `"_L0"`, …). */
@@ -34,9 +34,9 @@ export interface BasicBlock {
 }
 
 /**
- * One lowered function as a CFG (§4.4, R16).
+ * One lowered function as a CFG.
  *
- * `blocks[0]` is always the entry block (`_entry`, R16). `params` are the
+ * `blocks[0]` is always the entry block (`_entry`). `params` are the
  * incoming parameters as `Location` operands drawn from the `AllocationPlan`.
  * `returnType` is an {@link ILType} or the literal `"void"`.
  */
@@ -47,7 +47,7 @@ export interface ILFunction {
   readonly params: readonly ILOperand[];
   /** The IL return type, or `"void"` for value-less functions. */
   readonly returnType: ILType | "void";
-  /** The CFG blocks; `blocks[0]` is the entry block (R16). */
+  /** The CFG blocks; `blocks[0]` is the entry block. */
   readonly blocks: readonly BasicBlock[];
   /** Total number of virtual temps used by this function. */
   readonly tempCount: number;
@@ -56,7 +56,7 @@ export interface ILFunction {
 }
 
 /**
- * A blob of constant data emitted into the binary (§4.5, R64).
+ * A blob of constant data emitted into the binary.
  *
  * Produced for array/struct literals and `embed`ded data. Empty in v1 — const
  * and embed lowering arrive with their slices.
@@ -71,12 +71,12 @@ export interface ConstDataEntry {
 }
 
 /**
- * The whole lowered program (§4.5, R64–R67).
+ * The whole lowered program.
  *
  * Aggregates every {@link ILFunction}, the module-level init code, constant
- * data, and the {@link AllocationPlan} carried through for codegen (R66).
- * `initCode` and `constData` are present in the shape (R64) but **empty in v1** —
- * module-variable init ordering (AR-91) and const/embed data arrive with their
+ * data, and the {@link AllocationPlan} carried through for codegen.
+ * `initCode` and `constData` are present in the shape but **empty in v1** —
+ * module-variable init ordering and const/embed data arrive with their
  * slices.
  */
 export interface ILProgram {
@@ -86,6 +86,6 @@ export interface ILProgram {
   readonly initCode: readonly BasicBlock[];
   /** Constant data blobs (empty in v1). */
   readonly constData: readonly ConstDataEntry[];
-  /** The SFA plan, carried to codegen (RD-07) unchanged (R66). */
+  /** The SFA plan, carried to codegen unchanged. */
   readonly allocationPlan: AllocationPlan;
 }

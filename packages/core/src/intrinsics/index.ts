@@ -1,5 +1,5 @@
 /**
- * Public barrel for the RD-17 intrinsic system (`@blend65/core`).
+ * Public barrel for the intrinsic system (`@blend65/core`).
  *
  * Surfaces the descriptor types, the registry contract + factory, and the core
  * catalog so the frontend (validation) and codegen (lowering/marshalling) consume

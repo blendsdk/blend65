@@ -1,13 +1,13 @@
 /**
- * Zero-dependency PNG encoder for emulator screenshots (RD-12 AC-09, AR-H4).
+ * Zero-dependency PNG encoder for emulator screenshots.
  *
  * VICE's `DISPLAY_GET` returns an INDEXED frame buffer; `PALETTE_GET` returns the
  * active palette. This encoder maps indexed pixels → RGB and emits a minimal
  * **truecolor** PNG (signature, IHDR, one IDAT of zlib-deflated scanlines, IEND),
  * each chunk carrying its CRC-32. Uses only Node's built-in `zlib` — no external
- * dependency (AR-H11), matching the AR-V2 zero-dep ethos.
+ * dependency, matching the package's zero-dependency ethos.
  *
- * The screenshot is a FAILURE ARTIFACT only (R18) — never golden-matched — so a
+ * The screenshot is a FAILURE ARTIFACT only — never golden-matched — so a
  * plain uncompressed-friendly truecolor encoding is more than adequate.
  */
 
@@ -54,7 +54,7 @@ function chunk(type: string, data: Buffer): Buffer {
 }
 
 /**
- * Encode an indexed display frame + palette into a truecolor PNG (AR-H4).
+ * Encode an indexed display frame + palette into a truecolor PNG.
  *
  * @param frame The indexed frame from `parseDisplayGet` (`width`/`height`/`data`).
  * @param palette The RGB palette from `parsePaletteGet`; out-of-range indices map to black.

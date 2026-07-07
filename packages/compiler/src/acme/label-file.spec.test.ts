@@ -1,13 +1,10 @@
 /**
- * Specification tests for the RD-09 VICE label-file parser (`parseLabelFile`) —
- * ST-L1..ST-L3.
+ * Specification tests for the VICE label-file parser (`parseLabelFile`).
  *
- * Derived EXCLUSIVELY from `requirements/RD-09-acme-emitter.md` (R45–R47, §4.6,
- * AC-15), the component spec
- * `plans/rd-09-acme-emitter/03-02-acme-process-layer.md`, and the testing
- * strategy `07-testing-strategy.md` (ST-L1..L3). Immutable oracles
- * (testing.md Rule 10): the VICE line format `al C:xxxx .name` and the
- * skip-unparseable-lines rule (R47) come from the RD, not the implementation.
+ * Written from the requirements, never from the implementation. Immutable
+ * oracles: the VICE line format `al C:xxxx .name` and the
+ * skip-unparseable-lines rule come from the requirement, not the
+ * implementation.
  */
 
 import { describe, expect, it } from "vitest";

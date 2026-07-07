@@ -1,15 +1,15 @@
 /**
- * Parser declaration-layer tests — RD-03 Phase 3 (ST-P14..P19, ST-P28).
+ * Parser declaration-layer tests.
  *
  * These exercise the top-level declaration parsers (function, interrupt, struct,
  * enum, let, const, zeropage), the `export` rules (E10311), the `type`
  * reservation (E10224), and the empty-/missing-initialiser diagnostics
- * (E10314/E10315/E10316). Inputs are derived from the spec, RD-03, and the
- * ambiguity register — never from implementation output (testing.md Rule 10).
+ * (E10314/E10315/E10316). Inputs are derived from the spec grammar and its
+ * documented edge cases — never from implementation output (testing.md Rule 10).
  *
  * Each program is prefixed with `module M;` so only the construct under test
  * drives the result; `parseSource` threads the source text into `ParseInput`
- * (AR-8) so identifier lexemes resolve via the cursor's single `lexeme()` site.
+ * so identifier lexemes resolve via the cursor's single `lexeme()` site.
  */
 
 import { describe, expect, it } from "vitest";
@@ -20,7 +20,7 @@ import { lex, parse } from "../index.js";
 
 const SRC = 1;
 
-/** Lexes then parses `source` through the public `parse()` entry (AR-8). */
+/** Lexes then parses `source` through the public `parse()` entry. */
 function parseSource(source: string, bag: DiagnosticBag) {
   const { tokens } = lex(SRC, source, bag);
   return parse({ tokens, source, sourceId: SRC, bag });
@@ -237,8 +237,8 @@ describe("declarations — type position (E10303)", () => {
 
 /**
  * Parses `module M;\nfunction f(): void { <body> }` and returns the function
- * body's statement list — the harness for the Phase 4 statement layer (ST-P20..
- * P22 plus block/jump/loop cases).
+ * body's statement list — the harness for the statement-layer tests (if/while/
+ * do-while/for/switch plus block/jump/loop cases).
  */
 function bodyStmts(body: string, bag: DiagnosticBag): StmtNode[] {
   const item = firstItem(`function f(): void { ${body} }`, bag);
@@ -528,7 +528,7 @@ describe("expressions — struct-literal disambiguation (ST-P33, AC-10, FR-45)",
 });
 
 // ───────────────────────────────────────────────────────────────────────────
-// Phase 6 — error sentinels, recovery, cascade suppression (ST-P23..P27)
+// Error sentinels, recovery, cascade suppression
 // ───────────────────────────────────────────────────────────────────────────
 
 describe("error sentinels — ErrorExpr (ST-P23, AC-04, FR-5)", () => {
@@ -541,7 +541,7 @@ describe("error sentinels — ErrorExpr (ST-P23, AC-04, FR-5)", () => {
     expect(item.initialiser).not.toBeNull();
     expect(containsKind(item, "ErrorExpr")).toBe(true);
     expect(hasCode(bag, DiagCode.ExpectedExpression)).toBe(true);
-    // Cascade suppression: a single erroneous region yields ≤1 diagnostic (AC-06).
+    // Cascade suppression: a single erroneous region yields ≤1 diagnostic.
     expect(bag.getAll()).toHaveLength(1);
   });
 });
@@ -602,7 +602,7 @@ describe("cascade suppression (ST-P27, AC-06, FR-7)", () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
-// AC-09 — contextual keywords usable as ordinary identifiers
+// Contextual keywords usable as ordinary identifiers
 // ───────────────────────────────────────────────────────────────────────────
 
 describe("contextual keywords as identifiers (AC-09, FR-29)", () => {
@@ -628,7 +628,7 @@ describe("contextual keywords as identifiers (AC-09, FR-29)", () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
-// AC-13 — every one of the 50 NodeKinds is produced by ≥1 parse
+// Every one of the 50 NodeKinds is produced by ≥1 parse
 // ───────────────────────────────────────────────────────────────────────────
 
 describe("node-kind exhaustiveness (AC-13, FR-10)", () => {

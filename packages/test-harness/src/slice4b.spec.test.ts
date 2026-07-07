@@ -1,15 +1,14 @@
 /**
- * Specification tests for the RD-18 Slice 4b acceptance bar (parts 1 & 3): the
- * `switch` fixture assembles clean through the real `brcond` compare-chain path,
- * and on real VICE the computed byte results (Switch A: multi-value case +
- * fallthrough + auto-break → 25; Switch B: the default path → 7) settle into
- * observable RAM.
+ * Specification tests for the Slice 4b acceptance bar: the `switch` fixture
+ * assembles clean through the real `brcond` compare-chain path, and on real
+ * VICE the computed byte results (Switch A: multi-value case + fallthrough +
+ * auto-break → 25; Switch B: the default path → 7) settle into observable RAM.
  *
- * Derived EXCLUSIVELY from `03-03-acceptance-fixtures.md` (ST-19/ST-21) + the
- * Ambiguity Register (AR-13) — never from reading the implementation (IMMUTABLE
- * ORACLE). The assemble-clean suite compiles via ACME (`skipIf(!hasAcme())`); the
- * runtime suite additionally runs on VICE (`skipIf(!(hasVice && hasAcme))`, skipped
- * in CI — the golden tier guards there).
+ * These tests are derived directly from the fixture's documented behavior, not
+ * from reading the implementation. The assemble-clean suite compiles via ACME
+ * (`skipIf(!hasAcme())`); the runtime suite additionally runs on VICE
+ * (`skipIf(!(hasVice && hasAcme))`, skipped in CI — the golden tier guards
+ * there).
  */
 
 import { afterAll, describe, expect, it } from "vitest";
@@ -43,7 +42,7 @@ describe.skipIf(!hasAcme())("Specification: Slice 4b assemble-clean (ST-19)", ()
     expect(asm.text).toContain("Main_main_L"); // multi-block dispatch/body labels
     expect(asm.text).toContain("CMP"); // per-case-value comparison
     expect(asm.text).toContain("JMP"); // br → JMP
-    expect(asm.text).toMatch(/\b(BNE|BEQ)\b/); // brcond / DEF-1 eq branch
+    expect(asm.text).toMatch(/\b(BNE|BEQ)\b/); // brcond eq branch
     expect(asm.text).toContain("__var_Main_out1");
     expect(asm.text).toContain("__var_Main_out2");
   });

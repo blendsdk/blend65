@@ -1,20 +1,18 @@
 /**
- * Config validation (RD-16 §4.3 steps 3 + 6, AR-P2/AR-P5).
- *
- * Two passes over two different inputs:
+ * Config validation, in two passes over two different inputs:
  *  - {@link validateShape} walks the parse tree's top-level properties:
  *    unknown keys (W10240), wrong types (E10243 — the key falls back to its
  *    default). Returns only the shape-valid keys.
  *  - {@link validateSemantics} checks the MERGED config (so overrides are
- *    validated too — §4.3 step 6): platform presence/membership
- *    (E10245/E10244), value rules (E10243), pattern containment (E10246),
- *    and promote/suppress overlap (W10241).
+ *    validated too): platform presence/membership (E10245/E10244), value
+ *    rules (E10243), pattern containment (E10246), and promote/suppress
+ *    overlap (W10241).
  *
- * Span strategy (AR-P2/PF-019): file-sourced values anchor to their parse
- * tree nodes (code-unit offsets converted to bytes — PF-017); values with no
- * file position (override-sourced, missing platform) get synthetic negative
- * spans keyed by schema ordinal + entry index so same-code diagnostics
- * always survive the bag's `(code, sourceId, start)` dedup.
+ * Span strategy: file-sourced values anchor to their parse tree nodes
+ * (code-unit offsets converted to bytes); values with no file position
+ * (override-sourced, missing platform) get synthetic negative spans keyed
+ * by schema ordinal + entry index so same-code diagnostics always survive
+ * the bag's `(code, sourceId, start)` dedup.
  */
 
 import { posix, win32 } from "node:path";
@@ -40,51 +38,51 @@ const SCHEMA_ORDINALS: ReadonlyMap<string, number> = new Map(
   [...CONFIG_SCHEMA.keys()].map((key, index) => [key, index]),
 );
 
-/** Inputs for the shape pass (§4.3 step 3). */
+/** Inputs for the shape pass. */
 export interface ValidateContext {
-  /** Shared diagnostic accumulator (never throws — R26). */
+  /** Shared diagnostic accumulator (never throws). */
   readonly bag: DiagnosticBag;
-  /** SourceId for spans (CONFIG_SOURCE_ID or a caller-supplied real id — AR-P2). */
+  /** SourceId for spans (CONFIG_SOURCE_ID or a caller-supplied real id). */
   readonly sourceId: number;
   /** Parse tree root from `parseJsoncFile` (undefined → nothing to validate). */
   readonly tree: Node | undefined;
-  /** Code-unit → byte offset converter for the parsed text (PF-017). */
+  /** Code-unit → byte offset converter for the parsed text. */
   readonly toByteOffset: (cuOffset: number) => number;
-  /** The parsed text (BOM-normalized) for line/col message locations (PF-018). */
+  /** The parsed text (BOM-normalized) for line/col message locations. */
   readonly configText?: string;
 }
 
-/** Inputs for the post-merge semantic pass (§4.3 step 6). */
+/** Inputs for the post-merge semantic pass. */
 export interface SemanticContext {
-  /** Shared diagnostic accumulator (never throws — R26). */
+  /** Shared diagnostic accumulator (never throws). */
   readonly bag: DiagnosticBag;
-  /** SourceId for spans (CONFIG_SOURCE_ID or a caller-supplied real id — AR-P2). */
+  /** SourceId for spans (CONFIG_SOURCE_ID or a caller-supplied real id). */
   readonly sourceId: number;
   /** The merged config — semantic checks see file AND override values. */
   readonly config: BlendConfig;
   /** Parse tree for file-anchored spans (omit on a discovery miss). */
   readonly tree?: Node | undefined;
-  /** Code-unit → byte offset converter for the parsed text (PF-017). */
+  /** Code-unit → byte offset converter for the parsed text. */
   readonly toByteOffset?: ((cuOffset: number) => number) | undefined;
-  /** The parsed text (BOM-normalized) for line/col message locations (PF-018). */
+  /** The parsed text (BOM-normalized) for line/col message locations. */
   readonly configText?: string | undefined;
   /**
    * The invocation overrides that were merged. Used only to decide span
    * origin: an overridden key's diagnostics use synthetic spans, never the
-   * (stale) file node (PF-019).
+   * stale file node.
    */
   readonly overrides?: ConfigOverrides | undefined;
-  /** Registered platform names; membership check skipped when omitted (R21). */
+  /** Registered platform names; membership check skipped when omitted. */
   readonly knownPlatforms?: readonly string[] | undefined;
 }
 
 /**
- * AR-P5 pattern-containment rule (R29), purely syntactic: a pattern is
- * inside the project root iff it is not absolute (POSIX, win32 drive, or
- * UNC form) and no `/`-separated segment equals `..` after `\` → `/`
- * normalization. Sound because glob metacharacters never match upward
- * across separators; deliberately rejects pathological-but-inside patterns
- * like `src/../src/*.blend`.
+ * Pattern-containment rule, purely syntactic: a pattern is inside the
+ * project root iff it is not absolute (POSIX, win32 drive, or UNC form)
+ * and no `/`-separated segment equals `..` after `\` → `/` normalization.
+ * Sound because glob metacharacters never match upward across separators;
+ * deliberately rejects pathological-but-inside patterns like
+ * `src/../src/*.blend`.
  *
  * @param pattern A raw include/exclude glob pattern.
  * @returns `true` when every expansion of the pattern stays under the root.
@@ -99,8 +97,8 @@ export function isPatternInsideRoot(pattern: string): boolean {
 
 /**
  * Builds the synthetic span for a diagnostic whose value has no file
- * position (AR-P2/PF-019): `start = end = -(2 + ordinal * stride + entry)`.
- * Negative starts are disjoint from real byte offsets, so file-anchored and
+ * position: `start = end = -(2 + ordinal * stride + entry)`. Negative
+ * starts are disjoint from real byte offsets, so file-anchored and
  * synthetic same-code diagnostics never dedup-collide.
  *
  * @param sourceId The config sourceId (sentinel or caller-supplied).
@@ -120,7 +118,7 @@ interface Anchor {
   readonly prefix: string;
 }
 
-/** Converts a parse tree node to a byte-offset span (PF-017). */
+/** Converts a parse tree node to a byte-offset span. */
 function nodeSpan(
   sourceId: number,
   node: Node,
@@ -130,7 +128,7 @@ function nodeSpan(
   return { sourceId, start, end: toByteOffset(node.offset + node.length) };
 }
 
-/** Builds a file anchor: node span + `blend65.json:line:col — ` prefix (PF-018). */
+/** Builds a file anchor: node span + `blend65.json:line:col — ` prefix. */
 function fileAnchor(
   sourceId: number,
   node: Node,
@@ -206,7 +204,7 @@ export function validateShape(ctx: ValidateContext): Partial<BlendConfig> {
       continue;
     }
     if (valueNode === undefined) {
-      continue; // value lost to a parse error — E10241 already covers it (AR-P4)
+      continue; // value lost to a parse error — E10241 already covers it
     }
     const value: unknown = getNodeValue(valueNode);
     if (!entry.apply(values, value)) {
@@ -222,11 +220,11 @@ export function validateShape(ctx: ValidateContext): Partial<BlendConfig> {
 }
 
 /**
- * Post-merge semantic pass (§4.3 step 6): platform presence (E10245 — R31)
- * and membership (E10244 — R21), schema value rules (E10243 — range, enum,
- * warning-code format), pattern containment (E10246 — R29/AR-P5), and
- * promote/suppress overlap (W10241 — R30). Emits into `ctx.bag`; never
- * throws. Errored values stay as-merged in the config (AR-P9).
+ * Post-merge semantic pass: platform presence (E10245) and membership
+ * (E10244), schema value rules (E10243 — range, enum, warning-code format),
+ * pattern containment (E10246), and promote/suppress overlap (W10241).
+ * Emits into `ctx.bag`; never throws. Errored values stay as-merged in
+ * the config.
  *
  * @param ctx See {@link SemanticContext}.
  */
@@ -247,7 +245,7 @@ export function validateSemantics(ctx: SemanticContext): void {
 
   /**
    * Anchors a diagnostic for `key` (and optionally an array entry): the file
-   * node when the value came from the file, else a synthetic span (PF-019).
+   * node when the value came from the file, else a synthetic span.
    */
   function anchorFor(key: string, entryIndex?: number): Anchor {
     if (tree !== undefined && toByteOffset !== undefined && !overriddenKeys.has(key)) {
@@ -261,7 +259,7 @@ export function validateSemantics(ctx: SemanticContext): void {
     return { span: syntheticSpan(sourceId, ordinal, entryIndex ?? 0), prefix: "" };
   }
 
-  // Platform presence (R31) — checked regardless of knownPlatforms.
+  // Platform presence — checked regardless of knownPlatforms.
   if (config.platform === "") {
     bag.addError(
       DiagCode.ConfigMissingPlatform,
@@ -269,7 +267,7 @@ export function validateSemantics(ctx: SemanticContext): void {
       'No platform specified — set "platform" in blend65.json or pass --platform',
     );
   } else if (knownPlatforms !== undefined && !knownPlatforms.includes(config.platform)) {
-    // Platform membership (R21) — only when the caller injected the registry names.
+    // Platform membership — only when the caller injected the registry names.
     const { span, prefix } = anchorFor("platform");
     bag.addError(
       DiagCode.ConfigUnknownPlatform,
@@ -278,7 +276,7 @@ export function validateSemantics(ctx: SemanticContext): void {
     );
   }
 
-  // Schema value rules (E10243): scalar rules + per-entry rules (§4.3 step 6).
+  // Schema value rules (E10243): scalar rules + per-entry rules.
   for (const [key, entry] of CONFIG_SCHEMA) {
     const value = configValue(config, asConfigKey(key));
     if (entry.valueRule !== undefined) {
@@ -307,7 +305,7 @@ export function validateSemantics(ctx: SemanticContext): void {
     }
   }
 
-  // Pattern containment (R29/AR-P5): one E10246 per offending entry.
+  // Pattern containment: one E10246 per offending entry.
   for (const key of ["include", "exclude"] as const) {
     config[key].forEach((pattern, index) => {
       if (!isPatternInsideRoot(pattern)) {
@@ -321,7 +319,7 @@ export function validateSemantics(ctx: SemanticContext): void {
     });
   }
 
-  // Promote/suppress overlap (R30): one W10241 per dual-listed code.
+  // Promote/suppress overlap: one W10241 per dual-listed code.
   if (Array.isArray(config.warnAsError)) {
     const promoted = new Set(config.warnAsError);
     config.suppressWarnings.forEach((code, index) => {

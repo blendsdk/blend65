@@ -1,14 +1,14 @@
 /**
- * Golden-snapshot tests for RD-06 IL textual form (AR-22 tier 2; AC-18).
+ * Golden-snapshot tests for IL textual form.
  *
- * These pin the byte-exact `printIL` output of the canonical programs — the §4.7
- * `add`, the gate program, and the slice-2 program — as Vitest inline snapshots.
- * They cover ST-L1/L2/L3 and ST-P1 from the golden angle (07-testing-strategy.md)
- * so any unintended change to lowering or the printer is caught as a snapshot
- * diff (R55: a deliberate change requires an intentional snapshot update).
+ * These pin the byte-exact `printIL` output of the canonical programs — the
+ * `add` function, the gate program, and the slice-2 program — as Vitest inline
+ * snapshots, so any unintended change to lowering or the printer is caught as
+ * a snapshot diff (a deliberate change requires an intentional snapshot
+ * update).
  *
- * Derived from the goldens in 03-02-lowering.md (D8 verbatim params; D9 symbolic
- * poke/peek address). The lowering is driven through the public fixtures.
+ * Derived from the documented goldens (verbatim params; symbolic poke/peek
+ * address). The lowering is driven through the public fixtures.
  */
 
 import { describe, expect, it } from "vitest";

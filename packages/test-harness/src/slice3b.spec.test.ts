@@ -1,12 +1,11 @@
 /**
- * Specification tests for the RD-18 Slice 3b acceptance bar (parts 1 & 3): the
- * module+local scalar fixture assembles clean through the real width-aware path,
- * and on real VICE the computed byte `(a*b)+c` and word `x*y` results settle into
- * plain RAM via their module `__var_*` slots.
+ * Specification tests for the Slice 3b acceptance bar: the module+local scalar
+ * fixture assembles clean through the real width-aware path, and on real VICE
+ * the computed byte `(a*b)+c` and word `x*y` results settle into plain RAM via
+ * their module `__var_*` slots.
  *
- * Derived EXCLUSIVELY from `03-04-acceptance-fixtures.md` (ST-16/ST-18) + the
- * Ambiguity Register (AR-1/AR-4/AR-6) — never from reading the implementation
- * (IMMUTABLE ORACLE). The assemble-clean suite compiles via ACME
+ * These tests are derived directly from the fixture's documented behavior, not
+ * from reading the implementation. The assemble-clean suite compiles via ACME
  * (`skipIf(!hasAcme())`); the runtime suite additionally runs on VICE
  * (`skipIf(!(hasVice && hasAcme))`, skipped in CI — the golden tier guards there).
  */

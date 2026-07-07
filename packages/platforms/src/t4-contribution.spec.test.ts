@@ -1,17 +1,17 @@
 /**
- * Specification tests for the RD-17 T4 contribution mechanism (ST-31).
+ * Specification tests for the T4 contribution mechanism.
  *
- * Derived EXCLUSIVELY from RD-17 R11/R25, AC-15/AC-16, and PF-015 — never from
+ * Derived EXCLUSIVELY from the platform-plugin contract — never from
  * implementation (IMMUTABLE ORACLE RULE):
- *  - ST-31: `createIntrinsicRegistry(fixturePlugin.intrinsics, id)` returns a
- *    registry where `get('fix_probe')` yields the T4 descriptor (AC-16), fully
- *    populated at construction (AC-15).
+ *  - `createIntrinsicRegistry(fixturePlugin.intrinsics, id)` returns a
+ *    registry where `get('fix_probe')` yields the T4 descriptor, fully
+ *    populated at construction.
  *  - The merged descriptor's availability is keyed on the contributing
- *    platform's id (R25/PF-015): true on the owning platform's canonical
- *    profile, false on another platform's.
+ *    platform's id: true on the owning platform's canonical profile, false
+ *    on another platform's.
  *
- * ST-32 (the full analyze→lower→translate→serialize pipeline) lives in
- * `@blend65/compiler` per the D10 package-boundary rule — this package depends
+ * The full analyze→lower→translate→serialize pipeline lives in
+ * `@blend65/compiler` per the package-boundary rule — this package depends
  * only on `@blend65/core` and cannot drive the pipeline.
  */
 
@@ -28,7 +28,7 @@ describe("Specification: RD-17 T4 registry merge (ST-31, AC-15/AC-16)", () => {
     expect(d?.tier).toBe("T4");
     expect(d?.loweringStrategy).toBe("call");
     expect(d?.signature).toEqual(FIX_PROBE.signature);
-    // The registry is fully populated at construction (AC-15): the core catalog
+    // The registry is fully populated at construction: the core catalog
     // is present alongside the contribution.
     expect(registry.get("poke")).toBeDefined();
     expect(registry.get("__rt_mul8")).toBeDefined();

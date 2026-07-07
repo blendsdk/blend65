@@ -1,10 +1,10 @@
 /**
- * The intrinsic registry — RD-17 §4.2 (AR-29, AR-P3, AR-P9).
+ * The intrinsic registry.
  *
  * A per-compile lookup table populated with the core catalog (T1/T2 + internal T3
- * routines) and, optionally, a platform plugin's T4 descriptor array (R11). The
+ * routines) and, optionally, a platform plugin's T4 descriptor array. The
  * frontend consumes it via `AnalyzeInput.registry` and codegen via parameter
- * injection — there is no global singleton (AR-P3).
+ * injection — there is no global singleton.
  */
 
 import type { PlatformProfile } from "../platform/platform-profile.js";
@@ -13,12 +13,12 @@ import { CORE_INTRINSICS, RT_ROUTINES } from "./catalog.js";
 
 /**
  * The registry contract the compiler consults uniformly (never special-casing an
- * individual intrinsic name — AC-17).
+ * individual intrinsic name).
  */
 export interface IntrinsicRegistry {
   /**
    * Register a descriptor. Throws a plain `Error` on a duplicate name — a
-   * compiler-setup bug, not a user diagnostic (AR-P9).
+   * compiler-setup bug, not a user diagnostic.
    *
    * @param descriptor The descriptor to add.
    */
@@ -33,9 +33,9 @@ export interface IntrinsicRegistry {
   get(name: string): IntrinsicDescriptor | undefined;
 
   /**
-   * Whether `name` is a reserved user-visible intrinsic name (R20). Internal
+   * Whether `name` is a reserved user-visible intrinsic name. Internal
    * `__rt_*` routine symbols are registered but are NOT language identifiers, so
-   * they never report reserved (RD-17 §4.3 internal table).
+   * they never report reserved.
    *
    * @param name The candidate declaration name.
    * @returns `true` if a user-visible intrinsic already claims the name.
@@ -43,7 +43,7 @@ export interface IntrinsicRegistry {
   isReserved(name: string): boolean;
 
   /**
-   * Every descriptor whose availability predicate passes for `profile` (R8).
+   * Every descriptor whose availability predicate passes for `profile`.
    *
    * @param profile The active platform profile.
    * @returns The available descriptors.
@@ -102,17 +102,17 @@ class IntrinsicRegistryImpl implements IntrinsicRegistry {
 
 /**
  * Create a registry pre-populated with the core catalog and, optionally, a
- * platform's T4 descriptors (R11, AR-P3). The core catalog is registered first
- * (user-visible T1/T2 then internal T3 routines), then any platform descriptors
- * — so the registry is fully populated before `analyze()` runs (AC-15/AC-16).
+ * platform's T4 descriptors. The core catalog is registered first (user-visible
+ * T1/T2 then internal T3 routines), then any platform descriptors — so the
+ * registry is fully populated before `analyze()` runs.
  *
  * When `platformId` is given, each platform descriptor is merged with a wrapped
- * availability predicate keyed on the contributing platform (R25/PF-015):
+ * availability predicate keyed on the contributing platform:
  * `profile → profile.platformId === platformId && original(profile)` — and the
- * id is stamped on the descriptor for diagnostic rendering (AR-P11/AR-P14).
+ * id is stamped on the descriptor for diagnostic rendering.
  *
  * @param platformDescriptors Optional T4 descriptors contributed by the active
- *   platform plugin; merged into the registry at compile start (AC-15/AC-16).
+ *   platform plugin; merged into the registry at compile start.
  * @param platformId The contributing plugin's id — enables the platform-keyed
  *   availability wrapper. Omitted → descriptors register unwrapped (test use).
  * @returns A fresh registry.
@@ -139,10 +139,9 @@ export function createIntrinsicRegistry(
 }
 
 /**
- * Wrap a T4 descriptor for its contributing platform (R25/PF-015): availability
- * additionally requires the target profile's `platformId` to match, and the id
- * is stamped for diagnostic rendering. Pure — the original descriptor is
- * untouched.
+ * Wrap a T4 descriptor for its contributing platform: availability additionally
+ * requires the target profile's `platformId` to match, and the id is stamped
+ * for diagnostic rendering. Pure — the original descriptor is untouched.
  *
  * @param descriptor The plugin-authored descriptor.
  * @param platformId The contributing plugin's id.

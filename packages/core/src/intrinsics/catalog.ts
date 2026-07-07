@@ -1,16 +1,16 @@
 /**
- * The core intrinsic catalog — RD-17 §4.3 (AR-28, AR-98, AR-99).
+ * The core intrinsic catalog.
  *
  * {@link CORE_INTRINSICS} is the complete user-visible catalog: all 22 Ch 12
  * intrinsics (13 CPU-control T1 + 9 memory T2, matching `RESERVED_BUILTINS`) plus
- * the 65C02-gated `asm_wai` (R2). {@link RT_ROUTINES} is the four internal
+ * the 65C02-gated `asm_wai`. {@link RT_ROUTINES} is the four internal
  * operator-backing T3 routines (`__rt_mul8/mul16/div8/div16`) — not user-callable,
  * not in `RESERVED_BUILTINS`, and the exact call sites shipped codegen emits for
- * `*`/`/`/`%` (AR-98).
+ * `*`/`/`/`%`.
  *
  * Cost figures follow frozen Ch 12 §3.1. The `~`-approximate runtime-routine costs
  * are data-dependent, so they carry `'varies'`; their byte size is finalised when
- * the `.asm` bodies are authored (Phase 4).
+ * the `.asm` bodies are authored.
  */
 
 import type { PlatformProfile } from "../platform/platform-profile.js";
@@ -19,13 +19,13 @@ import type { ClobberEntry, IntrinsicDescriptor } from "./descriptor.js";
 /** Available on every platform/CPU (the common case). */
 const ALL: (profile: PlatformProfile) => boolean = () => true;
 
-/** Available only on the WDC 65C02 (R24) — gates `asm_wai`. */
+/** Available only on the WDC 65C02 — gates `asm_wai`. */
 const WDC65C02_ONLY: (profile: PlatformProfile) => boolean = (profile) =>
   profile.cpu === "wdc65c02";
 
 /**
  * Build a T1 CPU-control descriptor: `(): void`, `'opcode'` lowering, 1 byte, on
- * every CPU (R2). The `cycles`/`clobber` differ per opcode.
+ * every CPU. The `cycles`/`clobber` differ per opcode.
  *
  * @param name The intrinsic name (e.g. `"asm_sei"`).
  * @param cycles The opcode's cycle count.
@@ -53,7 +53,7 @@ function t1(
 
 /**
  * Build an internal T3 operator-backing runtime routine descriptor: `'call'`
- * lowering, `asmModulePath` set, available everywhere (AR-98).
+ * lowering, `asmModulePath` set, available everywhere.
  *
  * @param name The `__rt_*` symbol.
  * @param params The parameter list.
@@ -86,7 +86,7 @@ function rt(
 
 /**
  * The 9 memory T2 intrinsics (Ch 12 §3). `lo`/`hi` use `'inline'` with a
- * constant-fold optimisation in the emitter (PF-021); `sizeof`/`offsetof`/`length`
+ * constant-fold optimisation in the emitter; `sizeof`/`offsetof`/`length`
  * always fold (`'fold'`).
  */
 const MEMORY_INTRINSICS: readonly IntrinsicDescriptor[] = [
@@ -195,7 +195,7 @@ const MEMORY_INTRINSICS: readonly IntrinsicDescriptor[] = [
 ];
 
 /**
- * The 13 CPU-control T1 intrinsics (Ch 12 §2) + the 65C02-gated `asm_wai` (R2).
+ * The 13 CPU-control T1 intrinsics (Ch 12 §2) + the 65C02-gated `asm_wai`.
  * Cost/clobber follow the underlying 6502 opcode semantics.
  */
 const CPU_CONTROL_INTRINSICS: readonly IntrinsicDescriptor[] = [
@@ -221,8 +221,8 @@ const CPU_CONTROL_INTRINSICS: readonly IntrinsicDescriptor[] = [
 ];
 
 /**
- * The complete user-visible core intrinsic catalog: 22 Ch 12 names + `asm_wai`
- * (AC-01). Registered as the reserved, availability-gated set.
+ * The complete user-visible core intrinsic catalog: 22 Ch 12 names + `asm_wai`.
+ * Registered as the reserved, availability-gated set.
  */
 export const CORE_INTRINSICS: readonly IntrinsicDescriptor[] = [
   ...MEMORY_INTRINSICS,
@@ -230,9 +230,9 @@ export const CORE_INTRINSICS: readonly IntrinsicDescriptor[] = [
 ];
 
 /**
- * The four internal operator-backing T3 runtime routines (AR-98). ZP-byte usage:
+ * The four internal operator-backing T3 runtime routines. ZP-byte usage:
  * `mul16`/`div16` pass their second word operand through 2 ZP arg-block bytes
- * (`div16` reuses those slots for the remainder — AR-P7); `mul8`/`div8` pass both
+ * (`div16` reuses those slots for the remainder); `mul8`/`div8` pass both
  * operands in registers.
  */
 export const RT_ROUTINES: readonly IntrinsicDescriptor[] = [
