@@ -13,7 +13,13 @@
  */
 
 import { DiagCode } from "@blend65/core";
-import type { DiagnosticBag, FunctionDeclNode, ProgramNode } from "@blend65/core";
+import type {
+  BlockNode,
+  DiagnosticBag,
+  FunctionDeclNode,
+  ProgramNode,
+  StmtNode,
+} from "@blend65/core";
 
 /**
  * Validates the program entry point (FR-5). Emits E10020/E10021/E10022 as
@@ -72,4 +78,79 @@ function isValidMainSignature(fn: FunctionDeclNode): boolean {
     fn.returnType.kind === "PrimitiveType" &&
     fn.returnType.name === "void"
   );
+}
+
+/**
+ * All-paths-return validation (RD-18 Slice 4a FR-6, spec Ch 05 §4.2, AR-4). Every
+ * non-void `function` whose body does not return a value on **all** control-flow
+ * paths emits E10102. Interrupts (always void) and void functions carry no
+ * obligation. The analysis is a conservative structural reachability check
+ * ({@link definitelyReturns}); it never throws.
+ *
+ * @param programs The parsed program ASTs.
+ * @param bag The shared diagnostic accumulator.
+ */
+export function checkAllPathsReturn(programs: readonly ProgramNode[], bag: DiagnosticBag): void {
+  for (const program of programs) {
+    for (const item of program.items) {
+      if (item.kind !== "FunctionDecl") continue; // interrupts are void
+      if (isVoidReturn(item)) continue;
+      if (!definitelyReturns(item.body)) {
+        bag.addError(
+          DiagCode.NotAllPathsReturn, // E10102
+          item.nameSpan,
+          `Not all code paths return a value in function '${item.name}'`,
+        );
+      }
+    }
+  }
+}
+
+/** `true` iff `fn` declares a `void` return type (no all-paths obligation). */
+function isVoidReturn(fn: FunctionDeclNode): boolean {
+  return fn.returnType.kind === "PrimitiveType" && fn.returnType.name === "void";
+}
+
+/**
+ * Structural "definitely returns on every path" over a block (AR-4). A block
+ * definitely returns if any statement in sequence definitely returns (a `return`
+ * makes the rest unreachable):
+ * - `ReturnStmt` → the block returns from here on;
+ * - `IfStmt` with an `else` where **both** arms definitely return → returns;
+ * - a nested `Block` → recurse.
+ * Loops, one-armed `if`s, and other statements do **not** establish a definite
+ * return (a loop may run zero times; a one-armed `if` may fall through). This is
+ * intentionally conservative — refinement (constant loop conditions) is out of
+ * scope.
+ *
+ * @param block The block to analyse.
+ * @returns Whether control definitely returns a value before falling off the end.
+ */
+function definitelyReturns(block: BlockNode): boolean {
+  for (const stmt of block.statements) {
+    if (statementDefinitelyReturns(stmt)) return true;
+  }
+  return false;
+}
+
+/** Whether a single statement guarantees a return on every path through it. */
+function statementDefinitelyReturns(stmt: StmtNode): boolean {
+  switch (stmt.kind) {
+    case "ReturnStmt":
+      return true;
+    case "Block":
+      return definitelyReturns(stmt);
+    case "IfStmt": {
+      // Both arms must definitely return; a missing `else` can fall through.
+      if (stmt.elseClause === null) return false;
+      const thenReturns = definitelyReturns(stmt.thenBlock);
+      const elseReturns =
+        stmt.elseClause.kind === "Block"
+          ? definitelyReturns(stmt.elseClause)
+          : statementDefinitelyReturns(stmt.elseClause); // else-if chain
+      return thenReturns && elseReturns;
+    }
+    default:
+      return false;
+  }
 }

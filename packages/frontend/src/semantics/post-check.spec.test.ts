@@ -83,3 +83,41 @@ describe("Specification: RD-18 Slice 3b post-check — main() validity (FR-5)", 
     expect(codes).not.toContain(DiagCode.InvalidMainSignature);
   });
 });
+
+describe("Specification: RD-18 Slice 4a all-paths-return (FR-6, ST-8)", () => {
+  // ST-8 — a non-void function returning on only one path → E10102.
+  it("should report a missing return path with E10102 (ST-8, spec Ch05 §4.2)", () => {
+    const bag = createDiagnosticBag();
+    const program = parseSource(
+      "module Main;\nfunction f(): byte { let x: byte = 1; if (x > 0) { return 1; } }\nfunction main(): void { }\n",
+      bag,
+    );
+    analyze({ programs: [program], bag, profile: DEFAULT_PROFILE });
+
+    expect(errorCodes(bag)).toContain(DiagCode.NotAllPathsReturn); // E10102
+  });
+
+  // ST-8 (negative) — a trailing unconditional return closes every path → no E10102.
+  it("should accept a non-void function with a trailing return (ST-8)", () => {
+    const bag = createDiagnosticBag();
+    const program = parseSource(
+      "module Main;\nfunction f(): byte { let x: byte = 1; if (x > 0) { return 1; } return 0; }\nfunction main(): void { }\n",
+      bag,
+    );
+    analyze({ programs: [program], bag, profile: DEFAULT_PROFILE });
+
+    expect(errorCodes(bag)).not.toContain(DiagCode.NotAllPathsReturn);
+  });
+
+  // ST-8 (negative) — an if/else where both arms return closes every path → no E10102.
+  it("should accept a non-void function whose if/else both return (ST-8)", () => {
+    const bag = createDiagnosticBag();
+    const program = parseSource(
+      "module Main;\nfunction f(): byte { let x: byte = 1; if (x > 0) { return 1; } else { return 0; } }\nfunction main(): void { }\n",
+      bag,
+    );
+    analyze({ programs: [program], bag, profile: DEFAULT_PROFILE });
+
+    expect(errorCodes(bag)).not.toContain(DiagCode.NotAllPathsReturn);
+  });
+});

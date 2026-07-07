@@ -25,6 +25,7 @@ import type {
   AstNode,
   ProgramNode,
   Scope,
+  StmtNode,
   Symbol,
   Type,
   TypeNode,
@@ -102,26 +103,91 @@ export function collectFunctions(
       moduleScope.children.push(bodyScope);
       scopeByNode.set(item, bodyScope);
 
-      // Step 3 — the function's top-level local `LetDecl`s, in source order (AR-6).
-      // A body-less/malformed declaration simply contributes no locals (never throws).
-      for (const stmt of item.body?.statements ?? []) {
-        if (stmt.kind !== "LetDecl") continue;
-        const varSym: Symbol = {
-          name: stmt.name,
-          kind: "variable",
-          type: primitiveFromTypeNode(stmt.declaredType),
-          decl: stmt,
-          scope: bodyScope,
-          exported: stmt.exported,
-          mutable: true,
-          byRef: false,
-        };
-        bodyScope.symbols.set(stmt.name, varSym); // insertion order == declaration order
-      }
+      // Step 3 — the function's locals, in source order (AR-6). RD-18 Slice 4a
+      // recurses into control-flow bodies (flat-recurse, AR-9): nested `let`
+      // locals AND each `for`-counter land in the enclosing FUNCTION scope so SFA
+      // assigns every one a `__frame_*` slot. No new `Scope` objects are created
+      // and no duplicate detection is done (sibling-block locals silently alias,
+      // last-wins — real block-scope lifetime + E10101/E10062 are deferred,
+      // AR-2/AR-5). A body-less/malformed declaration contributes no locals.
+      collectBodyLocals(item.body?.statements ?? [], bodyScope);
     }
   }
 
   return { functions, mainFunction, scopeByNode };
+}
+
+/**
+ * Recursively harvests the local variables introduced anywhere in a function
+ * body into its (flat) function `Scope` (RD-18 Slice 4a §B, AR-9): top-level and
+ * control-flow-nested `let` locals, plus each `for`-loop counter. No `Scope`
+ * nesting; insertion order == source order.
+ *
+ * @param statements The statements to scan (a block's `statements`).
+ * @param bodyScope The enclosing function scope every local is registered into.
+ */
+function collectBodyLocals(statements: readonly StmtNode[], bodyScope: Scope): void {
+  for (const stmt of statements) collectStmtLocals(stmt, bodyScope);
+}
+
+/** Harvests the local(s) a single statement introduces, recursing into bodies. */
+function collectStmtLocals(stmt: StmtNode, bodyScope: Scope): void {
+  switch (stmt.kind) {
+    case "LetDecl":
+      registerLocal(bodyScope, stmt.name, stmt.declaredType, stmt, true);
+      return;
+    case "Block":
+      collectBodyLocals(stmt.statements, bodyScope);
+      return;
+    case "IfStmt":
+      collectBodyLocals(stmt.thenBlock.statements, bodyScope);
+      if (stmt.elseClause !== null) {
+        // A `Block` else, or a chained `else if` (an IfStmt) — recurse either way.
+        if (stmt.elseClause.kind === "Block") {
+          collectBodyLocals(stmt.elseClause.statements, bodyScope);
+        } else {
+          collectStmtLocals(stmt.elseClause, bodyScope);
+        }
+      }
+      return;
+    case "WhileStmt":
+    case "DoWhileStmt":
+      collectBodyLocals(stmt.body.statements, bodyScope);
+      return;
+    case "ForStmt":
+      // The for-counter is a read-only (`mutable:false`, AR-5) function local; it
+      // is visible to the bound, step, and body. Its type may be `null`/non-integer
+      // (parser-optional annotation) — resolved defensively here; the type-check
+      // pass emits E10065 and poisons it (AR-15). Counter first, then the body.
+      registerLocal(bodyScope, stmt.varName, stmt.varType, stmt, false);
+      collectBodyLocals(stmt.body.statements, bodyScope);
+      return;
+    default:
+      // ExpressionStmt / ReturnStmt / Break / Continue / Const / Switch / error —
+      // introduce no function-frame local in the Slice-4a surface.
+      return;
+  }
+}
+
+/** Registers one local `variable` symbol into the (flat) function scope (AR-6/AR-9). */
+function registerLocal(
+  bodyScope: Scope,
+  name: string,
+  declaredType: TypeNode | null,
+  decl: AstNode,
+  mutable: boolean,
+): void {
+  const sym: Symbol = {
+    name,
+    kind: "variable",
+    type: primitiveFromTypeNode(declaredType),
+    decl,
+    scope: bodyScope,
+    exported: false,
+    mutable,
+    byRef: false,
+  };
+  bodyScope.symbols.set(name, sym); // insertion order == declaration order (last-wins)
 }
 
 /**

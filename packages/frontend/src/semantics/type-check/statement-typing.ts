@@ -10,10 +10,12 @@
  * them is not 3b-lowerable anyway. Never throws (FR-9).
  */
 
-import { DiagCode, primitive, typeName } from "@blend65/core";
+import { DiagCode, isError, primitive, typeName } from "@blend65/core";
 import type {
   AstNode,
   BlockNode,
+  ExprNode,
+  ForStmtNode,
   LetDeclNode,
   ProgramNode,
   ReturnStmtNode,
@@ -23,7 +25,8 @@ import type {
 } from "@blend65/core";
 import type { TypeCheckContext } from "./context.js";
 import { typeOfExpr, checkAssignable, checkConstRange } from "./expression-typing.js";
-import { resolveTypeNode } from "./type-resolution.js";
+import { integerRange, resolveTypeNode } from "./type-resolution.js";
+import { evalConst } from "../const-eval.js";
 
 /**
  * Runs Pass-3 type checking over every function/interrupt body in all programs
@@ -44,25 +47,41 @@ export function typeCheckPrograms(
       if (item.kind === "FunctionDecl") {
         const bodyScope = scopeByNode.get(item);
         if (bodyScope !== undefined) {
-          typeBody(item.body, bodyScope, resolveTypeNode(item.returnType), ctx);
+          typeBody(item.body, bodyScope, resolveTypeNode(item.returnType), ctx, 0);
         }
       } else if (item.kind === "InterruptDecl") {
         const bodyScope = scopeByNode.get(item);
         if (bodyScope !== undefined) {
-          typeBody(item.body, bodyScope, primitive("void"), ctx);
+          typeBody(item.body, bodyScope, primitive("void"), ctx, 0);
         }
       }
     }
   }
 }
 
-/** Types every statement in a function body block. */
-function typeBody(body: BlockNode, scope: Scope, returnType: Type, ctx: TypeCheckContext): void {
-  for (const stmt of body.statements) typeStmt(stmt, scope, returnType, ctx);
+/**
+ * Types every statement in a body block, reusing the enclosing (flat) scope
+ * (AR-9). `loopDepth` records how many enclosing loops the block sits in, so
+ * `break`/`continue` outside any loop are caught (FR-5).
+ */
+function typeBody(
+  body: BlockNode,
+  scope: Scope,
+  returnType: Type,
+  ctx: TypeCheckContext,
+  loopDepth: number,
+): void {
+  for (const stmt of body.statements) typeStmt(stmt, scope, returnType, ctx, loopDepth);
 }
 
-/** Types a single statement (the Slice-3b surface; others are skipped). */
-function typeStmt(stmt: StmtNode, scope: Scope, returnType: Type, ctx: TypeCheckContext): void {
+/** Types a single statement (RD-18 Slice 4a surface). Never throws. */
+function typeStmt(
+  stmt: StmtNode,
+  scope: Scope,
+  returnType: Type,
+  ctx: TypeCheckContext,
+  loopDepth: number,
+): void {
   switch (stmt.kind) {
     case "LetDecl":
       typeLetDecl(stmt, scope, ctx);
@@ -74,15 +93,139 @@ function typeStmt(stmt: StmtNode, scope: Scope, returnType: Type, ctx: TypeCheck
       typeReturn(stmt, scope, returnType, ctx);
       return;
     case "Block":
-      // Slice 3b builds no nested block scopes (Slice 4); reuse the enclosing
-      // scope so straight-line blocks still type without crashing.
-      typeBody(stmt, scope, returnType, ctx);
+      // Flat model (AR-9): reuse the enclosing scope; carry the loop depth.
+      typeBody(stmt, scope, returnType, ctx, loopDepth);
+      return;
+    case "IfStmt": {
+      // Condition (E10134) + then-block + else (a Block, or a chained `else if`).
+      typeCondition(stmt.condition, scope, ctx);
+      typeBody(stmt.thenBlock, scope, returnType, ctx, loopDepth);
+      if (stmt.elseClause !== null) {
+        if (stmt.elseClause.kind === "Block") {
+          typeBody(stmt.elseClause, scope, returnType, ctx, loopDepth);
+        } else {
+          typeStmt(stmt.elseClause, scope, returnType, ctx, loopDepth);
+        }
+      }
+      return;
+    }
+    case "WhileStmt":
+    case "DoWhileStmt":
+      typeCondition(stmt.condition, scope, ctx);
+      typeBody(stmt.body, scope, returnType, ctx, loopDepth + 1);
+      return;
+    case "ForStmt":
+      typeFor(stmt, scope, returnType, ctx, loopDepth);
+      return;
+    case "BreakStmt":
+      if (loopDepth === 0) {
+        ctx.bag.addError(
+          DiagCode.BreakOutsideLoopSwitch, // E10130
+          stmt.span,
+          "'break' can only appear inside a loop",
+        );
+      }
+      return;
+    case "ContinueStmt":
+      if (loopDepth === 0) {
+        ctx.bag.addError(
+          DiagCode.ContinueOutsideLoop, // E10131
+          stmt.span,
+          "'continue' can only appear inside a loop",
+        );
+      }
       return;
     default:
-      // if/while/for/switch/do-while/break/continue/const/error — out of the 3b
-      // surface; a program using them is not 3b-lowerable. Skipped (never throws).
+      // switch/const/error — out of the 4a surface; skipped (never throws).
       return;
   }
+}
+
+/**
+ * Types a control-flow condition (FR-1, spec Ch 05 §3). The condition must be
+ * `boolean`; a non-boolean, non-poison type emits E10134 (AR-7). A poison
+ * (`ERROR_TYPE`) condition stays silent — cascade suppression (3b R114). The
+ * condition is recorded in `typeMap` by `typeOfExpr`.
+ */
+function typeCondition(expr: ExprNode, scope: Scope, ctx: TypeCheckContext): void {
+  const t = typeOfExpr(expr, scope, ctx);
+  if (!isError(t) && typeName(t) !== "boolean") {
+    ctx.bag.addError(
+      DiagCode.NonBooleanCondition, // E10134
+      expr.span,
+      `Condition must be type 'boolean' — found '${typeName(t)}'. Use an explicit comparison`,
+    );
+  }
+}
+
+/**
+ * Types a `for (let i: T = init to|downto bound [step s]) body` (FR-3/FR-4, spec
+ * Ch 05 §7). In order (§D): (1) the counter type must be an integer type —
+ * `integerRange(T) === null` (a missing/non-integer annotation) emits E10065 and
+ * poisons the counter (AR-15); (2) init + bound adapt to the counter type; (3) a
+ * const end bound outside the counter's range emits E10064 (AR-10 — a non-const
+ * bound is allowed and simply skips the check); (4) a `step`, if present, must
+ * `evalConst` to an integer ≥ 1 else E10061 (AR-8). The body is always typed with
+ * the counter in scope and the loop depth incremented.
+ */
+function typeFor(
+  stmt: ForStmtNode,
+  scope: Scope,
+  returnType: Type,
+  ctx: TypeCheckContext,
+  loopDepth: number,
+): void {
+  const counterType = resolveTypeNode(stmt.varType);
+  const range = integerRange(counterType);
+
+  if (range === null) {
+    // Covers both the omitted-annotation (`varType === null` → ERROR_TYPE) and the
+    // non-integer-annotation (boolean/void) cases — do NOT rely on cascade
+    // suppression, which would silently mis-lower (AR-15). Poison + type the body.
+    ctx.bag.addError(
+      DiagCode.ForCounterTypeNotInteger, // E10065
+      stmt.varNameSpan,
+      "For-loop counter must have an explicit integer type (byte/sbyte/word/sword)",
+    );
+    typeBody(stmt.body, scope, returnType, ctx, loopDepth + 1);
+    return;
+  }
+
+  // (2) init + bound in the counter's context (literal adaptation, spec TS-2).
+  typeOfExpr(stmt.init, scope, ctx, counterType);
+  typeOfExpr(stmt.bound, scope, ctx, counterType);
+
+  // (3) const end-bound range check (E10064); a non-const bound is allowed (AR-10).
+  const bound = evalConst(stmt.bound);
+  if (bound.kind === "value" && typeof bound.value === "number") {
+    if (bound.value < range.min || bound.value > range.max) {
+      ctx.bag.addError(
+        DiagCode.ForEndBoundOutOfRange, // E10064
+        stmt.bound.span,
+        `For-loop end bound ${bound.value} out of range for type '${typeName(counterType)}' ` +
+          `(range: ${range.min} to ${range.max})`,
+      );
+    }
+  }
+
+  // (4) step positivity (E10061): present → must fold to an integer ≥ 1.
+  if (stmt.step !== null) {
+    const step = evalConst(stmt.step);
+    const ok =
+      step.kind === "value" &&
+      typeof step.value === "number" &&
+      Number.isInteger(step.value) &&
+      step.value >= 1;
+    if (!ok) {
+      ctx.bag.addError(
+        DiagCode.StepValueNotPositive, // E10061
+        stmt.step.span,
+        "For-loop step must be a positive compile-time constant",
+      );
+    }
+  }
+
+  typeBody(stmt.body, scope, returnType, ctx, loopDepth + 1);
 }
 
 /**

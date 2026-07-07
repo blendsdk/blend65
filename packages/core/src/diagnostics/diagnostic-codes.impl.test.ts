@@ -127,6 +127,23 @@ describe("Tooling diagnostic codes (RD-09, AR-62)", () => {
   });
 });
 
+describe("RD-18 Slice 4a control-flow diagnostic codes (AR-4/AR-7/AR-8/AR-15)", () => {
+  // Source: plans/rd-18-slice-4a-conditionals-loops/03-01-control-flow-semantics.md §A.
+  // The four additive codes are pinned to their exact strings; global uniqueness +
+  // shape are already covered above, these are presence spot-checks.
+  it("maps the four new Slice-4a codes to their exact strings", () => {
+    expect(DiagCode.NonBooleanCondition).toBe("E10134");
+    expect(DiagCode.StepValueNotPositive).toBe("E10061");
+    expect(DiagCode.ForCounterTypeNotInteger).toBe("E10065");
+    expect(DiagCode.NotAllPathsReturn).toBe("E10102");
+  });
+
+  it("keeps E10102 (all-paths) distinct from the return-value codes", () => {
+    expect(DiagCode.NotAllPathsReturn).not.toBe(DiagCode.MissingReturnValue); // E10172
+    expect(DiagCode.NotAllPathsReturn).not.toBe(DiagCode.VoidFunctionReturnsValue); // E10173
+  });
+});
+
 describe("isIceCode / IceCode band (ST-14)", () => {
   it("classifies an ICE code as in-band", () => {
     expect(isIceCode("E90001")).toBe(true);

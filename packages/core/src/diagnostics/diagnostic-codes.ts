@@ -89,6 +89,13 @@ export const DiagCode = {
   VoidFunctionReturnsValue: "E10173",
   RecursionDetected: "E10174",
   TooManyParameters: "E10175",
+  // RD-18 Slice 4a (AR-4): a non-void function that does not return a value on
+  // every control-flow path (spec Ch 05 §4.2). E10102 is the exact Ch-05 number
+  // for this check; it was free in this registry (0 occurrences) and carries no
+  // Ch-14 collision, so it is reused here to reduce registry↔Ch-05 drift. Distinct
+  // from E10172 (`return` present but value missing) and E10173 (void returns a
+  // value). `spec/` stays frozen (D3).
+  NotAllPathsReturn: "E10102",
   // Control flow
   // E10072 (MissingDefaultClause) is emitted by the parser (RD-03); it lives in
   // this band per Ch 14 but is raised during parsing, not semantic analysis.
@@ -98,6 +105,24 @@ export const DiagCode = {
   ContinueOutsideLoop: "E10131",
   DuplicateCaseValue: "E10132",
   NonExhaustiveSwitch: "E10133",
+  // RD-18 Slice 4a control-flow codes (additive; inherited AR-11 precedent).
+  // - E10134 (AR-7): a non-boolean `if`/`else if`/`while`/`do-while` condition.
+  //   Ch 05's condition code E10100 is already taken by `UndeclaredIdentifier`
+  //   (3b), so the boolean-condition check uses the next free control-flow code
+  //   E10134 (E10130–E10133 → E10134), adjacent to the loop-context codes.
+  // - E10061 (AR-8): a for-loop `step` that is not a positive compile-time
+  //   constant (zero / negative / non-const). Ch-05 number, free in this registry.
+  // - E10065 (AR-15): a for-loop counter whose type is missing or non-integer
+  //   (`integerRange(counterType) === null`). The counter annotation is optional
+  //   in the parser (`parse-stmt.ts`), so a null/boolean/void counter type is
+  //   guarded loudly rather than degenerating to a silent `ERROR_TYPE` codegen.
+  //   Free in registry/spec/code; adjacent to the for-loop code E10064; no Ch-05
+  //   collision (the spec table gaps E10064→E10070, delegating §7.4's "must be an
+  //   integer type" rule to the type system) — accepted Ch-14-over-Ch-05 drift.
+  // `spec/` stays frozen (D3).
+  StepValueNotPositive: "E10061",
+  ForCounterTypeNotInteger: "E10065",
+  NonBooleanCondition: "E10134",
 
   // Enums
   EmptyEnum: "E10140",

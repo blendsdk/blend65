@@ -1,0 +1,51 @@
+# RD-18 Slice 4a — Ambiguity Register
+
+> **Plan**: rd-18-slice-4a-conditionals-loops
+> **Status**: ✅ **GATE PASSED** — all items Resolved with the user's explicit decisions (2026-07-06;
+> AR-15 added 2026-07-07 from preflight PF-002)
+> **CodeOps Skills Version**: 3.2.0
+> **Header**: AR-1 … AR-15
+
+The Zero-Ambiguity Gate register for Slice 4a (conditionals + loops + the multi-block CFG codegen
+keystone). Every plan item traces to a numbered decision below. Items AR-1…AR-6 were decided by the
+user in the Phase-1 interview (2026-07-06); AR-7…AR-14 are grounded design resolutions recorded here
+and confirmed as part of the complete-register confirmation.
+
+> **Diagnostic-code precedent (inherited from Slice 3b AR-11).** The **actual registry**
+> `packages/core/src/diagnostics/diagnostic-codes.ts` is the operative source of truth, and it follows
+> **spec Ch 14** (the diagnostics registry), NOT the internally-inconsistent **Ch 05** (language
+> chapter) numbering where they conflict. New codes are minted **additively into the registry only**
+> (`spec/` frozen, D3), with the Ch-14 drift recorded as an accepted deviation (AR-115). Where a Ch-05
+> number is *free* in the registry and does not collide with Ch 14, Slice 4a reuses it to *reduce*
+> drift (E10102, E10061).
+
+---
+
+## Register
+
+| # | Category | Ambiguity | Resolution | Status |
+|---|----------|-----------|------------|--------|
+| **AR-1** | Scope / decomposition | Slice 4 (all control flow) is large; the CFG codegen keystone is shared but `switch` is a separable sub-machine (multi-value cases, fallthrough, ~8 validators, an E10072 code collision). One slice or split? | **Split.** This plan is **Slice 4a** = `if`/`else` + `while` + `do-while` + `for` (`to`/`downto`/`step`) + the multi-block CFG codegen keystone (lower + translate). **`switch`/`case`/`default`/`fallthrough` → a later Slice 4b.** De-risks the keystone with the simpler constructs first (3a/3b precedent) and keeps 4a's diagnostic-code set collision-free. | ✅ Resolved (user) |
+| **AR-2** | Scope / validators | How much of the Ch-05 validation surface does 4a enforce? | **Core + safety-critical.** In scope: boolean-condition (E10134, new), `break`/`continue` outside a loop (E10130/E10131, registered), all-paths-return (E10102, new), for-loop end-bound range (E10064, registered), for-loop `step` positivity (E10061, new). **Deferred** to a later validator-cleanup slice: loop-var read-only (E10060), nested/enclosing for-var reuse (E10062), no-shadowing (E10101) + block-scope shadow machinery. | ✅ Resolved (user) |
+| **AR-3** | Scope / language surface | Spec Ch 05 has `until`/`to`/`downto`; the parser only accepts `to`/`downto` (`until` → E10309). Include `until`? | **Defer `until`.** 4a supports `to`/`downto`/`step` only — matches the parser reality and the RD slice-map row. `until` (exclusive ascending) becomes a small additive follow-up (parser + one lowering case), most useful alongside arrays (Slice 7). | ✅ Resolved (user) |
+| **AR-4** | Diagnostic codes | Which code for "not all code paths return a value" in a non-void function? | **Mint E10102** (dedicated `NotAllPathsReturn`) — the exact number Ch 05 §11 assigns to this check, currently free in the registry, no Ch-14 collision. Precise message; distinct from E10172 `MissingReturnValue` ("return present but carries no value"). | ✅ Resolved (user) |
+| **AR-5** | Diagnostic codes | Which code for a for-loop counter that shadows/reuses an enclosing name (RD Parked Q3)? | **Defer the check.** 4a **registers** the counter as a symbol (so it gets a frame slot and body refs resolve) but does **not** enforce shadowing/collision — consistent with deferring E10101/E10062 (AR-2). A counter reusing an enclosing name is silently allowed in 4a; the check lands with the validator-cleanup slice. | ✅ Resolved (user) |
+| **AR-6** | Codegen scope | For-loop codegen: Pattern A (compare-and-branch) vs Pattern B (INX/BNE wrap for `to <type-max>`). | **Pattern A only.** Compare-and-branch handles `to`/`downto` whose inclusive bound is **below** the counter type's max (comparing against `bound + 1`). A full-range `0 to 255` (inclusive bound == type max) is **out of 4a scope** — it records an ICE (unsupported) until a follow-up adds Pattern B. Fixtures use sub-max ranges. | ✅ Resolved (user) |
+| **AR-7** | Diagnostic codes | Code + name for the non-boolean-condition check (Ch 05 wants E10100, but E10100 is taken by `UndeclaredIdentifier`, used by 3b). | Mint **`NonBooleanCondition: "E10134"`** — the next free number in the control-flow group (E10130–E10133 → E10134), adjacent to the loop-context codes. Message: `Condition must be type 'boolean' — found '<type>'. Use an explicit comparison`. | ✅ Resolved (grounded) |
+| **AR-8** | Diagnostic codes | Code + semantics for the `step` safety check. | Mint **`StepValueNotPositive: "E10061"`** (Ch-05 number, free). One code covers zero / negative / non-const-evaluable `step`: `step` (if present) must `evalConst` to an integer **≥ 1**, else E10061. Message: `For-loop step must be a positive compile-time constant`. (Broader than Ch 05's zero-only wording; accepted, folds three unsafe cases into one code.) | ✅ Resolved (grounded) |
+| **AR-9** | Scope construction | Real nested block scopes vs flat collection for control-flow body locals + the for-counter. | **Flat-recurse.** Extend `function-collection.ts` to recurse into control-flow bodies, collecting nested `let` locals **and** the for-counter into the enclosing **function** scope (each gets a frame slot via the existing SFA path). Real block-scope lifetime/shadowing is deferred with AR-2/AR-5. Duplicate names across sibling blocks fall to the existing E10003 dup-check; the fixtures do not exercise that edge. | ✅ Resolved (grounded) |
+| **AR-10** | Const-eval | Does 4a need to extend the 3b const-evaluator? | **No.** 3b's `evalConst` already folds `NumericLit`/`BoolLit`/unary `±`/binary `+ - * / %`/`lo`/`hi` → sufficient for for-bound and `step` integer constants. A **non-const** end bound (e.g. a variable) is **allowed** — it simply skips the E10064 range check and lowers as a runtime compare. | ✅ Resolved (grounded) |
+| **AR-11** | Codegen / IL | How are the CFG blocks + branch terminators produced, given the model/builder already support them? | Reuse the existing scaffolding: `IlFunctionBuilder.reserveLabel()`/`openBlock()`/`terminate()`/`isTerminated()` (`builder.ts`) to emit multi-block `ILFunction`s with `br`/`brcond`/`ret`/`unreachable` (all already typed in `instruction.ts`). `translate.ts` gains a loop over **all** `fn.blocks` (today only `blocks[0]`), block-label emission, and `br`→`JMP` / `brcond`→conditional-branch / `unreachable` handling — modeled on the existing `translateComparison` label/branch pattern. | ✅ Resolved (grounded) |
+| **AR-12** | Codegen / loop context | `break`/`continue` need branch targets; how are they threaded through lowering? | A **loop-context stack** on the lowering ctx: each loop pushes `{ breakTarget, continueTarget }` (labels). `break` → `br(breakTarget)`; `continue` → `br(continueTarget)` (the condition/increment label). `break`/`continue` with an empty stack → the semantic pass already rejected them (E10130/E10131), so lowering treats an empty stack defensively (ICE, never reached on clean input). | ✅ Resolved (grounded) |
+| **AR-13** | Acceptance | The 3-part-bar fixture + observable outcome for 4a. | `examples/slice4a/main.blend`: a module `byte` accumulator; `main` runs a `for` loop with an inner `if` (+ a `while` and a `break`/`continue`) computing a deterministic sum, `poke`d to `$C000`. VICE asserts `$C000 == <computed>`. Exact program + value fixed in `03-04-acceptance-fixtures.md`. Golden of the emitted ASM committed (`slice4a.asm.golden`). Negative: a non-void function missing a return path → **E10102** via `compile()` (no binary). | ✅ Resolved (grounded) |
+| **AR-14** | Rollout | Which parent ACs does 4a advance, and how is RD-18 AC-3 handled (it spans switch too)? | 4a advances the Ch-05 loop/conditional ledger rows + registers E10061/E10102/E10134 and wires E10064/E10130/E10131. **RD-18 AC-3 stays open** (it requires switch + fallthrough + non-boolean-condition together) — 4a ticks the conditional/loop portion and annotates AC-3 as "4a partial; closes at 4b". SR-2/SR-3 deltas recorded in Phase 5. | ✅ Resolved (grounded) |
+| **AR-15** | Diagnostic codes | (preflight PF-002) The for-counter type annotation is **optional** in the parser (`parse-stmt.ts:175-179`) → `varType` may be `null`; a non-integer annotation is also possible. §D relied on "reuse the type-mismatch path", which cascade-**suppresses** for `ERROR_TYPE`/`boolean` → a **silent miscompile** on malformed input. Which code guards the counter type? | Mint **`ForCounterTypeNotInteger: "E10065"`** — free in the registry, spec, and code (0 occurrences); adjacent to the for-loop code E10064; **no Ch-05 collision** (the spec table gaps E10064→E10070 and assigns no code to §7.4's "must be an integer type" rule, delegating it to the type system → recorded as accepted Ch-14-over-Ch-05 drift per the AR-11 precedent). §D emits it at `stmt.varNameSpan` whenever `integerRange(counterType) === null` (covers both the null-annotation and non-integer cases), then poisons the counter. Message: `For-loop counter must have an explicit integer type (byte/sbyte/word/sword)`. | ✅ Resolved (grounded — preflight; confirm the code number if you prefer another free slot) |
+
+---
+
+## Traceability
+
+Every design/scope/error-handling decision in the Slice 4a plan documents carries an `AR-N`
+back-reference to a row above. No item is deferred; no item is left to implementer discretion.
+The diagnostic-code precedent (registry-over-Ch-05, additive minting) is inherited verbatim from
+Slice 3b's AR-11 and is not re-litigated here.
