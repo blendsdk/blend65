@@ -27,11 +27,15 @@ import type {
   BlockNode,
   CallExprNode,
   DiagnosticBag,
+  DoWhileStmtNode,
   ExprNode,
+  ForStmtNode,
   FunctionDeclNode,
   FunctionFrame,
   IdentExprNode,
+  IfStmtNode,
   InterruptDeclNode,
+  WhileStmtNode,
   IntrinsicCallExprNode,
   IntrinsicDescriptor,
   IntrinsicRegistry,
@@ -98,6 +102,14 @@ const BINARY_OP_TO_IL: Partial<Record<BinaryOp, ILInstruction["op"]>> = {
 /** IL opcodes whose result is always an `IL_BYTE` 0/1 (R20). */
 const COMPARISON_RESULT_OPS = new Set(["eq", "ne", "lt", "le", "gt", "ge"]);
 
+/** A loop's branch targets for `break`/`continue` lowering (RD-18 Slice 4a, AR-12). */
+interface LoopContext {
+  /** The label `break` branches to (the loop's end block). */
+  readonly breakTarget: string;
+  /** The label `continue` branches to (`cond` for while/do-while, `incr` for for). */
+  readonly continueTarget: string;
+}
+
 /** Per-function lowering context threaded through the statement/expression walk. */
 interface LowerCtx {
   readonly builder: IlFunctionBuilder;
@@ -108,6 +120,8 @@ interface LowerCtx {
   readonly model: SemanticModel;
   /** RD-17: the intrinsic registry (descriptor lookup for strategy dispatch). */
   readonly registry: IntrinsicRegistry;
+  /** RD-18 Slice 4a: the enclosing-loop stack for `break`/`continue` (AR-12). */
+  readonly loopStack: LoopContext[];
 }
 
 /**
@@ -162,7 +176,7 @@ function lowerFunction(
   const returnType = fn.kind === "FunctionDecl" ? typeNodeToIl(fn.returnType) : "void";
 
   const builder = new IlFunctionBuilder(fqName, params, returnType, isInterrupt);
-  const ctx: LowerCtx = { builder, fqName, frame, bag, model, registry };
+  const ctx: LowerCtx = { builder, fqName, frame, bag, model, registry, loopStack: [] };
 
   lowerBlock(fn.body, ctx);
 
@@ -170,14 +184,20 @@ function lowerFunction(
   return builder.finish({ kind: "ret" });
 }
 
-/** Lower a block's statements in order into the current block. */
+/**
+ * Lower a block's statements in order into the current block. Stops emitting once
+ * the current block is terminated (RD-18 Slice 4a, 03-02 §3): statements after a
+ * `return`/`break`/`continue` are unreachable and must not append to a terminated
+ * block (keeps every block single-terminator).
+ */
 function lowerBlock(blockNode: BlockNode, ctx: LowerCtx): void {
   for (const stmt of blockNode.statements) {
+    if (ctx.builder.isTerminated()) break;
     lowerStmt(stmt, ctx);
   }
 }
 
-/** Lower a single statement (gate/slice-2 surface); ICE default for the rest. */
+/** Lower a single statement (gate/slice-2 + Slice-4a control flow); ICE default. */
 function lowerStmt(stmt: StmtNode, ctx: LowerCtx): void {
   switch (stmt.kind) {
     case "Block":
@@ -192,6 +212,24 @@ function lowerStmt(stmt: StmtNode, ctx: LowerCtx): void {
       return;
     case "ReturnStmt":
       lowerReturn(stmt, ctx);
+      return;
+    case "IfStmt":
+      lowerIf(stmt, ctx);
+      return;
+    case "WhileStmt":
+      lowerWhile(stmt, ctx);
+      return;
+    case "DoWhileStmt":
+      lowerDoWhile(stmt, ctx);
+      return;
+    case "ForStmt":
+      lowerFor(stmt, ctx);
+      return;
+    case "BreakStmt":
+      lowerBreak(stmt, ctx);
+      return;
+    case "ContinueStmt":
+      lowerContinue(stmt, ctx);
       return;
     default:
       iceUnsupported(stmt, ctx, "statement");
@@ -216,6 +254,223 @@ function lowerReturn(stmt: ReturnStmtNode, ctx: LowerCtx): void {
   }
   const value = lowerExpr(stmt.value, ctx);
   ctx.builder.terminate({ kind: "ret", value });
+}
+
+// ── Control-flow lowering (RD-18 Slice 4a — the multi-block CFG keystone) ─────
+
+/**
+ * Lower `if (cond) then [else]` into a multi-block CFG (FR-7 §2.1). The condition
+ * lowers to a boolean operand; a `brcond` selects the `then`/`else` (or `end`)
+ * block; each arm falls through to a shared `end` block via `br` unless it already
+ * terminated (a `return`/`break`/`continue`). `else if` chains nest the same shape.
+ */
+function lowerIf(stmt: IfStmtNode, ctx: LowerCtx): void {
+  const cond = lowerExpr(stmt.condition, ctx);
+  const thenL = ctx.builder.reserveLabel();
+  const endL = ctx.builder.reserveLabel();
+  const elseL = stmt.elseClause !== null ? ctx.builder.reserveLabel() : endL;
+
+  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: thenL, falseTarget: elseL });
+
+  ctx.builder.openBlock(thenL);
+  lowerBlock(stmt.thenBlock, ctx);
+  if (!ctx.builder.isTerminated()) ctx.builder.terminate({ kind: "br", target: endL });
+
+  if (stmt.elseClause !== null) {
+    ctx.builder.openBlock(elseL);
+    if (stmt.elseClause.kind === "Block") {
+      lowerBlock(stmt.elseClause, ctx);
+    } else {
+      lowerIf(stmt.elseClause, ctx); // chained `else if`
+    }
+    if (!ctx.builder.isTerminated()) ctx.builder.terminate({ kind: "br", target: endL });
+  }
+
+  ctx.builder.openBlock(endL); // successor continues here (may be an empty join)
+}
+
+/**
+ * Lower `while (cond) body` (FR-7 §2.2): entry → `cond`; `cond` branches to `body`
+ * or `end`; `body` back-edges to `cond`. `break`→`end`, `continue`→`cond`.
+ */
+function lowerWhile(stmt: WhileStmtNode, ctx: LowerCtx): void {
+  const condL = ctx.builder.reserveLabel();
+  const bodyL = ctx.builder.reserveLabel();
+  const endL = ctx.builder.reserveLabel();
+
+  ctx.builder.terminate({ kind: "br", target: condL });
+  ctx.builder.openBlock(condL);
+  const cond = lowerExpr(stmt.condition, ctx);
+  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: bodyL, falseTarget: endL });
+
+  ctx.loopStack.push({ breakTarget: endL, continueTarget: condL });
+  ctx.builder.openBlock(bodyL);
+  lowerBlock(stmt.body, ctx);
+  if (!ctx.builder.isTerminated()) ctx.builder.terminate({ kind: "br", target: condL });
+  ctx.loopStack.pop();
+
+  ctx.builder.openBlock(endL);
+}
+
+/**
+ * Lower `do body while (cond)` (FR-7 §2.3): entry → `body`; `body` → `cond`;
+ * `cond` branches back to `body` or on to `end`. `break`→`end`, `continue`→`cond`
+ * (re-evaluate the condition, correct for do-while).
+ */
+function lowerDoWhile(stmt: DoWhileStmtNode, ctx: LowerCtx): void {
+  const bodyL = ctx.builder.reserveLabel();
+  const condL = ctx.builder.reserveLabel();
+  const endL = ctx.builder.reserveLabel();
+
+  ctx.builder.terminate({ kind: "br", target: bodyL });
+  ctx.loopStack.push({ breakTarget: endL, continueTarget: condL });
+  ctx.builder.openBlock(bodyL);
+  lowerBlock(stmt.body, ctx);
+  if (!ctx.builder.isTerminated()) ctx.builder.terminate({ kind: "br", target: condL });
+  ctx.loopStack.pop();
+
+  ctx.builder.openBlock(condL);
+  const cond = lowerExpr(stmt.condition, ctx);
+  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: bodyL, falseTarget: endL });
+
+  ctx.builder.openBlock(endL);
+}
+
+/**
+ * Lower `for (let i: T = init to|downto bound [step s]) body` (Pattern A, FR-7
+ * §2.4, AR-6). The counter is a frame local (allocated in §B of 03-01):
+ * `init` stores it; `cond` compares it against `bound` (`le` for `to`, `ge` for
+ * `downto`) via `brcond`; `body` falls to `incr`; `incr` adds/subtracts the const
+ * step and back-edges to `cond`. `break`→`end`, `continue`→`incr`.
+ *
+ * Full-range guard (AR-6): a `to <type-max>` inclusive bound is the Pattern-B wrap
+ * case — its `counter <= max` predicate can never go false — so it records an ICE
+ * (Pattern B deferred) rather than lower a non-terminating loop. 4a fixtures avoid it.
+ */
+function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
+  const counterType = slotIlType(ctx.frame, stmt.varName);
+  const counterLoc = loc(frameSymbol(ctx.fqName, stmt.varName), counterType);
+
+  // init: counter = init
+  const initValue = materialise(lowerExpr(stmt.init, ctx), ctx);
+  ctx.builder.emit({ op: "store", a: initValue, b: counterLoc });
+
+  const condL = ctx.builder.reserveLabel();
+  const bodyL = ctx.builder.reserveLabel();
+  const incrL = ctx.builder.reserveLabel();
+  const endL = ctx.builder.reserveLabel();
+
+  ctx.builder.terminate({ kind: "br", target: condL });
+
+  // cond: continue while counter <= bound (to) / >= bound (downto) — Pattern A.
+  ctx.builder.openBlock(condL);
+  if (
+    stmt.direction === "to" &&
+    stmt.bound.kind === "NumericLitExpr" &&
+    stmt.bound.value === ilTypeMax(counterType)
+  ) {
+    // Pattern-B wrap (full-range `to <type-max>`) is deferred (AR-6): a compare
+    // `counter <= max` never falls through. Record the ICE; the emitted compare is
+    // never assembled (hasErrors), but keeps the block well-formed.
+    iceUnsupported(stmt, ctx, "for-loop full-range 'to <type-max>' (Pattern B deferred)");
+  }
+  const boundValue = lowerExpr(stmt.bound, ctx);
+  const cmp = compareCounter(counterLoc, counterType, stmt.direction, boundValue, ctx);
+  ctx.builder.terminate({ kind: "brcond", cond: cmp, trueTarget: bodyL, falseTarget: endL });
+
+  ctx.loopStack.push({ breakTarget: endL, continueTarget: incrL });
+  ctx.builder.openBlock(bodyL);
+  lowerBlock(stmt.body, ctx);
+  if (!ctx.builder.isTerminated()) ctx.builder.terminate({ kind: "br", target: incrL });
+  ctx.loopStack.pop();
+
+  // incr: counter = counter ± step
+  ctx.builder.openBlock(incrL);
+  incrementCounter(counterLoc, counterType, stmt.direction, constStep(stmt.step, ctx), ctx);
+  ctx.builder.terminate({ kind: "br", target: condL });
+
+  ctx.builder.openBlock(endL);
+}
+
+/**
+ * Emit the Pattern-A continue predicate: load the counter and compare it to the
+ * bound (`le` for `to`, `ge` for `downto`). Returns the boolean result operand.
+ */
+function compareCounter(
+  counterLoc: ILOperand,
+  counterType: ILType,
+  direction: "to" | "downto",
+  bound: ILOperand,
+  ctx: LowerCtx,
+): ILOperand {
+  const current = ctx.builder.newTemp(counterType);
+  ctx.builder.emit({ op: "load", a: current, b: counterLoc });
+  const result = ctx.builder.newTemp(IL_BYTE);
+  const op: ILInstruction["op"] = direction === "to" ? "le" : "ge";
+  // Comparison result is the i8u 0/1 flag (R20) — mirrors `lowerBinary`.
+  ctx.builder.emit({ op, dest: result, left: current, right: bound, type: IL_BYTE } as ILInstruction);
+  return result;
+}
+
+/** Emit `counter = counter ± step` into the counter slot (the for-loop increment). */
+function incrementCounter(
+  counterLoc: ILOperand,
+  counterType: ILType,
+  direction: "to" | "downto",
+  step: number,
+  ctx: LowerCtx,
+): void {
+  const current = ctx.builder.newTemp(counterType);
+  ctx.builder.emit({ op: "load", a: current, b: counterLoc });
+  const next = ctx.builder.newTemp(counterType);
+  const op: ILInstruction["op"] = direction === "to" ? "add" : "sub";
+  ctx.builder.emit({
+    op,
+    dest: next,
+    left: current,
+    right: imm(step, counterType),
+    type: counterType,
+  } as ILInstruction);
+  ctx.builder.emit({ op: "store", a: next, b: counterLoc });
+}
+
+/**
+ * The compile-time for-loop step: absent → 1; a numeric literal → its value. The
+ * semantic pass has already required a present `step` to be a positive constant
+ * (E10061); lowering only folds a literal here (the const-evaluator is
+ * frontend-private), so a non-literal step records an ICE and defaults to 1.
+ */
+function constStep(step: ExprNode | null, ctx: LowerCtx): number {
+  if (step === null) return 1;
+  if (step.kind === "NumericLitExpr") return step.value;
+  iceUnsupported(step, ctx, "non-literal for-loop step");
+  return 1;
+}
+
+/** Lower `break;` → an unconditional branch to the enclosing loop's end (FR-8). */
+function lowerBreak(stmt: StmtNode, ctx: LowerCtx): void {
+  const top = ctx.loopStack[ctx.loopStack.length - 1];
+  if (top === undefined) {
+    iceUnsupported(stmt, ctx, "break outside a loop"); // semantic pass rejected it (E10130)
+    return;
+  }
+  ctx.builder.terminate({ kind: "br", target: top.breakTarget });
+}
+
+/** Lower `continue;` → an unconditional branch to the enclosing loop's cond/incr (FR-8). */
+function lowerContinue(stmt: StmtNode, ctx: LowerCtx): void {
+  const top = ctx.loopStack[ctx.loopStack.length - 1];
+  if (top === undefined) {
+    iceUnsupported(stmt, ctx, "continue outside a loop"); // semantic pass rejected it (E10131)
+    return;
+  }
+  ctx.builder.terminate({ kind: "br", target: top.continueTarget });
+}
+
+/** The inclusive maximum value representable by an IL integer type (for AR-6's guard). */
+function ilTypeMax(t: ILType): number {
+  if (t.signed) return t.width === 8 ? 127 : 32767;
+  return t.width === 8 ? 255 : 65535;
 }
 
 /** Lower a single expression to an operand (gate/slice-2 surface); ICE default. */

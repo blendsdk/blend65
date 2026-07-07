@@ -19,15 +19,14 @@ import type {
   AllocationPlan,
   BinaryExprNode,
   BlockNode,
-  BoolLitExprNode,
   ErrorStmtNode,
   ExpressionStmtNode,
   ExprNode,
+  FallthroughStmtNode,
   FrameAllocation,
   FrameSlot,
   FunctionDeclNode,
   IdentExprNode,
-  IfStmtNode,
   IntrinsicCallExprNode,
   LetDeclNode,
   ModuleDeclNode,
@@ -63,10 +62,6 @@ function num(value: number, raw: string): NumericLitExprNode {
   return { kind: "NumericLitExpr", value, raw, span: S };
 }
 
-function bool(value: boolean): BoolLitExprNode {
-  return { kind: "BoolLitExpr", value, span: S };
-}
-
 function ident(name: string): IdentExprNode {
   return { kind: "IdentExpr", name, span: S };
 }
@@ -91,8 +86,8 @@ function returnStmt(value: ExprNode | null): ReturnStmtNode {
   return { kind: "ReturnStmt", value, span: S };
 }
 
-function ifStmt(condition: ExprNode, thenBlock: BlockNode): IfStmtNode {
-  return { kind: "IfStmt", condition, thenBlock, elseClause: null, span: S };
+function fallthroughStmt(): FallthroughStmtNode {
+  return { kind: "FallthroughStmt", span: S };
 }
 
 function errorStmt(): ErrorStmtNode {
@@ -273,11 +268,13 @@ export const letNoInitFixture: LoweringFixture = fixture(
 );
 
 /**
- * A function whose body holds an unsupported node (`if`): the visitor default
- * fires exactly one `E90001` ICE and never throws.
+ * A function whose body holds an unsupported node (`fallthrough` — a switch-only
+ * statement, deferred to Slice 4b): the `lowerStmt` default fires exactly one
+ * `E90001` ICE and never throws. (Updated from `if`, which RD-18 Slice 4a now
+ * lowers; the R69 "unsupported node → one ICE" oracle is unchanged.)
  */
 export const unsupportedFixture: LoweringFixture = fixture(
-  programOf("Main", fnDecl("main", [], prim("void"), block([ifStmt(bool(true), block([]))]))),
+  programOf("Main", fnDecl("main", [], prim("void"), block([fallthroughStmt()]))),
   planWith(new Map([["Main.main", frameAlloc("Main.main", [])]])),
 );
 

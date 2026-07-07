@@ -3,8 +3,8 @@
 > **Implements**: blend65-ri/RD-18 (Slice 4a) · **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md)
 > **Gate**: `00-ambiguity-register.md` (AR-1…AR-15, ✅ PASSED 2026-07-06)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-07 (Phase 1 complete)
-> **Progress**: 12/35 tasks (34%)
+> **Last Updated**: 2026-07-07 (Phase 2 complete)
+> **Progress**: 20/35 tasks (57%)
 
 Spec-first ordering per phase: **spec tests → verify red → implement → verify green → impl tests →
 full verify**. Two-stage marks: `[~]` implemented, `[x]` verified. Commit per the active mode
@@ -40,18 +40,18 @@ Verify command:
 ## Phase 2 — CFG lowering (`03-02`)
 
 ### 2.1 Spec tests (red)
-- [ ] 2.1.1 `il/control-flow-lowering.spec.test.ts` — ST-11 (if/else blocks + brcond), ST-12 (while back-edge), via a real-frontend `lowerRealSource` helper.
-- [ ] 2.1.2 Same file — ST-13 (do-while ordering), ST-14 (for Pattern A: init/cond `le`/incr `add`), ST-15 (break/continue targets). **Verify red** (all ICE today).
+- [x] 2.1.1 `il/control-flow-lowering.spec.test.ts` — ST-11 (if/else blocks + brcond), ST-12 (while back-edge), via a real-frontend `lowerRealSource` helper.
+- [x] 2.1.2 Same file — ST-13 (do-while ordering), ST-14 (for Pattern A: init/cond `le`/incr `add`), ST-15 (break/continue targets). **Verify red** ✅ (all 5 ICE — hasErrors true).
 
 ### 2.2 Implement
-- [ ] 2.2.1 `lower.ts` — add `loopStack` to `LowerCtx`; `lowerBlock` terminated-guard (stop on `isTerminated()`).
-- [ ] 2.2.2 `lowerIf` (+ else-if nesting) and `lowerWhile` (FR-7 §2.1/§2.2).
-- [ ] 2.2.3 `lowerDoWhile` and `lowerFor` (Pattern A; full-range `to <type-max>` → `iceUnsupported`, AR-6) (FR-7 §2.3/§2.4).
-- [ ] 2.2.4 `lowerBreak`/`lowerContinue` (FR-8 §2.5); wire all six cases into `lowerStmt`.
+- [x] 2.2.1 `lower.ts` — add `loopStack` to `LowerCtx`; `lowerBlock` terminated-guard (stop on `isTerminated()`).
+- [x] 2.2.2 `lowerIf` (+ else-if nesting) and `lowerWhile` (FR-7 §2.1/§2.2).
+- [x] 2.2.3 `lowerDoWhile` and `lowerFor` (Pattern A; full-range `to <type-max>` → `iceUnsupported`, AR-6) (FR-7 §2.3/§2.4).
+- [x] 2.2.4 `lowerBreak`/`lowerContinue` (FR-8 §2.5); wire all six cases into `lowerStmt`.
 
 ### 2.3 Green + impl tests
-- [ ] 2.3.1 **Verify green** (ST-11…ST-15).
-- [ ] 2.3.2 `control-flow-lowering.impl.test.ts` — nested loops, `else if` chains, `downto` (ge/sub), Pattern-B guard records ICE never throws. Targeted verify.
+- [x] 2.3.1 **Verify green** (ST-11…ST-15). ✅ 5 spec green; IL dump verified Pattern A + if/else join shapes; RD-06 ST-L5 fixture updated `if`→`fallthrough` (still-unsupported node; R69 oracle intact).
+- [x] 2.3.2 `control-flow-lowering.impl.test.ts` — nested loops, `else if` chains, `downto` (ge/sub), Pattern-B guard records ICE never throws. ✅ 4 impl green; codegen suite 344 green; typecheck/lint clean.
 
 ---
 
@@ -96,7 +96,7 @@ Verify command:
 ## Master Progress Checklist
 
 - [x] **Phase 1** — Control-flow semantics (1.1.1–1.3.2, 12 tasks) ✅
-- [ ] **Phase 2** — CFG lowering (2.1.1–2.3.2, 8 tasks)
+- [x] **Phase 2** — CFG lowering (2.1.1–2.3.2, 8 tasks) ✅
 - [ ] **Phase 3** — Multi-block translate (3.1.1–3.3.2, 5 tasks)
 - [ ] **Phase 4** — Acceptance (4.1.1–4.2.3, 6 tasks)
 - [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)
