@@ -277,7 +277,7 @@ passes and the parent-RD ACs it advances are ticked.
        Registered **E10084**/**E10022** additively (AR-11). Runtime AR-12 (ST-S21 superseded; Pass-4
        gated on ≥1 function) + AR-13 (E10150 parser-owned) resolved. *(The non-boolean-condition check
        moves to Slice 4, where control flow — and its new diagnostic code — lands.)*
-3. [~] **Slice 4 — 4a partial ✅ (conditionals/loops); closes at 4b (switch)** (AR-14).
+3. [x] **Slice 4 — ✅ COMPLETE (4a conditionals/loops + 4b switch)** (AR-14).
        **Slice 4a** ✅ **(2026-07-07, exec_plan `plans/rd-18-slice-4a-conditionals-loops/`, 35/35 +
        DEF-1)**: `if`/`else`/`while`/`do-while`/`for`(to/downto/step) programs VICE-verify — the
        multi-block CFG codegen keystone (IL `br`/`brcond` lowering + multi-block IL→Instr translate).
@@ -292,8 +292,27 @@ passes and the parent-RD ACs it advances are ticked.
        `translateComparison` clobbered the Z flag → `eq`/`ne` always 0; fixed eq/ne only).
        **Deferred to Slice 4b:** `switch`/`case`/`default`/`fallthrough` + its validators/codes (AR-1);
        `until` (AR-3); loop-var read-only E10060 / nested for-var reuse E10062 / no-shadowing E10101
-       (AR-2/AR-5); full-range `to <type-max>` Pattern-B codegen (AR-6). **RD-18 AC-3 stays open** until
-       4b lands the switch surface.
+       (AR-2/AR-5); full-range `to <type-max>` Pattern-B codegen (AR-6).
+       **Slice 4b** ✅ **(2026-07-07, exec_plan `plans/rd-18-slice-4b-switch/`, 26/26)** — the
+       `switch`/`case`/`default`/`fallthrough` sub-machine ships end-to-end, **closing RD-18 AC-3**.
+       Semantics: `switch` typed in `statement-typing.ts` (`typeSwitch`) — discriminant operand-type
+       (**E10075**), per-value precedence **E10071**(not-const) → **E10084**(range) → **E10077**(bespoke
+       type-match, wired but rarely reachable in integer-only 4b — emission from Slice 7), cross-clause
+       duplicate detection (**E10132**, wired), `fallthrough` position (**E10074**) / no-effect
+       (**E10073** warning); case/default body locals collected flat (`function-collection.ts`);
+       `break`/`continue` transparent to switch (target the enclosing loop, AR-6). Codegen: `lowerSwitch`
+       (`lower.ts`) emits a `brcond` **compare-chain** over the 4a multi-block CFG keystone — multi-value
+       cases share a body block (AR-8), explicit `fallthrough` → `br(next clause body)`, auto-break →
+       `br(join)`, default = the unconditional dispatch tail (AR-5); **zero** new IL terminator / translate
+       work (AR-1). `examples/slice4b/main.blend` (multi-value case + `fallthrough` + auto-break +
+       `default`) assembles clean (real ACME → loadable PRG), byte-exact ASM golden committed, and on
+       **real VICE 3.10** computes `$C000==$19` (25) / `$C001==$07` (7). Negatives reject via `compile()`
+       (E10071 / E10132 / E10075, no binary). Five codes registered additively (AR-115): **E10071/E10073/
+       E10074/E10075** (spec-Ch-05-numbered) + the new mint **E10077**; **E10076** (duplicate-`default`)
+       deferred parser-owned (parser silently overwrites, unreachable at semantics — PF-001).
+       **Deferred from 4b:** enum switches + exhaustiveness **E10133** (→ Slice 7, AR-2); jump-table
+       dispatch (→ Phase B, AR-1); out-of-switch `fallthrough` rejection + E10076 duplicate-`default`
+       (parser-owned cleanup, PF-001/PF-003).
 4. [ ] **Slice 5**: a multi-function, multi-module program with params + return values VICE-verifies;
        recursion (direct or indirect) is rejected with the unified E10174; module init order is
        deterministic (topological, E10194 on cycle). Calling convention + `call` op proven; ASM golden committed.

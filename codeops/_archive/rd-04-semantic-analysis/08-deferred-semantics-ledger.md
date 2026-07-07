@@ -3,7 +3,19 @@
 > **Document**: 08-deferred-semantics-ledger.md
 > **Parent**: [Index](00-index.md)
 > **Status**: AUTHORITATIVE — the single map of what the passthrough skeleton does NOT implement
-> **Last Updated**: 2026-07-07 (RD-18 Slice 4a advancement annotated)
+> **Last Updated**: 2026-07-07 (RD-18 Slice 4b advancement annotated)
+
+> **🟢 RD-18 Slice 4b (2026-07-07) advanced the `switch` subset of this ledger.** The
+> `switch`/`case`/`default`/`fallthrough` sub-machine now ships end-to-end — see
+> `codeops/features/blend65-ri/plans/rd-18-slice-4b-switch/` (26/26; closes RD-18 AC-3). **Rows
+> advanced:** switch expression + case values R75 (**E10075** operand-type, **E10071** non-const case,
+> **E10084** case-const range, **E10132** duplicate — `E10077` case-type-match registered + wired, emission
+> deferred-reachable to Slice 7; AR-4/PF-002); `fallthrough` context R79 (**E10074** position, **E10073**
+> no-effect warning; AR-3). **Still deferred:** exhaustive enum switch R76 (**E10133** → Slice 7 with enum
+> types, AR-2); duplicate-`default` E10076 (unreachable at semantics — parser silently overwrites;
+> deferred parser-owned, PF-001); out-of-switch `fallthrough` rejection (PF-003); jump-table dispatch
+> (Phase B, AR-1); block-scope lifetime/shadowing R11 (E10101/E10062, a later cleanup slice, AR-14);
+> `until` (AR-3); calls/recursion (Slice 5); mixed-width/casts (Slice 6); aggregates (Slice 7).
 
 > **🟢 RD-18 Slice 4a (2026-07-07) advanced the conditional/loop subset of this ledger.** Control-flow
 > semantics now ship for `if`/`else`/`while`/`do-while`/`for`(to/downto/step) — see
@@ -84,7 +96,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R8 | Each scope owns `Map<string,Symbol>` | ✅ IMPLEMENTED (interface); **module/function scopes now populated** with function + local-variable symbols by RD-18 Slice 3a | 1 | — |
 | R9 | Duplicate decl in scope | ⛔ DEFERRED | 1 | E10003 |
 | R10 | No shadowing | ⛔ DEFERRED | 1/3 | E10101 |
-| R11 | For-loop counter block scope | 🟡 **RD-18 Slice 4a** — counter + nested-`let` locals collected FLAT into the function scope (AR-9); real block-scope lifetime/shadowing (E10101/E10062) still deferred to 4b | 3 | — |
+| R11 | For-loop counter block scope | 🟡 **RD-18 Slice 4a/4b** — counter + nested-`let` locals (incl. switch case/default bodies, 4b AR-12) collected FLAT into the function scope (AR-9); real block-scope lifetime/shadowing (E10101/E10062) deferred to a later cleanup slice (AR-14) | 3 | — |
 | R12 | Module-level decls; no exec stmts | ⛔ DEFERRED | 1 | E10010 |
 | R13 | Export visibility | ⛔ DEFERRED | 1 | — |
 
@@ -188,11 +200,11 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R72 | While condition bool | ✅ **RD-18 Slice 4a** — `E10134` | 3 | E10134 |
 | R73 | Do-while condition bool | ✅ **RD-18 Slice 4a** — `E10134` | 3 | E10134 |
 | R74 | For-loop counter/bounds | ✅ **RD-18 Slice 4a** — end-bound `E10064`, step `E10061`, counter-type `E10065` (AR-8/AR-15) | 3 | E10064/E10061/E10065 |
-| R75 | Switch expr + case values | ⛔ DEFERRED | 3 | E10080, E10132 |
-| R76 | Exhaustive enum switch | ⛔ DEFERRED | 3 | E10133 |
-| R77 | `break` context | ✅ **RD-18 Slice 4a** — E10130 (loop-depth tracking) | 3 | E10130 |
+| R75 | Switch expr + case values | ✅ **RD-18 Slice 4b** — operand-type `E10075`, non-const case `E10071`, case-const range `E10084`, duplicate `E10132`; `E10077` (case-type-match) registered/wired, emission deferred to Slice 7 (AR-4/PF-002) | 3 | E10075/E10071/E10084/E10132 (+E10077) |
+| R76 | Exhaustive enum switch | ⛔ DEFERRED → Slice 7 (enum types, AR-2) | 3 | E10133 |
+| R77 | `break` context | ✅ **RD-18 Slice 4a** — E10130 (loop-depth tracking); switch-transparent (RD-18 Slice 4b, AR-6) | 3 | E10130 |
 | R78 | `continue` context | ✅ **RD-18 Slice 4a** — E10131 | 3 | E10131 |
-| R79 | `fallthrough` context | ⛔ DEFERRED | 3 | (see Parked Q4) |
+| R79 | `fallthrough` context | ✅ **RD-18 Slice 4b** — position `E10074`, no-effect warning `E10073` (AR-3/AR-7; Parked-Q4 dissolved) | 3 | E10074/E10073 |
 | R80 | return in non-void (+ all paths) | 🟡 **RD-18 Slice 4a** — all-paths-return `E10102` (AR-4, structural `definitelyReturns`); the value-type/missing-value sub-clauses (E10152/E10172) remain Slice 5/6 | 3 | E10102, E10152, E10172 |
 | R81 | return in void | ⛔ DEFERRED | 3 | E10173 |
 | R82 | Expression statement | ⛔ DEFERRED | 3 | — |

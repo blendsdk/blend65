@@ -3,8 +3,8 @@
 > **Plan**: rd-18-slice-4b-switch · **Implements**: blend65-ri/RD-18 (Slice 4b; closes AC-3)
 > **Gate**: `00-ambiguity-register.md` ✅ PASSED (AR-1…AR-14)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-07 (exec_plan — Phase 3 complete, 3-part bar GREEN)
-> **Progress**: 23/26 tasks (88%)
+> **Last Updated**: 2026-07-07 (exec_plan — ✅ COMPLETE, 26/26; closes RD-18 AC-3)
+> **Progress**: 26/26 tasks (100%) ✅
 
 Specification-first ordering per phase: **spec tests → verify red → implement → verify green → impl
 tests → full verify**. Marks are two-stage: `[~]` implemented (timestamp), `[x]` only after its
@@ -59,10 +59,10 @@ verify passes. Commit mode selected at exec time (recommend commit + push per ph
 
 ## Phase 4 — Rollout bookkeeping (`01-requirements` §4)
 
-- [ ] 4.1.1 **Close RD-18 AC-3** `[~]`→`[x]` (Slice 4 complete: 4a + 4b) in the RD-18 requirements doc; annotate the switch surface shipped (AR-14).
-- [ ] 4.1.2 RD-04 deferred ledger — advance **R75** (switch expr + case values → E10075/E10084/E10132; E10077 registered, emission deferred) + **R79** (`fallthrough` context → E10073/E10074); leave **R76** (exhaustive enum switch → E10133) deferred to Slice 7 (AR-2); Slice-4b advancement banner.
-- [ ] 4.1.3 SR-2 (compare-chain code-size delta; no new ZP/runtime) + the **five-code** Ch-14 additive-deviation entry (E10077+E10071/E10073/E10074/E10075; **not** E10076 — PF-004) + SR-3 deferral closeout (enum/exhaustiveness, jump-table, parser-reconciliation, **E10076 duplicate-default** PF-001, **out-of-switch `fallthrough`** PF-003) in this plan.
-- [ ] 4.1.4 Roadmap sync (feature + portfolio cascade) → Slice 4b ✅, RD-18 AC-3 closed; `git status --porcelain spec/` empty; final full workspace verify green.
+- [x] 4.1.1 **Close RD-18 AC-3** `[~]`→`[x]` (Slice 4 complete: 4a + 4b) in the RD-18 requirements doc; annotate the switch surface shipped (AR-14).
+- [x] 4.1.2 RD-04 deferred ledger — advance **R75** (switch expr + case values → E10075/E10084/E10132; E10077 registered, emission deferred) + **R79** (`fallthrough` context → E10073/E10074); leave **R76** (exhaustive enum switch → E10133) deferred to Slice 7 (AR-2); Slice-4b advancement banner.
+- [x] 4.1.3 SR-2 (compare-chain code-size delta; no new ZP/runtime) + the **five-code** Ch-14 additive-deviation entry (E10077+E10071/E10073/E10074/E10075; **not** E10076 — PF-004) + SR-3 deferral closeout (enum/exhaustiveness, jump-table, parser-reconciliation, **E10076 duplicate-default** PF-001, **out-of-switch `fallthrough`** PF-003) in this plan.
+- [x] 4.1.4 Roadmap sync (feature + portfolio cascade) → Slice 4b ✅, RD-18 AC-3 closed; `git status --porcelain spec/` empty; final full workspace verify green.
 
 ---
 
@@ -71,7 +71,7 @@ verify passes. Commit mode selected at exec time (recommend commit + push per ph
 - [x] **Phase 1** — Switch semantics (1.1.1–1.3.3, 9 tasks) ✅ 2026-07-07
 - [x] **Phase 2** — Switch IL lowering (2.1.1–2.3.3, 8 tasks) ✅ 2026-07-07
 - [x] **Phase 3** — Acceptance / 3-part bar (3.1.1–3.2.3, 6 tasks) ✅ 2026-07-07 (VICE $C000==$19 / $C001==$07)
-- [ ] **Phase 4** — Rollout bookkeeping (4.1.1–4.1.4, 4 tasks)
+- [x] **Phase 4** — Rollout bookkeeping (4.1.1–4.1.4, 4 tasks) ✅ 2026-07-07
 
 Total: **26 tasks** across 4 phases (includes 1.2.1 code mint).
 
@@ -89,3 +89,51 @@ runtime dependency, not a task. No jump-table / no new IL terminator / no transl
 3. **VICE (local)** — real VICE 3.10 asserts the observable poked result.
 
 Closes RD-18 AC-3 (the full Slice-4 control-flow surface).
+
+---
+
+## Rollout record (Phase 4)
+
+### SR-2 — resource delta
+
+- **RAM (frame + module):** the acceptance fixture footprint is `out1`/`out2` (module scalars, 2 B)
+  + `sel`/`acc`/`sel2` (frame, 3 B) = **5 B**, within the AR-1 13-byte dead-BASIC-stub shadow
+  (inherited constraint; `__var_Main_out1 = $0800`, frame at `$0802`).
+- **Zero-page:** **no new ZP allocations** — `switch` dispatch is branch-only (`eq` compare in A +
+  block-label branches); it reuses the existing `__zp_tmp_*`/`__zp_arg_*` pool, adding none.
+- **Runtime routines:** **none** — no new `__rt_*` T3 routine (no multiply/divide); the compare-chain
+  is pure `CMP`/`BEQ`/`BNE`/`JMP`.
+- **Code size:** each case value costs one dispatch test (`LDA disc; CMP #v; BEQ …; LDA #0; JMP …;
+  LDA #1; BNE body; JMP nextTest`, the DEF-1 `eq` form) plus one body block; the fixture (5 case
+  values across two switches + bodies) assembles to a **223-byte** loadable PRG. Jump-table density
+  is the deferred Phase-B optimization (AR-1).
+
+### Five-code Ch-14 additive-deviation entry (PF-004, AR-115)
+
+Slice 4b registers **five** codes into `@blend65/core` `diagnostic-codes.ts` only — `spec/` stays
+frozen (D3), and the Ch-14 canonical-registry drift is an **accepted deviation** until a post-freeze
+spec reconciliation:
+
+| Code | Name | Provenance |
+|------|------|------------|
+| E10071 | `CaseValueNotConstant` | spec Ch-05 §8.6 number; absent from Ch-14 registry — reused to reduce drift |
+| E10073 | `FallthroughNoEffect` (warning) | spec Ch-05 §8.3 number; absent from Ch-14 |
+| E10074 | `FallthroughNotLast` | spec Ch-05 §8.3 number; absent from Ch-14 |
+| E10075 | `InvalidSwitchOperandType` | spec Ch-05 §8.5 number; absent from Ch-14 |
+| **E10077** | `CaseValueTypeMismatch` | **new mint** — spec assigns this check E10072, but E10072 is the parser's `MissingDefaultClause`; minted in the free switch band (AR-4) |
+
+`E10132` (`DuplicateCaseValue`) was already registered (wired, not minted). **E10076** is *not*
+registered — duplicate-`default` is deferred parser-owned (PF-001).
+
+### SR-3 — deferral closeout
+
+Recorded as still-deferred (with owning slice):
+
+- **Enum switches + exhaustiveness E10133** → Slice 7 (enum types don't exist yet, AR-2).
+- **Jump-table dispatch** → Phase B optimizer (AR-1; the compare-chain is correctness-first).
+- **Parser `E10072`/default-required reconciliation** to spec §8.7 (AR-5 — RD-03's shipped behavior kept).
+- **E10076 duplicate-`default`** → parser-owned follow-up (the parser silently overwrites a duplicate
+  `default`, so a semantics check is unreachable; PF-001).
+- **Out-of-switch `fallthrough` rejection** → a later cleanup slice (a stray `fallthrough` outside any
+  switch is silently accepted by semantics and still ICEs at codegen; PF-003).
+- **Block-scope lifetime / shadowing** (E10101/E10062), `until` (AR-3) → a later cleanup slice (AR-14).
