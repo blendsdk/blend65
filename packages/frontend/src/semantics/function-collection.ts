@@ -162,9 +162,17 @@ function collectStmtLocals(stmt: StmtNode, bodyScope: Scope): void {
       registerLocal(bodyScope, stmt.varName, stmt.varType, stmt, false);
       collectBodyLocals(stmt.body.statements, bodyScope);
       return;
+    case "SwitchStmt":
+      // RD-18 Slice 4b (AR-12): case/default body `let` locals are harvested flat
+      // into the enclosing function scope (an SFA frame slot each), mirroring the
+      // `IfStmt`/`ForStmt` recursion above. No block-scope lifetime (deferred, 4a
+      // AR-9). `stmt.defaultClause` is always present (the parser synthesizes it).
+      for (const clause of stmt.cases) collectBodyLocals(clause.body, bodyScope);
+      collectBodyLocals(stmt.defaultClause.body, bodyScope);
+      return;
     default:
-      // ExpressionStmt / ReturnStmt / Break / Continue / Const / Switch / error —
-      // introduce no function-frame local in the Slice-4a surface.
+      // ExpressionStmt / ReturnStmt / Break / Continue / Const / error — introduce
+      // no function-frame local in the Slice-4a/4b surface.
       return;
   }
 }

@@ -30,8 +30,9 @@ Current-state recon (three parallel agents, 2026-07-07) established that:
 - **Semantics do nothing** for `switch`: `type-check/statement-typing.ts:138` skips it at the
   dispatch `default:` arm, and `function-collection.ts:165` skips its case-body locals. Codes
   `E10132 DuplicateCaseValue` / `E10133 NonExhaustiveSwitch` are **registered but unemitted**
-  (`diagnostic-codes.ts:106-107`); `E10075`/`E10076`/`E10073`/`E10074`/`E10071` are free/registered
-  semantics to wire.
+  (`diagnostic-codes.ts:106-107`); `E10075`/`E10073`/`E10074`/`E10071` are **absent** from the
+  registry — 4b registers them additively (+ the new E10077). `E10076` is **deferred parser-owned**
+  (PF-001), not wired.
 - **Codegen ICEs.** `lower.ts:234` (default arm) ICEs on `SwitchStmt` **and** `FallthroughStmt`
   (`E90001`, never throws) — `fallthrough` is the current "still-unsupported" fixture
   (`il/test-fixtures.ts:271-277`). The IL terminator set (`br`/`brcond`) **suffices** for the
@@ -45,10 +46,15 @@ So Slice 4b is **semantics (typing + validators + case-body locals) + one new IL
 
 **In:** `switch` on `byte`/`sbyte`/`word`/`sword`; multi-value cases; explicit `fallthrough`
 (auto-break default); `default` (RD-03-required, AR-5); validators E10075 (operand type), E10071
-(const case value), **E10077** (case-type-match, new — AR-4), E10132 (duplicate case), E10076
-(one default), E10073 (fallthrough no-effect warning), E10074 (fallthrough position); `brcond`
-compare-chain lowering (AR-1); case/default body locals collected flat into the function frame
-(AR-12). Closes RD-18 AC-3 (AR-14).
+(non-integer-const case value), E10084 (case const out of range — existing), **E10077**
+(case-type-match, new — AR-4; registered + wired, emission rarely reachable in integer-only 4b —
+PF-002), E10132 (duplicate case), E10073 (fallthrough no-effect warning), E10074 (fallthrough
+position); `brcond` compare-chain lowering (AR-1); case/default body locals collected flat into the
+function frame (AR-12). Closes RD-18 AC-3 (AR-14).
+
+**Deferred out (from preflight):** **E10076** duplicate-`default` (unreachable at semantics — parser
+silently overwrites; parser-owned follow-up, PF-001); **out-of-switch `fallthrough`** rejection
+(silently accepted; later cleanup slice, PF-003).
 
 **Out:** enum-typed switches + exhaustiveness **E10133** (→ Slice 7, AR-2); jump-table codegen
 (→ Phase B, AR-1); the parser's `E10072`/default-required reconciliation (AR-5); `until`, loop-var
@@ -62,7 +68,7 @@ read-only/shadowing checks (still 4a AR-2/AR-3/AR-5 — a later cleanup slice, A
 | [00-ambiguity-register.md](00-ambiguity-register.md) | Zero-Ambiguity Gate — AR-1…AR-14 (✅ PASSED) |
 | [01-requirements.md](01-requirements.md) | Requirements, scope, success criteria |
 | [02-current-state.md](02-current-state.md) | Grounded current-state map (3-agent recon) |
-| [03-01-switch-semantics.md](03-01-switch-semantics.md) | `statement-typing.ts` + `function-collection.ts` — discriminant/case typing, the 6 validators, new code E10077 |
+| [03-01-switch-semantics.md](03-01-switch-semantics.md) | `statement-typing.ts` + `function-collection.ts` — discriminant/case typing, the validators, **five** new registry codes (E10077 + E10071/E10073/E10074/E10075) |
 | [03-02-switch-lowering.md](03-02-switch-lowering.md) | `lower.ts` — `lowerSwitch` compare-chain, multi-value, `fallthrough`, break-transparency |
 | [03-03-acceptance-fixtures.md](03-03-acceptance-fixtures.md) | The 3-part-bar fixture + golden + VICE + negatives |
 | [07-testing-strategy.md](07-testing-strategy.md) | Specification test cases (ST-*) + verification |

@@ -144,6 +144,26 @@ describe("RD-18 Slice 4a control-flow diagnostic codes (AR-4/AR-7/AR-8/AR-15)", 
   });
 });
 
+describe("RD-18 Slice 4b switch diagnostic codes (AR-4/AR-7, PF-001/PF-002/PF-004)", () => {
+  // Source: plans/rd-18-slice-4b-switch/03-01-switch-semantics.md §1. Five codes
+  // registered additively — four spec-Ch-05 §8 numbered + one new mint (E10077).
+  it("maps the five new Slice-4b switch codes to their exact strings", () => {
+    expect(DiagCode.CaseValueNotConstant).toBe("E10071");
+    expect(DiagCode.FallthroughNoEffect).toBe("E10073");
+    expect(DiagCode.FallthroughNotLast).toBe("E10074");
+    expect(DiagCode.InvalidSwitchOperandType).toBe("E10075");
+    expect(DiagCode.CaseValueTypeMismatch).toBe("E10077");
+  });
+
+  it("does NOT register E10076 — duplicate-`default` is deferred parser-owned (PF-001)", () => {
+    expect(Object.values(DiagCode)).not.toContain("E10076");
+  });
+
+  it("keeps E10077 distinct from the parser's E10072 (MissingDefaultClause, AR-4)", () => {
+    expect(DiagCode.CaseValueTypeMismatch).not.toBe(DiagCode.MissingDefaultClause); // E10072
+  });
+});
+
 describe("isIceCode / IceCode band (ST-14)", () => {
   it("classifies an ICE code as in-band", () => {
     expect(isIceCode("E90001")).toBe(true);

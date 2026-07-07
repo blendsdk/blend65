@@ -123,6 +123,27 @@ export const DiagCode = {
   StepValueNotPositive: "E10061",
   ForCounterTypeNotInteger: "E10065",
   NonBooleanCondition: "E10134",
+  // RD-18 Slice 4b (AR-4/AR-7, PF-001/PF-002/PF-004): the `switch` sub-machine's
+  // semantic validators. Five codes registered additively (inherited AR-11/AR-115
+  // precedent; `spec/` frozen, D3). Four carry their spec-Ch-05 §8 numbers
+  // (E10071/E10073/E10074/E10075 — all free in this registry and absent from
+  // `spec/14-diagnostics.md`, so reused to reduce drift), and one is a NEW mint:
+  // - E10077 (CaseValueTypeMismatch, AR-4): spec §8.6 assigns this check E10072,
+  //   but E10072 is taken by the parser's `MissingDefaultClause` (RD-03), so a
+  //   dedicated code is minted in the free switch band (E10070–E10079). In the
+  //   integer-only 4b surface its emission is rarely reachable (case literals adapt
+  //   to the discriminant; out-of-range constants → E10084) — it becomes live with
+  //   the enum/other-primitive constants of Slice 7 (PF-002).
+  // - E10076 (duplicate `default`) is deliberately NOT registered: the parser keeps
+  //   `defaultClause` in a single slot and silently overwrites a duplicate
+  //   (last-wins), so a semantics-side check is unreachable — deferred parser-owned
+  //   (PF-001).
+  // `E10132` (DuplicateCaseValue) already exists above (wired, not minted here).
+  CaseValueNotConstant: "E10071",
+  FallthroughNoEffect: "E10073", // WARNING severity (spec §8.3 / F009:110)
+  FallthroughNotLast: "E10074",
+  InvalidSwitchOperandType: "E10075",
+  CaseValueTypeMismatch: "E10077",
 
   // Enums
   EmptyEnum: "E10140",

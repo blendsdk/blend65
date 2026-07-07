@@ -51,3 +51,30 @@ Every design/scope/error-handling decision in the Slice 4b plan documents carrie
 back-reference to a row above. No item is deferred to implementer discretion. The diagnostic-code
 precedent (registry-over-Ch-05, additive minting, `spec/` frozen) is inherited from Slice 3b's AR-11
 and Slice 4a and is not re-litigated here.
+
+---
+
+## Preflight amendments (2026-07-07 — `00-preflight-report.md`, all user-accepted)
+
+The Zero-Ambiguity Gate above passed at authoring time; a subsequent codebase-grounded preflight
+(three recon agents + one challenger) amended three gate decisions where the code contradicted a
+grounding assumption. These supersede the affected rows:
+
+- **AR-7 (validators) — E10076 removed.** The parser keeps `defaultClause` in a single slot and
+  **silently overwrites** a duplicate `default:` (last-wins, no marker), so a semantics-side E10076
+  is **structurally unreachable**. 4b does **not** deliver E10076; it is deferred parser-owned. The
+  integer-switch validator set is now E10075 / E10071 / E10084 / E10077 / E10132 / E10073 / E10074.
+  (Also supersedes AR-11's inline "enforce at-most-one-default (E10076)" mention.) (**PF-001**.)
+- **AR-4 / AR-7 (E10077) — trigger + precedence corrected.** There is **no** "TS-4 auto-promotion"
+  in the code (widening is Slice 6; assignability is strict same-type). Case values are folded
+  constants that adapt to the discriminant; precedence is **E10071** (not-an-integer-const) →
+  **E10084** (integer const out of range) → **E10077** (folded const of a *different non-adapting*
+  primitive). E10077 is registered + wired but its emission is **rarely reachable until Slice 7**;
+  the check is **bespoke** (not the E10152/3/4 assignment path). (**PF-002**.)
+- **AR-13 (acceptance) — fixture repoint dropped.** A stray/out-of-switch `fallthrough` is **not**
+  rejected by 4b and **still ICEs** at codegen, so `unsupportedFixture` stays on `fallthrough` (no
+  repoint). The silent-accept of out-of-switch `fallthrough` is a **deferred** gap. (**PF-003**.)
+
+Bookkeeping (**PF-004/PF-005**): 4b registers **five** codes additively (E10077 + E10071/E10073/
+E10074/E10075, all absent from the registry & Ch-14), not one; and the spec cites were corrected
+(E10075 is §8.5:401; §8.6 lines 405/406/407 for const/type-match/duplicate).

@@ -64,19 +64,31 @@ therefore correct **only** with that fix in place — a regression there would s
 so the acceptance VICE test (Phase 3) is the runtime guard, and the DEF-1 codegen regression added in
 4a stays green.
 
-## §4 — Repoint the "unsupported" fixture (AR — current-state §6)
+## §4 — The "unsupported" fixture — KEEP as-is (PF-003; corrects current-state §6)
 
-`packages/codegen/src/il/test-fixtures.ts:271-277` uses a bare `fallthrough` as the "still
-unsupported → single E90001 ICE" fixture. Once `switch` lowers, choose a genuinely-unsupported node
-for that fixture (e.g. a Slice-5+ construct such as a user `call`, still ICE in `lowerStmt`), and
-update the RD-06 `ST-L5` expectation accordingly (mirrors 4a's swap of `if`→`fallthrough`). A bare
-top-level `fallthrough` outside any switch remains rejected upstream (parser/semantics), so it is no
-longer a reliable *codegen* ICE fixture.
+`packages/codegen/src/il/test-fixtures.ts:276-279` uses a bare `fallthrough` (`[fallthroughStmt()]`)
+as the "still unsupported → single E90001 ICE" fixture (consumed by RD-06 `ST-L5`,
+`lower.spec.test.ts:105-111`).
+
+**The original repoint premise is false and is dropped.** 4b's fallthrough validation (E10073/E10074)
+only scans **within switch case bodies**; a bare/out-of-switch `fallthrough` stays in
+`statement-typing.ts:138-140`'s skipped `default:` arm (no error) and `lower.ts` gains **no**
+`FallthroughStmt` case — so a stray `fallthrough` **still** reaches `default: iceUnsupported()` and
+still ICEs `E90001`. It is therefore **still a valid codegen ICE fixture** — do **not** repoint it,
+and do **not** discard that coverage.
+
+Two consequences to record:
+- **Keep** `unsupportedFixture` on `[fallthroughStmt()]`; leave RD-06 `ST-L5` asserting one E90001.
+  Only sync the stale `// ... (IfStmt) ...` comment at `lower.spec.test.ts:105` to name the actual
+  fixture (`fallthrough`) — PF-006.
+- **Completeness gap (deferred):** an out-of-switch `fallthrough` being silently accepted by
+  semantics is inconsistent with 4b adding in-switch `fallthrough` validation. A dedicated diagnostic
+  (candidate E10074/E10130-style) is **deferred** to a later cleanup slice (01-requirements §3, PF-003).
 
 ## §5 — Files touched
 
 | File | Change |
 |------|--------|
 | `packages/codegen/src/il/lower.ts` | +`lowerSwitch` + `case "SwitchStmt"` in `lowerStmt` (remove its ICE fall-through) |
-| `packages/codegen/src/il/test-fixtures.ts` | repoint `unsupportedFixture` off `fallthrough` |
-| RD-06 `*.spec.test.ts` (ST-L5) | update the unsupported-node expectation to match the new fixture |
+| `packages/codegen/src/il/test-fixtures.ts` | **no change** — `unsupportedFixture` stays on `fallthrough` (still ICEs, PF-003) |
+| RD-06 `lower.spec.test.ts` (ST-L5) | **no expectation change**; only sync the stale `(IfStmt)` comment at `:105` to say `fallthrough` (PF-006) |

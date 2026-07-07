@@ -38,9 +38,11 @@ headline: **the `switch` front-end is already built; 4b wires semantics + one lo
   registered but **unemitted**. 4b **wires E10132**; E10133 stays deferred (AR-2/AR-7).
 - **E10130 = `BreakOutsideLoopSwitch`** (`:104`) — already used by 4a for loops; unchanged (AR-6).
 - **Free in the switch band (E10070–E10079):** E10070, E10071, E10073, E10074, E10075, E10076,
-  E10077, E10078, E10079. 4b **mints E10077 `CaseValueTypeMismatch`** (AR-4) and wires the
-  semantics behind E10071/E10073/E10074/E10075/E10076 (spec-numbered, added to the registry at this
-  gate where absent — additive, AR-11/AR-115).
+  E10077, E10078, E10079 (recon confirms **all absent** except the E10072 already present). 4b
+  **registers five additively** — the new `E10077 CaseValueTypeMismatch` (AR-4) plus the four
+  spec-numbered E10071/E10073/E10074/E10075 it emits (additive, AR-11/AR-115). **E10076 is NOT
+  registered** — deferred parser-owned (PF-001, since the parser silently overwrites a duplicate
+  `default`).
 - **E10134 is taken** (`NonBooleanCondition`, 4a) — do **not** reuse for fallthrough (AR-3).
 
 ## 4. IL lowering — ICEs (add one case)
@@ -66,11 +68,15 @@ headline: **the `switch` front-end is already built; 4b wires semantics + one lo
 
 ## 6. Current "unsupported" fixture
 
-`packages/codegen/src/il/test-fixtures.ts:271-277`: `unsupportedFixture` wraps a `main` whose body is
-`[fallthroughStmt()]` — the designated still-unsupported statement. Once 4b lowers `switch`, a bare
-top-level `fallthrough` (outside any switch) remains a parser/semantic error; the codegen "still
-unsupported" fixture must be repointed to a genuinely-unsupported node (e.g. a Slice-5+ construct) —
-tracked as a task in Phase 2.
+`packages/codegen/src/il/test-fixtures.ts:276-279`: `unsupportedFixture` wraps a `main` whose body is
+`[fallthroughStmt()]` — the designated still-unsupported statement.
+
+> **Corrected by Preflight PF-003.** The original claim ("a bare top-level `fallthrough` remains a
+> parser/semantic error, so the fixture must be repointed") is **false**: 4b validates `fallthrough`
+> only **inside** switch case bodies, so a stray/out-of-switch `fallthrough` stays in
+> `statement-typing.ts:138-140`'s skipped `default:` arm (no error) and — with no `FallthroughStmt`
+> case in `lower.ts` — **still ICEs `E90001`**. The fixture stays valid post-4b; **do not repoint it**.
+> See `03-02-switch-lowering.md §4`.
 
 ## 7. Summary
 
@@ -84,4 +90,4 @@ tracked as a task in Phase 2.
 | IL lowering | `lower.ts:234` (ICE) | ❌ add `lowerSwitch` |
 | IL terminators | `instruction.ts:156-165` | ✅ br/brcond suffice |
 | Instr translate | `translate.ts:366-382` | ✅ no work |
-| Unsupported fixture | `il/test-fixtures.ts:271-277` | 🔁 repoint off `fallthrough` |
+| Unsupported fixture | `il/test-fixtures.ts:276-279` | ✅ keep on `fallthrough` (still ICEs post-4b, PF-003) |

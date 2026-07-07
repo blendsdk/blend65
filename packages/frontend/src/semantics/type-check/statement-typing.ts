@@ -10,19 +10,22 @@
  * them is not 3b-lowerable anyway. Never throws (FR-9).
  */
 
-import { DiagCode, isError, primitive, typeName } from "@blend65/core";
+import { DiagCode, isError, isInteger, primitive, typeName } from "@blend65/core";
 import type {
   AstNode,
   BlockNode,
   ExprNode,
+  FallthroughStmtNode,
   ForStmtNode,
   LetDeclNode,
   ProgramNode,
   ReturnStmtNode,
   Scope,
   StmtNode,
+  SwitchStmtNode,
   Type,
 } from "@blend65/core";
+import type { IntRange } from "./type-resolution.js";
 import type { TypeCheckContext } from "./context.js";
 import { typeOfExpr, checkAssignable, checkConstRange } from "./expression-typing.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
@@ -117,6 +120,9 @@ function typeStmt(
     case "ForStmt":
       typeFor(stmt, scope, returnType, ctx, loopDepth);
       return;
+    case "SwitchStmt":
+      typeSwitch(stmt, scope, returnType, ctx, loopDepth);
+      return;
     case "BreakStmt":
       if (loopDepth === 0) {
         ctx.bag.addError(
@@ -136,9 +142,215 @@ function typeStmt(
       }
       return;
     default:
-      // switch/const/error — out of the 4a surface; skipped (never throws).
+      // const/error — out of the 4a/4b surface; skipped (never throws).
       return;
   }
+}
+
+/**
+ * Types a `switch (disc) { case ...: ...  default: ... }` (RD-18 Slice 4b, spec
+ * Ch 05 §8). In order: (1) the discriminant must be an integer type
+ * (`byte`/`sbyte`/`word`/`sword`) — anything else (notably `boolean`) → E10075 and
+ * poison (skip the dt-dependent case-value checks; AR-2/AR-11); (2) each case value
+ * is validated in precedence order E10071 → E10084 → E10077 with cross-clause
+ * duplicate detection (E10132); (3) `fallthrough` placement is checked
+ * (E10074 misplaced / E10073 no-effect warning); (4) every clause body is typed
+ * (`break`/`continue` keep the enclosing `loopDepth` — switch is transparent,
+ * AR-6). `defaultClause` is always present (parser-synthesized). Never throws.
+ */
+function typeSwitch(
+  stmt: SwitchStmtNode,
+  scope: Scope,
+  returnType: Type,
+  ctx: TypeCheckContext,
+  loopDepth: number,
+): void {
+  // (1) Discriminant operand-type (E10075). `integerRange(dt) === null` covers
+  // boolean/void/error/aggregate; a poisoned (ERROR_TYPE) discriminant stays
+  // silent (cascade suppression, 3b R114) but still poisons the case checks.
+  const dt = typeOfExpr(stmt.discriminant, scope, ctx);
+  const range = integerRange(dt);
+  if (range === null) {
+    if (!isError(dt)) {
+      ctx.bag.addError(
+        DiagCode.InvalidSwitchOperandType, // E10075
+        stmt.discriminant.span,
+        `Cannot switch on type '${typeName(dt)}' — switch expression must be ` +
+          `'byte', 'sbyte', 'word', 'sword', or an enum type`,
+      );
+    }
+  } else {
+    // (2) Per-value validation + cross-clause duplicate detection.
+    const seen = new Set<number>();
+    for (const clause of stmt.cases) {
+      for (const value of clause.values) typeCaseValue(value, dt, range, seen, scope, ctx);
+    }
+  }
+
+  // (3) `fallthrough` placement. `defaultClause` is always the last clause, so a
+  // trailing `fallthrough` there (nothing to fall into) is the E10073 warning.
+  const clauseBodies: readonly StmtNode[][] = [
+    ...stmt.cases.map((c) => c.body),
+    stmt.defaultClause.body,
+  ];
+  clauseBodies.forEach((body, i) =>
+    checkFallthroughPlacement(body, i === clauseBodies.length - 1, ctx),
+  );
+
+  // (4) Type each clause body (switch does not raise `loopDepth` — transparency).
+  for (const clause of stmt.cases) {
+    for (const s of clause.body) typeStmt(s, scope, returnType, ctx, loopDepth);
+  }
+  for (const s of stmt.defaultClause.body) typeStmt(s, scope, returnType, ctx, loopDepth);
+}
+
+/**
+ * Validates one case value against the discriminant type `dt` (FR-2/FR-3/FR-3a/
+ * FR-4), in precedence order — the first failing check emits and returns (no
+ * cascade). Typing the value in `dt`'s context memoises its adapted type into
+ * `typeMap` (so lowering emits a discriminant-width immediate).
+ *
+ * (a) not an integer constant (non-const/identifier/bool) → E10071;
+ * (b) an integer constant out of `dt`'s range → E10084 (a *range* error);
+ * (c) a folded constant whose type is a genuinely different, non-adapting (non-
+ *     integer) primitive vs `dt` → E10077 (bespoke — not the assignment path).
+ *     Integer literals adapt to `dt` and integer constants are range-validated in
+ *     (b), so (c) is unreachable in the integer-only 4b surface; it becomes live
+ *     with the enum/other-primitive constants of Slice 7 (PF-002).
+ * (d) a value equal to one already used across any clause → E10132.
+ */
+function typeCaseValue(
+  value: ExprNode,
+  dt: Type,
+  range: IntRange,
+  seen: Set<number>,
+  scope: Scope,
+  ctx: TypeCheckContext,
+): void {
+  const vt = typeOfExpr(value, scope, ctx, dt); // adapt + memoise for lowering width
+  const folded = evalConst(value);
+  if (folded.kind === "divByZero") {
+    ctx.bag.addError(
+      DiagCode.ConstDivisionByZero, // E10082
+      folded.span,
+      "Division by zero in constant expression",
+    );
+    return;
+  }
+  if (folded.kind !== "value" || typeof folded.value !== "number") {
+    ctx.bag.addError(
+      DiagCode.CaseValueNotConstant, // E10071
+      value.span,
+      "Case value must be a compile-time constant",
+    );
+    return;
+  }
+  if (folded.value < range.min || folded.value > range.max) {
+    ctx.bag.addError(
+      DiagCode.ValueOutOfRange, // E10084 (range, not type-mismatch)
+      value.span,
+      `Value ${folded.value} out of range for type '${typeName(dt)}' ` +
+        `(range: ${range.min} to ${range.max})`,
+    );
+    return;
+  }
+  if (!isError(vt) && !isInteger(vt) && typeName(vt) !== typeName(dt)) {
+    ctx.bag.addError(
+      DiagCode.CaseValueTypeMismatch, // E10077 (bespoke; rarely reachable in 4b)
+      value.span,
+      `Case value type '${typeName(vt)}' does not match switch expression type ` +
+        `'${typeName(dt)}'`,
+    );
+    return;
+  }
+  if (seen.has(folded.value)) {
+    ctx.bag.addError(
+      DiagCode.DuplicateCaseValue, // E10132
+      value.span,
+      `Duplicate case value ${folded.value}`,
+    );
+    return;
+  }
+  seen.add(folded.value);
+}
+
+/**
+ * Checks `fallthrough` placement within one clause body (FR-6/FR-7, spec §8.3):
+ * a `fallthrough` must be the **last** statement of the body and never nested
+ * inside a child block/`if`/loop. A misplaced `fallthrough` (not last, or nested)
+ * → E10074; a `fallthrough` that is the last statement of the **last** clause
+ * (nothing to fall into) → E10073 *warning*. A `fallthrough` inside a NESTED
+ * `switch` belongs to that switch and is not visited here.
+ */
+function checkFallthroughPlacement(
+  body: readonly StmtNode[],
+  isLastClause: boolean,
+  ctx: TypeCheckContext,
+): void {
+  body.forEach((s, j) => {
+    if (s.kind === "FallthroughStmt") {
+      if (j !== body.length - 1) {
+        ctx.bag.addError(DiagCode.FallthroughNotLast, s.span, FALLTHROUGH_POSITION_MSG); // E10074
+      } else if (isLastClause) {
+        ctx.bag.addWarning(
+          DiagCode.FallthroughNoEffect, // E10073 (warning)
+          s.span,
+          "'fallthrough' has no effect — this is the last case in the switch",
+        );
+      }
+      // else: a valid trailing `fallthrough` into the next clause's body.
+      return;
+    }
+    const nested = findNestedFallthrough(s);
+    if (nested !== null) {
+      ctx.bag.addError(DiagCode.FallthroughNotLast, nested.span, FALLTHROUGH_POSITION_MSG); // E10074
+    }
+  });
+}
+
+/** The shared E10074 message (spec §8.3 / F009:513). */
+const FALLTHROUGH_POSITION_MSG =
+  "'fallthrough' must be the last statement in a case body — it cannot be inside " +
+  "an if/while/for block, and no statements may follow it";
+
+/**
+ * Finds a `FallthroughStmt` nested inside a case-body statement's child blocks
+ * (`Block`/`if`/`while`/`do-while`/`for`), or `null`. Deliberately does NOT descend
+ * into a nested `SwitchStmt` — a `fallthrough` there belongs to the inner switch.
+ */
+function findNestedFallthrough(stmt: StmtNode): FallthroughStmtNode | null {
+  switch (stmt.kind) {
+    case "FallthroughStmt":
+      return stmt;
+    case "Block":
+      return firstNestedFallthrough(stmt.statements);
+    case "IfStmt": {
+      const thenHit = firstNestedFallthrough(stmt.thenBlock.statements);
+      if (thenHit !== null) return thenHit;
+      if (stmt.elseClause !== null) {
+        return stmt.elseClause.kind === "Block"
+          ? firstNestedFallthrough(stmt.elseClause.statements)
+          : findNestedFallthrough(stmt.elseClause);
+      }
+      return null;
+    }
+    case "WhileStmt":
+    case "DoWhileStmt":
+    case "ForStmt":
+      return firstNestedFallthrough(stmt.body.statements);
+    default:
+      // SwitchStmt (inner switch owns its own fallthroughs) / leaf statements.
+      return null;
+  }
+}
+
+/** The first nested `fallthrough` across a statement list, or `null`. */
+function firstNestedFallthrough(stmts: readonly StmtNode[]): FallthroughStmtNode | null {
+  for (const s of stmts) {
+    const hit = findNestedFallthrough(s);
+    if (hit !== null) return hit;
+  }
+  return null;
 }
 
 /**
