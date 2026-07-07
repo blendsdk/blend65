@@ -156,6 +156,34 @@ describe("translator — swapped-operand comparison forms (gt/le)", () => {
     expect(text).toContain("_cmp0:");
     expect(text).toContain("_cmp1:");
   });
+
+  // DEF-1/AR-16 regression: a Z-based comparison MUST branch directly after CMP —
+  // no flag-clobbering LDA between CMP and BEQ/BNE (the earlier form always
+  // evaluated to 0, proven wrong on real VICE). Guards both eq and ne.
+  it("emits the Z-branch directly after CMP for eq/ne (no LDA clobbering Z)", () => {
+    for (const op of ["eq", "ne"] as const) {
+      const bag = createDiagnosticBag();
+      const stream = translateFunction(
+        makeFn(
+          [
+            { op: "load", a: temp(0, IL_BYTE), b: loc("a", IL_BYTE) },
+            { op: "load", a: temp(1, IL_BYTE), b: loc("b", IL_BYTE) },
+            { op, dest: temp(2, IL_BYTE), left: temp(0, IL_BYTE), right: temp(1, IL_BYTE), type: IL_BYTE },
+            { op: "store", a: temp(2, IL_BYTE), b: loc("r", IL_BYTE) },
+          ],
+          { kind: "ret" },
+        ),
+        makePlan(),
+        "nmos6502",
+        bag,
+      );
+      const ops = stream.entries.filter(isInstr).map((e) => (isInstr(e) ? e.opcode : ""));
+      const cmpIdx = ops.indexOf("CMP");
+      const branch = op === "eq" ? "BEQ" : "BNE";
+      // The very next opcode after CMP is the Z-branch — nothing clobbers Z.
+      expect(ops[cmpIdx + 1]).toBe(branch);
+    }
+  });
 });
 
 describe("translator — determinism", () => {

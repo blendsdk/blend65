@@ -687,11 +687,29 @@ class FunctionTranslator {
     this.leftIntoA(lhs);
     const r = this.rightSource(rhs, 0);
     this.emit("CMP", r.mode, r.operand);
-    const done = `_cmp${this.cmpCounter++}`;
-    this.emit("LDA", "Immediate", imm8(0x01));
-    this.emit(branch, "Relative", labelRef(done));
-    this.emit("LDA", "Immediate", imm8(0x00));
-    this.out.push(label(done));
+
+    if (op === "eq" || op === "ne") {
+      // Z-based (BEQ/BNE): an `LDA` between `CMP` and the branch clobbers the Z
+      // flag, so branch on the FRESH compare flag first, then materialise 0/1
+      // (DEF-1/AR-16). `LDA #$01; B?? done; LDA #$00` would test the flag set by
+      // `LDA #$01` (always Z=0) and never take the branch.
+      const trueL = `_cmp${this.cmpCounter++}`;
+      const endL = `_cmp${this.cmpCounter++}`;
+      this.emit(branch, "Relative", labelRef(trueL)); // condition true → A = 1
+      this.emit("LDA", "Immediate", imm8(0x00)); // false
+      this.emit("JMP", "Absolute", labelRef(endL));
+      this.out.push(label(trueL));
+      this.emit("LDA", "Immediate", imm8(0x01)); // true
+      this.out.push(label(endL));
+    } else {
+      // Carry-based (BCC/BCS): `LDA` preserves the carry flag, so the compact
+      // form is correct — the branch tests the carry `CMP` set.
+      const done = `_cmp${this.cmpCounter++}`;
+      this.emit("LDA", "Immediate", imm8(0x01));
+      this.emit(branch, "Relative", labelRef(done));
+      this.emit("LDA", "Immediate", imm8(0x00));
+      this.out.push(label(done));
+    }
     this.bindA(asTempId(dest));
     // The 0/1 result is a single-use value the following store consumes; the
     // store fold (foldStoreHome) only applies to word ALUs, so emit the byte

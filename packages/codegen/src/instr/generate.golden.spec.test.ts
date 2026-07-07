@@ -64,6 +64,8 @@ describe("Specification: RD-07b end-to-end goldens (ST-G1..G3)", () => {
   });
 
   // ST-G3 — `return a == b` → CMP-based 0/1 materialisation, result returned in A.
+  // The Z-based branch follows CMP directly (DEF-1/AR-16): an LDA between CMP and
+  // BEQ clobbers Z, so the compare materialises via branch-first / fall-through.
   it("lowers and generates a comparison-returning function (ST-G3)", () => {
     const { text, bag } = pipeline(eqFixture);
     expect(text).toBe(
@@ -71,10 +73,12 @@ describe("Specification: RD-07b end-to-end goldens (ST-G1..G3)", () => {
         "Math_eq:",
         "    LDA __frame_Math_eq_a",
         "    CMP __frame_Math_eq_b",
-        "    LDA #$01",
         "    BEQ _cmp0",
         "    LDA #$00",
+        "    JMP _cmp1",
         "_cmp0:",
+        "    LDA #$01",
+        "_cmp1:",
         "    RTS",
       ].join("\n"),
     );

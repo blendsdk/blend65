@@ -1,0 +1,131 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_main = $0801
+__frame_Main_main_sum = $0801
+__frame_Main_main_i = $0802
+__frame_Main_main_n = $0803
+__var_Main_result = $0800
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$00
+    STA __frame_Main_main_sum
+    LDA #$01
+    STA __frame_Main_main_i
+    JMP Main_main_L0
+Main_main_L0:
+    LDA #$0A
+    CMP __frame_Main_main_i
+    LDA #$01
+    BCS _cmp0
+    LDA #$00
+_cmp0:
+    BNE Main_main_L1
+    JMP Main_main_L3
+Main_main_L1:
+    LDA __frame_Main_main_i
+    CMP #$07
+    BEQ _cmp1
+    LDA #$00
+    JMP _cmp2
+_cmp1:
+    LDA #$01
+_cmp2:
+    BNE Main_main_L4
+    JMP Main_main_L5
+Main_main_L4:
+    JMP Main_main_L3
+Main_main_L5:
+    LDA __frame_Main_main_i
+    CMP #$03
+    BEQ _cmp3
+    LDA #$00
+    JMP _cmp4
+_cmp3:
+    LDA #$01
+_cmp4:
+    BNE Main_main_L6
+    JMP Main_main_L7
+Main_main_L6:
+    JMP Main_main_L2
+Main_main_L7:
+    LDA __frame_Main_main_sum
+    CLC
+    ADC __frame_Main_main_i
+    STA __frame_Main_main_sum
+    JMP Main_main_L2
+Main_main_L2:
+    LDA __frame_Main_main_i
+    CLC
+    ADC #$01
+    STA __frame_Main_main_i
+    JMP Main_main_L0
+Main_main_L3:
+    LDA #$03
+    STA __frame_Main_main_n
+    JMP Main_main_L8
+Main_main_L8:
+    LDA #$00
+    CMP __frame_Main_main_n
+    LDA #$01
+    BCC _cmp5
+    LDA #$00
+_cmp5:
+    BNE Main_main_L9
+    JMP Main_main_L10
+Main_main_L9:
+    LDA __frame_Main_main_sum
+    CLC
+    ADC #$01
+    STA __frame_Main_main_sum
+    LDA __frame_Main_main_n
+    SEC
+    SBC #$01
+    STA __frame_Main_main_n
+    JMP Main_main_L8
+Main_main_L10:
+    LDA __frame_Main_main_sum
+    STA __var_Main_result
+    LDA __var_Main_result
+    STA $C000
+    LDA #$14
+    CMP __var_Main_result
+    LDA #$01
+    BCC _cmp6
+    LDA #$00
+_cmp6:
+    BNE Main_main_L11
+    JMP Main_main_L13
+Main_main_L11:
+    LDA #$01
+    STA $C001
+    JMP Main_main_L12
+Main_main_L13:
+    LDA #$02
+    STA $C001
+    JMP Main_main_L12
+Main_main_L12:
+    RTS

@@ -387,7 +387,10 @@ function opcodesOf(
 }
 
 describe("Specification: translator — comparison 0/1 materialisation (ST-T13, ST-T14)", () => {
-  // ST-T13 — eq t2,t0,t1 → CMP-based 0/1 with a BEQ branch over LDA #$01.
+  // ST-T13 — eq t2,t0,t1 → CMP-based 0/1. The Z-based branch MUST come directly
+  // after CMP (an LDA between CMP and the branch clobbers Z) — DEF-1/AR-16: the
+  // earlier `LDA #$01; BEQ` form always evaluated to 0 (verified wrong on real
+  // VICE). Corrected form: branch-first, then materialise 0 (fall-through) / 1.
   it("translates eq into a CMP + BEQ 0/1 materialisation (ST-T13)", () => {
     const { text } = render(
       [
@@ -403,10 +406,12 @@ describe("Specification: translator — comparison 0/1 materialisation (ST-T13, 
         "M_f:",
         "    LDA a",
         "    CMP b",
-        "    LDA #$01",
         "    BEQ _cmp0",
         "    LDA #$00",
+        "    JMP _cmp1",
         "_cmp0:",
+        "    LDA #$01",
+        "_cmp1:",
         "    STA r",
         "    RTS",
       ].join("\n"),

@@ -3,8 +3,8 @@
 > **Implements**: blend65-ri/RD-18 (Slice 4a) · **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md)
 > **Gate**: `00-ambiguity-register.md` (AR-1…AR-15, ✅ PASSED 2026-07-06)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-07 (Phase 3 complete)
-> **Progress**: 25/35 tasks (71%)
+> **Last Updated**: 2026-07-07 (Phase 4 complete — 3-part bar GREEN on real VICE; DEF-1/AR-16 fixed)
+> **Progress**: 31/35 tasks (89%)
 
 Spec-first ordering per phase: **spec tests → verify red → implement → verify green → impl tests →
 full verify**. Two-stage marks: `[~]` implemented, `[x]` verified. Commit per the active mode
@@ -73,14 +73,17 @@ Verify command:
 ## Phase 4 — Acceptance (3-part bar, `03-04`)
 
 ### 4.1 Fixture + spec tests (red)
-- [ ] 4.1.1 `examples/slice4a/main.blend` (AR-13) + `testing/slice4a.ts` (`buildSlice4a`/`emitAsmSlice4a`).
-- [ ] 4.1.2 `slice4a.spec.test.ts` (ST-19 assemble-clean + ST-21 VICE) + `golden-slice4a.spec.test.ts` (ST-20).
-- [ ] 4.1.3 `slice4a-missing-return.spec.test.ts` (ST-22, E10102 via `compile()`). **Verify red/green split** (negative green once Phase 1 lands; golden pending mint).
+- [x] 4.1.1 `examples/slice4a/main.blend` (AR-13) + `testing/slice4a.ts` (`buildSlice4a`/`emitAsmSlice4a`).
+- [x] 4.1.2 `slice4a.spec.test.ts` (ST-19 assemble-clean + ST-21 VICE) + `golden-slice4a.spec.test.ts` (ST-20).
+- [x] 4.1.3 `slice4a-missing-return.spec.test.ts` (ST-22, E10102 via `compile()`). ✅ negative green; fixture assembles clean.
+
+### 4.1a Blocking defect — DEF-1/AR-16 (comparison Z-flag clobber)
+- [x] 4.1a.1 **Discovered on VICE**: `translateComparison` `eq`/`ne` always yielded 0 (`LDA #1` clobbers Z before `BEQ`/`BNE`); real VICE read `$C000==0x3A` (55+3) not `$15`. User decision (2026-07-07): **fix eq/ne only** (branch directly after `CMP`; carry-based path unchanged). Recorded AR-16. Re-minted `translate.spec` ST-T13 + `generate.golden` ST-G3; added a DEF-1 CI regression (`translate.impl`). codegen 352 green.
 
 ### 4.2 Green
-- [ ] 4.2.1 Mint `test/golden/slice4a.asm.golden` (`UPDATE_GOLDEN=1`); inspect loop labels + Pattern-A compare/increment + branches + `__var_Main_result`.
-- [ ] 4.2.2 CI tiers green: assemble-clean (ST-19) + golden (ST-20) + negative (ST-22) + regression (ST-23, gate/slice3a/slice3b unchanged).
-- [ ] 4.2.3 **VICE (local, real 3.10)** — ST-21 `$C000==$15`, `$C001==$01` on x64sc.
+- [x] 4.2.1 Mint `test/golden/slice4a.asm.golden` (`UPDATE_GOLDEN=1`); inspected loop labels (`Main_main_L0..L13`) + Pattern-A `le` compare/`add` increment + break(→L3)/continue(→L2) branches + corrected `eq` (BEQ-after-CMP) + `__var_Main_result`.
+- [x] 4.2.2 CI tiers green: assemble-clean (ST-19) + golden (ST-20) + negative (ST-22) + regression (ST-23, gate/slice3a/slice3b byte-exact).
+- [x] 4.2.3 **VICE (local, real 3.10)** — ST-21 `$C000==$15` (21), `$C001==$01` on x64sc. ✅
 
 ---
 
@@ -98,7 +101,7 @@ Verify command:
 - [x] **Phase 1** — Control-flow semantics (1.1.1–1.3.2, 12 tasks) ✅
 - [x] **Phase 2** — CFG lowering (2.1.1–2.3.2, 8 tasks) ✅
 - [x] **Phase 3** — Multi-block translate (3.1.1–3.3.2, 5 tasks) ✅
-- [ ] **Phase 4** — Acceptance (4.1.1–4.2.3, 6 tasks)
+- [x] **Phase 4** — Acceptance (4.1.1–4.2.3, 6 tasks) ✅ + DEF-1/AR-16 comparison fix
 - [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)
 
 > Task count: **35** granular steps across 5 phases (12 + 8 + 5 + 6 + 4); the checklist is

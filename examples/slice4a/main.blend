@@ -1,0 +1,35 @@
+module Main;
+
+let result: byte;               // module scalar → __var_Main_result
+
+function main(): void {
+    let sum: byte = 0;
+
+    // for-loop (to, Pattern A) with an inner if + break + continue
+    for (let i: byte = 1 to 10) {
+        if (i == 7) {
+            break;              // stop before adding 7,8,9,10
+        }
+        if (i == 3) {
+            continue;           // skip adding 3
+        }
+        sum = sum + i;          // adds 1,2,4,5,6 = 18
+    }
+
+    // while-loop
+    let n: byte = 3;
+    while (n > 0) {
+        sum = sum + 1;          // adds 1 three times = +3
+        n = n - 1;
+    }
+
+    result = sum;               // 18 + 3 = 21 = $15
+    poke(0xC000, result);       // observable: $C000 == $15
+
+    // if/else (two-armed — proves both arms' codegen)
+    if (result > 20) {
+        poke(0xC001, 1);        // taken (21 > 20) → $C001 == $01
+    } else {
+        poke(0xC001, 2);        // not taken
+    }
+}
