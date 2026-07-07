@@ -3,8 +3,8 @@
 > **Plan**: rd-18-slice-4b-switch · **Implements**: blend65-ri/RD-18 (Slice 4b; closes AC-3)
 > **Gate**: `00-ambiguity-register.md` ✅ PASSED (AR-1…AR-14)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-07 (exec_plan — Phase 2 complete)
-> **Progress**: 17/26 tasks (65%)
+> **Last Updated**: 2026-07-07 (exec_plan — Phase 3 complete, 3-part bar GREEN)
+> **Progress**: 23/26 tasks (88%)
 
 Specification-first ordering per phase: **spec tests → verify red → implement → verify green → impl
 tests → full verify**. Marks are two-stage: `[~]` implemented (timestamp), `[x]` only after its
@@ -48,14 +48,14 @@ verify passes. Commit mode selected at exec time (recommend commit + push per ph
 ## Phase 3 — Acceptance (3-part bar, `03-03`)
 
 ### 3.1 Fixture + spec tests (red)
-- [ ] 3.1.1 `examples/slice4b/main.blend` (AR-13) + `testing/slice4b.ts` (`SLICE4B_SRC`/`buildSlice4b`/`emitAsmSlice4b`).
-- [ ] 3.1.2 `slice4b.spec.test.ts` (ST-19 assemble-clean + ST-21 VICE) + `golden-slice4b.spec.test.ts` (ST-20).
-- [ ] 3.1.3 `slice4b-negatives.spec.test.ts` (ST-22 E10071 / ST-23 E10132 / ST-24 E10075 via `compile()`). **Verify red/green split** (negatives green once Phase 1 lands; golden/VICE pending Phase 2 + mint).
+- [x] 3.1.1 `examples/slice4b/main.blend` (AR-13) + `testing/slice4b.ts` (`SLICE4B_SRC`/`buildSlice4b`/`emitAsmSlice4b`).
+- [x] 3.1.2 `slice4b.spec.test.ts` (ST-19 assemble-clean + ST-21 VICE) + `golden-slice4b.spec.test.ts` (ST-20).
+- [x] 3.1.3 `slice4b-negatives.spec.test.ts` (ST-22 E10071 / ST-23 E10132 / ST-24 E10075 via `compile()`). **Verify red/green split** (negatives green once Phase 1 lands; golden/VICE pending Phase 2 + mint).
 
 ### 3.2 Green
-- [ ] 3.2.1 Mint `test/golden/slice4b.asm.golden` (`UPDATE_GOLDEN=1`); inspect the dispatch chain (per-case `eq`+`brcond`, multi-value shared body, `fallthrough` `br`, default tail) + `__var_Main_out1/out2`.
-- [ ] 3.2.2 CI tiers green: assemble-clean (ST-19) + golden (ST-20) + negatives (ST-22/23/24) + regression (ST-25, gate/slice3a/slice3b/slice4a byte-exact).
-- [ ] 3.2.3 **VICE (local, real 3.10)** — ST-21 `$C000==$19` (25), `$C001==$07` (7) on x64sc.
+- [x] 3.2.1 Mint `test/golden/slice4b.asm.golden` (`UPDATE_GOLDEN=1`); inspect the dispatch chain (per-case `eq`+`brcond`, multi-value shared body, `fallthrough` `br`, default tail) + `__var_Main_out1/out2`.
+- [x] 3.2.2 CI tiers green: assemble-clean (ST-19) + golden (ST-20) + negatives (ST-22/23/24) + regression (ST-25, gate/slice3a/slice3b/slice4a byte-exact).
+- [x] 3.2.3 **VICE (local, real 3.10)** — ST-21 `$C000==$19` (25), `$C001==$07` (7) on x64sc.
 
 ## Phase 4 — Rollout bookkeeping (`01-requirements` §4)
 
@@ -70,7 +70,7 @@ verify passes. Commit mode selected at exec time (recommend commit + push per ph
 
 - [x] **Phase 1** — Switch semantics (1.1.1–1.3.3, 9 tasks) ✅ 2026-07-07
 - [x] **Phase 2** — Switch IL lowering (2.1.1–2.3.3, 8 tasks) ✅ 2026-07-07
-- [ ] **Phase 3** — Acceptance / 3-part bar (3.1.1–3.2.3, 6 tasks)
+- [x] **Phase 3** — Acceptance / 3-part bar (3.1.1–3.2.3, 6 tasks) ✅ 2026-07-07 (VICE $C000==$19 / $C001==$07)
 - [ ] **Phase 4** — Rollout bookkeeping (4.1.1–4.1.4, 4 tasks)
 
 Total: **26 tasks** across 4 phases (includes 1.2.1 code mint).

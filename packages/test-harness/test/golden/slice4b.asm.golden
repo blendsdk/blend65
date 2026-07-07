@@ -1,0 +1,136 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_main = $0802
+__frame_Main_main_sel = $0802
+__frame_Main_main_acc = $0803
+__frame_Main_main_sel2 = $0804
+__var_Main_out1 = $0800
+__var_Main_out2 = $0801
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$02
+    STA __frame_Main_main_sel
+    LDA #$00
+    STA __frame_Main_main_acc
+    LDA __frame_Main_main_sel
+    CMP #$01
+    BEQ _cmp0
+    LDA #$00
+    JMP _cmp1
+_cmp0:
+    LDA #$01
+_cmp1:
+    BNE Main_main_L1
+    JMP Main_main_L5
+Main_main_L5:
+    LDA __frame_Main_main_sel
+    CMP #$02
+    BEQ _cmp2
+    LDA #$00
+    JMP _cmp3
+_cmp2:
+    LDA #$01
+_cmp3:
+    BNE Main_main_L2
+    JMP Main_main_L6
+Main_main_L6:
+    LDA __frame_Main_main_sel
+    CMP #$03
+    BEQ _cmp4
+    LDA #$00
+    JMP _cmp5
+_cmp4:
+    LDA #$01
+_cmp5:
+    BNE Main_main_L2
+    JMP Main_main_L7
+Main_main_L7:
+    LDA __frame_Main_main_sel
+    CMP #$04
+    BEQ _cmp6
+    LDA #$00
+    JMP _cmp7
+_cmp6:
+    LDA #$01
+_cmp7:
+    BNE Main_main_L3
+    JMP Main_main_L8
+Main_main_L8:
+    JMP Main_main_L4
+Main_main_L1:
+    LDA #$0A
+    STA __frame_Main_main_acc
+    JMP Main_main_L0
+Main_main_L2:
+    LDA #$14
+    STA __frame_Main_main_acc
+    JMP Main_main_L3
+Main_main_L3:
+    LDA __frame_Main_main_acc
+    CLC
+    ADC #$05
+    STA __frame_Main_main_acc
+    JMP Main_main_L0
+Main_main_L4:
+    LDA __frame_Main_main_acc
+    CLC
+    ADC #$01
+    STA __frame_Main_main_acc
+    JMP Main_main_L0
+Main_main_L0:
+    LDA __frame_Main_main_acc
+    STA __var_Main_out1
+    LDA __var_Main_out1
+    STA $C000
+    LDA #$09
+    STA __frame_Main_main_sel2
+    LDA __frame_Main_main_sel2
+    CMP #$01
+    BEQ _cmp8
+    LDA #$00
+    JMP _cmp9
+_cmp8:
+    LDA #$01
+_cmp9:
+    BNE Main_main_L10
+    JMP Main_main_L12
+Main_main_L12:
+    JMP Main_main_L11
+Main_main_L10:
+    LDA #$64
+    STA __frame_Main_main_acc
+    JMP Main_main_L9
+Main_main_L11:
+    LDA #$07
+    STA __frame_Main_main_acc
+    JMP Main_main_L9
+Main_main_L9:
+    LDA __frame_Main_main_acc
+    STA __var_Main_out2
+    LDA __var_Main_out2
+    STA $C001
+    RTS
