@@ -3,8 +3,8 @@
 > **Plan**: rd-18-slice-4b-switch · **Implements**: blend65-ri/RD-18 (Slice 4b; closes AC-3)
 > **Gate**: `00-ambiguity-register.md` ✅ PASSED (AR-1…AR-14)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-07 (exec_plan — Phase 1 complete)
-> **Progress**: 9/26 tasks (35%)
+> **Last Updated**: 2026-07-07 (exec_plan — Phase 2 complete)
+> **Progress**: 17/26 tasks (65%)
 
 Specification-first ordering per phase: **spec tests → verify red → implement → verify green → impl
 tests → full verify**. Marks are two-stage: `[~]` implemented (timestamp), `[x]` only after its
@@ -32,18 +32,18 @@ verify passes. Commit mode selected at exec time (recommend commit + push per ph
 ## Phase 2 — Switch IL lowering (`03-02`)
 
 ### 2.1 Spec tests (red)
-- [ ] 2.1.1 `il/switch-lowering.spec.test.ts` — ST-12 (multi-block CFG + brcond dispatch), ST-13 (multi-value shared body), ST-14 (fallthrough → br next body), ST-15 (auto-break → br join), ST-16 (default = unconditional tail). **Verify red** (currently ICE).
-- [ ] 2.1.2 `instr/switch-translate.spec.test.ts` — ST-17 (translate consumes switch IL, no new terminator; eq uses DEF-1 form). **Verify red.**
-- [ ] 2.1.3 ST-18 — confirm the **unchanged** `unsupportedFixture` (bare `fallthrough`) still ICEs one E90001 post-4b (RD-06 ST-L5 expectation **unchanged**); PF-003.
+- [x] 2.1.1 `il/switch-lowering.spec.test.ts` — ST-12 (multi-block CFG + brcond dispatch), ST-13 (multi-value shared body), ST-14 (fallthrough → br next body), ST-15 (auto-break → br join), ST-16 (default = unconditional tail). **Verify red** (currently ICE).
+- [x] 2.1.2 `instr/switch-translate.spec.test.ts` — ST-17 (translate consumes switch IL, no new terminator; eq uses DEF-1 form). **Verify red.**
+- [x] 2.1.3 ST-18 — confirm the **unchanged** `unsupportedFixture` (bare `fallthrough`) still ICEs one E90001 post-4b (RD-06 ST-L5 expectation **unchanged**); PF-003.
 
 ### 2.2 Implement
-- [ ] 2.2.1 `lower.ts` — `lowerSwitch` + `case "SwitchStmt"` in `lowerStmt` (AR-1/AR-8/AR-9, 03-02 §2): lower discriminant once; reserve per-clause body + join labels; emit per-value `eq`+`brcond` dispatch chain; default = final unconditional `br`; bodies terminate `br(join)` or `br(next body)` on `fallthrough`; guard `isTerminated()`; `break`/`continue` resolve to enclosing `LoopContext` (switch pushes nothing).
-- [ ] 2.2.2 `lower.spec.test.ts` — **keep** `unsupportedFixture` on `fallthrough` (still unsupported post-4b, PF-003); **only** sync the stale `// ... (IfStmt) ...` comment at `:105` to name `fallthrough` (PF-006). No fixture repoint, no expectation change.
+- [x] 2.2.1 `lower.ts` — `lowerSwitch` + `case "SwitchStmt"` in `lowerStmt` (AR-1/AR-8/AR-9, 03-02 §2): lower discriminant once; reserve per-clause body + join labels; emit per-value `eq`+`brcond` dispatch chain; default = final unconditional `br`; bodies terminate `br(join)` or `br(next body)` on `fallthrough`; guard `isTerminated()`; `break`/`continue` resolve to enclosing `LoopContext` (switch pushes nothing).
+- [x] 2.2.2 `lower.spec.test.ts` — **keep** `unsupportedFixture` on `fallthrough` (still unsupported post-4b, PF-003); **only** sync the stale `// ... (IfStmt) ...` comment at `:105` to name `fallthrough` (PF-006). No fixture repoint, no expectation change.
 
 ### 2.3 Green + impl tests
-- [ ] 2.3.1 Verify ST-12…ST-18 green (rebuild codegen; run codegen suite).
-- [ ] 2.3.2 `il/switch-lowering.impl.test.ts` — edges: empty default body, single-case switch, `fallthrough` into default, a case body ending in `break`/`return` (no double-terminate).
-- [ ] 2.3.3 Phase-2 full verify (codegen + downstream builds).
+- [x] 2.3.1 Verify ST-12…ST-18 green (rebuild codegen; run codegen suite).
+- [x] 2.3.2 `il/switch-lowering.impl.test.ts` — edges: empty default body, single-case switch, `fallthrough` into default, a case body ending in `break`/`return` (no double-terminate).
+- [x] 2.3.3 Phase-2 full verify (codegen + downstream builds).
 
 ## Phase 3 — Acceptance (3-part bar, `03-03`)
 
@@ -69,7 +69,7 @@ verify passes. Commit mode selected at exec time (recommend commit + push per ph
 ## Master Progress Checklist
 
 - [x] **Phase 1** — Switch semantics (1.1.1–1.3.3, 9 tasks) ✅ 2026-07-07
-- [ ] **Phase 2** — Switch IL lowering (2.1.1–2.3.3, 8 tasks)
+- [x] **Phase 2** — Switch IL lowering (2.1.1–2.3.3, 8 tasks) ✅ 2026-07-07
 - [ ] **Phase 3** — Acceptance / 3-part bar (3.1.1–3.2.3, 6 tasks)
 - [ ] **Phase 4** — Rollout bookkeeping (4.1.1–4.1.4, 4 tasks)
 

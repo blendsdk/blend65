@@ -49,6 +49,7 @@ import type {
   SemanticModel,
   AllocationPlan,
   StmtNode,
+  SwitchStmtNode,
   Type,
   TypeNode,
 } from "@blend65/core";
@@ -225,6 +226,9 @@ function lowerStmt(stmt: StmtNode, ctx: LowerCtx): void {
     case "ForStmt":
       lowerFor(stmt, ctx);
       return;
+    case "SwitchStmt":
+      lowerSwitch(stmt, ctx);
+      return;
     case "BreakStmt":
       lowerBreak(stmt, ctx);
       return;
@@ -390,6 +394,94 @@ function lowerFor(stmt: ForStmtNode, ctx: LowerCtx): void {
   ctx.builder.terminate({ kind: "br", target: condL });
 
   ctx.builder.openBlock(endL);
+}
+
+/**
+ * Lower `switch (D) { case v...: B ... default: Bd }` into a `brcond` compare-chain
+ * over the multi-block CFG keystone (RD-18 Slice 4b, FR-10/FR-11, AR-1/AR-8/AR-9;
+ * 03-02 §1/§2). No jump table, no new IL terminator (deferred to Phase B).
+ *
+ * Shape: one dispatch **test block** per case value emits `eq(disc, value)` +
+ * `brcond(→ shared body, else next test)`; multi-value cases point every true-edge
+ * at the same body block (AR-8). After the last test the unmatched discriminant
+ * falls unconditionally to the (always-present, AR-5) `default` body. Each clause
+ * body is its own block: without a trailing `fallthrough` it ends `br(join)`
+ * (auto-break); with one it ends `br(<next clause body>)` (AR-9). `break`/`continue`
+ * inside a body resolve to the enclosing `LoopContext` — switch pushes nothing
+ * (AR-6).
+ *
+ * The discriminant is re-lowered **fresh in each test block** (a single-use temp
+ * the block's `eq` consumes) rather than materialised once and reused: a temp
+ * cannot live across a basic-block boundary in `translate.ts` (block-local
+ * fold/register state), so this mirrors the 4a for-loop counter reload.
+ */
+function lowerSwitch(stmt: SwitchStmtNode, ctx: LowerCtx): void {
+  const join = ctx.builder.reserveLabel();
+
+  // Reserve one body label per clause up front (cases in order, then default) so a
+  // `fallthrough`'s "next clause body" edge resolves regardless of emission order.
+  const bodyLabels: string[] = stmt.cases.map(() => ctx.builder.reserveLabel());
+  const defaultBodyL = ctx.builder.reserveLabel();
+  bodyLabels.push(defaultBodyL);
+
+  // Dispatch chain: one test block per case value, in source order.
+  for (let i = 0; i < stmt.cases.length; i++) {
+    for (const value of stmt.cases[i].values) {
+      const disc = lowerExpr(stmt.discriminant, ctx); // fresh, single-use in this block
+      const match = ctx.builder.newTemp(IL_BYTE);
+      ctx.builder.emit({
+        op: "eq",
+        dest: match,
+        left: disc,
+        right: lowerExpr(value, ctx),
+        type: IL_BYTE,
+      } as ILInstruction);
+      const nextTest = ctx.builder.reserveLabel();
+      ctx.builder.terminate({
+        kind: "brcond",
+        cond: match,
+        trueTarget: bodyLabels[i],
+        falseTarget: nextTest,
+      });
+      ctx.builder.openBlock(nextTest);
+    }
+  }
+  // Unmatched discriminant → the default body (the dispatch tail's unconditional br).
+  ctx.builder.terminate({ kind: "br", target: defaultBodyL });
+
+  // Bodies: cases in order, then default. `bodyLabels[i + 1]` is clause i's
+  // fall-through target; the default (last) falls through to `join`.
+  const clauses = [...stmt.cases, stmt.defaultClause];
+  for (let i = 0; i < clauses.length; i++) {
+    ctx.builder.openBlock(bodyLabels[i]);
+    lowerClauseBody(clauses[i].body, bodyLabels[i + 1] ?? join, join, ctx);
+  }
+
+  ctx.builder.openBlock(join); // subsequent statements continue here
+}
+
+/**
+ * Lower one switch clause body into the current block (RD-18 Slice 4b, AR-9). A
+ * trailing `fallthrough` (guaranteed last by semantics E10074) terminates the body
+ * with `br(nextBodyL)`; otherwise the body auto-breaks with `br(join)`. A body that
+ * already terminated (a `break`/`continue`/`return`) is left as-is (isTerminated
+ * guard) — matching `lowerBlock`.
+ */
+function lowerClauseBody(
+  body: readonly StmtNode[],
+  nextBodyL: string,
+  join: string,
+  ctx: LowerCtx,
+): void {
+  for (const s of body) {
+    if (ctx.builder.isTerminated()) break;
+    if (s.kind === "FallthroughStmt") {
+      ctx.builder.terminate({ kind: "br", target: nextBodyL });
+      return;
+    }
+    lowerStmt(s, ctx);
+  }
+  if (!ctx.builder.isTerminated()) ctx.builder.terminate({ kind: "br", target: join });
 }
 
 /**

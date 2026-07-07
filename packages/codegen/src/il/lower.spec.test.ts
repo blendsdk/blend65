@@ -102,7 +102,8 @@ describe("Specification: RD-06 lowerToIL (§3.5/§4.7)", () => {
     expect(bag.getAll()).toHaveLength(0);
   });
 
-  // ST-L5 — an unsupported node (IfStmt) → exactly one E90001 ICE; never throws.
+  // ST-L5 — an unsupported node (fallthrough — a switch-only statement that, bare
+  // and out of any switch, is not lowered) → exactly one E90001 ICE; never throws.
   it("should record exactly one E90001 ICE for an unsupported node (ST-L5, R69/D6)", () => {
     const bag = createDiagnosticBag();
     expect(() => lowerToIL(unsupportedFixture, bag)).not.toThrow();
