@@ -3,7 +3,19 @@
 > **Document**: 08-deferred-semantics-ledger.md
 > **Parent**: [Index](00-index.md)
 > **Status**: AUTHORITATIVE — the single map of what the passthrough skeleton does NOT implement
-> **Last Updated**: 2026-07-06 (RD-18 Slice 3b advancement annotated)
+> **Last Updated**: 2026-07-07 (RD-18 Slice 4a advancement annotated)
+
+> **🟢 RD-18 Slice 4a (2026-07-07) advanced the conditional/loop subset of this ledger.** Control-flow
+> semantics now ship for `if`/`else`/`while`/`do-while`/`for`(to/downto/step) — see
+> `codeops/features/blend65-ri/plans/rd-18-slice-4a-conditionals-loops/`. **Rows advanced:** condition
+> typing R71/R72/R73 (**E10134** `NonBooleanCondition`, AR-7 — supersedes the ledger's tentative
+> E10080/AC-17); for-loop counter + bounds R74 (**E10064** end-bound range, **E10061** step positivity,
+> **E10065** counter-type-integer, AR-8/AR-15); `break`/`continue` context R77/R78 (**E10130/E10131**,
+> AC-12); all-paths-return (the R80 all-paths sub-clause, **E10102** `NotAllPathsReturn`, AR-4); body
+> typing by recursion R82-in-control-flow; for-counter + nested-`let` locals collected flat into the
+> function scope (R11 — real block-scope lifetime/shadowing E10101/E10062 still deferred to 4b, AR-2/AR-5/AR-9).
+> **Still deferred:** `switch`/`fallthrough` + its validators (Slice 4b, AR-1); `until` (AR-3); calls/
+> recursion R84-87/R86 (Slice 5); mixed-width promotion + casts (Slice 6); aggregates (Slice 7).
 
 > **🟢 RD-18 Slice 3b (2026-07-06) advanced the scalar subset of this ledger.** The real Pass 3
 > (expression/literal typing, name resolution, same-type/signedness enforcement, poison) + Pass 4
@@ -72,7 +84,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R8 | Each scope owns `Map<string,Symbol>` | ✅ IMPLEMENTED (interface); **module/function scopes now populated** with function + local-variable symbols by RD-18 Slice 3a | 1 | — |
 | R9 | Duplicate decl in scope | ⛔ DEFERRED | 1 | E10003 |
 | R10 | No shadowing | ⛔ DEFERRED | 1/3 | E10101 |
-| R11 | For-loop counter block scope | ⛔ DEFERRED | 3 | — |
+| R11 | For-loop counter block scope | 🟡 **RD-18 Slice 4a** — counter + nested-`let` locals collected FLAT into the function scope (AR-9); real block-scope lifetime/shadowing (E10101/E10062) still deferred to 4b | 3 | — |
 | R12 | Module-level decls; no exec stmts | ⛔ DEFERRED | 1 | E10010 |
 | R13 | Export visibility | ⛔ DEFERRED | 1 | — |
 
@@ -172,16 +184,16 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R71 | If condition bool | ⛔ DEFERRED | 3 | E10080 |
-| R72 | While condition bool | ⛔ DEFERRED | 3 | E10080 |
-| R73 | Do-while condition bool | ⛔ DEFERRED | 3 | E10080 |
-| R74 | For-loop counter/bounds | ⛔ DEFERRED | 3 | E10064 |
+| R71 | If condition bool | ✅ **RD-18 Slice 4a** — `E10134` (AR-7; not E10080) | 3 | E10134 |
+| R72 | While condition bool | ✅ **RD-18 Slice 4a** — `E10134` | 3 | E10134 |
+| R73 | Do-while condition bool | ✅ **RD-18 Slice 4a** — `E10134` | 3 | E10134 |
+| R74 | For-loop counter/bounds | ✅ **RD-18 Slice 4a** — end-bound `E10064`, step `E10061`, counter-type `E10065` (AR-8/AR-15) | 3 | E10064/E10061/E10065 |
 | R75 | Switch expr + case values | ⛔ DEFERRED | 3 | E10080, E10132 |
 | R76 | Exhaustive enum switch | ⛔ DEFERRED | 3 | E10133 |
-| R77 | `break` context | ⛔ DEFERRED | 3 | E10130 |
-| R78 | `continue` context | ⛔ DEFERRED | 3 | E10131 |
+| R77 | `break` context | ✅ **RD-18 Slice 4a** — E10130 (loop-depth tracking) | 3 | E10130 |
+| R78 | `continue` context | ✅ **RD-18 Slice 4a** — E10131 | 3 | E10131 |
 | R79 | `fallthrough` context | ⛔ DEFERRED | 3 | (see Parked Q4) |
-| R80 | return in non-void (+ all paths) | ⛔ DEFERRED | 3 | E10152, E10172 |
+| R80 | return in non-void (+ all paths) | 🟡 **RD-18 Slice 4a** — all-paths-return `E10102` (AR-4, structural `definitelyReturns`); the value-type/missing-value sub-clauses (E10152/E10172) remain Slice 5/6 | 3 | E10102, E10152, E10172 |
 | R81 | return in void | ⛔ DEFERRED | 3 | E10173 |
 | R82 | Expression statement | ⛔ DEFERRED | 3 | — |
 | R83 | `asm` block context | ⛔ DEFERRED — N/A (no asm in v3, RD-03 AR-1) | — | — |
@@ -276,12 +288,12 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | AC-09 | non-const const initializer → E10193 | ⛔ DEFERRED |
 | AC-10 | struct literal missing/extra field → E10161/E10162 | ⛔ DEFERRED |
 | AC-11 | enum dup/over-256 → E10142/E10141 | ⛔ DEFERRED |
-| AC-12 | break/continue context → E10130/E10131 | ⛔ DEFERRED |
+| AC-12 | break/continue context → E10130/E10131 | ✅ **RD-18 Slice 4a** (loop-depth tracking; ST-4) |
 | AC-13 | poison-type cascade suppression (one diagnostic) | ✅ **RD-18 Slice 3b** (ST-9; R114) |
 | AC-14 | `typeMap` correctness | ✅ **RD-18 Slice 3b** (scalar subset: literals/idents/same-type binary — ST-1/ST-3; aggregates → Slice 7) |
 | AC-15 | `callGraph` + `findCycles()` correctness | ⛔ DEFERRED |
 | AC-16 | module-init cycle → E10194 | ⛔ DEFERRED |
-| AC-17 | non-bool if condition → E10080 | ⛔ DEFERRED |
+| AC-17 | non-bool if condition → ~~E10080~~ **E10134** (AR-7) | ✅ **RD-18 Slice 4a** (ST-1/2/3; the boolean-condition check uses the new control-flow code E10134, not E10080) |
 | AC-18 | golden-snapshot determinism | ⛔ DEFERRED |
 | AC-19 | `sizeof(StructType)` value | ⛔ DEFERRED |
 | AC-20 | array size 0 / non-const → E10111/E10110 | ⛔ DEFERRED |

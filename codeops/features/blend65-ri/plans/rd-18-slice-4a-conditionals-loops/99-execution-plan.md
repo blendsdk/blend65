@@ -3,8 +3,8 @@
 > **Implements**: blend65-ri/RD-18 (Slice 4a) · **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md)
 > **Gate**: `00-ambiguity-register.md` (AR-1…AR-15, ✅ PASSED 2026-07-06)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-07 (Phase 4 complete — 3-part bar GREEN on real VICE; DEF-1/AR-16 fixed)
-> **Progress**: 31/35 tasks (89%)
+> **Last Updated**: 2026-07-07 (**ALL PHASES COMPLETE** — 35/35; 3-part bar GREEN on real VICE; DEF-1/AR-16 fixed; rollout bookkeeping + roadmap synced)
+> **Progress**: 35/35 tasks (100%) ✅
 
 Spec-first ordering per phase: **spec tests → verify red → implement → verify green → impl tests →
 full verify**. Two-stage marks: `[~]` implemented, `[x]` verified. Commit per the active mode
@@ -89,10 +89,10 @@ Verify command:
 
 ## Phase 5 — Rollout bookkeeping (`01-requirements` §4)
 
-- [ ] 5.1.1 RD-04 deferred ledger — annotate the Ch-05 loop/conditional rows advanced by 4a (condition typing, loop-context E10130/E10131, all-paths-return, for-bound/step); note switch rows still deferred (4b).
-- [ ] 5.1.2 RD-18 requirements — annotate **AC-3** "4a partial (conditionals/loops) ✅; closes at 4b (switch)"; register the four new codes (E10061/E10065/E10102/E10134) in the AR-11 provenance note.
-- [ ] 5.1.3 SR-2 (resource delta: multi-block code size vs 3b; no new ZP) + SR-3 (Pattern-B / `until` / switch deferrals) closeout in this plan.
-- [ ] 5.1.4 Roadmap sync (feature + portfolio cascade) → Slice 4a ✅; `git status --porcelain spec/` empty; final full verify green.
+- [x] 5.1.1 RD-04 deferred ledger — annotated R71/R72/R73 (condition→E10134), R74 (E10064/E10061/E10065), R77/R78 (E10130/E10131), R80 (all-paths E10102), R11 (flat counter/local collection), AC-12/AC-17; Slice-4a advancement banner added; switch/`until`/E10101/E10062 rows noted still deferred (4b).
+- [x] 5.1.2 RD-18 requirements — AC item 3 (Slice 4) annotated `[~]` "**4a partial ✅ (conditionals/loops); closes at 4b (switch)**" (AR-14); the four new codes (E10061/E10065/E10102/E10134) registered in the acceptance entry per AR-115/AR-11 precedent; DEF-1/AR-16 noted.
+- [x] 5.1.3 **SR-2 (resource delta):** vs Slice 3b the fixture adds only multi-block control-flow code (block labels = 0 bytes; `JMP`=3B, `Bxx`=2B per branch) — **no new ZP** (comparisons use A; `__zp_arg/tmp` unchanged) and **no new runtime routines** (no `__rt_*`; 4a is branch-only). Footprint: `__var_Main_result` (1B, $0800) + frame `sum`/`i`/`n` (3B, $0801–$0803) = 4B, within the AR-1 13-byte dead-BASIC-stub shadow. **SR-3 (deferrals closeout):** Pattern-B full-range `to <type-max>` (AR-6, records ICE), `until` (AR-3), `switch`/`fallthrough` (AR-1), loop-var read-only/nested-reuse/no-shadow E10060/E10062/E10101 (AR-2/AR-5) — all explicitly deferred to 4b/later, none on the 4a critical path.
+- [x] 5.1.4 Roadmap sync (feature + portfolio cascade) → Slice 4a ✅ (feature banner + RD-18 row + portfolio Stage Summary updated; sync-script write skipped — it can't parse this roadmap's narrative format and would regress the hand-maintained `18/20`🔄, per the never-regress rule; RD-18 stays in-progress across slices); `git status --porcelain spec/` **empty**; final full verify green (build/typecheck/lint + all package suites + root R15 tier; full test-harness proven per-file since the aggregate VICE run is killed by the sandbox timeout).
 
 ---
 
@@ -102,7 +102,7 @@ Verify command:
 - [x] **Phase 2** — CFG lowering (2.1.1–2.3.2, 8 tasks) ✅
 - [x] **Phase 3** — Multi-block translate (3.1.1–3.3.2, 5 tasks) ✅
 - [x] **Phase 4** — Acceptance (4.1.1–4.2.3, 6 tasks) ✅ + DEF-1/AR-16 comparison fix
-- [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)
+- [x] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks) ✅
 
 > Task count: **35** granular steps across 5 phases (12 + 8 + 5 + 6 + 4); the checklist is
 > authoritative and updated live during exec.

@@ -277,13 +277,23 @@ passes and the parent-RD ACs it advances are ticked.
        Registered **E10084**/**E10022** additively (AR-11). Runtime AR-12 (ST-S21 superseded; Pass-4
        gated on ≥1 function) + AR-13 (E10150 parser-owned) resolved. *(The non-boolean-condition check
        moves to Slice 4, where control flow — and its new diagnostic code — lands.)*
-3. [ ] **Slice 4**: `if`/`while`/`do-while`/`for`(to/downto/step)/`switch` programs VICE-verify
-       (loop-sum + switch-select fixtures); a `fallthrough` in `default`, a non-boolean condition,
-       and a non-returning path in a non-void function are each rejected with a diagnostic — these
-       three are **new codes minted at this slice's gate** (Language-Guard-approved; added to
-       `diagnostic-codes.ts` per AR-115), none existing in the canonical registry; `break`/`continue`
-       outside a loop reject with the canonical E10130/E10131. Multi-block CFG + `br`/`brcond`
-       emitted; ASM golden committed.
+3. [~] **Slice 4 — 4a partial ✅ (conditionals/loops); closes at 4b (switch)** (AR-14).
+       **Slice 4a** ✅ **(2026-07-07, exec_plan `plans/rd-18-slice-4a-conditionals-loops/`, 35/35 +
+       DEF-1)**: `if`/`else`/`while`/`do-while`/`for`(to/downto/step) programs VICE-verify — the
+       multi-block CFG codegen keystone (IL `br`/`brcond` lowering + multi-block IL→Instr translate).
+       `examples/slice4a/main.blend` (for-loop with `break`/`continue` + a while + a two-armed
+       if/else) computes `21` on **real VICE 3.10** (`$C000==$15`, `$C001==$01`); a non-void function
+       missing a return path is **rejected with E10102** (via `compile()`, no binary); byte-exact ASM
+       golden committed. New codes minted additively per AR-115 (AR-11 precedent): **E10134**
+       (`NonBooleanCondition`, AR-7), **E10061** (`StepValueNotPositive`, AR-8), **E10065**
+       (`ForCounterTypeNotInteger`, AR-15), **E10102** (`NotAllPathsReturn`, AR-4); `break`/`continue`
+       outside a loop reject with the canonical **E10130/E10131**, and a const for end-bound out of
+       range with **E10064** (all wired). Latent RD-07b comparison bug fixed (**DEF-1/AR-16**:
+       `translateComparison` clobbered the Z flag → `eq`/`ne` always 0; fixed eq/ne only).
+       **Deferred to Slice 4b:** `switch`/`case`/`default`/`fallthrough` + its validators/codes (AR-1);
+       `until` (AR-3); loop-var read-only E10060 / nested for-var reuse E10062 / no-shadowing E10101
+       (AR-2/AR-5); full-range `to <type-max>` Pattern-B codegen (AR-6). **RD-18 AC-3 stays open** until
+       4b lands the switch surface.
 4. [ ] **Slice 5**: a multi-function, multi-module program with params + return values VICE-verifies;
        recursion (direct or indirect) is rejected with the unified E10174; module init order is
        deterministic (topological, E10194 on cycle). Calling convention + `call` op proven; ASM golden committed.
