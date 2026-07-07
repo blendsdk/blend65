@@ -33,7 +33,7 @@ import type { ILType } from "../il/il-type.js";
 import { isImmediate, isLocation, isTemp } from "../il/operand.js";
 import type { ILOperand } from "../il/operand.js";
 import type { ILInstruction, ILTerminator } from "../il/instruction.js";
-import type { BasicBlock, ILFunction } from "../il/cfg.js";
+import type { ILFunction } from "../il/cfg.js";
 
 import type { Opcode } from "./opcode.js";
 import type { AddressingMode } from "./addressing-mode.js";
@@ -165,14 +165,24 @@ class FunctionTranslator {
     this.binder = createRegisterBinder(plan, bag);
   }
 
-  /** Drive the translation and return the finished stream. */
+  /**
+   * Drive the translation and return the finished stream. Iterates **every** CFG
+   * block (RD-18 Slice 4a, 03-03 §1): the entry block keeps the function-entry
+   * label; every non-entry block emits its own function-unique block label. The
+   * use-count pre-scan covers all blocks up front, and per-block peephole/fold
+   * state is reset at each block boundary (§1a — MANDATORY: a block label is a
+   * branch target, so nothing may carry across it).
+   */
   run(): InstrStream {
     this.binder.reset();
     this.out.push(label(sanitize(this.fn.name)));
 
-    const block: BasicBlock | undefined = this.fn.blocks[0];
-    if (block !== undefined) {
-      this.prescan(block);
+    this.prescanAll();
+    for (const block of this.fn.blocks) {
+      this.resetBlockState();
+      if (block.label !== "_entry") {
+        this.out.push(label(this.blockLabel(block.label)));
+      }
       block.instructions.forEach((ins, i) => {
         if (i === this.skipIndex) {
           return; // store folded into the preceding word ALU (D10)
@@ -180,7 +190,8 @@ class FunctionTranslator {
         this.translateInstruction(ins, i, block.instructions);
       });
       this.translateTerminator(block.terminator);
-    } else {
+    }
+    if (this.fn.blocks.length === 0) {
       this.translateTerminator({ kind: "ret" });
     }
 
@@ -189,19 +200,56 @@ class FunctionTranslator {
 
   // ── Pre-scan (D10) ─────────────────────────────────────────────────────────
 
-  /** Count temp reads and record single-use load results eligible to fold. */
-  private prescan(block: BasicBlock): void {
-    for (const ins of block.instructions) {
-      for (const op of readOperands(ins)) {
-        if (isTemp(op)) {
-          this.useCount.set(op.id, (this.useCount.get(op.id) ?? 0) + 1);
+  /**
+   * Count every temp's reads across **all** blocks (03-03 §1a). `useCount` gates
+   * the single-use load fold (`<=1`) and the store-home fold (`>1`); temp ids are
+   * function-unique, so one global count is correct and covers non-entry blocks a
+   * single-block prescan would under-count. Each block's terminator read operands
+   * (`brcond.cond`, `ret.value`) count too, so a condition temp consumed by a
+   * `brcond` is not under-counted.
+   */
+  private prescanAll(): void {
+    for (const block of this.fn.blocks) {
+      for (const ins of block.instructions) {
+        for (const op of readOperands(ins)) {
+          if (isTemp(op)) {
+            this.useCount.set(op.id, (this.useCount.get(op.id) ?? 0) + 1);
+          }
         }
       }
+      const term = block.terminator;
+      const termRead =
+        term.kind === "ret" ? term.value : term.kind === "brcond" ? term.cond : undefined;
+      if (termRead !== undefined && isTemp(termRead)) {
+        this.useCount.set(termRead.id, (this.useCount.get(termRead.id) ?? 0) + 1);
+      }
     }
-    const termValue = block.terminator.kind === "ret" ? block.terminator.value : undefined;
-    if (termValue !== undefined && isTemp(termValue)) {
-      this.useCount.set(termValue.id, (this.useCount.get(termValue.id) ?? 0) + 1);
-    }
+  }
+
+  /**
+   * Reset the block-local peephole/fold state at a block boundary (03-03 §1a —
+   * correctness, not optimization): `clearRegs()` (A/X residency), `skipIndex`
+   * (an instruction index — block-relative, must not survive), `leadSpan`, and the
+   * deferred-load map. Nothing may carry across a basic-block boundary because the
+   * block label is a branch target.
+   */
+  private resetBlockState(): void {
+    this.clearRegs();
+    this.skipIndex = -1;
+    this.leadSpan = undefined;
+    this.loadSource.clear();
+  }
+
+  /**
+   * The ASM-safe, function-unique label for a non-entry block: the sanitized
+   * function name (`.`→`_`) prefixing the IL block label, e.g. `Main.main` + `_L0`
+   * → `Main_main_L0`. Prefixing by the function name avoids cross-function
+   * collisions (two functions both mint `_L0`). The entry function's blocks use
+   * the `Module_function` form (not the `_main` entry label), so block labels never
+   * collide with the startup shim's `_main` target.
+   */
+  private blockLabel(raw: string): string {
+    return `${this.fn.name.replaceAll(".", "_")}${raw}`;
   }
 
   // ── Instruction dispatch ─────────────────────────────────────────────────────
@@ -301,16 +349,39 @@ class FunctionTranslator {
     this.iceUnsupported(`intrinsic '${name}' strategy '${descriptor.loweringStrategy}'`);
   }
 
+  /**
+   * Translate a block terminator (RD-18 Slice 4a, 03-03 §2):
+   * - `ret` — bring the value into A/A:X (if any) then `RTS`/`RTI` (unchanged).
+   * - `br` — an unconditional `JMP` to the target block label (3-byte absolute is
+   *   always in range, unlike a relative branch).
+   * - `brcond` — the condition operand is a **materialized boolean byte** (0/1),
+   *   not live CPU flags (`translateComparison` materializes the 0/1 and consumes
+   *   the compare's flags itself). Load it (a redundant `LDA` is suppressed only
+   *   when the boolean is already resident in A within this block), branch to the
+   *   true target with `BNE`, and `JMP` to the false target. Fusing the compare
+   *   into the branch would need a non-materializing comparison lowering that does
+   *   not exist yet (an RD-08 peephole) — out of scope, so this stays correct-first.
+   * - `unreachable` — control provably cannot reach here; emit nothing.
+   */
   private translateTerminator(term: ILTerminator): void {
-    if (term.kind !== "ret") {
-      this.iceUnsupported(`terminator '${term.kind}'`);
-      this.emit("RTS", "Implied", none());
-      return;
+    switch (term.kind) {
+      case "ret":
+        if (term.value !== undefined) {
+          this.bringValueIntoRegisters(term.value, widthOf(term.value));
+        }
+        this.emit(this.fn.isInterrupt ? "RTI" : "RTS", "Implied", none());
+        return;
+      case "br":
+        this.emit("JMP", "Absolute", labelRef(this.blockLabel(term.target)));
+        return;
+      case "brcond":
+        this.leftIntoA(term.cond); // materialized 0/1 boolean → A (redundant LDA suppressed)
+        this.emit("BNE", "Relative", labelRef(this.blockLabel(term.trueTarget)));
+        this.emit("JMP", "Absolute", labelRef(this.blockLabel(term.falseTarget)));
+        return;
+      case "unreachable":
+        return; // provably unreachable — no code, no ICE
     }
-    if (term.value !== undefined) {
-      this.bringValueIntoRegisters(term.value, widthOf(term.value));
-    }
-    this.emit(this.fn.isInterrupt ? "RTI" : "RTS", "Implied", none());
   }
 
   // ── const / load / store ─────────────────────────────────────────────────────

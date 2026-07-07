@@ -3,8 +3,8 @@
 > **Implements**: blend65-ri/RD-18 (Slice 4a) · **Source**: [RD-18](../../requirements/RD-18-codegen-language-completion.md)
 > **Gate**: `00-ambiguity-register.md` (AR-1…AR-15, ✅ PASSED 2026-07-06)
 > **CodeOps Skills Version**: 3.2.0
-> **Last Updated**: 2026-07-07 (Phase 2 complete)
-> **Progress**: 20/35 tasks (57%)
+> **Last Updated**: 2026-07-07 (Phase 3 complete)
+> **Progress**: 25/35 tasks (71%)
 
 Spec-first ordering per phase: **spec tests → verify red → implement → verify green → impl tests →
 full verify**. Two-stage marks: `[~]` implemented, `[x]` verified. Commit per the active mode
@@ -58,15 +58,15 @@ Verify command:
 ## Phase 3 — Multi-block translate (`03-03`)
 
 ### 3.1 Spec tests (red)
-- [ ] 3.1.1 `il/multiblock-translate.spec.test.ts` — ST-16 (if/else → labels + JMP + branch), ST-17 (while back-edge JMP), ST-18 (straight-line non-regression), via `emitAsm`. **Verify red** (br/brcond ICE today).
+- [x] 3.1.1 `il/multiblock-translate.spec.test.ts` — ST-16 (if/else → labels + JMP + branch), ST-17 (while back-edge JMP), ST-18 (straight-line non-regression), via the codegen `lowerToIL→generateInstr→printInstr` pipeline (emitAsm-equivalent, no compiler facade). **Verify red** ✅ (ST-16/17 ICE; ST-18 already green).
 
 ### 3.2 Implement
-- [ ] 3.2.1 `translate.ts` — `run()` loops all `fn.blocks`, emits non-entry block labels via `blockLabel` (function-name-prefixed); **`prescanAll()` over every block + `resetBlockState()` (`clearRegs()` + `skipIndex=-1` + `leadSpan=undefined` + clear `loadSource`) at each block boundary — MANDATORY, correctness** (03-03 §1a) (FR-9 §1/§1a/§4).
-- [ ] 3.2.2 `translate.ts` — `translateTerminator`: `br`→`JMP`, `brcond`→condition-load + conditional branch + `JMP` to false target, `unreachable`→no-op (FR-9 §2/§3).
+- [x] 3.2.1 `translate.ts` — `run()` loops all `fn.blocks`, emits non-entry block labels via `blockLabel` (function-name-prefixed `Module_function_L<n>`, not the `_main` entry label); **`prescanAll()` over every block (+ terminator reads `brcond.cond`/`ret.value`) + `resetBlockState()` (`clearRegs()` + `skipIndex=-1` + `leadSpan=undefined` + clear `loadSource`) at each block boundary — MANDATORY, correctness** (03-03 §1a) (FR-9 §1/§1a/§4).
+- [x] 3.2.2 `translate.ts` — `translateTerminator`: `br`→`JMP`, `brcond`→`LDA cond`/`BNE trueTarget`/`JMP falseTarget` (materialized-boolean, PF-004), `unreachable`→no-op (FR-9 §2/§3).
 
 ### 3.3 Green + impl tests
-- [ ] 3.3.1 **Verify green** (ST-16…ST-18); confirm gate/slice3a/slice3b goldens unchanged (ST-18 non-regression).
-- [ ] 3.3.2 `multiblock-translate.impl.test.ts` — cross-function label uniqueness, `unreachable` no-ICE; **per-block-reset correctness (03-03 §1a): a non-entry block that reads one temp twice folds correctly (no dropped second consumer); a word-ALU immediately before a branch does not drop the next block's instruction via a stale `skipIndex`)**. Targeted verify.
+- [x] 3.3.1 **Verify green** (ST-16…ST-18) ✅; gate/slice3a/slice3b goldens byte-exact (ST-18 non-regression, test-harness). ASM dump traced: for-loop computes sum=18 (break@7, continue@3) matching the 03-04 oracle.
+- [x] 3.3.2 `multiblock-translate.impl.test.ts` — cross-function label uniqueness (`Mod_f_L0`≠`Mod_g_L0`), `unreachable` no-ICE; **per-block-reset correctness (03-03 §1a): `skipIndex` reset (word-ALU store-fold in one block does not drop the next block's instruction) + prescan covers non-entry blocks (second consumer not dropped)**. ✅ 4 impl green; codegen suite 351 green; typecheck/lint clean. (Note: 4a lowering only emits single-use temps, so `prescanAll` is forward-looking insurance; the `skipIndex` reset is the sharp wrong-code guard.)
 
 ---
 
@@ -97,7 +97,7 @@ Verify command:
 
 - [x] **Phase 1** — Control-flow semantics (1.1.1–1.3.2, 12 tasks) ✅
 - [x] **Phase 2** — CFG lowering (2.1.1–2.3.2, 8 tasks) ✅
-- [ ] **Phase 3** — Multi-block translate (3.1.1–3.3.2, 5 tasks)
+- [x] **Phase 3** — Multi-block translate (3.1.1–3.3.2, 5 tasks) ✅
 - [ ] **Phase 4** — Acceptance (4.1.1–4.2.3, 6 tasks)
 - [ ] **Phase 5** — Bookkeeping (5.1.1–5.1.4, 4 tasks)
 
