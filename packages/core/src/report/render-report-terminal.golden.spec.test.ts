@@ -51,6 +51,7 @@ function makePlan(overrides?: {
   ];
   return {
     frames: new Map(),
+    dataBase: 0x0e72 - (resourceData.ramUsed - resourceData.frameRegionBytes),
     frameRegionBase: 0x0e72,
     frameRegionSize: resourceData.frameRegionBytes,
     peakSimultaneous: resourceData.frameRegionPeak,

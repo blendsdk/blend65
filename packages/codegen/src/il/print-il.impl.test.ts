@@ -20,6 +20,7 @@ import { ilTypeTag, printIL } from "./print-il.js";
 
 const EMPTY_PLAN = {
   frames: new Map(),
+  dataBase: 0,
   frameRegionBase: 0,
   frameRegionSize: 0,
   peakSimultaneous: 0,

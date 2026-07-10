@@ -160,6 +160,7 @@ export function planAllocation(
 
   const plan: AllocationPlan = {
     frames: frameAllocs,
+    dataBase: profile.ramStart,
     frameRegionBase,
     frameRegionSize: coloring.frameRegionSize,
     peakSimultaneous: coloring.frameRegionSize,

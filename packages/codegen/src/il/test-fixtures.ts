@@ -139,6 +139,7 @@ function frameAlloc(functionName: string, slots: FrameSlot[]): FrameAllocation {
 function planWith(frames: ReadonlyMap<string, FrameAllocation>): AllocationPlan {
   return {
     frames,
+    dataBase: 0,
     frameRegionBase: 0,
     frameRegionSize: 0,
     peakSimultaneous: 0,

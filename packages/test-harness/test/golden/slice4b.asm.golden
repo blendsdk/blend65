@@ -1,11 +1,11 @@
 !to "main.prg", cbm
 ; --- symbol definitions ---
-__frame_Main_main = $0802
-__frame_Main_main_sel = $0802
-__frame_Main_main_acc = $0803
-__frame_Main_main_sel2 = $0804
-__var_Main_out1 = $0800
-__var_Main_out2 = $0801
+__frame_Main_main = $2002
+__frame_Main_main_sel = $2002
+__frame_Main_main_acc = $2003
+__frame_Main_main_sel2 = $2004
+__var_Main_out1 = $2000
+__var_Main_out2 = $2001
 __zp_arg_0 = $0002
 __zp_arg_1 = $0003
 __zp_arg_2 = $0004

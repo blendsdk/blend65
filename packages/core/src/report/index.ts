@@ -9,8 +9,8 @@
 
 export type { ResourceReport, PeepholeStats, SegmentRange } from "./resource-report.js";
 
-export type { BuildResourceReportInputs } from "./build-resource-report.js";
-export { buildResourceReport, checkBinaryBudget } from "./build-resource-report.js";
+export type { BuildResourceReportInputs, DataOverlapInputs } from "./build-resource-report.js";
+export { buildResourceReport, checkBinaryBudget, checkDataOverlap } from "./build-resource-report.js";
 
 export { renderReportTerminal } from "./render-report-terminal.js";
 export { renderReportJson } from "./render-report-json.js";

@@ -4,13 +4,19 @@
  * Runs the `emitAsm` pipeline, writes + assembles the binary via `emitBinary`,
  * threads `binarySize` into the resource report so the canonical
  * platform-named `checkBinaryBudget` E10034 cannot no-op, reads the binary
- * back on success, and returns a {@link BuildResult}. ACME I/O is injected via
- * {@link BuildDeps} for tests. Never throws, never prints.
+ * back on success, runs the mandatory code/data overlap check against the
+ * allocation plan's data base, and returns a {@link BuildResult}. ACME I/O is
+ * injected via {@link BuildDeps} for tests. Never throws, never prints.
  */
 
 import { readFileSync } from "node:fs";
 import { basename } from "node:path";
-import { buildResourceReport, checkBinaryBudget, type CompilerHost } from "@blend65/core";
+import {
+  buildResourceReport,
+  checkBinaryBudget,
+  checkDataOverlap,
+  type CompilerHost,
+} from "@blend65/core";
 import { defaultEmitDeps, emitBinary, type EmitDeps } from "../acme/emit-binary.js";
 import type { CompilerOptions } from "./options.js";
 import type { BuildResult } from "./results.js";
@@ -91,6 +97,20 @@ export async function build(
   // Read the binary back when ACME produced one (success or over-budget artifact).
   const binary =
     emit.binaryPath !== undefined ? deps.readBinary(emit.binaryPath) : undefined;
+
+  // Mandatory code/data overlap check: the PRG header's first two bytes are
+  // the load address (little-endian); the size excludes that header. The data
+  // base comes from the allocation plan, never from a profile constant.
+  if (binary !== undefined && binary.length >= 2 && emit.binarySize !== undefined) {
+    checkDataOverlap(
+      {
+        loadAddress: binary[0] | (binary[1] << 8),
+        binarySize: emit.binarySize,
+        dataBase: run.allocationPlan.dataBase,
+      },
+      run.bag,
+    );
+  }
 
   // Assemble the base AFTER every bag mutation (codegen + ACME + budget), so
   // the severity policy sees the complete diagnostic set (failure is derived

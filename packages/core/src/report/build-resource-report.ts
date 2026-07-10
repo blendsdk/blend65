@@ -103,3 +103,46 @@ export function checkBinaryBudget(report: ResourceReport, bag: DiagnosticBag): v
       `'${report.platformName}' maximum binary size (${report.binaryBudget} bytes)`,
   );
 }
+
+/** Inputs for {@link checkDataOverlap} — the binary's placement and the plan's data base. */
+export interface DataOverlapInputs {
+  /** The binary's load address (from the PRG header's first two bytes). */
+  readonly loadAddress: number;
+  /** Binary size in bytes, excluding the load header. */
+  readonly binarySize: number;
+  /** The allocation plan's data-region base (module variables + frames start here). */
+  readonly dataBase: number;
+}
+
+/** Formats an address as a 4-digit `$XXXX` hex literal for diagnostics. */
+function hexAddress(value: number): string {
+  return `$${value.toString(16).toUpperCase().padStart(4, "0")}`;
+}
+
+/**
+ * The post-ACME code/data overlap check.
+ *
+ * The data region (module variables + function frames) begins at the
+ * allocation plan's data base; code that reaches into it would be silently
+ * corrupted the moment a variable or frame slot is written. The boundary is
+ * half-open: `loadAddress + binarySize <= dataBase` passes, one byte more
+ * emits exactly one E10033 (the condition is a RAM-placement failure) through
+ * the bag with a `null` span. The build driver calls this unconditionally
+ * after reading the binary back.
+ *
+ * @param inputs The binary's load address/size and the plan's data base.
+ * @param bag The bag receiving the E10033 diagnostic (side effect).
+ */
+export function checkDataOverlap(inputs: DataOverlapInputs, bag: DiagnosticBag): void {
+  const end = inputs.loadAddress + inputs.binarySize;
+  if (end <= inputs.dataBase) {
+    return;
+  }
+  bag.addError(
+    DiagCode.RamBudgetExceeded,
+    null,
+    `Emitted code (${hexAddress(inputs.loadAddress)}–${hexAddress(end - 1)}) overlaps ` +
+      `the RAM data region starting at ${hexAddress(inputs.dataBase)} ` +
+      `(module variables and function frames)`,
+  );
+}

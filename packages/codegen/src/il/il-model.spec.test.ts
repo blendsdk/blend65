@@ -66,6 +66,7 @@ const ENUM_DECL: EnumDeclNode = {
  */
 const EMPTY_PLAN: AllocationPlan = {
   frames: new Map(),
+  dataBase: 0,
   frameRegionBase: 0,
   frameRegionSize: 0,
   peakSimultaneous: 0,

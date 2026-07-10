@@ -69,7 +69,12 @@ export const DEFAULT_PROFILE: PlatformProfile = {
   charEncoding: "ascii",
   // Neutral, internally-consistent budgets (zpEnd ≥ zpStart, ramEnd > ramStart).
   // Real targets override these.
-  ramStart: 0x0800,
+  //
+  // `ramStart` sits at $2000 so the data region (module variables + frames)
+  // clears the emitted code, which loads at $0801 on the default target —
+  // leaving ~6 KB of code room. The post-ACME overlap check enforces the
+  // boundary against the allocation plan's actual data base.
+  ramStart: 0x2000,
   ramEnd: 0xa000,
   zpStart: 0x02,
   zpEnd: 0x2f,

@@ -62,7 +62,7 @@ function emptyPlan(): AllocationPlan {
   };
   return {
     frames: new Map([["Main.main", frame]]),
-    frameRegionBase: 0, frameRegionSize: 0, peakSimultaneous: 0, sharingSaved: 0,
+    dataBase: 0, frameRegionBase: 0, frameRegionSize: 0, peakSimultaneous: 0, sharingSaved: 0,
     zpAllocations: [], zpUsed: 0, zpBudget: 0, moduleVariables: [], moduleVariablesSize: 0,
     stackAnalysis: { maxMainDepth: 0, maxMainStackBytes: 0, maxIrqDepth: 0, maxIrqStackBytes: 0, irqOverhead: 0, totalWorstCase: 0, platformBudget: 0, exceedsWarningThreshold: false },
     symbolDefinitions: [],

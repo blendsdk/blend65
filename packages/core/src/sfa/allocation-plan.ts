@@ -154,6 +154,14 @@ export interface SfaResourceData {
 export interface AllocationPlan {
   /** Placed frames, keyed by fully-qualified function name. */
   readonly frames: ReadonlyMap<string, FrameAllocation>;
+  /**
+   * Absolute base address of the whole RAM data region (`profile.ramStart` as
+   * planned): module variables start here, the frame region follows. The
+   * post-ACME overlap check asserts emitted code ends at or below this base —
+   * keyed off the plan, not a profile constant, so it stays correct if a
+   * platform's profile places the region elsewhere.
+   */
+  readonly dataBase: number;
   /** Absolute base address of the frame region (`ramStart + moduleVariablesSize`). */
   readonly frameRegionBase: number;
   /** Total frame-region size (peak simultaneous footprint). */

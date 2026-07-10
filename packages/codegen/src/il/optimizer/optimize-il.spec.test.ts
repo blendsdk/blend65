@@ -27,6 +27,7 @@ import type { ILPass } from "./pass.js";
 /** Minimal empty plan — the optimizer never reads it. */
 const EMPTY_PLAN = {
   frames: new Map(),
+  dataBase: 0,
   frameRegionBase: 0,
   frameRegionSize: 0,
   peakSimultaneous: 0,

@@ -47,6 +47,7 @@ function makePlan(): AllocationPlan {
   ];
   return {
     frames: new Map(),
+    dataBase: 0x0e19,
     frameRegionBase: 0x0e72,
     frameRegionSize: 47,
     peakSimultaneous: 47,

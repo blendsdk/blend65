@@ -216,6 +216,7 @@ describe("Specification: RD-05 core SFA records", () => {
   it("should construct an immutable AllocationPlan with all sub-records", () => {
     const plan: AllocationPlan = {
       frames: new Map(),
+      dataBase: 0x0800,
       frameRegionBase: 0x0800,
       frameRegionSize: 0,
       peakSimultaneous: 0,

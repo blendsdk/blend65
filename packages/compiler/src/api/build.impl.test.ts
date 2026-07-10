@@ -78,6 +78,36 @@ describe("build(): binary read-back", () => {
   });
 });
 
+describe("build(): code/data overlap check", () => {
+  it("accepts a binary ending exactly at the plan's data base", async () => {
+    // Load $0801 (fake PRG header) + $17FF bytes → end $2000 == the default
+    // profile's data base; the half-open boundary passes.
+    const result = await build(
+      { platform: "c64", cwd, sourceFiles: ["main.blend"] },
+      memHost({ "main.blend": GATE_SRC }),
+      fakeBuildDeps({ binarySize: 0x17ff }),
+    );
+
+    expect(result.diagnostics.some((d) => d.code === DiagCode.RamBudgetExceeded)).toBe(false);
+    expect(result.hasErrors).toBe(false);
+  });
+
+  it("fails the build when code reaches the plan's data base (plan-keyed, not a constant)", async () => {
+    // One byte more: end $2001 > data base $2000. The reported base comes from
+    // the allocation plan, so the message names the plan's actual data base.
+    const result = await build(
+      { platform: "c64", cwd, sourceFiles: ["main.blend"] },
+      memHost({ "main.blend": GATE_SRC }),
+      fakeBuildDeps({ binarySize: 0x1800 }),
+    );
+
+    const overlap = result.diagnostics.find((d) => d.code === DiagCode.RamBudgetExceeded);
+    expect(overlap).toBeDefined();
+    expect(overlap?.message).toContain("$2000");
+    expect(result.hasErrors).toBe(true);
+  });
+});
+
 describe("build(): report absence on pre-emit abort", () => {
   it("returns no resourceReport, binary, or asmText for an unknown platform", async () => {
     const result = await build({ platform: "nope", cwd }, undefined, fakeBuildDeps());

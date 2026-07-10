@@ -19,6 +19,7 @@ import { translateFunction } from "./translate.js";
 /** A minimal empty allocation plan (T1 intrinsics need no frame/ZP state). */
 const EMPTY_PLAN: AllocationPlan = {
   frames: new Map(),
+  dataBase: 0,
   frameRegionBase: 0,
   frameRegionSize: 0,
   peakSimultaneous: 0,

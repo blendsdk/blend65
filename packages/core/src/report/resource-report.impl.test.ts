@@ -41,6 +41,7 @@ function makePlan(
   };
   return {
     frames: new Map(),
+    dataBase: 0,
     frameRegionBase: 0,
     frameRegionSize: sfa.frameRegionBytes,
     peakSimultaneous: sfa.frameRegionPeak,

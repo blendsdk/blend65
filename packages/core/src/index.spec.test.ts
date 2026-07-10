@@ -60,6 +60,7 @@ describe("@blend65/core RD-11b export surface (ST-28)", () => {
       targetName: "out.prg",
       plan: {
         frames: new Map(),
+        dataBase: 0,
         frameRegionBase: 0,
         frameRegionSize: 0,
         peakSimultaneous: 0,

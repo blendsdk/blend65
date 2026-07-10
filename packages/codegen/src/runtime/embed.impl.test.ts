@@ -23,6 +23,7 @@ import {
 function emptyPlan(): AllocationPlan {
   return {
     frames: new Map(),
+    dataBase: 0,
     frameRegionBase: 0,
     frameRegionSize: 0,
     peakSimultaneous: 0,

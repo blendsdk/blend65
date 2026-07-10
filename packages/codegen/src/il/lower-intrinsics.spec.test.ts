@@ -75,6 +75,7 @@ function planWith(slots: FrameSlot[] = []): AllocationPlan {
   };
   return {
     frames: new Map([["Main.main", frame]]),
+    dataBase: 0,
     frameRegionBase: 0,
     frameRegionSize: 0,
     peakSimultaneous: 0,

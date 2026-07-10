@@ -40,6 +40,7 @@ const S: SourceSpan = makeSpan(0, 0, 0);
 function emptyPlanWith(frames: ReadonlyMap<string, FrameAllocation>): AllocationPlan {
   return {
     frames,
+    dataBase: 0,
     frameRegionBase: 0,
     frameRegionSize: 0,
     peakSimultaneous: 0,
