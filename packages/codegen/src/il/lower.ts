@@ -48,6 +48,7 @@ import type {
   SemanticModel,
   AllocationPlan,
   StmtNode,
+  Symbol,
   SwitchStmtNode,
   Type,
   TypeNode,
@@ -116,12 +117,14 @@ interface LowerCtx {
   readonly fqName: string;
   readonly frame: FunctionFrame | undefined;
   readonly bag: DiagnosticBag;
-  /** The semantic model (struct/enum tables for sizeof/offsetof folds). */
+  /** The semantic model (symbol resolution, call graph, sizeof/offsetof folds). */
   readonly model: SemanticModel;
   /** The intrinsic registry (descriptor lookup for strategy dispatch). */
   readonly registry: IntrinsicRegistry;
   /** The enclosing-loop stack for `break`/`continue`. */
   readonly loopStack: LoopContext[];
+  /** The allocation plan (callee frame slots for the calling convention). */
+  readonly plan: AllocationPlan;
 }
 
 /**
@@ -175,7 +178,7 @@ function lowerFunction(
   const returnType = fn.kind === "FunctionDecl" ? typeNodeToIl(fn.returnType) : "void";
 
   const builder = new IlFunctionBuilder(fqName, params, returnType, isInterrupt);
-  const ctx: LowerCtx = { builder, fqName, frame, bag, model, registry, loopStack: [] };
+  const ctx: LowerCtx = { builder, fqName, frame, bag, model, registry, loopStack: [], plan };
 
   lowerBlock(fn.body, ctx);
 
@@ -589,7 +592,7 @@ function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
  * `'call'`-strategy intrinsic is a T4 platform intrinsic — T4
  * names parse as ordinary `CallExprNode` and are recognized semantically via
  * the registry: it lowers to the IL `intrinsic` op exactly like a T3
- * routine. Anything else (user function calls) is deferred for now → ICE.
+ * routine. Anything else is a user function call.
  */
 function lowerCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
   if (expr.callee.kind === "IdentExpr") {
@@ -599,7 +602,128 @@ function lowerCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
       return imm(0, IL_BYTE); // void result, discarded by the ExpressionStmt
     }
   }
-  return iceUnsupported(expr, ctx, "call expression (user functions are deferred)");
+  return lowerUserCall(expr, ctx);
+}
+
+/**
+ * Lower a user-function call with the store-per-argument convention (static
+ * frames): evaluate each argument left to right and store it into the
+ * callee's frame slot the moment it exists, then emit a bare `call` whose
+ * only job is the transfer + result binding (`args` stays empty by design —
+ * the marshalling is the explicit stores). Memory-homing every argument as
+ * it is produced means a call nested in a LATER argument cannot clobber an
+ * earlier one — the interference planner keeps the frames disjoint — except
+ * when that nested call can reach this callee itself (its own frame would be
+ * overwritten mid-marshalling); that residual shape is rejected loudly
+ * before anything is emitted, never compiled wrong.
+ *
+ * A callee that is not a plain resolved user function (qualified access,
+ * unresolved symbols) keeps the unsupported-ICE contract.
+ */
+function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
+  if (expr.callee.kind !== "IdentExpr") {
+    return iceUnsupported(expr, ctx, "call expression (qualified callee)");
+  }
+  const callee = ctx.model.symbolOf(expr.callee);
+  if (callee === null || callee.kind !== "function" || !isFunctionDecl(callee.decl)) {
+    return iceUnsupported(expr, ctx, "call expression (unresolved callee)");
+  }
+  const calleeFq = symbolFqName(callee);
+  const decl = callee.decl;
+
+  // Never-miscompile guard: a call nested in any argument after the first
+  // that can reach this callee again would overwrite the argument slots
+  // stored so far. Visited-set-bounded reachability — terminates on any
+  // graph.
+  for (const arg of expr.args.slice(1)) {
+    for (const nested of collectCallExprs(arg)) {
+      const nestedCallee =
+        nested.callee.kind === "IdentExpr" ? ctx.model.symbolOf(nested.callee) : null;
+      if (nestedCallee === null || nestedCallee.kind !== "function") continue;
+      if (canReach(nestedCallee, callee, ctx.model)) {
+        return iceUnsupported(
+          expr,
+          ctx,
+          `call reaching '${callee.name}' inside an argument of a call to '${callee.name}'`,
+        );
+      }
+    }
+  }
+
+  // Store-per-arg, left to right: every argument value is memory-homed in
+  // the callee's frame the moment it is evaluated.
+  const calleeFrame = ctx.plan.frames.get(calleeFq)?.frame;
+  for (let i = 0; i < expr.args.length; i++) {
+    const param = decl.params[i];
+    if (param === undefined) {
+      // An arity mismatch is a type error caught upstream; reaching here is
+      // a compiler bug.
+      return iceUnsupported(expr, ctx, "call with unexpected argument count");
+    }
+    const value = lowerExpr(expr.args[i], ctx);
+    const slotType = slotIlType(calleeFrame, param.name);
+    ctx.builder.emit({ op: "store", a: value, b: loc(frameSymbol(calleeFq, param.name), slotType) });
+  }
+
+  // The bare transfer + result binding.
+  const returnType = typeNodeToIl(decl.returnType);
+  if (returnType === "void") {
+    ctx.builder.emit({ op: "call", target: calleeFq, args: [] });
+    return imm(0, IL_BYTE); // void result, discarded by the ExpressionStmt
+  }
+  const dest = ctx.builder.newTemp(returnType);
+  ctx.builder.emit({ op: "call", dest, target: calleeFq, args: [] });
+  return dest;
+}
+
+/** Narrows a symbol's declaring node to a {@link FunctionDeclNode}. */
+function isFunctionDecl(node: AstNode): node is FunctionDeclNode {
+  return node.kind === "FunctionDecl";
+}
+
+/**
+ * The fully-qualified `Module.function` name of a function symbol, read from
+ * its declaring module scope — the same recovery the SFA adapter uses, so
+ * `plan.frames` and the emitted `__frame_*`/label references line up.
+ */
+function symbolFqName(fn: Symbol): string {
+  const modNode = fn.scope.node;
+  const moduleName = isModuleDecl(modNode) ? modNode.name : "";
+  return `${moduleName}.${fn.name}`;
+}
+
+/** Collects every plain call expression in a subtree (uniform visitor walk). */
+function collectCallExprs(root: AstNode): CallExprNode[] {
+  const found: CallExprNode[] = [];
+  const visit = (node: AstNode): void => {
+    if (node.kind === "CallExpr") {
+      found.push(node as CallExprNode);
+    }
+    walkChildren(node, visitor);
+  };
+  const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
+  walkNode(root, visitor);
+  return found;
+}
+
+/**
+ * Whether `from` can reach `target` along call-graph edges, `from` itself
+ * included. Visited-set-bounded — terminates on any input, cyclic included.
+ */
+function canReach(from: Symbol, target: Symbol, model: SemanticModel): boolean {
+  const visited = new Set<Symbol>([from]);
+  const stack: Symbol[] = [from];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current === undefined) break;
+    if (current === target) return true;
+    for (const callee of model.callGraph.edges.get(current) ?? []) {
+      if (visited.has(callee)) continue;
+      visited.add(callee);
+      stack.push(callee);
+    }
+  }
+  return false;
 }
 
 /**

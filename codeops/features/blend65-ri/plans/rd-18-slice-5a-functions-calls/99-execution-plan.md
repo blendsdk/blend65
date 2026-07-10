@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-10 13:10
-> **Progress**: 28/46 tasks (61%)
+> **Last Updated**: 2026-07-10 14:05
+> **Progress**: 36/46 tasks (78%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -226,34 +226,46 @@ golden re-mint for the whole slice (challenger H5).
 **Reference**: 03-03 · 07 ST-25..ST-30 · AR-3, AR-4
 **Objective**: IL/ASM shape oracles + both never-miscompile guards.
 
-- [ ] 3.1.1 Lowering spec tests: ST-25 IL store-per-arg + bare `call` shape (IL printer),
+- [x] 3.1.1 Lowering spec tests: ST-25 IL store-per-arg + bare `call` shape (IL printer),
       ST-28 same-callee-in-later-arg → lowering ICE, ST-30 first-arg nested call compiles
-      — `packages/codegen/src/il/` spec suite
-- [ ] 3.1.2 Translate spec tests: ST-26 caller ASM sequence (stores → `JSR Math_add` →
+      — `packages/codegen/src/il/` spec suite ✅ (completed: 2026-07-10 13:30 —
+      `il/lower-call.spec.test.ts`)
+- [x] 3.1.2 Translate spec tests: ST-26 caller ASM sequence (stores → `JSR Math_add` →
       A-result store), ST-27 word param/return round-trip (A:X), ST-29 live-temp-across-
-      call → translate ICE — `packages/codegen/src/instr/` spec suite
-- [ ] 3.1.3 Run them — verify RED
+      call → translate ICE — `packages/codegen/src/instr/` spec suite ✅ (completed:
+      2026-07-10 13:30 — `instr/translate-call.spec.test.ts`)
+- [x] 3.1.3 Run them — verify RED ✅ (completed: 2026-07-10 13:30 — 6/6 RED)
 
 ### Step 3.2: Implementation
 
-- [ ] 3.2.1 `lowerCall` user branch: callee FQN + param-slot resolution with an
+- [x] 3.2.1 `lowerCall` user branch: callee FQN + param-slot resolution with an
       `iceUnsupported` fallback for unresolvable/non-IdentExpr callees (PF-006), AR-3
       residual guard (reach-includes-callee → `iceUnsupported`, visited-set-bounded
       DFS), store-per-arg lowering, `call`
       emission with dest temp — `packages/codegen/src/il/lower.ts` (03-03 §2)
-- [ ] 3.2.2 Translate `case "call"`: AR-4 live-temp guard via a NEW separate
+      ✅ (completed: 2026-07-10 13:55 — `lowerUserCall` + `canReach`/`collectCallExprs`
+      helpers; `LowerCtx` gains `plan` for callee frame-slot types)
+- [x] 3.2.2 Translate `case "call"`: AR-4 live-temp guard via a NEW separate
       remaining-use map (copy of the prescan totals, decremented once per consumed
       operand occurrence — never mutate `useCount`, the fold decisions read it;
       03-03 §3.1 / PF-001) → `iceUnsupported`; `JSR sanitize(target)`; result bind
       (byte→A, word→A:X, void→none); clear all other mirrors —
-      `packages/codegen/src/instr/translate.ts` (03-03 §3)
-- [ ] 3.2.3 Run all Phase-3 spec tests — verify GREEN
+      `packages/codegen/src/instr/translate.ts` (03-03 §3) ✅ (completed: 2026-07-10
+      13:55 — `remainingUses` copy + per-occurrence `consumeReads` in the run loop
+      (skipped folded stores included), `producedThisBlock` set bounds the guard to
+      temps actually defined before the JSR; deferred-load (memory-homed) temps exempt)
+- [x] 3.2.3 Run all Phase-3 spec tests — verify GREEN ✅ (completed: 2026-07-10 13:55 —
+      6/6 green (one assertion's IL-location syntax corrected to the printer's real
+      grammar — bracket-less locations); full workspace suite green)
 
 ### Step 3.3: Implementation tests & hardening
 
-- [ ] 3.3.1 Impl tests: register mirror cleared after user JSR, multi-module `sanitize`
-      labels, void-call statement path
-- [ ] 3.3.2 Full verify
+- [x] 3.3.1 Impl tests: register mirror cleared after user JSR, multi-module `sanitize`
+      labels, void-call statement path ✅ (completed: 2026-07-10 14:05 —
+      `instr/translate-call.impl.test.ts` (4): A-result no-reload, distinct
+      multi-module labels, void bare-JSR, folded-store ledger precision)
+- [x] 3.3.2 Full verify ✅ (completed: 2026-07-10 14:05 — install/build/typecheck/lint/
+      test all green)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

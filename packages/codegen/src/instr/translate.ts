@@ -139,6 +139,16 @@ class FunctionTranslator {
 
   /** Use-count per temp id, from the pre-scan. */
   private readonly useCount = new Map<number, number>();
+  /**
+   * REMAINING uses per temp id — a separate copy of the pre-scan totals,
+   * decremented once per consumed IL operand occurrence as instructions and
+   * terminators are translated. `useCount` itself is never decremented (the
+   * fold decisions read the static totals). At a user-call `JSR` this is what
+   * answers "is any value still needed after the call?".
+   */
+  private readonly remainingUses = new Map<number, number>();
+  /** Temp ids defined so far in the CURRENT block (dest of const/load/ALU/call). */
+  private readonly producedThisBlock = new Set<number>();
   /** Single-use `load` results deferred for folding: temp id → source location. */
   private readonly loadSource = new Map<number, ILOperand>();
 
@@ -181,12 +191,20 @@ class FunctionTranslator {
         this.out.push(label(this.blockLabel(block.label)));
       }
       block.instructions.forEach((ins, i) => {
-        if (i === this.skipIndex) {
-          return; // store folded into the preceding word ALU
+        if (i !== this.skipIndex) {
+          // A skipped store was folded into the preceding word ALU — its
+          // reads are still consumed below so the remaining-use ledger stays
+          // truthful.
+          this.translateInstruction(ins, i, block.instructions);
         }
-        this.translateInstruction(ins, i, block.instructions);
+        this.consumeReads(readOperands(ins));
+        const produced = destTempId(ins);
+        if (produced !== null) {
+          this.producedThisBlock.add(produced);
+        }
       });
       this.translateTerminator(block.terminator);
+      this.consumeReads(terminatorReads(block.terminator));
     }
     if (this.fn.blocks.length === 0) {
       this.translateTerminator({ kind: "ret" });
@@ -214,11 +232,24 @@ class FunctionTranslator {
           }
         }
       }
-      const term = block.terminator;
-      const termRead =
-        term.kind === "ret" ? term.value : term.kind === "brcond" ? term.cond : undefined;
-      if (termRead !== undefined && isTemp(termRead)) {
-        this.useCount.set(termRead.id, (this.useCount.get(termRead.id) ?? 0) + 1);
+      for (const termRead of terminatorReads(block.terminator)) {
+        if (isTemp(termRead)) {
+          this.useCount.set(termRead.id, (this.useCount.get(termRead.id) ?? 0) + 1);
+        }
+      }
+    }
+    // Seed the remaining-use ledger with a COPY of the totals; translation
+    // decrements the copy only.
+    for (const [id, count] of this.useCount) {
+      this.remainingUses.set(id, count);
+    }
+  }
+
+  /** Decrement the remaining-use ledger once per consumed temp occurrence. */
+  private consumeReads(reads: readonly ILOperand[]): void {
+    for (const op of reads) {
+      if (isTemp(op)) {
+        this.remainingUses.set(op.id, (this.remainingUses.get(op.id) ?? 0) - 1);
       }
     }
   }
@@ -235,6 +266,7 @@ class FunctionTranslator {
     this.skipIndex = -1;
     this.leadSpan = undefined;
     this.loadSource.clear();
+    this.producedThisBlock.clear();
   }
 
   /**
@@ -300,9 +332,52 @@ class FunctionTranslator {
       case "intrinsic":
         this.translateIntrinsic(ins.name, ins.descriptor);
         return;
+      case "call":
+        this.translateCall(ins.dest, ins.target);
+        return;
       default:
         this.iceUnsupported(ins.op);
 
+    }
+  }
+
+  /**
+   * Translate a user-function `call`: the arguments already sit in the
+   * callee's frame slots (explicit `store` ops from lowering), so the call is
+   * a bare `JSR` to the sanitized `Module_function` label plus result
+   * binding — A for a byte result, A:X for a word. A user callee may clobber
+   * any register or shared expression temp, so every other mirror is dropped.
+   *
+   * Never-miscompile guard: expression temps spill to the one shared
+   * zero-page pool the callee's own expressions reuse, and registers do not
+   * survive a call — so ANY value produced in this block that still has
+   * remaining uses at the `JSR` and is not memory-homed (a deferred load can
+   * be re-read from its home afterwards) would come back corrupted. That
+   * shape (`f() + g()`) is rejected loudly before emitting anything;
+   * evaluating each call into a variable first compiles fine.
+   */
+  private translateCall(dest: ILOperand | undefined, target: string): void {
+    const destId = dest !== undefined && isTemp(dest) ? dest.id : null;
+    for (const id of this.producedThisBlock) {
+      if (id === destId) continue;
+      if ((this.remainingUses.get(id) ?? 0) <= 0) continue;
+      if (this.loadSource.has(id)) continue; // memory-homed → survives the call
+      this.bag.addICE(
+        IceCode.Unexpected,
+        null,
+        `IL→Instr: value live across a call to '${target}' — ` +
+          `evaluate calls into variables first`,
+      );
+      return;
+    }
+
+    this.emit("JSR", "Absolute", labelRef(sanitize(target)));
+    this.clearRegs();
+    if (dest !== undefined && destId !== null) {
+      this.bindA(destId); // byte result in A; word low byte in A
+      if (widthOf(dest) === 16) {
+        this.bindX(destId); // word high byte in X
+      }
     }
   }
 
@@ -943,6 +1018,30 @@ function widthOf(op: ILOperand): 8 | 16 {
 /** Narrow a destination operand to its temp id, or `-1` for a non-temp (ICE-safe). */
 function asTempId(op: ILOperand): number {
   return isTemp(op) ? op.id : -1;
+}
+
+/** The temp id an instruction defines (its destination), or `null`. */
+function destTempId(ins: ILInstruction): number | null {
+  switch (ins.op) {
+    case "load":
+      return isTemp(ins.a) ? ins.a.id : null;
+    case "store":
+    case "store_indexed":
+    case "store_indirect":
+    case "source_span":
+      return null;
+    case "call":
+    case "intrinsic":
+      return ins.dest !== undefined && isTemp(ins.dest) ? ins.dest.id : null;
+    default:
+      return "dest" in ins && isTemp(ins.dest) ? ins.dest.id : null;
+  }
+}
+
+/** The temp-read operands of a block terminator (`ret.value` / `brcond.cond`). */
+function terminatorReads(term: ILTerminator): readonly ILOperand[] {
+  const read = term.kind === "ret" ? term.value : term.kind === "brcond" ? term.cond : undefined;
+  return read !== undefined ? [read] : [];
 }
 
 /** A `symbolRef` for a location operand at the given byte offset (lo=0/hi=1). */
