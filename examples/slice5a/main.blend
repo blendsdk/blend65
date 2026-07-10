@@ -1,0 +1,24 @@
+module Main;
+
+import { add, triple } from Math;
+
+let r1: byte;
+let r2: word;
+let r3: byte;
+
+function main(): void {
+    let x: byte = 10;
+    r1 = add(x, 7);
+    poke(0xC000, r1);
+
+    r2 = triple(300);
+    pokew(0xC001, r2);
+
+    r3 = combo(5);
+    poke(0xC003, r3);
+}
+
+function combo(n: byte): byte {
+    let t: byte = add(n, 3);
+    return t + t;
+}

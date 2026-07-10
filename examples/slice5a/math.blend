@@ -1,0 +1,9 @@
+module Math;
+
+export function add(a: byte, b: byte): byte {
+    return a + b;
+}
+
+export function triple(v: word): word {
+    return v * 3;
+}

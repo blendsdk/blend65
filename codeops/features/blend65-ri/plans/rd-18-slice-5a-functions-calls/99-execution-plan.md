@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-10 14:05
-> **Progress**: 36/46 tasks (78%)
+> **Last Updated**: 2026-07-10 14:20
+> **Progress**: 41/46 tasks (89%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -278,16 +278,21 @@ golden re-mint for the whole slice (challenger H5).
 **Reference**: 03-04 · 07 ST-31..ST-34 · AR-16
 **Objective**: the first multi-function, two-module program proven on real silicon.
 
-- [ ] 4.1.1 Fixture: `examples/slice5a/main.blend` + `examples/slice5a/math.blend`
+- [x] 4.1.1 Fixture: `examples/slice5a/main.blend` + `examples/slice5a/math.blend`
       (03-04 §1 verbatim) + `packages/test-harness/src/testing/slice5a.ts`
-      (`buildSlice5a`/`emitAsmSlice5a`, two `sourceFiles`)
-- [ ] 4.1.2 Write acceptance spec tests before minting: `golden-slice5a.spec.test.ts`
+      (`buildSlice5a`/`emitAsmSlice5a`, two `sourceFiles`) ✅ (completed: 2026-07-10 14:20)
+- [x] 4.1.2 Write acceptance spec tests before minting: `golden-slice5a.spec.test.ts`
       (ST-32) + `slice5a.spec.test.ts` assemble-clean (ST-31) and VICE runtime (ST-33,
-      `skipIf(!(hasVice("c64") && hasAcme()))`) — RED (golden absent)
-- [ ] 4.1.3 Mint `test/golden/slice5a.asm.golden`; assemble-clean + golden GREEN (ST-31/32)
-- [ ] 4.1.4 Local VICE GREEN: `$C000==$11`, `$C001==$84`, `$C002==$03`, `$C003==$10`
-      (ST-33); prior goldens byte-exact (ST-34)
-- [ ] 4.1.5 Full verify
+      `skipIf(!(hasVice("c64") && hasAcme()))`) — RED (golden absent) ✅ (completed:
+      2026-07-10 14:20 — RED confirmed on the absent golden)
+- [x] 4.1.3 Mint `test/golden/slice5a.asm.golden`; assemble-clean + golden GREEN (ST-31/32)
+      ✅ (completed: 2026-07-10 14:20 — 164-line golden; interleaved arg stores, bare
+      JSRs, A/A:X binds, data at `$2000`, `Math`/`Main` frames disjoint via coloring)
+- [x] 4.1.4 Local VICE GREEN: `$C000==$11`, `$C001==$84`, `$C002==$03`, `$C003==$10`
+      (ST-33); prior goldens byte-exact (ST-34) ✅ (completed: 2026-07-10 14:20 — real
+      VICE 3.10 runtime suite green; gate/slice3a/3b/4a/4b goldens all byte-exact)
+- [x] 4.1.5 Full verify ✅ (completed: 2026-07-10 14:20 — install/build/typecheck/lint/
+      test all green; test-harness 91 tests)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
