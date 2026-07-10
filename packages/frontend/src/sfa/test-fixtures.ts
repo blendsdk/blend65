@@ -111,11 +111,13 @@ export interface FnOptions {
   readonly isEscaped?: boolean;
   readonly isReachable?: boolean;
   readonly callees?: readonly string[];
+  readonly argWindowInterferes?: readonly string[];
 }
 
 /**
  * Builds a {@link FunctionInfo} with defaults: no params/locals, not
- * interrupt/escaped, reachable, no callees. Override any field via `opts`.
+ * interrupt/escaped, reachable, no callees, empty argument window. Override
+ * any field via `opts`.
  *
  * @param name The fully-qualified function name.
  * @param opts Optional overrides for the function's fields.
@@ -130,5 +132,6 @@ export function makeFn(name: string, opts: FnOptions = {}): FunctionInfo {
     isEscaped: opts.isEscaped ?? false,
     isReachable: opts.isReachable ?? true,
     callees: opts.callees ?? [],
+    argWindowInterferes: opts.argWindowInterferes ?? [],
   };
 }

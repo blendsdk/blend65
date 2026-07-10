@@ -155,23 +155,27 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     targetProfile: plugin.profile,
   });
 
-  // 9. SFA (empty adapter inputs are correct for the gate slice; the full
-  // adapter wiring is deferred). `planAllocation` consumes the interim
-  // semantics `PlatformProfile` (the same `DEFAULT_PROFILE` `analyze`
-  // receives), not the canonical `plugin.profile` — the two `PlatformProfile`
-  // types differ, and per-platform semantics profiles land later. For the
-  // empty-adapter gate slice the frame set is empty either way; the canonical
-  // `maxBinarySize` reaches the budget check via `build.ts`.
-  const allocationPlan = planAllocation(
-    {
-      functions: modelToFunctionInfo(semanticModel),
-      moduleVars: modelToModuleVars(semanticModel), // real module scalars
-      zpUserVars: [],
-      upstreamErrors: bag.hasErrors(),
-    },
-    DEFAULT_PROFILE,
-    bag,
-  );
+  // 9. SFA — gated on a clean frontend: an errored model must never reach
+  // frame planning (coloring over a rejected — e.g. cyclic — call graph is
+  // meaningless), and the gate also skips the adapter projections whose
+  // reachability walks assume analyzer invariants. `planAllocation` consumes
+  // the interim semantics `PlatformProfile` (the same `DEFAULT_PROFILE`
+  // `analyze` receives), not the canonical `plugin.profile` — the two
+  // `PlatformProfile` types differ, and per-platform semantics profiles land
+  // later. The canonical `maxBinarySize` reaches the budget check via
+  // `build.ts`.
+  const allocationPlan = bag.hasErrors()
+    ? undefined
+    : planAllocation(
+        {
+          functions: modelToFunctionInfo(semanticModel),
+          moduleVars: modelToModuleVars(semanticModel), // real module scalars
+          zpUserVars: [],
+          upstreamErrors: false, // gated: planning only runs on a clean frontend
+        },
+        DEFAULT_PROFILE,
+        bag,
+      );
 
   return {
     config,
@@ -182,7 +186,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     registry,
     programs,
     semanticModel,
-    allocationPlan,
+    ...(allocationPlan !== undefined ? { allocationPlan } : {}),
     outName,
     aborted: false,
   };

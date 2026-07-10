@@ -120,6 +120,7 @@ describe("modelToFunctionInfo — internals & edges (Slice 3a)", () => {
         isEscaped: false,
         isReachable: true,
         callees: [],
+        argWindowInterferes: [],
       },
     ]);
   });

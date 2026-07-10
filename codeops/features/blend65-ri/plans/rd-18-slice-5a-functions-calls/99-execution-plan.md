@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-10 12:20
-> **Progress**: 21/46 tasks (46%)
+> **Last Updated**: 2026-07-10 13:10
+> **Progress**: 28/46 tasks (61%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -178,33 +178,42 @@ golden re-mint for the whole slice (challenger H5).
 **Reference**: 03-02 §1..§3 · 07 ST-21..ST-24 · AR-3, AR-7
 **Objective**: oracles for the adapter feed + interference soundness + pass ordering.
 
-- [ ] 2.1.1 Spec tests: ST-21 params-first projection, ST-22 callees + ancestor-descendant
+- [x] 2.1.1 Spec tests: ST-21 params-first projection, ST-22 callees + ancestor-descendant
       disjointness, ST-23 argument-window interference (`f`/`h` sibling shape), ST-24
       recursion poisons before `planAllocation` — adapter/model-adapter + run-frontend
-      spec suites
-- [ ] 2.1.2 Run them — verify RED
+      spec suites ✅ (completed: 2026-07-10 12:35 — `frontend/src/sfa/
+      adapter-params.spec.test.ts` + `compiler/src/api/run-frontend-gate.spec.test.ts`)
+- [x] 2.1.2 Run them — verify RED ✅ (completed: 2026-07-10 12:35 — 6 failed / 1 passed
+      (the clean-program control); RED confirmed)
 
 ### Step 2.2: Implementation
 
-- [ ] 2.2.1 Adapter: project `parameters` (scope `parameter` symbols, insertion order) and
+- [x] 2.2.1 Adapter: project `parameters` (scope `parameter` symbols, insertion order) and
       `callees` (edge FQNs, sorted) — `packages/frontend/src/sfa/model-adapter.ts`
-      (03-02 §1/§2)
-- [ ] 2.2.2 Argument-window interference: `FunctionInfo.argWindowInterferes` field
+      (03-02 §1/§2) ✅ (completed: 2026-07-10 12:50 — one `collectFrameVars(scope, kind)`
+      covers params + locals)
+- [x] 2.2.2 Argument-window interference: `FunctionInfo.argWindowInterferes` field
       (`packages/core/src/sfa/function-info.ts`), frontend computation (nested calls in
       args after the first, reach() over edges), union into
-      `packages/frontend/src/sfa/interference.ts` (03-02 §3)
-- [ ] 2.2.3 ADD the `hasErrors`→skip-`planAllocation` driver gate in
+      `packages/frontend/src/sfa/interference.ts` (03-02 §3) ✅ (completed: 2026-07-10
+      12:50 — required field; `makeFn` + 3 literal fixture sites extended;
+      `computeArgWindows` + visited-set-bounded `reach()` in the adapter;
+      interference Step 3 unions the edges, self-pairs skipped by `addEdge`)
+- [x] 2.2.3 ADD the `hasErrors`→skip-`planAllocation` driver gate in
       `packages/compiler/src/api/run-frontend.ts` — no gate exists today (PF-002); guard
       the whole call expression so the inline `modelToFunctionInfo` argument is skipped
       too; leave the plan-allocation-level "still assembles under upstreamErrors" spec
-      test untouched (different layer) (ST-24) — GREEN all Phase-2 STs
+      test untouched (different layer) (ST-24) — GREEN all Phase-2 STs ✅ (completed:
+      2026-07-10 12:50 — 7/7 Phase-2 STs green; full workspace suite green)
 
 ### Step 2.3: Implementation tests & hardening
 
-- [ ] 2.3.1 Impl tests: FrameVar ordering, `argWindowInterferes` dedup/sort determinism,
+- [x] 2.3.1 Impl tests: FrameVar ordering, `argWindowInterferes` dedup/sort determinism,
       reach() on diamonds AND on a cyclic graph (visited-set bound — must terminate;
-      PF-002), self-pair skipped
-- [ ] 2.3.2 Full verify
+      PF-002), self-pair skipped ✅ (completed: 2026-07-10 13:10 —
+      `frontend/src/sfa/adapter-calls.impl.test.ts`, 5 tests)
+- [x] 2.3.2 Full verify ✅ (completed: 2026-07-10 13:10 — install/build/typecheck/lint/
+      test all green)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

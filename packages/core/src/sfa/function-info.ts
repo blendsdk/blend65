@@ -56,4 +56,13 @@ export interface FunctionInfo {
   readonly isReachable: boolean;
   /** Outgoing call edges, by callee fully-qualified name (call-graph projection). */
   readonly callees: readonly string[];
+  /**
+   * Functions (fully-qualified names, sorted, deduplicated) that may execute
+   * while THIS function's arguments are being marshalled: everything reachable
+   * from a call nested in an argument after the first. Arguments are stored
+   * into this function's frame slots one by one, so anything that runs during
+   * that window must not share frame bytes with it — the interference pass
+   * unions these as extra edges.
+   */
+  readonly argWindowInterferes: readonly string[];
 }

@@ -15,9 +15,11 @@
  * Imports `@blend65/core` only — never `@blend65/codegen`.
  */
 
-import { byteSize } from "@blend65/core";
+import { byteSize, walkChildren, walkNode } from "@blend65/core";
 import type {
   AstNode,
+  AstVisitor,
+  CallExprNode,
   FrameVar,
   FunctionInfo,
   ModuleDeclNode,
@@ -31,31 +33,125 @@ import type { ModuleVarInput } from "./zp-allocator.js";
  * Projects a populated {@link SemanticModel} into the planner's
  * {@link FunctionInfo}[].
  *
- * One entry per function in `model.callGraph.functions`: the module-qualified FQN
- * for `name`; no parameters (the current surface has no user params); locals =
- * the function body scope's `variable` symbols as `FrameVar[]` in declaration
- * order; interrupt handlers flagged; escaped/unreachable/callee data is not yet
- * populated (that arrives with call-graph analysis and address-of support).
- * Returns `[]` for the empty passthrough model.
+ * One entry per function in `model.callGraph.functions`: the module-qualified
+ * FQN for `name`; parameters = the body scope's `parameter` symbols in
+ * declaration order (placed first in the frame); locals = its `variable`
+ * symbols in declaration order; callees = the call graph's outgoing edges as
+ * sorted FQNs; interrupt handlers flagged; `argWindowInterferes` = everything
+ * reachable from calls nested in later arguments at this function's call
+ * sites (see {@link computeArgWindows}). `isEscaped` stays `false` (no
+ * address-of support yet) and `isReachable` stays `true` (liveness analysis
+ * arrives later — an unreachable function costs frame bytes, which is correct
+ * but unoptimized). Returns `[]` for the empty passthrough model.
  *
  * @param model The semantic model to project.
  * @returns The projected functions (`[]` under the empty passthrough).
  */
 export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
+  const windows = computeArgWindows(model);
   const result: FunctionInfo[] = [];
   for (const fn of model.callGraph.functions) {
     const scope = model.scopeOf(fn.decl); // the function body scope
+    const callees = [...(model.callGraph.edges.get(fn) ?? [])].map(fqName).sort();
+    const window = windows.get(fn);
     result.push({
       name: fqName(fn), // "<Module>.<function>"
-      parameters: [], // no user params yet
-      locals: collectLocals(scope), // ordered FrameVar[]
+      parameters: collectFrameVars(scope, "parameter"),
+      locals: collectFrameVars(scope, "variable"),
       isInterrupt: fn.kind === "interrupt",
       isEscaped: false, // `&fn` address-of support arrives later
-      isReachable: true, // call-graph reachability arrives later; main is reachable
-      callees: [], // no calls modeled yet
+      isReachable: true, // liveness analysis arrives later; main is reachable
+      callees,
+      argWindowInterferes: window === undefined ? [] : [...window].sort(),
     });
   }
   return result;
+}
+
+/**
+ * Computes each function's argument-window interference set.
+ *
+ * When a call `C(a1, …, aN)` is lowered, arguments are stored into `C`'s
+ * frame slots one at a time; a call nested in any argument AFTER the first
+ * executes while earlier arguments already sit in `C`'s frame. Everything
+ * reachable from such a nested call must therefore never share frame bytes
+ * with `C`. The first argument is exempt — nothing is stored before it.
+ *
+ * For every call site of `C` in any function body, every nested call `G(…)`
+ * inside arguments 2..N contributes `reach(G)` (a visited-set-bounded DFS
+ * over the call graph — terminates on any input, cyclic included, as
+ * defense in depth; cycles are rejected upstream) to `C`'s set, keyed by
+ * fully-qualified name. Deterministic: callers sort + dedupe on projection.
+ *
+ * @param model The semantic model (bodies, symbols, call graph).
+ * @returns Per-callee sets of FQNs that may run during argument marshalling.
+ */
+function computeArgWindows(model: SemanticModel): Map<Symbol, Set<string>> {
+  const windows = new Map<Symbol, Set<string>>();
+
+  for (const fn of model.callGraph.functions) {
+    for (const call of collectCalls(fn.decl)) {
+      const callee = userCalleeOf(call, model);
+      if (callee === null || call.args.length < 2) continue;
+
+      for (const arg of call.args.slice(1)) {
+        for (const nested of collectCalls(arg)) {
+          const nestedCallee = userCalleeOf(nested, model);
+          if (nestedCallee === null) continue;
+          let window = windows.get(callee);
+          if (window === undefined) {
+            window = new Set();
+            windows.set(callee, window);
+          }
+          for (const reached of reach(nestedCallee, model)) {
+            window.add(fqName(reached));
+          }
+        }
+      }
+    }
+  }
+  return windows;
+}
+
+/** The resolved user-function symbol a call targets, or `null`. */
+function userCalleeOf(call: CallExprNode, model: SemanticModel): Symbol | null {
+  if (call.callee.kind !== "IdentExpr") return null;
+  const sym = model.symbolOf(call.callee);
+  return sym !== null && sym.kind === "function" ? sym : null;
+}
+
+/**
+ * Everything reachable from `start` along call edges, INCLUDING `start`
+ * itself (the nested callee runs too). Visited-set-bounded: terminates on
+ * any graph, cyclic included.
+ */
+function reach(start: Symbol, model: SemanticModel): Set<Symbol> {
+  const visited = new Set<Symbol>([start]);
+  const stack: Symbol[] = [start];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (current === undefined) break;
+    for (const callee of model.callGraph.edges.get(current) ?? []) {
+      if (visited.has(callee)) continue;
+      visited.add(callee);
+      stack.push(callee);
+    }
+  }
+  return visited;
+}
+
+/** Collects every plain call expression in a subtree (uniform visitor walk). */
+function collectCalls(root: AstNode): CallExprNode[] {
+  const found: CallExprNode[] = [];
+  const visit = (node: AstNode): void => {
+    if (node.kind === "CallExpr") {
+      found.push(node as CallExprNode);
+    }
+    walkChildren(node, visitor);
+  };
+  const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
+  walkNode(root, visitor);
+  return found;
 }
 
 /**
@@ -112,18 +208,20 @@ function fqName(fn: Symbol): string {
 }
 
 /**
- * Reads a scope's `kind: "variable"` symbols as ordered {@link FrameVar}[] (Map
- * insertion order == declaration order). Scalars are never by-reference.
+ * Reads a scope's symbols of `kind` as ordered {@link FrameVar}[] (Map
+ * insertion order == declaration order; parameters are inserted before
+ * locals at collection). Scalars are never by-reference.
  *
  * @param scope The function body scope.
- * @returns The locals as frame variables, in declaration order.
+ * @param kind The symbol kind to project (`"parameter"` or `"variable"`).
+ * @returns The matching symbols as frame variables, in declaration order.
  */
-function collectLocals(scope: Scope): FrameVar[] {
-  const locals: FrameVar[] = [];
+function collectFrameVars(scope: Scope, kind: "parameter" | "variable"): FrameVar[] {
+  const vars: FrameVar[] = [];
   for (const sym of scope.symbols.values()) {
-    if (sym.kind === "variable") {
-      locals.push({ name: sym.name, type: sym.type, byRef: false });
+    if (sym.kind === kind) {
+      vars.push({ name: sym.name, type: sym.type, byRef: false });
     }
   }
-  return locals;
+  return vars;
 }

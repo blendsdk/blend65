@@ -167,6 +167,7 @@ describe("Specification: modelToFunctionInfo (RD-18 Slice 3a, FR-2)", () => {
         isEscaped: false,
         isReachable: true,
         callees: [],
+        argWindowInterferes: [],
       },
     ]);
   });

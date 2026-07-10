@@ -49,6 +49,7 @@ describe("Specification: RD-05 core SFA records", () => {
       isEscaped: false,
       isReachable: true,
       callees: ["Game.moveEnemies"],
+      argWindowInterferes: [],
     };
 
     expect(fn.name).toBe("Game.update");

@@ -3,7 +3,7 @@
  *
  * Builds the undirected interference graph that drives frame sharing: two
  * functions interfere when they may be simultaneously live on the call stack, so
- * their frames must occupy disjoint memory. Two sources of interference:
+ * their frames must occupy disjoint memory. Three sources of interference:
  *
  *   1. **Ancestor-descendant**: if `F` can reach `D` along call edges, `F` and `D`
  *      are both live when `D` runs, so they interfere. Equivalently, every
@@ -11,6 +11,10 @@
  *   2. **Always-live**: interrupt handlers (fire asynchronously), escaped/
  *      address-taken functions (conservative), and `main` (the root) interfere
  *      with *every* other node.
+ *   3. **Argument window**: while a callee's arguments are being stored into
+ *      its frame, a call nested in a later argument executes — the callee
+ *      interferes with everything reachable from such calls (its
+ *      `argWindowInterferes` projection), even mere siblings in the call tree.
  *
  * Unreachable functions are excluded entirely. The call graph is a DAG (recursion
  * is rejected upstream by the semantic analyzer); the descendant DFS uses a
@@ -104,6 +108,16 @@ export function buildInterferenceGraph(fns: readonly FunctionInfo[]): Interferen
   for (const live of alwaysLive) {
     for (const other of nodes) {
       addEdge(live.name, other);
+    }
+  }
+
+  // Step 3 — argument-window edges: the callee vs everything that may run
+  // while its arguments are being marshalled. Self-pairs are skipped by
+  // `addEdge` (a callee reached from its own argument list is rejected
+  // loudly at lowering, never colored around).
+  for (const f of reachable) {
+    for (const other of f.argWindowInterferes) {
+      addEdge(f.name, other);
     }
   }
 
