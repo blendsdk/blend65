@@ -66,7 +66,7 @@ describe("Specification: collectFunctions (RD-18 Slice 3a, FR-1)", () => {
     const program = parseSource(FIXTURE_SOURCE, bag);
     const globalScope: Scope = createScope("global", null, null);
 
-    const tables = collectFunctions([program], globalScope);
+    const tables = collectFunctions([program], globalScope, createDiagnosticBag());
 
     // functions == { main }; mainFunction == main
     expect(tables.functions.size).toBe(1);
@@ -96,7 +96,7 @@ describe("Specification: collectFunctions (RD-18 Slice 3a, FR-1)", () => {
     const program = parseSource(NO_LOCALS_SOURCE, bag);
     const globalScope: Scope = createScope("global", null, null);
 
-    const tables = collectFunctions([program], globalScope);
+    const tables = collectFunctions([program], globalScope, createDiagnosticBag());
 
     expect(tables.functions.size).toBe(1);
     const bodyScope = tables.scopeByNode.get(mainDeclOf(program));

@@ -9,12 +9,17 @@
  * (`postCheck`) remain deferred no-op seams.
  */
 
-import type { IntrinsicRegistry, SemanticModel } from "@blend65/core";
+import type {
+  IntrinsicRegistry,
+  SemanticModel,
+  SourceSpan,
+  Symbol,
+} from "@blend65/core";
 import type { AnalyzeInput } from "./analyze.js";
 import { collectDeclarationTables } from "./declaration-collection.js";
 import type { DeclarationTables } from "./declaration-collection.js";
 import { validateIntrinsics } from "./intrinsic-validation.js";
-import { checkAllPathsReturn, checkMainValidity } from "./post-check.js";
+import { checkAllPathsReturn, checkMainValidity, checkRecursion } from "./post-check.js";
 
 /**
  * Pass 1 — Declaration Collection.
@@ -74,15 +79,22 @@ export function checkBodies(
  * Pass 4 — Post-Check Validation.
  *
  * Fills the entry-point half of this seam: `main()` validity
- * (E10020/E10021/E10022) via {@link checkMainValidity}, plus all-paths-return
- * validation (E10102) via {@link checkAllPathsReturn}. Both read
- * `input.programs` directly. The remaining Pass-4 duties (recursion detection,
- * module init order, unused variables, unreachable code) stay deferred.
+ * (E10020/E10021/E10022) via {@link checkMainValidity}, all-paths-return
+ * validation (E10102) via {@link checkAllPathsReturn}, and recursion
+ * rejection (one E10174 per call cycle) via {@link checkRecursion} over the
+ * model's call graph. The remaining Pass-4 duties (module init order, unused
+ * variables, unreachable code) stay deferred.
  *
  * @param input The analyzer input (programs + diagnostic bag).
- * @param _model The model under construction (unused — the checks read programs).
+ * @param model The model under construction (supplies the call graph).
+ * @param callSiteSpans First call-site span per call edge (recursion anchors).
  */
-export function postCheck(input: AnalyzeInput, _model: SemanticModel): void {
+export function postCheck(
+  input: AnalyzeInput,
+  model: SemanticModel,
+  callSiteSpans: ReadonlyMap<Symbol, ReadonlyMap<Symbol, SourceSpan>> = new Map(),
+): void {
   checkMainValidity(input.programs, input.bag);
   checkAllPathsReturn(input.programs, input.bag);
+  checkRecursion(model.callGraph, callSiteSpans, input.bag);
 }

@@ -26,7 +26,13 @@ import type {
 } from "@blend65/core";
 import type { IntRange } from "./type-resolution.js";
 import type { TypeCheckContext } from "./context.js";
-import { typeOfExpr, checkAssignable, checkConstRange } from "./expression-typing.js";
+import {
+  typeOfExpr,
+  checkAssignable,
+  checkConstRange,
+  checkReturnAssignable,
+} from "./expression-typing.js";
+import { enclosingFunctionSymbol } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
 
@@ -464,8 +470,12 @@ function typeLetDecl(decl: LetDeclNode, scope: Scope, ctx: TypeCheckContext): vo
 
 /**
  * Types a `return [expr];`. In a `void` function, `return expr;` is invalid
- * (E10173). The value is typed regardless (populating `typeMap`). Full
- * all-paths-return analysis is handled by a separate post-check pass.
+ * (E10173) and a bare `return;` is an early exit. In a non-void function, a
+ * bare `return;` is E10172, and a returned value must be strictly assignable
+ * to the declared return type (the assignment family, return-context
+ * wording) after constant range checking. The value is typed regardless
+ * (populating `typeMap`); a poisoned value or return type suppresses the
+ * dependent checks. Full all-paths-return analysis is a post-check pass.
  */
 function typeReturn(
   stmt: ReturnStmtNode,
@@ -473,13 +483,33 @@ function typeReturn(
   returnType: Type,
   ctx: TypeCheckContext,
 ): void {
-  if (stmt.value === null) return;
-  typeOfExpr(stmt.value, scope, ctx, returnType);
-  if (typeName(returnType) === "void") {
+  const isVoid = typeName(returnType) === "void";
+
+  if (stmt.value === null) {
+    if (!isVoid && !isError(returnType)) {
+      const fnName = enclosingFunctionSymbol(scope)?.name ?? "?";
+      ctx.bag.addError(
+        DiagCode.MissingReturnValue, // E10172
+        stmt.span,
+        `Missing return value — function '${fnName}' returns ` +
+          `'${typeName(returnType)}' but 'return' has no expression`,
+      );
+    }
+    return;
+  }
+
+  const valueType = typeOfExpr(stmt.value, scope, ctx, returnType);
+  if (isVoid) {
     ctx.bag.addError(
       DiagCode.VoidFunctionReturnsValue, // E10173
       stmt.span,
       "A 'void' function cannot return a value",
     );
+    return;
   }
+  if (isError(returnType)) return; // poisoned declaration — nothing to check against
+
+  checkConstRange(stmt.value, returnType, ctx); // E10084 / E10082
+  const fnName = enclosingFunctionSymbol(scope)?.name ?? "?";
+  checkReturnAssignable(valueType, returnType, fnName, stmt.value.span, ctx);
 }

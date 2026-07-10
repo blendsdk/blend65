@@ -27,15 +27,23 @@ import type {
   PlatformProfile,
   ProgramNode,
   SemanticModel,
+  SourceSpan,
   Symbol,
   Type,
 } from "@blend65/core";
-import { createEmptyModel, createIntrinsicRegistry, ERROR_TYPE } from "@blend65/core";
+import {
+  createEmptyModel,
+  createIntrinsicRegistry,
+  ERROR_TYPE,
+  findCallCycles,
+} from "@blend65/core";
 import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
-import { collectFunctions } from "./function-collection.js";
+import { checkParameterShadowing, collectFunctions } from "./function-collection.js";
 import { collectModuleVariables } from "./module-variable-collection.js";
+import { resolveImports } from "./import-resolution.js";
 import { typeCheckPrograms } from "./type-check/statement-typing.js";
+import type { FnSignature } from "./type-check/context.js";
 
 /**
  * Everything the semantic analyzer needs.
@@ -81,39 +89,56 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   // the very `globalScope` the returned model exposes (and `scopeOf` falls back to).
   const empty = createEmptyModel();
 
-  // Pass 1 — declaration collection: resolve struct/enum tables, and the
-  // function/local collection into the model's scope tree. Each Pass-1
-  // collector stays single-responsibility; `passes.ts` is untouched.
-  const tables = collectDeclarations(input);
-  const functionTables = collectFunctions(input.programs, empty.globalScope);
-
-  // The error delta spans every analyzer pass that follows (module-var collection +
-  // intrinsic checks + expression/statement typing + post-check), so `hasErrors`
-  // reflects them all.
+  // The error delta spans every analyzer pass (collection + import resolution +
+  // intrinsic checks + expression/statement typing + post-check), so
+  // `hasErrors` reflects them all.
   const errorsBefore = input.bag.getErrors().length;
+
+  // Pass 1 — declaration collection: resolve struct/enum tables, and the
+  // function/parameter/local collection into the model's scope tree. Each
+  // Pass-1 collector stays single-responsibility.
+  const tables = collectDeclarations(input);
+  const functionTables = collectFunctions(input.programs, empty.globalScope, input.bag);
 
   // Pass 1 (cont.) — collect module-level scalars into their module scopes, so
   // body references resolve to them and SFA can lay out `__var_*`. E10003 on a
   // duplicate top-level declaration.
   collectModuleVariables(input.programs, empty.globalScope, input.bag);
 
+  // Pass 1 (cont.) — resolve user-module imports (aliasing exported symbols
+  // into the importing module scope; E10012/E10003), then reject parameters
+  // that shadow a module-level name (E10101) now that every module-level name
+  // — declared or imported — exists.
+  resolveImports(input.programs, functionTables.moduleScopeByProgram, input.bag);
+  checkParameterShadowing(functionTables.scopeByNode, input.bag);
+
   // Pass 3 — body checking: the intrinsic-validation pass plus the
-  // expression/statement type engine, which populates the maps.
+  // expression/statement type engine, which populates the maps and records
+  // the call-graph edges.
   const registry = input.registry ?? createIntrinsicRegistry();
   checkBodies(input, tables, registry);
 
   const typeMap = new Map<ExprNode, Type>();
   const symbolMap = new Map<AstNode, Symbol>();
+  const callEdges = new Map<Symbol, Set<Symbol>>();
+  const callSiteSpans = new Map<Symbol, Map<Symbol, SourceSpan>>();
   typeCheckPrograms(input.programs, functionTables.scopeByNode, {
     bag: input.bag,
     typeMap,
     symbolMap,
+    signatures: new Map<Symbol, FnSignature>(),
+    mainFunction: functionTables.mainFunction,
+    callEdges,
+    callSiteSpans,
+    registry,
   });
 
-  // Build the populated model: struct/enum tables, the call graph over the collected
-  // functions (no edges yet — user calls are wired in later), `mainFunction`, `scopeOf`
-  // resolving a decl → its body scope, and the now-real `typeMap`/`symbolMap` with
-  // `typeOf`/`symbolOf` reading them (superseding the earlier empty passthrough).
+  // Build the populated model: struct/enum tables, the call graph over the
+  // collected functions with the recorded edges (cycle detection is the
+  // bounded Tarjan pass), `mainFunction`, `scopeOf` resolving a decl → its
+  // body scope, and the now-real `typeMap`/`symbolMap` with `typeOf`/
+  // `symbolOf` reading them (superseding the earlier empty passthrough).
+  const functions = functionTables.functions;
   const model: SemanticModel = {
     ...empty,
     structTypes: tables.structTypes,
@@ -121,9 +146,9 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     typeMap,
     symbolMap,
     callGraph: {
-      functions: functionTables.functions,
-      edges: new Map(),
-      findCycles: () => [],
+      functions,
+      edges: callEdges,
+      findCycles: () => findCallCycles(functions, callEdges),
     },
     mainFunction: functionTables.mainFunction,
     scopeOf: (node) => functionTables.scopeByNode.get(node) ?? empty.globalScope,
@@ -134,8 +159,10 @@ export function analyze(input: AnalyzeInput): SemanticModel {
 
   // Pass 2 — DEFERRED no-op seam (no struct/enum sizing needed for scalars).
   resolveTypes(input, model);
-  // Pass 4 — post-check: `main()` validity, wired into passes.ts.
-  postCheck(input, model);
+  // Pass 4 — post-check: `main()` validity, all-paths-return, and recursion
+  // rejection (the E10174 poison must land before frame planning consumes
+  // the call graph).
+  postCheck(input, model, callSiteSpans);
 
   return { ...model, hasErrors: input.bag.getErrors().length > errorsBefore };
 }

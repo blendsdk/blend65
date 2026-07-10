@@ -36,7 +36,7 @@ describe("collectFunctions — internals & edges (Slice 3a)", () => {
       bag,
     );
 
-    const tables = collectFunctions([program], freshGlobal());
+    const tables = collectFunctions([program], freshGlobal(), createDiagnosticBag());
     const main = [...tables.functions][0];
     const body = tables.scopeByNode.get(main!.decl);
     const locals = [...(body?.symbols.values() ?? [])];
@@ -52,7 +52,7 @@ describe("collectFunctions — internals & edges (Slice 3a)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(`module Main;\nfunction main(): void { }\n`, bag);
 
-    const tables = collectFunctions([program], freshGlobal());
+    const tables = collectFunctions([program], freshGlobal(), createDiagnosticBag());
 
     expect(tables.functions.size).toBe(1);
     const main = [...tables.functions][0];
@@ -64,7 +64,7 @@ describe("collectFunctions — internals & edges (Slice 3a)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(`module Data;\nstruct Point { x: byte; y: byte; }\n`, bag);
 
-    const tables = collectFunctions([program], freshGlobal());
+    const tables = collectFunctions([program], freshGlobal(), createDiagnosticBag());
 
     expect(tables.functions.size).toBe(0);
     expect(tables.mainFunction).toBeNull();
@@ -74,7 +74,7 @@ describe("collectFunctions — internals & edges (Slice 3a)", () => {
     const bag = createDiagnosticBag();
     const program = parseSource(`module Main;\ninterrupt vblank() { let t: byte = 0; }\n`, bag);
 
-    const tables = collectFunctions([program], freshGlobal());
+    const tables = collectFunctions([program], freshGlobal(), createDiagnosticBag());
 
     expect(tables.functions.size).toBe(1);
     const sym = [...tables.functions][0];

@@ -7,22 +7,29 @@
  * **module** `Scope`, registers every top-level `function`/`interrupt` as a
  * function `Symbol` declared **in that module scope** (so `fn.scope.node` is the
  * `ModuleDeclNode` the adapter reads for the fully-qualified name), and
- * builds a function **body** `Scope` holding the function's local variables (from
- * body `LetDecl`s) in declaration order. It resolves `mainFunction`.
+ * builds a function **body** `Scope` holding the function's parameters
+ * (declaration order, before the locals; a duplicate name is E10003) followed
+ * by its local variables (from body `LetDecl`s) in declaration order. It
+ * resolves `mainFunction`. {@link checkParameterShadowing} — run separately,
+ * once all module-level names exist — rejects a parameter shadowing a
+ * module-level declaration (E10101).
  *
- * It is designed to be extended rather than replaced: later work adds the full
- * scope/symbol table + typing (module registration, export visibility,
- * duplicate-decl E10003, block scopes, parameters) on top of it. Nothing here
- * does typing, name resolution, or duplicate detection yet.
+ * It is designed to be extended rather than replaced: later work adds block
+ * scopes and the remaining visibility rules on top of it. No typing or name
+ * resolution happens here.
  *
  * Emit-diagnostic-never-throw: a malformed / body-less declaration is skipped,
  * not crashed on. This module lives in `@blend65/frontend` and imports
  * `@blend65/core` only — never `@blend65/codegen`.
  */
 
-import { createScope, ERROR_TYPE, primitive } from "@blend65/core";
+import { createScope, DiagCode, ERROR_TYPE, primitive } from "@blend65/core";
 import type {
   AstNode,
+  DiagnosticBag,
+  FunctionDeclNode,
+  InterruptDeclNode,
+  ParameterNode,
   ProgramNode,
   Scope,
   StmtNode,
@@ -44,26 +51,35 @@ export interface FunctionTables {
   /** The resolved `main` function symbol, or `null` if absent. */
   readonly mainFunction: Symbol | null;
   /**
-   * decl `AstNode` → its **body** scope (holding ordered locals), backing the
-   * model's `scopeOf` query helper.
+   * decl `AstNode` → its **body** scope (holding ordered parameters + locals),
+   * backing the model's `scopeOf` query helper.
    */
   readonly scopeByNode: ReadonlyMap<AstNode, Scope>;
+  /**
+   * Each program → its module `Scope`, so later passes (import resolution)
+   * can address a specific file's module scope without relying on the
+   * global scope's child order.
+   */
+  readonly moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>;
 }
 
 /**
- * Collects functions + locals across all programs into {@link FunctionTables}.
- * Never throws.
+ * Collects functions + parameters + locals across all programs into
+ * {@link FunctionTables}. Never throws.
  *
  * @param programs The parsed program ASTs (one per source file).
  * @param globalScope The model's global scope (root; parent of the module scopes).
- * @returns The collected function symbols, `mainFunction`, and decl → body-scope map.
+ * @param bag The diagnostic accumulator (receives duplicate-parameter E10003).
+ * @returns The collected function symbols, `mainFunction`, and scope maps.
  */
 export function collectFunctions(
   programs: readonly ProgramNode[],
   globalScope: Scope,
+  bag: DiagnosticBag,
 ): FunctionTables {
   const functions = new Set<Symbol>();
   const scopeByNode = new Map<AstNode, Scope>();
+  const moduleScopeByProgram = new Map<ProgramNode, Scope>();
   let mainFunction: Symbol | null = null;
 
   for (const program of programs) {
@@ -72,6 +88,7 @@ export function collectFunctions(
     const moduleNode: AstNode | null = program.moduleDecl ?? null;
     const moduleScope = createScope("module", globalScope, moduleNode);
     globalScope.children.push(moduleScope);
+    moduleScopeByProgram.set(program, moduleScope);
 
     for (const item of program.items) {
       if (item.kind !== "FunctionDecl" && item.kind !== "InterruptDecl") continue;
@@ -103,6 +120,35 @@ export function collectFunctions(
       moduleScope.children.push(bodyScope);
       scopeByNode.set(item, bodyScope);
 
+      // Step 2b — parameters, before locals (their insertion order is what the
+      // frame layout reads, and a body local of the same name deliberately
+      // wins over its parameter — flat-scope last-wins). Scalars only: struct
+      // and array parameters (and with them `byRef`) are not supported yet.
+      // Interrupts take no parameters (AST shape). A duplicate parameter name
+      // is E10003, first-wins.
+      if (item.kind === "FunctionDecl") {
+        for (const param of item.params) {
+          if (bodyScope.symbols.has(param.name)) {
+            bag.addError(
+              DiagCode.DuplicateDecl,
+              param.nameSpan,
+              `Duplicate parameter '${param.name}' in function '${item.name}'`,
+            );
+            continue;
+          }
+          bodyScope.symbols.set(param.name, {
+            name: param.name,
+            kind: "parameter",
+            type: primitiveFromTypeNode(param.paramType),
+            decl: param,
+            scope: bodyScope,
+            exported: false,
+            mutable: true,
+            byRef: false,
+          });
+        }
+      }
+
       // Step 3 — the function's locals, in source order. This recurses into
       // control-flow bodies (flat-recurse): nested `let` locals AND each
       // `for`-counter land in the enclosing FUNCTION scope so SFA assigns every
@@ -114,7 +160,54 @@ export function collectFunctions(
     }
   }
 
-  return { functions, mainFunction, scopeByNode };
+  return { functions, mainFunction, scopeByNode, moduleScopeByProgram };
+}
+
+/**
+ * Rejects parameters that shadow a module-level declaration (E10101).
+ *
+ * Runs as a separate step after ALL module-level names exist (functions,
+ * module variables/constants, imported names) — parameter collection itself
+ * runs before module variables are collected, so the check cannot live
+ * inline there. A parameter's own body scope legitimately shadows nothing;
+ * only a hit in the enclosing module scope is an error.
+ *
+ * @param scopeByNode Decl → body scope (from {@link collectFunctions}).
+ * @param bag The diagnostic accumulator (receives E10101).
+ */
+export function checkParameterShadowing(
+  scopeByNode: ReadonlyMap<AstNode, Scope>,
+  bag: DiagnosticBag,
+): void {
+  for (const bodyScope of scopeByNode.values()) {
+    const moduleScope = bodyScope.parent;
+    if (moduleScope === null) continue;
+    const decl = bodyScope.node;
+    const fnName = isFunctionLikeDecl(decl) ? decl.name : "?";
+    for (const sym of bodyScope.symbols.values()) {
+      if (sym.kind !== "parameter") continue;
+      if (moduleScope.symbols.has(sym.name)) {
+        bag.addError(
+          DiagCode.NameShadows,
+          isParameterNode(sym.decl) ? sym.decl.nameSpan : null,
+          `Parameter '${sym.name}' of '${fnName}' shadows the module-level ` +
+            `declaration of '${sym.name}'`,
+        );
+      }
+    }
+  }
+}
+
+/** Narrows a scope's introducing node to a function-like declaration. */
+function isFunctionLikeDecl(
+  node: AstNode | null,
+): node is FunctionDeclNode | InterruptDeclNode {
+  return node !== null && (node.kind === "FunctionDecl" || node.kind === "InterruptDecl");
+}
+
+/** Narrows a symbol's declaring node to a {@link ParameterNode}. */
+function isParameterNode(node: AstNode): node is ParameterNode {
+  return node.kind === "Parameter";
 }
 
 /**

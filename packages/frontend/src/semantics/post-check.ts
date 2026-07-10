@@ -1,5 +1,5 @@
 /**
- * Pass 4 — `main()` validity.
+ * Pass 4 — `main()` validity, all-paths-return, and recursion rejection.
  *
  * Over all programs this verifies the entry point: no `main` → E10020, multiple
  * `main` → E10021, and the single `main` must have signature `function main():
@@ -7,7 +7,11 @@
  * registered additively). Gating: E10020 fires only when ≥1 function was
  * collected — so empty / unparseable / function-free inputs stay silent
  * (preserving the analyzer's passthrough contract). Calling `main` directly
- * (E10023) is deferred until call sites exist. Never throws.
+ * is rejected at the call site (E10023, call typing). {@link checkRecursion}
+ * rejects every call cycle with one E10174 carrying the full path — static
+ * frame allocation gives each function a single fixed frame, so recursion can
+ * never be compiled, and the poisoned model must never reach frame planning.
+ * Never throws.
  *
  * This is the real body wired into the `passes.ts` Pass-4 seam.
  */
@@ -15,10 +19,14 @@
 import { DiagCode } from "@blend65/core";
 import type {
   BlockNode,
+  CallGraph,
   DiagnosticBag,
   FunctionDeclNode,
+  InterruptDeclNode,
   ProgramNode,
+  SourceSpan,
   StmtNode,
+  Symbol,
 } from "@blend65/core";
 
 /**
@@ -131,6 +139,51 @@ function definitelyReturns(block: BlockNode): boolean {
     if (statementDefinitelyReturns(stmt)) return true;
   }
   return false;
+}
+
+/**
+ * Rejects every call cycle with exactly one E10174 per cycle.
+ *
+ * Each cycle arrives anchored at its first-declared member with members in
+ * call order (see the call graph's cycle finder); the message renders the
+ * full path closed back to the anchor (`ping → pong → ping`), and the
+ * diagnostic anchors to the anchor's recursive call site when one was
+ * recorded (falling back to the anchor's name span).
+ *
+ * @param callGraph The model's call graph (functions + edges + cycle finder).
+ * @param callSiteSpans First call-site span per caller → callee edge.
+ * @param bag The diagnostic accumulator (receives E10174).
+ */
+export function checkRecursion(
+  callGraph: CallGraph,
+  callSiteSpans: ReadonlyMap<Symbol, ReadonlyMap<Symbol, SourceSpan>>,
+  bag: DiagnosticBag,
+): void {
+  for (const cycle of callGraph.findCycles()) {
+    if (cycle.length === 0) continue;
+    const anchor = cycle[0];
+    const next = cycle.length > 1 ? cycle[1] : anchor;
+    const path = [...cycle, anchor].map((s) => s.name).join(" → ");
+    const span = callSiteSpans.get(anchor)?.get(next) ?? functionNameSpan(anchor);
+    bag.addError(
+      DiagCode.RecursionDetected, // E10174
+      span,
+      `Recursion detected — cycle: ${path}. Blend65 uses static frame ` +
+        `allocation, which does not support recursion — use iteration instead`,
+    );
+  }
+}
+
+/** The name span of a function symbol's declaration, or `null` defensively. */
+function functionNameSpan(fn: Symbol): SourceSpan | null {
+  return isFunctionLikeDecl(fn.decl) ? fn.decl.nameSpan : null;
+}
+
+/** Narrows a declaring node to a function-like declaration. */
+function isFunctionLikeDecl(
+  node: Symbol["decl"],
+): node is FunctionDeclNode | InterruptDeclNode {
+  return node.kind === "FunctionDecl" || node.kind === "InterruptDecl";
 }
 
 /** Whether a single statement guarantees a return on every path through it. */

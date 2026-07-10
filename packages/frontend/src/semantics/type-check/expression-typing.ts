@@ -28,17 +28,22 @@ import {
 } from "@blend65/core";
 import type {
   AssignExprNode,
+  AstNode,
   BinaryExprNode,
+  CallExprNode,
   ExprNode,
+  FunctionDeclNode,
   IdentExprNode,
   IntrinsicCallExprNode,
   NumericLitExprNode,
   Scope,
+  SourceSpan,
+  Symbol,
   Type,
 } from "@blend65/core";
-import type { TypeCheckContext } from "./context.js";
-import { resolveName } from "./name-resolution.js";
-import { integerRange } from "./type-resolution.js";
+import type { FnSignature, TypeCheckContext } from "./context.js";
+import { enclosingFunctionSymbol, resolveName } from "./name-resolution.js";
+import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
 
 /** The arithmetic operators, typed with the same-type rule (spec TS-3). */
@@ -86,8 +91,10 @@ function computeType(
       return typeAssign(expr, scope, ctx);
     case "IntrinsicCallExpr":
       return typeIntrinsicCall(expr, scope, ctx);
+    case "CallExpr":
+      return typeCall(expr, scope, ctx);
     default:
-      // Member / index / call / cast / unary / struct-lit / etc. are not yet
+      // Member / index / cast / unary / struct-lit / etc. are not yet
       // handled here; poison without a diagnostic.
       return ERROR_TYPE;
   }
@@ -210,6 +217,177 @@ function typeAssign(expr: AssignExprNode, scope: Scope, ctx: TypeCheckContext): 
 }
 
 /**
+ * User-function call typing.
+ *
+ * The callee-resolution ladder (an `IdentExpr` callee is the supported
+ * surface; qualified callees are not resolved yet and poison silently):
+ * unresolved name → E10100; an `interrupt` → E10051 (interrupt bodies end in
+ * RTI — a user JSR would corrupt the stack); the entry point → E10023; any
+ * non-function symbol → E10175. A resolved callee records a call-graph edge
+ * from the enclosing function, then checks arguments: a count mismatch is
+ * E10170 (arguments are still typed for map coverage, but per-argument type
+ * checks are suppressed — one diagnostic per root cause); otherwise every
+ * argument is typed in its parameter's context, range-checked as a constant,
+ * and must be strictly assignable (E10171). The call's type is the callee's
+ * declared return type; a poisoned argument suppresses its own mismatch
+ * check.
+ */
+function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type {
+  if (expr.callee.kind !== "IdentExpr") {
+    // Qualified access (`Module.fn(…)`) and other callee shapes are not
+    // resolved yet: walk the args for map coverage, poison without a
+    // diagnostic (the still-unsupported contract downstream phases expect).
+    for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
+    return ERROR_TYPE;
+  }
+
+  const callee = expr.callee;
+  const sym = resolveName(callee.name, scope);
+  if (sym === null) {
+    // A platform-contributed intrinsic parses as a plain call and is never a
+    // scope symbol — availability/import/arity checks belong to the platform
+    // import boundary, so it is not an undeclared identifier here. A declared
+    // name always wins over a registry name (checked above via the scopes).
+    if (ctx.registry?.get(callee.name)?.platformId !== undefined) {
+      return walkArgsAndPoison(expr, scope, ctx);
+    }
+    ctx.bag.addError(
+      DiagCode.UndeclaredIdentifier,
+      callee.span,
+      `Undeclared identifier '${callee.name}'`,
+    );
+    return walkArgsAndPoison(expr, scope, ctx);
+  }
+  if (sym.kind === "interrupt") {
+    ctx.bag.addError(
+      DiagCode.CallToInterruptFunction,
+      callee.span,
+      `Cannot call interrupt function '${callee.name}' — interrupt handlers are ` +
+        `invoked by hardware, not by user code`,
+    );
+    return walkArgsAndPoison(expr, scope, ctx);
+  }
+  if (sym === ctx.mainFunction) {
+    ctx.bag.addError(
+      DiagCode.CallingMainDirectly,
+      callee.span,
+      `Cannot call 'main()' directly — it is the program entry point, not a ` +
+        `callable function`,
+    );
+    return walkArgsAndPoison(expr, scope, ctx);
+  }
+  if (sym.kind !== "function") {
+    ctx.bag.addError(
+      DiagCode.NotCallable,
+      callee.span,
+      `'${callee.name}' is not a function — cannot call a '${typeName(sym.type)}' ` +
+        `value as a function`,
+    );
+    return walkArgsAndPoison(expr, scope, ctx);
+  }
+
+  // Resolved user function: record the reference and the call-graph edge.
+  ctx.symbolMap.set(callee, sym);
+  recordCallEdge(scope, sym, callee.span, ctx);
+
+  const sig = signatureOf(sym, ctx);
+
+  if (expr.args.length !== sig.params.length) {
+    ctx.bag.addError(
+      DiagCode.WrongArgCount,
+      expr.span,
+      `Wrong argument count — '${callee.name}()' expects ${sig.params.length} ` +
+        `parameter(s), got ${expr.args.length}`,
+    );
+    // Arguments are still typed (map coverage), but per-argument checks are
+    // suppressed: the count failure is the root cause.
+    for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
+    return sig.returnType;
+  }
+
+  for (let i = 0; i < expr.args.length; i++) {
+    const arg = expr.args[i];
+    const param = sig.params[i];
+    const argType = typeOfExpr(arg, scope, ctx, param.type);
+    checkConstRange(arg, param.type, ctx);
+    if (!isAssignableTo(argType, param.type)) {
+      ctx.bag.addError(
+        DiagCode.ArgTypeMismatch,
+        arg.span,
+        `Argument type mismatch — parameter '${param.name}' of '${callee.name}()' ` +
+          `expects '${typeName(param.type)}', found '${typeName(argType)}'`,
+      );
+    }
+  }
+
+  return sig.returnType;
+}
+
+/** Types every argument (map coverage) and poisons a failed call. */
+function walkArgsAndPoison(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type {
+  for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
+  return ERROR_TYPE;
+}
+
+/** Narrows a symbol's declaring node to a {@link FunctionDeclNode}. */
+function isFunctionDecl(node: AstNode): node is FunctionDeclNode {
+  return node.kind === "FunctionDecl";
+}
+
+/**
+ * The callee's cached {@link FnSignature}, computed from its declaration on
+ * first use. Function symbols always carry a `FunctionDecl`; a defensive
+ * mismatch yields an empty void signature rather than a crash.
+ */
+function signatureOf(sym: Symbol, ctx: TypeCheckContext): FnSignature {
+  const cached = ctx.signatures.get(sym);
+  if (cached !== undefined) return cached;
+
+  const decl = isFunctionDecl(sym.decl) ? sym.decl : null;
+  const sig: FnSignature =
+    decl === null
+      ? { params: [], returnType: primitive("void") }
+      : {
+          params: decl.params.map((p) => ({
+            name: p.name,
+            type: resolveTypeNode(p.paramType),
+          })),
+          returnType: resolveTypeNode(decl.returnType),
+        };
+  ctx.signatures.set(sym, sig);
+  return sig;
+}
+
+/**
+ * Records the call-graph edge from the enclosing function to `callee`, plus
+ * the first call-site span per edge (anchoring the recursion diagnostic).
+ * Module-level contexts (no enclosing function) record nothing.
+ */
+function recordCallEdge(
+  scope: Scope,
+  callee: Symbol,
+  span: SourceSpan,
+  ctx: TypeCheckContext,
+): void {
+  const caller = enclosingFunctionSymbol(scope);
+  if (caller === null) return;
+
+  let callees = ctx.callEdges.get(caller);
+  if (callees === undefined) {
+    callees = new Set();
+    ctx.callEdges.set(caller, callees);
+  }
+  callees.add(callee);
+
+  let spans = ctx.callSiteSpans.get(caller);
+  if (spans === undefined) {
+    spans = new Map();
+    ctx.callSiteSpans.set(caller, spans);
+  }
+  if (!spans.has(callee)) spans.set(callee, span);
+}
+
+/**
  * Intrinsic-call typing: `peek`→byte, `peekw`→word, `lo`/`hi`→byte,
  * `poke`/`pokew`→void. Arguments are always walked (to populate `typeMap` for
  * width-aware lowering). Unknown intrinsics poison without a diagnostic (the
@@ -261,6 +439,33 @@ export function checkAssignable(
     assignmentMismatchCode(valueType, targetType),
     span,
     `Cannot assign a value of type '${typeName(valueType)}' to '${typeName(targetType)}'`,
+  );
+}
+
+/**
+ * The return-statement variant of {@link checkAssignable}: same code family
+ * (E10152/E10153/E10154), return-context wording naming the function.
+ *
+ * @param valueType The type of the returned value.
+ * @param returnType The function's declared return type.
+ * @param fnName The enclosing function's name (for the message).
+ * @param span The span to anchor the diagnostic to.
+ * @param ctx The Pass-3 context.
+ */
+export function checkReturnAssignable(
+  valueType: Type,
+  returnType: Type,
+  fnName: string,
+  span: SourceSpan,
+  ctx: TypeCheckContext,
+): void {
+  if (isAssignableTo(valueType, returnType)) return; // same-type or poison → ok
+
+  ctx.bag.addError(
+    assignmentMismatchCode(valueType, returnType),
+    span,
+    `Cannot return a value of type '${typeName(valueType)}' — the return type ` +
+      `of '${fnName}' is '${typeName(returnType)}'`,
   );
 }
 

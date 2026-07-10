@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-10 11:15
-> **Progress**: 6/46 tasks (13%)
+> **Last Updated**: 2026-07-10 12:20
+> **Progress**: 21/46 tasks (46%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -92,54 +92,80 @@ golden re-mint for the whole slice (challenger H5).
 **Reference**: 03-01 · 07 ST-05..ST-20 · AR-5..AR-11, AR-14
 **Objective**: immutable oracles for every validator this slice ships.
 
-- [ ] 1.1.1 Param-collection spec tests (ST-16 duplicate→E10003, ST-17 FN-13→E10101) +
+- [x] 1.1.1 Param-collection spec tests (ST-16 duplicate→E10003, ST-17 FN-13→E10101) +
       registry expectations (E10051 registered; E10175 named `NotCallable`) —
-      `packages/frontend/src/semantics/` spec suites
-- [ ] 1.1.2 Call-typing spec tests (ST-05 happy, ST-06 E10170, ST-07 E10171, ST-08 E10175,
+      `packages/frontend/src/semantics/` spec suites ✅ (completed: 2026-07-10 11:35 —
+      `param-collection.spec.test.ts`)
+- [x] 1.1.2 Call-typing spec tests (ST-05 happy, ST-06 E10170, ST-07 E10171, ST-08 E10175,
       ST-09 E10100+no-cascade, ST-10 E10051, ST-11 E10023, ST-20 FN-7 order independence)
-- [ ] 1.1.3 Return-completion spec tests (ST-12 E10172, ST-13 E10154-with-return-wording)
-- [ ] 1.1.4 Recursion spec tests (ST-14 direct one-diagnostic, ST-15 indirect
-      one-per-cycle + path)
-- [ ] 1.1.5 Import-resolution spec tests (ST-18 E10012, ST-19 resolve + edge recorded)
-- [ ] 1.1.6 Run all Phase-1 spec tests — verify RED
+      ✅ (completed: 2026-07-10 11:35 — `type-check/call-typing.spec.test.ts`)
+- [x] 1.1.3 Return-completion spec tests (ST-12 E10172, ST-13 E10154-with-return-wording)
+      ✅ (completed: 2026-07-10 11:35 — `type-check/return-completion.spec.test.ts`)
+- [x] 1.1.4 Recursion spec tests (ST-14 direct one-diagnostic, ST-15 indirect
+      one-per-cycle + path) ✅ (completed: 2026-07-10 11:35 — `recursion.spec.test.ts`)
+- [x] 1.1.5 Import-resolution spec tests (ST-18 E10012, ST-19 resolve + edge recorded)
+      ✅ (completed: 2026-07-10 11:35 — `import-resolution.spec.test.ts`)
+- [x] 1.1.6 Run all Phase-1 spec tests — verify RED ✅ (completed: 2026-07-10 11:35 —
+      18 failed / 3 passed (the three accept-silently shapes); RED confirmed)
 
 ### Step 1.2: Implementation
 
 **Reference**: 03-01 §1..§6
 **Objective**: the silent-poison user-call path becomes full validation.
 
-- [ ] 1.2.1 Registry edits: rename `TooManyParameters`→`NotCallable` (E10175, AR-9); mint
+- [x] 1.2.1 Registry edits: rename `TooManyParameters`→`NotCallable` (E10175, AR-9); mint
       `CallToInterruptFunction: "E10051"` (AR-10) —
-      `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 1.2.2 Parameter collection: `parameter` symbols (types via `resolveTypeNode`,
+      `packages/core/src/diagnostics/diagnostic-codes.ts` ✅ (completed: 2026-07-10 12:10)
+- [x] 1.2.2 Parameter collection: `parameter` symbols (types via `resolveTypeNode`,
       params before locals), duplicate→E10003, FN-13→E10101, function symbols carry the
       decl's `exported` flag — `packages/frontend/src/semantics/function-collection.ts`
-      (03-01 §2)
-- [ ] 1.2.3 Signature cache + `typeCall`: callee resolution ladder (E10100 → E10051 →
+      (03-01 §2) ✅ (completed: 2026-07-10 12:10 — FN-13 runs as a separate
+      `checkParameterShadowing` step after module vars + imports exist (collection-order
+      reality: params are collected before module variables); `exported` was already
+      carried; `FunctionTables` additionally exposes `moduleScopeByProgram` for imports)
+- [x] 1.2.3 Signature cache + `typeCall`: callee resolution ladder (E10100 → E10051 →
       E10023 → E10175), arg count E10170, per-arg strict-assignable E10171 with
       context-typed literals, result = return type, R114 cascade discipline —
       `packages/frontend/src/semantics/type-check/expression-typing.ts` (03-01 §3)
-- [ ] 1.2.4 Return completion: E10172 for bare `return` in non-void; `checkAssignable`
+      ✅ (completed: 2026-07-10 12:10 — mechanical corrections: (1) per-arg
+      `checkConstRange` added, matching the let/assign/return context-typing precedent
+      (E10084 on out-of-range constant args); (2) an unresolved callee that names a
+      registered PLATFORM intrinsic (T4 names parse as plain `CallExpr`, never scope
+      symbols) is left to the T4 boundary instead of E10100 — preserves the shipped
+      T4 pipeline spec test; declared names still win)
+- [x] 1.2.4 Return completion: E10172 for bare `return` in non-void; `checkAssignable`
       (E10152/53/54) with return-context wording —
       `packages/frontend/src/semantics/type-check/statement-typing.ts` (03-01 §4)
-- [ ] 1.2.5 Call graph: Pass-3 edge recording (enclosing-function symbol threaded);
+      ✅ (completed: 2026-07-10 12:10 — new `checkReturnAssignable` sharing the
+      mismatch-code chooser; `checkConstRange` on return values for consistency)
+- [x] 1.2.5 Call graph: Pass-3 edge recording (enclosing-function symbol threaded);
       Tarjan `findCycles` (canonical anchor ordering) in
       `packages/core/src/semantics/call-graph.ts`; `checkRecursion` → one E10174 per
       cycle with full path in `packages/frontend/src/semantics/post-check.ts`; real
-      graph wired in `analyze.ts` (03-01 §5)
-- [ ] 1.2.6 Import resolution: new `packages/frontend/src/semantics/import-resolution.ts`
+      graph wired in `analyze.ts` (03-01 §5) ✅ (completed: 2026-07-10 12:10 —
+      `findCallCycles` iterative Tarjan; enclosing function derived from the scope
+      chain (`enclosingFunctionSymbol`) rather than threaded params; spans via
+      `ctx.callSiteSpans`, `postCheck` gained an optional third param)
+- [x] 1.2.6 Import resolution: new `packages/frontend/src/semantics/import-resolution.ts`
       (user-module map, AR-14 precedence, E10012, alias-insert same Symbol, duplicate
       E10003, duplicate-module-name collision → explicit unsupported ICE — PF-005),
-      wired into `analyze()`; T4 boundary untouched (03-01 §6)
-- [ ] 1.2.7 Run all Phase-1 spec tests — verify GREEN (fix implementation, never tests)
+      wired into `analyze()`; T4 boundary untouched (03-01 §6) ✅ (completed:
+      2026-07-10 12:10)
+- [x] 1.2.7 Run all Phase-1 spec tests — verify GREEN (fix implementation, never tests)
+      ✅ (completed: 2026-07-10 12:10 — 21/21 green; full workspace suite green after
+      the T4-registry correction in 1.2.3)
 
 ### Step 1.3: Implementation tests & hardening
 
-- [ ] 1.3.1 Impl tests: signature-cache reuse, Tarjan determinism (anchor =
+- [x] 1.3.1 Impl tests: signature-cache reuse, Tarjan determinism (anchor =
       first-declared; diamond graphs), poison-cascade internals, import-precedence edge
       (user module named like a platform id), duplicate-module-name collision →
-      unsupported ICE (PF-005)
-- [ ] 1.3.2 Full verify
+      unsupported ICE (PF-005) ✅ (completed: 2026-07-10 12:20 —
+      `core/src/semantics/call-graph.impl.test.ts` (6) +
+      `frontend/src/semantics/call-semantics.impl.test.ts` (5); the T4-registry
+      passthrough is witnessed end-to-end by the existing compiler t4-pipeline spec)
+- [x] 1.3.2 Full verify ✅ (completed: 2026-07-10 12:20 — install/build/typecheck/lint/
+      test all green)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

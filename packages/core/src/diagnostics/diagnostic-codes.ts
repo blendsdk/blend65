@@ -58,6 +58,11 @@ export const DiagCode = {
   ZpArgBlockExceeded: "E10044",
   NonConstantIntrinsicAddress: "E10045",
   IntrinsicNotImported: "E10046",
+  // Calling an `interrupt function` directly. A miscompile guard: interrupt
+  // bodies end in RTI, so a user JSR corrupts the hardware stack (JSR pushes
+  // 2 bytes, RTI pops 3) and jumps wild. E10051 is the spec-designated code
+  // for this rule (Ch 06 §7.3); registered additively, `spec/` stays frozen.
+  CallToInterruptFunction: "E10051",
   // Scoping & names
   UndeclaredIdentifier: "E10100",
   NameShadows: "E10101",
@@ -86,7 +91,14 @@ export const DiagCode = {
   MissingReturnValue: "E10172",
   VoidFunctionReturnsValue: "E10173",
   RecursionDetected: "E10174",
-  TooManyParameters: "E10175",
+  // Calling something that is not a function (e.g. `x()` on a variable). The
+  // Ch 06 diagnostics table assigns E10175 exactly this meaning; the name it
+  // previously carried here ("too many parameters") described a limit the
+  // language does not have — parameter counts are unlimited — so the constant
+  // was renamed with its number unchanged (it had no emit sites). The
+  // canonical Ch 14 registry still lists the parameter-limit wording; that
+  // divergence is spec-side drift awaiting an errata pass.
+  NotCallable: "E10175",
   // A non-void function that does not return a value on every control-flow
   // path. E10102 is the spec's own number for this check; it was free in
   // this registry and carries no collision, so it is reused here to reduce
