@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-10 14:20
-> **Progress**: 41/46 tasks (89%)
+> **Last Updated**: 2026-07-10 14:45
+> **Progress**: 46/46 tasks (100%) ✅ PLAN COMPLETE
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -305,26 +305,33 @@ golden re-mint for the whole slice (challenger H5).
 **Reference**: 01-requirements §Acceptance · RD-18 AC-4 · AR-1..AR-16
 **Objective**: parent artifacts reflect what shipped; deviations recorded once.
 
-- [ ] 5.1.1 Advance the RD-04 deferred-semantics ledger: R58, R65 (partial — no count
+- [x] 5.1.1 Advance the RD-04 deferred-semantics ledger: R58, R65 (partial — no count
       limit), R80/R81 (return completion), R84–R87 (call graph + E10174), R13/R22
       (function-export/import subset), R10 (FN-13 only) + AC-07/AC-15 ticks + a Slice-5a
       advancement banner — `codeops/_archive/rd-04-semantic-analysis/08-deferred-semantics-ledger.md`
-- [ ] 5.1.2 Record deviations/deferrals in the ledger + register cross-refs: E10175
+      ✅ (completed: 2026-07-10 14:45 — 14 rows advanced incl. R66 closed with E10023)
+- [x] 5.1.2 Record deviations/deferrals in the ledger + register cross-refs: E10175
       rename rationale INCLUDING the spec-internal inconsistency (Ch 06 §10 table =
       NotCallable vs canonical Ch 14 registry = TooManyParameters, itself refuted by
       FN-11; the code registry now follows Ch 06 §10 and diverges from Ch 14 until a
       spec-errata pass — PF-004), FN-11 no-param-limit (RD-04 R65 spec-refuted), E1017x
       chapter-table drift note, JSR-startup scoped deviation (AR-12), AR-3/AR-4/AR-13
       named deferrals, duplicate-module-name-across-files unsupported-ICE until 5b
-      merging (PF-005)
-- [ ] 5.1.3 Tick RD-18 AC-4 as "5a partial ✅ (functions/params/calls/recursion/imports);
+      merging (PF-005) ✅ (completed: 2026-07-10 14:45 — all in the ledger's 5a banner
+      "Deviations & named deferrals" block)
+- [x] 5.1.3 Tick RD-18 AC-4 as "5a partial ✅ (functions/params/calls/recursion/imports);
       closes at 5b (merging + qualified access + init order)" —
       `codeops/features/blend65-ri/requirements/RD-18-codegen-language-completion.md`
-- [ ] 5.1.4 Record the SR-2 resource delta (footprint at the `$2000` base; frame/ZP/stack
+      ✅ (completed: 2026-07-10 14:45)
+- [x] 5.1.4 Record the SR-2 resource delta (footprint at the `$2000` base; frame/ZP/stack
       figures from the ResourceReport) + SR-3 closeout for the retired 13-byte ceiling
-- [ ] 5.1.5 Roadmap sync (`codeops/features/blend65-ri/00-roadmap.md` + portfolio):
+      ✅ (completed: 2026-07-10 14:45 — roadmap narrative: 4 B module vars + 5 B frame
+      region (2 B saved by sharing), ZP 10 B unchanged, `__rt_mul16` embedded; SR-3
+      ceiling closed by Phase 0)
+- [x] 5.1.5 Roadmap sync (`codeops/features/blend65-ri/00-roadmap.md` + portfolio):
       Slice 5a ✅, next = Slice 5b `make_plan`; final full verify;
-      `git status --porcelain spec/` empty
+      `git status --porcelain spec/` empty ✅ (completed: 2026-07-10 14:45 — both
+      roadmaps cascaded; full verify green; `spec/` clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

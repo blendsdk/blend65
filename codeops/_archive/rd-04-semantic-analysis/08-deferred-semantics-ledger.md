@@ -3,7 +3,46 @@
 > **Document**: 08-deferred-semantics-ledger.md
 > **Parent**: [Index](00-index.md)
 > **Status**: AUTHORITATIVE — the single map of what the passthrough skeleton does NOT implement
-> **Last Updated**: 2026-07-07 (RD-18 Slice 4b advancement annotated)
+> **Last Updated**: 2026-07-10 (RD-18 Slice 5a advancement annotated)
+
+> **🟢 RD-18 Slice 5a (2026-07-10) advanced the function-call subset of this ledger.** User
+> functions, parameters, calls, returns, recursion rejection, and minimal cross-module imports now
+> ship end-to-end — see `codeops/features/blend65-ri/plans/rd-18-slice-5a-functions-calls/` (46/46;
+> RD-18 AC-4 partial — closes at 5b). **Rows advanced:** call typing R58 (**E10170** count,
+> **E10171** strict same-type args, callee ladder **E10100→E10051→E10023→E10175**); function
+> declaration R65 (partial — parameter collection, duplicate param **E10003**; **NO parameter-count
+> limit** — R65's "max 8 (E10175)" is **spec-refuted by FN-11**, see the deviation note below);
+> `main()` R66 completed (**E10023** calling-main wired at the call site); return completion R80
+> (**E10172** bare-return-in-non-void; mismatch via the assignment family **E10152/E10153/E10154**
+> with return-context wording — promotion at return remains Slice 6) + R81 (✅ — E10173 + bare
+> `return;` early exit); call graph R84/R85 (Pass-3 edge recording, enclosing function derived from
+> the scope chain), cycle detection R86 (iterative Tarjan `findCallCycles`, **ONE E10174 per cycle**
+> anchored at the first-declared member with the full path — pre-SFA poison: the driver gates
+> `planAllocation` on `hasErrors`), intrinsics-not-edges R87 (`IntrinsicCallExpr` structurally
+> excluded; platform T4 names left to the import boundary); shadowing R10 (partial — FN-13
+> param-vs-module-level **E10101**; general shadowing stays deferred); export visibility R13 +
+> import validation R22 (function subset — **E10012** missing/non-exported, imports alias the same
+> `Symbol` so FQNs survive).
+>
+> **Deviations & named deferrals recorded by 5a:** (1) registry **E10175 renamed
+> `TooManyParameters`→`NotCallable`** — the frozen Ch 06 §10 table assigns E10175 exactly the
+> not-callable meaning and FN-11 says parameter counts are unlimited; the constant had zero emit
+> sites. NOTE the spec is *internally inconsistent* here: the canonical Ch 14 registry (which Ch 06
+> §10 itself declares canonical) still lists E10175 = TooManyParameters (max 8), a row FN-11
+> refutes — the code registry follows Ch 06 §10 and diverges from Ch 14 until a spec-errata pass.
+> (2) The Ch 06 §10 **E1017x chapter-table numbering drift** (chapter: E10171=count, E10172=arg
+> type, E10174=missing return; registry: E10170=count, E10171=arg type, E10172=missing return,
+> E10174=recursion) — registry names are authoritative, recorded once here. (3) **Startup shim stays
+> `JSR _main`** for the terminating variant (scoped deviation — the spec's fall-through rationale
+> targets a never-returning `main`; fall-through is Slice 8's non-terminating variant). (4) **Named
+> deferrals:** same-callee-in-later-argument shapes → explicit lowering ICE (caller-frame scratch
+> slots are the general fix, a later slice); a value live across a user call in one expression
+> (`f() + g()`) → explicit translate ICE (same fix); import aliasing `import { X as Y }` (not
+> lexed; revisit when a fixture needs a cross-module rename); W10181 unused-function stays
+> unregistered (needs export/address-taken liveness, Slice 8+); duplicate module name across files →
+> explicit unsupported ICE until 5b module merging (R20) lands — never a wrong E10012.
+> **Still deferred:** module merging R20 / qualified access R17 / init order R23+E10194 (Slice 5b);
+> mixed-width promotion + casts (Slice 6); aggregates (Slice 7).
 
 > **🟢 RD-18 Slice 4b (2026-07-07) advanced the `switch` subset of this ledger.** The
 > `switch`/`case`/`default`/`fallthrough` sub-machine now ships end-to-end — see
@@ -95,10 +134,10 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R7 | Four-level scope tree | ✅ IMPLEMENTED (interface) — `ScopeKind`, `Scope`; **real per-module + function scope construction begun by RD-18 Slice 3a** (2026-07-05, `frontend/semantics/function-collection.ts`) — global→module→function levels; block scopes remain Slice 3b | 1 (build) | — |
 | R8 | Each scope owns `Map<string,Symbol>` | ✅ IMPLEMENTED (interface); **module/function scopes now populated** with function + local-variable symbols by RD-18 Slice 3a | 1 | — |
 | R9 | Duplicate decl in scope | ⛔ DEFERRED | 1 | E10003 |
-| R10 | No shadowing | ⛔ DEFERRED | 1/3 | E10101 |
+| R10 | No shadowing | 🟡 **RD-18 Slice 5a** — FN-13 parameter-vs-module-level shadowing → `E10101` (`checkParameterShadowing`, runs after module vars + imports exist); general shadowing (locals, block scopes) still deferred | 1/3 | E10101 |
 | R11 | For-loop counter block scope | 🟡 **RD-18 Slice 4a/4b** — counter + nested-`let` locals (incl. switch case/default bodies, 4b AR-12) collected FLAT into the function scope (AR-9); real block-scope lifetime/shadowing (E10101/E10062) deferred to a later cleanup slice (AR-14) | 3 | — |
 | R12 | Module-level decls; no exec stmts | ⛔ DEFERRED | 1 | E10010 |
-| R13 | Export visibility | ⛔ DEFERRED | 1 | — |
+| R13 | Export visibility | 🟡 **RD-18 Slice 5a** — function `exported` flags honored by import resolution; full visibility rules (vars/consts/types across modules) with 5b merging | 1 | — |
 
 ## 3. Name resolution (RD-04 §3.3)
 
@@ -117,7 +156,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 |-------|-------------|--------|------|--------------------|
 | R20 | Module merging | ⛔ DEFERRED | 1 | E10003 |
 | R21 | Circular imports allowed | ⛔ DEFERRED | 1 | — |
-| R22 | Import validation (must be exported) | ⛔ DEFERRED | 1/3 | E10012 |
+| R22 | Import validation (must be exported) | ✅ **RD-18 Slice 5a** (function subset) — missing or non-exported name → `E10012`; a resolved import aliases the SAME `Symbol` (FQN preserved); duplicate import → `E10003` | 1/3 | E10012 |
 | R23 | Module initialization order | ⛔ DEFERRED | 4 | E10194 |
 
 ## 5. Type representation (RD-04 §3.5)
@@ -173,7 +212,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R55 | Conditional expression | ⛔ DEFERRED | 3 | E10080 |
 | R56 | Field access | ⛔ DEFERRED | 3 | E10160 |
 | R57 | Index expression | ⛔ DEFERRED | 3 | E10114, E10115 |
-| R58 | Function call | ⛔ DEFERRED | 3 | E10170, E10171 |
+| R58 | Function call | ✅ **RD-18 Slice 5a** — `typeCall` ladder `E10100`→`E10051`(interrupt)→`E10023`(main)→`E10175`(not callable); count `E10170` (suppresses per-arg checks); strict same-type args `E10171` + const range `E10084`; result = declared return type | 3 | E10170, E10171 |
 | R59 | Intrinsic call | ⛔ DEFERRED — needs RD-17 descriptors | 3 | E10040, E10041 |
 | R60 | `sizeof(T)` | ⛔ DEFERRED | 3 | — |
 | R61 | Identifier expression | ⛔ DEFERRED | 3 | E10100 |
@@ -185,8 +224,8 @@ RD-04 requirement and acceptance criterion it satisfies*.
 |-------|-------------|--------|------|--------------------|
 | R63 | `let` variable | ⛔ DEFERRED | 3 | E10150, E10152 |
 | R64 | `const` constant | ⛔ DEFERRED | 3 | E10150, E10192, E10193, E10191 |
-| R65 | Function declaration | ⛔ DEFERRED | 1/3 | E10003, E10175 |
-| R66 | `main()` function | ⛔ DEFERRED | 4 | E10020, E10021, E10023 |
+| R65 | Function declaration | 🟡 **RD-18 Slice 5a** — parameters collected as `parameter` symbols (params before locals), duplicate → `E10003`; **no parameter-count limit** (R65's "max 8 → E10175" is spec-refuted by FN-11; E10175 renamed `NotCallable`, see the 5a banner); nested-function rejection stays parser-owned | 1/3 | E10003 |
+| R66 | `main()` function | ✅ **RD-18 Slice 3b + 5a** — validity `E10020`/`E10021`/`E10022` (3b, Pass 4); calling `main` directly → `E10023` at the call site (5a) | 4 | E10020, E10021, E10023 |
 | R67 | Interrupt function | ⛔ DEFERRED | 3 | — |
 | R68 | Struct declaration (+ no recursion) | ⛔ DEFERRED | 2 | E10003, E10163 |
 | R69 | Enum declaration | ⛔ DEFERRED | 2 | E10003, E10140, E10141, E10142, E10143 |
@@ -205,8 +244,8 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R77 | `break` context | ✅ **RD-18 Slice 4a** — E10130 (loop-depth tracking); switch-transparent (RD-18 Slice 4b, AR-6) | 3 | E10130 |
 | R78 | `continue` context | ✅ **RD-18 Slice 4a** — E10131 | 3 | E10131 |
 | R79 | `fallthrough` context | ✅ **RD-18 Slice 4b** — position `E10074`, no-effect warning `E10073` (AR-3/AR-7; Parked-Q4 dissolved) | 3 | E10074/E10073 |
-| R80 | return in non-void (+ all paths) | 🟡 **RD-18 Slice 4a** — all-paths-return `E10102` (AR-4, structural `definitelyReturns`); the value-type/missing-value sub-clauses (E10152/E10172) remain Slice 5/6 | 3 | E10102, E10152, E10172 |
-| R81 | return in void | ⛔ DEFERRED | 3 | E10173 |
+| R80 | return in non-void (+ all paths) | ✅ **RD-18 Slice 4a + 5a** — all-paths `E10102` (4a); bare `return;` → `E10172` and value mismatch via the assignment family `E10152/E10153/E10154` with return-context wording (5a); promotion at return arrives with Slice 6 | 3 | E10102, E10152, E10172 |
+| R81 | return in void | ✅ **RD-18 Slice 5a** — `return expr;` in void → `E10173`; bare `return;` is a valid early exit | 3 | E10173 |
 | R82 | Expression statement | ⛔ DEFERRED | 3 | — |
 | R83 | `asm` block context | ⛔ DEFERRED — N/A (no asm in v3, RD-03 AR-1) | — | — |
 
@@ -214,10 +253,10 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R84 | Record call edges | ⛔ DEFERRED — `CallGraph` interface exists | 3 | — |
-| R85 | Call graph complete | ⛔ DEFERRED | 3 | — |
-| R86 | Cycle detection | ⛔ DEFERRED — `findCycles()` returns `[]` | 4 | E10174 |
-| R87 | Intrinsics not edges | ⛔ DEFERRED | 3 | — |
+| R84 | Record call edges | ✅ **RD-18 Slice 5a** — Pass-3 edge recording at every resolved user call (caller derived from the scope chain; first call-site span kept per edge) | 3 | — |
+| R85 | Call graph complete | ✅ **RD-18 Slice 5a** — complete over user calls incl. cross-module imported callees; projected to SFA `callees` (sorted FQNs) | 3 | — |
+| R86 | Cycle detection | ✅ **RD-18 Slice 5a** — iterative Tarjan `findCallCycles` (core `call-graph.ts`); ONE `E10174` per cycle, anchored first-declared, message carries the full path (`ping → pong → ping`); poisons before `planAllocation` (driver gate) | 4 | E10174 |
+| R87 | Intrinsics not edges | ✅ **RD-18 Slice 5a** — `IntrinsicCallExpr` never reaches `typeCall` (structural); platform T4 names are registry-recognized and left to the import boundary | 3 | — |
 
 ## 12. Const evaluator (RD-04 §3.12)
 
@@ -295,7 +334,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | AC-04 | word→byte without cast → E10154 | ✅ **RD-18 Slice 3b** (ST-8 narrowing; code correct) |
 | AC-05 | ~~byte + sbyte → E10153~~ **CORRECTED (PF-004/AR-11):** mixed-sign **arithmetic operands** `byte + sbyte` → **E10081** (ledger R49; the fixture/AC-4 headline); **E10153** is the *assignment* cross-sign case (R33). | ✅ **RD-18 Slice 3b** (arithmetic E10081 = ST-4; assignment E10153 = ST-8). *Original "byte + sbyte → E10153" wording was wrong — not ticked as-worded.* |
 | AC-06 | `let x: bool = 5` → E10152 | ✅ **RD-18 Slice 3b** (boolean↔integer assignment; impl-tested) |
-| AC-07 | indirect recursion → E10174 (both) | ⛔ DEFERRED (calls → Slice 5) |
+| AC-07 | indirect recursion → E10174 (both) | ✅ **RD-18 Slice 5a** — direct `f → f` and indirect `ping → pong → ping`, one diagnostic per cycle with the full path |
 | AC-08 | no/two `main()` → E10020/E10021 | ✅ **RD-18 Slice 3b** (ST-10; Pass 4 `post-check.ts`) |
 | AC-09 | non-const const initializer → E10193 | ⛔ DEFERRED |
 | AC-10 | struct literal missing/extra field → E10161/E10162 | ⛔ DEFERRED |
@@ -303,7 +342,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | AC-12 | break/continue context → E10130/E10131 | ✅ **RD-18 Slice 4a** (loop-depth tracking; ST-4) |
 | AC-13 | poison-type cascade suppression (one diagnostic) | ✅ **RD-18 Slice 3b** (ST-9; R114) |
 | AC-14 | `typeMap` correctness | ✅ **RD-18 Slice 3b** (scalar subset: literals/idents/same-type binary — ST-1/ST-3; aggregates → Slice 7) |
-| AC-15 | `callGraph` + `findCycles()` correctness | ⛔ DEFERRED |
+| AC-15 | `callGraph` + `findCycles()` correctness | ✅ **RD-18 Slice 5a** — real edges + Tarjan cycles; determinism (anchor ordering, diamonds, dense SCCs, termination on cyclic input) impl-tested |
 | AC-16 | module-init cycle → E10194 | ⛔ DEFERRED |
 | AC-17 | non-bool if condition → ~~E10080~~ **E10134** (AR-7) | ✅ **RD-18 Slice 4a** (ST-1/2/3; the boolean-condition check uses the new control-flow code E10134, not E10080) |
 | AC-18 | golden-snapshot determinism | ⛔ DEFERRED |

@@ -316,6 +316,26 @@ passes and the parent-RD ACs it advances are ticked.
 4. [ ] **Slice 5**: a multi-function, multi-module program with params + return values VICE-verifies;
        recursion (direct or indirect) is rejected with the unified E10174; module init order is
        deterministic (topological, E10194 on cycle). Calling convention + `call` op proven; ASM golden committed.
+       **Slice 5a partial ✅ (2026-07-10, exec_plan `plans/rd-18-slice-5a-functions-calls/`, 46/46;
+       closes at 5b — merging + qualified access + init order/E10194).** The calling-convention
+       vertical ships end-to-end: parameter collection (dup → E10003, FN-13 shadowing → E10101, no
+       count limit per FN-11), full call typing (E10170/E10171 + the callee ladder E10100 → E10051
+       interrupt-call → E10023 main-call → E10175 `NotCallable` — E10175 repurposed, E10051 minted),
+       return completion (E10172 + assignment-family mismatch with return wording), Pass-3 call
+       edges + iterative Tarjan → **ONE E10174 per cycle with the full path**, pre-SFA poison (the
+       driver now gates `planAllocation` on `hasErrors`), minimal exported-function imports
+       (E10012; user-module-wins precedence; imports alias the same Symbol). SFA fed for real:
+       params-first frames, sorted callee FQNs, and **argument-window interference** (a callee's
+       frame stays disjoint from everything reachable from calls in its later arguments — the
+       sibling shape compiles CORRECTLY). Codegen: `lowerCall` store-per-arg + bare `call`;
+       translate `call` = `JSR Module_function` + A/A:X result bind, with two never-miscompile
+       ICE guards (same-callee-in-later-arg at lowering; value-live-across-call at translate via a
+       separate remaining-use ledger). **Phase 0 retired the 13-byte data ceiling**: data base
+       `$0800`→`$2000` + a mandatory post-ACME code/data overlap check keyed off the plan's
+       `dataBase` (E10033 band). `examples/slice5a/{main,math}.blend` proves the 3-part bar on
+       **real VICE 3.10**: `$C000==$11` add(10,7), `$C001/$C002==$84/$03` triple(300)=$0384,
+       `$C003==$10` combo(5) — cross-module byte + word round-trips and a two-level chain through
+       a later-declared function; byte-exact ASM golden committed.
 5. [ ] **Slice 6**: an expression-heavy program (`&&`/`\|\|` short-circuit, compound assign, unary,
        casts, ternary, mixed-width promotion, word shifts) VICE-verifies the exact arithmetic
        result; short-circuit is observable (RHS side effect suppressed); ASM golden committed.
