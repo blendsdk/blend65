@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 18:58 (Phase 4 COMPLETE — translate conversions/comparisons/shifts green, 42/52)
-> **Progress**: 42/52 tasks (81%)
+> **Last Updated**: 2026-07-11 19:26 (Phase 5 COMPLETE — 3-part acceptance bar GREEN on real VICE, 48/52)
+> **Progress**: 48/52 tasks (92%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -188,12 +188,12 @@ assignment, and warnings before any code.
 
 **Reference**: 07 ST-28…ST-34 · 03-05 · AR-12; RD-18 AC-5
 
-- [ ] 5.1.1 Write the fixture + shared builder — `examples/slice6/main.blend`, `packages/test-harness/src/testing/slice6.ts`
-- [ ] 5.1.2 Write acceptance spec suites (ST-28/29/31/32) — `packages/test-harness/src/golden-slice6.spec.test.ts`, `slice6.spec.test.ts` (RED against missing golden documented)
-- [ ] 5.1.3 Write negative/warning suite (ST-33/34, N1–N9) — `packages/test-harness/src/slice6-negatives.spec.test.ts`
-- [ ] 5.1.4 **ST-30 gate**: full suite green with all prior goldens byte-exact (NO re-mint) BEFORE minting
-- [ ] 5.1.5 Mint `test/golden/slice6.asm.golden` (`UPDATE_GOLDEN=1`), inspect the diff semantically (03-05 landmarks), assemble-clean via real ACME
-- [ ] 5.1.6 Run the VICE suite on real VICE 3.10 (ST-32 memory table) + full verify
+- [x] 5.1.1 Write the fixture + shared builder — `examples/slice6/main.blend`, `packages/test-harness/src/testing/slice6.ts` ✅ (completed: 2026-07-11 19:12)
+- [x] 5.1.2 Write acceptance spec suites (ST-28/29/31/32) — `packages/test-harness/src/golden-slice6.spec.test.ts`, `slice6.spec.test.ts` (RED against missing golden documented) ✅ (completed: 2026-07-11 19:12 — golden RED as expected (file absent until the mint step). DEF-1 (runtime): the first real assembly of an accumulator-mode op exposed that printInstr rendered `ASL A` — ACME parses the `A` as an undefined symbol and fails; ONE viable fix (render the bare mnemonic, ACME's accumulator syntax) applied in print-instr.ts with the ST-S2 pin corrected (the pin claimed to encode ACME syntax and was refuted by ACME itself — the 4a/RD-15 latent-defect precedent); no committed golden contained an accumulator op, so zero re-mints. After the fix: assemble-clean GREEN and the VICE suite GREEN first run — all nine memory assertions incl. the short-circuit suppression proof ($C005=$00, $C006=$01))
+- [x] 5.1.3 Write negative/warning suite (ST-33/34, N1–N9) — `packages/test-harness/src/slice6-negatives.spec.test.ts` ✅ (completed: 2026-07-11 19:12 — 9/9 green: N1–N6 via compile(), N7 signed-div ICE via emitIl(), N8/N9 advisory shapes compile WITH W10160/W10174)
+- [x] 5.1.4 **ST-30 gate**: full suite green with all prior goldens byte-exact (NO re-mint) BEFORE minting ✅ (completed: 2026-07-11 19:26 — full workspace run: 113/114 pass, the ONLY failure the not-yet-minted slice6 golden itself; gate/3b/4a/4b/5a/5b + both assemble goldens all byte-exact)
+- [x] 5.1.5 Mint `test/golden/slice6.asm.golden` (`UPDATE_GOLDEN=1`), inspect the diff semantically (03-05 landmarks), assemble-clean via real ACME ✅ (completed: 2026-07-11 19:26 — 293-line golden; landmarks verified: EIGHT `__frame_Main_main_0sc0..7` equates = the exact preorder site count (&&, ternary, &&, ||, outer+inner ||, ternary, &&), frame region $2001+ clear of the $2000 witness byte, signed-compare BVC/EOR #$80 dance, `JSR Main_bump` only inside branch-target blocks, NO `__rt_` calls; assemble-clean GREEN through real ACME)
+- [x] 5.1.6 Run the VICE suite on real VICE 3.10 (ST-32 memory table) + full verify ✅ (completed: 2026-07-11 19:26 — real VICE: $C000..$C008 = E7 04 DA 05 07 00 01 44 00 all asserted, incl. the short-circuit suppression proof ($C005=$00 — bump() provably not called on either short-circuit path; $C006=$01 — then ran exactly once) and the variable-count word shift sentinel $C007=$44; FULL verify green)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

@@ -1,0 +1,293 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_bump = $2001
+__frame_Main_main = $2001
+__frame_Main_main_a = $2001
+__frame_Main_main_base = $2002
+__frame_Main_main_r = $2004
+__frame_Main_main_w = $2006
+__frame_Main_main_low = $2008
+__frame_Main_main_m = $2009
+__frame_Main_main_s = $200A
+__frame_Main_main_t = $200B
+__frame_Main_main_cond = $200C
+__frame_Main_main_pick = $200D
+__frame_Main_main_dead = $200E
+__frame_Main_main_live = $200F
+__frame_Main_main_ran = $2010
+__frame_Main_main_sh = $2011
+__frame_Main_main_wide = $2012
+__frame_Main_main_shifted = $2014
+__frame_Main_main_0sc0 = $2016
+__frame_Main_main_0sc1 = $2017
+__frame_Main_main_0sc2 = $2018
+__frame_Main_main_0sc3 = $2019
+__frame_Main_main_0sc4 = $201A
+__frame_Main_main_0sc5 = $201B
+__frame_Main_main_0sc6 = $201C
+__frame_Main_main_0sc7 = $201D
+__var_Main_witness = $2000
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR __init
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: __init ---
+__init:
+    LDA #$00
+    STA __var_Main_witness
+    RTS
+; --- function: Main.bump ---
+Main_bump:
+    LDA __var_Main_witness
+    CLC
+    ADC #$01
+    STA __var_Main_witness
+    LDA #$01
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$C8
+    STA __frame_Main_main_a
+    LDA #$E8
+    LDX #$03
+    STA __frame_Main_main_base
+    STX __frame_Main_main_base+1
+    LDA __frame_Main_main_base
+    CLC
+    ADC __frame_Main_main_a
+    STA __frame_Main_main_r
+    LDA __frame_Main_main_base+1
+    ADC #$00
+    STA __frame_Main_main_r+1
+    LDA __frame_Main_main_r
+    CLC
+    ADC #$37
+    STA __frame_Main_main_r
+    LDA __frame_Main_main_r+1
+    ADC #$00
+    STA __frame_Main_main_r+1
+    LDA __frame_Main_main_r
+    LDX __frame_Main_main_r+1
+    STA $C000
+    STX $C000+1
+    LDA #$04
+    LDX #$03
+    STA __frame_Main_main_w
+    STX __frame_Main_main_w+1
+    LDA __frame_Main_main_w
+    STA __frame_Main_main_low
+    LDA __frame_Main_main_low
+    ASL
+    ASL
+    ASL
+    ORA #$05
+    STA __frame_Main_main_m
+    LDA __frame_Main_main_m
+    EOR #$FF
+    STA $C002
+    LDA #$FB
+    STA __frame_Main_main_s
+    LDA __frame_Main_main_s
+    EOR #$FF
+    CLC
+    ADC #$01
+    STA __frame_Main_main_t
+    LDA __frame_Main_main_t
+    STA $C003
+    LDA #$00
+    CMP __frame_Main_main_base+1
+    BCC _cmp1
+    BNE _cmp0
+    LDA __frame_Main_main_a
+    CMP __frame_Main_main_base
+    BCC _cmp1
+_cmp0:
+    LDA #$00
+    JMP _cmp2
+_cmp1:
+    LDA #$01
+_cmp2:
+    STA __frame_Main_main_0sc0
+    BNE Main_main_L0
+    JMP Main_main_L1
+Main_main_L0:
+    LDA __frame_Main_main_s
+    SEC
+    SBC #$00
+    BVC _cmp3
+    EOR #$80
+_cmp3:
+    BMI _cmp4
+    LDA #$00
+    JMP _cmp5
+_cmp4:
+    LDA #$01
+_cmp5:
+    STA __frame_Main_main_0sc0
+    JMP Main_main_L1
+Main_main_L1:
+    LDA __frame_Main_main_0sc0
+    STA __frame_Main_main_cond
+    LDA __frame_Main_main_cond
+    BNE Main_main_L2
+    JMP Main_main_L3
+Main_main_L2:
+    LDA #$07
+    STA __frame_Main_main_0sc1
+    JMP Main_main_L4
+Main_main_L3:
+    LDA #$09
+    STA __frame_Main_main_0sc1
+    JMP Main_main_L4
+Main_main_L4:
+    LDA __frame_Main_main_0sc1
+    STA __frame_Main_main_pick
+    LDA __frame_Main_main_pick
+    STA $C004
+    LDA __frame_Main_main_base+1
+    CMP #$00
+    BCC _cmp7
+    BNE _cmp6
+    LDA __frame_Main_main_base
+    CMP __frame_Main_main_a
+    BCC _cmp7
+_cmp6:
+    LDA #$00
+    JMP _cmp8
+_cmp7:
+    LDA #$01
+_cmp8:
+    STA __frame_Main_main_0sc2
+    BNE Main_main_L5
+    JMP Main_main_L6
+Main_main_L5:
+    JSR Main_bump
+    STA __frame_Main_main_0sc2
+    JMP Main_main_L6
+Main_main_L6:
+    LDA __frame_Main_main_0sc2
+    STA __frame_Main_main_dead
+    LDA #$00
+    CMP __frame_Main_main_base+1
+    BCC _cmp10
+    BNE _cmp9
+    LDA __frame_Main_main_a
+    CMP __frame_Main_main_base
+    BCC _cmp10
+_cmp9:
+    LDA #$00
+    JMP _cmp11
+_cmp10:
+    LDA #$01
+_cmp11:
+    STA __frame_Main_main_0sc3
+    BNE Main_main_L8
+    JMP Main_main_L7
+Main_main_L7:
+    JSR Main_bump
+    STA __frame_Main_main_0sc3
+    JMP Main_main_L8
+Main_main_L8:
+    LDA __frame_Main_main_0sc3
+    STA __frame_Main_main_live
+    LDA __var_Main_witness
+    STA $C005
+    LDA __frame_Main_main_dead
+    STA __frame_Main_main_0sc5
+    BNE Main_main_L10
+    JMP Main_main_L9
+Main_main_L9:
+    LDA __frame_Main_main_base+1
+    CMP #$00
+    BCC _cmp13
+    BNE _cmp12
+    LDA __frame_Main_main_base
+    CMP __frame_Main_main_a
+    BCC _cmp13
+_cmp12:
+    LDA #$00
+    JMP _cmp14
+_cmp13:
+    LDA #$01
+_cmp14:
+    STA __frame_Main_main_0sc5
+    JMP Main_main_L10
+Main_main_L10:
+    LDA __frame_Main_main_0sc5
+    STA __frame_Main_main_0sc4
+    BNE Main_main_L12
+    JMP Main_main_L11
+Main_main_L11:
+    JSR Main_bump
+    STA __frame_Main_main_0sc4
+    JMP Main_main_L12
+Main_main_L12:
+    LDA __frame_Main_main_0sc4
+    STA __frame_Main_main_ran
+    LDA __frame_Main_main_ran
+    STA __frame_Main_main_0sc7
+    BNE Main_main_L13
+    JMP Main_main_L14
+Main_main_L13:
+    LDA __frame_Main_main_live
+    STA __frame_Main_main_0sc7
+    JMP Main_main_L14
+Main_main_L14:
+    LDA __frame_Main_main_0sc7
+    BNE Main_main_L15
+    JMP Main_main_L16
+Main_main_L15:
+    LDA __var_Main_witness
+    STA __frame_Main_main_0sc6
+    JMP Main_main_L17
+Main_main_L16:
+    LDA #$FF
+    STA __frame_Main_main_0sc6
+    JMP Main_main_L17
+Main_main_L17:
+    LDA __frame_Main_main_0sc6
+    STA $C006
+    LDA #$02
+    STA __frame_Main_main_sh
+    LDA #$11
+    LDX #$00
+    STA __frame_Main_main_wide
+    STX __frame_Main_main_wide+1
+    LDA __frame_Main_main_wide
+    STA __frame_Main_main_shifted
+    LDA __frame_Main_main_wide+1
+    STA __frame_Main_main_shifted+1
+    LDX __frame_Main_main_sh
+    BEQ _sh16
+_sh15:
+    ASL __frame_Main_main_shifted
+    ROL __frame_Main_main_shifted+1
+    DEX
+    BNE _sh15
+_sh16:
+    LDA __frame_Main_main_shifted
+    LDX __frame_Main_main_shifted+1
+    STA $C007
+    STX $C007+1
+    RTS

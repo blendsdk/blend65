@@ -105,7 +105,9 @@ function modeOperandText(mode: AddressingMode, operand: InstrOperand): string {
     case "Implied":
       return "";
     case "Accumulator":
-      return "A";
+      // ACME's accumulator addressing is the bare mnemonic — an explicit "A"
+      // operand parses as an (undefined) symbol and fails assembly.
+      return "";
     case "Immediate":
       return `#${operandText(operand)}`;
     case "ZeroPage":

@@ -188,7 +188,7 @@ describe("pinned sign-extension sequence", () => {
         "M_f:",
         "    LDA S",
         "    STA R",
-        "    ASL A",
+        "    ASL",
         "    LDA #$00",
         "    ADC #$FF",
         "    EOR #$FF",
@@ -222,7 +222,7 @@ describe("signed shift sign retention and variable-shift guards", () => {
     );
     expect(bag.hasErrors()).toBe(false);
     expect(text.match(/CMP #\$80/g) ?? []).toHaveLength(3);
-    expect(text.match(/ROR A/g) ?? []).toHaveLength(3);
+    expect(text.match(/\bROR\b(?! R)/g) ?? []).toHaveLength(3);
   });
 
   it("emits nothing for a constant zero shift count (value passes through)", () => {

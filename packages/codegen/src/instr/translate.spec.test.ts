@@ -251,7 +251,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
     );
   });
 
-  // shl t1,t0,imm(2) (const count) → two ASL A.
+  // shl t1,t0,imm(2) (const count) → two accumulator ASLs.
   it("translates a constant-count shl into repeated ASL (ST-T11)", () => {
     const { text } = render(
       [
@@ -262,7 +262,7 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M_f:", "    LDA a", "    ASL A", "    ASL A", "    STA r", "    RTS"].join("\n"),
+      ["M_f:", "    LDA a", "    ASL", "    ASL", "    STA r", "    RTS"].join("\n"),
     );
   });
 });
@@ -448,7 +448,7 @@ describe("Specification: translator — mul (ST-T15, ST-T16, ST-T17)", () => {
       { kind: "ret" },
     );
     expect(text).toBe(
-      ["M_f:", "    LDA a", "    ASL A", "    ASL A", "    ASL A", "    STA r", "    RTS"].join("\n"),
+      ["M_f:", "    LDA a", "    ASL", "    ASL", "    ASL", "    STA r", "    RTS"].join("\n"),
     );
     expect(bag.getWarnings().map((w) => w.code)).toContain(DiagCode.ShiftAndAddMultiply);
   });

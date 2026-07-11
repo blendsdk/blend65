@@ -317,7 +317,7 @@ describe("Specification: shifts", () => {
       { returnType: IL_BYTE },
     );
     expect(bag.hasErrors()).toBe(false);
-    expect(text).toContain(lines("ASL A", "ASL A", "ASL A"));
+    expect(text).toContain(lines("ASL", "ASL", "ASL"));
   });
 
   it("shifts 8-bit signed right arithmetically (sign-replicating CMP/ROR)", () => {

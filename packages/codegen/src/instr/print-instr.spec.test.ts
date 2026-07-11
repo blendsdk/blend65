@@ -33,8 +33,12 @@ describe("Specification: printInstr — addressing-mode operand text (ST-S1..S12
     expect(textOf(instr("RTS", "Implied", none()))).toBe("RTS");
   });
 
-  it("should render Accumulator as 'A' (ST-S2)", () => {
-    expect(textOf(instr("ASL", "Accumulator", none()))).toBe("ASL A");
+  it("should render Accumulator as the bare mnemonic (ST-S2)", () => {
+    // ACME's accumulator addressing is the mnemonic alone; an earlier
+    // revision pinned an explicit "A" operand, which ACME parses as an
+    // undefined symbol — refuted the first time an accumulator op reached
+    // the real assembler.
+    expect(textOf(instr("ASL", "Accumulator", none()))).toBe("ASL");
   });
 
   it("should render Immediate hex with # prefix (ST-S3)", () => {
