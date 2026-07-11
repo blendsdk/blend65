@@ -269,22 +269,22 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
 
 describe("Specification: translator — deferred-op ICEs (ST-T12, ST-T24)", () => {
   // An earlier revision of this suite also pinned deferred-op ICEs for
-  // variable-count shifts, `neg`, `not`, and `copy` — those ops are now live
-  // (the expression translator implements them; their behavior is pinned by
-  // the co-located expression suite), so the deferred set shrank to the
-  // indexed/indirect memory ops that remain unimplemented.
+  // variable-count shifts, `neg`, `not`, `copy`, and the direct-indexed
+  // memory pair — all now live (their behavior is pinned by the co-located
+  // expression and indexed-translation suites), so the deferred set shrank
+  // to the pointer-tier INDIRECT pair.
   it.each([
     {
-      op: "load_indexed",
+      op: "load_indirect",
       value: temp(2, IL_BYTE),
-      base: loc("arr", IL_WORD),
-      index: temp(0, IL_BYTE),
+      ptr: loc("__zp_p", IL_WORD),
+      offset: temp(0, IL_BYTE),
     },
     {
-      op: "store_indexed",
+      op: "store_indirect",
       value: temp(0, IL_BYTE),
-      base: loc("arr", IL_WORD),
-      index: temp(1, IL_BYTE),
+      ptr: loc("__zp_p", IL_WORD),
+      offset: temp(1, IL_BYTE),
     },
   ] as unknown as ILInstruction[])("ICEs on the deferred op %o (ST-T24)", (ins) => {
     const bag = createDiagnosticBag();

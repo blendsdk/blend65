@@ -1325,7 +1325,7 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
         ctx,
       );
     }
-    const value = materialise(lowerExpr(expr.value, ctx), ctx);
+    const value = lowerExpr(expr.value, ctx);
     emitPlaceStore(place, elemIl, value, ctx);
     return value;
   }
@@ -1462,11 +1462,17 @@ function emitPlaceLoad(place: Place, ilType: ILType, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
-/** Emits the store of a value to a place (direct or indexed). */
+/**
+ * Emits the store of a value to a place. Direct stores follow the store
+ * convention (temp values — immediates wrap in a `const`); indexed stores
+ * take the RAW operand — the translator loads an immediate AFTER the index
+ * is in X, and wrapping it first would clobber the accumulator-resident
+ * index.
+ */
 function emitPlaceStore(place: Place, ilType: ILType, value: ILOperand, ctx: LowerCtx): void {
   const base = loc(place.symbol, ilType, place.constOffset === 0 ? undefined : place.constOffset);
   if (place.index === null) {
-    ctx.builder.emit({ op: "store", a: value, b: base });
+    ctx.builder.emit({ op: "store", a: materialise(value, ctx), b: base });
   } else {
     ctx.builder.emit({ op: "store_indexed", value, base, index: place.index });
   }
@@ -1501,7 +1507,7 @@ function lowerAggregateInit(place: Place, type: Type, init: ExprNode, ctx: Lower
       lowerElementInit(at, type.element, elemIl, element, ctx);
     });
     if (init.fill !== null && init.elements.length < type.size) {
-      const fill = materialise(lowerExpr(init.fill, ctx), ctx);
+      const fill = lowerExpr(init.fill, ctx);
       for (let i = init.elements.length; i < type.size; i += 1) {
         const at = { ...place, constOffset: place.constOffset + i * elemSize };
         emitPlaceStore(at, elemIl, fill, ctx);
@@ -1545,7 +1551,7 @@ function lowerElementInit(
     lowerAggregateInit(at, elemType, value, ctx);
     return;
   }
-  const v = materialise(lowerExpr(value, ctx), ctx);
+  const v = lowerExpr(value, ctx);
   emitPlaceStore(at, elemIl, v, ctx);
 }
 

@@ -19,8 +19,9 @@ import type { DiagnosticBag } from "@blend65/core";
 import type { AllocationPlan } from "@blend65/core";
 import type { PlatformPlugin, PreambleOptions } from "@blend65/core/platform";
 
-import type { ILFunction, ILProgram } from "../il/cfg.js";
+import type { ConstDataEntry, ILFunction, ILProgram } from "../il/cfg.js";
 import type { CpuVariant, InstrStream, StreamEntry } from "./stream.js";
+import { directive, label } from "./stream.js";
 import { instrByteSize } from "./print-instr.js";
 import { validateStream } from "./validate.js";
 import { translateFunction } from "./translate.js";
@@ -106,6 +107,13 @@ export function generateInstr(
     streams.push(stream);
   }
 
+  // Const-aggregate data: one labeled `!byte` stream per entry, in the
+  // `data` segment so the serializer places it after all code. The data is
+  // read in place — no startup copy exists or is needed.
+  for (const entry of ilProgram.constData) {
+    streams.push(constDataStream(entry));
+  }
+
   return Object.freeze({
     preamble: Object.freeze([]),
     streams: Object.freeze(streams),
@@ -161,6 +169,19 @@ export function assembleProgram(
     streams: program.streams,
     allocationPlan: program.allocationPlan,
   });
+}
+
+/** Bytes per `!byte` row — keeps goldens readable. */
+const DATA_BYTES_PER_ROW = 16;
+
+/** Build the labeled `!byte` data stream for one const-data entry. */
+function constDataStream(entry: ConstDataEntry): InstrStream {
+  const entries = [label(entry.symbol)];
+  for (let i = 0; i < entry.data.length; i += DATA_BYTES_PER_ROW) {
+    const values = [...entry.data.slice(i, i + DATA_BYTES_PER_ROW)];
+    entries.push(directive({ kind: "byte", values }));
+  }
+  return { symbol: entry.symbol, segment: "data", entries };
 }
 
 /**

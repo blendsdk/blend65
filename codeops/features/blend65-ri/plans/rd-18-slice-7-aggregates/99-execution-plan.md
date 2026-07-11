@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 00:58
-> **Progress**: 47/64 tasks (73%) — Phases 1-5 ✅ COMPLETE (full verify green)
+> **Last Updated**: 2026-07-12 01:20
+> **Progress**: 55/64 tasks (86%) — Phases 1-6 ✅ COMPLETE (full verify green)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -192,20 +192,20 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 
 ### Step 6.1: Specification tests (RED)
 **Reference**: 03-06 · AR-1/13/15
-- [ ] 6.1.1 Write spec tests from ST-51a/ST-51b + ST-53..ST-58 (incl. ST-53a accumulate-through-load, ST-54a live-A:X word store) — `packages/codegen/src/instr/translate-indexed.spec.test.ts`
-- [ ] 6.1.2 Red-phase run
+- [x] 6.1.1 Write spec tests from ST-51a/ST-51b + ST-53..ST-58 (incl. ST-53a accumulate-through-load, ST-54a live-A:X word store) — `packages/codegen/src/instr/translate-indexed.spec.test.ts` ✅ (completed: 2026-07-12 01:20)
+- [x] 6.1.2 Red-phase run ✅ (completed: 2026-07-12 01:20 — 7/9 red; pre-passers justified: ST-54a's loud-reject arm holds trivially pre-implementation; ST-57 copy unroll landed with Phase 5)
 
 ### Step 6.2: Implementation
 **Reference**: 03-06 §Implementation Details
 
-- [ ] 6.2.1 Prescan def/read fixes (`destTempId` returns the loads' `value` temp; `readOperands` drops it — PF-002) + `load_indexed`/`store_indexed` byte framings with load-result homing (03-06 §1 state obligations) — `packages/codegen/src/instr/translate.ts`
-- [ ] 6.2.2 Word-element framings — load stash-to-home; store source stashed BEFORE `LDX` (PF-004 / 03-06 §1 state obligations); indirect ops re-ICE with the 7b message — `translate.ts`
-- [ ] 6.2.3 Data streams from `constData` (`label` + `!byte` rows ≤16/row); `printInstr` byte-directive rendering verified/extended; `needsDataInit` no-consumer status confirmed (verified dead at preflight, PF-011) → const data read-in-place — `packages/codegen/src/instr/instr-program.ts`, `print-instr.ts`, `serialize-acme.ts`
-- [ ] 6.2.4 Green-phase run
+- [x] 6.2.1 Prescan def/read fixes (`destTempId` returns the loads' `value` temp; `readOperands` drops it — PF-002) + `load_indexed`/`store_indexed` byte framings with load-result homing (03-06 §1 state obligations) — `packages/codegen/src/instr/translate.ts` ✅ (completed: 2026-07-12 01:20 — plus a general `protectA()` guard (remaining-uses ledger) at `translateMul`/`translateConst` so live A-resident temps spill to ZP instead of dying; byte loads home via store-fold or binder spill)
+- [x] 6.2.2 Word-element framings — load stash-to-home; store source stashed BEFORE `LDX` (PF-004 / 03-06 §1 state obligations); indirect ops re-ICE with the 7b message — `translate.ts` ✅ (completed: 2026-07-12 01:20 — word loads stash both bytes to the consuming store's home; word stores require a memory-readable source (register-resident → loud reject, the pinned ST-54a contract); `indexIntoX` clears the X mirror BEFORE every LDX and TAXes an A-resident index; indirect pair ICEs with the pointer-tier message)
+- [x] 6.2.3 Data streams from `constData` (`label` + `!byte` rows ≤16/row); `printInstr` byte-directive rendering verified/extended; `needsDataInit` no-consumer status confirmed (verified dead at preflight, PF-011) → const data read-in-place — `packages/codegen/src/instr/instr-program.ts`, `print-instr.ts`, `serialize-acme.ts` ✅ (completed: 2026-07-12 01:20 — generateInstr appends one labeled data-segment stream per entry; printInstr already rendered+sized byte directives (no change); needsDataInit confirmed consumer-less)
+- [x] 6.2.4 Green-phase run ✅ (completed: 2026-07-12 01:20 — 9/9 green; one Phase-5 correction surfaced: indexed stores now take RAW value operands (materialise only for static stores) so a const-wrap can't evict the live index)
 
 ### Step 6.3: Implementation tests & hardening
-- [ ] 6.3.1 Impl tests: framing units per op × width, data-row formatting edges — `translate-indexed.impl.test.ts`
-- [ ] 6.3.2 Prior-golden sweep: all seven slice goldens byte-exact (ST-58) — existing golden specs
+- [x] 6.3.1 Impl tests: framing units per op × width, data-row formatting edges — `translate-indexed.impl.test.ts` ✅ (completed: 2026-07-12 01:20 — 4/4: TAX fast path, immediate word store, 16/17-byte row capping, const-table indexed read)
+- [x] 6.3.2 Prior-golden sweep: all seven slice goldens byte-exact (ST-58) — existing golden specs ✅ (completed: 2026-07-12 01:20 — all seven byte-exact, NO re-mint; the RD-07b-era deferred-op spec rows for the indexed pair retired (the boundary this slice implements) — the indirect pair keeps its pinned ICE rows; FULL WORKSPACE VERIFY GREEN)
 
 **Deliverables**: tier-1 indexed 6502 code + in-image const data.
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`

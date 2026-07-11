@@ -363,9 +363,25 @@ class FunctionTranslator {
       case "call":
         this.translateCall(ins.dest, ins.target);
         return;
-      default:
-        this.iceUnsupported(ins.op);
-
+      case "load_indexed":
+        this.translateLoadIndexed(ins.value, ins.base, ins.index, index, all);
+        return;
+      case "store_indexed":
+        this.translateStoreIndexed(ins.value, ins.base, ins.index);
+        return;
+      case "load_indirect":
+      case "store_indirect":
+        // The indirect pair is the pointer-tier surface ((zp),Y indexing for
+        // by-reference parameters and large arrays) — not yet supported.
+        this.iceUnsupported(`${ins.op} (pointer-tier indexing not yet supported)`);
+        return;
+      default: {
+        // Exhaustiveness guard: a new IL op without a case above fails to
+        // type-check here rather than mistranslating silently.
+        const unreachable: never = ins;
+        this.iceUnsupported(String((unreachable as ILInstruction).op));
+        return;
+      }
     }
   }
 
@@ -492,6 +508,7 @@ class FunctionTranslator {
       this.iceUnsupported("const (non-temp dest or non-immediate src)");
       return;
     }
+    this.protectA(); // a live index/value in A survives the immediate load
     const width = dest.type.width;
     this.emit("LDA", "Immediate", imm8(src.value & 0xff));
     this.bindA(dest.id);
@@ -1215,6 +1232,7 @@ class FunctionTranslator {
     index: number,
     all: readonly ILInstruction[],
   ): void {
+    this.protectA();
     // (1) Both operands constant → fold at compile time, emit as a const.
     if (isImmediate(left) && isImmediate(right)) {
       const product = (left.value * right.value) & (type.width === 16 ? 0xffff : 0xff);
@@ -1377,6 +1395,169 @@ class FunctionTranslator {
     return true;
   }
 
+  // ── Indexed memory (tier-1 `abs,X` framings) ─────────────────────────────────
+
+  /**
+   * Spill a live, memory-less temp out of A before an operation that will
+   * clobber the accumulator. Without this, the temp's only copy dies and its
+   * later consumer fails in the register binder — spilling to a zero-page
+   * scratch slot keeps it readable.
+   */
+  private protectA(): void {
+    const id = this.regA;
+    if (id === null) return;
+    if ((this.remainingUses.get(id) ?? 0) <= 0) return; // dead — nothing to save
+    if (this.loadSource.has(id)) return; // memory-homed — reloadable
+    this.binder.spill({ kind: "temp", id, type: { width: 8, signed: false } }, (e) =>
+      this.out.push(e),
+    );
+    this.regA = null;
+  }
+
+  /**
+   * Bring the (byte-offset) index into X. Loading X invalidates any word
+   * high byte mirrored there, so the mirror is cleared FIRST — a stale read
+   * afterwards fails loudly in the binder instead of silently reading the
+   * index as data.
+   */
+  private indexIntoX(index: ILOperand): void {
+    this.regX = null;
+    if (isImmediate(index)) {
+      this.emit("LDX", "Immediate", imm8(index.value & 0xff));
+      return;
+    }
+    if (isTemp(index)) {
+      if (this.regA === index.id) {
+        this.emit("TAX", "Implied", none());
+        return;
+      }
+      const home = this.sourceHome(index);
+      if (home !== null) {
+        this.emit("LDX", "Absolute", symAt(home, 0));
+        return;
+      }
+      // Spilled temp — read its zero-page scratch home.
+      this.emit("LDX", "ZeroPage", this.binder.operandFor(index));
+      return;
+    }
+    if (isLocation(index)) {
+      this.emit("LDX", "Absolute", symHome(index, 0));
+      return;
+    }
+    this.iceUnsupported("indexed access with a non-value index operand");
+  }
+
+  /**
+   * `load_indexed value, base, index` — tier-1 `abs,X` read.
+   *
+   * Byte: `LDX <index>` → `LDA base+k,X`, then the result is HOMED — folded
+   * into the consuming store when one immediately follows, spilled to a
+   * zero-page scratch slot otherwise — so a consumer that needs A (e.g. the
+   * accumulation `sum = sum + a[i]`) never destroys the only copy.
+   *
+   * Word: both bytes stash straight to the consuming store's home
+   * (`LDA base+k,X / STA lo` then `LDA base+k+1,X / STA hi`), mirroring the
+   * word-ALU discipline; a word read with no consuming store is rejected.
+   */
+  private translateLoadIndexed(
+    value: ILOperand,
+    base: ILOperand,
+    index: ILOperand,
+    at: number,
+    all: readonly ILInstruction[],
+  ): void {
+    if (!isTemp(value) || !isLocation(base)) {
+      this.iceUnsupported("load_indexed (non-temp value or non-location base)");
+      return;
+    }
+    this.protectA();
+    this.indexIntoX(index);
+
+    if (value.type.width === 8) {
+      this.emit("LDA", "AbsoluteX", symHome(base, 0));
+      this.bindA(value.id);
+      const home = this.foldStoreHome(value, at, all);
+      if (home !== null) {
+        this.emit("STA", "Absolute", symAt(home, 0));
+        return;
+      }
+      if ((this.remainingUses.get(value.id) ?? 0) > 0) {
+        this.binder.spill(value, (e) => this.out.push(e));
+        this.regA = null;
+      }
+      return;
+    }
+
+    const home = this.foldStoreHome(value, at, all);
+    if (home === null) {
+      this.iceUnsupported("word indexed load not consumed by a store");
+      return;
+    }
+    this.emit("LDA", "AbsoluteX", symHome(base, 0));
+    this.emit("STA", "Absolute", symAt(home, 0));
+    this.emit("LDA", "AbsoluteX", symHome(base, 1));
+    this.emit("STA", "Absolute", symAt(home, 1));
+    this.clearRegs();
+  }
+
+  /**
+   * `store_indexed value, base, index` — tier-1 `abs,X` write.
+   *
+   * Byte: the value reaches A (immediates load AFTER `LDX` — an A load never
+   * touches X), then `STA base+k,X`. When the value already sits in A and the
+   * index does not need A, the index loads around it.
+   *
+   * Word: the source must be readable from MEMORY (home or immediate) —
+   * `LDX <index>` physically destroys an X-resident high byte, so a
+   * register-resident word source is rejected loudly rather than silently
+   * storing the index as data. Then lo/hi each `LDA` + `STA base+k(+1),X`.
+   */
+  private translateStoreIndexed(value: ILOperand, base: ILOperand, index: ILOperand): void {
+    if (!isLocation(base)) {
+      this.iceUnsupported("store_indexed (non-location base)");
+      return;
+    }
+    const width = widthOf(value);
+
+    if (width === 8) {
+      const valueInA = isTemp(value) && this.regA === value.id;
+      const indexNeedsA = isTemp(index) && this.regA === index.id;
+      if (valueInA && !indexNeedsA) {
+        this.indexIntoX(index);
+        this.emit("STA", "AbsoluteX", symHome(base, 0));
+        return;
+      }
+      this.indexIntoX(index);
+      this.leftIntoA(value);
+      this.emit("STA", "AbsoluteX", symHome(base, 0));
+      return;
+    }
+
+    // Word: the source must have a memory home or be an immediate.
+    if (isImmediate(value)) {
+      this.indexIntoX(index);
+      this.emit("LDA", "Immediate", imm8(value.value & 0xff));
+      this.emit("STA", "AbsoluteX", symHome(base, 0));
+      this.emit("LDA", "Immediate", imm8((value.value >> 8) & 0xff));
+      this.emit("STA", "AbsoluteX", symHome(base, 1));
+      this.clearRegs();
+      return;
+    }
+    const home = this.sourceHome(value);
+    if (home === null) {
+      this.iceUnsupported(
+        "word indexed store from a register-resident value (assign it to a variable first)",
+      );
+      return;
+    }
+    this.indexIntoX(index);
+    this.emit("LDA", "Absolute", symAt(home, 0));
+    this.emit("STA", "AbsoluteX", symHome(base, 0));
+    this.emit("LDA", "Absolute", symAt(home, 1));
+    this.emit("STA", "AbsoluteX", symHome(base, 1));
+    this.clearRegs();
+  }
+
   // ── Register-state mirror (the binder is the allocation seam) ─────────────────
 
 
@@ -1439,6 +1620,13 @@ function destTempId(ins: ILInstruction): number | null {
   switch (ins.op) {
     case "load":
       return isTemp(ins.a) ? ins.a.id : null;
+    case "load_indexed":
+    case "load_indirect":
+      // The loads carry their destination in `value` — without this arm the
+      // generic `"dest" in ins` fallback would miss the def entirely (the
+      // prescan would count the destination as a READ and the call guard
+      // could not see the result's liveness).
+      return isTemp(ins.value) ? ins.value.id : null;
     case "store":
     case "store_indexed":
     case "store_indirect":
@@ -1506,9 +1694,11 @@ function readOperands(ins: ILInstruction): readonly ILOperand[] {
     case "load":
       return [];
     case "load_indexed":
+      return [ins.base, ins.index]; // `value` is the DESTINATION, not a read
     case "store_indexed":
       return [ins.base, ins.index, ins.value];
     case "load_indirect":
+      return [ins.ptr, ins.offset]; // `value` is the DESTINATION, not a read
     case "store_indirect":
       return [ins.ptr, ins.offset, ins.value];
     case "call":
