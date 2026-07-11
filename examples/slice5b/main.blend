@@ -1,0 +1,14 @@
+module Main;
+
+import { add } from Math;
+
+let combo: byte = Math.scaled + 1;
+
+function main(): void {
+  poke($C000, add(2, 3));
+  poke($C001, Math.twice(4));
+  poke($C002, combo);
+  pokew($C003, Math.base);
+  Math.base = Math.base + 1;
+  pokew($C005, Math.base);
+}

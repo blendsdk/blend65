@@ -10,7 +10,23 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-11 (**RD-18 Slice 5b 🔄 Executing — Phase 3 ✅ (init codegen +
+> **Last Updated**: 2026-07-11 (**RD-18 Slice 5b 🔄 Executing — Phase 4 ✅ (acceptance:
+> 3-part bar GREEN on real VICE 3.10, 38/42)** — `examples/slice5b/` three-file fixture
+> (both math files declare `module Math`; Main imports `add`, calls `Math.twice(4)`
+> qualified WITHOUT import, reads/writes `Math.base` qualified; `combo: byte =
+> Math.scaled + 1` crosses modules in an initializer) assembles clean through real ACME
+> to a loadable PRG and on real VICE computes `$C000..$C006 = 05/08/07/02/01/03/01` —
+> initializers run before `main` in dependency order (base → scaled → combo; Main
+> discovered first but Math inits first via the import edge — the two-level ordering is
+> load-bearing). 94-line golden minted (`__init:` serialized FIRST, `JSR __init` after
+> banking, NO `__var_Math_SCALE` — const inlined; note: `SCALE * 2` const-folds to
+> `LDA #$06` at translate, so no `__rt_mul8` lands in `__init`; the embed-scan property
+> stays witnessed at the instr impl tier). Six negatives (E10194+path / E10012 / E10100 /
+> call-bearing-init ICE / cross-file dup E10003 / E10193) pass through the public
+> `compile()` facade immediately (codes shipped in Phases 1–2 — documented no-RED). Full
+> workspace verify green; `spec/` clean. Next: Phase 5 (rollout bookkeeping — closes
+> RD-18 AC-4).)
+> Prior: (**Phase 3 ✅ (init codegen +
 > lowering arms, 32/42)** — spec-first: 6 STs red (1 pre-passer: the without-initializer
 > half pins today's no-`__init` output) → GREEN. Shipped: lowering arms — NEW
 > `lowerFieldAccess` (qualified module-var loads + const inlining), `lowerIdent` const arm

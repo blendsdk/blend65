@@ -1,0 +1,8 @@
+module Math;
+
+export const SCALE: byte = 3;
+export let base: word = $0102;
+
+export function add(a: byte, b: byte): byte {
+  return a + b;
+}

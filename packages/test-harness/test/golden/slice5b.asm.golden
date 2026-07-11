@@ -1,0 +1,93 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_main = $2004
+__frame_Math_add = $2004
+__frame_Math_add_a = $2004
+__frame_Math_add_b = $2005
+__frame_Math_twice = $2006
+__frame_Math_twice_v = $2006
+__var_Main_combo = $2000
+__var_Math_base = $2001
+__var_Math_scaled = $2003
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR __init
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: __init ---
+__init:
+    LDA #$02
+    LDX #$01
+    STA __var_Math_base
+    STX __var_Math_base+1
+    LDA #$06
+    STA __var_Math_scaled
+    LDA __var_Math_scaled
+    CLC
+    ADC #$01
+    STA __var_Main_combo
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$02
+    STA __frame_Math_add_a
+    LDA #$03
+    STA __frame_Math_add_b
+    JSR Math_add
+    STA $C000
+    LDA #$04
+    STA __frame_Math_twice_v
+    JSR Math_twice
+    STA $C001
+    LDA __var_Main_combo
+    STA $C002
+    LDA __var_Math_base
+    LDX __var_Math_base+1
+    STA $C003
+    STX $C003+1
+    LDA __var_Math_base
+    CLC
+    ADC #$01
+    STA __var_Math_base
+    LDA __var_Math_base+1
+    ADC #$00
+    STA __var_Math_base+1
+    LDA __var_Math_base
+    LDX __var_Math_base+1
+    STA $C005
+    STX $C005+1
+    RTS
+; --- function: Math.add ---
+Math_add:
+    LDA __frame_Math_add_a
+    CLC
+    ADC __frame_Math_add_b
+    RTS
+; --- function: Math.twice ---
+Math_twice:
+    LDA __frame_Math_twice_v
+    STA __frame_Math_add_a
+    LDA __frame_Math_twice_v
+    STA __frame_Math_add_b
+    JSR Math_add
+    RTS

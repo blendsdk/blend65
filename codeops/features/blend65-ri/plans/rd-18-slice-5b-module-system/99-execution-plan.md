@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 12:13
-> **Progress**: 32/42 tasks (76%)
+> **Last Updated**: 2026-07-11 12:20
+> **Progress**: 38/42 tasks (90%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -157,12 +157,12 @@ corrections (`00-preflight-report.md`).
 **Reference**: 03-04 · 07-testing-strategy ST-26…ST-30 · AR-10
 **Objective**: the three-file fixture proves the slice end-to-end on real VICE.
 
-- [ ] 4.1.1 Fixture sources (exact 03-04 §1 text) — `examples/slice5b/{main,math,math2}.blend` + `packages/test-harness/src/testing/slice5b.ts`
-- [ ] 4.1.2 Negatives through the facade (ST-30, N1–N6; expected to pass immediately — codes shipped in Phases 1-2; document that no RED applies) — `packages/test-harness/src/slice5b-negatives.spec.test.ts`
-- [ ] 4.1.3 Golden test + mint + content asserts (ST-26) — `packages/test-harness/src/golden-slice5b.spec.test.ts`, `test/golden/slice5b.asm.golden`
-- [ ] 4.1.4 Assemble-clean tier with real ACME (ST-27) — `packages/test-harness/src/slice5b.spec.test.ts`
-- [ ] 4.1.5 VICE tier: sentinel + seven memory asserts on real VICE 3.10 (ST-28) — `slice5b.spec.test.ts`
-- [ ] 4.1.6 Full verify (all tiers green locally; CI tiers skip-gated as in slice5a)
+- [x] 4.1.1 Fixture sources (exact 03-04 §1 text) — `examples/slice5b/{main,math,math2}.blend` + `packages/test-harness/src/testing/slice5b.ts` ✅ (completed: 2026-07-11 12:16)
+- [x] 4.1.2 Negatives through the facade (ST-30, N1–N6; expected to pass immediately — codes shipped in Phases 1-2; document that no RED applies) — `packages/test-harness/src/slice5b-negatives.spec.test.ts` ✅ (completed: 2026-07-11 12:17 — 6/6 pass immediately as planned, no RED applies)
+- [x] 4.1.3 Golden test + mint + content asserts (ST-26) — `packages/test-harness/src/golden-slice5b.spec.test.ts`, `test/golden/slice5b.asm.golden` ✅ (completed: 2026-07-11 12:19 — minted 94 lines; `__init` first, `JSR __init` after banking, init order base→scaled→combo, NO `__var_Math_SCALE`; note: `SCALE * 2` const-folds to `LDA #$06` at translate (imm×imm fold), so no `__rt_mul8` lands in `__init` — correct code; the embed-scan-includes-init-stream property stays witnessed by the instr impl test)
+- [x] 4.1.4 Assemble-clean tier with real ACME (ST-27) — `packages/test-harness/src/slice5b.spec.test.ts` ✅ (completed: 2026-07-11 12:20 — loadable PRG, zero errors)
+- [x] 4.1.5 VICE tier: sentinel + seven memory asserts on real VICE 3.10 (ST-28) — `slice5b.spec.test.ts` ✅ (completed: 2026-07-11 12:20 — GREEN on real VICE: $C000..$C006 = 05/08/07/02/01/03/01)
+- [x] 4.1.6 Full verify (all tiers green locally; CI tiers skip-gated as in slice5a) ✅ (completed: 2026-07-11 12:20 — full workspace verify green; `spec/` clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

@@ -1,0 +1,7 @@
+module Math;
+
+export let scaled: byte = SCALE * 2;
+
+export function twice(v: byte): byte {
+  return add(v, v);
+}
