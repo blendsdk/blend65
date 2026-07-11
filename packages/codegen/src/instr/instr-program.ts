@@ -19,7 +19,7 @@ import type { DiagnosticBag } from "@blend65/core";
 import type { AllocationPlan } from "@blend65/core";
 import type { PlatformPlugin, PreambleOptions } from "@blend65/core/platform";
 
-import type { ILProgram } from "../il/cfg.js";
+import type { ILFunction, ILProgram } from "../il/cfg.js";
 import type { CpuVariant, InstrStream, StreamEntry } from "./stream.js";
 import { instrByteSize } from "./print-instr.js";
 import { validateStream } from "./validate.js";
@@ -47,12 +47,15 @@ export interface InstrProgram {
 /**
  * Translate the (optimized) IL program into a validated {@link InstrProgram}.
  *
- * Per function: a function with no blocks/instructions (skipped during
- * lowering) yields no stream; otherwise it is translated with a fresh register
- * binder, the emitted stream is validated against the CPU table (an illegal
- * opcode+mode is an `E90001` codegen bug), and pushed onto `streams`. Stream
- * order follows `ilProgram.functions` (deterministic). The returned program is
- * frozen.
+ * A non-empty module-initializer stream translates FIRST (through the same
+ * translator and validation as a void function named `__init`), so it
+ * serializes ahead of the entry function; the startup shim calls it once
+ * before `_main`. Per function: a function with no blocks/instructions
+ * (skipped during lowering) yields no stream; otherwise it is translated with
+ * a fresh register binder, the emitted stream is validated against the CPU
+ * table (an illegal opcode+mode is an `E90001` codegen bug), and pushed onto
+ * `streams`. Stream order follows `ilProgram.functions` (deterministic). The
+ * returned program is frozen.
  *
  * The optional `opts` carries the target's ZP arg-block size (+ platform id)
  * enabling the runtime-call E10044 check; bare callers omit it and the check
@@ -72,6 +75,23 @@ export function generateInstr(
 ): InstrProgram {
   const plan = ilProgram.allocationPlan;
   const streams: InstrStream[] = [];
+
+  if (ilProgram.initCode.length > 0) {
+    // The module-initializer stream, shaped like a void function so the
+    // ordinary translator/validator handle it; pushed before the function
+    // loop so it serializes first.
+    const initFn: ILFunction = {
+      name: "__init",
+      params: [],
+      returnType: "void",
+      blocks: ilProgram.initCode,
+      tempCount: ilProgram.initTempCount,
+      isInterrupt: false,
+    };
+    const initStream = translateFunction(initFn, plan, cpuVariant, bag, opts);
+    validateStream(initStream, cpuVariant, bag);
+    streams.push(initStream);
+  }
 
   for (const fn of ilProgram.functions) {
     // Skip functions with no IL (error tolerance / never-lowered).
@@ -167,6 +187,7 @@ function derivePreambleOptions(ilProgram: ILProgram): PreambleOptions {
     shimVariant: "terminating", // Half-A rule (single-block entry ends in ret).
     needsBssZero: false, // no distinct BSS region in the live plan/gate.
     needsDataInit: ilProgram.constData.length > 0, // copy const data when present.
+    hasInitCode: ilProgram.initCode.length > 0, // shim calls __init when present.
   };
 }
 

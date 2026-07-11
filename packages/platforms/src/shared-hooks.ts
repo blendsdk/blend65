@@ -73,14 +73,21 @@ export function prgOutputDirective(projectName: string): {
 
 /**
  * The shared C64-style startup shim (R17, §4.6). Banks out BASIC via the `$01`
- * processor port, calls `_main`, and either restores + returns (`terminating`),
- * loops forever (`non-terminating` → `JMP _main`), or emits nothing (`bare`).
+ * processor port, calls the module-initializer routine (`__init`) when the
+ * program has one — after banking, so initializers run in the same memory
+ * configuration as `main` — then calls `_main`, and either restores + returns
+ * (`terminating`), loops forever (`non-terminating` → `JMP _main`), or emits
+ * nothing (`bare`). Under `bare` the user owns the ENTIRE entry sequence:
+ * the `__init` routine, when present, is emitted with its label and it is the
+ * user's job to call it — exactly as they own calling `_main`.
  *
  * @param variant The shim variant to emit.
+ * @param hasInitCode Whether to call `__init` before `_main` (default `false`).
  * @returns The shim stream entries (empty for `"bare"`).
  */
 export function c64StyleStartupShim(
   variant: "terminating" | "non-terminating" | "bare",
+  hasInitCode = false,
 ): StreamEntry[] {
   if (variant === "bare") {
     return [];
@@ -90,6 +97,9 @@ export function c64StyleStartupShim(
     instr("LDA", "Immediate", imm8(0x36)),
     instr("STA", "ZeroPage", symbolRef("$01")),
   ];
+  if (hasInitCode) {
+    entries.push(instr("JSR", "Absolute", symbolRef("__init")));
+  }
   if (variant === "terminating") {
     entries.push(
       instr("JSR", "Absolute", symbolRef("_main")),
@@ -110,11 +120,14 @@ export function c64StyleStartupShim(
  *
  * @param projectName The output base name.
  * @param variant The startup-shim variant.
+ * @param hasInitCode Whether the shim calls `__init` before `_main`
+ *   (default `false`).
  * @returns The preamble stream entries.
  */
 export function c64StylePreamble(
   projectName: string,
   variant: "terminating" | "non-terminating" | "bare",
+  hasInitCode = false,
 ): StreamEntry[] {
   return [
     directive(prgOutputDirective(projectName)),
@@ -126,7 +139,7 @@ export function c64StylePreamble(
     directive({ kind: "text", text: "2061" }), // address as PETSCII text
     directive({ kind: "byte", values: [0x00] }), // end-of-line
     directive({ kind: "word", values: [0x0000] }), // end-of-program
-    ...c64StyleStartupShim(variant),
+    ...c64StyleStartupShim(variant, hasInitCode),
   ];
 }
 

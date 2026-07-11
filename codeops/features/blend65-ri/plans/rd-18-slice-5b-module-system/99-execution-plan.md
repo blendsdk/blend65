@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 11:50
-> **Progress**: 22/42 tasks (52%)
+> **Last Updated**: 2026-07-11 12:13
+> **Progress**: 32/42 tasks (76%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -126,25 +126,25 @@ corrections (`00-preflight-report.md`).
 **Reference**: 07-testing-strategy ST-22…ST-25 · 03-03 · AR-7/8
 **Objective**: pin the IL shape, the `__init` stream, and const inlining.
 
-- [ ] 3.1.1 Write IL lowering spec tests (ST-22) — `packages/codegen/src/il/lower-init.spec.test.ts`
-- [ ] 3.1.2 Write emit-level spec tests (ST-23…ST-25) — `packages/compiler/src/api/emit-init.spec.test.ts`
-- [ ] 3.1.3 RED phase: verify every ST fails
+- [x] 3.1.1 Write IL lowering spec tests (ST-22) — `packages/codegen/src/il/lower-init.spec.test.ts` ✅ (completed: 2026-07-11 12:00)
+- [x] 3.1.2 Write emit-level spec tests (ST-23…ST-25) — `packages/compiler/src/api/emit-init.spec.test.ts` ✅ (completed: 2026-07-11 12:00)
+- [x] 3.1.3 RED phase: verify every ST fails ✅ (completed: 2026-07-11 12:00 — 5 red (+ the new `initTempCount` field also reds the codegen typecheck until 3.2.2); pre-passer: the ST-23 without-initializer half, pins today's no-`__init` output that conditional emission must preserve)
 
 ### Step 3.2: Implementation
 
 **Reference**: 03-03 §1-3, 03-01 §4 · AR-8 amendments, AR-12, AR-7
 **Objective**: qualified/const lowering arms, `initCode` production, `__init` consumption, shim wiring.
 
-- [ ] 3.2.1 Lowering arms: `lowerFieldAccess` read, `lowerAssign` qualified target, `lowerUserCall` symbol-keyed callee (both shapes) + `collectCallExprs`/`canReach` parity, const→immediate inlining (ident + qualified) — `packages/codegen/src/il/lower.ts`
-- [ ] 3.2.2 `ILProgram.initCode` production: `__init` builder over `model.initOrder`, `moduleInit` ICE guard, NEW `initTempCount` field + test-literal sweep, `printIL` `__init` section — `packages/codegen/src/il/lower.ts`, `cfg.ts`, `print-il.ts` (+ test literals)
-- [ ] 3.2.3 `generateInstr` `__init` wrapper stream (unshift FIRST) + `derivePreambleOptions.hasInitCode` + runtime-routine collection includes the init stream — `packages/codegen/src/instr/instr-program.ts` (+ the embed-scan input if needed)
-- [ ] 3.2.4 `PreambleOptions.hasInitCode` (additive) + `c64StyleStartupShim`/`c64StylePreamble` conditional `JSR __init` + five plugin pass-throughs (`emitPreamble` AND the optional-param `emitStartupShim` delegations, 03-03 §3) + bare-variant user-owned doc comments — `packages/core/src/platform/platform-plugin.ts`, `packages/platforms/src/shared-hooks.ts`, `c64.ts`, `c64u.ts`, `cx16.ts`, `a800xl.ts`, `a7800.ts`
-- [ ] 3.2.5 GREEN phase: ST-22…ST-25 pass
+- [x] 3.2.1 Lowering arms: `lowerFieldAccess` read, `lowerAssign` qualified target, `lowerUserCall` symbol-keyed callee (both shapes) + `collectCallExprs`/`canReach` parity, const→immediate inlining (ident + qualified) — `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-11 12:05 — `moduleVarOf` refactored to the symbol-keyed `moduleVarLocOfSymbol` shared by ident/qualified/assign/init paths)
+- [x] 3.2.2 `ILProgram.initCode` production: `__init` builder over `model.initOrder`, `moduleInit` ICE guard, NEW `initTempCount` field + test-literal sweep, `printIL` `__init` section — `packages/codegen/src/il/lower.ts`, `cfg.ts`, `print-il.ts` (+ test literals) ✅ (completed: 2026-07-11 12:07 — sweep hit 11 codegen + 2 compiler golden-test literals; the lower.spec.test.ts empty pin needed no narrowing, its fixture is an empty program)
+- [x] 3.2.3 `generateInstr` `__init` wrapper stream (unshift FIRST) + `derivePreambleOptions.hasInitCode` + runtime-routine collection includes the init stream — `packages/codegen/src/instr/instr-program.ts` (+ the embed-scan input if needed) ✅ (completed: 2026-07-11 12:08 — init stream pushed before the function loop; embed scan reads streams, so no scan change needed; sanitize doc comment refreshed)
+- [x] 3.2.4 `PreambleOptions.hasInitCode` (additive) + `c64StyleStartupShim`/`c64StylePreamble` conditional `JSR __init` + five plugin pass-throughs (`emitPreamble` AND the optional-param `emitStartupShim` delegations, 03-03 §3) + bare-variant user-owned doc comments — `packages/core/src/platform/platform-plugin.ts`, `packages/platforms/src/shared-hooks.ts`, `c64.ts`, `c64u.ts`, `cx16.ts`, `a800xl.ts`, `a7800.ts` ✅ (completed: 2026-07-11 12:10 — bare-variant note also added to the build API's startup option doc)
+- [x] 3.2.5 GREEN phase: ST-22…ST-25 pass ✅ (completed: 2026-07-11 12:11 — 6/6 green, no spec test edited; codegen 375 + compiler 90 + harness 91 all green)
 
 ### Step 3.3: Implementation tests & hardening
 
-- [ ] 3.3.1 Impl tests: initTempCount propagation, printIL section, moduleInit guard, plugin pass-through, word-store shape — `lower-init.impl.test.ts` + instr additions (07 impl table)
-- [ ] 3.3.2 Full verify — MUST include ST-29: all prior goldens byte-exact, no re-mint
+- [x] 3.3.1 Impl tests: initTempCount propagation, printIL section, moduleInit guard, plugin pass-through, word-store shape — `lower-init.impl.test.ts` + instr additions (07 impl table) ✅ (completed: 2026-07-11 12:12 — 5 codegen impl tests (incl. the instr-layer conditional-stream witness) + 15 platform pass-through tests in NEW `packages/platforms/src/init-shim.impl.test.ts`)
+- [x] 3.3.2 Full verify — MUST include ST-29: all prior goldens byte-exact, no re-mint ✅ (completed: 2026-07-11 12:13 — full workspace verify green; all six goldens + both compiler assemble goldens byte-exact, no re-mint; `spec/` clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

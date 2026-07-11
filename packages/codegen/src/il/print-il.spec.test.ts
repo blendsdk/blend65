@@ -57,7 +57,7 @@ const EMPTY_PLAN = {
 
 /** Wrap one function as a whole `ILProgram` (empty init/const data). */
 function program(fn: ILFunction): ILProgram {
-  return { functions: [fn], initCode: [], constData: [], allocationPlan: EMPTY_PLAN };
+  return { functions: [fn], initCode: [], initTempCount: 0, constData: [], allocationPlan: EMPTY_PLAN };
 }
 
 /**

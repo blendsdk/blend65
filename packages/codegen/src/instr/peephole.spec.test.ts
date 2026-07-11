@@ -100,7 +100,7 @@ function fn(
 }
 
 function ilProgram(functions: readonly ILFunction[], plan: AllocationPlan = makePlan()): ILProgram {
-  return { functions, initCode: [], constData: [], allocationPlan: plan };
+  return { functions, initCode: [], initTempCount: 0, constData: [], allocationPlan: plan };
 }
 
 /** A simple `r = a + b` byte function (lowers to LDA/CLC/ADC/STA/RTS + label). */

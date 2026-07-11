@@ -56,7 +56,7 @@ const EMPTY_PLAN = {
 } satisfies AllocationPlan;
 
 function prog(...functions: ILFunction[]): ILProgram {
-  return { functions, initCode: [], constData: [], allocationPlan: EMPTY_PLAN };
+  return { functions, initCode: [], initTempCount: 0, constData: [], allocationPlan: EMPTY_PLAN };
 }
 
 function voidFn(name: string, instructions: ILFunction["blocks"][number]["instructions"]): ILFunction {

@@ -79,14 +79,14 @@ const FN: ILFunction = {
 
 const PROGRAM: ILProgram = {
   functions: [FN],
-  initCode: [],
+  initCode: [], initTempCount: 0,
   constData: [],
   allocationPlan: EMPTY_PLAN,
 };
 
 const EMPTY_PROGRAM: ILProgram = {
   functions: [],
-  initCode: [],
+  initCode: [], initTempCount: 0,
   constData: [],
   allocationPlan: EMPTY_PLAN,
 };

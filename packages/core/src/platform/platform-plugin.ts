@@ -38,6 +38,12 @@ export interface PreambleOptions {
   readonly needsBssZero: boolean;
   /** Whether the shim must copy initialised data before entry. */
   readonly needsDataInit: boolean;
+  /**
+   * Whether the program carries a module-initializer routine (`__init`) the
+   * shim must call once before the entry function. Absent/`false` emits no
+   * call, keeping initializer-free output byte-identical.
+   */
+  readonly hasInitCode?: boolean;
 }
 
 /**
@@ -117,9 +123,14 @@ export interface PlatformPlugin {
    * Emit just the startup shim for the given variant.
    *
    * @param variant The shim variant to emit.
+   * @param hasInitCode Whether the shim must call the module-initializer
+   *   routine (`__init`) before the entry function; defaults to `false`.
+   *   Under `"bare"` the user owns the entire entry sequence — the `__init`
+   *   label is present in the emitted program to call, exactly as they own
+   *   calling `_main`.
    * @returns The shim stream entries (empty for `"bare"`).
    */
-  emitStartupShim(variant: ShimVariant): StreamEntry[];
+  emitStartupShim(variant: ShimVariant, hasInitCode?: boolean): StreamEntry[];
 
   /**
    * The ACME output-file directive for this platform, e.g.

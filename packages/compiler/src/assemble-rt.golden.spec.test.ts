@@ -128,7 +128,7 @@ function ilProgram(): ILProgram {
         isInterrupt: false,
       },
     ],
-    initCode: [],
+    initCode: [], initTempCount: 0,
     constData: [],
     allocationPlan: planOf(),
   };

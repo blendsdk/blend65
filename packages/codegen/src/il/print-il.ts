@@ -233,13 +233,30 @@ function renderFunction(fn: ILFunction): string {
 /**
  * Render an entire {@link ILProgram} to deterministic IL text.
  *
- * Functions are printed in `program.functions` order, separated by a blank line.
- * `initCode`/`constData` are empty in v1 and contribute nothing. The result has
+ * A non-empty module-initializer stream prints FIRST (mirroring its runtime
+ * position before the entry function), rendered like a void function named
+ * `__init`; an empty stream contributes nothing, keeping the previous output
+ * byte-identical. Functions follow in `program.functions` order, separated by
+ * a blank line. `constData` is empty and contributes nothing. The result has
  * no trailing newline.
  *
  * @param program The IL program to print.
  * @returns The deterministic textual representation.
  */
 export function printIL(program: ILProgram): string {
-  return program.functions.map(renderFunction).join("\n\n");
+  const parts: string[] = [];
+  if (program.initCode.length > 0) {
+    parts.push(
+      renderFunction({
+        name: "__init",
+        params: [],
+        returnType: "void",
+        blocks: program.initCode,
+        tempCount: program.initTempCount,
+        isInterrupt: false,
+      }),
+    );
+  }
+  parts.push(...program.functions.map(renderFunction));
+  return parts.join("\n\n");
 }

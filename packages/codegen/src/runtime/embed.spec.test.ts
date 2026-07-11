@@ -75,7 +75,7 @@ function programOf(instructions: readonly ILInstruction[]): ILProgram {
         isInterrupt: false,
       },
     ],
-    initCode: [],
+    initCode: [], initTempCount: 0,
     constData: [],
     allocationPlan: emptyPlan(),
   };

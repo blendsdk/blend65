@@ -74,11 +74,15 @@ export const c64uPlugin: PlatformPlugin = {
   runtimeModules: [],
 
   emitPreamble(options: PreambleOptions): StreamEntry[] {
-    return c64StylePreamble(options.projectName, options.shimVariant);
+    return c64StylePreamble(
+      options.projectName,
+      options.shimVariant,
+      options.hasInitCode ?? false,
+    );
   },
 
-  emitStartupShim(variant: ShimVariant): StreamEntry[] {
-    return c64StyleStartupShim(variant);
+  emitStartupShim(variant: ShimVariant, hasInitCode?: boolean): StreamEntry[] {
+    return c64StyleStartupShim(variant, hasInitCode ?? false);
   },
 
   getOutputDirective(projectName: string): AcmeDirective {

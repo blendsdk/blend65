@@ -28,6 +28,7 @@ import type {
   DiagnosticBag,
   DoWhileStmtNode,
   ExprNode,
+  FieldAccessExprNode,
   ForStmtNode,
   FunctionDeclNode,
   FunctionFrame,
@@ -59,7 +60,7 @@ import type { ILType } from "./il-type.js";
 import { imm, isTemp, loc } from "./operand.js";
 import type { ILOperand } from "./operand.js";
 import type { ILInstruction } from "./instruction.js";
-import type { ILFunction, ILProgram } from "./cfg.js";
+import type { BasicBlock, ILFunction, ILProgram } from "./cfg.js";
 import { IlFunctionBuilder } from "./builder.js";
 
 /**
@@ -125,6 +126,13 @@ interface LowerCtx {
   readonly loopStack: LoopContext[];
   /** The allocation plan (callee frame slots for the calling convention). */
   readonly plan: AllocationPlan;
+  /**
+   * `true` while lowering the module-initializer stream. There is no frame in
+   * that context, so a reference that resolves to neither a module variable
+   * nor a constant is a compiler bug and must fail loudly — never fall back
+   * to the (byte-defaulting) frame-slot path.
+   */
+  readonly moduleInit: boolean;
 }
 
 /**
@@ -150,12 +158,74 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
       }
     }
   }
+
+  // Module initializers: one generated init stream (stores in the model's
+  // initialization order, closed by `ret` — the startup shim calls it once
+  // before the entry function). Initializer-free programs keep the stream
+  // empty, so their output is byte-identical to before.
+  const init =
+    input.model.initOrder.length > 0
+      ? lowerInitCode(input, registry, bag)
+      : { blocks: Object.freeze([] as const), tempCount: 0 };
+
   return Object.freeze({
     functions: Object.freeze(functions),
-    initCode: Object.freeze([]),
+    initCode: init.blocks,
+    initTempCount: init.tempCount,
     constData: Object.freeze([]),
     allocationPlan: input.plan,
   });
+}
+
+/**
+ * Lower the module-variable initializers into the init stream: for each
+ * symbol in the model's initialization order, evaluate its initializer
+ * expression and store the value to the variable's storage symbol. The
+ * stream is built like a void function body (same builder, same expression
+ * lowering) and closed with `ret`, so translation and the startup call reuse
+ * the ordinary function machinery.
+ */
+function lowerInitCode(
+  input: LowerInput,
+  registry: IntrinsicRegistry,
+  bag: DiagnosticBag,
+): { blocks: readonly BasicBlock[]; tempCount: number } {
+  // Initializer expressions, keyed by their declared symbol (typing records
+  // the declaration-node → symbol entry).
+  const initializers = new Map<Symbol, ExprNode>();
+  for (const program of input.program) {
+    for (const item of program.items) {
+      if (item.kind !== "LetDecl" || item.initialiser === null) continue;
+      const sym = input.model.symbolOf(item);
+      if (sym !== null) initializers.set(sym, item.initialiser);
+    }
+  }
+
+  const builder = new IlFunctionBuilder("__init", [], "void", false);
+  const ctx: LowerCtx = {
+    builder,
+    fqName: "__init",
+    frame: undefined,
+    bag,
+    model: input.model,
+    registry,
+    loopStack: [],
+    plan: input.plan,
+    moduleInit: true,
+  };
+  for (const sym of input.model.initOrder) {
+    const init = initializers.get(sym);
+    if (init === undefined) continue; // defensive — the order holds initialized vars only
+    const value = lowerExpr(init, ctx);
+    const target = moduleVarLocOfSymbol(sym);
+    if (target === null) {
+      iceUnsupported(init, ctx, "module initializer target (not a module variable)");
+      continue;
+    }
+    builder.emit({ op: "store", a: value, b: loc(target.symbol, target.type) });
+  }
+  const fn = builder.finish({ kind: "ret" });
+  return { blocks: [...fn.blocks], tempCount: fn.tempCount };
 }
 
 /** Lower one function/interrupt declaration into a single-block `ILFunction`. */
@@ -178,7 +248,17 @@ function lowerFunction(
   const returnType = fn.kind === "FunctionDecl" ? typeNodeToIl(fn.returnType) : "void";
 
   const builder = new IlFunctionBuilder(fqName, params, returnType, isInterrupt);
-  const ctx: LowerCtx = { builder, fqName, frame, bag, model, registry, loopStack: [], plan };
+  const ctx: LowerCtx = {
+    builder,
+    fqName,
+    frame,
+    bag,
+    model,
+    registry,
+    loopStack: [],
+    plan,
+    moduleInit: false,
+  };
 
   lowerBlock(fn.body, ctx);
 
@@ -574,6 +654,8 @@ function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
       return imm(expr.value ? 1 : 0, IL_BYTE);
     case "IdentExpr":
       return lowerIdent(expr, ctx);
+    case "FieldAccessExpr":
+      return lowerFieldAccess(expr, ctx);
     case "BinaryExpr":
       return lowerBinary(expr, ctx);
     case "AssignExpr":
@@ -617,14 +699,17 @@ function lowerCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
  * overwritten mid-marshalling); that residual shape is rejected loudly
  * before anything is emitted, never compiled wrong.
  *
- * A callee that is not a plain resolved user function (qualified access,
- * unresolved symbols) keeps the unsupported-ICE contract.
+ * A callee that is not a resolved user function (unsupported callee shapes,
+ * unresolved symbols) keeps the unsupported-ICE contract. Both supported
+ * shapes — a bare identifier and a qualified `Module.member` — carry their
+ * resolved symbol in the model's symbol map.
  */
 function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
-  if (expr.callee.kind !== "IdentExpr") {
-    return iceUnsupported(expr, ctx, "call expression (qualified callee)");
+  const calleeExpr = expr.callee;
+  if (calleeExpr.kind !== "IdentExpr" && calleeExpr.kind !== "FieldAccessExpr") {
+    return iceUnsupported(expr, ctx, "call expression (unsupported callee shape)");
   }
-  const callee = ctx.model.symbolOf(expr.callee);
+  const callee = ctx.model.symbolOf(calleeExpr);
   if (callee === null || callee.kind !== "function" || !isFunctionDecl(callee.decl)) {
     return iceUnsupported(expr, ctx, "call expression (unresolved callee)");
   }
@@ -638,7 +723,9 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
   for (const arg of expr.args.slice(1)) {
     for (const nested of collectCallExprs(arg)) {
       const nestedCallee =
-        nested.callee.kind === "IdentExpr" ? ctx.model.symbolOf(nested.callee) : null;
+        nested.callee.kind === "IdentExpr" || nested.callee.kind === "FieldAccessExpr"
+          ? ctx.model.symbolOf(nested.callee)
+          : null;
       if (nestedCallee === null || nestedCallee.kind !== "function") continue;
       if (canReach(nestedCallee, callee, ctx.model)) {
         return iceUnsupported(
@@ -738,21 +825,67 @@ function lowerNumericLit(expr: NumericLitExprNode, ctx: LowerCtx): ILOperand {
 }
 
 /**
- * A variable read loads its storage location into a fresh temp. A module-
- * scope variable resolves to its `__var_*` symbol; a local/param
- * resolves to its `__frame_*` slot (existing path).
+ * A variable read loads its storage location into a fresh temp; a constant
+ * inlines to its evaluated immediate (constants own no storage). A module-
+ * scope variable resolves to its `__var_*` symbol; a local/param resolves to
+ * its `__frame_*` slot (existing path) — except inside the module-initializer
+ * stream, where no frame exists and an unresolved reference is a loud
+ * compiler bug rather than a silently mis-sized frame slot.
  */
 function lowerIdent(expr: IdentExprNode, ctx: LowerCtx): ILOperand {
-  const moduleVar = moduleVarOf(expr, ctx);
+  const sym = ctx.model.symbolOf(expr);
+  if (sym !== null && sym.kind === "constant") {
+    return constImmediate(sym, expr, ctx);
+  }
+  const moduleVar = sym !== null ? moduleVarLocOfSymbol(sym) : null;
   if (moduleVar !== null) {
     const dest = ctx.builder.newTemp(moduleVar.type);
     ctx.builder.emit({ op: "load", a: dest, b: loc(moduleVar.symbol, moduleVar.type) });
     return dest;
   }
+  if (ctx.moduleInit) {
+    return iceUnsupported(expr, ctx, "module-initializer reference (no frame storage)");
+  }
   const type = slotIlType(ctx.frame, expr.name);
   const dest = ctx.builder.newTemp(type);
   ctx.builder.emit({ op: "load", a: dest, b: loc(frameSymbol(ctx.fqName, expr.name), type) });
   return dest;
+}
+
+/**
+ * A qualified `Module.member` read in value position. Typing resolved the
+ * member to the SAME symbol the module declares, so the read mirrors the
+ * identifier paths: a module variable loads from its `__var_*` symbol; a
+ * constant inlines to its evaluated immediate. Anything else was already
+ * rejected by typing — reaching it here is a compiler bug.
+ */
+function lowerFieldAccess(expr: FieldAccessExprNode, ctx: LowerCtx): ILOperand {
+  const sym = ctx.model.symbolOf(expr);
+  if (sym !== null && sym.kind === "constant") {
+    return constImmediate(sym, expr, ctx);
+  }
+  const moduleVar = sym !== null ? moduleVarLocOfSymbol(sym) : null;
+  if (moduleVar !== null) {
+    const dest = ctx.builder.newTemp(moduleVar.type);
+    ctx.builder.emit({ op: "load", a: dest, b: loc(moduleVar.symbol, moduleVar.type) });
+    return dest;
+  }
+  return iceUnsupported(expr, ctx, "field access");
+}
+
+/**
+ * A resolved constant inlines to its evaluated immediate value — constants
+ * are compile-time-only and never own RAM. A missing value cannot survive to
+ * a clean build (evaluation failures are user errors upstream); the ICE is
+ * defense in depth.
+ */
+function constImmediate(sym: Symbol, expr: ExprNode, ctx: LowerCtx): ILOperand {
+  const value = ctx.model.constValues.get(sym);
+  if (value === undefined) {
+    return iceUnsupported(expr, ctx, "constant without an evaluated value");
+  }
+  const raw = typeof value.value === "boolean" ? (value.value ? 1 : 0) : value.value;
+  return imm(raw, ilTypeOfType(sym.type));
 }
 
 /** A same-width binary expression: evaluate left, then right, then the op. */
@@ -776,17 +909,26 @@ function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
-/** `target = rhs` → materialise rhs and store it to the target's slot. */
+/** `target = rhs` → materialise rhs and store it to the target's storage. */
 function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
-  if (expr.op !== "=" || expr.target.kind !== "IdentExpr") {
+  const targetExpr = expr.target;
+  if (expr.op !== "=" || (targetExpr.kind !== "IdentExpr" && targetExpr.kind !== "FieldAccessExpr")) {
     return iceUnsupported(expr, ctx, "assignment");
   }
   const value = materialise(lowerExpr(expr.value, ctx), ctx);
-  const moduleVar = moduleVarOf(expr.target, ctx);
-  const target =
-    moduleVar !== null
-      ? loc(moduleVar.symbol, moduleVar.type) // module scalar → __var_*
-      : loc(frameSymbol(ctx.fqName, expr.target.name), slotIlType(ctx.frame, expr.target.name));
+
+  const sym = ctx.model.symbolOf(targetExpr);
+  const moduleVar = sym !== null ? moduleVarLocOfSymbol(sym) : null;
+  let target: ILOperand;
+  if (moduleVar !== null) {
+    target = loc(moduleVar.symbol, moduleVar.type); // module scalar → __var_*
+  } else if (targetExpr.kind === "IdentExpr") {
+    target = loc(frameSymbol(ctx.fqName, targetExpr.name), slotIlType(ctx.frame, targetExpr.name));
+  } else {
+    // A qualified target that is not a module variable was already rejected
+    // by typing; reaching it here is a compiler bug.
+    return iceUnsupported(expr, ctx, "assignment (qualified target)");
+  }
   ctx.builder.emit({ op: "store", a: value, b: target });
   return value;
 }
@@ -1043,21 +1185,17 @@ function moduleVarSymbol(moduleName: string, varName: string): string {
 }
 
 /**
- * If `expr` resolves (via the model's `symbolMap`) to a **module-scope**
- * `variable`, returns its `__var_*` symbol and IL type; otherwise `null` (a
- * local/param, handled by the frame path). The module name is read from the
- * symbol's declaring module scope node. This is the discriminator between
- * the `__var_*` and `__frame_*` storage paths.
+ * If `sym` is a **module-scope** `variable`, returns its `__var_*` symbol and
+ * IL type; otherwise `null` (a local/param, handled by the frame path). The
+ * module name is read from the symbol's declaring module scope node — the
+ * same recovery used for storage layout, so the emitted reference resolves.
+ * This is the discriminator between the `__var_*` and `__frame_*` paths.
  */
-function moduleVarOf(
-  expr: IdentExprNode,
-  ctx: LowerCtx,
-): { symbol: string; type: ILType } | null {
-  const sym = ctx.model.symbolOf(expr);
-  if (sym === null || sym.kind !== "variable" || sym.scope.kind !== "module") return null;
+function moduleVarLocOfSymbol(sym: Symbol): { symbol: string; type: ILType } | null {
+  if (sym.kind !== "variable" || sym.scope.kind !== "module") return null;
   const modNode = sym.scope.node;
   const moduleName = isModuleDecl(modNode) ? modNode.name : "";
-  return { symbol: moduleVarSymbol(moduleName, expr.name), type: ilTypeOfType(sym.type) };
+  return { symbol: moduleVarSymbol(moduleName, sym.name), type: ilTypeOfType(sym.type) };
 }
 
 /** The IL type of a named frame slot, defaulting to `IL_BYTE` when absent. */

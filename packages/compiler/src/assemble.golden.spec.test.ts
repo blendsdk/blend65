@@ -115,7 +115,7 @@ function gateMainFn(): ILFunction {
 function gateProgram(): ILProgram {
   return {
     functions: [gateMainFn()],
-    initCode: [],
+    initCode: [], initTempCount: 0,
     constData: [],
     allocationPlan: emptyPlan(),
   };

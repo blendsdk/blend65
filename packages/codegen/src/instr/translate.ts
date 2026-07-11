@@ -1119,7 +1119,9 @@ const ENTRY_LABEL = "_main";
  *
  * Only `[A-Za-z0-9_]` survive the `.`→`_` rewrite, so the result is always a legal
  * ACME label; the `__` prefix stays reserved for compiler-generated symbols (frame
- * homes, startup) and is never produced here.
+ * homes, startup, the module-initializer routine). The one `__`-prefixed name
+ * this function passes through is the compiler's own `__init` stream — a
+ * dot-free generated name, unchanged by the rewrite.
  *
  * @param fqName The fully-qualified function name (`"Module.function"`).
  * @returns The sanitized ACME label.

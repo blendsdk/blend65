@@ -260,7 +260,7 @@ describe("Specification: RD-06 CFG records (§4.4–§4.5)", () => {
     };
     const program: ILProgram = {
       functions: [fn],
-      initCode: [],
+      initCode: [], initTempCount: 0,
       constData: [],
       allocationPlan: EMPTY_PLAN,
     };

@@ -73,18 +73,21 @@ export interface ConstDataEntry {
 /**
  * The whole lowered program.
  *
- * Aggregates every {@link ILFunction}, the module-level init code, constant
+ * Aggregates every {@link ILFunction}, the module-initializer stream, constant
  * data, and the {@link AllocationPlan} carried through for codegen.
- * `initCode` and `constData` are present in the shape but **empty in v1** —
- * module-variable init ordering and const/embed data arrive with their
- * slices.
+ * `initCode` holds the lowered module-variable initializers (in dependency
+ * order, closed by `ret`) and is empty when no module variable has an
+ * initializer; `constData` is present in the shape but **empty** until
+ * const/embed data lowering lands.
  */
 export interface ILProgram {
   /** Every lowered function, in deterministic order. */
   readonly functions: readonly ILFunction[];
-  /** Module-level startup/init blocks (empty in v1). */
+  /** The module-initializer blocks (empty when nothing is initialized). */
   readonly initCode: readonly BasicBlock[];
-  /** Constant data blobs (empty in v1). */
+  /** Virtual-temp count of the init stream (`0` when `initCode` is empty). */
+  readonly initTempCount: number;
+  /** Constant data blobs (empty until const/embed lowering lands). */
   readonly constData: readonly ConstDataEntry[];
   /** The SFA plan, carried to codegen unchanged. */
   readonly allocationPlan: AllocationPlan;

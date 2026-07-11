@@ -90,7 +90,7 @@ function voidFn(name: string): ILFunction {
 
 /** Assemble an `ILProgram` from functions + optional const data. */
 function programOf(functions: ILFunction[], constData: readonly ConstDataEntry[] = []): ILProgram {
-  return { functions, initCode: [], constData, allocationPlan: emptyPlan() };
+  return { functions, initCode: [], initTempCount: 0, constData, allocationPlan: emptyPlan() };
 }
 
 const fakeProfile = { cpu: "nmos6502" } as unknown as PlatformProfile;

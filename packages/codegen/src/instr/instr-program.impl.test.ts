@@ -74,7 +74,7 @@ function fn(
 }
 
 function program(functions: readonly ILFunction[]): ILProgram {
-  return { functions, initCode: [], constData: [], allocationPlan: makePlan() };
+  return { functions, initCode: [], initTempCount: 0, constData: [], allocationPlan: makePlan() };
 }
 
 describe("generateInstr — empty IL program", () => {

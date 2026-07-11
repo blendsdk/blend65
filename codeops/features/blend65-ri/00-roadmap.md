@@ -10,7 +10,29 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-11 (**RD-18 Slice 5b 🔄 Executing — Phase 2 ✅ (initializer typing,
+> **Last Updated**: 2026-07-11 (**RD-18 Slice 5b 🔄 Executing — Phase 3 ✅ (init codegen +
+> lowering arms, 32/42)** — spec-first: 6 STs red (1 pre-passer: the without-initializer
+> half pins today's no-`__init` output) → GREEN. Shipped: lowering arms — NEW
+> `lowerFieldAccess` (qualified module-var loads + const inlining), `lowerIdent` const arm
+> (closes the VERIFIED mis-lowering hole: a module-const ref no longer falls to a
+> byte-defaulted phantom `__frame_*` — it inlines as an immediate; `moduleVarOf`
+> refactored to the symbol-keyed `moduleVarLocOfSymbol` shared by every path),
+> `lowerAssign` qualified targets, `lowerUserCall`/nested-guard accept both callee shapes;
+> `ILProgram.initCode` REALIZED (frozen-empty no more): `lowerInitCode` builds the
+> `__init` stream over `model.initOrder` (same builder/lowering as function bodies,
+> `ret`-closed; `moduleInit` ctx flag → loud ICE instead of any frame fallback) + NEW
+> additive `initTempCount` (13 test literals swept), `printIL` renders `__init` first when
+> present; `generateInstr` translates/validates the `__init` stream FIRST (embed scan
+> reads streams — `JSR __rt_*` inside `__init` auto-collected); additive
+> `PreambleOptions.hasInitCode` + `c64StyleStartupShim(variant, hasInitCode=false)` emits
+> `JSR __init` after banking (same memory config as `main`), threaded through
+> `c64StylePreamble` + all five plugins (`emitPreamble` + optional-param
+> `emitStartupShim`); `--startup bare` stays empty — user-owned entry documented in the
+> shim + build-API docs. 20 impl tests (incl. NEW `platforms/init-shim.impl.test.ts`, 15
+> per-plugin pass-through witnesses). All six goldens + both compiler assemble goldens
+> byte-exact, NO re-mint; full workspace verify green; `spec/` clean. Next: Phase 4
+> (acceptance — fixture, golden, ACME, VICE).)
+> Prior: (**Phase 2 ✅ (initializer typing,
 > consts & init order, 22/42)** — spec-first: 11 STs red (no pre-passers) → GREEN first run.
 > Shipped: `typeModuleLet` (module `let` initializers typed with local-`let` parity —
 > E10152/53/54 + E10084/E10082 — and CALL-FREE: any `CallExpr` or non-`lo`/`hi`

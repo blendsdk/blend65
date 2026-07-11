@@ -60,7 +60,12 @@ export interface CompilerOptions {
   /** Suppress the build summary (default `false`). */
   quiet?: boolean;
 
-  /** Startup shim variant (default `"auto"`). */
+  /**
+   * Startup shim variant (default `"auto"`). Under `"bare"` no startup code
+   * is emitted at all — the user owns the entire entry sequence, including
+   * calling the module-initializer routine (`__init`, emitted with its label
+   * when the program has initialized module variables) before `_main`.
+   */
   startup?: "auto" | "terminating" | "minimal" | "bare";
 }
 
