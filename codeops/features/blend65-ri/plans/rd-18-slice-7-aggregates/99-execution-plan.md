@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 00:35
-> **Progress**: 37/64 tasks (58%) — Phases 1-4 ✅ COMPLETE (full verify green)
+> **Last Updated**: 2026-07-12 00:58
+> **Progress**: 47/64 tasks (73%) — Phases 1-5 ✅ COMPLETE (full verify green)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -166,22 +166,22 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 
 ### Step 5.1: Specification tests (RED)
 **Reference**: 03-05 · AR-1/7/11/15
-- [ ] 5.1.1 Write spec tests from ST-49..ST-52 — `packages/codegen/src/il/lower-aggregates.spec.test.ts`
-- [ ] 5.1.2 Red-phase run
+- [x] 5.1.1 Write spec tests from ST-49..ST-52 — `packages/codegen/src/il/lower-aggregates.spec.test.ts` ✅ (completed: 2026-07-12 00:58)
+- [x] 5.1.2 Red-phase run ✅ (completed: 2026-07-12 00:58 — 4/4 red)
 
 ### Step 5.2: Implementation
 **Reference**: 03-05 §Implementation Details
 
-- [ ] 5.2.1 Adapter: const aggregates excluded from module-var projection; `__data_<Module>_<name>` labels; aggregate-typed locals/module-vars flow (already sized) — `packages/frontend/src/sfa/model-adapter.ts`
-- [ ] 5.2.2 `lowerPlace` (base symbol + const offset + optional scaled byte-offset temp; AR-15 scaling via the existing `mul` path) — `packages/codegen/src/il/lower.ts`
-- [ ] 5.2.3 Read/write emission: offset `load`/`store` for static places; `load_indexed`/`store_indexed` for runtime indexes; word-element IL_WORD ops — `lower.ts`
-- [ ] 5.2.4 Whole-struct copy unroll; StructLit/ArrayLit initialisation stores (local inline + module `__init`, fill unroll) — `lower.ts`
-- [ ] 5.2.5 `constData` population from const images; use-site reads → data labels; enum member/cast lowering as byte folds — `lower.ts`
-- [ ] 5.2.6 Aggregate-param loud lowering guard (braces) — `lower.ts`
-- [ ] 5.2.7 Green-phase run
+- [x] 5.2.1 Adapter: const aggregates excluded from module-var projection; `__data_<Module>_<name>` labels; aggregate-typed locals/module-vars flow (already sized) — `packages/frontend/src/sfa/model-adapter.ts` ✅ (completed: 2026-07-12 00:58 — zero adapter change needed: `modelToModuleVars` already filters kind==='variable' so consts never project; frame sizing already uses byteSize; the `__data_*` labels are minted lowering-side)
+- [x] 5.2.2 `lowerPlace` (base symbol + const offset + optional scaled byte-offset temp; AR-15 scaling via the existing `mul` path) — `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-12 00:58)
+- [x] 5.2.3 Read/write emission: offset `load`/`store` for static places; `load_indexed`/`store_indexed` for runtime indexes; word-element IL_WORD ops — `lower.ts` ✅ (completed: 2026-07-12 00:58 — emitPlaceLoad/emitPlaceStore; compound assignment through a runtime index is a loud ICE, static offsets reuse the shipped compound path)
+- [x] 5.2.4 Whole-struct copy unroll; StructLit/ArrayLit initialisation stores (local inline + module `__init`, fill unroll) — `lower.ts` ✅ (completed: 2026-07-12 00:58 — lowerAggregateInit: literals per element/field, nested recursion, fill evaluated once + stored per slot, copy = per-byte pairs; wired into let decls, assignments, and the __init stream)
+- [x] 5.2.5 `constData` population from const images; use-site reads → data labels; enum member/cast lowering as byte folds — `lower.ts` ✅ (completed: 2026-07-12 00:58 — constData from model.constValues bytes entries; aggregate consts base at __data labels; enum member access folds to imm bytes; lengthOfArray reads the symbol's array type)
+- [x] 5.2.6 Aggregate-param loud lowering guard (braces) — `lower.ts` ✅ (completed: 2026-07-12 00:58 — covered by construction: params keep primitive-only provisional types and the annotation-resolution belt rejects aggregate params before lowering; lowering's basePlace/ICE paths are the braces)
+- [x] 5.2.7 Green-phase run ✅ (completed: 2026-07-12 00:58 — 4/4 green first run; codegen suite 437 green)
 
 ### Step 5.3: Implementation tests & hardening
-- [ ] 5.3.1 Impl tests: `lowerPlace` matrix (const/runtime × field/index nesting), image→constData byte equality, `__init` ordering with aggregate initialisers — `lower-aggregates.impl.test.ts`
+- [x] 5.3.1 Impl tests: `lowerPlace` matrix (const/runtime × field/index nesting), image→constData byte equality, `__init` ordering with aggregate initialisers — `lower-aggregates.impl.test.ts` ✅ (completed: 2026-07-12 00:58 — 6/6 (nested static-offset folding, runtime index + field offset chaining, no-mul for byte elements, copy unroll, image equality, __init order); FULL WORKSPACE VERIFY GREEN)
 
 **Deliverables**: aggregate IL emitted; `constData` live.
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`

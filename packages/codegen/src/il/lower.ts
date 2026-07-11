@@ -44,6 +44,7 @@ import type {
   FunctionDeclNode,
   FunctionFrame,
   IdentExprNode,
+  IndexExprNode,
   IfStmtNode,
   InterruptDeclNode,
   WhileStmtNode,
@@ -72,7 +73,7 @@ import type { ILType } from "./il-type.js";
 import { imm, isTemp, loc } from "./operand.js";
 import type { ILOperand } from "./operand.js";
 import type { ILInstruction } from "./instruction.js";
-import type { BasicBlock, ILFunction, ILProgram } from "./cfg.js";
+import type { BasicBlock, ConstDataEntry, ILFunction, ILProgram } from "./cfg.js";
 import { IlFunctionBuilder } from "./builder.js";
 
 /**
@@ -207,11 +208,24 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
       ? lowerInitCode(input, registry, bag)
       : { blocks: Object.freeze([] as const), tempCount: 0 };
 
+  // Const aggregates carry fully-evaluated memory images — each becomes an
+  // in-image data entry under its `__data_<Module>_<name>` label (const
+  // SCALARS keep inlining as immediates and own no data).
+  const constData: ConstDataEntry[] = [];
+  for (const [sym, value] of input.model.constValues) {
+    if (value.bytes === undefined) continue;
+    constData.push({
+      symbol: constDataSymbol(sym),
+      data: value.bytes,
+      type: sym.type.kind === "struct" ? "struct" : "array",
+    });
+  }
+
   return Object.freeze({
     functions: Object.freeze(functions),
     initCode: init.blocks,
     initTempCount: init.tempCount,
-    constData: Object.freeze([]),
+    constData: Object.freeze(constData),
     allocationPlan: input.plan,
   });
 }
@@ -259,12 +273,16 @@ function lowerInitCode(
   for (const sym of input.model.initOrder) {
     const init = initializers.get(sym);
     if (init === undefined) continue; // defensive — the order holds initialized vars only
-    const value = lowerExpr(init, ctx);
     const target = moduleVarLocOfSymbol(sym);
     if (target === null) {
       iceUnsupported(init, ctx, "module initializer target (not a module variable)");
       continue;
     }
+    if (isAggregateType(sym.type)) {
+      lowerAggregateInit({ symbol: target.symbol, constOffset: 0, index: null }, sym.type, init, ctx);
+      continue;
+    }
+    const value = lowerExpr(init, ctx);
     builder.emit({ op: "store", a: value, b: loc(target.symbol, target.type) });
   }
   const fn = builder.finish({ kind: "ret" });
@@ -369,6 +387,17 @@ function lowerStmt(stmt: StmtNode, ctx: LowerCtx): void {
 function lowerLetDecl(decl: LetDeclNode, ctx: LowerCtx): void {
   if (decl.initialiser === null) {
     return; // no IL for an initialiser-less declaration
+  }
+  // Aggregate declarations initialise in place (per element/field/byte).
+  const sym = ctx.model.symbolOf(decl);
+  if (sym !== null && isAggregateType(sym.type)) {
+    const place: Place = {
+      symbol: frameSymbol(ctx.fqName, decl.name),
+      constOffset: 0,
+      index: null,
+    };
+    lowerAggregateInit(place, sym.type, decl.initialiser, ctx);
+    return;
   }
   const value = materialise(lowerExpr(decl.initialiser, ctx), ctx);
   const target = loc(frameSymbol(ctx.fqName, decl.name), slotIlType(ctx.frame, decl.name));
@@ -718,6 +747,8 @@ function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
       return lowerIntrinsic(expr, ctx);
     case "CallExpr":
       return lowerCall(expr, ctx);
+    case "IndexExpr":
+      return lowerIndexRead(expr, ctx);
     default:
       return iceUnsupported(expr, ctx, "expression");
   }
@@ -888,8 +919,13 @@ function lowerNumericLit(expr: NumericLitExprNode, ctx: LowerCtx): ILOperand {
  */
 function lowerIdent(expr: IdentExprNode, ctx: LowerCtx): ILOperand {
   const sym = ctx.model.symbolOf(expr);
-  if (sym !== null && sym.kind === "constant") {
+  if (sym !== null && sym.kind === "constant" && !isAggregateType(sym.type)) {
     return constImmediate(sym, expr, ctx);
+  }
+  if (sym !== null && sym.kind === "constant") {
+    // An aggregate constant read in scalar position — reads go through the
+    // place machinery (indexing/fields/copies); a bare value read is a bug.
+    return iceUnsupported(expr, ctx, "aggregate constant in scalar position");
   }
   const moduleVar = sym !== null ? moduleVarLocOfSymbol(sym) : null;
   if (moduleVar !== null) {
@@ -915,16 +951,47 @@ function lowerIdent(expr: IdentExprNode, ctx: LowerCtx): ILOperand {
  */
 function lowerFieldAccess(expr: FieldAccessExprNode, ctx: LowerCtx): ILOperand {
   const sym = ctx.model.symbolOf(expr);
-  if (sym !== null && sym.kind === "constant") {
+  if (sym !== null && sym.kind === "constant" && !isAggregateType(sym.type)) {
     return constImmediate(sym, expr, ctx);
   }
+  // An enum member access folds to its backing byte value at compile time.
+  const enumFold = enumMemberValue(expr, ctx);
+  if (enumFold !== null) return imm(enumFold, IL_BYTE);
+
   const moduleVar = sym !== null ? moduleVarLocOfSymbol(sym) : null;
-  if (moduleVar !== null) {
+  if (moduleVar !== null && !isAggregateType(sym?.type ?? ERROR_TYPE_SENTINEL)) {
     const dest = ctx.builder.newTemp(moduleVar.type);
     ctx.builder.emit({ op: "load", a: dest, b: loc(moduleVar.symbol, moduleVar.type) });
     return dest;
   }
+
+  // A struct-field read resolves through the place machinery.
+  const objType = ctx.model.typeOf(expr.object);
+  if (objType.kind === "struct") {
+    return lowerPlaceRead(expr, ctx);
+  }
   return iceUnsupported(expr, ctx, "field access");
+}
+
+/** The frozen poison sentinel (local alias for guard readability). */
+const ERROR_TYPE_SENTINEL: Type = { kind: "error" };
+
+/** True for array/struct types (memory aggregates, never scalar operands). */
+function isAggregateType(t: Type): boolean {
+  return t.kind === "array" || t.kind === "struct";
+}
+
+/**
+ * The backing value of an enum member access (`Direction.UP`, incl. the
+ * qualified `Mod.Enum.MEMBER` chain), or `null` when the expression is not
+ * enum member access. The head's symbol was stamped by typing.
+ */
+function enumMemberValue(expr: FieldAccessExprNode, ctx: LowerCtx): number | null {
+  const headSym = ctx.model.symbolOf(expr.object);
+  if (headSym === null || headSym.kind !== "enum") return null;
+  const enumType = headSym.type;
+  if (enumType.kind !== "enum") return null;
+  return enumType.members.get(expr.field) ?? null;
 }
 
 /**
@@ -1224,6 +1291,45 @@ function lowerCast(expr: CastExprNode, ctx: LowerCtx): ILOperand {
  */
 function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   const targetExpr = expr.target;
+  const targetType = ctx.model.typeOf(targetExpr);
+
+  // Whole-struct targets: a literal initialises per field; anything else is
+  // an unrolled byte copy (structs assign by copy, never by reference).
+  if (targetType.kind === "struct") {
+    const place = lowerPlace(targetExpr, ctx);
+    if (place === null || place.index !== null) {
+      return iceUnsupported(expr, ctx, "struct assignment target");
+    }
+    lowerAggregateInit(place, targetType, expr.value, ctx);
+    return imm(0, IL_BYTE); // aggregate assignment yields no scalar value
+  }
+
+  // Element/field targets resolve through the place machinery.
+  if (
+    targetExpr.kind === "IndexExpr" ||
+    (targetExpr.kind === "FieldAccessExpr" &&
+      ctx.model.typeOf(targetExpr.object).kind === "struct")
+  ) {
+    const place = lowerPlace(targetExpr, ctx);
+    if (place === null) return iceUnsupported(expr, ctx, "assignment target");
+    const elemIl = ilTypeOfType(targetType);
+    if (expr.op !== "=") {
+      if (place.index !== null) {
+        // A read-modify-write through a runtime index needs two indexed
+        // accesses sharing one index temp — deferred; reject loudly.
+        return iceUnsupported(expr, ctx, "compound assignment through a runtime index");
+      }
+      return lowerCompoundAssign(
+        expr,
+        loc(place.symbol, elemIl, place.constOffset === 0 ? undefined : place.constOffset),
+        ctx,
+      );
+    }
+    const value = materialise(lowerExpr(expr.value, ctx), ctx);
+    emitPlaceStore(place, elemIl, value, ctx);
+    return value;
+  }
+
   if (targetExpr.kind !== "IdentExpr" && targetExpr.kind !== "FieldAccessExpr") {
     return iceUnsupported(expr, ctx, "assignment");
   }
@@ -1247,6 +1353,200 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
     return value;
   }
   return lowerCompoundAssign(expr, target, ctx);
+}
+
+// ── Aggregate places — base symbol + compile-time offset + optional index ──
+
+/**
+ * A resolved storage place: the base symbol, a compile-time byte offset, and
+ * — for runtime indexes — a scaled BYTE-offset temp (the index operand the
+ * indexed memory ops carry; translate stays arithmetic-free).
+ */
+interface Place {
+  readonly symbol: string;
+  readonly constOffset: number;
+  readonly index: ILOperand | null;
+}
+
+/**
+ * Resolves an l-value/read chain (`a`, `a[i]`, `s.f`, `world.rooms[i].door`)
+ * to its {@link Place}: constant indexes fold into the offset (zero runtime
+ * cost); runtime indexes scale by the element size through the ordinary
+ * `mul` path and chain by byte-offset addition. Returns `null` for shapes
+ * that are not places (the caller reports).
+ */
+function lowerPlace(expr: ExprNode, ctx: LowerCtx): Place | null {
+  switch (expr.kind) {
+    case "IdentExpr": {
+      const sym = ctx.model.symbolOf(expr);
+      return sym === null ? null : basePlace(sym, ctx);
+    }
+    case "FieldAccessExpr": {
+      // A qualified module head (`Mod.x`) carries its symbol on the node.
+      const qualified = ctx.model.symbolOf(expr);
+      if (qualified !== null && (qualified.kind === "variable" || qualified.kind === "constant")) {
+        return basePlace(qualified, ctx);
+      }
+      const objType = ctx.model.typeOf(expr.object);
+      if (objType.kind !== "struct") return null;
+      const field = objType.fields.get(expr.field);
+      if (field === undefined) return null;
+      const inner = lowerPlace(expr.object, ctx);
+      if (inner === null) return null;
+      return { ...inner, constOffset: inner.constOffset + field.offset };
+    }
+    case "IndexExpr": {
+      const objType = ctx.model.typeOf(expr.object);
+      if (objType.kind !== "array") return null;
+      const inner = lowerPlace(expr.object, ctx);
+      if (inner === null) return null;
+      const elemSize = byteSize(objType.element);
+      const idx = lowerExpr(expr.index, ctx);
+      if (idx.kind === "immediate") {
+        return { ...inner, constOffset: inner.constOffset + idx.value * elemSize };
+      }
+      const scaled = scaleIndex(idx, elemSize, ctx);
+      const combined =
+        inner.index === null ? scaled : addByteOffsets(inner.index, scaled, ctx);
+      return { ...inner, index: combined };
+    }
+    default:
+      return null;
+  }
+}
+
+/** The base place of a declared symbol (frame slot, module var, const data). */
+function basePlace(sym: Symbol, ctx: LowerCtx): Place | null {
+  if (sym.kind === "constant" && isAggregateType(sym.type)) {
+    return { symbol: constDataSymbol(sym), constOffset: 0, index: null };
+  }
+  const moduleVar = moduleVarLocOfSymbol(sym);
+  if (moduleVar !== null) {
+    return { symbol: moduleVar.symbol, constOffset: 0, index: null };
+  }
+  if (ctx.moduleInit) return null; // no frame storage in the init stream
+  return { symbol: frameSymbol(ctx.fqName, sym.name), constOffset: 0, index: null };
+}
+
+/** The in-image data label of a const aggregate: `__data_<Module>_<name>`. */
+function constDataSymbol(sym: Symbol): string {
+  const node = sym.scope.node;
+  const moduleName = node !== null && node.kind === "ModuleDecl" ? (node as ModuleDeclNode).name : "";
+  return `__data_${moduleName}_${sym.name}`;
+}
+
+/** Scales a runtime index temp by the element size (byte-domain `mul`). */
+function scaleIndex(idx: ILOperand, elemSize: number, ctx: LowerCtx): ILOperand {
+  if (elemSize === 1) return idx;
+  const dest = ctx.builder.newTemp(IL_BYTE);
+  ctx.builder.emit({ op: "mul", dest, left: idx, right: imm(elemSize, IL_BYTE), type: IL_BYTE });
+  return dest;
+}
+
+/** Adds two byte-offset temps (nested runtime indexes fold into one). */
+function addByteOffsets(a: ILOperand, b: ILOperand, ctx: LowerCtx): ILOperand {
+  const dest = ctx.builder.newTemp(IL_BYTE);
+  ctx.builder.emit({ op: "add", dest, left: a, right: b, type: IL_BYTE });
+  return dest;
+}
+
+/** Emits the load of a place into a fresh temp (direct or indexed). */
+function emitPlaceLoad(place: Place, ilType: ILType, ctx: LowerCtx): ILOperand {
+  const dest = ctx.builder.newTemp(ilType);
+  const base = loc(place.symbol, ilType, place.constOffset === 0 ? undefined : place.constOffset);
+  if (place.index === null) {
+    ctx.builder.emit({ op: "load", a: dest, b: base });
+  } else {
+    ctx.builder.emit({ op: "load_indexed", value: dest, base, index: place.index });
+  }
+  return dest;
+}
+
+/** Emits the store of a value to a place (direct or indexed). */
+function emitPlaceStore(place: Place, ilType: ILType, value: ILOperand, ctx: LowerCtx): void {
+  const base = loc(place.symbol, ilType, place.constOffset === 0 ? undefined : place.constOffset);
+  if (place.index === null) {
+    ctx.builder.emit({ op: "store", a: value, b: base });
+  } else {
+    ctx.builder.emit({ op: "store_indexed", value, base, index: place.index });
+  }
+}
+
+/** An index-expression read: resolve the place, load the element. */
+function lowerIndexRead(expr: IndexExprNode, ctx: LowerCtx): ILOperand {
+  return lowerPlaceRead(expr, ctx);
+}
+
+/** A place-shaped read (index/struct-field chains). */
+function lowerPlaceRead(expr: ExprNode, ctx: LowerCtx): ILOperand {
+  const place = lowerPlace(expr, ctx);
+  if (place === null) return iceUnsupported(expr, ctx, "aggregate access");
+  return emitPlaceLoad(place, ilTypeOfType(ctx.model.typeOf(expr)), ctx);
+}
+
+/**
+ * Initialises an aggregate place from an initialiser expression: array
+ * literals store per element (the fill value is evaluated once and stored
+ * into every remaining slot — the declared size bounds the unroll), struct
+ * literals store per field at their layout offsets, nested literals recurse,
+ * and a place-shaped source (whole-struct copy, R37) unrolls into per-byte
+ * load/store pairs.
+ */
+function lowerAggregateInit(place: Place, type: Type, init: ExprNode, ctx: LowerCtx): void {
+  if (type.kind === "array" && init.kind === "ArrayLitExpr") {
+    const elemSize = byteSize(type.element);
+    const elemIl = ilTypeOfType(type.element);
+    init.elements.forEach((element, i) => {
+      const at = { ...place, constOffset: place.constOffset + i * elemSize };
+      lowerElementInit(at, type.element, elemIl, element, ctx);
+    });
+    if (init.fill !== null && init.elements.length < type.size) {
+      const fill = materialise(lowerExpr(init.fill, ctx), ctx);
+      for (let i = init.elements.length; i < type.size; i += 1) {
+        const at = { ...place, constOffset: place.constOffset + i * elemSize };
+        emitPlaceStore(at, elemIl, fill, ctx);
+      }
+    }
+    return;
+  }
+  if (type.kind === "struct" && init.kind === "StructLitExpr") {
+    for (const field of init.fields) {
+      const layout = type.fields.get(field.name);
+      if (layout === undefined) continue; // typing already rejected extras
+      const at = { ...place, constOffset: place.constOffset + layout.offset };
+      lowerElementInit(at, layout.type, ilTypeOfType(layout.type), field.value, ctx);
+    }
+    return;
+  }
+  // A non-literal source: whole-aggregate copy from another place.
+  const src = lowerPlace(init, ctx);
+  if (src === null || src.index !== null || place.index !== null) {
+    iceUnsupported(init, ctx, "aggregate initialiser");
+    return;
+  }
+  const total = byteSize(type);
+  for (let i = 0; i < total; i += 1) {
+    const from = { ...src, constOffset: src.constOffset + i };
+    const to = { ...place, constOffset: place.constOffset + i };
+    const b = emitPlaceLoad(from, IL_BYTE, ctx);
+    emitPlaceStore(to, IL_BYTE, b, ctx);
+  }
+}
+
+/** One element/field of an aggregate initialiser: recurse or store a scalar. */
+function lowerElementInit(
+  at: Place,
+  elemType: Type,
+  elemIl: ILType,
+  value: ExprNode,
+  ctx: LowerCtx,
+): void {
+  if (isAggregateType(elemType)) {
+    lowerAggregateInit(at, elemType, value, ctx);
+    return;
+  }
+  const v = materialise(lowerExpr(value, ctx), ctx);
+  emitPlaceStore(at, elemIl, v, ctx);
 }
 
 /**
@@ -1394,7 +1694,14 @@ function offsetOfField(node: TypeNode, field: string, ctx: LowerCtx): number {
 
 /** The element count of an array variable (from its resolved frame-slot type). */
 function lengthOfArray(arg: ExprNode | undefined, ctx: LowerCtx): number {
-  if (arg !== undefined && arg.kind === "IdentExpr") {
+  if (arg === undefined) return 0;
+  // The resolved symbol (local, module var, const, or qualified `Mod.arr`)
+  // carries the authoritative array type.
+  if (arg.kind === "IdentExpr" || arg.kind === "FieldAccessExpr") {
+    const sym = ctx.model.symbolOf(arg);
+    if (sym !== null && sym.type.kind === "array") return sym.type.size;
+  }
+  if (arg.kind === "IdentExpr") {
     const slot = ctx.frame?.slots.find((s) => s.name === arg.name);
     const type: Type | undefined = slot?.type;
     if (type !== undefined && type.kind === "array") return type.size;
