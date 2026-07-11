@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 17:26 (Phase 1 COMPLETE — full expression typing green, 14/14)
-> **Progress**: 14/52 tasks (27%)
+> **Last Updated**: 2026-07-11 17:48 (Phase 2 COMPLETE — width-aware const evaluation green, 22/52)
+> **Progress**: 22/52 tasks (42%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -100,23 +100,23 @@ assignment, and warnings before any code.
 **Reference**: 07 ST-19…ST-22 · 03-02 · AR-7
 **Objective**: pin const-decl folding of the new operator surface.
 
-- [ ] 2.1.1 Write const-width spec tests (ST-17, ST-18's W10101 case, ST-19…ST-22) — `packages/frontend/src/semantics/const-eval-widths.spec.test.ts`
-- [ ] 2.1.2 RED phase: verify failures; document pre-passers
+- [x] 2.1.1 Write const-width spec tests (ST-17, ST-18's W10101 case, ST-19…ST-22) — `packages/frontend/src/semantics/const-eval-widths.spec.test.ts` ✅ (completed: 2026-07-11 17:34)
+- [x] 2.1.2 RED phase: verify failures; document pre-passers ✅ (completed: 2026-07-11 17:34 — 6 failed / 1 passed of 7; the sole pre-passer is the "no W10101 when the constant fits" negative, vacuous until the warning exists — load-bearing at green)
 
 ### Step 2.2: Implementation
 
 **Reference**: 03-02 §1–§5 · AR-7
 **Objective**: `typeOf` param + two's-complement helpers + the new folds.
 
-- [ ] 2.2.1 `ConstTypeLookup` param + `toBits`/`fromBits` + bitwise/shift/cast folds — `packages/frontend/src/semantics/const-eval.ts`
-- [ ] 2.2.2 Comparison/logical(lazy)/ternary(selected-arm) folds + failure propagation — `const-eval.ts`
-- [ ] 2.2.3 Thread `typeOf` through `checkConstRange` + the module-const evaluator; the W10161 + W10101 emission points land here, consuming the width folds — `expression-typing.ts`, `statement-typing.ts`
-- [ ] 2.2.4 GREEN phase: ST-17…ST-22 pass (incl. ST-18's W10101 case)
+- [x] 2.2.1 `ConstTypeLookup` param + `toBits`/`fromBits` + bitwise/shift/cast folds — `packages/frontend/src/semantics/const-eval.ts` ✅ (completed: 2026-07-11 17:44 — toBits/fromBits exported as the ONE wrap definition; typing's W10101/W10161 reuse them)
+- [x] 2.2.2 Comparison/logical(lazy)/ternary(selected-arm) folds + failure propagation — `const-eval.ts` ✅ (completed: 2026-07-11 17:44)
+- [x] 2.2.3 Thread `typeOf` through `checkConstRange` + the module-const evaluator; the W10161 + W10101 emission points land here, consuming the width folds — `expression-typing.ts`, `statement-typing.ts` ✅ (completed: 2026-07-11 17:44 — checkConstRange/checkIntermediateOverflow/W10174-amount/module-const evaluation all pass `(e) => ctx.typeMap.get(e)`; W10101 emitted by `warnNarrowingCastTruncation` in typeCast, 16→8-bit const-operand shapes only)
+- [x] 2.2.4 GREEN phase: ST-17…ST-22 pass (incl. ST-18's W10101 case) ✅ (completed: 2026-07-11 17:44 — 7/7 green; full frontend 624 green, no regressions)
 
 ### Step 2.3: Implementation tests & hardening
 
-- [ ] 2.3.1 Impl tests: bit-helper boundaries, lazy folds, 16 cast pairs — `const-eval-widths.impl.test.ts` (07 impl table)
-- [ ] 2.3.2 Full verify
+- [x] 2.3.1 Impl tests: bit-helper boundaries, lazy folds, 16 cast pairs — `const-eval-widths.impl.test.ts` (07 impl table) ✅ (completed: 2026-07-11 17:48 — 33 tests: toBits/fromBits ±0/0x7F/0x80/0xFF/0x8000/0xFFFF boundaries, negative-operand bitwise, ~ at operand width, << overflow-out, signed >> arithmetic fill + saturation, lazy &&/||/ternary (divByZero in the unevaluated side does NOT surface), all 16 cast pairs, named-target nonConst)
+- [x] 2.3.2 Full verify ✅ (completed: 2026-07-11 17:48 — install+build+typecheck+lint+test ALL GREEN; `spec/` clean; doc-standard self-check clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

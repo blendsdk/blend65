@@ -60,7 +60,7 @@ import type {
 import type { FnSignature, TypeCheckContext } from "./context.js";
 import { enclosingFunctionSymbol, resolveName, resolveQualified } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
-import { evalConst } from "../const-eval.js";
+import { evalConst, fromBits, toBits } from "../const-eval.js";
 import type { ConstRefResolver } from "../const-eval.js";
 
 /** The arithmetic operators (integer operands; common-type result). */
@@ -331,7 +331,7 @@ function typeShiftBinary(expr: BinaryExprNode, scope: Scope, ctx: TypeCheckConte
 
   // Advisory: a constant amount ≥ the operand width always yields 0.
   const width = bitWidth(lt);
-  const amount = evalConst(expr.right);
+  const amount = evalConst(expr.right, undefined, (e) => ctx.typeMap.get(e));
   if (amount.kind === "value" && typeof amount.value === "number" && amount.value >= width) {
     ctx.bag.addWarning(
       DiagCode.ShiftCountExceedsWidth, // W10174
@@ -477,7 +477,10 @@ function typeCast(expr: CastExprNode, scope: Scope, ctx: TypeCheckContext): Type
 
   const targetBool = typeName(target) === "boolean";
   const operandBool = typeName(operand) === "boolean";
-  if (isInteger(target) && isInteger(operand)) return target;
+  if (isInteger(target) && isInteger(operand)) {
+    warnNarrowingCastTruncation(expr, operand, target, ctx);
+    return target;
+  }
   if (targetBool && operandBool) return target; // identity cast
 
   if ((targetBool && isInteger(operand)) || (operandBool && isInteger(target))) {
@@ -497,6 +500,35 @@ function typeCast(expr: CastExprNode, scope: Scope, ctx: TypeCheckContext): Type
       `types support casts`,
   );
   return ERROR_TYPE;
+}
+
+/**
+ * The narrowing-cast truncation advisory (W10101): when a 16-bit constant
+ * operand casts down to an 8-bit type and the reinterpreted result differs
+ * from the original value, bits were lost — the cast is the explicit opt-in,
+ * so this warns rather than errors. Same-width reinterpretation (byte↔sbyte)
+ * and widening never warn: no bits are lost.
+ */
+function warnNarrowingCastTruncation(
+  expr: CastExprNode,
+  operandType: Type,
+  targetType: Type,
+  ctx: TypeCheckContext,
+): void {
+  if (operandType.kind !== "primitive" || targetType.kind !== "primitive") return;
+  if (bitWidth(operandType) !== 16 || bitWidth(targetType) !== 8) return;
+
+  const folded = evalConst(expr.operand, undefined, (e) => ctx.typeMap.get(e));
+  if (folded.kind !== "value" || typeof folded.value !== "number") return;
+  const result = fromBits(toBits(folded.value, 8), 8, isSigned(targetType));
+  if (result === folded.value) return; // the value survives — no bits lost
+
+  ctx.bag.addWarning(
+    DiagCode.NarrowingCastTruncates, // W10101
+    expr.span,
+    `Narrowing cast from '${typeName(operandType)}' to '${typeName(targetType)}' ` +
+      `truncates value ${folded.value} to ${result}`,
+  );
 }
 
 /**
@@ -1013,15 +1045,16 @@ export function checkIntermediateOverflow(
   if (bitWidth(valueType) !== 8 || bitWidth(targetType) !== 16) return;
   if (isSigned(valueType) !== isSigned(targetType)) return; // cross-sign already errored
 
-  const folded = evalConst(valueExpr);
+  const folded = evalConst(valueExpr, undefined, (e) => ctx.typeMap.get(e));
   if (folded.kind === "value" && typeof folded.value === "number") {
     const range = integerRange(valueType);
     if (range === null) return;
     if (folded.value >= range.min && folded.value <= range.max) return; // provably safe
+    const wrapped = fromBits(toBits(folded.value, 8), 8, isSigned(valueType));
     ctx.bag.addWarning(
       DiagCode.ConstOverflowBeforeWidening, // W10161
       valueExpr.span,
-      `Constant expression overflow — wraps to ${wrapTo8Bit(folded.value, valueType)} ` +
+      `Constant expression overflow — wraps to ${wrapped} ` +
         `at '${typeName(valueType)}' width before widening`,
     );
     return;
@@ -1035,12 +1068,6 @@ export function checkIntermediateOverflow(
     `'${typeName(valueType)}' arithmetic may overflow before widening to '${wide}' ` +
       `— use <${wide}>(a) ${valueExpr.op} <${wide}>(b)`,
   );
-}
-
-/** Two's-complement wrap of `value` into an 8-bit type's range. */
-function wrapTo8Bit(value: number, t: Type): number {
-  const wrapped = ((value % 256) + 256) % 256;
-  return isSigned(t) && wrapped > 127 ? wrapped - 256 : wrapped;
 }
 
 /** Chooses the assignment-mismatch code for two non-assignable, non-poison types. */
@@ -1076,7 +1103,7 @@ export function checkConstRange(
   ctx: TypeCheckContext,
   resolveRef?: ConstRefResolver,
 ): boolean {
-  const folded = evalConst(expr, resolveRef);
+  const folded = evalConst(expr, resolveRef, (e) => ctx.typeMap.get(e));
   if (folded.kind === "divByZero") {
     ctx.bag.addError(
       DiagCode.ConstDivisionByZero, // E10082

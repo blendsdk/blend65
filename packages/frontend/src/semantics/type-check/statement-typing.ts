@@ -265,7 +265,9 @@ function evaluateModuleConsts(
     };
 
     const declaredType = resolveTypeNode(info.decl.declaredType);
-    const result = evalConst(info.decl.initialiser, resolveRef);
+    // The initialisers were all typed during collection, so the type lookup
+    // is populated — the width-sensitive folds (~, shifts, casts) engage.
+    const result = evalConst(info.decl.initialiser, resolveRef, (e) => ctx.typeMap.get(e));
     evaluating.delete(sym);
 
     if (result.kind === "poisonedRef") return; // root cause already reported
