@@ -1264,8 +1264,10 @@ function lowerUnary(expr: UnaryExprNode, ctx: LowerCtx): ILOperand {
  * aggregate casts never reach lowering (typing rejected them).
  */
 function lowerCast(expr: CastExprNode, ctx: LowerCtx): ILOperand {
-  const operandType = ctx.model.typeOf(expr.operand);
-  const targetType = ctx.model.typeOf(expr);
+  // An enum value IS its byte backing — casts to/from enums are the byte's
+  // casts (an enum→word cast zero-extends like byte→word).
+  const operandType = asByteBacking(ctx.model.typeOf(expr.operand));
+  const targetType = asByteBacking(ctx.model.typeOf(expr));
   const value = lowerExpr(expr.operand, ctx);
   if (operandType.kind !== "primitive" || targetType.kind !== "primitive") return value;
 
@@ -1886,6 +1888,11 @@ function errorExpr(): ExprNode {
 
 /** The zero source span used for synthesized/placeholder nodes. */
 const ZERO_SPAN = { sourceId: 0, start: 0, end: 0 } as const;
+
+/** An enum type reads as its `byte` backing; every other type is itself. */
+function asByteBacking(t: Type): Type {
+  return t.kind === "enum" ? primitive("byte") : t;
+}
 
 /** Wrap a non-temp value in a `const` temp so it can flow into a `store`. */
 function materialise(value: ILOperand, ctx: LowerCtx): ILOperand {

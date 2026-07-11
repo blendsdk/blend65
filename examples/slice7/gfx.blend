@@ -1,0 +1,9 @@
+module Gfx;
+
+export struct Point { x: byte; y: byte; }
+
+export enum Direction { UP, DOWN = 3, LEFT, RIGHT }
+
+export const DIM: byte = 4;
+
+export const TABLE: byte[DIM + sizeof(Point)] = [10, 20, 30; 5];

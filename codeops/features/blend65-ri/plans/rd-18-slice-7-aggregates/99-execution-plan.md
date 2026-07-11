@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 01:20
-> **Progress**: 55/64 tasks (86%) — Phases 1-6 ✅ COMPLETE (full verify green)
+> **Last Updated**: 2026-07-12 00:47
+> **Progress**: 60/64 tasks (94%) — Phases 1-7 ✅ COMPLETE (3-part acceptance bar GREEN on real VICE)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -216,13 +216,13 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 
 ### Step 7.1: Specification tests + fixture (RED→GREEN inline)
 **Reference**: 03-07 · AR-19 · ST-59..ST-66
-- [ ] 7.1.1 Author `examples/slice7/{main,gfx}.blend` + `testing/slice7.ts` helper (pin the exact `$C000..$C009` byte contract from the program text) — `examples/slice7/`, `packages/test-harness/src/testing/slice7.ts`
-- [ ] 7.1.2 Assemble-clean + VICE spec (`slice7.spec.test.ts`, ST-59/ST-61) — real ACME PRG, then real VICE 3.10 memory assertions
-- [ ] 7.1.3 Golden spec + mint `packages/test-harness/test/golden/slice7.asm.golden` (package-local goldens dir, PF-010; ST-60 + landmarks; mint ONLY after VICE proves behavior) — `golden-slice7.spec.test.ts`
-- [ ] 7.1.4 Negatives + warnings catalog (ST-62/63/64/66 incl. the AR-7 defect witness) — `slice7-negatives.spec.test.ts`
+- [x] 7.1.1 Author `examples/slice7/{main,gfx}.blend` + `testing/slice7.ts` helper (pin the exact `$C000..$C009` byte contract from the program text) — `examples/slice7/`, `packages/test-harness/src/testing/slice7.ts` ✅ (completed: 2026-07-12 00:47 — byte contract: $C000..$C009 = 0E 2A 08 02 06 02 01 14 0B 03)
+- [x] 7.1.2 Assemble-clean + VICE spec (`slice7.spec.test.ts`, ST-59/ST-61) — real ACME PRG, then real VICE 3.10 memory assertions ✅ (completed: 2026-07-12 00:47 — BOTH GREEN FIRST RUN: loadable PRG, zero undefined symbols; all ten memory rows verified on real VICE 3.10)
+- [x] 7.1.3 Golden spec + mint `packages/test-harness/test/golden/slice7.asm.golden` (package-local goldens dir, PF-010; ST-60 + landmarks; mint ONLY after VICE proves behavior) — `golden-slice7.spec.test.ts` ✅ (completed: 2026-07-12 00:47 — 184-line golden minted AFTER the VICE proof; landmarks: __data_Gfx_TABLE !byte block after code, abs,X reads, ASL scale, NO __rt_mul)
+- [x] 7.1.4 Negatives + warnings catalog (ST-62/63/64/66 incl. the AR-7 defect witness) — `slice7-negatives.spec.test.ts` ✅ (completed: 2026-07-12 00:47 — 15/15 first run: one-per-cycle E10165/E10194 with paths, literal shape E10161/E10162/E10097, E10119/E10121, E10117/E10115, E10110/E10111, enum E10152/E10080/E10230/E10143/E10077, E10113/E10126/E10156, E10157 + string-init loud, E10003, >256 B loud; W10140/W10141 compile-with-warning; the AR-7 two-module `struct Point` regression E2E)
 
 ### Step 7.2: Hardening
-- [ ] 7.2.1 Full local acceptance sweep: 3-part bar green, seven prior goldens unchanged, `spec/` clean, ResourceReport delta recorded for the rollout notes
+- [x] 7.2.1 Full local acceptance sweep: 3-part bar green, seven prior goldens unchanged, `spec/` clean, ResourceReport delta recorded for the rollout notes ✅ (completed: 2026-07-12 00:47 — FULL WORKSPACE VERIFY GREEN (one known slice3b VICE flake re-ran clean); 3-part bar GREEN; seven prior goldens byte-exact NO re-mint; `spec/` untouched. Resource delta: 6 B const data in-image (__data_Gfx_TABLE), 13 RAM equates, 184-line golden, no new runtime routines)
 
 **Deliverables**: RD-18 bar (a)+(b)+(c) for 7a.
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`

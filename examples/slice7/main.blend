@@ -1,0 +1,55 @@
+module Main;
+
+import { Point, Direction, TABLE } from Gfx;
+
+struct Player { pos: Point; hp: byte; }
+
+function main(): void {
+  // $C000 — indexed read/write loop sum over a list+fill array:
+  // 1+2+3+4+4 = 14 = $0E
+  let arr: byte[5] = [1, 2, 3; 4];
+  let sum: byte = 0;
+  for (let i: byte = 0 to 4) {
+    sum = sum + arr[i];
+  }
+  poke($C000, sum);
+
+  // $C001 — nested member write/read through a struct-in-struct: $2A
+  let player: Player = Player { pos: Point { x: 7, y: 0 }, hp: 9 };
+  player.pos.y = 42;
+  poke($C001, player.pos.y);
+
+  // $C002 — struct-in-array element via a runtime (scaled) index: $08
+  let pts: Point[2] = [Point { x: 5, y: 6 }, Point { x: 8, y: 9 }];
+  let j: byte = 1;
+  poke($C002, pts[j].x);
+
+  // $C003 — enum-dispatch switch (auto-break): DOWN → 2
+  let d: Direction = Direction.DOWN;
+  let dispatch: byte = 0;
+  switch (d) {
+    case Direction.UP: dispatch = 1;
+    case Direction.DOWN: dispatch = 2;
+    default: dispatch = 9;
+  }
+  poke($C003, dispatch);
+
+  // $C004/$C005/$C006 — compile-time query folds: 6 / 2 / 1
+  poke($C004, length(TABLE));
+  poke($C005, sizeof(Point));
+  poke($C006, offsetof(Point, y));
+
+  // $C007 — cross-module const-table read with a runtime index: TABLE[1] = 20 = $14
+  let k: byte = 1;
+  poke($C007, Gfx.TABLE[k]);
+
+  // $C008 — whole-struct copy semantics (a copy, never aliasing): $0B
+  let a: Point = Point { x: 11, y: 0 };
+  let b: Point = a;
+  a.x = 99;
+  poke($C008, b.x);
+
+  // $C009 — single-step enum→word cast; the low byte is the enum's backing: $03
+  let w: word = <word>(d);
+  poke($C009, <byte>(w));
+}

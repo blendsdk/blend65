@@ -1,0 +1,184 @@
+!to "gfx.prg", cbm
+; --- symbol definitions ---
+__frame_Main_main = $2000
+__frame_Main_main_arr = $2000
+__frame_Main_main_sum = $2005
+__frame_Main_main_i = $2006
+__frame_Main_main_player = $2007
+__frame_Main_main_pts = $200A
+__frame_Main_main_j = $200E
+__frame_Main_main_d = $200F
+__frame_Main_main_dispatch = $2010
+__frame_Main_main_k = $2011
+__frame_Main_main_a = $2012
+__frame_Main_main_b = $2014
+__frame_Main_main_w = $2016
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$01
+    STA __frame_Main_main_arr
+    LDA #$02
+    STA __frame_Main_main_arr+1
+    LDA #$03
+    STA __frame_Main_main_arr+2
+    LDA #$04
+    STA __frame_Main_main_arr+3
+    LDA #$04
+    STA __frame_Main_main_arr+4
+    LDA #$00
+    STA __frame_Main_main_sum
+    LDA #$00
+    STA __frame_Main_main_i
+    JMP Main_main_L0
+Main_main_L0:
+    LDA #$04
+    CMP __frame_Main_main_i
+    LDA #$01
+    BCS _cmp0
+    LDA #$00
+_cmp0:
+    BNE Main_main_L1
+    JMP Main_main_L3
+Main_main_L1:
+    LDX __frame_Main_main_i
+    LDA __frame_Main_main_arr,X
+    STA __zp_tmp_0
+    LDA __frame_Main_main_sum
+    CLC
+    ADC __zp_tmp_0
+    STA __frame_Main_main_sum
+    JMP Main_main_L2
+Main_main_L2:
+    LDA __frame_Main_main_i
+    CLC
+    ADC #$01
+    STA __frame_Main_main_i
+    JMP Main_main_L0
+Main_main_L3:
+    LDA __frame_Main_main_sum
+    STA $C000
+    LDA #$07
+    STA __frame_Main_main_player
+    LDA #$00
+    STA __frame_Main_main_player+1
+    LDA #$09
+    STA __frame_Main_main_player+2
+    LDA #$2A
+    STA __frame_Main_main_player+1
+    LDA __frame_Main_main_player+1
+    STA $C001
+    LDA #$05
+    STA __frame_Main_main_pts
+    LDA #$06
+    STA __frame_Main_main_pts+1
+    LDA #$08
+    STA __frame_Main_main_pts+2
+    LDA #$09
+    STA __frame_Main_main_pts+3
+    LDA #$01
+    STA __frame_Main_main_j
+    LDA __frame_Main_main_j
+    ASL
+    STA __zp_tmp_1
+    LDX __zp_tmp_1
+    LDA __frame_Main_main_pts,X
+    STA $C002
+    LDA #$03
+    STA __frame_Main_main_d
+    LDA #$00
+    STA __frame_Main_main_dispatch
+    LDA __frame_Main_main_d
+    CMP #$00
+    BEQ _cmp1
+    LDA #$00
+    JMP _cmp2
+_cmp1:
+    LDA #$01
+_cmp2:
+    BNE Main_main_L5
+    JMP Main_main_L8
+Main_main_L8:
+    LDA __frame_Main_main_d
+    CMP #$03
+    BEQ _cmp3
+    LDA #$00
+    JMP _cmp4
+_cmp3:
+    LDA #$01
+_cmp4:
+    BNE Main_main_L6
+    JMP Main_main_L9
+Main_main_L9:
+    JMP Main_main_L7
+Main_main_L5:
+    LDA #$01
+    STA __frame_Main_main_dispatch
+    JMP Main_main_L4
+Main_main_L6:
+    LDA #$02
+    STA __frame_Main_main_dispatch
+    JMP Main_main_L4
+Main_main_L7:
+    LDA #$09
+    STA __frame_Main_main_dispatch
+    JMP Main_main_L4
+Main_main_L4:
+    LDA __frame_Main_main_dispatch
+    STA $C003
+    LDA #$06
+    STA $C004
+    LDA #$02
+    STA $C005
+    LDA #$01
+    STA $C006
+    LDA #$01
+    STA __frame_Main_main_k
+    LDX __frame_Main_main_k
+    LDA __data_Gfx_TABLE,X
+    STA $C007
+    LDA #$0B
+    STA __frame_Main_main_a
+    LDA #$00
+    STA __frame_Main_main_a+1
+    LDA __frame_Main_main_a
+    STA __frame_Main_main_b
+    LDA __frame_Main_main_a+1
+    STA __frame_Main_main_b+1
+    LDA #$63
+    STA __frame_Main_main_a
+    LDA __frame_Main_main_b
+    STA $C008
+    LDA __frame_Main_main_d
+    LDX #$00
+    STA __frame_Main_main_w
+    STX __frame_Main_main_w+1
+    LDA __frame_Main_main_w
+    STA $C009
+    RTS
+; --- const data: __data_Gfx_TABLE ---
+__data_Gfx_TABLE:
+    !byte $0A, $14, $1E, $05, $05, $05
