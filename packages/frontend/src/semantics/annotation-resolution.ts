@@ -23,12 +23,14 @@ import type {
   AstNode,
   ConstDeclNode,
   DiagnosticBag,
+  ExprNode,
   LetDeclNode,
   Scope,
   Symbol,
 } from "@blend65/core";
 import { resolveTypeNode } from "./type-check/type-resolution.js";
 import type { TypeResolverContext } from "./type-check/type-resolution.js";
+import type { ConstTypeEngine } from "./const-type-engine.js";
 
 /** Narrows a symbol's declaring node to a let/const declaration. */
 function isVarDecl(node: AstNode): node is LetDeclNode | ConstDeclNode {
@@ -47,9 +49,27 @@ export function resolveDeclaredTypes(
   moduleScopes: ReadonlyMap<string, Scope>,
   scopeByNode: ReadonlyMap<AstNode, Scope>,
   bag: DiagnosticBag,
+  engine?: ConstTypeEngine,
 ): void {
+  const makeCtx = (moduleScope: Scope, evalScope: Scope): TypeResolverContext => ({
+    moduleScope,
+    moduleScopes,
+    bag,
+    ...(engine !== undefined
+      ? {
+          evalSize: (expr: ExprNode): number | "poisoned" | null => {
+            const result = engine.evalExpr(expr, evalScope);
+            if (result?.kind === "value" && typeof result.value === "number") {
+              return result.value;
+            }
+            return result?.kind === "poisoned" ? "poisoned" : null;
+          },
+        }
+      : {}),
+  });
+
   for (const moduleScope of moduleScopes.values()) {
-    const ctx: TypeResolverContext = { moduleScope, moduleScopes, bag };
+    const ctx = makeCtx(moduleScope, moduleScope);
     for (const sym of moduleScope.symbols.values()) {
       // Import-bound aliases point at symbols declared in ANOTHER module's
       // scope — the declaring module finalizes them; resolving here twice
@@ -62,7 +82,7 @@ export function resolveDeclaredTypes(
   for (const bodyScope of scopeByNode.values()) {
     const moduleScope = bodyScope.parent;
     if (moduleScope === null || moduleScope.kind !== "module") continue;
-    const ctx: TypeResolverContext = { moduleScope, moduleScopes, bag };
+    const ctx = makeCtx(moduleScope, bodyScope);
     for (const sym of bodyScope.symbols.values()) {
       finalizeSymbol(sym, ctx);
     }

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 23:43
-> **Progress**: 16/64 tasks (25%) — Phases 1-2 ✅ COMPLETE (full verify green)
+> **Last Updated**: 2026-07-12 00:01
+> **Progress**: 25/64 tasks (39%) — Phases 1-3 ✅ COMPLETE (full verify green)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -113,21 +113,21 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 
 ### Step 3.1: Specification tests (RED)
 **Reference**: 03-03 · AR-5/6/16/23
-- [ ] 3.1.1 Write spec tests from ST-10, ST-11, ST-17..ST-26b (incl. the AR-25 length-boundary rows) — `packages/frontend/src/semantics/const-engine.spec.test.ts`
-- [ ] 3.1.2 Red-phase run
+- [x] 3.1.1 Write spec tests from ST-10, ST-11, ST-17..ST-26b (incl. the AR-25 length-boundary rows) — `packages/frontend/src/semantics/const-engine.spec.test.ts` ✅ (completed: 2026-07-12 00:01)
+- [x] 3.1.2 Red-phase run ✅ (completed: 2026-07-12 00:01 — 10/14 red; pre-passers justified: ST-21 landed with Phase 2 size validation; ST-23 via the existing non-const path; ST-26/26a pass vacuously through poison suppression until the fold typing lands)
 
 ### Step 3.2: Implementation
 **Reference**: 03-03 §Proposed changes
 
-- [ ] 3.2.1 The engine core: memo + ordered in-progress stack spanning `const:`/`structLayout:`/`enumValues:` keys; cycle → ONE path-carrying E10194/E10165 per AR-23 — new `packages/frontend/src/semantics/const-type-engine.ts` (wrapping the `evalConst` seams)
-- [ ] 3.2.2 Struct layout & enum values move onto the engine (Pass 2 drives it exhaustively in module-then-declaration order); the silent zero-size placeholder dies — `declaration-collection.ts`, `passes.ts`
-- [ ] 3.2.3 `evalConst` aggregate arms: enum-member folding, `sizeof`/`offsetof`/`length` folds through the engine — `const-eval.ts`, `const-type-engine.ts`
-- [ ] 3.2.4 Const-expression array sizes end-to-end (E10110 non-const path moves onto the engine) — `type-resolution.ts`
-- [ ] 3.2.5 Aggregate const images: `ConstValue` bytes variant, element/fill folding, E10193/E10113, little-endian words — `packages/core/src/semantics/const-value.ts`, `const-type-engine.ts`
-- [ ] 3.2.6 Green-phase run
+- [x] 3.2.1 The engine core: memo + ordered in-progress stack spanning `const:`/`structLayout:`/`enumValues:` keys; cycle → ONE path-carrying E10194/E10165 per AR-23 — new `packages/frontend/src/semantics/const-type-engine.ts` (wrapping the `evalConst` seams) ✅ (completed: 2026-07-12 00:01)
+- [x] 3.2.2 Struct layout & enum values move onto the engine (Pass 2 drives it exhaustively in module-then-declaration order); the silent zero-size placeholder dies — `declaration-collection.ts` (registration-only now), `passes.ts` ✅ (completed: 2026-07-12 00:01)
+- [x] 3.2.3 `evalConst` aggregate arms: enum-member folding, `sizeof`/`offsetof`/`length` folds through the engine — `const-eval.ts` (new optional `ConstIntrinsicFolder` seam), `const-type-engine.ts`; fold value-typing wired in `expression-typing.ts` (representability rule) ✅ (completed: 2026-07-12 00:01)
+- [x] 3.2.4 Const-expression array sizes end-to-end (E10110 non-const path moves onto the engine) — `type-resolution.ts` (`evalSize` hook), `annotation-resolution.ts` ✅ (completed: 2026-07-12 00:01)
+- [x] 3.2.5 Aggregate const images: `ConstValue` bytes variant, element/fill folding, E10193/E10113, little-endian words — `packages/core/src/semantics/const-value.ts` (additive optional `bytes` field — mechanical deviation from the planned union shape, same information), new `const-images.ts`, `statement-typing.ts` (aggregate consts skip scalar typing; images via engine; engine owns cycle detection — the 5b Tarjan removed, pinned E10194 contract preserved) ✅ (completed: 2026-07-12 00:01)
+- [x] 3.2.6 Green-phase run ✅ (completed: 2026-07-12 00:01 — 14/14 green first run; frontend suite 707 green)
 
 ### Step 3.3: Implementation tests & hardening
-- [ ] 3.3.1 Impl tests: memo idempotence, stack hygiene after poison, declaration-order shuffling, Slice-6 scalar-fold regression sweep — `const-engine.impl.test.ts`
+- [x] 3.3.1 Impl tests: memo idempotence, stack hygiene after poison, declaration-order shuffling, Slice-6 scalar-fold regression sweep — `const-engine.impl.test.ts` ✅ (completed: 2026-07-12 00:01 — 7/7 (incl. nested array-of-struct images, enum-member-references-const, sbyte fills); Slice-6 scalar regression = the existing const suites all green; FULL WORKSPACE VERIFY GREEN)
 
 **Deliverables**: R88–R94 closed; cycles loud with paths.
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`

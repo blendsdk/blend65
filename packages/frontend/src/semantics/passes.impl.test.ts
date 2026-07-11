@@ -17,6 +17,7 @@ import {
   DEFAULT_PROFILE,
 } from "@blend65/core";
 import type { AnalyzeInput } from "./analyze.js";
+import { ConstTypeEngine } from "./const-type-engine.js";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 
 /** A minimal `AnalyzeInput` with no programs. */
@@ -49,7 +50,14 @@ describe("pass seams — existence and empty-input behavior (§4.1)", () => {
   it("resolveTypes / postCheck run as no-ops on empty input without throwing", () => {
     const input = makeInput();
     const model = createEmptyModel();
-    expect(() => resolveTypes(new Map(), new Map(), input)).not.toThrow();
+    const engine = new ConstTypeEngine({
+      registries: new Map(),
+      moduleScopes: new Map(),
+      structTypes: new Map(),
+      enumTypes: new Map(),
+      bag: input.bag,
+    });
+    expect(() => resolveTypes(engine, new Map(), new Map(), input)).not.toThrow();
     expect(() => postCheck(input, model)).not.toThrow();
     expect(model.hasErrors).toBe(false);
     expect(model.typeMap.size).toBe(0);

@@ -22,6 +22,7 @@ import type {
   Symbol,
   Type,
 } from "@blend65/core";
+import type { ConstTypeEngine } from "../const-type-engine.js";
 
 /**
  * A function's callable view — parameter names/types and the return type,
@@ -70,4 +71,11 @@ export interface TypeCheckContext {
    * instead of being misreported as undeclared.
    */
   readonly registry?: IntrinsicRegistry;
+  /**
+   * The shared const/type engine (constructed after imports, driven in Pass
+   * 2). Typing consults it for query-intrinsic folds (`sizeof`/`offsetof`/
+   * `length` value typing + constant participation) and for the set of
+   * constants a definition cycle already poisoned.
+   */
+  readonly engine?: ConstTypeEngine;
 }

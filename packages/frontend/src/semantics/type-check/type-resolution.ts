@@ -18,7 +18,7 @@
  */
 
 import { byteSize, DiagCode, ERROR_TYPE, IceCode, primitive } from "@blend65/core";
-import type { DiagnosticBag, Scope, Type, TypeNode } from "@blend65/core";
+import type { DiagnosticBag, ExprNode, Scope, Type, TypeNode } from "@blend65/core";
 
 /** Everything full-mode type resolution needs to resolve named types. */
 export interface TypeResolverContext {
@@ -28,6 +28,14 @@ export interface TypeResolverContext {
   readonly moduleScopes: ReadonlyMap<string, Scope>;
   /** The diagnostic accumulator (full mode emits; scalar mode never does). */
   readonly bag: DiagnosticBag;
+  /**
+   * Evaluates an array-size expression to its element count. Returns a
+   * number on success, `"poisoned"` when the failure is already reported
+   * (stay silent), or `null` when the expression is not a compile-time
+   * constant (the size position reports E10110). When absent, only literal
+   * sizes resolve.
+   */
+  readonly evalSize?: (expr: ExprNode) => number | "poisoned" | null;
 }
 
 /**
@@ -60,7 +68,7 @@ export function resolveTypeNode(node: TypeNode | null, ctx?: TypeResolverContext
       }
       if (element.kind === "error") return ERROR_TYPE;
       const size = resolveArraySize(node, ctx);
-      if (size === null) return ERROR_TYPE;
+      if (size === null || size === "poisoned") return ERROR_TYPE;
       const total = byteSize(element) * size;
       if (total > 256) {
         ctx.bag.addError(
@@ -126,17 +134,27 @@ function isTypeSymbol(kind: string): boolean {
 }
 
 /**
- * Evaluates an array type's size (literal sizes for now — constant
- * expressions land with the const/type engine). Emits and returns `null` on
- * an invalid size; an unsized `[]` resolves to 0 here and the annotation
- * pass decides whether an initialiser justifies it.
+ * Evaluates an array type's size: a literal directly, any other expression
+ * through the resolver context's size evaluator (the const/type engine).
+ * Emits and returns `null` on an invalid size, `"poisoned"` (silently) when
+ * the size's failure is already reported; an unsized `[]` resolves to 0 here
+ * and the annotation pass decides whether an initialiser justifies it.
  */
 function resolveArraySize(
   node: Extract<TypeNode, { kind: "ArrayType" }>,
-  ctx: { readonly bag: DiagnosticBag },
-): number | null {
+  ctx: TypeResolverContext,
+): number | "poisoned" | null {
   if (node.size === null) return 0; // unsized `[]` — validated at the annotation
-  if (node.size.kind !== "NumericLitExpr") {
+  let size: number | "poisoned" | null;
+  if (node.size.kind === "NumericLitExpr") {
+    size = node.size.value;
+  } else if (ctx.evalSize !== undefined) {
+    size = ctx.evalSize(node.size);
+  } else {
+    size = null;
+  }
+  if (size === "poisoned") return "poisoned";
+  if (size === null) {
     ctx.bag.addError(
       DiagCode.ArraySizeNotConst,
       node.size.span,
@@ -144,11 +162,11 @@ function resolveArraySize(
     );
     return null;
   }
-  if (node.size.value < 1) {
+  if (size < 1) {
     ctx.bag.addError(DiagCode.ArraySizeZero, node.size.span, "Array size must be at least 1");
     return null;
   }
-  return node.size.value;
+  return size;
 }
 
 /** The inclusive value range of an integer primitive. */

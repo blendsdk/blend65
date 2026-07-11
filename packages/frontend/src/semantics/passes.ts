@@ -20,48 +20,55 @@ import type {
 } from "@blend65/core";
 import type { AnalyzeInput } from "./analyze.js";
 import { collectDeclarationTables } from "./declaration-collection.js";
-import type { DeclarationTables } from "./declaration-collection.js";
+import type { DeclarationRegistration } from "./declaration-collection.js";
 import { resolveDeclaredTypes } from "./annotation-resolution.js";
+import type { ConstTypeEngine } from "./const-type-engine.js";
 import { validateIntrinsics } from "./intrinsic-validation.js";
 import { checkAllPathsReturn, checkMainValidity, checkRecursion } from "./post-check.js";
 
 /**
  * Pass 1 — Declaration Collection (struct/enum half).
  *
- * Resolves the top-level struct/enum declarations into fully-qualified
- * (`"Module.Name"`) type tables and declares each as a symbol in its module
- * scope (one namespace — collisions are E10003). Runs after function
- * collection created the module scopes.
+ * Registers the top-level struct/enum declarations per module and declares
+ * each as a symbol in its module scope (one namespace — collisions are
+ * E10003). Layout resolution is the const/type engine's job in Pass 2. Runs
+ * after function collection created the module scopes.
  *
  * @param input The analyzer input.
  * @param moduleScopeByProgram Each program → its module scope.
- * @returns The FQN-keyed struct/enum type tables.
+ * @returns The registries + the (engine-filled) FQN type tables.
  */
 export function collectDeclarations(
   input: AnalyzeInput,
   moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>,
-): DeclarationTables {
+): DeclarationRegistration {
   return collectDeclarationTables(input.programs, moduleScopeByProgram, input.bag);
 }
 
 /**
  * Pass 2 — Type Resolution.
  *
- * Finalizes every variable/constant symbol's declared type once imports are
- * bound: named/array annotations (incl. import-bound and dotted `Mod.Type`
- * forms) resolve for real, `void` value positions are E10156, unknown names
- * E10151, non-exported cross-module types E10012.
+ * Drives the const/type engine exhaustively (struct layouts, enum values,
+ * module constants — deterministic module-then-declaration order; any
+ * definition cycle is ONE path-carrying E10165/E10194), then finalizes every
+ * variable/constant symbol's declared type: named/array annotations (incl.
+ * import-bound and dotted `Mod.Type` forms, and constant-expression array
+ * sizes through the engine) resolve for real, `void` value positions are
+ * E10156, unknown names E10151, non-exported cross-module types E10012.
  *
+ * @param engine The shared const/type engine (constructed after imports).
  * @param moduleScopes User-module name → its shared module scope.
  * @param scopeByNode Function decl → its body scope.
  * @param input The analyzer input (diagnostic bag).
  */
 export function resolveTypes(
+  engine: ConstTypeEngine,
   moduleScopes: ReadonlyMap<string, Scope>,
   scopeByNode: ReadonlyMap<AstNode, Scope>,
   input: AnalyzeInput,
 ): void {
-  resolveDeclaredTypes(moduleScopes, scopeByNode, input.bag);
+  engine.driveAll();
+  resolveDeclaredTypes(moduleScopes, scopeByNode, input.bag, engine);
 }
 
 /**

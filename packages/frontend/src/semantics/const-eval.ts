@@ -39,6 +39,7 @@ import type {
   ExprNode,
   FieldAccessExprNode,
   IdentExprNode,
+  IntrinsicCallExprNode,
   SourceSpan,
   Type,
   TypeNode,
@@ -72,6 +73,15 @@ export type ConstRefResolver = (
  * Returning `undefined` (or a non-integer) makes those folds `nonConst`.
  */
 export type ConstTypeLookup = (expr: ExprNode) => Type | undefined;
+
+/**
+ * Folds a query intrinsic (`sizeof`/`offsetof`/`length`) to a constant.
+ * Returns `null` for intrinsics it does not own, letting the built-in
+ * `lo`/`hi` folding proceed. Injected by the const/type engine so query
+ * results participate in constant expressions without this module knowing
+ * about declaration tables.
+ */
+export type ConstIntrinsicFolder = (expr: IntrinsicCallExprNode) => ConstEvalResult | null;
 
 /** A `value` result carrying a number (narrowed from the union). */
 function numberResult(value: number): ConstEvalResult {
@@ -144,6 +154,7 @@ export function evalConst(
   expr: ExprNode,
   resolveRef?: ConstRefResolver,
   typeOf?: ConstTypeLookup,
+  foldIntrinsic?: ConstIntrinsicFolder,
 ): ConstEvalResult {
   switch (expr.kind) {
     case "NumericLitExpr":
@@ -151,21 +162,26 @@ export function evalConst(
     case "BoolLitExpr":
       return { kind: "value", value: expr.value };
     case "UnaryExpr":
-      return evalUnary(expr.op, expr.operand, resolveRef, typeOf);
+      return evalUnary(expr.op, expr.operand, resolveRef, typeOf, foldIntrinsic);
     case "BinaryExpr":
-      return evalBinary(expr, resolveRef, typeOf);
+      return evalBinary(expr, resolveRef, typeOf, foldIntrinsic);
     case "CastExpr":
-      return evalCast(expr.targetType, expr.operand, resolveRef, typeOf);
+      return evalCast(expr.targetType, expr.operand, resolveRef, typeOf, foldIntrinsic);
     case "ConditionalExpr": {
-      const cond = evalConst(expr.condition, resolveRef, typeOf);
+      const cond = evalConst(expr.condition, resolveRef, typeOf, foldIntrinsic);
       if (cond.kind !== "value" || typeof cond.value !== "boolean") {
         return propagateFailure(cond);
       }
       // Only the selected arm is evaluated — matching the runtime guarantee.
-      return evalConst(cond.value ? expr.whenTrue : expr.whenFalse, resolveRef, typeOf);
+      return evalConst(cond.value ? expr.whenTrue : expr.whenFalse, resolveRef, typeOf, foldIntrinsic);
     }
-    case "IntrinsicCallExpr":
-      return evalIntrinsic(expr.name, expr.args, resolveRef, typeOf);
+    case "IntrinsicCallExpr": {
+      if (foldIntrinsic !== undefined) {
+        const folded = foldIntrinsic(expr);
+        if (folded !== null) return folded;
+      }
+      return evalIntrinsic(expr.name, expr.args, resolveRef, typeOf, foldIntrinsic);
+    }
     case "IdentExpr":
     case "FieldAccessExpr": {
       if (resolveRef === undefined) return { kind: "nonConst" };
@@ -189,8 +205,9 @@ function evalUnary(
   operand: ExprNode,
   resolveRef?: ConstRefResolver,
   typeOf?: ConstTypeLookup,
+  foldIntrinsic?: ConstIntrinsicFolder,
 ): ConstEvalResult {
-  const inner = evalConst(operand, resolveRef, typeOf);
+  const inner = evalConst(operand, resolveRef, typeOf, foldIntrinsic);
 
   if (op === "!") {
     if (inner.kind !== "value" || typeof inner.value !== "boolean") {
@@ -224,6 +241,7 @@ function evalBinary(
   expr: Extract<ExprNode, { kind: "BinaryExpr" }>,
   resolveRef?: ConstRefResolver,
   typeOf?: ConstTypeLookup,
+  foldIntrinsic?: ConstIntrinsicFolder,
 ): ConstEvalResult {
   const { op, left, right, span } = expr;
 
@@ -231,18 +249,18 @@ function evalBinary(
   // the left does not short-circuit — a divByZero in the unevaluated operand
   // must NOT surface (it would not surface at runtime either).
   if (op === "&&" || op === "||") {
-    const l = evalConst(left, resolveRef, typeOf);
+    const l = evalConst(left, resolveRef, typeOf, foldIntrinsic);
     if (l.kind !== "value" || typeof l.value !== "boolean") return propagateFailure(l);
     if (op === "&&" && !l.value) return { kind: "value", value: false };
     if (op === "||" && l.value) return { kind: "value", value: true };
-    const r = evalConst(right, resolveRef, typeOf);
+    const r = evalConst(right, resolveRef, typeOf, foldIntrinsic);
     if (r.kind !== "value" || typeof r.value !== "boolean") return propagateFailure(r);
     return { kind: "value", value: r.value };
   }
 
-  const l = evalConst(left, resolveRef, typeOf);
+  const l = evalConst(left, resolveRef, typeOf, foldIntrinsic);
   if (l.kind !== "value") return propagateFailure(l);
-  const r = evalConst(right, resolveRef, typeOf);
+  const r = evalConst(right, resolveRef, typeOf, foldIntrinsic);
   if (r.kind !== "value") return propagateFailure(r);
 
   // Equality folds over matching primitive kinds (numbers or booleans).
@@ -355,10 +373,11 @@ function evalCast(
   operand: ExprNode,
   resolveRef?: ConstRefResolver,
   typeOf?: ConstTypeLookup,
+  foldIntrinsic?: ConstIntrinsicFolder,
 ): ConstEvalResult {
   const target = castTargetShape(targetType);
   if (target === null) return { kind: "nonConst" };
-  const inner = evalConst(operand, resolveRef, typeOf);
+  const inner = evalConst(operand, resolveRef, typeOf, foldIntrinsic);
   if (inner.kind !== "value" || typeof inner.value !== "number") {
     return propagateFailure(inner);
   }
@@ -371,9 +390,10 @@ function evalIntrinsic(
   args: readonly ExprNode[],
   resolveRef?: ConstRefResolver,
   typeOf?: ConstTypeLookup,
+  foldIntrinsic?: ConstIntrinsicFolder,
 ): ConstEvalResult {
   if ((name !== "lo" && name !== "hi") || args.length !== 1) return { kind: "nonConst" };
-  const arg = evalConst(args[0], resolveRef, typeOf);
+  const arg = evalConst(args[0], resolveRef, typeOf, foldIntrinsic);
   if (arg.kind !== "value" || typeof arg.value !== "number") {
     return propagateFailure(arg);
   }

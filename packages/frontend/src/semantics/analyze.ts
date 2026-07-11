@@ -41,6 +41,7 @@ import {
 } from "@blend65/core";
 import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
+import { ConstTypeEngine } from "./const-type-engine.js";
 import { checkParameterShadowing, collectFunctions } from "./function-collection.js";
 import { collectModuleVariables } from "./module-variable-collection.js";
 import { resolveImports } from "./import-resolution.js";
@@ -128,10 +129,20 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   );
   checkParameterShadowing(functionTables.scopeByNode, input.bag);
 
-  // Pass 2 — type resolution: with imports bound, finalize every variable/
+  // Pass 2 — type resolution: with imports bound, the const/type engine
+  // computes struct layouts / enum values / module constants (one
+  // path-carrying diagnostic per definition cycle), then every variable/
   // constant symbol's declared type (named/array annotations, incl.
-  // import-bound and dotted `Mod.Type` forms) in place.
-  resolveTypes(functionTables.moduleScopeByName, functionTables.scopeByNode, input);
+  // import-bound and dotted `Mod.Type` forms, and constant-expression array
+  // sizes) is finalized in place.
+  const engine = new ConstTypeEngine({
+    registries: tables.registries,
+    moduleScopes: functionTables.moduleScopeByName,
+    structTypes: tables.mutableStructTypes,
+    enumTypes: tables.mutableEnumTypes,
+    bag: input.bag,
+  });
+  resolveTypes(engine, functionTables.moduleScopeByName, functionTables.scopeByNode, input);
 
   // Pass 3 — body checking: the intrinsic-validation pass plus the
   // expression/statement type engine, which populates the maps and records
@@ -155,6 +166,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     moduleScopes: functionTables.moduleScopeByName,
     constValues,
     registry,
+    engine,
   });
 
   // The module-variable initialization order (spec Ch 10 §5.4) — needs the

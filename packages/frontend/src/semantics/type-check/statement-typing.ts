@@ -20,7 +20,6 @@
 import {
   DiagCode,
   ERROR_TYPE,
-  findCallCycles,
   IceCode,
   isAssignableTo,
   isError,
@@ -60,8 +59,8 @@ import {
 import { enclosingFunctionSymbol } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
+import { buildConstImage } from "../const-images.js";
 import type { ConstRefResolver } from "../const-eval.js";
-import { collectNameRefs } from "../init-order.js";
 
 /**
  * Runs Pass-3 type checking over every function/interrupt body — and every
@@ -191,8 +190,12 @@ function evaluateModuleConsts(
   ctx: TypeCheckContext,
 ): void {
   // (1) Collect + type. Duplicate-declaration losers were never registered.
+  // Aggregate-typed consts (arrays/structs) skip the scalar typing check —
+  // their literal initialisers are typed by the aggregate typing surface and
+  // their values are memory IMAGES built below.
   const consts = new Map<Symbol, { decl: ConstDeclNode; moduleScope: Scope }>();
   const typePoisoned = new Set<Symbol>();
+  const aggregates = new Set<Symbol>();
   for (const program of programs) {
     const moduleScope = moduleScopeByProgram.get(program);
     if (moduleScope === undefined) continue;
@@ -203,6 +206,12 @@ function evaluateModuleConsts(
       ctx.symbolMap.set(item, sym);
       consts.set(sym, { decl: item, moduleScope });
 
+      // The symbol's type was finalized by the type-resolution pass.
+      if (sym.type.kind === "array" || sym.type.kind === "struct") {
+        aggregates.add(sym);
+        continue;
+      }
+
       const declaredType = resolveTypeNode(item.declaredType);
       const initType = typeOfExpr(item.initialiser, moduleScope, ctx, declaredType);
       checkAssignable(initType, declaredType, item.initialiser.span, ctx);
@@ -211,30 +220,11 @@ function evaluateModuleConsts(
   }
   if (consts.size === 0) return;
 
-  // (2) const→const definition edges → one E10194 per cycle.
-  const edges = new Map<Symbol, Set<Symbol>>();
-  for (const [sym, { decl }] of consts) {
-    const targets = new Set<Symbol>();
-    for (const ref of collectNameRefs(decl.initialiser)) {
-      const target = ctx.symbolMap.get(ref);
-      if (target !== undefined && consts.has(target)) targets.add(target);
-    }
-    if (targets.size > 0) edges.set(sym, targets);
-  }
-  const cycleMembers = new Set<Symbol>();
-  for (const cycle of findCallCycles(new Set(consts.keys()), edges)) {
-    if (cycle.length === 0) continue;
-    const anchor = cycle[0];
-    const path = [...cycle, anchor].map((s) => s.name).join(" → ");
-    ctx.bag.addError(
-      DiagCode.CircularInit,
-      consts.get(anchor)?.decl.initialiser.span ?? null,
-      `Circular initializer detected — '${anchor.name}' depends on itself ` +
-        `(directly or indirectly) through module-level initialization order — ` +
-        `cycle: ${path}`,
-    );
-    for (const member of cycle) cycleMembers.add(member);
-  }
+  // (2) Definition cycles were detected by the const/type engine (its
+  // in-progress stack spans constants, struct layouts, and enum values, so
+  // mixed cycles report exactly once); the members it poisoned evaluate no
+  // value here.
+  const cycleMembers: ReadonlySet<Symbol> = ctx.engine?.poisonedConsts ?? new Set<Symbol>();
 
   // (3) Dependency-first evaluation (recursive + memoised; cycles excluded, so
   // the recursion is bounded by the acyclic dependency depth).
@@ -252,6 +242,23 @@ function evaluateModuleConsts(
     if (info === undefined) return;
     evaluating.add(sym);
 
+    // Aggregate consts fold into a memory image through the engine.
+    if (aggregates.has(sym)) {
+      if (ctx.engine !== undefined) {
+        const image = buildConstImage(sym.type, info.decl.initialiser, {
+          engine: ctx.engine,
+          scope: info.moduleScope,
+          bag: ctx.bag,
+          constName: sym.name,
+        });
+        if (image !== null) {
+          ctx.constValues.set(sym, { type: sym.type, value: 0, bytes: image });
+        }
+      }
+      evaluating.delete(sym);
+      return;
+    }
+
     const resolveRef: ConstRefResolver = (ref) => {
       const target = ctx.symbolMap.get(ref);
       if (target === undefined) return { kind: "poisoned" }; // unresolved — already diagnosed
@@ -267,7 +274,13 @@ function evaluateModuleConsts(
     const declaredType = resolveTypeNode(info.decl.declaredType);
     // The initialisers were all typed during collection, so the type lookup
     // is populated — the width-sensitive folds (~, shifts, casts) engage.
-    const result = evalConst(info.decl.initialiser, resolveRef, (e) => ctx.typeMap.get(e));
+    // Query intrinsics (`sizeof`/`offsetof`/`length`) fold via the engine.
+    const result = evalConst(
+      info.decl.initialiser,
+      resolveRef,
+      (e) => ctx.typeMap.get(e),
+      ctx.engine?.intrinsicFolder(info.moduleScope),
+    );
     evaluating.delete(sym);
 
     if (result.kind === "poisonedRef") return; // root cause already reported

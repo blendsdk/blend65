@@ -944,6 +944,18 @@ function typeIntrinsicCall(
     return primitive("byte");
   }
 
+  // Query intrinsics fold to compile-time constants; the result is typed by
+  // representability — a value ≤255 fits `byte`, anything larger is `word`
+  // (`length(byte[256])` is 256, which `byte` cannot hold).
+  if (expr.name === "sizeof" || expr.name === "offsetof" || expr.name === "length") {
+    for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
+    const folded = ctx.engine?.evalExpr(expr, scope);
+    if (folded?.kind === "value" && typeof folded.value === "number") {
+      return primitive(folded.value <= 255 ? "byte" : "word");
+    }
+    return ERROR_TYPE; // validation/engine already reported the root cause
+  }
+
   for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
 
   switch (expr.name) {
@@ -955,7 +967,7 @@ function typeIntrinsicCall(
     case "pokew":
       return primitive("void");
     default:
-      return ERROR_TYPE; // sizeof/offsetof/embed/etc. — not yet supported here
+      return ERROR_TYPE; // embed/etc. — not yet supported here
   }
 }
 
