@@ -119,6 +119,7 @@ function typeModuleLet(decl: LetDeclNode, moduleScope: Scope, ctx: TypeCheckCont
   if (sym === undefined || sym.decl !== decl) return;
   ctx.symbolMap.set(decl, sym);
 
+  checkArrayInitCoverage(decl, letDeclaredType(decl, sym), ctx); // W10140/W10141
   if (decl.initialiser === null) return; // indeterminate until assigned (spec VAR-2)
 
   const call = findInitializerCall(decl.initialiser);
@@ -132,11 +133,13 @@ function typeModuleLet(decl: LetDeclNode, moduleScope: Scope, ctx: TypeCheckCont
     return;
   }
 
-  const declaredType = resolveTypeNode(decl.declaredType);
+  const declaredType = letDeclaredType(decl, sym);
+  if (rejectStringArrayInit(decl, declaredType, ctx)) return;
   const initType = typeOfExpr(decl.initialiser, moduleScope, ctx, declaredType);
   checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
   checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
   checkIntermediateOverflow(decl.initialiser, initType, declaredType, ctx); // W10160/61
+  inferUnsizedArray(sym, declaredType, initType);
 }
 
 /**
@@ -328,6 +331,18 @@ function typeStmt(
       typeLetDecl(stmt, scope, ctx);
       return;
     case "ExpressionStmt":
+      // Only calls are valid expression statements (grammar §5.4). The
+      // aggregate literals are rejected here so they can never fall through
+      // to code generation; the general rule for other expressions is a
+      // separate, later enforcement.
+      if (stmt.expression.kind === "StructLitExpr" || stmt.expression.kind === "ArrayLitExpr") {
+        ctx.bag.addError(
+          DiagCode.ExpressionStatementNotACall,
+          stmt.expression.span,
+          "An aggregate literal is not a statement — only calls are valid expression statements",
+        );
+        return;
+      }
       typeOfExpr(stmt.expression, scope, ctx);
       return;
     case "ReturnStmt":
@@ -409,7 +424,8 @@ function typeSwitch(
   // silent (cascade suppression — an already-reported error shouldn't cause a
   // second, misleading diagnostic) but still poisons the case checks.
   const dt = typeOfExpr(stmt.discriminant, scope, ctx);
-  const range = integerRange(dt);
+  // An enum discriminant is legal — its values are its byte backing.
+  const range = dt.kind === "enum" ? { min: 0, max: 255 } : integerRange(dt);
   if (range === null) {
     if (!isError(dt)) {
       ctx.bag.addError(
@@ -468,7 +484,12 @@ function typeCaseValue(
   ctx: TypeCheckContext,
 ): void {
   const vt = typeOfExpr(value, scope, ctx, dt); // adapt + memoise for lowering width
-  const folded = evalConst(value);
+  let folded = evalConst(value);
+  if (folded.kind === "nonConst" && ctx.engine !== undefined) {
+    // Enum members and module constants fold through the engine.
+    const viaEngine = ctx.engine.evalExpr(value, scope);
+    if (viaEngine?.kind === "value") folded = { kind: "value", value: viaEngine.value };
+  }
   if (folded.kind === "divByZero") {
     ctx.bag.addError(
       DiagCode.ConstDivisionByZero, // E10082
@@ -494,7 +515,26 @@ function typeCaseValue(
     );
     return;
   }
-  if (!isError(vt) && !isInteger(vt) && typeName(vt) !== typeName(dt)) {
+  if (dt.kind === "enum" && vt !== dt && !isError(vt)) {
+    // An enum switch takes only members of THAT enum (or explicit casts to it).
+    ctx.bag.addError(
+      DiagCode.CaseValueTypeMismatch, // E10077
+      value.span,
+      `Case value type '${typeName(vt)}' does not match switch expression type ` +
+        `'${typeName(dt)}' — use a member of '${typeName(dt)}'`,
+    );
+    return;
+  }
+  if (!isError(vt) && vt.kind === "enum" && dt.kind !== "enum" && typeName(dt) !== "byte") {
+    // An enum member widens to byte only; wider/signed discriminants mismatch.
+    ctx.bag.addError(
+      DiagCode.CaseValueTypeMismatch, // E10077
+      value.span,
+      `Case value type '${typeName(vt)}' does not match switch expression type '${typeName(dt)}'`,
+    );
+    return;
+  }
+  if (!isError(vt) && vt.kind !== "enum" && !isInteger(vt) && typeName(vt) !== typeName(dt)) {
     ctx.bag.addError(
       DiagCode.CaseValueTypeMismatch, // E10077 (bespoke; rarely reachable — most mismatches are caught earlier)
       value.span,
@@ -687,19 +727,105 @@ function typeFor(
  * (E10152/E10153/E10154). An initialiser-less `let` is valid — no init check.
  */
 function typeLetDecl(decl: LetDeclNode, scope: Scope, ctx: TypeCheckContext): void {
-  const declaredType = resolveTypeNode(decl.declaredType);
-
   // Record the introduced symbol (name-introducing node → its symbol), if the
   // Pass-1 collector placed it in this scope.
   const sym = scope.symbols.get(decl.name);
   if (sym !== undefined) ctx.symbolMap.set(decl, sym);
 
+  const declaredType = letDeclaredType(decl, sym);
+  checkArrayInitCoverage(decl, declaredType, ctx); // W10140/W10141
+
   if (decl.initialiser === null) return; // initialiser-less let (spec VAR-2) — no check
+  if (rejectStringArrayInit(decl, declaredType, ctx)) return;
 
   const initType = typeOfExpr(decl.initialiser, scope, ctx, declaredType);
   checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
   checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
   checkIntermediateOverflow(decl.initialiser, initType, declaredType, ctx); // W10160/61
+  inferUnsizedArray(sym, declaredType, initType);
+}
+
+/**
+ * The declared type a `let`/`const` checks against: primitives resolve
+ * directly; named/array annotations were finalized onto the SYMBOL by the
+ * type-resolution pass, so the symbol's type is authoritative for them.
+ */
+function letDeclaredType(
+  decl: LetDeclNode | ConstDeclNode,
+  sym: Symbol | undefined,
+): Type {
+  const scalar = resolveTypeNode(decl.declaredType);
+  if (!isError(scalar)) return scalar;
+  if (sym !== undefined && sym.type.kind !== "primitive" && sym.type.kind !== "error") {
+    return sym.type;
+  }
+  return scalar;
+}
+
+/**
+ * The array-initialisation advisories: a `let` array with no initialiser is
+ * entirely undefined until written (W10141); one initialised with fewer
+ * elements than its size and no fill leaves the remainder undefined
+ * (W10140). Both compile.
+ */
+function checkArrayInitCoverage(
+  decl: LetDeclNode,
+  declaredType: Type,
+  ctx: TypeCheckContext,
+): void {
+  if (declaredType.kind !== "array") return;
+  if (decl.initialiser === null) {
+    ctx.bag.addWarning(
+      DiagCode.UninitializedArray,
+      decl.nameSpan,
+      `Array '${decl.name}' has no initialiser — its contents are undefined until written`,
+    );
+    return;
+  }
+  const init = decl.initialiser;
+  if (
+    init.kind === "ArrayLitExpr" &&
+    init.fill === null &&
+    declaredType.size > 0 &&
+    init.elements.length < declaredType.size
+  ) {
+    ctx.bag.addWarning(
+      DiagCode.PartialArrayInit,
+      init.span,
+      `Array initialiser covers ${init.elements.length} of ${declaredType.size} elements — ` +
+        "the rest are undefined (add a '; fill' value)",
+    );
+  }
+}
+
+/**
+ * Rejects a string literal initialising an array — the form is legal in the
+ * language but lands with the string/encoding surface; rejecting loudly
+ * beats silently mistyping it. Returns `true` when rejected.
+ */
+function rejectStringArrayInit(
+  decl: LetDeclNode | ConstDeclNode,
+  declaredType: Type,
+  ctx: TypeCheckContext,
+): boolean {
+  if (decl.initialiser === null || decl.initialiser.kind !== "StringLitExpr") return false;
+  if (declaredType.kind !== "array") return false;
+  ctx.bag.addError(
+    IceCode.Unexpected,
+    decl.initialiser.span,
+    "string array initialisers are not supported yet — list the character values explicitly",
+  );
+  return true;
+}
+
+/**
+ * Patches an unsized `[]` declaration's symbol with the size the literal
+ * inferred, so downstream layout/lowering sees a fully-sized array type.
+ */
+function inferUnsizedArray(sym: Symbol | undefined, declaredType: Type, initType: Type): void {
+  if (sym === undefined) return;
+  if (declaredType.kind !== "array" || declaredType.size !== 0) return;
+  if (initType.kind === "array" && initType.size > 0) sym.type = initType;
 }
 
 /**

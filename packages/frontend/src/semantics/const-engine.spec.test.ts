@@ -59,7 +59,7 @@ describe("Specification: unified const/type engine", () => {
   it("ST-17: a const-expression array size `byte[N * 2 + 2]` sizes the array", () => {
     const src = `module Main;\nconst N: byte = 3;\nlet a: byte[N * 2 + 2];\n${MAIN_FN}`;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     const a = moduleSymbol(model, "a");
     expect(a?.type.kind).toBe("array");
     if (a?.type.kind === "array") expect(a.type.size).toBe(8);
@@ -68,7 +68,7 @@ describe("Specification: unified const/type engine", () => {
   it("ST-18: `byte[sizeof(P)]` sizes from the packed struct layout (no padding)", () => {
     const src = `module Main;\nstruct P { x: byte; y: word; }\nlet a: byte[sizeof(P)];\n${MAIN_FN}`;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     const a = moduleSymbol(model, "a");
     if (a?.type.kind === "array") expect(a.type.size).toBe(3);
     else throw new Error("expected an array-typed symbol");
@@ -77,7 +77,7 @@ describe("Specification: unified const/type engine", () => {
   it("ST-19: declaration order does not matter — const AFTER the array using it", () => {
     const src = `module Main;\nlet a: byte[N * 2 + 2];\nconst N: byte = 3;\n${MAIN_FN}`;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     const a = moduleSymbol(model, "a");
     if (a?.type.kind === "array") expect(a.type.size).toBe(8);
     else throw new Error("expected an array-typed symbol");
@@ -129,7 +129,7 @@ describe("Specification: unified const/type engine", () => {
   it("ST-24: a const word-array image encodes little-endian (`34 12 05 00`)", () => {
     const src = `module Main;\nconst W: word[2] = [$1234, 5];\n${MAIN_FN}`;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     const w = moduleSymbol(model, "W");
     expect(w).toBeDefined();
     const image = model.constValues.get(w!);
@@ -150,7 +150,7 @@ describe("Specification: unified const/type engine", () => {
       "let buf: byte[length(TABLE)];\n" +
       MAIN_FN;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     expect(model.constValues.get(moduleSymbol(model, "L")!)?.value).toBe(6);
     expect(model.constValues.get(moduleSymbol(model, "O")!)?.value).toBe(1);
     expect(model.constValues.get(moduleSymbol(model, "S")!)?.value).toBe(1);

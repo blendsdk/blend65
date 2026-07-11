@@ -26,6 +26,7 @@
 
 import {
   bitWidth,
+  byteSize,
   commonType,
   DiagCode,
   ERROR_TYPE,
@@ -39,6 +40,7 @@ import {
   typeName,
 } from "@blend65/core";
 import type {
+  ArrayLitExprNode,
   AssignExprNode,
   AstNode,
   BinaryExprNode,
@@ -49,8 +51,10 @@ import type {
   FieldAccessExprNode,
   FunctionDeclNode,
   IdentExprNode,
+  IndexExprNode,
   IntrinsicCallExprNode,
   NumericLitExprNode,
+  StructLitExprNode,
   Scope,
   SourceSpan,
   Symbol,
@@ -137,11 +141,24 @@ function computeType(
       return typeCall(expr, scope, ctx);
     case "FieldAccessExpr":
       return typeFieldAccess(expr, scope, ctx);
+    case "IndexExpr":
+      return typeIndexExpr(expr, scope, ctx);
+    case "StructLitExpr":
+      return typeStructLit(expr, scope, ctx);
+    case "ArrayLitExpr":
+      return typeArrayLit(expr, scope, ctx, contextType);
     default:
-      // Index / struct-lit / etc. are not yet handled here; poison without a
+      // String/char literals etc. are not yet handled here; poison without a
       // diagnostic.
       return ERROR_TYPE;
   }
+}
+
+/** The nearest enclosing module scope (the flat scope model guarantees one). */
+function moduleScopeOf(scope: Scope): Scope {
+  let current: Scope = scope;
+  while (current.kind !== "module" && current.parent !== null) current = current.parent;
+  return current;
 }
 
 /**
@@ -230,7 +247,9 @@ function typeIntegerBinary(expr: BinaryExprNode, scope: Scope, ctx: TypeCheckCon
   }
 
   const combined = commonType(lt, rt);
-  if (combined !== null) return combined; // same-type or promoted
+  // Enum operands operate as their byte backing — the arithmetic result is a
+  // byte, never the enum.
+  if (combined !== null) return combined.kind === "enum" ? primitive("byte") : combined;
 
   emitBinaryOperandError(expr.op, expr.span, lt, rt, ctx);
   return ERROR_TYPE;
@@ -249,6 +268,17 @@ function typeComparisonBinary(
 ): Type {
   const { lt, rt } = typeAdaptedOperands(expr, scope, ctx);
   if (isError(lt) || isError(rt)) return ERROR_TYPE; // cascade suppression
+
+  // Arrays never compare (they are memory regions, not values) — a dedicated
+  // code so the remedy (compare elements) is discoverable.
+  if (lt.kind === "array" || rt.kind === "array") {
+    ctx.bag.addError(
+      DiagCode.ArrayComparisonNotAllowed,
+      expr.span,
+      "Arrays cannot be compared — compare elements individually",
+    );
+    return ERROR_TYPE;
+  }
 
   const leftBool = typeName(lt) === "boolean";
   const rightBool = typeName(rt) === "boolean";
@@ -369,9 +399,15 @@ function emitBinaryOperandError(
     );
     return;
   }
-  // Non-primitive operands (structs/arrays/enums) are not combinable yet; the
-  // result is already poisoned to ERROR_TYPE, and no diagnostic code is
-  // designated for this case, so none is emitted.
+  // Non-primitive operands: structs never combine, and enums only combine
+  // with themselves or `byte` (both handled before this point) — anything
+  // that reaches here is an invalid operand application.
+  const offending = lt.kind !== "primitive" ? lt : rt;
+  ctx.bag.addError(
+    DiagCode.InvalidOperandType, // E10080
+    span,
+    `Operator '${op}' cannot be applied to type '${typeName(offending)}'`,
+  );
 }
 
 /**
@@ -471,9 +507,35 @@ function typeUnary(
  * stays a silent poison here.
  */
 function typeCast(expr: CastExprNode, scope: Scope, ctx: TypeCheckContext): Type {
-  const target = resolveTypeNode(expr.targetType);
+  // Named cast targets (enums) resolve through the full resolver; primitive
+  // targets resolve as before.
+  const target =
+    expr.targetType.kind === "NamedType"
+      ? resolveTypeNode(expr.targetType, {
+          moduleScope: moduleScopeOf(scope),
+          moduleScopes: ctx.moduleScopes,
+          bag: ctx.bag,
+        })
+      : resolveTypeNode(expr.targetType);
   const operand = typeOfExpr(expr.operand, scope, ctx);
   if (isError(operand) || isError(target)) return ERROR_TYPE; // cascade suppression
+
+  // Enum casts are single-step and zero-cost: an enum reads as its byte
+  // backing in either integer direction, and casting an integer INTO an enum
+  // is legal without a member-value check. Enum→enum cross-casts are not —
+  // route through the byte backing explicitly.
+  if (target.kind === "enum" || operand.kind === "enum") {
+    if (target === operand) return target; // identity
+    const other = target.kind === "enum" ? operand : target;
+    if (other.kind === "primitive" && isInteger(other)) return target;
+    ctx.bag.addError(
+      DiagCode.InvalidCast,
+      expr.span,
+      `Cannot cast '${typeName(operand)}' to '${typeName(target)}' — enums cast ` +
+        `to/from integer types only`,
+    );
+    return ERROR_TYPE;
+  }
 
   const targetBool = typeName(target) === "boolean";
   const operandBool = typeName(operand) === "boolean";
@@ -584,28 +646,28 @@ function typeConditional(
 function typeAssign(expr: AssignExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   const targetType = typeOfExpr(expr.target, scope, ctx);
 
-  // L-value mutability: a resolved `constant` target cannot be assigned (E10191).
-  if (expr.target.kind === "IdentExpr") {
-    const sym = resolveName(expr.target.name, scope);
-    if (sym !== null && sym.kind === "constant") {
-      ctx.bag.addError(
-        DiagCode.AssignToConst,
-        expr.span,
-        `Cannot assign to constant '${expr.target.name}'`,
-      );
-    }
-  } else if (expr.target.kind === "FieldAccessExpr") {
-    // A qualified target was resolved (and recorded in `symbolMap`) while it
-    // was typed above; a failed or non-module resolution is already poisoned
-    // or diagnosed there, and a function member is already rejected loudly.
-    const sym = ctx.symbolMap.get(expr.target);
-    if (sym !== undefined && sym.kind === "constant") {
-      ctx.bag.addError(
-        DiagCode.AssignToConst,
-        expr.span,
-        `Cannot assign to constant '${expr.target.field}'`,
-      );
-    }
+  // L-value mutability: a resolved `constant` target cannot be assigned
+  // (E10191) — including element/field writes THROUGH a const aggregate,
+  // whose root symbol is a constant.
+  const rootSym = assignmentRootSymbol(expr.target, scope, ctx);
+  if (rootSym !== null && rootSym.kind === "constant") {
+    ctx.bag.addError(
+      DiagCode.AssignToConst,
+      expr.span,
+      `Cannot assign to constant '${rootSym.name}'`,
+    );
+  }
+
+  // Whole-array assignment never works — arrays are memory regions, not
+  // values; copy elements individually (or restructure with a struct).
+  if (targetType.kind === "array" && expr.target.kind !== "ArrayLitExpr") {
+    ctx.bag.addError(
+      DiagCode.ArrayAssignmentNotAllowed,
+      expr.span,
+      "Arrays cannot be assigned as wholes — copy elements individually",
+    );
+    typeOfExpr(expr.value, scope, ctx, targetType);
+    return ERROR_TYPE;
   }
 
   const valueType = typeOfExpr(expr.value, scope, ctx, targetType);
@@ -617,6 +679,26 @@ function typeAssign(expr: AssignExprNode, scope: Scope, ctx: TypeCheckContext): 
     return targetType;
   }
   return typeCompoundAssign(expr, targetType, valueType, ctx);
+}
+
+/**
+ * The root declared symbol of an assignment target: the base identifier of
+ * an `a`, `a[i]`, `s.f`, `s.f[i].g` chain, or the module-qualified symbol a
+ * `Mod.x` head resolves to. `null` for targets with no declared root.
+ */
+function assignmentRootSymbol(
+  target: ExprNode,
+  scope: Scope,
+  ctx: TypeCheckContext,
+): Symbol | null {
+  let node: ExprNode = target;
+  while (node.kind === "IndexExpr" || node.kind === "FieldAccessExpr") {
+    // A qualified head (`Mod.x…`) resolved to a symbol while it was typed.
+    const qualified = ctx.symbolMap.get(node);
+    if (qualified !== undefined && node.kind === "FieldAccessExpr") return qualified;
+    node = node.kind === "IndexExpr" ? node.object : node.object;
+  }
+  return node.kind === "IdentExpr" ? resolveName(node.name, scope) : null;
 }
 
 /**
@@ -689,15 +771,110 @@ function typeFieldAccess(
   scope: Scope,
   ctx: TypeCheckContext,
 ): Type {
+  // Head classification for a bare-identifier object: a value symbol makes
+  // this struct-field access; an enum TYPE makes it member access; an
+  // unresolved head falls to the qualified `Module.member` ladder.
+  if (expr.object.kind === "IdentExpr") {
+    const head = resolveName(expr.object.name, scope);
+    if (head !== null && head.kind === "enum") {
+      return typeEnumMemberAccess(expr, head, ctx);
+    }
+    if (head !== null && head.kind === "struct") {
+      ctx.bag.addError(
+        DiagCode.InvalidOperandType,
+        expr.object.span,
+        `'${expr.object.name}' names a struct type — member access needs a value`,
+      );
+      return ERROR_TYPE;
+    }
+    if (head === null) {
+      return typeQualifiedAccess(expr, scope, ctx);
+    }
+    // A value symbol — fall through to struct-field typing below.
+  } else if (expr.object.kind === "FieldAccessExpr") {
+    // A chained head like `Mod.Enum.MEMBER`: type the inner access first; if
+    // it resolved to an enum TYPE reference, this is member access on it.
+    const objType = typeOfExpr(expr.object, scope, ctx);
+    const objSym = ctx.symbolMap.get(expr.object);
+    if (objSym !== undefined && objSym.kind === "enum" && objType.kind === "enum") {
+      return typeEnumMemberAccess(expr, objSym, ctx);
+    }
+    return typeStructFieldOn(objType, expr, ctx);
+  }
+
+  const objType = typeOfExpr(expr.object, scope, ctx);
+  return typeStructFieldOn(objType, expr, ctx);
+}
+
+/** Enum member access `Direction.UP` (the head names the enum TYPE). */
+function typeEnumMemberAccess(
+  expr: FieldAccessExprNode,
+  enumSym: Symbol,
+  ctx: TypeCheckContext,
+): Type {
+  ctx.symbolMap.set(expr.object, enumSym);
+  const enumType = enumSym.type;
+  if (enumType.kind !== "enum") return ERROR_TYPE; // layout poisoned — already reported
+  if (!enumType.members.has(expr.field)) {
+    ctx.bag.addError(
+      DiagCode.UnknownField,
+      expr.fieldSpan,
+      `Enum '${enumType.name}' has no member '${expr.field}'`,
+    );
+    return ERROR_TYPE;
+  }
+  return enumType;
+}
+
+/** Struct-field access on an already-typed object. */
+function typeStructFieldOn(
+  objType: Type,
+  expr: FieldAccessExprNode,
+  ctx: TypeCheckContext,
+): Type {
+  if (isError(objType)) return ERROR_TYPE; // cascade suppression
+  if (objType.kind !== "struct") {
+    ctx.bag.addError(
+      DiagCode.InvalidOperandType,
+      expr.span,
+      `Cannot access a member of type '${typeName(objType)}' — member access needs a struct`,
+    );
+    return ERROR_TYPE;
+  }
+  const field = objType.fields.get(expr.field);
+  if (field === undefined) {
+    ctx.bag.addError(
+      DiagCode.UnknownField,
+      expr.fieldSpan,
+      `Struct '${objType.name}' has no field '${expr.field}'`,
+    );
+    return ERROR_TYPE;
+  }
+  return field.type;
+}
+
+/** The 5b qualified `Module.member` value surface (heads that resolve to nothing local). */
+function typeQualifiedAccess(
+  expr: FieldAccessExprNode,
+  scope: Scope,
+  ctx: TypeCheckContext,
+): Type {
   const res = resolveQualified(expr, scope, ctx.moduleScopes, ctx.bag);
   if (res.status !== "resolved") {
-    // not-qualified → struct-field typing is a future surface (silent poison);
-    // poisoned → the diagnostic is already out.
+    // not-qualified → nothing local and no module: already impossible here
+    // (the caller checked the head); poisoned → the diagnostic is out.
     return ERROR_TYPE;
   }
 
   const sym = res.symbol;
   if (sym.kind === "variable" || sym.kind === "constant") {
+    ctx.symbolMap.set(expr, sym);
+    return sym.type;
+  }
+  if (sym.kind === "enum" || sym.kind === "struct") {
+    // A qualified TYPE reference (`Mod.Enum` / `Mod.Point`) — legal only as
+    // the head of member access or a literal; record it so the outer access
+    // can classify, and hand back the type itself.
     ctx.symbolMap.set(expr, sym);
     return sym.type;
   }
@@ -710,6 +887,204 @@ function typeFieldAccess(
       `are not supported yet; call it instead`,
   );
   return ERROR_TYPE;
+}
+
+/**
+ * Index-expression typing (`a[i]`): the object must be an array (anything
+ * else is E10080), the index an unsigned integer — a signed or boolean index
+ * is E10114, and a `word` index on a direct-tier (≤256-byte) array is E10117
+ * with the explicit byte-cast remedy. A constant index folds and is
+ * bounds-checked against the declared size (E10115). The result is the
+ * element type; the expression is a legal l-value.
+ */
+function typeIndexExpr(expr: IndexExprNode, scope: Scope, ctx: TypeCheckContext): Type {
+  const objType = typeOfExpr(expr.object, scope, ctx);
+  const indexType = typeOfExpr(expr.index, scope, ctx, primitive("byte"));
+
+  if (isError(objType)) return ERROR_TYPE; // cascade suppression
+  if (objType.kind !== "array") {
+    ctx.bag.addError(
+      DiagCode.InvalidOperandType,
+      expr.span,
+      `Cannot index a value of type '${typeName(objType)}' — indexing needs an array`,
+    );
+    return ERROR_TYPE;
+  }
+
+  if (!isError(indexType)) {
+    const indexIsWord = indexType.kind === "primitive" && indexType.name === "word";
+    const indexIsByte =
+      (indexType.kind === "primitive" && indexType.name === "byte") ||
+      indexType.kind === "enum"; // an enum index reads as its byte backing
+    if (indexIsWord) {
+      // Every array on the direct-addressing surface fits a byte index; a
+      // word index would silently drop its high byte.
+      ctx.bag.addError(
+        DiagCode.WordIndexOnSmallArray,
+        expr.index.span,
+        `A 'word' index cannot be used on a ${byteSize(objType)}-byte array — ` +
+          `a 'byte' index covers it; use an explicit '<byte>(…)' cast`,
+      );
+      return ERROR_TYPE;
+    }
+    if (!indexIsByte) {
+      ctx.bag.addError(
+        DiagCode.ArrayIndexTypeMismatch,
+        expr.index.span,
+        `Array index must be an unsigned integer — found '${typeName(indexType)}'`,
+      );
+      return ERROR_TYPE;
+    }
+  }
+
+  // Constant indexes fold and bounds-check at compile time.
+  const folded = ctx.engine?.evalExpr(expr.index, scope);
+  if (folded?.kind === "value" && typeof folded.value === "number") {
+    if (folded.value < 0 || folded.value >= objType.size) {
+      ctx.bag.addError(
+        DiagCode.StaticIndexOutOfBounds,
+        expr.index.span,
+        `Index ${folded.value} is out of bounds for an array of size ${objType.size}`,
+      );
+      return ERROR_TYPE;
+    }
+  }
+
+  return objType.element;
+}
+
+/**
+ * Struct-literal typing (`Point { x: 1, y: 2 }`): the type name must resolve
+ * to a struct (unknown → E10151; a non-struct → E10080); every field must be
+ * present (E10161), no extras (E10162), and the fields must appear in
+ * declaration order (E10097); each value types in its field's context and
+ * must be assignable to it. The result is the struct type.
+ */
+function typeStructLit(expr: StructLitExprNode, scope: Scope, ctx: TypeCheckContext): Type {
+  const resolved = resolveTypeNode(
+    { kind: "NamedType", name: expr.typeName, span: expr.typeNameSpan },
+    { moduleScope: moduleScopeOf(scope), moduleScopes: ctx.moduleScopes, bag: ctx.bag },
+  );
+  if (isError(resolved)) return ERROR_TYPE; // E10151/E10012 already out
+  if (resolved.kind !== "struct") {
+    ctx.bag.addError(
+      DiagCode.InvalidOperandType,
+      expr.typeNameSpan,
+      `'${expr.typeName}' is not a struct type — a struct literal needs one`,
+    );
+    return ERROR_TYPE;
+  }
+
+  const declaredOrder = [...resolved.fields.keys()];
+  const seen = new Set<string>();
+  for (const field of expr.fields) {
+    const layout = resolved.fields.get(field.name);
+    if (layout === undefined) {
+      ctx.bag.addError(
+        DiagCode.ExtraFieldInInit,
+        field.nameSpan,
+        `Struct '${resolved.name}' has no field '${field.name}'`,
+      );
+      typeOfExpr(field.value, scope, ctx);
+      continue;
+    }
+    seen.add(field.name);
+    const valueType = typeOfExpr(field.value, scope, ctx, layout.type);
+    checkConstRange(field.value, layout.type, ctx);
+    checkAssignable(valueType, layout.type, field.value.span, ctx);
+  }
+  for (const name of declaredOrder) {
+    if (!seen.has(name)) {
+      ctx.bag.addError(
+        DiagCode.MissingFieldInInit,
+        expr.span,
+        `Struct literal for '${resolved.name}' is missing field '${name}'`,
+      );
+    }
+  }
+  // Declaration order: the given fields (extras excluded) must be a
+  // subsequence of the declared order in the same relative positions.
+  const givenKnown = expr.fields.filter((f) => resolved.fields.has(f.name));
+  const expected = declaredOrder.filter((n) => seen.has(n));
+  const inOrder = givenKnown.every((f, i) => f.name === expected[i]);
+  if (!inOrder) {
+    ctx.bag.addError(
+      DiagCode.StructInitFieldOrder,
+      expr.span,
+      `Struct literal fields must be in declaration order — expected ` +
+        `'${expected.join(", ")}', found '${givenKnown.map((f) => f.name).join(", ")}'`,
+    );
+  }
+  return resolved;
+}
+
+/**
+ * Array-literal typing: array literals are CONTEXTUAL — the expected type
+ * comes from the annotation/field/assignment target; a literal with no
+ * expected array type is E10080. Elements (and the fill value) type in the
+ * element's context and must be assignable to it; more elements than the
+ * declared size is the assignment mismatch; a fill on an unsized `[]`
+ * annotation is E10126 (nothing determines how many slots it covers).
+ * Under-coverage is the declaration's business (a warning for `let`, a hard
+ * error for `const`). The result is the expected array type — sized by the
+ * element count when the annotation was unsized.
+ */
+function typeArrayLit(
+  expr: ArrayLitExprNode,
+  scope: Scope,
+  ctx: TypeCheckContext,
+  contextType?: Type,
+): Type {
+  if (contextType === undefined || contextType.kind !== "array") {
+    for (const element of expr.elements) typeOfExpr(element, scope, ctx);
+    if (expr.fill !== null) typeOfExpr(expr.fill, scope, ctx);
+    if (contextType !== undefined && isError(contextType)) return ERROR_TYPE;
+    ctx.bag.addError(
+      DiagCode.InvalidOperandType,
+      expr.span,
+      "An array literal needs an array-typed context (a declaration or assignment target)",
+    );
+    return ERROR_TYPE;
+  }
+
+  const element = contextType.element;
+  for (const item of expr.elements) {
+    const itemType = typeOfExpr(item, scope, ctx, element);
+    checkConstRange(item, element, ctx);
+    checkAssignable(itemType, element, item.span, ctx);
+  }
+  if (expr.fill !== null) {
+    if (contextType.size === 0) {
+      // An unsized annotation cannot say how many slots the fill covers.
+      ctx.bag.addError(
+        DiagCode.FillRequiresExplicitSize,
+        expr.fill.span,
+        "A '; fill' value needs an explicit declared array size",
+      );
+    } else {
+      const fillType = typeOfExpr(expr.fill, scope, ctx, element);
+      checkConstRange(expr.fill, element, ctx);
+      checkAssignable(fillType, element, expr.fill.span, ctx);
+    }
+  }
+  if (contextType.size > 0 && expr.elements.length > contextType.size) {
+    ctx.bag.addError(
+      DiagCode.TypeMismatchAssignment,
+      expr.span,
+      `Array literal has ${expr.elements.length} elements but the declared size is ` +
+        `${contextType.size}`,
+    );
+    return ERROR_TYPE;
+  }
+  // Size inference for an unsized annotation: the element count.
+  if (contextType.size === 0 && expr.elements.length > 0) {
+    return { kind: "array", element, size: expr.elements.length };
+  }
+  if (contextType.size === 0) {
+    ctx.bag.addError(DiagCode.ArraySizeZero, expr.span, "Array size must be at least 1");
+    return ERROR_TYPE;
+  }
+  return contextType;
 }
 
 /** A resolved callee: its symbol plus the name/span used in diagnostics. */

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 00:01
-> **Progress**: 25/64 tasks (39%) — Phases 1-3 ✅ COMPLETE (full verify green)
+> **Last Updated**: 2026-07-12 00:35
+> **Progress**: 37/64 tasks (58%) — Phases 1-4 ✅ COMPLETE (full verify green)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -138,24 +138,24 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 
 ### Step 4.1: Specification tests (RED)
 **Reference**: 03-04 · AR-4/9/11/12/13/14/17/22/24
-- [ ] 4.1.1 Write spec tests from ST-27..ST-48 (incl. ST-44a statement-head literal E10157 + ST-44b string-initialiser rejection) — `packages/frontend/src/semantics/aggregate-typing.spec.test.ts`
-- [ ] 4.1.2 Red-phase run
+- [x] 4.1.1 Write spec tests from ST-27..ST-48 (incl. ST-44a statement-head literal E10157 + ST-44b string-initialiser rejection) — `packages/frontend/src/semantics/aggregate-typing.spec.test.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.1.2 Red-phase run ✅ (completed: 2026-07-12 00:35)
 
 ### Step 4.2: Implementation
 **Reference**: 03-04 §Implementation Details
 
-- [ ] 4.2.1 Assignability/comparison/cast policy for aggregates in ONE place: array E10119/E10121, struct copy/E10152/E10080, enum EN-8/9 + cast arms (AR-12), E10155 named-type casts — `packages/core/src/semantics/type-utils.ts`, `type-check/expression-typing.ts`
-- [ ] 4.2.2 `typeIndexExpr`: E10080/E10114/E10117/E10115 ladder + element result + l-value — `expression-typing.ts`
-- [ ] 4.2.3 Head-resolution ladder extension (value → enum type → module) + struct-field arm (E10160) + `Mod.Enum.Member`/`Mod.arr` chains — `type-check/name-resolution.ts`, `expression-typing.ts`
-- [ ] 4.2.4 `typeStructLit` (E10161/E10162/E10097/E10152) + `typeArrayLit` (contextual, count rules, E10126, size inference) + statement-position aggregate-literal rejection E10157 and string-initialiser loud Slice-8 rejection (AR-26/PF-007) — `expression-typing.ts`, `statement-typing.ts`
-- [ ] 4.2.5 `typeAssign` aggregate-target arms + const propagation — `expression-typing.ts`
-- [ ] 4.2.6 Function boundary: aggregate returns E10093/E10120; aggregate params loud 7a rejection (belt) — `function-collection.ts`, `type-check/statement-typing.ts`
-- [ ] 4.2.7 Switch-on-enum: discriminant + member case values + E10077 emission + NO exhaustiveness; W10140/W10141 at declaration typing — `statement-typing.ts`
-- [ ] 4.2.8 Green-phase run
+- [x] 4.2.1 Assignability/comparison/cast policy for aggregates in ONE place: array E10119/E10121, struct copy/E10152/E10080, enum EN-8/9 + cast arms (AR-12), E10155 named-type casts — `packages/core/src/semantics/type-utils.ts`, `type-check/expression-typing.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.2.2 `typeIndexExpr`: E10080/E10114/E10117/E10115 ladder + element result + l-value — `expression-typing.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.2.3 Head-resolution ladder extension (value → enum type → module) + struct-field arm (E10160) + `Mod.Enum.Member`/`Mod.arr` chains — `type-check/name-resolution.ts`, `expression-typing.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.2.4 `typeStructLit` (E10161/E10162/E10097/E10152) + `typeArrayLit` (contextual, count rules, E10126, size inference) + statement-position aggregate-literal rejection E10157 and string-initialiser loud Slice-8 rejection (AR-26/PF-007) — `expression-typing.ts`, `statement-typing.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.2.5 `typeAssign` aggregate-target arms + const propagation — `expression-typing.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.2.6 Function boundary: aggregate returns E10093/E10120; aggregate params loud 7a rejection (belt) — `function-collection.ts`, `type-check/statement-typing.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.2.7 Switch-on-enum: discriminant + member case values + E10077 emission + NO exhaustiveness; W10140/W10141 at declaration typing — `statement-typing.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.2.8 Green-phase run ✅ (completed: 2026-07-12 00:35)
 
 ### Step 4.3: Implementation tests & hardening
-- [ ] 4.3.1 Impl tests: chain torture (`a[i].f[j].g`), poison propagation, typeMap completeness over aggregate nodes — `aggregate-typing.impl.test.ts`
-- [ ] 4.3.2 Adversarial sweep: deep nesting / huge sizes / cyclic+malformed combos → clean diagnostics, never a crash (RD-18 security row)
+- [x] 4.3.1 Impl tests: chain torture (`a[i].f[j].g`), poison propagation, typeMap completeness over aggregate nodes — `aggregate-typing.impl.test.ts` ✅ (completed: 2026-07-12 00:35)
+- [x] 4.3.2 Adversarial sweep: deep nesting / huge sizes / cyclic+malformed combos → clean diagnostics, never a crash (RD-18 security row) ✅ (completed: 2026-07-12 00:35)
 
 **Deliverables**: every aggregate expression types or rejects loudly; silent poison gone.
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`

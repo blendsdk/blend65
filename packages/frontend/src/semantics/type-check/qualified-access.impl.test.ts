@@ -96,12 +96,12 @@ describe("qualified-access edges", () => {
     expect(slots[0].moduleName).toBe("Math");
   });
 
-  it("keeps an a.b.c chain on the silent field-access path", () => {
+  it("rejects an a.b.c chain over a non-struct head loudly (member access on byte)", () => {
     const { diags } = analyzeMulti([
       "module Main;\n" +
         "function main(): void { let a: byte = 1; let x: byte = a.b.c; }\n",
     ]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toContain(DiagCode.InvalidOperandType);
   });
 
   it("rejects assigning to a qualified function member loudly", () => {

@@ -163,6 +163,33 @@ export function typeName(t: Type): string {
  */
 export function isAssignableTo(source: Type, target: Type): boolean {
   if (isError(source) || isError(target)) return true; // poison suppression
+
+  // Aggregates are NOMINAL: identity is the resolved type object itself (one
+  // instance per declaration), never a name match — two modules may each
+  // declare a `Point`, and those are distinct types.
+  if (source.kind === "struct" || target.kind === "struct") {
+    return source === target; // whole-struct assignment is a byte copy
+  }
+  if (source.kind === "array" || target.kind === "array") {
+    // Whole-array runtime assignment never works (the caller owns that
+    // rejection BEFORE consulting this predicate) — but an array LITERAL's
+    // type must satisfy its declaration, so structurally identical array
+    // types (same size, same element type — mutual assignability means
+    // identity) are compatible.
+    if (source.kind !== "array" || target.kind !== "array") return false;
+    if (source.size !== target.size) return false;
+    return (
+      isAssignableTo(source.element, target.element) &&
+      isAssignableTo(target.element, source.element)
+    );
+  }
+  if (source.kind === "enum" || target.kind === "enum") {
+    if (source === target) return true; // same enum
+    // The ONLY implicit enum conversion: enum → byte (an enum value IS its
+    // byte backing). byte → enum, enum → word, and cross-enum all need casts.
+    return source.kind === "enum" && target.kind === "primitive" && target.name === "byte";
+  }
+
   if (typeName(source) === typeName(target)) return true; // same type
   if (source.kind === "primitive" && target.kind === "primitive") {
     // Same-sign widening is implicit; everything else needs an explicit cast.
@@ -196,6 +223,17 @@ export function isAssignableTo(source: Type, target: Type): boolean {
  */
 export function commonType(a: Type, b: Type): Type | null {
   if (isError(a) || isError(b)) return ERROR_TYPE; // poison
+
+  // Enums combine with themselves (comparisons) and with `byte` (an enum
+  // value widens to its byte backing); everything else — cross-enum,
+  // enum/word, structs, arrays — is not combinable.
+  if (a.kind === "enum" || b.kind === "enum") {
+    if (a === b) return a; // same enum (nominal identity is the object)
+    const other = a.kind === "enum" ? b : a;
+    if (other.kind === "primitive" && other.name === "byte") return other;
+    return null;
+  }
+
   if (a.kind === "primitive" && b.kind === "primitive") {
     if (typeName(a) === typeName(b)) {
       return a; // T OP T → T (same-type)

@@ -18,15 +18,17 @@
  * never `@blend65/codegen`.
  */
 
-import { DiagCode } from "@blend65/core";
+import { DiagCode, IceCode } from "@blend65/core";
 import type {
   AstNode,
   ConstDeclNode,
   DiagnosticBag,
   ExprNode,
+  FunctionDeclNode,
   LetDeclNode,
   Scope,
   Symbol,
+  TypeNode,
 } from "@blend65/core";
 import { resolveTypeNode } from "./type-check/type-resolution.js";
 import type { TypeResolverContext } from "./type-check/type-resolution.js";
@@ -79,14 +81,68 @@ export function resolveDeclaredTypes(
     }
   }
 
-  for (const bodyScope of scopeByNode.values()) {
+  for (const [declNode, bodyScope] of scopeByNode) {
     const moduleScope = bodyScope.parent;
     if (moduleScope === null || moduleScope.kind !== "module") continue;
     const ctx = makeCtx(moduleScope, bodyScope);
+    checkFunctionBoundary(declNode, ctx);
     for (const sym of bodyScope.symbols.values()) {
       finalizeSymbol(sym, ctx);
     }
   }
+}
+
+/**
+ * The aggregate function boundary: array and struct RETURN types are
+ * permanently illegal (E10120/E10093 — the calling convention has no
+ * aggregate return channel; return through a module variable instead), and
+ * aggregate PARAMETERS are loudly rejected until the by-reference parameter
+ * surface lands. Enum returns/params are byte-sized and legal.
+ */
+function checkFunctionBoundary(declNode: AstNode, ctx: TypeResolverContext): void {
+  if (declNode.kind !== "FunctionDecl") return;
+  const decl = declNode as FunctionDeclNode;
+
+  const returnKind = annotationKind(decl.returnType, ctx);
+  if (returnKind === "array") {
+    ctx.bag.addError(
+      DiagCode.ArrayReturnNotAllowed,
+      decl.returnType.span,
+      `Function '${decl.name}' cannot return an array — write into a module variable instead`,
+    );
+  } else if (returnKind === "struct") {
+    ctx.bag.addError(
+      DiagCode.StructReturnNotAllowed,
+      decl.returnType.span,
+      `Function '${decl.name}' cannot return a struct — write into a module variable instead`,
+    );
+  }
+
+  for (const param of decl.params) {
+    const kind = annotationKind(param.paramType, ctx);
+    if (kind === "array" || kind === "struct") {
+      ctx.bag.addError(
+        IceCode.Unexpected,
+        param.nameSpan,
+        `parameter '${param.name}' has an aggregate type — struct/array parameters ` +
+          "are not supported yet (they need by-reference passing)",
+      );
+    }
+  }
+}
+
+/**
+ * Classifies an annotation as array/struct/other WITHOUT emitting: arrays
+ * are syntactic; named types resolve through the scope silently (a broken
+ * name is someone else's diagnostic).
+ */
+function annotationKind(node: TypeNode, ctx: TypeResolverContext): "array" | "struct" | "other" {
+  if (node.kind === "ArrayType") return "array";
+  if (node.kind !== "NamedType") return "other";
+  const dot = node.name.lastIndexOf(".");
+  const scope = dot >= 0 ? ctx.moduleScopes.get(node.name.slice(0, dot)) : ctx.moduleScope;
+  const sym = scope?.symbols.get(dot >= 0 ? node.name.slice(dot + 1) : node.name);
+  return sym?.kind === "struct" ? "struct" : "other";
 }
 
 /** Re-resolves one symbol's declared annotation and patches its type. */

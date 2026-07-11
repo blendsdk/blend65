@@ -36,6 +36,11 @@ function moduleSymbol(model: SemanticModel, name: string): Symbol | undefined {
   return undefined;
 }
 
+/** The codes of all error-severity diagnostics. */
+function errorCodes(diags: readonly Diagnostic[]): string[] {
+  return diags.filter((d) => d.severity === "error").map((d) => d.code);
+}
+
 const MAIN_FN = "function main(): void { }\n";
 
 describe("const/type engine — internals", () => {
@@ -71,7 +76,7 @@ describe("const/type engine — internals", () => {
       "const T: P[2] = [P { x: 1, y: $0203 }, P { x: 4, y: 5 }];\n" +
       MAIN_FN;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     const t = moduleSymbol(model, "T");
     const image = model.constValues.get(t!);
     expect([...(image?.bytes ?? [])]).toEqual([1, 0x03, 0x02, 4, 5, 0]);
@@ -84,7 +89,7 @@ describe("const/type engine — internals", () => {
       "enum E { A = BASE, B }\n" +
       MAIN_FN;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     const e = model.enumTypes.get("Main.E")!;
     expect(e.members.get("A")).toBe(10);
     expect(e.members.get("B")).toBe(11);
@@ -99,7 +104,7 @@ describe("const/type engine — internals", () => {
       "const DIM: byte = 4;\n" +
       MAIN_FN;
     const { diags, model } = analyzeMulti([shuffled]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     expect(model.constValues.get(moduleSymbol(model, "L")!)?.value).toBe(6);
     const buf = moduleSymbol(model, "buf");
     if (buf?.type.kind === "array") expect(buf.type.size).toBe(6);
@@ -109,7 +114,7 @@ describe("const/type engine — internals", () => {
   it("fill values participate in images (sbyte encoding, two's complement)", () => {
     const src = "module Main;\nconst S: sbyte[3] = [-1; -2];\n" + MAIN_FN;
     const { diags, model } = analyzeMulti([src]);
-    expect(diags).toEqual([]);
+    expect(errorCodes(diags)).toEqual([]);
     const s = moduleSymbol(model, "S");
     expect([...(model.constValues.get(s!)?.bytes ?? [])]).toEqual([0xff, 0xfe, 0xfe]);
   });
