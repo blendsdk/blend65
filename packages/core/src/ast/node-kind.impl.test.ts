@@ -1,9 +1,9 @@
 /**
  * Unit tests for the {@link NodeKind} AST vocabulary.
  *
- * Verifies the enumerated node-kind set is pinned at exactly 50 kinds, every
+ * Verifies the enumerated node-kind set is pinned at exactly 51 kinds, every
  * value equals its key (the string-valued convention mirroring `TokenKind`),
- * no duplicates, and the per-group counts (3 + 11 + 13 + 17 + 3 + 3) are guarded so
+ * no duplicates, and the per-group counts (3 + 11 + 13 + 18 + 3 + 3) are guarded so
  * a category can never silently drift.
  */
 
@@ -11,10 +11,10 @@ import { describe, expect, it } from "vitest";
 import { NODE_KINDS } from "./node-kind.js";
 
 describe("NodeKind vocabulary (ST-P1)", () => {
-  it("enumerates exactly 50 kinds (AR-1 removed AsmBlock: 51 -> 50)", () => {
-    // 3 source + 11 declaration + 13 statement + 17 expression + 3 type +
-    // 3 error sentinel = 50.
-    expect(NODE_KINDS.length).toBe(50);
+  it("enumerates exactly 51 kinds (ArrayLitExpr joined the expression group)", () => {
+    // 3 source + 11 declaration + 13 statement + 18 expression + 3 type +
+    // 3 error sentinel = 51.
+    expect(NODE_KINDS.length).toBe(51);
   });
 
   it("assigns no duplicate kinds", () => {
@@ -35,7 +35,7 @@ describe("NodeKind vocabulary (ST-P1)", () => {
     expect(set.has("ErrorType")).toBe(true); // error sentinel
   });
 
-  it("guards per-group membership counts (3/11/13/17/3/3)", () => {
+  it("guards per-group membership counts (3/11/13/18/3/3)", () => {
     const set = new Set<string>(NODE_KINDS);
     const source = ["Program", "ModuleDecl", "ImportStmt"];
     const decls = [
@@ -83,6 +83,7 @@ describe("NodeKind vocabulary (ST-P1)", () => {
       "CharLitExpr",
       "StructLitExpr",
       "StructLitField",
+      "ArrayLitExpr",
       "EmbedExpr",
     ];
     const types = ["PrimitiveType", "NamedType", "ArrayType"];
@@ -91,7 +92,7 @@ describe("NodeKind vocabulary (ST-P1)", () => {
     expect(source.length).toBe(3);
     expect(decls.length).toBe(11);
     expect(stmts.length).toBe(13);
-    expect(exprs.length).toBe(17);
+    expect(exprs.length).toBe(18);
     expect(types.length).toBe(3);
     expect(errors.length).toBe(3);
 

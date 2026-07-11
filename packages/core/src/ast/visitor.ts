@@ -22,6 +22,7 @@ import type {
   CallExprNode,
   CaseClauseNode,
   CastExprNode,
+  ArrayLitExprNode,
   CharLitExprNode,
   ConditionalExprNode,
   ConstDeclNode,
@@ -121,6 +122,7 @@ export interface AstVisitor<R = void> {
   visitCharLitExpr(node: CharLitExprNode): R;
   visitStructLitExpr(node: StructLitExprNode): R;
   visitStructLitField(node: StructLitFieldNode): R;
+  visitArrayLitExpr(node: ArrayLitExprNode): R;
   visitEmbedExpr(node: EmbedExprNode): R;
 
   // Types (3)

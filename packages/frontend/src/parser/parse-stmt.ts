@@ -41,7 +41,7 @@ import type {
 } from "@blend65/core";
 import type { ParserState } from "./state.js";
 import { parseType } from "./parse-type.js";
-import { parsePrimaryExpr } from "./parse-expr.js";
+import { parseExpression, parsePrimaryExpr } from "./parse-expr.js";
 import { parseConstDecl, parseLetDecl } from "./parse-decl.js";
 
 /** Statement-list tokens that end a block / clause body. */
@@ -370,11 +370,16 @@ function parseFallthrough(state: ParserState): FallthroughStmtNode {
   return { kind: "FallthroughStmt", span: makeSpan(sourceId, tok.span.start, end) };
 }
 
-/** Parses `expr;` (FR-35). Lvalue/call restriction is enforced later, during semantic analysis. */
+/**
+ * Parses `expr;` (FR-35). Aggregate literals are allowed so assignment
+ * right-hand sides like `a = [1, 2];` and `p = Point { x: 1 };` parse; the
+ * lvalue/call restriction on the statement head is enforced later, during
+ * semantic analysis.
+ */
 function parseExpressionStmt(state: ParserState): ExpressionStmtNode {
   const { cursor, sourceId } = state;
   const start = cursor.peek().span.start;
-  const expression = parsePrimaryExpr(state);
+  const expression = parseExpression(state, 0, true);
   let end = expression.span.end;
   const semi = cursor.expect(
     TokenKind.Semicolon,

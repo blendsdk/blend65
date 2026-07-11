@@ -628,12 +628,12 @@ describe("contextual keywords as identifiers (AC-09, FR-29)", () => {
 });
 
 // ───────────────────────────────────────────────────────────────────────────
-// Every one of the 50 NodeKinds is produced by ≥1 parse
+// Every one of the 51 NodeKinds is produced by ≥1 parse
 // ───────────────────────────────────────────────────────────────────────────
 
 describe("node-kind exhaustiveness (AC-13, FR-10)", () => {
   it("AC-13: every NodeKind value is produced by at least one parse", () => {
-    // A battery of small programs that, together, exercise all 50 kinds. Each is
+    // A battery of small programs that, together, exercise all 51 kinds. Each is
     // independently parsed and every reachable node kind is collected. The three
     // error sentinels are produced by deliberately malformed snippets.
     const programs = [
@@ -645,6 +645,7 @@ describe("node-kind exhaustiveness (AC-13, FR-10)", () => {
        const K: byte = 1 + 2 * 3 - 4 / 5 % 6;
        zeropage { zp: word; zq: byte = 0; }
        let g: P = P { x: 1 };
+       let tbl: byte[4] = [1, 2; 0];
        interrupt function isr() { g.x = 1; }
        export function f(p: byte, q: word): byte {
          let v: byte = (p & q) | (p ^ q);

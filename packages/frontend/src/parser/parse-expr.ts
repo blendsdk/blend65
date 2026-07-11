@@ -10,7 +10,7 @@
  *   (`Ident { … }` is treated as a bare identifier, leaving `{` to the statement
  *   layer). The default used by conditions, loop bounds, and array sizes.
  * - {@link parseExpression} — the binding-power parser, with an explicit
- *   `allowStructLiteral` flag for initialiser contexts (FR-45).
+ *   `allowAggregateLit` flag for initialiser contexts (FR-45).
  */
 
 export { parseExpression, parsePrimaryExpr } from "./pratt.js";

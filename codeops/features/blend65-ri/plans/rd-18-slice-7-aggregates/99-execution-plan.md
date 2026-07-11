@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 19:48
-> **Progress**: 0/64 tasks (0%)
+> **Last Updated**: 2026-07-11 23:16
+> **Progress**: 7/64 tasks (11%) — Phase 1 ✅ COMPLETE (full verify green)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -63,19 +63,19 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 **Reference**: 03-01 · AR-2/3/18/21
 **Objective**: pin the array-literal parse surface before touching the parser.
 
-- [ ] 1.1.1 Write parser spec tests from ST-1..ST-6b (const-initialiser forms included) — `packages/frontend/src/parser/array-literals.spec.test.ts`
-- [ ] 1.1.2 Run them — verify all FAIL (red); document any pre-passing with justification
+- [x] 1.1.1 Write parser spec tests from ST-1..ST-6b (const-initialiser forms included) — `packages/frontend/src/parser/array-literals.spec.test.ts` ✅ (completed: 2026-07-11 23:00)
+- [x] 1.1.2 Run them — verify all FAIL (red); document any pre-passing with justification ✅ (completed: 2026-07-11 23:05 — 7/8 red; ST-6 pre-passes: the shipped recovery already emits E10308 + continues on this input (probe: E10301/E10305/E10308/E10310, trailing decl recovered); the test pins that observable contract, which must survive the new `[` arm)
 
 ### Step 1.2: Implementation
 **Reference**: 03-01 §Proposed changes · AR-13/21 (codes)
 
-- [ ] 1.2.1 Register the slice's new/wired codes additively (E10093, E10097, E10117, E10118, E10119, E10120, E10121, E10126, E10156, E10157, E10165, E10230, W10140, W10141) with band comments per the register (E10164→E10097 per PF-008; E10157 per AR-26) — `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 1.2.2 Add `ArrayLitExpr` node kind + node shape + visitor + `walkChildren` (50→51 kinds) — `packages/core/src/ast/node-kind.ts`, `nodes.ts`, visitor/walk modules
-- [ ] 1.2.3 `parseArrayLiteral` (list + Ch-08 fill + trailing comma) behind the renamed `allowAggregateLit` flag; assignment-RHS contexts enabled AND `parseConstDecl` switched to flag-true full-expression parsing (the PF-001 const-initialiser gap, `parse-decl.ts:355`) — `packages/frontend/src/parser/pratt.ts`, `parse-stmt.ts`, `parse-decl.ts`
-- [ ] 1.2.4 Run spec tests — verify ST-1..ST-6b PASS (green)
+- [x] 1.2.1 Register the slice's new/wired codes additively (E10093, E10097, E10117, E10118, E10119, E10120, E10121, E10126, E10156, E10157, E10165, E10230, W10140, W10141) with band comments per the register (E10164→E10097 per PF-008; E10157 per AR-26) — `packages/core/src/diagnostics/diagnostic-codes.ts` ✅ (completed: 2026-07-11 23:05 — registry invariants 26/26 green)
+- [x] 1.2.2 Add `ArrayLitExpr` node kind + node shape + visitor + `walkChildren` (50→51 kinds) — `packages/core/src/ast/node-kind.ts`, `nodes.ts`, visitor/walk modules ✅ (completed: 2026-07-11 23:08 — core AST tests 12/12; all AstVisitor consumers are Proxy catch-alls, no manual implementors)
+- [x] 1.2.3 `parseArrayLiteral` (list + Ch-08 fill + trailing comma) behind the renamed `allowAggregateLit` flag; assignment-RHS contexts enabled AND `parseConstDecl` switched to flag-true full-expression parsing (the PF-001 const-initialiser gap, `parse-decl.ts:355`) — `packages/frontend/src/parser/pratt.ts`, `parse-stmt.ts`, `parse-decl.ts` ✅ (completed: 2026-07-11 23:15)
+- [x] 1.2.4 Run spec tests — verify ST-1..ST-6b PASS (green) ✅ (completed: 2026-07-11 23:15 — 8/8 green; full frontend suite 665 passed, no regressions)
 
 ### Step 1.3: Implementation tests & hardening
-- [ ] 1.3.1 Parser impl tests: malformed-literal recovery, nested literals, AST golden snapshots — `packages/frontend/src/parser/array-literals.impl.test.ts` (+ snapshot updates)
+- [x] 1.3.1 Parser impl tests: malformed-literal recovery, nested literals, AST golden snapshots — `packages/frontend/src/parser/array-literals.impl.test.ts` (+ snapshot updates) ✅ (completed: 2026-07-11 23:16 — 10/10; node-kind exhaustiveness corpus extended with an array-literal sample; FULL WORKSPACE VERIFY GREEN)
 
 **Deliverables**: array literals parse everywhere aggregate literals are legal; codes registered.
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`

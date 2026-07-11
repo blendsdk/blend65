@@ -16,8 +16,10 @@
  * {@link IntrinsicCallExprNode} when its name is in `RESERVED_BUILTINS`,
  * the data-inclusion {@link EmbedExprNode} for `embed(...)`, otherwise a
  * {@link CallExprNode}. A `{` after an identifier is a {@link StructLitExprNode}
- * only in initialiser context (`allowStructLiteral`, FR-45) — everywhere else `{`
- * starts a block owned by the statement layer.
+ * and a bare `[` opens an {@link ArrayLitExprNode} only in aggregate-literal
+ * context (`allowAggregateLit` — initialiser and assignment-RHS positions,
+ * FR-45) — everywhere else `{` starts a block owned by the statement layer and
+ * `[` only appears as the postfix index operator.
  *
  * Like every parser in this module it never throws (FR-4): unexpected tokens
  * yield {@link ErrorExprNode} sentinels and diagnostics, leaving the tree
@@ -26,6 +28,7 @@
 
 import { DiagCode, RESERVED_BUILTINS, TokenKind, makeSpan } from "@blend65/core";
 import type {
+  ArrayLitExprNode,
   AssignExprNode,
   AssignOp,
   BinaryExprNode,
@@ -122,16 +125,17 @@ const UNARY_OPS: ReadonlyMap<string, UnaryOp> = new Map([
 
 /**
  * Parses an expression whose operators bind tighter than `minBP`. Call with
- * `minBP = 0` for a full expression. `allowStructLiteral` permits `Ident { … }`
- * struct literals (FR-45) — true only in initialiser context (after `=`).
+ * `minBP = 0` for a full expression. `allowAggregateLit` permits the aggregate
+ * literals — `Ident { … }` struct literals (FR-45) and `[ … ]` array literals —
+ * true in initialiser and assignment-RHS contexts.
  */
 export function parseExpression(
   state: ParserState,
   minBP: number,
-  allowStructLiteral: boolean,
+  allowAggregateLit: boolean,
 ): ExprNode {
   const { cursor, sourceId } = state;
-  let lhs = parsePrefix(state, allowStructLiteral);
+  let lhs = parsePrefix(state, allowAggregateLit);
 
   for (;;) {
     const k = cursor.peekKind();
@@ -149,7 +153,7 @@ export function parseExpression(
     const assignOp = ASSIGN_OPS.get(k);
     if (assignOp !== undefined && ASSIGN_LBP > minBP) {
       cursor.advance();
-      const value = parseExpression(state, ASSIGN_RBP, allowStructLiteral);
+      const value = parseExpression(state, ASSIGN_RBP, allowAggregateLit);
       const node: AssignExprNode = {
         kind: "AssignExpr",
         op: assignOp,
@@ -164,9 +168,9 @@ export function parseExpression(
     // Conditional `? :` (right-associative).
     if (k === TokenKind.Question && TERNARY_LBP > minBP) {
       cursor.advance();
-      const whenTrue = parseExpression(state, 0, allowStructLiteral);
+      const whenTrue = parseExpression(state, 0, allowAggregateLit);
       cursor.expect(TokenKind.Colon, DiagCode.ExpectedColon, "':' in conditional expression");
-      const whenFalse = parseExpression(state, TERNARY_RBP, allowStructLiteral);
+      const whenFalse = parseExpression(state, TERNARY_RBP, allowAggregateLit);
       const node: ConditionalExprNode = {
         kind: "ConditionalExpr",
         condition: lhs,
@@ -182,7 +186,7 @@ export function parseExpression(
     const bin = BINARY_OPS.get(k);
     if (bin !== undefined && bin.lbp > minBP) {
       cursor.advance();
-      const right = parseExpression(state, bin.rbp, allowStructLiteral);
+      const right = parseExpression(state, bin.rbp, allowAggregateLit);
       const node: BinaryExprNode = {
         kind: "BinaryExpr",
         op: bin.op,
@@ -202,9 +206,10 @@ export function parseExpression(
 
 /**
  * Parses a single primary expression (Phase 3 compatibility shim): an
- * expression with struct literals disabled. Retained so the declaration / type /
- * statement layers that imported `parsePrimaryExpr` keep their call sites while
- * transparently gaining the full operator parser (FR-11 additive evolution).
+ * expression with aggregate literals disabled. Retained so the declaration /
+ * type / statement layers that imported `parsePrimaryExpr` keep their call
+ * sites while transparently gaining the full operator parser (FR-11 additive
+ * evolution).
  */
 export function parsePrimaryExpr(state: ParserState): ExprNode {
   return parseExpression(state, 0, false);
@@ -215,7 +220,7 @@ export function parsePrimaryExpr(state: ParserState): ExprNode {
 // ───────────────────────────────────────────────────────────────────────────
 
 /** Parses a prefix expression: unary operator, cast, or a primary. */
-function parsePrefix(state: ParserState, allowStructLiteral: boolean): ExprNode {
+function parsePrefix(state: ParserState, allowAggregateLit: boolean): ExprNode {
   const { cursor, sourceId } = state;
   const tok = cursor.peek();
 
@@ -223,7 +228,7 @@ function parsePrefix(state: ParserState, allowStructLiteral: boolean): ExprNode 
   const unaryOp = UNARY_OPS.get(tok.kind);
   if (unaryOp !== undefined) {
     cursor.advance();
-    const operand = parseExpression(state, PREFIX_RBP, allowStructLiteral);
+    const operand = parseExpression(state, PREFIX_RBP, allowAggregateLit);
     const node: UnaryExprNode = {
       kind: "UnaryExpr",
       op: unaryOp,
@@ -238,7 +243,7 @@ function parsePrefix(state: ParserState, allowStructLiteral: boolean): ExprNode 
     cursor.advance(); // '<'
     const targetType = parseType(state);
     cursor.expect(TokenKind.Greater, DiagCode.UnexpectedToken, "'>' to close cast type");
-    const operand = parseExpression(state, PREFIX_RBP, allowStructLiteral);
+    const operand = parseExpression(state, PREFIX_RBP, allowAggregateLit);
     const node: CastExprNode = {
       kind: "CastExpr",
       targetType,
@@ -248,13 +253,21 @@ function parsePrefix(state: ParserState, allowStructLiteral: boolean): ExprNode 
     return node;
   }
 
-  return parsePrimary(state, allowStructLiteral);
+  return parsePrimary(state, allowAggregateLit);
 }
 
 /** Parses a primary expression (literal, identifier-form, or `( expr )`). */
-function parsePrimary(state: ParserState, allowStructLiteral: boolean): ExprNode {
+function parsePrimary(state: ParserState, allowAggregateLit: boolean): ExprNode {
   const { cursor, sourceId } = state;
   const tok = cursor.peek();
+
+  // A bare `[` opens an array literal only in aggregate-literal context. An
+  // un-gated `[` falls through to the default "expected expression" arm — the
+  // postfix index form `a[i]` never reaches here (the postfix loop consumes
+  // its `[` after a primary already parsed).
+  if (tok.kind === TokenKind.LBracket && allowAggregateLit) {
+    return parseArrayLiteral(state);
+  }
 
   switch (tok.kind) {
     case TokenKind.Number: {
@@ -300,7 +313,7 @@ function parsePrimary(state: ParserState, allowStructLiteral: boolean): ExprNode
       return { ...inner, span: makeSpan(sourceId, tok.span.start, end) };
     }
     case TokenKind.Identifier:
-      return parseIdentifierForm(state, allowStructLiteral);
+      return parseIdentifierForm(state, allowAggregateLit);
     default: {
       state.emit(DiagCode.ExpectedExpression, tok.span, "Expected expression");
       const node: ErrorExprNode = {
@@ -317,7 +330,7 @@ function parsePrimary(state: ParserState, allowStructLiteral: boolean): ExprNode
  * call (name ∈ `RESERVED_BUILTINS`), a struct literal (initialiser context), or
  * a plain identifier reference (postfix calls/indexing handled by the loop).
  */
-function parseIdentifierForm(state: ParserState, allowStructLiteral: boolean): ExprNode {
+function parseIdentifierForm(state: ParserState, allowAggregateLit: boolean): ExprNode {
   const { cursor } = state;
   const nameTok = cursor.advance();
 
@@ -332,7 +345,7 @@ function parseIdentifierForm(state: ParserState, allowStructLiteral: boolean): E
     }
   }
 
-  if (allowStructLiteral && cursor.check(TokenKind.LBrace)) {
+  if (allowAggregateLit && cursor.check(TokenKind.LBrace)) {
     return parseStructLiteral(state, name, nameTok);
   }
 
@@ -481,6 +494,67 @@ function parseStructLiteral(
     typeNameSpan: nameTok.span,
     fields,
     span: makeSpan(sourceId, nameTok.span.start, end),
+  };
+}
+
+/**
+ * Parses an array literal `[e1, e2, …]` / `[e1, …; fill]` (spec Ch 08
+ * §4.1/§4.2). The optional `; fill` value covers every declared slot the
+ * element list leaves empty; a trailing comma after the last element is legal
+ * (grammar §6.7). Empty `[]` and pure-fill `[; f]` forms parse — element
+ * count vs declared size is a semantic question, not a syntactic one.
+ */
+function parseArrayLiteral(state: ParserState): ArrayLitExprNode {
+  const { cursor, sourceId } = state;
+  const open = cursor.advance(); // '['
+
+  const elements: ExprNode[] = [];
+  let fill: ExprNode | null = null;
+
+  // Elements until `]`, the `; fill` separator, or EOF. A comma may separate
+  // elements or trail the last one — the loop re-checks the closers first.
+  while (
+    !cursor.atEnd() &&
+    !cursor.check(TokenKind.RBracket) &&
+    !cursor.check(TokenKind.Semicolon)
+  ) {
+    elements.push(parseExpression(state, 0, true));
+    if (cursor.check(TokenKind.Comma)) {
+      cursor.advance();
+      continue;
+    }
+    break;
+  }
+
+  if (cursor.check(TokenKind.Semicolon)) {
+    cursor.advance(); // ';'
+    fill = parseExpression(state, 0, true);
+    // Exactly one fill section: a second `;` is not part of the form. Report
+    // it once and skip ahead so the close-bracket check lands sensibly.
+    if (cursor.check(TokenKind.Semicolon)) {
+      state.emit(
+        DiagCode.UnexpectedToken,
+        cursor.peek().span,
+        "Unexpected ';' — an array literal takes a single '; fill' section",
+      );
+      while (!cursor.atEnd() && !cursor.check(TokenKind.RBracket)) {
+        cursor.advance();
+      }
+    }
+  }
+
+  const close = cursor.expect(
+    TokenKind.RBracket,
+    DiagCode.MissingCloseBracket,
+    "']' to close array literal",
+  );
+  const last = fill ?? elements[elements.length - 1] ?? null;
+  const end = close !== null ? close.span.end : (last?.span.end ?? open.span.end);
+  return {
+    kind: "ArrayLitExpr",
+    elements,
+    fill,
+    span: makeSpan(sourceId, open.span.start, end),
   };
 }
 

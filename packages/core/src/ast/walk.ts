@@ -116,6 +116,8 @@ export function walkNode<R>(node: AstNode, visitor: AstVisitor<R>): R {
       return visitor.visitStructLitExpr(node as never);
     case "StructLitField":
       return visitor.visitStructLitField(node as never);
+    case "ArrayLitExpr":
+      return visitor.visitArrayLitExpr(node as never);
     case "EmbedExpr":
       return visitor.visitEmbedExpr(node as never);
     case "PrimitiveType":
@@ -368,6 +370,12 @@ export function walkChildren(node: AstNode, visitor: AstVisitor<void>): void {
     case "StructLitField": {
       const n = node as import("./nodes.js").StructLitFieldNode;
       walkNode(n.value, visitor);
+      return;
+    }
+    case "ArrayLitExpr": {
+      const n = node as import("./nodes.js").ArrayLitExprNode;
+      visitEach(n.elements, visitor);
+      visitOptional(n.fill, visitor);
       return;
     }
     case "IdentExpr":

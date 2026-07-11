@@ -4,7 +4,7 @@
  * Every AST node carries a `kind` discriminant drawn from this closed set. The
  * names mirror the `TokenKind`/`DiagCode` string-literal convention so golden AST
  * snapshots stay human-readable and a rename is caught immediately. There are
- * exactly **50** kinds; Blend65 v3 has no `asm { }` blocks (spec Ch 12 §1).
+ * exactly **51** kinds; Blend65 v3 has no `asm { }` blocks (spec Ch 12 §1).
  *
  * The runtime tuple {@link NODE_KINDS} is the single source of truth; the
  * {@link NodeKind} union type is derived from it so the type and the runtime list
@@ -12,10 +12,10 @@
  */
 
 /**
- * The canonical, ordered list of every AST node kind (50 total).
+ * The canonical, ordered list of every AST node kind (51 total).
  *
  * Grouped as: 3 source structure + 11 declaration + 13 statement +
- * 17 expression + 3 type + 3 error sentinel.
+ * 18 expression + 3 type + 3 error sentinel.
  */
 export const NODE_KINDS = [
   // Source structure (3)
@@ -65,6 +65,7 @@ export const NODE_KINDS = [
   "CharLitExpr",
   "StructLitExpr",
   "StructLitField",
+  "ArrayLitExpr",
   "EmbedExpr",
   // Types (3)
   "PrimitiveType",

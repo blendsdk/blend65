@@ -1,0 +1,29 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`array literals — nesting > golden shape snapshot: list + fill literal 1`] = `
+{
+  "elements": [
+    {
+      "kind": "NumericLitExpr",
+      "raw": "1",
+      "value": 1,
+    },
+    {
+      "kind": "NumericLitExpr",
+      "raw": "2",
+      "value": 2,
+    },
+    {
+      "kind": "NumericLitExpr",
+      "raw": "3",
+      "value": 3,
+    },
+  ],
+  "fill": {
+    "kind": "NumericLitExpr",
+    "raw": "0",
+    "value": 0,
+  },
+  "kind": "ArrayLitExpr",
+}
+`;

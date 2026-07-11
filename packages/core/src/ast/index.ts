@@ -66,6 +66,7 @@ export type {
   CharLitExprNode,
   StructLitFieldNode,
   StructLitExprNode,
+  ArrayLitExprNode,
   EmbedExprNode,
   ExprNode,
   // Types

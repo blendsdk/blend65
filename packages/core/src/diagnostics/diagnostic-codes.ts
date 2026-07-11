@@ -73,6 +73,28 @@ export const DiagCode = {
   ConstArrayNotFullyInit: "E10113",
   ArrayIndexTypeMismatch: "E10114",
   StaticIndexOutOfBounds: "E10115",
+  // Array-surface codes registered additively (`spec/` stays frozen):
+  // - E10117/E10118 carry the array chapter's own numbers for the strict
+  //   index-width tier rules: a `word` index on an array a `byte` index fully
+  //   covers (≤256 bytes) is rejected — the high byte would be silently
+  //   dropped — and a `byte` index on a larger array is rejected because it
+  //   cannot reach every element. E10118's emission becomes reachable when
+  //   >256-byte arrays land with the pointer-indexing surface; the rule is
+  //   pinned now so both tiers share one registry entry.
+  // - E10119/E10120/E10121 carry the chapter's numbers for whole-array
+  //   assignment, array return types, and array comparison — arrays are
+  //   memory regions, not values, so all three are permanently rejected.
+  // - E10126: the `[values; fill]` initialiser form needs an explicit
+  //   declared size to know how many slots the fill covers; an unsized
+  //   `byte[]` annotation cannot take a fill. Minted on the next free number
+  //   in the array band (the chapter's own number for this rule is already
+  //   taken by `ArrayIndexTypeMismatch` above).
+  WordIndexOnSmallArray: "E10117",
+  ByteIndexOnLargeArray: "E10118",
+  ArrayAssignmentNotAllowed: "E10119",
+  ArrayReturnNotAllowed: "E10120",
+  ArrayComparisonNotAllowed: "E10121",
+  FillRequiresExplicitSize: "E10126",
   // Type system
   MissingTypeAnnotation: "E10150",
   UnknownType: "E10151",
@@ -80,11 +102,37 @@ export const DiagCode = {
   SignedUnsignedMismatch: "E10153",
   WidthNarrowingNoCast: "E10154",
   InvalidCast: "E10155",
+  // Type-position codes registered additively (`spec/` stays frozen):
+  // - E10156: `void` used where a value type is required (variable, struct
+  //   field, or array element). The chapters state the rule without a number;
+  //   the next free code in the type-system band is claimed.
+  // - E10157: an expression statement that is not a call. The grammar's
+  //   expression-statement rule admits only function/intrinsic calls; wired
+  //   first for aggregate literals in statement position (`Point { … };`,
+  //   `[1, 2];`) so they can never fall through to code generation — full
+  //   enforcement for other expression forms follows separately.
+  VoidTypeNotAllowed: "E10156",
+  ExpressionStatementNotACall: "E10157",
   // Structs
   UnknownField: "E10160",
   MissingFieldInInit: "E10161",
   ExtraFieldInInit: "E10162",
   EmptyStruct: "E10163",
+  // Struct-surface codes registered additively (`spec/` stays frozen):
+  // - E10093/E10097 carry the struct chapter's own numbers — free in this
+  //   registry, reused to reduce drift (the same precedent as E10102/E10051):
+  //   struct return types are permanently illegal (structs return by memory,
+  //   which the ABI does not define), and struct-literal fields must appear
+  //   in declaration order.
+  // - E10165: a recursive struct layout — a struct that contains itself
+  //   directly or through a chain of field types, making its size undefined.
+  //   ONE unified code for self-reference and longer cycles (a self-reference
+  //   is a one-element cycle), carrying the full cycle path in the message,
+  //   mirroring the unified recursion code E10174. Minted on the next free
+  //   number in the struct band.
+  StructReturnNotAllowed: "E10093",
+  StructInitFieldOrder: "E10097",
+  RecursiveStructLayout: "E10165",
   // Functions
   WrongArgCount: "E10170",
   ArgTypeMismatch: "E10171",
@@ -160,6 +208,11 @@ export const DiagCode = {
   TooManyEnumMembers: "E10141",
   DuplicateEnumValue: "E10142",
   EnumBackingOutOfRange: "E10143",
+  // An enum member's explicit value must be a compile-time constant. E10230
+  // is the enum chapter's own frozen number for this rule (the config-band
+  // comment below already notes E10230–E10236 as the frozen enum codes);
+  // registered additively, `spec/` stays frozen.
+  EnumValueNotConst: "E10230",
   // Variables
   AssignToConst: "E10191",
   ConstWithoutInit: "E10192",
@@ -271,6 +324,13 @@ export const DiagCode = {
   RuntimeMultiply: "W10170",
   RuntimeDivide: "W10171",
   ShiftAndAddMultiply: "W10172",
+  // Array-initialisation advisories (the array chapter's own numbers): a
+  // `let` array initialised with fewer elements than its size and no fill
+  // leaves the remainder undefined (W10140); a `let` array with no
+  // initialiser at all is entirely undefined until written (W10141). Both
+  // compile — the chapter makes them warnings, not errors.
+  PartialArrayInit: "W10140",
+  UninitializedArray: "W10141",
   LargeZpAllocation: "W10030",
 
   RamNearingLimit: "W10033",

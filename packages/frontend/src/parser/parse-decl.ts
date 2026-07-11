@@ -352,7 +352,10 @@ export function parseConstDecl(
   let initialiser: ExprNode;
   if (cursor.check(TokenKind.Equal)) {
     cursor.advance();
-    initialiser = parsePrimaryExpr(state);
+    // Initialiser context (after `=`): aggregate literals are allowed — the
+    // grammar's const_expression is a full expression, so `const` takes the
+    // same literal forms as `let` (FR-45).
+    initialiser = parseExpression(state, 0, true);
   } else {
     state.emit(
       DiagCode.MissingConstInitialiser,

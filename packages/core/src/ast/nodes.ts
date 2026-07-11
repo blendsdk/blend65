@@ -443,6 +443,20 @@ export interface StructLitExprNode extends AstNode {
   fields: StructLitFieldNode[];
 }
 
+/**
+ * An array literal `[e1, e2, …]` or `[e1, …; fill]` (spec Ch 08 §4.1/§4.2).
+ *
+ * The optional `; fill` expression fills every declared slot the explicit
+ * element list does not cover; the element count comes from the declared
+ * array size, never from the literal itself.
+ */
+export interface ArrayLitExprNode extends AstNode {
+  kind: "ArrayLitExpr";
+  elements: ExprNode[];
+  /** The `; fill` value — fills the remaining declared slots. Null when absent. */
+  fill: ExprNode | null;
+}
+
 /** An `embed("path" [, "format"])` data-inclusion expression. */
 export interface EmbedExprNode extends AstNode {
   kind: "EmbedExpr";
@@ -469,6 +483,7 @@ export type ExprNode =
   | StringLitExprNode
   | CharLitExprNode
   | StructLitExprNode
+  | ArrayLitExprNode
   | EmbedExprNode
   | ErrorExprNode;
 
