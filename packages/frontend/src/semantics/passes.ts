@@ -10,7 +10,10 @@
  */
 
 import type {
+  AstNode,
   IntrinsicRegistry,
+  ProgramNode,
+  Scope,
   SemanticModel,
   SourceSpan,
   Symbol,
@@ -18,34 +21,47 @@ import type {
 import type { AnalyzeInput } from "./analyze.js";
 import { collectDeclarationTables } from "./declaration-collection.js";
 import type { DeclarationTables } from "./declaration-collection.js";
+import { resolveDeclaredTypes } from "./annotation-resolution.js";
 import { validateIntrinsics } from "./intrinsic-validation.js";
 import { checkAllPathsReturn, checkMainValidity, checkRecursion } from "./post-check.js";
 
 /**
- * Pass 1 — Declaration Collection.
+ * Pass 1 — Declaration Collection (struct/enum half).
  *
- * Resolves the top-level struct/enum declarations into the type tables that body
- * checking and codegen folding consume. The remaining Pass-1 duties
- * (module registration, export visibility, duplicate-decl E10003) stay deferred.
+ * Resolves the top-level struct/enum declarations into fully-qualified
+ * (`"Module.Name"`) type tables and declares each as a symbol in its module
+ * scope (one namespace — collisions are E10003). Runs after function
+ * collection created the module scopes.
  *
  * @param input The analyzer input.
- * @returns The resolved struct/enum type tables.
+ * @param moduleScopeByProgram Each program → its module scope.
+ * @returns The FQN-keyed struct/enum type tables.
  */
-export function collectDeclarations(input: AnalyzeInput): DeclarationTables {
-  return collectDeclarationTables(input.programs);
+export function collectDeclarations(
+  input: AnalyzeInput,
+  moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>,
+): DeclarationTables {
+  return collectDeclarationTables(input.programs, moduleScopeByProgram, input.bag);
 }
 
 /**
  * Pass 2 — Type Resolution.
  *
- * DEFERRED: resolve named types, validate struct fields (no recursion),
- * validate enum backing values. Emits E10151/E10142/E10143/E10163.
+ * Finalizes every variable/constant symbol's declared type once imports are
+ * bound: named/array annotations (incl. import-bound and dotted `Mod.Type`
+ * forms) resolve for real, `void` value positions are E10156, unknown names
+ * E10151, non-exported cross-module types E10012.
  *
- * @param _input The analyzer input (unused in the skeleton).
- * @param _model The model under construction (unused in the skeleton).
+ * @param moduleScopes User-module name → its shared module scope.
+ * @param scopeByNode Function decl → its body scope.
+ * @param input The analyzer input (diagnostic bag).
  */
-export function resolveTypes(_input: AnalyzeInput, _model: SemanticModel): void {
-  // no-op (deferred)
+export function resolveTypes(
+  moduleScopes: ReadonlyMap<string, Scope>,
+  scopeByNode: ReadonlyMap<AstNode, Scope>,
+  input: AnalyzeInput,
+): void {
+  resolveDeclaredTypes(moduleScopes, scopeByNode, input.bag);
 }
 
 /**
@@ -57,17 +73,20 @@ export function resolveTypes(_input: AnalyzeInput, _model: SemanticModel): void 
  * deferred.
  *
  * @param input The analyzer input (programs, bag, optional target profile).
- * @param tables The resolved struct/enum type tables from Pass 1.
+ * @param moduleScopeByProgram Each program → its module scope (type lookups).
+ * @param moduleScopes User-module name → its shared scope (dotted type args).
  * @param registry The populated intrinsic registry.
  */
 export function checkBodies(
   input: AnalyzeInput,
-  tables: DeclarationTables,
+  moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>,
+  moduleScopes: ReadonlyMap<string, Scope>,
   registry: IntrinsicRegistry,
 ): void {
   validateIntrinsics(input.programs, {
     registry,
-    tables,
+    moduleScopeByProgram,
+    moduleScopes,
     bag: input.bag,
     // `exactOptionalPropertyTypes`: omit the field entirely when there is no
     // target profile rather than passing `undefined`.

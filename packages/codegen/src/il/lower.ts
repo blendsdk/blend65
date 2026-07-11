@@ -1342,15 +1342,37 @@ function foldIntrinsic(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   return imm(count, count <= 255 ? IL_BYTE : IL_WORD);
 }
 
+/**
+ * Looks a (possibly dotted) type name up in an FQN-keyed (`"Module.Name"`)
+ * type table, as seen from the function being lowered: the current module's
+ * qualification first, a dotted name verbatim, then — for import-bound bare
+ * names, which the model's FQN keys can't express here — a unique-suffix
+ * match (exactly one module declares that name). An ambiguous bare name
+ * resolves to nothing (defensive; the frontend reports collisions).
+ */
+function lookupFqn<T>(name: string, table: ReadonlyMap<string, T>, ctx: LowerCtx): T | undefined {
+  const dot = ctx.fqName.lastIndexOf(".");
+  const currentModule = dot >= 0 ? ctx.fqName.slice(0, dot) : "";
+  const direct = table.get(`${currentModule}.${name}`) ?? table.get(name);
+  if (direct !== undefined) return direct;
+  let found: T | undefined;
+  for (const [key, value] of table) {
+    if (!key.endsWith(`.${name}`)) continue;
+    if (found !== undefined) return undefined; // ambiguous — never guess
+    found = value;
+  }
+  return found;
+}
+
 /** The byte size of an AST type (primitive fixed sizes; struct/enum from the model). */
 function sizeOfType(node: TypeNode, ctx: LowerCtx): number {
   switch (node.kind) {
     case "PrimitiveType":
       return byteSize(primitive(node.name));
     case "NamedType": {
-      const struct = ctx.model.structTypes.get(node.name);
+      const struct = lookupFqn(node.name, ctx.model.structTypes, ctx);
       if (struct !== undefined) return struct.byteSize;
-      return ctx.model.enumTypes.has(node.name) ? 1 : 0; // enum backing = 1 byte
+      return lookupFqn(node.name, ctx.model.enumTypes, ctx) !== undefined ? 1 : 0; // enum backing = 1 byte
     }
     case "ArrayType": {
       const element = sizeOfType(node.elementType, ctx);
@@ -1365,7 +1387,7 @@ function sizeOfType(node: TypeNode, ctx: LowerCtx): number {
 /** The byte offset of a struct field (from the model's resolved struct table). */
 function offsetOfField(node: TypeNode, field: string, ctx: LowerCtx): number {
   if (node.kind === "NamedType") {
-    return ctx.model.structTypes.get(node.name)?.fields.get(field)?.offset ?? 0;
+    return lookupFqn(node.name, ctx.model.structTypes, ctx)?.fields.get(field)?.offset ?? 0;
   }
   return 0;
 }

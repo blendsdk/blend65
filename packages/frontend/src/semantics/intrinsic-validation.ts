@@ -26,13 +26,14 @@ import type {
   IntrinsicDescriptor,
   IntrinsicRegistry,
   ProgramNode,
+  Scope,
   SourceSpan,
   TopLevelItem,
+  Type,
   TypeNode,
   TypeRef,
 } from "@blend65/core";
 import type { CpuVariant, PlatformProfile } from "@blend65/core/platform";
-import type { DeclarationTables } from "./declaration-collection.js";
 
 /** Everything the validation checks consult per program. */
 export interface ValidationContext {
@@ -40,8 +41,14 @@ export interface ValidationContext {
   readonly registry: IntrinsicRegistry;
   /** The canonical target profile; when absent, availability checks are skipped. */
   readonly targetProfile?: PlatformProfile;
-  /** Resolved struct/enum type tables (for `sizeof`/`offsetof`). */
-  readonly tables: DeclarationTables;
+  /**
+   * Each program → its module scope. `sizeof`/`offsetof` type arguments
+   * resolve through the scope (module-local declarations AND import-bound
+   * aliases share the one namespace).
+   */
+  readonly moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>;
+  /** User-module name → its shared scope (dotted `Mod.Type` type arguments). */
+  readonly moduleScopes: ReadonlyMap<string, Scope>;
   /** The diagnostic accumulator. */
   readonly bag: DiagnosticBag;
 }
@@ -65,8 +72,9 @@ export function validateIntrinsics(
       checkShadowing(item, ctx);
     }
     // V1–V4/V7: validate every intrinsic call site anywhere in the program.
+    const moduleScope = ctx.moduleScopeByProgram.get(program);
     for (const call of collectIntrinsicCalls(program)) {
-      validateCall(call, ctx);
+      validateCall(call, ctx, moduleScope);
     }
     // V6a/V6b: T4 platform intrinsics parse as ordinary CallExprNodes (their
     // names are not in the parser's RESERVED_BUILTINS) and are recognized
@@ -114,7 +122,11 @@ function checkShadowing(item: TopLevelItem, ctx: ValidationContext): void {
 }
 
 /** V1–V4/V7 — validate a single intrinsic call against its descriptor. */
-function validateCall(node: IntrinsicCallExprNode, ctx: ValidationContext): void {
+function validateCall(
+  node: IntrinsicCallExprNode,
+  ctx: ValidationContext,
+  moduleScope: Scope | undefined,
+): void {
   const descriptor = ctx.registry.get(node.name);
   if (descriptor === undefined) {
     // Catalog/reserved-set drift is a compiler bug, not a user error.
@@ -141,7 +153,7 @@ function validateCall(node: IntrinsicCallExprNode, ctx: ValidationContext): void
 
   // sizeof/offsetof carry a type argument (and optional field) — validate those.
   if (node.typeArg !== null) {
-    checkTypeArg(node, ctx);
+    checkTypeArg(node, ctx, moduleScope);
     return;
   }
 
@@ -177,7 +189,11 @@ function validateCall(node: IntrinsicCallExprNode, ctx: ValidationContext): void
 }
 
 /** V7 — `sizeof`/`offsetof` type argument resolves; `offsetof` field exists. */
-function checkTypeArg(node: IntrinsicCallExprNode, ctx: ValidationContext): void {
+function checkTypeArg(
+  node: IntrinsicCallExprNode,
+  ctx: ValidationContext,
+  moduleScope: Scope | undefined,
+): void {
   const typeArg = node.typeArg;
   if (typeArg === null) return;
   const typeName = namedTypeName(typeArg);
@@ -185,8 +201,11 @@ function checkTypeArg(node: IntrinsicCallExprNode, ctx: ValidationContext): void
   // A primitive type argument (e.g. `sizeof(byte)`) always resolves.
   if (typeName === null) return;
 
-  const structType = ctx.tables.structTypes.get(typeName);
-  const enumType = ctx.tables.enumTypes.get(typeName);
+  // Resolve the named type through the module scope (module-local names and
+  // import-bound aliases) or the dotted `Mod.Type` form.
+  const resolved = resolveTypeSymbol(typeName, moduleScope, ctx);
+  const structType = resolved?.kind === "struct" ? resolved : undefined;
+  const enumType = resolved?.kind === "enum" ? resolved : undefined;
   if (structType === undefined && enumType === undefined) {
     ctx.bag.addError(
       DiagCode.ArgTypeMismatch,
@@ -339,6 +358,25 @@ function typeRefName(type: TypeRef): string {
 /** The declared name of a `NamedType` argument, or `null` for a primitive/array. */
 function namedTypeName(node: TypeNode): string | null {
   return node.kind === "NamedType" ? node.name : null;
+}
+
+/**
+ * Resolves a (possibly dotted) type name to its struct/enum type through the
+ * scope machinery, or `null` when nothing suitable is declared.
+ */
+function resolveTypeSymbol(
+  name: string,
+  moduleScope: Scope | undefined,
+  ctx: ValidationContext,
+): Type | null {
+  const dot = name.lastIndexOf(".");
+  const scope = dot >= 0 ? ctx.moduleScopes.get(name.slice(0, dot)) : moduleScope;
+  const typeName = dot >= 0 ? name.slice(dot + 1) : name;
+  const sym = scope?.symbols.get(typeName);
+  if (sym === undefined) return null;
+  if (sym.kind !== "struct" && sym.kind !== "enum") return null;
+  if (dot >= 0 && !sym.exported) return null;
+  return sym.type;
 }
 
 /**

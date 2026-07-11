@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 23:16
-> **Progress**: 7/64 tasks (11%) — Phase 1 ✅ COMPLETE (full verify green)
+> **Last Updated**: 2026-07-11 23:43
+> **Progress**: 16/64 tasks (25%) — Phases 1-2 ✅ COMPLETE (full verify green)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -88,21 +88,21 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 **Reference**: 03-02 · AR-7/24/21/13
 **Objective**: pin table keying, namespace collisions, and annotation resolution.
 
-- [ ] 2.1.1 Write spec tests from ST-7..ST-9, ST-12..ST-16 — `packages/frontend/src/semantics/declaration-tables.spec.test.ts`
-- [ ] 2.1.2 Red-phase run
+- [x] 2.1.1 Write spec tests from ST-7..ST-9, ST-12..ST-16 — `packages/frontend/src/semantics/declaration-tables.spec.test.ts` ✅ (completed: 2026-07-11 23:30)
+- [x] 2.1.2 Red-phase run ✅ (completed: 2026-07-11 23:30 — 11/11 red, no pre-passers)
 
 ### Step 2.2: Implementation
 **Reference**: 03-02 §Proposed changes 1/4/5
 
-- [ ] 2.2.1 Module-keyed `DeclarationTables` + FQN-keyed `SemanticModel.structTypes`/`enumTypes`; update the THREE shipped FQN consumers (PF-006) — `packages/frontend/src/semantics/declaration-collection.ts`, `packages/codegen/src/il/lower.ts`, `packages/frontend/src/semantics/intrinsic-validation.ts`
-- [ ] 2.2.2 One-namespace collisions (type vs type, type vs value, cross-file) → E10003 — `declaration-collection.ts` + Pass-1 merge seam
-- [ ] 2.2.3 Thread tables into `resolveTypeNode`: NamedType (module-local, import-bound, dotted `Mod.Type`), void → E10156, unknown → E10151/E10012 — `packages/frontend/src/semantics/type-check/type-resolution.ts` + the `parse-type.ts` dotted-name extension (verified missing at preflight, PF-013)
-- [ ] 2.2.4 ArrayType resolution with literal sizes + E10111/E10112 + the >256-byte 7a rejection; enum member collection with existing-const-eval values, E10230/E10143 — `type-resolution.ts`, `declaration-collection.ts`
-- [ ] 2.2.5 Import binding for type names (`import { Point } from Gfx;`) via the 5a same-Symbol aliasing — `packages/frontend/src/semantics/import-resolution.ts`
-- [ ] 2.2.6 Green-phase run (ST-7..9, 12..16)
+- [x] 2.2.1 Module-keyed `DeclarationTables` + FQN-keyed `SemanticModel.structTypes`/`enumTypes`; update the THREE shipped FQN consumers (PF-006) — `packages/frontend/src/semantics/declaration-collection.ts`, `packages/codegen/src/il/lower.ts`, `packages/frontend/src/semantics/intrinsic-validation.ts` ✅ (completed: 2026-07-11 23:43 — 3-sweep collection (register→resolve→declare symbols); intrinsic-validation switched to scope-based lookups; lower.ts `lookupFqn` current-module→dotted→unique-suffix; `Symbol.type` made non-readonly for the Pass-2 patch)
+- [x] 2.2.2 One-namespace collisions (type vs type, type vs value, cross-file) → E10003 — `declaration-collection.ts` + Pass-1 merge seam ✅ (completed: 2026-07-11 23:43)
+- [x] 2.2.3 Thread tables into `resolveTypeNode`: NamedType (module-local, import-bound, dotted `Mod.Type`), void → E10156, unknown → E10151/E10012 — `packages/frontend/src/semantics/type-check/type-resolution.ts` + the `parse-type.ts` dotted-name extension (verified missing at preflight, PF-013) ✅ (completed: 2026-07-11 23:43 — `TypeResolverContext` full-mode resolution + new `annotation-resolution.ts` Pass 2 realised in `passes.ts`/`analyze.ts`; dotted `Mod.Type` parses)
+- [x] 2.2.4 ArrayType resolution with literal sizes + E10111/E10112 + the >256-byte 7a rejection; enum member collection with existing-const-eval values, E10230/E10143 — `type-resolution.ts`, `declaration-collection.ts` ✅ (completed: 2026-07-11 23:43)
+- [x] 2.2.5 Import binding for type names (`import { Point } from Gfx;`) via the 5a same-Symbol aliasing — `packages/frontend/src/semantics/import-resolution.ts` ✅ (completed: 2026-07-11 23:43 — zero code change needed: aliasing is kind-agnostic once type symbols exist; positive spec test witnesses it)
+- [x] 2.2.6 Green-phase run (ST-7..9, 12..16) ✅ (completed: 2026-07-11 23:43 — 11/11 green first run)
 
 ### Step 2.3: Implementation tests & hardening
-- [ ] 2.3.1 Impl tests: FQN lookup internals, deterministic diagnostic ordering, the ST-7 defect-regression E2E shape — `declaration-tables.impl.test.ts`
+- [x] 2.3.1 Impl tests: FQN lookup internals, deterministic diagnostic ordering, the ST-7 defect-regression E2E shape — `declaration-tables.impl.test.ts` ✅ (completed: 2026-07-11 23:43 — 7/7; FULL WORKSPACE VERIFY GREEN incl. VICE tiers — one slice3b VICE flake re-run clean, golden byte-exact)
 
 **Deliverables**: aggregate annotations resolve; collision defect fixed.
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`

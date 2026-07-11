@@ -50,7 +50,23 @@ export function parseType(state: ParserState): TypeNode {
     base = node;
   } else if (tok.kind === TokenKind.Identifier) {
     cursor.advance();
-    const node: NamedTypeNode = { kind: "NamedType", name: cursor.lexeme(tok), span: tok.span };
+    // A dotted form `Mod.Type` names another module's exported type (grammar
+    // §4). One dot suffices — module names themselves may be dotted, but a
+    // type reference is always `<module path> '.' <type name>`, consumed
+    // greedily here and split by semantic resolution.
+    let name = cursor.lexeme(tok);
+    let end = tok.span.end;
+    while (cursor.check(TokenKind.Dot) && cursor.peek(1).kind === TokenKind.Identifier) {
+      cursor.advance(); // '.'
+      const part = cursor.advance();
+      name = `${name}.${cursor.lexeme(part)}`;
+      end = part.span.end;
+    }
+    const node: NamedTypeNode = {
+      kind: "NamedType",
+      name,
+      span: makeSpan(sourceId, tok.span.start, end),
+    };
     base = node;
   } else {
     state.emit(DiagCode.ExpectedTypeAnnotation, tok.span, "Expected type annotation");

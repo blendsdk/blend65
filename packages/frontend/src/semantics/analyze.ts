@@ -97,11 +97,13 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   // `hasErrors` reflects them all.
   const errorsBefore = input.bag.getErrors().length;
 
-  // Pass 1 — declaration collection: resolve struct/enum tables, and the
-  // function/parameter/local collection into the model's scope tree. Each
-  // Pass-1 collector stays single-responsibility.
-  const tables = collectDeclarations(input);
+  // Pass 1 — declaration collection: the function/parameter/local collection
+  // builds the module scopes first, then struct/enum collection resolves the
+  // FQN-keyed type tables into those scopes (one namespace — a type name
+  // colliding with a function is E10003). Each collector stays
+  // single-responsibility.
   const functionTables = collectFunctions(input.programs, empty.globalScope, input.bag);
+  const tables = collectDeclarations(input, functionTables.moduleScopeByProgram);
 
   // Pass 1 (cont.) — collect module-level scalars into their module scopes, so
   // body references resolve to them and SFA can lay out `__var_*`. E10003 on a
@@ -126,11 +128,16 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   );
   checkParameterShadowing(functionTables.scopeByNode, input.bag);
 
+  // Pass 2 — type resolution: with imports bound, finalize every variable/
+  // constant symbol's declared type (named/array annotations, incl.
+  // import-bound and dotted `Mod.Type` forms) in place.
+  resolveTypes(functionTables.moduleScopeByName, functionTables.scopeByNode, input);
+
   // Pass 3 — body checking: the intrinsic-validation pass plus the
   // expression/statement type engine, which populates the maps and records
   // the call-graph edges.
   const registry = input.registry ?? createIntrinsicRegistry();
-  checkBodies(input, tables, registry);
+  checkBodies(input, functionTables.moduleScopeByProgram, functionTables.moduleScopeByName, registry);
 
   const typeMap = new Map<ExprNode, Type>();
   const symbolMap = new Map<AstNode, Symbol>();
@@ -195,8 +202,6 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     hasErrors: false, // set below once the full error delta is known
   };
 
-  // Pass 2 — DEFERRED no-op seam (no struct/enum sizing needed for scalars).
-  resolveTypes(input, model);
   // Pass 4 — post-check: `main()` validity, all-paths-return, and recursion
   // rejection (the E10174 poison must land before frame planning consumes
   // the call graph).

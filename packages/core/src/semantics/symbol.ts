@@ -40,7 +40,14 @@ export type SymbolKind =
 export interface Symbol {
   readonly name: string;
   readonly kind: SymbolKind;
-  readonly type: Type;
+  /**
+   * The symbol's resolved type. Deliberately NOT readonly: collection assigns
+   * a provisional type (primitive annotations resolve immediately; named and
+   * array annotations cannot resolve until imports are bound), and the
+   * type-resolution pass finalizes it in place — symbol identity must be
+   * preserved because downstream maps key by the symbol object.
+   */
+  type: Type;
   /** The AST node that declared this symbol. */
   readonly decl: AstNode;
   /** The scope this symbol was declared in. */
