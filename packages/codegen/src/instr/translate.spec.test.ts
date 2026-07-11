@@ -268,30 +268,23 @@ describe("Specification: translator — arithmetic & bitwise (ST-T7..T11)", () =
 });
 
 describe("Specification: translator — deferred-op ICEs (ST-T12, ST-T24)", () => {
-  // shl with a non-constant count is deferred → E90001.
-  it("ICEs on a non-constant shift count (ST-T12)", () => {
-    const { bag } = render(
-      [
-        { op: "load", a: temp(0, IL_BYTE), b: loc("a", IL_BYTE) },
-        { op: "load", a: temp(1, IL_BYTE), b: loc("b", IL_BYTE) },
-        { op: "shl", dest: temp(2, IL_BYTE), left: temp(0, IL_BYTE), right: temp(1, IL_BYTE), type: IL_BYTE },
-      ],
-      { kind: "ret" },
-    );
-    expect(bag.hasErrors()).toBe(true);
-    expect(bag.getErrors()[0].code).toBe(IceCode.Unexpected);
-  });
-
-  // each deferred IL op raises E90001 and emits no instruction entries.
+  // An earlier revision of this suite also pinned deferred-op ICEs for
+  // variable-count shifts, `neg`, `not`, and `copy` — those ops are now live
+  // (the expression translator implements them; their behavior is pinned by
+  // the co-located expression suite), so the deferred set shrank to the
+  // indexed/indirect memory ops that remain unimplemented.
   it.each([
-    { op: "neg", dest: temp(1, IL_BYTE), src: temp(0, IL_BYTE), type: IL_BYTE },
-    { op: "not", dest: temp(1, IL_BYTE), src: temp(0, IL_BYTE), type: IL_BYTE },
-    { op: "copy", dest: temp(1, IL_BYTE), src: temp(0, IL_BYTE) },
     {
       op: "load_indexed",
       value: temp(2, IL_BYTE),
       base: loc("arr", IL_WORD),
       index: temp(0, IL_BYTE),
+    },
+    {
+      op: "store_indexed",
+      value: temp(0, IL_BYTE),
+      base: loc("arr", IL_WORD),
+      index: temp(1, IL_BYTE),
     },
   ] as unknown as ILInstruction[])("ICEs on the deferred op %o (ST-T24)", (ins) => {
     const bag = createDiagnosticBag();

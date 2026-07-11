@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 18:24 (Phase 3 COMPLETE — slots + IL lowering green, 33/52)
-> **Progress**: 33/52 tasks (63%)
+> **Last Updated**: 2026-07-11 18:58 (Phase 4 COMPLETE — translate conversions/comparisons/shifts green, 42/52)
+> **Progress**: 42/52 tasks (81%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -161,24 +161,24 @@ assignment, and warnings before any code.
 **Reference**: 07 translate spec row · 03-04 tables · AR-1/5/9
 **Objective**: pin instruction streams for the new ops from hand-built IL.
 
-- [ ] 4.1.1 Write translate spec tests (framing tables: neg/not/zext/sext/trunc + 4 comparison framings + shifts) — `packages/codegen/src/instr/translate-expressions.spec.test.ts`
-- [ ] 4.1.2 RED phase: verify failures (deferred-op ICEs today); document pre-passers
+- [x] 4.1.1 Write translate spec tests (framing tables: neg/not/zext/sext/trunc + 4 comparison framings + shifts) — `packages/codegen/src/instr/translate-expressions.spec.test.ts` ✅ (completed: 2026-07-11 18:40)
+- [x] 4.1.2 RED phase: verify failures (deferred-op ICEs today); document pre-passers ✅ (completed: 2026-07-11 18:40 — 17 failed / 1 passed of 18; the pre-passer is the byte-unsigned carry-framing non-regression guard (existing golden-protected behavior), load-bearing after the framing dispatch lands)
 
 ### Step 4.2: Implementation
 
 **Reference**: 03-04 §1–§5 · AR-1, AR-9
 **Objective**: retire the deferred-op ICEs for the Slice-6 op set.
 
-- [ ] 4.2.1 `neg`/`not` (8+16 via store-fold) + `zext`/`sext`/`trunc` — `packages/codegen/src/instr/translate.ts`
-- [ ] 4.2.2 Comparison rework: dispatch on operand type; byte-signed + word-unsigned + word-signed framings (byte-unsigned byte-exact-unchanged) — `translate.ts`
-- [ ] 4.2.3 Word const-count shifts + signed arithmetic `shr` + variable-count loops — `translate.ts`
-- [ ] 4.2.4 Module doc header refresh (live-op list) — `translate.ts`
-- [ ] 4.2.5 GREEN phase: translate spec tests pass
+- [x] 4.2.1 `neg`/`not` (8+16 via store-fold) + `zext`/`sext`/`trunc` — `packages/codegen/src/instr/translate.ts` ✅ (completed: 2026-07-11 18:58 — plus `copy` (same-width re-type) which lowering now emits; zext of a homed/immediate byte folds to ZERO instructions via a shared per-byte reference resolver (`byteRefOf`) — consumers read lo from the source, hi as #$00; sext = the pinned branch-free ASL/ADC/EOR sign-byte sequence via the store home)
+- [x] 4.2.2 Comparison rework: dispatch on operand type; byte-signed + word-unsigned + word-signed framings (byte-unsigned byte-exact-unchanged) — `translate.ts` ✅ (completed: 2026-07-11 18:58 — eq/ne stay signedness-neutral at both widths; all framings branch on the fresh flag before any LDA; gt/le reuse lt/ge via operand swap in every framing)
+- [x] 4.2.3 Word const-count shifts + signed arithmetic `shr` + variable-count loops — `translate.ts` ✅ (completed: 2026-07-11 18:58 — word shifts run in place at the consuming store's home (self-shift copy-free); variable counts loop over X with a BEQ zero guard; signed shr seeds carry per step via CMP #$80)
+- [x] 4.2.4 Module doc header refresh (live-op list) — `translate.ts` ✅ (completed: 2026-07-11 18:58)
+- [x] 4.2.5 GREEN phase: translate spec tests pass ✅ (completed: 2026-07-11 18:58 — 18/18; NOTE: the prior translate suite's deferred-op ICE pins for neg/not/copy/variable-shift asserted 'not implemented yet' — a temporal marker this phase's stated objective retires, not spec behavior — so the deferred list shrank to the genuinely-deferred indexed/indirect ops (mechanical consequence of the planned change, same nature as the documented interim-pin supersessions); full codegen suite 420 green)
 
 ### Step 4.3: Implementation tests & hardening
 
-- [ ] 4.3.1 Impl tests incl. the **DEF-1 regression witness** (word `lt`, high-byte-only difference) + sext sweep + framing boundary quads — `translate-expressions.impl.test.ts` (07 impl table)
-- [ ] 4.3.2 Full verify
+- [x] 4.3.1 Impl tests incl. the **DEF-1 regression witness** (word `lt`, high-byte-only difference) + sext sweep + framing boundary quads — `translate-expressions.impl.test.ts` (07 impl table) ✅ (completed: 2026-07-11 18:58 — 13 tests: high-byte participation in every word framing (incl. the $0100 immediate witness), gt-swap, pinned sext sequence + 0–255 sign-byte replay, signed-shr step counts, zero-count/self-shift/zext-fold zero-cost checks)
+- [x] 4.3.2 Full verify ✅ (completed: 2026-07-11 18:58 — install+build+typecheck+lint+test ALL GREEN; one transient slice4b VICE failure in the first run was emulator contention (byte-identical golden; passes in isolation and in the clean re-run); `spec/` clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

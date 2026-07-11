@@ -2,11 +2,14 @@
  * The IL→Instr translator — lowers one single-block `ILFunction` (the live
  * lowering shape) into one validated-ready `InstrStream`.
  *
- * The slice translates exactly the ops the live lowering emits: `load`,
- * `store`, `const`, the arithmetic/bitwise/shift binary family, comparisons, and
- * `mul`/`div`/`mod` call-sites, plus the `ret` terminator — both byte and word
- * widths. Every other IL op reaches a default arm that raises an `E90001` ICE
- * and is deferred to a later slice.
+ * Translates the ops the live lowering emits: `load`, `store`, `const`,
+ * `copy`, the arithmetic/bitwise binary family, shifts (byte + word, constant
+ * and variable counts, sign-preserving arithmetic right shifts), comparisons
+ * in all four byte/word × unsigned/signed framings, unary `neg`/`not`, the
+ * width conversions (`zext`/`sext`/`trunc`), `mul`/`div`/`mod` call-sites,
+ * user `call`s, and intrinsics, plus every terminator. The indexed/indirect
+ * memory ops reach a default arm that raises an `E90001` ICE and remain
+ * deferred to a later slice.
  *
  * **Value-flow.** A one-accumulator 6502 cannot translate each op in
  * isolation and still produce the tight goldens (`r = a + b` →
@@ -151,6 +154,12 @@ class FunctionTranslator {
   private readonly producedThisBlock = new Set<number>();
   /** Single-use `load` results deferred for folding: temp id → source location. */
   private readonly loadSource = new Map<number, ILOperand>();
+  /**
+   * Zero-extension results folded away entirely: temp id → the byte source.
+   * Consumers read the low byte from the source's home/immediate and the high
+   * byte as the constant 0 — a zext of a memory-resident byte costs nothing.
+   */
+  private readonly convSource = new Map<number, ILOperand>();
 
   /** Temp id currently resident in A (byte value or word low byte), or null. */
   private regA: number | null = null;
@@ -266,6 +275,7 @@ class FunctionTranslator {
     this.skipIndex = -1;
     this.leadSpan = undefined;
     this.loadSource.clear();
+    this.convSource.clear();
     this.producedThisBlock.clear();
   }
 
@@ -312,7 +322,7 @@ class FunctionTranslator {
         return;
       case "shl":
       case "shr":
-        this.translateShift(ins.op, ins.dest, ins.left, ins.right, ins.type);
+        this.translateShift(ins.op, ins.dest, ins.left, ins.right, ins.type, index, all);
         return;
       case "eq":
       case "ne":
@@ -320,7 +330,25 @@ class FunctionTranslator {
       case "le":
       case "gt":
       case "ge":
-        this.translateComparison(ins.op, ins.dest, ins.left, ins.right, index, all);
+        this.translateComparison(ins.op, ins.dest, ins.left, ins.right, ins.type);
+        return;
+      case "neg":
+        this.translateNeg(ins.dest, ins.src, ins.type, index, all);
+        return;
+      case "not":
+        this.translateNot(ins.dest, ins.src, ins.type, index, all);
+        return;
+      case "zext":
+        this.translateZext(ins.dest, ins.src);
+        return;
+      case "sext":
+        this.translateSext(ins.dest, ins.src, index, all);
+        return;
+      case "trunc":
+        this.translateTrunc(ins.dest, ins.src);
+        return;
+      case "copy":
+        this.translateCopy(ins.dest, ins.src);
         return;
       case "mul":
         this.translateMul(ins.dest, ins.left, ins.right, ins.type, index, all);
@@ -578,24 +606,125 @@ class FunctionTranslator {
     this.clearRegs();
   }
 
+  /**
+   * Translate a shift. Byte shifts run in A (unrolled for constant counts, an
+   * X-counted loop with a zero-count guard for variable counts); signed right
+   * shifts replicate the sign per step (`CMP #$80` seeds the carry with bit 7
+   * before `ROR`). Word shifts run in memory through the consuming store's
+   * home (`ASL`/`ROL` up, `LSR`/`ROR` down, sign-seeded for signed) — a word
+   * shift result not consumed by a store is rejected loudly, never guessed.
+   */
   private translateShift(
     op: "shl" | "shr",
     dest: ILOperand,
     left: ILOperand,
     right: ILOperand,
     type: ILType,
+    index: number,
+    all: readonly ILInstruction[],
   ): void {
-    if (type.width !== 8 || !isImmediate(right)) {
-      // Word shifts and variable-count shifts are deferred to a later slice.
-      this.iceUnsupported(`${op} (word or non-constant count)`);
+    const signedShr = op === "shr" && type.signed;
+
+    if (type.width === 8) {
+      this.leftIntoA(left);
+      if (isImmediate(right)) {
+        for (let i = 0; i < (right.value & 0xff); i++) {
+          this.emitByteShiftStep(op, signedShr);
+        }
+        this.bindA(asTempId(dest));
+        return;
+      }
+      const count = this.rightSource(right, 0);
+      this.emit("LDX", count.mode, count.operand);
+      const loopL = `_sh${this.cmpCounter++}`;
+      const doneL = `_sh${this.cmpCounter++}`;
+      this.emit("BEQ", "Relative", labelRef(doneL)); // a zero count shifts nothing
+      this.out.push(label(loopL));
+      this.emitByteShiftStep(op, signedShr);
+      this.emit("DEX", "Implied", none());
+      this.emit("BNE", "Relative", labelRef(loopL));
+      this.out.push(label(doneL));
+      this.bindA(asTempId(dest));
       return;
     }
-    const shiftOp: Opcode = op === "shl" ? "ASL" : "LSR";
-    this.leftIntoA(left);
-    for (let i = 0; i < (right.value & 0xff); i++) {
-      this.emit(shiftOp, "Accumulator", none());
+
+    // 16-bit: in place at the consuming store's home.
+    const home = this.foldStoreHome(dest, index, all);
+    if (home === null) {
+      this.iceUnsupported(`word ${op} result not consumed by a store`);
+      return;
     }
-    this.bindA(asTempId(dest));
+    this.copyWordToHome(left, home);
+    if (isImmediate(right)) {
+      for (let i = 0; i < (right.value & 0xff); i++) {
+        this.emitWordShiftStep(op, signedShr, home);
+      }
+      this.clearRegs();
+      return;
+    }
+    const count = this.rightSource(right, 0);
+    this.emit("LDX", count.mode, count.operand);
+    const loopL = `_sh${this.cmpCounter++}`;
+    const doneL = `_sh${this.cmpCounter++}`;
+    this.emit("BEQ", "Relative", labelRef(doneL));
+    this.out.push(label(loopL));
+    this.emitWordShiftStep(op, signedShr, home);
+    this.emit("DEX", "Implied", none());
+    this.emit("BNE", "Relative", labelRef(loopL));
+    this.out.push(label(doneL));
+    this.clearRegs();
+  }
+
+  /** One byte shift step in A (`ASL`/`LSR`; signed right = sign-seeded `ROR`). */
+  private emitByteShiftStep(op: "shl" | "shr", signedShr: boolean): void {
+    if (op === "shl") {
+      this.emit("ASL", "Accumulator", none());
+      return;
+    }
+    if (!signedShr) {
+      this.emit("LSR", "Accumulator", none());
+      return;
+    }
+    // Arithmetic: seed the carry with the sign bit (A >= $80), then rotate.
+    this.emit("CMP", "Immediate", imm8(0x80));
+    this.emit("ROR", "Accumulator", none());
+  }
+
+  /** One word shift step in memory at `home` (lo/hi byte pair). */
+  private emitWordShiftStep(op: "shl" | "shr", signedShr: boolean, home: MemHome): void {
+    if (op === "shl") {
+      this.emit("ASL", "Absolute", symAt(home, 0));
+      this.emit("ROL", "Absolute", symAt(home, 1));
+      return;
+    }
+    if (!signedShr) {
+      this.emit("LSR", "Absolute", symAt(home, 1));
+      this.emit("ROR", "Absolute", symAt(home, 0));
+      return;
+    }
+    // Arithmetic: seed the carry with the high byte's sign, then rotate down.
+    this.emit("LDA", "Absolute", symAt(home, 1));
+    this.emit("CMP", "Immediate", imm8(0x80));
+    this.emit("ROR", "Absolute", symAt(home, 1));
+    this.emit("ROR", "Absolute", symAt(home, 0));
+  }
+
+  /** Copy a word operand into `home` (skipped when it already lives there). */
+  private copyWordToHome(value: ILOperand, home: MemHome): void {
+    const src = this.sourceHome(value);
+    if (src !== null && src.name === home.name && src.offset === home.offset) {
+      return; // shifting a variable back into itself — already in place
+    }
+    for (const i of [0, 1] as const) {
+      const ref = this.byteRefOf(value, i);
+      if (ref === null) {
+        this.iceUnsupported("word shift operand without a memory home");
+        return;
+      }
+      this.emit("LDA", ref.mode, ref.operand);
+      this.emit("STA", "Absolute", symAt(home, i));
+    }
+    this.clearRegs();
   }
 
   // ── Operand / register helpers ───────────────────────────────────────────────
@@ -631,14 +760,9 @@ class FunctionTranslator {
 
   /** Bring one byte (lo=0/hi=1) of a word ALU left operand into A. */
   private wordLeftByteIntoA(op: ILOperand, byteIndex: number): void {
-    const home = this.sourceHome(op);
-    if (home !== null) {
-      this.emit("LDA", "Absolute", symAt(home, byteIndex));
-      return;
-    }
-    if (isImmediate(op)) {
-      const v = byteIndex === 0 ? op.value & 0xff : (op.value >> 8) & 0xff;
-      this.emit("LDA", "Immediate", imm8(v));
+    const ref = this.byteRefOf(op, byteIndex); // homes, immediates, folded zext
+    if (ref !== null) {
+      this.emit("LDA", ref.mode, ref.operand);
       return;
     }
     if (byteIndex === 0 && isTemp(op) && this.regA === op.id) {
@@ -663,23 +787,26 @@ class FunctionTranslator {
     if (isTemp(value) && this.regA === value.id && this.regX === value.id) {
       return; // word already in A:X (e.g. a const-word result)
     }
-    const home = this.sourceHome(value);
-    if (home !== null) {
-      this.emit("LDA", "Absolute", symAt(home, 0));
-      this.emit("LDX", "Absolute", symAt(home, 1));
+    // Per-byte references cover memory homes, immediates, and folded
+    // zero-extensions (low byte from the source, high byte the constant 0).
+    const lo = this.byteRefOf(value, 0);
+    const hi = this.byteRefOf(value, 1);
+    if (lo !== null && hi !== null) {
+      this.emit("LDA", lo.mode, lo.operand);
+      this.emit("LDX", hi.mode, hi.operand);
       this.bindA(isTemp(value) ? value.id : null);
       this.bindX(isTemp(value) ? value.id : null);
-      return;
-    }
-    if (isImmediate(value)) {
-      this.emit("LDA", "Immediate", imm8(value.value & 0xff));
-      this.emit("LDX", "Immediate", imm8((value.value >> 8) & 0xff));
-      this.clearRegs();
     }
   }
 
-  /** A right ALU operand's read reference for the given byte index (lo=0/hi=1). */
-  private rightSource(op: ILOperand, byteIndex: number): SourceRef {
+  /**
+   * The read reference for one byte (lo=0/hi=1) of an operand, or `null` when
+   * the operand has no addressable byte source (register-resident temps).
+   * Covers immediates (split lo/hi), memory homes (locations + deferred
+   * loads), and folded zero-extensions (low byte delegates to the byte
+   * source; high byte is the constant 0).
+   */
+  private byteRefOf(op: ILOperand, byteIndex: number): SourceRef | null {
     if (isImmediate(op)) {
       const v = byteIndex === 0 ? op.value & 0xff : (op.value >> 8) & 0xff;
       return { operand: imm8(v), mode: "Immediate" };
@@ -687,6 +814,23 @@ class FunctionTranslator {
     const home = this.sourceHome(op);
     if (home !== null) {
       return { operand: symAt(home, byteIndex), mode: "Absolute" };
+    }
+    if (isTemp(op)) {
+      const conv = this.convSource.get(op.id);
+      if (conv !== undefined) {
+        return byteIndex === 0
+          ? this.byteRefOf(conv, 0)
+          : { operand: imm8(0), mode: "Immediate" };
+      }
+    }
+    return null;
+  }
+
+  /** A right ALU operand's read reference for the given byte index (lo=0/hi=1). */
+  private rightSource(op: ILOperand, byteIndex: number): SourceRef {
+    const ref = this.byteRefOf(op, byteIndex);
+    if (ref !== null) {
+      return ref;
     }
     if (isTemp(op)) {
       return { operand: this.binder.operandFor(op), mode: "ZeroPage" };
@@ -739,21 +883,45 @@ class FunctionTranslator {
     return null;
   }
 
-  // ── comparison (unsigned) ───────────────────────────────────────────────────
+  // ── comparisons — byte/word × unsigned/signed framings ─────────────────────
 
+  /**
+   * Translate a comparison. The instruction's `type` is the (promoted)
+   * OPERAND type — it selects the framing; the 0/1 result is always a byte
+   * in A. Equality is signedness-neutral (bit compare) at both widths;
+   * ordered comparisons dispatch to the carry framing (unsigned) or the
+   * N-xor-V framing (signed). All framings branch on the FRESH compare flag
+   * before any `LDA` (an `LDA` clobbers Z/N).
+   */
   private translateComparison(
     op: "eq" | "ne" | "lt" | "le" | "gt" | "ge",
     dest: ILOperand,
     left: ILOperand,
     right: ILOperand,
-    index: number,
-    all: readonly ILInstruction[],
+    type: ILType,
   ): void {
-    // Unsigned framing: gt/le compare with operands swapped (a>b ≡ b<a;
-    // a<=b ≡ b>=a). Branch taken ⇒ result is 1.
+    // gt/le compare with operands swapped (a>b ≡ b<a; a<=b ≡ b>=a) in every
+    // framing, so the emitters only implement lt/ge (and eq/ne).
     const swap = op === "gt" || op === "le";
     const lhs = swap ? right : left;
     const rhs = swap ? left : right;
+
+    if (type.width === 16) {
+      if (op === "eq" || op === "ne") {
+        this.wordEquality(op, dest, lhs, rhs);
+      } else if (type.signed) {
+        this.wordSignedOrdered(op, dest, lhs, rhs);
+      } else {
+        this.wordUnsignedOrdered(op, dest, lhs, rhs);
+      }
+      return;
+    }
+    if (type.signed && op !== "eq" && op !== "ne") {
+      this.byteSignedOrdered(op, dest, lhs, rhs);
+      return;
+    }
+
+    // 8-bit unsigned framing (and 8-bit equality — bit compare).
     const branch: Opcode =
       op === "eq" ? "BEQ" : op === "ne" ? "BNE" : op === "lt" || op === "gt" ? "BCC" : "BCS";
 
@@ -766,14 +934,7 @@ class FunctionTranslator {
       // flag, so branch on the FRESH compare flag first, then materialise 0/1.
       // `LDA #$01; B?? done; LDA #$00` would test the flag set by
       // `LDA #$01` (always Z=0) and never take the branch.
-      const trueL = `_cmp${this.cmpCounter++}`;
-      const endL = `_cmp${this.cmpCounter++}`;
-      this.emit(branch, "Relative", labelRef(trueL)); // condition true → A = 1
-      this.emit("LDA", "Immediate", imm8(0x00)); // false
-      this.emit("JMP", "Absolute", labelRef(endL));
-      this.out.push(label(trueL));
-      this.emit("LDA", "Immediate", imm8(0x01)); // true
-      this.out.push(label(endL));
+      this.materialiseOnBranch(branch);
     } else {
       // Carry-based (BCC/BCS): `LDA` preserves the carry flag, so the compact
       // form is correct — the branch tests the carry `CMP` set.
@@ -784,11 +945,264 @@ class FunctionTranslator {
       this.out.push(label(done));
     }
     this.bindA(asTempId(dest));
-    // The 0/1 result is a single-use value the following store consumes; the
-    // store fold (foldStoreHome) only applies to word ALUs, so emit the byte
-    // store path normally via the next `store` instruction (result in A).
-    void index;
-    void all;
+  }
+
+  /** Branch-taken ⇒ 1: materialise the 0/1 from a flag-fresh branch opcode. */
+  private materialiseOnBranch(branch: Opcode): void {
+    const trueL = `_cmp${this.cmpCounter++}`;
+    const endL = `_cmp${this.cmpCounter++}`;
+    this.emit(branch, "Relative", labelRef(trueL));
+    this.emit("LDA", "Immediate", imm8(0x00));
+    this.emit("JMP", "Absolute", labelRef(endL));
+    this.out.push(label(trueL));
+    this.emit("LDA", "Immediate", imm8(0x01));
+    this.out.push(label(endL));
+  }
+
+  /**
+   * 8-bit signed ordered comparison: `SEC · SBC · BVC skip · EOR #$80 · skip`
+   * leaves N = the true sign of lhs−rhs (the EOR corrects an overflowed
+   * subtraction), so `BMI` decides "less" and `BPL` decides "greater-or-equal".
+   */
+  private byteSignedOrdered(
+    op: "lt" | "le" | "gt" | "ge",
+    dest: ILOperand,
+    lhs: ILOperand,
+    rhs: ILOperand,
+  ): void {
+    const wantLess = op === "lt" || op === "gt"; // after the caller's swap
+    this.leftIntoA(lhs);
+    this.emit("SEC", "Implied", none());
+    const r = this.rightSource(rhs, 0);
+    this.emit("SBC", r.mode, r.operand);
+    const skipL = `_cmp${this.cmpCounter++}`;
+    this.emit("BVC", "Relative", labelRef(skipL));
+    this.emit("EOR", "Immediate", imm8(0x80));
+    this.out.push(label(skipL));
+    this.materialiseOnBranch(wantLess ? "BMI" : "BPL");
+    this.bindA(asTempId(dest));
+  }
+
+  /** 16-bit equality: low bytes decide fast, high bytes break the tie (Z-based). */
+  private wordEquality(op: "eq" | "ne", dest: ILOperand, lhs: ILOperand, rhs: ILOperand): void {
+    const diffL = `_cmp${this.cmpCounter++}`;
+    this.wordLeftByteIntoA(lhs, 0);
+    const rLo = this.rightSource(rhs, 0);
+    this.emit("CMP", rLo.mode, rLo.operand);
+    this.emit("BNE", "Relative", labelRef(diffL)); // low differs → not equal (Z=0)
+    this.wordLeftByteIntoA(lhs, 1);
+    const rHi = this.rightSource(rhs, 1);
+    this.emit("CMP", rHi.mode, rHi.operand);
+    this.out.push(label(diffL)); // Z now holds the full 16-bit equality
+    this.materialiseOnBranch(op === "eq" ? "BEQ" : "BNE");
+    this.clearRegs();
+    this.bindA(asTempId(dest));
+  }
+
+  /**
+   * 16-bit unsigned ordered comparison, high byte first: a differing high
+   * byte decides outright; equal high bytes fall through to the low-byte
+   * carry decision.
+   */
+  private wordUnsignedOrdered(
+    op: "lt" | "le" | "gt" | "ge",
+    dest: ILOperand,
+    lhs: ILOperand,
+    rhs: ILOperand,
+  ): void {
+    const wantLess = op === "lt" || op === "gt"; // after the caller's swap
+    const falseL = `_cmp${this.cmpCounter++}`;
+    const trueL = `_cmp${this.cmpCounter++}`;
+    const endL = `_cmp${this.cmpCounter++}`;
+
+    this.wordLeftByteIntoA(lhs, 1);
+    const rHi = this.rightSource(rhs, 1);
+    this.emit("CMP", rHi.mode, rHi.operand);
+    if (wantLess) {
+      this.emit("BCC", "Relative", labelRef(trueL)); // hi < → less
+      this.emit("BNE", "Relative", labelRef(falseL)); // hi > → not less
+    } else {
+      this.emit("BCC", "Relative", labelRef(falseL)); // hi < → not greater-or-equal
+      this.emit("BNE", "Relative", labelRef(trueL)); // hi > → greater-or-equal
+    }
+    this.wordLeftByteIntoA(lhs, 0);
+    const rLo = this.rightSource(rhs, 0);
+    this.emit("CMP", rLo.mode, rLo.operand);
+    this.emit(wantLess ? "BCC" : "BCS", "Relative", labelRef(trueL));
+    this.out.push(label(falseL));
+    this.emit("LDA", "Immediate", imm8(0x00));
+    this.emit("JMP", "Absolute", labelRef(endL));
+    this.out.push(label(trueL));
+    this.emit("LDA", "Immediate", imm8(0x01));
+    this.out.push(label(endL));
+    this.clearRegs();
+    this.bindA(asTempId(dest));
+  }
+
+  /**
+   * 16-bit signed ordered comparison: the low-byte `CMP` seeds the borrow,
+   * the high-byte `SBC` (an `LDA` in between preserves carry) produces N/V,
+   * and the `BVC`/`EOR #$80` correction leaves N = the true sign of lhs−rhs.
+   */
+  private wordSignedOrdered(
+    op: "lt" | "le" | "gt" | "ge",
+    dest: ILOperand,
+    lhs: ILOperand,
+    rhs: ILOperand,
+  ): void {
+    const wantLess = op === "lt" || op === "gt"; // after the caller's swap
+    this.wordLeftByteIntoA(lhs, 0);
+    const rLo = this.rightSource(rhs, 0);
+    this.emit("CMP", rLo.mode, rLo.operand);
+    this.wordLeftByteIntoA(lhs, 1);
+    const rHi = this.rightSource(rhs, 1);
+    this.emit("SBC", rHi.mode, rHi.operand);
+    const skipL = `_cmp${this.cmpCounter++}`;
+    this.emit("BVC", "Relative", labelRef(skipL));
+    this.emit("EOR", "Immediate", imm8(0x80));
+    this.out.push(label(skipL));
+    this.materialiseOnBranch(wantLess ? "BMI" : "BPL");
+    this.clearRegs();
+    this.bindA(asTempId(dest));
+  }
+
+  // ── unary ops + width conversions ───────────────────────────────────────────
+
+  /**
+   * Two's-complement negation. 8-bit runs in A (`EOR #$FF · CLC · ADC #$01`);
+   * 16-bit computes `0 − x` with borrow through the consuming store's home.
+   */
+  private translateNeg(
+    dest: ILOperand,
+    src: ILOperand,
+    type: ILType,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
+    if (type.width === 8) {
+      this.leftIntoA(src);
+      this.emit("EOR", "Immediate", imm8(0xff));
+      this.emit("CLC", "Implied", none());
+      this.emit("ADC", "Immediate", imm8(0x01));
+      this.bindA(asTempId(dest));
+      return;
+    }
+    const home = this.foldStoreHome(dest, index, all);
+    if (home === null) {
+      this.iceUnsupported("word negation result not consumed by a store");
+      return;
+    }
+    this.emit("SEC", "Implied", none());
+    this.emit("LDA", "Immediate", imm8(0x00));
+    const lo = this.rightSource(src, 0);
+    this.emit("SBC", lo.mode, lo.operand);
+    this.emit("STA", "Absolute", symAt(home, 0));
+    this.emit("LDA", "Immediate", imm8(0x00));
+    const hi = this.rightSource(src, 1);
+    this.emit("SBC", hi.mode, hi.operand);
+    this.emit("STA", "Absolute", symAt(home, 1));
+    this.clearRegs();
+  }
+
+  /** Bitwise complement: `EOR #$FF` in A (8-bit) or per byte through the home. */
+  private translateNot(
+    dest: ILOperand,
+    src: ILOperand,
+    type: ILType,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
+    if (type.width === 8) {
+      this.leftIntoA(src);
+      this.emit("EOR", "Immediate", imm8(0xff));
+      this.bindA(asTempId(dest));
+      return;
+    }
+    const home = this.foldStoreHome(dest, index, all);
+    if (home === null) {
+      this.iceUnsupported("word complement result not consumed by a store");
+      return;
+    }
+    for (const i of [0, 1] as const) {
+      this.wordLeftByteIntoA(src, i);
+      this.emit("EOR", "Immediate", imm8(0xff));
+      this.emit("STA", "Absolute", symAt(home, i));
+    }
+    this.clearRegs();
+  }
+
+  /**
+   * Zero-extension. A memory-homed or immediate byte source folds away
+   * entirely: consumers read the low byte from the source and the high byte
+   * as the constant 0 (see {@link byteRefOf}). An A-resident source binds
+   * A:X with a zero high byte for the store/return consumers.
+   */
+  private translateZext(dest: ILOperand, src: ILOperand): void {
+    const destId = asTempId(dest);
+    if (this.byteRefOf(src, 0) !== null) {
+      this.convSource.set(destId, src);
+      return; // zero instructions — the fold serves every per-byte reader
+    }
+    this.leftIntoA(src);
+    this.emit("LDX", "Immediate", imm8(0x00));
+    this.bindA(destId);
+    this.bindX(destId);
+  }
+
+  /**
+   * Sign-extension through the consuming store's home: store the low byte,
+   * then compute the sign byte branch-free — `ASL A` moves the sign into
+   * carry, `LDA #$00 · ADC #$FF` yields $00/$FF inverted, and the closing
+   * `EOR #$FF` corrects it to $00 (positive) / $FF (negative).
+   */
+  private translateSext(
+    dest: ILOperand,
+    src: ILOperand,
+    index: number,
+    all: readonly ILInstruction[],
+  ): void {
+    const home = this.foldStoreHome(dest, index, all);
+    if (home === null) {
+      this.iceUnsupported("word sign-extension result not consumed by a store");
+      return;
+    }
+    this.leftIntoA(src);
+    this.emit("STA", "Absolute", symAt(home, 0));
+    this.emit("ASL", "Accumulator", none());
+    this.emit("LDA", "Immediate", imm8(0x00));
+    this.emit("ADC", "Immediate", imm8(0xff));
+    this.emit("EOR", "Immediate", imm8(0xff));
+    this.emit("STA", "Absolute", symAt(home, 1));
+    this.clearRegs();
+  }
+
+  /** Truncation 16→8: read the source's LOW byte only (0 instructions when in A). */
+  private translateTrunc(dest: ILOperand, src: ILOperand): void {
+    const destId = asTempId(dest);
+    if (isTemp(src) && this.regA === src.id) {
+      this.bindA(destId); // the word's low byte is already in A
+      return;
+    }
+    const ref = this.byteRefOf(src, 0);
+    if (ref === null) {
+      this.iceUnsupported("trunc of a value without a memory home");
+      return;
+    }
+    this.emit("LDA", ref.mode, ref.operand);
+    this.bindA(destId);
+  }
+
+  /** Same-width re-type: bring the value into A (byte) or A:X (word), re-bind. */
+  private translateCopy(dest: ILOperand, src: ILOperand): void {
+    const destId = asTempId(dest);
+    if (widthOf(dest) === 8) {
+      this.leftIntoA(src);
+      this.bindA(destId);
+      return;
+    }
+    this.bringValueIntoRegisters(src, 16);
+    this.bindA(destId);
+    this.bindX(destId);
   }
 
   // ── mul / div / mod (call-site) ──────────────────────────────────────────────
