@@ -308,8 +308,33 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   `$C000..$C008 = E7 04 DA 05 07 00 01 44 00` on real VICE incl. the short-circuit
   suppression proof ($C005==$00, $C006==$01). Bonus defect fix: accumulator ops now
   render as the bare mnemonic (`ASL`, not `ASL A` — ACME parsed the `A` as a symbol).
-  **Next: RD-18 Slice 7** (arrays/structs/enums; needs `make_plan`), then Slice 8. RD-13
-  (non-functional sweep) / RD-14 (VS Code/LSP) remain queued. See
+  **Slice 7a (2026-07-12, 64/64)** shipped the aggregate DIRECT-addressing surface —
+  arrays/structs/enums end-to-end. Frontend: array literals parse everywhere aggregate
+  literals are legal (new `ArrayLitExpr`, 50→51 node kinds; `parseConstDecl` gained the
+  aggregate-literal flag; dotted `Mod.Type` annotations parse); module-keyed FQN
+  declaration tables (fixing the latent bare-name struct-collision defect); the unified
+  lazy memoised **const/type engine** (`semantics/const-type-engine.ts` — constants ⇄
+  struct layouts ⇄ enum values in ONE in-progress stack, one path-carrying E10165/E10194
+  per definition cycle; `sizeof`/`offsetof`/`length` fold through an injected
+  `ConstIntrinsicFolder` seam on `evalConst`, result typed by representability ≤255→byte,
+  ≥256→word); annotation resolution finalizes `Symbol.type` in place post-import (the
+  field is deliberately mutable); full aggregate typing (index E10114/E10115/E10117,
+  struct-literal declaration order E10097, nominal enum semantics with enum→byte the only
+  implicit, switch-on-enum E10077, W10140/W10141 advisories, E10157 statement-head
+  literals, permanent E10093/E10120 aggregate returns, loud aggregate-param rejection
+  pending 7b); aggregate const IMAGES (`ConstValue.bytes`, little-endian). Codegen:
+  `lowerPlace` resolves chains to base+offset(+scaled byte-index temp; pow-2 scales →
+  ASL+W10172, else `__rt_mul8`+W10170), literal-init stores/fill/per-byte struct copies
+  incl. the `__init` stream, `constData` → labeled `!byte` data streams after code;
+  translate gained the tier-1 `abs,X` framings under per-arm state obligations (prescan
+  def/read fixes for the load ops; X-mirror cleared before every LDX; byte-load results
+  homed via store-fold or binder ZP spill; register-resident word stores reject loudly;
+  `protectA()` spills live unhomed A temps at mul/const). Two-file `examples/slice7/`
+  verifies `$C000..$C009 = 0E 2A 08 02 06 02 01 14 0B 03` on real VICE (first run);
+  184-line golden; the indirect ops remain the documented pointer-tier ICE.
+  **Next: RD-18 Slice 7b** (pointer surface — by-ref/const params, tier-2 `(zp),Y`
+  indexing for >256-byte arrays, unsized array params; needs `make_plan`), then Slice 8.
+  RD-13 (non-functional sweep) / RD-14 (VS Code/LSP) remain queued. See
   `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI still has NO emulator tier (AR-27): the RD-12 emulator/RD-17 suites are
   `describe.skipIf(!hasVice()[||!hasAcme()])` — they skip in CI and are proven green

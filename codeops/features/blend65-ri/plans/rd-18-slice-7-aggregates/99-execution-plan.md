@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 00:47
-> **Progress**: 60/64 tasks (94%) — Phases 1-7 ✅ COMPLETE (3-part acceptance bar GREEN on real VICE)
+> **Last Updated**: 2026-07-12 00:53
+> **Progress**: 64/64 tasks (100%) — ✅ PLAN COMPLETE (3-part acceptance bar GREEN on real VICE; rollout reconciled)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -232,10 +232,10 @@ All seven prior slice goldens must remain byte-exact at every phase boundary.
 ## Phase 8: Rollout bookkeeping
 
 **Reference**: 01-requirements §Acceptance · roadmap skill
-- [ ] 8.1.1 Ledger reconciliation: advance the Ch-07/08/09, §12 (R88–R94), §14 (R101–R105) rows + AC-10/11/14/19/20 to their 7a state with 7b-remainder notes — `codeops/_archive/rd-04-semantic-analysis/08-deferred-semantics-ledger.md`
-- [ ] 8.1.2 RD-18 acceptance item 6 annotated "7a complete (scope per plan); closes at 7b"; parent-RD AC ticks (RD-05 AC-02, RD-06 AC-17, RD-07 AC-02/AC-17 partial) — `codeops/features/blend65-ri/requirements/RD-18-codegen-language-completion.md`
-- [ ] 8.1.3 Roadmap update (feature + portfolio) per the roadmap skill — `codeops/features/blend65-ri/00-roadmap.md`, `codeops/00-roadmap.md`
-- [ ] 8.1.4 CLAUDE.md + auto-memory refresh (slice-7a summary, next = 7b make_plan)
+- [x] 8.1.1 Ledger reconciliation: advance the Ch-07/08/09, §12 (R88–R94), §14 (R101–R105) rows + AC-10/11/14/19/20 to their 7a state with 7b-remainder notes — `codeops/_archive/rd-04-semantic-analysis/08-deferred-semantics-ledger.md` ✅ (completed: 2026-07-12 00:53 — 23 rows advanced: R18/R35/R37/R38/R56/R57/R60/R62/R64/R68/R69/R76/R88–R94/R101–R105, each with the 7a state and pointer-tier remainder notes where applicable)
+- [x] 8.1.2 RD-18 acceptance item 6 annotated "7a complete (scope per plan); closes at 7b"; parent-RD AC ticks (RD-05 AC-02, RD-06 AC-17, RD-07 AC-02/AC-17 partial) — `codeops/features/blend65-ri/requirements/RD-18-codegen-language-completion.md` ✅ (completed: 2026-07-12 00:53 — item 6 annotated with the VICE evidence; RD-05 AC-02 + RD-06 AC-02/AC-17 carry 7a-contribution notes)
+- [x] 8.1.3 Roadmap update (feature + portfolio) per the roadmap skill — `codeops/features/blend65-ri/00-roadmap.md`, `codeops/00-roadmap.md` ✅ (completed: 2026-07-12 00:53 — feature lead entry + RD-18 table row → ✅ COMPLETE; portfolio cascaded)
+- [x] 8.1.4 CLAUDE.md + auto-memory refresh (slice-7a summary, next = 7b make_plan) ✅ (completed: 2026-07-12 00:53 — CLAUDE.md Slice-7a paragraph + Next→7b; memory description/UPDATE entry/index refreshed)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

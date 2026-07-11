@@ -218,7 +218,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R15 | Lookup order (innermost-first) | ⛔ DEFERRED | 3 | — |
 | R16 | Undeclared identifier | ⛔ DEFERRED | 3 | E10100 |
 | R17 | Qualified access `Module.name` | ✅ **RD-18 Slice 5b** — value-first `resolveQualified` (a value symbol shadowing the head wins); unknown head → E10100, missing/non-exported member → E10012; calls/reads/writes share the bare-name ladder + call-graph/SFA machinery; function member as value → unsupported ICE (Slice 8 `&fn`) | 3 | E10100, E10012 |
-| R18 | Enum member access `Enum.Member` | ⛔ DEFERRED | 3 | — |
+| R18 | Enum member access `Enum.Member` | ✅ **RD-18 Slice 7a** — enum-type heads classify in the field-access ladder; members fold to their backing byte (E10160 unknown member); qualified `Mod.Enum.Member` chains resolve | 3 | E10160 |
 | R19 | Intrinsic names reserved (shadowing) | ⛔ DEFERRED | 1/3 | E10101 |
 
 ## 4. Module resolution (RD-04 §3.4)
@@ -250,10 +250,10 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R32 | No implicit narrowing | ✅ **RD-18 Slice 6** — narrowing rejected under the real widening rule (explicit cast required) | 3 | E10154 |
 | R33 | Mixed signedness error | ✅ **RD-18 Slice 6** — cross-sign assignment E10153; cross-sign operands E10081 (live since 3b, kept under the widening rule) | 3 | E10153 |
 | R34 | Bool not numeric | ⛔ DEFERRED | 3 | E10080 |
-| R35 | Void is return-type only | ⛔ DEFERRED | 2/3 | E10151 / type error |
+| R35 | Void is return-type only | ✅ **RD-18 Slice 7a** — `void` rejected in variable/field/element positions (E10156, additive mint) | 2/3 | E10156 |
 | R36 | Assignment compatibility | ⛔ DEFERRED — `isAssignableTo` stub | 3 | E10152 |
-| R37 | Struct assignment (same type) | ⛔ DEFERRED | 3 | E10152 |
-| R38 | No struct equality | ⛔ DEFERRED | 3 | E10080 |
+| R37 | Struct assignment (same type) | ✅ **RD-18 Slice 7a** — nominal same-struct assignment is an unrolled per-byte COPY (literals initialise per field); different struct → E10152 | 3 | E10152 |
+| R38 | No struct equality | ✅ **RD-18 Slice 7a** — struct comparison rejected E10080 | 3 | E10080 |
 | R39 | Enum↔byte cast required | ⛔ DEFERRED | 3 | E10152 |
 
 ## 7. Explicit cast rules (RD-04 §3.7)
@@ -281,25 +281,25 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R53 | Shift operators | ✅ **RD-18 Slice 6** — result = left type; unsigned amount required (E10083); const amount ≥ width → W10174; word + variable-count + arithmetic-shr codegen | 3 | E10083 |
 | R54 | Assignment operators (l-value, const) | ✅ **RD-18 Slice 6** — completed with TS-17 compound assignment (expanded-form class semantics; write-back narrowing → E10154; const target → E10191) | 3 | E10191 |
 | R55 | Conditional expression | ✅ **RD-18 Slice 6** — E10134 non-boolean condition; E10088 arm mismatch; context-typed arms; selected-arm-only via the diamond CFG | 3 | E10088, E10134 |
-| R56 | Field access | ⛔ DEFERRED | 3 | E10160 |
-| R57 | Index expression | ⛔ DEFERRED | 3 | E10114, E10115 |
+| R56 | Field access | ✅ **RD-18 Slice 7a** — struct-field typing/lowering (offset locations), nested chains, typeMap-complete | 3 | E10160 |
+| R57 | Index expression | ✅ **RD-18 Slice 7a** (direct tier) — byte indexes on ≤256-byte arrays: const indexes fold to static offsets, runtime indexes ride `abs,X` with lowering-owned scaling; E10114 signed/boolean, E10117 word-on-tier-1, E10115 static bounds; tier-2 (>256 B, `(zp),Y`) follows with the pointer surface | 3 | E10114, E10115, E10117 |
 | R58 | Function call | ✅ **RD-18 Slice 5a** — `typeCall` ladder `E10100`→`E10051`(interrupt)→`E10023`(main)→`E10175`(not callable); count `E10170` (suppresses per-arg checks); strict same-type args `E10171` + const range `E10084`; result = declared return type | 3 | E10170, E10171 |
 | R59 | Intrinsic call | ⛔ DEFERRED — needs RD-17 descriptors | 3 | E10040, E10041 |
-| R60 | `sizeof(T)` | ⛔ DEFERRED | 3 | — |
+| R60 | `sizeof(T)` | ✅ **RD-18 Slice 7a** — `sizeof`/`offsetof`/`length` fold through the const/type engine (value-dependent result typing: ≤255 byte, ≥256 word); legal in const/size positions | 3 | — |
 | R61 | Identifier expression | ⛔ DEFERRED | 3 | E10100 |
-| R62 | Struct literal | ⛔ DEFERRED | 3 | E10161, E10162, E10152 |
+| R62 | Struct literal | ✅ **RD-18 Slice 7a** — all fields present (E10161), no extras (E10162), declaration order (E10097 — the chapter's own number), field values assignable (E10152); nested literals recurse | 3 | E10161, E10162, E10097, E10152 |
 
 ## 9. Declaration validation (RD-04 §3.9)
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
 | R63 | `let` variable | ⛔ DEFERRED | 3 | E10150, E10152 |
-| R64 | `const` constant | 🟡 **RD-18 Slice 5b (scalar subset)** — module consts compile-time evaluated (VAR-6 declaration-order independent), E10193 non-const initializer, E10191 assign-to-const (incl. qualified targets), values inlined (no storage); E10192 parser-owned (initialiser non-null by AST shape); aggregate consts with Slice 7 | 3 | E10150, E10192, E10193, E10191 |
+| R64 | `const` constant | ✅ **RD-18 Slice 5b (scalars) + 7a (aggregates)** — scalars evaluate + inline (VAR-6, E10193/E10191; E10192 parser-owned); aggregate consts fold into little-endian memory IMAGES baked in-image under `__data_<Module>_<name>` labels (E10113 coverage, E10084 element range); element/field writes through a const root are E10191 | 3 | E10150, E10192, E10193, E10191, E10113 |
 | R65 | Function declaration | 🟡 **RD-18 Slice 5a** — parameters collected as `parameter` symbols (params before locals), duplicate → `E10003`; **no parameter-count limit** (R65's "max 8 → E10175" is spec-refuted by FN-11; E10175 renamed `NotCallable`, see the 5a banner); nested-function rejection stays parser-owned | 1/3 | E10003 |
 | R66 | `main()` function | ✅ **RD-18 Slice 3b + 5a** — validity `E10020`/`E10021`/`E10022` (3b, Pass 4); calling `main` directly → `E10023` at the call site (5a) | 4 | E10020, E10021, E10023 |
 | R67 | Interrupt function | ⛔ DEFERRED | 3 | — |
-| R68 | Struct declaration (+ no recursion) | ⛔ DEFERRED | 2 | E10003, E10163 |
-| R69 | Enum declaration | ⛔ DEFERRED | 2 | E10003, E10140, E10141, E10142, E10143 |
+| R68 | Struct declaration (+ no recursion) | ✅ **RD-18 Slice 7a** — module-keyed FQN tables (the bare-name collision defect fixed), duplicate fields E10003, recursive layouts ONE path-carrying E10165 per cycle (the silent zero-size placeholder removed) | 2 | E10003, E10165 |
+| R69 | Enum declaration | ✅ **RD-18 Slice 7a** — member values via the engine (consts legal), E10230 non-const, E10143 range/auto-overflow, duplicate names E10003; duplicate VALUES legal per EN-5 (E10142/E10141 stay registered-unwired, chapters-beat-registry) | 2 | E10003, E10143, E10230 |
 | R70 | Struct passing by reference | ⛔ DEFERRED — `Symbol.byRef` exists, unset | 3 | — |
 
 ## 10. Statement validation (RD-04 §3.10)
@@ -311,7 +311,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R73 | Do-while condition bool | ✅ **RD-18 Slice 4a** — `E10134` | 3 | E10134 |
 | R74 | For-loop counter/bounds | ✅ **RD-18 Slice 4a** — end-bound `E10064`, step `E10061`, counter-type `E10065` (AR-8/AR-15) | 3 | E10064/E10061/E10065 |
 | R75 | Switch expr + case values | ✅ **RD-18 Slice 4b** — operand-type `E10075`, non-const case `E10071`, case-const range `E10084`, duplicate `E10132`; `E10077` (case-type-match) registered/wired, emission deferred to Slice 7 (AR-4/PF-002) | 3 | E10075/E10071/E10084/E10132 (+E10077) |
-| R76 | Exhaustive enum switch | ⛔ DEFERRED → Slice 7 (enum types, AR-2) | 3 | E10133 |
+| R76 | Exhaustive enum switch | ✅ **RD-18 Slice 7a (resolved: NO enforcement)** — Ch 09 §8 mandates no exhaustiveness; enum discriminants dispatch, case values must be members of THAT enum (E10077 first live emission); E10133 stays registered-unwired | 3 | E10077 (E10133 unwired) |
 | R77 | `break` context | ✅ **RD-18 Slice 4a** — E10130 (loop-depth tracking); switch-transparent (RD-18 Slice 4b, AR-6) | 3 | E10130 |
 | R78 | `continue` context | ✅ **RD-18 Slice 4a** — E10131 | 3 | E10131 |
 | R79 | `fallthrough` context | ✅ **RD-18 Slice 4b** — position `E10074`, no-effect warning `E10073` (AR-3/AR-7; Parked-Q4 dissolved) | 3 | E10074/E10073 |
@@ -333,12 +333,12 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R88 | Const evaluator exists | ⛔ DEFERRED | 3 | — |
-| R89 | Const-required contexts | ⛔ DEFERRED | 3 | E10110, E10193 |
-| R90 | Const-evaluable grammar | ⛔ DEFERRED | 3 | — |
-| R91 | Non-const in const context | ⛔ DEFERRED | 3 | E10193 |
-| R92 | Division by zero (const) | ⛔ DEFERRED | 3 | E10082 |
-| R93 | Integer overflow wrapping | ⛔ DEFERRED | 3 | — (defined behavior) |
+| R88 | Const evaluator exists | ✅ **RD-18 Slice 7a** — the unified lazy memoised const/type engine (constants ⇄ struct layouts ⇄ enum values), linear work, ONE path-carrying diagnostic per cycle | 3 | — |
+| R89 | Const-required contexts | ✅ **RD-18 Slice 7a** — array sizes, const initialisers, enum member values, case labels all evaluate through the engine | 3 | E10110, E10193 |
+| R90 | Const-evaluable grammar | ✅ **RD-18 Slice 7a** — arithmetic/bitwise/shift/compare/ternary/casts (Slice 6) + refs, enum members, and the query intrinsics (engine folder seam) | 3 | — |
+| R91 | Non-const in const context | ✅ **RD-18 Slice 7a** — E10193 at the offending element/initialiser; poisoned refs stay silent (one root cause) | 3 | E10193 |
+| R92 | Division by zero (const) | ✅ **RD-18 Slice 5b/7a** — E10082 through the shared range/div-zero check | 3 | E10082 |
+| R93 | Integer overflow wrapping | ✅ **RD-18 Slice 6/7a** — two's-complement width-aware folds (`toBits`/`fromBits`); images encode wrapped little-endian bytes | 3 | — (defined behavior) |
 | R94 | `ConstValue` result | ✅ IMPLEMENTED (interface) | 3 (fill) | — |
 
 ## 13. Intrinsic validation (RD-04 §3.13)
@@ -356,11 +356,11 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R101 | Array size const ≥ 1 | ⛔ DEFERRED | 3 | E10110, E10111, E10112 |
-| R102 | Array initializer match | ⛔ DEFERRED | 3 | — |
-| R103 | Const array fully initialized | ⛔ DEFERRED | 3 | E10113 |
-| R104 | Array index type | ⛔ DEFERRED | 3 | E10114 |
-| R105 | Static bounds checking | ⛔ DEFERRED | 3 | E10115 |
+| R101 | Array size const ≥ 1 | ✅ **RD-18 Slice 7a** — const-expression sizes via the engine; E10110 non-const, E10111 zero; >256-byte totals loudly rejected pending the pointer tier (E10112 remains unwired — unreachable under the 256-byte cap) | 3 | E10110, E10111 |
+| R102 | Array initializer match | ✅ **RD-18 Slice 7a** — contextual literal typing: element/fill assignability, count>size mismatch, W10140 partial, E10113 const coverage, E10126 fill-needs-size, unsized-size inference | 3 | E10113, E10126, W10140 |
+| R103 | Const array fully initialized | ✅ **RD-18 Slice 7a** — image builder enforces full coverage (elements + fill); images bake into `__data_*` `!byte` blocks | 3 | E10113 |
+| R104 | Array index type | ✅ **RD-18 Slice 7a** — unsigned integer indexes only (E10114 signed/boolean; E10117 word-on-direct-tier with the byte-cast remedy; E10118 registered for the pointer tier) | 3 | E10114, E10117 |
+| R105 | Static bounds checking | ✅ **RD-18 Slice 7a** — const indexes fold and bounds-check 0..size-1 (E10115); the runtime `--bounds-check` flag remains deferred (no trap ABI) | 3 | E10115 |
 | R106 | `embed()` const context | ⛔ DEFERRED | 3 | E10200 |
 | R107 | `embed()` file resolution | ⛔ DEFERRED — see Parked Q2 | 3 | E10201 |
 | R108 | `embed()` size | ⛔ DEFERRED | 3 | E10202 |

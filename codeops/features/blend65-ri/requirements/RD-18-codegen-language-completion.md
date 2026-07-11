@@ -396,6 +396,11 @@ passes and the parent-RD ACs it advances are ticked.
 6. [ ] **Slice 7**: array/struct/enum programs VICE-verify (indexed read/write, member access,
        enum-dispatch); `length`/`offsetof`/`sizeof` fold to correct constants; a `const byte[N]`
        with `N` a const-expression sizes correctly (const evaluator); ASM golden committed.
+       **7a complete (2026-07-12, direct-addressing surface per plan)** — everything above VICE-verified on the
+       two-file `examples/slice7/` fixture (`$C000..$C009 = 0E 2A 08 02 06 02 01 14 0B 03`,
+       incl. the cross-module const-table read and whole-struct copy semantics); 184-line golden
+       committed; **closes at 7b** (by-ref/const params, tier-2 `(zp),Y` indexing for >256-byte
+       arrays, unsized array params).
 7. [ ] **Slice 8**: a raster-`interrupt` program installed via `pokew($0314, &onIRQ)` VICE-verifies
        an observable effect (border color flips across frames); `zeropage {}` variables land in ZP;
        `embed()` rejects `..` traversal; a non-terminating `main` runs under the frames strategy.

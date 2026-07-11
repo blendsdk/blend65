@@ -658,7 +658,7 @@ All diagnostics emitted by the SFA planner, with codes from Ch 14:
 ## 6. Acceptance Criteria
 
 - [ ] AC-01: `planAllocation()` accepts a `SemanticModel` and `PlatformProfile` and returns an `AllocationPlan`
-- [ ] AC-02: Every function with parameters or locals gets a `FunctionFrame` with correct slot sizes per the Ch 11 §3.3 type-size table
+- [ ] AC-02: Every function with parameters or locals gets a `FunctionFrame` with correct slot sizes per the Ch 11 §3.3 type-size table *(aggregate locals verified by RD-18 Slice 7a — arrays/structs size by byteSize, contiguous, no padding)*
 - [ ] AC-03: Frame coloring produces non-overlapping allocations for interfering functions and overlapping allocations for non-interfering functions
 - [ ] AC-04: Interrupt-handler frames never share memory with any other function's frame
 - [ ] AC-05: Address-taken functions (escape set) never share memory with any other function's frame

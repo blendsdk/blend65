@@ -579,7 +579,7 @@ does NOT depend on this package.
 ## 6. Acceptance Criteria
 
 - [ ] AC-01: `lowerToIL()` accepts a `SemanticModel` + `AllocationPlan` and returns an `ILProgram`
-- [ ] AC-02: Every AST node kind that produces runtime behavior has a defined IL lowering (no "not implemented" gaps for supported language features)
+- [ ] AC-02: Every AST node kind that produces runtime behavior has a defined IL lowering (no "not implemented" gaps for supported language features) *(RD-18 Slice 7a closed the aggregate gaps: Index/StructLit/ArrayLit/field chains lower; the indirect pointer tier remains the documented boundary until 7b)*
 - [ ] AC-03: All IL instructions carry explicit `ILType` annotations (width + signedness)
 - [ ] AC-04: Type promotions (byte→word, sbyte→sword) produce explicit `zext`/`sext` instructions
 - [ ] AC-05: Explicit casts produce the correct conversion instruction (`zext`/`sext`/`trunc`/no-op)
@@ -594,7 +594,7 @@ does NOT depend on this package.
 - [ ] AC-14: The IL optimizer pipeline accepts passes and runs them in sequence (v1 = passthrough)
 - [ ] AC-15: Functions with semantic errors are skipped during lowering (error tolerance)
 - [ ] AC-16: The `ILProgram` carries the `AllocationPlan` reference for downstream codegen
-- [ ] AC-17: Unit tests cover IL lowering for each major AST construct (arithmetic, control flow, function calls, struct/array access, intrinsics)
+- [ ] AC-17: Unit tests cover IL lowering for each major AST construct (arithmetic, control flow, function calls, struct/array access, intrinsics) *(struct/array access covered by RD-18 Slice 7a — indexed reads/writes, member chains, literal initialisation, const-data images; the remaining constructs were covered by earlier slices)*
 - [ ] AC-18: Golden-snapshot tests assert IL textual output for representative programs (AR-22 tier 2)
 - [ ] AC-19: All decisions trace to an `AR-NN` or a frozen spec section
 
