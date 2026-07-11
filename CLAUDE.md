@@ -291,8 +291,24 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   shared shim + all five plugins; initializer-free output byte-identical — all prior
   goldens unchanged; `--startup bare` is user-owned). `examples/slice5b/` (a module
   spanning two files) verifies `$C000..$C006 = 05/08/07/02/01/03/01` on real VICE.
-  **Next: RD-18 Slice 6** (expressions — `&&`/`||` short-circuit, compound assign, unary,
-  casts, ternary, mixed-width promotion; needs `make_plan`), then slices 7→8. RD-13
+  **Slice 6 (2026-07-11, 52/52)** shipped the full expression system, **closing RD-18
+  AC-5**: the complete binary matrix + TS-4 mixed-width promotion under ONE
+  `isAssignableTo` rule (args/returns too — the 5a strict-arg interim superseded), unary
+  `- ! ~` (E10087), FR-40 `<type>(expr)` casts (E10086/E10155), the ternary
+  (E10134/E10088), TS-17 compound assignment, width-aware const-eval (`const-eval.ts`
+  gains a `ConstTypeLookup` seam + exported `toBits`/`fromBits`; lazy `&&`/`||`/
+  selected-arm-ternary folds), the short-circuit **guarantee** lowered as CFG diamonds
+  over synthetic `0sc<N>` SFA frame slots (`model-adapter.ts` preorder collection +
+  `__init` pseudo-frame; name + byte-size parity ICE guards), comparisons stamped with
+  the promoted OPERAND type at all three emission sites + all four byte/word ×
+  unsigned/signed translate framings (fixing the latent word-compare low-bytes-only
+  miscompile), signed `/`/`%` → loud lowering ICE, non-const `lo`/`hi`, word +
+  variable-count shifts, zext as a zero-cost fold, and warnings
+  W10160/W10161/W10101/W10174. `examples/slice6/main.blend` verifies
+  `$C000..$C008 = E7 04 DA 05 07 00 01 44 00` on real VICE incl. the short-circuit
+  suppression proof ($C005==$00, $C006==$01). Bonus defect fix: accumulator ops now
+  render as the bare mnemonic (`ASL`, not `ASL A` — ACME parsed the `A` as a symbol).
+  **Next: RD-18 Slice 7** (arrays/structs/enums; needs `make_plan`), then Slice 8. RD-13
   (non-functional sweep) / RD-14 (VS Code/LSP) remain queued. See
   `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI still has NO emulator tier (AR-27): the RD-12 emulator/RD-17 suites are

@@ -361,9 +361,38 @@ passes and the parent-RD ACs it advances are ticked.
        qualified word read, qualified word write); byte-exact ASM golden committed. Six negatives
        through `compile()`: E10194+path / E10012 / E10100 / call-bearing-init ICE / cross-file-dup
        E10003 / E10193.
-5. [ ] **Slice 6**: an expression-heavy program (`&&`/`\|\|` short-circuit, compound assign, unary,
+5. [x] **Slice 6**: an expression-heavy program (`&&`/`\|\|` short-circuit, compound assign, unary,
        casts, ternary, mixed-width promotion, word shifts) VICE-verifies the exact arithmetic
        result; short-circuit is observable (RHS side effect suppressed); ASM golden committed.
+       ✅ **RD-18 Slice 6 (2026-07-11, exec_plan 52/52).** The full expression system ships
+       end-to-end: the complete binary matrix (comparisons/logical/bitwise/shifts joining
+       arithmetic) with TS-4 mixed-width promotion under ONE `isAssignableTo` rule
+       (assignments/initialisers/arguments/returns — supersedes 5a's strict-arg interim), unary
+       `- ! ~` (negate-unsigned → E10087), FR-40 `<type>(expr)` casts (boolean↔integer →
+       E10086; void/aggregate → E10155), the conditional operator (E10134/E10088), TS-17
+       compound assignment, width-aware const evaluation (two's-complement folds for
+       `~`/shifts/casts/negative-operand bitwise; lazy `&&`/`||`/selected-arm ternary), and the
+       short-circuit GUARANTEE lowered as CFG diamonds over synthetic `0sc<N>` SFA frame slots
+       (preorder count + byte-size parity guards — drift rejects loudly, never mis-addresses).
+       Comparisons carry their OPERAND type through IL at all three emission sites (binary,
+       for-loop predicate, switch dispatch), and translate grew all four byte/word ×
+       unsigned/signed framings — fixing the latent word-compare defect (word operands were
+       compared low-bytes-only). Signed `/`/`%` is a loud lowering rejection (unsigned runtime
+       routines only; signed `*` stays — truncated multiply is bit-exact). New advisories
+       W10160/W10161 (intermediate overflow), W10101 (narrowing cast truncates), W10174 (shift
+       ≥ width). `examples/slice6/main.blend` proves the 3-part bar on **real VICE 3.10**:
+       `$C000..$C008 = E7 04 DA 05 07 00 01 44 00` — $C005=$00 is the suppression proof (the
+       side-effecting helper provably not called on two short-circuit paths) and $C006=$01
+       proves it then ran exactly once; 293-line byte-exact ASM golden committed; all six prior
+       slice goldens stayed byte-exact with NO re-mint. Nine negatives/advisories through the
+       public facades (E10081/E10080/E10087/E10086/E10088/E10083, the signed-div lowering
+       rejection via `emitIl`, W10160/W10174 compile-with-warning). **Resource delta
+       (ResourceReport):** 30 B RAM data at $2000 (1 B module var + 29 B frame region, of which
+       8 B are the synthetic short-circuit/ternary slots), ZP 10 B unchanged, stack worst-case
+       4 B, binary 535 B — no new runtime routines (nothing multiplies/divides). Two latent
+       defects fixed en route: the word-compare stamping above, and the ACME accumulator-mode
+       rendering (`ASL A` → bare `ASL`; the explicit `A` parsed as an undefined symbol — exposed
+       by the fixture's first real assembly of an accumulator op).
 6. [ ] **Slice 7**: array/struct/enum programs VICE-verify (indexed read/write, member access,
        enum-dispatch); `length`/`offsetof`/`sizeof` fold to correct constants; a `const byte[N]`
        with `N` a const-expression sizes correctly (const evaluator); ASM golden committed.

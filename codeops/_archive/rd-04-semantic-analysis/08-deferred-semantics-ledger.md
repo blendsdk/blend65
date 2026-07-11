@@ -3,8 +3,36 @@
 > **Document**: 08-deferred-semantics-ledger.md
 > **Parent**: [Index](00-index.md)
 > **Status**: AUTHORITATIVE — the single map of what the passthrough skeleton does NOT implement
-> **Last Updated**: 2026-07-11 (RD-18 Slice 5b advancement annotated)
+> **Last Updated**: 2026-07-11 (RD-18 Slice 6 advancement annotated)
 
+> **🟢 RD-18 Slice 6 (2026-07-11) advanced the expression-system subset of this ledger.** The
+> full operator matrix, TS-4 mixed-width promotion, casts, the conditional operator, compound
+> assignment, and the short-circuit guarantee now ship end-to-end (typing → width-aware
+> const-eval → synthetic-slot CFG lowering → all four comparison framings in codegen →
+> VICE-verified) — see `codeops/features/blend65-ri/plans/rd-18-slice-6-expressions/` (closes
+> RD-18 AC-5). **Rows advanced:** R31 widening promotion (ONE `isAssignableTo`/`commonType`
+> rule — byte→word / sbyte→sword implicit everywhere assignment compatibility applies,
+> arguments/returns included, superseding 5a's strict-arg interim); R32 narrowing → **E10154**
+> and R33 cross-sign → **E10153** under the real (non-interim) rule; R41/R42/R43 casts (the
+> shipped surface is the prefix `<type>(expr)` form — integer↔integer allowed incl. same-width
+> reinterpretation, boolean↔integer → **E10086**, void/struct/array → **E10155**; enum casts
+> stay deferred to Slice 7; R40's `as`-form is recorded spec drift — `as` is not in the frozen
+> keyword table); R49 completed beyond the 3b same-type subset (promotion in; boolean → E10080,
+> mixed-sign → E10081); R50 comparisons (boolean result, promotion, `boolean` equality-only —
+> ordered boolean → **E10080**; byte/word × unsigned/signed framings in codegen, fixing the
+> latent word-compare low-bytes-only defect); R51 logical `&&`/`||` (boolean operands →
+> **E10080**; the short-circuit GUARANTEE lowered as CFG diamonds over synthetic SFA slots —
+> VICE-witnessed suppression); R52 bitwise (integer operands; width-aware const folds); R53
+> shifts (result = left type; signed amount → **E10083**; const amount ≥ width → **W10174**;
+> word + variable-count codegen); R54 completed with TS-17 compound assignment (expanded-form
+> class semantics, write-back narrowing → E10154, const target → E10191); R55 the conditional
+> operator (**E10134** non-boolean condition, **E10088** arm mismatch, context-typed arms,
+> selected-arm-only evaluation via the diamond CFG). New advisories: **W10160/W10161**
+> (intermediate overflow, TS-9) at init/assign/arg/return sites and **W10101** (narrowing cast
+> truncates a constant). Unary `- ! ~` live (negate-unsigned → **E10087**); signed `/`/`%` is a
+> loud lowering rejection (unsigned runtime routines only); `&` address-of stays deferred
+> (Slice 8).
+>
 > **🟢 RD-18 Slice 5b (2026-07-11) advanced the module-system subset of this ledger.** Module
 > merging, qualified access, call-free module-variable initializers with per-variable init order,
 > and scalar const completion now ship end-to-end — see
@@ -218,9 +246,9 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
 | R30 | No type inference (annotation required) | ⛔ DEFERRED | 3 | E10150 |
-| R31 | Widening promotion (byte→word, sbyte→sword) | ⛔ DEFERRED — `commonType` stub | 3 | — |
-| R32 | No implicit narrowing | ⛔ DEFERRED | 3 | E10154 |
-| R33 | Mixed signedness error | ⛔ DEFERRED | 3 | E10153 |
+| R31 | Widening promotion (byte→word, sbyte→sword) | ✅ **RD-18 Slice 6** — TS-4 promotion in `commonType` + implicit same-sign widening in `isAssignableTo` (ONE rule: assignments/initialisers/arguments/returns) | 3 | — |
+| R32 | No implicit narrowing | ✅ **RD-18 Slice 6** — narrowing rejected under the real widening rule (explicit cast required) | 3 | E10154 |
+| R33 | Mixed signedness error | ✅ **RD-18 Slice 6** — cross-sign assignment E10153; cross-sign operands E10081 (live since 3b, kept under the widening rule) | 3 | E10153 |
 | R34 | Bool not numeric | ⛔ DEFERRED | 3 | E10080 |
 | R35 | Void is return-type only | ⛔ DEFERRED | 2/3 | E10151 / type error |
 | R36 | Assignment compatibility | ⛔ DEFERRED — `isAssignableTo` stub | 3 | E10152 |
@@ -232,10 +260,10 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R40 | `as` is the only explicit conversion | ⛔ DEFERRED | 3 | — |
-| R41 | Allowed-cast list | ⛔ DEFERRED | 3 | — |
-| R42 | Cast not in list | ⛔ DEFERRED | 3 | E10155 |
-| R43 | void/struct/enum/array casts invalid | ⛔ DEFERRED | 3 | E10155 |
+| R40 | `as` is the only explicit conversion | ⚠️ **SPEC DRIFT (RD-18 Slice 6)** — the shipped cast surface is the parser's prefix `<type>(expr)` form; `as` is not in the frozen keyword table (errata-pass item) | 3 | — |
+| R41 | Allowed-cast list | ✅ **RD-18 Slice 6** — integer↔integer (all pairs incl. same-width reinterpret); enum casts deferred to Slice 7 | 3 | — |
+| R42 | Cast not in list | ✅ **RD-18 Slice 6** — boolean↔integer → E10086; void/struct/array → E10155 | 3 | E10086, E10155 |
+| R43 | void/struct/enum/array casts invalid | ✅ **RD-18 Slice 6** — void/struct/array → E10155 (enum cast legality is the Slice-7 exception) | 3 | E10155 |
 
 ## 8. Expression typing (RD-04 §3.8)
 
@@ -246,13 +274,13 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R46 | Boolean literal → bool | ⛔ DEFERRED | 3 | — |
 | R47 | Char literal → byte (encoding) | ⛔ DEFERRED — needs profile (D4/RD-10) | 3 | — |
 | R48 | String literal → const byte[] | ⛔ DEFERRED | 3 | — |
-| R49 | Arithmetic operators | ⛔ DEFERRED | 3 | E10080, E10081 |
-| R50 | Comparison operators | ⛔ DEFERRED | 3 | E10080, E10081 |
-| R51 | Logical operators | ⛔ DEFERRED | 3 | E10080 |
-| R52 | Bitwise operators | ⛔ DEFERRED | 3 | E10081 |
-| R53 | Shift operators | ⛔ DEFERRED | 3 | E10083 |
-| R54 | Assignment operators (l-value, const) | ⛔ DEFERRED | 3 | E10191 |
-| R55 | Conditional expression | ⛔ DEFERRED | 3 | E10080 |
+| R49 | Arithmetic operators | ✅ **RD-18 Slice 6** — completed beyond the 3b same-type subset: TS-4 promotion in; boolean → E10080; mixed-sign → E10081; signed `/`/`%` = loud lowering rejection | 3 | E10080, E10081 |
+| R50 | Comparison operators | ✅ **RD-18 Slice 6** — boolean result (TS-7), promotion, boolean equality-only (ordered boolean → E10080); all four byte/word × unsigned/signed codegen framings | 3 | E10080, E10081 |
+| R51 | Logical operators | ✅ **RD-18 Slice 6** — boolean operands; the short-circuit GUARANTEE lowered as CFG diamonds over synthetic frame slots (VICE-witnessed) | 3 | E10080 |
+| R52 | Bitwise operators | ✅ **RD-18 Slice 6** — integer operands (boolean → E10080); width-aware const folds | 3 | E10080, E10081 |
+| R53 | Shift operators | ✅ **RD-18 Slice 6** — result = left type; unsigned amount required (E10083); const amount ≥ width → W10174; word + variable-count + arithmetic-shr codegen | 3 | E10083 |
+| R54 | Assignment operators (l-value, const) | ✅ **RD-18 Slice 6** — completed with TS-17 compound assignment (expanded-form class semantics; write-back narrowing → E10154; const target → E10191) | 3 | E10191 |
+| R55 | Conditional expression | ✅ **RD-18 Slice 6** — E10134 non-boolean condition; E10088 arm mismatch; context-typed arms; selected-arm-only via the diamond CFG | 3 | E10088, E10134 |
 | R56 | Field access | ⛔ DEFERRED | 3 | E10160 |
 | R57 | Index expression | ⛔ DEFERRED | 3 | E10114, E10115 |
 | R58 | Function call | ✅ **RD-18 Slice 5a** — `typeCall` ladder `E10100`→`E10051`(interrupt)→`E10023`(main)→`E10175`(not callable); count `E10170` (suppresses per-arg checks); strict same-type args `E10171` + const range `E10084`; result = declared return type | 3 | E10170, E10171 |
