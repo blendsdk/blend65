@@ -14,6 +14,7 @@ import {
 } from "@blend65/core";
 import type {
   AstNode,
+  ConstValue,
   Diagnostic,
   DiagnosticBag,
   ExprNode,
@@ -50,7 +51,7 @@ describe("call typing internals", () => {
     const tables = collectFunctions([program], globalScope, bag);
 
     const signatures = new Map<Symbol, FnSignature>();
-    typeCheckPrograms([program], tables.scopeByNode, {
+    typeCheckPrograms([program], tables.scopeByNode, tables.moduleScopeByProgram, {
       bag,
       typeMap: new Map<ExprNode, Type>(),
       symbolMap: new Map<AstNode, Symbol>(),
@@ -59,6 +60,7 @@ describe("call typing internals", () => {
       callEdges: new Map<Symbol, Set<Symbol>>(),
       callSiteSpans: new Map<Symbol, Map<Symbol, SourceSpan>>(),
       moduleScopes: tables.moduleScopeByName,
+      constValues: new Map<Symbol, ConstValue>(),
     });
 
     // Two call sites, one cached signature (for `add`).

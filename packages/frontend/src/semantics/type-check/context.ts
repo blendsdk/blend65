@@ -13,6 +13,7 @@
 
 import type {
   AstNode,
+  ConstValue,
   DiagnosticBag,
   ExprNode,
   IntrinsicRegistry,
@@ -57,6 +58,11 @@ export interface TypeCheckContext {
    * qualification without an import).
    */
   readonly moduleScopes: ReadonlyMap<string, Scope>;
+  /**
+   * Evaluated module-const values, filled by the const phase (declaration-
+   * order independent). Frozen into the model's `constValues` afterwards.
+   */
+  readonly constValues: Map<Symbol, ConstValue>;
   /**
    * The intrinsic registry. Platform-contributed intrinsics parse as plain
    * calls without being scope symbols; call typing consults the registry so

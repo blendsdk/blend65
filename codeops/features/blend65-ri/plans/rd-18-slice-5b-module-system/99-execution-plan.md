@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 11:30
-> **Progress**: 12/42 tasks (29%)
+> **Last Updated**: 2026-07-11 11:50
+> **Progress**: 22/42 tasks (52%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -95,25 +95,25 @@ corrections (`00-preflight-report.md`).
 **Reference**: 07-testing-strategy ST-12…ST-21 · 03-02 · AR-4/5/6/7
 **Objective**: pin initializer semantics, const evaluation, and ordering.
 
-- [ ] 2.1.1 Write init-typing spec tests (ST-15/ST-15b…ST-17, ST-19…ST-21) — `packages/frontend/src/semantics/module-init-typing.spec.test.ts`
-- [ ] 2.1.2 Write init-order spec tests (ST-12…ST-14, ST-18) — `packages/frontend/src/semantics/init-order.spec.test.ts`
-- [ ] 2.1.3 RED phase: verify every ST fails
+- [x] 2.1.1 Write init-typing spec tests (ST-15/ST-15b…ST-17, ST-19…ST-21) — `packages/frontend/src/semantics/module-init-typing.spec.test.ts` ✅ (completed: 2026-07-11 11:37 — typecheck clean)
+- [x] 2.1.2 Write init-order spec tests (ST-12…ST-14, ST-18) — `packages/frontend/src/semantics/init-order.spec.test.ts` ✅ (completed: 2026-07-11 11:37 — typecheck clean)
+- [x] 2.1.3 RED phase: verify every ST fails ✅ (completed: 2026-07-11 11:39 — 11/11 red, no pre-passers)
 
 ### Step 2.2: Implementation
 
 **Reference**: 03-02 §1-4 · AR-4, AR-7, AR-5, AR-6
 **Objective**: Pass-3 arms + const machinery + `computeInitOrder` + model wiring.
 
-- [ ] 2.2.1 `typeModuleLet`: call-rejection ICE, local-`let` parity checks, decl-node `symbolMap` entry; driver dispatch for top-level items — `packages/frontend/src/semantics/type-check/statement-typing.ts`
-- [ ] 2.2.2 Const machinery: `evalConst` resolver callback, const→const edges + Tarjan E10194, dependency-first evaluation, E10193, `constValues` — `packages/frontend/src/semantics/const-eval.ts`, `statement-typing.ts`
-- [ ] 2.2.3 `collectModuleVariables` records the `initializers` map (symbol → initialiser expr) — `packages/frontend/src/semantics/module-variable-collection.ts`
-- [ ] 2.2.4 `computeInitOrder` (edges → Tarjan E10194 with path → two-level Kahn) + `analyze.ts` wiring of `initOrder`/`constValues` into the model — NEW `packages/frontend/src/semantics/init-order.ts`, `analyze.ts`
-- [ ] 2.2.5 GREEN phase: ST-12…ST-21 pass
+- [x] 2.2.1 `typeModuleLet`: call-rejection ICE, local-`let` parity checks, decl-node `symbolMap` entry; driver dispatch for top-level items — `packages/frontend/src/semantics/type-check/statement-typing.ts` ✅ (completed: 2026-07-11 11:48)
+- [x] 2.2.2 Const machinery: `evalConst` resolver callback, const→const edges + Tarjan E10194, dependency-first evaluation, E10193, `constValues` — `packages/frontend/src/semantics/const-eval.ts`, `statement-typing.ts` ✅ (completed: 2026-07-11 11:48 — `checkConstRange` gained the optional resolver + boolean return so const values range-check through the one shared E10084/E10082 path; type-mismatched const initializers get checkAssignable parity and evaluate no value)
+- [x] 2.2.3 `collectModuleVariables` records the `initializers` map (symbol → initialiser expr) — `packages/frontend/src/semantics/module-variable-collection.ts` ✅ (completed: 2026-07-11 11:48)
+- [x] 2.2.4 `computeInitOrder` (edges → Tarjan E10194 with path → two-level Kahn) + `analyze.ts` wiring of `initOrder`/`constValues` into the model — NEW `packages/frontend/src/semantics/init-order.ts`, `analyze.ts` ✅ (completed: 2026-07-11 11:48 — init-order.ts also exports the shared `collectNameRefs` walker the const phase reuses)
+- [x] 2.2.5 GREEN phase: ST-12…ST-21 pass ✅ (completed: 2026-07-11 11:48 — 11/11 green first run, no spec test edited; frontend suite 427 green)
 
 ### Step 2.3: Implementation tests & hardening
 
-- [ ] 2.3.1 Impl tests: const chains, importEdges, poison behavior, non-edges — `module-init.impl.test.ts` (07 impl table)
-- [ ] 2.3.2 Full verify
+- [x] 2.3.1 Impl tests: const chains, importEdges, poison behavior, non-edges — `module-init.impl.test.ts` (07 impl table) ✅ (completed: 2026-07-11 11:50 — 6 impl tests, frontend suite 433 green)
+- [x] 2.3.2 Full verify ✅ (completed: 2026-07-11 11:50 — full workspace verify green; `spec/` clean; doc-standard self-check clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

@@ -21,11 +21,13 @@
 
 import type {
   AstNode,
+  ConstValue,
   DiagnosticBag,
   ExprNode,
   IntrinsicRegistry,
   PlatformProfile,
   ProgramNode,
+  Scope,
   SemanticModel,
   SourceSpan,
   Symbol,
@@ -42,6 +44,7 @@ import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./pas
 import { checkParameterShadowing, collectFunctions } from "./function-collection.js";
 import { collectModuleVariables } from "./module-variable-collection.js";
 import { resolveImports } from "./import-resolution.js";
+import { computeInitOrder } from "./init-order.js";
 import { typeCheckPrograms } from "./type-check/statement-typing.js";
 import type { FnSignature } from "./type-check/context.js";
 
@@ -102,14 +105,20 @@ export function analyze(input: AnalyzeInput): SemanticModel {
 
   // Pass 1 (cont.) — collect module-level scalars into their module scopes, so
   // body references resolve to them and SFA can lay out `__var_*`. E10003 on a
-  // duplicate top-level declaration.
-  collectModuleVariables(input.programs, functionTables.moduleScopeByProgram, input.bag);
+  // duplicate top-level declaration. The returned map records each `let`'s
+  // initialiser for the initialization-order pass below.
+  const initializers = collectModuleVariables(
+    input.programs,
+    functionTables.moduleScopeByProgram,
+    input.bag,
+  );
 
   // Pass 1 (cont.) — resolve user-module imports (aliasing exported symbols
   // into the importing module scope; E10012/E10003), then reject parameters
   // that shadow a module-level name (E10101) now that every module-level name
-  // — declared or imported — exists.
-  resolveImports(
+  // — declared or imported — exists. The returned import edges drive the
+  // module ordering of the initialization-order pass.
+  const importEdges = resolveImports(
     input.programs,
     functionTables.moduleScopeByProgram,
     functionTables.moduleScopeByName,
@@ -127,7 +136,8 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   const symbolMap = new Map<AstNode, Symbol>();
   const callEdges = new Map<Symbol, Set<Symbol>>();
   const callSiteSpans = new Map<Symbol, Map<Symbol, SourceSpan>>();
-  typeCheckPrograms(input.programs, functionTables.scopeByNode, {
+  const constValues = new Map<Symbol, ConstValue>();
+  typeCheckPrograms(input.programs, functionTables.scopeByNode, functionTables.moduleScopeByProgram, {
     bag: input.bag,
     typeMap,
     symbolMap,
@@ -136,7 +146,27 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     callEdges,
     callSiteSpans,
     moduleScopes: functionTables.moduleScopeByName,
+    constValues,
     registry,
+  });
+
+  // The module-variable initialization order (spec Ch 10 §5.4) — needs the
+  // symbol map typing just filled; one E10194 per dependency cycle.
+  const modules: { name: string; scope: Scope }[] = [];
+  const seenScopes = new Set<Scope>();
+  for (const program of input.programs) {
+    const scope = functionTables.moduleScopeByProgram.get(program);
+    const name = program.moduleDecl?.name;
+    if (scope === undefined || name === undefined || seenScopes.has(scope)) continue;
+    seenScopes.add(scope);
+    modules.push({ name, scope });
+  }
+  const initOrder = computeInitOrder({
+    modules,
+    importEdges,
+    initializers,
+    symbolMap,
+    bag: input.bag,
   });
 
   // Build the populated model: struct/enum tables, the call graph over the
@@ -156,6 +186,8 @@ export function analyze(input: AnalyzeInput): SemanticModel {
       edges: callEdges,
       findCycles: () => findCallCycles(functions, callEdges),
     },
+    initOrder,
+    constValues,
     mainFunction: functionTables.mainFunction,
     scopeOf: (node) => functionTables.scopeByNode.get(node) ?? empty.globalScope,
     typeOf: (expr) => typeMap.get(expr) ?? ERROR_TYPE,

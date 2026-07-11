@@ -6,22 +6,46 @@
  * declared-type context; range-check constants → E10084/E10082; assignment
  * compatibility → E10152/E10153/E10154), expression statements (assignments,
  * `poke`/`pokew`, …), `return`, and control-flow statements (if/while/for/switch,
- * handled by `typeStmt` below). Never throws.
+ * handled by `typeStmt` below).
+ *
+ * It also types the module-level declarations: module `let` initialisers are
+ * checked with the same strict codes as a local `let` but must be CALL-FREE —
+ * any call (user function, or a builtin intrinsic other than `lo`/`hi`) is a
+ * loud not-supported rejection; module `const`s evaluate at compile time,
+ * declaration-order independent (spec VAR-6), into `ctx.constValues` — a
+ * non-constant initialiser is E10193, a const-const definition cycle is one
+ * E10194 per cycle. Never throws.
  */
 
-import { DiagCode, isError, isInteger, primitive, typeName } from "@blend65/core";
+import {
+  DiagCode,
+  ERROR_TYPE,
+  findCallCycles,
+  IceCode,
+  isAssignableTo,
+  isError,
+  isInteger,
+  primitive,
+  typeName,
+  walkChildren,
+  walkNode,
+} from "@blend65/core";
 import type {
   AstNode,
+  AstVisitor,
   BlockNode,
+  ConstDeclNode,
   ExprNode,
   FallthroughStmtNode,
   ForStmtNode,
+  IntrinsicCallExprNode,
   LetDeclNode,
   ProgramNode,
   ReturnStmtNode,
   Scope,
   StmtNode,
   SwitchStmtNode,
+  Symbol,
   Type,
 } from "@blend65/core";
 import type { IntRange } from "./type-resolution.js";
@@ -35,22 +59,32 @@ import {
 import { enclosingFunctionSymbol } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
+import type { ConstRefResolver } from "../const-eval.js";
+import { collectNameRefs } from "../init-order.js";
 
 /**
- * Runs Pass-3 type checking over every function/interrupt body in all programs.
- * The body scopes (with their ordered locals) come from the earlier
- * `collectFunctions` pass via `scopeByNode`. Never throws.
+ * Runs Pass-3 type checking over every function/interrupt body — and every
+ * module-level `let`/`const` declaration — in all programs. The body scopes
+ * (with their ordered locals) come from the earlier `collectFunctions` pass
+ * via `scopeByNode`; module declarations resolve against their module scope.
+ * Module consts evaluate in a separate declaration-order-independent phase
+ * (spec VAR-6) before the per-item walk. Never throws.
  *
  * @param programs The parsed program ASTs.
  * @param scopeByNode Decl node → its body scope (from Pass-1 collection).
- * @param ctx The Pass-3 context (bag + `typeMap`/`symbolMap`).
+ * @param moduleScopeByProgram Each program → its (shared) module scope.
+ * @param ctx The Pass-3 context (bag + `typeMap`/`symbolMap`/`constValues`).
  */
 export function typeCheckPrograms(
   programs: readonly ProgramNode[],
   scopeByNode: ReadonlyMap<AstNode, Scope>,
+  moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>,
   ctx: TypeCheckContext,
 ): void {
+  evaluateModuleConsts(programs, moduleScopeByProgram, ctx);
+
   for (const program of programs) {
+    const moduleScope = moduleScopeByProgram.get(program);
     for (const item of program.items) {
       if (item.kind === "FunctionDecl") {
         const bodyScope = scopeByNode.get(item);
@@ -62,9 +96,191 @@ export function typeCheckPrograms(
         if (bodyScope !== undefined) {
           typeBody(item.body, bodyScope, primitive("void"), ctx, 0);
         }
+      } else if (item.kind === "LetDecl" && moduleScope !== undefined) {
+        typeModuleLet(item, moduleScope, ctx);
       }
     }
   }
+}
+
+/**
+ * Types a module-level `let name: T = init;`. The initialiser must be
+ * CALL-FREE — module initializers run before `main` from a generated startup
+ * stream, and calls would hide reads from the dependency analysis that orders
+ * them — so ANY call (a user function, or a builtin intrinsic other than the
+ * value-folding `lo`/`hi`, whose arguments are still searched) is rejected
+ * loudly rather than silently miscompiled. A call-free initialiser is checked
+ * exactly like a local `let`: typed in the declared-type context, constant
+ * range-checked (E10084/E10082), and strictly assignable (E10152/53/54).
+ */
+function typeModuleLet(decl: LetDeclNode, moduleScope: Scope, ctx: TypeCheckContext): void {
+  const sym = moduleScope.symbols.get(decl.name);
+  // A duplicate declaration's loser was never registered — already E10003.
+  if (sym === undefined || sym.decl !== decl) return;
+  ctx.symbolMap.set(decl, sym);
+
+  if (decl.initialiser === null) return; // indeterminate until assigned (spec VAR-2)
+
+  const call = findInitializerCall(decl.initialiser);
+  if (call !== null) {
+    ctx.bag.addError(
+      IceCode.Unexpected,
+      call.span,
+      "call-bearing module initializers are not supported yet — assign in main() instead",
+    );
+    ctx.typeMap.set(decl.initialiser, ERROR_TYPE);
+    return;
+  }
+
+  const declaredType = resolveTypeNode(decl.declaredType);
+  const initType = typeOfExpr(decl.initialiser, moduleScope, ctx, declaredType);
+  checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
+  checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
+}
+
+/**
+ * The first call anywhere in a module initializer, or `null`. Both call node
+ * kinds count — user/platform calls, and builtin intrinsics other than
+ * `lo`/`hi` (builtins parse as their own node kind, so a plain-call search
+ * would miss them). `lo`/`hi` themselves fold to values, but their arguments
+ * are still searched — a call nested inside `lo(...)` is still a call.
+ */
+function findInitializerCall(root: ExprNode): ExprNode | null {
+  let found: ExprNode | null = null;
+  const visit = (node: AstNode): void => {
+    if (found !== null) return;
+    if (node.kind === "CallExpr") {
+      found = node as ExprNode;
+      return;
+    }
+    if (node.kind === "IntrinsicCallExpr") {
+      const intrinsic = node as IntrinsicCallExprNode;
+      if (intrinsic.name !== "lo" && intrinsic.name !== "hi") {
+        found = intrinsic;
+        return;
+      }
+    }
+    walkChildren(node, visitor);
+  };
+  const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
+  walkNode(root, visitor);
+  return found;
+}
+
+/**
+ * Evaluates every module `const` at compile time (spec VAR-6 — declaration-
+ * order independent), filling `ctx.constValues`.
+ *
+ * Phases: (1) collect const symbols + type every initialiser (recording
+ * `symbolMap` entries for its references; a type-incompatible initialiser
+ * gets the assignment-family diagnostic and evaluates no value); (2) build
+ * const→const reference edges and reject every definition cycle with ONE
+ * E10194 carrying the cycle path (members poison — no value); (3) evaluate
+ * the acyclic remainder dependency-first through a resolver that folds
+ * references to already-evaluated consts. A non-constant initialiser (a
+ * variable read, an unsupported shape) is E10193 with the spec message; a
+ * reference whose own failure is already diagnosed stays silent (one root
+ * cause). Values are range-checked against the declared type (E10084) before
+ * they are recorded.
+ */
+function evaluateModuleConsts(
+  programs: readonly ProgramNode[],
+  moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>,
+  ctx: TypeCheckContext,
+): void {
+  // (1) Collect + type. Duplicate-declaration losers were never registered.
+  const consts = new Map<Symbol, { decl: ConstDeclNode; moduleScope: Scope }>();
+  const typePoisoned = new Set<Symbol>();
+  for (const program of programs) {
+    const moduleScope = moduleScopeByProgram.get(program);
+    if (moduleScope === undefined) continue;
+    for (const item of program.items) {
+      if (item.kind !== "ConstDecl") continue;
+      const sym = moduleScope.symbols.get(item.name);
+      if (sym === undefined || sym.decl !== item) continue;
+      ctx.symbolMap.set(item, sym);
+      consts.set(sym, { decl: item, moduleScope });
+
+      const declaredType = resolveTypeNode(item.declaredType);
+      const initType = typeOfExpr(item.initialiser, moduleScope, ctx, declaredType);
+      checkAssignable(initType, declaredType, item.initialiser.span, ctx);
+      if (!isAssignableTo(initType, declaredType)) typePoisoned.add(sym);
+    }
+  }
+  if (consts.size === 0) return;
+
+  // (2) const→const definition edges → one E10194 per cycle.
+  const edges = new Map<Symbol, Set<Symbol>>();
+  for (const [sym, { decl }] of consts) {
+    const targets = new Set<Symbol>();
+    for (const ref of collectNameRefs(decl.initialiser)) {
+      const target = ctx.symbolMap.get(ref);
+      if (target !== undefined && consts.has(target)) targets.add(target);
+    }
+    if (targets.size > 0) edges.set(sym, targets);
+  }
+  const cycleMembers = new Set<Symbol>();
+  for (const cycle of findCallCycles(new Set(consts.keys()), edges)) {
+    if (cycle.length === 0) continue;
+    const anchor = cycle[0];
+    const path = [...cycle, anchor].map((s) => s.name).join(" → ");
+    ctx.bag.addError(
+      DiagCode.CircularInit,
+      consts.get(anchor)?.decl.initialiser.span ?? null,
+      `Circular initializer detected — '${anchor.name}' depends on itself ` +
+        `(directly or indirectly) through module-level initialization order — ` +
+        `cycle: ${path}`,
+    );
+    for (const member of cycle) cycleMembers.add(member);
+  }
+
+  // (3) Dependency-first evaluation (recursive + memoised; cycles excluded, so
+  // the recursion is bounded by the acyclic dependency depth).
+  const evaluating = new Set<Symbol>();
+  const evaluateOne = (sym: Symbol): void => {
+    if (
+      ctx.constValues.has(sym) ||
+      cycleMembers.has(sym) ||
+      typePoisoned.has(sym) ||
+      evaluating.has(sym)
+    ) {
+      return;
+    }
+    const info = consts.get(sym);
+    if (info === undefined) return;
+    evaluating.add(sym);
+
+    const resolveRef: ConstRefResolver = (ref) => {
+      const target = ctx.symbolMap.get(ref);
+      if (target === undefined) return { kind: "poisoned" }; // unresolved — already diagnosed
+      if (target.kind !== "constant") return { kind: "nonconst" }; // runtime entity
+      if (consts.has(target)) evaluateOne(target);
+      const value = ctx.constValues.get(target);
+      // A const without a value failed for an already-reported reason.
+      return value === undefined
+        ? { kind: "poisoned" }
+        : { kind: "value", value: value.value };
+    };
+
+    const declaredType = resolveTypeNode(info.decl.declaredType);
+    const result = evalConst(info.decl.initialiser, resolveRef);
+    evaluating.delete(sym);
+
+    if (result.kind === "poisonedRef") return; // root cause already reported
+    if (result.kind === "nonConst") {
+      ctx.bag.addError(
+        DiagCode.NonConstInit,
+        info.decl.initialiser.span,
+        `Initializer for const '${sym.name}' is not a compile-time constant expression`,
+      );
+      return;
+    }
+    // value or divByZero: one shared range/div-zero check (E10084/E10082).
+    if (!checkConstRange(info.decl.initialiser, declaredType, ctx, resolveRef)) return;
+    if (result.kind !== "value") return;
+    ctx.constValues.set(sym, { type: declaredType, value: result.value });
+  };
+  for (const sym of consts.keys()) evaluateOne(sym);
 }
 
 /**

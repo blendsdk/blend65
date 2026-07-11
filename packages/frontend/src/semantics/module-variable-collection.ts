@@ -8,8 +8,9 @@
  * reused) for that program — so a function body reference resolves to it
  * (innermost-first: body → module → global). A name already declared in the
  * module scope (a function or an earlier variable, from any file of the merged
- * module) is a duplicate declaration → E10003. Module-level `let` initialisers
- * are deferred (spec VAR-2): they are collected but not executed yet.
+ * module) is a duplicate declaration → E10003. The returned map records each
+ * `let`'s initialiser expression so initialization ordering and init codegen
+ * know which variables occupy an init position.
  *
  * Emit-diagnostic-never-throw: a program without a matching module scope simply
  * contributes no module variables. Imports `@blend65/core` only — never
@@ -17,7 +18,7 @@
  */
 
 import { DiagCode } from "@blend65/core";
-import type { DiagnosticBag, ProgramNode, Scope, Symbol } from "@blend65/core";
+import type { DiagnosticBag, ExprNode, ProgramNode, Scope, Symbol } from "@blend65/core";
 import { resolveTypeNode } from "./type-check/type-resolution.js";
 
 /**
@@ -29,12 +30,14 @@ import { resolveTypeNode } from "./type-check/type-resolution.js";
  * @param programs The parsed program ASTs.
  * @param moduleScopeByProgram Each program → its module scope (from collection).
  * @param bag The shared diagnostic accumulator (E10003 on duplicates).
+ * @returns Each module `let` symbol that has an initialiser → that expression.
  */
 export function collectModuleVariables(
   programs: readonly ProgramNode[],
   moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>,
   bag: DiagnosticBag,
-): void {
+): ReadonlyMap<Symbol, ExprNode> {
+  const initializers = new Map<Symbol, ExprNode>();
   for (const program of programs) {
     // The module scope `collectFunctions` created (or reused) for this program.
     const moduleScope = moduleScopeByProgram.get(program);
@@ -65,6 +68,11 @@ export function collectModuleVariables(
         byRef: false,
       };
       moduleScope.symbols.set(item.name, sym); // insertion order == declaration order
+
+      if (item.kind === "LetDecl" && item.initialiser !== null) {
+        initializers.set(sym, item.initialiser);
+      }
     }
   }
+  return initializers;
 }

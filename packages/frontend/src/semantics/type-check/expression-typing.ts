@@ -47,6 +47,7 @@ import type { FnSignature, TypeCheckContext } from "./context.js";
 import { enclosingFunctionSymbol, resolveName, resolveQualified } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
+import type { ConstRefResolver } from "../const-eval.js";
 
 /** The arithmetic operators, typed with the same-type rule (spec TS-3). */
 const ARITHMETIC_OPS: ReadonlySet<string> = new Set(["+", "-", "*", "/", "%"]);
@@ -577,21 +578,30 @@ function assignmentMismatchCode(value: Type, target: Type): string {
  * @param expr The value expression.
  * @param targetType The declared/target integer type.
  * @param ctx The Pass-3 context.
+ * @param resolveRef Optional reference resolver, so a value computed from
+ *   evaluated constants is range-checked too (the module-const phase uses it).
+ * @returns `false` when a diagnostic was emitted; `true` when the value is in
+ *   range or the check does not apply.
  */
-export function checkConstRange(expr: ExprNode, targetType: Type, ctx: TypeCheckContext): void {
-  const folded = evalConst(expr);
+export function checkConstRange(
+  expr: ExprNode,
+  targetType: Type,
+  ctx: TypeCheckContext,
+  resolveRef?: ConstRefResolver,
+): boolean {
+  const folded = evalConst(expr, resolveRef);
   if (folded.kind === "divByZero") {
     ctx.bag.addError(
       DiagCode.ConstDivisionByZero, // E10082
       folded.span,
       "Division by zero in constant expression",
     );
-    return;
+    return false;
   }
-  if (folded.kind !== "value" || typeof folded.value !== "number") return;
-  if (isError(targetType)) return;
+  if (folded.kind !== "value" || typeof folded.value !== "number") return true;
+  if (isError(targetType)) return true;
   const range = integerRange(targetType);
-  if (range === null) return; // boolean/void/non-integer target — no range check
+  if (range === null) return true; // boolean/void/non-integer target — no range check
   if (folded.value < range.min || folded.value > range.max) {
     ctx.bag.addError(
       DiagCode.ValueOutOfRange, // E10084
@@ -599,5 +609,7 @@ export function checkConstRange(expr: ExprNode, targetType: Type, ctx: TypeCheck
       `Value ${folded.value} out of range for type '${typeName(targetType)}' ` +
         `(range: ${range.min} to ${range.max})`,
     );
+    return false;
   }
+  return true;
 }

@@ -10,7 +10,28 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-11 (**RD-18 Slice 5b 🔄 Executing — Phase 1 ✅ (module merging +
+> **Last Updated**: 2026-07-11 (**RD-18 Slice 5b 🔄 Executing — Phase 2 ✅ (initializer typing,
+> consts & init order, 22/42)** — spec-first: 11 STs red (no pre-passers) → GREEN first run.
+> Shipped: `typeModuleLet` (module `let` initializers typed with local-`let` parity —
+> E10152/53/54 + E10084/E10082 — and CALL-FREE: any `CallExpr` or non-`lo`/`hi`
+> `IntrinsicCallExpr` anywhere in the initializer → loud not-supported ICE, `lo`/`hi` args
+> still searched); module-const compile-time evaluation (declaration-order independent per
+> VAR-6): `evalConst` gained an optional `ConstRefResolver` (+ a `poisonedRef` result so
+> already-diagnosed references stay silent — one root cause), const→const definition cycles
+> → ONE E10194 per cycle via the Symbol-generic Tarjan (members poison, siblings still
+> evaluate), values range-checked through the one shared `checkConstRange` path (now
+> resolver-aware, boolean return) into `SemanticModel.constValues` (frozen-empty no more);
+> `collectModuleVariables` returns the `initializers` map; NEW `semantics/init-order.ts`
+> `computeInitOrder` — per-variable dependency edges (imports alias the same Symbol so
+> cross-module/qualified reads land automatically; consts fold, initializer-less vars are
+> non-edges), ONE E10194 per cycle with the spec message + path anchored at the
+> first-declared member, two-level order (import-edge Kahn with discovery tiebreak +
+> cycle-tolerant fallback, then stable per-variable topo by (module order, declaring-scope
+> ordinal — aliases skipped)) → `SemanticModel.initOrder` (always-`[]` no more). 6 impl
+> tests (const chains + lo/hi over consts, importEdges map, cycle poison, non-edges, mixed
+> widths). Frontend suite 433 green; full workspace verify green; `spec/` clean. Next:
+> Phase 3 (init codegen — `__init` stream + lowering arms).)
+> Prior: (**RD-18 Slice 5b Phase 1 ✅ (module merging +
 > qualified access, 12/42)** — spec-first: ST-1…ST-11 minted red (1 documented pre-passer:
 > the value-shadowed-head status-quo pin), then GREEN. Shipped: name-keyed shared module
 > scopes (`moduleScopeByName` in `FunctionTables`; first file's ModuleDeclNode stays the
