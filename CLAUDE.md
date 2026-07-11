@@ -71,7 +71,7 @@ TODO: no `clean` script is defined (root, packages, or turbo.json). Clean manual
 .github/workflows/   # CI (install → typecheck → lint → build → test; Node 22; no emulator tier)
 codeops/             # CodeOps nested layout (marker + portfolio roadmap; see below)
 docs/
-examples/            # per-slice acceptance fixtures (gate + slice3a…slice5b), VICE-verified
+examples/            # per-slice acceptance fixtures (gate + slice3a…slice6), VICE-verified
 packages/            # 10 @blend65/* packages
 research/
 scripts/             # repo tooling / helper scripts
@@ -325,3 +325,4 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
 <!-- migrated from .clinerules/project.md on 2026-07-02 -->
 <!-- analyze_project: refreshed Toolchain/Commands/Project-structure/Git against the live repo on 2026-07-02 — corrected clean command (none defined), main branch (master, not main), added scripts/ dir, added Grounded-Options pointer -->
 <!-- analyze_project: refreshed 2026-07-11 — examples/ line (per-slice fixtures through slice5b), requirements range RD-01..RD-18, emulator note (RD-12 shipped; CI installs ACME), and the RD-18 current-position narrative (slices 4b/5a/5b complete, AC-4 closed; Next: Slice 6). Toolchain/Commands verified unchanged against package.json; clean-script TODO still applies. -->
+<!-- analyze_project: refreshed 2026-07-11 (post Slice 6) — examples/ line (fixtures through slice6); the RD-18 current-position narrative was already updated by the Slice-6 rollout (Slice 6 complete, AC-5 closed; Next: Slice 7). Toolchain/Commands/packages/CI verified unchanged against package.json, turbo.json, ci.yml (install → typecheck → lint → build → ACME install → test, Node 22, no emulator tier); clean-script TODO still applies. -->
