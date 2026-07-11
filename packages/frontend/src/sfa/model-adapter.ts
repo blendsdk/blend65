@@ -15,13 +15,16 @@
  * Imports `@blend65/core` only — never `@blend65/codegen`.
  */
 
-import { byteSize, walkChildren, walkNode } from "@blend65/core";
+import { byteSize, primitive, walkChildren, walkNode } from "@blend65/core";
 import type {
   AstNode,
   AstVisitor,
+  BinaryExprNode,
   CallExprNode,
+  ExprNode,
   FrameVar,
   FunctionInfo,
+  LetDeclNode,
   ModuleDeclNode,
   Scope,
   SemanticModel,
@@ -54,10 +57,12 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
     const scope = model.scopeOf(fn.decl); // the function body scope
     const callees = [...(model.callGraph.edges.get(fn) ?? [])].map(fqName).sort();
     const window = windows.get(fn);
+    const synthetic: FrameVar[] = [];
+    collectSyntheticSlots(fn.decl, model, synthetic);
     result.push({
       name: fqName(fn), // "<Module>.<function>"
       parameters: collectFrameVars(scope, "parameter"),
-      locals: collectFrameVars(scope, "variable"),
+      locals: [...collectFrameVars(scope, "variable"), ...synthetic],
       isInterrupt: fn.kind === "interrupt",
       isEscaped: false, // `&fn` address-of support arrives later
       isReachable: true, // liveness analysis arrives later; main is reachable
@@ -65,7 +70,84 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
       argWindowInterferes: window === undefined ? [] : [...window].sort(),
     });
   }
+
+  const initEntry = initPseudoFunction(model);
+  if (initEntry !== null) result.push(initEntry);
   return result;
+}
+
+/**
+ * Collects the synthetic short-circuit/conditional result slots of a subtree,
+ * appending to `slots` in **preorder** (parent before children, fields in
+ * declaration order).
+ *
+ * Short-circuit `&&`/`||` and the conditional operator lower to multi-block
+ * diamonds, and the translator forbids values crossing basic blocks — so each
+ * such site's result flows through a frame slot the planner must own. The
+ * lowering pass claims slots in the same preorder at node entry, so the
+ * indices align; a drift on either side is a loud frame-miss/size-mismatch
+ * rejection there, never a silent mis-address.
+ *
+ * The slot name's leading digit (`0sc<N>`) is illegal in source identifiers,
+ * so no user local can ever collide; the digit is legal mid-symbol in the
+ * assembler's `__frame_*` namespace. A poisoned site still appends a slot
+ * with a 1-byte placeholder type (never the 0-byte error type) so the count
+ * stays consistent — such programs never reach codegen anyway.
+ */
+function collectSyntheticSlots(root: AstNode, model: SemanticModel, slots: FrameVar[]): void {
+  const visit = (node: AstNode): void => {
+    if (isSlotSite(node)) {
+      const t = model.typeOf(node);
+      slots.push({
+        name: `0sc${slots.length}`,
+        type: t.kind === "error" ? primitive("byte") : t,
+        byRef: false,
+      });
+    }
+    walkChildren(node, visitor);
+  };
+  const visitor = new Proxy({} as AstVisitor<void>, { get: () => visit });
+  walkNode(root, visitor);
+}
+
+/** Whether `node` is an expression site that needs a synthetic result slot. */
+function isSlotSite(node: AstNode): node is ExprNode {
+  if (node.kind === "ConditionalExpr") return true;
+  if (node.kind !== "BinaryExpr") return false;
+  const op = (node as BinaryExprNode).op;
+  return op === "&&" || op === "||";
+}
+
+/**
+ * The `__init` pseudo-function carrying the synthetic slots of the
+ * module-variable initializer stream, or `null` when no initializer needs
+ * one (slot-free programs project nothing — their layout is unchanged).
+ *
+ * Initializer expressions lower into one generated stream that runs to
+ * completion before the entry function, so its frame plans like any leaf
+ * frame (no callees, no params) and may share bytes with user frames.
+ * Slots accumulate across ALL initializers in initialization order —
+ * matching the stream's single lowering counter.
+ */
+function initPseudoFunction(model: SemanticModel): FunctionInfo | null {
+  const slots: FrameVar[] = [];
+  for (const sym of model.initOrder) {
+    const decl = sym.decl;
+    if (decl.kind !== "LetDecl") continue;
+    const init = (decl as LetDeclNode).initialiser;
+    if (init !== null) collectSyntheticSlots(init, model, slots);
+  }
+  if (slots.length === 0) return null;
+  return {
+    name: "__init",
+    parameters: [],
+    locals: slots,
+    isInterrupt: false,
+    isEscaped: false,
+    isReachable: true,
+    callees: [],
+    argWindowInterferes: [],
+  };
 }
 
 /**

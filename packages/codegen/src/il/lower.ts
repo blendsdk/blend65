@@ -17,7 +17,16 @@
  *   ACME emitter resolves them, matching the printer with no change.
  */
 
-import { byteSize, createIntrinsicRegistry, DiagCode, IceCode, primitive, walkChildren, walkNode } from "@blend65/core";
+import {
+  byteSize,
+  commonType,
+  createIntrinsicRegistry,
+  DiagCode,
+  IceCode,
+  primitive,
+  walkChildren,
+  walkNode,
+} from "@blend65/core";
 import type {
   AstNode,
   AstVisitor,
@@ -25,6 +34,8 @@ import type {
   BinaryOp,
   BlockNode,
   CallExprNode,
+  CastExprNode,
+  ConditionalExprNode,
   DiagnosticBag,
   DoWhileStmtNode,
   ExprNode,
@@ -53,6 +64,7 @@ import type {
   SwitchStmtNode,
   Type,
   TypeNode,
+  UnaryExprNode,
 } from "@blend65/core";
 
 import { IL_BYTE, IL_WORD, ilTypeOfType } from "./il-type.js";
@@ -101,8 +113,27 @@ const BINARY_OP_TO_IL: Partial<Record<BinaryOp, ILInstruction["op"]>> = {
   ">=": "ge",
 };
 
-/** IL opcodes whose result is always an `IL_BYTE` 0/1. */
+/**
+ * IL opcodes whose result is always an `IL_BYTE` 0/1. Note the asymmetry: the
+ * DEST temp of a comparison is a byte flag, but the instruction's `type`
+ * field carries the (promoted) OPERAND type — the translator dispatches its
+ * byte/word × unsigned/signed comparison framing on it.
+ */
 const COMPARISON_RESULT_OPS = new Set(["eq", "ne", "lt", "le", "gt", "ge"]);
+
+/** Compound-assignment operators mapped to their expansion's binary operator. */
+const COMPOUND_BASE_OP: Partial<Record<AssignExprNode["op"], BinaryOp>> = {
+  "+=": "+",
+  "-=": "-",
+  "*=": "*",
+  "/=": "/",
+  "%=": "%",
+  "&=": "&",
+  "|=": "|",
+  "^=": "^",
+  "<<=": "<<",
+  ">>=": ">>",
+};
 
 /** A loop's branch targets for `break`/`continue` lowering. */
 interface LoopContext {
@@ -127,12 +158,20 @@ interface LowerCtx {
   /** The allocation plan (callee frame slots for the calling convention). */
   readonly plan: AllocationPlan;
   /**
-   * `true` while lowering the module-initializer stream. There is no frame in
-   * that context, so a reference that resolves to neither a module variable
-   * nor a constant is a compiler bug and must fail loudly — never fall back
-   * to the (byte-defaulting) frame-slot path.
+   * `true` while lowering the module-initializer stream. There is no user
+   * frame in that context (only the pseudo-frame carrying synthetic result
+   * slots), so a reference that resolves to neither a module variable nor a
+   * constant is a compiler bug and must fail loudly — never fall back to the
+   * (byte-defaulting) frame-slot path.
    */
   readonly moduleInit: boolean;
+  /**
+   * The synthetic-slot claim counter. Short-circuit/conditional sites claim
+   * `0sc<N>` slots in preorder at node entry — the same order the SFA
+   * adapter counted them — so the running index maps each site to its
+   * planned frame slot. Reset per function and per init stream.
+   */
+  scCounter: number;
 }
 
 /**
@@ -205,13 +244,17 @@ function lowerInitCode(
   const ctx: LowerCtx = {
     builder,
     fqName: "__init",
-    frame: undefined,
+    // The pseudo-frame exists only when an initializer needs a synthetic
+    // short-circuit/conditional slot; identifier reads never touch it (the
+    // moduleInit guard fires first).
+    frame: input.plan.frames.get("__init")?.frame,
     bag,
     model: input.model,
     registry,
     loopStack: [],
     plan: input.plan,
     moduleInit: true,
+    scCounter: 0,
   };
   for (const sym of input.model.initOrder) {
     const init = initializers.get(sym);
@@ -258,6 +301,7 @@ function lowerFunction(
     loopStack: [],
     plan,
     moduleInit: false,
+    scCounter: 0,
   };
 
   lowerBlock(fn.body, ctx);
@@ -504,7 +548,10 @@ function lowerSwitch(stmt: SwitchStmtNode, ctx: LowerCtx): void {
   const defaultBodyL = ctx.builder.reserveLabel();
   bodyLabels.push(defaultBodyL);
 
-  // Dispatch chain: one test block per case value, in source order.
+  // Dispatch chain: one test block per case value, in source order. The `eq`
+  // is stamped with the DISCRIMINANT's type — a word/sword discriminant must
+  // compare at its own width, not low-bytes-only (the 0/1 result stays a byte).
+  const discType = ilTypeOfType(ctx.model.typeOf(stmt.discriminant));
   for (let i = 0; i < stmt.cases.length; i++) {
     for (const value of stmt.cases[i].values) {
       const disc = lowerExpr(stmt.discriminant, ctx); // fresh, single-use in this block
@@ -514,7 +561,7 @@ function lowerSwitch(stmt: SwitchStmtNode, ctx: LowerCtx): void {
         dest: match,
         left: disc,
         right: lowerExpr(value, ctx),
-        type: IL_BYTE,
+        type: discType,
       } as ILInstruction);
       const nextTest = ctx.builder.reserveLabel();
       ctx.builder.terminate({
@@ -579,8 +626,9 @@ function compareCounter(
   ctx.builder.emit({ op: "load", a: current, b: counterLoc });
   const result = ctx.builder.newTemp(IL_BYTE);
   const op: ILInstruction["op"] = direction === "to" ? "le" : "ge";
-  // Comparison result is the i8u 0/1 flag — mirrors `lowerBinary`.
-  ctx.builder.emit({ op, dest: result, left: current, right: bound, type: IL_BYTE } as ILInstruction);
+  // The result is the i8u 0/1 flag, but the instruction's `type` carries the
+  // OPERAND type — a word counter must compare at word width, not low-bytes-only.
+  ctx.builder.emit({ op, dest: result, left: current, right: bound, type: counterType } as ILInstruction);
   return result;
 }
 
@@ -658,6 +706,12 @@ function lowerExpr(expr: ExprNode, ctx: LowerCtx): ILOperand {
       return lowerFieldAccess(expr, ctx);
     case "BinaryExpr":
       return lowerBinary(expr, ctx);
+    case "UnaryExpr":
+      return lowerUnary(expr, ctx);
+    case "CastExpr":
+      return lowerCast(expr, ctx);
+    case "ConditionalExpr":
+      return lowerConditional(expr, ctx);
     case "AssignExpr":
       return lowerAssign(expr, ctx);
     case "IntrinsicCallExpr":
@@ -888,34 +942,291 @@ function constImmediate(sym: Symbol, expr: ExprNode, ctx: LowerCtx): ILOperand {
   return imm(raw, ilTypeOfType(sym.type));
 }
 
-/** A same-width binary expression: evaluate left, then right, then the op. */
+/**
+ * A binary expression: evaluate left, then right (left-first), coerce both
+ * operands to the operation's type, then emit the op.
+ *
+ * The instruction's `type` is the operation type: for value classes the
+ * node's own resolved type (`word OP word → i16u` reaches `__rt_mul16`); for
+ * COMPARISONS the promoted OPERAND type — the 0/1 result temp stays a byte,
+ * but the translator picks its byte/word × unsigned/signed framing from the
+ * operands, so a word compare must never be stamped as a byte compare. For
+ * shifts the type (and the coerced left operand) is the LEFT operand's type;
+ * the amount keeps its own width. Signed division/modulo has no correct
+ * runtime routine — rejected loudly before anything is emitted.
+ */
 function lowerBinary(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
+  if (expr.op === "&&" || expr.op === "||") {
+    return lowerShortCircuit(expr, ctx); // never via BINARY_OP_TO_IL — branches mandatory
+  }
   const op = BINARY_OP_TO_IL[expr.op];
   if (op === undefined) {
     return iceUnsupported(expr, ctx, `binary operator '${expr.op}'`);
   }
-  const left = lowerExpr(expr.left, ctx); // left-first (FN-10)
-  const right = lowerExpr(expr.right, ctx);
-  // Result width comes from the model's resolved type, so
-  // `word OP word → i16u` reaches `__rt_mul16`/`__rt_div16`; comparisons are
-  // always the i8u 0/1 flag. ErrorType falls back to IL_BYTE.
-  const type: ILType = COMPARISON_RESULT_OPS.has(op)
-    ? IL_BYTE
-    : ilTypeOfType(ctx.model.typeOf(expr));
-  const dest = ctx.builder.newTemp(type);
+
+  const leftType = ctx.model.typeOf(expr.left);
+  const rightType = ctx.model.typeOf(expr.right);
+  const isComparison = COMPARISON_RESULT_OPS.has(op);
+  const isShift = op === "shl" || op === "shr";
+
+  // The operation type the operands must reach.
+  const operationType: Type = isComparison
+    ? (commonType(leftType, rightType) ?? primitive("byte"))
+    : ctx.model.typeOf(expr);
+
+  if ((op === "div" || op === "mod") && isSignedInteger(operationType)) {
+    return iceUnsupported(expr, ctx, "signed division/modulo (unsigned runtime routines only)");
+  }
+
+  let left = lowerExpr(expr.left, ctx); // left-first (FN-10)
+  let right = lowerExpr(expr.right, ctx);
+  left = coerce(left, leftType, operationType, ctx);
+  if (!isShift) right = coerce(right, rightType, operationType, ctx); // the amount keeps its width
+
+  const type: ILType = ilTypeOfType(operationType);
+  const dest = ctx.builder.newTemp(isComparison ? IL_BYTE : type);
   // The opcode is one of the binary arithmetic/bitwise/comparison families, all
   // of which share the `{dest,left,right,type}` shape.
   ctx.builder.emit({ op, dest, left, right, type } as ILInstruction);
   return dest;
 }
 
-/** `target = rhs` → materialise rhs and store it to the target's storage. */
+/** Whether `t` is a signed integer primitive (poison and non-primitives are not). */
+function isSignedInteger(t: Type): boolean {
+  return t.kind === "primitive" && (t.name === "sbyte" || t.name === "sword");
+}
+
+/**
+ * Emit the promotion coercion carrying `value` from its `from` type to the
+ * width `to` requires. Same width → untouched (a cross-sign reinterpret is
+ * bit-free). 8→16 widens value-preservingly — the SOURCE's signedness picks
+ * zero- vs sign-extension. 16→8 truncates (explicit casts only — implicit
+ * narrowing never reaches lowering). Immediates re-encode in place: their
+ * bit pattern converts at compile time, no instruction needed. Poisoned or
+ * non-primitive types leave the value untouched (such programs never build).
+ */
+function coerce(value: ILOperand, from: Type, to: Type, ctx: LowerCtx): ILOperand {
+  if (from.kind !== "primitive" || to.kind !== "primitive") return value;
+  const fromIl = ilTypeOfType(from);
+  const toIl = ilTypeOfType(to);
+  if (fromIl.width === toIl.width) return value;
+
+  if (!isTemp(value) && value.kind === "immediate") {
+    return imm(reencodeImmediate(value.value, fromIl, toIl), toIl);
+  }
+  const dest = ctx.builder.newTemp(toIl);
+  if (fromIl.width === 8 && toIl.width === 16) {
+    ctx.builder.emit({ op: fromIl.signed ? "sext" : "zext", dest, src: value });
+  } else {
+    ctx.builder.emit({ op: "trunc", dest, src: value });
+  }
+  return dest;
+}
+
+/**
+ * Re-encode an immediate's raw bit pattern from one IL width to another:
+ * interpret the pattern under the source type, then take the target width's
+ * two's-complement pattern of that value.
+ */
+function reencodeImmediate(pattern: number, from: ILType, to: ILType): number {
+  const fromModulus = from.width === 8 ? 0x100 : 0x10000;
+  const interpreted =
+    from.signed && pattern >= fromModulus / 2 ? pattern - fromModulus : pattern;
+  const toModulus = to.width === 8 ? 0x100 : 0x10000;
+  return ((interpreted % toModulus) + toModulus) % toModulus;
+}
+
+/**
+ * Claim the next synthetic result slot for a short-circuit/conditional site.
+ * Slots were counted by the SFA adapter in the same preorder, so the running
+ * counter maps this site to its planned frame slot; the name AND byte size
+ * are verified so neither a count drift nor an order drift can ever produce
+ * a wrong address — any mismatch is a loud rejection instead.
+ */
+function claimResultSlot(expr: ExprNode, ctx: LowerCtx): ILOperand | null {
+  const slotName = `0sc${ctx.scCounter++}`;
+  const resultType = ctx.model.typeOf(expr);
+  const siteType = resultType.kind === "error" ? primitive("byte") : resultType;
+  const slot = ctx.frame?.slots.find((s) => s.name === slotName);
+  if (slot === undefined) {
+    iceUnsupported(expr, ctx, `expression result slot '${slotName}' missing from the frame`);
+    return null;
+  }
+  if (byteSize(slot.type) !== byteSize(siteType)) {
+    iceUnsupported(
+      expr,
+      ctx,
+      `expression result slot '${slotName}' size mismatch (frame ${byteSize(slot.type)}B, site ${byteSize(siteType)}B)`,
+    );
+    return null;
+  }
+  return loc(frameSymbol(ctx.fqName, slotName), ilTypeOfType(siteType));
+}
+
+/**
+ * Lower `a && b` / `a || b` as a value-producing slot diamond. Short-circuit
+ * is a language guarantee, not an optimization: the right operand's code sits
+ * in its own branch-target block and runs only when the left operand does not
+ * decide the result. The result crosses the block boundary through its
+ * synthetic frame slot (a temp cannot), and the join reloads it:
+ *
+ *     store lhs -> slot ; brcond lhs ? rhs : join   (|| swaps the targets)
+ *     rhs:  store rhs -> slot ; br join
+ *     join: result = load slot
+ */
+function lowerShortCircuit(expr: BinaryExprNode, ctx: LowerCtx): ILOperand {
+  const slot = claimResultSlot(expr, ctx); // claimed at node entry — preorder
+  if (slot === null) return imm(0, IL_BYTE);
+
+  const left = materialise(lowerExpr(expr.left, ctx), ctx);
+  ctx.builder.emit({ op: "store", a: left, b: slot });
+
+  const rhsL = ctx.builder.reserveLabel();
+  const joinL = ctx.builder.reserveLabel();
+  if (expr.op === "&&") {
+    ctx.builder.terminate({ kind: "brcond", cond: left, trueTarget: rhsL, falseTarget: joinL });
+  } else {
+    ctx.builder.terminate({ kind: "brcond", cond: left, trueTarget: joinL, falseTarget: rhsL });
+  }
+
+  ctx.builder.openBlock(rhsL);
+  const right = materialise(lowerExpr(expr.right, ctx), ctx);
+  ctx.builder.emit({ op: "store", a: right, b: slot });
+  ctx.builder.terminate({ kind: "br", target: joinL });
+
+  ctx.builder.openBlock(joinL);
+  const result = ctx.builder.newTemp(IL_BYTE);
+  ctx.builder.emit({ op: "load", a: result, b: slot });
+  return result;
+}
+
+/**
+ * Lower `cond ? a : b` as a diamond over the site's synthetic slot: the
+ * condition dispatches, each arm lowers its expression, coerces it to the
+ * node's result type, and stores to the slot; the join reloads it. Only the
+ * selected arm executes — the language rule falls out of the CFG shape.
+ */
+function lowerConditional(expr: ConditionalExprNode, ctx: LowerCtx): ILOperand {
+  const slot = claimResultSlot(expr, ctx); // claimed at node entry — preorder
+  if (slot === null) return imm(0, IL_BYTE);
+  const resultType = ctx.model.typeOf(expr);
+
+  const cond = materialise(lowerExpr(expr.condition, ctx), ctx);
+  const thenL = ctx.builder.reserveLabel();
+  const elseL = ctx.builder.reserveLabel();
+  const joinL = ctx.builder.reserveLabel();
+  ctx.builder.terminate({ kind: "brcond", cond, trueTarget: thenL, falseTarget: elseL });
+
+  ctx.builder.openBlock(thenL);
+  const whenTrue = coerce(
+    lowerExpr(expr.whenTrue, ctx),
+    ctx.model.typeOf(expr.whenTrue),
+    resultType,
+    ctx,
+  );
+  ctx.builder.emit({ op: "store", a: materialise(whenTrue, ctx), b: slot });
+  ctx.builder.terminate({ kind: "br", target: joinL });
+
+  ctx.builder.openBlock(elseL);
+  const whenFalse = coerce(
+    lowerExpr(expr.whenFalse, ctx),
+    ctx.model.typeOf(expr.whenFalse),
+    resultType,
+    ctx,
+  );
+  ctx.builder.emit({ op: "store", a: materialise(whenFalse, ctx), b: slot });
+  ctx.builder.terminate({ kind: "br", target: joinL });
+
+  ctx.builder.openBlock(joinL);
+  const result = ctx.builder.newTemp(slot.type);
+  ctx.builder.emit({ op: "load", a: result, b: slot });
+  return result;
+}
+
+/**
+ * Lower a unary expression. `-` on a directly-nested literal folds to the
+ * two's-complement immediate (a negative literal is a value, not a runtime
+ * negation); a runtime `-` emits `neg` (typing guarantees a signed operand —
+ * the unsigned check here is defense in depth). `~` emits `not` at the
+ * operand's width. `!` is the ==0 test: booleans are 0-false/1-true, so
+ * logical not needs no new IL op. `&` (address-of) is not supported yet.
+ */
+function lowerUnary(expr: UnaryExprNode, ctx: LowerCtx): ILOperand {
+  if (expr.op === "&") {
+    return iceUnsupported(expr, ctx, "address-of (not supported yet)");
+  }
+  const ilType = ilTypeOfType(ctx.model.typeOf(expr));
+
+  if (expr.op === "-" && expr.operand.kind === "NumericLitExpr") {
+    // Negative-literal shape: encode the negated value's bit pattern directly.
+    const modulus = ilType.width === 8 ? 0x100 : 0x10000;
+    const pattern = ((-expr.operand.value % modulus) + modulus) % modulus;
+    return imm(pattern, ilType);
+  }
+
+  const src = lowerExpr(expr.operand, ctx);
+  switch (expr.op) {
+    case "-": {
+      if (!ilType.signed) {
+        return iceUnsupported(expr, ctx, "negation of an unsigned value");
+      }
+      const dest = ctx.builder.newTemp(ilType);
+      ctx.builder.emit({ op: "neg", dest, src, type: ilType });
+      return dest;
+    }
+    case "~": {
+      const dest = ctx.builder.newTemp(ilType);
+      ctx.builder.emit({ op: "not", dest, src, type: ilType });
+      return dest;
+    }
+    default: {
+      // "!": true is 1, false is 0 — logical not IS the equals-zero test.
+      const dest = ctx.builder.newTemp(IL_BYTE);
+      ctx.builder.emit({ op: "eq", dest, left: src, right: imm(0, IL_BYTE), type: IL_BYTE });
+      return dest;
+    }
+  }
+}
+
+/**
+ * Lower `<type>(operand)`. Width changes go through {@link coerce} (the
+ * source's signedness picks the extension; narrowing truncates). A same-width
+ * cast is a bit-free reinterpret: an immediate re-types in place; a temp of a
+ * different signedness gets a `copy` re-typing its view (keeps the printed IL
+ * honest); an already-right-typed value passes through. Boolean/void/
+ * aggregate casts never reach lowering (typing rejected them).
+ */
+function lowerCast(expr: CastExprNode, ctx: LowerCtx): ILOperand {
+  const operandType = ctx.model.typeOf(expr.operand);
+  const targetType = ctx.model.typeOf(expr);
+  const value = lowerExpr(expr.operand, ctx);
+  if (operandType.kind !== "primitive" || targetType.kind !== "primitive") return value;
+
+  const fromIl = ilTypeOfType(operandType);
+  const toIl = ilTypeOfType(targetType);
+  if (fromIl.width !== toIl.width) {
+    return coerce(value, operandType, targetType, ctx);
+  }
+  if (value.kind === "immediate") {
+    return imm(value.value, toIl); // same-width reinterpret of a constant pattern
+  }
+  if (isTemp(value) && value.type.signed !== toIl.signed) {
+    const dest = ctx.builder.newTemp(toIl);
+    ctx.builder.emit({ op: "copy", dest, src: value });
+    return dest;
+  }
+  return value;
+}
+
+/**
+ * `target = rhs` / `target OP= rhs` → resolve the target's storage location,
+ * then store the (plain) rhs or the compound expansion's result to it.
+ */
 function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   const targetExpr = expr.target;
-  if (expr.op !== "=" || (targetExpr.kind !== "IdentExpr" && targetExpr.kind !== "FieldAccessExpr")) {
+  if (targetExpr.kind !== "IdentExpr" && targetExpr.kind !== "FieldAccessExpr") {
     return iceUnsupported(expr, ctx, "assignment");
   }
-  const value = materialise(lowerExpr(expr.value, ctx), ctx);
 
   const sym = ctx.model.symbolOf(targetExpr);
   const moduleVar = sym !== null ? moduleVarLocOfSymbol(sym) : null;
@@ -929,8 +1240,54 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
     // by typing; reaching it here is a compiler bug.
     return iceUnsupported(expr, ctx, "assignment (qualified target)");
   }
-  ctx.builder.emit({ op: "store", a: value, b: target });
-  return value;
+
+  if (expr.op === "=") {
+    const value = materialise(lowerExpr(expr.value, ctx), ctx);
+    ctx.builder.emit({ op: "store", a: value, b: target });
+    return value;
+  }
+  return lowerCompoundAssign(expr, target, ctx);
+}
+
+/**
+ * Lower `x OP= e` with the expanded form's semantics: load the target's
+ * current value, lower the rhs, coerce both to the expansion's type, emit the
+ * binary op (same table and signed-div/mod guard as any binary), and store
+ * the result back. Scalar l-values have no side effects, so single evaluation
+ * is structural. Typing guarantees the result assigns back to the target
+ * (same width by then) — the closing coercion is identity in legal programs.
+ */
+function lowerCompoundAssign(expr: AssignExprNode, target: ILOperand, ctx: LowerCtx): ILOperand {
+  const baseOp = COMPOUND_BASE_OP[expr.op];
+  const ilOp = baseOp === undefined ? undefined : BINARY_OP_TO_IL[baseOp];
+  if (ilOp === undefined) {
+    return iceUnsupported(expr, ctx, `compound assignment '${expr.op}'`);
+  }
+
+  const targetType = ctx.model.typeOf(expr.target);
+  const valueType = ctx.model.typeOf(expr.value);
+  const isShift = ilOp === "shl" || ilOp === "shr";
+  const expansionType: Type = isShift
+    ? targetType
+    : (commonType(targetType, valueType) ?? targetType);
+
+  if ((ilOp === "div" || ilOp === "mod") && isSignedInteger(expansionType)) {
+    return iceUnsupported(expr, ctx, "signed division/modulo (unsigned runtime routines only)");
+  }
+
+  const current = ctx.builder.newTemp(target.type);
+  ctx.builder.emit({ op: "load", a: current, b: target });
+  const rhs = lowerExpr(expr.value, ctx);
+
+  const left = coerce(current, targetType, expansionType, ctx);
+  const right = isShift ? rhs : coerce(rhs, valueType, expansionType, ctx);
+  const ilType = ilTypeOfType(expansionType);
+  const dest = ctx.builder.newTemp(ilType);
+  ctx.builder.emit({ op: ilOp, dest, left, right, type: ilType } as ILInstruction);
+
+  const result = materialise(coerce(dest, expansionType, targetType, ctx), ctx);
+  ctx.builder.emit({ op: "store", a: result, b: target });
+  return result;
 }
 
 /**
@@ -1084,22 +1441,75 @@ function emitPokew(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   return imm(0, IL_BYTE);
 }
 
-/** `lo(val)` → the low byte. A constant folds; a runtime value is deferred (ICE). */
+/**
+ * `lo(val)` → the low byte. A constant folds to an immediate. A runtime
+ * 16-bit value truncates (`trunc` reads the operand's home low byte); an
+ * 8-bit value IS its own low byte (identity — the widened word's low byte
+ * equals the original pattern).
+ */
 function emitLo(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const arg = expr.args[0];
-  if (arg !== undefined && arg.kind === "NumericLitExpr") {
+  if (arg === undefined) return iceUnsupported(expr, ctx, "lo() argument");
+  if (arg.kind === "NumericLitExpr") {
     return imm(arg.value & 0xff, IL_BYTE);
   }
-  return iceUnsupported(expr, ctx, "lo() of a non-constant value");
+  const value = lowerExpr(arg, ctx);
+  if (value.type.width === 8) return value; // identity
+  if (value.kind === "immediate") {
+    return imm(value.value & 0xff, IL_BYTE); // an inlined constant folds too
+  }
+  const dest = ctx.builder.newTemp(IL_BYTE);
+  ctx.builder.emit({ op: "trunc", dest, src: value });
+  return dest;
 }
 
-/** `hi(val)` → the high byte. A constant folds; a runtime value is deferred (ICE). */
+/**
+ * `hi(val)` → the high byte. A constant folds to an immediate. A runtime
+ * MEMORY-RESIDENT 16-bit value (a local/param or module variable) reads its
+ * storage location at offset +1 — the high byte of a little-endian word,
+ * which for `sword` is also the sign-carrying byte, so no shift machinery is
+ * needed. An unsigned 8-bit value's widened high byte is always 0. A
+ * computed 16-bit argument or a signed 8-bit argument (whose widened high
+ * byte would need sign extension) is rejected loudly for now.
+ */
 function emitHi(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   const arg = expr.args[0];
-  if (arg !== undefined && arg.kind === "NumericLitExpr") {
+  if (arg === undefined) return iceUnsupported(expr, ctx, "hi() argument");
+  if (arg.kind === "NumericLitExpr") {
     return imm((arg.value >> 8) & 0xff, IL_BYTE);
   }
-  return iceUnsupported(expr, ctx, "hi() of a non-constant value");
+
+  const argIl = ilTypeOfType(ctx.model.typeOf(arg));
+  if (argIl.width === 8) {
+    if (argIl.signed) {
+      return iceUnsupported(expr, ctx, "hi() of a signed 8-bit value (sign extension)");
+    }
+    return imm(0, IL_BYTE); // a widened byte's high byte is always 0
+  }
+
+  if (arg.kind === "IdentExpr" || arg.kind === "FieldAccessExpr") {
+    const sym = ctx.model.symbolOf(arg);
+    if (sym !== null && sym.kind === "constant") {
+      const value = ctx.model.constValues.get(sym);
+      if (value !== undefined && typeof value.value === "number") {
+        return imm((value.value >> 8) & 0xff, IL_BYTE);
+      }
+      return iceUnsupported(expr, ctx, "hi() of a constant without an evaluated value");
+    }
+    const moduleVar = sym !== null ? moduleVarLocOfSymbol(sym) : null;
+    let base: string | null = null;
+    if (moduleVar !== null) {
+      base = moduleVar.symbol;
+    } else if (arg.kind === "IdentExpr" && !ctx.moduleInit) {
+      base = frameSymbol(ctx.fqName, arg.name);
+    }
+    if (base !== null) {
+      const dest = ctx.builder.newTemp(IL_BYTE);
+      ctx.builder.emit({ op: "load", a: dest, b: loc(base, IL_BYTE, 1) });
+      return dest;
+    }
+  }
+  return iceUnsupported(expr, ctx, "hi() of a computed 16-bit value");
 }
 
 /** The inline T2 emitter table — keyed once, not a per-name switch. */

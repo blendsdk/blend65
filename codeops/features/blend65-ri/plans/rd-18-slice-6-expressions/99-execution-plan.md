@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 17:48 (Phase 2 COMPLETE — width-aware const evaluation green, 22/52)
-> **Progress**: 22/52 tasks (42%)
+> **Last Updated**: 2026-07-11 18:24 (Phase 3 COMPLETE — slots + IL lowering green, 33/52)
+> **Progress**: 33/52 tasks (63%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -129,26 +129,26 @@ assignment, and warnings before any code.
 **Reference**: 07 ST-23…ST-27 · 03-03 · AR-2/5/6/8/9
 **Objective**: pin the IL shapes (slots, coercions, comparison operand type, guards).
 
-- [ ] 3.1.1 Write lowering spec tests (ST-23…ST-27) — `packages/codegen/src/il/lower-expressions.spec.test.ts`
-- [ ] 3.1.2 RED phase: verify failures; document pre-passers
+- [x] 3.1.1 Write lowering spec tests (ST-23…ST-27) — `packages/codegen/src/il/lower-expressions.spec.test.ts` ✅ (completed: 2026-07-11 17:58)
+- [x] 3.1.2 RED phase: verify failures; document pre-passers ✅ (completed: 2026-07-11 17:58 — 8 failed / 1 passed of 9; the pre-passer is the "byte compares stay i8u" non-regression guard, true by construction today and load-bearing after the stamping change)
 
 ### Step 3.2: Implementation
 
 **Reference**: 03-03 §1–§10 · AR-2, AR-6, AR-8, AR-9
 **Objective**: adapter slots + every new lowering arm.
 
-- [ ] 3.2.1 Synthetic `0sc<N>` slot collection (preorder walk; per-function + `__init` pseudo-`FunctionInfo`) — `packages/frontend/src/sfa/model-adapter.ts`
-- [ ] 3.2.2 `coerce` helper (zext/sext/trunc quadrants) + binary-operand/assign/arg/ret/arm call sites — `packages/codegen/src/il/lower.ts`
-- [ ] 3.2.3 Comparison operand-type stamping at ALL THREE emission sites (`lowerBinary`; the for-loop predicate `compareCounter` — stamp `counterType`; the switch dispatch `eq` chain — stamp the discriminant type) + signed div/mod loud ICE; refresh the comparison-shape doc comments (`instruction.ts` comparison note, `lower.ts` `COMPARISON_RESULT_OPS` note) to state `type` = operand type — `lower.ts`, `packages/codegen/src/il/instruction.ts`
-- [ ] 3.2.4 `lowerUnary` (neg/not/eq-0; `&` ICE) + `lowerCast` — `lower.ts`
-- [ ] 3.2.5 `lowerShortCircuit` + `lowerConditional` (slot diamonds, `scCounter`, frame-miss + slot-size-parity ICE guard) — `lower.ts`
-- [ ] 3.2.6 Compound-assignment desugar in `lowerAssign` + non-const `lo`/`hi` emitters + `__init` slot threading in `lowerInitCode` — `lower.ts`
-- [ ] 3.2.7 GREEN phase: ST-23…ST-27 pass
+- [x] 3.2.1 Synthetic `0sc<N>` slot collection (preorder walk; per-function + `__init` pseudo-`FunctionInfo`) — `packages/frontend/src/sfa/model-adapter.ts` ✅ (completed: 2026-07-11 18:14)
+- [x] 3.2.2 `coerce` helper (zext/sext/trunc quadrants) + binary-operand/assign/arg/ret/arm call sites — `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-11 18:14 — immediates re-encode in place, no instruction; operands coerce at the binary/ternary-arm sites; assign/arg/ret values reach the right width through the operand-level coercions + typing's literal adaptation)
+- [x] 3.2.3 Comparison operand-type stamping at ALL THREE emission sites (`lowerBinary`; the for-loop predicate `compareCounter` — stamp `counterType`; the switch dispatch `eq` chain — stamp the discriminant type) + signed div/mod loud ICE; refresh the comparison-shape doc comments (`instruction.ts` comparison note, `lower.ts` `COMPARISON_RESULT_OPS` note) to state `type` = operand type — `lower.ts`, `packages/codegen/src/il/instruction.ts` ✅ (completed: 2026-07-11 18:14)
+- [x] 3.2.4 `lowerUnary` (neg/not/eq-0; `&` ICE) + `lowerCast` — `lower.ts` ✅ (completed: 2026-07-11 18:14 — negative-literal shape folds to the two's-complement immediate)
+- [x] 3.2.5 `lowerShortCircuit` + `lowerConditional` (slot diamonds, `scCounter`, frame-miss + slot-size-parity ICE guard) — `lower.ts` ✅ (completed: 2026-07-11 18:14)
+- [x] 3.2.6 Compound-assignment desugar in `lowerAssign` + non-const `lo`/`hi` emitters + `__init` slot threading in `lowerInitCode` — `lower.ts` ✅ (completed: 2026-07-11 18:14 — hi() uses the existing location-offset operand (`loc(base, byte, 1)`), sign-correct for sword; hi(sbyte)/computed-word → loud ICE)
+- [x] 3.2.7 GREEN phase: ST-23…ST-27 pass ✅ (completed: 2026-07-11 18:14 — 9/9 green; FULL workspace suite green, all prior goldens byte-exact, no re-mint)
 
 ### Step 3.3: Implementation tests & hardening
 
-- [ ] 3.3.1 Impl tests: slot-count + slot-size parity on nested shapes, coerce quadrants, compound single-store, `__init` frame presence/absence, switch-discriminant-with-slot-site loud-ICE witness — `lower-expressions.impl.test.ts` (07 impl table)
-- [ ] 3.3.2 Full verify
+- [x] 3.3.1 Impl tests: slot-count + slot-size parity on nested shapes, coerce quadrants, compound single-store, `__init` frame presence/absence, switch-discriminant-with-slot-site loud-ICE witness — `lower-expressions.impl.test.ts` (07 impl table) ✅ (completed: 2026-07-11 18:24 — 16 tests, all areas covered incl. the preorder parity witness `a && (c ? f1 : f2)` and the mixed byte/word slot-size check)
+- [x] 3.3.2 Full verify ✅ (completed: 2026-07-11 18:24 — install+build+typecheck+lint+test ALL GREEN; `spec/` clean; doc-standard self-check clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

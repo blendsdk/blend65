@@ -24,7 +24,11 @@ import type { IntrinsicDescriptor } from "./intrinsic-descriptor.js";
 export const ARITHMETIC_BINARY_OPS = ["add", "sub", "mul", "div", "mod"] as const;
 /** Binary bitwise/shift opcodes. */
 export const BITWISE_BINARY_OPS = ["and", "or", "xor", "shl", "shr"] as const;
-/** Comparison opcodes — each produces an `IL_BYTE` 0/1 result. */
+/**
+ * Comparison opcodes — each produces an `IL_BYTE` 0/1 result, while the
+ * instruction's `type` field carries the (promoted) OPERAND type so the
+ * translator can pick the byte/word × unsigned/signed comparison framing.
+ */
 export const COMPARISON_OPS = ["eq", "ne", "lt", "le", "gt", "ge"] as const;
 /** Width-conversion opcodes. */
 export const CONVERSION_OPS = ["zext", "sext", "trunc"] as const;
@@ -95,7 +99,7 @@ export type ILInstruction =
       readonly type: ILType;
     }
   | { readonly op: "not"; readonly dest: ILOperand; readonly src: ILOperand; readonly type: ILType }
-  // Comparison — result is IL_BYTE
+  // Comparison — the dest temp is an IL_BYTE 0/1 flag; `type` is the OPERAND type
   | {
       readonly op: (typeof COMPARISON_OPS)[number];
       readonly dest: ILOperand;
