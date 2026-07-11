@@ -3,10 +3,15 @@
  * collection.
  *
  * This is the collector that turns the empty-model passthrough into a *real*
- * model the SFA adapter can project. For each program it builds the program's
- * **module** `Scope`, registers every top-level `function`/`interrupt` as a
+ * model the SFA adapter can project. For each program it finds-or-creates the
+ * program's **module** `Scope` — module scopes are keyed by module NAME, so
+ * several files declaring the same module share ONE scope (a module may span
+ * multiple files; the first file's `ModuleDeclNode` stays the scope's
+ * representative node) — registers every top-level `function`/`interrupt` as a
  * function `Symbol` declared **in that module scope** (so `fn.scope.node` is the
- * `ModuleDeclNode` the adapter reads for the fully-qualified name), and
+ * `ModuleDeclNode` the adapter reads for the fully-qualified name; a name
+ * already taken in the module — same file or another file of the merged
+ * module — is a duplicate declaration, E10003, first-wins), and
  * builds a function **body** `Scope` holding the function's parameters
  * (declaration order, before the locals; a duplicate name is E10003) followed
  * by its local variables (from body `LetDecl`s) in declaration order. It
@@ -58,9 +63,14 @@ export interface FunctionTables {
   /**
    * Each program → its module `Scope`, so later passes (import resolution)
    * can address a specific file's module scope without relying on the
-   * global scope's child order.
+   * global scope's child order. Files of the same module map to ONE scope.
    */
   readonly moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>;
+  /**
+   * Module name → its (shared) module `Scope` — one entry per distinct module,
+   * consumed by import resolution and qualified-access resolution.
+   */
+  readonly moduleScopeByName: ReadonlyMap<string, Scope>;
 }
 
 /**
@@ -80,18 +90,39 @@ export function collectFunctions(
   const functions = new Set<Symbol>();
   const scopeByNode = new Map<AstNode, Scope>();
   const moduleScopeByProgram = new Map<ProgramNode, Scope>();
+  const moduleScopeByName = new Map<string, Scope>();
   let mainFunction: Symbol | null = null;
 
   for (const program of programs) {
-    // Step 0 — the program's module scope (functions live in it).
+    // Step 0 — the program's module scope (functions live in it), keyed by
+    // module name so every file of one module shares ONE scope. The first
+    // file's `ModuleDeclNode` stays the scope's representative node.
     // `moduleDecl` is always present per the parser contract; guard defensively.
     const moduleNode: AstNode | null = program.moduleDecl ?? null;
-    const moduleScope = createScope("module", globalScope, moduleNode);
-    globalScope.children.push(moduleScope);
+    const moduleName = program.moduleDecl?.name;
+    let moduleScope = moduleName !== undefined ? moduleScopeByName.get(moduleName) : undefined;
+    if (moduleScope === undefined) {
+      moduleScope = createScope("module", globalScope, moduleNode);
+      globalScope.children.push(moduleScope);
+      if (moduleName !== undefined) moduleScopeByName.set(moduleName, moduleScope);
+    }
     moduleScopeByProgram.set(program, moduleScope);
 
     for (const item of program.items) {
       if (item.kind !== "FunctionDecl" && item.kind !== "InterruptDecl") continue;
+
+      // A name already declared in this module — an earlier function in the
+      // same file, or any top-level name from another file of the merged
+      // module — is a duplicate declaration. First-wins; the duplicate
+      // contributes no symbol, no body scope, and is not typed.
+      if (moduleScope.symbols.has(item.name)) {
+        bag.addError(
+          DiagCode.DuplicateDecl,
+          item.nameSpan,
+          `Duplicate declaration '${item.name}' in this module`,
+        );
+        continue;
+      }
 
       // Step 1 — the function `Symbol`, declared in the module scope. `type` stays
       // ERROR_TYPE here — nothing reads a function symbol's type at this stage;
@@ -160,7 +191,7 @@ export function collectFunctions(
     }
   }
 
-  return { functions, mainFunction, scopeByNode, moduleScopeByProgram };
+  return { functions, mainFunction, scopeByNode, moduleScopeByProgram, moduleScopeByName };
 }
 
 /**

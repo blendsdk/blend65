@@ -4,11 +4,12 @@
  *
  * `collectModuleVariables` registers each top-level `let`/`const` declaration as a
  * `variable`/`constant` `Symbol` in the program's **module** scope — the very
- * scope `collectFunctions` created for that module — so a function body reference
- * resolves to it (innermost-first: body → module → global). A name already
- * declared in the module scope (a function or an earlier variable) is a duplicate
- * declaration → E10003. Module-level `let` initialisers are deferred (spec VAR-2):
- * they are collected but not executed yet.
+ * scope `collectFunctions` created (or, for a module spanning several files,
+ * reused) for that program — so a function body reference resolves to it
+ * (innermost-first: body → module → global). A name already declared in the
+ * module scope (a function or an earlier variable, from any file of the merged
+ * module) is a duplicate declaration → E10003. Module-level `let` initialisers
+ * are deferred (spec VAR-2): they are collected but not executed yet.
  *
  * Emit-diagnostic-never-throw: a program without a matching module scope simply
  * contributes no module variables. Imports `@blend65/core` only — never
@@ -26,19 +27,17 @@ import { resolveTypeNode } from "./type-check/type-resolution.js";
  * throws.
  *
  * @param programs The parsed program ASTs.
- * @param globalScope The model's global scope (parent of the module scopes).
+ * @param moduleScopeByProgram Each program → its module scope (from collection).
  * @param bag The shared diagnostic accumulator (E10003 on duplicates).
  */
 export function collectModuleVariables(
   programs: readonly ProgramNode[],
-  globalScope: Scope,
+  moduleScopeByProgram: ReadonlyMap<ProgramNode, Scope>,
   bag: DiagnosticBag,
 ): void {
   for (const program of programs) {
-    // The module scope `collectFunctions` created for this program (matched by the
-    // very `ModuleDeclNode` it was built from).
-    const moduleNode = program.moduleDecl ?? null;
-    const moduleScope = globalScope.children.find((s) => s.node === moduleNode);
+    // The module scope `collectFunctions` created (or reused) for this program.
+    const moduleScope = moduleScopeByProgram.get(program);
     if (moduleScope === undefined) continue; // malformed/module-less program — skip
 
     for (const item of program.items) {

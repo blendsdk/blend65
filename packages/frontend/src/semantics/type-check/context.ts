@@ -16,6 +16,7 @@ import type {
   DiagnosticBag,
   ExprNode,
   IntrinsicRegistry,
+  Scope,
   SourceSpan,
   Symbol,
   Type,
@@ -50,6 +51,12 @@ export interface TypeCheckContext {
   readonly callEdges: Map<Symbol, Set<Symbol>>;
   /** First call-site span per edge, anchoring the recursion diagnostic. */
   readonly callSiteSpans: Map<Symbol, Map<Symbol, SourceSpan>>;
+  /**
+   * User-module name → its (shared) module scope, for resolving qualified
+   * `Module.member` access (exported declarations are reachable with full
+   * qualification without an import).
+   */
+  readonly moduleScopes: ReadonlyMap<string, Scope>;
   /**
    * The intrinsic registry. Platform-contributed intrinsics parse as plain
    * calls without being scope symbols; call typing consults the registry so

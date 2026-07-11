@@ -19,6 +19,7 @@ import {
   commonType,
   DiagCode,
   ERROR_TYPE,
+  IceCode,
   isAssignableTo,
   isError,
   isInteger,
@@ -32,6 +33,7 @@ import type {
   BinaryExprNode,
   CallExprNode,
   ExprNode,
+  FieldAccessExprNode,
   FunctionDeclNode,
   IdentExprNode,
   IntrinsicCallExprNode,
@@ -42,7 +44,7 @@ import type {
   Type,
 } from "@blend65/core";
 import type { FnSignature, TypeCheckContext } from "./context.js";
-import { enclosingFunctionSymbol, resolveName } from "./name-resolution.js";
+import { enclosingFunctionSymbol, resolveName, resolveQualified } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
 
@@ -93,9 +95,11 @@ function computeType(
       return typeIntrinsicCall(expr, scope, ctx);
     case "CallExpr":
       return typeCall(expr, scope, ctx);
+    case "FieldAccessExpr":
+      return typeFieldAccess(expr, scope, ctx);
     default:
-      // Member / index / cast / unary / struct-lit / etc. are not yet
-      // handled here; poison without a diagnostic.
+      // Index / cast / unary / struct-lit / etc. are not yet handled here;
+      // poison without a diagnostic.
       return ERROR_TYPE;
   }
 }
@@ -208,6 +212,18 @@ function typeAssign(expr: AssignExprNode, scope: Scope, ctx: TypeCheckContext): 
         `Cannot assign to constant '${expr.target.name}'`,
       );
     }
+  } else if (expr.target.kind === "FieldAccessExpr") {
+    // A qualified target was resolved (and recorded in `symbolMap`) while it
+    // was typed above; a failed or non-module resolution is already poisoned
+    // or diagnosed there, and a function member is already rejected loudly.
+    const sym = ctx.symbolMap.get(expr.target);
+    if (sym !== undefined && sym.kind === "constant") {
+      ctx.bag.addError(
+        DiagCode.AssignToConst,
+        expr.span,
+        `Cannot assign to constant '${expr.target.field}'`,
+      );
+    }
   }
 
   const valueType = typeOfExpr(expr.value, scope, ctx, targetType);
@@ -217,52 +233,122 @@ function typeAssign(expr: AssignExprNode, scope: Scope, ctx: TypeCheckContext): 
 }
 
 /**
- * User-function call typing.
+ * Qualified `Module.member` access in value position.
  *
- * The callee-resolution ladder (an `IdentExpr` callee is the supported
- * surface; qualified callees are not resolved yet and poison silently):
- * unresolved name → E10100; an `interrupt` → E10051 (interrupt bodies end in
- * RTI — a user JSR would corrupt the stack); the entry point → E10023; any
- * non-function symbol → E10175. A resolved callee records a call-graph edge
- * from the enclosing function, then checks arguments: a count mismatch is
- * E10170 (arguments are still typed for map coverage, but per-argument type
- * checks are suppressed — one diagnostic per root cause); otherwise every
- * argument is typed in its parameter's context, range-checked as a constant,
- * and must be strictly assignable (E10171). The call's type is the callee's
- * declared return type; a poisoned argument suppresses its own mismatch
- * check.
+ * Resolution dispatches on `resolveQualified`: a non-module shape (struct
+ * field access, a value-shadowed head) keeps today's silent poison; a failed
+ * resolution is already diagnosed there. A resolved module `variable`/
+ * `constant` types as that symbol (recorded in `symbolMap` — the SAME symbol
+ * the module scope declares, so downstream symbol-keyed machinery works
+ * unchanged). A resolved function/interrupt member is not a value — function
+ * references are a future feature, so the shape is rejected loudly rather
+ * than silently miscompiled.
  */
-function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type {
-  if (expr.callee.kind !== "IdentExpr") {
-    // Qualified access (`Module.fn(…)`) and other callee shapes are not
-    // resolved yet: walk the args for map coverage, poison without a
-    // diagnostic (the still-unsupported contract downstream phases expect).
-    for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
+function typeFieldAccess(
+  expr: FieldAccessExprNode,
+  scope: Scope,
+  ctx: TypeCheckContext,
+): Type {
+  const res = resolveQualified(expr, scope, ctx.moduleScopes, ctx.bag);
+  if (res.status !== "resolved") {
+    // not-qualified → struct-field typing is a future surface (silent poison);
+    // poisoned → the diagnostic is already out.
     return ERROR_TYPE;
   }
 
-  const callee = expr.callee;
-  const sym = resolveName(callee.name, scope);
-  if (sym === null) {
-    // A platform-contributed intrinsic parses as a plain call and is never a
-    // scope symbol — availability/import/arity checks belong to the platform
-    // import boundary, so it is not an undeclared identifier here. A declared
-    // name always wins over a registry name (checked above via the scopes).
-    if (ctx.registry?.get(callee.name)?.platformId !== undefined) {
-      return walkArgsAndPoison(expr, scope, ctx);
-    }
-    ctx.bag.addError(
-      DiagCode.UndeclaredIdentifier,
-      callee.span,
-      `Undeclared identifier '${callee.name}'`,
-    );
-    return walkArgsAndPoison(expr, scope, ctx);
+  const sym = res.symbol;
+  if (sym.kind === "variable" || sym.kind === "constant") {
+    ctx.symbolMap.set(expr, sym);
+    return sym.type;
   }
+
+  // function / interrupt (and, defensively, any other kind) in value position.
+  ctx.bag.addError(
+    IceCode.Unexpected,
+    expr.span,
+    `Qualified access to '${expr.field}' names a function — function references ` +
+      `are not supported yet; call it instead`,
+  );
+  return ERROR_TYPE;
+}
+
+/** A resolved callee: its symbol plus the name/span used in diagnostics. */
+interface ResolvedCallee {
+  readonly sym: Symbol;
+  readonly name: string;
+  readonly span: SourceSpan;
+}
+
+/**
+ * Resolves a call's callee to a declared symbol, for either supported shape:
+ * a bare `IdentExpr` (lexical lookup; an unresolved non-registry name is
+ * E10100) or a qualified `Module.member` (via `resolveQualified`, which owns
+ * E10100/E10012 for that shape). Returns `null` when the call must poison —
+ * the diagnostic, if any, has already been emitted (a `null` with no
+ * diagnostic is the deliberate silent contract for unsupported callee shapes
+ * and registry-owned platform intrinsics).
+ */
+function resolveCallee(
+  callee: ExprNode,
+  scope: Scope,
+  ctx: TypeCheckContext,
+): ResolvedCallee | null {
+  if (callee.kind === "IdentExpr") {
+    const sym = resolveName(callee.name, scope);
+    if (sym === null) {
+      // A platform-contributed intrinsic parses as a plain call and is never a
+      // scope symbol — availability/import/arity checks belong to the platform
+      // import boundary, so it is not an undeclared identifier here. A declared
+      // name always wins over a registry name (checked above via the scopes).
+      if (ctx.registry?.get(callee.name)?.platformId !== undefined) return null;
+      ctx.bag.addError(
+        DiagCode.UndeclaredIdentifier,
+        callee.span,
+        `Undeclared identifier '${callee.name}'`,
+      );
+      return null;
+    }
+    return { sym, name: callee.name, span: callee.span };
+  }
+
+  if (callee.kind === "FieldAccessExpr") {
+    const res = resolveQualified(callee, scope, ctx.moduleScopes, ctx.bag);
+    // not-qualified keeps the silent struct-field contract; poisoned is
+    // already diagnosed — either way the call poisons.
+    if (res.status !== "resolved") return null;
+    return { sym: res.symbol, name: callee.field, span: callee.fieldSpan };
+  }
+
+  // Other callee shapes (index/call results, literals) are not callable
+  // surfaces yet; poison silently.
+  return null;
+}
+
+/**
+ * User-function call typing.
+ *
+ * The callee resolves via {@link resolveCallee} (bare identifier or qualified
+ * `Module.member` — both shapes feed ONE shared ladder below): an `interrupt`
+ * → E10051 (interrupt bodies end in RTI — a user JSR would corrupt the
+ * stack); the entry point → E10023; any non-function symbol → E10175. A
+ * resolved callee records a call-graph edge from the enclosing function, then
+ * checks arguments: a count mismatch is E10170 (arguments are still typed for
+ * map coverage, but per-argument type checks are suppressed — one diagnostic
+ * per root cause); otherwise every argument is typed in its parameter's
+ * context, range-checked as a constant, and must be strictly assignable
+ * (E10171). The call's type is the callee's declared return type; a poisoned
+ * argument suppresses its own mismatch check.
+ */
+function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type {
+  const resolved = resolveCallee(expr.callee, scope, ctx);
+  if (resolved === null) return walkArgsAndPoison(expr, scope, ctx);
+  const { sym, name, span } = resolved;
+
   if (sym.kind === "interrupt") {
     ctx.bag.addError(
       DiagCode.CallToInterruptFunction,
-      callee.span,
-      `Cannot call interrupt function '${callee.name}' — interrupt handlers are ` +
+      span,
+      `Cannot call interrupt function '${name}' — interrupt handlers are ` +
         `invoked by hardware, not by user code`,
     );
     return walkArgsAndPoison(expr, scope, ctx);
@@ -270,7 +356,7 @@ function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type
   if (sym === ctx.mainFunction) {
     ctx.bag.addError(
       DiagCode.CallingMainDirectly,
-      callee.span,
+      span,
       `Cannot call 'main()' directly — it is the program entry point, not a ` +
         `callable function`,
     );
@@ -279,16 +365,16 @@ function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type
   if (sym.kind !== "function") {
     ctx.bag.addError(
       DiagCode.NotCallable,
-      callee.span,
-      `'${callee.name}' is not a function — cannot call a '${typeName(sym.type)}' ` +
+      span,
+      `'${name}' is not a function — cannot call a '${typeName(sym.type)}' ` +
         `value as a function`,
     );
     return walkArgsAndPoison(expr, scope, ctx);
   }
 
   // Resolved user function: record the reference and the call-graph edge.
-  ctx.symbolMap.set(callee, sym);
-  recordCallEdge(scope, sym, callee.span, ctx);
+  ctx.symbolMap.set(expr.callee, sym);
+  recordCallEdge(scope, sym, span, ctx);
 
   const sig = signatureOf(sym, ctx);
 
@@ -296,7 +382,7 @@ function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type
     ctx.bag.addError(
       DiagCode.WrongArgCount,
       expr.span,
-      `Wrong argument count — '${callee.name}()' expects ${sig.params.length} ` +
+      `Wrong argument count — '${name}()' expects ${sig.params.length} ` +
         `parameter(s), got ${expr.args.length}`,
     );
     // Arguments are still typed (map coverage), but per-argument checks are
@@ -314,7 +400,7 @@ function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type
       ctx.bag.addError(
         DiagCode.ArgTypeMismatch,
         arg.span,
-        `Argument type mismatch — parameter '${param.name}' of '${callee.name}()' ` +
+        `Argument type mismatch — parameter '${param.name}' of '${name}()' ` +
           `expects '${typeName(param.type)}', found '${typeName(argType)}'`,
       );
     }

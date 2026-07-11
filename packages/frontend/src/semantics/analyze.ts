@@ -103,13 +103,18 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   // Pass 1 (cont.) — collect module-level scalars into their module scopes, so
   // body references resolve to them and SFA can lay out `__var_*`. E10003 on a
   // duplicate top-level declaration.
-  collectModuleVariables(input.programs, empty.globalScope, input.bag);
+  collectModuleVariables(input.programs, functionTables.moduleScopeByProgram, input.bag);
 
   // Pass 1 (cont.) — resolve user-module imports (aliasing exported symbols
   // into the importing module scope; E10012/E10003), then reject parameters
   // that shadow a module-level name (E10101) now that every module-level name
   // — declared or imported — exists.
-  resolveImports(input.programs, functionTables.moduleScopeByProgram, input.bag);
+  resolveImports(
+    input.programs,
+    functionTables.moduleScopeByProgram,
+    functionTables.moduleScopeByName,
+    input.bag,
+  );
   checkParameterShadowing(functionTables.scopeByNode, input.bag);
 
   // Pass 3 — body checking: the intrinsic-validation pass plus the
@@ -130,6 +135,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     mainFunction: functionTables.mainFunction,
     callEdges,
     callSiteSpans,
+    moduleScopes: functionTables.moduleScopeByName,
     registry,
   });
 

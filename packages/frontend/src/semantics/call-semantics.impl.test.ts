@@ -1,9 +1,8 @@
 /**
  * Implementation tests for the call-semantics internals — signature-cache
  * reuse, poison-cascade discipline at argument positions, constant-argument
- * range checking, the user-module-wins import precedence edge, and the
- * duplicate-module-name guard (merging is unsupported, so the shape is
- * rejected loudly rather than mis-resolved).
+ * range checking, the user-module-wins import precedence edge, and import
+ * resolution against the one merged scope of a module that spans files.
  */
 
 import { describe, expect, it } from "vitest";
@@ -12,7 +11,6 @@ import {
   createScope,
   DEFAULT_PROFILE,
   DiagCode,
-  IceCode,
 } from "@blend65/core";
 import type {
   AstNode,
@@ -60,6 +58,7 @@ describe("call typing internals", () => {
       mainFunction: tables.mainFunction,
       callEdges: new Map<Symbol, Set<Symbol>>(),
       callSiteSpans: new Map<Symbol, Map<Symbol, SourceSpan>>(),
+      moduleScopes: tables.moduleScopeByName,
     });
 
     // Two call sites, one cached signature (for `add`).
@@ -99,17 +98,16 @@ describe("import precedence and module-name collision", () => {
     expect(diags).toEqual([]);
   });
 
-  it("rejects a duplicate module name across files loudly instead of mis-resolving", () => {
+  it("resolves imports against the ONE merged scope when a module spans files", () => {
+    // Both Math files contribute exports to the same module scope, so a single
+    // import statement can name declarations from either file.
     const diags = analyzeMulti([
       "module Main;\n" +
-        "import { add } from Math;\n" +
-        "function main(): void { add(); }\n",
+        "import { add, mul } from Math;\n" +
+        "function main(): void { add(); mul(); }\n",
       "module Math;\n" + "export function add(): void {}\n",
       "module Math;\n" + "export function mul(): void {}\n",
     ]);
-    const codes = diags.map((d) => d.code);
-    // The unsupported shape is an internal error, never a wrong E10012.
-    expect(codes).toContain(IceCode.Unexpected);
-    expect(codes).not.toContain(DiagCode.ImportNonExported);
+    expect(diags).toEqual([]);
   });
 });

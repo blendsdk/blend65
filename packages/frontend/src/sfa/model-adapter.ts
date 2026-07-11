@@ -113,9 +113,14 @@ function computeArgWindows(model: SemanticModel): Map<Symbol, Set<string>> {
   return windows;
 }
 
-/** The resolved user-function symbol a call targets, or `null`. */
+/**
+ * The resolved user-function symbol a call targets, or `null`. Both callee
+ * shapes — a bare identifier and a qualified `Module.member` access — carry
+ * their resolved symbol in the model's symbol map, so one lookup serves both.
+ */
 function userCalleeOf(call: CallExprNode, model: SemanticModel): Symbol | null {
-  if (call.callee.kind !== "IdentExpr") return null;
+  const kind = call.callee.kind;
+  if (kind !== "IdentExpr" && kind !== "FieldAccessExpr") return null;
   const sym = model.symbolOf(call.callee);
   return sym !== null && sym.kind === "function" ? sym : null;
 }
@@ -174,6 +179,10 @@ export function modelToModuleVars(model: SemanticModel): ModuleVarInput[] {
     const moduleName = isModuleDecl(modNode) ? modNode.name : "";
     for (const sym of moduleScope.symbols.values()) {
       if (sym.kind !== "variable") continue; // functions / constants are not RAM-backed
+      // An imported variable is the SAME symbol aliased into the importing
+      // scope — only its declaring module projects a RAM slot; a second
+      // (importer-side) slot would double-count the variable in the layout.
+      if (sym.scope !== moduleScope) continue;
       result.push({
         moduleName,
         variableName: sym.name,
