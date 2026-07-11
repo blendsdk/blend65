@@ -313,7 +313,8 @@ passes and the parent-RD ACs it advances are ticked.
        **Deferred from 4b:** enum switches + exhaustiveness **E10133** (→ Slice 7, AR-2); jump-table
        dispatch (→ Phase B, AR-1); out-of-switch `fallthrough` rejection + E10076 duplicate-`default`
        (parser-owned cleanup, PF-001/PF-003).
-4. [ ] **Slice 5**: a multi-function, multi-module program with params + return values VICE-verifies;
+4. [x] **Slice 5 — ✅ COMPLETE (5a functions/calls + 5b module system; CLOSED 2026-07-11)**: a
+       multi-function, multi-module program with params + return values VICE-verifies;
        recursion (direct or indirect) is rejected with the unified E10174; module init order is
        deterministic (topological, E10194 on cycle). Calling convention + `call` op proven; ASM golden committed.
        **Slice 5a partial ✅ (2026-07-10, exec_plan `plans/rd-18-slice-5a-functions-calls/`, 46/46;
@@ -336,6 +337,30 @@ passes and the parent-RD ACs it advances are ticked.
        **real VICE 3.10**: `$C000==$11` add(10,7), `$C001/$C002==$84/$03` triple(300)=$0384,
        `$C003==$10` combo(5) — cross-module byte + word round-trips and a two-level chain through
        a later-declared function; byte-exact ASM golden committed.
+       **Slice 5b ✅ (2026-07-11, exec_plan `plans/rd-18-slice-5b-module-system/`) — closes AC-4.**
+       The module system completes end-to-end: **module merging** (name-keyed shared scopes — a
+       module may span files; cross-file duplicate top-level names → E10003 including a NEW
+       duplicate-function guard; the 5a dup-module ICE removed), the **full qualified-access value
+       surface** (`Math.fn()` calls, `Math.v` reads, `Math.v = x` writes — exported-only even
+       self-module via E10012, unknown head E10100, value-first head resolution; qualified calls
+       feed the same callee ladder/call-graph/SFA machinery as bare calls; a function member in
+       value/write position → loud unsupported ICE until Slice 8 `&fn`), **call-free module-variable
+       initializers** typed with local-`let` parity (any call — user or builtin intrinsic except
+       `lo`/`hi` — is a loud unsupported rejection), **per-variable topological init order** (ONE
+       global graph; imported modules initialize first via import-edge ordering, then declaration
+       order; ONE **E10194** per dependency cycle with the spec message + full path), **scalar const
+       completion** (compile-time evaluation, declaration-order independent; E10193 non-const
+       initializer; const-const cycles → E10194; use-site inlining — a module const owns NO storage
+       symbol, closing a verified mis-lowering hole), and the **`__init` startup stream** (the
+       `ILProgram.initCode` seam realized; serialized FIRST; the shim emits `JSR __init` after
+       banking only when initializers exist — all six prior goldens stayed byte-exact with NO
+       re-mint; `--startup bare` documented user-owned). `examples/slice5b/{main,math,math2}.blend`
+       (both math files declare `module Math`; Main discovered first but Math initializes first —
+       the import-edge ordering is load-bearing) proves the 3-part bar on **real VICE 3.10**:
+       `$C000..$C006 = 05/08/07/02/01/03/01` (imported call, qualified call, init-order witness,
+       qualified word read, qualified word write); byte-exact ASM golden committed. Six negatives
+       through `compile()`: E10194+path / E10012 / E10100 / call-bearing-init ICE / cross-file-dup
+       E10003 / E10193.
 5. [ ] **Slice 6**: an expression-heavy program (`&&`/`\|\|` short-circuit, compound assign, unary,
        casts, ternary, mixed-width promotion, word shifts) VICE-verifies the exact arithmetic
        result; short-circuit is observable (RHS side effect suppressed); ASM golden committed.

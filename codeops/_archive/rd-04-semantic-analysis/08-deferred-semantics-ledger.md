@@ -3,7 +3,50 @@
 > **Document**: 08-deferred-semantics-ledger.md
 > **Parent**: [Index](00-index.md)
 > **Status**: AUTHORITATIVE — the single map of what the passthrough skeleton does NOT implement
-> **Last Updated**: 2026-07-10 (RD-18 Slice 5a advancement annotated)
+> **Last Updated**: 2026-07-11 (RD-18 Slice 5b advancement annotated)
+
+> **🟢 RD-18 Slice 5b (2026-07-11) advanced the module-system subset of this ledger.** Module
+> merging, qualified access, call-free module-variable initializers with per-variable init order,
+> and scalar const completion now ship end-to-end — see
+> `codeops/features/blend65-ri/plans/rd-18-slice-5b-module-system/` (closes RD-18 AC-4). **Rows
+> advanced:** qualified access R17 (value-first `resolveQualified` ladder — unknown head
+> **E10100**, missing/non-exported member **E10012** even from inside the module; qualified
+> calls/reads/writes feed the SAME call-graph/SFA machinery as bare names; a function member in
+> value/write position → explicit unsupported ICE until Slice 8 `&fn`); module merging R20
+> (name-keyed shared scopes — one scope per module name, the first file's ModuleDecl is the
+> representative node; cross-file duplicate top-level name → **E10003**, including duplicate
+> FUNCTIONS — a guard that did not previously exist; the 5a dup-module ICE removed); circular
+> imports R21 (legal — cycle-tolerant module ordering); module init order R23 (ONE global
+> per-variable graph — imports alias the same `Symbol` so cross-module/qualified reads land
+> automatically; consts fold and initializer-less vars are non-edges; two-level order =
+> import-edge Kahn with discovery tiebreak, then stable per-variable topo by (module order,
+> declaring-scope ordinal); ONE **E10194** per dependency cycle with the spec message + full
+> path; `SemanticModel.initOrder` populated and lowered to a generated `__init` stream the
+> startup shim calls after banking, before `_main`); R64 scalar-const subset (module consts
+> evaluated at compile time, declaration-order independent per VAR-6; non-const initializer →
+> **E10193**; const-const definition cycle → ONE **E10194**; values inlined at use sites — a
+> module const owns NO storage symbol; **E10192 recorded parser-owned** — `ConstDeclNode.
+> initialiser` is non-null by AST shape, no semantic emission site); module-`let` initializers
+> typed with local-`let` parity (**E10152/E10153/E10154** + **E10084/E10082**); R13 export
+> visibility extended to variables/consts through the import + qualified surfaces.
+>
+> **Deviations & named deferrals recorded by 5b:** (1) the **E10194 message appends the full
+> cycle path** (`— cycle: a → b → a`) beyond the spec's single-name message — the E10174
+> precedent; ONE error per cycle anchored at the first-declared member (RD-04 §4.9's
+> per-symbol-in-cycle emission is superseded by that precedent). (2) **Intra-import-cycle module
+> order falls back to discovery order** — circular imports are legal (R21) and frozen Ch 10 §5.4
+> defines no order inside an import cycle; recorded as the slice's one genuine spec gap. (3) The
+> startup deviation recorded by 5a stands, with the spec letter pinned: **Ch 10 §5.3 prescribes
+> fall-through into `main`**, the shipped shim uses `JSR _main` (scoped deviation; fall-through
+> arrives with the non-terminating work) — `JSR __init` was added to that same shim, after
+> banking so initializers run in `main`'s memory configuration. (4) **Named deferrals:**
+> call-bearing module initializers → loud unsupported ICE (calls hide reads from the dependency
+> analysis; revisit when a slice needs them); qualified function references (`Math.fn` as a
+> value or write target) → loud unsupported ICE (Slice 8, `&fn`); `--startup bare` never calls
+> `__init` — the user owns the entire entry sequence (documented in the shim + build API; no
+> diagnostic); **W10190** use-before-initialization stays unregistered (initializer-less
+> variables are legal non-edges, R111).
+> **Still deferred:** mixed-width promotion + casts (Slice 6); aggregates (Slice 7).
 
 > **🟢 RD-18 Slice 5a (2026-07-10) advanced the function-call subset of this ledger.** User
 > functions, parameters, calls, returns, recursion rejection, and minimal cross-module imports now
@@ -137,7 +180,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R10 | No shadowing | 🟡 **RD-18 Slice 5a** — FN-13 parameter-vs-module-level shadowing → `E10101` (`checkParameterShadowing`, runs after module vars + imports exist); general shadowing (locals, block scopes) still deferred | 1/3 | E10101 |
 | R11 | For-loop counter block scope | 🟡 **RD-18 Slice 4a/4b** — counter + nested-`let` locals (incl. switch case/default bodies, 4b AR-12) collected FLAT into the function scope (AR-9); real block-scope lifetime/shadowing (E10101/E10062) deferred to a later cleanup slice (AR-14) | 3 | — |
 | R12 | Module-level decls; no exec stmts | ⛔ DEFERRED | 1 | E10010 |
-| R13 | Export visibility | 🟡 **RD-18 Slice 5a** — function `exported` flags honored by import resolution; full visibility rules (vars/consts/types across modules) with 5b merging | 1 | — |
+| R13 | Export visibility | 🟡 **RD-18 Slice 5a + 5b** — function AND variable/const `exported` flags honored by import resolution and qualified access (exported-only, even self-module); type visibility across modules with aggregates | 1 | — |
 
 ## 3. Name resolution (RD-04 §3.3)
 
@@ -146,7 +189,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R14 | Unified name resolver | ⛔ DEFERRED | 3 | — |
 | R15 | Lookup order (innermost-first) | ⛔ DEFERRED | 3 | — |
 | R16 | Undeclared identifier | ⛔ DEFERRED | 3 | E10100 |
-| R17 | Qualified access `Module.name` | ⛔ DEFERRED | 3 | — |
+| R17 | Qualified access `Module.name` | ✅ **RD-18 Slice 5b** — value-first `resolveQualified` (a value symbol shadowing the head wins); unknown head → E10100, missing/non-exported member → E10012; calls/reads/writes share the bare-name ladder + call-graph/SFA machinery; function member as value → unsupported ICE (Slice 8 `&fn`) | 3 | E10100, E10012 |
 | R18 | Enum member access `Enum.Member` | ⛔ DEFERRED | 3 | — |
 | R19 | Intrinsic names reserved (shadowing) | ⛔ DEFERRED | 1/3 | E10101 |
 
@@ -154,10 +197,10 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R20 | Module merging | ⛔ DEFERRED | 1 | E10003 |
-| R21 | Circular imports allowed | ⛔ DEFERRED | 1 | — |
+| R20 | Module merging | ✅ **RD-18 Slice 5b** — name-keyed shared module scopes (one scope per module name); cross-file duplicate top-level names → E10003 (incl. a NEW duplicate-function guard); the 5a dup-module ICE removed | 1 | E10003 |
+| R21 | Circular imports allowed | ✅ **RD-18 Slice 5b** — legal; init-order module sequencing is cycle-tolerant (discovery-order fallback inside a cycle — recorded spec gap) | 1 | — |
 | R22 | Import validation (must be exported) | ✅ **RD-18 Slice 5a** (function subset) — missing or non-exported name → `E10012`; a resolved import aliases the SAME `Symbol` (FQN preserved); duplicate import → `E10003` | 1/3 | E10012 |
-| R23 | Module initialization order | ⛔ DEFERRED | 4 | E10194 |
+| R23 | Module initialization order | ✅ **RD-18 Slice 5b** — per-variable dependency order (imported modules first, then declaration order; initializer reads = edges); ONE E10194 per cycle with the full path; lowered to the `__init` stream run before `main` | 4 | E10194 |
 
 ## 5. Type representation (RD-04 §3.5)
 
@@ -223,7 +266,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
 | R63 | `let` variable | ⛔ DEFERRED | 3 | E10150, E10152 |
-| R64 | `const` constant | ⛔ DEFERRED | 3 | E10150, E10192, E10193, E10191 |
+| R64 | `const` constant | 🟡 **RD-18 Slice 5b (scalar subset)** — module consts compile-time evaluated (VAR-6 declaration-order independent), E10193 non-const initializer, E10191 assign-to-const (incl. qualified targets), values inlined (no storage); E10192 parser-owned (initialiser non-null by AST shape); aggregate consts with Slice 7 | 3 | E10150, E10192, E10193, E10191 |
 | R65 | Function declaration | 🟡 **RD-18 Slice 5a** — parameters collected as `parameter` symbols (params before locals), duplicate → `E10003`; **no parameter-count limit** (R65's "max 8 → E10175" is spec-refuted by FN-11; E10175 renamed `NotCallable`, see the 5a banner); nested-function rejection stays parser-owned | 1/3 | E10003 |
 | R66 | `main()` function | ✅ **RD-18 Slice 3b + 5a** — validity `E10020`/`E10021`/`E10022` (3b, Pass 4); calling `main` directly → `E10023` at the call site (5a) | 4 | E10020, E10021, E10023 |
 | R67 | Interrupt function | ⛔ DEFERRED | 3 | — |
@@ -336,14 +379,14 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | AC-06 | `let x: bool = 5` → E10152 | ✅ **RD-18 Slice 3b** (boolean↔integer assignment; impl-tested) |
 | AC-07 | indirect recursion → E10174 (both) | ✅ **RD-18 Slice 5a** — direct `f → f` and indirect `ping → pong → ping`, one diagnostic per cycle with the full path |
 | AC-08 | no/two `main()` → E10020/E10021 | ✅ **RD-18 Slice 3b** (ST-10; Pass 4 `post-check.ts`) |
-| AC-09 | non-const const initializer → E10193 | ⛔ DEFERRED |
+| AC-09 | non-const const initializer → E10193 | ✅ **RD-18 Slice 5b** (scalar) |
 | AC-10 | struct literal missing/extra field → E10161/E10162 | ⛔ DEFERRED |
 | AC-11 | enum dup/over-256 → E10142/E10141 | ⛔ DEFERRED |
 | AC-12 | break/continue context → E10130/E10131 | ✅ **RD-18 Slice 4a** (loop-depth tracking; ST-4) |
 | AC-13 | poison-type cascade suppression (one diagnostic) | ✅ **RD-18 Slice 3b** (ST-9; R114) |
 | AC-14 | `typeMap` correctness | ✅ **RD-18 Slice 3b** (scalar subset: literals/idents/same-type binary — ST-1/ST-3; aggregates → Slice 7) |
 | AC-15 | `callGraph` + `findCycles()` correctness | ✅ **RD-18 Slice 5a** — real edges + Tarjan cycles; determinism (anchor ordering, diamonds, dense SCCs, termination on cyclic input) impl-tested |
-| AC-16 | module-init cycle → E10194 | ⛔ DEFERRED |
+| AC-16 | module-init cycle → E10194 | ✅ **RD-18 Slice 5b** |
 | AC-17 | non-bool if condition → ~~E10080~~ **E10134** (AR-7) | ✅ **RD-18 Slice 4a** (ST-1/2/3; the boolean-condition check uses the new control-flow code E10134, not E10080) |
 | AC-18 | golden-snapshot determinism | ⛔ DEFERRED |
 | AC-19 | `sizeof(StructType)` value | ⛔ DEFERRED |

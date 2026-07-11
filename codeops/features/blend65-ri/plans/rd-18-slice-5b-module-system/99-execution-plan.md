@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-11 12:20
-> **Progress**: 38/42 tasks (90%)
+> **Last Updated**: 2026-07-11 12:28
+> **Progress**: 42/42 tasks (100%) — ✅ PLAN COMPLETE
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -175,10 +175,10 @@ corrections (`00-preflight-report.md`).
 **Reference**: 01-requirements delta · AR-5/6/12/13 deviations/deferrals
 **Objective**: parent RDs, ledger, and roadmaps reflect what shipped.
 
-- [ ] 5.1.1 RD-04 deferred-semantics ledger: R17/R20/R21/R23 + AC-16 + AC-09(scalar) advanced; E10192 recorded parser-owned; deviations recorded once (E10194 path appendix; intra-import-cycle order fallback; the §5.3 fall-through-vs-`JSR _main` startup deviation — pre-existing, RD-07c-shipped, record if absent; named deferrals: call-bearing initializers, qualified function references, bare-startup `__init`, W10190) — `codeops/_archive/rd-04-semantic-analysis/08-deferred-semantics-ledger.md`
-- [ ] 5.1.2 RD-18: tick **AC-4 CLOSED** with shipped summary — `codeops/features/blend65-ri/requirements/RD-18-codegen-language-completion.md`
-- [ ] 5.1.3 Roadmaps: feature row → ✅ COMPLETE + portfolio cascade — `codeops/features/blend65-ri/00-roadmap.md`, `codeops/00-roadmap.md`
-- [ ] 5.1.4 SR-2 resource delta (init-code bytes, `__var_*` layout, ZP unchanged) + final register/plan sweep — this plan folder
+- [x] 5.1.1 RD-04 deferred-semantics ledger: R17/R20/R21/R23 + AC-16 + AC-09(scalar) advanced; E10192 recorded parser-owned; deviations recorded once (E10194 path appendix; intra-import-cycle order fallback; the §5.3 fall-through-vs-`JSR _main` startup deviation — pre-existing, RD-07c-shipped, record if absent; named deferrals: call-bearing initializers, qualified function references, bare-startup `__init`, W10190) — `codeops/_archive/rd-04-semantic-analysis/08-deferred-semantics-ledger.md` ✅ (completed: 2026-07-11 12:24 — new 5b banner + R17/R20/R21/R23/R64/R13/AC-09/AC-16 rows; the §5.3 deviation was already recorded by 5a, the 5b banner pins the spec letter)
+- [x] 5.1.2 RD-18: tick **AC-4 CLOSED** with shipped summary — `codeops/features/blend65-ri/requirements/RD-18-codegen-language-completion.md` ✅ (completed: 2026-07-11 12:25 — AC item 4 ticked ✅ COMPLETE (5a+5b) with the full 5b closure paragraph)
+- [x] 5.1.3 Roadmaps: feature row → ✅ COMPLETE + portfolio cascade — `codeops/features/blend65-ri/00-roadmap.md`, `codeops/00-roadmap.md` ✅ (completed: 2026-07-11 12:27 — feature header narrative + RD-18 row pointer/status + portfolio row cascaded; Next: Slice 6 make_plan)
+- [x] 5.1.4 SR-2 resource delta (init-code bytes, `__var_*` layout, ZP unchanged) + final register/plan sweep — this plan folder ✅ (completed: 2026-07-11 12:28 — SR-2: 4 B module vars ($2000 combo, $2001–02 base, $2003 scaled) + 3 B frame region ($2004–06; main's empty frame shares) = 7 B data; `__init` ≈25 B code + 3 B shim `JSR`; ZP 10 B unchanged; NO new runtime routines (SCALE*2 const-folds at translate). Register sweep: zero runtime ambiguities raised during execution — AR-1…AR-13/I-1…I-3 stand as gated; the one plan-claim correction (the nonexistent duplicate-FUNCTION E10003 guard) was a mechanical fix recorded at task 1.2.1. Final full verify green; `spec/` clean)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
