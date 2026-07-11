@@ -6,7 +6,7 @@
 - **Description:** Blend65 is a statically-typed systems language and ahead-of-time
   compiler that targets 6502-based retro platforms (C64, C64 Ultimate, Commander X16,
   Atari 800XL, Atari 7800). This repository hosts the language specification, the
-  requirements documents (RD-01..RD-17), and the TypeScript monorepo that implements
+  requirements documents (RD-01..RD-18), and the TypeScript monorepo that implements
   the compiler, CLI, and VS Code tooling. Consumed as `@blend65/*` packages plus the
   `blendc` CLI.
 - **Type:** compiler (consumed as a library — `@blend65/*` packages + the `blendc` CLI)
@@ -71,7 +71,7 @@ TODO: no `clean` script is defined (root, packages, or turbo.json). Clean manual
 .github/workflows/   # CI (install → typecheck → lint → build → test; Node 22; no emulator tier)
 codeops/             # CodeOps nested layout (marker + portfolio roadmap; see below)
 docs/
-examples/            # examples/gate/main.blend (AR-43 gate program; not yet consumed)
+examples/            # per-slice acceptance fixtures (gate + slice3a…slice5b), VICE-verified
 packages/            # 10 @blend65/* packages
 research/
 scripts/             # repo tooling / helper scripts
@@ -84,7 +84,7 @@ CodeOps artifacts live under the nested `codeops/` layout (marker `codeops/.code
 ```
 codeops/00-roadmap.md                          # portfolio roadmap
 codeops/features/blend65-ri/00-roadmap.md      # feature roadmap (implementation status)
-codeops/features/blend65-ri/requirements/      # RD-01..RD-17 requirements documents
+codeops/features/blend65-ri/requirements/      # RD-01..RD-18 requirements documents
 codeops/features/blend65-ri/plans/<rd-slug>/   # implementation plans (rd-08, rd-09, …)
 codeops/_archive/<rd-slug>/                     # completed/archived plans
 ```
@@ -177,8 +177,9 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
 - Node.js 22 (pinned via `.nvmrc` + `engines`).
 - Yarn classic (v1) — workspaces, no `workspace:*` protocol.
 - Turbo (installed via yarn workspace dev dependency).
-- Emulators (VICE, x16emu, Altirra, Stella/7800) — only needed once RD-12 lands;
-  CI currently has NO emulator tier (AR-27).
+- Emulators (VICE, x16emu, Altirra, Stella/7800) — VICE 3.10 + ACME are needed locally
+  for the RD-12/RD-18 acceptance tiers; CI has NO emulator tier (AR-27) but does
+  install ACME.
 - **Environment variables:** none required for build/test. No `.env` file is used by
   the compiler/CLI.
 
@@ -263,9 +264,35 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   missing a return path → E10102. New codes **E10134/E10061/E10065/E10102** minted
   additively; `break`/`continue` outside a loop → E10130/E10131. A latent RD-07b comparison
   bug was fixed as **DEF-1/AR-16** (`translateComparison` clobbered the Z flag → `eq`/`ne`
-  always 0; fixed eq/ne only). Parent ACs advanced: RD-04 ledger R71–R74/R77/R78/R80/R11 +
-  AC-12/AC-17; RD-18 AC-3 annotated "4a partial ✅; closes at 4b". **Next: RD-18 Slice 4b**
-  (`switch`/`case`/`default`/`fallthrough`; needs `make_plan`), then slices 5→8. RD-13
+  always 0; fixed eq/ne only). **Slice 4b (2026-07-07, 26/26)** shipped `switch`/`case`/
+  `default`/`fallthrough` — `typeSwitch` (E10075/E10071/E10084/E10077/E10132/E10074/E10073)
+  + `lowerSwitch` as a `brcond` compare-chain over the 4a CFG keystone (no new terminator/
+  translate work); closed RD-18 AC-3. **Slice 5a (2026-07-10, 46/46)** shipped user
+  functions/params/calls: param collection (E10003/E10101), the `typeCall` ladder
+  (E10100→E10051→E10023→E10175 + E10170/E10171), return completion (E10172), iterative
+  Tarjan → ONE E10174 per cycle with path, `import-resolution.ts` (E10012, same-Symbol
+  aliasing), SFA params-first frames + argument-window interference, `lowerCall`
+  store-per-arg + translate `call` (JSR + A/A:X bind, two never-miscompile ICE guards);
+  Phase 0 moved the data base `$0800`→`$2000` + the post-ACME overlap check (E10033 band).
+  **Slice 5b (2026-07-11, 42/42)** completed the module system, **closing RD-18 AC-4**
+  (Slice 5 fully done): module merging (name-keyed shared scopes; cross-file duplicate
+  top-level names → E10003; the 5a dup-module ICE removed), the full qualified-access
+  value surface (`semantics/type-check/name-resolution.ts` `resolveQualified` value-first
+  ladder — E10100/E10012; `typeFieldAccess` + one shared `typeCall` callee ladder +
+  `typeAssign` qualified arm; function-member-as-value → loud ICE until Slice 8 `&fn`),
+  call-free module-variable initializers (any call — `CallExpr` or non-`lo`/`hi`
+  `IntrinsicCallExpr` — is a loud unsupported ICE) with per-variable topological init
+  order (`semantics/init-order.ts` — import-edge module order then declaration order; ONE
+  **E10194** per cycle with the full path), scalar const completion (declaration-order-
+  independent const-eval → `SemanticModel.constValues`, **E10193**, use-site inlining — a
+  module const owns NO storage symbol), and the `__init` startup stream (`ILProgram.
+  initCode` + `initTempCount` realized; `generateInstr` translates it FIRST; additive
+  `PreambleOptions.hasInitCode` → conditional `JSR __init` after banking through the
+  shared shim + all five plugins; initializer-free output byte-identical — all prior
+  goldens unchanged; `--startup bare` is user-owned). `examples/slice5b/` (a module
+  spanning two files) verifies `$C000..$C006 = 05/08/07/02/01/03/01` on real VICE.
+  **Next: RD-18 Slice 6** (expressions — `&&`/`||` short-circuit, compound assign, unary,
+  casts, ternary, mixed-width promotion; needs `make_plan`), then slices 7→8. RD-13
   (non-functional sweep) / RD-14 (VS Code/LSP) remain queued. See
   `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI still has NO emulator tier (AR-27): the RD-12 emulator/RD-17 suites are
@@ -281,3 +308,4 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
 
 <!-- migrated from .clinerules/project.md on 2026-07-02 -->
 <!-- analyze_project: refreshed Toolchain/Commands/Project-structure/Git against the live repo on 2026-07-02 — corrected clean command (none defined), main branch (master, not main), added scripts/ dir, added Grounded-Options pointer -->
+<!-- analyze_project: refreshed 2026-07-11 — examples/ line (per-slice fixtures through slice5b), requirements range RD-01..RD-18, emulator note (RD-12 shipped; CI installs ACME), and the RD-18 current-position narrative (slices 4b/5a/5b complete, AC-4 closed; Next: Slice 6). Toolchain/Commands verified unchanged against package.json; clean-script TODO still applies. -->
