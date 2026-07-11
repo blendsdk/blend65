@@ -175,12 +175,26 @@ export const DiagCode = {
   InvalidOperandType: "E10080",
   MixedSignedUnsignedOperands: "E10081",
   ConstDivisionByZero: "E10082",
-  ShiftAmountOutOfRange: "E10083",
+  // A signed shift amount (`x << sbyteAmt`). The constant previously carried
+  // the name "ShiftAmountOutOfRange" but had no emit sites; it was renamed
+  // (number unchanged) to match its first real use — the Ch 04 rule that a
+  // shift amount must be an unsigned integer. Out-of-range constant amounts
+  // are a warning (W10174), not this error.
+  ShiftAmountNotUnsigned: "E10083",
   // A literal / constant value that does not fit its target integer type.
   // E10084 is spec-designated but was absent from both this registry and the
   // spec's own diagnostics table; registered additively (Language-Guard
   // approved). `spec/` stays frozen.
   ValueOutOfRange: "E10084",
+  // Cast diagnostics. E10086 carries the spec's own Ch 02 number for the
+  // boolean↔integer cast rejection (boolean is not convertible to or from
+  // integer types). NegateUnsigned and TernaryArmMismatch are additive
+  // mints: the numbers the spec sketches for them (E10083/E10162) are
+  // already taken by other registry meanings, so the next free codes in the
+  // expression band are claimed. `spec/` stays frozen.
+  BooleanIntegerCast: "E10086",
+  NegateUnsigned: "E10087",
+  TernaryArmMismatch: "E10088",
 
   // Lexer
   // The provisional E10212 reservation is retired — reserved-name shadowing
@@ -266,6 +280,20 @@ export const DiagCode = {
   UseBeforeInit: "W10190",
   UnusedVariable: "W10191",
   UnreachableCode: "W10130",
+  // Expression-level advisories (all spec-assigned numbers):
+  // - W10101: a narrowing cast of a compile-time constant loses bits
+  //   (`<byte>(300)` → 44).
+  // - W10160: narrow (8-bit) arithmetic feeds a 16-bit target, so an
+  //   intermediate overflow may wrap before the widening; suggests casting
+  //   the operands up front.
+  // - W10161: the constant form of the same hazard — the folded value
+  //   provably wraps at the narrow width before widening.
+  // - W10174: a constant shift amount ≥ the operand's bit width (the result
+  //   is always 0; well-defined, so a warning rather than an error).
+  NarrowingCastTruncates: "W10101",
+  IntermediateOverflow: "W10160",
+  ConstOverflowBeforeWidening: "W10161",
+  ShiftCountExceedsWidth: "W10174",
   // Configuration warnings: an unknown blend65.json key, and a warning code
   // both promoted (warnAsError) and suppressed at the same time.
   ConfigUnknownKey: "W10240",

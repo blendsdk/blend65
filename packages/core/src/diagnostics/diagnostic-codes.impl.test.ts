@@ -31,7 +31,7 @@ describe("DiagCode namespace (ST-13)", () => {
     expect(DiagCode.MissingModuleDecl).toBe("E10001");
     expect(DiagCode.WrongIntrinsicArgCount).toBe("E10041");
     expect(DiagCode.ForEndBoundOutOfRange).toBe("E10064");
-    expect(DiagCode.ShiftAmountOutOfRange).toBe("E10083");
+    expect(DiagCode.ShiftAmountNotUnsigned).toBe("E10083");
     expect(DiagCode.EmbedFormatParseError).toBe("E10204");
     expect(DiagCode.UnusedVariable).toBe("W10191");
     expect(DiagCode.UnreachableCode).toBe("W10130");
@@ -156,6 +156,32 @@ describe("RD-18 Slice 4b switch diagnostic codes (AR-4/AR-7, PF-001/PF-002/PF-00
 
   it("keeps E10077 distinct from the parser's E10072 (MissingDefaultClause, AR-4)", () => {
     expect(DiagCode.CaseValueTypeMismatch).not.toBe(DiagCode.MissingDefaultClause); // E10072
+  });
+});
+
+describe("Expression-system diagnostic codes", () => {
+  // Three additive error mints plus the four expression advisories; the
+  // signed-shift-amount error keeps its number under its renamed key.
+  it("maps the cast/negate/ternary codes to their exact strings", () => {
+    expect(DiagCode.BooleanIntegerCast).toBe("E10086");
+    expect(DiagCode.NegateUnsigned).toBe("E10087");
+    expect(DiagCode.TernaryArmMismatch).toBe("E10088");
+    expect(DiagCode.ShiftAmountNotUnsigned).toBe("E10083");
+  });
+
+  it("maps the four expression warnings to their exact strings", () => {
+    expect(DiagCode.NarrowingCastTruncates).toBe("W10101");
+    expect(DiagCode.IntermediateOverflow).toBe("W10160");
+    expect(DiagCode.ConstOverflowBeforeWidening).toBe("W10161");
+    expect(DiagCode.ShiftCountExceedsWidth).toBe("W10174");
+  });
+
+  it("does NOT register the deferred value-range warnings", () => {
+    // Signed const overflow and possible runtime division-by-zero need value
+    // range analysis that does not exist yet; deliberately unregistered.
+    const codes = Object.values(DiagCode);
+    expect(codes).not.toContain("W10100");
+    expect(codes).not.toContain("W10173");
   });
 });
 

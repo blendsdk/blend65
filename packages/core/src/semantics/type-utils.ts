@@ -9,9 +9,9 @@
  *      type-system *policy*, so they are safe to implement in the skeleton.
  *
  *   2. **Type-system policy:** `isAssignableTo` and `commonType` encode the
- *      assignment/promotion *rules*. The current implementation supports
- *      same-type-only assignment and common-type resolution; further rules
- *      (widening, cross-sign coercion, casts) are not implemented yet.
+ *      assignment/promotion *rules*: same-type compatibility plus implicit
+ *      same-sign widening (`byte`→`word`, `sbyte`→`sword`). Narrowing and
+ *      cross-sign conversions always require an explicit cast.
  *      {@link ErrorType} poisons permissively so no cascading diagnostic is
  *      emitted, and the real checker rules emit E10152/E10153/E10154.
  */
@@ -143,15 +143,15 @@ export function typeName(t: Type): string {
 }
 
 /**
- * Assignment compatibility — currently same-type only.
+ * Assignment compatibility: same-type, plus implicit same-sign widening.
  *
- * The type engine is currently same-type-only: a value is assignable to a
- * target iff their type names are identical. Implicit widening (`byte`→`word`),
- * cross-sign, narrowing, and `as` casts are all rejected here — the *caller*
+ * A value is assignable to a target when their type names are identical, or
+ * when the source widens to the target without changing signedness
+ * (`byte`→`word`, `sbyte`→`sword`). This one predicate governs assignments,
+ * initialisers, arguments, and returns alike — there is no second rule.
+ * Narrowing and cross-sign conversions are rejected here — the *caller*
  * (statement typing) inspects *why* the assignment failed to pick the right
  * diagnostic (E10154 narrowing / E10153 cross-sign / E10152 boolean↔integer).
- * Widening/casts are not implemented yet (they need `zext`/`sext`/`trunc` IL
- * ops).
  *
  * {@link ErrorType} poisons permissively: if either side is poison the
  * assignment is treated as compatible so no cascade diagnostic is emitted at the
@@ -159,23 +159,32 @@ export function typeName(t: Type): string {
  *
  * @param source The type being assigned from.
  * @param target The type being assigned to.
- * @returns `true` iff `source` is same-type-assignable to `target` (or either is poison).
+ * @returns `true` iff `source` is assignable to `target` (or either is poison).
  */
 export function isAssignableTo(source: Type, target: Type): boolean {
   if (isError(source) || isError(target)) return true; // poison suppression
-  return typeName(source) === typeName(target); // strict same-type
+  if (typeName(source) === typeName(target)) return true; // same type
+  if (source.kind === "primitive" && target.kind === "primitive") {
+    // Same-sign widening is implicit; everything else needs an explicit cast.
+    if (isInteger(source) && isInteger(target) && isSigned(source) === isSigned(target)) {
+      return bitWidth(source) < bitWidth(target);
+    }
+  }
+  return false;
 }
 
 /**
- * The common result type of a binary operator's two operands — currently
- * same-type only.
+ * The common result type of a binary operator's two operands: same-type, plus
+ * same-sign widening promotion.
  *
  * Returns the shared type when both operands are the same primitive type
- * (`T OP T → T`); returns `null` when they are not currently combinable
- * (different width — widening is not implemented yet; different signedness; a
- * `boolean` operand). The caller distinguishes the `null` reason to emit E10081
- * (mixed sign) or E10080 (boolean operand). {@link ErrorType} poisons to
- * {@link ERROR_TYPE} so no follow-on diagnostic is produced.
+ * (`T OP T → T`), or the WIDER type when both are integers of the same
+ * signedness but different widths (`byte OP word → word`,
+ * `sbyte OP sword → sword`). Returns `null` when the operands are not
+ * combinable (different signedness; a `boolean` operand; non-primitives). The
+ * caller distinguishes the `null` reason to emit E10081 (mixed sign) or
+ * E10080 (boolean operand). {@link ErrorType} poisons to {@link ERROR_TYPE}
+ * so no follow-on diagnostic is produced.
  *
  * `isPrimitive` is deliberately not used (it is not a core helper); the
  * `kind === "primitive"` guard plus a `typeName` equality check is the same
@@ -183,13 +192,18 @@ export function isAssignableTo(source: Type, target: Type): boolean {
  *
  * @param a The first operand's type.
  * @param b The second operand's type.
- * @returns The shared primitive type, {@link ERROR_TYPE} on poison, or `null`.
+ * @returns The common primitive type, {@link ERROR_TYPE} on poison, or `null`.
  */
 export function commonType(a: Type, b: Type): Type | null {
   if (isError(a) || isError(b)) return ERROR_TYPE; // poison
-  if (a.kind === "primitive" && b.kind === "primitive" && typeName(a) === typeName(b)) {
-    return a; // T OP T → T (same-type)
+  if (a.kind === "primitive" && b.kind === "primitive") {
+    if (typeName(a) === typeName(b)) {
+      return a; // T OP T → T (same-type)
+    }
+    if (isInteger(a) && isInteger(b) && isSigned(a) === isSigned(b)) {
+      return bitWidth(a) >= bitWidth(b) ? a : b; // widening promotion
+    }
   }
-  return null; // widening/mixed-sign/boolean → caller decides the diagnostic
+  return null; // mixed-sign/boolean/non-primitive → caller decides the diagnostic
 }
 

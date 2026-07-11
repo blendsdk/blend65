@@ -54,6 +54,7 @@ import {
   typeOfExpr,
   checkAssignable,
   checkConstRange,
+  checkIntermediateOverflow,
   checkReturnAssignable,
 } from "./expression-typing.js";
 import { enclosingFunctionSymbol } from "./name-resolution.js";
@@ -136,6 +137,7 @@ function typeModuleLet(decl: LetDeclNode, moduleScope: Scope, ctx: TypeCheckCont
   const initType = typeOfExpr(decl.initialiser, moduleScope, ctx, declaredType);
   checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
   checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
+  checkIntermediateOverflow(decl.initialiser, initType, declaredType, ctx); // W10160/61
 }
 
 /**
@@ -682,6 +684,7 @@ function typeLetDecl(decl: LetDeclNode, scope: Scope, ctx: TypeCheckContext): vo
   const initType = typeOfExpr(decl.initialiser, scope, ctx, declaredType);
   checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
   checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
+  checkIntermediateOverflow(decl.initialiser, initType, declaredType, ctx); // W10160/61
 }
 
 /**
@@ -728,4 +731,5 @@ function typeReturn(
   checkConstRange(stmt.value, returnType, ctx); // E10084 / E10082
   const fnName = enclosingFunctionSymbol(scope)?.name ?? "?";
   checkReturnAssignable(valueType, returnType, fnName, stmt.value.span, ctx);
+  checkIntermediateOverflow(stmt.value, valueType, returnType, ctx); // W10160/61
 }

@@ -2,8 +2,9 @@
  * Specification tests for user-function call typing — the happy path, the
  * callee-resolution ladder (undeclared E10100, interrupt E10051, entry point
  * E10023, not-callable E10175), argument-count E10170 (which suppresses
- * per-argument type checks), strict same-type argument checking E10171, and
- * declaration-order independence.
+ * per-argument type checks), argument type checking E10171 (assignment
+ * compatibility — a narrowing argument is rejected), and declaration-order
+ * independence.
  *
  * Expectations derive from the frozen spec Ch 06 §4 and Ch 10 §5.2 — never
  * from the implementation. Exercised through the real public path

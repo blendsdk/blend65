@@ -72,25 +72,29 @@ describe("Specification: RD-04 type utilities — structural facts", () => {
   });
 });
 
-// This test file replaces the earlier deferred-stub oracle (`isAssignableTo`→
-// true / `commonType`→null placeholders) with the real *same-type* policy:
-// assignment is same-type-only for now (widening / cross-sign / narrowing
-// support is planned for later), and `commonType` is the same-type binary
-// result. `ErrorType` poisons permissively. This supersedes the earlier
-// deferred-placeholder assertions, which no longer exist.
-describe("Specification: RD-18 Slice 3b type policy — same-type rules (AR-3)", () => {
-  // isAssignableTo is same-type-only for now.
-  it("should accept same-type and reject widening/narrowing/cross-sign (ST-3/ST-8, AR-3)", () => {
+// This test file pins the spec's assignment/promotion policy: same-type
+// compatibility PLUS implicit same-sign widening (byte→word, sbyte→sword),
+// and the matching common-type promotion for binary operands. Narrowing and
+// cross-sign conversions always require an explicit cast. `ErrorType` poisons
+// permissively. (An earlier revision of this suite pinned a deliberately
+// stricter same-type-only interim rule — the spec's widening rows supersede
+// exactly those two assertions; the narrowing/cross-sign pins are unchanged.)
+describe("Specification: type policy — same-type + same-sign widening", () => {
+  // isAssignableTo: same-type and same-sign widening only.
+  it("should accept same-type and same-sign widening, reject narrowing/cross-sign", () => {
     // same type → assignable
     expect(isAssignableTo(primitive("byte"), primitive("byte"))).toBe(true);
     expect(isAssignableTo(primitive("word"), primitive("word"))).toBe(true);
     expect(isAssignableTo(primitive("sbyte"), primitive("sbyte"))).toBe(true);
-    // widening (byte→word) — not yet supported → NOT assignable
-    expect(isAssignableTo(primitive("byte"), primitive("word"))).toBe(false);
+    // same-sign widening (byte→word, sbyte→sword) → implicit, safe
+    expect(isAssignableTo(primitive("byte"), primitive("word"))).toBe(true);
+    expect(isAssignableTo(primitive("sbyte"), primitive("sword"))).toBe(true);
     // narrowing (word→byte) → NOT assignable (E10154 at the call site)
     expect(isAssignableTo(primitive("word"), primitive("byte"))).toBe(false);
-    // cross-sign (sbyte→byte) → NOT assignable (E10153 at the call site)
+    expect(isAssignableTo(primitive("sword"), primitive("sbyte"))).toBe(false);
+    // cross-sign (sbyte→byte, byte→sword) → NOT assignable (E10153 at the call site)
     expect(isAssignableTo(primitive("sbyte"), primitive("byte"))).toBe(false);
+    expect(isAssignableTo(primitive("byte"), primitive("sword"))).toBe(false);
   });
 
   // ErrorType poisons permissively (no cascade).
@@ -99,12 +103,14 @@ describe("Specification: RD-18 Slice 3b type policy — same-type rules (AR-3)",
     expect(isAssignableTo(primitive("byte"), ERROR_TYPE)).toBe(true);
   });
 
-  // commonType of same-type operands is that type; mixed is null.
-  it("should return the shared type for same-type operands, null otherwise (ST-3)", () => {
+  // commonType: same type, or the wider type for same-sign pairs; else null.
+  it("should return the shared or promoted same-sign type, null otherwise", () => {
     expect(commonType(primitive("byte"), primitive("byte"))).toEqual(primitive("byte"));
     expect(commonType(primitive("word"), primitive("word"))).toEqual(primitive("word"));
-    // widening (same sign, different width) — not yet supported → null (caller decides)
-    expect(commonType(primitive("byte"), primitive("word"))).toBeNull();
+    // same-sign widening promotes to the wider type (both operand orders)
+    expect(commonType(primitive("byte"), primitive("word"))).toEqual(primitive("word"));
+    expect(commonType(primitive("word"), primitive("byte"))).toEqual(primitive("word"));
+    expect(commonType(primitive("sbyte"), primitive("sword"))).toEqual(primitive("sword"));
     // mixed signedness → null (caller emits E10081)
     expect(commonType(primitive("byte"), primitive("sbyte"))).toBeNull();
     // boolean operand → null (caller emits E10080)
