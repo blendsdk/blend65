@@ -31,7 +31,7 @@ import { DiagCode, IceCode, RT_ROUTINES } from "@blend65/core";
 import type { AllocationPlan, DiagnosticBag, IntrinsicDescriptor, SourceSpan } from "@blend65/core";
 
 import type { ILType } from "../il/il-type.js";
-import { isImmediate, isLocation, isTemp } from "../il/operand.js";
+import { isAddr, isImmediate, isLocation, isTemp } from "../il/operand.js";
 import type { ILOperand } from "../il/operand.js";
 import type { ILInstruction, ILTerminator } from "../il/instruction.js";
 import type { ILFunction } from "../il/cfg.js";
@@ -165,6 +165,14 @@ class FunctionTranslator {
   private regA: number | null = null;
   /** Temp id whose word high byte is resident in X, or null. */
   private regX: number | null = null;
+  /**
+   * What the Y register currently holds — an immediate offset value or a
+   * temp's byte value — or `null`. Only the indirect `(zp),Y` framings load
+   * Y; the mirror lets same-offset runs share one `LDY` and is invalidated
+   * by every Y-touching sequence (`INY`), every `JSR`, and block boundaries.
+   */
+  private regY: { readonly kind: "imm"; readonly value: number } | { readonly kind: "temp"; readonly id: number } | null =
+    null;
   /** Span to attach to the next emitted lead instruction. */
   private leadSpan: SourceSpan | undefined = undefined;
   /** Instruction index whose `store` has been folded into a word ALU (skip it). */
@@ -174,7 +182,7 @@ class FunctionTranslator {
 
   constructor(
     private readonly fn: ILFunction,
-    plan: AllocationPlan,
+    private readonly plan: AllocationPlan,
     private readonly bag: DiagnosticBag,
     private readonly opts?: TranslateOptions,
   ) {
@@ -370,10 +378,10 @@ class FunctionTranslator {
         this.translateStoreIndexed(ins.value, ins.base, ins.index);
         return;
       case "load_indirect":
+        this.translateLoadIndirect(ins.value, ins.ptr, ins.offset, index, all);
+        return;
       case "store_indirect":
-        // The indirect pair is the pointer-tier surface ((zp),Y indexing for
-        // by-reference parameters and large arrays) — not yet supported.
-        this.iceUnsupported(`${ins.op} (pointer-tier indexing not yet supported)`);
+        this.translateStoreIndirect(ins.value, ins.ptr, ins.offset);
         return;
       default: {
         // Exhaustiveness guard: a new IL op without a case above fails to
@@ -541,6 +549,27 @@ class FunctionTranslator {
   private translateStore(value: ILOperand, target: ILOperand): void {
     if (!isLocation(target)) {
       this.iceUnsupported("store (non-location target)");
+      return;
+    }
+    // An address-of source stores the symbol's link-time address byte by
+    // byte (`#<sym+off` / `#>sym+off`) — argument marshalling and the
+    // formation's scratch seed. Clobbers A, so a live value spills first.
+    if (isAddr(value)) {
+      this.protectA();
+      const opts = value.offset !== undefined ? { offset: value.offset } : {};
+      this.emit(
+        "LDA",
+        "Immediate",
+        symbolRef(value.symbol, { ...opts, byteSelect: "low" }),
+      );
+      this.emit("STA", "Absolute", symHome(target, 0));
+      this.emit(
+        "LDA",
+        "Immediate",
+        symbolRef(value.symbol, { ...opts, byteSelect: "high" }),
+      );
+      this.emit("STA", "Absolute", symHome(target, 1));
+      this.clearRegs();
       return;
     }
     const width = widthOf(value);
@@ -748,6 +777,10 @@ class FunctionTranslator {
 
   /** Bring a byte operand (ALU left, value) into A, suppressing a redundant load. */
   private leftIntoA(op: ILOperand): void {
+    if (isAddr(op)) {
+      this.iceUnsupported("addr operand outside a store source or ALU right operand");
+      return;
+    }
     if (isTemp(op)) {
       if (this.regA === op.id) {
         return; // already in A (redundant-load suppression)
@@ -777,6 +810,10 @@ class FunctionTranslator {
 
   /** Bring one byte (lo=0/hi=1) of a word ALU left operand into A. */
   private wordLeftByteIntoA(op: ILOperand, byteIndex: number): void {
+    if (isAddr(op)) {
+      this.iceUnsupported("addr operand outside a store source or ALU right operand");
+      return;
+    }
     const ref = this.byteRefOf(op, byteIndex); // homes, immediates, folded zext
     if (ref !== null) {
       this.emit("LDA", ref.mode, ref.operand);
@@ -797,6 +834,10 @@ class FunctionTranslator {
 
   /** Bring a value into A (byte) or A:X (word) for a `store`/`ret` consumer. */
   private bringValueIntoRegisters(value: ILOperand, width: 8 | 16): void {
+    if (isAddr(value)) {
+      this.iceUnsupported("addr operand outside a store source or ALU right operand");
+      return;
+    }
     if (width === 8) {
       this.leftIntoA(value);
       return;
@@ -843,8 +884,23 @@ class FunctionTranslator {
     return null;
   }
 
-  /** A right ALU operand's read reference for the given byte index (lo=0/hi=1). */
+  /**
+   * A right ALU operand's read reference for the given byte index (lo=0/hi=1).
+   * An address-of right operand reads as the assembler-resolved byte-select
+   * immediate (`#<sym+off` / `#>sym+off`) — the runtime pointer formation
+   * adds a base address to a scaled index this way.
+   */
   private rightSource(op: ILOperand, byteIndex: number): SourceRef {
+    if (isAddr(op)) {
+      const opts = op.offset !== undefined ? { offset: op.offset } : {};
+      return {
+        operand: symbolRef(op.symbol, {
+          ...opts,
+          byteSelect: byteIndex === 0 ? "low" : "high",
+        }),
+        mode: "Immediate",
+      };
+    }
     const ref = this.byteRefOf(op, byteIndex);
     if (ref !== null) {
       return ref;
@@ -1422,6 +1478,10 @@ class FunctionTranslator {
    */
   private indexIntoX(index: ILOperand): void {
     this.regX = null;
+    if (isAddr(index)) {
+      this.iceUnsupported("addr operand outside a store source or ALU right operand");
+      return;
+    }
     if (isImmediate(index)) {
       this.emit("LDX", "Immediate", imm8(index.value & 0xff));
       return;
@@ -1558,6 +1618,192 @@ class FunctionTranslator {
     this.clearRegs();
   }
 
+  /**
+   * The pointer operand of an indirect access must be a location naming a
+   * zero-page pair the plan actually reserved — anything else is a lowering
+   * contract violation or a reservation/demand drift, reported loudly rather
+   * than emitted as a dangling symbol.
+   */
+  private indirectPair(ptr: ILOperand): Extract<ILOperand, { kind: "location" }> | null {
+    if (!isLocation(ptr)) {
+      this.iceUnsupported("indirect access with a non-location pointer operand");
+      return null;
+    }
+    if (!this.plan.symbolDefinitions.some((s) => s.name === ptr.symbol)) {
+      this.bag.addICE(
+        IceCode.Unexpected,
+        null,
+        `IL→Instr: indirect staging demanded but no '${ptr.symbol}' pair reserved`,
+      );
+      return null;
+    }
+    return ptr;
+  }
+
+  /**
+   * Bring the indirect access's byte offset into Y. The mirror suppresses a
+   * redundant `LDY` when Y already holds the same immediate or temp; `TAY`
+   * serves an A-resident temp (A stays intact — Y is not an accumulator).
+   */
+  private offsetIntoY(offset: ILOperand): void {
+    if (isImmediate(offset)) {
+      if (this.regY?.kind === "imm" && this.regY.value === (offset.value & 0xff)) {
+        return;
+      }
+      this.emit("LDY", "Immediate", imm8(offset.value & 0xff));
+      this.regY = { kind: "imm", value: offset.value & 0xff };
+      return;
+    }
+    if (isTemp(offset)) {
+      if (this.regY?.kind === "temp" && this.regY.id === offset.id) {
+        return;
+      }
+      if (this.regA === offset.id) {
+        this.emit("TAY", "Implied", none());
+        this.regY = { kind: "temp", id: offset.id };
+        return;
+      }
+      const home = this.sourceHome(offset);
+      if (home !== null) {
+        this.emit("LDY", "Absolute", symAt(home, 0));
+      } else {
+        this.emit("LDY", "ZeroPage", this.binder.operandFor(offset));
+      }
+      this.regY = { kind: "temp", id: offset.id };
+      return;
+    }
+    if (isLocation(offset)) {
+      this.emit("LDY", "Absolute", symHome(offset, 0));
+      this.regY = null; // a raw location read carries no reusable identity
+      return;
+    }
+    this.iceUnsupported("indirect access with a non-value offset operand");
+  }
+
+  /**
+   * `load_indirect value, ptr, offset` — the `(zp),Y` read through a bound
+   * pair or the formation scratch.
+   *
+   * Byte: `LDY <offset>` (mirror-suppressed) → `LDA (pair),Y`, then the 7a
+   * homing ladder — folded into the consuming store, spilled when uses
+   * remain. Word: only when consumed by an immediate store (the word-load
+   * discipline): lo → home, `INY` (mirror invalidated), hi → home+1. The
+   * lowering predicate keeps word offsets ≤ 254; the guard here is the drift
+   * backstop (an `INY` from `#$FF` would wrap Y to 0 and read pointee+0).
+   */
+  private translateLoadIndirect(
+    value: ILOperand,
+    ptr: ILOperand,
+    offset: ILOperand,
+    at: number,
+    all: readonly ILInstruction[],
+  ): void {
+    const pair = this.indirectPair(ptr);
+    if (pair === null) return;
+    if (!isTemp(value)) {
+      this.iceUnsupported("load_indirect (non-temp value)");
+      return;
+    }
+
+    if (value.type.width === 8) {
+      this.protectA();
+      this.offsetIntoY(offset);
+      this.emit("LDA", "IndirectY", symbolRef(pair.symbol));
+      this.bindA(value.id);
+      const home = this.foldStoreHome(value, at, all);
+      if (home !== null) {
+        this.emit("STA", "Absolute", symAt(home, 0));
+        return;
+      }
+      if ((this.remainingUses.get(value.id) ?? 0) > 0) {
+        this.binder.spill(value, (e) => this.out.push(e));
+        this.regA = null;
+      }
+      return;
+    }
+
+    if (!isImmediate(offset) || offset.value > 254) {
+      this.iceUnsupported("word indirect load at an offset beyond the INY-safe range");
+      return;
+    }
+    const home = this.foldStoreHome(value, at, all);
+    if (home === null) {
+      this.iceUnsupported("word indirect load not consumed by a store");
+      return;
+    }
+    this.offsetIntoY(offset);
+    this.emit("LDA", "IndirectY", symbolRef(pair.symbol));
+    this.emit("STA", "Absolute", symAt(home, 0));
+    this.emit("INY", "Implied", none());
+    this.regY = null; // Y advanced past the mirrored offset
+    this.emit("LDA", "IndirectY", symbolRef(pair.symbol));
+    this.emit("STA", "Absolute", symAt(home, 1));
+    this.clearRegs();
+  }
+
+  /**
+   * `store_indirect value, ptr, offset` — the `(zp),Y` write.
+   *
+   * Byte: the value-in-A fast path stores around the `LDY` (an `LDY` never
+   * clobbers A); otherwise Y first, then the value into A. Word: the source
+   * must be an immediate or memory-readable — lo/`INY`/hi — and a
+   * register-resident word is rejected loudly (the `INY` sequencing cannot
+   * preserve A:X). Same ≤254 offset backstop as the load.
+   */
+  private translateStoreIndirect(value: ILOperand, ptr: ILOperand, offset: ILOperand): void {
+    const pair = this.indirectPair(ptr);
+    if (pair === null) return;
+    const width = widthOf(value);
+
+    if (width === 8) {
+      const valueInA = isTemp(value) && this.regA === value.id;
+      if (valueInA) {
+        this.offsetIntoY(offset);
+        this.emit("STA", "IndirectY", symbolRef(pair.symbol));
+        return;
+      }
+      if (isAddr(value)) {
+        this.iceUnsupported("addr operand outside a store source or ALU right operand");
+        return;
+      }
+      this.offsetIntoY(offset);
+      this.leftIntoA(value);
+      this.emit("STA", "IndirectY", symbolRef(pair.symbol));
+      return;
+    }
+
+    if (!isImmediate(offset) || offset.value > 254) {
+      this.iceUnsupported("word indirect store at an offset beyond the INY-safe range");
+      return;
+    }
+    if (isImmediate(value)) {
+      this.offsetIntoY(offset);
+      this.emit("LDA", "Immediate", imm8(value.value & 0xff));
+      this.emit("STA", "IndirectY", symbolRef(pair.symbol));
+      this.emit("INY", "Implied", none());
+      this.regY = null;
+      this.emit("LDA", "Immediate", imm8((value.value >> 8) & 0xff));
+      this.emit("STA", "IndirectY", symbolRef(pair.symbol));
+      this.clearRegs();
+      return;
+    }
+    const home = this.sourceHome(value);
+    if (home === null) {
+      this.iceUnsupported(
+        "word indirect store from a register-resident value (assign it to a variable first)",
+      );
+      return;
+    }
+    this.offsetIntoY(offset);
+    this.emit("LDA", "Absolute", symAt(home, 0));
+    this.emit("STA", "IndirectY", symbolRef(pair.symbol));
+    this.emit("INY", "Implied", none());
+    this.regY = null;
+    this.emit("LDA", "Absolute", symAt(home, 1));
+    this.emit("STA", "IndirectY", symbolRef(pair.symbol));
+    this.clearRegs();
+  }
+
   // ── Register-state mirror (the binder is the allocation seam) ─────────────────
 
 
@@ -1579,6 +1825,7 @@ class FunctionTranslator {
   private clearRegs(): void {
     this.regA = null;
     this.regX = null;
+    this.regY = null;
   }
 
   // ── Emission ─────────────────────────────────────────────────────────────────

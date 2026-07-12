@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 09:50 (exec: Phase 4 COMPLETE — 10/10, full verify green; +AR-16 runtime pin)
-> **Progress**: 36/58 tasks (62%)
+> **Last Updated**: 2026-07-12 10:00 (exec: Phase 5 COMPLETE — 9/9, full verify green)
+> **Progress**: 45/58 tasks (78%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -148,19 +148,19 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 5.1: Spec tests (red)
 **Reference**: [03-05](03-05-translate-indirect.md) · [07 §Translate](07-testing-strategy.md) · AR-2/4/12
 
-- [ ] 5.1.1 Write ST-48..ST-58 spec tests (constructed-IL style, 7a precedent) — `packages/codegen/src/instr/translate-indirect.spec.test.ts`
-- [ ] 5.1.2 Verify red (the indirect pair currently ICEs — the RD-07b retired-row protocol from 7a applies if any old row pins the ICE)
+- [x] 5.1.1 Write ST-48..ST-58 spec tests (end-to-end ASM rows + constructed-IL contract guards) — `packages/codegen/src/instr/translate-indirect.spec.test.ts` ✅ (completed: 2026-07-12 09:54)
+- [x] 5.1.2 Verify red — 9/11 red; ST-57 pre-passes via the deferred-ICE seam, ST-58 pins absence (trivially green); no old row pins the ICE (grep: zero suites reference the seam wording) ✅ (completed: 2026-07-12 09:54)
 
 ### Step 5.2: Implement (green)
-- [ ] 5.2.1 regY mirror + `offsetIntoY` + `clearRegs` extension + the invalidation rule for every NEW Y-touching sequence 7b introduces (+ one confirming sweep that no pre-existing emitter touches Y — PF-010: zero exist today) — `translate.ts` (03-05 §regY)
-- [ ] 5.2.2 `translateLoadIndirect` (byte + word arms, homing ladder; word arms ICE-guard `offset > 254` — PF-003 backstop) — `translate.ts` (03-05)
-- [ ] 5.2.3 `translateStoreIndirect` (fast path, imm/memory word arms, loud register-resident ICE, the same word-offset guard) — `translate.ts` (03-05)
-- [ ] 5.2.4 `addr` store arm via `symbolRef` Absolute+offset (`symAt` pattern — zpSlot carries no offset, PF-013) (+`protectA` extension) + scratch backstop ICE — `translate.ts` (03-05 §addr/§Backstop)
-- [ ] 5.2.5 Verify green (ST-48..ST-58) incl. ST-58 prior-IL-corpora emission identity
+- [x] 5.2.1 regY mirror (imm|temp identity) + `offsetIntoY` (imm skip / TAY / home / ZP) + `clearRegs` clears Y + INY/JSR/block invalidation; confirming sweep: zero pre-existing Y emitters (grep LDY/INY/DEY/TAY over emit sites) ✅ (completed: 2026-07-12 09:59)
+- [x] 5.2.2 `translateLoadIndirect` (byte fast path + homing ladder; word lo/INY/hi with the >254 offset ICE backstop) ✅ (completed: 2026-07-12 09:59)
+- [x] 5.2.3 `translateStoreIndirect` (value-in-A fast path, imm/memory word arms, loud register-resident ICE, same word-offset guard) ✅ (completed: 2026-07-12 09:59)
+- [x] 5.2.4 `addr` store arm (protectA + #<sym/#>sym via symbolRef byteSelect, symHome +1 target) + AR-16 ALU right-operand arm in `rightSource` + loud addr guards in leftIntoA/wordLeftByteIntoA/bringValueIntoRegisters/indexIntoX + `indirectPair` plan backstop ✅ (completed: 2026-07-12 09:59)
+- [x] 5.2.5 Verify green (ST-48..ST-58) — 11/11; whole codegen tier 976 green (prior goldens byte-exact = emission identity) ✅ (completed: 2026-07-12 09:59)
 
 ### Step 5.3: Impl tests & verify
-- [ ] 5.3.1 Impl tests (mirror state machine, protectA/offsetIntoY interplay) — `translate-indirect.impl.test.ts`
-- [ ] 5.3.2 Full verify + prior goldens byte-exact
+- [x] 5.3.1 Impl tests (mirror across block labels, fast-path ordering, INY invalidation) — `translate-indirect.impl.test.ts` (3/3) ✅ (completed: 2026-07-12 10:00)
+- [x] 5.3.2 Full verify + prior goldens byte-exact — canonical verify green 37.4s ✅ (completed: 2026-07-12 10:00)
 
 **Verify**: (canonical)
 
