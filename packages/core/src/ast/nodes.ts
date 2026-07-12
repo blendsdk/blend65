@@ -100,11 +100,17 @@ export type TopLevelItem =
 // Declarations (11)
 // ───────────────────────────────────────────────────────────────────────────
 
-/** A single typed function parameter (`name: type`). */
+/** A single typed function parameter (`name: [const] type`). */
 export interface ParameterNode extends AstNode {
   kind: "Parameter";
   name: string;
   nameSpan: SourceSpan;
+  /**
+   * Read-only parameter (`name: const type`, spec Ch 08 §7): writes through
+   * it are rejected at type checking. `const` is legal only in parameter
+   * position — every other type annotation rejects it at parse time.
+   */
+  isConst: boolean;
   paramType: TypeNode;
 }
 

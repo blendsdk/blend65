@@ -463,6 +463,7 @@ exports[`golden AST snapshots (ST-P30/P31, AC-07) > ST-P30: a representative val
       "name": "step",
       "params": [
         {
+          "isConst": false,
           "kind": "Parameter",
           "name": "p",
           "paramType": {
@@ -471,6 +472,7 @@ exports[`golden AST snapshots (ST-P30/P31, AC-07) > ST-P30: a representative val
           },
         },
         {
+          "isConst": false,
           "kind": "Parameter",
           "name": "n",
           "paramType": {

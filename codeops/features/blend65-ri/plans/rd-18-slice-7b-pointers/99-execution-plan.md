@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 01:59
-> **Progress**: 0/57 tasks (0%)
+> **Last Updated**: 2026-07-12 03:41 (exec: Phase 1 COMPLETE — 6/6, full verify green)
+> **Progress**: 6/58 tasks (10%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -22,14 +22,14 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 | Phase | Title | Tasks |
 | ----- | ----- | ----- |
 | 1 | Parser & AST — const + unsized params | 6 |
-| 2 | Param semantics — types, const rules, tiers, advisories | 11 |
+| 2 | Param semantics — types, const rules, tiers, advisories, unsized inference | 12 |
 | 3 | SFA — pairs, coloring, scratch | 8 |
 | 4 | Lowering — addr, marshalling, prologue, indirect places | 10 |
 | 5 | Translate — (zp),Y framings, regY, backstop | 9 |
 | 6 | Acceptance — fixture, VICE, golden, negatives | 9 |
 | 7 | Rollout — RD-18/ledger/roadmaps reconciliation | 4 |
 
-**Total: 57 tasks across 7 phases**
+**Total: 58 tasks across 7 phases**
 
 > **⚠️ EXECUTION RULE — APPLIES TO EVERY AGENT EXECUTING THIS PLAN:**
 >
@@ -56,16 +56,16 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 1.1: Spec tests (red)
 **Reference**: [03-01](03-01-parser-params.md) · [07 §Parser](07-testing-strategy.md) · AR-5/AR-6
 
-- [ ] 1.1.1 Write ST-1..ST-5 spec tests — `packages/frontend/src/parser/param-const-unsized.spec.test.ts`
-- [ ] 1.1.2 Verify red (capture which fail; ST-3 may pre-pass — `size: null` already parses; document any pre-pass with justification)
+- [x] 1.1.1 Write ST-1..ST-5 spec tests — `packages/frontend/src/parser/param-const-unsized.spec.test.ts` ✅ (completed: 2026-07-12 03:35)
+- [x] 1.1.2 Verify red (5/5 red; ST-3's unsized `size: null` parse pre-passes as predicted — its failure is the missing `isConst` field only) ✅ (completed: 2026-07-12 03:35)
 
 ### Step 1.2: Implement (green)
-- [ ] 1.2.1 `ParameterNode.isConst` + construction sites + AST printer rendering — `packages/core/src/ast/…`, `packages/frontend/src/parser/parse-decl.ts` (03-01 §AST/§Parser)
-- [ ] 1.2.2 `parseParameter` consumes `[const]` after the colon — `parse-decl.ts:53-73`
-- [ ] 1.2.3 Verify green (ST-1..ST-5) + node-kind corpus updated (count stays 51)
+- [x] 1.2.1 `ParameterNode.isConst` + construction sites + AST printer rendering — `packages/core/src/ast/…`, `packages/frontend/src/parser/parse-decl.ts` (03-01 §AST/§Parser; 2nd construction site: codegen `il/test-fixtures.ts`; AST snapshot regenerated — diff = two additive `isConst: false` lines, inspected) ✅ (completed: 2026-07-12 03:38)
+- [x] 1.2.2 `parseParameter` consumes `[const]` after the colon — `parse-decl.ts:53-73` ✅ (completed: 2026-07-12 03:38)
+- [x] 1.2.3 Verify green (ST-1..ST-5) + node-kind corpus updated (count stays 51) — parser tier 117/117 ✅ (completed: 2026-07-12 03:38)
 
 ### Step 1.3: Impl tests & verify
-- [ ] 1.3.1 Impl tests (recovery/EOF edges) + full verify — `param-const-unsized.impl.test.ts`
+- [x] 1.3.1 Impl tests (recovery/EOF edges) + full verify — `param-const-unsized.impl.test.ts` (5/5; full canonical verify green 46.8s) ✅ (completed: 2026-07-12 03:41)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
@@ -76,17 +76,18 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 2.1: Spec tests (red)
 **Reference**: [03-02](03-02-param-semantics.md) · [07 §Param typing](07-testing-strategy.md) · AR-1/5/6/8/9/10/11
 
-- [ ] 2.1.1 Write ST-6..ST-24b spec tests — `packages/frontend/src/semantics/param-typing.spec.test.ts`
-- [ ] 2.1.2 Verify red (the two E90001 retirement rows ST-6/ST-7 MUST be red today)
+- [ ] 2.1.1 Write ST-6..ST-24a spec tests (incl. the AR-15 inference rows ST-21a/21b/21c; ST-24b moved to ST-40 in Phase 4 — PF-004) — `packages/frontend/src/semantics/param-typing.spec.test.ts`
+- [ ] 2.1.2 Verify red (the two E90001 retirement rows ST-6/ST-7 MUST be red today; ST-21a/21b red — inference doesn't exist yet)
 
 ### Step 2.2: Implement (green)
 - [ ] 2.2.1 Register E10122/E10123/W10112/W10142/W10143 additively — `packages/core/src/diagnostics/diagnostic-codes.ts` (AR-9)
 - [ ] 2.2.2 `ArrayType.size: number | null` + `byteSize`/`type-utils`/`typeName` ripples + `T[N]→T[]` arm — `packages/core/src/semantics/…` (03-02 §Type model)
-- [ ] 2.2.3 Param collection: real aggregate types, `byRef`, `mutable: !isConst`; retire the annotation-resolution param ICE (keep E10120/E10093) — `function-collection.ts`, `annotation-resolution.ts` (03-02 §Symbols)
-- [ ] 2.2.4 Retire the >256-byte gate; unsized param context flag; W10142/W10143 at declared types — `type-check/type-resolution.ts` (03-02, AR-11)
+- [ ] 2.2.3 Param collection: real aggregate types, `byRef`, `mutable: !isConst`; retire the annotation-resolution param ICE (keep E10120/E10093); **extend `finalizeSymbol`'s kind gate to parameter symbols** (PF-008 — it patches only variable/constant today) — `function-collection.ts`, `annotation-resolution.ts` (03-02 §Symbols)
+- [ ] 2.2.4 Retire the >256-byte gate; unsized param context flag; W10142 (fixed 256 boundary) + W10143 (`targetProfile.maxRam` ≥25%, skip when absent — PF-011) at declared types — `type-check/type-resolution.ts` (03-02, AR-11)
 - [ ] 2.2.5 Call typing: full-mode `signatureOf`, E10122 arg checks, W10112; write protection: E10123 via the extended root predicate — `type-check/expression-typing.ts` (03-02 §Call/§Write)
-- [ ] 2.2.6 Index tiers (E10117/E10118 branch, unsized both-widths) + `length`/`sizeof` rules (E10080 reuses) — `expression-typing.ts` (03-02 §Index/§Intrinsics)
-- [ ] 2.2.7 Verify green (ST-6..ST-24b) — 7a suites (incl. slice7 negatives ST-66 subset) still green
+- [ ] 2.2.6 Index tiers (E10117/E10118 branch, unsized both-widths) + `length`/`sizeof` rules (E10080 reuses; **`lengthOf` parameter arm** — PF-008) — `expression-typing.ts`, `const-type-engine.ts` (03-02 §Index/§Intrinsics)
+- [ ] 2.2.7 Narrowed unsized inference (AR-15/PF-002): infer-before-check for full element-list literals (local + module, let + const) via the half-shipped `typeArrayLit`/`inferUnsizedArray`; const images sized from the initializer; E10126 for the two non-inferable forms (fill; no initializer) — `type-check/{expression-typing,statement-typing}.ts`, `const-images.ts` (03-02 §Unsized declarations)
+- [ ] 2.2.8 Apply the retired-row protocol to the 7a suites pinning the retired rejections — RUN the suites and retire by protocol (at least `aggregate-typing.spec.test.ts` ST-32/ST-44 and `slice7-negatives.spec.test.ts` params + >256 rows — PF-004); then verify green (ST-6..ST-24a) — all other 7a suites untouched and green
 
 ### Step 2.3: Impl tests & verify
 - [ ] 2.3.1 Impl tests (root-walk, signature edges, unsized containment) — `param-typing.impl.test.ts`
@@ -123,15 +124,15 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 4.1: Spec tests (red)
 **Reference**: [03-04](03-04-lowering-indirect.md) · [07 §Lowering](07-testing-strategy.md) · AR-2/3/4/7/12
 
-- [ ] 4.1.1 Write ST-34..ST-47 spec tests — `packages/codegen/src/il/lower-indirect.spec.test.ts`
+- [ ] 4.1.1 Write ST-34..ST-47 spec tests (ST-40 = the moved ST-24b arg-ICE row; ST-41..44 = the preflight additions: word-domain scaling, elemSize gate, pair-base scalar compound, offset-255 straddle) — `packages/codegen/src/il/lower-indirect.spec.test.ts`
 - [ ] 4.1.2 Verify red
 
 ### Step 4.2: Implement (green)
 - [ ] 4.2.1 `addr` operand kind + constructor + IL printer + exhaustiveness ICE arms — `codegen/src/il/operand.ts` (+consumers) (03-04 §1, AR-12)
 - [ ] 4.2.2 Call marshalling: static-place addr stores, pass-through word copy, the two loud AR-3 ICEs — `lower.ts` `lowerUserCall` (03-04 §2/§6)
 - [ ] 4.2.3 Prologue copies (two byte moves, access-set-gated) — `lower.ts` entry-block emission (03-04 §3)
-- [ ] 4.2.4 Place base kinds (direct/pair) + indirect emission + whole-struct copy through pairs — `lower.ts` Place machinery (03-04 §4)
-- [ ] 4.2.5 Tier-2/big-offset formation through scratch (the §5 sequence) — `lower.ts` (03-04 §5)
+- [ ] 4.2.4 Place base kinds (direct/pair) + indirect emission under the straddle-aware fast-path predicate (`constOffset + valueSize − 1 ≤ 255` — PF-003) + the elemSize==1 gate on the pair byte-index path (PF-007) + pair-base scalar compound as indirect RMW (PF-006 — the 7a direct-loc compound rewrite must never see a pair base) + whole-struct copy through pairs — `lower.ts` Place machinery (03-04 §4)
+- [ ] 4.2.5 Tier-2/big-offset formation through scratch (the §5 sequence; word-domain scaling `zext`+`shl`/`__rt_mul16` — PF-012) respecting the PF-009 fused word-store invariant (add operands loc/imm; single-use dest; adjacent consuming store) — `lower.ts` (03-04 §5)
 - [ ] 4.2.6 Verify green (ST-34..ST-47)
 
 ### Step 4.3: Impl tests & verify
@@ -151,10 +152,10 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 - [ ] 5.1.2 Verify red (the indirect pair currently ICEs — the RD-07b retired-row protocol from 7a applies if any old row pins the ICE)
 
 ### Step 5.2: Implement (green)
-- [ ] 5.2.1 regY mirror + `offsetIntoY` + `clearRegs` extension + Y-site invalidation audit (every existing `LDY`/`INY`/`DEY`/`TAY` emitter) — `translate.ts` (03-05 §regY)
-- [ ] 5.2.2 `translateLoadIndirect` (byte + word arms, homing ladder) — `translate.ts` (03-05)
-- [ ] 5.2.3 `translateStoreIndirect` (fast path, imm/memory word arms, loud register-resident ICE) — `translate.ts` (03-05)
-- [ ] 5.2.4 `addr` store arm (+`protectA` extension) + scratch backstop ICE — `translate.ts` (03-05 §addr/§Backstop)
+- [ ] 5.2.1 regY mirror + `offsetIntoY` + `clearRegs` extension + the invalidation rule for every NEW Y-touching sequence 7b introduces (+ one confirming sweep that no pre-existing emitter touches Y — PF-010: zero exist today) — `translate.ts` (03-05 §regY)
+- [ ] 5.2.2 `translateLoadIndirect` (byte + word arms, homing ladder; word arms ICE-guard `offset > 254` — PF-003 backstop) — `translate.ts` (03-05)
+- [ ] 5.2.3 `translateStoreIndirect` (fast path, imm/memory word arms, loud register-resident ICE, the same word-offset guard) — `translate.ts` (03-05)
+- [ ] 5.2.4 `addr` store arm via `symbolRef` Absolute+offset (`symAt` pattern — zpSlot carries no offset, PF-013) (+`protectA` extension) + scratch backstop ICE — `translate.ts` (03-05 §addr/§Backstop)
 - [ ] 5.2.5 Verify green (ST-48..ST-58) incl. ST-58 prior-IL-corpora emission identity
 
 ### Step 5.3: Impl tests & verify
@@ -175,7 +176,7 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 - [ ] 6.1.3 ST-61 VICE suite (full byte contract) — same file; run on real VICE 3.10
 
 ### Step 6.2: Golden + negatives
-- [ ] 6.2.1 Mint `slice7b.asm.golden` AFTER VICE green (`UPDATE_GOLDEN=1`; inspect the diff) + ST-60 landmarks — `golden-slice7b.spec.test.ts`
+- [ ] 6.2.1 Mint `slice7b.asm.golden` AFTER VICE green (`UPDATE_GOLDEN=1`; inspect the diff) + ST-60 landmarks incl. the §5 formation sequence (PF-001) — `golden-slice7b.spec.test.ts`
 - [ ] 6.2.2 ST-62/ST-63 negatives via `compile()`/`emitIl` — `slice7b-negatives.spec.test.ts`
 - [ ] 6.2.3 ST-64 advisories (W10112/W10142/W10143 compile-with-warning)
 - [ ] 6.2.4 ST-65 prior-goldens assertion + ST-66 7a-negative-suite re-run (both already CI-covered — witness green)
@@ -214,9 +215,9 @@ pattern of all prior RD-18 plans).
 
 **Feature is complete when:**
 
-1. ✅ All 57 tasks `[x]`
+1. ✅ All 58 tasks `[x]`
 2. ✅ The 3-part bar: assemble-clean (ST-59) + golden (ST-60) + real VICE (ST-61)
 3. ✅ All negatives/advisories proven (ST-62..ST-64); both 7a E90001s retired loud-never-silent
-4. ✅ All eight prior goldens byte-exact (ST-65); 7a suites unchanged (ST-66)
+4. ✅ All nine prior committed goldens byte-exact (ST-65); 7a suites green — the four retired-pin rows handled by protocol at Phase 2, nothing else touched (ST-66)
 5. ✅ Full verify green; `spec/` untouched; no dead code; no plan-artifact refs in shipped code
 6. ✅ RD-18 item 6 ticked; ledger/roadmaps/CLAUDE.md/memory reconciled

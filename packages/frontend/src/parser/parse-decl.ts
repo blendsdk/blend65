@@ -50,7 +50,7 @@ function ensureProgress(state: ParserState, before: number): void {
   }
 }
 
-/** Parses a single `name: type` parameter (FR-17). */
+/** Parses a single `name: [const] type` parameter (FR-17; spec Ch 08 §7). */
 function parseParameter(state: ParserState): ParameterNode {
   const { cursor, sourceId } = state;
   const nameTok = cursor.expect(
@@ -62,11 +62,17 @@ function parseParameter(state: ParserState): ParameterNode {
   const start = nameTok !== null ? nameTok.span.start : state.here().start;
   const nameSpan = nameTok !== null ? nameTok.span : makeSpan(sourceId, start, start);
   cursor.expect(TokenKind.Colon, DiagCode.ExpectedColon, "':' after parameter name");
+  // Optional `const` qualifier — legal only here, between the parameter's
+  // colon and its type. A malformed type after it falls into `parseType`'s
+  // normal E10303 recovery.
+  const isConst = cursor.check(TokenKind.KwConst);
+  if (isConst) cursor.advance();
   const paramType = parseType(state);
   return {
     kind: "Parameter",
     name,
     nameSpan,
+    isConst,
     paramType,
     span: makeSpan(sourceId, start, paramType.span.end),
   };

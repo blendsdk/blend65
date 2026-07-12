@@ -99,7 +99,7 @@ function block(statements: StmtNode[]): BlockNode {
 }
 
 function param(name: string, paramType: TypeNode): ParameterNode {
-  return { kind: "Parameter", name, nameSpan: S, paramType, span: S };
+  return { kind: "Parameter", name, nameSpan: S, isConst: false, paramType, span: S };
 }
 
 function fnDecl(

@@ -647,7 +647,7 @@ describe("node-kind exhaustiveness (AC-13, FR-10)", () => {
        let g: P = P { x: 1 };
        let tbl: byte[4] = [1, 2; 0];
        interrupt function isr() { g.x = 1; }
-       export function f(p: byte, q: word): byte {
+       export function f(p: const byte, q: word, d: byte[], e: const Q[]): byte {
          let v: byte = (p & q) | (p ^ q);
          let w: boolean = !true && false || (p < q);
          let s: word = p << 2 >> 1;
