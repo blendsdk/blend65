@@ -131,7 +131,7 @@ explicitly rejected (`requirements/README.md:195`, AR-38).
 | **4 — Control flow** | `if`/`else`, `while`, `do-while`, `for` (`to`/`downto`/`step`), `switch`/`case`/`default`/`break`/`continue`/`fallthrough`; boolean-condition rule (Ch 05) | RD-04 CFG validators (loop-context E10130/E10131; plus all-paths-return and non-boolean-condition — **new codes minted at this slice's gate**, absent from the canonical registry, see §Parked-Question Routing); RD-06 **multi-block CFG** + `br`/`brcond` terminators (`cfg.ts` is types-only today); RD-07 branch generation | ledger Ch-05 rows; **Parked Q3, Q4 (new `fallthrough` code)** |
 | **5 — User functions & modules** | calls, params, return, calling convention, recursion detection (E10174), cross-module name resolution + imports, module init order (E10194) (Ch 06/10) | RD-04 call-graph + Pass 1 module merge + Pass 4 init order; RD-06 `call` op; RD-07 calling convention + prologue/epilogue | ledger R20–R23, R86, R107-adjacent; RD-06/07 `call` |
 | **6 — Full expressions & mixed width** | `&&`/`\|\|` short-circuit, compound assignment, unary `- ! ~`, casts, mixed-signedness (E10081), auto-promotion, ternary, `zext`/`sext`/`trunc`, word/variable shifts, non-const `lo`/`hi` (Ch 02/04) | RD-04 full expression typing; RD-06/07 remaining ops (`neg`/`not`/`zext`/`sext`/`trunc`, word shifts, short-circuit lowering) | ledger Ch-04 rows; `translate.ts:258` deferred ops |
-| **7 — Aggregates** | fixed arrays (indexing, `length`, tier1/2, optional bounds), structs (fields, member access, `offsetof`, nested), enums (member access, casts), const aggregates → data (Ch 07/08/09) | full **const evaluator** (array sizes, R88–R93); RD-04 aggregate typing; RD-06/07 `load_indexed`/`store_indexed`/`load_indirect`/`store_indirect` | ledger §12 const-eval, Ch-07/08/09 rows; **Parked Q1** |
+| **7 — Aggregates** *(✅ CLOSED 2026-07-12 — split 7a direct surface + 7b pointer surface per the 7a plan's gate)* | fixed arrays (indexing, `length`, tier1/2, optional bounds), structs (fields, member access, `offsetof`, nested), enums (member access, casts), const aggregates → data (Ch 07/08/09); 7b added by-ref/const params (FN-3/CP-1..5), unsized params, tier-2 `(zp),Y` | full **const evaluator** (array sizes, R88–R93); RD-04 aggregate typing; RD-06/07 `load_indexed`/`store_indexed`/`load_indirect`/`store_indirect` | ledger §12 const-eval, Ch-07/08/09 rows; **Parked Q1** |
 | **8 — Hardware & advanced** | `interrupt` functions (prologue/epilogue/RTI), `zeropage` blocks, `&`-address-of for vector install, string/char encoding, `embed()`, CPU-control (T1) intrinsics end-to-end, non-terminating `main` (Ch 03§2.3/06§7/08/12/13) | RD-04 remaining validators; RD-06/07 interrupt lowering + `&`; RD-10/RD-17 encoding + T1 wiring | ledger Ch-06§7/12/13 rows; **Parked Q2** |
 
 > Slice 3 is split (3a/3b) because the integration seam (does a *populated* model flow all the
@@ -393,14 +393,22 @@ passes and the parent-RD ACs it advances are ticked.
        defects fixed en route: the word-compare stamping above, and the ACME accumulator-mode
        rendering (`ASL A` → bare `ASL`; the explicit `A` parsed as an undefined symbol — exposed
        by the fixture's first real assembly of an accumulator op).
-6. [ ] **Slice 7**: array/struct/enum programs VICE-verify (indexed read/write, member access,
+6. [x] **Slice 7**: array/struct/enum programs VICE-verify (indexed read/write, member access,
        enum-dispatch); `length`/`offsetof`/`sizeof` fold to correct constants; a `const byte[N]`
        with `N` a const-expression sizes correctly (const evaluator); ASM golden committed.
        **7a complete (2026-07-12, direct-addressing surface per plan)** — everything above VICE-verified on the
        two-file `examples/slice7/` fixture (`$C000..$C009 = 0E 2A 08 02 06 02 01 14 0B 03`,
        incl. the cross-module const-table read and whole-struct copy semantics); 184-line golden
-       committed; **closes at 7b** (by-ref/const params, tier-2 `(zp),Y` indexing for >256-byte
-       arrays, unsized array params).
+       committed. **7b complete (2026-07-12, pointer surface per plan) — SLICE 7 CLOSED**:
+       by-ref/const params (FN-3 frame home + colored `__zp_ptr_*` pairs + prologue copy;
+       dead/pass-through skip; CP-1..5 via E10122/E10123), unsized array params (`size: null`,
+       both index widths, E10080 length rule) + the narrowed element-list size inference,
+       tier-2 `(zp),Y` indexing for >256-byte arrays (runtime pointer formation through the
+       conditional `__zp_ptr_scratch`; E10118 emittable; W10112/W10142/W10143 minted) — all
+       VICE-verified on the two-file `examples/slice7b/` fixture
+       (`$C000..$C006 = 00 2A 0F 1D 11 0B 16`, incl. the runtime-word-index formation proof
+       at index 260); 212-line golden committed; both 7a E90001 rejections retired
+       loud-never-silent.
 7. [ ] **Slice 8**: a raster-`interrupt` program installed via `pokew($0314, &onIRQ)` VICE-verifies
        an observable effect (border color flips across frames); `zeropage {}` variables land in ZP;
        `embed()` rejects `..` traversal; a non-terminating `main` runs under the frames strategy.

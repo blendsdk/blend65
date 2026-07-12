@@ -331,10 +331,43 @@ codeops/_archive/<rd-slug>/                     # completed/archived plans
   homed via store-fold or binder ZP spill; register-resident word stores reject loudly;
   `protectA()` spills live unhomed A temps at mul/const). Two-file `examples/slice7/`
   verifies `$C000..$C009 = 0E 2A 08 02 06 02 01 14 0B 03` on real VICE (first run);
-  184-line golden; the indirect ops remain the documented pointer-tier ICE.
-  **Next: RD-18 Slice 7b** (pointer surface — by-ref/const params, tier-2 `(zp),Y`
-  indexing for >256-byte arrays, unsized array params; needs `make_plan`), then Slice 8.
-  RD-13 (non-functional sweep) / RD-14 (VS Code/LSP) remain queued. See
+  184-line golden.
+  **Slice 7b (2026-07-12, 58/58 — SLICE 7 CLOSED, RD-18 item 6 ticked)** shipped the pointer
+  surface end-to-end. Frontend: `ArrayType.size: number | null` (unsized, param-only) +
+  `T[N]→T[]` binding, param symbols finalized like variables (`finalizeParameter` patches
+  `byRef`; struct/array → by-ref per FN-3, enums by value), const params CP-1..5 through ONE
+  root-symbol predicate (E10122 const-arg→mutable-by-ref incl. forwarded const params;
+  E10123 writes through const params — direct/nested/indexed/compound), the tier index rules
+  key on the known total (E10117 kept, E10118 now emittable, unsized takes both widths,
+  tier-matched literal adaptation), `length()` on unsized → E10080, the narrowed
+  unsized-declaration inference (`let/const T: byte[] = […]` infers from a full element list;
+  fill/no-initializer → E10126), advisories W10112 (same root twice in one call's by-ref
+  args), W10142 (fixed 256-byte tier boundary), W10143 (≥25% of `targetProfile.maxRam`,
+  skipped without a profile), and `SemanticModel.pairAccessedParams` — the single
+  classification (element/field chains, whole-copy endpoints; dead/pass-through excluded)
+  shared by SFA and lowering. SFA: chain-max pair coloring over the interference graph in
+  caller-first topo order (`sfa/pointer-pairs.ts`) overlays `__zp_ptr_<Module_fn>_<param>`
+  aliases onto the peak-sized pool (sequential callees share addresses), plus the
+  conditional `__zp_ptr_scratch` (pair-accessed params OR a transitive >256-byte array);
+  pointer-free ZP layouts stay byte-identical. Codegen: the IL `addr` operand (`&sym+off`,
+  legal as a store source AND an ALU right operand — `#<sym`/`#>sym` byte selects; loud ICE
+  everywhere else), marshalling stores static-place addresses into the callee's 2-byte frame
+  home (whole pass-through = a frame-word copy, no pair; runtime-indexed/pair-relative args
+  ICE "needs address-of" until Slice 8), one-time prologue frame→pair byte copies, pair-base
+  places with the straddle-aware fast path (`offset+size−1 ≤ 255`), the pair byte-index path
+  gated to 1-byte elements (multi-byte routes word-domain), pair scalar compound as an
+  indirect RMW (never the pointer bytes), and runtime pointer formation through scratch with
+  every word intermediate homed by the fused-store discipline. Translate: `(zp),Y` framings
+  (byte fast paths, word lo/INY/hi with a >254-offset ICE backstop), the regY mirror
+  (invalidated by INY/JSR/block boundaries), and the unreserved-pair staging ICE. Gotcha
+  minted at exec: ACME sizes symbols by equate DIGIT COUNT — `(zp),Y` operands need 2-digit
+  equates, done additively via `SymbolDefinition.zeroPage` (prior goldens untouched).
+  Two-file `examples/slice7b/` verifies `$C000..$C006 = 00 2A 0F 1D 11 0B 16` on real VICE
+  3.10 first run (incl. the runtime-word-index-260 formation proof); 212-line golden; nine
+  prior goldens byte-exact.
+  **Next: RD-18 Slice 8** (hardware & advanced — `&` address-of, interrupts, `zeropage`
+  blocks, strings/`embed()`; needs `make_plan`). RD-13 (non-functional sweep) / RD-14
+  (VS Code/LSP) remain queued. See
   `codeops/features/blend65-ri/00-roadmap.md` for authoritative status.
 - CI still has NO emulator tier (AR-27): the RD-12 emulator/RD-17 suites are
   `describe.skipIf(!hasVice()[||!hasAcme()])` — they skip in CI and are proven green

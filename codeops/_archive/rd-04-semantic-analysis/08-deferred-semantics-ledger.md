@@ -282,7 +282,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R54 | Assignment operators (l-value, const) | ✅ **RD-18 Slice 6** — completed with TS-17 compound assignment (expanded-form class semantics; write-back narrowing → E10154; const target → E10191) | 3 | E10191 |
 | R55 | Conditional expression | ✅ **RD-18 Slice 6** — E10134 non-boolean condition; E10088 arm mismatch; context-typed arms; selected-arm-only via the diamond CFG | 3 | E10088, E10134 |
 | R56 | Field access | ✅ **RD-18 Slice 7a** — struct-field typing/lowering (offset locations), nested chains, typeMap-complete | 3 | E10160 |
-| R57 | Index expression | ✅ **RD-18 Slice 7a** (direct tier) — byte indexes on ≤256-byte arrays: const indexes fold to static offsets, runtime indexes ride `abs,X` with lowering-owned scaling; E10114 signed/boolean, E10117 word-on-tier-1, E10115 static bounds; tier-2 (>256 B, `(zp),Y`) follows with the pointer surface | 3 | E10114, E10115, E10117 |
+| R57 | Index expression | ✅ **RD-18 Slice 7a+7b (complete)** — direct tier: const indexes fold to static offsets, runtime byte indexes ride `abs,X`; pointer tier (7b): >256-byte arrays take word indexes through `(zp),Y` runtime pointer formation, unsized params take both widths; E10114 signed/boolean, E10117 word-on-tier-1, E10118 byte-on-tier-2 (now emittable), E10115 static bounds (sized forms) | 3 | E10114, E10115, E10117, E10118 |
 | R58 | Function call | ✅ **RD-18 Slice 5a** — `typeCall` ladder `E10100`→`E10051`(interrupt)→`E10023`(main)→`E10175`(not callable); count `E10170` (suppresses per-arg checks); strict same-type args `E10171` + const range `E10084`; result = declared return type | 3 | E10170, E10171 |
 | R59 | Intrinsic call | ⛔ DEFERRED — needs RD-17 descriptors | 3 | E10040, E10041 |
 | R60 | `sizeof(T)` | ✅ **RD-18 Slice 7a** — `sizeof`/`offsetof`/`length` fold through the const/type engine (value-dependent result typing: ≤255 byte, ≥256 word); legal in const/size positions | 3 | — |
@@ -300,7 +300,7 @@ RD-04 requirement and acceptance criterion it satisfies*.
 | R67 | Interrupt function | ⛔ DEFERRED | 3 | — |
 | R68 | Struct declaration (+ no recursion) | ✅ **RD-18 Slice 7a** — module-keyed FQN tables (the bare-name collision defect fixed), duplicate fields E10003, recursive layouts ONE path-carrying E10165 per cycle (the silent zero-size placeholder removed) | 2 | E10003, E10165 |
 | R69 | Enum declaration | ✅ **RD-18 Slice 7a** — member values via the engine (consts legal), E10230 non-const, E10143 range/auto-overflow, duplicate names E10003; duplicate VALUES legal per EN-5 (E10142/E10141 stay registered-unwired, chapters-beat-registry) | 2 | E10003, E10143, E10230 |
-| R70 | Struct passing by reference | ⛔ DEFERRED — `Symbol.byRef` exists, unset | 3 | — |
+| R70 | Struct passing by reference | ✅ **RD-18 Slice 7b** — FN-3 end-to-end: `Symbol.byRef` set at finalization; caller stores the address into the callee's 2-byte frame home; SFA colors per-param `__zp_ptr_*` pairs; one-time prologue frame→pair copy; accesses `(pair),Y`; dead/pass-through params skip the pair; const params CP-1..5 (E10122/E10123); W10112 aliasing advisory | 3 | E10122, E10123, W10112 |
 
 ## 10. Statement validation (RD-04 §3.10)
 
@@ -356,10 +356,10 @@ RD-04 requirement and acceptance criterion it satisfies*.
 
 | RD-04 | Requirement | Status | Pass | Diagnostic code(s) |
 |-------|-------------|--------|------|--------------------|
-| R101 | Array size const ≥ 1 | ✅ **RD-18 Slice 7a** — const-expression sizes via the engine; E10110 non-const, E10111 zero; >256-byte totals loudly rejected pending the pointer tier (E10112 remains unwired — unreachable under the 256-byte cap) | 3 | E10110, E10111 |
+| R101 | Array size const ≥ 1 | ✅ **RD-18 Slice 7a+7b (complete)** — const-expression sizes via the engine; E10110 non-const, E10111 zero; 7b retired the >256-byte rejection (tier-2 legal, W10142/W10143 advisories) and added the narrowed unsized-declaration inference (element-list literals; E10126 otherwise); E10112 remains unwired (count>size stays on the E10152 reuse) | 3 | E10110, E10111, E10126, W10142, W10143 |
 | R102 | Array initializer match | ✅ **RD-18 Slice 7a** — contextual literal typing: element/fill assignability, count>size mismatch, W10140 partial, E10113 const coverage, E10126 fill-needs-size, unsized-size inference | 3 | E10113, E10126, W10140 |
 | R103 | Const array fully initialized | ✅ **RD-18 Slice 7a** — image builder enforces full coverage (elements + fill); images bake into `__data_*` `!byte` blocks | 3 | E10113 |
-| R104 | Array index type | ✅ **RD-18 Slice 7a** — unsigned integer indexes only (E10114 signed/boolean; E10117 word-on-direct-tier with the byte-cast remedy; E10118 registered for the pointer tier) | 3 | E10114, E10117 |
+| R104 | Array index type | ✅ **RD-18 Slice 7a+7b (complete)** — unsigned integer indexes only; the tier rules key on the known total (E10117 word-on-tier-1, E10118 byte-on-tier-2 — emittable since 7b; unsized params accept both widths) | 3 | E10114, E10117, E10118 |
 | R105 | Static bounds checking | ✅ **RD-18 Slice 7a** — const indexes fold and bounds-check 0..size-1 (E10115); the runtime `--bounds-check` flag remains deferred (no trap ABI) | 3 | E10115 |
 | R106 | `embed()` const context | ⛔ DEFERRED | 3 | E10200 |
 | R107 | `embed()` file resolution | ⛔ DEFERRED — see Parked Q2 | 3 | E10201 |

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 10:12 (exec: Phase 6 COMPLETE — 9/9; 3-PART BAR GREEN ON REAL VICE)
-> **Progress**: 54/58 tasks (93%)
+> **Last Updated**: 2026-07-12 10:17 (exec: PLAN COMPLETE — all 7 phases; SLICE 7 CLOSED, RD-18 item 6 ticked)
+> **Progress**: 58/58 tasks (100%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -191,10 +191,10 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 
 ## Phase 7: Rollout — reconciliation
 
-- [ ] 7.1.1 Tick RD-18 acceptance item 6 (Slice 7 CLOSED: 7a+7b) + slice-map annotation — `codeops/features/blend65-ri/requirements/RD-18-…md`
-- [ ] 7.1.2 Ledger reconciliation: R70 → ✅ 7b; R57/R101/R104 tier-2 halves closed; CP/param rows — `codeops/_archive/rd-04-semantic-analysis/08-deferred-semantics-ledger.md`
-- [ ] 7.1.3 Roadmaps: feature row → ✅ (plan complete), cascade to portfolio — `codeops/features/blend65-ri/00-roadmap.md`, `codeops/00-roadmap.md`
-- [ ] 7.1.4 CLAUDE.md Slice-7b paragraph + memory update
+- [x] 7.1.1 RD-18 acceptance item 6 TICKED (Slice 7 CLOSED: 7a+7b) + slice-map row 7 annotated ✅ (completed: 2026-07-12 10:15)
+- [x] 7.1.2 Ledger reconciliation — R70 ✅ 7b (FN-3 end-to-end + CP rows); R57/R101/R104 tier-2 halves closed (7a+7b complete) ✅ (completed: 2026-07-12 10:15)
+- [x] 7.1.3 Roadmaps: feature narrative + RD-18 row → Slice 7b ✅ COMPLETE; cascaded to the portfolio headline ✅ (completed: 2026-07-12 10:16)
+- [x] 7.1.4 CLAUDE.md Slice-7b paragraph (+ Next → Slice 8) + memory file/index updated ✅ (completed: 2026-07-12 10:16)
 
 **Verify**: (canonical; `git status --porcelain spec/` empty)
 
