@@ -20,9 +20,12 @@ private regY: number | null = null;   // temp id whose byte value is in Y, or nu
 ```
 
 - Cleared in `resetBlockState`, at every `JSR` (`clearRegs` extended), and — the 7a X-mirror
-  lesson — **invalidated by every emitted sequence that touches Y**. Audit obligation: the
-  existing emitters that use Y today (per-byte struct-copy unrolls, fill loops) must clear
-  the mirror; a checklist task walks every `emit("LDY"…)`/`INY`/`DEY`/`TAY` site.
+  lesson — **invalidated by every emitted sequence that touches Y**. Scope correction (PF-010):
+  **no existing emitter touches Y** — a verified sweep of `translate.ts`/`lower.ts` finds zero
+  `LDY`/`INY`/`DEY`/`TAY` emission sites (7a struct copies/fills are per-byte Absolute pairs;
+  the binder's `y` state is only ever `null`). The invalidation discipline therefore applies to
+  every NEW Y-touching sequence 7b itself introduces (the arms below); the checklist task is a
+  cheap confirming sweep plus the rule for the new arms.
 - `offsetIntoY(operand)`: immediate → `LDY #imm` (skipped when the mirror already holds it);
   temp → `LDY` from its home (zp/abs) or `TAY` when A-resident (then A is still live — no
   spill needed; Y is not an accumulator); location → `LDY Absolute`.
@@ -38,6 +41,9 @@ Mirrors `translateLoadIndexed` (`:1462-1501`) with the base swapped for the pair
 - word value: only when consumed by an immediate store (the 7a word-load discipline):
   `offsetIntoY(offset)` → `LDA (pair),Y / STA home+0` → `INY` (regY invalidated) →
   `LDA (pair),Y / STA home+1`; else ICE (`word indirect load not consumed by a store`).
+  Lowering's straddle-aware predicate guarantees `offset ≤ 254` for word values (PF-003 —
+  `INY` from `#$FF` wraps to 0); translate ICE-guards `imm(offset) > 254` on the word arms
+  as a drift backstop.
 
 ### translateStoreIndirect (value, ptr, offset)
 
@@ -61,9 +67,12 @@ LDA Immediate symbolRef(sym, { offset, byteSelect: "high" })  ; #>sym+off
 STA Absolute  target+1        ; regA cleared (holds no temp)
 ```
 
-Also legal with a ZP-pair `location` target (the scratch seed store, [03-04 §5](03-04-lowering-indirect.md))
-— `STA ZeroPage zpSlot(...)` when the target symbol is a ZP allocation. `protectA()` runs
-first (an addr store clobbers A — same obligation as `translateConst`).
+Also legal with a ZP-pair `location` target (the scratch seed store, [03-04 §5](03-04-lowering-indirect.md)).
+Operand-shape correction (PF-013): `zpSlot` carries NO offset — the `…+1` high-byte store uses
+the EXISTING word-store pattern, `symbolRef` in Absolute mode with an `offset` (the `symAt`
+helper, `translate.ts:1650-1662`); ZP symbols resolve to `$00xx` header values, so ACME picks
+the encoding (the golden pins the actual text). `protectA()` runs first (an addr store
+clobbers A — same obligation as `translateConst`).
 
 ### Scratch/backstop (AR-4)
 

@@ -4,7 +4,8 @@
 > and tier-2 (>256-byte) arrays via `(zp),Y` indirect addressing — completing RD-18 Slice 7
 > **Status**: Planning Complete
 > **Created**: 2026-07-12
-> **Implements**: blend65-ri/RD-18 (slice map row 7 "pointer surface" + acceptance item 6 — closes it)
+> **Implements**: blend65-ri/RD-18 acceptance item 6 (closes it) — the "pointer surface" half of
+> the Slice-7 split per the 7a plan's AR-1 (RD-18's slice map titles row 7 "Aggregates")
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -34,7 +35,8 @@ operand (AR-12), the SFA pair binding, the lowering place extension, and the tra
 
 | #   | Document                                            | Description                                       |
 | --- | --------------------------------------------------- | ------------------------------------------------- |
-| AR  | [Ambiguity Register](00-ambiguity-register.md)       | Zero-Ambiguity Gate — 14 decisions (audit trail)  |
+| AR  | [Ambiguity Register](00-ambiguity-register.md)       | Zero-Ambiguity Gate — 15 decisions (14 gate + AR-15 preflight pin) |
+| PF  | [Preflight Report](00-preflight-report.md)           | ✅ PASSED — 15 findings resolved & applied         |
 | 00  | [Index](00-index.md)                                 | This document — overview and navigation           |
 | 01  | [Requirements](01-requirements.md)                   | Scope delta view over RD-18                       |
 | 02  | [Current State](02-current-state.md)                 | The seams 7a left; shipped-but-dark machinery     |
@@ -85,6 +87,7 @@ export function sum(data: const byte[], len: byte): byte { ... }  // const + uns
 | Const params | `isConst` field + `mutable:false`, one root-symbol predicate (AR-6) |
 | New codes | E10122/E10123 registered, W10112/W10142/W10143 minted, E10118 wired (AR-9) |
 | IL address form | New `addr` operand kind, store-source-only (AR-12) |
+| Unsized declarations | Narrowed element-list inference in-slice; E10126 owns the non-inferable forms (AR-15, preflight PF-002) |
 
 ## Related Files
 
@@ -93,6 +96,7 @@ Created: `packages/frontend/src/semantics/…` (param typing extensions), `examp
 `packages/test-harness/test/golden/slice7b.asm.golden`.
 Modified: `parse-decl.ts`/`parse-type.ts` (+AST `ParameterNode`), `symbol.ts`/`type.ts`/
 `type-utils.ts` (core), `function-collection.ts`, `annotation-resolution.ts`,
-`type-check/{type-resolution,expression-typing,statement-typing}.ts`, `sfa/{model-adapter,
+`type-check/{type-resolution,expression-typing,statement-typing}.ts`, `const-type-engine.ts`
+(lengthOf param arm), `const-images.ts` (initializer-sized images, AR-15), `sfa/{model-adapter,
 zp-allocator,plan-allocation,symbols}.ts`, `codegen/src/il/{operand,lower}.ts`,
 `codegen/src/instr/translate.ts`, `diagnostic-codes.ts`.

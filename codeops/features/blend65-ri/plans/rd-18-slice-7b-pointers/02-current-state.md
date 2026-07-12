@@ -70,6 +70,8 @@ The by-ref infrastructure is ~80% pre-built and entirely dormant:
 | `frontend/src/semantics/annotation-resolution.ts` | boundary checks | retire the param ICE; keep E10120/E10093 returns |
 | `frontend/src/semantics/type-check/type-resolution.ts:59-81` | type resolution | retire the >256 gate; unsized param context; W10142/W10143 hooks |
 | `frontend/src/semantics/type-check/expression-typing.ts` | typing | tier branch (E10117/E10118), unsized index widths, E10122 arg checks, E10123 via `assignmentRootSymbol`, W10112, `length()` rules, `signatureOf` full types |
+| `frontend/src/semantics/const-type-engine.ts` | intrinsic folds | `lengthOf` parameter arm (reads decl annotations only today — PF-008) |
+| `frontend/src/semantics/{statement-typing → inferUnsizedArray wiring, const-images}.ts` | unsized inference | infer-before-check + initializer-sized const images (AR-15) |
 | `frontend/src/sfa/{model-adapter,zp-allocator,plan-allocation,symbols}.ts` | SFA | thread `byRef`; pair coloring + naming; scratch predicate; symbol emission |
 | `codegen/src/il/operand.ts` | IL operands | new `addr` kind (AR-12) |
 | `codegen/src/il/lower.ts` | lowering | Place base kinds (direct/pair), by-ref marshalling, prologue copies, tier-2 formation, arg-form ICEs, struct copy through pairs |
@@ -89,14 +91,25 @@ The by-ref infrastructure is ~80% pre-built and entirely dormant:
 **Required:** per-param pair symbols overlaid by interference coloring ([03-03](03-03-sfa-pointers.md)).
 
 ### Gap 3: Unsized type unrepresentable semantically
-**Current:** `ArrayType.size: number` mandatory; AST `size: null` exists but semantic layer
-infers or errors. `signatureOf` resolves param types in scalar mode → `ERROR_TYPE` for aggregates.
-**Required:** `size: number | null` param-scoped; full-mode signature resolution.
+**Current:** `ArrayType.size: number` mandatory; AST `size: null` exists but the semantic layer
+maps it to a size-0 SENTINEL (`type-resolution.ts:147`) — every unsized-with-initializer form
+errors today (E10152). The inference machinery is HALF-SHIPPED and dead: `typeArrayLit` infers
+the literal's type (`expression-typing.ts:1079-1082`) and `inferUnsizedArray` exists
+(`statement-typing.ts:825-829`) but `checkAssignable` fires first, and the const-image path
+(`const-images.ts`) bypasses typing entirely. `signatureOf` resolves param types in scalar
+mode → `ERROR_TYPE` for aggregates.
+**Required:** `size: number | null` param-scoped; full-mode signature resolution; the AR-15
+narrowed inference (infer-before-check + initializer-sized const images; E10126 owns the two
+non-inferable forms) — the size-0 sentinel path is deleted by the reshape, so the non-param
+behavior must be deliberate either way.
 
 ### Gap 4: Translate has no Y-register discipline
-**Current:** `regA`/`regX` mirrors only; nothing emits LDY.
-**Required:** regY mirror + invalidation audit for every emitted Y-touching sequence
-(challenger obligation, [03-05](03-05-translate-indirect.md)).
+**Current:** `regA`/`regX` mirrors only; **zero** Y-touching emission sites exist anywhere in
+`translate.ts`/`lower.ts` (7a struct copies and fills are per-byte Absolute pairs; the binder's
+`y` state is only ever set to `null`). 7b's `(zp),Y` sequences are the FIRST Y emitters.
+**Required:** regY mirror + the invalidation rule for every NEW Y-touching sequence 7b
+introduces, plus one confirming sweep that no pre-existing emitter touches Y
+([03-05](03-05-translate-indirect.md), PF-010-rescoped).
 
 ## Dependencies
 

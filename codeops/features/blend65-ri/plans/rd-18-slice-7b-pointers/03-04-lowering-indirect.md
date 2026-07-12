@@ -75,12 +75,26 @@ interface Place {
 `basePlace`: an identifier resolving to a by-ref param symbol → pair base (its pair symbol).
 Emission (`emitPlaceLoad`/`emitPlaceStore`):
 - **direct** → unchanged 7a (`load`/`store`/`load_indexed`/`store_indexed`).
-- **pair**, `constOffset ≤ 255`, index null → `load_indirect(value, ptr: loc(pairSym), offset: imm(constOffset))`.
-- **pair**, byte index (tier-1-shaped element access through a sized ≤256 param or unsized
-  byte-indexed) → `offset` = the scaled byte-offset operand (7a `scaleIndex` reused; const
-  offset folded in via `addByteOffsets`).
-- **pair**, `constOffset > 255` OR word index → effective-pointer formation (§5), then
+- **pair**, index null, `constOffset + valueSize − 1 ≤ 255` → `load_indirect(value,
+  ptr: loc(pairSym), offset: imm(constOffset))`. **The predicate is straddle-aware (PF-003):**
+  a WORD value at offset 255 must NOT take this path — the word arm's `INY` would wrap Y to 0
+  and read/write pointee+0 for the high byte. A word at offset 255 rides §5 formation.
+- **pair**, byte index, **element size 1 only (PF-007)** → `offset` = the scaled byte-offset
+  operand (7a `scaleIndex` reused; const offset folded in via `addByteOffsets`). Multi-byte
+  elements NEVER take this path — the 7a scaler is mod-256 and its safety precondition
+  (≤256-byte total) does not hold for unsized params (`word[]` bound to `word[129]`+ would
+  silently alias element 0 at in-bounds index 128); they route byte indexes through
+  `zext` → §5 word formation.
+- **pair**, word index, byte index with element size > 1, OR
+  `constOffset + valueSize − 1 > 255` → effective-pointer formation (§5), then
   `load_indirect(..., ptr: t_eff, offset: imm(residual))`.
+
+**Non-indexed compound assignment through a pair base (PF-006)** — `e.hp += 1` on a MUTABLE
+by-ref param is SUPPORTED: `load_indirect` → ALU → `store_indirect` at the same `imm(offset)`
+(all ops in this slice; no runtime index involved). The 7a compound branch's direct-loc rewrite
+(`lower.ts:1319-1327`, rewrites via the place's symbol) must NEVER be applied to a pair base —
+the place's symbol is the ZP POINTER pair, so the rewrite would read-modify-write the pointer's
+own bytes. INDEXED compound-assign through a pair stays the loud ICE (§6, AR-3 posture).
 
 Whole-struct copy `p = q` through pairs: the 7a per-byte unroll emits `load_indirect`/
 `store_indirect` per byte (mixed direct/pair sides compose naturally since each side lowers
@@ -89,9 +103,12 @@ independently).
 ### 5. Runtime pointer formation (tier-2 + big offsets — AR-4/AR-7)
 
 `addr` is store-only (AR-12) and translate synthesizes no arithmetic (7a AR-15), so the
-effective pointer is formed with EXISTING ops around the scratch pair. For a direct-base
-tier-2 access (`big[i]` with `i: word`, incl. const `__data_*` tables), with element scaling
-(7a `scaleIndex`, word-width here) already applied to the index:
+effective pointer is formed with EXISTING ops around the scratch pair. **Index scaling here is
+WORD-domain (PF-012)** — the 7a `scaleIndex` is byte-domain (mod-256) and does not apply:
+`zext(index)` then word `shl` for pow-2 element sizes, `__rt_mul16` otherwise (both Slice-6
+ops; element sizes today are 1/2, so `shl` covers the fixture surface). For a direct-base
+tier-2 access (`big[i]` with `i: word`, incl. const `__data_*` tables), with that word-domain
+scaling already applied to the index:
 
 ```
 store(addrOf(base, constOffset) → loc(__zp_ptr_scratch, word))  // the addr store seeds base
@@ -105,6 +122,15 @@ Pair-base word indexes and const offsets > 255 form identically, with the add's 
 `load(loc(pairSym, word))` instead of the seeded scratch. Every op exists today; the only new
 translate surface remains the indirect pair + the `addr` store arm. (Chatty IL is accepted —
 correctness-first; Phase B owns tightening, per the AR-2 resolution note.)
+
+**Load-bearing translate invariant (PF-009) — the fused word-store discipline.** Word
+arithmetic results are NEVER register-resident: `translateAddSub`'s word path requires
+`foldStoreHome` — the add's dest must be SINGLE-USE and the consuming `store` to a location
+must be the IMMEDIATELY FOLLOWING instruction, else the ADD ICEs ("word arithmetic result not
+consumed by a store", `translate.ts:578`). The formation sequence must therefore be emitted
+exactly in the flat shape above: the add's operands are locations/immediates (never free
+word-load temps), `t_eff` is single-use, and its store to the scratch/pair location is
+adjacent. An impl test pins the shape.
 
 ### 6. Argument-form and unsupported ICEs (AR-3)
 
@@ -133,5 +159,7 @@ correctness-first; Phase B owns tightening, per the AR-2 resolution note.)
 
 - Spec tests (IL-shape via `emitIl`): marshalling forms (static place, pass-through, const
   table), prologue presence/absence (dead + pass-through skip), pair-base load/store shapes,
-  tier-2 formation sequence, both loud ICEs (ST-34..ST-39, ST-45..ST-47).
+  tier-2 formation sequence, word-domain scaling, the elemSize gate, pair-base scalar
+  compound, the offset-255 straddle, and the loud ICEs (ST-34..ST-47 — the ST-40..44 band
+  filled at preflight).
 - Impl tests: place classification on resolved chains; scratch-sequence determinism.

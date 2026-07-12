@@ -61,8 +61,8 @@ Pairs are per-param SYMBOLS overlaid onto pool addresses — mirroring frame col
 
 Pointer-free programs: no pair-accessed params → peak 0 → no pairs; predicate false → no
 scratch; ZP layout `__zp_arg_0..3, __zp_tmp_0..3, __zp_irq_tmp_0..1` byte-identical; frames
-unchanged (`slotSize` code path untouched); no preamble change. All eight prior goldens stay
-byte-exact — spec-tested (ST-31/ST-65), not assumed.
+unchanged (`slotSize` code path untouched); no preamble change. All nine prior committed
+goldens (gate + eight slices) stay byte-exact — spec-tested (ST-31/ST-65), not assumed.
 
 ### Budget & reporting
 

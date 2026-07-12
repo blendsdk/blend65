@@ -1,7 +1,9 @@
 # Ambiguity Register: RD-18 Slice 7b — Pointer surface (by-ref params / tier-2 arrays)
 
-> **Status**: ✅ GATE PASSED — all 14 items resolved at the gate (2026-07-12)
-> **Last Updated**: 2026-07-12 01:59
+> **Status**: ✅ GATE PASSED — all 14 items resolved at the gate (2026-07-12); +AR-15 pinned at
+> preflight-fix application (see the Preflight corrections section — 15 findings, ALL resolved,
+> report [00-preflight-report.md](00-preflight-report.md))
+> **Last Updated**: 2026-07-12 (preflight fixes applied)
 > **Artifact**: `plans/rd-18-slice-7b-pointers/` (implements blend65-ri/RD-18, acceptance item 6 — closes it)
 
 Codebase grounding for every row was verified against the working tree at commit `9fb607e`
@@ -21,8 +23,8 @@ E90001) + `type-check/type-resolution.ts:72-81` (>256-byte E90001) — the two r
 `packages/frontend/src/sfa/frame-computation.ts:29-37` (2-byte pointer slot rule SHIPS),
 `zp-allocator.ts:74-122,152-223` (`computePeakPointers` + `__zp_ptr_N` pool, dormant),
 `packages/codegen/src/il/instruction.ts:114-136` (`load_indirect`/`store_indirect` `{value, ptr,
-offset}` modeled; `call` args always `[]` — store-per-arg), `il/operand.ts:22-29` (NO address
-operand form — the gap), `instr/translate.ts:372-377` (the indirect ICE seam) + `:1619-1710`
+offset}` modeled; `call` args always `[]` — store-per-arg), `il/operand.ts:22-30` (NO address
+operand form — the gap; the `location` kind DOES carry an optional `offset`), `instr/translate.ts:372-377` (the indirect ICE seam) + `:1619-1710`
 (prescan def/read already correct for the indirect pair), `core/src/instr-model/addressing-mode.ts:36`
 (`IndirectY` ships) + `codegen/src/instr/print-instr.ts:128-129` (`(sym),Y` renders) +
 `instr/cpu-table.ts:38-39` (LDA/STA IndirectY legal), `packages/platforms/src/c64.ts:50-51`
@@ -42,7 +44,7 @@ and one honest counter-argument recorded in the AR-2 resolution note (the spec c
 | 4 | Technical | Tier-2 **scratch pair**: runtime pointer formation (base+index) needs one designated scratch ZP pair; unconditional reservation shifts `__zp_tmp_N` in every program and breaks all 8 prior goldens. First-draft predicate (by-ref param OR >256-byte variable) was BROKEN by the challenger: `const TABLE: byte[300]` with a runtime word index demands scratch with neither | A: **hardened conditional predicate** — reserve iff any reachable function has ≥1 by-ref param OR any declared storage **or const aggregate** transitively (through struct fields / nested arrays) contains an array >256 bytes total; plus a loud translate ICE backstop when staging is demanded without the reservation; plus a recorded Slice-8 deferral (IRQ code needs an `__zp_irq_ptr` scratch twin per Ch 06 §7.6) / B: always reserve (re-mint all 8 goldens) | User chose A — hardened predicate + backstop + Slice-8 note; pointer-free programs keep byte-identical ZP layout | ✅ Resolved |
 | 5 | Behavioral | **Unsized array params** (`T[]`): semantic `ArrayType.size` is a mandatory `number`; unsized needs representation. Index widths: Ch 08 §8.2's own example indexes an unsized param with a BYTE loop var, and the bound array may exceed 256 bytes so word must work; Ch 08 AR-3's tier errors are keyed to KNOWN total bytes | A: `size: number \| null` (null = unsized, legal only on parameter symbols; the 7a inference path keeps owning `let a: T[] = […]`); `T[N] → T[]` assignable for matching element type, any N, all element types; byte AND word indexes both legal (byte = `LDY idx` direct, word = scratch-pair add); E10117/E10118 stay known-tier-only / B: word-only indexing on unsized | User chose A — both widths; the spec's own example stays legal | ✅ Resolved |
 | 6 | Behavioral | **Const-param model**: how `const` is carried and enforced (CP-1..5). E10191's gate keys on `kind === "constant"` — parameters never are; needs a new predicate. Is `const` on a SCALAR param legal (CP-1's wording is general; its examples are aggregates)? | A: `ParameterNode` gains `isConst` (field, not a new node kind — AST stays 51 kinds); const-param Symbol carries `mutable: false`; `assignmentRootSymbol` predicate extends — root is parameter && !mutable → **E10123** (root kind constant → E10191 unchanged); **E10122** fires when an argument's root is a const symbol OR a const param and the target is a MUTABLE by-ref param (scalars exempt — by-value copies); `const` scalar params allowed, enforced read-only by the same predicate / B: same but reject scalar const | User chose A — one predicate, zero bespoke machinery; scalar const params legal and read-only | ✅ Resolved |
-| 7 | Behavioral | Struct field offsets **>255** through a by-ref pair (`LDY #off` caps at 255; >256-byte structs are constructible via large array fields) | A: scratch-add fold — const offsets ≤255 ride `LDY #off`; larger offsets fold into pointer formation via the scratch pair (same machinery as word indexes), Y carries the remainder; no struct-size cap (matches Ch 07 §5.6's 16-bit-calculation note) / B: cap by-ref struct offsets at 255 (invents a rule the frozen spec doesn't state) | User chose A — uniform scratch-add, no cap | ✅ Resolved |
+| 7 | Behavioral | Struct field offsets **>255** through a by-ref pair (`LDY #off` caps at 255; >256-byte structs are constructible via large array fields) | A: scratch-add fold — const offsets ≤255 ride `LDY #off`; larger offsets fold into pointer formation via the scratch pair (same machinery as word indexes), Y carries the remainder; no struct-size cap (matches the 16-bit-calculation note at the end of Ch 07 §5.5) / B: cap by-ref struct offsets at 255 (invents a rule the frozen spec doesn't state) | User chose A — uniform scratch-add, no cap | ✅ Resolved |
 | 8 | Behavioral | **W10112 aliasing** scope (Ch 07 §4.7: "may emit for obvious cases — same variable passed twice — but cannot catch all aliasing") | A: warn when the same ROOT SYMBOL feeds ≥2 by-ref arguments of a single call — exactly the chapter's obvious case; no cross-call or overlap analysis / B: wider overlap analysis (more than the chapter asks) | User chose A — same root symbol, one call | ✅ Resolved |
 | 9 | Naming | **Diagnostic-code table** (additive, AR-115 precedent; registry numbering authority, chapters normative for rules): register E10122 ConstToMutableParam + E10123 ModifyConstParam (Ch 08's own numbers, free in the registry); mint W10112 PossibleAliasing (Ch 07 number), W10142 Tier2Overhead + W10143 LargeArrayOnPlatform (Ch 08 numbers); wire the registered-unreachable E10118. Reuses: sized-param size/type mismatch → E10171 ArgTypeMismatch (structural array assignability rejects naturally; the chapter assigns no code); E10112 stays unwired (count>size already E10152 per 7a AR-22) | A: accept the full table / B: adjust entries | User accepted the full table | ✅ Resolved |
 | 10 | Naming | `length()` on an UNSIZED param is "not available" (Ch 08 §9) — no code assigned anywhere in spec or registry | A: reuse **E10080** InvalidOperandType with a bespoke message ("length() is not available for unsized array parameter '<p>' — pass an explicit length parameter") — the 7a reuse pattern / B: mint E10127 (E10127–E10129 free) | User chose A — E10080 reuse | ✅ Resolved |
@@ -50,6 +52,7 @@ and one honest counter-argument recorded in the AR-2 resolution note (the spec c
 | 12 | Technical | **IL address form**: lowering must express "store the ADDRESS of symbol(+const offset)" for arg marshalling; `il/operand.ts` has immediate/temp/location only | A: new **`addr` operand kind** `{ symbol, offset }` (word-typed), legal as a `store` source and NOTHING else initially — every untaught IL path ICEs loudly via union exhaustiveness; translate renders `LDA #<sym+off / #>sym+off` through the shipped `symbolRef` byteSelect / B: `addr_of` instruction → word temp (burns A:X, interacts with the live-across-call guard in arg windows) | User chose A — the `addr` operand kind; challenger-confirmed | ✅ Resolved |
 | 13 | UX | **Acceptance fixture** shape (`examples/slice7b/`, results in the `$C000..` band on real VICE) | A: two files, six runtime observables — by-ref struct mutation through a call (FN-3 shape), const-param table sum (const→const), unsized-param sum with `length()` at the call site (byte index), tier-2 `byte[300]` write+read straddling index 255 (word index — proves the high byte), a pass-through chain (f forwards its by-ref param to g), whole-struct copy through two by-ref params; W10112/W10142/W10143 witnessed by CI spec tests, not the fixture / B: adjust | User chose A — two files, six observables, warnings in the spec suites | ✅ Resolved |
 | 14 | Process | Plan folder name + verify command | A: folder `rd-18-slice-7b-pointers`; verify = CLAUDE.md canonical `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` / B: adjust | User confirmed both | ✅ Resolved |
+| 15 | Behavioral | **(Preflight-application pin, PF-002)** Unsized-declaration semantics after the `size: number \| null` reshape: the current non-param "error path" is an ACCIDENT of the size-0 sentinel (unsized → 0 → E10152/E10111), which task 2.2.2 deletes — the behavior must be deliberate. What do non-param unsized annotations do? | Single viable shape (user-accepted PF-002 Option B, narrowed): WITH a full element-list initializer → size INFERRED (`let/const T: byte[] = […]` — the spec's own ✅ examples, Ch 02 §type-inference + Ch 08 §4/§8; infer-before-check via the half-shipped `inferUnsizedArray`, const images sized from the initializer); fill form `[…; fill]` unchanged **E10126** (needs the declared count); WITHOUT an initializer → **E10126 reused** with a bespoke message ("array size required — an unsized array type is legal only as a function parameter or with a full element-list initializer"), the AR-10 reuse pattern. Rejected: minting a new code (band churn for a shape E10126 already owns conceptually) | Pinned as stated — inference narrowed to element-list literals; E10126 owns both non-inferable forms | ✅ Resolved |
 
 ### Resolution Notes
 
@@ -77,8 +80,15 @@ the pair is a derived cache). `p.field` as an argument (pair base + const offset
 DEFERRED class with runtime-indexed places: both ICE loudly at lowering until Slice 8's `&`
 machinery lands address materialization.
 
-**AR-5 (unsized):** `null` size never escapes parameter symbols — declaration inference (7a) fills
-a concrete size before a variable symbol's type is finalized. `sizeof` on an unsized param type
+**AR-5 (unsized):** `null` size never escapes parameter symbols. ~~declaration inference (7a)
+fills a concrete size before a variable symbol's type is finalized~~ **Preflight correction
+(PF-002): no working 7a inference exists** — `resolveTypeNode` maps `[]` to a size-0 sentinel
+(`type-resolution.ts:147`) and every unsized-with-initializer form errors today (E10152); the
+inference machinery is HALF-SHIPPED (`typeArrayLit` infers, `inferUnsizedArray` exists, dead by
+check-order; the const-image path bypasses typing). The user chose the narrowed in-slice fix
+(PF-002 Option B → AR-15): element-list-literal inference lands in 7b, so the invariant holds by
+construction — params keep `null`, every other symbol gets an inferred or explicit concrete size,
+and the two non-inferable forms error via E10126 (AR-15). `sizeof` on an unsized param type
 and `length()` on an unsized param are both rejected (AR-10's E10080 message family); tier
 advisories W10142/W10143 key off DECLARED array types, never param types (unknown size).
 
@@ -98,3 +108,37 @@ machinery entirely (challenger refinement).
 
 **AR-13 (fixture):** observable (4) must witness an index ≥256 so a dropped index high byte
 produces a wrong answer, not a coincidentally-right one (the 7a "suppression proof" discipline).
+**Preflight sharpening (PF-001):** the index must be a RUNTIME word value (`let idx: word = 260`)
+— a literal index const-folds to absolute addressing at lowering and never exercises the
+`(zp),Y` formation path at all.
+
+### Preflight corrections (2026-07-12) — applied per the accepted report
+
+All 15 findings of [00-preflight-report.md](00-preflight-report.md) were resolved per
+recommendation and applied to these plan docs. The decision-touching amendments, for the record:
+
+- **PF-001** — fixture observable 4 rerouted through a runtime word index; ST-60 gains a
+  formation landmark; the 03-06 "translate drops the high byte" rationale corrected (translate
+  never sees a folded index — the high byte is load-bearing in the FORMATION word add).
+- **PF-002 → AR-15** — narrowed in-slice unsized inference (user decision; AR-5 note amended).
+- **PF-003** — the pair fast-path predicate is `constOffset + valueSize − 1 ≤ 255` (a word at
+  offset 255 rides the AR-7 formation path); ST-47's invariant is "Y never wraps within one
+  value access" (`LDY #255` is legal; the bug class is INY wrapping mid-value).
+- **PF-004** — the retired-row protocol applies at PHASE 2 (four 7a suites pin the retired
+  E90001s); ST-24b (an AR-3 lowering ICE) is renumbered ST-40 in the Phase-4 lowering suite.
+- **PF-005** — indexed compound-assign through a pair is the loud 7a-class ICE (ST-47 reworded;
+  a testing row cannot widen scope against 03-04 §6).
+- **PF-006** — NON-indexed compound assignment through a pair base (`e.hp += 1`, mutable param)
+  is SUPPORTED: `load_indirect → ALU → store_indirect` at the const offset (the 7a direct-loc
+  compound rewrite must never be applied to a pair base — it would RMW the pointer bytes).
+- **PF-007** — the pair byte-index fast path is element-size-1 ONLY; multi-byte elements route
+  byte indexes through zext → word formation (the 7a byte-domain scaler is mod-256 and its
+  ≤256-byte-total safety precondition does not hold for unsized params).
+- **PF-011** — W10143's denominator is `AnalyzeInput.targetProfile.maxRam` (the canonical
+  `@blend65/core/platform` profile, already threaded — `analyze.ts:42,:75`); when the optional
+  profile is absent, W10143 is skipped (the availability-check precedent). c64 threshold: 6656 B.
+- **PF-012** — tier-2 index scaling is word-domain: `zext(index)` then word `shl` for pow-2
+  element sizes, `__rt_mul16` otherwise (both Slice-6 ops).
+- **PF-015** — W10142 deliberately keys on the FIXED 256-byte tier boundary (Ch 08 AR-3), not
+  the dormant platform `warnArraySize` field; that field is recorded at rollout as either
+  W10142's future platform-tunable threshold source or a removal candidate.

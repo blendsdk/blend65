@@ -21,7 +21,13 @@ The boundary is addressing-mode-shaped: 7b is everything requiring a ZP pointer 
 - **Sized array params** — exact size/type match via structural assignability → E10171
   reuse (Ch 08 §8.1, AR-9); `length(sizedParam)` folds to the compile-time constant
 - **Unsized array params** (`T[]`) — Ch 08 §8.2; `ArrayType.size: number | null` (AR-5);
-  byte AND word indexes; `length()` unavailable → E10080 reuse (AR-10)
+  byte AND word indexes (byte fast path element-size-1 only — multi-byte elements route through
+  word formation, PF-007); `length()` unavailable → E10080 reuse (AR-10)
+- **Unsized-declaration size inference (narrowed — AR-15, preflight PF-002)** — the spec's own
+  ✅ forms `let/const T: byte[] = […]` (Ch 02 type-inference example; Ch 08 §4/§8) compile by
+  inferring the size from a FULL element-list initializer (infer-before-check; const images
+  sized from the initializer); the fill form keeps **E10126**, and a non-param unsized
+  annotation WITHOUT an initializer is **E10126** with a bespoke message
 - **Const parameters** — Ch 08 §7 CP-1..5 + Ch 06 FN-3; parser `[const] type` in param
   position (grammar drift recorded, AR-6); E10122/E10123 wired; CP-4 zero runtime cost;
   CP-5 propagation through chains; scalar const params legal read-only (AR-6)
@@ -37,7 +43,7 @@ The boundary is addressing-mode-shaped: 7b is everything requiring a ZP pointer 
 - **IL `addr` operand** — the address-of-symbol store source (AR-12)
 - **Aliasing advisory** — W10112, same root symbol ≥2 by-ref args in one call (AR-8)
 - **Three-part acceptance bar** — assemble-clean + ASM golden + real-VICE run of the two-file
-  `examples/slice7b/` fixture (AR-13); all eight prior goldens byte-exact (AR-4 golden safety)
+  `examples/slice7b/` fixture (AR-13); all nine prior committed goldens byte-exact (AR-4 golden safety)
 - **RD-18 acceptance item 6 closes**; roadmaps + ledger reconciled at rollout
 
 ### Deferred / out of this plan
@@ -54,18 +60,23 @@ The boundary is addressing-mode-shaped: 7b is everything requiring a ZP pointer 
 
 ## Plan-local decisions
 
-All 14 decisions live in [00-ambiguity-register.md](00-ambiguity-register.md); the load-bearing
-ones: AR-2 (calling convention — challenger-hardened), AR-3 (argument forms), AR-4 (scratch
-predicate + golden safety), AR-5 (unsized model), AR-6 (const model), AR-9 (code table),
-AR-12 (`addr` operand).
+All 15 decisions live in [00-ambiguity-register.md](00-ambiguity-register.md) (14 at the gate +
+AR-15 pinned at preflight-fix application); the load-bearing ones: AR-2 (calling convention —
+challenger-hardened), AR-3 (argument forms), AR-4 (scratch predicate + golden safety), AR-5
+(unsized model, PF-002-corrected), AR-6 (const model), AR-9 (code table), AR-12 (`addr`
+operand), AR-15 (narrowed unsized inference). The preflight report's 15 accepted findings are
+folded into these docs (see the register's Preflight-corrections section).
 
 ## Acceptance Criteria (plan-local; RD-18 item 6 ticks here)
 
 1. [ ] `examples/slice7b/` (two files, AR-13) assembles clean through real ACME to a loadable
        PRG (zero undefined symbols — `__zp_ptr_*` included) and VICE-verifies the `$C000..`
-       band: by-ref mutation, const-param sum, unsized-param sum, tier-2 cross-boundary
-       write/read at an index ≥256, pass-through chain, whole-struct copy through params
-2. [ ] Byte-exact ASM golden committed; **all eight prior slice goldens unchanged**
+       band: by-ref mutation, const-param sum, unsized-param sum (witnessing the AR-15
+       inferred-size `const TABLE: byte[]`), tier-2 cross-boundary write/read at a **runtime
+       word index** ≥256 (the `(zp),Y` formation path must execute — PF-001), pass-through
+       chain, whole-struct copy through params
+2. [ ] Byte-exact ASM golden committed (incl. the formation landmark); **all nine prior
+       committed goldens unchanged** (gate + eight slices)
 3. [ ] Negative surface proven via the public facades: E10122, E10123 (direct + CP-5 nested +
        compound assign), E10117/E10118 tier errors, E10080 length-on-unsized, E10171 size
        mismatch, the two loud AR-3 lowering ICEs; W10112/W10140-band/W10142/W10143 compile

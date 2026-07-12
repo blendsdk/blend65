@@ -36,24 +36,43 @@ Ripples (all loud, found by exhaustiveness/typecheck):
 ### Symbols & collection
 
 `function-collection.ts` (`:155-181`) drops the scalars-only restriction:
-- Param symbol type: provisional from the annotation (aggregates resolve in Pass 2 exactly
-  like variables — the 7a `annotation-resolution.ts` finalizer already patches param symbols
-  in place; the `primitiveFromTypeNode` shortcut is removed).
+- Param symbol type: provisional from the annotation, finalized in Pass 2 like variables —
+  **`finalizeSymbol` (annotation-resolution.ts:149-150) must be EXTENDED to parameter symbols**:
+  today its kind gate returns early for everything but `variable`/`constant`, so params are
+  never patched (PF-008 correction; the extension is one gate arm — the in-place patching
+  mechanism itself ships). The `primitiveFromTypeNode` shortcut is removed.
 - `byRef: annotationIsAggregate` (array or struct annotation — the FN-3 rule; scalars stay
   by-value per FN-2).
 - `mutable: !param.isConst` (AR-6).
 
 `annotation-resolution.ts checkFunctionBoundary` (`:121-131`): the aggregate-param ICE is
-DELETED; E10120/E10093 return checks stay verbatim. Unsized annotations are legal only on
-params — an unsized annotation on a `let`/module var WITHOUT initializer keeps the 7a
-behavior (size inference / its existing error path); `resolveTypeNode` gains a
-`paramContext` flag so `size: null` survives only there (elsewhere: 7a semantics unchanged).
+DELETED; E10120/E10093 return checks stay verbatim. `resolveTypeNode` gains a `paramContext`
+flag so `size: null` survives only on parameter symbols.
+
+**Unsized declarations outside params (AR-15 — the narrowed PF-002 inference fix).** The
+size-0 sentinel (`type-resolution.ts:147`) is deleted by the `number | null` reshape, so
+non-param unsized behavior is now deliberate:
+- `let/const T: byte[] = [v, …]` (FULL element-list initializer, local or module, let or
+  const) → the size is INFERRED from the literal before assignability is checked (the
+  half-shipped `typeArrayLit`/`inferUnsizedArray` machinery, wired infer-before-check);
+  const images (`const-images.ts`) are sized from the initializer, not the annotation.
+  These are the frozen spec's own ✅ examples (Ch 02 type-inference; Ch 08 §4/§8).
+- Fill form with an unsized annotation → **E10126** unchanged (a fill needs the declared count).
+- Unsized annotation WITHOUT an initializer → **E10126** with a bespoke message ("array size
+  required — an unsized array type is legal only as a function parameter or with a full
+  element-list initializer").
 
 `type-check/type-resolution.ts:72-81`: the >256-byte gate is DELETED. Tier-2 array types
 construct normally. On DECLARED array types (variables + const aggregates, not params — AR-5):
-- total > 256 → **W10142** Tier2Overhead
-- total ≥ 25% of the platform RAM region → **W10143** LargeArrayOnPlatform (AR-11; the
-  profile's RAM span is the denominator)
+- total > 256 → **W10142** Tier2Overhead — keyed deliberately on the FIXED 256-byte tier
+  boundary (Ch 08 AR-3), not the dormant platform `warnArraySize` field (that field is
+  recorded at rollout as either W10142's future platform-tunable threshold source or a
+  removal candidate — PF-015)
+- total ≥ 25% of **`AnalyzeInput.targetProfile.maxRam`** → **W10143** LargeArrayOnPlatform
+  (AR-11, denominator pinned by PF-011: the canonical `@blend65/core/platform` profile is
+  ALREADY threaded into the analyzer input — `analyze.ts:42,:75`; c64 `maxRam` 26623 →
+  threshold 6656 B). When the optional `targetProfile` is absent, W10143 is SKIPPED — the
+  established availability-check precedent (`intrinsic-validation.ts:144`).
 
 ### Call typing (`expression-typing.ts`)
 
@@ -102,8 +121,11 @@ Signed/boolean indexes stay E10114; static bounds E10115 folds only when the siz
 
 ### Intrinsic queries
 
-- `length(sizedParam)` folds to the declared count (Ch 08 §9 table) through the existing
-  engine folder — the symbol's type carries the size.
+- `length(sizedParam)` folds to the declared count (Ch 08 §9 table) — **`lengthOf`
+  (const-type-engine.ts:397-407) must gain a PARAMETER arm** (PF-008 correction: today it
+  reads var/const DECLARATION annotations only; a parameter's declaration shape is
+  `ParameterNode.paramType`, so the existing arm never matches). The fold reads the sized
+  annotation exactly as the var/const arm does.
 - `length(unsizedParam)` → **E10080** with the explicit-length remedy (AR-10).
 - `sizeof(T[])` (unsized type argument) → E10080 same family (no size exists).
 
@@ -117,7 +139,8 @@ Signed/boolean indexes stay E10114; static bounds E10115 folds only when the siz
 | byte index on >256 B array/param | E10118 (wired; word-cast remedy) | AR-9 |
 | `length()` on unsized param / `sizeof` unsized | E10080 reuse, bespoke message | AR-10 |
 | sized-param size/type mismatch | E10171 (natural assignability failure) | AR-9 |
-| unsized annotation outside params | 7a behavior unchanged (inference or its error) | AR-5 |
+| unsized annotation + FULL element-list initializer | size inferred (infer-before-check; const image sized from the initializer) | AR-15 |
+| unsized annotation + fill form / no initializer | E10126 (bespoke message for the no-initializer form) | AR-15 |
 | same root symbol twice in one call's by-ref args | W10112 warning | AR-8 |
 | declared array > 256 B | W10142; ≥25% platform RAM also W10143 | AR-9/AR-11 |
 
@@ -132,6 +155,7 @@ Signed/boolean indexes stay E10114; static bounds E10115 folds only when the siz
 ## Testing Requirements
 
 - Spec tests: the full CP-2 matrix, CP-5 chains, tier table above, unsized both-widths,
-  length/sizeof rules, W10112/W10142/W10143 emission + non-emission (ST-6..ST-24b).
+  length/sizeof rules, the AR-15 inference rows, W10112/W10142/W10143 emission + non-emission
+  (ST-6..ST-24a; the argument-shape ICEs live at ST-40 in the lowering suite).
 - Impl tests: `assignmentRootSymbol` through pair-rooted chains; signature resolution with
   `Mod.Type` + const-expr-sized param annotations; unsized never escaping param symbols.
