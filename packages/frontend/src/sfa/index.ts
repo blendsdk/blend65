@@ -17,4 +17,8 @@
 export { planAllocation } from "./plan-allocation.js";
 export type { PlanInput, ModuleVarInput, ZpUserVar } from "./plan-allocation.js";
 
-export { modelToFunctionInfo, modelToModuleVars } from "./model-adapter.js";
+export {
+  modelNeedsPointerScratch,
+  modelToFunctionInfo,
+  modelToModuleVars,
+} from "./model-adapter.js";

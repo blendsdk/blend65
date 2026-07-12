@@ -29,6 +29,7 @@ import type {
   Scope,
   SemanticModel,
   Symbol,
+  Type,
 } from "@blend65/core";
 import type { ModuleVarInput } from "./zp-allocator.js";
 
@@ -61,8 +62,8 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
     collectSyntheticSlots(fn.decl, model, synthetic);
     result.push({
       name: fqName(fn), // "<Module>.<function>"
-      parameters: collectFrameVars(scope, "parameter"),
-      locals: [...collectFrameVars(scope, "variable"), ...synthetic],
+      parameters: collectFrameVars(scope, "parameter", model.pairAccessedParams),
+      locals: [...collectFrameVars(scope, "variable", model.pairAccessedParams), ...synthetic],
       isInterrupt: fn.kind === "interrupt",
       isEscaped: false, // `&fn` address-of support arrives later
       isReachable: true, // liveness analysis arrives later; main is reachable
@@ -301,18 +302,69 @@ function fqName(fn: Symbol): string {
 /**
  * Reads a scope's symbols of `kind` as ordered {@link FrameVar}[] (Map
  * insertion order == declaration order; parameters are inserted before
- * locals at collection). Scalars are never by-reference.
+ * locals at collection).
+ *
+ * A frame variable's `byRef` marks a PAIR-BOUND by-reference parameter: one
+ * the body accesses through its pointer, so the planner must reserve and
+ * color a zero-page pair for it. Dead and pass-through-only by-ref
+ * parameters project `byRef: false` — they keep their 2-byte frame home
+ * (sized by the slot rule, which keys on the aggregate type, not this flag)
+ * but consume no pointer-pool bytes. Locals are never by-reference.
  *
  * @param scope The function body scope.
  * @param kind The symbol kind to project (`"parameter"` or `"variable"`).
+ * @param pairAccessed The model's pair-accessed parameter set.
  * @returns The matching symbols as frame variables, in declaration order.
  */
-function collectFrameVars(scope: Scope, kind: "parameter" | "variable"): FrameVar[] {
+function collectFrameVars(
+  scope: Scope,
+  kind: "parameter" | "variable",
+  pairAccessed: ReadonlySet<Symbol>,
+): FrameVar[] {
   const vars: FrameVar[] = [];
   for (const sym of scope.symbols.values()) {
     if (sym.kind === kind) {
-      vars.push({ name: sym.name, type: sym.type, byRef: false });
+      vars.push({ name: sym.name, type: sym.type, byRef: sym.byRef && pairAccessed.has(sym) });
     }
   }
   return vars;
+}
+
+/**
+ * Whether the program can demand runtime pointer FORMATION, requiring the
+ * shared `__zp_ptr_scratch` pair: any pair-accessed by-ref parameter exists,
+ * or any declared storage or constant aggregate transitively contains an
+ * array bigger than the 256-byte direct-addressing tier (a runtime index
+ * into it must form base+index in a pointer). Conservative by design — a
+ * program that reserves the pair without ever staging spends 2 ZP bytes.
+ *
+ * @param model The semantic model.
+ * @returns `true` when the scratch pair must be reserved.
+ */
+export function modelNeedsPointerScratch(model: SemanticModel): boolean {
+  if (model.pairAccessedParams.size > 0) return true;
+
+  const scopeHasBigStorage = (scope: Scope): boolean => {
+    for (const sym of scope.symbols.values()) {
+      if (sym.kind !== "variable" && sym.kind !== "constant") continue;
+      if (sym.scope !== scope) continue; // import aliases: the declaring module owns them
+      if (containsBigArray(sym.type)) return true;
+    }
+    return scope.children.some(scopeHasBigStorage);
+  };
+  return model.globalScope.children.some(scopeHasBigStorage);
+}
+
+/** Whether `t` transitively contains an array totalling more than 256 bytes. */
+function containsBigArray(t: Type): boolean {
+  if (t.kind === "array") {
+    if (t.size !== null && byteSize(t) > 256) return true;
+    return containsBigArray(t.element);
+  }
+  if (t.kind === "struct") {
+    for (const field of t.fields.values()) {
+      if (containsBigArray(field.type)) return true;
+    }
+  }
+  return false;
 }

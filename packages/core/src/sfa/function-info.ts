@@ -19,16 +19,19 @@ import type { Type } from "../semantics/type.js";
 /**
  * One parameter or local in a function's frame input.
  *
- * The `byRef` flag distinguishes struct/array parameters that are passed *by
- * reference* (a 2-byte pointer slot) from value slots; the frame-computation
- * pass uses it to size parameter slots per the type-size table.
+ * The `byRef` flag marks a by-reference struct/array parameter that is BOUND
+ * to a zero-page pointer pair — one the body accesses through its pointer.
+ * The pointer-pool sizing and pair coloring key on it. Frame SLOT sizing does
+ * not: every struct/array parameter takes a 2-byte pointer slot by its type
+ * and kind alone, so a dead or pass-through-only by-ref parameter carries
+ * `byRef: false` (no pair, no pool bytes) yet still frames at 2 bytes.
  */
 export interface FrameVar {
   /** The variable's declared name (unique within its function's frame). */
   readonly name: string;
   /** The resolved semantic type of the variable. */
   readonly type: Type;
-  /** `true` for struct/array params passed by reference (a 2-byte pointer slot). */
+  /** `true` for a pair-bound by-reference parameter (consumes pointer-pool bytes). */
   readonly byRef: boolean;
 }
 

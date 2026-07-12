@@ -31,8 +31,10 @@ import type {
   FrameAllocation,
   PlatformProfile,
   DiagnosticBag,
+  SymbolDefinition,
   Type,
 } from "@blend65/core";
+import { IceCode } from "@blend65/core";
 import { computeFrames } from "./frame-computation.js";
 import { buildInterferenceGraph } from "./interference.js";
 import { colorFrames } from "./coloring.js";
@@ -42,6 +44,7 @@ import {
   computePeakPointers,
   type ModuleVarInput,
 } from "./zp-allocator.js";
+import { bindPointerPairs } from "./pointer-pairs.js";
 import { analyzeStack } from "./stack-analysis.js";
 import { checkBudgets } from "./budgets.js";
 import { generateSymbolDefinitions } from "./symbols.js";
@@ -66,11 +69,25 @@ export interface PlanInput {
   readonly zpUserVars: readonly ZpUserVar[];
   /** `true` if an earlier stage reported errors — suppresses budget diagnostics. */
   readonly upstreamErrors: boolean;
+  /**
+   * Reserve the shared `__zp_ptr_scratch` pair for runtime pointer formation
+   * (the adapter's `modelNeedsPointerScratch`). Optional so fixture callers
+   * and pointer-free programs stay byte-identical; defaults to `false`.
+   */
+  readonly needsPointerScratch?: boolean;
 }
 
 /** Re-export so callers can build the module-var inputs from one place. */
 export type { ModuleVarInput };
 export type { Type };
+
+/**
+ * Sanitizes a pair-name fragment to the ACME-safe `[A-Za-z0-9_]` set (the
+ * same rule the symbol generator applies to frame names).
+ */
+function sanitizePair(name: string): string {
+  return name.replace(/[^A-Za-z0-9_]/g, "_");
+}
 
 /**
  * Runs the full Static Frame Allocation pipeline (§4.1).
@@ -113,12 +130,14 @@ export function planAllocation(
     });
   }
 
-  // 6. Zero-page: peak pointers + priority allocation. The allocator owns E10032.
+  // 6. Zero-page: peak pointers (pair-bound by-ref params only) + the
+  // conditional scratch pair + priority allocation. The allocator owns E10032.
   const peakPointers = computePeakPointers(input.functions, graph);
+  const needsScratch = input.needsPointerScratch === true;
   const zp = allocateZeroPage(
     {
       userVars: input.zpUserVars,
-      peakPointers,
+      peakPointers: peakPointers + (needsScratch ? 1 : 0),
       mainTemps: profile.mainTempBytes,
       irqTemps: profile.irqTempBytes,
       argBlockMin: profile.zpArgBlockMin,
@@ -126,6 +145,33 @@ export function planAllocation(
     profile,
     bag,
   );
+
+  // 6b. Pair binding: per-parameter pair names colored onto the pool. The
+  // scratch pair sits AFTER every colored pair (deterministic placement).
+  const pointerSlots = zp.allocations.filter((a) => a.category === "pointer");
+  const poolBase = pointerSlots[0]?.address;
+  const pairs = bindPointerPairs(input.functions, graph);
+  const pointerAliases: SymbolDefinition[] = [];
+  if (pairs.poolBytes > peakPointers * 2) {
+    // The peak formula (own + ALL neighbours) always bounds any chain
+    // maximum — exceeding it means the invariant broke. Never truncate.
+    bag.addError(
+      IceCode.Unexpected,
+      null,
+      `pointer-pair coloring spans ${pairs.poolBytes} bytes but the reserved pool holds ` +
+        `${peakPointers * 2} — allocation invariant violated`,
+    );
+  } else if (poolBase !== undefined && !zp.overflowed) {
+    for (const b of pairs.bindings) {
+      pointerAliases.push({
+        name: `__zp_ptr_${sanitizePair(b.functionName)}_${sanitizePair(b.paramName)}`,
+        value: poolBase + b.offset,
+      });
+    }
+    if (needsScratch) {
+      pointerAliases.push({ name: "__zp_ptr_scratch", value: poolBase + peakPointers * 2 });
+    }
+  }
 
   // 7. Stack-depth analysis.
   const stackAnalysis = analyzeStack(input.functions, profile);
@@ -148,12 +194,16 @@ export function planAllocation(
     bag,
   );
 
-  // 9. Symbols + assemble the immutable plan.
-  const symbolDefinitions = generateSymbolDefinitions({
-    frames: frameAllocs,
-    moduleVariables: moduleLayout.allocations,
-    zpAllocations: zp.allocations,
-  });
+  // 9. Symbols + assemble the immutable plan. Pair aliases follow the ZP
+  // allocations (two names may share an address — exactly like frames).
+  const symbolDefinitions = [
+    ...generateSymbolDefinitions({
+      frames: frameAllocs,
+      moduleVariables: moduleLayout.allocations,
+      zpAllocations: zp.allocations,
+    }),
+    ...pointerAliases,
+  ];
 
   const hasErrors = zp.overflowed || ramUsed > ramBudget;
   const sharingSaved = sumOfFrameSizes - coloring.frameRegionSize;

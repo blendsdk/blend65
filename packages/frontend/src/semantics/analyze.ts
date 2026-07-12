@@ -42,6 +42,7 @@ import {
 import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 import { ConstTypeEngine } from "./const-type-engine.js";
+import { computePairAccessedParams } from "./pair-access.js";
 import { checkParameterShadowing, collectFunctions } from "./function-collection.js";
 import { collectModuleVariables } from "./module-variable-collection.js";
 import { resolveImports } from "./import-resolution.js";
@@ -193,6 +194,14 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   // bounded Tarjan pass), `mainFunction`, `scopeOf` resolving a decl → its
   // body scope, and the now-real `typeMap`/`symbolMap` with `typeOf`/
   // `symbolOf` reading them (superseding the earlier empty passthrough).
+  // The pair-access classification: which by-ref parameters are accessed
+  // THROUGH their pointer (element/field access or whole-copy endpoint).
+  // Frame planning and lowering both consume this one set.
+  const pairAccessedParams = computePairAccessedParams(
+    input.programs,
+    functionTables.scopeByNode,
+  );
+
   const functions = functionTables.functions;
   const model: SemanticModel = {
     ...empty,
@@ -200,6 +209,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     enumTypes: tables.enumTypes,
     typeMap,
     symbolMap,
+    pairAccessedParams,
     callGraph: {
       functions,
       edges: callEdges,

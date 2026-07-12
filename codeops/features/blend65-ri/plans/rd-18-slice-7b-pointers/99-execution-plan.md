@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 04:09 (exec: Phase 2 COMPLETE — 12/12, full verify green)
-> **Progress**: 18/58 tasks (31%)
+> **Last Updated**: 2026-07-12 04:21 (exec: Phase 3 COMPLETE — 8/8, full verify green)
+> **Progress**: 26/58 tasks (45%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -102,18 +102,18 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 3.1: Spec tests (red)
 **Reference**: [03-03](03-03-sfa-pointers.md) · [07 §SFA](07-testing-strategy.md) · AR-2/AR-4
 
-- [ ] 3.1.1 Write ST-25..ST-33 spec tests — `packages/frontend/src/sfa/pointer-pairs.spec.test.ts`
-- [ ] 3.1.2 Verify red (ST-31/ST-33 may pre-pass — `slotSize` ships; document)
+- [x] 3.1.1 Write ST-25..ST-33 spec tests — `packages/frontend/src/sfa/pointer-pairs.spec.test.ts` ✅ (completed: 2026-07-12 04:18)
+- [x] 3.1.2 Verify red — 8/9 red; ST-32 pre-passes (E10032 emitter + peak formula shipped in RD-11's allocator — the fixture path exercises them directly; 7b only re-points the peak input) ✅ (completed: 2026-07-12 04:18)
 
 ### Step 3.2: Implement (green)
-- [ ] 3.2.1 Thread `byRef` through `model-adapter.ts`; pair-accessed predicate on the semantic model (shared with lowering) — (03-03 §byRef/§Pair binding)
-- [ ] 3.2.2 Pair coloring (chain-max, topological) + `__zp_ptr_<fq>_<param>` symbol emission over the pool — `zp-allocator.ts`, `plan-allocation.ts`, `symbols.ts`
-- [ ] 3.2.3 Scratch predicate (hardened, AR-4) + `__zp_ptr_scratch` reservation + peak wiring
-- [ ] 3.2.4 Verify green (ST-25..ST-33) incl. golden-safety row ST-31
+- [x] 3.2.1 `SemanticModel.pairAccessedParams` (new `semantics/pair-access.ts` — chain roots, whole-copy endpoints, let-init source; pass-through/dead excluded) + adapter `byRef = sym.byRef && pairAccessed` (FrameVar.byRef re-documented as pair-bound) ✅ (completed: 2026-07-12 04:19)
+- [x] 3.2.2 Pair coloring — new `sfa/pointer-pairs.ts` `bindPointerPairs` (chain-max over interference, topo caller-first, deterministic) + `__zp_ptr_<fq>_<param>` aliases appended to symbolDefinitions + pool-overrun ICE (never truncate) ✅ (completed: 2026-07-12 04:19)
+- [x] 3.2.3 Scratch predicate `modelNeedsPointerScratch` (pair-accessed params OR transitive >256-byte array in declared storage/const aggregates) + `PlanInput.needsPointerScratch` + `__zp_ptr_scratch` after the colored pairs + run-frontend threading ✅ (completed: 2026-07-12 04:19)
+- [x] 3.2.4 Verify green (ST-25..ST-33) incl. golden-safety row ST-31 — 9/9 first run ✅ (completed: 2026-07-12 04:19)
 
 ### Step 3.3: Impl tests & verify
-- [ ] 3.3.1 Impl tests (adversarial graphs, determinism) — `pointer-pairs.impl.test.ts`
-- [ ] 3.3.2 Full verify + prior goldens byte-exact
+- [x] 3.3.1 Impl tests (adversarial graphs, determinism) — `pointer-pairs.impl.test.ts` (5/5) ✅ (completed: 2026-07-12 04:21)
+- [x] 3.3.2 Full verify + prior goldens byte-exact — canonical verify green 46.2s ✅ (completed: 2026-07-12 04:21)
 
 **Verify**: (canonical)
 

@@ -34,6 +34,16 @@ export interface SemanticModel {
   /** Module/global initialiser execution order. */
   readonly initOrder: ReadonlyArray<Symbol>;
   readonly constValues: ReadonlyMap<Symbol, ConstValue>;
+  /**
+   * The by-reference parameters accessed THROUGH their pointer — an element
+   * or field access rooted at the parameter, or a whole-struct copy with the
+   * parameter as either endpoint. Frame planning binds a zero-page pointer
+   * pair to exactly this set, and lowering emits the one-time frame→pair
+   * prologue copy from the same set — one predicate keeps the two in
+   * lockstep. Dead and pass-through-only by-ref parameters are excluded
+   * (they read only their 2-byte frame home).
+   */
+  readonly pairAccessedParams: ReadonlySet<Symbol>;
   readonly structTypes: ReadonlyMap<string, StructType>;
   readonly enumTypes: ReadonlyMap<string, EnumType>;
   /** The resolved entry-point function, or `null` if none. */
@@ -70,6 +80,7 @@ export function createEmptyModel(): SemanticModel {
     callGraph: emptyCallGraph(),
     initOrder: [],
     constValues: new Map(),
+    pairAccessedParams: new Set(),
     structTypes: new Map(),
     enumTypes: new Map(),
     mainFunction: null,
