@@ -2,8 +2,9 @@
 
 > **Status**: ✅ GATE PASSED — all 14 items resolved at the gate (2026-07-12); +AR-15 pinned at
 > preflight-fix application (see the Preflight corrections section — 15 findings, ALL resolved,
-> report [00-preflight-report.md](00-preflight-report.md))
-> **Last Updated**: 2026-07-12 (preflight fixes applied)
+> report [00-preflight-report.md](00-preflight-report.md)); +AR-16 (runtime) resolved during
+> exec Phase 4 (formation vs fused-store — `addr` extended to ALU right-operand byte sourcing)
+> **Last Updated**: 2026-07-12 (exec Phase 4 — AR-16 added)
 > **Artifact**: `plans/rd-18-slice-7b-pointers/` (implements blend65-ri/RD-18, acceptance item 6 — closes it)
 
 Codebase grounding for every row was verified against the working tree at commit `9fb607e`
@@ -53,6 +54,8 @@ and one honest counter-argument recorded in the AR-2 resolution note (the spec c
 | 13 | UX | **Acceptance fixture** shape (`examples/slice7b/`, results in the `$C000..` band on real VICE) | A: two files, six runtime observables — by-ref struct mutation through a call (FN-3 shape), const-param table sum (const→const), unsized-param sum with `length()` at the call site (byte index), tier-2 `byte[300]` write+read straddling index 255 (word index — proves the high byte), a pass-through chain (f forwards its by-ref param to g), whole-struct copy through two by-ref params; W10112/W10142/W10143 witnessed by CI spec tests, not the fixture / B: adjust | User chose A — two files, six observables, warnings in the spec suites | ✅ Resolved |
 | 14 | Process | Plan folder name + verify command | A: folder `rd-18-slice-7b-pointers`; verify = CLAUDE.md canonical `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` / B: adjust | User confirmed both | ✅ Resolved |
 | 15 | Behavioral | **(Preflight-application pin, PF-002)** Unsized-declaration semantics after the `size: number \| null` reshape: the current non-param "error path" is an ACCIDENT of the size-0 sentinel (unsized → 0 → E10152/E10111), which task 2.2.2 deletes — the behavior must be deliberate. What do non-param unsized annotations do? | Single viable shape (user-accepted PF-002 Option B, narrowed): WITH a full element-list initializer → size INFERRED (`let/const T: byte[] = […]` — the spec's own ✅ examples, Ch 02 §type-inference + Ch 08 §4/§8; infer-before-check via the half-shipped `inferUnsizedArray`, const images sized from the initializer); fill form `[…; fill]` unchanged **E10126** (needs the declared count); WITHOUT an initializer → **E10126 reused** with a bespoke message ("array size required — an unsized array type is legal only as a function parameter or with a full element-list initializer"), the AR-10 reuse pattern. Rejected: minting a new code (band churn for a shape E10126 already owns conceptually) | Pinned as stated — inference narrowed to element-list literals; E10126 owns both non-inferable forms | ✅ Resolved |
+
+| 16 | Technical (runtime) | **Formation vs fused-store conflict** (exec Phase 4): the 03-04 §5 scaled-index formation cannot be emitted as sketched — the word `shl` result requires an adjacent store to a memory home (the PF-009 fused invariant, `translate.ts:576-590`), and the ONE scratch pair is that home, leaving the base address no legal way into the word add (AR-12 pinned `addr` store-source-only "initially") | A: teach translate's byte-sourcing (`byteRefOf`) an `addr` arm — `ADC #<sym+off / #>sym+off` — so the formation is `zext → shl (homes in scratch) → add(load(scratch), addr(base)) → store(scratch) → indirect`; ST-41's pinned zext+shl shape holds; all other `addr` consumers keep the loud exhaustiveness ICE / B: repeated-add scaling (no shl; reword ST-41; chattier IL + elemSize cap) | User chose **A** — `addr` legal in exactly two positions (store source + ALU right-operand byte source); AR-12 amended accordingly | ✅ Resolved |
 
 ### Resolution Notes
 

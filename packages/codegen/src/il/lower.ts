@@ -70,7 +70,7 @@ import type {
 
 import { IL_BYTE, IL_WORD, ilTypeOfType } from "./il-type.js";
 import type { ILType } from "./il-type.js";
-import { imm, isTemp, loc } from "./operand.js";
+import { addrOf, imm, isTemp, loc } from "./operand.js";
 import type { ILOperand } from "./operand.js";
 import type { ILInstruction } from "./instruction.js";
 import type { BasicBlock, ConstDataEntry, ILFunction, ILProgram } from "./cfg.js";
@@ -279,7 +279,19 @@ function lowerInitCode(
       continue;
     }
     if (isAggregateType(sym.type)) {
-      lowerAggregateInit({ symbol: target.symbol, constOffset: 0, index: null }, sym.type, init, ctx);
+      lowerAggregateInit(
+        {
+          baseKind: "direct",
+          symbol: target.symbol,
+          constOffset: 0,
+          index: null,
+          wordIndex: null,
+          wordScale: 1,
+        },
+        sym.type,
+        init,
+        ctx,
+      );
       continue;
     }
     const value = lowerExpr(init, ctx);
@@ -322,10 +334,34 @@ function lowerFunction(
     scCounter: 0,
   };
 
+  if (fn.kind === "FunctionDecl") emitPairPrologue(fn, ctx);
   lowerBlock(fn.body, ctx);
 
   // Fall-through end of a function closes the entry block with `ret()`.
   return builder.finish({ kind: "ret" });
+}
+
+/**
+ * The entry-block frame→pair copies: each pair-accessed by-reference
+ * parameter's address is copied ONCE from its 2-byte frame home (where the
+ * caller stored it) into its bound zero-page pair, as two plain byte moves —
+ * no word-temp machinery. Dead and pass-through-only by-ref parameters get
+ * no copy (they have no pair).
+ */
+function emitPairPrologue(fn: FunctionDeclNode, ctx: LowerCtx): void {
+  const bodyScope = ctx.model.scopeOf(fn);
+  for (const sym of bodyScope.symbols.values()) {
+    if (sym.kind !== "parameter" || !sym.byRef) continue;
+    if (!ctx.model.pairAccessedParams.has(sym)) continue;
+    const frameSym = frameSymbol(ctx.fqName, sym.name);
+    const pairSym = pairSymbol(ctx.fqName, sym.name);
+    const lo = ctx.builder.newTemp(IL_BYTE);
+    ctx.builder.emit({ op: "load", a: lo, b: loc(frameSym, IL_BYTE) });
+    ctx.builder.emit({ op: "store", a: lo, b: loc(pairSym, IL_BYTE) });
+    const hi = ctx.builder.newTemp(IL_BYTE);
+    ctx.builder.emit({ op: "load", a: hi, b: loc(frameSym, IL_BYTE, 1) });
+    ctx.builder.emit({ op: "store", a: hi, b: loc(pairSym, IL_BYTE, 1) });
+  }
 }
 
 /**
@@ -392,9 +428,12 @@ function lowerLetDecl(decl: LetDeclNode, ctx: LowerCtx): void {
   const sym = ctx.model.symbolOf(decl);
   if (sym !== null && isAggregateType(sym.type)) {
     const place: Place = {
+      baseKind: "direct",
       symbol: frameSymbol(ctx.fqName, decl.name),
       constOffset: 0,
       index: null,
+      wordIndex: null,
+      wordScale: 1,
     };
     lowerAggregateInit(place, sym.type, decl.initialiser, ctx);
     return;
@@ -823,7 +862,12 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
   }
 
   // Store-per-arg, left to right: every argument value is memory-homed in
-  // the callee's frame the moment it is evaluated.
+  // the callee's frame the moment it is evaluated. A by-reference parameter
+  // (struct/array — its frame slot holds an ADDRESS) takes the argument
+  // place's address: a statically-addressable place stores its link-time
+  // address; a whole by-ref param of the CALLER forwards as a word copy of
+  // its own frame home (the canonical address — no pair involved). Anything
+  // needing runtime address arithmetic is rejected loudly.
   const calleeFrame = ctx.plan.frames.get(calleeFq)?.frame;
   for (let i = 0; i < expr.args.length; i++) {
     const param = decl.params[i];
@@ -832,7 +876,46 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
       // a compiler bug.
       return iceUnsupported(expr, ctx, "call with unexpected argument count");
     }
-    const value = lowerExpr(expr.args[i], ctx);
+    const arg = expr.args[i];
+    const paramSlot = calleeFrame?.slots.find(
+      (s) => s.name === param.name && s.kind === "parameter",
+    );
+    const paramIsByRef =
+      paramSlot !== undefined &&
+      (paramSlot.type.kind === "array" || paramSlot.type.kind === "struct");
+
+    if (paramIsByRef) {
+      const calleeSlot = loc(frameSymbol(calleeFq, param.name), IL_WORD);
+      const argSym = arg.kind === "IdentExpr" ? ctx.model.symbolOf(arg) : null;
+      if (argSym !== null && argSym.kind === "parameter" && argSym.byRef) {
+        // Whole pass-through: forward the caller's own frame word.
+        const t = ctx.builder.newTemp(IL_WORD);
+        ctx.builder.emit({ op: "load", a: t, b: loc(frameSymbol(ctx.fqName, argSym.name), IL_WORD) });
+        ctx.builder.emit({ op: "store", a: t, b: calleeSlot });
+        continue;
+      }
+      const place = lowerPlace(arg, ctx);
+      if (
+        place === null ||
+        place.baseKind !== "direct" ||
+        place.index !== null ||
+        place.wordIndex !== null
+      ) {
+        return iceUnsupported(
+          expr,
+          ctx,
+          "aggregate argument requiring runtime address computation (needs address-of)",
+        );
+      }
+      ctx.builder.emit({
+        op: "store",
+        a: addrOf(place.symbol, place.constOffset),
+        b: calleeSlot,
+      });
+      continue;
+    }
+
+    const value = lowerExpr(arg, ctx);
     const slotType = slotIlType(calleeFrame, param.name);
     ctx.builder.emit({ op: "store", a: value, b: loc(frameSymbol(calleeFq, param.name), slotType) });
   }
@@ -1299,7 +1382,7 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   // an unrolled byte copy (structs assign by copy, never by reference).
   if (targetType.kind === "struct") {
     const place = lowerPlace(targetExpr, ctx);
-    if (place === null || place.index !== null) {
+    if (place === null || place.index !== null || place.wordIndex !== null) {
       return iceUnsupported(expr, ctx, "struct assignment target");
     }
     lowerAggregateInit(place, targetType, expr.value, ctx);
@@ -1316,10 +1399,18 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
     if (place === null) return iceUnsupported(expr, ctx, "assignment target");
     const elemIl = ilTypeOfType(targetType);
     if (expr.op !== "=") {
-      if (place.index !== null) {
+      if (place.index !== null || place.wordIndex !== null) {
         // A read-modify-write through a runtime index needs two indexed
         // accesses sharing one index temp — deferred; reject loudly.
         return iceUnsupported(expr, ctx, "compound assignment through a runtime index");
+      }
+      if (place.baseKind === "pair") {
+        // The direct-location rewrite below would read-modify-write the
+        // POINTER pair's own bytes; a pair target must RMW THROUGH it.
+        if (place.constOffset + (elemIl.width === 16 ? 2 : 1) - 1 > 255) {
+          return iceUnsupported(expr, ctx, "compound assignment beyond the pair's direct reach");
+        }
+        return lowerCompoundAssign(expr, indirectRmwTarget(place), ctx);
       }
       return lowerCompoundAssign(
         expr,
@@ -1360,14 +1451,27 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
 // ── Aggregate places — base symbol + compile-time offset + optional index ──
 
 /**
- * A resolved storage place: the base symbol, a compile-time byte offset, and
- * — for runtime indexes — a scaled BYTE-offset temp (the index operand the
- * indexed memory ops carry; translate stays arithmetic-free).
+ * A resolved storage place.
+ *
+ * `baseKind` selects the addressing family: a `direct` base is the symbol's
+ * own storage (frame slot, module var, const-data label) and emits the plain
+ * or indexed memory ops; a `pair` base is a by-reference parameter's bound
+ * zero-page pointer pair and emits the indirect ops (the symbol IS the pair,
+ * whose CONTENTS point at the aggregate).
+ *
+ * `index` carries a scaled BYTE-offset temp — legal only where a byte can
+ * address the whole extent. `wordIndex` carries an UNSCALED runtime index for
+ * the word-domain formation path (tier-2 arrays, multi-byte elements through
+ * pairs), with `wordScale` the element size the formation applies; the two
+ * index forms are mutually exclusive.
  */
 interface Place {
+  readonly baseKind: "direct" | "pair";
   readonly symbol: string;
   readonly constOffset: number;
   readonly index: ILOperand | null;
+  readonly wordIndex: ILOperand | null;
+  readonly wordScale: number;
 }
 
 /**
@@ -1407,28 +1511,98 @@ function lowerPlace(expr: ExprNode, ctx: LowerCtx): Place | null {
       if (idx.kind === "immediate") {
         return { ...inner, constOffset: inner.constOffset + idx.value * elemSize };
       }
-      const scaled = scaleIndex(idx, elemSize, ctx);
-      const combined =
-        inner.index === null ? scaled : addByteOffsets(inner.index, scaled, ctx);
-      return { ...inner, index: combined };
+
+      // Runtime index — classify by domain. The BYTE domain (the mod-256
+      // scaler feeding the indexed/offset operands) is safe only where a
+      // byte can address the whole extent: on a DIRECT base, a known array
+      // span within one indexed page (the absolute base absorbs any const
+      // offset); on a PAIR base, single-byte elements whose reachable span
+      // never leaves the Y range — an unsized parameter qualifies exactly
+      // at offset 0 (its pointee is byte-addressable by definition), a sized
+      // one when offset+span fits. Everything else — word indexes,
+      // multi-byte elements through pairs, tier-2 spans — is the WORD
+      // domain: the formation path scales and adds at pointer width.
+      const idxIsByte = idx.type.width === 8;
+      const spanKnown = objType.size !== null ? objType.size * elemSize : null;
+      const byteDomainSafe =
+        idxIsByte &&
+        (inner.baseKind === "direct"
+          ? spanKnown !== null && spanKnown <= 256
+          : elemSize === 1 &&
+            (spanKnown !== null
+              ? inner.constOffset + spanKnown - 1 <= 255
+              : inner.constOffset === 0));
+
+      if (byteDomainSafe && inner.wordIndex === null) {
+        const scaled = inner.baseKind === "direct" ? scaleIndex(idx, elemSize, ctx) : idx;
+        const combined =
+          inner.index === null ? scaled : addByteOffsets(inner.index, scaled, ctx);
+        return { ...inner, index: combined };
+      }
+      if (inner.index !== null || inner.wordIndex !== null) {
+        // Two runtime indexes on one chain (nested arrays) — out of scope.
+        iceUnsupported(expr, ctx, "nested runtime indexes in one access chain");
+        return null;
+      }
+      const wordIdx = idxIsByte ? zextToWord(idx, ctx) : idx;
+      return { ...inner, wordIndex: wordIdx, wordScale: elemSize };
     }
     default:
       return null;
   }
 }
 
-/** The base place of a declared symbol (frame slot, module var, const data). */
+/** Zero-extends a byte operand to word (the formation path's index domain). */
+function zextToWord(idx: ILOperand, ctx: LowerCtx): ILOperand {
+  const dest = ctx.builder.newTemp(IL_WORD);
+  ctx.builder.emit({ op: "zext", dest, src: idx });
+  return dest;
+}
+
+/** The base place of a declared symbol (frame slot, module var, const data, pair). */
 function basePlace(sym: Symbol, ctx: LowerCtx): Place | null {
+  const direct = (symbol: string): Place => ({
+    baseKind: "direct",
+    symbol,
+    constOffset: 0,
+    index: null,
+    wordIndex: null,
+    wordScale: 1,
+  });
+  // A by-ref parameter's chain accesses go THROUGH its bound pointer pair.
+  if (sym.kind === "parameter" && sym.byRef) {
+    if (!ctx.model.pairAccessedParams.has(sym)) {
+      // Every through-access marks the param pair-accessed by construction;
+      // a miss means the classification and this chain diverged.
+      return null;
+    }
+    return {
+      baseKind: "pair",
+      symbol: pairSymbol(ctx.fqName, sym.name),
+      constOffset: 0,
+      index: null,
+      wordIndex: null,
+      wordScale: 1,
+    };
+  }
   if (sym.kind === "constant" && isAggregateType(sym.type)) {
-    return { symbol: constDataSymbol(sym), constOffset: 0, index: null };
+    return direct(constDataSymbol(sym));
   }
   const moduleVar = moduleVarLocOfSymbol(sym);
   if (moduleVar !== null) {
-    return { symbol: moduleVar.symbol, constOffset: 0, index: null };
+    return direct(moduleVar.symbol);
   }
   if (ctx.moduleInit) return null; // no frame storage in the init stream
-  return { symbol: frameSymbol(ctx.fqName, sym.name), constOffset: 0, index: null };
+  return direct(frameSymbol(ctx.fqName, sym.name));
 }
+
+/** The bound pointer-pair symbol of a by-ref param (`__zp_ptr_<Module_fn>_<param>`). */
+function pairSymbol(fqName: string, paramName: string): string {
+  return `__zp_ptr_${fqName.replaceAll(".", "_")}_${paramName}`;
+}
+
+/** The shared scratch pair the runtime pointer formation stages through. */
+const SCRATCH_PAIR = "__zp_ptr_scratch";
 
 /** The in-image data label of a const aggregate: `__data_<Module>_<name>`. */
 function constDataSymbol(sym: Symbol): string {
@@ -1452,9 +1626,14 @@ function addByteOffsets(a: ILOperand, b: ILOperand, ctx: LowerCtx): ILOperand {
   return dest;
 }
 
-/** Emits the load of a place into a fresh temp (direct or indexed). */
+/** Emits the load of a place into a fresh temp (direct, indexed, or indirect). */
 function emitPlaceLoad(place: Place, ilType: ILType, ctx: LowerCtx): ILOperand {
   const dest = ctx.builder.newTemp(ilType);
+  if (place.baseKind === "pair" || place.wordIndex !== null) {
+    const access = resolveIndirectAccess(place, ilType, ctx);
+    ctx.builder.emit({ op: "load_indirect", value: dest, ptr: access.ptr, offset: access.offset });
+    return dest;
+  }
   const base = loc(place.symbol, ilType, place.constOffset === 0 ? undefined : place.constOffset);
   if (place.index === null) {
     ctx.builder.emit({ op: "load", a: dest, b: base });
@@ -1466,18 +1645,159 @@ function emitPlaceLoad(place: Place, ilType: ILType, ctx: LowerCtx): ILOperand {
 
 /**
  * Emits the store of a value to a place. Direct stores follow the store
- * convention (temp values — immediates wrap in a `const`); indexed stores
- * take the RAW operand — the translator loads an immediate AFTER the index
- * is in X, and wrapping it first would clobber the accumulator-resident
- * index.
+ * convention (temp values — immediates wrap in a `const`); indexed and
+ * indirect stores take the RAW operand — the translator loads an immediate
+ * AFTER the index is staged, and wrapping it first would clobber the
+ * register-resident index.
  */
 function emitPlaceStore(place: Place, ilType: ILType, value: ILOperand, ctx: LowerCtx): void {
+  if (place.baseKind === "pair" || place.wordIndex !== null) {
+    const access = resolveIndirectAccess(place, ilType, ctx);
+    ctx.builder.emit({ op: "store_indirect", value, ptr: access.ptr, offset: access.offset });
+    return;
+  }
   const base = loc(place.symbol, ilType, place.constOffset === 0 ? undefined : place.constOffset);
   if (place.index === null) {
     ctx.builder.emit({ op: "store", a: materialise(value, ctx), b: base });
   } else {
     ctx.builder.emit({ op: "store_indexed", value, base, index: place.index });
   }
+}
+
+/**
+ * Resolves an indirect access's pointer and offset operands, staging the
+ * runtime pointer FORMATION through the scratch pair when needed.
+ *
+ * The fast path — a pair base with no runtime index whose whole value fits
+ * a Y-indexed reach (`constOffset + valueSize − 1 ≤ 255`, so a word never
+ * straddles the Y wrap) — reads through the pair directly at an immediate
+ * offset; a byte-domain index rides the offset operand the same way. Every
+ * other shape forms the effective pointer in `__zp_ptr_scratch`:
+ *
+ *   1. scale the word-domain index in place (shift for power-of-two element
+ *      sizes, the runtime multiply otherwise), homing the result in scratch;
+ *   2. add the base — the pair's contents (loaded, so the add reads memory)
+ *      or the direct symbol's ADDRESS (an `addr` right operand, resolved by
+ *      the assembler) — and home the sum back in scratch;
+ *   3. access `(scratch)` at offset 0.
+ *
+ * Every word intermediate is consumed by the immediately-following store
+ * (the translator's fused word-store discipline) with one scratch home.
+ */
+function resolveIndirectAccess(
+  place: Place,
+  ilType: ILType,
+  ctx: LowerCtx,
+): { ptr: ILOperand; offset: ILOperand } {
+  const valueSize = ilType.width === 16 ? 2 : 1;
+  const pairPtr = loc(place.symbol, IL_WORD);
+
+  if (place.baseKind === "pair" && place.wordIndex === null) {
+    if (place.index !== null) {
+      // Byte-domain index (single-byte elements): the offset operand carries
+      // it; a non-zero const offset folds in through the byte adder (the
+      // byte-domain gate bounded the whole span to 255).
+      const offset =
+        place.constOffset === 0
+          ? place.index
+          : addByteOffsets(place.index, imm(place.constOffset, IL_BYTE), ctx);
+      return { ptr: pairPtr, offset };
+    }
+    if (place.constOffset + valueSize - 1 <= 255) {
+      return { ptr: pairPtr, offset: imm(place.constOffset, IL_BYTE) };
+    }
+  }
+
+  // Formation. Guard the reservation first — staging without the scratch
+  // pair would emit a dangling symbol.
+  if (!ctx.plan.symbolDefinitions.some((s) => s.name === SCRATCH_PAIR)) {
+    ctx.bag.addICE(
+      IceCode.Unexpected,
+      null,
+      "IL lowering: runtime pointer formation demanded but the scratch pair is not reserved",
+    );
+    return { ptr: loc(SCRATCH_PAIR, IL_WORD), offset: imm(0, IL_BYTE) };
+  }
+  const scratch = loc(SCRATCH_PAIR, IL_WORD);
+
+  // (1) The scaled index (word domain) — homed in scratch. With no runtime
+  // index the base's big const offset alone drives the formation.
+  let indexInScratch = false;
+  if (place.wordIndex !== null) {
+    let scaled = place.wordIndex;
+    if (place.wordScale === 2) {
+      const t = ctx.builder.newTemp(IL_WORD);
+      ctx.builder.emit({ op: "shl", dest: t, left: scaled, right: imm(1, IL_BYTE), type: IL_WORD });
+      scaled = t;
+    } else if (place.wordScale > 2) {
+      const t = ctx.builder.newTemp(IL_WORD);
+      ctx.builder.emit({
+        op: "mul",
+        dest: t,
+        left: scaled,
+        right: imm(place.wordScale, IL_WORD),
+        type: IL_WORD,
+      });
+      scaled = t;
+    }
+    ctx.builder.emit({ op: "store", a: scaled, b: scratch });
+    indexInScratch = true;
+  }
+
+  // (2) Add the base (+ const offset) into scratch.
+  const eff = ctx.builder.newTemp(IL_WORD);
+  if (place.baseKind === "pair") {
+    const baseVal = ctx.builder.newTemp(IL_WORD);
+    ctx.builder.emit({ op: "load", a: baseVal, b: pairPtr });
+    const rhs = indexInScratch
+      ? emitScratchLoad(ctx)
+      : imm(place.constOffset, IL_WORD);
+    ctx.builder.emit({ op: "add", dest: eff, left: baseVal, right: rhs, type: IL_WORD });
+    ctx.builder.emit({ op: "store", a: eff, b: scratch });
+    // A pair base with an index still owes its const offset — small offsets
+    // ride the access itself below.
+    if (indexInScratch && place.constOffset > 255) {
+      const eff2 = ctx.builder.newTemp(IL_WORD);
+      const cur = emitScratchLoad(ctx);
+      ctx.builder.emit({
+        op: "add",
+        dest: eff2,
+        left: cur,
+        right: imm(place.constOffset, IL_WORD),
+        type: IL_WORD,
+      });
+      ctx.builder.emit({ op: "store", a: eff2, b: scratch });
+    }
+  } else if (indexInScratch) {
+    // Direct base + index: scratch already holds the scaled index; add the
+    // base symbol's address as an assembler-resolved right operand.
+    const cur = emitScratchLoad(ctx);
+    ctx.builder.emit({
+      op: "add",
+      dest: eff,
+      left: cur,
+      right: addrOf(place.symbol, place.constOffset),
+      type: IL_WORD,
+    });
+    ctx.builder.emit({ op: "store", a: eff, b: scratch });
+  } else {
+    // Direct base, no index (a big const offset alone): seed the folded
+    // address straight into scratch.
+    ctx.builder.emit({ op: "store", a: addrOf(place.symbol, place.constOffset), b: scratch });
+  }
+
+  const residual =
+    place.baseKind === "pair" && indexInScratch && place.constOffset <= 255
+      ? place.constOffset
+      : 0;
+  return { ptr: scratch, offset: imm(residual, IL_BYTE) };
+}
+
+/** Loads the scratch pair's current word into a fresh (memory-homed) temp. */
+function emitScratchLoad(ctx: LowerCtx): ILOperand {
+  const t = ctx.builder.newTemp(IL_WORD);
+  ctx.builder.emit({ op: "load", a: t, b: loc(SCRATCH_PAIR, IL_WORD) });
+  return t;
 }
 
 /** An index-expression read: resolve the place, load the element. */
@@ -1532,7 +1852,13 @@ function lowerAggregateInit(place: Place, type: Type, init: ExprNode, ctx: Lower
   }
   // A non-literal source: whole-aggregate copy from another place.
   const src = lowerPlace(init, ctx);
-  if (src === null || src.index !== null || place.index !== null) {
+  if (
+    src === null ||
+    src.index !== null ||
+    src.wordIndex !== null ||
+    place.index !== null ||
+    place.wordIndex !== null
+  ) {
     iceUnsupported(init, ctx, "aggregate initialiser");
     return;
   }
@@ -1562,6 +1888,25 @@ function lowerElementInit(
 }
 
 /**
+ * An RMW target: a plain memory location, or an indirect access through a
+ * bound pointer pair at an immediate offset (the pair-base compound form —
+ * the value behind the pointer is modified, never the pointer's own bytes).
+ */
+type RmwTarget =
+  | ILOperand
+  | { readonly indirect: true; readonly ptr: ILOperand; readonly offset: ILOperand; readonly type: ILType };
+
+/** The indirect RMW view of a pair-base place (no runtime index). */
+function indirectRmwTarget(place: Place): RmwTarget {
+  return {
+    indirect: true,
+    ptr: loc(place.symbol, IL_WORD),
+    offset: imm(place.constOffset, IL_BYTE),
+    type: IL_BYTE,
+  };
+}
+
+/**
  * Lower `x OP= e` with the expanded form's semantics: load the target's
  * current value, lower the rhs, coerce both to the expansion's type, emit the
  * binary op (same table and signed-div/mod guard as any binary), and store
@@ -1569,7 +1914,7 @@ function lowerElementInit(
  * is structural. Typing guarantees the result assigns back to the target
  * (same width by then) — the closing coercion is identity in legal programs.
  */
-function lowerCompoundAssign(expr: AssignExprNode, target: ILOperand, ctx: LowerCtx): ILOperand {
+function lowerCompoundAssign(expr: AssignExprNode, target: RmwTarget, ctx: LowerCtx): ILOperand {
   const baseOp = COMPOUND_BASE_OP[expr.op];
   const ilOp = baseOp === undefined ? undefined : BINARY_OP_TO_IL[baseOp];
   if (ilOp === undefined) {
@@ -1587,8 +1932,19 @@ function lowerCompoundAssign(expr: AssignExprNode, target: ILOperand, ctx: Lower
     return iceUnsupported(expr, ctx, "signed division/modulo (unsigned runtime routines only)");
   }
 
-  const current = ctx.builder.newTemp(target.type);
-  ctx.builder.emit({ op: "load", a: current, b: target });
+  const indirect = "indirect" in target ? target : null;
+  const direct = "indirect" in target ? null : target;
+  const current = ctx.builder.newTemp(indirect !== null ? indirect.type : direct!.type);
+  if (indirect !== null) {
+    ctx.builder.emit({
+      op: "load_indirect",
+      value: current,
+      ptr: indirect.ptr,
+      offset: indirect.offset,
+    });
+  } else if (direct !== null) {
+    ctx.builder.emit({ op: "load", a: current, b: direct });
+  }
   const rhs = lowerExpr(expr.value, ctx);
 
   const left = coerce(current, targetType, expansionType, ctx);
@@ -1598,7 +1954,16 @@ function lowerCompoundAssign(expr: AssignExprNode, target: ILOperand, ctx: Lower
   ctx.builder.emit({ op: ilOp, dest, left, right, type: ilType } as ILInstruction);
 
   const result = materialise(coerce(dest, expansionType, targetType, ctx), ctx);
-  ctx.builder.emit({ op: "store", a: result, b: target });
+  if (indirect !== null) {
+    ctx.builder.emit({
+      op: "store_indirect",
+      value: result,
+      ptr: indirect.ptr,
+      offset: indirect.offset,
+    });
+  } else if (direct !== null) {
+    ctx.builder.emit({ op: "store", a: result, b: direct });
+  }
   return result;
 }
 

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 04:21 (exec: Phase 3 COMPLETE — 8/8, full verify green)
-> **Progress**: 26/58 tasks (45%)
+> **Last Updated**: 2026-07-12 09:50 (exec: Phase 4 COMPLETE — 10/10, full verify green; +AR-16 runtime pin)
+> **Progress**: 36/58 tasks (62%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -124,20 +124,20 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 4.1: Spec tests (red)
 **Reference**: [03-04](03-04-lowering-indirect.md) · [07 §Lowering](07-testing-strategy.md) · AR-2/3/4/7/12
 
-- [ ] 4.1.1 Write ST-34..ST-47 spec tests (ST-40 = the moved ST-24b arg-ICE row; ST-41..44 = the preflight additions: word-domain scaling, elemSize gate, pair-base scalar compound, offset-255 straddle) — `packages/codegen/src/il/lower-indirect.spec.test.ts`
-- [ ] 4.1.2 Verify red
+- [x] 4.1.1 Write ST-34..ST-47 spec tests (ST-40 = the moved ST-24b arg-ICE row; ST-41..44 = the preflight additions: word-domain scaling, elemSize gate, pair-base scalar compound, offset-255 straddle) — `packages/codegen/src/il/lower-indirect.spec.test.ts` ✅ (completed: 2026-07-12 04:38)
+- [x] 4.1.2 Verify red — 14/14 red ✅ (completed: 2026-07-12 04:39)
 
 ### Step 4.2: Implement (green)
-- [ ] 4.2.1 `addr` operand kind + constructor + IL printer + exhaustiveness ICE arms — `codegen/src/il/operand.ts` (+consumers) (03-04 §1, AR-12)
-- [ ] 4.2.2 Call marshalling: static-place addr stores, pass-through word copy, the two loud AR-3 ICEs — `lower.ts` `lowerUserCall` (03-04 §2/§6)
-- [ ] 4.2.3 Prologue copies (two byte moves, access-set-gated) — `lower.ts` entry-block emission (03-04 §3)
-- [ ] 4.2.4 Place base kinds (direct/pair) + indirect emission under the straddle-aware fast-path predicate (`constOffset + valueSize − 1 ≤ 255` — PF-003) + the elemSize==1 gate on the pair byte-index path (PF-007) + pair-base scalar compound as indirect RMW (PF-006 — the 7a direct-loc compound rewrite must never see a pair base) + whole-struct copy through pairs — `lower.ts` Place machinery (03-04 §4)
-- [ ] 4.2.5 Tier-2/big-offset formation through scratch (the §5 sequence; word-domain scaling `zext`+`shl`/`__rt_mul16` — PF-012) respecting the PF-009 fused word-store invariant (add operands loc/imm; single-use dest; adjacent consuming store) — `lower.ts` (03-04 §5)
-- [ ] 4.2.6 Verify green (ST-34..ST-47)
+- [x] 4.2.1 `addr` operand kind (word-typed; legal as store source + ALU right operand per AR-16) + `addrOf`/`isAddr` + IL printer `&sym+off` — `codegen/src/il/operand.ts`, `print-il.ts` ✅ (completed: 2026-07-12 04:47)
+- [x] 4.2.2 Call marshalling: static-place addr stores, pass-through word copy (frame home, no pair), the loud AR-3 ICEs (runtime-indexed + pair-relative args) — `lower.ts` `lowerUserCall` ✅ (completed: 2026-07-12 04:47)
+- [x] 4.2.3 Prologue copies (`emitPairPrologue` — two byte moves, `pairAccessedParams`-gated; dead/pass-through skip) — `lower.ts` ✅ (completed: 2026-07-12 04:47)
+- [x] 4.2.4 Place base kinds (`baseKind` + `wordIndex`/`wordScale`) + straddle-aware fast path + pair elemSize==1 byte gate (direct bases keep the 7a scaler) + pair scalar compound as indirect RMW (shared `RmwTarget` core) + whole-struct copy through pairs ✅ (completed: 2026-07-12 04:47)
+- [x] 4.2.5 Formation through scratch (`resolveIndirectAccess`: word-domain scale homed in scratch → add with pair-load/`addr` right operand per AR-16 → homed sum → indirect at +0/residual; scratch-reservation ICE backstop) ✅ (completed: 2026-07-12 04:47)
+- [x] 4.2.6 Verify green (ST-34..ST-47) — 14/14 + whole il tier 182/182, zero 7a regressions ✅ (completed: 2026-07-12 04:47)
 
 ### Step 4.3: Impl tests & verify
-- [ ] 4.3.1 Impl tests (classification tables, determinism) — `lower-indirect.impl.test.ts`
-- [ ] 4.3.2 Full verify + prior goldens byte-exact
+- [x] 4.3.1 Impl tests (fused formation shape, domain classification, determinism, scratch backstop) — `lower-indirect.impl.test.ts` (5/5) ✅ (completed: 2026-07-12 09:50)
+- [x] 4.3.2 Full verify + prior goldens byte-exact — canonical verify green 48.7s ✅ (completed: 2026-07-12 09:50)
 
 **Verify**: (canonical)
 

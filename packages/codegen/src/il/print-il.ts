@@ -36,6 +36,7 @@ export function ilTypeTag(t: ILType): string {
  *   a `number`, not its source radix — keeps output source-independent)
  * - temp → `%N`
  * - location → `symbol` (+ `+offset` when an offset is present)
+ * - addr → `&symbol` (+ `+offset` when an offset is present)
  *
  * @param o The operand to render.
  * @returns The operand's textual form.
@@ -48,6 +49,8 @@ function renderOperand(o: ILOperand): string {
       return `%${o.id}`;
     case "location":
       return o.offset === undefined ? o.symbol : `${o.symbol}+${o.offset}`;
+    case "addr":
+      return o.offset === undefined ? `&${o.symbol}` : `&${o.symbol}+${o.offset}`;
   }
 }
 
