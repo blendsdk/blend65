@@ -113,6 +113,14 @@ export interface SymbolDefinition {
   readonly name: string;
   /** The symbol's address value. */
   readonly value: number;
+  /**
+   * `true` for symbols used in zero-page-only addressing modes (`(zp),Y`
+   * pointer pairs). The assembler infers a symbol's size from its equate's
+   * digit count and rejects a 16-bit-hinted symbol in an indirect operand,
+   * so these serialize as 2-digit hex. Absent for every other symbol — their
+   * 4-digit form is pinned by the committed goldens.
+   */
+  readonly zeroPage?: boolean;
 }
 
 /**

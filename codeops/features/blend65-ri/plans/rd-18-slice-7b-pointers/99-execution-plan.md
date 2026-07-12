@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 10:00 (exec: Phase 5 COMPLETE — 9/9, full verify green)
-> **Progress**: 45/58 tasks (78%)
+> **Last Updated**: 2026-07-12 10:12 (exec: Phase 6 COMPLETE — 9/9; 3-PART BAR GREEN ON REAL VICE)
+> **Progress**: 54/58 tasks (93%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -171,19 +171,19 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 6.1: Fixture + assemble-clean
 **Reference**: [03-06](03-06-acceptance-fixtures.md) · [07 §Acceptance](07-testing-strategy.md) · AR-13
 
-- [ ] 6.1.1 Write `examples/slice7b/{game,main}.blend` + harness builder — `packages/test-harness/src/testing/slice7b.ts` (03-06; re-derive the byte contract from source and fix the 03-06 table if drifted — plan-doc fix, never a test fix)
-- [ ] 6.1.2 ST-59 assemble-clean spec test — `test-harness/src/slice7b.spec.test.ts`
-- [ ] 6.1.3 ST-61 VICE suite (full byte contract) — same file; run on real VICE 3.10
+- [x] 6.1.1 `examples/slice7b/{game,main}.blend` + harness builder — `testing/slice7b.ts`; byte contract re-derived from source: matches 03-06 exactly (00/2A/0F/1D/11/0B/16) ✅ (completed: 2026-07-12 10:06)
+- [x] 6.1.2 ST-59 assemble-clean spec test — loadable PRG, all `__zp_ptr_*` resolve (mechanical correction discovered: ACME sizes symbols by equate digit count and rejects 16-bit-hinted symbols in `(zp),Y` — PF-013's '$00xx resolves' claim was wrong; fixed additively via `SymbolDefinition.zeroPage` → 2-digit equates for pair aliases only, prior goldens untouched) ✅ (completed: 2026-07-12 10:06)
+- [x] 6.1.3 ST-61 VICE suite — FULL byte contract GREEN on real VICE 3.10 FIRST RUN ($C000..$C006 = 00/2A/0F/1D/11/0B/16; the formation path executed on hardware) ✅ (completed: 2026-07-12 10:06)
 
 ### Step 6.2: Golden + negatives
-- [ ] 6.2.1 Mint `slice7b.asm.golden` AFTER VICE green (`UPDATE_GOLDEN=1`; inspect the diff) + ST-60 landmarks incl. the §5 formation sequence (PF-001) — `golden-slice7b.spec.test.ts`
-- [ ] 6.2.2 ST-62/ST-63 negatives via `compile()`/`emitIl` — `slice7b-negatives.spec.test.ts`
-- [ ] 6.2.3 ST-64 advisories (W10112/W10142/W10143 compile-with-warning)
-- [ ] 6.2.4 ST-65 prior-goldens assertion + ST-66 7a-negative-suite re-run (both already CI-covered — witness green)
+- [x] 6.2.1 `slice7b.asm.golden` minted AFTER VICE green (212 lines; formation sequence inspected — idx→scratch, fused per-byte add with #</#> address selects, (scratch),Y) + ST-60 landmarks ✅ (completed: 2026-07-12 10:07)
+- [x] 6.2.2 ST-62/ST-63 negatives via `compile()`/`emitIl` — E10122 both shapes, E10123 direct/nested/compound, E10117/E10118, E10080, E10171, E10126 both forms, both AR-3 ICEs ✅ (completed: 2026-07-12 10:09)
+- [x] 6.2.3 ST-64 advisories — W10112/W10142/W10143 compile-with-warning (W10143 through the real c64 plugin profile) ✅ (completed: 2026-07-12 10:09)
+- [x] 6.2.4 ST-65 + ST-66 witnessed — full harness tier 146/146 (nine prior goldens byte-exact; 7a suites green post-retirement) ✅ (completed: 2026-07-12 10:10)
 
 ### Step 6.3: Full bar
-- [ ] 6.3.1 Full verify green (all packages, boundary tier, all goldens)
-- [ ] 6.3.2 Record the ResourceReport delta (pointer ZP bytes, frame/binary growth) in the plan folder (RD-18 Should-Have)
+- [x] 6.3.1 Full verify green (all packages, boundary tier, all goldens) — 59.2s ✅ (completed: 2026-07-12 10:12)
+- [x] 6.3.2 ResourceReport delta recorded — `08-resource-report.md` (ZP 20/46 incl. 10 pointer bytes, 3 callees sharing $06; frames 7 B; binary 367 B) ✅ (completed: 2026-07-12 10:12)
 
 **Verify**: (canonical)
 

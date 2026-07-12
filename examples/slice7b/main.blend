@@ -1,0 +1,32 @@
+module Main;
+import { Enemy, Point, TABLE, resetEnemy, sum, relay } from Game;
+
+let boss: Enemy;
+let big: byte[300];
+let a: Point;
+let b: Point;
+
+function copyPoint(dst: Point, src: const Point): void {
+  dst = src;
+}
+
+function main(): void {
+  boss.hp = 99;
+  relay(boss);
+  poke($C000, boss.hp);
+  poke($C001, boss.pos.y);
+
+  poke($C002, sum(TABLE, length(TABLE)));
+
+  big[4] = 17;
+  let idx: word = 260;
+  big[idx] = 29;
+  poke($C003, big[idx]);
+  poke($C004, big[4]);
+
+  a.x = 11; a.y = 22;
+  copyPoint(b, a);
+  a.x = 99;
+  poke($C005, b.x);
+  poke($C006, b.y);
+}

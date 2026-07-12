@@ -97,7 +97,14 @@ export function serializeToAcme(
   //    always emitted, even when there are no symbols, for a stable shape.
   lines.push(SYMBOL_HEADER);
   for (const sym of program.allocationPlan.symbolDefinitions) {
-    lines.push(`${sym.name} = ${hex16(sym.value)}`);
+    // Zero-page-mode symbols serialize as 2-digit hex: ACME sizes a symbol
+    // by its equate's digit count, and a 16-bit-hinted symbol is illegal in
+    // a `(zp),Y` operand.
+    const value =
+      sym.zeroPage === true && sym.value <= 0xff
+        ? `$${sym.value.toString(16).toUpperCase().padStart(2, "0")}`
+        : hex16(sym.value);
+    lines.push(`${sym.name} = ${value}`);
   }
 
   // 3. Remaining preamble (origin, BASIC stub, startup shim) — everything except `!to`.

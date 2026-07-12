@@ -1,0 +1,28 @@
+module Game;
+
+export struct Point { x: byte; y: byte; }
+export struct Enemy { pos: Point; hp: byte; }
+
+export const TABLE: byte[] = [3, 5, 7];
+
+// By-ref mutation: the caller's struct really changes.
+export function resetEnemy(e: Enemy): void {
+  e.hp = 0;
+  e.pos.y = 42;
+}
+
+// Const + unsized: read-only sum with an explicit length.
+export function sum(data: const byte[], len: byte): byte {
+  let total: byte = 0;
+  let i: byte = 0;
+  while (i < len) {
+    total += data[i];
+    i += 1;
+  }
+  return total;
+}
+
+// Pass-through chain: forwards its by-ref param whole (no pair of its own).
+export function relay(e: Enemy): void {
+  resetEnemy(e);
+}

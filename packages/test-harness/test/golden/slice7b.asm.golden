@@ -1,0 +1,212 @@
+!to "game.prg", cbm
+; --- symbol definitions ---
+__frame_Game_relay = $2133
+__frame_Game_relay_e = $2133
+__frame_Game_resetEnemy = $2135
+__frame_Game_resetEnemy_e = $2135
+__frame_Game_sum = $2133
+__frame_Game_sum_data = $2133
+__frame_Game_sum_len = $2135
+__frame_Game_sum_total = $2136
+__frame_Game_sum_i = $2137
+__frame_Main_copyPoint = $2133
+__frame_Main_copyPoint_dst = $2133
+__frame_Main_copyPoint_src = $2135
+__frame_Main_main = $2138
+__frame_Main_main_idx = $2138
+__var_Main_boss = $2000
+__var_Main_big = $2003
+__var_Main_a = $212F
+__var_Main_b = $2131
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_ptr_0 = $0006
+__zp_ptr_1 = $0008
+__zp_ptr_2 = $000A
+__zp_ptr_3 = $000C
+__zp_ptr_4 = $000E
+__zp_tmp_0 = $0010
+__zp_tmp_1 = $0011
+__zp_tmp_2 = $0012
+__zp_tmp_3 = $0013
+__zp_irq_tmp_0 = $0014
+__zp_irq_tmp_1 = $0015
+__zp_ptr_Main_copyPoint_dst = $06
+__zp_ptr_Main_copyPoint_src = $08
+__zp_ptr_Game_sum_data = $06
+__zp_ptr_Game_resetEnemy_e = $06
+__zp_ptr_scratch = $0E
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR _main
+    LDA #$37
+    STA $01
+    RTS
+; --- function: Main.copyPoint ---
+Main_copyPoint:
+    LDA __frame_Main_copyPoint_dst
+    STA __zp_ptr_Main_copyPoint_dst
+    LDA __frame_Main_copyPoint_dst+1
+    STA __zp_ptr_Main_copyPoint_dst+1
+    LDA __frame_Main_copyPoint_src
+    STA __zp_ptr_Main_copyPoint_src
+    LDA __frame_Main_copyPoint_src+1
+    STA __zp_ptr_Main_copyPoint_src+1
+    LDY #$00
+    LDA (__zp_ptr_Main_copyPoint_src),Y
+    STA __zp_tmp_0
+    LDA __zp_tmp_0
+    STA (__zp_ptr_Main_copyPoint_dst),Y
+    LDY #$01
+    LDA (__zp_ptr_Main_copyPoint_src),Y
+    STA __zp_tmp_1
+    LDA __zp_tmp_1
+    STA (__zp_ptr_Main_copyPoint_dst),Y
+    RTS
+; --- function: Main.main ---
+_main:
+    LDA #$63
+    STA __var_Main_boss+2
+    LDA #<__var_Main_boss
+    STA __frame_Game_relay_e
+    LDA #>__var_Main_boss
+    STA __frame_Game_relay_e+1
+    JSR Game_relay
+    LDA __var_Main_boss+2
+    STA $C000
+    LDA __var_Main_boss+1
+    STA $C001
+    LDA #<__data_Game_TABLE
+    STA __frame_Game_sum_data
+    LDA #>__data_Game_TABLE
+    STA __frame_Game_sum_data+1
+    LDA #$03
+    STA __frame_Game_sum_len
+    JSR Game_sum
+    STA $C002
+    LDA #$11
+    STA __var_Main_big+4
+    LDA #$04
+    LDX #$01
+    STA __frame_Main_main_idx
+    STX __frame_Main_main_idx+1
+    LDA __frame_Main_main_idx
+    LDX __frame_Main_main_idx+1
+    STA __zp_ptr_scratch
+    STX __zp_ptr_scratch+1
+    LDA __zp_ptr_scratch
+    CLC
+    ADC #<__var_Main_big
+    STA __zp_ptr_scratch
+    LDA __zp_ptr_scratch+1
+    ADC #>__var_Main_big
+    STA __zp_ptr_scratch+1
+    LDY #$00
+    LDA #$1D
+    STA (__zp_ptr_scratch),Y
+    LDA __frame_Main_main_idx
+    LDX __frame_Main_main_idx+1
+    STA __zp_ptr_scratch
+    STX __zp_ptr_scratch+1
+    LDA __zp_ptr_scratch
+    CLC
+    ADC #<__var_Main_big
+    STA __zp_ptr_scratch
+    LDA __zp_ptr_scratch+1
+    ADC #>__var_Main_big
+    STA __zp_ptr_scratch+1
+    LDY #$00
+    LDA (__zp_ptr_scratch),Y
+    STA $C003
+    LDA __var_Main_big+4
+    STA $C004
+    LDA #$0B
+    STA __var_Main_a
+    LDA #$16
+    STA __var_Main_a+1
+    LDA #<__var_Main_b
+    STA __frame_Main_copyPoint_dst
+    LDA #>__var_Main_b
+    STA __frame_Main_copyPoint_dst+1
+    LDA #<__var_Main_a
+    STA __frame_Main_copyPoint_src
+    LDA #>__var_Main_a
+    STA __frame_Main_copyPoint_src+1
+    JSR Main_copyPoint
+    LDA #$63
+    STA __var_Main_a
+    LDA __var_Main_b
+    STA $C005
+    LDA __var_Main_b+1
+    STA $C006
+    RTS
+; --- function: Game.resetEnemy ---
+Game_resetEnemy:
+    LDA __frame_Game_resetEnemy_e
+    STA __zp_ptr_Game_resetEnemy_e
+    LDA __frame_Game_resetEnemy_e+1
+    STA __zp_ptr_Game_resetEnemy_e+1
+    LDY #$02
+    LDA #$00
+    STA (__zp_ptr_Game_resetEnemy_e),Y
+    LDY #$01
+    LDA #$2A
+    STA (__zp_ptr_Game_resetEnemy_e),Y
+    RTS
+; --- function: Game.sum ---
+Game_sum:
+    LDA __frame_Game_sum_data
+    STA __zp_ptr_Game_sum_data
+    LDA __frame_Game_sum_data+1
+    STA __zp_ptr_Game_sum_data+1
+    LDA #$00
+    STA __frame_Game_sum_total
+    LDA #$00
+    STA __frame_Game_sum_i
+    JMP Game_sum_L0
+Game_sum_L0:
+    LDA __frame_Game_sum_i
+    CMP __frame_Game_sum_len
+    LDA #$01
+    BCC _cmp0
+    LDA #$00
+_cmp0:
+    BNE Game_sum_L1
+    JMP Game_sum_L2
+Game_sum_L1:
+    LDY __frame_Game_sum_i
+    LDA (__zp_ptr_Game_sum_data),Y
+    STA __zp_tmp_0
+    LDA __frame_Game_sum_total
+    CLC
+    ADC __zp_tmp_0
+    STA __frame_Game_sum_total
+    LDA __frame_Game_sum_i
+    CLC
+    ADC #$01
+    STA __frame_Game_sum_i
+    JMP Game_sum_L0
+Game_sum_L2:
+    LDA __frame_Game_sum_total
+    RTS
+; --- function: Game.relay ---
+Game_relay:
+    LDA __frame_Game_relay_e
+    LDX __frame_Game_relay_e+1
+    STA __frame_Game_resetEnemy_e
+    STX __frame_Game_resetEnemy_e+1
+    JSR Game_resetEnemy
+    RTS
+; --- const data: __data_Game_TABLE ---
+__data_Game_TABLE:
+    !byte $03, $05, $07

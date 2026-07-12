@@ -166,10 +166,15 @@ export function planAllocation(
       pointerAliases.push({
         name: `__zp_ptr_${sanitizePair(b.functionName)}_${sanitizePair(b.paramName)}`,
         value: poolBase + b.offset,
+        zeroPage: true,
       });
     }
     if (needsScratch) {
-      pointerAliases.push({ name: "__zp_ptr_scratch", value: poolBase + peakPointers * 2 });
+      pointerAliases.push({
+        name: "__zp_ptr_scratch",
+        value: poolBase + peakPointers * 2,
+        zeroPage: true,
+      });
     }
   }
 
