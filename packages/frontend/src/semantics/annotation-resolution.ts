@@ -1,14 +1,22 @@
 /**
  * Declared-type annotation resolution — the type-resolution pass.
  *
- * Collection assigns every variable/constant symbol a provisional type
- * (primitive annotations resolve immediately; named and array annotations
- * cannot resolve until imports are bound). This pass runs once imports ARE
- * bound and finalizes each symbol's type in place through the full resolver:
- * module-local names, import-bound aliases, and dotted `Mod.Type` forms all
- * resolve; `void` in a value position is E10156, unknown names E10151,
- * non-exported cross-module types E10012, and an unsized `[]` annotation
- * without an initialiser is E10110 (nothing determines its size).
+ * Collection assigns every variable/constant/parameter symbol a provisional
+ * type (primitive annotations resolve immediately; named and array
+ * annotations cannot resolve until imports are bound). This pass runs once
+ * imports ARE bound and finalizes each symbol's type in place through the
+ * full resolver: module-local names, import-bound aliases, and dotted
+ * `Mod.Type` forms all resolve; `void` in a value position is E10156,
+ * unknown names E10151, non-exported cross-module types E10012. An unsized
+ * `[]` annotation survives only on parameter symbols; on a variable/constant
+ * it needs a full element-list initialiser to infer a size from (checked in
+ * body typing) — without any initialiser it is E10126.
+ *
+ * Parameter finalization also patches `byRef` (struct/array parameters pass
+ * by reference; enums and scalars by value) and emits the declared-array
+ * size advisories: W10142 above the 256-byte direct-addressing tier, W10143
+ * when a single array consumes ≥25% of the target platform's RAM budget
+ * (skipped when no target profile is supplied).
  *
  * Symbol identity is preserved — the type field is patched, never the symbol
  * replaced — because downstream maps (initializers, const values, call edges)
@@ -18,7 +26,7 @@
  * never `@blend65/codegen`.
  */
 
-import { DiagCode, IceCode } from "@blend65/core";
+import { byteSize, DiagCode } from "@blend65/core";
 import type {
   AstNode,
   ConstDeclNode,
@@ -26,10 +34,13 @@ import type {
   ExprNode,
   FunctionDeclNode,
   LetDeclNode,
+  ParameterNode,
   Scope,
   Symbol,
+  Type,
   TypeNode,
 } from "@blend65/core";
+import type { PlatformProfile } from "@blend65/core/platform";
 import { resolveTypeNode } from "./type-check/type-resolution.js";
 import type { TypeResolverContext } from "./type-check/type-resolution.js";
 import type { ConstTypeEngine } from "./const-type-engine.js";
@@ -52,6 +63,7 @@ export function resolveDeclaredTypes(
   scopeByNode: ReadonlyMap<AstNode, Scope>,
   bag: DiagnosticBag,
   engine?: ConstTypeEngine,
+  targetProfile?: PlatformProfile,
 ): void {
   const makeCtx = (moduleScope: Scope, evalScope: Scope): TypeResolverContext => ({
     moduleScope,
@@ -77,7 +89,7 @@ export function resolveDeclaredTypes(
       // scope — the declaring module finalizes them; resolving here twice
       // would double-report.
       if (sym.scope !== moduleScope) continue;
-      finalizeSymbol(sym, ctx);
+      finalizeSymbol(sym, ctx, targetProfile);
     }
   }
 
@@ -87,7 +99,7 @@ export function resolveDeclaredTypes(
     const ctx = makeCtx(moduleScope, bodyScope);
     checkFunctionBoundary(declNode, ctx);
     for (const sym of bodyScope.symbols.values()) {
-      finalizeSymbol(sym, ctx);
+      finalizeSymbol(sym, ctx, targetProfile);
     }
   }
 }
@@ -95,9 +107,10 @@ export function resolveDeclaredTypes(
 /**
  * The aggregate function boundary: array and struct RETURN types are
  * permanently illegal (E10120/E10093 — the calling convention has no
- * aggregate return channel; return through a module variable instead), and
- * aggregate PARAMETERS are loudly rejected until the by-reference parameter
- * surface lands. Enum returns/params are byte-sized and legal.
+ * aggregate return channel; return through a module variable instead).
+ * Aggregate PARAMETERS are legal — they pass by reference (FN-3) — so no
+ * parameter check remains here; parameter types finalize with every other
+ * symbol below.
  */
 function checkFunctionBoundary(declNode: AstNode, ctx: TypeResolverContext): void {
   if (declNode.kind !== "FunctionDecl") return;
@@ -117,18 +130,6 @@ function checkFunctionBoundary(declNode: AstNode, ctx: TypeResolverContext): voi
       `Function '${decl.name}' cannot return a struct — write into a module variable instead`,
     );
   }
-
-  for (const param of decl.params) {
-    const kind = annotationKind(param.paramType, ctx);
-    if (kind === "array" || kind === "struct") {
-      ctx.bag.addError(
-        IceCode.Unexpected,
-        param.nameSpan,
-        `parameter '${param.name}' has an aggregate type — struct/array parameters ` +
-          "are not supported yet (they need by-reference passing)",
-      );
-    }
-  }
 }
 
 /**
@@ -146,7 +147,15 @@ function annotationKind(node: TypeNode, ctx: TypeResolverContext): "array" | "st
 }
 
 /** Re-resolves one symbol's declared annotation and patches its type. */
-function finalizeSymbol(sym: Symbol, ctx: TypeResolverContext): void {
+function finalizeSymbol(
+  sym: Symbol,
+  ctx: TypeResolverContext,
+  targetProfile?: PlatformProfile,
+): void {
+  if (sym.kind === "parameter") {
+    finalizeParameter(sym, ctx);
+    return;
+  }
   if (sym.kind !== "variable" && sym.kind !== "constant") return;
   const decl = sym.decl;
   if (!isVarDecl(decl)) return;
@@ -166,22 +175,84 @@ function finalizeSymbol(sym: Symbol, ctx: TypeResolverContext): void {
     case "NamedType":
     case "ArrayType": {
       sym.type = resolveTypeNode(annotation, ctx);
-      // An unsized `[]` annotation needs an initialiser to determine its
-      // size; without one the declaration is unsizable.
+      // An unsized `[]` annotation on a variable/constant is legal only when
+      // a full element-list initialiser determines the size (body typing
+      // infers it); with no initialiser at all nothing can.
       if (
         annotation.kind === "ArrayType" &&
         annotation.size === null &&
         decl.initialiser === null
       ) {
         ctx.bag.addError(
-          DiagCode.ArraySizeNotConst,
+          DiagCode.FillRequiresExplicitSize,
           annotation.span,
-          "An unsized array declaration needs an initialiser to determine its size",
+          "array size required — an unsized array type is legal only as a function " +
+            "parameter or with a full element-list initializer",
         );
       }
+      checkDeclaredArraySize(sym.type, decl.name, annotation.span, ctx, targetProfile);
       return;
     }
     default:
       return; // ErrorType — the parser already reported
+  }
+}
+
+/**
+ * Finalizes a parameter symbol: the annotation resolves through the full
+ * resolver (unsized `T[]` survives — parameters are its one legal home), and
+ * `byRef` is patched now that a named annotation can be classified (struct →
+ * by-ref, enum → by-value; arrays were known syntactically).
+ */
+function finalizeParameter(sym: Symbol, ctx: TypeResolverContext): void {
+  const decl = sym.decl;
+  if (decl.kind !== "Parameter") return;
+  const annotation = (decl as ParameterNode).paramType;
+  if (annotation.kind === "PrimitiveType") {
+    if (annotation.name === "void") {
+      ctx.bag.addError(
+        DiagCode.VoidTypeNotAllowed,
+        annotation.span,
+        "'void' is not a value type — a parameter cannot be 'void'",
+      );
+    }
+    return; // provisional resolution already handled primitives
+  }
+  if (annotation.kind !== "NamedType" && annotation.kind !== "ArrayType") return;
+  sym.type = resolveTypeNode(annotation, ctx);
+  sym.byRef = sym.type.kind === "array" || sym.type.kind === "struct";
+}
+
+/**
+ * The declared-array size advisories (never on parameters — an unsized
+ * parameter has no size to judge): a total above the 256-byte tier boundary
+ * costs pointer-formation overhead on every runtime access (W10142), and a
+ * single array at ≥25% of the target platform's usable RAM deserves a budget
+ * check (W10143 — platform-relative, skipped without a target profile).
+ */
+function checkDeclaredArraySize(
+  type: Type,
+  name: string,
+  span: TypeNode["span"],
+  ctx: TypeResolverContext,
+  targetProfile?: PlatformProfile,
+): void {
+  if (type.kind !== "array" || type.size === null) return;
+  const total = byteSize(type);
+  if (total > 256) {
+    ctx.bag.addWarning(
+      DiagCode.Tier2Overhead,
+      span,
+      `Array '${name}' is ${total} bytes — beyond the 256-byte direct-addressing tier, ` +
+        "every runtime access pays pointer-formation overhead",
+    );
+  }
+  if (targetProfile !== undefined && total >= targetProfile.maxRam * 0.25) {
+    ctx.bag.addWarning(
+      DiagCode.LargeArrayOnPlatform,
+      span,
+      `Array '${name}' is ${total} bytes — ≥25% of the platform's ${targetProfile.maxRam}-byte ` +
+        "RAM budget; consider the total RAM budget",
+    );
   }
 }

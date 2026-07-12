@@ -245,8 +245,29 @@ function evaluateModuleConsts(
     if (info === undefined) return;
     evaluating.add(sym);
 
-    // Aggregate consts fold into a memory image through the engine.
+    // Aggregate consts fold into a memory image through the engine. An
+    // unsized const annotation infers its size from a full element-list
+    // initialiser FIRST (the image is sized by the initialiser, not the
+    // annotation); the fill form and any other initialiser shape cannot
+    // determine a size (E10126).
     if (aggregates.has(sym)) {
+      if (sym.type.kind === "array" && sym.type.size === null) {
+        const init = info.decl.initialiser;
+        if (init.kind === "ArrayLitExpr" && init.fill === null && init.elements.length > 0) {
+          sym.type = { kind: "array", element: sym.type.element, size: init.elements.length };
+        } else {
+          ctx.bag.addError(
+            DiagCode.FillRequiresExplicitSize,
+            init.span,
+            init.kind === "ArrayLitExpr"
+              ? "A '; fill' value needs an explicit declared array size"
+              : "array size required — an unsized array type is legal only as a function " +
+                "parameter or with a full element-list initializer",
+          );
+          evaluating.delete(sym);
+          return;
+        }
+      }
       if (ctx.engine !== undefined) {
         const image = buildConstImage(sym.type, info.decl.initialiser, {
           engine: ctx.engine,
@@ -774,6 +795,9 @@ function checkArrayInitCoverage(
   ctx: TypeCheckContext,
 ): void {
   if (declaredType.kind !== "array") return;
+  // An unsized declaration either infers its size from a full element list
+  // (full coverage by construction) or is already an error — no advisory.
+  if (declaredType.size === null) return;
   if (decl.initialiser === null) {
     ctx.bag.addWarning(
       DiagCode.UninitializedArray,
@@ -821,11 +845,15 @@ function rejectStringArrayInit(
 /**
  * Patches an unsized `[]` declaration's symbol with the size the literal
  * inferred, so downstream layout/lowering sees a fully-sized array type.
+ * The unsized type survives only on parameter symbols — every variable
+ * either receives an inferred size here or was already rejected.
  */
 function inferUnsizedArray(sym: Symbol | undefined, declaredType: Type, initType: Type): void {
   if (sym === undefined) return;
-  if (declaredType.kind !== "array" || declaredType.size !== 0) return;
-  if (initType.kind === "array" && initType.size > 0) sym.type = initType;
+  if (declaredType.kind !== "array" || declaredType.size !== null) return;
+  if (initType.kind === "array" && initType.size !== null && initType.size > 0) {
+    sym.type = initType;
+  }
 }
 
 /**

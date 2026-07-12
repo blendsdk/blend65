@@ -28,6 +28,7 @@ import {
   bitWidth,
   byteSize,
   commonType,
+  createDiagnosticBag,
   DiagCode,
   ERROR_TYPE,
   IceCode,
@@ -59,11 +60,13 @@ import type {
   SourceSpan,
   Symbol,
   Type,
+  TypeNode,
   UnaryExprNode,
 } from "@blend65/core";
 import type { FnSignature, TypeCheckContext } from "./context.js";
 import { enclosingFunctionSymbol, resolveName, resolveQualified } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
+import type { TypeResolverContext } from "./type-resolution.js";
 import { evalConst, fromBits, toBits } from "../const-eval.js";
 import type { ConstRefResolver } from "../const-eval.js";
 
@@ -648,13 +651,22 @@ function typeAssign(expr: AssignExprNode, scope: Scope, ctx: TypeCheckContext): 
 
   // L-value mutability: a resolved `constant` target cannot be assigned
   // (E10191) — including element/field writes THROUGH a const aggregate,
-  // whose root symbol is a constant.
+  // whose root symbol is a constant. A const PARAMETER root rejects by the
+  // same walk (E10123): direct writes, nested chains, indexed elements, and
+  // compound assignment all reach here with the parameter as their root.
   const rootSym = assignmentRootSymbol(expr.target, scope, ctx);
   if (rootSym !== null && rootSym.kind === "constant") {
     ctx.bag.addError(
       DiagCode.AssignToConst,
       expr.span,
       `Cannot assign to constant '${rootSym.name}'`,
+    );
+  } else if (rootSym !== null && rootSym.kind === "parameter" && !rootSym.mutable) {
+    ctx.bag.addError(
+      DiagCode.ModifyConstParam,
+      expr.span,
+      `Cannot modify const parameter '${rootSym.name}' — const parameters are ` +
+        `read-only for the whole call`,
     );
   }
 
@@ -892,14 +904,25 @@ function typeQualifiedAccess(
 /**
  * Index-expression typing (`a[i]`): the object must be an array (anything
  * else is E10080), the index an unsigned integer — a signed or boolean index
- * is E10114, and a `word` index on a direct-tier (≤256-byte) array is E10117
- * with the explicit byte-cast remedy. A constant index folds and is
- * bounds-checked against the declared size (E10115). The result is the
- * element type; the expression is a legal l-value.
+ * is E10114. The strict index-width tier rules key on the KNOWN total byte
+ * size: a `word` index on a ≤256-byte array is E10117 (the byte index covers
+ * it; the high byte would be dead weight), a `byte` index on a larger array
+ * is E10118 (it cannot reach every element), and an UNSIZED parameter (no
+ * known total) accepts both widths. Integer literals adapt through a
+ * tier-matched contextual hint, so no cast is needed on either tier. A
+ * constant index folds and is bounds-checked against the declared size
+ * (E10115) when one exists. The result is the element type; the expression
+ * is a legal l-value.
  */
 function typeIndexExpr(expr: IndexExprNode, scope: Scope, ctx: TypeCheckContext): Type {
   const objType = typeOfExpr(expr.object, scope, ctx);
-  const indexType = typeOfExpr(expr.index, scope, ctx, primitive("byte"));
+
+  // The index's contextual hint follows the tier: literals on a >256-byte
+  // array type as `word`, everything else (incl. unsized) as `byte`.
+  const knownTotal =
+    objType.kind === "array" && objType.size !== null ? byteSize(objType) : null;
+  const hint = knownTotal !== null && knownTotal > 256 ? primitive("word") : primitive("byte");
+  const indexType = typeOfExpr(expr.index, scope, ctx, hint);
 
   if (isError(objType)) return ERROR_TYPE; // cascade suppression
   if (objType.kind !== "array") {
@@ -916,18 +939,27 @@ function typeIndexExpr(expr: IndexExprNode, scope: Scope, ctx: TypeCheckContext)
     const indexIsByte =
       (indexType.kind === "primitive" && indexType.name === "byte") ||
       indexType.kind === "enum"; // an enum index reads as its byte backing
-    if (indexIsWord) {
-      // Every array on the direct-addressing surface fits a byte index; a
-      // word index would silently drop its high byte.
+    if (indexIsWord && knownTotal !== null && knownTotal <= 256) {
+      // A byte index fully covers this array; a word index would silently
+      // drop its high byte.
       ctx.bag.addError(
         DiagCode.WordIndexOnSmallArray,
         expr.index.span,
-        `A 'word' index cannot be used on a ${byteSize(objType)}-byte array — ` +
+        `A 'word' index cannot be used on a ${knownTotal}-byte array — ` +
           `a 'byte' index covers it; use an explicit '<byte>(…)' cast`,
       );
       return ERROR_TYPE;
     }
-    if (!indexIsByte) {
+    if (indexIsByte && knownTotal !== null && knownTotal > 256) {
+      ctx.bag.addError(
+        DiagCode.ByteIndexOnLargeArray,
+        expr.index.span,
+        `A 'byte' index cannot reach every element of a ${knownTotal}-byte array — ` +
+          `use a 'word' index (cast with '<word>(…)')`,
+      );
+      return ERROR_TYPE;
+    }
+    if (!indexIsByte && !indexIsWord) {
       ctx.bag.addError(
         DiagCode.ArrayIndexTypeMismatch,
         expr.index.span,
@@ -937,9 +969,10 @@ function typeIndexExpr(expr: IndexExprNode, scope: Scope, ctx: TypeCheckContext)
     }
   }
 
-  // Constant indexes fold and bounds-check at compile time.
+  // Constant indexes fold and bounds-check at compile time — only a KNOWN
+  // size has a static bound (an unsized parameter's bound is the caller's).
   const folded = ctx.engine?.evalExpr(expr.index, scope);
-  if (folded?.kind === "value" && typeof folded.value === "number") {
+  if (folded?.kind === "value" && typeof folded.value === "number" && objType.size !== null) {
     if (folded.value < 0 || folded.value >= objType.size) {
       ctx.bag.addError(
         DiagCode.StaticIndexOutOfBounds,
@@ -1054,7 +1087,7 @@ function typeArrayLit(
     checkAssignable(itemType, element, item.span, ctx);
   }
   if (expr.fill !== null) {
-    if (contextType.size === 0) {
+    if (contextType.size === null) {
       // An unsized annotation cannot say how many slots the fill covers.
       ctx.bag.addError(
         DiagCode.FillRequiresExplicitSize,
@@ -1067,7 +1100,7 @@ function typeArrayLit(
       checkAssignable(fillType, element, expr.fill.span, ctx);
     }
   }
-  if (contextType.size > 0 && expr.elements.length > contextType.size) {
+  if (contextType.size !== null && expr.elements.length > contextType.size) {
     ctx.bag.addError(
       DiagCode.TypeMismatchAssignment,
       expr.span,
@@ -1077,10 +1110,10 @@ function typeArrayLit(
     return ERROR_TYPE;
   }
   // Size inference for an unsized annotation: the element count.
-  if (contextType.size === 0 && expr.elements.length > 0) {
+  if (contextType.size === null && expr.elements.length > 0) {
     return { kind: "array", element, size: expr.elements.length };
   }
-  if (contextType.size === 0) {
+  if (contextType.size === null) {
     ctx.bag.addError(DiagCode.ArraySizeZero, expr.span, "Array size must be at least 1");
     return ERROR_TYPE;
   }
@@ -1206,6 +1239,13 @@ function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type
     return sig.returnType;
   }
 
+  // By-ref aliasing detection: the same root symbol feeding two by-ref
+  // arguments of THIS call means the callee's writes through one name are
+  // visible through the other (the "obvious case" — deeper overlap analysis
+  // is deliberately out of scope). One warning per call, naming both params.
+  let aliasWarned = false;
+  const byRefRoots = new Map<Symbol, string>();
+
   for (let i = 0; i < expr.args.length; i++) {
     const arg = expr.args[i];
     const param = sig.params[i];
@@ -1220,6 +1260,38 @@ function typeCall(expr: CallExprNode, scope: Scope, ctx: TypeCheckContext): Type
       );
     }
     checkIntermediateOverflow(arg, argType, param.type, ctx);
+
+    if (param.byRef) {
+      const root = assignmentRootSymbol(arg, scope, ctx);
+      if (root !== null) {
+        // A const root (a module constant — its image lives in read-only
+        // data — or a const parameter being forwarded) must not bind to a
+        // parameter the callee may write through.
+        if (
+          param.mutable &&
+          (root.kind === "constant" || (root.kind === "parameter" && !root.mutable))
+        ) {
+          ctx.bag.addError(
+            DiagCode.ConstToMutableParam,
+            arg.span,
+            `Cannot pass const '${root.name}' to mutable by-reference parameter ` +
+              `'${param.name}' of '${name}()' — declare the parameter 'const', ` +
+              `or pass a mutable copy`,
+          );
+        }
+        const earlier = byRefRoots.get(root);
+        if (earlier !== undefined && !aliasWarned) {
+          aliasWarned = true;
+          ctx.bag.addWarning(
+            DiagCode.PossibleAliasing,
+            arg.span,
+            `'${root.name}' is passed by reference as both '${earlier}' and ` +
+              `'${param.name}' — writes through one alias are visible through the other`,
+          );
+        }
+        if (earlier === undefined) byRefRoots.set(root, param.name);
+      }
+    }
   }
 
   return sig.returnType;
@@ -1240,22 +1312,52 @@ function isFunctionDecl(node: AstNode): node is FunctionDeclNode {
  * The callee's cached {@link FnSignature}, computed from its declaration on
  * first use. Function symbols always carry a `FunctionDecl`; a defensive
  * mismatch yields an empty void signature rather than a crash.
+ *
+ * Parameter annotations resolve in FULL mode so signatures carry real
+ * aggregate/unsized types (incl. dotted `Mod.Type` names and constant-
+ * expression sizes). Any annotation error was already reported when the
+ * parameter SYMBOLS were finalized in the type-resolution pass, so this
+ * resolution runs against a throwaway bag — never a second report.
  */
 function signatureOf(sym: Symbol, ctx: TypeCheckContext): FnSignature {
   const cached = ctx.signatures.get(sym);
   if (cached !== undefined) return cached;
 
   const decl = isFunctionDecl(sym.decl) ? sym.decl : null;
-  const sig: FnSignature =
-    decl === null
-      ? { params: [], returnType: primitive("void") }
-      : {
-          params: decl.params.map((p) => ({
-            name: p.name,
-            type: resolveTypeNode(p.paramType),
-          })),
-          returnType: resolveTypeNode(decl.returnType),
+  let sig: FnSignature;
+  if (decl === null) {
+    sig = { params: [], returnType: primitive("void") };
+  } else {
+    const engine = ctx.engine;
+    const resolverCtx: TypeResolverContext = {
+      moduleScope: sym.scope,
+      moduleScopes: ctx.moduleScopes,
+      bag: createDiagnosticBag(),
+      ...(engine !== undefined
+        ? {
+            evalSize: (expr: ExprNode): number | "poisoned" | null => {
+              const result = engine.evalExpr(expr, sym.scope);
+              if (result?.kind === "value" && typeof result.value === "number") {
+                return result.value;
+              }
+              return result?.kind === "poisoned" ? "poisoned" : null;
+            },
+          }
+        : {}),
+    };
+    sig = {
+      params: decl.params.map((p) => {
+        const type = resolveTypeNode(p.paramType, resolverCtx);
+        return {
+          name: p.name,
+          type,
+          byRef: type.kind === "array" || type.kind === "struct",
+          mutable: !p.isConst,
         };
+      }),
+      returnType: resolveTypeNode(decl.returnType),
+    };
+  }
   ctx.signatures.set(sym, sig);
   return sig;
 }
@@ -1324,6 +1426,32 @@ function typeIntrinsicCall(
   // (`length(byte[256])` is 256, which `byte` cannot hold).
   if (expr.name === "sizeof" || expr.name === "offsetof" || expr.name === "length") {
     for (const arg of expr.args) typeOfExpr(arg, scope, ctx);
+
+    // No size exists for the unsized forms: `length()` on an unsized array
+    // parameter (the caller must pass the length explicitly), and `sizeof`
+    // of an unsized array type.
+    if (expr.name === "length") {
+      const arg = expr.args[0];
+      const root = arg !== undefined ? assignmentRootSymbol(arg, scope, ctx) : null;
+      if (root !== null && root.type.kind === "array" && root.type.size === null) {
+        ctx.bag.addError(
+          DiagCode.InvalidOperandType,
+          expr.span,
+          `length() is not available for unsized array parameter '${root.name}' — ` +
+            `pass an explicit length parameter`,
+        );
+        return ERROR_TYPE;
+      }
+    }
+    if (expr.name === "sizeof" && expr.typeArg !== null && hasUnsizedArray(expr.typeArg)) {
+      ctx.bag.addError(
+        DiagCode.InvalidOperandType,
+        expr.span,
+        "sizeof() is not available for an unsized array type — no size exists",
+      );
+      return ERROR_TYPE;
+    }
+
     const folded = ctx.engine?.evalExpr(expr, scope);
     if (folded?.kind === "value" && typeof folded.value === "number") {
       return primitive(folded.value <= 255 ? "byte" : "word");
@@ -1344,6 +1472,11 @@ function typeIntrinsicCall(
     default:
       return ERROR_TYPE; // embed/etc. — not yet supported here
   }
+}
+
+/** True when a syntactic type annotation contains an unsized `[]` anywhere. */
+function hasUnsizedArray(node: TypeNode): boolean {
+  return node.kind === "ArrayType" && (node.size === null || hasUnsizedArray(node.elementType));
 }
 
 /**

@@ -39,6 +39,7 @@ import type {
   IntrinsicCallExprNode,
   LetDeclNode,
   ModuleDeclNode,
+  ParameterNode,
   Scope,
   SourceSpan,
   StructType,
@@ -393,13 +394,40 @@ export class ConstTypeEngine {
     return this.structLayout(this.moduleOf(sym.scope), sym.name);
   }
 
-  /** The element count `length(x)` denotes: `x` names a fixed-size array. */
+  /**
+   * The element count `length(x)` denotes: `x` names a fixed-size array —
+   * a variable/constant with a sized (or element-list-inferred) annotation,
+   * or a PARAMETER with a sized array annotation. Unsized parameters have no
+   * length (`null` — the caller passes one explicitly).
+   */
   private lengthOf(arg: ExprNode | undefined, scope: Scope): number | null {
     const sym = this.arraySymbolOf(arg, scope);
     const decl = sym?.decl;
-    if (decl === undefined || !isVarDecl(decl)) return null;
+    if (decl === undefined) return null;
+
+    if (decl.kind === "Parameter") {
+      const annotation = (decl as ParameterNode).paramType;
+      if (annotation.kind !== "ArrayType" || annotation.size === null) return null;
+      const size = this.evalExpr(annotation.size, scope);
+      return size?.kind === "value" && typeof size.value === "number" ? size.value : null;
+    }
+
+    if (!isVarDecl(decl)) return null;
     const annotation = decl.declaredType;
-    if (annotation === null || annotation.kind !== "ArrayType" || annotation.size === null) {
+    if (annotation === null || annotation.kind !== "ArrayType") return null;
+    if (annotation.size === null) {
+      // An unsized declaration's size is its full element-list initialiser's
+      // count (the same inference the declaration itself receives); reading
+      // the initialiser keeps this fold independent of pass ordering.
+      const init = decl.initialiser;
+      if (
+        init !== null &&
+        init.kind === "ArrayLitExpr" &&
+        init.fill === null &&
+        init.elements.length > 0
+      ) {
+        return init.elements.length;
+      }
       return null;
     }
     const size = this.evalExpr(annotation.size, scope);

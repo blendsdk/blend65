@@ -114,7 +114,7 @@ describe("Specification: Slice 7 negatives via compile() (ST-62, ST-63)", () => 
     ).toContain("E10080");
   });
 
-  it("rejects aggregate returns permanently (E10093/E10120) and params loudly", () => {
+  it("rejects aggregate returns permanently (E10093/E10120); params compile (by-ref)", () => {
     const P = "struct Point { x: byte; }";
     expect(
       codes(compileFiles({ "main.blend": `module Main;\n${P}\nfunction f(): Point { }\nfunction main(): void { }\n` })),
@@ -122,11 +122,14 @@ describe("Specification: Slice 7 negatives via compile() (ST-62, ST-63)", () => 
     expect(
       codes(compileFiles({ "main.blend": "module Main;\nfunction f(): byte[2] { }\nfunction main(): void { }\n" })),
     ).toContain("E10120");
+    // RETIRED SUB-ROW, superseded: the parameter assertion originally pinned
+    // the interim loud rejection of aggregate parameters. By-reference
+    // parameters now exist (FN-3), so a struct parameter compiles cleanly.
     const param = compileFiles({
-      "main.blend": `module Main;\n${P}\nfunction f(p: Point): void { }\nfunction main(): void { }\n`,
+      "main.blend": `module Main;\n${P}\nfunction f(p: Point): void { p.x = 1; }\nfunction main(): void { }\n`,
     });
-    expect(param.hasErrors).toBe(true);
-    expect(codes(param).some((c) => c.startsWith("E9"))).toBe(true);
+    expect(param.hasErrors).toBe(false);
+    expect(codes(param).some((c) => c.startsWith("E9"))).toBe(false);
   });
 
   it("rejects enum declaration errors: non-const member E10230 and range E10143", () => {
@@ -163,13 +166,18 @@ describe("Specification: Slice 7 negatives via compile() (ST-62, ST-63)", () => 
     expect(codes(str).some((c) => c.startsWith("E9"))).toBe(true);
   });
 
-  it("rejects a same-module type/value collision (E10003) and a >256-byte array loudly", () => {
+  it("rejects a same-module type/value collision (E10003); a >256-byte array compiles with W10142", () => {
     expect(codes(compileMain(inMain("struct S { x: byte; }\nlet S: byte;", "")))).toContain(
       "E10003",
     );
+    // RETIRED SUB-ROW, superseded: the >256-byte assertion originally pinned
+    // the interim loud rejection ("needs pointer-tier indexing"). The
+    // pointer tier now exists: the declaration is legal and carries the
+    // tier-overhead advisory instead.
     const big = compileMain(inMain("let big: byte[300];", ""));
-    expect(big.hasErrors).toBe(true);
-    expect(codes(big).some((c) => c.startsWith("E9"))).toBe(true);
+    expect(big.hasErrors).toBe(false);
+    expect(codes(big).some((c) => c.startsWith("E9"))).toBe(false);
+    expect(codes(big)).toContain("W10142");
   });
 });
 

@@ -26,12 +26,19 @@ export interface PrimitiveType {
   readonly name: PrimitiveName;
 }
 
-/** A fixed-size array type `element[size]`. */
+/** An array type `element[size]`, or the unsized parameter form `element[]`. */
 export interface ArrayType {
   readonly kind: "array";
   readonly element: Type;
-  /** Compile-time constant element count, >= 1 (validated by the deferred checker). */
-  readonly size: number;
+  /**
+   * Compile-time constant element count (>= 1), or `null` for the unsized
+   * form `T[]`. An unsized array type is legal only on function parameter
+   * symbols — every other declaration receives an explicit or inferred
+   * concrete size. Sites that consume a size must branch on `null`; reaching
+   * an unsized size where one cannot legally occur is a compiler defect and
+   * must fail loudly, never degrade to 0.
+   */
+  readonly size: number | null;
 }
 
 /** A resolved struct type, carrying its declaration and laid-out fields. */

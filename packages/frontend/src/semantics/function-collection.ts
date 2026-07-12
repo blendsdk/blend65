@@ -153,10 +153,14 @@ export function collectFunctions(
 
       // Step 2b — parameters, before locals (their insertion order is what the
       // frame layout reads, and a body local of the same name deliberately
-      // wins over its parameter — flat-scope last-wins). Scalars only: struct
-      // and array parameters (and with them `byRef`) are not supported yet.
-      // Interrupts take no parameters (AST shape). A duplicate parameter name
-      // is E10003, first-wins.
+      // wins over its parameter — flat-scope last-wins). The type here is
+      // provisional (primitive annotations resolve now; named/array/unsized
+      // annotations finalize in the type-resolution pass, which also patches
+      // `byRef` — an array annotation is known by-ref syntactically, a named
+      // one only once it resolves to a struct rather than an enum). A const
+      // parameter is read-only (`mutable: false`) — the write checks key on
+      // this one bit. Interrupts take no parameters (AST shape). A duplicate
+      // parameter name is E10003, first-wins.
       if (item.kind === "FunctionDecl") {
         for (const param of item.params) {
           if (bodyScope.symbols.has(param.name)) {
@@ -174,8 +178,8 @@ export function collectFunctions(
             decl: param,
             scope: bodyScope,
             exported: false,
-            mutable: true,
-            byRef: false,
+            mutable: !param.isConst,
+            byRef: param.paramType.kind === "ArrayType",
           });
         }
       }

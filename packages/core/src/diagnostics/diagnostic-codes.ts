@@ -94,6 +94,17 @@ export const DiagCode = {
   ArrayAssignmentNotAllowed: "E10119",
   ArrayReturnNotAllowed: "E10120",
   ArrayComparisonNotAllowed: "E10121",
+  // Const-parameter enforcement (the array chapter's own numbers, registered
+  // additively — `spec/` stays frozen):
+  // - E10122: a const value (a module constant, or a const parameter being
+  //   forwarded) passed to a MUTABLE by-reference parameter. Load-bearing for
+  //   image integrity: const aggregates live in the read-only data stream, so
+  //   letting a callee write through them would corrupt baked data.
+  // - E10123: a write through a const parameter — direct, nested member
+  //   chains, indexed elements, and compound assignment all reject via the
+  //   same root-symbol predicate.
+  ConstToMutableParam: "E10122",
+  ModifyConstParam: "E10123",
   FillRequiresExplicitSize: "E10126",
   // Type system
   MissingTypeAnnotation: "E10150",
@@ -331,6 +342,20 @@ export const DiagCode = {
   // compile — the chapter makes them warnings, not errors.
   PartialArrayInit: "W10140",
   UninitializedArray: "W10141",
+  // Pointer-surface advisories (chapter-assigned numbers, registered
+  // additively — `spec/` stays frozen):
+  // - W10112: the same variable feeds two by-reference arguments of one call,
+  //   so the callee's writes through one alias are visible through the other
+  //   (the struct chapter's "obvious case" — deeper overlap analysis is out
+  //   of scope by design).
+  // - W10142: a declared array exceeds the 256-byte direct-addressing tier,
+  //   so every runtime access pays the pointer-formation overhead. Keyed on
+  //   the FIXED tier boundary, not a platform-tunable threshold.
+  // - W10143: a single declared array consumes ≥25% of the target platform's
+  //   usable RAM budget; emitted only when a target profile is supplied.
+  PossibleAliasing: "W10112",
+  Tier2Overhead: "W10142",
+  LargeArrayOnPlatform: "W10143",
   LargeZpAllocation: "W10030",
 
   RamNearingLimit: "W10033",

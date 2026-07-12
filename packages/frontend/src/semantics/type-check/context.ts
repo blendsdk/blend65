@@ -31,8 +31,17 @@ import type { ConstTypeEngine } from "../const-type-engine.js";
  * checking and is cached per function symbol.
  */
 export interface FnSignature {
-  /** The declared parameters, in order. */
-  readonly params: readonly { readonly name: string; readonly type: Type }[];
+  /**
+   * The declared parameters, in order. `byRef` marks struct/array parameters
+   * (they pass by reference); `mutable` is `false` for `const` parameters —
+   * the pair drives the const-argument check at call sites.
+   */
+  readonly params: readonly {
+    readonly name: string;
+    readonly type: Type;
+    readonly byRef: boolean;
+    readonly mutable: boolean;
+  }[];
   /** The declared return type (`void` for procedures). */
   readonly returnType: Type;
 }

@@ -56,6 +56,12 @@ export interface Symbol {
   readonly mutable: boolean;
   /** Present for compile-time constants; absent otherwise. */
   readonly constValue?: ConstValue;
-  /** `true` for struct-typed parameters passed by reference. */
-  readonly byRef: boolean;
+  /**
+   * `true` for struct/array parameters, which pass by reference. Deliberately
+   * NOT readonly for the same reason as `type`: a named parameter annotation
+   * cannot be classified until imports are bound (a name may resolve to a
+   * struct — by-ref — or an enum — by-value), so the type-resolution pass
+   * patches this in place alongside the type.
+   */
+  byRef: boolean;
 }

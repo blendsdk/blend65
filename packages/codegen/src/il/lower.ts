@@ -1508,9 +1508,13 @@ function lowerAggregateInit(place: Place, type: Type, init: ExprNode, ctx: Lower
       const at = { ...place, constOffset: place.constOffset + i * elemSize };
       lowerElementInit(at, type.element, elemIl, element, ctx);
     });
-    if (init.fill !== null && init.elements.length < type.size) {
+    // A fill under an UNSIZED annotation never reaches lowering (typing
+    // rejects it — the fill needs a declared count), so a null size here
+    // simply has no remainder to unroll.
+    const declaredSize = type.size;
+    if (init.fill !== null && declaredSize !== null && init.elements.length < declaredSize) {
       const fill = lowerExpr(init.fill, ctx);
-      for (let i = init.elements.length; i < type.size; i += 1) {
+      for (let i = init.elements.length; i < declaredSize; i += 1) {
         const at = { ...place, constOffset: place.constOffset + i * elemSize };
         emitPlaceStore(at, elemIl, fill, ctx);
       }
@@ -1705,14 +1709,19 @@ function lengthOfArray(arg: ExprNode | undefined, ctx: LowerCtx): number {
   if (arg === undefined) return 0;
   // The resolved symbol (local, module var, const, or qualified `Mod.arr`)
   // carries the authoritative array type.
+  // An UNSIZED array (a `T[]` parameter) never reaches this fold — typing
+  // rejects `length()` on it — so a null size falls through to the shared
+  // not-found default.
   if (arg.kind === "IdentExpr" || arg.kind === "FieldAccessExpr") {
     const sym = ctx.model.symbolOf(arg);
-    if (sym !== null && sym.type.kind === "array") return sym.type.size;
+    if (sym !== null && sym.type.kind === "array" && sym.type.size !== null) {
+      return sym.type.size;
+    }
   }
   if (arg.kind === "IdentExpr") {
     const slot = ctx.frame?.slots.find((s) => s.name === arg.name);
     const type: Type | undefined = slot?.type;
-    if (type !== undefined && type.kind === "array") return type.size;
+    if (type !== undefined && type.kind === "array" && type.size !== null) return type.size;
   }
   return 0;
 }

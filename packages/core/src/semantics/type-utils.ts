@@ -77,12 +77,17 @@ export function bitWidth(t: PrimitiveType): 8 | 16 {
 }
 
 /**
- * Total byte size over the whole {@link Type} union — never throws:
+ * Total byte size over the whole {@link Type} union:
  *   - `byte`/`sbyte`/`boolean` -> 1
  *   - `word`/`sword` -> 2
  *   - `void`/`error` -> 0
  *   - `struct` -> the struct's precomputed `byteSize`
  *   - `array` -> `byteSize(element) * size`
+ *
+ * An UNSIZED array (`size === null`) has no byte size: callers that can
+ * legally meet one (parameter typing, tier classification) must branch on
+ * `size` before calling; reaching this function with one is a compiler
+ * defect, reported loudly rather than degraded to a silent 0.
  *
  * @param t Any semantic type.
  * @returns The size in bytes (0 for the width-less/poison types).
@@ -99,6 +104,12 @@ export function byteSize(t: Type): number {
       // byte, sbyte, boolean
       return 1;
     case "array":
+      if (t.size === null) {
+        throw new Error(
+          "internal error: byteSize() called on an unsized array type — " +
+            "unsized arrays are legal only as function parameters and carry no size",
+        );
+      }
       return byteSize(t.element) * t.size;
     case "struct":
       return t.byteSize;
@@ -132,7 +143,7 @@ export function typeName(t: Type): string {
     case "primitive":
       return t.name;
     case "array":
-      return `${typeName(t.element)}[${t.size}]`;
+      return t.size === null ? `${typeName(t.element)}[]` : `${typeName(t.element)}[${t.size}]`;
     case "struct":
       return t.name;
     case "enum":
@@ -177,7 +188,11 @@ export function isAssignableTo(source: Type, target: Type): boolean {
     // types (same size, same element type — mutual assignability means
     // identity) are compatible.
     if (source.kind !== "array" || target.kind !== "array") return false;
-    if (source.size !== target.size) return false;
+    // A sized array binds to an unsized parameter type (`T[N] → T[]`, any N)
+    // when the element types are mutually assignable; the reverse never holds
+    // (an unsized value cannot be created — only bound), and two unsized
+    // types are compatible for pass-through (`null === null` below).
+    if (target.size !== null && source.size !== target.size) return false;
     return (
       isAssignableTo(source.element, target.element) &&
       isAssignableTo(target.element, source.element)

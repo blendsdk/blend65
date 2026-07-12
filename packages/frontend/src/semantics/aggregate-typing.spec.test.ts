@@ -83,10 +83,17 @@ describe("Specification: indexing (ST-27..ST-32)", () => {
     expect(errorCodes(analyzeMulti([member]).diags)).toContain(DiagCode.InvalidOperandType);
   });
 
-  it("ST-32: a >256-byte array declaration is loudly rejected, never silent", () => {
+  it("ST-32: a >256-byte array declaration compiles with the tier-2 advisory (W10142)", () => {
+    // RETIRED ROW, superseded: this row originally pinned the interim loud
+    // rejection of >256-byte arrays ("not supported yet — they need
+    // pointer-tier indexing"). The pointer tier now exists, so the spec's
+    // real behavior applies: the declaration is legal and carries the
+    // tier-overhead advisory (Ch 08 AR-3).
     const src = program("let big: byte[300];", "");
     const { diags } = analyzeMulti([src]);
-    expect(diags.some((d) => isIceCode(d.code))).toBe(true);
+    expect(diags.some((d) => isIceCode(d.code))).toBe(false);
+    expect(errorCodes(diags)).toEqual([]);
+    expect(diags.some((d) => d.code === DiagCode.Tier2Overhead)).toBe(true);
   });
 });
 
@@ -190,7 +197,7 @@ describe("Specification: aggregate operators & enums (ST-39..ST-43)", () => {
 });
 
 describe("Specification: the aggregate function boundary (ST-44, ST-44a, ST-44b)", () => {
-  it("ST-44: struct returns are E10093, array returns E10120, aggregate params loudly rejected", () => {
+  it("ST-44: struct returns are E10093, array returns E10120, aggregate params compile (by-ref)", () => {
     const structRet =
       "module Main;\nstruct P { x: byte; }\nfunction f(): P { }\nfunction main(): void { }\n";
     expect(errorCodes(analyzeMulti([structRet]).diags)).toContain(DiagCode.StructReturnNotAllowed);
@@ -199,9 +206,16 @@ describe("Specification: the aggregate function boundary (ST-44, ST-44a, ST-44b)
       "module Main;\nfunction f(): byte[2] { }\nfunction main(): void { }\n";
     expect(errorCodes(analyzeMulti([arrayRet]).diags)).toContain(DiagCode.ArrayReturnNotAllowed);
 
+    // RETIRED SUB-ROW, superseded: the aggregate-parameter assertion here
+    // originally pinned the interim loud rejection ("not supported yet —
+    // they need by-reference passing"). By-reference parameters now exist
+    // (FN-3), so a struct parameter compiles cleanly; only the RETURN
+    // rejections above are permanent.
     const param =
-      "module Main;\nstruct P { x: byte; }\nfunction f(p: P): void { }\nfunction main(): void { }\n";
-    expect(analyzeMulti([param]).diags.some((d) => isIceCode(d.code))).toBe(true);
+      "module Main;\nstruct P { x: byte; }\nfunction f(p: P): void { p.x = 1; }\nfunction main(): void { let v: P; f(v); }\n";
+    const paramResult = analyzeMulti([param]);
+    expect(paramResult.diags.some((d) => isIceCode(d.code))).toBe(false);
+    expect(errorCodes(paramResult.diags)).toEqual([]);
   });
 
   it("ST-44a: an aggregate literal in statement position is E10157", () => {

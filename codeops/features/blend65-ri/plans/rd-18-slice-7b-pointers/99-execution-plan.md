@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-12 03:41 (exec: Phase 1 COMPLETE — 6/6, full verify green)
-> **Progress**: 6/58 tasks (10%)
+> **Last Updated**: 2026-07-12 04:09 (exec: Phase 2 COMPLETE — 12/12, full verify green)
+> **Progress**: 18/58 tasks (31%)
 > **CodeOps Skills Version**: 3.3.1
 
 ## Overview
@@ -76,22 +76,22 @@ expected behavior by [07-testing-strategy.md](07-testing-strategy.md) (ST-1..ST-
 ### Step 2.1: Spec tests (red)
 **Reference**: [03-02](03-02-param-semantics.md) · [07 §Param typing](07-testing-strategy.md) · AR-1/5/6/8/9/10/11
 
-- [ ] 2.1.1 Write ST-6..ST-24a spec tests (incl. the AR-15 inference rows ST-21a/21b/21c; ST-24b moved to ST-40 in Phase 4 — PF-004) — `packages/frontend/src/semantics/param-typing.spec.test.ts`
-- [ ] 2.1.2 Verify red (the two E90001 retirement rows ST-6/ST-7 MUST be red today; ST-21a/21b red — inference doesn't exist yet)
+- [x] 2.1.1 Write ST-6..ST-24a spec tests (incl. the AR-15 inference rows ST-21a/21b/21c; ST-24b moved to ST-40 in Phase 4 — PF-004) — `packages/frontend/src/semantics/param-typing.spec.test.ts` ✅ (completed: 2026-07-12 03:52)
+- [x] 2.1.2 Verify red — 24/24 red incl. ST-6/ST-7 (E90001 pins hold today) and ST-21a/21b (no inference yet) ✅ (completed: 2026-07-12 03:52)
 
 ### Step 2.2: Implement (green)
-- [ ] 2.2.1 Register E10122/E10123/W10112/W10142/W10143 additively — `packages/core/src/diagnostics/diagnostic-codes.ts` (AR-9)
-- [ ] 2.2.2 `ArrayType.size: number | null` + `byteSize`/`type-utils`/`typeName` ripples + `T[N]→T[]` arm — `packages/core/src/semantics/…` (03-02 §Type model)
-- [ ] 2.2.3 Param collection: real aggregate types, `byRef`, `mutable: !isConst`; retire the annotation-resolution param ICE (keep E10120/E10093); **extend `finalizeSymbol`'s kind gate to parameter symbols** (PF-008 — it patches only variable/constant today) — `function-collection.ts`, `annotation-resolution.ts` (03-02 §Symbols)
-- [ ] 2.2.4 Retire the >256-byte gate; unsized param context flag; W10142 (fixed 256 boundary) + W10143 (`targetProfile.maxRam` ≥25%, skip when absent — PF-011) at declared types — `type-check/type-resolution.ts` (03-02, AR-11)
-- [ ] 2.2.5 Call typing: full-mode `signatureOf`, E10122 arg checks, W10112; write protection: E10123 via the extended root predicate — `type-check/expression-typing.ts` (03-02 §Call/§Write)
-- [ ] 2.2.6 Index tiers (E10117/E10118 branch, unsized both-widths) + `length`/`sizeof` rules (E10080 reuses; **`lengthOf` parameter arm** — PF-008) — `expression-typing.ts`, `const-type-engine.ts` (03-02 §Index/§Intrinsics)
-- [ ] 2.2.7 Narrowed unsized inference (AR-15/PF-002): infer-before-check for full element-list literals (local + module, let + const) via the half-shipped `typeArrayLit`/`inferUnsizedArray`; const images sized from the initializer; E10126 for the two non-inferable forms (fill; no initializer) — `type-check/{expression-typing,statement-typing}.ts`, `const-images.ts` (03-02 §Unsized declarations)
-- [ ] 2.2.8 Apply the retired-row protocol to the 7a suites pinning the retired rejections — RUN the suites and retire by protocol (at least `aggregate-typing.spec.test.ts` ST-32/ST-44 and `slice7-negatives.spec.test.ts` params + >256 rows — PF-004); then verify green (ST-6..ST-24a) — all other 7a suites untouched and green
+- [x] 2.2.1 Register E10122/E10123/W10112/W10142/W10143 additively — `packages/core/src/diagnostics/diagnostic-codes.ts` (AR-9) ✅ (completed: 2026-07-12 04:05)
+- [x] 2.2.2 `ArrayType.size: number | null` + `byteSize`/`type-utils`/`typeName` ripples + `T[N]→T[]` arm — `packages/core/src/semantics/…` (03-02 §Type model; +2 loud null-guards in codegen `lower.ts` fill-unroll/`lengthOfArray`, both typing-gated) ✅ (completed: 2026-07-12 04:05)
+- [x] 2.2.3 Param collection: real aggregate types, `byRef`, `mutable: !isConst`; retire the annotation-resolution param ICE (keep E10120/E10093); **extend `finalizeSymbol`'s kind gate to parameter symbols** (`finalizeParameter` — resolves annotation full-mode, patches `byRef`; `Symbol.byRef` made mutable like `type`) ✅ (completed: 2026-07-12 04:05)
+- [x] 2.2.4 Retire the >256-byte gate; unsized survives resolution (legality by declaration site); W10142 (fixed 256 boundary) + W10143 (`targetProfile.maxRam` ≥25%, skip when absent) at declared types — `type-resolution.ts`, `annotation-resolution.ts` (targetProfile threaded via `passes.ts resolveTypes`) ✅ (completed: 2026-07-12 04:05)
+- [x] 2.2.5 Call typing: full-mode `signatureOf` (throwaway bag — finalize owns diagnostics; FnSignature params gain byRef/mutable), E10122 arg checks, W10112 once-per-call; write protection: E10123 via the extended root predicate ✅ (completed: 2026-07-12 04:05)
+- [x] 2.2.6 Index tiers (tier-matched contextual hint; E10117/E10118 branch; unsized both-widths; bounds only when sized) + `length`/`sizeof` E10080 rules + `lengthOf` parameter & inference arms ✅ (completed: 2026-07-12 04:05)
+- [x] 2.2.7 Narrowed unsized inference: null-sentinel `typeArrayLit`/`inferUnsizedArray`; const images sized from the initializer (`evaluateModuleConsts` infers before `buildConstImage`); E10126 for fill + no-initializer (bespoke message) ✅ (completed: 2026-07-12 04:05)
+- [x] 2.2.8 Retired-row protocol applied: `aggregate-typing.spec.test.ts` ST-32 (>256 → W10142) + ST-44 param sub-row (compiles by-ref); `slice7-negatives.spec.test.ts` param + >256 sub-rows — all rewritten to the superseding spec behavior with supersession comments; full workspace test green (frontend 781, all 10 packages) ✅ (completed: 2026-07-12 04:05)
 
 ### Step 2.3: Impl tests & verify
-- [ ] 2.3.1 Impl tests (root-walk, signature edges, unsized containment) — `param-typing.impl.test.ts`
-- [ ] 2.3.2 Full verify + prior goldens byte-exact
+- [x] 2.3.1 Impl tests (root-walk, signature edges, unsized containment) — `param-typing.impl.test.ts` (6/6) ✅ (completed: 2026-07-12 04:09)
+- [x] 2.3.2 Full verify + prior goldens byte-exact — canonical verify green 43.3s; harness golden tier green ✅ (completed: 2026-07-12 04:09)
 
 **Verify**: (canonical, as Phase 1)
 

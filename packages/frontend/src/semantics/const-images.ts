@@ -72,6 +72,13 @@ function writeArray(
   offset: number,
   ctx: ImageContext,
 ): boolean {
+  if (type.size === null) {
+    // The declaration layer sizes (or rejects) every unsized annotation
+    // before images build — reaching here unsized is a compiler defect.
+    throw new Error(
+      `internal error: const image requested for unsized array '${ctx.constName}'`,
+    );
+  }
   if (expr.kind !== "ArrayLitExpr") {
     ctx.bag.addError(
       DiagCode.NonConstInit,
@@ -80,12 +87,13 @@ function writeArray(
     );
     return false;
   }
+  const declaredSize = type.size;
   const elementSize = byteSize(type.element);
-  if (expr.elements.length > type.size) {
+  if (expr.elements.length > declaredSize) {
     ctx.bag.addError(
       DiagCode.TypeMismatchAssignment,
       expr.span,
-      `Array literal has ${expr.elements.length} elements but the declared size is ${type.size}`,
+      `Array literal has ${expr.elements.length} elements but the declared size is ${declaredSize}`,
     );
     return false;
   }
@@ -93,17 +101,17 @@ function writeArray(
   expr.elements.forEach((element, i) => {
     ok = writeValue(type.element, element, bytes, offset + i * elementSize, ctx) && ok;
   });
-  if (expr.elements.length < type.size) {
+  if (expr.elements.length < declaredSize) {
     if (expr.fill === null) {
       ctx.bag.addError(
         DiagCode.ConstArrayNotFullyInit,
         expr.span,
         `Const array '${ctx.constName}' must be fully initialised — ` +
-          `${expr.elements.length} of ${type.size} elements provided (add a '; fill' value)`,
+          `${expr.elements.length} of ${declaredSize} elements provided (add a '; fill' value)`,
       );
       return false;
     }
-    for (let i = expr.elements.length; i < type.size; i += 1) {
+    for (let i = expr.elements.length; i < declaredSize; i += 1) {
       ok = writeValue(type.element, expr.fill, bytes, offset + i * elementSize, ctx) && ok;
     }
   }

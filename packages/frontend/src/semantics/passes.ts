@@ -59,7 +59,7 @@ export function collectDeclarations(
  * @param engine The shared const/type engine (constructed after imports).
  * @param moduleScopes User-module name → its shared module scope.
  * @param scopeByNode Function decl → its body scope.
- * @param input The analyzer input (diagnostic bag).
+ * @param input The analyzer input (diagnostic bag + optional target profile).
  */
 export function resolveTypes(
   engine: ConstTypeEngine,
@@ -68,7 +68,7 @@ export function resolveTypes(
   input: AnalyzeInput,
 ): void {
   engine.driveAll();
-  resolveDeclaredTypes(moduleScopes, scopeByNode, input.bag, engine);
+  resolveDeclaredTypes(moduleScopes, scopeByNode, input.bag, engine, input.targetProfile);
 }
 
 /**

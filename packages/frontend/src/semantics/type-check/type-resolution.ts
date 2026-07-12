@@ -12,12 +12,14 @@
  *   aliases share the one namespace) or the dotted `Mod.Type` form; array
  *   types resolve their element and size. Unknown names are E10151, unknown
  *   module heads E10100, non-exported cross-module types E10012, `void`
- *   elements E10156, non-literal sizes E10110, zero sizes E10111, and arrays
- *   larger than 256 bytes are loudly rejected as not-yet-supported (they need
- *   the pointer-indexing tier).
+ *   elements E10156, non-literal sizes E10110, zero sizes E10111. An unsized
+ *   `[]` annotation resolves to an unsized array type (`size: null`) —
+ *   whether that is legal is the DECLARATION site's decision (parameters
+ *   keep it; variable/constant declarations infer a size from a full
+ *   element-list initialiser or reject).
  */
 
-import { byteSize, DiagCode, ERROR_TYPE, IceCode, primitive } from "@blend65/core";
+import { DiagCode, ERROR_TYPE, primitive } from "@blend65/core";
 import type { DiagnosticBag, ExprNode, Scope, Type, TypeNode } from "@blend65/core";
 
 /** Everything full-mode type resolution needs to resolve named types. */
@@ -67,18 +69,11 @@ export function resolveTypeNode(node: TypeNode | null, ctx?: TypeResolverContext
         return ERROR_TYPE;
       }
       if (element.kind === "error") return ERROR_TYPE;
-      const size = resolveArraySize(node, ctx);
+      // The unsized form `T[]` resolves structurally; its legality is decided
+      // where the declaration's shape is known (parameter vs. variable).
+      if (node.size === null) return { kind: "array", element, size: null };
+      const size = resolveArraySize(node.size, ctx);
       if (size === null || size === "poisoned") return ERROR_TYPE;
-      const total = byteSize(element) * size;
-      if (total > 256) {
-        ctx.bag.addError(
-          IceCode.Unexpected,
-          node.span,
-          `array type is ${total} bytes — arrays larger than 256 bytes are not ` +
-            "supported yet (they need pointer-tier indexing)",
-        );
-        return ERROR_TYPE;
-      }
       return { kind: "array", element, size };
     }
     default:
@@ -134,22 +129,20 @@ function isTypeSymbol(kind: string): boolean {
 }
 
 /**
- * Evaluates an array type's size: a literal directly, any other expression
- * through the resolver context's size evaluator (the const/type engine).
- * Emits and returns `null` on an invalid size, `"poisoned"` (silently) when
- * the size's failure is already reported; an unsized `[]` resolves to 0 here
- * and the annotation pass decides whether an initialiser justifies it.
+ * Evaluates an array type's size expression: a literal directly, any other
+ * expression through the resolver context's size evaluator (the const/type
+ * engine). Emits and returns `null` on an invalid size, `"poisoned"`
+ * (silently) when the size's failure is already reported.
  */
 function resolveArraySize(
-  node: Extract<TypeNode, { kind: "ArrayType" }>,
+  sizeExpr: ExprNode,
   ctx: TypeResolverContext,
 ): number | "poisoned" | null {
-  if (node.size === null) return 0; // unsized `[]` — validated at the annotation
   let size: number | "poisoned" | null;
-  if (node.size.kind === "NumericLitExpr") {
-    size = node.size.value;
+  if (sizeExpr.kind === "NumericLitExpr") {
+    size = sizeExpr.value;
   } else if (ctx.evalSize !== undefined) {
-    size = ctx.evalSize(node.size);
+    size = ctx.evalSize(sizeExpr);
   } else {
     size = null;
   }
@@ -157,13 +150,13 @@ function resolveArraySize(
   if (size === null) {
     ctx.bag.addError(
       DiagCode.ArraySizeNotConst,
-      node.size.span,
+      sizeExpr.span,
       "Array size must be a compile-time constant",
     );
     return null;
   }
   if (size < 1) {
-    ctx.bag.addError(DiagCode.ArraySizeZero, node.size.span, "Array size must be at least 1");
+    ctx.bag.addError(DiagCode.ArraySizeZero, sizeExpr.span, "Array size must be at least 1");
     return null;
   }
   return size;
