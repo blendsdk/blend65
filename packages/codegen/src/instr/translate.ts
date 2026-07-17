@@ -70,6 +70,14 @@ export interface TranslateOptions {
   readonly zpArgBlockSize?: number;
   /** The target platform id, for the E10044 message. */
   readonly platformId?: string;
+  /**
+   * A program-shared comparison-label allocator. The `_cmpN` labels are
+   * global assembler symbols, so every function of one program must draw
+   * from a single sequence — two functions both starting at `_cmp0` would
+   * collide at assembly. Absent (single-function translation in tests),
+   * a translator-local counter serves.
+   */
+  readonly cmpLabels?: { next: number };
 }
 
 /**
@@ -177,8 +185,22 @@ class FunctionTranslator {
   private leadSpan: SourceSpan | undefined = undefined;
   /** Instruction index whose `store` has been folded into a word ALU (skip it). */
   private skipIndex = -1;
-  /** Per-function generated-label counter (`_cmpN`). Reserved for comparisons. */
+  /**
+   * Fallback generated-label counter (`_cmpN`) for translator-local use
+   * when no program-shared allocator is supplied.
+   */
   private cmpCounter = 0;
+
+  /** The next program-unique generated-label number (shared across families). */
+  private nextLabelNumber(): number {
+    const shared = this.opts?.cmpLabels;
+    return shared !== undefined ? shared.next++ : this.cmpCounter++;
+  }
+
+  /** The next program-unique comparison label. */
+  private nextCmpLabel(): string {
+    return `_cmp${this.nextLabelNumber()}`;
+  }
 
   constructor(
     private readonly fn: ILFunction,
@@ -713,8 +735,8 @@ class FunctionTranslator {
       }
       const count = this.rightSource(right, 0);
       this.emit("LDX", count.mode, count.operand);
-      const loopL = `_sh${this.cmpCounter++}`;
-      const doneL = `_sh${this.cmpCounter++}`;
+      const loopL = `_sh${this.nextLabelNumber()}`;
+      const doneL = `_sh${this.nextLabelNumber()}`;
       this.emit("BEQ", "Relative", labelRef(doneL)); // a zero count shifts nothing
       this.out.push(label(loopL));
       this.emitByteShiftStep(op, signedShr);
@@ -741,8 +763,8 @@ class FunctionTranslator {
     }
     const count = this.rightSource(right, 0);
     this.emit("LDX", count.mode, count.operand);
-    const loopL = `_sh${this.cmpCounter++}`;
-    const doneL = `_sh${this.cmpCounter++}`;
+    const loopL = `_sh${this.nextLabelNumber()}`;
+    const doneL = `_sh${this.nextLabelNumber()}`;
     this.emit("BEQ", "Relative", labelRef(doneL));
     this.out.push(label(loopL));
     this.emitWordShiftStep(op, signedShr, home);
@@ -1042,7 +1064,7 @@ class FunctionTranslator {
     } else {
       // Carry-based (BCC/BCS): `LDA` preserves the carry flag, so the compact
       // form is correct — the branch tests the carry `CMP` set.
-      const done = `_cmp${this.cmpCounter++}`;
+      const done = this.nextCmpLabel();
       this.emit("LDA", "Immediate", imm8(0x01));
       this.emit(branch, "Relative", labelRef(done));
       this.emit("LDA", "Immediate", imm8(0x00));
@@ -1053,8 +1075,8 @@ class FunctionTranslator {
 
   /** Branch-taken ⇒ 1: materialise the 0/1 from a flag-fresh branch opcode. */
   private materialiseOnBranch(branch: Opcode): void {
-    const trueL = `_cmp${this.cmpCounter++}`;
-    const endL = `_cmp${this.cmpCounter++}`;
+    const trueL = this.nextCmpLabel();
+    const endL = this.nextCmpLabel();
     this.emit(branch, "Relative", labelRef(trueL));
     this.emit("LDA", "Immediate", imm8(0x00));
     this.emit("JMP", "Absolute", labelRef(endL));
@@ -1079,7 +1101,7 @@ class FunctionTranslator {
     this.emit("SEC", "Implied", none());
     const r = this.rightSource(rhs, 0);
     this.emit("SBC", r.mode, r.operand);
-    const skipL = `_cmp${this.cmpCounter++}`;
+    const skipL = this.nextCmpLabel();
     this.emit("BVC", "Relative", labelRef(skipL));
     this.emit("EOR", "Immediate", imm8(0x80));
     this.out.push(label(skipL));
@@ -1089,7 +1111,7 @@ class FunctionTranslator {
 
   /** 16-bit equality: low bytes decide fast, high bytes break the tie (Z-based). */
   private wordEquality(op: "eq" | "ne", dest: ILOperand, lhs: ILOperand, rhs: ILOperand): void {
-    const diffL = `_cmp${this.cmpCounter++}`;
+    const diffL = this.nextCmpLabel();
     this.wordLeftByteIntoA(lhs, 0);
     const rLo = this.rightSource(rhs, 0);
     this.emit("CMP", rLo.mode, rLo.operand);
@@ -1115,9 +1137,9 @@ class FunctionTranslator {
     rhs: ILOperand,
   ): void {
     const wantLess = op === "lt" || op === "gt"; // after the caller's swap
-    const falseL = `_cmp${this.cmpCounter++}`;
-    const trueL = `_cmp${this.cmpCounter++}`;
-    const endL = `_cmp${this.cmpCounter++}`;
+    const falseL = this.nextCmpLabel();
+    const trueL = this.nextCmpLabel();
+    const endL = this.nextCmpLabel();
 
     this.wordLeftByteIntoA(lhs, 1);
     const rHi = this.rightSource(rhs, 1);
@@ -1161,7 +1183,7 @@ class FunctionTranslator {
     this.wordLeftByteIntoA(lhs, 1);
     const rHi = this.rightSource(rhs, 1);
     this.emit("SBC", rHi.mode, rHi.operand);
-    const skipL = `_cmp${this.cmpCounter++}`;
+    const skipL = this.nextCmpLabel();
     this.emit("BVC", "Relative", labelRef(skipL));
     this.emit("EOR", "Immediate", imm8(0x80));
     this.out.push(label(skipL));

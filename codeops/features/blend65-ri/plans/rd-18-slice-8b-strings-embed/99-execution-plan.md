@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 20:12
-> **Progress**: 43/58 tasks (74%)
+> **Last Updated**: 2026-07-17 21:10
+> **Progress**: 52/58 tasks (90%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -172,18 +172,18 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 
 **Reference**: 03-04 · AR-14 · ST-36..40
 
-- [ ] 5.1.1 Create `examples/slice8b/main.blend` + committed `table.bin` (verbatim per 03-04); harness `slice8b.ts` (`SLICE8B_MAIN_SRC`, `buildSlice8b` with ABSOLUTE outDir, asset staging)
-- [ ] 5.1.2 Write `slice8b.spec.test.ts` (ST-36 assemble-clean + ST-37 VICE observables) — `packages/test-harness/src/`
-- [ ] 5.1.3 Write `slice8b-negatives.spec.test.ts` (ST-40, one per code) — `packages/test-harness/src/`
-- [ ] 5.1.4 Write `golden-slice8b.spec.test.ts` (ST-38 landmarks + ST-39 prior-goldens sweep) — `packages/test-harness/src/`
-- [ ] 5.1.5 Run assemble/negatives/golden suites — confirm expected red (no golden yet) and assemble-clean status
+- [x] 5.1.1 Create `examples/slice8b/main.blend` + committed `table.bin` (verbatim per 03-04); harness `slice8b.ts` (`SLICE8B_MAIN_SRC`, `buildSlice8b` with ABSOLUTE outDir, asset staging) ✅ (completed: 2026-07-17 20:52; impl 20:24 — **runtime corrections (mechanical)**: `word(i)` → `<word>(i)` (the cast form; `word(i)` parses as an undeclared call) and `0 to len` → hoisted `last = len - 1` bound (`to` is INCLUSIVE per slice7's 0-to-4-over-5-elements pin; the for-bound is a primary expression); corrections recorded in 03-04)
+- [x] 5.1.2 Write `slice8b.spec.test.ts` (ST-36 assemble-clean + ST-37 VICE observables) — `packages/test-harness/src/` ✅ (completed: 2026-07-17 20:52; impl 20:24)
+- [x] 5.1.3 Write `slice8b-negatives.spec.test.ts` (ST-40, one per code) — `packages/test-harness/src/` ✅ (completed: 2026-07-17 20:52; impl 20:24 — 8 codes incl. the existence-irrelevant E10205 probe)
+- [x] 5.1.4 Write `golden-slice8b.spec.test.ts` (ST-38 landmarks + ST-39 prior-goldens sweep) — `packages/test-harness/src/` ✅ (completed: 2026-07-17 20:52; impl 20:24 — ST-39's eleven-priors sweep = the existing per-slice golden suites running green in the same tier, noted in the doc comment)
+- [x] 5.1.5 Run assemble/negatives/golden suites — confirm expected red (no golden yet) and assemble-clean status ✅ (completed: 2026-07-17 20:52 — negatives 8/8 green immediately; assemble red exposed TWO real issues, both fixed under 5.2.1: the fixture's poke const-address violation (E10045; redesigned to by-ref staging + const-address pokes, oracles unchanged) and the shipped cross-function `_cmp`/`_sh` label collision (program-shared allocator; priors byte-exact))
 
 ### Step 5.2: Bar
 
-- [ ] 5.2.1 Fix any assemble/negative failures; mint `test/golden/slice8b.asm.golden` once ASM is correct-by-inspection against 03-04 landmarks
-- [ ] 5.2.2 Run the VICE runtime suite on real VICE 3.10 — ST-37 observables GREEN (local tier)
-- [ ] 5.2.3 Verify the eleven prior goldens byte-exact (ST-39) + CI-tier suites green
-- [ ] 5.2.4 Full verify
+- [x] 5.2.1 Fix any assemble/negative failures; mint `test/golden/slice8b.asm.golden` once ASM is correct-by-inspection against 03-04 landmarks ✅ (completed: 2026-07-17 20:52 — 205-line golden; landmarks verified (PETSCII title row, verbatim table row, JSR __init + JSR _main, program-unique _cmp labels))
+- [x] 5.2.2 Run the VICE runtime suite on real VICE 3.10 — ST-37 observables GREEN (local tier) ✅ (completed: 2026-07-17 20:52 — GREEN FIRST RUN: $0400-09 title, $C000-07 table, $C010-17 banner, $C020 flag)
+- [x] 5.2.3 Verify the eleven prior goldens byte-exact (ST-39) + CI-tier suites green ✅ (completed: 2026-07-17 20:52 — 11/11 priors byte-exact under the label-allocator fix; harness package 173/173)
+- [x] 5.2.4 Full verify ✅ (completed: 2026-07-17 21:10 — 17/17 turbo tasks from the repo root; harness 48 files/173 tests incl. the 8b three-part bar; boundary tier green)
 
 **Verify**: (same command)
 

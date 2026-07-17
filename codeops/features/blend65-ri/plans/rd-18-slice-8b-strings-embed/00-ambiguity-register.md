@@ -71,6 +71,22 @@ re-check (AR-10 mechanics, RD-18 "canonicalize" clause); the raw no-profile enco
 `SemanticModel`/`ConstValue` provenance edits are `@blend65/core` changes; citation fixes
 (Ch 15 §6; EMB-1 vs the AR-11 tightening; ST-25..35/ST-40 ids).
 
+**Runtime corrections (2026-07-17, exec_plan Phase 5 — mechanical, no decided outcome changed):**
+the 03-04 fixture listing was not legal blend65 on three counts, corrected during execution with
+the oracles (observables table, golden landmarks, proof points) preserved byte-for-byte:
+(1) `word(i)` → `<word>(i)` (the language's cast form; `word(i)` parses as an undeclared call);
+(2) `for (… = 0 to len)` → a hoisted `last = len - 1` bound (`to` is INCLUSIVE — slice7's
+`0 to 4` covers five elements — and the for-bound parses as a primary expression);
+(3) `poke(dst + <word>(i), …)` violates poke's compile-time-constant-address rule (E10045) —
+the copy became by-ref-array staging (`copyBytes(src: const byte[], dst: byte[], len)`) with
+unrolled const-address pokes relaying the staged bytes to the observable ranges, which also
+exercises the mutable by-ref array parameter path. Additionally the fixture exposed a REAL
+shipped codegen bug: `_cmpN`/`_shN` generated labels are global assembler symbols but their
+counter reset per function, so any program with two comparison-bearing functions failed ACME
+("Symbol already defined") — fixed with a program-shared label allocator threaded through
+`generateInstr` (`translate.ts`/`instr-program.ts`); all eleven prior goldens stay byte-exact
+(any prior hitting the bug could never have assembled).
+
 **Deferral consequences (stated at deferral):** AR-4 leaves the four encoding intrinsics +
 `encode()` unparsed-as-intrinsics (they fail as undeclared identifiers); AR-11 leaves format-aware
 embed behind a loud E90001; AR-5 defers full encoding-table fidelity (graphics chars, shifted

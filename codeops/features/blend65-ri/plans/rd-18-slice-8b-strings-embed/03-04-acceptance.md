@@ -6,6 +6,13 @@
 
 ## The fixture — `examples/slice8b/main.blend` (+ `table.bin`)
 
+> **Runtime corrections (mechanical, 2026-07-17, exec_plan):** the original listing used
+> `word(i)` (the language's cast form is `<word>(expr)` — `word(i)` parses as a call to an
+> undeclared identifier) and `for (… = 0 to len)` (`to` is INCLUSIVE — slice7's `0 to 4`
+> covers five elements — so `to len` would copy len+1 bytes); the for-bound is a PRIMARY
+> expression, so the fix hoists `len - 1` into a local. Observables unchanged. The fixture
+> comments also drop their register citations per the documentation ban.
+
 ```blend65
 module Main;
 
@@ -14,8 +21,9 @@ const TABLE: byte[] = embed("table.bin");  // 8 committed bytes: $01 02 04 08 10
 let banner: byte[8] = ["HI"; '.'];         // bracketed string + char fill (AR-8 form 2)
 
 function copyBytes(src: const byte[], len: byte, dst: word): void {
-  for (let i: byte = 0 to len) {
-    poke(dst + word(i), src[i]);
+  let last: byte = len - 1;
+  for (let i: byte = 0 to last) {
+    poke(dst + <word>(i), src[i]);
   }
 }
 

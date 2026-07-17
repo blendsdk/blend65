@@ -1,0 +1,53 @@
+module Main;
+
+const TITLE: byte[] = "HELLO C64!";        // 10 bytes, PETSCII-encoded
+const TABLE: byte[] = embed("table.bin");  // 8 committed bytes: $01 02 04 08 10 20 40 80
+let banner: byte[8] = ["HI"; '.'];         // bracketed string + char-literal fill
+let title2: byte[10];                      // staging: the copied screen text
+let table2: byte[8];                       // staging: the copied embed bytes
+
+function copyBytes(src: const byte[], dst: byte[], len: byte): void {
+  let last: byte = len - 1;
+  for (let i: byte = 0 to last) {
+    dst[i] = src[i];
+  }
+}
+
+function main(): void {
+  copyBytes(TITLE, title2, length(TITLE)); // by-ref const src, by-ref dst, length() fold
+  copyBytes(TABLE, table2, length(TABLE)); // embedded bytes through the same copy path
+  banner[0] = 'B';                         // mutable string mutation via a char literal
+
+  poke($0400, title2[0]);                  // screen RAM: the copied title
+  poke($0401, title2[1]);
+  poke($0402, title2[2]);
+  poke($0403, title2[3]);
+  poke($0404, title2[4]);
+  poke($0405, title2[5]);
+  poke($0406, title2[6]);
+  poke($0407, title2[7]);
+  poke($0408, title2[8]);
+  poke($0409, title2[9]);
+
+  poke($C000, table2[0]);                  // the copied embed bytes
+  poke($C001, table2[1]);
+  poke($C002, table2[2]);
+  poke($C003, table2[3]);
+  poke($C004, table2[4]);
+  poke($C005, table2[5]);
+  poke($C006, table2[6]);
+  poke($C007, table2[7]);
+
+  poke($C010, banner[0]);                  // the mutated banner
+  poke($C011, banner[1]);
+  poke($C012, banner[2]);
+  poke($C013, banner[3]);
+  poke($C014, banner[4]);
+  poke($C015, banner[5]);
+  poke($C016, banner[6]);
+  poke($C017, banner[7]);
+
+  if (TITLE[0] == 'H') {                   // char-literal comparison against encoded data
+    poke($C020, 1);
+  }
+}

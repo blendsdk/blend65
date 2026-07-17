@@ -77,6 +77,10 @@ export function generateInstr(
 ): InstrProgram {
   const plan = ilProgram.allocationPlan;
   const streams: InstrStream[] = [];
+  // One comparison-label sequence for the whole program — the `_cmpN`
+  // labels are global assembler symbols, so per-function restarts would
+  // collide as soon as two functions both compare.
+  const sharedOpts: TranslateOptions = { ...opts, cmpLabels: { next: 0 } };
 
   if (ilProgram.initCode.length > 0) {
     // The module-initializer stream, shaped like a void function so the
@@ -90,7 +94,7 @@ export function generateInstr(
       tempCount: ilProgram.initTempCount,
       isInterrupt: false,
     };
-    const initStream = translateFunction(initFn, plan, cpuVariant, bag, opts);
+    const initStream = translateFunction(initFn, plan, cpuVariant, bag, sharedOpts);
     validateStream(initStream, cpuVariant, bag);
     streams.push(initStream);
   }
@@ -101,7 +105,7 @@ export function generateInstr(
     if (!hasBody) {
       continue;
     }
-    const stream = translateFunction(fn, plan, cpuVariant, bag, opts);
+    const stream = translateFunction(fn, plan, cpuVariant, bag, sharedOpts);
     // Post-translation validation: every emitted opcode+mode must be CPU-legal
     // for the variant; an illegal pair is an E90001 codegen bug.
     validateStream(stream, cpuVariant, bag);
