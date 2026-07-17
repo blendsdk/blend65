@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 19:12
-> **Progress**: 31/58 tasks (53%)
+> **Last Updated**: 2026-07-17 20:12
+> **Progress**: 43/58 tasks (74%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -143,24 +143,24 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 
 **Reference**: 03-03 · AR-10/11/12/13 · ST-25..35
 
-- [ ] 4.1.1 Write `embed.spec.test.ts` (ST-25..32, ST-34, ST-35; temp-dir fixtures incl. the traversal/absolute/oversize probes) — `packages/frontend/src/semantics/`
-- [ ] 4.1.2 Write `lower-embed.spec.test.ts` (ST-33) — `packages/codegen/src/il/`
-- [ ] 4.1.3 Run — verify FAIL (red; embed poisons silently today)
+- [~] 4.1.1 Write `embed.spec.test.ts` (ST-25..32, ST-34, ST-35; temp-dir fixtures incl. the traversal/absolute/oversize probes) — `packages/frontend/src/semantics/` ⏳ (implemented: 2026-07-17 19:26 — scripted-reader oracle at the frontend seam (the frontend owns no fs under R15); the REAL-fs traversal/absolute/oversize/symlink probes pin the disk reader at 4.3.1 and the full pipeline in the Phase-5 negatives)
+- [~] 4.1.2 Write `lower-embed.spec.test.ts` (ST-33) — `packages/codegen/src/il/` ⏳ (implemented: 2026-07-17 19:26 — embed-tagged ConstDataEntry + verbatim bytes; the !byte rows are the emitter's, pinned by the Phase-5 golden)
+- [x] 4.1.3 Run — verify FAIL (red; embed poisons silently today) ✅ (completed: 2026-07-17 19:33 — frontend 14/14 red; codegen embed-entry red, the provenance-CONTRAST case passes pre-impl by design (pins shipped array tagging))
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Define `AssetReader` + `AssetReadResult` (`SourceId`-keyed, `Uint8Array` contract, ok arm carries `resolvedPath` — per 03-03) — `packages/core/src/host/asset-reader.ts` (+ barrel)
-- [ ] 4.2.2 Mint `EmbedPathEscapesRoot: "E10205"` (additive) — `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 4.2.3 Implement the disk reader (sourceId→path map built during interning, resolve, realpath canonicalization, containment, stat-cap + post-read re-check, invalid-path policy per 03-03) + wire into `analyze()` input — `packages/compiler/src/api/` (`asset-reader.ts` + `run-frontend.ts`)
-- [ ] 4.2.4 Implement embed declaration typing (EMB-1..4 legality, E10200/01/02/05 + format E90001, size inference, constValues bytes + `source:"embed"`, `embeddedAssets` map, absent-reader poison) — `packages/frontend/src/semantics/type-check/statement-typing.ts` (+ `packages/core/src/semantics/{semantic-model,const-value}.ts` for the `embeddedAssets` map + `source` provenance types)
-- [ ] 4.2.5 Provenance passthrough to `ConstDataEntry.type:"embed"` — `packages/codegen/src/il/lower.ts` (+ stale cfg.ts comment refresh)
-- [ ] 4.2.6 Run Step-4.1 suites — verify GREEN
+- [x] 4.2.1 Define `AssetReader` + `AssetReadResult` (`SourceId`-keyed, `Uint8Array` contract, ok arm carries `resolvedPath` — per 03-03) — `packages/core/src/host/asset-reader.ts` (+ barrel) ✅ (completed: 2026-07-17 19:55; impl 19:40)
+- [x] 4.2.2 Mint `EmbedPathEscapesRoot: "E10205"` (additive) — `packages/core/src/diagnostics/diagnostic-codes.ts` ✅ (completed: 2026-07-17 19:55; impl 19:40)
+- [x] 4.2.3 Implement the disk reader (sourceId→path map built during interning, resolve, realpath canonicalization, containment, stat-cap + post-read re-check, invalid-path policy per 03-03) + wire into `analyze()` input — `packages/compiler/src/api/` (`asset-reader.ts` + `run-frontend.ts`) ✅ (completed: 2026-07-17 19:55; impl 19:40)
+- [x] 4.2.4 Implement embed declaration typing (EMB-1..4 legality, E10200/01/02/05 + format E90001, size inference, constValues bytes + `source:"embed"`, `embeddedAssets` map, absent-reader poison) — `packages/frontend/src/semantics/type-check/statement-typing.ts` (+ `packages/core/src/semantics/{semantic-model,const-value}.ts` for the `embeddedAssets` map + `source` provenance types) ✅ (completed: 2026-07-17 19:55; impl 19:40)
+- [x] 4.2.5 Provenance passthrough to `ConstDataEntry.type:"embed"` — `packages/codegen/src/il/lower.ts` (+ stale cfg.ts comment refresh) ✅ (completed: 2026-07-17 19:55; impl 19:40)
+- [x] 4.2.6 Run Step-4.1 suites — verify GREEN ✅ (completed: 2026-07-17 19:55 — embed spec 14/14, lower-embed 2/2, whole frontend 886/886; two green-phase fixes: embed-handled consts skip scalar evaluation, engine lengthOf honors the patched symbol type)
 
 ### Step 4.3: Impl tests & hardening
 
-- [ ] 4.3.1 Write `asset-reader.impl.test.ts` (byte identity ≥`$80`, stat-cap ordering + post-read re-check, canonical containment incl. a symlink-escape probe) — `packages/compiler/src/api/`
-- [ ] 4.3.2 Write `embed.impl.test.ts` (provenance, inference parity) — `packages/frontend/src/semantics/`
-- [ ] 4.3.3 Full verify + prior-goldens check
+- [x] 4.3.1 Write `asset-reader.impl.test.ts` (byte identity ≥`$80`, stat-cap ordering + post-read re-check, canonical containment incl. a symlink-escape probe) — `packages/compiler/src/api/` ✅ (completed: 2026-07-17 19:55 — 9/9; stat-first proven via a chmod-000 oversize file; post-read re-check is code-guarded, race not unit-reproducible without fs mocks)
+- [x] 4.3.2 Write `embed.impl.test.ts` (provenance, inference parity) — `packages/frontend/src/semantics/` ✅ (completed: 2026-07-17 19:55 — 3/3 incl. SourceId keying in multi-file programs)
+- [x] 4.3.3 Full verify + prior-goldens check ✅ (completed: 2026-07-17 20:12 — 17/17 turbo tasks from the repo root; goldens byte-exact)
 
 **Verify**: (same command)
 

@@ -58,8 +58,8 @@ export interface ILFunction {
 /**
  * A blob of constant data emitted into the binary.
  *
- * Produced for array/struct literals and `embed`ded data. Empty in v1 — const
- * and embed lowering arrive with their slices.
+ * Produced for array/struct literals and `embed`ded data (the embed arm is
+ * tagged from the const value's provenance).
  */
 export interface ConstDataEntry {
   /** The ACME label this data is emitted under. */

@@ -7,3 +7,4 @@
  */
 
 export type { CompilerHost } from "./compiler-host.js";
+export type { AssetReader, AssetReadResult } from "./asset-reader.js";

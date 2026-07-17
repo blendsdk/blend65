@@ -22,6 +22,7 @@ import {
   type IntrinsicRegistry,
   type ProgramNode,
   type SemanticModel,
+  type SourceId,
   type SourceMap,
 } from "@blend65/core";
 import type { PlatformPlugin } from "@blend65/core/platform";
@@ -38,8 +39,9 @@ import {
   parse,
   planAllocation,
 } from "@blend65/frontend";
-import { basename, extname, relative, sep } from "node:path";
+import { basename, extname, relative, resolve, sep } from "node:path";
 import { createDiskCompilerHost } from "../host/index.js";
+import { createDiskAssetReader } from "./asset-reader.js";
 import { optionsToOverrides, type CompilerOptions } from "./options.js";
 
 /** The accumulated result of the shared frontend pipeline. */
@@ -133,8 +135,12 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
   const plugin = loadPlatform(config.platform);
   const registry = createIntrinsicRegistry(plugin.intrinsics, plugin.id);
 
-  // 6+7. Read → intern → lex → parse each file.
+  // 6+7. Read → intern → lex → parse each file. The SourceId → absolute-path
+  // map built here backs source-relative `embed()` resolution — the frontend
+  // itself owns no paths (spans carry SourceIds; the source map interns
+  // display paths).
   const programs: ProgramNode[] = [];
+  const sourcePaths = new Map<SourceId, string>();
   for (const path of files) {
     const content = activeHost.readFile(path);
     if (content === undefined) {
@@ -144,6 +150,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     }
     const displayPath = toDisplayPath(config.projectRoot, path);
     const sourceId = sourceMap.intern(displayPath, content);
+    sourcePaths.set(sourceId, resolve(path));
     const { tokens } = lex(sourceId, content, bag);
     const { ast } = parse({ tokens, source: content, sourceId, bag });
     programs.push(ast);
@@ -156,6 +163,10 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
     profile: DEFAULT_PROFILE,
     registry,
     targetProfile: plugin.profile,
+    assetReader: createDiskAssetReader({
+      sources: sourcePaths,
+      projectRoot: config.projectRoot,
+    }),
   });
 
   // 9. SFA — gated on a clean frontend: an errored model must never reach

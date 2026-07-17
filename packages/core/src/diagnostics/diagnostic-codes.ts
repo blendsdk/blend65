@@ -267,6 +267,11 @@ export const DiagCode = {
   EmbedSizeMismatch: "E10202",
   EmbedUnknownSelector: "E10203",
   EmbedFormatParseError: "E10204",
+  // - E10205: an embed path that resolves (canonically) outside the project
+  //   root. A dedicated code rather than a not-found conflation: traversal
+  //   is a security rejection and must stay distinguishable whether or not
+  //   the target exists. Minted on the next free number in the band.
+  EmbedPathEscapesRoot: "E10205",
   // Operators & expressions
   InvalidOperandType: "E10080",
   MixedSignedUnsignedOperands: "E10081",

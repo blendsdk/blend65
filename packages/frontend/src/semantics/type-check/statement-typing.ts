@@ -34,6 +34,7 @@ import type {
   AstVisitor,
   BlockNode,
   ConstDeclNode,
+  EmbedExprNode,
   ExprNode,
   FallthroughStmtNode,
   ForStmtNode,
@@ -281,6 +282,16 @@ function evaluateModuleConsts(
       // check and the const-image builder see a plain element list.
       if (desugarStringInit(item, letDeclaredType(item, sym), encoderOf(ctx), ctx.bag)) {
         typePoisoned.add(sym);
+        continue;
+      }
+
+      // An embed() initialiser is fully handled here (the ONLY position it
+      // is legal in); its value comes from the asset reader, not folding.
+      // A failed embed marks the symbol so the evaluation phase below never
+      // treats the initialiser as a foldable scalar.
+      if (item.initialiser.kind === "EmbedExpr") {
+        typeEmbedConst(item, item.initialiser, sym, program.moduleDecl?.name, ctx);
+        if (!ctx.constValues.has(sym)) typePoisoned.add(sym);
         continue;
       }
 
@@ -841,6 +852,113 @@ function typeLetDecl(decl: LetDeclNode, scope: Scope, ctx: TypeCheckContext): vo
   checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
   checkIntermediateOverflow(decl.initialiser, initType, declaredType, ctx); // W10160/61
   inferUnsizedArray(sym, declaredType, initType);
+}
+
+/**
+ * Types a module-level `const name: byte[N?] = embed("path");` — the ONLY
+ * position an embed is legal in.
+ *
+ * The declared type must be a byte-element array (sized or unsized). The
+ * injected reader supplies the bytes at analysis time; reader failures map
+ * to the embed diagnostic family. An absent reader (editors, tests — no
+ * disk policy) poisons silently: a diagnostic would make editor analysis
+ * noisy, and a fabricated size would poison downstream layout worse than
+ * none. On success the symbol receives the exact file size (unsized forms
+ * infer it) and the const value carries the bytes with embed provenance,
+ * so `length()` folding, index-tier checks, and data emission see a normal
+ * sized const array.
+ */
+function typeEmbedConst(
+  decl: ConstDeclNode,
+  embed: EmbedExprNode,
+  sym: Symbol,
+  moduleName: string | undefined,
+  ctx: TypeCheckContext,
+): void {
+  if (embed.format !== null) {
+    ctx.bag.addError(
+      IceCode.Unexpected,
+      embed.formatSpan ?? embed.span,
+      "format-aware embed() is not supported yet — use raw embed(path)",
+    );
+    sym.type = ERROR_TYPE;
+    return;
+  }
+
+  const declaredType = letDeclaredType(decl, sym);
+  if (
+    declaredType.kind !== "array" ||
+    declaredType.element.kind !== "primitive" ||
+    declaredType.element.name !== "byte"
+  ) {
+    ctx.bag.addError(
+      DiagCode.EmbedNonConst,
+      embed.span,
+      "embed() is only legal as the full initializer of a module-level " +
+        "'const' byte-array declaration",
+    );
+    sym.type = ERROR_TYPE;
+    return;
+  }
+
+  if (ctx.assetReader === undefined) {
+    sym.type = ERROR_TYPE;
+    return;
+  }
+
+  const result = ctx.assetReader.readAsset(embed.span.sourceId, embed.path);
+  if (result.kind === "not-found") {
+    ctx.bag.addError(
+      DiagCode.EmbedFileNotFound,
+      embed.pathSpan,
+      `Embedded file not found: '${embed.path}'`,
+    );
+    sym.type = ERROR_TYPE;
+    return;
+  }
+  if (result.kind === "outside-root") {
+    ctx.bag.addError(
+      DiagCode.EmbedPathEscapesRoot,
+      embed.pathSpan,
+      `Embedded path '${embed.path}' resolves outside the project root`,
+    );
+    sym.type = ERROR_TYPE;
+    return;
+  }
+  if (result.kind === "too-large") {
+    ctx.bag.addError(
+      DiagCode.EmbedSizeMismatch,
+      embed.pathSpan,
+      `Embedded file '${embed.path}' is ${result.size} bytes — larger than the ` +
+        "65536-byte cap (nothing larger fits the address space)",
+    );
+    sym.type = ERROR_TYPE;
+    return;
+  }
+
+  const bytes = result.bytes;
+  if (declaredType.size !== null && declaredType.size !== bytes.byteLength) {
+    ctx.bag.addError(
+      DiagCode.EmbedSizeMismatch,
+      embed.pathSpan,
+      `Embedded file size (${bytes.byteLength} bytes) does not match the ` +
+        `declared array size (${declaredType.size})`,
+    );
+    sym.type = ERROR_TYPE;
+    return;
+  }
+
+  const sized: Type = {
+    kind: "array",
+    element: declaredType.element,
+    size: bytes.byteLength,
+  };
+  sym.type = sized;
+  ctx.typeMap.set(embed, sized);
+  ctx.constValues.set(sym, { type: sized, value: 0, bytes, source: "embed" });
+  if (moduleName !== undefined) {
+    ctx.embeddedAssets?.set(`${moduleName}.${sym.name}`, result.resolvedPath);
+  }
 }
 
 /**

@@ -12,6 +12,7 @@
  */
 
 import type {
+  AssetReader,
   AstNode,
   ConstValue,
   DiagnosticBag,
@@ -92,4 +93,15 @@ export interface TypeCheckContext {
    * constants a definition cycle already poisoned.
    */
   readonly engine?: ConstTypeEngine;
+  /**
+   * The binary asset reader backing `embed()`. Absent in hosts without a
+   * disk policy — an `embed()` then poisons silently, never fabricating a
+   * size.
+   */
+  readonly assetReader?: AssetReader;
+  /**
+   * Embedded assets recorded during const typing (symbol FQN → canonical
+   * absolute asset path). Frozen into the model afterwards.
+   */
+  readonly embeddedAssets?: Map<string, string>;
 }

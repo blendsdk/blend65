@@ -438,9 +438,14 @@ export class ConstTypeEngine {
     const annotation = decl.declaredType;
     if (annotation === null || annotation.kind !== "ArrayType") return null;
     if (annotation.size === null) {
-      // An unsized declaration's size is its full element-list initialiser's
-      // count (the same inference the declaration itself receives); reading
-      // the initialiser keeps this fold independent of pass ordering.
+      // Once inference patched the symbol (element-list splice, embed file
+      // size), its type is authoritative for the fold.
+      if (sym !== null && sym.type.kind === "array" && sym.type.size !== null) {
+        return sym.type.size;
+      }
+      // Otherwise the size is the full element-list initialiser's count
+      // (the same inference the declaration itself receives); reading the
+      // initialiser keeps this fold independent of pass ordering.
       const init = decl.initialiser;
       if (
         init !== null &&

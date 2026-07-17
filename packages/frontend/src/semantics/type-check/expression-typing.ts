@@ -174,6 +174,17 @@ function computeType(
         "A string literal needs a byte-array initialiser position (a declaration it can fill)",
       );
       return ERROR_TYPE;
+    case "EmbedExpr":
+      // The one legal embed position (a module-level const byte-array
+      // initializer) is fully handled by the const pass before typing —
+      // any embed reaching expression typing is in an illegal position.
+      ctx.bag.addError(
+        DiagCode.EmbedNonConst,
+        expr.span,
+        "embed() is only legal as the full initializer of a module-level " +
+          "'const' byte-array declaration",
+      );
+      return ERROR_TYPE;
     default:
       // Char literals only reach this arm when their conversion failed
       // (already diagnosed). Poison without a further diagnostic.

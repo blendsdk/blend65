@@ -53,6 +53,13 @@ export interface SemanticModel {
   readonly addressTakenFunctions: ReadonlySet<Symbol>;
   readonly structTypes: ReadonlyMap<string, StructType>;
   readonly enumTypes: ReadonlyMap<string, EnumType>;
+  /**
+   * Embedded assets by symbol FQN (`Module.name` → canonical absolute
+   * asset path) — the invalidation edge a watching host needs to know
+   * which compilation inputs live outside the source set. Empty when the
+   * program embeds nothing.
+   */
+  readonly embeddedAssets: ReadonlyMap<string, string>;
   /** The resolved entry-point function, or `null` if none. */
   readonly mainFunction: Symbol | null;
   /** `true` if analysis recorded any error. Passthrough: always `false`. */
@@ -91,6 +98,7 @@ export function createEmptyModel(): SemanticModel {
     addressTakenFunctions: new Set(),
     structTypes: new Map(),
     enumTypes: new Map(),
+    embeddedAssets: new Map(),
     mainFunction: null,
     hasErrors: false,
     typeOf: () => ERROR_TYPE, // Expression typing is not implemented yet

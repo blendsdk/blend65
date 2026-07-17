@@ -25,4 +25,10 @@ export interface ConstValue {
    * Absent for scalar constants.
    */
   readonly bytes?: Uint8Array;
+  /**
+   * What produced the value, when it matters downstream: `"embed"` marks
+   * bytes read from an embedded asset file (the emitter formats those
+   * entries distinctly). Absent for ordinary folded constants.
+   */
+  readonly source?: "embed";
 }

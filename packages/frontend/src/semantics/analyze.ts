@@ -20,6 +20,7 @@
  */
 
 import type {
+  AssetReader,
   AstNode,
   ConstValue,
   DiagnosticBag,
@@ -84,6 +85,12 @@ export interface AnalyzeInput {
    * present) — the override exists for third-party platform plugins.
    */
   readonly encoder?: CharEncoder;
+  /**
+   * The binary asset reader backing `embed()`. Injected by compiler-layer
+   * hosts; when absent (tests, editors without disk policy), an `embed()`
+   * initialiser poisons silently — no diagnostic, no fabricated size.
+   */
+  readonly assetReader?: AssetReader;
 }
 
 /**
@@ -168,6 +175,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   const callSiteSpans = new Map<Symbol, Map<Symbol, SourceSpan>>();
   const constValues = new Map<Symbol, ConstValue>();
   const addressTakenFunctions = new Set<Symbol>();
+  const embeddedAssets = new Map<string, string>();
   typeCheckPrograms(input.programs, functionTables.scopeByNode, functionTables.moduleScopeByProgram, {
     bag: input.bag,
     typeMap,
@@ -181,6 +189,8 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     addressTakenFunctions,
     registry,
     engine,
+    ...(input.assetReader === undefined ? {} : { assetReader: input.assetReader }),
+    embeddedAssets,
   });
 
   // The module-variable initialization order (spec Ch 10 §5.4) — needs the
@@ -231,6 +241,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     },
     initOrder,
     constValues,
+    embeddedAssets,
     mainFunction: functionTables.mainFunction,
     scopeOf: (node) => functionTables.scopeByNode.get(node) ?? empty.globalScope,
     typeOf: (expr) => typeMap.get(expr) ?? ERROR_TYPE,

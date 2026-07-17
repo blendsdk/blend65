@@ -219,14 +219,20 @@ export function lowerToIL(input: LowerInput, bag: DiagnosticBag): ILProgram {
 
   // Const aggregates carry fully-evaluated memory images — each becomes an
   // in-image data entry under its `__data_<Module>_<name>` label (const
-  // SCALARS keep inlining as immediates and own no data).
+  // SCALARS keep inlining as immediates and own no data). Embedded assets
+  // keep their provenance tag; everything else derives from the type.
   const constData: ConstDataEntry[] = [];
   for (const [sym, value] of input.model.constValues) {
     if (value.bytes === undefined) continue;
     constData.push({
       symbol: constDataSymbol(sym),
       data: value.bytes,
-      type: sym.type.kind === "struct" ? "struct" : "array",
+      type:
+        value.source === "embed"
+          ? "embed"
+          : sym.type.kind === "struct"
+            ? "struct"
+            : "array",
     });
   }
 
