@@ -63,12 +63,17 @@ import type {
   TypeNode,
   UnaryExprNode,
 } from "@blend65/core";
+import { encoderFor } from "@blend65/core/platform";
 import type { FnSignature, TypeCheckContext } from "./context.js";
 import { enclosingFunctionSymbol, resolveName, resolveQualified } from "./name-resolution.js";
 import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import type { TypeResolverContext } from "./type-resolution.js";
+import { convertCharLiteral } from "../char-literal.js";
 import { evalConst, fromBits, toBits } from "../const-eval.js";
 import type { ConstRefResolver } from "../const-eval.js";
+
+/** The deterministic fallback when a context carries no const/type engine. */
+const RAW_ENCODER = encoderFor(undefined);
 
 /** The arithmetic operators (integer operands; common-type result). */
 const ARITHMETIC_OPS: ReadonlySet<string> = new Set(["+", "-", "*", "/", "%"]);
@@ -109,6 +114,14 @@ export function typeOfExpr(
   ctx: TypeCheckContext,
   contextType?: Type,
 ): Type {
+  // A char literal becomes the numeric literal of its encoded byte before
+  // the kind switch, so every arm (and every later AST re-walk) sees a
+  // plain numeric literal. On failure the node is left untouched and falls
+  // through to the untyped-node poison below — the failure is already
+  // diagnosed (unencodable here, malformed at the lexer).
+  if (expr.kind === "CharLitExpr") {
+    convertCharLiteral(expr, ctx.engine?.encoder ?? RAW_ENCODER, ctx.bag);
+  }
   const t = computeType(expr, scope, ctx, contextType);
   ctx.typeMap.set(expr, t);
   return t;
@@ -151,8 +164,9 @@ function computeType(
     case "ArrayLitExpr":
       return typeArrayLit(expr, scope, ctx, contextType);
     default:
-      // String/char literals etc. are not yet handled here; poison without a
-      // diagnostic.
+      // String literals are not yet handled here; char literals only reach
+      // this arm when their conversion failed (already diagnosed). Poison
+      // without a further diagnostic.
       return ERROR_TYPE;
   }
 }

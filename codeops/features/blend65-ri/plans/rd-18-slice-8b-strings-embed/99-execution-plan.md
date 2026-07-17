@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 17:46
-> **Progress**: 11/58 tasks (19%)
+> **Last Updated**: 2026-07-17 18:22
+> **Progress**: 20/58 tasks (34%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -59,7 +59,7 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 
 - [x] 1.1.1 Write `encoding.spec.test.ts` (ST-1..4, ST-8) — `packages/core/src/platform/` ✅ (completed: 2026-07-17 17:32)
 - [x] 1.1.2 Write `literal-decode.spec.test.ts` (ST-5..7) — `packages/core/src/text/` ✅ (completed: 2026-07-17 17:32)
-- [ ] 1.1.3 Write `encoding-seam.spec.test.ts` (ST-9) — `packages/frontend/src/semantics/` — **runtime note (mechanical, 2026-07-17):** authored in Phase 2's spec step instead (red at 2.1.2, green at 2.2.4). ST-9's fold oracle needs the Phase-2 char arms (`statement-typing.ts:270` types the initialiser before folding), so a Phase-1 red test would fail 1.3.2's full verify, and implementing the arms in Phase 1 would break spec-first for ST-10..14. Only gate-consistent slot; no behavior change.
+- [x] 1.1.3 Write `encoding-seam.spec.test.ts` (ST-9) — `packages/frontend/src/semantics/` ✅ (completed: 2026-07-17 18:22 in Phase 2 per the note below — red at 2.1.2, green at 2.2.4) — **runtime note (mechanical, 2026-07-17):** authored in Phase 2's spec step instead (red at 2.1.2, green at 2.2.4). ST-9's fold oracle needs the Phase-2 char arms (`statement-typing.ts:270` types the initialiser before folding), so a Phase-1 red test would fail 1.3.2's full verify, and implementing the arms in Phase 1 would break spec-first for ST-10..14. Only gate-consistent slot; no behavior change.
 - [x] 1.1.4 Run the two core suites — verify they FAIL (red phase; modules don't exist) ✅ (completed: 2026-07-17 17:32 — both suites fail to load their module under test)
 
 ### Step 1.2: Implementation
@@ -89,20 +89,20 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 
 **Reference**: 03-02 §Char · AR-9 · ST-10..14
 
-- [ ] 2.1.1 Write `char-literals.spec.test.ts` (ST-10..14) — `packages/frontend/src/semantics/type-check/`
-- [ ] 2.1.2 Run — verify FAIL (red; today chars silently poison / E10193)
+- [x] 2.1.1 Write `char-literals.spec.test.ts` (ST-10..14) — `packages/frontend/src/semantics/type-check/` ✅ (completed: 2026-07-17 17:57 — + the relocated `encoding-seam.spec.test.ts` (ST-9) per the 1.1.3 note; ST-11/ST-14 strengthened with typeOf-byte asserts so silent poison cannot fake a pass)
+- [x] 2.1.2 Run — verify FAIL (red; today chars silently poison / E10193) ✅ (completed: 2026-07-17 17:57 — 8/8 red)
 
 ### Step 2.2: Implementation
 
-- [ ] 2.2.1 Implement the universal `CharLitExpr` → `NumericLitExpr` desugar (in-place conversion at the `typeOfExpr` choke point per 03-02; one documented conversion helper) — `packages/frontend/src/semantics/type-check/expression-typing.ts`
-- [ ] 2.2.2 Add the `ConstTypeEngine.evalExpr` encode-or-convert `CharLitExpr` arm (Pass-2 lazy folds reach chars before body typing — e.g. a char-valued const used as an array size, per 03-02) — `packages/frontend/src/semantics/const-type-engine.ts`
-- [ ] 2.2.3 E10127 emit site at the literal span (unmappable) — same files
-- [ ] 2.2.4 Run Step-2.1 suite — verify GREEN
+- [x] 2.2.1 Implement the universal `CharLitExpr` → `NumericLitExpr` desugar (in-place conversion at the `typeOfExpr` choke point per 03-02; one documented conversion helper) — `packages/frontend/src/semantics/type-check/expression-typing.ts` ✅ (completed: 2026-07-17 18:06; impl 18:01 — helper lives in `semantics/char-literal.ts`, shared with the engine arm)
+- [x] 2.2.2 Add the `ConstTypeEngine.evalExpr` encode-or-convert `CharLitExpr` arm (Pass-2 lazy folds reach chars before body typing — e.g. a char-valued const used as an array size, per 03-02) — `packages/frontend/src/semantics/const-type-engine.ts` ✅ (completed: 2026-07-17 18:06; impl 18:01 — arm = `convertCharLiteralsIn` pre-walk over const-foldable operand positions, so nested chars (`'A' + 1` as a size) fold too, not just top-level)
+- [x] 2.2.3 E10127 emit site at the literal span (unmappable) — same files ✅ (completed: 2026-07-17 18:06; impl 18:01 — single emit site in the shared helper; bag dedup on (code,sourceId,start) makes the two callers safe)
+- [x] 2.2.4 Run Step-2.1 suite — verify GREEN ✅ (completed: 2026-07-17 18:06 — 8/8 incl. the relocated seam suite; whole frontend package 851/851)
 
 ### Step 2.3: Impl tests & hardening
 
-- [ ] 2.3.1 Extend `literal-desugar.impl.test.ts` (char half: spans, typeMap, conversion idempotence) — `packages/frontend/src/semantics/type-check/`
-- [ ] 2.3.2 Full verify + prior-goldens check
+- [x] 2.3.1 Extend `literal-desugar.impl.test.ts` (char half: spans, typeMap, conversion idempotence) — `packages/frontend/src/semantics/type-check/` ✅ (completed: 2026-07-17 18:22 — 5/5)
+- [x] 2.3.2 Full verify + prior-goldens check ✅ (completed: 2026-07-17 18:22 — 17/17 turbo tasks; one exactOptionalPropertyTypes fix in the seam test helper on the first run)
 
 **Verify**: (same command)
 

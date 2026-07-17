@@ -51,6 +51,7 @@ import type {
 } from "@blend65/core";
 import { evalConst } from "./const-eval.js";
 import type { ConstEvalResult, ConstIntrinsicFolder, ConstRefResolver } from "./const-eval.js";
+import { convertCharLiteralsIn } from "./char-literal.js";
 import type { ModuleTypeRegistry } from "./declaration-collection.js";
 
 /** The engine's evaluation result for a size/const expression. */
@@ -331,6 +332,15 @@ export class ConstTypeEngine {
    * folding; this entry serves recursive demands (sizes, member values).
    */
   evalExpr(expr: ExprNode, scope: Scope): EngineValue | null {
+    // Char literals fold as their encoded byte. Lazy demands (array sizes,
+    // enum member values) can reach a char before body typing runs, so the
+    // in-place conversion happens here as well as in expression typing —
+    // whichever pass arrives first converts; the other sees a numeric
+    // literal. A failed conversion is already diagnosed (unencodable) or
+    // lexer-diagnosed (malformed), so the demand stays silent.
+    if (!convertCharLiteralsIn(expr, this.encoder, this.bag)) {
+      return { kind: "poisoned" };
+    }
     let sawPoison = false;
     const resolveRef: ConstRefResolver = (ref) => {
       const resolved = this.resolveRef(ref, scope);
