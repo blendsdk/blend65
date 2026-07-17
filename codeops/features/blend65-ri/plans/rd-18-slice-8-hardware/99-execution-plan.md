@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-17 12:55
-> **Progress**: 0/59 tasks (0%)
+> **Progress**: 0/60 tasks (0%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -25,11 +25,11 @@ ordering against the 07-testing-strategy ST-cases.
 | 2 | By-ref argument places | 6 |
 | 3 | Interrupt functions | 9 |
 | 4 | SFA interrupt path | 11 |
-| 5 | Zeropage blocks | 9 |
+| 5 | Zeropage blocks | 10 |
 | 6 | Startup termination | 6 |
 | 7 | Acceptance tier | 7 |
 
-**Total: 59 tasks across 7 phases** (no fabricated hour estimates — scope is bounded by the
+**Total: 60 tasks across 7 phases** (no fabricated hour estimates — scope is bounded by the
 task-size criteria in the quality checklist)
 
 > **⚠️ EXECUTION RULE — APPLIES TO EVERY AGENT EXECUTING THIS PLAN:**
@@ -76,7 +76,7 @@ task-size criteria in the quality checklist)
 **Reference**: 03-01 §Lowering · AR-11
 **Objective**: `addr`-operand production with the placement discipline.
 
-- [ ] 1.3.1 Write lowering spec tests (ST-9; store-position + ALU-position + temp-homing shapes) — `packages/codegen/src/il/lower-address-of.spec.test.ts`
+- [ ] 1.3.1 Write lowering spec tests (ST-9, ST-9b; store-position + ALU-position + temp-homing + `lo`/`hi`-of-`&` shapes) — `packages/codegen/src/il/lower-address-of.spec.test.ts`
 - [ ] 1.3.2 Run them — verify FAIL (red phase)
 - [ ] 1.3.3 Implement `lowerUnary` `&` → `addrOf(symbol)` per operand table + word-temp homing fallback — `packages/codegen/src/il/lower.ts`
 - [ ] 1.3.4 Run lowering spec tests — verify PASS (green phase)
@@ -162,11 +162,11 @@ task-size criteria in the quality checklist)
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Implement the irq-reachability classification (roots → BFS → `isIrqReachable`/`isIrqOnly` projection; mainline = complement) — `packages/frontend/src/sfa/model-adapter.ts`
+- [ ] 4.2.1 Implement the irq-reachability classification (interrupt roots → BFS → `isIrqReachable`/`isIrqOnly` projection; mainlineReachable = BFS from `main`, `__init`, escaped NON-interrupt fns; exports via real call edges only — PF-001) — `packages/frontend/src/sfa/model-adapter.ts`
 - [ ] 4.2.2 Extend interference Step 2: irq-reachable ⇒ always-live — `packages/frontend/src/sfa/interference.ts`
 - [ ] 4.2.3 Thread the irq flag to translate; binder pool selection (`"irq-temp"` for irq-only) — `packages/codegen/src/instr/{translate,register-binding}.ts`
-- [ ] 4.2.4 Size the irq temp pool like the main pool (peak over irq-only fns, floor = profile) — `packages/frontend/src/sfa/zp-allocator.ts`
-- [ ] 4.2.5 Reserve + select `__zp_irq_ptr_scratch` conditionally (predicate mirrors `modelNeedsPointerScratch`) — `packages/frontend/src/sfa/{model-adapter,plan-allocation}.ts`, formation call-sites in `packages/codegen/src/il/lower.ts`
+- [ ] 4.2.4 Extend the binder's spill-exhaustion ICE to name the dry pool (main vs irq); the irq pool stays the `irqTempBytes` profile constant — no demand sizing (PF-003) — `packages/codegen/src/instr/register-binding.ts`
+- [ ] 4.2.5 Reserve + select `__zp_irq_ptr_scratch` conditionally (predicate mirrors `modelNeedsPointerScratch`, restricted to the irq-ONLY set — PF-002) — `packages/frontend/src/sfa/{model-adapter,plan-allocation}.ts`, formation call-sites in `packages/codegen/src/il/lower.ts`
 - [ ] 4.2.6 Run spec tests — verify PASS (green phase)
 
 ### Step 4.3: Hardening
@@ -185,17 +185,18 @@ task-size criteria in the quality checklist)
 **Reference**: 03-04 (whole doc) · AR-17, AR-18
 **Objective**: pin semantics + placement + the 8a/8b string boundary.
 
-- [ ] 5.1.1 Write semantics spec tests (ST-25..ST-30, ST-33, ST-33b) — `packages/frontend/src/semantics/zeropage.spec.test.ts`
-- [ ] 5.1.2 Write lowering/addressing spec tests (ST-31, ST-32) — `packages/codegen/src/il/lower-zeropage.spec.test.ts`
+- [ ] 5.1.1 Write semantics spec tests (ST-25..ST-30, ST-28b, ST-33, ST-33b, ST-33c) — `packages/frontend/src/semantics/zeropage.spec.test.ts`
+- [ ] 5.1.2 Write lowering/addressing spec tests (ST-31, ST-31b, ST-32) — `packages/codegen/src/il/lower-zeropage.spec.test.ts`
 - [ ] 5.1.3 Run both — verify FAIL (red phase)
 
 ### Step 5.2: Implementation
 
-- [ ] 5.2.1 Collect + merge `ZeropageBlock` fields as ZP-storage module vars (E10003 path) — `packages/frontend/src/semantics/module-variable-collection.ts` (+ Pass 1 touchpoints)
-- [ ] 5.2.2 Typing/init parity: const-only call-free initializers, `__init` participation, no zero-fill, string-init guard coverage for ZP fields — `packages/frontend/src/semantics/` (5b machinery touchpoints)
-- [ ] 5.2.3 `modelToZpUserVars` projection + feed it from the driver — `packages/frontend/src/sfa/model-adapter.ts`, `packages/compiler/src/api/run-frontend.ts`
-- [ ] 5.2.4 Symbol naming (`__zp_<Module>_<name>`) + `zeroPage` equate emission + direct-operand lowering — `packages/frontend/src/sfa/plan-allocation.ts`, `packages/codegen/src/il/lower.ts`
-- [ ] 5.2.5 Run spec tests — verify PASS (green phase)
+- [ ] 5.2.1 Switch the zeropage field-initializer context to full expression parsing (`parseExpression(state, 0, true)` — aggregate literals accepted, PF-005) — `packages/frontend/src/parser/parse-decl.ts`
+- [ ] 5.2.2 Collect + merge `ZeropageBlock` fields as ZP-storage module vars (E10003 path) — `packages/frontend/src/semantics/module-variable-collection.ts` (+ Pass 1 touchpoints)
+- [ ] 5.2.3 Typing/init parity: call-free initializers (var-reading legal, dependency-ordered — PF-004), `__init` participation incl. ZP-storage symbols in the init-order walk, no zero-fill, string-init guard coverage for ZP fields — `packages/frontend/src/semantics/` (5b machinery touchpoints)
+- [ ] 5.2.4 `modelToZpUserVars` projection + feed it from the driver — `packages/frontend/src/sfa/model-adapter.ts`, `packages/compiler/src/api/run-frontend.ts`
+- [ ] 5.2.5 Symbol naming (`__zp_<Module>_<name>`) + `zeroPage` equate emission + direct-operand lowering — `packages/frontend/src/sfa/plan-allocation.ts`, `packages/codegen/src/il/lower.ts`
+- [ ] 5.2.6 Run spec tests — verify PASS (green phase)
 
 ### Step 5.3: Hardening
 
@@ -257,7 +258,7 @@ Phase 2 (arg places — uses Phase 1's formation idioms)
     ↓
 Phase 3 (interrupts — independent of 1/2, ordered for the Phase-4 roots)
     ↓
-Phase 4 (SFA irq path — needs interrupt kind + call graph; touches zp-allocator BEFORE Phase 5's user-var flow is exercised together in Phase 7)
+Phase 4 (SFA irq path — needs interrupt kind + call graph; its plan-allocation twin edits land BEFORE Phase 5's user-var flow, exercised together in Phase 7; zp-allocator.ts itself stays untouched — PF-003/PF-017)
     ↓
 Phase 5 (zeropage)
     ↓
@@ -272,7 +273,7 @@ Phase 7 (acceptance — consumes everything)
 
 **Feature is complete when:**
 
-1. ✅ All phases completed (59/59)
+1. ✅ All phases completed (60/60)
 2. ✅ Full verify passing (the AR-27 command), zero warnings/errors
 3. ✅ The three-part bar GREEN: assemble-clean + committed golden + real-VICE runtime (01-req AC-1..3)
 4. ✅ No dead code; all four new codes wired with tests; ICE pins retired loud-never-silent (01-req AC-4)

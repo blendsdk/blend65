@@ -76,3 +76,20 @@ pre-ack, `$D020 & $0F` masking, saturating counter (AR-16).
 
 **AR-25:** `toShimVariant` (`emit.ts:38-51`) already maps `minimal`→`"non-terminating"`; the harness
 fit is confirmed (`runFrames`, `strategies.ts:89-100`; slice suites assert via direct memory reads).
+
+**Preflight amendments (2026-07-17, iteration 1 — see `00-preflight-report.md`):** all 15 findings
+resolved per recommendation; the row text above is preserved as decided, and these amendments
+govern where they differ. **AR-15** — mainlineReachable is enumerated as BFS from `main`,
+`__init`, and escaped NON-interrupt functions; exports contribute only via real mainline call
+edges in program builds (PF-001 — the earlier "complement of irq-only / exports as roots" gloss
+emptied `irqOnly` in every real program once `&handler` install marks the handler escaped); the
+scratch-twin consumer keys on irq-ONLY, the same key as the spill pool (PF-002); the irq temp
+pool stays a profile constant, with the binder's exhaustion ICE extended to name the dry pool —
+E10032 is ZP-fit overflow only (PF-003). **AR-18** — the 5b parity discipline is CALL-FREE, not
+const-only (var-reading initializers are legal and dependency-ordered, PF-004); aggregate
+initializers gain the one-line field-initializer parser-context fix (PF-005); W10030 fires at
+`zpWarnThreshold` (80% default, PF-007); F005 ZP-5 export + E10031/E10033 recorded as deviations
+(PF-008). **AR-14** — the ABI's normative text is Ch 06 §7.4 (PF-009). **AR-16** — the fixture's
+border flip is gated under the saturation guard so the final border is deterministic (PF-011).
+**AR-25** — the F004/Ch 10 §5.3 fall-through-entry deviation is recorded; ST-34/35 pin the
+shipped shim contract (PF-010).

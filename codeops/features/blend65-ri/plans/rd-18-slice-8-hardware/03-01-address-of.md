@@ -36,9 +36,12 @@ Notes:
   `&`-wrapped case ONLY; a bare `Math.fn` value read keeps its existing loud behavior (functions
   are not values, FN-12).
 - **Address-taken marking**: the model records the set of address-taken function FQNs;
-  `modelToFunctionInfo` flips `isEscaped` (`model-adapter.ts:68`) from that set. No interference
-  change follows for plain functions (FN-A9 documented limitation, AR-11) — interrupt-path
-  interference is 03-03's rule, keyed on `kind`, not on escape.
+  `modelToFunctionInfo` flips `isEscaped` (`model-adapter.ts:68`) from that set. The flag flows
+  through the EXISTING Step-2 always-live handling (`interference.ts:104-112`) — an
+  address-taken function's frame and pairs stop sharing (Ch 06 §8 requires the frame
+  allocated). Layout perturbs only for programs that use `&fn`; none of the ten prior fixtures
+  do (preflight PF-006). Indirect calls stay unsupported (FN-A9). 03-03's irq classification
+  additionally treats interrupt-kind escapees specially — see its root-set rule (PF-001).
 
 ### Lowering (`lower.ts`, replacing the ICE at :1304-1307)
 
@@ -92,8 +95,9 @@ For a by-ref argument whose place needs runtime address computation:
 
 ## Integration Points
 
-- 03-03 consumes nothing from here (interference keys on interrupt kind); 03-06's fixture
-  consumes `&fn` + `pokew`.
+- 03-03 consumes the address-taken set from here: escaped NON-interrupt functions are mainline
+  roots in its classification, and interference Step 2 consumes `isEscaped` directly (PF-001/
+  PF-006). 03-06's fixture consumes `&fn` + `pokew`.
 - `length()` / `sizeof` on `&`-results: not a surface — `&` yields `word`, and word intrinsics
   apply; no special casing.
 

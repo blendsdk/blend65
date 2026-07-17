@@ -30,12 +30,16 @@ the conditional `__zp_ptr_scratch`, the IL `addr` operand (store source + ALU ri
 the translate `(zp),Y` framings + regY mirror. 3-part bar GREEN on real VICE 3.10 first run:
 `examples/slice7b/` → `$C000..$C006 = 00 2A 0F 1D 11 0B 16`; 212-line golden; nine prior goldens
 byte-exact. **Next: Slice 8 was split 8a/8b at its gate (2026-07-17) — the 8a hardware plan is
-authored (`plans/rd-18-slice-8-hardware/`, 29-row register, 59 tasks): preflight 8a, then
-exec_plan; 8b (strings/encoding + `embed()`, carries RD-18 closure) needs `make_plan` after;
-RD-13/RD-14 queued.**
+authored and PREFLIGHTED 🔬 (`plans/rd-18-slice-8-hardware/`, 29-row register + preflight
+amendments, 60 tasks; 17-finding preflight resolved 2026-07-17, see its
+`00-preflight-report.md`): exec_plan 8a next; 8b (strings/encoding + `embed()`, carries RD-18
+closure) needs `make_plan` after; RD-13/RD-14 queued.**
 
 ## Recent milestones
 
+- 2026-07-17 — **RD-18 Slice 8a plan preflighted 🔬** — 17 findings resolved (incl. the AR-15
+  mainline-root-set fix without which `irqOnly` was empty in every real program, the call-free
+  init-parity correction, and the aggregate-initializer parser fix); plan hardened to 60 tasks.
 - 2026-07-17 — **RD-18 Slice 8 gate** — split 8a/8b; 8a hardware plan created (`make_plan`, 29-row
   register — incl. the $0314→raw-vector fixture correction and two SFA interrupt-path miscompile fixes).
 - 2026-07-12 — **RD-18 Slice 7b ✅** (58/58) — pointer surface; SLICE 7 CLOSED, RD-18 item 6 ticked.
@@ -57,14 +61,14 @@ RD-13/RD-14 queued.**
   that lights up the frozen language, each slice gated by CI assemble-clean + CI golden + local
   VICE. Slices 3a/3b/4a/4b/5a/5b/6/7a/7b ✅ complete (Slice 7 closed, RD-18 item 6 ticked).
   **Slice 8** (the last codegen slice) is split 8a/8b: **8a hardware** (`&` address-of, `interrupt`
-  functions, `zeropage {}` blocks, non-terminating `main`, T1 E2E) — 📋 plan created
-  (`plans/rd-18-slice-8-hardware/`); **8b data** (strings/encoding, `embed()`, RD-18 closure) —
-  needs `make_plan`.
+  functions, `zeropage {}` blocks, non-terminating `main`, T1 E2E) — 🔬 plan preflighted
+  (`plans/rd-18-slice-8-hardware/`, 60 tasks); **8b data** (strings/encoding, `embed()`, RD-18
+  closure) — needs `make_plan`.
 - **Last completed non-RD-18 work**: **RD-12** (test harness & emulator verification) and
   **RD-15** (programmatic + CLI API), both 2026-07-03. The full pipeline compiles
   frontend→SFA→IL→6502→ACME→loadable c64 `.prg` and is VICE-verified; `blendc` ships with config,
   diagnostics, and resource reports.
-- **Next up**: RD-18 Slice 8a (preflight → exec_plan), then Slice 8b (`make_plan`), then **RD-13**
+- **Next up**: RD-18 Slice 8a (`exec_plan` — preflight ✅ passed), then Slice 8b (`make_plan`), then **RD-13**
   (non-functional sweep) and **RD-14** (VS Code extension & Language Server) — both need `make_plan`.
 
 ---
@@ -126,7 +130,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout, whole frozen language, _unoptimized_) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | `plans/rd-18-slice-*/` — 3a–7b ✅, 8a `rd-18-slice-8-hardware/` 📋, 8b needs `make_plan` | A→B | 🚧 In progress — Slices 3a–7b ✅ (Slice 7 closed, item 6 ticked); Slice 8 (last) split 8a hardware 📋 planned / 8b data needs `make_plan` |
+| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout, whole frozen language, _unoptimized_) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | `plans/rd-18-slice-*/` — 3a–7b ✅, 8a `rd-18-slice-8-hardware/` 🔬, 8b needs `make_plan` | A→B | 🚧 In progress — Slices 3a–7b ✅ (Slice 7 closed, item 6 ticked); Slice 8 (last) split 8a hardware 🔬 preflighted (60 tasks) / 8b data needs `make_plan` |
 | 2 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 

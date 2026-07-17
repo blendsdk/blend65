@@ -34,15 +34,15 @@ let mirror: byte = 0;            // RAM mirror in the $2000 data region
 
 interrupt function onIRQ() {
   poke($D019, $FF);              // ack VIC FIRST (unacked → IRQ storm)
-  poke($D020, peek($D020) + 1);  // border flip (secondary observable)
   bump();                        // irq-only helper — AR-15 living witness
 }
 
 interrupt function onNMI() { }   // empty NMI hardening (raw $FFFA is RAM garbage otherwise)
 
 function bump(): void {
-  if (frameCount < 100) {        // SATURATING — runUntilMemory equality-polls
-    frameCount = frameCount + 1; //   ~3.3 frames/batch and can skip values
+  if (frameCount < 100) {        // SATURATING — both observables gated (PF-011):
+    poke($D020, peek($D020) + 1);//   the border flip stops at saturation, so the
+    frameCount = frameCount + 1; //   final border is (boot + 100) mod 16 — deterministic
   }
 }
 
@@ -76,7 +76,9 @@ function main(): void {
 **VICE assertions (AR-16):** `runFrames(N)` (N sized ≫ saturation), then direct memory reads:
 `frameCount`'s ZP address ≥ threshold AND `mirror` ≥ threshold (primary); `$D020 & $0F` ≠ the
 boot border color (secondary — VIC unconnected bits read back 1). Never an equality wait on a
-moving counter. Emulator suites stay sequential (`fileParallelism: false`) and local-only
+moving counter. The border flip is gated under the saturation guard (PF-011), so the final
+border is (boot + 100) mod 16 — deterministic, immune to the IRQ-count-mod-16 collision an
+ungated flip would carry. Emulator suites stay sequential (`fileParallelism: false`) and local-only
 (AR-27 CI policy).
 
 ## T1 coverage (AR-26)
@@ -95,11 +97,14 @@ A CI-tier test proving each of the 13 `asm_*` T1 intrinsics translates to exactl
 | `export interrupt` | E10311 (re-pin) |
 | zeropage over-budget program | E10032 |
 | zeropage field with string initializer | the loud string-init rejection (8a/8b seam pin) |
+| `export` / `let` / `const` inside a `zeropage` block | loud parse errors (recorded F005 ZP-5/E10031/E10033 deviations — PF-008) |
 | by-ref arg-place pins (ST-40 rewrite) | compile SUCCESSFULLY (retired-row protocol) |
 
 ## Regression & resource
 
-- All **ten** prior slice goldens byte-exact (gate + 3a..7b) — 01-req AC-5.
+- All **ten** prior slice goldens byte-exact (gate + 3a..7b) — 01-req AC-5. (A justified
+  re-mint under AC-5's escape hatch updates the golden fixture via `UPDATE_GOLDEN` — never the
+  assertion logic; the oracle stays immutable. PF-013.)
 - Record the 8a resource delta (RD-11 `ResourceReport`): expect ZP growth = user vars + irq
   scratch twin (conditional) + irq temp pool; code growth = handler ABI + shim change.
 

@@ -23,15 +23,30 @@ typing/init parity → projection → wiring, for the FULL surface (scalars + ag
   one-block rule is a recorded superseded deviation; E10030 stays unminted.
 - Module-level only (parser-enforced position); always mutable — `let`/`const` keywords inside
   the block are parse errors already (block grammar has no keyword slot).
+- **Recorded F005 deviations (preflight PF-008)**: per-variable `export` inside the block
+  (F005 ZP-5) is NOT supported in 8a — it fails as the same generic parse error, so ZP vars
+  are unexportable for now; F005's designated E10031 (const-in-block) stays unminted, and
+  F005's E10033 (keyword-in-block) is already spent on `RamBudgetExceeded` in the shipped
+  registry (a spec double-booking, recorded). The generic loud parse errors stand in for all
+  three; negative tests pin them (ST-33c).
 
 ### Typing & initializers (5b parity, AR-18)
 
 - Field types resolve through the ordinary type machinery: scalars, arrays, structs all legal
   (full surface). Enum-typed fields follow the module-var rules.
-- Initializers: const-only, call-free — EXACTLY the 5b module-variable initializer discipline
-  (same rejection set, same E10193-family behavior, same declaration-order-independent const
-  evaluation). Initialized fields join the per-variable topological `__init` order (E10194 on
-  cycles) — the initializer stream writes ZP at startup.
+- Initializers: **call-free** — EXACTLY the 5b module-variable initializer discipline AS
+  SHIPPED (preflight PF-004): a call-bearing initializer hits the existing loud rejection
+  ("call-bearing module initializers are not supported yet", `statement-typing.ts:108-134`);
+  var-reading initializers are LEGAL and runtime-initialized, exactly like module `let`s
+  (Ch 10 §5.4's own example). Initialized fields join the per-variable topological `__init`
+  order (E10194 on cycles) — the initializer stream writes ZP at startup. Executor note: the
+  init-order walk and `moduleVarLocOfSymbol` must cover ZP-storage symbols. (E10193 continues
+  to govern `const` declarations only; ZP fields are `let`-like and never const.)
+- **Aggregate initializers** need a one-line parser fix (preflight PF-005): the field
+  initializer context switches from `parsePrimaryExpr` to `parseExpression(state, 0, true)`
+  (`parse-decl.ts:413`) so array/struct literals parse exactly as `let`/`const` accept them;
+  lowering rides the existing `lowerAggregateInit` with the ZP symbol as the direct base.
+  (ST-33's string-init pin is unaffected — string literals are not gated by that flag.)
 - **No zero-fill** (spec ZP-4): an uninitialized ZP var emits NO startup code and NO data-image
   bytes — its value is indeterminate. (ZP is outside the PRG load image, so this also falls out
   mechanically; the rule is still asserted by test.)
@@ -46,8 +61,11 @@ typing/init parity → projection → wiring, for the FULL surface (scalars + ag
   the block is spec ZP-2).
 - `run-frontend.ts:174` replaces `zpUserVars: []` with the projection. The allocator's user
   category then places them at priority 1 (`zp-allocator.ts:193-198`), before pointers/temps;
-  E10032 (once, on first overflow) and W10030 (75% advisory, suppressed after E10032) are
-  already wired.
+  E10032 (once, on first overflow) and W10030 (advisory at ≥ `zpWarnThreshold`, 80% default —
+  preflight PF-007; suppressed after E10032) are already wired. Note (preflight PF-015): SFA
+  plans against the core `DEFAULT_PROFILE` ZP range ($02–$2F) until per-platform semantics
+  profiles land (`run-frontend.ts:160-178`) — "the platform ZP range" in tests means this
+  profile's range.
 
 ### Naming & emission
 
@@ -71,18 +89,23 @@ typing/init parity → projection → wiring, for the FULL surface (scalars + ag
 | ---------- | ----------------- | ------ |
 | duplicate name (in-module or cross-file) | existing E10003 | AR-17 |
 | ZP budget exceeded | existing E10032 (once); W10030 advisory below it | AR-18 |
-| non-const / call-bearing initializer | existing 5b module-init rejections | AR-18 |
+| call-bearing initializer | the existing loud 5b rejection ("call-bearing module initializers are not supported yet") | AR-18 |
+| var-reading (non-const) initializer | LEGAL — compiles, dependency-ordered into `__init` (5b parity; positive test, PF-004) | AR-18 |
+| `export` / `let` / `const` inside the block | loud generic parse errors (recorded F005 deviations — E10031 unminted, E10033 spent; PF-008) | AR-18 |
 | init cycle through a ZP var | existing E10194 | AR-18 |
 | string initializer on a ZP field | existing loud string-init rejection (8b retires) | AR-18 |
 
 ## Integration Points
 
 - `__init` stream (5b) executes ZP initializers; 03-06's fixture uses an initialized ZP counter
-  as the primary observable; 03-03's allocator changes share `zp-allocator.ts` (sequence the
-  edits; user category is priority 1, irq additions sit below it).
+  as the primary observable; 03-03's twin reservation lives in `plan-allocation.ts` — the user
+  category stays priority 1 with the twin and irq pool below it, and `zp-allocator.ts` itself
+  needs no change from either component (PF-003/PF-017).
 
 ## Testing Requirements
 
-ST-25..ST-33: placement inside the platform ZP range as 2-digit equates; merge across files;
-E10003 dup; initializer joins `__init` (write visible at startup); NO zero-fill; E10032/W10030;
-aggregate-in-ZP addressing; `&zpVar`; string-init negative.
+ST-25..ST-33c: placement inside the (DEFAULT_PROFILE) ZP range as 2-digit equates; merge
+across files; E10003 dup; initializer joins `__init` (write visible at startup); var-reading
+initializer positive (ST-28b); NO zero-fill; E10032/W10030-at-80%; aggregate-in-ZP addressing
++ aggregate initializer (ST-31b); `&zpVar`; string-init negative; block-keyword negatives
+(ST-33c).

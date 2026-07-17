@@ -106,4 +106,4 @@ Silent-poison `&` typing, absent zeropage semantics, hardcoded `zpUserVars: []`,
 | Golden churn: `isEscaped`/always-live changes perturb SFA layout of prior fixtures | Low | Med | Prior fixtures contain no interrupts/`&`; irq-reachability is empty for them — assert all ten goldens byte-exact (01-req AC-5) |
 | VICE flake on the IRQ fixture (timing) | Med | Low | Saturating counter + `>=` assertions (AR-16); slice3b flake precedent: re-run before diagnosing |
 | Termination analysis misclassifies | Low | High if non-terminating wrongly chosen | Conservative bias mandated (AR-25): non-terminating only when NO `ret` reachable under const-aware successors |
-| Irq temp-pool sizing (profile `irqTempBytes: 2`) too small for real handlers | Med | Med | Size like the main pool (peak over irq-only fns), floor at profile default; loud E10032-band failure on overflow (03-03) |
+| Irq temp-pool sizing (profile `irqTempBytes: 2`) too small for real handlers | Med | Med | Profile-constant pool (the main pool's own mechanism — PF-003); the binder's spill-exhaustion ICE names the dry pool; raising `irqTempBytes` is a pure profile change (03-03) |

@@ -44,8 +44,8 @@
 | Slice split + ordering | 8a hardware first; 8b data later; closure rides 8b | AR-1, AR-3 |
 | Names | `rd-18-slice-8-hardware`, `examples/slice8/` | AR-2 |
 | New diagnostic codes (additive; `spec/` frozen per D3) | E10047 AddressOfConstScalar, E10048 AddressOfParameter, E10049 AddressOfNonAddressable, E10050 InterruptWrongSignature; wire dormant E10042 | AR-10, AR-14 |
-| Recorded spec deviations | Ch 06 §7.7's `$0314` install example (crashes; raw-vector fixture instead); Ch 06 EBNF `: void` mandatory (optional here); F005 one-block rule (blocks merge) | AR-16, AR-12, AR-17 |
-| Interrupt SFA policy | Irq-reachable set always-live; irq-only spill pool; both-path fns = main pool + documented hazard | AR-15 |
+| Recorded spec deviations | Ch 06 §7.7's `$0314` install example (crashes; raw-vector fixture instead); Ch 06 EBNF `: void` mandatory (optional here); F005 one-block rule (blocks merge); F005 ZP-5 per-variable export (unsupported — parse error) + E10031 unminted / E10033 spent on `RamBudgetExceeded` (PF-008); F004/Ch 10 §5.3 fall-through entry (shipped `JSR`/`JMP _main` shims — pre-existing, PF-010); Ch 03 §5.1 ZP-first init order (shipped: topological per Ch 10 §5.4) | AR-16, AR-12, AR-17, PF-008, PF-010 |
+| Interrupt SFA policy | Irq-reachable set always-live; irq-only spill pool AND irq-only scratch twin (same key — PF-002); both-path fns = main pool + main scratch + documented hazard; mainline roots = `main`, `__init`, escaped non-interrupt fns (exports via real call edges only — PF-001) | AR-15 |
 | Startup analysis bias | Conservative: claim non-terminating only when NO `ret` is reachable (false-terminating is 5 dead bytes; false-non-terminating is a crash) | AR-25 |
 
 ## Acceptance Criteria
@@ -55,8 +55,9 @@ Plan-local (the RD owns the slice-level criteria; item 7's non-embed clauses are
 1. [ ] The `examples/slice8/` raster fixture passes the three-part bar on real VICE 3.10: the
        ZP frame counter (mirrored to RAM) reaches its saturation threshold under `runFrames`,
        and `$D020 & $0F` shows the border changed [AR-16; 03-06]
-2. [ ] `zeropage {}` variables land inside the platform ZP range as 2-digit equates; budget
-       overflow rejects with the existing E10032 [AR-18]
+2. [ ] `zeropage {}` variables land inside the ZP range as 2-digit equates (the semantics
+       `DEFAULT_PROFILE` range, $02–$2F, until per-platform semantics profiles land — PF-015);
+       budget overflow rejects with the existing E10032 [AR-18]
 3. [ ] A `while (true)` `main` compiles under `startup: "auto"` to the `JMP _main` shim; a
        returning `main` keeps the terminating shim; explicit overrides win [AR-25]
 4. [ ] All four new codes reject with tests through the public facades; the two 7b by-ref

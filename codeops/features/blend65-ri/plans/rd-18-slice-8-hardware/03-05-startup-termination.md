@@ -12,6 +12,13 @@ reachable (`startup: "minimal"` → `toShimVariant`, `emit.ts:38-51`). This comp
 hardcoded `"terminating"` fallback under `auto` (`instr-program.ts:205-213` — the SEAM comment
 explicitly deferred this until CFG lowering existed) with a conservative reachability analysis.
 
+> **Recorded pre-existing deviation (preflight PF-010):** F004 and Ch 10 §5.3 mandate
+> fall-through entry into `main` ("no JSR, no JMP"); the shipped shims use `JSR _main` /
+> `JMP _main` (`shared-hooks.ts:105,111`), embodied in all ten prior goldens. ST-34/35 pin the
+> SHIPPED shim contract (AR-25), not F004's entry mechanism. (Similarly, Ch 03 §5.1's
+> ZP-before-RAM init order is superseded by the shipped dependency-topological `__init` order,
+> Ch 10 §5.4 — golden-visible only.)
+
 ## Implementation Details
 
 ### The analysis (IL layer)

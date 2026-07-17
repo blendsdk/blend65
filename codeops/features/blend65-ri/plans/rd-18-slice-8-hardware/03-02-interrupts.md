@@ -35,14 +35,15 @@ Re-pin E10051 in the negatives suite (03-06).
 
 ### Codegen ABI (`translate.ts`)
 
-Per Ch 06 §7.3, verbatim and unconditional (Phase A — no clobber analysis, AR-14):
+Per Ch 06 §7.4 (Generated Code Pattern; citation corrected per preflight PF-009), verbatim and
+unconditional (Phase A — no clobber analysis, AR-14):
 
 - **Prologue**: in `run()` (:200-231), immediately after the function label, when
   `this.fn.isInterrupt`: `PHA / TXA / PHA / TYA / PHA`.
 - **Epilogue**: at every `ret` terminator (:497), when `isInterrupt`: `PLA / TAY / PLA / TAX /
   PLA / RTI` (replacing the current bare `RTI`). Multiple `ret` paths each get the full
   restore — correct and unoptimized by design.
-- The CPU stacks P automatically and RTI restores it; no explicit P handling (Ch 06 §7.3).
+- The CPU stacks P automatically and RTI restores it; no explicit P handling (Ch 06 §7.4).
 - Frame/pair prologue interactions: interrupts have no parameters, so `emitPairPrologue`
   (FunctionDecl-only, `lower.ts:337`) is naturally skipped; locals use ordinary frame slots
   (placement governed by 03-03's always-live rule).
