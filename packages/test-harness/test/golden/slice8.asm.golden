@@ -1,0 +1,128 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_bump = $2001
+__frame_Main_main = $2001
+__frame_Main_main_0sc0 = $2001
+__frame_Main_main_0sc1 = $2003
+__frame_Main_onIRQ = $2001
+__frame_Main_onNMI = $2001
+__var_Main_mirror = $2000
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_Main_frameCount = $06
+__zp_tmp_0 = $0007
+__zp_tmp_1 = $0008
+__zp_tmp_2 = $0009
+__zp_tmp_3 = $000A
+__zp_irq_tmp_0 = $000B
+__zp_irq_tmp_1 = $000C
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR __init
+    JMP _main
+; --- function: __init ---
+__init:
+    LDA #$00
+    STA __zp_Main_frameCount
+    LDA #$00
+    STA __var_Main_mirror
+    RTS
+; --- function: Main.onIRQ ---
+Main_onIRQ:
+    PHA
+    TXA
+    PHA
+    TYA
+    PHA
+    LDA #$FF
+    STA $D019
+    JSR Main_bump
+    PLA
+    TAY
+    PLA
+    TAX
+    PLA
+    RTI
+; --- function: Main.onNMI ---
+Main_onNMI:
+    PHA
+    TXA
+    PHA
+    TYA
+    PHA
+    PLA
+    TAY
+    PLA
+    TAX
+    PLA
+    RTI
+; --- function: Main.bump ---
+Main_bump:
+    LDA __zp_Main_frameCount
+    CMP #$64
+    LDA #$01
+    BCC _cmp0
+    LDA #$00
+_cmp0:
+    BNE Main_bump_L0
+    JMP Main_bump_L1
+Main_bump_L0:
+    LDA $D020
+    CLC
+    ADC #$01
+    STA $D020
+    LDA __zp_Main_frameCount
+    CLC
+    ADC #$01
+    STA __zp_Main_frameCount
+    JMP Main_bump_L1
+Main_bump_L1:
+    RTS
+; --- function: Main.main ---
+_main:
+    SEI
+    LDA #$7F
+    STA $DC0D
+    LDA $DC0D
+    STA __var_Main_mirror
+    LDA #<Main_onIRQ
+    STA $FFFE
+    LDA #>Main_onIRQ
+    STA $FFFE+1
+    LDA #<Main_onNMI
+    STA $FFFA
+    LDA #>Main_onNMI
+    STA $FFFA+1
+    LDA #$35
+    STA $1
+    LDA #$64
+    STA $D012
+    LDA $D011
+    AND #$7F
+    STA $D011
+    LDA #$01
+    STA $D01A
+    LDA #$FF
+    STA $D019
+    CLI
+    JMP Main_main_L0
+Main_main_L0:
+    LDA #$01
+    BNE Main_main_L1
+    JMP Main_main_L2
+Main_main_L1:
+    LDA __zp_Main_frameCount
+    STA __var_Main_mirror
+    JMP Main_main_L0
+Main_main_L2:
+    RTS

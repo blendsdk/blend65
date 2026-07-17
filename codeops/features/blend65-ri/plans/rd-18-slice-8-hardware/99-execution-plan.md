@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 14:48
-> **Progress**: 53/60 tasks (88%)
+> **Last Updated**: 2026-07-17 15:40
+> **Progress**: 60/60 tasks (100%) — ✅ PLAN COMPLETE
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -234,13 +234,13 @@ task-size criteria in the quality checklist)
 **Reference**: 03-06 (whole doc) · AR-16, AR-26; RD-18 §Acceptance Bar
 **Objective**: the three-part bar GREEN + regression + records.
 
-- [ ] 7.1.1 Author the fixture per the normative sequence — `examples/slice8/main.blend`
-- [ ] 7.1.2 Harness module + assemble-clean/VICE suite — `packages/test-harness/src/testing/slice8.ts`, `slice8.spec.test.ts` (ST-39, ST-41, ST-42)
-- [ ] 7.1.3 T1 coverage test (ST-43) — `packages/test-harness/src/testing/` (CI tier)
-- [ ] 7.1.4 Negatives suite (ST-45 matrix) — `slice8-negatives.spec.test.ts`
-- [ ] 7.1.5 Run the bar locally: assemble-clean + real-VICE runFrames assertions GREEN (ST-39/41/42)
-- [ ] 7.1.6 Mint the ASM golden + landmarks; assert ten prior goldens byte-exact (ST-40, ST-44) — `golden-slice8.spec.test.ts`, `packages/test-harness/test/golden/slice8.asm.golden`
-- [ ] 7.1.7 Record the resource delta, run the FULL verify, confirm `spec/` untouched (ST-46), and update the roadmap (8a complete; 8b next)
+- [x] 7.1.1 Author the fixture per the normative sequence — `examples/slice8/main.blend` ✅ (completed: 2026-07-17 15:40 — border flip gated under the saturation guard per the preflight amendment)
+- [x] 7.1.2 Harness module + assemble-clean/VICE suite — `packages/test-harness/src/testing/slice8.ts`, `slice8.spec.test.ts` (ST-39, ST-41, ST-42) ✅ (completed: 2026-07-17 15:40 — observable addresses parsed from the emitted equates, never hardcoded; saturation makes the equality waits deterministic. Mechanical correction: `build()` needs an ABSOLUTE `outDir` (`join(cwd, "out")`, the 7b precedent) — the relative default breaks the assembler's child-cwd resolution)
+- [x] 7.1.3 T1 coverage test (ST-43) — `packages/test-harness/src/t1-coverage.spec.test.ts` (CI tier) ✅ (completed: 2026-07-17 15:40 — 13/13 mnemonics in call order)
+- [x] 7.1.4 Negatives suite (ST-45 matrix) — `slice8-negatives.spec.test.ts` ✅ (completed: 2026-07-17 15:40 — 10/10 through `compile()`)
+- [x] 7.1.5 Run the bar locally: assemble-clean + real-VICE runFrames assertions GREEN (ST-39/41/42) ✅ (completed: 2026-07-17 15:40 — REAL VICE 3.10: raster IRQ fires through the raw vector with the KERNAL banked out; ZP counter + RAM mirror saturate at 100; border moved off boot)
+- [x] 7.1.6 Mint the ASM golden + landmarks; assert ten prior goldens byte-exact (ST-40, ST-44) — `golden-slice8.spec.test.ts`, `packages/test-harness/test/golden/slice8.asm.golden` ✅ (completed: 2026-07-17 15:40 — 128-line golden; landmarks: `__zp_Main_frameCount = $06` 2-digit, save/restore+RTI both handlers, `#<`/`#>Main_onIRQ` installs, `JSR __init` + `JMP _main`, no `JSR _main`; ten priors byte-exact)
+- [x] 7.1.7 Record the resource delta, run the FULL verify, confirm `spec/` untouched (ST-46), and update the roadmap (8a complete; 8b next) ✅ (completed: 2026-07-17 15:40 — `08-resource-report.md`; FULL VERIFY PASS; `git status --porcelain spec/` empty; roadmaps advanced)
 
 **Verify**: the AR-27 command
 

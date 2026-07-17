@@ -1,0 +1,38 @@
+module Main;
+
+zeropage {
+  frameCount: byte = 0;
+}
+
+let mirror: byte = 0;
+
+interrupt function onIRQ() {
+  poke($D019, $FF);
+  bump();
+}
+
+interrupt function onNMI() { }
+
+function bump(): void {
+  if (frameCount < 100) {
+    poke($D020, peek($D020) + 1);
+    frameCount = frameCount + 1;
+  }
+}
+
+function main(): void {
+  asm_sei();
+  poke($DC0D, $7F);
+  mirror = peek($DC0D);
+  pokew($FFFE, &onIRQ);
+  pokew($FFFA, &onNMI);
+  poke($01, $35);
+  poke($D012, 100);
+  poke($D011, peek($D011) & $7F);
+  poke($D01A, $01);
+  poke($D019, $FF);
+  asm_cli();
+  while (true) {
+    mirror = frameCount;
+  }
+}
