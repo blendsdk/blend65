@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 16:12
-> **Progress**: 0/58 tasks (0%)
+> **Last Updated**: 2026-07-17 17:46
+> **Progress**: 11/58 tasks (19%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -57,27 +57,27 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 **Reference**: 03-01 · AR-2/3/5/6/7 · ST-1..9
 **Objective**: The byte-level oracle exists before any encoder code.
 
-- [ ] 1.1.1 Write `encoding.spec.test.ts` (ST-1..4, ST-8) — `packages/core/src/platform/`
-- [ ] 1.1.2 Write `literal-decode.spec.test.ts` (ST-5..7) — `packages/core/src/text/`
-- [ ] 1.1.3 Write `encoding-seam.spec.test.ts` (ST-9) — `packages/frontend/src/semantics/`
-- [ ] 1.1.4 Run the three suites — verify they FAIL (red phase; modules don't exist)
+- [x] 1.1.1 Write `encoding.spec.test.ts` (ST-1..4, ST-8) — `packages/core/src/platform/` ✅ (completed: 2026-07-17 17:32)
+- [x] 1.1.2 Write `literal-decode.spec.test.ts` (ST-5..7) — `packages/core/src/text/` ✅ (completed: 2026-07-17 17:32)
+- [ ] 1.1.3 Write `encoding-seam.spec.test.ts` (ST-9) — `packages/frontend/src/semantics/` — **runtime note (mechanical, 2026-07-17):** authored in Phase 2's spec step instead (red at 2.1.2, green at 2.2.4). ST-9's fold oracle needs the Phase-2 char arms (`statement-typing.ts:270` types the initialiser before folding), so a Phase-1 red test would fail 1.3.2's full verify, and implementing the arms in Phase 1 would break spec-first for ST-10..14. Only gate-consistent slot; no behavior change.
+- [x] 1.1.4 Run the two core suites — verify they FAIL (red phase; modules don't exist) ✅ (completed: 2026-07-17 17:32 — both suites fail to load their module under test)
 
 ### Step 1.2: Implementation
 
 **Reference**: 03-01 §Implementation
 **Objective**: Encoders + decoder in core; seam threaded; wrong stubs fixed.
 
-- [ ] 1.2.1 Implement `CharEncoder` + `encoderFor` + the three encoders + raw default — `packages/core/src/platform/encoding.ts` (+ barrel export)
-- [ ] 1.2.2 Implement `decodeLiteral` (segment model, code-point iteration) — `packages/core/src/text/literal-decode.ts`
-- [ ] 1.2.3 Mint `UnencodableCharacter: "E10127"` (additive) — `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 1.2.4 Repoint platform hooks to core encoders (petscii delegation keeps `shared-hooks` API; a800xl/a7800 → atascii/ascii) — `packages/platforms/src/{shared-hooks,a800xl,a7800}.ts`
-- [ ] 1.2.5 Thread `AnalyzeInput.encoder?` + derive from `targetProfile.defaultEncoding`; encoder onto `ConstTypeEngine` construction — `packages/frontend/src/semantics/{analyze.ts,const-type-engine.ts,passes.ts}`
-- [ ] 1.2.6 Run the Step-1.1 suites — verify GREEN (fix implementation, never tests)
+- [x] 1.2.1 Implement `CharEncoder` + `encoderFor` + the three encoders + raw default — `packages/core/src/platform/encoding.ts` (+ barrel export) ✅ (completed: 2026-07-17 17:39; impl 17:37)
+- [x] 1.2.2 Implement `decodeLiteral` (segment model, code-point iteration) — `packages/core/src/text/literal-decode.ts` ✅ (completed: 2026-07-17 17:39; impl 17:37 — + `text/index.ts` barrel, root-barrel export)
+- [x] 1.2.3 Mint `UnencodableCharacter: "E10127"` (additive) — `packages/core/src/diagnostics/diagnostic-codes.ts` ✅ (completed: 2026-07-17 17:39; impl 17:37)
+- [x] 1.2.4 Repoint platform hooks to core encoders (petscii delegation keeps `shared-hooks` API; a800xl/a7800 → atascii/ascii) — `packages/platforms/src/{shared-hooks,a800xl,a7800}.ts` ✅ (completed: 2026-07-17 17:39; impl 17:37 — added atascii/ascii hook delegates in shared-hooks)
+- [x] 1.2.5 Thread `AnalyzeInput.encoder?` + derive from `targetProfile.defaultEncoding`; encoder onto `ConstTypeEngine` construction — `packages/frontend/src/semantics/{analyze.ts,const-type-engine.ts,passes.ts}` ✅ (completed: 2026-07-17 17:39; impl 17:37 — passes.ts needed no change; resolveTypes already receives the engine instance)
+- [x] 1.2.6 Run the Step-1.1 suites — verify GREEN ✅ (completed: 2026-07-17 17:39 — 19/19; platforms suite 55/55 through the delegation)
 
 ### Step 1.3: Impl tests & hardening
 
-- [ ] 1.3.1 Write `encoding.impl.test.ts` (tail narrowing, boundary cps) — `packages/core/src/platform/`
-- [ ] 1.3.2 Full verify + platform-suite regression (hook delegation) + prior-goldens check
+- [x] 1.3.1 Write `encoding.impl.test.ts` (tail narrowing, boundary cps) — `packages/core/src/platform/` ✅ (completed: 2026-07-17 17:46 — 6/6, incl. raw≡ascii domain sweep)
+- [x] 1.3.2 Full verify + platform-suite regression (hook delegation) + prior-goldens check ✅ (completed: 2026-07-17 17:46 — 17/17 turbo tasks; frontend 843, harness 161 incl. golden suites, boundary 4; platforms 55/55)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

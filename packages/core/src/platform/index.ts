@@ -40,3 +40,7 @@ export type {
 // Shared profile-consistency helper.
 export { validateProfileFields } from "./validate-profile.js";
 
+// The core character encoders (code point → platform byte, fallible).
+export type { CharEncoder } from "./encoding.js";
+export { encoderFor } from "./encoding.js";
+

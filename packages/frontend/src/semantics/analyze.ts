@@ -39,7 +39,11 @@ import {
   ERROR_TYPE,
   findCallCycles,
 } from "@blend65/core";
-import type { PlatformProfile as CanonicalPlatformProfile } from "@blend65/core/platform";
+import type {
+  CharEncoder,
+  PlatformProfile as CanonicalPlatformProfile,
+} from "@blend65/core/platform";
+import { encoderFor } from "@blend65/core/platform";
 import { collectDeclarations, resolveTypes, checkBodies, postCheck } from "./passes.js";
 import { ConstTypeEngine } from "./const-type-engine.js";
 import { computePairAccessedParams } from "./pair-access.js";
@@ -74,6 +78,12 @@ export interface AnalyzeInput {
    * Availability checks run only when it is present.
    */
   readonly targetProfile?: CanonicalPlatformProfile;
+  /**
+   * The character encoder for string/char literals. When absent, it is
+   * derived from `targetProfile.defaultEncoding` (raw ASCII when neither is
+   * present) — the override exists for third-party platform plugins.
+   */
+  readonly encoder?: CharEncoder;
 }
 
 /**
@@ -142,6 +152,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     structTypes: tables.mutableStructTypes,
     enumTypes: tables.mutableEnumTypes,
     bag: input.bag,
+    encoder: input.encoder ?? encoderFor(input.targetProfile?.defaultEncoding),
   });
   resolveTypes(engine, functionTables.moduleScopeByName, functionTables.scopeByNode, input);
 

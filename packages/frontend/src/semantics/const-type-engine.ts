@@ -30,6 +30,8 @@
  */
 
 import { byteSize, DiagCode, ERROR_TYPE, primitive } from "@blend65/core";
+import type { CharEncoder } from "@blend65/core/platform";
+import { encoderFor } from "@blend65/core/platform";
 import type {
   AstNode,
   ConstDeclNode,
@@ -80,6 +82,12 @@ export interface EngineInput {
   readonly enumTypes: Map<string, EnumType>;
   /** The diagnostic accumulator. */
   readonly bag: DiagnosticBag;
+  /**
+   * The character encoder for string/char literals. Absent (direct
+   * construction in tests / non-compiler hosts) ⇒ the raw-ASCII encoder,
+   * the same deterministic default the analyzer derives without a profile.
+   */
+  readonly encoder?: CharEncoder;
 }
 
 /**
@@ -94,6 +102,9 @@ export class ConstTypeEngine {
   private readonly structTypes: Map<string, StructType>;
   private readonly enumTypes: Map<string, EnumType>;
   private readonly bag: DiagnosticBag;
+
+  /** The character encoder shared by const evaluation and the typing pass. */
+  readonly encoder: CharEncoder;
 
   /** Memo: layout/enum FQN → resolved type, or null when poisoned. */
   private readonly layoutMemo = new Map<string, StructType | null>();
@@ -115,6 +126,7 @@ export class ConstTypeEngine {
     this.structTypes = input.structTypes;
     this.enumTypes = input.enumTypes;
     this.bag = input.bag;
+    this.encoder = input.encoder ?? encoderFor(undefined);
   }
 
   /**

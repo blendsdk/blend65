@@ -7,10 +7,11 @@
  * is **false**: the 7800 game loop is non-terminating — there is
  * no OS to return to.
  *
- * The codegen hooks delegate to the shared C64-style bodies in this slice
- * (the bespoke `.a78` cartridge-header preamble and the ASCII encoder are
- * deferred); only the profile, `getMainTerminationPolicy`, and `validateProfile`
- * carry the platform's own data.
+ * The encode hooks use the core ASCII encoder; the codegen hooks delegate to
+ * the shared C64-style bodies in this slice (the bespoke `.a78`
+ * cartridge-header preamble is deferred); only the profile,
+ * `getMainTerminationPolicy`, and `validateProfile` carry the platform's own
+ * data.
  */
 
 import type {
@@ -24,10 +25,10 @@ import type {
   ValidationError,
 } from "@blend65/core/platform";
 import {
+  asciiEncodeChar,
+  asciiEncodeString,
   c64StylePreamble,
   c64StyleStartupShim,
-  petsciiEncodeChar,
-  petsciiEncodeString,
   prgOutputDirective,
   validateProfileVia,
 } from "./shared-hooks.js";
@@ -95,11 +96,11 @@ export const a7800Plugin: PlatformPlugin = {
   },
 
   encodeChar(char: string): number {
-    return petsciiEncodeChar(char);
+    return asciiEncodeChar(char);
   },
 
   encodeString(text: string): number[] {
-    return petsciiEncodeString(text);
+    return asciiEncodeString(text);
   },
 
   getMainTerminationPolicy(): MainTerminationPolicy {

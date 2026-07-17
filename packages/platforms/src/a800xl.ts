@@ -2,10 +2,11 @@
  * The Atari 800XL platform plugin; spec Ch 15 §2 + appendix-a800xl.
  *
  * Profile transcribed from appendix-a800xl §10 (`cpu: "nmos6502"`, `outputFormat:
- * "xex"`, `defaultEncoding: "atascii"`). The codegen hooks delegate to the
- * shared C64-style bodies in this slice — the bespoke ATASCII encoder and XEX
- * preamble are deferred (the slice ships the shared default); only the profile,
- * `getMainTerminationPolicy`, and `validateProfile` carry the platform's own data.
+ * "xex"`, `defaultEncoding: "atascii"`). The encode hooks delegate to the core
+ * ATASCII encoder; the remaining codegen hooks delegate to the shared C64-style
+ * bodies — the bespoke XEX preamble is deferred (the slice ships the shared
+ * default); only the profile, `getMainTerminationPolicy`, and `validateProfile`
+ * carry the platform's own data.
  */
 
 import type {
@@ -19,10 +20,10 @@ import type {
   ValidationError,
 } from "@blend65/core/platform";
 import {
+  atasciiEncodeChar,
+  atasciiEncodeString,
   c64StylePreamble,
   c64StyleStartupShim,
-  petsciiEncodeChar,
-  petsciiEncodeString,
   prgOutputDirective,
   validateProfileVia,
 } from "./shared-hooks.js";
@@ -59,8 +60,9 @@ const a800xlProfile: PlatformProfile = {
 };
 
 /**
- * The Atari 800XL plugin (R40). Hooks delegate to the shared C64-style bodies
- * (D4); the ATASCII/XEX-specific bodies are deferred.
+ * The Atari 800XL plugin (R40). Encode hooks use the core ATASCII encoder;
+ * the codegen hooks delegate to the shared C64-style bodies (D4) — the
+ * XEX-specific bodies are deferred.
  */
 export const a800xlPlugin: PlatformPlugin = {
   id: "a800xl",
@@ -88,11 +90,11 @@ export const a800xlPlugin: PlatformPlugin = {
   },
 
   encodeChar(char: string): number {
-    return petsciiEncodeChar(char);
+    return atasciiEncodeChar(char);
   },
 
   encodeString(text: string): number[] {
-    return petsciiEncodeString(text);
+    return atasciiEncodeString(text);
   },
 
   getMainTerminationPolicy(): MainTerminationPolicy {

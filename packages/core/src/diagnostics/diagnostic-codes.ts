@@ -121,6 +121,12 @@ export const DiagCode = {
   ConstToMutableParam: "E10122",
   ModifyConstParam: "E10123",
   FillRequiresExplicitSize: "E10126",
+  // - E10127: a string/char literal contains a character the target
+  //   platform's character encoding cannot represent (or any code point
+  //   above $FF — nothing above $FF fits a single byte). Registered
+  //   additively on the next free number in the band; raw bytes remain
+  //   expressible via `\xNN` escapes.
+  UnencodableCharacter: "E10127",
   // Type system
   MissingTypeAnnotation: "E10150",
   UnknownType: "E10151",

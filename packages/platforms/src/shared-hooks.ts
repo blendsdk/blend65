@@ -13,48 +13,90 @@
  */
 
 import type {
+  CharEncoder,
   PlatformProfile,
   StreamEntry,
   ValidationError,
 } from "@blend65/core/platform";
-import { validateProfileFields } from "@blend65/core/platform";
+import { encoderFor, validateProfileFields } from "@blend65/core/platform";
 import { directive, imm8, instr, label, symbolRef } from "@blend65/core/platform";
 
 /**
- * Encode a single character to the PETSCII MVP subset (R19/R20, D3 — the §4.5
- * table). Shared by the Commodore-family plugins (`c64`, `c64u`, `cx16`).
+ * Adapt a core encoder to the total plugin-hook shape. The hook API predates
+ * the fallible core encoders and returns a plain `number`, so an unmappable
+ * character falls back to its own code point — the hooks are platform
+ * tooling/test surface only; the compile path uses the fallible core
+ * encoders directly and diagnoses unmappable characters instead.
+ */
+function hookEncodeChar(encoder: CharEncoder, char: string): number {
+  const cp = char.codePointAt(0);
+  if (cp === undefined) return 0;
+  return encoder.encodeCodePoint(cp) ?? cp;
+}
+
+const PETSCII = encoderFor("petscii");
+const ATASCII = encoderFor("atascii");
+const ASCII = encoderFor("ascii");
+
+/**
+ * Encode a single character to PETSCII via the core encoder. Shared by the
+ * Commodore-family plugins (`c64`, `c64u`, `cx16`).
  *
  * @param char A single-character string.
  * @returns The encoded PETSCII byte value.
  */
 export function petsciiEncodeChar(char: string): number {
-  const code = char.charCodeAt(0);
-  if (code >= 0x41 && code <= 0x5a) {
-    return code; // A-Z → $41-$5A
-  }
-  if (code >= 0x61 && code <= 0x7a) {
-    return code + 0x60; // a-z → $C1-$DA
-  }
-  if (code >= 0x30 && code <= 0x39) {
-    return code; // 0-9
-  }
-  if (code === 0x20) {
-    return 0x20; // space
-  }
-  if (char === "\n") {
-    return 0x0d; // newline → CR
-  }
-  return code; // pass-through
+  return hookEncodeChar(PETSCII, char);
 }
 
 /**
- * Encode a string to the PETSCII MVP subset, char by char (R19, D3).
+ * Encode a string to PETSCII, char by char, via the core encoder.
  *
  * @param text The source string.
  * @returns The encoded byte values.
  */
 export function petsciiEncodeString(text: string): number[] {
   return [...text].map((ch) => petsciiEncodeChar(ch));
+}
+
+/**
+ * Encode a single character to ATASCII via the core encoder (Atari 800XL).
+ *
+ * @param char A single-character string.
+ * @returns The encoded ATASCII byte value.
+ */
+export function atasciiEncodeChar(char: string): number {
+  return hookEncodeChar(ATASCII, char);
+}
+
+/**
+ * Encode a string to ATASCII, char by char, via the core encoder.
+ *
+ * @param text The source string.
+ * @returns The encoded byte values.
+ */
+export function atasciiEncodeString(text: string): number[] {
+  return [...text].map((ch) => atasciiEncodeChar(ch));
+}
+
+/**
+ * Encode a single character to plain ASCII via the core encoder (Atari 7800).
+ *
+ * @param char A single-character string.
+ * @returns The encoded ASCII byte value.
+ */
+export function asciiEncodeChar(char: string): number {
+  return hookEncodeChar(ASCII, char);
+}
+
+/**
+ * Encode a string to plain ASCII, char by char, via the core encoder.
+ *
+ * @param text The source string.
+ * @returns The encoded byte values.
+ */
+export function asciiEncodeString(text: string): number[] {
+  return [...text].map((ch) => asciiEncodeChar(ch));
 }
 
 /**
