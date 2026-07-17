@@ -103,16 +103,16 @@ applies.
 | Test File | Description | Priority |
 |-----------|-------------|----------|
 | `packages/core/src/platform/encoding.impl.test.ts` | passthrough-tail narrowing vs shipped petscii; boundary cps (`$1F`/`$20`/`$7E`/`$7F`) | High |
-| `packages/frontend/src/semantics/type-check/literal-desugar.impl.test.ts` | splice idempotence; synthetic spans = original literal; typeMap integrity; the four consumers on synthetics | High |
-| `packages/compiler/src/api/asset-reader.impl.test.ts` | byte identity on a fixture containing `$00`/`$80`/`$FF`; stat-cap ordering (oversize never read); containment on resolved prefix | High |
+| `packages/frontend/src/semantics/type-check/literal-desugar.impl.test.ts` | conversion idempotence; converted nodes keep the original span (same object); typeMap integrity; the four consumers on synthetics | High |
+| `packages/compiler/src/api/asset-reader.impl.test.ts` | byte identity on a fixture containing `$00`/`$80`/`$FF`; stat-cap ordering (oversize never read) + post-read size re-check; canonical containment incl. a symlink-escape probe | High |
 | `packages/frontend/src/semantics/embed.impl.test.ts` | provenance field; unsized-inference patch path parity with arrays | Med |
 
 ### Retirement rewrites (retired-row protocol — rewritten in the SPEC-test step of their phase)
 
 | Shipped pin | New assertion |
 |-------------|---------------|
-| frontend string-init E90001 expectations (`rejectStringArrayInit` coverage) | ST-15/16/19 success/diagnostic oracles |
-| 8a zeropage-string negative (frontend + test-harness twins) | ST-23 success |
+| frontend string-init ICE pin `aggregate-typing.spec.test.ts:228-231` ("ST-44b" — asserts `isIceCode`; carries neither the identifier nor the message, so name it explicitly rather than grep) | ST-15/16/19 success/diagnostic oracles (bare form + W10140) |
+| 8a zeropage-string negative — frontend `zeropage.spec.test.ts:131-136` + test-harness `slice8-negatives.spec.test.ts:117-123` twins | ST-23 success |
 
 ## Test Data
 

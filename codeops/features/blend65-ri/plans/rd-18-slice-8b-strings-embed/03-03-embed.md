@@ -16,15 +16,19 @@ emission through the shipped const-data path.
 
 ```ts
 export type AssetReadResult =
-  | { kind: "ok"; bytes: Uint8Array }
+  | { kind: "ok"; bytes: Uint8Array; resolvedPath: string } // canonical absolute asset path
   | { kind: "not-found" }          // → E10201
   | { kind: "outside-root" }       // → E10205
   | { kind: "too-large"; size: number }; // → E10202-family message, 65536 cap
 
 /** Resolves and reads a binary asset referenced from a source file.
- *  `fromSourcePath` is the ABSOLUTE path of the .blend file containing the embed(). */
+ *  Keyed by the `SourceId` of the .blend file containing the embed() — the only file
+ *  identity the frontend possesses (`AnalyzeInput` carries no paths; spans hold a
+ *  `SourceId` only, and the SourceMap interns project-relative display paths). All path
+ *  knowledge and resolution policy live in the implementation; `resolvedPath` in the ok
+ *  arm is how the frontend learns the canonical asset path for `embeddedAssets`. */
 export interface AssetReader {
-  readAsset(fromSourcePath: string, relPath: string): AssetReadResult;
+  readAsset(sourceId: SourceId, relPath: string): AssetReadResult;
 }
 ```
 
@@ -37,20 +41,34 @@ Policy (AR-10/AR-11, mirroring the `runtime/embed.ts:97-111` guard shape):
 
 1. Reject absolute `relPath` and any escape sequence / non-ASCII in the path literal
    (`not-found`-style rejection with an invalid-path message under E10201).
-2. `resolve(dirname(fromSourcePath), relPath)`, then containment check against
-   `resolve(config.projectRoot) + sep` → `outside-root` on escape. `--asset-path` does not
-   exist (EMB-2 deviation, recorded).
-3. `stat` BEFORE read: size > 65536 → `too-large` (size-bomb guard; nothing larger fits the
+2. `sourcePath = sources.get(sourceId)` — the reader closes over the
+   `Map<SourceId, absolutePath>` built during interning; an unknown id → `not-found`.
+   Then `resolve(dirname(sourcePath), relPath)`.
+3. Containment, lexical first and then canonical: check the resolved path against
+   `resolve(config.projectRoot) + sep` → `outside-root` on escape. This step needs no
+   filesystem access, so a `..` escape is E10205 whether or not the target exists (ST-28's
+   "file existence irrelevant"). Then `realpathSync` the resolved path (ENOENT →
+   `not-found`) and re-check the canonical path against `realpathSync(config.projectRoot)
+   + sep` (computed once) → `outside-root` on a symlink escape — a lexical-only prefix
+   check would pass a symlink inside the project pointing outside it, and RD-18's Security
+   clause requires canonical paths. `--asset-path` does not exist (EMB-2 deviation,
+   recorded).
+4. `stat` BEFORE read: size > 65536 → `too-large` (size-bomb guard; nothing larger fits the
    address space).
-4. `readFileSync` → `ok`.
+5. `readFileSync` → re-check `bytes.byteLength <= 65536` (closes the stat→read race) →
+   `ok` with `resolvedPath` = the canonical path from step 3.
 
-`run-frontend.ts` constructs it from `config.projectRoot` + the source-file map and passes it
-as the new optional `AnalyzeInput.assetReader`.
+`run-frontend.ts` builds the `Map<SourceId, absolutePath>` while interning (the absolute
+path and the freshly-interned id sit adjacent in its read loop), constructs the reader from
+it + `config.projectRoot`, and passes it as the new optional `AnalyzeInput.assetReader`.
 
 ### Analysis-time typing (frontend)
 
 `EmbedExpr` is handled ONLY in declaration typing (like the string desugar — before coverage
-checks). Legality (EMB-1, AR-11): the initialiser must be exactly an `EmbedExprNode`, the
+checks); the typing site calls `readAsset(embedNode.span.sourceId, path)`. Legality (EMB-1's
+const-only/compile-time rule, tightened by the recorded AR-11 decision to
+module-level/full-initializer — Ch 13's text does not itself pin those two): the
+initialiser must be exactly an `EmbedExprNode`, the
 declaration must be a **module-level `const`** with a `byte`-element array annotation
 (sized or unsized); every other position/kind — `let`, local, zeropage field, expression
 position, non-byte element — → **E10200** (Ch 13 wording). `format !== null` → loud **E90001**
@@ -67,16 +85,19 @@ On the legal shape:
 - `ok`: sized annotation with `bytes.length !== N` → **E10202** (Ch 13 wording). Else the
   symbol's array size is set/inferred from `bytes.length` (reusing the `inferUnsizedArray`
   patch path), and `ctx.constValues.set(sym, { type, value: 0, bytes, source: "embed" })`.
-  `length()` folding and index-tier rules see a normal sized const array from here on.
+  The ok arm's `resolvedPath` feeds the `embeddedAssets` entry. `length()` folding and
+  index-tier rules see a normal sized const array from here on.
 
 ### Provenance + watch seam (AR-12)
 
-- `ConstValue` gains optional `source?: "embed"`; `lower.ts`'s constData collection maps it to
+- `ConstValue` (`packages/core/src/semantics/const-value.ts`) gains optional
+  `source?: "embed"`; `lower.ts`'s constData collection maps it to
   `ConstDataEntry.type: "embed"` (falling back to the existing struct/array derivation) — the
   pre-typed arm becomes honestly reachable.
-- `SemanticModel` gains `readonly embeddedAssets: ReadonlyMap<string, string>` (symbol FQN →
-  resolved absolute asset path) — the invalidation edge a future watch/LS host needs. Populated
-  at the typing site; empty map when no embeds.
+- `SemanticModel` (`packages/core/src/semantics/semantic-model.ts`) gains
+  `readonly embeddedAssets: ReadonlyMap<string, string>` (symbol FQN → canonical absolute
+  asset path, taken from the ok arm's `resolvedPath`) — the invalidation edge a future
+  watch/LS host needs. Populated at the typing site; empty map when no embeds.
 
 ### Emission (AR-13)
 
@@ -96,6 +117,8 @@ Nothing new: embed bytes flow as a `ConstDataEntry` through `constDataStream` �
 
 ## Testing Requirements
 
-Spec tier ST-25..ST-36 (incl. the security negatives — traversal via `..`, absolute path,
-symlink-free containment on resolved prefix); impl tier: byte-identity on a ≥`$80` fixture,
-provenance mapping, `embeddedAssets` population, stat-cap ordering (no read on oversized).
+Spec tier ST-25..ST-35 (incl. the security negatives — traversal via `..`, absolute path);
+impl tier: byte-identity on a ≥`$80` fixture, provenance mapping, `embeddedAssets`
+population, stat-cap ordering (no read on oversized) + the post-read size re-check, and
+canonical containment incl. a symlink-escape probe (a symlink inside the project targeting
+outside it → `outside-root`).

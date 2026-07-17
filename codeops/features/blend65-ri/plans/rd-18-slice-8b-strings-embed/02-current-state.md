@@ -30,7 +30,9 @@ accepts `embed("path" [, formatIdent])`, no content validation.
   `default` arm → `ERROR_TYPE` with **no diagnostic**.
 - `type-check/statement-typing.ts:881-894` `rejectStringArrayInit`: bare `StringLitExpr`
   initialiser on an array decl → **E90001 ICE** "string array initialisers are not supported
-  yet…" (invoked :811 and the const path). **Escape hole (challenger-verified):** the bracketed
+  yet…" (invoked :140 module-let, :188 zeropage field, :811 local let; the const pass never
+  calls it — a const string-init today fails as E10126 (unsized, :305-320) or E10193 (sized,
+  `const-images.ts:82-88`)). **Escape hole (challenger-verified):** the bracketed
   form `["HELLO"; 0]` does NOT match (:886 checks the initialiser node only) and slips into
   silent poison / E10193 / codegen ICE.
 - `const-eval.ts:153-195`: no arms for the three nodes → `{kind:"nonConst"}` (:192-193).

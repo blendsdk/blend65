@@ -23,22 +23,39 @@ coexist fine with synthetics).
 ### Char literals — universal desugar (AR-9)
 
 At the top of expression typing, before the kind switch: a `CharLitExpr` is decoded
-(one segment; the lexer guarantees exactly one) and encoded via `ctx.engine`'s encoder; the
-node's slot in the parent is replaced by the synthetic `NumericLitExpr`, which then types as a
-`byte` constant everywhere — expressions, `case` labels (const-eval now folds them), fill
-positions, assignments. Unmappable → E10127, poison. Codegen and the const engine need no
-`CharLitExpr` arm; the walk simply never sees one after typing.
+(one segment; the lexer guarantees exactly one) and encoded via `ctx.engine`'s encoder, and
+the node is **converted in place** into a `NumericLitExpr` — `kind`/`value`/`raw` rewritten
+through one localized, documented typed helper; `span` untouched (it already is the original
+literal's span). The node then types as a `byte` constant everywhere — expressions, `case`
+labels, fill positions, assignments, operands, arguments. Unmappable → E10127, poison (no
+conversion). Codegen and the const engine need no `CharLitExpr` arm: because conversion
+preserves object identity, every consumer that re-reads the AST after typing sees a plain
+numeric literal — including `typeCaseValue`, which folds the SAME local binding it just typed
+(`statement-typing.ts:558-559`, unreachable by any parent-slot splice), the post-typing
+cross-operand literal-adaptation check (`expression-typing.ts:226-231`), `buildConstImage`,
+initCode lowering, and `lowerExpr`'s operand/argument/index re-walks that no splice-site
+list could enumerate. `typeMap`/`symbolMap` identity keys stay valid; conversion is
+idempotent (a second visit takes the `NumericLitExpr` arm).
 
-Implementation note: replacement happens where the parent holds the child reference — the
-cleanest single choke point is a pre-pass in `typeOfExpr`/`computeType` that returns the
-synthetic node's type AND records the substitution; declaration/initializer sites that hold the
-node directly (let/const/zeropage initialisers, array elements, fills, case labels) splice the
-replacement into the parent field. The 99-plan's Phase-2 tasks enumerate the splice sites.
+Implementation note: the conversion helper carries the plan's one deliberate, documented
+exception to the no-unsafe-casts rule (verified safe: the AST is never frozen, concrete node
+interfaces declare `kind`/`value`/`raw` non-readonly, the parser never structurally shares
+literal nodes, and nothing reads `NumericLitExpr.raw` downstream). One companion arm IS
+required: `ConstTypeEngine.evalExpr` gets an encode-or-convert `CharLitExpr` arm, because
+Pass-2 lazy folds can reach a char before body typing runs (`const K: byte = 'A';
+let a: byte[K];` forces K's fold during array-size resolution). The engine already holds the
+encoder and is frontend-internal — this is not a downstream-consumer arm.
 
 ### String literals — declaration-site desugar (AR-8)
 
-Desugar runs in declaration typing (`typeLetDecl` / const path / `typeZeropageField`) **before**
-`checkArrayInitCoverage` (currently `statement-typing.ts:808`), replacing `rejectStringArrayInit`:
+Desugar runs in declaration typing at all four decl positions — local let (`typeLetDecl`,
+before its coverage check at `statement-typing.ts:808`), module let (`typeModuleLet`, before
+its coverage check at `:124`), zeropage fields (`typeZeropageField`, the `:188` site), and an
+**added** hook in the const pass (before the `:307` unsized `init.kind === "ArrayLitExpr"`
+inference check, so size inference and `buildConstImage` see the spliced `ArrayLitExpr`).
+The first three replace `rejectStringArrayInit` (call sites `:140`/`:188`/`:811`); the const
+pass has no rejection to replace — a const string-init today fails as E10126 (unsized,
+`:305-320`) or E10193 (sized, `const-images.ts:82-88`):
 
 1. **Bare form** `let m: byte[N?] = "S";` — decode+encode the string; length check FIRST:
    if the declared size exists and byteCount > N → **E10124** (Ch 08 wording: "String literal
@@ -73,8 +90,8 @@ including a7800).
 
 | Shipped pin | Location | Rewritten to |
 |-------------|----------|--------------|
-| E90001 "string array initialisers are not supported yet" | `rejectStringArrayInit` call sites' spec tests | bare-form success: bytes/size/W10140 per ST-10..14 |
-| 8a zeropage boundary pin `zeropage { msg: byte[6] = "HELLO"; }` → E90001 | 8a negative suite (test-harness + frontend) | zeropage string init succeeds; bytes in the user-ZP category |
+| Frontend string-init ICE pin — asserts `isIceCode` only (carries NEITHER the `rejectStringArrayInit` identifier NOR the message substring; a grep for either misses it) | `packages/frontend/src/semantics/aggregate-typing.spec.test.ts:228-231` ("ST-44b") | bare-form success on `let a: byte[10] = "HELLO";`: bytes + W10140 per the ST-16 oracle |
+| 8a zeropage boundary pin `zeropage { msg: byte[6] = "HELLO"; }` → E90001 (message-substring asserts) | `packages/frontend/src/semantics/zeropage.spec.test.ts:131-136` + `packages/test-harness/src/slice8-negatives.spec.test.ts:117-123` | zeropage string init succeeds; bytes in the user-ZP category |
 | Bracketed-form escape (silent poison — no pin exists) | NEW spec tests | `["HELLO"; 0]` succeeds; mixed forms → E10116 |
 
 `rejectStringArrayInit` itself is deleted (dead code) once the desugar lands.
@@ -91,6 +108,7 @@ including a7800).
 
 ## Testing Requirements
 
-Spec tier ST-10..ST-24; impl tier: splice idempotence (typing runs once per decl), synthetic
-spans point at the original literal, `typeMap` integrity, the four consumers receiving
-synthetics (coverage warning, image bytes, initCode lowering, frame stores).
+Spec tier ST-10..ST-24; impl tier: conversion idempotence (repeat typing is a no-op),
+converted nodes keep the original literal's span (same object), `typeMap` integrity, the four
+consumers receiving synthetics (coverage warning, image bytes, initCode lowering, frame
+stores).

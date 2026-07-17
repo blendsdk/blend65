@@ -55,7 +55,7 @@ discipline).
   (`describe.skipIf(!hasVice()||!hasAcme())`, `fileParallelism` conventions; assertions =
   direct memory reads of the table above).
 - `src/slice8b-negatives.spec.test.ts` — facade-level negatives, one per code:
-  E10200/E10201/E10202/E10205, E10116, E10124, E10127, format-arg E90001 (ST-41 rows).
+  E10200/E10201/E10202/E10205, E10116, E10124, E10127, format-arg E90001 (ST-40 rows).
 - `src/golden-slice8b.spec.test.ts` + `test/golden/slice8b.asm.golden` — byte-exact golden
   with landmarks: `__data_Main_TITLE` + its `!byte $48, $45, …` row, `__data_Main_TABLE` +
   `!byte $01, $02, …` row, the banner initCode stores, `JSR _main` (terminating shim).

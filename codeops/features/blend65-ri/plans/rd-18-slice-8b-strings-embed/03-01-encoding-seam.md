@@ -59,9 +59,9 @@ unmappable in every encoder (AR-7).
 | Encoder | Mapping | Control chars |
 |---------|---------|---------------|
 | `petscii` | shipped algorithm (A–Z/digits/space/symbols pass, a–z → +$60), passthrough tail NARROWED to `$20–$7E` — outside it `null` | `\n`→`$0D`, `\r`→`$0D`, `\t`→`$09` (today's implicit passthrough made explicit) |
-| `atascii` | identity for printable ASCII `$20–$7E` **except** `` ` `` `{` `}` `~` → `null` (not in ATASCII) | `\n`→`$9B`, `\r`→`$9B` (Ch 01 §7.2's normative ATASCII example), `\t`→`null` |
+| `atascii` | identity for printable ASCII `$20–$7E` **except** `` ` `` `{` `}` `~` → `null` (not in ATASCII) | `\n`→`$9B`, `\r`→`$9B` (Ch 01 §7.2's normative ATASCII example), `\t`→`null` (deliberately unmapped — ATASCII's `$7F` TAB control exists but is not baked; `\x7F` stays available) |
 | `ascii` | identity `$20–$7E` | `\n`→`$0A`, `\r`→`$0D`, `\t`→`$09` |
-| raw (no profile) | identity `$20–$7E` + the three ascii control mappings | matches `platform-profile.ts:101` "absent ⇒ raw ASCII bytes" |
+| raw (no profile) | ≡ the `ascii` encoder: identity `$20–$7E`; every other code point — incl. `$00–$1F` and `$7F` — → `null` | `\n`→`$0A`, `\r`→`$0D`, `\t`→`$09` — the fallible reading of `platform-profile.ts:101` "absent ⇒ raw ASCII bytes" (`\xNN` covers any raw byte) |
 
 The platforms package keeps its hook API: `petsciiEncodeChar/String` in `shared-hooks.ts` become
 thin delegates over the core `petscii` encoder (their unit tests keep passing); `a800xl.ts` /

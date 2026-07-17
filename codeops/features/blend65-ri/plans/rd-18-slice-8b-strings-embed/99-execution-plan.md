@@ -94,14 +94,14 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 
 ### Step 2.2: Implementation
 
-- [ ] 2.2.1 Implement the universal `CharLitExpr` → synthetic `NumericLitExpr` desugar (choke point + splice sites per 03-02) — `packages/frontend/src/semantics/type-check/expression-typing.ts` (+ statement-typing splice sites)
-- [ ] 2.2.2 Const-engine fold path proves out (case labels, const decls) — no new arm expected; fix per 03-02 if the engine sees a raw `CharLitExpr`
+- [ ] 2.2.1 Implement the universal `CharLitExpr` → `NumericLitExpr` desugar (in-place conversion at the `typeOfExpr` choke point per 03-02; one documented conversion helper) — `packages/frontend/src/semantics/type-check/expression-typing.ts`
+- [ ] 2.2.2 Add the `ConstTypeEngine.evalExpr` encode-or-convert `CharLitExpr` arm (Pass-2 lazy folds reach chars before body typing — e.g. a char-valued const used as an array size, per 03-02) — `packages/frontend/src/semantics/const-type-engine.ts`
 - [ ] 2.2.3 E10127 emit site at the literal span (unmappable) — same files
 - [ ] 2.2.4 Run Step-2.1 suite — verify GREEN
 
 ### Step 2.3: Impl tests & hardening
 
-- [ ] 2.3.1 Extend `literal-desugar.impl.test.ts` (char half: spans, typeMap, splice-once) — `packages/frontend/src/semantics/type-check/`
+- [ ] 2.3.1 Extend `literal-desugar.impl.test.ts` (char half: spans, typeMap, conversion idempotence) — `packages/frontend/src/semantics/type-check/`
 - [ ] 2.3.2 Full verify + prior-goldens check
 
 **Verify**: (same command)
@@ -116,14 +116,14 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 **Objective**: All init forms + diagnostics pinned; retired rows rewritten to success FIRST.
 
 - [ ] 3.1.1 Write `string-init.spec.test.ts` (ST-15..22, ST-24) — `packages/frontend/src/semantics/type-check/`
-- [ ] 3.1.2 Rewrite the shipped E90001 string-init expectations to the new oracles (retired-row protocol; locate via `rejectStringArrayInit` references) — frontend spec suites
+- [ ] 3.1.2 Rewrite the shipped string-init ICE pin to the new oracles (retired-row protocol; the pin is `aggregate-typing.spec.test.ts:228-231` "ST-44b", an `isIceCode` assert NOT locatable via the identifier or message — 03-02 retirement matrix) — frontend spec suites
 - [ ] 3.1.3 Rewrite the 8a zeropage-string pins (frontend + test-harness twins) to ST-23 success
 - [ ] 3.1.4 Run — verify FAIL (red: E90001 still fires; bracketed form poisons)
 
 ### Step 3.2: Implementation
 
 - [ ] 3.2.1 Mint `MixedStringValueInit: "E10116"` + `StringExceedsArraySize: "E10124"` (additive, Ch 08 wording) — `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 3.2.2 Implement the declaration-site desugar (bare + bracketed + fill forms, E10124 pre-splice, E10116 arms) replacing `rejectStringArrayInit`; delete the dead helper — `packages/frontend/src/semantics/type-check/statement-typing.ts`
+- [ ] 3.2.2 Implement the declaration-site desugar (bare + bracketed + fill forms, E10124 pre-splice, E10116 arms) at all four decl positions per 03-02 — module-let `:140`, zeropage `:188`, local-let `:811` (replacing `rejectStringArrayInit`) + the ADDED const-pass hook before the `:307` unsized-inference check; delete the dead helper — `packages/frontend/src/semantics/type-check/statement-typing.ts`
 - [ ] 3.2.3 E10080 arm for `StringLitExpr` in general expression positions — `packages/frontend/src/semantics/type-check/expression-typing.ts`
 - [ ] 3.2.4 Zeropage-field parity (same desugar path; 8a field-initialiser context) — verify via ST-23, adjust `typeZeropageField` only if needed
 - [ ] 3.2.5 Run Step-3.1 suites — verify GREEN (incl. both retirements)
@@ -149,16 +149,16 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Define `AssetReader` + `AssetReadResult` (Uint8Array contract) — `packages/core/src/host/asset-reader.ts` (+ barrel)
+- [ ] 4.2.1 Define `AssetReader` + `AssetReadResult` (`SourceId`-keyed, `Uint8Array` contract, ok arm carries `resolvedPath` — per 03-03) — `packages/core/src/host/asset-reader.ts` (+ barrel)
 - [ ] 4.2.2 Mint `EmbedPathEscapesRoot: "E10205"` (additive) — `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 4.2.3 Implement the disk reader (resolve, containment, stat-cap, invalid-path policy per 03-03) + wire into `analyze()` input — `packages/compiler/src/api/` (`asset-reader.ts` + `run-frontend.ts`)
-- [ ] 4.2.4 Implement embed declaration typing (EMB-1..4 legality, E10200/01/02/05 + format E90001, size inference, constValues bytes + `source:"embed"`, `embeddedAssets` map, absent-reader poison) — `packages/frontend/src/semantics/type-check/statement-typing.ts` (+ `semantic-model.ts` for the map/provenance types)
+- [ ] 4.2.3 Implement the disk reader (sourceId→path map built during interning, resolve, realpath canonicalization, containment, stat-cap + post-read re-check, invalid-path policy per 03-03) + wire into `analyze()` input — `packages/compiler/src/api/` (`asset-reader.ts` + `run-frontend.ts`)
+- [ ] 4.2.4 Implement embed declaration typing (EMB-1..4 legality, E10200/01/02/05 + format E90001, size inference, constValues bytes + `source:"embed"`, `embeddedAssets` map, absent-reader poison) — `packages/frontend/src/semantics/type-check/statement-typing.ts` (+ `packages/core/src/semantics/{semantic-model,const-value}.ts` for the `embeddedAssets` map + `source` provenance types)
 - [ ] 4.2.5 Provenance passthrough to `ConstDataEntry.type:"embed"` — `packages/codegen/src/il/lower.ts` (+ stale cfg.ts comment refresh)
 - [ ] 4.2.6 Run Step-4.1 suites — verify GREEN
 
 ### Step 4.3: Impl tests & hardening
 
-- [ ] 4.3.1 Write `asset-reader.impl.test.ts` (byte identity ≥`$80`, stat-cap ordering, containment prefix) — `packages/compiler/src/api/`
+- [ ] 4.3.1 Write `asset-reader.impl.test.ts` (byte identity ≥`$80`, stat-cap ordering + post-read re-check, canonical containment incl. a symlink-escape probe) — `packages/compiler/src/api/`
 - [ ] 4.3.2 Write `embed.impl.test.ts` (provenance, inference parity) — `packages/frontend/src/semantics/`
 - [ ] 4.3.3 Full verify + prior-goldens check
 

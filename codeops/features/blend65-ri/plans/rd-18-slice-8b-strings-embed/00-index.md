@@ -76,7 +76,7 @@ function main(): void {
 | Encoders | Three core-resident algorithmic encoders; a800xl/a7800 stubs fixed (AR-5); fallible, E10127 on unmappable (AR-7) |
 | Seam | Core `CharEncoder` derived from `targetProfile.defaultEncoding` in `analyze()`; threaded into `ConstTypeEngine` (AR-6) |
 | Literal mechanism | AST desugar to synthetic `ArrayLitExpr`/`NumericLitExpr`; mint E10116/E10124 (AR-8/AR-9) |
-| embed() | Raw-only, const-initializer-only; source-relative + project-root containment; mint E10205; 64 KiB stat-before-read cap (AR-10/AR-11) |
+| embed() | Raw-only, const-initializer-only; source-relative + canonical (realpath) project-root containment; mint E10205; 64 KiB stat-before-read cap + post-read re-check (AR-10/AR-11) |
 | embed() placement | Core `AssetReader` (Uint8Array contract) injected into `analyze()`; provenance + asset-path map (AR-12) |
 | Emission | Shipped `__data_*` `!byte` path; no `!bin` (AR-13) |
 | Closure | Tick-with-annotation audit of RD-04/06/07 ACs; RD-04b phantom retired (AR-15) |
@@ -85,7 +85,8 @@ function main(): void {
 
 - `packages/core/src/platform/` — new `encoding.ts` (three encoders + `CharEncoder` contract)
 - `packages/core/src/text/` (new) — escape-decode utility (segment model)
-- `packages/core/src/host/` — `AssetReader` contract
+- `packages/core/src/host/` — `AssetReader` contract (`SourceId`-keyed; ok arm carries `resolvedPath`)
+- `packages/core/src/semantics/semantic-model.ts` + `const-value.ts` — `embeddedAssets` map + `ConstValue.source` embed provenance (additive)
 - `packages/core/src/diagnostics/diagnostic-codes.ts` — E10116/E10124/E10127/E10205 (additive)
 - `packages/platforms/src/shared-hooks.ts` + 5 platform files — hooks delegate to core encoders
 - `packages/frontend/src/semantics/analyze.ts`, `type-check/{context,statement-typing,expression-typing}.ts`, `const-type-engine.ts`, `const-eval.ts`, `const-images.ts` — seam threading + desugar + embed typing

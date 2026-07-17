@@ -34,11 +34,23 @@ preflight through the 3-part bar): `&` address-of, by-ref argument-place marshal
 interrupt save/RTI ABI, the SFA irq-path correctness fixes, `zeropage {}` blocks, and automatic
 non-terminating-`main` selection — `examples/slice8/` raster-IRQ fixture GREEN on real VICE 3.10
 (raw-vector install, KERNAL banked out, ZP counter saturates); 128-line golden; ten prior
-goldens byte-exact. Next: 8b `make_plan` (`rd-18-slice-8b-strings-embed` — strings/encoding +
-`embed()`, carries RD-18 closure items 8–9); RD-13/RD-14 queued.**
+goldens byte-exact. **Slice 8b plan preflighted 🔬 (2026-07-17, `make_plan` + `preflight`,
+`plans/rd-18-slice-8b-strings-embed/` — 17-row gate incl. one challenger review; strings/char
+encoding via a core encoder seam, AST-desugar literals, raw traversal-safe `embed()`, RD-18
+closure items 8–9; 58 tasks / 6 phases; preflight iteration-2 pass, 11 findings resolved —
+`SourceId`-keyed `AssetReader` + in-place char conversion amendments). Next:
+`exec_plan rd-18-slice-8b-strings-embed`; RD-13/RD-14 queued.**
 
 ## Recent milestones
 
+- 2026-07-17 — **RD-18 Slice 8b plan preflighted 🔬** — 11 findings resolved (incl. the
+  `SourceId`-keyed `AssetReader` contract — the frontend owns no source paths — and in-place
+  char-literal conversion, without which the acceptance fixture's own shapes would ICE at
+  lowering; canonical embed containment; the third string-init retirement pin named).
+- 2026-07-17 — **RD-18 Slice 8b plan created 📋** (`make_plan`) — 17-row Zero-Ambiguity gate
+  (bulk-accepted; challenger refuted the encoder-stubs-as-is option and corrected the string-init
+  mechanism to an AST desugar); core `CharEncoder` + `AssetReader` seams keep R15 intact; 58
+  tasks / 6 phases ending in the RD-18 rollout-closure phase.
 - 2026-07-17 — **RD-18 Slice 8a ✅** (60/60) — hardware surface: `&` address-of + arg-place
   marshalling, interrupt ABI + SFA irq-path fixes, zeropage blocks, auto non-terminating `main`,
   T1 E2E; raster-IRQ fixture GREEN on real VICE first run after harness fix; ten priors byte-exact.
@@ -67,13 +79,15 @@ goldens byte-exact. Next: 8b `make_plan` (`rd-18-slice-8b-strings-embed` — str
   VICE. Slices 3a/3b/4a/4b/5a/5b/6/7a/7b ✅ complete (Slice 7 closed, RD-18 item 6 ticked).
   **Slice 8** (the last codegen slice) is split 8a/8b: **8a hardware** — ✅ COMPLETE (60/60,
   VICE-verified raster-IRQ fixture, `plans/rd-18-slice-8-hardware/`); **8b data**
-  (strings/encoding, `embed()`, RD-18 closure) — needs `make_plan`.
+  (strings/encoding, `embed()`, RD-18 closure) — plan preflighted 🔬
+  (`plans/rd-18-slice-8b-strings-embed/`, 11 findings resolved), ready for `exec_plan`.
 - **Last completed non-RD-18 work**: **RD-12** (test harness & emulator verification) and
   **RD-15** (programmatic + CLI API), both 2026-07-03. The full pipeline compiles
   frontend→SFA→IL→6502→ACME→loadable c64 `.prg` and is VICE-verified; `blendc` ships with config,
   diagnostics, and resource reports.
-- **Next up**: RD-18 Slice 8b (`make_plan` — the last codegen slice; carries RD-18 closure), then **RD-13**
-  (non-functional sweep) and **RD-14** (VS Code extension & Language Server) — both need `make_plan`.
+- **Next up**: `exec_plan rd-18-slice-8b-strings-embed` (the last codegen slice; carries RD-18
+  closure — completing it closes RD-18), then **RD-13** (non-functional sweep) and **RD-14**
+  (VS Code extension & Language Server) — both need `make_plan`.
 
 ---
 
@@ -134,7 +148,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout, whole frozen language, _unoptimized_) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | `plans/rd-18-slice-*/` — 3a–7b + 8a ✅, 8b needs `make_plan` | A→B | 🚧 In progress — Slices 3a–8a ✅ (8a hardware VICE-verified 2026-07-17); Slice 8b data (last) needs `make_plan` (carries closure items 8–9) |
+| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout, whole frozen language, _unoptimized_) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | `plans/rd-18-slice-*/` — 3a–7b + 8a ✅, [8b 🔬](plans/rd-18-slice-8b-strings-embed/00-index.md) | A→B | 🚧 In progress — Slices 3a–8a ✅; Slice 8b data (last) plan preflighted 🔬 2026-07-17, ready for `exec_plan` (carries closure items 8–9) |
 | 2 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
