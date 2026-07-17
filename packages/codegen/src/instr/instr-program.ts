@@ -20,6 +20,7 @@ import type { AllocationPlan } from "@blend65/core";
 import type { PlatformPlugin, PreambleOptions } from "@blend65/core/platform";
 
 import type { ConstDataEntry, ILFunction, ILProgram } from "../il/cfg.js";
+import { functionCanReturn } from "../il/termination.js";
 import type { CpuVariant, InstrStream, StreamEntry } from "./stream.js";
 import { directive, label } from "./stream.js";
 import { instrByteSize } from "./print-instr.js";
@@ -159,7 +160,7 @@ export function assembleProgram(
   // Derive the shim/data options, then apply the driver overrides for
   // any field the driver set, and ask the plugin for the preamble.
   const options: PreambleOptions = {
-    ...derivePreambleOptions(ilProgram),
+    ...derivePreambleOptions(ilProgram, plugin),
     ...(overrides?.projectName !== undefined ? { projectName: overrides.projectName } : {}),
     ...(overrides?.shimVariant !== undefined ? { shimVariant: overrides.shimVariant } : {}),
   };
@@ -185,27 +186,37 @@ function constDataStream(entry: ConstDataEntry): InstrStream {
 }
 
 /**
- * Derive {@link PreambleOptions} from the IL program (the Half-A rule).
+ * Derive {@link PreambleOptions} from the IL program.
  *
- * SEAM (Half B): real `main`-termination + block-layout analysis is deferred — it
- * needs the multi-block CFG that IL lowering does not yet produce. The Half-A
- * rule below is correct for every program the live single-block lowering can
- * currently produce:
- *   - `shimVariant` = `"terminating"` — the entry function's single block ends in
- *     `ret`, so the platform's terminating shim (restore + return) is always safe.
- *   - `needsBssZero` = `false` — the live `AllocationPlan` does not yet expose a
- *     distinct mutable/BSS region to key off, and the gate program has none.
- *   - `needsDataInit` = whether the program carries const/initialised data to copy.
- * When CFG lowering lands, a fall-through optimization and true termination
- * analysis replace this rule.
+ * `shimVariant` selection (an explicit driver override, applied by the
+ * caller, always wins over this derivation):
+ *   1. A platform whose termination policy says `main` cannot return gets
+ *      the non-terminating shim — there is nowhere to return to; the
+ *      platform shim owns the halt.
+ *   2. Otherwise the entry function's control-flow graph decides: no
+ *      reachable `ret` → non-terminating (`JMP _main`); anything else —
+ *      including every uncertainty — keeps the terminating shim (the safe
+ *      direction; see {@link functionCanReturn}).
+ * Programs without an entry function (library-style emissions) keep the
+ * terminating default untouched.
  *
  * @param ilProgram The IL program to derive options from.
- * @returns The preamble generation options for this slice.
+ * @param plugin The target platform (termination policy).
+ * @returns The preamble generation options.
  */
-function derivePreambleOptions(ilProgram: ILProgram): PreambleOptions {
+function derivePreambleOptions(ilProgram: ILProgram, plugin: PlatformPlugin): PreambleOptions {
+  const entry = ilProgram.functions.find(
+    (f) => f.name === "main" || f.name.endsWith(".main"),
+  );
+  let shimVariant: PreambleOptions["shimVariant"] = "terminating";
+  if (plugin.getMainTerminationPolicy().canReturn === false) {
+    shimVariant = "non-terminating";
+  } else if (entry !== undefined && !functionCanReturn(entry)) {
+    shimVariant = "non-terminating";
+  }
   return {
     projectName: "main", // the driver overrides this; no live driver yet.
-    shimVariant: "terminating", // Half-A rule (single-block entry ends in ret).
+    shimVariant,
     needsBssZero: false, // no distinct BSS region in the live plan/gate.
     needsDataInit: ilProgram.constData.length > 0, // copy const data when present.
     hasInitCode: ilProgram.initCode.length > 0, // shim calls __init when present.

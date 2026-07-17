@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-17 14:48
-> **Progress**: 47/60 tasks (78%)
+> **Progress**: 53/60 tasks (88%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -210,18 +210,18 @@ task-size criteria in the quality checklist)
 **Reference**: 03-05 (whole doc) · AR-25
 **Objective**: pin shim selection incl. the conservative bias.
 
-- [ ] 6.1.1 Write shim-selection spec tests (ST-34..ST-37) — `packages/codegen/src/instr/shim-selection.spec.test.ts`
-- [ ] 6.1.2 Run them — verify FAIL (red phase)
+- [x] 6.1.1 Write shim-selection spec tests (ST-34..ST-37) — `packages/codegen/src/instr/shim-selection.spec.test.ts` ✅ (completed: 2026-07-17 15:27 — spy plugin surfaces the variant; + platform canReturn=false case)
+- [x] 6.1.2 Run them — verify FAIL (red phase) ✅ (completed: 2026-07-17 15:27 — ST-34 + canReturn-false red; ST-35/36/37 documented pre-passers (they pin the conservative side))
 
 ### Step 6.2: Implementation
 
-- [ ] 6.2.1 Implement `mainCanReturn` (const-aware `ret`-reachability over `_main`'s IL CFG; conservative toward terminating) — IL analysis module under `packages/codegen/src/il/`
-- [ ] 6.2.2 Consume it in `derivePreambleOptions` with the precedence override > platform `canReturn` > analysis — `packages/codegen/src/instr/instr-program.ts`
-- [ ] 6.2.3 Run spec tests — verify PASS (green phase) + ST-38 prior-goldens check
+- [x] 6.2.1 Implement `mainCanReturn` (const-aware `ret`-reachability over `_main`'s IL CFG; conservative toward terminating) — IL analysis module under `packages/codegen/src/il/` ✅ (completed: 2026-07-17 15:27 — `termination.ts` `functionCanReturn`; derivePreambleOptions computes it from the program's entry fn directly (no ILProgram field needed — mechanical simplification of the "carried on the IL program" wording, same behavior))
+- [x] 6.2.2 Consume it in `derivePreambleOptions` with the precedence override > platform `canReturn` > analysis — `packages/codegen/src/instr/instr-program.ts` ✅ (completed: 2026-07-17 15:27 — override precedence already lived in `assembleProgram`'s spread; rules 2+3 implemented in the derivation)
+- [x] 6.2.3 Run spec tests — verify PASS (green phase) + ST-38 prior-goldens check ✅ (completed: 2026-07-17 15:27 — 5/5; ten goldens byte-exact in the full verify)
 
 ### Step 6.3: Hardening
 
-- [ ] 6.3.1 Impl tests (odd CFGs, no-main paths) + full verify — `*.impl.test.ts`
+- [x] 6.3.1 Impl tests (odd CFGs, no-main paths) + full verify — `*.impl.test.ts` ✅ (completed: 2026-07-17 15:27 — `termination.impl.test.ts` 6/6 (both constant polarities, runtime cond, unreachable, empty fn, dangling target); FULL VERIFY PASS)
 
 **Verify**: the AR-27 command
 
