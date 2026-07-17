@@ -151,8 +151,8 @@ describe("Specification: Slice 7b negatives via compile() (ST-62)", () => {
   });
 });
 
-describe("Specification: the deferred argument shapes stay loud (ST-63)", () => {
-  it("ICEs on a runtime-indexed by-ref argument and a pair-relative by-ref argument via emitIl", () => {
+describe("Specification: runtime-computed argument places compile (ST-63 retired)", () => {
+  it("compiles a runtime-indexed by-ref argument and a pair-relative by-ref argument via emitIl, forming the address through the scratch pair", () => {
     const runtimeIndexed = emitIlMain(
       [
         "module Main;",
@@ -161,10 +161,9 @@ describe("Specification: the deferred argument shapes stay loud (ST-63)", () => 
         "function main(): void { let enemies: Enemy[4]; let i: byte = 1; f(enemies[i]); }",
       ].join("\n"),
     );
-    expect(runtimeIndexed.hasErrors).toBe(true);
-    const ice1 = runtimeIndexed.diagnostics.find((d) => d.code.startsWith("E9"));
-    expect(ice1).toBeDefined();
-    expect(ice1!.message).toContain("address");
+    expect(runtimeIndexed.hasErrors).toBe(false);
+    expect(runtimeIndexed.text).toContain("__zp_ptr_scratch");
+    expect(runtimeIndexed.text).toContain("store __zp_ptr_scratch, __frame_Main_f_e");
 
     const pairRelative = emitIlMain(
       [
@@ -176,8 +175,8 @@ describe("Specification: the deferred argument shapes stay loud (ST-63)", () => 
         "function main(): void { let boss: Enemy; f(boss); }",
       ].join("\n"),
     );
-    expect(pairRelative.hasErrors).toBe(true);
-    expect(pairRelative.diagnostics.some((d) => d.code.startsWith("E9"))).toBe(true);
+    expect(pairRelative.hasErrors).toBe(false);
+    expect(pairRelative.text).toContain("store __zp_ptr_scratch, __frame_Main_g_p");
   });
 });
 

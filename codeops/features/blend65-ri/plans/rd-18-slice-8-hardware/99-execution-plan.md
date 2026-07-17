@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-17 14:48
-> **Progress**: 11/60 tasks (18%)
+> **Progress**: 17/60 tasks (28%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -93,21 +93,21 @@ task-size criteria in the quality checklist)
 **Reference**: 03-01 §AR-29 · AR-29
 **Objective**: the two former ICE pins become success oracles.
 
-- [ ] 2.1.1 Rewrite the two ST-40 ICE pins to assert successful marshalling (retired-row protocol) + add ST-10b cases — `packages/codegen/src/il/lower-indirect.spec.test.ts`
-- [ ] 2.1.2 Run them — verify the new expectations FAIL (red phase)
+- [x] 2.1.1 Rewrite the two ST-40 ICE pins to assert successful marshalling (retired-row protocol) + add ST-10b cases — `packages/codegen/src/il/lower-indirect.spec.test.ts` ✅ (completed: 2026-07-17 14:51)
+- [x] 2.1.2 Run them — verify the new expectations FAIL (red phase) ✅ (completed: 2026-07-17 14:51 — 2/2 red, 13 neighbors green)
 
 ### Step 2.2: Implementation
 
 **Reference**: 03-01 §AR-29
 **Objective**: caller-side address formation into the callee frame home.
 
-- [ ] 2.2.1 Implement runtime-indexed arg-place formation (scratch-pair sequence → frame-home store) — `packages/codegen/src/il/lower.ts`
-- [ ] 2.2.2 Implement pair-relative arg-place formation (pair + const offset) — `packages/codegen/src/il/lower.ts`
-- [ ] 2.2.3 Run spec tests — verify PASS (green phase)
+- [x] 2.2.1 Implement runtime-indexed arg-place formation (scratch-pair sequence → frame-home store) — `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-17 14:56 — `formArgumentAddress`: byte-domain indexes widen via `zextToWord`, word-domain scale by element size; complete address folded, no residual)
+- [x] 2.2.2 Implement pair-relative arg-place formation (pair + const offset) — `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-17 14:56 — pair load + offset add, composes with runtime indexes)
+- [x] 2.2.3 Run spec tests — verify PASS (green phase) ✅ (completed: 2026-07-17 14:56 — 15/15 in lower-indirect. Mechanical correction: a THIRD retired-row pin surfaced in `packages/test-harness/src/slice7b-negatives.spec.test.ts` (the facade-level ST-63 twin of the two ICE pins) — rewritten to the superseding success expectations per the retired-row protocol)
 
 ### Step 2.3: Hardening
 
-- [ ] 2.3.1 Write impl tests (foldStoreHome adjacency, scale/width edges, scratch conflicts) + full verify — `*.impl.test.ts`
+- [x] 2.3.1 Write impl tests (foldStoreHome adjacency, scale/width edges, scratch conflicts) + full verify — `*.impl.test.ts` ✅ (completed: 2026-07-17 14:56 — `lower-arg-place.impl.test.ts` 3/3 (byte-index widening, non-zero pair offset fold, pair+index composition); FULL VERIFY PASS)
 
 **Verify**: the AR-27 command (as Phase 1)
 

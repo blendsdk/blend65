@@ -178,9 +178,9 @@ describe("Specification: indirect places through bound pairs (ST-38, ST-39)", ()
   });
 });
 
-describe("Specification: deferred argument shapes reject loudly (ST-40)", () => {
-  it("ST-40: a runtime-indexed arg place and a pair-relative arg place each ICE with the address-of wording", () => {
-    const runtimeIndexed = lowerReal([
+describe("Specification: runtime-computed argument places marshal a formed address (ST-40 retired → ST-10b)", () => {
+  it("ST-10b: a runtime-indexed arg place forms base + scaled index through the scratch pair into the callee's frame home", () => {
+    const { text, hasErrors } = lowerReal([
       [
         "module Main;",
         ENEMY,
@@ -188,12 +188,15 @@ describe("Specification: deferred argument shapes reject loudly (ST-40)", () => 
         "function main(): void { let enemies: Enemy[4]; let i: byte = 1; f(enemies[i]); }",
       ].join("\n"),
     ]);
-    expect(runtimeIndexed.hasErrors).toBe(true);
-    const ice1 = runtimeIndexed.diags.find((d) => isIceCode(d.code));
-    expect(ice1).toBeDefined();
-    expect(ice1!.message).toContain("address");
+    expect(hasErrors).toBe(false);
+    const m = fnText(text, "Main.main");
+    expect(m).toContain("__zp_ptr_scratch");
+    expect(m).toContain("&__frame_Main_main_enemies");
+    expect(m).toContain("store __zp_ptr_scratch, __frame_Main_f_e");
+  });
 
-    const pairRelative = lowerReal([
+  it("ST-10b: a pair-relative arg place forms pair + field offset into the callee's frame home", () => {
+    const { text, hasErrors } = lowerReal([
       [
         "module Main;",
         "struct Pos { x: byte; y: byte; }",
@@ -203,10 +206,11 @@ describe("Specification: deferred argument shapes reject loudly (ST-40)", () => 
         "function main(): void { let boss: Enemy; f(boss); }",
       ].join("\n"),
     ]);
-    expect(pairRelative.hasErrors).toBe(true);
-    const ice2 = pairRelative.diags.find((d) => isIceCode(d.code));
-    expect(ice2).toBeDefined();
-    expect(ice2!.message).toContain("address");
+    expect(hasErrors).toBe(false);
+    const f = fnText(text, "Main.f");
+    expect(f).toContain("__zp_ptr_Main_f_e");
+    expect(f).toContain("__zp_ptr_scratch");
+    expect(f).toContain("store __zp_ptr_scratch, __frame_Main_g_p");
   });
 });
 

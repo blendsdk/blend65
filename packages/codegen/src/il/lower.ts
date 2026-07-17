@@ -901,23 +901,24 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
         continue;
       }
       const place = lowerPlace(arg, ctx);
-      if (
-        place === null ||
-        place.baseKind !== "direct" ||
-        place.index !== null ||
-        place.wordIndex !== null
-      ) {
-        return iceUnsupported(
-          expr,
-          ctx,
-          "aggregate argument requiring runtime address computation (needs address-of)",
-        );
+      if (place === null) {
+        return iceUnsupported(expr, ctx, "aggregate argument place");
       }
-      ctx.builder.emit({
-        op: "store",
-        a: addrOf(place.symbol, place.constOffset),
-        b: calleeSlot,
-      });
+      if (place.baseKind === "direct" && place.index === null && place.wordIndex === null) {
+        // Static place: the assembler resolves the whole address.
+        ctx.builder.emit({
+          op: "store",
+          a: addrOf(place.symbol, place.constOffset),
+          b: calleeSlot,
+        });
+        continue;
+      }
+      // Runtime-computed place (an indexed element, or a sub-object of a
+      // by-ref parameter): form the complete address in the scratch pair and
+      // hand the callee that word.
+      const formed = formArgumentAddress(place, ctx);
+      if (formed === null) continue; // reservation miss already rejected loudly
+      ctx.builder.emit({ op: "store", a: formed, b: calleeSlot });
       continue;
     }
 
@@ -1868,6 +1869,101 @@ function emitScratchLoad(ctx: LowerCtx): ILOperand {
   const t = ctx.builder.newTemp(IL_WORD);
   ctx.builder.emit({ op: "load", a: t, b: loc(SCRATCH_PAIR, IL_WORD) });
   return t;
+}
+
+/**
+ * Forms the COMPLETE runtime address of an argument's place in the scratch
+ * pair and returns the scratch location — a word the caller stores into the
+ * callee's by-reference frame home. Unlike an indirect access — which may
+ * leave a small constant offset for the access's own offset operand — the
+ * callee receives one finished address, so every component (base, scaled
+ * index, constant offset) folds into the formed word here.
+ *
+ * The idioms mirror the indirect-access formation: each word intermediate
+ * homes in scratch via its immediately-following store (the translator's
+ * fused word-store discipline); a direct base joins as an assembler-resolved
+ * address right operand; a pair base is loaded and added at runtime. A
+ * byte-domain index arrives already scaled (its gate bounded the span) and
+ * widens; a word-domain index scales by the element size first.
+ *
+ * Returns `null` (with a loud rejection recorded) if the scratch pair was
+ * never reserved — emitting would produce a dangling symbol.
+ */
+function formArgumentAddress(place: Place, ctx: LowerCtx): ILOperand | null {
+  if (!ctx.plan.symbolDefinitions.some((s) => s.name === SCRATCH_PAIR)) {
+    ctx.bag.addICE(
+      IceCode.Unexpected,
+      null,
+      "IL lowering: argument-address formation demanded but the scratch pair is not reserved",
+    );
+    return null;
+  }
+  const scratch = loc(SCRATCH_PAIR, IL_WORD);
+
+  // (1) Any runtime index lands scaled, word-wide, in scratch.
+  let indexInScratch = false;
+  if (place.index !== null) {
+    const widened = zextToWord(place.index, ctx);
+    ctx.builder.emit({ op: "store", a: widened, b: scratch });
+    indexInScratch = true;
+  } else if (place.wordIndex !== null) {
+    let scaled = place.wordIndex;
+    if (place.wordScale === 2) {
+      const t = ctx.builder.newTemp(IL_WORD);
+      ctx.builder.emit({ op: "shl", dest: t, left: scaled, right: imm(1, IL_BYTE), type: IL_WORD });
+      scaled = t;
+    } else if (place.wordScale > 2) {
+      const t = ctx.builder.newTemp(IL_WORD);
+      ctx.builder.emit({
+        op: "mul",
+        dest: t,
+        left: scaled,
+        right: imm(place.wordScale, IL_WORD),
+        type: IL_WORD,
+      });
+      scaled = t;
+    }
+    ctx.builder.emit({ op: "store", a: scaled, b: scratch });
+    indexInScratch = true;
+  }
+
+  // (2) Base + constant offset, folded completely into scratch.
+  if (place.baseKind === "pair") {
+    const baseVal = ctx.builder.newTemp(IL_WORD);
+    ctx.builder.emit({ op: "load", a: baseVal, b: loc(place.symbol, IL_WORD) });
+    const eff = ctx.builder.newTemp(IL_WORD);
+    const rhs = indexInScratch ? emitScratchLoad(ctx) : imm(place.constOffset, IL_WORD);
+    ctx.builder.emit({ op: "add", dest: eff, left: baseVal, right: rhs, type: IL_WORD });
+    ctx.builder.emit({ op: "store", a: eff, b: scratch });
+    if (indexInScratch && place.constOffset !== 0) {
+      const cur = emitScratchLoad(ctx);
+      const eff2 = ctx.builder.newTemp(IL_WORD);
+      ctx.builder.emit({
+        op: "add",
+        dest: eff2,
+        left: cur,
+        right: imm(place.constOffset, IL_WORD),
+        type: IL_WORD,
+      });
+      ctx.builder.emit({ op: "store", a: eff2, b: scratch });
+    }
+  } else if (indexInScratch) {
+    const cur = emitScratchLoad(ctx);
+    const eff = ctx.builder.newTemp(IL_WORD);
+    ctx.builder.emit({
+      op: "add",
+      dest: eff,
+      left: cur,
+      right: addrOf(place.symbol, place.constOffset),
+      type: IL_WORD,
+    });
+    ctx.builder.emit({ op: "store", a: eff, b: scratch });
+  } else {
+    // Direct static base (defensive — the caller stores that address
+    // directly without formation).
+    ctx.builder.emit({ op: "store", a: addrOf(place.symbol, place.constOffset), b: scratch });
+  }
+  return scratch;
 }
 
 /** An index-expression read: resolve the place, load the element. */
