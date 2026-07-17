@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 // Renders the C64 game feasibility matrix from its JSON source of truth into a
-// self-contained, interactive HTML page. The JSON is the single thing a human (or
-// the update_capability skill) edits; this script owns all rendering and every
-// derived count, so the summary and the prioritization inversion can never drift
-// from the rows.
+// self-contained, interactive HTML page.
+//
+// The model is capability-based: each game lists the capabilities it `needs`, each
+// capability sits in a `tier` (available / planned / unplanned), and a game's
+// Buildable verdict falls out of the two — Now (needs nothing missing), Soon (only
+// planned capabilities missing), Blocked (an unplanned capability missing). The JSON
+// is the only thing a human edits; this script owns all rendering and every derived
+// number (verdicts, summary tallies, per-capability unlock counts) so nothing drifts.
 //
 //   node scripts/gen-capability-matrix.mjs            # regenerate the HTML
 //   node scripts/gen-capability-matrix.mjs --check    # validate only, write nothing
 //
-// It fails loudly on a bad verdict glyph, an unknown blocker code, or an out-of-set
-// difficulty before writing anything.
+// It fails loudly on an unknown capability id, a bad tier/verdict/diff/conf value, or
+// a non-contiguous row number before writing anything.
 
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -18,28 +22,24 @@ import { dirname, join } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SRC = join(HERE, '..', 'docs', 'game-feasibility-matrix.json');
 const OUT = join(HERE, '..', 'docs', 'game-feasibility-matrix.html');
-
 const CHECK_ONLY = process.argv.includes('--check') || process.argv.includes('--dry-run');
 
-/** Strip a trailing parenthetical qualifier, e.g. `SAMPLE(minor)` -> `SAMPLE`. */
-const baseCode = (code) => code.replace(/\(.*\)$/, '').trim();
-
-/** Split a Path-to-100% string into comparable tokens (`OPT + FUT-011` -> [OPT, FUT-011]). */
-const pathTokens = (path) => (path || '').split(/[\s,;()+/]+/).filter(Boolean);
-
-/** True when `code` gates a game — it appears in the game's blockers or its path. */
-function gatedBy(game, code) {
-  if (game.blockers.some((b) => baseCode(b) === code)) return true;
-  return pathTokens(game.pathTo100).includes(code);
+/** A game's verdict is a pure function of its needs and each capability's tier. */
+function verdictOf(game, capById) {
+  if (game.needs.length === 0) return 'now';
+  return game.needs.some((c) => capById[c].tier === 'unplanned') ? 'blocked' : 'soon';
 }
 
 function validate(data) {
   const errors = [];
-  const verdictKeys = new Set(data.scales.verdict.map((v) => v.key));
+  const capIds = new Set(data.capabilities.map((c) => c.id));
+  const tierIds = new Set(data.tiers.map((t) => t.id));
   const confKeys = new Set(data.scales.confidence.map((c) => c.key));
   const diffSet = new Set(data.scales.diff);
-  const codeSet = new Set(data.legend.blockerCodes.map((c) => c.code));
 
+  for (const c of data.capabilities) {
+    if (!tierIds.has(c.tier)) errors.push(`capability "${c.id}": tier "${c.tier}" not in ${[...tierIds].join('|')}`);
+  }
   if (!Array.isArray(data.games) || data.games.length === 0) {
     errors.push('games: must be a non-empty array');
     return errors;
@@ -52,15 +52,13 @@ function validate(data) {
     if (!g.title) errors.push(`${at}: title is required`);
     if (!g.category) errors.push(`${at}: category is required`);
     if (!g.archetype) errors.push(`${at}: archetype is required`);
-    if (!verdictKeys.has(g.rd18)) errors.push(`${at}: rd18 "${g.rd18}" not in ${[...verdictKeys].join('|')}`);
-    if (!verdictKeys.has(g.phaseB)) errors.push(`${at}: phaseB "${g.phaseB}" not in ${[...verdictKeys].join('|')}`);
     if (!confKeys.has(g.conf)) errors.push(`${at}: conf "${g.conf}" not in ${[...confKeys].join('|')}`);
     if (!diffSet.has(g.diff)) errors.push(`${at}: diff "${g.diff}" not in ${[...diffSet].join('|')}`);
-    if (!Array.isArray(g.blockers)) {
-      errors.push(`${at}: blockers must be an array`);
+    if (!Array.isArray(g.needs)) {
+      errors.push(`${at}: needs must be an array`);
     } else {
-      for (const b of g.blockers) {
-        if (!codeSet.has(baseCode(b))) errors.push(`${at}: blocker "${b}" is not a known code`);
+      for (const c of g.needs) {
+        if (!capIds.has(c)) errors.push(`${at}: needs "${c}" is not a known capability id`);
       }
     }
     if (seenTitles.has(g.title)) errors.push(`${at}: duplicate title`);
@@ -72,23 +70,15 @@ function validate(data) {
 }
 
 function derive(data) {
-  const verdictKeys = data.scales.verdict.map((v) => v.key);
-  const tally = (col) => {
-    const counts = Object.fromEntries(verdictKeys.map((k) => [k, 0]));
-    for (const g of data.games) counts[g[col]]++;
-    return counts;
-  };
+  const capById = Object.fromEntries(data.capabilities.map((c) => [c.id, c]));
+  const verdictIds = data.verdicts.map((v) => v.id);
+  const summary = Object.fromEntries(verdictIds.map((k) => [k, 0]));
+  for (const g of data.games) summary[verdictOf(g, capById)]++;
+  const unlock = Object.fromEntries(
+    data.capabilities.map((c) => [c.id, data.games.filter((g) => g.needs.includes(c.id)).length]),
+  );
   const categories = [...new Set(data.games.map((g) => g.category))];
-  const inversion = data.inversion.rows.map((r) => ({
-    ...r,
-    count: data.games.filter((g) => gatedBy(g, r.code)).length,
-  }));
-  return {
-    total: data.games.length,
-    summary: { rd18: tally('rd18'), phaseB: tally('phaseB') },
-    categories,
-    inversion,
-  };
+  return { total: data.games.length, summary, unlock, categories };
 }
 
 function buildHtml(payload) {
@@ -145,7 +135,7 @@ p{margin:.5em 0}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;
   background:var(--chip);padding:.05em .35em;border-radius:4px}
 .sub{color:var(--ink2);font-size:.9rem;margin:0 0 4px}
-.purpose{color:var(--ink2);max-width:76ch}
+.purpose{color:var(--ink2);max-width:78ch}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .themebtn{flex:none;border:1px solid var(--border);background:var(--surface);color:var(--ink);
   border-radius:8px;padding:7px 11px;cursor:pointer;font-size:.85rem}
@@ -154,40 +144,53 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;
 /* summary bars */
 .bars{background:var(--surface);border:1px solid var(--border);border-radius:12px;
   padding:16px 18px;display:grid;gap:14px}
-.bar-row{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:center}
+.bar-row{display:grid;grid-template-columns:64px 1fr;gap:12px;align-items:center}
 .bar-lab{font-weight:600;font-size:.9rem}
 .bar{display:flex;height:26px;gap:2px;border-radius:6px;overflow:hidden}
 .seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.78rem;
-  font-weight:650;min-width:2px;font-variant-numeric:tabular-nums;transition:opacity .12s}
+  font-weight:650;min-width:2px;font-variant-numeric:tabular-nums}
 .seg.good{background:var(--good)}.seg.warning{background:var(--warning);color:#3a2a00}
 .seg.critical{background:var(--critical)}
-.seg.dim{opacity:.25}
-.legend-row{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--ink2);margin-top:2px}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--ink2)}
+.legend-row b{font-weight:650;color:var(--ink)}
 .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .dot.good{background:var(--good)}.dot.warning{background:var(--warning)}.dot.critical{background:var(--critical)}
 
+/* capability status board */
+.board{display:grid;gap:10px;background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:16px 18px}
+.tiergroup{display:grid;grid-template-columns:150px 1fr;gap:12px;align-items:start}
+.tiername{font-weight:650;font-size:.85rem;white-space:nowrap}
+.tiername small{display:block;color:var(--muted);font-weight:400;font-size:.78rem}
+.capchips{display:flex;gap:7px;flex-wrap:wrap}
+.capchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);
+  background:var(--chip);border-radius:999px;padding:4px 6px 4px 11px;font-size:.82rem;
+  font-weight:600;cursor:pointer;color:var(--ink)}
+.capchip:hover{border-color:var(--accent)}
+.capchip.on{background:var(--chip-on);color:#fff;border-color:transparent}
+.capchip .n{font-variant-numeric:tabular-nums;font-size:.72rem;background:rgba(0,0,0,.12);
+  border-radius:999px;padding:1px 7px;min-width:20px;text-align:center}
+.capchip.on .n{background:rgba(255,255,255,.25)}
+.capchip.t-available{cursor:default;opacity:.85}
+.capchip.t-available:hover{border-color:var(--border)}
+.tdot{width:9px;height:9px;border-radius:50%;flex:none}
+.tdot.good{background:var(--good)}.tdot.warning{background:var(--warning)}.tdot.critical{background:var(--critical)}
+
 /* controls */
-.controls{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center;margin:18px 0 10px}
+.controls{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center;margin:16px 0 10px}
 .controls input[type=search],.controls select{
   border:1px solid var(--border);background:var(--surface);color:var(--ink);
   border-radius:8px;padding:8px 10px;font:inherit;font-size:.88rem}
-.controls input[type=search]{min-width:210px}
-.seg-ctrl{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
-.seg-ctrl button{border:0;background:var(--surface);color:var(--ink2);padding:8px 12px;
-  cursor:pointer;font:inherit;font-size:.84rem}
-.seg-ctrl button.on{background:var(--accent);color:#fff}
-.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.controls input[type=search]{min-width:220px}
 .chip{border:1px solid var(--border);background:var(--chip);color:var(--ink);
-  border-radius:999px;padding:4px 11px;cursor:pointer;font-size:.8rem;font-weight:600;
-  white-space:nowrap}
+  border-radius:999px;padding:5px 12px;cursor:pointer;font-size:.82rem;font-weight:600;white-space:nowrap}
 .chip:hover{border-color:var(--accent)}
-.chip.on{background:var(--chip-on);color:#fff;border-color:transparent}
-.chip.v.on.good{background:var(--good)}.chip.v.on.warning{background:var(--warning);color:#3a2a00}
-.chip.v.on.critical{background:var(--critical)}
+.chip.v.on.good{background:var(--good);color:#fff;border-color:transparent}
+.chip.v.on.warning{background:var(--warning);color:#3a2a00;border-color:transparent}
+.chip.v.on.critical{background:var(--critical);color:#fff;border-color:transparent}
 .reset{background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;font-size:.84rem}
 .count{color:var(--ink2);font-size:.85rem;margin-left:auto;font-variant-numeric:tabular-nums}
-.filtlabel{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;
-  margin-right:2px}
+.filtlabel{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
 
 /* table */
 .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
@@ -205,15 +208,15 @@ td.num{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;pad
 .gtitle{font-weight:650}
 .gmeta{color:var(--muted);font-weight:400;font-size:.82rem}
 .arch{color:var(--ink2)}
-.verd{white-space:nowrap;font-weight:650;border-radius:6px;padding:3px 8px;display:inline-block}
+.verd{white-space:nowrap;font-weight:650;border-radius:6px;padding:3px 9px;display:inline-block}
 .verd.good{background:var(--good-bg)}.verd.warning{background:var(--warning-bg)}
 .verd.critical{background:var(--critical-bg)}
-.bchip{display:inline-block;border:1px solid var(--border);border-radius:6px;background:var(--chip);
-  padding:2px 7px;margin:1px 2px 1px 0;font-size:.76rem;font-weight:600;cursor:pointer;
-  font-family:ui-monospace,Menlo,monospace}
-.bchip:hover{border-color:var(--accent)}
-.bchip.on{background:var(--chip-on);color:#fff;border-color:transparent}
-.path{color:var(--ink2)}
+.needchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);
+  border-radius:6px;background:var(--chip);padding:2px 8px;margin:1px 3px 1px 0;font-size:.78rem;
+  font-weight:600;cursor:pointer}
+.needchip:hover{border-color:var(--accent)}
+.needchip.on{background:var(--chip-on);color:#fff;border-color:transparent}
+.needchip .tdot{width:7px;height:7px}
 .dash{color:var(--muted)}
 .diff{font-weight:650;font-variant-numeric:tabular-nums}
 .conf{white-space:nowrap;color:var(--ink2);font-size:.82rem}
@@ -231,9 +234,10 @@ summary:hover{color:var(--accent)}
 .ref th,.ref td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
 .ref th{color:var(--ink2);font-weight:650}
 ul.notes{margin:.3em 0;padding-left:1.15em}
-ul.notes li{margin:.35em 0}
+ul.notes li{margin:.4em 0}
 .foot{color:var(--muted);font-size:.82rem;margin:26px 0 8px;font-style:italic}
-@media (max-width:640px){body{padding:14px}.count{margin-left:0;width:100%}}
+@media (max-width:640px){body{padding:14px}.count{margin-left:0;width:100%}
+  .tiergroup{grid-template-columns:1fr}}
 `;
 
 const CLIENT_JS = `
@@ -241,11 +245,14 @@ const CLIENT_JS = `
 const DATA = JSON.parse(document.getElementById("matrix-data").textContent);
 const G = DATA.games;
 const D = DATA.derived;
-const VMAP = Object.fromEntries(DATA.scales.verdict.map(v => [v.key, v]));
+const CAP = Object.fromEntries(DATA.capabilities.map(c => [c.id, c]));
+const TIER = Object.fromEntries(DATA.tiers.map(t => [t.id, t]));
+const VMAP = Object.fromEntries(DATA.verdicts.map(v => [v.id, v]));
 const CMAP = Object.fromEntries(DATA.scales.confidence.map(c => [c.key, c]));
-const VORDER = Object.fromEntries(DATA.scales.verdict.map((v,i) => [v.key, i]));
+const VORDER = Object.fromEntries(DATA.verdicts.map((v,i) => [v.id, i]));
 const CORDER = Object.fromEntries(DATA.scales.confidence.map((c,i) => [c.key, i]));
 const DORDER = Object.fromEntries(DATA.scales.diff.map((d,i) => [d, i]));
+const TORDER = Object.fromEntries(DATA.tiers.map((t,i) => [t.id, i]));
 
 const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 function md(s){
@@ -255,225 +262,215 @@ function md(s){
     .replace(/\\*([^*\\n]+)\\*/g, "<em>$1</em>")
     .replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '<a href="$2" rel="noopener">$1</a>');
 }
-const baseCode = c => c.replace(/\\(.*\\)$/,"").trim();
-const pathTokens = p => (p||"").split(/[\\s,;()+/]+/).filter(Boolean);
-const gatedBy = (g,code) => g.blockers.some(b => baseCode(b)===code) || pathTokens(g.pathTo100).includes(code);
+// a game's verdict is derived from its needs + capability tiers
+function verdictOf(g){
+  if(!g.needs.length) return "now";
+  return g.needs.some(c => CAP[c].tier==="unplanned") ? "blocked" : "soon";
+}
+// needs sorted most-blocking first (unplanned before planned)
+function sortedNeeds(g){
+  return [...g.needs].sort((a,b)=> TORDER[CAP[b].tier]-TORDER[CAP[a].tier]);
+}
+const statusOfTier = id => TIER[id].status;
 
-// ---- UI state ----
-const state = { q:"", cat:"all", scoreBy:"rd18", verdicts:new Set(), blockers:new Set(),
-               sort:{key:"n", dir:1} };
+const state = { q:"", cat:"all", verdicts:new Set(), caps:new Set(), sort:{key:"n", dir:1} };
 
 function passes(g){
   if(state.cat!=="all" && g.category!==state.cat) return false;
-  if(state.verdicts.size && !state.verdicts.has(g[state.scoreBy])) return false;
-  if(state.blockers.size && ![...state.blockers].some(c => gatedBy(g,c))) return false;
+  if(state.verdicts.size && !state.verdicts.has(verdictOf(g))) return false;
+  if(state.caps.size && ![...state.caps].some(c => g.needs.includes(c))) return false;
   if(state.q){
     const hay = (g.title+" "+(g.publisher||"")+" "+g.category+" "+g.archetype+" "+
-                 g.pathTo100+" "+g.blockers.join(" ")).toLowerCase();
+                 g.needs.map(c=>CAP[c].name).join(" ")).toLowerCase();
     if(!hay.includes(state.q)) return false;
   }
   return true;
 }
 function cmp(a,b){
-  const k = state.sort.key; let x,y;
-  if(k==="rd18"||k==="phaseB"){x=VORDER[a[k]];y=VORDER[b[k]];}
+  const k=state.sort.key; let x,y;
+  if(k==="verdict"){x=VORDER[verdictOf(a)];y=VORDER[verdictOf(b)];}
   else if(k==="conf"){x=CORDER[a.conf];y=CORDER[b.conf];}
   else if(k==="diff"){x=DORDER[a.diff];y=DORDER[b.diff];}
   else if(k==="n"){x=a.n;y=b.n;}
-  else if(k==="blockers"){x=a.blockers.length;y=b.blockers.length;}
+  else if(k==="needs"){x=a.needs.length;y=b.needs.length;}
   else {x=String(a[k]).toLowerCase();y=String(b[k]).toLowerCase();}
-  if(x<y) return -1*state.sort.dir; if(x>y) return 1*state.sort.dir;
-  return a.n-b.n;
+  if(x<y) return -state.sort.dir; if(x>y) return state.sort.dir; return a.n-b.n;
 }
 
-// ---- renderers ----
-function verdictCell(key){
-  const v = VMAP[key];
+function verdictCell(g){
+  const v=VMAP[verdictOf(g)];
   return '<span class="verd '+v.status+'" title="'+esc(v.desc)+'">'+v.glyph+" "+esc(v.label)+"</span>";
 }
-function blockerCell(g){
-  if(!g.blockers.length) return '<span class="dash">—</span>';
-  return g.blockers.map(b => {
-    const code = baseCode(b);
-    const on = state.blockers.has(code) ? " on" : "";
-    return '<span class="bchip'+on+'" data-code="'+esc(code)+'">'+esc(b)+"</span>";
+function needsCell(g){
+  if(!g.needs.length) return '<span class="dash">—</span>';
+  return sortedNeeds(g).map(id=>{
+    const c=CAP[id], on=state.caps.has(id)?" on":"";
+    return '<span class="needchip'+on+'" data-cap="'+id+'" title="'+esc(TIER[c.tier].label)+'">'+
+           '<span class="tdot '+statusOfTier(c.tier)+'"></span>'+esc(c.name)+"</span>";
   }).join("");
 }
-function renderTable(){
-  const rows = G.filter(passes).sort(cmp);
-  const body = document.getElementById("tbody");
-  if(!rows.length){
-    body.innerHTML = '<tr><td class="empty" colspan="10">No games match these filters.</td></tr>';
-  } else {
-    body.innerHTML = rows.map(rowHtml).join("");
-  }
-  document.getElementById("count").textContent = "Showing "+rows.length+" of "+D.total;
-  // header arrows
-  document.querySelectorAll("th button[data-key]").forEach(b=>{
-    const a = b.querySelector(".arw"); if(!a) return;
-    a.textContent = b.dataset.key===state.sort.key ? (state.sort.dir>0?"▲":"▼") : "";
-  });
-  // blocker chip active sync (row chips + filter chips)
-  document.querySelectorAll(".bchip").forEach(ch=>{
-    ch.classList.toggle("on", state.blockers.has(ch.dataset.code));
-  });
-}
 function rowHtml(g){
-  const pub = g.publisher ? ", "+g.publisher : "";
-  const path = g.pathTo100 ? '<span class="path">'+md(g.pathTo100)+"</span>" : '<span class="dash">—</span>';
-  const c = CMAP[g.conf];
+  const pub=g.publisher?", "+g.publisher:"";
+  const c=CMAP[g.conf];
   return "<tr>"+
     '<td class="num">'+g.n+"</td>"+
     "<td><span class=gtitle>"+esc(g.title)+'</span> <span class=gmeta>('+g.year+esc(pub)+")</span></td>"+
     "<td>"+esc(g.category)+"</td>"+
     '<td class="arch">'+esc(g.archetype)+"</td>"+
-    '<td class="c">'+verdictCell(g.rd18)+"</td>"+
-    '<td class="c">'+verdictCell(g.phaseB)+"</td>"+
-    "<td>"+blockerCell(g)+"</td>"+
-    "<td>"+path+"</td>"+
+    '<td class="c">'+verdictCell(g)+"</td>"+
+    "<td>"+needsCell(g)+"</td>"+
     '<td class="c diff">'+g.diff+"</td>"+
     '<td class="conf"><span class="cdot '+g.conf+'"></span>'+esc(c.label)+"</td>"+
     "</tr>";
 }
+function renderTable(){
+  const rows=G.filter(passes).sort(cmp);
+  const body=document.getElementById("tbody");
+  body.innerHTML = rows.length
+    ? rows.map(rowHtml).join("")
+    : '<tr><td class="empty" colspan="8">No games match these filters.</td></tr>';
+  document.getElementById("count").textContent="Showing "+rows.length+" of "+D.total;
+  document.querySelectorAll("th button[data-key]").forEach(b=>{
+    const a=b.querySelector(".arw"); if(a) a.textContent = b.dataset.key===state.sort.key ? (state.sort.dir>0?"▲":"▼") : "";
+  });
+  syncCapChips();
+}
 
 function bars(){
-  const mk = (label,col)=>{
-    const counts = D.summary[col]; const total = D.total;
-    const segs = DATA.scales.verdict.map(v=>{
-      const n = counts[v.key]; const pct = (n/total*100).toFixed(1);
-      const dim = state.verdicts.size && !state.verdicts.has(v.key) ? " dim":"";
-      return '<span class="seg '+v.status+dim+'" style="flex:'+n+'" '+
-             'title="'+esc(v.label)+': '+n+' ('+pct+'%)">'+(n>=4?n:"")+"</span>";
-    }).join("");
-    return '<div class="bar-row"><div class="bar-lab">'+label+'</div><div class="bar">'+segs+"</div></div>";
+  const mk=(label,id)=>{
+    const n=D.summary[id]||0, total=D.total;
+    const seg='<span class="seg '+VMAP[id].status+'" style="flex:'+n+'" title="'+
+      esc(VMAP[id].label)+': '+n+'">'+(n>=4?n:"")+"</span>";
+    return {n,seg};
   };
-  const leg = DATA.scales.verdict.map(v =>
-    '<span><span class="dot '+v.status+'"></span>'+v.glyph+" "+esc(v.label)+"</span>").join("");
-  return '<div class="bars">'+mk("@RD18","rd18")+mk("@PhaseB","phaseB")+
-         '<div class="legend-row">'+leg+"</div></div>";
+  const segs=DATA.verdicts.map(v=>mk(v.label,v.id).seg).join("");
+  const leg=DATA.verdicts.map(v=>'<span><span class="dot '+v.status+'"></span><b>'+v.glyph+" "+
+    esc(v.label)+"</b> — "+esc(v.desc)+"</span>").join("");
+  return '<div class="bars"><div class="bar-row"><div class="bar-lab">Buildable</div>'+
+    '<div class="bar">'+segs+'</div></div><div class="legend-row">'+leg+"</div></div>";
+}
+
+function board(){
+  const groups=DATA.tiers.map(t=>{
+    const caps=DATA.capabilities.filter(c=>c.tier===t.id);
+    const chips=caps.map(c=>{
+      const cnt=D.unlock[c.id]||0, on=state.caps.has(c.id)?" on":"";
+      return '<span class="capchip t-'+t.id+on+'" data-cap="'+c.id+'" title="'+esc(c.blurb)+'">'+
+        '<span class="tdot '+t.status+'"></span>'+esc(c.name)+
+        '<span class="n">'+cnt+"</span></span>";
+    }).join("");
+    return '<div class="tiergroup"><div class="tiername">'+t.glyph+" "+esc(t.label)+
+      "<small>"+(t.id==="available"?"games blocked on it":"games waiting")+"</small></div>"+
+      '<div class="capchips">'+chips+"</div></div>";
+  }).join("");
+  return '<div class="board">'+groups+"</div>";
 }
 
 function controls(){
-  const cats = ['<option value="all">All categories</option>']
+  const cats=['<option value="all">All categories</option>']
     .concat(D.categories.map(c=>'<option value="'+esc(c)+'">'+esc(c)+"</option>")).join("");
-  const vchips = DATA.scales.verdict.map(v =>
-    '<button class="chip v '+v.status+'" data-verdict="'+v.key+'">'+v.glyph+" "+esc(v.label)+"</button>").join("");
-  const bchips = DATA.legend.blockerCodes.map(c =>
-    '<button class="chip b" data-bfilter="'+esc(c.code)+'">'+esc(c.code)+"</button>").join("");
+  const vchips=DATA.verdicts.map(v=>
+    '<button class="chip v '+v.status+'" data-verdict="'+v.id+'">'+v.glyph+" "+esc(v.label)+"</button>").join("");
   return '<div class="controls">'+
-      '<input type="search" id="q" placeholder="Search game, archetype…" aria-label="Search">'+
-      '<select id="cat" aria-label="Category filter">'+cats+"</select>"+
-      '<span class="filtlabel">score by</span>'+
-      '<span class="seg-ctrl"><button data-score="rd18" class="on">@RD18</button>'+
-        '<button data-score="phaseB">@PhaseB</button></span>'+
-      '<span class="count" id="count"></span>'+
-    "</div>"+
-    '<div class="controls"><span class="filtlabel">verdict</span><span class="chips">'+vchips+"</span></div>"+
-    '<div class="controls"><span class="filtlabel">blocker</span><span class="chips">'+bchips+
-      '</span><button class="reset" id="reset">Reset filters</button></div>';
+    '<input type="search" id="q" placeholder="Search game, archetype…" aria-label="Search">'+
+    '<select id="cat" aria-label="Category filter">'+cats+"</select>"+
+    '<span class="filtlabel">buildable</span>'+vchips+
+    '<button class="reset" id="reset">Reset</button>'+
+    '<span class="count" id="count"></span></div>';
 }
 
 function refTables(){
-  const base = DATA.baseline.rows.map(r =>
-    "<tr><td>"+md(r.capability)+"</td><td>"+md(r.state)+"</td><td>"+md(r.source)+"</td></tr>").join("");
-  const codes = DATA.legend.blockerCodes.map(c =>
-    "<tr><td><code>"+esc(c.code)+"</code></td><td>"+md(c.meaning)+"</td><td>"+md(c.fixedBy)+"</td></tr>").join("");
-  const arch = DATA.legend.archetypeTerms.map(a =>
-    "<tr><td><code>"+esc(a.term)+"</code></td><td>"+md(a.def)+"</td></tr>").join("");
-  const inv = D.inversion.map(r =>
-    "<tr><td><code>"+esc(r.code)+"</code> <span class=gmeta>"+esc(r.label)+"</span></td>"+
-    '<td class="c diff">'+r.count+"</td><td>"+md(r.impact)+"</td></tr>").join("");
-  const howto = DATA.howToRead.map(x=>"<li>"+md(x)+"</li>").join("");
-  const prov = DATA.provenance.map(x=>"<li>"+md(x)+"</li>").join("");
+  const capRows=DATA.capabilities.map(c=>
+    "<tr><td><strong>"+esc(c.name)+'</strong></td><td><span class="tdot '+TIER[c.tier].status+
+    '" style="display:inline-block;margin-right:6px"></span>'+esc(TIER[c.tier].label)+
+    '</td><td class="c diff">'+(D.unlock[c.id]||0)+"</td><td>"+md(c.blurb)+"</td></tr>").join("");
+  const inv=DATA.inversion.rows.map(r=>{
+    const c=CAP[r.id];
+    return "<tr><td><strong>"+esc(c.name)+'</strong></td><td class="c diff">'+(D.unlock[r.id]||0)+
+      "</td><td>"+md(r.impact)+"</td></tr>";
+  }).join("");
+  const howto=DATA.howToRead.map(x=>"<li>"+md(x)+"</li>").join("");
+  const notes=DATA.notes.map(x=>"<li>"+md(x)+"</li>").join("");
+  const prov=DATA.provenance.map(x=>"<li>"+md(x)+"</li>").join("");
 
   return '<h2>Reference</h2>'+
-    "<details open><summary>Capability baseline — what these verdicts assume ("+esc(DATA.baseline.asOf)+")</summary>"+
-      "<p>"+md(DATA.baseline.intro)+"</p>"+
-      '<table class="ref"><thead><tr><th>Capability</th><th>State</th><th>Source</th></tr></thead><tbody>'+base+"</tbody></table>"+
-      "<p>"+md(DATA.baseline.audioNote)+"</p></details>"+
-    "<details><summary>Prioritization — what each capability unlocks</summary>"+
+    "<details open><summary>Prioritization — what shipping each capability unlocks</summary>"+
       "<p>"+md(DATA.inversion.intro)+"</p>"+
       '<table class="ref"><thead><tr><th>Capability</th><th class="c">Titles</th><th>Impact</th></tr></thead><tbody>'+inv+"</tbody></table>"+
       "<p>"+md(DATA.inversion.bottomLine)+"</p></details>"+
-    "<details><summary>Legend — blocker codes &amp; archetype terms</summary>"+
-      '<table class="ref"><thead><tr><th>Code</th><th>Meaning</th><th>Fixed by</th></tr></thead><tbody>'+codes+"</tbody></table>"+
-      '<table class="ref"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>'+arch+"</tbody></table></details>"+
-    "<details><summary>How to read this</summary><ul class=notes>"+howto+"</ul></details>"+
+    "<details><summary>Capability details</summary>"+
+      '<table class="ref"><thead><tr><th>Capability</th><th>Status</th><th class="c">Waiting</th><th>What it is</th></tr></thead><tbody>'+capRows+"</tbody></table></details>"+
+    "<details><summary>How to read this</summary><ul class=notes>"+howto+"</ul>"+
+      "<ul class=notes>"+notes+"</ul></details>"+
     "<details><summary>Provenance &amp; confidence caveats</summary><ul class=notes>"+prov+"</ul></details>";
 }
 
-function head(){
-  const cols = [["n","#",true],["title","Game"],["category","Cat"],["archetype","Archetype"],
-    ["rd18","@RD18",true],["phaseB","@PhaseB",true],["blockers","Blockers",true],
-    ["pathTo100","Path to 100%"],["diff","Diff",true],["conf","Conf",true]];
-  return "<thead><tr>"+cols.map(([k,l,c])=>
-    '<th class="'+(c?"c":"")+'"><button data-key="'+k+'">'+esc(l)+' <span class="arw"></span></button></th>').join("")+"</tr></thead>";
-}
-
 function render(){
-  const app = document.getElementById("app");
-  const purpose = DATA.intro.purpose.map(p=>"<p class=purpose>"+md(p)+"</p>").join("");
-  app.innerHTML =
-    '<div class="topbar"><div>'+
-      "<h1>"+esc(DATA.meta.title)+"</h1>"+
+  const app=document.getElementById("app");
+  const purpose=DATA.intro.purpose.map(p=>"<p class=purpose>"+md(p)+"</p>").join("");
+  app.innerHTML=
+    '<div class="topbar"><div><h1>'+esc(DATA.meta.title)+"</h1>"+
       '<p class="sub">Last updated '+esc(DATA.meta.lastUpdated)+
-        " · refresh with <code>"+esc(DATA.meta.refreshWith)+"</code></p></div>"+
+      " · refresh with <code>"+esc(DATA.meta.refreshWith)+"</code></p></div>"+
       '<button class="themebtn" id="theme">◐ Theme</button></div>'+
     purpose+
     '<h2>At a glance</h2>'+bars()+
-    "<h2>The matrix</h2>"+controls()+
-    '<div class="tablewrap"><table>'+head()+'<tbody id="tbody"></tbody></table></div>'+
+    '<h2>Capability status <span class="gmeta">— the lever: ship one, everything waiting on it moves</span></h2>'+board()+
+    '<h2>The matrix</h2>'+controls()+
+    '<div class="tablewrap"><table>'+refHead()+'<tbody id="tbody"></tbody></table></div>'+
     refTables()+
     '<p class="foot">'+md(DATA.footer)+"</p>";
   app.removeAttribute("aria-busy");
   wire();
   renderTable();
 }
+function refHead(){
+  const cols=[["n","#",1],["title","Game"],["category","Cat"],["archetype","Archetype"],
+    ["verdict","Buildable?",1],["needs","Needs",1],["diff","Diff",1],["conf","Conf",1]];
+  return "<thead><tr>"+cols.map(([k,l,c])=>
+    '<th class="'+(c?"c":"")+'"><button data-key="'+k+'">'+esc(l)+' <span class="arw"></span></button></th>').join("")+"</tr></thead>";
+}
 
 function wire(){
-  document.getElementById("q").addEventListener("input", e=>{ state.q=e.target.value.trim().toLowerCase(); renderTable(); });
-  document.getElementById("cat").addEventListener("change", e=>{ state.cat=e.target.value; renderTable(); });
+  document.getElementById("q").addEventListener("input", e=>{state.q=e.target.value.trim().toLowerCase();renderTable();});
+  document.getElementById("cat").addEventListener("change", e=>{state.cat=e.target.value;renderTable();});
   document.getElementById("reset").addEventListener("click", ()=>{
-    state.q=""; state.cat="all"; state.verdicts.clear(); state.blockers.clear();
-    document.getElementById("q").value=""; document.getElementById("cat").value="all";
-    syncChips(); renderBarsAndTable();
+    state.q="";state.cat="all";state.verdicts.clear();state.caps.clear();
+    document.getElementById("q").value="";document.getElementById("cat").value="all";
+    syncVerdictChips();refreshBarsBoard();renderTable();
   });
-  document.querySelectorAll("[data-score]").forEach(b=> b.addEventListener("click", ()=>{
-    state.scoreBy=b.dataset.score;
-    document.querySelectorAll("[data-score]").forEach(x=>x.classList.toggle("on", x===b));
-    renderBarsAndTable();
+  document.querySelectorAll("[data-verdict]").forEach(b=>b.addEventListener("click", ()=>{
+    toggle(state.verdicts,b.dataset.verdict);syncVerdictChips();renderTable();
   }));
-  document.querySelectorAll("[data-verdict]").forEach(b=> b.addEventListener("click", ()=>{
-    toggle(state.verdicts, b.dataset.verdict); syncChips(); renderBarsAndTable();
-  }));
-  document.querySelectorAll("[data-bfilter]").forEach(b=> b.addEventListener("click", ()=>{
-    toggle(state.blockers, b.dataset.bfilter); syncChips(); renderTable();
-  }));
-  document.querySelectorAll("th button[data-key]").forEach(b=> b.addEventListener("click", ()=>{
+  document.querySelectorAll("th button[data-key]").forEach(b=>b.addEventListener("click", ()=>{
     const k=b.dataset.key;
     if(state.sort.key===k) state.sort.dir*=-1; else state.sort={key:k,dir:1};
     renderTable();
   }));
-  document.getElementById("tbody").addEventListener("click", e=>{
-    const ch = e.target.closest(".bchip"); if(!ch) return;
-    toggle(state.blockers, ch.dataset.code); syncChips(); renderTable();
+  // capability toggles come from the board and from Needs chips in rows
+  document.addEventListener("click", e=>{
+    const el=e.target.closest("[data-cap]"); if(!el) return;
+    if(el.classList.contains("t-available")) return; // available caps have nothing waiting
+    toggle(state.caps, el.dataset.cap); syncCapChips(); renderTable();
   });
   document.getElementById("theme").addEventListener("click", toggleTheme);
 }
 function toggle(set,v){ set.has(v)?set.delete(v):set.add(v); }
-function syncChips(){
-  document.querySelectorAll("[data-verdict]").forEach(b=> b.classList.toggle("on", state.verdicts.has(b.dataset.verdict)));
-  document.querySelectorAll("[data-bfilter]").forEach(b=> b.classList.toggle("on", state.blockers.has(b.dataset.bfilter)));
+function syncVerdictChips(){
+  document.querySelectorAll("[data-verdict]").forEach(b=>b.classList.toggle("on", state.verdicts.has(b.dataset.verdict)));
 }
-function renderBarsAndTable(){
-  document.querySelector(".bars").outerHTML = bars();
-  renderTable();
+function syncCapChips(){
+  document.querySelectorAll("[data-cap]").forEach(el=>el.classList.toggle("on", state.caps.has(el.dataset.cap)));
+}
+function refreshBarsBoard(){
+  document.querySelector(".bars").outerHTML=bars();
+  document.querySelector(".board").outerHTML=board();
 }
 function toggleTheme(){
   const root=document.documentElement;
-  const dark = root.getAttribute("data-theme")==="dark" ||
+  const dark=root.getAttribute("data-theme")==="dark" ||
     (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
-  root.setAttribute("data-theme", dark ? "light" : "dark");
+  root.setAttribute("data-theme", dark?"light":"dark");
 }
 render();
 `;
@@ -497,14 +494,11 @@ if (errors.length) {
 
 const derived = derive(data);
 const payload = { ...data, derived };
-
 const s = derived.summary;
-const line = (label, c) =>
-  `  ${label.padEnd(9)} ${String(c.clean).padStart(3)} clean   ${String(c.caveated).padStart(3)} caveated   ${String(c.blocked).padStart(3)} blocked`;
 console.log(`✓ ${derived.total} games validated.`);
-console.log(line('@RD18', s.rd18));
-console.log(line('@PhaseB', s.phaseB));
-console.log('  inversion (titles gated): ' + derived.inversion.map((r) => `${r.code}=${r.count}`).join('  '));
+console.log(`  Buildable:  ${s.now} Now   ${s.soon} Soon   ${s.blocked} Blocked`);
+console.log('  unlock (titles waiting per capability): ' +
+  data.capabilities.map((c) => `${c.id}=${derived.unlock[c.id]}`).join('  '));
 
 if (CHECK_ONLY) {
   console.log('— --check: no file written.');
