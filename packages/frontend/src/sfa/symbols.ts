@@ -80,8 +80,17 @@ export function generateSymbolDefinitions(sources: SymbolSources): SymbolDefinit
 
   // Zero-page allocations, in allocation order. Generated slot names
   // (`__zp_ptr_N`, …) are already ACME-safe; user var names are sanitized.
+  // User zeropage variables carry the zero-page marker so their equates
+  // render as 2-digit hex — the assembler sizes symbols by digit count, and
+  // zero-page addressing (today's direct forms and any future `(zp),Y` use)
+  // needs the 8-bit form. Generated pool names keep their long-standing
+  // 4-digit rendering.
   for (const zp of sources.zpAllocations) {
-    symbols.push({ name: sanitize(zp.name), value: zp.address });
+    symbols.push(
+      zp.category === "user"
+        ? { name: sanitize(zp.name), value: zp.address, zeroPage: true }
+        : { name: sanitize(zp.name), value: zp.address },
+    );
   }
 
   return symbols;

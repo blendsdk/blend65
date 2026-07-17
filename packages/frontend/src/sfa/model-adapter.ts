@@ -31,6 +31,7 @@ import type {
   Symbol,
   Type,
   UnaryExprNode,
+  ZeropageFieldNode,
 } from "@blend65/core";
 import type { ModuleVarInput } from "./zp-allocator.js";
 
@@ -152,8 +153,15 @@ function initPseudoFunction(model: SemanticModel): FunctionInfo | null {
   const slots: FrameVar[] = [];
   for (const sym of model.initOrder) {
     const decl = sym.decl;
-    if (decl.kind !== "LetDecl") continue;
-    const init = (decl as LetDeclNode).initialiser;
+    // Both initializer owners — module lets and zeropage fields — feed the
+    // one startup stream, so both contribute their expression slots here in
+    // the same initialization order the lowering pass claims them in.
+    const init =
+      decl.kind === "LetDecl"
+        ? (decl as LetDeclNode).initialiser
+        : decl.kind === "ZeropageField"
+          ? (decl as ZeropageFieldNode).initialiser
+          : null;
     if (init !== null) collectSyntheticSlots(init, model, slots);
   }
   if (slots.length === 0) return null;
@@ -280,6 +288,7 @@ export function modelToModuleVars(model: SemanticModel): ModuleVarInput[] {
     const moduleName = isModuleDecl(modNode) ? modNode.name : "";
     for (const sym of moduleScope.symbols.values()) {
       if (sym.kind !== "variable") continue; // functions / constants are not RAM-backed
+      if (sym.storage === "zeropage") continue; // zero-page vars place via the ZP category
       // An imported variable is the SAME symbol aliased into the importing
       // scope — only its declaring module projects a RAM slot; a second
       // (importer-side) slot would double-count the variable in the layout.
@@ -298,6 +307,32 @@ export function modelToModuleVars(model: SemanticModel): ModuleVarInput[] {
 /** Narrows a scope's introducing node to a {@link ModuleDeclNode}. */
 function isModuleDecl(node: AstNode | null): node is ModuleDeclNode {
   return node !== null && node.kind === "ModuleDecl";
+}
+
+/**
+ * Projects the `zeropage {}` variables of a populated {@link SemanticModel}
+ * into the allocator's user-category inputs: one `__zp_<Module>_<name>`
+ * entry per zero-page-storage variable, in deterministic module order ×
+ * declaration order (placement freedom inside the range belongs to the
+ * allocator). Returns `[]` when no zeropage blocks exist, keeping
+ * zeropage-free programs byte-identical.
+ *
+ * @param model The semantic model to project.
+ * @returns The zeropage user variables as planner inputs.
+ */
+export function modelToZpUserVars(model: SemanticModel): { name: string; size: number }[] {
+  const result: { name: string; size: number }[] = [];
+  for (const moduleScope of model.globalScope.children) {
+    if (moduleScope.kind !== "module") continue;
+    const modNode = moduleScope.node;
+    const moduleName = isModuleDecl(modNode) ? modNode.name : "";
+    for (const sym of moduleScope.symbols.values()) {
+      if (sym.kind !== "variable" || sym.storage !== "zeropage") continue;
+      if (sym.scope !== moduleScope) continue;
+      result.push({ name: `__zp_${moduleName}_${sym.name}`, size: byteSize(sym.type) });
+    }
+  }
+  return result;
 }
 
 /**

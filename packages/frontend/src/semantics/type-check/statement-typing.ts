@@ -45,6 +45,7 @@ import type {
   StmtNode,
   SwitchStmtNode,
   Symbol,
+  ZeropageFieldNode,
   Type,
 } from "@blend65/core";
 import type { IntRange } from "./type-resolution.js";
@@ -98,6 +99,8 @@ export function typeCheckPrograms(
         }
       } else if (item.kind === "LetDecl" && moduleScope !== undefined) {
         typeModuleLet(item, moduleScope, ctx);
+      } else if (item.kind === "ZeropageBlock" && moduleScope !== undefined) {
+        for (const field of item.fields) typeZeropageField(field, moduleScope, ctx);
       }
     }
   }
@@ -139,6 +142,54 @@ function typeModuleLet(decl: LetDeclNode, moduleScope: Scope, ctx: TypeCheckCont
   checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
   checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
   checkIntermediateOverflow(decl.initialiser, initType, declaredType, ctx); // W10160/61
+  inferUnsizedArray(sym, declaredType, initType);
+}
+
+/**
+ * Types one zeropage field — module-`let` parity throughout: the initialiser
+ * must be call-free (it joins the same pre-`main` startup stream), string
+ * array initialisers keep their loud rejection, and a call-free initialiser
+ * is typed in the declared-type context with the same range/assignability/
+ * overflow checks. An uninitialized field is indeterminate until written —
+ * zero page gets NO zero-fill.
+ */
+function typeZeropageField(
+  field: ZeropageFieldNode,
+  moduleScope: Scope,
+  ctx: TypeCheckContext,
+): void {
+  const sym = moduleScope.symbols.get(field.name);
+  // A duplicate declaration's loser was never registered — already E10003.
+  if (sym === undefined || sym.decl !== field) return;
+  ctx.symbolMap.set(field, sym);
+
+  // Declared type: the resolved annotation, falling back to the symbol's
+  // finalized type for named/aggregate annotations (same rule as lets).
+  const scalar = resolveTypeNode(field.fieldType);
+  const declaredType =
+    !isError(scalar) || sym.type.kind === "primitive" || sym.type.kind === "error"
+      ? scalar
+      : sym.type;
+
+  checkArrayInitCoverage(field, declaredType, ctx); // W10140/W10141
+  if (field.initialiser === null) return; // indeterminate until written (spec ZP rule)
+
+  const call = findInitializerCall(field.initialiser);
+  if (call !== null) {
+    ctx.bag.addError(
+      IceCode.Unexpected,
+      call.span,
+      "call-bearing module initializers are not supported yet — assign in main() instead",
+    );
+    ctx.typeMap.set(field.initialiser, ERROR_TYPE);
+    return;
+  }
+
+  if (rejectStringArrayInit(field, declaredType, ctx)) return;
+  const initType = typeOfExpr(field.initialiser, moduleScope, ctx, declaredType);
+  checkConstRange(field.initialiser, declaredType, ctx); // E10084 / E10082
+  checkAssignable(initType, declaredType, field.initialiser.span, ctx); // E10152/53/54
+  checkIntermediateOverflow(field.initialiser, initType, declaredType, ctx); // W10160/61
   inferUnsizedArray(sym, declaredType, initType);
 }
 
@@ -790,7 +841,7 @@ function letDeclaredType(
  * (W10140). Both compile.
  */
 function checkArrayInitCoverage(
-  decl: LetDeclNode,
+  decl: LetDeclNode | ZeropageFieldNode,
   declaredType: Type,
   ctx: TypeCheckContext,
 ): void {
@@ -828,7 +879,7 @@ function checkArrayInitCoverage(
  * beats silently mistyping it. Returns `true` when rejected.
  */
 function rejectStringArrayInit(
-  decl: LetDeclNode | ConstDeclNode,
+  decl: LetDeclNode | ConstDeclNode | ZeropageFieldNode,
   declaredType: Type,
   ctx: TypeCheckContext,
 ): boolean {

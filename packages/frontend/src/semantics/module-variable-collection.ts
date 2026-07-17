@@ -44,6 +44,37 @@ export function collectModuleVariables(
     if (moduleScope === undefined) continue; // malformed/module-less program — skip
 
     for (const item of program.items) {
+      // Zeropage fields are module variables with zero-page storage: same
+      // namespace, same duplicate rule, always mutable (the block form has no
+      // const slot), initialisers joining the same startup stream. Multiple
+      // blocks — in one file or across a module's files — merge here exactly
+      // like every other top-level declaration.
+      if (item.kind === "ZeropageBlock") {
+        for (const field of item.fields) {
+          if (moduleScope.symbols.has(field.name)) {
+            bag.addError(
+              DiagCode.DuplicateDecl,
+              field.nameSpan,
+              `Duplicate declaration '${field.name}' in this module`,
+            );
+            continue;
+          }
+          const sym: Symbol = {
+            name: field.name,
+            kind: "variable",
+            type: resolveTypeNode(field.fieldType),
+            decl: field,
+            scope: moduleScope,
+            exported: false,
+            mutable: true,
+            byRef: false,
+            storage: "zeropage",
+          };
+          moduleScope.symbols.set(field.name, sym);
+          if (field.initialiser !== null) initializers.set(sym, field.initialiser);
+        }
+        continue;
+      }
       if (item.kind !== "LetDecl" && item.kind !== "ConstDecl") continue;
 
       // Duplicate top-level declaration (a function or an earlier variable/constant

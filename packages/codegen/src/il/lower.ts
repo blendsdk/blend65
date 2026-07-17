@@ -257,9 +257,17 @@ function lowerInitCode(
   const initializers = new Map<Symbol, ExprNode>();
   for (const program of input.program) {
     for (const item of program.items) {
-      if (item.kind !== "LetDecl" || item.initialiser === null) continue;
-      const sym = input.model.symbolOf(item);
-      if (sym !== null) initializers.set(sym, item.initialiser);
+      if (item.kind === "LetDecl" && item.initialiser !== null) {
+        const sym = input.model.symbolOf(item);
+        if (sym !== null) initializers.set(sym, item.initialiser);
+      } else if (item.kind === "ZeropageBlock") {
+        // Zeropage fields join the same startup stream as module lets.
+        for (const field of item.fields) {
+          if (field.initialiser === null) continue;
+          const sym = input.model.symbolOf(field);
+          if (sym !== null) initializers.set(sym, field.initialiser);
+        }
+      }
     }
   }
 
@@ -2525,6 +2533,12 @@ function moduleVarLocOfSymbol(sym: Symbol): { symbol: string; type: ILType } | n
   if (sym.kind !== "variable" || sym.scope.kind !== "module") return null;
   const modNode = sym.scope.node;
   const moduleName = isModuleDecl(modNode) ? modNode.name : "";
+  // A zeropage variable addresses through its ZP equate instead of the RAM
+  // slot — everything downstream (reads, writes, indexed access, address-of,
+  // the startup stream) rides the same symbol swap.
+  if (sym.storage === "zeropage") {
+    return { symbol: `__zp_${moduleName}_${sym.name}`, type: ilTypeOfType(sym.type) };
+  }
   return { symbol: moduleVarSymbol(moduleName, sym.name), type: ilTypeOfType(sym.type) };
 }
 

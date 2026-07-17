@@ -433,7 +433,9 @@ function parseZeropageField(state: ParserState): ZeropageFieldNode {
   let initialiser: ExprNode | null = null;
   if (cursor.check(TokenKind.Equal)) {
     cursor.advance();
-    initialiser = parsePrimaryExpr(state);
+    // Full expression context, aggregate literals included — a zeropage
+    // field takes exactly the initialisers a module `let` takes.
+    initialiser = parseExpression(state, 0, true);
   }
   let end = initialiser !== null ? initialiser.span.end : fieldType.span.end;
   const semi = cursor.expect(

@@ -20,6 +20,7 @@ export type { PlanInput, ModuleVarInput, ZpUserVar } from "./plan-allocation.js"
 export {
   modelNeedsIrqPointerScratch,
   modelNeedsPointerScratch,
+  modelToZpUserVars,
   modelToFunctionInfo,
   modelToModuleVars,
 } from "./model-adapter.js";

@@ -39,6 +39,7 @@ import type {
   Symbol,
   Type,
   TypeNode,
+  ZeropageFieldNode,
 } from "@blend65/core";
 import type { PlatformProfile } from "@blend65/core/platform";
 import { resolveTypeNode } from "./type-check/type-resolution.js";
@@ -158,8 +159,22 @@ function finalizeSymbol(
   }
   if (sym.kind !== "variable" && sym.kind !== "constant") return;
   const decl = sym.decl;
-  if (!isVarDecl(decl)) return;
-  const annotation = decl.declaredType;
+  let annotation: TypeNode | null;
+  let initialiser: ExprNode | null;
+  let declName: string;
+  if (isVarDecl(decl)) {
+    annotation = decl.declaredType;
+    initialiser = decl.initialiser;
+    declName = decl.name;
+  } else if (decl.kind === "ZeropageField") {
+    // A zeropage field's annotation finalizes exactly like a module let's.
+    const field = decl as ZeropageFieldNode;
+    annotation = field.fieldType;
+    initialiser = field.initialiser;
+    declName = field.name;
+  } else {
+    return;
+  }
   if (annotation === null) return; // inferred/missing — other checks own it
 
   switch (annotation.kind) {
@@ -181,7 +196,7 @@ function finalizeSymbol(
       if (
         annotation.kind === "ArrayType" &&
         annotation.size === null &&
-        decl.initialiser === null
+        initialiser === null
       ) {
         ctx.bag.addError(
           DiagCode.FillRequiresExplicitSize,
@@ -190,7 +205,7 @@ function finalizeSymbol(
             "parameter or with a full element-list initializer",
         );
       }
-      checkDeclaredArraySize(sym.type, decl.name, annotation.span, ctx, targetProfile);
+      checkDeclaredArraySize(sym.type, declName, annotation.span, ctx, targetProfile);
       return;
     }
     default:

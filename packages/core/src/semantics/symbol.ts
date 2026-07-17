@@ -54,6 +54,13 @@ export interface Symbol {
   readonly scope: Scope;
   readonly exported: boolean;
   readonly mutable: boolean;
+  /**
+   * Present on module variables declared inside a `zeropage {}` block: the
+   * variable lives in zero page (placed by the allocator's user category and
+   * addressed through its `__zp_*` equate) instead of the RAM `__var_*`
+   * region. Absent for every other symbol.
+   */
+  readonly storage?: "zeropage";
   /** Present for compile-time constants; absent otherwise. */
   readonly constValue?: ConstValue;
   /**

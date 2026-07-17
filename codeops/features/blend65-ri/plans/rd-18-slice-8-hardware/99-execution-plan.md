@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-17 14:48
-> **Progress**: 37/60 tasks (62%)
+> **Progress**: 47/60 tasks (78%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -182,22 +182,22 @@ task-size criteria in the quality checklist)
 **Reference**: 03-04 (whole doc) · AR-17, AR-18
 **Objective**: pin semantics + placement + the 8a/8b string boundary.
 
-- [ ] 5.1.1 Write semantics spec tests (ST-25..ST-30, ST-28b, ST-33, ST-33b, ST-33c) — `packages/frontend/src/semantics/zeropage.spec.test.ts`
-- [ ] 5.1.2 Write lowering/addressing spec tests (ST-31, ST-31b, ST-32) — `packages/codegen/src/il/lower-zeropage.spec.test.ts`
-- [ ] 5.1.3 Run both — verify FAIL (red phase)
+- [x] 5.1.1 Write semantics spec tests (ST-25..ST-30, ST-28b, ST-33, ST-33b, ST-33c) — `packages/frontend/src/semantics/zeropage.spec.test.ts` ✅ (completed: 2026-07-17 15:22)
+- [x] 5.1.2 Write lowering/addressing spec tests (ST-31, ST-31b, ST-32) — `packages/codegen/src/il/lower-zeropage.spec.test.ts` ✅ (completed: 2026-07-17 15:22)
+- [x] 5.1.3 Run both — verify FAIL (red phase) ✅ (completed: 2026-07-17 15:22 — 15/15 red)
 
 ### Step 5.2: Implementation
 
-- [ ] 5.2.1 Switch the zeropage field-initializer context to full expression parsing (`parseExpression(state, 0, true)` — aggregate literals accepted, PF-005) — `packages/frontend/src/parser/parse-decl.ts`
-- [ ] 5.2.2 Collect + merge `ZeropageBlock` fields as ZP-storage module vars (E10003 path) — `packages/frontend/src/semantics/module-variable-collection.ts` (+ Pass 1 touchpoints)
-- [ ] 5.2.3 Typing/init parity: call-free initializers (var-reading legal, dependency-ordered — PF-004), `__init` participation incl. ZP-storage symbols in the init-order walk, no zero-fill, string-init guard coverage for ZP fields — `packages/frontend/src/semantics/` (5b machinery touchpoints)
-- [ ] 5.2.4 `modelToZpUserVars` projection + feed it from the driver — `packages/frontend/src/sfa/model-adapter.ts`, `packages/compiler/src/api/run-frontend.ts`
-- [ ] 5.2.5 Symbol naming (`__zp_<Module>_<name>`) + `zeroPage` equate emission + direct-operand lowering — `packages/frontend/src/sfa/plan-allocation.ts`, `packages/codegen/src/il/lower.ts`
-- [ ] 5.2.6 Run spec tests — verify PASS (green phase)
+- [x] 5.2.1 Switch the zeropage field-initializer context to full expression parsing (`parseExpression(state, 0, true)` — aggregate literals accepted, PF-005) — `packages/frontend/src/parser/parse-decl.ts` ✅ (completed: 2026-07-17 15:22)
+- [x] 5.2.2 Collect + merge `ZeropageBlock` fields as ZP-storage module vars (E10003 path) — `packages/frontend/src/semantics/module-variable-collection.ts` (+ Pass 1 touchpoints) ✅ (completed: 2026-07-17 15:22 — core `Symbol.storage?: "zeropage"` marker; same namespace/dup rule/initializer map)
+- [x] 5.2.3 Typing/init parity: call-free initializers (var-reading legal, dependency-ordered — PF-004), `__init` participation incl. ZP-storage symbols in the init-order walk, no zero-fill, string-init guard coverage for ZP fields — `packages/frontend/src/semantics/` (5b machinery touchpoints) ✅ (completed: 2026-07-17 15:22 — `typeZeropageField` mirrors `typeModuleLet` (call-free, string guard, range/assignability/overflow, unsized inference); annotation-resolution finalizes `ZeropageField` annotations (struct-typed fields); `initPseudoFunction` collects ZP initializer slots)
+- [x] 5.2.4 `modelToZpUserVars` projection + feed it from the driver — `packages/frontend/src/sfa/model-adapter.ts`, `packages/compiler/src/api/run-frontend.ts` ✅ (completed: 2026-07-17 15:22 — module order × declaration order; `modelToModuleVars` excludes ZP storage (no RAM double-place))
+- [x] 5.2.5 Symbol naming (`__zp_<Module>_<name>`) + `zeroPage` equate emission + direct-operand lowering — `packages/frontend/src/sfa/{plan-allocation,symbols}.ts`, `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-17 15:22 — user-category equates carry `zeroPage: true` (2-digit); `moduleVarLocOfSymbol` ZP arm covers reads/writes/indexed/&/init stream; `lowerInitCode` collects ZP field initializers)
+- [x] 5.2.6 Run spec tests — verify PASS (green phase) ✅ (completed: 2026-07-17 15:22 — 11/11 semantics + 4/4 lowering)
 
 ### Step 5.3: Hardening
 
-- [ ] 5.3.1 Impl tests (merge ordering determinism, aggregate edges) + full verify — `*.impl.test.ts`
+- [x] 5.3.1 Impl tests (merge ordering determinism, aggregate edges) + full verify — `*.impl.test.ts` ✅ (completed: 2026-07-17 15:22 — `zeropage.impl.test.ts` 5/5 (projection order, struct-typed field, fn-name collision, E10194 cycle, unsized parity); FULL VERIFY PASS)
 
 **Verify**: the AR-27 command
 

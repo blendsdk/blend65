@@ -32,6 +32,7 @@ import {
   lex,
   modelNeedsIrqPointerScratch,
   modelNeedsPointerScratch,
+  modelToZpUserVars,
   modelToFunctionInfo,
   modelToModuleVars,
   parse,
@@ -172,7 +173,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
         {
           functions: modelToFunctionInfo(semanticModel),
           moduleVars: modelToModuleVars(semanticModel), // real module scalars
-          zpUserVars: [],
+          zpUserVars: modelToZpUserVars(semanticModel),
           upstreamErrors: false, // gated: planning only runs on a clean frontend
           needsPointerScratch: modelNeedsPointerScratch(semanticModel),
           needsIrqPointerScratch: modelNeedsIrqPointerScratch(semanticModel),
