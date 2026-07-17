@@ -3,12 +3,9 @@
 ## Overview
 
 - **Name:** blend65
-- **Description:** Blend65 is a statically-typed systems language and ahead-of-time
-  compiler that targets 6502-based retro platforms (C64, C64 Ultimate, Commander X16,
-  Atari 800XL, Atari 7800). This repository hosts the language specification, the
-  requirements documents (RD-01..RD-18), and the TypeScript monorepo that implements
-  the compiler, CLI, and VS Code tooling. Consumed as `@blend65/*` packages plus the
-  `blendc` CLI.
+- **Description:** Statically-typed systems language + AOT compiler targeting 6502 retro platforms
+  (C64, C64 Ultimate, Commander X16, Atari 800XL, Atari 7800). Hosts the language spec, the
+  requirements (RD-01..RD-18), and the TypeScript monorepo implementing compiler/CLI/VS Code tooling.
 - **Type:** compiler (consumed as a library — `@blend65/*` packages + the `blendc` CLI)
 
 ## Toolchain
@@ -38,35 +35,23 @@ All commands run from the repo root.
 
 ## Project structure
 
-**Layout:** Monorepo — Yarn workspaces + Turbo. Source in `packages/*/src/`; tests co-located as
-`*.spec.test.ts` (spec tier) / `*.impl.test.ts` (logic tier, RD-02+) plus the repo-root `test/` tier.
+Monorepo — Yarn workspaces + Turbo. Source in `packages/*/src/`; tests co-located as
+`*.spec.test.ts` (spec tier) / `*.impl.test.ts` (logic tier, RD-02+), plus the repo-root `test/` cross-package boundary tier (`boundary.spec.test.ts`).
 
-- `packages/` — the 10 `@blend65/*` packages (dependency table below)
+- `packages/` — the 10 `@blend65/*` packages (edges below)
 - `spec/` — frozen spec-v3.0; DO NOT MODIFY during compiler implementation (D3)
 - `examples/` — per-slice acceptance fixtures (gate + slice3a…slice7b), VICE-verified
-- `test/` — repo-root cross-package boundary tier (`boundary.spec.test.ts`)
 - `codeops/` — nested CodeOps layout (marker `.codeops.yml`): `00-roadmap.md` (portfolio) + `features/blend65-ri/` (`00-roadmap.md`, `requirements/`, `plans/<rd-slug>/`) + `_archive/` (completed plans)
 - `.github/workflows/` — CI (install → typecheck → lint → build → test; Node 22; no emulator tier)
 - `docs/`, `research/`, `scripts/` — docs, research notes, repo tooling
 
 ### Package dependency edges (R15 boundary is load-bearing)
 
-| Package                    | Depends on                                  | Publish  |
-| -------------------------- | ------------------------------------------- | -------- |
-| `@blend65/core`            | —                                           | private  |
-| `@blend65/frontend`        | core                                        | private  |
-| `@blend65/codegen`         | core, frontend                              | private  |
-| `@blend65/platforms`       | core                                        | private  |
-| `@blend65/config`          | core                                        | private  |
-| `@blend65/compiler`        | core, frontend, codegen, platforms, config  | public   |
-| `@blend65/cli`             | compiler, config, core                      | public   |
-| `@blend65/language-server` | core, frontend  (**NEVER codegen** — R15)   | public   |
-| `@blend65/vscode`          | language-server                             | public   |
-| `@blend65/test-harness`    | core, compiler (+ codegen **dev-only**)     | public   |
+Private — `core` ← — · `frontend` ← core · `codegen` ← core, frontend · `platforms`, `config` ← core.
+Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` ← compiler, config, core · `language-server` ← core, frontend (**NEVER codegen** — R15) · `vscode` ← language-server · `test-harness` ← core, compiler (+ codegen **dev-only**).
 
-> **R15 / AR-20 (load-bearing):** `frontend` and `language-server` MUST NOT import
-> `@blend65/codegen` — enforced by ESLint `no-restricted-imports` (AR-P7) and
-> `test/boundary.spec.test.ts` (ST-R15a/b/c).
+> **R15 / AR-20 (load-bearing):** `frontend` and `language-server` MUST NOT import `@blend65/codegen`
+> — enforced by ESLint `no-restricted-imports` (AR-P7) + `test/boundary.spec.test.ts` (ST-R15a/b/c).
 
 ## Conventions
 
@@ -83,10 +68,8 @@ All commands run from the repo root.
 
 - **Files:** kebab-case (`foo-bar.ts`); test files `*.spec.test.ts` (spec tier),
   `*.impl.test.ts` reserved for logic tiers (RD-02+).
-- **Components/Classes:** PascalCase
-- **Functions/Methods:** camelCase
-- **Constants:** UPPER_SNAKE_CASE
-- **Types/Interfaces:** PascalCase
+- **Casing:** PascalCase (classes, types/interfaces) · camelCase (functions/methods) ·
+  UPPER_SNAKE_CASE (constants)
 - **Modules/packages:** `@blend65/<lowercase>`
 
 ### Architecture
@@ -146,15 +129,12 @@ All commands run from the repo root.
 - Runtime-ambiguity protocol: if an implementation decision is undetermined, STOP, log
   it in the active plan's Ambiguity Register as the next AR-PN (runtime), resolve with
   the user, then resume and back-propagate the resolution into the affected plan docs.
-- **Implementation status:** RD-01..RD-17 are complete; RD-18 (codegen language-feature
-  completion) is the active per-slice vertical rollout — Slices 3a–7b done (Slice 7 closed,
-  RD-18 item 6 ticked; Slice 8 is next). The authoritative, living status lives in
-  `codeops/features/blend65-ri/00-roadmap.md` (portfolio roll-up `codeops/00-roadmap.md`) — read
-  it at the start of a task and update it at every lifecycle transition (RD done, plan created,
-  etc.); the `roadmap` skill drives this. Do not restate per-slice status here.
+- **Implementation status:** never restated here — the authoritative, living status is
+  `codeops/features/blend65-ri/00-roadmap.md` (portfolio roll-up `codeops/00-roadmap.md`). Read it
+  at the start of every task; update it at each lifecycle transition (the `roadmap` skill drives this).
 - CI has NO emulator tier (AR-27): the RD-12/RD-17 emulator suites are
   `describe.skipIf(!hasVice()||!hasAcme())` — they skip in CI and are proven green locally on
   VICE 3.10; the codec/assertion/registry/golden/PNG tiers DO run in CI. Local emulator suites
   run sequentially (`fileParallelism:false`) so concurrent `x64sc` instances don't contend.
 
-<!-- analyze_project: compacted 2026-07-13 — collapsed the RD-by-RD status narrative to a roadmap pointer, tightened Commands + Project structure, and pruned stacked refresh comments. Toolchain/Commands/packages/CI verified unchanged against package.json, turbo.json, and ci.yml; clean-script TODO still applies. -->
+<!-- analyze_project: compacted 2026-07-17 — dependency table → prose edges (all edges/publish flags and R15 preserved), Implementation status → pure roadmap pointer (was restating per-slice status against its own rule), tightened Overview + Naming + R15 note. Toolchain/Commands/structure re-verified against package.json (10 packages, yarn@1.22.22, scripts build/typecheck/lint/test), .nvmrc (22), turbo.json; no clean script — TODO still applies. -->

@@ -115,7 +115,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 | RD-16 | Compiler configuration (`blend65.json` loader) | `codeops/features/blend65-ri/plans/rd-16-compiler-configuration/` | ✅ COMPLETE |
 | RD-11b | Diagnostics remainder & resource reporter (`SourceMap`, severity policy, renderers, `ResourceReport`) | `codeops/features/blend65-ri/plans/rd-11b-diagnostics-reporting/` | ✅ COMPLETE |
 | RD-15 | Programmatic + CLI API (`compile`/`emitIl`/`emitAsm`/`build` facade + `blendc`) | `codeops/features/blend65-ri/plans/rd-15-programmatic-cli-api/` | ✅ COMPLETE (2026-07-03, 50/50) |
-| RD-12 | Test harness & emulator verification (VICE; incl. RD-17 AC-14 tier) | `codeops/features/blend65-ri/plans/rd-12-test-harness/` | ✅ COMPLETE (2026-07-03, 44/44) |
+| RD-12 | Test harness & emulator verification (VICE) | `codeops/features/blend65-ri/plans/rd-12-test-harness/` | ✅ COMPLETE (2026-07-03, 44/44) |
 
 ---
 
@@ -126,7 +126,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout; 100% working _unoptimized_ codegen for the whole frozen language) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | Slices 3a–7b under `codeops/features/blend65-ri/plans/rd-18-slice-*/` (all ✅); **8a: `plans/rd-18-slice-8-hardware/` 📋 Plan Created (2026-07-17); 8b needs `make_plan`** | A→B | 🚧 In progress — Slices 3a/3b/4a/4b/5a/5b/6/7a/7b ✅ (Slice 7 closed 2026-07-12, exec_plan 58/58, RD-18 item 6 ticked). **Slice 8** (the last slice) split 8a/8b at its gate: 8a hardware (`&`, `interrupt`, `zeropage {}`, non-terminating `main`, T1) planned; 8b data (strings/encoding, `embed()`) carries RD-18 closure. |
+| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout, whole frozen language, _unoptimized_) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | `plans/rd-18-slice-*/` — 3a–7b ✅, 8a `rd-18-slice-8-hardware/` 📋, 8b needs `make_plan` | A→B | 🚧 In progress — Slices 3a–7b ✅ (Slice 7 closed, item 6 ticked); Slice 8 (last) split 8a hardware 📋 planned / 8b data needs `make_plan` |
 | 2 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
