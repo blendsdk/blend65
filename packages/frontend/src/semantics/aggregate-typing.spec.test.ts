@@ -225,9 +225,15 @@ describe("Specification: the aggregate function boundary (ST-44, ST-44a, ST-44b)
     );
   });
 
-  it("ST-44b: a string array-initialiser is loudly rejected until strings land", () => {
+  it("ST-44b (retired row): a bare string array-initialiser now compiles with the partial-init advisory", () => {
+    // Originally pinned the loud not-yet-supported rejection; string
+    // initialisers now desugar into the encoded byte elements, so the same
+    // shape compiles and the short string leaves the remainder undefined.
     const src = program("", 'let a: byte[10] = "HELLO";');
-    expect(analyzeMulti([src]).diags.some((d) => isIceCode(d.code))).toBe(true);
+    const { diags } = analyzeMulti([src]);
+    expect(diags.some((d) => isIceCode(d.code))).toBe(false);
+    expect(errorCodes(diags)).toEqual([]);
+    expect(diags.some((d) => d.code === DiagCode.PartialArrayInit)).toBe(true);
   });
 });
 

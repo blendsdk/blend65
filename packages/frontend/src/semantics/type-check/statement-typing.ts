@@ -48,6 +48,8 @@ import type {
   ZeropageFieldNode,
   Type,
 } from "@blend65/core";
+import { encoderFor } from "@blend65/core/platform";
+import type { CharEncoder } from "@blend65/core/platform";
 import type { IntRange } from "./type-resolution.js";
 import type { TypeCheckContext } from "./context.js";
 import {
@@ -62,6 +64,15 @@ import { integerRange, resolveTypeNode } from "./type-resolution.js";
 import { evalConst } from "../const-eval.js";
 import { buildConstImage } from "../const-images.js";
 import type { ConstRefResolver } from "../const-eval.js";
+import { desugarStringInit } from "../string-literal.js";
+
+/** The deterministic fallback when a context carries no const/type engine. */
+const RAW_ENCODER = encoderFor(undefined);
+
+/** The character encoder the context's engine carries (raw fallback). */
+function encoderOf(ctx: TypeCheckContext): CharEncoder {
+  return ctx.engine?.encoder ?? RAW_ENCODER;
+}
 
 /**
  * Runs Pass-3 type checking over every function/interrupt body — and every
@@ -122,7 +133,12 @@ function typeModuleLet(decl: LetDeclNode, moduleScope: Scope, ctx: TypeCheckCont
   if (sym === undefined || sym.decl !== decl) return;
   ctx.symbolMap.set(decl, sym);
 
-  checkArrayInitCoverage(decl, letDeclaredType(decl, sym), ctx); // W10140/W10141
+  const declaredType = letDeclaredType(decl, sym);
+  // String initialisers desugar into their encoded byte elements before any
+  // shape-sensitive check, so the coverage advisory and size inference see
+  // the element list the string denotes.
+  if (desugarStringInit(decl, declaredType, encoderOf(ctx), ctx.bag)) return;
+  checkArrayInitCoverage(decl, declaredType, ctx); // W10140/W10141
   if (decl.initialiser === null) return; // indeterminate until assigned (spec VAR-2)
 
   const call = findInitializerCall(decl.initialiser);
@@ -136,8 +152,6 @@ function typeModuleLet(decl: LetDeclNode, moduleScope: Scope, ctx: TypeCheckCont
     return;
   }
 
-  const declaredType = letDeclaredType(decl, sym);
-  if (rejectStringArrayInit(decl, declaredType, ctx)) return;
   const initType = typeOfExpr(decl.initialiser, moduleScope, ctx, declaredType);
   checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
   checkAssignable(initType, declaredType, decl.initialiser.span, ctx); // E10152/53/54
@@ -171,6 +185,9 @@ function typeZeropageField(
       ? scalar
       : sym.type;
 
+  // String initialisers desugar before the shape-sensitive checks — same
+  // ordering as module lets, so zeropage fields get full string parity.
+  if (desugarStringInit(field, declaredType, encoderOf(ctx), ctx.bag)) return;
   checkArrayInitCoverage(field, declaredType, ctx); // W10140/W10141
   if (field.initialiser === null) return; // indeterminate until written (spec ZP rule)
 
@@ -185,7 +202,6 @@ function typeZeropageField(
     return;
   }
 
-  if (rejectStringArrayInit(field, declaredType, ctx)) return;
   const initType = typeOfExpr(field.initialiser, moduleScope, ctx, declaredType);
   checkConstRange(field.initialiser, declaredType, ctx); // E10084 / E10082
   checkAssignable(initType, declaredType, field.initialiser.span, ctx); // E10152/53/54
@@ -259,6 +275,14 @@ function evaluateModuleConsts(
       if (sym === undefined || sym.decl !== item) continue;
       ctx.symbolMap.set(item, sym);
       consts.set(sym, { decl: item, moduleScope });
+
+      // String initialisers desugar into their encoded byte elements before
+      // anything reads the initialiser's shape, so the unsized-inference
+      // check and the const-image builder see a plain element list.
+      if (desugarStringInit(item, letDeclaredType(item, sym), encoderOf(ctx), ctx.bag)) {
+        typePoisoned.add(sym);
+        continue;
+      }
 
       // The symbol's type was finalized by the type-resolution pass.
       if (sym.type.kind === "array" || sym.type.kind === "struct") {
@@ -805,10 +829,12 @@ function typeLetDecl(decl: LetDeclNode, scope: Scope, ctx: TypeCheckContext): vo
   if (sym !== undefined) ctx.symbolMap.set(decl, sym);
 
   const declaredType = letDeclaredType(decl, sym);
+  // String initialisers desugar before the shape-sensitive checks (same
+  // ordering as module lets), so locals get identical string behavior.
+  if (desugarStringInit(decl, declaredType, encoderOf(ctx), ctx.bag)) return;
   checkArrayInitCoverage(decl, declaredType, ctx); // W10140/W10141
 
   if (decl.initialiser === null) return; // initialiser-less let (spec VAR-2) — no check
-  if (rejectStringArrayInit(decl, declaredType, ctx)) return;
 
   const initType = typeOfExpr(decl.initialiser, scope, ctx, declaredType);
   checkConstRange(decl.initialiser, declaredType, ctx); // E10084 / E10082
@@ -871,26 +897,6 @@ function checkArrayInitCoverage(
         "the rest are undefined (add a '; fill' value)",
     );
   }
-}
-
-/**
- * Rejects a string literal initialising an array — the form is legal in the
- * language but lands with the string/encoding surface; rejecting loudly
- * beats silently mistyping it. Returns `true` when rejected.
- */
-function rejectStringArrayInit(
-  decl: LetDeclNode | ConstDeclNode | ZeropageFieldNode,
-  declaredType: Type,
-  ctx: TypeCheckContext,
-): boolean {
-  if (decl.initialiser === null || decl.initialiser.kind !== "StringLitExpr") return false;
-  if (declaredType.kind !== "array") return false;
-  ctx.bag.addError(
-    IceCode.Unexpected,
-    decl.initialiser.span,
-    "string array initialisers are not supported yet — list the character values explicitly",
-  );
-  return true;
 }
 
 /**

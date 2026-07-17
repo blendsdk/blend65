@@ -155,15 +155,19 @@ describe("Specification: Slice 7 negatives via compile() (ST-62, ST-63)", () => 
     expect(codes(compileMain(inMain("struct S { v: void; }", "")))).toContain("E10156");
   });
 
-  it("rejects a statement-position aggregate literal (E10157) and a string array init (loudly)", () => {
+  it("rejects a statement-position aggregate literal (E10157); a string array init compiles (retired sub-row)", () => {
     const stmt = compileMain(
       inMain("struct Point { x: byte; y: byte; }", "Point { x: 1, y: 2 };"),
     );
     expect(codes(stmt)).toContain("E10157");
 
+    // RETIRED SUB-ROW, superseded: originally pinned the loud
+    // not-yet-supported rejection; string initialisers now desugar into
+    // encoded bytes, so the same shape compiles end-to-end (the short
+    // string keeps the partial-init advisory).
     const str = compileMain(inMain("", 'let a: byte[10] = "HELLO";'));
-    expect(str.hasErrors).toBe(true);
-    expect(codes(str).some((c) => c.startsWith("E9"))).toBe(true);
+    expect(str.hasErrors).toBe(false);
+    expect(codes(str).some((c) => c.startsWith("E9"))).toBe(false);
   });
 
   it("rejects a same-module type/value collision (E10003); a >256-byte array compiles with W10142", () => {

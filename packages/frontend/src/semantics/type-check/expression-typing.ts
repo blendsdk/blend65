@@ -163,10 +163,20 @@ function computeType(
       return typeStructLit(expr, scope, ctx);
     case "ArrayLitExpr":
       return typeArrayLit(expr, scope, ctx, contextType);
+    case "StringLitExpr":
+      // Strings live only in array-initialiser positions, where the
+      // declaration layer desugars them before typing runs. One reaching
+      // general expression typing is an invalid operand — same contract as
+      // a contextless array literal.
+      ctx.bag.addError(
+        DiagCode.InvalidOperandType,
+        expr.span,
+        "A string literal needs a byte-array initialiser position (a declaration it can fill)",
+      );
+      return ERROR_TYPE;
     default:
-      // String literals are not yet handled here; char literals only reach
-      // this arm when their conversion failed (already diagnosed). Poison
-      // without a further diagnostic.
+      // Char literals only reach this arm when their conversion failed
+      // (already diagnosed). Poison without a further diagnostic.
       return ERROR_TYPE;
   }
 }

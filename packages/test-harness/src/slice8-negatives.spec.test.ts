@@ -114,14 +114,15 @@ describe("Specification: zeropage rejections through the facade (ST-45)", () => 
     expect(codes(result)).toContain("E10032");
   });
 
-  it("keeps the loud string-initializer rejection on a zeropage field", () => {
+  it("compiles a string-initialized zeropage field end-to-end (retired rejection row)", () => {
+    // Originally pinned the loud not-yet-supported rejection; string
+    // initialisers now desugar into encoded bytes and flow through the
+    // zeropage init path like any other array initialiser.
     const result = compileMain(
-      ["module Main;", 'zeropage { msg: byte[6] = "HELLO"; }', MAIN].join("\n"),
+      ["module Main;", 'zeropage { msg: byte[6] = "HELLO\\0"; }', MAIN].join("\n"),
     );
-    expect(result.hasErrors).toBe(true);
-    expect(
-      result.diagnostics.some((d) => d.message.includes("string array initialisers")),
-    ).toBe(true);
+    expect(result.hasErrors).toBe(false);
+    expect(result.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
   });
 
   it("rejects export / let / const keywords inside a zeropage block at parse", () => {

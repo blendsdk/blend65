@@ -88,6 +88,12 @@ export const DiagCode = {
   ConstArrayNotFullyInit: "E10113",
   ArrayIndexTypeMismatch: "E10114",
   StaticIndexOutOfBounds: "E10115",
+  // - E10116: a string literal mixed with value elements (or another
+  //   string, or used as the fill value) in an array initializer. A string
+  //   initialises an array either bare (`= "S"`) or as the single element
+  //   of a bracketed form (`= ["S"; fill]`) — mixing forms has no defined
+  //   element layout. Minted on the next free number in the band.
+  MixedStringValueInit: "E10116",
   // Array-surface codes registered additively (`spec/` stays frozen):
   // - E10117/E10118 carry the array chapter's own numbers for the strict
   //   index-width tier rules: a `word` index on an array a `byte` index fully
@@ -120,6 +126,11 @@ export const DiagCode = {
   //   same root-symbol predicate.
   ConstToMutableParam: "E10122",
   ModifyConstParam: "E10123",
+  // - E10124: a string literal whose encoded byte count exceeds the
+  //   declared array size. Checked before the string desugars into
+  //   elements, so the message can name both counts. Minted on the next
+  //   free number in the band.
+  StringExceedsArraySize: "E10124",
   FillRequiresExplicitSize: "E10126",
   // - E10127: a string/char literal contains a character the target
   //   platform's character encoding cannot represent (or any code point

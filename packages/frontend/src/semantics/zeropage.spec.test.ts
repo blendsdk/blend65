@@ -128,12 +128,15 @@ describe("zeropage initializers (ST-28, ST-28b, ST-29, ST-33, ST-33b)", () => {
     expect(modelToModuleVars(model).some((v) => v.variableName === "raw")).toBe(false);
   });
 
-  it("ST-33: a string initializer keeps the loud rejection (no silent poison)", () => {
-    const { diags, hasErrors } = planReal([
-      ["module Main;", 'zeropage { msg: byte[6] = "HELLO"; }', MAIN].join("\n"),
+  it("ST-33 (retired row): a string initializer now compiles and joins the startup order", () => {
+    // Originally pinned the loud not-yet-supported rejection; string
+    // initialisers now desugar into encoded bytes, so a zeropage field
+    // initialises from a string like any other array initialiser.
+    const { model, hasErrors } = planReal([
+      ["module Main;", 'zeropage { msg: byte[6] = "HELLO\\0"; }', MAIN].join("\n"),
     ]);
-    expect(hasErrors).toBe(true);
-    expect(diags.some((d) => d.message.includes("string array initialisers"))).toBe(true);
+    expect(hasErrors).toBe(false);
+    expect(model.initOrder.some((s) => s.name === "msg")).toBe(true);
   });
 
   it("ST-33b: a call-bearing initializer keeps the loud module-initializer rejection", () => {

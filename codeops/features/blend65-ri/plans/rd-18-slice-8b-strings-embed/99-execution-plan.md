@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 18:22
-> **Progress**: 20/58 tasks (34%)
+> **Last Updated**: 2026-07-17 19:12
+> **Progress**: 31/58 tasks (53%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -115,23 +115,23 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 **Reference**: 03-02 §String · AR-8 · ST-15..24
 **Objective**: All init forms + diagnostics pinned; retired rows rewritten to success FIRST.
 
-- [ ] 3.1.1 Write `string-init.spec.test.ts` (ST-15..22, ST-24) — `packages/frontend/src/semantics/type-check/`
-- [ ] 3.1.2 Rewrite the shipped string-init ICE pin to the new oracles (retired-row protocol; the pin is `aggregate-typing.spec.test.ts:228-231` "ST-44b", an `isIceCode` assert NOT locatable via the identifier or message — 03-02 retirement matrix) — frontend spec suites
-- [ ] 3.1.3 Rewrite the 8a zeropage-string pins (frontend + test-harness twins) to ST-23 success
-- [ ] 3.1.4 Run — verify FAIL (red: E90001 still fires; bracketed form poisons)
+- [x] 3.1.1 Write `string-init.spec.test.ts` (ST-15..22, ST-24) — `packages/frontend/src/semantics/type-check/` ✅ (completed: 2026-07-17 18:42 — 11 tests)
+- [~] 3.1.2 Rewrite the shipped string-init ICE pin to the new oracles (retired-row protocol; the pin is `aggregate-typing.spec.test.ts:228-231` "ST-44b", an `isIceCode` assert NOT locatable via the identifier or message — 03-02 retirement matrix) — frontend spec suites ⏳ (implemented: 2026-07-17 18:29 — no-ICE + no-errors + W10140)
+- [~] 3.1.3 Rewrite the 8a zeropage-string pins (frontend + test-harness twins) to ST-23 success ⏳ (implemented: 2026-07-17 18:29 — HELLO\0 exact-size success; init-order membership / end-to-end clean)
+- [x] 3.1.4 Run — verify FAIL (red: E90001 still fires; bracketed form poisons) ✅ (completed: 2026-07-17 18:31 — 13 red: 11 new + both rewritten frontend pins)
 
 ### Step 3.2: Implementation
 
-- [ ] 3.2.1 Mint `MixedStringValueInit: "E10116"` + `StringExceedsArraySize: "E10124"` (additive, Ch 08 wording) — `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 3.2.2 Implement the declaration-site desugar (bare + bracketed + fill forms, E10124 pre-splice, E10116 arms) at all four decl positions per 03-02 — module-let `:140`, zeropage `:188`, local-let `:811` (replacing `rejectStringArrayInit`) + the ADDED const-pass hook before the `:307` unsized-inference check; delete the dead helper — `packages/frontend/src/semantics/type-check/statement-typing.ts`
-- [ ] 3.2.3 E10080 arm for `StringLitExpr` in general expression positions — `packages/frontend/src/semantics/type-check/expression-typing.ts`
-- [ ] 3.2.4 Zeropage-field parity (same desugar path; 8a field-initialiser context) — verify via ST-23, adjust `typeZeropageField` only if needed
-- [ ] 3.2.5 Run Step-3.1 suites — verify GREEN (incl. both retirements)
+- [x] 3.2.1 Mint `MixedStringValueInit: "E10116"` + `StringExceedsArraySize: "E10124"` (additive, Ch 08 wording) — `packages/core/src/diagnostics/diagnostic-codes.ts` ✅ (completed: 2026-07-17 19:12; impl 18:36)
+- [x] 3.2.2 Implement the declaration-site desugar (bare + bracketed + fill forms, E10124 pre-splice, E10116 arms) at all four decl positions per 03-02 — module-let `:140`, zeropage `:188`, local-let `:811` (replacing `rejectStringArrayInit`) + the ADDED const-pass hook before the `:307` unsized-inference check; delete the dead helper — `packages/frontend/src/semantics/type-check/statement-typing.ts` ✅ (completed: 2026-07-17 19:12; impl 18:36 — desugar lives in `semantics/string-literal.ts`; deleted `rejectStringArrayInit`; desugar runs BEFORE the coverage checks at all four positions)
+- [x] 3.2.3 E10080 arm for `StringLitExpr` in general expression positions — `packages/frontend/src/semantics/type-check/expression-typing.ts` ✅ (completed: 2026-07-17 19:12; impl 18:36)
+- [x] 3.2.4 Zeropage-field parity (same desugar path; 8a field-initialiser context) — verify via ST-23, adjust `typeZeropageField` only if needed ✅ (completed: 2026-07-17 18:42 — no extra adjustment needed beyond the desugar hook; harness twin end-to-end 10/10)
+- [x] 3.2.5 Run Step-3.1 suites — verify GREEN (incl. both retirements) ✅ (completed: 2026-07-17 18:42 — 52/52 targeted; whole frontend 867/867)
 
 ### Step 3.3: Impl tests & hardening
 
-- [ ] 3.3.1 Complete `literal-desugar.impl.test.ts` (string half: four consumers on synthetics — coverage/W10140, image bytes, initCode lowering, local frame stores) — same dir
-- [ ] 3.3.2 Full verify + prior-goldens check
+- [x] 3.3.1 Complete `literal-desugar.impl.test.ts` (string half: four consumers on synthetics — coverage/W10140, image bytes, initCode lowering, local frame stores) — same dir ✅ (completed: 2026-07-17 19:12 — 10/10; impl 18:42 — splice/span/fill-preservation/oversize-pre-splice/unmappable units; initCode + frame-store consumers proven via the harness twin end-to-end and the Phase-5 golden)
+- [x] 3.3.2 Full verify + prior-goldens check ✅ (completed: 2026-07-17 19:12 — 17/17 turbo tasks after the fourth-pin rewrite; goldens byte-exact)
 
 **Verify**: (same command)
 
