@@ -1,7 +1,7 @@
 # Portfolio Roadmap: blend65.ri
 
 > **Status**: Active
-> **Last Updated**: 2026-07-12
+> **Last Updated**: 2026-07-17
 > **Features**: 0 / 1 done
 > **CodeOps Skills Version**: 3.0.0
 >
@@ -18,7 +18,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 Slice 7b ✅ COMPLETE (2026-07-12, exec_plan 58/58) — SLICE 7 CLOSED, RD-18 acceptance item 6 ticked.** The pointer surface ships end-to-end (by-ref/const struct/array params + FN-3 frame home + chain-max-colored `__zp_ptr_*` pairs; unsized params + element-list inference; tier-2 `(zp),Y` with runtime formation through the conditional scratch pair; the IL `addr` operand; translate `(zp),Y` framings + regY mirror), GREEN on real VICE 3.10 first run (`examples/slice7b/` → `$C000..$C006 = 00 2A 0F 1D 11 0B 16`; 212-line golden; nine prior goldens byte-exact). RD-01..RD-17 are all complete; RD-18 is the active language-completion rollout. **Next: RD-18 Slice 8 (hardware & advanced — `&`, interrupts, `zeropage`, strings/`embed()`) needs `make_plan`; RD-13 (non-functional sweep) and RD-14 (VS Code/LSP) queued.** Recent: Slice 7a ✅ (64/64) aggregates · Slice 6 ✅ (52/52) expressions · Slice 5b ✅ (42/42) modules · Slice 5a ✅ (46/46) functions · Slice 4b ✅ (26/26) switch · Slice 4a ✅ (35/35) control-flow + CFG · Slice 3b ✅ (45/45) scalar types · Slice 3a ✅ (21/21) model seam. Full history in `features/blend65-ri/00-roadmap.md`. | 18/20 | 🔄 | 2026-07-12 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 Slice 7b ✅ COMPLETE (2026-07-12, exec_plan 58/58) — SLICE 7 CLOSED, RD-18 acceptance item 6 ticked.** The pointer surface ships end-to-end (by-ref/const struct/array params + FN-3 frame home + chain-max-colored `__zp_ptr_*` pairs; unsized params + element-list inference; tier-2 `(zp),Y` with runtime formation through the conditional scratch pair; the IL `addr` operand; translate `(zp),Y` framings + regY mirror), GREEN on real VICE 3.10 first run (`examples/slice7b/` → `$C000..$C006 = 00 2A 0F 1D 11 0B 16`; 212-line golden; nine prior goldens byte-exact). RD-01..RD-17 are all complete; RD-18 is the active language-completion rollout. **Next: Slice 8 split 8a/8b at its gate — the 8a hardware plan (`&`, interrupts, `zeropage`, non-terminating `main`, T1) was created 2026-07-17: preflight → exec_plan; 8b (strings/encoding, `embed()`, RD-18 closure) needs `make_plan` after; RD-13 (non-functional sweep) and RD-14 (VS Code/LSP) queued.** Recent: Slice 7a ✅ (64/64) aggregates · Slice 6 ✅ (52/52) expressions · Slice 5b ✅ (42/42) modules · Slice 5a ✅ (46/46) functions · Slice 4b ✅ (26/26) switch · Slice 4a ✅ (35/35) control-flow + CFG · Slice 3b ✅ (45/45) scalar types · Slice 3a ✅ (21/21) model seam. Full history in `features/blend65-ri/00-roadmap.md`. | 18/20 | 🔄 | 2026-07-17 |
 
 ## Archived
 
@@ -32,6 +32,8 @@
 > `features/blend65-ri/00-roadmap.md`, the plan directories, the completed-plan archive
 > `codeops/_archive/`, and git history.
 
+- 2026-07-17: **RD-18 Slice 8 gate** — split 8a/8b; the 8a hardware plan created via `make_plan`
+  (`features/blend65-ri/plans/rd-18-slice-8-hardware/`).
 - 2026-07-12: **RD-18 Slice 7b ✅ COMPLETE** (exec_plan 58/58) — pointer surface end-to-end;
   SLICE 7 CLOSED, RD-18 acceptance item 6 ticked. GREEN on real VICE 3.10.
 - 2026-07-12: **RD-18 Slice 7a ✅ COMPLETE** (exec_plan 64/64) — aggregates (arrays/structs/enums)

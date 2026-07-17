@@ -10,7 +10,7 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
-> **Last Updated**: 2026-07-12
+> **Last Updated**: 2026-07-17
 >
 > Full per-slice/per-phase history — preflight findings, ambiguity-register decisions, and
 > phase narratives — lives in the plan directories under `plans/`, the completed-plan
@@ -29,10 +29,15 @@ dead/pass-through params skip both), `const` params (E10122/E10123), unsized arr
 the conditional `__zp_ptr_scratch`, the IL `addr` operand (store source + ALU right operand), and
 the translate `(zp),Y` framings + regY mirror. 3-part bar GREEN on real VICE 3.10 first run:
 `examples/slice7b/` → `$C000..$C006 = 00 2A 0F 1D 11 0B 16`; 212-line golden; nine prior goldens
-byte-exact. **Next: RD-18 Slice 8 (hardware & advanced) needs `make_plan`; RD-13/RD-14 queued.**
+byte-exact. **Next: Slice 8 was split 8a/8b at its gate (2026-07-17) — the 8a hardware plan is
+authored (`plans/rd-18-slice-8-hardware/`, 29-row register, 59 tasks): preflight 8a, then
+exec_plan; 8b (strings/encoding + `embed()`, carries RD-18 closure) needs `make_plan` after;
+RD-13/RD-14 queued.**
 
 ## Recent milestones
 
+- 2026-07-17 — **RD-18 Slice 8 gate** — split 8a/8b; 8a hardware plan created (`make_plan`, 29-row
+  register — incl. the $0314→raw-vector fixture correction and two SFA interrupt-path miscompile fixes).
 - 2026-07-12 — **RD-18 Slice 7b ✅** (58/58) — pointer surface; SLICE 7 CLOSED, RD-18 item 6 ticked.
 - 2026-07-12 — **RD-18 Slice 7a ✅** (64/64) — aggregates (arrays/structs/enums), direct addressing.
 - 2026-07-11 — **RD-18 Slice 6 ✅** (52/52) — full expression system + mixed-width promotion; closes AC-5.
@@ -51,14 +56,16 @@ byte-exact. **Next: RD-18 Slice 8 (hardware & advanced) needs `make_plan`; RD-13
 - **Active**: **RD-18** (codegen language-feature completion) — a thin vertical-slice rollout
   that lights up the frozen language, each slice gated by CI assemble-clean + CI golden + local
   VICE. Slices 3a/3b/4a/4b/5a/5b/6/7a/7b ✅ complete (Slice 7 closed, RD-18 item 6 ticked).
-  **Slice 8** (hardware & advanced — `&` address-of, `interrupt` functions, `zeropage {}` blocks,
-  strings/`embed()`, non-terminating `main`) is the last codegen slice — needs `make_plan`.
+  **Slice 8** (the last codegen slice) is split 8a/8b: **8a hardware** (`&` address-of, `interrupt`
+  functions, `zeropage {}` blocks, non-terminating `main`, T1 E2E) — 📋 plan created
+  (`plans/rd-18-slice-8-hardware/`); **8b data** (strings/encoding, `embed()`, RD-18 closure) —
+  needs `make_plan`.
 - **Last completed non-RD-18 work**: **RD-12** (test harness & emulator verification) and
   **RD-15** (programmatic + CLI API), both 2026-07-03. The full pipeline compiles
   frontend→SFA→IL→6502→ACME→loadable c64 `.prg` and is VICE-verified; `blendc` ships with config,
   diagnostics, and resource reports.
-- **Next up**: RD-18 Slice 8 (`make_plan`), then **RD-13** (non-functional sweep) and **RD-14**
-  (VS Code extension & Language Server) — both need `make_plan`.
+- **Next up**: RD-18 Slice 8a (preflight → exec_plan), then Slice 8b (`make_plan`), then **RD-13**
+  (non-functional sweep) and **RD-14** (VS Code extension & Language Server) — both need `make_plan`.
 
 ---
 
@@ -119,7 +126,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout; 100% working _unoptimized_ codegen for the whole frozen language) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | Slices 3a–7b under `codeops/features/blend65-ri/plans/rd-18-slice-*/` (all ✅); **Slice 8 needs `make_plan`** | A→B | 🚧 In progress — Slices 3a/3b/4a/4b/5a/5b/6/7a/7b ✅ (Slice 7 closed 2026-07-12, exec_plan 58/58, RD-18 item 6 ticked). **Slice 8** (hardware & advanced — `&` address-of, `interrupt`, `zeropage {}`, strings/`embed()`, non-terminating `main`) is the last slice. |
+| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout; 100% working _unoptimized_ codegen for the whole frozen language) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | Slices 3a–7b under `codeops/features/blend65-ri/plans/rd-18-slice-*/` (all ✅); **8a: `plans/rd-18-slice-8-hardware/` 📋 Plan Created (2026-07-17); 8b needs `make_plan`** | A→B | 🚧 In progress — Slices 3a/3b/4a/4b/5a/5b/6/7a/7b ✅ (Slice 7 closed 2026-07-12, exec_plan 58/58, RD-18 item 6 ticked). **Slice 8** (the last slice) split 8a/8b at its gate: 8a hardware (`&`, `interrupt`, `zeropage {}`, non-terminating `main`, T1) planned; 8b data (strings/encoding, `embed()`) carries RD-18 closure. |
 | 2 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 
