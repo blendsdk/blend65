@@ -10,6 +10,8 @@
 > It is governed by the `roadmap` skill — read it at the start of every task and update it
 > whenever an RD reaches 100%.
 >
+> **Progress**: 18/20
+>
 > **Last Updated**: 2026-07-17
 >
 > Full per-slice/per-phase history — preflight findings, ambiguity-register decisions, and
@@ -153,7 +155,7 @@ When `exec_plan` reaches 100%, **update this roadmap** (see Update Protocol belo
 
 | Order | RD | Title | Depends on | Plan dir | Phase | Status |
 |-------|----|-------|-----------|----------|-------|--------|
-| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout, whole frozen language, _unoptimized_) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | `plans/rd-18-slice-*/` — 3a–8a ✅, [8b ✅](plans/rd-18-slice-8b-strings-embed/00-index.md) | A→B | ✅ **DONE 2026-07-17** — all slices complete; closure items 7–9 ticked; the whole frozen language ships |
+| 1 | RD-18 | Codegen language-feature completion (thin vertical-slice rollout, whole frozen language, _unoptimized_) | RD-04, RD-05, RD-06, RD-07, RD-09, RD-10, RD-11, RD-12, RD-17 | `plans/rd-18-slice-*/` — 3a–8a ✅, [8b ✅](plans/rd-18-slice-8b-strings-embed/00-index.md) | A→B | ✅ **DONE 2026-07-17** — all slices complete |
 | 2 | RD-13 | Non-functional requirements (cross-cutting sweep) | — | ❌ needs `make_plan` | A | ⬜ Not started |
 | 3 | RD-14 | VS Code extension & Language Server | RD-03, RD-04 | ❌ needs `make_plan` | B | ⬜ Not started |
 

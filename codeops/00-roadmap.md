@@ -18,7 +18,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 ✅ CLOSED 2026-07-17** (Slice 8b 58/58 — strings/embed + closure; whole frozen v3 language compiles end-to-end, unoptimized) — RD-01..RD-18 ✅; next: RD-13/RD-14 (both need `make_plan`) | 18/20 | 🔄 | 2026-07-17 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 ✅ CLOSED 2026-07-17** — frozen v3 compiles end-to-end (unoptimized); next: RD-13/RD-14 (`make_plan`) | 18/20 | 🔄 | 2026-07-17 |
 | asm-parity | [→](features/asm-parity/00-roadmap.md) | backlog — Prime Directive audit program + memory/hardware epic (GitHub issues #49–#64) | 0/14 RDs | ⬜ | 2026-07-17 |
 
 ## Archived
