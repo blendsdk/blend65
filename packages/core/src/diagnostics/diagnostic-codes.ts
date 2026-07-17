@@ -58,6 +58,16 @@ export const DiagCode = {
   ZpArgBlockExceeded: "E10044",
   NonConstantIntrinsicAddress: "E10045",
   IntrinsicNotImported: "E10046",
+  // Address-of rejections. The expressions chapter's designated numbers for
+  // these cases were already spent on the intrinsic errors above, so the three
+  // rejection codes register additively here (`spec/` stays frozen): a scalar
+  // constant is inlined and has no storage to address, a parameter has no
+  // stable home of its own, and anything that is not a named variable, a
+  // constant with storage, or a function has no address at all. The deferred
+  // element/field case is E10042 above.
+  AddressOfConstScalar: "E10047",
+  AddressOfParameter: "E10048",
+  AddressOfNonAddressable: "E10049",
   // Calling an `interrupt function` directly. A miscompile guard: interrupt
   // bodies end in RTI, so a user JSR corrupts the hardware stack (JSR pushes
   // 2 bytes, RTI pops 3) and jumps wild. E10051 is the spec-designated code

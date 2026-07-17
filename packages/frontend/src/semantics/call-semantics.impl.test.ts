@@ -61,6 +61,7 @@ describe("call typing internals", () => {
       callSiteSpans: new Map<Symbol, Map<Symbol, SourceSpan>>(),
       moduleScopes: tables.moduleScopeByName,
       constValues: new Map<Symbol, ConstValue>(),
+      addressTakenFunctions: new Set<Symbol>(),
     });
 
     // Two call sites, one cached signature (for `add`).

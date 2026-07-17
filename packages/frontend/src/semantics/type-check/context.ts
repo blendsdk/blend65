@@ -69,6 +69,11 @@ export interface TypeCheckContext {
    */
   readonly moduleScopes: ReadonlyMap<string, Scope>;
   /**
+   * Functions whose address is taken with `&`, filled during the walk. Frozen
+   * into the model afterwards so frame planning can mark them escaped.
+   */
+  readonly addressTakenFunctions: Set<Symbol>;
+  /**
    * Evaluated module-const values, filled by the const phase (declaration-
    * order independent). Frozen into the model's `constValues` afterwards.
    */

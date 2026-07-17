@@ -294,7 +294,9 @@ function lowerInitCode(
       );
       continue;
     }
-    const value = lowerExpr(init, ctx);
+    // An address-of initialiser feeds the store directly, like any other
+    // plain store position.
+    const value = isAddressOfExpr(init) ? lowerAddressOf(init, ctx, true) : lowerExpr(init, ctx);
     builder.emit({ op: "store", a: value, b: loc(target.symbol, target.type) });
   }
   const fn = builder.finish({ kind: "ret" });
@@ -438,7 +440,11 @@ function lowerLetDecl(decl: LetDeclNode, ctx: LowerCtx): void {
     lowerAggregateInit(place, sym.type, decl.initialiser, ctx);
     return;
   }
-  const value = materialise(lowerExpr(decl.initialiser, ctx), ctx);
+  // An address-of initialiser feeds the store directly (a store source is a
+  // legal address position — no homing detour).
+  const value = isAddressOfExpr(decl.initialiser)
+    ? lowerAddressOf(decl.initialiser, ctx, true)
+    : materialise(lowerExpr(decl.initialiser, ctx), ctx);
   const target = loc(frameSymbol(ctx.fqName, decl.name), slotIlType(ctx.frame, decl.name));
   ctx.builder.emit({ op: "store", a: value, b: target });
 }
@@ -915,7 +921,8 @@ function lowerUserCall(expr: CallExprNode, ctx: LowerCtx): ILOperand {
       continue;
     }
 
-    const value = lowerExpr(arg, ctx);
+    // An address-of argument feeds the argument store directly.
+    const value = isAddressOfExpr(arg) ? lowerAddressOf(arg, ctx, true) : lowerExpr(arg, ctx);
     const slotType = slotIlType(calleeFrame, param.name);
     ctx.builder.emit({ op: "store", a: value, b: loc(frameSymbol(calleeFq, param.name), slotType) });
   }
@@ -1299,11 +1306,13 @@ function lowerConditional(expr: ConditionalExprNode, ctx: LowerCtx): ILOperand {
  * negation); a runtime `-` emits `neg` (typing guarantees a signed operand —
  * the unsigned check here is defense in depth). `~` emits `not` at the
  * operand's width. `!` is the ==0 test: booleans are 0-false/1-true, so
- * logical not needs no new IL op. `&` (address-of) is not supported yet.
+ * logical not needs no new IL op. `&` (address-of) in a general value
+ * position homes its address through the site's word slot — see
+ * {@link lowerAddressOf}.
  */
 function lowerUnary(expr: UnaryExprNode, ctx: LowerCtx): ILOperand {
   if (expr.op === "&") {
-    return iceUnsupported(expr, ctx, "address-of (not supported yet)");
+    return lowerAddressOf(expr, ctx, false);
   }
   const ilType = ilTypeOfType(ctx.model.typeOf(expr));
 
@@ -1441,7 +1450,11 @@ function lowerAssign(expr: AssignExprNode, ctx: LowerCtx): ILOperand {
   }
 
   if (expr.op === "=") {
-    const value = materialise(lowerExpr(expr.value, ctx), ctx);
+    // An address-of value feeds the store directly (store source is a legal
+    // address position).
+    const value = isAddressOfExpr(expr.value)
+      ? lowerAddressOf(expr.value, ctx, true)
+      : materialise(lowerExpr(expr.value, ctx), ctx);
     ctx.builder.emit({ op: "store", a: value, b: target });
     return value;
   }
@@ -1603,6 +1616,63 @@ function pairSymbol(fqName: string, paramName: string): string {
 
 /** The shared scratch pair the runtime pointer formation stages through. */
 const SCRATCH_PAIR = "__zp_ptr_scratch";
+
+/** Narrows an expression to an address-of unary (`&x`). */
+function isAddressOfExpr(e: ExprNode): e is UnaryExprNode {
+  return e.kind === "UnaryExpr" && (e as UnaryExprNode).op === "&";
+}
+
+/**
+ * The emitted entry label of a function/interrupt symbol — the same rule the
+ * instruction layer applies to function streams: the entry point (bare name
+ * `main`) is `_main`, every other function is `Module_function`.
+ */
+function functionEntryLabel(sym: Symbol): string {
+  if (sym.name === "main") return "_main";
+  const node = sym.scope.node;
+  const moduleName = node !== null && node.kind === "ModuleDecl" ? (node as ModuleDeclNode).name : "";
+  return `${moduleName}_${sym.name}`;
+}
+
+/**
+ * Lower `&x` to its link-time address. The operand's symbol maps to the
+ * storage the assembler resolves: a module variable's `__var_*` slot, a
+ * local's `__frame_*` slot, a const aggregate's `__data_*` image, or a
+ * function's entry label.
+ *
+ * An address operand is legal only as a store source or an ALU right
+ * operand, so placement is two-mode: a `direct` caller sits on a plain store
+ * (let initialiser, simple assignment, call argument, `poke`/`pokew` value)
+ * and receives the raw address operand; every other position first homes the
+ * address into the site's synthetic word frame slot and hands back the slot,
+ * which any consumer can read. Every site claims its slot either way — the
+ * frame planner counted one per `&` site, and the claim keeps the two
+ * counters aligned (a drift is a loud slot-miss rejection, never a silent
+ * mis-address).
+ */
+function lowerAddressOf(expr: UnaryExprNode, ctx: LowerCtx, direct: boolean): ILOperand {
+  const slot = claimResultSlot(expr, ctx); // claimed at node entry — preorder
+  const sym = ctx.model.symbolOf(expr.operand);
+  if (sym === null) {
+    return iceUnsupported(expr, ctx, "address-of operand (unresolved symbol)");
+  }
+  let symbol: string;
+  if (sym.kind === "variable") {
+    const moduleVar = moduleVarLocOfSymbol(sym);
+    symbol = moduleVar !== null ? moduleVar.symbol : frameSymbol(ctx.fqName, sym.name);
+  } else if (sym.kind === "constant") {
+    symbol = constDataSymbol(sym); // typing admits only aggregates (they own an image)
+  } else if (sym.kind === "function" || sym.kind === "interrupt") {
+    symbol = functionEntryLabel(sym);
+  } else {
+    return iceUnsupported(expr, ctx, "address-of operand kind");
+  }
+  const address = addrOf(symbol);
+  if (direct) return address;
+  if (slot === null) return imm(0, IL_WORD); // slot miss already rejected loudly
+  ctx.builder.emit({ op: "store", a: address, b: slot });
+  return slot;
+}
 
 /** The in-image data label of a const aggregate: `__data_<Module>_<name>`. */
 function constDataSymbol(sym: Symbol): string {
@@ -2147,7 +2217,12 @@ function emitPokew(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
     ctx.builder.emit({ op: "store", a: imm((value >> 8) & 0xff, IL_BYTE), b: loc(hexAddr(base + 1), IL_BYTE) });
     return imm(0, IL_BYTE);
   }
-  const value = lowerExpr(valueExpr ?? errorExpr(), ctx);
+  const wordArg = valueExpr ?? errorExpr();
+  // An address-of value (the vector-install idiom) feeds the word store
+  // directly — the assembler materialises the label's two bytes.
+  const value = isAddressOfExpr(wordArg)
+    ? lowerAddressOf(wordArg, ctx, true)
+    : lowerExpr(wordArg, ctx);
   ctx.builder.emit({ op: "store", a: value, b: loc(hexAddr(base), IL_WORD) });
   return imm(0, IL_BYTE);
 }
@@ -2163,6 +2238,15 @@ function emitLo(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   if (arg === undefined) return iceUnsupported(expr, ctx, "lo() argument");
   if (arg.kind === "NumericLitExpr") {
     return imm(arg.value & 0xff, IL_BYTE);
+  }
+  if (isAddressOfExpr(arg)) {
+    // An address homes through its word slot; the low byte is the slot's
+    // first byte (little-endian).
+    const homed = lowerAddressOf(arg, ctx, false);
+    if (homed.kind !== "location") return homed; // slot miss already rejected
+    const dest = ctx.builder.newTemp(IL_BYTE);
+    ctx.builder.emit({ op: "load", a: dest, b: loc(homed.symbol, IL_BYTE) });
+    return dest;
   }
   const value = lowerExpr(arg, ctx);
   if (value.type.width === 8) return value; // identity
@@ -2188,6 +2272,15 @@ function emitHi(expr: IntrinsicCallExprNode, ctx: LowerCtx): ILOperand {
   if (arg === undefined) return iceUnsupported(expr, ctx, "hi() argument");
   if (arg.kind === "NumericLitExpr") {
     return imm((arg.value >> 8) & 0xff, IL_BYTE);
+  }
+  if (isAddressOfExpr(arg)) {
+    // An address homes through its word slot; the high byte sits at +1
+    // (little-endian).
+    const homed = lowerAddressOf(arg, ctx, false);
+    if (homed.kind !== "location") return homed; // slot miss already rejected
+    const dest = ctx.builder.newTemp(IL_BYTE);
+    ctx.builder.emit({ op: "load", a: dest, b: loc(homed.symbol, IL_BYTE, 1) });
+    return dest;
   }
 
   const argIl = ilTypeOfType(ctx.model.typeOf(arg));

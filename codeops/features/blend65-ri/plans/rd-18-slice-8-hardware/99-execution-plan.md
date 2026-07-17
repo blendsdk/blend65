@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 12:55
-> **Progress**: 0/60 tasks (0%)
+> **Last Updated**: 2026-07-17 14:48
+> **Progress**: 11/60 tasks (18%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -58,29 +58,29 @@ task-size criteria in the quality checklist)
 **Reference**: 03-01 §Typing · AR-10, AR-11
 **Objective**: pin the accept/reject matrix before any implementation.
 
-- [ ] 1.1.1 Write typing spec tests (ST-1..ST-8, ST-10) — `packages/frontend/src/semantics/type-check/address-of.spec.test.ts`
-- [ ] 1.1.2 Run them — verify ALL FAIL (red phase; document any pre-passer)
+- [x] 1.1.1 Write typing spec tests (ST-1..ST-8, ST-10) — `packages/frontend/src/semantics/type-check/address-of.spec.test.ts` ✅ (completed: 2026-07-17 14:33)
+- [x] 1.1.2 Run them — verify ALL FAIL (red phase; document any pre-passer) ✅ (completed: 2026-07-17 14:33 — 9/9 red, zero pre-passers)
 
 ### Step 1.2: Typing implementation
 
 **Reference**: 03-01 §Typing · AR-10, AR-11
 **Objective**: real `&` arm + codes + address-taken marking.
 
-- [ ] 1.2.1 Register E10047/E10048/E10049 additively (re-verify slots free) — `packages/core/src/diagnostics/diagnostic-codes.ts`
-- [ ] 1.2.2 Implement the `&` operand classification in `typeUnary` + record address-taken FQNs on the model — `packages/frontend/src/semantics/type-check/expression-typing.ts`
-- [ ] 1.2.3 Project `isEscaped` from the address-taken set — `packages/frontend/src/sfa/model-adapter.ts`
-- [ ] 1.2.4 Run typing spec tests — verify PASS (green phase)
+- [x] 1.2.1 Register E10047/E10048/E10049 additively (re-verify slots free) — `packages/core/src/diagnostics/diagnostic-codes.ts` ✅ (completed: 2026-07-17 14:44)
+- [x] 1.2.2 Implement the `&` operand classification in `typeUnary` + record address-taken FQNs on the model — `packages/frontend/src/semantics/type-check/expression-typing.ts` ✅ (completed: 2026-07-17 14:44 — `addressTakenFunctions` Symbol-set on model/context; qualified `&Module.fn` resolves without the value-position rejection)
+- [x] 1.2.3 Project `isEscaped` from the address-taken set — `packages/frontend/src/sfa/model-adapter.ts` ✅ (completed: 2026-07-17 14:44)
+- [x] 1.2.4 Run typing spec tests — verify PASS (green phase) ✅ (completed: 2026-07-17 14:44 — 9/9 green; core 256/256 + frontend 810/810 regression-clean)
 
 ### Step 1.3: Lowering
 
 **Reference**: 03-01 §Lowering · AR-11
 **Objective**: `addr`-operand production with the placement discipline.
 
-- [ ] 1.3.1 Write lowering spec tests (ST-9, ST-9b; store-position + ALU-position + temp-homing + `lo`/`hi`-of-`&` shapes) — `packages/codegen/src/il/lower-address-of.spec.test.ts`
-- [ ] 1.3.2 Run them — verify FAIL (red phase)
-- [ ] 1.3.3 Implement `lowerUnary` `&` → `addrOf(symbol)` per operand table + word-temp homing fallback — `packages/codegen/src/il/lower.ts`
-- [ ] 1.3.4 Run lowering spec tests — verify PASS (green phase)
-- [ ] 1.3.5 Write impl tests (symbol-table edges, qualified heads) + full verify — `*.impl.test.ts`
+- [x] 1.3.1 Write lowering spec tests (ST-9, ST-9b; store-position + ALU-position + temp-homing + `lo`/`hi`-of-`&` shapes) — `packages/codegen/src/il/lower-address-of.spec.test.ts` ✅ (completed: 2026-07-17 14:47)
+- [x] 1.3.2 Run them — verify FAIL (red phase) ✅ (completed: 2026-07-17 14:47 — 6/6 red)
+- [x] 1.3.3 Implement `lowerUnary` `&` → `addrOf(symbol)` per operand table + word-temp homing fallback — `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-17 14:47 — `lowerAddressOf(direct)` + claim-always slot parity (every `&` site claims, matching the adapter's `isSlotSite` `&` arm); direct-store shortcut at let-init/assign/call-arg/pokew/module-init; homed `lo`/`hi`-of-`&` arms in the T2 emitters)
+- [x] 1.3.4 Run lowering spec tests — verify PASS (green phase) ✅ (completed: 2026-07-17 14:47 — 6/6 green; two assertion strings corrected for IL operand notation `%N`/`i8u`, behavior expectations unchanged)
+- [x] 1.3.5 Write impl tests (symbol-table edges, qualified heads) + full verify — `*.impl.test.ts` ✅ (completed: 2026-07-17 14:47 — 5/5 (`&main`→`_main`, qualified label, `__init` direct store, ret/compound homing); FULL VERIFY PASS)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

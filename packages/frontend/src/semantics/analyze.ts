@@ -156,6 +156,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
   const callEdges = new Map<Symbol, Set<Symbol>>();
   const callSiteSpans = new Map<Symbol, Map<Symbol, SourceSpan>>();
   const constValues = new Map<Symbol, ConstValue>();
+  const addressTakenFunctions = new Set<Symbol>();
   typeCheckPrograms(input.programs, functionTables.scopeByNode, functionTables.moduleScopeByProgram, {
     bag: input.bag,
     typeMap,
@@ -166,6 +167,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     callSiteSpans,
     moduleScopes: functionTables.moduleScopeByName,
     constValues,
+    addressTakenFunctions,
     registry,
     engine,
   });
@@ -210,6 +212,7 @@ export function analyze(input: AnalyzeInput): SemanticModel {
     typeMap,
     symbolMap,
     pairAccessedParams,
+    addressTakenFunctions,
     callGraph: {
       functions,
       edges: callEdges,

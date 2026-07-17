@@ -44,6 +44,13 @@ export interface SemanticModel {
    * (they read only their 2-byte frame home).
    */
   readonly pairAccessedParams: ReadonlySet<Symbol>;
+  /**
+   * Functions whose address is taken with `&` — bare, or as a qualified
+   * exported `Module.fn`. An address-taken function can be invoked through a
+   * hardware vector or a platform callback the compiler cannot see, so frame
+   * planning marks these escaped and never shares their frame memory.
+   */
+  readonly addressTakenFunctions: ReadonlySet<Symbol>;
   readonly structTypes: ReadonlyMap<string, StructType>;
   readonly enumTypes: ReadonlyMap<string, EnumType>;
   /** The resolved entry-point function, or `null` if none. */
@@ -81,6 +88,7 @@ export function createEmptyModel(): SemanticModel {
     initOrder: [],
     constValues: new Map(),
     pairAccessedParams: new Set(),
+    addressTakenFunctions: new Set(),
     structTypes: new Map(),
     enumTypes: new Map(),
     mainFunction: null,

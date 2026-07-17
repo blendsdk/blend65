@@ -68,7 +68,7 @@ closure) needs `make_plan` after; RD-13/RD-14 queued.**
   **RD-15** (programmatic + CLI API), both 2026-07-03. The full pipeline compiles
   frontend→SFA→IL→6502→ACME→loadable c64 `.prg` and is VICE-verified; `blendc` ships with config,
   diagnostics, and resource reports.
-- **Next up**: RD-18 Slice 8a (`exec_plan` — preflight ✅ passed), then Slice 8b (`make_plan`), then **RD-13**
+- **Next up**: RD-18 Slice 8a — 🔄 EXECUTING (exec_plan started 2026-07-17), then Slice 8b (`make_plan`), then **RD-13**
   (non-functional sweep) and **RD-14** (VS Code extension & Language Server) — both need `make_plan`.
 
 ---

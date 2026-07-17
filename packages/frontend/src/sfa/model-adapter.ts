@@ -30,6 +30,7 @@ import type {
   SemanticModel,
   Symbol,
   Type,
+  UnaryExprNode,
 } from "@blend65/core";
 import type { ModuleVarInput } from "./zp-allocator.js";
 
@@ -43,10 +44,11 @@ import type { ModuleVarInput } from "./zp-allocator.js";
  * symbols in declaration order; callees = the call graph's outgoing edges as
  * sorted FQNs; interrupt handlers flagged; `argWindowInterferes` = everything
  * reachable from calls nested in later arguments at this function's call
- * sites (see {@link computeArgWindows}). `isEscaped` stays `false` (no
- * address-of support yet) and `isReachable` stays `true` (liveness analysis
- * arrives later — an unreachable function costs frame bytes, which is correct
- * but unoptimized). Returns `[]` for the empty passthrough model.
+ * sites (see {@link computeArgWindows}). `isEscaped` reflects the model's
+ * address-taken set (`&fn` marks a function escaped so its frame never
+ * shares memory) and `isReachable` stays `true` (liveness analysis arrives
+ * later — an unreachable function costs frame bytes, which is correct but
+ * unoptimized). Returns `[]` for the empty passthrough model.
  *
  * @param model The semantic model to project.
  * @returns The projected functions (`[]` under the empty passthrough).
@@ -65,7 +67,10 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
       parameters: collectFrameVars(scope, "parameter", model.pairAccessedParams),
       locals: [...collectFrameVars(scope, "variable", model.pairAccessedParams), ...synthetic],
       isInterrupt: fn.kind === "interrupt",
-      isEscaped: false, // `&fn` address-of support arrives later
+      // Address-taken functions are escaped: their address may be installed at
+      // a hardware vector or handed to a platform routine, so the planner must
+      // never share their frame memory.
+      isEscaped: model.addressTakenFunctions.has(fn),
       isReachable: true, // liveness analysis arrives later; main is reachable
       callees,
       argWindowInterferes: window === undefined ? [] : [...window].sort(),
@@ -111,9 +116,19 @@ function collectSyntheticSlots(root: AstNode, model: SemanticModel, slots: Frame
   walkNode(root, visitor);
 }
 
-/** Whether `node` is an expression site that needs a synthetic result slot. */
+/**
+ * Whether `node` is an expression site that needs a synthetic result slot.
+ *
+ * Short-circuit/conditional results cross basic blocks through their slot.
+ * An address-of site homes its link-time address through a word slot so the
+ * value can feed ALU and byte-extraction consumers (address operands are
+ * legal only as store sources and ALU right operands). Every `&` site claims
+ * a slot — including plain-store sites that end up not writing theirs — so
+ * the counter stays position-independent and always aligned with lowering.
+ */
 function isSlotSite(node: AstNode): node is ExprNode {
   if (node.kind === "ConditionalExpr") return true;
+  if (node.kind === "UnaryExpr") return (node as UnaryExprNode).op === "&";
   if (node.kind !== "BinaryExpr") return false;
   const op = (node as BinaryExprNode).op;
   return op === "&&" || op === "||";

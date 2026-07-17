@@ -424,9 +424,8 @@ function emitBinaryOperandError(
  * yields boolean. `~` requires an integer operand and yields the operand's
  * own type — deliberately with NO context adaptation, so the complement is
  * computed at the operand's own width before any widening (`~1` is byte-wide
- * 254 even in a word context). `&` (address-of) is not part of the surface
- * yet: the operand is walked and the result poisons silently — lowering
- * rejects any surviving use loudly.
+ * 254 even in a word context). `&` (address-of) classifies its operand and
+ * yields `word` for every addressable shape — see {@link typeAddressOf}.
  */
 function typeUnary(
   expr: UnaryExprNode,
@@ -496,8 +495,120 @@ function typeUnary(
     return t;
   }
 
-  // Address-of — not a value surface yet; walk the operand, poison silently.
-  typeOfExpr(expr.operand, scope, ctx);
+  return typeAddressOf(expr, scope, ctx);
+}
+
+/** The shared not-yet-supported rejection for `&field` / `&element` shapes. */
+function addressOfElementError(ctx: TypeCheckContext, span: SourceSpan): Type {
+  ctx.bag.addError(
+    DiagCode.AddressOfElementDeferred,
+    span,
+    "Taking the address of a struct field or array element is not supported yet — " +
+      "take the address of the whole aggregate instead",
+  );
+  return ERROR_TYPE;
+}
+
+/**
+ * Address-of typing (`&x`): every addressable operand yields `word` — the
+ * operand's compile-time memory address. Addressable: module-level and local
+ * `let` variables, functions and interrupt functions (bare, or as a qualified
+ * exported `Module.fn`), and `const` aggregates (they own a data-section
+ * image). Taking a function's address records it in the context's
+ * address-taken set so frame planning keeps its frame allocated and
+ * unshared — the address may be installed at a hardware vector or handed to
+ * a platform routine the compiler cannot see.
+ *
+ * Rejections: a scalar constant is inlined and has no storage (E10047), a
+ * parameter has no stable home of its own (E10048), struct fields and array
+ * elements are not yet addressable (E10042), and any other expression —
+ * literal, call, arithmetic — has no address at all (E10049).
+ */
+function typeAddressOf(expr: UnaryExprNode, scope: Scope, ctx: TypeCheckContext): Type {
+  const operand = expr.operand;
+
+  if (operand.kind === "IdentExpr") {
+    const ident = operand as IdentExprNode;
+    const sym = resolveName(ident.name, scope);
+    if (sym === null) {
+      ctx.bag.addError(
+        DiagCode.UndeclaredIdentifier,
+        operand.span,
+        `Undeclared identifier '${ident.name}'`,
+      );
+      return ERROR_TYPE;
+    }
+    ctx.symbolMap.set(operand, sym);
+    if (sym.kind === "variable") return primitive("word");
+    if (sym.kind === "parameter") {
+      ctx.bag.addError(
+        DiagCode.AddressOfParameter,
+        expr.span,
+        `Cannot take the address of parameter '${sym.name}' — copy it to a local ` +
+          "variable first",
+      );
+      return ERROR_TYPE;
+    }
+    if (sym.kind === "constant") {
+      if (sym.type.kind === "array" || sym.type.kind === "struct") return primitive("word");
+      ctx.bag.addError(
+        DiagCode.AddressOfConstScalar,
+        expr.span,
+        `Cannot take the address of const '${sym.name}' — scalar constants are ` +
+          "inlined and have no storage",
+      );
+      return ERROR_TYPE;
+    }
+    if (sym.kind === "function" || sym.kind === "interrupt") {
+      ctx.addressTakenFunctions.add(sym);
+      return primitive("word");
+    }
+    ctx.bag.addError(
+      DiagCode.AddressOfNonAddressable,
+      expr.span,
+      `Cannot take the address of '${sym.name}' — only variables, constants with ` +
+        "storage, and functions have addresses",
+    );
+    return ERROR_TYPE;
+  }
+
+  if (operand.kind === "FieldAccessExpr") {
+    const access = operand as FieldAccessExprNode;
+    // A qualified exported function (`Module.fn`) is addressable: resolve it
+    // directly, so the function-reference value rejection never fires for
+    // the `&`-wrapped shape. Only an unshadowed head can name a module.
+    if (
+      access.object.kind === "IdentExpr" &&
+      resolveName((access.object as IdentExprNode).name, scope) === null
+    ) {
+      const res = resolveQualified(access, scope, ctx.moduleScopes, ctx.bag);
+      if (res.status === "poisoned") return ERROR_TYPE; // already diagnosed
+      if (
+        res.status === "resolved" &&
+        (res.symbol.kind === "function" || res.symbol.kind === "interrupt")
+      ) {
+        ctx.symbolMap.set(operand, res.symbol);
+        ctx.addressTakenFunctions.add(res.symbol);
+        return primitive("word");
+      }
+    }
+    return addressOfElementError(ctx, expr.span);
+  }
+
+  if (operand.kind === "IndexExpr") {
+    return addressOfElementError(ctx, expr.span);
+  }
+
+  // Literals, calls, arbitrary expressions: type the operand so inner errors
+  // still surface, then reject — such values have no address.
+  const t = typeOfExpr(operand, scope, ctx);
+  if (isError(t)) return ERROR_TYPE; // cascade suppression
+  ctx.bag.addError(
+    DiagCode.AddressOfNonAddressable,
+    expr.span,
+    "Cannot take the address of this expression — only named variables, constants " +
+      "with storage, and functions have addresses",
+  );
   return ERROR_TYPE;
 }
 
