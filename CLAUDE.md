@@ -40,10 +40,11 @@ Monorepo — Yarn workspaces + Turbo. Source in `packages/*/src/`; tests co-loca
 
 - `packages/` — the 10 `@blend65/*` packages (edges below)
 - `spec/` — frozen spec-v3.0; DO NOT MODIFY during compiler implementation (D3)
-- `examples/` — per-slice acceptance fixtures (gate + slice3a…slice7b), VICE-verified
+- `examples/` — per-slice acceptance fixtures (gate + slice3a…slice8b), VICE-verified
 - `codeops/` — nested CodeOps layout (marker `.codeops.yml`): `00-roadmap.md` (portfolio) + `features/blend65-ri/` (`00-roadmap.md`, `requirements/`, `plans/<rd-slug>/`) + `_archive/` (completed plans)
 - `.github/workflows/` — CI (install → typecheck → lint → build → test; Node 22; no emulator tier)
-- `docs/`, `research/`, `scripts/` — docs, research notes, repo tooling
+- `docs/` — incl. the C64 game-feasibility matrix: `game-feasibility-matrix.json` (source of truth) rendered to an interactive `game-feasibility-matrix.html` by `scripts/gen-capability-matrix.mjs` (`yarn gen:matrix`); manual refresh via the `update_capability` skill
+- `research/`, `scripts/` — research notes, repo tooling
 
 ### Package dependency edges (R15 boundary is load-bearing)
 
@@ -137,4 +138,4 @@ Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` �
   VICE 3.10; the codec/assertion/registry/golden/PNG tiers DO run in CI. Local emulator suites
   run sequentially (`fileParallelism:false`) so concurrent `x64sc` instances don't contend.
 
-<!-- analyze_project: compacted 2026-07-17 — dependency table → prose edges (all edges/publish flags and R15 preserved), Implementation status → pure roadmap pointer (was restating per-slice status against its own rule), tightened Overview + Naming + R15 note. Toolchain/Commands/structure re-verified against package.json (10 packages, yarn@1.22.22, scripts build/typecheck/lint/test), .nvmrc (22), turbo.json; no clean script — TODO still applies. -->
+<!-- analyze_project: refreshed 2026-07-17 (post-RD-18-closure) — Project structure: examples now gate+slice3a…slice8b; docs line names the game-feasibility matrix + update_capability skill. Toolchain/Commands re-verified unchanged against package.json (10 packages, yarn@1.22.22, scripts build/typecheck/lint/test), .nvmrc (22), turbo.json; no clean script — TODO still applies. -->

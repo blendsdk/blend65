@@ -1,0 +1,220 @@
+{
+  "_readme": "SOURCE OF TRUTH for the C64 game feasibility matrix. Edit this file, then run `node scripts/gen-capability-matrix.mjs` (or `yarn gen:matrix`) to regenerate docs/game-feasibility-matrix.html. Verdict keys: clean|caveated|blocked. Confidence keys: known|inferred|low. Diff: S|M|L|XL. Blocker codes must exist in legend.blockerCodes (a trailing qualifier in parentheses, e.g. SAMPLE(minor), is allowed). Summary counts and inversion counts are DERIVED by the generator — never stored here.",
+  "meta": {
+    "title": "Blend65 — C64 Game Feasibility Matrix",
+    "lastUpdated": "2026-07-17",
+    "refreshWith": "/update_capability"
+  },
+  "intro": {
+    "purpose": [
+      "A strict, capability-grounded assessment of whether 100 well-known Commodore 64 games could be built **faithfully** with the Blend65 toolchain — as it stands the day RD-18 closes (unoptimized codegen), and again after the Phase B optimizer lands. It doubles as a prioritization tool: every blocker is a code, so the inversion table at the bottom shows what shipping each capability *unlocks*.",
+      "**No sugarcoating.** A game is only ✅ if it can be built as the original *played* — right engine, right controls, clean in-language audio, no missing essentials, and no dropping to hand-poked machine-code bytes. \"Close enough\" is ⚠️, not ✅."
+    ]
+  },
+  "baseline": {
+    "asOf": "2026-07-17",
+    "intro": "The verdicts are only as current as this snapshot. When it changes, re-run `/update_capability`.",
+    "rows": [
+      {
+        "capability": "Frozen v3 language (scalars, structs, arrays, enums, strings, functions, modules, full expressions, control flow, by-ref params, interrupts, `zeropage`, `&`-address-of, `embed()`, intrinsics)",
+        "state": "**Shipping** — RD-18 slices 3a–8b done",
+        "source": "`codeops/features/blend65-ri/00-roadmap.md`"
+      },
+      {
+        "capability": "Direct hardware I/O (VIC-II / SID / CIA via `peek`/`poke`), raster IRQ via `pokew($0314,&fn)`, bank switching",
+        "state": "**Shipping**",
+        "source": "`spec/12-intrinsics.md`"
+      },
+      {
+        "capability": "**Phase B optimizer** (IL passes + peephole)",
+        "state": "**Not started** — deliberately after RD-18",
+        "source": "RD-18 §Won't Have"
+      },
+      {
+        "capability": "**Indirect calls / function pointers** (`FUT-003`) — call a routine at a runtime/absolute address, jump tables",
+        "state": "**Deferred, unscheduled**",
+        "source": "`spec/06-functions.md:287`"
+      },
+      {
+        "capability": "**External asm linking** (`FUT-011`) — cycle-exact hand-tuned routines",
+        "state": "**Deferred, unscheduled**",
+        "source": "`spec/00-feature-index.md:63`"
+      },
+      {
+        "capability": "**Disk I/O / multi-load**",
+        "state": "**No spec story at all** — no KERNAL call, no loader, no streaming",
+        "source": "—"
+      },
+      {
+        "capability": "**Floating point**",
+        "state": "**Not in the language** — integer only; fractional math is hand-rolled fixed-point",
+        "source": "`spec/02-type-system.md`"
+      }
+    ],
+    "audioNote": "**About audio.** Sound *effects* and *music* are clean in-language: the SID chip is memory-mapped registers (`$D400–$D418`), so a music player written in blend65 that pokes those registers from your IRQ each frame is fully supported. What is **not** possible is invoking a third-party ripped `.sid` file's own player routine (that is machine code at an address → needs `FUT-003`, or the ugly raw-byte IRQ-trampoline hack). So every \"faithful original soundtrack\" carries an implicit `FUT-003` footnote — it is **not** repeated per row."
+  },
+  "howToRead": [
+    "**@RD18** — feasibility using only clean, in-language blend65 the day RD-18 closes (codegen unoptimized). **@PhaseB** — the same, after the Phase B optimizer ships.",
+    "**Verdict scale**: **✅ clean** (buildable as the original played, no hacks, no missing essentials) · **⚠️ caveated** (needs a raw-byte hack, a scope/faithfulness compromise, or heavy hand-tuning against the frame budget) · **❌ blocked** (a hard capability gap, or the frame budget is simply unreachable).",
+    "**Key signal**: if a row is still **❌ at PhaseB**, the optimizer does not save it — the blocker is a *capability gap* (`DISK`, `FLOAT`/3D, `FUT-011`), not performance. If **❌→⚠️** across the two columns, it was performance-bound.",
+    "**Blockers** = what stands between the *current* column and ✅. **Path to 100%** = the milestone that would make a *byte-faithful* recreation ✅.",
+    "**Confidence** = how sure the verdict is: ✅ internals known · ⚠️ inferred from archetype · 🔴 low."
+  ],
+  "scales": {
+    "verdict": [
+      { "key": "clean", "glyph": "✅", "label": "clean", "status": "good", "desc": "buildable as the original played, no hacks, no missing essentials" },
+      { "key": "caveated", "glyph": "⚠️", "label": "caveated", "status": "warning", "desc": "needs a raw-byte hack, a scope/faithfulness compromise, or heavy hand-tuning against the frame budget" },
+      { "key": "blocked", "glyph": "❌", "label": "blocked", "status": "critical", "desc": "a hard capability gap, or the frame budget is simply unreachable" }
+    ],
+    "confidence": [
+      { "key": "known", "glyph": "✅", "label": "internals known" },
+      { "key": "inferred", "glyph": "⚠️", "label": "inferred from archetype" },
+      { "key": "low", "glyph": "🔴", "label": "low" }
+    ],
+    "diff": ["S", "M", "L", "XL"]
+  },
+  "legend": {
+    "blockerCodes": [
+      { "code": "OPT", "meaning": "Frame budget needs the Phase B optimizer", "fixedBy": "Phase B (on roadmap)" },
+      { "code": "SCROLL", "meaning": "Smooth per-frame scrolling within budget", "fixedBy": "`OPT`; extreme cases `FUT-011`" },
+      { "code": "MUX", "meaning": "Sprite multiplexing (>8 sprites) raster code", "fixedBy": "`OPT`" },
+      { "code": "SAMPLE", "meaning": "Digitized speech/sample playback (tight timing)", "fixedBy": "in-language sample player (hard, doable)" },
+      { "code": "FLOAT", "meaning": "Fractional math — no float; hand fixed-point (hard if real-time 3D)", "fixedBy": "fixed-point work; 3D also `FUT-011`" },
+      { "code": "MEM", "meaning": "Data pressure against 64 KB (large maps/graphics)", "fixedBy": "fit in RAM, or needs `DISK` paging" },
+      { "code": "DISK", "meaning": "Disk multi-load / streaming / data > RAM", "fixedBy": "**hard gap — no spec story**" },
+      { "code": "FUT-003", "meaning": "Indirect calls / dispatch tables / function pointers", "fixedBy": "**deferred, unscheduled**" },
+      { "code": "FUT-011", "meaning": "External hand-tuned asm (cycle-exact effects)", "fixedBy": "**deferred, unscheduled**" }
+    ],
+    "archetypeTerms": [
+      { "term": "single-screen", "def": "no scroll" },
+      { "term": "flip-screen", "def": "screen flips, no scroll" },
+      { "term": "hscroll / vscroll", "def": "hardware smooth scroll" },
+      { "term": "iso", "def": "isometric" },
+      { "term": "pseudo-3D", "def": "scaled-road racer" },
+      { "term": "vector-3D", "def": "real-time polygon 3D" },
+      { "term": "SCUMM / VM", "def": "interpreter over a data-driven script" }
+    ]
+  },
+  "summaryNote": "**The titles blocked even after Phase B are all hard capability gaps**, not performance: most need `DISK` (RPGs, SCUMM adventures, Cinemaware, Epyx multi-event sports, the disk-streamed Last Ninjas); the rest need `FUT-011` + fast math for real-time 3D / a cycle-exact scroll showcase (Elite, Mercenary, Out Run, Mayhem in Monsterland). See the prioritization inversion at the bottom.",
+  "games": [
+    { "n": 1, "title": "Pac-Man", "year": 82, "publisher": "Atarisoft", "category": "Maze", "archetype": "single-screen maze", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 2, "title": "Ms. Pac-Man", "year": 83, "publisher": "Atarisoft", "category": "Maze", "archetype": "single-screen maze", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 3, "title": "Dig Dug", "year": 83, "publisher": "Atarisoft", "category": "Maze", "archetype": "single-screen dig", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 4, "title": "Frogger", "year": 83, "publisher": "Sierra", "category": "Action", "archetype": "single-screen lanes", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 5, "title": "Q*bert", "year": 83, "publisher": "Parker", "category": "Action", "archetype": "iso single-screen", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 6, "title": "Donkey Kong", "year": 83, "publisher": "Atarisoft", "category": "Platform", "archetype": "single-screen platform", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 7, "title": "Space Invaders", "year": 81, "publisher": null, "category": "Shooter", "archetype": "single-screen fixed", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 8, "title": "Galaga", "year": 84, "publisher": null, "category": "Shooter", "archetype": "single-screen fixed", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 9, "title": "Bomb Jack", "year": 86, "publisher": "Elite", "category": "Platform", "archetype": "single-screen platform", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 10, "title": "Bubble Bobble", "year": 87, "publisher": "Firebird", "category": "Platform", "archetype": "single-screen (2P)", "rd18": "caveated", "phaseB": "clean", "blockers": ["MUX"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 11, "title": "Bruce Lee", "year": 84, "publisher": "Datasoft", "category": "Platform", "archetype": "flip-screen platform", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 12, "title": "Manic Miner", "year": 83, "publisher": "Software Projects", "category": "Platform", "archetype": "flip-screen platform", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 13, "title": "Jet Set Willy", "year": 84, "publisher": "Software Projects", "category": "Platform", "archetype": "flip-screen platform", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 14, "title": "Impossible Mission", "year": 84, "publisher": "Epyx", "category": "Platform", "archetype": "flip-screen platform", "rd18": "caveated", "phaseB": "caveated", "blockers": ["SAMPLE"], "pathTo100": "in-language sample player", "diff": "L", "conf": "known" },
+    { "n": 15, "title": "Impossible Mission II", "year": 88, "publisher": "Epyx", "category": "Platform", "archetype": "flip-screen multi-zone", "rd18": "caveated", "phaseB": "caveated", "blockers": ["SAMPLE", "MEM"], "pathTo100": "sample player; fit RAM", "diff": "L", "conf": "inferred" },
+    { "n": 16, "title": "Lode Runner", "year": 83, "publisher": "Broderbund", "category": "Puzzle", "archetype": "single-screen platform", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 17, "title": "Jumpman", "year": 83, "publisher": "Epyx", "category": "Platform", "archetype": "single-screen platform", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 18, "title": "Monty on the Run", "year": 85, "publisher": "Gremlin", "category": "Platform", "archetype": "scroll platform", "rd18": "caveated", "phaseB": "clean", "blockers": ["SCROLL"], "pathTo100": "OPT", "diff": "M", "conf": "inferred" },
+    { "n": 19, "title": "Ghosts 'n Goblins", "year": 86, "publisher": "Elite", "category": "Platform", "archetype": "hscroll run-and-gun", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT (+FUT-011 for 50 fps)", "diff": "L", "conf": "known" },
+    { "n": 20, "title": "Giana Sisters", "year": 87, "publisher": "Rainbow Arts", "category": "Platform", "archetype": "smooth hscroll", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 21, "title": "Turrican", "year": 90, "publisher": "Rainbow Arts", "category": "Platform", "archetype": "multiscroll run-and-gun", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX", "MEM"], "pathTo100": "OPT + FUT-011", "diff": "XL", "conf": "known" },
+    { "n": 22, "title": "Turrican II", "year": 91, "publisher": "Rainbow Arts", "category": "Platform", "archetype": "multiscroll run-and-gun", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX", "MEM"], "pathTo100": "OPT + FUT-011", "diff": "XL", "conf": "known" },
+    { "n": 23, "title": "Hawkeye", "year": 88, "publisher": "Thalamus", "category": "Platform", "archetype": "smooth hscroll", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 24, "title": "Rick Dangerous", "year": 89, "publisher": "Firebird", "category": "Platform", "archetype": "flip/scroll platform", "rd18": "caveated", "phaseB": "clean", "blockers": ["SCROLL"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 25, "title": "Green Beret", "year": 86, "publisher": "Imagine", "category": "Platform", "archetype": "hscroll fighter", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 26, "title": "Flimbo's Quest", "year": 90, "publisher": "System 3", "category": "Platform", "archetype": "smooth hscroll", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 27, "title": "Mayhem in Monsterland", "year": 93, "publisher": "Apex", "category": "Platform", "archetype": "full-colour 50 fps scroll", "rd18": "blocked", "phaseB": "blocked", "blockers": ["FUT-011", "SCROLL"], "pathTo100": "FUT-011 (cycle-exact asm)", "diff": "XL", "conf": "known" },
+    { "n": 28, "title": "Creatures", "year": 90, "publisher": "Thalamus", "category": "Platform", "archetype": "scroll platform + minigames", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX", "FUT-011"], "pathTo100": "OPT + FUT-011", "diff": "XL", "conf": "inferred" },
+    { "n": 29, "title": "Commando", "year": 85, "publisher": "Elite", "category": "Shooter", "archetype": "vscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 30, "title": "Uridium", "year": 86, "publisher": "Hewson", "category": "Shooter", "archetype": "hscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 31, "title": "Armalyte", "year": 88, "publisher": "Thalamus", "category": "Shooter", "archetype": "hscroll shmup (2P)", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX", "FUT-011"], "pathTo100": "OPT + FUT-011", "diff": "XL", "conf": "known" },
+    { "n": 32, "title": "Delta", "year": 87, "publisher": "Thalamus", "category": "Shooter", "archetype": "hscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 33, "title": "Katakis", "year": 88, "publisher": "Rainbow Arts", "category": "Shooter", "archetype": "hscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 34, "title": "Sanxion", "year": 86, "publisher": "Thalamus", "category": "Shooter", "archetype": "hscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 35, "title": "Wizball", "year": 87, "publisher": "Ocean", "category": "Shooter", "archetype": "arcade shooter", "rd18": "caveated", "phaseB": "clean", "blockers": ["MUX"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 36, "title": "Paradroid", "year": 85, "publisher": "Hewson", "category": "Shooter", "archetype": "top-down shooter/strategy", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "L", "conf": "known" },
+    { "n": 37, "title": "R-Type", "year": 88, "publisher": "Electric Dreams", "category": "Shooter", "archetype": "hscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX", "MEM"], "pathTo100": "OPT + FUT-011", "diff": "XL", "conf": "known" },
+    { "n": 38, "title": "IO", "year": 87, "publisher": "Firebird", "category": "Shooter", "archetype": "hscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 39, "title": "Zynaps", "year": 87, "publisher": "Hewson", "category": "Shooter", "archetype": "hscroll shmup", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 40, "title": "Parallax", "year": 86, "publisher": "Ocean", "category": "Shooter", "archetype": "scroll shooter", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "low" },
+    { "n": 41, "title": "The Last Ninja", "year": 87, "publisher": "System 3", "category": "Adventure", "archetype": "iso flip-screen (multiload)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK"], "pathTo100": "DISK", "diff": "XL", "conf": "known" },
+    { "n": 42, "title": "Last Ninja 2", "year": 88, "publisher": "System 3", "category": "Adventure", "archetype": "iso flip-screen (multiload)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK"], "pathTo100": "DISK", "diff": "XL", "conf": "known" },
+    { "n": 43, "title": "Head over Heels", "year": 87, "publisher": "Ocean", "category": "Adventure", "archetype": "iso puzzle-platform", "rd18": "caveated", "phaseB": "clean", "blockers": ["MEM"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 44, "title": "Batman", "year": 86, "publisher": "Ocean", "category": "Adventure", "archetype": "iso action", "rd18": "caveated", "phaseB": "clean", "blockers": ["MEM"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 45, "title": "Zaxxon", "year": 84, "publisher": "US Gold", "category": "Shooter", "archetype": "iso scroll shooter", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 46, "title": "Ant Attack", "year": 83, "publisher": "Quicksilva", "category": "Adventure", "archetype": "iso explore", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "inferred" },
+    { "n": 47, "title": "Marble Madness", "year": 86, "publisher": "EA", "category": "Action", "archetype": "iso scroll + physics", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "FLOAT"], "pathTo100": "OPT + fixed-point", "diff": "L", "conf": "inferred" },
+    { "n": 48, "title": "Spindizzy", "year": 86, "publisher": "Electric Dreams", "category": "Puzzle", "archetype": "iso scroll + physics", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "FLOAT"], "pathTo100": "OPT + fixed-point", "diff": "L", "conf": "inferred" },
+    { "n": 49, "title": "International Karate", "year": 86, "publisher": "System 3", "category": "Fighting", "archetype": "single-screen duel", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "L", "conf": "known" },
+    { "n": 50, "title": "IK+", "year": 87, "publisher": "System 3", "category": "Fighting", "archetype": "single-screen 3-fighter", "rd18": "caveated", "phaseB": "clean", "blockers": ["MUX"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 51, "title": "The Way of the Exploding Fist", "year": 85, "publisher": "Melbourne House", "category": "Fighting", "archetype": "single-screen duel", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "L", "conf": "known" },
+    { "n": 52, "title": "Barbarian", "year": 87, "publisher": "Palace", "category": "Fighting", "archetype": "single-screen duel", "rd18": "clean", "phaseB": "clean", "blockers": ["SAMPLE(minor)"], "pathTo100": "", "diff": "L", "conf": "known" },
+    { "n": 53, "title": "Barbarian II", "year": 88, "publisher": "Palace", "category": "Fighting", "archetype": "scroll explore + duel", "rd18": "caveated", "phaseB": "clean", "blockers": ["SCROLL"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 54, "title": "Renegade", "year": 87, "publisher": "Ocean", "category": "Beat-em-up", "archetype": "hscroll brawler", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 55, "title": "Target Renegade", "year": 88, "publisher": "Ocean", "category": "Beat-em-up", "archetype": "hscroll brawler", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 56, "title": "Double Dragon", "year": 88, "publisher": "Melbourne House", "category": "Beat-em-up", "archetype": "hscroll brawler", "rd18": "blocked", "phaseB": "caveated", "blockers": ["SCROLL", "MUX"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 57, "title": "Boulder Dash", "year": 84, "publisher": "First Star", "category": "Puzzle", "archetype": "scrolling cave puzzle", "rd18": "clean", "phaseB": "clean", "blockers": ["SCROLL(soft)"], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 58, "title": "Boulder Dash Construction Kit", "year": 86, "publisher": "First Star", "category": "Puzzle", "archetype": "puzzle + editor", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "inferred" },
+    { "n": 59, "title": "Tetris", "year": 88, "publisher": "Mirrorsoft", "category": "Puzzle", "archetype": "single-screen puzzle", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 60, "title": "Klax", "year": 90, "publisher": "Domark", "category": "Puzzle", "archetype": "single-screen puzzle", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 61, "title": "Pipe Mania", "year": 89, "publisher": "Empire", "category": "Puzzle", "archetype": "single-screen puzzle", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 62, "title": "Puzznic", "year": 90, "publisher": "Ocean", "category": "Puzzle", "archetype": "single-screen puzzle", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "inferred" },
+    { "n": 63, "title": "Bombuzal", "year": 88, "publisher": "Image Works", "category": "Puzzle", "archetype": "iso/flat puzzle", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "inferred" },
+    { "n": 64, "title": "Shanghai", "year": 86, "publisher": "Activision", "category": "Puzzle", "archetype": "mahjong solitaire", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "S", "conf": "known" },
+    { "n": 65, "title": "The Sentinel", "year": 86, "publisher": "Firebird", "category": "Puzzle", "archetype": "3D filled-poly puzzle", "rd18": "blocked", "phaseB": "caveated", "blockers": ["FLOAT", "FUT-011"], "pathTo100": "fast math + FUT-011", "diff": "XL", "conf": "inferred" },
+    { "n": 66, "title": "Summer Games", "year": 84, "publisher": "Epyx", "category": "Sports", "archetype": "multi-event (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK"], "pathTo100": "DISK", "diff": "L", "conf": "known" },
+    { "n": 67, "title": "Winter Games", "year": 85, "publisher": "Epyx", "category": "Sports", "archetype": "multi-event (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK"], "pathTo100": "DISK", "diff": "L", "conf": "known" },
+    { "n": 68, "title": "California Games", "year": 87, "publisher": "Epyx", "category": "Sports", "archetype": "multi-event (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "FLOAT"], "pathTo100": "DISK + fixed-point", "diff": "L", "conf": "known" },
+    { "n": 69, "title": "World Games", "year": 86, "publisher": "Epyx", "category": "Sports", "archetype": "multi-event (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK"], "pathTo100": "DISK", "diff": "L", "conf": "inferred" },
+    { "n": 70, "title": "Track & Field", "year": 83, "publisher": "Konami", "category": "Sports", "archetype": "single-screen events", "rd18": "caveated", "phaseB": "clean", "blockers": ["MUX", "SAMPLE"], "pathTo100": "OPT", "diff": "M", "conf": "inferred" },
+    { "n": 71, "title": "Leaderboard Golf", "year": 86, "publisher": "Access", "category": "Sports", "archetype": "golf sim", "rd18": "caveated", "phaseB": "caveated", "blockers": ["FLOAT"], "pathTo100": "fixed-point physics", "diff": "M", "conf": "inferred" },
+    { "n": 72, "title": "HardBall!", "year": 85, "publisher": "Accolade", "category": "Sports", "archetype": "baseball sim", "rd18": "caveated", "phaseB": "clean", "blockers": ["MUX"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 73, "title": "Kick Off", "year": 89, "publisher": "Anco", "category": "Sports", "archetype": "top-down football", "rd18": "blocked", "phaseB": "caveated", "blockers": ["MUX", "SCROLL"], "pathTo100": "OPT", "diff": "L", "conf": "known" },
+    { "n": 74, "title": "MicroProse Soccer", "year": 88, "publisher": "MicroProse", "category": "Sports", "archetype": "top-down football", "rd18": "blocked", "phaseB": "caveated", "blockers": ["MUX", "SCROLL"], "pathTo100": "OPT", "diff": "L", "conf": "inferred" },
+    { "n": 75, "title": "International Soccer", "year": 83, "publisher": "Commodore", "category": "Sports", "archetype": "side-view football", "rd18": "caveated", "phaseB": "clean", "blockers": ["MUX"], "pathTo100": "OPT", "diff": "M", "conf": "inferred" },
+    { "n": 76, "title": "Out Run", "year": 87, "publisher": "US Gold", "category": "Racing", "archetype": "pseudo-3D + sprite scaling", "rd18": "blocked", "phaseB": "blocked", "blockers": ["FLOAT", "SCROLL", "FUT-011"], "pathTo100": "FUT-011 + fast math", "diff": "XL", "conf": "known" },
+    { "n": 77, "title": "Pole Position", "year": 83, "publisher": "Atarisoft", "category": "Racing", "archetype": "pseudo-3D road", "rd18": "blocked", "phaseB": "caveated", "blockers": ["FLOAT", "SCROLL"], "pathTo100": "OPT + fixed-point", "diff": "L", "conf": "inferred" },
+    { "n": 78, "title": "Pitstop II", "year": 84, "publisher": "Epyx", "category": "Racing", "archetype": "pseudo-3D split-screen", "rd18": "blocked", "phaseB": "caveated", "blockers": ["FLOAT", "SCROLL"], "pathTo100": "OPT + fixed-point", "diff": "L", "conf": "inferred" },
+    { "n": 79, "title": "Buggy Boy", "year": 87, "publisher": "Elite", "category": "Racing", "archetype": "pseudo-3D road", "rd18": "blocked", "phaseB": "caveated", "blockers": ["FLOAT", "SCROLL", "FUT-011"], "pathTo100": "FUT-011 + fast math", "diff": "L", "conf": "inferred" },
+    { "n": 80, "title": "Chase H.Q.", "year": 89, "publisher": "Ocean", "category": "Racing", "archetype": "pseudo-3D chase", "rd18": "blocked", "phaseB": "caveated", "blockers": ["FLOAT", "SCROLL", "FUT-011"], "pathTo100": "FUT-011 + fast math", "diff": "L", "conf": "known" },
+    { "n": 81, "title": "Lotus Esprit Turbo Challenge", "year": 90, "publisher": "Gremlin", "category": "Racing", "archetype": "pseudo-3D road", "rd18": "blocked", "phaseB": "caveated", "blockers": ["FLOAT", "SCROLL", "FUT-011"], "pathTo100": "FUT-011 + fast math", "diff": "L", "conf": "inferred" },
+    { "n": 82, "title": "Super Cars", "year": 90, "publisher": "Gremlin", "category": "Racing", "archetype": "top-down racer", "rd18": "caveated", "phaseB": "clean", "blockers": ["MUX", "SCROLL"], "pathTo100": "OPT", "diff": "M", "conf": "inferred" },
+    { "n": 83, "title": "Wec Le Mans", "year": 88, "publisher": "Imagine", "category": "Racing", "archetype": "pseudo-3D road", "rd18": "blocked", "phaseB": "caveated", "blockers": ["FLOAT", "SCROLL", "FUT-011"], "pathTo100": "FUT-011 + fast math", "diff": "L", "conf": "inferred" },
+    { "n": 84, "title": "Maniac Mansion", "year": 87, "publisher": "Lucasfilm", "category": "Adventure", "archetype": "SCUMM point-click (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "FUT-003"], "pathTo100": "DISK + FUT-003 (VM dispatch)", "diff": "XL", "conf": "known" },
+    { "n": 85, "title": "Zak McKracken", "year": 88, "publisher": "Lucasfilm", "category": "Adventure", "archetype": "SCUMM point-click (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "FUT-003"], "pathTo100": "DISK + FUT-003", "diff": "XL", "conf": "known" },
+    { "n": 86, "title": "Defender of the Crown", "year": 87, "publisher": "Cinemaware", "category": "Adventure", "archetype": "bitmap + minigames (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "MEM"], "pathTo100": "DISK", "diff": "L", "conf": "known" },
+    { "n": 87, "title": "Ultima IV", "year": 85, "publisher": "Origin", "category": "RPG", "archetype": "tile RPG (disk world)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "MEM"], "pathTo100": "DISK", "diff": "XL", "conf": "known" },
+    { "n": 88, "title": "Ultima V", "year": 88, "publisher": "Origin", "category": "RPG", "archetype": "tile RPG (disk world)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "MEM"], "pathTo100": "DISK", "diff": "XL", "conf": "known" },
+    { "n": 89, "title": "The Bard's Tale", "year": 85, "publisher": "EA", "category": "RPG", "archetype": "dungeon RPG (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "MEM"], "pathTo100": "DISK", "diff": "XL", "conf": "known" },
+    { "n": 90, "title": "Pool of Radiance", "year": 88, "publisher": "SSI", "category": "RPG", "archetype": "tactical RPG (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "MEM"], "pathTo100": "DISK", "diff": "XL", "conf": "inferred" },
+    { "n": 91, "title": "Times of Lore", "year": 88, "publisher": "Origin", "category": "RPG", "archetype": "action-RPG scroll (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "SCROLL"], "pathTo100": "DISK + OPT", "diff": "XL", "conf": "inferred" },
+    { "n": 92, "title": "Pirates!", "year": 87, "publisher": "MicroProse", "category": "Adventure", "archetype": "multi-mode sim (disk)", "rd18": "blocked", "phaseB": "blocked", "blockers": ["DISK", "MEM"], "pathTo100": "DISK", "diff": "XL", "conf": "known" },
+    { "n": 93, "title": "Elite", "year": 85, "publisher": "Firebird", "category": "Sim/3D", "archetype": "real-time vector-3D", "rd18": "blocked", "phaseB": "blocked", "blockers": ["FLOAT", "FUT-011", "MEM"], "pathTo100": "FUT-011 + fast math", "diff": "XL", "conf": "known" },
+    { "n": 94, "title": "Mercenary", "year": 86, "publisher": "Novagen", "category": "Sim/3D", "archetype": "filled-vector 3D world", "rd18": "blocked", "phaseB": "blocked", "blockers": ["FLOAT", "FUT-011"], "pathTo100": "FUT-011 + fast math", "diff": "XL", "conf": "inferred" },
+    { "n": 95, "title": "M.U.L.E.", "year": 83, "publisher": "EA", "category": "Strategy", "archetype": "board + real-time auction", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "known" },
+    { "n": 96, "title": "Archon", "year": 83, "publisher": "EA", "category": "Strategy", "archetype": "board + arcade combat", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "L", "conf": "inferred" },
+    { "n": 97, "title": "Laser Squad", "year": 88, "publisher": "Blade", "category": "Strategy", "archetype": "turn-based tactics", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "L", "conf": "inferred" },
+    { "n": 98, "title": "Sim City", "year": 89, "publisher": "Maxis", "category": "Sim", "archetype": "city simulation", "rd18": "caveated", "phaseB": "caveated", "blockers": ["MEM"], "pathTo100": "fit RAM / DISK paging", "diff": "L", "conf": "inferred" },
+    { "n": 99, "title": "Lords of Midnight", "year": 84, "publisher": "Beyond", "category": "Strategy", "archetype": "strategy + vector views", "rd18": "caveated", "phaseB": "caveated", "blockers": ["MEM"], "pathTo100": "fit RAM / DISK paging", "diff": "L", "conf": "inferred" },
+    { "n": 100, "title": "Little Computer People", "year": 85, "publisher": "Activision", "category": "Sim", "archetype": "single-house sim", "rd18": "clean", "phaseB": "clean", "blockers": [], "pathTo100": "", "diff": "M", "conf": "inferred" }
+  ],
+  "inversion": {
+    "intro": "Read this to decide what to build *after* RD-18. Counts are the number of the 100 titles a capability gates (it appears in the title's Blockers or Path to 100%).",
+    "rows": [
+      { "code": "OPT", "label": "Phase B optimizer", "impact": "**The single biggest unlock.** Moves the bulk of ❌→⚠️ (nearly every scroller/shmup/brawler) and a band of ⚠️→✅. Everything perf-bound depends on it. Already on the roadmap." },
+      { "code": "DISK", "label": "disk multi-load / streaming", "impact": "**The biggest *hard-gap* unlock.** Frees all the RPGs (Ultima, Bard's Tale, Pool of Radiance), SCUMM adventures, Cinemaware, Epyx multi-event sports, and the streamed Last Ninjas. None reachable without it — no spec story exists today." },
+      { "code": "FUT-011", "label": "external asm + fast math", "impact": "Unblocks real-time 3D (Elite, Mercenary), sprite-scaling racers (Out Run), and the cycle-exact scroll showcase (Mayhem in Monsterland) — the 50 fps / vector ceiling `OPT` alone can't reach." },
+      { "code": "FLOAT", "label": "fixed-point math", "impact": "Fractional physics: golf (Leaderboard), marble/ball physics (Marble Madness, Spindizzy), racer road math. Feasible by hand today (that's why several are ⚠️, not ❌); a library would make them clean." },
+      { "code": "FUT-003", "label": "indirect calls", "impact": "Needed for true VM/dispatch-table engines (SCUMM). Also the clean fix for invoking a ripped `.sid` player and for jump-table dispatch everywhere — a broad quality-of-life unlock beyond the raw count." },
+      { "code": "SAMPLE", "label": "in-language sample player", "impact": "Digitized speech (Impossible Mission, Ghostbusters-class). Doable in-language with tight timing; not a language gap, an effort gap." }
+    ],
+    "bottomLine": "**Bottom line for sequencing:** `OPT` first (already planned, unlocks the most and the flashiest arcade action), then a **`DISK`/loader story** (unlocks the entire \"epic\" catalogue that `OPT` can never touch), then `FUT-011` + a fast fixed-point math library for the 3D/showcase tier."
+  },
+  "provenance": [
+    "**The list is curated, not a sourced ranking.** These are 100 well-known, category-spanning C64 titles — not \"the top 100\" by any measured metric (sales, Zzap!64 score, Lemon64 votes). Swap freely with `/update_capability`.",
+    "**Verdicts are anchored on *engine archetype*, which is the real feasibility driver**, then adjusted for a title's specifics. Where a specific game's internals are inferred rather than known, the **Conf** column says so (⚠️/🔴) — treat those rows as archetype estimates, not reverse-engineered fact.",
+    "**Faithfulness bar is strict**: ✅ means the original *as played*. A reduced-scope demake that captures the feel but drops the smooth scroll, the multiplexed sprite count, the disk-streamed content, or the exact soundtrack is **⚠️**, not ✅ — even when it would be a perfectly good game.",
+    "**\"Original soundtrack\" footnote applies to every row** (see the About audio note): in-language music is clean, but a byte-faithful reproduction of the ripped `.sid` tune needs `FUT-003`. Not repeated per row."
+  ],
+  "footer": "Maintained via `/update_capability`. When the capability baseline changes (a slice/RD closes, Phase B lands, a `DISK`/`FUT-003`/`FUT-011` capability ships), re-run it to re-score every row and refresh the summary + inversion counts."
+}

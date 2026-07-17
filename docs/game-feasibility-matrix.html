@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blend65 — C64 Game Feasibility Matrix</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  color-scheme:light;
+  --surface:#fcfcfb;--plane:#f9f9f7;--ink:#0b0b0b;--ink2:#52514e;--muted:#898781;
+  --grid:#e1e0d9;--axis:#c3c2b7;--border:rgba(11,11,11,.10);--accent:#2a78d6;
+  --good:#0ca30c;--warning:#fab219;--critical:#d03b3b;
+  --good-bg:rgba(12,163,12,.12);--warning-bg:rgba(250,178,25,.18);--critical-bg:rgba(208,59,59,.12);
+  --chip:rgba(11,11,11,.05);--chip-on:#2a78d6;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;--ink2:#c3c2b7;--muted:#898781;
+  --grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.12);--accent:#3987e5;
+  --good-bg:rgba(12,163,12,.20);--warning-bg:rgba(250,178,25,.16);--critical-bg:rgba(208,59,59,.22);
+  --chip:rgba(255,255,255,.07);--chip-on:#3987e5;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --surface:#1a1a19;--plane:#0d0d0d;--ink:#fff;--ink2:#c3c2b7;--muted:#898781;
+  --grid:#2c2c2a;--axis:#383835;--border:rgba(255,255,255,.12);--accent:#3987e5;
+  --good-bg:rgba(12,163,12,.20);--warning-bg:rgba(250,178,25,.16);--critical-bg:rgba(208,59,59,.22);
+  --chip:rgba(255,255,255,.07);--chip-on:#3987e5;
+}
+html,body{margin:0}
+body{background:var(--plane);color:var(--ink);
+  font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  padding:24px;max-width:1180px;margin:0 auto;-webkit-text-size-adjust:100%}
+a{color:var(--accent)}
+h1{font-size:1.5rem;margin:0 0 2px}
+h2{font-size:1.05rem;margin:28px 0 10px;letter-spacing:.01em}
+p{margin:.5em 0}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;
+  background:var(--chip);padding:.05em .35em;border-radius:4px}
+.sub{color:var(--ink2);font-size:.9rem;margin:0 0 4px}
+.purpose{color:var(--ink2);max-width:76ch}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.themebtn{flex:none;border:1px solid var(--border);background:var(--surface);color:var(--ink);
+  border-radius:8px;padding:7px 11px;cursor:pointer;font-size:.85rem}
+.themebtn:hover{border-color:var(--accent)}
+
+/* summary bars */
+.bars{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:16px 18px;display:grid;gap:14px}
+.bar-row{display:grid;grid-template-columns:78px 1fr;gap:12px;align-items:center}
+.bar-lab{font-weight:600;font-size:.9rem}
+.bar{display:flex;height:26px;gap:2px;border-radius:6px;overflow:hidden}
+.seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.78rem;
+  font-weight:650;min-width:2px;font-variant-numeric:tabular-nums;transition:opacity .12s}
+.seg.good{background:var(--good)}.seg.warning{background:var(--warning);color:#3a2a00}
+.seg.critical{background:var(--critical)}
+.seg.dim{opacity:.25}
+.legend-row{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--ink2);margin-top:2px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.dot.good{background:var(--good)}.dot.warning{background:var(--warning)}.dot.critical{background:var(--critical)}
+
+/* controls */
+.controls{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center;margin:18px 0 10px}
+.controls input[type=search],.controls select{
+  border:1px solid var(--border);background:var(--surface);color:var(--ink);
+  border-radius:8px;padding:8px 10px;font:inherit;font-size:.88rem}
+.controls input[type=search]{min-width:210px}
+.seg-ctrl{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.seg-ctrl button{border:0;background:var(--surface);color:var(--ink2);padding:8px 12px;
+  cursor:pointer;font:inherit;font-size:.84rem}
+.seg-ctrl button.on{background:var(--accent);color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--border);background:var(--chip);color:var(--ink);
+  border-radius:999px;padding:4px 11px;cursor:pointer;font-size:.8rem;font-weight:600;
+  white-space:nowrap}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--chip-on);color:#fff;border-color:transparent}
+.chip.v.on.good{background:var(--good)}.chip.v.on.warning{background:var(--warning);color:#3a2a00}
+.chip.v.on.critical{background:var(--critical)}
+.reset{background:none;border:0;color:var(--accent);cursor:pointer;font:inherit;font-size:.84rem}
+.count{color:var(--ink2);font-size:.85rem;margin-left:auto;font-variant-numeric:tabular-nums}
+.filtlabel{color:var(--muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;
+  margin-right:2px}
+
+/* table */
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+thead th{position:sticky;top:0;background:var(--surface);z-index:1;text-align:left;
+  border-bottom:2px solid var(--axis);white-space:nowrap;padding:0}
+thead th button{width:100%;text-align:left;background:none;border:0;color:var(--ink2);
+  font:inherit;font-weight:650;padding:11px 12px;cursor:pointer;white-space:nowrap}
+thead th button:hover{color:var(--ink)}
+thead th .arw{color:var(--accent);font-size:.72rem}
+th.c,td.c{text-align:center}
+tbody td{border-bottom:1px solid var(--grid);padding:9px 12px;vertical-align:top}
+tbody tr:hover td{background:var(--chip)}
+td.num{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right;padding-right:14px}
+.gtitle{font-weight:650}
+.gmeta{color:var(--muted);font-weight:400;font-size:.82rem}
+.arch{color:var(--ink2)}
+.verd{white-space:nowrap;font-weight:650;border-radius:6px;padding:3px 8px;display:inline-block}
+.verd.good{background:var(--good-bg)}.verd.warning{background:var(--warning-bg)}
+.verd.critical{background:var(--critical-bg)}
+.bchip{display:inline-block;border:1px solid var(--border);border-radius:6px;background:var(--chip);
+  padding:2px 7px;margin:1px 2px 1px 0;font-size:.76rem;font-weight:600;cursor:pointer;
+  font-family:ui-monospace,Menlo,monospace}
+.bchip:hover{border-color:var(--accent)}
+.bchip.on{background:var(--chip-on);color:#fff;border-color:transparent}
+.path{color:var(--ink2)}
+.dash{color:var(--muted)}
+.diff{font-weight:650;font-variant-numeric:tabular-nums}
+.conf{white-space:nowrap;color:var(--ink2);font-size:.82rem}
+.cdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.cdot.known{background:var(--good)}.cdot.inferred{background:var(--warning)}.cdot.low{background:var(--critical)}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+
+/* collapsibles + reference tables */
+details{border:1px solid var(--border);border-radius:10px;background:var(--surface);
+  padding:2px 16px;margin:10px 0}
+details[open]{padding-bottom:14px}
+summary{cursor:pointer;font-weight:650;padding:12px 0;color:var(--ink)}
+summary:hover{color:var(--accent)}
+.ref{border-collapse:collapse;width:100%;font-size:.85rem;margin-top:4px}
+.ref th,.ref td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--grid);vertical-align:top}
+.ref th{color:var(--ink2);font-weight:650}
+ul.notes{margin:.3em 0;padding-left:1.15em}
+ul.notes li{margin:.35em 0}
+.foot{color:var(--muted);font-size:.82rem;margin:26px 0 8px;font-style:italic}
+@media (max-width:640px){body{padding:14px}.count{margin-left:0;width:100%}}
+</style>
+</head>
+<body>
+<div id="app" aria-busy="true">Loading the matrix…</div>
+<script id="matrix-data" type="application/json">{"_readme":"SOURCE OF TRUTH for the C64 game feasibility matrix. Edit this file, then run `node scripts/gen-capability-matrix.mjs` (or `yarn gen:matrix`) to regenerate docs/game-feasibility-matrix.html. Verdict keys: clean|caveated|blocked. Confidence keys: known|inferred|low. Diff: S|M|L|XL. Blocker codes must exist in legend.blockerCodes (a trailing qualifier in parentheses, e.g. SAMPLE(minor), is allowed). Summary counts and inversion counts are DERIVED by the generator — never stored here.","meta":{"title":"Blend65 — C64 Game Feasibility Matrix","lastUpdated":"2026-07-17","refreshWith":"/update_capability"},"intro":{"purpose":["A strict, capability-grounded assessment of whether 100 well-known Commodore 64 games could be built **faithfully** with the Blend65 toolchain — as it stands the day RD-18 closes (unoptimized codegen), and again after the Phase B optimizer lands. It doubles as a prioritization tool: every blocker is a code, so the inversion table at the bottom shows what shipping each capability *unlocks*.","**No sugarcoating.** A game is only ✅ if it can be built as the original *played* — right engine, right controls, clean in-language audio, no missing essentials, and no dropping to hand-poked machine-code bytes. \"Close enough\" is ⚠️, not ✅."]},"baseline":{"asOf":"2026-07-17","intro":"The verdicts are only as current as this snapshot. When it changes, re-run `/update_capability`.","rows":[{"capability":"Frozen v3 language (scalars, structs, arrays, enums, strings, functions, modules, full expressions, control flow, by-ref params, interrupts, `zeropage`, `&`-address-of, `embed()`, intrinsics)","state":"**Shipping** — RD-18 slices 3a–8b done","source":"`codeops/features/blend65-ri/00-roadmap.md`"},{"capability":"Direct hardware I/O (VIC-II / SID / CIA via `peek`/`poke`), raster IRQ via `pokew($0314,&fn)`, bank switching","state":"**Shipping**","source":"`spec/12-intrinsics.md`"},{"capability":"**Phase B optimizer** (IL passes + peephole)","state":"**Not started** — deliberately after RD-18","source":"RD-18 §Won't Have"},{"capability":"**Indirect calls / function pointers** (`FUT-003`) — call a routine at a runtime/absolute address, jump tables","state":"**Deferred, unscheduled**","source":"`spec/06-functions.md:287`"},{"capability":"**External asm linking** (`FUT-011`) — cycle-exact hand-tuned routines","state":"**Deferred, unscheduled**","source":"`spec/00-feature-index.md:63`"},{"capability":"**Disk I/O / multi-load**","state":"**No spec story at all** — no KERNAL call, no loader, no streaming","source":"—"},{"capability":"**Floating point**","state":"**Not in the language** — integer only; fractional math is hand-rolled fixed-point","source":"`spec/02-type-system.md`"}],"audioNote":"**About audio.** Sound *effects* and *music* are clean in-language: the SID chip is memory-mapped registers (`$D400–$D418`), so a music player written in blend65 that pokes those registers from your IRQ each frame is fully supported. What is **not** possible is invoking a third-party ripped `.sid` file's own player routine (that is machine code at an address → needs `FUT-003`, or the ugly raw-byte IRQ-trampoline hack). So every \"faithful original soundtrack\" carries an implicit `FUT-003` footnote — it is **not** repeated per row."},"howToRead":["**@RD18** — feasibility using only clean, in-language blend65 the day RD-18 closes (codegen unoptimized). **@PhaseB** — the same, after the Phase B optimizer ships.","**Verdict scale**: **✅ clean** (buildable as the original played, no hacks, no missing essentials) · **⚠️ caveated** (needs a raw-byte hack, a scope/faithfulness compromise, or heavy hand-tuning against the frame budget) · **❌ blocked** (a hard capability gap, or the frame budget is simply unreachable).","**Key signal**: if a row is still **❌ at PhaseB**, the optimizer does not save it — the blocker is a *capability gap* (`DISK`, `FLOAT`/3D, `FUT-011`), not performance. If **❌→⚠️** across the two columns, it was performance-bound.","**Blockers** = what stands between the *current* column and ✅. **Path to 100%** = the milestone that would make a *byte-faithful* recreation ✅.","**Confidence** = how sure the verdict is: ✅ internals known · ⚠️ inferred from archetype · 🔴 low."],"scales":{"verdict":[{"key":"clean","glyph":"✅","label":"clean","status":"good","desc":"buildable as the original played, no hacks, no missing essentials"},{"key":"caveated","glyph":"⚠️","label":"caveated","status":"warning","desc":"needs a raw-byte hack, a scope/faithfulness compromise, or heavy hand-tuning against the frame budget"},{"key":"blocked","glyph":"❌","label":"blocked","status":"critical","desc":"a hard capability gap, or the frame budget is simply unreachable"}],"confidence":[{"key":"known","glyph":"✅","label":"internals known"},{"key":"inferred","glyph":"⚠️","label":"inferred from archetype"},{"key":"low","glyph":"🔴","label":"low"}],"diff":["S","M","L","XL"]},"legend":{"blockerCodes":[{"code":"OPT","meaning":"Frame budget needs the Phase B optimizer","fixedBy":"Phase B (on roadmap)"},{"code":"SCROLL","meaning":"Smooth per-frame scrolling within budget","fixedBy":"`OPT`; extreme cases `FUT-011`"},{"code":"MUX","meaning":"Sprite multiplexing (>8 sprites) raster code","fixedBy":"`OPT`"},{"code":"SAMPLE","meaning":"Digitized speech/sample playback (tight timing)","fixedBy":"in-language sample player (hard, doable)"},{"code":"FLOAT","meaning":"Fractional math — no float; hand fixed-point (hard if real-time 3D)","fixedBy":"fixed-point work; 3D also `FUT-011`"},{"code":"MEM","meaning":"Data pressure against 64 KB (large maps/graphics)","fixedBy":"fit in RAM, or needs `DISK` paging"},{"code":"DISK","meaning":"Disk multi-load / streaming / data > RAM","fixedBy":"**hard gap — no spec story**"},{"code":"FUT-003","meaning":"Indirect calls / dispatch tables / function pointers","fixedBy":"**deferred, unscheduled**"},{"code":"FUT-011","meaning":"External hand-tuned asm (cycle-exact effects)","fixedBy":"**deferred, unscheduled**"}],"archetypeTerms":[{"term":"single-screen","def":"no scroll"},{"term":"flip-screen","def":"screen flips, no scroll"},{"term":"hscroll / vscroll","def":"hardware smooth scroll"},{"term":"iso","def":"isometric"},{"term":"pseudo-3D","def":"scaled-road racer"},{"term":"vector-3D","def":"real-time polygon 3D"},{"term":"SCUMM / VM","def":"interpreter over a data-driven script"}]},"summaryNote":"**The titles blocked even after Phase B are all hard capability gaps**, not performance: most need `DISK` (RPGs, SCUMM adventures, Cinemaware, Epyx multi-event sports, the disk-streamed Last Ninjas); the rest need `FUT-011` + fast math for real-time 3D / a cycle-exact scroll showcase (Elite, Mercenary, Out Run, Mayhem in Monsterland). See the prioritization inversion at the bottom.","games":[{"n":1,"title":"Pac-Man","year":82,"publisher":"Atarisoft","category":"Maze","archetype":"single-screen maze","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":2,"title":"Ms. Pac-Man","year":83,"publisher":"Atarisoft","category":"Maze","archetype":"single-screen maze","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":3,"title":"Dig Dug","year":83,"publisher":"Atarisoft","category":"Maze","archetype":"single-screen dig","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":4,"title":"Frogger","year":83,"publisher":"Sierra","category":"Action","archetype":"single-screen lanes","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":5,"title":"Q*bert","year":83,"publisher":"Parker","category":"Action","archetype":"iso single-screen","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":6,"title":"Donkey Kong","year":83,"publisher":"Atarisoft","category":"Platform","archetype":"single-screen platform","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":7,"title":"Space Invaders","year":81,"publisher":null,"category":"Shooter","archetype":"single-screen fixed","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":8,"title":"Galaga","year":84,"publisher":null,"category":"Shooter","archetype":"single-screen fixed","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":9,"title":"Bomb Jack","year":86,"publisher":"Elite","category":"Platform","archetype":"single-screen platform","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":10,"title":"Bubble Bobble","year":87,"publisher":"Firebird","category":"Platform","archetype":"single-screen (2P)","rd18":"caveated","phaseB":"clean","blockers":["MUX"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":11,"title":"Bruce Lee","year":84,"publisher":"Datasoft","category":"Platform","archetype":"flip-screen platform","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":12,"title":"Manic Miner","year":83,"publisher":"Software Projects","category":"Platform","archetype":"flip-screen platform","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":13,"title":"Jet Set Willy","year":84,"publisher":"Software Projects","category":"Platform","archetype":"flip-screen platform","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":14,"title":"Impossible Mission","year":84,"publisher":"Epyx","category":"Platform","archetype":"flip-screen platform","rd18":"caveated","phaseB":"caveated","blockers":["SAMPLE"],"pathTo100":"in-language sample player","diff":"L","conf":"known"},{"n":15,"title":"Impossible Mission II","year":88,"publisher":"Epyx","category":"Platform","archetype":"flip-screen multi-zone","rd18":"caveated","phaseB":"caveated","blockers":["SAMPLE","MEM"],"pathTo100":"sample player; fit RAM","diff":"L","conf":"inferred"},{"n":16,"title":"Lode Runner","year":83,"publisher":"Broderbund","category":"Puzzle","archetype":"single-screen platform","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":17,"title":"Jumpman","year":83,"publisher":"Epyx","category":"Platform","archetype":"single-screen platform","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":18,"title":"Monty on the Run","year":85,"publisher":"Gremlin","category":"Platform","archetype":"scroll platform","rd18":"caveated","phaseB":"clean","blockers":["SCROLL"],"pathTo100":"OPT","diff":"M","conf":"inferred"},{"n":19,"title":"Ghosts 'n Goblins","year":86,"publisher":"Elite","category":"Platform","archetype":"hscroll run-and-gun","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT (+FUT-011 for 50 fps)","diff":"L","conf":"known"},{"n":20,"title":"Giana Sisters","year":87,"publisher":"Rainbow Arts","category":"Platform","archetype":"smooth hscroll","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":21,"title":"Turrican","year":90,"publisher":"Rainbow Arts","category":"Platform","archetype":"multiscroll run-and-gun","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX","MEM"],"pathTo100":"OPT + FUT-011","diff":"XL","conf":"known"},{"n":22,"title":"Turrican II","year":91,"publisher":"Rainbow Arts","category":"Platform","archetype":"multiscroll run-and-gun","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX","MEM"],"pathTo100":"OPT + FUT-011","diff":"XL","conf":"known"},{"n":23,"title":"Hawkeye","year":88,"publisher":"Thalamus","category":"Platform","archetype":"smooth hscroll","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":24,"title":"Rick Dangerous","year":89,"publisher":"Firebird","category":"Platform","archetype":"flip/scroll platform","rd18":"caveated","phaseB":"clean","blockers":["SCROLL"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":25,"title":"Green Beret","year":86,"publisher":"Imagine","category":"Platform","archetype":"hscroll fighter","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":26,"title":"Flimbo's Quest","year":90,"publisher":"System 3","category":"Platform","archetype":"smooth hscroll","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":27,"title":"Mayhem in Monsterland","year":93,"publisher":"Apex","category":"Platform","archetype":"full-colour 50 fps scroll","rd18":"blocked","phaseB":"blocked","blockers":["FUT-011","SCROLL"],"pathTo100":"FUT-011 (cycle-exact asm)","diff":"XL","conf":"known"},{"n":28,"title":"Creatures","year":90,"publisher":"Thalamus","category":"Platform","archetype":"scroll platform + minigames","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX","FUT-011"],"pathTo100":"OPT + FUT-011","diff":"XL","conf":"inferred"},{"n":29,"title":"Commando","year":85,"publisher":"Elite","category":"Shooter","archetype":"vscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":30,"title":"Uridium","year":86,"publisher":"Hewson","category":"Shooter","archetype":"hscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":31,"title":"Armalyte","year":88,"publisher":"Thalamus","category":"Shooter","archetype":"hscroll shmup (2P)","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX","FUT-011"],"pathTo100":"OPT + FUT-011","diff":"XL","conf":"known"},{"n":32,"title":"Delta","year":87,"publisher":"Thalamus","category":"Shooter","archetype":"hscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":33,"title":"Katakis","year":88,"publisher":"Rainbow Arts","category":"Shooter","archetype":"hscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":34,"title":"Sanxion","year":86,"publisher":"Thalamus","category":"Shooter","archetype":"hscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":35,"title":"Wizball","year":87,"publisher":"Ocean","category":"Shooter","archetype":"arcade shooter","rd18":"caveated","phaseB":"clean","blockers":["MUX"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":36,"title":"Paradroid","year":85,"publisher":"Hewson","category":"Shooter","archetype":"top-down shooter/strategy","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"L","conf":"known"},{"n":37,"title":"R-Type","year":88,"publisher":"Electric Dreams","category":"Shooter","archetype":"hscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX","MEM"],"pathTo100":"OPT + FUT-011","diff":"XL","conf":"known"},{"n":38,"title":"IO","year":87,"publisher":"Firebird","category":"Shooter","archetype":"hscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":39,"title":"Zynaps","year":87,"publisher":"Hewson","category":"Shooter","archetype":"hscroll shmup","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":40,"title":"Parallax","year":86,"publisher":"Ocean","category":"Shooter","archetype":"scroll shooter","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"low"},{"n":41,"title":"The Last Ninja","year":87,"publisher":"System 3","category":"Adventure","archetype":"iso flip-screen (multiload)","rd18":"blocked","phaseB":"blocked","blockers":["DISK"],"pathTo100":"DISK","diff":"XL","conf":"known"},{"n":42,"title":"Last Ninja 2","year":88,"publisher":"System 3","category":"Adventure","archetype":"iso flip-screen (multiload)","rd18":"blocked","phaseB":"blocked","blockers":["DISK"],"pathTo100":"DISK","diff":"XL","conf":"known"},{"n":43,"title":"Head over Heels","year":87,"publisher":"Ocean","category":"Adventure","archetype":"iso puzzle-platform","rd18":"caveated","phaseB":"clean","blockers":["MEM"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":44,"title":"Batman","year":86,"publisher":"Ocean","category":"Adventure","archetype":"iso action","rd18":"caveated","phaseB":"clean","blockers":["MEM"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":45,"title":"Zaxxon","year":84,"publisher":"US Gold","category":"Shooter","archetype":"iso scroll shooter","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":46,"title":"Ant Attack","year":83,"publisher":"Quicksilva","category":"Adventure","archetype":"iso explore","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"inferred"},{"n":47,"title":"Marble Madness","year":86,"publisher":"EA","category":"Action","archetype":"iso scroll + physics","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","FLOAT"],"pathTo100":"OPT + fixed-point","diff":"L","conf":"inferred"},{"n":48,"title":"Spindizzy","year":86,"publisher":"Electric Dreams","category":"Puzzle","archetype":"iso scroll + physics","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","FLOAT"],"pathTo100":"OPT + fixed-point","diff":"L","conf":"inferred"},{"n":49,"title":"International Karate","year":86,"publisher":"System 3","category":"Fighting","archetype":"single-screen duel","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"L","conf":"known"},{"n":50,"title":"IK+","year":87,"publisher":"System 3","category":"Fighting","archetype":"single-screen 3-fighter","rd18":"caveated","phaseB":"clean","blockers":["MUX"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":51,"title":"The Way of the Exploding Fist","year":85,"publisher":"Melbourne House","category":"Fighting","archetype":"single-screen duel","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"L","conf":"known"},{"n":52,"title":"Barbarian","year":87,"publisher":"Palace","category":"Fighting","archetype":"single-screen duel","rd18":"clean","phaseB":"clean","blockers":["SAMPLE(minor)"],"pathTo100":"","diff":"L","conf":"known"},{"n":53,"title":"Barbarian II","year":88,"publisher":"Palace","category":"Fighting","archetype":"scroll explore + duel","rd18":"caveated","phaseB":"clean","blockers":["SCROLL"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":54,"title":"Renegade","year":87,"publisher":"Ocean","category":"Beat-em-up","archetype":"hscroll brawler","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":55,"title":"Target Renegade","year":88,"publisher":"Ocean","category":"Beat-em-up","archetype":"hscroll brawler","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":56,"title":"Double Dragon","year":88,"publisher":"Melbourne House","category":"Beat-em-up","archetype":"hscroll brawler","rd18":"blocked","phaseB":"caveated","blockers":["SCROLL","MUX"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":57,"title":"Boulder Dash","year":84,"publisher":"First Star","category":"Puzzle","archetype":"scrolling cave puzzle","rd18":"clean","phaseB":"clean","blockers":["SCROLL(soft)"],"pathTo100":"","diff":"M","conf":"known"},{"n":58,"title":"Boulder Dash Construction Kit","year":86,"publisher":"First Star","category":"Puzzle","archetype":"puzzle + editor","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"inferred"},{"n":59,"title":"Tetris","year":88,"publisher":"Mirrorsoft","category":"Puzzle","archetype":"single-screen puzzle","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":60,"title":"Klax","year":90,"publisher":"Domark","category":"Puzzle","archetype":"single-screen puzzle","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":61,"title":"Pipe Mania","year":89,"publisher":"Empire","category":"Puzzle","archetype":"single-screen puzzle","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":62,"title":"Puzznic","year":90,"publisher":"Ocean","category":"Puzzle","archetype":"single-screen puzzle","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"inferred"},{"n":63,"title":"Bombuzal","year":88,"publisher":"Image Works","category":"Puzzle","archetype":"iso/flat puzzle","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"inferred"},{"n":64,"title":"Shanghai","year":86,"publisher":"Activision","category":"Puzzle","archetype":"mahjong solitaire","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"S","conf":"known"},{"n":65,"title":"The Sentinel","year":86,"publisher":"Firebird","category":"Puzzle","archetype":"3D filled-poly puzzle","rd18":"blocked","phaseB":"caveated","blockers":["FLOAT","FUT-011"],"pathTo100":"fast math + FUT-011","diff":"XL","conf":"inferred"},{"n":66,"title":"Summer Games","year":84,"publisher":"Epyx","category":"Sports","archetype":"multi-event (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK"],"pathTo100":"DISK","diff":"L","conf":"known"},{"n":67,"title":"Winter Games","year":85,"publisher":"Epyx","category":"Sports","archetype":"multi-event (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK"],"pathTo100":"DISK","diff":"L","conf":"known"},{"n":68,"title":"California Games","year":87,"publisher":"Epyx","category":"Sports","archetype":"multi-event (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","FLOAT"],"pathTo100":"DISK + fixed-point","diff":"L","conf":"known"},{"n":69,"title":"World Games","year":86,"publisher":"Epyx","category":"Sports","archetype":"multi-event (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK"],"pathTo100":"DISK","diff":"L","conf":"inferred"},{"n":70,"title":"Track & Field","year":83,"publisher":"Konami","category":"Sports","archetype":"single-screen events","rd18":"caveated","phaseB":"clean","blockers":["MUX","SAMPLE"],"pathTo100":"OPT","diff":"M","conf":"inferred"},{"n":71,"title":"Leaderboard Golf","year":86,"publisher":"Access","category":"Sports","archetype":"golf sim","rd18":"caveated","phaseB":"caveated","blockers":["FLOAT"],"pathTo100":"fixed-point physics","diff":"M","conf":"inferred"},{"n":72,"title":"HardBall!","year":85,"publisher":"Accolade","category":"Sports","archetype":"baseball sim","rd18":"caveated","phaseB":"clean","blockers":["MUX"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":73,"title":"Kick Off","year":89,"publisher":"Anco","category":"Sports","archetype":"top-down football","rd18":"blocked","phaseB":"caveated","blockers":["MUX","SCROLL"],"pathTo100":"OPT","diff":"L","conf":"known"},{"n":74,"title":"MicroProse Soccer","year":88,"publisher":"MicroProse","category":"Sports","archetype":"top-down football","rd18":"blocked","phaseB":"caveated","blockers":["MUX","SCROLL"],"pathTo100":"OPT","diff":"L","conf":"inferred"},{"n":75,"title":"International Soccer","year":83,"publisher":"Commodore","category":"Sports","archetype":"side-view football","rd18":"caveated","phaseB":"clean","blockers":["MUX"],"pathTo100":"OPT","diff":"M","conf":"inferred"},{"n":76,"title":"Out Run","year":87,"publisher":"US Gold","category":"Racing","archetype":"pseudo-3D + sprite scaling","rd18":"blocked","phaseB":"blocked","blockers":["FLOAT","SCROLL","FUT-011"],"pathTo100":"FUT-011 + fast math","diff":"XL","conf":"known"},{"n":77,"title":"Pole Position","year":83,"publisher":"Atarisoft","category":"Racing","archetype":"pseudo-3D road","rd18":"blocked","phaseB":"caveated","blockers":["FLOAT","SCROLL"],"pathTo100":"OPT + fixed-point","diff":"L","conf":"inferred"},{"n":78,"title":"Pitstop II","year":84,"publisher":"Epyx","category":"Racing","archetype":"pseudo-3D split-screen","rd18":"blocked","phaseB":"caveated","blockers":["FLOAT","SCROLL"],"pathTo100":"OPT + fixed-point","diff":"L","conf":"inferred"},{"n":79,"title":"Buggy Boy","year":87,"publisher":"Elite","category":"Racing","archetype":"pseudo-3D road","rd18":"blocked","phaseB":"caveated","blockers":["FLOAT","SCROLL","FUT-011"],"pathTo100":"FUT-011 + fast math","diff":"L","conf":"inferred"},{"n":80,"title":"Chase H.Q.","year":89,"publisher":"Ocean","category":"Racing","archetype":"pseudo-3D chase","rd18":"blocked","phaseB":"caveated","blockers":["FLOAT","SCROLL","FUT-011"],"pathTo100":"FUT-011 + fast math","diff":"L","conf":"known"},{"n":81,"title":"Lotus Esprit Turbo Challenge","year":90,"publisher":"Gremlin","category":"Racing","archetype":"pseudo-3D road","rd18":"blocked","phaseB":"caveated","blockers":["FLOAT","SCROLL","FUT-011"],"pathTo100":"FUT-011 + fast math","diff":"L","conf":"inferred"},{"n":82,"title":"Super Cars","year":90,"publisher":"Gremlin","category":"Racing","archetype":"top-down racer","rd18":"caveated","phaseB":"clean","blockers":["MUX","SCROLL"],"pathTo100":"OPT","diff":"M","conf":"inferred"},{"n":83,"title":"Wec Le Mans","year":88,"publisher":"Imagine","category":"Racing","archetype":"pseudo-3D road","rd18":"blocked","phaseB":"caveated","blockers":["FLOAT","SCROLL","FUT-011"],"pathTo100":"FUT-011 + fast math","diff":"L","conf":"inferred"},{"n":84,"title":"Maniac Mansion","year":87,"publisher":"Lucasfilm","category":"Adventure","archetype":"SCUMM point-click (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","FUT-003"],"pathTo100":"DISK + FUT-003 (VM dispatch)","diff":"XL","conf":"known"},{"n":85,"title":"Zak McKracken","year":88,"publisher":"Lucasfilm","category":"Adventure","archetype":"SCUMM point-click (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","FUT-003"],"pathTo100":"DISK + FUT-003","diff":"XL","conf":"known"},{"n":86,"title":"Defender of the Crown","year":87,"publisher":"Cinemaware","category":"Adventure","archetype":"bitmap + minigames (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","MEM"],"pathTo100":"DISK","diff":"L","conf":"known"},{"n":87,"title":"Ultima IV","year":85,"publisher":"Origin","category":"RPG","archetype":"tile RPG (disk world)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","MEM"],"pathTo100":"DISK","diff":"XL","conf":"known"},{"n":88,"title":"Ultima V","year":88,"publisher":"Origin","category":"RPG","archetype":"tile RPG (disk world)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","MEM"],"pathTo100":"DISK","diff":"XL","conf":"known"},{"n":89,"title":"The Bard's Tale","year":85,"publisher":"EA","category":"RPG","archetype":"dungeon RPG (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","MEM"],"pathTo100":"DISK","diff":"XL","conf":"known"},{"n":90,"title":"Pool of Radiance","year":88,"publisher":"SSI","category":"RPG","archetype":"tactical RPG (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","MEM"],"pathTo100":"DISK","diff":"XL","conf":"inferred"},{"n":91,"title":"Times of Lore","year":88,"publisher":"Origin","category":"RPG","archetype":"action-RPG scroll (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","SCROLL"],"pathTo100":"DISK + OPT","diff":"XL","conf":"inferred"},{"n":92,"title":"Pirates!","year":87,"publisher":"MicroProse","category":"Adventure","archetype":"multi-mode sim (disk)","rd18":"blocked","phaseB":"blocked","blockers":["DISK","MEM"],"pathTo100":"DISK","diff":"XL","conf":"known"},{"n":93,"title":"Elite","year":85,"publisher":"Firebird","category":"Sim/3D","archetype":"real-time vector-3D","rd18":"blocked","phaseB":"blocked","blockers":["FLOAT","FUT-011","MEM"],"pathTo100":"FUT-011 + fast math","diff":"XL","conf":"known"},{"n":94,"title":"Mercenary","year":86,"publisher":"Novagen","category":"Sim/3D","archetype":"filled-vector 3D world","rd18":"blocked","phaseB":"blocked","blockers":["FLOAT","FUT-011"],"pathTo100":"FUT-011 + fast math","diff":"XL","conf":"inferred"},{"n":95,"title":"M.U.L.E.","year":83,"publisher":"EA","category":"Strategy","archetype":"board + real-time auction","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"known"},{"n":96,"title":"Archon","year":83,"publisher":"EA","category":"Strategy","archetype":"board + arcade combat","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"L","conf":"inferred"},{"n":97,"title":"Laser Squad","year":88,"publisher":"Blade","category":"Strategy","archetype":"turn-based tactics","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"L","conf":"inferred"},{"n":98,"title":"Sim City","year":89,"publisher":"Maxis","category":"Sim","archetype":"city simulation","rd18":"caveated","phaseB":"caveated","blockers":["MEM"],"pathTo100":"fit RAM / DISK paging","diff":"L","conf":"inferred"},{"n":99,"title":"Lords of Midnight","year":84,"publisher":"Beyond","category":"Strategy","archetype":"strategy + vector views","rd18":"caveated","phaseB":"caveated","blockers":["MEM"],"pathTo100":"fit RAM / DISK paging","diff":"L","conf":"inferred"},{"n":100,"title":"Little Computer People","year":85,"publisher":"Activision","category":"Sim","archetype":"single-house sim","rd18":"clean","phaseB":"clean","blockers":[],"pathTo100":"","diff":"M","conf":"inferred"}],"inversion":{"intro":"Read this to decide what to build *after* RD-18. Counts are the number of the 100 titles a capability gates (it appears in the title's Blockers or Path to 100%).","rows":[{"code":"OPT","label":"Phase B optimizer","impact":"**The single biggest unlock.** Moves the bulk of ❌→⚠️ (nearly every scroller/shmup/brawler) and a band of ⚠️→✅. Everything perf-bound depends on it. Already on the roadmap."},{"code":"DISK","label":"disk multi-load / streaming","impact":"**The biggest *hard-gap* unlock.** Frees all the RPGs (Ultima, Bard's Tale, Pool of Radiance), SCUMM adventures, Cinemaware, Epyx multi-event sports, and the streamed Last Ninjas. None reachable without it — no spec story exists today."},{"code":"FUT-011","label":"external asm + fast math","impact":"Unblocks real-time 3D (Elite, Mercenary), sprite-scaling racers (Out Run), and the cycle-exact scroll showcase (Mayhem in Monsterland) — the 50 fps / vector ceiling `OPT` alone can't reach."},{"code":"FLOAT","label":"fixed-point math","impact":"Fractional physics: golf (Leaderboard), marble/ball physics (Marble Madness, Spindizzy), racer road math. Feasible by hand today (that's why several are ⚠️, not ❌); a library would make them clean."},{"code":"FUT-003","label":"indirect calls","impact":"Needed for true VM/dispatch-table engines (SCUMM). Also the clean fix for invoking a ripped `.sid` player and for jump-table dispatch everywhere — a broad quality-of-life unlock beyond the raw count."},{"code":"SAMPLE","label":"in-language sample player","impact":"Digitized speech (Impossible Mission, Ghostbusters-class). Doable in-language with tight timing; not a language gap, an effort gap."}],"bottomLine":"**Bottom line for sequencing:** `OPT` first (already planned, unlocks the most and the flashiest arcade action), then a **`DISK`/loader story** (unlocks the entire \"epic\" catalogue that `OPT` can never touch), then `FUT-011` + a fast fixed-point math library for the 3D/showcase tier."},"provenance":["**The list is curated, not a sourced ranking.** These are 100 well-known, category-spanning C64 titles — not \"the top 100\" by any measured metric (sales, Zzap!64 score, Lemon64 votes). Swap freely with `/update_capability`.","**Verdicts are anchored on *engine archetype*, which is the real feasibility driver**, then adjusted for a title's specifics. Where a specific game's internals are inferred rather than known, the **Conf** column says so (⚠️/🔴) — treat those rows as archetype estimates, not reverse-engineered fact.","**Faithfulness bar is strict**: ✅ means the original *as played*. A reduced-scope demake that captures the feel but drops the smooth scroll, the multiplexed sprite count, the disk-streamed content, or the exact soundtrack is **⚠️**, not ✅ — even when it would be a perfectly good game.","**\"Original soundtrack\" footnote applies to every row** (see the About audio note): in-language music is clean, but a byte-faithful reproduction of the ripped `.sid` tune needs `FUT-003`. Not repeated per row."],"footer":"Maintained via `/update_capability`. When the capability baseline changes (a slice/RD closes, Phase B lands, a `DISK`/`FUT-003`/`FUT-011` capability ships), re-run it to re-score every row and refresh the summary + inversion counts.","derived":{"total":100,"summary":{"rd18":{"clean":31,"caveated":17,"blocked":52},"phaseB":{"clean":43,"caveated":38,"blocked":19}},"categories":["Maze","Action","Platform","Shooter","Puzzle","Adventure","Fighting","Beat-em-up","Sports","Racing","RPG","Sim/3D","Strategy","Sim"],"inversion":[{"code":"OPT","label":"Phase B optimizer","impact":"**The single biggest unlock.** Moves the bulk of ❌→⚠️ (nearly every scroller/shmup/brawler) and a band of ⚠️→✅. Everything perf-bound depends on it. Already on the roadmap.","count":41},{"code":"DISK","label":"disk multi-load / streaming","impact":"**The biggest *hard-gap* unlock.** Frees all the RPGs (Ultima, Bard's Tale, Pool of Radiance), SCUMM adventures, Cinemaware, Epyx multi-event sports, and the streamed Last Ninjas. None reachable without it — no spec story exists today.","count":17},{"code":"FUT-011","label":"external asm + fast math","impact":"Unblocks real-time 3D (Elite, Mercenary), sprite-scaling racers (Out Run), and the cycle-exact scroll showcase (Mayhem in Monsterland) — the 50 fps / vector ceiling `OPT` alone can't reach.","count":15},{"code":"FLOAT","label":"fixed-point math","impact":"Fractional physics: golf (Leaderboard), marble/ball physics (Marble Madness, Spindizzy), racer road math. Feasible by hand today (that's why several are ⚠️, not ❌); a library would make them clean.","count":14},{"code":"FUT-003","label":"indirect calls","impact":"Needed for true VM/dispatch-table engines (SCUMM). Also the clean fix for invoking a ripped `.sid` player and for jump-table dispatch everywhere — a broad quality-of-life unlock beyond the raw count.","count":2},{"code":"SAMPLE","label":"in-language sample player","impact":"Digitized speech (Impossible Mission, Ghostbusters-class). Doable in-language with tight timing; not a language gap, an effort gap.","count":4}]}}</script>
+<script>
+"use strict";
+const DATA = JSON.parse(document.getElementById("matrix-data").textContent);
+const G = DATA.games;
+const D = DATA.derived;
+const VMAP = Object.fromEntries(DATA.scales.verdict.map(v => [v.key, v]));
+const CMAP = Object.fromEntries(DATA.scales.confidence.map(c => [c.key, c]));
+const VORDER = Object.fromEntries(DATA.scales.verdict.map((v,i) => [v.key, i]));
+const CORDER = Object.fromEntries(DATA.scales.confidence.map((c,i) => [c.key, i]));
+const DORDER = Object.fromEntries(DATA.scales.diff.map((d,i) => [d, i]));
+
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function md(s){
+  return esc(s)
+    .replace(/`([^`]+)`/g, (_,c)=>"<code>"+c+"</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" rel="noopener">$1</a>');
+}
+const baseCode = c => c.replace(/\(.*\)$/,"").trim();
+const pathTokens = p => (p||"").split(/[\s,;()+/]+/).filter(Boolean);
+const gatedBy = (g,code) => g.blockers.some(b => baseCode(b)===code) || pathTokens(g.pathTo100).includes(code);
+
+// ---- UI state ----
+const state = { q:"", cat:"all", scoreBy:"rd18", verdicts:new Set(), blockers:new Set(),
+               sort:{key:"n", dir:1} };
+
+function passes(g){
+  if(state.cat!=="all" && g.category!==state.cat) return false;
+  if(state.verdicts.size && !state.verdicts.has(g[state.scoreBy])) return false;
+  if(state.blockers.size && ![...state.blockers].some(c => gatedBy(g,c))) return false;
+  if(state.q){
+    const hay = (g.title+" "+(g.publisher||"")+" "+g.category+" "+g.archetype+" "+
+                 g.pathTo100+" "+g.blockers.join(" ")).toLowerCase();
+    if(!hay.includes(state.q)) return false;
+  }
+  return true;
+}
+function cmp(a,b){
+  const k = state.sort.key; let x,y;
+  if(k==="rd18"||k==="phaseB"){x=VORDER[a[k]];y=VORDER[b[k]];}
+  else if(k==="conf"){x=CORDER[a.conf];y=CORDER[b.conf];}
+  else if(k==="diff"){x=DORDER[a.diff];y=DORDER[b.diff];}
+  else if(k==="n"){x=a.n;y=b.n;}
+  else if(k==="blockers"){x=a.blockers.length;y=b.blockers.length;}
+  else {x=String(a[k]).toLowerCase();y=String(b[k]).toLowerCase();}
+  if(x<y) return -1*state.sort.dir; if(x>y) return 1*state.sort.dir;
+  return a.n-b.n;
+}
+
+// ---- renderers ----
+function verdictCell(key){
+  const v = VMAP[key];
+  return '<span class="verd '+v.status+'" title="'+esc(v.desc)+'">'+v.glyph+" "+esc(v.label)+"</span>";
+}
+function blockerCell(g){
+  if(!g.blockers.length) return '<span class="dash">—</span>';
+  return g.blockers.map(b => {
+    const code = baseCode(b);
+    const on = state.blockers.has(code) ? " on" : "";
+    return '<span class="bchip'+on+'" data-code="'+esc(code)+'">'+esc(b)+"</span>";
+  }).join("");
+}
+function renderTable(){
+  const rows = G.filter(passes).sort(cmp);
+  const body = document.getElementById("tbody");
+  if(!rows.length){
+    body.innerHTML = '<tr><td class="empty" colspan="10">No games match these filters.</td></tr>';
+  } else {
+    body.innerHTML = rows.map(rowHtml).join("");
+  }
+  document.getElementById("count").textContent = "Showing "+rows.length+" of "+D.total;
+  // header arrows
+  document.querySelectorAll("th button[data-key]").forEach(b=>{
+    const a = b.querySelector(".arw"); if(!a) return;
+    a.textContent = b.dataset.key===state.sort.key ? (state.sort.dir>0?"▲":"▼") : "";
+  });
+  // blocker chip active sync (row chips + filter chips)
+  document.querySelectorAll(".bchip").forEach(ch=>{
+    ch.classList.toggle("on", state.blockers.has(ch.dataset.code));
+  });
+}
+function rowHtml(g){
+  const pub = g.publisher ? ", "+g.publisher : "";
+  const path = g.pathTo100 ? '<span class="path">'+md(g.pathTo100)+"</span>" : '<span class="dash">—</span>';
+  const c = CMAP[g.conf];
+  return "<tr>"+
+    '<td class="num">'+g.n+"</td>"+
+    "<td><span class=gtitle>"+esc(g.title)+'</span> <span class=gmeta>('+g.year+esc(pub)+")</span></td>"+
+    "<td>"+esc(g.category)+"</td>"+
+    '<td class="arch">'+esc(g.archetype)+"</td>"+
+    '<td class="c">'+verdictCell(g.rd18)+"</td>"+
+    '<td class="c">'+verdictCell(g.phaseB)+"</td>"+
+    "<td>"+blockerCell(g)+"</td>"+
+    "<td>"+path+"</td>"+
+    '<td class="c diff">'+g.diff+"</td>"+
+    '<td class="conf"><span class="cdot '+g.conf+'"></span>'+esc(c.label)+"</td>"+
+    "</tr>";
+}
+
+function bars(){
+  const mk = (label,col)=>{
+    const counts = D.summary[col]; const total = D.total;
+    const segs = DATA.scales.verdict.map(v=>{
+      const n = counts[v.key]; const pct = (n/total*100).toFixed(1);
+      const dim = state.verdicts.size && !state.verdicts.has(v.key) ? " dim":"";
+      return '<span class="seg '+v.status+dim+'" style="flex:'+n+'" '+
+             'title="'+esc(v.label)+': '+n+' ('+pct+'%)">'+(n>=4?n:"")+"</span>";
+    }).join("");
+    return '<div class="bar-row"><div class="bar-lab">'+label+'</div><div class="bar">'+segs+"</div></div>";
+  };
+  const leg = DATA.scales.verdict.map(v =>
+    '<span><span class="dot '+v.status+'"></span>'+v.glyph+" "+esc(v.label)+"</span>").join("");
+  return '<div class="bars">'+mk("@RD18","rd18")+mk("@PhaseB","phaseB")+
+         '<div class="legend-row">'+leg+"</div></div>";
+}
+
+function controls(){
+  const cats = ['<option value="all">All categories</option>']
+    .concat(D.categories.map(c=>'<option value="'+esc(c)+'">'+esc(c)+"</option>")).join("");
+  const vchips = DATA.scales.verdict.map(v =>
+    '<button class="chip v '+v.status+'" data-verdict="'+v.key+'">'+v.glyph+" "+esc(v.label)+"</button>").join("");
+  const bchips = DATA.legend.blockerCodes.map(c =>
+    '<button class="chip b" data-bfilter="'+esc(c.code)+'">'+esc(c.code)+"</button>").join("");
+  return '<div class="controls">'+
+      '<input type="search" id="q" placeholder="Search game, archetype…" aria-label="Search">'+
+      '<select id="cat" aria-label="Category filter">'+cats+"</select>"+
+      '<span class="filtlabel">score by</span>'+
+      '<span class="seg-ctrl"><button data-score="rd18" class="on">@RD18</button>'+
+        '<button data-score="phaseB">@PhaseB</button></span>'+
+      '<span class="count" id="count"></span>'+
+    "</div>"+
+    '<div class="controls"><span class="filtlabel">verdict</span><span class="chips">'+vchips+"</span></div>"+
+    '<div class="controls"><span class="filtlabel">blocker</span><span class="chips">'+bchips+
+      '</span><button class="reset" id="reset">Reset filters</button></div>';
+}
+
+function refTables(){
+  const base = DATA.baseline.rows.map(r =>
+    "<tr><td>"+md(r.capability)+"</td><td>"+md(r.state)+"</td><td>"+md(r.source)+"</td></tr>").join("");
+  const codes = DATA.legend.blockerCodes.map(c =>
+    "<tr><td><code>"+esc(c.code)+"</code></td><td>"+md(c.meaning)+"</td><td>"+md(c.fixedBy)+"</td></tr>").join("");
+  const arch = DATA.legend.archetypeTerms.map(a =>
+    "<tr><td><code>"+esc(a.term)+"</code></td><td>"+md(a.def)+"</td></tr>").join("");
+  const inv = D.inversion.map(r =>
+    "<tr><td><code>"+esc(r.code)+"</code> <span class=gmeta>"+esc(r.label)+"</span></td>"+
+    '<td class="c diff">'+r.count+"</td><td>"+md(r.impact)+"</td></tr>").join("");
+  const howto = DATA.howToRead.map(x=>"<li>"+md(x)+"</li>").join("");
+  const prov = DATA.provenance.map(x=>"<li>"+md(x)+"</li>").join("");
+
+  return '<h2>Reference</h2>'+
+    "<details open><summary>Capability baseline — what these verdicts assume ("+esc(DATA.baseline.asOf)+")</summary>"+
+      "<p>"+md(DATA.baseline.intro)+"</p>"+
+      '<table class="ref"><thead><tr><th>Capability</th><th>State</th><th>Source</th></tr></thead><tbody>'+base+"</tbody></table>"+
+      "<p>"+md(DATA.baseline.audioNote)+"</p></details>"+
+    "<details><summary>Prioritization — what each capability unlocks</summary>"+
+      "<p>"+md(DATA.inversion.intro)+"</p>"+
+      '<table class="ref"><thead><tr><th>Capability</th><th class="c">Titles</th><th>Impact</th></tr></thead><tbody>'+inv+"</tbody></table>"+
+      "<p>"+md(DATA.inversion.bottomLine)+"</p></details>"+
+    "<details><summary>Legend — blocker codes &amp; archetype terms</summary>"+
+      '<table class="ref"><thead><tr><th>Code</th><th>Meaning</th><th>Fixed by</th></tr></thead><tbody>'+codes+"</tbody></table>"+
+      '<table class="ref"><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody>'+arch+"</tbody></table></details>"+
+    "<details><summary>How to read this</summary><ul class=notes>"+howto+"</ul></details>"+
+    "<details><summary>Provenance &amp; confidence caveats</summary><ul class=notes>"+prov+"</ul></details>";
+}
+
+function head(){
+  const cols = [["n","#",true],["title","Game"],["category","Cat"],["archetype","Archetype"],
+    ["rd18","@RD18",true],["phaseB","@PhaseB",true],["blockers","Blockers",true],
+    ["pathTo100","Path to 100%"],["diff","Diff",true],["conf","Conf",true]];
+  return "<thead><tr>"+cols.map(([k,l,c])=>
+    '<th class="'+(c?"c":"")+'"><button data-key="'+k+'">'+esc(l)+' <span class="arw"></span></button></th>').join("")+"</tr></thead>";
+}
+
+function render(){
+  const app = document.getElementById("app");
+  const purpose = DATA.intro.purpose.map(p=>"<p class=purpose>"+md(p)+"</p>").join("");
+  app.innerHTML =
+    '<div class="topbar"><div>'+
+      "<h1>"+esc(DATA.meta.title)+"</h1>"+
+      '<p class="sub">Last updated '+esc(DATA.meta.lastUpdated)+
+        " · refresh with <code>"+esc(DATA.meta.refreshWith)+"</code></p></div>"+
+      '<button class="themebtn" id="theme">◐ Theme</button></div>'+
+    purpose+
+    '<h2>At a glance</h2>'+bars()+
+    "<h2>The matrix</h2>"+controls()+
+    '<div class="tablewrap"><table>'+head()+'<tbody id="tbody"></tbody></table></div>'+
+    refTables()+
+    '<p class="foot">'+md(DATA.footer)+"</p>";
+  app.removeAttribute("aria-busy");
+  wire();
+  renderTable();
+}
+
+function wire(){
+  document.getElementById("q").addEventListener("input", e=>{ state.q=e.target.value.trim().toLowerCase(); renderTable(); });
+  document.getElementById("cat").addEventListener("change", e=>{ state.cat=e.target.value; renderTable(); });
+  document.getElementById("reset").addEventListener("click", ()=>{
+    state.q=""; state.cat="all"; state.verdicts.clear(); state.blockers.clear();
+    document.getElementById("q").value=""; document.getElementById("cat").value="all";
+    syncChips(); renderBarsAndTable();
+  });
+  document.querySelectorAll("[data-score]").forEach(b=> b.addEventListener("click", ()=>{
+    state.scoreBy=b.dataset.score;
+    document.querySelectorAll("[data-score]").forEach(x=>x.classList.toggle("on", x===b));
+    renderBarsAndTable();
+  }));
+  document.querySelectorAll("[data-verdict]").forEach(b=> b.addEventListener("click", ()=>{
+    toggle(state.verdicts, b.dataset.verdict); syncChips(); renderBarsAndTable();
+  }));
+  document.querySelectorAll("[data-bfilter]").forEach(b=> b.addEventListener("click", ()=>{
+    toggle(state.blockers, b.dataset.bfilter); syncChips(); renderTable();
+  }));
+  document.querySelectorAll("th button[data-key]").forEach(b=> b.addEventListener("click", ()=>{
+    const k=b.dataset.key;
+    if(state.sort.key===k) state.sort.dir*=-1; else state.sort={key:k,dir:1};
+    renderTable();
+  }));
+  document.getElementById("tbody").addEventListener("click", e=>{
+    const ch = e.target.closest(".bchip"); if(!ch) return;
+    toggle(state.blockers, ch.dataset.code); syncChips(); renderTable();
+  });
+  document.getElementById("theme").addEventListener("click", toggleTheme);
+}
+function toggle(set,v){ set.has(v)?set.delete(v):set.add(v); }
+function syncChips(){
+  document.querySelectorAll("[data-verdict]").forEach(b=> b.classList.toggle("on", state.verdicts.has(b.dataset.verdict)));
+  document.querySelectorAll("[data-bfilter]").forEach(b=> b.classList.toggle("on", state.blockers.has(b.dataset.bfilter)));
+}
+function renderBarsAndTable(){
+  document.querySelector(".bars").outerHTML = bars();
+  renderTable();
+}
+function toggleTheme(){
+  const root=document.documentElement;
+  const dark = root.getAttribute("data-theme")==="dark" ||
+    (!root.getAttribute("data-theme") && matchMedia("(prefers-color-scheme: dark)").matches);
+  root.setAttribute("data-theme", dark ? "light" : "dark");
+}
+render();
+</script>
+</body>
+</html>

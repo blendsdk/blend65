@@ -52,6 +52,11 @@
 
 ### Resolution Notes
 
+**Deferral closure (2026-07-17):** the seven deferred rows (AR-19..24, AR-28) were revisited and
+resolved at the 8b gate as promised — see
+`../rd-18-slice-8b-strings-embed/00-ambiguity-register.md` (its rows AR-2..AR-13 cite their 8a
+origins). No 8a decision was reopened.
+
 **AR-29** was surfaced under the surface-during-authoring rule after the initial 28-row gate
 confirmation and resolved before any plan document was written.
 
