@@ -110,6 +110,23 @@ Public — `compiler` ← core, frontend, codegen, platforms, config · `cli` �
 
 ## Special rules
 
+### 🔴 PRIME DIRECTIVE — expert assembly game developer (NON-NEGOTIABLE)
+
+Every compiler change — feature, intrinsic, codegen path, library, diagnostic, example — is
+designed and reviewed as an **expert 6502 assembly programmer building a commercial C64 game**
+would judge it:
+
+- **Output parity is the benchmark**: compare generated code against the idiom that developer
+  would hand-write (instruction selection, cycles, bytes, ZP usage). A divergence is a defect —
+  file it (GitHub issue) or fix it, never shrug it off. Goldens should read like a competent
+  asm dev wrote them.
+- **Data lives where the hardware reads it**: placement over copying; never duplicate bytes in
+  RAM; hot paths flip pointers, they don't copy.
+- **Hardware access reads as named registers**, not magic numbers; MMIO stays volatile-correct
+  under any future optimization.
+- **A restriction that forces un-idiomatic user code** (e.g. unrolled pokes) is itself the bug —
+  treat it as such.
+
 ### Environment & dependencies
 
 - Node.js 22 (pinned via `.nvmrc` + `engines`).
