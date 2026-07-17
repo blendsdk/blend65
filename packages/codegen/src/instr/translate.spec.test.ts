@@ -324,10 +324,27 @@ describe("Specification: translator — ret terminator (ST-T20..T23)", () => {
     expect(text).toBe(["M_f:", "    LDA v", "    LDX v+1", "    RTS"].join("\n"));
   });
 
-  // ret in an isInterrupt function → RTI, not RTS.
-  it("translates a ret in an interrupt handler into RTI (ST-T23)", () => {
+  // ret in an isInterrupt function → the full handler exit: restore Y/X/A in
+  // reverse push order, then RTI (never RTS). The matching register save
+  // opens the function, so a body-less handler is save + restore + RTI.
+  it("translates a ret in an interrupt handler into the register restore + RTI (ST-T23)", () => {
     const { text } = render([], { kind: "ret" }, { isInterrupt: true });
-    expect(text).toBe(["M_f:", "    RTI"].join("\n"));
+    expect(text).toBe(
+      [
+        "M_f:",
+        "    PHA",
+        "    TXA",
+        "    PHA",
+        "    TYA",
+        "    PHA",
+        "    PLA",
+        "    TAY",
+        "    PLA",
+        "    TAX",
+        "    PLA",
+        "    RTI",
+      ].join("\n"),
+    );
   });
 });
 

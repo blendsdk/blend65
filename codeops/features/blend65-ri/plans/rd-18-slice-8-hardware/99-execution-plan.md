@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-17 14:48
-> **Progress**: 17/60 tasks (28%)
+> **Progress**: 26/60 tasks (43%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -120,30 +120,27 @@ task-size criteria in the quality checklist)
 **Reference**: 03-02 §Parser · AR-12
 **Objective**: pin both syntax forms + E10050.
 
-- [ ] 3.1.1 Write parser spec tests (ST-11..ST-13) — `packages/frontend/src/parser/interrupt-syntax.spec.test.ts`
-- [ ] 3.1.2 Run them — verify FAIL (red phase)
+- [x] 3.1.1 Write parser spec tests (ST-11..ST-13) — `packages/frontend/src/parser/interrupt-syntax.spec.test.ts` ✅ (completed: 2026-07-17 14:58)
+- [x] 3.1.2 Run them — verify FAIL (red phase) ✅ (completed: 2026-07-17 14:58 — ST-12/13 red; ST-11 documented pre-passer (pins the shipped bare form))
 
 ### Step 3.2: Parser implementation
 
-- [ ] 3.2.1 Register E10050 additively; implement optional `: void` acceptance + non-void rejection — `packages/core/src/diagnostics/diagnostic-codes.ts`, `packages/frontend/src/parser/parse-decl.ts`
-- [ ] 3.2.2 Run parser spec tests — verify PASS (green phase)
+- [x] 3.2.1 Register E10050 additively; implement optional `: void` acceptance + non-void rejection — `packages/core/src/diagnostics/diagnostic-codes.ts`, `packages/frontend/src/parser/parse-decl.ts` ✅ (completed: 2026-07-17 14:58 — E10050 on the colon..type span; ErrorType suppressed (one root cause))
+- [x] 3.2.2 Run parser spec tests — verify PASS (green phase) ✅ (completed: 2026-07-17 14:58 — 3/3)
 
 ### Step 3.3: ABI spec tests
 
 **Reference**: 03-02 §Codegen ABI · AR-14
 **Objective**: pin the save/RTI byte sequence.
 
-- [ ] 3.3.1 Write ABI spec tests (ST-14, ST-15) — `packages/codegen/src/instr/translate-interrupt.spec.test.ts`
-- [ ] 3.3.2 Run them — verify FAIL (red phase)
+- [x] 3.3.1 Write ABI spec tests (ST-14, ST-15) — `packages/codegen/src/instr/translate-interrupt.spec.test.ts` ✅ (completed: 2026-07-17 15:02)
+- [x] 3.3.2 Run them — verify FAIL (red phase) ✅ (completed: 2026-07-17 15:02 — 2/2 red; plain-fn RTS control pre-passes by design)
 
 ### Step 3.4: ABI implementation
 
-- [ ] 3.4.1 Emit the prologue in `run()` and the restore+RTI at every interrupt `ret` — `packages/codegen/src/instr/translate.ts`
-- [ ] 3.4.2 Run ABI spec tests — verify PASS (green phase)
-
-### Step 3.5: Hardening
-
-- [ ] 3.5.1 Impl tests + E10051/E10311 re-pins (ST-16) + full verify — `*.impl.test.ts`, negatives location per 07-strategy
+- [x] 3.4.1 Emit the prologue in `run()` and the restore+RTI at every interrupt `ret` — `packages/codegen/src/instr/translate.ts` ✅ (completed: 2026-07-17 15:02)
+- [x] 3.4.2 Run ABI spec tests — verify PASS (green phase) ✅ (completed: 2026-07-17 15:02 — 3/3. Retired-row rewrite: the 7a-era ST-T23 bare-RTI pin in `translate.spec.test.ts` rewritten to the full save/restore+RTI sequence)
+- [x] 3.5.1 Impl tests + E10051/E10311 re-pins (ST-16) + full verify — `*.impl.test.ts`, negatives location per 07-strategy ✅ (completed: 2026-07-17 15:02 — `interrupt-syntax.impl.test.ts` 4/4 (E10311 + E10051 re-pins, named-type message, one-root-cause); FULL VERIFY PASS; ten prior goldens byte-exact)
 
 **Verify**: the AR-27 command
 

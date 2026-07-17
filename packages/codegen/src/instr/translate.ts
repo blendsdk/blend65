@@ -201,6 +201,19 @@ class FunctionTranslator {
     this.binder.reset();
     this.out.push(label(sanitize(this.fn.name)));
 
+    // Interrupt handlers preserve all three CPU registers around the body:
+    // the hardware already stacked P and the return address, so saving
+    // A/X/Y here (and restoring them at every `ret`) makes the interruption
+    // invisible to the interrupted code. Unconditional — no clobber
+    // analysis; a leaner save is a future optimization.
+    if (this.fn.isInterrupt) {
+      this.emit("PHA", "Implied", none());
+      this.emit("TXA", "Implied", none());
+      this.emit("PHA", "Implied", none());
+      this.emit("TYA", "Implied", none());
+      this.emit("PHA", "Implied", none());
+    }
+
     this.prescanAll();
     for (const block of this.fn.blocks) {
       this.resetBlockState();
@@ -494,7 +507,19 @@ class FunctionTranslator {
         if (term.value !== undefined) {
           this.bringValueIntoRegisters(term.value, widthOf(term.value));
         }
-        this.emit(this.fn.isInterrupt ? "RTI" : "RTS", "Implied", none());
+        if (this.fn.isInterrupt) {
+          // Restore Y, X, A in reverse push order; RTI then restores P and
+          // the return address the hardware stacked. Every exit path carries
+          // the full sequence — correct and unoptimized by design.
+          this.emit("PLA", "Implied", none());
+          this.emit("TAY", "Implied", none());
+          this.emit("PLA", "Implied", none());
+          this.emit("TAX", "Implied", none());
+          this.emit("PLA", "Implied", none());
+          this.emit("RTI", "Implied", none());
+        } else {
+          this.emit("RTS", "Implied", none());
+        }
         return;
       case "br":
         this.emit("JMP", "Absolute", labelRef(this.blockLabel(term.target)));

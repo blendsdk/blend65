@@ -68,6 +68,11 @@ export const DiagCode = {
   AddressOfConstScalar: "E10047",
   AddressOfParameter: "E10048",
   AddressOfNonAddressable: "E10049",
+  // An interrupt handler's signature is always `(): void` — parameters are
+  // syntactically impossible, so the one trigger is a non-void return
+  // annotation. E10050 is the functions chapter's designated number for this
+  // rule; registered additively, `spec/` stays frozen.
+  InterruptWrongSignature: "E10050",
   // Calling an `interrupt function` directly. A miscompile guard: interrupt
   // bodies end in RTI, so a user JSR corrupts the hardware stack (JSR pushes
   // 2 bytes, RTI pops 3) and jumps wild. E10051 is the spec-designated code

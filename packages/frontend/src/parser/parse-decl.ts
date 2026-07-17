@@ -138,7 +138,12 @@ export function parseFunctionDecl(
   };
 }
 
-/** Parses `interrupt function name() { body }` (FR-18). */
+/**
+ * Parses `interrupt function name() { body }` (FR-18). An explicit `: void`
+ * annotation after `()` is accepted and means the same as the bare form; any
+ * other annotated type is E10050 — the handler signature is always
+ * `(): void` — and the block still parses so the tree stays complete.
+ */
 export function parseInterruptDecl(
   state: ParserState,
   exported: boolean,
@@ -160,6 +165,24 @@ export function parseInterruptDecl(
     DiagCode.MissingCloseParen,
     "')' (interrupts take no parameters)",
   );
+  if (cursor.check(TokenKind.Colon)) {
+    const colonTok = cursor.advance();
+    const annotated = parseType(state);
+    const isVoid = annotated.kind === "PrimitiveType" && annotated.name === "void";
+    // A malformed type already produced its own parse diagnostic — one root
+    // cause is enough.
+    if (!isVoid && annotated.kind !== "ErrorType") {
+      const found =
+        annotated.kind === "PrimitiveType" || annotated.kind === "NamedType"
+          ? annotated.name
+          : "an array type";
+      state.emit(
+        DiagCode.InterruptWrongSignature,
+        makeSpan(sourceId, colonTok.span.start, annotated.span.end),
+        `Interrupt function '${name}' must have signature '(): void' — found '${found}'`,
+      );
+    }
+  }
   const body = parseBlock(state);
   return {
     kind: "InterruptDecl",
