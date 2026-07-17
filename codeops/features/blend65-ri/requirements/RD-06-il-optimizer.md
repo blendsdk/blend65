@@ -21,7 +21,8 @@
 > other AST node kind is a documented, tested slice boundary, not a silent gap. Lowering is
 > **fixture-tested** today (D5); the only deferred piece is the live compiler-façade wiring
 > (`analyze()`→`planAllocation()`→`lowerToIL()`), which lights up unchanged when RD-04b
-> populates the `SemanticModel`. Two runtime decisions refined the textual surface: **D8** —
+> populates the `SemanticModel` *(as it did: the RD-18 rollout — which superseded the
+> provisional RD-04b — populated the model, and the façade wiring shipped unchanged)*. Two runtime decisions refined the textual surface: **D8** —
 > function-header params render verbatim from their `AllocationPlan` frame-slot `Location`
 > symbols (`__frame_Math_add_a: i8u`); **D9** — the `poke`/`peek` address lowers to a symbolic
 > `location` (`$D020`), keeping addresses symbolic through the IL (AR-52). See the plan's
@@ -579,7 +580,7 @@ does NOT depend on this package.
 ## 6. Acceptance Criteria
 
 - [ ] AC-01: `lowerToIL()` accepts a `SemanticModel` + `AllocationPlan` and returns an `ILProgram`
-- [ ] AC-02: Every AST node kind that produces runtime behavior has a defined IL lowering (no "not implemented" gaps for supported language features) *(RD-18 Slice 7a closed the aggregate gaps: Index/StructLit/ArrayLit/field chains lower; the indirect pointer tier remains the documented boundary until 7b)*
+- [x] AC-02: Every AST node kind that produces runtime behavior has a defined IL lowering (no "not implemented" gaps for supported language features) *(RD-18 Slice 7a closed the aggregate gaps: Index/StructLit/ArrayLit/field chains lower; 7b shipped the pointer tier; 8a shipped interrupts/address-of; 8b shipped string/char literals and embed. The six 8a-deferred ICEs and format-aware embed remain documented LOUD boundaries — diagnosed, never silent.)*
 - [ ] AC-03: All IL instructions carry explicit `ILType` annotations (width + signedness)
 - [ ] AC-04: Type promotions (byte→word, sbyte→sword) produce explicit `zext`/`sext` instructions
 - [ ] AC-05: Explicit casts produce the correct conversion instruction (`zext`/`sext`/`trunc`/no-op)

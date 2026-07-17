@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-17 21:10
-> **Progress**: 52/58 tasks (90%)
+> **Last Updated**: 2026-07-17 21:42
+> **Progress**: 58/58 tasks (100%) — ✅ PLAN COMPLETE; RD-18 CLOSED
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -193,12 +193,12 @@ implement → green → impl tests → full verify). Designs live in the 03-docs
 
 **Reference**: 03-05 · AR-15 (doc-only; runs after the bar is green)
 
-- [ ] 6.1.1 Audit + tick RD-04 AC-02..AC-20 (tick-with-annotation where 03-05 names it) — `requirements/RD-04-semantic-analysis.md`
-- [ ] 6.1.2 Audit + tick RD-06 AC-02 and RD-07 AC-07..AC-09 (annotations per 03-05) — `requirements/RD-{06,07}-*.md`
-- [ ] 6.1.3 Retire the RD-04b phantom (three refs per 03-05) — same files
-- [ ] 6.1.4 Tick RD-18 items 7 (traversal clause + AR-16 annotation), 8, 9 (security checklist per 03-05) — `requirements/RD-18-codegen-language-completion.md`
-- [ ] 6.1.5 Mint `08-resource-report.md`; advance both roadmaps (RD-18 → ✅ Done, cascade) — this plan dir + `codeops/**/00-roadmap.md`
-- [ ] 6.1.6 Final full verify + `git status --porcelain spec/` empty
+- [x] 6.1.1 Audit + tick RD-04 AC-02..AC-20 (tick-with-annotation where 03-05 names it) — `requirements/RD-04-semantic-analysis.md` ✅ (completed: 2026-07-17 21:42; impl 21:24 — 19 rows ✅ with per-row evidence; AC-18 annotated per 03-05)
+- [x] 6.1.2 Audit + tick RD-06 AC-02 and RD-07 AC-07..AC-09 (annotations per 03-05) — `requirements/RD-{06,07}-*.md` ✅ (completed: 2026-07-17 21:42; impl 21:24 — AC-02 extended 7a annotation; AC-09 Pattern-B annotated as the 8a-deferred loud ICE)
+- [x] 6.1.3 Retire the RD-04b phantom (three refs per 03-05) — same files ✅ (completed: 2026-07-17 21:42; impl 21:24 — all three refs annotated with the supersession)
+- [x] 6.1.4 Tick RD-18 items 7 (traversal clause + AR-16 annotation), 8, 9 (security checklist per 03-05) — `requirements/RD-18-codegen-language-completion.md` ✅ (completed: 2026-07-17 21:42; impl 21:24)
+- [x] 6.1.5 Mint `08-resource-report.md`; advance both roadmaps (RD-18 → ✅ Done, cascade) — this plan dir + `codeops/**/00-roadmap.md` ✅ (completed: 2026-07-17 21:42; impl 21:24)
+- [x] 6.1.6 Final full verify + `git status --porcelain spec/` empty ✅ (completed: 2026-07-17 21:42 — 17/17 turbo tasks; spec/ porcelain empty; PLAN COMPLETE 58/58)
 
 **Verify**: (same command)
 

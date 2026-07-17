@@ -409,11 +409,23 @@ passes and the parent-RD ACs it advances are ticked.
        (`$C000..$C006 = 00 2A 0F 1D 11 0B 16`, incl. the runtime-word-index formation proof
        at index 260); 212-line golden committed; both 7a E90001 rejections retired
        loud-never-silent.
-7. [ ] **Slice 8**: a raster-`interrupt` program installed via `pokew($0314, &onIRQ)` VICE-verifies
+7. [x] **Slice 8**: a raster-`interrupt` program installed via `pokew($0314, &onIRQ)` VICE-verifies
        an observable effect (border color flips across frames); `zeropage {}` variables land in ZP;
        `embed()` rejects `..` traversal; a non-terminating `main` runs under the frames strategy.
-8. [ ] **Rollout closure**: RD-04 AC-02..20, RD-06 AC-02, RD-07 AC-07..09 are all ticked; the
+       *(8a: the interrupt/zeropage/non-terminating-main clauses — the `$0314` KERNAL-vector sketch
+       was superseded by the raw-vector `$FFFE/$FFFA` install (8a AR-16); VICE-verified raster
+       fixture. 8b: the traversal clause — E10205 rejects `..` escapes lexically (target existence
+       irrelevant) and canonically (symlink escapes), pinned by facade + reader suites.)*
+8. [x] **Rollout closure**: RD-04 AC-02..20, RD-06 AC-02, RD-07 AC-07..09 are all ticked; the
        roadmap's RD-04/RD-06 rows carry the "slice-scoped; full scope driven by RD-18" annotation;
        the phantom RD-04b is retired; `git status --porcelain spec/` is empty throughout.
-9. [ ] Security requirements verified per slice (diagnostic-not-crash on malformed input; bounded
+       *(Closed 2026-07-17 with Slice 8b: every named AC audited and ticked (annotated where a
+       documented deferral covers the remainder); the RD-04b references in RD-04/06/07 carry the
+       supersession notes; `spec/` untouched through the whole rollout.)*
+9. [x] Security requirements verified per slice (diagnostic-not-crash on malformed input; bounded
        recursion/const-eval; `embed` traversal rejection) — see Security Considerations.
+       *(Verified 2026-07-17: every slice ships a facade negative suite proving diagnostics-not-
+       crashes on malformed input; const-eval/recursion are bounded (memoised engine, E10174
+       recursion rejection); 8b's embed is traversal-safe — lexical + canonical (realpath)
+       project-root containment (E10205), invalid-path rejection, and the 65536-byte
+       stat-before-read cap with a post-read re-check — all pinned by tests.)*

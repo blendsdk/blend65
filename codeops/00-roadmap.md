@@ -18,7 +18,7 @@
 
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
-| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18** codegen language completion in flight — Slices 3a–8a ✅, 8b data (last) executing 🔄 (strings/embed + RD-18 closure; closing slice); RD-01..RD-17 ✅, RD-13/RD-14 queued | 18/20 | 🔄 | 2026-07-17 |
+| blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 ✅ CLOSED 2026-07-17** (Slice 8b 58/58 — strings/embed + closure; whole frozen v3 language compiles end-to-end, unoptimized) — RD-01..RD-18 ✅; next: RD-13/RD-14 (both need `make_plan`) | 18/20 | 🔄 | 2026-07-17 |
 
 ## Archived
 

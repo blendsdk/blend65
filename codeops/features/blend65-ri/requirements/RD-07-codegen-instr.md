@@ -2,7 +2,7 @@
 
 > **🔱 07a/07b SPLIT (decision D1, plan `rd-07a-instr-model`):** RD-07 is implemented in
 > two parts to isolate the stable core from the consumer-coupled remainder (the AR-38
-> pattern already used for RD-04→RD-04b and RD-11→RD-11a). **RD-07a** (implemented) ships
+> pattern already used for RD-04→RD-04b — later superseded by the RD-18 rollout — and RD-11→RD-11a). **RD-07a** (implemented) ships
 > the *stable, zero-throwaway core*: the `Instr` model (R1–R13), the NMOS-6502 CPU
 > validation table + validator with gated 65C02 extensions (R14–R16), and the canonical
 > ACME serializer `printInstr` (R52–R54), all in `@blend65/codegen/src/instr/`, taking only
@@ -457,9 +457,9 @@ function validateInstr(instr: StreamEntry, cpu: CpuTable, bag: DiagnosticBag): v
 - [x] AC-04: All operands are symbolic — no hard-coded `$xxxx` addresses in core codegen
 - [x] AC-05: Labels and directives are first-class `StreamEntry` values in the stream
 - [x] AC-06: Every generated `Instr` passes CPU validation (`generateInstr` runs `validateStream`)
-- [ ] AC-07: The calling convention (parameter store → JSR → return extraction) matches Ch 06 §5.4 — RD-07c (no `call` lowered yet)
-- [ ] AC-08: Interrupt prologue/epilogue — RD-07c (the `RTS`→`RTI` swap is in; the save/restore body awaits a lowered interrupt body)
-- [ ] AC-09: For-loop Pattern A/B selection — RD-07c (no multi-block CFG lowered yet)
+- [x] AC-07: The calling convention (parameter store → JSR → return extraction) matches Ch 06 §5.4 *(shipped by RD-18 slice 5a; VICE-verified across every later slice fixture)*
+- [x] AC-08: Interrupt prologue/epilogue *(shipped by RD-18 slice 8a: unconditional A/X/Y save + reverse restore + RTI at every exit; VICE-verified raster fixture)*
+- [x] AC-09: For-loop Pattern A/B selection *(Pattern A shipped by RD-18 slice 4a; Pattern-B full-range iteration remains a documented 8a-deferred LOUD ICE boundary)*
 - [x] AC-10: Multiply generates constant-fold / shift-and-add / software-call per Ch 04 §3.2, with W10172/W10170 warnings
 - [x] AC-11: The `byteSelect` modifier produces correct ACME `<sym`/`>sym` syntax (RD-07a; consumed by 07b word const/load)
 - [x] AC-12: Source spans propagate from IL (`source_span`) through to `Instr.sourceSpan` (lead instr, R50)

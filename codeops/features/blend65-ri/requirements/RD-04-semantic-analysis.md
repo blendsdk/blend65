@@ -19,6 +19,9 @@
 > PASSTHROUGH SKELETON only.** Per the project's research strategy ("working compiler first;
 > correct before fast; build incrementally"), the real four-pass type/scope/control-flow
 > checker is **deferred to a future RD** (provisionally `RD-04b-semantic-checker`).
+> *(Retired: no RD-04b was ever created — the RD-18 slice rollout consumed the
+> deferred-semantics ledger slice-by-slice, and the real four-pass checker shipped across
+> slices 3a–8b.)*
 >
 > **In scope NOW (implemented):**
 > - **R1** (four-pass architecture — as named seam functions), **R7–R8** (scope/symbol shapes),
@@ -827,25 +830,25 @@ All diagnostic codes emitted by the semantic analyzer, consolidated from Ch 14:
 | # | Criterion |
 |---|-----------|
 | AC-01 | `analyze()` accepts a `ProgramNode[]` from `parse()` and returns a `SemanticModel` with no thrown exceptions, even for programs with errors. |
-| AC-02 | A program with `module Main; function main(): void { poke(0xD020, 5); }` produces a `SemanticModel` with `hasErrors === false`, a resolved `mainFunction` symbol, and correct type annotations for the `poke()` intrinsic call. |
-| AC-03 | A program with an undeclared identifier `x` emits exactly one E10100 diagnostic with the correct span pointing to `x`. |
-| AC-04 | A program assigning `word` to `byte` without a cast emits E10154 with a message naming both types. |
-| AC-05 | A program mixing `byte + sbyte` emits E10153. |
-| AC-06 | A program with `let x: bool = 5;` emits E10152 (type mismatch). |
-| AC-07 | A program with two functions `a() → b() → a()` (indirect recursion) emits E10174 for both functions. |
-| AC-08 | A program with no `main()` emits E10020. A program with two `main()` functions emits E10021. |
-| AC-09 | A `const` with a non-constant initializer (e.g., referencing a `let` variable) emits E10193. |
-| AC-10 | Struct literal with a missing field emits E10161; with an extra field emits E10162. |
-| AC-11 | Enum with duplicate backing values emits E10142. Enum with >256 members emits E10141. |
-| AC-12 | `break` outside a loop/switch emits E10130. `continue` outside a loop emits E10131. |
-| AC-13 | A program with an error in expression `x` and a subsequent expression `x + 1` emits only **one** diagnostic (for `x`), not a cascaded type error for the addition — demonstrating poison-type suppression. |
-| AC-14 | The `typeMap` correctly maps every non-error expression node to its resolved `Type`. Verified by inspecting types of literals, binary expressions, function calls, field accesses, and index expressions. |
-| AC-15 | The `callGraph` correctly represents all call edges and `findCycles()` returns an empty array for acyclic programs. |
-| AC-16 | Module-level `let` initializers with a dependency cycle emit E10194. |
-| AC-17 | An `if` condition with an integer expression (not `bool`) emits E10080. |
-| AC-18 | Golden-snapshot tests: the diagnostic output for a suite of test programs is deterministic and matches committed snapshots (H5, AR-74). |
-| AC-19 | `sizeof(StructType)` evaluates to the correct compile-time constant (sum of field sizes, no padding). |
-| AC-20 | Array with size 0 emits E10111. Array with non-constant size emits E10110. |
+| AC-02 | A program with `module Main; function main(): void { poke(0xD020, 5); }` produces a `SemanticModel` with `hasErrors === false`, a resolved `mainFunction` symbol, and correct type annotations for the `poke()` intrinsic call. **✅** *(the shipped four-pass analyzer; the gate/slice3a fixtures compile this shape end-to-end)* |
+| AC-03 | A program with an undeclared identifier `x` emits exactly one E10100 diagnostic with the correct span pointing to `x`. **✅** *(slice3b scalar/scope negative suites)* |
+| AC-04 | A program assigning `word` to `byte` without a cast emits E10154 with a message naming both types. **✅** *(assignment-family suites (E10154))* |
+| AC-05 | A program mixing `byte + sbyte` emits E10153. **✅** *(mixed-sign suites (E10153))* |
+| AC-06 | A program with `let x: bool = 5;` emits E10152 (type mismatch). **✅** *(assignment-mismatch suites; the shipped type keyword is `boolean`)* |
+| AC-07 | A program with two functions `a() → b() → a()` (indirect recursion) emits E10174 for both functions. **✅** *(recursion-rejection suites (E10174 on every cycle member))* |
+| AC-08 | A program with no `main()` emits E10020. A program with two `main()` functions emits E10021. **✅** *(main-validity suites (E10020/E10021))* |
+| AC-09 | A `const` with a non-constant initializer (e.g., referencing a `let` variable) emits E10193. **✅** *(const-eval suites (E10193))* |
+| AC-10 | Struct literal with a missing field emits E10161; with an extra field emits E10162. **✅** *(struct-literal suites (E10161/E10162, slice 7a))* |
+| AC-11 | Enum with duplicate backing values emits E10142. Enum with >256 members emits E10141. **✅** *(enum suites (E10142/E10141))* |
+| AC-12 | `break` outside a loop/switch emits E10130. `continue` outside a loop emits E10131. **✅** *(control-flow suites (E10130/E10131, slices 4a/4b))* |
+| AC-13 | A program with an error in expression `x` and a subsequent expression `x + 1` emits only **one** diagnostic (for `x`), not a cascaded type error for the addition — demonstrating poison-type suppression. **✅** *(poison-suppression pins across the typing suites)* |
+| AC-14 | The `typeMap` correctly maps every non-error expression node to its resolved `Type`. Verified by inspecting types of literals, binary expressions, function calls, field accesses, and index expressions. **✅** *(typing suites; SFA/IL consume the populated typeMap end-to-end)* |
+| AC-15 | The `callGraph` correctly represents all call edges and `findCycles()` returns an empty array for acyclic programs. **✅** *(call-graph suites (slice 5a))* |
+| AC-16 | Module-level `let` initializers with a dependency cycle emit E10194. **✅** *(init-order suites (E10194, slice 5b))* |
+| AC-17 | An `if` condition with an integer expression (not `bool`) emits E10080. **✅** *(condition-typing suites (E10080, slice 4a))* |
+| AC-18 | Golden-snapshot tests: the diagnostic output for a suite of test programs is deterministic and matches committed snapshots (H5, AR-74). **✅ (annotated)** *(evidence is the per-slice facade negative suites — deterministic diagnostic code+message pins — rather than literal-output snapshot files)* |
+| AC-19 | `sizeof(StructType)` evaluates to the correct compile-time constant (sum of field sizes, no padding). **✅** *(query-intrinsic suites (sizeof, slice 7a))* |
+| AC-20 | Array with size 0 emits E10111. Array with non-constant size emits E10110. **✅** *(array-size suites (E10111/E10110, slice 7a))* |
 
 ---
 
