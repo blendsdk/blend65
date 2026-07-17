@@ -101,9 +101,13 @@ export function buildInterferenceGraph(fns: readonly FunctionInfo[]): Interferen
     }
   }
 
-  // Step 2 — always-live nodes interfere with all others.
+  // Step 2 — always-live nodes interfere with all others. The irq-reachable
+  // tier covers a handler's whole call subtree: an interrupt can fire while
+  // ANY mainline function is live, so nothing reached from a handler may
+  // share frame memory with anything else (pointer pairs inherit the same
+  // edges through the coloring passes).
   const alwaysLive = reachable.filter(
-    (f) => f.isInterrupt || f.isEscaped || isMain(f.name),
+    (f) => f.isInterrupt || f.isEscaped || f.isIrqReachable === true || isMain(f.name),
   );
   for (const live of alwaysLive) {
     for (const other of nodes) {

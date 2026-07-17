@@ -3,7 +3,7 @@
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
 > **Last Updated**: 2026-07-17 14:48
-> **Progress**: 26/60 tasks (43%)
+> **Progress**: 37/60 tasks (62%)
 > **CodeOps Skills Version**: 3.8.0
 
 ## Overview
@@ -153,23 +153,23 @@ task-size criteria in the quality checklist)
 **Reference**: 03-03 (whole doc) · AR-15
 **Objective**: pin both miscompile fixes + the twin before touching SFA.
 
-- [ ] 4.1.1 Write interference spec tests (ST-17..ST-19, ST-23, ST-24) — `packages/frontend/src/sfa/irq-interference.spec.test.ts`
-- [ ] 4.1.2 Write temp-pool/scratch spec tests (ST-20..ST-22) — `packages/codegen/src/instr/irq-temp-pool.spec.test.ts`
-- [ ] 4.1.3 Run both — verify FAIL (red phase; ST-23 may pre-pass — document per protocol)
+- [x] 4.1.1 Write interference spec tests (ST-17..ST-19, ST-23, ST-24) — `packages/frontend/src/sfa/irq-interference.spec.test.ts` ✅ (completed: 2026-07-17 15:07)
+- [x] 4.1.2 Write temp-pool/scratch spec tests (ST-20..ST-22) — `packages/codegen/src/instr/irq-temp-pool.spec.test.ts` ✅ (completed: 2026-07-17 15:07 — spill fixture repaired once to the shipped protectA shape (live const across `mul`); expectations untouched)
+- [x] 4.1.3 Run both — verify FAIL (red phase; ST-23 may pre-pass — document per protocol) ✅ (completed: 2026-07-17 15:07 — 7 red; pre-passers documented: ST-23 (flags absent today) + ST-21 (mainline spill already `__zp_tmp_*`))
 
 ### Step 4.2: Implementation
 
-- [ ] 4.2.1 Implement the irq-reachability classification (interrupt roots → BFS → `isIrqReachable`/`isIrqOnly` projection; mainlineReachable = BFS from `main`, `__init`, escaped NON-interrupt fns; exports via real call edges only — PF-001) — `packages/frontend/src/sfa/model-adapter.ts`
-- [ ] 4.2.2 Extend interference Step 2: irq-reachable ⇒ always-live — `packages/frontend/src/sfa/interference.ts`
-- [ ] 4.2.3 Thread the irq flag to translate; binder pool selection (`"irq-temp"` for irq-only) — `packages/codegen/src/instr/{translate,register-binding}.ts`
-- [ ] 4.2.4 Extend the binder's spill-exhaustion ICE to name the dry pool (main vs irq); the irq pool stays the `irqTempBytes` profile constant — no demand sizing (PF-003) — `packages/codegen/src/instr/register-binding.ts`
-- [ ] 4.2.5 Reserve + select `__zp_irq_ptr_scratch` conditionally (predicate mirrors `modelNeedsPointerScratch`, restricted to the irq-ONLY set — PF-002) — `packages/frontend/src/sfa/{model-adapter,plan-allocation}.ts`, formation call-sites in `packages/codegen/src/il/lower.ts`
-- [ ] 4.2.6 Run spec tests — verify PASS (green phase)
+- [x] 4.2.1 Implement the irq-reachability classification (interrupt roots → BFS → `isIrqReachable`/`isIrqOnly` projection; mainlineReachable = BFS from `main`, `__init`, escaped NON-interrupt fns; exports via real call edges only — PF-001) — `packages/frontend/src/sfa/model-adapter.ts` ✅ (completed: 2026-07-17 15:14 — `computeIrqClassification` + optional `isIrqReachable`/`isIrqOnly` FunctionInfo fields (additive; two 3a exact-shape pins extended with the new fields))
+- [x] 4.2.2 Extend interference Step 2: irq-reachable ⇒ always-live — `packages/frontend/src/sfa/interference.ts` ✅ (completed: 2026-07-17 15:14)
+- [x] 4.2.3 Thread the irq flag to translate; binder pool selection (`"irq-temp"` for irq-only) — `packages/codegen/src/instr/{translate,register-binding}.ts` ✅ (completed: 2026-07-17 15:14 — carried as optional `AllocationPlan.irqOnlyFunctions` FQN set; binder gains a pool selector param)
+- [x] 4.2.4 Extend the binder's spill-exhaustion ICE to name the dry pool (main vs irq); the irq pool stays the `irqTempBytes` profile constant — no demand sizing (PF-003) — `packages/codegen/src/instr/register-binding.ts` ✅ (completed: 2026-07-17 15:14)
+- [x] 4.2.5 Reserve + select `__zp_irq_ptr_scratch` conditionally (predicate mirrors `modelNeedsPointerScratch`, restricted to the irq-ONLY set — PF-002) — `packages/frontend/src/sfa/{model-adapter,plan-allocation}.ts`, formation call-sites in `packages/codegen/src/il/lower.ts` ✅ (completed: 2026-07-17 15:14 — `modelNeedsIrqPointerScratch` (exact pair-accessed-owner arm + conservative big-array arm); `LowerCtx.scratchPair` selects the twin; run-frontend wired)
+- [x] 4.2.6 Run spec tests — verify PASS (green phase) ✅ (completed: 2026-07-17 15:14 — 5/5 interference + 4/4 pool/twin, first run)
 
 ### Step 4.3: Hardening
 
-- [ ] 4.3.1 Impl tests (BFS cycles, both-path shapes, sizing edges) — `*.impl.test.ts`
-- [ ] 4.3.2 Assert all ten prior goldens byte-exact (empty-irq degeneracy) + full verify
+- [x] 4.3.1 Impl tests (BFS cycles, both-path shapes, sizing edges) — `*.impl.test.ts` ✅ (completed: 2026-07-17 15:14 — `irq-classification.impl.test.ts` 5/5, incl. the escaped-handler install idiom keeping helpers irq-only and the exported handler-only helper)
+- [x] 4.3.2 Assert all ten prior goldens byte-exact (empty-irq degeneracy) + full verify ✅ (completed: 2026-07-17 15:14 — FULL VERIFY PASS; all ten goldens byte-exact)
 
 **Verify**: the AR-27 command
 

@@ -128,10 +128,16 @@ interface RegisterState {
  * @param bag The diagnostic sink for the over-budget ICE.
  * @returns A fresh, function-local register binder.
  */
-export function createRegisterBinder(plan: AllocationPlan, bag: DiagnosticBag): RegisterBinder {
-  // The ZP scratch slots available for spilling, in allocation order.
+export function createRegisterBinder(
+  plan: AllocationPlan,
+  bag: DiagnosticBag,
+  pool: "temp" | "irq-temp" = "temp",
+): RegisterBinder {
+  // The ZP scratch slots available for spilling, in allocation order. An
+  // interrupt-only function draws from the separate irq pool so its spills
+  // can never land on a live mainline scratch byte.
   const tempSlots: readonly string[] = plan.zpAllocations
-    .filter((z) => z.category === "temp")
+    .filter((z) => z.category === pool)
     .map((z) => z.name);
 
   const state: RegisterState = { a: null, x: null, y: null };
@@ -208,8 +214,8 @@ export function createRegisterBinder(plan: AllocationPlan, bag: DiagnosticBag): 
       bag.addICE(
         IceCode.Unexpected,
         null,
-        `register binder: spill demand exceeds the plan's ZP temp runs ` +
-          `(${tempSlots.length} available)`,
+        `register binder: spill demand exceeds the plan's ZP '${pool}' runs ` +
+          `(${tempSlots.length} available) — raise the profile's pool size`,
       );
       return;
     }

@@ -119,6 +119,8 @@ describe("modelToFunctionInfo — internals & edges (Slice 3a)", () => {
         isInterrupt: false,
         isEscaped: false,
         isReachable: true,
+        isIrqReachable: false,
+        isIrqOnly: false,
         callees: [],
         argWindowInterferes: [],
       },

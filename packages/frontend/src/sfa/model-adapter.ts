@@ -55,6 +55,7 @@ import type { ModuleVarInput } from "./zp-allocator.js";
  */
 export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
   const windows = computeArgWindows(model);
+  const irq = computeIrqClassification(model);
   const result: FunctionInfo[] = [];
   for (const fn of model.callGraph.functions) {
     const scope = model.scopeOf(fn.decl); // the function body scope
@@ -72,6 +73,8 @@ export function modelToFunctionInfo(model: SemanticModel): FunctionInfo[] {
       // never share their frame memory.
       isEscaped: model.addressTakenFunctions.has(fn),
       isReachable: true, // liveness analysis arrives later; main is reachable
+      isIrqReachable: irq.irqReachable.has(fn),
+      isIrqOnly: irq.irqOnly.has(fn),
       callees,
       argWindowInterferes: window === undefined ? [] : [...window].sort(),
     });
@@ -346,6 +349,53 @@ function collectFrameVars(
 }
 
 /**
+ * The interrupt-reachability classification, computed ONCE from the call
+ * graph and consumed by three mechanisms: the always-live interference tier
+ * (frames and pairs), the spill-pool selector, and the irq formation-scratch
+ * reservation.
+ *
+ * `irqReachable` is the BFS closure from every interrupt handler.
+ * `mainlineReachable` is the BFS closure from `main`, and from every escaped
+ * NON-interrupt function (an escaped plain function may be invoked from
+ * mainline through a platform seam; an escaped HANDLER is excluded — taking
+ * a handler's address is precisely how it gets installed, and handlers are
+ * uncallable/unexportable from mainline, so counting them here would empty
+ * the interrupt-only set in every real program). Exported functions
+ * participate only through real call edges — a helper only a handler calls
+ * stays interrupt-only whether or not it is exported. The module
+ * initializer stream is call-free, so it contributes no edges of its own.
+ *
+ * `irqOnly` = irqReachable ∖ mainlineReachable.
+ */
+function computeIrqClassification(model: SemanticModel): {
+  irqReachable: Set<Symbol>;
+  irqOnly: Set<Symbol>;
+} {
+  const irqReachable = new Set<Symbol>();
+  for (const fn of model.callGraph.functions) {
+    if (fn.kind !== "interrupt") continue;
+    for (const reached of reach(fn, model)) irqReachable.add(reached);
+  }
+  if (irqReachable.size === 0) return { irqReachable, irqOnly: new Set() };
+
+  const mainlineReachable = new Set<Symbol>();
+  const mainRoots: Symbol[] = [];
+  if (model.mainFunction !== null) mainRoots.push(model.mainFunction);
+  for (const taken of model.addressTakenFunctions) {
+    if (taken.kind !== "interrupt") mainRoots.push(taken);
+  }
+  for (const root of mainRoots) {
+    for (const reached of reach(root, model)) mainlineReachable.add(reached);
+  }
+
+  const irqOnly = new Set<Symbol>();
+  for (const fn of irqReachable) {
+    if (!mainlineReachable.has(fn)) irqOnly.add(fn);
+  }
+  return { irqReachable, irqOnly };
+}
+
+/**
  * Whether the program can demand runtime pointer FORMATION, requiring the
  * shared `__zp_ptr_scratch` pair: any pair-accessed by-ref parameter exists,
  * or any declared storage or constant aggregate transitively contains an
@@ -358,7 +408,43 @@ function collectFrameVars(
  */
 export function modelNeedsPointerScratch(model: SemanticModel): boolean {
   if (model.pairAccessedParams.size > 0) return true;
+  return hasBigArrayStorage(model);
+}
 
+/**
+ * Whether some interrupt-ONLY function can demand runtime pointer formation,
+ * requiring the dedicated `__zp_irq_ptr_scratch` pair (mainline formation
+ * must never share its staging bytes with code an interrupt can run at any
+ * moment). Exact where cheap — a pair-accessed by-ref parameter owned by an
+ * interrupt-only function — and conservative for the big-array arm (any
+ * over-256-byte storage anywhere reserves the pair when interrupt-only code
+ * exists; an unused reservation spends 2 ZP bytes, matching the mainline
+ * predicate's stance).
+ *
+ * @param model The semantic model.
+ * @returns `true` when the irq scratch pair must be reserved.
+ */
+export function modelNeedsIrqPointerScratch(model: SemanticModel): boolean {
+  const { irqOnly } = computeIrqClassification(model);
+  if (irqOnly.size === 0) return false;
+  for (const param of model.pairAccessedParams) {
+    const owner = owningFunction(param, model);
+    if (owner !== null && irqOnly.has(owner)) return true;
+  }
+  return hasBigArrayStorage(model);
+}
+
+/** The function symbol whose declaration owns `param`'s body scope, or `null`. */
+function owningFunction(param: Symbol, model: SemanticModel): Symbol | null {
+  const bodyNode = param.scope.node;
+  for (const fn of model.callGraph.functions) {
+    if (fn.decl === bodyNode) return fn;
+  }
+  return null;
+}
+
+/** Whether any declared storage transitively contains a >256-byte array. */
+function hasBigArrayStorage(model: SemanticModel): boolean {
   const scopeHasBigStorage = (scope: Scope): boolean => {
     for (const sym of scope.symbols.values()) {
       if (sym.kind !== "variable" && sym.kind !== "constant") continue;

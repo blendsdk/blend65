@@ -186,7 +186,13 @@ class FunctionTranslator {
     private readonly bag: DiagnosticBag,
     private readonly opts?: TranslateOptions,
   ) {
-    this.binder = createRegisterBinder(plan, bag);
+    // Interrupt-only functions spill into the separate irq pool (Ch 06's
+    // ZP-separation rule); everything else keeps the main pool.
+    this.binder = createRegisterBinder(
+      plan,
+      bag,
+      plan.irqOnlyFunctions?.has(fn.name) === true ? "irq-temp" : "temp",
+    );
   }
 
   /**

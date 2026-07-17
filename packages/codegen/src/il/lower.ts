@@ -173,6 +173,15 @@ interface LowerCtx {
    * planned frame slot. Reset per function and per init stream.
    */
   scCounter: number;
+  /**
+   * The zero-page pair this function stages runtime pointer formation
+   * through: interrupt-only functions use the dedicated
+   * `__zp_irq_ptr_scratch` (an interrupt firing mid-formation must never
+   * find its own staging bytes holding a mainline half-formed pointer);
+   * everything else — including the module initializer — uses
+   * `__zp_ptr_scratch`.
+   */
+  readonly scratchPair: string;
 }
 
 /**
@@ -269,6 +278,7 @@ function lowerInitCode(
     plan: input.plan,
     moduleInit: true,
     scCounter: 0,
+    scratchPair: SCRATCH_PAIR, // the initializer stream is never interrupt-only
   };
   for (const sym of input.model.initOrder) {
     const init = initializers.get(sym);
@@ -334,6 +344,8 @@ function lowerFunction(
     plan,
     moduleInit: false,
     scCounter: 0,
+    scratchPair:
+      plan.irqOnlyFunctions?.has(fqName) === true ? IRQ_SCRATCH_PAIR : SCRATCH_PAIR,
   };
 
   if (fn.kind === "FunctionDecl") emitPairPrologue(fn, ctx);
@@ -1618,6 +1630,9 @@ function pairSymbol(fqName: string, paramName: string): string {
 /** The shared scratch pair the runtime pointer formation stages through. */
 const SCRATCH_PAIR = "__zp_ptr_scratch";
 
+/** The interrupt-only formation twin — see `LowerCtx.scratchPair`. */
+const IRQ_SCRATCH_PAIR = "__zp_irq_ptr_scratch";
+
 /** Narrows an expression to an address-of unary (`&x`). */
 function isAddressOfExpr(e: ExprNode): e is UnaryExprNode {
   return e.kind === "UnaryExpr" && (e as UnaryExprNode).op === "&";
@@ -1781,15 +1796,15 @@ function resolveIndirectAccess(
 
   // Formation. Guard the reservation first — staging without the scratch
   // pair would emit a dangling symbol.
-  if (!ctx.plan.symbolDefinitions.some((s) => s.name === SCRATCH_PAIR)) {
+  if (!ctx.plan.symbolDefinitions.some((s) => s.name === ctx.scratchPair)) {
     ctx.bag.addICE(
       IceCode.Unexpected,
       null,
-      "IL lowering: runtime pointer formation demanded but the scratch pair is not reserved",
+      `IL lowering: runtime pointer formation demanded but '${ctx.scratchPair}' is not reserved`,
     );
-    return { ptr: loc(SCRATCH_PAIR, IL_WORD), offset: imm(0, IL_BYTE) };
+    return { ptr: loc(ctx.scratchPair, IL_WORD), offset: imm(0, IL_BYTE) };
   }
-  const scratch = loc(SCRATCH_PAIR, IL_WORD);
+  const scratch = loc(ctx.scratchPair, IL_WORD);
 
   // (1) The scaled index (word domain) — homed in scratch. With no runtime
   // index the base's big const offset alone drives the formation.
@@ -1864,10 +1879,10 @@ function resolveIndirectAccess(
   return { ptr: scratch, offset: imm(residual, IL_BYTE) };
 }
 
-/** Loads the scratch pair's current word into a fresh (memory-homed) temp. */
+/** Loads this function's scratch pair's current word into a fresh temp. */
 function emitScratchLoad(ctx: LowerCtx): ILOperand {
   const t = ctx.builder.newTemp(IL_WORD);
-  ctx.builder.emit({ op: "load", a: t, b: loc(SCRATCH_PAIR, IL_WORD) });
+  ctx.builder.emit({ op: "load", a: t, b: loc(ctx.scratchPair, IL_WORD) });
   return t;
 }
 
@@ -1890,15 +1905,15 @@ function emitScratchLoad(ctx: LowerCtx): ILOperand {
  * never reserved — emitting would produce a dangling symbol.
  */
 function formArgumentAddress(place: Place, ctx: LowerCtx): ILOperand | null {
-  if (!ctx.plan.symbolDefinitions.some((s) => s.name === SCRATCH_PAIR)) {
+  if (!ctx.plan.symbolDefinitions.some((s) => s.name === ctx.scratchPair)) {
     ctx.bag.addICE(
       IceCode.Unexpected,
       null,
-      "IL lowering: argument-address formation demanded but the scratch pair is not reserved",
+      `IL lowering: argument-address formation demanded but '${ctx.scratchPair}' is not reserved`,
     );
     return null;
   }
-  const scratch = loc(SCRATCH_PAIR, IL_WORD);
+  const scratch = loc(ctx.scratchPair, IL_WORD);
 
   // (1) Any runtime index lands scaled, word-wide, in scratch.
   let indexInScratch = false;

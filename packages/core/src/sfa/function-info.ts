@@ -57,6 +57,22 @@ export interface FunctionInfo {
   readonly isEscaped: boolean;
   /** `true` if called/exported/address-taken; unreachable functions are excluded. */
   readonly isReachable: boolean;
+  /**
+   * `true` when this function is reachable along call edges from an interrupt
+   * handler. The whole set joins the always-live interference tier: an
+   * interrupt can fire while any mainline function is live, so these frames
+   * (and their pointer pairs) must never share memory with anything. Absent
+   * means `false`.
+   */
+  readonly isIrqReachable?: boolean;
+  /**
+   * `true` when this function is reachable ONLY from interrupt handlers —
+   * never from `main`, the module initializer, or an escaped non-interrupt
+   * function. Interrupt-only functions draw spill temps from the separate
+   * irq pool and stage pointer formation through the irq scratch pair.
+   * Absent means `false`.
+   */
+  readonly isIrqOnly?: boolean;
   /** Outgoing call edges, by callee fully-qualified name (call-graph projection). */
   readonly callees: readonly string[];
   /**

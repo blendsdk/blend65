@@ -75,6 +75,13 @@ export interface PlanInput {
    * and pointer-free programs stay byte-identical; defaults to `false`.
    */
   readonly needsPointerScratch?: boolean;
+  /**
+   * Reserve the dedicated `__zp_irq_ptr_scratch` pair (the adapter's
+   * `modelNeedsIrqPointerScratch`): interrupt-only code that forms pointers
+   * at runtime must never stage through the mainline scratch an interrupt
+   * could corrupt mid-formation. Optional; defaults to `false`.
+   */
+  readonly needsIrqPointerScratch?: boolean;
 }
 
 /** Re-export so callers can build the module-var inputs from one place. */
@@ -134,10 +141,11 @@ export function planAllocation(
   // conditional scratch pair + priority allocation. The allocator owns E10032.
   const peakPointers = computePeakPointers(input.functions, graph);
   const needsScratch = input.needsPointerScratch === true;
+  const needsIrqScratch = input.needsIrqPointerScratch === true;
   const zp = allocateZeroPage(
     {
       userVars: input.zpUserVars,
-      peakPointers: peakPointers + (needsScratch ? 1 : 0),
+      peakPointers: peakPointers + (needsScratch ? 1 : 0) + (needsIrqScratch ? 1 : 0),
       mainTemps: profile.mainTempBytes,
       irqTemps: profile.irqTempBytes,
       argBlockMin: profile.zpArgBlockMin,
@@ -173,6 +181,14 @@ export function planAllocation(
       pointerAliases.push({
         name: "__zp_ptr_scratch",
         value: poolBase + peakPointers * 2,
+        zeroPage: true,
+      });
+    }
+    if (needsIrqScratch) {
+      // The irq twin sits after the mainline scratch (deterministic order).
+      pointerAliases.push({
+        name: "__zp_irq_ptr_scratch",
+        value: poolBase + peakPointers * 2 + (needsScratch ? 2 : 0),
         zeroPage: true,
       });
     }
@@ -215,6 +231,12 @@ export function planAllocation(
 
   const plan: AllocationPlan = {
     frames: frameAllocs,
+    // The instruction layer keys its per-function ZP-pool and scratch-pair
+    // selection off this set — one classification, computed in the adapter,
+    // carried by the plan.
+    irqOnlyFunctions: new Set(
+      input.functions.filter((f) => f.isIrqOnly === true).map((f) => f.name),
+    ),
     dataBase: profile.ramStart,
     frameRegionBase,
     frameRegionSize: coloring.frameRegionSize,

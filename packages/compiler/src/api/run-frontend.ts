@@ -30,6 +30,7 @@ import { PLATFORM_REGISTRY, loadPlatform } from "@blend65/platforms";
 import {
   analyze,
   lex,
+  modelNeedsIrqPointerScratch,
   modelNeedsPointerScratch,
   modelToFunctionInfo,
   modelToModuleVars,
@@ -174,6 +175,7 @@ export function runFrontend(options: CompilerOptions, host?: CompilerHost): Fron
           zpUserVars: [],
           upstreamErrors: false, // gated: planning only runs on a clean frontend
           needsPointerScratch: modelNeedsPointerScratch(semanticModel),
+          needsIrqPointerScratch: modelNeedsIrqPointerScratch(semanticModel),
         },
         DEFAULT_PROFILE,
         bag,

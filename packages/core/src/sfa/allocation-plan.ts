@@ -192,6 +192,15 @@ export interface AllocationPlan {
   readonly stackAnalysis: StackAnalysis;
   /** ACME symbol definitions for the `.asm` header, in deterministic order. */
   readonly symbolDefinitions: readonly SymbolDefinition[];
+  /**
+   * Fully-qualified names of the functions reachable ONLY from interrupt
+   * handlers. The instruction layer draws their spill temps from the
+   * `irq-temp` pool and stages their pointer formation through the dedicated
+   * irq scratch pair, so an interrupt firing mid-expression can never corrupt
+   * live mainline zero-page workspace. Absent (older plans / fixtures) means
+   * the empty set.
+   */
+  readonly irqOnlyFunctions?: ReadonlySet<string>;
   /** Aggregate resource-usage data for the build summary. */
   readonly resourceData: SfaResourceData;
   /** `true` if a ZP (E10032) or RAM (E10033) budget error was emitted. */
