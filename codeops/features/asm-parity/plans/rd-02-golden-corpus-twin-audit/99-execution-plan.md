@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 15:05
-> **Progress**: 42/58 tasks (72%)
+> **Last Updated**: 2026-07-18 15:22
+> **Progress**: 46/58 tasks (79%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -192,16 +192,16 @@ task-size criteria in the quality checklist)
 **Reference**: 07 ST-16, ST-17, ST-19 · 03-03 · plan-AR #6, #7 + #11 addendum (input flags)
 **Objective**: generator enforcement pinned against temp inputs before it exists
 
-- [ ] 4.1.1 Write generator spec tests (ST-16, ST-17, ST-19 — via `--manifest`/`--budgets` temp copies, 1-pair forms where possible; never committed assets; ST-19 asserts the `gen-parity-scoreboard:` stderr prefix) — `test/gen-parity-scoreboard.spec.test.ts`
-- [ ] 4.1.2 Red phase: all fail (script absent)
+- [x] 4.1.1 Write generator spec tests (ST-16, ST-17, ST-19 — via `--manifest`/`--budgets` temp copies, 1-pair forms where possible; never committed assets; ST-19 asserts the `gen-parity-scoreboard:` stderr prefix) — `test/gen-parity-scoreboard.spec.test.ts` ✅ (completed: 2026-07-18 15:12 — plus a fully-routed 1-pair positive anchor with measured columns)
+- [x] 4.1.2 Red phase: all fail (script absent) ✅ (completed: 2026-07-18 15:12 — 5/5 fail: Cannot find module gen-parity-scoreboard.mjs)
 
 ### Step 4.2: Implementation
 
 **Reference**: 03-03 §generator
 **Objective**: a deterministic, routing-enforcing generator
 
-- [ ] 4.2.1 Implement `scripts/gen-parity-scoreboard.mjs` + root alias `gen:scoreboard` — routing enforcement before output, deterministic render, measured columns from committed data, `--out`/`--manifest`/`--budgets` all repo-inside-canonicalized
-- [ ] 4.2.2 Green phase: ST-16, ST-17, ST-19 pass
+- [x] 4.2.1 Implement `scripts/gen-parity-scoreboard.mjs` + root alias `gen:scoreboard` — routing enforcement before output, deterministic render, measured columns from committed data, `--out`/`--manifest`/`--budgets` all repo-inside-canonicalized ✅ (completed: 2026-07-18 15:22)
+- [x] 4.2.2 Green phase: ST-16, ST-17, ST-19 pass ✅ (completed: 2026-07-18 15:22 — 5/5 green incl. the fully-routed 1-pair positive anchor)
 
 ### Step 4.3: Implementation tests & hardening
 

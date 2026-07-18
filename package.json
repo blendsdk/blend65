@@ -17,7 +17,8 @@
     "test": "turbo run test && vitest run test/",
     "gen:matrix": "node scripts/gen-capability-matrix.mjs",
     "twin:diff": "node scripts/twin-diff.mjs",
-    "annotate:cycles": "node scripts/annotate-cycles.mjs"
+    "annotate:cycles": "node scripts/annotate-cycles.mjs",
+    "gen:scoreboard": "node scripts/gen-parity-scoreboard.mjs"
   },
   "devDependencies": {
     "turbo": "^2",

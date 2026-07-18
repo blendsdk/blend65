@@ -1,0 +1,260 @@
+#!/usr/bin/env node
+// Parity scoreboard generator: renders the committed scoreboard from repo
+// state — per-pair byte/cycle ratios (generated ÷ hand-written, two
+// decimals), a corpus totals row, measured columns from COMMITTED data
+// only (budgets.json + the pair manifest), and per-pair routing sections
+// with issue links. Routing is enforced BEFORE any output is written:
+// every computed divergence group needs a routing entry and every routing
+// key needs computed rows — unrouted or stale groups abort generation.
+//
+//   node scripts/gen-parity-scoreboard.mjs                # write the committed scoreboard
+//   node scripts/gen-parity-scoreboard.mjs --out <path>   # write elsewhere (repo-inside)
+//   node scripts/gen-parity-scoreboard.mjs --manifest <path> --budgets <path>
+//                                                         # override inputs (repo-inside)
+//
+// Output is deterministic — content depends only on repo state, no
+// timestamps — so the CI freshness diff is meaningful. Needs the built
+// packages + ACME; never launches an emulator.
+
+import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { basename, dirname, join, resolve, sep } from "node:path";
+
+import { assembleTwin, buildGeneratedSide, loadManifest } from "./lib/twin-corpus.mjs";
+import { classifyDivergences } from "./twin-diff.mjs";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const GOLDEN_DIR = join(ROOT, "packages", "test-harness", "test", "golden");
+const DEFAULT_MANIFEST = join(GOLDEN_DIR, "twins.json");
+const DEFAULT_BUDGETS = join(GOLDEN_DIR, "budgets.json");
+const DEFAULT_OUT = join(GOLDEN_DIR, "SCOREBOARD.md");
+const ISSUE_BASE = "https://github.com/blendsdk/blend65/issues/";
+
+function fail(message) {
+  console.error(`gen-parity-scoreboard: ${message}`);
+  process.exit(1);
+}
+
+/** Canonicalize a user-supplied path and reject anything outside the repo. */
+function resolveInsideRepo(inputPath, flag) {
+  const canonical = resolve(ROOT, inputPath);
+  if (canonical !== ROOT && !canonical.startsWith(ROOT + sep)) {
+    fail(`${flag} path '${inputPath}' resolves outside the repository`);
+  }
+  return canonical;
+}
+
+/** Load the built compiler, with a clear message when dist is missing. */
+async function loadCompiler() {
+  try {
+    return await import("@blend65/compiler");
+  } catch {
+    fail("cannot load @blend65/compiler — run 'yarn build' first");
+  }
+}
+
+/** Light strict read of the budgets file (the full loader is package-internal). */
+function loadBudgets(budgetsPath) {
+  const fileName = basename(budgetsPath);
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(budgetsPath, "utf8"));
+  } catch (error) {
+    throw new Error(`${fileName}: cannot read/parse '${budgetsPath}': ${error.message}`);
+  }
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    typeof parsed.programs !== "object" ||
+    parsed.programs === null
+  ) {
+    throw new Error(`${fileName}: $ must be { programs: { <program>: { bytes, windows } } }`);
+  }
+  return parsed;
+}
+
+/** Min/max cycle sums of a parsed instruction stream. */
+function cycleSums(instructions, cycleRange) {
+  let minSum = 0;
+  let maxSum = 0;
+  for (const instruction of instructions) {
+    const range = cycleRange(instruction);
+    minSum += range.min;
+    maxSum += range.max;
+  }
+  return { minSum, maxSum };
+}
+
+/** Two-decimal ratio (generated ÷ hand-written) as a string. */
+function ratioOf(generated, hand) {
+  return (generated / hand).toFixed(2);
+}
+
+/**
+ * Routing-enforcement problems for one pair: every computed divergence
+ * category needs a routing entry, every routing key needs computed rows.
+ */
+export function routingProblems(pairName, computedCategories, routing) {
+  const problems = [];
+  for (const category of [...computedCategories].sort()) {
+    if (routing?.[category] === undefined) {
+      problems.push(`unrouted divergence group: ${pairName} × ${category}`);
+    }
+  }
+  for (const key of Object.keys(routing ?? {}).sort()) {
+    if (!computedCategories.has(key)) {
+      problems.push(`stale routing key: ${pairName} × ${key} has no computed divergence rows`);
+    }
+  }
+  return problems;
+}
+
+/** One routing entry rendered as a table row fragment. */
+function renderRoutingEntry(entry) {
+  const issue = entry.issue !== undefined ? `[#${entry.issue}](${ISSUE_BASE}${entry.issue})` : "—";
+  const notes = [];
+  if (entry.sourceForced === true) {
+    notes.push("**source-forced**");
+  }
+  if (entry.note !== undefined) {
+    notes.push(entry.note);
+  }
+  return { issue, notes: notes.length > 0 ? notes.join(" — ") : "—" };
+}
+
+/** Render the deterministic scoreboard markdown from the computed report. */
+export function renderScoreboard(report) {
+  const names = Object.keys(report.pairs).sort();
+  const lines = ["# Parity scoreboard", ""];
+  lines.push(
+    "Generated by `yarn gen:scoreboard` from committed repo state — do not edit by hand.",
+    "Ratios are generated ÷ hand-written; measured columns appear only for pairs with a",
+    "committed measured window (generated from `budgets.json`, twin from `twins.json`).",
+    "",
+  );
+  lines.push(
+    "| Pair | Bytes gen | Bytes twin | Bytes ratio | Cycles gen | Cycles twin | Cycles ratio | Measured gen | Measured twin | Measured ratio |",
+    "| ---- | --------- | ---------- | ----------- | ---------- | ----------- | ------------ | ------------ | ------------- | -------------- |",
+  );
+  const totals = { bytesGen: 0, bytesTwin: 0, cyclesGen: 0, cyclesTwin: 0 };
+  for (const name of names) {
+    const pair = report.pairs[name];
+    totals.bytesGen += pair.bytes.generated;
+    totals.bytesTwin += pair.bytes.hand;
+    totals.cyclesGen += pair.cycles.generated;
+    totals.cyclesTwin += pair.cycles.hand;
+    const measured =
+      pair.measured !== undefined
+        ? `${pair.measured.generated} | ${pair.measured.twin} | ${ratioOf(pair.measured.generated, pair.measured.twin)}`
+        : "— | — | —";
+    lines.push(
+      `| ${name} | ${pair.bytes.generated} | ${pair.bytes.hand} | ${ratioOf(pair.bytes.generated, pair.bytes.hand)} ` +
+        `| ${pair.cycles.generated} | ${pair.cycles.hand} | ${ratioOf(pair.cycles.generated, pair.cycles.hand)} ` +
+        `| ${measured} |`,
+    );
+  }
+  lines.push(
+    `| **Total** | ${totals.bytesGen} | ${totals.bytesTwin} | ${ratioOf(totals.bytesGen, totals.bytesTwin)} ` +
+      `| ${totals.cyclesGen} | ${totals.cyclesTwin} | ${ratioOf(totals.cyclesGen, totals.cyclesTwin)} | — | — | — |`,
+  );
+  for (const name of names) {
+    const pair = report.pairs[name];
+    lines.push("", `## ${name} — routing`, "");
+    lines.push("| Category | Disposition | Issue | Notes |");
+    lines.push("| -------- | ----------- | ----- | ----- |");
+    for (const category of Object.keys(pair.routing).sort()) {
+      for (const entry of pair.routing[category]) {
+        const { issue, notes } = renderRoutingEntry(entry);
+        lines.push(`| ${category} | ${entry.disposition} | ${issue} | ${notes} |`);
+      }
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+async function main() {
+  const args = process.argv.slice(2);
+  const pathFlag = (flag, fallback) => {
+    const index = args.indexOf(flag);
+    if (index === -1) {
+      return fallback;
+    }
+    if (args[index + 1] === undefined) {
+      fail(`${flag} requires a path`);
+    }
+    // Validate every user-supplied path BEFORE any other work.
+    return resolveInsideRepo(args[index + 1], flag);
+  };
+  const outPath = pathFlag("--out", DEFAULT_OUT);
+  const manifestPath = pathFlag("--manifest", DEFAULT_MANIFEST);
+  const budgetsPath = pathFlag("--budgets", DEFAULT_BUDGETS);
+
+  const compiler = await loadCompiler();
+  const { parseReportFile, cycleRange } = compiler;
+
+  // The corpus library THROWS; this CLI maps every failure to exit 1 under
+  // its own stderr prefix.
+  let rendered;
+  try {
+    const manifest = loadManifest(manifestPath);
+    const budgets = loadBudgets(budgetsPath);
+
+    const report = { pairs: {} };
+    const problems = [];
+    for (const name of Object.keys(manifest.pairs).sort()) {
+      const pair = manifest.pairs[name];
+      const generatedSide = await buildGeneratedSide(compiler, join(ROOT, pair.source));
+      const handSide = assembleTwin(join(ROOT, pair.twin));
+      const generated = parseReportFile(
+        readFileSync(generatedSide.reportPath, "utf8"),
+        generatedSide.reportPath,
+      );
+      const hand = parseReportFile(readFileSync(handSide.reportPath, "utf8"), handSide.reportPath);
+      const divergences = classifyDivergences(
+        generated,
+        hand,
+        generatedSide.prgBytes,
+        handSide.prgBytes,
+      );
+      const categories = new Set(divergences.map((row) => row.category));
+      problems.push(...routingProblems(name, categories, pair.routing));
+
+      let measured;
+      if (pair.measured !== undefined) {
+        const windows = budgets.programs[name]?.windows ?? [];
+        const window = windows.find((entry) => entry.name === pair.measured.window);
+        if (window === undefined || window.measuredMaxCycles === undefined) {
+          problems.push(
+            `pair '${name}' measured window '${pair.measured.window}' has no measured budget in ${basename(budgetsPath)}`,
+          );
+        } else {
+          measured = { generated: window.measuredMaxCycles, twin: pair.measured.cycles };
+        }
+      }
+
+      report.pairs[name] = {
+        bytes: { generated: generatedSide.prgBytes, hand: handSide.prgBytes },
+        cycles: {
+          generated: cycleSums(generated, cycleRange).maxSum,
+          hand: cycleSums(hand, cycleRange).maxSum,
+        },
+        measured,
+        routing: pair.routing ?? {},
+      };
+    }
+
+    if (problems.length > 0) {
+      throw new Error(problems.join("\n"));
+    }
+    rendered = renderScoreboard(report);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
+  }
+
+  writeFileSync(outPath, rendered, "utf8");
+}
+
+if (process.argv[1] !== undefined && pathToFileURL(process.argv[1]).href === import.meta.url) {
+  await main();
+}
