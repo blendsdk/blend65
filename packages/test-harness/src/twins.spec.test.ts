@@ -14,6 +14,7 @@
  * Local tier: real ACME + VICE, sequential, skipped in CI.
  */
 
+import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -85,6 +86,17 @@ const PAIR_TABLES: Readonly<Record<string, PairTable>> = {
 };
 
 const manifest = loadTwinManifest(MANIFEST_PATH);
+
+describe("Specification: twin corpus coverage", () => {
+  it("pairs exactly the committed goldens plus balloon, each with a tier registration", () => {
+    const goldens = readdirSync(GOLDEN_DIR)
+      .filter((file) => file.endsWith(".asm.golden"))
+      .map((file) => file.replace(/\.asm\.golden$/, ""));
+    const corpus = [...goldens, "balloon"].sort();
+    expect(Object.keys(manifest.pairs).sort()).toEqual(corpus);
+    expect(Object.keys(PAIR_TABLES).sort()).toEqual(corpus);
+  });
+});
 
 describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: twin tier on VICE", () => {
   for (const [name, pair] of Object.entries(manifest.pairs)) {
