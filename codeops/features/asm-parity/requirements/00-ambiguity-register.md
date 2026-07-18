@@ -1,8 +1,8 @@
 # Ambiguity Register: asm-parity requirements
 
-> **Status**: ✅ GATE PASSED — all 14 items resolved (13 resolved, 1 named deferral)
-> **Last Updated**: 2026-07-17 23:13
-> **Scope**: RD-01 — Parity measurement infrastructure (GitHub issue [#64](https://github.com/blendsdk/blend65/issues/64))
+> **Status**: ✅ GATE PASSED — all 19 items resolved (RD-01 items 1–14: passed 2026-07-17 · RD-02 items 15–19: passed 2026-07-18)
+> **Last Updated**: 2026-07-18 08:04
+> **Scope**: Items 1–14: RD-01 ([#64](https://github.com/blendsdk/blend65/issues/64)) · Items 15–19: RD-02 ([#61](https://github.com/blendsdk/blend65/issues/61))
 > **CodeOps Skills Version**: 3.9.0
 
 | # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
@@ -39,3 +39,65 @@
 **AR-12 (addendum — preflight PF-003):** exact ratchet stands unchanged; preflight surfaced new information for one window class: a busy-wait's *measured* total is deterministic per binary but phase-sensitive (any upstream change shifts raster arrival phase, swinging the count by up to a frame). Resolution: poll loops budget statically per-iteration; measured ratchets attach only to phase-stable windows (e.g. the balloon frame-update body).
 
 **AR-13 (addendum — preflight PF-004):** `measureCycles` signature amended to `measureCycles(driver, symbols, fromLabel, toLabel)` — labels resolve through the explicit symbols map exactly as `runUntilLabel` does (`strategies.ts:61`); drivers do not carry symbols.
+
+---
+
+## RD-02 — Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61))
+
+Imported pre-resolved (RD-01 gate + RD-01 scope text; per shared-gate rule 3, not re-confirmed):
+twin file convention `<fixture>.twin.asm` beside goldens, balloon stays at
+`examples/balloon/balloon.asm` (AR #10 — supersedes issue #61's older `test/golden/twins/`
+sub-directory wording); parity ratios + the five mechanical divergence categories (AR #9);
+tool output form, committed scoreboard document deferred to RD-02 (AR #11); the corpus includes
+the raster-poll fixture's twin (RD-01 Won't-Have: "including the new raster-poll fixture's —
+RD-02") → **14 golden↔twin pairs, 13 new twins to author** (balloon's twin exists).
+
+| # | Category | Ambiguity / Gap | Options Presented | User Decision | Status |
+|---|----------|-----------------|-------------------|---------------|--------|
+| 15 | Scope / Data | Scoreboard cycle metric — issue #61 predates RD-01's finding that measured windows are only meaningful when phase-stable (AR #12 addendum; slice8b's measured budget was waived on badline-latch physics), so "upgrade to measured" cannot be blanket | (a) Static ratios (bytes + straight-line cycles) for all 14 pairs, plus measured generated-vs-twin columns only where a phase-stable window exists (today: balloon frameUpdate; the twin gets a matching labeled window) / (b) static-only scoreboard; measured stays budget-tier-only | ✅ Resolved — User accepted recommendation: (a) static ratios for all pairs + measured columns where phase-stable, values sourced from committed data so CI regenerates without VICE | ✅ Resolved |
+| 16 | Integration / Behavioral | Twin verification permanence — the balloon twin is currently verified by history only (no test executes `examples/balloon/balloon.asm`); issue #61 requires each twin to "earn equivalence" via the golden's harness assertions but doesn't say whether that verification is permanent | (a) Permanent local `skipIf(!hasVice())` twin tier: every twin assembles and passes the same observable assertions as its fixture, balloon's twin retrofitted / (b) one-time audit verification recorded in the scoreboard, no permanent suite | ✅ Resolved — User accepted recommendation: (a) permanent local VICE twin tier; balloon's twin retrofitted | ✅ Resolved |
+| 17 | Data / UX | Committed scoreboard document — location and freshness policy | (a) Beside goldens (`packages/test-harness/test/golden/SCOREBOARD.md`), CI-checked freshness (regenerate + diff, stale fails) / (b) beside goldens, manual regeneration / (c) `docs/parity-scoreboard.md`, CI-checked freshness / (d) `docs/parity-scoreboard.md`, manual regeneration | ✅ Resolved — User accepted recommendation: (a) `packages/test-harness/test/golden/SCOREBOARD.md`, CI-checked freshness (stale scoreboard fails, golden-style) | ✅ Resolved |
+| 18 | Data | Divergence routing — issue #61's five categories (structural, peephole, data/placement, ceremony, parity) are *routing* dispositions (which issue to file to), while the shipped twin-diff taxonomy (AR #9) is *mechanical* (instruction selection, layout, data placement, addressing modes, register usage) | (a) Two layers: keep AR #9's mechanical categories in the tool; the audit adds a routing disposition per divergence group (structural→#50/#51/#53, peephole→#52, data/placement→#49, ceremony→#59, parity→none) recorded in the scoreboard and filed on GitHub / (b) rework twin-diff to issue #61's taxonomy (discards shipped AR #9 granularity; conflates mechanism with disposition) | ✅ Resolved — User accepted recommendation: (a) two-layer: mechanical taxonomy in the tool, routing disposition in the audit/scoreboard | ✅ Resolved |
+| 19 | Naming | New surface names (batch) | Scoreboard regenerator `scripts/gen-parity-scoreboard.mjs` + alias `yarn gen:scoreboard` (matches `gen:matrix`); twin-verification tier file `packages/test-harness/src/twins.spec.test.ts`; scoreboard file name per AR #17's choice | ✅ Resolved — User accepted recommendation: names as proposed (with `SCOREBOARD.md` per AR #17) | ✅ Resolved |
+
+### Resolution Notes (RD-02)
+
+**AR-15:** CI regenerability is preserved by sourcing measured values from committed data
+(the generated side from `budgets.json`'s measured ratchets; the twin side from a measured
+reference recorded in the pair manifest, refreshed locally when re-measured) — CI never needs
+VICE to check freshness.
+
+**AR-16:** (a) makes twins a live regression baseline (issue #61 calls them "test assets, not
+documentation"); a bit-rotted twin can never silently corrupt the scoreboard. Assertion logic
+is shared between fixture and twin runs — the plan decides the refactoring shape.
+
+**AR-17:** Issue #61 says "committed alongside" the twins; freshness-checking treats the
+scoreboard like a golden — it changes exactly when goldens change, keeping the committed
+number honest.
+
+**AR-18:** (a) is the grounded path: AR #9's taxonomy shipped in RD-01
+(`scripts/twin-diff.mjs`); the two vocabularies answer different questions (what diverged
+mechanically vs. where the fix is tracked).
+
+**AR-19:** Accepted as part of the batch with AR #18.
+
+**AR-15 (addendum — preflight PF-012):** committed measured values stay honest via local
+equality assertions: the budget tier's measured case asserts the fresh measurement equals
+`budgets.json`'s value exactly (not merely ≤), and the twin tier asserts equality with the
+manifest's twin reference — an untightened improvement fails locally instead of the
+scoreboard publishing a stale ceiling as a measurement.
+
+**AR-16 (addendum — preflight PF-009/PF-011):** the recorded gap was wider than known:
+neither side of the balloon pair — and neither side of rasterpoll — has a VICE observable
+suite today (`buildRasterpoll`/`buildBalloon` are consumed only by the budget tier, which
+asserts no memory observables). F2 authors those two assertion sets in the shared helpers and
+adds fixture-side VICE spec cases, so single-source/two-consumers holds for all 14 pairs.
+Boundary rule: shared sets are memory observables only; implementation-coupled fixture
+assertions (symbol-relative opcode probes, PC-at-label checks) stay fixture-suite-local.
+
+**AR-18 (addendum — preflight PF-010):** routing dispositions live in a committed `routing`
+block per pair in `twins.json` (a divergence group = pair × mechanical category; detail
+strings are display-only, never keys; a group may carry several dispositions, each non-parity
+one linking an issue). The scoreboard generator exits non-zero naming any unrouted group,
+before writing output — AC-5's "zero unclassified" is thereby a permanently enforced
+mechanism via the CI freshness step, not an audit-day state.

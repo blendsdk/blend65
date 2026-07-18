@@ -188,3 +188,114 @@ Confidence: High · Hardening: finding originated by the independent challenger 
 **Recommendation:** Note as future work (no RD change required beyond an optional mention).
 
 **User Decision:** Resolved — User accepted. Fix applied (Won't Have note).
+
+---
+---
+
+# Preflight Report: RD-02 — Golden-Corpus Twin Audit + Scoreboard
+
+> **Status**: ✅ PREFLIGHT PASSED — all 5 findings resolved (0 critical, 2 major, 3 minor, 0 observation); fixes applied to the RD at the user's direction
+> **Iteration**: 1 (first scan of RD-02; numbering continues from the RD-01 scan → PF-009…PF-013)
+> **Artifact**: Requirements document at `codeops/features/asm-parity/requirements/RD-02-golden-corpus-twin-audit.md`
+> **Codebase Grounded**: 14 source/test files deep-read + 4 manifests/configs + 3 scripts + CI workflow; 31 references mapped — 29 verified, 2 failed (PF-009, PF-010); one live `yarn twin:diff` run
+> **Last Updated**: 2026-07-18
+> **CodeOps Skills Version**: 3.9.0
+
+> Artifact authored in a prior session (no same-session banner). Same-model bias remains
+> possible; one independent challenger was run over the MAJOR batch per the hardening
+> protocol — it CONFIRMED both findings, widened PF-009 (balloon shares the defect), and
+> amended PF-010's resolution (multi-disposition groups, manifest as routing home).
+
+## Codebase Context Summary
+
+**Tech Stack:** unchanged from the RD-01 scan (TypeScript ESM monorepo, ACME + VICE 3.10 local, ACME-only CI).
+**Key Files Examined:** `test-harness/src/budgets.spec.test.ts`, `src/gate.spec.test.ts`, `src/fixture.ts`, `src/run/measure.ts`, `src/testing/{balloon,gate,rasterpoll}.ts`, `src/golden-rasterpoll.spec.test.ts`, `test/golden/{twins.json,budgets.json}`, `scripts/twin-diff.mjs`, root `test/` tier, `examples/balloon/balloon.asm` + all 14 `examples/` dirs, `ci.yml`, root `package.json`, `vitest.config.ts`, GitHub issues #49–#64 (all open).
+**Key Observations:**
+- Live `yarn twin:diff` reproduces the RD's headline exactly: balloon 3.26× bytes / 3.91× static cycles; ~20 fine-grained divergence rows for the single pair, detail strings embedding volatile instruction counts.
+- All RD-01 instruments the RD consumes verified present and as described (`measureCycles`/`quiesce`, `budgets.json` measured ratchet 162, `twins.json` shape, CLI-gated script exports, informational CI step).
+- `setupEmulator` already supports a bare `.prg` + label file (`fixture.ts:22-33`) — twin launching needs no driver changes, as the RD claims.
+- VICE observable suites exist for gate + the 12 slices; **none** for rasterpoll or balloon (`buildRasterpoll`/`buildBalloon` consumed only by the budget tier; zero `assertMemory` there) → PF-009.
+- `testing/<fixture>.ts` helpers are builders only; assertions live inline in the fixture spec tests, mixing observables with implementation probes (`gate.spec.test.ts:48,54-55`) → PF-011.
+- Measured tier asserts ≤ budget, not equality (`budgets.spec.test.ts:311-317`) → PF-012.
+- Scoreboard's generated sides build from on-disk `examples/` dirs while fixture tiers build inlined sources; no sync guard (gate verified currently in sync by hand) → PF-013.
+
+## Summary by Dimension
+
+| # | Dimension | Findings | Highest Severity |
+|---|-----------|----------|------------------|
+| 1 | Ambiguities | 2 (PF-010, PF-011) | 🟠 |
+| 2 | Implicit Assumptions | 0 | — |
+| 3 | Logical Contradictions | 0 (PF-010's generated-output-vs-human-judgment edge counted under 1) | — |
+| 4 | Completeness Gaps | 0 (PF-009/PF-010 completeness edges counted at their primary dimensions) | — |
+| 5 | Dependency Issues | 0 | — |
+| 6 | Feasibility Concerns | 0 | — |
+| 7 | Testability | 0 | — |
+| 8 | Security Blind Spots | 0 | — |
+| 9 | Edge Cases | 1 (PF-012) | 🟡 |
+| 10 | Scope Creep Indicators | 0 | — |
+| 11 | Ordering & Sequencing | 0 | — |
+| 12 | Consistency | 0 | — |
+| 13 | Codebase Alignment | 2 (PF-009, PF-013) | 🟠 |
+
+**Ambiguity Register respected (not re-litigated):** AR #15–#19 all honored. PF-009 widens AR #16's recorded gap with new codebase information (neither pair side has observable coverage); PF-010 operates entirely inside AR #18's chosen two-layer design (storage/keying/enforcement were never decided); PF-012 extends AR #15's committed-data rule with an honesty mechanism. Addenda recorded in the register (AR-15, AR-16, AR-18).
+
+## Summary by Severity
+
+| Severity | Count | Status |
+|----------|-------|--------|
+| CRITICAL | 0 | — |
+| MAJOR | 2 | all resolved, fixes applied |
+| MINOR | 3 | all resolved, fixes applied |
+| OBSERVATION | 0 | — |
+
+---
+
+### PF-009: Two of the 14 pairs have no fixture-side observable assertion set to share 🟠 MAJOR
+
+**Dimension:** 13 — Codebase Alignment (Phantom Reference) + Completeness
+**Location:** RD-02 §F2, §Twin authorship contract, §Twin verification tier, AC-2
+**Codebase Evidence:** `buildRasterpoll`/`buildBalloon` consumed only by `budgets.spec.test.ts` (zero memory-observable assertions); `golden-rasterpoll.spec.test.ts` is emitted-text-only; VICE observable suites exist for gate + 12 slices only.
+**The Problem:** F2/AC-2's "identical observable assertions as its golden fixture's spec test" (single-sourced, two consumers) is unsatisfiable for rasterpoll and balloon — no fixture-side assertion set exists to be identical to; the Technical Requirements' "assertion sets move into the shared helpers" premise is false for those two. Challenger widened the original rasterpoll-only draft to include balloon.
+**Recommendation:** Option A — author the two observable sets in the shared helpers and add fixture-side VICE spec cases consuming them, so single-source/two-consumers holds for all 14 pairs. (Option B — twin tier runs both sides — viable but hides fixture coverage; exemption rejected as one-sided equivalence.)
+**User Decision:** Resolved — User accepted recommendation (Option A). Fixes applied: F2 scope, twin contract, tier section, AC-2, affected areas, Scope Decisions row, AR-16 addendum.
+
+---
+
+### PF-010: Routing dispositions had no committed home, no defined granularity, and no enforcement mechanism 🟠 MAJOR
+
+**Dimension:** 1 — Ambiguities (+ Completeness and an internal-contradiction edge)
+**Location:** RD-02 §F6, §Divergence routing record, §Scoreboard generator, AC-3/AC-4/AC-5
+**Codebase Evidence:** `twin-diff.mjs:97-168` emits flat per-row divergences with count-bearing detail strings (live run: `LDA: 107 generated vs 26 hand-written`), volatile under every codegen change.
+**The Problem:** (1) The scoreboard is deterministic generated output (AC-3/AC-4) yet was to "record" human routing judgments — with no named committed input artifact. (2) "Divergence group" was undefined; detail-string keys would churn on every optimization landing, and one aggregate row can have multiple root causes (F8's unrolled-pokes case), making a singular disposition structurally unsatisfiable. (3) AC-5's "zero unclassified" had no enforcement point and would silently decay after the audit.
+**Recommendation:** Option A (challenger-amended) — group = pair × mechanical category (details display-only); committed `routing` block per pair in `twins.json` (existing fail-loud loader); ≥1 disposition per group, each non-parity one linking an issue; generator exits non-zero naming unrouted groups, making AC-5 a permanent mechanism via the CI freshness step. (Per-row detail-hash keying rejected as churn-prone; hand-maintained scoreboard region rejected as conflicting with AR #17's whole-file freshness.)
+**User Decision:** Resolved — User accepted recommendation (Option A). Fixes applied: F6, F4, manifest + generator + routing-record sections, AC-5, Scope Decisions row, AR-18 addendum.
+
+---
+
+### PF-011: "Identical observable assertions" didn't distinguish observables from implementation probes 🟡 MINOR
+
+**Dimension:** 1 — Ambiguities
+**Location:** RD-02 §F2, §Twin authorship contract, AC-2
+**Codebase Evidence:** `gate.spec.test.ts:48` asserts `_main`'s first opcode byte (`$A9`); `:54-55` asserts PC at `_main` — generated-code probes that, applied literally to a twin, would force the mechanical translation F1 forbids.
+**Recommendation:** Single viable path — boundary sentence: shared sets are memory observables only; implementation-coupled assertions stay fixture-suite-local.
+**User Decision:** Resolved — User accepted. Fixes applied: F2, twin contract, AC-2, Scope Decisions row, AR-16 addendum.
+
+---
+
+### PF-012: Scoreboard "measured" columns read ratchet ceilings as measurements — slack budgets misreport silently 🟡 MINOR
+
+**Dimension:** 9 — Edge Cases (+ Codebase Alignment)
+**Location:** RD-02 §F4, §F7, AC-3/AC-6
+**Codebase Evidence:** `budgets.spec.test.ts:311-317` asserts measurement ≤ budget only; an improvement landed without a deliberate tighten (AR #12) leaves the budget above reality, and the scoreboard would publish the stale ceiling as "measured". Twin-side manifest reference had the same audit-day-snapshot exposure.
+**Recommendation:** Option A — local tiers assert exact equality (generated measurement == `budgets.json` value; twin measurement == manifest reference). (Option B — relabel the column — rejected as leaving the headline number stale.)
+**User Decision:** Resolved — User accepted recommendation (Option A). Fixes applied: F4, F7, AC-6, Scope Decisions row, AR-15 addendum.
+
+---
+
+### PF-013: Nothing pinned the inlined fixture sources to the on-disk `examples/` dirs the scoreboard builds from 🟡 MINOR
+
+**Dimension:** 13 — Codebase Alignment (drift risk)
+**Location:** RD-02 §F3/§F4 (manifest `source` dirs)
+**Codebase Evidence:** `twin-diff.mjs:176-197` builds generated sides from `examples/<fixture>/` dirs; fixture and budget tiers build the inlined sources in `testing/<fixture>.ts`; only `balloon.ts` reads from disk; no sync test exists (gate verified currently in sync by hand).
+**Recommendation:** Single viable path — sync spec test asserting each inlined source equals its `examples/<fixture>/main.blend`. (Routing the generator through the TS helpers rejected: couples an `.mjs` script to test-internal modules.)
+**User Decision:** Resolved — User accepted. Fixes applied: F3, AC-1, Scope Decisions row.

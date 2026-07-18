@@ -1,7 +1,7 @@
 # RD-01: Parity Measurement Infrastructure
 
 > **Document**: RD-01-parity-measurement-infrastructure.md
-> **Status**: Draft
+> **Status**: Complete (all acceptance criteria met 2026-07-18; area report on [#64](https://github.com/blendsdk/blend65/issues/64))
 > **Created**: 2026-07-17
 > **Project**: blend65 — asm-parity feature
 > **Source**: GitHub issue [#64](https://github.com/blendsdk/blend65/issues/64) (Sweep H); umbrella program [#56](https://github.com/blendsdk/blend65/issues/56)
@@ -281,6 +281,6 @@ terminal-render golden is updated in the same change.
 9. [x] Security requirements verified: spec tests demonstrate both scripts reject a path
    outside the repo root and fail loudly on malformed `budgets.json`/manifest input; no shell
    interpolation appears in any new spawn call.
-10. [ ] The full verify command passes (`yarn install --frozen-lockfile && yarn turbo run build
+10. [x] The full verify command passes (`yarn install --frozen-lockfile && yarn turbo run build
     && yarn turbo run typecheck && yarn turbo run lint && yarn test`), and the area report
     (examined / found / deferred + why) is posted on issue #64 when the RD closes.

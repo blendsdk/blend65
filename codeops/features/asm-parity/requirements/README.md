@@ -38,9 +38,10 @@ authored here only when its item is picked up, following
 | # | Document | Description | Depends On |
 |---|----------|-------------|------------|
 | **AR** | [Ambiguity Register](00-ambiguity-register.md) | Zero-Ambiguity Gate decisions (audit trail; grows per RD) | — |
-| **RD-01** | [Parity measurement infrastructure](RD-01-parity-measurement-infrastructure.md) | measureCycles, timing table, budgets, twin-diff, size gate, annotator, report integration ([#64](https://github.com/blendsdk/blend65/issues/64)) — 🔎 preflighted | — |
-| **PF** | [Preflight Report](00-preflight-report.md) | RD-01 preflight audit (iteration 1: 8 findings, all resolved, fixes applied) | RD-01 |
-| RD-02…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
+| **RD-01** | [Parity measurement infrastructure](RD-01-parity-measurement-infrastructure.md) | measureCycles, timing table, budgets, twin-diff, size gate, annotator, report integration ([#64](https://github.com/blendsdk/blend65/issues/64)) — ✅ done 2026-07-18 | — |
+| **PF** | [Preflight Report](00-preflight-report.md) | RD-01 audit (8 findings) + RD-02 audit (5 findings, PF-009…PF-013) — all resolved, fixes applied | RD-01, RD-02 |
+| **RD-02** | [Golden-corpus twin audit + scoreboard](RD-02-golden-corpus-twin-audit.md) | 13 new twins, permanent VICE twin tier, committed SCOREBOARD.md + CI freshness gate, routed divergence inventory ([#61](https://github.com/blendsdk/blend65/issues/61)) — 🔎 preflighted 2026-07-18 | RD-01 |
+| RD-03…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
 
 ## Dependency Graph
 
@@ -69,6 +70,8 @@ Full dependency/blocker detail lives in the [feature roadmap](../00-roadmap.md).
 | 6502 timing table home | `@blend65/core` `timing/` | One table for annotator, resource report, and budget tier; R15-safe (AR #6) |
 | Enforcement split | Static budgets assert in CI; measured cycles assert locally | AR-27: CI has ACME but no emulator (AR #5) |
 | Regression posture | Hard-fail ratchet | Prime Directive: a regression is a defect, a budget bump is a deliberate act (AR #4, #12) |
+| Twin verification | Permanent local VICE tier, assertions shared with fixture suites | Twins are a live regression baseline; rot fails loudly (AR #16) |
+| Scoreboard freshness | Committed beside goldens, CI regenerates + diffs | Golden-style honesty for "the number"; measured values from committed data keep CI VICE-free (AR #15, #17) |
 
 ## Non-Functional Requirements
 

@@ -3,7 +3,7 @@
 > **Feature-Set**: Asm-Parity Initiative
 > **Status**: In Progress
 > **Created**: 2026-07-17
-> **Last Updated**: 2026-07-18 (RD-01 ✅ DONE — all 52 tasks, full verify + live emulator tier green; area report on #64, umbrella #56 ticked; first parity baseline: balloon bytes 3.26×, cycles 3.91×; next: RD-02 or RD-04 via `make_plan`)
+> **Last Updated**: 2026-07-18 (RD-02 🔄 executing — 5-phase / 58-task plan under `exec_plan --auto-commit`; preflighted plan is the source of truth: `plans/rd-02-golden-corpus-twin-audit/99-execution-plan.md`)
 > **Progress**: 1 / 14 (7%)
 > **CodeOps Skills Version**: 3.8.0
 >
@@ -21,7 +21,7 @@
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |----|-------|----|------|-------|--------|--------------|----------------------|
 | RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | [RD](requirements/RD-01-parity-measurement-infrastructure.md) | [Plan](plans/rd-01-parity-measurement-infrastructure/00-index.md) | Done | ✅ | 2026-07-18 | — |
-| RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | — | — | Backlog | ⬜ | 2026-07-17 | RD-01 for measured mode (static estimates OK before) |
+| RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | [RD](requirements/RD-02-golden-corpus-twin-audit.md) | [Plan](plans/rd-02-golden-corpus-twin-audit/00-index.md) | Executing | 🔄 | 2026-07-18 | RD-01 ✅ (measured mode available) |
 | RD-03 | Memory & hardware access epic ([#49](https://github.com/blendsdk/blend65/issues/49)) | — | — | Backlog | ⬜ | 2026-07-17 | copy() phase needs Language Guard + v3.1 decision |
 | RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | — | — | Backlog | ⬜ | 2026-07-17 | RD-01 for before/after numbers |
 | RD-05 | Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51)) | — | — | Backlog | ⬜ | 2026-07-17 | depends on RD-04 |
