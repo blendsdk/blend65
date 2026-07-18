@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 15:35
-> **Progress**: 48/58 tasks (83%)
+> **Last Updated**: 2026-07-18 15:52
+> **Progress**: 50/58 tasks (86%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -216,9 +216,9 @@ task-size criteria in the quality checklist)
 
 **Reference**: 03-03 §workflow · plan-AR #7, #9 · RD F6, F8, AC-3…AC-5, AC-7, AC-9
 
-- [ ] 5.1.1 Run `yarn twin:diff` (+ `yarn annotate:cycles` evidence) over the complete corpus; compile every divergence group (pair × mechanical category)
-- [ ] 5.1.2 Draft disposition(s) per group, incl. the balloon unrolled-pokes `sourceForced` data/placement case (RD F8); preview the rendered scoreboard against a draft-routed TEMP manifest via `--manifest` (no committed asset touched — plan-AR #9 posture)
-- [ ] 5.1.3 Present the complete routing table to the user and STOP for confirmation — plan-AR #9 (no manifest commit, no GitHub write before this)
+- [x] 5.1.1 Run `yarn twin:diff` (+ `yarn annotate:cycles` evidence) over the complete corpus; compile every divergence group (pair × mechanical category) ✅ (completed: 2026-07-18 15:45 — 32 groups across 14 pairs; run identical to the 3.5.2 baseline [deterministic]; annotate evidence: rasterpoll twin body 19 cycles/frame; logs in session scratchpad)
+- [x] 5.1.2 Draft disposition(s) per group, incl. the balloon unrolled-pokes `sourceForced` data/placement case (RD F8); preview the rendered scoreboard against a draft-routed TEMP manifest via `--manifest` (no committed asset touched — plan-AR #9 posture) ✅ (completed: 2026-07-18 15:52 — 32 groups drafted [draft-twins.json in session scratchpad]; preview generated clean via --manifest temp copy: totals 4.83× bytes / 6.51× cycles; temp assets removed)
+- [~] 5.1.3 Present the complete routing table to the user and STOP for confirmation — plan-AR #9 (no manifest commit, no GitHub write before this) ⏳ (implemented: 2026-07-18 15:52 — table presented; awaiting user decision)
 - [ ] 5.1.4 Write the confirmed `routing` blocks into `test/golden/twins.json`; loader specs stay green
 - [ ] 5.1.5 Execute the confirmed GitHub writes: append #52's catalog, reference #49/#59, file any new structural issues
 - [ ] 5.1.6 Write the full-corpus generator specs (ST-18 determinism/content, ST-20 freshness-on-mutation) — red while `SCOREBOARD.md` is absent (observed in-task)
