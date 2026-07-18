@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 16:26
-> **Progress**: 57/58 tasks (98%)
+> **Last Updated**: 2026-07-18 16:40
+> **Progress**: 58/58 tasks (100%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -225,7 +225,7 @@ task-size criteria in the quality checklist)
 - [x] 5.1.7 Generate and commit `packages/test-harness/test/golden/SCOREBOARD.md`; ST-18 and ST-20 green (two-run byte-identity holds) ✅ (completed: 2026-07-18 16:18 — generator specs 7/7 green)
 - [x] 5.1.8 Add the CI "Scoreboard freshness" step (regenerate + `git diff --exit-code`) — `.github/workflows/ci.yml` ✅ (completed: 2026-07-18 16:26 — rehearsed locally: regenerate + diff passes)
 - [x] 5.1.9 Add the re-sweep checklist item to umbrella #56 (RD AC-9) ✅ (completed: 2026-07-18 16:26 — checklist comment posted on #56)
-- [ ] 5.1.10 Full verification; walk RD AC-1…AC-10 and record each as met (area report on #61 happens at RD close per the closeout convention)
+- [x] 5.1.10 Full verification; walk RD AC-1…AC-10 and record each as met (area report on #61 happens at RD close per the closeout convention) ✅ (completed: 2026-07-18 16:40 — full verify exit 0. AC walk: AC-1 ✓ 13 twins beside the goldens, all assemble, zero unpaired, 14 pairs registered, sync spec pins all 18 inlined modules; AC-2 ✓ twin tier runs the identical OBSERVABLES tables from the single shared module, rasterpoll/balloon fixture suites added, byte-flip negative names the twin; AC-3 ✓ SCOREBOARD.md committed with rows/ratios/totals + balloon measured columns, two-run byte identity spec-proven; AC-4 ✓ CI freshness step added and rehearsed, ST-20 proves mutation → difference; AC-5 ✓ 32 groups routed with issue links, enforcement mechanical (ST-16/17), #52 catalog appended, #49/#59 referenced; AC-6 ✓ update: label, 97 quiesced cycles identical across two fresh processes, recorded, ST-12/ST-13 exact-equality both sides, ratio 1.67; AC-7 ✓ balloon unrolled-pokes rendered source-forced → #49; AC-8 ✓ ST-19 path rejection + malformed input under prefix, argv-array spawns only; AC-9 ✓ #56 re-sweep checklist posted; AC-10 ✓ full verify green incl. the complete local twin tier — area report posted on #61 at close)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (plan-AR #12)
 

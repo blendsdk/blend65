@@ -19,7 +19,7 @@
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
 | blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 ✅ CLOSED 2026-07-17** — frozen v3 compiles end-to-end (unoptimized); next: RD-13/RD-14 (`make_plan`) | 18/20 | 🔄 | 2026-07-17 |
-| asm-parity | [→](features/asm-parity/00-roadmap.md) | **RD-01 ✅ done** (parity infra; baseline balloon 3.26×/3.91×) · **RD-02 🔄 executing** (#61 — 5-phase / 58-task plan, `exec_plan --auto-commit` in progress) | 1/14 RDs | 🔄 | 2026-07-18 |
+| asm-parity | [→](features/asm-parity/00-roadmap.md) | **RD-01 ✅ done** (parity infra) · **RD-02 ✅ done** (#61 — 14-pair twin corpus, twin tier, committed SCOREBOARD.md baseline 4.83×/6.51×, routed audit, CI freshness gate) — next: pick RD-03…RD-07 optimization work (`make_plan`) | 2/14 RDs | 🔄 | 2026-07-18 |
 
 ## Archived
 

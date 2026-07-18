@@ -3,8 +3,8 @@
 > **Feature-Set**: Asm-Parity Initiative
 > **Status**: In Progress
 > **Created**: 2026-07-17
-> **Last Updated**: 2026-07-18 (RD-02 🔄 executing — 5-phase / 58-task plan under `exec_plan --auto-commit`; preflighted plan is the source of truth: `plans/rd-02-golden-corpus-twin-audit/99-execution-plan.md`)
-> **Progress**: 1 / 14 (7%)
+> **Last Updated**: 2026-07-18 (RD-02 ✅ DONE — 14-pair twin corpus + permanent VICE twin tier + shared observables; committed SCOREBOARD.md baseline 4.83× bytes / 6.51× cycles (balloon measured 1.67×); 32 divergence groups routed to #49–#60; CI scoreboard-freshness gate; re-sweep scheduled on #56; area report on #61)
+> **Progress**: 2 / 14 (14%)
 > **CodeOps Skills Version**: 3.8.0
 >
 > Requirements for this feature live as **GitHub issues #49–#64** (umbrella: [#56](https://github.com/blendsdk/blend65/issues/56));
@@ -21,7 +21,7 @@
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |----|-------|----|------|-------|--------|--------------|----------------------|
 | RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | [RD](requirements/RD-01-parity-measurement-infrastructure.md) | [Plan](plans/rd-01-parity-measurement-infrastructure/00-index.md) | Done | ✅ | 2026-07-18 | — |
-| RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | [RD](requirements/RD-02-golden-corpus-twin-audit.md) | [Plan](plans/rd-02-golden-corpus-twin-audit/00-index.md) | Executing | 🔄 | 2026-07-18 | RD-01 ✅ (measured mode available) |
+| RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | [RD](requirements/RD-02-golden-corpus-twin-audit.md) | [Plan](plans/rd-02-golden-corpus-twin-audit/00-index.md) | Done | ✅ | 2026-07-18 | — |
 | RD-03 | Memory & hardware access epic ([#49](https://github.com/blendsdk/blend65/issues/49)) | — | — | Backlog | ⬜ | 2026-07-17 | copy() phase needs Language Guard + v3.1 decision |
 | RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | — | — | Backlog | ⬜ | 2026-07-17 | RD-01 for before/after numbers |
 | RD-05 | Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51)) | — | — | Backlog | ⬜ | 2026-07-17 | depends on RD-04 |
