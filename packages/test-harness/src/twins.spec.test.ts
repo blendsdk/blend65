@@ -37,6 +37,7 @@ import { SLICE5B_OBSERVABLES } from "./testing/slice5b.js";
 import { SLICE6_OBSERVABLES } from "./testing/slice6.js";
 import { SLICE7_OBSERVABLES } from "./testing/slice7.js";
 import { SLICE7B_OBSERVABLES } from "./testing/slice7b.js";
+import { SLICE8_OBSERVABLES } from "./testing/slice8.js";
 
 /** The repository root (this file lives at packages/test-harness/src). */
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -75,6 +76,7 @@ const PAIR_TABLES: Readonly<Record<string, PairTable>> = {
   slice6: { observables: SLICE6_OBSERVABLES },
   slice7: { observables: SLICE7_OBSERVABLES },
   slice7b: { observables: SLICE7B_OBSERVABLES },
+  slice8: { observables: SLICE8_OBSERVABLES },
   balloon: { observables: BALLOON_OBSERVABLES, twinLoopHead: "update" },
 };
 
