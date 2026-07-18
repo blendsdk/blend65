@@ -19,7 +19,7 @@
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
 | blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 ✅ CLOSED 2026-07-17** — frozen v3 compiles end-to-end (unoptimized); next: RD-13/RD-14 (`make_plan`) | 18/20 | 🔄 | 2026-07-17 |
-| asm-parity | [→](features/asm-parity/00-roadmap.md) | **RD-01 🔄 executing** (parity measurement infra, #64; plan preflighted, 52-task exec_plan running in auto-commit mode) | 0/14 RDs | 🔄 | 2026-07-18 |
+| asm-parity | [→](features/asm-parity/00-roadmap.md) | **RD-01 ✅ done** (parity measurement infra, #64 — timing table, exact VICE cycle measurement, ratcheting budgets, twin-diff scoreboard + annotator, report costs; baseline balloon 3.26×/3.91×) — next: RD-02/RD-04 (`make_plan`) | 1/14 RDs | 🔄 | 2026-07-18 |
 
 ## Archived
 

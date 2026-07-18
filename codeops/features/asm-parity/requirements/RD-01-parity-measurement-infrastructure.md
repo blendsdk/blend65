@@ -242,43 +242,43 @@ terminal-render golden is updated in the same change.
 
 ## Acceptance Criteria
 
-1. [ ] `measureCycles(driver, symbols, fromLabel, toLabel)` is exported from
+1. [x] `measureCycles(driver, symbols, fromLabel, toLabel)` is exported from
    `@blend65/test-harness`; for a fixture with labeled window, two consecutive runs of the same
    binary return the same cycle count, and the count includes IRQ cycles when an IRQ fires
    inside the window (demonstrated by a spec test with a raster IRQ enabled — the demonstration
    program may be a hand-written assembly fixture); used by ≥1 `skipIf(!hasVice())` suite.
-2. [ ] The `@blend65/core` timing module covers all documented NMOS 6502 opcodes; a spec test
+2. [x] The `@blend65/core` timing module covers all documented NMOS 6502 opcodes; a spec test
    asserts that every legal NMOS (opcode, addressing-mode) pair in the codegen legality table
    has exactly one timing entry; spec tests pin reference values, at minimum: `LDA abs,X` = 4
    cycles +1 on page cross; `STA abs,X` = 5 with no page-cross variance; branches = 2, +1
    taken, +2 taken across a page boundary; `JSR`/`RTS` = 6/6; looking up an opcode outside the
    table is a compile-time (type-level) error, never a silent 0.
-3. [ ] `packages/test-harness/test/golden/budgets.json` records assembled byte budgets for all
+3. [x] `packages/test-harness/test/golden/budgets.json` records assembled byte budgets for all
    golden fixtures (the existing 12 plus the new raster-poll fixture) and for the balloon
    build; `budgets.spec.test.ts` fails in CI when any program's assembled size exceeds its
    budget, and the failure message names the program, actual bytes, and budget bytes.
-4. [ ] Cycle windows exist for: the `slice8b` copy inner loop (static budget asserting in CI
+4. [x] Cycle windows exist for: the `slice8b` copy inner loop (static budget asserting in CI
    AND measured budget asserting locally under `skipIf(!hasVice())`); the raster-poll golden
    fixture's poll loop (static per-iteration budget in CI); and the balloon build's
    frame-update body, poll-exit → next poll-entry (static in CI, measured locally). Initial
    values equal current cost exactly (ratchet); lowering any budget below current cost makes
    the corresponding tier fail.
-5. [ ] `yarn twin:diff` on the balloon pair emits a markdown report where every divergence
+5. [x] `yarn twin:diff` on the balloon pair emits a markdown report where every divergence
    carries exactly one of the five categories (instruction selection, layout, data placement,
    addressing modes, register usage) and byte + static-cycle parity ratios rendered to two
    decimals; `--json <file>` writes the same content as JSON; goldens without twins are listed
    as unpaired with exit code 0; CI runs the script as a non-failing step.
-6. [ ] `yarn annotate:cycles` on an ACME report of a golden emits every instruction line with
+6. [x] `yarn annotate:cycles` on an ACME report of a golden emits every instruction line with
    its cycle count (rendered as `min–max` when page-cross/branch-variable) and per-block sums;
    a spec test verifies a hand-computed reference block, including one page-cross case detected
    from final addresses.
-7. [ ] Building `examples/balloon/main.blend` prints a per-function section in the build
+7. [x] Building `examples/balloon/main.blend` prints a per-function section in the build
    summary showing bytes and straight-line `min–max` cycles per function, labeled as
    straight-line estimates; the same data appears under `--report json` and in the
    `--emit-report` file; the terminal-render golden is updated accordingly.
-8. [ ] (Should Have) `ResourceReport.startupCycles` is populated for the C64 target and the
+8. [x] (Should Have) `ResourceReport.startupCycles` is populated for the C64 target and the
    build summary's startup line shows a non-zero cycle figure consistent with the timing table.
-9. [ ] Security requirements verified: spec tests demonstrate both scripts reject a path
+9. [x] Security requirements verified: spec tests demonstrate both scripts reject a path
    outside the repo root and fail loudly on malformed `budgets.json`/manifest input; no shell
    interpolation appears in any new spawn call.
 10. [ ] The full verify command passes (`yarn install --frozen-lockfile && yarn turbo run build
