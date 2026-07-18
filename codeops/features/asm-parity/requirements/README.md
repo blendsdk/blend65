@@ -57,11 +57,22 @@ Full dependency/blocker detail lives in the [feature roadmap](../00-roadmap.md).
 
 ## Suggested Implementation Order
 
-| Phase | Documents | Description |
-|-------|-----------|-------------|
-| **A: Instruments** | RD-01 → RD-02 | Measurement infrastructure, then the twin corpus + scoreboard baseline (umbrella #56: "H early, E with it") |
-| **B: Structural codegen** | RD-04 → RD-05 → RD-06 → RD-07 | Measured optimization work, ratcheting budgets as it lands |
-| **C: Sweeps & epic** | RD-03, RD-08…RD-14, T-01 | Systematic audits (re-sweeping D/E after phase B) + the memory/hardware epic |
+**Corpus-driven priority (post-RD-02).** The scoreboard baseline is 4.83× bytes / **6.51× cycles**
+(cycles are the worse metric). Two causes carry most of the raw ratio — #58 constant-materialization
+(8/14 fixtures, every 7–9× case, ≈65% of excess bytes) and #59 startup/ABI (12/14) — but **both
+ratios are inflated by the fixture mix**: the #58 fixtures are constant-*by-construction* parity
+probes (their twins fold the whole program; a real game loop does not), and #59's byte cost is a
+tiny fixed startup shim. So sequence by *representative* impact × risk, not raw ratio — and note the
+#58 fixtures already *contain* the #50/#51/#52 patterns, so the hot-loop wave reaches them too.
+
+| Wave | Documents (issue) | Description |
+|------|-------------------|-------------|
+| **A: Instruments** ✅ | RD-01 → RD-02 | Measurement infra, twin corpus + scoreboard baseline (done) |
+| **B1: Hot-loop + seam-filling** (lead) | RD-04 (#50) · RD-06 (#52) *Rule 1 only* · conservative pure-IL const-fold (split from #58) · RD-05 (#51) | Lead with **RD-04 compare-and-branch fusion** — audit finding #1, the hot-path *and* cycle lever. Add #52 **Rule 1** (INC/DEC, MMIO-guarded); defer #52 Rules 2–3 (value-tracking, same MMIO hazard that defers #58). Ship a **conservative const-fold** to fill the empty `optimize-il` seam. Low-risk, corpus-wide reach. |
+| **B2: Biggest lever + placement** | whole-loop const-*evaluation* + DCE + SFA slot-elision (rest of #58 **+** #60, one lever) · placement slice of RD-03 (#49) · RD-07 (#53) | Whole-program const-evaluation is what actually closes the 7–9× fixtures — design-laden (termination/budget), gated on a **type-conformance** audit (byte-wrap/cast-truncation is the real hazard, not MMIO). **Placement** (grammar-free) serves in-place const tables (slice7/7b/8b). RD-07 register-counters is demoted — 1 fixture. |
+| **B3: Structural cycle lever** | RD-10 (#59) | Split #59: cheap one-time **startup trim** vs the **calling-convention/ABI** rework — per-call, cycle-heavy, already proven hot (balloon ≈13 instr/call). Higher risk (touches SFA + every call site); scope carefully. |
+| **Gate: `copy()`** | copy() slice of RD-03 (#49) | The corpus's **single largest divergence** — the balloon's 63-poke $0340 staging (~370 B) — needs `copy()`, not placement ($0340 is below the PRG load base; the twin itself copies). Blocked on the **v3.1 + Language-Guard** decision — foreground it. |
+| **C: Remaining sweeps** | RD-08 (#54) · RD-11 (#62) · RD-12 (#57) · RD-13 residual (#58) · RD-14 (#63) · T-01 (#55) · re-sweep D/E (#60/#61) | Systematic audits; re-sweep D/E after B moves the baseline. |
 
 ## Key Architecture Decisions
 
@@ -72,6 +83,10 @@ Full dependency/blocker detail lives in the [feature roadmap](../00-roadmap.md).
 | Regression posture | Hard-fail ratchet | Prime Directive: a regression is a defect, a budget bump is a deliberate act (AR #4, #12) |
 | Twin verification | Permanent local VICE tier, assertions shared with fixture suites | Twins are a live regression baseline; rot fails loudly (AR #16) |
 | Scoreboard freshness | Committed beside goldens, CI regenerates + diffs | Golden-style honesty for "the number"; measured values from committed data keep CI VICE-free (AR #15, #17) |
+| Lead lever (post-RD-02) | Executed-loop quality over raw ratio | #58/#59 ratios are inflated (constant-by-construction fixtures + tiny-fixture startup); a game dev writes folded loops, so the KPI overstates them. Weight by representativeness × risk; cycles (6.51×) rank above bytes (4.83×) |
+| Constant-materialization | One lever (#58 + #60), two passes | Conservative pure-IL const-fold ships early (fills `optimize-il` seam, safe); whole-loop const-*evaluation* + SFA slot-elision is the design-laden pass that closes the 7–9× fixtures. Correctness hazard = type-conformance (byte-wrap/cast), not MMIO |
+| Placement ≠ copy() | Split RD-03 (#49) | Placement (grammar-free) serves in-place const tables ($0801+). The balloon's $0340 staging is below the PRG load base — a single-load PRG can't place there (the twin copies), so it needs `copy()`, gated on v3.1 + the Language Guard |
+| Calling convention | In scope now (not "if hot") | #59's per-call ABI is a hot cycle lever (balloon ≈13 instr/call), distinct from the fixture-inflated one-time startup; scoped as a structural pass |
 
 ## Non-Functional Requirements
 

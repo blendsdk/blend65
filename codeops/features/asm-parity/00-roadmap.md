@@ -3,7 +3,7 @@
 > **Feature-Set**: Asm-Parity Initiative
 > **Status**: In Progress
 > **Created**: 2026-07-17
-> **Last Updated**: 2026-07-18 (RD-02 ✅ DONE — 14-pair twin corpus + permanent VICE twin tier + shared observables; committed SCOREBOARD.md baseline 4.83× bytes / 6.51× cycles (balloon measured 1.67×); 32 divergence groups routed to #49–#60; CI scoreboard-freshness gate; re-sweep scheduled on #56; area report on #61)
+> **Last Updated**: 2026-07-18 (RD-02 ✅ DONE — 14-pair twin corpus + permanent VICE twin tier + shared observables; committed SCOREBOARD.md baseline 4.83× bytes / 6.51× cycles (balloon measured 1.67×); 32 divergence groups routed to #49–#60; CI scoreboard-freshness gate; re-sweep scheduled on #56; area report on #61) · corpus-driven re-prioritization recorded in requirements/README (Suggested Implementation Order): B1 leads with #50 fusion + safe const-fold + #52 Rule 1; #58/#60 = one const-materialization lever; RD-03 split placement/copy(); #59 ABI in scope
 > **Progress**: 2 / 14 (14%)
 > **CodeOps Skills Version**: 3.8.0
 >
@@ -22,16 +22,16 @@
 |----|-------|----|------|-------|--------|--------------|----------------------|
 | RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | [RD](requirements/RD-01-parity-measurement-infrastructure.md) | [Plan](plans/rd-01-parity-measurement-infrastructure/00-index.md) | Done | ✅ | 2026-07-18 | — |
 | RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | [RD](requirements/RD-02-golden-corpus-twin-audit.md) | [Plan](plans/rd-02-golden-corpus-twin-audit/00-index.md) | Done | ✅ | 2026-07-18 | — |
-| RD-03 | Memory & hardware access epic ([#49](https://github.com/blendsdk/blend65/issues/49)) | — | — | Backlog | ⬜ | 2026-07-17 | copy() phase needs Language Guard + v3.1 decision |
-| RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | — | — | Backlog | ⬜ | 2026-07-17 | RD-01 for before/after numbers |
-| RD-05 | Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51)) | — | — | Backlog | ⬜ | 2026-07-17 | depends on RD-04 |
-| RD-06 | Peephole seed catalog: INC/DEC, loads, staging ([#52](https://github.com/blendsdk/blend65/issues/52)) | — | — | Backlog | ⬜ | 2026-07-17 | needs optimizer pass scaffold (blend65-ri/RD-08) |
-| RD-07 | Register-resident loop counters ([#53](https://github.com/blendsdk/blend65/issues/53)) | — | — | Backlog | ⬜ | 2026-07-17 | depends on RD-04, RD-06 |
+| RD-03 | Memory & hardware access epic ([#49](https://github.com/blendsdk/blend65/issues/49)) | — | — | Backlog | ⬜ | 2026-07-18 | split: placement → B1/B2 (grammar-free); copy() gated (v3.1 + Guard) — blocks balloon $0340 (~370 B, largest divergence) |
+| RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | — | — | Backlog | ⬜ | 2026-07-18 | **B1 lead** — cycle lever, audit #1; RD-01 numbers ✅ |
+| RD-05 | Block layout: fall-through elision + jump threading ([#51](https://github.com/blendsdk/blend65/issues/51)) | — | — | Backlog | ⬜ | 2026-07-18 | B1 — depends on RD-04 (size-consequence) |
+| RD-06 | Peephole seed catalog: INC/DEC, loads, staging ([#52](https://github.com/blendsdk/blend65/issues/52)) | — | — | Backlog | ⬜ | 2026-07-18 | B1 — **Rule 1 (INC/DEC) only**; R2–3 deferred (MMIO); seam blend65-ri/RD-08 |
+| RD-07 | Register-resident loop counters ([#53](https://github.com/blendsdk/blend65/issues/53)) | — | — | Backlog | ⬜ | 2026-07-18 | B2 — **demoted** (1 fixture); after RD-04, RD-06 |
 | RD-08 | Game-relevant completeness gaps ([#54](https://github.com/blendsdk/blend65/issues/54)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
-| RD-09 | Sweep D: lowering & instruction selection ([#60](https://github.com/blendsdk/blend65/issues/60)) | — | — | Backlog | ⬜ | 2026-07-17 | re-sweep after RD-04…RD-07 |
-| RD-10 | Sweep C: memory, ABI, interrupts, startup ([#59](https://github.com/blendsdk/blend65/issues/59)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
+| RD-09 | Sweep D: lowering & instruction selection ([#60](https://github.com/blendsdk/blend65/issues/60)) | — | — | Backlog | ⬜ | 2026-07-18 | #60 = #58 const lever (→B2); + re-sweep after B |
+| RD-10 | Sweep C: memory, ABI, interrupts, startup ([#59](https://github.com/blendsdk/blend65/issues/59)) | — | — | Backlog | ⬜ | 2026-07-18 | B3 — ABI hot cycle lever (balloon ≈13 instr/call); startup trim cheap |
 | RD-11 | Sweep F: intrinsics & runtime routines ([#62](https://github.com/blendsdk/blend65/issues/62)) | — | — | Backlog | ⬜ | 2026-07-17 | interacts with RD-03 |
 | RD-12 | Sweep A: frontend conformance & diagnostics ([#57](https://github.com/blendsdk/blend65/issues/57)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
-| RD-13 | Sweep B: semantics & const-evaluation ([#58](https://github.com/blendsdk/blend65/issues/58)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
+| RD-13 | Sweep B: semantics & const-evaluation ([#58](https://github.com/blendsdk/blend65/issues/58)) | — | — | Backlog | ⬜ | 2026-07-18 | split: const-fold → B1; whole-loop eval + SFA slot-elision → B2 (type-conformance audit) |
 | RD-14 | Sweep G: developer experience ([#63](https://github.com/blendsdk/blend65/issues/63)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
 | T-01 | CLI bug: relative --out-dir breaks ACME ([#55](https://github.com/blendsdk/blend65/issues/55)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
