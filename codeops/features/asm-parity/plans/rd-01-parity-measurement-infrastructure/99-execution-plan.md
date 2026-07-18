@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 02:33 (executing — Phase 1)
-> **Progress**: 4/52 tasks (8%)
+> **Last Updated**: 2026-07-18 02:38 (Phase 1 complete)
+> **Progress**: 6/52 tasks (12%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -61,8 +61,8 @@ task-size criteria in the quality checklist)
 - [x] 1.2.2 Run spec tests — verify they PASS (green phase) ✅ (completed: 2026-07-18 02:33 — 6 core + 2 codegen spec tests green; typecheck+lint clean; full core (287) + codegen (530) suites green)
 
 ### Step 1.3: Impl tests & hardening
-- [ ] 1.3.1 Write table-invariant impl tests — `packages/core/src/timing/nmos-table.impl.test.ts`
-- [ ] 1.3.2 Full verification
+- [x] 1.3.1 Write table-invariant impl tests — `packages/core/src/timing/nmos-table.impl.test.ts` ✅ (completed: 2026-07-18 02:38 — 6 invariant tests green)
+- [x] 1.3.2 Full verification ✅ (completed: 2026-07-18 02:38 — full verify green: install, build, typecheck, lint, all tests incl. root boundary tier)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 
