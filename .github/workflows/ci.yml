@@ -51,3 +51,11 @@ jobs:
       - name: twin-diff (informational)
         run: yarn twin:diff
         continue-on-error: true
+
+      # The committed SCOREBOARD.md must match a fresh regeneration from
+      # repo state. A stale scoreboard — or an unrouted/stale divergence
+      # group, which the generator refuses to render — fails the build;
+      # `yarn gen:scoreboard` clears it. Needs ACME + built packages only,
+      # both already present; no emulator.
+      - name: Scoreboard freshness
+        run: yarn gen:scoreboard && git diff --exit-code -- packages/test-harness/test/golden/SCOREBOARD.md

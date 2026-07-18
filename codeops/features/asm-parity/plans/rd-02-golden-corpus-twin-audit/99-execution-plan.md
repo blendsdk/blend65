@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 16:18
-> **Progress**: 55/58 tasks (95%)
+> **Last Updated**: 2026-07-18 16:26
+> **Progress**: 57/58 tasks (98%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -223,8 +223,8 @@ task-size criteria in the quality checklist)
 - [x] 5.1.5 Execute the confirmed GitHub writes: append #52's catalog, reference #49/#59, file any new structural issues ✅ (completed: 2026-07-18 16:08 — comments posted on #52/#49/#59; no new structural issues needed, all groups route to existing issues)
 - [x] 5.1.6 Write the full-corpus generator specs (ST-18 determinism/content, ST-20 freshness-on-mutation) — red while `SCOREBOARD.md` is absent (observed in-task) ✅ (completed: 2026-07-18 16:18 — both red on ENOENT as specified)
 - [x] 5.1.7 Generate and commit `packages/test-harness/test/golden/SCOREBOARD.md`; ST-18 and ST-20 green (two-run byte-identity holds) ✅ (completed: 2026-07-18 16:18 — generator specs 7/7 green)
-- [ ] 5.1.8 Add the CI "Scoreboard freshness" step (regenerate + `git diff --exit-code`) — `.github/workflows/ci.yml`
-- [ ] 5.1.9 Add the re-sweep checklist item to umbrella #56 (RD AC-9)
+- [x] 5.1.8 Add the CI "Scoreboard freshness" step (regenerate + `git diff --exit-code`) — `.github/workflows/ci.yml` ✅ (completed: 2026-07-18 16:26 — rehearsed locally: regenerate + diff passes)
+- [x] 5.1.9 Add the re-sweep checklist item to umbrella #56 (RD AC-9) ✅ (completed: 2026-07-18 16:26 — checklist comment posted on #56)
 - [ ] 5.1.10 Full verification; walk RD AC-1…AC-10 and record each as met (area report on #61 happens at RD close per the closeout convention)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (plan-AR #12)
