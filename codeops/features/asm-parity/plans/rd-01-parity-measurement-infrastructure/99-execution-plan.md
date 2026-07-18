@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 03:14 (executing — Phase 2)
-> **Progress**: 14/52 tasks (27%)
+> **Last Updated**: 2026-07-18 03:30 (Phase 2 complete)
+> **Progress**: 16/52 tasks (31%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -85,8 +85,8 @@ task-size criteria in the quality checklist)
 - [x] 2.2.5 Run spec tests — verify they PASS (green phase; emulator tier green locally) ✅ (completed: 2026-07-18 03:14 — 6/6 green incl. hand-computed 51534 identical across two fresh VICE processes; full harness suite 179/179; barrel-surface pin extended with the 4 new documented exports)
 
 ### Step 2.3: Impl tests & hardening
-- [ ] 2.3.1 Write parser/driver impl tests (split frames, banner interleaving, either-order events) — `text-monitor.impl.test.ts`, driver impl test
-- [ ] 2.3.2 Full verification + local emulator suites
+- [x] 2.3.1 Write parser/driver impl tests (split frames, banner interleaving, either-order events) — `text-monitor.impl.test.ts`, `measure.impl.test.ts` ✅ (completed: 2026-07-18 03:30 — 7 impl tests; surfaced a real reply-completion race (stop banner's prompt arriving post-drain) → completion predicate now requires the labeled stopwatch line, which may sit directly after a prompt; 13/13 twice consecutively)
+- [x] 2.3.2 Full verification + local emulator suites ✅ (completed: 2026-07-18 03:30 — full verify green incl. complete local emulator tier)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (+ local `skipIf(!hasVice())` tier green)
 

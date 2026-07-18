@@ -25,11 +25,20 @@ import net from "node:net";
 
 /** The monitor prompt that terminates every reply, e.g. `(C:$e5cf) `. */
 const PROMPT_RE = /\(C:\$[0-9a-f]{4}\) $/;
-/** The one acceptable stopwatch line — anchored, never trailing digits. */
-const STOPWATCH_RE = /^Stopwatch:\s+(\d+)\r?$/m;
+/**
+ * The one acceptable stopwatch reply — the LABELED line, never trailing
+ * digits. The label sits at a line start, or directly after a prompt: the
+ * monitor leaves its prompt without a newline, so a reply that follows a
+ * pending prompt lands on the same line (`(C:$0856) Stopwatch:   123`).
+ * A break banner's register line ends in a raw unlabeled number and can
+ * never match.
+ */
+const STOPWATCH_RE = /(?:^|\(C:\$[0-9a-f]{4}\) )Stopwatch:\s+(\d+)\r?$/m;
 /** Bounded connect-retry window while VICE binds the remote-monitor socket. */
 const CONNECT_MAX_ATTEMPTS = 40;
 const CONNECT_RETRY_MS = 250;
+/** Bounded wait for a stopwatch reply — expiry fails loudly with the raw bytes. */
+const REPLY_TIMEOUT_MS = 10000;
 
 /**
  * Extract the stopwatch count from one monitor reply.
@@ -119,13 +128,30 @@ export class TextMonitorClient {
       throw new Error("TextMonitorClient: an exchange is already in flight");
     }
     // Drain before send: drop stop banners and any other unsolicited output.
+    // A banner may still arrive AFTER the drain (the monitor writes one on
+    // every machine stop, asynchronously) — the completion predicate below
+    // therefore requires the anchored stopwatch line, not just a prompt.
     this.received = "";
-    const reply = await new Promise<string>((resolve, reject) => {
-      this.waiter = { resolve, reject };
-      socket.write("stopwatch\n");
-      this.checkWaiter();
-    });
-    return parseStopwatchReply(reply);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const reply = await new Promise<string>((resolve, reject) => {
+        this.waiter = { resolve, reject };
+        timer = setTimeout(
+          () =>
+            this.failWaiter(
+              new Error(
+                `no stopwatch reply within ${REPLY_TIMEOUT_MS}ms; received: ${JSON.stringify(this.received)}`,
+              ),
+            ),
+          REPLY_TIMEOUT_MS,
+        );
+        socket.write("stopwatch\n");
+        this.checkWaiter();
+      });
+      return parseStopwatchReply(reply);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
   }
 
   /** Close the socket, rejecting any in-flight exchange. */
@@ -135,9 +161,18 @@ export class TextMonitorClient {
     this.socket = undefined;
   }
 
-  /** Resolve the pending waiter once the buffer ends in the monitor prompt. */
+  /**
+   * Resolve the pending waiter once the buffer holds the anchored stopwatch
+   * line AND ends in the monitor prompt. A stop banner also ends in a prompt,
+   * so the prompt alone must never complete the exchange — the real reply may
+   * still be in flight behind it.
+   */
   private checkWaiter(): void {
-    if (this.waiter !== undefined && PROMPT_RE.test(this.received)) {
+    if (
+      this.waiter !== undefined &&
+      PROMPT_RE.test(this.received) &&
+      STOPWATCH_RE.test(this.received)
+    ) {
       const waiter = this.waiter;
       this.waiter = undefined;
       waiter.resolve(this.received);
