@@ -2,55 +2,361 @@
   "pairs": {
     "gate": {
       "source": "examples/gate",
-      "twin": "packages/test-harness/test/golden/gate.twin.asm"
+      "twin": "packages/test-harness/test/golden/gate.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          },
+          {
+            "disposition": "structural",
+            "issue": 60,
+            "note": "constant value staged through frame/var machinery (LDA/STA several vs 1 each)"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "code-size consequence of the startup/call ceremony"
+          }
+        ]
+      }
     },
     "slice3a": {
       "source": "examples/slice3a",
-      "twin": "packages/test-harness/test/golden/slice3a.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice3a.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          },
+          {
+            "disposition": "structural",
+            "issue": 60,
+            "note": "constant value staged through frame/var machinery (LDA/STA several vs 1 each)"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "code-size consequence of the startup/call ceremony"
+          }
+        ]
+      }
     },
     "slice3b": {
       "source": "examples/slice3b",
-      "twin": "packages/test-harness/test/golden/slice3b.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice3b.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ]
+      }
     },
     "slice4a": {
       "source": "examples/slice4a",
-      "twin": "packages/test-harness/test/golden/slice4a.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice4a.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ]
+      }
     },
     "slice4b": {
       "source": "examples/slice4b",
-      "twin": "packages/test-harness/test/golden/slice4b.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice4b.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ]
+      }
     },
     "slice5a": {
       "source": "examples/slice5a",
-      "twin": "packages/test-harness/test/golden/slice5a.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice5a.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ]
+      }
     },
     "slice5b": {
       "source": "examples/slice5b",
-      "twin": "packages/test-harness/test/golden/slice5b.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice5b.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ]
+      }
     },
     "slice6": {
       "source": "examples/slice6",
-      "twin": "packages/test-harness/test/golden/slice6.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice6.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ]
+      }
     },
     "slice7": {
       "source": "examples/slice7",
-      "twin": "packages/test-harness/test/golden/slice7.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice7.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ],
+        "data placement": [
+          {
+            "disposition": "data/placement",
+            "issue": 49,
+            "note": "const tables and padding placed differently from the hand layout"
+          }
+        ]
+      }
     },
     "slice7b": {
       "source": "examples/slice7b",
-      "twin": "packages/test-harness/test/golden/slice7b.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice7b.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "constant-foldable program: full runtime machinery emitted where a hand version folds to direct stores"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 58,
+            "note": "code-size consequence of the unfolded machinery"
+          }
+        ],
+        "data placement": [
+          {
+            "disposition": "data/placement",
+            "issue": 49,
+            "note": "const tables and padding placed differently from the hand layout"
+          }
+        ]
+      }
     },
     "slice8": {
       "source": "examples/slice8",
-      "twin": "packages/test-harness/test/golden/slice8.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice8.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "raw-vector handler saves/restores every register and duplicates startup - the hand version rides the KERNAL vector chain"
+          },
+          {
+            "disposition": "peephole",
+            "issue": 52,
+            "note": "border bump is load-add-store where the hand version uses INC"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "code-size consequence of the handler/startup ceremony"
+          }
+        ]
+      }
     },
     "slice8b": {
       "source": "examples/slice8b",
-      "twin": "packages/test-harness/test/golden/slice8b.twin.asm"
+      "twin": "packages/test-harness/test/golden/slice8b.twin.asm",
+      "routing": {
+        "register usage": [
+          {
+            "disposition": "structural",
+            "issue": 53,
+            "note": "hand copy loops count in X; generated indexing picks Y"
+          }
+        ],
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 60,
+            "note": "string/embed init stream lowered as unrolled stores (LDA 63 vs 4) where the hand version uses table-driven copy loops"
+          },
+          {
+            "disposition": "ceremony",
+            "issue": 59,
+            "note": "startup/call ceremony: JSR main, RTS chain, init routine"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 60,
+            "note": "code-size consequence of the unrolled init stream"
+          }
+        ],
+        "data placement": [
+          {
+            "disposition": "data/placement",
+            "issue": 49,
+            "note": "hand version keeps title/table/banner as data tables; generated splits code/data differently"
+          }
+        ]
+      }
     },
     "rasterpoll": {
       "source": "examples/rasterpoll",
-      "twin": "packages/test-harness/test/golden/rasterpoll.twin.asm"
+      "twin": "packages/test-harness/test/golden/rasterpoll.twin.asm",
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 50,
+            "note": "poll compare/branch not fused (BNE 3 vs 1)"
+          },
+          {
+            "disposition": "structural",
+            "issue": 51,
+            "note": "JMP 8 vs 1 - jump threading / fall-through elision"
+          },
+          {
+            "disposition": "peephole",
+            "issue": 52,
+            "note": "frame-counter bump is load-add-store where the hand version uses INC"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 51,
+            "note": "code-size consequence of block layout"
+          }
+        ]
+      }
     },
     "balloon": {
       "source": "examples/balloon",
@@ -60,6 +366,38 @@
         "fromLabel": "update",
         "toLabel": "mainloop",
         "cycles": 97
+      },
+      "routing": {
+        "instruction selection": [
+          {
+            "disposition": "structural",
+            "issue": 50,
+            "note": "bounce compares: BNE 11 vs 3 - compare-and-branch fusion"
+          },
+          {
+            "disposition": "structural",
+            "issue": 51,
+            "note": "JMP 24 vs 3 - jump threading / fall-through elision"
+          },
+          {
+            "disposition": "peephole",
+            "issue": 52,
+            "note": "LDA 107 vs 27, STA 87 vs 21 - redundant load/store elimination"
+          },
+          {
+            "disposition": "data/placement",
+            "issue": 49,
+            "sourceForced": true,
+            "note": "63 unrolled pokes forced by the copy() language gap - the twin uses a 4-instruction indexed copy loop"
+          }
+        ],
+        "layout": [
+          {
+            "disposition": "structural",
+            "issue": 51,
+            "note": "code-size consequence of the above"
+          }
+        ]
       }
     }
   }

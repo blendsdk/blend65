@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 15:52
-> **Progress**: 50/58 tasks (86%)
+> **Last Updated**: 2026-07-18 16:00
+> **Progress**: 52/58 tasks (90%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -218,8 +218,8 @@ task-size criteria in the quality checklist)
 
 - [x] 5.1.1 Run `yarn twin:diff` (+ `yarn annotate:cycles` evidence) over the complete corpus; compile every divergence group (pair × mechanical category) ✅ (completed: 2026-07-18 15:45 — 32 groups across 14 pairs; run identical to the 3.5.2 baseline [deterministic]; annotate evidence: rasterpoll twin body 19 cycles/frame; logs in session scratchpad)
 - [x] 5.1.2 Draft disposition(s) per group, incl. the balloon unrolled-pokes `sourceForced` data/placement case (RD F8); preview the rendered scoreboard against a draft-routed TEMP manifest via `--manifest` (no committed asset touched — plan-AR #9 posture) ✅ (completed: 2026-07-18 15:52 — 32 groups drafted [draft-twins.json in session scratchpad]; preview generated clean via --manifest temp copy: totals 4.83× bytes / 6.51× cycles; temp assets removed)
-- [~] 5.1.3 Present the complete routing table to the user and STOP for confirmation — plan-AR #9 (no manifest commit, no GitHub write before this) ⏳ (implemented: 2026-07-18 15:52 — table presented; awaiting user decision)
-- [ ] 5.1.4 Write the confirmed `routing` blocks into `test/golden/twins.json`; loader specs stay green
+- [x] 5.1.3 Present the complete routing table to the user and STOP for confirmation — plan-AR #9 (no manifest commit, no GitHub write before this) ✅ (completed: 2026-07-18 16:00 — user confirmed as drafted, incl. GitHub writes)
+- [x] 5.1.4 Write the confirmed `routing` blocks into `test/golden/twins.json`; loader specs stay green ✅ (completed: 2026-07-18 16:00 — 32 routed groups committed; loader spec+impl 11/11 green)
 - [ ] 5.1.5 Execute the confirmed GitHub writes: append #52's catalog, reference #49/#59, file any new structural issues
 - [ ] 5.1.6 Write the full-corpus generator specs (ST-18 determinism/content, ST-20 freshness-on-mutation) — red while `SCOREBOARD.md` is absent (observed in-task)
 - [ ] 5.1.7 Generate and commit `packages/test-harness/test/golden/SCOREBOARD.md`; ST-18 and ST-20 green (two-run byte-identity holds)
