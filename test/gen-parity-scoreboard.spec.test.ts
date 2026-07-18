@@ -23,7 +23,28 @@ import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(ROOT, "scripts", "gen-parity-scoreboard.mjs");
-const COMMITTED_MANIFEST = join(ROOT, "packages", "test-harness", "test", "golden", "twins.json");
+const GOLDEN_DIR = join(ROOT, "packages", "test-harness", "test", "golden");
+const COMMITTED_MANIFEST = join(GOLDEN_DIR, "twins.json");
+const COMMITTED_BUDGETS = join(GOLDEN_DIR, "budgets.json");
+const COMMITTED_SCOREBOARD = join(GOLDEN_DIR, "SCOREBOARD.md");
+
+/** Every corpus pair the committed scoreboard must list. */
+const CORPUS_PAIRS = [
+  "gate",
+  "slice3a",
+  "slice3b",
+  "slice4a",
+  "slice4b",
+  "slice5a",
+  "slice5b",
+  "slice6",
+  "slice7",
+  "slice7b",
+  "slice8",
+  "slice8b",
+  "rasterpoll",
+  "balloon",
+];
 
 /** Whether real ACME is on PATH (the pair assembly needs it). */
 function hasAcme(): boolean {
@@ -140,6 +161,62 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: parity-scoreboard gen
     expect(stderr).toMatch(/^gen-parity-scoreboard: /m);
     expect(existsSync(outside)).toBe(false);
   });
+
+  it(
+    "should render byte-identical output across consecutive runs, matching the committed scoreboard",
+    () => {
+      const dir = mkdtempSync(join(ROOT, "test", ".tmp-scoreboard-"));
+      try {
+        const firstOut = join(dir, "run1.md");
+        const secondOut = join(dir, "run2.md");
+        expect(runGenerator(["--out", firstOut]).status).toBe(0);
+        expect(runGenerator(["--out", secondOut]).status).toBe(0);
+        const first = readFileSync(firstOut, "utf8");
+        expect(first).toBe(readFileSync(secondOut, "utf8"));
+        // The committed scoreboard IS this output — the CI freshness step
+        // regenerates and diffs exactly this equality.
+        expect(first).toBe(readFileSync(COMMITTED_SCOREBOARD, "utf8"));
+
+        for (const pair of CORPUS_PAIRS) {
+          expect(first).toContain(`| ${pair} |`);
+        }
+        expect(first).toContain("| **Total** |");
+        expect(first).toMatch(/\d+\.\d{2}/);
+        // Balloon measured columns come from committed data only.
+        expect(first).toMatch(/\| balloon \|.*\| 162 \| 97 \| 1\.67 \|/);
+        // Routing sections carry issue links and the source-forced annotation.
+        expect(first).toContain("[#49](https://github.com/blendsdk/blend65/issues/49)");
+        expect(first).toContain("**source-forced**");
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    GENERATOR_TIMEOUT,
+  );
+
+  it(
+    "should render different output when a committed measured value is mutated",
+    () => {
+      const dir = mkdtempSync(join(ROOT, "test", ".tmp-scoreboard-"));
+      try {
+        const budgets = JSON.parse(readFileSync(COMMITTED_BUDGETS, "utf8"));
+        const window = budgets.programs.balloon.windows.find(
+          (entry: { name: string }) => entry.name === "frameUpdate",
+        );
+        window.measuredMaxCycles += 1;
+        const budgetsPath = join(dir, "budgets.json");
+        writeFileSync(budgetsPath, JSON.stringify(budgets, null, 2), "utf8");
+        const outPath = join(dir, "mutated.md");
+        expect(runGenerator(["--budgets", budgetsPath, "--out", outPath]).status).toBe(0);
+        // Stale committed data would fail the CI freshness diff; a
+        // regenerate clears it.
+        expect(readFileSync(outPath, "utf8")).not.toBe(readFileSync(COMMITTED_SCOREBOARD, "utf8"));
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    GENERATOR_TIMEOUT,
+  );
 
   it(
     "should fail loudly on malformed manifest JSON, naming the file under the script prefix",
