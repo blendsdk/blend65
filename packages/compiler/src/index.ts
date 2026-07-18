@@ -29,6 +29,7 @@ export {
   type AcmeRunOutput,
 } from "./acme/invoke-acme.js";
 export { parseLabelFile } from "./acme/label-file.js";
+export { parseReportFile, cycleRange, type ReportInstruction } from "./acme/report-file.js";
 
 // The disk-backed CompilerHost.
 export * from "./host/index.js";

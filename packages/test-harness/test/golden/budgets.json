@@ -1,0 +1,52 @@
+{
+  "programs": {
+    "gate": { "bytes": 30, "windows": [] },
+    "slice3a": { "bytes": 36, "windows": [] },
+    "slice3b": { "bytes": 233, "windows": [] },
+    "slice4a": { "bytes": 212, "windows": [] },
+    "slice4b": { "bytes": 221, "windows": [] },
+    "slice5a": { "bytes": 235, "windows": [] },
+    "slice5b": { "bytes": 151, "windows": [] },
+    "slice6": { "bytes": 535, "windows": [] },
+    "slice7": { "bytes": 352, "windows": [] },
+    "slice7b": { "bytes": 367, "windows": [] },
+    "slice8": { "bytes": 176, "windows": [] },
+    "slice8b": {
+      "bytes": 417,
+      "windows": [
+        {
+          "name": "copyLoop",
+          "fromLabel": "Main_copyBytes_L0",
+          "toLabel": "Main_copyBytes_L3",
+          "kind": "span",
+          "staticMaxCycles": 67
+        }
+      ]
+    },
+    "rasterpoll": {
+      "bytes": 88,
+      "windows": [
+        {
+          "name": "pollIter",
+          "fromLabel": "Main_main_L3",
+          "toLabel": "Main_main_L5",
+          "kind": "perIteration",
+          "staticCyclesPerIteration": 25
+        }
+      ]
+    },
+    "balloon": {
+      "bytes": 772,
+      "windows": [
+        {
+          "name": "frameUpdate",
+          "fromLabel": "Main_main_L5",
+          "toLabel": "Main_main_L0",
+          "kind": "span",
+          "staticMaxCycles": 269,
+          "measuredMaxCycles": 162
+        }
+      ]
+    }
+  }
+}

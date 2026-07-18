@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 03:42 (Phase 3 complete)
-> **Progress**: 21/52 tasks (40%)
+> **Last Updated**: 2026-07-18 04:34 (Phase 4 complete)
+> **Progress**: 29/52 tasks (56%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -114,20 +114,20 @@ task-size criteria in the quality checklist)
 
 ### Step 4.1: Specification tests
 **Reference**: 03-03 · 07 ST-14…ST-19 · req-AR #3/#4/#5/#12 · plan-AR #3
-- [ ] 4.1.1 Write loader + tier spec tests (ST-14…ST-19) and the ACME report-parser spec tests (ST-32, ST-33) — `packages/test-harness/src/budgets.spec.test.ts` (+ loader spec file), `packages/compiler/src/acme/report-file.spec.test.ts`
-- [ ] 4.1.2 Run them — verify they FAIL (red phase)
+- [x] 4.1.1 Write loader + tier spec tests (ST-14…ST-19) and the ACME report-parser spec tests (ST-32, ST-33) — `packages/test-harness/src/budgets.spec.test.ts` + `budget-loader.spec.test.ts`, `packages/compiler/src/acme/report-file.spec.test.ts` ✅ (completed: 2026-07-18 04:00)
+- [x] 4.1.2 Run them — verify they FAIL (red phase) ✅ (completed: 2026-07-18 04:00 — all three files red on missing modules)
 
 ### Step 4.2: Implementation
-- [ ] 4.2.1 Implement the shared ACME report parser + (opcode, mode) classifier (typed on core instr-model; strict, loud) — `packages/compiler/src/acme/report-file.ts` (exported from `@blend65/compiler`; PF-010)
-- [ ] 4.2.2 Implement the strict budget-file loader — test-harness `src/budget-loader.ts`
-- [ ] 4.2.3 Implement the balloon build helper (mkdtemp + `build()` facade) — `packages/test-harness/src/testing/balloon.ts`
-- [ ] 4.2.4 Wire the tier: bytes assertions (CI), static span/perIteration windows via report-parser slices + `getTiming` (CI), measured windows quiesced then `measureCycles` (`skipIf(!hasVice())`) — `budgets.spec.test.ts`
-- [ ] 4.2.5 Seed `budgets.json` with exact current values (slice8b copyLoop static+measured-quiesced; rasterpoll pollIter perIteration; balloon frameUpdate static+measured-quiesced; bytes for all 13 goldens + balloon) — `packages/test-harness/test/golden/budgets.json`
-- [ ] 4.2.6 Run spec tests — verify they PASS (green; CI tier + local tier)
+- [x] 4.2.1 Implement the shared ACME report parser + (opcode, mode) classifier (typed on core instr-model; strict, loud; tolerates ACME's `...`-truncated data lines) — `packages/compiler/src/acme/report-file.ts` + `cycleRange` (exported from `@blend65/compiler`) ✅ (completed: 2026-07-18 04:24)
+- [x] 4.2.2 Implement the strict budget-file loader — test-harness `src/budget-loader.ts` (+ `checkCostWithinBudget` exact ratchet) ✅ (completed: 2026-07-18 04:24)
+- [x] 4.2.3 Implement the balloon build helper (mkdtemp + `build()` facade, copying the committed example) — `packages/test-harness/src/testing/balloon.ts` ✅ (completed: 2026-07-18 04:24)
+- [x] 4.2.4 Wire the tier: bytes assertions (CI), static span/perIteration windows via report-parser slices + `getTiming` (CI; loop-shaped windows slice through the back-edge — plan-AR #12 runtime), measured windows quiesced then `measureCycles` (`skipIf(!hasVice())`) — `budgets.spec.test.ts`; `measureCycles` corrected to arm the to-checkpoint only after the from-stop (mid-loop starts otherwise stop at the window end first) ✅ (completed: 2026-07-18 04:24)
+- [x] 4.2.5 Seed `budgets.json` with exact current values (bytes for all 14 programs; slice8b copyLoop static 67 — measured dropped per plan-AR #13 runtime (boot-frame badline latch defeats external quiesce for one-shot windows); rasterpoll pollIter 25; balloon frameUpdate static 269 + measured 162 quiesced-deterministic) — `packages/test-harness/test/golden/budgets.json` ✅ (completed: 2026-07-18 04:24)
+- [x] 4.2.6 Run spec tests — verify they PASS (green; CI tier + local tier) ✅ (completed: 2026-07-18 04:24 — 30/30 across budgets/loader/measure suites)
 
 ### Step 4.3: Impl tests & hardening
-- [ ] 4.3.1 Write loader/span-math impl tests — `budget-loader.impl.test.ts`
-- [ ] 4.3.2 Full verification + local emulator suites
+- [x] 4.3.1 Write loader/span-math impl tests — `budget-loader.impl.test.ts` + `report-file.impl.test.ts` (edge cases, cycle-range math, real-ACME round-trip across 8 mode families) ✅ (completed: 2026-07-18 04:34)
+- [x] 4.3.2 Full verification + local emulator suites ✅ (completed: 2026-07-18 04:34 — full verify green incl. local emulator tier)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (+ local `skipIf(!hasVice())` tier green)
 

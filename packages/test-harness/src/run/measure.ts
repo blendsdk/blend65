@@ -41,12 +41,20 @@ export interface CycleMeasurementDriver extends EmulatorDriver {
 /** Options for {@link quiesce}. */
 export interface QuiesceOptions {
   /**
-   * Also blank the display (clear the DEN bit) and settle for a frame.
-   * Required for windows inside the active display area, where badline DMA
-   * would otherwise stall the CPU phase-dependently; windows outside it need
-   * only the interrupt mask.
+   * Also blank the display (clear the DEN bit) and settle. Required for
+   * windows inside the active display area, where badline DMA would
+   * otherwise stall the CPU phase-dependently; windows outside it need only
+   * the interrupt mask.
    */
   blankDisplay?: boolean;
+  /**
+   * Estimated frames to run after blanking (default 2). Settling executes
+   * the program, so a window that begins within the first frames of
+   * execution must pass 0 — one raster line of separation (which the
+   * program's own path to the window provides) already outlasts any badline
+   * latched on the line where the blank landed.
+   */
+  settleFrames?: number;
 }
 
 /**
@@ -166,19 +174,22 @@ export async function measureCycles(
   const toAddress = resolveLabel(symbols, toLabel);
 
   const fromCheckpoint = await driver.setCheckpoint(fromAddress);
-  const toCheckpoint =
-    toAddress === fromAddress ? fromCheckpoint : await driver.setCheckpoint(toAddress);
-  let fromCheckpointDeleted = false;
+  let toCheckpoint: number | undefined;
   try {
     const work = (async (): Promise<number> => {
       await stopAt(driver, fromLabel, fromAddress);
-      if (toCheckpoint !== fromCheckpoint) {
-        // The from-checkpoint's job is done. It must not stay armed: a window
-        // whose control flow revisits the from-address (a per-frame loop, or a
-        // to-label that is never reached) would stop there instead of at the
-        // window end.
+      if (toAddress !== fromAddress) {
+        // The from-checkpoint's job is done — and it must not stay armed: a
+        // window whose control flow revisits the from-address (a per-frame
+        // loop) would stop there instead of at the window end.
         await driver.deleteCheckpoint(fromCheckpoint);
-        fromCheckpointDeleted = true;
+        // Arm the window end only NOW: the window is temporal (from-arrival
+        // strictly precedes to-arrival), and arming it up-front would stop a
+        // mid-loop start at the end label BEFORE the window even begins.
+        toCheckpoint = await driver.setCheckpoint(toAddress);
+      } else {
+        // One label: the single checkpoint measures arrival-to-arrival.
+        toCheckpoint = fromCheckpoint;
       }
       const start = await driver.readStopwatch();
       await stopAt(driver, toLabel, toAddress);
@@ -191,10 +202,10 @@ export async function measureCycles(
     // run state. A dead process cannot leak checkpoints, so a cleanup failure
     // never masks the primary result or error.
     try {
-      if (!fromCheckpointDeleted) {
+      if (toCheckpoint === undefined) {
+        // Timed out before the from-stop: only the from-checkpoint is armed.
         await driver.deleteCheckpoint(fromCheckpoint);
-      }
-      if (toCheckpoint !== fromCheckpoint) {
+      } else {
         await driver.deleteCheckpoint(toCheckpoint);
       }
     } catch {
@@ -233,7 +244,11 @@ export async function quiesce(
   if (options.blankDisplay === true) {
     const control = (await driver.readMemory(VIC_CONTROL_1, 1))[0];
     await driver.writeMemory(VIC_CONTROL_1, Uint8Array.of(control & ~DISPLAY_ENABLE));
-    // Two estimated frames drain any in-flight display DMA state.
-    await runFrames(driver, 2);
+    // Settling drains any in-flight display DMA state — but it RUNS the
+    // program, so early one-shot windows pass settleFrames: 0 instead.
+    const settleFrames = options.settleFrames ?? 2;
+    if (settleFrames > 0) {
+      await runFrames(driver, settleFrames);
+    }
   }
 }

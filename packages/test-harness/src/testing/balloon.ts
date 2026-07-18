@@ -1,0 +1,57 @@
+/**
+ * Shared test support for the balloon demo — the committed
+ * `examples/balloon/` program: a hires sprite staged to block 13, then a
+ * frame-locked movement loop (poll `$D012` for line 251, update position,
+ * bounce at the borders). Its hand-written twin lives beside it as
+ * `balloon.asm`.
+ *
+ * Unlike the slice fixtures (whose sources are inlined as documentation),
+ * the balloon's single source of truth is the committed example directory —
+ * the files are copied into a fresh temp dir and built through the real
+ * `build()` facade + real ACME. Generated output is never committed.
+ * Test-only: NOT re-exported from the package barrel.
+ */
+
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { build, type BuildResult } from "@blend65/compiler";
+
+/** The committed balloon example directory. */
+const BALLOON_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "..",
+  "..",
+  "..",
+  "examples",
+  "balloon",
+);
+
+/** A built balloon: the build result + scratch-dir cleanup. */
+export interface BuiltBalloon {
+  readonly result: BuildResult;
+  readonly cleanup: () => void;
+}
+
+/**
+ * Builds the committed balloon example through the real `build()` pipeline
+ * (ACME included), staging `main.blend` + the sprite asset into a fresh
+ * temp dir so source-relative `embed()` resolution is exercised for real.
+ */
+export async function buildBalloon(): Promise<BuiltBalloon> {
+  const cwd = mkdtempSync(join(tmpdir(), "b65-balloon-"));
+  copyFileSync(join(BALLOON_DIR, "main.blend"), join(cwd, "main.blend"));
+  copyFileSync(join(BALLOON_DIR, "balloon.bin"), join(cwd, "balloon.bin"));
+  const result = await build({
+    platform: "c64",
+    cwd,
+    sourceFiles: ["main.blend"],
+    outDir: join(cwd, "out"),
+  });
+  return {
+    result,
+    cleanup: () => rmSync(cwd, { recursive: true, force: true }),
+  };
+}

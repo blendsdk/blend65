@@ -101,15 +101,16 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Implementation: measureCycles/q
   );
 
   it(
-    "should leave no checkpoint armed after a wrong-stop error",
+    "should leave no checkpoint armed when the from-label never arrives",
     async () => {
       const { vice, symbols } = await launchDemo();
-      // With the from-label unreachable, the first stop lands on the to-label
-      // checkpoint instead — a loud wrong-address error (error exit path).
+      // The window end is not armed until the window begins, so an
+      // unreachable from-label times out with ONLY the from-checkpoint
+      // armed — the cleanup path for the pre-window phase.
       await expect(
-        measureCycles(vice, symbols, "demo_unreached", "demo_idle", MEASURE_TIMEOUT),
-      ).rejects.toThrowError(/stopped at PC/);
-      // That stop left the machine at demo_idle; the loop must be clean.
+        measureCycles(vice, symbols, "demo_unreached", "demo_idle", 1500),
+      ).rejects.toThrowError(TimeoutError);
+      await stopCleanlyAt(vice, symbols, "demo_idle");
       expect(await advanceElapsed(vice)).toBeGreaterThanOrEqual(240);
     },
     LOCAL_TEST_TIMEOUT,
