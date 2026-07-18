@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 12:24
-> **Progress**: 21/58 tasks (36%)
+> **Last Updated**: 2026-07-18 12:38
+> **Progress**: 22/58 tasks (38%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -120,7 +120,7 @@ task-size criteria in the quality checklist)
 
 ### Step 2.3: Implementation tests & hardening
 
-- [ ] 2.3.1 Write loader impl tests (error-message shapes, frozen returns) — `packages/test-harness/src/twin-manifest.impl.test.ts`
+- [x] 2.3.1 Write loader impl tests (error-message shapes, frozen returns) — `packages/test-harness/src/twin-manifest.impl.test.ts` ✅ (completed: 2026-07-18 12:38 — loader hardened to deep-frozen returns; impl+spec 11/11; build+typecheck+lint exit 0)
 
 ### Step 2.4: Scripts corpus lib (multi-module fix ahead of the corpus — plan-preflight PF-001)
 

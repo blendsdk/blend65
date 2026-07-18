@@ -154,7 +154,7 @@ function parseRoutingEntry(fileName: string, path: string, value: unknown): Rout
   if (obj.note !== undefined) {
     entry.note = requireName(fileName, `${path}.note`, obj.note);
   }
-  return entry;
+  return Object.freeze(entry);
 }
 
 /** Validate one pair's routing block. */
@@ -176,23 +176,25 @@ function parseRouting(
     if (!Array.isArray(entriesValue)) {
       fail(fileName, `${path}.${category}`, "must be an array of routing entries");
     }
-    routing[category] = entriesValue.map((entry, index) =>
-      parseRoutingEntry(fileName, `${path}.${category}[${index}]`, entry),
+    routing[category] = Object.freeze(
+      entriesValue.map((entry, index) =>
+        parseRoutingEntry(fileName, `${path}.${category}[${index}]`, entry),
+      ),
     );
   }
-  return routing;
+  return Object.freeze(routing);
 }
 
 /** Validate one pair's measured block. */
 function parseMeasured(fileName: string, path: string, value: unknown): MeasuredWindow {
   const obj = requireObject(fileName, path, value);
   rejectUnknownKeys(fileName, path, obj, ["window", "fromLabel", "toLabel", "cycles"]);
-  return {
+  return Object.freeze({
     window: requireName(fileName, `${path}.window`, obj.window),
     fromLabel: requireName(fileName, `${path}.fromLabel`, obj.fromLabel),
     toLabel: requireName(fileName, `${path}.toLabel`, obj.toLabel),
     cycles: requireCount(fileName, `${path}.cycles`, obj.cycles),
-  };
+  });
 }
 
 /** Validate one pair entry. */
@@ -209,7 +211,7 @@ function parsePair(fileName: string, path: string, value: unknown): TwinPair {
   if (obj.routing !== undefined) {
     pair.routing = parseRouting(fileName, `${path}.routing`, obj.routing);
   }
-  return pair;
+  return Object.freeze(pair);
 }
 
 /**
@@ -239,5 +241,7 @@ export function loadTwinManifest(path: string): TwinManifest {
   for (const [pairName, pairValue] of Object.entries(pairsObj)) {
     pairs[pairName] = parsePair(fileName, `pairs.${pairName}`, pairValue);
   }
-  return { pairs };
+  // Frozen through every level: manifests are shared, long-lived test
+  // assets — an accidental in-test mutation must throw, not propagate.
+  return Object.freeze({ pairs: Object.freeze(pairs) });
 }
