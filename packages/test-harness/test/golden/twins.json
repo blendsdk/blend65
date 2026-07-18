@@ -1,5 +1,9 @@
 {
   "pairs": {
+    "gate": {
+      "source": "examples/gate",
+      "twin": "packages/test-harness/test/golden/gate.twin.asm"
+    },
     "balloon": {
       "source": "examples/balloon",
       "twin": "examples/balloon/balloon.asm",

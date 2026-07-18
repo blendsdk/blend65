@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 13:10
-> **Progress**: 26/58 tasks (45%)
+> **Last Updated**: 2026-07-18 13:20
+> **Progress**: 27/58 tasks (47%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -151,7 +151,7 @@ task-size criteria in the quality checklist)
 
 ### Step 3.2: Batch A — gate, slice3a, slice3b, slice4a
 
-- [ ] 3.2.1 Pair + author `gate.twin.asm` (red→green in-task)
+- [x] 3.2.1 Pair + author `gate.twin.asm` (red→green in-task) ✅ (completed: 2026-07-18 13:20 — red: tier named the missing twin; green: tier 4/4, twin-diff spec green, btl exit 0)
 - [ ] 3.2.2 Pair + author `slice3a.twin.asm` (red→green in-task)
 - [ ] 3.2.3 Pair + author `slice3b.twin.asm` (red→green in-task)
 - [ ] 3.2.4 Pair + author `slice4a.twin.asm` (red→green in-task)

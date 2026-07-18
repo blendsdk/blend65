@@ -27,6 +27,7 @@ import { loadTwinManifest } from "./twin-manifest.js";
 import { assembleTwin } from "./testing/twin-assemble.js";
 import { assertObservables, type ProgramObservables } from "./testing/observables.js";
 import { BALLOON_OBSERVABLES } from "./testing/balloon.js";
+import { GATE_OBSERVABLES } from "./testing/gate.js";
 
 /** The repository root (this file lives at packages/test-harness/src). */
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
@@ -55,6 +56,7 @@ interface PairTable {
  * frame body has run.
  */
 const PAIR_TABLES: Readonly<Record<string, PairTable>> = {
+  gate: { observables: GATE_OBSERVABLES },
   balloon: { observables: BALLOON_OBSERVABLES, twinLoopHead: "update" },
 };
 
