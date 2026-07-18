@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 02:01 (preflight PF-009…PF-019 fixes applied)
-> **Progress**: 0/52 tasks (0%)
+> **Last Updated**: 2026-07-18 02:33 (executing — Phase 1)
+> **Progress**: 4/52 tasks (8%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -52,13 +52,13 @@ task-size criteria in the quality checklist)
 
 ### Step 1.1: Specification tests
 **Reference**: 03-01 · 07 ST-1…ST-5 · req-AR #6
-- [ ] 1.1.1 Write timing spec tests (ST-1…ST-4) — `packages/core/src/timing/nmos-table.spec.test.ts`; coverage + type-error spec (ST-5) — `packages/codegen/src/instr/timing-coverage.spec.test.ts`
-- [ ] 1.1.2 Run them — verify they FAIL (red phase)
+- [x] 1.1.1 Write timing spec tests (ST-1…ST-4) — `packages/core/src/timing/nmos-table.spec.test.ts`; coverage + type-error spec (ST-5) — `packages/codegen/src/instr/timing-coverage.spec.test.ts` ✅ (completed: 2026-07-18 02:26)
+- [x] 1.1.2 Run them — verify they FAIL (red phase) ✅ (completed: 2026-07-18 02:26 — both files red: core fails on missing ./index.js, codegen on missing platform export; commit deferred to green per red-test rule)
 
 ### Step 1.2: Implementation
 **Reference**: 03-01 §Implementation Details
-- [ ] 1.2.1 Implement `NmosOpcode`, `InstrTiming`, `getTiming`, the NMOS data table — `packages/core/src/timing/` (+ core barrel export)
-- [ ] 1.2.2 Run spec tests — verify they PASS (green phase)
+- [x] 1.2.1 Implement `NmosOpcode`, `InstrTiming`, `getTiming`, the NMOS data table — `packages/core/src/timing/` (+ platform-subpath barrel export) ✅ (completed: 2026-07-18 02:33)
+- [x] 1.2.2 Run spec tests — verify they PASS (green phase) ✅ (completed: 2026-07-18 02:33 — 6 core + 2 codegen spec tests green; typecheck+lint clean; full core (287) + codegen (530) suites green)
 
 ### Step 1.3: Impl tests & hardening
 - [ ] 1.3.1 Write table-invariant impl tests — `packages/core/src/timing/nmos-table.impl.test.ts`

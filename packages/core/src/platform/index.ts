@@ -19,6 +19,10 @@
 // subpath so `@blend65/codegen` and the platform plugins share one model.
 export * from "../instr-model/index.js";
 
+// The NMOS 6502 timing table — surfaced here beside the opcode/mode types it
+// is keyed by (the root barrel does not export the instr-model).
+export * from "../timing/index.js";
+
 // Canonical platform profile data type + value enums.
 export type {
   PlatformProfile,
