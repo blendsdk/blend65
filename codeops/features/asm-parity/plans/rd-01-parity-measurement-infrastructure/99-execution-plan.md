@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 04:34 (Phase 4 complete)
-> **Progress**: 29/52 tasks (56%)
+> **Last Updated**: 2026-07-18 05:04 (Phase 5 complete)
+> **Progress**: 38/52 tasks (73%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -137,19 +137,19 @@ task-size criteria in the quality checklist)
 
 ### Step 5.1: Specification tests
 **Reference**: 03-04 · 07 ST-20…ST-26 · req-AR #8/#9/#10/#11 · RD AC-9
-- [ ] 5.1.1 Write script spec tests incl. security cases (ST-20…ST-26) — repo-root `test/twin-diff.spec.test.ts`, `test/annotate-cycles.spec.test.ts`
-- [ ] 5.1.2 Run them — verify they FAIL (red phase)
+- [x] 5.1.1 Write script spec tests incl. security cases (ST-20…ST-26) — repo-root `test/twin-diff.spec.test.ts`, `test/annotate-cycles.spec.test.ts` ✅ (completed: 2026-07-18 04:58)
+- [x] 5.1.2 Run them — verify they FAIL (red phase) ✅ (completed: 2026-07-18 04:58 — both red: scripts missing)
 
 ### Step 5.2: Implementation
-- [ ] 5.2.1 Create the pair manifest — `packages/test-harness/test/golden/twins.json`
-- [ ] 5.2.2 Implement `twin-diff.mjs` (manifest, both sides assembled + parsed via the shared report parser, five-category classifier, byte ratios from PRG sizes + max÷max cycle ratios with min/max sums in JSON, markdown + `--json`, unpaired handling, path canonicalization) — `scripts/twin-diff.mjs`
-- [ ] 5.2.3 Implement `annotate-cycles.mjs` (shared report parser, min–max annotation, block sums, convenience assemble flag, path canonicalization) — `scripts/annotate-cycles.mjs`
-- [ ] 5.2.4 Add root aliases `twin:diff` / `annotate:cycles` — `package.json`; append CI step "twin-diff (informational)" — `.github/workflows/ci.yml`
-- [ ] 5.2.5 Run spec tests — verify they PASS (green phase)
+- [x] 5.2.1 Create the pair manifest — `packages/test-harness/test/golden/twins.json` (balloon: source dir + twin path) ✅ (completed: 2026-07-18 04:58)
+- [x] 5.2.2 Implement `twin-diff.mjs` (manifest, both sides assembled + parsed via the shared report parser, five-category classifier, byte ratios from PRG sizes + max÷max cycle ratios with min/max sums in JSON, markdown + `--json`, unpaired handling, path canonicalization; twin's own `!to` drives its output) — `scripts/twin-diff.mjs` ✅ (completed: 2026-07-18 04:58 — first live scoreboard: balloon bytes 3.26×, cycles 3.91×)
+- [x] 5.2.3 Implement `annotate-cycles.mjs` (shared report parser, min–max annotation, block sums, convenience assemble flag, path canonicalization) — `scripts/annotate-cycles.mjs` ✅ (completed: 2026-07-18 04:58)
+- [x] 5.2.4 Add root aliases `twin:diff` / `annotate:cycles` — `package.json`; append CI step "twin-diff (informational)" — `.github/workflows/ci.yml`; `.gitignore` gains `test/.tmp-*/` for in-repo test scratch ✅ (completed: 2026-07-18 04:58)
+- [x] 5.2.5 Run spec tests — verify they PASS (green phase) ✅ (completed: 2026-07-18 04:58 — 5/5 green)
 
 ### Step 5.3: Impl tests & hardening
-- [ ] 5.3.1 Write classifier/parser impl tests — root `test/*.impl.test.ts`
-- [ ] 5.3.2 Full verification
+- [x] 5.3.1 Write classifier/parser impl tests — root `test/twin-diff.impl.test.ts` + `test/annotate-cycles.impl.test.ts` (root vitest include widened to the impl tier) ✅ (completed: 2026-07-18 05:04)
+- [x] 5.3.2 Full verification ✅ (completed: 2026-07-18 05:04 — full verify green; root tier 6 files / 17 tests)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

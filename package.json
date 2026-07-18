@@ -15,7 +15,9 @@
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test && vitest run test/",
-    "gen:matrix": "node scripts/gen-capability-matrix.mjs"
+    "gen:matrix": "node scripts/gen-capability-matrix.mjs",
+    "twin:diff": "node scripts/twin-diff.mjs",
+    "annotate:cycles": "node scripts/annotate-cycles.mjs"
   },
   "devDependencies": {
     "turbo": "^2",

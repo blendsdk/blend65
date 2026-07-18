@@ -6,3 +6,4 @@ coverage/
 examples/*/out/
 examples/*/build/
 examples/*/*.prg
+test/.tmp-*/

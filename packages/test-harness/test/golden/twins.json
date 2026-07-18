@@ -1,0 +1,8 @@
+{
+  "pairs": {
+    "balloon": {
+      "source": "examples/balloon",
+      "twin": "examples/balloon/balloon.asm"
+    }
+  }
+}

@@ -44,3 +44,10 @@ jobs:
       # executes the authoritative R15 boundary spec (ST-R15a/b/c).
       - name: Test
         run: yarn test
+
+      # Informational parity scoreboard: generated vs hand-written twins.
+      # Never fails the build — the ratcheting budget tier is the gate; this
+      # step surfaces the current parity ratios in the CI log.
+      - name: twin-diff (informational)
+        run: yarn twin:diff
+        continue-on-error: true
