@@ -12,16 +12,16 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice4a, emitAsmSlice4a, type BuiltSlice4a } from "./testing/slice4a.js";
+import {
+  buildSlice4a,
+  emitAsmSlice4a,
+  SLICE4A_OBSERVABLES,
+  type BuiltSlice4a,
+} from "./testing/slice4a.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
-import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** Observable RAM: the byte sum result and the if/else branch marker. */
-const SUM_ADDR = 0xc000; // result = (1+2+4+5+6) + (1+1+1) = 18 + 3 = 21 = $15
-const SUM_VAL = 0x15;
-const BRANCH_ADDR = 0xc001; // result (21) > 20 → the `then` arm pokes 1
-const BRANCH_VAL = 0x01;
 const LOCAL_TEST_TIMEOUT = 30000;
 
 describe.skipIf(!hasAcme())("Specification: Slice 4a assemble-clean (ST-19)", () => {
@@ -62,9 +62,8 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 4a on VICE
       const env = await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
-      await runUntilMemory(driver, SUM_ADDR, SUM_VAL); // sum result settled
-      await assertMemory(driver, SUM_ADDR, SUM_VAL); // $C000 == $15 (21)
-      await assertMemory(driver, BRANCH_ADDR, BRANCH_VAL); // $C001 == $01 (then arm)
+      // The shared observable set — the same table the twin tier consumes.
+      await assertObservables(driver, SLICE4A_OBSERVABLES);
     },
     LOCAL_TEST_TIMEOUT,
   );

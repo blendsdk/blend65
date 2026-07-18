@@ -11,6 +11,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 3b source — verbatim `examples/slice3b/main.blend`. */
 export const SLICE3B_SRC = `module Main;
@@ -72,3 +73,17 @@ export function emitAsmSlice3b(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 3b program's shared observable set: the computed byte and word
+ * results settle into plain RAM — accB = (5*3)+2 = 17 at $C000, and
+ * accW = 300*2 = 600 = $0258 little-endian at $C001/$C002.
+ */
+export const SLICE3B_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc000, value: 0x11 }],
+  checks: [
+    { address: 0xc000, value: 0x11, note: "accB = (5*3)+2 = 17" },
+    { address: 0xc001, value: 0x58, note: "accW = 600 = $0258 — lo byte" },
+    { address: 0xc002, value: 0x02, note: "accW hi byte" },
+  ],
+};

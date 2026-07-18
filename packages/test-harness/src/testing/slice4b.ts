@@ -12,6 +12,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 4b source — verbatim `examples/slice4b/main.blend`. */
 export const SLICE4B_SRC = `module Main;
@@ -91,3 +92,16 @@ export function emitAsmSlice4b(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 4b program's shared observable set: Switch A's multi-value case
+ * + fallthrough + auto-break result (25) at $C000, Switch B's default-path
+ * result (7) at $C001.
+ */
+export const SLICE4B_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc000, value: 0x19 }],
+  checks: [
+    { address: 0xc000, value: 0x19, note: "case 2,3 (20) --fallthrough--> case 4 (+5) = 25" },
+    { address: 0xc001, value: 0x07, note: "sel2=9 matches no case → default → 7" },
+  ],
+};

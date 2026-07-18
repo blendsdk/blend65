@@ -11,6 +11,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 4a source — verbatim `examples/slice4a/main.blend`. */
 export const SLICE4A_SRC = `module Main;
@@ -90,3 +91,16 @@ export function emitAsmSlice4a(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 4a program's shared observable set: the loop sum (break/continue
+ * for-loop plus while-loop = 21) at $C000, and the two-armed if's `then`
+ * marker (21 > 20 → 1) at $C001.
+ */
+export const SLICE4A_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc000, value: 0x15 }],
+  checks: [
+    { address: 0xc000, value: 0x15, note: "(1+2+4+5+6) + (1+1+1) = 21" },
+    { address: 0xc001, value: 0x01, note: "21 > 20 → the then arm" },
+  ],
+};

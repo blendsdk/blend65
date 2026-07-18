@@ -11,18 +11,16 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice3b, emitAsmSlice3b, type BuiltSlice3b } from "./testing/slice3b.js";
+import {
+  buildSlice3b,
+  emitAsmSlice3b,
+  SLICE3B_OBSERVABLES,
+  type BuiltSlice3b,
+} from "./testing/slice3b.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
-import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** Observable RAM: the byte result and the two little-endian bytes of the word result. */
-const BYTE_ADDR = 0xc000; // accB = (5*3)+2 = 17 = $11
-const BYTE_VAL = 0x11;
-const WORD_LO_ADDR = 0xc001; // accW = 300*2 = 600 = $0258 → lo $58
-const WORD_LO_VAL = 0x58;
-const WORD_HI_ADDR = 0xc002; // hi $02
-const WORD_HI_VAL = 0x02;
 const LOCAL_TEST_TIMEOUT = 30000;
 
 describe.skipIf(!hasAcme())("Specification: Slice 3b assemble-clean (ST-16)", () => {
@@ -63,10 +61,8 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 3b on VICE
       const env = await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
-      await runUntilMemory(driver, BYTE_ADDR, BYTE_VAL); // byte result settled
-      await assertMemory(driver, BYTE_ADDR, BYTE_VAL); // $C000 == $11 (17)
-      await assertMemory(driver, WORD_LO_ADDR, WORD_LO_VAL); // $C001 == $58 (600 lo)
-      await assertMemory(driver, WORD_HI_ADDR, WORD_HI_VAL); // $C002 == $02 (600 hi)
+      // The shared observable set — the same table the twin tier consumes.
+      await assertObservables(driver, SLICE3B_OBSERVABLES);
     },
     LOCAL_TEST_TIMEOUT,
   );

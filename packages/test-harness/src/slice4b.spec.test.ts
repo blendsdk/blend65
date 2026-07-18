@@ -12,16 +12,16 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice4b, emitAsmSlice4b, type BuiltSlice4b } from "./testing/slice4b.js";
+import {
+  buildSlice4b,
+  emitAsmSlice4b,
+  SLICE4B_OBSERVABLES,
+  type BuiltSlice4b,
+} from "./testing/slice4b.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
-import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** Observable RAM: the two switch results. */
-const OUT1_ADDR = 0xc000; // Switch A: case 2,3 (acc=20) --fallthrough--> case 4 (+5) = 25 = $19
-const OUT1_VAL = 0x19;
-const OUT2_ADDR = 0xc001; // Switch B: sel2=9 matches no case → default → 7 = $07
-const OUT2_VAL = 0x07;
 const LOCAL_TEST_TIMEOUT = 30000;
 
 describe.skipIf(!hasAcme())("Specification: Slice 4b assemble-clean (ST-19)", () => {
@@ -64,9 +64,8 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 4b on VICE
       const env = await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
-      await runUntilMemory(driver, OUT1_ADDR, OUT1_VAL); // Switch A result settled
-      await assertMemory(driver, OUT1_ADDR, OUT1_VAL); // $C000 == $19 (25)
-      await assertMemory(driver, OUT2_ADDR, OUT2_VAL); // $C001 == $07 (7)
+      // The shared observable set — the same table the twin tier consumes.
+      await assertObservables(driver, SLICE4B_OBSERVABLES);
     },
     LOCAL_TEST_TIMEOUT,
   );

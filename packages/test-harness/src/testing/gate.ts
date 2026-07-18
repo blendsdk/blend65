@@ -10,6 +10,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, type BuildResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The MVP gate source — verbatim `examples/gate/main.blend`. */
 export const GATE_SRC = `module Main;
@@ -42,3 +43,13 @@ export async function buildGate(): Promise<BuiltGate> {
   });
   return { result, cleanup: () => rmSync(cwd, { recursive: true, force: true }) };
 }
+
+/**
+ * The gate program's shared observable set — what any equivalent
+ * implementation must land: the border register holds the poked colour 5,
+ * reading back 0xF5 (the VIC-II unused upper nibble reads 1s).
+ */
+export const GATE_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xd020, value: 0xf5 }],
+  checks: [{ address: 0xd020, value: 0xf5 }],
+};

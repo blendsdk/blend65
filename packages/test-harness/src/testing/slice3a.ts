@@ -11,6 +11,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 3a source — verbatim `examples/slice3a/main.blend`. */
 export const SLICE3A_SRC = `module Main;
@@ -61,3 +62,13 @@ export function emitAsmSlice3a(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 3a program's shared observable set: the local byte's frame slot
+ * drives the border register to colour 5 (0xF5 read-back — the VIC-II
+ * unused upper nibble reads 1s).
+ */
+export const SLICE3A_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xd020, value: 0xf5 }],
+  checks: [{ address: 0xd020, value: 0xf5 }],
+};

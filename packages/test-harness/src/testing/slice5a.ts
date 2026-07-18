@@ -13,6 +13,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 5a Math module — verbatim `examples/slice5a/math.blend`. */
 export const SLICE5A_MATH_SRC = `module Math;
@@ -99,3 +100,18 @@ export function emitAsmSlice5a(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 5a program's shared observable set: the three call results —
+ * add(10,7)=17 at $C000, triple(300)=900=$0384 little-endian at $C001/$C002,
+ * combo(5)=16 at $C003 (the last write, so it anchors the settle wait).
+ */
+export const SLICE5A_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc003, value: 0x10 }],
+  checks: [
+    { address: 0xc000, value: 0x11, note: "add(10, 7) = 17" },
+    { address: 0xc001, value: 0x84, note: "triple(300) = 900 = $0384 — lo byte" },
+    { address: 0xc002, value: 0x03, note: "triple hi byte" },
+    { address: 0xc003, value: 0x10, note: "combo(5): t = add(5,3) = 8; t + t = 16" },
+  ],
+};

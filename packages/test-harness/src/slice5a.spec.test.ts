@@ -14,20 +14,16 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice5a, emitAsmSlice5a, type BuiltSlice5a } from "./testing/slice5a.js";
+import {
+  buildSlice5a,
+  emitAsmSlice5a,
+  SLICE5A_OBSERVABLES,
+  type BuiltSlice5a,
+} from "./testing/slice5a.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
-import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** Observable RAM: the three call results. */
-const R1_ADDR = 0xc000; // add(10, 7) = 17 = $11
-const R1_VAL = 0x11;
-const R2_LO_ADDR = 0xc001; // triple(300) = 900 = $0384 — lo byte
-const R2_LO_VAL = 0x84;
-const R2_HI_ADDR = 0xc002; // $0384 — hi byte (contiguous pokew)
-const R2_HI_VAL = 0x03;
-const R3_ADDR = 0xc003; // combo(5): t = add(5,3) = 8; t + t = 16 = $10
-const R3_VAL = 0x10;
 const LOCAL_TEST_TIMEOUT = 30000;
 
 describe.skipIf(!hasAcme())("Specification: Slice 5a assemble-clean", () => {
@@ -73,11 +69,8 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 5a on VICE
       const env = await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
-      await runUntilMemory(driver, R3_ADDR, R3_VAL); // the last result settled
-      await assertMemory(driver, R1_ADDR, R1_VAL); // $C000 == $11 (add)
-      await assertMemory(driver, R2_LO_ADDR, R2_LO_VAL); // $C001 == $84 (triple lo)
-      await assertMemory(driver, R2_HI_ADDR, R2_HI_VAL); // $C002 == $03 (triple hi)
-      await assertMemory(driver, R3_ADDR, R3_VAL); // $C003 == $10 (combo)
+      // The shared observable set — the same table the twin tier consumes.
+      await assertObservables(driver, SLICE5A_OBSERVABLES);
     },
     LOCAL_TEST_TIMEOUT,
   );

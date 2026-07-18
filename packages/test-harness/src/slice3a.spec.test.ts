@@ -13,14 +13,16 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice3a, emitAsmSlice3a, type BuiltSlice3a } from "./testing/slice3a.js";
+import {
+  buildSlice3a,
+  emitAsmSlice3a,
+  SLICE3A_OBSERVABLES,
+  type BuiltSlice3a,
+} from "./testing/slice3a.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
-import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-const BORDER = 0xd020;
-/** $D020 read-back after `poke(0xD020, 5)` — VIC-II unused upper nibble reads 1s. */
-const BORDER_READBACK = 0xf5;
 const LOCAL_TEST_TIMEOUT = 30000;
 
 describe.skipIf(!hasAcme())("Specification: Slice 3a assemble-clean (ST-5)", () => {
@@ -60,8 +62,8 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))(
         const env = await setupEmulator({ build: built.result, platform: "c64" });
         driver = env.driver;
 
-        await runUntilMemory(driver, BORDER, BORDER_READBACK);
-        await assertMemory(driver, BORDER, BORDER_READBACK);
+        // The shared observable set — the same table the twin tier consumes.
+        await assertObservables(driver, SLICE3A_OBSERVABLES);
       },
       LOCAL_TEST_TIMEOUT,
     );
