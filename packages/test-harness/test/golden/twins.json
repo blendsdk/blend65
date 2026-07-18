@@ -4,6 +4,10 @@
       "source": "examples/gate",
       "twin": "packages/test-harness/test/golden/gate.twin.asm"
     },
+    "slice3a": {
+      "source": "examples/slice3a",
+      "twin": "packages/test-harness/test/golden/slice3a.twin.asm"
+    },
     "balloon": {
       "source": "examples/balloon",
       "twin": "examples/balloon/balloon.asm",
