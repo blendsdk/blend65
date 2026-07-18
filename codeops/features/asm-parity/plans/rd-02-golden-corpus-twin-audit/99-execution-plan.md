@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 12:38
-> **Progress**: 22/58 tasks (38%)
+> **Last Updated**: 2026-07-18 13:04
+> **Progress**: 25/58 tasks (43%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -127,9 +127,9 @@ task-size criteria in the quality checklist)
 **Reference**: 03-03 §lib · plan-AR #6, #8
 **Objective**: the shared lib exists and multi-module builds work BEFORE any multi-module pair can enter the manifest
 
-- [ ] 2.4.1 Write the lib spec (ST-14: `buildGeneratedSide` on a staged multi-module dir, direct lib import) as an amendment to `test/twin-diff.spec.test.ts`; red phase: lib absent
-- [ ] 2.4.2 Extract `scripts/lib/twin-corpus.mjs` (strict `loadManifest`, multi-module `buildGeneratedSide` — `main.blend` first, rest sorted, named-twin `assembleTwin`, throw-not-exit); define `CATEGORIES` in the lib and re-export from `scripts/twin-diff.mjs` (plan-AR #6 addendum — avoids the lib↔CLI import cycle; `test/twin-diff.impl.test.ts` keeps its import point); rewire `twin-diff.mjs`; add the `twin-diff:` stderr-prefix assertion to the path-rejection spec (plan-preflight PF-005)
-- [ ] 2.4.3 Green phase: ST-14 passes; ALL existing twin-diff suites stay green; full verification
+- [x] 2.4.1 Write the lib spec (ST-14: `buildGeneratedSide` on a staged multi-module dir, direct lib import) as an amendment to `test/twin-diff.spec.test.ts`; red phase: lib absent ✅ (completed: 2026-07-18 12:44 — red observed: spec load-fails, lib absent)
+- [x] 2.4.2 Extract `scripts/lib/twin-corpus.mjs` (strict `loadManifest`, multi-module `buildGeneratedSide` — `main.blend` first, rest sorted, named-twin `assembleTwin`, throw-not-exit); define `CATEGORIES` in the lib and re-export from `scripts/twin-diff.mjs` (plan-AR #6 addendum — avoids the lib↔CLI import cycle; `test/twin-diff.impl.test.ts` keeps its import point); rewire `twin-diff.mjs`; add the `twin-diff:` stderr-prefix assertion to the path-rejection spec (plan-preflight PF-005) ✅ (completed: 2026-07-18 13:04)
+- [x] 2.4.3 Green phase: ST-14 passes; ALL existing twin-diff suites stay green; full verification ✅ (completed: 2026-07-18 13:04 — twin-diff spec+impl 8/8 incl. ST-14 multi-module build; full verify exit 0)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (plan-AR #12)
 

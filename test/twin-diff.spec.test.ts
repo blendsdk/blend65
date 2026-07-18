@@ -19,6 +19,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+import { buildGeneratedSide } from "../scripts/lib/twin-corpus.mjs";
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(ROOT, "scripts", "twin-diff.mjs");
 
@@ -103,6 +105,20 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: twin-diff scoreboard"
     240000,
   );
 
+  it(
+    "should build a multi-module example with every staged module compiled",
+    async () => {
+      // slice5b spans three modules; enumerating only main.blend would fail
+      // with unresolved imports, so a successful build proves the corpus
+      // library stages and compiles the whole module set.
+      const compiler = await import("@blend65/compiler");
+      const side = await buildGeneratedSide(compiler, join(ROOT, "examples", "slice5b"));
+      expect(side.prgBytes).toBeGreaterThan(0);
+      expect(existsSync(side.reportPath)).toBe(true);
+    },
+    240000,
+  );
+
   it("should reject a --json path outside the repository before writing anything", () => {
     const outside = join(ROOT, "..", "evil-twin-diff.json");
     let failed = false;
@@ -112,6 +128,8 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: twin-diff scoreboard"
       failed = true;
       const stderr = String((error as { stderr?: Buffer }).stderr ?? "");
       expect(stderr).toMatch(/outside the repository/i);
+      // Every CLI failure is prefixed with the script's own name.
+      expect(stderr).toMatch(/^twin-diff: /m);
     }
     expect(failed).toBe(true);
     expect(existsSync(outside)).toBe(false);

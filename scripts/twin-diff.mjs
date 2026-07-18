@@ -13,17 +13,19 @@
 // Fails loudly: the --json path must resolve inside the repository, the
 // manifest must be well-formed, and the built packages must be present.
 
-import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { dirname, join, resolve, sep } from "node:path";
+
+import { assembleTwin, buildGeneratedSide, loadManifest } from "./lib/twin-corpus.mjs";
+
+// The category vocabulary is defined once in the corpus library; consumers
+// keep importing it from here.
+export { CATEGORIES } from "./lib/twin-corpus.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const GOLDEN_DIR = join(ROOT, "packages", "test-harness", "test", "golden");
 const MANIFEST_PATH = join(GOLDEN_DIR, "twins.json");
-/** The PRG load-address header excluded from every byte figure. */
-const PRG_HEADER_BYTES = 2;
 
 function fail(message) {
   console.error(`twin-diff: ${message}`);
@@ -46,25 +48,6 @@ async function loadCompiler() {
   } catch {
     fail("cannot load @blend65/compiler — run 'yarn build' first");
   }
-}
-
-/** Read and strictly validate the pair manifest. */
-function loadManifest() {
-  let parsed;
-  try {
-    parsed = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
-  } catch (error) {
-    fail(`cannot read/parse twins.json: ${error.message}`);
-  }
-  if (typeof parsed !== "object" || parsed === null || typeof parsed.pairs !== "object" || parsed.pairs === null) {
-    fail("twins.json must be { pairs: { <golden>: { source, twin } } }");
-  }
-  for (const [name, pair] of Object.entries(parsed.pairs)) {
-    if (typeof pair?.source !== "string" || typeof pair?.twin !== "string") {
-      fail(`twins.json pairs.${name} must carry string 'source' and 'twin'`);
-    }
-  }
-  return parsed;
 }
 
 /** The X/Y register-variant mnemonic families for register-usage detection. */
@@ -172,61 +155,6 @@ function ratioOf(generated, hand) {
   return Number((generated / hand).toFixed(2));
 }
 
-/** Build one pair's generated side into a scratch dir; return its artifacts. */
-async function buildGeneratedSide(compiler, sourceDir) {
-  const scratch = mkdtempSync(join(tmpdir(), "b65-twin-gen-"));
-  for (const file of readdirSync(sourceDir)) {
-    if (file.endsWith(".blend") || file.endsWith(".bin")) {
-      copyFileSync(join(sourceDir, file), join(scratch, file));
-    }
-  }
-  const outDir = join(scratch, "out");
-  const result = await compiler.build({
-    platform: "c64",
-    cwd: scratch,
-    sourceFiles: ["main.blend"],
-    outDir,
-  });
-  if (result.hasErrors || result.binaryPath === undefined) {
-    fail(`building '${sourceDir}' failed`);
-  }
-  return {
-    prgBytes: statSync(result.binaryPath).size - PRG_HEADER_BYTES,
-    reportPath: result.binaryPath.replace(/\.prg$/, ".report"),
-  };
-}
-
-/** Assemble a hand-written twin (its own `!to` names the output). */
-function assembleTwin(twinPath) {
-  const scratch = mkdtempSync(join(tmpdir(), "b65-twin-hand-"));
-  const twinDir = dirname(twinPath);
-  for (const file of readdirSync(twinDir)) {
-    if (file.endsWith(".asm") || file.endsWith(".bin")) {
-      copyFileSync(join(twinDir, file), join(scratch, file));
-    }
-  }
-  const source = readFileSync(twinPath, "utf8");
-  const toMatch = /^\s*!to\s+"([^"]+)"/m.exec(source);
-  const reportPath = join(scratch, "twin.report");
-  const argv = ["--cpu", "6510", "--format", "cbm", "--report", reportPath];
-  let prgPath;
-  if (toMatch !== null) {
-    // The twin's own `!to` directive names the output (adding -o would make
-    // ACME fall back to its headerless format).
-    prgPath = join(scratch, toMatch[1]);
-  } else {
-    prgPath = join(scratch, "twin.prg");
-    argv.push("-o", prgPath);
-  }
-  argv.push(join(scratch, basename(twinPath)));
-  try {
-    execFileSync("acme", argv, { cwd: scratch, stdio: ["ignore", "ignore", "pipe"] });
-  } catch (error) {
-    fail(`ACME failed on twin '${twinPath}':\n${String(error.stderr ?? error.message)}`);
-  }
-  return { prgBytes: statSync(prgPath).size - PRG_HEADER_BYTES, reportPath };
-}
-
 /** Min/max cycle sums of a parsed instruction stream. */
 function cycleSums(instructions, cycleRange) {
   let minSum = 0;
@@ -278,35 +206,43 @@ async function main() {
 
   const compiler = await loadCompiler();
   const { parseReportFile, cycleRange } = compiler;
-  const manifest = loadManifest();
 
-  const goldens = readdirSync(GOLDEN_DIR)
-    .filter((file) => file.endsWith(".asm.golden"))
-    .map((file) => file.replace(/\.asm\.golden$/, ""));
-  const paired = new Set(Object.keys(manifest.pairs));
-  const unpaired = goldens.filter((name) => !paired.has(name)).sort();
+  // The corpus library THROWS; this CLI maps every failure to exit 1 under
+  // its own stderr prefix.
+  let report;
+  try {
+    const manifest = loadManifest(MANIFEST_PATH);
 
-  const report = { pairs: {}, unpaired };
-  for (const [name, pair] of Object.entries(manifest.pairs)) {
-    const generatedSide = await buildGeneratedSide(compiler, join(ROOT, pair.source));
-    const handSide = assembleTwin(join(ROOT, pair.twin));
-    const generated = parseReportFile(readFileSync(generatedSide.reportPath, "utf8"), generatedSide.reportPath);
-    const hand = parseReportFile(readFileSync(handSide.reportPath, "utf8"), handSide.reportPath);
-    const generatedCycles = cycleSums(generated, cycleRange);
-    const handCycles = cycleSums(hand, cycleRange);
-    report.pairs[name] = {
-      bytes: {
-        generated: generatedSide.prgBytes,
-        hand: handSide.prgBytes,
-        ratio: ratioOf(generatedSide.prgBytes, handSide.prgBytes),
-      },
-      cycles: {
-        generated: generatedCycles,
-        hand: handCycles,
-        ratio: ratioOf(generatedCycles.maxSum, handCycles.maxSum),
-      },
-      divergences: classifyDivergences(generated, hand, generatedSide.prgBytes, handSide.prgBytes),
-    };
+    const goldens = readdirSync(GOLDEN_DIR)
+      .filter((file) => file.endsWith(".asm.golden"))
+      .map((file) => file.replace(/\.asm\.golden$/, ""));
+    const paired = new Set(Object.keys(manifest.pairs));
+    const unpaired = goldens.filter((name) => !paired.has(name)).sort();
+
+    report = { pairs: {}, unpaired };
+    for (const [name, pair] of Object.entries(manifest.pairs)) {
+      const generatedSide = await buildGeneratedSide(compiler, join(ROOT, pair.source));
+      const handSide = assembleTwin(join(ROOT, pair.twin));
+      const generated = parseReportFile(readFileSync(generatedSide.reportPath, "utf8"), generatedSide.reportPath);
+      const hand = parseReportFile(readFileSync(handSide.reportPath, "utf8"), handSide.reportPath);
+      const generatedCycles = cycleSums(generated, cycleRange);
+      const handCycles = cycleSums(hand, cycleRange);
+      report.pairs[name] = {
+        bytes: {
+          generated: generatedSide.prgBytes,
+          hand: handSide.prgBytes,
+          ratio: ratioOf(generatedSide.prgBytes, handSide.prgBytes),
+        },
+        cycles: {
+          generated: generatedCycles,
+          hand: handCycles,
+          ratio: ratioOf(generatedCycles.maxSum, handCycles.maxSum),
+        },
+        divergences: classifyDivergences(generated, hand, generatedSide.prgBytes, handSide.prgBytes),
+      };
+    }
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
   }
 
   process.stdout.write(renderMarkdown(report));
