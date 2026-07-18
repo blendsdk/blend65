@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 14:40
-> **Progress**: 39/58 tasks (67%)
+> **Last Updated**: 2026-07-18 14:47
+> **Progress**: 40/58 tasks (69%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -173,7 +173,7 @@ task-size criteria in the quality checklist)
 ### Step 3.5: Batch D — rasterpoll + corpus completion
 
 - [x] 3.5.1 Pair + author `rasterpoll.twin.asm` (red→green in-task) — corpus complete at 14 pairs ✅ (completed: 2026-07-18 14:40 — red named the missing twin; tier 16/16 green; twin loop-head anchor `update`, once-per-frame)
-- [ ] 3.5.2 Pin `test/twin-diff.spec.test.ts`'s `unpaired` expectation to empty (ST-15, deliberate spec amendment per RD F3) and confirm `yarn twin:diff` reports zero unpaired
+- [x] 3.5.2 Pin `test/twin-diff.spec.test.ts`'s `unpaired` expectation to empty (ST-15, deliberate spec amendment per RD F3) and confirm `yarn twin:diff` reports zero unpaired ✅ (completed: 2026-07-18 14:47 — yarn twin:diff exit 0, unpaired '(none)'; spec 3/3 green)
 - [ ] 3.5.3 Enable the ST-10b corpus-coverage assertion in the twin tier (pair-set == corpus-set: 13 goldens + balloon)
 - [ ] 3.5.4 Full verification incl. the complete local twin tier
 
