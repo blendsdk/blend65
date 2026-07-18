@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 11:27
-> **Progress**: 10/58 tasks (17%)
+> **Last Updated**: 2026-07-18 11:42
+> **Progress**: 12/58 tasks (21%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -84,12 +84,12 @@ task-size criteria in the quality checklist)
 
 ### Step 1.3: Implementation tests & hardening
 
-- [ ] 1.3.1 Write impl tests (landmark ordering, option validation, block-file edges) — `packages/test-harness/src/testing/observables.impl.test.ts`
-- [ ] 1.3.2 Full verification
+- [x] 1.3.1 Write impl tests (landmark ordering, option validation, block-file edges) — `packages/test-harness/src/testing/observables.impl.test.ts` ✅ (completed: 2026-07-18 11:42 — 7/7 green; full verify exit 0)
+- [x] 1.3.2 Full verification ✅ (completed: 2026-07-18 11:42 — full verify command exit 0, incl. local VICE tier)
 
 **Deliverables**:
-- [ ] One assertion source per fixture, two-consumer-ready; rasterpoll + balloon observable-tested
-- [ ] All verification passing
+- [x] One assertion source per fixture, two-consumer-ready; rasterpoll + balloon observable-tested
+- [x] All verification passing
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (plan-AR #12)
 
