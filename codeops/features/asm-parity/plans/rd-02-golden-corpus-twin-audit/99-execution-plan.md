@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 13:04
-> **Progress**: 25/58 tasks (43%)
+> **Last Updated**: 2026-07-18 13:10
+> **Progress**: 26/58 tasks (45%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -147,7 +147,7 @@ task-size criteria in the quality checklist)
 
 ### Step 3.1: Corpus-transition spec amendment
 
-- [ ] 3.1.1 Amend `test/twin-diff.spec.test.ts`'s `unpaired` expectation ONCE, from the membership pins (gate/slice8b) to computed consistency (`unpaired == goldens − manifest keys`) — a truer spec of the script's documented contract, valid at every corpus state (deliberate spec amendment; the empty-set pin lands at 3.5.2 per RD F3)
+- [x] 3.1.1 Amend `test/twin-diff.spec.test.ts`'s `unpaired` expectation ONCE, from the membership pins (gate/slice8b) to computed consistency (`unpaired == goldens − manifest keys`) — a truer spec of the script's documented contract, valid at every corpus state (deliberate spec amendment; the empty-set pin lands at 3.5.2 per RD F3) ✅ (completed: 2026-07-18 13:10 — spec 3/3 green)
 
 ### Step 3.2: Batch A — gate, slice3a, slice3b, slice4a
 

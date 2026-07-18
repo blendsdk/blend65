@@ -15,7 +15,7 @@
 
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -94,9 +94,18 @@ describe.skipIf(!(hasAcme() && hasDist()))("Specification: twin-diff scoreboard"
           expect(CATEGORIES).toContain(divergence.category);
         }
 
-        // Goldens without a twin are unpaired — and the run still exits 0.
-        expect(report.unpaired).toContain("gate");
-        expect(report.unpaired).toContain("slice8b");
+        // Unpaired is exactly the golden set minus the manifest's pairs —
+        // the script's documented contract, valid at every corpus state
+        // (and empty once every golden has its twin). The run exits 0
+        // regardless: the scoreboard is useful from a single pair.
+        const goldenDir = join(ROOT, "packages", "test-harness", "test", "golden");
+        const goldens = readdirSync(goldenDir)
+          .filter((file) => file.endsWith(".asm.golden"))
+          .map((file) => file.replace(/\.asm\.golden$/, ""));
+        const paired = new Set(
+          Object.keys(JSON.parse(readFileSync(join(goldenDir, "twins.json"), "utf8")).pairs),
+        );
+        expect(report.unpaired).toEqual(goldens.filter((name) => !paired.has(name)).sort());
         expect(stdout).toContain("unpaired");
       } finally {
         rmSync(outDir, { recursive: true, force: true });
