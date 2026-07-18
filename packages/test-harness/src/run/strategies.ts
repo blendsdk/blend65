@@ -1,7 +1,7 @@
 /**
  * Run strategies.
  *
- * The three public strategies tests use to drive a program to a sync point, each
+ * The public strategies tests use to drive a program to a sync point, each
  * wrapped in the MANDATORY shared timeout guard — the load-bearing safety
  * property: no strategy can hang a test suite. Every entry point here wraps its
  * body in {@link withTimeout}; the guard itself is also exported for the
@@ -9,6 +9,7 @@
  */
 
 import type { EmulatorDriver, Registers } from "../emulator/driver.js";
+import { isCycleMeasurementDriver } from "./measure.js";
 
 /** Default per-strategy timeout. Overridable per call/test. */
 export const DEFAULT_TIMEOUT_MS = 5000;
@@ -87,6 +88,91 @@ export function runUntilLabel(
     return driver.readRegisters();
   })();
   return withTimeout(work, timeout, `runUntilLabel('${label}')`);
+}
+
+/**
+ * Run to the `arrivals`-th arrival at `label`; the machine is STOPPED at
+ * that arrival on return.
+ *
+ * One TRACKED checkpoint is set at the label, the machine resumes once per
+ * arrival — resuming from a stop AT the armed address fires on the NEXT
+ * arrival — and the checkpoint is deleted on every exit path (success,
+ * error, timeout), so later strategies in the same session never stop on a
+ * stale checkpoint. Requires the cycle-measurement driver capabilities
+ * (tracked checkpoints); the shared observables runner is the primary
+ * consumer, stopping frame-looping programs for deterministic checks.
+ *
+ * @param baseDriver The launched driver (must provide tracked checkpoints).
+ * @param symbols The program's label map (keys without the leading dot).
+ * @param label The label whose n-th arrival to stop at.
+ * @param arrivals Which arrival to stop at (1 = first).
+ * @param timeout Overall guard in milliseconds.
+ * @returns The register file at the stopped n-th arrival.
+ * @throws {Error} If `arrivals` is not a positive integer, the driver lacks
+ *   tracked checkpoints, `label` is unknown, or a stop lands elsewhere; a
+ *   {@link TimeoutError} when an arrival never comes.
+ * @example
+ * const regs = await runUntilLabelArrivals(driver, symbols, "Main_main_L0", 2);
+ */
+export function runUntilLabelArrivals(
+  baseDriver: EmulatorDriver,
+  symbols: Map<string, number>,
+  label: string,
+  arrivals: number,
+  timeout: number = DEFAULT_TIMEOUT_MS,
+): Promise<Registers> {
+  if (!Number.isInteger(arrivals) || arrivals < 1) {
+    throw new Error(
+      `runUntilLabelArrivals: arrivals must be a positive integer, got ${String(arrivals)}`,
+    );
+  }
+  if (!isCycleMeasurementDriver(baseDriver)) {
+    throw new Error(
+      "runUntilLabelArrivals: this driver does not provide cycle-measurement capabilities",
+    );
+  }
+  const driver = baseDriver;
+  const address = symbols.get(label);
+  if (address === undefined) {
+    throw new Error(
+      `runUntilLabelArrivals: label '${label}' is not in the symbol map. ` +
+        `Available: ${sampleKeys(symbols)}`,
+    );
+  }
+
+  return (async (): Promise<Registers> => {
+    const checkpoint = await driver.setCheckpoint(address);
+    try {
+      const work = (async (): Promise<Registers> => {
+        for (let arrival = 1; arrival <= arrivals; arrival++) {
+          const reason = await driver.resume();
+          if (reason !== "breakpoint") {
+            throw new Error(
+              `runUntilLabelArrivals('${label}'): resumed to '${reason}', not the checkpoint`,
+            );
+          }
+        }
+        const registers = await driver.readRegisters();
+        if (registers.pc !== address) {
+          throw new Error(
+            `runUntilLabelArrivals('${label}'): stopped at PC ` +
+              `$${registers.pc.toString(16).padStart(4, "0")}, expected ` +
+              `$${address.toString(16).padStart(4, "0")}`,
+          );
+        }
+        return registers;
+      })();
+      // The checkpoint lives OUTSIDE the race so the finally still deletes
+      // it when the guard fires while a resume is in flight.
+      return await withTimeout(work, timeout, `runUntilLabelArrivals('${label}', ${arrivals})`);
+    } finally {
+      try {
+        await driver.deleteCheckpoint(checkpoint);
+      } catch {
+        /* the primary outcome stands */
+      }
+    }
+  })();
 }
 
 /**

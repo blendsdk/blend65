@@ -11,11 +11,17 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { FakeDriver } from "../testing/fake-driver.js";
+import { FakeDriver, FakeMeasurementDriver } from "../testing/fake-driver.js";
 import { buildGate, type BuiltGate } from "../testing/gate.js";
 import { hasAcme, hasVice, setupEmulator } from "../fixture.js";
-import { runFrames, runUntilLabel, runUntilMemory, TimeoutError } from "./strategies.js";
-import type { EmulatorDriver } from "../emulator/driver.js";
+import {
+  runFrames,
+  runUntilLabel,
+  runUntilLabelArrivals,
+  runUntilMemory,
+  TimeoutError,
+} from "./strategies.js";
+import type { EmulatorDriver, Registers } from "../emulator/driver.js";
 
 /** VIC-II border-colour register. */
 const BORDER = 0xd020;
@@ -51,6 +57,74 @@ describe("Specification: mandatory timeout guard against a fake driver (ST-14, S
   it("ST-15: runFrames rejects with a TimeoutError when the advance never completes", async () => {
     const driver = new FakeDriver({ advance: "hang" });
     await expect(runFrames(driver, 2, 50)).rejects.toBeInstanceOf(TimeoutError);
+  });
+});
+
+describe("Specification: runUntilLabelArrivals checkpoint lifecycle against a fake driver", () => {
+  /** The armed loop-head address every case resolves through `symbols`. */
+  const LOOP_HEAD = 0x0810;
+  const symbols = new Map<string, number>([["loop", LOOP_HEAD]]);
+
+  /** A register file whose PC sits at the armed address, as a clean stop reports. */
+  function stoppedAtLoopHead(): Registers {
+    return {
+      a: 0,
+      x: 0,
+      y: 0,
+      sp: 0,
+      pc: LOOP_HEAD,
+      flags: {
+        carry: false,
+        zero: false,
+        interrupt: false,
+        decimal: false,
+        break_: false,
+        overflow: false,
+        negative: false,
+      },
+    };
+  }
+
+  it("should set one checkpoint, resume once per arrival, and delete the checkpoint on success", async () => {
+    const driver = new FakeMeasurementDriver({ registers: stoppedAtLoopHead() });
+    const registers = await runUntilLabelArrivals(driver, symbols, "loop", 3);
+    expect(registers.pc).toBe(LOOP_HEAD);
+    expect(driver.checkpointsSet).toEqual([LOOP_HEAD]);
+    expect(driver.resumeCalls).toBe(3);
+    expect(driver.checkpointsDeleted).toEqual([1]);
+  });
+
+  it("should still delete the checkpoint exactly once when the run times out", async () => {
+    const driver = new FakeMeasurementDriver({ resume: "hang" });
+    await expect(runUntilLabelArrivals(driver, symbols, "loop", 2, 50)).rejects.toBeInstanceOf(
+      TimeoutError,
+    );
+    expect(driver.checkpointsSet).toEqual([LOOP_HEAD]);
+    expect(driver.checkpointsDeleted).toEqual([1]);
+  });
+
+  it("should still delete the checkpoint exactly once when a resume stops for the wrong reason", async () => {
+    const driver = new FakeMeasurementDriver({ resume: "exit" });
+    await expect(runUntilLabelArrivals(driver, symbols, "loop", 2, 50)).rejects.toThrow(
+      /resumed to 'exit'/,
+    );
+    expect(driver.checkpointsSet).toEqual([LOOP_HEAD]);
+    expect(driver.checkpointsDeleted).toEqual([1]);
+  });
+
+  it("should reject an unknown label naming sample keys, before any checkpoint is set", () => {
+    const driver = new FakeMeasurementDriver();
+    expect(() => runUntilLabelArrivals(driver, symbols, "nope", 2)).toThrow(
+      /'nope'.*Available: loop/,
+    );
+    expect(driver.checkpointsSet).toEqual([]);
+  });
+
+  it("should reject a driver without the measurement capabilities, naming the caller", () => {
+    const driver = new FakeDriver();
+    expect(() => runUntilLabelArrivals(driver, symbols, "loop", 2)).toThrow(
+      /runUntilLabelArrivals.*cycle-measurement/,
+    );
   });
 });
 

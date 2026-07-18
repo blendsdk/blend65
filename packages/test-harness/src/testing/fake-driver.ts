@@ -113,3 +113,42 @@ export class FakeDriver implements EmulatorDriver {
     this.shutdownCalled = true;
   }
 }
+
+/**
+ * A {@link FakeDriver} that additionally provides the cycle-measurement
+ * capabilities (tracked checkpoints, stopwatch, named register writes) and
+ * records every call, so checkpoint LIFECYCLE — exactly one set/delete pair
+ * per strategy call, including error exits — is assertable with no emulator.
+ */
+export class FakeMeasurementDriver extends FakeDriver {
+  /** Addresses passed to `setCheckpoint`, in order. */
+  readonly checkpointsSet: number[] = [];
+  /** Checkpoint numbers passed to `deleteCheckpoint`, in order. */
+  readonly checkpointsDeleted: number[] = [];
+  /** `resume` call count (proves the resume-per-arrival shape). */
+  resumeCalls = 0;
+
+  private nextCheckpointNumber = 1;
+
+  async setCheckpoint(address: number): Promise<number> {
+    this.checkpointsSet.push(address);
+    return this.nextCheckpointNumber++;
+  }
+
+  async deleteCheckpoint(checkpointNumber: number): Promise<void> {
+    this.checkpointsDeleted.push(checkpointNumber);
+  }
+
+  async readStopwatch(): Promise<number> {
+    return 0;
+  }
+
+  async writeRegisters(
+    _values: Partial<Record<"a" | "x" | "y" | "sp" | "pc" | "fl", number>>,
+  ): Promise<void> {}
+
+  override resume(): Promise<BreakReason> {
+    this.resumeCalls += 1;
+    return super.resume();
+  }
+}

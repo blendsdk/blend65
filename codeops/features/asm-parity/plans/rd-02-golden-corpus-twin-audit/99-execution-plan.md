@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 09:13
-> **Progress**: 0/58 tasks (0%)
+> **Last Updated**: 2026-07-18 10:58
+> **Progress**: 7/58 tasks (12%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -65,19 +65,19 @@ task-size criteria in the quality checklist)
 **Reference**: 07 ST-1…ST-4 · 03-01 · plan-AR #2, #5, #10
 **Objective**: pin the observables contract, the Nth-arrival semantics, and source sync before code exists
 
-- [ ] 1.1.1 Write observables-module spec tests (ST-1, ST-3; fake driver) — `packages/test-harness/src/testing/observables.spec.test.ts`
-- [ ] 1.1.2 Write the live VICE Nth-arrival probe spec (ST-2) — `packages/test-harness/src/run/label-arrivals.spec.test.ts` — and the fake-driver lifecycle/error spec (ST-2b, runs everywhere) — `packages/test-harness/src/run/strategies.spec.test.ts`
-- [ ] 1.1.3 Write the inlined-source sync spec (ST-4) — `packages/test-harness/src/examples-sync.spec.test.ts`
-- [ ] 1.1.4 Red phase: ST-1/ST-2/ST-2b/ST-3 fail (module/strategy absent); ST-4 red for slice3b (known comment-only drift of `SLICE3B_SRC` vs `examples/slice3b/main.blend` — a genuine red proving the sync spec bites, plan-preflight PF-003); the other 17 modules pre-pass (verified byte-identical at plan time, documented per the ordering protocol)
+- [x] 1.1.1 Write observables-module spec tests (ST-1, ST-3; fake driver) — `packages/test-harness/src/testing/observables.spec.test.ts` ✅ (completed: 2026-07-18 10:38)
+- [x] 1.1.2 Write the live VICE Nth-arrival probe spec (ST-2) — `packages/test-harness/src/run/label-arrivals.spec.test.ts` — and the fake-driver lifecycle/error spec (ST-2b, runs everywhere) — `packages/test-harness/src/run/strategies.spec.test.ts` ✅ (completed: 2026-07-18 10:38)
+- [x] 1.1.3 Write the inlined-source sync spec (ST-4) — `packages/test-harness/src/examples-sync.spec.test.ts` ✅ (completed: 2026-07-18 10:38)
+- [x] 1.1.4 Red phase: ST-1/ST-2/ST-2b/ST-3 fail (module/strategy absent); ST-4 red for slice3b (known comment-only drift of `SLICE3B_SRC` vs `examples/slice3b/main.blend` — a genuine red proving the sync spec bites, plan-preflight PF-003); the other 17 modules pre-pass (verified byte-identical at plan time, documented per the ordering protocol) ✅ (completed: 2026-07-18 10:38 — observed: observables.spec load-fails [module absent]; 5×ST-2b + ST-2 fail `runUntilLabelArrivals is not a function`; ST-4 red exactly for slice3b, 17 modules green; log: scratchpad red-1.1.4.log)
 
 ### Step 1.2: Implementation
 
 **Reference**: 03-01 §strategy, §module, §tables, §suites · plan-AR #2…#5
 **Objective**: the shared module, the strategy, the 13 tables, the 2 new fixture suites
 
-- [ ] 1.2.1 Implement `runUntilLabelArrivals` (set-once/resume-n/delete) — `packages/test-harness/src/run/strategies.ts`
-- [ ] 1.2.2 Implement the observables module — `packages/test-harness/src/testing/observables.ts`
-- [ ] 1.2.3 Green phase: ST-1…ST-4 pass incl. ST-2b (ST-2 on local VICE — if the probe REFUTES Nth-arrival semantics, STOP and surface per 03-01); clear ST-4's slice3b red by updating `SLICE3B_SRC` to the example's exact text (`examples/` is the oracle — plan-AR #10 addendum)
+- [x] 1.2.1 Implement `runUntilLabelArrivals` (set-once/resume-n/delete) — `packages/test-harness/src/run/strategies.ts` ✅ (completed: 2026-07-18 10:58)
+- [x] 1.2.2 Implement the observables module — `packages/test-harness/src/testing/observables.ts` ✅ (completed: 2026-07-18 10:58)
+- [x] 1.2.3 Green phase: ST-1…ST-4 pass incl. ST-2b (ST-2 on local VICE — if the probe REFUTES Nth-arrival semantics, STOP and surface per 03-01); clear ST-4's slice3b red by updating `SLICE3B_SRC` to the example's exact text (`examples/` is the oracle — plan-AR #10 addendum) ✅ (completed: 2026-07-18 10:58 — 38/38 green, live ST-2 CONFIRMED Nth-arrival semantics on VICE; full verify exit 0)
 - [ ] 1.2.4 Export `OBSERVABLES` + refactor suites, first half: gate, slice3a, slice3b, slice4a, slice4b, slice5a (`testing/<fixture>.ts` + `<fixture>.spec.test.ts` pairs); local tier green for these (ST-8)
 - [ ] 1.2.5 Export `OBSERVABLES` + refactor suites, second half: slice5b, slice6, slice7, slice7b, slice8 (per plan-AR #3/#4 — ST-7), slice8b; local tier green (ST-8)
 - [ ] 1.2.6 Add the fixture-side VICE suites (ST-5, ST-6) — `packages/test-harness/src/rasterpoll.spec.test.ts`, `packages/test-harness/src/balloon.spec.test.ts`
