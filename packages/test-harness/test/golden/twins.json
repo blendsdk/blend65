@@ -16,6 +16,10 @@
       "source": "examples/slice4a",
       "twin": "packages/test-harness/test/golden/slice4a.twin.asm"
     },
+    "slice4b": {
+      "source": "examples/slice4b",
+      "twin": "packages/test-harness/test/golden/slice4b.twin.asm"
+    },
     "balloon": {
       "source": "examples/balloon",
       "twin": "examples/balloon/balloon.asm",
