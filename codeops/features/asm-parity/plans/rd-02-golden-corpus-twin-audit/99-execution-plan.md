@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 15:22
-> **Progress**: 46/58 tasks (79%)
+> **Last Updated**: 2026-07-18 15:35
+> **Progress**: 48/58 tasks (83%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -205,8 +205,8 @@ task-size criteria in the quality checklist)
 
 ### Step 4.3: Implementation tests & hardening
 
-- [ ] 4.3.1 Write generator impl tests (render helpers, totals, formatting) — `test/gen-parity-scoreboard.impl.test.ts`
-- [ ] 4.3.2 Full verification
+- [x] 4.3.1 Write generator impl tests (render helpers, totals, formatting) — `test/gen-parity-scoreboard.impl.test.ts` ✅ (completed: 2026-07-18 15:35 — 8/8 green)
+- [x] 4.3.2 Full verification ✅ (completed: 2026-07-18 15:35 — full verify command exit 0)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (plan-AR #12)
 
