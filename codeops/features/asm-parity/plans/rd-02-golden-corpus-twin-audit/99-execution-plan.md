@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 11:18
-> **Progress**: 9/58 tasks (16%)
+> **Last Updated**: 2026-07-18 11:27
+> **Progress**: 10/58 tasks (17%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -80,7 +80,7 @@ task-size criteria in the quality checklist)
 - [x] 1.2.3 Green phase: ST-1…ST-4 pass incl. ST-2b (ST-2 on local VICE — if the probe REFUTES Nth-arrival semantics, STOP and surface per 03-01); clear ST-4's slice3b red by updating `SLICE3B_SRC` to the example's exact text (`examples/` is the oracle — plan-AR #10 addendum) ✅ (completed: 2026-07-18 10:58 — 38/38 green, live ST-2 CONFIRMED Nth-arrival semantics on VICE; full verify exit 0)
 - [x] 1.2.4 Export `OBSERVABLES` + refactor suites, first half: gate, slice3a, slice3b, slice4a, slice4b, slice5a (`testing/<fixture>.ts` + `<fixture>.spec.test.ts` pairs); local tier green for these (ST-8) ✅ (completed: 2026-07-18 11:07 — 6 suites / 11 tests green; build+typecheck+lint exit 0)
 - [x] 1.2.5 Export `OBSERVABLES` + refactor suites, second half: slice5b, slice6, slice7, slice7b, slice8 (per plan-AR #3/#4 — ST-7), slice8b; local tier green (ST-8) ✅ (completed: 2026-07-18 11:18 — 6 suites / 12 tests green incl. slice8's exact $F2 readback; build+typecheck+lint exit 0)
-- [ ] 1.2.6 Add the fixture-side VICE suites (ST-5, ST-6) — `packages/test-harness/src/rasterpoll.spec.test.ts`, `packages/test-harness/src/balloon.spec.test.ts`
+- [x] 1.2.6 Add the fixture-side VICE suites (ST-5, ST-6) — `packages/test-harness/src/rasterpoll.spec.test.ts`, `packages/test-harness/src/balloon.spec.test.ts` ✅ (completed: 2026-07-18 11:27 — both green on live VICE; build+typecheck+lint exit 0)
 
 ### Step 1.3: Implementation tests & hardening
 

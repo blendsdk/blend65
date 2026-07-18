@@ -15,6 +15,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The rasterpoll Main module — verbatim `examples/rasterpoll/main.blend`. */
 export const RASTERPOLL_MAIN_SRC = `module Main;
@@ -76,3 +77,19 @@ export function emitAsmRasterpoll(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The rasterpoll program's shared observable set: stopped at the 2nd
+ * arrival of the frame-loop head, exactly one frame body has run — the
+ * heartbeat reads 1 and the border readback is $F1 (colour 1 in the low
+ * nibble; the VIC-II unused upper nibble reads 1s). State mutates every
+ * frame, so only a stopped machine yields deterministic checks — each
+ * consumer supplies its own loop-head label.
+ */
+export const RASTERPOLL_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "loopHead", arrivals: 2 }],
+  checks: [
+    { address: 0x0400, value: 0x01, note: "heartbeat: frame counter after one body" },
+    { address: 0xd020, value: 0xf1, note: "border poked to frame (1) — readback $F1" },
+  ],
+};
