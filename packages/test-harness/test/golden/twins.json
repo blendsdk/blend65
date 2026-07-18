@@ -48,6 +48,10 @@
       "source": "examples/slice8b",
       "twin": "packages/test-harness/test/golden/slice8b.twin.asm"
     },
+    "rasterpoll": {
+      "source": "examples/rasterpoll",
+      "twin": "packages/test-harness/test/golden/rasterpoll.twin.asm"
+    },
     "balloon": {
       "source": "examples/balloon",
       "twin": "examples/balloon/balloon.asm",
