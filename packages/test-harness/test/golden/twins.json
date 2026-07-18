@@ -36,6 +36,10 @@
       "source": "examples/slice7",
       "twin": "packages/test-harness/test/golden/slice7.twin.asm"
     },
+    "slice7b": {
+      "source": "examples/slice7b",
+      "twin": "packages/test-harness/test/golden/slice7b.twin.asm"
+    },
     "balloon": {
       "source": "examples/balloon",
       "twin": "examples/balloon/balloon.asm",
