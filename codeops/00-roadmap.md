@@ -19,7 +19,7 @@
 | Feature | Roadmap | Stage Summary | Progress | Status | Last Updated |
 |---------|---------|---------------|----------|--------|--------------|
 | blend65-ri | [→](features/blend65-ri/00-roadmap.md) | **RD-18 ✅ CLOSED 2026-07-17** — frozen v3 compiles end-to-end (unoptimized); next: RD-13/RD-14 (`make_plan`) | 18/20 | 🔄 | 2026-07-17 |
-| asm-parity | [→](features/asm-parity/00-roadmap.md) | backlog — Prime Directive audit program + memory/hardware epic (GitHub issues #49–#64) | 0/14 RDs | ⬜ | 2026-07-17 |
+| asm-parity | [→](features/asm-parity/00-roadmap.md) | **RD-01 🔄 executing** (parity measurement infra, #64; plan preflighted, 52-task exec_plan running in auto-commit mode) | 0/14 RDs | 🔄 | 2026-07-18 |
 
 ## Archived
 

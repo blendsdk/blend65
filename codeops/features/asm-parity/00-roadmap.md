@@ -3,7 +3,7 @@
 > **Feature-Set**: Asm-Parity Initiative
 > **Status**: In Progress
 > **Created**: 2026-07-17
-> **Last Updated**: 2026-07-17 21:56
+> **Last Updated**: 2026-07-18 (RD-01 executing — exec_plan started, auto-commit mode; 0/52 tasks)
 > **Progress**: 0 / 14 (0%)
 > **CodeOps Skills Version**: 3.8.0
 >
@@ -20,7 +20,7 @@
 
 | ID | Title | RD | Plan | Stage | Status | Last Updated | Depends-on / Blocker |
 |----|-------|----|------|-------|--------|--------------|----------------------|
-| RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | — | — | Backlog | ⬜ | 2026-07-17 | — |
+| RD-01 | Parity measurement infrastructure ([#64](https://github.com/blendsdk/blend65/issues/64)) | [RD](requirements/RD-01-parity-measurement-infrastructure.md) | [Plan](plans/rd-01-parity-measurement-infrastructure/00-index.md) | Executing | 🔄 | 2026-07-18 | — |
 | RD-02 | Golden-corpus twin audit + scoreboard ([#61](https://github.com/blendsdk/blend65/issues/61)) | — | — | Backlog | ⬜ | 2026-07-17 | RD-01 for measured mode (static estimates OK before) |
 | RD-03 | Memory & hardware access epic ([#49](https://github.com/blendsdk/blend65/issues/49)) | — | — | Backlog | ⬜ | 2026-07-17 | copy() phase needs Language Guard + v3.1 decision |
 | RD-04 | Compare-and-branch fusion ([#50](https://github.com/blendsdk/blend65/issues/50)) | — | — | Backlog | ⬜ | 2026-07-17 | RD-01 for before/after numbers |
