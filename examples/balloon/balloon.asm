@@ -54,53 +54,64 @@ raster: lda $d012
         cmp #251
         bne raster
 
-        ; --- advance X by the current direction (16-bit inc/dec) ---
+        ; Frame-update body — the measured window runs update -> mainloop.
+update:
+        ; --- advance X by the current direction (16-bit, +/-2 step) ---
         lda xdir
         beq xleft
-        inc xlo
-        bne xdone
+        clc
+        lda xlo
+        adc #2
+        sta xlo
+        bcc xdone
         inc xhi
         jmp xdone
-xleft:  lda xlo
-        bne xnb
+xleft:  sec
+        lda xlo
+        sbc #2
+        sta xlo
+        bcs xdone
         dec xhi
-xnb:    dec xlo
 xdone:
 
-        ; --- advance Y ---
+        ; --- advance Y (+/-2) ---
         lda ydir
         beq yup
         inc ypos
+        inc ypos
         jmp ydone
 yup:    dec ypos
+        dec ypos
 ydone:
 
-        ; --- bounce X at 320 ($0140) and 24 ---
+        ; --- bounce X: right at x >= 320 ($0140), left at x <= 24 ---
+        ; >=/<= (not ==) so a 2px step cannot overshoot a bound.
         lda xhi
-        cmp #$01
-        bne chk24
+        cmp #>320
+        bcc chk24           ; xhi < $01 -> x < 320
+        bne xhit            ; xhi > $01 -> far right, >= still holds
         lda xlo
-        cmp #$40
-        bne chk24
-        lda #0
+        cmp #<320
+        bcc chk24           ; x < 320
+xhit:   lda #0
         sta xdir            ; hit right edge -> go left
 chk24:  lda xhi
-        bne chky            ; xhi != 0 can't equal 24
+        bne chky            ; x >= 256 can't be <= 24
         lda xlo
-        cmp #24
-        bne chky
+        cmp #25
+        bcs chky            ; x > 24
         lda #1
         sta xdir            ; hit left edge -> go right
 
-        ; --- bounce Y at 229 and 50 ---
+        ; --- bounce Y: bottom at y >= 229, top at y <= 50 ---
 chky:   lda ypos
         cmp #229
-        bne chk50
+        bcc chk50           ; y < 229
         lda #0
         sta ydir
 chk50:  lda ypos
-        cmp #50
-        bne vic
+        cmp #51
+        bcs vic             ; y > 50
         lda #1
         sta ydir
 

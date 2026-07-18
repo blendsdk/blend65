@@ -284,7 +284,7 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: budget tier — 
   const budgets = loadBudgetFile(BUDGETS_PATH);
 
   it(
-    "balloon frameUpdate: identical quiesced measurements across two fresh processes, within budget",
+    "balloon frameUpdate: identical quiesced measurements across two fresh processes, equal to the committed figure",
     async () => {
       const window = budgets.programs.balloon.windows.find((w) => w.name === "frameUpdate")!;
       expect(window.kind).toBe("span");
@@ -308,13 +308,10 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: budget tier — 
           }
         }
         expect(counts[0]).toBe(counts[1]);
+        // The committed figure IS the measurement, not a ceiling: any drift —
+        // faster or slower — must surface and be consciously re-recorded.
         if (window.kind === "span" && window.measuredMaxCycles !== undefined) {
-          checkCostWithinBudget(
-            "balloon",
-            "window 'frameUpdate' measured cycles",
-            counts[0],
-            window.measuredMaxCycles,
-          );
+          expect(counts[0]).toBe(window.measuredMaxCycles);
         }
         // The ratchet bites: one below the current measurement fails.
         expect(() =>

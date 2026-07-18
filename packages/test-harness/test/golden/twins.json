@@ -2,7 +2,13 @@
   "pairs": {
     "balloon": {
       "source": "examples/balloon",
-      "twin": "examples/balloon/balloon.asm"
+      "twin": "examples/balloon/balloon.asm",
+      "measured": {
+        "window": "frameUpdate",
+        "fromLabel": "update",
+        "toLabel": "mainloop",
+        "cycles": 97
+      }
     }
   }
 }

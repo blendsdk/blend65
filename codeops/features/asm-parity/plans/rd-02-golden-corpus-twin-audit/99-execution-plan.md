@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 11:42
-> **Progress**: 12/58 tasks (21%)
+> **Last Updated**: 2026-07-18 12:24
+> **Progress**: 21/58 tasks (36%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -102,21 +102,21 @@ task-size criteria in the quality checklist)
 **Reference**: 07 ST-9…ST-13 · 03-02 · plan-AR #1, #6
 **Objective**: the tier and loader specs exist and fail before the corpus mechanics do
 
-- [ ] 2.1.1 Write manifest-loader spec tests (ST-9) — `packages/test-harness/src/twin-manifest.spec.test.ts`
-- [ ] 2.1.2 Write the twin tier (ST-10a per-pair cases over the registered manifest pairs, ST-11 negative, ST-12 measured) — `packages/test-harness/src/twins.spec.test.ts`; the ST-10b corpus-coverage assertion (pair-set == corpus-set) is NOT written yet — it enters at corpus completion (3.5.3, plan-preflight PF-001)
-- [ ] 2.1.3 Amend the budget tier's balloon measured case to exact equality (ST-13) — `packages/test-harness/src/budgets.spec.test.ts` (deliberate spec amendment per RD AC-6/PF-012)
-- [ ] 2.1.4 Red phase: loader absent, twin behaviorally divergent, no measured reference — documented failures
+- [x] 2.1.1 Write manifest-loader spec tests (ST-9) — `packages/test-harness/src/twin-manifest.spec.test.ts` ✅ (completed: 2026-07-18 11:55)
+- [x] 2.1.2 Write the twin tier (ST-10a per-pair cases over the registered manifest pairs, ST-11 negative, ST-12 measured) — `packages/test-harness/src/twins.spec.test.ts`; the ST-10b corpus-coverage assertion (pair-set == corpus-set) is NOT written yet — it enters at corpus completion (3.5.3, plan-preflight PF-001) ✅ (completed: 2026-07-18 11:55)
+- [x] 2.1.3 Amend the budget tier's balloon measured case to exact equality (ST-13) — `packages/test-harness/src/budgets.spec.test.ts` (deliberate spec amendment per RD AC-6/PF-012) ✅ (completed: 2026-07-18 11:55)
+- [x] 2.1.4 Red phase: loader absent, twin behaviorally divergent, no measured reference — documented failures ✅ (completed: 2026-07-18 11:55 — observed: twin-manifest.spec + twins.spec load-fail [modules absent; ST-12's no-measured red subsumed]; ST-13 exact-equality PRE-PASSES: fresh measurement == committed 162 [the figure was recorded from measurement — documented per the ordering protocol; the ratchet-bites negative still bites]; log: scratchpad red-2.1.4.log)
 
 ### Step 2.2: Implementation
 
 **Reference**: 03-02 §balloon, §twin-assemble, §loader · plan-AR #1, #8
 **Objective**: a green balloon pair proving the whole twin path end-to-end
 
-- [ ] 2.2.1 Fix `examples/balloon/balloon.asm` to the source's ±2 / `>=`-`<=` semantics and add the `update:` window label — plan-AR #1; RD F7
-- [ ] 2.2.2 Implement twin assembly (ACME `--report` + `--vicelabels`, named-twin staging, `!to` rule) — `packages/test-harness/src/testing/twin-assemble.ts`
-- [ ] 2.2.3 Implement the strict manifest loader — `packages/test-harness/src/twin-manifest.ts`
-- [ ] 2.2.4 Measure the corrected twin's `update→mainloop` window (quiesced, identical across two fresh VICE processes) and record `measured` in `test/golden/twins.json` — RD AC-6
-- [ ] 2.2.5 Green phase: ST-9, ST-10a (balloon — the only registered pair), ST-11…ST-13 pass on the local tier
+- [x] 2.2.1 Fix `examples/balloon/balloon.asm` to the source's ±2 / `>=`-`<=` semantics and add the `update:` window label — plan-AR #1; RD F7 ✅ (completed: 2026-07-18 12:24)
+- [x] 2.2.2 Implement twin assembly (ACME `--report` + `--vicelabels`, named-twin staging, `!to` rule) — `packages/test-harness/src/testing/twin-assemble.ts` ✅ (completed: 2026-07-18 12:24)
+- [x] 2.2.3 Implement the strict manifest loader — `packages/test-harness/src/twin-manifest.ts` ✅ (completed: 2026-07-18 12:24)
+- [x] 2.2.4 Measure the corrected twin's `update→mainloop` window (quiesced, identical across two fresh VICE processes) and record `measured` in `test/golden/twins.json` — RD AC-6 ✅ (completed: 2026-07-18 12:24 — 97 cycles, identical across 2 fresh processes; ST-12 confirms exactly)
+- [x] 2.2.5 Green phase: ST-9, ST-10a (balloon — the only registered pair), ST-11…ST-13 pass on the local tier ✅ (completed: 2026-07-18 12:24 — ST-9 8/8, twin tier 3/3, budgets 20/20. Mechanical correction noted: the tier's balloon twin-side loop-head label is `update`, not `mainloop` — the twin's `mainloop:` aliases its raster-poll head byte-for-byte (same address, no instruction between), so it re-arrives every poll iteration; `update` is the once-per-frame anchor and the 2nd-arrival contract [exactly one frame body ran] is unchanged. The label choice was tier-table plumbing left open by 03-02; noted per the mechanical-correction rule)
 
 ### Step 2.3: Implementation tests & hardening
 
