@@ -16,19 +16,12 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice8b, type BuiltSlice8b } from "./testing/slice8b.js";
+import { buildSlice8b, SLICE8B_OBSERVABLES, type BuiltSlice8b } from "./testing/slice8b.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
-import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
 const LOCAL_TEST_TIMEOUT = 120000;
-
-/** The PETSCII bytes of `"HELLO C64!"`. */
-const TITLE_BYTES = [0x48, 0x45, 0x4c, 0x4c, 0x4f, 0x20, 0x43, 0x36, 0x34, 0x21];
-/** The committed `table.bin` bytes. */
-const TABLE_BYTES = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80];
-/** The banner after the `'B'` store: `B`,`I`, then six fill dots. */
-const BANNER_BYTES = [0x42, 0x49, 0x2e, 0x2e, 0x2e, 0x2e, 0x2e, 0x2e];
 
 describe.skipIf(!hasAcme())("Specification: Slice 8b assemble-clean", () => {
   let built: BuiltSlice8b | undefined;
@@ -59,19 +52,10 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 8b on VICE
       const env = await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
-      // The comparison flag is main's last write — once it lands, every
-      // earlier copy has finished.
-      await runUntilMemory(driver, 0xc020, 1, LOCAL_TEST_TIMEOUT);
-      await assertMemory(driver, 0xc020, 1);
-
-      const screen = Array.from(await driver.readMemory(0x0400, TITLE_BYTES.length));
-      expect(screen).toEqual(TITLE_BYTES);
-
-      const table = Array.from(await driver.readMemory(0xc000, TABLE_BYTES.length));
-      expect(table).toEqual(TABLE_BYTES);
-
-      const banner = Array.from(await driver.readMemory(0xc010, BANNER_BYTES.length));
-      expect(banner).toEqual(BANNER_BYTES);
+      // The shared observable set — the same table the twin tier consumes.
+      // Its landmark waits on the comparison flag (main's last write), so
+      // every earlier copy has finished before the checks run.
+      await assertObservables(driver, SLICE8B_OBSERVABLES, { timeout: LOCAL_TEST_TIMEOUT });
     },
     LOCAL_TEST_TIMEOUT,
   );

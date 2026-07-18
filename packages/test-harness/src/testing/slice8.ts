@@ -22,6 +22,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 8 Main module — verbatim `examples/slice8/main.blend`. */
 export const SLICE8_MAIN_SRC = `module Main;
@@ -100,3 +101,16 @@ export function emitAsmSlice8(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 8 program's shared observable set: after the interrupt counter
+ * saturates at 100 bumps from the boot border colour 14, the border register
+ * reads exactly 0xF2 — (14+100) mod 16 = 2, VIC-II unused upper nibble reads
+ * 1s. The counter/mirror interleaving proofs live at allocator-chosen
+ * addresses and stay fixture-local; the border is the source-mandated
+ * observable any equivalent implementation must land.
+ */
+export const SLICE8_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xd020, value: 0xf2 }],
+  checks: [{ address: 0xd020, value: 0xf2, note: "(14 + 100) mod 16 = 2 → readback $F2" }],
+};

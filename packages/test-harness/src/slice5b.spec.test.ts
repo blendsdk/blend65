@@ -16,26 +16,11 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice5b, type BuiltSlice5b } from "./testing/slice5b.js";
+import { buildSlice5b, SLICE5B_OBSERVABLES, type BuiltSlice5b } from "./testing/slice5b.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
-import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
-/** Observable RAM: the six poked results (seven bytes). */
-const ADD_ADDR = 0xc000; // add(2, 3) = 5
-const ADD_VAL = 0x05;
-const TWICE_ADDR = 0xc001; // Math.twice(4) = add(4, 4) = 8
-const TWICE_VAL = 0x08;
-const COMBO_ADDR = 0xc002; // combo = Math.scaled + 1 = 3*2 + 1 = 7 (init order)
-const COMBO_VAL = 0x07;
-const BASE_LO_ADDR = 0xc003; // Math.base = $0102 — lo byte
-const BASE_LO_VAL = 0x02;
-const BASE_HI_ADDR = 0xc004; // $0102 — hi byte (contiguous pokew)
-const BASE_HI_VAL = 0x01;
-const BASE2_LO_ADDR = 0xc005; // Math.base + 1 = $0103 — lo byte
-const BASE2_LO_VAL = 0x03;
-const BASE2_HI_ADDR = 0xc006; // $0103 — hi byte
-const BASE2_HI_VAL = 0x01;
 const LOCAL_TEST_TIMEOUT = 30000;
 
 describe.skipIf(!hasAcme())("Specification: Slice 5b assemble-clean", () => {
@@ -69,14 +54,8 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 5b on VICE
       const env = await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
-      await runUntilMemory(driver, BASE2_LO_ADDR, BASE2_LO_VAL); // the last result settled
-      await assertMemory(driver, ADD_ADDR, ADD_VAL); // $C000 == $05 (imported add)
-      await assertMemory(driver, TWICE_ADDR, TWICE_VAL); // $C001 == $08 (qualified twice)
-      await assertMemory(driver, COMBO_ADDR, COMBO_VAL); // $C002 == $07 (init order)
-      await assertMemory(driver, BASE_LO_ADDR, BASE_LO_VAL); // $C003 == $02 (base lo)
-      await assertMemory(driver, BASE_HI_ADDR, BASE_HI_VAL); // $C004 == $01 (base hi)
-      await assertMemory(driver, BASE2_LO_ADDR, BASE2_LO_VAL); // $C005 == $03 (base+1 lo)
-      await assertMemory(driver, BASE2_HI_ADDR, BASE2_HI_VAL); // $C006 == $01 (base+1 hi)
+      // The shared observable set — the same table the twin tier consumes.
+      await assertObservables(driver, SLICE5B_OBSERVABLES);
     },
     LOCAL_TEST_TIMEOUT,
   );

@@ -17,6 +17,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 7b Game module — verbatim `examples/slice7b/game.blend`. */
 export const SLICE7B_GAME_SRC = `module Game;
@@ -134,3 +135,21 @@ export function emitAsmSlice7b(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 7b program's shared observable set: every pointer-surface
+ * result, including the tier-2 runtime word index at 260 and the low-range
+ * integrity proof it must not alias.
+ */
+export const SLICE7B_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc006, value: 0x16 }],
+  checks: [
+    { address: 0xc000, value: 0x00, note: "boss.hp after relay → resetEnemy" },
+    { address: 0xc001, value: 0x2a, note: "boss.pos.y = 42 through the pair" },
+    { address: 0xc002, value: 0x0f, note: "sum(TABLE, length(TABLE)) = 3+5+7" },
+    { address: 0xc003, value: 0x1d, note: "big[260] via the runtime word index" },
+    { address: 0xc004, value: 0x11, note: "big[4] via the const index — not aliased by 260" },
+    { address: 0xc005, value: 0x0b, note: "b.x after copyPoint(b, a); a.x = 99 → still 11" },
+    { address: 0xc006, value: 0x16, note: "b.y" },
+  ],
+};

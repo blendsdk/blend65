@@ -16,6 +16,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 7 Gfx module — verbatim `examples/slice7/gfx.blend`. */
 export const SLICE7_GFX_SRC = `module Gfx;
@@ -137,3 +138,23 @@ export function emitAsmSlice7(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 7 program's shared observable set: every aggregate-surface
+ * result, from the indexed loop sum to the enum→word cast's low byte.
+ */
+export const SLICE7_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc009, value: 0x03 }],
+  checks: [
+    { address: 0xc000, value: 0x0e, note: "1+2+3+4+4 over byte[5] = [1,2,3;4]" },
+    { address: 0xc001, value: 0x2a, note: "player.pos.y = 42" },
+    { address: 0xc002, value: 0x08, note: "pts[1].x = 8 (runtime index × 2)" },
+    { address: 0xc003, value: 0x02, note: "case Direction.DOWN → 2" },
+    { address: 0xc004, value: 0x06, note: "length(TABLE) = 6" },
+    { address: 0xc005, value: 0x02, note: "sizeof(Point) = 2" },
+    { address: 0xc006, value: 0x01, note: "offsetof(Point, y) = 1" },
+    { address: 0xc007, value: 0x14, note: "Gfx.TABLE[1] = 20" },
+    { address: 0xc008, value: 0x0b, note: "b.x after b = a; a.x = 99 → still 11 (copy)" },
+    { address: 0xc009, value: 0x03, note: "<byte>(<word>(Direction.DOWN)) = 3 — the sentinel" },
+  ],
+};

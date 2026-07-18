@@ -19,6 +19,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The committed 8-byte asset (`01 02 04 08 10 20 40 80`), hexdump-stable. */
 const TABLE_BIN = join(
@@ -130,3 +131,35 @@ export function emitAsmSlice8b(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 8b program's shared observable set: the comparison flag (main's
+ * LAST write — waiting on it settles every earlier copy), the PETSCII title
+ * on screen RAM, the embedded table staged byte-for-byte from the committed
+ * asset, and the mutated banner.
+ */
+export const SLICE8B_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc020, value: 0x01 }],
+  checks: [
+    { address: 0xc020, value: 0x01, note: "char-comparison flag — main's last write" },
+    { address: 0x0400, value: 0x48, note: "title 'H'" },
+    { address: 0x0401, value: 0x45, note: "title 'E'" },
+    { address: 0x0402, value: 0x4c, note: "title 'L'" },
+    { address: 0x0403, value: 0x4c, note: "title 'L'" },
+    { address: 0x0404, value: 0x4f, note: "title 'O'" },
+    { address: 0x0405, value: 0x20, note: "title ' '" },
+    { address: 0x0406, value: 0x43, note: "title 'C'" },
+    { address: 0x0407, value: 0x36, note: "title '6'" },
+    { address: 0x0408, value: 0x34, note: "title '4'" },
+    { address: 0x0409, value: 0x21, note: "title '!'" },
+    { address: 0xc000, bytesFile: "examples/slice8b/table.bin", note: "embedded table" },
+    { address: 0xc010, value: 0x42, note: "banner 'B' (mutated)" },
+    { address: 0xc011, value: 0x49, note: "banner 'I'" },
+    { address: 0xc012, value: 0x2e, note: "banner fill '.'" },
+    { address: 0xc013, value: 0x2e, note: "banner fill '.'" },
+    { address: 0xc014, value: 0x2e, note: "banner fill '.'" },
+    { address: 0xc015, value: 0x2e, note: "banner fill '.'" },
+    { address: 0xc016, value: 0x2e, note: "banner fill '.'" },
+    { address: 0xc017, value: 0x2e, note: "banner fill '.'" },
+  ],
+};

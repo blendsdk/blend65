@@ -15,6 +15,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 5b Main module — verbatim `examples/slice5b/main.blend`. */
 export const SLICE5B_MAIN_SRC = `module Main;
@@ -105,3 +106,21 @@ export function emitAsmSlice5b(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 5b program's shared observable set: the module-system results —
+ * add(2,3)=5, Math.twice(4)=8, combo=7 (initialized from Math.scaled+1
+ * BEFORE main), Math.base=$0102 then base+1=$0103 little-endian.
+ */
+export const SLICE5B_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc005, value: 0x03 }],
+  checks: [
+    { address: 0xc000, value: 0x05, note: "add(2, 3) = 5" },
+    { address: 0xc001, value: 0x08, note: "Math.twice(4) = add(4, 4) = 8" },
+    { address: 0xc002, value: 0x07, note: "combo = Math.scaled + 1 = 7 (init order)" },
+    { address: 0xc003, value: 0x02, note: "Math.base = $0102 — lo byte" },
+    { address: 0xc004, value: 0x01, note: "Math.base hi byte" },
+    { address: 0xc005, value: 0x03, note: "Math.base + 1 = $0103 — lo byte" },
+    { address: 0xc006, value: 0x01, note: "Math.base + 1 hi byte" },
+  ],
+};

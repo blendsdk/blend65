@@ -6,10 +6,11 @@
  * saturates at 100 (the counter is saturating precisely so this settles
  * deterministically — an equality wait on a still-moving counter could skip
  * values), the mainline loop's RAM mirror settles at the same value (the
- * main loop and the handler genuinely interleave), and the border color has
- * moved off the boot color (each interrupt bumped it until saturation, so
- * it ends at (boot + 100) mod 16). The observable addresses are read from
- * the emitted source's own equates — never hardcoded.
+ * main loop and the handler genuinely interleave), and the border register
+ * reads exactly the saturated colour — (boot 14 + 100) mod 16 = 2, read
+ * back as $F2 — via the shared observable set. The counter/mirror addresses
+ * are allocator-chosen and read from the emitted source's own equates —
+ * never hardcoded, and never part of the shared set.
  *
  * These tests are derived from the fixture's documented behavior, not from
  * reading the implementation. The assemble-clean suite compiles via ACME
@@ -19,15 +20,14 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { buildSlice8, emitAsmSlice8, type BuiltSlice8 } from "./testing/slice8.js";
+import { buildSlice8, emitAsmSlice8, SLICE8_OBSERVABLES, type BuiltSlice8 } from "./testing/slice8.js";
+import { assertObservables } from "./testing/observables.js";
 import { hasAcme, hasVice, setupEmulator } from "./fixture.js";
 import { assertMemory, runUntilMemory } from "./index.js";
 import type { EmulatorDriver } from "./emulator/driver.js";
 
 /** The saturation threshold the fixture's counter sticks at. */
 const SATURATION = 100;
-/** The VIC-II boot border color (light blue) on a stock c64. */
-const BOOT_BORDER = 14;
 const LOCAL_TEST_TIMEOUT = 120000;
 
 /** Reads a symbol's equated address out of the emitted ACME source. */
@@ -59,7 +59,7 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 8 on VICE 
   });
 
   it(
-    "fires the raster interrupt: the ZP counter and its RAM mirror saturate, the border moved",
+    "fires the raster interrupt: the ZP counter and its RAM mirror saturate, the border settles at $F2",
     async () => {
       const asm = emitAsmSlice8().text!;
       const counterAddr = equateOf(asm, "__zp_Main_frameCount");
@@ -69,17 +69,18 @@ describe.skipIf(!(hasVice("c64") && hasAcme()))("Specification: Slice 8 on VICE 
       const env = await setupEmulator({ build: built.result, platform: "c64" });
       driver = env.driver;
 
-      // The counter saturates, so waiting for equality is deterministic —
-      // once it reaches 100 it never moves again.
+      // Fixture-local interleaving proofs at allocator-chosen addresses —
+      // implementation-coupled, so they stay out of the shared set. The
+      // counter saturates, so waiting for equality is deterministic — once
+      // it reaches 100 it never moves again.
       await runUntilMemory(driver, counterAddr, SATURATION, LOCAL_TEST_TIMEOUT);
       await assertMemory(driver, counterAddr, SATURATION);
       // The mainline loop mirrors the settled counter — main and the
       // handler really interleaved.
       await runUntilMemory(driver, mirrorAddr, SATURATION, LOCAL_TEST_TIMEOUT);
-      // The border moved off the boot color (100 bumps → (boot+100) mod 16;
-      // VIC unconnected bits read back 1, so mask to the color nybble).
-      const border = (await driver.readMemory(0xd020, 1))[0]! & 0x0f;
-      expect(border).not.toBe(BOOT_BORDER);
+      // The shared observable set — the same table the twin tier consumes:
+      // the border register reads exactly (14 + 100) mod 16 = 2 → $F2.
+      await assertObservables(driver, SLICE8_OBSERVABLES, { timeout: LOCAL_TEST_TIMEOUT });
     },
     LOCAL_TEST_TIMEOUT,
   );

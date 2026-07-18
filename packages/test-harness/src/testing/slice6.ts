@@ -16,6 +16,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build, emitAsm, type BuildResult, type EmitResult } from "@blend65/compiler";
+import type { ProgramObservables } from "./observables.js";
 
 /** The Slice 6 program — verbatim `examples/slice6/main.blend`. */
 export const SLICE6_MAIN_SRC = `module Main;
@@ -115,3 +116,23 @@ export function emitAsmSlice6(): EmitResult {
     rmSync(cwd, { recursive: true, force: true });
   }
 }
+
+/**
+ * The Slice 6 program's shared observable set: the expression-system
+ * results, including the short-circuit suppression proof (the side-effecting
+ * helper ran zero times, then exactly once).
+ */
+export const SLICE6_OBSERVABLES: ProgramObservables = {
+  landmarks: [{ kind: "memory", address: 0xc007, value: 0x44 }],
+  checks: [
+    { address: 0xc000, value: 0xe7, note: "base + a += 55 = 1255 = $04E7 — lo byte" },
+    { address: 0xc001, value: 0x04, note: "$04E7 hi byte" },
+    { address: 0xc002, value: 0xda, note: "~((<byte>($0304) << 3) | 5) = ~37 = $DA" },
+    { address: 0xc003, value: 0x05, note: "<byte>(-(-5)) = 5" },
+    { address: 0xc004, value: 0x07, note: "(a < base) && (s < 0) ? 7 : 9 = 7" },
+    { address: 0xc005, value: 0x00, note: "witness after two SUPPRESSED bump() calls" },
+    { address: 0xc006, value: 0x01, note: "witness after bump() ran exactly once" },
+    { address: 0xc007, value: 0x44, note: "$0011 << 2 = $0044 — lo byte (the sentinel)" },
+    { address: 0xc008, value: 0x00, note: "$0044 hi byte" },
+  ],
+};
