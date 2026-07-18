@@ -44,6 +44,13 @@ export interface InstrProgram {
   readonly streams: readonly InstrStream[];
   /** The SFA plan carried from the IL program for the emitter. */
   readonly allocationPlan: AllocationPlan;
+  /**
+   * The EFFECTIVE preamble options {@link assembleProgram} emitted with
+   * (derivation + driver overrides applied) — absent on programs built by
+   * the bare `generateInstr` path. Lets downstream consumers (e.g. the
+   * startup-cost report wiring) reference exactly what was emitted.
+   */
+  readonly preambleOptions?: PreambleOptions;
 }
 
 /**
@@ -173,6 +180,7 @@ export function assembleProgram(
     preamble: Object.freeze([...preamble]),
     streams: program.streams,
     allocationPlan: program.allocationPlan,
+    preambleOptions: options,
   });
 }
 

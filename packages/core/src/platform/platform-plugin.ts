@@ -133,6 +133,19 @@ export interface PlatformPlugin {
   emitStartupShim(variant: ShimVariant, hasInitCode?: boolean): StreamEntry[];
 
   /**
+   * Cost the startup shim this platform emits for the given configuration:
+   * bytes + straight-line cycles (labels cost nothing). Same signature
+   * family as {@link emitStartupShim}, so the plugin costs exactly the
+   * entries it emits. Optional — platforms without timing data for their CPU
+   * omit it and the report's startup figures stay absent.
+   *
+   * @param variant The shim variant being emitted.
+   * @param hasInitCode Whether the shim calls `__init` before the entry.
+   * @returns The shim's byte size and straight-line cycle cost.
+   */
+  startupCost?(variant: ShimVariant, hasInitCode?: boolean): { bytes: number; cycles: number };
+
+  /**
    * The ACME output-file directive for this platform, e.g.
    * `{ kind: "outputFile", name: "main.prg", format: "cbm" }`.
    *

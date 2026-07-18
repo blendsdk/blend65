@@ -51,6 +51,10 @@ export function renderReportJson(report: ResourceReport): string {
     ...(report.peepholeStats !== undefined
       ? { peepholeStats: mirrorPeepholeStats(report.peepholeStats) }
       : {}),
+    ...(report.functionCosts !== undefined ? { functionCosts: report.functionCosts } : {}),
+    ...(report.cycleEstimatesUnavailable !== undefined
+      ? { cycleEstimatesUnavailable: report.cycleEstimatesUnavailable }
+      : {}),
   };
   return `${JSON.stringify(mirror, null, 2)}\n`;
 }

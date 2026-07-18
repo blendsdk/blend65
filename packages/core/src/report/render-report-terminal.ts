@@ -114,5 +114,19 @@ export function renderReportTerminal(report: ResourceReport): string {
     `Total binary:${group(report.binarySize ?? 0).padStart(9)} bytes`,
   ];
 
+  // Per-function straight-line estimates — appended only when present, so
+  // reports without cost data keep the frozen layout untouched.
+  if (report.functionCosts !== undefined && report.functionCosts.length > 0) {
+    lines.push("", "Functions (straight-line estimates):");
+    const nameWidth = Math.max(...report.functionCosts.map((cost) => cost.name.length)) + 2;
+    for (const cost of report.functionCosts) {
+      const cycles =
+        report.cycleEstimatesUnavailable !== undefined
+          ? `[${report.cycleEstimatesUnavailable}]`
+          : `${group(cost.minCycles)}–${group(cost.maxCycles)} cycles`;
+      lines.push(`  ${cost.name.padEnd(nameWidth)}${group(cost.bytes)} bytes  ${cycles}`);
+    }
+  }
+
   return `${lines.join("\n")}\n`;
 }

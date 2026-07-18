@@ -21,6 +21,7 @@ import {
   printIL,
   serializeToAcme,
   type ILProgram,
+  type InstrProgram,
 } from "@blend65/codegen";
 import type { CompilerOptions } from "./options.js";
 import type { EmitResult } from "./results.js";
@@ -75,8 +76,8 @@ export function emitIl(options: CompilerOptions, host?: CompilerHost): EmitResul
  */
 export function emitAsm(options: CompilerOptions, host?: CompilerHost): EmitResult {
   const run = runFrontend(options, host);
-  const text = assembleAsmText(run);
-  return withText(assembleCompileResult(run), text);
+  const assembled = assembleAsmText(run);
+  return withText(assembleCompileResult(run), assembled?.text);
 }
 
 /**
@@ -107,12 +108,21 @@ function lowerProgram(run: FrontendRun): ILProgram | undefined {
   return optimizeIL(il, [], run.bag);
 }
 
+/** What {@link assembleAsmText} yields: the ACME text + the assembled program. */
+export interface AssembledAsm {
+  /** The serialized ACME source. */
+  readonly text: string;
+  /** The assembled (and possibly optimized) program the text was rendered from. */
+  readonly program: InstrProgram;
+}
+
 /**
  * Assemble the full ACME text from the run, or `undefined` on a pre-emit error.
  * Mutates `run.bag` with codegen diagnostics. Exported (internal) so `build()`
- * reuses the exact `emitAsm` pipeline (no re-derivation).
+ * reuses the exact `emitAsm` pipeline (no re-derivation) — and receives the
+ * assembled program itself for report costing.
  */
-export function assembleAsmText(run: FrontendRun): string | undefined {
+export function assembleAsmText(run: FrontendRun): AssembledAsm | undefined {
   const il = lowerProgram(run);
   if (il === undefined || run.plugin === undefined) {
     return undefined;
@@ -135,7 +145,7 @@ export function assembleAsmText(run: FrontendRun): string | undefined {
     plugin.runtimeModules,
   );
   const section = buildRuntimeSection(referenced, RT_ROUTINES, plugin.runtimeModules);
-  return serializeToAcme(optimized, { runtimeSection: section ?? "" });
+  return { text: serializeToAcme(optimized, { runtimeSection: section ?? "" }), program: optimized };
 }
 
 /** Attach `text` to the base result only when defined (exactOptionalPropertyTypes). */

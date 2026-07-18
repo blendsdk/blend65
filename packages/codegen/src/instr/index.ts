@@ -56,6 +56,10 @@ export { serializeToAcme } from "./serialize-acme.js";
 export type { InstrProgram } from "./instr-program.js";
 export { generateInstr, assembleProgram, programByteSize } from "./instr-program.js";
 
+// Per-function straight-line cost summaries for the resource report.
+export type { FunctionCostSummary } from "./function-costs.js";
+export { summarizeFunctionCosts, NO_TIMING_DATA_LABEL } from "./function-costs.js";
+
 // Peephole optimizer (passthrough v1)
 export type { PeepholeRule, PeepholeOptions, InstrEntry } from "./peephole.js";
 export { optimizeInstr, validateProgramStructure, V1_RULES } from "./peephole.js";

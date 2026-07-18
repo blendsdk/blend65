@@ -25,6 +25,7 @@ import type {
 } from "@blend65/core/platform";
 import {
   c64StylePreamble,
+  c64StyleStartupCost,
   c64StyleStartupShim,
   petsciiEncodeChar,
   petsciiEncodeString,
@@ -95,6 +96,10 @@ export const c64Plugin: PlatformPlugin = {
 
   emitStartupShim(variant: ShimVariant, hasInitCode?: boolean): StreamEntry[] {
     return c64StyleStartupShim(variant, hasInitCode ?? false);
+  },
+
+  startupCost(variant: ShimVariant, hasInitCode?: boolean): { bytes: number; cycles: number } {
+    return c64StyleStartupCost(variant, hasInitCode ?? false);
   },
 
   getOutputDirective(projectName: string): AcmeDirective {

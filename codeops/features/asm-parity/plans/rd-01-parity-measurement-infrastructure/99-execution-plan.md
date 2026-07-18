@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 05:04 (Phase 5 complete)
-> **Progress**: 38/52 tasks (73%)
+> **Last Updated**: 2026-07-18 05:31 (Phase 6 complete)
+> **Progress**: 47/52 tasks (90%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -159,19 +159,19 @@ task-size criteria in the quality checklist)
 
 ### Step 6.1: Specification tests
 **Reference**: 03-05 · 07 ST-27…ST-31 · req-AR #7/#14 · PF-002
-- [ ] 6.1.1 Write report spec tests (ST-27…ST-31) — core `report/*.spec.test.ts` + compiler build-level test
-- [ ] 6.1.2 Run them — verify they FAIL (red phase)
+- [x] 6.1.1 Write report spec tests (ST-27…ST-31) — core `report/render-function-costs.spec.test.ts` + compiler `api/build-report.spec.test.ts` ✅ (completed: 2026-07-18 05:26)
+- [x] 6.1.2 Run them — verify they FAIL (red phase) ✅ (completed: 2026-07-18 05:26 — 6 red; the absent-section staging test passes pre-implementation by design, documented)
 
 ### Step 6.2: Implementation
-- [ ] 6.2.1 Add `FunctionCostEstimate` + report fields — `packages/core/src/report/resource-report.ts`, `build-resource-report.ts`
-- [ ] 6.2.2 Implement `summarizeFunctionCosts` (min–max via `getTiming`; non-NMOS marker) — `packages/codegen`
-- [ ] 6.2.3 Compute C64 startup-shim cycles — `packages/platforms`
-- [ ] 6.2.4 Thread through the compiler; extend both renderers; regenerate the terminal golden — `compiler/src/api/build.ts`, `render-report-terminal.ts`, `render-report-json.ts`
-- [ ] 6.2.5 Run spec tests — verify they PASS (green phase)
+- [x] 6.2.1 Add `FunctionCostEstimate` + report fields — `packages/core/src/report/resource-report.ts`, `build-resource-report.ts` (+ report barrel) ✅ (completed: 2026-07-18 05:26)
+- [x] 6.2.2 Implement `summarizeFunctionCosts` (min–max via `getTiming`; non-NMOS marker; source-level names) — `packages/codegen/src/instr/function-costs.ts`; `InstrProgram` carries its effective `preambleOptions` ✅ (completed: 2026-07-18 05:26)
+- [x] 6.2.3 Compute C64 startup-shim cycles — `c64StyleStartupCost` in `platforms/shared-hooks.ts` + the c64 plugin's `startupCost` member (core `PlatformPlugin` gains the optional member) ✅ (completed: 2026-07-18 05:26)
+- [x] 6.2.4 Thread through the compiler; extend both renderers — `assembleAsmText` now returns `{ text, program }`; `build.ts` threads costs + `startupCost(variant, hasInitCode)`; terminal + JSON sections added; terminal golden unchanged by design (absent-staging preserves the frozen layout; the new section is spec-pinned) ✅ (completed: 2026-07-18 05:26)
+- [x] 6.2.5 Run spec tests — verify they PASS (green phase) ✅ (completed: 2026-07-18 05:26 — 7/7 green incl. cx16 no-timing-data label end-to-end; core suite 298/298)
 
 ### Step 6.3: Impl tests & hardening
-- [ ] 6.3.1 Write summarizer/renderer impl tests — codegen + core impl test files
-- [ ] 6.3.2 Full verification
+- [x] 6.3.1 Write summarizer/renderer impl tests — `codegen/src/instr/function-costs.impl.test.ts` + `core/src/report/render-function-costs.impl.test.ts` ✅ (completed: 2026-07-18 05:31)
+- [x] 6.3.2 Full verification ✅ (completed: 2026-07-18 05:31 — full verify green)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

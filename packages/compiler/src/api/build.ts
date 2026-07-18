@@ -17,6 +17,7 @@ import {
   checkDataOverlap,
   type CompilerHost,
 } from "@blend65/core";
+import { summarizeFunctionCosts } from "@blend65/codegen";
 import { defaultEmitDeps, emitBinary, type EmitDeps } from "../acme/emit-binary.js";
 import type { CompilerOptions } from "./options.js";
 import type { BuildResult } from "./results.js";
@@ -58,12 +59,13 @@ export async function build(
   deps: BuildDeps = defaultBuildDeps,
 ): Promise<BuildResult> {
   const run = runFrontend(options, host);
-  const asmText = assembleAsmText(run);
+  const assembled = assembleAsmText(run);
 
   // Pre-emit error (config/discovery/frontend/codegen): no ACME, no report.
-  if (asmText === undefined || run.plugin === undefined || run.allocationPlan === undefined) {
+  if (assembled === undefined || run.plugin === undefined || run.allocationPlan === undefined) {
     return assembleCompileResult(run);
   }
+  const asmText = assembled.text;
 
   // Write the .asm and drive ACME. `maxBinarySize` is deliberately NOT
   // passed — the facade owns the canonical E10034 via `checkBinaryBudget`.
@@ -83,12 +85,27 @@ export async function build(
   // cannot silently no-op. Segment sizes/ranges stay absent → zeros.
   const targetName =
     emit.binaryPath !== undefined ? basename(emit.binaryPath) : `${run.outName}.prg`;
+  // Producers compute their own costs: codegen summarizes the assembled
+  // program's per-function straight-line estimates, and the plugin costs the
+  // startup shim it emitted — called with the exact variant/init arguments
+  // the preamble used.
+  const costSummary = summarizeFunctionCosts(assembled.program, run.plugin.profile.cpu);
+  const preambleOptions = assembled.program.preambleOptions;
+  const startup =
+    run.plugin.startupCost !== undefined && preambleOptions !== undefined
+      ? run.plugin.startupCost(preambleOptions.shimVariant, preambleOptions.hasInitCode ?? false)
+      : undefined;
   const report = buildResourceReport({
     platformName: run.config.platform,
     targetName,
     plan: run.allocationPlan,
     binaryBudget: run.plugin.profile.maxBinarySize,
     ...(emit.binarySize !== undefined ? { binarySize: emit.binarySize } : {}),
+    functionCosts: costSummary.functionCosts,
+    ...(costSummary.cycleEstimatesUnavailable !== undefined
+      ? { cycleEstimatesUnavailable: costSummary.cycleEstimatesUnavailable }
+      : {}),
+    ...(startup !== undefined ? { startupSize: startup.bytes, startupCycles: startup.cycles } : {}),
   });
   // The canonical post-ACME budget check (E10034, platform-named). Mirrors
   // the opt-in inline check in `acme/emit-binary.ts`.

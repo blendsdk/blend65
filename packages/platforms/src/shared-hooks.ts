@@ -14,11 +14,12 @@
 
 import type {
   CharEncoder,
+  NmosOpcode,
   PlatformProfile,
   StreamEntry,
   ValidationError,
 } from "@blend65/core/platform";
-import { encoderFor, validateProfileFields } from "@blend65/core/platform";
+import { encoderFor, getTiming, isInstr, validateProfileFields } from "@blend65/core/platform";
 import { directive, imm8, instr, label, symbolRef } from "@blend65/core/platform";
 
 /**
@@ -153,6 +154,36 @@ export function c64StyleStartupShim(
     entries.push(instr("JMP", "Absolute", symbolRef("_main")));
   }
   return entries;
+}
+
+/**
+ * Cost the C64-style startup shim: byte size + straight-line cycles summed
+ * from the documented NMOS timings over exactly the entries
+ * {@link c64StyleStartupShim} emits (labels cost nothing). The shim is
+ * linear — no branches, no indexed access — so the cost is a single figure,
+ * not a range.
+ *
+ * @param variant The shim variant being emitted.
+ * @param hasInitCode Whether the shim calls `__init` before the entry.
+ * @returns The shim's byte size and cycle cost (zeros for `"bare"`).
+ */
+export function c64StyleStartupCost(
+  variant: "terminating" | "non-terminating" | "bare",
+  hasInitCode = false,
+): { bytes: number; cycles: number } {
+  let bytes = 0;
+  let cycles = 0;
+  for (const entry of c64StyleStartupShim(variant, hasInitCode)) {
+    if (!isInstr(entry)) {
+      continue;
+    }
+    // Every shim opcode is NMOS by construction; getTiming throws loudly if
+    // that ever stops being true.
+    const timing = getTiming(entry.opcode as NmosOpcode, entry.mode);
+    bytes += timing.bytes;
+    cycles += timing.baseCycles;
+  }
+  return { bytes, cycles };
 }
 
 /**

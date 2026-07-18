@@ -7,7 +7,12 @@
  * into individual files.
  */
 
-export type { ResourceReport, PeepholeStats, SegmentRange } from "./resource-report.js";
+export type {
+  ResourceReport,
+  PeepholeStats,
+  SegmentRange,
+  FunctionCostEstimate,
+} from "./resource-report.js";
 
 export type { BuildResourceReportInputs, DataOverlapInputs } from "./build-resource-report.js";
 export { buildResourceReport, checkBinaryBudget, checkDataOverlap } from "./build-resource-report.js";

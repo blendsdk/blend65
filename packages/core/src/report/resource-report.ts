@@ -90,4 +90,30 @@ export interface ResourceReport {
   // --- Peephole (optimizer) ---
   /** Optimizer statistics; rendered only in the JSON mirror. */
   readonly peepholeStats?: PeepholeStats;
+
+  // --- Codegen-owned (straight-line cost estimates) ---
+  /** Per-function straight-line estimates; absent → section not rendered. */
+  readonly functionCosts?: readonly FunctionCostEstimate[];
+  /**
+   * Set when the CPU variant has no timing data (e.g. `wdc65c02`): renderers
+   * replace the cycle figures with this label; byte sizes remain.
+   */
+  readonly cycleEstimatesUnavailable?: string;
+}
+
+/**
+ * Straight-line cost summary for one emitted function: every instruction
+ * counted once — loops are NOT multiplied. The min assumes branches not
+ * taken and no page crossings; the max assumes branches taken with every
+ * page-cross penalty applied.
+ */
+export interface FunctionCostEstimate {
+  /** The function's source-level name (e.g. `Main.main`). */
+  readonly name: string;
+  /** Emitted code bytes. */
+  readonly bytes: number;
+  /** Straight-line lower bound in cycles. */
+  readonly minCycles: number;
+  /** Straight-line upper bound in cycles. */
+  readonly maxCycles: number;
 }

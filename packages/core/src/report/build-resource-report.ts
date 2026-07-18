@@ -10,7 +10,12 @@
 import type { AllocationPlan } from "../sfa/index.js";
 import type { DiagnosticBag } from "../diagnostics/index.js";
 import { DiagCode } from "../diagnostics/index.js";
-import type { PeepholeStats, ResourceReport, SegmentRange } from "./resource-report.js";
+import type {
+  FunctionCostEstimate,
+  PeepholeStats,
+  ResourceReport,
+  SegmentRange,
+} from "./resource-report.js";
 
 /**
  * Inputs for {@link buildResourceReport} — one field group per owner: the
@@ -46,6 +51,10 @@ export interface BuildResourceReportInputs {
   readonly startupCycles?: number;
   /** Optimizer (peephole pass) statistics. */
   readonly peepholeStats?: PeepholeStats;
+  /** Codegen-owned: per-function straight-line estimates. */
+  readonly functionCosts?: readonly FunctionCostEstimate[];
+  /** Codegen-owned: label replacing cycle figures for variants without timing data. */
+  readonly cycleEstimatesUnavailable?: string;
 }
 
 /**
@@ -78,6 +87,10 @@ export function buildResourceReport(inputs: BuildResourceReportInputs): Resource
     ...(inputs.startupSize !== undefined ? { startupSize: inputs.startupSize } : {}),
     ...(inputs.startupCycles !== undefined ? { startupCycles: inputs.startupCycles } : {}),
     ...(inputs.peepholeStats !== undefined ? { peepholeStats: inputs.peepholeStats } : {}),
+    ...(inputs.functionCosts !== undefined ? { functionCosts: inputs.functionCosts } : {}),
+    ...(inputs.cycleEstimatesUnavailable !== undefined
+      ? { cycleEstimatesUnavailable: inputs.cycleEstimatesUnavailable }
+      : {}),
   };
 }
 
