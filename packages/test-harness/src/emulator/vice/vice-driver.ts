@@ -16,9 +16,11 @@ import { type ChildProcess, spawn } from "node:child_process";
 import net from "node:net";
 import type { BreakReason, EmulatorDriver, LaunchOptions, Registers } from "../driver.js";
 import { encodePng } from "./png.js";
+import { TextMonitorClient } from "./text-monitor.js";
 import {
   advanceInstructionsBody,
   CMD,
+  checkpointDeleteBody,
   decodeResponses,
   displayGetBody,
   encodeCommand,
@@ -33,11 +35,13 @@ import {
   parsePaletteGet,
   parseRegistersAvailable,
   parseRegistersGet,
+  parseViceInfo,
   checkpointSetBody,
   registersAvailableBody,
   registersGetBody,
   registersSetBody,
   RESP,
+  viceInfoBody,
   type ResponseFrame,
 } from "./protocol.js";
 
@@ -79,13 +83,28 @@ export class ViceDriver implements EmulatorDriver {
   private resumeWaiter: ((reason: BreakReason) => void) | undefined;
   private resumeHitCheckpoint = false;
 
+  /** One-shot waiters for the next STOPPED event (stepping-completion sync). */
+  private stoppedWaiters: Array<() => void> = [];
+
+  /** The remote text-monitor client — the stopwatch transport. */
+  private textMonitor: TextMonitorClient | undefined;
+
   /** Build the emulator argv (array — never a shell string; injection-safe). */
-  private buildArgs(options: LaunchOptions): { exe: string; args: string[]; port: number } {
+  private buildArgs(options: LaunchOptions): {
+    exe: string;
+    args: string[];
+    port: number;
+    remotePort: number;
+  } {
     const port = options.monitorPort ?? DEFAULT_MONITOR_PORT;
+    const remotePort = options.remoteMonitorPort ?? port + 1;
     const args = [
       "-binarymonitor",
       "-binarymonitoraddress",
       `127.0.0.1:${port}`,
+      "-remotemonitor",
+      "-remotemonitoraddress",
+      `127.0.0.1:${remotePort}`,
       "+sound",
     ];
     if (options.gui !== true) {
@@ -95,34 +114,54 @@ export class ViceDriver implements EmulatorDriver {
     if (options.extraArgs !== undefined) {
       args.push(...options.extraArgs);
     }
-    return { exe: options.executablePath, args, port };
+    return { exe: options.executablePath, args, port, remotePort };
   }
 
   async launch(options: LaunchOptions): Promise<void> {
-    const { exe, args, port } = this.buildArgs(options);
+    const { exe, args, port, remotePort } = this.buildArgs(options);
     this.child = spawn(exe, args, { stdio: ["ignore", "ignore", "ignore"] });
     this.child.on("error", () => {
       /* surfaced by the connect-retry rejecting; also rejects pending on close */
     });
     this.child.on("close", () => this.failAllPending(new Error("VICE process exited")));
 
-    this.socket = await this.connectWithRetry(port);
-    this.socket.on("data", (chunk) => this.onData(chunk));
-    this.socket.on("close", () => this.failAllPending(new Error("monitor socket closed")));
-    this.socket.on("error", () => {
-      /* close handler performs the rejection */
-    });
+    try {
+      this.socket = await this.connectWithRetry(port);
+      this.socket.on("data", (chunk) => this.onData(chunk));
+      this.socket.on("close", () => this.failAllPending(new Error("monitor socket closed")));
+      this.socket.on("error", () => {
+        /* close handler performs the rejection */
+      });
 
-    // Resolve register ids up-front; fail fast if the core set is absent.
-    const frame = await this.send(CMD.REGISTERS_AVAILABLE, registersAvailableBody());
-    this.registerIds = parseRegistersAvailable(frame.body);
-    for (const name of ["A", "X", "Y", "SP", "PC", "FL"]) {
-      if (!this.registerIds.has(name)) {
+      // Resolve register ids up-front; fail fast if the core set is absent.
+      const frame = await this.send(CMD.REGISTERS_AVAILABLE, registersAvailableBody());
+      this.registerIds = parseRegistersAvailable(frame.body);
+      for (const name of ["A", "X", "Y", "SP", "PC", "FL"]) {
+        if (!this.registerIds.has(name)) {
+          throw new Error(
+            `VICE REGISTERS_AVAILABLE is missing register '${name}'. ` +
+              `Available: ${[...this.registerIds.keys()].join(", ")}`,
+          );
+        }
+      }
+
+      // Version gate: the stepping/stopwatch semantics this driver relies on
+      // are validated against the VICE 3.x monitors — refuse anything else
+      // loudly rather than mis-measure quietly.
+      const info = parseViceInfo((await this.send(CMD.VICE_INFO, viceInfoBody())).body);
+      if (info.major !== 3 || info.minor < 5) {
         throw new Error(
-          `VICE REGISTERS_AVAILABLE is missing register '${name}'. ` +
-            `Available: ${[...this.registerIds.keys()].join(", ")}`,
+          `unsupported VICE version ${info.major}.${info.minor} — this driver is validated against VICE 3.5+`,
         );
       }
+
+      // The stopwatch transport. A failed connect is a launch failure:
+      // cycle measurement being unavailable is never silent.
+      this.textMonitor = new TextMonitorClient();
+      await this.textMonitor.connect(remotePort);
+    } catch (error) {
+      await this.shutdown();
+      throw error;
     }
   }
 
@@ -133,7 +172,23 @@ export class ViceDriver implements EmulatorDriver {
   }
 
   async setBreakpoint(address: number): Promise<void> {
-    await this.send(CMD.CHECKPOINT_SET, checkpointSetBody(address));
+    await this.setCheckpoint(address);
+  }
+
+  /**
+   * Set an execution checkpoint and return its VICE checkpoint number so the
+   * caller can delete it later. A driver-specific extension beyond the
+   * {@link EmulatorDriver} contract — the cycle-measurement helpers use the
+   * number to clean their checkpoints up on every exit path.
+   */
+  async setCheckpoint(address: number): Promise<number> {
+    const frame = await this.send(CMD.CHECKPOINT_SET, checkpointSetBody(address));
+    return parseCheckpointInfo(frame.body).number;
+  }
+
+  /** Delete a checkpoint by its VICE checkpoint number (driver-specific extension). */
+  async deleteCheckpoint(checkpointNumber: number): Promise<void> {
+    await this.send(CMD.CHECKPOINT_DELETE, checkpointDeleteBody(checkpointNumber));
   }
 
   resume(): Promise<BreakReason> {
@@ -203,23 +258,34 @@ export class ViceDriver implements EmulatorDriver {
         resolve();
       });
     });
+    this.textMonitor?.close();
+    this.textMonitor = undefined;
     this.socket?.destroy();
     this.socket = undefined;
     this.child = undefined;
   }
 
   async advanceInstructions(count: number): Promise<void> {
+    // VICE acknowledges ADVANCE_INSTRUCTIONS immediately and performs the
+    // stepping asynchronously; any follow-up command aborts it. Completion is
+    // the STOPPED event that ends the stepping — awaited in either arrival
+    // order relative to the response frame.
+    const stopped = this.waitForStopped();
     await this.send(CMD.ADVANCE_INSTRUCTIONS, advanceInstructionsBody(count));
+    await stopped;
   }
 
   /**
-   * Write CPU registers by name (a/x/y/sp/pc) via REGISTERS_SET, resolving ids
-   * through the REGISTERS_AVAILABLE map. A driver-specific extension beyond the
-   * {@link EmulatorDriver} contract — used by the runtime routine vectors to
-   * seed a routine's ABI inputs and entry PC (not part of the published API).
+   * Write CPU registers by name (a/x/y/sp/pc/fl) via REGISTERS_SET, resolving
+   * ids through the REGISTERS_AVAILABLE map. A driver-specific extension beyond
+   * the {@link EmulatorDriver} contract — used by the runtime routine vectors to
+   * seed a routine's ABI inputs and entry PC, and by the quiesce helper to set
+   * the status register's interrupt-disable flag (not part of the published API).
    */
-  async writeRegisters(values: Partial<Record<"a" | "x" | "y" | "sp" | "pc", number>>): Promise<void> {
-    const nameForKey: Record<string, string> = { a: "A", x: "X", y: "Y", sp: "SP", pc: "PC" };
+  async writeRegisters(
+    values: Partial<Record<"a" | "x" | "y" | "sp" | "pc" | "fl", number>>,
+  ): Promise<void> {
+    const nameForKey: Record<string, string> = { a: "A", x: "X", y: "Y", sp: "SP", pc: "PC", fl: "FL" };
     const items: Array<{ id: number; value: number }> = [];
     for (const [key, value] of Object.entries(values)) {
       if (value === undefined) continue;
@@ -234,12 +300,37 @@ export class ViceDriver implements EmulatorDriver {
     }
   }
 
-  /** Run the EXECUTE_UNTIL_RETURN command (used by the runtime routine vectors). */
+  /**
+   * Run the EXECUTE_UNTIL_RETURN command (used by the runtime routine
+   * vectors). Same asynchronous-stepping contract as
+   * {@link advanceInstructions}: completion is the STOPPED event.
+   */
   async executeUntilReturn(): Promise<void> {
+    const stopped = this.waitForStopped();
     await this.send(CMD.EXECUTE_UNTIL_RETURN, executeUntilReturnBody());
+    await stopped;
+  }
+
+  /**
+   * Read the absolute machine-cycle stopwatch through the remote text monitor.
+   * Valid only while the machine is stopped (a text command to a running
+   * machine halts it) — the measurement helpers uphold that invariant.
+   */
+  async readStopwatch(): Promise<number> {
+    if (this.textMonitor === undefined) {
+      throw new Error("ViceDriver: the text monitor is not connected");
+    }
+    return this.textMonitor.readStopwatch();
   }
 
   // ─────────────────────────── transport internals ───────────────────────────
+
+  /** A one-shot promise for the next STOPPED event (register BEFORE sending). */
+  private waitForStopped(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.stoppedWaiters.push(resolve);
+    });
+  }
 
   private connectWithRetry(port: number): Promise<net.Socket> {
     return new Promise<net.Socket>((resolve, reject) => {
@@ -324,6 +415,10 @@ export class ViceDriver implements EmulatorDriver {
           this.resumeWaiter = undefined;
           waiter(this.resumeHitCheckpoint ? "breakpoint" : "exit");
         }
+        // Stepping-completion sync (advance / execute-until-return).
+        for (const stopped of this.stoppedWaiters.splice(0)) {
+          stopped();
+        }
         break;
       }
       default:
@@ -341,6 +436,11 @@ export class ViceDriver implements EmulatorDriver {
       const waiter = this.resumeWaiter;
       this.resumeWaiter = undefined;
       waiter("exit");
+    }
+    // Release stepping waiters so a dead process cannot hang an advance; the
+    // caller's next command surfaces the failure.
+    for (const stopped of this.stoppedWaiters.splice(0)) {
+      stopped();
     }
   }
 }

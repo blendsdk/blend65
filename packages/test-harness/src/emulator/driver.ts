@@ -50,6 +50,13 @@ export interface LaunchOptions {
   executablePath: string;
   /** Control-channel TCP port; defaults to 6502, bound to 127.0.0.1 only. */
   monitorPort?: number;
+  /**
+   * Remote TEXT-monitor TCP port (the stopwatch transport); defaults to
+   * `monitorPort + 1`, bound to 127.0.0.1 only. Callers that acquire the
+   * monitor port dynamically should acquire and pass this one too — the +1
+   * neighbor of an ephemeral port is otherwise unchecked.
+   */
+  remoteMonitorPort?: number;
   /** Show the emulator GUI window; defaults to false (headless). */
   gui?: boolean;
   /** Extra emulator CLI arguments, appended verbatim. */

@@ -26,7 +26,9 @@ export const EMULATOR_REGISTRY: Record<string, EmulatorEntry> = {
   c64: {
     createDriver: (): EmulatorDriver => new ViceDriver(),
     executableName: "x64sc",
-    defaultArgs: [],
+    // Pin the video standard: cycle measurements assume PAL frame timing, and
+    // an inherited NTSC default would silently change every count.
+    defaultArgs: ["-pal"],
   },
 };
 

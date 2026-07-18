@@ -65,17 +65,35 @@ export function hasAcme(): boolean {
   return resolveOnPath("acme") !== null;
 }
 
-/** Acquire an ephemeral free TCP port for the monitor bind (avoids cross-suite clashes). */
-function freePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const srv = net.createServer();
-    srv.once("error", reject);
-    srv.listen(0, "127.0.0.1", () => {
-      const addr = srv.address();
-      const port = typeof addr === "object" && addr !== null ? addr.port : 0;
-      srv.close(() => resolve(port));
+/**
+ * Acquire `count` distinct ephemeral free TCP ports (binary + remote monitor
+ * binds). Every listener is held open until all ports are known, so two
+ * acquisitions can never race into the same port.
+ */
+function freePorts(count: number): Promise<number[]> {
+  const one = (): Promise<{ port: number; close: () => Promise<void> }> =>
+    new Promise((resolve, reject) => {
+      const srv = net.createServer();
+      srv.once("error", reject);
+      srv.listen(0, "127.0.0.1", () => {
+        const addr = srv.address();
+        const port = typeof addr === "object" && addr !== null ? addr.port : 0;
+        resolve({
+          port,
+          close: () => new Promise<void>((done) => srv.close(() => done())),
+        });
+      });
     });
-  });
+  return (async () => {
+    const held = [];
+    for (let i = 0; i < count; i++) {
+      held.push(await one());
+    }
+    for (const { close } of held) {
+      await close();
+    }
+    return held.map(({ port }) => port);
+  })();
 }
 
 /** Resolve the binary path from options, materialising `build.binary` bytes if needed. */
@@ -129,10 +147,11 @@ export async function setupEmulator(options: SetupEmulatorOptions): Promise<Emul
   const symbols = resolveSymbols(options, binaryPath);
 
   const driver = entry.createDriver();
-  const port = await freePort();
+  const [monitorPort, remoteMonitorPort] = await freePorts(2);
   await driver.launch({
     executablePath,
-    monitorPort: port,
+    monitorPort,
+    remoteMonitorPort,
     gui: options.gui ?? false,
     extraArgs: ["-autostart", binaryPath, ...entry.defaultArgs],
   });

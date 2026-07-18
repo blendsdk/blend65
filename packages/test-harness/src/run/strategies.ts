@@ -3,8 +3,9 @@
  *
  * The three public strategies tests use to drive a program to a sync point, each
  * wrapped in the MANDATORY shared timeout guard — the load-bearing safety
- * property: no strategy can hang a test suite. The three exported functions
- * are the ONLY entry points and each wraps its body in {@link withTimeout}.
+ * property: no strategy can hang a test suite. Every entry point here wraps its
+ * body in {@link withTimeout}; the guard itself is also exported for the
+ * cycle-measurement helpers (`./measure.js`), which uphold the same property.
  */
 
 import type { EmulatorDriver, Registers } from "../emulator/driver.js";
@@ -36,8 +37,15 @@ export class TimeoutError extends Error {
  * a {@link TimeoutError} naming the strategy. Deadline-bounded loops (see
  * {@link runUntilMemory}) also self-terminate so no work spins on past the
  * rejection.
+ *
+ * @param work The promise to guard.
+ * @param ms The timeout budget in milliseconds.
+ * @param label The operation name carried by the {@link TimeoutError}.
+ * @returns The settled `work` result, or a rejection when the timer fires first.
+ * @example
+ * await withTimeout(driver.resume(), 5000, "resume to demo_from");
  */
-function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+export function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => reject(new TimeoutError(`${label} timed out after ${ms}ms`)), ms);

@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 02:38 (Phase 1 complete)
-> **Progress**: 6/52 tasks (12%)
+> **Last Updated**: 2026-07-18 03:14 (executing — Phase 2)
+> **Progress**: 14/52 tasks (27%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -72,17 +72,17 @@ task-size criteria in the quality checklist)
 
 ### Step 2.1: Specification tests
 **Reference**: 03-02 · 07 ST-6…ST-11 · plan-AR #1, #8, #10, #11
-- [ ] 2.1.1 Author the IRQ demo fixture (own-raster-IRQ, labeled window, hand-computed cycle sum in the test) — `packages/test-harness/test/asm/measure-irq-demo.asm`
-- [ ] 2.1.2 Write measurement spec tests (ST-6…ST-11) — `measure.spec.test.ts`, `text-monitor.spec.test.ts`, `advance.spec.test.ts` (test-harness `src/`)
-- [ ] 2.1.3 Run them — verify they FAIL (red phase; emulator STs red locally)
+- [x] 2.1.1 Author the IRQ demo fixture (own-raster-IRQ, labeled window, hand-computed cycle sum in the test) — `packages/test-harness/test/asm/measure-irq-demo.asm` ✅ (completed: 2026-07-18 02:52 — assembles clean; window 51441+3×31=51534, labels verified)
+- [x] 2.1.2 Write measurement spec tests (ST-6…ST-11) — `measure.spec.test.ts`, `text-monitor.spec.test.ts`, `advance.spec.test.ts` (test-harness `src/`) + `testing/irq-demo.ts` assembly helper ✅ (completed: 2026-07-18 02:56)
+- [x] 2.1.3 Run them — verify they FAIL (red phase; emulator STs red locally) ✅ (completed: 2026-07-18 02:56 — advance.spec red on REAL VICE: counter delta 0 (the live race); measure/text-monitor red on missing modules)
 
 ### Step 2.2: Implementation
 **Reference**: 03-02 §Proposed · plan-AR #1 mitigations
-- [ ] 2.2.1 Fix `advanceInstructions` STOPPED-event completion (+ audit `executeUntilReturn`) — `packages/test-harness/src/emulator/vice/vice-driver.ts`
-- [ ] 2.2.2 Implement `TextMonitorClient` (strict parser, drain/prompt/anchored-regex, stop-state invariant) — `packages/test-harness/src/emulator/vice/text-monitor.ts`
-- [ ] 2.2.3 Add `remoteMonitorPort` + remote-monitor launch args + `VICE_INFO` version gate; extend `writeRegisters` with `FL` + expose checkpoint delete; `setupEmulator` acquires a second free port for the remote monitor — `driver.ts`, `vice-driver.ts`, `protocol.ts`, `fixture.ts`
-- [ ] 2.2.4 Implement `measureCycles` (checkpoints up-front + deleted on exit, PC asserts, absolute reads, `withTimeout` — exported from `strategies.ts`; metric + determinism doc-comment) and the `quiesce` helper (I-flag mask; optional display blank + settle) — `packages/test-harness/src/run/measure.ts`, `strategies.ts`
-- [ ] 2.2.5 Run spec tests — verify they PASS (green phase; emulator tier green locally)
+- [x] 2.2.1 Fix `advanceInstructions` STOPPED-event completion (+ `executeUntilReturn` same fix) — `packages/test-harness/src/emulator/vice/vice-driver.ts` ✅ (completed: 2026-07-18 03:14)
+- [x] 2.2.2 Implement `TextMonitorClient` (strict parser, drain/prompt/anchored-regex, stop-state invariant) — `packages/test-harness/src/emulator/vice/text-monitor.ts` ✅ (completed: 2026-07-18 03:14)
+- [x] 2.2.3 Add `remoteMonitorPort` + remote-monitor launch args + `VICE_INFO` version gate; extend `writeRegisters` with `FL` + expose checkpoint delete; `setupEmulator` acquires a second free port; registry pins `-pal` — `driver.ts`, `vice-driver.ts`, `protocol.ts`, `fixture.ts`, `registry.ts` ✅ (completed: 2026-07-18 03:14)
+- [x] 2.2.4 Implement `measureCycles` (checkpoints up-front, from-checkpoint released after the from-stop so loop windows never re-stop there, all deleted on every exit path, PC asserts, absolute reads, `withTimeout` exported from `strategies.ts`; metric + determinism doc-comment) and the `quiesce` helper (I-flag mask; optional display blank + settle) — `packages/test-harness/src/run/measure.ts`, `strategies.ts` ✅ (completed: 2026-07-18 03:14)
+- [x] 2.2.5 Run spec tests — verify they PASS (green phase; emulator tier green locally) ✅ (completed: 2026-07-18 03:14 — 6/6 green incl. hand-computed 51534 identical across two fresh VICE processes; full harness suite 179/179; barrel-surface pin extended with the 4 new documented exports)
 
 ### Step 2.3: Impl tests & hardening
 - [ ] 2.3.1 Write parser/driver impl tests (split frames, banner interleaving, either-order events) — `text-monitor.impl.test.ts`, driver impl test

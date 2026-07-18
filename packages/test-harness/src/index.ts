@@ -35,7 +35,23 @@ export { ViceDriver } from "./emulator/vice/vice-driver.js";
 export { EMULATOR_REGISTRY, emulatorFor, type EmulatorEntry } from "./emulator/registry.js";
 
 // Run strategies (timeout-guarded).
-export { runUntilLabel, runFrames, runUntilMemory, DEFAULT_TIMEOUT_MS, TimeoutError } from "./run/strategies.js";
+export {
+  runUntilLabel,
+  runFrames,
+  runUntilMemory,
+  withTimeout,
+  DEFAULT_TIMEOUT_MS,
+  TimeoutError,
+} from "./run/strategies.js";
+
+// Cycle measurement (exact machine cycles via the VICE stopwatch).
+export {
+  measureCycles,
+  quiesce,
+  isCycleMeasurementDriver,
+  type CycleMeasurementDriver,
+  type QuiesceOptions,
+} from "./run/measure.js";
 
 // Register/memory assertions.
 export { assertRegister, assertMemory, AssertionError } from "./run/assertions.js";

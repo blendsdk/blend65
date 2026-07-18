@@ -35,6 +35,7 @@ export const CMD = {
   EXECUTE_UNTIL_RETURN: 0x73,
   REGISTERS_AVAILABLE: 0x83,
   DISPLAY_GET: 0x84,
+  VICE_INFO: 0x85,
   PALETTE_GET: 0x91,
   EXIT: 0xaa,
   QUIT: 0xbb,
@@ -213,6 +214,11 @@ export function executeUntilReturnBody(): Uint8Array {
   return new Uint8Array(0);
 }
 
+/** `VICE_INFO` body: empty. */
+export function viceInfoBody(): Uint8Array {
+  return new Uint8Array(0);
+}
+
 /** `DISPLAY_GET` body: use-VIC(0), format(0 = indexed frame buffer). */
 export function displayGetBody(): Uint8Array {
   return new Uint8Array([0x00, 0x00]);
@@ -272,6 +278,19 @@ export function parseRegistersAvailable(body: Uint8Array): Map<string, number> {
     o += 1 + itemSize;
   }
   return map;
+}
+
+/**
+ * Parse a `VICE_INFO` response body. Layout: version-length(1), then that many
+ * version bytes (major, minor, build, revision), then the svn-revision block.
+ * Only major/minor are surfaced — the driver's version gate needs no more.
+ */
+export function parseViceInfo(body: Uint8Array): { major: number; minor: number } {
+  const versionLen = body[0];
+  if (versionLen < 2 || body.length < 1 + versionLen) {
+    throw new Error(`unparseable VICE_INFO response (${body.length} bytes)`);
+  }
+  return { major: body[1], minor: body[2] };
 }
 
 /** Parse a `CHECKPOINT_INFO` (0x11) response/event body: number(4), currently-hit(1). */
