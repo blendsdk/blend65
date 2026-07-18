@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 03:30 (Phase 2 complete)
-> **Progress**: 16/52 tasks (31%)
+> **Last Updated**: 2026-07-18 03:42 (Phase 3 complete)
+> **Progress**: 21/52 tasks (40%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -96,15 +96,15 @@ task-size criteria in the quality checklist)
 
 ### Step 3.1: Specification tests
 **Reference**: 03-03 §Rasterpoll · 07 ST-12, ST-13 · plan-AR #4
-- [ ] 3.1.1 Write the golden + landmark spec tests — `packages/test-harness/src/golden-rasterpoll.spec.test.ts`
-- [ ] 3.1.2 Run them — verify they FAIL (red phase)
+- [x] 3.1.1 Write the golden + landmark spec tests — `packages/test-harness/src/golden-rasterpoll.spec.test.ts` ✅ (completed: 2026-07-18 03:42)
+- [x] 3.1.2 Run them — verify they FAIL (red phase) ✅ (completed: 2026-07-18 03:42 — both red: golden missing; landmark test red on the (later-corrected) `$0400` formatting prediction)
 
 ### Step 3.2: Implementation
-- [ ] 3.2.1 Author the fixture program + testing module — `examples/rasterpoll/main.blend`, `packages/test-harness/src/testing/rasterpoll.ts`
-- [ ] 3.2.2 Generate, inspect, and commit the golden — `packages/test-harness/test/golden/rasterpoll.asm.golden`; verify spec tests PASS (green)
+- [x] 3.2.1 Author the fixture program + testing module — `examples/rasterpoll/main.blend`, `packages/test-harness/src/testing/rasterpoll.ts` ✅ (completed: 2026-07-18 03:42)
+- [x] 3.2.2 Generate, inspect, and commit the golden — `packages/test-harness/test/golden/rasterpoll.asm.golden`; verify spec tests PASS (green) ✅ (completed: 2026-07-18 03:42 — inspected: poll compiles to materialized boolean + re-test (RD-04 fusion gap, the fixture's purpose) and `$400` 3-digit formatting; landmark assertion grounded to the real emission)
 
 ### Step 3.3: Hardening
-- [ ] 3.3.1 Full verification (12 existing goldens must stay byte-exact)
+- [x] 3.3.1 Full verification (12 existing goldens must stay byte-exact) ✅ (completed: 2026-07-18 03:42 — full verify green, all golden suites pass)
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test`
 

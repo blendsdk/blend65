@@ -1,0 +1,65 @@
+!to "main.prg", cbm
+; --- symbol definitions ---
+__frame_Main_main = $2001
+__var_Main_frame = $2000
+__zp_arg_0 = $0002
+__zp_arg_1 = $0003
+__zp_arg_2 = $0004
+__zp_arg_3 = $0005
+__zp_tmp_0 = $0006
+__zp_tmp_1 = $0007
+__zp_tmp_2 = $0008
+__zp_tmp_3 = $0009
+__zp_irq_tmp_0 = $000A
+__zp_irq_tmp_1 = $000B
+* = $0801
+    !word $080B
+    !word $000A
+    !byte $9E
+    !text "2061"
+    !byte $00
+    !word $0000
+__startup:
+    LDA #$36
+    STA $01
+    JSR __init
+    JMP _main
+; --- function: __init ---
+__init:
+    LDA #$00
+    STA __var_Main_frame
+    RTS
+; --- function: Main.main ---
+_main:
+    JMP Main_main_L0
+Main_main_L0:
+    LDA #$01
+    BNE Main_main_L1
+    JMP Main_main_L2
+Main_main_L1:
+    JMP Main_main_L3
+Main_main_L3:
+    LDA $D012
+    CMP #$FB
+    BNE _cmp0
+    LDA #$00
+    JMP _cmp1
+_cmp0:
+    LDA #$01
+_cmp1:
+    BNE Main_main_L4
+    JMP Main_main_L5
+Main_main_L4:
+    JMP Main_main_L3
+Main_main_L5:
+    LDA __var_Main_frame
+    CLC
+    ADC #$01
+    STA __var_Main_frame
+    LDA __var_Main_frame
+    STA $400
+    LDA __var_Main_frame
+    STA $D020
+    JMP Main_main_L0
+Main_main_L2:
+    RTS

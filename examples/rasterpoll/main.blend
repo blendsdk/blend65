@@ -1,0 +1,16 @@
+module Main;
+
+let frame: byte = 0;
+
+function main(): void {
+  while (true) {
+    // One iteration per PAL frame: hold until the raster reaches line 251,
+    // just below the visible area. The update body outlasts one raster
+    // line, so it cannot double-fire within a frame.
+    while (peek($D012) != 251) { }
+
+    frame = frame + 1;
+    poke($0400, frame);   // heartbeat in screen RAM
+    poke($D020, frame);   // border colour: the classic raster-poll proof
+  }
+}
