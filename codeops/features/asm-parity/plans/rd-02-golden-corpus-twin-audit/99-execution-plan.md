@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-18 14:22
-> **Progress**: 37/58 tasks (64%)
+> **Last Updated**: 2026-07-18 14:32
+> **Progress**: 38/58 tasks (66%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -168,7 +168,7 @@ task-size criteria in the quality checklist)
 - [x] 3.4.1 Pair + author `slice7.twin.asm` (red→green in-task) ✅ (completed: 2026-07-18 14:09 — red named the missing twin; tier 12/12 green)
 - [x] 3.4.2 Pair + author `slice7b.twin.asm` (red→green in-task) ✅ (completed: 2026-07-18 14:15 — red named the missing twin; tier 13/13 green)
 - [x] 3.4.3 Pair + author `slice8.twin.asm` honoring the strengthened `$D020 == $F2` contract (plan-AR #4); the twin must actually saturate (100 bumps) — the landmark is deterministic only at saturation (mod-16 aliasing, plan-preflight PF-009); red→green in-task ✅ (completed: 2026-07-18 14:22 — genuine raster IRQ with saturating counter; red named the missing twin; tier 14/14 green)
-- [ ] 3.4.4 Pair + author `slice8b.twin.asm` (red→green in-task)
+- [x] 3.4.4 Pair + author `slice8b.twin.asm` (red→green in-task) ✅ (completed: 2026-07-18 14:32 — red named the missing twin; tier 15/15 green; batch C boundary: twin-diff spec green [data rows capped at 8 bytes — ACME report truncation], btl exit 0)
 
 ### Step 3.5: Batch D — rasterpoll + corpus completion
 
