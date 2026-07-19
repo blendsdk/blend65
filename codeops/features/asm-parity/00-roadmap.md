@@ -3,7 +3,7 @@
 > **Feature-Set**: Asm-Parity Initiative
 > **Status**: In Progress
 > **Created**: 2026-07-17
-> **Last Updated**: 2026-07-19 (RD-04 🔄 executing — phase 1/5 done (10/43 tasks): `brcmp` terminator, shared `terminatorTargets` successor helper, printer, termination walk rebase, dangling-target ICE pre-pass; nothing emits it yet, zero golden diffs. Phase review: 1🟠/2🟡 all accepted+fixed (translator never-guards pulled forward from 2.2.1). Next: phase 2 — translator branch-form framings)
+> **Last Updated**: 2026-07-19 (RD-04 🔄 executing — phases 1–3/5 done (26/43 tasks). Phase 2: all five comparison framings translate `brcmp` to fused branch form behind one compare core; value form byte-identical, zero golden diffs (review 2🟡, both fixed). Phase 3: the `guards` acceptance pair — fixture, pre-fusion golden, hand-written twin, routing, budgets, scoreboard — VICE-green on the four hazard shapes; measured "before" is 347 bytes vs 128 hand-written (2.71×) and 404 static cycles vs 151 (2.68×), with a 43-cycle compound-guard window. Review 1🔴 discharged as a protocol flag + 3🟡 all accepted+fixed (all three on the twin, the parity bar). Next: phase 4 — the atomic flip: condition lowering + SFA + corpus supersession)
 > **Progress**: 2 / 14 (14%)
 > **CodeOps Skills Version**: 3.8.0
 >
