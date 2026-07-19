@@ -1,7 +1,9 @@
 # RD-05: Block Layout — Fall-Through Elision + Jump Threading
 
 > **Document**: RD-05-block-layout.md
-> **Status**: Draft (preflighted — 30 findings applied, see `00-preflight-report.md`)
+> **Status**: Draft (preflighted — 30 findings applied, see `00-preflight-report.md`;
+> **3 further amendments 2026-07-20** from the plan preflight — AC-10, AC-13 and the
+> label-re-anchoring hazard text)
 > **Created**: 2026-07-19
 > **Project**: blend65 — Asm-Parity Initiative
 > **Issue**: [#51](https://github.com/blendsdk/blend65/issues/51) (Prime Directive audit finding #2);
@@ -126,8 +128,18 @@ every fixture in the corpus that contains a branch.
   semantics, not textually substitute the label**: after threading, the frame back-edge and the
   poll back-edge both land on the poll block, so that block is reached once per poll *iteration*,
   not once per frame — an `arrivals`-based landmark re-anchored there would stop inside the first
-  frame with no body updates run, silently invalidating the observable assertions. The correct
-  anchor is the post-poll frame-body block, the only surviving once-per-frame program point.
+  frame with no body updates run. The correct anchor is the post-poll frame-body block, the only
+  surviving once-per-frame program point.
+  **Corrected at plan preflight (PF-009).** This clause previously said such a re-anchor would
+  *silently* invalidate the observable assertions. It would not, for these three fixtures: all
+  three check sets assert frame-body-written state (`rasterpoll` `$0400 == 1`, "frame counter after
+  one body"; `guards`' four verdicts at `$0400-$0403`; `balloon`'s sprite x/y at `174/141` after
+  one `+2` step), so a poll-anchored landmark reads pre-body state and fails **loudly**. The
+  re-anchoring requirement is unchanged — anchoring on the poll block breaks the suites either way
+  — but AC-12 is discharged by those existing checks rather than by a new assertion. The property
+  that defeats the hazard is now stated so it is preserved deliberately: **every re-anchored
+  fixture's check set must include at least one value written by the frame body.** A fixture whose
+  observables were entirely init-state would make the originally-feared silent green real.
 - [ ] **Corpus supersession, same change.** All goldens regenerated and hand-reviewed. Budgets
   tightened to the new exact values across **all four** windows — `rasterpoll.pollIter` (15),
   `guards.compoundGuard` (24), `slice8b.copyLoop` (60, whose slice contains both an inversion and
@@ -375,10 +387,16 @@ sizes.
    goldens are expected to be unchanged, not improved); per-fixture deltas recorded, including
    `balloon`, which has no golden and is measured from its live compile.
 10. [ ] **Boundary and safety verified**: the cross-package boundary tier is green; threading
-    terminates on a cyclic trampoline and relaxation terminates on a chain of mutually displacing
-    branches, both asserted directly; a terminator target resolving to no block still raises the
+    terminates on a cyclic trampoline and relaxation terminates on a **displacement cascade** — a
+    branch whose relaxation inserts bytes inside another branch's span and pushes that one out of
+    range — both asserted directly; a terminator target resolving to no block still raises the
     internal compiler error RD-04 introduced; and no relaxed branch is ever emitted with a
     truncated offset.
+    *(Phrasing corrected at plan preflight, PF-004: this clause previously said "a chain of
+    mutually displacing branches". True mutual displacement cannot exist — a relaxed branch becomes
+    an absolute `JMP` and leaves the candidate set, which is exactly what makes the fixpoint
+    monotone. The cascade is the real shape, and the earlier wording had produced a spec test case
+    that a correct implementation would fail.)*
 11. [ ] **Printed IL is honest**: `--emit-il` on the raster-poll fixture shows no trampoline block
     and no unreachable block, and its block set equals the set emitted into the assembly.
 12. [ ] **Label-anchored artifacts re-anchored correctly**: the three `LOOP_HEAD_LABEL` constants
@@ -386,5 +404,16 @@ sizes.
     re-anchored landmark is asserted to be reached **once per frame** — not once per poll
     iteration — so the observable assertions still measure what they claim to.
 13. [ ] **The structural invariants are self-enforcing**: a committed corpus-invariant test fails
-    if any golden acquires an intra-function fall-through jump or a non-self-referential trampoline
-    block, so AC-1 and AC-2 hold for fixtures added after this RD.
+    if any golden acquires an intra-function fall-through jump, a non-self-referential trampoline
+    block, **or a conditional branch over an unconditional jump to the next emitted label**, so
+    AC-1 and AC-2 hold for fixtures added after this RD. The scan also self-checks for
+    non-vacuity — at least one function section parsed per golden — so a marker-format drift
+    cannot make it pass by finding nothing.
+    *(Third shape added at plan preflight, PF-006.* The first two invariants see only a missed
+    **elision**. A missed **inversion** leaves `B<c> T` · `JMP F` · `T:` — the jump targets a
+    non-adjacent label and no jump-only block exists — so both original invariants pass. Since this
+    RD declares elision and inversion one decision, the same adjacency mistake is scan-visible in
+    one polarity and invisible in the other. **Carve-out:** labels matching the minted `_rlx<N>`
+    pattern are exempt, because that trigram is precisely the emitted form of branch relaxation
+    required above; without the exemption this invariant would forbid legitimate relaxed code from
+    ever entering the corpus.*)

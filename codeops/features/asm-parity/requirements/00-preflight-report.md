@@ -585,3 +585,41 @@ now-refuted `B<inv> *+5`. The PF-020 correction had been filed under the AR-26 a
 did not resolve. **Resolution applied:** the correction was moved into its own
 `AR-28 (form corrected at preflight, PF-020)` note, where a reader following the tag will find it,
 and the scope row cites it.
+
+---
+
+## Addendum — amendments from the RD-05 **plan** preflight (2026-07-20)
+
+Three findings raised while auditing `plans/rd-05-block-layout/` were defects in **this RD**, not in
+the plan, and were back-propagated with the user's approval. They are numbered in the plan's own
+report (`plans/rd-05-block-layout/00-preflight-report.md`); recorded here so a reader of the RD's
+audit trail sees them.
+
+### PF-050 (plan PF-006): AC-13's invariant list covered only half the tail decision 🟠 MAJOR
+AC-13 required a committed scan for intra-function fall-through jumps and trampoline blocks. Both
+are manifestations of a missed **elision**. A missed **inversion** leaves `B<c> T` · `JMP F` · `T:`
+— a jump to a non-adjacent label, with no jump-only block — and passes both. Since this RD declares
+elision and inversion to be one decision, the same adjacency bug is scan-visible in one polarity and
+invisible in the other, which is precisely the silent failure mode AC-13 exists to outlive.
+**Resolution applied:** AC-13 gains a third shape plus a non-vacuity self-check — **and an `_rlx<N>`
+carve-out**, because the new trigram is textually identical to the emitted form of the branch
+relaxation this same RD requires; without the exemption the invariant would have passed on commit
+and then permanently banned legitimate relaxed code from the corpus.
+
+### PF-051 (plan PF-004): AC-10 described a termination shape that cannot exist 🟠 MAJOR
+AC-10 required relaxation to terminate on "a chain of mutually displacing branches". Mutual
+displacement is impossible under this RD's own monotonicity argument: a relaxed branch becomes an
+absolute `JMP` and leaves the candidate set, so it can never be displaced back. The real shape is a
+**cascade** — one branch's relaxation inserts bytes inside another's span and pushes that one out of
+range. The wording had already propagated into a plan spec-test case (ST-B32) stating an input a
+correct implementation would fail. **Resolution applied:** AC-10 reworded to the cascade.
+
+### PF-052 (plan PF-009): the re-anchoring hazard text was factually wrong 🟡 MINOR
+The Must-Have warned that re-anchoring an `arrivals` landmark onto the poll block would "silently
+invalidate the observable assertions". Verified false: all three fixtures assert frame-body-written
+state, so a poll-anchored landmark stops before the first body runs and those checks fail loudly.
+The re-anchoring requirement is unaffected — it is still required — but the rationale decided what
+AC-12 had to prove, and on the false premise AC-12 was reaching for an assertion nobody had written.
+**Resolution applied:** the hazard text is corrected, AC-12 is discharged by the existing
+body-written checks, and the property that defeats the hazard is stated so it is preserved on
+purpose: every re-anchored fixture's check set must include at least one frame-body-written value.
