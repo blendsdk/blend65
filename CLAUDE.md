@@ -15,7 +15,7 @@
 - **Package Manager:** Yarn classic (v1) workspaces — **no** `workspace:*` protocol
 - **Bundler:** Vite (per-package builds where applicable); `tsc --build` for type output
 - **Test Framework:** Vitest
-- **Linter/Formatter:** ESLint v9 (flat config) + Prettier
+- **Linter/Formatter:** ESLint v9 (flat config) — enforced; Prettier — configured but unrun (see Commands)
 - **Runtime:** Node 22 (pinned via `.nvmrc` + `engines`)
 
 **Manifest files:** package.json, tsconfig.json, turbo.json
@@ -25,7 +25,13 @@
 All commands run from the repo root.
 
 - **Build:** `yarn build` (turbo run build — `tsc --build` across all 10 packages)
-- **Typecheck:** `yarn typecheck`  •  **Lint:** `yarn lint` (ESLint + Prettier)
+- **Typecheck:** `yarn typecheck`  •  **Lint:** `yarn lint` (ESLint ONLY — `eslint .` per package)
+- **Format:** ⚠️ Prettier is installed and configured (`.prettierrc.json`), and ESLint hands all
+  formatting rules to it via `eslint-config-prettier` — but **nothing ever runs it**: no root or
+  package script, no git hook, not in CI. Formatting is therefore unenforced end to end, and parts
+  of the tree carry drift. Verify passing does NOT mean the diff is Prettier-clean. Run
+  `npx prettier --check <files>` on files you touch and hand-fix what you added; do not
+  `--write` whole files you did not otherwise change (it buries the real diff in reformatting).
 - **Test:** `yarn test` (per-package unit tier, THEN the root R15 boundary tier — AR-P10);
   single package: `yarn workspace @blend65/<pkg> test`
 - **Verify (run before every commit):**
