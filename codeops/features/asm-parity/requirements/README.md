@@ -4,7 +4,7 @@
 > **Status**: Draft — RDs are authored on pickup from GitHub issues #49–#64 (umbrella [#56](https://github.com/blendsdk/blend65/issues/56))
 > **Created**: 2026-07-17 · **Last Updated**: 2026-07-19 (RD-05 drafted; ambiguity register at 33 items, all resolved)
 > **Architecture**: TypeScript monorepo (`@blend65/*` packages) + `scripts/` tooling; VICE 3.10 + ACME local tiers, ACME-only CI (AR-27)
-> **CodeOps Skills Version**: 3.9.0
+> **CodeOps Skills Version**: 3.10.0
 
 ---
 
@@ -39,10 +39,10 @@ authored here only when its item is picked up, following
 |---|----------|-------------|------------|
 | **AR** | [Ambiguity Register](00-ambiguity-register.md) | Zero-Ambiguity Gate decisions (audit trail; grows per RD) | — |
 | **RD-01** | [Parity measurement infrastructure](RD-01-parity-measurement-infrastructure.md) | measureCycles, timing table, budgets, twin-diff, size gate, annotator, report integration ([#64](https://github.com/blendsdk/blend65/issues/64)) — ✅ done 2026-07-18 | — |
-| **PF** | [Preflight Report](00-preflight-report.md) | RD-01 audit (8 findings) + RD-02 audit (5, PF-009…PF-013) + RD-04 audit (4, PF-014…PF-017) — all resolved, fixes applied | RD-01, RD-02, RD-04 |
-| **RD-02** | [Golden-corpus twin audit + scoreboard](RD-02-golden-corpus-twin-audit.md) | 13 new twins, permanent VICE twin tier, committed SCOREBOARD.md + CI freshness gate, routed divergence inventory ([#61](https://github.com/blendsdk/blend65/issues/61)) — 🔎 preflighted 2026-07-18 | RD-01 |
-| **RD-04** | [Compare-and-branch fusion](RD-04-compare-and-branch-fusion.md) | Fused compare-and-branch IL terminator + condition-position lowering (`&&`/`||`/`!` slot-free, literal folds); twin-idiom acceptance transferred to #51 ([#50](https://github.com/blendsdk/blend65/issues/50)) — 🔎 preflighted 2026-07-19 | RD-01, RD-02 |
-| **RD-05** | [Block layout — fall-through elision + jump threading](RD-05-block-layout.md) | Layout-aware emission: fall-through elision, branch inversion, jump threading, unreachable-block removal, plus branch-range relaxation ([#65](https://github.com/blendsdk/blend65/issues/65)); discharges RD-04's transferred twin-idiom criterion ([#51](https://github.com/blendsdk/blend65/issues/51)) — ✏️ drafted 2026-07-19 | RD-01, RD-02, RD-04 |
+| **PF** | [Preflight Report](00-preflight-report.md) | RD-01 audit (8) + RD-02 audit (5, PF-009…PF-013) + RD-04 audit (4, PF-014…PF-017) + RD-05 audit (30, PF-018…PF-047 — 10 major, 5-cluster fan-out) — all resolved, fixes applied | RD-01, RD-02, RD-04, RD-05 |
+| **RD-02** | [Golden-corpus twin audit + scoreboard](RD-02-golden-corpus-twin-audit.md) | 13 new twins, permanent VICE twin tier, committed SCOREBOARD.md + CI freshness gate, routed divergence inventory ([#61](https://github.com/blendsdk/blend65/issues/61)) — ✅ done 2026-07-18 | RD-01 |
+| **RD-04** | [Compare-and-branch fusion](RD-04-compare-and-branch-fusion.md) | Fused compare-and-branch IL terminator + condition-position lowering (`&&`/`||`/`!` slot-free, literal folds); twin-idiom acceptance transferred to #51 ([#50](https://github.com/blendsdk/blend65/issues/50)) — ✅ done 2026-07-19, #50 closed | RD-01, RD-02 |
+| **RD-05** | [Block layout — fall-through elision + jump threading](RD-05-block-layout.md) | Layout-aware emission: fall-through elision, branch inversion, jump threading, unreachable-block removal, plus branch-range relaxation ([#65](https://github.com/blendsdk/blend65/issues/65)); discharges RD-04's transferred twin-idiom criterion ([#51](https://github.com/blendsdk/blend65/issues/51)) — 🔎 preflighted 2026-07-19 (30 findings applied) | RD-01, RD-02, RD-04 |
 | RD-03, RD-06…RD-14, T-01 | *(not yet authored)* | Tracked as GitHub issues; see the [feature roadmap](../00-roadmap.md) for the full mapping | see roadmap |
 
 ## Dependency Graph
@@ -70,7 +70,7 @@ tiny fixed startup shim. So sequence by *representative* impact × risk, not raw
 | Wave | Documents (issue) | Description |
 |------|-------------------|-------------|
 | **A: Instruments** ✅ | RD-01 → RD-02 | Measurement infra, twin corpus + scoreboard baseline (done) |
-| **B1: Hot-loop + seam-filling** (lead) | RD-04 (#50) · RD-06 (#52) *Rule 1 only* · conservative pure-IL const-fold (split from #58) · RD-05 (#51) | Lead with **RD-04 compare-and-branch fusion** — audit finding #1, the hot-path *and* cycle lever. Add #52 **Rule 1** (INC/DEC, MMIO-guarded); defer #52 Rules 2–3 (value-tracking, same MMIO hazard that defers #58). Ship a **conservative const-fold** to fill the empty `optimize-il` seam. Low-risk, corpus-wide reach. |
+| **B1: Hot-loop + seam-filling** (lead) | RD-04 (#50) · RD-06 (#52) *Rule 1 only* · **RD-05 (#51)** · conservative pure-IL const-fold (split from #58) — *RD-05 before const-fold: the const-fold pass orphans blocks by folding and depends on RD-05's `removeUnreachableBlocks`, which AR #29 assigned to RD-05 precisely so there is only one implementation. The dependency is one-way.* | Lead with **RD-04 compare-and-branch fusion** — audit finding #1, the hot-path *and* cycle lever. Add #52 **Rule 1** (INC/DEC, MMIO-guarded); defer #52 Rules 2–3 (value-tracking, same MMIO hazard that defers #58). Ship a **conservative const-fold** to fill the empty `optimize-il` seam. Low-risk, corpus-wide reach. |
 | **B2: Biggest lever + placement** | whole-loop const-*evaluation* + DCE + SFA slot-elision (rest of #58 **+** #60, one lever) · placement slice of RD-03 (#49) · RD-07 (#53) | Whole-program const-evaluation is what actually closes the 7–9× fixtures — design-laden (termination/budget), gated on a **type-conformance** audit (byte-wrap/cast-truncation is the real hazard, not MMIO). **Placement** (grammar-free) serves in-place const tables (slice7/7b/8b). RD-07 register-counters is demoted — 1 fixture. |
 | **B3: Structural cycle lever** | RD-10 (#59) | Split #59: cheap one-time **startup trim** vs the **calling-convention/ABI** rework — per-call, cycle-heavy, already proven hot (balloon ≈13 instr/call). Higher risk (touches SFA + every call site); scope carefully. |
 | **Gate: `copy()`** | copy() slice of RD-03 (#49) | The corpus's **single largest divergence** — the balloon's 63-poke $0340 staging (~370 B) — needs `copy()`, not placement ($0340 is below the PRG load base; the twin itself copies). Blocked on the **v3.1 + Language-Guard** decision — foreground it. |

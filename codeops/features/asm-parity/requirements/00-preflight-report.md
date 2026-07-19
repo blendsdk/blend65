@@ -380,3 +380,208 @@ Confidence: High · Hardening: finding originated by the independent challenger 
 **Dimension:** 13 (Codebase Alignment — clarity guard)
 **Location:** RD-04 "SFA slot preorder updated in step" Must Have
 **User Decision:** Resolved — User accepted recommendation. Fix applied (one sentence: for-bounds are numeric; switch discriminants are value-position — the definition deliberately names only the three condition statements).
+
+---
+
+# Preflight Report: RD-05 — Block Layout (Fall-Through Elision + Jump Threading)
+
+> **Status**: ✅ PREFLIGHT PASSED — all 32 findings resolved (0 critical, 10 major, 19 minor, 3 observation); user ruled "fix all", fixes applied same-session
+> **Iteration 2 (fix-diff re-review)**: 30/30 verified FIXED, no regressions, no unresolved major; 2 new minors introduced by the rewrite (PF-048, PF-049) applied without a further iteration
+> **Iterations**: 2 (scan + scoped fix-diff re-review)
+> **Artifact**: `codeops/features/asm-parity/requirements/RD-05-block-layout.md` (scanned @ `cef24c1`)
+> **Codebase Grounded**: 5 clustered auditors, ~136 tool calls; 10 of 11 named code claims verified, 1 refuted; all corpus statistics independently recomputed
+> **Last Updated**: 2026-07-19
+> **CodeOps Skills Version**: 3.10.0
+
+> ⚠️ **SAME-SESSION REVIEW**: authored in this session by the same model. Counteraction: the full
+> 13-dimension scan was delegated to five independent auditors on a different model family
+> (Fable), each given an explicit mandate to break the document. Three findings below are direct
+> refutations of the author's own reasoning, and one overturns a resolved gate decision.
+
+## Codebase Context Summary
+
+**Seams (all verified):** IL pass pipeline `optimizeIL(il, [], bag)` always runs
+(`compiler/src/api/emit.ts:108`, zero passes shipped) · translation block loop
+`for (const block of this.fn.blocks)` (`codegen/src/instr/translate.ts:264-284`), the only place
+block adjacency exists · instruction peephole `optimizeInstr` gated on `run.config.optimize`
+(`emit.ts:139-141`; default `true`, `config/src/defaults.ts:38`), `V1_RULES = []` and the
+sliding-window scanner explicitly deferred (`codegen/src/instr/peephole.ts:13-15,75`).
+**Model:** IL has no fall-through by construction (`codegen/src/il/cfg.ts:24-26`); post-translation
+output is a flat `StreamEntry` array in which **label entries survive** (`core/src/instr-model/stream.ts:62`).
+`instrByteSize` exists (`codegen/src/instr/print-instr.ts:239-252`); nothing computes branch distance.
+`InstrOperand` has no PC-relative variant (`core/src/instr-model/operand.ts:30-39`).
+**Corpus (independently recomputed, exact):** 105 `JMP`s · 47 intra-function fall-through (48 raw,
+minus the cross-stream startup jump) across 9 of 14 goldens · 13 trampoline blocks · dead
+`Main_main_L2: RTS` in both `rasterpoll` and `guards`.
+**Confirmed reachable:** AC-3's 3 instructions / 7 bytes / 9 cycles was hand-traced twice, by two
+auditors independently, from the committed golden and from re-emitted IL. The headline promise holds.
+
+## Summary by Severity
+
+| Severity | Count | IDs |
+|---|---|---|
+| 🔴 CRITICAL | 0 | — |
+| 🟠 MAJOR | 10 | PF-018 … PF-027 |
+| 🟡 MINOR | 17 | PF-028 … PF-044 |
+| 🔵 OBSERVATION | 3 | PF-045 … PF-047 |
+
+No finding was rated CRITICAL: every defect is a specification error caught before implementation,
+and none invalidates the design. PF-019 comes closest — implemented as written it fails loudly,
+but its *obvious* repair is semantically wrong and would silently gut an emulator assertion.
+
+## Cleared under attack (reported as negative results)
+
+MMIO/volatile discipline across all four transforms · interrupt prologue re-entry via a threaded
+edge · startup-shim selection under block removal (`termination.ts` reachable set is a strict
+subset of removal's kept set) · switch dispatch reachability (a fused `brcmp` chain, not a jump
+table, so `terminatorTargets` enumerates every edge) · relaxation fixpoint termination ·
+`_cmpN`/`_shN` label uniqueness (program-shared allocator) · `print-il.golden.spec.test.ts` and
+`multiblock-translate` (bypass `optimizeIL` / use loose `toContain` assertions).
+
+## MAJOR findings
+
+### PF-018: AC-4 is unsatisfiable — AC-1/3/5 manufacture the condition it forbids 🟠 MAJOR
+Found independently by four auditors via three different methods (11, 17 and case-by-case counts).
+Every elision removes the *only* reference to its target label, while `translate.ts:266-268` emits
+a label for each non-entry block unconditionally. `rasterpoll` `Main_main_L5` and `guards`
+`Main_main_L7` are orphaned by the very transforms AC-3 and AC-5 require.
+**Trap:** the naive repair — suppress labels with no referrer — deletes live budget anchors;
+`budgets.spec.test.ts:169-174` then throws `label '<x>' is not in the symbol map`.
+**Resolution:** restate AC-4 as a *block* property — "no golden emits a block unreachable from the
+function entry" — and add an explicit invariant that every surviving block keeps its label.
+
+### PF-019: Deleting `Main_main_L0` breaks four label-anchored artifacts, and the obvious re-anchor is wrong 🟠 MAJOR
+`LOOP_HEAD_LABEL = "Main_main_L0"` is hard-coded in `test-harness/src/{rasterpoll,guards,balloon}.spec.test.ts`
+(:21, :27, :24) and as `budgets.json:56` `frameUpdate.toLabel`. In all three fixtures `Main_main_L0`
+is a pure trampoline that this RD deletes.
+**The trap:** after threading, both the frame back-edge and the poll back-edge land on
+`Main_main_L3`, so `L3` is reached once per *poll iteration*, not once per frame. Re-anchoring
+there with `arrivals: 2` stops inside the first frame's polling with zero movement updates run —
+silently invalidating `BALLOON_OBSERVABLES`. The only surviving once-per-frame point is the
+post-poll body block.
+**Resolution:** Must-Have — label-anchored artifacts are re-anchored in the same change with
+arrival semantics **re-derived, not textually substituted**; plus an AC that the re-anchored
+landmark is still once-per-frame.
+
+### PF-020: The specified relaxation form `B<inv> *+5` is not representable 🟠 MAJOR
+`InstrOperand` is `none | immediate | symbolRef | labelRef | zpSlot` (`operand.ts:30-39`); `Relative`
+mode renders bare operand text (`print-instr.ts:111-116`). `*+5` cannot be produced.
+**Resolution:** choose explicitly — mint a synthetic local label (`Bxx _rlxN / JMP far / _rlxN:`)
+reusing the program-shared counter pattern at `translate.ts:91-97`, **or** extend the operand union
+in `@blend65/core` and list that package in Integration Points. Recommend minting; it keeps `core`
+untouched and matches an existing precedent.
+
+### PF-021: AR #31's preservation mechanism is infeasible as specified 🟠 MAJOR
+`fusedFn` builds exactly three blocks and `blocks[0]` is pinned as the entry (`cfg.ts:88`,
+`translate.ts:247,262-266`), so the block after `_entry` is necessarily one of the two targets —
+every permutation fires elision or inversion. Preservation requires **interposing a non-target
+filler block**, and `expectFused`'s full-text `toBe` scaffold changes too.
+**Resolution:** revise the Must-Have and AC-8 — the per-row `expected` instruction arrays stay
+byte-identical; the fixture gains a filler block and the scaffold tail changes. **Overturns an
+accepted gate decision — requires the user's ratification.**
+
+### PF-022: `switch-translate.spec.test.ts` breaks with no written disposition 🟠 MAJOR
+`:63-64` asserts `CMP #$01 / BEQ L / JMP L` through the real pipeline; `slice4b.asm.golden:40-48`
+proves the dispatch `JMP` is a fall-through. AR #31 named this file; the chosen option covered only
+the framing matrix. AR-24 requires supersession of a spec oracle to be an explicit written decision.
+**Resolution:** state its disposition — loosen to the post-layout shape, or supersede in writing.
+
+### PF-023: `twins.json` is unnamed, and its routing notes rot silently 🟠 MAJOR
+Routing lives in `test-harness/test/golden/twins.json`, not the generated `SCOREBOARD.md`.
+`gen-parity-scoreboard.mjs:97-107` validates routing *categories* but **not** the free-text notes —
+"JMP 23 vs 1", "JMP 21 vs 3", "JMP 7 vs 1" go false while CI stays green.
+**Resolution:** Must-Have naming `twins.json`; delete/retarget the three #51 entries, move the
+`guards` #59 epilogue entry to #51, refresh the counts, and record that the gate cannot catch note rot.
+
+### PF-024: The Integration Points package list is factually wrong 🟠 MAJOR
+"All changes live in `@blend65/codegen` and `@blend65/compiler`" — but the corpus, budgets,
+routing manifest and the new layout suite all land in `@blend65/test-harness`. The R15 half
+(frontend/language-server untouched) is correct.
+**Resolution:** name the third package; keep the R15 claim.
+
+### PF-025: The budget surface is under-enumerated 🟠 MAJOR
+Four windows exist, not two: `rasterpoll.pollIter` (15), `guards.compoundGuard` (24),
+`slice8b.copyLoop` (60 — both inversion and elision fire inside it, `slice8b.asm.golden:83,92`),
+and `balloon.frameUpdate` (static 235, **measured 133**). The measured value is VICE-derived and
+re-measurable only on the local tier (AR-27) — an undeclared scheduling constraint.
+**Resolution:** enumerate all four; flag the balloon re-measurement as local-only work.
+
+### PF-026: The binding threading↔elision co-landing constraint never reached the RD 🟠 MAJOR
+Recorded in the register under AR #26 but absent from the document, whose Technical Requirements
+actively split the two across seams — making a phase split the natural plan shape and a double
+golden/budget regeneration the natural cost.
+**Resolution:** state it as a Must-Have.
+
+### PF-027: The const-fold ordering is asserted backwards 🟠 MAJOR
+The RD has const-fold reusing RD-05's removal pass, but `README.md:73` sequences const-fold
+*before* RD-05 in wave B1. Taken literally, const-fold ships with no removal (orphaned blocks meet
+a hard-fail byte ratchet) or duplicates it — the duplication AR #29 rejected. Not circular; the
+arrow runs one way.
+**Resolution:** state `removeUnreachableBlocks` as a prerequisite of the const-fold pass, say what
+RD-05 registers on its own (`[threadJumps, removeUnreachable]`), and correct the README ordering.
+
+## MINOR findings (condensed)
+
+| ID | Finding | Resolution |
+|---|---|---|
+| PF-028 | The raster idiom needs **three** transforms (threading + removal + elision), not the "two" the RD claims — inherited from AR #20's pre-split wording | Correct the count and state the ordering dependency |
+| PF-029 | AR #33's five resolved names appear nowhere in the RD | Carry them into Technical Requirements with the AR tag |
+| PF-030 | "Pass names surface in `--emit-il` stage labels" — no such surface exists; `ILPass.name` is unconsumed, the JSDoc promise was never built | Drop the clause; the honest-IL argument stands alone |
+| PF-031 | AC-1's baseline is reading-dependent: 47 literal, 48 if comments are skipped (the startup `JMP _main`) | Add the cross-function carve-out to AC-1 |
+| PF-032 | AC-4 and AC-9 gate items classified Should-Have | Promote both to Must-Have |
+| PF-033 | Relaxation must flow into `AssembledAsm.program`, or `build.ts:92` costing under-reports every relaxed branch by 3 bytes | State it in the relaxation section |
+| PF-034 | Two stated grounds are wrong though the conclusions hold: labels *do* survive post-translation (the real reason is lost **branch-tail** identity), and the peephole contract has no implementation behind it (the real reason is `--optimize` gating) | Correct both in the RD **and** in the AR #26 note |
+| PF-035 | `termination.ts:30-66` already implements the reachability walk with a `seen` set; the RD presents it as new work and leaves the constant-`brcond` edge rule undecided | Reference it; state the pass stays conservative |
+| PF-036 | Inversion can *manufacture* an out-of-range branch: `Bxx T / JMP F` is always legal, `Byy F` may not be — relaxation then reconstitutes it, even on bytes but +1 cycle on the `F` path, touching AC-9's "strictly decrease" | State the rule; latent on today's corpus |
+| PF-037 | The "was 12 cycles" baseline is the executed poll path; the committed constant is 15 (whole static slice) — two metrics, one closeout record | Pin which metric AC-3 uses |
+| PF-038 | Removal roots stated inconsistently (per-function entry vs. + module initializer) | State once, in the Must-Have |
+| PF-039 | "Printed IL stays honest" is a Must-Have with no AC | Add one |
+| PF-040 | AC-7 is over-broad and self-invalidates once RD-06 lands rules | Scope it to layout properties, not the byte stream |
+| PF-041 | AC-9's "strictly decrease" scope is ambiguous (5 branch-free goldens cannot move); AC-10 demands a test for an unconstructible failure | Clarify aggregate-vs-per-fixture; drop or define the trigger |
+| PF-042 | AC-1/2/4 are permanent invariants with no enforcing mechanism — they degrade to a 2026-07-19 inspection | Commit a corpus-invariant scan (AR-18 precedent) |
+| PF-043 | `balloon` has no golden, so AC-1/2/4's "no golden" quantifier excludes the largest-delta pair — the fixture issue #51's evidence is drawn from | Extend the quantifier or set a balloon target |
+| PF-044 | `README.md:43-44` still shows RD-02/RD-04 as preflighted, not Done | Refresh; bump the skills version line |
+
+## OBSERVATIONS
+
+- **PF-045**: the trampoline-emptiness hazard is filed under the elision seam but belongs to
+  threading — and is **latent only**: no producer for `source_span` exists in `codegen/src`, so
+  `instructions.length === 0` is exact today. (This downgrades what one auditor rated MAJOR.)
+- **PF-046**: an `unreachable`-terminated block emits nothing and already physically falls through;
+  worth one sentence in the adjacency model.
+- **PF-047**: a jump-only *entry* block is outside both threading and removal; AC-2's only stated
+  exception is the self-loop.
+
+## Declared unverifiable (not treated as verified)
+
+- GitHub issue text for #51/#65 — auditors had no network access and could corroborate only against
+  same-author artifacts.
+- "#65's failure is a loud ACME range error, never a silent miscompile" (RD Security Considerations)
+  — **an unexercised prediction**: no fixture in the repo pushes a branch past 127 bytes. Should be
+  demoted to an assumption to be proven by RD-05's own range fixtures.
+
+## Iteration 2 — fix-diff re-review
+
+Scoped to the fix diff, not a re-scan. **30/30 FIXED**, no PARTIAL/NOT FIXED/REGRESSED. Verified
+independently: Must-Have ↔ AC coverage complete in both directions (15 Must-Haves, 13 ACs, no
+orphans); the AC-1 ↔ AC-4 collision is gone; every AR back-reference matches its register row; and
+all corpus numbers recomputed from the committed goldens (105 `JMP`s · 48 literal fall-throughs
+minus the cross-function `guards.asm.golden:31` = 47 across 9 of 14 · 13 trampolines · budgets
+60/24/15/235+133 · raster 3 instr / 7 B / 9 cyc). Nothing lost in the wholesale rewrite.
+
+Two new minors, both introduced by the rewrite and both applied:
+
+### PF-048: relaxation cost claim named the wrong baseline 🟡 MINOR
+The RD asserted the reconstituted branch-over-jump form was "one cycle worse than the pre-inversion
+shape". It is not: inversion fires only when the true target is the next block, so the reconstituted
+form places the same two instructions at the same offsets and is byte- **and** cycle-identical to
+the pre-RD-05 emission. The +1 cycle is against the short inverted branch that could not be encoded
+— a forgone improvement, not a regression. **Resolution applied:** reworded; AC-9's "no fixture
+regresses" is unaffected.
+
+### PF-049: the new Relaxation-form scope row was tagged to an AR that resolved a different question 🟡 MINOR
+AR #28 resolves *placement* ("inside RD-05, not a follow-up") and its ambiguity text still names the
+now-refuted `B<inv> *+5`. The PF-020 correction had been filed under the AR-26 addendum, so the tag
+did not resolve. **Resolution applied:** the correction was moved into its own
+`AR-28 (form corrected at preflight, PF-020)` note, where a reader following the tag will find it,
+and the scope row cites it.

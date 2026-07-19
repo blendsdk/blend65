@@ -251,10 +251,16 @@ relaxation must always run (a `>127`-byte loop failing to assemble only under `-
 is a trap), layout must always run too. Gating would additionally require threading a flag
 into `translateFunction`, which has no such parameter today (`translate.ts:118-127`).
 
-**AR-31:** Option (c) is a *fixture* change, not an expectation change: every one of the 47
-expected instruction sequences in `instr/translate-brcmp.spec.test.ts` stays byte-identical;
-only the surrounding block order moves so that no target is adjacent and the `JMP
-falseTarget` legitimately survives. This preserves what that matrix exists for — its own
+**AR-31 (corrected at preflight, PF-021):** the decision stands; the *mechanism* recorded here
+was wrong. A block **reorder** cannot work — the fixture builds exactly three blocks and
+`blocks[0]` is pinned as the entry (`il/cfg.ts:88`, `instr/translate.ts:247`), so one of the two
+targets is always adjacent and elision or inversion always fires. Preservation is achieved by
+**interposing a non-target filler block**. The honest claim is also narrower than first written:
+every per-row `expected` instruction array stays byte-identical, but `expectFused`'s full-text
+`toBe` scaffold and the fixture doc comment do change. Additionally,
+`instr/switch-translate.spec.test.ts` — named in this row as affected — was left without a
+disposition; it is now superseded in writing per AR #24. Original (superseded) wording: option (c)
+is a fixture change, not an expectation change; only the surrounding block order moves. This preserves what that matrix exists for — its own
 header records that a fused branch "would still look plausible in isolation; only the pair
 pins it" — and branch inversion is precisely a polarity flip, so folding it into the polarity
 oracle would blunt RD-04's AC-10 guard one item after it landed. Layout gets its own suite.
@@ -267,6 +273,28 @@ that dilutes the corpus. The ACME-only tier already exists and runs in CI
 (`skipIf(!hasAcme())`, e.g. `compiler/src/api/build-report.spec.test.ts`); VICE stays local
 per AR-27.
 
+**AR-26 (grounds corrected at preflight, PF-034 — the decision is unchanged):** two of the
+rationales recorded above are factually wrong, and the corrected versions are what the RD now
+carries. (1) Elision does **not** sit at translation because "block identity is destroyed"
+post-translation — label entries survive in the flat stream (`core/src/instr-model/stream.ts:62`),
+which is exactly why relaxation can run there. The real reason is that **branch-tail identity** is
+lost: after translation a block tail is indistinguishable from a comparison-framing-internal
+branch by anything but naming convention, and inversion must never touch the latter. (2) The
+peephole was rejected primarily on its window contract, but that contract has **no implementation
+behind it** (`instr/peephole.ts:13-15,75` — `V1_RULES = []`, the scanner explicitly deferred), so
+RD-06 could still define labels into it. The load-bearing rejection is the `--optimize` gating: the
+peephole is skipped under `--no-optimize` while relaxation is correctness and must always run.
+**AR-28 (form corrected at preflight, PF-020 — the placement decision is unchanged):** this row's
+ambiguity text names the relaxed form as `B<inv> *+5 / JMP far`. That form is **not representable**
+in the instruction model — `InstrOperand` is `none | immediate | symbolRef | labelRef | zpSlot`
+with no PC-relative variant (`core/src/instr-model/operand.ts:30-39`), and `Relative` mode renders
+bare operand text (`instr/print-instr.ts:111-116`). Relaxation therefore mints a synthetic local
+label: `B<inv> _rlxN / JMP far / _rlxN:`, with uniqueness from the program-shared counter pattern
+already used for `_cmpN` (`instr/translate.ts:91-97`). The alternative — extending the operand
+union in `@blend65/core` — was rejected to keep that package out of RD-05's scope. The "inside
+RD-05, not a follow-up" resolution above stands unchanged.
+
 **Hardening disclosure:** Confidence High. Challenger: run blind on AR #26; converged on the
 seam split, diverged on relaxation's home and on inversion's status as a separate transform.
-Both divergences investigated against the code and adopted.
+Both divergences investigated against the code and adopted. Preflight subsequently corrected two
+of the supporting rationales without disturbing the decision (see above).
