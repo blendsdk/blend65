@@ -46,13 +46,19 @@
       "id": "disk-io",
       "name": "Disk file I/O",
       "tier": "unplanned",
-      "blurb": "Reading and writing files through the KERNAL — open/read/write/close, sequential and relative records. The mundane half of disk access: what any application needs to save a document. No KERNAL-call story exists yet."
+      "blurb": "Reading and writing files through the KERNAL — open/read/write/close, sequential and relative records. What any application needs to save a document, and the **prerequisite for both rows below**: a Blend65 program cannot transfer control to an arbitrary address at all today, so nothing can reach the disk until this lands."
     },
     {
-      "id": "disk-streaming",
-      "name": "Disk streaming / multi-load",
+      "id": "disk-streaming-data",
+      "name": "Disk streaming — data",
       "tier": "unplanned",
-      "blurb": "Multi-load, overlays, and data sets larger than 64 KB — levels, rooms and world maps pulled in as the program runs. The expensive half of disk access, and what the disk-era game catalogue is blocked on."
+      "blurb": "Pulling *data* off disk while the program runs — levels, rooms, world maps, record sets larger than RAM — into a buffer a resident program reads. The cheap half: once the KERNAL-call primitive above exists this is expressible in today’s language, because the buffer is an ordinary array and its address is what the load routine is handed."
+    },
+    {
+      "id": "code-overlays",
+      "name": "Code overlays / multi-load",
+      "tier": "unplanned",
+      "blurb": "Multi-load of *code*: several load units at independent addresses, control transfer between them, and static frame and zero-page allocation partitioned across units that occupy the same memory at different times. The compiler emits one flat image — one code segment, one data segment, one load address — so this is a linker-and-emitter project rather than a language gap. The expensive half."
     },
     {
       "id": "math",
@@ -157,7 +163,7 @@
   "notes": [
     "**Original-soundtrack footnote.** In-language SID music and effects are clean (*Sound — music & SFX*, available now). Reproducing a *ripped* `.sid` tune byte-for-byte means calling its own machine-code player routine, which needs **Indirect calls** — so a byte-faithful ripped soundtrack carries an implicit indirect-calls dependency. It is not added to every row."
   ],
-  "summaryNote": "The **Blocked** titles all need a capability that isn’t planned — **disk streaming** (the disk RPGs, SCUMM adventures, Cinemaware, Epyx multi-event sports, the streamed Last Ninjas), **hand-tuned asm** (real-time 3D and the 50 fps showcases: Elite, Out Run, Mayhem in Monsterland), or **indirect calls** (SCUMM dispatch). No optimizer reaches them — they need a new capability, not faster code. See the unlock table at the bottom.",
+  "summaryNote": "The **Blocked** titles all need a capability that isn’t planned — **streamed data** (the disk RPGs, the SCUMM adventures, the streamed Last Ninjas), **code overlays** (the Epyx multi-event anthologies, Cinemaware’s minigames, the multi-mode sims), **hand-tuned asm** (real-time 3D and the 50 fps showcases: Elite, Out Run, Mayhem in Monsterland), or **indirect calls** (SCUMM dispatch). Every disk row waits on the same missing primitive first — a program cannot call a KERNAL routine at all today. No optimizer reaches any of them: they need a new capability, not faster code. See the unlock table at the bottom.",
   "games": [
     {
       "n": 1,
@@ -663,7 +669,7 @@
       "category": "Adventure",
       "archetype": "iso flip-screen (multiload)",
       "needs": [
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "known"
@@ -676,7 +682,7 @@
       "category": "Adventure",
       "archetype": "iso flip-screen (multiload)",
       "needs": [
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "known"
@@ -967,7 +973,7 @@
       "category": "Sports",
       "archetype": "multi-event (disk)",
       "needs": [
-        "disk-streaming"
+        "code-overlays"
       ],
       "diff": "L",
       "conf": "known"
@@ -980,7 +986,7 @@
       "category": "Sports",
       "archetype": "multi-event (disk)",
       "needs": [
-        "disk-streaming"
+        "code-overlays"
       ],
       "diff": "L",
       "conf": "known"
@@ -994,7 +1000,7 @@
       "archetype": "multi-event (disk)",
       "needs": [
         "math",
-        "disk-streaming"
+        "code-overlays"
       ],
       "diff": "L",
       "conf": "known"
@@ -1007,7 +1013,7 @@
       "category": "Sports",
       "archetype": "multi-event (disk)",
       "needs": [
-        "disk-streaming"
+        "code-overlays"
       ],
       "diff": "L",
       "conf": "inferred"
@@ -1215,7 +1221,7 @@
       "category": "Adventure",
       "archetype": "SCUMM point-click (disk)",
       "needs": [
-        "disk-streaming",
+        "disk-streaming-data",
         "indirect-calls"
       ],
       "diff": "XL",
@@ -1229,7 +1235,7 @@
       "category": "Adventure",
       "archetype": "SCUMM point-click (disk)",
       "needs": [
-        "disk-streaming",
+        "disk-streaming-data",
         "indirect-calls"
       ],
       "diff": "XL",
@@ -1243,7 +1249,8 @@
       "category": "Adventure",
       "archetype": "bitmap + minigames (disk)",
       "needs": [
-        "disk-streaming"
+        "code-overlays",
+        "disk-streaming-data"
       ],
       "diff": "L",
       "conf": "known"
@@ -1256,7 +1263,7 @@
       "category": "RPG",
       "archetype": "tile RPG (disk world)",
       "needs": [
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1269,7 +1276,7 @@
       "category": "RPG",
       "archetype": "tile RPG (disk world)",
       "needs": [
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1282,7 +1289,7 @@
       "category": "RPG",
       "archetype": "dungeon RPG (disk)",
       "needs": [
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1295,7 +1302,8 @@
       "category": "RPG",
       "archetype": "tactical RPG (disk)",
       "needs": [
-        "disk-streaming"
+        "code-overlays",
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "inferred"
@@ -1309,7 +1317,7 @@
       "archetype": "action-RPG scroll (disk)",
       "needs": [
         "optimizer",
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "inferred"
@@ -1322,7 +1330,8 @@
       "category": "Adventure",
       "archetype": "multi-mode sim (disk)",
       "needs": [
-        "disk-streaming"
+        "code-overlays",
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "known"
@@ -1444,7 +1453,8 @@
       "archetype": "vectored WIMP OS, disk-loaded apps, turbo loader",
       "note": "The desktop the C64 actually had. Its kernal is reached through a jump table and an application *is* a set of function pointers — icon tables, menu trees and the event vectors the main loop dispatches through — so indirect dispatch is the programming model, not an implementation detail. Applications, fonts and desk accessories stream off disk through GEOS's own VLIR file system. Its turbo loader uploads 6502 code into the 1541's own CPU and then bit-bangs the serial lines on cycle-exact timing: **foreign-CPU code and hand-tuned asm, in one feature**.",
       "needs": [
-        "disk-streaming",
+        "code-overlays",
+        "disk-streaming-data",
         "indirect-calls",
         "asm",
         "firmware",
@@ -1463,7 +1473,7 @@
       "note": "A windowed multitasking desktop with a TCP/IP stack, web browser, telnet and VNC client — on a stock C64. Open source, so the needs here are read rather than guessed: every process is a struct holding a function pointer, applications load from disk as separate binaries, and the whole thing is a lesson in how far the machine goes when the software is good.",
       "needs": [
         "indirect-calls",
-        "disk-streaming",
+        "code-overlays",
         "optimizer"
       ],
       "diff": "XL",
@@ -1479,7 +1489,7 @@
       "note": "A modern, still-maintained C64 operating system — proof the category didn't die in 1986. Same shape as GEOS underneath: a disk-resident application model dispatched through pointers.",
       "needs": [
         "indirect-calls",
-        "disk-streaming",
+        "code-overlays",
         "optimizer"
       ],
       "diff": "XL",
@@ -1523,7 +1533,8 @@
       "archetype": "VDI + AES two-layer GUI, resource files, separate app binaries",
       "note": "**GEM never shipped on the C64** — it was a 16-bit product (Atari ST, DOS, Apple), so this row scores what a faithful 6502 retarget would demand rather than a port that exists; the C64's own desktop was GEOS, above. The AES dispatches by function number into separately loaded application binaries, those binaries and their `.RSC` resources live on disk, and the VDI is a clipping raster library doing signed 16-bit coordinate maths with arcs, polygons and scaling.",
       "needs": [
-        "disk-streaming",
+        "code-overlays",
+        "disk-streaming-data",
         "indirect-calls",
         "asm",
         "optimizer",
@@ -1553,9 +1564,9 @@
       "publisher": "Abacus",
       "category": "Dev tool",
       "archetype": "multi-pass C compiler with disk overlays",
-      "note": "A C compiler that runs on the machine it targets. Each pass overlays the last from disk and hands the next one an intermediate file — it needs both halves of the disk split at once, which is what a compiler on a 64 KB machine has always meant.",
+      "note": "A C compiler that runs on the machine it targets. Each pass overlays the last from disk and hands the next one an intermediate file — code overlays and file I/O in the same program, which is what a compiler on a 64 KB machine has always meant.",
       "needs": [
-        "disk-streaming",
+        "code-overlays",
         "disk-io",
         "optimizer"
       ],
@@ -1571,7 +1582,7 @@
       "archetype": "P-code Pascal compiler + editor",
       "note": "Compiles to P-code and interprets it, which means the hot loop is a dispatch table indexed by opcode — the textbook case for indirect calls, and slow for exactly that reason.",
       "needs": [
-        "disk-streaming",
+        "code-overlays",
         "disk-io",
         "indirect-calls"
       ],
@@ -1635,7 +1646,7 @@
       "needs": [
         "firmware",
         "asm",
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "inferred"
@@ -1664,7 +1675,7 @@
       "archetype": "SwiftLink terminal, Z-modem, scripting engine",
       "needs": [
         "asm",
-        "disk-streaming",
+        "disk-streaming-data",
         "indirect-calls"
       ],
       "diff": "XL",
@@ -1678,7 +1689,8 @@
       "category": "Comms",
       "archetype": "modular BBS host, disk-resident message base",
       "needs": [
-        "disk-streaming",
+        "code-overlays",
+        "disk-streaming-data",
         "indirect-calls",
         "asm"
       ],
@@ -1761,9 +1773,9 @@
       "publisher": "Professional Software",
       "category": "Word processor",
       "archetype": "WP + 90,000-word disk-resident spell check",
-      "note": "The dictionary is the interesting part: 90,000 words cannot live in 64 KB alongside the editor, so the spell check streams it off disk. A word processor that needs the *expensive* half of disk access.",
+      "note": "The dictionary is the interesting part: 90,000 words cannot live in 64 KB alongside the editor, so the spell check streams it off disk. A word processor that needs streamed data, not just a save command.",
       "needs": [
-        "disk-streaming",
+        "disk-streaming-data",
         "disk-io"
       ],
       "diff": "L",
@@ -1823,7 +1835,7 @@
       "needs": [
         "math",
         "firmware",
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "XL",
       "conf": "inferred"
@@ -1835,9 +1847,9 @@
       "publisher": "Precision Software",
       "category": "Database",
       "archetype": "relative-file database, programmable",
-      "note": "A database is disk access wearing a user interface: the records never all fit in RAM, which is the definition of the streaming half.",
+      "note": "A database is disk access wearing a user interface: the records never all fit in RAM, so streaming them past a resident engine is the whole application.",
       "needs": [
-        "disk-streaming",
+        "disk-streaming-data",
         "disk-io",
         "indirect-calls"
       ],
@@ -1895,7 +1907,7 @@
       "archetype": "card and banner composer, disk graphic libraries",
       "note": "Graphics and fonts live in disk libraries you swap between, and every supported printer is a driver selected at runtime — two different reasons to need a pointer you can call.",
       "needs": [
-        "disk-streaming",
+        "disk-streaming-data",
         "indirect-calls"
       ],
       "diff": "L",
@@ -1909,7 +1921,7 @@
       "category": "DTP / print",
       "archetype": "page layout with disk clip-art",
       "needs": [
-        "disk-streaming",
+        "disk-streaming-data",
         "optimizer"
       ],
       "diff": "L",
@@ -1997,7 +2009,7 @@
       "needs": [
         "firmware",
         "asm",
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "L",
       "conf": "inferred"
@@ -2012,7 +2024,7 @@
       "note": "Spherical trigonometry over a star catalogue that doesn't fit in memory — the two planned-and-unplanned gaps meeting in one unusually ambitious piece of consumer software.",
       "needs": [
         "math",
-        "disk-streaming"
+        "disk-streaming-data"
       ],
       "diff": "L",
       "conf": "inferred"
@@ -2041,12 +2053,16 @@
         "impact": "**The single biggest unlock.** Moves nearly every perf-bound scroller, shmup and brawler from Blocked/Soon toward Now. Already planned."
       },
       {
-        "id": "disk-streaming",
-        "impact": "**The biggest hard-gap unlock in the game list.** Frees the entire disk catalogue — the RPGs (Ultima, Bard’s Tale, Pool of Radiance), SCUMM adventures, Cinemaware, Epyx multi-event sports, and the streamed Last Ninjas. No story exists today."
+        "id": "disk-streaming-data",
+        "impact": "**The cheapest of the three disk rows, and the biggest game unlock among them.** No new language machinery once the call primitive lands — just somewhere to put the bytes. Frees the disk RPGs (Ultima, Bard’s Tale, Pool of Radiance), the SCUMM adventures and the streamed Last Ninjas: engines that stay resident while their worlds stream past."
+      },
+      {
+        "id": "code-overlays",
+        "impact": "**The expensive half — a linker project, not a language one.** What is left when a program’s *code* cannot be resident at once: the Epyx multi-event anthologies (a different engine per event), Cinemaware’s minigames, the multi-mode sims, and every disk-resident application model in the software list below."
       },
       {
         "id": "disk-io",
-        "impact": "**Looks trivial on the game numbers and isn’t.** Only two games want it — but it is the single missing piece for most of the non-game software below, from a 5 KB word processor to a self-hosted assembler. Opening and saving a file is the cheapest large unlock on this page, and the game tallies hide that completely."
+        "impact": "**Looks trivial on the game numbers and isn’t.** Only two games want it — but it is the single missing piece for most of the non-game software below, from a 5 KB word processor to a self-hosted assembler, *and* the gate on both rows beneath it: nothing reaches the disk until a program can call a KERNAL routine, which it cannot do today. Opening and saving a file is the cheapest large unlock on this page, and the game tallies hide that completely."
       },
       {
         "id": "asm",
@@ -2069,13 +2085,13 @@
         "impact": "Cartridge and KERNAL ROM images, plus 6502 code targeted at the drive’s own CPU. Narrow, and no game needs it — but it is the difference between building programs and building the fastloaders, freezer cartridges and DOS replacements the platform actually ran on."
       }
     ],
-    "bottomLine": "**Sequencing:** the **optimizer** first (planned; unlocks the most and the flashiest arcade action), then **disk file I/O** — cheap, and it moves almost the whole application catalogue at once — then **disk streaming** (frees the \"epic\" game catalogue the optimizer can never touch), and finally **hand-tuned asm** plus a **fixed-point math** library for the 3D / showcase tier. Splitting disk access into its two halves is what makes that order visible: the game list alone would have ranked all disk work as one expensive lump."
+    "bottomLine": "**Sequencing:** the **optimizer** first (planned; unlocks the most and the flashiest arcade action), then **disk file I/O** — cheap, it moves almost the whole application catalogue at once, and nothing else on the disk side can start until it lands — then **streamed data**, which frees the disk RPGs and adventures for little more than the call primitive, and only then **code overlays**, the linker work the anthologies and multi-mode sims need. **Hand-tuned asm** plus a **fixed-point math** library close out the 3D / showcase tier. Splitting disk access three ways is what makes that order visible: the game list alone would have ranked all disk work as one expensive lump."
   },
   "provenance": [
     "**The list is curated, not a sourced ranking.** These are 100 well-known, category-spanning C64 titles — not \"the top 100\" by any measured metric (sales, Zzap!64 score, Lemon64 votes). Swap freely with `/update_capability`.",
     "**Verdicts anchor on *engine archetype*, the real feasibility driver**, then adjust for a title’s specifics. Where a title’s internals are inferred rather than known, the **Conf** column says so (⚠️/🔴) — treat those rows as archetype estimates, not reverse-engineered fact.",
     "**Faithfulness bar is strict**: \"Now\" means the original *as played*. A reduced-scope demake that captures the feel but drops the smooth scroll, the multiplexed sprite count, the disk-streamed content, or the exact soundtrack is not \"Now\" — even when it would be a perfectly good game.",
-    "**Memory pressure is folded into difficulty, not a capability.** A title that strains 64 KB but fits with effort is not \"blocked\"; one whose data genuinely exceeds RAM needs *disk streaming*, and is marked so."
+    "**Memory pressure is folded into difficulty, not a capability.** A title that strains 64 KB but fits with effort is not \"blocked\"; one whose data genuinely exceeds RAM needs *disk streaming — data*, and is marked so."
   ],
   "footer": "Maintained via `/update_capability`. When a capability ships (the optimizer lands, a disk / loader story arrives, fixed-point math or asm-linking ships), re-run it to move every game waiting on that capability and refresh the counts."
 }
