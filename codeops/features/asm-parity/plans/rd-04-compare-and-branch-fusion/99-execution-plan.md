@@ -2,8 +2,8 @@
 
 > **Document**: 99-execution-plan.md
 > **Parent**: [Index](00-index.md)
-> **Last Updated**: 2026-07-19 18:28
-> **Progress**: 19/43 tasks (44%)
+> **Last Updated**: 2026-07-19 18:58
+> **Progress**: 26/43 tasks (60%)
 > **CodeOps Skills Version**: 3.9.0
 
 ## Overview
@@ -191,28 +191,45 @@ call site, `iceNoTranslation` still reachable, and that no pre-existing spec tes
 
 ## Phase 3: `guards` fixture — pre-flip baseline
 
+> **Phase ref**: 56a645fc0464f8a217d4d7736fc461d60252b79b
+
 ### Step 3.1: Fixture (spec-first: observables are the spec)
 
 **Reference**: 07 ST-12 · 03-04 §The guards fixture · plan-AR #1, #5
 **Objective**: The behavioral witness exists and is VICE-green BEFORE the flip.
 
-- [ ] 3.1.1 Write the VICE observables spec + testing module skeleton (assertions from 03-04's four hazard shapes) — `packages/test-harness/src/guards.spec.test.ts`, `packages/test-harness/src/testing/guards.ts`
-- [ ] 3.1.2 Red phase: suite fails (no fixture source yet)
-- [ ] 3.1.3 Author the fixture source (four hazard shapes, deterministic observables) + inline verbatim; observables green on local VICE — `examples/guards/main.blend`, `packages/test-harness/src/testing/guards.ts`
-- [ ] 3.1.4 Add the golden suite; generate + hand-review the PRE-FUSION baseline golden (it documents today's defect — reviewed as such) — `packages/test-harness/src/golden-guards.spec.test.ts`, `packages/test-harness/test/golden/guards.asm.golden`
+- [x] 3.1.1 Write the VICE observables spec + testing module skeleton (assertions from 03-04's four hazard shapes) — `packages/test-harness/src/guards.spec.test.ts`, `packages/test-harness/src/testing/guards.ts` ✅ (completed: 2026-07-19 18:47)
+- [x] 3.1.2 Red phase: suite fails (no fixture source yet) ✅ (completed: 2026-07-19 18:47)
+      ↳ The skeleton's `GUARDS_MAIN_SRC` is an empty `module Main;` — no `main`, so no binary is produced and `setupEmulator` fails loudly rather than the suite silently passing on an unbuilt program.
+- [x] 3.1.3 Author the fixture source (four hazard shapes, deterministic observables) + inline verbatim; observables green on local VICE — `examples/guards/main.blend`, `packages/test-harness/src/testing/guards.ts` ✅ (completed: 2026-07-19 18:49)
+      ↳ **Determinism of the `peek($DC00)` guard (authoring decision).** 03-04 pins the port read at `$DC00`, but the KERNAL's keyboard scan rewrites CIA-1 port A every jiffy, so a stock machine makes that read non-deterministic and neither the observable nor the twin could pin it. The fixture therefore opens the way a frame-locked C64 game opens: silence CIA-1 (`$DC0D` ← `$7F`), drive port A (`$DC02` ← `$FF`), park it (`$DC00` ← `$7F`). The guard then reads back exactly 127 on every frame and on the twin. Verified on VICE 3.10, and verified to be a real assertion: flipping the `$0402` expectation fails with `Expected memory at $402 to be [0x04], but it was [0x03]`.
+      ↳ **Observables chosen to discriminate, not merely to pass.** `$0402` is the signed velocity verdict — read as unsigned bytes, `dx` (-3) would be 253 and the cell would hold 4 instead of 3, so a framing regression is a red test rather than a silent one. `$0400` counts window hits across eight probes, which exercises both edges of the compound guard AND its short-circuit (probe 0 never reaches the upper bound) in a single frame.
+      ↳ Short-circuit *suppression* is not given a behavioral witness here: `peek` has no observable side effect, so a suppressed clause cannot be seen from memory. The corpus already proves suppression behaviorally in `slice6` (the `bump()` witness); the guards fixture proves it structurally in the golden.
+- [x] 3.1.4 Add the golden suite; generate + hand-review the PRE-FUSION baseline golden (it documents today's defect — reviewed as such) — `packages/test-harness/src/golden-guards.spec.test.ts`, `packages/test-harness/test/golden/guards.asm.golden` ✅ (completed: 2026-07-19 18:50)
+      ↳ **Hand review of the baseline (203 lines).** It records today's defect exactly as expected: all six comparisons materialise 0/1 and re-test it (`_cmp0`…`_cmp11`, 24 references); both short-circuits round-trip through synthetic frame slots (`0sc0`/`0sc1`, 8 references) — the traffic AC-3 forbids; `!active` emits the `CMP #$00` residue AC-4 calls out; the signed compare builds the correct `SEC · SBC · BVC · EOR #$80` core and then throws the flags away to materialise (AC-5); `while (true)` emits `LDA #$01 · BNE · JMP` rather than a bare jump (AC-2); the poll block is 9 instructions / 25 static cycles (AC-1's "was").
+      ↳ The suite's landmark assertions were written to hold in BOTH worlds — one `LDA $DC00`, ordered after the `armed` test (ST-7); one `LDA $D012`; both window bounds in source order; the N⊕V correction present; the four verdict cells written. The fused-idiom assertions (ST-3/4/5) belong to the flip and are authored in phase 4, where they can be true.
 
 ### Step 3.2: Twin + corpus registration
 
 **Reference**: 03-04 §Registration · plan-AR #1
 **Objective**: The pair is a full corpus citizen with a measured "before" row.
 
-- [ ] 3.2.1 Author the hand-written twin (blind to fused output — the parity bar) + twin tier green via the shared observables — `packages/test-harness/test/golden/guards.twin.asm`
-- [ ] 3.2.2 Register: `twins.json` pair + routed divergence groups; `budgets.json` bytes + compound-guard window (current values, ratchet); regenerate `SCOREBOARD.md` — `packages/test-harness/test/golden/twins.json`, `budgets.json`, `SCOREBOARD.md`
-- [ ] 3.2.3 Full verification + local VICE fixture & twin tiers + examples-sync green
+- [x] 3.2.1 Author the hand-written twin (blind to fused output — the parity bar) + twin tier green via the shared observables — `packages/test-harness/test/golden/guards.twin.asm` ✅ (completed: 2026-07-19 18:56)
+      ↳ 132 bytes / 157 static cycles against the generated 347 / 404. It keeps the probe walk in X and its hit count in Y (`CPX`/`INY`, never a store), holds the four state bytes in zero page, and decides each guard with one compare and one branch — including the `SEC · SBC · BVC · EOR #$80` correction, where it branches on `BPL` instead of building a boolean. Landed the identical observable set on VICE 3.10 first run.
+      ↳ Authored against the source's semantics, not against generated output: the fused form does not exist yet, and the pre-fusion golden was deliberately not consulted while writing it.
+- [x] 3.2.2 Register: `twins.json` pair + routed divergence groups; `budgets.json` bytes + compound-guard window (current values, ratchet); regenerate `SCOREBOARD.md` — `packages/test-harness/test/golden/twins.json`, `budgets.json`, `SCOREBOARD.md` ✅ (completed: 2026-07-19 18:57)
+      ↳ Three computed divergence groups, all routed: **instruction selection** → #50 (every guard materialises and re-tests), #51 (JMP 29 vs 1), #53 (probe/count in frame memory vs X/Y), #52 (counter bump vs `INC`), #59 (unreachable `RTS` past a non-returning frame loop); **addressing modes** → #49 (`SBC Absolute` vs the hand version's zero-page velocities); **layout** → #51.
+      ↳ Budgets are the exact current figures, not headroom: **347 bytes** and a `compoundGuard` window of **43 static cycles** — both established by probing one below and reading the ratchet's own failure. The window carries a hand-derivation comment beside `EXPECTED_POLL_ITERATION_MAX_CYCLES` and its own equality test, so the figure is derived rather than transcribed; 16 of those 43 cycles exist only to build a 0/1 the join reads straight back.
+- [x] 3.2.3 Full verification + local VICE fixture & twin tiers + examples-sync green ✅ (completed: 2026-07-19 18:58)
+      ↳ install/build/typecheck/lint/test green — 1 051 tests (cli 47, compiler 113, codegen 616, test-harness 295, root boundary 33), including the local VICE fixture tier, the 18-case twin tier, examples-sync (19), and the scoreboard freshness gate. Thirteen pre-existing goldens byte-identical; `git status --porcelain spec/` empty. Prettier: the three new files and both JSON assets are clean; the drift `--check` reports in `budgets.spec.test.ts` and `twins.spec.test.ts` is pre-existing and outside the touched ranges, so it was left alone.
 
 **Deliverables**:
-- [ ] `guards` pair committed with pre-fusion golden, twin, budgets, scoreboard row
-- [ ] All verification passing
+- [x] `guards` pair committed with pre-fusion golden, twin, budgets, scoreboard row
+- [x] All verification passing
+
+**Measured "before"** (the baseline the flip ratchets against, from the committed scoreboard):
+`guards` 347 bytes generated vs 132 hand-written (2.63×), 404 static cycles vs 157 (2.57×);
+`compoundGuard` window 43 static cycles.
 
 **Verify**: `yarn install --frozen-lockfile && yarn turbo run build && yarn turbo run typecheck && yarn turbo run lint && yarn test` (+ local VICE tiers)
 
